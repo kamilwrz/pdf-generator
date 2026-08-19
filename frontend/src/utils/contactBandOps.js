@@ -74,9 +74,21 @@ function reposition(el, bandId, placementByChannel, oldBottomY, delta) {
   if (el.contactBandId === bandId && el.contactChannel) {
     const placement = placementByChannel.get(el.contactChannel);
     if (!placement) return el;
-    return el.category === "image"
-      ? { ...el, left: placement.iconLeft, top: placement.iconTop }
-      : { ...el, left: placement.labelLeft, top: placement.labelTop };
+    if (el.category === "image") {
+      return { ...el, left: placement.iconLeft, top: placement.iconTop };
+    }
+    if (el.category === "rectangle") {
+      // Chip (Volt) background pill: move AND resize to the recomputed width.
+      // Non-chip placements have no rect fields, but no rectangle band element
+      // exists in those modes, so this branch is only reached in chip mode.
+      return {
+        ...el,
+        left: placement.rectLeft, top: placement.rectTop,
+        width: placement.rectWidth,
+      };
+    }
+    // text label
+    return { ...el, left: placement.labelLeft, top: placement.labelTop };
   }
   // The band anchor (band id but no channel) never moves.
   if (el.contactBandId === bandId) return el;
@@ -198,13 +210,16 @@ export function applyChannelAddition(elements, bandId, channel, label, measure, 
   const newBand = layoutContactBand(descriptor, itemsFor(nextChannels, nextLabels), measure);
   const placement = newBand.placements.find((p) => p.channel === channel);
   const page = bandPage(elements, bandId);
+  const isChip = descriptor.mode === "chip";
   const iconEl = {
     element_id: createId("icon"),
     category: "image",
     src: deriveIconSrc(elements, bandId, descriptor, channel),
     left: placement.iconLeft, top: placement.iconTop,
     width: descriptor.icon.sizePt, height: descriptor.icon.sizePt,
-    zIndex: 3, page, flowRole: "masthead", alignWithText: true,
+    // Chip icons sit at their literal drawn top (the placement already centers
+    // them in the pill); other modes align the icon to the text baseline.
+    zIndex: 3, page, flowRole: "masthead", alignWithText: !isChip,
     contactChannel: channel, contactBandId: bandId,
   };
   const labelEl = {
@@ -223,7 +238,22 @@ export function applyChannelAddition(elements, bandId, channel, label, measure, 
     // mounting an element already `isEditing:true` is an unreliable focus path.
     placeholder: channelName(channel),
   };
-  const withNew = [...elements, iconEl, labelEl];
+  // Chip (Volt) channels are a triple: a background pill (rectangle) behind the
+  // icon + label. Create it too so the new channel matches the drawn shape; the
+  // subsequent relayout confirms every position/size.
+  const extras = [];
+  if (isChip) {
+    extras.push({
+      element_id: createId("chip"),
+      category: "rectangle",
+      left: placement.rectLeft, top: placement.rectTop,
+      width: placement.rectWidth, height: descriptor.metrics.chipH,
+      backgroundColor: descriptor.chipColor ?? "#EEEEEE",
+      filled: true, borderWidth: 1, zIndex: 1, page, flowRole: "masthead",
+      contactChannel: channel, contactBandId: bandId,
+    });
+  }
+  const withNew = [...elements, ...extras, iconEl, labelEl];
   return relayoutAndReconcile(
     withNew, bandId, descriptor,
     itemsFor(oldChannels, labels), itemsFor(nextChannels, nextLabels),

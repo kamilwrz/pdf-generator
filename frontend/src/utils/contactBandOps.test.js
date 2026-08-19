@@ -126,3 +126,51 @@ test("addition creates a plain filled label (no auto-edit) with a placeholder", 
   assert.ok(!label.isEditing);
   assert.equal(elements.filter((e) => e.isEditing).length, 0);
 });
+
+// ── Chip mode (Volt): rect + icon + label triple per channel ────────────────
+const chipDescriptor = {
+  id: "vb", mode: "chip",
+  anchor: { startX: 48, startY: 108, rightLimit: 547 },
+  text: { fontFamily: "JetBrains Mono", fontSizePt: 7.8, colorHex: "#333" },
+  icon: { sizePt: 15, theme: "volt" },
+  metrics: { chipH: 20, iconSize: 15, padLeft: 6, labelOffset: 27,
+    widthBase: 28, widthPerChar: 5.2, minWidth: 120, maxWidth: 168,
+    chipGap: 8, lineStep: 28, charWidth: 5.2 },
+  chipColor: "#EEEEEE",
+  order: ["phone", "email"],
+};
+
+function chipDoc() {
+  return [
+    { element_id: "a", category: "text", content: "", flowRole: "masthead-anchor",
+      contactBandId: "vb", contactBand: chipDescriptor, top: 0, left: 0, page: 1 },
+    { element_id: "ph-r", category: "rectangle", contactBandId: "vb", contactChannel: "phone",
+      left: 48, top: 108, width: 120, height: 20, page: 1, flowRole: "masthead" },
+    { element_id: "ph-i", category: "image", contactBandId: "vb", contactChannel: "phone",
+      left: 54, top: 114, width: 15, height: 15, page: 1, src: "x/volt/phone.png", flowRole: "masthead" },
+    { element_id: "ph-l", category: "text", contactBandId: "vb", contactChannel: "phone",
+      content: "+48 111", left: 75, top: 114, page: 1, flowRole: "masthead" },
+    { element_id: "head", category: "text", content: "H", top: 200, left: 48, page: 1 },
+  ];
+}
+
+test("chip relayout moves + resizes the rect with its icon/label", () => {
+  const edited = chipDoc().map((e) =>
+    e.element_id === "ph-l" ? { ...e, content: "+48 111 222 333 444 555" } : e,
+  );
+  const { elements } = applyChannelRelayout(edited, "vb", (t) => t.length * 5, () => "id");
+  const rect = elements.find((e) => e.element_id === "ph-r");
+  const expected = Math.max(120, Math.min(168, 28 + "+48 111 222 333 444 555".length * 5.2));
+  assert.equal(rect.width, expected);
+  assert.equal(rect.left, 48);
+});
+
+test("chip addition creates a rect + icon + label triple for the channel", () => {
+  let n = 0;
+  const { elements } = applyChannelAddition(chipDoc(), "vb", "email", "", (t) => t.length * 5, () => `new-${n++}`);
+  const added = elements.filter((e) => e.contactChannel === "email");
+  assert.equal(added.length, 3);
+  assert.ok(added.some((e) => e.category === "rectangle"));
+  assert.ok(added.some((e) => e.category === "image"));
+  assert.ok(added.some((e) => e.category === "text"));
+});

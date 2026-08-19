@@ -115,16 +115,55 @@ function layoutStacked(descriptor, items) {
   return { placements, bottomY };
 }
 
+// Volt-style chip (pill) width. Uses the char-count formula the backend draws
+// with (NOT a measured width), so the canvas pill matches the PDF exactly.
+function chipWidth(text, m) {
+  const raw = m.widthBase + String(text).length * m.widthPerChar;
+  return Math.max(m.minWidth, Math.min(m.maxWidth, raw));
+}
+
+// Volt-style chip band: each channel is a rounded pill (rect) with an icon and a
+// label at fixed inset offsets; rows wrap at `rightLimit`. Each placement carries
+// rect geometry in addition to icon/label so the controller can move + resize the
+// pill background. `measure` is unused (width is deterministic per chipWidth).
+function layoutChip(descriptor, items) {
+  const m = descriptor.metrics;
+  const { startX, startY, rightLimit } = descriptor.anchor;
+  const fontSize = descriptor.text.fontSizePt;
+  const placements = [];
+  let cx = startX;
+  let cy = startY;
+  for (const item of items) {
+    const width = chipWidth(item.label, m);
+    if (cx > startX && cx + width > rightLimit) {
+      cx = startX;
+      cy += m.lineStep;
+    }
+    const textTop = cy + (m.chipH - fontSize) / 2;
+    placements.push({
+      channel: item.channel,
+      rectLeft: cx, rectTop: cy, rectWidth: width,
+      iconLeft: cx + m.padLeft, iconTop: textTop,
+      labelLeft: cx + m.labelOffset, labelTop: textTop,
+    });
+    cx += width + m.chipGap;
+  }
+  return { placements, bottomY: cy };
+}
+
 /**
  * Lay out a contact band's active channels.
  *
  * @param {object} descriptor - Band descriptor (mode/anchor/text/icon/metrics/order).
  * @param {{channel:string,label:string}[]} items - Active channels, in order.
  * @param {(text:string,fontFamily:string,fontSizePt:number)=>number|null} measure
- * @returns {{placements:Array<{channel:string,iconLeft:number,iconTop:number,labelLeft:number,labelTop:number}>,bottomY:number}}
+ * @returns {{placements:Array,bottomY:number}} placements carry icon/label
+ *   positions for every mode, plus rect geometry (rectLeft/rectTop/rectWidth) in
+ *   `chip` mode.
  */
 export function layoutContactBand(descriptor, items, measure) {
   if (descriptor.mode === "wrapping") return layoutWrapping(descriptor, items, measure);
   if (descriptor.mode === "stacked") return layoutStacked(descriptor, items);
+  if (descriptor.mode === "chip") return layoutChip(descriptor, items);
   return layoutCentered(descriptor, items, measure);
 }

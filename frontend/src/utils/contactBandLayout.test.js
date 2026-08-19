@@ -83,6 +83,40 @@ test("stacked: one channel per row, bottomY at the last row", () => {
   assert.equal(bottomY, 136);
 });
 
+const chipDesc = {
+  mode: "chip",
+  anchor: { startX: 48, startY: 108, rightLimit: 547 },
+  text: { fontFamily: "JetBrains Mono", fontSizePt: 7.8, colorHex: "#333" },
+  icon: { sizePt: 15, theme: "volt" },
+  metrics: {
+    chipH: 20, iconSize: 15, padLeft: 6, labelOffset: 27,
+    widthBase: 28, widthPerChar: 5.2, minWidth: 120, maxWidth: 168,
+    chipGap: 8, lineStep: 28, charWidth: 5.2,
+  },
+};
+
+test("chip: rect + icon + label geometry and clamped width", () => {
+  const items = [{ channel: "phone", label: "+48 111 222 333" }];
+  const { placements } = layoutContactBand(chipDesc, items, () => 999);
+  const p = placements[0];
+  const expectedWidth = Math.max(120, Math.min(168, 28 + "+48 111 222 333".length * 5.2));
+  assert.equal(p.rectLeft, 48);
+  assert.equal(p.rectTop, 108);
+  assert.equal(p.rectWidth, expectedWidth);
+  assert.equal(p.iconLeft, 54); // 48 + padLeft 6
+  assert.equal(p.labelLeft, 75); // 48 + labelOffset 27
+  const textTop = 108 + (20 - 7.8) / 2;
+  assert.equal(p.iconTop, textTop);
+  assert.equal(p.labelTop, textTop);
+});
+
+test("chip: wraps to the next band when the row exceeds rightLimit", () => {
+  const long = { channel: "email", label: "someverylongemail@example.com" };
+  const items = [long, long, long, long, long];
+  const { placements } = layoutContactBand(chipDesc, items, () => 10);
+  assert.ok(placements.some((p) => p.rectTop > 108), "expected a wrapped row");
+});
+
 test("removing the middle item closes the gap (no empty slot)", () => {
   const items = [{ channel: "phone", label: "111" }, { channel: "location", label: "xx" }];
   const { placements } = layoutContactBand(centered, items, measure);
