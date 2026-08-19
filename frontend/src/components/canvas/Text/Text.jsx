@@ -110,10 +110,10 @@ function Text({
         if (!selection) return;
         const range = document.createRange();
         range.selectNodeContents(node);
-        // Freshly added contact labels open with their seed text selected so the
-        // first keystroke replaces it; every other element places the caret at
-        // the end (append-style editing).
-        range.collapse(!selectAllOnEdit);
+        // Freshly added contact labels open with their seed text selected (no
+        // collapse) so the first keystroke replaces it; every other element
+        // collapses to the end for append-style editing.
+        if (!selectAllOnEdit) range.collapse(false);
         selection.removeAllRanges();
         selection.addRange(range);
     }, [isEditing, selectAllOnEdit]);

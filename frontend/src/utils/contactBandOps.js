@@ -215,28 +215,18 @@ export function applyChannelAddition(elements, bandId, channel, label, measure, 
     color: descriptor.text.colorHex,
     zIndex: 3, page, flowRole: "masthead",
     contactChannel: channel, contactBandId: bandId,
-    // Open the new label in edit mode with its seed text selected, so the caret
-    // is ready and the first keystroke overwrites the placeholder-style seed.
-    // `placeholder` still gives the label a hint + hit area if the user clears it.
-    isEditing: true, isSelected: true, selectAllOnEdit: true,
+    // Seed with the channel display name so the label has real, clickable glyphs
+    // (canvas text uses line-height:0, so an EMPTY single-line label collapses to
+    // zero height and cannot be clicked into). The user clicks it to edit via the
+    // same proven path as every other text element; `placeholder` still supplies a
+    // hint + hit area if the value is later cleared. Deliberately NOT auto-edited:
+    // mounting an element already `isEditing:true` is an unreliable focus path.
     placeholder: channelName(channel),
   };
   const withNew = [...elements, iconEl, labelEl];
-  const result = relayoutAndReconcile(
+  return relayoutAndReconcile(
     withNew, bandId, descriptor,
     itemsFor(oldChannels, labels), itemsFor(nextChannels, nextLabels),
     measure, createId,
   );
-  // Make the new label the sole active element: clear edit/selection on every
-  // other text/textarea, mirroring `handleSetTextareaEditing`'s semantics so a
-  // prior selection cannot stay active while the user types the new channel.
-  const newLabelId = labelEl.element_id;
-  const elementsOut = result.elements.map((el) => {
-    if (el.element_id === newLabelId) return el;
-    if (el.category === "text" || el.category === "textarea") {
-      return el.isEditing || el.isSelected ? { ...el, isEditing: false, isSelected: false } : el;
-    }
-    return el;
-  });
-  return { elements: elementsOut, pageCount: result.pageCount };
 }

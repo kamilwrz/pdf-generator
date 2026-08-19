@@ -70,10 +70,11 @@ test("addition without a provided label seeds the channel display name for editi
   let n = 0;
   const { elements } = applyChannelAddition(removed, "b1", "location", undefined, measure, () => `new-${n++}`);
   const label = elements.find((e) => e.contactChannel === "location" && e.category === "text");
-  // Seeded with real content (not empty) so it behaves like any editable label,
-  // and flagged to select-all on entry so the first keystroke replaces it.
+  // Seeded with real content (not empty) so it has clickable glyphs and edits
+  // like any other label. Not auto-edited — the user clicks it to edit.
   assert.equal(label.content, channelName("location"));
-  assert.equal(label.selectAllOnEdit, true);
+  assert.equal(label.placeholder, channelName("location"));
+  assert.ok(!label.isEditing);
 });
 
 test("relayout re-spaces following chips after the edited label grows", () => {
@@ -113,14 +114,15 @@ test("empty added label reserves display-name width so the next chip does not ov
   assert.equal(locIcon.left, emailIcon.left + emailAdvance);
 });
 
-test("addition opens the new label in edit mode with a placeholder", () => {
+test("addition creates a plain filled label (no auto-edit) with a placeholder", () => {
   const removed = applyChannelRemoval(doc(), "b1", "email", measure, () => "id").elements;
   let n = 0;
   const { elements } = applyChannelAddition(removed, "b1", "email", "", measure, () => `new-${n++}`);
   const label = elements.find((e) => e.contactChannel === "email" && e.category === "text");
-  assert.equal(label.isEditing, true);
-  assert.equal(label.isSelected, true);
+  assert.equal(label.content, channelName("email"));
   assert.equal(label.placeholder, channelName("email"));
-  // The edited label is the sole active element.
-  assert.equal(elements.filter((e) => e.isEditing).length, 1);
+  // Not auto-edited: mounting an element already isEditing is an unreliable
+  // focus path; the user clicks to edit via the proven click-to-edit flow.
+  assert.ok(!label.isEditing);
+  assert.equal(elements.filter((e) => e.isEditing).length, 0);
 });
