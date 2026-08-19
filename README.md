@@ -1269,7 +1269,27 @@ Implementation:
 
 Tests: `frontend/src/utils/contactBandLayout.test.js`, `contactBandOps.test.js`, `contactBands.test.js`; `backend/tests/test_contact_band_emit.py`, `test_contact_channel_roundtrip.py`.
 
-Deferred to later phases: sidebar / stacked layouts (Tessera, Slate, Nova), the title/role and name-uppercase toggles, the profile photo slot, and new data fields (extra field, birth date, nationality).
+### Contact channel manager (Phase 2)
+
+Phase 2 makes the manager usable everywhere and adds live editing:
+
+- **All templates.** The manager now works on Harbor, Atrium, Portico, Cardinal, Tessera and Slate (centered / wrapping masthead), plus **Nova** (a new `stacked` layout mode, one channel per row) and **Volt** (a new `chip` layout mode — each channel is a rounded pill: a `rectangle` background with an icon and a label). Each template passes a `band_id` to its contact placer and appends the band anchor after its masthead `flowRole` pass so the anchor keeps its own `masthead-anchor` role.
+- **A just-added channel is editable.** The added label is seeded with the channel display name (real, clickable glyphs) and edited by clicking it — the same proven click→`setTextareaEditing` path every other text element uses. It is deliberately **not** auto-opened in edit mode: mounting an element already `isEditing:true` is an unreliable focus path, and canvas text uses `line-height: 0` (see `App.css` `.page-canvas p`), so an empty single-line label collapses to zero height and has no hit area. An empty label reserves the width of its placeholder (the channel display name) so the following chip never overlaps it.
+- **Live horizontal reflow while typing.** Editing a channel's label re-spaces the band on every keystroke (constant inter-item gap) and shifts downstream flow by the height delta, via `applyChannelRelayout` wired into `handleEditElementValues`. In `chip` mode the pill background is moved **and resized** with its icon and label.
+- **Canvas↔PDF parity.** The `chip` pill width uses the same character-count formula on the client (`contactBandLayout.js` `chipWidth`) and the backend (`_place_chip_icon_contacts`), so the canvas matches the PDF exactly.
+
+Additional implementation (on top of Phase 1):
+
+- `frontend/src/utils/contactBandLayout.js` — `stacked` and `chip` layout modes.
+- `frontend/src/utils/contactBandOps.js` — `applyChannelRelayout` (live edit reflow); `reposition` moves + resizes the chip `rectangle`; `applyChannelAddition` seeds the display name and creates the chip triple in `chip` mode.
+- `frontend/src/utils/contactChannelNames.js` — shared channel display names (add-menu + placeholder seed).
+- `frontend/src/components/canvas/Text/Text.jsx` + `Text.module.css` — placeholder + hit area for empty labels; re-focus on click when already flagged editing.
+- `backend/app/services/cv_templates/shared/contact.py` — `_place_stacked_icon_contacts` gains a descriptor; new `_place_chip_icon_contacts`.
+- Template call sites: `backend/app/services/cv_templates/templates/{atrium,portico,cardinal,tessera,slate,nova,volt}.py`.
+
+Tests (added): `backend/tests/test_contact_band_templates.py` (per-template anchor + tagging), plus `stacked`/`chip` cases in `test_contact_band_emit.py`, `contactBandLayout.test.js`, `contactBandOps.test.js`.
+
+Deferred to later phases: the title/role and name-uppercase toggles, the profile photo slot, and new data fields (extra field, birth date, nationality). Adding a channel the CV never had is still limited to channels present at generation time (the `+` menu re-adds a removed channel).
 
 ### CV PDF extract
 
@@ -3020,7 +3040,27 @@ Implementacja:
 
 Testy: `frontend/src/utils/contactBandLayout.test.js`, `contactBandOps.test.js`, `contactBands.test.js`; `backend/tests/test_contact_band_emit.py`, `test_contact_channel_roundtrip.py`.
 
-Odłożone do kolejnych faz: układy sidebar / stackowane (Tessera, Slate, Nova), przełączniki tytułu/roli i wielkich liter w imieniu, slot zdjęcia profilowego oraz nowe pola danych (dodatkowe pole, data urodzenia, narodowość).
+### Menedżer kanałów kontaktu (Faza 2)
+
+Faza 2 udostępnia menedżera we wszystkich szablonach i dodaje edycję na żywo:
+
+- **Wszystkie szablony.** Menedżer działa teraz w Harbor, Atrium, Portico, Cardinal, Tessera i Slate (masthead wycentrowany / zawijany), a także w **Nova** (nowy tryb układu `stacked`, jeden kanał na wiersz) oraz **Volt** (nowy tryb `chip` — każdy kanał to zaokrąglona pigułka: tło `rectangle` z ikoną i etykietą). Każdy szablon przekazuje `band_id` do swojego placera kontaktów i dopina anchor paska **po** przejściu ustawiającym `flowRole` masthead, aby anchor zachował własną rolę `masthead-anchor`.
+- **Świeżo dodany kanał jest edytowalny.** Dodana etykieta jest zasilana nazwą wyświetlaną kanału (prawdziwe, klikalne glify) i edytowana przez kliknięcie — tą samą, sprawdzoną ścieżką klik→`setTextareaEditing`, której używa każdy inny element tekstowy. Celowo **nie** jest automatycznie otwierana w trybie edycji: montowanie elementu już z `isEditing:true` to zawodna ścieżka fokusu, a tekst na płótnie używa `line-height: 0` (patrz `App.css` `.page-canvas p`), więc pusta jednowierszowa etykieta zapada się do zerowej wysokości i nie ma pola trafienia. Pusta etykieta rezerwuje szerokość swojego placeholdera (nazwy kanału), aby następny chip jej nie nachodził.
+- **Poziomy reflow na żywo podczas pisania.** Edycja etykiety kanału przelicza odstępy paska przy każdym naciśnięciu klawisza (stały odstęp między elementami) i przesuwa dalszy przepływ o deltę wysokości, przez `applyChannelRelayout` wpięte w `handleEditElementValues`. W trybie `chip` tło pigułki jest przesuwane **i skalowane** wraz z ikoną i etykietą.
+- **Parzystość płótno↔PDF.** Szerokość pigułki `chip` używa tej samej formuły opartej na liczbie znaków po stronie klienta (`contactBandLayout.js` `chipWidth`) i backendu (`_place_chip_icon_contacts`), więc płótno odpowiada dokładnie PDF.
+
+Dodatkowa implementacja (ponad Fazę 1):
+
+- `frontend/src/utils/contactBandLayout.js` — tryby układu `stacked` i `chip`.
+- `frontend/src/utils/contactBandOps.js` — `applyChannelRelayout` (reflow edycji na żywo); `reposition` przesuwa + skaluje `rectangle` pigułki; `applyChannelAddition` zasila nazwę wyświetlaną i tworzy trójkę chipa w trybie `chip`.
+- `frontend/src/utils/contactChannelNames.js` — współdzielone nazwy kanałów (menu dodawania + placeholder).
+- `frontend/src/components/canvas/Text/Text.jsx` + `Text.module.css` — placeholder + pole trafienia dla pustych etykiet; ponowny fokus przy kliknięciu, gdy element jest już oznaczony jako edytowany.
+- `backend/app/services/cv_templates/shared/contact.py` — `_place_stacked_icon_contacts` zwraca deskryptor; nowy `_place_chip_icon_contacts`.
+- Miejsca wywołań szablonów: `backend/app/services/cv_templates/templates/{atrium,portico,cardinal,tessera,slate,nova,volt}.py`.
+
+Testy (dodane): `backend/tests/test_contact_band_templates.py` (anchor + tagowanie per szablon) oraz przypadki `stacked`/`chip` w `test_contact_band_emit.py`, `contactBandLayout.test.js`, `contactBandOps.test.js`.
+
+Odłożone do kolejnych faz: przełączniki tytułu/roli i wielkich liter w imieniu, slot zdjęcia profilowego oraz nowe pola danych (dodatkowe pole, data urodzenia, narodowość). Dodawanie kanału, którego CV nigdy nie miało, wciąż jest ograniczone do kanałów obecnych w chwili generowania (menu `+` przywraca usunięty kanał).
 
 ### Extract CV z PDF
 
