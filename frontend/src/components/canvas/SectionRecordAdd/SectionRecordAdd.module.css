@@ -14,6 +14,15 @@
     align-items: center;
     /* Gap comes from inline styles (zoom-aware). */
     gap: 4px;
+    /* Light surface chip behind the otherwise-bare icons. Without it the icons
+       lose contrast over dark section-heading badges (the star / globe squares)
+       and the tinted sidebar rail, per the reported visibility issue. Follows
+       the Swiss card tokens from DESIGN.md: white surface, 1px hairline grey
+       stroke, subtle sharp shadow, 0px corner radius. */
+    padding: 3px 5px;
+    background: #FFFFFF;
+    border: 1px solid rgba(128, 128, 128, 0.28);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.10);
     pointer-events: auto;
 }
 
@@ -21,9 +30,9 @@
 .trash,
 .arrow {
     position: relative;
-    /* Width / height come from inline styles (zoom-aware). Bare icon: no
-       chip box — the button is exactly the icon's own rendered size, with
-       no padding, border, background, or shadow. */
+    /* Width / height come from inline styles (zoom-aware). The icon itself is
+       borderless/transparent; contrast comes from the `.cluster` surface chip
+       above rather than a per-button box. */
     width: 13px;
     height: 13px;
     display: inline-flex;

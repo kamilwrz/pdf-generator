@@ -135,30 +135,35 @@ export default function FlatSectionLayoutToggle({
   return (
     <div className={classes.anchor} style={anchorStyle}>
       {showControl ? (
-        <button
-          type="button"
-          className={classes.plus}
-          style={buttonStyle}
-          aria-label="Zmień układ listy"
-          title="Zmień układ listy"
-          onPointerEnter={() => {
-            show();
-          }}
-          onPointerLeave={() => {
-            scheduleHide();
-          }}
-          onPointerDown={(event) => {
-            event.stopPropagation();
-          }}
-          onClick={(event) => {
-            event.stopPropagation();
-            event.preventDefault();
-            openFlatSectionLayoutModal?.(contentElementId);
-            hide();
-          }}
-        >
-          <FiList style={iconStyle} />
-        </button>
+        // Wrap the lone icon in `.cluster` so it shares the same light surface
+        // chip as the section/record hover controls (SectionRecordAdd), keeping
+        // the standalone layout toggle legible over dark/tinted backgrounds.
+        <div className={classes.cluster}>
+          <button
+            type="button"
+            className={classes.plus}
+            style={buttonStyle}
+            aria-label="Zmień układ listy"
+            title="Zmień układ listy"
+            onPointerEnter={() => {
+              show();
+            }}
+            onPointerLeave={() => {
+              scheduleHide();
+            }}
+            onPointerDown={(event) => {
+              event.stopPropagation();
+            }}
+            onClick={(event) => {
+              event.stopPropagation();
+              event.preventDefault();
+              openFlatSectionLayoutModal?.(contentElementId);
+              hide();
+            }}
+          >
+            <FiList style={iconStyle} />
+          </button>
+        </div>
       ) : null}
     </div>
   );
