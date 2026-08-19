@@ -17,6 +17,7 @@
  */
 import { layoutContactBand } from "./contactBandLayout.js";
 import { reconcileDocumentPages } from "./structureOperation.js";
+import { channelName } from "./contactChannelNames.js";
 
 function bandDescriptor(elements, bandId) {
   const anchor = elements.find(
@@ -165,11 +166,28 @@ export function applyChannelAddition(elements, bandId, channel, label, measure, 
     color: descriptor.text.colorHex,
     zIndex: 3, page, flowRole: "masthead",
     contactChannel: channel, contactBandId: bandId,
+    // Open the new label in edit mode so the caret is ready immediately. The
+    // placeholder gives the empty label a hit area and a hint (see Text.jsx /
+    // Text.module.css); it is display-only and never enters `content`.
+    isEditing: true, isSelected: true,
+    placeholder: channelName(channel),
   };
   const withNew = [...elements, iconEl, labelEl];
-  return relayoutAndReconcile(
+  const result = relayoutAndReconcile(
     withNew, bandId, descriptor,
     itemsFor(oldChannels, labels), itemsFor(nextChannels, nextLabels),
     measure, createId,
   );
+  // Make the new label the sole active element: clear edit/selection on every
+  // other text/textarea, mirroring `handleSetTextareaEditing`'s semantics so a
+  // prior selection cannot stay active while the user types the new channel.
+  const newLabelId = labelEl.element_id;
+  const elementsOut = result.elements.map((el) => {
+    if (el.element_id === newLabelId) return el;
+    if (el.category === "text" || el.category === "textarea") {
+      return el.isEditing || el.isSelected ? { ...el, isEditing: false, isSelected: false } : el;
+    }
+    return el;
+  });
+  return { elements: elementsOut, pageCount: result.pageCount };
 }

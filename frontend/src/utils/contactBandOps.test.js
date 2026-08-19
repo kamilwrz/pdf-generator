@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { activeChannels, applyChannelRemoval, applyChannelAddition } from "./contactBandOps.js";
+import { channelName } from "./contactChannelNames.js";
 
 const measure = (t) => t.length * 5;
 
@@ -65,4 +66,16 @@ test("addition without a provided label seeds an empty editable label", () => {
   const { elements } = applyChannelAddition(removed, "b1", "location", undefined, measure, () => `new-${n++}`);
   const label = elements.find((e) => e.contactChannel === "location" && e.category === "text");
   assert.equal(typeof label.content, "string");
+});
+
+test("addition opens the new label in edit mode with a placeholder", () => {
+  const removed = applyChannelRemoval(doc(), "b1", "email", measure, () => "id").elements;
+  let n = 0;
+  const { elements } = applyChannelAddition(removed, "b1", "email", "", measure, () => `new-${n++}`);
+  const label = elements.find((e) => e.contactChannel === "email" && e.category === "text");
+  assert.equal(label.isEditing, true);
+  assert.equal(label.isSelected, true);
+  assert.equal(label.placeholder, channelName("email"));
+  // The edited label is the sole active element.
+  assert.equal(elements.filter((e) => e.isEditing).length, 1);
 });
