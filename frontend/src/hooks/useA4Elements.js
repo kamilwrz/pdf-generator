@@ -55,6 +55,8 @@ import {
 } from '../utils/a4ElementFactories';
 import { materializeElementSpecs } from '../utils/materializeElementSpecs';
 import { useDocumentHistory } from './useDocumentHistory';
+import { applyChannelRemoval, applyChannelAddition } from '../utils/contactBandOps';
+import { canvasFontFamily } from '../utils/canvasFont';
 import { useElementSelectionDrag } from './useElementSelectionDrag';
 import API_BASE_URL, { ENDPOINTS } from '../services/api';
 
@@ -2023,6 +2025,36 @@ export function useA4Elements(titleRef) {
     )));
   }, [setEditorMode]);
 
+  // Measure a contact label's rendered width with the canvas font so the client
+  // band layout wraps/centres exactly as the user sees it. Returns null when no
+  // DOM canvas is available (SSR/tests) so the engine uses its deterministic
+  // charWidth fallback (matching the backend estimate).
+  const contactMeasureCtxRef = useRef(null);
+  const measureContactLabel = useCallback((text, fontFamily, fontSizePt) => {
+    if (typeof document === "undefined") return null;
+    if (!contactMeasureCtxRef.current) {
+      contactMeasureCtxRef.current = document.createElement("canvas").getContext("2d");
+    }
+    const ctx = contactMeasureCtxRef.current;
+    if (!ctx) return null;
+    ctx.font = `${fontSizePt}px ${canvasFontFamily(fontFamily)}`;
+    return ctx.measureText(String(text)).width;
+  }, []);
+
+  // Remove/add a contact channel (icon + label as a unit) and reflow the band +
+  // downstream document. Committed via setA4_Elements so undo/redo and save
+  // apply unchanged; pageCount re-syncs from the reconciled element pages.
+  const removeContactChannel = useCallback((bandId, channel) => {
+    setA4_Elements((prev) =>
+      applyChannelRemoval(prev, bandId, channel, measureContactLabel, () => nanoid()).elements,
+    );
+  }, [measureContactLabel]);
+  const addContactChannel = useCallback((bandId, channel, label) => {
+    setA4_Elements((prev) =>
+      applyChannelAddition(prev, bandId, channel, label, measureContactLabel, () => nanoid()).elements,
+    );
+  }, [measureContactLabel]);
+
 
   return {
     A4_Elements,
@@ -2073,6 +2105,8 @@ export function useA4Elements(titleRef) {
     applyStructureOperation,
     applyCloneOperation,
     applyDeleteOperation,
+    removeContactChannel,
+    addContactChannel,
     A4ref,
     setPageCanvasRef,
     PDFTitle,

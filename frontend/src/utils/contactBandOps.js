@@ -1,0 +1,175 @@
+/**
+ * Contact-band add/remove transforms (pure).
+ *
+ * These mutate the canvas element array when the user adds or removes a contact
+ * channel, keeping the band laid out and the document reflowed. The reflow rule
+ * was validated by the Task-4 spike:
+ *
+ *   1. Recompute the band with the new channel set via `layoutContactBand`.
+ *   2. Reposition the band's icon/label pairs to the new placements.
+ *   3. Shift every NON-band element whose `top >= oldBottomY` by the band's
+ *      height delta (Δ = newBottomY - oldBottomY) — this moves the header rule
+ *      and the first section, and everything after them.
+ *   4. Re-paginate with `reconcileDocumentPages`.
+ *
+ * The band-anchor element (flowRole "masthead-anchor") carries the descriptor
+ * and is never shifted or repositioned; it stays put.
+ */
+import { layoutContactBand } from "./contactBandLayout.js";
+import { reconcileDocumentPages } from "./structureOperation.js";
+
+function bandDescriptor(elements, bandId) {
+  const anchor = elements.find(
+    (el) => el.contactBandId === bandId && el.flowRole === "masthead-anchor",
+  );
+  return anchor?.contactBand ?? null;
+}
+
+function bandPage(elements, bandId) {
+  const any = elements.find((el) => el.contactBandId === bandId && el.contactChannel);
+  return any?.page ?? 1;
+}
+
+/**
+ * Channels currently present in the band, in the descriptor's canonical order.
+ * @returns {string[]}
+ */
+export function activeChannels(elements, bandId) {
+  const descriptor = bandDescriptor(elements, bandId);
+  if (!descriptor) return [];
+  const present = new Set(
+    elements
+      .filter((el) => el.contactBandId === bandId && el.contactChannel)
+      .map((el) => el.contactChannel),
+  );
+  return descriptor.order.filter((channel) => present.has(channel));
+}
+
+// channel -> current label text, read from the label (text) element of each pair.
+function channelLabels(elements, bandId) {
+  const labels = {};
+  for (const el of elements) {
+    if (el.contactBandId === bandId && el.contactChannel && el.category === "text") {
+      labels[el.contactChannel] = el.content ?? "";
+    }
+  }
+  return labels;
+}
+
+function itemsFor(channels, labels) {
+  return channels.map((channel) => ({ channel, label: labels[channel] ?? "" }));
+}
+
+// Reposition band pairs to the new placements; shift downstream flow by Δ.
+function reposition(el, bandId, placementByChannel, oldBottomY, delta) {
+  if (el.contactBandId === bandId && el.contactChannel) {
+    const placement = placementByChannel.get(el.contactChannel);
+    if (!placement) return el;
+    return el.category === "image"
+      ? { ...el, left: placement.iconLeft, top: placement.iconTop }
+      : { ...el, left: placement.labelLeft, top: placement.labelTop };
+  }
+  // The band anchor (band id but no channel) never moves.
+  if (el.contactBandId === bandId) return el;
+  if (typeof el.top === "number" && el.top >= oldBottomY) {
+    return { ...el, top: el.top + delta };
+  }
+  return el;
+}
+
+// Derive a new channel's icon URL from an existing band icon (swap the trailing
+// "<name>.png"), falling back to the descriptor theme when the band has no icon
+// left to copy from (rare: re-adding into a fully emptied band).
+function deriveIconSrc(elements, bandId, descriptor, channel) {
+  const anyIcon = elements.find(
+    (el) => el.contactBandId === bandId && el.category === "image" && el.src,
+  );
+  if (anyIcon) {
+    return String(anyIcon.src).replace(/[^/]+\.png(\?.*)?$/, `${channel}.png`);
+  }
+  return `/template-assets/iconic/${descriptor.icon.theme}/${channel}.png`;
+}
+
+function relayoutAndReconcile(elements, bandId, descriptor, oldItems, nextItems, measure, createId) {
+  const oldBand = layoutContactBand(descriptor, oldItems, measure);
+  const newBand = layoutContactBand(descriptor, nextItems, measure);
+  const delta = newBand.bottomY - oldBand.bottomY;
+  const placementByChannel = new Map(newBand.placements.map((p) => [p.channel, p]));
+  const next = elements.map((el) =>
+    reposition(el, bandId, placementByChannel, oldBand.bottomY, delta),
+  );
+  const reconciled = reconcileDocumentPages(next, createId, { collapseEmpty: true });
+  return { elements: reconciled.elements, pageCount: reconciled.pageCount };
+}
+
+/**
+ * Remove a channel (icon + label) and reflow the band + document.
+ */
+export function applyChannelRemoval(elements, bandId, channel, measure, createId) {
+  const descriptor = bandDescriptor(elements, bandId);
+  if (!descriptor) return { elements };
+  const oldChannels = activeChannels(elements, bandId);
+  if (!oldChannels.includes(channel)) return { elements };
+  const labels = channelLabels(elements, bandId);
+  const nextChannels = oldChannels.filter((c) => c !== channel);
+  // Drop the removed pair BEFORE repositioning; oldItems still includes it so
+  // the delta reflects the height the band actually had before removal.
+  const kept = elements.filter(
+    (el) => !(el.contactBandId === bandId && el.contactChannel === channel),
+  );
+  return relayoutAndReconcile(
+    kept, bandId, descriptor,
+    itemsFor(oldChannels, labels), itemsFor(nextChannels, labels),
+    measure, createId,
+  );
+}
+
+/**
+ * Add an inactive channel (icon + label) and reflow the band + document.
+ * `label` is the seed text; when omitted the label starts empty for the user
+ * to type.
+ */
+export function applyChannelAddition(elements, bandId, channel, label, measure, createId) {
+  const descriptor = bandDescriptor(elements, bandId);
+  if (!descriptor) return { elements };
+  if (!descriptor.order.includes(channel)) return { elements };
+  const oldChannels = activeChannels(elements, bandId);
+  if (oldChannels.includes(channel)) return { elements };
+
+  const labels = channelLabels(elements, bandId);
+  const seed = (label ?? "").toString();
+  const nextChannels = descriptor.order.filter(
+    (c) => oldChannels.includes(c) || c === channel,
+  );
+  const nextLabels = { ...labels, [channel]: seed };
+
+  // Compute the new placement for the added channel so the created elements
+  // start in the right spot (the subsequent relayout confirms every position).
+  const newBand = layoutContactBand(descriptor, itemsFor(nextChannels, nextLabels), measure);
+  const placement = newBand.placements.find((p) => p.channel === channel);
+  const page = bandPage(elements, bandId);
+  const iconEl = {
+    element_id: createId("icon"),
+    category: "image",
+    src: deriveIconSrc(elements, bandId, descriptor, channel),
+    left: placement.iconLeft, top: placement.iconTop,
+    width: descriptor.icon.sizePt, height: descriptor.icon.sizePt,
+    zIndex: 3, page, flowRole: "masthead", alignWithText: true,
+    contactChannel: channel, contactBandId: bandId,
+  };
+  const labelEl = {
+    element_id: createId("label"),
+    category: "text", content: seed,
+    left: placement.labelLeft, top: placement.labelTop,
+    fontSize: descriptor.text.fontSizePt, fontFamily: descriptor.text.fontFamily,
+    color: descriptor.text.colorHex,
+    zIndex: 3, page, flowRole: "masthead",
+    contactChannel: channel, contactBandId: bandId,
+  };
+  const withNew = [...elements, iconEl, labelEl];
+  return relayoutAndReconcile(
+    withNew, bandId, descriptor,
+    itemsFor(oldChannels, labels), itemsFor(nextChannels, nextLabels),
+    measure, createId,
+  );
+}
