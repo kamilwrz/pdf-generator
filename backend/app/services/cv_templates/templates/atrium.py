@@ -22,6 +22,7 @@ from app.services.cv_generator_primitives import (
 from app.services.cv_templates.shared.contact import (
     _contact_channel_items,
     _place_centered_icon_contacts,
+    build_contact_band_anchor,
 )
 from app.services.cv_templates.shared.extras import _extra_sections
 from app.services.cv_templates.shared.records import (
@@ -86,7 +87,7 @@ def _gen_atrium(cv: dict) -> list[dict]:
         cursor_y += title_h
 
     contact_fs, contact_icon = (8.4, 10.5)
-    contact_els, contact_bottom, _contact_descriptor = _place_centered_icon_contacts(
+    contact_els, contact_bottom, contact_descriptor = _place_centered_icon_contacts(
         theme=ICON,
         items=_contact_channel_items(cv, email_limit=42),
         center_x=CENTER_X,
@@ -100,6 +101,7 @@ def _gen_atrium(cv: dict) -> list[dict]:
         icon_gap=12.5,
         item_pad=18.0,
         line_step=16.0,
+        band_id="contact-main",
     )
     header.extend(contact_els)
     terminator_y = contact_bottom + 19.0
@@ -107,6 +109,9 @@ def _gen_atrium(cv: dict) -> list[dict]:
     # Masthead never joins section packing — a short phone line above a rule
     # would otherwise be mistaken for a heading by the rhythm knobs.
     header = [{**element, "flowRole": "masthead"} for element in header]
+    # The band anchor must keep its own flowRole ("masthead-anchor"), so append it
+    # AFTER the masthead spread above (which would otherwise overwrite it).
+    header.append(build_contact_band_anchor(contact_descriptor))
 
     # ── Section identity: label + restrained full-column divider ─────────────
     # Headings are anchored at the content column left `L`, exactly like every

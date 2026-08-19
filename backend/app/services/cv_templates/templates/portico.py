@@ -15,6 +15,7 @@ from app.services.cv_generator_primitives import (
 from app.services.cv_templates.shared.contact import (
     _contact_channel_items,
     _place_centered_icon_contacts,
+    build_contact_band_anchor,
 )
 from app.services.cv_templates.shared.extras import _extra_sections
 from app.services.cv_templates.shared.icons import _icon_beside, _icon_key_for_label
@@ -106,7 +107,7 @@ def _gen_portico(cv: dict) -> list[dict]:
     # centered line for CVs with many social/contact channels, unlike the
     # left-anchored `_place_wrapping_icon_contacts` used by Nova/Cardinal.
     contact_fs, contact_icon = (8.4, 12.0)
-    contact_els, contact_bottom, _contact_descriptor = _place_centered_icon_contacts(
+    contact_els, contact_bottom, contact_descriptor = _place_centered_icon_contacts(
         theme=ICON,
         items=_contact_channel_items(cv, email_limit=42),
         center_x=CENTER_X,
@@ -120,12 +121,16 @@ def _gen_portico(cv: dict) -> list[dict]:
         icon_gap=13.0,
         item_pad=16.0,
         line_step=15.0,
+        band_id="contact-main",
     )
     header.extend(contact_els)
     header_rule_y = contact_bottom + 16.0
     header.append(_line(L, header_rule_y, W, 1, C['rule'], zIndex=2))
     # Name, photo slot, title, contacts, and divider stay out of section packing.
     header = [{**element, "flowRole": "masthead"} for element in header]
+    # Append the band anchor AFTER the masthead spread so its own flowRole
+    # ("masthead-anchor") survives instead of being overwritten to "masthead".
+    header.append(build_contact_band_anchor(contact_descriptor))
 
     start_y = header_rule_y + 1.0 + SPACE_AFTER_HEADER_RULE
     b = Builder(start_y)
