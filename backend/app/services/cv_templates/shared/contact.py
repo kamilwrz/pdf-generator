@@ -269,6 +269,86 @@ def _place_stacked_icon_contacts(
     return elements, bottom_y, descriptor
 
 
+def _place_chip_icon_contacts(
+    *,
+    theme: str,
+    items: list[tuple[str, str]],
+    start_x: float,
+    start_y: float,
+    right_limit: float,
+    chip_h: float,
+    icon_size: float,
+    text_fs: float,
+    text_color: str,
+    chip_color: str,
+    font: str,
+    rect_builder: Callable[..., dict],
+    icon_builder: Callable[..., dict],
+    pad_left: float = 6.0,
+    icon_text_gap: float = 6.0,
+    chip_gap: float = 8.0,
+    width_base: float = 28.0,
+    width_per_char: float = 5.2,
+    min_width: float = 120.0,
+    max_width: float = 168.0,
+    band_id: str | None = None,
+) -> tuple[list[dict], float, dict]:
+    """Place icon+label contacts as rounded pills (Volt masthead chips).
+
+    Each channel is a triple: a background ``rectangle`` pill with an icon and a
+    label at fixed inset offsets; rows wrap at ``right_limit``. Chip width uses a
+    character-count formula (not a measured width) so the client engine can
+    reproduce the exact same geometry for canvas↔PDF parity.
+
+    ``rect_builder(x, y, w, h, color)`` and ``icon_builder(key, left, top, size)``
+    are supplied by the caller (Volt owns its own ``_rect``/``_icon`` helpers).
+
+    Returns (elements, bottom_y, descriptor). When ``band_id`` is provided every
+    rect/icon/label is tagged with its channel + the shared band id; the returned
+    ``descriptor`` (mode ``"chip"``) carries the geometry for client reflow.
+    """
+    line_step = chip_h + 8.0
+    label_offset = pad_left + icon_size + icon_text_gap  # 27 for Volt defaults
+    elements: list[dict] = []
+    x = float(start_x)
+    chip_top = float(start_y)
+    for key, value in items:
+        if not value:
+            continue
+        width = max(min_width, min(max_width, width_base + len(value) * width_per_char))
+        if x > start_x and x + width > right_limit:
+            x = float(start_x)
+            chip_top += line_step
+        text_top = chip_top + (chip_h - text_fs) / 2.0
+        rect = rect_builder(x, chip_top, width, chip_h, chip_color)
+        icon = icon_builder(key, x + pad_left, text_top, icon_size)
+        label = _text(value, text_fs, font, text_color, x + label_offset, text_top, zIndex=3)
+        for element in (rect, icon, label):
+            element["flowRole"] = "masthead"
+        if band_id is not None:
+            for element in (rect, icon, label):
+                element["contactChannel"] = key
+                element["contactBandId"] = band_id
+        elements.extend([rect, icon, label])
+        x += width + chip_gap
+    descriptor = {
+        "id": band_id,
+        "mode": "chip",
+        "anchor": {"startX": float(start_x), "startY": float(start_y),
+                   "rightLimit": float(right_limit)},
+        "text": {"fontFamily": font, "fontSizePt": text_fs, "colorHex": text_color},
+        "icon": {"sizePt": icon_size, "theme": theme},
+        "chipColor": chip_color,
+        "metrics": {"chipH": chip_h, "iconSize": icon_size, "padLeft": pad_left,
+                    "labelOffset": label_offset, "widthBase": width_base,
+                    "widthPerChar": width_per_char, "minWidth": min_width,
+                    "maxWidth": max_width, "chipGap": chip_gap,
+                    "lineStep": line_step, "charWidth": width_per_char},
+        "order": [key for key, value in items if value],
+    }
+    return elements, chip_top, descriptor
+
+
 def _place_centered_icon_contacts(
     *,
     theme: str,

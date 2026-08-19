@@ -36,6 +36,7 @@ def _anchor(elements):
         ("tessera", "wrapping"),
         ("slate", "wrapping"),
         ("nova", "stacked"),
+        ("volt", "chip"),
     ],
 )
 def test_template_emits_contact_band(template_id, mode):

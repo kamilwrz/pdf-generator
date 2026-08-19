@@ -7,7 +7,7 @@ from app.services.cv_templates.shared.extras import _extra_sections
 from app.services.cv_templates.shared.records import _education_record_height, _experience_record_height, _place_education_record, _place_experience_record
 from app.services.cv_templates.shared.text import _compact_text, _labels, _place_skills_section
 from app.services.cv_templates.shared.icons import _icon, _icon_key_for_label
-from app.services.cv_templates.shared.contact import _contact_channel_items
+from app.services.cv_templates.shared.contact import _contact_channel_items, _place_chip_icon_contacts, build_contact_band_anchor
 
 def _gen_volt(cv: dict) -> list[dict]:
     C = {'paper': '#0F1218', 'ink': '#E8ECF0', 'accent': '#E8A838', 'mute': '#8B93A0', 'body': '#C5CCD6', 'rule': '#2A3140', 'chip': '#1A2030', 'display': 'Montserrat', 'sans': 'Montserrat', 'mono': 'JetBrainsMono', 'layout': 'volt', 'icon_theme': 'volt', 'L': 78, 'W': 469, 'icon_x': 48, 'start': 155}
@@ -23,24 +23,32 @@ def _gen_volt(cv: dict) -> list[dict]:
     header = [_text(name, 32, SANS, C['ink'], 48, 36, zIndex=3, bold=True), _text(title, 9, MONO, C['accent'], 50, 78, zIndex=3)]
     header[1]['letterSpacing'] = 1.2
     # Chip row wraps to a second band when social links join phone/email/location.
-    x = 48.0
-    chip_top = 108.0
-    right_limit = 547.0
-    for key, value in _contact_channel_items(cv, email_limit=36, social_limit=28):
-        if not value:
-            continue
-        width = max(120.0, min(168.0, 28 + len(value) * 5.2))
-        if x > 48.0 and x + width > right_limit:
-            x = 48.0
-            chip_top += chip_h + 8.0
-        text_top = chip_top + (chip_h - contact_fs) / 2
-        header.append(_rect(x, chip_top, width, chip_h, C['chip'], 1, zIndex=1))
-        header.append(_icon(ICON, key, x + 6, text_top, contact_icon))
-        header.append(_text(value, contact_fs, MONO, C['body'], x + 6 + contact_icon + 6, text_top, zIndex=3))
-        x += width + 8
+    # Shared placer tags each rect/icon/label triple + emits a reflow descriptor
+    # so the client contact-channel manager can add/remove/edit chips. Volt owns
+    # its `_rect`/`_icon` helpers, so they are passed in as builders.
+    contact_els, contact_bottom, contact_descriptor = _place_chip_icon_contacts(
+        theme=ICON,
+        items=_contact_channel_items(cv, email_limit=36, social_limit=28),
+        start_x=48.0,
+        start_y=108.0,
+        right_limit=547.0,
+        chip_h=chip_h,
+        icon_size=contact_icon,
+        text_fs=contact_fs,
+        text_color=C['body'],
+        chip_color=C['chip'],
+        font=MONO,
+        rect_builder=lambda x, y, w, h, c: _rect(x, y, w, h, c, 1, zIndex=1),
+        icon_builder=lambda key, left, top, size: _icon(ICON, key, left, top, size),
+        band_id="contact-main",
+    )
+    header.extend(contact_els)
     # Chip contacts + name/title must not enter section packing on rhythm edits.
     header = [{**element, "flowRole": "masthead"} for element in header]
-    start_y = chip_top + chip_h + SPACE_AFTER_MASTHEAD
+    # Append after the masthead spread so the anchor keeps its "masthead-anchor"
+    # flowRole rather than being overwritten to "masthead".
+    header.append(build_contact_band_anchor(contact_descriptor))
+    start_y = contact_bottom + chip_h + SPACE_AFTER_MASTHEAD
     b = Builder(start_y)
     label_fs = 8.4
     section_icon = 15.0
