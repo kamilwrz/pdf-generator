@@ -23,6 +23,7 @@ from app.services.cv_templates.shared.icons import _icon_beside, _icon_key_for_l
 from app.services.cv_templates.shared.contact import (
     _contact_channel_items,
     _place_stacked_icon_contacts,
+    build_contact_band_anchor,
 )
 
 
@@ -88,7 +89,7 @@ def _gen_nova(cv: dict) -> list[dict]:
 
     # One contact channel per row, ~12pt under the name/title stack.
     contact_start = cursor_y + 12.0
-    contact_els, contact_bottom = _place_stacked_icon_contacts(
+    contact_els, contact_bottom, contact_descriptor = _place_stacked_icon_contacts(
         theme=ICON,
         items=_contact_channel_items(cv, email_limit=42),
         start_x=NAME_LEFT + 2.0,
@@ -99,6 +100,7 @@ def _gen_nova(cv: dict) -> list[dict]:
         font=SANS,
         icon_gap=16.0,
         line_step=17.0,
+        band_id="contact-main",
     )
     header.extend(contact_els)
 
@@ -132,6 +134,9 @@ def _gen_nova(cv: dict) -> list[dict]:
     header.extend([photo_well, photo_frame])
     header.append(_line(48, header_rule_y, 499, 1, C['rule'], zIndex=2))
     header = [{**element, 'flowRole': 'masthead'} for element in header]
+    # Append the band anchor after the masthead spread so its own flowRole
+    # ("masthead-anchor") is preserved rather than overwritten to "masthead".
+    header.append(build_contact_band_anchor(contact_descriptor))
 
     start_y = header_rule_y + 1.0 + SPACE_AFTER_HEADER_RULE
     b = Builder(start_y)

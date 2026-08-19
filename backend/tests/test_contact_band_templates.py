@@ -35,6 +35,7 @@ def _anchor(elements):
         ("cardinal", "wrapping"),
         ("tessera", "wrapping"),
         ("slate", "wrapping"),
+        ("nova", "stacked"),
     ],
 )
 def test_template_emits_contact_band(template_id, mode):

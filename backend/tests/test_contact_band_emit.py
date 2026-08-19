@@ -1,9 +1,26 @@
 """Contact placers tag pairs and return a reflow descriptor; geometry unchanged."""
 from app.services.cv_templates.shared.contact import (
     _place_centered_icon_contacts,
+    _place_stacked_icon_contacts,
     _place_wrapping_icon_contacts,
     build_contact_band_anchor,
 )
+
+
+def test_stacked_tags_pairs_and_returns_descriptor():
+    items = [("phone", "+48 111"), ("email", "a@b.pl")]
+    elements, bottom_y, descriptor = _place_stacked_icon_contacts(
+        theme="nova", items=items, start_x=48, start_y=120,
+        text_fs=8.4, icon_size=11, text_color="#3A3A3A", font="Inter",
+        band_id="contact-main",
+    )
+    assert all(e.get("contactBandId") == "contact-main" for e in elements)
+    channels = [e.get("contactChannel") for e in elements if e.get("contactChannel")]
+    assert channels.count("phone") == 2  # icon + label
+    assert descriptor["mode"] == "stacked"
+    assert descriptor["anchor"]["startX"] == 48
+    assert descriptor["anchor"]["startY"] == 120
+    assert descriptor["metrics"]["lineStep"] == 18.0
 
 
 def test_wrapping_tags_pairs_and_returns_descriptor():

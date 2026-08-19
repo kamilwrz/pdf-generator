@@ -222,11 +222,18 @@ def _place_stacked_icon_contacts(
     icon_gap: float = 16.0,
     line_step: float = 18.0,
     icon_builder: Callable[..., dict] | None = None,
-) -> tuple[list[dict], float]:
+    band_id: str | None = None,
+) -> tuple[list[dict], float, dict]:
     """Place icon+label contacts one channel per row (Nova masthead).
 
-    Returns (elements, bottom_y) with the same contract as
+    Returns (elements, bottom_y, descriptor) with the same contract as
     ``_place_wrapping_icon_contacts`` — ``bottom_y`` is the top of the last row.
+
+    When ``band_id`` is provided each icon/label pair is tagged with its channel
+    + the shared band id so the client contact-channel manager can move or delete
+    a channel as a unit; the returned ``descriptor`` (mode ``"stacked"``) carries
+    the geometry needed to re-run this layout on the client. When ``band_id`` is
+    None the drawn output is byte-identical to the pre-feature version.
     """
     build_icon = icon_builder or (
         lambda name, left, top: _icon_beside(theme, name, left, top, text_fs, icon_size)
@@ -241,17 +248,25 @@ def _place_stacked_icon_contacts(
         # Keep contact icons on the masthead lane with their labels so spacing
         # packers never promote a phone/email row into a section heading.
         icon["flowRole"] = "masthead"
-        elements.append(icon)
         label = _text(
             value, text_fs, font, text_color, float(start_x) + icon_gap, cy, zIndex=3,
         )
         label["flowRole"] = "masthead"
+        if band_id is not None:
+            _tag_contact_pair(icon, label, key, band_id)
+        elements.append(icon)
         elements.append(label)
         cy += line_step
         placed += 1
-    if placed == 0:
-        return elements, float(start_y)
-    return elements, cy - line_step
+    descriptor = _build_band_descriptor(
+        band_id=band_id, mode="stacked",
+        anchor={"startX": float(start_x), "startY": float(start_y)},
+        items=items, text_fs=text_fs, text_color=text_color, font=font,
+        icon_size=icon_size, theme=theme,
+        char_width=5.2, icon_gap=icon_gap, item_pad=14.0, line_step=line_step,
+    )
+    bottom_y = float(start_y) if placed == 0 else cy - line_step
+    return elements, bottom_y, descriptor
 
 
 def _place_centered_icon_contacts(
