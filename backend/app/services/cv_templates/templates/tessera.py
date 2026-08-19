@@ -29,6 +29,7 @@ from app.services.cv_templates.shared.records import (
 from app.services.cv_templates.shared.contact import (
     _contact_channel_items,
     _place_wrapping_icon_contacts,
+    build_contact_band_anchor,
 )
 from app.services.cv_templates.shared.text import (
     _compact_text,
@@ -205,7 +206,7 @@ def _gen_tessera(cv: dict) -> list[dict]:
     name = _compact_text(cv.get("name"), 34).upper()
     title = _compact_text(cv.get("title"), 56).upper()
     contact_fs, contact_icon = 7.8, 11.0
-    contact_els, contact_bottom, _contact_descriptor = _place_wrapping_icon_contacts(
+    contact_els, contact_bottom, contact_descriptor = _place_wrapping_icon_contacts(
         theme=icon_theme,
         items=_contact_channel_items(cv),
         start_x=float(main_left),
@@ -219,6 +220,7 @@ def _gen_tessera(cv: dict) -> list[dict]:
         icon_gap=15.0,
         item_pad=16.0,
         line_step=16.0,
+        band_id="contact-main",
     )
     header_rule_y = contact_bottom + 22.0
     header = [
@@ -406,4 +408,7 @@ def _gen_tessera(cv: dict) -> list[dict]:
         {**element, "flowRole": "masthead"}
         for element in header
     ]
+    # Append the band anchor after the masthead spread so its own flowRole
+    # ("masthead-anchor") is preserved rather than overwritten to "masthead".
+    header.append(build_contact_band_anchor(contact_descriptor))
     return page_decorations + sidebar + header + flow

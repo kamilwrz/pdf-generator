@@ -32,6 +32,9 @@ def _anchor(elements):
     [
         ("atrium", "centered"),
         ("portico", "centered"),
+        ("cardinal", "wrapping"),
+        ("tessera", "wrapping"),
+        ("slate", "wrapping"),
     ],
 )
 def test_template_emits_contact_band(template_id, mode):

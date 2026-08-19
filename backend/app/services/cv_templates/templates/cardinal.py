@@ -16,6 +16,7 @@ from app.services.cv_templates.shared.icons import _icon_beside, _icon_key_for_l
 from app.services.cv_templates.shared.contact import (
     _contact_channel_items,
     _place_wrapping_icon_contacts,
+    build_contact_band_anchor,
 )
 
 def _gen_cardinal(cv: dict) -> list[dict]:
@@ -32,7 +33,7 @@ def _gen_cardinal(cv: dict) -> list[dict]:
     header = [_text(name, 30, DISP, C['ink'], L, 50, zIndex=3), _text(title, 9.6, SANS, C['accent'], L, 92, zIndex=3)]
     header[0]['letterSpacing'] = 0.15
     header[1]['letterSpacing'] = 1.55
-    contact_els, contact_bottom, _contact_descriptor = _place_wrapping_icon_contacts(
+    contact_els, contact_bottom, contact_descriptor = _place_wrapping_icon_contacts(
         theme=ICON,
         items=_contact_channel_items(cv, email_limit=42),
         start_x=float(C['icon_x']),
@@ -46,12 +47,16 @@ def _gen_cardinal(cv: dict) -> list[dict]:
         icon_gap=16.0,
         item_pad=20.0,
         line_step=16.0,
+        band_id="contact-main",
     )
     header.extend(contact_els)
     header_rule_y = contact_bottom + 24.0
     header.append(_line(L, header_rule_y, W, 1, C['rule'], zIndex=2))
     # Keep the icon contact band out of applyFlowSpacing section membership.
     header = [{**element, "flowRole": "masthead"} for element in header]
+    # Append after the masthead spread so the anchor keeps its "masthead-anchor"
+    # flowRole instead of being overwritten to "masthead".
+    header.append(build_contact_band_anchor(contact_descriptor))
     start_y = header_rule_y + 1.0 + SPACE_AFTER_HEADER_RULE
     b = Builder(start_y)
     label_fs = 11.2

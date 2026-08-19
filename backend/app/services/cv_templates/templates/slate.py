@@ -30,6 +30,7 @@ from app.services.cv_generator_primitives import (
 from app.services.cv_templates.shared.contact import (
     _contact_channel_items,
     _place_wrapping_icon_contacts,
+    build_contact_band_anchor,
 )
 from app.services.cv_templates.shared.extras import (
     _extra_sections,
@@ -216,7 +217,7 @@ def _gen_slate(cv: dict) -> list[dict]:
     # Accent glyphs on white paper (slate white glyphs would vanish). Same
     # placer / channel order as Tessera so LinkedIn / GitHub / website wrap
     # onto a second row and push the header rule with them.
-    contact_els, contact_bottom, _contact_descriptor = _place_wrapping_icon_contacts(
+    contact_els, contact_bottom, contact_descriptor = _place_wrapping_icon_contacts(
         theme=icon_theme_accent,
         items=_contact_channel_items(cv),
         start_x=float(main_left),
@@ -230,6 +231,7 @@ def _gen_slate(cv: dict) -> list[dict]:
         icon_gap=15.0,
         item_pad=16.0,
         line_step=16.0,
+        band_id="contact-main",
     )
     header_rule_y = contact_bottom + 22.0
     header = [
@@ -421,4 +423,7 @@ def _gen_slate(cv: dict) -> list[dict]:
         {**element, "flowRole": "masthead"}
         for element in header
     ]
+    # Append the band anchor after the masthead spread so its own flowRole
+    # ("masthead-anchor") is preserved rather than overwritten to "masthead".
+    header.append(build_contact_band_anchor(contact_descriptor))
     return page_decorations + sidebar + header + flow
