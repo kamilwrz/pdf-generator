@@ -1249,6 +1249,28 @@ Implementation:
 
 Tests: `backend/tests/test_contact_links.py`.
 
+### Contact channel manager (Phase 1)
+
+After a CV is generated, the masthead contact row is editable channel-by-channel, Enhancv-style. Hovering a contact chip reveals a **trash** that removes that channel — its icon **and** its label as a unit; a **`+`** at the band end lists the channels not currently shown and inserts one (with its icon). After either action the band re-centers / re-wraps and the header rule + first section reflow so nothing overlaps. Editing a channel's text still works by clicking it (single-line `text` element).
+
+Phase 1 covers the six existing channels (`phone`, `email`, `linkedin`, `github`, `website`, `location`) on the **centered** and **wrapping** masthead layouts (e.g. Harbor). Reflow is **client-side and deterministic**: the canvas positions are authoritative for the PDF, so Save/Download reproduce exactly what the editor shows — no backend re-render. Legacy documents generated before this feature (no band descriptor) keep their previous per-element behaviour; there is no migration.
+
+How it works: the generator tags each icon+label pair with `contactChannel` + a shared `contactBandId` and emits a zero-footprint band **anchor** carrying a layout descriptor (mode, anchor geometry, fonts, icon theme, metrics, channel order). The client ports the backend centre/wrap math to recompute placements, then shifts every downstream element (`top >= band bottom`) by the band's height delta and re-paginates.
+
+Implementation:
+
+- `frontend/src/utils/contactBandLayout.js` — pure centre/wrap layout engine (ported from `contact.py`).
+- `frontend/src/utils/contactBandOps.js` — `activeChannels` / `applyChannelRemoval` / `applyChannelAddition` (recompute + Δ reflow + `reconcileDocumentPages`).
+- `frontend/src/utils/contactBands.js` — `listContactBands` groups tagged chips per band.
+- `frontend/src/components/canvas/ContactChannelControls/` — inline hover trash + add-channel menu.
+- `frontend/src/hooks/useA4Elements.js` — `removeContactChannel` / `addContactChannel` (canvas-font measure; committed via `setA4_Elements`, so undo/redo + save apply).
+- `backend/app/services/cv_templates/shared/contact.py` — `band_id` tagging + descriptor, `build_contact_band_anchor`.
+- `backend/app/schemas/pdf_schema.py`, `backend/app/crud/pdfs.py` — `contactChannel` / `contactBandId` / `contactBand` persisted via `extra_properties`.
+
+Tests: `frontend/src/utils/contactBandLayout.test.js`, `contactBandOps.test.js`, `contactBands.test.js`; `backend/tests/test_contact_band_emit.py`, `test_contact_channel_roundtrip.py`.
+
+Deferred to later phases: sidebar / stacked layouts (Tessera, Slate, Nova), the title/role and name-uppercase toggles, the profile photo slot, and new data fields (extra field, birth date, nationality).
+
 ### CV PDF extract
 
 Vision extract of first pages → structured `cv_data`, including `linkedin` / `github` / `website` from the header and record-shaped `extra_sections` items when the source CV has titled entries with description bullets. Domain heuristics re-categorize misplaced URLs during normalize.
@@ -2977,6 +2999,28 @@ Implementacja:
 - `scripts/generate_iconic_icons.py`, `frontend/src/utils/sectionIcons.js`
 
 Testy: `backend/tests/test_contact_links.py`.
+
+### Menedżer kanałów kontaktu (Faza 1)
+
+Po wygenerowaniu CV rząd kontaktu w mastheadzie jest edytowalny kanał po kanale, w stylu Enhancv. Najechanie na chip kontaktu odsłania **kosz**, który usuwa dany kanał — jego ikonę **oraz** etykietę jako całość; **`+`** na końcu paska pokazuje kanały aktualnie niewidoczne i wstawia wybrany (wraz z ikoną). Po każdej akcji pasek ponownie się centruje / zawija, a linia nagłówka i pierwsza sekcja przepływają, więc nic się nie nakłada. Edycja tekstu kanału nadal działa przez kliknięcie (jednoliniowy element `text`).
+
+Faza 1 obejmuje sześć istniejących kanałów (`phone`, `email`, `linkedin`, `github`, `website`, `location`) w układach **wycentrowanym** i **zawijanym** masthead (np. Harbor). Reflow jest **po stronie klienta i deterministyczny**: pozycje na płótnie są autorytetem dla PDF, więc Zapisz/Pobierz odtwarzają dokładnie to, co widać w edytorze — bez ponownego renderu backendu. Dokumenty utworzone przed tą funkcją (bez deskryptora paska) zachowują dotychczasowe zachowanie per-element; brak migracji.
+
+Jak to działa: generator taguje każdą parę ikona+etykieta polami `contactChannel` + wspólnym `contactBandId` i emituje zerowej wielkości **anchor** paska z deskryptorem układu (tryb, geometria kotwicy, czcionki, motyw ikon, metryki, kolejność kanałów). Klient przenosi matematykę centrowania/zawijania z backendu, przelicza pozycje, a następnie przesuwa każdy element poniżej (`top >= dół paska`) o deltę wysokości paska i ponownie stronicuje.
+
+Implementacja:
+
+- `frontend/src/utils/contactBandLayout.js` — czysty silnik układu (port z `contact.py`).
+- `frontend/src/utils/contactBandOps.js` — `activeChannels` / `applyChannelRemoval` / `applyChannelAddition` (przelicz + reflow Δ + `reconcileDocumentPages`).
+- `frontend/src/utils/contactBands.js` — `listContactBands` grupuje otagowane chipy per pasek.
+- `frontend/src/components/canvas/ContactChannelControls/` — hover kosz + menu dodawania kanału.
+- `frontend/src/hooks/useA4Elements.js` — `removeContactChannel` / `addContactChannel` (pomiar czcionką płótna; zatwierdzane przez `setA4_Elements`, więc undo/redo + zapis działają).
+- `backend/app/services/cv_templates/shared/contact.py` — tagowanie `band_id` + deskryptor, `build_contact_band_anchor`.
+- `backend/app/schemas/pdf_schema.py`, `backend/app/crud/pdfs.py` — `contactChannel` / `contactBandId` / `contactBand` utrwalane przez `extra_properties`.
+
+Testy: `frontend/src/utils/contactBandLayout.test.js`, `contactBandOps.test.js`, `contactBands.test.js`; `backend/tests/test_contact_band_emit.py`, `test_contact_channel_roundtrip.py`.
+
+Odłożone do kolejnych faz: układy sidebar / stackowane (Tessera, Slate, Nova), przełączniki tytułu/roli i wielkich liter w imieniu, slot zdjęcia profilowego oraz nowe pola danych (dodatkowe pole, data urodzenia, narodowość).
 
 ### Extract CV z PDF
 
