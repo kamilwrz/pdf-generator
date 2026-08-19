@@ -1,6 +1,11 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { activeChannels, applyChannelRemoval, applyChannelAddition } from "./contactBandOps.js";
+import {
+  activeChannels,
+  applyChannelRemoval,
+  applyChannelAddition,
+  applyChannelRelayout,
+} from "./contactBandOps.js";
 import { channelName } from "./contactChannelNames.js";
 
 const measure = (t) => t.length * 5;
@@ -66,6 +71,20 @@ test("addition without a provided label seeds an empty editable label", () => {
   const { elements } = applyChannelAddition(removed, "b1", "location", undefined, measure, () => `new-${n++}`);
   const label = elements.find((e) => e.contactChannel === "location" && e.category === "text");
   assert.equal(typeof label.content, "string");
+});
+
+test("relayout re-spaces following chips after the edited label grows", () => {
+  // Simulate a live edit: phone label is now much longer than at layout time.
+  const edited = doc().map((e) =>
+    e.element_id === "ph-l" ? { ...e, content: "+48 111 222 333 444" } : e,
+  );
+  const { elements } = applyChannelRelayout(edited, "b1", measure, () => "id");
+  const phoneLabel = elements.find((e) => e.element_id === "ph-l");
+  const emailIcon = elements.find((e) => e.element_id === "em-i");
+  // The email chip starts one full phone-advance right of the phone icon, so
+  // the inter-item gap stays constant regardless of the new text length.
+  const phoneAdvance = 16 + measure("+48 111 222 333 444") + 14;
+  assert.equal(emailIcon.left, phoneLabel.left - 16 + phoneAdvance);
 });
 
 test("addition opens the new label in edit mode with a placeholder", () => {

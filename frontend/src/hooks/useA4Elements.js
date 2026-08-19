@@ -55,7 +55,7 @@ import {
 } from '../utils/a4ElementFactories';
 import { materializeElementSpecs } from '../utils/materializeElementSpecs';
 import { useDocumentHistory } from './useDocumentHistory';
-import { applyChannelRemoval, applyChannelAddition } from '../utils/contactBandOps';
+import { applyChannelRemoval, applyChannelAddition, applyChannelRelayout } from '../utils/contactBandOps';
 import { canvasFontFamily } from '../utils/canvasFont';
 import { useElementSelectionDrag } from './useElementSelectionDrag';
 import API_BASE_URL, { ENDPOINTS } from '../services/api';
@@ -1240,6 +1240,23 @@ export function useA4Elements(titleRef) {
     });
   }, [finalizeDocumentPages]);
 
+  // Measure a contact label's rendered width with the canvas font so the client
+  // band layout wraps/centres exactly as the user sees it. Returns null when no
+  // DOM canvas is available (SSR/tests) so the engine uses its deterministic
+  // charWidth fallback (matching the backend estimate). Defined above
+  // `handleEditElementValues` because the live-reflow path below references it.
+  const contactMeasureCtxRef = useRef(null);
+  const measureContactLabel = useCallback((text, fontFamily, fontSizePt) => {
+    if (typeof document === "undefined") return null;
+    if (!contactMeasureCtxRef.current) {
+      contactMeasureCtxRef.current = document.createElement("canvas").getContext("2d");
+    }
+    const ctx = contactMeasureCtxRef.current;
+    if (!ctx) return null;
+    ctx.font = `${fontSizePt}px ${canvasFontFamily(fontFamily)}`;
+    return ctx.measureText(String(text)).width;
+  }, []);
+
   const handleEditElementValues = useCallback((dataObject, id) => {
     setA4_Elements(prevState => {
       const newState = prevState.map((element) => {
@@ -1267,12 +1284,23 @@ export function useA4Elements(titleRef) {
           return element;
         }
       });
+      // A live edit of a contact label changes its width, so the band must
+      // re-space (constant inter-item gap) and downstream flow shift by Δ. Only
+      // label content edits trigger this; position-only edits are left alone.
+      if ("content" in dataObject) {
+        const edited = newState.find((el) => el.element_id === id);
+        if (edited?.contactBandId && edited?.contactChannel && edited.category === "text") {
+          return applyChannelRelayout(
+            newState, edited.contactBandId, measureContactLabel, () => nanoid(),
+          ).elements;
+        }
+      }
       if ("page" in dataObject) {
         return finalizeDocumentPages(newState, { collapseEmpty: true });
       }
       return newState;
     });
-  }, [finalizeDocumentPages]);
+  }, [finalizeDocumentPages, measureContactLabel]);
 
   // Applies a shared set of editable fields to every selected element. The
   // editor only exposes fields present on the entire selection, so this does
@@ -2024,22 +2052,6 @@ export function useA4Elements(titleRef) {
         : element
     )));
   }, [setEditorMode]);
-
-  // Measure a contact label's rendered width with the canvas font so the client
-  // band layout wraps/centres exactly as the user sees it. Returns null when no
-  // DOM canvas is available (SSR/tests) so the engine uses its deterministic
-  // charWidth fallback (matching the backend estimate).
-  const contactMeasureCtxRef = useRef(null);
-  const measureContactLabel = useCallback((text, fontFamily, fontSizePt) => {
-    if (typeof document === "undefined") return null;
-    if (!contactMeasureCtxRef.current) {
-      contactMeasureCtxRef.current = document.createElement("canvas").getContext("2d");
-    }
-    const ctx = contactMeasureCtxRef.current;
-    if (!ctx) return null;
-    ctx.font = `${fontSizePt}px ${canvasFontFamily(fontFamily)}`;
-    return ctx.measureText(String(text)).width;
-  }, []);
 
   // Remove/add a contact channel (icon + label as a unit) and reflow the band +
   // downstream document. Committed via setA4_Elements so undo/redo and save

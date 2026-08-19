@@ -103,6 +103,42 @@ function relayoutAndReconcile(elements, bandId, descriptor, oldItems, nextItems,
   return { elements: reconciled.elements, pageCount: reconciled.pageCount };
 }
 
+// Current bottom row of the band, read from live chip positions. Used as the
+// "before" baseline for a live edit, where the prior layout is not available.
+function currentBandBottom(elements, bandId) {
+  let bottom = null;
+  for (const el of elements) {
+    if (el.contactBandId === bandId && el.contactChannel && typeof el.top === "number") {
+      bottom = bottom == null ? el.top : Math.max(bottom, el.top);
+    }
+  }
+  return bottom;
+}
+
+/**
+ * Re-lay a band from its current label contents (called live while a label is
+ * edited) and shift downstream flow by the height delta. Positions only — never
+ * touches content, runs, or edit state, so the caret in the edited node is
+ * undisturbed.
+ */
+export function applyChannelRelayout(elements, bandId, measure, createId) {
+  const descriptor = bandDescriptor(elements, bandId);
+  if (!descriptor) return { elements };
+  const channels = activeChannels(elements, bandId);
+  if (!channels.length) return { elements };
+  const labels = channelLabels(elements, bandId);
+  const items = itemsFor(channels, labels);
+  const oldBottom = currentBandBottom(elements, bandId);
+  const newBand = layoutContactBand(descriptor, items, measure);
+  const delta = oldBottom == null ? 0 : newBand.bottomY - oldBottom;
+  const placementByChannel = new Map(newBand.placements.map((p) => [p.channel, p]));
+  const next = elements.map((el) =>
+    reposition(el, bandId, placementByChannel, oldBottom ?? 0, delta),
+  );
+  const reconciled = reconcileDocumentPages(next, createId, { collapseEmpty: true });
+  return { elements: reconciled.elements, pageCount: reconciled.pageCount };
+}
+
 /**
  * Remove a channel (icon + label) and reflow the band + document.
  */
