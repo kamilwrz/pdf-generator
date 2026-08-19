@@ -34,6 +34,7 @@ function Text({
     runs,
     zIndex,
     fixedToPage,
+    placeholder,
 }) {
     const {
         moveElement,
@@ -147,6 +148,10 @@ function Text({
         <p
             id={elementId}
             ref={nodeRef}
+            // A labelled empty contact label reserves a hit area and shows a
+            // hint via CSS (see Text.module.css). The attribute is omitted when
+            // there is no placeholder so every other text element is unaffected.
+            data-placeholder={placeholder || undefined}
             contentEditable={isEditing && !fixedToPage}
             suppressContentEditableWarning
             spellCheck={false}

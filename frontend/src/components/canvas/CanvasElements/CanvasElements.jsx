@@ -239,6 +239,7 @@ export default function CanvasElements({ elements }) {
             runs={element.runs}
             zIndex={element.zIndex}
             fixedToPage={element.fixedToPage}
+            placeholder={element.placeholder}
           />
           {sectionAnchor ? (
             <SectionRecordAdd

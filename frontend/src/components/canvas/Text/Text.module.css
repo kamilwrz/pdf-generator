@@ -35,3 +35,16 @@
 .editing:focus {
     outline: none;
 }
+
+/* A labelled empty contact label (e.g. a just-added channel) needs a hit area
+   and a hint. Both are display-only: the ::before content is CSS-generated so it
+   never enters the contentEditable value, and the min-width only applies while
+   the node is empty, so a filled label keeps hugging its glyphs exactly. */
+.textElement[data-placeholder]:empty {
+    min-width: 4ch;
+}
+
+.textElement[data-placeholder]:empty::before {
+    content: attr(data-placeholder);
+    color: #808080;
+}
