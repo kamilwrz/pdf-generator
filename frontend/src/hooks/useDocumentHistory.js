@@ -7,6 +7,7 @@
  * restore pre-measure heights.
  */
 import { useCallback, useEffect, useRef, useState } from "react";
+import { recordSnapshotState } from "../utils/documentHistory";
 
 const HISTORY_LIMIT = 100;
 const HISTORY_QUIET_MS = 500;
@@ -58,27 +59,16 @@ export function useDocumentHistory({
 
   const recordSnapshot = () => {
     const snap = buildSnapshot();
-    const h = historyRef.current;
+    // A quiet record is a load/reflow settle: it refreshes the current tip in
+    // place and preserves the redo tail. A non-quiet record is a real edit: it
+    // pushes a new step and drops the redo tail. Both rules — including the
+    // redo-tail preservation that keeps redo usable after an undo — live in the
+    // pure `recordSnapshotState` (see `utils/documentHistory.js`).
     const quiet = Date.now() < historyQuietUntilRef.current;
-    if (quiet) {
-      // Reflow / load settle: keep a single mutable baseline (or refresh tip).
-      if (h.index < 0 || h.stack.length === 0) {
-        historyRef.current = { stack: [snap], index: 0 };
-      } else {
-        const stack = h.stack.slice(0, h.index + 1);
-        stack[h.index] = snap;
-        historyRef.current = { stack, index: h.index };
-      }
-      syncHistoryFlags();
-      return;
-    }
-    const cur = h.stack[h.index];
-    if (cur && JSON.stringify(cur) === JSON.stringify(snap)) return; // content unchanged (e.g. selection only)
-    const next = h.stack.slice(0, h.index + 1);
-    next.push(snap);
-    const overflow = next.length - HISTORY_LIMIT;
-    const capped = overflow > 0 ? next.slice(overflow) : next;
-    historyRef.current = { stack: capped, index: capped.length - 1 };
+    historyRef.current = recordSnapshotState(historyRef.current, snap, {
+      quiet,
+      limit: HISTORY_LIMIT,
+    });
     syncHistoryFlags();
   };
 

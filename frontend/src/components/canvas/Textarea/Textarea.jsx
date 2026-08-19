@@ -401,7 +401,9 @@ function Textarea({
             node.style.height = `${measuredHeight}px`;
             if (autoHeight) {
                 editElementValues({ content: nextContent, runs: nextRuns }, elementId);
-                fitTextareaToContent(elementId, measuredHeight);
+                // This is a user edit, not a background settle: keep it as a real
+                // undo step (quiet: false) so the content change can be undone.
+                fitTextareaToContent(elementId, measuredHeight, { quiet: false });
             } else {
                 editElementValues({ content: nextContent, runs: nextRuns, height: measuredHeight }, elementId);
             }

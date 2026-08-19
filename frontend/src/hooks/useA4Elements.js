@@ -1301,12 +1301,20 @@ export function useA4Elements(titleRef) {
   // The canvas is the typography authority: after a template textarea has
   // rendered, its measured content height replaces the authored placeholder
   // height and every later element in the same visual lane keeps its gap.
-  // Quiet history so this settle never becomes an Undo step of its own.
+  //
+  // `quiet` controls whether this reflow becomes its own Undo step:
+  // - A background measure (mount / font-ready / load settle) passes quiet=true
+  //   so the height correction merges into the current tip instead of adding a
+  //   spurious undo step for a change the user never made.
+  // - A user typing/formatting commit passes quiet=false. The content edit that
+  //   preceded it must land as a real, undoable step; quieting it here would
+  //   overwrite the pre-edit tip in place, which made typed textarea changes
+  //   impossible to undo.
   // Skip while canvas enter is holding opacity at 0 — fallback-font measures
   // during that window were collapsing whole CV layouts on load.
-  const handleFitTextareaToContent = useCallback((elementId, measuredHeight) => {
+  const handleFitTextareaToContent = useCallback((elementId, measuredHeight, { quiet = true } = {}) => {
     if (isCanvasEnterReflowSuppressed()) return;
-    markHistoryQuiet();
+    if (quiet) markHistoryQuiet();
     setA4_Elements((prevState) => {
       const result = reflowTextareaHeight(
         prevState,
