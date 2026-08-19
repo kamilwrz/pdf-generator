@@ -99,6 +99,22 @@ function layoutWrapping(descriptor, items, measure) {
   return { placements, bottomY: cy };
 }
 
+// Nova-style stacked band: one channel per row, left-anchored. Label width is
+// irrelevant to placement here (rows never wrap), so `measure` is unused.
+function layoutStacked(descriptor, items) {
+  const { iconGap, lineStep } = descriptor.metrics;
+  const { startX, startY } = descriptor.anchor;
+  const placements = items.map((item, i) => ({
+    channel: item.channel,
+    iconLeft: startX,
+    iconTop: startY + i * lineStep,
+    labelLeft: startX + iconGap,
+    labelTop: startY + i * lineStep,
+  }));
+  const bottomY = items.length ? startY + (items.length - 1) * lineStep : startY;
+  return { placements, bottomY };
+}
+
 /**
  * Lay out a contact band's active channels.
  *
@@ -109,5 +125,6 @@ function layoutWrapping(descriptor, items, measure) {
  */
 export function layoutContactBand(descriptor, items, measure) {
   if (descriptor.mode === "wrapping") return layoutWrapping(descriptor, items, measure);
+  if (descriptor.mode === "stacked") return layoutStacked(descriptor, items);
   return layoutCentered(descriptor, items, measure);
 }

@@ -60,6 +60,29 @@ test("wrapping: left-anchored, wraps at rightLimit", () => {
   assert.equal(bottomY, 120);
 });
 
+test("stacked: one channel per row, bottomY at the last row", () => {
+  const stacked = {
+    mode: "stacked",
+    anchor: { startX: 44, startY: 100 },
+    text: { fontFamily: "Inter", fontSizePt: 8.4, colorHex: "#3A3A3A" },
+    icon: { sizePt: 11, theme: "nova" },
+    metrics: { iconGap: 16, itemPad: 14, lineStep: 18, charWidth: 5.2 },
+    order: ["phone", "email", "location"],
+  };
+  const items = [
+    { channel: "phone", label: "111" },
+    { channel: "email", label: "aa" },
+    { channel: "location", label: "Wwa" },
+  ];
+  const { placements, bottomY } = layoutContactBand(stacked, items, () => 10);
+  assert.equal(placements[0].iconLeft, 44);
+  assert.equal(placements[0].iconTop, 100);
+  assert.equal(placements[1].iconTop, 118);
+  assert.equal(placements[2].labelLeft, 60);
+  assert.equal(placements[2].labelTop, 136);
+  assert.equal(bottomY, 136);
+});
+
 test("removing the middle item closes the gap (no empty slot)", () => {
   const items = [{ channel: "phone", label: "111" }, { channel: "location", label: "xx" }];
   const { placements } = layoutContactBand(centered, items, measure);
