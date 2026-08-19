@@ -16,18 +16,9 @@ import { use, useCallback, useEffect, useRef, useState } from "react";
 import { FiPlus, FiTrash2 } from "react-icons/fi";
 import { PdfContext } from "../../../store/pdfgenerator-context";
 import { recordPlusLayoutSize } from "../recordPlusSize";
+import { CHANNEL_NAMES } from "../../../utils/contactChannelNames";
 import cluster from "../SectionRecordAdd/SectionRecordAdd.module.css";
 import classes from "./ContactChannelControls.module.css";
-
-/** Human-readable Polish names for the add-channel menu. */
-const CHANNEL_NAMES = {
-  phone: "Telefon",
-  email: "E-mail",
-  linkedin: "LinkedIn",
-  github: "GitHub",
-  website: "Strona WWW",
-  location: "Lokalizacja",
-};
 
 const HIDE_AFTER_LEAVE_MS = 600;
 
