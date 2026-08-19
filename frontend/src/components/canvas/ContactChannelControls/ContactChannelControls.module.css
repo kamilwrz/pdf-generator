@@ -1,0 +1,34 @@
+/* Add-channel menu. Buttons/clusters reuse SectionRecordAdd.module.css; only
+   the dropdown surface is defined here. Swiss card tokens (DESIGN.md): white
+   surface, 1px hairline grey stroke, subtle sharp shadow, 0px radius. */
+.menu {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    z-index: 41;
+    display: flex;
+    flex-direction: column;
+    min-width: 128px;
+    padding: 4px;
+    background: #FFFFFF;
+    border: 1px solid rgba(128, 128, 128, 0.28);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.10);
+    pointer-events: auto;
+}
+
+.menuItem {
+    display: block;
+    width: 100%;
+    padding: 6px 10px;
+    border: none;
+    background: transparent;
+    color: #2B2B2B;
+    font-size: 12px;
+    text-align: left;
+    cursor: pointer;
+    transition: background-color .12s;
+}
+
+.menuItem:hover {
+    background: #F5F1E8;
+}

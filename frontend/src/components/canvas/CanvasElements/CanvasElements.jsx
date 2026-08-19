@@ -34,6 +34,8 @@ import Path from '../Path/Path';
 import SectionRecordAdd from '../SectionRecordAdd/SectionRecordAdd';
 import RecordBlockAdd from '../RecordBlockAdd/RecordBlockAdd';
 import FlatSectionLayoutToggle from '../FlatSectionLayoutToggle/FlatSectionLayoutToggle';
+import ContactChannelControls from '../ContactChannelControls/ContactChannelControls';
+import { listContactBands } from '../../../utils/contactBands';
 import { useCanvasEnterIds } from '../../../hooks/useCanvasEnterIds';
 import { PdfContext } from '../../../store/pdfgenerator-context';
 import { EDITOR_MODE_TEMPLATE } from '../../../utils/editorMode';
@@ -147,7 +149,14 @@ export default function CanvasElements({ elements }) {
     return map;
   }, [editorMode, documentElements, pageHeight, sectionAnchorsById]);
 
-  return elements.map((element) => {
+  // Managed contact bands on this page (template mode only). Rendered after the
+  // element nodes so the hover trash / add-channel menu overlay the chips.
+  const contactBands = useMemo(
+    () => (editorMode === EDITOR_MODE_TEMPLATE ? listContactBands(elements) : []),
+    [editorMode, elements],
+  );
+
+  const elementNodes = elements.map((element) => {
     const enterClass = enterClassName(element.element_id, heldIds, fadingIds);
     let node = null;
     const blockAnchor = recordBlockAnchorsById.get(element.element_id);
@@ -382,4 +391,18 @@ export default function CanvasElements({ elements }) {
       </div>
     );
   });
+
+  return (
+    <>
+      {elementNodes}
+      {contactBands.map((band) => (
+        <ContactChannelControls
+          key={band.bandId}
+          bandId={band.bandId}
+          chips={band.chips}
+          inactive={band.inactive}
+        />
+      ))}
+    </>
+  );
 }

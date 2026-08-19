@@ -1,0 +1,162 @@
+/**
+ * Inline hover controls for one contact band (Phase 1 contact channel manager).
+ *
+ * Hovering a contact chip (its label element) reveals a trash button that
+ * removes that channel — icon and label together. At the band end a `+` opens a
+ * menu of the channels not currently shown; picking one inserts it with its
+ * icon. Both actions reflow the band and the document downstream via the
+ * `removeContactChannel` / `addContactChannel` context operations.
+ *
+ * Mirrors `SectionRecordAdd`'s canvas-affordance conventions (bare icon buttons
+ * inside the shared `.cluster` surface chip, zoom-aware sizing) and only adds
+ * the add-channel dropdown. Only bands whose anchor carries a descriptor reach
+ * this component (see `listContactBands`), so it always has data to act on.
+ */
+import { use, useCallback, useEffect, useRef, useState } from "react";
+import { FiPlus, FiTrash2 } from "react-icons/fi";
+import { PdfContext } from "../../../store/pdfgenerator-context";
+import { recordPlusLayoutSize } from "../recordPlusSize";
+import cluster from "../SectionRecordAdd/SectionRecordAdd.module.css";
+import classes from "./ContactChannelControls.module.css";
+
+/** Human-readable Polish names for the add-channel menu. */
+const CHANNEL_NAMES = {
+  phone: "Telefon",
+  email: "E-mail",
+  linkedin: "LinkedIn",
+  github: "GitHub",
+  website: "Strona WWW",
+  location: "Lokalizacja",
+};
+
+const HIDE_AFTER_LEAVE_MS = 600;
+
+export default function ContactChannelControls({ bandId, chips, inactive }) {
+  const { removeContactChannel, addContactChannel, zoom = 1 } = use(PdfContext);
+  const [hoverChannel, setHoverChannel] = useState(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const hideTimerRef = useRef(null);
+
+  const clearHide = useCallback(() => {
+    if (hideTimerRef.current != null) {
+      window.clearTimeout(hideTimerRef.current);
+      hideTimerRef.current = null;
+    }
+  }, []);
+  const scheduleHide = useCallback(() => {
+    clearHide();
+    hideTimerRef.current = window.setTimeout(() => setHoverChannel(null), HIDE_AFTER_LEAVE_MS);
+  }, [clearHide]);
+
+  // Attach hover listeners to each chip's label node so the trash appears over
+  // the chip the pointer is on. Chips are addressed by element id, the same way
+  // SectionRecordAdd binds to a heading node.
+  useEffect(() => {
+    const cleanups = [];
+    for (const chip of chips) {
+      const node = document.getElementById(chip.elementId);
+      if (!node) continue;
+      const onEnter = () => { clearHide(); setHoverChannel(chip.channel); };
+      const onLeave = () => scheduleHide();
+      node.addEventListener("pointerenter", onEnter);
+      node.addEventListener("pointerleave", onLeave);
+      cleanups.push(() => {
+        node.removeEventListener("pointerenter", onEnter);
+        node.removeEventListener("pointerleave", onLeave);
+      });
+    }
+    return () => {
+      clearHide();
+      cleanups.forEach((fn) => fn());
+    };
+  }, [chips, clearHide, scheduleHide]);
+
+  useEffect(() => () => clearHide(), [clearHide]);
+
+  const { buttonSize, iconSize, gap } = recordPlusLayoutSize(zoom, chips[0]?.fontSize ?? 8);
+  const buttonStyle = { width: buttonSize, height: buttonSize };
+  const iconStyle = { width: iconSize, height: iconSize };
+  const hoveredChip = chips.find((chip) => chip.channel === hoverChannel) || null;
+  // The `+` sits just past the last chip in reading order (usually the
+  // right-most on its line). Exact chip width is unknown on the client, so a
+  // small fixed offset places it clear of the label without measuring.
+  const lastChip = chips[chips.length - 1] || null;
+
+  return (
+    <>
+      {hoveredChip ? (
+        <div
+          className={cluster.anchor}
+          style={{ left: hoveredChip.left - buttonSize - gap, top: hoveredChip.top - 1 }}
+        >
+          <div
+            className={cluster.cluster}
+            style={{ gap }}
+            onPointerEnter={() => { clearHide(); setHoverChannel(hoveredChip.channel); }}
+            onPointerLeave={scheduleHide}
+          >
+            <button
+              type="button"
+              className={cluster.trash}
+              style={buttonStyle}
+              aria-label={`Usuń kontakt: ${CHANNEL_NAMES[hoveredChip.channel] || hoveredChip.channel}`}
+              title="Usuń kontakt"
+              onPointerDown={(event) => event.stopPropagation()}
+              onClick={(event) => {
+                event.stopPropagation();
+                event.preventDefault();
+                removeContactChannel(bandId, hoveredChip.channel);
+                setHoverChannel(null);
+              }}
+            >
+              <FiTrash2 style={iconStyle} />
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      {lastChip && inactive.length > 0 ? (
+        <div className={cluster.anchor} style={{ left: lastChip.left + 44, top: lastChip.top - 1 }}>
+          <div className={cluster.cluster} style={{ gap }}>
+            <button
+              type="button"
+              className={cluster.plus}
+              style={buttonStyle}
+              aria-label="Dodaj kontakt"
+              title="Dodaj kontakt"
+              onPointerDown={(event) => event.stopPropagation()}
+              onClick={(event) => {
+                event.stopPropagation();
+                event.preventDefault();
+                setMenuOpen((open) => !open);
+              }}
+            >
+              <FiPlus style={iconStyle} />
+            </button>
+            {menuOpen ? (
+              <div className={classes.menu} role="menu">
+                {inactive.map((channel) => (
+                  <button
+                    key={channel}
+                    type="button"
+                    role="menuitem"
+                    className={classes.menuItem}
+                    onPointerDown={(event) => event.stopPropagation()}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      event.preventDefault();
+                      addContactChannel(bandId, channel);
+                      setMenuOpen(false);
+                    }}
+                  >
+                    {CHANNEL_NAMES[channel] || channel}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
+    </>
+  );
+}
