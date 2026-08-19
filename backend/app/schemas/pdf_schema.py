@@ -156,6 +156,13 @@ class PdfElement(BaseModel):
     img_id: Optional[int] = None
     # When true on update, the element is omitted from the live set and deleted.
     deleted: Optional[bool] = None
+    # Contact-band identity (Phase 1 contact channel manager). Present on both
+    # the icon and label of a channel so they move/delete as a unit.
+    contactChannel: Optional[str] = None
+    contactBandId: Optional[str] = None
+    # Band layout descriptor — set only on the zero-footprint band-anchor element
+    # (flowRole "masthead-anchor"). Drives client-side reflow on add/remove.
+    contactBand: Optional[dict[str, Any]] = None
 
 
 EditorMode = Literal["template", "freeform"]

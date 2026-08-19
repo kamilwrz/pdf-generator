@@ -711,6 +711,43 @@
       ],
       "default": null,
       "title": "Deleted"
+    },
+    "contactChannel": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Contactchannel"
+    },
+    "contactBandId": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Contactbandid"
+    },
+    "contactBand": {
+      "anyOf": [
+        {
+          "additionalProperties": true,
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Contactband"
     }
   },
   "required": [
