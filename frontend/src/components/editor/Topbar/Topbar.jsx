@@ -1,7 +1,10 @@
 /**
  * Editor chrome: title, save/download, import/wizard/AI entry, undo/redo, zoom.
  * Action buttons are icon-only with tooltips (title + aria-label).
- * Download/save go through PdfContext create/update (entitlement-gated upstream).
+ * Save (`createPdf`) is the only path that writes to "Moje dokumenty" (create on
+ * first save, update thereafter). Download (`downloadPdf`) is independent: it
+ * renders the current canvas on demand without saving. Both are
+ * entitlement-gated upstream.
  *
  * The project name field and the templates control both live in the left
  * action group (rather than centered over the canvas or anchored to the A4
@@ -30,15 +33,13 @@ export default function Topbar({ titleRef }) {
         activeTemplateId,
         entitlements,
         createPdf,
-        updatePdf,
+        downloadPdf,
         clearA4,
         isPdfLoading,
-        activePdfId,
         zoom,
         zoomIn,
         zoomOut,
         isTwoPageView,
-        currentPage,
         undo,
         redo,
         canUndo,
@@ -217,13 +218,16 @@ export default function Topbar({ titleRef }) {
                     >
                         <FiTrash2 />
                     </button>
+                    {/* Download is independent of Save: it renders the current
+                        canvas on demand, so it stays enabled even before the
+                        document has ever been saved to "Moje dokumenty". */}
                     <button
                         type="button"
                         className={classes.secondary}
-                        onClick={updatePdf}
-                        disabled={isPdfLoading || activePdfId == null}
+                        onClick={downloadPdf}
+                        disabled={isPdfLoading}
                         aria-label="Pobierz PDF"
-                        title={activePdfId == null ? "Najpierw utwórz PDF" : "Pobierz PDF"}
+                        title="Pobierz PDF"
                     >
                         <RiDownload2Line />
                     </button>

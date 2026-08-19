@@ -9,6 +9,11 @@ There are two persistence paths:
   via ``document_service``.
 - `/save_elements` persists canvas rows only — used for debounced autosave
   without paying the cost of a full render on every keystroke.
+
+In addition, `/render_pdf` renders the current canvas to PDF bytes and streams
+them WITHOUT persisting anything. It backs the editor's "Pobierz" (Download)
+button, which is independent of "Zapisz" (Save): an unsaved document can still
+be exported. Like `/download_pdf`, it is export-metered.
 """
 
 import datetime
@@ -37,6 +42,7 @@ from app.services.entitlements import (
 )
 from app.services.document_service import (
     create_pdf_document, update_pdf_document, render_pdf_for_download,
+    render_document_bytes,
 )
 
 if USE_S3:
@@ -84,6 +90,42 @@ async def create_user_pdf(
         raise HTTPException(status_code=401, detail="Nie znaleziono konta użytkownika.")
     assert_can_create_project(db, db_user)
     return create_pdf_document(db, user=db_user, username=username, pdf_data=pdf_data)
+
+
+@router.post("/render_pdf", status_code=status.HTTP_200_OK)
+async def render_user_pdf(
+    pdf_data: PDFCreateRequest,
+    payload: dict = Depends(verify_token),
+    db: Session = Depends(get_db),
+):
+    """Render the current canvas to PDF and stream it WITHOUT persisting.
+
+    Powers the editor's "Pobierz" (Download) button. Download is independent of
+    "Zapisz" (Save): this route never creates or updates a Pdf/PdfElements row,
+    so a document that was never saved to "Moje dokumenty" can still be
+    exported. Reuses ``PDFCreateRequest`` because the payload is the live canvas
+    (elements + geometry) with no document id.
+
+    Side effects: export entitlement check (`assert_can_export`) then the
+    monthly export counter (`record_export`) — so every download counts against
+    the plan quota exactly like `/download_pdf`. The render is attempted before
+    the counter increments, so a failed render never consumes an export.
+    """
+    username = payload.get("sub")
+    db_user = get_user_by_username(db, username=username)
+    if db_user is None:
+        raise HTTPException(status_code=401, detail="Nie znaleziono konta użytkownika.")
+    # Gate before rendering so a blocked export neither renders nor meters.
+    assert_can_export(db, db_user)
+    pdf_bytes = render_document_bytes(db, user=db_user, pdf_data=pdf_data)
+    record_export(db, db_user.id)
+
+    filename = _pdf_download_filename(pdf_data.pdf_title)
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": _content_disposition(filename)},
+    )
 
 
 @router.get("/fetch_pdfs", status_code=status.HTTP_200_OK)

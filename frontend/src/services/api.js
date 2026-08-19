@@ -24,6 +24,8 @@ export const ENDPOINTS = {
         UPDATE: "/pdf/update_pdf",
         SAVE_ELEMENTS: "/pdf/save_elements",
         DOWNLOAD: "/pdf/download_pdf",
+        /** Render-on-demand: streams a PDF for the live canvas without saving. */
+        RENDER: "/pdf/render_pdf",
     },
     IMG: {
         UPLOAD: "/images/upload_image",

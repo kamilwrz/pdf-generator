@@ -45,7 +45,7 @@ export default function ModalPdfs({ title }) {
         setA4_Elements,
         handlePdfId,
         activePdfId,
-        flushAutosave,
+        confirmDiscardActiveEdits,
         discardActiveDocument,
         setA4_Elements_deleted,
         setPDFs,
@@ -77,11 +77,12 @@ export default function ModalPdfs({ title }) {
 
     async function showPDF(id) {
         if (isOpening) return;
+        // Opening a saved document replaces the current canvas. With background
+        // autosave removed, warn before discarding unsaved edits; abort the open
+        // if the user cancels. The new id is assigned only after elements arrive.
+        if (!confirmDiscardActiveEdits()) return;
         setIsOpening(true);
         try {
-            // Persist the document currently open before replacing its canvas.
-            // Crucially, the new id is assigned only after its elements arrive.
-            await flushAutosave();
             const data = await api.httpRequest(
                 ENDPOINTS.PDF.SHOW,
                 "POST",

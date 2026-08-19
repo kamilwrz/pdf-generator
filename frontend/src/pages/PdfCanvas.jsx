@@ -57,7 +57,7 @@ import { shouldShowStartChooser } from '../utils/startChooser';
 import { previewStructureOperation, reconcileDocumentPages } from '../utils/structureOperation';
 import { visiblePageNumbers } from '../utils/pageSpread';
 import { planErrorMessage } from '../utils/entitlements';
-import { fetchOwnedPdfDownload, triggerBlobDownload } from '../utils/download';
+import { triggerBlobDownload } from '../utils/download';
 import { useCanvasPageWheel } from '../hooks/useCanvasPageWheel';
 import {
   EDITOR_MODE_FREEFORM,
@@ -461,24 +461,25 @@ function PdfCanvas() {
   // responsePDF is ever set for the request in flight).
   function noopShowModal() {}
 
-  const { createPdf, updatePdf, saveElements, responsePDF, isPdfLoading } = usePdfExport(handlePdfId, noopShowModal, titleRef, A4_Elements_deleted, setA4_Elements_deleted);
-  const autosaveTimerRef = useRef(null);
-  const autosaveQueueRef = useRef(Promise.resolve());
+  const { createPdf, updatePdf, downloadPdf, responsePDF, isPdfLoading } = usePdfExport(handlePdfId, noopShowModal, titleRef, A4_Elements_deleted, setA4_Elements_deleted);
   const wasPdfLoadingRef = useRef(false);
+  // Set false by any canvas mutation (edit, load, reflow); flipped true only by
+  // a successful "Zapisz". Combined with `canUndo` (edited-since-load), this is
+  // the "unsaved changes not yet in Moje dokumenty" signal used to guard
+  // canvas-replacing actions now that background autosave is gone.
+  const savedCleanRef = useRef(false);
 
-  // Stable callbacks for the post-spinner effect — if `pushToast` /
-  // `refreshEntitlements` change identity mid-download, we must NOT re-run
-  // (and cancel) the in-flight export. That race previously aborted a successful
-  // blob fetch right before `triggerBlobDownload`, so the user saw nothing.
+  // Stable callback ref for the post-spinner effect so a `pushToast` identity
+  // change does not re-run the effect for an already-handled response.
   const pushToastRef = useRef(pushToast);
   pushToastRef.current = pushToast;
   const refreshEntitlementsRef = useRef(refreshEntitlements);
   refreshEntitlementsRef.current = refreshEntitlements;
-  const downloadJobRef = useRef(0);
 
-  // Fires exactly when the create/update spinner finishes. Download intent
-  // fetches bytes for that pdf_id, auto-saves the file, then toasts with the
-  // same object URL. Save intent toasts without metering another export.
+  // Fires exactly when the create/update spinner finishes. Save (create or
+  // update) is the only path through here now — Download renders on demand via
+  // `handleDownloadClick` and never touches `responsePDF`. On success the
+  // document is committed to "Moje dokumenty", so the in-memory state is clean.
   useEffect(() => {
     if (!(wasPdfLoadingRef.current && !isPdfLoading)) {
       wasPdfLoadingRef.current = isPdfLoading;
@@ -496,50 +497,18 @@ function PdfCanvas() {
     }
     if (!responsePDF?.success) return undefined;
 
+    // The current canvas now matches what is stored in "Moje dokumenty", so a
+    // subsequent document switch must not warn about unsaved changes.
+    savedCleanRef.current = true;
     const fileLabel = titleRef.current?.value ? `${titleRef.current.value}.pdf` : "CV";
-    const isDownload = responsePDF.intent === "download";
-    const pdfId = responsePDF.pdf_id;
-
-    if (!isDownload) {
-      pushToastRef.current({
-        title: "Twój PDF jest gotowy",
-        msg: `CV zostało zapisane pomyślnie${titleRef.current?.value ? `: ${fileLabel}` : "."}`,
-        variant: "success",
-      });
-      return undefined;
-    }
-
-    const jobId = ++downloadJobRef.current;
-    (async () => {
-      try {
-        const prepared = await fetchOwnedPdfDownload(pdfId, { fallbackTitle: fileLabel });
-        // A newer download job superseded this one (rare double-click).
-        if (jobId !== downloadJobRef.current) return;
-        triggerBlobDownload(prepared.blob, prepared.title || fileLabel);
-        pushToastRef.current({
-          title: "CV gotowe do pobrania",
-          msg: `Pobrano plik ${prepared.title || fileLabel}.`,
-          variant: "success",
-          action: {
-            label: "Pobierz PDF",
-            href: prepared.blob,
-            download: prepared.title || fileLabel,
-          },
-        });
-        // Refresh after the file is saved — never inside the fetch helper while
-        // an effect depended on that callback's identity (that cancelled downloads).
-        refreshEntitlementsRef.current?.();
-      } catch (error) {
-        if (jobId !== downloadJobRef.current) return;
-        console.error("Nie udało się przygotować pobierania PDF.", error);
-        pushToastRef.current({
-          title: error?.code?.startsWith?.("plan_") ? "Limit planu" : "Pobieranie nie powiodło się",
-          msg: planErrorMessage(error, "Nie udało się przygotować pobierania PDF."),
-          variant: "error",
-        });
-      }
-    })();
-
+    pushToastRef.current({
+      title: "Zapisano w Moich dokumentach",
+      msg: `CV zostało zapisane pomyślnie${titleRef.current?.value ? `: ${fileLabel}` : "."}`,
+      variant: "success",
+    });
+    // A create consumes a project entitlement; refresh so plan counters stay
+    // current without waiting for the next natural fetch.
+    refreshEntitlementsRef.current?.();
     return undefined;
   }, [isPdfLoading, responsePDF, titleRef]);
 
@@ -615,116 +584,44 @@ function PdfCanvas() {
     return () => window.removeEventListener("keydown", onKey);
   }, [undo, redo])
 
-  // Every save captures a document-specific snapshot and runs after earlier
-  // saves. This prevents a slower, older request from overwriting newer canvas
-  // data or from clearing a deletion queued for another document.
-  const enqueueAutosave = useCallback((snapshot) => {
-    const persistSnapshot = async () => {
-      await saveElements(
-        snapshot.elements,
-        snapshot.pdfId,
-        titleRef,
-        snapshot.deleted,
-        snapshot.pageCount,
-        snapshot.pageSize,
-        {
-          editorMode: snapshot.editorMode,
-          templateId: snapshot.templateId,
-          flowSpacing: snapshot.flowSpacing,
-        },
-      );
-
-      const savedDeletionIds = new Set(snapshot.deleted.map((element) => element.element_id));
-      if (savedDeletionIds.size > 0) {
-        setA4_Elements_deleted((current) => current.filter(
-          (element) => !savedDeletionIds.has(element.element_id)
-        ));
-      }
-    };
-
-    const queuedSave = autosaveQueueRef.current.then(persistSnapshot, persistSnapshot);
-    // Keep the queue usable after a failed request. The caller still receives
-    // the rejection from `queuedSave`, while the next save is allowed to run.
-    autosaveQueueRef.current = queuedSave.catch(() => {});
-    return queuedSave;
-  }, [saveElements, setA4_Elements_deleted, titleRef]);
-
-  const flushAutosave = useCallback(async () => {
-    if (autosaveTimerRef.current) {
-      clearTimeout(autosaveTimerRef.current);
-      autosaveTimerRef.current = null;
-    }
-    if (pdfId == null || isPdfLoading) return;
-
-    await enqueueAutosave({
-      elements: A4_Elements,
-      pdfId,
-      deleted: A4_Elements_deleted,
-      pageCount,
-      pageSize,
-      editorMode,
-      templateId: activeTemplateId,
-      flowSpacing,
-    });
+  // Background autosave to the backend was intentionally removed: "Moje
+  // dokumenty" is updated ONLY on an explicit "Zapisz". Edits therefore live in
+  // memory (backing undo/redo) until saved. Any canvas mutation clears the
+  // clean flag; a successful save re-sets it (see the post-spinner effect).
+  useEffect(() => {
+    savedCleanRef.current = false;
   }, [
     A4_Elements,
     A4_Elements_deleted,
     activeTemplateId,
     editorMode,
-    enqueueAutosave,
     flowSpacing,
-    isPdfLoading,
     pageCount,
     pageSize,
-    pdfId,
   ]);
 
-  // Lightweight autosave: 2s after edits settle, persist canvas elements only
-  // (no PDF render). Runs only once the document has been saved (has a pdfId).
-  useEffect(() => {
-    if (pdfId == null || isPdfLoading) return;
-    const snapshot = {
-      elements: A4_Elements,
-      pdfId,
-      deleted: A4_Elements_deleted,
-      pageCount,
-      pageSize,
-      editorMode,
-      templateId: activeTemplateId,
-      flowSpacing,
-    };
-    const timer = setTimeout(() => {
-      autosaveTimerRef.current = null;
-      enqueueAutosave(snapshot).catch((error) => {
-        console.error("Autozapis nie powiódł się.", error);
-      });
-    }, 2000);
-    autosaveTimerRef.current = timer;
+  // Guard for actions that replace the current canvas (load template / AI doc /
+  // clear / open another saved document). With no background autosave, such a
+  // switch would silently drop unsaved edits, so warn first. Returns true when
+  // it is safe to proceed. `canUndo` means "edited since this document loaded"
+  // (history resets on every load); `savedCleanRef` means "already committed via
+  // Zapisz" — only a document that is edited AND uncommitted is worth warning
+  // about, so a pristine or just-saved document switches without a prompt.
+  const confirmDiscardActiveEdits = useCallback(() => {
+    if (!canUndo || savedCleanRef.current) return true;
+    return window.confirm(
+      "Masz niezapisane zmiany, które nie zostały jeszcze zapisane w Moich dokumentach.\n\n"
+        + "Kontynuować i je odrzucić?",
+    );
+  }, [canUndo]);
 
-    return () => {
-      clearTimeout(timer);
-      if (autosaveTimerRef.current === timer) {
-        autosaveTimerRef.current = null;
-      }
-    };
-  }, [
-    A4_Elements,
-    A4_Elements_deleted,
-    activeTemplateId,
-    editorMode,
-    enqueueAutosave,
-    flowSpacing,
-    isPdfLoading,
-    pageCount,
-    pageSize,
-    pdfId,
-  ])
-
-  // Guest-mode autosave: no token yet, so persist to localStorage instead of
-  // the backend (which would 401). Same 2s settle debounce as the
-  // authenticated path above, but writes via guestDocument instead of
-  // calling saveElements. Skipped once a real pdfId exists — from that point
-  // the authenticated effect above is the source of truth.
+  // Guest-mode autosave: guests have no account to save into, so their
+  // in-progress work is persisted to localStorage (a backend write would 401).
+  // This local draft is intentionally kept even though authenticated background
+  // autosave was removed — it is the only way a guest's edits survive a reload
+  // before they register. A 2s settle debounce mirrors the editing cadence.
+  // Skipped once a real pdfId exists: from that point the document is a saved
+  // account document, updated only by an explicit "Zapisz".
   const [isDemoContent, setIsDemoContent] = useState(startIntent === "demo");
   const isDemoContentRef = useRef(isDemoContent);
   isDemoContentRef.current = isDemoContent;
@@ -1069,17 +966,92 @@ function PdfCanvas() {
     });
   }, [A4_Elements, activeTemplateId, createPdf, editorMode, flowSpacing, titleRef, pageCount, pageSize]);
 
-  // Guests have no backend document to create yet — show the save-gate
-  // instead of firing the API call, which would 401. Authenticated users
-  // are unaffected: same createPdfWithElements() call as before this change.
+  // Update the already-saved document in place. `intent: "save"` marks this as a
+  // persistence write (not a download), so the post-spinner effect shows the
+  // "Zapisano" toast rather than any download handling.
+  const updatePdfWithElements = useCallback(() => {
+    updatePdf(A4_Elements, pdfId, titleRef, A4_Elements_deleted, pageCount, pageSize, {
+      editorMode,
+      templateId: activeTemplateId,
+      flowSpacing,
+      intent: "save",
+    });
+  }, [
+    A4_Elements,
+    activeTemplateId,
+    editorMode,
+    flowSpacing,
+    pdfId,
+    updatePdf,
+    titleRef,
+    A4_Elements_deleted,
+    pageCount,
+    pageSize,
+  ]);
+
+  // Render the current canvas to a PDF and download it — independent of
+  // "Zapisz". Works even for a never-saved document because the backend renders
+  // on demand without persisting. Guests cannot export (no account for the
+  // metered quota), so they see the same save-gate as "Zapisz".
+  const handleDownloadClick = useCallback(async () => {
+    if (!localStorage.getItem("token")) {
+      queueGuestEvent("save_gate_shown");
+      setDialog('saveGate');
+      return;
+    }
+    try {
+      const { blob, title } = await downloadPdf(A4_Elements, titleRef, pageCount, pageSize, {
+        editorMode,
+        templateId: activeTemplateId,
+        flowSpacing,
+      });
+      triggerBlobDownload(blob, title);
+      pushToast({
+        title: "CV gotowe do pobrania",
+        msg: `Pobrano plik ${title}.`,
+        variant: "success",
+        action: { label: "Pobierz PDF", href: blob, download: title },
+      });
+      // A download consumes an export entitlement; refresh so the plan counter
+      // reflects it without waiting for the next natural fetch.
+      refreshEntitlements?.();
+    } catch (error) {
+      console.error("Nie udało się pobrać PDF.", error);
+      pushToast({
+        title: error?.code?.startsWith?.("plan_") ? "Limit planu" : "Pobieranie nie powiodło się",
+        msg: planErrorMessage(error, "Nie udało się przygotować pobierania PDF."),
+        variant: "error",
+      });
+    }
+  }, [
+    A4_Elements,
+    activeTemplateId,
+    downloadPdf,
+    editorMode,
+    flowSpacing,
+    pageCount,
+    pageSize,
+    pushToast,
+    refreshEntitlements,
+    titleRef,
+  ]);
+
+  // "Zapisz" is the ONLY path that writes to "Moje dokumenty". The first save
+  // creates the document (and its pdfId); every later save updates that same
+  // document in place instead of spawning a new copy. Guests have no backend
+  // document yet, so they see the save-gate instead of a 401.
   const handleSaveClick = useCallback(() => {
     if (!localStorage.getItem("token")) {
       queueGuestEvent("save_gate_shown");
       setDialog('saveGate');
       return;
     }
-    createPdfWithElements();
-  }, [createPdfWithElements]);
+    if (pdfId == null) {
+      createPdfWithElements();
+    } else {
+      updatePdfWithElements();
+    }
+  }, [createPdfWithElements, updatePdfWithElements, pdfId]);
 
   const previewedElements = useMemo(() => {
     const structurallyPreviewed = structurePreviewGroup
@@ -1122,51 +1094,30 @@ function PdfCanvas() {
     [currentPage, isTwoPageView, pageCount],
   );
 
-  const updatePdfWithElements = useCallback(() => {
-    updatePdf(A4_Elements, pdfId, titleRef, A4_Elements_deleted, pageCount, pageSize, {
-      editorMode,
-      templateId: activeTemplateId,
-      flowSpacing,
-    });
-  }, [
-    A4_Elements,
-    activeTemplateId,
-    editorMode,
-    flowSpacing,
-    pdfId,
-    updatePdf,
-    titleRef,
-    A4_Elements_deleted,
-    pageCount,
-    pageSize,
-  ]);
-
   function handlePdfId(pdfId) {
     setPdfId(pdfId)
   }
 
-  // Loading a template / AI doc / clearing starts a fresh, unsaved document.
-  // Flush first so switching away never drops edits from the currently open PDF.
-  const startFreshDocument = useCallback(async (loadDocument) => {
-    try {
-      await flushAutosave();
-      setPdfId(null);
-      // A brand-new document has no known cv_data yet. AiCvPanel/BioCvModal
-      // set it again right after a successful fill; every other fresh-start
-      // path (blank template, cleared canvas) correctly leaves it cleared.
-      setActiveCvData(null);
-      // The canvas is about to hold something other than the demo CV — clear
-      // the flag here, once content is actually replacing it, rather than at
-      // the moment the user merely clicks "Użyj własnych danych". Clearing it
-      // on click (before the wizard runs) left the demo content on screen
-      // with no banner if the wizard was then cancelled, since this is the
-      // only path that actually swaps canvas content.
-      setIsDemoContent(false);
-      loadDocument();
-    } catch (error) {
-      console.error("Nie można rozpocząć nowego dokumentu: autozapis nie powiódł się.", error);
-    }
-  }, [flushAutosave]);
+  // Loading a template / AI doc / clearing starts a fresh, unsaved document,
+  // replacing the current canvas. Confirm first so unsaved edits are not lost
+  // (background autosave no longer persists them). Callers that already ran
+  // their own discard prompt pass `skipDiscardGuard` to avoid a double dialog.
+  const startFreshDocument = useCallback((loadDocument, { skipDiscardGuard = false } = {}) => {
+    if (!skipDiscardGuard && !confirmDiscardActiveEdits()) return;
+    setPdfId(null);
+    // A brand-new document has no known cv_data yet. AiCvPanel/BioCvModal
+    // set it again right after a successful fill; every other fresh-start
+    // path (blank template, cleared canvas) correctly leaves it cleared.
+    setActiveCvData(null);
+    // The canvas is about to hold something other than the demo CV — clear
+    // the flag here, once content is actually replacing it, rather than at
+    // the moment the user merely clicks "Użyj własnych danych". Clearing it
+    // on click (before the wizard runs) left the demo content on screen
+    // with no banner if the wizard was then cancelled, since this is the
+    // only path that actually swaps canvas content.
+    setIsDemoContent(false);
+    loadDocument();
+  }, [confirmDiscardActiveEdits]);
 
   const loadTemplateFresh = useCallback(
     (...args) => startFreshDocument(() => handleLoadTemplate(...args)),
@@ -1183,53 +1134,50 @@ function PdfCanvas() {
   const clearA4Fresh = useCallback(
     () => {
       if (editorMode === EDITOR_MODE_TEMPLATE) {
+        // This template-specific prompt already asks the user to confirm
+        // discarding the current document, so skip the generic discard guard
+        // inside startFreshDocument to avoid stacking two dialogs.
         const leaveTemplate = window.confirm(
           "Wyczyścić dokument?\n\nOK — zacznij pusty projekt własny.\nAnuluj — pozostaw bieżący szablon.",
         );
         if (!leaveTemplate) return;
+        startFreshDocument(handleClearA4, { skipDiscardGuard: true });
+        return;
       }
       startFreshDocument(handleClearA4);
     },
     [editorMode, handleClearA4, startFreshDocument],
   );
 
-  const confirmUnlockFreeform = useCallback(async () => {
-    try {
-      await flushAutosave();
-      const baseTitle = (titleRef.current?.value || "Projekt").trim() || "Projekt";
-      const copyTitle = `${baseTitle} (swobodny)`;
-      const cloned = A4_Elements.map((element) => ({
-        ...element,
-        element_id: nanoid(),
-        isSelected: false,
-        isMove: false,
-        isEditing: false,
-        preserveInitialLayout: false,
-      }));
-      setPdfId(null);
-      setActiveCvData(null);
-      resetHistory();
-      setA4_Elements(cloned);
-      setA4_Elements_deleted([]);
-      if (titleRef.current) titleRef.current.value = copyTitle;
-      handleUnlockFreeform();
-      setDialog(null);
-      pushToast?.({
-        title: "Projekt własny",
-        msg: "Utworzono kopię ze swobodną edycją.",
-        variant: "success",
-      });
-    } catch (error) {
-      console.error("Nie udało się odblokować swobodnej edycji.", error);
-      pushToast?.({
-        title: "Odblokowanie nie powiodło się",
-        msg: "Autozapis nie powiódł się — spróbuj ponownie.",
-        variant: "error",
-      });
-    }
+  // Unlocking freeform CLONES the current canvas into a new, unsaved freeform
+  // copy (fresh element ids, cleared pdfId). No edits are discarded — the
+  // in-memory content is carried into the copy — so no discard guard is needed.
+  const confirmUnlockFreeform = useCallback(() => {
+    const baseTitle = (titleRef.current?.value || "Projekt").trim() || "Projekt";
+    const copyTitle = `${baseTitle} (swobodny)`;
+    const cloned = A4_Elements.map((element) => ({
+      ...element,
+      element_id: nanoid(),
+      isSelected: false,
+      isMove: false,
+      isEditing: false,
+      preserveInitialLayout: false,
+    }));
+    setPdfId(null);
+    setActiveCvData(null);
+    resetHistory();
+    setA4_Elements(cloned);
+    setA4_Elements_deleted([]);
+    if (titleRef.current) titleRef.current.value = copyTitle;
+    handleUnlockFreeform();
+    setDialog(null);
+    pushToast?.({
+      title: "Projekt własny",
+      msg: "Utworzono kopię ze swobodną edycją.",
+      variant: "success",
+    });
   }, [
     A4_Elements,
-    flushAutosave,
     handleUnlockFreeform,
     pushToast,
     resetHistory,
@@ -1403,13 +1351,10 @@ function PdfCanvas() {
     setDialog(null);
   }, []);
 
-  // A successful delete must clear the local canvas without attempting to
-  // autosave the PDF row that has just been removed from the server.
+  // A successful delete clears the local canvas for the row that was just
+  // removed from the server. Background autosave is gone, so there is no pending
+  // timer to cancel — dropping the pdfId is enough to detach the canvas.
   const discardActiveDocument = useCallback(() => {
-    if (autosaveTimerRef.current) {
-      clearTimeout(autosaveTimerRef.current);
-      autosaveTimerRef.current = null;
-    }
     setPdfId(null);
     setActiveCvData(null);
     handleClearA4();
@@ -1485,7 +1430,7 @@ function PdfCanvas() {
     setA4_Elements,
     setA4_Elements_deleted,
     activePdfId: pdfId,
-    flushAutosave,
+    confirmDiscardActiveEdits,
     discardActiveDocument,
     clearA4: clearA4Fresh,
     loadTemplate: loadTemplateFresh,
@@ -1526,7 +1471,7 @@ function PdfCanvas() {
     canUndo,
     canRedo,
     resetHistory,
-    updatePdf: updatePdfWithElements,
+    downloadPdf: handleDownloadClick,
     createPdf: handleSaveClick,
     isPdfLoading,
     layoutPreviewPatches,
@@ -1545,8 +1490,8 @@ function PdfCanvas() {
     handleSaveClick, applyStructureOperation, applyCloneOperation, applyDeleteOperation,
     handleEditElementValues, handleEditSelectedElementValues, handleFitTextareaToContent, applyLayoutPatches,
     handleAlignElements, handleDeleteElement, handleDeleteSelectedElements, handleDuplicateSelectedElements,
-    setA4_Elements, handleResizeElement, updatePdfWithElements,
-    clearA4Fresh, discardActiveDocument, flushAutosave, loadTemplateFresh, loadTemplateWithFillFresh,
+    setA4_Elements, handleResizeElement, handleDownloadClick,
+    clearA4Fresh, discardActiveDocument, confirmDiscardActiveEdits, loadTemplateFresh, loadTemplateWithFillFresh,
     loadAiElementsFresh, handleLoadAiElements, activeTemplateId, setActiveTemplateId,
     editorMode, setEditorMode, flowSpacing, setFlowSpacing, baselineFlowSpacing, adoptDocumentFlowSpacing, hydrateDocumentMode, handleShowUnlockFreeform, handleUnlockFreeform,
     activeCvData, setActiveCvData,

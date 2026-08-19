@@ -70,6 +70,29 @@ def make_image_resolver(db: Session):
     return _resolve
 
 
+def render_document_bytes(db: Session, *, user, pdf_data) -> bytes:
+    """Render the current canvas to PDF bytes without persisting anything.
+
+    Powers the editor's render-on-demand download (``POST /pdf/render_pdf``),
+    which is deliberately independent of Save: a document that was never stored
+    in "Moje dokumenty" can still be exported. No Pdf / PdfElements row is
+    created or touched here — the caller owns the export entitlement check and
+    counter increment.
+
+    The watermark flag is read fresh from the account's CURRENT plan (Free ->
+    diagonal stamp), identical to create/update, so a download always matches
+    the live entitlement rather than a plan that was active at some earlier save.
+
+    @raises HTTPException 400 - Empty element list (nothing to render).
+    """
+    elements = pdf_data.root
+    if not elements:
+        raise HTTPException(status_code=400, detail="Brakuje części danych.")
+    resolver = make_image_resolver(db)
+    watermark = get_entitlements(db, user)["plan_slug"] == "free"
+    return build_pdf_to_buffer(pdf_data, elements, resolver, watermark=watermark)
+
+
 def create_pdf_document(db: Session, *, user, username: str, pdf_data) -> dict:
     """Persist a new Pdf row and render the initial downloadable file.
 

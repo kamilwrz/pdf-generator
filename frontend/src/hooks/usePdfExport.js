@@ -5,11 +5,14 @@ import { assertCanvasElementRoot } from "../utils/canvasElementSchema";
 import { flowSpacingToPayload } from "../utils/flowSpacing";
 
 /**
- * PDF create / update / autosave against the backend.
+ * PDF create / update / download against the backend.
  *
- * Create and update trigger a full ReportLab render on the server.
- * `saveElements` persists canvas rows only (debounced autosave) without
- * regenerating the downloadable file.
+ * Create and update persist the document to "Moje dokumenty" and trigger a
+ * full ReportLab render on the server — they run only on an explicit "Zapisz".
+ * `downloadPdf` renders the current canvas to a file WITHOUT persisting it
+ * (render-on-demand), so "Pobierz" is independent of "Zapisz".
+ * `saveElements` persists canvas rows only (no render); it is a low-level
+ * primitive and is no longer used for background autosave.
  *
  * @param {Function} handlePdfId - Stores the active document id after create.
  * @param {Function} handleShowModal - Opens the save/download result UI.
@@ -155,8 +158,62 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
   }, [handleShowModal, titleRef, setA4_Elements_deleted])
 
 
-  // Lightweight autosave: persist canvas elements + geometry only (no PDF
-  // render, no S3). Fire-and-report; caller debounces and gates on a saved id.
+  // Render-on-demand download: render the current canvas to a PDF and return a
+  // one-shot object URL, WITHOUT creating or updating a "Moje dokumenty" row.
+  // This is what makes "Pobierz" independent of "Zapisz" — an unsaved document
+  // can still be exported. The backend still meters every export, so a blocked
+  // free-plan quota rejects here exactly like a stored-file download.
+  const downloadPdf = useCallback(async (A4_Elements, titleRef, pages = 1, pageSize, meta = {}) => {
+    const sorted = sanitizeElementsContent(
+      [...A4_Elements].sort((a, b) => a.zIndex - b.zIndex),
+    );
+    // Reuse the same schema guard as create/update so a malformed canvas fails
+    // fast with a readable error instead of a 422 from the server.
+    assertCanvasElementRoot(sorted);
+
+    const api = new ApiClient({ "Authorization": `Bearer ${localStorage.getItem("token")}` });
+    const editor_mode = meta.editorMode === "template" ? "template" : "freeform";
+    const template_id = meta.templateId || null;
+    const spacing_px = flowSpacingToPayload(meta.flowSpacing);
+    const baseTitle = titleRef.current?.value || "cv";
+    const body = JSON.stringify({
+      root: sorted,
+      pdf_title: baseTitle + ".pdf",
+      pages,
+      page_width: pageSize?.width ?? 595,
+      page_height: pageSize?.height ?? 842,
+      editor_mode,
+      template_id,
+      spacing_px,
+    });
+
+    setIsPdfLoading(true);
+    const startedAt = Date.now();
+    try {
+      // Wake a sleeping Render dyno first, then retry transient cold-start blips
+      // — mirrors the create/update path so the first download after idle works.
+      const { blob, filename } = await wakeBackend().then(() => api.httpRequestBlob(
+        ENDPOINTS.PDF.RENDER,
+        "POST",
+        body,
+        "Nie udało się pobrać PDF!",
+        { retries: 2, timeoutMs: 120_000 },
+      ));
+      const urlBlob = URL.createObjectURL(blob);
+      // Keep the object URL alive long enough for the toast "Pobierz PDF" action.
+      window.setTimeout(() => URL.revokeObjectURL(urlBlob), 60_000);
+      return { blob: urlBlob, title: filename || `${baseTitle}.pdf` };
+    } finally {
+      // Honour the minimum spinner window so a fast render still paints once.
+      const remaining = Math.max(0, MIN_SPINNER_MS - (Date.now() - startedAt));
+      window.setTimeout(() => setIsPdfLoading(false), remaining);
+    }
+  }, []);
+
+
+  // Lightweight elements-only persistence (no PDF render, no S3). Retained as a
+  // low-level primitive; background autosave was removed, so nothing calls this
+  // by default. Kept for callers that need to persist rows without a re-render.
   const saveElements = useCallback(async (A4_Elements, PDF_ID, titleRef, deleted, pages = 1, pageSize, meta = {}) => {
     const sorted = sanitizeElementsContent(
       [...A4_Elements].sort((a, b) => a.zIndex - b.zIndex),
@@ -179,5 +236,5 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
       "Autozapis nie powiódł się.");
   }, []);
 
-  return {createPdf, updatePdf, saveElements, responsePDF, isPdfLoading};
+  return {createPdf, updatePdf, downloadPdf, saveElements, responsePDF, isPdfLoading};
 }

@@ -52,7 +52,10 @@ export const PdfContext = createContext({
     canRedo: false,
     resetHistory: () => {},
     activePdfId: null,
-    flushAutosave: async () => {},
+    // Guard for canvas-replacing actions: returns true when it is safe to
+    // discard the current in-memory document (no unsaved edits, or the user
+    // confirmed). Default no-op provider always allows the switch.
+    confirmDiscardActiveEdits: () => true,
     discardActiveDocument: () => {},
     pageSize: { width: 595, height: 842 },
     zoom: 1.3,
@@ -87,7 +90,8 @@ export const PdfContext = createContext({
     isVisibleModal: false,
     setIsModalPdfs: () => {},
     resizeElement: () => {},
-    updatePdf: () => {},
+    // Render-on-demand download of the current canvas, independent of Save.
+    downloadPdf: () => {},
     handlePdfId: () => {},
     handleSetTitle: () => {},
     title: undefined,
