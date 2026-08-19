@@ -86,7 +86,7 @@ def _gen_atrium(cv: dict) -> list[dict]:
         cursor_y += title_h
 
     contact_fs, contact_icon = (8.4, 10.5)
-    contact_els, contact_bottom = _place_centered_icon_contacts(
+    contact_els, contact_bottom, _contact_descriptor = _place_centered_icon_contacts(
         theme=ICON,
         items=_contact_channel_items(cv, email_limit=42),
         center_x=CENTER_X,

@@ -62,23 +62,27 @@ def _gen_harbor(cv: dict) -> list[dict]:
         {**_text(name, 23, SANS, C["ink"], MAIN_X, 44, zIndex=3, bold=True), "letterSpacing": 0.3},
         _text(title, 11, SANS, C["accent"], MAIN_X, 80, zIndex=3),
     ]
-    from app.services.cv_templates.shared.contact import _contact_channel_items
+    from app.services.cv_templates.shared.contact import (
+        _contact_channel_items,
+        _place_wrapping_icon_contacts,
+        build_contact_band_anchor,
+    )
     contacts = _contact_channel_items(cv, email_limit=40, social_limit=36)
     # Single contact row that wraps to a second line when the values are long,
-    # so real data cannot overrun the right page margin.
-    cx, cy = float(MAIN_X), 104.0
-    for key, value in contacts:
-        if not value:
-            continue
-        advance = 15 + len(value) * 4.7 + 14
-        if cx > MAIN_X and cx + advance > 551:
-            cx, cy = float(MAIN_X), cy + 16
-        header.append(_hicon(key, cx, cy, 11))
-        header.append({
-            **_text(value, 8.4, SANS, C["body"], cx + 15, cy, zIndex=3),
-            "flowRole": "masthead",
-        })
-        cx += advance
+    # so real data cannot overrun the right page margin. The shared placer
+    # produces the identical geometry the manual loop used (icon_gap 15,
+    # char_width 4.7, item_pad 14, line_step 16, right edge 551) while tagging
+    # each pair for the contact channel manager and returning a reflow
+    # descriptor. `icon_builder` keeps Harbor's own themed glyph (_hicon).
+    contact_els, contact_bottom, contact_descriptor = _place_wrapping_icon_contacts(
+        theme="harbor", items=contacts, start_x=float(MAIN_X), start_y=104.0,
+        right_limit=551, text_fs=8.4, icon_size=11, text_color=C["body"], font=SANS,
+        char_width=4.7, icon_gap=15, item_pad=14, line_step=16,
+        icon_builder=lambda name, left, top: _hicon(name, left, top, 11),
+        band_id="contact-main",
+    )
+    header.extend(contact_els)
+    cy = contact_bottom
     # Name / title join the masthead so spacing packs never treat phone text
     # as a section heading against the header rule.
     header = [{**element, "flowRole": element.get("flowRole") or "masthead"} for element in header]
@@ -102,6 +106,15 @@ def _gen_harbor(cv: dict) -> list[dict]:
         "flowRole": "masthead",
     })
     section_start = header_rule_y + 20
+    # Record how far the first section sits below the band bottom so the client
+    # can shift downstream flow by the band's height delta on add/remove. The
+    # header rule's element_id is assigned later in the pipeline, so the client
+    # resolves the rule by position (nearest masthead line below the band).
+    contact_descriptor["downstream"] = {
+        "ruleElementId": None,
+        "sectionStartOffsetPt": section_start - contact_bottom,
+    }
+    header.append(build_contact_band_anchor(contact_descriptor))
 
     # ── Sidebar (independent flow in the right column) ──────────────────────
     #

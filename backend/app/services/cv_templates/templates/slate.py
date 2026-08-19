@@ -216,7 +216,7 @@ def _gen_slate(cv: dict) -> list[dict]:
     # Accent glyphs on white paper (slate white glyphs would vanish). Same
     # placer / channel order as Tessera so LinkedIn / GitHub / website wrap
     # onto a second row and push the header rule with them.
-    contact_els, contact_bottom = _place_wrapping_icon_contacts(
+    contact_els, contact_bottom, _contact_descriptor = _place_wrapping_icon_contacts(
         theme=icon_theme_accent,
         items=_contact_channel_items(cv),
         start_x=float(main_left),

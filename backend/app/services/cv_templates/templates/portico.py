@@ -106,7 +106,7 @@ def _gen_portico(cv: dict) -> list[dict]:
     # centered line for CVs with many social/contact channels, unlike the
     # left-anchored `_place_wrapping_icon_contacts` used by Nova/Cardinal.
     contact_fs, contact_icon = (8.4, 12.0)
-    contact_els, contact_bottom = _place_centered_icon_contacts(
+    contact_els, contact_bottom, _contact_descriptor = _place_centered_icon_contacts(
         theme=ICON,
         items=_contact_channel_items(cv, email_limit=42),
         center_x=CENTER_X,

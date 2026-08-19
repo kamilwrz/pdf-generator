@@ -81,7 +81,7 @@ class ContactPlacementTests(unittest.TestCase):
             "website": "anna-portfolio.example",
             "location": "Warszawa",
         })
-        els, bottom = _place_wrapping_icon_contacts(
+        els, bottom, _descriptor = _place_wrapping_icon_contacts(
             theme="nova",
             items=items,
             start_x=50.0,

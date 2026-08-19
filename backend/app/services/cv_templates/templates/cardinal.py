@@ -32,7 +32,7 @@ def _gen_cardinal(cv: dict) -> list[dict]:
     header = [_text(name, 30, DISP, C['ink'], L, 50, zIndex=3), _text(title, 9.6, SANS, C['accent'], L, 92, zIndex=3)]
     header[0]['letterSpacing'] = 0.15
     header[1]['letterSpacing'] = 1.55
-    contact_els, contact_bottom = _place_wrapping_icon_contacts(
+    contact_els, contact_bottom, _contact_descriptor = _place_wrapping_icon_contacts(
         theme=ICON,
         items=_contact_channel_items(cv, email_limit=42),
         start_x=float(C['icon_x']),

@@ -205,7 +205,7 @@ def _gen_tessera(cv: dict) -> list[dict]:
     name = _compact_text(cv.get("name"), 34).upper()
     title = _compact_text(cv.get("title"), 56).upper()
     contact_fs, contact_icon = 7.8, 11.0
-    contact_els, contact_bottom = _place_wrapping_icon_contacts(
+    contact_els, contact_bottom, _contact_descriptor = _place_wrapping_icon_contacts(
         theme=icon_theme,
         items=_contact_channel_items(cv),
         start_x=float(main_left),
