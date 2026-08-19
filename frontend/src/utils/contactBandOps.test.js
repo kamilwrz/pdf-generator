@@ -87,6 +87,29 @@ test("relayout re-spaces following chips after the edited label grows", () => {
   assert.equal(emailIcon.left, phoneLabel.left - 16 + phoneAdvance);
 });
 
+test("empty added label reserves display-name width so the next chip does not overlap", () => {
+  const base = [
+    { element_id: "anchor", category: "text", content: "", flowRole: "masthead-anchor",
+      contactBandId: "b1", contactBand: descriptor, top: 0, left: 0, page: 1 },
+    { element_id: "ph-i", category: "image", contactBandId: "b1", contactChannel: "phone",
+      left: 44, top: 104, page: 1, src: "http://x/iconic/harbor/phone.png", width: 11, height: 11, flowRole: "masthead" },
+    { element_id: "ph-l", category: "text", contactBandId: "b1", contactChannel: "phone",
+      content: "111", left: 60, top: 104, page: 1, flowRole: "masthead" },
+    { element_id: "lo-i", category: "image", contactBandId: "b1", contactChannel: "location",
+      left: 200, top: 104, page: 1, src: "http://x/iconic/harbor/location.png", width: 11, height: 11, flowRole: "masthead" },
+    { element_id: "lo-l", category: "text", contactBandId: "b1", contactChannel: "location",
+      content: "Wwa", left: 216, top: 104, page: 1, flowRole: "masthead" },
+  ];
+  let n = 0;
+  const { elements } = applyChannelAddition(base, "b1", "email", "", measure, () => `new-${n++}`);
+  const emailIcon = elements.find((e) => e.contactChannel === "email" && e.category === "image");
+  const locIcon = elements.find((e) => e.element_id === "lo-i");
+  // location sits a full email advance (iconGap + display-name width + itemPad)
+  // right of the email icon — the empty label still reserves placeholder width.
+  const emailAdvance = 16 + measure(channelName("email")) + 14;
+  assert.equal(locIcon.left, emailIcon.left + emailAdvance);
+});
+
 test("addition opens the new label in edit mode with a placeholder", () => {
   const removed = applyChannelRemoval(doc(), "b1", "email", measure, () => "id").elements;
   let n = 0;

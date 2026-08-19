@@ -57,8 +57,16 @@ function channelLabels(elements, bandId) {
   return labels;
 }
 
+// Build the ordered items the layout engine measures. `itemsFor` is used for
+// PLACEMENT MATH ONLY — it never sets element content. An empty label reserves
+// the width of its display name (the same text the placeholder ::before shows in
+// Text.jsx), so the following chip does not overlap a just-added, still-empty
+// channel. Once the user types, the real content is measured instead.
 function itemsFor(channels, labels) {
-  return channels.map((channel) => ({ channel, label: labels[channel] ?? "" }));
+  return channels.map((channel) => ({
+    channel,
+    label: labels[channel] ? labels[channel] : channelName(channel),
+  }));
 }
 
 // Reposition band pairs to the new placements; shift downstream flow by Δ.
