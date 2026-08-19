@@ -111,6 +111,31 @@ function deriveIconSrc(elements, bandId, descriptor, channel) {
   return `/template-assets/iconic/${descriptor.icon.theme}/${channel}.png`;
 }
 
+// Copy the chip (Volt) pill style from an existing band rectangle so a re-added
+// chip matches the originals exactly — including `filled` (Volt chips are
+// outline-only: backgroundColor is the border colour) and any borderRadius. Falls
+// back to the descriptor's chipColor with Volt's default outline shape when the
+// band has no rectangle left to copy from (re-adding into a fully emptied band).
+function deriveChipStyle(elements, bandId, descriptor) {
+  const anyRect = elements.find(
+    (el) => el.contactBandId === bandId && el.category === "rectangle",
+  );
+  if (anyRect) {
+    return {
+      backgroundColor: anyRect.backgroundColor,
+      filled: anyRect.filled ?? false,
+      borderWidth: anyRect.borderWidth ?? 1,
+      borderRadius: anyRect.borderRadius ?? null,
+    };
+  }
+  return {
+    backgroundColor: descriptor.chipColor ?? "#EEEEEE",
+    filled: false,
+    borderWidth: 1,
+    borderRadius: null,
+  };
+}
+
 function relayoutAndReconcile(elements, bandId, descriptor, oldItems, nextItems, measure, createId) {
   const oldBand = layoutContactBand(descriptor, oldItems, measure);
   const newBand = layoutContactBand(descriptor, nextItems, measure);
@@ -217,9 +242,10 @@ export function applyChannelAddition(elements, bandId, channel, label, measure, 
     src: deriveIconSrc(elements, bandId, descriptor, channel),
     left: placement.iconLeft, top: placement.iconTop,
     width: descriptor.icon.sizePt, height: descriptor.icon.sizePt,
-    // Chip icons sit at their literal drawn top (the placement already centers
-    // them in the pill); other modes align the icon to the text baseline.
-    zIndex: 3, page, flowRole: "masthead", alignWithText: !isChip,
+    // Match the backend `_icon`/`_icon_beside` output for every mode: the glyph
+    // is vertically centred against the label's CSS top (alignWithText), so a
+    // re-added icon lands exactly where the generator's icons do.
+    zIndex: 3, page, flowRole: "masthead", alignWithText: true,
     contactChannel: channel, contactBandId: bandId,
   };
   const labelEl = {
@@ -243,13 +269,16 @@ export function applyChannelAddition(elements, bandId, channel, label, measure, 
   // subsequent relayout confirms every position/size.
   const extras = [];
   if (isChip) {
+    const chipStyle = deriveChipStyle(elements, bandId, descriptor);
     extras.push({
       element_id: createId("chip"),
       category: "rectangle",
       left: placement.rectLeft, top: placement.rectTop,
       width: placement.rectWidth, height: descriptor.metrics.chipH,
-      backgroundColor: descriptor.chipColor ?? "#EEEEEE",
-      filled: true, borderWidth: 1, zIndex: 1, page, flowRole: "masthead",
+      backgroundColor: chipStyle.backgroundColor,
+      filled: chipStyle.filled, borderWidth: chipStyle.borderWidth,
+      borderRadius: chipStyle.borderRadius,
+      zIndex: 1, page, flowRole: "masthead",
       contactChannel: channel, contactBandId: bandId,
     });
   }

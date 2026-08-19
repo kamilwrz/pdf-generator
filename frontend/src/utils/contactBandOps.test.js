@@ -145,7 +145,8 @@ function chipDoc() {
     { element_id: "a", category: "text", content: "", flowRole: "masthead-anchor",
       contactBandId: "vb", contactBand: chipDescriptor, top: 0, left: 0, page: 1 },
     { element_id: "ph-r", category: "rectangle", contactBandId: "vb", contactChannel: "phone",
-      left: 48, top: 108, width: 120, height: 20, page: 1, flowRole: "masthead" },
+      left: 48, top: 108, width: 120, height: 20, page: 1, flowRole: "masthead",
+      backgroundColor: "#1A2030", filled: false, borderWidth: 1, borderRadius: null },
     { element_id: "ph-i", category: "image", contactBandId: "vb", contactChannel: "phone",
       left: 54, top: 114, width: 15, height: 15, page: 1, src: "x/volt/phone.png", flowRole: "masthead" },
     { element_id: "ph-l", category: "text", contactBandId: "vb", contactChannel: "phone",
@@ -170,7 +171,12 @@ test("chip addition creates a rect + icon + label triple for the channel", () =>
   const { elements } = applyChannelAddition(chipDoc(), "vb", "email", "", (t) => t.length * 5, () => `new-${n++}`);
   const added = elements.filter((e) => e.contactChannel === "email");
   assert.equal(added.length, 3);
-  assert.ok(added.some((e) => e.category === "rectangle"));
-  assert.ok(added.some((e) => e.category === "image"));
-  assert.ok(added.some((e) => e.category === "text"));
+  const rect = added.find((e) => e.category === "rectangle");
+  const icon = added.find((e) => e.category === "image");
+  assert.ok(rect && icon && added.some((e) => e.category === "text"));
+  // The re-added chip must copy the existing chip's pill style (outline, not a
+  // solid fill) and the icon must align with text like the generator's icons.
+  assert.equal(rect.backgroundColor, "#1A2030");
+  assert.equal(rect.filled, false);
+  assert.equal(icon.alignWithText, true);
 });
