@@ -182,7 +182,12 @@ export function applyChannelAddition(elements, bandId, channel, label, measure, 
   if (oldChannels.includes(channel)) return { elements };
 
   const labels = channelLabels(elements, bandId);
-  const seed = (label ?? "").toString();
+  // Seed the label with real content: the caller's value, or the channel display
+  // name when none is given. A non-empty label behaves like any other editable
+  // text (an empty contentEditable is unreliable to focus/click into), and the
+  // `selectAllOnEdit` flag below makes the first keystroke replace the seed.
+  const provided = (label ?? "").toString();
+  const seed = provided || channelName(channel);
   const nextChannels = descriptor.order.filter(
     (c) => oldChannels.includes(c) || c === channel,
   );
@@ -210,10 +215,10 @@ export function applyChannelAddition(elements, bandId, channel, label, measure, 
     color: descriptor.text.colorHex,
     zIndex: 3, page, flowRole: "masthead",
     contactChannel: channel, contactBandId: bandId,
-    // Open the new label in edit mode so the caret is ready immediately. The
-    // placeholder gives the empty label a hit area and a hint (see Text.jsx /
-    // Text.module.css); it is display-only and never enters `content`.
-    isEditing: true, isSelected: true,
+    // Open the new label in edit mode with its seed text selected, so the caret
+    // is ready and the first keystroke overwrites the placeholder-style seed.
+    // `placeholder` still gives the label a hint + hit area if the user clears it.
+    isEditing: true, isSelected: true, selectAllOnEdit: true,
     placeholder: channelName(channel),
   };
   const withNew = [...elements, iconEl, labelEl];

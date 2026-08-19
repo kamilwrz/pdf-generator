@@ -240,6 +240,7 @@ export default function CanvasElements({ elements }) {
             zIndex={element.zIndex}
             fixedToPage={element.fixedToPage}
             placeholder={element.placeholder}
+            selectAllOnEdit={element.selectAllOnEdit}
           />
           {sectionAnchor ? (
             <SectionRecordAdd

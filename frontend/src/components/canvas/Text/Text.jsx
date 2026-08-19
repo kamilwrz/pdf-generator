@@ -35,6 +35,7 @@ function Text({
     zIndex,
     fixedToPage,
     placeholder,
+    selectAllOnEdit,
 }) {
     const {
         moveElement,
@@ -109,10 +110,13 @@ function Text({
         if (!selection) return;
         const range = document.createRange();
         range.selectNodeContents(node);
-        range.collapse(false);
+        // Freshly added contact labels open with their seed text selected so the
+        // first keystroke replaces it; every other element places the caret at
+        // the end (append-style editing).
+        range.collapse(!selectAllOnEdit);
         selection.removeAllRanges();
         selection.addRange(range);
-    }, [isEditing]);
+    }, [isEditing, selectAllOnEdit]);
 
     function startEditing(event) {
         event?.preventDefault();
@@ -161,6 +165,12 @@ function Text({
                 if (fixedToPage) return;
                 if (isEditing) {
                     e.stopPropagation();
+                    // The element can be flagged editing before the browser has
+                    // placed the caret in it (e.g. auto-edit on a just-added
+                    // contact). Ensure the click focuses the node so typing lands.
+                    if (nodeRef.current && document.activeElement !== nodeRef.current) {
+                        nodeRef.current.focus({ preventScroll: true });
+                    }
                     return;
                 }
                 // A drag release also dispatches a trailing click; ignore it so
