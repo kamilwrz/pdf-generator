@@ -1,0 +1,17 @@
+/* Case toggle chip. Reuses the shared surface-chip look (white, 1px hairline,
+   sharp 0px corners per DESIGN.md); the label is a compact monospace pair so
+   "Aa"/"AA" read as a case switch rather than text. */
+.caseToggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 0.72rem;
+    font-weight: 600;
+    line-height: 1;
+    color: #2b2b2b;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+}

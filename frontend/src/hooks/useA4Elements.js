@@ -56,6 +56,7 @@ import {
 import { materializeElementSpecs } from '../utils/materializeElementSpecs';
 import { useDocumentHistory } from './useDocumentHistory';
 import { applyChannelRemoval, applyChannelAddition, applyChannelRelayout } from '../utils/contactBandOps';
+import { applyNameCaseToggle, applyTitleToggle } from '../utils/mastheadIdentityOps';
 import { canvasFontFamily } from '../utils/canvasFont';
 import { useElementSelectionDrag } from './useElementSelectionDrag';
 import API_BASE_URL, { ENDPOINTS } from '../services/api';
@@ -2067,6 +2068,16 @@ export function useA4Elements(titleRef) {
     );
   }, [measureContactLabel]);
 
+  // Masthead identity toggles (Phase 3). Committed via setA4_Elements so
+  // undo/redo and save apply unchanged; the case toggle needs no reflow, the
+  // title toggle re-paginates through applyTitleToggle.
+  const toggleNameCase = useCallback((bandId) => {
+    setA4_Elements((prev) => applyNameCaseToggle(prev, bandId).elements);
+  }, []);
+  const toggleTitle = useCallback((bandId) => {
+    setA4_Elements((prev) => applyTitleToggle(prev, bandId, () => nanoid()).elements);
+  }, []);
+
 
   return {
     A4_Elements,
@@ -2119,6 +2130,8 @@ export function useA4Elements(titleRef) {
     applyDeleteOperation,
     removeContactChannel,
     addContactChannel,
+    toggleNameCase,
+    toggleTitle,
     A4ref,
     setPageCanvasRef,
     PDFTitle,

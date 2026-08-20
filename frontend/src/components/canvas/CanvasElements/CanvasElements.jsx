@@ -36,6 +36,8 @@ import RecordBlockAdd from '../RecordBlockAdd/RecordBlockAdd';
 import FlatSectionLayoutToggle from '../FlatSectionLayoutToggle/FlatSectionLayoutToggle';
 import ContactChannelControls from '../ContactChannelControls/ContactChannelControls';
 import { listContactBands } from '../../../utils/contactBands';
+import MastheadIdentityControls from '../MastheadIdentityControls/MastheadIdentityControls';
+import { listMastheadBands } from '../../../utils/mastheadBands';
 import { useCanvasEnterIds } from '../../../hooks/useCanvasEnterIds';
 import { PdfContext } from '../../../store/pdfgenerator-context';
 import { EDITOR_MODE_TEMPLATE } from '../../../utils/editorMode';
@@ -153,6 +155,10 @@ export default function CanvasElements({ elements }) {
   // element nodes so the hover trash / add-channel menu overlay the chips.
   const contactBands = useMemo(
     () => (editorMode === EDITOR_MODE_TEMPLATE ? listContactBands(elements) : []),
+    [editorMode, elements],
+  );
+  const mastheadBands = useMemo(
+    () => (editorMode === EDITOR_MODE_TEMPLATE ? listMastheadBands(elements) : []),
     [editorMode, elements],
   );
 
@@ -405,6 +411,9 @@ export default function CanvasElements({ elements }) {
           chips={band.chips}
           inactive={band.inactive}
         />
+      ))}
+      {mastheadBands.map((band) => (
+        <MastheadIdentityControls key={band.bandId} band={band} />
       ))}
     </>
   );

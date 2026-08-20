@@ -81,6 +81,8 @@ export const PdfContext = createContext({
     // Contact channel manager: remove/add a channel (icon + label) and reflow.
     removeContactChannel: () => {},
     addContactChannel: () => {},
+    toggleNameCase: () => {},
+    toggleTitle: () => {},
     fitTextareaToContent: () => {},
     alignElement: () => {},
     deleteElement: () => {},
