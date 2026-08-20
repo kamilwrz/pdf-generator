@@ -1289,7 +1289,32 @@ Additional implementation (on top of Phase 1):
 
 Tests (added): `backend/tests/test_contact_band_templates.py` (per-template anchor + tagging), plus `stacked`/`chip` cases in `test_contact_band_emit.py`, `contactBandLayout.test.js`, `contactBandOps.test.js`.
 
-Deferred to later phases: the title/role and name-uppercase toggles, the profile photo slot, and new data fields (extra field, birth date, nationality). Adding a channel the CV never had is still limited to channels present at generation time (the `+` menu re-adds a removed channel).
+Deferred to later phases: the profile photo slot and new data fields (extra field, birth date, nationality). Adding a channel the CV never had is still limited to channels present at generation time (the `+` menu re-adds a removed channel). The title/role and name-uppercase toggles that were previously deferred here are now implemented — see the masthead identity manager below.
+
+### Masthead identity toggles (Phase 3)
+
+Two inline toggles on the masthead name/title block, mirroring the contact channel manager's hover-affordance model:
+
+- **Name-case toggle.** Hovering the name reveals an `Aa`/`AA` chip that flips a reversible `textTransform` flag ("uppercase" ↔ "none"). Because the flag is honoured identically by the canvas (CSS `text-transform`) and the PDF renderer (`renderText` uppercases the drawn glyphs while the stored `content` keeps its original case), the toggle is reversible and existing PDFs stay byte-stable. Templates whose design uppercases the name by default (Harbor, Tessera, Slate) now express those caps through the flag rather than a baked `.upper()`.
+- **Title/role show-hide.** Hovering the title reveals a hide button; hiding it removes the title element and reflows the masthead — the contact band and everything below it shift up by the title's block height (`blockPt = contactBandStartY − titleTop`, fixed at generation), and the coupled contact band's `startY` moves with it. When hidden, a `+` next to the name re-adds the title from its stored spec (reversing the shift) as an editable element; if the CV had no title at generation, the re-added element opens with a placeholder hit area.
+- **All eight contact-band templates.** Harbor, Atrium, Portico, Cardinal, Tessera, Slate, Nova and Volt each tag their name/title via `tag_masthead_identity` and append a zero-footprint identity anchor (`flowRole: "masthead-anchor"`, `mastheadIdentity.id == "masthead-main"`).
+- **Legacy-safe.** Documents generated before Phase 3 carry no identity anchor, so `listMastheadBands` yields no controls and they behave exactly as before. No database migration; the four new element fields round-trip through `extra_properties`.
+
+Implementation:
+
+- `backend/app/services/cv_templates/shared/masthead.py` — `tag_masthead_identity` (stamps `mastheadRole`/`mastheadBandId`, seeds the reversible `textTransform` default, captures the title spec + `blockPt`), `build_masthead_identity_anchor`.
+- `backend/app/services/pdf_generator.py` — `renderText(..., textTransform=None)` uppercases the drawn string when flagged.
+- `backend/app/schemas/pdf_schema.py` + `backend/app/crud/pdfs.py` — `textTransform`, `mastheadRole`, `mastheadBandId`, `mastheadIdentity` fields + round-trip.
+- Template call sites: `backend/app/services/cv_templates/templates/{harbor,atrium,portico,cardinal,tessera,slate,nova,volt}.py`.
+- `frontend/src/utils/mastheadIdentityOps.js` — `applyNameCaseToggle` (reversible flag flip) and `applyTitleToggle` (hide/show with downstream reflow via `reconcileDocumentPages`).
+- `frontend/src/utils/mastheadBands.js` — `listMastheadBands` groups tagged name/title + descriptor into blocks for the hover UI (legacy blocks skipped).
+- `frontend/src/components/canvas/MastheadIdentityControls/` — inline hover chip (case), hide button (title), and add-title `+`.
+- `frontend/src/components/canvas/Text/Text.jsx` + `Text.module.css` — applies `textTransform` display-only; placeholder guarded against the inherited transform.
+- `frontend/src/hooks/useA4Elements.js`, `store/pdfgenerator-context.jsx`, `pages/PdfCanvas.jsx` — `toggleNameCase` / `toggleTitle` ops on the shared history path.
+
+Tests: `backend/tests/test_text_transform.py` (renderer + round-trip), `test_masthead_identity.py` (helper), `test_masthead_templates.py` (per-template anchor + reversible caps); `frontend/src/utils/mastheadIdentityOps.test.js`, `mastheadBands.test.js`.
+
+Known limitation: on Slate the title is drawn on a coloured pill (a separate `_line` background). Hiding the title removes the role text but not the pill background, which is not part of the managed identity block; the pill is only fully coherent with the title shown.
 
 ### CV PDF extract
 
@@ -3060,7 +3085,32 @@ Dodatkowa implementacja (ponad Fazę 1):
 
 Testy (dodane): `backend/tests/test_contact_band_templates.py` (anchor + tagowanie per szablon) oraz przypadki `stacked`/`chip` w `test_contact_band_emit.py`, `contactBandLayout.test.js`, `contactBandOps.test.js`.
 
-Odłożone do kolejnych faz: przełączniki tytułu/roli i wielkich liter w imieniu, slot zdjęcia profilowego oraz nowe pola danych (dodatkowe pole, data urodzenia, narodowość). Dodawanie kanału, którego CV nigdy nie miało, wciąż jest ograniczone do kanałów obecnych w chwili generowania (menu `+` przywraca usunięty kanał).
+Odłożone do kolejnych faz: slot zdjęcia profilowego oraz nowe pola danych (dodatkowe pole, data urodzenia, narodowość). Dodawanie kanału, którego CV nigdy nie miało, wciąż jest ograniczone do kanałów obecnych w chwili generowania (menu `+` przywraca usunięty kanał). Przełączniki tytułu/roli i wielkich liter w imieniu, wcześniej tu odłożone, są już zaimplementowane — patrz menedżer tożsamości masthead poniżej.
+
+### Przełączniki tożsamości masthead (Faza 3)
+
+Dwa wbudowane przełączniki na bloku imienia/tytułu w mastheadzie, odwzorowujące model afordancji hover z menedżera kanałów kontaktu:
+
+- **Przełącznik wielkości liter imienia.** Najechanie na imię odsłania chip `Aa`/`AA`, który przełącza odwracalną flagę `textTransform` („uppercase” ↔ „none”). Ponieważ flaga jest interpretowana identycznie przez płótno (CSS `text-transform`) i renderer PDF (`renderText` zamienia rysowane glify na wielkie litery, podczas gdy zapisane `content` zachowuje oryginalną wielkość liter), przełącznik jest odwracalny, a istniejące pliki PDF pozostają bajt-w-bajt stabilne. Szablony, których projekt domyślnie zapisuje imię wielkimi literami (Harbor, Tessera, Slate), wyrażają teraz te wielkie litery przez flagę, a nie przez wypieczone `.upper()`.
+- **Pokaż/ukryj tytuł/rolę.** Najechanie na tytuł odsłania przycisk ukrycia; ukrycie usuwa element tytułu i przelewa masthead — pasek kontaktu i wszystko poniżej przesuwają się w górę o wysokość bloku tytułu (`blockPt = contactBandStartY − titleTop`, ustalone przy generowaniu), a sprzężone `startY` paska kontaktu przesuwa się razem z nim. Gdy tytuł jest ukryty, `+` obok imienia dodaje go z powrotem na podstawie zapisanej specyfikacji (odwracając przesunięcie) jako element edytowalny; jeśli CV nie miało tytułu przy generowaniu, dodany element otwiera się z polem trafienia placeholdera.
+- **Wszystkie osiem szablonów z paskiem kontaktu.** Harbor, Atrium, Portico, Cardinal, Tessera, Slate, Nova i Volt tagują swoje imię/tytuł przez `tag_masthead_identity` i dopinają zerowej powierzchni anchor tożsamości (`flowRole: "masthead-anchor"`, `mastheadIdentity.id == "masthead-main"`).
+- **Bezpieczne dla starszych dokumentów.** Dokumenty wygenerowane przed Fazą 3 nie mają anchora tożsamości, więc `listMastheadBands` nie zwraca żadnych kontrolek i zachowują się dokładnie jak wcześniej. Brak migracji bazy danych; cztery nowe pola elementu przechodzą tam i z powrotem przez `extra_properties`.
+
+Implementacja:
+
+- `backend/app/services/cv_templates/shared/masthead.py` — `tag_masthead_identity` (stempluje `mastheadRole`/`mastheadBandId`, zasila odwracalny domyślny `textTransform`, zapisuje specyfikację tytułu + `blockPt`), `build_masthead_identity_anchor`.
+- `backend/app/services/pdf_generator.py` — `renderText(..., textTransform=None)` zamienia rysowany ciąg na wielkie litery, gdy flaga jest ustawiona.
+- `backend/app/schemas/pdf_schema.py` + `backend/app/crud/pdfs.py` — pola `textTransform`, `mastheadRole`, `mastheadBandId`, `mastheadIdentity` + round-trip.
+- Miejsca wywołań szablonów: `backend/app/services/cv_templates/templates/{harbor,atrium,portico,cardinal,tessera,slate,nova,volt}.py`.
+- `frontend/src/utils/mastheadIdentityOps.js` — `applyNameCaseToggle` (odwracalne przełączenie flagi) i `applyTitleToggle` (ukryj/pokaż z reflowem w dół przez `reconcileDocumentPages`).
+- `frontend/src/utils/mastheadBands.js` — `listMastheadBands` grupuje otagowane imię/tytuł + deskryptor w bloki dla UI hover (bloki starszych dokumentów pomijane).
+- `frontend/src/components/canvas/MastheadIdentityControls/` — wbudowany chip hover (wielkość liter), przycisk ukrycia (tytuł) oraz `+` dodania tytułu.
+- `frontend/src/components/canvas/Text/Text.jsx` + `Text.module.css` — stosuje `textTransform` tylko do wyświetlania; placeholder zabezpieczony przed dziedziczoną transformacją.
+- `frontend/src/hooks/useA4Elements.js`, `store/pdfgenerator-context.jsx`, `pages/PdfCanvas.jsx` — operacje `toggleNameCase` / `toggleTitle` na wspólnej ścieżce historii.
+
+Testy: `backend/tests/test_text_transform.py` (renderer + round-trip), `test_masthead_identity.py` (helper), `test_masthead_templates.py` (anchor per szablon + odwracalne wielkie litery); `frontend/src/utils/mastheadIdentityOps.test.js`, `mastheadBands.test.js`.
+
+Znane ograniczenie: w Slate tytuł jest rysowany na kolorowej pigułce (osobne tło `_line`). Ukrycie tytułu usuwa tekst roli, ale nie tło pigułki, które nie jest częścią zarządzanego bloku tożsamości; pigułka jest w pełni spójna tylko przy widocznym tytule.
 
 ### Extract CV z PDF
 
