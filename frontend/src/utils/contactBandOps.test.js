@@ -166,6 +166,20 @@ test("chip relayout moves + resizes the rect with its icon/label", () => {
   assert.equal(rect.left, 48);
 });
 
+test("chip relayout leaves downstream flow put when the row count is unchanged", () => {
+  // Regression: chip icon/label sit `(chipH - fontSize)/2` below the row top for
+  // vertical centering, but layoutContactBand's bottomY is the row top. A stale
+  // `currentBandBottom` that read the label top made every horizontal-only edit
+  // yield a negative delta, marching downstream content up by that offset on each
+  // keystroke (Volt masthead crept over the summary). A same-row edit must move
+  // nothing below the band.
+  const edited = chipDoc().map((e) =>
+    e.element_id === "ph-l" ? { ...e, content: "+48 111 222" } : e,
+  );
+  const { elements } = applyChannelRelayout(edited, "vb", (t) => t.length * 5, () => "id");
+  assert.equal(elements.find((e) => e.element_id === "head").top, 200);
+});
+
 test("chip addition creates a rect + icon + label triple for the channel", () => {
   let n = 0;
   const { elements } = applyChannelAddition(chipDoc(), "vb", "email", "", (t) => t.length * 5, () => `new-${n++}`);

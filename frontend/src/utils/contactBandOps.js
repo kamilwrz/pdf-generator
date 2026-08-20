@@ -150,14 +150,28 @@ function relayoutAndReconcile(elements, bandId, descriptor, oldItems, nextItems,
 
 // Current bottom row of the band, read from live chip positions. Used as the
 // "before" baseline for a live edit, where the prior layout is not available.
+//
+// This must be measured on the SAME reference line as `layoutContactBand().
+// bottomY`, which is the TOP of the last row. In `chip` mode the pill rectangle
+// sits at the row top, while the icon/label are nudged `(chipH - fontSize)/2`
+// below it for vertical centering — so reading the max element top would return
+// the label top, a constant offset below the true row top. That mismatch made
+// every horizontal-only edit produce a small negative delta and march downstream
+// content upward on each keystroke. Prefer the rectangle top when the band has
+// pill backgrounds (chip mode); otherwise (wrapping/stacked/centered) the icon
+// and label already sit at the row top, so their top is the correct reference.
 function currentBandBottom(elements, bandId) {
   let bottom = null;
+  let rectBottom = null;
   for (const el of elements) {
     if (el.contactBandId === bandId && el.contactChannel && typeof el.top === "number") {
       bottom = bottom == null ? el.top : Math.max(bottom, el.top);
+      if (el.category === "rectangle") {
+        rectBottom = rectBottom == null ? el.top : Math.max(rectBottom, el.top);
+      }
     }
   }
-  return bottom;
+  return rectBottom != null ? rectBottom : bottom;
 }
 
 /**
