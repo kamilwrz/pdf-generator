@@ -61,3 +61,51 @@ test("title show reconstructs the title from spec and reverses the shift", () =>
   assert.equal(elements.find((e) => e.element_id === "cba").contactBand.anchor.startY, 104);
   assert.equal(elements.find((e) => e.element_id === "mid").mastheadIdentity.title.present, true);
 });
+
+// A centered masthead (Portico/Atrium/Tessera) stores the title as a
+// width-bounded, center-aligned textarea. Hiding then re-adding it must
+// reconstruct that box, not a left-anchored point-text run, or the title lands
+// at the band's left edge and cannot be kept centered while editing.
+function centeredDoc() {
+  const d = doc();
+  const anchor = d.find((e) => e.element_id === "mid");
+  anchor.mastheadIdentity.title.spec = {
+    category: "textarea", content: "AML Analyst", left: 76, top: 80,
+    width: 443, height: 14, fontSizePt: 10, lineHeight: 14,
+    fontFamily: "Inter", colorHex: "#7C6A52", letterSpacing: 2,
+    align: "center", autoHeight: true, textTransform: "none", bold: false,
+  };
+  const name = d.find((e) => e.element_id === "name");
+  name.category = "textarea"; name.left = 76; name.width = 443; name.align = "center";
+  return d;
+}
+
+test("centered title re-adds as a width-bounded, center-aligned textarea", () => {
+  const hidden = applyTitleToggle(centeredDoc(), "masthead-main", () => "id").elements;
+  const { elements } = applyTitleToggle(hidden, "masthead-main", () => "new");
+  const title = elements.find((e) => e.mastheadRole === "title");
+  assert.ok(title, "title re-added");
+  assert.equal(title.category, "textarea");
+  assert.equal(title.width, 443);
+  assert.equal(title.align, "center");
+  assert.equal(title.left, 76);
+  assert.equal(title.autoHeight, true);
+});
+
+// Documents saved before the title geometry was captured have a legacy spec
+// (no width/align/category). Recovery must inherit the centered band from the
+// sibling name element so those titles still re-add centered.
+test("legacy title spec recovers centering from the name element", () => {
+  const d = centeredDoc();
+  // Downgrade the spec to the legacy shape, but keep the centered name element.
+  d.find((e) => e.element_id === "mid").mastheadIdentity.title.spec = {
+    content: "AML Analyst", left: 76, top: 80, fontSizePt: 10,
+    fontFamily: "Inter", colorHex: "#7C6A52", textTransform: "none", bold: false,
+  };
+  const hidden = applyTitleToggle(d, "masthead-main", () => "id").elements;
+  const { elements } = applyTitleToggle(hidden, "masthead-main", () => "new");
+  const title = elements.find((e) => e.mastheadRole === "title");
+  assert.equal(title.category, "textarea");
+  assert.equal(title.width, 443);
+  assert.equal(title.align, "center");
+});

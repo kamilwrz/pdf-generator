@@ -69,9 +69,8 @@ function setTitlePresence(elements, bandId, present) {
   });
 }
 
-function namePage(elements, bandId) {
-  const name = elements.find((el) => el.mastheadBandId === bandId && el.mastheadRole === "name");
-  return name?.page ?? 1;
+function nameElement(elements, bandId) {
+  return elements.find((el) => el.mastheadBandId === bandId && el.mastheadRole === "name") ?? null;
 }
 
 function hideTitle(elements, bandId, descriptor, blockPt, createId) {
@@ -88,16 +87,52 @@ function hideTitle(elements, bandId, descriptor, blockPt, createId) {
   return { elements: reconciled.elements, pageCount: reconciled.pageCount };
 }
 
-function buildTitleElement(spec, bandId, createId, page) {
+function buildTitleElement(spec, bandId, createId, page, nameEl) {
+  // Reconstruct the title's horizontal geometry. Centered mastheads store the
+  // title as a width-bounded, ``align: "center"`` textarea; rebuilding it as
+  // point text would anchor it at the band's left edge and lose the centering
+  // on re-add, and — because point text has no alignment — make it impossible
+  // to keep centered while editing.
+  //
+  // ``spec`` carries the full box geometry for documents generated after the
+  // masthead spec was widened. For documents saved before that (legacy specs
+  // with no ``width``/``align``), fall back to the sibling name element, which
+  // shares the masthead's centered column and alignment.
+  const width =
+    typeof spec.width === "number" ? spec.width
+    : typeof nameEl?.width === "number" ? nameEl.width : null;
+  const align = spec.align ?? nameEl?.align ?? null;
+  const left =
+    typeof spec.left === "number" ? spec.left
+    : typeof nameEl?.left === "number" ? nameEl.left : 0;
+  // Rebuild as a textarea whenever we can bound it to a width (either from the
+  // spec's own category or from the recovered band width). Only genuinely
+  // width-less point-text titles remain point text.
+  const isTextarea = spec.category === "textarea" || width != null;
+
   const el = {
     element_id: createId("title"),
-    category: "text",
+    category: isTextarea ? "textarea" : "text",
     content: spec.content ?? "",
-    left: spec.left, top: spec.top,
+    left, top: spec.top,
     fontSize: spec.fontSizePt, fontFamily: spec.fontFamily, color: spec.colorHex,
     zIndex: 3, page, flowRole: "masthead",
     mastheadRole: "title", mastheadBandId: bandId,
   };
+  if (isTextarea) {
+    el.width = width;
+    // A width-bounded box needs a line height for wrapping/measurement. Prefer
+    // the captured value; approximate from the font size for legacy specs.
+    el.lineHeight =
+      typeof spec.lineHeight === "number" ? spec.lineHeight
+      : Math.round((Number(spec.fontSizePt) || 10) * 1.3);
+    el.height = typeof spec.height === "number" ? spec.height : el.lineHeight;
+    el.align = align ?? "left";
+    // The user re-added this box; let it grow to fit edits instead of pinning
+    // the generator's original measured height.
+    el.autoHeight = true;
+    el.bulletList = false;
+  }
   if (typeof spec.letterSpacing === "number") el.letterSpacing = spec.letterSpacing;
   if (spec.bold) el.bold = true;
   if (spec.textTransform && spec.textTransform !== "none") el.textTransform = spec.textTransform;
@@ -115,7 +150,8 @@ function showTitle(elements, bandId, descriptor, blockPt, createId) {
   // Shift existing at/below-title content DOWN first (the band currently sits at
   // the title's top because the title was hidden), then insert the title.
   const shifted = elements.map((el) => shiftBelow(el, boundaryTop, +blockPt, contactBandId));
-  const titleEl = buildTitleElement(spec, bandId, createId, namePage(elements, bandId));
+  const nameEl = nameElement(elements, bandId);
+  const titleEl = buildTitleElement(spec, bandId, createId, nameEl?.page ?? 1, nameEl);
   const withTitle = [...shifted, titleEl];
   const marked = setTitlePresence(withTitle, bandId, true);
   const reconciled = reconcileDocumentPages(marked, createId, { collapseEmpty: true });

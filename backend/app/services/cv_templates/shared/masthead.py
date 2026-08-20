@@ -59,14 +59,27 @@ def tag_masthead_identity(
             title_el["textTransform"] = "uppercase"
         title_top = float(title_el.get("top", 0.0))
         block_pt = float(band_top) - title_top
+        # Capture the full box geometry, not just the text run. Centered
+        # mastheads emit the title as a width-bounded, ``align: "center"``
+        # textarea; without ``category``/``width``/``align`` the client can only
+        # rebuild it as point text anchored at ``left``, which drops the
+        # centering on re-add and makes it impossible to keep centered while
+        # editing. ``height``/``lineHeight``/``autoHeight`` let the re-added box
+        # match the original line metrics exactly.
         title_spec = {
+            "category": title_el.get("category", "text"),
             "content": title_el.get("content", ""),
             "left": title_el.get("left"),
             "top": title_top,
+            "width": title_el.get("width"),
+            "height": title_el.get("height"),
             "fontSizePt": title_el.get("fontSize"),
+            "lineHeight": title_el.get("lineHeight"),
             "fontFamily": title_el.get("fontFamily"),
             "colorHex": title_el.get("color"),
             "letterSpacing": title_el.get("letterSpacing"),
+            "align": title_el.get("align"),
+            "autoHeight": bool(title_el.get("autoHeight", False)),
             "textTransform": title_el.get("textTransform", "none"),
             "bold": bool(title_el.get("bold", False)),
         }
