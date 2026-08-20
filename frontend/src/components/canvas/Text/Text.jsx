@@ -36,6 +36,7 @@ function Text({
     fixedToPage,
     placeholder,
     selectAllOnEdit,
+    textTransform,
 }) {
     const {
         moveElement,
@@ -64,6 +65,10 @@ function Text({
         fontWeight: bold ? 700 : 400,
         fontStyle: italic ? "italic" : "normal",
         textDecoration: underline ? "underline" : "none",
+        // Display-only casing (Phase 3 masthead identity). CSS transforms the
+        // rendered glyphs while the contentEditable value stays original-case, so
+        // the name-case toggle is reversible and serialization is unchanged.
+        textTransform: textTransform || "none",
         position: "absolute",
         left,
         top,

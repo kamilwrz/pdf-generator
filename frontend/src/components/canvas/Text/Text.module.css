@@ -47,4 +47,8 @@
 .textElement[data-placeholder]:empty::before {
     content: attr(data-placeholder);
     color: #808080;
+    /* A masthead title element carries text-transform: uppercase (Phase 3), but
+       the placeholder hint must keep its intended case rather than being
+       uppercased by the inherited transform. */
+    text-transform: none;
 }

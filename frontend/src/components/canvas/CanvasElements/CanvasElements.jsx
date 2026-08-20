@@ -241,6 +241,7 @@ export default function CanvasElements({ elements }) {
             fixedToPage={element.fixedToPage}
             placeholder={element.placeholder}
             selectAllOnEdit={element.selectAllOnEdit}
+            textTransform={element.textTransform}
           />
           {sectionAnchor ? (
             <SectionRecordAdd
