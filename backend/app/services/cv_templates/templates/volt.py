@@ -8,6 +8,7 @@ from app.services.cv_templates.shared.records import _education_record_height, _
 from app.services.cv_templates.shared.text import _compact_text, _labels, _place_skills_section
 from app.services.cv_templates.shared.icons import _icon, _icon_key_for_label
 from app.services.cv_templates.shared.contact import _contact_channel_items, _place_chip_icon_contacts, build_contact_band_anchor
+from app.services.cv_templates.shared.masthead import tag_masthead_identity
 
 def _gen_volt(cv: dict) -> list[dict]:
     C = {'paper': '#0F1218', 'ink': '#E8ECF0', 'accent': '#E8A838', 'mute': '#8B93A0', 'body': '#C5CCD6', 'rule': '#2A3140', 'chip': '#1A2030', 'display': 'Montserrat', 'sans': 'Montserrat', 'mono': 'JetBrainsMono', 'layout': 'volt', 'icon_theme': 'volt', 'L': 78, 'W': 469, 'icon_x': 48, 'start': 155}
@@ -22,6 +23,13 @@ def _gen_volt(cv: dict) -> list[dict]:
     chip_h, contact_icon, contact_fs = (20.0, 15.0, 7.8)
     header = [_text(name, 32, SANS, C['ink'], 48, 36, zIndex=3, bold=True), _text(title, 9, MONO, C['accent'], 50, 78, zIndex=3)]
     header[1]['letterSpacing'] = 1.2
+    # Track the masthead name/title positions so they can be re-pointed after the
+    # flowRole comprehension below copies every element into a new dict (that copy
+    # would otherwise discard the tags added later by `tag_masthead_identity`).
+    # The title element always exists here, but only manage it when the CV
+    # actually carries a title.
+    name_index = 0
+    title_index = 1 if title else None
     # Chip row wraps to a second band when social links join phone/email/location.
     # Shared placer tags each rect/icon/label triple + emits a reflow descriptor
     # so the client contact-channel manager can add/remove/edit chips. Volt owns
@@ -48,6 +56,18 @@ def _gen_volt(cv: dict) -> list[dict]:
     # Append after the masthead spread so the anchor keeps its "masthead-anchor"
     # flowRole rather than being overwritten to "masthead".
     header.append(build_contact_band_anchor(contact_descriptor))
+    # Re-point the name/title references at their post-comprehension copies and
+    # tag them for the masthead identity manager. Volt bakes no uppercase into the
+    # name or title; `band_top` matches the contact band's `start_y` (108.0) so the
+    # client can compute the title-hide reflow delta.
+    name_el = header[name_index]
+    title_el = header[title_index] if title_index is not None else None
+    header.append(tag_masthead_identity(
+        name_el, title_el,
+        band_id="masthead-main", name_default_uppercase=False,
+        title_default_uppercase=False, band_top=108.0,
+        contact_band_id="contact-main",
+    ))
     start_y = contact_bottom + chip_h + SPACE_AFTER_MASTHEAD
     b = Builder(start_y)
     label_fs = 8.4

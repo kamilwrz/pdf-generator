@@ -32,6 +32,7 @@ from app.services.cv_templates.shared.contact import (
     _place_wrapping_icon_contacts,
     build_contact_band_anchor,
 )
+from app.services.cv_templates.shared.masthead import tag_masthead_identity
 from app.services.cv_templates.shared.extras import (
     _extra_sections,
     _fit_sidebar_sections,
@@ -211,8 +212,12 @@ def _gen_slate(cv: dict) -> list[dict]:
     # Masthead: geometric sans name, filled accent title pill, wrapping
     # accent-icon contact channels (phone / email / socials / location), and a
     # 3x3 precision-grid ornament in the top-right corner.
-    name = _compact_text(cv.get("name"), 30).upper()
-    title = _compact_text(cv.get("title"), 48).upper()
+    # Case is applied at draw time via the reversible `textTransform` flag
+    # (see `tag_masthead_identity` below) instead of baking `.upper()` into the
+    # stored content, so the masthead identity manager can toggle case without
+    # losing the original-case name.
+    name = _compact_text(cv.get("name"), 30)
+    title = _compact_text(cv.get("title"), 48)
     contact_fs, contact_icon = 7.8, 11.0
     # Accent glyphs on white paper (slate white glyphs would vanish). Same
     # placer / channel order as Tessera so LinkedIn / GitHub / website wrap
@@ -234,6 +239,11 @@ def _gen_slate(cv: dict) -> list[dict]:
         band_id="contact-main",
     )
     header_rule_y = contact_bottom + 22.0
+    # Track the masthead name/title positions so they can be re-pointed after the
+    # flowRole comprehension below copies every element into a new dict (that copy
+    # would otherwise discard the tags added later by `tag_masthead_identity`).
+    name_index = 0
+    title_index: int | None = None
     header = [
         _text(name, 24, sans, colors["ink"], main_left, 48, zIndex=3, bold=True),
     ]
@@ -241,11 +251,14 @@ def _gen_slate(cv: dict) -> list[dict]:
     if title:
         # Size the pill to the (truncated) title so white text never spills onto
         # the white paper. 5.4 px/char at 8.2 pt tracked, plus horizontal padding,
-        # capped at the main column width.
+        # capped at the main column width. The pill length is derived from the
+        # original-case title; uppercasing preserves character count, so the
+        # reversible `textTransform` flag does not change the fit.
         pill_width = max(120.0, min(float(main_width), len(title) * 5.4 + 24))
         header.append(_line(main_left, 86, pill_width, 20, colors["accent"], zIndex=1))
         role = _text(title, 8.2, sans, colors["white"], main_left + 12, 92, zIndex=3, bold=True)
         role["letterSpacing"] = 1.15
+        title_index = len(header)
         header.append(role)
     header.extend([
         *contact_els,
@@ -426,4 +439,17 @@ def _gen_slate(cv: dict) -> list[dict]:
     # Append the band anchor after the masthead spread so its own flowRole
     # ("masthead-anchor") is preserved rather than overwritten to "masthead".
     header.append(build_contact_band_anchor(contact_descriptor))
+    # Re-point the name/title references at their post-comprehension copies and
+    # tag them for the masthead identity manager. Slate's design uppercases both
+    # the name and the pill title, so both seed the reversible `textTransform`
+    # flag; `band_top` matches the contact band's `start_y` (119.0) so the client
+    # can compute the title-hide reflow delta.
+    name_el = header[name_index]
+    title_el = header[title_index] if title_index is not None else None
+    header.append(tag_masthead_identity(
+        name_el, title_el,
+        band_id="masthead-main", name_default_uppercase=True,
+        title_default_uppercase=True, band_top=119.0,
+        contact_band_id="contact-main",
+    ))
     return page_decorations + sidebar + header + flow

@@ -669,13 +669,20 @@ class CvTemplateLayoutTests(unittest.TestCase):
             10,
         )
 
-        # Tessera uppercases the masthead name and role.
+        # Tessera uppercases the masthead name and role, but the caps are now
+        # applied reversibly through the ``textTransform`` flag (Phase 3 masthead
+        # identity): the stored ``content`` stays original-case so the toggle can
+        # restore mixed case, while the renderer draws the identical uppercase
+        # glyphs. Match the original-case content and assert the flag.
         header_texts = [
             element for element in elements
             if element["category"] == "text"
-            and element.get("content") in {"ANNA KOWALSKA", "AML ANALYST"}
+            and element.get("content") in {"Anna Kowalska", "AML Analyst"}
         ]
         self.assertTrue(header_texts)
+        self.assertTrue(
+            all(element.get("textTransform") == "uppercase" for element in header_texts)
+        )
         # Name sits on the main column; the role line sits on the coral title tile.
         self.assertTrue(all(element["left"] >= 218 for element in header_texts))
         self.assertTrue(all(element["left"] < 230 for element in header_texts))

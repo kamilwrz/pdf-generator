@@ -25,6 +25,7 @@ from app.services.cv_templates.shared.contact import (
     _place_stacked_icon_contacts,
     build_contact_band_anchor,
 )
+from app.services.cv_templates.shared.masthead import tag_masthead_identity
 
 
 def _gen_nova(cv: dict) -> list[dict]:
@@ -73,17 +74,22 @@ def _gen_nova(cv: dict) -> list[dict]:
     title = _compact_text(cv.get('title'), 56)
 
     header: list[dict] = []
-    name_el = _text(name, NAME_FS, DISP, C['ink'], NAME_LEFT, NAME_TOP, zIndex=3, bold=True)
-    header.append(name_el)
+    # Track the masthead name/title positions so they can be re-pointed after the
+    # flowRole comprehension below copies every element into a new dict (that copy
+    # would otherwise discard the tags added later by `tag_masthead_identity`).
+    name_index = len(header)
+    header.append(_text(name, NAME_FS, DISP, C['ink'], NAME_LEFT, NAME_TOP, zIndex=3, bold=True))
 
     # Role sits directly under the name (left column), not under the photo.
     cursor_y = NAME_TOP + NAME_FS * 1.05
+    title_index: int | None = None
     if title:
         cursor_y += 6.0
         title_el = _text(
             title, TITLE_FS, SANS, C['mute'], NAME_LEFT, cursor_y, zIndex=3,
         )
         title_el['letterSpacing'] = 1.6
+        title_index = len(header)
         header.append(title_el)
         cursor_y += TITLE_FS * 1.35
 
@@ -137,6 +143,18 @@ def _gen_nova(cv: dict) -> list[dict]:
     # Append the band anchor after the masthead spread so its own flowRole
     # ("masthead-anchor") is preserved rather than overwritten to "masthead".
     header.append(build_contact_band_anchor(contact_descriptor))
+    # Re-point the name/title references at their post-comprehension copies and
+    # tag them for the masthead identity manager. Nova bakes no uppercase into the
+    # name or title; `band_top` matches the contact band's `start_y`
+    # (`contact_start`) so the client can compute the title-hide reflow delta.
+    name_el = header[name_index]
+    title_el = header[title_index] if title_index is not None else None
+    header.append(tag_masthead_identity(
+        name_el, title_el,
+        band_id="masthead-main", name_default_uppercase=False,
+        title_default_uppercase=False, band_top=contact_start,
+        contact_band_id="contact-main",
+    ))
 
     start_y = header_rule_y + 1.0 + SPACE_AFTER_HEADER_RULE
     b = Builder(start_y)
