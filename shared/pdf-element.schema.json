@@ -748,6 +748,55 @@
       ],
       "default": null,
       "title": "Contactband"
+    },
+    "textTransform": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Texttransform"
+    },
+    "mastheadRole": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Mastheadrole"
+    },
+    "mastheadBandId": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Mastheadbandid"
+    },
+    "mastheadIdentity": {
+      "anyOf": [
+        {
+          "additionalProperties": true,
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Mastheadidentity"
     }
   },
   "required": [
