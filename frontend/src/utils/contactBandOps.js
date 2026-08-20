@@ -17,7 +17,7 @@
  */
 import { layoutContactBand } from "./contactBandLayout.js";
 import { reconcileDocumentPages } from "./structureOperation.js";
-import { channelName } from "./contactChannelNames.js";
+import { channelName, CHANNEL_ORDER } from "./contactChannelNames.js";
 
 function bandDescriptor(elements, bandId) {
   const anchor = elements.find(
@@ -32,7 +32,12 @@ function bandPage(elements, bandId) {
 }
 
 /**
- * Channels currently present in the band, in the descriptor's canonical order.
+ * Channels currently present in the band, in the canonical channel order.
+ *
+ * Ordering keys off `CHANNEL_ORDER` (the wizard's full set) rather than the
+ * descriptor's generation-time `order`, so a channel added after generation
+ * (e.g. github) sorts into its canonical slot. The canonical order matches the
+ * generator sequence, so channels placed at generation keep their positions.
  * @returns {string[]}
  */
 export function activeChannels(elements, bandId) {
@@ -43,7 +48,7 @@ export function activeChannels(elements, bandId) {
       .filter((el) => el.contactBandId === bandId && el.contactChannel)
       .map((el) => el.contactChannel),
   );
-  return descriptor.order.filter((channel) => present.has(channel));
+  return CHANNEL_ORDER.filter((channel) => present.has(channel));
 }
 
 // channel -> current label text, read from the label (text) element of each pair.
@@ -228,7 +233,9 @@ export function applyChannelRemoval(elements, bandId, channel, measure, createId
 export function applyChannelAddition(elements, bandId, channel, label, measure, createId) {
   const descriptor = bandDescriptor(elements, bandId);
   if (!descriptor) return { elements };
-  if (!descriptor.order.includes(channel)) return { elements };
+  // Accept any channel the wizard supports (canonical order), not only the ones
+  // the CV was generated with, so github/website can be added to an existing band.
+  if (!CHANNEL_ORDER.includes(channel)) return { elements };
   const oldChannels = activeChannels(elements, bandId);
   if (oldChannels.includes(channel)) return { elements };
 
@@ -239,7 +246,10 @@ export function applyChannelAddition(elements, bandId, channel, label, measure, 
   // `selectAllOnEdit` flag below makes the first keystroke replace the seed.
   const provided = (label ?? "").toString();
   const seed = provided || channelName(channel);
-  const nextChannels = descriptor.order.filter(
+  // Build the new channel sequence in canonical order so the added channel lands
+  // in its natural slot (e.g. github between linkedin and location), regardless
+  // of the descriptor's generation-time order.
+  const nextChannels = CHANNEL_ORDER.filter(
     (c) => oldChannels.includes(c) || c === channel,
   );
   const nextLabels = { ...labels, [channel]: seed };

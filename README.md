@@ -1289,7 +1289,9 @@ Additional implementation (on top of Phase 1):
 
 Tests (added): `backend/tests/test_contact_band_templates.py` (per-template anchor + tagging), plus `stacked`/`chip` cases in `test_contact_band_emit.py`, `contactBandLayout.test.js`, `contactBandOps.test.js`.
 
-Deferred to later phases: the profile photo slot and new data fields (extra field, birth date, nationality). Adding a channel the CV never had is still limited to channels present at generation time (the `+` menu re-adds a removed channel). The title/role and name-uppercase toggles that were previously deferred here are now implemented — see the masthead identity manager below.
+Deferred to later phases: the profile photo slot and new data fields (extra field, birth date, nationality). The title/role and name-uppercase toggles that were previously deferred here are now implemented — see the masthead identity manager below.
+
+**Add-menu channel set (update).** The `+` menu offers every channel the intake wizard supports — phone, email, LinkedIn, GitHub, website, location — minus the ones already on the band, not just channels that were present when the CV was generated. The manager keys its add-menu, chip sorting, and insertion order off the shared canonical order (`CHANNEL_ORDER` in `contactChannelNames.js`) instead of the band descriptor's generation-time `order`, so GitHub/website can be added even when the CV was generated without them, and it works for documents saved before this change. A newly added channel lands in its canonical slot (e.g. GitHub between LinkedIn and location), and its icon is derived from an existing band icon in the same theme (`github.png` / `website.png` ship for every iconic theme). Because the canonical order matches the generator sequence, active chips are never reordered. Files: `frontend/src/utils/contactChannelNames.js` (`CHANNEL_ORDER`), `contactBands.js` (`inactive` + sort), `contactBandOps.js` (`activeChannels`, `applyChannelAddition`).
 
 ### Masthead identity toggles (Phase 3)
 
@@ -3085,7 +3087,9 @@ Dodatkowa implementacja (ponad Fazę 1):
 
 Testy (dodane): `backend/tests/test_contact_band_templates.py` (anchor + tagowanie per szablon) oraz przypadki `stacked`/`chip` w `test_contact_band_emit.py`, `contactBandLayout.test.js`, `contactBandOps.test.js`.
 
-Odłożone do kolejnych faz: slot zdjęcia profilowego oraz nowe pola danych (dodatkowe pole, data urodzenia, narodowość). Dodawanie kanału, którego CV nigdy nie miało, wciąż jest ograniczone do kanałów obecnych w chwili generowania (menu `+` przywraca usunięty kanał). Przełączniki tytułu/roli i wielkich liter w imieniu, wcześniej tu odłożone, są już zaimplementowane — patrz menedżer tożsamości masthead poniżej.
+Odłożone do kolejnych faz: slot zdjęcia profilowego oraz nowe pola danych (dodatkowe pole, data urodzenia, narodowość). Przełączniki tytułu/roli i wielkich liter w imieniu, wcześniej tu odłożone, są już zaimplementowane — patrz menedżer tożsamości masthead poniżej.
+
+**Zestaw kanałów w menu dodawania (aktualizacja).** Menu `+` oferuje każdy kanał obsługiwany przez kreatora — telefon, e-mail, LinkedIn, GitHub, stronę WWW, lokalizację — pomniejszony o te już obecne na pasku, a nie tylko kanały obecne w chwili generowania CV. Menedżer opiera menu dodawania, sortowanie chipów i kolejność wstawiania na współdzielonej kolejności kanonicznej (`CHANNEL_ORDER` w `contactChannelNames.js`) zamiast na `order` z deskryptora (z chwili generowania), więc GitHub/stronę WWW można dodać nawet wtedy, gdy CV wygenerowano bez nich, i działa to również dla dokumentów zapisanych przed tą zmianą. Nowo dodany kanał trafia do swojego kanonicznego miejsca (np. GitHub między LinkedIn a lokalizacją), a jego ikona jest wyprowadzana z istniejącej ikony paska w tym samym motywie (`github.png` / `website.png` są dostępne dla każdego motywu ikonicznego). Ponieważ kolejność kanoniczna odpowiada sekwencji generatora, aktywne chipy nigdy nie są przestawiane. Pliki: `frontend/src/utils/contactChannelNames.js` (`CHANNEL_ORDER`), `contactBands.js` (`inactive` + sortowanie), `contactBandOps.js` (`activeChannels`, `applyChannelAddition`).
 
 ### Przełączniki tożsamości masthead (Faza 3)
 

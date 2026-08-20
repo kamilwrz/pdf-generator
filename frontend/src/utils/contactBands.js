@@ -4,9 +4,12 @@
  * A band is discoverable only when its zero-footprint anchor (flowRole
  * "masthead-anchor") is present, because the anchor carries the descriptor the
  * controller needs. Chips are the label (text) elements — one per channel —
- * sorted into the descriptor's canonical order so the `+` menu and delete
- * targets line up with what the user sees.
+ * sorted into the canonical channel order so the `+` menu and delete targets
+ * line up with what the user sees. The add-menu (`inactive`) offers the full set
+ * of channels the wizard supports minus the active ones, so GitHub/website are
+ * offered even when the CV was generated without them.
  */
+import { CHANNEL_ORDER } from "./contactChannelNames.js";
 
 /**
  * @param {object[]} elements - Canvas elements (typically page-filtered).
@@ -38,10 +41,15 @@ export function listContactBands(elements) {
   const bands = [];
   for (const band of byBand.values()) {
     if (!band.descriptor) continue; // unmanaged / legacy band → no controls
-    const order = Array.isArray(band.descriptor.order) ? band.descriptor.order : [];
-    band.chips.sort((a, b) => order.indexOf(a.channel) - order.indexOf(b.channel));
+    // Sort and offer channels by the canonical order (the wizard's full set),
+    // not the descriptor's generation-time `order`, so channels the CV never
+    // had (typically github/website) still appear in the `+` menu. The canonical
+    // order matches the generator sequence, so active chips are not reordered.
+    band.chips.sort(
+      (a, b) => CHANNEL_ORDER.indexOf(a.channel) - CHANNEL_ORDER.indexOf(b.channel),
+    );
     const active = new Set(band.chips.map((c) => c.channel));
-    band.inactive = order.filter((channel) => !active.has(channel));
+    band.inactive = CHANNEL_ORDER.filter((channel) => !active.has(channel));
     bands.push(band);
   }
   return bands;

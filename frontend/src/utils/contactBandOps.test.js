@@ -65,6 +65,32 @@ test("addition inserts an icon+label pair with the band theme icon", () => {
   assert.equal(label.content, "a@b.pl");
 });
 
+test("addition accepts a channel the CV never generated (github / website)", () => {
+  // The descriptor's `order` is only [phone, email, location] (generation-time),
+  // but the wizard supports GitHub/website too. The manager keys off the canonical
+  // channel order, so a never-generated channel can still be added and derives its
+  // icon from an existing band icon in the same theme.
+  let n = 0;
+  const { elements } = applyChannelAddition(doc(), "b1", "github", undefined, measure, () => `new-${n++}`);
+  const added = elements.filter((e) => e.contactChannel === "github");
+  assert.equal(added.length, 2);
+  const icon = added.find((e) => e.category === "image");
+  const label = added.find((e) => e.category === "text");
+  assert.ok(icon && String(icon.src).includes("/harbor/github.png"));
+  assert.equal(label.content, channelName("github"));
+});
+
+test("addition inserts a channel into its canonical slot, not at the end", () => {
+  // github belongs between linkedin and location; with only phone/email/location
+  // active it lands after email and before location.
+  let n = 0;
+  const { elements } = applyChannelAddition(doc(), "b1", "github", undefined, measure, () => `new-${n++}`);
+  const github = elements.find((e) => e.contactChannel === "github" && e.category === "text");
+  const email = elements.find((e) => e.contactChannel === "email" && e.category === "text");
+  // Same single row here, so canonical order shows as left-to-right position.
+  assert.ok(github.left > email.left, "github placed after email");
+});
+
 test("addition without a provided label seeds the channel display name for editing", () => {
   const removed = applyChannelRemoval(doc(), "b1", "location", measure, () => "id").elements;
   let n = 0;

@@ -14,11 +14,14 @@ function elements() {
   ];
 }
 
-test("groups chips by band, sorted into descriptor order, with inactive list", () => {
+test("groups chips by band (canonical order) and offers every unused channel", () => {
   const [band] = listContactBands(elements());
   assert.equal(band.bandId, "b1");
   assert.deepEqual(band.chips.map((c) => c.channel), ["phone", "email"]);
-  assert.deepEqual(band.inactive, ["location"]);
+  // The `+` menu offers the full canonical set the wizard supports minus the
+  // active channels — including github/website that were never generated — not
+  // just the leftovers of the descriptor's generation-time order.
+  assert.deepEqual(band.inactive, ["linkedin", "github", "website", "location"]);
 });
 
 test("a band without an anchor descriptor is not managed", () => {
