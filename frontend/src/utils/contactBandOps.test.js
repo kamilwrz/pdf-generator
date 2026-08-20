@@ -153,6 +153,29 @@ test("addition creates a plain filled label (no auto-edit) with a placeholder", 
   assert.equal(elements.filter((e) => e.isEditing).length, 0);
 });
 
+test("downstream shift stays on the band's page — never moves continuation content", () => {
+  // A 2-page CV: masthead band on page 1, a section below it on page 1, and a
+  // section on PAGE 2. `top` is page-relative, so the page-2 body's top (90)
+  // exceeds the band's oldBottom (104? no — 90<104 here) is not the point; the
+  // page-2 HEADER at top 130 sits below the band bottom in page-relative terms
+  // and must NOT be dragged when the band grows. Guarding by page keeps every
+  // continuation-page element exactly where it was.
+  const base = [
+    ...doc(),
+    { element_id: "p2head", category: "text", content: "EDUCATION", left: 44, top: 130, page: 2 },
+    { element_id: "p2body", category: "textarea", content: "…", left: 44, top: 160, width: 400, page: 2 },
+  ];
+  let n = 0;
+  const { elements } = applyChannelAddition(base, "b1", "github", undefined, measure, () => `new-${n++}`);
+  const g = (id) => elements.find((e) => e.element_id === id);
+  // Page-1 downstream content still reflows.
+  assert.ok(g("head").top >= 146, "page-1 heading reflowed with the band");
+  // Page-2 content is untouched.
+  assert.equal(g("p2head").top, 130);
+  assert.equal(g("p2head").page, 2);
+  assert.equal(g("p2body").top, 160);
+});
+
 // ── Chip mode (Volt): rect + icon + label triple per channel ────────────────
 const chipDescriptor = {
   id: "vb", mode: "chip",

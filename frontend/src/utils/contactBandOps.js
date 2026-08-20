@@ -75,7 +75,14 @@ function itemsFor(channels, labels) {
 }
 
 // Reposition band pairs to the new placements; shift downstream flow by Δ.
-function reposition(el, bandId, placementByChannel, oldBottomY, delta) {
+//
+// `bandPageNo` guards the downstream shift to the band's own page. `top` is
+// page-relative, so without the guard a continuation-page element whose
+// page-relative `top` happens to exceed the band's `oldBottomY` would be
+// shifted as if it sat below the band — crushing/overlapping page-2+ content on
+// every add/remove. The band is a single-page masthead row; its height delta
+// only reflows that page.
+function reposition(el, bandId, placementByChannel, oldBottomY, delta, bandPageNo) {
   if (el.contactBandId === bandId && el.contactChannel) {
     const placement = placementByChannel.get(el.contactChannel);
     if (!placement) return el;
@@ -97,7 +104,8 @@ function reposition(el, bandId, placementByChannel, oldBottomY, delta) {
   }
   // The band anchor (band id but no channel) never moves.
   if (el.contactBandId === bandId) return el;
-  if (typeof el.top === "number" && el.top >= oldBottomY) {
+  const page = Math.max(1, Math.trunc(Number(el.page) || 1));
+  if (page === bandPageNo && typeof el.top === "number" && el.top >= oldBottomY) {
     return { ...el, top: el.top + delta };
   }
   return el;
@@ -145,9 +153,10 @@ function relayoutAndReconcile(elements, bandId, descriptor, oldItems, nextItems,
   const oldBand = layoutContactBand(descriptor, oldItems, measure);
   const newBand = layoutContactBand(descriptor, nextItems, measure);
   const delta = newBand.bottomY - oldBand.bottomY;
+  const bandPageNo = bandPage(elements, bandId);
   const placementByChannel = new Map(newBand.placements.map((p) => [p.channel, p]));
   const next = elements.map((el) =>
-    reposition(el, bandId, placementByChannel, oldBand.bottomY, delta),
+    reposition(el, bandId, placementByChannel, oldBand.bottomY, delta, bandPageNo),
   );
   const reconciled = reconcileDocumentPages(next, createId, { collapseEmpty: true });
   return { elements: reconciled.elements, pageCount: reconciled.pageCount };
@@ -195,9 +204,10 @@ export function applyChannelRelayout(elements, bandId, measure, createId) {
   const oldBottom = currentBandBottom(elements, bandId);
   const newBand = layoutContactBand(descriptor, items, measure);
   const delta = oldBottom == null ? 0 : newBand.bottomY - oldBottom;
+  const bandPageNo = bandPage(elements, bandId);
   const placementByChannel = new Map(newBand.placements.map((p) => [p.channel, p]));
   const next = elements.map((el) =>
-    reposition(el, bandId, placementByChannel, oldBottom ?? 0, delta),
+    reposition(el, bandId, placementByChannel, oldBottom ?? 0, delta, bandPageNo),
   );
   const reconciled = reconcileDocumentPages(next, createId, { collapseEmpty: true });
   return { elements: reconciled.elements, pageCount: reconciled.pageCount };

@@ -41,19 +41,26 @@ export function applyNameCaseToggle(elements, bandId) {
   return changed ? { elements: next } : { elements };
 }
 
-// Shift one element by `delta` when it sits at/below `boundaryTop` and is not
-// page-fixed chrome. The coupled contact band anchor is special-cased: its
-// descriptor `startY` moves with the band so later channel reflows use the new
-// origin. The identity anchor (top 0) and the name (above the title) are never
-// caught by the boundary test.
-function shiftBelow(el, boundaryTop, delta, contactBandId) {
+// Shift one element by `delta` when it sits at/below `boundaryTop` ON THE SAME
+// PAGE as the toggled title, and is not page-fixed chrome. The coupled contact
+// band anchor is special-cased: its descriptor `startY` moves with the band so
+// later channel reflows use the new origin. The identity anchor (top 0) and the
+// name (above the title) are never caught by the boundary test.
+//
+// The page guard is essential: `top` is page-relative, so without it a page-2+
+// element whose page-relative `top` happens to exceed the page-1 title's `top`
+// would be shifted as if it sat below the masthead — crushing/overlapping
+// continuation-page content. The masthead lives on one page; hiding/showing its
+// title only reflows that page. Cross-page repagination is not this op's job.
+function shiftBelow(el, boundaryTop, delta, contactBandId, boundaryPage) {
   if (el.flowRole === "masthead-anchor" && el.contactBand && el.contactBandId === contactBandId) {
     const anchor = { ...el.contactBand.anchor };
     if (typeof anchor.startY === "number") anchor.startY += delta;
     return { ...el, contactBand: { ...el.contactBand, anchor } };
   }
   if (el.fixedToPage) return el;
-  if (typeof el.top === "number" && el.top >= boundaryTop) {
+  const page = Math.max(1, Math.trunc(Number(el.page) || 1));
+  if (page === boundaryPage && typeof el.top === "number" && el.top >= boundaryTop) {
     return { ...el, top: el.top + delta };
   }
   return el;
@@ -79,9 +86,10 @@ function hideTitle(elements, bandId, descriptor, blockPt, createId) {
   );
   if (!title) return { elements };
   const boundaryTop = Number(title.top) || 0;
+  const boundaryPage = Math.max(1, Math.trunc(Number(title.page) || 1));
   const contactBandId = descriptor.contactBandId;
   const withoutTitle = elements.filter((el) => el !== title);
-  const shifted = withoutTitle.map((el) => shiftBelow(el, boundaryTop, -blockPt, contactBandId));
+  const shifted = withoutTitle.map((el) => shiftBelow(el, boundaryTop, -blockPt, contactBandId, boundaryPage));
   const marked = setTitlePresence(shifted, bandId, false);
   const reconciled = reconcileDocumentPages(marked, createId, { collapseEmpty: true });
   return { elements: reconciled.elements, pageCount: reconciled.pageCount };
@@ -147,11 +155,13 @@ function showTitle(elements, bandId, descriptor, blockPt, createId) {
   if (!spec) return { elements };
   const boundaryTop = Number(spec.top) || 0;
   const contactBandId = descriptor.contactBandId;
-  // Shift existing at/below-title content DOWN first (the band currently sits at
-  // the title's top because the title was hidden), then insert the title.
-  const shifted = elements.map((el) => shiftBelow(el, boundaryTop, +blockPt, contactBandId));
+  // The re-added title lands on the name's page; only that page's at/below-title
+  // content shifts DOWN to reverse the hide (the band currently sits at the
+  // title's top because the title was hidden). Continuation pages are untouched.
   const nameEl = nameElement(elements, bandId);
-  const titleEl = buildTitleElement(spec, bandId, createId, nameEl?.page ?? 1, nameEl);
+  const boundaryPage = Math.max(1, Math.trunc(Number(nameEl?.page) || 1));
+  const shifted = elements.map((el) => shiftBelow(el, boundaryTop, +blockPt, contactBandId, boundaryPage));
+  const titleEl = buildTitleElement(spec, bandId, createId, boundaryPage, nameEl);
   const withTitle = [...shifted, titleEl];
   const marked = setTitlePresence(withTitle, bandId, true);
   const reconciled = reconcileDocumentPages(marked, createId, { collapseEmpty: true });

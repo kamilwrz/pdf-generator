@@ -62,6 +62,30 @@ test("title show reconstructs the title from spec and reverses the shift", () =>
   assert.equal(elements.find((e) => e.element_id === "mid").mastheadIdentity.title.present, true);
 });
 
+// The masthead lives on page 1; hiding/showing its title must reflow ONLY
+// page 1. `top` is page-relative, so a page-2 element whose top exceeds the
+// page-1 title top must not be dragged as if it sat below the masthead.
+test("title toggle reflows only the title's page, never continuation pages", () => {
+  const base = [
+    ...doc(),
+    { element_id: "p2head", category: "text", content: "EDUCATION", left: 44, top: 60, page: 2 },
+    { element_id: "p2body", category: "textarea", content: "…", left: 44, top: 90, page: 2 },
+  ];
+  const hidden = applyTitleToggle(base, "masthead-main", () => "id").elements;
+  const h = (id) => hidden.find((e) => e.element_id === id);
+  // Page-1 content below the title still shifts up by blockPt.
+  assert.equal(h("sec").top, 146 - 24);
+  // Page-2 content is untouched (previously body @90 was crushed to 66).
+  assert.equal(h("p2head").top, 60);
+  assert.equal(h("p2body").top, 90);
+  assert.equal(h("p2body").page, 2);
+  // Re-showing reverses page 1 and still leaves page 2 alone.
+  const shown = applyTitleToggle(hidden, "masthead-main", () => "new").elements;
+  const s = (id) => shown.find((e) => e.element_id === id);
+  assert.equal(s("sec").top, 146);
+  assert.equal(s("p2body").top, 90);
+});
+
 // A centered masthead (Portico/Atrium/Tessera) stores the title as a
 // width-bounded, center-aligned textarea. Hiding then re-adding it must
 // reconstruct that box, not a left-anchored point-text run, or the title lands
