@@ -19,6 +19,7 @@ from app.services.cv_templates.shared.contact import (
 )
 from app.services.cv_templates.shared.extras import _extra_sections
 from app.services.cv_templates.shared.icons import _icon_beside, _icon_key_for_label
+from app.services.cv_templates.shared.masthead import tag_masthead_identity
 from app.services.cv_templates.shared.records import (
     _education_record_height,
     _experience_record_height,
@@ -66,8 +67,15 @@ def _gen_portico(cv: dict) -> list[dict]:
 
     header: list[dict] = []
     cursor_y = 18.0
+    # Track the masthead name/title elements' positions in `header` so they can
+    # be re-pointed after the flowRole comprehension below copies every element
+    # into a new dict (that comprehension would otherwise discard mutations
+    # made later by `tag_masthead_identity`).
+    name_index: int | None = None
+    title_index: int | None = None
     if name:
         name_h = Builder.measure_block(name, W, name_fs, name_lh, DISP, bold=True)
+        name_index = len(header)
         header.append(_block(name, L, cursor_y, W, name_h, name_fs, name_lh, C['ink'], DISP,
                               zIndex=3, bold=True, align='center'))
         cursor_y += name_h + 8.0
@@ -100,6 +108,7 @@ def _gen_portico(cv: dict) -> list[dict]:
         title_el = _block(title, L, cursor_y, W, title_h, title_fs, title_lh, C['accent'], SANS,
                            zIndex=3, align='center')
         title_el['letterSpacing'] = 2.0
+        title_index = len(header)
         header.append(title_el)
         cursor_y += title_h
 
@@ -131,6 +140,18 @@ def _gen_portico(cv: dict) -> list[dict]:
     # Append the band anchor AFTER the masthead spread so its own flowRole
     # ("masthead-anchor") survives instead of being overwritten to "masthead".
     header.append(build_contact_band_anchor(contact_descriptor))
+    # Re-point the name/title references at their post-comprehension copies
+    # (see the comment above `name_index`) and tag them for the masthead
+    # identity manager. Portico never bakes uppercase into the name or title.
+    name_el = header[name_index] if name_index is not None else None
+    title_el = header[title_index] if title_index is not None else None
+    if name_el is not None:
+        header.append(tag_masthead_identity(
+            name_el, title_el,
+            band_id="masthead-main", name_default_uppercase=False,
+            title_default_uppercase=False, band_top=cursor_y + 10.0,
+            contact_band_id="contact-main",
+        ))
 
     start_y = header_rule_y + 1.0 + SPACE_AFTER_HEADER_RULE
     b = Builder(start_y)

@@ -20,6 +20,7 @@ from app.services.cv_templates.shared.extras import (
     _sidebar_candidates,
 )
 from app.services.cv_templates.shared.icons import _icon, _icon_key_for_label
+from app.services.cv_templates.shared.masthead import tag_masthead_identity
 from app.services.cv_templates.shared.records import (
     _education_record_height,
     _experience_record_height,
@@ -203,8 +204,12 @@ def _gen_tessera(cv: dict) -> list[dict]:
 
     # Personal masthead: serif name, coral role tile, wrapping icon+label
     # contact channels (phone / email / socials / location), mosaic ornament.
-    name = _compact_text(cv.get("name"), 34).upper()
-    title = _compact_text(cv.get("title"), 56).upper()
+    # Case is applied at draw time via the reversible `textTransform` flag
+    # (see `tag_masthead_identity` below) instead of baking `.upper()` into
+    # the stored content, so the masthead identity manager can toggle case
+    # without losing the original-case name/title.
+    name = _compact_text(cv.get("name"), 34)
+    title = _compact_text(cv.get("title"), 56)
     contact_fs, contact_icon = 7.8, 11.0
     contact_els, contact_bottom, contact_descriptor = _place_wrapping_icon_contacts(
         theme=icon_theme,
@@ -411,4 +416,14 @@ def _gen_tessera(cv: dict) -> list[dict]:
     # Append the band anchor after the masthead spread so its own flowRole
     # ("masthead-anchor") is preserved rather than overwritten to "masthead".
     header.append(build_contact_band_anchor(contact_descriptor))
+    # `header` was rebuilt by the flowRole comprehension above, so the tagged
+    # name/title must come from those copies (still at indices 0 and 2 — the
+    # coral role tile line sits between them at index 1).
+    name_el, title_el = header[0], header[2]
+    header.append(tag_masthead_identity(
+        name_el, title_el if title else None,
+        band_id="masthead-main", name_default_uppercase=True,
+        title_default_uppercase=True, band_top=121.0,
+        contact_band_id="contact-main",
+    ))
     return page_decorations + sidebar + header + flow

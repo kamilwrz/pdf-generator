@@ -10,6 +10,7 @@ the margin, giving every section one clean left edge.
 
 from app.services.cv_generator_primitives import get_spacing, SPACE_AFTER_HEADER_RULE, Builder, _line, _text
 from app.services.cv_templates.shared.extras import _extra_sections
+from app.services.cv_templates.shared.masthead import tag_masthead_identity
 from app.services.cv_templates.shared.records import _education_record_height, _experience_record_height, _place_education_record, _place_experience_record
 from app.services.cv_templates.shared.text import _compact_text, _labels, _place_skills_section
 from app.services.cv_templates.shared.icons import _icon_beside, _icon_key_for_label
@@ -57,6 +58,16 @@ def _gen_cardinal(cv: dict) -> list[dict]:
     # Append after the masthead spread so the anchor keeps its "masthead-anchor"
     # flowRole instead of being overwritten to "masthead".
     header.append(build_contact_band_anchor(contact_descriptor))
+    # `header` was rebuilt by the flowRole comprehension above, so the tagged
+    # name/title must come from its first two entries (their original creation
+    # order), not the discarded pre-comprehension dicts.
+    name_el, title_el = header[0], header[1]
+    header.append(tag_masthead_identity(
+        name_el, title_el if title else None,
+        band_id="masthead-main", name_default_uppercase=False,
+        title_default_uppercase=False, band_top=118.0,
+        contact_band_id="contact-main",
+    ))
     start_y = header_rule_y + 1.0 + SPACE_AFTER_HEADER_RULE
     b = Builder(start_y)
     label_fs = 11.2

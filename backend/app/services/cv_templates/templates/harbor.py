@@ -56,17 +56,21 @@ def _gen_harbor(cv: dict) -> list[dict]:
         }
 
     # ── Header (spans both columns) ─────────────────────────────────────────
-    name = _compact_text(cv.get("name"), 32).upper()
+    # Case is applied at draw time via the reversible `textTransform` flag
+    # (see `tag_masthead_identity` below) instead of baking `.upper()` into
+    # the stored content, so the masthead identity manager can toggle case
+    # without losing the original-case name.
+    name = _compact_text(cv.get("name"), 32)
     title = _compact_text(cv.get("title"), 48)
-    header = [
-        {**_text(name, 23, SANS, C["ink"], MAIN_X, 44, zIndex=3, bold=True), "letterSpacing": 0.3},
-        _text(title, 11, SANS, C["accent"], MAIN_X, 80, zIndex=3),
-    ]
+    name_el = {**_text(name, 23, SANS, C["ink"], MAIN_X, 44, zIndex=3, bold=True), "letterSpacing": 0.3}
+    title_el = _text(title, 11, SANS, C["accent"], MAIN_X, 80, zIndex=3)
+    header = [name_el, title_el]
     from app.services.cv_templates.shared.contact import (
         _contact_channel_items,
         _place_wrapping_icon_contacts,
         build_contact_band_anchor,
     )
+    from app.services.cv_templates.shared.masthead import tag_masthead_identity
     contacts = _contact_channel_items(cv, email_limit=40, social_limit=36)
     # Single contact row that wraps to a second line when the values are long,
     # so real data cannot overrun the right page margin. The shared placer
@@ -86,6 +90,11 @@ def _gen_harbor(cv: dict) -> list[dict]:
     # Name / title join the masthead so spacing packs never treat phone text
     # as a section heading against the header rule.
     header = [{**element, "flowRole": element.get("flowRole") or "masthead"} for element in header]
+    # The list comprehension above copies every element into a new dict, so
+    # `name_el`/`title_el` must be re-pointed at their copies (still the first
+    # two entries) — otherwise `tag_masthead_identity` below would mutate the
+    # discarded originals and the header list would never carry the tags.
+    name_el, title_el = header[0], header[1]
     # Circular photo placeholder: soft-grey disc + centred grey person glyph.
     # photoSlot lets the editor gallery fit a user photo over this cluster.
     header.append({
@@ -115,6 +124,14 @@ def _gen_harbor(cv: dict) -> list[dict]:
         "sectionStartOffsetPt": section_start - contact_bottom,
     }
     header.append(build_contact_band_anchor(contact_descriptor))
+    # Harbor's design uppercases the name by default; `band_top` matches the
+    # contact band's `start_y` (104.0) above so the client can compute how far
+    # downstream flow shifts when the title is hidden.
+    header.append(tag_masthead_identity(
+        name_el, title_el if title else None,
+        band_id="masthead-main", name_default_uppercase=True,
+        band_top=104.0, contact_band_id="contact-main",
+    ))
 
     # ── Sidebar (independent flow in the right column) ──────────────────────
     #
