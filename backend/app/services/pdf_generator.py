@@ -541,7 +541,14 @@ class PDF_Generator:
             self.c.setStrokeColor(HexColor(color))
             self.c.line(x, uy, x + width, uy)
 
-    def renderText(self, left, top, fontFamily, fontSize, color, content, bold=False, italic=False, underline=False, runs=None):
+    def renderText(self, left, top, fontFamily, fontSize, color, content, bold=False, italic=False, underline=False, runs=None, textTransform=None):
+        # Display-and-render casing (Phase 3 masthead identity). Uppercasing here
+        # keeps the STORED content original-case so the toggle is reversible, while
+        # the drawn glyphs match the canvas. Uppercase preserves character count, so
+        # any `runs` style ranges (index-based) stay aligned with the transformed
+        # string.
+        if textTransform == "uppercase" and content:
+            content = content.upper()
         corrected_y = self.page_h - top - fontSize * 0.34
         prepared = self._prepare_styled(content, runs, bold, italic, underline, color)
         if prepared is None:
@@ -1136,6 +1143,7 @@ class PDF_Generator:
                         element.left, element.top, element.fontFamily, element.fontSize, element.color, element.content,
                         getattr(element, "bold", False), getattr(element, "italic", False), getattr(element, "underline", False),
                         getattr(element, "runs", None),
+                        getattr(element, "textTransform", None),
                     )
                 elif category == "textarea":
                     self.renderTextarea(

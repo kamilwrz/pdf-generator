@@ -163,6 +163,16 @@ class PdfElement(BaseModel):
     # Band layout descriptor — set only on the zero-footprint band-anchor element
     # (flowRole "masthead-anchor"). Drives client-side reflow on add/remove.
     contactBand: Optional[dict[str, Any]] = None
+    # Display-and-render casing transform (Phase 3 masthead identity). "uppercase"
+    # makes the canvas (CSS) and the PDF renderer uppercase the drawn glyphs while
+    # `content` keeps its original case, so the name-case toggle is reversible.
+    textTransform: Optional[str] = None
+    # Masthead identity (Phase 3). `mastheadRole` marks the name/title elements;
+    # `mastheadBandId` links them + the identity anchor; `mastheadIdentity` is the
+    # reflow descriptor carried only on that anchor (flowRole "masthead-anchor").
+    mastheadRole: Optional[str] = None
+    mastheadBandId: Optional[str] = None
+    mastheadIdentity: Optional[dict[str, Any]] = None
 
 
 EditorMode = Literal["template", "freeform"]
