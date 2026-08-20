@@ -949,7 +949,7 @@ class PDF_Generator:
         )
         return len(lines) * float(line_height)
 
-    def renderTextarea(self, left, top, width, height, fontFamily, fontSize, color, content, lineHeight, letterSpacing, bold=False, italic=False, underline=False, align="left", bulletList=False, autoHeight=False, runs=None):
+    def renderTextarea(self, left, top, width, height, fontFamily, fontSize, color, content, lineHeight, letterSpacing, bold=False, italic=False, underline=False, align="left", bulletList=False, autoHeight=False, runs=None, textTransform=None):
         """Render a multi-line text box so it matches the on-canvas edit-mode
         box: same wrap, line-height, letter-spacing and font metrics. Lines
         whose top falls outside the box height are clipped (mirrors the
@@ -959,6 +959,14 @@ class PDF_Generator:
         a sequence of per-span pieces; otherwise the original single-font path
         runs unchanged. Justify combined with inline runs degrades to left in
         v1 (mixed-font word-space stretching is out of scope)."""
+        # Display-and-render casing (Phase 3 masthead identity). Atrium / Portico
+        # build the masthead name as a multi-line block (a textarea), so the
+        # reversible textTransform flag is honored here as well. Uppercasing keeps
+        # the STORED content original-case so the toggle is reversible, and it
+        # preserves character count, so any `runs` style ranges stay aligned with
+        # the transformed string.
+        if textTransform == "uppercase" and content:
+            content = content.upper()
         width = float(width)
         height = float(height)
         fontSize = float(fontSize)
@@ -1155,6 +1163,7 @@ class PDF_Generator:
                         getattr(element, "bulletList", False),
                         getattr(element, "autoHeight", False),
                         getattr(element, "runs", None),
+                        getattr(element, "textTransform", None),
                     )
                 elif category == "line":
                     self.renderLine(float(element.width), float(element.height), element.left, element.top, element.backgroundColor)

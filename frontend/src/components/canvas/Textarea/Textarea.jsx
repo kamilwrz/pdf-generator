@@ -140,6 +140,7 @@ function Textarea({
     preserveInitialLayout,
     zIndex,
     fixedToPage,
+    textTransform,
 }) {
     const {
         moveElement,
@@ -197,6 +198,11 @@ function Textarea({
         fontStyle: italic ? "italic" : "normal",
         textDecoration: underline ? "underline" : "none",
         textAlign: align || "left",
+        // Display-only casing (Phase 3 masthead identity). Atrium / Portico build
+        // the masthead name/title as a textarea block; CSS transforms the drawn
+        // glyphs while the stored content stays original-case, so the name-case
+        // toggle is reversible here too.
+        textTransform: textTransform || "none",
     };
 
     // scrollHeight is the browser's actual line layout for this exact font,

@@ -196,6 +196,7 @@ export default function CanvasElements({ elements }) {
             preserveInitialLayout={element.preserveInitialLayout}
             zIndex={element.zIndex}
             fixedToPage={element.fixedToPage}
+            textTransform={element.textTransform}
           />
           {blockAnchor ? (
             <RecordBlockAdd

@@ -28,6 +28,26 @@ def test_render_text_leaves_content_untouched_without_flag():
     assert drawn == ["Jan Kowalski"]
 
 
+def test_render_textarea_uppercases_when_flagged():
+    # Atrium / Portico build the masthead name as a multi-line block (a
+    # `textarea`), so the reversible textTransform flag must be honored by the
+    # textarea render path too, not only renderText.
+    gen, drawn = _capturing_generator()
+    gen.renderTextarea(
+        10, 10, 400, 40, "Inter", 23, "#000000", "Kamil Wrzochalski",
+        28, 0, textTransform="uppercase",
+    )
+    assert drawn == ["KAMIL WRZOCHALSKI"]
+
+
+def test_render_textarea_leaves_content_untouched_without_flag():
+    gen, drawn = _capturing_generator()
+    gen.renderTextarea(
+        10, 10, 400, 40, "Inter", 23, "#000000", "Kamil Wrzochalski", 28, 0,
+    )
+    assert drawn == ["Kamil Wrzochalski"]
+
+
 # `elements_from_rows` is the real row->flat unpacker in `pdfs.py` (it operates
 # on a list of ORM rows, not a single row at a time), so the round-trip below
 # feeds it a one-row list and reads the corresponding single element back out.
