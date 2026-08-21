@@ -2,10 +2,13 @@
  * Inline hover controls for one contact band (Phase 1 contact channel manager).
  *
  * Hovering a contact chip (its label element) reveals a trash button that
- * removes that channel — icon and label together. At the band end a `+` opens a
- * menu of the channels not currently shown; picking one inserts it with its
- * icon. Both actions reflow the band and the document downstream via the
- * `removeContactChannel` / `addContactChannel` context operations.
+ * removes that channel — icon and label together — and also reveals the `+`
+ * at the band end, which opens a menu of the channels not currently shown;
+ * picking one inserts it with its icon. Both actions reflow the band and the
+ * document downstream via the `removeContactChannel` / `addContactChannel`
+ * context operations. The `+` stays visible while the pointer is on it or its
+ * menu (same as the trash cluster), and hides `HIDE_AFTER_LEAVE_MS` after the
+ * pointer leaves the band entirely.
  *
  * Mirrors `SectionRecordAdd`'s canvas-affordance conventions (bare icon buttons
  * inside the shared `.cluster` surface chip, zoom-aware sizing) and only adds
@@ -25,6 +28,11 @@ const HIDE_AFTER_LEAVE_MS = 600;
 export default function ContactChannelControls({ bandId, chips, inactive }) {
   const { removeContactChannel, addContactChannel, zoom = 1 } = use(PdfContext);
   const [hoverChannel, setHoverChannel] = useState(null);
+  // Whether the pointer is anywhere in the band (any chip, or the +/menu
+  // cluster itself) — gates the `+` affordance so it is not permanently
+  // visible whenever inactive channels exist. Kept separate from
+  // `hoverChannel` because the `+` has no single channel of its own.
+  const [bandHover, setBandHover] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const hideTimerRef = useRef(null);
 
@@ -36,18 +44,23 @@ export default function ContactChannelControls({ bandId, chips, inactive }) {
   }, []);
   const scheduleHide = useCallback(() => {
     clearHide();
-    hideTimerRef.current = window.setTimeout(() => setHoverChannel(null), HIDE_AFTER_LEAVE_MS);
+    hideTimerRef.current = window.setTimeout(() => {
+      setHoverChannel(null);
+      setBandHover(false);
+      setMenuOpen(false);
+    }, HIDE_AFTER_LEAVE_MS);
   }, [clearHide]);
 
   // Attach hover listeners to each chip's label node so the trash appears over
-  // the chip the pointer is on. Chips are addressed by element id, the same way
+  // the chip the pointer is on, and the `+` becomes visible while any chip in
+  // the band is hovered. Chips are addressed by element id, the same way
   // SectionRecordAdd binds to a heading node.
   useEffect(() => {
     const cleanups = [];
     for (const chip of chips) {
       const node = document.getElementById(chip.elementId);
       if (!node) continue;
-      const onEnter = () => { clearHide(); setHoverChannel(chip.channel); };
+      const onEnter = () => { clearHide(); setHoverChannel(chip.channel); setBandHover(true); };
       const onLeave = () => scheduleHide();
       node.addEventListener("pointerenter", onEnter);
       node.addEventListener("pointerleave", onLeave);
@@ -106,9 +119,14 @@ export default function ContactChannelControls({ bandId, chips, inactive }) {
         </div>
       ) : null}
 
-      {lastChip && inactive.length > 0 ? (
+      {lastChip && inactive.length > 0 && bandHover ? (
         <div className={cluster.anchor} style={{ left: lastChip.left + 44, top: lastChip.top - 1 }}>
-          <div className={cluster.cluster} style={{ gap }}>
+          <div
+            className={cluster.cluster}
+            style={{ gap }}
+            onPointerEnter={() => { clearHide(); setBandHover(true); }}
+            onPointerLeave={scheduleHide}
+          >
             <button
               type="button"
               className={cluster.plus}

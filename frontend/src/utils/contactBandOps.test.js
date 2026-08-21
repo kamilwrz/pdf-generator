@@ -176,6 +176,34 @@ test("downstream shift stays on the band's page — never moves continuation con
   assert.equal(g("p2body").top, 160);
 });
 
+test("live label edit that grows the band never moves fixedToPage masthead chrome", () => {
+  // Regression: Slate's photo cluster (corner accent marks, base bar) is
+  // `fixedToPage` decorative chrome that sits below the masthead's top. Typing
+  // an unusually long value into a contact label (e.g. a GitHub username with
+  // no spaces) widens that row enough to wrap the next channel onto a second
+  // line, growing the band. `reposition` used to shift ANY element with
+  // top >= oldBottomY regardless of `fixedToPage`, dragging locked masthead
+  // ornaments along with genuine downstream body content.
+  const withChrome = [
+    ...doc(),
+    {
+      element_id: "ornament", category: "line", top: 110, left: 33,
+      width: 112, height: 4, fixedToPage: true, locked: true, page: 1,
+    },
+  ];
+  const edited = withChrome.map((el) => (
+    el.element_id === "ph-l" ? { ...el, content: "j".repeat(200) } : el
+  ));
+  const { elements } = applyChannelRelayout(edited, "b1", measure, () => "new-id");
+  const ornament = elements.find((e) => e.element_id === "ornament");
+  const head = elements.find((e) => e.element_id === "head");
+  // The band did grow (email wrapped to a second row) — otherwise this test
+  // would not exercise the bug at all.
+  assert.ok(head.top > 146, "sanity: the band actually grew and shifted body content");
+  // The locked masthead ornament stayed exactly where it was authored.
+  assert.equal(ornament.top, 110);
+});
+
 // ── Chip mode (Volt): rect + icon + label triple per channel ────────────────
 const chipDescriptor = {
   id: "vb", mode: "chip",

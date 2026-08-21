@@ -82,6 +82,13 @@ function itemsFor(channels, labels) {
 // shifted as if it sat below the band — crushing/overlapping page-2+ content on
 // every add/remove. The band is a single-page masthead row; its height delta
 // only reflows that page.
+//
+// `fixedToPage` chrome (e.g. Slate's locked photo cluster — corner accent
+// marks and base bar sit well below the masthead's top and can fall below the
+// band's `oldBottomY` once a label grows) is masthead furniture, not flowing
+// body content, and must stay put regardless of the band's height. This
+// mirrors the same guard `shiftBelow` (mastheadIdentityOps.js) already applies
+// for the title show/hide reflow; `reposition` was missing it.
 function reposition(el, bandId, placementByChannel, oldBottomY, delta, bandPageNo) {
   if (el.contactBandId === bandId && el.contactChannel) {
     const placement = placementByChannel.get(el.contactChannel);
@@ -104,6 +111,7 @@ function reposition(el, bandId, placementByChannel, oldBottomY, delta, bandPageN
   }
   // The band anchor (band id but no channel) never moves.
   if (el.contactBandId === bandId) return el;
+  if (el.fixedToPage) return el;
   const page = Math.max(1, Math.trunc(Number(el.page) || 1));
   if (page === bandPageNo && typeof el.top === "number" && el.top >= oldBottomY) {
     return { ...el, top: el.top + delta };
