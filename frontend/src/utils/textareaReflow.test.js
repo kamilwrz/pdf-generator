@@ -1954,3 +1954,44 @@ test("a wrapped chip grid's reserved height is its 2D extent, not the sum of eve
   assert.equal(byId["rect4"].top, byId["rect7"].top, "row 2 chips aligned");
   assert.ok(byId["rect4"].top > byId["rect0"].top, "row 2 sits below row 1");
 });
+
+test("a languages grid row measured cell-by-cell never splits across a page break", () => {
+  // Sterling's main-column languages grid is a row of textarea cells sharing one
+  // flowGroup, sitting side by side in ADJACENT (non-overlapping) columns. Each
+  // cell is autoHeight, so on mount each one measures and fires its OWN reflow
+  // pass. Because grid siblings do not horizontally overlap, `belongsToFlowLane`
+  // used to reject them as record mates — so when a single cell's own pass
+  // pushed it past the page-1 footer, it jumped to page 2 alone and left its
+  // row-mates behind (the reported bug: "Polski" stayed on page 1 while
+  // "Niemiecki"/"Angielski" floated onto page 2). The whole row must move as a
+  // unit and keep its shared top.
+  const group = "lang-grid-row";
+  const base = () => ([
+    { element_id: "lang-head", category: "text", flowRole: "section-chrome", content: "JĘZYKI", left: 245, top: 730, width: 300, height: 14, page: 1 },
+    { element_id: "lang-rule", category: "line", flowRole: "section-chrome", left: 245, top: 745, width: 300, height: 1, page: 1 },
+    { element_id: "lang-0", category: "textarea", flowRole: "grid-member", flowGroup: group, content: "Polski — A2", left: 245, top: 750, width: 67, height: 14, page: 1, autoHeight: true },
+    { element_id: "lang-1", category: "textarea", flowRole: "grid-member", flowGroup: group, content: "Niemiecki — C1", left: 320, top: 750, width: 67, height: 14, page: 1, autoHeight: true },
+    { element_id: "lang-2", category: "textarea", flowRole: "grid-member", flowGroup: group, content: "Angielski — B2", left: 395, top: 750, width: 67, height: 14, page: 1, autoHeight: true },
+  ]);
+  const opts = { pageTop: 66, bottomMargin: 72 };
+
+  // The middle cell measures tall enough (its level label wrapped) to push the
+  // row past the page-1 footer — the exact single-cell trigger that split it.
+  let els = reflowTextareaHeight(base(), "lang-1", 30, 842, opts).elements;
+  let byId = Object.fromEntries(els.map((e) => [e.element_id, e]));
+  assert.equal(byId["lang-0"].page, byId["lang-1"].page, "the row must not split across pages");
+  assert.equal(byId["lang-1"].page, byId["lang-2"].page, "the row must not split across pages");
+  assert.equal(byId["lang-0"].top, byId["lang-1"].top, "row cells keep their shared top");
+  assert.equal(byId["lang-1"].top, byId["lang-2"].top, "row cells keep their shared top");
+  assert.ok(byId["lang-head"].top < byId["lang-0"].top, "heading stays above its grid");
+
+  // Cascade: each cell measures on mount, in document order.
+  els = base();
+  for (const id of ["lang-0", "lang-1", "lang-2"]) {
+    els = reflowTextareaHeight(els, id, 15, 842, opts).elements;
+  }
+  byId = Object.fromEntries(els.map((e) => [e.element_id, e]));
+  const pages = new Set(["lang-0", "lang-1", "lang-2"].map((id) => byId[id].page));
+  assert.equal(pages.size, 1, "the whole row shares one page after the mount cascade");
+  assert.equal(byId["lang-0"].top, byId["lang-2"].top, "row stays aligned after the cascade");
+});

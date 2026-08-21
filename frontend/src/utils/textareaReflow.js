@@ -511,7 +511,17 @@ function recordMatesBeside(elements, target, pageHeight, direction) {
     if (element.fixedToPage || isPositionLockedForReflow(element)) return false;
     if (element.element_id === target.element_id) return false;
     if (isChromeLike(element)) return false;
-    if (!belongsToFlowLane(target, element)) return false;
+    // Members of the target's own `flowGroup` are one keep-together record by
+    // construction (e.g. the cells of a languages grid row), so they must count
+    // as mates even when they do not horizontally overlap the target. Grid-row
+    // siblings sit side by side in adjacent, NON-overlapping columns, so the
+    // horizontal-overlap `belongsToFlowLane` test alone would reject them — and
+    // then a per-cell reflow pass (each autoHeight cell measures independently
+    // on mount) could carry one cell across a page break while its row-mates
+    // stayed behind, splitting the row (Sterling languages grid: "Polski" left
+    // on page 1 while "Niemiecki"/"Angielski" jumped to page 2).
+    const sameGroupMember = Boolean(group) && flowGroupOf(element) === group;
+    if (!sameGroupMember && !belongsToFlowLane(target, element)) return false;
     const abs = absoluteTop(element, pageHeight);
     if (direction < 0) {
       if (abs < targetAbs - 0.01) return true;
@@ -600,6 +610,15 @@ function followingRecordMates(elements, target, pageHeight) {
  * Place a keep-together record on ``targetPage`` starting at ``recordTop``.
  * Uses authored intra-record gaps but advances by each mate's post-measure
  * height so a grown degree/school cannot overlap the next line.
+ *
+ * Grid members (wrapped languages-grid cells sharing one ``flowGroup``) are the
+ * exception: they are laid out in 2D rows/columns, not a linear stack, so each
+ * keeps its ORIGINAL offset from the record anchor (the cluster's first member)
+ * instead of being bottom-stacked. Bottom-stacking them collapsed every cell of
+ * a row onto its own line — the row's shared top was lost — which is what made a
+ * moved languages grid render as a single vertical column. Grid cells also do
+ * not advance the linear cursor, so a following non-grid mate stacks under the
+ * row's anchor, not under the last cell.
  */
 function placeRecordCluster(
   placed,
@@ -611,17 +630,29 @@ function placeRecordCluster(
   pageHeight,
   spaceStack = DEFAULT_FLOW_SPACING.stack,
 ) {
+  const anchorAbs = cluster.length ? absoluteTop(cluster[0], pageHeight) : 0;
   let pageY = recordTop;
-  for (let index = 0; index < cluster.length; index += 1) {
-    const mate = cluster[index];
-    if (index > 0) {
-      const previous = cluster[index - 1];
+  let previousLinear = null;
+  for (const mate of cluster) {
+    if (isGridMember(mate)) {
+      // Preserve the cell's authored offset from the record anchor so a moved
+      // row keeps its shared top and multi-row grids keep their row spacing.
+      const offset = absoluteTop(mate, pageHeight) - anchorAbs;
+      placed.set(mate.element_id, {
+        ...mate,
+        ...(mate.element_id === targetId ? { height: nextHeight } : {}),
+        page: targetPage,
+        top: recordTop + offset,
+      });
+      continue;
+    }
+    if (previousLinear !== null) {
       const authoredGap = absoluteTop(mate, pageHeight)
-        - (absoluteTop(previous, pageHeight) + elementHeight(previous));
+        - (absoluteTop(previousLinear, pageHeight) + elementHeight(previousLinear));
       const gap = (authoredGap >= -0.5 && authoredGap <= RECORD_STACK_GAP)
         ? Math.max(0, authoredGap)
         : spaceStack;
-      pageY += heightFor(previous, targetId, nextHeight) + gap;
+      pageY += heightFor(previousLinear, targetId, nextHeight) + gap;
     }
     placed.set(mate.element_id, {
       ...mate,
@@ -629,6 +660,7 @@ function placeRecordCluster(
       page: targetPage,
       top: pageY,
     });
+    previousLinear = mate;
   }
 }
 
