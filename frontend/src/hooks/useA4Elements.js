@@ -98,6 +98,11 @@ const stepZoom = (z, dir) => clampZoom(Math.round((z + dir * ZOOM_STEP) * 10) / 
 // readable while typing, then restores the pre-edit zoom on exit (see the
 // editingElementId effect below). Two-page view never auto-zooms.
 const EDIT_ZOOM = 2;
+// Matches the CSS transition on `.A4` / `.zoomWrapper` (A4.module.css) plus a
+// small buffer. `scrollIntoView` called mid-transition targets an
+// interpolated (not final) position, so the post-zoom scroll waits for the
+// transition to settle before measuring the edited element for real.
+const EDIT_ZOOM_TRANSITION_MS = 260;
 
 function prefersReducedMotion() {
   if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
@@ -246,34 +251,29 @@ export function useA4Elements(titleRef) {
       return undefined;
     }
 
-    // Measure the page's vertical offset within the scroll container BEFORE
-    // the zoom transition starts (transform-origin is top-left and the page
-    // is centered only horizontally, so this offset is the same at any zoom
-    // level) — this lets the scroll target be computed analytically for the
-    // upcoming EDIT_ZOOM instead of racing the CSS transition for a
-    // mid-animation DOM measurement.
-    const container = canvasAreaRef.current;
-    const pageNode = A4ref.current;
-    const editedElement = elementsRef.current.find((element) => element.element_id === editingElementId);
-
     setZoomState((current) => {
       if (editZoomPreviousRef.current == null) editZoomPreviousRef.current = current;
       return EDIT_ZOOM;
     });
 
-    if (container && pageNode && editedElement) {
-      const containerRect = container.getBoundingClientRect();
-      const pageRect = pageNode.getBoundingClientRect();
-      const contentTop = pageRect.top - containerRect.top + container.scrollTop;
-      const elementCenterY = contentTop
-        + (Number(editedElement.top) || 0) * EDIT_ZOOM
-        + ((Number(editedElement.height) || 0) * EDIT_ZOOM) / 2;
-      container.scrollTo({
-        top: Math.max(0, elementCenterY - containerRect.height / 2),
-        behavior: prefersReducedMotion() ? "auto" : "smooth",
+    // `scrollIntoView` on the edited node itself (native, so it accounts for
+    // the real post-zoom layout instead of a manually derived position) —
+    // but only once the zoom transition has actually settled; called earlier
+    // it would center on the element's still-animating, not-yet-final spot.
+    const reduceMotion = prefersReducedMotion();
+    const scrollToEditedElement = () => {
+      document.getElementById(editingElementId)?.scrollIntoView({
+        behavior: reduceMotion ? "auto" : "smooth",
+        block: "center",
+        inline: "nearest",
       });
+    };
+    if (reduceMotion) {
+      scrollToEditedElement();
+      return undefined;
     }
-    return undefined;
+    const timer = window.setTimeout(scrollToEditedElement, EDIT_ZOOM_TRANSITION_MS);
+    return () => window.clearTimeout(timer);
   }, [editingElementId, isTwoPageView]);
 
   // Strip NULL/NBSP junk and trailing bullet placeholders already sitting in
