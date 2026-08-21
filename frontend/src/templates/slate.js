@@ -1,13 +1,16 @@
 /**
- * Slate template (auto-generated demo content).
+ * Slate template (`layouts: ["sidebar", "icons"]`).
  *
- * Landing-page / picker preview content, generated from the backend
- * template's own output (`backend/app/services/cv_templates/templates/slate.py`)
- * for representative demo content, so the picker preview matches what
- * `/ai/fill_template` produces pixel-for-pixel. Image `src` values are stored
- * relative and get the API base prepended at load time. The array already
- * carries `flowRole` / `flowGroup` / `preserveInitialLayout` from the
- * generator, so it is exported as-is (only the image src is absolutised).
+ * Steel blueprint sidebar with rectangular photo and grid chrome.
+ *
+ * This static starter is the backend generator's own output
+ * (`backend/app/services/cv_templates/templates/slate.py`) for
+ * representative demo content (Julia Bernat — three roles, one degree, five skills, and three languages, sized to fit page 1 of the mockup), so the
+ * picker preview matches what `/ai/fill_template` produces pixel-for-pixel.
+ * Image `src` values are stored relative and get the API base prepended at
+ * load time. The array already carries `flowRole` / `flowGroup` /
+ * `preserveInitialLayout` from the generator, so it is exported as-is (only
+ * the image src is absolutised).
  */
 import API_BASE_URL from "../services/api.js";
 
@@ -147,7 +150,7 @@ const SLATE_ELEMENTS = [
   },
   {
     "category": "image",
-    "src": "http://localhost:8000/template-assets/iconic/slate-accent/portrait.png",
+    "src": "/template-assets/iconic/slate-accent/portrait.png",
     "left": 66.0,
     "top": 80.0,
     "width": 46,
@@ -222,7 +225,7 @@ const SLATE_ELEMENTS = [
   },
   {
     "category": "image",
-    "src": "http://localhost:8000/template-assets/iconic/slate/skills.png",
+    "src": "/template-assets/iconic/slate/skills.png",
     "left": 27,
     "top": 196.0,
     "width": 12,
@@ -263,11 +266,11 @@ const SLATE_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "• ISO 27001\n• RODO/GDPR\n• audyt wewnętrzny\n• ocena ryzyka\n• zarządzanie politykami bezpieczeństwa\n• podstawy SIEM\n• MS Office\n• SQL",
+    "content": "• AML/KYC\n• Monitoring\n• CDD/EDD\n• Raporty SAR\n• Analiza transakcyjna",
     "left": 25,
     "top": 215.0,
     "width": 128,
-    "height": 109.0,
+    "height": 61.0,
     "fontSize": 8.3,
     "lineHeight": 12.04,
     "letterSpacing": 0,
@@ -287,7 +290,7 @@ const SLATE_ELEMENTS = [
   {
     "category": "line",
     "left": 25,
-    "top": 336.0,
+    "top": 288.0,
     "width": 16,
     "height": 16,
     "backgroundColor": "#3E5C76",
@@ -298,9 +301,9 @@ const SLATE_ELEMENTS = [
   },
   {
     "category": "image",
-    "src": "http://localhost:8000/template-assets/iconic/slate/languages.png",
+    "src": "/template-assets/iconic/slate/languages.png",
     "left": 27,
-    "top": 338.0,
+    "top": 290.0,
     "width": 12,
     "height": 12,
     "zIndex": 3,
@@ -316,7 +319,7 @@ const SLATE_ELEMENTS = [
     "fontFamily": "Montserrat",
     "color": "#1C2530",
     "left": 49,
-    "top": 339.0,
+    "top": 291.0,
     "zIndex": 3,
     "page": 1,
     "bold": true,
@@ -328,7 +331,7 @@ const SLATE_ELEMENTS = [
   {
     "category": "line",
     "left": 49,
-    "top": 352.0,
+    "top": 304.0,
     "width": 46,
     "height": 1,
     "backgroundColor": "#3E5C76",
@@ -339,9 +342,9 @@ const SLATE_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Polski - ojczysty\nangielski - C1\nfrancuski - B1",
+    "content": "Polski - ojczysty\nAngielski - C1\nNiemiecki - B2",
     "left": 25,
-    "top": 357.0,
+    "top": 309.0,
     "width": 128,
     "height": 37.0,
     "fontSize": 8.3,
@@ -363,7 +366,7 @@ const SLATE_ELEMENTS = [
   {
     "category": "line",
     "left": 25,
-    "top": 406.0,
+    "top": 358.0,
     "width": 16,
     "height": 16,
     "backgroundColor": "#3E5C76",
@@ -374,9 +377,9 @@ const SLATE_ELEMENTS = [
   },
   {
     "category": "image",
-    "src": "http://localhost:8000/template-assets/iconic/slate/education.png",
+    "src": "/template-assets/iconic/slate/education.png",
     "left": 27,
-    "top": 408.0,
+    "top": 360.0,
     "width": 12,
     "height": 12,
     "zIndex": 3,
@@ -392,7 +395,7 @@ const SLATE_ELEMENTS = [
     "fontFamily": "Montserrat",
     "color": "#1C2530",
     "left": 49,
-    "top": 409.0,
+    "top": 361.0,
     "zIndex": 3,
     "page": 1,
     "bold": true,
@@ -404,7 +407,7 @@ const SLATE_ELEMENTS = [
   {
     "category": "line",
     "left": 49,
-    "top": 422.0,
+    "top": 374.0,
     "width": 46,
     "height": 1,
     "backgroundColor": "#3E5C76",
@@ -415,11 +418,11 @@ const SLATE_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Magister prawa — specjalność: Prawo nowych technologii",
+    "content": "Licencjat Prawa",
     "left": 25,
-    "top": 427.0,
+    "top": 379.0,
     "width": 128,
-    "height": 37,
+    "height": 13,
     "fontSize": 8.3,
     "lineHeight": 12.04,
     "letterSpacing": 0,
@@ -433,15 +436,15 @@ const SLATE_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-eb09f00ee090",
+    "flowGroup": "record-049460946e1b",
     "flowRole": "content",
     "flowLane": "sidebar"
   },
   {
     "category": "textarea",
-    "content": "UMCS Lublin",
+    "content": "UW Warszawa",
     "left": 25,
-    "top": 468.0,
+    "top": 396.0,
     "width": 128,
     "height": 13,
     "fontSize": 8.3,
@@ -457,17 +460,17 @@ const SLATE_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-eb09f00ee090",
+    "flowGroup": "record-049460946e1b",
     "flowRole": "content",
     "flowLane": "sidebar"
   },
   {
     "category": "textarea",
-    "content": "Lublin   ·   ukończono czerwiec 2020",
+    "content": "2012 – 2016",
     "left": 25,
-    "top": 485.0,
+    "top": 413.0,
     "width": 128,
-    "height": 24,
+    "height": 12,
     "fontSize": 7.5,
     "lineHeight": 11.54,
     "letterSpacing": 0,
@@ -481,37 +484,13 @@ const SLATE_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-eb09f00ee090",
-    "flowRole": "content",
-    "flowLane": "sidebar"
-  },
-  {
-    "category": "textarea",
-    "content": "• Praca magisterska dotycząca ochrony danych osobowych w chmurze obliczeniowej.",
-    "left": 25,
-    "top": 513.0,
-    "width": 128,
-    "height": 37,
-    "fontSize": 8.3,
-    "lineHeight": 12.04,
-    "letterSpacing": 0,
-    "color": "#3A424C",
-    "fontFamily": "Montserrat",
-    "zIndex": 3,
-    "page": 1,
-    "bold": false,
-    "italic": false,
-    "align": "left",
-    "bulletList": true,
-    "autoHeight": true,
-    "preserveInitialLayout": true,
-    "flowGroup": "record-eb09f00ee090",
+    "flowGroup": "record-049460946e1b",
     "flowRole": "content",
     "flowLane": "sidebar"
   },
   {
     "category": "text",
-    "content": "AGNIESZKA KACZMAREK",
+    "content": "Julia Bernat",
     "fontSize": 24,
     "fontFamily": "Montserrat",
     "color": "#1C2530",
@@ -522,13 +501,16 @@ const SLATE_ELEMENTS = [
     "bold": true,
     "italic": false,
     "letterSpacing": 0.4,
-    "flowRole": "masthead"
+    "flowRole": "masthead",
+    "mastheadRole": "name",
+    "mastheadBandId": "masthead-main",
+    "textTransform": "uppercase"
   },
   {
     "category": "line",
     "left": 218,
     "top": 86,
-    "width": 153.60000000000002,
+    "width": 175.20000000000002,
     "height": 20,
     "backgroundColor": "#3E5C76",
     "zIndex": 1,
@@ -537,7 +519,7 @@ const SLATE_ELEMENTS = [
   },
   {
     "category": "text",
-    "content": "GRC & COMPLIANCE ANALYST",
+    "content": "Analityczka AML i Compliance",
     "fontSize": 8.2,
     "fontFamily": "Montserrat",
     "color": "#FFFFFF",
@@ -548,11 +530,14 @@ const SLATE_ELEMENTS = [
     "bold": true,
     "italic": false,
     "letterSpacing": 1.15,
-    "flowRole": "masthead"
+    "flowRole": "masthead",
+    "mastheadRole": "title",
+    "mastheadBandId": "masthead-main",
+    "textTransform": "uppercase"
   },
   {
     "category": "image",
-    "src": "http://localhost:8000/template-assets/iconic/slate-accent/phone.png",
+    "src": "/template-assets/iconic/slate-accent/phone.png",
     "left": 218.0,
     "top": 119.0,
     "width": 11.0,
@@ -560,11 +545,13 @@ const SLATE_ELEMENTS = [
     "zIndex": 3,
     "page": 1,
     "alignWithText": true,
-    "flowRole": "masthead"
+    "flowRole": "masthead",
+    "contactChannel": "phone",
+    "contactBandId": "contact-main"
   },
   {
     "category": "text",
-    "content": "+48 574 331 809",
+    "content": "+48 512 340 780",
     "fontSize": 7.8,
     "fontFamily": "Montserrat",
     "color": "#7A8794",
@@ -574,11 +561,13 @@ const SLATE_ELEMENTS = [
     "page": 1,
     "bold": false,
     "italic": false,
-    "flowRole": "masthead"
+    "flowRole": "masthead",
+    "contactChannel": "phone",
+    "contactBandId": "contact-main"
   },
   {
     "category": "image",
-    "src": "http://localhost:8000/template-assets/iconic/slate-accent/email.png",
+    "src": "/template-assets/iconic/slate-accent/email.png",
     "left": 324.0,
     "top": 119.0,
     "width": 11.0,
@@ -586,11 +575,13 @@ const SLATE_ELEMENTS = [
     "zIndex": 3,
     "page": 1,
     "alignWithText": true,
-    "flowRole": "masthead"
+    "flowRole": "masthead",
+    "contactChannel": "email",
+    "contactBandId": "contact-main"
   },
   {
     "category": "text",
-    "content": "agnieszka.kaczmarek.grc@outlook.com",
+    "content": "julia.bernat@email.com",
     "fontSize": 7.8,
     "fontFamily": "Montserrat",
     "color": "#7A8794",
@@ -600,11 +591,13 @@ const SLATE_ELEMENTS = [
     "page": 1,
     "bold": false,
     "italic": false,
-    "flowRole": "masthead"
+    "flowRole": "masthead",
+    "contactChannel": "email",
+    "contactBandId": "contact-main"
   },
   {
     "category": "image",
-    "src": "http://localhost:8000/template-assets/iconic/slate-accent/linkedin.png",
+    "src": "/template-assets/iconic/slate-accent/linkedin.png",
     "left": 218.0,
     "top": 135.0,
     "width": 11.0,
@@ -612,11 +605,13 @@ const SLATE_ELEMENTS = [
     "zIndex": 3,
     "page": 1,
     "alignWithText": true,
-    "flowRole": "masthead"
+    "flowRole": "masthead",
+    "contactChannel": "linkedin",
+    "contactBandId": "contact-main"
   },
   {
     "category": "text",
-    "content": "linkedin.com/in/agnieszka-kaczmarek",
+    "content": "linkedin.com/in/jbernat",
     "fontSize": 7.8,
     "fontFamily": "Montserrat",
     "color": "#7A8794",
@@ -626,11 +621,43 @@ const SLATE_ELEMENTS = [
     "page": 1,
     "bold": false,
     "italic": false,
-    "flowRole": "masthead"
+    "flowRole": "masthead",
+    "contactChannel": "linkedin",
+    "contactBandId": "contact-main"
   },
   {
     "category": "image",
-    "src": "http://localhost:8000/template-assets/iconic/slate-accent/github.png",
+    "src": "/template-assets/iconic/slate-accent/github.png",
+    "left": 364.0,
+    "top": 135.0,
+    "width": 11.0,
+    "height": 11.0,
+    "zIndex": 3,
+    "page": 1,
+    "alignWithText": true,
+    "flowRole": "masthead",
+    "contactChannel": "github",
+    "contactBandId": "contact-main"
+  },
+  {
+    "category": "text",
+    "content": "github.com/jbernat",
+    "fontSize": 7.8,
+    "fontFamily": "Montserrat",
+    "color": "#7A8794",
+    "left": 379.0,
+    "top": 135.0,
+    "zIndex": 3,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "flowRole": "masthead",
+    "contactChannel": "github",
+    "contactBandId": "contact-main"
+  },
+  {
+    "category": "image",
+    "src": "/template-assets/iconic/slate-accent/website.png",
     "left": 218.0,
     "top": 151.0,
     "width": 11.0,
@@ -638,11 +665,13 @@ const SLATE_ELEMENTS = [
     "zIndex": 3,
     "page": 1,
     "alignWithText": true,
-    "flowRole": "masthead"
+    "flowRole": "masthead",
+    "contactChannel": "website",
+    "contactBandId": "contact-main"
   },
   {
     "category": "text",
-    "content": "github.com/akaczmarek",
+    "content": "juliabernat.pl",
     "fontSize": 7.8,
     "fontFamily": "Montserrat",
     "color": "#7A8794",
@@ -652,64 +681,44 @@ const SLATE_ELEMENTS = [
     "page": 1,
     "bold": false,
     "italic": false,
-    "flowRole": "masthead"
+    "flowRole": "masthead",
+    "contactChannel": "website",
+    "contactBandId": "contact-main"
   },
   {
     "category": "image",
-    "src": "http://localhost:8000/template-assets/iconic/slate-accent/website.png",
-    "left": 354.0,
+    "src": "/template-assets/iconic/slate-accent/location.png",
+    "left": 319.0,
     "top": 151.0,
     "width": 11.0,
     "height": 11.0,
     "zIndex": 3,
     "page": 1,
     "alignWithText": true,
-    "flowRole": "masthead"
+    "flowRole": "masthead",
+    "contactChannel": "location",
+    "contactBandId": "contact-main"
   },
   {
     "category": "text",
-    "content": "agnieszkakaczmarek.pl",
+    "content": "Warszawa",
     "fontSize": 7.8,
     "fontFamily": "Montserrat",
     "color": "#7A8794",
-    "left": 369.0,
+    "left": 334.0,
     "top": 151.0,
     "zIndex": 3,
     "page": 1,
     "bold": false,
     "italic": false,
-    "flowRole": "masthead"
-  },
-  {
-    "category": "image",
-    "src": "http://localhost:8000/template-assets/iconic/slate-accent/location.png",
-    "left": 218.0,
-    "top": 167.0,
-    "width": 11.0,
-    "height": 11.0,
-    "zIndex": 3,
-    "page": 1,
-    "alignWithText": true,
-    "flowRole": "masthead"
-  },
-  {
-    "category": "text",
-    "content": "Lublin",
-    "fontSize": 7.8,
-    "fontFamily": "Montserrat",
-    "color": "#7A8794",
-    "left": 233.0,
-    "top": 167.0,
-    "zIndex": 3,
-    "page": 1,
-    "bold": false,
-    "italic": false,
-    "flowRole": "masthead"
+    "flowRole": "masthead",
+    "contactChannel": "location",
+    "contactBandId": "contact-main"
   },
   {
     "category": "line",
     "left": 218,
-    "top": 189.0,
+    "top": 173.0,
     "width": 329,
     "height": 1,
     "backgroundColor": "#D3DAE2",
@@ -817,9 +826,99 @@ const SLATE_ELEMENTS = [
     "flowRole": "masthead"
   },
   {
+    "category": "text",
+    "content": "",
+    "left": 0,
+    "top": 0,
+    "width": 0,
+    "height": 0,
+    "fontSize": 1,
+    "fontFamily": "Inter",
+    "color": "#000000",
+    "zIndex": 0,
+    "page": 1,
+    "flowRole": "masthead-anchor",
+    "contactBand": {
+      "id": "contact-main",
+      "mode": "wrapping",
+      "anchor": {
+        "startX": 218.0,
+        "startY": 119.0,
+        "rightLimit": 547.0
+      },
+      "text": {
+        "fontFamily": "Montserrat",
+        "fontSizePt": 7.8,
+        "colorHex": "#7A8794"
+      },
+      "icon": {
+        "sizePt": 11.0,
+        "theme": "slate-accent"
+      },
+      "metrics": {
+        "iconGap": 15.0,
+        "itemPad": 16.0,
+        "lineStep": 16.0,
+        "charWidth": 5.0
+      },
+      "order": [
+        "phone",
+        "email",
+        "linkedin",
+        "github",
+        "website",
+        "location"
+      ]
+    },
+    "contactBandId": "contact-main"
+  },
+  {
+    "category": "text",
+    "content": "",
+    "left": 0,
+    "top": 0,
+    "width": 0,
+    "height": 0,
+    "fontSize": 1,
+    "fontFamily": "Inter",
+    "color": "#000000",
+    "zIndex": 0,
+    "page": 1,
+    "flowRole": "masthead-anchor",
+    "mastheadIdentity": {
+      "id": "masthead-main",
+      "name": {
+        "defaultUppercase": true
+      },
+      "title": {
+        "spec": {
+          "category": "text",
+          "content": "Analityczka AML i Compliance",
+          "left": 230,
+          "top": 92.0,
+          "width": null,
+          "height": null,
+          "fontSizePt": 8.2,
+          "lineHeight": null,
+          "fontFamily": "Montserrat",
+          "colorHex": "#FFFFFF",
+          "letterSpacing": 1.15,
+          "align": null,
+          "autoHeight": false,
+          "textTransform": "uppercase",
+          "bold": true
+        },
+        "blockPt": 27.0,
+        "present": true
+      },
+      "contactBandId": "contact-main"
+    },
+    "mastheadBandId": "masthead-main"
+  },
+  {
     "category": "line",
     "left": 218,
-    "top": 226.0,
+    "top": 210.0,
     "width": 18,
     "height": 18,
     "backgroundColor": "#3E5C76",
@@ -829,9 +928,9 @@ const SLATE_ELEMENTS = [
   },
   {
     "category": "image",
-    "src": "http://localhost:8000/template-assets/iconic/slate/summary.png",
+    "src": "/template-assets/iconic/slate/summary.png",
     "left": 221,
-    "top": 229.0,
+    "top": 213.0,
     "width": 12,
     "height": 12,
     "zIndex": 3,
@@ -846,7 +945,7 @@ const SLATE_ELEMENTS = [
     "fontFamily": "Montserrat",
     "color": "#1C2530",
     "left": 244,
-    "top": 230.0,
+    "top": 214.0,
     "zIndex": 3,
     "page": 1,
     "bold": true,
@@ -857,7 +956,7 @@ const SLATE_ELEMENTS = [
   {
     "category": "line",
     "left": 244,
-    "top": 247.0,
+    "top": 231.0,
     "width": 303,
     "height": 1,
     "backgroundColor": "#D3DAE2",
@@ -867,11 +966,11 @@ const SLATE_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Analityczka GRC wspierająca organizacje w utrzymaniu zgodności z ISO 27001 i RODO. Prowadzę audyty wewnętrzne, oceny ryzyka i szkolenia świadomościowe dla pracowników. Łączę wiedzę prawną z podstawami technicznymi bezpieczeństwa.",
+    "content": "Analityczka AML łącząca wiedzę regulacyjną z dyscypliną wykonania. Prowadzę monitoring transakcji i raporty SAR, dbając o jakość analiz oraz terminowość decyzji bez utraty dokładności.",
     "left": 218,
-    "top": 255.0,
+    "top": 239.0,
     "width": 329,
-    "height": 53,
+    "height": 40,
     "fontSize": 9.0,
     "lineHeight": 13.2,
     "letterSpacing": 0,
@@ -890,7 +989,7 @@ const SLATE_ELEMENTS = [
   {
     "category": "line",
     "left": 218,
-    "top": 329.0,
+    "top": 300.0,
     "width": 18,
     "height": 18,
     "backgroundColor": "#3E5C76",
@@ -900,9 +999,9 @@ const SLATE_ELEMENTS = [
   },
   {
     "category": "image",
-    "src": "http://localhost:8000/template-assets/iconic/slate/experience.png",
+    "src": "/template-assets/iconic/slate/experience.png",
     "left": 221,
-    "top": 332.0,
+    "top": 303.0,
     "width": 12,
     "height": 12,
     "zIndex": 3,
@@ -917,7 +1016,7 @@ const SLATE_ELEMENTS = [
     "fontFamily": "Montserrat",
     "color": "#1C2530",
     "left": 244,
-    "top": 333.0,
+    "top": 304.0,
     "zIndex": 3,
     "page": 1,
     "bold": true,
@@ -928,7 +1027,7 @@ const SLATE_ELEMENTS = [
   {
     "category": "line",
     "left": 244,
-    "top": 350.0,
+    "top": 321.0,
     "width": 303,
     "height": 1,
     "backgroundColor": "#D3DAE2",
@@ -938,9 +1037,9 @@ const SLATE_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "GRC & Compliance Analyst",
+    "content": "Analityczka AML",
     "left": 218,
-    "top": 358.0,
+    "top": 329.0,
     "width": 329,
     "height": 15,
     "fontSize": 10.4,
@@ -956,14 +1055,14 @@ const SLATE_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-ed3502501062",
+    "flowGroup": "record-d9dad808b5af",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "Meridian IT Services   ·   Lublin   ·   Wrzesień 2022 – obecnie",
+    "content": "Crestmont Advisory   ·   Warszawa   ·   2022 – obecnie",
     "left": 218,
-    "top": 377.0,
+    "top": 348.0,
     "width": 329,
     "height": 12,
     "fontSize": 8.3,
@@ -979,14 +1078,14 @@ const SLATE_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-ed3502501062",
+    "flowGroup": "record-d9dad808b5af",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "• Prowadzę audyty wewnętrzne zgodności z ISO 27001 i RODO.\n• Przygotowuję rejestry ryzyka oraz plany działań naprawczych.\n• Organizuję szkolenia świadomościowe z zakresu bezpieczeństwa dla pracowników.\n• Współpracuję z zespołem IT nad wdrażaniem polityk bezpieczeństwa.",
+    "content": "• Prowadzi monitoring transakcji i analizę alertów AML dla klientów firmowych.\n• Realizuje CDD/EDD oraz przygotowuje dokumentację zgodną z wymogami FIU.\n• Wspiera zespół L2 przy eskalacjach spraw o podwyższonym ryzyku AML.",
     "left": 218,
-    "top": 393.0,
+    "top": 364.0,
     "width": 329,
     "height": 66,
     "fontSize": 9.0,
@@ -1002,14 +1101,14 @@ const SLATE_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-ed3502501062",
+    "flowGroup": "record-d9dad808b5af",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "Specjalistka ds. Zgodności",
+    "content": "Analityczka KYC",
     "left": 218,
-    "top": 469.0,
+    "top": 440.0,
     "width": 329,
     "height": 15,
     "fontSize": 10.4,
@@ -1025,14 +1124,14 @@ const SLATE_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-e68600d16a85",
+    "flowGroup": "record-562c49af2ba2",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "Cascade Retail Group   ·   Lublin   ·   Styczeń 2021 – Sierpień 2022",
+    "content": "Baltic Trust Bank   ·   Warszawa   ·   2019 – 2022",
     "left": 218,
-    "top": 488.0,
+    "top": 459.0,
     "width": 329,
     "height": 12,
     "fontSize": 8.3,
@@ -1048,14 +1147,14 @@ const SLATE_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-e68600d16a85",
+    "flowGroup": "record-562c49af2ba2",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "• Wspierałam dział prawny w ocenie zgodności procesów z RODO.\n• Prowadziłam rejestr czynności przetwarzania danych osobowych.",
+    "content": "• Weryfikowała profile klientów oraz screening PEP, sanctions i media.\n• Utrzymywała jakość raportów SAR oraz terminowość odpowiedzi na RFI.",
     "left": 218,
-    "top": 504.0,
+    "top": 475.0,
     "width": 329,
     "height": 27,
     "fontSize": 9.0,
@@ -1071,7 +1170,76 @@ const SLATE_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-e68600d16a85",
+    "flowGroup": "record-562c49af2ba2",
+    "flowRole": "content"
+  },
+  {
+    "category": "textarea",
+    "content": "Specjalistka Obsługi Klienta",
+    "left": 218,
+    "top": 512.0,
+    "width": 329,
+    "height": 15,
+    "fontSize": 10.4,
+    "lineHeight": 13.4,
+    "letterSpacing": 0,
+    "color": "#1C2530",
+    "fontFamily": "Montserrat",
+    "zIndex": 2,
+    "page": 1,
+    "bold": true,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-0beaebbbdee1",
+    "flowRole": "content"
+  },
+  {
+    "category": "textarea",
+    "content": "Helios Services   ·   Kraków   ·   2016 – 2019",
+    "left": 218,
+    "top": 531.0,
+    "width": 329,
+    "height": 12,
+    "fontSize": 8.3,
+    "lineHeight": 11.4,
+    "letterSpacing": 0,
+    "color": "#3E5C76",
+    "fontFamily": "Montserrat",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-0beaebbbdee1",
+    "flowRole": "content"
+  },
+  {
+    "category": "textarea",
+    "content": "• Obsługiwała zamówienia i weryfikację danych klientów na rynkach DACH.",
+    "left": 218,
+    "top": 547.0,
+    "width": 329,
+    "height": 27,
+    "fontSize": 9.0,
+    "lineHeight": 13.2,
+    "letterSpacing": 0,
+    "color": "#3A424C",
+    "fontFamily": "Montserrat",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": true,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-0beaebbbdee1",
     "flowRole": "content"
   }
 ];

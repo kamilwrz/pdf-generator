@@ -12,6 +12,7 @@ from app.services.cv_templates.templates.portico import _gen_portico
 from app.services.cv_templates.templates.axis import _gen_axis
 from app.services.cv_templates.templates.atrium import _gen_atrium
 from app.services.cv_templates.templates.sterling import _gen_sterling
+from app.services.cv_templates.templates.regent import _gen_regent
 
 TEMPLATE_LAYOUTS: dict[str, frozenset[str]] = {
     "monument": frozenset({"single"}),
@@ -24,6 +25,7 @@ TEMPLATE_LAYOUTS: dict[str, frozenset[str]] = {
     "axis": frozenset({"icons"}),
     "atrium": frozenset({"single", "icons"}),
     "sterling": frozenset({"sidebar"}),
+    "regent": frozenset({"single", "icons"}),
 }
 
 _GENERATORS = {
@@ -37,6 +39,7 @@ _GENERATORS = {
     "axis": _gen_axis,
     "atrium": _gen_atrium,
     "sterling": _gen_sterling,
+    "regent": _gen_regent,
 }
 
 

@@ -1,13 +1,16 @@
 /**
- * Monument template (auto-generated demo content).
+ * Monument template (`layouts: ["single"]`).
  *
- * Landing-page / picker preview content, generated from the backend
- * template's own output (`backend/app/services/cv_templates/templates/monument.py`)
- * for representative demo content, so the picker preview matches what
- * `/ai/fill_template` produces pixel-for-pixel. Image `src` values are stored
- * relative and get the API base prepended at load time. The array already
- * carries `flowRole` / `flowGroup` / `preserveInitialLayout` from the
- * generator, so it is exported as-is (only the image src is absolutised).
+ * Monochrome editorial single column with strong rules and plates.
+ *
+ * This static starter is the backend generator's own output
+ * (`backend/app/services/cv_templates/templates/monument.py`) for
+ * representative demo content (Julia Bernat — three roles, one degree, five skills, and three languages, sized to fit page 1 of the mockup), so the
+ * picker preview matches what `/ai/fill_template` produces pixel-for-pixel.
+ * Image `src` values are stored relative and get the API base prepended at
+ * load time. The array already carries `flowRole` / `flowGroup` /
+ * `preserveInitialLayout` from the generator, so it is exported as-is (only
+ * the image src is absolutised).
  */
 import API_BASE_URL from "../services/api.js";
 
@@ -98,69 +101,8 @@ const MONUMENT_ELEMENTS = [
     "fixedToPage": true
   },
   {
-    "category": "line",
-    "left": 0,
-    "top": 0,
-    "width": 595,
-    "height": 842,
-    "backgroundColor": "#F7F7F7",
-    "zIndex": 0,
-    "page": 2,
-    "fixedToPage": true
-  },
-  {
-    "category": "rectangle",
-    "left": 34,
-    "top": 32,
-    "width": 527,
-    "height": 778,
-    "backgroundColor": "#C8C8C8",
-    "borderWidth": 0.8,
-    "filled": false,
-    "borderRadius": null,
-    "zIndex": 1,
-    "page": 2,
-    "fixedToPage": true
-  },
-  {
-    "category": "line",
-    "left": 66,
-    "top": 779,
-    "width": 463,
-    "height": 1,
-    "backgroundColor": "#C8C8C8",
-    "zIndex": 2,
-    "page": 2,
-    "fixedToPage": true
-  },
-  {
-    "category": "line",
-    "left": 66,
-    "top": 792,
-    "width": 28,
-    "height": 8,
-    "backgroundColor": "#111111",
-    "zIndex": 2,
-    "page": 2,
-    "fixedToPage": true
-  },
-  {
     "category": "text",
-    "content": "02",
-    "fontSize": 9,
-    "fontFamily": "Montserrat",
-    "color": "#6D6D6D",
-    "left": 512,
-    "top": 787,
-    "zIndex": 3,
-    "page": 2,
-    "bold": false,
-    "italic": false,
-    "fixedToPage": true
-  },
-  {
-    "category": "text",
-    "content": "Katarzyna Wysocka",
+    "content": "Julia Bernat",
     "fontSize": 33,
     "fontFamily": "CormorantGaramond",
     "color": "#111111",
@@ -174,7 +116,7 @@ const MONUMENT_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Security Analyst",
+    "content": "Analityczka AML i Compliance",
     "left": 76,
     "top": 104,
     "width": 337,
@@ -196,7 +138,7 @@ const MONUMENT_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "k.wysocka.sec@gmail.com · +48 663 550 291 · Wrocław ·…",
+    "content": "julia.bernat@email.com · +48 512 340 780 · Warszawa · linkedin.com/in/jbernat ·…",
     "left": 76,
     "top": 136,
     "width": 337,
@@ -345,11 +287,11 @@ const MONUMENT_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Security Analyst z doświadczeniem w audytach bezpieczeństwa i zarządzaniu podatnościami dla klientów korporacyjnych. Łączę wiedzę techniczną z podejściem procesowym — prowadzę skany podatności, priorytetyzuję ryzyka i współpracuję z zespołami deweloperskimi nad remediacją.",
+    "content": "Analityczka AML łącząca wiedzę regulacyjną z dyscypliną wykonania. Prowadzę monitoring transakcji i raporty SAR, dbając o jakość analiz.",
     "left": 102,
     "top": 228.0,
     "width": 427,
-    "height": 56,
+    "height": 28,
     "fontSize": 9.0,
     "lineHeight": 14.0,
     "letterSpacing": 0,
@@ -368,7 +310,7 @@ const MONUMENT_ELEMENTS = [
   {
     "category": "line",
     "left": 66,
-    "top": 305.0,
+    "top": 277.0,
     "width": 32,
     "height": 32,
     "backgroundColor": "#111111",
@@ -383,7 +325,7 @@ const MONUMENT_ELEMENTS = [
     "fontFamily": "Montserrat",
     "color": "#FFFFFF",
     "left": 74,
-    "top": 313.0,
+    "top": 285.0,
     "zIndex": 5,
     "page": 1,
     "bold": true,
@@ -394,7 +336,7 @@ const MONUMENT_ELEMENTS = [
   {
     "category": "rectangle",
     "left": 106,
-    "top": 305.0,
+    "top": 277.0,
     "width": 251,
     "height": 32,
     "backgroundColor": "#111111",
@@ -412,7 +354,7 @@ const MONUMENT_ELEMENTS = [
     "fontFamily": "CormorantGaramond",
     "color": "#111111",
     "left": 118,
-    "top": 313.0,
+    "top": 285.0,
     "zIndex": 5,
     "page": 1,
     "bold": true,
@@ -423,7 +365,7 @@ const MONUMENT_ELEMENTS = [
   {
     "category": "line",
     "left": 369,
-    "top": 320.0,
+    "top": 292.0,
     "width": 160,
     "height": 2,
     "backgroundColor": "#C8C8C8",
@@ -433,9 +375,9 @@ const MONUMENT_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Security Analyst",
+    "content": "Analityczka AML",
     "left": 102,
-    "top": 349.0,
+    "top": 321.0,
     "width": 427,
     "height": 14,
     "fontSize": 11,
@@ -451,14 +393,14 @@ const MONUMENT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-04002455951b",
+    "flowGroup": "record-a6dd38a0c7b5",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "Meridian IT Services   ·   Wrocław   ·   Kwiecień 2022 – obecnie",
+    "content": "Crestmont Advisory   ·   Warszawa   ·   2022 – obecnie",
     "left": 102,
-    "top": 367.0,
+    "top": 339.0,
     "width": 427,
     "height": 12,
     "fontSize": 9,
@@ -474,16 +416,16 @@ const MONUMENT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-04002455951b",
+    "flowGroup": "record-a6dd38a0c7b5",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "• Prowadzę cykliczne skany podatności (Nessus, Qualys) dla infrastruktury klientów.\n• Priorytetyzuję ryzyka i przygotowuję raporty dla zespołów technicznych i zarządu.\n• Współpracuję z deweloperami nad remediacją podatności w aplikacjach webowych.\n• Prowadzę podstawowe testy penetracyjne aplikacji wewnętrznych.",
+    "content": "• Prowadzi monitoring transakcji i analizę alertów AML dla klientów firmowych.",
     "left": 102,
-    "top": 383.0,
+    "top": 355.0,
     "width": 427,
-    "height": 56,
+    "height": 14,
     "fontSize": 9.0,
     "lineHeight": 14.0,
     "letterSpacing": 0,
@@ -497,14 +439,14 @@ const MONUMENT_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-04002455951b",
+    "flowGroup": "record-a6dd38a0c7b5",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "Junior Network Administrator",
+    "content": "Analityczka KYC",
     "left": 102,
-    "top": 449.0,
+    "top": 379.0,
     "width": 427,
     "height": 14,
     "fontSize": 11,
@@ -520,14 +462,14 @@ const MONUMENT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-20350dd11a57",
+    "flowGroup": "record-fc922604e18b",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "Quantera Networks   ·   Wrocław   ·   Wrzesień 2020 – Marzec 2022",
+    "content": "Baltic Trust Bank   ·   Warszawa   ·   2019 – 2022",
     "left": 102,
-    "top": 467.0,
+    "top": 397.0,
     "width": 427,
     "height": 12,
     "fontSize": 9,
@@ -543,16 +485,16 @@ const MONUMENT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-20350dd11a57",
+    "flowGroup": "record-fc922604e18b",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "• Administrowałam sieciami LAN/WAN i urządzeniami brzegowymi (Cisco, Fortinet).\n• Wspierałam wdrożenie segmentacji sieci zgodnie z wymogami audytu bezpieczeństwa.",
+    "content": "• Weryfikowała profile klientów oraz screening PEP, sanctions i media.",
     "left": 102,
-    "top": 483.0,
+    "top": 413.0,
     "width": 427,
-    "height": 28,
+    "height": 14,
     "fontSize": 9.0,
     "lineHeight": 14.0,
     "letterSpacing": 0,
@@ -566,13 +508,82 @@ const MONUMENT_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-20350dd11a57",
+    "flowGroup": "record-fc922604e18b",
+    "flowRole": "content"
+  },
+  {
+    "category": "textarea",
+    "content": "Specjalistka Obsługi Klienta",
+    "left": 102,
+    "top": 437.0,
+    "width": 427,
+    "height": 14,
+    "fontSize": 11,
+    "lineHeight": 14,
+    "letterSpacing": 0,
+    "color": "#111111",
+    "fontFamily": "Montserrat",
+    "zIndex": 2,
+    "page": 1,
+    "bold": true,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-6d0e07590064",
+    "flowRole": "content"
+  },
+  {
+    "category": "textarea",
+    "content": "Helios Services   ·   Kraków   ·   2016 – 2019",
+    "left": 102,
+    "top": 455.0,
+    "width": 427,
+    "height": 12,
+    "fontSize": 9,
+    "lineHeight": 12,
+    "letterSpacing": 0,
+    "color": "#6D6D6D",
+    "fontFamily": "Montserrat",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-6d0e07590064",
+    "flowRole": "content"
+  },
+  {
+    "category": "textarea",
+    "content": "• Obsługiwała zamówienia i weryfikację danych klientów na rynkach DACH.",
+    "left": 102,
+    "top": 471.0,
+    "width": 427,
+    "height": 14,
+    "fontSize": 9.0,
+    "lineHeight": 14.0,
+    "letterSpacing": 0,
+    "color": "#343434",
+    "fontFamily": "Montserrat",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": true,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-6d0e07590064",
     "flowRole": "content"
   },
   {
     "category": "line",
     "left": 66,
-    "top": 532.0,
+    "top": 506.0,
     "width": 32,
     "height": 32,
     "backgroundColor": "#111111",
@@ -587,7 +598,7 @@ const MONUMENT_ELEMENTS = [
     "fontFamily": "Montserrat",
     "color": "#FFFFFF",
     "left": 74,
-    "top": 540.0,
+    "top": 514.0,
     "zIndex": 5,
     "page": 1,
     "bold": true,
@@ -598,7 +609,7 @@ const MONUMENT_ELEMENTS = [
   {
     "category": "rectangle",
     "left": 106,
-    "top": 532.0,
+    "top": 506.0,
     "width": 251,
     "height": 32,
     "backgroundColor": "#111111",
@@ -616,7 +627,7 @@ const MONUMENT_ELEMENTS = [
     "fontFamily": "CormorantGaramond",
     "color": "#111111",
     "left": 118,
-    "top": 540.0,
+    "top": 514.0,
     "zIndex": 5,
     "page": 1,
     "bold": true,
@@ -627,7 +638,7 @@ const MONUMENT_ELEMENTS = [
   {
     "category": "line",
     "left": 369,
-    "top": 547.0,
+    "top": 521.0,
     "width": 160,
     "height": 2,
     "backgroundColor": "#C8C8C8",
@@ -637,9 +648,9 @@ const MONUMENT_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Magister inżynier informatyki — specjalność: Sieci komputerowe",
+    "content": "Licencjat Prawa",
     "left": 102,
-    "top": 576.0,
+    "top": 550.0,
     "width": 427,
     "height": 13,
     "fontSize": 10,
@@ -655,14 +666,14 @@ const MONUMENT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-4c81fe304eaf",
+    "flowGroup": "record-35d204e42425",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "Politechnika Wrocławska",
+    "content": "UW Warszawa",
     "left": 102,
-    "top": 593.0,
+    "top": 567.0,
     "width": 427,
     "height": 13,
     "fontSize": 10,
@@ -678,14 +689,14 @@ const MONUMENT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-4c81fe304eaf",
+    "flowGroup": "record-35d204e42425",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "Wrocław   ·   ukończono czerwiec 2020",
+    "content": "2012 – 2016",
     "left": 102,
-    "top": 610.0,
+    "top": 584.0,
     "width": 427,
     "height": 12,
     "fontSize": 9,
@@ -701,36 +712,13 @@ const MONUMENT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-4c81fe304eaf",
-    "flowRole": "content"
-  },
-  {
-    "category": "textarea",
-    "content": "• Praca magisterska: ocena skuteczności skanerów podatności open-source.",
-    "left": 102,
-    "top": 626.0,
-    "width": 427,
-    "height": 14,
-    "fontSize": 9.0,
-    "lineHeight": 14.0,
-    "letterSpacing": 0,
-    "color": "#343434",
-    "fontFamily": "Montserrat",
-    "zIndex": 2,
-    "page": 1,
-    "bold": false,
-    "italic": false,
-    "align": "left",
-    "bulletList": true,
-    "autoHeight": true,
-    "preserveInitialLayout": true,
-    "flowGroup": "record-4c81fe304eaf",
+    "flowGroup": "record-35d204e42425",
     "flowRole": "content"
   },
   {
     "category": "line",
     "left": 66,
-    "top": 661.0,
+    "top": 617.0,
     "width": 32,
     "height": 32,
     "backgroundColor": "#111111",
@@ -745,7 +733,7 @@ const MONUMENT_ELEMENTS = [
     "fontFamily": "Montserrat",
     "color": "#FFFFFF",
     "left": 74,
-    "top": 669.0,
+    "top": 625.0,
     "zIndex": 5,
     "page": 1,
     "bold": true,
@@ -756,7 +744,7 @@ const MONUMENT_ELEMENTS = [
   {
     "category": "rectangle",
     "left": 106,
-    "top": 661.0,
+    "top": 617.0,
     "width": 251,
     "height": 32,
     "backgroundColor": "#111111",
@@ -774,7 +762,7 @@ const MONUMENT_ELEMENTS = [
     "fontFamily": "CormorantGaramond",
     "color": "#111111",
     "left": 118,
-    "top": 669.0,
+    "top": 625.0,
     "zIndex": 5,
     "page": 1,
     "bold": true,
@@ -785,7 +773,7 @@ const MONUMENT_ELEMENTS = [
   {
     "category": "line",
     "left": 369,
-    "top": 676.0,
+    "top": 632.0,
     "width": 160,
     "height": 2,
     "backgroundColor": "#C8C8C8",
@@ -795,11 +783,11 @@ const MONUMENT_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "zarządzanie podatnościami  ·  Nessus  ·  Qualys  ·  OWASP Top 10  ·  Burp Suite  ·  Nmap  ·  Wireshark  ·  Cisco IOS  ·  Fortinet  ·  Python  ·  SQL",
+    "content": "AML/KYC  ·  Monitoring  ·  CDD/EDD  ·  Raporty SAR  ·  Analiza transakcyjna",
     "left": 102,
-    "top": 705.0,
+    "top": 661.0,
     "width": 427,
-    "height": 28,
+    "height": 14,
     "fontSize": 9.0,
     "lineHeight": 14.0,
     "letterSpacing": 0,
@@ -813,18 +801,18 @@ const MONUMENT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-cb5ec28b27c1",
+    "flowGroup": "record-bf6c06fffdce",
     "flowRole": "content"
   },
   {
     "category": "line",
     "left": 66,
-    "top": 72.0,
+    "top": 696.0,
     "width": 32,
     "height": 32,
     "backgroundColor": "#111111",
     "zIndex": 2,
-    "page": 2,
+    "page": 1,
     "flowRole": "section-chrome"
   },
   {
@@ -834,9 +822,9 @@ const MONUMENT_ELEMENTS = [
     "fontFamily": "Montserrat",
     "color": "#FFFFFF",
     "left": 74,
-    "top": 80.0,
+    "top": 704.0,
     "zIndex": 5,
-    "page": 2,
+    "page": 1,
     "bold": true,
     "italic": false,
     "isDecorativeChromeText": true,
@@ -845,7 +833,7 @@ const MONUMENT_ELEMENTS = [
   {
     "category": "rectangle",
     "left": 106,
-    "top": 72.0,
+    "top": 696.0,
     "width": 251,
     "height": 32,
     "backgroundColor": "#111111",
@@ -853,7 +841,7 @@ const MONUMENT_ELEMENTS = [
     "filled": false,
     "borderRadius": null,
     "zIndex": 2,
-    "page": 2,
+    "page": 1,
     "flowRole": "section-chrome"
   },
   {
@@ -863,9 +851,9 @@ const MONUMENT_ELEMENTS = [
     "fontFamily": "CormorantGaramond",
     "color": "#111111",
     "left": 118,
-    "top": 80.0,
+    "top": 704.0,
     "zIndex": 5,
-    "page": 2,
+    "page": 1,
     "bold": true,
     "italic": false,
     "letterSpacing": 0.35,
@@ -874,19 +862,19 @@ const MONUMENT_ELEMENTS = [
   {
     "category": "line",
     "left": 369,
-    "top": 87.0,
+    "top": 711.0,
     "width": 160,
     "height": 2,
     "backgroundColor": "#C8C8C8",
     "zIndex": 1,
-    "page": 2,
+    "page": 1,
     "flowRole": "section-chrome"
   },
   {
     "category": "textarea",
-    "content": "angielski — B2",
+    "content": "Polski — ojczysty",
     "left": 102.0,
-    "top": 116.0,
+    "top": 740.0,
     "width": 98.75,
     "height": 14,
     "fontSize": 9.0,
@@ -895,7 +883,7 @@ const MONUMENT_ELEMENTS = [
     "color": "#343434",
     "fontFamily": "Montserrat",
     "zIndex": 2,
-    "page": 2,
+    "page": 1,
     "bold": false,
     "italic": false,
     "align": "left",
@@ -904,20 +892,20 @@ const MONUMENT_ELEMENTS = [
     "preserveInitialLayout": true,
     "runs": [
       {
-        "start": 12,
-        "end": 14,
+        "start": 9,
+        "end": 17,
         "italic": true,
         "color": "#111111"
       }
     ],
     "flowRole": "grid-member",
-    "flowGroup": "record-f352a06bb9d7"
+    "flowGroup": "record-53e265b37850"
   },
   {
     "category": "textarea",
-    "content": "francuski — A2",
+    "content": "Angielski — C1",
     "left": 208.75,
-    "top": 116.0,
+    "top": 740.0,
     "width": 98.75,
     "height": 14,
     "fontSize": 9.0,
@@ -926,7 +914,7 @@ const MONUMENT_ELEMENTS = [
     "color": "#343434",
     "fontFamily": "Montserrat",
     "zIndex": 2,
-    "page": 2,
+    "page": 1,
     "bold": false,
     "italic": false,
     "align": "left",
@@ -942,7 +930,38 @@ const MONUMENT_ELEMENTS = [
       }
     ],
     "flowRole": "grid-member",
-    "flowGroup": "record-f352a06bb9d7"
+    "flowGroup": "record-53e265b37850"
+  },
+  {
+    "category": "textarea",
+    "content": "Niemiecki — B2",
+    "left": 315.5,
+    "top": 740.0,
+    "width": 98.75,
+    "height": 14,
+    "fontSize": 9.0,
+    "lineHeight": 14.0,
+    "letterSpacing": 0,
+    "color": "#343434",
+    "fontFamily": "Montserrat",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "runs": [
+      {
+        "start": 12,
+        "end": 14,
+        "italic": true,
+        "color": "#111111"
+      }
+    ],
+    "flowRole": "grid-member",
+    "flowGroup": "record-53e265b37850"
   }
 ];
 

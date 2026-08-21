@@ -16,6 +16,9 @@ THEMES = {
     "nova": "#C45C26",
     "volt": "#E8A838",
     "portico": "#7C6A52",
+    # Regent uses a neutral charcoal icon set so its masthead remains entirely
+    # monochrome while retaining independently editable contact channels.
+    "regent": "#151515",
 }
 THEME_VARIANTS = {}
 

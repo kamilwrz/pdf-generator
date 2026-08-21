@@ -16,6 +16,7 @@ import { porticoTemplate } from "./portico";
 import { axisTemplate } from "./axis";
 import { atriumTemplate } from "./atrium";
 import { sterlingTemplate } from "./sterling";
+import { regentTemplate } from "./regent";
 
 export { TEMPLATE_LAYOUT_TAGS } from "../utils/templateLayouts";
 
@@ -30,4 +31,5 @@ export const TEMPLATES = [
     { id: "axis", tier: "paid", name: "Axis", description: "Oś czasu z datami na marginesie, akcenty pomarańczowo-morskie", layouts: ["icons"], accent: "#E2740C", elements: axisTemplate },
     { id: "atrium", tier: "paid", name: "Atrium", description: "Wycentrowana editorialna kompozycja z drukarskim mikro-ornamentem", layouts: ["single", "icons"], accent: "#556158", elements: atriumTemplate },
     { id: "sterling", tier: "paid", name: "Sterling", description: "Elegancki, niebiesko-szary układ z szerokim sidebarem", layouts: ["sidebar"], accent: "#4A6FA5", elements: sterlingTemplate },
+    { id: "regent", tier: "paid", name: "Regent", description: "Klasyczna monochromatyczna typografia executive", layouts: ["single", "icons"], accent: "#151515", elements: regentTemplate },
 ];

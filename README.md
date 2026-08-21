@@ -729,7 +729,7 @@ Tests:
 
 ### Monument monochrome template
 
-Monument is a paid Classic template for users who want an elegant editorial result without colour. Its visual identity comes from numbered black rectangles, outlined heading frames, thin grey rules, and an asymmetric masthead. The smallest text is 9 px; body copy and the summary both use 9 px so the lead paragraph does not sit one step above surrounding text, record titles use 11 px, education titles use 10 px, and section headings plus the job-position line use 12.5 px. Cormorant Garamond supplies the formal display voice, while Montserrat keeps dense CV content easy to scan. The same summary-equals-body rule applies across every filled template in `generate_resume` (for example Monument matches summary size to experience body copy).
+Monument is a paid Classic template for users who want an elegant editorial result without colour. Its visual identity comes from numbered black rectangles, outlined heading frames, thin grey rules, and an asymmetric masthead. The smallest text is 9 px; body copy and the summary both use 9 px so the lead paragraph does not sit one step above surrounding text, record titles use 11 px, education titles use 10 px, and section headings plus the job-position line use 12.5 px. Cormorant Garamond supplies the formal display voice, while Montserrat keeps dense CV content easy to scan. This summary-equals-body rule applies to the compact filled templates; Regent deliberately opts out with a 44 px editorial summary.
 
 The frontend starter array and the deterministic Python generator use the same A4 geometry and grayscale palette. `_gen_monument` preserves complete experience and education records during page breaks, supports custom sections through `_extra_sections`, and groups each number, frame, label, and rule into one reflow unit so the heading geometry remains aligned after browser text measurement. The page frame and footer repeat on every page, while the name-and-position masthead and its tall side bars appear only on page one; `repeatOnContinuation: false` preserves this rule when the editor creates another page later. Layout decisions are never sent to the AI model.
 
@@ -756,6 +756,24 @@ Tests:
 - `backend/tests/test_cv_template_layouts.py`, `test_monument_is_monochrome_and_keeps_summary_at_body_size`; `test_summary_matches_experience_body_type_size` — every generator keeps summary type equal to main-column experience body
 
 Known limitation: long user-provided section names are shortened only inside the fixed decorative heading frame. Their section content remains complete.
+
+### Regent executive editorial template
+
+Regent is a paid monochrome single-column template (`layouts: ["single", "icons"]`) for executives and consultants. It uses only white, charcoal, and neutral grey. A 38 px Cormorant Garamond name establishes the masthead, a widely tracked Montserrat role line keeps the hierarchy disciplined, and a centered band of small phone, email, LinkedIn, and location icons remains understated.
+
+Its defining choice is the 44 px Cormorant Garamond professional summary. This is intentionally much larger than its 9.5 px body copy: the summary acts as the document’s editorial lead, while the experience, education, skills, and language sections return to compact, ATS-safe structure. Each section has a letter-spaced uppercase label and a 0.8 px grey hairline. The deterministic Python generator preserves the oversized summary instead of shrinking long user input, so a long summary may continue onto another page by design.
+
+Implementation:
+
+- `frontend/src/templates/regent.js`, exported `regentTemplate` — editable A4 starter, contact icon pairs, and monochrome section chrome
+- `frontend/src/templates/index.js`, registry entry `regent` (`tier: "paid"`, `layouts: ["single", "icons"]`)
+- `backend/app/services/cv_templates/templates/regent.py`, function `_gen_regent` — deterministic content layout and continuation-page decorations
+- `backend/app/services/cv_templates/registry.py`, `TEMPLATE_LAYOUTS["regent"]` and `_GENERATORS["regent"]`
+
+Tests:
+
+- `frontend/src/templates/regent.test.js` — 44 px summary, monochrome palette, contact icons, and five-section hierarchy
+- `backend/tests/test_regent_template.py` — registry metadata, oversized summary, and contact-icon generation
 
 ### Nova editorial masthead template
 
@@ -996,7 +1014,7 @@ Tests:
 - `backend/tests/test_cv_template_layouts.py`, `test_iconic_templates_pair_contact_and_section_icons`, `test_iconic_experience_record_gap_matches_projects`
 - `backend/tests/test_sidebar_wrapped_height.py` — pins `_sidebar_wrapped_height` to the same output as `Builder.measure_block` for realistic bulleted and plain sidebar content, plus an end-to-end check that two differently-shaped fitted sections keep an identical trailing gap
 
-**Shared demo persona.** Every built-in starter (and the guest `demoCv.js`) uses the same fictional **Julia Bernat** profile — AML/compliance analyst with three experience roles, one degree, five skills, three languages, plus phone / email / LinkedIn / GitHub / website / Warszawa — so picker mockups stay comparable and follow each generator's `SPACE_*` rhythm on page 1. Monument and Portico use a slightly compacted bullet set so every section still fits page 1 of the mockup.
+**Shared demo persona.** Built-in starters (and the guest `demoCv.js`) generally use the fictional **Julia Bernat** profile — AML/compliance analyst with three experience roles, one degree, five skills, three languages, plus phone / email / LinkedIn / GitHub / website / Warszawa — so picker mockups stay comparable and follow each generator's `SPACE_*` rhythm on page 1. Regent intentionally uses Alexandra Nowak, a strategy-consulting persona sized to demonstrate its large editorial lead. Monument and Portico use a slightly compacted bullet set so every section still fits page 1 of the mockup.
 
 **Regenerating source-driven starters and mockups.** Most `frontend/src/templates/*.js` starters are dumps of `generate_resume` output. To refresh them from the shared persona:
 
@@ -1006,7 +1024,7 @@ python scripts/regenerate_template_starters.py   # rewrites remaining starters (
 
 Atrium and Axis are regenerated from the same Julia Bernat persona by `scripts/regenerate_template_starters.py` (re-run that script whenever the shared demo or a generator changes).
 
-`frontend/public/template-mockups/{nova,volt,monument,harbor,tessera,slate,portico,axis,atrium,sterling}.png` — the previews shown in the Hero template gallery (`frontend/src/pages/Hero/Hero.jsx`), the in-app template picker (`frontend/src/components/modals/TemplatesModal/TemplatesModal.jsx`), and the hover pane in **Wypełnij z mojego CV** (`frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`) — are rendered from those starter arrays, not hand-drawn mockups. After starter changes, regenerate the PNGs:
+`frontend/public/template-mockups/{nova,volt,monument,harbor,tessera,slate,portico,axis,atrium,sterling,regent}.png` — the previews shown in the Hero template gallery (`frontend/src/pages/Hero/Hero.jsx`), the in-app template picker (`frontend/src/components/modals/TemplatesModal/TemplatesModal.jsx`), and the hover pane in **Wypełnij z mojego CV** (`frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`) — are rendered from those starter arrays, not hand-drawn mockups. After starter changes, regenerate the PNGs:
 
 ```bash
 node frontend/scripts/dump-iconic-templates.mjs
@@ -2488,7 +2506,7 @@ Testy:
 
 ### Monochromatyczny szablon Monument
 
-Monument to płatny jednokolumnowy szablon (`layouts: ["single"]`) dla osób, które chcą eleganckiego, redakcyjnego efektu bez koloru. Jego charakter budują numerowane czarne prostokąty, konturowe ramki nagłówków, cienkie szare linie i asymetryczny masthead. Najmniejszy tekst ma 9 px; treść główna i podsumowanie używają po 9 px, żeby akapit wstępny nie był o stopień większy od otaczającego tekstu, tytuły stanowisk mają 11 px, tytuły edukacji 10 px, a nagłówki sekcji i linia stanowiska przy nazwisku 12,5 px. Cormorant Garamond odpowiada za formalny charakter display, a Montserrat utrzymuje czytelność gęstej treści CV. Ta sama zasada „podsumowanie = treść body” obowiązuje we wszystkich szablonach wypełnianych przez `generate_resume` (np. Monument dopasowuje rozmiar podsumowania do treści doświadczenia).
+Monument to płatny jednokolumnowy szablon (`layouts: ["single"]`) dla osób, które chcą eleganckiego, redakcyjnego efektu bez koloru. Jego charakter budują numerowane czarne prostokąty, konturowe ramki nagłówków, cienkie szare linie i asymetryczny masthead. Najmniejszy tekst ma 9 px; treść główna i podsumowanie używają po 9 px, żeby akapit wstępny nie był o stopień większy od otaczającego tekstu, tytuły stanowisk mają 11 px, tytuły edukacji 10 px, a nagłówki sekcji i linia stanowiska przy nazwisku 12,5 px. Cormorant Garamond odpowiada za formalny charakter display, a Montserrat utrzymuje czytelność gęstej treści CV. Ta zasada „podsumowanie = treść body” dotyczy kompaktowych szablonów wypełnianych; Regent celowo od niej odchodzi, używając podsumowania 44 px.
 
 Startowa tablica frontendu oraz deterministyczny generator Python używają tej samej geometrii A4 i palety szarości. `_gen_monument` nie rozdziela wpisów doświadczenia ani edukacji przy zmianie strony, obsługuje sekcje własne przez `_extra_sections` i grupuje numer, ramkę, etykietę oraz linię jako jeden element reflow, dzięki czemu geometria nagłówka pozostaje równa po pomiarze tekstu w przeglądarce. Rama strony i stopka powtarzają się na każdej stronie, natomiast masthead z nazwiskiem i stanowiskiem oraz jego wysokie boczne belki występują wyłącznie na pierwszej stronie; `repeatOnContinuation: false` zachowuje tę regułę również wtedy, gdy edytor później utworzy kolejną stronę. Decyzje o layoucie nie są przekazywane do modelu AI.
 
@@ -2515,6 +2533,24 @@ Testy:
 - `backend/tests/test_cv_template_layouts.py`, `test_monument_is_monochrome_and_keeps_summary_at_body_size`; `test_summary_matches_experience_body_type_size` — każdy generator trzyma typografię podsumowania równą treści doświadczenia w kolumnie głównej
 
 Znane ograniczenie: długie nazwy sekcji podane przez użytkownika są skracane wyłącznie w stałej ramce dekoracyjnego nagłówka. Treść sekcji pozostaje kompletna.
+
+### Executive editorial: Regent
+
+Regent to płatny, monochromatyczny szablon jednokolumnowy (`layouts: ["single", "icons"]`) dla osób na stanowiskach executive i consultant. Używa wyłącznie bieli, grafitu oraz neutralnych szarości. Nazwisko w Cormorant Garamond o rozmiarze 38 px buduje masthead, rozstrzelona linia stanowiska w Montserrat utrzymuje dyscyplinę hierarchii, a wyśrodkowany pas drobnych ikon telefonu, e-maila, LinkedIn i lokalizacji pozostaje subtelny.
+
+Najważniejszym elementem Regenta jest podsumowanie zawodowe złożone krojem Cormorant Garamond o rozmiarze 44 px. Jest ono celowo znacznie większe niż treść body 9,5 px: działa jak redakcyjny lead dokumentu, podczas gdy doświadczenie, wykształcenie, umiejętności i języki wracają do zwartej struktury bezpiecznej dla ATS. Każda sekcja ma wersalikową etykietę z rozstrzeleniem oraz szarą linię 0,8 px. Deterministyczny generator Python zachowuje duży rozmiar podsumowania zamiast zmniejszać długi tekst użytkownika, dlatego obszerne podsumowanie może zgodnie z projektem przejść na kolejną stronę.
+
+Implementacja:
+
+- `frontend/src/templates/regent.js`, eksport `regentTemplate` — edytowalny starter A4, pary ikon kontaktowych oraz monochromatyczne chrome sekcji
+- `frontend/src/templates/index.js`, wpis rejestru `regent` (`tier: "paid"`, `layouts: ["single", "icons"]`)
+- `backend/app/services/cv_templates/templates/regent.py`, funkcja `_gen_regent` — deterministyczny układ treści i dekoracje stron kontynuacji
+- `backend/app/services/cv_templates/registry.py`, `TEMPLATE_LAYOUTS["regent"]` i `_GENERATORS["regent"]`
+
+Testy:
+
+- `frontend/src/templates/regent.test.js` — podsumowanie 44 px, monochromatyczna paleta, ikony kontaktu i hierarchia pięciu sekcji
+- `backend/tests/test_regent_template.py` — metadane rejestru, duże podsumowanie oraz generowanie ikon kontaktowych
 
 ### Szablon redakcyjny Nova
 
@@ -2755,7 +2791,7 @@ Testy:
 - `backend/tests/test_cv_template_layouts.py`, `test_iconic_templates_pair_contact_and_section_icons`, `test_iconic_experience_record_gap_matches_projects`
 - `backend/tests/test_sidebar_wrapped_height.py` — przypina `_sidebar_wrapped_height` do tego samego wyniku co `Builder.measure_block` dla realistycznej treści wypunktowanej i zwykłej w sidebarze, plus sprawdzenie end-to-end, że dwie inaczej ukształtowane dopasowane sekcje zachowują identyczny odstęp końcowy
 
-**Wspólna persona demo.** Każdy wbudowany starter (oraz gościnny `demoCv.js`) używa tej samej fikcyjnej osoby **Julia Bernat** — analityczka AML/compliance z trzema rolami, jednym wykształceniem, pięcioma umiejętnościami, trzema językami oraz telefonem / e-mailem / LinkedIn / GitHub / stroną / Warszawą — żeby mockupy w pickerze były porównywalne i trzymały rytm `SPACE_*` generatora na stronie 1. Monument i Portico mają lekko skrócone bullet’y, żeby wszystkie sekcje nadal mieściły się na stronie 1 mockupu.
+**Wspólna persona demo.** Wbudowane startery (oraz gościnny `demoCv.js`) zazwyczaj używają tej samej fikcyjnej osoby **Julia Bernat** — analityczki AML/compliance z trzema rolami, jednym wykształceniem, pięcioma umiejętnościami, trzema językami oraz telefonem / e-mailem / LinkedIn / GitHub / stroną / Warszawą — żeby mockupy w pickerze były porównywalne i trzymały rytm `SPACE_*` generatora na stronie 1. Regent celowo używa Alexandry Nowak, persony strategy consultant, aby zaprezentować duży redakcyjny lead. Monument i Portico mają lekko skrócone bullet’y, żeby wszystkie sekcje nadal mieściły się na stronie 1 mockupu.
 
 **Regenerowanie starterów i podglądów ze źródła.** Większość plików `frontend/src/templates/*.js` to zrzuty wyjścia `generate_resume`. Odświeżenie ze wspólnej persony:
 
@@ -2765,7 +2801,7 @@ python scripts/regenerate_template_starters.py   # przepisuje pozostałe starter
 
 Atrium i Axis są regenerowane z tej samej persony Julia Bernat przez `scripts/regenerate_template_starters.py` (uruchom ponownie po zmianie wspólnego demo lub generatora).
 
-Pliki `frontend/public/template-mockups/{nova,volt,monument,harbor,tessera,slate,portico,axis,atrium,sterling}.png` — podglądy w galerii Hero, pickerze i panelu **Wypełnij z mojego CV** — pochodzą z tych tablic starterów, nie z ręcznych grafik. Po zmianie starterów odtwórz PNG:
+Pliki `frontend/public/template-mockups/{nova,volt,monument,harbor,tessera,slate,portico,axis,atrium,sterling,regent}.png` — podglądy w galerii Hero, pickerze i panelu **Wypełnij z mojego CV** — pochodzą z tych tablic starterów, nie z ręcznych grafik. Po zmianie starterów odtwórz PNG:
 
 ```bash
 node frontend/scripts/dump-iconic-templates.mjs

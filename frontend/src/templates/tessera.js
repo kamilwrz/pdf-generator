@@ -1,13 +1,16 @@
 /**
- * Tessera template (auto-generated demo content).
+ * Tessera template (`layouts: ["sidebar", "icons"]`).
  *
- * Landing-page / picker preview content, generated from the backend
- * template's own output (`backend/app/services/cv_templates/templates/tessera.py`)
- * for representative demo content, so the picker preview matches what
- * `/ai/fill_template` produces pixel-for-pixel. Image `src` values are stored
- * relative and get the API base prepended at load time. The array already
- * carries `flowRole` / `flowGroup` / `preserveInitialLayout` from the
- * generator, so it is exported as-is (only the image src is absolutised).
+ * Mosaic sidebar with rectangular photo and coral accent tiles.
+ *
+ * This static starter is the backend generator's own output
+ * (`backend/app/services/cv_templates/templates/tessera.py`) for
+ * representative demo content (Julia Bernat — three roles, one degree, five skills, and three languages, sized to fit page 1 of the mockup), so the
+ * picker preview matches what `/ai/fill_template` produces pixel-for-pixel.
+ * Image `src` values are stored relative and get the API base prepended at
+ * load time. The array already carries `flowRole` / `flowGroup` /
+ * `preserveInitialLayout` from the generator, so it is exported as-is (only
+ * the image src is absolutised).
  */
 import API_BASE_URL from "../services/api.js";
 
@@ -167,7 +170,7 @@ const TESSERA_ELEMENTS = [
   },
   {
     "category": "image",
-    "src": "http://localhost:8000/template-assets/iconic/tessera/portrait.png",
+    "src": "/template-assets/iconic/tessera/portrait.png",
     "left": 65.0,
     "top": 79.0,
     "width": 48,
@@ -229,7 +232,7 @@ const TESSERA_ELEMENTS = [
   },
   {
     "category": "image",
-    "src": "http://localhost:8000/template-assets/iconic/tessera/education.png",
+    "src": "/template-assets/iconic/tessera/education.png",
     "left": 29,
     "top": 196.0,
     "width": 12,
@@ -270,7 +273,7 @@ const TESSERA_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Inżynier teleinformatyki",
+    "content": "Licencjat Prawa",
     "left": 25,
     "top": 215.0,
     "width": 128,
@@ -288,17 +291,17 @@ const TESSERA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-369812bba2a2",
+    "flowGroup": "record-b31088a6289f",
     "flowRole": "content",
     "flowLane": "sidebar"
   },
   {
     "category": "textarea",
-    "content": "Zachodniopomorski Uniwersytet Technologiczny",
+    "content": "UW Warszawa",
     "left": 25,
     "top": 232.0,
     "width": 128,
-    "height": 25,
+    "height": 13,
     "fontSize": 8.3,
     "lineHeight": 12.04,
     "letterSpacing": 0,
@@ -312,17 +315,17 @@ const TESSERA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-369812bba2a2",
+    "flowGroup": "record-b31088a6289f",
     "flowRole": "content",
     "flowLane": "sidebar"
   },
   {
     "category": "textarea",
-    "content": "Szczecin   ·   ukończono lipiec 2020",
+    "content": "2012 – 2016",
     "left": 25,
-    "top": 261.0,
+    "top": 249.0,
     "width": 128,
-    "height": 24,
+    "height": 12,
     "fontSize": 7.5,
     "lineHeight": 11.54,
     "letterSpacing": 0,
@@ -336,38 +339,14 @@ const TESSERA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-369812bba2a2",
-    "flowRole": "content",
-    "flowLane": "sidebar"
-  },
-  {
-    "category": "textarea",
-    "content": "• Specjalizacja w projektowaniu i zabezpieczaniu sieci komputerowych.",
-    "left": 25,
-    "top": 289.0,
-    "width": 128,
-    "height": 37,
-    "fontSize": 8.3,
-    "lineHeight": 12.04,
-    "letterSpacing": 0,
-    "color": "#463E47",
-    "fontFamily": "Montserrat",
-    "zIndex": 3,
-    "page": 1,
-    "bold": false,
-    "italic": false,
-    "align": "left",
-    "bulletList": true,
-    "autoHeight": true,
-    "preserveInitialLayout": true,
-    "flowGroup": "record-369812bba2a2",
+    "flowGroup": "record-b31088a6289f",
     "flowRole": "content",
     "flowLane": "sidebar"
   },
   {
     "category": "line",
     "left": 25,
-    "top": 336.0,
+    "top": 271.0,
     "width": 18,
     "height": 18,
     "backgroundColor": "#FFFDFC",
@@ -379,7 +358,7 @@ const TESSERA_ELEMENTS = [
   {
     "category": "rectangle",
     "left": 27,
-    "top": 338.0,
+    "top": 273.0,
     "width": 18,
     "height": 18,
     "backgroundColor": "#E15D4F",
@@ -393,9 +372,9 @@ const TESSERA_ELEMENTS = [
   },
   {
     "category": "image",
-    "src": "http://localhost:8000/template-assets/iconic/tessera/skills.png",
+    "src": "/template-assets/iconic/tessera/skills.png",
     "left": 29,
-    "top": 340.0,
+    "top": 275.0,
     "width": 12,
     "height": 12,
     "zIndex": 3,
@@ -411,7 +390,7 @@ const TESSERA_ELEMENTS = [
     "fontFamily": "Montserrat",
     "color": "#4A2347",
     "left": 51,
-    "top": 341.0,
+    "top": 276.0,
     "zIndex": 3,
     "page": 1,
     "bold": true,
@@ -423,7 +402,7 @@ const TESSERA_ELEMENTS = [
   {
     "category": "line",
     "left": 51,
-    "top": 354.0,
+    "top": 289.0,
     "width": 50,
     "height": 1,
     "backgroundColor": "#E15D4F",
@@ -434,11 +413,11 @@ const TESSERA_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "• Palo Alto\n• Fortinet\n• Cisco IOS\n• VPN\n• segmentacja sieci\n• Wireshark\n• Nmap\n• podstawy IDS/firewall\n• Python\n• Linux",
+    "content": "• AML/KYC\n• Monitoring\n• CDD/EDD\n• Raporty SAR\n• Analiza transakcyjna",
     "left": 25,
-    "top": 359.0,
+    "top": 294.0,
     "width": 128,
-    "height": 121.0,
+    "height": 61.0,
     "fontSize": 8.3,
     "lineHeight": 12.04,
     "letterSpacing": 0,
@@ -458,7 +437,7 @@ const TESSERA_ELEMENTS = [
   {
     "category": "line",
     "left": 25,
-    "top": 490.0,
+    "top": 365.0,
     "width": 18,
     "height": 18,
     "backgroundColor": "#FFFDFC",
@@ -470,7 +449,7 @@ const TESSERA_ELEMENTS = [
   {
     "category": "rectangle",
     "left": 27,
-    "top": 492.0,
+    "top": 367.0,
     "width": 18,
     "height": 18,
     "backgroundColor": "#E15D4F",
@@ -484,9 +463,9 @@ const TESSERA_ELEMENTS = [
   },
   {
     "category": "image",
-    "src": "http://localhost:8000/template-assets/iconic/tessera/languages.png",
+    "src": "/template-assets/iconic/tessera/languages.png",
     "left": 29,
-    "top": 494.0,
+    "top": 369.0,
     "width": 12,
     "height": 12,
     "zIndex": 3,
@@ -502,7 +481,7 @@ const TESSERA_ELEMENTS = [
     "fontFamily": "Montserrat",
     "color": "#4A2347",
     "left": 51,
-    "top": 495.0,
+    "top": 370.0,
     "zIndex": 3,
     "page": 1,
     "bold": true,
@@ -514,7 +493,7 @@ const TESSERA_ELEMENTS = [
   {
     "category": "line",
     "left": 51,
-    "top": 508.0,
+    "top": 383.0,
     "width": 50,
     "height": 1,
     "backgroundColor": "#E15D4F",
@@ -525,9 +504,9 @@ const TESSERA_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Polski - ojczysty\nangielski - B2\nniemiecki - B1",
+    "content": "Polski - ojczysty\nAngielski - C1\nNiemiecki - B2",
     "left": 25,
-    "top": 513.0,
+    "top": 388.0,
     "width": 128,
     "height": 37.0,
     "fontSize": 8.3,
@@ -548,7 +527,7 @@ const TESSERA_ELEMENTS = [
   },
   {
     "category": "text",
-    "content": "TOMASZ LEWANDOWSKI",
+    "content": "Julia Bernat",
     "fontSize": 24,
     "fontFamily": "PlayfairDisplay",
     "color": "#4A2347",
@@ -559,7 +538,10 @@ const TESSERA_ELEMENTS = [
     "bold": true,
     "italic": false,
     "letterSpacing": 0.2,
-    "flowRole": "masthead"
+    "flowRole": "masthead",
+    "mastheadRole": "name",
+    "mastheadBandId": "masthead-main",
+    "textTransform": "uppercase"
   },
   {
     "category": "line",
@@ -574,7 +556,7 @@ const TESSERA_ELEMENTS = [
   },
   {
     "category": "text",
-    "content": "NETWORK SECURITY ENGINEER",
+    "content": "Analityczka AML i Compliance",
     "fontSize": 8.2,
     "fontFamily": "Montserrat",
     "color": "#FFFDFC",
@@ -585,11 +567,14 @@ const TESSERA_ELEMENTS = [
     "bold": true,
     "italic": false,
     "letterSpacing": 1.15,
-    "flowRole": "masthead"
+    "flowRole": "masthead",
+    "mastheadRole": "title",
+    "mastheadBandId": "masthead-main",
+    "textTransform": "uppercase"
   },
   {
     "category": "image",
-    "src": "http://localhost:8000/template-assets/iconic/tessera/phone.png",
+    "src": "/template-assets/iconic/tessera/phone.png",
     "left": 218.0,
     "top": 121.0,
     "width": 11.0,
@@ -597,11 +582,13 @@ const TESSERA_ELEMENTS = [
     "zIndex": 3,
     "page": 1,
     "alignWithText": true,
-    "flowRole": "masthead"
+    "flowRole": "masthead",
+    "contactChannel": "phone",
+    "contactBandId": "contact-main"
   },
   {
     "category": "text",
-    "content": "+48 601 774 528",
+    "content": "+48 512 340 780",
     "fontSize": 7.8,
     "fontFamily": "Montserrat",
     "color": "#806F78",
@@ -611,11 +598,13 @@ const TESSERA_ELEMENTS = [
     "page": 1,
     "bold": false,
     "italic": false,
-    "flowRole": "masthead"
+    "flowRole": "masthead",
+    "contactChannel": "phone",
+    "contactBandId": "contact-main"
   },
   {
     "category": "image",
-    "src": "http://localhost:8000/template-assets/iconic/tessera/email.png",
+    "src": "/template-assets/iconic/tessera/email.png",
     "left": 324.0,
     "top": 121.0,
     "width": 11.0,
@@ -623,11 +612,13 @@ const TESSERA_ELEMENTS = [
     "zIndex": 3,
     "page": 1,
     "alignWithText": true,
-    "flowRole": "masthead"
+    "flowRole": "masthead",
+    "contactChannel": "email",
+    "contactBandId": "contact-main"
   },
   {
     "category": "text",
-    "content": "tomasz.lewandowski.net@gmail.com",
+    "content": "julia.bernat@email.com",
     "fontSize": 7.8,
     "fontFamily": "Montserrat",
     "color": "#806F78",
@@ -637,11 +628,13 @@ const TESSERA_ELEMENTS = [
     "page": 1,
     "bold": false,
     "italic": false,
-    "flowRole": "masthead"
+    "flowRole": "masthead",
+    "contactChannel": "email",
+    "contactBandId": "contact-main"
   },
   {
     "category": "image",
-    "src": "http://localhost:8000/template-assets/iconic/tessera/linkedin.png",
+    "src": "/template-assets/iconic/tessera/linkedin.png",
     "left": 218.0,
     "top": 137.0,
     "width": 11.0,
@@ -649,11 +642,13 @@ const TESSERA_ELEMENTS = [
     "zIndex": 3,
     "page": 1,
     "alignWithText": true,
-    "flowRole": "masthead"
+    "flowRole": "masthead",
+    "contactChannel": "linkedin",
+    "contactBandId": "contact-main"
   },
   {
     "category": "text",
-    "content": "linkedin.com/in/tomasz-lewandowski",
+    "content": "linkedin.com/in/jbernat",
     "fontSize": 7.8,
     "fontFamily": "Montserrat",
     "color": "#806F78",
@@ -663,85 +658,99 @@ const TESSERA_ELEMENTS = [
     "page": 1,
     "bold": false,
     "italic": false,
-    "flowRole": "masthead"
+    "flowRole": "masthead",
+    "contactChannel": "linkedin",
+    "contactBandId": "contact-main"
   },
   {
     "category": "image",
-    "src": "http://localhost:8000/template-assets/iconic/tessera/github.png",
-    "left": 218.0,
-    "top": 153.0,
-    "width": 11.0,
-    "height": 11.0,
-    "zIndex": 3,
-    "page": 1,
-    "alignWithText": true,
-    "flowRole": "masthead"
-  },
-  {
-    "category": "text",
-    "content": "github.com/tlewandowski",
-    "fontSize": 7.8,
-    "fontFamily": "Montserrat",
-    "color": "#806F78",
-    "left": 233.0,
-    "top": 153.0,
-    "zIndex": 3,
-    "page": 1,
-    "bold": false,
-    "italic": false,
-    "flowRole": "masthead"
-  },
-  {
-    "category": "image",
-    "src": "http://localhost:8000/template-assets/iconic/tessera/website.png",
+    "src": "/template-assets/iconic/tessera/github.png",
     "left": 364.0,
-    "top": 153.0,
+    "top": 137.0,
     "width": 11.0,
     "height": 11.0,
     "zIndex": 3,
     "page": 1,
     "alignWithText": true,
-    "flowRole": "masthead"
+    "flowRole": "masthead",
+    "contactChannel": "github",
+    "contactBandId": "contact-main"
   },
   {
     "category": "text",
-    "content": "tomekl.dev",
+    "content": "github.com/jbernat",
     "fontSize": 7.8,
     "fontFamily": "Montserrat",
     "color": "#806F78",
     "left": 379.0,
-    "top": 153.0,
+    "top": 137.0,
     "zIndex": 3,
     "page": 1,
     "bold": false,
     "italic": false,
-    "flowRole": "masthead"
+    "flowRole": "masthead",
+    "contactChannel": "github",
+    "contactBandId": "contact-main"
   },
   {
     "category": "image",
-    "src": "http://localhost:8000/template-assets/iconic/tessera/location.png",
-    "left": 445.0,
+    "src": "/template-assets/iconic/tessera/website.png",
+    "left": 218.0,
     "top": 153.0,
     "width": 11.0,
     "height": 11.0,
     "zIndex": 3,
     "page": 1,
     "alignWithText": true,
-    "flowRole": "masthead"
+    "flowRole": "masthead",
+    "contactChannel": "website",
+    "contactBandId": "contact-main"
   },
   {
     "category": "text",
-    "content": "Szczecin",
+    "content": "juliabernat.pl",
     "fontSize": 7.8,
     "fontFamily": "Montserrat",
     "color": "#806F78",
-    "left": 460.0,
+    "left": 233.0,
     "top": 153.0,
     "zIndex": 3,
     "page": 1,
     "bold": false,
     "italic": false,
-    "flowRole": "masthead"
+    "flowRole": "masthead",
+    "contactChannel": "website",
+    "contactBandId": "contact-main"
+  },
+  {
+    "category": "image",
+    "src": "/template-assets/iconic/tessera/location.png",
+    "left": 319.0,
+    "top": 153.0,
+    "width": 11.0,
+    "height": 11.0,
+    "zIndex": 3,
+    "page": 1,
+    "alignWithText": true,
+    "flowRole": "masthead",
+    "contactChannel": "location",
+    "contactBandId": "contact-main"
+  },
+  {
+    "category": "text",
+    "content": "Warszawa",
+    "fontSize": 7.8,
+    "fontFamily": "Montserrat",
+    "color": "#806F78",
+    "left": 334.0,
+    "top": 153.0,
+    "zIndex": 3,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "flowRole": "masthead",
+    "contactChannel": "location",
+    "contactBandId": "contact-main"
   },
   {
     "category": "line",
@@ -806,6 +815,96 @@ const TESSERA_ELEMENTS = [
     "flowRole": "masthead"
   },
   {
+    "category": "text",
+    "content": "",
+    "left": 0,
+    "top": 0,
+    "width": 0,
+    "height": 0,
+    "fontSize": 1,
+    "fontFamily": "Inter",
+    "color": "#000000",
+    "zIndex": 0,
+    "page": 1,
+    "flowRole": "masthead-anchor",
+    "contactBand": {
+      "id": "contact-main",
+      "mode": "wrapping",
+      "anchor": {
+        "startX": 218.0,
+        "startY": 121.0,
+        "rightLimit": 547.0
+      },
+      "text": {
+        "fontFamily": "Montserrat",
+        "fontSizePt": 7.8,
+        "colorHex": "#806F78"
+      },
+      "icon": {
+        "sizePt": 11.0,
+        "theme": "tessera"
+      },
+      "metrics": {
+        "iconGap": 15.0,
+        "itemPad": 16.0,
+        "lineStep": 16.0,
+        "charWidth": 5.0
+      },
+      "order": [
+        "phone",
+        "email",
+        "linkedin",
+        "github",
+        "website",
+        "location"
+      ]
+    },
+    "contactBandId": "contact-main"
+  },
+  {
+    "category": "text",
+    "content": "",
+    "left": 0,
+    "top": 0,
+    "width": 0,
+    "height": 0,
+    "fontSize": 1,
+    "fontFamily": "Inter",
+    "color": "#000000",
+    "zIndex": 0,
+    "page": 1,
+    "flowRole": "masthead-anchor",
+    "mastheadIdentity": {
+      "id": "masthead-main",
+      "name": {
+        "defaultUppercase": true
+      },
+      "title": {
+        "spec": {
+          "category": "text",
+          "content": "Analityczka AML i Compliance",
+          "left": 228,
+          "top": 94.0,
+          "width": null,
+          "height": null,
+          "fontSizePt": 8.2,
+          "lineHeight": null,
+          "fontFamily": "Montserrat",
+          "colorHex": "#FFFDFC",
+          "letterSpacing": 1.15,
+          "align": null,
+          "autoHeight": false,
+          "textTransform": "uppercase",
+          "bold": true
+        },
+        "blockPt": 27.0,
+        "present": true
+      },
+      "contactBandId": "contact-main"
+    },
+    "mastheadBandId": "masthead-main"
+  },
+  {
     "category": "line",
     "left": 218,
     "top": 210.0,
@@ -845,7 +944,7 @@ const TESSERA_ELEMENTS = [
   },
   {
     "category": "image",
-    "src": "http://localhost:8000/template-assets/iconic/tessera/summary.png",
+    "src": "/template-assets/iconic/tessera/summary.png",
     "left": 224,
     "top": 216.0,
     "width": 12,
@@ -883,11 +982,11 @@ const TESSERA_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Inżynier bezpieczeństwa sieci z doświadczeniem w konfiguracji firewalli, VPN oraz segmentacji sieci dla klientów korporacyjnych. Wcześniej pracowałem jako administrator sieci, co daje mi solidne podstawy infrastrukturalne.",
+    "content": "Analityczka AML łącząca wiedzę regulacyjną z dyscypliną wykonania. Prowadzę monitoring transakcji i raporty SAR, dbając o jakość analiz oraz terminowość decyzji bez utraty dokładności.",
     "left": 218,
     "top": 241.0,
     "width": 329,
-    "height": 53,
+    "height": 40,
     "fontSize": 9.0,
     "lineHeight": 13.2,
     "letterSpacing": 0,
@@ -906,7 +1005,7 @@ const TESSERA_ELEMENTS = [
   {
     "category": "line",
     "left": 218,
-    "top": 313.0,
+    "top": 300.0,
     "width": 20,
     "height": 20,
     "backgroundColor": "#F7E9DF",
@@ -917,7 +1016,7 @@ const TESSERA_ELEMENTS = [
   {
     "category": "rectangle",
     "left": 220,
-    "top": 315.0,
+    "top": 302.0,
     "width": 20,
     "height": 20,
     "backgroundColor": "#E15D4F",
@@ -931,7 +1030,7 @@ const TESSERA_ELEMENTS = [
   {
     "category": "circle",
     "left": 234,
-    "top": 312.0,
+    "top": 299.0,
     "width": 7,
     "height": 7,
     "backgroundColor": "#DCA65A",
@@ -943,9 +1042,9 @@ const TESSERA_ELEMENTS = [
   },
   {
     "category": "image",
-    "src": "http://localhost:8000/template-assets/iconic/tessera/experience.png",
+    "src": "/template-assets/iconic/tessera/experience.png",
     "left": 224,
-    "top": 319.0,
+    "top": 306.0,
     "width": 12,
     "height": 12,
     "zIndex": 3,
@@ -960,7 +1059,7 @@ const TESSERA_ELEMENTS = [
     "fontFamily": "Montserrat",
     "color": "#4A2347",
     "left": 248,
-    "top": 318.0,
+    "top": 305.0,
     "zIndex": 3,
     "page": 1,
     "bold": true,
@@ -971,7 +1070,7 @@ const TESSERA_ELEMENTS = [
   {
     "category": "line",
     "left": 248,
-    "top": 336.0,
+    "top": 323.0,
     "width": 299,
     "height": 1,
     "backgroundColor": "#D8C5C7",
@@ -981,9 +1080,9 @@ const TESSERA_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Network Security Engineer",
+    "content": "Analityczka AML",
     "left": 218,
-    "top": 344.0,
+    "top": 331.0,
     "width": 329,
     "height": 15,
     "fontSize": 10.4,
@@ -999,14 +1098,14 @@ const TESSERA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-cb5333c6c77f",
+    "flowGroup": "record-a8ff6ab4a691",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "Quantera Networks   ·   Szczecin   ·   Marzec 2022 – obecnie",
+    "content": "Crestmont Advisory   ·   Warszawa   ·   2022 – obecnie",
     "left": 218,
-    "top": 363.0,
+    "top": 350.0,
     "width": 329,
     "height": 12,
     "fontSize": 8.3,
@@ -1022,14 +1121,14 @@ const TESSERA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-cb5333c6c77f",
+    "flowGroup": "record-a8ff6ab4a691",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "• Konfiguruję i utrzymuję firewalle nowej generacji (Palo Alto, Fortinet).\n• Wdrażam segmentację sieci oraz polityki dostępu zgodnie z zasadą least privilege.\n• Monitoruję ruch sieciowy pod kątem anomalii i podejrzanej aktywności.\n• Prowadzę dokumentację architektury sieci i procedur bezpieczeństwa.",
+    "content": "• Prowadzi monitoring transakcji i analizę alertów AML dla klientów firmowych.\n• Realizuje CDD/EDD oraz przygotowuje dokumentację zgodną z wymogami FIU.\n• Wspiera zespół L2 przy eskalacjach spraw o podwyższonym ryzyku AML.",
     "left": 218,
-    "top": 379.0,
+    "top": 366.0,
     "width": 329,
     "height": 66,
     "fontSize": 9.0,
@@ -1045,14 +1144,14 @@ const TESSERA_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-cb5333c6c77f",
+    "flowGroup": "record-a8ff6ab4a691",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "Administrator Sieci",
+    "content": "Analityczka KYC",
     "left": 218,
-    "top": 455.0,
+    "top": 442.0,
     "width": 329,
     "height": 15,
     "fontSize": 10.4,
@@ -1068,14 +1167,14 @@ const TESSERA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-6b5499cce2ee",
+    "flowGroup": "record-ce898ee95384",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "Vantis Systems   ·   Szczecin   ·   Lipiec 2020 – Luty 2022",
+    "content": "Baltic Trust Bank   ·   Warszawa   ·   2019 – 2022",
     "left": 218,
-    "top": 474.0,
+    "top": 461.0,
     "width": 329,
     "height": 12,
     "fontSize": 8.3,
@@ -1091,16 +1190,16 @@ const TESSERA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-6b5499cce2ee",
+    "flowGroup": "record-ce898ee95384",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "• Administrowałem infrastrukturą sieciową LAN/WAN dla oddziałów firmy.\n• Konfigurowałem urządzenia Cisco i monitorowałem dostępność usług.",
+    "content": "• Weryfikowała profile klientów oraz screening PEP, sanctions i media.\n• Utrzymywała jakość raportów SAR oraz terminowość odpowiedzi na RFI.",
     "left": 218,
-    "top": 490.0,
+    "top": 477.0,
     "width": 329,
-    "height": 40,
+    "height": 27,
     "fontSize": 9.0,
     "lineHeight": 13.2,
     "letterSpacing": 0,
@@ -1114,7 +1213,76 @@ const TESSERA_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-6b5499cce2ee",
+    "flowGroup": "record-ce898ee95384",
+    "flowRole": "content"
+  },
+  {
+    "category": "textarea",
+    "content": "Specjalistka Obsługi Klienta",
+    "left": 218,
+    "top": 514.0,
+    "width": 329,
+    "height": 15,
+    "fontSize": 10.4,
+    "lineHeight": 13.4,
+    "letterSpacing": 0,
+    "color": "#2D2530",
+    "fontFamily": "Montserrat",
+    "zIndex": 2,
+    "page": 1,
+    "bold": true,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-49878a6afe02",
+    "flowRole": "content"
+  },
+  {
+    "category": "textarea",
+    "content": "Helios Services   ·   Kraków   ·   2016 – 2019",
+    "left": 218,
+    "top": 533.0,
+    "width": 329,
+    "height": 12,
+    "fontSize": 8.3,
+    "lineHeight": 11.4,
+    "letterSpacing": 0,
+    "color": "#E15D4F",
+    "fontFamily": "Montserrat",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-49878a6afe02",
+    "flowRole": "content"
+  },
+  {
+    "category": "textarea",
+    "content": "• Obsługiwała zamówienia i weryfikację danych klientów na rynkach DACH.",
+    "left": 218,
+    "top": 549.0,
+    "width": 329,
+    "height": 27,
+    "fontSize": 9.0,
+    "lineHeight": 13.2,
+    "letterSpacing": 0,
+    "color": "#463E47",
+    "fontFamily": "Montserrat",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": true,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-49878a6afe02",
     "flowRole": "content"
   }
 ];

@@ -5,8 +5,7 @@
  *
  * This static starter is the backend generator's own output
  * (`backend/app/services/cv_templates/templates/sterling.py`) for
- * representative demo content (Julia Bernat — three roles, one degree, five
- * skills, and three languages, sized to fit page 1 of the mockup), so the
+ * representative demo content (Julia Bernat — three roles, one degree, five skills, and three languages, sized to fit page 1 of the mockup), so the
  * picker preview matches what `/ai/fill_template` produces pixel-for-pixel.
  * Image `src` values are stored relative and get the API base prepended at
  * load time. The array already carries `flowRole` / `flowGroup` /
@@ -456,7 +455,7 @@ const STERLING_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-76f368a6fe26",
+    "flowGroup": "record-b8d6afd8ce42",
     "flowRole": "content",
     "flowLane": "sidebar"
   },
@@ -480,7 +479,7 @@ const STERLING_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-76f368a6fe26",
+    "flowGroup": "record-b8d6afd8ce42",
     "flowRole": "content",
     "flowLane": "sidebar"
   },
@@ -504,7 +503,7 @@ const STERLING_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-76f368a6fe26",
+    "flowGroup": "record-b8d6afd8ce42",
     "flowRole": "content",
     "flowLane": "sidebar"
   },
@@ -656,7 +655,7 @@ const STERLING_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-53dbedc1ab97",
+    "flowGroup": "record-9c42a1ce1740",
     "flowRole": "content"
   },
   {
@@ -679,7 +678,7 @@ const STERLING_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-53dbedc1ab97",
+    "flowGroup": "record-9c42a1ce1740",
     "flowRole": "content"
   },
   {
@@ -702,7 +701,7 @@ const STERLING_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-53dbedc1ab97",
+    "flowGroup": "record-9c42a1ce1740",
     "flowRole": "content"
   },
   {
@@ -725,7 +724,7 @@ const STERLING_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-296ba31c2c4f",
+    "flowGroup": "record-2b2e1b67fb94",
     "flowRole": "content"
   },
   {
@@ -748,7 +747,7 @@ const STERLING_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-296ba31c2c4f",
+    "flowGroup": "record-2b2e1b67fb94",
     "flowRole": "content"
   },
   {
@@ -771,7 +770,7 @@ const STERLING_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-296ba31c2c4f",
+    "flowGroup": "record-2b2e1b67fb94",
     "flowRole": "content"
   },
   {
@@ -794,7 +793,7 @@ const STERLING_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-6a26dfff95b0",
+    "flowGroup": "record-ed55317bc603",
     "flowRole": "content"
   },
   {
@@ -817,7 +816,7 @@ const STERLING_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-6a26dfff95b0",
+    "flowGroup": "record-ed55317bc603",
     "flowRole": "content"
   },
   {
@@ -840,7 +839,7 @@ const STERLING_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-6a26dfff95b0",
+    "flowGroup": "record-ed55317bc603",
     "flowRole": "content"
   }
 ];

@@ -1,11 +1,11 @@
 /**
  * Icon-driven static layouts (Nova, Volt).
  *
- * Both starters are the backend generators' own output for representative
- * demo content (Nova: Jakub Wiśniewski; Volt: Marta Kowalczyk), so the picker
- * preview matches `/ai/fill_template` pixel-for-pixel. Image `src` values are
- * stored relative and get the API base prepended at load time. Icons live
- * under `/template-assets/iconic/<theme>/`.
+ * Both starters are the backend generators' own output for representative demo
+ * content (Julia Bernat — three roles, one degree, five skills, and three
+ * languages), so the picker preview matches `/ai/fill_template` pixel-for-pixel.
+ * Image `src` values are stored relative and get the API base prepended at
+ * load time. Icons live under `/template-assets/iconic/<theme>/`.
  */
 import API_BASE_URL from "../services/api.js";
 
@@ -59,7 +59,7 @@ const NOVA_ELEMENTS = [
   },
   {
     "category": "text",
-    "content": "Jakub Wiśniewski",
+    "content": "Julia Bernat",
     "fontSize": 34.0,
     "fontFamily": "PlayfairDisplay",
     "color": "#1A1612",
@@ -69,11 +69,13 @@ const NOVA_ELEMENTS = [
     "page": 1,
     "bold": true,
     "italic": false,
-    "flowRole": "masthead"
+    "flowRole": "masthead",
+    "mastheadRole": "name",
+    "mastheadBandId": "masthead-main"
   },
   {
     "category": "text",
-    "content": "Specjalista ds. Bezpieczeństwa IT i Systemów",
+    "content": "Analityczka AML i Compliance",
     "fontSize": 9.0,
     "fontFamily": "Montserrat",
     "color": "#7A6550",
@@ -84,11 +86,13 @@ const NOVA_ELEMENTS = [
     "bold": false,
     "italic": false,
     "letterSpacing": 1.6,
-    "flowRole": "masthead"
+    "flowRole": "masthead",
+    "mastheadRole": "title",
+    "mastheadBandId": "masthead-main"
   },
   {
     "category": "image",
-    "src": "http://localhost:8000/template-assets/iconic/nova/phone.png",
+    "src": "/template-assets/iconic/nova/phone.png",
     "left": 34.0,
     "top": 101.85000000000001,
     "width": 14.0,
@@ -96,11 +100,13 @@ const NOVA_ELEMENTS = [
     "zIndex": 3,
     "page": 1,
     "alignWithText": true,
-    "flowRole": "masthead"
+    "flowRole": "masthead",
+    "contactChannel": "phone",
+    "contactBandId": "contact-main"
   },
   {
     "category": "text",
-    "content": "+48 690 442 715",
+    "content": "+48 512 340 780",
     "fontSize": 8.4,
     "fontFamily": "Montserrat",
     "color": "#7A6550",
@@ -110,11 +116,13 @@ const NOVA_ELEMENTS = [
     "page": 1,
     "bold": false,
     "italic": false,
-    "flowRole": "masthead"
+    "flowRole": "masthead",
+    "contactChannel": "phone",
+    "contactBandId": "contact-main"
   },
   {
     "category": "image",
-    "src": "http://localhost:8000/template-assets/iconic/nova/email.png",
+    "src": "/template-assets/iconic/nova/email.png",
     "left": 34.0,
     "top": 118.85000000000001,
     "width": 14.0,
@@ -122,11 +130,13 @@ const NOVA_ELEMENTS = [
     "zIndex": 3,
     "page": 1,
     "alignWithText": true,
-    "flowRole": "masthead"
+    "flowRole": "masthead",
+    "contactChannel": "email",
+    "contactBandId": "contact-main"
   },
   {
     "category": "text",
-    "content": "jakub.wisniewski.it@gmail.com",
+    "content": "julia.bernat@email.com",
     "fontSize": 8.4,
     "fontFamily": "Montserrat",
     "color": "#7A6550",
@@ -136,11 +146,13 @@ const NOVA_ELEMENTS = [
     "page": 1,
     "bold": false,
     "italic": false,
-    "flowRole": "masthead"
+    "flowRole": "masthead",
+    "contactChannel": "email",
+    "contactBandId": "contact-main"
   },
   {
     "category": "image",
-    "src": "http://localhost:8000/template-assets/iconic/nova/linkedin.png",
+    "src": "/template-assets/iconic/nova/linkedin.png",
     "left": 34.0,
     "top": 135.85000000000002,
     "width": 14.0,
@@ -148,11 +160,13 @@ const NOVA_ELEMENTS = [
     "zIndex": 3,
     "page": 1,
     "alignWithText": true,
-    "flowRole": "masthead"
+    "flowRole": "masthead",
+    "contactChannel": "linkedin",
+    "contactBandId": "contact-main"
   },
   {
     "category": "text",
-    "content": "linkedin.com/in/jakub-wisniewski-it",
+    "content": "linkedin.com/in/jbernat",
     "fontSize": 8.4,
     "fontFamily": "Montserrat",
     "color": "#7A6550",
@@ -162,11 +176,13 @@ const NOVA_ELEMENTS = [
     "page": 1,
     "bold": false,
     "italic": false,
-    "flowRole": "masthead"
+    "flowRole": "masthead",
+    "contactChannel": "linkedin",
+    "contactBandId": "contact-main"
   },
   {
     "category": "image",
-    "src": "http://localhost:8000/template-assets/iconic/nova/github.png",
+    "src": "/template-assets/iconic/nova/github.png",
     "left": 34.0,
     "top": 152.85000000000002,
     "width": 14.0,
@@ -174,11 +190,13 @@ const NOVA_ELEMENTS = [
     "zIndex": 3,
     "page": 1,
     "alignWithText": true,
-    "flowRole": "masthead"
+    "flowRole": "masthead",
+    "contactChannel": "github",
+    "contactBandId": "contact-main"
   },
   {
     "category": "text",
-    "content": "github.com/jwisniewski",
+    "content": "github.com/jbernat",
     "fontSize": 8.4,
     "fontFamily": "Montserrat",
     "color": "#7A6550",
@@ -188,11 +206,13 @@ const NOVA_ELEMENTS = [
     "page": 1,
     "bold": false,
     "italic": false,
-    "flowRole": "masthead"
+    "flowRole": "masthead",
+    "contactChannel": "github",
+    "contactBandId": "contact-main"
   },
   {
     "category": "image",
-    "src": "http://localhost:8000/template-assets/iconic/nova/location.png",
+    "src": "/template-assets/iconic/nova/website.png",
     "left": 34.0,
     "top": 169.85000000000002,
     "width": 14.0,
@@ -200,11 +220,13 @@ const NOVA_ELEMENTS = [
     "zIndex": 3,
     "page": 1,
     "alignWithText": true,
-    "flowRole": "masthead"
+    "flowRole": "masthead",
+    "contactChannel": "website",
+    "contactBandId": "contact-main"
   },
   {
     "category": "text",
-    "content": "Łódź",
+    "content": "juliabernat.pl",
     "fontSize": 8.4,
     "fontFamily": "Montserrat",
     "color": "#7A6550",
@@ -214,7 +236,39 @@ const NOVA_ELEMENTS = [
     "page": 1,
     "bold": false,
     "italic": false,
-    "flowRole": "masthead"
+    "flowRole": "masthead",
+    "contactChannel": "website",
+    "contactBandId": "contact-main"
+  },
+  {
+    "category": "image",
+    "src": "/template-assets/iconic/nova/location.png",
+    "left": 34.0,
+    "top": 186.85000000000002,
+    "width": 14.0,
+    "height": 14.0,
+    "zIndex": 3,
+    "page": 1,
+    "alignWithText": true,
+    "flowRole": "masthead",
+    "contactChannel": "location",
+    "contactBandId": "contact-main"
+  },
+  {
+    "category": "text",
+    "content": "Warszawa",
+    "fontSize": 8.4,
+    "fontFamily": "Montserrat",
+    "color": "#7A6550",
+    "left": 50.0,
+    "top": 186.85000000000002,
+    "zIndex": 3,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "flowRole": "masthead",
+    "contactChannel": "location",
+    "contactBandId": "contact-main"
   },
   {
     "category": "rectangle",
@@ -252,7 +306,7 @@ const NOVA_ELEMENTS = [
   {
     "category": "line",
     "left": 48,
-    "top": 198.35000000000002,
+    "top": 215.35000000000002,
     "width": 499,
     "height": 1,
     "backgroundColor": "#E0D2C0",
@@ -261,10 +315,99 @@ const NOVA_ELEMENTS = [
     "flowRole": "masthead"
   },
   {
+    "category": "text",
+    "content": "",
+    "left": 0,
+    "top": 0,
+    "width": 0,
+    "height": 0,
+    "fontSize": 1,
+    "fontFamily": "Inter",
+    "color": "#000000",
+    "zIndex": 0,
+    "page": 1,
+    "flowRole": "masthead-anchor",
+    "contactBand": {
+      "id": "contact-main",
+      "mode": "stacked",
+      "anchor": {
+        "startX": 34.0,
+        "startY": 101.85000000000001
+      },
+      "text": {
+        "fontFamily": "Montserrat",
+        "fontSizePt": 8.4,
+        "colorHex": "#7A6550"
+      },
+      "icon": {
+        "sizePt": 14.0,
+        "theme": "nova"
+      },
+      "metrics": {
+        "iconGap": 16.0,
+        "itemPad": 14.0,
+        "lineStep": 17.0,
+        "charWidth": 5.2
+      },
+      "order": [
+        "phone",
+        "email",
+        "linkedin",
+        "github",
+        "website",
+        "location"
+      ]
+    },
+    "contactBandId": "contact-main"
+  },
+  {
+    "category": "text",
+    "content": "",
+    "left": 0,
+    "top": 0,
+    "width": 0,
+    "height": 0,
+    "fontSize": 1,
+    "fontFamily": "Inter",
+    "color": "#000000",
+    "zIndex": 0,
+    "page": 1,
+    "flowRole": "masthead-anchor",
+    "mastheadIdentity": {
+      "id": "masthead-main",
+      "name": {
+        "defaultUppercase": false
+      },
+      "title": {
+        "spec": {
+          "category": "text",
+          "content": "Analityczka AML i Compliance",
+          "left": 32.0,
+          "top": 77.7,
+          "width": null,
+          "height": null,
+          "fontSizePt": 9.0,
+          "lineHeight": null,
+          "fontFamily": "Montserrat",
+          "colorHex": "#7A6550",
+          "letterSpacing": 1.6,
+          "align": null,
+          "autoHeight": false,
+          "textTransform": "none",
+          "bold": false
+        },
+        "blockPt": 24.150000000000006,
+        "present": true
+      },
+      "contactBandId": "contact-main"
+    },
+    "mastheadBandId": "masthead-main"
+  },
+  {
     "category": "image",
-    "src": "http://localhost:8000/template-assets/iconic/nova/summary.png",
+    "src": "/template-assets/iconic/nova/summary.png",
     "left": 64.0,
-    "top": 235.35000000000002,
+    "top": 252.35000000000002,
     "width": 14.0,
     "height": 14.0,
     "zIndex": 3,
@@ -279,7 +422,7 @@ const NOVA_ELEMENTS = [
     "fontFamily": "Montserrat",
     "color": "#C45C26",
     "left": 84.0,
-    "top": 235.35000000000002,
+    "top": 252.35000000000002,
     "zIndex": 3,
     "page": 1,
     "bold": true,
@@ -290,7 +433,7 @@ const NOVA_ELEMENTS = [
   {
     "category": "line",
     "left": 84.0,
-    "top": 248.82500000000002,
+    "top": 265.82500000000005,
     "width": 463.0,
     "height": 1,
     "backgroundColor": "#E0D2C0",
@@ -300,11 +443,11 @@ const NOVA_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Specjalista IT rozwijający się w kierunku cyberbezpieczeństwa. Na co dzień utrzymuję systemy firmowe i administruję infrastrukturą, a po godzinach trenuję analizę alertów i reagowanie na incydenty na platformie TryHackMe (60+ ukończonych zadań). Szukam roli SOC Analyst L1.",
+    "content": "Analityczka AML łącząca wiedzę regulacyjną z dyscypliną wykonania. Prowadzę monitoring transakcji i raporty SAR, dbając o jakość analiz oraz terminowość decyzji bez utraty dokładności.",
     "left": 84.0,
-    "top": 256.82500000000005,
+    "top": 273.82500000000005,
     "width": 463.0,
-    "height": 41,
+    "height": 27,
     "fontSize": 9.4,
     "lineHeight": 13.4,
     "letterSpacing": 0,
@@ -317,13 +460,14 @@ const NOVA_ELEMENTS = [
     "align": "left",
     "bulletList": false,
     "autoHeight": true,
-    "preserveInitialLayout": true
+    "preserveInitialLayout": true,
+    "flowRole": "content"
   },
   {
     "category": "image",
-    "src": "http://localhost:8000/template-assets/iconic/nova/experience.png",
+    "src": "/template-assets/iconic/nova/experience.png",
     "left": 64.0,
-    "top": 318.82500000000005,
+    "top": 321.82500000000005,
     "width": 14.0,
     "height": 14.0,
     "zIndex": 3,
@@ -338,7 +482,7 @@ const NOVA_ELEMENTS = [
     "fontFamily": "Montserrat",
     "color": "#C45C26",
     "left": 84.0,
-    "top": 318.82500000000005,
+    "top": 321.82500000000005,
     "zIndex": 3,
     "page": 1,
     "bold": true,
@@ -349,7 +493,7 @@ const NOVA_ELEMENTS = [
   {
     "category": "line",
     "left": 84.0,
-    "top": 332.30000000000007,
+    "top": 335.30000000000007,
     "width": 463.0,
     "height": 1,
     "backgroundColor": "#E0D2C0",
@@ -359,9 +503,9 @@ const NOVA_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Specjalista ds. Wsparcia Technicznego i Systemów",
+    "content": "Analityczka AML",
     "left": 84.0,
-    "top": 340.30000000000007,
+    "top": 343.30000000000007,
     "width": 463.0,
     "height": 15,
     "fontSize": 11,
@@ -377,13 +521,14 @@ const NOVA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-268d33767af3"
+    "flowGroup": "record-0a862b9c32ee",
+    "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "GridWorks Automatyka   ·   Łódź   ·   Luty 2024 – obecnie",
+    "content": "Crestmont Advisory   ·   Warszawa   ·   2022 – obecnie",
     "left": 84.0,
-    "top": 359.30000000000007,
+    "top": 362.30000000000007,
     "width": 463.0,
     "height": 12,
     "fontSize": 8.5,
@@ -399,15 +544,16 @@ const NOVA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-268d33767af3"
+    "flowGroup": "record-0a862b9c32ee",
+    "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "• Utrzymuję infrastrukturę serwerową i stacje robocze dla 80+ użytkowników.\n• Administruję systemem magazynowym i przygotowuję comiesięczne raporty.\n• Zbudowałem integrację API do automatyzacji zgłoszeń serwisowych.\n• Wspieram wdrożenie podstawowych polityk bezpieczeństwa stacji roboczych.",
+    "content": "• Prowadzi monitoring transakcji i analizę alertów AML dla klientów firmowych.\n• Realizuje CDD/EDD oraz przygotowuje dokumentację zgodną z wymogami FIU.\n• Wspiera zespół L2 przy eskalacjach spraw o podwyższonym ryzyku AML.",
     "left": 84.0,
-    "top": 375.30000000000007,
+    "top": 378.30000000000007,
     "width": 463.0,
-    "height": 54,
+    "height": 41,
     "fontSize": 9.4,
     "lineHeight": 13.4,
     "letterSpacing": 0,
@@ -421,13 +567,14 @@ const NOVA_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-268d33767af3"
+    "flowGroup": "record-0a862b9c32ee",
+    "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "Technik IT",
+    "content": "Analityczka KYC",
     "left": 84.0,
-    "top": 439.30000000000007,
+    "top": 429.30000000000007,
     "width": 463.0,
     "height": 15,
     "fontSize": 11,
@@ -443,13 +590,14 @@ const NOVA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-a89b373699ae"
+    "flowGroup": "record-4b6060c70552",
+    "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "Forgeline Manufacturing   ·   Łódź   ·   Czerwiec 2022 – Styczeń 2024",
+    "content": "Baltic Trust Bank   ·   Warszawa   ·   2019 – 2022",
     "left": 84.0,
-    "top": 458.30000000000007,
+    "top": 448.30000000000007,
     "width": 463.0,
     "height": 12,
     "fontSize": 8.5,
@@ -465,13 +613,14 @@ const NOVA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-a89b373699ae"
+    "flowGroup": "record-4b6060c70552",
+    "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "• Diagnozowałem i rozwiązywałem zgłoszenia serwisowe sprzętu komputerowego.\n• Konfigurowałem stacje robocze oraz urządzenia sieciowe.",
+    "content": "• Weryfikowała profile klientów oraz screening PEP, sanctions i media.\n• Utrzymywała jakość raportów SAR oraz terminowość odpowiedzi na RFI.",
     "left": 84.0,
-    "top": 474.30000000000007,
+    "top": 464.30000000000007,
     "width": 463.0,
     "height": 27,
     "fontSize": 9.4,
@@ -487,13 +636,83 @@ const NOVA_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-a89b373699ae"
+    "flowGroup": "record-4b6060c70552",
+    "flowRole": "content"
+  },
+  {
+    "category": "textarea",
+    "content": "Specjalistka Obsługi Klienta",
+    "left": 84.0,
+    "top": 501.30000000000007,
+    "width": 463.0,
+    "height": 15,
+    "fontSize": 11,
+    "lineHeight": 13.5,
+    "letterSpacing": 0,
+    "color": "#1A1612",
+    "fontFamily": "Montserrat",
+    "zIndex": 2,
+    "page": 1,
+    "bold": true,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-cee58272faec",
+    "flowRole": "content"
+  },
+  {
+    "category": "textarea",
+    "content": "Helios Services   ·   Kraków   ·   2016 – 2019",
+    "left": 84.0,
+    "top": 520.3000000000001,
+    "width": 463.0,
+    "height": 12,
+    "fontSize": 8.5,
+    "lineHeight": 11.5,
+    "letterSpacing": 0,
+    "color": "#7A6550",
+    "fontFamily": "Montserrat",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-cee58272faec",
+    "flowRole": "content"
+  },
+  {
+    "category": "textarea",
+    "content": "• Obsługiwała zamówienia i weryfikację danych klientów na rynkach DACH.",
+    "left": 84.0,
+    "top": 536.3000000000001,
+    "width": 463.0,
+    "height": 14,
+    "fontSize": 9.4,
+    "lineHeight": 13.4,
+    "letterSpacing": 0,
+    "color": "#2C241C",
+    "fontFamily": "Montserrat",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": true,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-cee58272faec",
+    "flowRole": "content"
   },
   {
     "category": "image",
-    "src": "http://localhost:8000/template-assets/iconic/nova/education.png",
+    "src": "/template-assets/iconic/nova/education.png",
     "left": 64.0,
-    "top": 522.3000000000001,
+    "top": 571.3000000000001,
     "width": 14.0,
     "height": 14.0,
     "zIndex": 3,
@@ -508,7 +727,7 @@ const NOVA_ELEMENTS = [
     "fontFamily": "Montserrat",
     "color": "#C45C26",
     "left": 84.0,
-    "top": 522.3000000000001,
+    "top": 571.3000000000001,
     "zIndex": 3,
     "page": 1,
     "bold": true,
@@ -519,7 +738,7 @@ const NOVA_ELEMENTS = [
   {
     "category": "line",
     "left": 84.0,
-    "top": 535.7750000000001,
+    "top": 584.7750000000001,
     "width": 463.0,
     "height": 1,
     "backgroundColor": "#E0D2C0",
@@ -529,9 +748,9 @@ const NOVA_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Inżynier informatyki",
+    "content": "Licencjat Prawa",
     "left": 84.0,
-    "top": 543.7750000000001,
+    "top": 592.7750000000001,
     "width": 463.0,
     "height": 13,
     "fontSize": 10.4,
@@ -547,13 +766,14 @@ const NOVA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-8d7a80479a1a"
+    "flowGroup": "record-b1c032676719",
+    "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "Politechnika Łódzka",
+    "content": "UW Warszawa",
     "left": 84.0,
-    "top": 560.7750000000001,
+    "top": 609.7750000000001,
     "width": 463.0,
     "height": 13,
     "fontSize": 10.4,
@@ -569,13 +789,14 @@ const NOVA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-8d7a80479a1a"
+    "flowGroup": "record-b1c032676719",
+    "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "Łódź   ·   ukończono luty 2024",
+    "content": "2012 – 2016",
     "left": 84.0,
-    "top": 577.7750000000001,
+    "top": 626.7750000000001,
     "width": 463.0,
     "height": 12,
     "fontSize": 8.5,
@@ -591,35 +812,14 @@ const NOVA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-8d7a80479a1a"
-  },
-  {
-    "category": "textarea",
-    "content": "• Praca inżynierska: system monitorowania dostępności usług sieciowych.",
-    "left": 84.0,
-    "top": 593.7750000000001,
-    "width": 463.0,
-    "height": 14,
-    "fontSize": 9.2,
-    "lineHeight": 13.2,
-    "letterSpacing": 0,
-    "color": "#2C241C",
-    "fontFamily": "Montserrat",
-    "zIndex": 2,
-    "page": 1,
-    "bold": false,
-    "italic": false,
-    "align": "left",
-    "bulletList": true,
-    "autoHeight": true,
-    "preserveInitialLayout": true,
-    "flowGroup": "record-8d7a80479a1a"
+    "flowGroup": "record-b1c032676719",
+    "flowRole": "content"
   },
   {
     "category": "image",
-    "src": "http://localhost:8000/template-assets/iconic/nova/skills.png",
+    "src": "/template-assets/iconic/nova/skills.png",
     "left": 64.0,
-    "top": 628.7750000000001,
+    "top": 659.7750000000001,
     "width": 14.0,
     "height": 14.0,
     "zIndex": 3,
@@ -634,7 +834,7 @@ const NOVA_ELEMENTS = [
     "fontFamily": "Montserrat",
     "color": "#C45C26",
     "left": 84.0,
-    "top": 628.7750000000001,
+    "top": 659.7750000000001,
     "zIndex": 3,
     "page": 1,
     "bold": true,
@@ -645,7 +845,7 @@ const NOVA_ELEMENTS = [
   {
     "category": "line",
     "left": 84.0,
-    "top": 642.2500000000001,
+    "top": 673.2500000000001,
     "width": 463.0,
     "height": 1,
     "backgroundColor": "#E0D2C0",
@@ -655,11 +855,11 @@ const NOVA_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "analiza SIEM/logów  ·  triage alertów  ·  Wireshark  ·  Nmap  ·  podstawy IDS/firewall  ·  Active Directory  ·  Python  ·  SQL  ·  Git  ·  Windows Server  ·  Linux  ·  integracja API",
+    "content": "AML/KYC  ·  Monitoring  ·  CDD/EDD  ·  Raporty SAR  ·  Analiza transakcyjna",
     "left": 84.0,
-    "top": 650.2500000000001,
+    "top": 681.2500000000001,
     "width": 463.0,
-    "height": 27,
+    "height": 14,
     "fontSize": 9.3,
     "lineHeight": 13.4,
     "letterSpacing": 0,
@@ -673,13 +873,14 @@ const NOVA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-ef161f242c7e"
+    "flowGroup": "record-4ae37dadcc6e",
+    "flowRole": "content"
   },
   {
     "category": "image",
-    "src": "http://localhost:8000/template-assets/iconic/nova/languages.png",
+    "src": "/template-assets/iconic/nova/languages.png",
     "left": 64.0,
-    "top": 698.2500000000001,
+    "top": 716.2500000000001,
     "width": 14.0,
     "height": 14.0,
     "zIndex": 3,
@@ -694,7 +895,7 @@ const NOVA_ELEMENTS = [
     "fontFamily": "Montserrat",
     "color": "#C45C26",
     "left": 84.0,
-    "top": 698.2500000000001,
+    "top": 716.2500000000001,
     "zIndex": 3,
     "page": 1,
     "bold": true,
@@ -705,7 +906,7 @@ const NOVA_ELEMENTS = [
   {
     "category": "line",
     "left": 84.0,
-    "top": 711.7250000000001,
+    "top": 729.7250000000001,
     "width": 463.0,
     "height": 1,
     "backgroundColor": "#E0D2C0",
@@ -715,9 +916,40 @@ const NOVA_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "angielski — B2",
+    "content": "Polski — ojczysty",
     "left": 84.0,
-    "top": 719.7250000000001,
+    "top": 737.7250000000001,
+    "width": 107.75,
+    "height": 14,
+    "fontSize": 9.3,
+    "lineHeight": 13.4,
+    "letterSpacing": 0,
+    "color": "#2C241C",
+    "fontFamily": "Montserrat",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "runs": [
+      {
+        "start": 9,
+        "end": 17,
+        "italic": true,
+        "color": "#C45C26"
+      }
+    ],
+    "flowRole": "grid-member",
+    "flowGroup": "record-cf1e8d64ea7b"
+  },
+  {
+    "category": "textarea",
+    "content": "Angielski — C1",
+    "left": 199.75,
+    "top": 737.7250000000001,
     "width": 107.75,
     "height": 14,
     "fontSize": 9.3,
@@ -742,7 +974,38 @@ const NOVA_ELEMENTS = [
       }
     ],
     "flowRole": "grid-member",
-    "flowGroup": "record-856457644bce"
+    "flowGroup": "record-cf1e8d64ea7b"
+  },
+  {
+    "category": "textarea",
+    "content": "Niemiecki — B2",
+    "left": 315.5,
+    "top": 737.7250000000001,
+    "width": 107.75,
+    "height": 14,
+    "fontSize": 9.3,
+    "lineHeight": 13.4,
+    "letterSpacing": 0,
+    "color": "#2C241C",
+    "fontFamily": "Montserrat",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "runs": [
+      {
+        "start": 12,
+        "end": 14,
+        "italic": true,
+        "color": "#C45C26"
+      }
+    ],
+    "flowRole": "grid-member",
+    "flowGroup": "record-cf1e8d64ea7b"
   }
 ];
 
@@ -796,7 +1059,7 @@ const VOLT_ELEMENTS = [
   },
   {
     "category": "text",
-    "content": "Marta Kowalczyk",
+    "content": "Julia Bernat",
     "fontSize": 32,
     "fontFamily": "Montserrat",
     "color": "#E8ECF0",
@@ -806,11 +1069,13 @@ const VOLT_ELEMENTS = [
     "page": 1,
     "bold": true,
     "italic": false,
-    "flowRole": "masthead"
+    "flowRole": "masthead",
+    "mastheadRole": "name",
+    "mastheadBandId": "masthead-main"
   },
   {
     "category": "text",
-    "content": "Threat Intelligence Analyst",
+    "content": "Analityczka AML i Compliance",
     "fontSize": 9,
     "fontFamily": "JetBrainsMono",
     "color": "#E8A838",
@@ -821,7 +1086,9 @@ const VOLT_ELEMENTS = [
     "bold": false,
     "italic": false,
     "letterSpacing": 1.2,
-    "flowRole": "masthead"
+    "flowRole": "masthead",
+    "mastheadRole": "title",
+    "mastheadBandId": "masthead-main"
   },
   {
     "category": "rectangle",
@@ -835,11 +1102,13 @@ const VOLT_ELEMENTS = [
     "borderRadius": null,
     "zIndex": 1,
     "page": 1,
-    "flowRole": "masthead"
+    "flowRole": "masthead",
+    "contactChannel": "phone",
+    "contactBandId": "contact-main"
   },
   {
     "category": "image",
-    "src": "http://localhost:8000/template-assets/iconic/volt/phone.png",
+    "src": "/template-assets/iconic/volt/phone.png",
     "left": 54.0,
     "top": 114.1,
     "width": 15.0,
@@ -847,11 +1116,13 @@ const VOLT_ELEMENTS = [
     "zIndex": 3,
     "page": 1,
     "alignWithText": true,
-    "flowRole": "masthead"
+    "flowRole": "masthead",
+    "contactChannel": "phone",
+    "contactBandId": "contact-main"
   },
   {
     "category": "text",
-    "content": "+48 512 903 447",
+    "content": "+48 512 340 780",
     "fontSize": 7.8,
     "fontFamily": "JetBrainsMono",
     "color": "#C5CCD6",
@@ -861,13 +1132,15 @@ const VOLT_ELEMENTS = [
     "page": 1,
     "bold": false,
     "italic": false,
-    "flowRole": "masthead"
+    "flowRole": "masthead",
+    "contactChannel": "phone",
+    "contactBandId": "contact-main"
   },
   {
     "category": "rectangle",
     "left": 176.0,
     "top": 108.0,
-    "width": 168.0,
+    "width": 142.4,
     "height": 20.0,
     "backgroundColor": "#1A2030",
     "borderWidth": 1,
@@ -875,11 +1148,13 @@ const VOLT_ELEMENTS = [
     "borderRadius": null,
     "zIndex": 1,
     "page": 1,
-    "flowRole": "masthead"
+    "flowRole": "masthead",
+    "contactChannel": "email",
+    "contactBandId": "contact-main"
   },
   {
     "category": "image",
-    "src": "http://localhost:8000/template-assets/iconic/volt/email.png",
+    "src": "/template-assets/iconic/volt/email.png",
     "left": 182.0,
     "top": 114.1,
     "width": 15.0,
@@ -887,11 +1162,13 @@ const VOLT_ELEMENTS = [
     "zIndex": 3,
     "page": 1,
     "alignWithText": true,
-    "flowRole": "masthead"
+    "flowRole": "masthead",
+    "contactChannel": "email",
+    "contactBandId": "contact-main"
   },
   {
     "category": "text",
-    "content": "marta.kowalczyk.ti@protonmail.com",
+    "content": "julia.bernat@email.com",
     "fontSize": 7.8,
     "fontFamily": "JetBrainsMono",
     "color": "#C5CCD6",
@@ -901,13 +1178,15 @@ const VOLT_ELEMENTS = [
     "page": 1,
     "bold": false,
     "italic": false,
-    "flowRole": "masthead"
+    "flowRole": "masthead",
+    "contactChannel": "email",
+    "contactBandId": "contact-main"
   },
   {
     "category": "rectangle",
-    "left": 352.0,
+    "left": 326.4,
     "top": 108.0,
-    "width": 168.0,
+    "width": 147.60000000000002,
     "height": 20.0,
     "backgroundColor": "#1A2030",
     "borderWidth": 1,
@@ -915,39 +1194,45 @@ const VOLT_ELEMENTS = [
     "borderRadius": null,
     "zIndex": 1,
     "page": 1,
-    "flowRole": "masthead"
+    "flowRole": "masthead",
+    "contactChannel": "linkedin",
+    "contactBandId": "contact-main"
   },
   {
     "category": "image",
-    "src": "http://localhost:8000/template-assets/iconic/volt/linkedin.png",
-    "left": 358.0,
+    "src": "/template-assets/iconic/volt/linkedin.png",
+    "left": 332.4,
     "top": 114.1,
     "width": 15.0,
     "height": 15.0,
     "zIndex": 3,
     "page": 1,
     "alignWithText": true,
-    "flowRole": "masthead"
+    "flowRole": "masthead",
+    "contactChannel": "linkedin",
+    "contactBandId": "contact-main"
   },
   {
     "category": "text",
-    "content": "linkedin.com/in/marta-kowal…",
+    "content": "linkedin.com/in/jbernat",
     "fontSize": 7.8,
     "fontFamily": "JetBrainsMono",
     "color": "#C5CCD6",
-    "left": 379.0,
+    "left": 353.4,
     "top": 114.1,
     "zIndex": 3,
     "page": 1,
     "bold": false,
     "italic": false,
-    "flowRole": "masthead"
+    "flowRole": "masthead",
+    "contactChannel": "linkedin",
+    "contactBandId": "contact-main"
   },
   {
     "category": "rectangle",
     "left": 48.0,
     "top": 136.0,
-    "width": 137.2,
+    "width": 121.60000000000001,
     "height": 20.0,
     "backgroundColor": "#1A2030",
     "borderWidth": 1,
@@ -955,11 +1240,13 @@ const VOLT_ELEMENTS = [
     "borderRadius": null,
     "zIndex": 1,
     "page": 1,
-    "flowRole": "masthead"
+    "flowRole": "masthead",
+    "contactChannel": "github",
+    "contactBandId": "contact-main"
   },
   {
     "category": "image",
-    "src": "http://localhost:8000/template-assets/iconic/volt/github.png",
+    "src": "/template-assets/iconic/volt/github.png",
     "left": 54.0,
     "top": 142.1,
     "width": 15.0,
@@ -967,11 +1254,13 @@ const VOLT_ELEMENTS = [
     "zIndex": 3,
     "page": 1,
     "alignWithText": true,
-    "flowRole": "masthead"
+    "flowRole": "masthead",
+    "contactChannel": "github",
+    "contactBandId": "contact-main"
   },
   {
     "category": "text",
-    "content": "github.com/mkowalczyk",
+    "content": "github.com/jbernat",
     "fontSize": 7.8,
     "fontFamily": "JetBrainsMono",
     "color": "#C5CCD6",
@@ -981,11 +1270,13 @@ const VOLT_ELEMENTS = [
     "page": 1,
     "bold": false,
     "italic": false,
-    "flowRole": "masthead"
+    "flowRole": "masthead",
+    "contactChannel": "github",
+    "contactBandId": "contact-main"
   },
   {
     "category": "rectangle",
-    "left": 193.2,
+    "left": 177.60000000000002,
     "top": 136.0,
     "width": 120.0,
     "height": 20.0,
@@ -995,37 +1286,43 @@ const VOLT_ELEMENTS = [
     "borderRadius": null,
     "zIndex": 1,
     "page": 1,
-    "flowRole": "masthead"
+    "flowRole": "masthead",
+    "contactChannel": "website",
+    "contactBandId": "contact-main"
   },
   {
     "category": "image",
-    "src": "http://localhost:8000/template-assets/iconic/volt/website.png",
-    "left": 199.2,
+    "src": "/template-assets/iconic/volt/website.png",
+    "left": 183.60000000000002,
     "top": 142.1,
     "width": 15.0,
     "height": 15.0,
     "zIndex": 3,
     "page": 1,
     "alignWithText": true,
-    "flowRole": "masthead"
+    "flowRole": "masthead",
+    "contactChannel": "website",
+    "contactBandId": "contact-main"
   },
   {
     "category": "text",
-    "content": "martakowalczyk.pl",
+    "content": "juliabernat.pl",
     "fontSize": 7.8,
     "fontFamily": "JetBrainsMono",
     "color": "#C5CCD6",
-    "left": 220.2,
+    "left": 204.60000000000002,
     "top": 142.1,
     "zIndex": 3,
     "page": 1,
     "bold": false,
     "italic": false,
-    "flowRole": "masthead"
+    "flowRole": "masthead",
+    "contactChannel": "website",
+    "contactBandId": "contact-main"
   },
   {
     "category": "rectangle",
-    "left": 321.2,
+    "left": 305.6,
     "top": 136.0,
     "width": 120.0,
     "height": 20.0,
@@ -1035,33 +1332,137 @@ const VOLT_ELEMENTS = [
     "borderRadius": null,
     "zIndex": 1,
     "page": 1,
-    "flowRole": "masthead"
+    "flowRole": "masthead",
+    "contactChannel": "location",
+    "contactBandId": "contact-main"
   },
   {
     "category": "image",
-    "src": "http://localhost:8000/template-assets/iconic/volt/location.png",
-    "left": 327.2,
+    "src": "/template-assets/iconic/volt/location.png",
+    "left": 311.6,
     "top": 142.1,
     "width": 15.0,
     "height": 15.0,
     "zIndex": 3,
     "page": 1,
     "alignWithText": true,
-    "flowRole": "masthead"
+    "flowRole": "masthead",
+    "contactChannel": "location",
+    "contactBandId": "contact-main"
   },
   {
     "category": "text",
-    "content": "Katowice",
+    "content": "Warszawa",
     "fontSize": 7.8,
     "fontFamily": "JetBrainsMono",
     "color": "#C5CCD6",
-    "left": 348.2,
+    "left": 332.6,
     "top": 142.1,
     "zIndex": 3,
     "page": 1,
     "bold": false,
     "italic": false,
-    "flowRole": "masthead"
+    "flowRole": "masthead",
+    "contactChannel": "location",
+    "contactBandId": "contact-main"
+  },
+  {
+    "category": "text",
+    "content": "",
+    "left": 0,
+    "top": 0,
+    "width": 0,
+    "height": 0,
+    "fontSize": 1,
+    "fontFamily": "Inter",
+    "color": "#000000",
+    "zIndex": 0,
+    "page": 1,
+    "flowRole": "masthead-anchor",
+    "contactBand": {
+      "id": "contact-main",
+      "mode": "chip",
+      "anchor": {
+        "startX": 48.0,
+        "startY": 108.0,
+        "rightLimit": 547.0
+      },
+      "text": {
+        "fontFamily": "JetBrainsMono",
+        "fontSizePt": 7.8,
+        "colorHex": "#C5CCD6"
+      },
+      "icon": {
+        "sizePt": 15.0,
+        "theme": "volt"
+      },
+      "chipColor": "#1A2030",
+      "metrics": {
+        "chipH": 20.0,
+        "iconSize": 15.0,
+        "padLeft": 6.0,
+        "labelOffset": 27.0,
+        "widthBase": 28.0,
+        "widthPerChar": 5.2,
+        "minWidth": 120.0,
+        "maxWidth": 168.0,
+        "chipGap": 8.0,
+        "lineStep": 28.0,
+        "charWidth": 5.2
+      },
+      "order": [
+        "phone",
+        "email",
+        "linkedin",
+        "github",
+        "website",
+        "location"
+      ]
+    },
+    "contactBandId": "contact-main"
+  },
+  {
+    "category": "text",
+    "content": "",
+    "left": 0,
+    "top": 0,
+    "width": 0,
+    "height": 0,
+    "fontSize": 1,
+    "fontFamily": "Inter",
+    "color": "#000000",
+    "zIndex": 0,
+    "page": 1,
+    "flowRole": "masthead-anchor",
+    "mastheadIdentity": {
+      "id": "masthead-main",
+      "name": {
+        "defaultUppercase": false
+      },
+      "title": {
+        "spec": {
+          "category": "text",
+          "content": "Analityczka AML i Compliance",
+          "left": 50,
+          "top": 78.0,
+          "width": null,
+          "height": null,
+          "fontSizePt": 9,
+          "lineHeight": null,
+          "fontFamily": "JetBrainsMono",
+          "colorHex": "#E8A838",
+          "letterSpacing": 1.2,
+          "align": null,
+          "autoHeight": false,
+          "textTransform": "none",
+          "bold": false
+        },
+        "blockPt": 30.0,
+        "present": true
+      },
+      "contactBandId": "contact-main"
+    },
+    "mastheadBandId": "masthead-main"
   },
   {
     "category": "rectangle",
@@ -1079,7 +1480,7 @@ const VOLT_ELEMENTS = [
   },
   {
     "category": "image",
-    "src": "http://localhost:8000/template-assets/iconic/volt/summary.png",
+    "src": "/template-assets/iconic/volt/summary.png",
     "left": 50.5,
     "top": 193.8,
     "width": 15.0,
@@ -1117,11 +1518,11 @@ const VOLT_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Threat Intelligence Analyst śledząca aktywność grup zagrożeń i przygotowująca raporty ostrzegawcze dla zespołów SOC. Wcześniej pracowałam jako analityczka L1, co daje mi praktyczne zrozumienie całego cyklu obsługi incydentu.",
+    "content": "Analityczka AML łącząca wiedzę regulacyjną z dyscypliną wykonania. Prowadzę monitoring transakcji i raporty SAR, dbając o jakość analiz oraz terminowość decyzji bez utraty dokładności.",
     "left": 78,
     "top": 218.0,
     "width": 469,
-    "height": 41,
+    "height": 27,
     "fontSize": 9.4,
     "lineHeight": 13.4,
     "letterSpacing": 0,
@@ -1134,12 +1535,13 @@ const VOLT_ELEMENTS = [
     "align": "left",
     "bulletList": false,
     "autoHeight": true,
-    "preserveInitialLayout": true
+    "preserveInitialLayout": true,
+    "flowRole": "content"
   },
   {
     "category": "rectangle",
     "left": 48,
-    "top": 280.0,
+    "top": 266.0,
     "width": 20.0,
     "height": 20.0,
     "backgroundColor": "#1A2030",
@@ -1152,9 +1554,9 @@ const VOLT_ELEMENTS = [
   },
   {
     "category": "image",
-    "src": "http://localhost:8000/template-assets/iconic/volt/experience.png",
+    "src": "/template-assets/iconic/volt/experience.png",
     "left": 50.5,
-    "top": 285.8,
+    "top": 271.8,
     "width": 15.0,
     "height": 15.0,
     "zIndex": 3,
@@ -1169,7 +1571,7 @@ const VOLT_ELEMENTS = [
     "fontFamily": "Montserrat",
     "color": "#E8A838",
     "left": 78,
-    "top": 285.8,
+    "top": 271.8,
     "zIndex": 3,
     "page": 1,
     "bold": false,
@@ -1180,7 +1582,7 @@ const VOLT_ELEMENTS = [
   {
     "category": "line",
     "left": 78,
-    "top": 302.0,
+    "top": 288.0,
     "width": 469,
     "height": 1,
     "backgroundColor": "#2A3140",
@@ -1190,9 +1592,9 @@ const VOLT_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Threat Intelligence Analyst",
+    "content": "Analityczka AML",
     "left": 78,
-    "top": 310.0,
+    "top": 296.0,
     "width": 469,
     "height": 15,
     "fontSize": 11,
@@ -1208,13 +1610,14 @@ const VOLT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-65d829a03b29"
+    "flowGroup": "record-cbbaa2496ba8",
+    "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "Bastion CyberSec   ·   Katowice   ·   Styczeń 2023 – obecnie",
+    "content": "Crestmont Advisory   ·   Warszawa   ·   2022 – obecnie",
     "left": 78,
-    "top": 329.0,
+    "top": 315.0,
     "width": 469,
     "height": 12,
     "fontSize": 8.5,
@@ -1230,15 +1633,16 @@ const VOLT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-65d829a03b29"
+    "flowGroup": "record-cbbaa2496ba8",
+    "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "• Śledzę aktywność grup APT i publikuję wewnętrzne raporty ostrzegawcze.\n• Wzbogacam alerty SOC o kontekst z wywiadu zagrożeń (OSINT, MISP).\n• Prowadzę analizę wskaźników kompromitacji (IOC) i aktualizuję reguły detekcji.\n• Współpracuję z zespołem SOC nad priorytetyzacją najbardziej istotnych zagrożeń.",
+    "content": "• Prowadzi monitoring transakcji i analizę alertów AML dla klientów firmowych.\n• Realizuje CDD/EDD oraz przygotowuje dokumentację zgodną z wymogami FIU.\n• Wspiera zespół L2 przy eskalacjach spraw o podwyższonym ryzyku AML.",
     "left": 78,
-    "top": 345.0,
+    "top": 331.0,
     "width": 469,
-    "height": 54,
+    "height": 41,
     "fontSize": 9.4,
     "lineHeight": 13.4,
     "letterSpacing": 0,
@@ -1252,13 +1656,14 @@ const VOLT_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-65d829a03b29"
+    "flowGroup": "record-cbbaa2496ba8",
+    "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "Analityczka SOC (L1)",
+    "content": "Analityczka KYC",
     "left": 78,
-    "top": 409.0,
+    "top": 382.0,
     "width": 469,
     "height": 15,
     "fontSize": 11,
@@ -1274,13 +1679,14 @@ const VOLT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-127be014f512"
+    "flowGroup": "record-7a934c2eb8fe",
+    "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "SecuraNet Sp. z o.o.   ·   Katowice   ·   Sierpień 2021 – Grudzień 2022",
+    "content": "Baltic Trust Bank   ·   Warszawa   ·   2019 – 2022",
     "left": 78,
-    "top": 428.0,
+    "top": 401.0,
     "width": 469,
     "height": 12,
     "fontSize": 8.5,
@@ -1296,13 +1702,14 @@ const VOLT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-127be014f512"
+    "flowGroup": "record-7a934c2eb8fe",
+    "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "• Monitorowałam alerty bezpieczeństwa i prowadziłam wstępny triage incydentów.\n• Dokumentowałam analizy zgodnie z wewnętrznymi procedurami klienta.",
+    "content": "• Weryfikowała profile klientów oraz screening PEP, sanctions i media.\n• Utrzymywała jakość raportów SAR oraz terminowość odpowiedzi na RFI.",
     "left": 78,
-    "top": 444.0,
+    "top": 417.0,
     "width": 469,
     "height": 27,
     "fontSize": 9.4,
@@ -1318,12 +1725,82 @@ const VOLT_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-127be014f512"
+    "flowGroup": "record-7a934c2eb8fe",
+    "flowRole": "content"
+  },
+  {
+    "category": "textarea",
+    "content": "Specjalistka Obsługi Klienta",
+    "left": 78,
+    "top": 454.0,
+    "width": 469,
+    "height": 15,
+    "fontSize": 11,
+    "lineHeight": 13.5,
+    "letterSpacing": 0,
+    "color": "#E8ECF0",
+    "fontFamily": "Montserrat",
+    "zIndex": 2,
+    "page": 1,
+    "bold": true,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-6804a7e05cfe",
+    "flowRole": "content"
+  },
+  {
+    "category": "textarea",
+    "content": "Helios Services   ·   Kraków   ·   2016 – 2019",
+    "left": 78,
+    "top": 473.0,
+    "width": 469,
+    "height": 12,
+    "fontSize": 8.5,
+    "lineHeight": 11.5,
+    "letterSpacing": 0,
+    "color": "#8B93A0",
+    "fontFamily": "JetBrainsMono",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-6804a7e05cfe",
+    "flowRole": "content"
+  },
+  {
+    "category": "textarea",
+    "content": "• Obsługiwała zamówienia i weryfikację danych klientów na rynkach DACH.",
+    "left": 78,
+    "top": 489.0,
+    "width": 469,
+    "height": 14,
+    "fontSize": 9.4,
+    "lineHeight": 13.4,
+    "letterSpacing": 0,
+    "color": "#C5CCD6",
+    "fontFamily": "Montserrat",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": true,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-6804a7e05cfe",
+    "flowRole": "content"
   },
   {
     "category": "rectangle",
     "left": 48,
-    "top": 492.0,
+    "top": 524.0,
     "width": 20.0,
     "height": 20.0,
     "backgroundColor": "#1A2030",
@@ -1336,9 +1813,9 @@ const VOLT_ELEMENTS = [
   },
   {
     "category": "image",
-    "src": "http://localhost:8000/template-assets/iconic/volt/education.png",
+    "src": "/template-assets/iconic/volt/education.png",
     "left": 50.5,
-    "top": 497.8,
+    "top": 529.8,
     "width": 15.0,
     "height": 15.0,
     "zIndex": 3,
@@ -1353,7 +1830,7 @@ const VOLT_ELEMENTS = [
     "fontFamily": "Montserrat",
     "color": "#E8A838",
     "left": 78,
-    "top": 497.8,
+    "top": 529.8,
     "zIndex": 3,
     "page": 1,
     "bold": false,
@@ -1364,7 +1841,7 @@ const VOLT_ELEMENTS = [
   {
     "category": "line",
     "left": 78,
-    "top": 514.0,
+    "top": 546.0,
     "width": 469,
     "height": 1,
     "backgroundColor": "#2A3140",
@@ -1374,9 +1851,9 @@ const VOLT_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Magister informatyki — specjalność: Bezpieczeństwo informacji",
+    "content": "Licencjat Prawa",
     "left": 78,
-    "top": 522.0,
+    "top": 554.0,
     "width": 469,
     "height": 13,
     "fontSize": 10.4,
@@ -1392,13 +1869,14 @@ const VOLT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-1ee168ee1273"
+    "flowGroup": "record-71b43d133708",
+    "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "Uniwersytet Śląski",
+    "content": "UW Warszawa",
     "left": 78,
-    "top": 539.0,
+    "top": 571.0,
     "width": 469,
     "height": 13,
     "fontSize": 10.4,
@@ -1414,13 +1892,14 @@ const VOLT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-1ee168ee1273"
+    "flowGroup": "record-71b43d133708",
+    "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "Katowice   ·   ukończono czerwiec 2021",
+    "content": "2012 – 2016",
     "left": 78,
-    "top": 556.0,
+    "top": 588.0,
     "width": 469,
     "height": 12,
     "fontSize": 8.5,
@@ -1436,34 +1915,13 @@ const VOLT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-1ee168ee1273"
-  },
-  {
-    "category": "textarea",
-    "content": "• Praca magisterska dotycząca klasyfikacji złośliwego oprogramowania.",
-    "left": 78,
-    "top": 572.0,
-    "width": 469,
-    "height": 14,
-    "fontSize": 9.2,
-    "lineHeight": 13.2,
-    "letterSpacing": 0,
-    "color": "#C5CCD6",
-    "fontFamily": "Montserrat",
-    "zIndex": 2,
-    "page": 1,
-    "bold": false,
-    "italic": false,
-    "align": "left",
-    "bulletList": true,
-    "autoHeight": true,
-    "preserveInitialLayout": true,
-    "flowGroup": "record-1ee168ee1273"
+    "flowGroup": "record-71b43d133708",
+    "flowRole": "content"
   },
   {
     "category": "rectangle",
     "left": 48,
-    "top": 607.0,
+    "top": 621.0,
     "width": 20.0,
     "height": 20.0,
     "backgroundColor": "#1A2030",
@@ -1476,9 +1934,9 @@ const VOLT_ELEMENTS = [
   },
   {
     "category": "image",
-    "src": "http://localhost:8000/template-assets/iconic/volt/skills.png",
+    "src": "/template-assets/iconic/volt/skills.png",
     "left": 50.5,
-    "top": 612.8,
+    "top": 626.8,
     "width": 15.0,
     "height": 15.0,
     "zIndex": 3,
@@ -1493,7 +1951,7 @@ const VOLT_ELEMENTS = [
     "fontFamily": "Montserrat",
     "color": "#E8A838",
     "left": 78,
-    "top": 612.8,
+    "top": 626.8,
     "zIndex": 3,
     "page": 1,
     "bold": false,
@@ -1504,7 +1962,7 @@ const VOLT_ELEMENTS = [
   {
     "category": "line",
     "left": 78,
-    "top": 629.0,
+    "top": 643.0,
     "width": 469,
     "height": 1,
     "backgroundColor": "#2A3140",
@@ -1514,11 +1972,11 @@ const VOLT_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "threat intelligence  ·  OSINT  ·  MISP  ·  analiza IOC  ·  SIEM  ·  MITRE ATT&CK  ·  Wireshark  ·  Python  ·  SQL  ·  Git",
+    "content": "AML/KYC  ·  Monitoring  ·  CDD/EDD  ·  Raporty SAR  ·  Analiza transakcyjna",
     "left": 78,
-    "top": 637.0,
+    "top": 651.0,
     "width": 469,
-    "height": 27,
+    "height": 14,
     "fontSize": 9.3,
     "lineHeight": 13.4,
     "letterSpacing": 0,
@@ -1532,12 +1990,13 @@ const VOLT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-d365a8c9fd01"
+    "flowGroup": "record-f59ffdbde80c",
+    "flowRole": "content"
   },
   {
     "category": "rectangle",
     "left": 48,
-    "top": 685.0,
+    "top": 686.0,
     "width": 20.0,
     "height": 20.0,
     "backgroundColor": "#1A2030",
@@ -1550,9 +2009,9 @@ const VOLT_ELEMENTS = [
   },
   {
     "category": "image",
-    "src": "http://localhost:8000/template-assets/iconic/volt/languages.png",
+    "src": "/template-assets/iconic/volt/languages.png",
     "left": 50.5,
-    "top": 690.8,
+    "top": 691.8,
     "width": 15.0,
     "height": 15.0,
     "zIndex": 3,
@@ -1567,7 +2026,7 @@ const VOLT_ELEMENTS = [
     "fontFamily": "Montserrat",
     "color": "#E8A838",
     "left": 78,
-    "top": 690.8,
+    "top": 691.8,
     "zIndex": 3,
     "page": 1,
     "bold": false,
@@ -1578,7 +2037,7 @@ const VOLT_ELEMENTS = [
   {
     "category": "line",
     "left": 78,
-    "top": 707.0,
+    "top": 708.0,
     "width": 469,
     "height": 1,
     "backgroundColor": "#2A3140",
@@ -1588,9 +2047,40 @@ const VOLT_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "angielski — C1",
+    "content": "Polski — ojczysty",
     "left": 78.0,
-    "top": 715.0,
+    "top": 716.0,
+    "width": 109.25,
+    "height": 14,
+    "fontSize": 9.3,
+    "lineHeight": 13.4,
+    "letterSpacing": 0,
+    "color": "#C5CCD6",
+    "fontFamily": "Montserrat",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "runs": [
+      {
+        "start": 9,
+        "end": 17,
+        "italic": true,
+        "color": "#E8A838"
+      }
+    ],
+    "flowRole": "grid-member",
+    "flowGroup": "record-fae6f20c61e0"
+  },
+  {
+    "category": "textarea",
+    "content": "Angielski — C1",
+    "left": 195.25,
+    "top": 716.0,
     "width": 109.25,
     "height": 14,
     "fontSize": 9.3,
@@ -1615,13 +2105,13 @@ const VOLT_ELEMENTS = [
       }
     ],
     "flowRole": "grid-member",
-    "flowGroup": "record-d53010d6d12c"
+    "flowGroup": "record-fae6f20c61e0"
   },
   {
     "category": "textarea",
-    "content": "rosyjski — B1",
-    "left": 195.25,
-    "top": 715.0,
+    "content": "Niemiecki — B2",
+    "left": 312.5,
+    "top": 716.0,
     "width": 109.25,
     "height": 14,
     "fontSize": 9.3,
@@ -1639,14 +2129,14 @@ const VOLT_ELEMENTS = [
     "preserveInitialLayout": true,
     "runs": [
       {
-        "start": 11,
-        "end": 13,
+        "start": 12,
+        "end": 14,
         "italic": true,
         "color": "#E8A838"
       }
     ],
     "flowRole": "grid-member",
-    "flowGroup": "record-d53010d6d12c"
+    "flowGroup": "record-fae6f20c61e0"
   }
 ];
 

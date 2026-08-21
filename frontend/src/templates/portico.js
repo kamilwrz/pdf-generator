@@ -1,13 +1,17 @@
 /**
- * Portico template (auto-generated demo content).
+ * Portico template (`layouts: ["icons"]`).
  *
- * Landing-page / picker preview content, generated from the backend
- * template's own output (`backend/app/services/cv_templates/templates/portico.py`)
- * for representative demo content, so the picker preview matches what
- * `/ai/fill_template` produces pixel-for-pixel. Image `src` values are stored
- * relative and get the API base prepended at load time. The array already
- * carries `flowRole` / `flowGroup` / `preserveInitialLayout` from the
- * generator, so it is exported as-is (only the image src is absolutised).
+ * Centered masthead with icon contact chrome; left-aligned body with
+ * icon-in-gutter section headings.
+ *
+ * This static starter is the backend generator's own output
+ * (`backend/app/services/cv_templates/templates/portico.py`) for
+ * representative demo content (Julia Bernat — three roles, one degree, five skills, and three languages, sized to fit page 1 of the mockup), so the
+ * picker preview matches what `/ai/fill_template` produces pixel-for-pixel.
+ * Image `src` values are stored relative and get the API base prepended at
+ * load time. The array already carries `flowRole` / `flowGroup` /
+ * `preserveInitialLayout` from the generator, so it is exported as-is (only
+ * the image src is absolutised).
  */
 import API_BASE_URL from "../services/api.js";
 
@@ -50,7 +54,7 @@ const PORTICO_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Karolina Zawadzka",
+    "content": "Julia Bernat",
     "left": 76,
     "top": 18.0,
     "width": 443,
@@ -68,7 +72,9 @@ const PORTICO_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowRole": "masthead"
+    "flowRole": "masthead",
+    "mastheadRole": "name",
+    "mastheadBandId": "masthead-main"
   },
   {
     "category": "rectangle",
@@ -105,7 +111,7 @@ const PORTICO_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Cloud Security Analyst",
+    "content": "Analityczka AML i Compliance",
     "left": 76,
     "top": 169.0,
     "width": 443,
@@ -123,137 +129,189 @@ const PORTICO_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowRole": "masthead"
+    "flowRole": "masthead",
+    "mastheadRole": "title",
+    "mastheadBandId": "masthead-main"
   },
   {
     "category": "image",
-    "src": "http://localhost:8000/template-assets/iconic/portico/phone.png",
-    "left": 84.31621093749999,
+    "src": "/template-assets/iconic/portico/phone.png",
+    "left": 84.05683593750001,
     "top": 193.0,
     "width": 12.0,
     "height": 12.0,
     "zIndex": 3,
     "page": 1,
     "alignWithText": true,
-    "flowRole": "masthead"
+    "flowRole": "masthead",
+    "contactChannel": "phone",
+    "contactBandId": "contact-main"
   },
   {
     "category": "text",
-    "content": "+48 508 267 934",
+    "content": "+48 512 340 780",
     "fontSize": 8.4,
     "fontFamily": "Inter",
     "color": "#83786B",
-    "left": 97.31621093749999,
+    "left": 97.05683593750001,
     "top": 193.0,
     "zIndex": 3,
     "page": 1,
     "bold": false,
     "italic": false,
-    "flowRole": "masthead"
+    "flowRole": "masthead",
+    "contactChannel": "phone",
+    "contactBandId": "contact-main"
   },
   {
     "category": "image",
-    "src": "http://localhost:8000/template-assets/iconic/portico/email.png",
-    "left": 182.973046875,
+    "src": "/template-assets/iconic/portico/email.png",
+    "left": 181.01152343750002,
     "top": 193.0,
     "width": 12.0,
     "height": 12.0,
     "zIndex": 3,
     "page": 1,
     "alignWithText": true,
-    "flowRole": "masthead"
+    "flowRole": "masthead",
+    "contactChannel": "email",
+    "contactBandId": "contact-main"
   },
   {
     "category": "text",
-    "content": "karolina.zawadzka.cloud@gmail.com",
+    "content": "julia.bernat@email.com",
     "fontSize": 8.4,
     "fontFamily": "Inter",
     "color": "#83786B",
-    "left": 195.973046875,
+    "left": 194.01152343750002,
     "top": 193.0,
     "zIndex": 3,
     "page": 1,
     "bold": false,
     "italic": false,
-    "flowRole": "masthead"
+    "flowRole": "masthead",
+    "contactChannel": "email",
+    "contactBandId": "contact-main"
   },
   {
     "category": "image",
-    "src": "http://localhost:8000/template-assets/iconic/portico/linkedin.png",
-    "left": 359.14531250000005,
+    "src": "/template-assets/iconic/portico/linkedin.png",
+    "left": 302.6166015625,
     "top": 193.0,
     "width": 12.0,
     "height": 12.0,
     "zIndex": 3,
     "page": 1,
     "alignWithText": true,
-    "flowRole": "masthead"
+    "flowRole": "masthead",
+    "contactChannel": "linkedin",
+    "contactBandId": "contact-main"
   },
   {
     "category": "text",
-    "content": "linkedin.com/in/karolina-zawadzka",
+    "content": "linkedin.com/in/jbernat",
     "fontSize": 8.4,
     "fontFamily": "Inter",
     "color": "#83786B",
-    "left": 372.14531250000005,
+    "left": 315.6166015625,
     "top": 193.0,
     "zIndex": 3,
     "page": 1,
     "bold": false,
     "italic": false,
-    "flowRole": "masthead"
+    "flowRole": "masthead",
+    "contactChannel": "linkedin",
+    "contactBandId": "contact-main"
   },
   {
     "category": "image",
-    "src": "http://localhost:8000/template-assets/iconic/portico/github.png",
-    "left": 208.3115234375,
+    "src": "/template-assets/iconic/portico/github.png",
+    "left": 422.62617187500007,
+    "top": 193.0,
+    "width": 12.0,
+    "height": 12.0,
+    "zIndex": 3,
+    "page": 1,
+    "alignWithText": true,
+    "flowRole": "masthead",
+    "contactChannel": "github",
+    "contactBandId": "contact-main"
+  },
+  {
+    "category": "text",
+    "content": "github.com/jbernat",
+    "fontSize": 8.4,
+    "fontFamily": "Inter",
+    "color": "#83786B",
+    "left": 435.62617187500007,
+    "top": 193.0,
+    "zIndex": 3,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "flowRole": "masthead",
+    "contactChannel": "github",
+    "contactBandId": "contact-main"
+  },
+  {
+    "category": "image",
+    "src": "/template-assets/iconic/portico/website.png",
+    "left": 230.22412109375,
     "top": 208.0,
     "width": 12.0,
     "height": 12.0,
     "zIndex": 3,
     "page": 1,
     "alignWithText": true,
-    "flowRole": "masthead"
+    "flowRole": "masthead",
+    "contactChannel": "website",
+    "contactBandId": "contact-main"
   },
   {
     "category": "text",
-    "content": "github.com/kzawadzka",
+    "content": "juliabernat.pl",
     "fontSize": 8.4,
     "fontFamily": "Inter",
     "color": "#83786B",
-    "left": 221.3115234375,
+    "left": 243.22412109375,
     "top": 208.0,
     "zIndex": 3,
     "page": 1,
     "bold": false,
     "italic": false,
-    "flowRole": "masthead"
+    "flowRole": "masthead",
+    "contactChannel": "website",
+    "contactBandId": "contact-main"
   },
   {
     "category": "image",
-    "src": "http://localhost:8000/template-assets/iconic/portico/location.png",
-    "left": 329.62949218750003,
+    "src": "/template-assets/iconic/portico/location.png",
+    "left": 310.23935546875,
     "top": 208.0,
     "width": 12.0,
     "height": 12.0,
     "zIndex": 3,
     "page": 1,
     "alignWithText": true,
-    "flowRole": "masthead"
+    "flowRole": "masthead",
+    "contactChannel": "location",
+    "contactBandId": "contact-main"
   },
   {
     "category": "text",
-    "content": "Bydgoszcz",
+    "content": "Warszawa",
     "fontSize": 8.4,
     "fontFamily": "Inter",
     "color": "#83786B",
-    "left": 342.62949218750003,
+    "left": 323.23935546875,
     "top": 208.0,
     "zIndex": 3,
     "page": 1,
     "bold": false,
     "italic": false,
-    "flowRole": "masthead"
+    "flowRole": "masthead",
+    "contactChannel": "location",
+    "contactBandId": "contact-main"
   },
   {
     "category": "line",
@@ -267,8 +325,98 @@ const PORTICO_ELEMENTS = [
     "flowRole": "masthead"
   },
   {
+    "category": "text",
+    "content": "",
+    "left": 0,
+    "top": 0,
+    "width": 0,
+    "height": 0,
+    "fontSize": 1,
+    "fontFamily": "Inter",
+    "color": "#000000",
+    "zIndex": 0,
+    "page": 1,
+    "flowRole": "masthead-anchor",
+    "contactBand": {
+      "id": "contact-main",
+      "mode": "centered",
+      "anchor": {
+        "centerX": 297.5,
+        "startY": 193.0,
+        "maxWidth": 443.0
+      },
+      "text": {
+        "fontFamily": "Inter",
+        "fontSizePt": 8.4,
+        "colorHex": "#83786B"
+      },
+      "icon": {
+        "sizePt": 12.0,
+        "theme": "portico"
+      },
+      "metrics": {
+        "iconGap": 13.0,
+        "itemPad": 16.0,
+        "lineStep": 15.0,
+        "charWidth": 5.2
+      },
+      "order": [
+        "phone",
+        "email",
+        "linkedin",
+        "github",
+        "website",
+        "location"
+      ]
+    },
+    "contactBandId": "contact-main"
+  },
+  {
+    "category": "text",
+    "content": "",
+    "left": 0,
+    "top": 0,
+    "width": 0,
+    "height": 0,
+    "fontSize": 1,
+    "fontFamily": "Inter",
+    "color": "#000000",
+    "zIndex": 0,
+    "page": 1,
+    "flowRole": "masthead-anchor",
+    "mastheadIdentity": {
+      "id": "masthead-main",
+      "name": {
+        "defaultUppercase": false
+      },
+      "title": {
+        "spec": {
+          "category": "textarea",
+          "content": "Analityczka AML i Compliance",
+          "left": 76,
+          "top": 169.0,
+          "width": 443,
+          "height": 14,
+          "fontSizePt": 10,
+          "lineHeight": 14,
+          "fontFamily": "Inter",
+          "colorHex": "#7C6A52",
+          "letterSpacing": 2.0,
+          "align": "center",
+          "autoHeight": true,
+          "textTransform": "none",
+          "bold": false
+        },
+        "blockPt": 24.0,
+        "present": true
+      },
+      "contactBandId": "contact-main"
+    },
+    "mastheadBandId": "masthead-main"
+  },
+  {
     "category": "image",
-    "src": "http://localhost:8000/template-assets/iconic/portico/summary.png",
+    "src": "/template-assets/iconic/portico/summary.png",
     "left": 54,
     "top": 261.0,
     "width": 14.0,
@@ -306,11 +454,11 @@ const PORTICO_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Analityczka bezpieczeństwa chmury z doświadczeniem w konfiguracji zabezpieczeń AWS oraz przeglądach architektury pod kątem zgodności z dobrymi praktykami. Wcześniej pracowałam jako administratorka systemów, co daje mi solidne podstawy infrastrukturalne.",
+    "content": "Analityczka AML łącząca wiedzę regulacyjną z dyscypliną wykonania. Prowadzę monitoring transakcji i raporty SAR, dbając o jakość analiz.",
     "left": 76,
     "top": 282.475,
     "width": 443,
-    "height": 41,
+    "height": 27,
     "fontSize": 9.4,
     "lineHeight": 13.4,
     "letterSpacing": 0,
@@ -323,13 +471,14 @@ const PORTICO_ELEMENTS = [
     "align": "left",
     "bulletList": false,
     "autoHeight": true,
-    "preserveInitialLayout": true
+    "preserveInitialLayout": true,
+    "flowRole": "content"
   },
   {
     "category": "image",
-    "src": "http://localhost:8000/template-assets/iconic/portico/experience.png",
+    "src": "/template-assets/iconic/portico/experience.png",
     "left": 54,
-    "top": 344.475,
+    "top": 330.475,
     "width": 14.0,
     "height": 14.0,
     "zIndex": 3,
@@ -344,7 +493,7 @@ const PORTICO_ELEMENTS = [
     "fontFamily": "Inter",
     "color": "#7C6A52",
     "left": 76,
-    "top": 344.475,
+    "top": 330.475,
     "zIndex": 3,
     "page": 1,
     "bold": false,
@@ -355,7 +504,7 @@ const PORTICO_ELEMENTS = [
   {
     "category": "line",
     "left": 76,
-    "top": 357.95000000000005,
+    "top": 343.95000000000005,
     "width": 443,
     "height": 1,
     "backgroundColor": "#E4DED2",
@@ -365,9 +514,9 @@ const PORTICO_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Cloud Security Analyst",
+    "content": "Analityczka AML",
     "left": 76,
-    "top": 365.95000000000005,
+    "top": 351.95000000000005,
     "width": 443,
     "height": 15,
     "fontSize": 11,
@@ -383,13 +532,14 @@ const PORTICO_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-2a2e5737aecd"
+    "flowGroup": "record-7afb67636e28",
+    "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "Vantis Systems   ·   Bydgoszcz   ·   Kwiecień 2023 – obecnie",
+    "content": "Crestmont Advisory   ·   Warszawa   ·   2022 – obecnie",
     "left": 76,
-    "top": 384.95000000000005,
+    "top": 370.95000000000005,
     "width": 443,
     "height": 12,
     "fontSize": 8.5,
@@ -405,15 +555,16 @@ const PORTICO_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-2a2e5737aecd"
+    "flowGroup": "record-7afb67636e28",
+    "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "• Konfiguruję i audytuję zabezpieczenia środowisk AWS (IAM, S3, VPC).\n• Prowadzę przeglądy architektury chmurowej pod kątem zgodności z CIS Benchmarks.\n• Wdrażam automatyczne skanowanie konfiguracji (AWS Config, GuardDuty).",
+    "content": "• Prowadzi monitoring transakcji i analizę alertów AML dla klientów firmowych.",
     "left": 76,
-    "top": 400.95000000000005,
+    "top": 386.95000000000005,
     "width": 443,
-    "height": 41,
+    "height": 14,
     "fontSize": 9.4,
     "lineHeight": 13.4,
     "letterSpacing": 0,
@@ -427,13 +578,14 @@ const PORTICO_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-2a2e5737aecd"
+    "flowGroup": "record-7afb67636e28",
+    "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "Administratorka Systemów",
+    "content": "Analityczka KYC",
     "left": 76,
-    "top": 451.95000000000005,
+    "top": 410.95000000000005,
     "width": 443,
     "height": 15,
     "fontSize": 11,
@@ -449,13 +601,14 @@ const PORTICO_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-be1a32090ee2"
+    "flowGroup": "record-987f2668c8ae",
+    "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "OrbitTrade E-commerce   ·   Bydgoszcz   ·   Wrzesień 2021 – Marzec 2023",
+    "content": "Baltic Trust Bank   ·   Warszawa   ·   2019 – 2022",
     "left": 76,
-    "top": 470.95000000000005,
+    "top": 429.95000000000005,
     "width": 443,
     "height": 12,
     "fontSize": 8.5,
@@ -471,15 +624,16 @@ const PORTICO_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-be1a32090ee2"
+    "flowGroup": "record-987f2668c8ae",
+    "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "• Administrowałam infrastrukturą serwerową (Linux, Docker) sklepu internetowego.\n• Wspierałam migrację części usług do chmury AWS.",
+    "content": "• Weryfikowała profile klientów oraz screening PEP, sanctions i media.",
     "left": 76,
-    "top": 486.95000000000005,
+    "top": 445.95000000000005,
     "width": 443,
-    "height": 27,
+    "height": 14,
     "fontSize": 9.4,
     "lineHeight": 13.4,
     "letterSpacing": 0,
@@ -493,13 +647,83 @@ const PORTICO_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-be1a32090ee2"
+    "flowGroup": "record-987f2668c8ae",
+    "flowRole": "content"
+  },
+  {
+    "category": "textarea",
+    "content": "Specjalistka Obsługi Klienta",
+    "left": 76,
+    "top": 469.95000000000005,
+    "width": 443,
+    "height": 15,
+    "fontSize": 11,
+    "lineHeight": 13.5,
+    "letterSpacing": 0,
+    "color": "#22221F",
+    "fontFamily": "Inter",
+    "zIndex": 2,
+    "page": 1,
+    "bold": true,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-74928c068061",
+    "flowRole": "content"
+  },
+  {
+    "category": "textarea",
+    "content": "Helios Services   ·   Kraków   ·   2016 – 2019",
+    "left": 76,
+    "top": 488.95000000000005,
+    "width": 443,
+    "height": 12,
+    "fontSize": 8.5,
+    "lineHeight": 11.5,
+    "letterSpacing": 0,
+    "color": "#83786B",
+    "fontFamily": "Inter",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-74928c068061",
+    "flowRole": "content"
+  },
+  {
+    "category": "textarea",
+    "content": "• Obsługiwała zamówienia i weryfikację danych klientów na rynkach DACH.",
+    "left": 76,
+    "top": 504.95000000000005,
+    "width": 443,
+    "height": 14,
+    "fontSize": 9.4,
+    "lineHeight": 13.4,
+    "letterSpacing": 0,
+    "color": "#2A2A28",
+    "fontFamily": "Inter",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": true,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-74928c068061",
+    "flowRole": "content"
   },
   {
     "category": "image",
-    "src": "http://localhost:8000/template-assets/iconic/portico/education.png",
+    "src": "/template-assets/iconic/portico/education.png",
     "left": 54,
-    "top": 534.95,
+    "top": 539.95,
     "width": 14.0,
     "height": 14.0,
     "zIndex": 3,
@@ -514,7 +738,7 @@ const PORTICO_ELEMENTS = [
     "fontFamily": "Inter",
     "color": "#7C6A52",
     "left": 76,
-    "top": 534.95,
+    "top": 539.95,
     "zIndex": 3,
     "page": 1,
     "bold": false,
@@ -525,7 +749,7 @@ const PORTICO_ELEMENTS = [
   {
     "category": "line",
     "left": 76,
-    "top": 548.4250000000001,
+    "top": 553.4250000000001,
     "width": 443,
     "height": 1,
     "backgroundColor": "#E4DED2",
@@ -535,9 +759,9 @@ const PORTICO_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Inżynier informatyki",
+    "content": "Licencjat Prawa",
     "left": 76,
-    "top": 556.4250000000001,
+    "top": 561.4250000000001,
     "width": 443,
     "height": 13,
     "fontSize": 10.4,
@@ -553,13 +777,14 @@ const PORTICO_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-21097672642b"
+    "flowGroup": "record-1cdb8cb4f1b6",
+    "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "UTP Bydgoszcz",
+    "content": "UW Warszawa",
     "left": 76,
-    "top": 573.4250000000001,
+    "top": 578.4250000000001,
     "width": 443,
     "height": 13,
     "fontSize": 10.4,
@@ -575,13 +800,14 @@ const PORTICO_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-21097672642b"
+    "flowGroup": "record-1cdb8cb4f1b6",
+    "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "Bydgoszcz   ·   ukończono lipiec 2021",
+    "content": "2012 – 2016",
     "left": 76,
-    "top": 590.4250000000001,
+    "top": 595.4250000000001,
     "width": 443,
     "height": 12,
     "fontSize": 8.5,
@@ -597,35 +823,14 @@ const PORTICO_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-21097672642b"
-  },
-  {
-    "category": "textarea",
-    "content": "• Praca inżynierska dotycząca automatyzacji wdrożeń w chmurze.",
-    "left": 76,
-    "top": 606.4250000000001,
-    "width": 443,
-    "height": 14,
-    "fontSize": 9.2,
-    "lineHeight": 13.2,
-    "letterSpacing": 0,
-    "color": "#2A2A28",
-    "fontFamily": "Inter",
-    "zIndex": 2,
-    "page": 1,
-    "bold": false,
-    "italic": false,
-    "align": "left",
-    "bulletList": true,
-    "autoHeight": true,
-    "preserveInitialLayout": true,
-    "flowGroup": "record-21097672642b"
+    "flowGroup": "record-1cdb8cb4f1b6",
+    "flowRole": "content"
   },
   {
     "category": "image",
-    "src": "http://localhost:8000/template-assets/iconic/portico/skills.png",
+    "src": "/template-assets/iconic/portico/skills.png",
     "left": 54,
-    "top": 641.4250000000001,
+    "top": 628.4250000000001,
     "width": 14.0,
     "height": 14.0,
     "zIndex": 3,
@@ -640,7 +845,7 @@ const PORTICO_ELEMENTS = [
     "fontFamily": "Inter",
     "color": "#7C6A52",
     "left": 76,
-    "top": 641.4250000000001,
+    "top": 628.4250000000001,
     "zIndex": 3,
     "page": 1,
     "bold": false,
@@ -651,7 +856,7 @@ const PORTICO_ELEMENTS = [
   {
     "category": "line",
     "left": 76,
-    "top": 654.9000000000001,
+    "top": 641.9000000000001,
     "width": 443,
     "height": 1,
     "backgroundColor": "#E4DED2",
@@ -661,11 +866,11 @@ const PORTICO_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "AWS (IAM, S3, VPC, GuardDuty)  ·  CIS Benchmarks  ·  Docker  ·  Linux  ·  Python  ·  Terraform (podstawy)  ·  SQL  ·  Git",
+    "content": "AML/KYC  ·  Monitoring  ·  CDD/EDD  ·  Raporty SAR  ·  Analiza transakcyjna",
     "left": 76,
-    "top": 662.9000000000001,
+    "top": 649.9000000000001,
     "width": 443,
-    "height": 27,
+    "height": 14,
     "fontSize": 9.3,
     "lineHeight": 13.4,
     "letterSpacing": 0,
@@ -679,13 +884,14 @@ const PORTICO_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-4c95ea698f6a"
+    "flowGroup": "record-5184eb28d3a8",
+    "flowRole": "content"
   },
   {
     "category": "image",
-    "src": "http://localhost:8000/template-assets/iconic/portico/languages.png",
+    "src": "/template-assets/iconic/portico/languages.png",
     "left": 54,
-    "top": 710.9000000000001,
+    "top": 684.9000000000001,
     "width": 14.0,
     "height": 14.0,
     "zIndex": 3,
@@ -700,7 +906,7 @@ const PORTICO_ELEMENTS = [
     "fontFamily": "Inter",
     "color": "#7C6A52",
     "left": 76,
-    "top": 710.9000000000001,
+    "top": 684.9000000000001,
     "zIndex": 3,
     "page": 1,
     "bold": false,
@@ -711,7 +917,7 @@ const PORTICO_ELEMENTS = [
   {
     "category": "line",
     "left": 76,
-    "top": 724.3750000000001,
+    "top": 698.3750000000001,
     "width": 443,
     "height": 1,
     "backgroundColor": "#E4DED2",
@@ -721,9 +927,40 @@ const PORTICO_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "angielski — C1",
+    "content": "Polski — ojczysty",
     "left": 76.0,
-    "top": 732.3750000000001,
+    "top": 706.3750000000001,
+    "width": 102.75,
+    "height": 14,
+    "fontSize": 9.3,
+    "lineHeight": 13.4,
+    "letterSpacing": 0,
+    "color": "#2A2A28",
+    "fontFamily": "Inter",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "runs": [
+      {
+        "start": 9,
+        "end": 17,
+        "italic": true,
+        "color": "#7C6A52"
+      }
+    ],
+    "flowRole": "grid-member",
+    "flowGroup": "record-cb08d54040c3"
+  },
+  {
+    "category": "textarea",
+    "content": "Angielski — C1",
+    "left": 186.75,
+    "top": 706.3750000000001,
     "width": 102.75,
     "height": 14,
     "fontSize": 9.3,
@@ -748,7 +985,38 @@ const PORTICO_ELEMENTS = [
       }
     ],
     "flowRole": "grid-member",
-    "flowGroup": "record-797abde26190"
+    "flowGroup": "record-cb08d54040c3"
+  },
+  {
+    "category": "textarea",
+    "content": "Niemiecki — B2",
+    "left": 297.5,
+    "top": 706.3750000000001,
+    "width": 102.75,
+    "height": 14,
+    "fontSize": 9.3,
+    "lineHeight": 13.4,
+    "letterSpacing": 0,
+    "color": "#2A2A28",
+    "fontFamily": "Inter",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "runs": [
+      {
+        "start": 12,
+        "end": 14,
+        "italic": true,
+        "color": "#7C6A52"
+      }
+    ],
+    "flowRole": "grid-member",
+    "flowGroup": "record-cb08d54040c3"
   }
 ];
 

@@ -130,6 +130,50 @@ COMPACT_DEMO_CV = {
 # so the picker mockup still shows every section on page 1.
 COMPACT_TEMPLATE_IDS = frozenset({"monument", "portico"})
 
+REGENT_DEMO_CV = {
+    "name": "Alexandra Nowak",
+    "title": "Strategy Consultant",
+    "email": "alexandra@example.com",
+    "phone": "+48 600 000 000",
+    "location": "Warszawa",
+    "linkedin": "linkedin.com/in/alexandra-nowak",
+    # Regent's oversized 44 px lead needs deliberately concise content so all
+    # standard sections remain visible in its one-page picker preview.
+    "summary": "Łączę strategię, analizę i jasne decyzje, aby budować wzrost organizacji.",
+    "experience": [
+        {
+            "title": "Senior Strategy Consultant",
+            "company": "Northline Advisory",
+            "period": "2021 – obecnie",
+            "bullets": [
+                "Prowadzę projekty transformacyjne dla zespołów zarządzających.",
+                "Tworzę rekomendacje łączące dane z perspektywą biznesową.",
+            ],
+        },
+        {
+            "title": "Business Analyst",
+            "company": "Meridian Group",
+            "period": "2018 – 2021",
+            "bullets": [
+                "Analizowałam modele operacyjne i przygotowywałam materiały dla zarządu.",
+            ],
+        },
+    ],
+    "education": [
+        {
+            "degree": "Magister ekonomii",
+            "school": "Szkoła Główna Handlowa",
+            "period": "2013 – 2018",
+        },
+    ],
+    "skills": ["Strategia", "Transformacja", "Analiza biznesowa", "Facylitacja"],
+    "languages": [
+        {"name": "Polski", "level": "ojczysty"},
+        {"name": "Angielski", "level": "C2"},
+        {"name": "Francuski", "level": "B2"},
+    ],
+}
+
 # template_id -> (js filename, export const name, layouts blurb for docstring)
 # iconic.js exports both nova and volt from one module.
 TEMPLATES = [
@@ -143,6 +187,7 @@ TEMPLATES = [
     "atrium",
     "axis",
     "sterling",
+    "regent",
 ]
 
 DOC_BLURBS = {
@@ -198,6 +243,15 @@ DOC_BLURBS = {
         " *\n"
         " * Institutional two-column layout with wide sidebar rail."
     ),
+    "regent": (
+        "Regent template (`layouts: [\"single\", \"icons\"]`).\n"
+        " *\n"
+        " * Monochrome executive editorial layout with a 44 px serif lead."
+    ),
+}
+
+STARTER_PERSONAS = {
+    "regent": "Alexandra Nowak — strategy consultant with two roles, one degree, four skills, and three languages",
 }
 
 LOCALHOST_ASSET = re.compile(r"^https?://[^/]+(/template-assets/.+)$")
@@ -246,6 +300,10 @@ def js_module(template_id: str, elements: list[dict], *, const_name: str | None 
     const = const_name or f"{template_id.upper()}_ELEMENTS"
     export = f"{template_id}Template"
     blur = DOC_BLURBS[template_id]
+    persona = STARTER_PERSONAS.get(
+        template_id,
+        "Julia Bernat — three roles, one degree, five skills, and three languages",
+    )
     elements_json = json.dumps(elements, ensure_ascii=False, indent=2)
     # Keep trailing commas out of the array assignment style used elsewhere.
     return f"""/**
@@ -253,8 +311,7 @@ def js_module(template_id: str, elements: list[dict], *, const_name: str | None 
  *
  * This static starter is the backend generator's own output
  * (`backend/app/services/cv_templates/templates/{template_id}.py`) for
- * representative demo content (Julia Bernat — three roles, one degree, five
- * skills, and three languages, sized to fit page 1 of the mockup), so the
+ * representative demo content ({persona}, sized to fit page 1 of the mockup), so the
  * picker preview matches what `/ai/fill_template` produces pixel-for-pixel.
  * Image `src` values are stored relative and get the API base prepended at
  * load time. The array already carries `flowRole` / `flowGroup` /
@@ -306,7 +363,9 @@ export const voltTemplate = withAbsoluteAssets(VOLT_ELEMENTS);
 def main() -> None:
     generated: dict[str, list[dict]] = {}
     for template_id in TEMPLATES:
-        if template_id in COMPACT_TEMPLATE_IDS:
+        if template_id == "regent":
+            cv = REGENT_DEMO_CV
+        elif template_id in COMPACT_TEMPLATE_IDS:
             cv = COMPACT_DEMO_CV
         else:
             cv = DEMO_CV

@@ -1,13 +1,16 @@
 /**
- * Atrium template (auto-generated demo content).
+ * Atrium template (`layouts: ["single"]`).
  *
- * Landing-page / picker preview content, generated from the backend
- * template's own output (`backend/app/services/cv_templates/templates/atrium.py`)
- * for representative demo content, so the picker preview matches what
- * `/ai/fill_template` produces pixel-for-pixel. Image `src` values are stored
- * relative and get the API base prepended at load time. The array already
- * carries `flowRole` / `flowGroup` / `preserveInitialLayout` from the
- * generator, so it is exported as-is (only the image src is absolutised).
+ * Centered-axis editorial single column with graphite-sage accents.
+ *
+ * This static starter is the backend generator's own output
+ * (`backend/app/services/cv_templates/templates/atrium.py`) for
+ * representative demo content (Julia Bernat — three roles, one degree, five skills, and three languages, sized to fit page 1 of the mockup), so the
+ * picker preview matches what `/ai/fill_template` produces pixel-for-pixel.
+ * Image `src` values are stored relative and get the API base prepended at
+ * load time. The array already carries `flowRole` / `flowGroup` /
+ * `preserveInitialLayout` from the generator, so it is exported as-is (only
+ * the image src is absolutised).
  */
 import API_BASE_URL from "../services/api.js";
 
@@ -39,7 +42,7 @@ const ATRIUM_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Weronika Sikora",
+    "content": "Julia Bernat",
     "left": 82,
     "top": 54.0,
     "width": 431,
@@ -57,15 +60,17 @@ const ATRIUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowRole": "masthead"
+    "flowRole": "masthead",
+    "mastheadRole": "name",
+    "mastheadBandId": "masthead-main"
   },
   {
     "category": "image",
-    "src": "http://localhost:8000/template-assets/iconic/atrium-accent/portrait.png",
-    "left": 476,
+    "src": "/template-assets/iconic/atrium-accent/portrait.png",
+    "left": 476.0,
     "top": 21.0,
-    "width": 84,
-    "height": 84,
+    "width": 84.0,
+    "height": 84.0,
     "zIndex": 3,
     "page": 1,
     "alignWithText": false,
@@ -75,7 +80,7 @@ const ATRIUM_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Junior Penetration Tester",
+    "content": "Analityczka AML i Compliance",
     "left": 82,
     "top": 97.0,
     "width": 431,
@@ -93,168 +98,194 @@ const ATRIUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowRole": "masthead"
+    "flowRole": "masthead",
+    "mastheadRole": "title",
+    "mastheadBandId": "masthead-main"
   },
   {
     "category": "image",
-    "src": "http://localhost:8000/template-assets/iconic/atrium/phone.png",
-    "left": 166.3926,
+    "src": "/template-assets/iconic/atrium/phone.png",
+    "left": 128.0006,
     "top": 126.0,
     "width": 10.5,
     "height": 10.5,
     "zIndex": 3,
     "page": 1,
     "alignWithText": true,
-    "flowRole": "masthead"
+    "flowRole": "masthead",
+    "contactChannel": "phone",
+    "contactBandId": "contact-main"
   },
   {
     "category": "text",
-    "content": "+48 733 908 261",
+    "content": "+48 512 340 780",
     "fontSize": 8.4,
     "fontFamily": "Montserrat",
     "color": "#78796F",
-    "left": 178.8926,
+    "left": 140.5006,
     "top": 126.0,
     "zIndex": 3,
     "page": 1,
     "bold": false,
     "italic": false,
-    "flowRole": "masthead"
+    "flowRole": "masthead",
+    "contactChannel": "phone",
+    "contactBandId": "contact-main"
   },
   {
     "category": "image",
-    "src": "http://localhost:8000/template-assets/iconic/atrium/email.png",
-    "left": 262.6142,
+    "src": "/template-assets/iconic/atrium/email.png",
+    "left": 225.12099999999998,
     "top": 126.0,
     "width": 10.5,
     "height": 10.5,
     "zIndex": 3,
     "page": 1,
     "alignWithText": true,
-    "flowRole": "masthead"
+    "flowRole": "masthead",
+    "contactChannel": "email",
+    "contactBandId": "contact-main"
   },
   {
     "category": "text",
-    "content": "weronika.sikora.pentest@gmail.com",
+    "content": "julia.bernat@email.com",
     "fontSize": 8.4,
     "fontFamily": "Montserrat",
     "color": "#78796F",
-    "left": 275.1142,
+    "left": 237.62099999999998,
     "top": 126.0,
     "zIndex": 3,
     "page": 1,
     "bold": false,
     "italic": false,
-    "flowRole": "masthead"
+    "flowRole": "masthead",
+    "contactChannel": "email",
+    "contactBandId": "contact-main"
   },
   {
     "category": "image",
-    "src": "http://localhost:8000/template-assets/iconic/atrium/linkedin.png",
-    "left": 110.36899999999997,
+    "src": "/template-assets/iconic/atrium/linkedin.png",
+    "left": 355.83299999999997,
+    "top": 126.0,
+    "width": 10.5,
+    "height": 10.5,
+    "zIndex": 3,
+    "page": 1,
+    "alignWithText": true,
+    "flowRole": "masthead",
+    "contactChannel": "linkedin",
+    "contactBandId": "contact-main"
+  },
+  {
+    "category": "text",
+    "content": "linkedin.com/in/jbernat",
+    "fontSize": 8.4,
+    "fontFamily": "Montserrat",
+    "color": "#78796F",
+    "left": 368.33299999999997,
+    "top": 126.0,
+    "zIndex": 3,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "flowRole": "masthead",
+    "contactChannel": "linkedin",
+    "contactBandId": "contact-main"
+  },
+  {
+    "category": "image",
+    "src": "/template-assets/iconic/atrium/github.png",
+    "left": 170.19379999999998,
     "top": 142.0,
     "width": 10.5,
     "height": 10.5,
     "zIndex": 3,
     "page": 1,
     "alignWithText": true,
-    "flowRole": "masthead"
+    "flowRole": "masthead",
+    "contactChannel": "github",
+    "contactBandId": "contact-main"
   },
   {
     "category": "text",
-    "content": "linkedin.com/in/weronika-sikora",
+    "content": "github.com/jbernat",
     "fontSize": 8.4,
     "fontFamily": "Montserrat",
     "color": "#78796F",
-    "left": 122.86899999999997,
+    "left": 182.69379999999998,
     "top": 142.0,
     "zIndex": 3,
     "page": 1,
     "bold": false,
     "italic": false,
-    "flowRole": "masthead"
+    "flowRole": "masthead",
+    "contactChannel": "github",
+    "contactBandId": "contact-main"
   },
   {
     "category": "image",
-    "src": "http://localhost:8000/template-assets/iconic/atrium/github.png",
-    "left": 276.24339999999995,
+    "src": "/template-assets/iconic/atrium/website.png",
+    "left": 283.123,
     "top": 142.0,
     "width": 10.5,
     "height": 10.5,
     "zIndex": 3,
     "page": 1,
     "alignWithText": true,
-    "flowRole": "masthead"
+    "flowRole": "masthead",
+    "contactChannel": "website",
+    "contactBandId": "contact-main"
   },
   {
     "category": "text",
-    "content": "github.com/wsikora",
+    "content": "juliabernat.pl",
     "fontSize": 8.4,
     "fontFamily": "Montserrat",
     "color": "#78796F",
-    "left": 288.74339999999995,
+    "left": 295.623,
     "top": 142.0,
     "zIndex": 3,
     "page": 1,
     "bold": false,
     "italic": false,
-    "flowRole": "masthead"
+    "flowRole": "masthead",
+    "contactChannel": "website",
+    "contactBandId": "contact-main"
   },
   {
     "category": "image",
-    "src": "http://localhost:8000/template-assets/iconic/atrium/website.png",
-    "left": 391.0458,
+    "src": "/template-assets/iconic/atrium/location.png",
+    "left": 368.9622,
     "top": 142.0,
     "width": 10.5,
     "height": 10.5,
     "zIndex": 3,
     "page": 1,
     "alignWithText": true,
-    "flowRole": "masthead"
+    "flowRole": "masthead",
+    "contactChannel": "location",
+    "contactBandId": "contact-main"
   },
   {
     "category": "text",
-    "content": "weronikasikora.dev",
+    "content": "Warszawa",
     "fontSize": 8.4,
     "fontFamily": "Montserrat",
     "color": "#78796F",
-    "left": 403.5458,
+    "left": 381.4622,
     "top": 142.0,
     "zIndex": 3,
     "page": 1,
     "bold": false,
     "italic": false,
-    "flowRole": "masthead"
-  },
-  {
-    "category": "image",
-    "src": "http://localhost:8000/template-assets/iconic/atrium/location.png",
-    "left": 278.566,
-    "top": 158.0,
-    "width": 10.5,
-    "height": 10.5,
-    "zIndex": 3,
-    "page": 1,
-    "alignWithText": true,
-    "flowRole": "masthead"
-  },
-  {
-    "category": "text",
-    "content": "Kielce",
-    "fontSize": 8.4,
-    "fontFamily": "Montserrat",
-    "color": "#78796F",
-    "left": 291.066,
-    "top": 158.0,
-    "zIndex": 3,
-    "page": 1,
-    "bold": false,
-    "italic": false,
-    "flowRole": "masthead"
+    "flowRole": "masthead",
+    "contactChannel": "location",
+    "contactBandId": "contact-main"
   },
   {
     "category": "line",
     "left": 251.5,
-    "top": 177.0,
+    "top": 161.0,
     "width": 34.0,
     "height": 1,
     "backgroundColor": "#E5E3DB",
@@ -265,7 +296,7 @@ const ATRIUM_ELEMENTS = [
   {
     "category": "line",
     "left": 292.5,
-    "top": 177.0,
+    "top": 161.0,
     "width": 10.0,
     "height": 1,
     "backgroundColor": "#556158",
@@ -276,7 +307,7 @@ const ATRIUM_ELEMENTS = [
   {
     "category": "line",
     "left": 309.5,
-    "top": 177.0,
+    "top": 161.0,
     "width": 34.0,
     "height": 1,
     "backgroundColor": "#E5E3DB",
@@ -286,12 +317,102 @@ const ATRIUM_ELEMENTS = [
   },
   {
     "category": "text",
+    "content": "",
+    "left": 0,
+    "top": 0,
+    "width": 0,
+    "height": 0,
+    "fontSize": 1,
+    "fontFamily": "Inter",
+    "color": "#000000",
+    "zIndex": 0,
+    "page": 1,
+    "flowRole": "masthead-anchor",
+    "contactBand": {
+      "id": "contact-main",
+      "mode": "centered",
+      "anchor": {
+        "centerX": 297.5,
+        "startY": 126.0,
+        "maxWidth": 431.0
+      },
+      "text": {
+        "fontFamily": "Montserrat",
+        "fontSizePt": 8.4,
+        "colorHex": "#78796F"
+      },
+      "icon": {
+        "sizePt": 10.5,
+        "theme": "atrium"
+      },
+      "metrics": {
+        "iconGap": 12.5,
+        "itemPad": 18.0,
+        "lineStep": 16.0,
+        "charWidth": 5.0
+      },
+      "order": [
+        "phone",
+        "email",
+        "linkedin",
+        "github",
+        "website",
+        "location"
+      ]
+    },
+    "contactBandId": "contact-main"
+  },
+  {
+    "category": "text",
+    "content": "",
+    "left": 0,
+    "top": 0,
+    "width": 0,
+    "height": 0,
+    "fontSize": 1,
+    "fontFamily": "Inter",
+    "color": "#000000",
+    "zIndex": 0,
+    "page": 1,
+    "flowRole": "masthead-anchor",
+    "mastheadIdentity": {
+      "id": "masthead-main",
+      "name": {
+        "defaultUppercase": false
+      },
+      "title": {
+        "spec": {
+          "category": "textarea",
+          "content": "Analityczka AML i Compliance",
+          "left": 82,
+          "top": 97.0,
+          "width": 431,
+          "height": 13,
+          "fontSizePt": 9.2,
+          "lineHeight": 13,
+          "fontFamily": "Montserrat",
+          "colorHex": "#556158",
+          "letterSpacing": 2.1,
+          "align": "center",
+          "autoHeight": true,
+          "textTransform": "none",
+          "bold": false
+        },
+        "blockPt": 29.0,
+        "present": true
+      },
+      "contactBandId": "contact-main"
+    },
+    "mastheadBandId": "masthead-main"
+  },
+  {
+    "category": "text",
     "content": "PODSUMOWANIE ZAWODOWE",
     "fontSize": 9.2,
     "fontFamily": "Montserrat",
     "color": "#556158",
     "left": 82,
-    "top": 214.0,
+    "top": 198.0,
     "zIndex": 3,
     "page": 1,
     "bold": true,
@@ -302,7 +423,7 @@ const ATRIUM_ELEMENTS = [
   {
     "category": "line",
     "left": 82,
-    "top": 228.2,
+    "top": 212.2,
     "width": 18,
     "height": 1.2,
     "backgroundColor": "#556158",
@@ -313,7 +434,7 @@ const ATRIUM_ELEMENTS = [
   {
     "category": "line",
     "left": 108,
-    "top": 228.2,
+    "top": 212.2,
     "width": 405,
     "height": 1,
     "backgroundColor": "#E5E3DB",
@@ -323,9 +444,9 @@ const ATRIUM_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Junior Penetration Tester z pasją do bezpieczeństwa aplikacji webowych. Ukończyłam ponad 70 pokoi na TryHackMe i aktywnie rozwiązuję zadania CTF. Poszukuję pierwszej pełnoetatowej roli w zespole ofensywnego bezpieczeństwa.",
+    "content": "Analityczka AML łącząca wiedzę regulacyjną z dyscypliną wykonania. Prowadzę monitoring transakcji i raporty SAR, dbając o jakość analiz oraz terminowość decyzji bez utraty dokładności.",
     "left": 82,
-    "top": 237.39999999999998,
+    "top": 221.39999999999998,
     "width": 431,
     "height": 43,
     "fontSize": 9.6,
@@ -340,7 +461,8 @@ const ATRIUM_ELEMENTS = [
     "align": "left",
     "bulletList": false,
     "autoHeight": true,
-    "preserveInitialLayout": true
+    "preserveInitialLayout": true,
+    "flowRole": "content"
   },
   {
     "category": "text",
@@ -349,7 +471,7 @@ const ATRIUM_ELEMENTS = [
     "fontFamily": "Montserrat",
     "color": "#556158",
     "left": 82,
-    "top": 301.4,
+    "top": 285.4,
     "zIndex": 3,
     "page": 1,
     "bold": true,
@@ -360,7 +482,7 @@ const ATRIUM_ELEMENTS = [
   {
     "category": "line",
     "left": 82,
-    "top": 315.59999999999997,
+    "top": 299.59999999999997,
     "width": 18,
     "height": 1.2,
     "backgroundColor": "#556158",
@@ -371,7 +493,7 @@ const ATRIUM_ELEMENTS = [
   {
     "category": "line",
     "left": 108,
-    "top": 315.59999999999997,
+    "top": 299.59999999999997,
     "width": 405,
     "height": 1,
     "backgroundColor": "#E5E3DB",
@@ -381,9 +503,9 @@ const ATRIUM_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Junior Penetration Tester",
+    "content": "Analityczka AML",
     "left": 82,
-    "top": 324.79999999999995,
+    "top": 308.79999999999995,
     "width": 431,
     "height": 15,
     "fontSize": 10.8,
@@ -399,13 +521,14 @@ const ATRIUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-a9eb33333adf"
+    "flowGroup": "record-40283643c0ae",
+    "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "Bastion CyberSec   ·   Kielce   ·   Luty 2024 – obecnie",
+    "content": "Crestmont Advisory   ·   Warszawa   ·   2022 – obecnie",
     "left": 82,
-    "top": 343.79999999999995,
+    "top": 327.79999999999995,
     "width": 431,
     "height": 12,
     "fontSize": 8.4,
@@ -421,13 +544,14 @@ const ATRIUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-a9eb33333adf"
+    "flowGroup": "record-40283643c0ae",
+    "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "• Prowadzę testy penetracyjne aplikacji webowych pod nadzorem starszych testerów.\n• Identyfikuję i dokumentuję podatności zgodnie z metodyką OWASP.\n• Przygotowuję raporty z testów wraz z rekomendacjami naprawczymi.",
+    "content": "• Prowadzi monitoring transakcji i analizę alertów AML dla klientów firmowych.\n• Realizuje CDD/EDD oraz przygotowuje dokumentację zgodną z wymogami FIU.\n• Wspiera zespół L2 przy eskalacjach spraw o podwyższonym ryzyku AML.",
     "left": 82,
-    "top": 359.79999999999995,
+    "top": 343.79999999999995,
     "width": 431,
     "height": 43,
     "fontSize": 9.6,
@@ -443,13 +567,14 @@ const ATRIUM_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-a9eb33333adf"
+    "flowGroup": "record-40283643c0ae",
+    "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "Praktykantka ds. Bezpieczeństwa",
+    "content": "Analityczka KYC",
     "left": 82,
-    "top": 412.79999999999995,
+    "top": 396.79999999999995,
     "width": 431,
     "height": 15,
     "fontSize": 10.8,
@@ -465,13 +590,14 @@ const ATRIUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-627d0a40afdc"
+    "flowGroup": "record-4d941d5ed941",
+    "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "Meridian IT Services   ·   Kielce   ·   Czerwiec 2023 – Styczeń 2024",
+    "content": "Baltic Trust Bank   ·   Warszawa   ·   2019 – 2022",
     "left": 82,
-    "top": 431.79999999999995,
+    "top": 415.79999999999995,
     "width": 431,
     "height": 12,
     "fontSize": 8.4,
@@ -487,13 +613,14 @@ const ATRIUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-627d0a40afdc"
+    "flowGroup": "record-4d941d5ed941",
+    "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "• Wspierałam zespół bezpieczeństwa w skanowaniu podatności infrastruktury.\n• Uczestniczyłam w przeglądach kodu pod kątem podstawowych błędów bezpieczeństwa.",
+    "content": "• Weryfikowała profile klientów oraz screening PEP, sanctions i media.\n• Utrzymywała jakość raportów SAR oraz terminowość odpowiedzi na RFI.",
     "left": 82,
-    "top": 447.79999999999995,
+    "top": 431.79999999999995,
     "width": 431,
     "height": 29,
     "fontSize": 9.6,
@@ -509,7 +636,77 @@ const ATRIUM_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-627d0a40afdc"
+    "flowGroup": "record-4d941d5ed941",
+    "flowRole": "content"
+  },
+  {
+    "category": "textarea",
+    "content": "Specjalistka Obsługi Klienta",
+    "left": 82,
+    "top": 470.79999999999995,
+    "width": 431,
+    "height": 15,
+    "fontSize": 10.8,
+    "lineHeight": 13.8,
+    "letterSpacing": 0,
+    "color": "#242521",
+    "fontFamily": "Montserrat",
+    "zIndex": 2,
+    "page": 1,
+    "bold": true,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-b4ffa07ba34b",
+    "flowRole": "content"
+  },
+  {
+    "category": "textarea",
+    "content": "Helios Services   ·   Kraków   ·   2016 – 2019",
+    "left": 82,
+    "top": 489.79999999999995,
+    "width": 431,
+    "height": 12,
+    "fontSize": 8.4,
+    "lineHeight": 11.8,
+    "letterSpacing": 0,
+    "color": "#78796F",
+    "fontFamily": "Montserrat",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-b4ffa07ba34b",
+    "flowRole": "content"
+  },
+  {
+    "category": "textarea",
+    "content": "• Obsługiwała zamówienia i weryfikację danych klientów na rynkach DACH.",
+    "left": 82,
+    "top": 505.79999999999995,
+    "width": 431,
+    "height": 15,
+    "fontSize": 9.6,
+    "lineHeight": 14.1,
+    "letterSpacing": 0,
+    "color": "#2C2C29",
+    "fontFamily": "Montserrat",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": true,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-b4ffa07ba34b",
+    "flowRole": "content"
   },
   {
     "category": "text",
@@ -518,7 +715,7 @@ const ATRIUM_ELEMENTS = [
     "fontFamily": "Montserrat",
     "color": "#556158",
     "left": 82,
-    "top": 497.79999999999995,
+    "top": 541.8,
     "zIndex": 3,
     "page": 1,
     "bold": true,
@@ -529,7 +726,7 @@ const ATRIUM_ELEMENTS = [
   {
     "category": "line",
     "left": 82,
-    "top": 511.99999999999994,
+    "top": 556.0,
     "width": 18,
     "height": 1.2,
     "backgroundColor": "#556158",
@@ -540,7 +737,7 @@ const ATRIUM_ELEMENTS = [
   {
     "category": "line",
     "left": 108,
-    "top": 511.99999999999994,
+    "top": 556.0,
     "width": 405,
     "height": 1,
     "backgroundColor": "#E5E3DB",
@@ -550,9 +747,9 @@ const ATRIUM_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Inżynier informatyki — specjalność: Bezpieczeństwo aplikacji",
+    "content": "Licencjat Prawa",
     "left": 82,
-    "top": 521.1999999999999,
+    "top": 565.2,
     "width": 431,
     "height": 14,
     "fontSize": 10.2,
@@ -568,13 +765,14 @@ const ATRIUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-e5eacc5ca448"
+    "flowGroup": "record-ec458716c0c7",
+    "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "Politechnika Świętokrzyska",
+    "content": "UW Warszawa",
     "left": 82,
-    "top": 539.1999999999999,
+    "top": 583.2,
     "width": 431,
     "height": 14,
     "fontSize": 10.2,
@@ -590,13 +788,14 @@ const ATRIUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-e5eacc5ca448"
+    "flowGroup": "record-ec458716c0c7",
+    "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "Kielce   ·   ukończono lipiec 2023",
+    "content": "2012 – 2016",
     "left": 82,
-    "top": 557.1999999999999,
+    "top": 601.2,
     "width": 431,
     "height": 12,
     "fontSize": 8.4,
@@ -612,29 +811,8 @@ const ATRIUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-e5eacc5ca448"
-  },
-  {
-    "category": "textarea",
-    "content": "• Praca inżynierska: automatyzacja testów bezpieczeństwa aplikacji webowych.",
-    "left": 82,
-    "top": 573.1999999999999,
-    "width": 431,
-    "height": 14,
-    "fontSize": 9.4,
-    "lineHeight": 13.8,
-    "letterSpacing": 0,
-    "color": "#2C2C29",
-    "fontFamily": "Montserrat",
-    "zIndex": 2,
-    "page": 1,
-    "bold": false,
-    "italic": false,
-    "align": "left",
-    "bulletList": true,
-    "autoHeight": true,
-    "preserveInitialLayout": true,
-    "flowGroup": "record-e5eacc5ca448"
+    "flowGroup": "record-ec458716c0c7",
+    "flowRole": "content"
   },
   {
     "category": "text",
@@ -643,7 +821,7 @@ const ATRIUM_ELEMENTS = [
     "fontFamily": "Montserrat",
     "color": "#556158",
     "left": 82,
-    "top": 608.1999999999999,
+    "top": 634.2,
     "zIndex": 3,
     "page": 1,
     "bold": true,
@@ -654,7 +832,7 @@ const ATRIUM_ELEMENTS = [
   {
     "category": "line",
     "left": 82,
-    "top": 622.4,
+    "top": 648.4000000000001,
     "width": 18,
     "height": 1.2,
     "backgroundColor": "#556158",
@@ -665,7 +843,7 @@ const ATRIUM_ELEMENTS = [
   {
     "category": "line",
     "left": 108,
-    "top": 622.4,
+    "top": 648.4000000000001,
     "width": 405,
     "height": 1,
     "backgroundColor": "#E5E3DB",
@@ -675,11 +853,11 @@ const ATRIUM_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "OWASP Top 10  ·  Burp Suite  ·  SQLi/XSS  ·  Nmap  ·  Metasploit  ·  Python  ·  Bash  ·  Linux  ·  Git",
+    "content": "AML/KYC  ·  Monitoring  ·  CDD/EDD  ·  Raporty SAR  ·  Analiza transakcyjna",
     "left": 82,
-    "top": 631.6,
+    "top": 657.6000000000001,
     "width": 431,
-    "height": 29,
+    "height": 15,
     "fontSize": 9.6,
     "lineHeight": 14.1,
     "letterSpacing": 0,
@@ -693,7 +871,8 @@ const ATRIUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-763c000df652"
+    "flowGroup": "record-d829887f91c8",
+    "flowRole": "content"
   },
   {
     "category": "text",
@@ -702,7 +881,7 @@ const ATRIUM_ELEMENTS = [
     "fontFamily": "Montserrat",
     "color": "#556158",
     "left": 82,
-    "top": 681.6,
+    "top": 693.6000000000001,
     "zIndex": 3,
     "page": 1,
     "bold": true,
@@ -713,7 +892,7 @@ const ATRIUM_ELEMENTS = [
   {
     "category": "line",
     "left": 82,
-    "top": 695.8000000000001,
+    "top": 707.8000000000002,
     "width": 18,
     "height": 1.2,
     "backgroundColor": "#556158",
@@ -724,7 +903,7 @@ const ATRIUM_ELEMENTS = [
   {
     "category": "line",
     "left": 108,
-    "top": 695.8000000000001,
+    "top": 707.8000000000002,
     "width": 405,
     "height": 1,
     "backgroundColor": "#E5E3DB",
@@ -734,9 +913,9 @@ const ATRIUM_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "angielski — B2",
+    "content": "Polski — ojczysty",
     "left": 82.0,
-    "top": 705.0000000000001,
+    "top": 717.0000000000002,
     "width": 99.75,
     "height": 15,
     "fontSize": 9.6,
@@ -754,20 +933,20 @@ const ATRIUM_ELEMENTS = [
     "preserveInitialLayout": true,
     "runs": [
       {
-        "start": 12,
-        "end": 14,
+        "start": 9,
+        "end": 17,
         "italic": true,
         "color": "#556158"
       }
     ],
     "flowRole": "grid-member",
-    "flowGroup": "record-cac34e96cf9a"
+    "flowGroup": "record-bd5cbca59d5d"
   },
   {
     "category": "textarea",
-    "content": "niemiecki — A2",
+    "content": "Angielski — C1",
     "left": 189.75,
-    "top": 705.0000000000001,
+    "top": 717.0000000000002,
     "width": 99.75,
     "height": 15,
     "fontSize": 9.6,
@@ -792,7 +971,38 @@ const ATRIUM_ELEMENTS = [
       }
     ],
     "flowRole": "grid-member",
-    "flowGroup": "record-cac34e96cf9a"
+    "flowGroup": "record-bd5cbca59d5d"
+  },
+  {
+    "category": "textarea",
+    "content": "Niemiecki — B2",
+    "left": 297.5,
+    "top": 717.0000000000002,
+    "width": 99.75,
+    "height": 15,
+    "fontSize": 9.6,
+    "lineHeight": 14.1,
+    "letterSpacing": 0,
+    "color": "#2C2C29",
+    "fontFamily": "Montserrat",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "runs": [
+      {
+        "start": 12,
+        "end": 14,
+        "italic": true,
+        "color": "#556158"
+      }
+    ],
+    "flowRole": "grid-member",
+    "flowGroup": "record-bd5cbca59d5d"
   }
 ];
 
