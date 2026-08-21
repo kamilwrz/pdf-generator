@@ -20,7 +20,7 @@ test("Regent preserves its monochrome editorial hierarchy", () => {
         (element) => element.content?.includes("Łączę strategię"),
     );
     assert.ok(summary);
-    assert.equal(summary.fontSize, 44);
+    assert.equal(summary.fontSize, 18);
     assert.equal(summary.fontFamily, "CormorantGaramond");
     assert.equal(summary.color, INK);
     assert.equal(summary.left, L);

@@ -12,7 +12,7 @@ class RegentTemplateTests(unittest.TestCase):
     def test_regent_registers_as_a_single_column_icon_template(self) -> None:
         self.assertEqual(TEMPLATE_LAYOUTS["regent"], frozenset({"single", "icons"}))
 
-    def test_regent_keeps_the_oversized_editorial_summary_and_contact_icons(self) -> None:
+    def test_regent_keeps_the_practical_editorial_summary_and_contact_icons(self) -> None:
         elements = generate_resume(
             "regent",
             {
@@ -31,7 +31,7 @@ class RegentTemplateTests(unittest.TestCase):
         )
 
         summary = next(element for element in elements if element.get("content") == "Łączę strategię, analizę i jasne decyzje.")
-        self.assertEqual(summary["fontSize"], 44)
+        self.assertEqual(summary["fontSize"], 18)
         self.assertEqual(summary["fontFamily"], "CormorantGaramond")
         self.assertEqual(summary["color"], "#151515")
 
@@ -45,6 +45,32 @@ class RegentTemplateTests(unittest.TestCase):
             if element.get("flowRole") == "section-chrome" and element["category"] == "text"
         ]
         self.assertEqual([element["content"] for element in headings], ["PODSUMOWANIE ZAWODOWE"])
+
+    def test_regent_keeps_a_realistic_multisentence_summary_on_the_first_page(self) -> None:
+        """Prevent a display-size regression that left page one almost empty."""
+        summary_text = (
+            "Starszy Analityk AML/KYC z blisko 4-letnim doświadczeniem w PwC Polska "
+            "i Citibank Europe. Specjalizuję się w Transaction Monitoring, KYC, "
+            "CDD/EDD, screeningu oraz raportowaniu SAR dla niemieckiej FIU. "
+            "Absolwent prawa niemieckiego i europejskiego z praktyczną znajomością "
+            "SQL i Pythona."
+        )
+        elements = generate_resume(
+            "regent",
+            {
+                "name": "Kamil Wrzóchalski",
+                "title": "AML Analyst",
+                "summary": summary_text,
+                "experience": [],
+                "education": [],
+                "skills": [],
+                "languages": [],
+            },
+        )
+
+        summary = next(element for element in elements if element.get("content") == summary_text)
+        self.assertEqual(summary["page"], 1)
+        self.assertLess(summary["height"], 842 - summary["top"])
 
 
 if __name__ == "__main__":

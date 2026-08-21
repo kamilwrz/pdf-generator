@@ -137,8 +137,8 @@ REGENT_DEMO_CV = {
     "phone": "+48 600 000 000",
     "location": "Warszawa",
     "linkedin": "linkedin.com/in/alexandra-nowak",
-    # Regent's oversized 44 px lead needs deliberately concise content so all
-    # standard sections remain visible in its one-page picker preview.
+    # Regent's editorial 18 px lead retains visual hierarchy while keeping all
+    # standard sections visible in its one-page picker preview.
     "summary": "Łączę strategię, analizę i jasne decyzje, aby budować wzrost organizacji.",
     "experience": [
         {
@@ -246,7 +246,7 @@ DOC_BLURBS = {
     "regent": (
         "Regent template (`layouts: [\"single\", \"icons\"]`).\n"
         " *\n"
-        " * Monochrome executive editorial layout with a 44 px serif lead."
+        " * Monochrome executive editorial layout with an 18 px serif lead."
     ),
 }
 
