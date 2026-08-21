@@ -337,6 +337,7 @@ function PdfCanvas() {
     cancelConnecting,
     pickConnectorAt,
     markSelected,
+    handleCanvasBackgroundClick,
     handleSetTextareaEditing,
     handleSelectElement,
     handleDeleteElement,
@@ -1665,7 +1666,7 @@ function PdfCanvas() {
                 {isPdfLoading ? (
                   <Spinner loading={isPdfLoading} anchorRef={A4ref} />
                 ) : null}
-                <div className="canvas-area" ref={canvasAreaRef}>
+                <div className="canvas-area" ref={canvasAreaRef} onClick={handleCanvasBackgroundClick}>
                   {showStartChooser ? (
                     <StartChooser
                       onWizard={handleShowBioCvModal}

@@ -29,7 +29,6 @@ import {
   MdAlignHorizontalLeft,
   MdAlignHorizontalRight,
   MdFormatListBulleted,
-  MdEdit,
   MdLock,
   MdLockOpen,
   MdClose,
@@ -112,7 +111,6 @@ export default function Editor() {
     deleteSelectedElements,
     duplicateSelectedElements,
     setA4_Elements,
-    setTextareaEditing,
     moveSelectedElements,
     editorMode,
     zoom,
@@ -590,15 +588,6 @@ export default function Editor() {
               <>
                 {(cat === "text" || cat === "textarea") && (
                   <>
-                    <Group label="Treść">
-                      <IconBtn
-                        label="Edytuj tekst"
-                        onClick={() => setTextareaEditing(selectedElement.element_id, true)}
-                      >
-                        <MdEdit />
-                      </IconBtn>
-                    </Group>
-                    <Sep />
                     <Group label="Typografia">
                       <FontField
                         value={elementValues.fontFamily}

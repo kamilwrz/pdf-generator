@@ -396,6 +396,26 @@ export function useA4Elements(titleRef) {
     setDeletedElements: setA4_Elements_deleted,
   });
 
+  // Clicking bare canvas background — the scroll container's own padding/
+  // gutters, or a page's blank surface, as opposed to any specific element —
+  // exits whatever is currently selected or being edited. `event.target` is
+  // checked against the nearest `[data-page-canvas]` ancestor rather than
+  // relying on individual elements calling stopPropagation: a click lands
+  // exactly on the page node only when it did not hit any actual rendered
+  // element (element clicks always target a deeper descendant), so this stays
+  // correct regardless of which element type was clicked past.
+  // Blurring first lets the focused element's own finalize logic (content
+  // commit) run via its existing onBlur handler before the selection clears.
+  const handleCanvasBackgroundClick = useCallback((event) => {
+    const pageNode = event.target?.closest?.("[data-page-canvas]");
+    const isBackground = !pageNode || pageNode === event.target;
+    if (!isBackground) return;
+    if (typeof document !== "undefined" && document.activeElement?.isContentEditable) {
+      document.activeElement.blur();
+    }
+    clearSelection();
+  }, [clearSelection]);
+
   // Enter connector mode: next two element clicks pick source then target.
   // Connectors are retired from the editor; keep a no-op so old context wiring
   // does not throw. Legacy documents may still render existing connector rows.
@@ -2186,6 +2206,7 @@ export function useA4Elements(titleRef) {
     cancelConnecting,
     pickConnectorAt,
     markSelected,
+    handleCanvasBackgroundClick,
     handleSetTextareaEditing,
     handleAlignElements,
     handleDeleteElement,

@@ -73,7 +73,6 @@ export default function SelectionOverlay({ elements, page }) {
     if (displayed.length === 0) return null;
     const frames = framed.map((element) => ({
         id: element.element_id,
-        isEditing: element.isEditing && element.category === "text",
         ...frameForElement(element),
     }));
     const groupFrames = displayed.map((element) => ({
@@ -98,7 +97,7 @@ export default function SelectionOverlay({ elements, page }) {
             {frames.map((frame) => (
                 <div
                     key={frame.id}
-                        className={`${classes.frame} ${isMulti ? classes.frameMulti : ""} ${isMoving ? classes.frameMoving : ""} ${frame.isEditing ? classes.frameEditing : ""}`}
+                        className={`${classes.frame} ${isMulti ? classes.frameMulti : ""} ${isMoving ? classes.frameMoving : ""}`}
                     style={{
                         left: frame.left,
                         top: frame.top,
