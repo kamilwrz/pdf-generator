@@ -13,6 +13,7 @@ import { axisTemplate } from "../src/templates/axis.js";
 import { atriumTemplate } from "../src/templates/atrium.js";
 import { sterlingTemplate } from "../src/templates/sterling.js";
 import { regentTemplate } from "../src/templates/regent.js";
+import { vestigeTemplate } from "../src/templates/vestige.js";
 
 const out = {
     nova: novaTemplate,
@@ -26,6 +27,7 @@ const out = {
     atrium: atriumTemplate,
     sterling: sterlingTemplate,
     regent: regentTemplate,
+    vestige: vestigeTemplate,
 };
 writeFileSync(new URL("./iconic-templates.json", import.meta.url), JSON.stringify(out, null, 2));
 console.log("wrote iconic-templates.json");

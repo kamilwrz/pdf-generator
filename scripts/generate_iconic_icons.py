@@ -19,6 +19,8 @@ THEMES = {
     # Regent uses a neutral charcoal icon set so its masthead remains entirely
     # monochrome while retaining independently editable contact channels.
     "regent": "#151515",
+    # Vestige uses restrained graphite contact glyphs against its soft-gray rail.
+    "vestige": "#4A4A48",
 }
 THEME_VARIANTS = {}
 

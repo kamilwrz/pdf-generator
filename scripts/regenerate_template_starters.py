@@ -200,6 +200,7 @@ TEMPLATES = [
     "axis",
     "sterling",
     "regent",
+    "vestige",
 ]
 
 DOC_BLURBS = {
@@ -259,6 +260,11 @@ DOC_BLURBS = {
         "Regent template (`layouts: [\"single\", \"icons\"]`).\n"
         " *\n"
         " * Monochrome executive editorial layout with compact serif summary copy."
+    ),
+    "vestige": (
+        "Vestige template (`layouts: [\"sidebar\", \"icons\"]`).\n"
+        " *\n"
+        " * Narrow neutral-gray sidebar with a classical editorial main column."
     ),
 }
 

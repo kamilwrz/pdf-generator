@@ -775,6 +775,25 @@ Tests:
 - `frontend/src/templates/regent.test.js` — 9.5 px / 14 px summary metrics, monochrome palette, contact icons, and five-section hierarchy
 - `backend/tests/test_regent_template.py` — registry metadata, oversized summary, and contact-icon generation
 
+### Vestige narrow-sidebar editorial template
+
+Vestige is a paid monochrome sidebar template (`layouts: ["sidebar", "icons"]`) for executives, consultants, lawyers, analysts, and managers. A 174 pt soft-grey left rail contains independent phone, email, LinkedIn, location, skills, languages, and education rows. The 335 pt right column uses a 34 px Cormorant Garamond name, compact letter-spaced Montserrat role, quiet professional summary, and experience records. The palette is intentionally limited to white, graphite, and neutral grey (`#F4F4F2`, `#1B1B1A`, and `#D7D7D4`).
+
+The layout preserves a generous editorial measure in the main column while the narrow rail creates a stable scan path for supporting information. Vestige builds on the established deterministic sidebar planner: compact rail sections can flow independently and record groups remain intact when content continues onto another page. The generated picker preview is `frontend/public/template-mockups/vestige.png`.
+
+Implementation:
+
+- `backend/app/services/cv_templates/templates/vestige.py`, function `_gen_vestige` — semantic geometry transformation over the shared deterministic sidebar planner
+- `frontend/src/templates/vestige.js`, exported `vestigeTemplate` — editable A4 starter regenerated from the backend output
+- `frontend/src/templates/index.js`, registry entry `vestige` (`tier: "paid"`, `layouts: ["sidebar", "icons"]`)
+- `backend/template_assets/iconic/vestige/` and `scripts/generate_iconic_icons.py` — restrained graphite contact glyphs
+- `frontend/scripts/dump-iconic-templates.mjs` and `scripts/render_iconic_mockups.py` — source-driven A4 preview generation
+
+Tests:
+
+- `frontend/src/templates/vestige.test.js` — rail width, main-column masthead, contact icon placement, and section-rule geometry
+- `backend/tests/test_vestige_template.py` — registry metadata and generated sidebar/main-column ownership
+
 ### Nova editorial masthead template
 
 Nova is a free single-column template (`layouts: ["icons"]`) with a warm paper field (`#F7F1E8`), terracotta accent (`#C45C26`), Playfair Display name, and Montserrat body. The masthead is taller than the earlier wrapping-contact revision: the display name sits near the left edge (`x=32`), the muted job title sits under the name, and contact channels stack **one row each** with iconic glyphs ~12 pt under that stack (`_place_stacked_icon_contacts`). The top-right portrait well is an empty rectangle slot (`nova-photo-well` fill + `nova-photo-frame` outline) — the editor starter ships **no** profile raster. Clicking the frame opens the gallery; choosing a photo runs `applyProfilePhoto` with `objectFit: "cover"` so the well is filled without stretching. Only the marketing mockup injects `backend/template_assets/nova-portrait.png` at render time (`scripts/render_iconic_mockups.py`). Section icons start at `icon_x=64` and bold uppercase headings at `L=84` — 16 pt further right than the legacy `48` / `68` band.
@@ -2551,6 +2570,25 @@ Testy:
 
 - `frontend/src/templates/regent.test.js` — metryki podsumowania 9,5 px / 14 px, monochromatyczna paleta, ikony kontaktu i hierarchia pięciu sekcji
 - `backend/tests/test_regent_template.py` — metadane rejestru, duże podsumowanie oraz generowanie ikon kontaktowych
+
+### Vestige — redakcyjny szablon z wąskim sidebarem
+
+Vestige to płatny, monochromatyczny szablon sidebarowy (`layouts: ["sidebar", "icons"]`) dla osób na stanowiskach executive, consultant, lawyer, analyst i manager. Jasnoszary lewy panel o szerokości 174 pt zawiera niezależne wiersze telefonu, e-maila, LinkedIn, lokalizacji, umiejętności, języków oraz wykształcenia. Prawa kolumna o szerokości 335 pt korzysta z nazwiska Cormorant Garamond 34 px, zwartej i rozstrzelonej linii stanowiska w Montserrat, spokojnego podsumowania zawodowego oraz rekordów doświadczenia. Paleta jest celowo ograniczona do bieli, grafitu i neutralnej szarości (`#F4F4F2`, `#1B1B1A`, `#D7D7D4`).
+
+Układ zachowuje wygodną redakcyjną szerokość tekstu w głównej kolumnie, a wąski panel tworzy stabilną ścieżkę skanowania informacji uzupełniających. Vestige korzysta ze sprawdzonego, deterministycznego planera sidebara: zwarte sekcje panelu mogą płynąć niezależnie, a grupy rekordów nie rozpadają się przy kontynuacji treści na kolejnej stronie. Wygenerowany podgląd w pickerze znajduje się w `frontend/public/template-mockups/vestige.png`.
+
+Implementacja:
+
+- `backend/app/services/cv_templates/templates/vestige.py`, funkcja `_gen_vestige` — semantyczna transformacja geometrii nad współdzielonym, deterministycznym planerem sidebara
+- `frontend/src/templates/vestige.js`, eksport `vestigeTemplate` — edytowalny starter A4 regenerowany z wyniku backendu
+- `frontend/src/templates/index.js`, wpis rejestru `vestige` (`tier: "paid"`, `layouts: ["sidebar", "icons"]`)
+- `backend/template_assets/iconic/vestige/` oraz `scripts/generate_iconic_icons.py` — stonowane grafitowe glify kontaktowe
+- `frontend/scripts/dump-iconic-templates.mjs` oraz `scripts/render_iconic_mockups.py` — generowanie podglądu A4 bezpośrednio ze źródła
+
+Testy:
+
+- `frontend/src/templates/vestige.test.js` — szerokość panelu, masthead w głównej kolumnie, położenie ikon kontaktu oraz geometria linii sekcji
+- `backend/tests/test_vestige_template.py` — metadane rejestru oraz własność sidebara i głównej kolumny w wygenerowanym układzie
 
 ### Szablon redakcyjny Nova
 
