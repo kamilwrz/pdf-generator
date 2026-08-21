@@ -2,6 +2,10 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { vestigeTemplate } from "./vestige.js";
+import {
+    resolveSectionLaneTransfer,
+    transferSectionLane,
+} from "../utils/transferSectionLane.js";
 
 test("Vestige keeps contact and compact profile information in a narrow left rail", () => {
     const rail = vestigeTemplate.find(
@@ -33,4 +37,25 @@ test("Vestige keeps contact and compact profile information in a narrow left rai
     );
     assert.ok(mainRules.length >= 1);
     assert.ok(mainRules.every((element) => element.left === 210 && element.width === 335));
+});
+
+test("Vestige exposes its rail sections to the shared lane-transfer workflow", () => {
+    const elements = vestigeTemplate.map((element, index) => ({
+        ...element,
+        element_id: `vestige-${index}`,
+    }));
+    const skills = elements.find((element) => element.content === "UMIEJĘTNOŚCI");
+    assert.ok(skills);
+    assert.equal(resolveSectionLaneTransfer(elements, skills.element_id, 842), "to-main");
+
+    const moved = transferSectionLane(
+        elements,
+        skills.element_id,
+        842,
+        { stack: 4, record: 10, section: 21, after_rule: 8 },
+    );
+    assert.ok(moved);
+    const movedHeading = moved.find((element) => element.element_id === skills.element_id);
+    assert.equal(movedHeading?.flowRole, "section-chrome");
+    assert.equal(movedHeading?.flowLane, undefined);
 });

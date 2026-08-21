@@ -27,12 +27,12 @@ def _gen_vestige(cv: dict) -> list[dict]:
     sidebar_left = 27.0
     sidebar_content_width = 122.0
     contact_top_by_channel = {
-        "phone": 159.0,
-        "email": 176.0,
-        "linkedin": 193.0,
-        "location": 210.0,
-        "github": 227.0,
-        "website": 244.0,
+        "phone": 104.0,
+        "email": 120.0,
+        "linkedin": 136.0,
+        "location": 152.0,
+        "github": 168.0,
+        "website": 184.0,
     }
     colors = {
         "#F7F8FA": "#FFFFFF",
@@ -97,7 +97,11 @@ def _gen_vestige(cv: dict) -> list[dict]:
             element["left"] = sidebar_left + (float(element.get("left", sidebar_left)) - 34.0) * 0.8
             if "width" in element and float(element["width"]) <= 160:
                 element["width"] = min(float(element["width"]) * 0.8, sidebar_content_width)
-            element["top"] = float(element.get("top", 0)) + 112.0
+            # Keep the first profile section below the last possible contact
+            # row while retaining the compact vertical rhythm expected from a
+            # narrow editorial rail. A previous 112pt offset created a large
+            # unowned gap that became obvious with imported, content-heavy CVs.
+            element["top"] = float(element.get("top", 0)) + 42.0
             if flow_role == "sidebar-chrome" and category == "line":
                 element["width"] = 16.0
 

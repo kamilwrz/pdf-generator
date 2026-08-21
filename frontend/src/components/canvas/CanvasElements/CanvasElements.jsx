@@ -60,7 +60,11 @@ import classes from './CanvasElements.module.css';
  * works unchanged for all three. Other sidebar templates (e.g. Harbor) have
  * not been verified against this control yet.
  */
-const LANE_TRANSFER_TEMPLATE_IDS = new Set(["sterling", "tessera", "slate"]);
+// Vestige uses the same explicit sidebar flow tags as Sterling. Keep this
+// capability list aligned with generators that emit `sidebar-chrome` headings,
+// otherwise the transfer utility remains available but its editor control is
+// never offered to the user.
+const LANE_TRANSFER_TEMPLATE_IDS = new Set(["sterling", "tessera", "slate", "vestige"]);
 
 function enterClassName(elementId, heldIds, fadingIds) {
   if (fadingIds.has(elementId)) return classes.enter;
