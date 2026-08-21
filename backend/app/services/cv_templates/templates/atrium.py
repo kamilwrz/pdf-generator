@@ -101,9 +101,12 @@ def _gen_atrium(cv: dict) -> list[dict]:
     # silhouette glyph marks the slot; `applyProfilePhoto`
     # (frontend/src/utils/profilePhoto.js) sizes the final photo to this
     # glyph's own bounds, since there is no separate frame element to measure.
+    # Fixed pixel position (not derived from L/W): tucked into the page's top
+    # right corner, past the nominal content column edge, matching the exact
+    # placement approved from the live editor.
     PHOTO_SIZE = 84.0
-    PHOTO_LEFT = L + W - PHOTO_SIZE  # flush with the content column's right edge
-    PHOTO_TOP = 44.0
+    PHOTO_LEFT = 476.0
+    PHOTO_TOP = 21.0
     header.append({
         **_icon('slate-accent', 'portrait', PHOTO_LEFT, PHOTO_TOP, PHOTO_SIZE, zIndex=3),
         'id': 'atrium-photo-glyph',

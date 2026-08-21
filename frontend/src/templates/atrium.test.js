@@ -59,7 +59,10 @@ test("Atrium is a centered-axis editorial single column, not a Portico recolor",
     assert.equal(photoGlyph.id, "atrium-photo-glyph");
     assert.equal(photoGlyph.alignWithText, false); // standalone image, no text companion
     assert.equal(photoGlyph.flowRole, "masthead");
-    assert.equal(photoGlyph.left + photoGlyph.width, L + W); // flush with content right edge
+    // Fixed corner placement (not derived from L/W) approved from the live editor.
+    assert.equal(photoGlyph.left, 476);
+    assert.equal(photoGlyph.top, 21);
+    assert.equal(photoGlyph.width, 84);
     assert.ok(
         atriumTemplate.every((element) => element.photoSlot !== "frame"),
         "Atrium must not declare a photo frame — the slot has no surrounding chrome",

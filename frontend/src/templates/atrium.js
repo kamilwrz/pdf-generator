@@ -62,8 +62,8 @@ const ATRIUM_ELEMENTS = [
   {
     "category": "image",
     "src": "http://localhost:8000/template-assets/iconic/slate-accent/portrait.png",
-    "left": 429,
-    "top": 44.0,
+    "left": 476,
+    "top": 21.0,
     "width": 84,
     "height": 84,
     "zIndex": 3,
