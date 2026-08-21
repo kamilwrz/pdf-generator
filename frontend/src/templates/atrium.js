@@ -60,6 +60,20 @@ const ATRIUM_ELEMENTS = [
     "flowRole": "masthead"
   },
   {
+    "category": "image",
+    "src": "http://localhost:8000/template-assets/iconic/slate-accent/portrait.png",
+    "left": 429,
+    "top": 44.0,
+    "width": 84,
+    "height": 84,
+    "zIndex": 3,
+    "page": 1,
+    "alignWithText": false,
+    "flowRole": "masthead",
+    "id": "atrium-photo-glyph",
+    "photoSlot": "glyph"
+  },
+  {
     "category": "textarea",
     "content": "Junior Penetration Tester",
     "left": 82,

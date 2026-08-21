@@ -9,6 +9,11 @@ with a short accent lead-in. The stable heading X keeps shared section packing
 and Add-section (`deriveSectionStyle`) behavior unchanged while the wider column
 and calmer type rhythm improve readability. Layout decisions are deterministic
 Python (never sent to the model).
+
+A frameless photo slot sits top-right of the masthead: unlike every other
+photo-capable template, Atrium never draws a surrounding rect/circle frame
+(see the "no framing shapes" identity this template's tests enforce), so only
+a small silhouette glyph marks the slot until a photo is applied.
 """
 
 from app.services.cv_generator_primitives import (
@@ -25,6 +30,7 @@ from app.services.cv_templates.shared.contact import (
     build_contact_band_anchor,
 )
 from app.services.cv_templates.shared.extras import _extra_sections
+from app.services.cv_templates.shared.icons import _icon
 from app.services.cv_templates.shared.masthead import tag_masthead_identity
 from app.services.cv_templates.shared.records import (
     _education_record_height,
@@ -86,6 +92,25 @@ def _gen_atrium(cv: dict) -> list[dict]:
         header.append(_block(name, L, cursor_y, W, name_h, name_fs, name_lh, C['ink'], DISP,
                              zIndex=3, bold=True, align='center'))
         cursor_y += name_h + 8.0
+
+    # ── Photo slot: frameless, top-right of the masthead ──────────────────────
+    # Atrium's identity forbids framing shapes (see the module docstring and
+    # the "no rectangle/circle/ellipse primitives" guard in atrium.test.js), so
+    # the profile photo has no surrounding rect/circle chrome — unlike every
+    # other photo-capable template. Before a photo is applied, a small neutral
+    # silhouette glyph marks the slot; `applyProfilePhoto`
+    # (frontend/src/utils/profilePhoto.js) sizes the final photo to this
+    # glyph's own bounds, since there is no separate frame element to measure.
+    PHOTO_SIZE = 84.0
+    PHOTO_LEFT = L + W - PHOTO_SIZE  # flush with the content column's right edge
+    PHOTO_TOP = 44.0
+    header.append({
+        **_icon('slate-accent', 'portrait', PHOTO_LEFT, PHOTO_TOP, PHOTO_SIZE, zIndex=3),
+        'id': 'atrium-photo-glyph',
+        'photoSlot': 'glyph',
+        'alignWithText': False,
+    })
+
     if title:
         title_h = Builder.measure_block(title, W, title_fs, title_lh, SANS)
         title_el = _block(title, L, cursor_y, W, title_h, title_fs, title_lh, ACCENT, SANS,

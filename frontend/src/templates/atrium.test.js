@@ -50,8 +50,25 @@ test("Atrium is a centered-axis editorial single column, not a Portico recolor",
     assert.equal(title?.flowRole, "masthead");
     assert.equal(title?.color, ACCENT);
 
+    // ── Photo slot: frameless (per Atrium's "no framing shapes" identity) ────
+    // Unlike Nova/Portico/Harbor, there is no surrounding rect/circle chrome —
+    // only a plain image glyph marks the slot until a photo is applied.
+    const photoGlyph = atriumTemplate.find((element) => element.photoSlot === "glyph");
+    assert.ok(photoGlyph, "Atrium must expose a photo glyph slot");
+    assert.equal(photoGlyph.category, "image");
+    assert.equal(photoGlyph.id, "atrium-photo-glyph");
+    assert.equal(photoGlyph.alignWithText, false); // standalone image, no text companion
+    assert.equal(photoGlyph.flowRole, "masthead");
+    assert.equal(photoGlyph.left + photoGlyph.width, L + W); // flush with content right edge
+    assert.ok(
+        atriumTemplate.every((element) => element.photoSlot !== "frame"),
+        "Atrium must not declare a photo frame — the slot has no surrounding chrome",
+    );
+
     // ── Contact row: icons from the new `atrium` theme, optically aligned ─────
-    const icons = atriumTemplate.filter((element) => element.category === "image");
+    const icons = atriumTemplate.filter(
+        (element) => element.category === "image" && element.photoSlot !== "glyph",
+    );
     assert.equal(icons.length, 6); // phone, email, linkedin, github, website, location
     assert.ok(icons.every((element) => element.src.includes("/template-assets/iconic/atrium/")));
     assert.ok(icons.every((element) => element.alignWithText === true));
