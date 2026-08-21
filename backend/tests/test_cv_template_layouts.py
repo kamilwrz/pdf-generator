@@ -1698,52 +1698,6 @@ class CvTemplateLayoutTests(unittest.TestCase):
             336,
         )
 
-    def test_cardinal_aligns_section_icons_and_midline_rules_to_the_body_column(self):
-        """Cardinal chrome starts at x=72 and never hangs into the margin."""
-        elements = generate_resume("cardinal", {
-            **LONG_CV,
-            "experience": LONG_CV["experience"][:1],
-        })
-        heading = next(
-            element for element in elements
-            if element.get("content") == "PODSUMOWANIE ZAWODOWE"
-        )
-        icon = next(
-            element for element in elements
-            if element.get("category") == "image"
-            and element.get("flowRole") == "section-chrome"
-            and element.get("top") == heading["top"]
-        )
-        rule = min(
-            (
-                element for element in elements
-                if element.get("category") == "line"
-                and element.get("flowRole") == "section-chrome"
-            ),
-            key=lambda element: abs(element.get("top", 0) - heading["top"]),
-        )
-        self.assertEqual(icon["left"], 72)
-        self.assertEqual(heading["left"], 94)
-        self.assertEqual(heading["fontSize"], 11.2)
-        self.assertTrue(heading["bold"])
-        self.assertEqual(icon["width"], 16.5)
-        self.assertEqual(icon["height"], 16.5)
-        expected_rule_top = (
-            heading["top"]
-            + heading["fontSize"] * (0.34 - (1490 / 2048) / 2)
-            - rule["height"] / 2
-        )
-        self.assertAlmostEqual(rule["top"], expected_rule_top)
-        self.assertGreater(rule["left"], heading["left"])
-        self.assertAlmostEqual(rule["left"] + rule["width"], 545)
-        masthead_icons = [
-            element for element in elements
-            if element.get("category") == "image"
-            and element.get("flowRole") == "masthead"
-        ]
-        self.assertTrue(masthead_icons)
-        self.assertTrue(all(element["left"] >= 72 for element in masthead_icons))
-
     def test_iconic_templates_pair_contact_and_section_icons(self):
         contact_keys = ("email", "phone", "location")
         for template_id, theme in (

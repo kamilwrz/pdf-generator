@@ -136,7 +136,6 @@ TEMPLATES = [
     "portico",
     "nova",
     "volt",
-    "cardinal",
     "harbor",
     "tessera",
     "slate",
@@ -162,11 +161,6 @@ DOC_BLURBS = {
         "Volt template (`layouts: [\"icons\", \"dark\"]`).\n"
         " *\n"
         " * Dark amber signal chips with Montserrat + JetBrains Mono."
-    ),
-    "cardinal": (
-        "Cardinal template (`layouts: [\"icons\"]`).\n"
-        " *\n"
-        " * Oxblood accent with icon-in-gutter section headings."
     ),
     "harbor": (
         "Harbor template (`layouts: [\"sidebar\", \"icons\"]`).\n"

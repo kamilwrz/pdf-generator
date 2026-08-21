@@ -9,7 +9,6 @@
  */
 import { novaTemplate, voltTemplate } from "./iconic";
 import { monumentTemplate } from "./monument";
-import { cardinalTemplate } from "./cardinal";
 import { harborTemplate } from "./harbor";
 import { tesseraTemplate } from "./tessera";
 import { slateTemplate } from "./slate";
@@ -22,7 +21,6 @@ export { TEMPLATE_LAYOUT_TAGS } from "../utils/templateLayouts";
 
 export const TEMPLATES = [
     { id: "monument", tier: "paid", name: "Monument", description: "Monochromatyczny editorial", layouts: ["single"], accent: "#343434", elements: monumentTemplate },
-    { id: "cardinal", tier: "paid", name: "Cardinal", description: "Szlachetna czerwień, ikony przy sekcjach", layouts: ["icons"], accent: "#9E2532", elements: cardinalTemplate },
     { id: "harbor", tier: "paid", name: "Harbor", description: "Dwukolumnowy, ikony kontaktu", layouts: ["sidebar", "icons"], accent: "#17A2B8", elements: harborTemplate },
     { id: "nova", tier: "free", name: "Nova", description: "Redakcyjny masthead z ikonami", layouts: ["icons"], accent: "#C45C26", elements: novaTemplate },
     { id: "volt", tier: "paid", name: "Volt", description: "Ciemny sygnał, bursztynowe akcenty", layouts: ["icons", "dark"], accent: "#E8A838", elements: voltTemplate },

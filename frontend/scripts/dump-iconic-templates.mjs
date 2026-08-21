@@ -5,7 +5,6 @@
 import { writeFileSync } from "node:fs";
 import { novaTemplate, voltTemplate } from "../src/templates/iconic.js";
 import { monumentTemplate } from "../src/templates/monument.js";
-import { cardinalTemplate } from "../src/templates/cardinal.js";
 import { harborTemplate } from "../src/templates/harbor.js";
 import { tesseraTemplate } from "../src/templates/tessera.js";
 import { slateTemplate } from "../src/templates/slate.js";
@@ -18,7 +17,6 @@ const out = {
     nova: novaTemplate,
     volt: voltTemplate,
     monument: monumentTemplate,
-    cardinal: cardinalTemplate,
     harbor: harborTemplate,
     tessera: tesseraTemplate,
     slate: slateTemplate,

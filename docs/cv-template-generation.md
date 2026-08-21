@@ -239,7 +239,7 @@ Każdy z 14 szablonów ma osobny plik `cv_templates/templates/<id>.py` z funkcj�
 | Tag layoutu | Szablony |
 |---|---|
 | `single` | nimbus, cinder, monument, atrium, blueprint |
-| `icons` | cardinal, nova, volt, portico, axis (+ harbor, tessera, slate, atrium) |
+| `icons` | nova, volt, portico, axis (+ harbor, tessera, slate, atrium) |
 | `sidebar` | harbor, tessera, slate, sterling |
 | `dark` | volt |
 

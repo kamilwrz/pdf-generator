@@ -8,7 +8,6 @@ import {
   reorderSection,
   sectionElementIds,
 } from "./sectionStructure.js";
-import { cardinalTemplate } from "../templates/cardinal.js";
 
 // Deterministic ids so assertions are stable.
 function makeIdFactory() {
@@ -434,59 +433,4 @@ describe("build -> append -> reorder (composed production pipeline)", () => {
     assert.equal(existingGap, rhythm.after_rule);
   });
 
-  it("Cardinal added sections preserve every rule's right edge and rule-to-body gap", () => {
-    // Cardinal centres a thin rule on the visible heading caps, which places
-    // its rectangle fractionally above the heading's stored `top`. The section
-    // sampler must still copy that rule instead of assigning it to the previous
-    // section or falling back to a rule-less generic style.
-    let id = 0;
-    const doc = cardinalTemplate.map((element, index) => ({
-      ...element,
-      element_id: `cardinal-${index}`,
-      page: 1,
-      isDeleted: false,
-    }));
-    const lastSection = listDocumentSections(doc, pageHeight).at(-1);
-    const sampled = deriveSectionStyle(doc, pageHeight, lastSection.headingId);
-    const { elements: additions, headingId } = buildSectionElements({
-      name: "CERTYFIKATY",
-      layout: SECTION_LAYOUTS.TEXTAREA,
-      style: sampled,
-      idFactory: () => `added-cardinal-${(id += 1)}`,
-    });
-    const appended = appendSectionAtEnd(doc, additions, pageHeight, {});
-    const absolute = (element) => ((element.page || 1) - 1) * pageHeight + element.top;
-    // Chip-grid sections (Skills) may have no `flowRole: "content"` textarea —
-    // only assert rule geometry on sections that still expose a content body.
-    const geometry = listDocumentSections(appended, pageHeight).flatMap((section) => {
-      const ids = sectionElementIds(appended, section.headingId, pageHeight);
-      const members = appended.filter((element) => ids.has(element.element_id));
-      const heading = members.find((element) => element.element_id === section.headingId);
-      const rule = members.find((element) => element.category === "line" && element.width >= 120);
-      const body = members
-        .filter((element) => element.flowRole === "content")
-        .sort((left, right) => absolute(left) - absolute(right))[0];
-      if (!heading || !rule || !body) return [];
-      const estimatedHeadingWidth = heading.content.length
-        * (heading.fontSize * 0.58 + heading.letterSpacing);
-      return [{
-        headingId: section.headingId,
-        ruleId: rule.element_id,
-        right: rule.left + rule.width,
-        labelGap: rule.left - heading.left - estimatedHeadingWidth,
-        gap: absolute(body) - absolute(rule) - rule.height,
-      }];
-    });
-
-    assert.ok(geometry.find((section) => section.headingId === headingId)?.ruleId);
-    assert.deepEqual(new Set(geometry.map((section) => section.right)), new Set([545]));
-    assert.deepEqual(
-      new Set(geometry.map((section) => Number(section.labelGap.toFixed(6)))),
-      new Set([14]),
-    );
-    assert.equal(
-      new Set(geometry.map((section) => Number(section.gap.toFixed(6)))).size,
-      1,
-    );
-  });
 });

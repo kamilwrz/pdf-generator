@@ -14,7 +14,7 @@ import {
 } from "./sectionStructure.js";
 import { decorativeShapeElement } from "./sectionBuilder.js";
 
-/** Shared base glyphs generated for nova / volt / cardinal. */
+/** Shared base glyphs generated for nova / volt / portico. */
 const BASE_ICON_NAMES = Object.freeze([
   "summary",
   "experience",
@@ -35,7 +35,6 @@ const BASE_ICON_NAMES = Object.freeze([
 
 /** Theme folder → icon file stems (must match `scripts/generate_iconic_icons.py`). */
 export const THEME_ICON_NAMES = Object.freeze({
-  cardinal: BASE_ICON_NAMES,
   nova: BASE_ICON_NAMES,
   volt: BASE_ICON_NAMES,
   portico: BASE_ICON_NAMES,
@@ -59,7 +58,6 @@ export const THEME_ICON_NAMES = Object.freeze({
 
 /** Registry template id → iconic theme folder used for section headings. */
 export const TEMPLATE_ICON_THEME = Object.freeze({
-  cardinal: "cardinal",
   nova: "nova",
   volt: "volt",
   harbor: "harbor",
@@ -192,14 +190,14 @@ export function templateOffersSectionIcons(templateId, elements = []) {
 
 /** Themes that decorate section headings with iconic glyphs (not contact-only). */
 const SECTION_HEADING_ICON_THEMES = new Set([
-  "cardinal", "nova", "volt", "tessera", "slate", "portico",
+  "nova", "volt", "tessera", "slate", "portico",
 ]);
 
 /**
  * Gallery options for the active template / document.
  *
  * Shown when the document already has a section-heading icon, or when the
- * template theme is known to place icons beside headings (Cardinal, Nova, …).
+ * template theme is known to place icons beside headings (Nova, Volt, …).
  * Harbor-style contact-only themes stay hidden unless a heading icon exists.
  *
  * @param {{ templateId?: string|null, elements?: object[] }} [args]

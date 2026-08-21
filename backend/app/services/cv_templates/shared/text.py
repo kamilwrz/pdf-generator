@@ -295,8 +295,8 @@ def _chip_label_top(pill_top: float, chip_h: float) -> float:
     Canvas ``.page-canvas p`` uses ``line-height: 0``, which beats
     ``.textElement { line-height: 1 }``. Combined with PDF ``renderText``
     placing the baseline at ``top + 0.34em``, the visible cap centre sits
-    near the stored ``top``, not at ``top + 0.5em`` — the same model Cardinal
-    uses for section-rule alignment. ``CHIP_PAD_Y`` sizes the rectangle; using
+    near the stored ``top``, not at ``top + 0.5em`` — the same model the icon
+    templates use for section-rule alignment. ``CHIP_PAD_Y`` sizes the rectangle; using
     it as the label Y parks the glyph in the upper half of the pill.
     """
     return pill_top + chip_h / 2.0

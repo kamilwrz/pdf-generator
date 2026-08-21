@@ -15,10 +15,6 @@ ROOT = Path(__file__).resolve().parents[1] / "backend" / "template_assets" / "ic
 THEMES = {
     "nova": "#C45C26",
     "volt": "#E8A838",
-    # Cardinal (Classic collection): the layout keeps its "noble red" for text
-    # headings only. Its section and contact icons are deliberately neutral grey
-    # so the red stays reserved for typography, matching the template's design.
-    "cardinal": "#8A8A8A",
     "portico": "#7C6A52",
 }
 THEME_VARIANTS = {}
@@ -250,7 +246,7 @@ ICONS = {
     "email": draw_email,
     "phone": draw_phone,
     "location": draw_location,
-    # Contact profile links — generated for nova/volt/cardinal and subset themes.
+    # Contact profile links — generated for nova/volt and subset themes.
     "github": draw_github,
     "linkedin": draw_linkedin,
     "website": draw_website,

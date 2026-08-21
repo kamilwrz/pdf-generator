@@ -93,7 +93,6 @@ Każdy szablon to osobny byt: własna nazwa i krótki opis stylistyczny. UI nie 
 | Regent | Executive, wyważona elegancja |
 | Aldine | Szlachetny papier |
 | Monument | Monochromatyczny editorial |
-| Cardinal | Szlachetna czerwień, ikony przy sekcjach |
 | Harbor | Dwukolumnowy, ikony kontaktu |
 | Nova | Redakcyjny masthead z ikonami |
 | Volt | Ciemny sygnał, bursztynowe akcenty |

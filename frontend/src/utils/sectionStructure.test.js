@@ -20,8 +20,8 @@ import {
   sidebarSectionElementIds,
 } from "./sectionStructure.js";
 import { novaTemplate, voltTemplate } from "../templates/iconic.js";
-import { cardinalTemplate } from "../templates/cardinal.js";
 import { porticoTemplate } from "../templates/portico.js";
+import { changeSkillsDisplayMode } from "./skillsDisplayMode.js";
 
 /**
  * Two-column sidebar fixture modeled on Tessera/Slate's real geometry
@@ -1402,7 +1402,6 @@ describe("applyFlowSpacing", () => {
     // as corruption and shoved every section down by ~28px (Cardinal/Volt too).
     for (const [name, template] of [
       ["nova", novaTemplate],
-      ["cardinal", cardinalTemplate],
       ["volt", voltTemplate],
     ]) {
       const source = template.map((element, index) => ({
@@ -2358,21 +2357,22 @@ describe("appendSectionAtEnd", () => {
 });
 
 describe("listFlatSectionAnchors", () => {
-  // Cardinal's starter now emits UMIEJĘTNOŚCI as skill chips (`grid-member`),
-  // which are not a single flat textarea — chips sections must NOT get the
-  // list/layout toggle. A synthetic mid-dot skills textarea still must.
-  const source = cardinalTemplate.map((element, index) => ({
+  // A chip-rendered UMIEJĘTNOŚCI (`grid-member`) is not a single flat textarea,
+  // so chips sections must NOT get the list/layout toggle. A synthetic mid-dot
+  // skills textarea still must. The base fixture is a real single-column icon
+  // starter; the chips variant is produced with the skills display-mode util.
+  const source = porticoTemplate.map((element, index) => ({
     ...element,
-    element_id: `c-${index}`,
+    element_id: `p-${index}`,
     page: 1,
   }));
 
   function withFlatSkillsTextarea(elements) {
-    // Replace chip pairs under UMIEJĘTNOŚCI with one mid-dot textarea so the
-    // flat-anchor contract stays covered after the chips migration.
+    // Replace the skills members under UMIEJĘTNOŚCI with one mid-dot textarea so
+    // the flat-anchor contract stays covered regardless of the starter's shape.
     const sections = listDocumentSections(elements, 842);
     const skills = sections.find((section) => section.title === "UMIEJĘTNOŚCI");
-    assert.ok(skills, "expected UMIEJĘTNOŚCI in Cardinal");
+    assert.ok(skills, "expected UMIEJĘTNOŚCI in the starter");
     const memberIds = sectionElementIds(elements, skills.headingId, 842);
     const withoutChips = elements.filter((element) => (
       !memberIds.has(element.element_id)
@@ -2418,10 +2418,23 @@ describe("listFlatSectionAnchors", () => {
   });
 
   it("excludes chip-rendered Skills from flat anchors", () => {
-    const anchors = listFlatSectionAnchors(source, 842);
-    const sections = listDocumentSections(source, 842);
+    const flatSkills = listDocumentSections(source, 842)
+      .find((section) => section.title === "UMIEJĘTNOŚCI");
+    assert.ok(flatSkills, "expected a UMIEJĘTNOŚCI section in the fixture");
+    // Convert the flat skills body into chip pills (`grid-member`) via the same
+    // display-mode util the canvas editor uses.
+    const chipSource = changeSkillsDisplayMode(
+      source,
+      flatSkills.headingId,
+      "chips",
+      842,
+      undefined,
+      "portico",
+    );
+    const anchors = listFlatSectionAnchors(chipSource, 842);
+    const sections = listDocumentSections(chipSource, 842);
     const skills = sections.find((section) => section.title === "UMIEJĘTNOŚCI");
-    assert.ok(skills, "expected a UMIEJĘTNOŚCI section in the Cardinal fixture");
+    assert.ok(skills, "expected a UMIEJĘTNOŚCI section in the chip fixture");
     assert.ok(
       !anchors.some((anchor) => anchor.headingId === skills.headingId),
       "grid-member skill chips must not get the flat-list layout toggle",
@@ -2432,7 +2445,7 @@ describe("listFlatSectionAnchors", () => {
     const anchors = listFlatSectionAnchors(source, 842);
     const sections = listDocumentSections(source, 842);
     const summary = sections.find((section) => section.title === "PODSUMOWANIE ZAWODOWE");
-    assert.ok(summary, "expected a PODSUMOWANIE ZAWODOWE section in the Cardinal fixture");
+    assert.ok(summary, "expected a PODSUMOWANIE ZAWODOWE section in the fixture");
     assert.ok(
       !anchors.some((anchor) => anchor.headingId === summary.headingId),
       "a single-paragraph section must not get the layout toggle",
@@ -2443,7 +2456,7 @@ describe("listFlatSectionAnchors", () => {
     const anchors = listFlatSectionAnchors(source, 842);
     const sections = listDocumentSections(source, 842);
     const experience = sections.find((section) => section.title === "DOŚWIADCZENIE ZAWODOWE");
-    assert.ok(experience, "expected a DOŚWIADCZENIE ZAWODOWE section in the Cardinal fixture");
+    assert.ok(experience, "expected a DOŚWIADCZENIE ZAWODOWE section in the fixture");
     assert.ok(
       !anchors.some((anchor) => anchor.headingId === experience.headingId),
       "a multi-record section must not get the layout toggle",

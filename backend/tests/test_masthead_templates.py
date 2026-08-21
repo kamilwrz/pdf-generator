@@ -34,7 +34,7 @@ def _by_role(elements, role):
 
 @pytest.mark.parametrize(
     "template_id",
-    ["harbor", "atrium", "portico", "cardinal", "tessera", "slate", "nova", "volt"],
+    ["harbor", "atrium", "portico", "tessera", "slate", "nova", "volt"],
 )
 def test_template_emits_masthead_identity(template_id):
     elements = generate_resume(template_id, _CV)
@@ -62,7 +62,7 @@ def test_template_emits_masthead_identity(template_id):
 
 @pytest.mark.parametrize(
     "template_id",
-    ["harbor", "atrium", "portico", "cardinal", "tessera", "slate", "nova", "volt"],
+    ["harbor", "atrium", "portico", "tessera", "slate", "nova", "volt"],
 )
 def test_masthead_descriptor_reflow_delta_is_positive(template_id):
     """The title-hide reflow delta (``blockPt``) must be positive so hiding the

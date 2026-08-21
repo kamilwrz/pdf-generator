@@ -6,7 +6,6 @@ from app.services.cv_templates.templates.harbor import _gen_harbor
 from app.services.cv_templates.templates.nova import _gen_nova
 from app.services.cv_templates.templates.volt import _gen_volt
 from app.services.cv_templates.templates.monument import _gen_monument
-from app.services.cv_templates.templates.cardinal import _gen_cardinal
 from app.services.cv_templates.templates.tessera import _gen_tessera
 from app.services.cv_templates.templates.slate import _gen_slate
 from app.services.cv_templates.templates.portico import _gen_portico
@@ -16,7 +15,6 @@ from app.services.cv_templates.templates.sterling import _gen_sterling
 
 TEMPLATE_LAYOUTS: dict[str, frozenset[str]] = {
     "monument": frozenset({"single"}),
-    "cardinal": frozenset({"icons"}),
     "harbor": frozenset({"sidebar", "icons"}),
     "nova": frozenset({"icons"}),
     "volt": frozenset({"icons", "dark"}),
@@ -33,7 +31,6 @@ _GENERATORS = {
     "nova": _gen_nova,
     "volt": _gen_volt,
     "monument": _gen_monument,
-    "cardinal": _gen_cardinal,
     "tessera": _gen_tessera,
     "slate": _gen_slate,
     "portico": _gen_portico,

@@ -35,7 +35,7 @@ def _gen_portico(cv: dict) -> list[dict]:
     Name, square profile slot, title, and the contact row are centered on the
     page. Everything below the header rule — summary, experience, education,
     skills, extras — is a left-aligned single-column body with icon-in-gutter
-    section headings, matching the Cardinal/Nova body structure.
+    section headings, matching the Nova body structure.
     """
     C = {
         'paper': '#FCFBF8', 'ink': '#22221F', 'accent': '#7C6A52',
