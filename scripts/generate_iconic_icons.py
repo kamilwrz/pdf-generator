@@ -327,6 +327,13 @@ SUBSET_THEMES = {
         "#556158",
         ["email", "phone", "location", "linkedin", "github", "website"],
     ),
+    # Sterling (institutional two-column layout) uses its own steel-blue accent
+    # for the centered letterhead contact row only. Section headings stay plain
+    # text + rule (no icons), so just the contact set is generated.
+    "sterling": (
+        "#4A6FA5",
+        ["email", "phone", "location", "linkedin", "github", "website"],
+    ),
 }
 
 

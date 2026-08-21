@@ -55,6 +55,11 @@ from app.services.cv_templates.shared.column_planner import (
     PlaceableSection,
     plan_columns_multi_page,
 )
+from app.services.cv_templates.shared.contact import (
+    _contact_channel_items,
+    _place_centered_icon_contacts,
+    build_contact_band_anchor,
+)
 from app.services.cv_templates.shared.extras import (
     _extra_sections,
     _fit_sidebar_sections,
@@ -73,7 +78,6 @@ from app.services.cv_templates.shared.records import (
 )
 from app.services.cv_templates.shared.text import (
     _compact_text,
-    _contact_line,
     _labels,
     _language_entries,
     _measure_languages_grid_height,
@@ -104,19 +108,26 @@ def _gen_sterling(cv: dict) -> list[dict]:
     LETTERHEAD_W = 460.0
     LETTERHEAD_L = PAGE_CENTER - LETTERHEAD_W / 2.0
 
-    # ── Masthead: centered "letterhead" — name / title / contact — closed by a
-    # horizontal rule that separates it from the two-column body below. Every
-    # element carries flowRole "masthead" (exempt from all section packing),
-    # so centering it is free of the column-detection concerns that apply to
-    # section headings. ────────────────────────────────────────────────────
+    # ── Masthead: centered "letterhead" — name / title / icon contact row —
+    # closed by a horizontal rule that separates it from the two-column body
+    # below. Every element carries flowRole "masthead" (exempt from all
+    # section packing), so centering it is free of the column-detection
+    # concerns that apply to section headings. The contact row uses the same
+    # centered icon-band placer as other Iconic templates (`shared/contact.py`)
+    # instead of one mid-dot-joined textarea, so each channel keeps its own
+    # short, non-wrapping label and glyph; the band's descriptor lets the
+    # client contact-channel manager add/remove/relayout channels the same way
+    # Cardinal/Nova do. ───────────────────────────────────────────────────────
     NAME_FS, NAME_LH = (30.0, 34.0)
     TITLE_FS, TITLE_LH = (11.5, 15.0)
     CONTACT_FS, CONTACT_LH = (9.4, 13.5)
+    CONTACT_ICON = 13.0
     MAST_TOP = 46.0
+    CONTACT_BAND_ID = 'sterling-contact'
 
     name = _compact_text(cv.get('name'), 40)
     title = _compact_text(cv.get('title'), 60).upper()
-    contact = _compact_text(_contact_line(cv), 130)
+    contact_items = _contact_channel_items(cv, email_limit=40, phone_limit=24, location_limit=28, social_limit=36)
 
     header: list[dict] = []
     cursor_y = MAST_TOP
@@ -140,20 +151,36 @@ def _gen_sterling(cv: dict) -> list[dict]:
             'autoHeight': True, 'preserveInitialLayout': True,
         })
         cursor_y += title_h + 10.0
-    if contact:
-        contact_h = Builder.measure_block(contact, LETTERHEAD_W, CONTACT_FS, CONTACT_LH, SANS)
-        header.append({
-            'category': 'textarea', 'content': contact, 'left': LETTERHEAD_L, 'top': cursor_y,
-            'width': LETTERHEAD_W, 'height': contact_h, 'fontSize': CONTACT_FS, 'lineHeight': CONTACT_LH,
-            'letterSpacing': 0.3, 'color': C['muted'], 'fontFamily': SANS, 'zIndex': 3,
-            'page': 1, 'bold': False, 'italic': False, 'align': 'center', 'bulletList': False,
-            'autoHeight': True, 'preserveInitialLayout': True,
-        })
-        cursor_y += contact_h
+
+    contact_descriptor: dict | None = None
+    if contact_items:
+        contact_els, contact_bottom, contact_descriptor = _place_centered_icon_contacts(
+            theme='sterling',
+            items=contact_items,
+            center_x=PAGE_CENTER,
+            start_y=cursor_y,
+            max_width=LETTERHEAD_W,
+            text_fs=CONTACT_FS,
+            icon_size=CONTACT_ICON,
+            text_color=C['muted'],
+            font=SANS,
+            band_id=CONTACT_BAND_ID,
+        )
+        header.extend(contact_els)
+        # `contact_bottom` is the TOP of the last contact row (see
+        # `_place_centered_icon_contacts`'s contract); add the row's own
+        # content height to land back on "bottom of masthead content", the
+        # same cursor contract the name/title blocks above already use.
+        cursor_y = contact_bottom + max(CONTACT_ICON, CONTACT_LH)
 
     rule_y = cursor_y + 20.0
     header.append(_line(SIDE_L, rule_y, (595.0 - 50.0) - SIDE_L, 1, C['rule'], zIndex=1))
     header = [{**element, 'flowRole': 'masthead'} for element in header]
+    # Appended after the masthead-tagging comprehension so the anchor keeps its
+    # own "masthead-anchor" flowRole instead of being overwritten to "masthead"
+    # (matches Cardinal's contact-band anchor placement).
+    if contact_descriptor is not None:
+        header.append(build_contact_band_anchor(contact_descriptor))
 
     content_top = rule_y + 30.0
 

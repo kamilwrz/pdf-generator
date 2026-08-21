@@ -146,6 +146,71 @@ export function expandContinuationRailChrome(element, pageHeight = 842) {
   return element;
 }
 
+// Hairline rule that closes Sterling's letterhead masthead: flowing (not
+// `fixedToPage`) so ordinary reflow already carries it down as the name /
+// title / contact block above it grows. Its resting `top` is therefore the
+// single source of truth for how tall the letterhead band above it must be.
+const LETTERHEAD_DIVIDER_MAX_HEIGHT = 3;
+const LETTERHEAD_DIVIDER_MIN_WIDTH = 200;
+
+/**
+ * The masthead-closing divider rule for a page-1 letterhead band, if any.
+ *
+ * @param {object[]} elements
+ * @returns {object|null}
+ */
+function findLetterheadDivider(elements) {
+  return (elements || []).find((element) => (
+    element
+    && element.category === "line"
+    && element.flowRole === "masthead"
+    && !element.fixedToPage
+    && Math.max(1, Math.trunc(element.page ?? 1)) === 1
+    && (Number(element.height) || 0) <= LETTERHEAD_DIVIDER_MAX_HEIGHT
+    && (Number(element.width) || 0) >= LETTERHEAD_DIVIDER_MIN_WIDTH
+  )) ?? null;
+}
+
+/**
+ * Resize a page-1 letterhead band (see `isLetterheadBandChrome`) to match its
+ * own closing divider rule.
+ *
+ * BUG THIS FIXES: the letterhead band is `fixedToPage`, so every reflow path
+ * (`textareaReflow.js` for the name/title boxes, `contactBandOps.js` for the
+ * icon contact row) deliberately skips it — moving/resizing fixed chrome
+ * would be wrong for ordinary page background/rail/footer chrome. But this
+ * band's whole job is to sit *behind* the masthead, so when the masthead
+ * grows (e.g. the user types a longer contact line that wraps to a second
+ * row) the divider rule correctly slides down while the band's height stayed
+ * frozen at its generation-time value — visually detaching the rule from the
+ * tinted field it was meant to close off. Since `content_top` in
+ * `sterling.py` derives from `rule_y` the same way the band's height does,
+ * the divider's resting `top` is always the exact height the band should
+ * have; this keeps the two in sync after every edit instead of only at
+ * generation time.
+ *
+ * @param {object[]} elements
+ * @returns {{ elements: object[], changed: boolean }}
+ */
+export function syncLetterheadBandHeight(elements) {
+  const divider = findLetterheadDivider(elements);
+  if (!divider) return { elements, changed: false };
+  const targetHeight = Math.max(0, Number(divider.top) || 0);
+  let changed = false;
+  const next = (elements || []).map((element) => {
+    if (
+      Math.max(1, Math.trunc(element.page ?? 1)) === 1
+      && isLetterheadBandChrome(element)
+      && Math.abs((Number(element.height) || 0) - targetHeight) > 0.5
+    ) {
+      changed = true;
+      return { ...element, height: targetHeight };
+    }
+    return element;
+  });
+  return { elements: changed ? next : elements, changed };
+}
+
 /**
  * True when `candidate` already covers the same fixed chrome role as `source`
  * (rail fill, divider, page number, …). Used so a continuation page that only
@@ -278,9 +343,10 @@ export function reconcileDocumentPages(elements, createId, options = {}) {
 
   const withClones = generated.length ? [...base, ...generated] : base;
   const renumbered = renumberFixedPageNumbers(withClones);
+  const bandSynced = syncLetterheadBandHeight(renumbered.elements);
 
-  if (!droppedChrome && generated.length === 0 && !renumbered.changed) {
+  if (!droppedChrome && generated.length === 0 && !renumbered.changed && !bandSynced.changed) {
     return { elements: list, pageCount };
   }
-  return { elements: renumbered.elements, pageCount };
+  return { elements: bandSynced.elements, pageCount };
 }

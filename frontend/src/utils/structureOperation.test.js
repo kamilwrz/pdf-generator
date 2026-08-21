@@ -6,7 +6,55 @@ import {
   formatContinuationPageNumber,
   previewStructureOperation,
   reconcileDocumentPages,
+  syncLetterheadBandHeight,
 } from "./structureOperation.js";
+
+test("syncLetterheadBandHeight regrows a Sterling-style letterhead band when its divider moves down", () => {
+  // Reproduces the reported bug: typing more text into the masthead contact
+  // row pushes the divider rule down (ordinary reflow already does this
+  // correctly, since the rule is not `fixedToPage`), but the tinted band
+  // behind it is `fixedToPage` and was frozen at its generation-time height.
+  const band = {
+    element_id: "band", category: "line", fixedToPage: true,
+    left: 0, top: 0, width: 595, height: 158, backgroundColor: "#EDF1F6", page: 1,
+  };
+  const divider = {
+    element_id: "divider", category: "line", flowRole: "masthead",
+    left: 34, top: 178, width: 511, height: 1, backgroundColor: "#C7CFDA", page: 1,
+  };
+  const result = syncLetterheadBandHeight([band, divider]);
+  assert.equal(result.changed, true);
+  assert.equal(result.elements.find((el) => el.element_id === "band").height, 178);
+  // The divider itself is untouched — only the band's height is a derived value.
+  assert.equal(result.elements.find((el) => el.element_id === "divider").top, 178);
+});
+
+test("syncLetterheadBandHeight is a no-op when the band already matches its divider", () => {
+  const band = {
+    element_id: "band", category: "line", fixedToPage: true,
+    left: 0, top: 0, width: 595, height: 158, backgroundColor: "#EDF1F6", page: 1,
+  };
+  const divider = {
+    element_id: "divider", category: "line", flowRole: "masthead",
+    left: 34, top: 158, width: 511, height: 1, backgroundColor: "#C7CFDA", page: 1,
+  };
+  const elements = [band, divider];
+  const result = syncLetterheadBandHeight(elements);
+  assert.equal(result.changed, false);
+  assert.equal(result.elements, elements);
+});
+
+test("reconcileDocumentPages keeps a Sterling letterhead band in sync after a masthead reflow", () => {
+  const elements = [
+    { element_id: "band", category: "line", fixedToPage: true, repeatOnContinuation: false,
+      left: 0, top: 0, width: 595, height: 158, backgroundColor: "#EDF1F6", page: 1 },
+    { element_id: "divider", category: "line", flowRole: "masthead",
+      left: 34, top: 200, width: 511, height: 1, backgroundColor: "#C7CFDA", page: 1 },
+    { element_id: "body", category: "text", content: "Doświadczenie", left: 245, top: 220, page: 1 },
+  ];
+  const result = reconcileDocumentPages(elements, () => "generated-id");
+  assert.equal(result.elements.find((el) => el.element_id === "band").height, 200);
+});
 
 test("preview replaces the source and renders proposed movement without mutating canvas state", () => {
   const current = [
