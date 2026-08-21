@@ -1,13 +1,19 @@
 /* The wrapper is sized to the scaled canvas and centers it (margin auto)
    when it fits, or left-aligns + scrolls when wider than .canvas-area —
-   mirroring what .A4's own margin:auto did before zoom existed. */
+   mirroring what .A4's own margin:auto did before zoom existed. Width/height
+   are transitioned too so the auto-zoom-while-editing effect (useA4Elements)
+   reserves layout space smoothly instead of snapping the scroll extent. */
 .zoomWrapper {
     margin: 0 auto;
+    transition: width 240ms ease-out, height 240ms ease-out;
 }
 
 .spreadPage {
     flex: 0 0 auto;
     margin: 0;
+    /* Two-page spread always renders at zoom=1 (see PdfCanvas.jsx), so it
+       never animates and should not inherit the single-page transition. */
+    transition: none;
 }
 
 .A4 {
@@ -17,4 +23,12 @@
     box-shadow:
         0 0 0 1px rgba(23, 23, 23, .08),
         0 24px 56px -18px rgba(23, 23, 23, .22);
+    transition: transform 240ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .zoomWrapper,
+    .A4 {
+        transition: none;
+    }
 }

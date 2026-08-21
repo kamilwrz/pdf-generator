@@ -309,6 +309,7 @@ function PdfCanvas() {
     groupMoveDelta,
     setPageCanvasRef,
     A4ref,
+    canvasAreaRef,
     handleMoveElement,
     handleMoveSelectedElements,
     handleSelectMoveElement,
@@ -392,8 +393,8 @@ function PdfCanvas() {
   } = useA4Elements(titleRef)
 
   // Wheel on the canvas scrolls the overflow first; at the edge it changes
-  // currentPage so PageControls ("Strona N / M") stays in sync.
-  const canvasAreaRef = useRef(null);
+  // currentPage so PageControls ("Strona N / M") stays in sync. canvasAreaRef
+  // comes from useA4Elements so the edit-zoom effect there can also scroll it.
   useCanvasPageWheel(canvasAreaRef, { currentPage, pageCount, goToPage });
 
   // Direction for CanvasPageStage slide (next = +1, previous = -1).

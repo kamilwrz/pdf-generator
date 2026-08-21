@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { nanoid } from 'nanoid';
 import { getElementBounds } from '../utils/elementBounds';
 import { measureTextareaHeight } from '../utils/textareaHeight';
@@ -94,9 +94,25 @@ const ZOOM_DEFAULT = 1.3;
 const clampZoom = (z) => Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Math.round(z * 100) / 100));
 const stepZoom = (z, dir) => clampZoom(Math.round((z + dir * ZOOM_STEP) * 10) / 10);
 
+// Entering text-edit mode zooms the canvas to this level so small type is
+// readable while typing, then restores the pre-edit zoom on exit (see the
+// editingElementId effect below). Two-page view never auto-zooms.
+const EDIT_ZOOM = 2;
+
+function prefersReducedMotion() {
+  if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
+    return false;
+  }
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
 export function useA4Elements(titleRef) {
 
   const A4ref = useRef(null);
+  // Scroll container for the page(s); the edit-zoom effect below scrolls this
+  // to bring the edited element into view. Exposed so PdfCanvas.jsx can attach
+  // it to `.canvas-area` instead of keeping its own separate ref.
+  const canvasAreaRef = useRef(null);
 
   const [A4_Elements, setA4_Elements] = useState([]);
   const [A4_Elements_deleted, setA4_Elements_deleted] = useState([]);
@@ -204,6 +220,62 @@ export function useA4Elements(titleRef) {
     A4ref.current = pageCanvasRefs.current.get(currentPage) ?? null;
   }, [currentPage]);
   useEffect(() => { elementsRef.current = A4_Elements; }, [A4_Elements]);
+
+  // ---- Auto-zoom while editing text ----
+  // Entering edit mode on a text/textarea element zooms the canvas to
+  // EDIT_ZOOM and scrolls so the element is centered, then restores the
+  // pre-edit zoom on exit. `editingElementId` is a plain string (or null), so
+  // even though this useMemo re-runs on every keystroke (A4_Elements changes
+  // as content is typed), the effect below — keyed on that primitive value —
+  // only re-fires when the *edited element itself* changes, not on every
+  // keystroke inside it.
+  const editingElementId = useMemo(() => {
+    const editing = A4_Elements.find((element) => (
+      element.isEditing && (element.category === "text" || element.category === "textarea")
+    ));
+    return editing ? editing.element_id : null;
+  }, [A4_Elements]);
+  // Zoom level to restore when edit mode ends; null while not auto-zoomed.
+  const editZoomPreviousRef = useRef(null);
+  useEffect(() => {
+    if (isTwoPageView || !editingElementId) {
+      if (editZoomPreviousRef.current != null) {
+        setZoomState(editZoomPreviousRef.current);
+        editZoomPreviousRef.current = null;
+      }
+      return undefined;
+    }
+
+    // Measure the page's vertical offset within the scroll container BEFORE
+    // the zoom transition starts (transform-origin is top-left and the page
+    // is centered only horizontally, so this offset is the same at any zoom
+    // level) — this lets the scroll target be computed analytically for the
+    // upcoming EDIT_ZOOM instead of racing the CSS transition for a
+    // mid-animation DOM measurement.
+    const container = canvasAreaRef.current;
+    const pageNode = A4ref.current;
+    const editedElement = elementsRef.current.find((element) => element.element_id === editingElementId);
+
+    setZoomState((current) => {
+      if (editZoomPreviousRef.current == null) editZoomPreviousRef.current = current;
+      return EDIT_ZOOM;
+    });
+
+    if (container && pageNode && editedElement) {
+      const containerRect = container.getBoundingClientRect();
+      const pageRect = pageNode.getBoundingClientRect();
+      const contentTop = pageRect.top - containerRect.top + container.scrollTop;
+      const elementCenterY = contentTop
+        + (Number(editedElement.top) || 0) * EDIT_ZOOM
+        + ((Number(editedElement.height) || 0) * EDIT_ZOOM) / 2;
+      container.scrollTo({
+        top: Math.max(0, elementCenterY - containerRect.height / 2),
+        behavior: prefersReducedMotion() ? "auto" : "smooth",
+      });
+    }
+    return undefined;
+  }, [editingElementId, isTwoPageView]);
+
   // Strip NULL/NBSP junk and trailing bullet placeholders already sitting in
   // open documents (loaded before sanitization existed, or left after edit).
   // Plain textarea blank rows are authored spacing and remain untouched.
@@ -2133,6 +2205,7 @@ export function useA4Elements(titleRef) {
     toggleNameCase,
     toggleTitle,
     A4ref,
+    canvasAreaRef,
     setPageCanvasRef,
     PDFTitle,
     handleResizeElement,
