@@ -1,11 +1,11 @@
 /**
  * Regent template (`layouts: ["single", "icons"]`).
  *
- * Monochrome executive editorial layout with an 18 px serif lead.
+ * Monochrome executive editorial layout with compact serif summary copy.
  *
  * This static starter is the backend generator's own output
  * (`backend/app/services/cv_templates/templates/regent.py`) for
- * representative demo content (Alexandra Nowak — strategy consultant with two roles, one degree, four skills, and three languages, sized to fit page 1 of the mockup), so the
+ * representative demo content (Alexandra Nowak — strategy consultant with three roles, one degree, four skills, and three languages, sized to fit page 1 of the mockup), so the
  * picker preview matches what `/ai/fill_template` produces pixel-for-pixel.
  * Image `src` values are stored relative and get the API base prepended at
  * load time. The array already carries `flowRole` / `flowGroup` /
@@ -336,13 +336,13 @@ const REGENT_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Łączę strategię, analizę i jasne decyzje, aby budować wzrost organizacji.",
+    "content": "Przekształcam złożone strategie w decyzje, które porządkują organizacje i budują mierzalny wzrost.",
     "left": 62,
     "top": 223.0,
     "width": 471,
-    "height": 46,
-    "fontSize": 18,
-    "lineHeight": 23,
+    "height": 14,
+    "fontSize": 9.5,
+    "lineHeight": 14,
     "letterSpacing": 0,
     "color": "#151515",
     "fontFamily": "CormorantGaramond",
@@ -363,7 +363,7 @@ const REGENT_ELEMENTS = [
     "fontFamily": "Montserrat",
     "color": "#151515",
     "left": 62,
-    "top": 290.0,
+    "top": 258.0,
     "zIndex": 3,
     "page": 1,
     "bold": true,
@@ -374,7 +374,7 @@ const REGENT_ELEMENTS = [
   {
     "category": "line",
     "left": 62,
-    "top": 304.2,
+    "top": 272.2,
     "width": 471,
     "height": 0.8,
     "backgroundColor": "#CFCFCF",
@@ -386,7 +386,7 @@ const REGENT_ELEMENTS = [
     "category": "textarea",
     "content": "Senior Strategy Consultant",
     "left": 62,
-    "top": 313.0,
+    "top": 281.0,
     "width": 471,
     "height": 15,
     "fontSize": 11,
@@ -402,14 +402,14 @@ const REGENT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-cce4e6143eb6",
+    "flowGroup": "record-c983cd08b642",
     "flowRole": "content"
   },
   {
     "category": "textarea",
     "content": "Northline Advisory   ·   2021 – obecnie",
     "left": 62,
-    "top": 332.0,
+    "top": 300.0,
     "width": 471,
     "height": 12,
     "fontSize": 8.3,
@@ -425,14 +425,14 @@ const REGENT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-cce4e6143eb6",
+    "flowGroup": "record-c983cd08b642",
     "flowRole": "content"
   },
   {
     "category": "textarea",
     "content": "• Prowadzę projekty transformacyjne dla zespołów zarządzających.\n• Tworzę rekomendacje łączące dane z perspektywą biznesową.",
     "left": 62,
-    "top": 348.0,
+    "top": 316.0,
     "width": 471,
     "height": 28,
     "fontSize": 9.5,
@@ -448,14 +448,14 @@ const REGENT_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-cce4e6143eb6",
+    "flowGroup": "record-c983cd08b642",
     "flowRole": "content"
   },
   {
     "category": "textarea",
     "content": "Business Analyst",
     "left": 62,
-    "top": 386.0,
+    "top": 354.0,
     "width": 471,
     "height": 15,
     "fontSize": 11,
@@ -471,14 +471,14 @@ const REGENT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-87ff34286e06",
+    "flowGroup": "record-1d4dcd27d7d2",
     "flowRole": "content"
   },
   {
     "category": "textarea",
     "content": "Meridian Group   ·   2018 – 2021",
     "left": 62,
-    "top": 405.0,
+    "top": 373.0,
     "width": 471,
     "height": 12,
     "fontSize": 8.3,
@@ -494,14 +494,83 @@ const REGENT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-87ff34286e06",
+    "flowGroup": "record-1d4dcd27d7d2",
     "flowRole": "content"
   },
   {
     "category": "textarea",
-    "content": "• Analizowałam modele operacyjne i przygotowywałam materiały dla zarządu.",
+    "content": "• Analizowałam modele operacyjne i przygotowywałam materiały dla zarządu.\n• Projektowałam modele działania dla zespołów w fazie wzrostu.",
     "left": 62,
-    "top": 421.0,
+    "top": 389.0,
+    "width": 471,
+    "height": 28,
+    "fontSize": 9.5,
+    "lineHeight": 14.0,
+    "letterSpacing": 0,
+    "color": "#242424",
+    "fontFamily": "Montserrat",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": true,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-1d4dcd27d7d2",
+    "flowRole": "content"
+  },
+  {
+    "category": "textarea",
+    "content": "Project Analyst",
+    "left": 62,
+    "top": 427.0,
+    "width": 471,
+    "height": 15,
+    "fontSize": 11,
+    "lineHeight": 14,
+    "letterSpacing": 0,
+    "color": "#151515",
+    "fontFamily": "Montserrat",
+    "zIndex": 2,
+    "page": 1,
+    "bold": true,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-c4f583a9c34a",
+    "flowRole": "content"
+  },
+  {
+    "category": "textarea",
+    "content": "Civic Partners   ·   2016 – 2018",
+    "left": 62,
+    "top": 446.0,
+    "width": 471,
+    "height": 12,
+    "fontSize": 8.3,
+    "lineHeight": 11.5,
+    "letterSpacing": 0,
+    "color": "#6A6A6A",
+    "fontFamily": "Montserrat",
+    "zIndex": 2,
+    "page": 1,
+    "bold": false,
+    "italic": false,
+    "align": "left",
+    "bulletList": false,
+    "autoHeight": true,
+    "preserveInitialLayout": true,
+    "flowGroup": "record-c4f583a9c34a",
+    "flowRole": "content"
+  },
+  {
+    "category": "textarea",
+    "content": "• Wspierałam wdrożenia strategiczne i analizę efektywności inicjatyw.",
+    "left": 62,
+    "top": 462.0,
     "width": 471,
     "height": 14,
     "fontSize": 9.5,
@@ -517,7 +586,7 @@ const REGENT_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-87ff34286e06",
+    "flowGroup": "record-c4f583a9c34a",
     "flowRole": "content"
   },
   {
@@ -527,7 +596,7 @@ const REGENT_ELEMENTS = [
     "fontFamily": "Montserrat",
     "color": "#151515",
     "left": 62,
-    "top": 456.0,
+    "top": 497.0,
     "zIndex": 3,
     "page": 1,
     "bold": true,
@@ -538,7 +607,7 @@ const REGENT_ELEMENTS = [
   {
     "category": "line",
     "left": 62,
-    "top": 470.2,
+    "top": 511.2,
     "width": 471,
     "height": 0.8,
     "backgroundColor": "#CFCFCF",
@@ -550,7 +619,7 @@ const REGENT_ELEMENTS = [
     "category": "textarea",
     "content": "Magister ekonomii",
     "left": 62,
-    "top": 479.0,
+    "top": 520.0,
     "width": 471,
     "height": 14,
     "fontSize": 10.5,
@@ -566,14 +635,14 @@ const REGENT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-fe423d66a1d7",
+    "flowGroup": "record-557d01cc7874",
     "flowRole": "content"
   },
   {
     "category": "textarea",
     "content": "Szkoła Główna Handlowa",
     "left": 62,
-    "top": 497.0,
+    "top": 538.0,
     "width": 471,
     "height": 14,
     "fontSize": 10.5,
@@ -589,14 +658,14 @@ const REGENT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-fe423d66a1d7",
+    "flowGroup": "record-557d01cc7874",
     "flowRole": "content"
   },
   {
     "category": "textarea",
     "content": "2013 – 2018",
     "left": 62,
-    "top": 515.0,
+    "top": 556.0,
     "width": 471,
     "height": 12,
     "fontSize": 8.3,
@@ -612,7 +681,7 @@ const REGENT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-fe423d66a1d7",
+    "flowGroup": "record-557d01cc7874",
     "flowRole": "content"
   },
   {
@@ -622,7 +691,7 @@ const REGENT_ELEMENTS = [
     "fontFamily": "Montserrat",
     "color": "#151515",
     "left": 62,
-    "top": 548.0,
+    "top": 589.0,
     "zIndex": 3,
     "page": 1,
     "bold": true,
@@ -633,7 +702,7 @@ const REGENT_ELEMENTS = [
   {
     "category": "line",
     "left": 62,
-    "top": 562.2,
+    "top": 603.2,
     "width": 471,
     "height": 0.8,
     "backgroundColor": "#CFCFCF",
@@ -645,7 +714,7 @@ const REGENT_ELEMENTS = [
     "category": "textarea",
     "content": "Strategia  ·  Transformacja  ·  Analiza biznesowa  ·  Facylitacja",
     "left": 62,
-    "top": 571.0,
+    "top": 612.0,
     "width": 471,
     "height": 14,
     "fontSize": 9.5,
@@ -661,7 +730,7 @@ const REGENT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-2a313c067833",
+    "flowGroup": "record-b53a0795204f",
     "flowRole": "content"
   },
   {
@@ -671,7 +740,7 @@ const REGENT_ELEMENTS = [
     "fontFamily": "Montserrat",
     "color": "#151515",
     "left": 62,
-    "top": 606.0,
+    "top": 647.0,
     "zIndex": 3,
     "page": 1,
     "bold": true,
@@ -682,7 +751,7 @@ const REGENT_ELEMENTS = [
   {
     "category": "line",
     "left": 62,
-    "top": 620.2,
+    "top": 661.2,
     "width": 471,
     "height": 0.8,
     "backgroundColor": "#CFCFCF",
@@ -694,7 +763,7 @@ const REGENT_ELEMENTS = [
     "category": "textarea",
     "content": "Polski — ojczysty",
     "left": 62.0,
-    "top": 629.0,
+    "top": 670.0,
     "width": 109.75,
     "height": 14,
     "fontSize": 9.5,
@@ -719,13 +788,13 @@ const REGENT_ELEMENTS = [
       }
     ],
     "flowRole": "grid-member",
-    "flowGroup": "record-3f32b72cbceb"
+    "flowGroup": "record-d3b7b974e720"
   },
   {
     "category": "textarea",
     "content": "Angielski — C2",
     "left": 179.75,
-    "top": 629.0,
+    "top": 670.0,
     "width": 109.75,
     "height": 14,
     "fontSize": 9.5,
@@ -750,13 +819,13 @@ const REGENT_ELEMENTS = [
       }
     ],
     "flowRole": "grid-member",
-    "flowGroup": "record-3f32b72cbceb"
+    "flowGroup": "record-d3b7b974e720"
   },
   {
     "category": "textarea",
     "content": "Francuski — B2",
     "left": 297.5,
-    "top": 629.0,
+    "top": 670.0,
     "width": 109.75,
     "height": 14,
     "fontSize": 9.5,
@@ -781,7 +850,7 @@ const REGENT_ELEMENTS = [
       }
     ],
     "flowRole": "grid-member",
-    "flowGroup": "record-3f32b72cbceb"
+    "flowGroup": "record-d3b7b974e720"
   }
 ];
 

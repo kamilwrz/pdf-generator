@@ -35,8 +35,8 @@ from app.services.cv_templates.shared.text import _compact_text, _labels, _place
 def _gen_regent(cv: dict) -> list[dict]:
     """Build a monochrome, single-column executive CV from normalized CV data.
 
-    The 18-point summary creates an editorial lead while remaining practical
-    for real-world, multi-sentence CV summaries on a single A4 page.
+    The summary uses the same 9.5-point body scale as record content so
+    imported CVs keep a compact, predictable one-page rhythm.
     """
     C = {
         "paper": "#FFFFFF",
@@ -144,11 +144,10 @@ def _gen_regent(cv: dict) -> list[dict]:
     def close_section() -> None:
         b.gap(get_spacing().section)
 
-    # A 44-point lead consumed a full page for ordinary imported summaries and
-    # made browser reflow split the document into near-empty pages. 18 points
-    # preserves a clear typographic lead while letting professional summaries,
-    # experience, and supporting sections share an A4 page.
-    summary_fs, summary_lh = 18, 23
+    # Keep summary metrics identical to record copy. This avoids an oversized
+    # lead consuming page space or creating unstable browser reflow for
+    # multi-sentence imported summaries.
+    summary_fs, summary_lh = 9.5, 14
     if cv.get("summary"):
         b.need_section(
             section_chrome_h,

@@ -729,7 +729,7 @@ Tests:
 
 ### Monument monochrome template
 
-Monument is a paid Classic template for users who want an elegant editorial result without colour. Its visual identity comes from numbered black rectangles, outlined heading frames, thin grey rules, and an asymmetric masthead. The smallest text is 9 px; body copy and the summary both use 9 px so the lead paragraph does not sit one step above surrounding text, record titles use 11 px, education titles use 10 px, and section headings plus the job-position line use 12.5 px. Cormorant Garamond supplies the formal display voice, while Montserrat keeps dense CV content easy to scan. This summary-equals-body rule applies to the compact filled templates; Regent deliberately opts out with an 18 px editorial summary.
+Monument is a paid Classic template for users who want an elegant editorial result without colour. Its visual identity comes from numbered black rectangles, outlined heading frames, thin grey rules, and an asymmetric masthead. The smallest text is 9 px; body copy and the summary both use 9 px so the lead paragraph does not sit one step above surrounding text, record titles use 11 px, education titles use 10 px, and section headings plus the job-position line use 12.5 px. Cormorant Garamond supplies the formal display voice, while Montserrat keeps dense CV content easy to scan. Regent also keeps its summary at the body-copy scale, while differentiating it through the display typeface.
 
 The frontend starter array and the deterministic Python generator use the same A4 geometry and grayscale palette. `_gen_monument` preserves complete experience and education records during page breaks, supports custom sections through `_extra_sections`, and groups each number, frame, label, and rule into one reflow unit so the heading geometry remains aligned after browser text measurement. The page frame and footer repeat on every page, while the name-and-position masthead and its tall side bars appear only on page one; `repeatOnContinuation: false` preserves this rule when the editor creates another page later. Layout decisions are never sent to the AI model.
 
@@ -761,7 +761,7 @@ Known limitation: long user-provided section names are shortened only inside the
 
 Regent is a paid monochrome single-column template (`layouts: ["single", "icons"]`) for executives and consultants. It uses only white, charcoal, and neutral grey. A 38 px Cormorant Garamond name establishes the masthead, a widely tracked Montserrat role line keeps the hierarchy disciplined, and a centered band of small phone, email, LinkedIn, and location icons remains understated.
 
-Its defining choice is the 18 px Cormorant Garamond professional summary. It is clearly larger than its 9.5 px body copy, creating an editorial lead while leaving enough vertical space for real multi-sentence summaries, experience, education, skills, and languages on A4. Each section has a letter-spaced uppercase label and a 0.8 px grey hairline. The deterministic Python generator preserves this practical lead size for imported and user-authored CVs.
+Its defining choice is a 9.5 px Cormorant Garamond professional summary with a 14 px line height, matching record-copy metrics while using a contrasting display typeface. This keeps imported multi-sentence summaries compact and lets experience, education, skills, and languages share an A4 page. Each section has a letter-spaced uppercase label and a 0.8 px grey hairline. The deterministic Python generator preserves these metrics for imported and user-authored CVs.
 
 Implementation:
 
@@ -772,7 +772,7 @@ Implementation:
 
 Tests:
 
-- `frontend/src/templates/regent.test.js` — 18 px summary, monochrome palette, contact icons, and five-section hierarchy
+- `frontend/src/templates/regent.test.js` — 9.5 px / 14 px summary metrics, monochrome palette, contact icons, and five-section hierarchy
 - `backend/tests/test_regent_template.py` — registry metadata, oversized summary, and contact-icon generation
 
 ### Nova editorial masthead template
@@ -2506,7 +2506,7 @@ Testy:
 
 ### Monochromatyczny szablon Monument
 
-Monument to płatny jednokolumnowy szablon (`layouts: ["single"]`) dla osób, które chcą eleganckiego, redakcyjnego efektu bez koloru. Jego charakter budują numerowane czarne prostokąty, konturowe ramki nagłówków, cienkie szare linie i asymetryczny masthead. Najmniejszy tekst ma 9 px; treść główna i podsumowanie używają po 9 px, żeby akapit wstępny nie był o stopień większy od otaczającego tekstu, tytuły stanowisk mają 11 px, tytuły edukacji 10 px, a nagłówki sekcji i linia stanowiska przy nazwisku 12,5 px. Cormorant Garamond odpowiada za formalny charakter display, a Montserrat utrzymuje czytelność gęstej treści CV. Ta zasada „podsumowanie = treść body” dotyczy kompaktowych szablonów wypełnianych; Regent celowo od niej odchodzi, używając podsumowania 18 px.
+Monument to płatny jednokolumnowy szablon (`layouts: ["single"]`) dla osób, które chcą eleganckiego, redakcyjnego efektu bez koloru. Jego charakter budują numerowane czarne prostokąty, konturowe ramki nagłówków, cienkie szare linie i asymetryczny masthead. Najmniejszy tekst ma 9 px; treść główna i podsumowanie używają po 9 px, żeby akapit wstępny nie był o stopień większy od otaczającego tekstu, tytuły stanowisk mają 11 px, tytuły edukacji 10 px, a nagłówki sekcji i linia stanowiska przy nazwisku 12,5 px. Cormorant Garamond odpowiada za formalny charakter display, a Montserrat utrzymuje czytelność gęstej treści CV. Regent również utrzymuje podsumowanie na skali treści body, a różnicę buduje krojem display.
 
 Startowa tablica frontendu oraz deterministyczny generator Python używają tej samej geometrii A4 i palety szarości. `_gen_monument` nie rozdziela wpisów doświadczenia ani edukacji przy zmianie strony, obsługuje sekcje własne przez `_extra_sections` i grupuje numer, ramkę, etykietę oraz linię jako jeden element reflow, dzięki czemu geometria nagłówka pozostaje równa po pomiarze tekstu w przeglądarce. Rama strony i stopka powtarzają się na każdej stronie, natomiast masthead z nazwiskiem i stanowiskiem oraz jego wysokie boczne belki występują wyłącznie na pierwszej stronie; `repeatOnContinuation: false` zachowuje tę regułę również wtedy, gdy edytor później utworzy kolejną stronę. Decyzje o layoucie nie są przekazywane do modelu AI.
 
@@ -2538,7 +2538,7 @@ Znane ograniczenie: długie nazwy sekcji podane przez użytkownika są skracane 
 
 Regent to płatny, monochromatyczny szablon jednokolumnowy (`layouts: ["single", "icons"]`) dla osób na stanowiskach executive i consultant. Używa wyłącznie bieli, grafitu oraz neutralnych szarości. Nazwisko w Cormorant Garamond o rozmiarze 38 px buduje masthead, rozstrzelona linia stanowiska w Montserrat utrzymuje dyscyplinę hierarchii, a wyśrodkowany pas drobnych ikon telefonu, e-maila, LinkedIn i lokalizacji pozostaje subtelny.
 
-Najważniejszym elementem Regenta jest podsumowanie zawodowe złożone krojem Cormorant Garamond o rozmiarze 18 px. Jest wyraźnie większe niż treść body 9,5 px, więc działa jak redakcyjny lead, ale pozostawia na A4 miejsce na wielozdaniowe podsumowanie, doświadczenie, wykształcenie, umiejętności i języki. Każda sekcja ma wersalikową etykietę z rozstrzeleniem oraz szarą linię 0,8 px. Deterministyczny generator Python zachowuje ten praktyczny rozmiar leadu dla importowanego i edytowanego CV.
+Najważniejszym elementem Regenta jest podsumowanie zawodowe złożone krojem Cormorant Garamond o rozmiarze 9,5 px i interlinii 14 px, takiej samej jak w treści rekordów. Kontrastowy krój display odróżnia je typograficznie, a kompaktowe metryki pozwalają zmieścić wielozdaniowe podsumowanie, doświadczenie, wykształcenie, umiejętności i języki na A4. Każda sekcja ma wersalikową etykietę z rozstrzeleniem oraz szarą linię 0,8 px. Deterministyczny generator Python zachowuje te metryki dla importowanego i edytowanego CV.
 
 Implementacja:
 
@@ -2549,7 +2549,7 @@ Implementacja:
 
 Testy:
 
-- `frontend/src/templates/regent.test.js` — podsumowanie 18 px, monochromatyczna paleta, ikony kontaktu i hierarchia pięciu sekcji
+- `frontend/src/templates/regent.test.js` — metryki podsumowania 9,5 px / 14 px, monochromatyczna paleta, ikony kontaktu i hierarchia pięciu sekcji
 - `backend/tests/test_regent_template.py` — metadane rejestru, duże podsumowanie oraz generowanie ikon kontaktowych
 
 ### Szablon redakcyjny Nova

@@ -137,9 +137,12 @@ REGENT_DEMO_CV = {
     "phone": "+48 600 000 000",
     "location": "Warszawa",
     "linkedin": "linkedin.com/in/alexandra-nowak",
-    # Regent's editorial 18 px lead retains visual hierarchy while keeping all
-    # standard sections visible in its one-page picker preview.
-    "summary": "Łączę strategię, analizę i jasne decyzje, aby budować wzrost organizacji.",
+    # Summary uses the same compact text scale as records, leaving room for a
+    # complete, credible executive history in the one-page gallery preview.
+    "summary": (
+        "Przekształcam złożone strategie w decyzje, które porządkują organizacje "
+        "i budują mierzalny wzrost."
+    ),
     "experience": [
         {
             "title": "Senior Strategy Consultant",
@@ -156,6 +159,15 @@ REGENT_DEMO_CV = {
             "period": "2018 – 2021",
             "bullets": [
                 "Analizowałam modele operacyjne i przygotowywałam materiały dla zarządu.",
+                "Projektowałam modele działania dla zespołów w fazie wzrostu.",
+            ],
+        },
+        {
+            "title": "Project Analyst",
+            "company": "Civic Partners",
+            "period": "2016 – 2018",
+            "bullets": [
+                "Wspierałam wdrożenia strategiczne i analizę efektywności inicjatyw.",
             ],
         },
     ],
@@ -246,12 +258,12 @@ DOC_BLURBS = {
     "regent": (
         "Regent template (`layouts: [\"single\", \"icons\"]`).\n"
         " *\n"
-        " * Monochrome executive editorial layout with an 18 px serif lead."
+        " * Monochrome executive editorial layout with compact serif summary copy."
     ),
 }
 
 STARTER_PERSONAS = {
-    "regent": "Alexandra Nowak — strategy consultant with two roles, one degree, four skills, and three languages",
+    "regent": "Alexandra Nowak — strategy consultant with three roles, one degree, four skills, and three languages",
 }
 
 LOCALHOST_ASSET = re.compile(r"^https?://[^/]+(/template-assets/.+)$")

@@ -17,10 +17,14 @@ test("Regent preserves its monochrome editorial hierarchy", () => {
     assert.equal(pageSurface?.backgroundColor, "#FFFFFF");
 
     const summary = regentTemplate.find(
-        (element) => element.content?.includes("Łączę strategię"),
+        (element) =>
+            element.category === "textarea"
+            && element.fontSize === 9.5
+            && element.fontFamily === "CormorantGaramond",
     );
     assert.ok(summary);
-    assert.equal(summary.fontSize, 18);
+    assert.equal(summary.fontSize, 9.5);
+    assert.equal(summary.lineHeight, 14);
     assert.equal(summary.fontFamily, "CormorantGaramond");
     assert.equal(summary.color, INK);
     assert.equal(summary.left, L);
