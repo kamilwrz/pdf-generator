@@ -61,7 +61,7 @@ const ATRIUM_ELEMENTS = [
   },
   {
     "category": "image",
-    "src": "http://localhost:8000/template-assets/iconic/slate-accent/portrait.png",
+    "src": "http://localhost:8000/template-assets/iconic/atrium-accent/portrait.png",
     "left": 476,
     "top": 21.0,
     "width": 84,

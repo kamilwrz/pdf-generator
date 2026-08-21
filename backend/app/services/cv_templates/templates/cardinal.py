@@ -13,7 +13,7 @@ from app.services.cv_templates.shared.extras import _extra_sections
 from app.services.cv_templates.shared.masthead import tag_masthead_identity
 from app.services.cv_templates.shared.records import _education_record_height, _experience_record_height, _place_education_record, _place_experience_record
 from app.services.cv_templates.shared.text import _compact_text, _labels, _place_skills_section
-from app.services.cv_templates.shared.icons import _icon_beside, _icon_key_for_label
+from app.services.cv_templates.shared.icons import _icon, _icon_beside, _icon_key_for_label
 from app.services.cv_templates.shared.contact import (
     _contact_channel_items,
     _place_wrapping_icon_contacts,
@@ -34,6 +34,18 @@ def _gen_cardinal(cv: dict) -> list[dict]:
     header = [_text(name, 30, DISP, C['ink'], L, 50, zIndex=3), _text(title, 9.6, SANS, C['accent'], L, 92, zIndex=3)]
     header[0]['letterSpacing'] = 0.15
     header[1]['letterSpacing'] = 1.55
+    # ── Photo slot: frameless, matching Atrium's approach ─────────────────────
+    # No surrounding rect/circle chrome — a small oxblood-tinted silhouette
+    # glyph marks the slot until a photo is applied; `applyProfilePhoto`
+    # (frontend/src/utils/profilePhoto.js) sizes the final photo to this
+    # glyph's own bounds, since there is no separate frame element to measure.
+    header.append({
+        **_icon('cardinal-accent', 'portrait', 478.0, 12.0, 67.692, zIndex=3),
+        'height': 90.0,
+        'id': 'cardinal-photo-glyph',
+        'photoSlot': 'glyph',
+        'alignWithText': False,
+    })
     contact_els, contact_bottom, contact_descriptor = _place_wrapping_icon_contacts(
         theme=ICON,
         items=_contact_channel_items(cv, email_limit=42),

@@ -80,6 +80,20 @@ const CARDINAL_ELEMENTS = [
   },
   {
     "category": "image",
+    "src": "http://localhost:8000/template-assets/iconic/cardinal-accent/portrait.png",
+    "left": 478.0,
+    "top": 12.0,
+    "width": 67.692,
+    "height": 90.0,
+    "zIndex": 3,
+    "page": 1,
+    "alignWithText": false,
+    "flowRole": "masthead",
+    "id": "cardinal-photo-glyph",
+    "photoSlot": "glyph"
+  },
+  {
+    "category": "image",
     "src": "http://localhost:8000/template-assets/iconic/cardinal/phone.png",
     "left": 72.0,
     "top": 118.0,

@@ -108,7 +108,7 @@ def _gen_atrium(cv: dict) -> list[dict]:
     PHOTO_LEFT = 476.0
     PHOTO_TOP = 21.0
     header.append({
-        **_icon('slate-accent', 'portrait', PHOTO_LEFT, PHOTO_TOP, PHOTO_SIZE, zIndex=3),
+        **_icon('atrium-accent', 'portrait', PHOTO_LEFT, PHOTO_TOP, PHOTO_SIZE, zIndex=3),
         'id': 'atrium-photo-glyph',
         'photoSlot': 'glyph',
         'alignWithText': False,

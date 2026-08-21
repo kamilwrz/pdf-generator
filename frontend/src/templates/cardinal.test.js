@@ -58,8 +58,27 @@ test("Cardinal reserves red for headings while icons and rules stay grey", () =>
     assert.ok(sectionHeadings.every((element) => element.bold === true));
     assert.ok(sectionHeadings.every((element) => element.left === 94));
 
+    // ── Photo slot: frameless, matching Atrium's approach ─────────────────────
+    // No surrounding rect/circle chrome — a plain oxblood-tinted image glyph
+    // marks the slot until a photo is applied.
+    const photoGlyph = cardinalTemplate.find((element) => element.photoSlot === "glyph");
+    assert.ok(photoGlyph, "Cardinal must expose a photo glyph slot");
+    assert.equal(photoGlyph.category, "image");
+    assert.equal(photoGlyph.id, "cardinal-photo-glyph");
+    assert.equal(photoGlyph.alignWithText, false); // standalone image, no text companion
+    assert.equal(photoGlyph.left, 478);
+    assert.equal(photoGlyph.top, 12);
+    assert.equal(photoGlyph.width, 67.692);
+    assert.equal(photoGlyph.height, 90);
+    assert.ok(
+        cardinalTemplate.every((element) => element.photoSlot !== "frame"),
+        "Cardinal's photo slot must not declare a frame — no surrounding chrome",
+    );
+
     // ── Generated icons: all ornament begins at or inside the body edge ──────
-    const icons = cardinalTemplate.filter((element) => element.category === "image");
+    const icons = cardinalTemplate.filter(
+        (element) => element.category === "image" && element.photoSlot !== "glyph",
+    );
     assert.equal(icons.length, 11); // 5 section headings + 6 contact rows (phone/email/linkedin/github/website/location)
     assert.ok(icons.every((element) => element.src.includes("/template-assets/iconic/cardinal/")));
     assert.ok(icons.every((element) => element.alignWithText === true));
