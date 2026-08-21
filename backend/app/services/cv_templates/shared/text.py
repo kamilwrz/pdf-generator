@@ -215,7 +215,8 @@ def _language_level_color(palette: dict | None) -> str:
     """Accent used for CEFR levels — same token skill chips / headings use."""
     colors = palette or {}
     # Prefer explicit accent keys; ``teal`` is Axis chip ink; ``accent_deep``
-    # is Blueprint's steel heading colour. Fall back to body ink last.
+    # holds a template's deeper heading tone when one is defined. Fall back to
+    # body ink last.
     for key in ("accent", "accent_deep", "teal", "orange", "marker", "ink", "body"):
         value = colors.get(key)
         if value:

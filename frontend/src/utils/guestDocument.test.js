@@ -24,7 +24,7 @@ test("saveGuestDocument then loadGuestDocument round-trips the snapshot", () => 
     title: "Moje CV",
     pageCount: 1,
     editorMode: "template",
-    templateId: "nimbus",
+    templateId: "nova",
     spacingPx: null,
     isDemoContent: false,
     updatedAt: 1234,

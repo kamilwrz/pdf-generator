@@ -79,17 +79,17 @@ class CvTemplateLayoutTests(unittest.TestCase):
         })
         elements = _rebase_template_asset_urls([{
             "category": "image",
-            "src": "http://localhost:8000/template-assets/nimbus-finance-accent.png",
+            "src": "http://localhost:8000/template-assets/nova-portrait.png",
         }], request)
 
         self.assertEqual(
             elements[0]["src"],
-            "https://pdf-generator-07cb.onrender.com/template-assets/nimbus-finance-accent.png",
+            "https://pdf-generator-07cb.onrender.com/template-assets/nova-portrait.png",
         )
 
     def test_template_images_resolve_to_versioned_local_assets(self):
         for template_id in (
-            "nimbus", "tessera", "slate",
+            "tessera", "slate",
         ):
             with self.subTest(template_id=template_id):
                 image = next(
@@ -542,7 +542,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
 
 
     def test_single_column_emits_skills_and_languages_bodies(self):
-        """Single-column Nimbus must keep skills/languages after wizard-style data."""
+        """Single-column Monument must keep skills/languages after wizard-style data."""
         profile = {
             **LONG_CV,
             "languages": [
@@ -556,7 +556,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
                 "items": ["Polski — C2", "Niemiecki — C1"],
             }],
         }
-        for template_id in ("nimbus",):
+        for template_id in ("monument",):
             elements = generate_resume(template_id, profile)
             content = "\n".join(
                 str(element.get("content", ""))
@@ -706,7 +706,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
         main_copy = [
             element["content"]
             for element in main
-            # Main-column templates currently start between 80 pt (Nimbus) and
+            # Main-column templates currently start between 80 pt and
             # 218 pt (Tessera). The threshold excludes sidebar copy without
             # coupling this structural test to one template's exact margin.
             if element["category"] == "textarea" and element.get("left", 0) >= 90
@@ -798,7 +798,6 @@ class CvTemplateLayoutTests(unittest.TestCase):
         # forced into the main column because their sidebar has a deliberately
         # separate palette.
         affected_templates = (
-            "nimbus", "cinder",
             "tessera", "monument",
         )
 
@@ -980,7 +979,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
             "Koordynacja zespołu zdjęciowego oraz dostawców zewnętrznych na potrzeby kampanii.",
             "Przygotowanie wariantów layoutu i krótkich form wideo pod różne kanały.",
         ]
-        elements = generate_resume("nimbus", {
+        elements = generate_resume("monument", {
             **LONG_CV,
             "experience": LONG_CV["experience"][:2],
             "education": [],
@@ -1050,7 +1049,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
                 "description": "Państwowy egzamin prawniczy.",
             },
         ]
-        elements = generate_resume("nimbus", {
+        elements = generate_resume("monument", {
             **LONG_CV,
             "experience": LONG_CV["experience"] * 2,
             "education": education,
@@ -1098,186 +1097,6 @@ class CvTemplateLayoutTests(unittest.TestCase):
         self.assertLess(first_meta["top"], first_body["top"])
         self.assertTrue(first_body.get("bulletList"))
 
-    def test_nimbus_uses_every_canvas_element_without_theme_copy(self):
-        elements = generate_resume("nimbus", LONG_CV)
-        categories = {element["category"] for element in elements}
-        rendered_copy = " ".join(
-            str(element.get("content", ""))
-            for element in elements
-            if element["category"] in {"text", "textarea"}
-        ).upper()
-
-        self.assertTrue({"text", "textarea", "line", "rectangle", "image"} <= categories)
-        self.assertNotIn("connector", categories)
-        self.assertNotIn("NIMBUS", rendered_copy)
-        self.assertTrue(any(
-            element["category"] == "image"
-            and element["src"].endswith("/template-assets/nimbus-finance-accent.png")
-            for element in elements
-        ))
-
-    def test_nimbus_lora_type_scale(self):
-        """Name 31 / headings and roles 13 / body 11 / meta 10."""
-        cv = {
-            "name": "Jan Kowalski",
-            "title": "Dyrektor Strategii",
-            "summary": "Lider strategii łączący biznes z wykonaniem.",
-            "experience": [
-                {
-                    "title": "Dyrektor Strategii",
-                    "company": "Northbridge Partners",
-                    "city": "Warszawa",
-                    "period": "2021 – obecnie",
-                    "bullets": ["Zaprojektował model wzrostu."],
-                },
-            ],
-        }
-        elements = generate_resume("nimbus", cv)
-        name = next(
-            element for element in elements
-            if element.get("category") == "text"
-            and element.get("content") == cv["name"]
-        )
-        heading = next(
-            element for element in elements
-            if element.get("category") == "text"
-            and element.get("content") == "PODSUMOWANIE ZAWODOWE"
-        )
-        role = next(
-            element for element in elements
-            if element.get("category") == "text"
-            and element.get("content") == cv["title"]
-        )
-        summary = next(
-            element for element in elements
-            if element.get("category") == "textarea"
-            and element.get("content") == cv["summary"]
-        )
-        job_title = next(
-            element for element in elements
-            if element.get("category") == "textarea"
-            and element.get("content") == cv["experience"][0]["title"]
-        )
-        meta = next(
-            element for element in elements
-            if element.get("category") == "textarea"
-            and " · " in str(element.get("content", ""))
-        )
-        self.assertEqual(name["fontSize"], 31)
-        self.assertEqual(heading["fontSize"], 13)
-        self.assertEqual(role["fontSize"], 13)
-        self.assertEqual(summary["fontSize"], 11)
-        self.assertEqual(summary["lineHeight"], 16)
-        self.assertEqual(job_title["fontSize"], 13)
-        self.assertEqual(job_title["lineHeight"], 17)
-        self.assertEqual(meta["fontSize"], 10)
-        self.assertEqual(meta["lineHeight"], 13.5)
-
-    def test_nimbus_repeats_section_underline_on_continuation_pages(self):
-        multi_page_cv = {
-            **LONG_CV,
-            "experience": LONG_CV["experience"] * 4,
-        }
-        elements = generate_resume("nimbus", multi_page_cv)
-        education_heading = next(
-            element
-            for element in elements
-            if element["category"] == "text"
-            and element["content"] == "WYKSZTAŁCENIE"
-        )
-
-        self.assertGreater(education_heading["page"], 1)
-        self.assertEqual(education_heading.get("flowRole"), "section-chrome")
-        # Heading + 3 px underline only — no decorative rail/chip beside labels.
-        self.assertFalse(any(
-            element["category"] == "rectangle"
-            and element["page"] == education_heading["page"]
-            and element.get("flowRole") == "section-chrome"
-            for element in elements
-        ))
-        self.assertTrue(any(
-            element["category"] == "line"
-            and element["page"] == education_heading["page"]
-            and element["left"] == 80
-            and abs(element["top"] - (education_heading["top"] + education_heading["fontSize"] * 1.35)) < 0.01
-            and element["height"] == 3
-            and element.get("flowRole") == "section-chrome"
-            for element in elements
-        ))
-
-    def test_nimbus_keeps_education_record_with_heading_near_page_break(self):
-        """Education chrome + first record must not leave only the degree on page 1."""
-        job = {
-            "title": "AML Analyst",
-            "company": "Financial Institution",
-            "city": "Warsaw",
-            "period": "2023 – Present",
-            "bullets": [
-                "Monitoring transakcji i analiza alertow AML/KYC zgodnie z procedura wewnetrzna banku.",
-                "Weryfikacja klientow w procesach onboarding i periodic review z ocena ryzyka.",
-                "Dokumentowanie ustalen oraz przygotowywanie rekomendacji eskalacyjnych dla compliance.",
-                "Wspolpraca z compliance przy przypadkach o podwyzszonym ryzyku i alertach SAR.",
-            ],
-        }
-        cv = {
-            **LONG_CV,
-            "experience": [dict(job, title=f"AML Analyst {index}") for index in range(3)],
-            "education": [
-                {
-                    "degree": "Bachelor of Laws (LL.B.)",
-                    "school": "European University Viadrina",
-                    "city": "Frankfurt (Oder)",
-                    "period": "2014 – 2018",
-                    "description": (
-                        "Uzyskanie tytułu Bachelor of Laws z zakresu prawa "
-                        "niemieckiego i europejskiego."
-                    ),
-                },
-            ],
-        }
-        elements = generate_resume("nimbus", cv)
-        heading = next(
-            element
-            for element in elements
-            if element["category"] == "text" and element["content"] == "WYKSZTAŁCENIE"
-        )
-        degree = next(
-            element
-            for element in elements
-            if element["category"] == "textarea"
-            and "Bachelor of Laws" in str(element.get("content", ""))
-        )
-        school = next(
-            element
-            for element in elements
-            if element["category"] == "textarea"
-            and "Viadrina" in str(element.get("content", ""))
-        )
-        description = next(
-            element
-            for element in elements
-            if element["category"] == "textarea"
-            and "Uzyskanie" in str(element.get("content", ""))
-        )
-        self.assertEqual(heading["page"], degree["page"])
-        self.assertEqual(degree["page"], school["page"])
-        self.assertEqual(degree["page"], description["page"])
-        self.assertEqual(
-            {degree.get("flowGroup"), school.get("flowGroup"), description.get("flowGroup")},
-            {degree.get("flowGroup")},
-        )
-        self.assertLess(heading["top"], degree["top"])
-        # Section underline must sit above the degree so reflow cannot insert
-        # chrome between flowGroup mates.
-        self.assertTrue(all(
-            element["top"] < degree["top"] - 0.01
-            for element in elements
-            if element.get("flowRole") == "section-chrome"
-            and element.get("page", 1) == heading["page"]
-            and element["category"] == "line"
-            and abs(element["top"] - heading["top"]) < 24
-        ))
-
 
     def test_nova_keeps_skills_heading_with_body_near_page_break(self):
         """Iconic Nova must not leave UMIEJĘTNOŚCI alone above the footer."""
@@ -1324,89 +1143,6 @@ class CvTemplateLayoutTests(unittest.TestCase):
         self.assertEqual(heading["page"], body["page"])
         self.assertLess(heading["top"], body["top"])
         self.assertLessEqual(body["top"] + body["height"], 770)
-
-    def test_nimbus_flow_keeps_margins_and_record_rhythm(self):
-        from app.services.cv_generator import SPACE_RECORD, SPACE_STACK
-
-        multi_page_cv = {
-            **LONG_CV,
-            "experience": LONG_CV["experience"] * 4,
-        }
-        elements = generate_resume("nimbus", multi_page_cv)
-        flow = [
-            element for element in elements
-            if element["category"] in {"text", "textarea"}
-            and not element.get("fixedToPage")
-        ]
-        page_two = [element for element in flow if element.get("page", 1) >= 2]
-        self.assertTrue(page_two)
-        self.assertGreaterEqual(min(element["top"] for element in page_two), 66)
-
-        for element in flow:
-            if element["category"] != "textarea":
-                continue
-            self.assertLessEqual(element["top"] + element["height"], 770)
-
-        titles = [
-            element for element in elements
-            if element["category"] == "textarea"
-            and element["content"] in {
-                job["title"] for job in multi_page_cv["experience"]
-            }
-        ]
-        self.assertGreaterEqual(len(titles), 2)
-        first, second = titles[0], titles[1]
-        if first["page"] == second["page"]:
-            self.assertGreaterEqual(second["top"] - first["top"], SPACE_RECORD + SPACE_STACK)
-
-    def test_cinder_is_single_column_and_repeats_page_decorations(self):
-        multi_page_cv = {
-            **LONG_CV,
-            "experience": LONG_CV["experience"] * 4,
-        }
-        elements = generate_resume("cinder", multi_page_cv)
-        categories = {element["category"] for element in elements}
-        pages = {element.get("page", 1) for element in elements}
-        rendered_copy = " ".join(
-            str(element.get("content", ""))
-            for element in elements
-            if element["category"] in {"text", "textarea"}
-        ).upper()
-
-        self.assertTrue({"text", "textarea", "line", "rectangle"} <= categories)
-        self.assertNotIn("connector", categories)
-        self.assertNotIn("CINDER", rendered_copy)
-        self.assertGreater(max(pages), 1)
-        self.assertTrue(all(
-            element["left"] >= 76 and element["width"] >= 460
-            for element in elements
-            if element["category"] == "textarea"
-        ))
-        for page in pages:
-            self.assertTrue(any(
-                element["category"] == "line"
-                and element.get("page", 1) == page
-                and element["left"] == 0
-                and element["top"] == 0
-                and element["width"] == 595
-                and element["height"] == 5
-                and element["backgroundColor"] == "#C93F3F"
-                and element["fixedToPage"] is True
-                for element in elements
-            ))
-        for heading in ("PODSUMOWANIE ZAWODOWE", "DOŚWIADCZENIE ZAWODOWE", "WYKSZTAŁCENIE", "UMIEJĘTNOŚCI"):
-            heading_element = next(
-                element
-                for element in elements
-                if element["category"] == "text" and element["content"] == heading
-            )
-            self.assertTrue(any(
-                element["category"] == "rectangle"
-                and element.get("page", 1) == heading_element.get("page", 1)
-                and element["left"] == 526
-                and abs(element["top"] - (heading_element["top"] + 2)) < 0.01
-                for element in elements
-            ))
 
     def test_summary_matches_experience_body_type_size(self):
         """Lead summary must use the same font as main-column experience body."""
@@ -1460,44 +1196,10 @@ class CvTemplateLayoutTests(unittest.TestCase):
                 )
 
 
-    def test_banded_mastheads_clear_first_section_heading(self):
-        """Body copy must start below solid header bands (Cinder)."""
-        from app.services.cv_generator_primitives import SPACE_AFTER_MASTHEAD
-
-        cases = {
-            # template_id: (band_top, band_height) of the solid masthead fill
-            "cinder": (0, 170),
-        }
-        cv = {
-            **LONG_CV,
-            "experience": LONG_CV["experience"][:1],
-        }
-        for template_id, (band_top, band_height) in cases.items():
-            with self.subTest(template_id=template_id):
-                elements = generate_resume(template_id, cv)
-                heading = next(
-                    element
-                    for element in elements
-                    if element.get("category") == "text"
-                    and element.get("content") == "PODSUMOWANIE ZAWODOWE"
-                    and element.get("page", 1) == 1
-                )
-                band_bottom = band_top + band_height
-                self.assertGreaterEqual(
-                    heading["top"],
-                    band_bottom + SPACE_AFTER_MASTHEAD - 0.01,
-                    msg=(
-                        f"{template_id}: first section at y={heading['top']} "
-                        f"needs >= {SPACE_AFTER_MASTHEAD}px under masthead "
-                        f"ending at y={band_bottom}"
-                    ),
-                )
-
     def test_header_rule_mastheads_clear_first_section_heading(self):
         """Masthead dividers leave a clear band before the first section."""
         # template_id → (rule top y, rule height, min gap, max gap)
         cases = {
-            "nimbus": (192, 3, 56.0, 56.0),
             # Stacked contacts + photo make the rule Y data-dependent; resolve
             # the authored header rule dynamically (same path as rule_top=None).
             "nova": (None, 1, 30.0, 42.0),
@@ -1826,7 +1528,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
 
     def test_active_templates_keep_textareas_inside_page_bounds(self):
         for template_id in (
-            "nimbus", "monument", "cinder", "harbor", "tessera", "nova",
+            "monument", "harbor", "tessera", "nova",
         ):
             with self.subTest(template_id=template_id):
                 multi_page_cv = {

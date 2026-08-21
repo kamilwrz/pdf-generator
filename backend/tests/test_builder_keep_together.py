@@ -78,7 +78,7 @@ class BuilderKeepTogetherTests(unittest.TestCase):
             ],
             "skills": ["AML", "KYC", "German", "Python"],
         }
-        elements = generate_resume("nimbus", cv)
+        elements = generate_resume("monument", cv)
         textual = [
             element
             for element in elements

@@ -130,33 +130,6 @@ COMPACT_DEMO_CV = {
 # so the picker mockup still shows every section on page 1.
 COMPACT_TEMPLATE_IDS = frozenset({"monument", "portico"})
 
-# Nimbus uses larger Lora type (name 31 / headings+roles 13 / body 11 / meta 10),
-# so the shared DEMO_CV spills page 1. Keep the same persona with fewer bullets.
-NIMBUS_DEMO_CV = {
-    **DEMO_CV,
-    "summary": (
-        "Analityczka AML łącząca wiedzę regulacyjną z dyscypliną wykonania."
-    ),
-    "experience": [
-        {
-            "title": DEMO_CV["experience"][0]["title"],
-            "company": DEMO_CV["experience"][0]["company"],
-            "city": DEMO_CV["experience"][0]["city"],
-            "period": DEMO_CV["experience"][0]["period"],
-            "bullets": DEMO_CV["experience"][0]["bullets"][:1],
-        },
-        {
-            "title": DEMO_CV["experience"][1]["title"],
-            "company": DEMO_CV["experience"][1]["company"],
-            "city": DEMO_CV["experience"][1]["city"],
-            "period": DEMO_CV["experience"][1]["period"],
-            "bullets": DEMO_CV["experience"][1]["bullets"][:1],
-        },
-    ],
-    "skills": DEMO_CV["skills"][:4],
-    "languages": DEMO_CV["languages"][:2],
-}
-
 # template_id -> (js filename, export const name, layouts blurb for docstring)
 # iconic.js exports both nova and volt from one module.
 TEMPLATES = [
@@ -168,11 +141,8 @@ TEMPLATES = [
     "tessera",
     "slate",
     "monument",
-    "nimbus",
-    "cinder",
     "atrium",
     "axis",
-    "blueprint",
     "sterling",
 ]
 
@@ -218,20 +188,6 @@ DOC_BLURBS = {
         " *\n"
         " * Monochrome editorial single column with strong rules and plates."
     ),
-    "nimbus": (
-        "Nimbus template (`layouts: [\"single\"]`).\n"
-        " *\n"
-        " * Light minimal single column with soft blue accents,\n"
-        " * set entirely in Lora (name 31 / headings & roles 13 /\n"
-        " * body 11 dark grey / meta 10). Masthead keeps the name\n"
-        " * accent bar, square photo slot, contact under the photo,\n"
-        " * 3 px rules, 56 px under the header divider."
-    ),
-    "cinder": (
-        "Cinder template (`layouts: [\"single\"]`).\n"
-        " *\n"
-        " * Dark, high-contrast single column with ember-red accents."
-    ),
     "atrium": (
         "Atrium template (`layouts: [\"single\"]`).\n"
         " *\n"
@@ -242,11 +198,6 @@ DOC_BLURBS = {
         " *\n"
         " * Timeline single column with date gutter, skill chips, and a\n"
         " * four-column languages grid."
-    ),
-    "blueprint": (
-        "Blueprint template (`layouts: [\"single\"]`).\n"
-        " *\n"
-        " * Technical-schematic single column with steel-blue registration marks."
     ),
     "sterling": (
         "Sterling template (`layouts: [\"sidebar\"]`).\n"
@@ -361,9 +312,7 @@ export const voltTemplate = withAbsoluteAssets(VOLT_ELEMENTS);
 def main() -> None:
     generated: dict[str, list[dict]] = {}
     for template_id in TEMPLATES:
-        if template_id == "nimbus":
-            cv = NIMBUS_DEMO_CV
-        elif template_id in COMPACT_TEMPLATE_IDS:
+        if template_id in COMPACT_TEMPLATE_IDS:
             cv = COMPACT_DEMO_CV
         else:
             cv = DEMO_CV

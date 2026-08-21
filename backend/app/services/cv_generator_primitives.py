@@ -47,7 +47,7 @@ SPACE_AFTER_RULE = 8  # section heading rule → first content block
 # Clearance from masthead chrome to the first section heading. Authored box
 # gaps; canvas ink guides read a few px tighter. Keep every template in the
 # ~25–45 px visual band under the header (solid band vs thin divider).
-SPACE_AFTER_MASTHEAD = 32      # solid header bands (Cinder)
+SPACE_AFTER_MASTHEAD = 32      # solid header bands (filled masthead blocks)
 SPACE_AFTER_HEADER_RULE = 36   # thin divider under name/contact mastheads
 
 _SPACING_MIN = 0.0

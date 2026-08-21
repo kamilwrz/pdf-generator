@@ -25,7 +25,7 @@ describe("normalizeEditorMode", () => {
 
 describe("inferEditorMode", () => {
   it("uses templateId when present", () => {
-    assert.equal(inferEditorMode([], "nimbus"), EDITOR_MODE_TEMPLATE);
+    assert.equal(inferEditorMode([], "nova"), EDITOR_MODE_TEMPLATE);
   });
 
   it("infers template from flow metadata density", () => {
@@ -84,7 +84,7 @@ describe("canFreePositionElement", () => {
     };
     const accentArt = {
       category: "image",
-      src: "/template-assets/nimbus-finance-accent.png",
+      src: "/template-assets/nova-portrait.png",
     };
     const legacyIconic = {
       category: "image",

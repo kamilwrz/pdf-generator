@@ -7,14 +7,14 @@ describe("fillTemplate", () => {
     const httpRequest = mock.fn(async () => ({ elements: [{ element_id: "a" }] }));
     const result = await fillTemplate(
       { name: "Anna" },
-      "nimbus",
+      "nova",
       { api: { httpRequest }, errorMessage: "fail" },
     );
     assert.equal(httpRequest.mock.calls.length, 1);
     const [endpoint, method, body, message] = httpRequest.mock.calls[0].arguments;
     assert.equal(endpoint, "/ai/fill_template");
     assert.equal(method, "POST");
-    assert.deepEqual(JSON.parse(body), { cv_data: { name: "Anna" }, template_id: "nimbus" });
+    assert.deepEqual(JSON.parse(body), { cv_data: { name: "Anna" }, template_id: "nova" });
     assert.equal(message, "fail");
     assert.deepEqual(result.elements, [{ element_id: "a" }]);
   });
@@ -23,7 +23,7 @@ describe("fillTemplate", () => {
     const httpRequest = mock.fn(async () => ({ elements: [] }));
     await fillTemplate(
       { name: "Anna" },
-      "nimbus",
+      "nova",
       { api: { httpRequest }, spacing: { section: 40 } },
     );
     const body = JSON.parse(httpRequest.mock.calls[0].arguments[2]);
@@ -33,7 +33,7 @@ describe("fillTemplate", () => {
 
   it("rejects missing cv data", async () => {
     await assert.rejects(
-      () => fillTemplate(null, "nimbus", { api: { httpRequest: async () => ({}) } }),
+      () => fillTemplate(null, "nova", { api: { httpRequest: async () => ({}) } }),
       /Brak danych CV/,
     );
   });

@@ -2,8 +2,6 @@
 from __future__ import annotations
 
 from app.services.cv_data import normalize_cv_data
-from app.services.cv_templates.templates.nimbus import _gen_nimbus
-from app.services.cv_templates.templates.cinder import _gen_cinder
 from app.services.cv_templates.templates.harbor import _gen_harbor
 from app.services.cv_templates.templates.nova import _gen_nova
 from app.services.cv_templates.templates.volt import _gen_volt
@@ -14,12 +12,9 @@ from app.services.cv_templates.templates.slate import _gen_slate
 from app.services.cv_templates.templates.portico import _gen_portico
 from app.services.cv_templates.templates.axis import _gen_axis
 from app.services.cv_templates.templates.atrium import _gen_atrium
-from app.services.cv_templates.templates.blueprint import _gen_blueprint
 from app.services.cv_templates.templates.sterling import _gen_sterling
 
 TEMPLATE_LAYOUTS: dict[str, frozenset[str]] = {
-    "nimbus": frozenset({"single"}),
-    "cinder": frozenset({"single"}),
     "monument": frozenset({"single"}),
     "cardinal": frozenset({"icons"}),
     "harbor": frozenset({"sidebar", "icons"}),
@@ -30,13 +25,10 @@ TEMPLATE_LAYOUTS: dict[str, frozenset[str]] = {
     "portico": frozenset({"icons"}),
     "axis": frozenset({"icons"}),
     "atrium": frozenset({"single", "icons"}),
-    "blueprint": frozenset({"single"}),
     "sterling": frozenset({"sidebar"}),
 }
 
 _GENERATORS = {
-    "nimbus": _gen_nimbus,
-    "cinder": _gen_cinder,
     "harbor": _gen_harbor,
     "nova": _gen_nova,
     "volt": _gen_volt,
@@ -47,7 +39,6 @@ _GENERATORS = {
     "portico": _gen_portico,
     "axis": _gen_axis,
     "atrium": _gen_atrium,
-    "blueprint": _gen_blueprint,
     "sterling": _gen_sterling,
 }
 

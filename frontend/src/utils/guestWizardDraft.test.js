@@ -27,13 +27,13 @@ test("saveGuestWizardDraft then loadGuestWizardDraft round-trips profile and ste
         title: "Product Manager",
     };
 
-    saveGuestWizardDraft({ step: 2, profile, selectedTemplateId: "nimbus" });
+    saveGuestWizardDraft({ step: 2, profile, selectedTemplateId: "nova" });
     const loaded = loadGuestWizardDraft();
 
     assert.equal(loaded.step, 2);
     assert.equal(loaded.profile.name, "Anna Kowalska");
     assert.equal(loaded.profile.title, "Product Manager");
-    assert.equal(loaded.selectedTemplateId, "nimbus");
+    assert.equal(loaded.selectedTemplateId, "nova");
     assert.ok(loaded.updatedAt > 0);
 });
 

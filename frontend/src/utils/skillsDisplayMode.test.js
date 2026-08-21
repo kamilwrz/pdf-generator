@@ -273,7 +273,7 @@ describe("changeSkillsDisplayMode", () => {
 
   it("keeps every other template's chips as the shared solid-fill pill", () => {
     const next = changeSkillsDisplayMode(
-      flatSkillsFixture(), "sk-head", "chips", PAGE_HEIGHT, SPACING, "cinder",
+      flatSkillsFixture(), "sk-head", "chips", PAGE_HEIGHT, SPACING, "monument",
     );
     assert.ok(next);
     const memberIds = sectionElementIds(next, "sk-head", PAGE_HEIGHT);

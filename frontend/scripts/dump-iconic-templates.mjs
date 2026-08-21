@@ -12,10 +12,7 @@ import { slateTemplate } from "../src/templates/slate.js";
 import { porticoTemplate } from "../src/templates/portico.js";
 import { axisTemplate } from "../src/templates/axis.js";
 import { atriumTemplate } from "../src/templates/atrium.js";
-import { blueprintTemplate } from "../src/templates/blueprint.js";
 import { sterlingTemplate } from "../src/templates/sterling.js";
-import { nimbusTemplate } from "../src/templates/nimbus.js";
-import { cinderTemplate } from "../src/templates/cinder.js";
 
 const out = {
     nova: novaTemplate,
@@ -28,10 +25,7 @@ const out = {
     portico: porticoTemplate,
     axis: axisTemplate,
     atrium: atriumTemplate,
-    blueprint: blueprintTemplate,
     sterling: sterlingTemplate,
-    nimbus: nimbusTemplate,
-    cinder: cinderTemplate,
 };
 writeFileSync(new URL("./iconic-templates.json", import.meta.url), JSON.stringify(out, null, 2));
 console.log("wrote iconic-templates.json");

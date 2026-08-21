@@ -103,7 +103,7 @@ export function canFreePositionElement(element, editorMode) {
   }
   // Icons, accent artwork, rules, badges, and other generator shapes stay
   // layout-owned even when a template omitted flowRole / locked tags
-  // (harbor contact icons, nimbus header art, cinder frames, …).
+  // (harbor contact icons, tessera photo frames, monument masthead plates, …).
   // Structural mode does not expose shape tools, so any shape here is
   // template chrome. User gallery photos (`/images/…`) may still move.
   if (

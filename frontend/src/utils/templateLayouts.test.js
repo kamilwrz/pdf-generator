@@ -12,7 +12,7 @@ import {
 const FIXTURES = [
   { id: "volt", layouts: ["icons", "dark"] },
   { id: "monument", layouts: ["single"] },
-    { id: "nimbus", layouts: ["single"] },
+    { id: "atrium", layouts: ["single"] },
   { id: "harbor", layouts: ["sidebar", "icons"] },
   { id: "tessera", layouts: ["sidebar", "icons"] },
 ];
@@ -29,7 +29,7 @@ test("reads and filters known layout tags", () => {
 test("preserves registry order and filters by layout", () => {
   assert.deepEqual(
     listTemplatesInRegistryOrder(FIXTURES).map((template) => template.id),
-    ["volt", "monument", "nimbus", "harbor", "tessera"],
+    ["volt", "monument", "atrium", "harbor", "tessera"],
   );
   assert.deepEqual(
     filterTemplatesByLayout(FIXTURES, "sidebar").map((template) => template.id),

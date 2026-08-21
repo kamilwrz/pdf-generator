@@ -30,8 +30,8 @@ records (Experience, and any record-kind extras `_sidebar_candidates` never
 offers to the rail in the first place) reuse the shared
 `_place_experience_record` / `_place_education_record` helpers unchanged —
 no same-row or individually-positioned decoration was introduced, so this
-inherits the packer-safety guarantees documented in `blueprint.py` without
-needing to re-derive them.
+inherits the packer-safety guarantees provided by the shared record-placement
+helpers without needing to re-derive them.
 
 Continuation pages can also receive sidebar content: the balance-driven
 planner in `column_planner.py` generalizes to one bucket per page the main

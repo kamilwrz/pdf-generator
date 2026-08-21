@@ -18,7 +18,7 @@ from app.services.entitlements import FREE_STARTER_TEMPLATE_IDS
 REPO_ROOT = Path(__file__).resolve().parents[2]
 FRONTEND_REGISTRY = REPO_ROOT / "frontend" / "src" / "templates" / "index.js"
 
-# Matches registry rows: { id: "nimbus", tier: "free", ... layouts: [...] ... }
+# Matches registry rows: { id: "monument", tier: "paid", ... layouts: [...] ... }
 _TEMPLATE_ROW = re.compile(
     r'\{\s*id:\s*"(?P<id>[a-z0-9_]+)"\s*,\s*tier:\s*"(?P<tier>free|paid)"'
     r'.*?layouts:\s*(?P<layouts>\[[^\]]*\])',

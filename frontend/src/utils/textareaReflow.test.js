@@ -850,10 +850,10 @@ test("reclaim packing keeps a flowGroup education record whole", () => {
   assert.ok(meta.top > degree.top);
 });
 
-test("nimbus-style chrome on the degree line does not split a flowGroup record", () => {
-  // Nimbus used to place a section chip at the same Y as the degree. Y-sorted
-  // reflow then treated school/meta as a new record and left only "Bachelor…"
-  // on page 1 after reclaim.
+test("section-chip chrome on the degree line does not split a flowGroup record", () => {
+  // Regression: a template that places a section chip at the same Y as the
+  // degree once made Y-sorted reflow treat school/meta as a new record, leaving
+  // only "Bachelor…" on page 1 after reclaim.
   const result = reflowTextareaHeight([
     {
       element_id: "job-bullets",

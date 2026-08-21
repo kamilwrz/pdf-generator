@@ -118,9 +118,9 @@ class EntitlementsTests(unittest.TestCase):
 
     def test_free_template_gate(self):
         user = self._make_user()
-        ent.assert_template_allowed(self.db, user, "nimbus")
+        ent.assert_template_allowed(self.db, user, "nova")
         with self.assertRaises(ent.PlanLimitError) as ctx:
-            ent.assert_template_allowed(self.db, user, "cinder")
+            ent.assert_template_allowed(self.db, user, "monument")
         self.assertEqual(ctx.exception.detail["code"], "plan_feature_template")
 
     def test_get_entitlements_shape(self):
@@ -130,7 +130,7 @@ class EntitlementsTests(unittest.TestCase):
         self.assertFalse(payload["ai_assistant"])
         self.assertFalse(payload["extract_cv"])
         self.assertEqual(payload["template_tier"], "starter")
-        self.assertIn("nimbus", payload["allowed_template_ids"])
+        self.assertIn("nova", payload["allowed_template_ids"])
         self.assertEqual(payload["limits"]["max_projects"], 1)
         self.assertEqual(payload["limits"]["max_exports_per_month"], 3)
 
@@ -142,7 +142,7 @@ class EntitlementsTests(unittest.TestCase):
         ent.assert_can_use_ai_action(self.db, user, "layout")
         ent.assert_can_use_ai_action(self.db, user, "design_rating")
         ent.assert_can_extract_cv(self.db, user)
-        ent.assert_template_allowed(self.db, user, "cinder")
+        ent.assert_template_allowed(self.db, user, "monument")
         payload = ent.get_entitlements(self.db, user)
         self.assertEqual(payload["plan_slug"], "pro")
         self.assertIsNone(payload["allowed_template_ids"])

@@ -86,9 +86,9 @@ class FlowSpacingTests(unittest.TestCase):
             },
             require_name=True,
         )
-        default_els = generate_resume("cinder", cv)
+        default_els = generate_resume("atrium", cv)
         with use_spacing({"section": 40}):
-            wide_els = generate_resume("cinder", cv)
+            wide_els = generate_resume("atrium", cv)
         self.assertEqual(get_spacing().section, DEFAULT_FLOW_SPACING.section)
 
         def heading_tops(elements):
@@ -140,7 +140,7 @@ class PdfSpacingPersistTests(unittest.TestCase):
             file_path="/tmp/cv.pdf",
             elements=[_element()],
             editor_mode="template",
-            template_id="cinder",
+            template_id="monument",
             spacing_px={"section": 36, "record": 14},
         )
         row = request_pdf_by_id(self.db, pdf_id)
