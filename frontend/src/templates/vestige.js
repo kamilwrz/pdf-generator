@@ -122,7 +122,7 @@ const VESTIGE_ELEMENTS = [
     "category": "image",
     "src": "/template-assets/iconic/vestige/phone.png",
     "left": 27.0,
-    "top": 104.0,
+    "top": 46.0,
     "width": 9.5,
     "height": 9.5,
     "zIndex": 3,
@@ -139,7 +139,7 @@ const VESTIGE_ELEMENTS = [
     "fontFamily": "Montserrat",
     "color": "#747472",
     "left": 40.0,
-    "top": 104.0,
+    "top": 46.0,
     "zIndex": 3,
     "page": 1,
     "bold": false,
@@ -152,7 +152,7 @@ const VESTIGE_ELEMENTS = [
     "category": "image",
     "src": "/template-assets/iconic/vestige/email.png",
     "left": 27.0,
-    "top": 120.0,
+    "top": 62.0,
     "width": 9.5,
     "height": 9.5,
     "zIndex": 3,
@@ -169,7 +169,7 @@ const VESTIGE_ELEMENTS = [
     "fontFamily": "Montserrat",
     "color": "#747472",
     "left": 40.0,
-    "top": 120.0,
+    "top": 62.0,
     "zIndex": 3,
     "page": 1,
     "bold": false,
@@ -182,7 +182,7 @@ const VESTIGE_ELEMENTS = [
     "category": "image",
     "src": "/template-assets/iconic/vestige/linkedin.png",
     "left": 27.0,
-    "top": 136.0,
+    "top": 78.0,
     "width": 9.5,
     "height": 9.5,
     "zIndex": 3,
@@ -199,7 +199,7 @@ const VESTIGE_ELEMENTS = [
     "fontFamily": "Montserrat",
     "color": "#747472",
     "left": 40.0,
-    "top": 136.0,
+    "top": 78.0,
     "zIndex": 3,
     "page": 1,
     "bold": false,
@@ -212,7 +212,7 @@ const VESTIGE_ELEMENTS = [
     "category": "image",
     "src": "/template-assets/iconic/vestige/github.png",
     "left": 27.0,
-    "top": 168.0,
+    "top": 110.0,
     "width": 9.5,
     "height": 9.5,
     "zIndex": 3,
@@ -229,7 +229,7 @@ const VESTIGE_ELEMENTS = [
     "fontFamily": "Montserrat",
     "color": "#747472",
     "left": 40.0,
-    "top": 168.0,
+    "top": 110.0,
     "zIndex": 3,
     "page": 1,
     "bold": false,
@@ -242,7 +242,7 @@ const VESTIGE_ELEMENTS = [
     "category": "image",
     "src": "/template-assets/iconic/vestige/website.png",
     "left": 27.0,
-    "top": 184.0,
+    "top": 126.0,
     "width": 9.5,
     "height": 9.5,
     "zIndex": 3,
@@ -259,7 +259,7 @@ const VESTIGE_ELEMENTS = [
     "fontFamily": "Montserrat",
     "color": "#747472",
     "left": 40.0,
-    "top": 184.0,
+    "top": 126.0,
     "zIndex": 3,
     "page": 1,
     "bold": false,
@@ -272,7 +272,7 @@ const VESTIGE_ELEMENTS = [
     "category": "image",
     "src": "/template-assets/iconic/vestige/location.png",
     "left": 27.0,
-    "top": 152.0,
+    "top": 94.0,
     "width": 9.5,
     "height": 9.5,
     "zIndex": 3,
@@ -289,7 +289,7 @@ const VESTIGE_ELEMENTS = [
     "fontFamily": "Montserrat",
     "color": "#747472",
     "left": 40.0,
-    "top": 152.0,
+    "top": 94.0,
     "zIndex": 3,
     "page": 1,
     "bold": false,
@@ -408,7 +408,7 @@ const VESTIGE_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-9b8efeaaa6c8",
+    "flowGroup": "record-0664d6634f32",
     "flowRole": "content",
     "flowLane": "sidebar"
   },
@@ -432,7 +432,7 @@ const VESTIGE_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-9b8efeaaa6c8",
+    "flowGroup": "record-0664d6634f32",
     "flowRole": "content",
     "flowLane": "sidebar"
   },
@@ -456,7 +456,7 @@ const VESTIGE_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-9b8efeaaa6c8",
+    "flowGroup": "record-0664d6634f32",
     "flowRole": "content",
     "flowLane": "sidebar"
   },
@@ -608,7 +608,7 @@ const VESTIGE_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-8f199d5e61cd",
+    "flowGroup": "record-74a6f6e571a6",
     "flowRole": "content"
   },
   {
@@ -631,7 +631,7 @@ const VESTIGE_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-8f199d5e61cd",
+    "flowGroup": "record-74a6f6e571a6",
     "flowRole": "content"
   },
   {
@@ -654,7 +654,7 @@ const VESTIGE_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-8f199d5e61cd",
+    "flowGroup": "record-74a6f6e571a6",
     "flowRole": "content"
   },
   {
@@ -677,7 +677,7 @@ const VESTIGE_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-3a8b588499d9",
+    "flowGroup": "record-4b0420ee5992",
     "flowRole": "content"
   },
   {
@@ -700,7 +700,7 @@ const VESTIGE_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-3a8b588499d9",
+    "flowGroup": "record-4b0420ee5992",
     "flowRole": "content"
   },
   {
@@ -723,7 +723,7 @@ const VESTIGE_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-3a8b588499d9",
+    "flowGroup": "record-4b0420ee5992",
     "flowRole": "content"
   },
   {
@@ -746,7 +746,7 @@ const VESTIGE_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-c5a50f925844",
+    "flowGroup": "record-1b9079fc82ce",
     "flowRole": "content"
   },
   {
@@ -769,7 +769,7 @@ const VESTIGE_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-c5a50f925844",
+    "flowGroup": "record-1b9079fc82ce",
     "flowRole": "content"
   },
   {
@@ -792,7 +792,7 @@ const VESTIGE_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-c5a50f925844",
+    "flowGroup": "record-1b9079fc82ce",
     "flowRole": "content"
   }
 ];

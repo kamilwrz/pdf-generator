@@ -27,12 +27,15 @@ def _gen_vestige(cv: dict) -> list[dict]:
     sidebar_left = 27.0
     sidebar_content_width = 122.0
     contact_top_by_channel = {
-        "phone": 104.0,
-        "email": 120.0,
-        "linkedin": 136.0,
-        "location": 152.0,
-        "github": 168.0,
-        "website": 184.0,
+        # The first sidebar contact row shares the name's top edge (46pt).
+        # This creates one composed masthead across both columns instead of
+        # leaving the contact block visibly lower than the personal identity.
+        "phone": 46.0,
+        "email": 62.0,
+        "linkedin": 78.0,
+        "location": 94.0,
+        "github": 110.0,
+        "website": 126.0,
     }
     colors = {
         "#F7F8FA": "#FFFFFF",
