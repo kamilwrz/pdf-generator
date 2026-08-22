@@ -1069,7 +1069,13 @@ def _scrub_ten_scale_from_text(text: str) -> str:
 
 
 def _safe_result(raw: dict, allowed_fields: set = _ALLOWED_FIELDS) -> dict:
-    """Normalise GPT output. Strips any positional fields from corrections."""
+    """Normalise GPT output and reject destructive content replacements.
+
+    Content-editing actions may rephrase or shorten existing elements, but they
+    must never turn an element into an empty input. Removing a record is a
+    separate, explicitly reviewed operation; allowing an empty string here lets
+    a malformed model response silently erase CV content.
+    """
     corrections = []
     for c in raw.get("corrections", []):
         if not isinstance(c, dict) or not c.get("element_id"):
@@ -1077,6 +1083,8 @@ def _safe_result(raw: dict, allowed_fields: set = _ALLOWED_FIELDS) -> dict:
         patch = {"element_id": c["element_id"]}
         for k, v in c.items():
             if k in allowed_fields:
+                if k == "content" and not str(v or "").strip():
+                    continue
                 patch[k] = v
         if len(patch) > 1:
             corrections.append(patch)

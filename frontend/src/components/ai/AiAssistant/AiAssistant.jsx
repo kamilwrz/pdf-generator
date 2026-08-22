@@ -47,6 +47,19 @@ const ACTION_META = {
 };
 
 /**
+ * Remove an empty AI content replacement while preserving any valid style-only
+ * fields. Record deletion has its own explicit review flow; a correction card
+ * must never clear a CV element because a provider returned an empty string.
+ */
+function withoutEmptyContentReplacement(fields) {
+    if (!("content" in fields) || String(fields.content ?? "").trim()) {
+        return fields;
+    }
+    const { content: _emptyContent, ...remainingFields } = fields;
+    return remainingFields;
+}
+
+/**
  * Top-level goals. Submenus open for improve_content / check_appearance /
  * translate; check_cv and match_job start their flows immediately.
  */
@@ -1163,12 +1176,17 @@ export default function AiAssistant() {
         const { element_id, ...fields } = patch;
         const targetExists = A4_Elements.some((element) => element.element_id === element_id);
         if (!targetExists) return;
+        const safeFields = withoutEmptyContentReplacement(fields);
+        if (Object.keys(safeFields).length === 0) {
+            setCorrectionStates(prev => ({ ...prev, [`${msgId}_${element_id}`]: "rejected" }));
+            return;
+        }
         // AI content may target an off-page textarea. Mark it as changed rather
         // than preserving its generator placeholder height, so its first mount
         // can grow to the full generated summary instead of clipping it.
-        const nextFields = "content" in fields
-            ? { ...fields, preserveInitialLayout: false }
-            : fields;
+        const nextFields = "content" in safeFields
+            ? { ...safeFields, preserveInitialLayout: false }
+            : safeFields;
         editElementValues(nextFields, element_id);
         setCorrectionStates(prev => ({ ...prev, [`${msgId}_${element_id}`]: "accepted" }));
         collapseSpilledMainIntoSidebar?.();
@@ -1187,9 +1205,11 @@ export default function AiAssistant() {
             );
             if (targetExists && (correctionStates[key] || "pending") === "pending") {
                 const { element_id, ...fields } = patch;
-                const nextFields = "content" in fields
-                    ? { ...fields, preserveInitialLayout: false }
-                    : fields;
+                const safeFields = withoutEmptyContentReplacement(fields);
+                if (Object.keys(safeFields).length === 0) return;
+                const nextFields = "content" in safeFields
+                    ? { ...safeFields, preserveInitialLayout: false }
+                    : safeFields;
                 editElementValues(nextFields, element_id);
                 acceptedIds.push(element_id);
             }

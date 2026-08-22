@@ -536,6 +536,8 @@ In template mode, a document that exceeds its target page count shows a small ba
 
 The AI `shorten` action remains Pro-gated. After accepted AI changes reduce the page count, the editor silently reruns the same loosest-fit search from baseline down to `COMPACT_FLOW_SPACING`, recovering whitespace without adding a separate visible history action. `layoutDensity.js`, its **Kompaktowa** preset, and **Dopasuj automatycznie** remain separate density/balance tools; they are not page-targeting replacements.
 
+AI content corrections cannot clear an existing CV element. The backend drops empty `content` replacements, and the editor repeats that guard before applying an already received response; record deletion remains an explicit reviewed operation.
+
 `LongCvModal` is a pure presenter over `DialogShell`: `PdfCanvas` owns fitting, page reconciliation, toasts, and the assistant-action bridge.
 
 Implementation:
@@ -2373,6 +2375,8 @@ W trybie szablonu dokument przekraczający docelową liczbę stron pokazuje mał
 `fitToPages.js` przeszukuje odstępy od rytmu bazowego dokumentu do ukrytej twardej granicy `MIN_FLOW_SPACING = {stack:2, record:2, section:10, after_rule:2}`. Każdy kandydat jest pakowany przez `applyFlowSpacing` i `collapseSpilledMainIntoSidebar`; silnik zwraca pierwszy, a więc najluźniejszy, rytm spełniający cel. Wynik jest klasyfikowany jako `clean`, `tight`, `emergency` albo `impossible`. Dopasowania clean i tight są stosowane od razu jako jedna operacja obsługiwana przez undo. Dopasowanie emergency otwiera `LongCvModal` z wyborem **Maksymalnie zacieśnij** albo skracania AI; wynik impossible oferuje wyłącznie skracanie AI.
 
 Akcja AI `shorten` nadal wymaga Pro. Gdy zaakceptowane zmiany AI zmniejszą liczbę stron, edytor po cichu uruchamia ponownie ten sam algorytm najluźniejszego dopasowania od baseline do `COMPACT_FLOW_SPACING`, odzyskując wolną przestrzeń bez dodawania oddzielnej widocznej operacji historii. `layoutDensity.js`, preset **Kompaktowa** i **Dopasuj automatycznie** pozostają niezależnymi narzędziami gęstości/balansu — nie zastępują dopasowywania do liczby stron.
+
+Poprawki treści z AI nie mogą wyczyścić istniejącego elementu CV. Backend odrzuca puste zamienniki `content`, a edytor powtarza tę ochronę przed zastosowaniem już odebranej odpowiedzi; usunięcie rekordu pozostaje osobną, jawną operacją z podglądem.
 
 `LongCvModal` jest czystym prezenterem nad `DialogShell`: `PdfCanvas` zarządza dopasowaniem, rekonsyliacją stron, toastami i mostkiem akcji asystenta.
 

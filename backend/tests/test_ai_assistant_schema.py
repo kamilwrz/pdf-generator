@@ -18,6 +18,19 @@ from app.testing_support import ensure_test_auth_env
 
 
 class SafeResultSchemaTests(unittest.TestCase):
+    def test_safe_result_drops_empty_content_correction(self):
+        result = ai_assistant_service._safe_result({
+            "corrections": [
+                {"element_id": "record-body", "content": "   "},
+                {"element_id": "record-title", "content": "", "bold": True},
+            ],
+        })
+
+        self.assertEqual(
+            result["corrections"],
+            [{"element_id": "record-title", "bold": True}],
+        )
+
     def test_structured_context_keeps_empty_summary_textareas(self):
         structured = ai_assistant_service._extract_structured([
             {
