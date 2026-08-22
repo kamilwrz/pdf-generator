@@ -80,6 +80,42 @@ class VestigeTemplateTests(unittest.TestCase):
         self.assertTrue(all(element["fontSize"] == 13.0 for element in main_headings))
         self.assertTrue(all(element["fontSize"] == 8.4 for element in sidebar_headings))
 
+    def test_vestige_first_sidebar_section_aligns_with_first_main_section(self) -> None:
+        """The sidebar's first heading (above the rebuilt contact rail) must
+        start at the same Y as the main column's first heading, not below it
+        at an arbitrary fixed offset — Sterling already aligns both columns'
+        first heading at one shared cursor position."""
+        elements = generate_resume(
+            "vestige",
+            {
+                "name": "Alexandra Nowak",
+                "title": "Strategy Consultant",
+                "email": "alexandra@example.com",
+                "phone": "+48 600 000 000",
+                "summary": "Łączę analizę, strategię i jasne decyzje.",
+                "experience": [{"title": "Consultant", "company": "Northline", "period": "2022 – obecnie"}],
+                "education": [],
+                "skills": ["Strategia"],
+                "languages": [],
+            },
+        )
+        main_headings = [
+            element for element in elements
+            if element.get("flowRole") == "section-chrome" and element["category"] == "text"
+            and element.get("page", 1) == 1
+        ]
+        sidebar_headings = [
+            element for element in elements
+            if element.get("flowRole") == "sidebar-chrome" and element["category"] == "text"
+            and element.get("page", 1) == 1
+        ]
+        self.assertTrue(main_headings)
+        self.assertTrue(sidebar_headings)
+        self.assertAlmostEqual(
+            min(element["top"] for element in main_headings),
+            min(element["top"] for element in sidebar_headings),
+        )
+
     def test_vestige_contact_band_supports_add_remove_channel(self) -> None:
         """Vestige must emit a real "stacked"-mode contact-band descriptor
         (not Sterling's dropped centered-mode anchor) so the contact channel
@@ -252,6 +288,33 @@ class VestigeTemplateTests(unittest.TestCase):
                 earlier_bottom, later["top"] + 0.01,
                 f"sidebar overlap: {earlier!r} bottom {earlier_bottom} > next top {later['top']!r}",
             )
+
+    def test_vestige_main_column_body_uses_12px_line_height(self) -> None:
+        """Main-column body copy (summary, bullets, record meta rows) renders
+        at a uniform 12 px line height, distinct from Sterling's per-field
+        values (13.8 body, 14.0 record titles, 11.8 meta rails)."""
+        elements = generate_resume(
+            "vestige",
+            {
+                "name": "Alexandra Nowak",
+                "title": "Strategy Consultant",
+                "summary": "Łączę analizę, strategię i jasne decyzje.",
+                "experience": [{"title": "Consultant", "company": "Northline", "period": "2022 – obecnie",
+                                "bullets": ["Prowadzę projekty."]}],
+                "education": [],
+                "skills": ["Strategia"],
+                "languages": [],
+            },
+        )
+        main_bodies = [
+            element for element in elements
+            if element.get("category") == "textarea"
+            and element.get("flowLane") != "sidebar"
+            and element.get("flowRole") not in {"masthead", "masthead-anchor"}
+            and element.get("left") == 210.0
+        ]
+        self.assertTrue(main_bodies)
+        self.assertTrue(all(element["lineHeight"] == 12.0 for element in main_bodies))
 
 
 if __name__ == "__main__":

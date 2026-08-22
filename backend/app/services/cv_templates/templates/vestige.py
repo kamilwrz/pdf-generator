@@ -55,12 +55,14 @@ def _gen_vestige(cv: dict) -> list[dict]:
     # narrower two-column measure still reads as a quiet editorial rail.
     main_heading_fs = 13.0
     sidebar_heading_fs = 8.4
-    # Uniform sidebar body line height, distinct from whatever Sterling used
-    # for each field (summary 12.04, meta rails 11.8, ...). Feeding one fixed
-    # value into both the recomputed `height` below and the rendered CSS
-    # keeps the two in agreement — see the cascading-shift comment below for
-    # why a mismatch there used to overlap sidebar sections.
+    # Uniform body line height for both columns, distinct from whatever
+    # Sterling used per field (main body/bullets 13.8, record titles 14.0,
+    # meta rails 11.8, sidebar summary 12.04, ...). Feeding one fixed value
+    # into both the recomputed `height` below and the rendered CSS keeps the
+    # two in agreement — see the cascading-shift comment below for why a
+    # mismatch there used to overlap sidebar sections.
     sidebar_body_line_height = 12.0
+    main_body_line_height = 12.0
     colors = {
         "#F7F8FA": "#FFFFFF",
         "#EDF1F6": "#F4F4F2",
@@ -70,6 +72,28 @@ def _gen_vestige(cv: dict) -> list[dict]:
         "#6B7684": "#747472",
         "#C7CFDA": "#D7D7D4",
     }
+
+    # Align the sidebar's first section (its contact rail sits above this) with
+    # the main column's first section, so both columns start their content at
+    # the same Y. Sterling already places both columns' first heading at the
+    # same cursor position right after the masthead rule; compute the actual
+    # delta rather than assuming it (and rather than hardcoding a fixed
+    # clearance for the rebuilt contact rail — see the rail's own header
+    # comment for why a flat offset is unnecessary: even the maximum contact
+    # channel count fits well within this gap).
+    main_first_heading_tops = [
+        float(el["top"]) for el in elements
+        if el.get("page", 1) == 1 and el.get("category") == "text" and el.get("flowRole") == "section-chrome"
+    ]
+    sidebar_first_heading_tops = [
+        float(el["top"]) for el in elements
+        if el.get("page", 1) == 1 and el.get("category") == "text" and el.get("flowRole") == "sidebar-chrome"
+    ]
+    sidebar_offset = (
+        min(main_first_heading_tops) - min(sidebar_first_heading_tops)
+        if main_first_heading_tops and sidebar_first_heading_tops
+        else 0.0
+    )
 
     transformed: list[dict] = []
     name_element: dict | None = None
@@ -155,14 +179,11 @@ def _gen_vestige(cv: dict) -> list[dict]:
                 element["width"] = min(float(element["width"]) * 0.8, sidebar_content_width)
             page = int(element.get("page", 1))
             carried_shift = sidebar_shift_by_page.get(page, 0.0)
-            # Keep the first profile section below the last possible contact
-            # row while retaining the compact vertical rhythm expected from a
-            # narrow editorial rail. A previous 112pt offset created a large
-            # unowned gap that became obvious with imported, content-heavy CVs.
-            # `carried_shift` absorbs any extra height already produced by
-            # earlier sidebar elements on this page (see the accumulator's
-            # declaration above the loop).
-            element["top"] = float(element.get("top", 0)) + 42.0 + carried_shift
+            # `sidebar_offset` aligns the first sidebar section with the first
+            # main-column section (computed above); `carried_shift` absorbs
+            # any extra height already produced by earlier sidebar elements on
+            # this page (see the accumulator's declaration above the loop).
+            element["top"] = float(element.get("top", 0)) + sidebar_offset + carried_shift
             if flow_role == "sidebar-chrome" and category == "line":
                 element["width"] = 16.0
             # The narrower width invalidates Sterling's measured `height`
@@ -202,6 +223,20 @@ def _gen_vestige(cv: dict) -> list[dict]:
                 element["left"] = main_left + (original_left - _STERLING_MAIN_L) * main_scale
                 if "width" in element:
                     element["width"] = float(element["width"]) * main_scale
+            # Uniform 12 px line height, recomputed at the (possibly rescaled)
+            # width so the first render already matches the corrected height —
+            # same reasoning as the sidebar recompute above.
+            if "height" in element:
+                element["lineHeight"] = main_body_line_height
+                element["height"] = Builder.measure_block(
+                    element.get("content", ""),
+                    element["width"],
+                    element.get("fontSize", 9.0),
+                    main_body_line_height,
+                    element.get("fontFamily", "Montserrat"),
+                    bold=bool(element.get("bold", False)),
+                    bulletList=bool(element.get("bulletList", False)),
+                )
         elif flow_role == "section-chrome" or (
             category == "textarea" and flow_lane != "sidebar" and flow_role not in {"masthead", "masthead-anchor"}
         ):
@@ -209,6 +244,17 @@ def _gen_vestige(cv: dict) -> list[dict]:
                 element["left"] = main_left
                 if "width" in element:
                     element["width"] = main_width
+            if category == "textarea" and "height" in element:
+                element["lineHeight"] = main_body_line_height
+                element["height"] = Builder.measure_block(
+                    element.get("content", ""),
+                    element["width"],
+                    element.get("fontSize", 9.0),
+                    main_body_line_height,
+                    element.get("fontFamily", "Montserrat"),
+                    bold=bool(element.get("bold", False)),
+                    bulletList=bool(element.get("bulletList", False)),
+                )
 
         # Move personal identity to the main column; Sterling's contact row
         # was already dropped above and is rebuilt from `cv` after this loop.
