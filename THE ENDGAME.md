@@ -34,6 +34,8 @@ b) Slate
 - klik na slot nie laduje galerii (DONE)
 - paginacja strony jest krzywo
 - skasowac 9xKWADRTA po prawej (wyglada jak menu)
+- schowanie job position zaburze reflow / layout. Reflow nie powinien sie aktywowac przy    
+   zmianie, dla tresci CV
 
 c) Monument
 - problem z cyframi przy zmianie kolejnosci / ewtl. manual

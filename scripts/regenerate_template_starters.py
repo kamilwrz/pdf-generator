@@ -204,6 +204,7 @@ TEMPLATES = [
     "sterling",
     "regent",
     "vestige",
+    "meridian",
 ]
 
 DOC_BLURBS = {
@@ -269,10 +270,17 @@ DOC_BLURBS = {
         " *\n"
         " * Narrow neutral-gray sidebar with a classical editorial main column."
     ),
+    "meridian": (
+        "Meridian template (`layouts: [\"single\", \"icons\"]`).\n"
+        " *\n"
+        " * Premium navy/steel-blue single column with a compact serif summary\n"
+        " * and an accent-blue tick under every section rule."
+    ),
 }
 
 STARTER_PERSONAS = {
     "regent": "Alexandra Nowak — strategy consultant with three roles, one degree, four skills, and three languages",
+    "meridian": "Alexandra Nowak — strategy consultant with three roles, one degree, four skills, and three languages",
 }
 
 LOCALHOST_ASSET = re.compile(r"^https?://[^/]+(/template-assets/.+)$")
@@ -384,7 +392,7 @@ export const voltTemplate = withAbsoluteAssets(VOLT_ELEMENTS);
 def main() -> None:
     generated: dict[str, list[dict]] = {}
     for template_id in TEMPLATES:
-        if template_id == "regent":
+        if template_id in ("regent", "meridian"):
             cv = REGENT_DEMO_CV
         elif template_id in COMPACT_TEMPLATE_IDS:
             cv = COMPACT_DEMO_CV

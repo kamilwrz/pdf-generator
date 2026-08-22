@@ -14,6 +14,7 @@ from app.services.cv_templates.templates.atrium import _gen_atrium
 from app.services.cv_templates.templates.sterling import _gen_sterling
 from app.services.cv_templates.templates.regent import _gen_regent
 from app.services.cv_templates.templates.vestige import _gen_vestige
+from app.services.cv_templates.templates.meridian import _gen_meridian
 
 TEMPLATE_LAYOUTS: dict[str, frozenset[str]] = {
     "monument": frozenset({"single"}),
@@ -28,6 +29,7 @@ TEMPLATE_LAYOUTS: dict[str, frozenset[str]] = {
     "sterling": frozenset({"sidebar"}),
     "regent": frozenset({"single", "icons"}),
     "vestige": frozenset({"sidebar", "icons"}),
+    "meridian": frozenset({"single", "icons"}),
 }
 
 _GENERATORS = {
@@ -43,6 +45,7 @@ _GENERATORS = {
     "sterling": _gen_sterling,
     "regent": _gen_regent,
     "vestige": _gen_vestige,
+    "meridian": _gen_meridian,
 }
 
 

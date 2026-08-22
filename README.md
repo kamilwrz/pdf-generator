@@ -696,7 +696,7 @@ Implementation:
 
 Limits:
 
-- Free (Darmowy) includes one starter template (Nova), watermarked PDF export, and **one lifetime** CV import. Pro unlocks clean PDF, all 11 templates, further imports, content AI, ATS, and Layout for **59 zł / 30 days**. Stripe Checkout is not wired yet; unpaid selection may activate Pro via `ALLOW_UNPAID_PLAN_SELECTION`.
+- Free (Darmowy) includes one starter template (Nova), watermarked PDF export, and **one lifetime** CV import. Pro unlocks clean PDF, all 12 templates, further imports, content AI, ATS, and Layout for **59 zł / 30 days**. Stripe Checkout is not wired yet; unpaid selection may activate Pro via `ALLOW_UNPAID_PLAN_SELECTION`.
 - ATS feedback (**Czytelność dla ATS**) checks whether the final PDF text can be extracted and whether content headings/keywords look standard. It is guidance, not a promise that every recruiter ATS will parse the file the same way.
 - The privacy section describes implemented data use at a high level and does not claim unimplemented certifications or anonymisation.
 
@@ -774,6 +774,24 @@ Tests:
 
 - `frontend/src/templates/regent.test.js` — 9.5 px / 14 px summary metrics, monochrome palette, contact icons, and five-section hierarchy
 - `backend/tests/test_regent_template.py` — registry metadata, oversized summary, and contact-icon generation
+
+### Meridian premium navy/steel-blue template
+
+Meridian is a paid single-column template (`layouts: ["single", "icons"]`) in the same structural family as Regent — a 34 px Cormorant Garamond name, a tracked Montserrat role line, and a centered band of phone/email/LinkedIn/location icons — but built around a deep navy-slate and steel-blue palette (`#1B2A41` ink, `#3D5A80` accent, `#7A8699` muted, `#D7DEE6` hairlines) instead of Regent's monochrome ink, so it reads as an intentionally distinct, elegant option rather than a recolor.
+
+Its body type scale sits a full step below Regent's: the Cormorant Garamond summary, experience/education records, and skills copy all render at 8.6 px / 12 px line height (Regent: 9.5 px / 14 px), and the masthead's own cursor gaps (name→title, title→contact, contact→rule, rule→first section) are tightened rather than routed through the shared per-document spacing knob, so Meridian reads denser without affecting any other template's rhythm. Every section rule carries a short 18 px accent-blue tick — Meridian's signature mark, distinguishing its chrome from Regent's plain full-width hairline. Contact icons reuse Regent's neutral glyph set (`backend/template_assets/iconic/regent/`), since those glyphs are colorless silhouettes designed to sit under any ink color.
+
+Implementation:
+
+- `backend/app/services/cv_templates/templates/meridian.py`, function `_gen_meridian` — navy/steel-blue palette, compact body scale, tightened masthead cursor gaps, and the accent-tick section rule
+- `backend/app/services/cv_templates/registry.py`, `TEMPLATE_LAYOUTS["meridian"]` and `_GENERATORS["meridian"]`
+- `frontend/src/templates/meridian.js`, exported `meridianTemplate` — editable A4 starter regenerated from the backend output via `scripts/regenerate_template_starters.py`
+- `frontend/src/templates/index.js`, registry entry `meridian` (`tier: "paid"`, `layouts: ["single", "icons"]`)
+- `frontend/public/template-mockups/meridian.png` — source-driven A4 preview
+
+Tests:
+
+- `backend/tests/test_meridian_template.py` — registry metadata, 8.6 px / 12 px summary metrics, contact icons, the accent-tick section marker, and a realistic multi-sentence summary staying on page one
 
 ### Vestige narrow-sidebar editorial template
 
@@ -2500,7 +2518,7 @@ Implementacja:
 
 Ograniczenia:
 
-- Plan Darmowy obejmuje jeden szablon startowy (Nova), eksport PDF ze znakiem wodnym oraz **jeden** import CV w cyklu życia konta. Pro odblokowuje czysty PDF, wszystkie 11 szablonów, kolejne importy, AI treści, ATS i Układ za **59 zł / 30 dni**. Stripe Checkout jeszcze nie jest podłączony; przy `ALLOW_UNPAID_PLAN_SELECTION` Pro można aktywować bez płatności.
+- Plan Darmowy obejmuje jeden szablon startowy (Nova), eksport PDF ze znakiem wodnym oraz **jeden** import CV w cyklu życia konta. Pro odblokowuje czysty PDF, wszystkie 12 szablonów, kolejne importy, AI treści, ATS i Układ za **59 zł / 30 dni**. Stripe Checkout jeszcze nie jest podłączony; przy `ALLOW_UNPAID_PLAN_SELECTION` Pro można aktywować bez płatności.
 - Wskazówki **Czytelność dla ATS** sprawdzają odczyt tekstu z finalnego PDF oraz standardowość nagłówków/słów kluczowych. To wskazówka, nie gwarancja że każdy system ATS odczyta plik tak samo.
 - Sekcja prywatności opisuje ogólnie zaimplementowane użycie danych i nie deklaruje niezaimplementowanych certyfikatów ani anonimizacji.
 
@@ -2574,6 +2592,24 @@ Testy:
 
 - `frontend/src/templates/regent.test.js` — metryki podsumowania 9,5 px / 14 px, monochromatyczna paleta, ikony kontaktu i hierarchia pięciu sekcji
 - `backend/tests/test_regent_template.py` — metadane rejestru, duże podsumowanie oraz generowanie ikon kontaktowych
+
+### Meridian — premium, granatowo-niebieski szablon
+
+Meridian to płatny szablon jednokolumnowy (`layouts: ["single", "icons"]`) z tej samej rodziny strukturalnej co Regent — nazwisko w Cormorant Garamond 34 px, rozstrzelona linia stanowiska w Montserrat oraz wyśrodkowany pas ikon telefonu/e-maila/LinkedIn/lokalizacji — ale zbudowany wokół głębokiej, granatowo-szarej i stalowo-niebieskiej palety (`#1B2A41` — atrament, `#3D5A80` — akcent, `#7A8699` — kolor stonowany, `#D7DEE6` — linie) zamiast monochromatycznego atramentu Regenta, dzięki czemu jest odbierany jako celowo odrębna, elegancka opcja, a nie przebarwiony Regent.
+
+Skala typografii treści jest o cały stopień mniejsza niż w Regencie: podsumowanie w Cormorant Garamond, rekordy doświadczenia/wykształcenia oraz umiejętności renderują się przy 8,6 px / interlinii 12 px (Regent: 9,5 px / 14 px), a własne odstępy kursora w mastheadzie (nazwisko→stanowisko, stanowisko→kontakt, kontakt→linia, linia→pierwsza sekcja) są zwężone bezpośrednio w kodzie szablonu, a nie przez współdzielony, ogólnodokumentowy suwak odstępów, dzięki czemu Meridian jest gęstszy bez wpływu na rytm innych szablonów. Każda linia sekcji ma krótki, 18-pikselowy akcent w kolorze stalowego błękitu — sygnaturowy znak Meridiana, odróżniający jego chrome od zwykłej, pełnej szerokości linii Regenta. Ikony kontaktowe korzystają z neutralnego zestawu glifów Regenta (`backend/template_assets/iconic/regent/`), ponieważ są to bezbarwne sylwetki zaprojektowane tak, by pasowały do dowolnego koloru atramentu.
+
+Implementacja:
+
+- `backend/app/services/cv_templates/templates/meridian.py`, funkcja `_gen_meridian` — granatowo-niebieska paleta, zwarta skala treści, zwężone odstępy kursora mastheadu oraz linia sekcji z akcentowym znacznikiem
+- `backend/app/services/cv_templates/registry.py`, `TEMPLATE_LAYOUTS["meridian"]` i `_GENERATORS["meridian"]`
+- `frontend/src/templates/meridian.js`, eksport `meridianTemplate` — edytowalny starter A4 regenerowany z wyjścia backendu przez `scripts/regenerate_template_starters.py`
+- `frontend/src/templates/index.js`, wpis rejestru `meridian` (`tier: "paid"`, `layouts: ["single", "icons"]`)
+- `frontend/public/template-mockups/meridian.png` — podgląd A4 generowany ze źródła
+
+Testy:
+
+- `backend/tests/test_meridian_template.py` — metadane rejestru, metryki podsumowania 8,6 px / 12 px, ikony kontaktu, akcentowy znacznik linii sekcji oraz realistyczne wielozdaniowe podsumowanie pozostające na pierwszej stronie
 
 ### Vestige — redakcyjny szablon z wąskim sidebarem
 
