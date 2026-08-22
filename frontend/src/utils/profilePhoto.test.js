@@ -1,5 +1,5 @@
 /**
- * Profile-photo slot detection and apply behaviour for Slate, Tessera, Monument.
+ * Profile-photo slot detection and apply behaviour for all clickable templates.
  */
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
@@ -7,12 +7,14 @@ import {
   applyProfilePhoto,
   findProfilePhotoSlot,
   hasProfilePhotoSlot,
+  isProfilePhotoClickTarget,
   PROFILE_PHOTO_ID,
 } from "./profilePhoto.js";
 import { materializeElementSpecs } from "./materializeElementSpecs.js";
 import { slateTemplate } from "../templates/slate.js";
 import { tesseraTemplate } from "../templates/tessera.js";
 import { monumentTemplate } from "../templates/monument.js";
+import { atriumTemplate } from "../templates/atrium.js";
 
 const PHOTO = { src: "/images/9/content", img_id: 9 };
 
@@ -30,11 +32,17 @@ describe("findProfilePhotoSlot", () => {
     assert.equal(slot.photoSlot, "glyph");
   });
 
-  it("finds the monument frame when there is no glyph", () => {
+  it("finds the Monument portrait glyph", () => {
     const slot = findProfilePhotoSlot(monumentTemplate);
     assert.ok(slot);
-    assert.equal(slot.photoSlot, "frame");
-    assert.equal(slot.id, "monument-masthead-frame");
+    assert.equal(slot.photoSlot, "glyph");
+    assert.ok(String(slot.src).endsWith("/monument/portrait.png"));
+  });
+
+  it("finds the Atrium portrait glyph", () => {
+    const slot = findProfilePhotoSlot(atriumTemplate);
+    assert.ok(slot);
+    assert.equal(slot.photoSlot, "glyph");
   });
 
   it("still prefers a large near-top non-icon image (legacy)", () => {
@@ -81,23 +89,20 @@ describe("applyProfilePhoto", () => {
     assert.equal(photo.height, 120);
   });
 
-  it("covers monument ornaments and keeps the frame border above the photo", () => {
+  it("replaces Monument's glyph and keeps its frame border above the photo", () => {
     const elements = materializeElementSpecs(monumentTemplate, () => `m-${Math.random()}`);
-    const beforeCount = elements.length;
     const next = applyProfilePhoto(elements, PHOTO, () => "monument-photo");
     const photo = next.find((el) => el.photoSlot === "image");
     const frame = next.find((el) => el.id === "monument-masthead-frame");
-    const ornaments = next.filter((el) => el.photoSlot === "ornament");
     assert.ok(photo);
     assert.ok(frame);
-    assert.equal(ornaments.length, 3);
-    assert.equal(next.length, beforeCount + 1);
-    // Inset 2pt inside 425,54,84×84 → 427,56,80×80
+    assert.equal(next.filter((el) => el.photoSlot === "ornament").length, 0);
+    assert.equal(next.length, elements.length);
+    // Inset 2pt inside 425,47,80×107 → 427,49,76×103.
     assert.equal(photo.left, 427);
-    assert.equal(photo.top, 56);
-    assert.equal(photo.width, 80);
-    assert.equal(photo.height, 80);
-    assert.ok(photo.zIndex > ornaments[0].zIndex);
+    assert.equal(photo.top, 49);
+    assert.equal(photo.width, 76);
+    assert.equal(photo.height, 103);
     assert.ok(frame.zIndex > photo.zIndex);
   });
 
@@ -115,6 +120,14 @@ describe("applyProfilePhoto", () => {
     assert.equal(hasProfilePhotoSlot(slateTemplate), true);
     assert.equal(hasProfilePhotoSlot(tesseraTemplate), true);
     assert.equal(hasProfilePhotoSlot(monumentTemplate), true);
+    assert.equal(hasProfilePhotoSlot(atriumTemplate), true);
     assert.equal(hasProfilePhotoSlot([]), false);
+  });
+
+  it("marks frames, glyphs, and applied profile photos as gallery click targets", () => {
+    assert.equal(isProfilePhotoClickTarget({ photoSlot: "frame" }), true);
+    assert.equal(isProfilePhotoClickTarget({ photoSlot: "glyph" }), true);
+    assert.equal(isProfilePhotoClickTarget({ photoSlot: "image" }), true);
+    assert.equal(isProfilePhotoClickTarget({ photoSlot: "ornament" }), false);
   });
 });

@@ -18,6 +18,7 @@ import {
     isAuthenticatedImageSrc,
 } from "../../../services/authenticatedImage";
 import { iconicDrawTop, isTextAlignedIcon } from "../../../utils/iconAlignment";
+import { isProfilePhotoClickTarget } from "../../../utils/profilePhoto";
 
 function resolveTemplateAssetSrc(src) {
     const assetPath = String(src || "").match(/\/template-assets\/[^?#]+(?:[?#].*)?$/)?.[0];
@@ -44,7 +45,14 @@ function Image({
     photoSlot,
 }) {
 
-    const { moveElement, selectElement, A4_Elements, selectMoveElement, resizeElement } = use(PdfContext)
+    const {
+        moveElement,
+        selectElement,
+        A4_Elements,
+        selectMoveElement,
+        resizeElement,
+        showGallery,
+    } = use(PdfContext)
 
     const [isResizeable, setIsResizeable] = useState(false);
     const [authDisplaySrc, setAuthDisplaySrc] = useState(null);
@@ -56,6 +64,7 @@ function Image({
     const drawTop = isTextAlignedIcon(src, alignWithText)
         ? iconicDrawTop(top, height)
         : top;
+    const isPhotoClickTarget = isProfilePhotoClickTarget({ photoSlot });
 
     const image = useRef();
 
@@ -106,7 +115,15 @@ function Image({
         // Circular profile slots (Harbor) clip the raster on canvas; PDF export
         // still draws the full box, which covers the underlying disc.
         ...(borderRadius ? { borderRadius: `${borderRadius}px` } : {}),
-        ...(fixedToPage ? { pointerEvents: "none" } : {}),
+        // Fixed profile glyphs/photos are deliberately clickable so users can
+        // open the gallery directly on every template's visible photo slot.
+        ...(fixedToPage && !isPhotoClickTarget ? { pointerEvents: "none" } : {}),
+        ...(isPhotoClickTarget ? { cursor: "pointer" } : {}),
+    }
+
+    function handlePhotoClick(event) {
+        selectElement(elementId, event.ctrlKey || event.metaKey);
+        if (!event.ctrlKey && !event.metaKey) showGallery?.();
     }
 
     if (fixedToPage) {
@@ -118,6 +135,7 @@ function Image({
                 src={displaySrc}
                 style={style}
                 alt=""
+                onClick={isPhotoClickTarget ? handlePhotoClick : undefined}
             />
         );
     }

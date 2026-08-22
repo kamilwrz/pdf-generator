@@ -83,6 +83,24 @@ export function isProfilePhotoFrame(element) {
 }
 
 /**
+ * Identify the fixed or editable canvas element that opens the photo gallery.
+ *
+ * A profile slot may be an outline frame, its placeholder glyph, or the
+ * applied image. All three replace the same photo, so they share one click
+ * affordance while remaining non-draggable page chrome.
+ *
+ * @param {object|null|undefined} element
+ * @returns {boolean}
+ */
+export function isProfilePhotoClickTarget(element) {
+  return Boolean(
+    isProfilePhotoFrame(element)
+    || element?.photoSlot === "glyph"
+    || element?.photoSlot === "image",
+  );
+}
+
+/**
  * @param {object} element
  * @returns {boolean}
  */

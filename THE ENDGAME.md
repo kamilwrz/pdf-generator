@@ -37,8 +37,8 @@ b) Slate
 c) Monument
 - problem z cyframi przy zmianie kolejnosci / ewtl. manual
 - klik na slot nie laduje galerii
-- zamienic element dekoracyjny na photo slot
-- brak ikon w elementach kontaktowych
+- zamienic element dekoracyjny na photo slot (DONE)
+- brak ikon w elementach kontaktowych (DONE)
 
 d) Atrium
 - po schowaniu 'job position' kontakt jest za blisko imienia / zdjecia
@@ -53,7 +53,7 @@ f) Regent
 - brak zdjecia profilowego
 
 g) Nova
-- jest ok
+- jest ok, ale slot powinien miec ikone
 - dodac inne paletty kolorow
 
 h) Volt

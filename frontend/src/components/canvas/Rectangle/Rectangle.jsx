@@ -72,12 +72,20 @@ function Rectangle({
         // so ordinary rectangles keep square corners identical to the PDF.
         ...(borderRadius ? { borderRadius: `${borderRadius}px` } : {}),
         zIndex: zIndex,
-        ...(fixedToPage ? { pointerEvents: "none" } : {}),
+        // Page-fixed decorations stay inert, except the profile-photo frame:
+        // its only allowed interaction is opening the gallery to replace it.
+        ...(fixedToPage && !isPhotoFrame ? { pointerEvents: "none" } : {}),
         ...(isPhotoFrame ? { cursor: "pointer" } : {}),
     }
 
     if (fixedToPage) {
-        return <div id={elementId} style={style} />;
+        return (
+            <div
+                id={elementId}
+                style={style}
+                onClick={isPhotoFrame ? handleClick : undefined}
+            />
+        );
     }
 
     if (isSelected && selectedCount === 1 && !isMove) {

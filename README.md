@@ -1122,7 +1122,7 @@ Tests: `backend/tests/test_image_upload_security.py` — accepts a real PNG, rej
 
 ### Profile photo slot (template mode)
 
-In **template** mode, clicking a gallery image immediately fits it into the profile-photo slot when the document declares one (no confirmation dialog, no freeform prompt) and closes the gallery panel. The fitted photo covers the entire slot (`objectFit: "cover"`). Templates mark the area with `photoSlot`:
+In **template** mode, clicking a profile frame, portrait glyph, or existing profile photo on the canvas opens the gallery. Clicking a gallery image then immediately fits it into the declared profile-photo slot (no confirmation dialog, no freeform prompt) and closes the gallery panel. This remains available even when the slot is `fixedToPage`: it is the sole allowed interaction for fixed photo chrome. The fitted photo covers the entire slot (`objectFit: "cover"`). Templates mark the area with `photoSlot`:
 
 - `frame` — the designated rectangle or circle chrome (`slate-photo-frame`, `tessera-photo-frame`, `harbor-photo-frame`, `monument-masthead-frame`, `nova-photo-frame`, `portico-photo-frame`; `cinder-frame-one` and `nimbus-photo-frame` are kept from retired templates so older saved documents still resolve their slot)
 - `glyph` — portrait placeholder image inside the frame (converted into the user photo)
@@ -1141,7 +1141,7 @@ Implementation:
 - `backend/app/schemas/pdf_schema.py` — optional `id`, `photoSlot`, `photoShape`, `objectFit`
 - `shared/pdf-element.schema.json` — `objectFit` enum (`fill` / `cover` / `contain`)
 - `backend/app/crud/pdfs.py` / `frontend/src/components/modals/ModalPdfs/ModalPdfs.jsx` — persist and hydrate those fields
-- Generators / starters: `slate`, `tessera`, `harbor`, `monument`, `nova`, `portico` (FE + BE)
+- Generators / starters: `slate`, `tessera`, `harbor`, `monument`, `nova`, `portico`, `atrium` (FE + BE)
 
 Tests: `frontend/src/utils/profilePhoto.test.js` — slot detection on Slate/Tessera/Monument, geometry/z-index after apply, in-place replace.
 
@@ -2918,7 +2918,7 @@ Testy: `backend/tests/test_image_upload_security.py` — PNG, HTML-as-PNG (415),
 
 ### Slot zdjęcia profilowego (tryb szablonu)
 
-W trybie **template** kliknięcie obrazu w galerii od razu dopasowuje go do slotu zdjęcia profilowego, gdy dokument ma zadeklarowany slot (bez dialogu potwierdzenia i bez pytania o freeform), i zamyka panel galerii. Dopasowane zdjęcie przykrywa cały slot (`objectFit: "cover"`). Szablony oznaczają obszar polem `photoSlot`:
+W trybie **template** kliknięcie ramki profilu, ikony portretu albo istniejącego zdjęcia profilowego na kanwie otwiera galerię. Kliknięcie obrazu w galerii od razu dopasowuje go do zadeklarowanego slotu zdjęcia profilowego (bez dialogu potwierdzenia i bez pytania o freeform) i zamyka panel galerii. Działa to również dla slotu `fixedToPage`: jest to jedyna dozwolona interakcja z nieprzesuwalnym chrome zdjęcia. Dopasowane zdjęcie przykrywa cały slot (`objectFit: "cover"`). Szablony oznaczają obszar polem `photoSlot`:
 
 - `frame` — ramka prostokątna lub koło (`slate-photo-frame`, `tessera-photo-frame`, `harbor-photo-frame`, `monument-masthead-frame`, `nova-photo-frame`, `portico-photo-frame`; `cinder-frame-one` i `nimbus-photo-frame` pozostają z wycofanych szablonów, żeby starsze zapisane dokumenty wciąż odnajdywały swój slot)
 - `glyph` — placeholder portretu w ramce (zamieniany na zdjęcie użytkownika)
@@ -2937,7 +2937,7 @@ Implementacja:
 - `backend/app/schemas/pdf_schema.py` — opcjonalne `id`, `photoSlot`, `photoShape`, `objectFit`
 - `shared/pdf-element.schema.json` — enum `objectFit` (`fill` / `cover` / `contain`)
 - `backend/app/crud/pdfs.py` / `ModalPdfs.jsx` — zapis i hydratacja
-- Generatory / startery: `slate`, `tessera`, `harbor`, `monument`, `nova`, `portico` (FE + BE)
+- Generatory / startery: `slate`, `tessera`, `harbor`, `monument`, `nova`, `portico`, `atrium` (FE + BE)
 
 Testy: `frontend/src/utils/profilePhoto.test.js` — wykrywanie slotu (w tym Monument), geometria/z-index po apply, zamiana w miejscu.
 
