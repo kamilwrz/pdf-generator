@@ -19,6 +19,7 @@
 
 import { DEFAULT_FLOW_SPACING, normalizeFlowSpacing } from "./flowSpacing.js";
 import { parseFlatListItems } from "./flatSectionLayout.js";
+import { isRecordOverlay } from "./textareaReflow.js";
 
 /** Keep in sync with `textareaReflow.js` / backend CONTENT margins. */
 const DEFAULT_PAGE_TOP = 66;
@@ -1447,12 +1448,18 @@ function compactSectionStrip(sectionElements, pageHeight, spacing, forceTargets 
   if (!sectionElements.length) return [];
 
   // Pull chrome ahead of body so a rule stranded at the page footer cannot sort
-  // into the middle of experience records.
+  // into the middle of experience records. Record-overlay elements (a date
+  // pinned beside a title line, a rail line beside a company line, …) are
+  // held out of the sequential stacker entirely — see the reinsertion pass
+  // below the main loop for why.
   const chrome = [];
   const body = [];
+  const overlays = [];
   for (const element of sectionElements) {
     if (isSectionChromeMember(element, sectionElements, pageHeight)) {
       chrome.push(element);
+    } else if (isRecordOverlay(element, sectionElements, pageHeight)) {
+      overlays.push(element);
     } else {
       body.push(element);
     }
@@ -1561,7 +1568,89 @@ function compactSectionStrip(sectionElements, pageHeight, spacing, forceTargets 
     gridAnchor = isGridMember(element) ? items[items.length - 1] : null;
   }
 
-  return items;
+  return insertRecordOverlayItems(items, overlays, pageHeight);
+}
+
+/**
+ * Reinsert record-overlay elements (held out of the sequential stacker above)
+ * immediately after the real content item they are pinned beside.
+ *
+ * An overlay must never be treated as an ordinary stacked line: its top is
+ * designed to equal another line's top (not extend the record downward), so
+ * running it through `previous.relTop + elementHeight(previous.element) + gap`
+ * would misread it as an extra row and inflate every later line's position —
+ * exactly the corruption that showed up as scrambled/interleaved records
+ * after a density change or reorder. Each overlay's `relTop` is instead
+ * derived by translating its real anchor's already-computed `relTop` by the
+ * overlay's original offset from that anchor (0 for Meridian's rail, but
+ * general in case a future template pins an overlay a few px off its
+ * anchor's top). Reinserting directly after the anchor (rather than
+ * appending at the strip's tail) keeps the record's `flowGroup` run
+ * index-contiguous, which `flowGroupEndIndex` / `remainingStripRecordHeight`
+ * require.
+ */
+function insertRecordOverlayItems(items, overlays, pageHeight) {
+  if (!overlays.length) return items;
+
+  const overlaysByAnchorId = new Map();
+  const unanchored = [];
+  for (const element of sortByReadingOrder(overlays, pageHeight)) {
+    const anchorItem = findRecordOverlayAnchorItem(items, element, pageHeight);
+    if (anchorItem) {
+      const delta = absoluteTop(element, pageHeight) - absoluteTop(anchorItem.element, pageHeight);
+      const mates = overlaysByAnchorId.get(anchorItem.element.element_id) || [];
+      mates.push({
+        element,
+        relTop: anchorItem.relTop + delta,
+        leadingChrome: false,
+        // Consumed by `placeStrip`: position this item from the anchor's
+        // *final* placed position (translated by `delta`) instead of the
+        // generic previous-item stacking math, and never let it become the
+        // stacking reference for whichever real line follows it.
+        recordOverlayAnchorId: anchorItem.element.element_id,
+        recordOverlayDelta: delta,
+      });
+      overlaysByAnchorId.set(anchorItem.element.element_id, mates);
+    } else {
+      // No matching anchor in this section (stale/legacy save, or the
+      // element's true anchor was reassigned to a different section) — keep
+      // it rather than silently dropping content, appended at the tail.
+      const last = items[items.length - 1];
+      const fallbackRelTop = last ? last.relTop + elementHeight(last.element) : 0;
+      unanchored.push({ element, relTop: fallbackRelTop, leadingChrome: false });
+    }
+  }
+
+  const withOverlays = [];
+  for (const item of items) {
+    withOverlays.push(item);
+    const mates = overlaysByAnchorId.get(item.element.element_id);
+    if (mates) withOverlays.push(...mates);
+  }
+  withOverlays.push(...unanchored);
+  return withOverlays;
+}
+
+/**
+ * Find the already-placed strip item a record-overlay element is pinned
+ * beside: same `flowGroup`, top within the ~3px tolerance
+ * `textareaReflow.js`'s `recordOverlayAnchor` also uses.
+ */
+function findRecordOverlayAnchorItem(items, overlayElement, pageHeight) {
+  const group = flowGroupOf(overlayElement);
+  if (!group) return null;
+  const overlayAbs = absoluteTop(overlayElement, pageHeight);
+  let best = null;
+  let bestDelta = Infinity;
+  for (const item of items) {
+    if (flowGroupOf(item.element) !== group) continue;
+    const delta = Math.abs(absoluteTop(item.element, pageHeight) - overlayAbs);
+    if (delta <= 3 && delta < bestDelta) {
+      best = item;
+      bestDelta = delta;
+    }
+  }
+  return best;
 }
 
 /**
@@ -1655,6 +1744,23 @@ function flowGroupEndIndex(strip, startIndex) {
 }
 
 /**
+ * Furthest `relTop + height` bottom edge among `strip[startIndex..endIndex]`.
+ *
+ * Scans every mate's bottom edge rather than trusting the last array index to
+ * be the tallest: a record-overlay item (pinned beside an earlier line, so
+ * its `relTop` can be smaller than a later real line's) may sit anywhere
+ * inside the run once reinserted by `insertRecordOverlayItems`.
+ */
+function stripRangeMaxBottom(strip, startIndex, endIndex) {
+  let maxBottom = 0;
+  for (let index = startIndex; index <= endIndex; index += 1) {
+    const item = strip[index];
+    maxBottom = Math.max(maxBottom, item.relTop + elementHeight(item.element));
+  }
+  return maxBottom;
+}
+
+/**
  * Height from `startIndex` through its keep-together mates, using compacted
  * `relTop` gaps so page-break reservation matches the packed strip geometry.
  *
@@ -1666,11 +1772,7 @@ function remainingStripRecordHeight(strip, startIndex) {
   const start = strip[startIndex];
   if (!start) return 1;
   const endIndex = flowGroupEndIndex(strip, startIndex);
-  const end = strip[endIndex];
-  return Math.max(
-    1,
-    (end.relTop - start.relTop) + elementHeight(end.element),
-  );
+  return Math.max(1, stripRangeMaxBottom(strip, startIndex, endIndex) - start.relTop);
 }
 
 /**
@@ -1709,11 +1811,11 @@ function placeStrip(strip, cursorAbs, pageHeight, pageTop, bottomMargin) {
     if (chromeCount < strip.length) {
       // Chrome through the end of the first body record (not only first line).
       const recordEnd = flowGroupEndIndex(strip, chromeCount);
-      reservedHeight = strip[recordEnd].relTop + elementHeight(strip[recordEnd].element);
+      reservedHeight = stripRangeMaxBottom(strip, chromeCount, recordEnd);
     }
   } else if (strip.length > 0) {
     const recordEnd = flowGroupEndIndex(strip, 0);
-    reservedHeight = strip[recordEnd].relTop + elementHeight(strip[recordEnd].element);
+    reservedHeight = stripRangeMaxBottom(strip, 0, recordEnd);
   }
 
   const sectionCursor = reservedHeight > 0
@@ -1737,6 +1839,36 @@ function placeStrip(strip, cursorAbs, pageHeight, pageTop, bottomMargin) {
     const item = strip[index];
     const height = elementHeight(item.element);
     const inLeadingChrome = index < chromeCount;
+
+    // Record-overlay items (see `insertRecordOverlayItems`) are positioned by
+    // translating their anchor's *final placed* position, never by the
+    // generic previous-item stacking math below — and must not themselves
+    // become `previous` / `activeGroup` / `gridAnchor` for whichever real
+    // line follows, or that line would inherit the overlay's position
+    // instead of stacking under the true previous content line.
+    if (item.recordOverlayAnchorId != null) {
+      const anchorPlaced = placedById.get(item.recordOverlayAnchorId);
+      let overlayAbs;
+      if (anchorPlaced) {
+        overlayAbs = (anchorPlaced.page - 1) * pageHeight + anchorPlaced.top
+          + (item.recordOverlayDelta || 0);
+      } else {
+        // Anchor missing (should not happen given `insertRecordOverlayItems`
+        // always processes strip order left-to-right) — fall back to
+        // stacking under whatever came before rather than losing the element.
+        overlayAbs = previous ? previous.placed.bottom : sectionCursor;
+      }
+      const page = Math.max(1, Math.floor(Math.max(0, overlayAbs) / pageHeight) + 1);
+      const top = overlayAbs - (page - 1) * pageHeight;
+      const placedOverlay = { page, top, abs: overlayAbs, bottom: overlayAbs + height };
+      placedById.set(item.element.element_id, {
+        ...item.element,
+        page: placedOverlay.page,
+        top: placedOverlay.top,
+      });
+      stripBottom = Math.max(stripBottom, placedOverlay.bottom);
+      continue;
+    }
 
     let placed;
     if (inLeadingChrome) {

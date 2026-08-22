@@ -79,7 +79,18 @@ function isGridMember(element) {
   return element?.flowRole === "grid-member";
 }
 
-function isRecordOverlay(element, elements = [], pageHeight = 842) {
+/**
+ * Whether `element` is a non-flowing decoration pinned beside a real content
+ * line (a date/location rail, Axis's date gutter, Harbor's date/city/icon
+ * row) rather than a genuinely stacked line of its own.
+ *
+ * Exported so the structural packer (`sectionStructure.js`) can exclude these
+ * elements from sequential stacking/height math the same way live reflow
+ * already excludes them here — see that module's `compactSectionStrip` for
+ * why treating an overlay as an ordinary stacked line corrupts every later
+ * line's position.
+ */
+export function isRecordOverlay(element, elements = [], pageHeight = 842) {
   if (element?.flowRole === "record-overlay") return true;
   if (!["image", "text"].includes(element?.category)) return false;
   const group = flowGroupOf(element);

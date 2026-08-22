@@ -786,6 +786,75 @@ describe("applyFlowSpacing", () => {
     assert.equal(emailText.left, 153);
   });
 
+  it("does not let a record-overlay date/location rail inflate a record's packed height", () => {
+    // Regression: Meridian (and any future single-column template with a
+    // right-hand date/location rail) pins `period`/`city` beside the
+    // title/company lines via `flowRole: "record-overlay"` + `autoHeight:
+    // false`, sharing the record's `flowGroup`. Before the fix, the packer's
+    // sequential stacker treated these overlay lines as ordinary extra rows
+    // ("previous.relTop + elementHeight(previous) + gap"), inflating every
+    // later line's position — which showed up in the live app as scrambled,
+    // interleaved records after a density-preset change or reorder.
+    const record = (id, top, bulletsHeight) => ([
+      {
+        element_id: `${id}-title`, category: "textarea", flowRole: "content",
+        autoHeight: true, flowGroup: id, content: "Title", bold: true,
+        page: 1, top, left: 62, width: 300, height: 13,
+      },
+      {
+        element_id: `${id}-period`, category: "textarea", flowRole: "record-overlay",
+        autoHeight: false, flowGroup: id, content: "2021 – 2022", align: "right",
+        page: 1, top, left: 374, width: 130, height: 11,
+      },
+      {
+        element_id: `${id}-company`, category: "textarea", flowRole: "content",
+        autoHeight: true, flowGroup: id, content: "Company",
+        page: 1, top: top + 17, left: 62, width: 300, height: 11,
+      },
+      {
+        element_id: `${id}-city`, category: "textarea", flowRole: "record-overlay",
+        autoHeight: false, flowGroup: id, content: "Warszawa", align: "right",
+        page: 1, top: top + 17, left: 374, width: 130, height: 11,
+      },
+      {
+        element_id: `${id}-bullets`, category: "textarea", flowRole: "content",
+        autoHeight: true, flowGroup: id, content: "• one\n• two",
+        page: 1, top: top + 32, left: 62, width: 471, height: bulletsHeight,
+      },
+    ]);
+    const elements = [
+      { element_id: "h1", category: "text", flowRole: "section-chrome", content: "DOŚWIADCZENIE", page: 1, top: 100, left: 62, height: 14 },
+      ...record("recA", 122, 24),
+      ...record("recB", 200, 24),
+    ];
+
+    const packed = applyFlowSpacing(elements, {
+      stack: 4, record: 10, section: 21, after_rule: 8,
+    }, 842);
+    const byId = Object.fromEntries(packed.map((element) => [element.element_id, element]));
+    const abs = (element) => (element.page - 1) * 842 + element.top;
+    const bottom = (element) => abs(element) + (element.height || 0);
+
+    // recB's title must sit immediately after recA's true bottom (bullets) +
+    // one record gap — not after some inflated height counting the overlay
+    // lines as extra stacked rows.
+    const expectedRecBTitleAbs = bottom(byId["recA-bullets"]) + 10;
+    assert.equal(abs(byId["recB-title"]), expectedRecBTitleAbs);
+
+    // Every overlay stays pinned exactly beside its real anchor line, in
+    // both records, after repacking.
+    assert.equal(byId["recA-period"].top, byId["recA-title"].top);
+    assert.equal(byId["recA-city"].top, byId["recA-company"].top);
+    assert.equal(byId["recB-period"].top, byId["recB-title"].top);
+    assert.equal(byId["recB-city"].top, byId["recB-company"].top);
+
+    // Nothing from recA lands after recB's title, and nothing from recB
+    // lands before recA's bullets — i.e. no interleaving.
+    for (const id of ["recA-title", "recA-period", "recA-company", "recA-city", "recA-bullets"]) {
+      assert.ok(abs(byId[id]) < abs(byId["recB-title"]), `${id} must stay before recB`);
+    }
+  });
+
   it("widens section gaps when section rhythm increases", () => {
     const elements = [
       { element_id: "h1", category: "text", flowRole: "section-chrome", content: "A", page: 1, top: 100, height: 14 },
