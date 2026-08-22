@@ -100,6 +100,20 @@ export const DENSITY_SPACING_MIN = Object.freeze({
 });
 
 /**
+ * Absolute hard floor for the progressive page-fit engine (fitToPages.js).
+ * Tighter than DENSITY_SPACING_MIN — this is the lowest legible rhythm we will
+ * ever apply, and only to save a page. `scaleFlowSpacing` clamps to
+ * DENSITY_SPACING_MIN and can never reach this; the fit engine builds its own
+ * candidate ladder to descend here. Never surfaced as a density preset.
+ */
+export const MIN_FLOW_SPACING = Object.freeze({
+  stack: 2,
+  record: 2,
+  section: 10,
+  after_rule: 2,
+});
+
+/**
  * Scale all four rhythm knobs from a baseline, respecting density minima.
  *
  * Used by the Układ CV density segmented control and offline auto-fit trials.

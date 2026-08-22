@@ -1,11 +1,14 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import {
+  COMPACT_FLOW_SPACING,
   DEFAULT_FLOW_SPACING,
+  DENSITY_SPACING_MIN,
   densityPresetsFromBaseline,
   flowSpacingEquals,
   isDefaultFlowSpacing,
   matchDensityPreset,
+  MIN_FLOW_SPACING,
   normalizeFlowSpacing,
   scaleFlowSpacing,
 } from "./flowSpacing.js";
@@ -59,5 +62,32 @@ describe("densityPresetsFromBaseline", () => {
     });
     assert.equal(matchDensityPreset(presets.compact, base), "compact");
     assert.ok(scaleFlowSpacing(base, 1.0).section === 21);
+  });
+});
+
+describe("MIN_FLOW_SPACING hard floor", () => {
+  it("is the tightest legible rhythm the fit engine may reach", () => {
+    assert.deepEqual(MIN_FLOW_SPACING, {
+      stack: 2, record: 2, section: 10, after_rule: 2,
+    });
+  });
+
+  it("is tighter than the density minimum on record/section/after_rule", () => {
+    assert.ok(MIN_FLOW_SPACING.record < DENSITY_SPACING_MIN.record);
+    assert.ok(MIN_FLOW_SPACING.section < DENSITY_SPACING_MIN.section);
+    assert.ok(MIN_FLOW_SPACING.after_rule < DENSITY_SPACING_MIN.after_rule);
+  });
+
+  it("is below the compact preset on every knob (engine descends past compact)", () => {
+    for (const key of ["stack", "record", "section", "after_rule"]) {
+      assert.ok(MIN_FLOW_SPACING[key] <= COMPACT_FLOW_SPACING[key]);
+    }
+  });
+
+  it("scaleFlowSpacing cannot reach the floor (it clamps to DENSITY_SPACING_MIN)", () => {
+    // A huge shrink still bottoms out at the density minimum, never the floor.
+    const scaled = scaleFlowSpacing({ stack: 4, record: 10, section: 21, after_rule: 8 }, 0.01);
+    assert.deepEqual(scaled, DENSITY_SPACING_MIN);
+    assert.notDeepEqual(scaled, MIN_FLOW_SPACING);
   });
 });
