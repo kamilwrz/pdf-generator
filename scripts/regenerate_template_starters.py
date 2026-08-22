@@ -6,7 +6,7 @@ one degree, five skills, three languages) so picker previews match
 track the previous shared demo so page-1 mockups stay full. Starters keep
 page-1 elements only (mockups and the template picker show a single A4). Image
 URLs are stored relative and absolutised at load time via API_BASE_URL — same
-pattern as atrium.js / axis.js.
+pattern as atrium.js.
 
 Run from repo root:
 
@@ -195,12 +195,10 @@ TEMPLATES = [
     "portico",
     "nova",
     "volt",
-    "harbor",
     "tessera",
     "slate",
     "monument",
     "atrium",
-    "axis",
     "sterling",
     "regent",
     "vestige",
@@ -224,11 +222,6 @@ DOC_BLURBS = {
         " *\n"
         " * Dark amber signal chips with Montserrat + JetBrains Mono."
     ),
-    "harbor": (
-        "Harbor template (`layouts: [\"sidebar\", \"icons\"]`).\n"
-        " *\n"
-        " * Two-column teal layout with circular photo slot and diamond list widgets."
-    ),
     "tessera": (
         "Tessera template (`layouts: [\"sidebar\", \"icons\"]`).\n"
         " *\n"
@@ -248,12 +241,6 @@ DOC_BLURBS = {
         "Atrium template (`layouts: [\"single\"]`).\n"
         " *\n"
         " * Centered-axis editorial single column with graphite-sage accents."
-    ),
-    "axis": (
-        "Axis template (`layouts: [\"single\"]`).\n"
-        " *\n"
-        " * Timeline single column with date gutter, skill chips, and a\n"
-        " * four-column languages grid."
     ),
     "sterling": (
         "Sterling template (`layouts: [\"sidebar\"]`).\n"
@@ -325,7 +312,7 @@ def tag_flow_roles(elements: list[dict]) -> list[dict]:
 
 
 def js_module(template_id: str, elements: list[dict], *, const_name: str | None = None) -> str:
-    """Build an atrium/axis-style starter module from generator output."""
+    """Build an atrium-style starter module from generator output."""
     const = const_name or f"{template_id.upper()}_ELEMENTS"
     export = f"{template_id}Template"
     blur = DOC_BLURBS[template_id]

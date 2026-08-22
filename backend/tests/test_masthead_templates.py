@@ -25,7 +25,7 @@ _CV = {
 
 # Templates whose design uppercases the name by default. These must now express
 # the caps through the reversible flag rather than a baked ``.upper()``.
-_UPPERCASE_NAME = {"harbor", "tessera", "slate"}
+_UPPERCASE_NAME = {"tessera", "slate"}
 
 
 def _by_role(elements, role):
@@ -34,7 +34,7 @@ def _by_role(elements, role):
 
 @pytest.mark.parametrize(
     "template_id",
-    ["harbor", "atrium", "portico", "tessera", "slate", "nova", "volt"],
+    ["atrium", "portico", "tessera", "slate", "nova", "volt"],
 )
 def test_template_emits_masthead_identity(template_id):
     elements = generate_resume(template_id, _CV)
@@ -62,7 +62,7 @@ def test_template_emits_masthead_identity(template_id):
 
 @pytest.mark.parametrize(
     "template_id",
-    ["harbor", "atrium", "portico", "tessera", "slate", "nova", "volt"],
+    ["atrium", "portico", "tessera", "slate", "nova", "volt"],
 )
 def test_masthead_descriptor_reflow_delta_is_positive(template_id):
     """The title-hide reflow delta (``blockPt``) must be positive so hiding the

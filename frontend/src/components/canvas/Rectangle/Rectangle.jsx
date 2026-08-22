@@ -68,8 +68,8 @@ function Rectangle({
         boxSizing: "border-box",
         background: filled ? backgroundColor : "transparent",
         border: filled ? "none" : `${borderWidth || 1}px solid ${backgroundColor}`,
-        // Rounded pill/tag chrome (e.g. Harbor skill pills). Omitted when unset
-        // so ordinary rectangles keep square corners identical to the PDF.
+        // Rounded pill/tag chrome (e.g. skill pills). Omitted when unset so
+        // ordinary rectangles keep square corners identical to the PDF.
         ...(borderRadius ? { borderRadius: `${borderRadius}px` } : {}),
         zIndex: zIndex,
         // Page-fixed decorations stay inert, except the profile-photo frame:

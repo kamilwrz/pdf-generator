@@ -286,19 +286,12 @@ _SLATE_GLYPHS = [
     "interests", "references", "certifications", "other",
 ]
 
-# Harbor (Sidebar collection) uses two colour variants of a curated glyph subset:
-# slate-grey contact/meta/photo icons, and a single teal diamond for the tool
-# list bullets. Only these subsets are generated, so existing themes are
-# untouched. Format: theme -> (colour, [icon names]).
+# Only these subsets are generated, so existing themes are untouched.
+# Format: theme -> (colour, [icon names]).
 SUBSET_THEMES = {
-    "harbor": (
-        "#5C6672",
-        ["email", "phone", "linkedin", "github", "website", "location", "calendar", "references"],
-    ),
-    "harbor-accent": ("#17A2B8", ["diamond"]),
     # Tessera uses aubergine line icons inside coral/cream mosaic tiles. The
-    # glyph set is intentionally broader than Harbor because contact, sidebar,
-    # section, date, profile-link, and photo-placeholder roles all use icons.
+    # glyph set is broad because contact, sidebar, section, date,
+    # profile-link, and photo-placeholder roles all use icons.
     "tessera": (
         "#4A2347",
         [
@@ -308,8 +301,7 @@ SUBSET_THEMES = {
             "interests", "references", "certifications", "other",
         ],
     ),
-    # Slate (Sidebar collection) uses two colour variants of the same glyph set,
-    # following the Harbor pattern:
+    # Slate (Sidebar collection) uses two colour variants of the same glyph set:
     #   * `slate`        — white glyphs meant to sit inside filled steel-blue
     #                      section-heading badges (white-on-accent).
     #   * `slate-accent` — steel-blue glyphs for bare contact rows and the
@@ -318,13 +310,6 @@ SUBSET_THEMES = {
     # or contact/photo role (accent) always resolves to an existing asset.
     "slate": ("#FFFFFF", _SLATE_GLYPHS),
     "slate-accent": ("#3E5C76", _SLATE_GLYPHS),
-    # Axis (timeline single column) uses orange contact glyphs in the masthead
-    # and an orange diamond bullet for its "systems & tools" lists. Section
-    # headings are plain navy text, so only contact + diamond glyphs are needed.
-    "axis": (
-        "#E2740C",
-        ["email", "phone", "linkedin", "github", "website", "location", "diamond"],
-    ),
     # Atrium (centered-axis editorial single column) uses graphite-sage contact
     # glyphs in the centered masthead only. Section headings are centered text
     # with a printer's-mark ornament (no icons), so just the contact set is

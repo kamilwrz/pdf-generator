@@ -50,11 +50,11 @@ describe("listSectionIconOptions", () => {
     assert.ok(options.every((option) => option.src.includes("/iconic/portico/")));
   });
 
-  it("hides the gallery for harbor unless a heading icon already exists", () => {
-    assert.deepEqual(listSectionIconOptions({ templateId: "harbor", elements: [] }), []);
+  it("hides the gallery for an unmapped template unless a heading icon already exists", () => {
+    assert.deepEqual(listSectionIconOptions({ templateId: "sterling", elements: [] }), []);
   });
 
-  it("shows harbor icons when a section-heading icon is present", () => {
+  it("shows icons from an existing section-heading icon even for an unmapped template", () => {
     const elements = [
       {
         element_id: "h1", category: "text", flowRole: "section-chrome", content: "Referencje",
@@ -62,7 +62,7 @@ describe("listSectionIconOptions", () => {
       },
       {
         element_id: "i1", category: "image", flowRole: "section-chrome",
-        src: "/template-assets/iconic/harbor/references.png",
+        src: "/template-assets/iconic/tessera/references.png",
         left: 52, top: 100, width: 12, height: 12, alignWithText: true,
       },
       {
@@ -70,7 +70,7 @@ describe("listSectionIconOptions", () => {
         left: 76, top: 112, width: 200, height: 1, backgroundColor: "#ccc",
       },
     ];
-    const options = listSectionIconOptions({ templateId: "harbor", elements });
+    const options = listSectionIconOptions({ templateId: "sterling", elements });
     assert.ok(options.some((option) => option.name === "references"));
   });
 });

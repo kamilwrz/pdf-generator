@@ -23,7 +23,7 @@ test("Tessera uses an original mosaic sidebar and every supported canvas primiti
         ),
     ));
 
-    // The portrait is explicitly rectangular, not the circular Harbor model.
+    // The portrait is explicitly rectangular, not a circular photo model.
     const photoFrame = tesseraTemplate.find((element) => element.id === "tessera-photo-frame");
     assert.equal(photoFrame?.category, "rectangle");
     assert.equal(photoFrame?.width, 112);

@@ -151,7 +151,7 @@ def _place_wrapping_icon_contacts(
     icon_builder: Callable[..., dict] | None = None,
     band_id: str | None = None,
 ) -> tuple[list[dict], float, dict]:
-    """Place icon+label contacts with harbor-style wrap.
+    """Place icon+label contacts that wrap onto additional rows as needed.
 
     Returns (elements, bottom_y, descriptor) where bottom_y is the top of the
     last contact row (not including text height). Callers typically put a rule

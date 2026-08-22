@@ -8,10 +8,11 @@
  * - `photoSlot: "image"` — the applied user photo (stable after upload)
  *
  * Known frame ids (`slate-photo-frame`, `tessera-photo-frame`,
- * `harbor-photo-frame`, `monument-masthead-frame`) are recognised as a fallback
- * for older payloads that still carry the symbolic `id` after load. Ids from
- * retired templates (`cinder-frame-one`, `nimbus-photo-frame`) remain listed so
- * documents saved before those templates were removed still resolve their slot.
+ * `monument-masthead-frame`) are recognised as a fallback for older payloads
+ * that still carry the symbolic `id` after load. Ids from retired templates
+ * (`cinder-frame-one`, `nimbus-photo-frame`, `harbor-photo-frame`) remain
+ * listed so documents saved before those templates were removed still
+ * resolve their slot.
  *
  * Applying a photo either resizes the glyph into the frame inset or inserts a
  * new locked image. Ornaments stay in place underneath a higher z-index photo;
@@ -21,17 +22,18 @@
 import { nanoid } from "nanoid";
 
 /**
- * Symbolic frame ids used by Slate, Tessera, Harbor, Monument, Nova, Portico.
- * `cinder-frame-one` and `nimbus-photo-frame` belong to retired templates and
- * are kept only so previously saved documents still resolve their photo slot.
+ * Symbolic frame ids used by Slate, Tessera, Monument, Nova, Portico.
+ * `cinder-frame-one`, `nimbus-photo-frame`, and `harbor-photo-frame` belong to
+ * retired templates and are kept only so previously saved documents still
+ * resolve their photo slot.
  */
 export const PROFILE_PHOTO_FRAME_IDS = new Set([
   "slate-photo-frame",
   "tessera-photo-frame",
-  "harbor-photo-frame",
   "cinder-frame-one",
   "monument-masthead-frame",
   "nimbus-photo-frame",
+  "harbor-photo-frame",
   "nova-photo-frame",
   "portico-photo-frame",
 ]);

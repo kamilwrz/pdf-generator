@@ -191,8 +191,8 @@ def _text_width(value: str, font: str, fs: float) -> float:
     """Rendered width of a label in points (falls back to a char estimate).
 
     Shared by every wrapping/column layout that needs real glyph extents —
-    skill chip pills, Axis's timeline chip row, and similar measured rows —
-    instead of a guess, so wraps land where the rendered PDF actually breaks.
+    skill chip pills and similar measured rows — instead of a guess, so wraps
+    land where the rendered PDF actually breaks.
     """
     try:
         draw_font, _, _ = PDF_Generator._resolve_font(font, False, False)

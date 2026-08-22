@@ -38,10 +38,6 @@ export const THEME_ICON_NAMES = Object.freeze({
   nova: BASE_ICON_NAMES,
   volt: BASE_ICON_NAMES,
   portico: BASE_ICON_NAMES,
-  harbor: Object.freeze([
-    "email", "phone", "linkedin", "github", "website", "location",
-    "calendar", "references",
-  ]),
   tessera: Object.freeze([
     "summary", "experience", "education", "skills", "languages",
     "interests", "references", "certifications", "other",
@@ -60,7 +56,6 @@ export const THEME_ICON_NAMES = Object.freeze({
 export const TEMPLATE_ICON_THEME = Object.freeze({
   nova: "nova",
   volt: "volt",
-  harbor: "harbor",
   tessera: "tessera",
   slate: "slate",
   portico: "portico",
@@ -134,7 +129,6 @@ export function resolveIconTheme(templateId, elements = []) {
       // Slate section badges use the white `slate` theme; contact rows may use
       // `slate-accent`. Prefer a theme that has a full section glyph set.
       if (parsed.theme === "slate-accent") return "slate";
-      if (parsed.theme === "harbor-accent") return "harbor";
       return parsed.theme;
     }
   }
@@ -198,7 +192,7 @@ const SECTION_HEADING_ICON_THEMES = new Set([
  *
  * Shown when the document already has a section-heading icon, or when the
  * template theme is known to place icons beside headings (Nova, Volt, …).
- * Harbor-style contact-only themes stay hidden unless a heading icon exists.
+ * Contact-only themes stay hidden unless a heading icon exists.
  *
  * @param {{ templateId?: string|null, elements?: object[] }} [args]
  * @returns {{ name: string, src: string, label: string }[]}

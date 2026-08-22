@@ -113,7 +113,7 @@ function Image({
         position: "absolute",
         zIndex: zIndex,
         objectFit: resolvedFit,
-        // Circular profile slots (Harbor) clip the raster on canvas; PDF export
+        // Circular profile slots clip the raster on canvas; PDF export
         // still draws the full box, which covers the underlying disc.
         ...(borderRadius ? { borderRadius: `${borderRadius}px` } : {}),
         // Fixed profile glyphs/photos are deliberately clickable so users can

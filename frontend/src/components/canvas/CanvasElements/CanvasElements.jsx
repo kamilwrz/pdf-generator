@@ -57,8 +57,8 @@ import classes from './CanvasElements.module.css';
  * to restyle a section for its destination column. Sterling, Tessera, and
  * Slate all emit these tags for their sidebar sections (see their backend
  * generators under `cv_templates/templates/`), so the same general utility
- * works unchanged for all three. Other sidebar templates (e.g. Harbor) have
- * not been verified against this control yet.
+ * works unchanged for all three. Other sidebar templates have not been
+ * verified against this control yet.
  */
 // Vestige uses the same explicit sidebar flow tags as Sterling. Keep this
 // capability list aligned with generators that emit `sidebar-chrome` headings,

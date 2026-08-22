@@ -162,11 +162,11 @@ export default function Hero() {
     // Real template mockups drive every product visual — no stock imagery.
     const heroFront = previewById("portico");
     const heroBack = previewById("monument");
-    const editorMock = previewById("axis");
+    const editorMock = previewById("meridian");
     // Tessera (sidebar + photo) makes the "after" transformation feel like a
     // real redesign, not just a single-column restyle of the wireframe "before".
     const afterMock = previewById("tessera");
-    const finalDocs = ["nova", "harbor", "slate"].map(previewById);
+    const finalDocs = ["nova", "vestige", "slate"].map(previewById);
 
     return (
         <main className={classes.page}>
