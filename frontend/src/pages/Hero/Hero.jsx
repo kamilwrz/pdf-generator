@@ -262,18 +262,11 @@ export default function Hero() {
                 <div className={classes.beforeAfter}>
                     <article className={classes.beforeCard}>
                         <div className={classes.documentLabel}><span>PRZED</span> Dotychczasowe CV</div>
-                        <div className={classes.oldDocument} aria-hidden="true">
-                            <p className={classes.oldName}>Jan Kowalski</p>
-                            <p className={classes.oldContactLine}><b>Adres:</b> ul. Stanisława Paca 32/6, 04-216 Warszawa</p>
-                            <p className={classes.oldContactLine}><b>Telefon:</b> 543 555 512</p>
-                            <p className={classes.oldContactLine}><b>E-mail:</b> jkowalski@wp.pl</p>
-                            <div className={classes.oldSectionBar}>Wykształcenie</div>
-                            <p className={classes.oldEntryTitle}>Krajowa Akademia Służby Publicznej</p>
-                            <p className={classes.oldEntryMeta}>2008-10</p>
-                            <div className={classes.oldSectionBar}>Doświadczenie zawodowe</div>
-                            <p className={classes.oldEntryTitle}>Ministerstwo Współpracy Międzynarodowej</p>
-                            <p className={classes.oldEntryMeta}>stanowisko: specjalista</p>
-                        </div>
+                        <img
+                            className={classes.oldDocument}
+                            src="/images/bad_cv.png"
+                            alt="Przykład dotychczasowego CV w formie zwykłego dokumentu tekstowego"
+                        />
                         <p>Ta sama treść, tylko trudna do odświeżenia.</p>
                     </article>
                     <div className={classes.transformArrow} aria-hidden="true">
