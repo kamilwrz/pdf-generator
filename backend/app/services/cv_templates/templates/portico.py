@@ -166,7 +166,11 @@ def _gen_portico(cv: dict) -> list[dict]:
         icon = _icon_beside(ICON, key, C['icon_x'], y, label_fs, section_icon, page=page)
         icon['flowRole'] = 'section-chrome'
         b.els.append(icon)
-        heading = _text(label, label_fs, SANS, C['accent'], L, y, zIndex=3, page=page)
+        # Section labels and record titles are both intentionally bold. The
+        # shared experience-record helper already gives job positions this
+        # weight; keeping the section chrome at regular weight made Portico's
+        # hierarchy look visually inverted in a content-dense CV.
+        heading = _text(label, label_fs, SANS, C['accent'], L, y, zIndex=3, page=page, bold=True)
         heading['letterSpacing'] = 1.45
         heading['flowRole'] = 'section-chrome'
         b.els.append(heading)

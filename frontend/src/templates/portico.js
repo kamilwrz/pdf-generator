@@ -436,7 +436,7 @@ const PORTICO_ELEMENTS = [
     "top": 261.0,
     "zIndex": 3,
     "page": 1,
-    "bold": false,
+    "bold": true,
     "italic": false,
     "letterSpacing": 1.45,
     "flowRole": "section-chrome"
@@ -496,7 +496,7 @@ const PORTICO_ELEMENTS = [
     "top": 330.475,
     "zIndex": 3,
     "page": 1,
-    "bold": false,
+    "bold": true,
     "italic": false,
     "letterSpacing": 1.45,
     "flowRole": "section-chrome"
@@ -532,7 +532,7 @@ const PORTICO_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-758c2fed95af",
+    "flowGroup": "record-e6c8707e4251",
     "flowRole": "content"
   },
   {
@@ -555,7 +555,7 @@ const PORTICO_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-758c2fed95af",
+    "flowGroup": "record-e6c8707e4251",
     "flowRole": "content"
   },
   {
@@ -578,7 +578,7 @@ const PORTICO_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-758c2fed95af",
+    "flowGroup": "record-e6c8707e4251",
     "flowRole": "content"
   },
   {
@@ -601,7 +601,7 @@ const PORTICO_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-afd909b4de06",
+    "flowGroup": "record-9d15020d11e9",
     "flowRole": "content"
   },
   {
@@ -624,7 +624,7 @@ const PORTICO_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-afd909b4de06",
+    "flowGroup": "record-9d15020d11e9",
     "flowRole": "content"
   },
   {
@@ -647,7 +647,7 @@ const PORTICO_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-afd909b4de06",
+    "flowGroup": "record-9d15020d11e9",
     "flowRole": "content"
   },
   {
@@ -670,7 +670,7 @@ const PORTICO_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-65c1ec33492b",
+    "flowGroup": "record-5d92cbd913fe",
     "flowRole": "content"
   },
   {
@@ -693,7 +693,7 @@ const PORTICO_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-65c1ec33492b",
+    "flowGroup": "record-5d92cbd913fe",
     "flowRole": "content"
   },
   {
@@ -716,7 +716,7 @@ const PORTICO_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-65c1ec33492b",
+    "flowGroup": "record-5d92cbd913fe",
     "flowRole": "content"
   },
   {
@@ -741,7 +741,7 @@ const PORTICO_ELEMENTS = [
     "top": 539.95,
     "zIndex": 3,
     "page": 1,
-    "bold": false,
+    "bold": true,
     "italic": false,
     "letterSpacing": 1.45,
     "flowRole": "section-chrome"
@@ -777,7 +777,7 @@ const PORTICO_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-ba6a9c702718",
+    "flowGroup": "record-f84eeefd3b96",
     "flowRole": "content"
   },
   {
@@ -800,7 +800,7 @@ const PORTICO_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-ba6a9c702718",
+    "flowGroup": "record-f84eeefd3b96",
     "flowRole": "content"
   },
   {
@@ -823,7 +823,7 @@ const PORTICO_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-ba6a9c702718",
+    "flowGroup": "record-f84eeefd3b96",
     "flowRole": "content"
   },
   {
@@ -848,7 +848,7 @@ const PORTICO_ELEMENTS = [
     "top": 628.4250000000001,
     "zIndex": 3,
     "page": 1,
-    "bold": false,
+    "bold": true,
     "italic": false,
     "letterSpacing": 1.45,
     "flowRole": "section-chrome"
@@ -884,7 +884,7 @@ const PORTICO_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-9ab5f79c6076",
+    "flowGroup": "record-bccb4b5fc4cb",
     "flowRole": "content"
   },
   {
@@ -909,7 +909,7 @@ const PORTICO_ELEMENTS = [
     "top": 684.9000000000001,
     "zIndex": 3,
     "page": 1,
-    "bold": false,
+    "bold": true,
     "italic": false,
     "letterSpacing": 1.45,
     "flowRole": "section-chrome"
@@ -954,7 +954,7 @@ const PORTICO_ELEMENTS = [
       }
     ],
     "flowRole": "grid-member",
-    "flowGroup": "record-aa02742c605c"
+    "flowGroup": "record-913efe06a720"
   },
   {
     "category": "textarea",
@@ -985,7 +985,7 @@ const PORTICO_ELEMENTS = [
       }
     ],
     "flowRole": "grid-member",
-    "flowGroup": "record-aa02742c605c"
+    "flowGroup": "record-913efe06a720"
   },
   {
     "category": "textarea",
@@ -1016,7 +1016,7 @@ const PORTICO_ELEMENTS = [
       }
     ],
     "flowRole": "grid-member",
-    "flowGroup": "record-aa02742c605c"
+    "flowGroup": "record-913efe06a720"
   }
 ];
 
