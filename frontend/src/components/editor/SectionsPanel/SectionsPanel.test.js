@@ -89,3 +89,14 @@ test("sidebar rail label matches the panel name", async () => {
   assert.match(source, /labelText="Układ CV"/);
   assert.doesNotMatch(source, /labelText="Sekcje"/);
 });
+
+test("shows a tier-honest page-fit hint and a single CTA when reducible", async () => {
+  const source = await readFile(panelUrl, "utf8");
+  assert.match(source, /fitStatus/);
+  assert.match(source, /onFitToPages/);
+  assert.match(source, /Zmieść na /);
+  // Tier-driven status-line copy.
+  assert.match(source, /można zmieścić na/);
+  assert.match(source, /po skróceniu treści/);
+  assert.match(source, /skróć treść/);
+});

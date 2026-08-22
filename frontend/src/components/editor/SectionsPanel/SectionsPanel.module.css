@@ -479,3 +479,19 @@
   white-space: nowrap;
   border: 0;
 }
+
+.fitCta {
+    margin-top: 8px;
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid var(--ink, #171717);
+    border-radius: 0;
+    background: var(--ink, #171717);
+    color: var(--paper, #fff);
+    font: 600 12px/1.2 var(--body, inherit);
+    cursor: pointer;
+}
+
+.fitCta:hover {
+    opacity: 0.92;
+}

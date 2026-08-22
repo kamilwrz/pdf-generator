@@ -65,6 +65,20 @@ function displaySectionTitle(title) {
   ));
 }
 
+/**
+ * Tier-honest status line for the page-fit hint. The CTA label stays constant
+ * ("Zmieść na …"); only this sentence changes so `clean` never reads like
+ * `impossible`.
+ * @param {"clean"|"tight"|"emergency"|"impossible"} tier
+ * @param {string} targetLabel  e.g. "1 stronie"
+ * @returns {string}
+ */
+function fitHintText(tier, targetLabel) {
+  if (tier === "emergency") return `zmieścisz na ${targetLabel} po skróceniu treści`;
+  if (tier === "impossible") return `aby zmieścić na ${targetLabel}, skróć treść`;
+  return `można zmieścić na ${targetLabel}`;
+}
+
 export default function SectionsPanel({ onClose }) {
   const {
     A4_Elements,
@@ -77,6 +91,8 @@ export default function SectionsPanel({ onClose }) {
     openAddSectionModal,
     openSkillsLayoutModal,
     pushToast,
+    fitStatus,
+    onFitToPages,
   } = use(PdfContext);
   const pageHeight = pageSize?.height ?? 842;
   const densityGroupId = useId();
@@ -227,7 +243,19 @@ export default function SectionsPanel({ onClose }) {
           </p>
           <p className={classes.pageStatus} aria-live="polite">
             {pageStatus}
+            {fitStatus?.reducible ? (
+              <> · {fitHintText(fitStatus.tier, fitStatus.targetLabel)}</>
+            ) : null}
           </p>
+          {fitStatus?.reducible ? (
+            <button
+              type="button"
+              className={classes.fitCta}
+              onClick={onFitToPages}
+            >
+              Zmieść na {fitStatus.targetLabel}
+            </button>
+          ) : null}
         </div>
         <button type="button" className={classes.close} onClick={onClose} aria-label="Zamknij">
           <FiX />
