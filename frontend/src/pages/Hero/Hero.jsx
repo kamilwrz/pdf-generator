@@ -219,7 +219,7 @@ export default function Hero() {
                     </ul>
                 </div>
 
-                <div className={classes.heroVisual} aria-label="Przykładowe CV z CV Studio">
+                <div className={classes.heroVisual} aria-label="Szablon Nova z CV Studio">
                     <div className={classes.visualOrbit} aria-hidden="true" />
                     <div className={classes.heroStack}>
                         <img
@@ -232,7 +232,7 @@ export default function Hero() {
                         <img
                             className={classes.heroDocFront}
                             src={heroFront.image}
-                            alt={`Przykładowe CV w szablonie ${heroFront.name}`}
+                            alt={`Szablon ${heroFront.name} w CV Studio`}
                             loading="eager"
                             fetchPriority="high"
                         />
