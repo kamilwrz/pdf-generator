@@ -359,21 +359,8 @@
     flex: 0 0 auto;
 }
 
-.heroNote {
-    margin: 32px 0 0;
-    color: var(--muted);
-    font: 500 10px/1.6 var(--mono);
-    letter-spacing: .12em;
-    text-transform: uppercase;
-}
-
-.heroNote span {
-    color: var(--ink);
-    font-weight: 700;
-}
-
 .heroTertiary {
-    margin: 18px 0 0;
+    margin: 20px 0 0;
 }
 
 .heroTertiary a {
@@ -381,9 +368,8 @@
     align-items: center;
     gap: 8px;
     color: var(--ink);
-    font: 600 11px/1.3 var(--body);
-    letter-spacing: .06em;
-    text-transform: uppercase;
+    font: 600 11px/1.4 var(--body);
+    letter-spacing: .01em;
     text-decoration: none;
 }
 
@@ -397,6 +383,33 @@
 .heroTertiary svg {
     width: 15px;
     flex: 0 0 auto;
+}
+
+.heroTrust {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 0;
+    margin: 24px 0 0;
+    padding: 12px 0 0;
+    border-top: 1px solid var(--line-strong);
+    color: var(--muted);
+    font: 500 9.5px/1.45 var(--mono);
+    letter-spacing: .045em;
+    list-style: none;
+    text-transform: uppercase;
+}
+
+.heroTrust li {
+    display: inline-flex;
+    align-items: center;
+}
+
+.heroTrust li:not(:last-child)::after {
+    width: 3px;
+    height: 3px;
+    margin: 0 10px;
+    background: var(--taupe);
+    content: "";
 }
 
 /* ---- Hero visual: real A4 template mockups, grid-aligned ---------------- */

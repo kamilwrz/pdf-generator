@@ -194,11 +194,12 @@ export default function Hero() {
 
             <section id="top" className={classes.hero}>
                 <div className={classes.heroCopy}>
-                    <p className={classes.kicker}>CV Studio / CV gotowe do wysłania</p>
-                    <h1>Zrób CV, które<br /><em>wygląda jak trzeba.</em></h1>
+                    <p className={classes.kicker}>Inteligentny kreator CV</p>
+                    <h1>CV, które dopasowuje się<br /><em>do Twojej treści.</em></h1>
                     <p className={classes.heroLead}>
-                        Wgraj istniejący PDF albo stwórz CV od zera. Wybierz szablon,
-                        dopracuj treść i pobierz gotowy dokument.
+                        Stwórz CV krok po kroku albo wgraj obecny dokument. Zmieniaj szablony,
+                        poprawiaj treść z AI i edytuj bezpośrednio na A4 — CV Studio pilnuje
+                        układu, odstępów i podziału na strony.
                     </p>
                     <div className={classes.heroActions}>
                         <CtaLink to={wizardUrl} event="hero_wizard">Stwórz CV za darmo</CtaLink>
@@ -206,14 +207,16 @@ export default function Hero() {
                             Mam już CV — wgraj PDF
                         </CtaLink>
                     </div>
-                    <p className={classes.heroNote}>
-                        <span>Kreator działa bez konta</span> • 1 import CV gratis
-                    </p>
                     <p className={classes.heroTertiary}>
                         <Link to={demoUrl} onClick={() => queueGuestEvent("hero_demo")}>
-                            Najpierw zobacz edytor na przykładzie <ArrowIcon />
+                            Najpierw chcesz zobaczyć produkt? Otwórz przykładowe CV w edytorze <ArrowIcon />
                         </Link>
                     </p>
+                    <ul className={classes.heroTrust} aria-label="Korzyści na start">
+                        <li>Bez konta na start</li>
+                        <li>Pierwszy import CV gratis</li>
+                        <li>PDF zgodny z podglądem</li>
+                    </ul>
                 </div>
 
                 <div className={classes.heroVisual} aria-label="Przykładowe CV z CV Studio">
