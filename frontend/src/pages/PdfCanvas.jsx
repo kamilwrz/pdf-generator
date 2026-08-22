@@ -1809,7 +1809,7 @@ function PdfCanvas() {
               </div>
               <Gallery />
               {entitlements?.ai_assistant ? <AiAssistant /> : null}
-              <ToastStack toasts={toasts} onDismiss={dismissToast} offsetForGallery={isGallery} />
+              <ToastStack toasts={toasts} onDismiss={dismissToast} />
             </PdfContext.Provider>
           </SessionContext.Provider>
         </UiSurfacesContext.Provider>

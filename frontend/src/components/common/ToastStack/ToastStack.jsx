@@ -22,18 +22,27 @@ const VARIANTS = {
     },
 };
 
-// Rendered once in PdfCanvas. `offsetForGallery` shifts the stack left so it
-// never sits under the Gallery drawer; `bottom` clears the always-on-screen
-// PageControls bar + AiAssistant FAB that already occupy this corner.
-export default function ToastStack({ toasts, onDismiss, offsetForGallery }) {
+/**
+ * Central transient notifications.
+ *
+ * Toasts are intentionally kept away from editor controls and the AI drawer:
+ * a centred composition is readable at any zoom level and makes outcomes feel
+ * like a deliberate document-state confirmation rather than browser chrome.
+ */
+export default function ToastStack({ toasts, onDismiss }) {
     if (toasts.length === 0) return null;
 
     return (
-        <div className={classes.stack} style={{ right: offsetForGallery ? 476 : 16 }}>
+        <div className={classes.stack} aria-live="polite" aria-atomic="true">
             {toasts.map((t) => {
                 const variant = VARIANTS[t.variant] || VARIANTS.success;
                 return (
-                    <div key={t.id} className={classes.toast} style={{ borderLeftColor: variant.accent }}>
+                    <div
+                        key={t.id}
+                        className={`${classes.toast}${t.exiting ? ` ${classes.exiting}` : ""}`}
+                        style={{ "--toast-accent": variant.accent, "--toast-accent-soft": variant.iconBg }}
+                        role={t.variant === "error" ? "alert" : "status"}
+                    >
                         <div className={classes.icon} style={{ background: variant.iconBg, color: variant.accent }}>
                             {variant.icon}
                         </div>
@@ -46,7 +55,7 @@ export default function ToastStack({ toasts, onDismiss, offsetForGallery }) {
                                 </a>
                             )}
                         </div>
-                        <CloseButton clickHandler={() => onDismiss(t.id)} top={10} right={10} width="24px" height="24px" />
+                        <CloseButton clickHandler={() => onDismiss(t.id)} top={12} right={12} width="24px" height="24px" radius={0} />
                     </div>
                 );
             })}

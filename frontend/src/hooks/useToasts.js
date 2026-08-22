@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 const TOAST_LIFETIME_MS = 6000;
+const TOAST_EXIT_MS = 260;
 const MAX_TOASTS = 3;
 
 // Generic stacked-notification queue, extracted the same way useA4Elements/
@@ -13,9 +14,14 @@ export function useToasts() {
     const seqRef = useRef(0);
 
     const dismissToast = useCallback((id) => {
-        setToasts((prev) => prev.filter((t) => t.id !== id));
         clearTimeout(timers.current[id]);
-        delete timers.current[id];
+        setToasts((prev) => prev.map((toast) => (
+            toast.id === id ? { ...toast, exiting: true } : toast
+        )));
+        timers.current[id] = setTimeout(() => {
+            setToasts((prev) => prev.filter((toast) => toast.id !== id));
+            delete timers.current[id];
+        }, TOAST_EXIT_MS);
     }, []);
 
     const pushToast = useCallback((toast) => {
