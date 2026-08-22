@@ -254,7 +254,9 @@ def _gen_slate(cv: dict) -> list[dict]:
         # capped at the main column width. The pill length is derived from the
         # original-case title; uppercasing preserves character count, so the
         # reversible `textTransform` flag does not change the fit.
-        pill_width = max(120.0, min(float(main_width), len(title) * 5.4 + 24))
+        # Reserve an extra 16 px for the tracked webfont, whose rendered width
+        # can exceed the deterministic generator estimate by a few pixels.
+        pill_width = max(120.0, min(float(main_width), len(title) * 5.4 + 40))
         title_bar = _line(main_left, 86, pill_width, 20, colors["accent"], zIndex=1)
         title_bar["titleDecoration"] = {
             "minWidth": 120.0, "maxWidth": float(main_width),

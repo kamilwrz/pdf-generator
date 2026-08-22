@@ -228,7 +228,9 @@ def _gen_tessera(cv: dict) -> list[dict]:
         band_id="contact-main",
     )
     header_rule_y = contact_bottom + 22.0
-    title_bar_width = max(120.0, min(float(main_width), len(title) * 5.4 + 20))
+    # Keep the generated preview as forgiving as the live webfont measurement:
+    # the final 16 px prevents a tracked white title from touching the bar edge.
+    title_bar_width = max(120.0, min(float(main_width), len(title) * 5.4 + 36))
     title_bar = _line(main_left, 88, title_bar_width, 22, colors["coral"], zIndex=1)
     title_bar["titleDecoration"] = {
         "minWidth": 120.0, "maxWidth": float(main_width),

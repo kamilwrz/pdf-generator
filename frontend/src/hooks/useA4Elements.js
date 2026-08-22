@@ -1443,7 +1443,11 @@ export function useA4Elements(titleRef) {
             const textWidth = measured ?? String(edited.content || "").length * 5.4;
             const naturalWidth = textWidth
               + Math.max(0, String(edited.content || "").length - 1) * letterSpacing
-              + (Number(decoration.horizontalPadding) || 0);
+              // Canvas metrics can be a few pixels narrower than the loaded
+              // webfont. Reserve a final 16 px so the white title never
+              // reaches the coloured bar's right edge while editing.
+              + (Number(decoration.horizontalPadding) || 0)
+              + 16;
             const minWidth = Number(decoration.minWidth) || 0;
             const maxWidth = Number(decoration.maxWidth) || naturalWidth;
             return {

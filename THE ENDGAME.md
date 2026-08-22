@@ -24,8 +24,8 @@ IV.  BUGZ / NEEDED FIXES
 9) W sidebarowych szablonach jezyki na 3 nie na 4 kolumny
 
 a) Tessera
-- schowanie job position nie powoduje znikniecia prostokata / tla dekoracyjnego
-- prostokat / tlo dekoracyjne powinien sie zwiekszac wraz z job position
+- schowanie job position nie powoduje znikniecia prostokata / tla dekoracyjnego (DONE)
+- prostokat / tlo dekoracyjne powinien sie zwiekszac wraz z job position (DONE)
 - klik na slot nie laduje galerii (DONE)
 
 b) Slate
