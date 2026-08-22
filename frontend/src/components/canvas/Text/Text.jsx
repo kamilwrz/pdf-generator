@@ -45,6 +45,7 @@ function Text({
         editElementValues,
         setTextareaEditing,
         setSpacingHoldId,
+        editZoomSpreadTransitionRef,
     } = use(PdfContext);
 
     const nodeRef = useRef(null);
@@ -198,6 +199,10 @@ function Text({
                 editElementValues({ content: next, runs: nextRuns }, elementId);
             }}
             onBlur={() => {
+                // The two-page edit zoom unmounts the old contentEditable
+                // surface. That browser blur must not serialize the transient
+                // empty node over the selected text element's stored content.
+                if (editZoomSpreadTransitionRef?.current) return;
                 if (isEditing) finishEditing();
             }}
             onKeyDown={(e) => {
