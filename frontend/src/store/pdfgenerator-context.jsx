@@ -59,7 +59,7 @@ export const PdfContext = createContext({
     confirmDiscardActiveEdits: () => true,
     discardActiveDocument: () => {},
     pageSize: { width: 595, height: 842 },
-    zoom: 1.3,
+    zoom: 1.0,
     zoomIn: () => {},
     zoomOut: () => {},
     selectElement: () => {},
