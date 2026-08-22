@@ -84,7 +84,7 @@ import {
   SIDEBAR_TOO_LONG_MIN_PAGES,
 } from '../utils/documentLength';
 import { collapseSpilledMainIntoSidebar } from '../utils/collapseMainIntoSidebar';
-import { novaTemplate } from '../templates/iconic';
+import { regentTemplate } from '../templates/regent';
 import { TEMPLATES } from '../templates';
 import { templateHasLayout } from '../utils/templateLayouts';
 import { nanoid } from 'nanoid';
@@ -770,14 +770,14 @@ function PdfCanvas() {
     markTemplatesModalSeen();
   }, [handleClearA4, markTemplatesModalSeen, setActiveTemplateId, setEditorMode])
 
-  // Demo path: load the Nova starter (same Julia Bernat content as the
-  // picker mockup) once, no dialog, so the visitor lands on an editable
-  // document instead of a template picker.
+  // Demo path: load the Regent starter with the fuller executive persona
+  // once, no dialog, so the visitor lands on an editable document instead
+  // of a template picker.
   const demoStartAppliedRef = useRef(false);
   useEffect(() => {
     if (initialStartIntentRef.current !== "demo" || demoStartAppliedRef.current) return;
     demoStartAppliedRef.current = true;
-    handleLoadTemplate(novaTemplate, "Nova CV", "nova");
+    handleLoadTemplate(regentTemplate, "Regent CV", "regent");
     setIsDemoContent(true);
     queueGuestEvent("guest_demo_loaded");
     markTemplatesModalSeen();

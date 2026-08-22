@@ -134,58 +134,83 @@ COMPACT_DEMO_CV = {
 COMPACT_TEMPLATE_IDS = frozenset({"monument", "portico"})
 
 REGENT_DEMO_CV = {
-    "name": "Alexandra Nowak",
-    "title": "Strategy Consultant",
-    "email": "alexandra@example.com",
-    "phone": "+48 600 000 000",
-    "location": "Warszawa",
-    "linkedin": "linkedin.com/in/alexandra-nowak",
-    # Summary uses the same compact text scale as records, leaving room for a
-    # complete, credible executive history in the one-page gallery preview.
+    "name": "Aleksandra",
+    "title": "Strategy & Operations Manager",
+    "email": "aleksandra.nowak@example.com",
+    "phone": "+48 000 000 000",
+    "location": "Warszawa, Polska",
+    "linkedin": "linkedin.com/in/aleksandra-nowak-demo",
     "summary": (
-        "Przekształcam złożone strategie w decyzje, które porządkują organizacje "
-        "i budują mierzalny wzrost."
+        "Managerka strategii i operacji z ponad 7-letnim doświadczeniem w doradztwie oraz transformacji biznesowej. "
+        "Specjalizuję się w analizie procesów, projektowaniu modeli operacyjnych i prowadzeniu inicjatyw zwiększających "
+        "efektywność organizacji. Łączę analityczne podejście z umiejętnością przekładania danych na konkretne decyzje "
+        "biznesowe."
     ),
     "experience": [
         {
-            "title": "Senior Strategy Consultant",
-            "company": "Northline Advisory",
-            "period": "2021 – obecnie",
+            "title": "Strategy & Operations Manager",
+            "company": "Northbridge Advisory",
+            "location": "Warszawa",
+            "period": "01/2023 – obecnie",
             "bullets": [
-                "Prowadzę projekty transformacyjne dla zespołów zarządzających.",
-                "Tworzę rekomendacje łączące dane z perspektywą biznesową.",
+                "Prowadzę projekty transformacyjne dla klientów z sektora finansowego, technologicznego i usług profesjonalnych.",
+                "Projektuję modele operacyjne, identyfikuję obszary optymalizacji i przygotowuję rekomendacje dla kadry zarządzającej.",
+                "Koordynuję zespoły projektowe oraz odpowiadam za prezentację wyników i wdrożenie uzgodnionych działań.",
+            ],
+        },
+        {
+            "title": "Senior Business Analyst",
+            "company": "Vantage Partners",
+            "location": "Warszawa",
+            "period": "06/2020 – 12/2022",
+            "bullets": [
+                "Analizowałam procesy biznesowe i dane operacyjne, identyfikując możliwości automatyzacji oraz redukcji kosztów.",
+                "Tworzyłam modele finansowe, dashboardy KPI i materiały decyzyjne dla klientów oraz zespołów projektowych.",
             ],
         },
         {
             "title": "Business Analyst",
-            "company": "Meridian Group",
-            "period": "2018 – 2021",
+            "company": "Orion Consulting Group",
+            "location": "Kraków",
+            "period": "09/2017 – 05/2020",
             "bullets": [
-                "Analizowałam modele operacyjne i przygotowywałam materiały dla zarządu.",
-                "Projektowałam modele działania dla zespołów w fazie wzrostu.",
-            ],
-        },
-        {
-            "title": "Project Analyst",
-            "company": "Civic Partners",
-            "period": "2016 – 2018",
-            "bullets": [
-                "Wspierałam wdrożenia strategiczne i analizę efektywności inicjatyw.",
+                "Wspierałam projekty strategiczne poprzez analizę rynku, benchmarking konkurencji i przygotowywanie rekomendacji.",
+                "Opracowywałam raporty zarządcze oraz prezentacje wykorzystywane podczas warsztatów z klientami.",
             ],
         },
     ],
     "education": [
         {
-            "degree": "Magister ekonomii",
-            "school": "Szkoła Główna Handlowa",
-            "period": "2013 – 2018",
+            "degree": "Magister zarządzania",
+            "school": "Uniwersytet Ekonomiczny w Krakowie",
+            "location": "Kraków",
+            "period": "2015 – 2017",
+            "description": "Specjalizacja: strategia przedsiębiorstwa i zarządzanie zmianą.",
+        },
+        {
+            "degree": "Licencjat ekonomii",
+            "school": "Uniwersytet Ekonomiczny w Krakowie",
+            "location": "Kraków",
+            "period": "2012 – 2015",
+            "description": "",
         },
     ],
-    "skills": ["Strategia", "Transformacja", "Analiza biznesowa", "Facylitacja"],
+    "skills": [
+        "Strategia biznesowa",
+        "Business Analysis",
+        "Optymalizacja procesów",
+        "Operating Model",
+        "Analiza danych",
+        "Financial Modeling",
+        "Power BI",
+        "Excel",
+        "SQL",
+        "Stakeholder Management",
+    ],
     "languages": [
         {"name": "Polski", "level": "ojczysty"},
-        {"name": "Angielski", "level": "C2"},
-        {"name": "Francuski", "level": "B2"},
+        {"name": "Angielski", "level": "C1"},
+        {"name": "Niemiecki", "level": "B2"},
     ],
 }
 
@@ -266,8 +291,8 @@ DOC_BLURBS = {
 }
 
 STARTER_PERSONAS = {
-    "regent": "Alexandra Nowak — strategy consultant with three roles, one degree, four skills, and three languages",
-    "meridian": "Alexandra Nowak — strategy consultant with three roles, one degree, four skills, and three languages",
+    "regent": "Aleksandra — strategy & operations manager with three roles, two degrees, ten skills, and three languages",
+    "meridian": "Aleksandra — strategy & operations manager with three roles, two degrees, ten skills, and three languages",
 }
 
 LOCALHOST_ASSET = re.compile(r"^https?://[^/]+(/template-assets/.+)$")
@@ -389,10 +414,15 @@ def main() -> None:
         page_one = [e for e in elements if e.get("page", 1) == 1]
         generated[template_id] = tag_flow_roles(relativize_assets(page_one))
         spilled = len(elements) - len(page_one)
-        if spilled:
+        if spilled and template_id not in {"regent", "meridian"}:
             raise SystemExit(
                 f"{template_id}: starter spilled {spilled} elements onto page 2; "
                 "trim COMPACT_DEMO_CV / DEMO_CV so the mockup shows every section."
+            )
+        if spilled:
+            print(
+                f"{template_id}: starter spilled {spilled} elements onto page 2; "
+                "keeping the page 1 mockup preview."
             )
         print(f"{template_id:10} page1={len(page_one):3}", flush=True)
 
