@@ -1921,6 +1921,46 @@ describe("applyFlowSpacing", () => {
     assert.equal(byId["sb-edu-head"].page, 1, "sidebar heading stays on page 1");
   });
 
+  it("ignores a masthead photo slot in the main column, not just the sidebar's own rail photo", () => {
+    // Regression: Vestige's masthead photo slot sits in the MAIN column
+    // (left=505, far right of the narrow sidebar rail), unlike Slate/Tessera
+    // whose photo well is physically inside the rail. `sameColumnAsHeading`
+    // is deliberately biased to treat anything at/right of a heading as
+    // "same column" (needed for single-column templates), so without an
+    // explicit rail-width bound this main-column photo was wrongly read as
+    // "the rail's own photo" and could push the sidebar's first section down
+    // to clear it.
+    const elements = [
+      { element_id: "photo-well", category: "rectangle", photoSlot: "ornament",
+        left: 505, top: 25, width: 60, height: 74.4, page: 1 },
+      { element_id: "photo-frame", category: "rectangle", photoSlot: "frame",
+        left: 505, top: 25, width: 60, height: 74.4, page: 1 },
+      { element_id: "photo-glyph", category: "image", photoSlot: "glyph",
+        left: 520, top: 40, width: 24, height: 24, page: 1 },
+
+      { element_id: "m-exp-head", category: "text", content: "DOŚWIADCZENIE",
+        flowRole: "section-chrome", left: 210, top: 174.5, fontSize: 13, height: 16, page: 1 },
+
+      { element_id: "sb-sum-head", category: "text", content: "PODSUMOWANIE",
+        flowRole: "sidebar-chrome", flowLane: "sidebar",
+        left: 27, top: 174.5, fontSize: 8.4, height: 10, page: 1 },
+      { element_id: "sb-sum-rule", category: "line",
+        flowRole: "sidebar-chrome", flowLane: "sidebar",
+        left: 27, top: 190, width: 16, height: 1, page: 1 },
+      { element_id: "sb-sum-body", category: "textarea", content: "Summary",
+        flowRole: "content", flowLane: "sidebar",
+        left: 27, top: 202, width: 122, height: 60, fontSize: 8.3, page: 1 },
+    ];
+    const packed = packSidebarLane(elements, 842, {
+      spacing: { stack: 4, record: 10, section: 21, after_rule: 8 },
+    });
+    const byId = Object.fromEntries(packed.map((element) => [element.element_id, element]));
+    assert.equal(
+      byId["sb-sum-head"].top, 174.5,
+      `sidebar's first section must align with the main column's first section (174.5), not be pushed down to clear a main-column photo, got ${byId["sb-sum-head"].top}`,
+    );
+  });
+
   it("moves a sidebar kicker with its body instead of orphaning it in the page-1 footer", () => {
     // Education fills the rail to ~720. Skills chrome would "fit" in the
     // leftover band while the list needs ~120px — pack must bump the whole

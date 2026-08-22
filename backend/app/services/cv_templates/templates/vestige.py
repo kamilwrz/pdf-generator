@@ -20,14 +20,26 @@ through the same generic client-side reflow every other template relies on.
 """
 from __future__ import annotations
 
-from app.services.cv_generator_primitives import Builder
+from app.services.cv_generator_primitives import Builder, _rect
 from app.services.cv_templates.shared.contact import (
     _contact_channel_items,
     _place_stacked_icon_contacts,
     build_contact_band_anchor,
 )
+from app.services.cv_templates.shared.icons import _icon
 from app.services.cv_templates.shared.masthead import tag_masthead_identity
 from app.services.cv_templates.templates.sterling import _gen_sterling
+
+# Masthead photo slot geometry (see the empty-state photo-slot block below).
+# Matches the exact placement a user positioned by hand in the live editor —
+# flush against the page's right margin, above the masthead rule — rather
+# than a value derived from the column math above.
+_PHOTO_LEFT = 505.0
+_PHOTO_TOP = 25.0
+_PHOTO_W = 60.0
+# Nova's own portrait well aspect ratio (100 x 124), reused here so the empty
+# slot reads as a conventional headshot frame rather than an arbitrary box.
+_PHOTO_H = round(_PHOTO_W * 124.0 / 100.0, 1)
 
 # Sterling's own main-column geometry (`sterling.py`'s `MAIN_L` / `MAIN_W`).
 # Needed to proportionally re-translate `grid-member` cells (the languages
@@ -73,6 +85,47 @@ def _gen_vestige(cv: dict) -> list[dict]:
         "#C7CFDA": "#D7D7D4",
     }
 
+    # Sterling positions the main column's first heading using ITS OWN cursor,
+    # which reserves room for a centered contact row under the title. Vestige
+    # drops that row entirely (contacts move to the rebuilt sidebar rail), but
+    # never reclaimed the vertical space it left behind — so the main column's
+    # first heading sits an arbitrary, content-dependent distance below the
+    # real end of the name/title stack (more contact channels in the ORIGINAL
+    # cv push Sterling's cursor down further, so the gap is not even a fixed
+    # offset). Besides the wasted whitespace, that arbitrary gap is exactly
+    # what fed the `resolveFlowStart` bug below: recompute a name/title-scale
+    # divider position and close the main column's gap down to a fixed,
+    # reasonable one instead of trusting Sterling's inflated cursor.
+    #
+    # `Builder.measure_block` needs Vestige's own name/title font metrics
+    # (34/38 and 9.5/13 — set again, identically, in the main loop below);
+    # measuring here, before the loop, only to learn the stack's real bottom.
+    def _raw_masthead_textarea(is_name: bool) -> dict | None:
+        for el in elements:
+            if el.get("flowRole") != "masthead" or el.get("category") != "textarea":
+                continue
+            if (el.get("fontFamily") == "CormorantGaramond") == is_name:
+                return el
+        return None
+
+    raw_name = _raw_masthead_textarea(True)
+    raw_title = _raw_masthead_textarea(False)
+    stack_bottom = 0.0
+    if raw_name is not None:
+        name_height = Builder.measure_block(raw_name.get("content", ""), main_width, 34.0, 38.0, "CormorantGaramond")
+        stack_bottom = max(stack_bottom, float(raw_name["top"]) + name_height)
+    if raw_title is not None:
+        title_height = Builder.measure_block(
+            raw_title.get("content", ""), main_width, 9.5, 13.0, raw_title.get("fontFamily", "Montserrat"),
+        )
+        stack_bottom = max(stack_bottom, float(raw_title["top"]) + title_height)
+    # Fixed gaps below the real name/title stack: enough room for the hairline
+    # divider, then a comfortable clearance before the first section heading —
+    # matching the rhythm every other masthead-driven template (Nova, etc.)
+    # authors between its own closing rule and its first section.
+    divider_top = stack_bottom + 12.0 if stack_bottom > 0 else 132.0
+    desired_first_main_top = divider_top + 30.0
+
     # Align the sidebar's first section (its contact rail sits above this) with
     # the main column's first section, so both columns start their content at
     # the same Y. Sterling already places both columns' first heading at the
@@ -89,8 +142,12 @@ def _gen_vestige(cv: dict) -> list[dict]:
         float(el["top"]) for el in elements
         if el.get("page", 1) == 1 and el.get("category") == "text" and el.get("flowRole") == "sidebar-chrome"
     ]
+    # How far every page-1 main-column element must shift (up or down) to
+    # close the gap described above. Zero when there is no main-column heading
+    # to re-anchor (e.g. every section transferred to the sidebar).
+    main_shift = desired_first_main_top - min(main_first_heading_tops) if main_first_heading_tops else 0.0
     sidebar_offset = (
-        min(main_first_heading_tops) - min(sidebar_first_heading_tops)
+        (min(main_first_heading_tops) + main_shift) - min(sidebar_first_heading_tops)
         if main_first_heading_tops and sidebar_first_heading_tops
         else 0.0
     )
@@ -223,6 +280,12 @@ def _gen_vestige(cv: dict) -> list[dict]:
                 element["left"] = main_left + (original_left - _STERLING_MAIN_L) * main_scale
                 if "width" in element:
                     element["width"] = float(element["width"]) * main_scale
+            # `main_shift` closes the gap Sterling left for its own (dropped)
+            # contact row — see the comment above `main_shift`'s computation.
+            # Only page 1 carries that inflated cursor; continuation pages
+            # start fresh at the generic content top and must stay untouched.
+            if int(element.get("page", 1)) == 1:
+                element["top"] = float(element.get("top", 0)) + main_shift
             # Uniform 12 px line height, recomputed at the (possibly rescaled)
             # width so the first render already matches the corrected height —
             # same reasoning as the sidebar recompute above.
@@ -244,6 +307,9 @@ def _gen_vestige(cv: dict) -> list[dict]:
                 element["left"] = main_left
                 if "width" in element:
                     element["width"] = main_width
+            # Same page-1-only reclaim as the `grid-member` branch above.
+            if int(element.get("page", 1)) == 1:
+                element["top"] = float(element.get("top", 0)) + main_shift
             if category == "textarea" and "height" in element:
                 element["lineHeight"] = main_body_line_height
                 element["height"] = Builder.measure_block(
@@ -271,11 +337,34 @@ def _gen_vestige(cv: dict) -> list[dict]:
                 element["lineHeight"] = 13.0
                 element["letterSpacing"] = 1.8
                 title_element = element
+            # Sterling's own `height` was measured at ITS font size/line
+            # height (30/34 for the name, 11.5/15 for the title); recompute it
+            # for Vestige's own, larger values immediately, same reasoning as
+            # every other recomputed height above. Left stale, this box could
+            # author a height shorter than its own single-line `lineHeight`
+            # (34pt box, 38pt line height) — and, more importantly, understate
+            # the masthead's real height to the client's structural packer
+            # (`resolveFlowStart` in sectionStructure.js), which uses this
+            # `height` to decide whether the divider→heading gap it observes
+            # looks "authored" or "corrupted" and silently recomputes main
+            # column positions when it thinks the latter.
+            if "height" in element:
+                element["height"] = Builder.measure_block(
+                    element.get("content", ""),
+                    element["width"],
+                    element["fontSize"],
+                    element["lineHeight"],
+                    element.get("fontFamily", "Montserrat"),
+                    bold=bool(element.get("bold", False)),
+                )
         elif flow_role == "masthead" and category == "line":
             element["left"] = main_left
-            element["top"] = 132.0
             element["width"] = main_width
             element["backgroundColor"] = "#D7D7D4"
+            # Derived from the real name/title bottom (computed above the main
+            # loop) instead of a fixed constant unrelated to Sterling's own,
+            # content-dependent heading cursor — see `divider_top`'s comment.
+            element["top"] = divider_top
 
         transformed.append(element)
 
@@ -330,5 +419,45 @@ def _gen_vestige(cv: dict) -> list[dict]:
                 contact_band_id=None,
             )
         )
+
+    # ── Empty-state masthead photo slot ──
+    # Outline + light fill so the empty slot reads as a drop target and the
+    # whole box stays clickable; gallery upload covers it via cover-fit
+    # (`applyProfilePhoto`, `frontend/src/utils/profilePhoto.js`). The client
+    # recognizes the frame/glyph generically via the `photoSlot` field, not by
+    # template-specific ids — see that module's `isProfilePhotoFrame` /
+    # `isPortraitGlyph`. Mirrors Nova's three-element pattern (well, frame,
+    # glyph) exactly; only the position, ink colour, and icon theme differ.
+    photo_well = {
+        **_rect(
+            _PHOTO_LEFT, _PHOTO_TOP, _PHOTO_W, _PHOTO_H,
+            "#F4F4F2", 0, filled=True, zIndex=2,
+        ),
+        "id": "vestige-photo-well",
+        "photoSlot": "ornament",
+        "flowRole": "masthead",
+    }
+    photo_frame = {
+        **_rect(
+            _PHOTO_LEFT, _PHOTO_TOP, _PHOTO_W, _PHOTO_H,
+            "#D7D7D4", 1.0, zIndex=3,
+        ),
+        "id": "vestige-photo-frame",
+        "photoSlot": "frame",
+        "photoShape": "rect",
+        "flowRole": "masthead",
+    }
+    photo_glyph = {
+        **_icon(
+            "vestige", "portrait",
+            _PHOTO_LEFT + (_PHOTO_W - 24.0) / 2.0, _PHOTO_TOP + (_PHOTO_H - 24.0) / 2.0,
+            24.0, zIndex=4,
+        ),
+        "id": "vestige-photo-glyph",
+        "photoSlot": "glyph",
+        "alignWithText": False,
+        "flowRole": "masthead",
+    }
+    transformed.extend([photo_well, photo_frame, photo_glyph])
 
     return transformed

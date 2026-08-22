@@ -27,6 +27,9 @@ THEME_VARIANTS = {}
 # uses the portrait placeholder inside its masthead photo frame.
 THEME_EXTRA_ICONS = {
     "nova": ["portrait"],
+    # Vestige's masthead photo slot reuses the same portrait placeholder glyph,
+    # drawn in the template's own graphite ink instead of Nova's terracotta.
+    "vestige": ["portrait"],
 }
 
 SIZE = 128

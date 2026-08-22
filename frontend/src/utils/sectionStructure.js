@@ -859,6 +859,18 @@ function resolveFlowStart(elements, sections, pageHeight) {
     if (!element || element.fixedToPage) continue;
     if (element.flowRole === "section-chrome") continue;
     if (isSidebarLaneElement(element)) continue;
+    // A masthead photo well/frame/glyph never needs to count directly here:
+    // templates that author their closing rule/divider from the photo's own
+    // height (Nova: `header_rule_y = masthead_bottom + 18`, where
+    // `masthead_bottom` already factors in the photo) place that divider AT
+    // OR BELOW the photo's bottom by construction, so the divider element
+    // (still counted below) always dominates — excluding the photo itself
+    // changes nothing for them. Templates whose masthead photo sits in a
+    // different column from the name/title stack entirely (Vestige: name in
+    // the main column, photo flush against the page's right margin) have no
+    // such relationship, and a short/title-less masthead could otherwise let
+    // the photo alone decide "how tall is the masthead" here.
+    if (element.photoSlot) continue;
     if (!isSameColumn(element)) continue;
     const abs = absoluteTop(element, pageHeight);
     if (abs >= headingStart - 0.01) continue;
@@ -911,6 +923,18 @@ function resolveFlowStart(elements, sections, pageHeight) {
  * returned the PAGE bottom (842) and shoved the whole rail off page 1. Photo
  * slots are always bounded boxes, so `photoSlot` is the precise, safe filter.
  */
+// Widest real sidebar rail across every two-column template (Sterling 210 pt)
+// plus margin. `sameColumnAsHeading` is deliberately biased to treat anything
+// at or to the right of a heading as "same column" (single-column templates
+// park chrome far right of a narrow heading), which is the wrong bias here:
+// Vestige's masthead photo slot sits at left=505, in the MAIN column, far to
+// the right of the sidebar's own heading — `sameColumnAsHeading` alone would
+// wrongly count it as the rail's own photo. A rail's own photo well is always
+// physically inside the narrow rail, so bound the candidate's own left
+// (from the page edge, not the heading) to rule out a main-column photo
+// regardless of how the heading happens to be positioned.
+const SIDEBAR_PHOTO_MAX_LEFT = 260;
+
 function resolveSidebarPhotoFloor(elements, firstHeading, pageHeight) {
   if (!firstHeading) return null;
   const isSameColumn = sameColumnAsHeading(Number(firstHeading.left) || 0);
@@ -918,6 +942,7 @@ function resolveSidebarPhotoFloor(elements, firstHeading, pageHeight) {
   let photoBottom = 0;
   for (const element of elements || []) {
     if (!element || !element.photoSlot) continue;
+    if ((Number(element.left) || 0) > SIDEBAR_PHOTO_MAX_LEFT) continue;
     if (!isSameColumn(element)) continue;
     const abs = absoluteTop(element, pageHeight);
     if (abs >= headingAbs) continue;

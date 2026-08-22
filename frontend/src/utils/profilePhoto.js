@@ -174,8 +174,13 @@ function findGlyphInFrame(elements, frame) {
  * @returns {number}
  */
 function insetForFrame(frame) {
-  // Nova / Portico: gallery photo fills the well edge-to-edge (object-fit cover).
-  if (frame?.id === "nova-photo-frame" || frame?.id === "portico-photo-frame") {
+  // Nova / Portico / Vestige: gallery photo fills the well edge-to-edge
+  // (object-fit cover).
+  if (
+    frame?.id === "nova-photo-frame"
+    || frame?.id === "portico-photo-frame"
+    || frame?.id === "vestige-photo-frame"
+  ) {
     return 0;
   }
   if (
@@ -338,6 +343,7 @@ export function applyProfilePhoto(elements, photo, createId = nanoid) {
   const coversWell = (
     frame?.id === "nova-photo-frame"
     || frame?.id === "portico-photo-frame"
+    || frame?.id === "vestige-photo-frame"
   );
   let photoZ = Number(glyph?.zIndex) || 4;
   let nextFrameZ = frameZ;

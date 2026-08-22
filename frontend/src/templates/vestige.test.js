@@ -19,8 +19,11 @@ test("Vestige keeps contact and compact profile information in a narrow left rai
     assert.equal(name?.width, 335);
     assert.equal(name?.align, "left");
 
+    // Excludes the masthead photo-slot glyph, which also carries
+    // `flowRole: "masthead"` but sits at the photo slot's own left, not the
+    // sidebar's.
     const contactIcons = vestigeTemplate.filter(
-        (element) => element.category === "image" && element.flowRole === "masthead",
+        (element) => element.category === "image" && element.flowRole === "masthead" && !element.photoSlot,
     );
     assert.ok(contactIcons.length >= 4);
     assert.ok(contactIcons.every((element) => element.left === 27));
@@ -38,6 +41,26 @@ test("Vestige keeps contact and compact profile information in a narrow left rai
     );
     assert.ok(mainRules.length >= 1);
     assert.ok(mainRules.every((element) => element.left === 210 && element.width === 335));
+});
+
+test("Vestige emits a clickable masthead photo slot", () => {
+    const well = vestigeTemplate.find((element) => element.photoSlot === "ornament");
+    const frame = vestigeTemplate.find((element) => element.photoSlot === "frame");
+    const glyph = vestigeTemplate.find((element) => element.photoSlot === "glyph");
+
+    assert.equal(frame?.id, "vestige-photo-frame");
+    assert.equal(frame?.category, "rectangle");
+    assert.equal(well?.category, "rectangle");
+    assert.equal(frame?.photoShape, "rect");
+    for (const element of [well, frame]) {
+        assert.equal(element?.left, 505);
+        assert.equal(element?.top, 25);
+        assert.equal(element?.width, 60);
+        assert.equal(element?.height, 74.4);
+    }
+    assert.equal(glyph?.category, "image");
+    assert.ok(glyph?.src.includes("/template-assets/iconic/vestige/portrait.png"));
+    assert.equal(glyph?.alignWithText, false);
 });
 
 test("Vestige exposes its rail sections to the shared lane-transfer workflow", () => {

@@ -41,7 +41,13 @@ class VestigeTemplateTests(unittest.TestCase):
         name = next(element for element in elements if element.get("content") == "Alexandra Nowak")
         self.assertEqual((name["left"], name["width"], name["align"]), (210.0, 335.0, "left"))
 
-        icons = [element for element in elements if element["category"] == "image"]
+        # Contact-rail icons only — excludes the masthead photo-slot glyph,
+        # which is also a category "image" element but sits at the photo
+        # slot's own left, not the sidebar's.
+        icons = [
+            element for element in elements
+            if element["category"] == "image" and not element.get("photoSlot")
+        ]
         self.assertEqual(len(icons), 4)
         self.assertTrue(all(element["left"] == 27.0 for element in icons))
         self.assertTrue(all("/template-assets/iconic/vestige/" in element["src"] for element in icons))
@@ -115,6 +121,58 @@ class VestigeTemplateTests(unittest.TestCase):
             min(element["top"] for element in main_headings),
             min(element["top"] for element in sidebar_headings),
         )
+
+    def test_vestige_masthead_divider_tracks_the_real_name_and_title_height(self) -> None:
+        """The masthead-closing divider used to sit at a fixed top=132,
+        unrelated to the name/title stack's real height — Sterling's own
+        `height` for these boxes was measured at Sterling's smaller font size
+        (30/34 and 11.5/15), not Vestige's own (34/38 and 9.5/13), so the
+        stored `height` understated their real size and the divider's fixed
+        position drifted arbitrarily far from their true bottom edge as
+        content varied. That variable gap fed a client-side bug
+        (`resolveFlowStart` in sectionStructure.js) which discarded a
+        too-large "authored gap" as corruption and silently relocated the main
+        column on every repack (density change, reorder, ...). The divider
+        must now sit a small, fixed distance below the name/title stack's
+        real (recomputed) bottom, regardless of content length."""
+        elements = generate_resume(
+            "vestige",
+            {
+                "name": "Alexandra Nowak",
+                "title": "Strategy Consultant",
+                "email": "alexandra@example.com",
+                "phone": "+48 600 000 000",
+                "summary": "Łączę analizę, strategię i jasne decyzje.",
+                "experience": [{"title": "Consultant", "company": "Northline", "period": "2022 – obecnie"}],
+                "education": [],
+                "skills": ["Strategia"],
+                "languages": [],
+            },
+        )
+        name = next(
+            element for element in elements
+            if element.get("mastheadRole") == "name" and element["category"] == "textarea"
+        )
+        title = next(
+            (element for element in elements if element.get("mastheadRole") == "title"),
+            None,
+        )
+        divider = next(
+            element for element in elements
+            if element.get("flowRole") == "masthead" and element["category"] == "line"
+            and element.get("page", 1) == 1
+        )
+        # Each box's stored `height` must match its OWN `lineHeight` for a
+        # single line — Sterling's stale height (measured at ITS font size)
+        # was smaller than Vestige's own `lineHeight` for both boxes.
+        self.assertEqual(name["height"], name["lineHeight"])
+        if title is not None:
+            self.assertEqual(title["height"], title["lineHeight"])
+        stack_bottom = max(
+            float(box["top"]) + float(box["height"])
+            for box in (name, title) if box is not None
+        )
+        self.assertAlmostEqual(divider["top"], stack_bottom + 12.0)
 
     def test_vestige_contact_band_supports_add_remove_channel(self) -> None:
         """Vestige must emit a real "stacked"-mode contact-band descriptor
@@ -315,6 +373,41 @@ class VestigeTemplateTests(unittest.TestCase):
         ]
         self.assertTrue(main_bodies)
         self.assertTrue(all(element["lineHeight"] == 12.0 for element in main_bodies))
+
+    def test_vestige_emits_a_clickable_masthead_photo_slot(self) -> None:
+        """Vestige exposes an empty-state photo well/frame/glyph triplet so a
+        user can click it to open the gallery — mirroring Nova's pattern
+        (`photoSlot` tags the client recognises generically, not template-
+        specific ids; see `frontend/src/utils/profilePhoto.js`)."""
+        elements = generate_resume(
+            "vestige",
+            {
+                "name": "Alexandra Nowak",
+                "title": "Strategy Consultant",
+                "summary": "Łączę analizę, strategię i jasne decyzje.",
+                "experience": [],
+                "education": [],
+                "skills": [],
+                "languages": [],
+            },
+        )
+        well = next(element for element in elements if element.get("photoSlot") == "ornament")
+        frame = next(element for element in elements if element.get("photoSlot") == "frame")
+        glyph = next(element for element in elements if element.get("photoSlot") == "glyph")
+
+        self.assertEqual(frame["id"], "vestige-photo-frame")
+        self.assertEqual(frame["category"], "rectangle")
+        self.assertEqual(well["category"], "rectangle")
+        self.assertTrue(well["filled"])
+        self.assertEqual(frame["photoShape"], "rect")
+        # Well, frame, and glyph must share the same box so the click target,
+        # the visible outline, and the placeholder icon all line up.
+        for element in (well, frame):
+            self.assertEqual((element["left"], element["top"], element["width"], element["height"]),
+                              (505.0, 25.0, 60.0, 74.4))
+        self.assertEqual(glyph["category"], "image")
+        self.assertIn("/template-assets/iconic/vestige/portrait.png", glyph["src"])
+        self.assertFalse(glyph["alignWithText"])
 
 
 if __name__ == "__main__":
