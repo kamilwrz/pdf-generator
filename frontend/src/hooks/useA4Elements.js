@@ -262,9 +262,16 @@ export function useA4Elements(titleRef) {
     return () => document.removeEventListener("pointerdown", markCanvasEditExit, true);
   }, []);
   const requestEditZoomRestore = useCallback(() => {
-    // The properties panel's explicit Close action ends text editing without a
-    // canvas pointer event, so it must opt into the same restoration path.
+    // The properties panel's click is preceded by the contentEditable blur.
+    // That blur can commit `isEditing: false` before the Close handler runs,
+    // so setting only a ref here would not trigger the zoom effect again.
+    // Restore synchronously from the saved pre-edit value instead.
     editZoomExitRequestedRef.current = true;
+    if (editZoomPreviousRef.current != null) {
+      setZoomState(editZoomPreviousRef.current);
+      editZoomPreviousRef.current = null;
+      editZoomExitRequestedRef.current = false;
+    }
   }, []);
   useEffect(() => {
     if (isTwoPageView || !editingElementId) {
