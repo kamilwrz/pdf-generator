@@ -37,14 +37,14 @@ test("Atrium is a centered-axis editorial single column, not a Portico recolor",
     assert.equal(L + W / 2, PAGE_CENTER);
 
     // ── Masthead: name + title are centered textareas tagged masthead ─────────
-    const name = atriumTemplate.find((element) => element.content === "Weronika Sikora");
+    const name = atriumTemplate.find((element) => element.content === "Julia Bernat");
     assert.ok(name);
     assert.equal(name.category, "textarea");
     assert.equal(name.align, "center");
     assert.equal(name.flowRole, "masthead");
     assert.equal(name.fontFamily, "PlayfairDisplay"); // high-contrast serif — not Portico's Lora
     const title = atriumTemplate.find(
-        (element) => element.content === "Junior Penetration Tester",
+        (element) => element.content === "Analityczka AML i Compliance",
     );
     assert.equal(title?.align, "center");
     assert.equal(title?.flowRole, "masthead");
@@ -59,10 +59,12 @@ test("Atrium is a centered-axis editorial single column, not a Portico recolor",
     assert.equal(photoGlyph.id, "atrium-photo-glyph");
     assert.equal(photoGlyph.alignWithText, false); // standalone image, no text companion
     assert.equal(photoGlyph.flowRole, "masthead");
-    // Fixed corner placement (not derived from L/W) approved from the live editor.
-    assert.equal(photoGlyph.left, 476);
-    assert.equal(photoGlyph.top, 21);
-    assert.equal(photoGlyph.width, 84);
+    // Fixed 3:4 placement (not derived from L/W) approved from the live editor.
+    assert.equal(photoGlyph.left, 462);
+    assert.equal(photoGlyph.top, 19);
+    assert.equal(photoGlyph.width, 60);
+    assert.equal(photoGlyph.height, 80);
+    assert.equal(photoGlyph.photoShape, "direct");
     assert.ok(
         atriumTemplate.every((element) => element.photoSlot !== "frame"),
         "Atrium must not declare a photo frame — the slot has no surrounding chrome",

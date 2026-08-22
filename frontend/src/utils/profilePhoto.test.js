@@ -89,6 +89,18 @@ describe("applyProfilePhoto", () => {
     assert.equal(photo.height, 120);
   });
 
+  it("keeps Atrium's direct 60 × 80 pt photo geometry", () => {
+    const elements = materializeElementSpecs(atriumTemplate, () => `a-${Math.random()}`);
+    const next = applyProfilePhoto(elements, PHOTO, () => "atrium-photo");
+    const photo = next.find((el) => el.photoSlot === "image");
+
+    assert.ok(photo);
+    assert.equal(photo.left, 462);
+    assert.equal(photo.top, 19);
+    assert.equal(photo.width, 60);
+    assert.equal(photo.height, 80);
+  });
+
   it("replaces Monument's glyph and keeps its frame border above the photo", () => {
     const elements = materializeElementSpecs(monumentTemplate, () => `m-${Math.random()}`);
     const next = applyProfilePhoto(elements, PHOTO, () => "monument-photo");

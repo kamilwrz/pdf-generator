@@ -67,6 +67,7 @@ function Image({
     const isPhotoClickTarget = isProfilePhotoClickTarget({ photoSlot });
 
     const image = useRef();
+    const photoGalleryOpenedFromPointerRef = useRef(false);
 
     useEffect(() => {
         if (!needsAuthFetch) {
@@ -122,8 +123,27 @@ function Image({
     }
 
     function handlePhotoClick(event) {
+        // The pointer handler opens the gallery before selection/resize chrome
+        // can consume the interaction. Ignore its synthetic follow-up click;
+        // `showGallery` is a toggle, so handling both events would close it.
+        if (photoGalleryOpenedFromPointerRef.current) {
+            photoGalleryOpenedFromPointerRef.current = false;
+            return;
+        }
         selectElement(elementId, event.ctrlKey || event.metaKey);
         if (!event.ctrlKey && !event.metaKey) showGallery?.();
+    }
+
+    function handlePhotoPointerDown(event) {
+        if (event.ctrlKey || event.metaKey) return;
+        // Open directly from pointerdown. This makes frameless photo glyphs
+        // such as Atrium reliable even when the selection/resize layer becomes
+        // active during the same click.
+        event.preventDefault();
+        event.stopPropagation();
+        photoGalleryOpenedFromPointerRef.current = true;
+        selectElement(elementId);
+        showGallery?.();
     }
 
     if (fixedToPage) {
@@ -136,6 +156,7 @@ function Image({
                 style={style}
                 alt=""
                 onClick={isPhotoClickTarget ? handlePhotoClick : undefined}
+                onPointerDown={isPhotoClickTarget ? handlePhotoPointerDown : undefined}
             />
         );
     }
@@ -168,7 +189,10 @@ function Image({
                     : (e) => selectElement(elementId, e.ctrlKey || e.metaKey)}
                 onPointerDown={(e) => {
                     if (e.ctrlKey || e.metaKey) return;
-                    if (isPhotoClickTarget) return;
+                    if (isPhotoClickTarget) {
+                        handlePhotoPointerDown(e);
+                        return;
+                    }
                     e.currentTarget.setPointerCapture(e.pointerId);
                     selectMoveElement(elementId, true);
                 }}
@@ -190,7 +214,10 @@ function Image({
                 : (e) => selectElement(elementId, e.ctrlKey || e.metaKey)}
             onPointerDown={(e) => {
                 if (e.ctrlKey || e.metaKey) return;
-                if (isPhotoClickTarget) return;
+                if (isPhotoClickTarget) {
+                    handlePhotoPointerDown(e);
+                    return;
+                }
                 e.currentTarget.setPointerCapture(e.pointerId);
                 selectMoveElement(elementId, true);
             }}

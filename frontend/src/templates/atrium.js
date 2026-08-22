@@ -67,16 +67,17 @@ const ATRIUM_ELEMENTS = [
   {
     "category": "image",
     "src": "/template-assets/iconic/atrium-accent/portrait.png",
-    "left": 476.0,
-    "top": 21.0,
-    "width": 84.0,
-    "height": 84.0,
+    "left": 462.0,
+    "top": 19.0,
+    "width": 60.0,
+    "height": 80.0,
     "zIndex": 3,
     "page": 1,
     "alignWithText": false,
     "flowRole": "masthead",
     "id": "atrium-photo-glyph",
-    "photoSlot": "glyph"
+    "photoSlot": "glyph",
+    "photoShape": "direct"
   },
   {
     "category": "textarea",
@@ -521,7 +522,7 @@ const ATRIUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-0883ba4f58b6",
+    "flowGroup": "record-f8088590ef09",
     "flowRole": "content"
   },
   {
@@ -544,7 +545,7 @@ const ATRIUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-0883ba4f58b6",
+    "flowGroup": "record-f8088590ef09",
     "flowRole": "content"
   },
   {
@@ -567,7 +568,7 @@ const ATRIUM_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-0883ba4f58b6",
+    "flowGroup": "record-f8088590ef09",
     "flowRole": "content"
   },
   {
@@ -590,7 +591,7 @@ const ATRIUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-fe8ec023d1be",
+    "flowGroup": "record-eeb10c56a62c",
     "flowRole": "content"
   },
   {
@@ -613,7 +614,7 @@ const ATRIUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-fe8ec023d1be",
+    "flowGroup": "record-eeb10c56a62c",
     "flowRole": "content"
   },
   {
@@ -636,7 +637,7 @@ const ATRIUM_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-fe8ec023d1be",
+    "flowGroup": "record-eeb10c56a62c",
     "flowRole": "content"
   },
   {
@@ -659,7 +660,7 @@ const ATRIUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-77958b20d7a7",
+    "flowGroup": "record-f2db99d2cc0c",
     "flowRole": "content"
   },
   {
@@ -682,7 +683,7 @@ const ATRIUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-77958b20d7a7",
+    "flowGroup": "record-f2db99d2cc0c",
     "flowRole": "content"
   },
   {
@@ -705,7 +706,7 @@ const ATRIUM_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-77958b20d7a7",
+    "flowGroup": "record-f2db99d2cc0c",
     "flowRole": "content"
   },
   {
@@ -765,7 +766,7 @@ const ATRIUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-de95db078280",
+    "flowGroup": "record-667e6e428d81",
     "flowRole": "content"
   },
   {
@@ -788,7 +789,7 @@ const ATRIUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-de95db078280",
+    "flowGroup": "record-667e6e428d81",
     "flowRole": "content"
   },
   {
@@ -811,7 +812,7 @@ const ATRIUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-de95db078280",
+    "flowGroup": "record-667e6e428d81",
     "flowRole": "content"
   },
   {
@@ -871,7 +872,7 @@ const ATRIUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-9b54aaad701f",
+    "flowGroup": "record-e4bad34c4118",
     "flowRole": "content"
   },
   {
@@ -940,7 +941,7 @@ const ATRIUM_ELEMENTS = [
       }
     ],
     "flowRole": "grid-member",
-    "flowGroup": "record-6ae7d8bb795d"
+    "flowGroup": "record-d2bc8765f6da"
   },
   {
     "category": "textarea",
@@ -971,7 +972,7 @@ const ATRIUM_ELEMENTS = [
       }
     ],
     "flowRole": "grid-member",
-    "flowGroup": "record-6ae7d8bb795d"
+    "flowGroup": "record-d2bc8765f6da"
   },
   {
     "category": "textarea",
@@ -1002,7 +1003,7 @@ const ATRIUM_ELEMENTS = [
       }
     ],
     "flowRole": "grid-member",
-    "flowGroup": "record-6ae7d8bb795d"
+    "flowGroup": "record-d2bc8765f6da"
   }
 ];
 

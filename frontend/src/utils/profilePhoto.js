@@ -311,7 +311,12 @@ export function applyProfilePhoto(elements, photo, createId = nanoid) {
   }
 
   const frameBox = frame ? bounds(frame) : bounds(glyph);
-  const inset = frame ? insetForFrame(frame) : DEFAULT_INSET_PT;
+  // Atrium deliberately uses a frameless direct-size glyph. Do not apply the
+  // normal 3pt glyph inset, otherwise a user-selected photo would shrink from
+  // its approved 60 × 80 pt slot to 54 × 74 pt.
+  const inset = frame
+    ? insetForFrame(frame)
+    : (glyph?.photoShape === "direct" ? 0 : DEFAULT_INSET_PT);
   const photoBox = insetBox(frameBox, inset);
   const isCircle = Boolean(
     frame
