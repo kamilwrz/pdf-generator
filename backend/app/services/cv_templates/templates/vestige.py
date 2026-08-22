@@ -55,6 +55,12 @@ def _gen_vestige(cv: dict) -> list[dict]:
     # narrower two-column measure still reads as a quiet editorial rail.
     main_heading_fs = 13.0
     sidebar_heading_fs = 8.4
+    # Uniform sidebar body line height, distinct from whatever Sterling used
+    # for each field (summary 12.04, meta rails 11.8, ...). Feeding one fixed
+    # value into both the recomputed `height` below and the rendered CSS
+    # keeps the two in agreement — see the cascading-shift comment below for
+    # why a mismatch there used to overlap sidebar sections.
+    sidebar_body_line_height = 12.0
     colors = {
         "#F7F8FA": "#FFFFFF",
         "#EDF1F6": "#F4F4F2",
@@ -68,6 +74,17 @@ def _gen_vestige(cv: dict) -> list[dict]:
     transformed: list[dict] = []
     name_element: dict | None = None
     title_element: dict | None = None
+    # Sterling authors each sidebar element's `top` sequentially, assuming its
+    # ORIGINAL (wider, 152pt) column width. Narrowing that column to ~122pt
+    # here makes body copy wrap onto more lines, so the recomputed `height`
+    # below is taller than what Sterling planned for — but every element's
+    # `top` is still the old, narrower-wrap position. Left uncorrected, a
+    # taller-than-planned box overlaps the next section's heading below it
+    # (only self-healing once the client's own reflow — "Układ CV" / a density
+    # change — recomputes positions from real measured heights). This tracks,
+    # per page, how far every subsequent sidebar element must shift down to
+    # absorb the extra height already produced above it on that page.
+    sidebar_shift_by_page: dict[int, float] = {}
     for source in elements:
         element = dict(source)
         category = element.get("category")
@@ -136,11 +153,16 @@ def _gen_vestige(cv: dict) -> list[dict]:
             element["left"] = sidebar_left + (float(element.get("left", sidebar_left)) - 34.0) * 0.8
             if "width" in element and float(element["width"]) <= 160:
                 element["width"] = min(float(element["width"]) * 0.8, sidebar_content_width)
+            page = int(element.get("page", 1))
+            carried_shift = sidebar_shift_by_page.get(page, 0.0)
             # Keep the first profile section below the last possible contact
             # row while retaining the compact vertical rhythm expected from a
             # narrow editorial rail. A previous 112pt offset created a large
             # unowned gap that became obvious with imported, content-heavy CVs.
-            element["top"] = float(element.get("top", 0)) + 42.0
+            # `carried_shift` absorbs any extra height already produced by
+            # earlier sidebar elements on this page (see the accumulator's
+            # declaration above the loop).
+            element["top"] = float(element.get("top", 0)) + 42.0 + carried_shift
             if flow_role == "sidebar-chrome" and category == "line":
                 element["width"] = 16.0
             # The narrower width invalidates Sterling's measured `height`
@@ -150,17 +172,24 @@ def _gen_vestige(cv: dict) -> list[dict]:
             # generator's own authored gap disagreed with the client's
             # corrected box height on first mount, then "snapped" once a
             # repack recomputed gaps from the true (now-matching) heights —
-            # which read as spacing changing after using Układ CV.
+            # which read as spacing changing after using Układ CV. A fixed
+            # 12 px line height (rather than each field's original Sterling
+            # value) keeps this measurement and the rendered CSS in agreement.
             if category == "textarea" and "height" in element:
+                original_height = float(element["height"])
+                element["lineHeight"] = sidebar_body_line_height
                 element["height"] = Builder.measure_block(
                     element.get("content", ""),
                     element["width"],
                     element.get("fontSize", 9.0),
-                    element.get("lineHeight", element.get("fontSize", 9.0) * 1.35),
+                    sidebar_body_line_height,
                     element.get("fontFamily", "Montserrat"),
                     bold=bool(element.get("bold", False)),
                     bulletList=bool(element.get("bulletList", False)),
                 )
+                # Register with the accumulator so every later sidebar element
+                # on this page inherits the extra (or reclaimed) space.
+                sidebar_shift_by_page[page] = carried_shift + (element["height"] - original_height)
 
         # Main-column content gains a more generous measure after the rail
         # narrows. This improves reading rhythm without changing record groups.

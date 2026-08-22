@@ -208,6 +208,51 @@ class VestigeTemplateTests(unittest.TestCase):
         lefts = [element["left"] for element in grid_cells]
         self.assertEqual(len(lefts), len(set(lefts)), f"grid-member cells collided: {lefts!r}")
 
+    def test_vestige_sidebar_elements_do_not_overlap_after_narrowing(self) -> None:
+        """Narrowing the sidebar column rewraps body copy onto more lines than
+        Sterling planned for at its original, wider column — recomputing each
+        box's `height` for the new width without also shifting every element
+        below it down left a taller-than-planned box overlapping the next
+        section's heading. A long summary (proportionally the biggest wrap-
+        count change under narrowing) reproduces it; every consecutive pair of
+        same-page sidebar elements, sorted by `top`, must not overlap.
+        """
+        elements = generate_resume(
+            "vestige",
+            {
+                "name": "Alexandra Nowak",
+                "title": "Strategy Consultant",
+                "email": "alexandra@example.com",
+                "phone": "+48 600 000 000",
+                "summary": (
+                    "Przekształcam złożone strategie w decyzje, które porządkują "
+                    "organizacje, budują mierzalny wzrost i utrzymują zaufanie "
+                    "interesariuszy w trakcie wielowymiarowych transformacji "
+                    "operacyjnych oraz cyfrowych, prowadząc zespoły przez okresy "
+                    "niepewności rynkowej i regulacyjnej z naciskiem na jakość "
+                    "wykonania oraz komunikację z zarządem i radą nadzorczą w "
+                    "spółkach o złożonej strukturze właścicielskiej."
+                ),
+                "experience": [{"title": "Consultant", "company": "Northline", "period": "2022 – obecnie"}],
+                "education": [{"degree": "Magister ekonomii", "school": "SGH", "period": "2013 – 2018"}],
+                "skills": ["Strategia", "Transformacja", "Analiza biznesowa"],
+                "languages": [{"name": "Polski", "level": "ojczysty"}],
+            },
+        )
+        sidebar_elements = [
+            element for element in elements
+            if (element.get("flowLane") == "sidebar" or element.get("flowRole") == "sidebar-chrome")
+            and element.get("page", 1) == 1
+            and "top" in element
+        ]
+        sidebar_elements.sort(key=lambda element: element["top"])
+        for earlier, later in zip(sidebar_elements, sidebar_elements[1:]):
+            earlier_bottom = earlier["top"] + float(earlier.get("height", 0))
+            self.assertLessEqual(
+                earlier_bottom, later["top"] + 0.01,
+                f"sidebar overlap: {earlier!r} bottom {earlier_bottom} > next top {later['top']!r}",
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

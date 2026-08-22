@@ -201,6 +201,7 @@ export default function CanvasElements({ elements }) {
             zIndex={element.zIndex}
             fixedToPage={element.fixedToPage}
             textTransform={element.textTransform}
+            mastheadRole={element.mastheadRole}
           />
           {blockAnchor ? (
             <RecordBlockAdd
