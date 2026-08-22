@@ -153,6 +153,7 @@ function Textarea({
         setTextareaEditing,
         fitTextareaToContent,
         setSpacingHoldId,
+        editZoomSpreadTransitionRef,
     } = use(PdfContext);
 
     const [isResizeable, setIsResizeable] = useState(false);
@@ -478,6 +479,10 @@ function Textarea({
                     data-placeholder="Wpisz swój tekst…"
                     onInput={(e) => commitEditable(e.currentTarget)}
                     onBlur={() => {
+                        // The 2-page → focused-page edit zoom unmounts this
+                        // surface. Ignore that synthetic blur so its transient
+                        // empty DOM cannot overwrite the element's real content.
+                        if (editZoomSpreadTransitionRef?.current) return;
                         if (editingRef.current) {
                             commitEditable(editingRef.current, { finalize: true });
                         }

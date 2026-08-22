@@ -259,6 +259,10 @@ export function useA4Elements(titleRef) {
   // that it was active so an edit started there can focus its own page, then
   // return the reader to the previous spread after an intentional edit exit.
   const editZoomPreviousSpreadRef = useRef(null);
+  // Switching a spread to one page unmounts the old contentEditable node. Its
+  // browser blur is a view-transition side effect, not a user edit finalisation;
+  // Textarea reads this ref to avoid committing an empty unmounted DOM node.
+  const editZoomSpreadTransitionRef = useRef(false);
   // A blur can be caused by any control outside the canvas. Restore the
   // temporary edit zoom only after an intentional page/element interaction,
   // not when the user uses the sidebar or toolbar while text remains focused.
@@ -309,10 +313,12 @@ export function useA4Elements(titleRef) {
       if (Number.isInteger(editingElementPage) && editingElementPage > 0) {
         setCurrentPage(editingElementPage);
       }
+      editZoomSpreadTransitionRef.current = true;
       setIsTwoPageView(false);
       return undefined;
     }
 
+    editZoomSpreadTransitionRef.current = false;
     // A click on another canvas element also marks a potential exit. Reset the
     // signal when that click immediately opens the next text edit instead.
     editZoomExitRequestedRef.current = false;
@@ -2329,6 +2335,7 @@ export function useA4Elements(titleRef) {
     handleCanvasBackgroundClick,
     handleSetTextareaEditing,
     requestEditZoomRestore,
+    editZoomSpreadTransitionRef,
     handleAlignElements,
     handleDeleteElement,
     handleDeleteSelectedElements,
