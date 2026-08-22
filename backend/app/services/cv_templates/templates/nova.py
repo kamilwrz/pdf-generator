@@ -6,6 +6,7 @@ from app.services.cv_generator_primitives import (
     get_spacing,
     SPACE_AFTER_HEADER_RULE,
     Builder,
+    _block,
     _line,
     _rect,
     _text,
@@ -54,13 +55,15 @@ def _gen_nova(cv: dict) -> list[dict]:
     lbl = _labels(cv)
     skip_sidebar_extras: set[int] = set()
 
-    # ── Masthead: name + role left, stacked contacts, portrait top-right ──
-    # Matches the editorial Nova mock: name left of the body column, muted
-    # job line under the name, contacts ~12pt below that stack, portrait slot
-    # on the right that the profile photo fully covers (objectFit: cover).
+    # ── Masthead: centered name/title, stacked contacts, portrait top-right ──
+    # The Nova screen mock balances a centered name/title stack against a left
+    # contact column and a right photo slot. The header must stay airy enough to
+    # feel editorial, but the masthead itself is visually anchored on the page
+    # axis rather than on the left edge.
     NAME_LEFT = 32.0
-    NAME_TOP = 36.0
+    NAME_TOP = 18.0
     NAME_FS = 34.0
+    NAME_LH = 37.0
     TITLE_FS = 9.0
     CONTACT_FS, CONTACT_ICON = (8.4, 14.0)
     # Portrait slot (empty rectangle). The editor starter has only this frame;
@@ -77,24 +80,25 @@ def _gen_nova(cv: dict) -> list[dict]:
     # Track the masthead name/title positions so they can be re-pointed after the
     # flowRole comprehension below copies every element into a new dict (that copy
     # would otherwise discard the tags added later by `tag_masthead_identity`).
+    name_h = Builder.measure_block(name, W, NAME_FS, NAME_LH, DISP, bold=True)
     name_index = len(header)
-    header.append(_text(name, NAME_FS, DISP, C['ink'], NAME_LEFT, NAME_TOP, zIndex=3, bold=True))
+    header.append(_block(name, L, NAME_TOP, W, name_h, NAME_FS, NAME_LH, C['ink'], DISP, zIndex=3, bold=True, align='center'))
 
-    # Role sits directly under the name (left column), not under the photo.
-    cursor_y = NAME_TOP + NAME_FS * 1.05
+    # Role stays centered under the name so the masthead reads as one editorial
+    # unit; the contact row below it remains left-aligned.
+    cursor_y = NAME_TOP + name_h + 4.0
     title_index: int | None = None
     if title:
+        title_h = Builder.measure_block(title, W, TITLE_FS, 12.0, SANS)
         cursor_y += 6.0
-        title_el = _text(
-            title, TITLE_FS, SANS, C['mute'], NAME_LEFT, cursor_y, zIndex=3,
-        )
+        title_el = _block(title, L, cursor_y, W, title_h, TITLE_FS, 12.0, C['mute'], SANS, zIndex=3, align='center')
         title_el['letterSpacing'] = 1.6
         title_index = len(header)
         header.append(title_el)
-        cursor_y += TITLE_FS * 1.35
+        cursor_y += title_h
 
     # One contact channel per row, ~12pt under the name/title stack.
-    contact_start = cursor_y + 12.0
+    contact_start = cursor_y + 18.0
     contact_els, contact_bottom, contact_descriptor = _place_stacked_icon_contacts(
         theme=ICON,
         items=_contact_channel_items(cv),
