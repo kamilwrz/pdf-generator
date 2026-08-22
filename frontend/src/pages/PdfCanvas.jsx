@@ -65,16 +65,24 @@ import {
   inferEditorMode,
   normalizeEditorMode,
 } from '../utils/editorMode';
-import { COMPACT_FLOW_SPACING, DEFAULT_FLOW_SPACING } from '../utils/flowSpacing';
+import {
+  COMPACT_FLOW_SPACING,
+  DEFAULT_FLOW_SPACING,
+  MIN_FLOW_SPACING,
+  flowSpacingEquals,
+} from '../utils/flowSpacing';
+import {
+  findFitForTarget,
+  resolveFitAction,
+  formatFitTargetLabel,
+} from '../utils/fitToPages';
 import { listSectionIconOptions } from '../utils/sectionIcons';
 import { convertFlatListContent } from '../utils/flatSectionLayout';
 import {
-  diagnoseDocumentLength,
   shouldResetLongCvOffer,
   TOO_LONG_MIN_PAGES,
   SIDEBAR_TOO_LONG_MIN_PAGES,
 } from '../utils/documentLength';
-import { applyFlowSpacing } from '../utils/sectionStructure';
 import { collapseSpilledMainIntoSidebar } from '../utils/collapseMainIntoSidebar';
 import { demoCvTemplate } from '../templates/demoCv';
 import { TEMPLATES } from '../templates';
@@ -228,13 +236,13 @@ function PdfCanvas() {
   }, []);
   // "CV too long" assistant: auto-detects 3+ page documents once per document
   // and offers a free compact-spacing pass, then (if needed) AI shortening.
-  const [longCvModal, setLongCvModal] = useState({ open: false, diagnosis: null });
+  const [longCvModal, setLongCvModal] = useState({ open: false, variant: null, fit: null });
   // Mirror of longCvModal.open for the auto-open effect — reading state from
   // the effect deps re-ran detection on every open and raced the identity reset.
   const longCvOpenRef = useRef(false);
   const closeLongCvModal = useCallback(() => {
     longCvOpenRef.current = false;
-    setLongCvModal({ open: false, diagnosis: null });
+    setLongCvModal({ open: false, variant: null, fit: null });
   }, []);
   // Once-per logical document+template: stores the identity we already offered
   // for. Cleared only on a real document/template change (see shouldResetLongCvOffer).
@@ -855,20 +863,19 @@ function PdfCanvas() {
   }, [panel])
 
   // ── "CV too long" flow ────────────────────────────────────────────────────
-  // Deterministic first: apply the compact spacing preset and return the new
-  // page count so the modal can branch (success vs. still-too-long → AI).
-  const applyCompactSpacingPass = useCallback(() => {
-    const pageHeight = pageSize?.height ?? 842;
-    const packed = applyFlowSpacing(A4_Elements, COMPACT_FLOW_SPACING, pageHeight);
-    const collapsed = collapseSpilledMainIntoSidebar(packed, {
-      spacing: COMPACT_FLOW_SPACING,
-      pageHeight,
-    });
-    const reconciled = reconcileDocumentPages(collapsed, nanoid, { collapseEmpty: true });
-    setFlowSpacing(COMPACT_FLOW_SPACING);
-    setA4_Elements(reconciled.elements);
-    return reconciled.pageCount;
-  }, [A4_Elements, pageSize, setA4_Elements, setFlowSpacing]);
+  // Commit a fit result as ONE undoable entry: set the winning rhythm, reconcile
+  // fixed page chrome, and (unless silent) toast. Matches every other layout
+  // mutation's history footprint.
+  const commitFit = useCallback((fit, { silent = false } = {}) => {
+    if (!fit) return;
+    setFlowSpacing(fit.spacing);
+    setA4_Elements(
+      reconcileDocumentPages(fit.elements, nanoid, { collapseEmpty: true }).elements,
+    );
+    if (!silent) {
+      pushToast({ title: 'Układ dopasowany.', variant: 'success' });
+    }
+  }, [setFlowSpacing, setA4_Elements, pushToast]);
 
   // AI shortening step: Pro only (assistant is Pro-gated). Free users get the
   // plan upsell; Pro users open the assistant with the `shorten` action and we
@@ -898,6 +905,67 @@ function PdfCanvas() {
     [activeTemplateId],
   );
 
+  // Target page count: sidebar rails only ever render on page 1, so exactly 1;
+  // single-column shrinks one page at a time. Mirrors diagnoseDocumentLength.
+  const fitTargetPages = useMemo(
+    () => (isSidebarTemplate ? 1 : Math.max(1, (pageCount ?? 1) - 1)),
+    [isSidebarTemplate, pageCount],
+  );
+
+  // Flagship action: find the loosest rhythm that fits the target, then route.
+  const onFitToPages = useCallback(() => {
+    const pageHeight = pageSize?.height ?? 842;
+    const fit = findFitForTarget({
+      elements: A4_Elements,
+      loosest: baselineFlowSpacing,
+      tightest: MIN_FLOW_SPACING,
+      targetPages: fitTargetPages,
+      pageHeight,
+    });
+    const { action } = resolveFitAction(fit);
+    if (action === "commit") {
+      commitFit(fit);
+    } else if (action === "emergency") {
+      longCvOpenRef.current = true;
+      setLongCvModal({ open: true, variant: "emergency", fit });
+    } else {
+      longCvOpenRef.current = true;
+      setLongCvModal({ open: true, variant: "impossible", fit: null });
+    }
+  }, [A4_Elements, baselineFlowSpacing, fitTargetPages, pageSize, commitFit]);
+
+  // Emergency modal's "Maksymalnie zacieśnij": apply the hard-floor fit.
+  const onForceTighten = useCallback(() => {
+    const fit = longCvModal.fit;
+    closeLongCvModal();
+    commitFit(fit);
+  }, [longCvModal.fit, closeLongCvModal, commitFit]);
+
+  // `fitTooLong` is a cheap badge flag (no packing) driving the sidebar/section
+  // panel indicator; `fitStatus` runs the ~10-candidate packing probe, but only
+  // while the "Sekcje" (sections) panel is open, so we never pack on every edit.
+  const fitTooLong = useMemo(
+    () => editorMode === EDITOR_MODE_TEMPLATE && (pageCount ?? 1) > fitTargetPages,
+    [editorMode, pageCount, fitTargetPages],
+  );
+
+  const fitStatus = useMemo(() => {
+    if (!isSectionsPanel || !fitTooLong) return null;
+    const pageHeight = pageSize?.height ?? 842;
+    const fit = findFitForTarget({
+      elements: A4_Elements,
+      loosest: baselineFlowSpacing,
+      tightest: MIN_FLOW_SPACING,
+      targetPages: fitTargetPages,
+      pageHeight,
+    });
+    return {
+      reducible: true,
+      tier: fit.tier,
+      targetLabel: formatFitTargetLabel(fitTargetPages),
+    };
+  }, [isSectionsPanel, fitTooLong, A4_Elements, baselineFlowSpacing, fitTargetPages, pageSize]);
+
   // Auto-detect a too-long CV once per logical document+template. Identity
   // reset and detection share one effect so a trailing reset cannot clear the
   // "already offered" guard after detection in the same commit (that race was
@@ -910,37 +978,30 @@ function PdfCanvas() {
       shortenBaselinePagesRef.current = null;
       if (longCvOpenRef.current) {
         longCvOpenRef.current = false;
-        setLongCvModal({ open: false, diagnosis: null });
+        setLongCvModal({ open: false, variant: null, fit: null });
       }
     }
     longCvIdentityRef.current = identity;
 
     if (editorMode !== EDITOR_MODE_TEMPLATE) return;
     if (longCvOfferedForRef.current) return;
-    if (longCvOpenRef.current) return;
     const minTooLongPages = isSidebarTemplate ? SIDEBAR_TOO_LONG_MIN_PAGES : TOO_LONG_MIN_PAGES;
     if (pageCount < minTooLongPages) return;
-    if (dialog || panel) return;
-    const diagnosis = diagnoseDocumentLength({
-      pageCount,
-      elements: A4_Elements,
-      isSidebarLayout: isSidebarTemplate,
-    });
-    if (!diagnosis.tooLong) return;
-    // Mark offered before setState so a StrictMode/effect re-run in the same
-    // commit cannot open a second portal.
+    // One gentle, non-blocking nudge per document — the badge (fitTooLong) stays
+    // visible; the panel owns the actual fit affordance.
     longCvOfferedForRef.current = identity;
-    longCvOpenRef.current = true;
-    setLongCvModal({ open: true, diagnosis });
+    pushToast({
+      title: 'Twoje CV jest dość długie',
+      msg: `Zajmuje ${pageCount} stron — w panelu „Układ CV” zobaczysz, jak zmieścić je na mniej.`,
+      variant: 'info',
+    });
   }, [
-    A4_Elements,
     activeTemplateId,
-    dialog,
     editorMode,
     isSidebarTemplate,
     pageCount,
-    panel,
     pdfId,
+    pushToast,
   ]);
 
   // Success toast after AI shortening reduces the page count below the value
@@ -949,6 +1010,19 @@ function PdfCanvas() {
     const baseline = shortenBaselinePagesRef.current;
     if (baseline == null) return;
     if (pageCount < baseline) {
+      // AI reclaimed a page — now recover whitespace: loosest rhythm (down to
+      // COMPACT) that still fits the achieved page count. Silent, undoable.
+      const pageHeight = pageSize?.height ?? 842;
+      const relaxed = findFitForTarget({
+        elements: A4_Elements,
+        loosest: baselineFlowSpacing,
+        tightest: COMPACT_FLOW_SPACING,
+        targetPages: pageCount,
+        pageHeight,
+      });
+      if (relaxed.fits && !flowSpacingEquals(relaxed.spacing, flowSpacing)) {
+        commitFit(relaxed, { silent: true });
+      }
       pushToast({
         title: 'Gotowe',
         msg: `CV skrócone z ${baseline} do ${pageCount} stron.`,
@@ -956,7 +1030,7 @@ function PdfCanvas() {
       });
       shortenBaselinePagesRef.current = null;
     }
-  }, [pageCount, pushToast]);
+  }, [pageCount, pushToast, A4_Elements, baselineFlowSpacing, flowSpacing, pageSize, commitFit]);
 
   const handleShowSections = useCallback(() => {
     const next = panel !== 'sections';
@@ -1459,6 +1533,9 @@ function PdfCanvas() {
     baselineFlowSpacing,
     adoptDocumentFlowSpacing,
     hydrateDocumentMode,
+    fitTooLong,
+    fitStatus,
+    onFitToPages,
     showUnlockFreeform: handleShowUnlockFreeform,
     unlockFreeform: handleUnlockFreeform,
     activeCvData,
@@ -1506,7 +1583,7 @@ function PdfCanvas() {
     setA4_Elements, handleResizeElement, handleDownloadClick,
     clearA4Fresh, discardActiveDocument, confirmDiscardActiveEdits, loadTemplateFresh, loadTemplateWithFillFresh,
     loadAiElementsFresh, handleLoadAiElements, activeTemplateId, setActiveTemplateId,
-    editorMode, setEditorMode, flowSpacing, setFlowSpacing, baselineFlowSpacing, adoptDocumentFlowSpacing, hydrateDocumentMode, handleShowUnlockFreeform, handleUnlockFreeform,
+    editorMode, setEditorMode, flowSpacing, setFlowSpacing, baselineFlowSpacing, adoptDocumentFlowSpacing, hydrateDocumentMode, fitTooLong, fitStatus, onFitToPages, handleShowUnlockFreeform, handleUnlockFreeform,
     activeCvData, setActiveCvData,
     pageCount, currentPage, addPage, removePage, goToPage, clonePage, movePage, setPageCount, setCurrentPage,
     isTwoPageView, toggleTwoPageView, handleAddTextarea, handleAddSection, openAddSectionModal, openFlatSectionLayoutModal, openSkillsLayoutModal, handleAddSectionRecord, handleAddRecordBlock, handleRemoveSection, handleRemoveRecordBlock, handleReorderRecordBlock, handleReorderSection, handleTransferSectionLane, handleChangeSkillsDisplayMode, markSelected, handleSetTextareaEditing, requestEditZoomRestore,
@@ -1645,9 +1722,10 @@ function PdfCanvas() {
               />
               <LongCvModal
                 open={longCvModal.open}
-                diagnosis={longCvModal.diagnosis}
+                variant={longCvModal.variant}
+                targetPages={fitTargetPages}
                 canUseAi={canUseAiAssistant}
-                onApplyCompact={applyCompactSpacingPass}
+                onForceTighten={onForceTighten}
                 onRequestAiShorten={handleRequestAiShorten}
                 onClose={closeLongCvModal}
               />
