@@ -26,6 +26,7 @@ import {
   sectionElementIds,
   sidebarSectionElementIds,
 } from "./sectionStructure.js";
+import { isRecordOverlay } from "./textareaReflow.js";
 
 /**
  * Resolve membership ids for a main or sidebar section heading.
@@ -133,6 +134,41 @@ function elementHeight(element) {
   const fontSize = Number(element?.fontSize);
   if (Number.isFinite(fontSize) && fontSize > 0) return fontSize * 1.35;
   return 12;
+}
+
+/**
+ * First non-`record-overlay` line in a record group, so a swapped record's
+ * relocation cursor starts from its true top line rather than an overlay
+ * that happens to sort first (an overlay's top is designed to tie with a
+ * real line's top; the tie-break isn't guaranteed to put the real line
+ * first the way `sectionStructure.js`'s `sortByReadingOrder` does).
+ */
+function firstRealLine(group, pageHeight) {
+  return group.find((element) => !isRecordOverlay(element, group, pageHeight)) || group[0];
+}
+
+/**
+ * Find the real content line a record-overlay element (within the same
+ * record group) is pinned beside: same `flowGroup`, top within the ~3px
+ * tolerance `textareaReflow.js`'s `recordOverlayAnchor` also uses.
+ */
+function findGroupOverlayAnchor(group, overlayElement, pageHeight) {
+  const groupId = typeof overlayElement.flowGroup === "string" ? overlayElement.flowGroup : null;
+  if (!groupId) return null;
+  const overlayAbs = absoluteTop(overlayElement, pageHeight);
+  let best = null;
+  let bestDelta = Infinity;
+  for (const candidate of group) {
+    if (candidate.element_id === overlayElement.element_id) continue;
+    if (candidate.flowGroup !== groupId) continue;
+    if (isRecordOverlay(candidate, group, pageHeight)) continue;
+    const delta = Math.abs(absoluteTop(candidate, pageHeight) - overlayAbs);
+    if (delta <= 3 && delta < bestDelta) {
+      best = candidate;
+      bestDelta = delta;
+    }
+  }
+  return best;
 }
 
 function absoluteBottom(element, pageHeight = 842) {
@@ -944,19 +980,54 @@ export function reorderRecordBlock(
   // Stack relocated records from the original first-record top so they stay
   // inside this section's Y band; applyFlowSpacing retargets real gaps.
   let cursorAbs = Math.min(
-    ...groups.map((group) => absoluteTop(group[0], pageHeight)),
+    ...groups.map((group) => absoluteTop(firstRealLine(group, pageHeight), pageHeight)),
   );
   const relocated = [];
   for (let groupIndex = 0; groupIndex < order.length; groupIndex += 1) {
     if (groupIndex > 0) cursorAbs += rhythm.record;
     const group = order[groupIndex];
-    for (let lineIndex = 0; lineIndex < group.length; lineIndex += 1) {
-      const element = group[lineIndex];
-      if (lineIndex > 0) cursorAbs += rhythm.stack;
+    // Record-overlay lines (a date/location rail, Axis's date gutter, …) are
+    // pinned beside a real content line rather than stacked below it — they
+    // must not advance `cursorAbs` themselves, or every later line (and
+    // every following record) drifts downward by the overlay's height, the
+    // same corruption `sectionStructure.js`'s `compactSectionStrip` guards
+    // against for density/reorder-at-the-section-level repacking. Real lines
+    // are relocated first so each overlay's anchor already has its final
+    // position when the overlay is placed.
+    const overlays = [];
+    let placedRealLine = false;
+    for (const element of group) {
+      if (isRecordOverlay(element, elements, pageHeight)) {
+        overlays.push(element);
+        continue;
+      }
+      if (placedRealLine) cursorAbs += rhythm.stack;
       const page = Math.max(1, Math.floor(cursorAbs / pageHeight) + 1);
       const top = cursorAbs - (page - 1) * pageHeight;
       relocated.push({ ...element, page, top });
+      placedRealLine = true;
       cursorAbs += elementHeight(element);
+    }
+    for (const overlay of overlays) {
+      const anchor = findGroupOverlayAnchor(group, overlay, pageHeight);
+      const relocatedAnchor = anchor
+        ? relocated.find((candidate) => candidate.element_id === anchor.element_id)
+        : null;
+      if (relocatedAnchor) {
+        const delta = absoluteTop(overlay, pageHeight) - absoluteTop(anchor, pageHeight);
+        const overlayAbs = absoluteTop(relocatedAnchor, pageHeight) + delta;
+        const page = Math.max(1, Math.floor(overlayAbs / pageHeight) + 1);
+        const top = overlayAbs - (page - 1) * pageHeight;
+        relocated.push({ ...overlay, page, top });
+      } else {
+        // No anchor found in this group (should not happen for a
+        // well-formed record) — fall back to sequential placement rather
+        // than dropping the element.
+        const page = Math.max(1, Math.floor(cursorAbs / pageHeight) + 1);
+        const top = cursorAbs - (page - 1) * pageHeight;
+        relocated.push({ ...overlay, page, top });
+        cursorAbs += elementHeight(overlay);
+      }
     }
   }
 

@@ -664,6 +664,72 @@ describe("reorderRecordBlock", () => {
     assert.equal(reorderRecordBlock(elements, body[0].element_id, "down"), null);
     assert.equal(reorderRecordBlock(elements, body[0].element_id, "sideways"), null);
   });
+
+  it("does not let a record-overlay date/location rail inflate positions when swapping records", () => {
+    // Regression: reorderRecordBlock's own manual relocation pass (run before
+    // applyFlowSpacing) used to stack every group member sequentially,
+    // including `record-overlay` lines (Meridian's period/city rail, Axis's
+    // date gutter, …) — inflating every later line's position by the
+    // overlay's height, which showed up live as scrambled records after
+    // using a record's ↑/↓ reorder arrows.
+    const pageHeight = 842;
+    const record = (id, top) => ([
+      {
+        element_id: `${id}-title`, category: "textarea", flowRole: "content",
+        autoHeight: true, flowGroup: id, content: `${id} title`, bold: true,
+        page: 1, top, left: 62, width: 300, height: 13,
+      },
+      {
+        element_id: `${id}-period`, category: "textarea", flowRole: "record-overlay",
+        autoHeight: false, flowGroup: id, content: "2021 – 2022", align: "right",
+        page: 1, top, left: 374, width: 130, height: 11,
+      },
+      {
+        element_id: `${id}-company`, category: "textarea", flowRole: "content",
+        autoHeight: true, flowGroup: id, content: `${id} company`,
+        page: 1, top: top + 17, left: 62, width: 300, height: 11,
+      },
+      {
+        element_id: `${id}-city`, category: "textarea", flowRole: "record-overlay",
+        autoHeight: false, flowGroup: id, content: "Warszawa", align: "right",
+        page: 1, top: top + 17, left: 374, width: 130, height: 11,
+      },
+      {
+        element_id: `${id}-bullets`, category: "textarea", flowRole: "content",
+        autoHeight: true, flowGroup: id, content: "• one\n• two",
+        page: 1, top: top + 32, left: 62, width: 471, height: 24,
+      },
+    ]);
+    const heading = {
+      element_id: "h1", category: "text", flowRole: "section-chrome",
+      content: "DOŚWIADCZENIE", page: 1, top: 100, left: 62, height: 14,
+    };
+    const elements = [heading, ...record("recA", 122), ...record("recB", 200)];
+
+    const rhythm = { ...DEFAULT_FLOW_SPACING };
+    const result = reorderRecordBlock(elements, "recB-title", "up", pageHeight, { spacing: rhythm });
+    assert.ok(result);
+
+    const byId = Object.fromEntries(result.elements.map((element) => [element.element_id, element]));
+    const abs = (element) => (element.page - 1) * pageHeight + element.top;
+
+    // recB now comes first; recA follows immediately after recB's true
+    // bottom (bullets) — not after some inflated height counting the
+    // overlay lines as extra stacked rows.
+    assert.ok(abs(byId["recB-title"]) < abs(byId["recA-title"]));
+
+    // Every overlay stays pinned exactly beside its real anchor line.
+    assert.equal(byId["recA-period"].top, byId["recA-title"].top);
+    assert.equal(byId["recA-city"].top, byId["recA-company"].top);
+    assert.equal(byId["recB-period"].top, byId["recB-title"].top);
+    assert.equal(byId["recB-city"].top, byId["recB-company"].top);
+
+    // Nothing from the swapped-to-second record (recA) lands before the
+    // swapped-to-first record's (recB) title — i.e. no interleaving.
+    for (const id of ["recA-title", "recA-period", "recA-company", "recA-city", "recA-bullets"]) {
+      assert.ok(abs(byId[id]) > abs(byId["recB-title"]), `${id} must land after recB`);
+    }
+  });
 });
 
 describe("removeRecordBlock", () => {
