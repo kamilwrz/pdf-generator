@@ -409,6 +409,61 @@ class VestigeTemplateTests(unittest.TestCase):
         self.assertIn("/template-assets/iconic/vestige/portrait.png", glyph["src"])
         self.assertFalse(glyph["alignWithText"])
 
+    def test_vestige_main_column_record_gaps_are_uniform(self) -> None:
+        """Recomputing every main-column textarea's `height` at the uniform
+        12 px line height (see the 12px-line-height test above) shrinks each
+        box by a different amount depending on its own line count, while
+        every subsequent record's `top` is still Sterling's original, now-
+        stale cursor position — left uncorrected, the *authored* gap between
+        one record and the next becomes visibly uneven from record to record,
+        only self-healing once the client's own reflow ("Układ CV") repacks
+        every gap from real measured heights. Every consecutive pair of
+        page-1 main-column textareas, sorted by `top`, must already show one
+        of exactly two gap sizes: a small one between fields of the SAME
+        record (title→meta→body) and a larger one between two records —
+        never a third, arbitrary value.
+        """
+        long_bullets = ["Punkt numer jeden z dłuższym opisem.", "Punkt numer dwa.", "Punkt trzeci z opisem."]
+        elements = generate_resume(
+            "vestige",
+            {
+                "name": "Kamil Wrzochalski",
+                "title": "AML Analyst",
+                "email": "k@example.com",
+                "phone": "+48 792 575 970",
+                "summary": "Starszy analityk AML/KYC.",
+                "experience": [
+                    {"title": "Senior AML Analyst", "company": "PwC", "period": "06/2025 – obecnie",
+                     "bullets": long_bullets},
+                    {"title": "Customer Service Representative", "company": "Medtronic", "period": "01/2025 – 05/2025",
+                     "bullets": ["Jeden krótki punkt."]},
+                    {"title": "AML Analyst", "company": "Citibank", "period": "07/2022 – 12/2024",
+                     "bullets": long_bullets},
+                    {"title": "Customer Service Specialist", "company": "Amazon", "period": "08/2020 – 06/2022",
+                     "bullets": long_bullets + ["Jeszcze jeden punkt na końcu."]},
+                ],
+                "education": [],
+                "skills": ["Strategia"],
+                "languages": [],
+            },
+        )
+        main_bodies = [
+            element for element in elements
+            if element.get("page", 1) == 1 and element["category"] == "textarea"
+            and element.get("flowLane") != "sidebar"
+            and element.get("flowRole") not in {"masthead", "masthead-anchor"}
+        ]
+        main_bodies.sort(key=lambda element: element["top"])
+        self.assertGreater(len(main_bodies), 4, "fixture must produce enough records to compare gaps")
+        gaps = set()
+        for earlier, later in zip(main_bodies, main_bodies[1:]):
+            gap = round(later["top"] - (earlier["top"] + earlier["height"]), 1)
+            gaps.add(gap)
+        self.assertLessEqual(
+            len(gaps), 2,
+            f"expected at most 2 distinct gap sizes (same-record, between-record), got {sorted(gaps)!r}",
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -166,6 +166,17 @@ def _gen_vestige(cv: dict) -> list[dict]:
     # per page, how far every subsequent sidebar element must shift down to
     # absorb the extra height already produced above it on that page.
     sidebar_shift_by_page: dict[int, float] = {}
+    # Mirrors `sidebar_shift_by_page`, but for the main column: shrinking every
+    # main-column textarea's line height to the uniform 12 px value below
+    # changes its `height` by a different amount per box (depends on its own
+    # line count), while every subsequent record's `top` is still Sterling's
+    # ORIGINAL, now-stale cursor position. Left uncorrected, the *authored*
+    # gap between two records becomes visibly uneven from record to record —
+    # only self-healing once the client's own reflow ("Układ CV" / a density
+    # change) repacks every gap from real measured heights. This tracks, per
+    # page, how far every subsequent main-column element must shift to absorb
+    # the height already reclaimed (or added) above it on that page.
+    main_shift_by_page: dict[int, float] = {}
     for source in elements:
         element = dict(source)
         category = element.get("category")
@@ -280,16 +291,21 @@ def _gen_vestige(cv: dict) -> list[dict]:
                 element["left"] = main_left + (original_left - _STERLING_MAIN_L) * main_scale
                 if "width" in element:
                     element["width"] = float(element["width"]) * main_scale
-            # `main_shift` closes the gap Sterling left for its own (dropped)
-            # contact row — see the comment above `main_shift`'s computation.
-            # Only page 1 carries that inflated cursor; continuation pages
-            # start fresh at the generic content top and must stay untouched.
-            if int(element.get("page", 1)) == 1:
-                element["top"] = float(element.get("top", 0)) + main_shift
+            page = int(element.get("page", 1))
+            main_carried_shift = main_shift_by_page.get(page, 0.0)
+            # `main_shift` (page 1 only) closes the gap Sterling left for its
+            # own dropped contact row — see that computation's comment.
+            # `main_carried_shift` absorbs any height already reclaimed by
+            # earlier main-column elements on this page — see the
+            # accumulator's declaration above the loop.
+            element["top"] = float(element.get("top", 0)) + main_carried_shift
+            if page == 1:
+                element["top"] += main_shift
             # Uniform 12 px line height, recomputed at the (possibly rescaled)
             # width so the first render already matches the corrected height —
             # same reasoning as the sidebar recompute above.
             if "height" in element:
+                original_height = float(element["height"])
                 element["lineHeight"] = main_body_line_height
                 element["height"] = Builder.measure_block(
                     element.get("content", ""),
@@ -300,6 +316,7 @@ def _gen_vestige(cv: dict) -> list[dict]:
                     bold=bool(element.get("bold", False)),
                     bulletList=bool(element.get("bulletList", False)),
                 )
+                main_shift_by_page[page] = main_carried_shift + (element["height"] - original_height)
         elif flow_role == "section-chrome" or (
             category == "textarea" and flow_lane != "sidebar" and flow_role not in {"masthead", "masthead-anchor"}
         ):
@@ -307,10 +324,13 @@ def _gen_vestige(cv: dict) -> list[dict]:
                 element["left"] = main_left
                 if "width" in element:
                     element["width"] = main_width
-            # Same page-1-only reclaim as the `grid-member` branch above.
-            if int(element.get("page", 1)) == 1:
-                element["top"] = float(element.get("top", 0)) + main_shift
+            page = int(element.get("page", 1))
+            main_carried_shift = main_shift_by_page.get(page, 0.0)
+            element["top"] = float(element.get("top", 0)) + main_carried_shift
+            if page == 1:
+                element["top"] += main_shift
             if category == "textarea" and "height" in element:
+                original_height = float(element["height"])
                 element["lineHeight"] = main_body_line_height
                 element["height"] = Builder.measure_block(
                     element.get("content", ""),
@@ -321,6 +341,7 @@ def _gen_vestige(cv: dict) -> list[dict]:
                     bold=bool(element.get("bold", False)),
                     bulletList=bool(element.get("bulletList", False)),
                 )
+                main_shift_by_page[page] = main_carried_shift + (element["height"] - original_height)
 
         # Move personal identity to the main column; Sterling's contact row
         # was already dropped above and is rebuilt from `cv` after this loop.
