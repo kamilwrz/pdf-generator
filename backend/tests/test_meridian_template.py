@@ -74,8 +74,11 @@ class MeridianTemplateTests(unittest.TestCase):
         self.assertEqual(len(ticks), 1)
         self.assertEqual(ticks[0]["width"], 18.0)
 
-    def test_meridian_experience_places_dates_in_a_right_aligned_column(self) -> None:
-        """Title/dates and company/location render as two-column rows, not stacked lines."""
+    def test_meridian_experience_pins_period_above_city_on_a_non_flowing_rail(self) -> None:
+        """Period/city stack vertically on a fixed overlay rail, never sharing a line
+        with the left title/company column and never colliding under live reflow
+        (the same `record-overlay` + `autoHeight: False` technique Axis's date
+        gutter already uses in production)."""
         elements = generate_resume(
             "meridian",
             {
@@ -96,21 +99,35 @@ class MeridianTemplateTests(unittest.TestCase):
         )
 
         title = next(e for e in elements if e.get("content") == "Senior Strategy Consultant")
-        period = next(e for e in elements if e.get("content") == "2021 – obecnie")
         company = next(e for e in elements if e.get("content") == "Northline Advisory")
+        period = next(e for e in elements if e.get("content") == "2021 – obecnie")
         city = next(e for e in elements if e.get("content") == "Warszawa")
 
         self.assertTrue(title["bold"])
-        self.assertEqual(title["top"], period["top"])
+        self.assertFalse(company["bold"])
+        # Title and company stack in the left column (company strictly below title).
+        self.assertLess(title["top"], company["top"])
+
+        # Period/city are pinned overlay lines, not part of the linear left flow.
+        self.assertEqual(period["flowRole"], "record-overlay")
+        self.assertEqual(city["flowRole"], "record-overlay")
+        self.assertFalse(period["autoHeight"])
+        self.assertFalse(city["autoHeight"])
         self.assertEqual(period["align"], "right")
+        self.assertEqual(city["align"], "right")
+
+        # Period sits above city, pinned to the record's top — never sharing a
+        # line/top with company (the bug this rework fixes).
+        self.assertEqual(period["top"], title["top"])
+        self.assertLess(period["top"], city["top"])
+        self.assertNotEqual(city["top"], company["top"])
+
+        # Rail sits to the right of the left content column.
         self.assertGreater(period["left"], title["left"] + title["width"])
 
-        self.assertEqual(company["top"], city["top"])
-        self.assertEqual(city["align"], "right")
-        self.assertFalse(company["bold"])
-
     def test_meridian_education_lists_school_before_the_bold_degree(self) -> None:
-        """Row order matches the screenshot convention: school/city, then degree/period."""
+        """Row order matches the screenshot convention: school/city, then degree/period,
+        with city/period pinned to a non-flowing rail like the experience record."""
         elements = generate_resume(
             "meridian",
             {
@@ -137,10 +154,15 @@ class MeridianTemplateTests(unittest.TestCase):
         self.assertFalse(school["bold"])
         self.assertTrue(degree["bold"])
         self.assertLess(school["top"], degree["top"])
-        self.assertEqual(school["top"], city["top"])
-        self.assertEqual(degree["top"], period["top"])
+
+        self.assertEqual(city["flowRole"], "record-overlay")
+        self.assertEqual(period["flowRole"], "record-overlay")
+        self.assertFalse(city["autoHeight"])
+        self.assertFalse(period["autoHeight"])
         self.assertEqual(city["align"], "right")
         self.assertEqual(period["align"], "right")
+        self.assertEqual(city["top"], school["top"])
+        self.assertLess(city["top"], period["top"])
 
     def test_meridian_keeps_a_realistic_multisentence_summary_on_the_first_page(self) -> None:
         """Prevent a display-size regression that left page one almost empty."""

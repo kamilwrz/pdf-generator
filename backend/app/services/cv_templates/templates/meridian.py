@@ -7,14 +7,20 @@ of Regent's monochrome ink, a noticeably more compact body type scale, and a
 short accent-blue tick under every section rule that gives the page its own
 identity instead of reading as a Regent recolor.
 
-Experience and education records use a two-column row layout (title/degree on
-the left, dates/location right-aligned on the right, matching a common
-Western "letterhead" resume convention) instead of the shared, fully
-left-aligned `_place_experience_record` / `_place_education_record` helpers
-every other single-column template reuses. Meridian's own
-`_meridian_place_row` / `_meridian_place_experience` / `_meridian_place_education`
-below implement that column split locally so no other template's record
-layout is affected.
+Experience and education records use a two-column layout: the left column
+flows normally (title/degree, company/school, bullets — one textarea per
+line, exactly like the shared `_place_experience_record` helper other
+single-column templates use), while dates and location are pinned to the
+record's top Y in a separate right-hand rail, stacked one above the other
+(never sharing a line with the left column). The rail elements carry
+`flowRole: "record-overlay"` and `autoHeight: False` — the same technique
+Axis's date gutter already uses in production (see `templates/axis.py`,
+`_place_gutter`) — so they ride along with the record on reflow/pagination
+without being mistaken for the next line in the left column's linear flow.
+An earlier version paired title+period and company+city as literal same-row
+blocks; that broke under the frontend's live textarea reflow (which assumes
+one flowing element per line) and has been replaced by this overlay
+approach.
 """
 from __future__ import annotations
 
@@ -46,51 +52,38 @@ _CONTACT_TO_RULE_GAP = 14.0
 _MASTHEAD_TO_CONTENT_GAP = 24.0
 _SECTION_TICK_WIDTH = 18.0
 
-# Two-column record geometry: a right-aligned date/location rail, narrower
-# than the left title/degree column, separated by a small fixed gap.
+# Right-hand date/location rail: a fixed-width overlay column separated from
+# the flowing left content column by a small gap.
 _RECORD_RIGHT_W = 130.0
 _RECORD_GAP = 12.0
+# Vertical gap between the rail's top line and its bottom line.
+_RECORD_RAIL_ROW_GAP = 2.0
 
 
-def _meridian_row_height(
-    b: "Builder", left_text: str, left_fs: float, left_lh: float,
-    right_text: str, right_fs: float, right_lh: float, font: str,
-    left_w: float, right_w: float, *, left_bold: bool = False,
-) -> float:
-    """Height of one title/dates or company/location row (max of both cells)."""
-    left_h = (
-        b.measure_block(left_text, left_w, left_fs, left_lh, font, bold=left_bold, min_h=left_lh)
-        if left_text else 0.0
-    )
-    right_h = (
-        b.measure_block(right_text, right_w, right_fs, right_lh, font, min_h=right_lh)
-        if right_text else 0.0
-    )
-    return max(left_h, right_h)
-
-
-def _meridian_place_row(
-    b: "Builder", left_text: str, left_fs: float, left_lh: float, left_color: str,
-    right_text: str, right_fs: float, right_lh: float, right_color: str, font: str,
-    left: float, left_w: float, right_w: float, *, left_bold: bool = False,
+def _meridian_place_rail(
+    b: "Builder", top: float, page: int, top_text: str, bottom_text: str,
+    fs: float, lh: float, color: str, font: str, x: float, width: float,
 ) -> None:
-    """Emit one row as two independently-aligned blocks sharing a top."""
-    row_h = _meridian_row_height(
-        b, left_text, left_fs, left_lh, right_text, right_fs, right_lh, font,
-        left_w, right_w, left_bold=left_bold,
-    )
-    top, page = b.y, b.pg
-    if left_text:
-        b.els.append(
-            _block(left_text, left, top, left_w, row_h, left_fs, left_lh, left_color, font,
-                   zIndex=2, page=page, bold=left_bold)
-        )
-    if right_text:
-        b.els.append(
-            _block(right_text, left + left_w + _RECORD_GAP, top, right_w, row_h,
-                   right_fs, right_lh, right_color, font, zIndex=2, page=page, align="right")
-        )
-    b.y = top + row_h
+    """Pin period/location (or city/period) as two stacked, non-flowing lines.
+
+    Both lines share the record's top Y via `top` rather than the Builder's
+    live cursor, and are tagged `flowRole: "record-overlay"` with
+    `autoHeight: False` — matching Axis's `_place_gutter` — so the frontend's
+    linear reflow of the left content column never repositions or collides
+    with them.
+    """
+    if top_text:
+        el = _block(top_text, x, top, width, lh, fs, lh, color, font,
+                     zIndex=3, page=page, align="right")
+        el["autoHeight"] = False
+        el["flowRole"] = "record-overlay"
+        b.els.append(el)
+    if bottom_text:
+        el = _block(bottom_text, x, top + lh + _RECORD_RAIL_ROW_GAP, width, lh, fs, lh, color, font,
+                     zIndex=3, page=page, align="right")
+        el["autoHeight"] = False
+        el["flowRole"] = "record-overlay"
+        b.els.append(el)
 
 
 def _meridian_experience_height(
@@ -98,27 +91,27 @@ def _meridian_experience_height(
     title_fs: float, title_lh: float, meta_fs: float, meta_lh: float,
     body_fs: float, body_lh: float,
 ) -> float:
-    """Measured height of one two-column experience record (no trailing gap)."""
-    left_w = width - _RECORD_RIGHT_W - _RECORD_GAP
+    """Measured height of one experience record's left content column.
+
+    The right-hand date/location rail is a fixed-height overlay that does not
+    contribute to this measurement (mirrors Axis's date gutter).
+    """
+    content_w = width - _RECORD_RIGHT_W - _RECORD_GAP
     title = str(job.get("title") or "").strip()
-    period = str(job.get("period") or "").strip()
     company = str(job.get("company") or "").strip()
-    city = str(job.get("city") or "").strip()
     bullets = _bullets(job)
 
-    height = _meridian_row_height(
-        b, title, title_fs, title_lh, period, meta_fs, meta_lh, font,
-        left_w, _RECORD_RIGHT_W, left_bold=True,
-    )
-    if company or city:
-        height += get_spacing().stack + _meridian_row_height(
-            b, company, meta_fs, meta_lh, city, meta_fs, meta_lh, font,
-            left_w, _RECORD_RIGHT_W,
-        )
+    height = 0.0
+    if title:
+        height += b.measure_block(title, content_w, title_fs, title_lh, font, bold=True, min_h=title_lh)
+    if company:
+        if height:
+            height += get_spacing().stack
+        height += b.measure_block(company, content_w, meta_fs, meta_lh, font, min_h=meta_lh)
     if bullets:
-        height += get_spacing().stack + b.measure_block(
-            bullets, width, body_fs, body_lh, font, bulletList=True, min_h=body_lh,
-        )
+        if height:
+            height += get_spacing().stack
+        height += b.measure_block(bullets, content_w, body_fs, body_lh, font, bulletList=True, min_h=body_lh)
     return height
 
 
@@ -128,11 +121,12 @@ def _meridian_place_experience(
     title_fs: float, title_lh: float, meta_fs: float, meta_lh: float,
     body_fs: float, body_lh: float, after_gap: float | None = None,
 ) -> None:
-    """Render one experience record as title/dates then company/location rows."""
-    left_w = width - _RECORD_RIGHT_W - _RECORD_GAP
+    """Render title → company → bullets in the left column; period above city on the right rail."""
+    content_w = width - _RECORD_RIGHT_W - _RECORD_GAP
+    rail_x = left + content_w + _RECORD_GAP
     title = str(job.get("title") or "").strip()
-    period = str(job.get("period") or "").strip()
     company = str(job.get("company") or "").strip()
+    period = str(job.get("period") or "").strip()
     city = str(job.get("city") or "").strip()
     bullets = _bullets(job)
     height = _meridian_experience_height(
@@ -140,19 +134,21 @@ def _meridian_place_experience(
         meta_fs=meta_fs, meta_lh=meta_lh, body_fs=body_fs, body_lh=body_lh,
     )
     with b.keep_together(height):
-        _meridian_place_row(
-            b, title, title_fs, title_lh, ink, period, meta_fs, meta_lh, muted,
-            font, left, left_w, _RECORD_RIGHT_W, left_bold=True,
-        )
-        if company or city:
-            b.gap(get_spacing().stack)
-            _meridian_place_row(
-                b, company, meta_fs, meta_lh, muted, city, meta_fs, meta_lh, muted,
-                font, left, left_w, _RECORD_RIGHT_W,
-            )
+        top, page = b.y, b.pg
+        placed = False
+        if title:
+            b.block(title, left, content_w, title_fs, title_lh, ink, font, bold=True, min_h=title_lh)
+            placed = True
+        if company:
+            if placed:
+                b.gap(get_spacing().stack)
+            b.block(company, left, content_w, meta_fs, meta_lh, muted, font, min_h=meta_lh)
+            placed = True
         if bullets:
-            b.gap(get_spacing().stack)
-            b.block(bullets, left, width, body_fs, body_lh, body, font, bulletList=True)
+            if placed:
+                b.gap(get_spacing().stack)
+            b.block(bullets, left, content_w, body_fs, body_lh, body, font, bulletList=True)
+        _meridian_place_rail(b, top, page, period, city, meta_fs, meta_lh, muted, font, rail_x, _RECORD_RIGHT_W)
     if after_gap is not None:
         b.gap(after_gap)
 
@@ -162,36 +158,27 @@ def _meridian_education_height(
     degree_fs: float, degree_lh: float, meta_fs: float, meta_lh: float,
     body_fs: float, body_lh: float,
 ) -> float:
-    """Measured height of one two-column education record (no trailing gap)."""
-    left_w = width - _RECORD_RIGHT_W - _RECORD_GAP
+    """Measured height of one education record's left content column.
+
+    The right-hand city/period rail is a fixed-height overlay that does not
+    contribute to this measurement (mirrors Axis's date gutter).
+    """
+    content_w = width - _RECORD_RIGHT_W - _RECORD_GAP
     school = _education_school(edu)
-    city = str(edu.get("city") or "").strip()
     degree = str(edu.get("degree") or "").strip()
-    period = str(edu.get("period") or "").strip()
     bullets = _education_bullets(edu)
 
     height = 0.0
-    placed = False
-    if school or city:
-        height += _meridian_row_height(
-            b, school, degree_fs, degree_lh, city, meta_fs, meta_lh, font,
-            left_w, _RECORD_RIGHT_W,
-        )
-        placed = True
-    if degree or period:
-        if placed:
+    if school:
+        height += b.measure_block(school, content_w, degree_fs, degree_lh, font, min_h=degree_lh)
+    if degree:
+        if height:
             height += get_spacing().stack
-        height += _meridian_row_height(
-            b, degree, degree_fs, degree_lh, period, meta_fs, meta_lh, font,
-            left_w, _RECORD_RIGHT_W, left_bold=True,
-        )
-        placed = True
+        height += b.measure_block(degree, content_w, degree_fs, degree_lh, font, bold=True, min_h=degree_lh)
     if bullets:
-        if placed:
+        if height:
             height += get_spacing().stack
-        height += b.measure_block(
-            bullets, width, body_fs, body_lh, font, bulletList=True, min_h=body_lh,
-        )
+        height += b.measure_block(bullets, content_w, body_fs, body_lh, font, bulletList=True, min_h=body_lh)
     return height
 
 
@@ -201,42 +188,39 @@ def _meridian_place_education(
     degree_fs: float, degree_lh: float, meta_fs: float, meta_lh: float,
     body_fs: float, body_lh: float, after_gap: float | None = None,
 ) -> None:
-    """Render one education record as school/location then degree/period rows.
+    """Render school → degree (bold) → bullets in the left column; city above period on the right rail.
 
     Row order matches the common letterhead convention (school first, then
     the bold diploma title) rather than the shared helper's degree-first
     order — Meridian's defining structural difference from Regent.
     """
-    left_w = width - _RECORD_RIGHT_W - _RECORD_GAP
+    content_w = width - _RECORD_RIGHT_W - _RECORD_GAP
+    rail_x = left + content_w + _RECORD_GAP
     school = _education_school(edu)
-    city = str(edu.get("city") or "").strip()
     degree = str(edu.get("degree") or "").strip()
+    city = str(edu.get("city") or "").strip()
     period = str(edu.get("period") or "").strip()
     bullets = _education_bullets(edu)
     height = _meridian_education_height(
         b, edu, width, font, degree_fs=degree_fs, degree_lh=degree_lh,
         meta_fs=meta_fs, meta_lh=meta_lh, body_fs=body_fs, body_lh=body_lh,
     )
-    placed = False
     with b.keep_together(height):
-        if school or city:
-            _meridian_place_row(
-                b, school, degree_fs, degree_lh, ink, city, meta_fs, meta_lh, muted,
-                font, left, left_w, _RECORD_RIGHT_W,
-            )
+        top, page = b.y, b.pg
+        placed = False
+        if school:
+            b.block(school, left, content_w, degree_fs, degree_lh, ink, font, min_h=degree_lh)
             placed = True
-        if degree or period:
+        if degree:
             if placed:
                 b.gap(get_spacing().stack)
-            _meridian_place_row(
-                b, degree, degree_fs, degree_lh, ink, period, meta_fs, meta_lh, muted,
-                font, left, left_w, _RECORD_RIGHT_W, left_bold=True,
-            )
+            b.block(degree, left, content_w, degree_fs, degree_lh, ink, font, bold=True, min_h=degree_lh)
             placed = True
         if bullets:
             if placed:
                 b.gap(get_spacing().stack)
-            b.block(bullets, left, width, body_fs, body_lh, body, font, bulletList=True)
+            b.block(bullets, left, content_w, body_fs, body_lh, body, font, bulletList=True)
+        _meridian_place_rail(b, top, page, city, period, meta_fs, meta_lh, muted, font, rail_x, _RECORD_RIGHT_W)
     if after_gap is not None:
         b.gap(after_gap)
 
