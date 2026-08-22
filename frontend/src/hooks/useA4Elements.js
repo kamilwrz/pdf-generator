@@ -58,6 +58,7 @@ import { useDocumentHistory } from './useDocumentHistory';
 import { applyChannelRemoval, applyChannelAddition, applyChannelRelayout } from '../utils/contactBandOps';
 import { applyNameCaseToggle, applyTitleToggle } from '../utils/mastheadIdentityOps';
 import { canvasFontFamily } from '../utils/canvasFont';
+import { isCanvasInteractionTarget } from '../utils/editZoomExit';
 import { useElementSelectionDrag } from './useElementSelectionDrag';
 import API_BASE_URL, { ENDPOINTS } from '../services/api';
 
@@ -111,6 +112,11 @@ function prefersReducedMotion() {
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
+/**
+ * Return whether a pointer event originated on an A4 page or one of its
+ * rendered elements. Toolbar, sidebar, and browser-chrome clicks must not end
+ * the focused text edit's temporary zoom level.
+ */
 export function useA4Elements(titleRef) {
 
   const A4ref = useRef(null);
@@ -242,15 +248,34 @@ export function useA4Elements(titleRef) {
   }, [A4_Elements]);
   // Zoom level to restore when edit mode ends; null while not auto-zoomed.
   const editZoomPreviousRef = useRef(null);
+  // A blur can be caused by any control outside the canvas. Restore the
+  // temporary edit zoom only after an intentional page/element interaction,
+  // not when the user uses the sidebar or toolbar while text remains focused.
+  const editZoomExitRequestedRef = useRef(false);
+  useEffect(() => {
+    const markCanvasEditExit = (event) => {
+      if (isCanvasInteractionTarget(event.target)) {
+        editZoomExitRequestedRef.current = true;
+      }
+    };
+    document.addEventListener("pointerdown", markCanvasEditExit, true);
+    return () => document.removeEventListener("pointerdown", markCanvasEditExit, true);
+  }, []);
   useEffect(() => {
     if (isTwoPageView || !editingElementId) {
+      const shouldRestore = isTwoPageView || editZoomExitRequestedRef.current;
+      if (!shouldRestore) return undefined;
       if (editZoomPreviousRef.current != null) {
         setZoomState(editZoomPreviousRef.current);
         editZoomPreviousRef.current = null;
       }
+      editZoomExitRequestedRef.current = false;
       return undefined;
     }
 
+    // A click on another canvas element also marks a potential exit. Reset the
+    // signal when that click immediately opens the next text edit instead.
+    editZoomExitRequestedRef.current = false;
     setZoomState((current) => {
       if (editZoomPreviousRef.current == null) editZoomPreviousRef.current = current;
       return EDIT_ZOOM;
