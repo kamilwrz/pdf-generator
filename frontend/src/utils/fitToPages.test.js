@@ -32,3 +32,29 @@ describe("buildSpacingLadder", () => {
     assert.deepEqual(ladder[ladder.length - 1], FLOOR);
   });
 });
+
+import { classifyFitTier } from "./fitToPages.js";
+import {
+  COMPACT_FLOW_SPACING,
+  MIN_FLOW_SPACING,
+} from "./flowSpacing.js";
+
+describe("classifyFitTier", () => {
+  it("classifies baseline / compact-or-looser as clean", () => {
+    assert.equal(classifyFitTier({ stack: 4, record: 10, section: 21, after_rule: 8 }), "clean");
+    assert.equal(classifyFitTier(COMPACT_FLOW_SPACING), "clean");
+  });
+
+  it("classifies the hard floor as emergency", () => {
+    assert.equal(classifyFitTier(MIN_FLOW_SPACING), "emergency");
+  });
+
+  it("classifies a candidate within 1px of the floor as emergency", () => {
+    assert.equal(classifyFitTier({ stack: 3, record: 3, section: 11, after_rule: 3 }), "emergency");
+  });
+
+  it("classifies between compact and floor as tight", () => {
+    // record 5 < compact.record(7) but well above floor+1(3) → tight.
+    assert.equal(classifyFitTier({ stack: 3, record: 5, section: 13, after_rule: 5 }), "tight");
+  });
+});

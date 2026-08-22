@@ -10,7 +10,11 @@
  * (balance/fill density around baseline); this module keeps the page-count
  * target objective separate so the two never tangle in one scorer.
  */
-import { normalizeFlowSpacing } from "./flowSpacing.js";
+import {
+  COMPACT_FLOW_SPACING,
+  MIN_FLOW_SPACING,
+  normalizeFlowSpacing,
+} from "./flowSpacing.js";
 
 const KNOBS = ["stack", "record", "section", "after_rule"];
 
@@ -39,4 +43,28 @@ export function buildSpacingLadder(loosest, tightest, steps = 10) {
     ladder.push(normalizeFlowSpacing(candidate));
   }
   return ladder;
+}
+
+/** Per-knob tolerance so a candidate that rounds onto the floor reads as floor. */
+const FLOOR_EPSILON = 1;
+
+/**
+ * Where a fitting rhythm sits between the compact preset and the hard floor.
+ * `"impossible"` is never returned here — findFitForTarget assigns it when
+ * nothing on the ladder fits.
+ *
+ * @param {object} spacing
+ * @param {{ compact?: object, floor?: object }} [refs]
+ * @returns {"clean"|"tight"|"emergency"}
+ */
+export function classifyFitTier(
+  spacing,
+  { compact = COMPACT_FLOW_SPACING, floor = MIN_FLOW_SPACING } = {},
+) {
+  const s = normalizeFlowSpacing(spacing);
+  const c = normalizeFlowSpacing(compact);
+  const f = normalizeFlowSpacing(floor);
+  if (KNOBS.every((key) => s[key] >= c[key])) return "clean";
+  if (KNOBS.every((key) => s[key] <= f[key] + FLOOR_EPSILON)) return "emergency";
+  return "tight";
 }
