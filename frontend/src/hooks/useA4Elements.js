@@ -97,7 +97,8 @@ const stepZoom = (z, dir) => clampZoom(Math.round((z + dir * ZOOM_STEP) * 10) / 
 
 // Entering text-edit mode zooms the canvas to this level so small type is
 // readable while typing, then restores the pre-edit zoom on exit (see the
-// editingElementId effect below). Two-page view never auto-zooms.
+// editingElementId effect below). Editing from a two-page spread temporarily
+// focuses the selected element's page before applying this same zoom.
 const EDIT_ZOOM = 2;
 // Matches the CSS transition on `.A4` / `.zoomWrapper` (A4.module.css) plus a
 // small buffer. `scrollIntoView` called mid-transition targets an
@@ -246,8 +247,18 @@ export function useA4Elements(titleRef) {
     ));
     return editing ? editing.element_id : null;
   }, [A4_Elements]);
+  // Keep page as a primitive dependency: content edits replace A4_Elements on
+  // every keystroke, but they do not re-run the zoom/scroll effect.
+  const editingElementPage = useMemo(() => {
+    if (!editingElementId) return null;
+    return A4_Elements.find((element) => element.element_id === editingElementId)?.page ?? null;
+  }, [A4_Elements, editingElementId]);
   // Zoom level to restore when edit mode ends; null while not auto-zoomed.
   const editZoomPreviousRef = useRef(null);
+  // A two-page spread cannot keep both A4 sheets legible at 200%. Remember
+  // that it was active so an edit started there can focus its own page, then
+  // return the reader to the previous spread after an intentional edit exit.
+  const editZoomPreviousSpreadRef = useRef(null);
   // A blur can be caused by any control outside the canvas. Restore the
   // temporary edit zoom only after an intentional page/element interaction,
   // not when the user uses the sidebar or toolbar while text remains focused.
@@ -274,14 +285,31 @@ export function useA4Elements(titleRef) {
     }
   }, []);
   useEffect(() => {
-    if (isTwoPageView || !editingElementId) {
-      const shouldRestore = isTwoPageView || editZoomExitRequestedRef.current;
+    if (!editingElementId) {
+      const shouldRestore = editZoomExitRequestedRef.current;
       if (!shouldRestore) return undefined;
       if (editZoomPreviousRef.current != null) {
         setZoomState(editZoomPreviousRef.current);
         editZoomPreviousRef.current = null;
       }
+      if (editZoomPreviousSpreadRef.current) {
+        setIsTwoPageView(true);
+      }
+      editZoomPreviousSpreadRef.current = null;
       editZoomExitRequestedRef.current = false;
+      return undefined;
+    }
+
+    if (isTwoPageView) {
+      if (editZoomPreviousSpreadRef.current == null) {
+        editZoomPreviousSpreadRef.current = true;
+      }
+      // A spread may currently be anchored to its neighbouring page. Make the
+      // selected page the single-page target before its 200% transform begins.
+      if (Number.isInteger(editingElementPage) && editingElementPage > 0) {
+        setCurrentPage(editingElementPage);
+      }
+      setIsTwoPageView(false);
       return undefined;
     }
 
@@ -311,7 +339,7 @@ export function useA4Elements(titleRef) {
     }
     const timer = window.setTimeout(scrollToEditedElement, EDIT_ZOOM_TRANSITION_MS);
     return () => window.clearTimeout(timer);
-  }, [editingElementId, isTwoPageView]);
+  }, [editingElementId, editingElementPage, isTwoPageView]);
 
   // Strip NULL/NBSP junk and trailing bullet placeholders already sitting in
   // open documents (loaded before sanitization existed, or left after edit).
