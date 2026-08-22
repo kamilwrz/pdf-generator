@@ -122,7 +122,16 @@ function Text({
         if (!selectAllOnEdit) range.collapse(false);
         selection.removeAllRanges();
         selection.addRange(range);
-    }, [isEditing, selectAllOnEdit]);
+        // The spread's old node can blur during this render commit. Release the
+        // transition guard only on the next frame, after this replacement node
+        // has received its authored content and focus.
+        const releaseFrame = window.requestAnimationFrame(() => {
+            if (editZoomSpreadTransitionRef?.current === elementId) {
+                editZoomSpreadTransitionRef.current = null;
+            }
+        });
+        return () => window.cancelAnimationFrame(releaseFrame);
+    }, [editZoomSpreadTransitionRef, elementId, isEditing, selectAllOnEdit]);
 
     function startEditing(event) {
         event?.preventDefault();
@@ -202,7 +211,7 @@ function Text({
                 // The two-page edit zoom unmounts the old contentEditable
                 // surface. That browser blur must not serialize the transient
                 // empty node over the selected text element's stored content.
-                if (editZoomSpreadTransitionRef?.current) return;
+                if (editZoomSpreadTransitionRef?.current === elementId) return;
                 if (isEditing) finishEditing();
             }}
             onKeyDown={(e) => {

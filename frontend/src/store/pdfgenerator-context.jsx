@@ -40,7 +40,7 @@ export const PdfContext = createContext({
     transferSectionLane: () => {},
     changeSkillsDisplayMode: () => {},
     requestEditZoomRestore: () => {},
-    editZoomSpreadTransitionRef: { current: false },
+    editZoomSpreadTransitionRef: { current: null },
     isBioCvModal: false,
     showBioCvModal: () => {},
     cancelBioCvModal: () => {},

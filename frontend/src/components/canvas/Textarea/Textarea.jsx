@@ -350,6 +350,11 @@ function Textarea({
             range.collapse(false); // caret at end, matching the old textarea
             selection.removeAllRanges();
             selection.addRange(range);
+            // The replacement edit node now owns the seeded content. Only now
+            // release the guard that blocks the old spread node's unmount blur.
+            if (editZoomSpreadTransitionRef?.current === elementId) {
+                editZoomSpreadTransitionRef.current = null;
+            }
         });
         return () => window.cancelAnimationFrame(focusFrame);
         // Seed only when entering edit; content/runs changes during editing come
@@ -482,7 +487,7 @@ function Textarea({
                         // The 2-page → focused-page edit zoom unmounts this
                         // surface. Ignore that synthetic blur so its transient
                         // empty DOM cannot overwrite the element's real content.
-                        if (editZoomSpreadTransitionRef?.current) return;
+                        if (editZoomSpreadTransitionRef?.current === elementId) return;
                         if (editingRef.current) {
                             commitEditable(editingRef.current, { finalize: true });
                         }
