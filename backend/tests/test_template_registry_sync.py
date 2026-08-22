@@ -2,8 +2,8 @@
 
 The product has two template registries by design (static FE previews vs
 deterministic Python fill). This test is the contract that stops free-tier
-and fill-template drift such as Nova being free in the UI but blocked by
-``FREE_STARTER_TEMPLATE_IDS``.
+and fill-template drift such as Nova or Regent being free in the UI but
+blocked by ``FREE_STARTER_TEMPLATE_IDS``.
 """
 from __future__ import annotations
 

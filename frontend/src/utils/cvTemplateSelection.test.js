@@ -5,7 +5,7 @@ import { adjacentAllowedTemplate, selectCvTemplates } from "./cvTemplateSelectio
 // These suites exercise the generic selection/navigation algorithm, so they use
 // synthetic template ids ("free-a", "paid-a", …) rather than live registry ids.
 // This keeps the two-free-template wrap-around scenario expressible even though
-// the real registry currently ships a single free starter.
+// the real registry only exposes a small free starter set.
 
 test("returns templates in registry order", () => {
   const templates = [
