@@ -662,45 +662,59 @@
     font-size: 8px;
 }
 
+/* Deliberately NOT the site's Swiss/sans design system: this card recreates
+   a real, dated Word-CV look (serif type, navy headings, grey section bars)
+   on purpose, as the visual "before" contrast against every other template
+   mockup on the page. Content matches the same CV used to generate the
+   Sterling "after" mockup (see afterMock in Hero.jsx) — real before/after,
+   not an abstract wireframe. */
 .oldDocument {
-    display: grid;
-    gap: 8px;
+    display: block;
     min-height: 388px;
-    padding: 34px 28px;
+    max-height: 388px;
+    overflow: hidden;
+    padding: 24px 26px;
     border: 1px solid var(--line-strong);
     border-radius: 0;
     background: var(--beige);
+    font-family: Georgia, "Times New Roman", serif;
+    color: #1F2B52;
 }
 
-.oldDocument span,
-.oldDocument i {
-    display: block;
-    height: 5px;
-    background: #C4BEAF;
+.oldName {
+    margin: 0 0 10px;
+    font-size: 15px;
+    font-weight: 700;
+    text-align: center;
 }
 
-.oldDocument .oldTitle {
-    width: 76%;
-    height: 13px;
-    margin-top: 5px;
-    background: #8A8577;
+.oldContactLine {
+    margin: 0 0 3px;
+    font-size: 10px;
+    line-height: 1.4;
 }
 
-.oldDocument .oldSubtitle {
-    width: 43%;
-    height: 6px;
-    margin-bottom: 17px;
+.oldSectionBar {
+    margin: 14px 0 8px;
+    padding: 3px 6px;
+    background: #D6D6D6;
+    color: #1F2B52;
+    font-size: 10px;
+    font-weight: 700;
+    text-decoration: underline;
 }
 
-.oldDocument i {
-    width: 100%;
-    height: 1px;
-    margin: 14px 0 3px;
-    background: #A8A294;
+.oldEntryTitle {
+    margin: 0 0 2px;
+    font-size: 10px;
+    font-weight: 700;
 }
 
-.oldDocument span:nth-of-type(4n) {
-    width: 67%;
+.oldEntryMeta {
+    margin: 0;
+    font-size: 9px;
+    font-style: italic;
+    color: #47507A;
 }
 
 .beforeCard p,

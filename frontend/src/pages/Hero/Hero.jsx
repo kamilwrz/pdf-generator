@@ -163,9 +163,12 @@ export default function Hero() {
     const heroFront = previewById("portico");
     const heroBack = previewById("monument");
     const editorMock = previewById("meridian");
-    // Tessera (sidebar + photo) makes the "after" transformation feel like a
-    // real redesign, not just a single-column restyle of the wireframe "before".
-    const afterMock = previewById("tessera");
+    // A dedicated Sterling render of the SAME CV content shown in the
+    // "before" card (Jan Kowalski) — not a template picker mockup with the
+    // generic demo persona, and not `previewById` (which only resolves the
+    // standard per-template mockup path) — so the before/after pair reads as
+    // one real transformation, not two unrelated documents.
+    const afterMock = { name: "Sterling", image: "/template-mockups/sterling-showcase.png" };
     const finalDocs = ["nova", "vestige", "slate"].map(previewById);
 
     return (
@@ -260,12 +263,16 @@ export default function Hero() {
                     <article className={classes.beforeCard}>
                         <div className={classes.documentLabel}><span>PRZED</span> Dotychczasowe CV</div>
                         <div className={classes.oldDocument} aria-hidden="true">
-                            <span className={classes.oldTitle} />
-                            <span className={classes.oldSubtitle} />
-                            <i />
-                            <span /><span /><span /><span /><span />
-                            <i />
-                            <span /><span /><span /><span />
+                            <p className={classes.oldName}>Jan Kowalski</p>
+                            <p className={classes.oldContactLine}><b>Adres:</b> ul. Stanisława Paca 32/6, 04-216 Warszawa</p>
+                            <p className={classes.oldContactLine}><b>Telefon:</b> 543 555 512</p>
+                            <p className={classes.oldContactLine}><b>E-mail:</b> jkowalski@wp.pl</p>
+                            <div className={classes.oldSectionBar}>Wykształcenie</div>
+                            <p className={classes.oldEntryTitle}>Krajowa Akademia Służby Publicznej</p>
+                            <p className={classes.oldEntryMeta}>2008-10</p>
+                            <div className={classes.oldSectionBar}>Doświadczenie zawodowe</div>
+                            <p className={classes.oldEntryTitle}>Ministerstwo Współpracy Międzynarodowej</p>
+                            <p className={classes.oldEntryMeta}>stanowisko: specjalista</p>
                         </div>
                         <p>Ta sama treść, tylko trudna do odświeżenia.</p>
                     </article>
