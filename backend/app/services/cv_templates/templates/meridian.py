@@ -10,17 +10,36 @@ identity instead of reading as a Regent recolor.
 Experience and education records use a two-column layout: the left column
 flows normally (title/degree, company/school, bullets — one textarea per
 line, exactly like the shared `_place_experience_record` helper other
-single-column templates use), while dates and location are pinned to the
-record's top Y in a separate right-hand rail, stacked one above the other
-(never sharing a line with the left column). The rail elements carry
-`flowRole: "record-overlay"` and `autoHeight: False` — the same technique
-Axis's date gutter already uses in production (see `templates/axis.py`,
-`_place_gutter`) — so they ride along with the record on reflow/pagination
-without being mistaken for the next line in the left column's linear flow.
+single-column templates use), while dates and location are pinned to a
+separate right-hand rail, stacked one above the other (never sharing a line
+with the left column). The rail elements carry `flowRole: "record-overlay"`
+and `autoHeight: False` — the same technique Axis's date gutter already uses
+in production (see `templates/axis.py`, `_place_gutter`) — so they ride along
+with the record on reflow/pagination without being mistaken for the next
+line in the left column's linear flow.
+
+Each rail line is pinned to the *exact* top Y of the left-column line it
+annotates (period next to the title line, city next to the company line; or
+city next to the school line, period next to the degree line) rather than a
+computed offset from the record's start. This matters because the frontend's
+reflow (`textareaReflow.js`, `recordOverlayAnchor`) re-anchors an overlay by
+finding a same-`flowGroup` textarea whose top matches the overlay's *original*
+top within ~3px, then re-pins the overlay at that anchor's *new* top after
+reflow. An overlay whose top is merely "record start + a guessed offset"
+matches no real content line, so `recordOverlayAnchor` cannot find its anchor
+and it freezes at its original position — invisibly breaking section
+reordering, spacing changes, and any edit that grows/shrinks an earlier
+line. Anchoring to the exact top of a genuine content line keeps reordering
+and spacing changes correct, the same guarantee Axis and Harbor already rely
+on for their own overlays.
+
 An earlier version paired title+period and company+city as literal same-row
-blocks; that broke under the frontend's live textarea reflow (which assumes
-one flowing element per line) and has been replaced by this overlay
-approach.
+blocks (broke live reflow entirely, since that reflow assumes one flowing
+element per line in the left column); a later revision fixed that but placed
+the second rail line at a guessed `top + lineHeight + gap` offset that did
+not match any real content line's top (broke re-anchoring specifically,
+though not initial placement). Both are now replaced by this
+exact-anchor-top approach.
 """
 from __future__ import annotations
 
@@ -56,34 +75,30 @@ _SECTION_TICK_WIDTH = 18.0
 # the flowing left content column by a small gap.
 _RECORD_RIGHT_W = 130.0
 _RECORD_GAP = 12.0
-# Vertical gap between the rail's top line and its bottom line.
-_RECORD_RAIL_ROW_GAP = 2.0
 
 
-def _meridian_place_rail(
-    b: "Builder", top: float, page: int, top_text: str, bottom_text: str,
+def _meridian_place_rail_line(
+    b: "Builder", anchor_top: float, page: int, text: str,
     fs: float, lh: float, color: str, font: str, x: float, width: float,
 ) -> None:
-    """Pin period/location (or city/period) as two stacked, non-flowing lines.
+    """Pin one rail line to the exact top Y of the content line it annotates.
 
-    Both lines share the record's top Y via `top` rather than the Builder's
-    live cursor, and are tagged `flowRole: "record-overlay"` with
-    `autoHeight: False` — matching Axis's `_place_gutter` — so the frontend's
-    linear reflow of the left content column never repositions or collides
-    with them.
+    Tagged `flowRole: "record-overlay"` with `autoHeight: False` — matching
+    Axis's `_place_gutter` — so the frontend's linear reflow of the left
+    content column never repositions or collides with it. Critically,
+    `anchor_top` must equal a real content textarea's top (not a computed
+    offset): the frontend's `recordOverlayAnchor` re-pins this element by
+    matching that top against same-`flowGroup` textareas, so an unmatched
+    top leaves the element frozen in place after reordering or a spacing
+    change (see the module docstring).
     """
-    if top_text:
-        el = _block(top_text, x, top, width, lh, fs, lh, color, font,
-                     zIndex=3, page=page, align="right")
-        el["autoHeight"] = False
-        el["flowRole"] = "record-overlay"
-        b.els.append(el)
-    if bottom_text:
-        el = _block(bottom_text, x, top + lh + _RECORD_RAIL_ROW_GAP, width, lh, fs, lh, color, font,
-                     zIndex=3, page=page, align="right")
-        el["autoHeight"] = False
-        el["flowRole"] = "record-overlay"
-        b.els.append(el)
+    if not text:
+        return
+    el = _block(text, x, anchor_top, width, lh, fs, lh, color, font,
+                zIndex=3, page=page, align="right")
+    el["autoHeight"] = False
+    el["flowRole"] = "record-overlay"
+    b.els.append(el)
 
 
 def _meridian_experience_height(
@@ -125,7 +140,15 @@ def _meridian_place_experience(
     title_fs: float, title_lh: float, meta_fs: float, meta_lh: float,
     body_fs: float, body_lh: float, after_gap: float | None = None,
 ) -> None:
-    """Render title → company → bullets in the left column; period above city on the right rail."""
+    """Render title → company → bullets in the left column; period above city on the right rail.
+
+    `period` is pinned to the title line's exact top; `city` is pinned to
+    whichever line actually follows it (company, or bullets when company is
+    absent) so both rail lines stay correctly anchored for reflow. If neither
+    a company nor a bullet line follows the title, `city` is dropped rather
+    than pinned to a guessed offset with no real anchor (see module
+    docstring).
+    """
     content_w = width - _RECORD_RIGHT_W - _RECORD_GAP
     rail_x = left + content_w + _RECORD_GAP
     title = str(job.get("title") or "").strip()
@@ -138,7 +161,8 @@ def _meridian_place_experience(
         meta_fs=meta_fs, meta_lh=meta_lh, body_fs=body_fs, body_lh=body_lh,
     )
     with b.keep_together(height):
-        top, page = b.y, b.pg
+        title_top, page = b.y, b.pg
+        second_line_top: float | None = None
         placed = False
         if title:
             b.block(title, left, content_w, title_fs, title_lh, ink, font, bold=True, min_h=title_lh)
@@ -146,13 +170,20 @@ def _meridian_place_experience(
         if company:
             if placed:
                 b.gap(get_spacing().stack)
+                second_line_top = b.y
             b.block(company, left, content_w, meta_fs, meta_lh, muted, font, min_h=meta_lh)
             placed = True
         if bullets:
             if placed:
                 b.gap(get_spacing().stack)
+                if second_line_top is None:
+                    second_line_top = b.y
             b.block(bullets, left, width, body_fs, body_lh, body, font, bulletList=True)
-        _meridian_place_rail(b, top, page, period, city, meta_fs, meta_lh, muted, font, rail_x, _RECORD_RIGHT_W)
+        _meridian_place_rail_line(b, title_top, page, period, meta_fs, meta_lh, muted, font, rail_x, _RECORD_RIGHT_W)
+        if second_line_top is not None:
+            _meridian_place_rail_line(
+                b, second_line_top, page, city, meta_fs, meta_lh, muted, font, rail_x, _RECORD_RIGHT_W,
+            )
     if after_gap is not None:
         b.gap(after_gap)
 
@@ -198,7 +229,12 @@ def _meridian_place_education(
 
     Row order matches the common letterhead convention (school first, then
     the bold diploma title) rather than the shared helper's degree-first
-    order — Meridian's defining structural difference from Regent.
+    order — Meridian's defining structural difference from Regent. `city` is
+    pinned to the school line's exact top; `period` is pinned to whichever
+    line actually follows it (degree, or bullets when degree is absent) so
+    both rail lines stay correctly anchored for reflow. If neither a degree
+    nor a bullet line follows the school, `period` is dropped rather than
+    pinned to a guessed offset with no real anchor (see module docstring).
     """
     content_w = width - _RECORD_RIGHT_W - _RECORD_GAP
     rail_x = left + content_w + _RECORD_GAP
@@ -212,7 +248,8 @@ def _meridian_place_education(
         meta_fs=meta_fs, meta_lh=meta_lh, body_fs=body_fs, body_lh=body_lh,
     )
     with b.keep_together(height):
-        top, page = b.y, b.pg
+        school_top, page = b.y, b.pg
+        second_line_top: float | None = None
         placed = False
         if school:
             b.block(school, left, content_w, degree_fs, degree_lh, ink, font, min_h=degree_lh)
@@ -220,13 +257,20 @@ def _meridian_place_education(
         if degree:
             if placed:
                 b.gap(get_spacing().stack)
+                second_line_top = b.y
             b.block(degree, left, content_w, degree_fs, degree_lh, ink, font, bold=True, min_h=degree_lh)
             placed = True
         if bullets:
             if placed:
                 b.gap(get_spacing().stack)
+                if second_line_top is None:
+                    second_line_top = b.y
             b.block(bullets, left, width, body_fs, body_lh, body, font, bulletList=True)
-        _meridian_place_rail(b, top, page, city, period, meta_fs, meta_lh, muted, font, rail_x, _RECORD_RIGHT_W)
+        _meridian_place_rail_line(b, school_top, page, city, meta_fs, meta_lh, muted, font, rail_x, _RECORD_RIGHT_W)
+        if second_line_top is not None:
+            _meridian_place_rail_line(
+                b, second_line_top, page, period, meta_fs, meta_lh, muted, font, rail_x, _RECORD_RIGHT_W,
+            )
     if after_gap is not None:
         b.gap(after_gap)
 

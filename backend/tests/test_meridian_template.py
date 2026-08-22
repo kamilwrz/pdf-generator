@@ -78,7 +78,13 @@ class MeridianTemplateTests(unittest.TestCase):
         """Period/city stack vertically on a fixed overlay rail, never sharing a line
         with the left title/company column and never colliding under live reflow
         (the same `record-overlay` + `autoHeight: False` technique Axis's date
-        gutter already uses in production)."""
+        gutter already uses in production).
+
+        Each rail line is pinned to the *exact* top of the left-column line it
+        annotates (period next to title, city next to company) — not a
+        guessed offset — so the frontend's `recordOverlayAnchor` can find a
+        real same-`flowGroup` textarea to re-anchor it to after reordering or
+        a spacing change."""
         elements = generate_resume(
             "meridian",
             {
@@ -116,11 +122,11 @@ class MeridianTemplateTests(unittest.TestCase):
         self.assertEqual(period["align"], "right")
         self.assertEqual(city["align"], "right")
 
-        # Period sits above city, pinned to the record's top — never sharing a
-        # line/top with company (the bug this rework fixes).
+        # Period is pinned to title's exact top; city is pinned to company's
+        # exact top — a real anchor for each rail line, not a guessed offset.
         self.assertEqual(period["top"], title["top"])
+        self.assertEqual(city["top"], company["top"])
         self.assertLess(period["top"], city["top"])
-        self.assertNotEqual(city["top"], company["top"])
 
         # Rail sits to the right of the left content column.
         self.assertGreater(period["left"], title["left"] + title["width"])
@@ -162,7 +168,58 @@ class MeridianTemplateTests(unittest.TestCase):
         self.assertEqual(city["align"], "right")
         self.assertEqual(period["align"], "right")
         self.assertEqual(city["top"], school["top"])
+        self.assertEqual(period["top"], degree["top"])
         self.assertLess(city["top"], period["top"])
+
+    def test_meridian_rail_anchors_to_bullets_when_company_is_missing(self) -> None:
+        """If company is absent, city falls back to bullets' exact top rather than a
+        guessed offset — every emitted rail line must anchor to a real content line
+        so the frontend's `recordOverlayAnchor` can re-pin it after reflow."""
+        elements = generate_resume(
+            "meridian",
+            {
+                "name": "Alexandra Nowak",
+                "experience": [
+                    {
+                        "title": "Founder",
+                        "city": "Warszawa",
+                        "period": "2021 – obecnie",
+                        "bullets": ["Prowadzi jednoosobową działalność doradczą."],
+                    },
+                ],
+                "education": [],
+                "skills": [],
+                "languages": [],
+            },
+        )
+
+        title = next(e for e in elements if e.get("content") == "Founder")
+        bullets = next(e for e in elements if e.get("content") == "• Prowadzi jednoosobową działalność doradczą.")
+        city = next(e for e in elements if e.get("content") == "Warszawa")
+
+        self.assertEqual(city["flowRole"], "record-overlay")
+        self.assertEqual(city["top"], bullets["top"])
+        self.assertGreater(city["top"], title["top"])
+
+    def test_meridian_drops_the_second_rail_line_when_there_is_no_anchor(self) -> None:
+        """A title-only record (no company, no bullets) has nothing for city to
+        anchor to — it must be omitted rather than pinned to a guessed offset
+        that would freeze in place after reflow."""
+        elements = generate_resume(
+            "meridian",
+            {
+                "name": "Alexandra Nowak",
+                "experience": [
+                    {"title": "Founder", "period": "2021 – obecnie", "city": "Warszawa"},
+                ],
+                "education": [],
+                "skills": [],
+                "languages": [],
+            },
+        )
+
+        self.assertTrue(any(e.get("content") == "2021 – obecnie" for e in elements))
+        self.assertFalse(any(e.get("content") == "Warszawa" for e in elements))
 
     def test_meridian_keeps_a_realistic_multisentence_summary_on_the_first_page(self) -> None:
         """Prevent a display-size regression that left page one almost empty."""
