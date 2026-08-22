@@ -156,7 +156,7 @@ function PdfCanvas() {
     return null;
   }); // 'docs' | 'templates' | 'ai' | 'bioCv' | 'plan' | 'changeTemplate' | 'unlockFreeform' | null
   const [panel, setPanel] = useState(null);   // 'upload' | 'gallery' | 'sections' | null
-  const isModalPdfs = dialog === 'docs';
+  const isModalPdfs = dialog === 'docs' && Boolean(localStorage.getItem("token"));
   const isTemplates = dialog === 'templates';
   const isAiPanel = dialog === 'ai';
   const isBioCvModal = dialog === 'bioCv';
@@ -266,6 +266,7 @@ function PdfCanvas() {
   const setIsModalPdfs = useCallback((valueOrUpdater) => {
     const prevBool = dialog === 'docs';
     const nextBool = typeof valueOrUpdater === 'function' ? valueOrUpdater(prevBool) : valueOrUpdater;
+    if (nextBool && !localStorage.getItem("token")) return;
     setDialog(nextBool ? 'docs' : null);
     if (nextBool) setPanel(null);
   }, [dialog]);
@@ -777,11 +778,14 @@ function PdfCanvas() {
   useEffect(() => {
     if (initialStartIntentRef.current !== "demo" || demoStartAppliedRef.current) return;
     demoStartAppliedRef.current = true;
-    handleLoadTemplate(regentTemplate, "Regent CV", "regent");
+    handleLoadTemplate(regentTemplate, "DEMO_CV", "regent");
     setIsDemoContent(true);
+    // The shared zoom step is 10%, so five increments land exactly on 150%
+    // without introducing a separate demo-only zoom setter.
+    for (let i = 0; i < 5; i += 1) zoomIn();
     queueGuestEvent("guest_demo_loaded");
     markTemplatesModalSeen();
-  }, [handleLoadTemplate, markTemplatesModalSeen]);
+  }, [handleLoadTemplate, markTemplatesModalSeen, zoomIn]);
 
   const handleShowAiPanel = useCallback(() => {
     const next = dialog !== 'ai';
