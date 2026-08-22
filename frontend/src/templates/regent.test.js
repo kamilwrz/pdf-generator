@@ -20,12 +20,13 @@ test("Regent preserves its monochrome editorial hierarchy", () => {
         (element) =>
             element.category === "textarea"
             && element.fontSize === 9.5
-            && element.fontFamily === "CormorantGaramond",
+            && element.fontFamily === "Montserrat"
+            && element.flowRole === "content",
     );
     assert.ok(summary);
     assert.equal(summary.fontSize, 9.5);
     assert.equal(summary.lineHeight, 11);
-    assert.equal(summary.fontFamily, "CormorantGaramond");
+    assert.equal(summary.fontFamily, "Montserrat");
     assert.equal(summary.color, INK);
     assert.equal(summary.left, L);
     assert.equal(summary.width, W);

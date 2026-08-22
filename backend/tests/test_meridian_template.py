@@ -35,7 +35,7 @@ class MeridianTemplateTests(unittest.TestCase):
         # the "even smaller paragraphs than Regent" design requirement.
         self.assertEqual(summary["fontSize"], 8.6)
         self.assertEqual(summary["lineHeight"], 11.0)
-        self.assertEqual(summary["fontFamily"], "CormorantGaramond")
+        self.assertEqual(summary["fontFamily"], "Montserrat")
         self.assertEqual(summary["color"], "#1B2A41")
 
         icons = [element for element in elements if element["category"] == "image"]

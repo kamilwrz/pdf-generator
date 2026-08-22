@@ -1,10 +1,10 @@
 """Regent CV template generator.
 
 Regent is a monochrome executive resume built around a high-contrast serif
-masthead and a deliberately oversized professional summary. The summary is a
-typographic statement rather than a dense utility paragraph; the remaining
-sections use restrained sans-serif type, fine rules, and a generous single
-column to keep the document appropriate for applicant-tracking systems.
+masthead. The professional summary uses the same Montserrat face as record
+copy so the lead paragraph reads as body text, not a second display block;
+the remaining sections keep restrained sans-serif type, fine rules, and a
+generous single column appropriate for applicant-tracking systems.
 """
 from __future__ import annotations
 
@@ -145,17 +145,17 @@ def _gen_regent(cv: dict) -> list[dict]:
     def close_section() -> None:
         b.gap(get_spacing().section)
 
-    # Keep summary metrics identical to record copy. This avoids an oversized
-    # lead consuming page space or creating unstable browser reflow for
-    # multi-sentence imported summaries.
+    # Keep summary metrics and face identical to record copy. A serif lead
+    # at this size looked like a second masthead and wrapped differently
+    # from the Montserrat body below it.
     summary_fs, summary_lh = 9.5, 11
     if cv.get("summary"):
         b.need_section(
             section_chrome_h,
-            b.measure_block(cv["summary"], W, summary_fs, summary_lh, DISPLAY),
+            b.measure_block(cv["summary"], W, summary_fs, summary_lh, SANS),
         )
         section(labels["summary"])
-        b.block(cv["summary"], L, W, summary_fs, summary_lh, C["ink"], DISPLAY)
+        b.block(cv["summary"], L, W, summary_fs, summary_lh, C["ink"], SANS)
         close_section()
 
     # All requested content textareas — professional summary, job and degree

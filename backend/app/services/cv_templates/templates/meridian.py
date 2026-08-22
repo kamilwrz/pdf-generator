@@ -396,16 +396,17 @@ def _gen_meridian(cv: dict) -> list[dict]:
     def close_section() -> None:
         b.gap(get_spacing().section)
 
-    # Meridian's body scale sits a full step below Regent's (9.5/14) so denser
-    # CVs still read as a restrained, premium single page.
+    # Meridian's body scale sits a full step below Regent's (9.5/11) so denser
+    # CVs still read as a restrained, premium single page. Summary uses the
+    # same Montserrat face as record copy so the lead is not a second display block.
     summary_fs, summary_lh = 8.6, 11.0
     if cv.get("summary"):
         b.need_section(
             section_chrome_h,
-            b.measure_block(cv["summary"], W, summary_fs, summary_lh, DISPLAY),
+            b.measure_block(cv["summary"], W, summary_fs, summary_lh, SANS),
         )
         section(labels["summary"])
-        b.block(cv["summary"], L, W, summary_fs, summary_lh, C["ink"], DISPLAY)
+        b.block(cv["summary"], L, W, summary_fs, summary_lh, C["ink"], SANS)
         close_section()
 
     body_fs, body_lh = 8.6, 11.0

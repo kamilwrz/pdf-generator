@@ -250,7 +250,7 @@ DOC_BLURBS = {
     "regent": (
         "Regent template (`layouts: [\"single\", \"icons\"]`).\n"
         " *\n"
-        " * Monochrome executive editorial layout with compact serif summary copy."
+        " * Monochrome executive editorial layout with compact Montserrat summary copy."
     ),
     "vestige": (
         "Vestige template (`layouts: [\"sidebar\", \"icons\"]`).\n"
@@ -260,7 +260,7 @@ DOC_BLURBS = {
     "meridian": (
         "Meridian template (`layouts: [\"single\", \"icons\"]`).\n"
         " *\n"
-        " * Premium navy/steel-blue single column with a compact serif summary\n"
+        " * Premium navy/steel-blue single column with a compact Montserrat summary\n"
         " * and an accent-blue tick under every section rule."
     ),
 }

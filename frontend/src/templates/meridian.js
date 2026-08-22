@@ -1,7 +1,7 @@
 /**
  * Meridian template (`layouts: ["single", "icons"]`).
  *
- * Premium navy/steel-blue single column with a compact serif summary
+ * Premium navy/steel-blue single column with a compact Montserrat summary
  * and an accent-blue tick under every section rule.
  *
  * This static starter is the backend generator's own output
@@ -358,7 +358,7 @@ const MERIDIAN_ELEMENTS = [
     "lineHeight": 11.0,
     "letterSpacing": 0,
     "color": "#1B2A41",
-    "fontFamily": "CormorantGaramond",
+    "fontFamily": "Montserrat",
     "zIndex": 2,
     "page": 1,
     "bold": false,

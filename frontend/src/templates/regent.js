@@ -1,7 +1,7 @@
 /**
  * Regent template (`layouts: ["single", "icons"]`).
  *
- * Monochrome executive editorial layout with compact serif summary copy.
+ * Monochrome executive editorial layout with compact Montserrat summary copy.
  *
  * This static starter is the backend generator's own output
  * (`backend/app/services/cv_templates/templates/regent.py`) for
@@ -346,7 +346,7 @@ const REGENT_ELEMENTS = [
     "lineHeight": 11,
     "letterSpacing": 0,
     "color": "#151515",
-    "fontFamily": "CormorantGaramond",
+    "fontFamily": "Montserrat",
     "zIndex": 2,
     "page": 1,
     "bold": false,
