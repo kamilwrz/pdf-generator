@@ -5,8 +5,12 @@
  * `setA4_Elements` + history path as the contact-band ops:
  *
  *   - applyNameCaseToggle: flip the name element's `textTransform` between
- *     "uppercase" and "none". Reversible and position-preserving (uppercasing
- *     grows glyphs in place; the stored box is not width-constrained).
+ *     "uppercase" and "none". Reversible and position-preserving — the name
+ *     box IS width-constrained (a wrapping textarea), so uppercasing can
+ *     change its wrap point and therefore its rendered height. This op only
+ *     flips the flag; `Textarea.jsx`'s auto-height effect (keyed on
+ *     `textTransform`) re-measures the box against the browser's real glyph
+ *     metrics and grows/shrinks it to fit, the same way a content edit does.
  *   - applyTitleToggle: hide the title (remove it, shift everything at/below its
  *     top up by `blockPt`, nudge the coupled contact band's startY, mark absent)
  *     or show it (reconstruct from the stored spec, reverse the shift, mark

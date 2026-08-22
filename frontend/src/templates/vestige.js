@@ -233,7 +233,7 @@ const VESTIGE_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-f07e7c53fb07",
+    "flowGroup": "record-ddb440be5b9d",
     "flowRole": "content",
     "flowLane": "sidebar"
   },
@@ -257,7 +257,7 @@ const VESTIGE_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-f07e7c53fb07",
+    "flowGroup": "record-ddb440be5b9d",
     "flowRole": "content",
     "flowLane": "sidebar"
   },
@@ -281,7 +281,7 @@ const VESTIGE_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-f07e7c53fb07",
+    "flowGroup": "record-ddb440be5b9d",
     "flowRole": "content",
     "flowLane": "sidebar"
   },
@@ -433,7 +433,7 @@ const VESTIGE_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-c063fbe6604e",
+    "flowGroup": "record-8a7b8dde14c1",
     "flowRole": "content"
   },
   {
@@ -456,7 +456,7 @@ const VESTIGE_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-c063fbe6604e",
+    "flowGroup": "record-8a7b8dde14c1",
     "flowRole": "content"
   },
   {
@@ -479,7 +479,7 @@ const VESTIGE_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-c063fbe6604e",
+    "flowGroup": "record-8a7b8dde14c1",
     "flowRole": "content"
   },
   {
@@ -502,7 +502,7 @@ const VESTIGE_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-d1b1fef45b7c",
+    "flowGroup": "record-c33b8ec4e066",
     "flowRole": "content"
   },
   {
@@ -525,7 +525,7 @@ const VESTIGE_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-d1b1fef45b7c",
+    "flowGroup": "record-c33b8ec4e066",
     "flowRole": "content"
   },
   {
@@ -548,7 +548,7 @@ const VESTIGE_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-d1b1fef45b7c",
+    "flowGroup": "record-c33b8ec4e066",
     "flowRole": "content"
   },
   {
@@ -571,7 +571,7 @@ const VESTIGE_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-158d211d0549",
+    "flowGroup": "record-4bd81597fdb2",
     "flowRole": "content"
   },
   {
@@ -594,7 +594,7 @@ const VESTIGE_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-158d211d0549",
+    "flowGroup": "record-4bd81597fdb2",
     "flowRole": "content"
   },
   {
@@ -617,7 +617,7 @@ const VESTIGE_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-158d211d0549",
+    "flowGroup": "record-4bd81597fdb2",
     "flowRole": "content"
   },
   {
@@ -882,7 +882,7 @@ const VESTIGE_ELEMENTS = [
           "textTransform": "uppercase",
           "bold": false
         },
-        "blockPt": 104.5,
+        "blockPt": 0.0,
         "present": true,
         "decorations": []
       },

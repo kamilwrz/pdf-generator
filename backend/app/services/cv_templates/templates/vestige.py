@@ -226,23 +226,24 @@ def _gen_vestige(cv: dict) -> list[dict]:
         transformed.append(build_contact_band_anchor(contact_descriptor))
 
     # ── Masthead identity: name-case toggle + show/hide title ──
-    # `band_top` is where the main column's own content resumes after the
-    # masthead (the first `section-chrome` top); the contact rail is a
-    # parallel, independent sidebar column and is intentionally NOT passed as
-    # `contact_band_id` — its rows are anchored near the page top and do not
-    # move when the title is hidden, unlike templates whose contact row sits
-    # directly under the title.
+    # `band_top` only sets the descriptor's `blockPt` magnitude
+    # (`band_top - title_top`) — the frontend's `hideTitle`/`showTitle`
+    # (`mastheadIdentityOps.js`) always use the title's own `top` as the
+    # shift BOUNDARY, regardless of `band_top`. For a single-column masthead
+    # that boundary cleanly separates "beside/above the title" from "content
+    # that follows it", so shifting everything at/below it is correct.
+    # Vestige's masthead is split across two parallel columns: the contact
+    # rail's rows straddle the title's Y (some above, e.g. phone/email at
+    # 46/62, some below, e.g. a 4th+ channel at 94+), and the sidebar's own
+    # sections sit well below it too. A nonzero `blockPt` would shift only
+    # the rows below the title's Y — splitting the contact cluster apart and
+    # dragging the whole sidebar up — which is exactly the layout breakage
+    # (contacts misaligning) seen when toggling title visibility. Passing
+    # `band_top` equal to the title's own top makes `blockPt` exactly 0, so
+    # hiding/showing the title only toggles its presence — nothing else
+    # (contacts, sidebar, or main column) is shifted.
     if name_element is not None:
-        main_section_tops = [
-            float(el.get("top", 0.0))
-            for el in transformed
-            if el.get("flowRole") == "section-chrome"
-        ]
-        band_top = (
-            min(main_section_tops)
-            if main_section_tops
-            else float(name_element.get("top", 0.0)) + 60.0
-        )
+        band_top = float(title_element["top"]) if title_element is not None else 0.0
         transformed.append(
             tag_masthead_identity(
                 name_element,

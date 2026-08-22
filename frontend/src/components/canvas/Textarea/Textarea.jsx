@@ -286,6 +286,14 @@ function Textarea({
         letterSpacing,
         lineHeight,
         preserveInitialLayout,
+        // Uppercasing glyphs are wider than mixed case at the same width, so a
+        // masthead name-case toggle (`applyNameCaseToggle`) can change the
+        // browser's wrap point without touching `content`/`width`/`fontSize`.
+        // Without this dependency the effect never re-runs, the stored height
+        // stays sized for the previous casing, and `overflow: hidden` (see
+        // Textarea.module.css) clips any newly-wrapped line — the "toggling
+        // case cuts off the surname" bug.
+        textTransform,
         width,
     ]);
 

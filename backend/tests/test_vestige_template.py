@@ -131,7 +131,15 @@ class VestigeTemplateTests(unittest.TestCase):
         descriptor = anchor["mastheadIdentity"]
         self.assertEqual(descriptor["id"], "vestige-masthead")
         self.assertTrue(descriptor["title"]["present"])
-        self.assertGreater(descriptor["title"]["blockPt"], 0)
+        # `blockPt` must be exactly 0: the frontend's hide/show-title reflow
+        # (`mastheadIdentityOps.js`) always shifts everything at/below the
+        # TITLE'S OWN top by `blockPt`, regardless of what `band_top` this
+        # generator passes in. Vestige's contact rail rows straddle the
+        # title's Y (some above, some below), and the sidebar sits below it
+        # too, so any nonzero blockPt splits the contact cluster apart and
+        # drags the sidebar along with it — the exact "hiding the title
+        # breaks the contact layout" bug this pins against.
+        self.assertEqual(descriptor["title"]["blockPt"], 0)
         # The contact rail is a parallel sidebar column, not tied to the
         # title's Y — it must not be coupled to the hide/show shift.
         self.assertIsNone(descriptor["contactBandId"])
