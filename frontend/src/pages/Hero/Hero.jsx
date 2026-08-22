@@ -209,7 +209,7 @@ export default function Hero() {
                     </div>
                     <p className={classes.heroTertiary}>
                         <Link to={demoUrl} onClick={() => queueGuestEvent("hero_demo")}>
-                            Najpierw chcesz zobaczyć produkt? Otwórz przykładowe CV w edytorze <ArrowIcon />
+                            Najpierw chcesz zobaczyć produkt? Otwórz szablon Nova w edytorze <ArrowIcon />
                         </Link>
                     </p>
                     <ul className={classes.heroTrust} aria-label="Korzyści na start">

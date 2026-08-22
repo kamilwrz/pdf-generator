@@ -34,7 +34,6 @@ from app.utils.image_src_to_path import image_src_to_local_path
 
 ELEMENTS_JSON = REPO_ROOT / "frontend" / "scripts" / "iconic-templates.json"
 OUTPUT_DIR = REPO_ROOT / "frontend" / "public" / "template-mockups"
-NOVA_PORTRAIT = REPO_ROOT / "backend" / "template_assets" / "nova-portrait.png"
 
 # Match the exact pixel size of every other frontend/public/template-mockups/*.png
 # so the marketing grid and the in-app picker stay visually consistent.
@@ -43,57 +42,14 @@ PAGE_W_PT, PAGE_H_PT = 595, 842
 RENDER_SCALE = 3
 
 
-def _inject_nova_mockup_photo(elements_data: list[dict]) -> list[dict]:
-    """Editor starters keep an empty photo well; mockups show a demo portrait.
-
-    Finds ``nova-photo-frame`` and inserts a cover-fit image underneath it so
-    the picker PNG matches the filled editorial mock without shipping a raster
-    in the live editor template.
-    """
-    frame = next(
-        (el for el in elements_data if el.get("id") == "nova-photo-frame"),
-        None,
-    )
-    if not frame or not NOVA_PORTRAIT.is_file():
-        return elements_data
-    # Skip if a photo is already present (re-runs / hand-edited dumps).
-    if any(el.get("id") == "nova-photo-image" or el.get("photoSlot") == "image"
-           for el in elements_data):
-        return elements_data
-    photo = {
-        "category": "image",
-        "src": str(NOVA_PORTRAIT),
-        "width": float(frame.get("width") or 0),
-        "height": float(frame.get("height") or 0),
-        "left": float(frame.get("left") or 0),
-        "top": float(frame.get("top") or 0),
-        "zIndex": float(frame.get("zIndex") or 3) + 1,
-        "page": int(frame.get("page") or 1),
-        "id": "nova-photo-image",
-        "photoSlot": "image",
-        "objectFit": "cover",
-        "alignWithText": False,
-        "flowRole": "masthead",
-    }
-    # Keep the outline above the raster (same stacking as applyProfilePhoto).
-    out: list[dict] = []
-    for el in elements_data:
-        if el.get("id") == "nova-photo-frame":
-            out.append(photo)
-            out.append({**el, "zIndex": float(photo["zIndex"]) + 1})
-        else:
-            out.append(el)
-    return out
-
-
 def render_theme(theme: str, elements_data: list[dict]) -> bytes:
     """Render one frontend template's element list to PDF bytes via ReportLab."""
     # The frontend template arrays are authored without `element_id` — the editor
     # loader assigns those at load time. `PdfElement` requires the field, so
     # synthesize a stable per-position id here. It only identifies elements for
     # upserts and never affects the rendered geometry or colours.
-    if theme == "nova":
-        elements_data = _inject_nova_mockup_photo(elements_data)
+    # Nova keeps the same empty photo slot as the editor starter. Do not inject
+    # a portrait raster here — the picker mockup must match the live canvas.
     elements = [
         PdfElement(**{"element_id": f"{theme}-{index}", **el})
         for index, el in enumerate(elements_data)
