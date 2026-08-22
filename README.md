@@ -176,7 +176,7 @@ pdf-generator/
 │   │   ├── services/         # ApiClient, fillTemplate, authenticatedImage, eventLog
 │   │   ├── store/            # Canvas / UiSurfaces / Session + PdfContext facade
 │   │   ├── templates/        # per-template specs + helpers + demoCv.js (guest-mode demo content)
-│   │   └── utils/            # a4ElementFactories, freeformShapes, canvasFont, canvasElementSchema, geometry, reflow, sectionBuilder, sectionRecord, sectionIcons, guestDocument, guestWizardDraft, claimGuestWizardDraft, resolveActiveCvData, guestEvents, startChooser
+│   │   └── utils/            # a4ElementFactories, freeformShapes, canvasFont, canvasElementSchema, geometry, reflow, sectionBuilder, sectionRecord, sectionIcons, textEditSurface, guestDocument, guestWizardDraft, claimGuestWizardDraft, resolveActiveCvData, guestEvents, startChooser
 │   ├── package.json
 │   └── .env.example
 ├── shared/
@@ -1599,7 +1599,9 @@ Implementation:
 - Frontend model + serialization: `frontend/src/utils/textRuns.js`
   (`normalizeRuns`, `applyMark`, `rangeHasMark`, `sliceRuns`, `styledSegments`),
   `frontend/src/utils/editableSerialize.js` (`serializeEditable`, `runsToHtml`,
-  `getSelectionOffsets`, `setSelectionOffsets`), `sanitizeChar` in
+  `getSelectionOffsets`, `setSelectionOffsets`),
+  `frontend/src/utils/textEditSurface.js` (`seedTextEditNode`,
+  `shouldCommitTextEditBlur`), `sanitizeChar` in
   `frontend/src/utils/sanitizeTextContent.js`,
   `frontend/src/utils/renderStyledText.jsx`.
 - Save/export normalization in `sanitizeElementsContent` removes a numeric
@@ -1625,6 +1627,8 @@ Tests:
 - `frontend/src/utils/textRuns.test.js`,
   `frontend/src/utils/editableSerialize.test.js` — normalization, mark toggling,
   run slicing, DOM serialization round-trip.
+- `frontend/src/utils/textEditSurface.test.js` — remount seed from stored
+  content; detached / in-transition blur must not finalize an edit.
 
 ---
 
@@ -1820,7 +1824,7 @@ This does not claim SOC2/compliance — it documents controls that exist in code
 - Forms expose labels/icons; plan radios use `role="radiogroup"`.
 - Loading: PDF spinner minimum display time; `useToasts` / `ToastStack` renders high-contrast, centrally positioned confirmation cards with enter/exit motion. A template-change toast shows the selected template as an accent-colour badge instead of redundant body copy; download actions carry a per-toast blob href, not a shared slot.
 - Empty docs library returns a clear Polish 404 message prompting create.
-- Canvas zoom is view-only so export size stays document-true. The editor opens at **100%** by default (`ZOOM_DEFAULT` in `useA4Elements`); two-page view still forces 100% while active. Editing text from a two-page spread temporarily focuses the selected element's page, applies the same 200% edit zoom and animation, then restores both the prior zoom and spread after an intentional edit exit. A single-page edit restores the previous zoom only after the user clicks an A4 page or an element on it, not after a toolbar or sidebar click; the element-properties panel's explicit Close action also restores it. The editable surface owns its authoritative height measurement during input and blur, while the immediately following display render skips a duplicate background measurement so edit-zoom cannot repack unchanged sections.
+- Canvas zoom is view-only so export size stays document-true. The editor opens at **100%** by default (`ZOOM_DEFAULT` in `useA4Elements`); two-page view still forces 100% while active. Editing text from a two-page spread temporarily focuses the selected element's page, applies the same 200% edit zoom and animation, then restores both the prior zoom and spread after an intentional edit exit. Single-line `text` elements share one `<p>` for display and edit and do not render React children, so that remount re-seeds the new node from stored content (`seedTextEditNode` in `frontend/src/utils/textEditSurface.js`, used by `frontend/src/components/canvas/Text/Text.jsx` on edit enter). A detached or in-transition blur must not finalize the edit (`shouldCommitTextEditBlur`). Textarea already has a dedicated edit surface that seeds on enter, so it never hit this empty-node path. A single-page edit restores the previous zoom only after the user clicks an A4 page or an element on it, not after a toolbar or sidebar click; the element-properties panel's explicit Close action also restores it. The editable surface owns its authoritative height measurement during input and blur, while the immediately following display render skips a duplicate background measurement so edit-zoom cannot repack unchanged sections.
 
 Gaps: not a full WCAG audit; continue improving focus traps and contrast where needed.
 
@@ -2028,7 +2032,7 @@ pdf-generator/
 │   │   ├── services/         # ApiClient, fillTemplate, authenticatedImage
 │   │   ├── store/            # Canvas / UiSurfaces / Session + fasada PdfContext
 │   │   ├── templates/        # specyfikacje szablonów + helpery + demoCv.js (treść demo w trybie gościa)
-│   │   └── utils/            # a4ElementFactories, freeformShapes, canvasFont, canvasElementSchema, geometry, reflow, sectionBuilder, sectionRecord, sectionIcons, guestDocument, guestWizardDraft, claimGuestWizardDraft, resolveActiveCvData, guestEvents, startChooser
+│   │   └── utils/            # a4ElementFactories, freeformShapes, canvasFont, canvasElementSchema, geometry, reflow, sectionBuilder, sectionRecord, sectionIcons, textEditSurface, guestDocument, guestWizardDraft, claimGuestWizardDraft, resolveActiveCvData, guestEvents, startChooser
 │   ├── package.json
 │   └── .env.example
 ├── shared/
@@ -3423,7 +3427,9 @@ Implementacja:
 - Model + serializacja na froncie: `frontend/src/utils/textRuns.js`
   (`normalizeRuns`, `applyMark`, `rangeHasMark`, `sliceRuns`, `styledSegments`),
   `frontend/src/utils/editableSerialize.js` (`serializeEditable`, `runsToHtml`,
-  `getSelectionOffsets`, `setSelectionOffsets`), `sanitizeChar` w
+  `getSelectionOffsets`, `setSelectionOffsets`),
+  `frontend/src/utils/textEditSurface.js` (`seedTextEditNode`,
+  `shouldCommitTextEditBlur`), `sanitizeChar` w
   `frontend/src/utils/sanitizeTextContent.js`,
   `frontend/src/utils/renderStyledText.jsx`.
 - Normalizacja zapisu/eksportu w `sanitizeElementsContent` usuwa numeryczne `id`
@@ -3451,6 +3457,8 @@ Testy:
 - `frontend/src/utils/textRuns.test.js`,
   `frontend/src/utils/editableSerialize.test.js` — normalizacja, przełączanie
   marek, cięcie runów, round-trip serializacji DOM.
+- `frontend/src/utils/textEditSurface.test.js` — ponowne wstawienie treści po
+  remoncie; odłączony / przejściowy blur nie finalizuje edycji.
 
 ---
 
@@ -3587,7 +3595,7 @@ Migracje: `create_all` + Alembic (`backend/alembic/`) przy starcie.
 
 - Wszystkie okna dialogowe aplikacji dzielą jeden ujednolicony wygląd `DialogShell` (Escape do zamknięcia, tło, animacja `popIn`, nagłówek 800/19px tytuł + 12.5px podtytuł z ostrym `CloseButton` 32×32 o `radius={2}`, stopka w kolorze `--surface-2`). Większość dialogów ma szerokość 1280px i narożnik `radius={2}`: `PlanSelectModal`, `TemplatesModal`, `AddSectionModal`, `ModalPdfs` („Moje dokumenty”) oraz `DropzoneContainer` („Prześlij zdjęcia profilowe”, 720px); galerie wypełniania/podsumowania rozszerzają się dalej do 1400px (`AiCvPanel`, `ChangeTemplateModal`). Kreator bio (`BioCvModal`) używa `DialogShell` `variant="fullscreen"` z kolumną treści ~920px, lepkim paskiem postępu i lepką stopką zamiast pływającej wycentrowanej karty. `AddSectionModal` dzieli treść na dwie kolumny (nazwa + radiowe wybory układu po lewej, galeria ikon po prawej) z ręcznie stylizowanymi kropkami radio (cienki pierścień domyślnie, gruby pierścień w akcencie wokół ciemnego środka po zaznaczeniu) zamiast natywnego radio przeglądarki. `ModalPdfs` wyświetla zapisane dokumenty w siatce kart 2-kolumnowej; potwierdzenie usunięcia to mniejszy dialog 420px z `radius={2}` w tym samym stylu nagłówka/stopki. `Dropzone` zgłasza swój bieżący rozmiar partii do `DropzoneContainer` przez callback `onCountChange`, dzięki czemu wspólna stopka może pokazać „X z 12 przesłanych obrazów” bez przenoszenia stanu uploadu do kontenera.
 - Toasty i spinner PDF z minimalnym czasem widoczności; `useToasts` / `ToastStack` pokazuje kontrastowe, centralnie umieszczone karty potwierdzeń z animacją wejścia/wyjścia. Toast zmiany szablonu pokazuje wybrany szablon jako plakietkę w jego kolorze zamiast zbędnej treści opisowej, a akcje pobierania niosą blob href w toastcie (nie we wspólnym slocie).
-- Zoom tylko wizualny — eksport zostaje w rozmiarze dokumentu. Edytor otwiera się domyślnie na **100%** (`ZOOM_DEFAULT` w `useA4Elements`); widok dwóch stron nadal wymusza 100% na czas trwania. Rozpoczęcie edycji tekstu w rozkładówce dwóch stron tymczasowo skupia stronę z wybranym elementem, uruchamia ten sam zoom 200% z animacją, a po świadomym wyjściu z edycji przywraca poprzedni zoom i rozkładówkę. Edycja z jednej strony przywraca poprzedni zoom dopiero po kliknięciu strony A4 albo elementu na niej, a nie po kliknięciu toolbara lub sidebara; robi to także jawna akcja „Zamknij” w panelu właściwości elementu. Powierzchnia edytowalna wyznacza autorytatywną wysokość podczas wpisywania i blur, a pierwszy render wyświetlania po niej pomija zduplikowany pomiar w tle, dzięki czemu edit-zoom nie przepakowuje niezmienionych sekcji.
+- Zoom tylko wizualny — eksport zostaje w rozmiarze dokumentu. Edytor otwiera się domyślnie na **100%** (`ZOOM_DEFAULT` w `useA4Elements`); widok dwóch stron nadal wymusza 100% na czas trwania. Rozpoczęcie edycji tekstu w rozkładówce dwóch stron tymczasowo skupia stronę z wybranym elementem, uruchamia ten sam zoom 200% z animacją, a po świadomym wyjściu z edycji przywraca poprzedni zoom i rozkładówkę. Jednowierszowe elementy `text` dzielą jeden `<p>` na wyświetlanie i edycję i nie renderują dzieci Reacta, więc ten remount ponownie wstawia treść z zapisanego stanu (`seedTextEditNode` w `frontend/src/utils/textEditSurface.js`, używane przez `frontend/src/components/canvas/Text/Text.jsx` przy wejściu w edycję). Odłączony albo przejściowy blur nie może finalizować edycji (`shouldCommitTextEditBlur`). Textarea ma osobną powierzchnię edycji, która i tak seeduje treść przy wejściu, więc ta pusta ścieżka jej nie dotyczyła. Edycja z jednej strony przywraca poprzedni zoom dopiero po kliknięciu strony A4 albo elementu na niej, a nie po kliknięciu toolbara lub sidebara; robi to także jawna akcja „Zamknij” w panelu właściwości elementu. Powierzchnia edytowalna wyznacza autorytatywną wysokość podczas wpisywania i blur, a pierwszy render wyświetlania po niej pomija zduplikowany pomiar w tle, dzięki czemu edit-zoom nie przepakowuje niezmienionych sekcji.
 - Brak pełnego audytu WCAG — kolejne poprawki mile widziane.
 
 ---

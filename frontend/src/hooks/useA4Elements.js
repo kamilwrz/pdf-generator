@@ -262,7 +262,7 @@ export function useA4Elements(titleRef) {
   // Switching a spread to one page unmounts the old contentEditable node. Its
   // browser blur is a view-transition side effect, not a user edit finalisation.
   // Store the affected id until the replacement edit node is mounted and seeded.
-  const editZoomSpreadTransitionRef = useRef(false);
+  const editZoomSpreadTransitionRef = useRef(null);
   // A blur can be caused by any control outside the canvas. Restore the
   // temporary edit zoom only after an intentional page/element interaction,
   // not when the user uses the sidebar or toolbar while text remains focused.

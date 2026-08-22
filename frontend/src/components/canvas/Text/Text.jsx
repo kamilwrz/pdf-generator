@@ -1,6 +1,11 @@
 /**
  * Single-line text element: select, drag, contentEditable edit.
  * `fixedToPage` chrome (e.g. page numbers) is non-interactive.
+ *
+ * Unlike Textarea, this component uses one <p> for display and edit and does
+ * not render React children. Content is written imperatively. Edit-zoom from a
+ * two-page spread remounts that <p> while `isEditing` is already true, so the
+ * node must be re-seeded from stored content on edit enter.
  */
 import classes from "./Text.module.css";
 import { memo, useLayoutEffect, useRef } from "react";
@@ -16,6 +21,7 @@ import {
     endTextSpacingHold,
     startTextSpacingHold,
 } from "../../../utils/textSpacingHold";
+import { seedTextEditNode, shouldCommitTextEditBlur } from "../../../utils/textEditSurface";
 
 function Text({
     elementId,
@@ -110,6 +116,12 @@ function Text({
     useLayoutEffect(() => {
         const node = nodeRef.current;
         if (!isEditing || !node) return;
+        // Seed from authored state before focusing. Required when edit-zoom
+        // remounts this node (two-page spread → focused page): the new <p>
+        // starts empty, and the display-sync effect above skips while
+        // `isEditing` is already true. Textarea never hits this because it
+        // has a dedicated edit surface that always writes `content` on enter.
+        seedTextEditNode(node, content, runs);
         clearTextSpacingHoldTimer(spacingHoldTimerRef);
         node.focus({ preventScroll: true });
         const selection = window.getSelection();
@@ -131,6 +143,10 @@ function Text({
             }
         });
         return () => window.cancelAnimationFrame(releaseFrame);
+        // Seed only when entering edit or remounting already-editing. Content
+        // changes during typing come from the DOM; re-seeding would move the
+        // caret.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [editZoomSpreadTransitionRef, elementId, isEditing, selectAllOnEdit]);
 
     function startEditing(event) {
@@ -210,8 +226,15 @@ function Text({
             onBlur={() => {
                 // The two-page edit zoom unmounts the old contentEditable
                 // surface. That browser blur must not serialize the transient
-                // empty node over the selected text element's stored content.
-                if (editZoomSpreadTransitionRef?.current === elementId) return;
+                // empty node or clear `isEditing` before the replacement
+                // node is seeded from stored content.
+                if (!shouldCommitTextEditBlur({
+                    node: nodeRef.current,
+                    elementId,
+                    spreadTransitionId: editZoomSpreadTransitionRef?.current,
+                })) {
+                    return;
+                }
                 if (isEditing) finishEditing();
             }}
             onKeyDown={(e) => {
