@@ -166,6 +166,12 @@ function Textarea({
     // the block into edit mode.
     const didDragRef = useRef(false);
     const initialLayoutPreservedRef = useRef(false);
+    // The editable surface commits an authoritative measured height on every
+    // input and again on blur. Do not let the display node immediately perform
+    // a second background measurement after edit exit: it can observe a
+    // transient post-zoom layout and move later flow elements without any
+    // content change.
+    const skipPostEditAutoMeasureRef = useRef(false);
     // Keep the latest authored height for shrink comparisons without re-running
     // the mount effect whenever fitTextareaToContent updates `height`.
     const heightRef = useRef(height);
@@ -217,7 +223,17 @@ function Textarea({
     // the bottom of a box makes SPACE_SECTION look uneven across templates.
     // User edits and later font/width changes use the full measure path.
     useLayoutEffect(() => {
-        if (!autoHeight || isEditing) return undefined;
+        if (!autoHeight) return undefined;
+        if (isEditing) {
+            // `commitEditable` owns measurement while editing. Keep a single
+            // skip token for the matching display render after blur.
+            skipPostEditAutoMeasureRef.current = true;
+            return undefined;
+        }
+        if (skipPostEditAutoMeasureRef.current) {
+            skipPostEditAutoMeasureRef.current = false;
+            return undefined;
+        }
 
         let cancelled = false;
         const applyMeasuredHeight = (measuredHeight, { allowGrow }) => {
