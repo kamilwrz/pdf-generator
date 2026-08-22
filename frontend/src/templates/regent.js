@@ -302,7 +302,8 @@ const REGENT_ELEMENTS = [
           "bold": false
         },
         "blockPt": 31.0,
-        "present": true
+        "present": true,
+        "decorations": []
       },
       "contactBandId": "regent-contact"
     },
@@ -402,7 +403,7 @@ const REGENT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-3d02a22b2612",
+    "flowGroup": "record-c981e18fa268",
     "flowRole": "content"
   },
   {
@@ -425,7 +426,7 @@ const REGENT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-3d02a22b2612",
+    "flowGroup": "record-c981e18fa268",
     "flowRole": "content"
   },
   {
@@ -448,7 +449,7 @@ const REGENT_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-3d02a22b2612",
+    "flowGroup": "record-c981e18fa268",
     "flowRole": "content"
   },
   {
@@ -471,7 +472,7 @@ const REGENT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-7195bc818e55",
+    "flowGroup": "record-e14a768bce5a",
     "flowRole": "content"
   },
   {
@@ -494,7 +495,7 @@ const REGENT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-7195bc818e55",
+    "flowGroup": "record-e14a768bce5a",
     "flowRole": "content"
   },
   {
@@ -517,7 +518,7 @@ const REGENT_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-7195bc818e55",
+    "flowGroup": "record-e14a768bce5a",
     "flowRole": "content"
   },
   {
@@ -540,7 +541,7 @@ const REGENT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-f4031439ca2d",
+    "flowGroup": "record-69e87fc4cc37",
     "flowRole": "content"
   },
   {
@@ -563,7 +564,7 @@ const REGENT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-f4031439ca2d",
+    "flowGroup": "record-69e87fc4cc37",
     "flowRole": "content"
   },
   {
@@ -586,7 +587,7 @@ const REGENT_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-f4031439ca2d",
+    "flowGroup": "record-69e87fc4cc37",
     "flowRole": "content"
   },
   {
@@ -635,7 +636,7 @@ const REGENT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-53817daa825a",
+    "flowGroup": "record-5792fa50ac73",
     "flowRole": "content"
   },
   {
@@ -658,7 +659,7 @@ const REGENT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-53817daa825a",
+    "flowGroup": "record-5792fa50ac73",
     "flowRole": "content"
   },
   {
@@ -681,7 +682,7 @@ const REGENT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-53817daa825a",
+    "flowGroup": "record-5792fa50ac73",
     "flowRole": "content"
   },
   {
@@ -730,7 +731,7 @@ const REGENT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-317e49ca04b5",
+    "flowGroup": "record-22cc840d95a0",
     "flowRole": "content"
   },
   {
@@ -788,7 +789,7 @@ const REGENT_ELEMENTS = [
       }
     ],
     "flowRole": "grid-member",
-    "flowGroup": "record-a667a4f88d6c"
+    "flowGroup": "record-8c548ff39124"
   },
   {
     "category": "textarea",
@@ -819,7 +820,7 @@ const REGENT_ELEMENTS = [
       }
     ],
     "flowRole": "grid-member",
-    "flowGroup": "record-a667a4f88d6c"
+    "flowGroup": "record-8c548ff39124"
   },
   {
     "category": "textarea",
@@ -850,7 +851,7 @@ const REGENT_ELEMENTS = [
       }
     ],
     "flowRole": "grid-member",
-    "flowGroup": "record-a667a4f88d6c"
+    "flowGroup": "record-8c548ff39124"
   }
 ];
 

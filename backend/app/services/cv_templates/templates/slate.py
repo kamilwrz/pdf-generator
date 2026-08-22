@@ -255,7 +255,12 @@ def _gen_slate(cv: dict) -> list[dict]:
         # original-case title; uppercasing preserves character count, so the
         # reversible `textTransform` flag does not change the fit.
         pill_width = max(120.0, min(float(main_width), len(title) * 5.4 + 24))
-        header.append(_line(main_left, 86, pill_width, 20, colors["accent"], zIndex=1))
+        title_bar = _line(main_left, 86, pill_width, 20, colors["accent"], zIndex=1)
+        title_bar["titleDecoration"] = {
+            "minWidth": 120.0, "maxWidth": float(main_width),
+            "horizontalPadding": 24.0,
+        }
+        header.append(title_bar)
         role = _text(title, 8.2, sans, colors["white"], main_left + 12, 92, zIndex=3, bold=True)
         role["letterSpacing"] = 1.15
         title_index = len(header)
@@ -451,5 +456,6 @@ def _gen_slate(cv: dict) -> list[dict]:
         band_id="masthead-main", name_default_uppercase=True,
         title_default_uppercase=True, band_top=119.0,
         contact_band_id="contact-main",
+        title_decorations=[header[title_index - 1]] if title_index is not None else None,
     ))
     return page_decorations + sidebar + header + flow

@@ -88,7 +88,12 @@ function hideTitle(elements, bandId, descriptor, blockPt, createId) {
   const boundaryTop = Number(title.top) || 0;
   const boundaryPage = Math.max(1, Math.trunc(Number(title.page) || 1));
   const contactBandId = descriptor.contactBandId;
-  const withoutTitle = elements.filter((el) => el !== title);
+  // Tessera/Slate title bars are semantic title decorations. Hide them with
+  // the text so the masthead never leaves an empty coloured strip behind.
+  const withoutTitle = elements.filter((el) => (
+    el !== title
+    && !(el.mastheadBandId === bandId && el.mastheadRole === "title-decoration")
+  ));
   const shifted = withoutTitle.map((el) => shiftBelow(el, boundaryTop, -blockPt, contactBandId, boundaryPage));
   const marked = setTitlePresence(shifted, bandId, false);
   const reconciled = reconcileDocumentPages(marked, createId, { collapseEmpty: true });
@@ -150,6 +155,16 @@ function buildTitleElement(spec, bandId, createId, page, nameEl) {
   return el;
 }
 
+function buildTitleDecorations(specs, bandId, createId, page) {
+  return (specs || []).map((spec) => ({
+    ...spec,
+    element_id: createId("title-decoration"),
+    page: spec.page ?? page,
+    mastheadRole: "title-decoration",
+    mastheadBandId: bandId,
+  }));
+}
+
 function showTitle(elements, bandId, descriptor, blockPt, createId) {
   const spec = descriptor.title?.spec;
   if (!spec) return { elements };
@@ -162,7 +177,13 @@ function showTitle(elements, bandId, descriptor, blockPt, createId) {
   const boundaryPage = Math.max(1, Math.trunc(Number(nameEl?.page) || 1));
   const shifted = elements.map((el) => shiftBelow(el, boundaryTop, +blockPt, contactBandId, boundaryPage));
   const titleEl = buildTitleElement(spec, bandId, createId, boundaryPage, nameEl);
-  const withTitle = [...shifted, titleEl];
+  const decorations = buildTitleDecorations(
+    descriptor.title?.decorations,
+    bandId,
+    createId,
+    boundaryPage,
+  );
+  const withTitle = [...shifted, ...decorations, titleEl];
   const marked = setTitlePresence(withTitle, bandId, true);
   const reconciled = reconcileDocumentPages(marked, createId, { collapseEmpty: true });
   return { elements: reconciled.elements, pageCount: reconciled.pageCount };

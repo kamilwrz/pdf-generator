@@ -13,12 +13,19 @@ function doc() {
         id: "masthead-main", name: { defaultUppercase: true },
         title: { present: true, blockPt: 24,
           spec: { content: "AML Analyst", left: 44, top: 80, fontSizePt: 11,
-                  fontFamily: "Inter", colorHex: "#17A2B8", textTransform: "none", bold: false } },
+                  fontFamily: "Inter", colorHex: "#17A2B8", textTransform: "none", bold: false },
+          decorations: [{ category: "line", left: 44, top: 74, width: 120, height: 20,
+            backgroundColor: "#17A2B8", titleDecoration: {
+              minWidth: 120, maxWidth: 300, horizontalPadding: 24,
+            } }] },
         contactBandId: "contact-main" } },
     { element_id: "name", category: "text", content: "Jan Kowalski", mastheadRole: "name",
       mastheadBandId: "masthead-main", textTransform: "uppercase", left: 44, top: 44, page: 1 },
     { element_id: "title", category: "text", content: "AML Analyst", mastheadRole: "title",
       mastheadBandId: "masthead-main", left: 44, top: 80, page: 1 },
+    { element_id: "title-bar", category: "line", mastheadRole: "title-decoration",
+      mastheadBandId: "masthead-main", left: 44, top: 74, width: 120, height: 20, page: 1,
+      titleDecoration: { minWidth: 120, maxWidth: 300, horizontalPadding: 24 } },
     { element_id: "cba", category: "text", content: "", flowRole: "masthead-anchor",
       contactBandId: "contact-main", top: 0, page: 1,
       contactBand: { id: "contact-main", mode: "wrapping", anchor: { startX: 44, startY: 104, rightLimit: 551 } } },
@@ -42,6 +49,7 @@ test("name case toggle flips the flag reversibly and touches nothing else", () =
 test("title hide removes it, shifts below up by blockPt, updates band startY, keeps footer", () => {
   const { elements } = applyTitleToggle(doc(), "masthead-main", () => "id");
   assert.equal(elements.find((e) => e.element_id === "title"), undefined);
+  assert.equal(elements.find((e) => e.element_id === "title-bar"), undefined);
   assert.equal(elements.find((e) => e.element_id === "chip").top, 104 - 24);
   assert.equal(elements.find((e) => e.element_id === "rule").top, 126 - 24);
   assert.equal(elements.find((e) => e.element_id === "sec").top, 146 - 24);
@@ -57,6 +65,7 @@ test("title show reconstructs the title from spec and reverses the shift", () =>
   assert.ok(title, "title re-added");
   assert.equal(title.content, "AML Analyst");
   assert.equal(title.top, 80);
+  assert.ok(elements.some((e) => e.mastheadRole === "title-decoration"));
   assert.equal(elements.find((e) => e.element_id === "chip").top, 104);
   assert.equal(elements.find((e) => e.element_id === "cba").contactBand.anchor.startY, 104);
   assert.equal(elements.find((e) => e.element_id === "mid").mastheadIdentity.title.present, true);

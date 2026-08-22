@@ -436,7 +436,7 @@ const SLATE_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-82c9c708d3f5",
+    "flowGroup": "record-f412cce42ee1",
     "flowRole": "content",
     "flowLane": "sidebar"
   },
@@ -460,7 +460,7 @@ const SLATE_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-82c9c708d3f5",
+    "flowGroup": "record-f412cce42ee1",
     "flowRole": "content",
     "flowLane": "sidebar"
   },
@@ -484,7 +484,7 @@ const SLATE_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-82c9c708d3f5",
+    "flowGroup": "record-f412cce42ee1",
     "flowRole": "content",
     "flowLane": "sidebar"
   },
@@ -515,7 +515,14 @@ const SLATE_ELEMENTS = [
     "backgroundColor": "#3E5C76",
     "zIndex": 1,
     "page": 1,
-    "flowRole": "masthead"
+    "titleDecoration": {
+      "minWidth": 120.0,
+      "maxWidth": 329.0,
+      "horizontalPadding": 24.0
+    },
+    "flowRole": "masthead",
+    "mastheadRole": "title-decoration",
+    "mastheadBandId": "masthead-main"
   },
   {
     "category": "text",
@@ -909,7 +916,24 @@ const SLATE_ELEMENTS = [
           "bold": true
         },
         "blockPt": 27.0,
-        "present": true
+        "present": true,
+        "decorations": [
+          {
+            "category": "line",
+            "left": 218,
+            "top": 86,
+            "width": 175.20000000000002,
+            "height": 20,
+            "backgroundColor": "#3E5C76",
+            "zIndex": 1,
+            "page": 1,
+            "titleDecoration": {
+              "minWidth": 120.0,
+              "maxWidth": 329.0,
+              "horizontalPadding": 24.0
+            }
+          }
+        ]
       },
       "contactBandId": "contact-main"
     },
@@ -1055,7 +1079,7 @@ const SLATE_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-6fc18b1ffea1",
+    "flowGroup": "record-4cca90b8ff18",
     "flowRole": "content"
   },
   {
@@ -1078,7 +1102,7 @@ const SLATE_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-6fc18b1ffea1",
+    "flowGroup": "record-4cca90b8ff18",
     "flowRole": "content"
   },
   {
@@ -1101,7 +1125,7 @@ const SLATE_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-6fc18b1ffea1",
+    "flowGroup": "record-4cca90b8ff18",
     "flowRole": "content"
   },
   {
@@ -1124,7 +1148,7 @@ const SLATE_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-8cbc470502d5",
+    "flowGroup": "record-6271b2cefd12",
     "flowRole": "content"
   },
   {
@@ -1147,7 +1171,7 @@ const SLATE_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-8cbc470502d5",
+    "flowGroup": "record-6271b2cefd12",
     "flowRole": "content"
   },
   {
@@ -1170,7 +1194,7 @@ const SLATE_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-8cbc470502d5",
+    "flowGroup": "record-6271b2cefd12",
     "flowRole": "content"
   },
   {
@@ -1193,7 +1217,7 @@ const SLATE_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-cdddd2152171",
+    "flowGroup": "record-0fa6e6ff7c95",
     "flowRole": "content"
   },
   {
@@ -1216,7 +1240,7 @@ const SLATE_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-cdddd2152171",
+    "flowGroup": "record-0fa6e6ff7c95",
     "flowRole": "content"
   },
   {
@@ -1239,7 +1263,7 @@ const SLATE_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-cdddd2152171",
+    "flowGroup": "record-0fa6e6ff7c95",
     "flowRole": "content"
   }
 ];

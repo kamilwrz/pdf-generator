@@ -408,7 +408,8 @@ const PORTICO_ELEMENTS = [
           "bold": false
         },
         "blockPt": 24.0,
-        "present": true
+        "present": true,
+        "decorations": []
       },
       "contactBandId": "contact-main"
     },
@@ -532,7 +533,7 @@ const PORTICO_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-8da1efafa251",
+    "flowGroup": "record-aa8e01aa0852",
     "flowRole": "content"
   },
   {
@@ -555,7 +556,7 @@ const PORTICO_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-8da1efafa251",
+    "flowGroup": "record-aa8e01aa0852",
     "flowRole": "content"
   },
   {
@@ -578,7 +579,7 @@ const PORTICO_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-8da1efafa251",
+    "flowGroup": "record-aa8e01aa0852",
     "flowRole": "content"
   },
   {
@@ -601,7 +602,7 @@ const PORTICO_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-3317a67eae72",
+    "flowGroup": "record-7824dafbcf14",
     "flowRole": "content"
   },
   {
@@ -624,7 +625,7 @@ const PORTICO_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-3317a67eae72",
+    "flowGroup": "record-7824dafbcf14",
     "flowRole": "content"
   },
   {
@@ -647,7 +648,7 @@ const PORTICO_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-3317a67eae72",
+    "flowGroup": "record-7824dafbcf14",
     "flowRole": "content"
   },
   {
@@ -670,7 +671,7 @@ const PORTICO_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-94dd26894d50",
+    "flowGroup": "record-34fbd2c50e59",
     "flowRole": "content"
   },
   {
@@ -693,7 +694,7 @@ const PORTICO_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-94dd26894d50",
+    "flowGroup": "record-34fbd2c50e59",
     "flowRole": "content"
   },
   {
@@ -754,7 +755,7 @@ const PORTICO_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-ed8ad8a10bb4",
+    "flowGroup": "record-619aa8c7e212",
     "flowRole": "content"
   },
   {
@@ -777,7 +778,7 @@ const PORTICO_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-ed8ad8a10bb4",
+    "flowGroup": "record-619aa8c7e212",
     "flowRole": "content"
   },
   {
@@ -800,7 +801,7 @@ const PORTICO_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-ed8ad8a10bb4",
+    "flowGroup": "record-619aa8c7e212",
     "flowRole": "content"
   },
   {
@@ -861,7 +862,7 @@ const PORTICO_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-c6e615f9849c",
+    "flowGroup": "record-4b2f52be84d1",
     "flowRole": "content"
   },
   {
@@ -931,7 +932,7 @@ const PORTICO_ELEMENTS = [
       }
     ],
     "flowRole": "grid-member",
-    "flowGroup": "record-41af472cf7f7"
+    "flowGroup": "record-73f135407951"
   },
   {
     "category": "textarea",
@@ -962,7 +963,7 @@ const PORTICO_ELEMENTS = [
       }
     ],
     "flowRole": "grid-member",
-    "flowGroup": "record-41af472cf7f7"
+    "flowGroup": "record-73f135407951"
   },
   {
     "category": "textarea",
@@ -993,7 +994,7 @@ const PORTICO_ELEMENTS = [
       }
     ],
     "flowRole": "grid-member",
-    "flowGroup": "record-41af472cf7f7"
+    "flowGroup": "record-73f135407951"
   }
 ];
 

@@ -36,6 +36,7 @@ def tag_masthead_identity(
     band_top: float,
     title_default_uppercase: bool = False,
     contact_band_id: str | None = None,
+    title_decorations: list[dict] | None = None,
 ) -> dict:
     """Stamp identity onto the name/title elements (in place) and build the anchor.
 
@@ -84,11 +85,25 @@ def tag_masthead_identity(
             "bold": bool(title_el.get("bold", False)),
         }
 
+    decoration_specs: list[dict] = []
+    for decoration in title_decorations or []:
+        decoration["mastheadRole"] = "title-decoration"
+        decoration["mastheadBandId"] = band_id
+        decoration_specs.append({
+            key: decoration[key]
+            for key in (
+                "category", "left", "top", "width", "height", "backgroundColor",
+                "borderWidth", "borderRadius", "filled", "zIndex", "page",
+                "titleDecoration",
+            )
+            if key in decoration
+        })
+
     descriptor = {
         "id": band_id,
         "name": {"defaultUppercase": bool(name_default_uppercase)},
         "title": {"spec": title_spec, "blockPt": block_pt,
-                  "present": title_el is not None},
+                  "present": title_el is not None, "decorations": decoration_specs},
         "contactBandId": contact_band_id,
     }
     return build_masthead_identity_anchor(descriptor)

@@ -228,9 +228,15 @@ def _gen_tessera(cv: dict) -> list[dict]:
         band_id="contact-main",
     )
     header_rule_y = contact_bottom + 22.0
+    title_bar_width = max(120.0, min(float(main_width), len(title) * 5.4 + 20))
+    title_bar = _line(main_left, 88, title_bar_width, 22, colors["coral"], zIndex=1)
+    title_bar["titleDecoration"] = {
+        "minWidth": 120.0, "maxWidth": float(main_width),
+        "horizontalPadding": 20.0,
+    }
     header = [
         _text(name, 24, display, colors["aubergine"], main_left, 48, zIndex=3, bold=True),
-        _line(main_left, 88, 164, 22, colors["coral"], zIndex=1),
+        title_bar,
         _text(title, 8.2, sans, colors["white"], main_left + 10, 94, zIndex=3, bold=True),
         *contact_els,
         _line(main_left, header_rule_y, main_width, 1, colors["rule"], zIndex=2),
@@ -425,5 +431,6 @@ def _gen_tessera(cv: dict) -> list[dict]:
         band_id="masthead-main", name_default_uppercase=True,
         title_default_uppercase=True, band_top=121.0,
         contact_band_id="contact-main",
+        title_decorations=[header[1]] if title else None,
     ))
     return page_decorations + sidebar + header + flow

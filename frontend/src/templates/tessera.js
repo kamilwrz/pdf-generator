@@ -291,7 +291,7 @@ const TESSERA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-b8e5abe8feb4",
+    "flowGroup": "record-3a2e38da813b",
     "flowRole": "content",
     "flowLane": "sidebar"
   },
@@ -315,7 +315,7 @@ const TESSERA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-b8e5abe8feb4",
+    "flowGroup": "record-3a2e38da813b",
     "flowRole": "content",
     "flowLane": "sidebar"
   },
@@ -339,7 +339,7 @@ const TESSERA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-b8e5abe8feb4",
+    "flowGroup": "record-3a2e38da813b",
     "flowRole": "content",
     "flowLane": "sidebar"
   },
@@ -547,12 +547,19 @@ const TESSERA_ELEMENTS = [
     "category": "line",
     "left": 218,
     "top": 88,
-    "width": 164,
+    "width": 171.20000000000002,
     "height": 22,
     "backgroundColor": "#E15D4F",
     "zIndex": 1,
     "page": 1,
-    "flowRole": "masthead"
+    "titleDecoration": {
+      "minWidth": 120.0,
+      "maxWidth": 329.0,
+      "horizontalPadding": 20.0
+    },
+    "flowRole": "masthead",
+    "mastheadRole": "title-decoration",
+    "mastheadBandId": "masthead-main"
   },
   {
     "category": "text",
@@ -898,7 +905,24 @@ const TESSERA_ELEMENTS = [
           "bold": true
         },
         "blockPt": 27.0,
-        "present": true
+        "present": true,
+        "decorations": [
+          {
+            "category": "line",
+            "left": 218,
+            "top": 88,
+            "width": 171.20000000000002,
+            "height": 22,
+            "backgroundColor": "#E15D4F",
+            "zIndex": 1,
+            "page": 1,
+            "titleDecoration": {
+              "minWidth": 120.0,
+              "maxWidth": 329.0,
+              "horizontalPadding": 20.0
+            }
+          }
+        ]
       },
       "contactBandId": "contact-main"
     },
@@ -1098,7 +1122,7 @@ const TESSERA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-42d7ba8b0bb0",
+    "flowGroup": "record-5f67dd197ca0",
     "flowRole": "content"
   },
   {
@@ -1121,7 +1145,7 @@ const TESSERA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-42d7ba8b0bb0",
+    "flowGroup": "record-5f67dd197ca0",
     "flowRole": "content"
   },
   {
@@ -1144,7 +1168,7 @@ const TESSERA_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-42d7ba8b0bb0",
+    "flowGroup": "record-5f67dd197ca0",
     "flowRole": "content"
   },
   {
@@ -1167,7 +1191,7 @@ const TESSERA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-7667175cbc2b",
+    "flowGroup": "record-6c5f15bba6f4",
     "flowRole": "content"
   },
   {
@@ -1190,7 +1214,7 @@ const TESSERA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-7667175cbc2b",
+    "flowGroup": "record-6c5f15bba6f4",
     "flowRole": "content"
   },
   {
@@ -1213,7 +1237,7 @@ const TESSERA_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-7667175cbc2b",
+    "flowGroup": "record-6c5f15bba6f4",
     "flowRole": "content"
   },
   {
@@ -1236,7 +1260,7 @@ const TESSERA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-04673b564be3",
+    "flowGroup": "record-aaeed22a6ef6",
     "flowRole": "content"
   },
   {
@@ -1259,7 +1283,7 @@ const TESSERA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-04673b564be3",
+    "flowGroup": "record-aaeed22a6ef6",
     "flowRole": "content"
   },
   {
@@ -1282,7 +1306,7 @@ const TESSERA_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-04673b564be3",
+    "flowGroup": "record-aaeed22a6ef6",
     "flowRole": "content"
   }
 ];

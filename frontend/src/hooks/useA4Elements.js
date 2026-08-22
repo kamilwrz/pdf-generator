@@ -1424,6 +1424,34 @@ export function useA4Elements(titleRef) {
             newState, edited.contactBandId, measureContactLabel, () => nanoid(),
           ).elements;
         }
+        if (edited?.mastheadRole === "title" && edited.mastheadBandId) {
+          const measured = measureContactLabel(
+            edited.content,
+            edited.fontFamily,
+            edited.fontSize,
+          );
+          return newState.map((element) => {
+            if (
+              element.mastheadBandId !== edited.mastheadBandId
+              || element.mastheadRole !== "title-decoration"
+              || !element.titleDecoration
+            ) {
+              return element;
+            }
+            const decoration = element.titleDecoration;
+            const letterSpacing = Number(edited.letterSpacing) || 0;
+            const textWidth = measured ?? String(edited.content || "").length * 5.4;
+            const naturalWidth = textWidth
+              + Math.max(0, String(edited.content || "").length - 1) * letterSpacing
+              + (Number(decoration.horizontalPadding) || 0);
+            const minWidth = Number(decoration.minWidth) || 0;
+            const maxWidth = Number(decoration.maxWidth) || naturalWidth;
+            return {
+              ...element,
+              width: Math.max(minWidth, Math.min(maxWidth, naturalWidth)),
+            };
+          });
+        }
         if (
           edited?.autoHeight
           && String(edited.content ?? "").trim() === ""
