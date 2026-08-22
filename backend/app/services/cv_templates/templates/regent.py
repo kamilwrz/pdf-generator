@@ -88,7 +88,7 @@ def _gen_regent(cv: dict) -> list[dict]:
 
     contact_elements, contact_bottom, contact_descriptor = _place_centered_icon_contacts(
         theme=C["icon_theme"],
-        items=_contact_channel_items(cv, email_limit=42),
+        items=_contact_channel_items(cv),
         center_x=center_x,
         start_y=cursor_y + 18.0,
         max_width=W,

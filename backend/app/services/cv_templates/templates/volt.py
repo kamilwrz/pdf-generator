@@ -36,7 +36,7 @@ def _gen_volt(cv: dict) -> list[dict]:
     # its `_rect`/`_icon` helpers, so they are passed in as builders.
     contact_els, contact_bottom, contact_descriptor = _place_chip_icon_contacts(
         theme=ICON,
-        items=_contact_channel_items(cv, email_limit=36, social_limit=28),
+        items=_contact_channel_items(cv),
         start_x=48.0,
         start_y=108.0,
         right_limit=547.0,

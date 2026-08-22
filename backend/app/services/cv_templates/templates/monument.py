@@ -90,9 +90,7 @@ def _gen_monument(cv: dict) -> list[dict]:
         "locked": True,
         "alignWithText": False,
     }
-    contact_items = _contact_channel_items(
-        cv, email_limit=38, phone_limit=24, location_limit=26, social_limit=30,
-    )
+    contact_items = _contact_channel_items(cv)
     contact_elements, contact_bottom, contact_descriptor = _place_wrapping_icon_contacts(
         theme="monument",
         items=contact_items,

@@ -1230,7 +1230,7 @@ Known limitations: no live A4 preview inside the wizard; template cards still sh
 
 ### Contact links (LinkedIn, GitHub, website)
 
-First-class `cv_data` fields `linkedin`, `github`, and `website` survive `normalize_cv_data` (they were previously dropped). Display labels are shortened for mastheads (`linkedin.com/in/…`, `github.com/…`, hostname for sites). Icon templates use dedicated PNGs (`linkedin`, `github`, `website`) from `template_assets/iconic/`; wrapping placers move overflow to a second contact line and push the header rule / flow start so body content does not overlap. Tessera and Slate place every contact channel (phone, email, socials, location) in the masthead as wrapping icon+label rows — no sidebar KONTAKT. Text mastheads append short socials to `_contact_line`.
+First-class `cv_data` fields `linkedin`, `github`, and `website` survive `normalize_cv_data` (they were previously dropped). Masthead labels preserve the complete user-entered contact path after removing a URL scheme; no contact channel is shortened with an ellipsis. Icon templates use dedicated PNGs (`linkedin`, `github`, `website`) from `template_assets/iconic/`; wrapping placers move overflow to additional contact rows and push the header rule / flow start so body content does not overlap. Tessera and Slate place every contact channel (phone, email, socials, location) in the masthead as wrapping icon+label rows — no sidebar KONTAKT. Text mastheads append full social labels to `_contact_line`.
 
 Implementation:
 
@@ -3024,7 +3024,7 @@ Znane ograniczenia: brak live podglądu A4 w kreatorze; karty szablonów nadal p
 
 ### Linki kontaktowe (LinkedIn, GitHub, strona)
 
-Pola pierwszego rzędu `linkedin`, `github` i `website` w `cv_data` przechodzą przez `normalize_cv_data` (wcześniej były odrzucane). Etykiety wyświetlane w mastheadzie są skracane. Szablony z ikonami używają PNG (`linkedin`, `github`, `website`); zawijanie przenosi nadmiar na drugą linię i przesuwa linię nagłówka / start treści. Tessera i Slate umieszczają wszystkie kanały kontaktu (telefon, email, social, lokalizacja) w mastheadzie jako zawijane wiersze ikona+etykieta — bez bloku KONTAKT w sidebarze. Mastheady tekstowe dopisują skrócone social do `_contact_line`.
+Pola pierwszego rzędu `linkedin`, `github` i `website` w `cv_data` przechodzą przez `normalize_cv_data` (wcześniej były odrzucane). Etykiety w mastheadzie zachowują pełną ścieżkę kontaktu wpisaną przez użytkownika po usunięciu schematu URL; żaden kanał kontaktowy nie jest skracany wielokropkiem. Szablony z ikonami używają PNG (`linkedin`, `github`, `website`); zawijanie przenosi nadmiar do kolejnych wierszy kontaktu i przesuwa linię nagłówka / start treści. Tessera i Slate umieszczają wszystkie kanały kontaktu (telefon, email, social, lokalizacja) w mastheadzie jako zawijane wiersze ikona+etykieta — bez bloku KONTAKT w sidebarze. Mastheady tekstowe dopisują pełne etykiety social do `_contact_line`.
 
 Implementacja:
 

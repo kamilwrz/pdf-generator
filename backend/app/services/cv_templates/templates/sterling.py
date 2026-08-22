@@ -127,7 +127,7 @@ def _gen_sterling(cv: dict) -> list[dict]:
 
     name = _compact_text(cv.get('name'), 40)
     title = _compact_text(cv.get('title'), 60).upper()
-    contact_items = _contact_channel_items(cv, email_limit=40, phone_limit=24, location_limit=28, social_limit=36)
+    contact_items = _contact_channel_items(cv)
 
     header: list[dict] = []
     cursor_y = MAST_TOP

@@ -86,7 +86,7 @@ def _gen_axis(cv: dict) -> list[dict]:
     # short phone value above the header rule for a section heading.
     contact_fs, contact_icon = 8.6, 11.0
     cx, cy = float(L), 104.0
-    for key, value in _contact_channel_items(cv, email_limit=42, social_limit=36):
+    for key, value in _contact_channel_items(cv):
         if not value:
             continue
         advance = contact_icon + 4 + _text_width(value, SANS, contact_fs) + 16

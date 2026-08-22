@@ -118,7 +118,7 @@ def _gen_portico(cv: dict) -> list[dict]:
     contact_fs, contact_icon = (8.4, 12.0)
     contact_els, contact_bottom, contact_descriptor = _place_centered_icon_contacts(
         theme=ICON,
-        items=_contact_channel_items(cv, email_limit=42),
+        items=_contact_channel_items(cv),
         center_x=CENTER_X,
         start_y=cursor_y + 10.0,
         max_width=W,

@@ -71,7 +71,7 @@ def _gen_harbor(cv: dict) -> list[dict]:
         build_contact_band_anchor,
     )
     from app.services.cv_templates.shared.masthead import tag_masthead_identity
-    contacts = _contact_channel_items(cv, email_limit=40, social_limit=36)
+    contacts = _contact_channel_items(cv)
     # Single contact row that wraps to a second line when the values are long,
     # so real data cannot overrun the right page margin. The shared placer
     # produces the identical geometry the manual loop used (icon_gap 15,

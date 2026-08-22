@@ -21,28 +21,29 @@ IV.  BUGZ / NEEDED FIXES
 6) Za duze ikony (zmiana kolejnosci, usun, przenies na sidebar / main) i ich background
 7) Lista elementow kontaktowych jest za duza
 8) Zmodyfikowac rodzaj chipsow w szablonach
+9) W sidebarowych szablonach jezyki na 3 nie na 4 kolumny
 
 a) Tessera
 - schowanie job position nie powoduje znikniecia prostokata / tla dekoracyjnego
 - prostokat / tlo dekoracyjne powinien sie zwiekszac wraz z job position
-- klik na slot nie laduje galerii
+- klik na slot nie laduje galerii (DONE)
 
 b) Slate
 - schowanie job position nie powoduje znikniecia prostokata / tla dekoracyjnego
 - prostokat / tlo dekoracyjne powinien sie zwiekszac wraz z job position
-- klik na slot nie laduje galerii
+- klik na slot nie laduje galerii (DONE)
 - paginacja strony jest krzywo
 - skasowac 9xKWADRTA po prawej (wyglada jak menu)
 
 c) Monument
 - problem z cyframi przy zmianie kolejnosci / ewtl. manual
-- klik na slot nie laduje galerii
+- klik na slot nie laduje galerii (DONE)
 - zamienic element dekoracyjny na photo slot (DONE)
 - brak ikon w elementach kontaktowych (DONE)
 
 d) Atrium
 - po schowaniu 'job position' kontakt jest za blisko imienia / zdjecia
-- klik na slot nie laduje galerii
+- klik na slot nie laduje galerii (DONE)
 
 e) Sterling
 - brak UPPERCASE
@@ -59,6 +60,9 @@ g) Nova
 h) Volt
 - Naglowki dac BOLD
 - Zwiekszyc zakres roszerzania rectangle w kontaktach
+
+i) Vestige
+- Zmniejszyc czcionke w naglowkach (Sidebar + Main)
 
 VI.  AI
 -----------------------------------------------------------------------------------------  

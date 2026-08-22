@@ -97,7 +97,7 @@ def _gen_nova(cv: dict) -> list[dict]:
     contact_start = cursor_y + 12.0
     contact_els, contact_bottom, contact_descriptor = _place_stacked_icon_contacts(
         theme=ICON,
-        items=_contact_channel_items(cv, email_limit=42),
+        items=_contact_channel_items(cv),
         start_x=NAME_LEFT + 2.0,
         start_y=contact_start,
         text_fs=CONTACT_FS,

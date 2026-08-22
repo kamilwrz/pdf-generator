@@ -23,7 +23,7 @@ class ContactLinkHelperTests(unittest.TestCase):
         self.assertEqual(categorize_contact_url("github.com/anna"), "github")
         self.assertEqual(categorize_contact_url("https://anna.dev"), "website")
 
-    def test_display_labels_are_short(self):
+    def test_display_labels_keep_the_full_contact_path(self):
         self.assertEqual(
             contact_display_label("linkedin", "https://www.linkedin.com/in/anna-kowalska"),
             "linkedin.com/in/anna-kowalska",
@@ -35,6 +35,11 @@ class ContactLinkHelperTests(unittest.TestCase):
         self.assertEqual(
             contact_display_label("website", "https://www.anna.dev/about"),
             "anna.dev/about",
+        )
+        long_linkedin = "https://linkedin.com/in/dawid-frontczak-project-management-office"
+        self.assertEqual(
+            contact_display_label("linkedin", long_linkedin),
+            "linkedin.com/in/dawid-frontczak-project-management-office",
         )
 
     def test_merge_rehouses_misplaced_urls(self):
@@ -72,6 +77,19 @@ class ContactLinkHelperTests(unittest.TestCase):
 
 
 class ContactPlacementTests(unittest.TestCase):
+    def test_contact_channels_never_truncate_user_values(self):
+        long_profile = "linkedin.com/in/dawid-frontczak-project-management-office"
+        long_location = "Zielona Góra / Wrocław / Dolnośląskie / Polska"
+        items = _contact_channel_items({
+            "phone": "+48 500 000 000 wew. 123456",
+            "email": "dawid.frontczak.project.management.office@example.com",
+            "linkedin": long_profile,
+            "location": long_location,
+        })
+        self.assertIn(("linkedin", long_profile), items)
+        self.assertIn(("location", long_location), items)
+        self.assertTrue(all("…" not in value for _, value in items))
+
     def test_wrapping_placer_moves_to_second_line(self):
         items = _contact_channel_items({
             "phone": "+48 500 000 000",

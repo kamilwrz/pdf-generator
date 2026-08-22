@@ -12,9 +12,13 @@ from reportlab.pdfbase.pdfmetrics import stringWidth
 
 from app.services.contact_links import contact_display_label, contact_social_items
 from app.services.cv_templates.shared.icons import _icon_beside
-from app.services.cv_templates.shared.text import _compact_text
 from app.services.cv_generator_primitives import _text
 from app.services.pdf_generator import PDF_Generator
+
+
+def _normalise_contact_text(value: object) -> str:
+    """Collapse accidental whitespace without shortening user contact details."""
+    return " ".join(str(value or "").split())
 
 
 def build_contact_band_anchor(descriptor: dict[str, Any], *, page: int = 1) -> dict:
@@ -82,25 +86,18 @@ def _measured_text_width(value: str, font: str, text_fs: float) -> float | None:
         return None
 
 
-def _contact_channel_items(
-    cv: dict[str, Any],
-    *,
-    email_limit: int = 40,
-    phone_limit: int = 24,
-    location_limit: int = 28,
-    social_limit: int = 36,
-) -> list[tuple[str, str]]:
-    """Ordered non-empty (icon_key, display) pairs for icon contact rows."""
+def _contact_channel_items(cv: dict[str, Any]) -> list[tuple[str, str]]:
+    """Ordered non-empty (icon_key, display) pairs without character truncation."""
     items: list[tuple[str, str]] = []
-    phone = _compact_text(cv.get("phone"), phone_limit)
-    email = _compact_text(cv.get("email"), email_limit)
+    phone = _normalise_contact_text(cv.get("phone"))
+    email = _normalise_contact_text(cv.get("email"))
     if phone:
         items.append(("phone", phone))
     if email:
         items.append(("email", email))
-    for kind, label in contact_social_items(cv, limit=social_limit):
+    for kind, label in contact_social_items(cv):
         items.append((kind, label))
-    location = _compact_text(cv.get("location"), location_limit)
+    location = _normalise_contact_text(cv.get("location"))
     if location:
         items.append(("location", location))
     return items
@@ -108,13 +105,7 @@ def _contact_channel_items(
 
 def _sidebar_contact_items(cv: dict[str, Any]) -> list[tuple[str, str]]:
     """Sidebar KONTAKT stack: phone, email, socials, location."""
-    return _contact_channel_items(
-        cv,
-        email_limit=42,
-        phone_limit=28,
-        location_limit=34,
-        social_limit=36,
-    )
+    return _contact_channel_items(cv)
 
 
 def _contact_item_width(
@@ -438,14 +429,14 @@ def _place_centered_icon_contacts(
     return elements, (cy - line_step) if non_empty_lines else cy, descriptor
 
 
-def _social_contact_line_parts(cv: dict[str, Any], *, limit: int = 28) -> list[str]:
-    """Short social labels for mid-dot text contact lines."""
+def _social_contact_line_parts(cv: dict[str, Any]) -> list[str]:
+    """Full social labels for mid-dot text contact lines."""
     parts: list[str] = []
     for kind in ("linkedin", "github", "website"):
         value = cv.get(kind)
         if not value:
             continue
-        label = contact_display_label(kind, value, limit=limit)  # type: ignore[arg-type]
+        label = contact_display_label(kind, value)  # type: ignore[arg-type]
         if label:
             parts.append(label)
     return parts

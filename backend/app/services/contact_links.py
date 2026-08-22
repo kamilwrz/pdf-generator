@@ -61,8 +61,8 @@ def categorize_contact_url(value: object) -> ContactKind | None:
     return "website"
 
 
-def contact_display_label(kind: ContactKind, value: object, *, limit: int = 36) -> str:
-    """Short canvas label for a contact link (no scheme, compact path)."""
+def contact_display_label(kind: ContactKind, value: object) -> str:
+    """Canvas label for a contact link (no scheme, preserves its full path)."""
     raw = clean_contact_url(value)
     if not raw:
         return ""
@@ -87,9 +87,7 @@ def contact_display_label(kind: ContactKind, value: object, *, limit: int = 36) 
             label = _SCHEME_RE.sub("", raw)
             label = _WWW_RE.sub("", label)
     label = label.strip("/")
-    if len(label) <= limit:
-        return label
-    return f"{label[: max(limit - 1, 1)].rstrip('…/')}…"
+    return label
 
 
 def merge_contact_fields(
@@ -163,8 +161,6 @@ def extract_contact_fields_from_raw(raw: dict[str, Any]) -> dict[str, str]:
 
 def contact_social_items(
     cv: dict[str, Any],
-    *,
-    limit: int = 36,
 ) -> list[tuple[ContactKind, str]]:
     """Ordered non-empty (icon_key, display_text) pairs for template placers."""
     items: list[tuple[ContactKind, str]] = []
@@ -172,7 +168,7 @@ def contact_social_items(
         value = clean_contact_url(cv.get(kind))
         if not value:
             continue
-        label = contact_display_label(kind, value, limit=limit)
+        label = contact_display_label(kind, value)
         if label:
             items.append((kind, label))
     return items
