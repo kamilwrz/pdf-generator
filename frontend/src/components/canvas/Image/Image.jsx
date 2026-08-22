@@ -163,9 +163,12 @@ function Image({
                 src={displaySrc}
                 style={style}
                 onDoubleClick={() => selectElement(elementId)}
-                onClick={(e) => selectElement(elementId, e.ctrlKey || e.metaKey)}
+                onClick={isPhotoClickTarget
+                    ? handlePhotoClick
+                    : (e) => selectElement(elementId, e.ctrlKey || e.metaKey)}
                 onPointerDown={(e) => {
                     if (e.ctrlKey || e.metaKey) return;
+                    if (isPhotoClickTarget) return;
                     e.currentTarget.setPointerCapture(e.pointerId);
                     selectMoveElement(elementId, true);
                 }}
@@ -182,9 +185,12 @@ function Image({
             src={displaySrc}
             style={style}
             onDoubleClick={() => selectElement(elementId)}
-            onClick={(e) => selectElement(elementId, e.ctrlKey || e.metaKey)}
+            onClick={isPhotoClickTarget
+                ? handlePhotoClick
+                : (e) => selectElement(elementId, e.ctrlKey || e.metaKey)}
             onPointerDown={(e) => {
                 if (e.ctrlKey || e.metaKey) return;
+                if (isPhotoClickTarget) return;
                 e.currentTarget.setPointerCapture(e.pointerId);
                 selectMoveElement(elementId, true);
             }}

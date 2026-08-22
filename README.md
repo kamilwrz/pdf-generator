@@ -796,13 +796,13 @@ Tests:
 
 ### Nova editorial masthead template
 
-Nova is a free single-column template (`layouts: ["icons"]`) with a warm paper field (`#F7F1E8`), terracotta accent (`#C45C26`), Playfair Display name, and Montserrat body. The masthead is taller than the earlier wrapping-contact revision: the display name sits near the left edge (`x=32`), the muted job title sits under the name, and contact channels stack **one row each** with iconic glyphs ~12 pt under that stack (`_place_stacked_icon_contacts`). The top-right portrait well is an empty rectangle slot (`nova-photo-well` fill + `nova-photo-frame` outline) — the editor starter ships **no** profile raster. Clicking the frame opens the gallery; choosing a photo runs `applyProfilePhoto` with `objectFit: "cover"` so the well is filled without stretching. Only the marketing mockup injects `backend/template_assets/nova-portrait.png` at render time (`scripts/render_iconic_mockups.py`). Section icons start at `icon_x=64` and bold uppercase headings at `L=84` — 16 pt further right than the legacy `48` / `68` band.
+Nova is a free single-column template (`layouts: ["icons"]`) with a warm paper field (`#F7F1E8`), terracotta accent (`#C45C26`), Playfair Display name, and Montserrat body. The masthead is taller than the earlier wrapping-contact revision: the display name sits near the left edge (`x=32`), the muted job title sits under the name, and contact channels stack **one row each** with iconic glyphs ~12 pt under that stack (`_place_stacked_icon_contacts`). The top-right portrait well contains the matching 42 pt terracotta `nova-photo-glyph` inside its empty rectangle slot (`nova-photo-well` fill + `nova-photo-frame` outline); the editor starter ships **no** profile raster. Clicking either the frame or glyph opens the gallery; choosing a photo runs `applyProfilePhoto` with `objectFit: "cover"` so the well is filled without stretching. Only the marketing mockup injects `backend/template_assets/nova-portrait.png` at render time (`scripts/render_iconic_mockups.py`). Section icons start at `icon_x=64` and bold uppercase headings at `L=84` — 16 pt further right than the legacy `48` / `68` band.
 
 Implementation:
 
-- `backend/app/services/cv_templates/templates/nova.py`, function `_gen_nova` — stacked masthead contacts, empty photo well/frame, bold section headings
+- `backend/app/services/cv_templates/templates/nova.py`, function `_gen_nova` — stacked masthead contacts, terracotta photo glyph/well/frame, bold section headings
 - `backend/app/services/cv_templates/shared/contact.py`, function `_place_stacked_icon_contacts` — one icon+label channel per row
-- `frontend/src/templates/iconic.js`, export `novaTemplate` — regenerated starter (slot only, no portrait image)
+- `frontend/src/templates/iconic.js`, export `novaTemplate` — regenerated starter (photo slot with portrait glyph, no user raster)
 - `frontend/src/components/canvas/Rectangle/Rectangle.jsx` — click on `photoSlot: "frame"` opens the gallery
 - `frontend/src/utils/profilePhoto.js` — `nova-photo-frame` in `PROFILE_PHOTO_FRAME_IDS`; zero inset + cover-fit apply
 - `frontend/src/components/canvas/Image/Image.jsx` — canvas honors `objectFit` / photo-slot `cover`
@@ -2592,13 +2592,13 @@ Testy:
 
 ### Szablon redakcyjny Nova
 
-Nova to darmowy szablon jednokolumnowy (`layouts: ["icons"]`) na ciepłym papierze (`#F7F1E8`) z akcentem terracotta (`#C45C26`), nazwiskiem w Playfair Display i treścią w Montserrat. Masthead jest wyższy niż we wcześniejszej wersji z zawijanym kontaktem: nazwisko blisko lewej krawędzi (`x=32`), stonowane stanowisko pod nazwiskiem, a kanały kontaktu w pionie — **jeden wiersz na kanał** z ikonami ~12 pt pod tym stackiem (`_place_stacked_icon_contacts`). Prawy górny slot portretu to pusty prostokąt (`nova-photo-well` + obramowanie `nova-photo-frame`) — starter w edytorze **nie** zawiera rastra profilowego. Klik w ramkę otwiera galerię; wybór zdjęcia woła `applyProfilePhoto` z `objectFit: "cover"`. Dopiero mockup marketingowy wstrzykuje `backend/template_assets/nova-portrait.png` przy renderze (`scripts/render_iconic_mockups.py`). Ikony sekcji na `icon_x=64`, pogrubione nagłówki versalikami na `L=84` (+16 pt względem dawnego `48` / `68`).
+Nova to darmowy szablon jednokolumnowy (`layouts: ["icons"]`) na ciepłym papierze (`#F7F1E8`) z akcentem terracotta (`#C45C26`), nazwiskiem w Playfair Display i treścią w Montserrat. Masthead jest wyższy niż we wcześniejszej wersji z zawijanym kontaktem: nazwisko blisko lewej krawędzi (`x=32`), stonowane stanowisko pod nazwiskiem, a kanały kontaktu w pionie — **jeden wiersz na kanał** z ikonami ~12 pt pod tym stackiem (`_place_stacked_icon_contacts`). W prawym górnym slocie portretu znajduje się dopasowana kolorystycznie, terrakotowa ikona `nova-photo-glyph` o rozmiarze 42 pt w pustym prostokącie (`nova-photo-well` + obramowanie `nova-photo-frame`); starter w edytorze **nie** zawiera rastra profilowego. Klik w ramkę albo ikonę otwiera galerię, a wybór zdjęcia woła `applyProfilePhoto` z `objectFit: "cover"`. Dopiero mockup marketingowy wstrzykuje `backend/template_assets/nova-portrait.png` przy renderze (`scripts/render_iconic_mockups.py`). Ikony sekcji na `icon_x=64`, pogrubione nagłówki versalikami na `L=84` (+16 pt względem dawnego `48` / `68`).
 
 Implementacja:
 
-- `backend/app/services/cv_templates/templates/nova.py`, funkcja `_gen_nova` — stackowany kontakt, pusty well/frame, bold nagłówki
+- `backend/app/services/cv_templates/templates/nova.py`, funkcja `_gen_nova` — stackowany kontakt, terrakotowa ikona/well/frame zdjęcia, bold nagłówki
 - `backend/app/services/cv_templates/shared/contact.py`, funkcja `_place_stacked_icon_contacts`
-- `frontend/src/templates/iconic.js`, eksport `novaTemplate` — starter ze slotem, bez portretu
+- `frontend/src/templates/iconic.js`, eksport `novaTemplate` — starter ze slotem i ikoną portretu, bez rastra użytkownika
 - `frontend/src/components/canvas/Rectangle/Rectangle.jsx` — klik `photoSlot: "frame"` otwiera galerię
 - `frontend/src/utils/profilePhoto.js` — `nova-photo-frame` w `PROFILE_PHOTO_FRAME_IDS`; inset 0 + cover
 - `frontend/src/components/canvas/Image/Image.jsx` — kanwa honoruje `objectFit` / `cover`

@@ -23,6 +23,11 @@ THEMES = {
     "vestige": "#4A4A48",
 }
 THEME_VARIANTS = {}
+# Full Iconic themes normally receive the base glyph set. Nova additionally
+# uses the portrait placeholder inside its masthead photo frame.
+THEME_EXTRA_ICONS = {
+    "nova": ["portrait"],
+}
 
 SIZE = 128
 # Ink area inside the canvas — equal padding on every side after normalize.
@@ -354,6 +359,10 @@ def main() -> None:
         for name, fn in ICONS.items():
             path = out_dir / f"{name}.png"
             fn(color).save(path, "PNG")
+            print("wrote", path.relative_to(ROOT.parent))
+        for name in THEME_EXTRA_ICONS.get(theme, []):
+            path = out_dir / f"{name}.png"
+            EXTRA_ICONS[name](color).save(path, "PNG")
             print("wrote", path.relative_to(ROOT.parent))
 
     # Curated subset themes (Harbor) get only the glyphs they reference.

@@ -19,7 +19,7 @@ from app.services.cv_templates.shared.records import (
     _place_experience_record,
 )
 from app.services.cv_templates.shared.text import _compact_text, _labels, _place_skills_section
-from app.services.cv_templates.shared.icons import _icon_beside, _icon_key_for_label
+from app.services.cv_templates.shared.icons import _icon, _icon_beside, _icon_key_for_label
 from app.services.cv_templates.shared.contact import (
     _contact_channel_items,
     _place_stacked_icon_contacts,
@@ -137,7 +137,17 @@ def _gen_nova(cv: dict) -> list[dict]:
         'photoShape': 'rect',
         'flowRole': 'masthead',
     }
-    header.extend([photo_well, photo_frame])
+    # Use Nova's terracotta icon palette for the empty-state portrait glyph.
+    # The gallery replaces this semantic glyph with the selected raster while
+    # retaining the cream well and raising the frame outline above the photo.
+    photo_glyph = {
+        **_icon(C['icon_theme'], 'portrait', PHOTO_LEFT + 29, PHOTO_TOP + 41, 42, zIndex=4),
+        'id': 'nova-photo-glyph',
+        'photoSlot': 'glyph',
+        'alignWithText': False,
+        'flowRole': 'masthead',
+    }
+    header.extend([photo_well, photo_frame, photo_glyph])
     header.append(_line(48, header_rule_y, 499, 1, C['rule'], zIndex=2))
     header = [{**element, 'flowRole': 'masthead'} for element in header]
     # Append the band anchor after the masthead spread so its own flowRole

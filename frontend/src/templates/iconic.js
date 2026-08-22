@@ -304,6 +304,20 @@ const NOVA_ELEMENTS = [
     "flowRole": "masthead"
   },
   {
+    "category": "image",
+    "src": "/template-assets/iconic/nova/portrait.png",
+    "left": 476.0,
+    "top": 71.0,
+    "width": 42,
+    "height": 42,
+    "zIndex": 4,
+    "page": 1,
+    "alignWithText": false,
+    "flowRole": "masthead",
+    "id": "nova-photo-glyph",
+    "photoSlot": "glyph"
+  },
+  {
     "category": "line",
     "left": 48,
     "top": 215.35000000000002,
@@ -521,7 +535,7 @@ const NOVA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-2655d269d3cc",
+    "flowGroup": "record-6a31ed0a8e83",
     "flowRole": "content"
   },
   {
@@ -544,7 +558,7 @@ const NOVA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-2655d269d3cc",
+    "flowGroup": "record-6a31ed0a8e83",
     "flowRole": "content"
   },
   {
@@ -567,7 +581,7 @@ const NOVA_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-2655d269d3cc",
+    "flowGroup": "record-6a31ed0a8e83",
     "flowRole": "content"
   },
   {
@@ -590,7 +604,7 @@ const NOVA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-1450b6965678",
+    "flowGroup": "record-a10d609388c7",
     "flowRole": "content"
   },
   {
@@ -613,7 +627,7 @@ const NOVA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-1450b6965678",
+    "flowGroup": "record-a10d609388c7",
     "flowRole": "content"
   },
   {
@@ -636,7 +650,7 @@ const NOVA_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-1450b6965678",
+    "flowGroup": "record-a10d609388c7",
     "flowRole": "content"
   },
   {
@@ -659,7 +673,7 @@ const NOVA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-0f54668f1af1",
+    "flowGroup": "record-2d147fa3d414",
     "flowRole": "content"
   },
   {
@@ -682,7 +696,7 @@ const NOVA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-0f54668f1af1",
+    "flowGroup": "record-2d147fa3d414",
     "flowRole": "content"
   },
   {
@@ -705,7 +719,7 @@ const NOVA_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-0f54668f1af1",
+    "flowGroup": "record-2d147fa3d414",
     "flowRole": "content"
   },
   {
@@ -766,7 +780,7 @@ const NOVA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-83da354f31f7",
+    "flowGroup": "record-97211d1c7f48",
     "flowRole": "content"
   },
   {
@@ -789,7 +803,7 @@ const NOVA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-83da354f31f7",
+    "flowGroup": "record-97211d1c7f48",
     "flowRole": "content"
   },
   {
@@ -812,7 +826,7 @@ const NOVA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-83da354f31f7",
+    "flowGroup": "record-97211d1c7f48",
     "flowRole": "content"
   },
   {
@@ -873,7 +887,7 @@ const NOVA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-79ef0ecd13bd",
+    "flowGroup": "record-9d097750de90",
     "flowRole": "content"
   },
   {
@@ -943,7 +957,7 @@ const NOVA_ELEMENTS = [
       }
     ],
     "flowRole": "grid-member",
-    "flowGroup": "record-69d4d65d6c07"
+    "flowGroup": "record-298539566f45"
   },
   {
     "category": "textarea",
@@ -974,7 +988,7 @@ const NOVA_ELEMENTS = [
       }
     ],
     "flowRole": "grid-member",
-    "flowGroup": "record-69d4d65d6c07"
+    "flowGroup": "record-298539566f45"
   },
   {
     "category": "textarea",
@@ -1005,7 +1019,7 @@ const NOVA_ELEMENTS = [
       }
     ],
     "flowRole": "grid-member",
-    "flowGroup": "record-69d4d65d6c07"
+    "flowGroup": "record-298539566f45"
   }
 ];
 
@@ -1610,7 +1624,7 @@ const VOLT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-9866cd5de979",
+    "flowGroup": "record-1e1a7caf3dc9",
     "flowRole": "content"
   },
   {
@@ -1633,7 +1647,7 @@ const VOLT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-9866cd5de979",
+    "flowGroup": "record-1e1a7caf3dc9",
     "flowRole": "content"
   },
   {
@@ -1656,7 +1670,7 @@ const VOLT_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-9866cd5de979",
+    "flowGroup": "record-1e1a7caf3dc9",
     "flowRole": "content"
   },
   {
@@ -1679,7 +1693,7 @@ const VOLT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-d59d9968b3f5",
+    "flowGroup": "record-c5dc38bc5528",
     "flowRole": "content"
   },
   {
@@ -1702,7 +1716,7 @@ const VOLT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-d59d9968b3f5",
+    "flowGroup": "record-c5dc38bc5528",
     "flowRole": "content"
   },
   {
@@ -1725,7 +1739,7 @@ const VOLT_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-d59d9968b3f5",
+    "flowGroup": "record-c5dc38bc5528",
     "flowRole": "content"
   },
   {
@@ -1748,7 +1762,7 @@ const VOLT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-25522de789a0",
+    "flowGroup": "record-8b6f8281cfaf",
     "flowRole": "content"
   },
   {
@@ -1771,7 +1785,7 @@ const VOLT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-25522de789a0",
+    "flowGroup": "record-8b6f8281cfaf",
     "flowRole": "content"
   },
   {
@@ -1794,7 +1808,7 @@ const VOLT_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-25522de789a0",
+    "flowGroup": "record-8b6f8281cfaf",
     "flowRole": "content"
   },
   {
@@ -1869,7 +1883,7 @@ const VOLT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-2d2673aa2e38",
+    "flowGroup": "record-64c2829841aa",
     "flowRole": "content"
   },
   {
@@ -1892,7 +1906,7 @@ const VOLT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-2d2673aa2e38",
+    "flowGroup": "record-64c2829841aa",
     "flowRole": "content"
   },
   {
@@ -1915,7 +1929,7 @@ const VOLT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-2d2673aa2e38",
+    "flowGroup": "record-64c2829841aa",
     "flowRole": "content"
   },
   {
@@ -1990,7 +2004,7 @@ const VOLT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-ea225b40286e",
+    "flowGroup": "record-605f6c3310c3",
     "flowRole": "content"
   },
   {
@@ -2074,7 +2088,7 @@ const VOLT_ELEMENTS = [
       }
     ],
     "flowRole": "grid-member",
-    "flowGroup": "record-e56de7b9a008"
+    "flowGroup": "record-a7efb83cb469"
   },
   {
     "category": "textarea",
@@ -2105,7 +2119,7 @@ const VOLT_ELEMENTS = [
       }
     ],
     "flowRole": "grid-member",
-    "flowGroup": "record-e56de7b9a008"
+    "flowGroup": "record-a7efb83cb469"
   },
   {
     "category": "textarea",
@@ -2136,7 +2150,7 @@ const VOLT_ELEMENTS = [
       }
     ],
     "flowRole": "grid-member",
-    "flowGroup": "record-e56de7b9a008"
+    "flowGroup": "record-a7efb83cb469"
   }
 ];
 
