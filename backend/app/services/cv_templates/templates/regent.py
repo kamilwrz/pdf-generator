@@ -35,7 +35,8 @@ from app.services.cv_templates.shared.text import _compact_text, _labels, _place
 def _gen_regent(cv: dict) -> list[dict]:
     """Build a monochrome, single-column executive CV from normalized CV data.
 
-    The summary uses the same 9.5-point body scale as record content so
+    The summary uses the same compact 9.5-point / 11-point-leading body scale
+    as record content so
     imported CVs keep a compact, predictable one-page rhythm.
     """
     C = {
@@ -76,10 +77,10 @@ def _gen_regent(cv: dict) -> list[dict]:
         cursor_y += name_height + 9.0
 
     if title:
-        title_height = Builder.measure_block(title, W, 9.5, 13, SANS)
+        title_height = Builder.measure_block(title, W, 9.5, 11, SANS)
         title_index = len(header)
         title_el = _block(
-            title, L, cursor_y, W, title_height, 9.5, 13, C["ink"], SANS,
+            title, L, cursor_y, W, title_height, 9.5, 11, C["ink"], SANS,
             zIndex=3, align="left",
         )
         title_el["letterSpacing"] = 2.0
@@ -147,7 +148,7 @@ def _gen_regent(cv: dict) -> list[dict]:
     # Keep summary metrics identical to record copy. This avoids an oversized
     # lead consuming page space or creating unstable browser reflow for
     # multi-sentence imported summaries.
-    summary_fs, summary_lh = 9.5, 14
+    summary_fs, summary_lh = 9.5, 11
     if cv.get("summary"):
         b.need_section(
             section_chrome_h,
@@ -157,11 +158,14 @@ def _gen_regent(cv: dict) -> list[dict]:
         b.block(cv["summary"], L, W, summary_fs, summary_lh, C["ink"], DISPLAY)
         close_section()
 
-    body_fs, body_lh = 9.5, 14.0
+    # All requested content textareas — professional summary, job and degree
+    # lines, record descriptions, education copy, skills, and languages — use
+    # 11 px leading. Metadata keeps its smaller standalone line metric.
+    body_fs, body_lh = 9.5, 11.0
 
     def experience_height(job: dict) -> float:
         return _experience_record_height(
-            b, job, W, SANS, title_fs=11, title_lh=14, meta_fs=8.3, meta_lh=11.5,
+            b, job, W, SANS, title_fs=11, title_lh=11, meta_fs=8.3, meta_lh=11.5,
             body_fs=body_fs, body_lh=body_lh, meta_font=SANS,
         )
 
@@ -172,7 +176,7 @@ def _gen_regent(cv: dict) -> list[dict]:
         for index, job in enumerate(jobs):
             _place_experience_record(
                 b, job, L, W, ink=C["ink"], muted=C["muted"], body=C["body"], font=SANS,
-                title_fs=11, title_lh=14, meta_fs=8.3, meta_lh=11.5,
+                title_fs=11, title_lh=11, meta_fs=8.3, meta_lh=11.5,
                 body_fs=body_fs, body_lh=body_lh, meta_font=SANS,
                 after_gap=get_spacing().record if index < len(jobs) - 1 else None,
             )
@@ -187,7 +191,7 @@ def _gen_regent(cv: dict) -> list[dict]:
         b.need_section(
             section_chrome_h,
             _education_record_height(
-                b, education_entries[0], W, SANS, degree_fs=10.5, degree_lh=13.5,
+                b, education_entries[0], W, SANS, degree_fs=10.5, degree_lh=11,
                 meta_fs=8.3, meta_lh=11.5, body_fs=body_fs, body_lh=body_lh,
             ),
         )
@@ -195,7 +199,7 @@ def _gen_regent(cv: dict) -> list[dict]:
         for index, education in enumerate(education_entries):
             _place_education_record(
                 b, education, L, W, ink=C["ink"], muted=C["muted"], body=C["body"], font=SANS,
-                degree_fs=10.5, degree_lh=13.5, meta_fs=8.3, meta_lh=11.5,
+                degree_fs=10.5, degree_lh=11, meta_fs=8.3, meta_lh=11.5,
                 body_fs=body_fs, body_lh=body_lh,
                 after_gap=get_spacing().record if index < len(education_entries) - 1 else None,
             )

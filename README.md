@@ -785,7 +785,7 @@ Known limitation: long user-provided section names are shortened only inside the
 
 Regent is a paid monochrome single-column template (`layouts: ["single", "icons"]`) for executives and consultants. It uses only white, charcoal, and neutral grey. A 38 px Cormorant Garamond name establishes the masthead, a widely tracked Montserrat role line keeps the hierarchy disciplined, and a centered band of small phone, email, LinkedIn, and location icons remains understated.
 
-Its defining choice is a 9.5 px Cormorant Garamond professional summary with a 14 px line height, matching record-copy metrics while using a contrasting display typeface. This keeps imported multi-sentence summaries compact and lets experience, education, skills, and languages share an A4 page. Each section has a letter-spaced uppercase label and a 0.8 px grey hairline. The deterministic Python generator preserves these metrics for imported and user-authored CVs.
+Its defining choice is a 9.5 px Cormorant Garamond professional summary with an 11 px line height, matching the compact 11 px leading used by job and degree lines, record descriptions, education copy, skills, and languages while using a contrasting display typeface. Only the smaller metadata rows keep their own line metric. This keeps imported multi-sentence summaries compact and lets experience, education, skills, and languages share an A4 page. Each section has a letter-spaced uppercase label and a 0.8 px grey hairline. The deterministic Python generator preserves these metrics for imported and user-authored CVs.
 
 Implementation:
 
@@ -796,7 +796,7 @@ Implementation:
 
 Tests:
 
-- `frontend/src/templates/regent.test.js` — 9.5 px / 14 px summary metrics, monochrome palette, contact icons, and five-section hierarchy
+- `frontend/src/templates/regent.test.js` — 9.5 px / 11 px textarea metrics, monochrome palette, contact icons, and five-section hierarchy
 - `backend/tests/test_regent_template.py` — registry metadata, oversized summary, and contact-icon generation
 
 ### Meridian premium navy/steel-blue template
@@ -2621,7 +2621,7 @@ Znane ograniczenie: długie nazwy sekcji podane przez użytkownika są skracane 
 
 Regent to płatny, monochromatyczny szablon jednokolumnowy (`layouts: ["single", "icons"]`) dla osób na stanowiskach executive i consultant. Używa wyłącznie bieli, grafitu oraz neutralnych szarości. Nazwisko w Cormorant Garamond o rozmiarze 38 px buduje masthead, rozstrzelona linia stanowiska w Montserrat utrzymuje dyscyplinę hierarchii, a wyśrodkowany pas drobnych ikon telefonu, e-maila, LinkedIn i lokalizacji pozostaje subtelny.
 
-Najważniejszym elementem Regenta jest podsumowanie zawodowe złożone krojem Cormorant Garamond o rozmiarze 9,5 px i interlinii 14 px, takiej samej jak w treści rekordów. Kontrastowy krój display odróżnia je typograficznie, a kompaktowe metryki pozwalają zmieścić wielozdaniowe podsumowanie, doświadczenie, wykształcenie, umiejętności i języki na A4. Każda sekcja ma wersalikową etykietę z rozstrzeleniem oraz szarą linię 0,8 px. Deterministyczny generator Python zachowuje te metryki dla importowanego i edytowanego CV.
+Najważniejszym elementem Regenta jest podsumowanie zawodowe złożone krojem Cormorant Garamond o rozmiarze 9,5 px i interlinii 11 px, takiej samej jak zwarta interlinia 11 px linii stanowisk i dyplomów, opisów rekordów, treści wykształcenia, umiejętności i języków. Kontrastowy krój display odróżnia je typograficznie, a własne metryki zachowują tylko mniejsze wiersze metadanych. Kompaktowe metryki pozwalają zmieścić wielozdaniowe podsumowanie, doświadczenie, wykształcenie, umiejętności i języki na A4. Każda sekcja ma wersalikową etykietę z rozstrzeleniem oraz szarą linię 0,8 px. Deterministyczny generator Python zachowuje te metryki dla importowanego i edytowanego CV.
 
 Implementacja:
 

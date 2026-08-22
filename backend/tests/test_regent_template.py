@@ -32,7 +32,7 @@ class RegentTemplateTests(unittest.TestCase):
 
         summary = next(element for element in elements if element.get("content") == "Łączę strategię, analizę i jasne decyzje.")
         self.assertEqual(summary["fontSize"], 9.5)
-        self.assertEqual(summary["lineHeight"], 14)
+        self.assertEqual(summary["lineHeight"], 11)
         self.assertEqual(summary["fontFamily"], "CormorantGaramond")
         self.assertEqual(summary["color"], "#151515")
 
