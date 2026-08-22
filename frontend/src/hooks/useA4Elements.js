@@ -1424,6 +1424,29 @@ export function useA4Elements(titleRef) {
             newState, edited.contactBandId, measureContactLabel, () => nanoid(),
           ).elements;
         }
+        if (
+          edited?.autoHeight
+          && String(edited.content ?? "").trim() === ""
+        ) {
+          // Clearing an auto-height block is a real layout change, including
+          // AI "Skróć CV" patches. Collapse it immediately instead of waiting
+          // for an off-page textarea to mount and report a scroll height.
+          const result = reflowTextareaHeight(
+            newState,
+            id,
+            0,
+            pageSizeRef.current.height,
+            {
+              pageTop: 66,
+              bottomMargin: 72,
+              allowReclaim: editorModeRef.current === EDITOR_MODE_TEMPLATE,
+              spacing: flowSpacingRef.current,
+            },
+          );
+          if (result.changed) {
+            return finalizeDocumentPages(result.elements, { collapseEmpty: true });
+          }
+        }
       }
       if ("page" in dataObject) {
         return finalizeDocumentPages(newState, { collapseEmpty: true });

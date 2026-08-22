@@ -1161,30 +1161,46 @@ export default function AiAssistant() {
 
     const acceptCorrection = useCallback((msgId, patch) => {
         const { element_id, ...fields } = patch;
-        editElementValues(fields, element_id);
+        const targetExists = A4_Elements.some((element) => element.element_id === element_id);
+        if (!targetExists) return;
+        // AI content may target an off-page textarea. Mark it as changed rather
+        // than preserving its generator placeholder height, so its first mount
+        // can grow to the full generated summary instead of clipping it.
+        const nextFields = "content" in fields
+            ? { ...fields, preserveInitialLayout: false }
+            : fields;
+        editElementValues(nextFields, element_id);
         setCorrectionStates(prev => ({ ...prev, [`${msgId}_${element_id}`]: "accepted" }));
         collapseSpilledMainIntoSidebar?.();
-    }, [editElementValues, collapseSpilledMainIntoSidebar]);
+    }, [A4_Elements, editElementValues, collapseSpilledMainIntoSidebar]);
 
     const rejectCorrection = useCallback((msgId, element_id) => {
         setCorrectionStates(prev => ({ ...prev, [`${msgId}_${element_id}`]: "rejected" }));
     }, []);
 
     const applyAll = useCallback((msgId, corrections) => {
+        const acceptedIds = [];
         corrections.forEach(patch => {
             const key = `${msgId}_${patch.element_id}`;
-            if ((correctionStates[key] || "pending") === "pending") {
+            const targetExists = A4_Elements.some(
+                (element) => element.element_id === patch.element_id,
+            );
+            if (targetExists && (correctionStates[key] || "pending") === "pending") {
                 const { element_id, ...fields } = patch;
-                editElementValues(fields, element_id);
+                const nextFields = "content" in fields
+                    ? { ...fields, preserveInitialLayout: false }
+                    : fields;
+                editElementValues(nextFields, element_id);
+                acceptedIds.push(element_id);
             }
         });
         const newStates = {};
-        corrections.forEach(({ element_id }) => {
+        acceptedIds.forEach((element_id) => {
             newStates[`${msgId}_${element_id}`] = "accepted";
         });
         setCorrectionStates(prev => ({ ...prev, ...newStates }));
         collapseSpilledMainIntoSidebar?.();
-    }, [correctionStates, editElementValues, collapseSpilledMainIntoSidebar]);
+    }, [A4_Elements, correctionStates, editElementValues, collapseSpilledMainIntoSidebar]);
 
     const previewLayoutGroup = useCallback((msgId, group) => {
         setStructurePreviewGroup(null);

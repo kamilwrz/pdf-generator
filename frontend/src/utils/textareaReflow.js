@@ -680,7 +680,11 @@ export function reflowTextareaHeight(
 ) {
   const target = elements.find((element) => element.element_id === elementId);
   const nextHeight = Math.max(0, Math.round(number(measuredHeight)));
-  if (!target || !target.autoHeight || nextHeight === 0) {
+  // An AI "Skróć CV" patch may intentionally clear a whole auto-height block.
+  // Zero is therefore a valid measured height only for empty content; rejecting
+  // it retained the old box height and left a conspicuous empty gap.
+  const isIntentionalClear = String(target?.content ?? "").trim() === "";
+  if (!target || !target.autoHeight || (nextHeight === 0 && !isIntentionalClear)) {
     return { elements, pageCount: Math.max(1, ...elements.map(pageOf)), changed: false };
   }
 

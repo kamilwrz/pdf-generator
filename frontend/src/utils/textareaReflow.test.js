@@ -45,6 +45,17 @@ test("shrinking content preserves gaps while pulling only following lane element
   assert.equal(result.elements.find((element) => element.element_id === "connector").top, undefined);
 });
 
+test("collapses an intentionally cleared AI textarea and reclaims its gap", () => {
+  const result = reflowTextareaHeight([
+    textarea({ content: "", height: 48 }),
+    { element_id: "next", category: "text", left: 40, top: 164, width: 180, fontSize: 12, page: 1 },
+  ], "textarea", 0, 842);
+
+  assert.equal(result.changed, true);
+  assert.equal(result.elements.find((element) => element.element_id === "textarea").height, 0);
+  assert.equal(result.elements.find((element) => element.element_id === "next").top, 116);
+});
+
 test("shrinking page-one content reclaims the page-break hole for following blocks", () => {
   const result = reflowTextareaHeight([
     textarea({ top: 620, height: 80 }),

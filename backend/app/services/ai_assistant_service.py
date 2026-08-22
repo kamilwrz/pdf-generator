@@ -717,7 +717,15 @@ def _extract_structured(elements: list[dict]) -> list[dict]:
     tense_by_id = _annotate_employment_tense(elements)
     items = []
     for el in elements:
-        if el.get("category") not in ("text", "textarea") or not el.get("content"):
+        category = el.get("category")
+        # An empty textarea can be the intended target of "write a summary".
+        # Keep it in the model context so the response carries a real
+        # correction keyed to the existing element instead of prose only in
+        # the chat message. Empty text nodes remain excluded because canvas
+        # contact/identity anchors use them as non-editable metadata.
+        if category not in ("text", "textarea"):
+            continue
+        if category == "text" and not el.get("content"):
             continue
         element_id = el.get("element_id")
         content = el.get("content", "")

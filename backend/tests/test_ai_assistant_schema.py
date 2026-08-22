@@ -18,6 +18,29 @@ from app.testing_support import ensure_test_auth_env
 
 
 class SafeResultSchemaTests(unittest.TestCase):
+    def test_structured_context_keeps_empty_summary_textareas(self):
+        structured = ai_assistant_service._extract_structured([
+            {
+                "element_id": "summary",
+                "category": "textarea",
+                "content": "",
+                "fontSize": 10,
+                "lineHeight": 14,
+            },
+            {
+                "element_id": "contact-anchor",
+                "category": "text",
+                "content": "",
+                "width": 0,
+                "height": 0,
+            },
+        ])
+
+        self.assertEqual(
+            [(item["element_id"], item["content"]) for item in structured],
+            [("summary", "")],
+        )
+
     def test_safe_result_keeps_categories_and_strips_rozkład_tip(self):
         raw = {
             "message": "Dobre CV.",
