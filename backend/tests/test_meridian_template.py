@@ -74,6 +74,74 @@ class MeridianTemplateTests(unittest.TestCase):
         self.assertEqual(len(ticks), 1)
         self.assertEqual(ticks[0]["width"], 18.0)
 
+    def test_meridian_experience_places_dates_in_a_right_aligned_column(self) -> None:
+        """Title/dates and company/location render as two-column rows, not stacked lines."""
+        elements = generate_resume(
+            "meridian",
+            {
+                "name": "Alexandra Nowak",
+                "experience": [
+                    {
+                        "title": "Senior Strategy Consultant",
+                        "company": "Northline Advisory",
+                        "city": "Warszawa",
+                        "period": "2021 – obecnie",
+                        "bullets": ["Prowadzi projekty transformacyjne."],
+                    },
+                ],
+                "education": [],
+                "skills": [],
+                "languages": [],
+            },
+        )
+
+        title = next(e for e in elements if e.get("content") == "Senior Strategy Consultant")
+        period = next(e for e in elements if e.get("content") == "2021 – obecnie")
+        company = next(e for e in elements if e.get("content") == "Northline Advisory")
+        city = next(e for e in elements if e.get("content") == "Warszawa")
+
+        self.assertTrue(title["bold"])
+        self.assertEqual(title["top"], period["top"])
+        self.assertEqual(period["align"], "right")
+        self.assertGreater(period["left"], title["left"] + title["width"])
+
+        self.assertEqual(company["top"], city["top"])
+        self.assertEqual(city["align"], "right")
+        self.assertFalse(company["bold"])
+
+    def test_meridian_education_lists_school_before_the_bold_degree(self) -> None:
+        """Row order matches the screenshot convention: school/city, then degree/period."""
+        elements = generate_resume(
+            "meridian",
+            {
+                "name": "Kamil Wrzochalski",
+                "experience": [],
+                "education": [
+                    {
+                        "degree": "Bachelor of Laws (LL.B.)",
+                        "school": "EU Viadrina",
+                        "city": "Frankfurt(Oder)",
+                        "period": "07/2015 - 10/2026",
+                    },
+                ],
+                "skills": [],
+                "languages": [],
+            },
+        )
+
+        school = next(e for e in elements if e.get("content") == "EU Viadrina")
+        degree = next(e for e in elements if e.get("content") == "Bachelor of Laws (LL.B.)")
+        city = next(e for e in elements if e.get("content") == "Frankfurt(Oder)")
+        period = next(e for e in elements if e.get("content") == "07/2015 - 10/2026")
+
+        self.assertFalse(school["bold"])
+        self.assertTrue(degree["bold"])
+        self.assertLess(school["top"], degree["top"])
+        self.assertEqual(school["top"], city["top"])
+        self.assertEqual(degree["top"], period["top"])
+        self.assertEqual(city["align"], "right")
+        self.assertEqual(period["align"], "right")
+
     def test_meridian_keeps_a_realistic_multisentence_summary_on_the_first_page(self) -> None:
         """Prevent a display-size regression that left page one almost empty."""
         summary_text = (

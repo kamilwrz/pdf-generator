@@ -6,6 +6,15 @@ kept ATS-friendly), but built around a deep navy/steel-blue palette instead
 of Regent's monochrome ink, a noticeably more compact body type scale, and a
 short accent-blue tick under every section rule that gives the page its own
 identity instead of reading as a Regent recolor.
+
+Experience and education records use a two-column row layout (title/degree on
+the left, dates/location right-aligned on the right, matching a common
+Western "letterhead" resume convention) instead of the shared, fully
+left-aligned `_place_experience_record` / `_place_education_record` helpers
+every other single-column template reuses. Meridian's own
+`_meridian_place_row` / `_meridian_place_experience` / `_meridian_place_education`
+below implement that column split locally so no other template's record
+layout is affected.
 """
 from __future__ import annotations
 
@@ -23,13 +32,8 @@ from app.services.cv_templates.shared.contact import (
 )
 from app.services.cv_templates.shared.extras import _extra_sections
 from app.services.cv_templates.shared.masthead import tag_masthead_identity
-from app.services.cv_templates.shared.records import (
-    _education_record_height,
-    _experience_record_height,
-    _place_education_record,
-    _place_experience_record,
-)
-from app.services.cv_templates.shared.text import _compact_text, _labels, _place_skills_section
+from app.services.cv_templates.shared.records import _education_bullets, _education_school
+from app.services.cv_templates.shared.text import _bullets, _compact_text, _labels, _place_skills_section
 
 # Meridian's own masthead rhythm. Kept as local literals (not routed through
 # `get_spacing()`, which is the shared per-document density knob every
@@ -41,6 +45,200 @@ _TITLE_TO_CONTACT_GAP = 14.0
 _CONTACT_TO_RULE_GAP = 14.0
 _MASTHEAD_TO_CONTENT_GAP = 24.0
 _SECTION_TICK_WIDTH = 18.0
+
+# Two-column record geometry: a right-aligned date/location rail, narrower
+# than the left title/degree column, separated by a small fixed gap.
+_RECORD_RIGHT_W = 130.0
+_RECORD_GAP = 12.0
+
+
+def _meridian_row_height(
+    b: "Builder", left_text: str, left_fs: float, left_lh: float,
+    right_text: str, right_fs: float, right_lh: float, font: str,
+    left_w: float, right_w: float, *, left_bold: bool = False,
+) -> float:
+    """Height of one title/dates or company/location row (max of both cells)."""
+    left_h = (
+        b.measure_block(left_text, left_w, left_fs, left_lh, font, bold=left_bold, min_h=left_lh)
+        if left_text else 0.0
+    )
+    right_h = (
+        b.measure_block(right_text, right_w, right_fs, right_lh, font, min_h=right_lh)
+        if right_text else 0.0
+    )
+    return max(left_h, right_h)
+
+
+def _meridian_place_row(
+    b: "Builder", left_text: str, left_fs: float, left_lh: float, left_color: str,
+    right_text: str, right_fs: float, right_lh: float, right_color: str, font: str,
+    left: float, left_w: float, right_w: float, *, left_bold: bool = False,
+) -> None:
+    """Emit one row as two independently-aligned blocks sharing a top."""
+    row_h = _meridian_row_height(
+        b, left_text, left_fs, left_lh, right_text, right_fs, right_lh, font,
+        left_w, right_w, left_bold=left_bold,
+    )
+    top, page = b.y, b.pg
+    if left_text:
+        b.els.append(
+            _block(left_text, left, top, left_w, row_h, left_fs, left_lh, left_color, font,
+                   zIndex=2, page=page, bold=left_bold)
+        )
+    if right_text:
+        b.els.append(
+            _block(right_text, left + left_w + _RECORD_GAP, top, right_w, row_h,
+                   right_fs, right_lh, right_color, font, zIndex=2, page=page, align="right")
+        )
+    b.y = top + row_h
+
+
+def _meridian_experience_height(
+    b: "Builder", job: dict, width: float, font: str, *,
+    title_fs: float, title_lh: float, meta_fs: float, meta_lh: float,
+    body_fs: float, body_lh: float,
+) -> float:
+    """Measured height of one two-column experience record (no trailing gap)."""
+    left_w = width - _RECORD_RIGHT_W - _RECORD_GAP
+    title = str(job.get("title") or "").strip()
+    period = str(job.get("period") or "").strip()
+    company = str(job.get("company") or "").strip()
+    city = str(job.get("city") or "").strip()
+    bullets = _bullets(job)
+
+    height = _meridian_row_height(
+        b, title, title_fs, title_lh, period, meta_fs, meta_lh, font,
+        left_w, _RECORD_RIGHT_W, left_bold=True,
+    )
+    if company or city:
+        height += get_spacing().stack + _meridian_row_height(
+            b, company, meta_fs, meta_lh, city, meta_fs, meta_lh, font,
+            left_w, _RECORD_RIGHT_W,
+        )
+    if bullets:
+        height += get_spacing().stack + b.measure_block(
+            bullets, width, body_fs, body_lh, font, bulletList=True, min_h=body_lh,
+        )
+    return height
+
+
+def _meridian_place_experience(
+    b: "Builder", job: dict, left: float, width: float, *,
+    ink: str, muted: str, body: str, font: str,
+    title_fs: float, title_lh: float, meta_fs: float, meta_lh: float,
+    body_fs: float, body_lh: float, after_gap: float | None = None,
+) -> None:
+    """Render one experience record as title/dates then company/location rows."""
+    left_w = width - _RECORD_RIGHT_W - _RECORD_GAP
+    title = str(job.get("title") or "").strip()
+    period = str(job.get("period") or "").strip()
+    company = str(job.get("company") or "").strip()
+    city = str(job.get("city") or "").strip()
+    bullets = _bullets(job)
+    height = _meridian_experience_height(
+        b, job, width, font, title_fs=title_fs, title_lh=title_lh,
+        meta_fs=meta_fs, meta_lh=meta_lh, body_fs=body_fs, body_lh=body_lh,
+    )
+    with b.keep_together(height):
+        _meridian_place_row(
+            b, title, title_fs, title_lh, ink, period, meta_fs, meta_lh, muted,
+            font, left, left_w, _RECORD_RIGHT_W, left_bold=True,
+        )
+        if company or city:
+            b.gap(get_spacing().stack)
+            _meridian_place_row(
+                b, company, meta_fs, meta_lh, muted, city, meta_fs, meta_lh, muted,
+                font, left, left_w, _RECORD_RIGHT_W,
+            )
+        if bullets:
+            b.gap(get_spacing().stack)
+            b.block(bullets, left, width, body_fs, body_lh, body, font, bulletList=True)
+    if after_gap is not None:
+        b.gap(after_gap)
+
+
+def _meridian_education_height(
+    b: "Builder", edu: dict, width: float, font: str, *,
+    degree_fs: float, degree_lh: float, meta_fs: float, meta_lh: float,
+    body_fs: float, body_lh: float,
+) -> float:
+    """Measured height of one two-column education record (no trailing gap)."""
+    left_w = width - _RECORD_RIGHT_W - _RECORD_GAP
+    school = _education_school(edu)
+    city = str(edu.get("city") or "").strip()
+    degree = str(edu.get("degree") or "").strip()
+    period = str(edu.get("period") or "").strip()
+    bullets = _education_bullets(edu)
+
+    height = 0.0
+    placed = False
+    if school or city:
+        height += _meridian_row_height(
+            b, school, degree_fs, degree_lh, city, meta_fs, meta_lh, font,
+            left_w, _RECORD_RIGHT_W,
+        )
+        placed = True
+    if degree or period:
+        if placed:
+            height += get_spacing().stack
+        height += _meridian_row_height(
+            b, degree, degree_fs, degree_lh, period, meta_fs, meta_lh, font,
+            left_w, _RECORD_RIGHT_W, left_bold=True,
+        )
+        placed = True
+    if bullets:
+        if placed:
+            height += get_spacing().stack
+        height += b.measure_block(
+            bullets, width, body_fs, body_lh, font, bulletList=True, min_h=body_lh,
+        )
+    return height
+
+
+def _meridian_place_education(
+    b: "Builder", edu: dict, left: float, width: float, *,
+    ink: str, muted: str, body: str, font: str,
+    degree_fs: float, degree_lh: float, meta_fs: float, meta_lh: float,
+    body_fs: float, body_lh: float, after_gap: float | None = None,
+) -> None:
+    """Render one education record as school/location then degree/period rows.
+
+    Row order matches the common letterhead convention (school first, then
+    the bold diploma title) rather than the shared helper's degree-first
+    order — Meridian's defining structural difference from Regent.
+    """
+    left_w = width - _RECORD_RIGHT_W - _RECORD_GAP
+    school = _education_school(edu)
+    city = str(edu.get("city") or "").strip()
+    degree = str(edu.get("degree") or "").strip()
+    period = str(edu.get("period") or "").strip()
+    bullets = _education_bullets(edu)
+    height = _meridian_education_height(
+        b, edu, width, font, degree_fs=degree_fs, degree_lh=degree_lh,
+        meta_fs=meta_fs, meta_lh=meta_lh, body_fs=body_fs, body_lh=body_lh,
+    )
+    placed = False
+    with b.keep_together(height):
+        if school or city:
+            _meridian_place_row(
+                b, school, degree_fs, degree_lh, ink, city, meta_fs, meta_lh, muted,
+                font, left, left_w, _RECORD_RIGHT_W,
+            )
+            placed = True
+        if degree or period:
+            if placed:
+                b.gap(get_spacing().stack)
+            _meridian_place_row(
+                b, degree, degree_fs, degree_lh, ink, period, meta_fs, meta_lh, muted,
+                font, left, left_w, _RECORD_RIGHT_W, left_bold=True,
+            )
+            placed = True
+        if bullets:
+            if placed:
+                b.gap(get_spacing().stack)
+            b.block(bullets, left, width, body_fs, body_lh, body, font, bulletList=True)
+    if after_gap is not None:
+        b.gap(after_gap)
 
 
 def _gen_meridian(cv: dict) -> list[dict]:
@@ -179,9 +377,9 @@ def _gen_meridian(cv: dict) -> list[dict]:
     body_fs, body_lh = 8.6, 12.0
 
     def experience_height(job: dict) -> float:
-        return _experience_record_height(
+        return _meridian_experience_height(
             b, job, W, SANS, title_fs=10.3, title_lh=13.0, meta_fs=7.9, meta_lh=10.8,
-            body_fs=body_fs, body_lh=body_lh, meta_font=SANS,
+            body_fs=body_fs, body_lh=body_lh,
         )
 
     if cv.get("experience"):
@@ -189,10 +387,10 @@ def _gen_meridian(cv: dict) -> list[dict]:
         b.need_section(section_chrome_h, experience_height(jobs[0]))
         section(labels["experience"])
         for index, job in enumerate(jobs):
-            _place_experience_record(
+            _meridian_place_experience(
                 b, job, L, W, ink=C["ink"], muted=C["muted"], body=C["body"], font=SANS,
                 title_fs=10.3, title_lh=13.0, meta_fs=7.9, meta_lh=10.8,
-                body_fs=body_fs, body_lh=body_lh, meta_font=SANS,
+                body_fs=body_fs, body_lh=body_lh,
                 after_gap=get_spacing().record if index < len(jobs) - 1 else None,
             )
         close_section()
@@ -205,14 +403,14 @@ def _gen_meridian(cv: dict) -> list[dict]:
         education_entries = cv["education"]
         b.need_section(
             section_chrome_h,
-            _education_record_height(
+            _meridian_education_height(
                 b, education_entries[0], W, SANS, degree_fs=9.8, degree_lh=12.5,
                 meta_fs=7.9, meta_lh=10.8, body_fs=body_fs, body_lh=body_lh,
             ),
         )
         section(labels["education"])
         for index, education in enumerate(education_entries):
-            _place_education_record(
+            _meridian_place_education(
                 b, education, L, W, ink=C["ink"], muted=C["muted"], body=C["body"], font=SANS,
                 degree_fs=9.8, degree_lh=12.5, meta_fs=7.9, meta_lh=10.8,
                 body_fs=body_fs, body_lh=body_lh,

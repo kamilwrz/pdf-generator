@@ -781,9 +781,11 @@ Meridian is a paid single-column template (`layouts: ["single", "icons"]`) in th
 
 Its body type scale sits a full step below Regent's: the Cormorant Garamond summary, experience/education records, and skills copy all render at 8.6 px / 12 px line height (Regent: 9.5 px / 14 px), and the masthead's own cursor gaps (name→title, title→contact, contact→rule, rule→first section) are tightened rather than routed through the shared per-document spacing knob, so Meridian reads denser without affecting any other template's rhythm. Every section rule carries a short 18 px accent-blue tick — Meridian's signature mark, distinguishing its chrome from Regent's plain full-width hairline. Contact icons reuse Regent's neutral glyph set (`backend/template_assets/iconic/regent/`), since those glyphs are colorless silhouettes designed to sit under any ink color.
 
+Experience and education records use a two-column "letterhead" row layout instead of the shared, fully left-aligned record helper every other single-column template reuses: an experience record renders the bold job title on the left with its date range right-aligned on the same row, then the company on the left with its city right-aligned on the row below, then bullets at full width. An education record renders the school on the left with its city right-aligned, then the bold degree on the left with its period right-aligned below, then bullets — school before degree, matching the common letterhead convention rather than Regent's degree-first order. This layout is implemented locally in `meridian.py` (`_meridian_place_row` / `_meridian_place_experience` / `_meridian_place_education`) and does not change any other template's record rendering.
+
 Implementation:
 
-- `backend/app/services/cv_templates/templates/meridian.py`, function `_gen_meridian` — navy/steel-blue palette, compact body scale, tightened masthead cursor gaps, and the accent-tick section rule
+- `backend/app/services/cv_templates/templates/meridian.py`, function `_gen_meridian` — navy/steel-blue palette, compact body scale, tightened masthead cursor gaps, and the accent-tick section rule; `_meridian_place_row` / `_meridian_place_experience` / `_meridian_place_education` — the two-column title/dates and company/location row layout
 - `backend/app/services/cv_templates/registry.py`, `TEMPLATE_LAYOUTS["meridian"]` and `_GENERATORS["meridian"]`
 - `frontend/src/templates/meridian.js`, exported `meridianTemplate` — editable A4 starter regenerated from the backend output via `scripts/regenerate_template_starters.py`
 - `frontend/src/templates/index.js`, registry entry `meridian` (`tier: "paid"`, `layouts: ["single", "icons"]`)
@@ -791,7 +793,7 @@ Implementation:
 
 Tests:
 
-- `backend/tests/test_meridian_template.py` — registry metadata, 8.6 px / 12 px summary metrics, contact icons, the accent-tick section marker, and a realistic multi-sentence summary staying on page one
+- `backend/tests/test_meridian_template.py` — registry metadata, 8.6 px / 12 px summary metrics, contact icons, the accent-tick section marker, the two-column experience row (right-aligned dates), the school-before-degree education row order, and a realistic multi-sentence summary staying on page one
 
 ### Vestige narrow-sidebar editorial template
 
@@ -2599,9 +2601,11 @@ Meridian to płatny szablon jednokolumnowy (`layouts: ["single", "icons"]`) z te
 
 Skala typografii treści jest o cały stopień mniejsza niż w Regencie: podsumowanie w Cormorant Garamond, rekordy doświadczenia/wykształcenia oraz umiejętności renderują się przy 8,6 px / interlinii 12 px (Regent: 9,5 px / 14 px), a własne odstępy kursora w mastheadzie (nazwisko→stanowisko, stanowisko→kontakt, kontakt→linia, linia→pierwsza sekcja) są zwężone bezpośrednio w kodzie szablonu, a nie przez współdzielony, ogólnodokumentowy suwak odstępów, dzięki czemu Meridian jest gęstszy bez wpływu na rytm innych szablonów. Każda linia sekcji ma krótki, 18-pikselowy akcent w kolorze stalowego błękitu — sygnaturowy znak Meridiana, odróżniający jego chrome od zwykłej, pełnej szerokości linii Regenta. Ikony kontaktowe korzystają z neutralnego zestawu glifów Regenta (`backend/template_assets/iconic/regent/`), ponieważ są to bezbarwne sylwetki zaprojektowane tak, by pasowały do dowolnego koloru atramentu.
 
+Rekordy doświadczenia i wykształcenia używają dwukolumnowego układu wierszy w stylu "papieru firmowego" zamiast współdzielonego, w pełni lewostronnie wyrównanego helpera, z którego korzysta każdy inny szablon jednokolumnowy: rekord doświadczenia renderuje pogrubione stanowisko po lewej z zakresem dat wyrównanym do prawej w tym samym wierszu, następnie firmę po lewej z miastem wyrównanym do prawej w wierszu poniżej, a na końcu punktory na pełną szerokość. Rekord wykształcenia renderuje uczelnię po lewej z miastem wyrównanym do prawej, następnie pogrubiony kierunek po lewej z okresem wyrównanym do prawej poniżej, a na końcu punktory — uczelnia przed kierunkiem, zgodnie z powszechną konwencją "papieru firmowego", a nie kolejnością kierunek-najpierw jak w Regencie. Ten układ jest zaimplementowany lokalnie w `meridian.py` (`_meridian_place_row` / `_meridian_place_experience` / `_meridian_place_education`) i nie zmienia renderowania rekordów w żadnym innym szablonie.
+
 Implementacja:
 
-- `backend/app/services/cv_templates/templates/meridian.py`, funkcja `_gen_meridian` — granatowo-niebieska paleta, zwarta skala treści, zwężone odstępy kursora mastheadu oraz linia sekcji z akcentowym znacznikiem
+- `backend/app/services/cv_templates/templates/meridian.py`, funkcja `_gen_meridian` — granatowo-niebieska paleta, zwarta skala treści, zwężone odstępy kursora mastheadu oraz linia sekcji z akcentowym znacznikiem; `_meridian_place_row` / `_meridian_place_experience` / `_meridian_place_education` — dwukolumnowy układ wierszy stanowisko/data i firma/miasto
 - `backend/app/services/cv_templates/registry.py`, `TEMPLATE_LAYOUTS["meridian"]` i `_GENERATORS["meridian"]`
 - `frontend/src/templates/meridian.js`, eksport `meridianTemplate` — edytowalny starter A4 regenerowany z wyjścia backendu przez `scripts/regenerate_template_starters.py`
 - `frontend/src/templates/index.js`, wpis rejestru `meridian` (`tier: "paid"`, `layouts: ["single", "icons"]`)
@@ -2609,7 +2613,7 @@ Implementacja:
 
 Testy:
 
-- `backend/tests/test_meridian_template.py` — metadane rejestru, metryki podsumowania 8,6 px / 12 px, ikony kontaktu, akcentowy znacznik linii sekcji oraz realistyczne wielozdaniowe podsumowanie pozostające na pierwszej stronie
+- `backend/tests/test_meridian_template.py` — metadane rejestru, metryki podsumowania 8,6 px / 12 px, ikony kontaktu, akcentowy znacznik linii sekcji, dwukolumnowy wiersz doświadczenia (data wyrównana do prawej), kolejność uczelnia-przed-kierunkiem w wykształceniu oraz realistyczne wielozdaniowe podsumowanie pozostające na pierwszej stronie
 
 ### Vestige — redakcyjny szablon z wąskim sidebarem
 
