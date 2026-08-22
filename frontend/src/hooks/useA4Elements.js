@@ -261,6 +261,11 @@ export function useA4Elements(titleRef) {
     document.addEventListener("pointerdown", markCanvasEditExit, true);
     return () => document.removeEventListener("pointerdown", markCanvasEditExit, true);
   }, []);
+  const requestEditZoomRestore = useCallback(() => {
+    // The properties panel's explicit Close action ends text editing without a
+    // canvas pointer event, so it must opt into the same restoration path.
+    editZoomExitRequestedRef.current = true;
+  }, []);
   useEffect(() => {
     if (isTwoPageView || !editingElementId) {
       const shouldRestore = isTwoPageView || editZoomExitRequestedRef.current;
@@ -2233,6 +2238,7 @@ export function useA4Elements(titleRef) {
     markSelected,
     handleCanvasBackgroundClick,
     handleSetTextareaEditing,
+    requestEditZoomRestore,
     handleAlignElements,
     handleDeleteElement,
     handleDeleteSelectedElements,

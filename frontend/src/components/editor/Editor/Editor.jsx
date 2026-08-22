@@ -111,6 +111,7 @@ export default function Editor() {
     deleteSelectedElements,
     duplicateSelectedElements,
     setA4_Elements,
+    requestEditZoomRestore,
     moveSelectedElements,
     editorMode,
     zoom,
@@ -331,6 +332,9 @@ export default function Editor() {
   }
 
   function handleCloseEditor() {
+    // Closing the properties panel is an explicit end-edit action. Unlike a
+    // toolbar interaction, it should return the temporary 200% text-edit zoom.
+    requestEditZoomRestore();
     setA4_Elements((prevState) => prevState.map((element) => (
       element.isSelected
         ? { ...element, isSelected: false, isEditing: false }

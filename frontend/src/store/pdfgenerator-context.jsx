@@ -39,6 +39,7 @@ export const PdfContext = createContext({
     reorderSection: () => {},
     transferSectionLane: () => {},
     changeSkillsDisplayMode: () => {},
+    requestEditZoomRestore: () => {},
     isBioCvModal: false,
     showBioCvModal: () => {},
     cancelBioCvModal: () => {},
