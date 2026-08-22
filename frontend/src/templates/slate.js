@@ -62,9 +62,9 @@ const SLATE_ELEMENTS = [
   {
     "category": "line",
     "left": 514,
-    "top": 802,
+    "top": 798,
     "width": 20,
-    "height": 15,
+    "height": 14,
     "backgroundColor": "#3E5C76",
     "zIndex": 2,
     "page": 1,
@@ -77,7 +77,7 @@ const SLATE_ELEMENTS = [
     "fontFamily": "Montserrat",
     "color": "#FFFFFF",
     "left": 519,
-    "top": 805,
+    "top": 801,
     "zIndex": 3,
     "page": 1,
     "bold": false,
@@ -436,7 +436,7 @@ const SLATE_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-089e5bf27147",
+    "flowGroup": "record-096ad73554e1",
     "flowRole": "content",
     "flowLane": "sidebar"
   },
@@ -460,7 +460,7 @@ const SLATE_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-089e5bf27147",
+    "flowGroup": "record-096ad73554e1",
     "flowRole": "content",
     "flowLane": "sidebar"
   },
@@ -484,7 +484,7 @@ const SLATE_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-089e5bf27147",
+    "flowGroup": "record-096ad73554e1",
     "flowRole": "content",
     "flowLane": "sidebar"
   },
@@ -729,105 +729,6 @@ const SLATE_ELEMENTS = [
     "width": 329,
     "height": 1,
     "backgroundColor": "#D3DAE2",
-    "zIndex": 2,
-    "page": 1,
-    "flowRole": "masthead"
-  },
-  {
-    "category": "line",
-    "left": 505,
-    "top": 39,
-    "width": 5,
-    "height": 5,
-    "backgroundColor": "#3E5C76",
-    "zIndex": 2,
-    "page": 1,
-    "flowRole": "masthead"
-  },
-  {
-    "category": "line",
-    "left": 514,
-    "top": 39,
-    "width": 5,
-    "height": 5,
-    "backgroundColor": "#3E5C76",
-    "zIndex": 2,
-    "page": 1,
-    "flowRole": "masthead"
-  },
-  {
-    "category": "line",
-    "left": 523,
-    "top": 39,
-    "width": 5,
-    "height": 5,
-    "backgroundColor": "#3E5C76",
-    "zIndex": 2,
-    "page": 1,
-    "flowRole": "masthead"
-  },
-  {
-    "category": "line",
-    "left": 505,
-    "top": 48,
-    "width": 5,
-    "height": 5,
-    "backgroundColor": "#3E5C76",
-    "zIndex": 2,
-    "page": 1,
-    "flowRole": "masthead"
-  },
-  {
-    "category": "line",
-    "left": 514,
-    "top": 48,
-    "width": 5,
-    "height": 5,
-    "backgroundColor": "#3E5C76",
-    "zIndex": 2,
-    "page": 1,
-    "flowRole": "masthead"
-  },
-  {
-    "category": "line",
-    "left": 523,
-    "top": 48,
-    "width": 5,
-    "height": 5,
-    "backgroundColor": "#3E5C76",
-    "zIndex": 2,
-    "page": 1,
-    "flowRole": "masthead"
-  },
-  {
-    "category": "line",
-    "left": 505,
-    "top": 57,
-    "width": 5,
-    "height": 5,
-    "backgroundColor": "#3E5C76",
-    "zIndex": 2,
-    "page": 1,
-    "flowRole": "masthead"
-  },
-  {
-    "category": "line",
-    "left": 514,
-    "top": 57,
-    "width": 5,
-    "height": 5,
-    "backgroundColor": "#3E5C76",
-    "zIndex": 2,
-    "page": 1,
-    "flowRole": "masthead"
-  },
-  {
-    "category": "line",
-    "left": 523,
-    "top": 57,
-    "width": 5,
-    "height": 5,
-    "backgroundColor": "#3E5C76",
     "zIndex": 2,
     "page": 1,
     "flowRole": "masthead"
@@ -1079,7 +980,7 @@ const SLATE_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-a230e239b338",
+    "flowGroup": "record-2839f3e4b5d1",
     "flowRole": "content"
   },
   {
@@ -1102,7 +1003,7 @@ const SLATE_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-a230e239b338",
+    "flowGroup": "record-2839f3e4b5d1",
     "flowRole": "content"
   },
   {
@@ -1125,7 +1026,7 @@ const SLATE_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-a230e239b338",
+    "flowGroup": "record-2839f3e4b5d1",
     "flowRole": "content"
   },
   {
@@ -1148,7 +1049,7 @@ const SLATE_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-c3c6bbfd54d7",
+    "flowGroup": "record-32a673db9b04",
     "flowRole": "content"
   },
   {
@@ -1171,7 +1072,7 @@ const SLATE_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-c3c6bbfd54d7",
+    "flowGroup": "record-32a673db9b04",
     "flowRole": "content"
   },
   {
@@ -1194,7 +1095,7 @@ const SLATE_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-c3c6bbfd54d7",
+    "flowGroup": "record-32a673db9b04",
     "flowRole": "content"
   },
   {
@@ -1217,7 +1118,7 @@ const SLATE_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-e107aa668d93",
+    "flowGroup": "record-fd509845b31d",
     "flowRole": "content"
   },
   {
@@ -1240,7 +1141,7 @@ const SLATE_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-e107aa668d93",
+    "flowGroup": "record-fd509845b31d",
     "flowRole": "content"
   },
   {
@@ -1263,7 +1164,7 @@ const SLATE_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-e107aa668d93",
+    "flowGroup": "record-fd509845b31d",
     "flowRole": "content"
   }
 ];

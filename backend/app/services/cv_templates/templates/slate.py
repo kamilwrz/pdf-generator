@@ -7,8 +7,8 @@ with overflow moving into the main column) but its visual identity is
 deliberately distinct from Tessera. Where Tessera uses warm mosaic tiles, coral
 circles, ochre ellipses, and a serif masthead, Slate uses a cool palette and
 only filled/outlined rectangles: solid steel-blue heading badges with white
-glyphs, a filled title pill, a 3x3 precision-grid ornament, and drafting-style
-corner brackets around the photo. There are no circles or ellipses — the
+glyphs, a filled title pill, and drafting-style corner brackets around the
+photo. There are no circles or ellipses — the
 rectilinear vocabulary is the point of difference.
 
 Contact is masthead-only (wrapping accent icon+label rows under the name/role
@@ -209,9 +209,8 @@ def _gen_slate(cv: dict) -> list[dict]:
             font=sans,
         ))
 
-    # Masthead: geometric sans name, filled accent title pill, wrapping
-    # accent-icon contact channels (phone / email / socials / location), and a
-    # 3x3 precision-grid ornament in the top-right corner.
+    # Masthead: geometric sans name, filled accent title pill, and wrapping
+    # accent-icon contact channels (phone / email / socials / location).
     # Case is applied at draw time via the reversible `textTransform` flag
     # (see `tag_masthead_identity` below) instead of baking `.upper()` into the
     # stored content, so the masthead identity manager can toggle case without
@@ -271,17 +270,6 @@ def _gen_slate(cv: dict) -> list[dict]:
         *contact_els,
         _line(main_left, header_rule_y, main_width, 1, colors["hairline"], zIndex=2),
     ])
-    # 3x3 grid of small accent squares (the "precision grid" motif). Positioned
-    # in the top-right corner, slightly above the name baseline so ordinary names
-    # clear it. Very long names may still reach it — an accepted decorative
-    # tolerance shared with Tessera's corner ornament.
-    grid_x, grid_y, pitch, cell = 505, 39, 9, 5
-    for row in range(3):
-        for col in range(3):
-            header.append(_line(
-                grid_x + col * pitch, grid_y + row * pitch, cell, cell, colors["accent"], zIndex=2,
-            ))
-
     builder = SlateBuilder(header_rule_y + 1.0 + SPACE_AFTER_HEADER_RULE)
     body_fs, body_lh = 9.0, 13.2
     heading_fs = 8.1
@@ -420,9 +408,10 @@ def _gen_slate(cv: dict) -> list[dict]:
             # Tessera's 4 px coral bar).
             {**_line(side_width, 0, 2, A4_H, colors["accent"], zIndex=2, page=page), "fixedToPage": True},
             {**_line(main_left, 798, main_width, 1, colors["hairline"], zIndex=2, page=page), "fixedToPage": True},
-            # Page number sits inside a small filled accent tab.
-            {**_line(514, 802, 20, 15, colors["accent"], zIndex=2, page=page), "fixedToPage": True},
-            {**_text(f"{page:02d}", 7.6, sans, colors["white"], 519, 805, zIndex=3, page=page), "fixedToPage": True},
+            # Keep the page-number tab aligned to the footer rule; its previous
+            # 4 px drop below the rule made the pagination look accidental.
+            {**_line(514, 798, 20, 14, colors["accent"], zIndex=2, page=page), "fixedToPage": True},
+            {**_text(f"{page:02d}", 7.6, sans, colors["white"], 519, 801, zIndex=3, page=page), "fixedToPage": True},
             {**_line(24, 800, 9, 9, colors["accent"], zIndex=3, page=page), "fixedToPage": True},
         ])
 

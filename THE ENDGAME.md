@@ -29,8 +29,8 @@ a) Tessera
 - klik na slot nie laduje galerii (DONE)
 
 b) Slate
-- schowanie job position nie powoduje znikniecia prostokata / tla dekoracyjnego
-- prostokat / tlo dekoracyjne powinien sie zwiekszac wraz z job position
+- schowanie job position nie powoduje znikniecia prostokata / tla dekoracyjnego (DONE)
+- prostokat / tlo dekoracyjne powinien sie zwiekszac wraz z job position (DONE)
 - klik na slot nie laduje galerii (DONE)
 - paginacja strony jest krzywo
 - skasowac 9xKWADRTA po prawej (wyglada jak menu)
