@@ -21,6 +21,20 @@ const LANGUAGES_TITLE_RE = /język|jezyk|language/i;
 export const LANGUAGES_GRID_COLUMNS = 4;
 
 /**
+ * Below this main-column width, a 4-column grid leaves too little space per
+ * cell for a "Name — Level" line without wrapping or cutting off mid-word.
+ * Matches the backend's own `languages_columns=3` cutoff (`shared/extras.py`):
+ * sidebar templates' main column is ~300-335pt (Sterling/Tessera/Slate/
+ * Vestige), single-column templates' is ~460-500pt. This call site has no
+ * template-id context (only the sampled `style.recordWidth`), so the column
+ * count is derived from the actual available width instead of a template
+ * allow-list — self-adapting instead of needing an update whenever a new
+ * narrow-column template is added.
+ */
+const NARROW_MAIN_COLUMN_MAX_WIDTH = 400;
+const NARROW_MAIN_COLUMN_LANGUAGES_COLUMNS = 3;
+
+/**
  * @param {string|null|undefined} title
  * @returns {boolean}
  */
@@ -131,9 +145,12 @@ export function collectLanguageEntries(members, headingId) {
 export function buildLanguagesMainGrid(entries, options) {
   const list = entries || [];
   if (list.length === 0) return [];
-  const columns = Math.max(1, Number(options.columns) || LANGUAGES_GRID_COLUMNS);
   const bodyLeft = Number(options.bodyLeft) || 0;
   const recordWidth = Number(options.recordWidth) || 300;
+  const defaultColumns = recordWidth < NARROW_MAIN_COLUMN_MAX_WIDTH
+    ? NARROW_MAIN_COLUMN_LANGUAGES_COLUMNS
+    : LANGUAGES_GRID_COLUMNS;
+  const columns = Math.max(1, Number(options.columns) || defaultColumns);
   const body = options.body || {};
   const fontSize = Number(body.fontSize) || 9;
   const lineHeight = Number(body.lineHeight) || fontSize * 1.4;

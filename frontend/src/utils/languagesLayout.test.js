@@ -57,6 +57,42 @@ describe("buildLanguagesMainGrid", () => {
     assert.ok(cells[0].runs?.some((run) => run.italic && run.color === "#4A6FA5"));
     assert.ok((Number(cells[0].width) || 0) < 100);
   });
+
+  it("defaults to 3 columns for a narrow (sidebar-template) main column", () => {
+    // Regression: a 4th column left too little width per cell for a
+    // "Name — Level" line in a narrow (~300pt) sidebar-template main column
+    // (Sterling/Tessera/Slate/Vestige), wrapping or cutting it off mid-word.
+    // No template-id context reaches this call site (only the sampled
+    // `recordWidth`), so the column count is derived from the width itself.
+    // Four entries discriminate the column count directly: at 3 columns the
+    // 4th entry wraps onto a new row (two distinct `top`s); at the old
+    // hardcoded 4-column default all four still fit on one row.
+    const entries = [
+      { name: "Polski", level: "A2" },
+      { name: "Niemiecki", level: "C1" },
+      { name: "Angielski", level: "B2" },
+      { name: "Francuski", level: "B1" },
+    ];
+    const idFactory = (() => {
+      let n = 0;
+      return () => `c${++n}`;
+    })();
+    const narrow = buildLanguagesMainGrid(entries, {
+      bodyLeft: 245, recordWidth: 300,
+      body: { fontSize: 9, lineHeight: 13 }, appendTop: 500, idFactory,
+    });
+    assert.equal(narrow.length, 4);
+    const narrowRowTops = new Set(narrow.map((cell) => cell.top));
+    assert.equal(narrowRowTops.size, 2, "4th entry must wrap onto a new row at 3 columns");
+    assert.equal(narrow.filter((cell) => cell.top === narrow[0].top).length, 3);
+
+    const wide = buildLanguagesMainGrid(entries, {
+      bodyLeft: 84, recordWidth: 499,
+      body: { fontSize: 9, lineHeight: 13 }, appendTop: 500, idFactory,
+    });
+    const wideRowTops = new Set(wide.map((cell) => cell.top));
+    assert.equal(wideRowTops.size, 1, "all 4 entries fit one row at the single-column default (4 columns)");
+  });
 });
 
 describe("collectLanguageEntries + restyleLanguagesMembersAsSidebar", () => {
