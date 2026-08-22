@@ -121,3 +121,26 @@ describe("findFitForTarget", () => {
     assert.deepEqual(r.spacing, BASELINE);
   });
 });
+
+import { resolveFitAction, formatFitTargetLabel } from "./fitToPages.js";
+
+describe("resolveFitAction", () => {
+  it("commits clean and tight fits", () => {
+    assert.deepEqual(resolveFitAction({ tier: "clean" }), { action: "commit" });
+    assert.deepEqual(resolveFitAction({ tier: "tight" }), { action: "commit" });
+  });
+  it("opens the emergency modal for a floor-only fit", () => {
+    assert.deepEqual(resolveFitAction({ tier: "emergency" }), { action: "emergency" });
+  });
+  it("routes impossible straight to the AI modal", () => {
+    assert.deepEqual(resolveFitAction({ tier: "impossible" }), { action: "impossible" });
+  });
+});
+
+describe("formatFitTargetLabel", () => {
+  it("uses the Polish locative noun form", () => {
+    assert.equal(formatFitTargetLabel(1), "1 stronie");
+    assert.equal(formatFitTargetLabel(2), "2 stronach");
+    assert.equal(formatFitTargetLabel(5), "5 stronach");
+  });
+});

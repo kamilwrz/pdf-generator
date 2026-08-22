@@ -140,3 +140,29 @@ export function findFitForTarget({
     tier: "impossible",
   };
 }
+
+/**
+ * Map an engine result to a UI action. Pure — keeps the routing decision out
+ * of the effectful orchestrator so it can be unit-tested.
+ *
+ * @param {{ tier: string }} result
+ * @returns {{ action: "commit"|"emergency"|"impossible" }}
+ */
+export function resolveFitAction(result) {
+  const tier = result?.tier;
+  if (tier === "clean" || tier === "tight") return { action: "commit" };
+  if (tier === "emergency") return { action: "emergency" };
+  return { action: "impossible" };
+}
+
+/**
+ * Polish locative page label ("1 stronie" / "N stronach"), without the leading
+ * "na". Callers write `na ${formatFitTargetLabel(n)}`.
+ *
+ * @param {number} targetPages
+ * @returns {string}
+ */
+export function formatFitTargetLabel(targetPages) {
+  const n = Math.max(1, Math.trunc(Number(targetPages) || 1));
+  return n === 1 ? "1 stronie" : `${n} stronach`;
+}
