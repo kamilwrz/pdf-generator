@@ -34,7 +34,7 @@ class MeridianTemplateTests(unittest.TestCase):
         # Meridian's body scale sits a full step below Regent's (9.5/14) per
         # the "even smaller paragraphs than Regent" design requirement.
         self.assertEqual(summary["fontSize"], 8.6)
-        self.assertEqual(summary["lineHeight"], 12.0)
+        self.assertEqual(summary["lineHeight"], 11.0)
         self.assertEqual(summary["fontFamily"], "CormorantGaramond")
         self.assertEqual(summary["color"], "#1B2A41")
 

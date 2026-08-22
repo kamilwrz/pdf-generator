@@ -111,7 +111,11 @@ def _meridian_experience_height(
     if bullets:
         if height:
             height += get_spacing().stack
-        height += b.measure_block(bullets, content_w, body_fs, body_lh, font, bulletList=True, min_h=body_lh)
+        # Bullets span the full section width (matching the decorative
+        # heading rule), not the narrower rail-avoiding column: they always
+        # render below the title/company lines, past the rail's fixed
+        # vertical extent, so there is no horizontal collision risk.
+        height += b.measure_block(bullets, width, body_fs, body_lh, font, bulletList=True, min_h=body_lh)
     return height
 
 
@@ -147,7 +151,7 @@ def _meridian_place_experience(
         if bullets:
             if placed:
                 b.gap(get_spacing().stack)
-            b.block(bullets, left, content_w, body_fs, body_lh, body, font, bulletList=True)
+            b.block(bullets, left, width, body_fs, body_lh, body, font, bulletList=True)
         _meridian_place_rail(b, top, page, period, city, meta_fs, meta_lh, muted, font, rail_x, _RECORD_RIGHT_W)
     if after_gap is not None:
         b.gap(after_gap)
@@ -178,7 +182,9 @@ def _meridian_education_height(
     if bullets:
         if height:
             height += get_spacing().stack
-        height += b.measure_block(bullets, content_w, body_fs, body_lh, font, bulletList=True, min_h=body_lh)
+        # Bullets span the full section width (matching the decorative
+        # heading rule) — see the identical note in `_meridian_experience_height`.
+        height += b.measure_block(bullets, width, body_fs, body_lh, font, bulletList=True, min_h=body_lh)
     return height
 
 
@@ -219,7 +225,7 @@ def _meridian_place_education(
         if bullets:
             if placed:
                 b.gap(get_spacing().stack)
-            b.block(bullets, left, content_w, body_fs, body_lh, body, font, bulletList=True)
+            b.block(bullets, left, width, body_fs, body_lh, body, font, bulletList=True)
         _meridian_place_rail(b, top, page, city, period, meta_fs, meta_lh, muted, font, rail_x, _RECORD_RIGHT_W)
     if after_gap is not None:
         b.gap(after_gap)
@@ -348,7 +354,7 @@ def _gen_meridian(cv: dict) -> list[dict]:
 
     # Meridian's body scale sits a full step below Regent's (9.5/14) so denser
     # CVs still read as a restrained, premium single page.
-    summary_fs, summary_lh = 8.6, 12.0
+    summary_fs, summary_lh = 8.6, 11.0
     if cv.get("summary"):
         b.need_section(
             section_chrome_h,
@@ -358,7 +364,7 @@ def _gen_meridian(cv: dict) -> list[dict]:
         b.block(cv["summary"], L, W, summary_fs, summary_lh, C["ink"], DISPLAY)
         close_section()
 
-    body_fs, body_lh = 8.6, 12.0
+    body_fs, body_lh = 8.6, 11.0
 
     def experience_height(job: dict) -> float:
         return _meridian_experience_height(
