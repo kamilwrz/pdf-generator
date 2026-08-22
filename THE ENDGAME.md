@@ -20,6 +20,7 @@ IV.  BUGZ / NEEDED FIXES
 5) Dodac 2-3 szablony z mniejszym akapitem;styl RenderCV
 6) Za duze ikony (zmiana kolejnosci, usun, przenies na sidebar / main) i ich background
 7) Lista elementow kontaktowych jest za duza
+8) Zmodyfikowac rodzaj chipsow w szablonach
 
 a) Tessera
 - schowanie job position nie powoduje znikniecia prostokata / tla dekoracyjnego
@@ -35,10 +36,29 @@ b) Slate
 
 c) Monument
 - problem z cyframi przy zmianie kolejnosci / ewtl. manual
+- klik na slot nie laduje galerii
+- zamienic element dekoracyjny na photo slot
+- brak ikon w elementach kontaktowych
 
 d) Atrium
 - po schowaniu 'job position' kontakt jest za blisko imienia / zdjecia
 - klik na slot nie laduje galerii
+
+e) Sterling
+- brak UPPERCASE
+- prak show/hide job position
+- brak zdjecia profilowego / nie pokazuje sie po insert to canvas
+
+f) Regent
+- brak zdjecia profilowego
+
+g) Nova
+- jest ok
+- dodac inne paletty kolorow
+
+h) Volt
+- Naglowki dac BOLD
+- Zwiekszyc zakres roszerzania rectangle w kontaktach
 
 VI.  AI
 -----------------------------------------------------------------------------------------  

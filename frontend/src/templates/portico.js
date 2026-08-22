@@ -532,7 +532,7 @@ const PORTICO_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-e6c8707e4251",
+    "flowGroup": "record-f3e3ba96fad5",
     "flowRole": "content"
   },
   {
@@ -555,7 +555,7 @@ const PORTICO_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-e6c8707e4251",
+    "flowGroup": "record-f3e3ba96fad5",
     "flowRole": "content"
   },
   {
@@ -578,7 +578,7 @@ const PORTICO_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-e6c8707e4251",
+    "flowGroup": "record-f3e3ba96fad5",
     "flowRole": "content"
   },
   {
@@ -601,7 +601,7 @@ const PORTICO_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-9d15020d11e9",
+    "flowGroup": "record-22af809b4de7",
     "flowRole": "content"
   },
   {
@@ -624,7 +624,7 @@ const PORTICO_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-9d15020d11e9",
+    "flowGroup": "record-22af809b4de7",
     "flowRole": "content"
   },
   {
@@ -647,7 +647,7 @@ const PORTICO_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-9d15020d11e9",
+    "flowGroup": "record-22af809b4de7",
     "flowRole": "content"
   },
   {
@@ -670,7 +670,7 @@ const PORTICO_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-5d92cbd913fe",
+    "flowGroup": "record-90154602070d",
     "flowRole": "content"
   },
   {
@@ -693,37 +693,14 @@ const PORTICO_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-5d92cbd913fe",
-    "flowRole": "content"
-  },
-  {
-    "category": "textarea",
-    "content": "• Obsługiwała zamówienia i weryfikację danych klientów na rynkach DACH.",
-    "left": 76,
-    "top": 504.95000000000005,
-    "width": 443,
-    "height": 14,
-    "fontSize": 9.4,
-    "lineHeight": 13.4,
-    "letterSpacing": 0,
-    "color": "#2A2A28",
-    "fontFamily": "Inter",
-    "zIndex": 2,
-    "page": 1,
-    "bold": false,
-    "italic": false,
-    "align": "left",
-    "bulletList": true,
-    "autoHeight": true,
-    "preserveInitialLayout": true,
-    "flowGroup": "record-5d92cbd913fe",
+    "flowGroup": "record-90154602070d",
     "flowRole": "content"
   },
   {
     "category": "image",
     "src": "/template-assets/iconic/portico/education.png",
     "left": 54,
-    "top": 539.95,
+    "top": 521.95,
     "width": 14.0,
     "height": 14.0,
     "zIndex": 3,
@@ -738,7 +715,7 @@ const PORTICO_ELEMENTS = [
     "fontFamily": "Inter",
     "color": "#7C6A52",
     "left": 76,
-    "top": 539.95,
+    "top": 521.95,
     "zIndex": 3,
     "page": 1,
     "bold": true,
@@ -749,7 +726,7 @@ const PORTICO_ELEMENTS = [
   {
     "category": "line",
     "left": 76,
-    "top": 553.4250000000001,
+    "top": 535.4250000000001,
     "width": 443,
     "height": 1,
     "backgroundColor": "#E4DED2",
@@ -761,7 +738,7 @@ const PORTICO_ELEMENTS = [
     "category": "textarea",
     "content": "Licencjat Prawa",
     "left": 76,
-    "top": 561.4250000000001,
+    "top": 543.4250000000001,
     "width": 443,
     "height": 13,
     "fontSize": 10.4,
@@ -777,14 +754,14 @@ const PORTICO_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-f84eeefd3b96",
+    "flowGroup": "record-b11bcb6af4ff",
     "flowRole": "content"
   },
   {
     "category": "textarea",
     "content": "UW Warszawa",
     "left": 76,
-    "top": 578.4250000000001,
+    "top": 560.4250000000001,
     "width": 443,
     "height": 13,
     "fontSize": 10.4,
@@ -800,14 +777,14 @@ const PORTICO_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-f84eeefd3b96",
+    "flowGroup": "record-b11bcb6af4ff",
     "flowRole": "content"
   },
   {
     "category": "textarea",
     "content": "2012 – 2016",
     "left": 76,
-    "top": 595.4250000000001,
+    "top": 577.4250000000001,
     "width": 443,
     "height": 12,
     "fontSize": 8.5,
@@ -823,14 +800,14 @@ const PORTICO_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-f84eeefd3b96",
+    "flowGroup": "record-b11bcb6af4ff",
     "flowRole": "content"
   },
   {
     "category": "image",
     "src": "/template-assets/iconic/portico/skills.png",
     "left": 54,
-    "top": 628.4250000000001,
+    "top": 610.4250000000001,
     "width": 14.0,
     "height": 14.0,
     "zIndex": 3,
@@ -845,7 +822,7 @@ const PORTICO_ELEMENTS = [
     "fontFamily": "Inter",
     "color": "#7C6A52",
     "left": 76,
-    "top": 628.4250000000001,
+    "top": 610.4250000000001,
     "zIndex": 3,
     "page": 1,
     "bold": true,
@@ -856,7 +833,7 @@ const PORTICO_ELEMENTS = [
   {
     "category": "line",
     "left": 76,
-    "top": 641.9000000000001,
+    "top": 623.9000000000001,
     "width": 443,
     "height": 1,
     "backgroundColor": "#E4DED2",
@@ -868,7 +845,7 @@ const PORTICO_ELEMENTS = [
     "category": "textarea",
     "content": "AML/KYC  ·  Monitoring  ·  CDD/EDD  ·  Raporty SAR  ·  Analiza transakcyjna",
     "left": 76,
-    "top": 649.9000000000001,
+    "top": 631.9000000000001,
     "width": 443,
     "height": 14,
     "fontSize": 9.3,
@@ -884,14 +861,14 @@ const PORTICO_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-bccb4b5fc4cb",
+    "flowGroup": "record-54e206e753a8",
     "flowRole": "content"
   },
   {
     "category": "image",
     "src": "/template-assets/iconic/portico/languages.png",
     "left": 54,
-    "top": 684.9000000000001,
+    "top": 666.9000000000001,
     "width": 14.0,
     "height": 14.0,
     "zIndex": 3,
@@ -906,7 +883,7 @@ const PORTICO_ELEMENTS = [
     "fontFamily": "Inter",
     "color": "#7C6A52",
     "left": 76,
-    "top": 684.9000000000001,
+    "top": 666.9000000000001,
     "zIndex": 3,
     "page": 1,
     "bold": true,
@@ -917,7 +894,7 @@ const PORTICO_ELEMENTS = [
   {
     "category": "line",
     "left": 76,
-    "top": 698.3750000000001,
+    "top": 680.3750000000001,
     "width": 443,
     "height": 1,
     "backgroundColor": "#E4DED2",
@@ -929,7 +906,7 @@ const PORTICO_ELEMENTS = [
     "category": "textarea",
     "content": "Polski — ojczysty",
     "left": 76.0,
-    "top": 706.3750000000001,
+    "top": 688.3750000000001,
     "width": 102.75,
     "height": 14,
     "fontSize": 9.3,
@@ -954,13 +931,13 @@ const PORTICO_ELEMENTS = [
       }
     ],
     "flowRole": "grid-member",
-    "flowGroup": "record-913efe06a720"
+    "flowGroup": "record-a251b9d66bff"
   },
   {
     "category": "textarea",
     "content": "Angielski — C1",
     "left": 186.75,
-    "top": 706.3750000000001,
+    "top": 688.3750000000001,
     "width": 102.75,
     "height": 14,
     "fontSize": 9.3,
@@ -985,13 +962,13 @@ const PORTICO_ELEMENTS = [
       }
     ],
     "flowRole": "grid-member",
-    "flowGroup": "record-913efe06a720"
+    "flowGroup": "record-a251b9d66bff"
   },
   {
     "category": "textarea",
     "content": "Niemiecki — B2",
     "left": 297.5,
-    "top": 706.3750000000001,
+    "top": 688.3750000000001,
     "width": 102.75,
     "height": 14,
     "fontSize": 9.3,
@@ -1016,7 +993,7 @@ const PORTICO_ELEMENTS = [
       }
     ],
     "flowRole": "grid-member",
-    "flowGroup": "record-913efe06a720"
+    "flowGroup": "record-a251b9d66bff"
   }
 ];
 

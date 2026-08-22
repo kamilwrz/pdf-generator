@@ -335,6 +335,12 @@ SUBSET_THEMES = {
         "#4A6FA5",
         ["email", "phone", "location", "linkedin", "github", "website"],
     ),
+    # Monument needs only black masthead contact glyphs and the portrait
+    # placeholder; numbered text plates replace section icons in this layout.
+    "monument": (
+        "#111111",
+        ["email", "phone", "location", "linkedin", "github", "website", "portrait"],
+    ),
 }
 
 

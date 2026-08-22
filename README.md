@@ -733,11 +733,11 @@ Monument is a paid Classic template for users who want an elegant editorial resu
 
 The frontend starter array and the deterministic Python generator use the same A4 geometry and grayscale palette. `_gen_monument` preserves complete experience and education records during page breaks, supports custom sections through `_extra_sections`, and groups each number, frame, label, and rule into one reflow unit so the heading geometry remains aligned after browser text measurement. The page frame and footer repeat on every page, while the name-and-position masthead and its tall side bars appear only on page one; `repeatOnContinuation: false` preserves this rule when the editor creates another page later. Layout decisions are never sent to the AI model.
 
-The top-right square masthead frame (`monument-masthead-frame`) is the profile-photo slot (`photoSlot: "frame"`, `photoShape: "ornament-frame"`). Three abstract bars inside it are `photoSlot: "ornament"` placeholders covered when a gallery photo is applied; the ink outline stays above the raster. The former “CV / 01” caption under the frame is removed.
+The top-right masthead frame (`monument-masthead-frame`) is an 80 × 107 pt profile-photo slot at x=425, y=47 (`photoSlot: "frame"`, `photoShape: "ornament-frame"`). Its black portrait glyph (`photoSlot: "glyph"`) is replaced by a gallery photo; the ink outline stays above the raster. Contact channels use black Monument icons and a shared `monument-contact` wrapping band, so the frontend can reflow them horizontally and into additional vertical rows without colliding with the first section. The former “CV / 01” caption and abstract bars are removed.
 
 Implementation:
 
-- `frontend/src/templates/monument.js`, lines 1–124, exported array `monumentTemplate` (photo frame + ornaments at lines 66–78)
+- `frontend/src/templates/monument.js`, exported array `monumentTemplate` (80 × 107 pt photo frame, portrait glyph, and wrapping contact band)
 - `frontend/src/templates/index.js`, registry entry `monument` (`tier: "paid"`, `layouts: ["single"]`)
 - `backend/app/services/cv_templates/templates/monument.py`, function `_gen_monument`; `cv_templates/registry.py`, `_GENERATORS["monument"]`
 - `frontend/src/utils/sectionStructure.js`, lines 94–168, `isDecorativeOrdinalChrome` / `healDecorativeOrdinalBaselines` — keep ordinal digits on the title baseline inside the numbered badge
@@ -1126,10 +1126,10 @@ In **template** mode, clicking a gallery image immediately fits it into the prof
 
 - `frame` — the designated rectangle or circle chrome (`slate-photo-frame`, `tessera-photo-frame`, `harbor-photo-frame`, `monument-masthead-frame`, `nova-photo-frame`, `portico-photo-frame`; `cinder-frame-one` and `nimbus-photo-frame` are kept from retired templates so older saved documents still resolve their slot)
 - `glyph` — portrait placeholder image inside the frame (converted into the user photo)
-- `ornament` — decorative shapes the photo covers (Monument masthead bars)
+- `ornament` — decorative shapes covered by a photo in legacy template documents
 - `image` — the applied user photo (`id: "profile-photo"`, locked + `fixedToPage`)
 
-`applyProfilePhoto` insets the raster inside Slate/Tessera frames (border stays visible), covers Monument ornaments while raising the frame outline, fills Harbor’s circular disc (canvas clips with `borderRadius`), and fills Nova’s square masthead slot. Fitted photos use `objectFit: "cover"` on canvas and in ReportLab (`PDF_Generator._draw_image_cover`) so the frame is filled without distorting aspect ratio. Fitted photos stay layout-owned in structural edit (`canFreePositionElement`). Semantic `id` / `photoSlot` / `photoShape` / `objectFit` persist through `materializeElementSpecs` and `PdfElements.extra_properties`.
+`applyProfilePhoto` insets the raster inside Slate/Tessera frames (border stays visible), replaces Monument’s portrait glyph while raising the frame outline, fills Harbor’s circular disc (canvas clips with `borderRadius`), and fills Nova’s square masthead slot. Fitted photos use `objectFit: "cover"` on canvas and in ReportLab (`PDF_Generator._draw_image_cover`) so the frame is filled without distorting aspect ratio. Fitted photos stay layout-owned in structural edit (`canFreePositionElement`). Semantic `id` / `photoSlot` / `photoShape` / `objectFit` persist through `materializeElementSpecs` and `PdfElements.extra_properties`.
 
 Implementation:
 
@@ -2529,11 +2529,11 @@ Monument to płatny jednokolumnowy szablon (`layouts: ["single"]`) dla osób, kt
 
 Startowa tablica frontendu oraz deterministyczny generator Python używają tej samej geometrii A4 i palety szarości. `_gen_monument` nie rozdziela wpisów doświadczenia ani edukacji przy zmianie strony, obsługuje sekcje własne przez `_extra_sections` i grupuje numer, ramkę, etykietę oraz linię jako jeden element reflow, dzięki czemu geometria nagłówka pozostaje równa po pomiarze tekstu w przeglądarce. Rama strony i stopka powtarzają się na każdej stronie, natomiast masthead z nazwiskiem i stanowiskiem oraz jego wysokie boczne belki występują wyłącznie na pierwszej stronie; `repeatOnContinuation: false` zachowuje tę regułę również wtedy, gdy edytor później utworzy kolejną stronę. Decyzje o layoucie nie są przekazywane do modelu AI.
 
-Kwadratowa ramka mastheadu w prawym górnym rogu (`monument-masthead-frame`) jest slotem zdjęcia profilowego (`photoSlot: "frame"`, `photoShape: "ornament-frame"`). Trzy abstrakcyjne belki w środku to placeholdery `photoSlot: "ornament"` przykrywane po wyborze zdjęcia z galerii; kontur tuszu zostaje nad rastrem. Dawny podpis „CV / 01” pod ramką został usunięty.
+Ramka mastheadu w prawym górnym rogu (`monument-masthead-frame`) jest slotem zdjęcia profilowego 80 × 107 pt na x=425, y=47 (`photoSlot: "frame"`, `photoShape: "ornament-frame"`). Jej czarną ikonę portretu (`photoSlot: "glyph"`) zastępuje zdjęcie z galerii, a kontur tuszu zostaje nad rastrem. Kanały kontaktowe używają czarnych ikon Monument i wspólnego zawijanego pasma `monument-contact`, dlatego frontend może układać je poziomo oraz dodawać kolejne rzędy pionowo bez kolizji z pierwszą sekcją. Usunięte są dawny podpis „CV / 01” i abstrakcyjne belki.
 
 Implementacja:
 
-- `frontend/src/templates/monument.js`, linie 1–124, eksportowana tablica `monumentTemplate` (ramka i ornamenty w liniach 66–78)
+- `frontend/src/templates/monument.js`, eksportowana tablica `monumentTemplate` (ramka zdjęcia 80 × 107 pt, ikona portretu i zawijany pas kontaktu)
 - `frontend/src/templates/index.js`, wpis rejestru `monument` (`tier: "paid"`, `layouts: ["single"]`)
 - `backend/app/services/cv_templates/templates/monument.py`, funkcja `_gen_monument`; `cv_templates/registry.py`, `_GENERATORS["monument"]`
 - `frontend/src/utils/sectionStructure.js`, linie 94–168, `isDecorativeOrdinalChrome` / `healDecorativeOrdinalBaselines` — cyfry ordinali na baseline tytułu w numerowanym badge
@@ -2922,10 +2922,10 @@ W trybie **template** kliknięcie obrazu w galerii od razu dopasowuje go do slot
 
 - `frame` — ramka prostokątna lub koło (`slate-photo-frame`, `tessera-photo-frame`, `harbor-photo-frame`, `monument-masthead-frame`, `nova-photo-frame`, `portico-photo-frame`; `cinder-frame-one` i `nimbus-photo-frame` pozostają z wycofanych szablonów, żeby starsze zapisane dokumenty wciąż odnajdywały swój slot)
 - `glyph` — placeholder portretu w ramce (zamieniany na zdjęcie użytkownika)
-- `ornament` — dekoracje przykrywane zdjęciem (belki mastheadu Monument)
+- `ornament` — dekoracje przykrywane zdjęciem w starszych dokumentach szablonowych
 - `image` — nałożone zdjęcie użytkownika (`id: "profile-photo"`, `locked` + `fixedToPage`)
 
-`applyProfilePhoto` wstawia raster z insetem w ramkach Slate/Tessera (kontur zostaje), przykrywa ornamenty Monument podnosząc obramowanie, wypełnia koło Harbor (na kanwie `borderRadius`) oraz kwadratowy slot mastheadu Nova. Dopasowane zdjęcia używają `objectFit: "cover"` na kanwie i w ReportLab (`PDF_Generator._draw_image_cover`), żeby ramka była wypełniona bez zaburzenia proporcji. Dopasowane zdjęcie zostaje layout-owned w edycji strukturalnej. Pola `id` / `photoSlot` / `photoShape` / `objectFit` przechodzą przez `materializeElementSpecs` i `PdfElements.extra_properties`.
+`applyProfilePhoto` wstawia raster z insetem w ramkach Slate/Tessera (kontur zostaje), zastępuje ikonę portretu Monument i podnosi obramowanie, wypełnia koło Harbor (na kanwie `borderRadius`) oraz kwadratowy slot mastheadu Nova. Dopasowane zdjęcia używają `objectFit: "cover"` na kanwie i w ReportLab (`PDF_Generator._draw_image_cover`), żeby ramka była wypełniona bez zaburzenia proporcji. Dopasowane zdjęcie zostaje layout-owned w edycji strukturalnej. Pola `id` / `photoSlot` / `photoShape` / `objectFit` przechodzą przez `materializeElementSpecs` i `PdfElements.extra_properties`.
 
 Implementacja:
 

@@ -1,14 +1,11 @@
 from __future__ import annotations
 
-from app.core.config import BACKEND_URL
 from app.services.cv_generator_primitives import (
     get_spacing,
     SPACE_AFTER_HEADER_RULE,
     SPACE_AFTER_MASTHEAD,
     Builder,
     _block,
-    _circle,
-    _ellipse,
     _line,
     _rect,
     _text,
@@ -34,9 +31,14 @@ from app.services.cv_templates.shared.text import (
     _bullets,
     _compact_text,
     _company_period,
-    _contact_line,
     _labels,
 )
+from app.services.cv_templates.shared.contact import (
+    _contact_channel_items,
+    _place_wrapping_icon_contacts,
+    build_contact_band_anchor,
+)
+from app.services.cv_templates.shared.icons import _icon
 
 def _gen_monument(cv: dict) -> list[dict]:
     """
@@ -70,48 +72,57 @@ def _gen_monument(cv: dict) -> list[dict]:
 
     name = _compact_text(cv.get("name"), 32)
     title = _compact_text(cv.get("title"), 52)
-    contact = _compact_text(_contact_line(cv), 82)
-    # Square masthead frame is the profile-photo slot; abstract bars are
-    # ornaments covered by a gallery upload while the ink outline stays on top.
+    # The portrait frame follows the masthead geometry visible in the editor:
+    # 80pt wide with a 3:4-like vertical measure. A real uploaded photo covers
+    # the black glyph while the outline remains visible above it.
     photo_frame = {
-        **_rect(425, 54, 84, 84, C["ink"], 1.5, zIndex=3),
+        **_rect(425, 47, 80, 107, C["ink"], 1.5, zIndex=3),
         "id": "monument-masthead-frame",
         "photoSlot": "frame",
         "photoShape": "ornament-frame",
         "fixedToPage": True,
         "locked": True,
     }
-    photo_ornaments = [
-        {
-            **_line(441, 70, 52, 11, C["ink"], zIndex=3),
-            "photoSlot": "ornament",
-            "fixedToPage": True,
-            "locked": True,
-        },
-        {
-            **_line(441, 88, 34, 11, C["body"], zIndex=3),
-            "photoSlot": "ornament",
-            "fixedToPage": True,
-            "locked": True,
-        },
-        {
-            **_line(441, 106, 52, 11, C["rule"], zIndex=3),
-            "photoSlot": "ornament",
-            "fixedToPage": True,
-            "locked": True,
-        },
-    ]
+    portrait_glyph = {
+        **_icon("monument", "portrait", 449, 82, 32, zIndex=4),
+        "photoSlot": "glyph",
+        "fixedToPage": True,
+        "locked": True,
+        "alignWithText": False,
+    }
+    contact_items = _contact_channel_items(
+        cv, email_limit=38, phone_limit=24, location_limit=26, social_limit=30,
+    )
+    contact_elements, contact_bottom, contact_descriptor = _place_wrapping_icon_contacts(
+        theme="monument",
+        items=contact_items,
+        start_x=76,
+        start_y=136,
+        right_limit=405,
+        text_fs=9,
+        icon_size=10,
+        text_color=C["ink"],
+        font=SANS,
+        icon_gap=14,
+        item_pad=10,
+        line_step=14,
+        band_id="monument-contact",
+    )
     header = [
         _text(name, 33, DISPLAY, C["ink"], 74, 59, zIndex=3, bold=True),
         _block(title, 76, 104, 337, 20, 12.5, 16, C["body"], SANS, zIndex=3, bold=True),
-        _block(contact, 76, 136, 337, 16, 9, 12, C["muted"], SANS, zIndex=3),
+        *contact_elements,
         photo_frame,
-        *photo_ornaments,
+        portrait_glyph,
     ]
     header[1]["letterSpacing"] = 1.1
+    header.append(build_contact_band_anchor(contact_descriptor))
 
-    # Contact block ends near y=152; masthead clearance before first chrome.
-    b = MonumentBuilder(152 + SPACE_AFTER_MASTHEAD)
+    # Contacts can wrap into several rows. Keep the first section below both
+    # that dynamic band and the portrait frame, so imported contact-rich CVs
+    # never collide with the numbered section chrome.
+    masthead_bottom = max(154.0, contact_bottom + 14.0)
+    b = MonumentBuilder(masthead_bottom + SPACE_AFTER_MASTHEAD)
     section_number = 0
 
     def section(label: str) -> None:

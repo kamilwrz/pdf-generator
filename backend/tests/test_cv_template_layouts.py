@@ -860,6 +860,8 @@ class CvTemplateLayoutTests(unittest.TestCase):
             element
             for element in elements
             if element["category"] in {"text", "textarea"}
+            and element.get("width", 0) > 0
+            and element.get("height", 0) > 0
         ]
         colors = {
             element[color_key].upper()
@@ -926,12 +928,40 @@ class CvTemplateLayoutTests(unittest.TestCase):
         self.assertEqual(photo_frame.get("photoSlot"), "frame")
         self.assertEqual(photo_frame.get("photoShape"), "ornament-frame")
         self.assertTrue(photo_frame.get("fixedToPage"))
+        self.assertEqual(
+            (
+                photo_frame.get("left"),
+                photo_frame.get("top"),
+                photo_frame.get("width"),
+                photo_frame.get("height"),
+            ),
+            (425, 47, 80, 107),
+        )
+        portrait_glyph = next(
+            element
+            for element in elements
+            if element.get("photoSlot") == "glyph"
+        )
+        self.assertIn("/template-assets/iconic/monument/portrait.png", portrait_glyph["src"])
+        self.assertEqual(portrait_glyph["width"], 32)
+        self.assertFalse(portrait_glyph.get("alignWithText"))
         photo_ornaments = [
             element
             for element in elements
             if element.get("photoSlot") == "ornament"
         ]
-        self.assertEqual(len(photo_ornaments), 3)
+        self.assertEqual(photo_ornaments, [])
+        contact_icons = [
+            element
+            for element in elements
+            if element["category"] == "image"
+            and element.get("contactBandId") == "monument-contact"
+        ]
+        self.assertGreaterEqual(len(contact_icons), 3)
+        self.assertTrue(all(
+            "/template-assets/iconic/monument/" in element["src"]
+            for element in contact_icons
+        ))
         self.assertFalse(any(
             "CV /" in str(element.get("content") or "")
             for element in elements

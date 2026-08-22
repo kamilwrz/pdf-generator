@@ -5,7 +5,11 @@ import { monumentTemplate } from "./monument.js";
 
 test("Monument keeps its text hierarchy readable and monochrome", () => {
     const textElements = monumentTemplate.filter(
-        (element) => element.category === "text" || element.category === "textarea",
+        (element) => (
+            (element.category === "text" || element.category === "textarea")
+            && element.width > 0
+            && element.height > 0
+        ),
     );
     const colors = new Set(
         monumentTemplate.flatMap((element) => (
@@ -32,7 +36,12 @@ test("Monument keeps its text hierarchy readable and monochrome", () => {
         ),
     ));
     assert.ok(monumentTemplate.some(
-        (element) => element.content === "Security Analyst" && element.fontSize === 12.5,
+        (element) => (
+            element.category === "textarea"
+            && element.top === 104
+            && element.fontSize === 12.5
+            && element.bold === true
+        ),
     ));
     assert.ok(monumentTemplate.some(
         (element) => element.content === "DOŚWIADCZENIE ZAWODOWE" && element.fontSize === 12.5,
@@ -48,7 +57,7 @@ test("Monument keeps its text hierarchy readable and monochrome", () => {
     const summary = monumentTemplate.find(
         (element) => (
             element.category === "textarea"
-            && String(element.content || "").includes("Security Analyst z doświadczeniem")
+            && String(element.content || "").includes("Analityczka AML łącząca")
         ),
     );
     const body = monumentTemplate.find(
@@ -80,19 +89,31 @@ test("Monument keeps its text hierarchy readable and monochrome", () => {
     assert.ok(mastheadRails.every(
         (element) => element.repeatOnContinuation === false,
     ));
-    // Masthead square is the profile-photo slot; abstract bars are ornaments.
-    // The old "CV / 01" caption under the frame is intentionally removed.
+    // The right masthead area is a 80×107 portrait slot with a black glyph.
+    // The old decorative bars and "CV / 01" caption are intentionally removed.
     const photoFrame = monumentTemplate.find(
         (element) => element.id === "monument-masthead-frame",
     );
     assert.equal(photoFrame?.photoSlot, "frame");
     assert.equal(photoFrame?.photoShape, "ornament-frame");
     assert.equal(photoFrame?.fixedToPage, true);
-    const photoOrnaments = monumentTemplate.filter(
-        (element) => element.photoSlot === "ornament",
+    assert.deepEqual(
+        [photoFrame?.left, photoFrame?.top, photoFrame?.width, photoFrame?.height],
+        [425, 47, 80, 107],
     );
-    assert.equal(photoOrnaments.length, 3);
-    assert.ok(photoOrnaments.every((element) => element.fixedToPage === true));
+    const portraitGlyph = monumentTemplate.find(
+        (element) => element.photoSlot === "glyph",
+    );
+    assert.equal(portraitGlyph?.src.includes("/template-assets/iconic/monument/portrait.png"), true);
+    assert.equal(portraitGlyph?.width, 32);
+    assert.equal(portraitGlyph?.alignWithText, false);
+    assert.equal(monumentTemplate.some((element) => element.photoSlot === "ornament"), false);
+    const contactIcons = monumentTemplate.filter(
+        (element) => element.category === "image" && element.contactBandId === "monument-contact",
+    );
+    assert.ok(contactIcons.length >= 4);
+    assert.ok(contactIcons.every((element) => element.src.includes("/template-assets/iconic/monument/")));
+    assert.ok(contactIcons.every((element) => element.flowRole === "masthead"));
     assert.equal(
         monumentTemplate.some((element) => String(element.content || "").includes("CV /")),
         false,

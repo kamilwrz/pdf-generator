@@ -121,7 +121,10 @@ COMPACT_DEMO_CV = {
         },
         {
             **DEMO_CV["experience"][2],
-            "bullets": DEMO_CV["experience"][2]["bullets"][:1],
+            # Preserve three roles in the picker preview, but leave the oldest
+            # role concise so Monument's taller 80×107 photo masthead does not
+            # push the final languages section to a second page.
+            "bullets": [],
         },
     ],
 }
