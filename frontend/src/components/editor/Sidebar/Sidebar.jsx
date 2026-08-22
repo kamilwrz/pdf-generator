@@ -41,6 +41,7 @@ export default function Sidebar({ children }) {
         PDFs,
         entitlements,
         showPlanModal,
+        fitTooLong,
     } = use(PdfContext);
 
     const isTemplate = editorMode === EDITOR_MODE_TEMPLATE;
@@ -71,6 +72,7 @@ export default function Sidebar({ children }) {
                             icon={<LuListTree />}
                             labelText="Układ CV"
                             sidebarEvent={showSections}
+                            badge={fitTooLong}
                         />
                         <SidebarControls
                             icon={<LuLockOpen />}

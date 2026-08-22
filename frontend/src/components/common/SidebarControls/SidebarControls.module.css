@@ -13,6 +13,7 @@
     cursor: pointer;
     text-align: left;
     transition: background .15s, color .15s;
+    position: relative;
 }
 
 .tile:hover {
@@ -45,4 +46,15 @@
 .iconBox svg {
     width: 15px;
     height: 15px;
+}
+
+.badge {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--accent, #B8954A);
+    box-shadow: 0 0 0 2px var(--surface, #fff);
 }
