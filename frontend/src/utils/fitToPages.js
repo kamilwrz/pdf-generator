@@ -15,6 +15,9 @@ import {
   MIN_FLOW_SPACING,
   normalizeFlowSpacing,
 } from "./flowSpacing.js";
+import { applyFlowSpacing } from "./sectionStructure.js";
+import { collapseSpilledMainIntoSidebar } from "./collapseMainIntoSidebar.js";
+import { contentMaxPage } from "./structureOperation.js";
 
 const KNOBS = ["stack", "record", "section", "after_rule"];
 
@@ -67,4 +70,73 @@ export function classifyFitTier(
   if (KNOBS.every((key) => s[key] >= c[key])) return "clean";
   if (KNOBS.every((key) => s[key] <= f[key] + FLOOR_EPSILON)) return "emergency";
   return "tight";
+}
+
+/**
+ * Offline pack used in both trials and (pre-reconcile) commit: repack at the
+ * candidate rhythm, then rail any main-column overflow into the sidebar. Pure —
+ * does NOT reconcile fixed page chrome (that needs an id factory); the caller
+ * reconciles at commit time. Page count is read via contentMaxPage on the
+ * returned list.
+ *
+ * @param {object[]} elements
+ * @param {object} spacing
+ * @param {number} pageHeight
+ * @returns {object[]}
+ */
+export function applyFitPack(elements, spacing, pageHeight) {
+  const packed = applyFlowSpacing(elements, spacing, pageHeight);
+  return collapseSpilledMainIntoSidebar(packed, { spacing, pageHeight });
+}
+
+/**
+ * Loosest rhythm on the [loosest…tightest] ladder that packs the document to
+ * `targetPages` or fewer. Returns the FIRST (loosest) fit — never the tightest.
+ * When nothing fits, returns the tightest candidate with tier "impossible".
+ *
+ * @param {{
+ *   elements: object[],
+ *   loosest: object,
+ *   tightest: object,
+ *   targetPages: number,
+ *   pageHeight?: number,
+ *   packFn?: (elements: object[], spacing: object, pageHeight: number) => object[],
+ * }} args
+ * @returns {{ fits: boolean, spacing: object, pageCount: number, elements: object[], tier: string }}
+ */
+export function findFitForTarget({
+  elements,
+  loosest,
+  tightest,
+  targetPages,
+  pageHeight = 842,
+  packFn = applyFitPack,
+}) {
+  const list = Array.isArray(elements) ? elements : [];
+  const target = Math.max(1, Math.trunc(Number(targetPages) || 1));
+  const ladder = buildSpacingLadder(loosest, tightest);
+
+  for (const candidate of ladder) {
+    const packed = packFn(list, candidate, pageHeight) || list;
+    const pageCount = contentMaxPage(packed);
+    if (pageCount <= target) {
+      return {
+        fits: true,
+        spacing: candidate,
+        pageCount,
+        elements: packed,
+        tier: classifyFitTier(candidate),
+      };
+    }
+  }
+
+  const tightestSpacing = ladder[ladder.length - 1];
+  const packed = packFn(list, tightestSpacing, pageHeight) || list;
+  return {
+    fits: false,
+    spacing: tightestSpacing,
+    pageCount: contentMaxPage(packed),
+    elements: packed,
+    tier: "impossible",
+  };
 }

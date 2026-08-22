@@ -58,3 +58,66 @@ describe("classifyFitTier", () => {
     assert.equal(classifyFitTier({ stack: 3, record: 5, section: 13, after_rule: 5 }), "tight");
   });
 });
+
+import { findFitForTarget } from "./fitToPages.js";
+
+// Fake pack: page count = 1 once `section` drops to/below `threshold`, else 2.
+// Tags each returned array so we can assert WHICH candidate won.
+function fakePackFn(threshold) {
+  return (elements, spacing) => {
+    const pages = spacing.section <= threshold ? 1 : 2;
+    const tagged = [{ element_id: "probe", page: pages, top: 0, height: 10 }];
+    tagged._spacing = spacing;
+    return tagged;
+  };
+}
+
+describe("findFitForTarget", () => {
+  it("returns the LOOSEST candidate that fits, never the tightest", () => {
+    // With threshold 16, the first ladder rung whose section<=16 wins — that is
+    // well above the floor (section 10), proving we do not over-tighten.
+    const r = findFitForTarget({
+      elements: [],
+      loosest: BASELINE,           // section 21
+      tightest: FLOOR,             // section 10
+      targetPages: 1,
+      packFn: fakePackFn(16),
+    });
+    assert.equal(r.fits, true);
+    assert.equal(r.pageCount, 1);
+    assert.ok(r.spacing.section <= 16, "winner must actually fit");
+    assert.ok(r.spacing.section > FLOOR.section, "winner must be looser than the floor");
+    assert.ok(["clean", "tight"].includes(r.tier));
+  });
+
+  it("classifies a floor-only fit as emergency", () => {
+    // Only section<=10 (the floor) fits.
+    const r = findFitForTarget({
+      elements: [], loosest: BASELINE, tightest: FLOOR, targetPages: 1,
+      packFn: fakePackFn(10),
+    });
+    assert.equal(r.fits, true);
+    assert.equal(r.tier, "emergency");
+    assert.deepEqual(r.spacing, FLOOR);
+  });
+
+  it("returns impossible when even the floor exceeds the target", () => {
+    const r = findFitForTarget({
+      elements: [], loosest: BASELINE, tightest: FLOOR, targetPages: 1,
+      packFn: fakePackFn(5), // nothing on the ladder reaches section<=5
+    });
+    assert.equal(r.fits, false);
+    assert.equal(r.tier, "impossible");
+    assert.deepEqual(r.spacing, FLOOR);
+    assert.equal(r.pageCount, 2);
+  });
+
+  it("relax direction: picks baseline when baseline already fits the achieved target", () => {
+    const r = findFitForTarget({
+      elements: [], loosest: BASELINE, tightest: COMPACT_FLOW_SPACING, targetPages: 1,
+      packFn: fakePackFn(25), // section 21 (baseline) already <= 25
+    });
+    assert.equal(r.fits, true);
+    assert.deepEqual(r.spacing, BASELINE);
+  });
+});
