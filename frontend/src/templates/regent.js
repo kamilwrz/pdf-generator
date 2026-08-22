@@ -5,7 +5,7 @@
  *
  * This static starter is the backend generator's own output
  * (`backend/app/services/cv_templates/templates/regent.py`) for
- * representative demo content (Aleksandra — strategy & operations manager with three roles, two degrees, ten skills, and three languages, sized to fit page 1 of the mockup), so the
+ * representative demo content (Aleksandra Nowak — strategy & operations manager with three roles, two degrees, ten skills, and three languages, sized to fit page 1 of the mockup), so the
  * picker preview matches what `/ai/fill_template` produces pixel-for-pixel.
  * Image `src` values are stored relative and get the API base prepended at
  * load time. The array already carries `flowRole` / `flowGroup` /
@@ -42,7 +42,7 @@ const REGENT_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "Aleksandra",
+    "content": "Aleksandra Nowak",
     "left": 62,
     "top": 47.0,
     "width": 471,
@@ -403,7 +403,7 @@ const REGENT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-a51a030e4dab",
+    "flowGroup": "record-93bc2e56027a",
     "flowRole": "content"
   },
   {
@@ -426,7 +426,7 @@ const REGENT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-a51a030e4dab",
+    "flowGroup": "record-93bc2e56027a",
     "flowRole": "content"
   },
   {
@@ -449,7 +449,7 @@ const REGENT_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-a51a030e4dab",
+    "flowGroup": "record-93bc2e56027a",
     "flowRole": "content"
   },
   {
@@ -472,7 +472,7 @@ const REGENT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-11c78c83aec7",
+    "flowGroup": "record-48d291e7cb18",
     "flowRole": "content"
   },
   {
@@ -495,7 +495,7 @@ const REGENT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-11c78c83aec7",
+    "flowGroup": "record-48d291e7cb18",
     "flowRole": "content"
   },
   {
@@ -518,7 +518,7 @@ const REGENT_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-11c78c83aec7",
+    "flowGroup": "record-48d291e7cb18",
     "flowRole": "content"
   },
   {
@@ -541,7 +541,7 @@ const REGENT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-0adc79b2db9e",
+    "flowGroup": "record-1782304445b9",
     "flowRole": "content"
   },
   {
@@ -564,7 +564,7 @@ const REGENT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-0adc79b2db9e",
+    "flowGroup": "record-1782304445b9",
     "flowRole": "content"
   },
   {
@@ -587,7 +587,7 @@ const REGENT_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-0adc79b2db9e",
+    "flowGroup": "record-1782304445b9",
     "flowRole": "content"
   },
   {
@@ -636,7 +636,7 @@ const REGENT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-5a66fdda236c",
+    "flowGroup": "record-cf83f5607d7f",
     "flowRole": "content"
   },
   {
@@ -659,7 +659,7 @@ const REGENT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-5a66fdda236c",
+    "flowGroup": "record-cf83f5607d7f",
     "flowRole": "content"
   },
   {
@@ -682,7 +682,7 @@ const REGENT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-5a66fdda236c",
+    "flowGroup": "record-cf83f5607d7f",
     "flowRole": "content"
   },
   {
@@ -705,7 +705,7 @@ const REGENT_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-5a66fdda236c",
+    "flowGroup": "record-cf83f5607d7f",
     "flowRole": "content"
   },
   {
@@ -728,7 +728,7 @@ const REGENT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-580f5520f701",
+    "flowGroup": "record-139d08b14fc5",
     "flowRole": "content"
   },
   {
@@ -751,7 +751,7 @@ const REGENT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-580f5520f701",
+    "flowGroup": "record-139d08b14fc5",
     "flowRole": "content"
   },
   {
@@ -774,7 +774,7 @@ const REGENT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-580f5520f701",
+    "flowGroup": "record-139d08b14fc5",
     "flowRole": "content"
   }
 ];

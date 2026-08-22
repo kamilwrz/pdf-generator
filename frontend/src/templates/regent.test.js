@@ -39,7 +39,7 @@ test("Regent preserves its monochrome editorial hierarchy", () => {
     assert.ok(contentTextareas.length >= 5);
     assert.ok(contentTextareas.every((element) => element.lineHeight === 11));
 
-    const name = regentTemplate.find((element) => element.content === "Aleksandra");
+    const name = regentTemplate.find((element) => element.content === "Aleksandra Nowak");
     assert.equal(name?.fontFamily, "CormorantGaramond");
     assert.equal(name?.fontSize, 38);
     assert.equal(name?.flowRole, "masthead");

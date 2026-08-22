@@ -134,7 +134,7 @@ COMPACT_DEMO_CV = {
 COMPACT_TEMPLATE_IDS = frozenset({"monument", "portico"})
 
 REGENT_DEMO_CV = {
-    "name": "Aleksandra",
+    "name": "Aleksandra Nowak",
     "title": "Strategy & Operations Manager",
     "email": "aleksandra.nowak@example.com",
     "phone": "+48 000 000 000",
@@ -291,8 +291,8 @@ DOC_BLURBS = {
 }
 
 STARTER_PERSONAS = {
-    "regent": "Aleksandra — strategy & operations manager with three roles, two degrees, ten skills, and three languages",
-    "meridian": "Aleksandra — strategy & operations manager with three roles, two degrees, ten skills, and three languages",
+    "regent": "Aleksandra Nowak — strategy & operations manager with three roles, two degrees, ten skills, and three languages",
+    "meridian": "Aleksandra Nowak — strategy & operations manager with three roles, two degrees, ten skills, and three languages",
 }
 
 LOCALHOST_ASSET = re.compile(r"^https?://[^/]+(/template-assets/.+)$")
