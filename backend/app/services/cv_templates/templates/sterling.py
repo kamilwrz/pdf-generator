@@ -314,8 +314,13 @@ def _gen_sterling(cv: dict) -> list[dict]:
                 probe, skill_groups(cv.get('skills')), MAIN_W, BODY_FS, BODY_LH, SANS,
             )
         elif kind == 'languages':
+            # `columns=3` must match `_extra_sections`'s own `languages_columns=3`
+            # call below — this is only a page-planning estimate, but at the
+            # wrong (wider, 4-column) column count it understates the real
+            # render height and can hand the planner a section that no longer
+            # fits where it was told it would.
             main_body = _measure_languages_grid_height(
-                probe, _language_entries(cv), MAIN_W, font=SANS, fs=BODY_FS, lh=BODY_LH,
+                probe, _language_entries(cv), MAIN_W, columns=3, font=SANS, fs=BODY_FS, lh=BODY_LH,
             )
         else:  # interests / certifications → flat bullet block
             main_body = Builder.measure_block(
@@ -391,6 +396,7 @@ def _gen_sterling(cv: dict) -> list[dict]:
                     b, cv, 'after_experience', section_fn, {'body': C['ink'], 'accent': C['accent']},
                     MAIN_L, MAIN_W, SANS, fs=BODY_FS, lh=BODY_LH,
                     skip_indices=skip_indices, section_chrome_h=SECTION_CHROME,
+                    languages_columns=3,
                 )
             elif key == 'education' and edu_entries:
                 b.need_section(SECTION_CHROME, _education_record_height(
@@ -424,6 +430,7 @@ def _gen_sterling(cv: dict) -> list[dict]:
             b, cv, 'after_skills', section_fn, {'body': C['ink'], 'accent': C['accent']},
             MAIN_L, MAIN_W, SANS, fs=BODY_FS, lh=BODY_LH,
             skip_indices=skip_indices, section_chrome_h=SECTION_CHROME,
+            languages_columns=3,
         )
 
     def measure_main(order: list[str]) -> MainMeasurement:

@@ -347,6 +347,7 @@ def _gen_tessera(cv: dict) -> list[dict]:
             main_left, main_width, sans, fs=body_fs, lh=body_lh,
             skip_indices=sidebar_extra_indices,
             section_chrome_h=section_chrome,
+            languages_columns=3,
         )
 
     if cv.get("education") and "education" not in sidebar_keys:
@@ -382,6 +383,7 @@ def _gen_tessera(cv: dict) -> list[dict]:
         main_left, main_width, sans, fs=body_fs, lh=body_lh,
         skip_indices=sidebar_extra_indices,
         section_chrome_h=section_chrome,
+        languages_columns=3,
     )
 
     flow = [

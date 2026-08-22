@@ -299,8 +299,18 @@ class VestigeTemplateTests(unittest.TestCase):
             if element.get("flowRole") == "grid-member" and element["category"] == "textarea"
         ]
         self.assertTrue(grid_cells)
-        lefts = [element["left"] for element in grid_cells]
-        self.assertEqual(len(lefts), len(set(lefts)), f"grid-member cells collided: {lefts!r}")
+        # Vestige's 3-column grid (see the sidebar-templates line-length fix)
+        # legitimately wraps a 4th language onto a new row, reusing column 1's
+        # `left` — a real collision is two cells at the SAME `left` sharing
+        # the SAME row (`top`), not the same column across different rows.
+        by_row: dict[float, list[float]] = {}
+        for element in grid_cells:
+            by_row.setdefault(element["top"], []).append(element["left"])
+        for top, lefts in by_row.items():
+            self.assertEqual(
+                len(lefts), len(set(lefts)),
+                f"grid-member cells collided within row top={top!r}: {lefts!r}",
+            )
 
     def test_vestige_sidebar_elements_do_not_overlap_after_narrowing(self) -> None:
         """Narrowing the sidebar column rewraps body copy onto more lines than

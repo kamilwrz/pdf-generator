@@ -163,7 +163,8 @@ def _extra_sections(b: Builder, cv: dict, placement: str,
                     section_fn, C: dict, L: int, W: int,
                     font_b: str, fs: float = 10, lh: float = 15,
                     skip_indices: set[int] | None = None,
-                    section_chrome_h: float | None = None) -> None:
+                    section_chrome_h: float | None = None,
+                    languages_columns: int = 4) -> None:
     """
     Render extra (custom) sections found in the CV but not in the template.
 
@@ -178,6 +179,13 @@ def _extra_sections(b: Builder, cv: dict, placement: str,
 
     ``section_chrome_h`` should match the template's real heading/icon/rule
     advance (Iconic is taller than the default label-only estimate).
+
+    ``languages_columns`` sizes the languages grid's cells to the caller's own
+    main-column width. Sidebar templates (Sterling, Tessera, Slate — narrower
+    ~300-335pt main columns, versus ~460-500pt for single-column templates)
+    pass 3 instead of the default 4: at 4 columns a narrow main column gives
+    each cell too little width for a "Name — Level" line to fit without
+    wrapping/cutting off mid-word.
     """
     chrome_h = (
         float(section_chrome_h)
@@ -233,8 +241,9 @@ def _extra_sections(b: Builder, cv: dict, placement: str,
             continue
 
         kind = _extra_section_kind(sec)
-        # Single-column languages: equal 4-column textarea grid with accent CEFR
-        # runs — not one bulleted "Name — Level" block.
+        # Equal-column textarea grid with accent CEFR runs — not one bulleted
+        # "Name — Level" block. Column count is caller-supplied (see
+        # `languages_columns`'s docstring above).
         if kind == "languages":
             entries = _language_entries(cv, items)
             if not entries:
@@ -242,12 +251,13 @@ def _extra_sections(b: Builder, cv: dict, placement: str,
             body_color = C.get("body", "#2B2B2B")
             level_color = _language_level_color(C)
             body_height = _measure_languages_grid_height(
-                b, entries, W, font=font_b, fs=fs, lh=lh,
+                b, entries, W, columns=languages_columns, font=font_b, fs=fs, lh=lh,
             )
             b.need_section(chrome_h, body_height or lh)
             section_fn(title)
             _place_languages_grid(
                 b, entries, L, W,
+                columns=languages_columns,
                 font=font_b, fs=fs, lh=lh,
                 body_color=body_color, level_color=level_color,
             )

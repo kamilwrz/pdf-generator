@@ -12,8 +12,7 @@ IV.  BUGZ / NEEDED FIXES
  V.  TEMPLATES / CANVA A4
 -----------------------------------------------------------------------------------------
 
-1) Skopiowane szablony maja inna strukture. "RecordOverlay" - zaimplementowac dodawanie, 
-   zmiane kolejnosci, itd.
+1) Skopiowane szablony maja inna strukture. "RecordOverlay" - zaimplementowac dodawanie, zmiane kolejnosci, itd. (DONE)
 2) Dodanie job position, jak nie ma w CV PDF lub WIZZARD
 3) Wczytywanie linkow (np. LinkedIn - link ukryty)
 4) Zdjecie profilowe - nie wszystkie maja ta sama funkcjonalnosc;Opcja - bez zdjecia;

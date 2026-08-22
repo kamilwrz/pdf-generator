@@ -177,6 +177,24 @@ def _gen_vestige(cv: dict) -> list[dict]:
     # page, how far every subsequent main-column element must shift to absorb
     # the height already reclaimed (or added) above it on that page.
     main_shift_by_page: dict[int, float] = {}
+    # `grid-member` cells (the languages grid) share one row's `top` across
+    # several sibling elements, unlike every other main-column element this
+    # cascading shift was designed for (each its own row). Advancing
+    # `main_shift_by_page` per CELL — instead of once per ROW, using the
+    # row's tallest cell like `_place_languages_grid` itself does — gave each
+    # cell in the same row a different cumulative shift as soon as their
+    # recomputed heights differed even slightly, breaking the row apart
+    # vertically. Tracks, per page, the in-progress row's original `top` and
+    # the largest height delta seen among its cells so far; committed into
+    # `main_shift_by_page` in one lump sum via `_commit_pending_grid_row`
+    # once a different row (or non-grid content) is reached.
+    grid_pending_row: dict[int, tuple[float, float]] = {}
+
+    def _commit_pending_grid_row(page: int) -> None:
+        pending = grid_pending_row.pop(page, None)
+        if pending is not None:
+            main_shift_by_page[page] = main_shift_by_page.get(page, 0.0) + pending[1]
+
     for source in elements:
         element = dict(source)
         category = element.get("category")
@@ -286,19 +304,25 @@ def _gen_vestige(cv: dict) -> list[dict]:
         # shared box — each column needs its own translated position, or every
         # cell in a row collapses onto the same rectangle.
         if flow_role == "grid-member" and category == "textarea" and flow_lane != "sidebar":
+            page = int(element.get("page", 1))
+            original_top = float(element.get("top", 0))
+            pending = grid_pending_row.get(page)
+            if pending is None or pending[0] != original_top:
+                # A new row started (or this is the first grid-member cell):
+                # commit the previous row's max delta before starting a fresh one.
+                _commit_pending_grid_row(page)
+                grid_pending_row[page] = (original_top, 0.0)
             if float(element.get("left", 0)) >= old_sidebar_width:
                 original_left = float(element["left"])
                 element["left"] = main_left + (original_left - _STERLING_MAIN_L) * main_scale
                 if "width" in element:
                     element["width"] = float(element["width"]) * main_scale
-            page = int(element.get("page", 1))
-            main_carried_shift = main_shift_by_page.get(page, 0.0)
             # `main_shift` (page 1 only) closes the gap Sterling left for its
             # own dropped contact row — see that computation's comment.
-            # `main_carried_shift` absorbs any height already reclaimed by
-            # earlier main-column elements on this page — see the
-            # accumulator's declaration above the loop.
-            element["top"] = float(element.get("top", 0)) + main_carried_shift
+            # `main_shift_by_page` (committed one row at a time, above) absorbs
+            # any height already reclaimed by earlier main-column elements on
+            # this page — see the accumulator's declaration above the loop.
+            element["top"] = original_top + main_shift_by_page.get(page, 0.0)
             if page == 1:
                 element["top"] += main_shift
             # Uniform 12 px line height, recomputed at the (possibly rescaled)
@@ -316,15 +340,18 @@ def _gen_vestige(cv: dict) -> list[dict]:
                     bold=bool(element.get("bold", False)),
                     bulletList=bool(element.get("bulletList", False)),
                 )
-                main_shift_by_page[page] = main_carried_shift + (element["height"] - original_height)
+                delta = element["height"] - original_height
+                _, current_max = grid_pending_row[page]
+                grid_pending_row[page] = (original_top, max(current_max, delta))
         elif flow_role == "section-chrome" or (
             category == "textarea" and flow_lane != "sidebar" and flow_role not in {"masthead", "masthead-anchor"}
         ):
+            page = int(element.get("page", 1))
+            _commit_pending_grid_row(page)
             if float(element.get("left", 0)) >= old_sidebar_width:
                 element["left"] = main_left
                 if "width" in element:
                     element["width"] = main_width
-            page = int(element.get("page", 1))
             main_carried_shift = main_shift_by_page.get(page, 0.0)
             element["top"] = float(element.get("top", 0)) + main_carried_shift
             if page == 1:
