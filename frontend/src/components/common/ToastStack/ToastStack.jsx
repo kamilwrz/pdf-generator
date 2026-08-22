@@ -48,6 +48,17 @@ export default function ToastStack({ toasts, onDismiss }) {
                         </div>
                         <div className={classes.body}>
                             <div className={classes.title}>{t.title}</div>
+                            {t.templateName && (
+                                <span
+                                    className={classes.templateBadge}
+                                    style={{
+                                        "--template-accent": t.templateAccent || "var(--chrome-ink)",
+                                        "--template-badge-ink": t.templateBadgeInk || "#FFFFFF",
+                                    }}
+                                >
+                                    {t.templateName}
+                                </span>
+                            )}
                             {t.msg && <div className={classes.msg}>{t.msg}</div>}
                             {t.action && (
                                 <a className={classes.action} href={t.action.href} download={t.action.download}>

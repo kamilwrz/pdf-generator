@@ -56,6 +56,19 @@
     letter-spacing: .01em;
 }
 
+.templateBadge {
+    display: inline-flex;
+    align-items: center;
+    min-height: 25px;
+    margin-top: 8px;
+    padding: 0 9px;
+    background: var(--template-accent);
+    color: var(--template-badge-ink);
+    font: 700 10px/1 var(--font-body);
+    letter-spacing: .08em;
+    text-transform: uppercase;
+}
+
 .msg {
     font: 500 11px/1.45 var(--font-body);
     color: var(--chrome-muted);

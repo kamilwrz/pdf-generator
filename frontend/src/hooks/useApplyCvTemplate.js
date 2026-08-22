@@ -13,6 +13,14 @@ import { isTemplateAllowed, planErrorMessage } from "../utils/entitlements";
 import { DEFAULT_FLOW_SPACING } from "../utils/flowSpacing";
 import { getAccessToken } from "../utils/authSession";
 
+function templateBadgeInk(accent) {
+  const hex = String(accent || "").replace("#", "");
+  if (!/^[\da-f]{6}$/i.test(hex)) return "#FFFFFF";
+  const channels = [0, 2, 4].map((index) => Number.parseInt(hex.slice(index, index + 2), 16));
+  const luminance = (channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722) / 255;
+  return luminance > 0.62 ? "#171717" : "#FFFFFF";
+}
+
 /**
  * @returns {{
  *   applyTemplate: (template: object) => Promise<boolean>,
@@ -64,7 +72,9 @@ export function useApplyCvTemplate() {
       adoptDocumentFlowSpacing?.(DEFAULT_FLOW_SPACING);
       pushToast?.({
         title: "Szablon zmieniony",
-        msg: `CV wygląda teraz jak szablon ${template.name}.`,
+        templateName: template.name,
+        templateAccent: template.accent,
+        templateBadgeInk: templateBadgeInk(template.accent),
         variant: "success",
       });
       return true;
