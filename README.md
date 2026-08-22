@@ -528,25 +528,23 @@ Tests:
 - `frontend/src/utils/skillsDisplayMode.test.js` — mode detection; conversion to every mode for both flat and categorized skills; a full round trip through all three modes preserves every category and item; no-op when already in the requested mode; null for a non-skills heading; chip color reuse from another chip section already in the document; chip rows stay aligned within one category
 - `frontend/src/utils/sectionStructure.test.js`, `describe("applyFlowSpacing — skill chip grid")` — `"keeps a chip grid intact across a section reorder even without flowGroup"` regression test (fails without the `continuesGrid` fix, passes with it)
 
-### Too-long CV assistant (compact spacing → AI shortening)
+### Progressive page-fit and AI shortening
 
-When a template-mode document reaches **3+ pages**, `LongCvModal` opens automatically (once per loaded document, and again after a template change) and guides the user to a shorter CV — cheapest, deterministic remedy first, AI only when needed. The once-per-document guard lives in one `PdfCanvas` effect with `shouldResetLongCvOffer` (`frontend/src/utils/documentLength.js`): it re-arms on a different saved `pdfId`, a cleared canvas, or a new `activeTemplateId` ("Zmień szablon" keeps the same `pdfId` but swaps the layout), and it does **not** re-arm when the first autosave promotes `pdfId` from `null` → an id (that race previously stacked a second DialogShell on the still-open modal). Detection is free and code-side: `diagnoseDocumentLength` measures the **last page's fill ratio** — `(bottom-most flowing element − pageTop) / usable band`, ignoring `fixedToPage` chrome that would otherwise report ~100% — and picks a lead remedy:
+In template mode, a document that exceeds its target page count shows a small badge on the **Układ CV** tile and one gentle toast per document; it never opens a blocking modal automatically. The target is one page for sidebar templates and one page fewer for other layouts. Opening **Układ CV** runs the progressive page-fit probe only while the panel is visible and displays an honest hint with a **Zmieść na …** action.
 
-- **Sparse last page** (< 45% full) → the whitespace is the likely culprit, so the modal leads with the free **compact spacing** pass. Clicking **Zmieść na N stronach** applies `COMPACT_FLOW_SPACING` (`{stack:3, record:7, section:15, after_rule:6}` — ~30% tighter than defaults, deliberately not a literal halving that would kill template rhythm) via `applyFlowSpacing`, then `collapseSpilledMainIntoSidebar` (rail leftover main sections such as Education when the sidebar-measured height drops a page), then `reconcileDocumentPages`. The modal then branches on the new page count: success (**„Gotowe — CV mieści się teraz na N stronach"**) or still-too-long (**„Odstępy są już zwarte…"** → AI step).
-- **Full pages** (≥ 45%) → spacing alone won't help, so the modal leads with AI shortening and offers "Zmniejsz odstępy mimo to" as a secondary try.
+`fitToPages.js` searches from the document's baseline rhythm toward the hidden hard floor `MIN_FLOW_SPACING = {stack:2, record:2, section:10, after_rule:2}`. Each candidate is packed through `applyFlowSpacing` and `collapseSpilledMainIntoSidebar`; the engine returns the first, therefore loosest, rhythm that meets the target. It classifies the result as `clean`, `tight`, `emergency`, or `impossible`. Clean and tight fits apply immediately as one undoable layout change. An emergency fit opens `LongCvModal`, offering **Maksymalnie zacieśnij** or AI shortening; an impossible fit offers AI shortening only.
 
-The LongCv compact pass remains a dedicated 3+ page remedy. The Układ CV panel’s **Kompaktowa** density segment is a separate, baseline-relative preset (not this absolute `COMPACT_FLOW_SPACING`), and **Dopasuj automatycznie** optimises density/balance for any page count without replacing this modal.
+The AI `shorten` action remains Pro-gated. After accepted AI changes reduce the page count, the editor silently reruns the same loosest-fit search from baseline down to `COMPACT_FLOW_SPACING`, recovering whitespace without adding a separate visible history action. `layoutDensity.js`, its **Kompaktowa** preset, and **Dopasuj automatycznie** remain separate density/balance tools; they are not page-targeting replacements.
 
-The **AI step** (`shorten` action) is Pro-gated because the whole assistant is: Free users get the plan upsell (`showPlanModal`) instead. For Pro, the modal opens the assistant with the `shorten` action via a small context bridge — `assistantAction: { action, nonce }` + `requestAssistantAction` on `PdfContext`; `AiAssistant` watches the nonce and fires the action once. After the user accepts the resulting Przed/Po corrections and the canvas reflows, a success toast (**„CV skrócone z X do Y stron"**) fires when the page count drops below the value captured when the shorten flow began.
-
-The modal never mutates the document itself — `PdfCanvas` owns the state and passes `onApplyCompact` (returns the new page count so the modal can branch) and `onRequestAiShorten`, keeping `LongCvModal` a pure presenter over the shared `DialogShell`.
+`LongCvModal` is a pure presenter over `DialogShell`: `PdfCanvas` owns fitting, page reconciliation, toasts, and the assistant-action bridge.
 
 Implementation:
 
-- `frontend/src/utils/documentLength.js` — `measureLastPageUtilization`, `diagnoseDocumentLength`, `shouldResetLongCvOffer`, `TOO_LONG_MIN_PAGES` (3), `SPARSE_LAST_PAGE_RATIO` (0.45)
-- `frontend/src/utils/flowSpacing.js` — `COMPACT_FLOW_SPACING`, `isCompactFlowSpacing`
-- `frontend/src/components/editor/LongCvModal/LongCvModal.jsx` + `.module.css` — the multi-step dialog (intro-spacing / intro-content / result-success / result-still)
-- `frontend/src/pages/PdfCanvas.jsx` — single identity+detection effect (once per logical document+template), `applyCompactSpacingPass` (lines 921–932, compact spacing then sidebar collapse), `handleRequestAiShorten`, the shorten-result toast effect, and the `assistantAction` bridge
+- `frontend/src/utils/fitToPages.js` — pure ladder, tier, pack, target-fit, action-routing, and Polish target-label engine
+- `frontend/src/utils/flowSpacing.js` — `COMPACT_FLOW_SPACING`, `MIN_FLOW_SPACING`, and spacing normalization
+- `frontend/src/components/editor/LongCvModal/LongCvModal.jsx` + `.module.css` — emergency/impossible decision modal
+- `frontend/src/components/editor/SectionsPanel/SectionsPanel.jsx` and `frontend/src/components/editor/Sidebar/Sidebar.jsx` — fit hint/CTA and the non-blocking attention badge
+- `frontend/src/pages/PdfCanvas.jsx` — fit commit, panel-gated probe, gentle detection toast, post-AI relaxation, modal routing, and the `assistantAction` bridge
 - `frontend/src/hooks/useA4Elements.js`, `handleCollapseSpilledMainIntoSidebar` (lines 1279–1293) — after accepted AI content patches
 - `frontend/src/components/ai/AiAssistant/AiAssistant.jsx` — `assistantAction` observer effect + „Skróć CV" subaction; `acceptCorrection` / `applyAll` (lines 1158–1183) call the canvas collapse after content patches
 - `frontend/src/store/pdfgenerator-context.jsx` — `assistantAction` / `requestAssistantAction` defaults
@@ -554,7 +552,9 @@ Implementation:
 
 Tests:
 
-- `frontend/src/utils/documentLength.test.js` — utilization ignores full-page chrome, sparse vs full diagnosis, `targetPages` = pageCount − 1 (never below 1), `shouldResetLongCvOffer` (draft→save vs template/doc change)
+- `frontend/src/utils/fitToPages.test.js` — hard-floor search, loosest-fitting candidate, tiers, action routing, and target labels
+- `frontend/src/utils/flowSpacing.test.js` — `MIN_FLOW_SPACING` invariants
+- `frontend/src/components/editor/LongCvModal/LongCvModal.test.js` and `frontend/src/pages/PdfCanvas.test.js` — modal variants and progressive-fit orchestration guards
 - `frontend/src/utils/collapseMainIntoSidebar.test.js` — Education rails and drops a page; Experience never moves; leftovers stay in main when the extra page is held by Experience; last two leftovers move together when only both drop a page
 - `backend/tests/test_ai_assistant_schema.py`, `test_shorten_dispatches_and_returns_content_corrections` — the `shorten` prompt leads with shortening intent, forbids inventing facts, and returns content-only corrections
 
@@ -2366,25 +2366,23 @@ Testy:
 - `frontend/src/utils/skillsDisplayMode.test.js` — wykrywanie trybu; konwersja do każdego trybu dla płaskich i skategoryzowanych umiejętności; pełny obieg przez wszystkie trzy tryby zachowuje każdą kategorię i element; brak zmiany, gdy sekcja już jest w żądanym trybie; null dla nagłówka innego niż umiejętności; odzysk koloru chipsów z innej sekcji chipsowej już w dokumencie; chipsy zostają wyrównane w obrębie jednej kategorii
 - `frontend/src/utils/sectionStructure.test.js`, `describe("applyFlowSpacing — skill chip grid")` — test regresyjny `"keeps a chip grid intact across a section reorder even without flowGroup"` (nie przechodzi bez poprawki `continuesGrid`, przechodzi z nią)
 
-### Asystent zbyt długiego CV (kompaktowe odstępy → skracanie AI)
+### Progresywne dopasowanie stron i skracanie AI
 
-Gdy dokument w trybie szablonu osiągnie **3+ strony**, `LongCvModal` otwiera się automatycznie (raz na wczytany dokument oraz ponownie po zmianie szablonu) i prowadzi użytkownika do krótszego CV — najpierw najtańszy, deterministyczny sposób, AI dopiero gdy trzeba. Guard „raz na dokument” żyje w jednym efekcie `PdfCanvas` z `shouldResetLongCvOffer` (`frontend/src/utils/documentLength.js`): uzbraja się ponownie przy innym zapisanym `pdfId`, wyczyszczonym płótnie albo nowym `activeTemplateId` („Zmień szablon” zachowuje ten sam `pdfId`, ale podmienia layout), i **nie** uzbraja się, gdy pierwszy autozapis promuje `pdfId` z `null` → id (ta rasa wcześniej dokładała drugi DialogShell na nadal otwarty modal). Wykrywanie jest darmowe i po stronie kodu: `diagnoseDocumentLength` mierzy **wypełnienie ostatniej strony** — `(dolna krawędź najniższego elementu treści − pageTop) / użyteczne pasmo`, ignorując chrome `fixedToPage`, które inaczej raportowałoby ~100% — i wybiera wiodący sposób:
+W trybie szablonu dokument przekraczający docelową liczbę stron pokazuje małą plakietkę przy kafelku **Układ CV** oraz jeden delikatny toast na dokument; blokujący modal nie otwiera się automatycznie. Celem jest jedna strona dla szablonów z sidebarem i o jedną stronę mniej dla pozostałych układów. Po otwarciu **Układu CV** uruchamiane jest progowe sprawdzenie dopasowania tylko wtedy, gdy panel jest widoczny; pokazuje ono uczciwą podpowiedź z akcją **Zmieść na …**.
 
-- **Słabo wypełniona ostatnia strona** (< 45%) → winne jest puste miejsce, więc modal proponuje najpierw darmowe **kompaktowe odstępy**. Kliknięcie **Zmieść na N stronach** stosuje `COMPACT_FLOW_SPACING` (`{stack:3, record:7, section:15, after_rule:6}` — ~30% ciaśniej niż domyślne, celowo bez literalnego dzielenia na pół, które zabiłoby rytm szablonu) przez `applyFlowSpacing`, potem `collapseSpilledMainIntoSidebar` (leftover z kolumny głównej, np. Wykształcenie, gdy wysokość liczona jak dla sidebara zdejmuje stronę), potem `reconcileDocumentPages`. Modal rozgałęzia się wg nowej liczby stron: sukces (**„Gotowe — CV mieści się teraz na N stronach"**) albo nadal za długie (**„Odstępy są już zwarte…"** → krok AI).
-- **Gęsto wypełnione strony** (≥ 45%) → sam spacing nie pomoże, więc modal proponuje od razu skracanie AI, a „Zmniejsz odstępy mimo to" jako opcję drugorzędną.
+`fitToPages.js` przeszukuje odstępy od rytmu bazowego dokumentu do ukrytej twardej granicy `MIN_FLOW_SPACING = {stack:2, record:2, section:10, after_rule:2}`. Każdy kandydat jest pakowany przez `applyFlowSpacing` i `collapseSpilledMainIntoSidebar`; silnik zwraca pierwszy, a więc najluźniejszy, rytm spełniający cel. Wynik jest klasyfikowany jako `clean`, `tight`, `emergency` albo `impossible`. Dopasowania clean i tight są stosowane od razu jako jedna operacja obsługiwana przez undo. Dopasowanie emergency otwiera `LongCvModal` z wyborem **Maksymalnie zacieśnij** albo skracania AI; wynik impossible oferuje wyłącznie skracanie AI.
 
-Przepływ LongCv pozostaje dedykowanym remedium dla 3+ stron. Segment **Kompaktowa** w panelu Układ CV to osobny, względny względem baseline preset (nie ten absolutny `COMPACT_FLOW_SPACING`), a **Dopasuj automatycznie** optymalizuje gęstość/balans dla dowolnej liczby stron bez zastępowania tego modala.
+Akcja AI `shorten` nadal wymaga Pro. Gdy zaakceptowane zmiany AI zmniejszą liczbę stron, edytor po cichu uruchamia ponownie ten sam algorytm najluźniejszego dopasowania od baseline do `COMPACT_FLOW_SPACING`, odzyskując wolną przestrzeń bez dodawania oddzielnej widocznej operacji historii. `layoutDensity.js`, preset **Kompaktowa** i **Dopasuj automatycznie** pozostają niezależnymi narzędziami gęstości/balansu — nie zastępują dopasowywania do liczby stron.
 
-**Krok AI** (`shorten`) jest za Pro, bo cały asystent jest za Pro: użytkownicy Free dostają upsell planu (`showPlanModal`). Dla Pro modal otwiera asystenta z akcją `shorten` przez mały mostek kontekstu — `assistantAction: { action, nonce }` + `requestAssistantAction` w `PdfContext`; `AiAssistant` obserwuje nonce i odpala akcję raz. Po zaakceptowaniu kart Przed/Po i reflow płótna pojawia się toast sukcesu (**„CV skrócone z X do Y stron"**), gdy liczba stron spadnie poniżej wartości zapamiętanej na starcie skracania.
-
-Modal sam nie zmienia dokumentu — `PdfCanvas` trzyma stan i przekazuje `onApplyCompact` (zwraca nową liczbę stron, żeby modal mógł się rozgałęzić) oraz `onRequestAiShorten`, dzięki czemu `LongCvModal` jest czystym prezenterem nad wspólnym `DialogShell`.
+`LongCvModal` jest czystym prezenterem nad `DialogShell`: `PdfCanvas` zarządza dopasowaniem, rekonsyliacją stron, toastami i mostkiem akcji asystenta.
 
 Implementacja:
 
-- `frontend/src/utils/documentLength.js` — `measureLastPageUtilization`, `diagnoseDocumentLength`, `shouldResetLongCvOffer`, `TOO_LONG_MIN_PAGES` (3), `SPARSE_LAST_PAGE_RATIO` (0.45)
-- `frontend/src/utils/flowSpacing.js` — `COMPACT_FLOW_SPACING`, `isCompactFlowSpacing`
-- `frontend/src/components/editor/LongCvModal/LongCvModal.jsx` + `.module.css` — wieloetapowy dialog (intro-spacing / intro-content / result-success / result-still)
-- `frontend/src/pages/PdfCanvas.jsx` — jeden efekt tożsamości+wykrywania (raz na logiczny dokument+szablon), `applyCompactSpacingPass` (linie 921–932, kompaktowe odstępy, potem przeniesienie sekcji do sidebara), `handleRequestAiShorten`, efekt toasta wyniku skracania oraz mostek `assistantAction`
+- `frontend/src/utils/fitToPages.js` — czysty silnik drabiny, tierów, pakowania, dopasowania do celu, routingu akcji i polskich etykiet celu
+- `frontend/src/utils/flowSpacing.js` — `COMPACT_FLOW_SPACING`, `MIN_FLOW_SPACING` oraz normalizacja odstępów
+- `frontend/src/components/editor/LongCvModal/LongCvModal.jsx` + `.module.css` — modal decyzyjny emergency/impossible
+- `frontend/src/components/editor/SectionsPanel/SectionsPanel.jsx` i `frontend/src/components/editor/Sidebar/Sidebar.jsx` — podpowiedź/CTA dopasowania oraz nieblokująca plakietka
+- `frontend/src/pages/PdfCanvas.jsx` — commit dopasowania, sprawdzenie przy otwartym panelu, delikatny toast wykrywania, rozluźnienie po AI, routing modala i mostek `assistantAction`
 - `frontend/src/hooks/useA4Elements.js`, `handleCollapseSpilledMainIntoSidebar` (linie 1279–1293) — po zaakceptowanych poprawkach treści AI
 - `frontend/src/store/pdfgenerator-context.jsx` — domyślne `assistantAction` / `requestAssistantAction`
 - `frontend/src/components/ai/AiAssistant/AiAssistant.jsx` — efekt obserwatora `assistantAction` + subakcja „Skróć CV"; `acceptCorrection` / `applyAll` (linie 1158–1183) wołają zrzut do sidebara po poprawkach treści
@@ -2392,7 +2390,9 @@ Implementacja:
 
 Testy:
 
-- `frontend/src/utils/documentLength.test.js` — wypełnienie ignoruje chrome na całą stronę, diagnoza słabo vs gęsto wypełniona, `targetPages` = pageCount − 1 (nigdy poniżej 1), `shouldResetLongCvOffer` (draft→zapis vs zmiana szablonu/dokumentu)
+- `frontend/src/utils/fitToPages.test.js` — wyszukiwanie do twardej granicy, najluźniejszy pasujący kandydat, tiery, routing akcji i etykiety celu
+- `frontend/src/utils/flowSpacing.test.js` — inwarianty `MIN_FLOW_SPACING`
+- `frontend/src/components/editor/LongCvModal/LongCvModal.test.js` i `frontend/src/pages/PdfCanvas.test.js` — warianty modala i osłony orkiestracji progresywnego dopasowania
 - `frontend/src/utils/collapseMainIntoSidebar.test.js` — Wykształcenie wchodzi do szyny i zdejmuje stronę; Doświadczenie nigdy nie przechodzi; leftover zostaje w głównej, gdy dodatkową stronę trzyma Doświadczenie; dwa ostatnie leftover’y idą razem, gdy dopiero oba zdejmują stronę
 - `backend/tests/test_ai_assistant_schema.py`, `test_shorten_dispatches_and_returns_content_corrections` — prompt `shorten` prowadzi ze skracaniem, zakazuje wymyślania faktów i zwraca poprawki tylko treści
 
