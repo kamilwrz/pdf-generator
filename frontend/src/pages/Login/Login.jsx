@@ -24,7 +24,7 @@ export default function Login() {
 
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
-    const startIntent = ["import", "wizard", "templates", "blank", "demo-conversion"].includes(searchParams.get("start"))
+    const startIntent = ["import", "wizard", "templates", "blank", "demo-conversion", "wizard-conversion"].includes(searchParams.get("start"))
         ? searchParams.get("start")
         : null;
 
@@ -111,7 +111,7 @@ export default function Login() {
             ? "Po zalogowaniu otworzymy kreator CV krok po kroku."
             : startIntent === "templates"
                 ? "Po zalogowaniu otworzymy wybór szablonów."
-            : startIntent === "demo-conversion"
+            : (startIntent === "demo-conversion" || startIntent === "wizard-conversion")
                 ? "Po zalogowaniu przeniesiemy dane z kreatora i utworzymy Twoje CV w Regencie."
                 : startIntent === "blank"
                     ? "Po zalogowaniu otworzymy pusty projekt własny."

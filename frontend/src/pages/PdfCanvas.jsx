@@ -139,10 +139,13 @@ function PdfCanvas() {
       || startIntent === "blank"
       || startIntent === "demo"
       || startIntent === "demo-conversion"
+      || startIntent === "wizard-conversion"
       ? startIntent
       : null,
   );
-  const demoConversionPending = startIntent === "demo-conversion"
+  const conversionPending = startIntent === "demo-conversion"
+    || startIntent === "wizard-conversion"
+    || localStorage.getItem("cvstudio.wizardConversionPending") !== null
     || localStorage.getItem("cvstudio.demoConversionPending") === "1";
 
   // Toggle this signal after a period of pointer activity so the session check
@@ -755,6 +758,7 @@ function PdfCanvas() {
       || startIntent === "blank"
       || startIntent === "demo"
       || startIntent === "demo-conversion"
+      || startIntent === "wizard-conversion"
     ) {
       return;
     }
@@ -1341,7 +1345,7 @@ function PdfCanvas() {
         );
         if (
           !cancelled
-          && demoConversionPending
+          && conversionPending
           && claim.profile
         ) {
           // Delay layout generation until authentication succeeds so the demo
@@ -1353,8 +1357,11 @@ function PdfCanvas() {
           if (cancelled) return;
           handleLoadAiElements(response.elements, "Moje CV", "regent");
           setActiveCvData(claim.profile);
+          localStorage.removeItem("cvstudio.wizardConversionPending");
           localStorage.removeItem("cvstudio.demoConversionPending");
-          queueGuestEvent("demo_conversion_completed");
+          queueGuestEvent(initialStartIntentRef.current === "wizard-conversion"
+            ? "wizard_conversion_completed"
+            : "demo_conversion_completed");
         }
       } catch (error) {
         if (!cancelled) {
@@ -1368,7 +1375,7 @@ function PdfCanvas() {
     return () => {
       cancelled = true;
     };
-  }, [demoConversionPending, flowSpacing, handleLoadAiElements]);
+  }, [conversionPending, flowSpacing, handleLoadAiElements]);
 
   // Load the browser-buffered guest JSON onto the A4 canvas only.
   // Do not call `createPdf` / `POST /pdf/create_pdf` here — that would render

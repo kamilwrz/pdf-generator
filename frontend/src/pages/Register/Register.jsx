@@ -37,7 +37,7 @@ export default function Register() {
     const navigate = useNavigate();
 
     const [searchParams] = useSearchParams();
-    const startIntent = ["import", "wizard", "templates", "blank", "demo-conversion"].includes(searchParams.get("start"))
+    const startIntent = ["import", "wizard", "templates", "blank", "demo-conversion", "wizard-conversion"].includes(searchParams.get("start"))
         ? searchParams.get("start")
         : null;
     // Landing CTAs may pass ?plan=pro (legacy standard/premium remap on backend).
@@ -110,7 +110,7 @@ export default function Register() {
             ? "Po utworzeniu konta otworzymy kreator CV krok po kroku."
             : startIntent === "templates"
                 ? "Po utworzeniu konta otworzymy wybór szablonów."
-        : startIntent === "demo-conversion"
+        : (startIntent === "demo-conversion" || startIntent === "wizard-conversion")
             ? "Po utworzeniu konta przeniesiemy dane z kreatora i utworzymy Twoje CV w Regencie."
             : startIntent === "blank"
                     ? "Po utworzeniu konta otworzymy pusty projekt własny ze swobodną edycją."

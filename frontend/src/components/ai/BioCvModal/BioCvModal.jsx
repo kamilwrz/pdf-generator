@@ -1,28 +1,24 @@
 /**
- * Guided bio/CV wizard with draft autosave. The normal variant fills a chosen
- * template at the end; the demo-conversion variant collects four data steps
- * and defers Regent generation until after authentication.
+ * Guided bio/CV wizard with draft autosave. Every onboarding entry collects
+ * four data steps; guests authenticate before the Regent is generated, while
+ * authenticated users can generate it immediately.
  *
  * Authenticated users persist drafts via PUT /ai/bio_cv_draft.
  * Guests persist the same profile to localStorage (`guestWizardDraft.js`).
  * Draft writes are serialised so older responses cannot overwrite newer edits.
  */
-import { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { use, useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import classes from "./BioCvModal.module.css";
 import { PdfContext } from "../../../store/pdfgenerator-context";
 import { ApiClient, ENDPOINTS } from "../../../services/api";
 import { fillTemplate } from "../../../services/fillTemplate";
-import { TEMPLATES } from "../../../templates";
 import DialogShell from "../../common/DialogShell/DialogShell";
-import TemplateCarousel from "../AiCvPanel/TemplateCarousel";
 import {
     clearAccessToken,
     getAccessToken,
     isAuthFailure,
 } from "../../../utils/authSession";
-import { selectCvTemplates } from "../../../utils/cvTemplateSelection";
-import { isTemplateAllowed, planErrorMessage } from "../../../utils/entitlements";
 import { adoptGuestWizardDraftForAccount } from "../../../utils/claimGuestWizardDraft";
 import {
     clearGuestWizardDraft,
@@ -30,13 +26,10 @@ import {
     loadGuestWizardDraft,
     saveGuestWizardDraft,
 } from "../../../utils/guestWizardDraft";
-import { loadGuestDocument, saveGuestDocument } from "../../../utils/guestDocument";
 import { createSerialSaveQueue } from "../../../utils/serialSaveQueue";
 import {
     applyBioCvDraftUpdate,
-    BIO_CV_STEPS,
-    DEMO_BIO_CV_STEPS,
-    BIO_CV_SUMMARY_STEP,
+    BIO_CV_ONBOARDING_STEPS,
     buildBioCvPayload,
     canJumpToBioCvSummary,
     createCustomSectionFromPreset,
@@ -157,20 +150,18 @@ export default function BioCvModal({ variant = "full" }) {
         showBioCvModal,
         cancelBioCvModal,
         loadAiElements,
-        entitlements,
         setActiveCvData,
         flowSpacing,
     } = use(PdfContext);
     const navigate = useNavigate();
     const isDemoConversion = variant === "demo-conversion";
-    const wizardSteps = isDemoConversion ? DEMO_BIO_CV_STEPS : BIO_CV_STEPS;
+    const wizardSteps = BIO_CV_ONBOARDING_STEPS;
     const finalStep = wizardSteps.length - 1;
 
     const createApi = useCallback(() => {
         const token = getAccessToken();
         return new ApiClient(token ? { Authorization: `Bearer ${token}` } : {});
     }, []);
-    const cvTemplates = useMemo(() => selectCvTemplates(TEMPLATES), []);
 
     const [profile, setProfile] = useState(createEmptyBioCvData);
     const [step, setStep] = useState(0);
@@ -181,7 +172,6 @@ export default function BioCvModal({ variant = "full" }) {
     const [isGuestSession, setIsGuestSession] = useState(() => !getAccessToken());
     const [saveError, setSaveError] = useState(null);
     const [stepError, setStepError] = useState(null);
-    const [fillingId, setFillingId] = useState(null);
     const [resumeDraft, setResumeDraft] = useState(null);
     const [selectedTemplateId, setSelectedTemplateId] = useState(null);
     const [editingKey, setEditingKey] = useState(null);
@@ -568,32 +558,12 @@ export default function BioCvModal({ variant = "full" }) {
         setStepError(null);
         setEditingKey(null);
         setShowTypePicker(false);
-        setStep(BIO_CV_SUMMARY_STEP);
-    }, [profile]);
+        setStep(finalStep);
+    }, [finalStep, profile]);
 
     const canJumpSummary = canJumpToBioCvSummary(profile);
     const stepValidationError = validateBioCvStep(step, profile);
     const canGoNext = !stepValidationError;
-
-    const handleDemoConversion = useCallback(() => {
-        const error = validateBioCvStep(step, profile);
-        if (error) {
-            setStepError(error);
-            return;
-        }
-        const payload = buildBioCvPayload(profile);
-        if (!payload.name?.trim()) {
-            setStepError("Podaj imię i nazwisko, aby kontynuować.");
-            return;
-        }
-        saveGuestWizardDraft({
-            step: finalStep,
-            profile: payload,
-            selectedTemplateId: "regent",
-        });
-        localStorage.setItem("cvstudio.demoConversionPending", "1");
-        navigate("/register?start=demo-conversion");
-    }, [finalStep, navigate, profile, step]);
 
     const handleClose = useCallback(async () => {
         if (saveTimer.current) {
@@ -656,89 +626,54 @@ export default function BioCvModal({ variant = "full" }) {
         }
     }, [beginFreshWizard, createApi]);
 
-    const handleFill = useCallback(async (template) => {
-        if (!isTemplateAllowed(template, entitlements)) {
-            setSaveError("Ten szablon jest dostępny w planie Pro.");
+    const handleWizardComplete = useCallback(async () => {
+        // Revalidate every step before handoff because users can navigate back
+        // and edit earlier cards without passing through the normal Next action.
+        const invalidStep = wizardSteps
+            .map((_, index) => validateBioCvStep(index, profile))
+            .findIndex(Boolean);
+        if (invalidStep !== -1) {
+            setStep(invalidStep);
+            setStepError(validateBioCvStep(invalidStep, profile));
             return;
         }
-        const error = validateBioCvStep(0, profile);
-        if (error) {
-            setStep(0);
-            setStepError(error);
-            return;
-        }
-        setFillingId(template.id);
+        const payload = buildBioCvPayload(profile);
+        const conversionIntent = isDemoConversion ? "demo-conversion" : "wizard-conversion";
         setSaveError(null);
-        selectedTemplateIdRef.current = template.id;
-        setSelectedTemplateId(template.id);
         try {
-            const payload = buildBioCvPayload(profile);
-            // Keep the wizard draft after fill so guests can reopen and pick
-            // another look without re-entering data (matches the summary copy).
-            await saveDraft(payload, { silent: true, stepOverride: BIO_CV_SUMMARY_STEP });
             if (!getAccessToken()) {
                 saveGuestWizardDraft({
-                    step: BIO_CV_SUMMARY_STEP,
+                    step: finalStep,
                     profile: payload,
-                    selectedTemplateId: template.id,
+                    selectedTemplateId: "regent",
                 });
+                localStorage.setItem("cvstudio.wizardConversionPending", conversionIntent);
+                navigate(`/register?start=${conversionIntent}`);
+                return;
             }
-            let response;
-            try {
-                response = await fillTemplate(payload, template.id, {
-                    errorMessage: "Nie udało się utworzyć CV.",
-                    spacing: flowSpacing,
-                });
-            } catch (fillError) {
-                if (!isAuthFailure(fillError)) throw fillError;
-                clearAccessToken();
-                setIsGuestSession(true);
-                saveGuestWizardDraft({
-                    step: BIO_CV_SUMMARY_STEP,
-                    profile: payload,
-                    selectedTemplateId: template.id,
-                });
-                response = await fillTemplate(payload, template.id, {
-                    errorMessage: "Nie udało się utworzyć CV.",
-                    spacing: flowSpacing,
-                });
-            }
-            await loadAiElements(response.elements, `CV ${template.name}`, template.id);
+            setIsLoading(true);
+            await saveDraft(payload, { silent: true, stepOverride: finalStep });
+            const response = await fillTemplate(payload, "regent", {
+                errorMessage: "Nie udało się utworzyć CV.",
+                spacing: flowSpacing,
+            });
+            await loadAiElements(response.elements, "Moje CV", "regent");
             setActiveCvData(payload);
-            if (!getAccessToken()) {
-                saveGuestWizardDraft({
-                    step: BIO_CV_SUMMARY_STEP,
-                    profile: payload,
-                    selectedTemplateId: template.id,
-                });
-                // Persist cvData immediately (do not wait for the 2s canvas
-                // autosave). Register/login remounts PdfCanvas and would
-                // otherwise leave "Zmień szablon" disabled until claim can
-                // rebuild activeCvData from this snapshot / wizard / API.
-                const guestDoc = loadGuestDocument();
-                if (guestDoc && Array.isArray(guestDoc.elements)) {
-                    saveGuestDocument({
-                        ...guestDoc,
-                        cvData: payload,
-                        templateId: template.id,
-                        updatedAt: Date.now(),
-                    });
-                }
-            }
-            // Toggle closes the wizard after a successful fill (see PdfCanvas).
             showBioCvModal();
         } catch (error) {
             if (isAuthFailure(error)) {
                 clearAccessToken();
                 setIsGuestSession(true);
-                setSaveError(null);
+                saveGuestWizardDraft({ step: finalStep, profile: payload, selectedTemplateId: "regent" });
+                localStorage.setItem("cvstudio.wizardConversionPending", conversionIntent);
+                navigate(`/register?start=${conversionIntent}`);
                 return;
             }
-            setSaveError(planErrorMessage(error, "Nie udało się utworzyć CV."));
+            setSaveError(error.message || "Nie udało się utworzyć CV.");
         } finally {
-            setFillingId(null);
+            setIsLoading(false);
         }
-    }, [entitlements, flowSpacing, loadAiElements, profile, saveDraft, setActiveCvData, showBioCvModal]);
+    }, [finalStep, flowSpacing, isDemoConversion, loadAiElements, navigate, profile, saveDraft, setActiveCvData, showBioCvModal, wizardSteps]);
 
     const addCustomFromPreset = useCallback((preset) => {
         const nextIndex = profileRef.current.custom_sections.length;
@@ -1085,58 +1020,17 @@ export default function BioCvModal({ variant = "full" }) {
                     </button>
                 )}
             </section>
-        </div>
-    );
-
-    const renderDemoExtras = () => (
-        <>
-            {renderExtras()}
             <section className={classes.review}>
-                <h3>Twoje dane są gotowe</h3>
-                <p>Utwórz bezpłatne konto, aby przenieść dane do CV Studio i kontynuować w edytorze.</p>
+                <h3>Wszystko gotowe</h3>
+                <p>Utwórz bezpłatne konto, aby wygenerować CV i przejść do edytora.</p>
                 <p className={classes.inlineHint}>Twoje dane z kreatora zostaną zachowane.</p>
-                <button type="button" className={classes.primaryBtn} onClick={handleDemoConversion}>
-                    Utwórz moje CV
+                <button type="button" className={classes.primaryBtn} onClick={handleWizardComplete}>
+                    {getAccessToken() ? "Utwórz moje CV" : "Utwórz konto i moje CV"}
                 </button>
             </section>
-        </>
-    );
-
-    const renderReview = () => (
-        <div className={classes.review}>
-            <div className={classes.reviewIdentity}>
-                <strong>{profile.name || "Twoje CV"}</strong>
-                {profile.title && <span>{profile.title}</span>}
-            </div>
-            <div className={classes.reviewStats}>
-                <span>{profile.experience.filter(entryHasValues).length} doświadczeń</span>
-                <span>{profile.education.filter(entryHasValues).length} wpisów edukacji</span>
-                <span>{profile.skills.length} umiejętności</span>
-                <span>{profile.languages.filter((entry) => entry.name).length} języków</span>
-                <span>{profile.custom_sections.filter((section) => section.title && section.items.length).length} sekcji własnych</span>
-            </div>
-            <p>Wybierz wygląd swojego CV, a potem utwórz dokument na canvasie. Dane pozostaną zapisane, więc możesz później wygenerować kolejny wariant.</p>
-            {cvTemplates.length > 0 ? (
-                <div className={classes.carouselSection}>
-                    <TemplateCarousel
-                        templates={cvTemplates}
-                        entitlements={entitlements}
-                        fillingId={fillingId}
-                        onSelect={handleFill}
-                        visibleCount={3}
-                        actionLabel="Utwórz moje CV"
-                    />
-                </div>
-            ) : (
-                <p className={classes.emptyTemplates}>Nie ma jeszcze dostępnych szablonów CV.</p>
-            )}
         </div>
     );
-
-    const content = (isDemoConversion
-        ? [renderPersonal, renderExperience, renderEducation, renderDemoExtras]
-        : [renderPersonal, renderExperience, renderEducation, renderExtras, renderReview]
-    )[step]?.();
+    const content = [renderPersonal, renderExperience, renderEducation, renderExtras][step]?.();
 
     const progressPercent = ((step + 1) / wizardSteps.length) * 100;
     const savedClock = formatSavedAt(lastSavedAt);
@@ -1168,7 +1062,7 @@ export default function BioCvModal({ variant = "full" }) {
                     <p>
                         Ostatni zapis
                         {resumeDraft.updatedAt ? ` ${formatSavedAt(resumeDraft.updatedAt)}` : ""}
-                        . Możesz kontynuować od kroku {resumeDraft.step + 1} ({BIO_CV_STEPS[resumeDraft.step] || "Podstawowe dane"}).
+                        . Możesz kontynuować od kroku {resumeDraft.step + 1} ({wizardSteps[resumeDraft.step] || "Podstawowe dane"}).
                     </p>
                     <div className={classes.resumeActions}>
                         <button type="button" className={classes.primaryBtn} onClick={() => beginFromDraft(resumeDraft)}>
@@ -1278,11 +1172,11 @@ export default function BioCvModal({ variant = "full" }) {
                                             setShowTypePicker(false);
                                             return;
                                         }
-                                        if (!isDemoConversion && index === BIO_CV_SUMMARY_STEP && canJumpSummary) {
+                                        if (index === finalStep && canJumpSummary) {
                                             jumpToSummary();
                                         }
                                     }}
-                                    disabled={index > step && !(!isDemoConversion && index === BIO_CV_SUMMARY_STEP && canJumpSummary)}
+                                    disabled={index > step && !(index === finalStep && canJumpSummary)}
                                 >
                                     {label}
                                 </button>
