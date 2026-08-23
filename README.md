@@ -1267,7 +1267,7 @@ Implementation:
 - `frontend/src/components/ai/BioCvModal/BioCvModal.jsx`, function `LanguageLevelSelect` (lines 111–130), `renderLanguageEditor` (lines 920–937); personal step LinkedIn + Dodaj link
 - `frontend/src/components/ai/BioCvModal/BioCvModal.module.css`, lines 146–181, `.selectShell` / `.selectFilled` — styled CEFR select
 - `frontend/src/components/common/DialogShell/DialogShell.jsx` — `variant="fullscreen"`
-- `frontend/src/components/ai/AiCvPanel/TemplateCarousel.jsx` — optional `visibleCount` / `actionLabel` (wizard uses 5 cards + “Utwórz moje CV”; the track may scroll horizontally when the dialog is narrower)
+- `frontend/src/components/ai/AiCvPanel/TemplateCarousel.jsx` — optional `visibleCount` / `actionLabel` (wizard uses 5 cards + “Utwórz moje CV”; the non-scrollable track may extend beyond the grid)
 
 Tests:
 
@@ -3106,7 +3106,7 @@ Implementacja:
 - `frontend/src/components/ai/BioCvModal/BioCvModal.jsx`, funkcja `LanguageLevelSelect` (linie 111–130), `renderLanguageEditor` (linie 920–937); LinkedIn + Dodaj link na kroku danych osobowych
 - `frontend/src/components/ai/BioCvModal/BioCvModal.module.css`, linie 146–181, `.selectShell` / `.selectFilled` — stylizowany select CEFR
 - `frontend/src/components/common/DialogShell/DialogShell.jsx` — `variant="fullscreen"`
-- `frontend/src/components/ai/AiCvPanel/TemplateCarousel.jsx` — opcjonalne `visibleCount` / `actionLabel` (kreator: 5 kart + „Utwórz moje CV”; przy węższym modalu taśma może przewijać się poziomo)
+- `frontend/src/components/ai/AiCvPanel/TemplateCarousel.jsx` — opcjonalne `visibleCount` / `actionLabel` (kreator: 5 kart + „Utwórz moje CV”; nieprzewijalna taśma może wystawać poza grid)
 
 Testy:
 
