@@ -14,6 +14,7 @@
  * a fade + translate-Y entry that respects `prefers-reduced-motion`.
  */
 import classes from "./StartChooser.module.css";
+import { AiOutlineLogout } from "react-icons/ai";
 
 /**
  * Pen / step-by-step glyph for the wizard path (Lucide "square-pen" shape).
@@ -76,13 +77,40 @@ function DocumentsIcon() {
   );
 }
 
+/** New-document glyph for entering the unrestricted freeform canvas. */
+function BlankIcon() {
+  return (
+    <svg
+      className={classes.icon}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M6 3h9l3 3v15H6z" />
+      <path d="M15 3v4h4M12 11v6M9 14h6" />
+    </svg>
+  );
+}
+
 /**
  * @param {object} props
  * @param {() => void} props.onWizard - open the step-by-step wizard (BioCvModal)
  * @param {() => void} props.onImport - open the CV import dialog (AiCvPanel)
  * @param {() => void} props.onDocuments - open the saved-projects modal
+ * @param {() => void} props.onBlank - dismiss into a blank freeform canvas
+ * @param {() => void} props.onLogout - sign out the current session
  */
-export default function StartChooser({ onWizard, onImport, onDocuments }) {
+export default function StartChooser({
+  onWizard,
+  onImport,
+  onDocuments,
+  onBlank,
+  onLogout,
+}) {
   return (
     <div className={classes.overlay} role="region" aria-label="Zacznij nowe CV">
       <div className={classes.inner}>
@@ -140,8 +168,31 @@ export default function StartChooser({ onWizard, onImport, onDocuments }) {
             </span>
             <span className={classes.ctaGhost}>Otwórz dokumenty</span>
           </button>
+          <button
+            type="button"
+            className={`${classes.card} ${classes.cardTertiary}`}
+            onClick={onBlank}
+          >
+            <span className={classes.iconWrap} aria-hidden="true">
+              <BlankIcon />
+            </span>
+            <span className={classes.cardTitle}>Zacznij od nowa</span>
+            <span className={classes.cardText}>
+              Przejdź do pustego canvasu i zbuduj dokument całkowicie ręcznie.
+            </span>
+            <span className={classes.ctaGhost}>Otwórz pusty canvas</span>
+          </button>
         </div>
       </div>
+      <button
+        type="button"
+        className={classes.logout}
+        onClick={onLogout}
+        aria-label="Wyloguj się"
+        title="Wyloguj się"
+      >
+        <AiOutlineLogout aria-hidden="true" />
+      </button>
     </div>
   );
 }

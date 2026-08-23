@@ -1,6 +1,6 @@
 /*
  * Empty-state onboarding surface. Covers the editor chrome and centres a
- * three-card chooser. Uses the
+ * four-card chooser. Uses the
  * editor's muted chrome tokens for colour/typography and DESIGN.md's Swiss
  * structural rules: sharp 0px corners, 1px borders, a single subtle shadow,
  * and transform/opacity-only motion.
@@ -57,7 +57,7 @@
 .cards {
   width: 100%;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 1.25rem;
 }
 
@@ -90,6 +90,10 @@
 
 .card:nth-child(3) {
   animation-delay: 240ms;
+}
+
+.card:nth-child(4) {
+  animation-delay: 320ms;
 }
 
 .card:hover {
@@ -175,6 +179,41 @@
   border-color: var(--chrome-accent, #171717);
 }
 
+.logout {
+  position: fixed;
+  left: 1.25rem;
+  bottom: 1.25rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid var(--chrome-border, #e2dfd8);
+  border-radius: 5px;
+  background: transparent;
+  color: var(--chrome-muted, #6b675e);
+  cursor: pointer;
+  transition: color 150ms ease-out, border-color 150ms ease-out,
+    background 150ms ease-out;
+}
+
+.logout svg {
+  width: 15px;
+  height: 15px;
+}
+
+.logout:hover {
+  border-color: var(--chrome-accent, #171717);
+  background: var(--chrome-hover, #f0ede6);
+  color: var(--chrome-ink, #171717);
+}
+
+.logout:focus-visible {
+  outline: 2px solid var(--chrome-accent, #171717);
+  outline-offset: 2px;
+}
+
 /* Mobile: single column, no horizontal overflow. */
 @media (max-width: 767px) {
   .cards {
@@ -197,6 +236,9 @@
   .head,
   .card,
   .card {
+    transition: none;
+  }
+  .logout {
     transition: none;
   }
 }

@@ -655,6 +655,10 @@ function PdfCanvas() {
   const [isConversionLoading, setIsConversionLoading] = useState(false);
   const isDemoContentRef = useRef(isDemoContent);
   isDemoContentRef.current = isDemoContent;
+  // Keep the explicitly chosen freeform path hidden for this empty workspace.
+  // Other chooser actions remain visible behind their modal and return here
+  // when cancelled.
+  const [startChooserDismissed, setStartChooserDismissed] = useState(false);
   const activeCvDataRef = useRef(activeCvData);
   activeCvDataRef.current = activeCvData;
   const guestFirstEditLoggedRef = useRef(false);
@@ -1732,6 +1736,7 @@ function PdfCanvas() {
     conversionPending,
     isPdfLoading,
     pdfId,
+    dismissed: startChooserDismissed,
   });
 
   return (
@@ -1838,6 +1843,8 @@ function PdfCanvas() {
                         // canvas.
                         setIsModalPdfs(true);
                       }}
+                      onBlank={() => setStartChooserDismissed(true)}
+                      onLogout={handleLogout}
                     />
                   ) : null}
                   <div className={isTwoPageView ? "canvas-spread" : "canvas-single"}>
