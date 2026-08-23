@@ -158,6 +158,37 @@ COMPACT_DEMO_CV = {
 # so the picker mockups still show every section on page 1.
 COMPACT_TEMPLATE_IDS = frozenset({"atrium", "monument", "portico", "volt"})
 
+# Sidebar previews need enough supporting information to balance the tall rail,
+# while Vestige deliberately keeps only the primary contact channels so its
+# narrow masthead does not become a dense list of links.
+SIDEBAR_DEMO_CV = {
+    **DEMO_CV,
+    "github": None,
+    "website": None,
+    "extra_sections": [
+        {
+            "title": "Certyfikaty",
+            "kind": "certifications",
+            "placement": "after_skills",
+            "items": [
+                "ACAMS AML Foundations",
+                "ICA Certificate in Compliance",
+                "Szkolenie CDD/EDD",
+            ],
+        },
+        {
+            "title": "Zainteresowania",
+            "kind": "interests",
+            "placement": "after_skills",
+            "items": [
+                "Automatyzacja procesów",
+                "Prawo finansowe",
+                "Analiza danych",
+            ],
+        },
+    ],
+}
+
 REGENT_DEMO_CV = {
     "name": "Aleksandra Nowak",
     "title": "Strategy & Operations Manager",
@@ -427,6 +458,8 @@ def main() -> None:
             cv = REGENT_DEMO_CV
         elif template_id in COMPACT_TEMPLATE_IDS:
             cv = COMPACT_DEMO_CV
+        elif template_id in {"sterling", "vestige"}:
+            cv = SIDEBAR_DEMO_CV
         else:
             cv = DEMO_CV
         elements = generate_resume(template_id, cv)

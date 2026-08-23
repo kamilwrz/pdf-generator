@@ -158,7 +158,7 @@ pdf-generator/
 │   ├── public/
 │   │   ├── cv-studio-logo.svg     # Full orange CV Studio logo
 │   │   ├── cv-studio-mark.svg     # Compact mark for favicon/editor rail
-│   │   └── template-mockups/      # Static A4 preview PNGs
+│   │   └── template-mockups/      # Static A4 preview PNGs regenerated from starter element graphs
 │   ├── src/
 │   │   ├── components/       # canvas, editor, ai, modals, gallery, common
 │   │   │   ├── canvas/CanvasPageStage/   # Smooth slide+fade when changing A4 page (single-page view)
