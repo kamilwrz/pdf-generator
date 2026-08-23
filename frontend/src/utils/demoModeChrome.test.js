@@ -46,7 +46,7 @@ test("PdfCanvas publishes demo state through the editor context", async () => {
   assert.match(canvas, /handleLoadAiElements\(response.elements, "Moje CV", "regent"\);\s*\/\/ The generated CV is now an authenticated document[\s\S]*setIsDemoContent\(false\)/);
 });
 
-test("onboarding uses four data steps and no template carousel", async () => {
+test("guest onboarding uses four steps while authenticated wizard keeps templates", async () => {
   const data = await source("utils/bioCvData.js");
   const wizard = await source("components/ai/BioCvModal/BioCvModal.jsx");
 
@@ -54,7 +54,8 @@ test("onboarding uses four data steps and no template carousel", async () => {
   assert.match(wizard, /variant = "full"/);
   assert.match(wizard, /BIO_CV_ONBOARDING_STEPS/);
   assert.match(wizard, /wizard-conversion/);
-  assert.doesNotMatch(wizard, /TemplateCarousel/);
+  assert.match(wizard, /TemplateCarousel/);
+  assert.match(wizard, /isGuestOnboarding = variant === "guest-onboarding" \|\| isDemoConversion/);
   assert.match(wizard, /hasAuthenticatedSession = Boolean\(getAccessToken\(\)\)/);
   assert.match(wizard, /"Utwórz konto i moje CV"/);
   assert.match(wizard, /"Utwórz moje CV"/);

@@ -1720,7 +1720,11 @@ function PdfCanvas() {
               <TemplatesModal />
               <PlanSelectModal />
               <AiCvPanel />
-              <BioCvModal variant={isDemoContent ? "demo-conversion" : "full"} />
+              <BioCvModal
+                variant={isDemoContent
+                  ? "demo-conversion"
+                  : (isGuest ? "guest-onboarding" : "full")}
+              />
               <ChangeTemplateModal />
               <UnlockFreeformModal
                 open={isUnlockFreeformModal}
