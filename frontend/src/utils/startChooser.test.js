@@ -29,6 +29,13 @@ describe("shouldShowStartChooser", () => {
     );
   });
 
+  it("hides while wizard data is being converted into the authenticated CV", () => {
+    assert.equal(
+      shouldShowStartChooser({ ...freshEmptyDoc, conversionPending: true }),
+      false,
+    );
+  });
+
   it("hides while a document is loading or saving", () => {
     assert.equal(
       shouldShowStartChooser({ ...freshEmptyDoc, isPdfLoading: true }),

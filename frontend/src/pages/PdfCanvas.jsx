@@ -143,8 +143,8 @@ function PdfCanvas() {
       ? startIntent
       : null,
   );
-  const conversionPending = startIntent === "demo-conversion"
-    || startIntent === "wizard-conversion"
+  const conversionPending = initialStartIntentRef.current === "demo-conversion"
+    || initialStartIntentRef.current === "wizard-conversion"
     || localStorage.getItem("cvstudio.wizardConversionPending") !== null
     || localStorage.getItem("cvstudio.demoConversionPending") === "1";
 
@@ -647,6 +647,7 @@ function PdfCanvas() {
   // Skipped once a real pdfId exists: from that point the document is a saved
   // account document, updated only by an explicit "Zapisz".
   const [isDemoContent, setIsDemoContent] = useState(startIntent === "demo");
+  const [isConversionLoading, setIsConversionLoading] = useState(false);
   const isDemoContentRef = useRef(isDemoContent);
   isDemoContentRef.current = isDemoContent;
   // Set once the user dismisses the empty-state onboarding via "start from a
@@ -1337,6 +1338,9 @@ function PdfCanvas() {
     const token = localStorage.getItem("token");
     if (!token || !hasGuestWizardDraft()) return;
     wizardDraftAdoptedRef.current = true;
+    // Keep the empty canvas from flashing while the authenticated profile is
+    // adopted and the first Regent layout is generated.
+    setIsConversionLoading(true);
     let cancelled = false;
     (async () => {
       try {
@@ -1374,6 +1378,8 @@ function PdfCanvas() {
           wizardDraftAdoptedRef.current = false;
           console.warn("Nie udało się przenieść szkicu kreatora gościa na konto.", error);
         }
+      } finally {
+        if (!cancelled) setIsConversionLoading(false);
       }
     })();
     return () => {
@@ -1691,6 +1697,7 @@ function PdfCanvas() {
   const showStartChooser = shouldShowStartChooser({
     elementsCount: A4_Elements.length,
     isDemoContent,
+    conversionPending,
     isPdfLoading,
     pdfId,
     dismissed: startChooserDismissed,
@@ -1771,8 +1778,8 @@ function PdfCanvas() {
                 <Topbar titleRef={titleRef} />
                 {/* Portal loader: card sits 100px under the live A4 top edge
                     (viewport px via A4ref), independent of canvas zoom. */}
-                {isPdfLoading ? (
-                  <Spinner loading={isPdfLoading} anchorRef={A4ref} />
+                {isPdfLoading || isConversionLoading ? (
+                  <Spinner loading={isPdfLoading || isConversionLoading} anchorRef={A4ref} />
                 ) : null}
                 <div className="canvas-area" ref={canvasAreaRef} onClick={handleCanvasBackgroundClick}>
                   {showStartChooser ? (
