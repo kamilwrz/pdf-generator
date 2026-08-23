@@ -22,6 +22,7 @@ export default function ClaimGuestDocumentModal({ open, title, onConfirm, onDecl
       open={open}
       onClose={onDecline}
       width={440}
+      radius={2}
       title="Znaleziono niezapisaną pracę"
       subtitle="Ta przeglądarka ma zapisany szkic CV, który nie został jeszcze przypisany do żadnego konta"
       footer={(

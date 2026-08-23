@@ -638,7 +638,7 @@ Implementation:
 - `frontend/src/utils/guestEvents.js` — `queueGuestEvent`, `loadGuestEvents`, `clearGuestEvents`; storage key `cvstudio.guest.events`, `MAX_BUFFERED_EVENTS = 50`
 - `frontend/src/templates/iconic.js` — `regentTemplate`, the guest demo document built from the same element-spec helpers as the real starter templates
 - `frontend/src/components/editor/SaveGateModal/SaveGateModal.jsx` + `.module.css` — guest save/export gate with the shared DialogShell visual language, sharp radius, compact action hierarchy, and accessible focus states
-- `frontend/src/components/editor/ClaimGuestDocumentModal/ClaimGuestDocumentModal.jsx` + `.module.css` — “found unsaved work” confirmation; confirm loads guest JSON onto the A4 canvas without auto-saving
+- `frontend/src/components/editor/ClaimGuestDocumentModal/ClaimGuestDocumentModal.jsx` + `.module.css` — “found unsaved work” confirmation; confirm loads guest JSON onto the A4 canvas without auto-saving; uses the shared guest-modal visual treatment with a sharp radius, compact actions, and keyboard focus states
 - `frontend/src/components/editor/DemoBanner/DemoBanner.jsx` + `.module.css`
 - `frontend/src/components/editor/Sidebar/Sidebar.jsx`, lines 162–166 — logout button only renders when `!isGuest`
 - `frontend/src/components/common/SidebarControls/SidebarControls.module.css`, lines 1–48 — compact 36×36 rail tiles
@@ -2484,7 +2484,7 @@ Implementacja:
 - `frontend/src/utils/guestEvents.js` — `queueGuestEvent`, `loadGuestEvents`, `clearGuestEvents`; klucz `cvstudio.guest.events`, `MAX_BUFFERED_EVENTS = 50`
 - `frontend/src/templates/iconic.js` — `regentTemplate`, gościnny dokument demo zbudowany z tych samych helperów co prawdziwe szablony startowe
 - `frontend/src/components/editor/SaveGateModal/SaveGateModal.jsx` + `.module.css` — bramka zapisu/eksportu dla gościa zgodna z wizualnym językiem DialogShell, ostrym narożnikiem, zwartą hierarchią akcji i dostępnymi stanami focus
-- `frontend/src/components/editor/ClaimGuestDocumentModal/ClaimGuestDocumentModal.jsx` + `.module.css` — potwierdzenie „znaleziono niezapisaną pracę”; potwierdzenie wczytuje JSON gościa na płótno A4 bez autozapisu
+- `frontend/src/components/editor/ClaimGuestDocumentModal/ClaimGuestDocumentModal.jsx` + `.module.css` — potwierdzenie „znaleziono niezapisaną pracę”; potwierdzenie wczytuje JSON gościa na płótno A4 bez autozapisu; modal używa wspólnego stylu modali gościa z ostrym narożnikiem, zwartymi akcjami i stanami focus dla klawiatury
 - `frontend/src/components/editor/DemoBanner/DemoBanner.jsx` + `.module.css`
 - `frontend/src/components/editor/Sidebar/Sidebar.jsx`, linie 162–166 — przycisk wylogowania renderuje się tylko, gdy `!isGuest`
 - `frontend/src/components/common/SidebarControls/SidebarControls.module.css`, linie 1–48 — kompaktowe kafelki 36×36
