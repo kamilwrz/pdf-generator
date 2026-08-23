@@ -58,6 +58,29 @@
     box-shadow: 0 0 0 2px var(--accent-soft);
 }
 
+.demoIdentity {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    min-width: 128px;
+    height: 32px;
+    padding: 0 10px;
+    border-left: 2px solid var(--topbar-accent);
+    color: var(--topbar-ink);
+    font: 600 11px var(--font-body);
+    letter-spacing: .08em;
+}
+
+.demoIdentity span {
+    color: var(--topbar-muted);
+    font-size: 10px;
+}
+
+.demoIdentity strong {
+    font-weight: 700;
+    color: var(--topbar-ink);
+}
+
 .projectIcon {
     display: flex;
     color: var(--topbar-muted);
@@ -143,6 +166,15 @@
     cursor: not-allowed;
 }
 
+.demoTemplate {
+    width: auto;
+    padding: 0 10px;
+    border: 1px solid var(--topbar-border);
+    border-radius: 2px;
+    font: 600 11px var(--font-body);
+    white-space: nowrap;
+}
+
 .ghost {
     background: transparent;
     color: var(--topbar-muted);
@@ -169,6 +201,24 @@
 }
 .primary:hover:not(:disabled) {
     background: var(--chrome-accent);
+}
+
+.demoAction {
+    min-height: 30px;
+    padding: 0 10px;
+    border: 1px solid var(--topbar-border);
+    border-radius: 2px;
+    background: transparent;
+    color: var(--topbar-ink);
+    font: 600 11px var(--font-body);
+    cursor: pointer;
+    transition: background .2s, border-color .2s, color .2s;
+}
+
+.demoAction:hover {
+    background: var(--topbar-hover);
+    border-color: var(--topbar-accent);
+    color: var(--topbar-accent);
 }
 
 .secondary:disabled,

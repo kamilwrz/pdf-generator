@@ -1,6 +1,7 @@
 /**
- * Left tool rail: mode-aware tools, docs/gallery/upload, logout.
- * Template mode hides freeform DTP primitives; freeform keeps full toolbox.
+ * Left tool rail: mode-aware tools, docs/gallery/upload, and logout.
+ * Product-demo mode deliberately exposes only the template layout control;
+ * ordinary guest and authenticated editors retain their existing tools.
  * Children slot hosts docked flyouts (SectionsPanel) that open beside the
  * rail via absolute positioning (`left: 100%`). Element properties use the
  * floating `Editor` panel above the selection — not a slide-out here.
@@ -42,9 +43,12 @@ export default function Sidebar({ children }) {
         entitlements,
         showPlanModal,
         fitTooLong,
+        isDemoContent,
     } = use(PdfContext);
 
-    const isTemplate = editorMode === EDITOR_MODE_TEMPLATE;
+    // Demo content is intentionally locked to the template tool rail even if a
+    // transient editor-mode update occurs while the starter is being replaced.
+    const isTemplate = editorMode === EDITOR_MODE_TEMPLATE || isDemoContent;
 
     function showModalWithPDFs() {
         setIsModalPdfs(bool => !bool);
@@ -65,7 +69,9 @@ export default function Sidebar({ children }) {
 
         <div className={classes.toolsContainer}>
             <div className={classes.toolsList}>
-                <SidebarControls icon={<LuImagePlus />} labelText="Zdjęcia" sidebarEvent={showGallery} />
+                {!isDemoContent ? (
+                    <SidebarControls icon={<LuImagePlus />} labelText="Zdjęcia" sidebarEvent={showGallery} />
+                ) : null}
                 {isTemplate ? (
                     <>
                         <SidebarControls
@@ -74,11 +80,13 @@ export default function Sidebar({ children }) {
                             sidebarEvent={showSections}
                             badge={fitTooLong}
                         />
-                        <SidebarControls
-                            icon={<LuLockOpen />}
-                            labelText="Odblokuj edycję (kopia freeform)"
-                            sidebarEvent={showUnlockFreeform}
-                        />
+                        {!isDemoContent ? (
+                            <SidebarControls
+                                icon={<LuLockOpen />}
+                                labelText="Odblokuj edycję (kopia freeform)"
+                                sidebarEvent={showUnlockFreeform}
+                            />
+                        ) : null}
                     </>
                 ) : (
                     <>
@@ -129,12 +137,14 @@ export default function Sidebar({ children }) {
 
         <div className={classes.toolsContainer}>
             <div className={classes.toolsList}>
-                <SidebarControls icon={<FaRegFolderOpen />} labelText="Moje dokumenty" sidebarEvent={showModalWithPDFs} documents={PDFs.length} />
+                {!isDemoContent ? (
+                    <SidebarControls icon={<FaRegFolderOpen />} labelText="Moje dokumenty" sidebarEvent={showModalWithPDFs} documents={PDFs.length} />
+                ) : null}
             </div>
         </div>
 
         <footer className={classes.sidebarFooter}>
-            {entitlements?.plan_name ? (
+            {!isDemoContent && entitlements?.plan_name ? (
                 <div className={classes.planBadgeWrap}>
                 <button
                     type="button"
@@ -155,7 +165,7 @@ export default function Sidebar({ children }) {
                 </button>
                 </div>
             ) : null}
-            {entitlements?.limits?.monthly_ai_credits ? (
+            {!isDemoContent && entitlements?.limits?.monthly_ai_credits ? (
                 <div
                     className={classes.creditsBadge}
                     title={`Kredyty AI: wykorzystano ${entitlements.usage?.ai_credits_used ?? 0} z ${entitlements.limits.monthly_ai_credits}`}
@@ -166,7 +176,7 @@ export default function Sidebar({ children }) {
                     <span className={classes.creditsBadgeLabel}>AI</span>
                 </div>
             ) : null}
-            {isGuest ? null : (
+            {isGuest || isDemoContent ? null : (
                 <button className={classes.logout} onClick={logout} aria-label="Wyloguj się" title="Wyloguj się">
                     <AiOutlineLogout />
                 </button>

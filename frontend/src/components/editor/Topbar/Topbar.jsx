@@ -1,5 +1,7 @@
 /**
- * Editor chrome: title, save/download, import/wizard/AI entry, undo/redo, zoom.
+ * Editor chrome for both the full editor and the reduced product-demo mode.
+ * Demo mode keeps history, template switching, layout, zoom, and pagination;
+ * account, import, persistence, and destructive document actions are omitted.
  * Action buttons are icon-only with tooltips (title + aria-label).
  * Save (`createPdf`) is the only path that writes to "Moje dokumenty" (create on
  * first save, update thereafter). Download (`downloadPdf`) is independent: it
@@ -29,6 +31,8 @@ export default function Topbar({ titleRef }) {
         showAiPanel,
         showBioCvModal,
         showChangeTemplateModal,
+        showSections,
+        isDemoContent,
         activeCvData,
         activeTemplateId,
         entitlements,
@@ -68,7 +72,12 @@ export default function Topbar({ titleRef }) {
                 middle of the topbar stays clear for the element-properties
                 panel docked left of the zoom control. */}
             <div className={classes.group}>
-                <div className={classes.projectField}>
+                {isDemoContent ? (
+                    <div className={classes.demoIdentity} aria-label="CV Studio Demo">
+                        <span>CV STUDIO</span>
+                        <strong>DEMO</strong>
+                    </div>
+                ) : <div className={classes.projectField}>
                     <span className={classes.projectIcon} aria-hidden="true">
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" /><path d="M14 3v5h5" /></svg>
                     </span>
@@ -89,9 +98,9 @@ export default function Topbar({ titleRef }) {
                     >
                         <TiPen />
                     </button>
-                </div>
+                </div>}
                 <span className={classes.divider} aria-hidden="true" />
-                <div className={classes.cluster} role="group" aria-label="Twórz i importuj">
+                {!isDemoContent && <div className={classes.cluster} role="group" aria-label="Twórz i importuj">
                     <button
                         type="button"
                         className={classes.feature}
@@ -110,7 +119,7 @@ export default function Topbar({ titleRef }) {
                     >
                         <FiEdit3 />
                     </button>
-                </div>
+                </div>}
                 <span className={classes.divider} aria-hidden="true" />
                 <div className={classes.cluster} role="group" aria-label="Historia zmian">
                     <button type="button" className={classes.iconBtn} onClick={undo} disabled={!canUndo} aria-label="Cofnij" title="Cofnij (Ctrl+Z)">
@@ -146,13 +155,13 @@ export default function Topbar({ titleRef }) {
                     </div>
                     <button
                         type="button"
-                        className={classes.feature}
+                        className={`${classes.feature} ${isDemoContent ? classes.demoTemplate : ""}`}
                         onClick={showChangeTemplateModal}
                         disabled={!activeCvData}
                         aria-label="Szablony"
                         title={templatesHint}
                     >
-                        <RiShuffleLine />
+                        {isDemoContent ? "Zmień szablon" : <RiShuffleLine />}
                     </button>
                     <div className={classes.templateNavAnchor}>
                         <button
@@ -207,7 +216,20 @@ export default function Topbar({ titleRef }) {
                     </div>
                     <PageControls />
                 </div>
-                <span className={classes.divider} aria-hidden="true" />
+                {isDemoContent ? (
+                    <>
+                        <span className={classes.divider} aria-hidden="true" />
+                        <button
+                            type="button"
+                            className={classes.demoAction}
+                            onClick={showSections}
+                            aria-label="Otwórz układ CV"
+                        >
+                            Układ CV
+                        </button>
+                    </>
+                ) : null}
+                {!isDemoContent && <><span className={classes.divider} aria-hidden="true" />
                 <div className={classes.cluster} role="group" aria-label="Zapisz i pobierz">
                     <button
                         type="button"
@@ -241,7 +263,7 @@ export default function Topbar({ titleRef }) {
                     >
                         <FiSave />
                     </button>
-                </div>
+                </div></>}
             </div>
         </header>
     );
