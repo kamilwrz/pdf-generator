@@ -40,11 +40,12 @@ def _gen_portico(cv: dict) -> list[dict]:
     C = {
         'paper': '#FCFBF8', 'ink': '#22221F', 'accent': '#7C6A52',
         'mute': '#83786B', 'body': '#2A2A28', 'rule': '#E4DED2',
-        'display': 'Lora', 'sans': 'Inter', 'icon_theme': 'portico',
+        'display': 'Montserrat', 'sans': 'Montserrat', 'section_font': 'Inter',
+        'icon_theme': 'portico',
         'L': 76, 'W': 443, 'icon_x': 54,
     }
     L, W = (C['L'], C['W'])
-    SANS, DISP = (C['sans'], C['display'])
+    SANS, DISP, SECTION_FONT = (C['sans'], C['display'], C['section_font'])
     ICON = C['icon_theme']
     # Page center given the symmetric L/W margins (76 + 443/2 = 297.5 of 595).
     CENTER_X = L + W / 2.0
@@ -52,8 +53,8 @@ def _gen_portico(cv: dict) -> list[dict]:
 
     name = _compact_text(cv.get('name'), 32)
     title = _compact_text(cv.get('title'), 56)
-    name_fs, name_lh = (29, 33)
-    title_fs, title_lh = (10, 14)
+    name_fs, name_lh = (29, 12)
+    title_fs, title_lh = (10, 12)
     # Centered portrait-aspect photo well — empty in the editor; gallery click
     # fills it. Taller than wide (not a square crop) so a normal headshot
     # doesn't look squeezed. The well itself paints the page's own paper
@@ -170,7 +171,7 @@ def _gen_portico(cv: dict) -> list[dict]:
         # shared experience-record helper already gives job positions this
         # weight; keeping the section chrome at regular weight made Portico's
         # hierarchy look visually inverted in a content-dense CV.
-        heading = _text(label, label_fs, SANS, C['accent'], L, y, zIndex=3, page=page, bold=True)
+        heading = _text(label, label_fs, SECTION_FONT, C['accent'], L, y, zIndex=3, page=page, bold=True)
         heading['letterSpacing'] = 1.45
         heading['flowRole'] = 'section-chrome'
         b.els.append(heading)
@@ -183,11 +184,11 @@ def _gen_portico(cv: dict) -> list[dict]:
     def close_section() -> None:
         b.gap(get_spacing().section)
 
-    BODY_FS, BODY_LH = (9.4, 13.4)
+    BODY_FS, BODY_LH = (9.0, 12.0)
 
     def experience_height(job: dict) -> float:
         return _experience_record_height(
-            b, job, W, SANS, title_fs=11, title_lh=13.5, meta_fs=8.5, meta_lh=11.5,
+            b, job, W, SANS, title_fs=11, title_lh=12, meta_fs=8.5, meta_lh=12,
             body_fs=BODY_FS, body_lh=BODY_LH, meta_font=SANS,
         )
 
@@ -205,7 +206,7 @@ def _gen_portico(cv: dict) -> list[dict]:
         for index, job in enumerate(jobs):
             _place_experience_record(
                 b, job, L, W, ink=C['ink'], muted=C['mute'], body=C['body'], font=SANS,
-                title_fs=11, title_lh=13.5, meta_fs=8.5, meta_lh=11.5,
+                title_fs=11, title_lh=12, meta_fs=8.5, meta_lh=12,
                 body_fs=BODY_FS, body_lh=BODY_LH, meta_font=SANS,
                 after_gap=get_spacing().record if index < len(jobs) - 1 else None,
             )
@@ -217,26 +218,26 @@ def _gen_portico(cv: dict) -> list[dict]:
         b.need_section(
             SECTION_CHROME,
             _education_record_height(
-                b, education_entries[0], W, SANS, degree_fs=10.4, degree_lh=13,
-                meta_fs=8.5, meta_lh=11.5, body_fs=9.2, body_lh=13.2,
+                b, education_entries[0], W, SANS, degree_fs=10.4, degree_lh=12,
+                meta_fs=8.5, meta_lh=12, body_fs=9.0, body_lh=12,
             ),
         )
         section(lbl['education'])
         for index, edu in enumerate(education_entries):
             _place_education_record(
                 b, edu, L, W, ink=C['ink'], muted=C['mute'], body=C['body'], font=SANS,
-                degree_fs=10.4, degree_lh=13, meta_fs=8.5, meta_lh=11.5,
-                body_fs=9.2, body_lh=13.2,
+                degree_fs=10.4, degree_lh=12, meta_fs=8.5, meta_lh=12,
+                body_fs=9.0, body_lh=12,
                 after_gap=get_spacing().record if index < len(education_entries) - 1 else None,
             )
         close_section()
     if _place_skills_section(
-        b, cv, section, L, W, C['body'], SANS, 9.3, 13.4,
+        b, cv, section, L, W, C['body'], SANS, 9.0, 12.0,
         section_chrome_h=SECTION_CHROME,
     ):
         close_section()
     _extra_sections(b, cv, 'after_skills', section, {'body': C['body'], 'accent': C['accent']}, L, W, SANS,
-                     fs=9.3, lh=13.4, section_chrome_h=SECTION_CHROME)
+                     fs=9.0, lh=12.0, section_chrome_h=SECTION_CHROME)
 
     flow = b.build()
     pages_used = max([element.get('page', 1) for element in header + flow] or [1])

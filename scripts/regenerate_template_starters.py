@@ -370,22 +370,18 @@ export const {export} = {const}.map((element) => (
 """
 
 
-def iconic_module(nova_elements: list[dict], volt_elements: list[dict]) -> str:
-    """Nova + Volt share iconic.js; emit both dumps in one file."""
-    nova_json = json.dumps(nova_elements, ensure_ascii=False, indent=2)
+def iconic_module(volt_elements: list[dict]) -> str:
+    """Volt owns the remaining shared iconic.js module."""
     volt_json = json.dumps(volt_elements, ensure_ascii=False, indent=2)
     return f"""/**
- * Icon-driven static layouts (Nova, Volt).
+ * Icon-driven static layout (Volt).
  *
- * Both starters are the backend generators' own output for representative demo
- * content (Julia Bernat — three roles, one degree, five skills, and three
- * languages), so the picker preview matches `/ai/fill_template` pixel-for-pixel.
+ * The starter is the backend generator's own output for representative demo
+ * content, so the picker preview matches `/ai/fill_template` pixel-for-pixel.
  * Image `src` values are stored relative and get the API base prepended at
  * load time. Icons live under `/template-assets/iconic/<theme>/`.
  */
 import API_BASE_URL from "../services/api.js";
-
-const NOVA_ELEMENTS = {nova_json};
 
 const VOLT_ELEMENTS = {volt_json};
 
@@ -395,7 +391,6 @@ const withAbsoluteAssets = (elements) => elements.map((element) => (
     : element
 ));
 
-export const novaTemplate = withAbsoluteAssets(NOVA_ELEMENTS);
 export const voltTemplate = withAbsoluteAssets(VOLT_ELEMENTS);
 """
 
@@ -427,7 +422,7 @@ def main() -> None:
 
     # Write single-template modules.
     for template_id in TEMPLATES:
-        if template_id in ("nova", "volt"):
+        if template_id == "volt":
             continue
         path = FRONTEND_TEMPLATES / f"{template_id}.js"
         path.write_text(js_module(template_id, generated[template_id]), encoding="utf-8")
@@ -435,7 +430,7 @@ def main() -> None:
 
     iconic_path = FRONTEND_TEMPLATES / "iconic.js"
     iconic_path.write_text(
-        iconic_module(generated["nova"], generated["volt"]),
+        iconic_module(generated["volt"]),
         encoding="utf-8",
     )
     print(f"wrote {iconic_path.relative_to(REPO_ROOT)}", flush=True)
