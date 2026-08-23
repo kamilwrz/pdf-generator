@@ -13,15 +13,77 @@
   align-items: center;
   justify-content: center;
   padding: 2rem 1.5rem;
-  /* Opaque so the blank A4 behind it never shows through. */
-  background: var(--bg-cream, #f7f4ee);
+  /* Keep the blank A4 hidden while adding only low-contrast neutral depth. */
+  background:
+    radial-gradient(
+      circle at 12% 14%,
+      color-mix(in srgb, var(--chrome-surface, #fff) 62%, transparent),
+      transparent 28rem
+    ),
+    linear-gradient(
+      135deg,
+      var(--bg-cream, #f7f4ee) 0%,
+      color-mix(in srgb, var(--bg-cream, #f7f4ee) 78%, var(--chrome-surface, #fff)) 52%,
+      var(--bg-cream, #f7f4ee) 100%
+    );
   overflow: auto;
   z-index: 2000;
+}
+
+.overlay::before,
+.overlay::after {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  content: "";
+}
+
+/* A quiet Swiss grid gives the empty surface structure without competing with
+   the primary choices or looking like a decorative illustration. */
+.overlay::before {
+  opacity: 0.34;
+  background-image:
+    linear-gradient(
+      90deg,
+      transparent 0,
+      transparent calc(25% - 0.5px),
+      color-mix(in srgb, var(--chrome-border, #e2dfd8) 54%, transparent) 25%,
+      transparent calc(25% + 0.5px),
+      transparent calc(75% - 0.5px),
+      color-mix(in srgb, var(--chrome-border, #e2dfd8) 54%, transparent) 75%,
+      transparent calc(75% + 0.5px)
+    ),
+    linear-gradient(
+      0deg,
+      transparent 0,
+      transparent calc(50% - 0.5px),
+      color-mix(in srgb, var(--chrome-border, #e2dfd8) 42%, transparent) 50%,
+      transparent calc(50% + 0.5px)
+    );
+}
+
+/* Two oversized, muted light fields add depth while remaining below WCAG
+   content contrast requirements because all text sits above this layer. */
+.overlay::after {
+  opacity: 0.42;
+  background:
+    radial-gradient(
+      ellipse at 88% 82%,
+      color-mix(in srgb, var(--accent-soft, #ead8c8) 45%, transparent),
+      transparent 24rem
+    ),
+    radial-gradient(
+      ellipse at 52% 0%,
+      color-mix(in srgb, var(--chrome-surface, #fff) 36%, transparent),
+      transparent 22rem
+    );
 }
 
 .inner {
   width: 100%;
   max-width: 1280px;
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -301,6 +363,7 @@
   cursor: pointer;
   transition: color 150ms ease-out, border-color 150ms ease-out,
     background 150ms ease-out;
+  z-index: 1;
 }
 
 .logout svg {
