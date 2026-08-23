@@ -267,40 +267,48 @@ export function useA4Elements(titleRef) {
   // temporary edit zoom only after an intentional page/element interaction,
   // not when the user uses the sidebar or toolbar while text remains focused.
   const editZoomExitRequestedRef = useRef(false);
+  const restoreEditZoom = useCallback(() => {
+    editZoomExitRequestedRef.current = true;
+    if (editZoomPreviousRef.current != null) {
+      setZoomState(editZoomPreviousRef.current);
+      editZoomPreviousRef.current = null;
+    }
+    if (editZoomPreviousSpreadRef.current) {
+      setIsTwoPageView(true);
+      editZoomPreviousSpreadRef.current = null;
+    }
+    editZoomExitRequestedRef.current = false;
+  }, []);
   useEffect(() => {
     const markCanvasEditExit = (event) => {
-      if (isCanvasInteractionTarget(event.target)) {
-        editZoomExitRequestedRef.current = true;
+      if (!isCanvasInteractionTarget(event.target)) return;
+      // Structural controls can close the active edit without changing the
+      // primitive `editingElementId` dependency. If no edit surface remains,
+      // restore immediately so the next canvas click cannot leave stale zoom.
+      if (
+        !document.querySelector('[contenteditable="true"]')
+        && editZoomPreviousRef.current != null
+      ) {
+        restoreEditZoom();
+        return;
       }
+      editZoomExitRequestedRef.current = true;
     };
     document.addEventListener("pointerdown", markCanvasEditExit, true);
     return () => document.removeEventListener("pointerdown", markCanvasEditExit, true);
-  }, []);
+  }, [restoreEditZoom]);
   const requestEditZoomRestore = useCallback(() => {
     // The properties panel's click is preceded by the contentEditable blur.
     // That blur can commit `isEditing: false` before the Close handler runs,
     // so setting only a ref here would not trigger the zoom effect again.
     // Restore synchronously from the saved pre-edit value instead.
-    editZoomExitRequestedRef.current = true;
-    if (editZoomPreviousRef.current != null) {
-      setZoomState(editZoomPreviousRef.current);
-      editZoomPreviousRef.current = null;
-      editZoomExitRequestedRef.current = false;
-    }
-  }, []);
+    restoreEditZoom();
+  }, [restoreEditZoom]);
   useEffect(() => {
     if (!editingElementId) {
       const shouldRestore = editZoomExitRequestedRef.current;
       if (!shouldRestore) return undefined;
-      if (editZoomPreviousRef.current != null) {
-        setZoomState(editZoomPreviousRef.current);
-        editZoomPreviousRef.current = null;
-      }
-      if (editZoomPreviousSpreadRef.current) {
-        setIsTwoPageView(true);
-      }
-      editZoomPreviousSpreadRef.current = null;
-      editZoomExitRequestedRef.current = false;
+      restoreEditZoom();
       return undefined;
     }
 
@@ -344,7 +352,7 @@ export function useA4Elements(titleRef) {
     }
     const timer = window.setTimeout(scrollToEditedElement, EDIT_ZOOM_TRANSITION_MS);
     return () => window.clearTimeout(timer);
-  }, [editingElementId, editingElementPage, isTwoPageView]);
+  }, [editingElementId, editingElementPage, isTwoPageView, restoreEditZoom]);
 
   // Strip NULL/NBSP junk and trailing bullet placeholders already sitting in
   // open documents (loaded before sanitization existed, or left after edit).
