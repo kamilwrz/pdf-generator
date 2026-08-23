@@ -65,6 +65,24 @@ export default function AiCvPanel() {
     const extracted = Boolean(cvData?.name);
     const onStep2 = extracted && wizardStep === 2;
 
+    // Import is a repeatable entry point, not the template switcher. Once a
+    // template has been chosen (or the dialog is closed), discard the
+    // extracted session so opening "Importuj CV" always starts at the PDF
+    // dropzone. Template changes are handled exclusively by the editor's
+    // separate "Szablony" control.
+    const resetImportFlow = useCallback(() => {
+        setFileName(null);
+        setFileData(null);
+        setCvData(null);
+        setWizardStep(1);
+        setError(null);
+    }, []);
+
+    const handleClose = useCallback(() => {
+        resetImportFlow();
+        showAiPanel();
+    }, [resetImportFlow, showAiPanel]);
+
     useEffect(() => {
         if (!extracted && wizardStep !== 1) {
             setWizardStep(1);
@@ -123,7 +141,7 @@ export default function AiCvPanel() {
         } finally {
             setIsExtracting(false);
         }
-    }, [api, canExtract, fileData, refreshEntitlements]);
+    }, [api, canExtract, entitlements?.plan_slug, fileData, refreshEntitlements]);
 
     const handleFill = useCallback(async (template) => {
         if (!cvData) return;
@@ -141,13 +159,14 @@ export default function AiCvPanel() {
             });
             await loadAiElements(res.elements, `CV ${template.name}`, template.id);
             setActiveCvData(cvData);
+            resetImportFlow();
             showAiPanel();
         } catch (err) {
             setError(planErrorMessage(err, "Nie udało się wygenerować szablonu."));
         } finally {
             setFillingId(null);
         }
-    }, [api, cvData, entitlements, flowSpacing, loadAiElements, setActiveCvData, showAiPanel]);
+    }, [api, cvData, entitlements, flowSpacing, loadAiElements, resetImportFlow, setActiveCvData, showAiPanel]);
 
     function goPrevStep() {
         setWizardStep(1);
@@ -163,7 +182,7 @@ export default function AiCvPanel() {
     return (
         <DialogShell
             open={isAiPanel}
-            onClose={showAiPanel}
+            onClose={handleClose}
             width={onStep2 ? 1400 : 960}
             radius={2}
             bodyClassName={classes.dialogBody}
