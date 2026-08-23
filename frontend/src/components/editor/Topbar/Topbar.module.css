@@ -166,15 +166,6 @@
     cursor: not-allowed;
 }
 
-.demoTemplate {
-    width: auto;
-    padding: 0 10px;
-    border: 1px solid var(--topbar-border);
-    border-radius: 2px;
-    font: 600 11px var(--font-body);
-    white-space: nowrap;
-}
-
 .ghost {
     background: transparent;
     color: var(--topbar-muted);

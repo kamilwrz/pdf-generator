@@ -1,8 +1,8 @@
 /**
  * Persistent product-demo banner shown while the canvas holds the guest-mode
- * Regent starter (loaded via ?start=demo). The primary action opens the wizard
- * in place; demo mode remains active until a real document replaces the
- * starter, so cancelling the wizard does not discard the demonstration.
+ * Regent starter (loaded via ?start=demo). Demo mode intentionally exposes
+ * Regent only; template selection becomes available in the full editor after
+ * the visitor creates an account.
  */
 import classes from "./DemoBanner.module.css";
 
@@ -12,7 +12,7 @@ export default function DemoBanner({ onUseOwnData }) {
       <div className={classes.message}>
         <span className={classes.eyebrow}>Wypróbuj CV Studio</span>
         <span className={classes.text}>
-          Kliknij dowolny tekst, zmień układ albo wybierz inny szablon.
+          Edytuj tekst Regenta i sprawdź, jak układ A4 reaguje na Twoją treść.
         </span>
       </div>
       <div className={classes.actions}>

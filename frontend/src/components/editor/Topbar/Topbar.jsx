@@ -1,6 +1,6 @@
 /**
  * Editor chrome for both the full editor and the reduced product-demo mode.
- * Demo mode keeps history, template switching, layout, zoom, and pagination;
+ * Demo mode keeps history, layout, zoom, and pagination;
  * account, import, persistence, and destructive document actions are omitted.
  * Action buttons are icon-only with tooltips (title + aria-label).
  * Save (`createPdf`) is the only path that writes to "Moje dokumenty" (create on
@@ -130,7 +130,7 @@ export default function Topbar({ titleRef }) {
                     </button>
                 </div>
                 <span className={classes.divider} aria-hidden="true" />
-                <div className={classes.cluster} role="group" aria-label="Szablon CV">
+                {!isDemoContent && <div className={classes.cluster} role="group" aria-label="Szablon CV">
                     {/* Hovering/focusing an arrow reveals a small live mockup of the
                         template it would switch to, instead of a plain text tooltip —
                         `title` is only set for the disabled edge case (no adjacent
@@ -155,13 +155,13 @@ export default function Topbar({ titleRef }) {
                     </div>
                     <button
                         type="button"
-                        className={`${classes.feature} ${isDemoContent ? classes.demoTemplate : ""}`}
+                        className={classes.feature}
                         onClick={showChangeTemplateModal}
                         disabled={!activeCvData}
                         aria-label="Szablony"
                         title={templatesHint}
                     >
-                        {isDemoContent ? "Zmień szablon" : <RiShuffleLine />}
+                        <RiShuffleLine />
                     </button>
                     <div className={classes.templateNavAnchor}>
                         <button
@@ -181,7 +181,7 @@ export default function Topbar({ titleRef }) {
                             </div>
                         )}
                     </div>
-                </div>
+                </div>}
             </div>
 
             {/* Right: view controls (zoom + pages), then document output. */}

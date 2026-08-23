@@ -30,9 +30,16 @@ test("demo mode keeps its product-focused banner copy", async () => {
   const banner = await source("components/editor/DemoBanner/DemoBanner.jsx");
 
   assert.match(banner, /Wypróbuj CV Studio/);
-  assert.match(banner, /Kliknij dowolny tekst/);
+  assert.match(banner, /Edytuj tekst Regenta/);
   assert.match(banner, /Stwórz moje CV/);
   assert.doesNotMatch(banner, /Zacznij od zera/);
+});
+
+test("demo mode removes template switching from the topbar", async () => {
+  const topbar = await source("components/editor/Topbar/Topbar.jsx");
+
+  assert.match(topbar, /!isDemoContent && <div className={classes.cluster} role="group" aria-label="Szablon CV">/);
+  assert.doesNotMatch(topbar, /classes\.demoTemplate/);
 });
 
 test("PdfCanvas publishes demo state through the editor context", async () => {
