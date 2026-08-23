@@ -54,7 +54,7 @@ e) Sterling
 f) Regent
 - brak zdjecia profilowego
 
-g) Nova
+g) Nova (DELETED)
 - jest ok, ale slot powinien miec ikone
 - dodac inne paletty kolorow
 

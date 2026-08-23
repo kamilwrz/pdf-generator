@@ -434,7 +434,7 @@ class CvDataNormalizationTests(unittest.TestCase):
             ],
         )
 
-        elements = generate_resume("nova", profile)
+        elements = generate_resume("regent", profile)
         title_el = next(
             element
             for element in elements

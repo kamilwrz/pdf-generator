@@ -37,7 +37,7 @@ def test_chip_tags_triples_and_returns_descriptor():
 def test_stacked_tags_pairs_and_returns_descriptor():
     items = [("phone", "+48 111"), ("email", "a@b.pl")]
     elements, bottom_y, descriptor = _place_stacked_icon_contacts(
-        theme="nova", items=items, start_x=48, start_y=120,
+        theme="regent", items=items, start_x=48, start_y=120,
         text_fs=8.4, icon_size=11, text_color="#3A3A3A", font="Inter",
         band_id="contact-main",
     )
@@ -72,7 +72,7 @@ def test_wrapping_tags_pairs_and_returns_descriptor():
 def test_centered_tags_pairs_and_returns_descriptor():
     items = [("phone", "+48 111"), ("location", "Warszawa")]
     elements, bottom_y, descriptor = _place_centered_icon_contacts(
-        theme="nova", items=items, center_x=300, start_y=120, max_width=400,
+        theme="regent", items=items, center_x=300, start_y=120, max_width=400,
         text_fs=9, icon_size=11, text_color="#222222", font="Inter",
         band_id="band-2",
     )

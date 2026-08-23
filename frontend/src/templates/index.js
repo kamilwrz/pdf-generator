@@ -7,7 +7,7 @@
  * collections. `tier` drives Free vs paid gating; `elements` are static specs
  * materialized by useA4Elements.handleLoadTemplate (ids assigned at load time).
  */
-import { novaTemplate, voltTemplate } from "./iconic";
+import { voltTemplate } from "./iconic";
 import { monumentTemplate } from "./monument";
 import { tesseraTemplate } from "./tessera";
 import { slateTemplate } from "./slate";
@@ -22,7 +22,6 @@ export { TEMPLATE_LAYOUT_TAGS } from "../utils/templateLayouts";
 
 export const TEMPLATES = [
     { id: "monument", tier: "paid", name: "Monument", description: "Monochromatyczny editorial", layouts: ["single"], accent: "#343434", elements: monumentTemplate },
-    { id: "nova", tier: "free", name: "Nova", description: "Redakcyjny masthead z ikonami", layouts: ["icons"], accent: "#C45C26", elements: novaTemplate },
     { id: "volt", tier: "paid", name: "Volt", description: "Ciemny sygnał, bursztynowe akcenty", layouts: ["icons", "dark"], accent: "#E8A838", elements: voltTemplate },
     { id: "tessera", tier: "paid", name: "Tessera", description: "Mozaikowy sidebar, prostokątne zdjęcie", layouts: ["sidebar", "icons"], accent: "#E15D4F", elements: tesseraTemplate },
     { id: "slate", tier: "paid", name: "Slate", description: "Stalowy sidebar, siatka i prostokątne zdjęcie", layouts: ["sidebar", "icons"], accent: "#3E5C76", elements: slateTemplate },

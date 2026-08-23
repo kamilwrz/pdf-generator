@@ -22,7 +22,6 @@ from app.models.models import Pdf, Plan, UsageCounter, User, UserSubscription
 # Must match frontend TEMPLATES entries with tier: "free" in
 # frontend/src/templates/index.js. Enforced by tests/test_template_registry_sync.py.
 FREE_STARTER_TEMPLATE_IDS: tuple[str, ...] = (
-    "nova",
     "regent",
 )
 

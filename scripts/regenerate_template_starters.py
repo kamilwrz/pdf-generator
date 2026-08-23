@@ -215,10 +215,9 @@ REGENT_DEMO_CV = {
 }
 
 # template_id -> (js filename, export const name, layouts blurb for docstring)
-# iconic.js exports both nova and volt from one module.
+# iconic.js exports volt from one module.
 TEMPLATES = [
     "portico",
-    "nova",
     "volt",
     "tessera",
     "slate",

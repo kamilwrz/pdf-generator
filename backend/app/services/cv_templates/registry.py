@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 from app.services.cv_data import normalize_cv_data
-from app.services.cv_templates.templates.nova import _gen_nova
 from app.services.cv_templates.templates.volt import _gen_volt
 from app.services.cv_templates.templates.monument import _gen_monument
 from app.services.cv_templates.templates.tessera import _gen_tessera
@@ -16,7 +15,6 @@ from app.services.cv_templates.templates.meridian import _gen_meridian
 
 TEMPLATE_LAYOUTS: dict[str, frozenset[str]] = {
     "monument": frozenset({"single"}),
-    "nova": frozenset({"icons"}),
     "volt": frozenset({"icons", "dark"}),
     "tessera": frozenset({"sidebar", "icons"}),
     "slate": frozenset({"sidebar", "icons"}),
@@ -29,7 +27,6 @@ TEMPLATE_LAYOUTS: dict[str, frozenset[str]] = {
 }
 
 _GENERATORS = {
-    "nova": _gen_nova,
     "volt": _gen_volt,
     "monument": _gen_monument,
     "tessera": _gen_tessera,

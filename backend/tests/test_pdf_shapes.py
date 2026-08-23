@@ -94,7 +94,7 @@ class PdfShapeTests(unittest.TestCase):
         self.assertFalse(any(call[0] == "line_width" for call in self.generator.c.calls))
 
     def test_render_image_uses_auto_mask_for_png_alpha(self):
-        icon = Path(__file__).resolve().parents[1] / "template_assets" / "iconic" / "nova" / "email.png"
+        icon = Path(__file__).resolve().parents[1] / "template_assets" / "iconic" / "regent" / "email.png"
         self.assertTrue(icon.is_file())
 
         self.generator.renderImage(str(icon), 12, 12, 50, 118)
@@ -107,7 +107,7 @@ class PdfShapeTests(unittest.TestCase):
         self.assertIn(("restoreState",), self.generator.c.calls)
 
     def test_local_iconic_assets_are_optically_aligned_without_schema_flag(self):
-        icon = Path(__file__).resolve().parents[1] / "template_assets" / "iconic" / "nova" / "email.png"
+        icon = Path(__file__).resolve().parents[1] / "template_assets" / "iconic" / "regent" / "email.png"
         # API validation may omit the optional canvas-only flag. The resolved
         # local asset path must still activate the same optical alignment.
         self.generator.renderImage(str(icon), 11, 11, 48, 200)
@@ -120,7 +120,7 @@ class PdfShapeTests(unittest.TestCase):
         self.assertAlmostEqual(args[2], 635.5, places=1)
 
     def test_explicit_align_with_text_false_keeps_authored_image_top(self):
-        icon = Path(__file__).resolve().parents[1] / "template_assets" / "iconic" / "nova" / "email.png"
+        icon = Path(__file__).resolve().parents[1] / "template_assets" / "iconic" / "regent" / "email.png"
         # Contact icons may opt out of the section-head optical shift.
         self.generator.renderImage(str(icon), 9, 9, 24, 140.7, align_with_text=False)
 
@@ -141,7 +141,7 @@ class PdfShapeTests(unittest.TestCase):
 
         elements = [
             SimpleNamespace(**element)
-            for element in generate_resume("nova", {
+            for element in generate_resume("regent", {
                 "name": "Anna Kowalska",
                 "title": "Dyrektorka",
                 "email": "anna@email.com",
@@ -155,7 +155,7 @@ class PdfShapeTests(unittest.TestCase):
         ]
 
         class PdfData:
-            pdf_title = "CV Nova"
+            pdf_title = "CV Regent"
             pages = max(getattr(element, "page", 1) or 1 for element in elements)
             page_height = 842
             page_width = 595

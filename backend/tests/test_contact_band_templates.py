@@ -34,7 +34,7 @@ def _anchor(elements):
         ("portico", "centered"),
         ("tessera", "wrapping"),
         ("slate", "wrapping"),
-        ("nova", "stacked"),
+        ("regent", "stacked"),
         ("volt", "chip"),
     ],
 )

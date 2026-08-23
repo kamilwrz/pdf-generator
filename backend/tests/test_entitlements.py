@@ -118,7 +118,7 @@ class EntitlementsTests(unittest.TestCase):
 
     def test_free_template_gate(self):
         user = self._make_user()
-        ent.assert_template_allowed(self.db, user, "nova")
+        ent.assert_template_allowed(self.db, user, "regent")
         ent.assert_template_allowed(self.db, user, "regent")
         with self.assertRaises(ent.PlanLimitError) as ctx:
             ent.assert_template_allowed(self.db, user, "monument")
@@ -131,7 +131,7 @@ class EntitlementsTests(unittest.TestCase):
         self.assertFalse(payload["ai_assistant"])
         self.assertFalse(payload["extract_cv"])
         self.assertEqual(payload["template_tier"], "starter")
-        self.assertIn("nova", payload["allowed_template_ids"])
+        self.assertIn("regent", payload["allowed_template_ids"])
         self.assertIn("regent", payload["allowed_template_ids"])
         self.assertEqual(payload["limits"]["max_projects"], 1)
         self.assertEqual(payload["limits"]["max_exports_per_month"], 3)

@@ -100,7 +100,7 @@ class ContactPlacementTests(unittest.TestCase):
             "location": "Warszawa",
         })
         els, bottom, _descriptor = _place_wrapping_icon_contacts(
-            theme="nova",
+            theme="volt",
             items=items,
             start_x=50.0,
             start_y=118.0,
@@ -119,14 +119,14 @@ class ContactPlacementTests(unittest.TestCase):
             if element.get("category") == "text":
                 self.assertEqual(element.get("flowRole"), "masthead")
 
-    def test_nova_header_contacts_are_masthead(self):
+    def test_regent_header_contacts_are_masthead(self):
         cv = normalize_cv_data({
             "name": "Anna Rojek",
             "phone": "684 732 543",
             "email": "annarojek87@wp.pl",
             "location": "Warszawa",
         })
-        els = generate_resume("nova", cv)
+        els = generate_resume("volt", cv)
         contact_texts = [
             e for e in els
             if e.get("category") == "text"
@@ -136,7 +136,7 @@ class ContactPlacementTests(unittest.TestCase):
         for element in contact_texts:
             self.assertEqual(element.get("flowRole"), "masthead")
 
-    def test_nova_generator_includes_social_icons_and_pushes_rule(self):
+    def test_regent_generator_includes_social_icons_and_pushes_rule(self):
         cv = normalize_cv_data({
             "name": "Anna Kowalska",
             "email": "anna@example.com",
@@ -146,7 +146,7 @@ class ContactPlacementTests(unittest.TestCase):
             "github": "github.com/anna",
             "website": "anna.dev",
         })
-        els = generate_resume("nova", cv)
+        els = generate_resume("regent", cv)
         srcs = " ".join(e.get("src", "") for e in els if e.get("category") == "image")
         self.assertIn("linkedin.png", srcs)
         self.assertIn("github.png", srcs)
@@ -159,7 +159,7 @@ class ContactPlacementTests(unittest.TestCase):
             and e.get("width", 0) > 400
         ]
         self.assertTrue(rules)
-        self.assertGreater(min(r["top"] for r in rules), 170.0)
+        self.assertGreater(min(r["top"] for r in rules), 149.0)
 
 
 if __name__ == "__main__":

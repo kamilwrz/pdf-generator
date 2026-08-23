@@ -79,12 +79,12 @@ class CvTemplateLayoutTests(unittest.TestCase):
         })
         elements = _rebase_template_asset_urls([{
             "category": "image",
-            "src": "http://localhost:8000/template-assets/nova-portrait.png",
+            "src": "http://localhost:8000/template-assets/regent-portrait.png",
         }], request)
 
         self.assertEqual(
             elements[0]["src"],
-            "https://pdf-generator-07cb.onrender.com/template-assets/nova-portrait.png",
+            "https://pdf-generator-07cb.onrender.com/template-assets/regent-portrait.png",
         )
 
     def test_template_images_resolve_to_versioned_local_assets(self):
@@ -1128,8 +1128,8 @@ class CvTemplateLayoutTests(unittest.TestCase):
         self.assertTrue(first_body.get("bulletList"))
 
 
-    def test_nova_keeps_skills_heading_with_body_near_page_break(self):
-        """Iconic Nova must not leave UMIEJĘTNOŚCI alone above the footer."""
+    def test_regent_keeps_skills_heading_with_body_near_page_break(self):
+        """Iconic Regent must not leave UMIEJĘTNOŚCI alone above the footer."""
         cv = {
             **LONG_CV,
             "experience": LONG_CV["experience"] * 2,
@@ -1153,7 +1153,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
                 },
             ],
         }
-        elements = generate_resume("nova", cv)
+        elements = generate_resume("regent", cv)
         heading = next(
             element
             for element in elements
@@ -1232,7 +1232,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
         cases = {
             # Stacked contacts + photo make the rule Y data-dependent; resolve
             # the authored header rule dynamically (same path as rule_top=None).
-            "nova": (None, 1, 30.0, 42.0),
+            "regent": (None, 1, 30.0, 42.0),
         }
         cv = {
             **LONG_CV,
@@ -1558,7 +1558,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
 
     def test_active_templates_keep_textareas_inside_page_bounds(self):
         for template_id in (
-            "monument", "tessera", "nova",
+            "monument", "tessera", "regent",
         ):
             with self.subTest(template_id=template_id):
                 multi_page_cv = {
@@ -1586,7 +1586,6 @@ class CvTemplateLayoutTests(unittest.TestCase):
     def test_iconic_templates_pair_contact_and_section_icons(self):
         contact_keys = ("email", "phone", "location")
         for template_id, theme in (
-            ("nova", "nova"),
             ("volt", "volt"),
         ):
             with self.subTest(template_id=template_id):
@@ -1690,7 +1689,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
                 ],
             }],
         }
-        for template_id in ("volt", "nova"):
+        for template_id in ("volt", "regent"):
             with self.subTest(template_id=template_id):
                 elements = generate_resume(template_id, cv)
                 job_titles = [

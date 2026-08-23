@@ -386,7 +386,7 @@ class VestigeTemplateTests(unittest.TestCase):
 
     def test_vestige_emits_a_clickable_masthead_photo_slot(self) -> None:
         """Vestige exposes an empty-state photo well/frame/glyph triplet so a
-        user can click it to open the gallery — mirroring Nova's pattern
+        user can click it to open the gallery — mirroring Regent's pattern
         (`photoSlot` tags the client recognises generically, not template-
         specific ids; see `frontend/src/utils/profilePhoto.js`)."""
         elements = generate_resume(

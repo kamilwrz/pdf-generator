@@ -13,7 +13,6 @@ from PIL import Image, ImageDraw
 ROOT = Path(__file__).resolve().parents[1] / "backend" / "template_assets" / "iconic"
 
 THEMES = {
-    "nova": "#C45C26",
     "volt": "#E8A838",
     "portico": "#7C6A52",
     # Regent uses a neutral charcoal icon set so its masthead remains entirely
@@ -26,7 +25,6 @@ THEME_VARIANTS = {}
 # Full Iconic themes normally receive the base glyph set. Nova additionally
 # uses the portrait placeholder inside its masthead photo frame.
 THEME_EXTRA_ICONS = {
-    "nova": ["portrait"],
     # Vestige's masthead photo slot reuses the same portrait placeholder glyph,
     # drawn in the template's own graphite ink instead of Nova's terracotta.
     "vestige": ["portrait"],
