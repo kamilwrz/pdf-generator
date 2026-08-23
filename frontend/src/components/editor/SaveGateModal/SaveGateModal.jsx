@@ -16,6 +16,7 @@ export default function SaveGateModal({ open, onCancel }) {
       open={open}
       onClose={onCancel}
       width={440}
+      radius={2}
       title="Nie zgub swojej pracy"
       subtitle="Utwórz darmowe konto, aby zapisać CV i pobrać gotowy PDF"
       footer={(

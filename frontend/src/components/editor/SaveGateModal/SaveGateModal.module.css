@@ -1,33 +1,52 @@
 .copy {
-  margin: 0 0 10px;
-  font-size: 0.92rem;
-  line-height: 1.45;
-  color: #40423b;
+  margin: 0;
+  padding: 20px 28px 22px;
+  border-left: 2px solid var(--chrome-accent);
+  color: var(--chrome-muted);
+  font: 400 13px/1.55 var(--font-body);
 }
 
 .actions {
   display: flex;
   justify-content: flex-end;
-  gap: 8px;
+  gap: 6px;
   width: 100%;
+  flex-wrap: wrap;
 }
 
 .ghost,
 .primary {
-  border-radius: 8px;
-  padding: 9px 14px;
-  font-size: 0.9rem;
+  min-height: 32px;
+  border-radius: var(--r-sm);
+  padding: 7px 12px;
+  font: 600 12px/1.2 var(--font-body);
   cursor: pointer;
+  transition: background-color .2s ease, border-color .2s ease, color .2s ease;
 }
 
 .ghost {
-  border: 1px solid rgba(23, 23, 23, 0.18);
-  background: transparent;
+  border: 1px solid var(--chrome-border);
+  background: var(--chrome-surface);
+  color: var(--chrome-ink);
+}
+
+.ghost:hover {
+  border-color: var(--chrome-ink);
+  background: var(--chrome-hover);
 }
 
 .primary {
   border: 0;
-  background: #171717;
-  color: #fff;
-  font-weight: 600;
+  background: var(--chrome-ink);
+  color: var(--chrome-surface);
+}
+
+.primary:hover {
+  background: var(--chrome-accent);
+}
+
+.ghost:focus-visible,
+.primary:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--chrome-accent) 70%, transparent);
+  outline-offset: 2px;
 }

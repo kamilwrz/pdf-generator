@@ -637,7 +637,7 @@ Implementation:
 - `frontend/src/utils/claimGuestWizardDraft.js` — `adoptGuestWizardDraftForAccount`; promotes Demo/guest wizard profile into `PUT /ai/bio_cv_draft` after login/register when the account draft is empty (plan-agnostic)
 - `frontend/src/utils/guestEvents.js` — `queueGuestEvent`, `loadGuestEvents`, `clearGuestEvents`; storage key `cvstudio.guest.events`, `MAX_BUFFERED_EVENTS = 50`
 - `frontend/src/templates/iconic.js` — `regentTemplate`, the guest demo document built from the same element-spec helpers as the real starter templates
-- `frontend/src/components/editor/SaveGateModal/SaveGateModal.jsx` + `.module.css`
+- `frontend/src/components/editor/SaveGateModal/SaveGateModal.jsx` + `.module.css` — guest save/export gate with the shared DialogShell visual language, sharp radius, compact action hierarchy, and accessible focus states
 - `frontend/src/components/editor/ClaimGuestDocumentModal/ClaimGuestDocumentModal.jsx` + `.module.css` — “found unsaved work” confirmation; confirm loads guest JSON onto the A4 canvas without auto-saving
 - `frontend/src/components/editor/DemoBanner/DemoBanner.jsx` + `.module.css`
 - `frontend/src/components/editor/Sidebar/Sidebar.jsx`, lines 162–166 — logout button only renders when `!isGuest`
@@ -2483,7 +2483,7 @@ Implementacja:
 - `frontend/src/utils/claimGuestWizardDraft.js` — `adoptGuestWizardDraftForAccount`; przenosi profil kreatora Demo/gościa do `PUT /ai/bio_cv_draft` po logowaniu/rejestracji, gdy szkic konta jest pusty (niezależnie od planu)
 - `frontend/src/utils/guestEvents.js` — `queueGuestEvent`, `loadGuestEvents`, `clearGuestEvents`; klucz `cvstudio.guest.events`, `MAX_BUFFERED_EVENTS = 50`
 - `frontend/src/templates/iconic.js` — `regentTemplate`, gościnny dokument demo zbudowany z tych samych helperów co prawdziwe szablony startowe
-- `frontend/src/components/editor/SaveGateModal/SaveGateModal.jsx` + `.module.css`
+- `frontend/src/components/editor/SaveGateModal/SaveGateModal.jsx` + `.module.css` — bramka zapisu/eksportu dla gościa zgodna z wizualnym językiem DialogShell, ostrym narożnikiem, zwartą hierarchią akcji i dostępnymi stanami focus
 - `frontend/src/components/editor/ClaimGuestDocumentModal/ClaimGuestDocumentModal.jsx` + `.module.css` — potwierdzenie „znaleziono niezapisaną pracę”; potwierdzenie wczytuje JSON gościa na płótno A4 bez autozapisu
 - `frontend/src/components/editor/DemoBanner/DemoBanner.jsx` + `.module.css`
 - `frontend/src/components/editor/Sidebar/Sidebar.jsx`, linie 162–166 — przycisk wylogowania renderuje się tylko, gdy `!isGuest`
