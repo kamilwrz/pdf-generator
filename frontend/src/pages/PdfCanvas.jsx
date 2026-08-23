@@ -146,7 +146,10 @@ function PdfCanvas() {
   const conversionPending = initialStartIntentRef.current === "demo-conversion"
     || initialStartIntentRef.current === "wizard-conversion"
     || localStorage.getItem("cvstudio.wizardConversionPending") !== null
-    || localStorage.getItem("cvstudio.demoConversionPending") === "1";
+    || localStorage.getItem("cvstudio.demoConversionPending") === "1"
+    // Treat an authenticated meaningful guest draft as a handoff even if an
+    // older browser session lost the auxiliary intent marker.
+    || Boolean(getAccessToken() && hasGuestWizardDraft());
 
   // Toggle this signal after a period of pointer activity so the session check
   // below can detect an expired JWT without issuing a request for every move.
