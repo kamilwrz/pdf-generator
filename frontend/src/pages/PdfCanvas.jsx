@@ -1829,9 +1829,18 @@ function PdfCanvas() {
                 <div className="canvas-area" ref={canvasAreaRef} onClick={handleCanvasBackgroundClick}>
                   {showStartChooser ? (
                     <StartChooser
-                      onWizard={handleShowBioCvModal}
-                      onImport={handleShowAiPanel}
-                      onBlank={() => setStartChooserDismissed(true)}
+                      onWizard={() => {
+                        setStartChooserDismissed(true);
+                        handleShowBioCvModal();
+                      }}
+                      onImport={() => {
+                        setStartChooserDismissed(true);
+                        handleShowAiPanel();
+                      }}
+                      onDocuments={() => {
+                        setStartChooserDismissed(true);
+                        setIsModalPdfs(true);
+                      }}
                     />
                   ) : null}
                   <div className={isTwoPageView ? "canvas-spread" : "canvas-single"}>

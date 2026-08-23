@@ -42,6 +42,19 @@ test("demo mode removes template switching from the topbar", async () => {
   assert.doesNotMatch(topbar, /classes\.demoTemplate/);
 });
 
+test("empty-state chooser offers saved documents and shields editor chrome", async () => {
+  const chooser = await source("components/editor/StartChooser/StartChooser.jsx");
+  const styles = await source("components/editor/StartChooser/StartChooser.module.css");
+  const canvas = await source("pages/PdfCanvas.jsx");
+
+  assert.match(chooser, /Moje dokumenty/);
+  assert.match(chooser, /onDocuments/);
+  assert.doesNotMatch(chooser, /onBlank/);
+  assert.match(styles, /position: fixed/);
+  assert.match(styles, /grid-template-columns: repeat\(3, 1fr\)/);
+  assert.match(canvas, /onDocuments=\{\(\) => \{/);
+});
+
 test("PdfCanvas publishes demo state through the editor context", async () => {
   const canvas = await source("pages/PdfCanvas.jsx");
 

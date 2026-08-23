@@ -580,8 +580,8 @@ In the normal editor, Topbar entry points are **Importuj CV**, **Utwórz CV krok
 
 Implementation:
 
-- `frontend/src/components/editor/StartChooser/StartChooser.jsx` — the two-card onboarding surface; props `onWizard` / `onImport` / `onBlank`
-- `frontend/src/components/editor/StartChooser/StartChooser.module.css` — Swiss/grid styling (sharp corners, chrome tokens, staggered entry, mobile single-column collapse)
+- `frontend/src/components/editor/StartChooser/StartChooser.jsx` — the three-card onboarding surface; props `onWizard` / `onImport` / `onDocuments`
+- `frontend/src/components/editor/StartChooser/StartChooser.module.css` — Swiss/grid styling with a fixed chrome-shielding overlay, three-card grid, and mobile single-column collapse
 - `frontend/src/utils/startChooser.js`, function `shouldShowStartChooser` — pure visibility gate for an empty unsaved workspace (not demo/loading/conversion/dismissed)
 - `frontend/src/pages/PdfCanvas.jsx` — `startChooserDismissed` state, `showStartChooser` computed via the helper, renders `<StartChooser>` inside `.canvas-area` wired to `handleShowBioCvModal` / `handleShowAiPanel`
 - `frontend/src/App.css`, `.canvas-area` — `position: relative` so the overlay fills the scroll region
@@ -2434,8 +2434,8 @@ W zwykłym edytorze wejścia w topbarze to **Importuj CV**, **Utwórz CV krok po
 
 Implementacja:
 
-- `frontend/src/components/editor/StartChooser/StartChooser.jsx` — powierzchnia onboardingu z dwiema kartami; propsy `onWizard` / `onImport` / `onBlank`
-- `frontend/src/components/editor/StartChooser/StartChooser.module.css` — styl Swiss/grid (ostre rogi, tokeny chrome, kaskadowe wejście, zwijanie do jednej kolumny na mobile)
+- `frontend/src/components/editor/StartChooser/StartChooser.jsx` — powierzchnia onboardingu z trzema kartami; propsy `onWizard` / `onImport` / `onDocuments`
+- `frontend/src/components/editor/StartChooser/StartChooser.module.css` — styl Swiss/grid z fixed overlay zasłaniającym chrome, trzema kartami i układem jednej kolumny na mobile
 - `frontend/src/utils/startChooser.js`, funkcja `shouldShowStartChooser` — czysta bramka widoczności pustego niezapisanego workspace (nie demo/ładowanie/konwersja/odrzucony)
 - `frontend/src/pages/PdfCanvas.jsx` — stan `startChooserDismissed`, `showStartChooser` liczone przez helper, render `<StartChooser>` w `.canvas-area` podpięty do `handleShowBioCvModal` / `handleShowAiPanel`
 - `frontend/src/App.css`, `.canvas-area` — `position: relative`, aby overlay wypełniał obszar przewijania

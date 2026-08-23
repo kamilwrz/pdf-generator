@@ -1,13 +1,13 @@
 /*
- * Empty-state onboarding surface. Fills the `.canvas-area` region (which is
- * `flex: 1` inside `.right-pane`) and centres a two-card chooser. Uses the
+ * Empty-state onboarding surface. Covers the editor chrome and centres a
+ * three-card chooser. Uses the
  * editor's muted chrome tokens for colour/typography and DESIGN.md's Swiss
  * structural rules: sharp 0px corners, 1px borders, a single subtle shadow,
  * and transform/opacity-only motion.
  */
 
 .overlay {
-  position: absolute;
+  position: fixed;
   inset: 0;
   display: flex;
   align-items: center;
@@ -16,7 +16,7 @@
   /* Opaque so the blank A4 behind it never shows through. */
   background: var(--bg-cream, #f7f4ee);
   overflow: auto;
-  z-index: 20;
+  z-index: 2000;
 }
 
 .inner {
@@ -57,7 +57,7 @@
 .cards {
   width: 100%;
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 1.25rem;
 }
 
@@ -86,6 +86,10 @@
 
 .card:nth-child(2) {
   animation-delay: 160ms;
+}
+
+.card:nth-child(3) {
+  animation-delay: 240ms;
 }
 
 .card:hover {
@@ -171,28 +175,6 @@
   border-color: var(--chrome-accent, #171717);
 }
 
-.blankLink {
-  border: none;
-  background: none;
-  padding: 0.25rem 0.5rem;
-  font-family: var(--font-body, "Nunito Sans", sans-serif);
-  font-size: 0.85rem;
-  color: var(--chrome-muted, #6b675e);
-  text-decoration: underline;
-  text-underline-offset: 3px;
-  cursor: pointer;
-  animation: startChooserRise 420ms ease-out 240ms both;
-}
-
-.blankLink:hover {
-  color: var(--chrome-ink, #171717);
-}
-
-.blankLink:focus-visible {
-  outline: 2px solid var(--chrome-accent, #171717);
-  outline-offset: 2px;
-}
-
 /* Mobile: single column, no horizontal overflow. */
 @media (max-width: 767px) {
   .cards {
@@ -214,9 +196,6 @@
 @media (prefers-reduced-motion: reduce) {
   .head,
   .card,
-  .blankLink {
-    animation: none;
-  }
   .card {
     transition: none;
   }

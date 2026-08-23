@@ -1,12 +1,10 @@
 /**
  * Post-login empty-state onboarding surface.
  *
- * Replaces the blank freeform A4 a user would otherwise land on with a clear
- * two-path chooser: the guided step-by-step wizard (`BioCvModal`) or importing
- * an existing CV PDF (`AiCvPanel`). Both actions call the same context handlers
- * the Topbar already uses, so this component owns no flow logic of its own — it
- * is purely the entry-point UI. A tertiary link lets power users skip straight
- * into freeform editing.
+ * Replaces the blank canvas with three entry choices: the guided wizard
+ * (`BioCvModal`), importing an existing CV PDF (`AiCvPanel`), or opening saved
+ * projects (`ModalPdfs`). The component owns no flow logic; callbacks are
+ * supplied by `PdfCanvas`.
  *
  * Visibility is decided by `shouldShowStartChooser` (utils/startChooser.js);
  * this component assumes the caller only mounts it when that returns true.
@@ -59,13 +57,32 @@ function ImportIcon() {
   );
 }
 
+/** Folder glyph for opening the authenticated user's saved projects. */
+function DocumentsIcon() {
+  return (
+    <svg
+      className={classes.icon}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M3 7a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z" />
+      <path d="M3 9h18" />
+    </svg>
+  );
+}
+
 /**
  * @param {object} props
  * @param {() => void} props.onWizard - open the step-by-step wizard (BioCvModal)
  * @param {() => void} props.onImport - open the CV import dialog (AiCvPanel)
- * @param {() => void} props.onBlank  - dismiss into a blank freeform canvas
+ * @param {() => void} props.onDocuments - open the saved-projects modal
  */
-export default function StartChooser({ onWizard, onImport, onBlank }) {
+export default function StartChooser({ onWizard, onImport, onDocuments }) {
   return (
     <div className={classes.overlay} role="region" aria-label="Zacznij nowe CV">
       <div className={classes.inner}>
@@ -109,11 +126,21 @@ export default function StartChooser({ onWizard, onImport, onBlank }) {
             </span>
             <span className={classes.ctaGhost}>Wgraj CV</span>
           </button>
+          <button
+            type="button"
+            className={`${classes.card} ${classes.cardTertiary}`}
+            onClick={onDocuments}
+          >
+            <span className={classes.iconWrap} aria-hidden="true">
+              <DocumentsIcon />
+            </span>
+            <span className={classes.cardTitle}>Moje dokumenty</span>
+            <span className={classes.cardText}>
+              Otwórz zapisane projekty i kontynuuj pracę nad wybranym CV.
+            </span>
+            <span className={classes.ctaGhost}>Otwórz dokumenty</span>
+          </button>
         </div>
-
-        <button type="button" className={classes.blankLink} onClick={onBlank}>
-          albo zacznij od pustej strony
-        </button>
       </div>
     </div>
   );
