@@ -1838,7 +1838,10 @@ function PdfCanvas() {
                         handleShowAiPanel();
                       }}
                       onDocuments={() => {
-                        setStartChooserDismissed(true);
+                        // Keep the chooser mounted behind the documents modal.
+                        // Closing the modal must return the user to the same
+                        // start screen instead of exposing the blank freeform
+                        // canvas.
                         setIsModalPdfs(true);
                       }}
                     />

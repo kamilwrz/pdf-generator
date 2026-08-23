@@ -53,6 +53,10 @@ test("empty-state chooser offers saved documents and shields editor chrome", asy
   assert.match(styles, /position: fixed/);
   assert.match(styles, /grid-template-columns: repeat\(3, 1fr\)/);
   assert.match(canvas, /onDocuments=\{\(\) => \{/);
+  assert.match(
+    canvas,
+    /onDocuments=\{\(\) => \{\s*\/\/ Keep the chooser mounted behind the documents modal\./,
+  );
 });
 
 test("PdfCanvas publishes demo state through the editor context", async () => {
