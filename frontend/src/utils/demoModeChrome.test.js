@@ -55,6 +55,9 @@ test("onboarding uses four data steps and no template carousel", async () => {
   assert.match(wizard, /BIO_CV_ONBOARDING_STEPS/);
   assert.match(wizard, /wizard-conversion/);
   assert.doesNotMatch(wizard, /TemplateCarousel/);
+  assert.match(wizard, /hasAuthenticatedSession = Boolean\(getAccessToken\(\)\)/);
+  assert.match(wizard, /"Utwórz konto i moje CV"/);
+  assert.match(wizard, /"Utwórz moje CV"/);
 });
 
 test("registration and login preserve the demo conversion intent", async () => {

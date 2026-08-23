@@ -157,6 +157,7 @@ export default function BioCvModal({ variant = "full" }) {
     const isDemoConversion = variant === "demo-conversion";
     const wizardSteps = BIO_CV_ONBOARDING_STEPS;
     const finalStep = wizardSteps.length - 1;
+    const hasAuthenticatedSession = Boolean(getAccessToken());
 
     const createApi = useCallback(() => {
         const token = getAccessToken();
@@ -1022,10 +1023,18 @@ export default function BioCvModal({ variant = "full" }) {
             </section>
             <section className={classes.review}>
                 <h3>Wszystko gotowe</h3>
-                <p>Utwórz bezpłatne konto, aby wygenerować CV i przejść do edytora.</p>
-                <p className={classes.inlineHint}>Twoje dane z kreatora zostaną zachowane.</p>
+                <p>
+                    {!hasAuthenticatedSession
+                        ? "Utwórz bezpłatne konto, aby wygenerować CV i przejść do edytora."
+                        : "Wygeneruj swoje CV i przejdź do pełnego edytora."}
+                </p>
+                <p className={classes.inlineHint}>
+                    {!hasAuthenticatedSession
+                        ? "Twoje dane z kreatora zostaną zachowane."
+                        : "Regent zostanie wygenerowany na podstawie wprowadzonych danych."}
+                </p>
                 <button type="button" className={classes.primaryBtn} onClick={handleWizardComplete}>
-                    {getAccessToken() ? "Utwórz moje CV" : "Utwórz konto i moje CV"}
+                    {!hasAuthenticatedSession ? "Utwórz konto i moje CV" : "Utwórz moje CV"}
                 </button>
             </section>
         </div>
