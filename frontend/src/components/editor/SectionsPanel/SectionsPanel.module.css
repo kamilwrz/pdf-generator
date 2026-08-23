@@ -4,7 +4,10 @@
 .panel {
   --panel-pad-x: 12px;
   position: absolute;
-  top: 48px;
+  /* Guest/demo mode adds a normal-flow banner above the topbar. The panel is
+     mounted inside the full-height sidebar, so it needs the same vertical
+     offset to avoid being painted underneath that banner or the topbar. */
+  top: calc(var(--topbar-h) + var(--demo-banner-h, 0px));
   bottom: 0;
   left: 100%;
   width: min(280px, calc(100vw - 72px));

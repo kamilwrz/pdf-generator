@@ -1678,7 +1678,10 @@ function PdfCanvas() {
   });
 
   return (
-    <main className='main-container' onMouseMove={throttledHandleIsActive}>
+    <main
+      className={`main-container ${isDemoContent ? "has-demo-banner" : ""}`}
+      onMouseMove={throttledHandleIsActive}
+    >
 
       <CanvasContext.Provider value={canvasValue}>
         <UiSurfacesContext.Provider value={uiValue}>

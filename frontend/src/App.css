@@ -25,6 +25,13 @@
     position: relative;
  }
 
+/* The guest/demo banner is a 31px flex row above the topbar. Sidebar flyouts
+   are positioned relative to the full-height rail, so expose that row height
+   to panels mounted inside the rail as well. */
+.main-container.has-demo-banner {
+   --demo-banner-h: 31px;
+}
+
  /* Everything right of the full-height sidebar: topbar on top, canvas below. */
  .right-pane {
     flex: 1;
