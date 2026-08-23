@@ -1109,7 +1109,7 @@ export default function BioCvModal({ variant = "full" }) {
                     entitlements={entitlements}
                     fillingId={fillingId}
                     onSelect={handleFill}
-                    visibleCount={3}
+                    visibleCount={5}
                     actionLabel="Utwórz moje CV"
                 />
             </div>

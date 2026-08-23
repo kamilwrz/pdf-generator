@@ -81,6 +81,7 @@ test("guest onboarding uses four steps while authenticated wizard keeps template
   assert.match(wizard, /BIO_CV_ONBOARDING_STEPS/);
   assert.match(wizard, /wizard-conversion/);
   assert.match(wizard, /TemplateCarousel/);
+  assert.match(wizard, /visibleCount=\{5\}/);
   assert.match(wizard, /isGuestOnboarding = variant === "guest-onboarding" \|\| isDemoConversion/);
   assert.match(wizard, /hasAuthenticatedSession = Boolean\(getAccessToken\(\)\)/);
   assert.match(wizard, /"Utwórz konto i moje CV"/);
