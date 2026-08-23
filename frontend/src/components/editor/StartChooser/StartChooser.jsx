@@ -127,6 +127,10 @@ export default function StartChooser({
 
   return (
     <div className={classes.overlay} role="region" aria-label="Zacznij nowe CV">
+      <a href="/" className={classes.brand} aria-label="CV Studio — strona główna">
+        <img src="/cv-studio-mark.svg" alt="" />
+        <span>CV STUDIO</span>
+      </a>
       <div className={classes.inner}>
         <header className={classes.head}>
           <h1 className={classes.title}>Jak chcesz zacząć?</h1>

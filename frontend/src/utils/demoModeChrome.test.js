@@ -51,6 +51,8 @@ test("empty-state chooser offers saved documents and shields editor chrome", asy
   assert.match(chooser, /onDocuments/);
   assert.match(chooser, /onBlank/);
   assert.match(chooser, /onLogout/);
+  assert.match(chooser, /CV STUDIO/);
+  assert.match(chooser, /cv-studio-mark\.svg/);
   assert.match(styles, /position: fixed/);
   assert.match(styles, /grid-template-columns: repeat\(2, minmax\(0, 1fr\)\)/);
   assert.match(canvas, /onDocuments=\{\(\) => \{/);

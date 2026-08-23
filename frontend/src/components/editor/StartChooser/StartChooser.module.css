@@ -13,13 +13,14 @@
   align-items: center;
   justify-content: center;
   padding: 2rem 1.5rem;
-  /* Keep the blank A4 hidden while adding only low-contrast neutral depth. */
+  isolation: isolate;
+  /* The base stops every underlying editor control from showing through. */
   background:
     linear-gradient(
       120deg,
-      rgba(245, 241, 232, 0.98) 0%,
-      rgba(255, 255, 255, 0.96) 46%,
-      rgba(232, 220, 207, 0.92) 100%
+      #f5f1e8 0%,
+      #ffffff 46%,
+      #e8dccf 100%
     );
   overflow: auto;
   z-index: 2000;
@@ -36,22 +37,19 @@
 /* A quiet Swiss grid gives the empty surface structure without competing with
    the primary choices or looking like a decorative illustration. */
 .overlay::before {
-  opacity: 0.5;
+  opacity: 0.42;
   background-image:
     linear-gradient(
       90deg,
-      transparent 0 24.95%,
-      rgba(128, 128, 128, 0.12) 25%,
-      transparent 25.05% 74.95%,
-      rgba(128, 128, 128, 0.12) 75%,
-      transparent 75.05% 100%
+      rgba(128, 128, 128, 0.12) 1px,
+      transparent 1px
     ),
     linear-gradient(
       0deg,
-      transparent 0 49.95%,
-      rgba(128, 128, 128, 0.1) 50%,
-      transparent 50.05% 100%
+      rgba(128, 128, 128, 0.1) 1px,
+      transparent 1px
     );
+  background-size: 96px 96px;
 }
 
 /* Two oversized, muted light fields add depth while remaining below WCAG
@@ -69,6 +67,33 @@
       rgba(255, 255, 255, 0.7),
       transparent 24rem
     );
+}
+
+.brand {
+  position: absolute;
+  top: 1.5rem;
+  left: 2rem;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7rem;
+  color: var(--chrome-ink, #171717);
+  font-family: var(--font-body, "Nunito Sans", sans-serif);
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-decoration: none;
+}
+
+.brand img {
+  width: 42px;
+  height: 42px;
+  object-fit: contain;
+}
+
+.brand:focus-visible {
+  outline: 2px solid var(--chrome-accent, #171717);
+  outline-offset: 5px;
 }
 
 .inner {
@@ -381,6 +406,15 @@
   }
   .inner {
     gap: 2rem;
+  }
+  .brand {
+    top: 1rem;
+    left: 1rem;
+    font-size: 0.9rem;
+  }
+  .brand img {
+    width: 36px;
+    height: 36px;
   }
 }
 
