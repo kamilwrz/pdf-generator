@@ -15,16 +15,11 @@
   padding: 2rem 1.5rem;
   /* Keep the blank A4 hidden while adding only low-contrast neutral depth. */
   background:
-    radial-gradient(
-      circle at 12% 14%,
-      color-mix(in srgb, var(--chrome-surface, #fff) 62%, transparent),
-      transparent 28rem
-    ),
     linear-gradient(
-      135deg,
-      var(--bg-cream, #f7f4ee) 0%,
-      color-mix(in srgb, var(--bg-cream, #f7f4ee) 78%, var(--chrome-surface, #fff)) 52%,
-      var(--bg-cream, #f7f4ee) 100%
+      120deg,
+      rgba(245, 241, 232, 0.98) 0%,
+      rgba(255, 255, 255, 0.96) 46%,
+      rgba(232, 220, 207, 0.92) 100%
     );
   overflow: auto;
   z-index: 2000;
@@ -41,41 +36,38 @@
 /* A quiet Swiss grid gives the empty surface structure without competing with
    the primary choices or looking like a decorative illustration. */
 .overlay::before {
-  opacity: 0.34;
+  opacity: 0.5;
   background-image:
     linear-gradient(
       90deg,
-      transparent 0,
-      transparent calc(25% - 0.5px),
-      color-mix(in srgb, var(--chrome-border, #e2dfd8) 54%, transparent) 25%,
-      transparent calc(25% + 0.5px),
-      transparent calc(75% - 0.5px),
-      color-mix(in srgb, var(--chrome-border, #e2dfd8) 54%, transparent) 75%,
-      transparent calc(75% + 0.5px)
+      transparent 0 24.95%,
+      rgba(128, 128, 128, 0.12) 25%,
+      transparent 25.05% 74.95%,
+      rgba(128, 128, 128, 0.12) 75%,
+      transparent 75.05% 100%
     ),
     linear-gradient(
       0deg,
-      transparent 0,
-      transparent calc(50% - 0.5px),
-      color-mix(in srgb, var(--chrome-border, #e2dfd8) 42%, transparent) 50%,
-      transparent calc(50% + 0.5px)
+      transparent 0 49.95%,
+      rgba(128, 128, 128, 0.1) 50%,
+      transparent 50.05% 100%
     );
 }
 
 /* Two oversized, muted light fields add depth while remaining below WCAG
    content contrast requirements because all text sits above this layer. */
 .overlay::after {
-  opacity: 0.42;
+  opacity: 1;
   background:
     radial-gradient(
       ellipse at 88% 82%,
-      color-mix(in srgb, var(--accent-soft, #ead8c8) 45%, transparent),
-      transparent 24rem
+      rgba(179, 139, 109, 0.18),
+      transparent 26rem
     ),
     radial-gradient(
       ellipse at 52% 0%,
-      color-mix(in srgb, var(--chrome-surface, #fff) 36%, transparent),
-      transparent 22rem
+      rgba(255, 255, 255, 0.7),
+      transparent 24rem
     );
 }
 
