@@ -1,7 +1,7 @@
 """Regenerate frontend template starters from the backend generators.
 
-Uses a shared Julia Bernat demo persona (AML/compliance analyst — three roles,
-one degree, five skills, three languages) so picker previews match
+Uses a shared Julia Bernat demo persona (AML/compliance analyst — four roles,
+two degrees, eight skills, four languages) so picker previews match
 `/ai/fill_template` and follow the generator's SPACE_* rhythm. Field lengths
 track the previous shared demo so page-1 mockups stay full. Starters keep
 page-1 elements only (mockups and the template picker show a single A4). Image
@@ -78,12 +78,27 @@ DEMO_CV = {
                 "Obsługiwała zamówienia i weryfikację danych klientów na rynkach DACH.",
             ],
         },
+        {
+            "title": "Asystentka ds. zgodności",
+            "company": "Northline Operations",
+            "city": "Kraków",
+            "period": "2014 – 2016",
+            "bullets": [
+                "Przygotowywała dokumentację klientów i wspierała kontrole jakości danych.",
+                "Koordynowała odpowiedzi na zapytania operacyjne zespołów sprzedaży i ryzyka.",
+            ],
+        },
     ],
     "education": [
         {
             "degree": "Licencjat Prawa",
             "school": "UW Warszawa",
             "period": "2012 – 2016",
+        },
+        {
+            "degree": "Certyfikat AML Foundations",
+            "school": "ACAMS Academy",
+            "period": "2021",
         },
     ],
     "skills": [
@@ -92,11 +107,15 @@ DEMO_CV = {
         "CDD/EDD",
         "Raporty SAR",
         "Analiza transakcyjna",
+        "Screening PEP",
+        "Sanctions",
+        "SQL",
     ],
     "languages": [
         {"name": "Polski", "level": "ojczysty"},
         {"name": "Angielski", "level": "C1"},
         {"name": "Niemiecki", "level": "B2"},
+        {"name": "Francuski", "level": "A2"},
     ],
 }
 
@@ -127,11 +146,17 @@ COMPACT_DEMO_CV = {
             "bullets": [],
         },
     ],
+    # Keep compact previews representative while reserving enough room for the
+    # template-specific masthead and section chrome on page one.
+    "education": DEMO_CV["education"][:1],
+    "skills": DEMO_CV["skills"][:5],
+    "languages": DEMO_CV["languages"][:3],
 }
 
-# Portico's centered photo masthead is taller; use the compacted bullet set
-# so the picker mockup still shows every section on page 1.
-COMPACT_TEMPLATE_IDS = frozenset({"monument", "portico"})
+# Portico's centered photo masthead is taller, and Volt's denser iconic chrome
+# has a tighter page-one budget; use the compacted bullet set for those previews
+# so the picker mockups still show every section on page 1.
+COMPACT_TEMPLATE_IDS = frozenset({"atrium", "monument", "portico", "volt"})
 
 REGENT_DEMO_CV = {
     "name": "Aleksandra Nowak",
