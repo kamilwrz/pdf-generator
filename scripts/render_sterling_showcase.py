@@ -24,6 +24,7 @@ import regenerate_template_starters as R  # noqa: E402
 
 CV = {
     "name": "Jan Kowalski",
+    "title": "Specjalista ds administracji",
     "email": "jkowalski@wp.pl",
     "phone": "543 555 512",
     "location": "Warszawa",
@@ -93,6 +94,20 @@ CV = {
         {"name": "Angielski", "level": "biegły"},
         {"name": "Francuski", "level": "B2"},
         {"name": "Rosyjski", "level": "komunikatywny"},
+    ],
+    "extra_sections": [
+        {
+            "title": "Zainteresowania",
+            "kind": "interests",
+            "placement": "after_skills",
+            "items": [
+                "Administracja publiczna",
+                "Organizacja pracy urzędu",
+                "Prawo administracyjne",
+                "Archiwizacja dokumentów",
+                "Współpraca międzyinstytucjonalna",
+            ],
+        },
     ],
 }
 
