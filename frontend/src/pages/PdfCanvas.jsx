@@ -657,11 +657,6 @@ function PdfCanvas() {
   const [isConversionLoading, setIsConversionLoading] = useState(false);
   const isDemoContentRef = useRef(isDemoContent);
   isDemoContentRef.current = isDemoContent;
-  // Set once the user dismisses the empty-state onboarding via "start from a
-  // blank page"; keeps the chooser hidden for the rest of the session even
-  // though the canvas is still empty. Session-local only — a fresh document
-  // load starts with the chooser available again.
-  const [startChooserDismissed, setStartChooserDismissed] = useState(false);
   const activeCvDataRef = useRef(activeCvData);
   activeCvDataRef.current = activeCvData;
   const guestFirstEditLoggedRef = useRef(false);
@@ -1741,7 +1736,6 @@ function PdfCanvas() {
     conversionPending,
     isPdfLoading,
     pdfId,
-    dismissed: startChooserDismissed,
   });
 
   return (
@@ -1830,11 +1824,15 @@ function PdfCanvas() {
                   {showStartChooser ? (
                     <StartChooser
                       onWizard={() => {
-                        setStartChooserDismissed(true);
+                        // Keep the chooser behind the modal so cancelling the
+                        // wizard returns to the start screen. A successful
+                        // fill adds canvas elements and hides it naturally.
                         handleShowBioCvModal();
                       }}
                       onImport={() => {
-                        setStartChooserDismissed(true);
+                        // Import follows the same return path as the wizard:
+                        // closing its modal restores the start screen, while a
+                        // successful import replaces the empty workspace.
                         handleShowAiPanel();
                       }}
                       onDocuments={() => {
