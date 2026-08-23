@@ -10,6 +10,9 @@ export const BIO_CV_STEPS = [
     "Wybierz wygląd",
 ];
 
+/** The shorter data-only flow used when converting the interactive demo. */
+export const DEMO_BIO_CV_STEPS = BIO_CV_STEPS.slice(0, 4);
+
 /**
  * Preset chips for the custom-section type picker in the wizard.
  * `kind` is stored on the section; `title` is a sensible default the user can edit.

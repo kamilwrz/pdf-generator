@@ -6,7 +6,7 @@
  */
 import classes from "./DemoBanner.module.css";
 
-export default function DemoBanner({ onUseOwnData, onStartBlank }) {
+export default function DemoBanner({ onUseOwnData }) {
   return (
     <div className={classes.banner} role="status">
       <div className={classes.message}>
@@ -18,9 +18,6 @@ export default function DemoBanner({ onUseOwnData, onStartBlank }) {
       <div className={classes.actions}>
         <button type="button" className={classes.primary} onClick={onUseOwnData}>
           Stwórz moje CV
-        </button>
-        <button type="button" className={classes.link} onClick={onStartBlank}>
-          Zacznij od zera
         </button>
       </div>
     </div>

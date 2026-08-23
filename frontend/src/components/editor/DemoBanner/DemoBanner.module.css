@@ -65,22 +65,6 @@
   white-space: nowrap;
 }
 
-.link {
-  border: none;
-  background: none;
-  padding: 3px 0;
-  color: var(--chrome-muted);
-  font-weight: 600;
-  font-size: 0.73rem;
-  cursor: pointer;
-  text-decoration: none;
-  white-space: nowrap;
-}
-
-.link:hover {
-  color: var(--chrome-ink);
-}
-
 .primary {
   min-height: 24px;
   padding: 0 10px;

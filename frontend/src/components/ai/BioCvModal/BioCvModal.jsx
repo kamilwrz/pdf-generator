@@ -1,11 +1,14 @@
 /**
- * Guided bio/CV wizard with draft autosave and template fill at the end.
+ * Guided bio/CV wizard with draft autosave. The normal variant fills a chosen
+ * template at the end; the demo-conversion variant collects four data steps
+ * and defers Regent generation until after authentication.
  *
  * Authenticated users persist drafts via PUT /ai/bio_cv_draft.
  * Guests persist the same profile to localStorage (`guestWizardDraft.js`).
  * Draft writes are serialised so older responses cannot overwrite newer edits.
  */
 import { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import classes from "./BioCvModal.module.css";
 import { PdfContext } from "../../../store/pdfgenerator-context";
 import { ApiClient, ENDPOINTS } from "../../../services/api";
@@ -32,6 +35,7 @@ import { createSerialSaveQueue } from "../../../utils/serialSaveQueue";
 import {
     applyBioCvDraftUpdate,
     BIO_CV_STEPS,
+    DEMO_BIO_CV_STEPS,
     BIO_CV_SUMMARY_STEP,
     buildBioCvPayload,
     canJumpToBioCvSummary,
@@ -147,7 +151,7 @@ function CompactCard({ title, subtitle, meta, onEdit, onRemove, onMoveUp, onMove
     );
 }
 
-export default function BioCvModal() {
+export default function BioCvModal({ variant = "full" }) {
     const {
         isBioCvModal,
         showBioCvModal,
@@ -157,6 +161,10 @@ export default function BioCvModal() {
         setActiveCvData,
         flowSpacing,
     } = use(PdfContext);
+    const navigate = useNavigate();
+    const isDemoConversion = variant === "demo-conversion";
+    const wizardSteps = isDemoConversion ? DEMO_BIO_CV_STEPS : BIO_CV_STEPS;
+    const finalStep = wizardSteps.length - 1;
 
     const createApi = useCallback(() => {
         const token = getAccessToken();
@@ -292,7 +300,7 @@ export default function BioCvModal() {
         const nextProfile = normalizeBioCvData(draft.profile);
         profileRef.current = nextProfile;
         setProfile(nextProfile);
-        setStep(draft.step ?? 0);
+        setStep(Math.min(Number(draft.step) || 0, finalStep));
         selectedTemplateIdRef.current = draft.selectedTemplateId ?? null;
         setSelectedTemplateId(draft.selectedTemplateId ?? null);
         setEditingKey(null);
@@ -304,7 +312,7 @@ export default function BioCvModal() {
         readyRef.current = true;
         setIsReady(true);
         setIsLoading(false);
-    }, []);
+    }, [finalStep]);
 
     useEffect(() => {
         if (!isBioCvModal) {
@@ -338,7 +346,7 @@ export default function BioCvModal() {
                     const nextProfile = normalizeBioCvData(draft.profile);
                     profileRef.current = nextProfile;
                     setProfile(nextProfile);
-                    setStep(draft.step ?? 0);
+                    setStep(Math.min(Number(draft.step) || 0, finalStep));
                     selectedTemplateIdRef.current = draft.selectedTemplateId ?? null;
                     setSelectedTemplateId(draft.selectedTemplateId ?? null);
                     setLastSavedAt(draft.updatedAt || Date.now());
@@ -373,7 +381,7 @@ export default function BioCvModal() {
                     skipAutosaveRef.current = true;
                     profileRef.current = claim.profile;
                     setProfile(claim.profile);
-                    setStep(claim.adopted ? (claim.step ?? 0) : 0);
+                    setStep(claim.adopted ? Math.min(Number(claim.step) || 0, finalStep) : 0);
                     selectedTemplateIdRef.current = claim.adopted
                         ? (claim.selectedTemplateId ?? null)
                         : null;
@@ -411,7 +419,7 @@ export default function BioCvModal() {
                             const nextProfile = normalizeBioCvData(draft.profile);
                             profileRef.current = nextProfile;
                             setProfile(nextProfile);
-                            setStep(draft.step ?? 0);
+                            setStep(Math.min(Number(draft.step) || 0, finalStep));
                             selectedTemplateIdRef.current = draft.selectedTemplateId ?? null;
                             setSelectedTemplateId(draft.selectedTemplateId ?? null);
                             setLastSavedAt(draft.updatedAt || Date.now());
@@ -434,7 +442,7 @@ export default function BioCvModal() {
         return () => {
             active = false;
         };
-    }, [beginFreshWizard, createApi, isBioCvModal]);
+    }, [beginFreshWizard, createApi, finalStep, isBioCvModal]);
 
     useEffect(() => {
         if (!isReady || !isBioCvModal || resumeDraft) return undefined;
@@ -548,8 +556,8 @@ export default function BioCvModal() {
         setStepError(null);
         setEditingKey(null);
         setShowTypePicker(false);
-        setStep((current) => Math.min(current + 1, BIO_CV_SUMMARY_STEP));
-    }, [profile, step]);
+        setStep((current) => Math.min(current + 1, finalStep));
+    }, [finalStep, profile, step]);
 
     const jumpToSummary = useCallback(() => {
         const error = getBioCvSummaryJumpError(profile);
@@ -566,6 +574,26 @@ export default function BioCvModal() {
     const canJumpSummary = canJumpToBioCvSummary(profile);
     const stepValidationError = validateBioCvStep(step, profile);
     const canGoNext = !stepValidationError;
+
+    const handleDemoConversion = useCallback(() => {
+        const error = validateBioCvStep(step, profile);
+        if (error) {
+            setStepError(error);
+            return;
+        }
+        const payload = buildBioCvPayload(profile);
+        if (!payload.name?.trim()) {
+            setStepError("Podaj imię i nazwisko, aby kontynuować.");
+            return;
+        }
+        saveGuestWizardDraft({
+            step: finalStep,
+            profile: payload,
+            selectedTemplateId: "regent",
+        });
+        localStorage.setItem("cvstudio.demoConversionPending", "1");
+        navigate("/register?start=demo-conversion");
+    }, [finalStep, navigate, profile, step]);
 
     const handleClose = useCallback(async () => {
         if (saveTimer.current) {
@@ -1060,6 +1088,20 @@ export default function BioCvModal() {
         </div>
     );
 
+    const renderDemoExtras = () => (
+        <>
+            {renderExtras()}
+            <section className={classes.review}>
+                <h3>Twoje dane są gotowe</h3>
+                <p>Utwórz bezpłatne konto, aby przenieść dane do CV Studio i kontynuować w edytorze.</p>
+                <p className={classes.inlineHint}>Twoje dane z kreatora zostaną zachowane.</p>
+                <button type="button" className={classes.primaryBtn} onClick={handleDemoConversion}>
+                    Utwórz moje CV
+                </button>
+            </section>
+        </>
+    );
+
     const renderReview = () => (
         <div className={classes.review}>
             <div className={classes.reviewIdentity}>
@@ -1091,15 +1133,12 @@ export default function BioCvModal() {
         </div>
     );
 
-    const content = [
-        renderPersonal,
-        renderExperience,
-        renderEducation,
-        renderExtras,
-        renderReview,
-    ][step]?.();
+    const content = (isDemoConversion
+        ? [renderPersonal, renderExperience, renderEducation, renderDemoExtras]
+        : [renderPersonal, renderExperience, renderEducation, renderExtras, renderReview]
+    )[step]?.();
 
-    const progressPercent = ((step + 1) / BIO_CV_STEPS.length) * 100;
+    const progressPercent = ((step + 1) / wizardSteps.length) * 100;
     const savedClock = formatSavedAt(lastSavedAt);
     const saveStatus = (() => {
         if (isSaving) return "Zapisywanie…";
@@ -1113,7 +1152,7 @@ export default function BioCvModal() {
         return savedClock ? `Zapisano · ${savedClock}` : "Zapisano";
     })();
 
-    const optionalStep = step >= 1 && step <= 3;
+    const optionalStep = step >= 1 && step < finalStep;
 
     if (resumeDraft) {
         return (
@@ -1157,11 +1196,11 @@ export default function BioCvModal() {
             onClose={handleClose}
             variant="fullscreen"
             title="CV Studio"
-            subtitle={`Krok ${step + 1} z ${BIO_CV_STEPS.length} · ${BIO_CV_STEPS[step]}`}
+            subtitle={`Krok ${step + 1} z ${wizardSteps.length} · ${wizardSteps[step]}`}
             footer={(
                 <div className={classes.footer}>
                     <div className={classes.draftState}>
-                        <span>Krok {step + 1} z {BIO_CV_STEPS.length}</span>
+                        <span>Krok {step + 1} z {wizardSteps.length}</span>
                         {saveStatus && <em>{saveStatus}</em>}
                     </div>
                     <div className={classes.footerActions}>
@@ -1207,7 +1246,7 @@ export default function BioCvModal() {
                                 Pomiń ten krok
                             </button>
                         )}
-                        {step < BIO_CV_SUMMARY_STEP && (
+                        {step < finalStep && (
                             <button
                                 type="button"
                                 className={classes.primaryBtn}
@@ -1222,11 +1261,11 @@ export default function BioCvModal() {
             )}
         >
             <div className={classes.wizardInner}>
-                <div className={classes.progressBlock} aria-label={`Krok ${step + 1}: ${BIO_CV_STEPS[step]}`}>
+                <div className={classes.progressBlock} aria-label={`Krok ${step + 1}: ${wizardSteps[step]}`}>
                     <div className={classes.progressMeta}>
-                        <span>{`Krok ${step + 1} z ${BIO_CV_STEPS.length} · ${BIO_CV_STEPS[step]}`}</span>
+                        <span>{`Krok ${step + 1} z ${wizardSteps.length} · ${wizardSteps[step]}`}</span>
                         <span className={classes.progressLabels}>
-                            {BIO_CV_STEPS.map((label, index) => (
+                            {wizardSteps.map((label, index) => (
                                 <button
                                     type="button"
                                     key={label}
@@ -1239,11 +1278,11 @@ export default function BioCvModal() {
                                             setShowTypePicker(false);
                                             return;
                                         }
-                                        if (index === BIO_CV_SUMMARY_STEP && canJumpSummary) {
+                                        if (!isDemoConversion && index === BIO_CV_SUMMARY_STEP && canJumpSummary) {
                                             jumpToSummary();
                                         }
                                     }}
-                                    disabled={index > step && !(index === BIO_CV_SUMMARY_STEP && canJumpSummary)}
+                                    disabled={index > step && !(!isDemoConversion && index === BIO_CV_SUMMARY_STEP && canJumpSummary)}
                                 >
                                     {label}
                                 </button>
@@ -1258,7 +1297,7 @@ export default function BioCvModal() {
                 <section className={classes.body}>
                     <div className={classes.sectionHeading}>
                         <span>Etap {step + 1}</span>
-                        <h3>{BIO_CV_STEPS[step]}</h3>
+                        <h3>{wizardSteps[step]}</h3>
                     </div>
                     {isLoading ? <p className={classes.loading}>Odtwarzanie zapisanego szkicu…</p> : content}
                     {stepError && <div className={classes.error}>{stepError}</div>}

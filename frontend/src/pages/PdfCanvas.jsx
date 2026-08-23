@@ -53,6 +53,7 @@ import { queueGuestEvent, loadGuestEvents, clearGuestEvents } from '../utils/gue
 import { hasGuestWizardDraft } from '../utils/guestWizardDraft';
 import { adoptGuestWizardDraftForAccount } from '../utils/claimGuestWizardDraft';
 import { resolveActiveCvData } from '../utils/resolveActiveCvData';
+import { fillTemplate } from '../services/fillTemplate';
 import { shouldShowStartChooser } from '../utils/startChooser';
 import { previewStructureOperation, reconcileDocumentPages } from '../utils/structureOperation';
 import { visiblePageNumbers } from '../utils/pageSpread';
@@ -137,9 +138,12 @@ function PdfCanvas() {
       || startIntent === "templates"
       || startIntent === "blank"
       || startIntent === "demo"
+      || startIntent === "demo-conversion"
       ? startIntent
       : null,
   );
+  const demoConversionPending = startIntent === "demo-conversion"
+    || localStorage.getItem("cvstudio.demoConversionPending") === "1";
 
   // Toggle this signal after a period of pointer activity so the session check
   // below can detect an expired JWT without issuing a request for every move.
@@ -750,6 +754,7 @@ function PdfCanvas() {
       || startIntent === "templates"
       || startIntent === "blank"
       || startIntent === "demo"
+      || startIntent === "demo-conversion"
     ) {
       return;
     }
@@ -1196,12 +1201,9 @@ function PdfCanvas() {
     // set it again right after a successful fill; every other fresh-start
     // path (blank template, cleared canvas) correctly leaves it cleared.
     setActiveCvData(null);
-    // The canvas is about to hold something other than the demo CV — clear
-    // the flag here, once content is actually replacing it, rather than at
-    // the moment the user merely clicks "Użyj własnych danych". Clearing it
-    // on click (before the wizard runs) left the demo content on screen
-    // with no banner if the wizard was then cancelled, since this is the
-    // only path that actually swaps canvas content.
+    // The canvas is about to hold something other than the demo CV. Clear the
+    // flag only when content actually replaces it; opening the conversion
+    // wizard must leave the demo visible if the visitor cancels.
     setIsDemoContent(false);
     loadDocument();
   }, [confirmDiscardActiveEdits]);
@@ -1334,9 +1336,26 @@ function PdfCanvas() {
     let cancelled = false;
     (async () => {
       try {
-        await adoptGuestWizardDraftForAccount(
+        const claim = await adoptGuestWizardDraftForAccount(
           new ApiClient({ Authorization: `Bearer ${token}` }),
         );
+        if (
+          !cancelled
+          && demoConversionPending
+          && claim.profile
+        ) {
+          // Delay layout generation until authentication succeeds so the demo
+          // never flashes an empty or partially filled authenticated canvas.
+          const response = await fillTemplate(claim.profile, "regent", {
+            errorMessage: "Nie udało się utworzyć Twojego CV.",
+            spacing: flowSpacing,
+          });
+          if (cancelled) return;
+          handleLoadAiElements(response.elements, "Moje CV", "regent");
+          setActiveCvData(claim.profile);
+          localStorage.removeItem("cvstudio.demoConversionPending");
+          queueGuestEvent("demo_conversion_completed");
+        }
       } catch (error) {
         if (!cancelled) {
           // Allow BioCvModal to retry on open; do not clear the guest draft
@@ -1349,7 +1368,7 @@ function PdfCanvas() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [demoConversionPending, flowSpacing, handleLoadAiElements]);
 
   // Load the browser-buffered guest JSON onto the A4 canvas only.
   // Do not call `createPdf` / `POST /pdf/create_pdf` here — that would render
@@ -1447,24 +1466,12 @@ function PdfCanvas() {
     handleClearA4();
   }, [handleClearA4]);
 
-  // Demo-banner actions: both leave demo mode. "Use own data" keeps the
-  // demo content AND banner on screen and opens the bio-CV wizard so the
-  // visitor can replace it in place; the demo flag itself is only cleared in
-  // `startFreshDocument`, once the wizard actually fills a real document —
-  // if the visitor cancels the wizard, the demo CV and its banner are still
-  // there, exactly as before the click. "Start blank" discards the demo
-  // content immediately since it is not a two-step flow that can be
-  // cancelled, mirroring the blank-start effect above.
+  // Keep the demo canvas visible while the visitor enters their data. The
+  // conversion flow saves the profile locally and asks for authentication
+  // only after the visitor has completed the four data steps.
   const handleDemoUseOwnData = useCallback(() => {
     setDialog('bioCv');
   }, []);
-
-  const handleDemoStartBlank = useCallback(() => {
-    setIsDemoContent(false);
-    setEditorMode(EDITOR_MODE_FREEFORM);
-    setActiveTemplateId(null);
-    handleClearA4();
-  }, [handleClearA4, setActiveTemplateId, setEditorMode]);
 
   const canvasValue = useMemo(() => ({
     A4_Elements,
@@ -1692,7 +1699,7 @@ function PdfCanvas() {
               <TemplatesModal />
               <PlanSelectModal />
               <AiCvPanel />
-              <BioCvModal />
+              <BioCvModal variant={isDemoContent ? "demo-conversion" : "full"} />
               <ChangeTemplateModal />
               <UnlockFreeformModal
                 open={isUnlockFreeformModal}
@@ -1748,7 +1755,7 @@ function PdfCanvas() {
               <Editor />
               <div className="right-pane">
                 {isDemoContent ? (
-                  <DemoBanner onUseOwnData={handleDemoUseOwnData} onStartBlank={handleDemoStartBlank} />
+                  <DemoBanner onUseOwnData={handleDemoUseOwnData} />
                 ) : null}
                 <Topbar titleRef={titleRef} />
                 {/* Portal loader: card sits 100px under the live A4 top edge

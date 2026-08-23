@@ -32,6 +32,7 @@ test("demo mode keeps its product-focused banner copy", async () => {
   assert.match(banner, /Wypróbuj CV Studio/);
   assert.match(banner, /Kliknij dowolny tekst/);
   assert.match(banner, /Stwórz moje CV/);
+  assert.doesNotMatch(banner, /Zacznij od zera/);
 });
 
 test("PdfCanvas publishes demo state through the editor context", async () => {
@@ -40,4 +41,26 @@ test("PdfCanvas publishes demo state through the editor context", async () => {
   assert.match(canvas, /isDemoContent,\s*groupMoveDelta/);
   assert.match(canvas, /A4_Elements, isDemoContent, groupMoveDelta/);
   assert.match(canvas, /<DemoBanner onUseOwnData=/);
+  assert.match(canvas, /demo-conversion/);
+  assert.match(canvas, /fillTemplate\(claim.profile, "regent"/);
+});
+
+test("demo conversion uses four data steps and no template carousel", async () => {
+  const data = await source("utils/bioCvData.js");
+  const wizard = await source("components/ai/BioCvModal/BioCvModal.jsx");
+
+  assert.match(data, /DEMO_BIO_CV_STEPS = BIO_CV_STEPS\.slice\(0, 4\)/);
+  assert.match(wizard, /variant = "full"/);
+  assert.match(wizard, /DEMO_BIO_CV_STEPS/);
+  assert.match(wizard, /navigate\("\/register\?start=demo-conversion"\)/);
+});
+
+test("registration and login preserve the demo conversion intent", async () => {
+  const register = await source("pages/Register/Register.jsx");
+  const login = await source("pages/Login/Login.jsx");
+
+  assert.match(register, /"demo-conversion"/);
+  assert.match(register, /przeniesiemy dane z kreatora/);
+  assert.match(login, /"demo-conversion"/);
+  assert.match(login, /utworzymy Twoje CV w Regencie/);
 });

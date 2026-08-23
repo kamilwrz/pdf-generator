@@ -20,7 +20,7 @@ IV.  BUGZ / NEEDED FIXES
 6) Za duze ikony (zmiana kolejnosci, usun, przenies na sidebar / main) i ich background
 7) Lista elementow kontaktowych jest za duza
 8) Zmodyfikowac rodzaj chipsow w szablonach
-9) W sidebarowych szablonach jezyki na 3 nie na 4 kolumny
+9) W sidebarowych szablonach jezyki na 3 nie na 4 kolumny (DONE)
 
 a) Tessera
 - schowanie job position nie powoduje znikniecia prostokata / tla dekoracyjnego (DONE)
