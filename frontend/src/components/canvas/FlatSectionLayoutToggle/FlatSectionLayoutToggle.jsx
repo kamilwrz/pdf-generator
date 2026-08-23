@@ -133,7 +133,7 @@ export default function FlatSectionLayoutToggle({
   const showControl = visible && isExclusiveActive;
 
   return (
-    <div className={classes.anchor} style={anchorStyle}>
+    <div className={classes.anchor} style={anchorStyle} data-editor-control="true">
       {showControl ? (
         // Wrap the lone icon in `.cluster` so it shares the same light surface
         // chip as the section/record hover controls (SectionRecordAdd), keeping

@@ -10,8 +10,18 @@ test("recognizes only A4-page clicks as edit-zoom exit interactions", () => {
   const toolbarTarget = {
     closest: () => null,
   };
+  const canvasEditorControlTarget = {
+    closest: (selector) => (
+      selector === "[data-editor-control]"
+        ? {}
+        : selector === "[data-page-canvas]"
+          ? {}
+          : null
+    ),
+  };
 
   assert.equal(isCanvasInteractionTarget(pageTarget), true);
   assert.equal(isCanvasInteractionTarget(toolbarTarget), false);
+  assert.equal(isCanvasInteractionTarget(canvasEditorControlTarget), false);
   assert.equal(isCanvasInteractionTarget(null), false);
 });

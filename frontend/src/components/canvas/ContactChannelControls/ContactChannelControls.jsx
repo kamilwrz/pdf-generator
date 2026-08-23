@@ -91,6 +91,7 @@ export default function ContactChannelControls({ bandId, chips, inactive }) {
       {hoveredChip ? (
         <div
           className={cluster.anchor}
+          data-editor-control="true"
           style={{ left: hoveredChip.left - buttonSize - gap, top: hoveredChip.top - 1 }}
         >
           <div
@@ -120,7 +121,11 @@ export default function ContactChannelControls({ bandId, chips, inactive }) {
       ) : null}
 
       {lastChip && inactive.length > 0 && bandHover ? (
-        <div className={cluster.anchor} style={{ left: lastChip.left + 44, top: lastChip.top - 1 }}>
+        <div
+          className={cluster.anchor}
+          data-editor-control="true"
+          style={{ left: lastChip.left + 44, top: lastChip.top - 1 }}
+        >
           <div
             className={cluster.cluster}
             style={{ gap }}

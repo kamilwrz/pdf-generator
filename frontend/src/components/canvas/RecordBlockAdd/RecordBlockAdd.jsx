@@ -186,7 +186,7 @@ export default function RecordBlockAdd({
 
   return (
     <>
-      <div className={classes.anchor} style={leftStyle}>
+      <div className={classes.anchor} style={leftStyle} data-editor-control="true">
         {showControls ? (
           <div className={classes.cluster} style={clusterStyle} {...clusterPointerProps}>
             <button
@@ -230,7 +230,7 @@ export default function RecordBlockAdd({
       </div>
 
       {showReorder ? (
-        <div className={classes.anchor} style={rightStyle}>
+        <div className={classes.anchor} style={rightStyle} data-editor-control="true">
           {showControls ? (
             <div className={classes.cluster} style={clusterStyle} {...clusterPointerProps}>
               <button
