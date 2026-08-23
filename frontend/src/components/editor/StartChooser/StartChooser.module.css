@@ -21,11 +21,11 @@
 
 .inner {
   width: 100%;
-  max-width: 760px;
+  max-width: 1280px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2.5rem;
+  gap: 3rem;
 }
 
 .head {
@@ -66,7 +66,8 @@
   flex-direction: column;
   align-items: flex-start;
   gap: 0.6rem;
-  padding: 1.75rem;
+  min-height: 360px;
+  padding: 2rem;
   text-align: left;
   cursor: pointer;
   /* DESIGN.md: sharp 0px corners, surface fill, 1px stroke, subtle shadow. */
@@ -149,7 +150,7 @@
 
 /* Primary CTA: accent fill, sharp edges, no glow (DESIGN.md primary button). */
 .cta {
-  margin-top: 0.6rem;
+  margin-top: auto;
   align-self: stretch;
   text-align: center;
   padding: 0.6rem 1rem;
@@ -163,7 +164,7 @@
 
 /* Secondary CTA: outline/ghost variant. */
 .ctaGhost {
-  margin-top: 0.6rem;
+  margin-top: auto;
   align-self: stretch;
   text-align: center;
   padding: 0.6rem 1rem;

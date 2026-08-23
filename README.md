@@ -581,7 +581,7 @@ In the normal editor, Topbar entry points are **Importuj CV**, **Utwórz CV krok
 Implementation:
 
 - `frontend/src/components/editor/StartChooser/StartChooser.jsx` — the four-card onboarding surface; props `onWizard` / `onImport` / `onDocuments` / `onBlank` / `onLogout`
-- `frontend/src/components/editor/StartChooser/StartChooser.module.css` — Swiss/grid styling with a fixed chrome-shielding overlay, four-card grid, mobile single-column collapse, and bottom-left logout control
+- `frontend/src/components/editor/StartChooser/StartChooser.module.css` — Swiss/grid styling with a fixed chrome-shielding overlay, wide four-card grid, equal-height cards with bottom-aligned CTAs, mobile single-column collapse, and bottom-left logout control
 - `frontend/src/utils/startChooser.js`, function `shouldShowStartChooser` — pure visibility gate for an empty unsaved workspace (not demo/loading/conversion/dismissed)
 - `frontend/src/pages/PdfCanvas.jsx` — `showStartChooser` computed via the helper, renders `<StartChooser>` inside `.canvas-area` wired to wizard/import/documents/freeform/logout handlers; opening the three modals leaves the chooser active so closing them returns to this screen
 - `frontend/src/components/ai/BioCvModal/BioCvModal.jsx` and `frontend/src/pages/PdfCanvas.jsx` — guest wizard data is adopted only during the explicit registration-conversion URL flow; an existing account login or a later wizard opening never claims a browser-local draft
@@ -2436,7 +2436,7 @@ W zwykłym edytorze wejścia w topbarze to **Importuj CV**, **Utwórz CV krok po
 Implementacja:
 
 - `frontend/src/components/editor/StartChooser/StartChooser.jsx` — powierzchnia onboardingu z czterema kartami; propsy `onWizard` / `onImport` / `onDocuments` / `onBlank` / `onLogout`
-- `frontend/src/components/editor/StartChooser/StartChooser.module.css` — styl Swiss/grid z fixed overlay zasłaniającym chrome, czterema kartami, układem jednej kolumny na mobile i ikoną wylogowania w lewym dolnym rogu
+- `frontend/src/components/editor/StartChooser/StartChooser.module.css` — styl Swiss/grid z fixed overlay zasłaniającym chrome, szerokim gridem czterech kart, kartami o równej wysokości z przyciskami wyrównanymi do dołu, układem jednej kolumny na mobile i ikoną wylogowania w lewym dolnym rogu
 - `frontend/src/utils/startChooser.js`, funkcja `shouldShowStartChooser` — czysta bramka widoczności pustego niezapisanego workspace (nie demo/ładowanie/konwersja/odrzucony)
 - `frontend/src/pages/PdfCanvas.jsx` — `showStartChooser` liczone przez helper, render `<StartChooser>` w `.canvas-area` podpięty do handlerów kreatora/importu/dokumentów/freeform/wylogowania; otwarcie dowolnego z trzech modali pozostawia ekran aktywny, więc zamknięcie modalu wraca do tego ekranu
 - `frontend/src/components/ai/BioCvModal/BioCvModal.jsx` i `frontend/src/pages/PdfCanvas.jsx` — dane gościa są przenoszone wyłącznie w jawnej ścieżce rejestracji z parametrem konwersji; zwykłe logowanie istniejącego konta ani późniejsze otwarcie kreatora nie przejmuje lokalnego draftu z przeglądarki
