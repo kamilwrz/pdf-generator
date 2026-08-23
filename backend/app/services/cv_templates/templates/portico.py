@@ -53,7 +53,7 @@ def _gen_portico(cv: dict) -> list[dict]:
 
     name = _compact_text(cv.get('name'), 32)
     title = _compact_text(cv.get('title'), 56)
-    name_fs, name_lh = (29, 12)
+    name_fs, name_lh = (29, 33)
     title_fs, title_lh = (10, 12)
     # Centered portrait-aspect photo well — empty in the editor; gallery click
     # fills it. Taller than wide (not a square crop) so a normal headshot

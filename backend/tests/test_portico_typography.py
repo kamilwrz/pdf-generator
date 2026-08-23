@@ -69,6 +69,11 @@ class PorticoTypographyTests(unittest.TestCase):
             element for element in text_elements
             if element.get("flowRole") not in {"section-chrome", "masthead-anchor"}
         ]
+        body_textareas = [
+            element for element in content_elements
+            if element.get("category") == "textarea"
+            and element.get("flowRole") != "masthead"
+        ]
 
         self.assertTrue(section_labels)
         self.assertTrue(content_elements)
@@ -76,9 +81,10 @@ class PorticoTypographyTests(unittest.TestCase):
         self.assertTrue(all(element["fontFamily"] == "Montserrat" for element in content_elements))
         self.assertTrue(all(
             element.get("lineHeight") == 12
-            for element in content_elements
-            if element.get("category") == "textarea"
+            for element in body_textareas
         ))
+        name = next(element for element in content_elements if element.get("content") == "Anna Kowalska")
+        self.assertEqual(name["lineHeight"], 33)
 
 
 if __name__ == "__main__":
