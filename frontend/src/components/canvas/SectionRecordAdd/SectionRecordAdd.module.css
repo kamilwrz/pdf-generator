@@ -19,10 +19,10 @@
        and the tinted sidebar rail, per the reported visibility issue. Follows
        the Swiss card tokens from DESIGN.md: white surface, 1px hairline grey
        stroke, subtle sharp shadow, 0px corner radius. */
-    padding: 3px 5px;
+    padding: 2px 3px;
     background: #FFFFFF;
-    border: 1px solid rgba(128, 128, 128, 0.28);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.10);
+    border: 1px solid rgba(128, 128, 128, 0.2);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
     pointer-events: auto;
 }
 
@@ -41,10 +41,10 @@
     padding: 0;
     border: none;
     background: transparent;
-    color: #5B5B55;
+    color: #6B6B66;
     cursor: pointer;
     pointer-events: auto;
-    transition: color .12s;
+    transition: color .2s, opacity .2s;
 }
 
 .plus svg,
@@ -57,7 +57,7 @@
 
 .plus:hover,
 .arrow:hover:not(:disabled) {
-    color: #1b1b1b;
+    color: #2B2B2B;
 }
 
 .trash {

@@ -65,7 +65,7 @@ export default function MastheadIdentityControls({ band }) {
     <>
       {/* Name case toggle: sits just left of the name line. */}
       {hover === "name" ? (
-        <div className={cluster.anchor}
+        <div className={cluster.anchor} data-editor-control="true"
              style={{ left: band.name.left - buttonSize - gap, top: band.name.top - 1 }}>
           <div className={cluster.cluster} style={{ gap }}
                onPointerEnter={() => { clearHide(); setHover("name"); }}
@@ -83,7 +83,7 @@ export default function MastheadIdentityControls({ band }) {
 
       {/* Title hide: sits just left of the title line. */}
       {hover === "title" && band.title ? (
-        <div className={cluster.anchor}
+        <div className={cluster.anchor} data-editor-control="true"
              style={{ left: band.title.left - buttonSize - gap, top: band.title.top - 1 }}>
           <div className={cluster.cluster} style={{ gap }}
                onPointerEnter={() => { clearHide(); setHover("title"); }}
@@ -100,7 +100,7 @@ export default function MastheadIdentityControls({ band }) {
 
       {/* Add-title "+": shown when the title is hidden, next to the name. */}
       {!band.titlePresent ? (
-        <div className={cluster.anchor} style={{ left: band.name.left + 44, top: band.name.top - 1 }}>
+        <div className={cluster.anchor} data-editor-control="true" style={{ left: band.name.left + 44, top: band.name.top - 1 }}>
           <div className={cluster.cluster} style={{ gap }}>
             <button type="button" className={cluster.plus} style={buttonStyle}
                     aria-label="Dodaj stanowisko" title="Dodaj stanowisko"
