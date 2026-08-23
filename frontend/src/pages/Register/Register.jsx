@@ -92,9 +92,12 @@ export default function Register() {
             );
             if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
             queueGuestEvent("register_completed");
-            // Preserve the landing-page choice through account creation so the
-            // first authenticated screen opens the import panel or CV wizard.
-            const loginPath = startIntent ? `/login?start=${startIntent}` : "/login";
+            // `wizard-conversion` represents a completed guest wizard and must
+            // survive authentication. Plain `wizard` only opens the entry
+            // wizard, so carrying it through auth would reopen the same form
+            // after login instead of showing the authenticated editor.
+            const authIntent = startIntent === "wizard" ? null : startIntent;
+            const loginPath = authIntent ? `/login?start=${authIntent}` : "/login";
             navigate(loginPath, { replace: true });
         } catch (err) {
             if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
@@ -230,7 +233,7 @@ export default function Register() {
                         </button>
                     </form>
                     <p className={classes.linkWrapper}>
-                        Masz już konto? <Link to={startIntent ? `/login?start=${startIntent}` : "/login"}>Zaloguj się</Link>
+                        Masz już konto? <Link to={startIntent && startIntent !== "wizard" ? `/login?start=${startIntent}` : "/login"}>Zaloguj się</Link>
                     </p>
                 </div>
             </section>

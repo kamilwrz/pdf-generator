@@ -64,7 +64,9 @@ test("registration and login preserve the demo conversion intent", async () => {
   assert.match(register, /"demo-conversion"/);
   assert.match(register, /"wizard-conversion"/);
   assert.match(register, /przeniesiemy dane z kreatora/);
+  assert.match(register, /startIntent === "wizard" \? null : startIntent/);
   assert.match(login, /"demo-conversion"/);
   assert.match(login, /"wizard-conversion"/);
   assert.match(login, /utworzymy Twoje CV w Regencie/);
+  assert.match(login, /startIntent === "wizard" \? null : startIntent/);
 });

@@ -86,9 +86,10 @@ export default function Login() {
             // Persist the handle used for `/cvstudio/{username}` so deep links
             // match the account without waiting for a JWT decode on remount.
             setSessionUsername(sessionUsername);
-            // The landing CTA's chosen path remains intact for existing users
-            // and for users who registered immediately before signing in.
-            navigate(getEditorPath({ start: startIntent }), { replace: true });
+            // A completed wizard uses `wizard-conversion`; plain `wizard` is
+            // only an entry intent and must not reopen the form after auth.
+            const editorIntent = startIntent === "wizard" ? null : startIntent;
+            navigate(getEditorPath({ start: editorIntent }), { replace: true });
         } catch (err) {
             if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
             setError(err.message || "Logowanie nie powiodło się");
@@ -196,7 +197,7 @@ export default function Login() {
                         </button>
                     </form>
                     <p className={classes.linkWrapper}>
-                        Nowy użytkownik? <Link to={startIntent ? `/register?start=${startIntent}` : "/register"}>Utwórz konto</Link>
+                        Nowy użytkownik? <Link to={startIntent && startIntent !== "wizard" ? `/register?start=${startIntent}` : "/register"}>Utwórz konto</Link>
                     </p>
                 </div>
             </section>
