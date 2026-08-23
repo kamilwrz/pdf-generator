@@ -23,6 +23,7 @@ from app.models.models import Pdf, Plan, UsageCounter, User, UserSubscription
 # frontend/src/templates/index.js. Enforced by tests/test_template_registry_sync.py.
 FREE_STARTER_TEMPLATE_IDS: tuple[str, ...] = (
     "regent",
+    "sterling",
 )
 
 # Length of a paid Pro activation window (one-shot pass, not auto-renew).

@@ -786,14 +786,14 @@ Known limitation: long user-provided section names are shortened only inside the
 
 ### Regent executive editorial template
 
-Regent is a paid monochrome single-column template (`layouts: ["single", "icons"]`) for executives and consultants. It uses only white, charcoal, and neutral grey. A 38 px Cormorant Garamond name establishes the masthead, a widely tracked Montserrat role line keeps the hierarchy disciplined, and a centered band of small phone, email, LinkedIn, and location icons remains understated.
+Regent is a free monochrome single-column template (`layouts: ["single", "icons"]`) for executives and consultants. It uses only white, charcoal, and neutral grey. A 38 px Cormorant Garamond name establishes the masthead, a widely tracked Montserrat role line keeps the hierarchy disciplined, and a centered band of small phone, email, LinkedIn, and location icons remains understated.
 
 Its defining choice is a 9.5 px Montserrat professional summary with an 11 px line height, matching the compact 11 px leading and face used by job and degree lines, record descriptions, education copy, skills, and languages. The serif display face stays on the masthead name. Only the smaller metadata rows keep their own line metric. This keeps imported multi-sentence summaries compact and lets experience, education, skills, and languages share an A4 page. Each section has a letter-spaced uppercase label and a 0.8 px grey hairline. The deterministic Python generator preserves these metrics for imported and user-authored CVs.
 
 Implementation:
 
 - `frontend/src/templates/regent.js`, exported `regentTemplate` — editable A4 starter, contact icon pairs, and monochrome section chrome
-- `frontend/src/templates/index.js`, registry entry `regent` (`tier: "paid"`, `layouts: ["single", "icons"]`)
+- `frontend/src/templates/index.js`, registry entry `regent` (`tier: "free"`, `layouts: ["single", "icons"]`)
 - `backend/app/services/cv_templates/templates/regent.py`, function `_gen_regent` — deterministic content layout and continuation-page decorations
 - `backend/app/services/cv_templates/registry.py`, `TEMPLATE_LAYOUTS["regent"]` and `_GENERATORS["regent"]`
 
@@ -1008,7 +1008,7 @@ Tests:
 - `frontend/src/templates/atrium.pack.test.js` (with `atrium.multipage.fixture.json`) — a real two-page Atrium document: every section heading stays glued to its own body through `listDocumentSections` / `sectionElementIds` and after `applyFlowSpacing` at both the default and a compact rhythm (regression guard for the reported "headings detach + spacing scrambles the layout" bug)
 - `backend/tests/test_cv_template_layouts.py` and `backend/tests/test_template_registry_sync.py` iterate every registered generator, so Atrium is covered for summary-equals-body type size, page bounds, and frontend/backend id / layout-tag / tier parity without a dedicated entry
 
-### Sterling wide-sidebar elegant template
+### Sterling wide-sidebar elegant free template
 
 Sterling is a paid, two-column template (`layouts: ["sidebar"]`) with a quiet blue-gray (`#4A6FA5` accent, `#26313F` ink, `#F7F8FA` paper) palette. Its brief is a **centered letterhead masthead** — serif (`CormorantGaramond`) display name, tracked uppercase title, an **icon-based contact row** — sitting on a **full-width tinted "letterhead band"** (a `595`-pt-wide filled rectangle in the rail tint `#EDF1F6`, from the top of the page down to the masthead rule, `repeatOnContinuation: false`) and closed by a **horizontal rule spanning both columns**. The **rail fill and vertical divider are full page height** on every page so live canvas overflow / section-transfer clones copy a single vertical strip onto page 2 — never the letterhead top bar. On page 1 the band sits at a higher z-index and covers the divider through the centered masthead (name/title/contact cross `x = 210`). Reusing the rail tint makes the top band and the left rail read as one continuous field. Below the masthead rule the page splits into a wide sidebar (`210` pt) and the main column; **which section lands in which column is decided by a balance-driven planner** (described next), not a fixed rule. One rule color (`#C7CFDA`) is reused for the masthead underline, the sidebar divider, and every main-column section rule, so the page reads as one coherent system rather than several separately-styled dividers — the "harmonijny" (harmonious) brief was explicit about this. Continuation pages carry no masthead / letterhead band — only the full-height rail, divider, and page number.
 
@@ -1479,7 +1479,7 @@ Two-tier catalog only:
 | | Darmowy (Free) | Pro |
 |--|--|--|
 | Price | 0 zł | **59 zł / 30 days** (one-shot pass, not auto-renew) |
-| Templates | 1 starter (Regent) | all 11 |
+| Templates | 2 starters (Regent, Sterling) | all 11 |
 | Import | 1 lifetime free | further imports from AI credits |
 | Export | watermarked | clean PDF |
 | AI | — | content + ATS + Layout |
@@ -3316,7 +3316,7 @@ Katalog ma tylko dwa pakiety:
 | | Darmowy (Free) | Pro |
 |--|--|--|
 | Cena | 0 zł | **59 zł / 30 dni** (jednorazowy pass, bez auto-odnawiania) |
-| Szablony | 1 startowy (Regent) | wszystkie 11 |
+| Szablony | 2 startowe (Regent, Sterling) | wszystkie 11 |
 | Import | 1 darmowy w życiu konta | kolejne z puli kredytów AI |
 | Eksport | ze znakiem wodnym | czysty PDF |
 | AI | — | treść + ATS + Układ |
