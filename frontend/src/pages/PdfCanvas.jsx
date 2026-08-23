@@ -1739,7 +1739,6 @@ function PdfCanvas() {
     elementsCount: A4_Elements.length,
     isDemoContent,
     conversionPending,
-    isAuthenticated: Boolean(getAccessToken()),
     isPdfLoading,
     pdfId,
     dismissed: startChooserDismissed,
