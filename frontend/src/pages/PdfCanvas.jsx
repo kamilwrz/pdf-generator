@@ -649,7 +649,11 @@ function PdfCanvas() {
   // before they register. A 2s settle debounce mirrors the editing cadence.
   // Skipped once a real pdfId exists: from that point the document is a saved
   // account document, updated only by an explicit "Zapisz".
-  const [isDemoContent, setIsDemoContent] = useState(startIntent === "demo");
+  const [isDemoContent, setIsDemoContent] = useState(() => {
+    if (startIntent === "demo") return true;
+    if (getAccessToken() || initialStartIntentRef.current) return false;
+    return Boolean(loadGuestDocument()?.isDemoContent);
+  });
   const [isConversionLoading, setIsConversionLoading] = useState(false);
   const isDemoContentRef = useRef(isDemoContent);
   isDemoContentRef.current = isDemoContent;
@@ -1320,6 +1324,40 @@ function PdfCanvas() {
   const claimOfferedRef = useRef(false);
   const pendingGuestDocRef = useRef(null);
   const wizardDraftAdoptedRef = useRef(false);
+  const demoGuestRestoredRef = useRef(false);
+
+  // The demo and the legacy guest editor share `/cvstudio/guest`. The URL alone
+  // cannot identify which surface was active, so restore the persisted demo
+  // snapshot before the empty-state chooser can classify the page as legacy
+  // guest onboarding. A direct `?start=demo` intentionally skips this restore
+  // and loads a fresh Regent starter instead.
+  useEffect(() => {
+    if (demoGuestRestoredRef.current || getAccessToken() || initialStartIntentRef.current) return;
+    const guestDoc = loadGuestDocument();
+    if (
+      !guestDoc?.isDemoContent
+      || !Array.isArray(guestDoc.elements)
+      || guestDoc.elements.length === 0
+    ) return;
+
+    demoGuestRestoredRef.current = true;
+    setA4_Elements(guestDoc.elements);
+    setA4_Elements_deleted(Array.isArray(guestDoc.deletedIds) ? guestDoc.deletedIds : []);
+    resetHistory();
+    hydrateDocumentMode(guestDoc.elements, guestDoc);
+    setPageCount(guestDoc.pageCount || 1);
+    setCurrentPage(guestDoc.currentPage || 1);
+    setIsDemoContent(true);
+    if (titleRef.current && guestDoc.title) titleRef.current.value = guestDoc.title;
+  }, [
+    hydrateDocumentMode,
+    resetHistory,
+    setA4_Elements,
+    setA4_Elements_deleted,
+    setCurrentPage,
+    setPageCount,
+  ]);
+
   useEffect(() => {
     if (claimOfferedRef.current) return;
     const token = localStorage.getItem("token");
@@ -1701,6 +1739,7 @@ function PdfCanvas() {
     elementsCount: A4_Elements.length,
     isDemoContent,
     conversionPending,
+    isAuthenticated: Boolean(getAccessToken()),
     isPdfLoading,
     pdfId,
     dismissed: startChooserDismissed,

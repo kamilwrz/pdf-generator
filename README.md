@@ -582,7 +582,7 @@ Implementation:
 
 - `frontend/src/components/editor/StartChooser/StartChooser.jsx` — the two-card onboarding surface; props `onWizard` / `onImport` / `onBlank`
 - `frontend/src/components/editor/StartChooser/StartChooser.module.css` — Swiss/grid styling (sharp corners, chrome tokens, staggered entry, mobile single-column collapse)
-- `frontend/src/utils/startChooser.js`, function `shouldShowStartChooser` — pure visibility gate (empty + unsaved + not demo/loading/conversion/dismissed)
+- `frontend/src/utils/startChooser.js`, function `shouldShowStartChooser` — pure guest-only visibility gate (empty + unsaved + not authenticated/demo/loading/conversion/dismissed)
 - `frontend/src/pages/PdfCanvas.jsx` — `startChooserDismissed` state, `showStartChooser` computed via the helper, renders `<StartChooser>` inside `.canvas-area` wired to `handleShowBioCvModal` / `handleShowAiPanel`
 - `frontend/src/App.css`, `.canvas-area` — `position: relative` so the overlay fills the scroll region
 
@@ -626,6 +626,7 @@ Implementation:
 - `frontend/src/pages/PdfCanvas.jsx`, lines 515–566 — guest autosave effect (`guestFirstEditLoggedRef`, `guestEditorOpenedLoggedRef`); opening the wizard leaves the demo visible, while `startFreshDocument` and the authenticated conversion handoff clear `isDemoContent`
 - `frontend/src/pages/PdfCanvas.jsx`, conversion handoff effect — after demo wizard authentication, Regent generation also clears `isDemoContent`, restoring the full Topbar and Sidebar immediately
 - `frontend/src/pages/PdfCanvas.jsx`, `isConversionLoading` — suppresses the empty-state chooser and displays the existing canvas loader until the adopted profile has produced the first Regent layout
+- `frontend/src/pages/PdfCanvas.jsx`, demo snapshot restore — distinguishes the new Regent demo from legacy guest onboarding on refresh by restoring `guestDocument.isDemoContent` before rendering the chooser
 - `frontend/src/pages/PdfCanvas.jsx`, conversion detection — an authenticated meaningful guest wizard draft also starts the handoff when an older session lost its auxiliary intent marker
 - `frontend/src/pages/Register/Register.jsx` and `frontend/src/pages/Login/Login.jsx` — consume plain `start=wizard` after authentication so the entry wizard cannot reopen; completed `wizard-conversion` and `demo-conversion` intents remain preserved
 - `frontend/src/components/ai/BioCvModal/BioCvModal.jsx` — the final wizard action reads the real access token: guests see the registration handoff, while authenticated users see only **Utwórz moje CV**
@@ -2435,7 +2436,7 @@ Implementacja:
 
 - `frontend/src/components/editor/StartChooser/StartChooser.jsx` — powierzchnia onboardingu z dwiema kartami; propsy `onWizard` / `onImport` / `onBlank`
 - `frontend/src/components/editor/StartChooser/StartChooser.module.css` — styl Swiss/grid (ostre rogi, tokeny chrome, kaskadowe wejście, zwijanie do jednej kolumny na mobile)
-- `frontend/src/utils/startChooser.js`, funkcja `shouldShowStartChooser` — czysta bramka widoczności (pusty + niezapisany + nie demo/ładowanie/konwersja/odrzucony)
+- `frontend/src/utils/startChooser.js`, funkcja `shouldShowStartChooser` — czysta bramka widoczności tylko dla gościa (pusty + niezapisany + nie zalogowany/demo/ładowanie/konwersja/odrzucony)
 - `frontend/src/pages/PdfCanvas.jsx` — stan `startChooserDismissed`, `showStartChooser` liczone przez helper, render `<StartChooser>` w `.canvas-area` podpięty do `handleShowBioCvModal` / `handleShowAiPanel`
 - `frontend/src/App.css`, `.canvas-area` — `position: relative`, aby overlay wypełniał obszar przewijania
 

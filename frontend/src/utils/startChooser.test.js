@@ -36,6 +36,13 @@ describe("shouldShowStartChooser", () => {
     );
   });
 
+  it("does not show guest onboarding for an authenticated workspace", () => {
+    assert.equal(
+      shouldShowStartChooser({ ...freshEmptyDoc, isAuthenticated: true }),
+      false,
+    );
+  });
+
   it("hides while a document is loading or saving", () => {
     assert.equal(
       shouldShowStartChooser({ ...freshEmptyDoc, isPdfLoading: true }),

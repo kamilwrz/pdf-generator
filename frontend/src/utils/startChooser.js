@@ -12,8 +12,9 @@
 /**
  * Whether to show the start chooser for the current canvas state.
  *
- * Shown only for a genuinely fresh, unsaved, empty document — right after
- * login or on a brand-new project. It deliberately does NOT reappear when a
+ * Shown only for a genuinely fresh, unsaved, empty guest document. Authenticated
+ * users use the full editor entry points instead of this guest onboarding
+ * surface. It deliberately does NOT reappear when a
  * user empties an already-saved CV mid-session (`pdfId` is set once the
  * document has been persisted), during a wizard-to-editor handoff, over the
  * guest demo, or mid-load.
@@ -22,6 +23,7 @@
  * @param {number} state.elementsCount - number of elements on the canvas
  * @param {boolean} state.isDemoContent - true while the guest demo CV is loaded
  * @param {boolean} state.conversionPending - true while wizard data is becoming a CV
+ * @param {boolean} state.isAuthenticated - true when a valid access token is present
  * @param {boolean} state.isPdfLoading - true while a document is loading/saving
  * @param {number|string|null|undefined} state.pdfId - persisted document id, null/undefined until first save
  * @param {boolean} state.dismissed - true once the user chose "start from a blank page"
@@ -31,11 +33,13 @@ export function shouldShowStartChooser({
   elementsCount,
   isDemoContent,
   conversionPending,
+  isAuthenticated,
   isPdfLoading,
   pdfId,
   dismissed,
 } = {}) {
   if (dismissed) return false;
+  if (isAuthenticated) return false;
   if (isDemoContent) return false;
   if (conversionPending) return false;
   if (isPdfLoading) return false;

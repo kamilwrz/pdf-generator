@@ -49,6 +49,8 @@ test("PdfCanvas publishes demo state through the editor context", async () => {
   assert.match(canvas, /A4_Elements, isDemoContent, groupMoveDelta/);
   assert.match(canvas, /<DemoBanner onUseOwnData=/);
   assert.match(canvas, /demo-conversion/);
+  assert.match(canvas, /loadGuestDocument\(\)\?\.isDemoContent/);
+  assert.match(canvas, /demoGuestRestoredRef/);
   assert.match(canvas, /fillTemplate\(claim.profile, "regent"/);
   assert.match(canvas, /handleLoadAiElements\(response.elements, "Moje CV", "regent"\);\s*\/\/ The generated CV is now an authenticated document[\s\S]*setIsDemoContent\(false\)/);
 });
