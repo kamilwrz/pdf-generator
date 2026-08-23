@@ -194,7 +194,9 @@ def _gen_sterling(cv: dict) -> list[dict]:
     # candidates (`test_summary_matches_experience_body_type_size`).
     SIDE_SUMMARY_FS, SIDE_SUMMARY_LH = (8.3, 12.04)
     CHROME_GAP = KICKER_FS * 1.2 + 5.0 + 1.4 + 10.0
-    HEADING_FS = 14.0
+    # Main-column section labels use a compact 12px scale; sidebar kickers
+    # intentionally keep their separate, smaller typography.
+    HEADING_FS = 12.0
     SECTION_CHROME = HEADING_FS * 1.05 + 6.0 + 1.0 + get_spacing().after_rule
     TITLE_FS2, TITLE_LH2 = (11.2, 14.0)
     META_FS, META_LH = (8.6, 11.8)

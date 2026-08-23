@@ -612,7 +612,7 @@ const STERLING_ELEMENTS = [
   {
     "category": "text",
     "content": "DOŚWIADCZENIE ZAWODOWE",
-    "fontSize": 14.0,
+    "fontSize": 12.0,
     "fontFamily": "Montserrat",
     "color": "#26313F",
     "left": 245.0,
