@@ -6,6 +6,11 @@
  * should restore the user's pre-edit zoom.
  */
 export function isCanvasInteractionTarget(target) {
+  // Dragging across an active edit surface is text selection, not navigation
+  // to another canvas element. The native selection gesture starts with a
+  // pointerdown and ends later, so deciding from the eventual mouseup would
+  // be too late to prevent the blur-driven zoom restore.
+  if (target?.closest?.('[contenteditable="true"], textarea')) return false;
   // Section and record affordances are mounted over the A4 page, but they are
   // editor chrome. Clicking their icons must not end edit-zoom; only a click
   // on the document surface or another document element should do that.
