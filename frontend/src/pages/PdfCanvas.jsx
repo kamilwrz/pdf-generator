@@ -1356,6 +1356,10 @@ function PdfCanvas() {
           });
           if (cancelled) return;
           handleLoadAiElements(response.elements, "Moje CV", "regent");
+          // The generated CV is now an authenticated document. Clear the
+          // presentation-only demo flag so the full editor chrome becomes
+          // available immediately after the handoff.
+          setIsDemoContent(false);
           setActiveCvData(claim.profile);
           localStorage.removeItem("cvstudio.wizardConversionPending");
           localStorage.removeItem("cvstudio.demoConversionPending");

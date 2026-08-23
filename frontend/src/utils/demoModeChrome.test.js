@@ -43,6 +43,7 @@ test("PdfCanvas publishes demo state through the editor context", async () => {
   assert.match(canvas, /<DemoBanner onUseOwnData=/);
   assert.match(canvas, /demo-conversion/);
   assert.match(canvas, /fillTemplate\(claim.profile, "regent"/);
+  assert.match(canvas, /handleLoadAiElements\(response.elements, "Moje CV", "regent"\);\s*\/\/ The generated CV is now an authenticated document[\s\S]*setIsDemoContent\(false\)/);
 });
 
 test("onboarding uses four data steps and no template carousel", async () => {
