@@ -233,7 +233,7 @@ export default function Register() {
                         </button>
                     </form>
                     <p className={classes.linkWrapper}>
-                        Masz już konto? <Link to={startIntent && startIntent !== "wizard" ? `/login?start=${startIntent}` : "/login"}>Zaloguj się</Link>
+                        Masz już konto? <Link to={startIntent === "demo-conversion" || startIntent === "wizard-conversion" || startIntent === "wizard" ? "/login" : (startIntent ? `/login?start=${startIntent}` : "/login")}>Zaloguj się</Link>
                     </p>
                 </div>
             </section>

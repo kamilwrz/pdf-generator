@@ -23,7 +23,6 @@ import {
 } from "../../../utils/authSession";
 import { selectCvTemplates } from "../../../utils/cvTemplateSelection";
 import { isTemplateAllowed, planErrorMessage } from "../../../utils/entitlements";
-import { adoptGuestWizardDraftForAccount } from "../../../utils/claimGuestWizardDraft";
 import {
     clearGuestWizardDraft,
     hasGuestWizardDraft,
@@ -368,33 +367,13 @@ export default function BioCvModal({ variant = "full" }) {
         setProfile(createEmptyBioCvData());
         setStep(0);
 
-        // Demo/guest wizard data must survive register/login into Free (and
-        // future paid) accounts. Adopt localStorage into `/ai/bio_cv_draft`
-        // when the account draft is empty; never overwrite a filled account
-        // draft. Do not clear the guest snapshot before this runs.
+        // Authenticated wizard sessions always read the current account draft.
+        // A browser guest snapshot is adopted only by PdfCanvas after the
+        // explicit registration conversion intent, never merely because a
+        // different user later opens this wizard on the same device.
         (async () => {
             try {
                 const api = createApi();
-                const claim = await adoptGuestWizardDraftForAccount(api);
-                if (!active) return;
-
-                if (claim.profile && (claim.adopted || claim.serverChecked)) {
-                    skipAutosaveRef.current = true;
-                    profileRef.current = claim.profile;
-                    setProfile(claim.profile);
-                    setStep(claim.adopted ? Math.min(Number(claim.step) || 0, finalStep) : 0);
-                    selectedTemplateIdRef.current = claim.adopted
-                        ? (claim.selectedTemplateId ?? null)
-                        : null;
-                    setSelectedTemplateId(
-                        claim.adopted ? (claim.selectedTemplateId ?? null) : null,
-                    );
-                    setLastSavedAt(Date.now());
-                    readyRef.current = true;
-                    setIsReady(true);
-                    return;
-                }
-
                 const response = await api.httpRequest(
                     ENDPOINTS.AI.BIO_CV_DRAFT,
                     "GET",
@@ -696,7 +675,6 @@ export default function BioCvModal({ variant = "full" }) {
                     profile: payload,
                     selectedTemplateId: "regent",
                 });
-                localStorage.setItem("cvstudio.wizardConversionPending", conversionIntent);
                 navigate(`/register?start=${conversionIntent}`);
                 return;
             }
@@ -714,7 +692,6 @@ export default function BioCvModal({ variant = "full" }) {
                 clearAccessToken();
                 setIsGuestSession(true);
                 saveGuestWizardDraft({ step: finalStep, profile: payload, selectedTemplateId: "regent" });
-                localStorage.setItem("cvstudio.wizardConversionPending", conversionIntent);
                 navigate(`/register?start=${conversionIntent}`);
                 return;
             }

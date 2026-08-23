@@ -143,13 +143,11 @@ function PdfCanvas() {
       ? startIntent
       : null,
   );
+  // The URL intent is deliberately the only handoff signal. A draft in
+  // localStorage is browser-scoped and must never trigger adoption for a
+  // different user who later logs in on the same device.
   const conversionPending = initialStartIntentRef.current === "demo-conversion"
-    || initialStartIntentRef.current === "wizard-conversion"
-    || localStorage.getItem("cvstudio.wizardConversionPending") !== null
-    || localStorage.getItem("cvstudio.demoConversionPending") === "1"
-    // Treat an authenticated meaningful guest draft as a handoff even if an
-    // older browser session lost the auxiliary intent marker.
-    || Boolean(getAccessToken() && hasGuestWizardDraft());
+    || initialStartIntentRef.current === "wizard-conversion";
 
   // Toggle this signal after a period of pointer activity so the session check
   // below can detect an expired JWT without issuing a request for every move.
@@ -1372,7 +1370,7 @@ function PdfCanvas() {
   useEffect(() => {
     if (wizardDraftAdoptedRef.current) return;
     const token = localStorage.getItem("token");
-    if (!token || !hasGuestWizardDraft()) return;
+    if (!token || !conversionPending || !hasGuestWizardDraft()) return;
     wizardDraftAdoptedRef.current = true;
     // Keep the empty canvas from flashing while the authenticated profile is
     // adopted and the first Regent layout is generated.
@@ -1401,8 +1399,6 @@ function PdfCanvas() {
           // available immediately after the handoff.
           setIsDemoContent(false);
           setActiveCvData(claim.profile);
-          localStorage.removeItem("cvstudio.wizardConversionPending");
-          localStorage.removeItem("cvstudio.demoConversionPending");
           queueGuestEvent(initialStartIntentRef.current === "wizard-conversion"
             ? "wizard_conversion_completed"
             : "demo_conversion_completed");
