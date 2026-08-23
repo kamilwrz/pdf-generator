@@ -56,9 +56,10 @@
 
 .cards {
   width: 100%;
+  max-width: 900px;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 1.25rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.5rem;
 }
 
 .card {
@@ -66,7 +67,7 @@
   flex-direction: column;
   align-items: flex-start;
   gap: 0.6rem;
-  min-height: 360px;
+  min-height: 300px;
   padding: 2rem;
   text-align: left;
   cursor: pointer;
@@ -91,10 +92,6 @@
 
 .card:nth-child(3) {
   animation-delay: 240ms;
-}
-
-.card:nth-child(4) {
-  animation-delay: 320ms;
 }
 
 .card:hover {
@@ -180,6 +177,113 @@
   border-color: var(--chrome-accent, #171717);
 }
 
+.secondaryActions {
+  width: 100%;
+  max-width: 900px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.8rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--chrome-border, #e2dfd8);
+  animation: startChooserRise 420ms ease-out 240ms both;
+}
+
+.recentDocument {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  width: 100%;
+  padding: 0.8rem 0;
+  border: 0;
+  background: transparent;
+  color: var(--chrome-ink, #171717);
+  text-align: left;
+  cursor: pointer;
+}
+
+.recentDocument:hover .secondaryLabel {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.recentDocument:focus-visible {
+  outline: 2px solid var(--chrome-accent, #171717);
+  outline-offset: 4px;
+}
+
+.secondaryIcon {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--chrome-border, #e2dfd8);
+  color: var(--chrome-accent, #171717);
+}
+
+.secondaryIcon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.secondaryCopy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.secondaryLabel {
+  font-family: var(--font-body, "Nunito Sans", sans-serif);
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.secondaryMeta,
+.documentsEmpty {
+  margin: 0;
+  color: var(--chrome-muted, #6b675e);
+  font-family: var(--font-body, "Nunito Sans", sans-serif);
+  font-size: 0.85rem;
+}
+
+.secondaryArrow {
+  margin-left: auto;
+  color: var(--chrome-muted, #6b675e);
+  font-size: 1.1rem;
+}
+
+.documentsEmpty {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.8rem 0;
+}
+
+.blankLink {
+  align-self: flex-start;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: var(--chrome-muted, #6b675e);
+  font-family: var(--font-body, "Nunito Sans", sans-serif);
+  font-size: 0.85rem;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.blankLink:hover {
+  color: var(--chrome-ink, #171717);
+}
+
+.blankLink:focus-visible {
+  outline: 2px solid var(--chrome-accent, #171717);
+  outline-offset: 4px;
+}
+
 .logout {
   position: fixed;
   left: 1.25rem;
@@ -220,6 +324,9 @@
   .cards {
     grid-template-columns: 1fr;
   }
+  .inner {
+    gap: 2rem;
+  }
 }
 
 @keyframes startChooserRise {
@@ -236,7 +343,7 @@
 @media (prefers-reduced-motion: reduce) {
   .head,
   .card,
-  .card {
+  .secondaryActions {
     transition: none;
   }
   .logout {

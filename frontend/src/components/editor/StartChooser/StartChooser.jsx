@@ -1,10 +1,11 @@
 /**
  * Post-login empty-state onboarding surface.
  *
- * Replaces the blank canvas with three entry choices: the guided wizard
- * (`BioCvModal`), importing an existing CV PDF (`AiCvPanel`), or opening saved
- * projects (`ModalPdfs`). The component owns no flow logic; callbacks are
- * supplied by `PdfCanvas`.
+ * Replaces the blank canvas with two primary entry choices and two quieter
+ * secondary actions: the guided wizard (`BioCvModal`), importing an existing
+ * CV PDF (`AiCvPanel`), opening saved projects (`ModalPdfs`), or entering
+ * freeform editing. The component owns no flow logic; callbacks are supplied
+ * by `PdfCanvas`.
  *
  * Visibility is decided by `shouldShowStartChooser` (utils/startChooser.js);
  * this component assumes the caller only mounts it when that returns true.
@@ -100,7 +101,8 @@ function BlankIcon() {
  * @param {object} props
  * @param {() => void} props.onWizard - open the step-by-step wizard (BioCvModal)
  * @param {() => void} props.onImport - open the CV import dialog (AiCvPanel)
- * @param {() => void} props.onDocuments - open the saved-projects modal
+ * @param {Array<{title?: string, created_at?: string}>} [props.documents] - saved projects
+ * @param {boolean} [props.documentsLoaded] - whether the saved-project list finished loading
  * @param {() => void} props.onBlank - dismiss into a blank freeform canvas
  * @param {() => void} props.onLogout - sign out the current session
  */
@@ -108,16 +110,28 @@ export default function StartChooser({
   onWizard,
   onImport,
   onDocuments,
+  documents = [],
+  documentsLoaded = false,
   onBlank,
   onLogout,
 }) {
+  const latestDocument = [...documents]
+    .sort((left, right) => new Date(right.created_at || 0) - new Date(left.created_at || 0))[0];
+  const latestDocumentDate = latestDocument?.created_at
+    ? new Intl.DateTimeFormat("pl-PL", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    }).format(new Date(latestDocument.created_at))
+    : null;
+
   return (
     <div className={classes.overlay} role="region" aria-label="Zacznij nowe CV">
       <div className={classes.inner}>
         <header className={classes.head}>
           <h1 className={classes.title}>Jak chcesz zacząć?</h1>
           <p className={classes.subtitle}>
-            Wybierz kreator albo zaimportuj gotowe CV — resztą zajmiemy się my.
+            Zacznij od kreatora lub importu — resztą zajmiemy się my.
           </p>
         </header>
 
@@ -154,33 +168,32 @@ export default function StartChooser({
             </span>
             <span className={classes.ctaGhost}>Wgraj CV</span>
           </button>
-          <button
-            type="button"
-            className={`${classes.card} ${classes.cardTertiary}`}
-            onClick={onDocuments}
-          >
-            <span className={classes.iconWrap} aria-hidden="true">
-              <DocumentsIcon />
-            </span>
-            <span className={classes.cardTitle}>Moje dokumenty</span>
-            <span className={classes.cardText}>
-              Otwórz zapisane projekty i kontynuuj pracę nad wybranym CV.
-            </span>
-            <span className={classes.ctaGhost}>Otwórz dokumenty</span>
-          </button>
-          <button
-            type="button"
-            className={`${classes.card} ${classes.cardTertiary}`}
-            onClick={onBlank}
-          >
-            <span className={classes.iconWrap} aria-hidden="true">
-              <BlankIcon />
-            </span>
-            <span className={classes.cardTitle}>Zacznij od nowa</span>
-            <span className={classes.cardText}>
-              Przejdź do pustego canvasu i zbuduj dokument całkowicie ręcznie.
-            </span>
-            <span className={classes.ctaGhost}>Otwórz pusty canvas</span>
+        </div>
+
+        <div className={classes.secondaryActions}>
+          {documentsLoaded && latestDocument ? (
+            <button type="button" className={classes.recentDocument} onClick={onDocuments}>
+              <span className={classes.secondaryIcon} aria-hidden="true">
+                <DocumentsIcon />
+              </span>
+              <span className={classes.secondaryCopy}>
+                <span className={classes.secondaryLabel}>Kontynuuj ostatnie CV</span>
+                <span className={classes.secondaryMeta}>
+                  {latestDocument.title || "Bez nazwy"}{latestDocumentDate ? ` · ${latestDocumentDate}` : ""}
+                </span>
+              </span>
+              <span className={classes.secondaryArrow} aria-hidden="true">→</span>
+            </button>
+          ) : (
+            <p className={classes.documentsEmpty}>
+              <span className={classes.secondaryLabel}>Moje dokumenty</span>
+              <span>
+                {documentsLoaded ? "Nie masz jeszcze zapisanych CV." : "Sprawdzamy zapisane CV…"}
+              </span>
+            </p>
+          )}
+          <button type="button" className={classes.blankLink} onClick={onBlank}>
+            Chcesz zacząć od pustego dokumentu? Otwórz pusty canvas →
           </button>
         </div>
       </div>

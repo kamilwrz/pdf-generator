@@ -1843,6 +1843,8 @@ function PdfCanvas() {
                         // canvas.
                         setIsModalPdfs(true);
                       }}
+                      documents={PDFs}
+                      documentsLoaded={pdfsLoaded}
                       onBlank={() => setStartChooserDismissed(true)}
                       onLogout={handleLogout}
                     />

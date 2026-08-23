@@ -52,8 +52,10 @@ test("empty-state chooser offers saved documents and shields editor chrome", asy
   assert.match(chooser, /onBlank/);
   assert.match(chooser, /onLogout/);
   assert.match(styles, /position: fixed/);
-  assert.match(styles, /grid-template-columns: repeat\(4, 1fr\)/);
+  assert.match(styles, /grid-template-columns: repeat\(2, minmax\(0, 1fr\)\)/);
   assert.match(canvas, /onDocuments=\{\(\) => \{/);
+  assert.match(canvas, /documents=\{PDFs\}/);
+  assert.match(canvas, /documentsLoaded=\{pdfsLoaded\}/);
   assert.match(
     canvas,
     /onDocuments=\{\(\) => \{\s*\/\/ Keep the chooser mounted behind the documents modal\./,
