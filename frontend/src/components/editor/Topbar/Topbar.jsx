@@ -239,7 +239,7 @@ export default function Topbar({ titleRef }) {
                             onClick={showSections}
                             aria-label="Otwórz układ CV"
                         >
-                            Układ CV
+                            Dostosuj CV
                         </button>
                     </>
                 ) : null}

@@ -13,7 +13,7 @@ test("demo mode exposes only editor-focused topbar actions", async () => {
 
   assert.match(topbar, /isDemoContent/);
   assert.match(topbar, /showSections/);
-  assert.match(topbar, /Układ CV/);
+  assert.match(topbar, /Dostosuj CV/);
   assert.match(topbar, /!isDemoContent &&/);
 });
 

@@ -1,6 +1,6 @@
 /**
- * Template-mode layout panel ("Układ CV"): reorder sections, density presets,
- * advanced spacing knobs, and offline auto-fit of page fill/balance. A
+ * Template-mode customization panel ("Dostosuj CV"): document status, section
+ * structure, density presets, precise spacing, and a reserved appearance tab. A
  * main-column Skills section's list row also gets a layout icon opening
  * `SkillsLayoutModal` (same modal the canvas heading hover control opens —
  * see `SectionRecordAdd`), so the mode picker is reachable without hunting
@@ -11,8 +11,8 @@
  */
 import { use, useEffect, useId, useMemo, useState } from "react";
 import { nanoid } from "nanoid";
-import { FiChevronDown, FiChevronUp, FiPlus, FiX } from "react-icons/fi";
-import { LuLayoutGrid } from "react-icons/lu";
+import { FiChevronDown, FiChevronUp, FiMinus, FiPlus, FiX } from "react-icons/fi";
+import { LuGripVertical, LuLayoutGrid } from "react-icons/lu";
 import { PdfContext } from "../../../store/pdfgenerator-context";
 import {
   applyFlowSpacing,
@@ -97,6 +97,7 @@ export default function SectionsPanel({ onClose }) {
   const pageHeight = pageSize?.height ?? 842;
   const densityGroupId = useId();
   const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState("layout");
 
   const spacing = useMemo(
     () => normalizeFlowSpacing(flowSpacing),
@@ -178,6 +179,10 @@ export default function SectionsPanel({ onClose }) {
     });
   }
 
+  function nudgeSpacing(key, delta) {
+    handleSpacingChange(key, spacing[key] + delta);
+  }
+
   function handleResetSpacing() {
     // Restore spacing from when this CV was opened / last filled — not a
     // hardcoded default when the document already sits on those values.
@@ -234,243 +239,186 @@ export default function SectionsPanel({ onClose }) {
   }
 
   return (
-    <div className={classes.panel} role="dialog" aria-label="Układ CV">
+    <div className={classes.panel} role="dialog" aria-label="Dostosuj CV">
       <div className={classes.header}>
         <div className={classes.headerText}>
-          <h2>Układ CV</h2>
-          <p className={classes.lede}>
-            Zmieniaj kolejność sekcji i dopasuj rozkład dokumentu.
-          </p>
-          <p className={classes.pageStatus} aria-live="polite">
-            {pageStatus}
-            {fitStatus?.reducible ? (
-              <> · {fitHintText(fitStatus.tier, fitStatus.targetLabel)}</>
-            ) : null}
-          </p>
-          {fitStatus?.reducible ? (
-            <button
-              type="button"
-              className={classes.fitCta}
-              onClick={onFitToPages}
-            >
-              Zmieść na {fitStatus.targetLabel}
-            </button>
-          ) : null}
+          <h2>Dostosuj CV</h2>
+          <p className={classes.lede}>Kontroluj strukturę i wygląd dokumentu.</p>
         </div>
         <button type="button" className={classes.close} onClick={onClose} aria-label="Zamknij">
           <FiX />
         </button>
       </div>
 
-      <div className={classes.body}>
-        {!hasAnySections ? (
-          <p className={classes.empty}>
-            Brak sekcji do uporządkowania. Dodaj pierwszą albo wczytaj szablon.
+      <div className={classes.tabs} role="tablist" aria-label="Obszar dostosowania CV">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === "layout"}
+          className={activeTab === "layout" ? classes.tabActive : classes.tab}
+          onClick={() => setActiveTab("layout")}
+        >
+          Układ
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === "appearance"}
+          className={activeTab === "appearance" ? classes.tabActive : classes.tab}
+          onClick={() => setActiveTab("appearance")}
+        >
+          Wygląd
+        </button>
+      </div>
+
+      {activeTab === "appearance" ? (
+        <div className={classes.appearanceEmpty} role="tabpanel">
+          <span className={classes.eyebrow}>Wygląd</span>
+          <h3>Palety kolorów pojawią się tutaj</h3>
+          <p>
+            Przygotowujemy kuratorowane warianty dopasowane do każdego szablonu,
+            aby zmiana stylu nie pogarszała czytelności CV.
           </p>
-        ) : (
-          <>
+        </div>
+      ) : (
+        <div className={classes.body} role="tabpanel">
+          <section className={classes.section} aria-labelledby="document-status-heading">
+            <span className={classes.eyebrow} id="document-status-heading">Dokument</span>
+            <div className={classes.documentCard}>
+              <strong className={classes.pageStatus} aria-live="polite">{pageStatus}</strong>
+              {fitStatus?.reducible ? (
+                <p>CV {fitHintText(fitStatus.tier, fitStatus.targetLabel)} bez zmiany faktów.</p>
+              ) : (
+                <p><span aria-hidden="true">✓</span> Układ wygląda dobrze · standardowe odstępy.</p>
+              )}
+              {fitStatus?.reducible ? (
+                <button type="button" className={classes.fitCta} onClick={onFitToPages}>
+                  Zmieść na {fitStatus.targetLabel}
+                </button>
+              ) : null}
+            </div>
+          </section>
+
+          <section className={classes.section} aria-labelledby="structure-heading">
+            <span className={classes.eyebrow} id="structure-heading">Struktura</span>
+            {!hasAnySections ? (
+              <p className={classes.empty}>Brak sekcji. Dodaj pierwszą albo wczytaj szablon.</p>
+            ) : null}
+
             {sections.length > 0 ? (
-              <>
-                {sidebarSections.length > 0 ? (
-                  <h3 className={classes.laneHeading}>Kolumna główna</h3>
-                ) : null}
+              <div className={classes.laneGroup}>
+                <div className={classes.laneHeader}>
+                  <h3>{sidebarSections.length > 0 ? "Kolumna główna" : "Jedna kolumna"}</h3>
+                  <span>{sections.length} {sections.length === 1 ? "sekcja" : "sekcje"}</span>
+                </div>
                 <ul className={classes.list}>
                   {sections.map((section, index) => {
                     const label = displaySectionTitle(section.title);
                     return (
                       <li key={section.id} className={classes.item}>
-                        <span className={classes.title} title={section.title}>
-                          {label}
-                        </span>
+                        <LuGripVertical className={classes.grip} aria-hidden="true" />
+                        <span className={classes.title} title={section.title}>{label}</span>
                         <div className={classes.actions}>
                           {isSkillsSectionTitle(section.title) ? (
-                            <button
-                              type="button"
-                              onClick={() => openSkillsLayoutModal?.(section.headingId)}
-                              aria-label={`Zmień styl umiejętności: ${label}`}
-                              title="Styl umiejętności (w linii / lista / chipsy)"
-                            >
+                            <button type="button" onClick={() => openSkillsLayoutModal?.(section.headingId)} aria-label={`Zmień styl umiejętności: ${label}`} title="Styl umiejętności">
                               <LuLayoutGrid />
                             </button>
                           ) : null}
-                          <button
-                            type="button"
-                            disabled={index === 0}
-                            onClick={() => move(section.headingId, "up")}
-                            aria-label={`Przenieś ${label} wyżej`}
-                            title="Wyżej"
-                          >
-                            <FiChevronUp />
-                          </button>
-                          <button
-                            type="button"
-                            disabled={index === sections.length - 1}
-                            onClick={() => move(section.headingId, "down")}
-                            aria-label={`Przenieś ${label} niżej`}
-                            title="Niżej"
-                          >
-                            <FiChevronDown />
-                          </button>
+                          <button type="button" disabled={index === 0} onClick={() => move(section.headingId, "up")} aria-label={`Przenieś ${label} wyżej`} title="Wyżej"><FiChevronUp /></button>
+                          <button type="button" disabled={index === sections.length - 1} onClick={() => move(section.headingId, "down")} aria-label={`Przenieś ${label} niżej`} title="Niżej"><FiChevronDown /></button>
                         </div>
                       </li>
                     );
                   })}
                 </ul>
-              </>
+                <button type="button" className={classes.addButton} onClick={() => openAddSectionModal?.()}>
+                  <FiPlus aria-hidden="true" /> Dodaj sekcję
+                </button>
+              </div>
             ) : null}
 
             {sidebarSections.length > 0 ? (
-              <>
-                <h3 className={classes.laneHeading}>Sidebar</h3>
+              <div className={classes.laneGroup}>
+                <div className={classes.laneHeader}>
+                  <h3>Sidebar</h3>
+                  <span>{sidebarSections.length} {sidebarSections.length === 1 ? "sekcja" : "sekcje"}</span>
+                </div>
                 <ul className={classes.list}>
                   {sidebarSections.map((section, index) => {
                     const label = displaySectionTitle(section.title);
                     return (
                       <li key={section.id} className={classes.item}>
-                        <span className={classes.title} title={section.title}>
-                          {label}
-                        </span>
+                        <LuGripVertical className={classes.grip} aria-hidden="true" />
+                        <span className={classes.title} title={section.title}>{label}</span>
                         <div className={classes.actions}>
-                          <button
-                            type="button"
-                            disabled={index === 0}
-                            onClick={() => move(section.headingId, "up")}
-                            aria-label={`Przenieś ${label} wyżej w sidebarze`}
-                            title="Wyżej"
-                          >
-                            <FiChevronUp />
-                          </button>
-                          <button
-                            type="button"
-                            disabled={index === sidebarSections.length - 1}
-                            onClick={() => move(section.headingId, "down")}
-                            aria-label={`Przenieś ${label} niżej w sidebarze`}
-                            title="Niżej"
-                          >
-                            <FiChevronDown />
-                          </button>
+                          <button type="button" disabled={index === 0} onClick={() => move(section.headingId, "up")} aria-label={`Przenieś ${label} wyżej w sidebarze`} title="Wyżej"><FiChevronUp /></button>
+                          <button type="button" disabled={index === sidebarSections.length - 1} onClick={() => move(section.headingId, "down")} aria-label={`Przenieś ${label} niżej w sidebarze`} title="Niżej"><FiChevronDown /></button>
                         </div>
                       </li>
                     );
                   })}
                 </ul>
-              </>
-            ) : null}
-          </>
-        )}
-
-        <button
-          type="button"
-          className={classes.addButton}
-          onClick={() => openAddSectionModal?.()}
-        >
-          <FiPlus aria-hidden="true" />
-          Dodaj sekcję
-        </button>
-        {sidebarSections.length > 0 ? (
-          <button
-            type="button"
-            className={classes.addButtonSecondary}
-            onClick={() => openAddSectionModal?.({ lane: "sidebar" })}
-          >
-            <FiPlus aria-hidden="true" />
-            Dodaj w sidebarze
-          </button>
-        ) : null}
-      </div>
-
-      <div className={classes.density}>
-        <div className={classes.densityHeader}>
-          <h3>Gęstość układu</h3>
-          <p className={classes.densityLede}>
-            Dopasuj ilość wolnego miejsca bez zmiany treści CV.
-          </p>
-        </div>
-
-        <div
-          className={classes.segmented}
-          role="radiogroup"
-          aria-labelledby={densityGroupId}
-        >
-          <span id={densityGroupId} className={classes.srOnly}>
-            Gęstość układu
-          </span>
-          {DENSITY_OPTIONS.map((option) => {
-            const pressed = activeDensity === option.id;
-            return (
-              <button
-                key={option.id}
-                type="button"
-                role="radio"
-                aria-checked={pressed}
-                aria-pressed={pressed}
-                className={pressed ? classes.segmentActive : classes.segment}
-                onClick={() => handleDensitySelect(option.id)}
-              >
-                {option.label}
-              </button>
-            );
-          })}
-        </div>
-
-        <button
-          type="button"
-          className={classes.autoFit}
-          onClick={handleAutoFit}
-          title="Dobierz odstępy tak, aby lepiej wykorzystać powierzchnię stron."
-          aria-label="Dopasuj automatycznie odstępy układu"
-        >
-          Dopasuj automatycznie
-        </button>
-
-        <div className={classes.advanced}>
-          <button
-            type="button"
-            className={classes.advancedToggle}
-            aria-expanded={advancedOpen}
-            onClick={() => setAdvancedOpen((open) => !open)}
-          >
-            <span>Zaawansowane odstępy</span>
-            <FiChevronDown
-              className={advancedOpen ? classes.chevronOpen : classes.chevron}
-              aria-hidden="true"
-            />
-          </button>
-
-          {advancedOpen ? (
-            <div className={classes.advancedBody}>
-              <div className={classes.spacingList}>
-                {SPACING_FIELDS.map((field) => (
-                  <label key={field.key} className={classes.spacingField}>
-                    <span className={classes.spacingLabel}>{field.label}</span>
-                    <span className={classes.spacingInputWrap}>
-                      <input
-                        type="number"
-                        min={0}
-                        max={80}
-                        step={1}
-                        value={spacing[field.key]}
-                        onChange={(event) => handleSpacingChange(field.key, event.target.value)}
-                        aria-label={`${field.label} (piksele)`}
-                      />
-                      <span className={classes.unit} aria-hidden="true">px</span>
-                    </span>
-                  </label>
-                ))}
+                <button type="button" className={classes.addButton} onClick={() => openAddSectionModal?.({ lane: "sidebar" })}>
+                  <FiPlus aria-hidden="true" /> Dodaj sekcję
+                </button>
               </div>
-              <button
-                type="button"
-                className={classes.reset}
-                onClick={handleResetSpacing}
-                disabled={atBaseline}
-                title="Przywróć odstępy z momentu otwarcia lub wypełnienia CV"
-              >
-                Przywróć odstępy szablonu
-              </button>
+            ) : null}
+          </section>
+
+          <section className={classes.section} aria-labelledby="spacing-heading">
+            <span className={classes.eyebrow} id="spacing-heading">Odstępy</span>
+            <div className={classes.densityHeader}>
+              <h3>Gęstość</h3>
+              <p className={classes.densityLede}>Dopasuj ilość wolnego miejsca bez zmiany treści CV.</p>
             </div>
-          ) : null}
+
+            <div className={classes.segmented} role="radiogroup" aria-labelledby={densityGroupId}>
+              <span id={densityGroupId} className={classes.srOnly}>Gęstość układu</span>
+              {DENSITY_OPTIONS.map((option) => {
+                const pressed = activeDensity === option.id;
+                return (
+                  <button key={option.id} type="button" role="radio" aria-checked={pressed} aria-pressed={pressed} className={pressed ? classes.segmentActive : classes.segment} onClick={() => handleDensitySelect(option.id)}>
+                    {option.label}
+                  </button>
+                );
+              })}
+            </div>
+            <div className={classes.densityScale} aria-hidden="true"><span>Więcej treści</span><span>Więcej oddechu</span></div>
+
+            <button type="button" className={classes.autoFit} onClick={handleAutoFit} title="Dobierz odstępy i balans treści do obecnej liczby stron." aria-label="Zoptymalizuj układ dokumentu">
+              Zoptymalizuj układ
+            </button>
+            <p className={classes.autoFitHint}>Dobierz odstępy i balans treści do obecnej liczby stron.</p>
+
+            <div className={classes.advanced}>
+              <button type="button" className={classes.advancedToggle} aria-expanded={advancedOpen} onClick={() => setAdvancedOpen((open) => !open)}>
+                <span>Precyzyjne odstępy</span>
+                <FiChevronDown className={advancedOpen ? classes.chevronOpen : classes.chevron} aria-hidden="true" />
+              </button>
+
+              {advancedOpen ? (
+                <div className={classes.advancedBody}>
+                  <div className={classes.spacingList}>
+                    {SPACING_FIELDS.map((field) => (
+                      <div key={field.key} className={classes.spacingField}>
+                        <span className={classes.spacingLabel}>{field.label}</span>
+                        <span className={classes.stepper}>
+                          <button type="button" onClick={() => nudgeSpacing(field.key, -1)} aria-label={`Zmniejsz: ${field.label}`}><FiMinus /></button>
+                          <output aria-label={`${field.label}: ${spacing[field.key]} pikseli`}>{spacing[field.key]}</output>
+                          <button type="button" onClick={() => nudgeSpacing(field.key, 1)} aria-label={`Zwiększ: ${field.label}`}><FiPlus /></button>
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                  <button type="button" className={classes.reset} onClick={handleResetSpacing} disabled={atBaseline} title="Przywróć odstępy z momentu otwarcia lub wypełnienia CV">
+                    Przywróć ustawienia szablonu
+                  </button>
+                </div>
+              ) : null}
+            </div>
+          </section>
         </div>
-      </div>
+      )}
     </div>
   );
 }

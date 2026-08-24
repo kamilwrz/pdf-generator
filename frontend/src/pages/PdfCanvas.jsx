@@ -1061,7 +1061,7 @@ function PdfCanvas() {
     longCvOfferedForRef.current = identity;
     pushToast({
       title: 'Twoje CV jest dość długie',
-      msg: `Zajmuje ${pageCount} stron — w panelu „Układ CV” zobaczysz, jak zmieścić je na mniej.`,
+      msg: `Zajmuje ${pageCount} stron — w panelu „Dostosuj CV” zobaczysz, jak zmieścić je na mniej.`,
       variant: 'info',
     });
   }, [

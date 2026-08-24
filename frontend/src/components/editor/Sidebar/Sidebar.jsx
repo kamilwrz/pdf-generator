@@ -76,7 +76,7 @@ export default function Sidebar({ children }) {
                     <>
                         <SidebarControls
                             icon={<LuListTree />}
-                            labelText="Układ CV"
+                            labelText="Dostosuj CV"
                             sidebarEvent={showSections}
                             badge={fitTooLong}
                         />

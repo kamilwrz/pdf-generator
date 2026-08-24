@@ -6,97 +6,79 @@ const panelUrl = new URL("./SectionsPanel.jsx", import.meta.url);
 const cssUrl = new URL("./SectionsPanel.module.css", import.meta.url);
 const sidebarUrl = new URL("../Sidebar/Sidebar.jsx", import.meta.url);
 
-test("panel is branded Układ CV with page-count status and layout lede", async () => {
+test("customization panel exposes layout and appearance tabs", async () => {
   const source = await readFile(panelUrl, "utf8");
-  assert.match(source, /Układ CV/);
-  assert.match(source, /Zmieniaj kolejność sekcji i dopasuj rozkład dokumentu/);
+  assert.match(source, /Dostosuj CV/);
+  assert.match(source, /role="tablist"/);
+  assert.match(source, />\s*Układ\s*</);
+  assert.match(source, />\s*Wygląd\s*</);
+  assert.match(source, /aria-selected/);
+});
+
+test("appearance is active and presents an honest short empty state", async () => {
+  const source = await readFile(panelUrl, "utf8");
+  assert.match(source, /setActiveTab\("appearance"\)/);
+  assert.match(source, /Palety kolorów pojawią się tutaj/);
+  assert.match(source, /kuratorowane warianty/);
+});
+
+test("document card keeps tier-honest fit status and CTA", async () => {
+  const source = await readFile(panelUrl, "utf8");
   assert.match(source, /formatPageCountLabel/);
-  assert.match(source, /pageStatus/);
-  assert.doesNotMatch(source, />Sekcje</);
+  assert.match(source, /fitStatus/);
+  assert.match(source, /onFitToPages/);
+  assert.match(source, /Zmieść na /);
+  assert.match(source, /Układ wygląda dobrze/);
+  assert.match(source, /po skróceniu treści/);
 });
 
-test("add-section CTA keeps the existing picker and readable copy", async () => {
+test("structure groups show counts, contextual add actions, and reorder controls", async () => {
   const source = await readFile(panelUrl, "utf8");
-  assert.match(source, /openAddSectionModal/);
-  assert.match(source, /Dodaj sekcję/);
-  assert.doesNotMatch(source, /hideSection|showSection|visibility/);
+  assert.match(source, /listSidebarSections/);
+  assert.match(source, /Kolumna główna/);
+  assert.match(source, /Sidebar/);
+  assert.match(source, /LuGripVertical/);
+  assert.match(source, /FiChevronUp/);
+  assert.match(source, /FiChevronDown/);
+  assert.match(source, /lane:\s*"sidebar"/);
+  assert.equal((source.match(/Dodaj sekcję/g) || []).length, 2);
+  assert.doesNotMatch(source, /dnd-kit|DragDrop|onDragStart/);
 });
 
-test("density segmented control uses baseline presets", async () => {
+test("density and optimization remain distinct from fit-to-page", async () => {
   const source = await readFile(panelUrl, "utf8");
   assert.match(source, /densityPresetsFromBaseline/);
   assert.match(source, /Kompaktowa/);
   assert.match(source, /Standardowa/);
   assert.match(source, /Przestronna/);
-  assert.match(source, /handleDensitySelect/);
-  assert.match(source, /role="radiogroup"/);
-  assert.match(source, /aria-checked/);
-});
-
-test("auto-fit proposes offline then commits once via applySpacing", async () => {
-  const source = await readFile(panelUrl, "utf8");
+  assert.match(source, /Zoptymalizuj układ/);
   assert.match(source, /proposeAutoFitSpacing/);
-  assert.match(source, /Dopasuj automatycznie/);
-  assert.match(source, /Układ został dopasowany/);
-  assert.match(source, /Układ jest już dobrze dopasowany/);
-  // Trials must not setState in a loop — only the winner calls applySpacing.
-  const autoFit = source.match(/function handleAutoFit\(\) \{([\s\S]*?)\n  \}/)?.[1] || "";
-  assert.match(autoFit, /proposeAutoFitSpacing/);
-  assert.match(autoFit, /applySpacing\(proposal\.spacing\)/);
-  assert.equal((autoFit.match(/applySpacing\(/g) || []).length, 1);
-  assert.match(autoFit, /collapseSpilledMainIntoSidebar/);
-  assert.doesNotMatch(autoFit, /setFlowSpacing\(/);
+  assert.doesNotMatch(source, /Dopasuj automatycznie/);
 });
 
-test("advanced spacing accordion defaults closed and reset uses baseline copy", async () => {
+test("precise spacing uses accessible steppers and baseline reset", async () => {
   const source = await readFile(panelUrl, "utf8");
-  assert.match(source, /useState\(false\)/);
-  assert.match(source, /Zaawansowane odstępy/);
-  assert.match(source, /aria-expanded=\{advancedOpen\}/);
-  assert.match(source, /Przywróć odstępy szablonu/);
-  assert.match(source, /handleResetSpacing/);
-  assert.match(source, /baselineSpacing/);
-  assert.doesNotMatch(source, /Kompaktowo/);
+  assert.match(source, /Precyzyjne odstępy/);
+  assert.match(source, /nudgeSpacing/);
+  assert.match(source, /FiMinus/);
+  assert.match(source, /<output/);
+  assert.match(source, /Przywróć ustawienia szablonu/);
+  assert.doesNotMatch(source, /type="number"/);
 });
 
-test("section rows keep up/down reorder without hide/show or fake DnD", async () => {
-  const source = await readFile(panelUrl, "utf8");
-  assert.match(source, /reorderSection/);
-  assert.match(source, /FiChevronUp/);
-  assert.match(source, /FiChevronDown/);
-  assert.doesNotMatch(source, /dnd-kit|DragDrop|onDragStart/);
-  assert.doesNotMatch(source, /ukryj sekcj|hide section/i);
-});
-
-test("sidebar lane list and add CTA use listSidebarSections", async () => {
-  const source = await readFile(panelUrl, "utf8");
-  assert.match(source, /listSidebarSections/);
-  assert.match(source, /Dodaj w sidebarze/);
-  assert.match(source, /lane:\s*"sidebar"/);
-});
-
-test("panel styles stay compact with gold density accent", async () => {
+test("drawer is responsive and becomes a fixed overlay on small screens", async () => {
   const css = await readFile(cssUrl, "utf8");
-  assert.match(css, /\.segmentActive/);
-  assert.match(css, /chrome-accent/);
-  assert.match(css, /\.autoFit/);
-  assert.match(css, /\.advancedToggle/);
+  assert.match(css, /width: min\(380px/);
+  assert.match(css, /max-width: 1280px/);
+  assert.match(css, /width: min\(360px/);
+  assert.match(css, /max-width: 1024px/);
+  assert.match(css, /width: min\(340px/);
+  assert.match(css, /max-width: 720px/);
+  assert.match(css, /position: fixed/);
   assert.doesNotMatch(css, /linear-gradient/);
 });
 
-test("sidebar rail label matches the panel name", async () => {
+test("sidebar rail label matches the new panel name", async () => {
   const source = await readFile(sidebarUrl, "utf8");
-  assert.match(source, /labelText="Układ CV"/);
-  assert.doesNotMatch(source, /labelText="Sekcje"/);
-});
-
-test("shows a tier-honest page-fit hint and a single CTA when reducible", async () => {
-  const source = await readFile(panelUrl, "utf8");
-  assert.match(source, /fitStatus/);
-  assert.match(source, /onFitToPages/);
-  assert.match(source, /Zmieść na /);
-  // Tier-driven status-line copy.
-  assert.match(source, /można zmieścić na/);
-  assert.match(source, /po skróceniu treści/);
-  assert.match(source, /skróć treść/);
+  assert.match(source, /labelText="Dostosuj CV"/);
 });
