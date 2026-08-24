@@ -54,9 +54,9 @@ describe("syncCvDataFromCanvas", () => {
       ],
       [text("beta-company", "Beta")],
       [
-        text("acme-company", "Acme"),
-        text("acme-position", "Designer"),
-        text("acme-description", "Built products."),
+        { ...text("acme-company", "Acme"), deletedRecord: true },
+        { ...text("acme-position", "Designer"), deletedRecord: true },
+        { ...text("acme-description", "Built products."), deletedRecord: true },
       ],
     );
 

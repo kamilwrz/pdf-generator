@@ -1052,8 +1052,9 @@ export function useA4Elements(titleRef) {
    *
    * @param {object[]} previousElements
    * @param {Set<string>} removedIds
+   * @param {boolean} [isRecordDeletion=false] whether the whole semantic record was removed
    */
-  const rememberDeletedElements = useCallback((previousElements, removedIds) => {
+  const rememberDeletedElements = useCallback((previousElements, removedIds, isRecordDeletion = false) => {
     if (!removedIds || removedIds.size === 0) return;
     const removedElements = previousElements.filter((element) => (
       removedIds.has(element.element_id)
@@ -1065,7 +1066,11 @@ export function useA4Elements(titleRef) {
         !previousDeleted.some((deleted) => (
           deleted.element_id === element.element_id && deleted.pdf_id !== undefined
         ))
-      )).map((element) => ({ ...element, deleted: true }));
+      )).map((element) => ({
+        ...element,
+        deleted: true,
+        ...(isRecordDeletion ? { deletedRecord: true } : {}),
+      }));
       return additions.length ? [...previousDeleted, ...additions] : previousDeleted;
     });
   }, []);
@@ -1087,7 +1092,7 @@ export function useA4Elements(titleRef) {
       });
       if (!result) return prev;
 
-      rememberDeletedElements(prev, result.removedIds);
+      rememberDeletedElements(prev, result.removedIds, true);
       // Collapse empty trailing pages after packing pulls content upward.
       return finalizeDocumentPages(result.elements, { collapseEmpty: true });
     });
@@ -1110,7 +1115,7 @@ export function useA4Elements(titleRef) {
       });
       if (!result) return prev;
 
-      rememberDeletedElements(prev, result.removedIds);
+      rememberDeletedElements(prev, result.removedIds, true);
       return finalizeDocumentPages(result.elements, { collapseEmpty: true });
     });
   }, [rememberDeletedElements, finalizeDocumentPages]);

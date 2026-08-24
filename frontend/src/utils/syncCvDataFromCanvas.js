@@ -7,6 +7,8 @@
  * Template generators split one profile into multiple canvas text elements.
  * Replacing a value only when its previous text occurs once in the profile
  * avoids silently changing two unrelated fields with the same wording.
+ * Structural deletion is identified explicitly by `deletedRecord` tombstones,
+ * so removing one freeform text box never removes its whole profile record.
  */
 
 function cloneProfile(cvData) {
@@ -50,10 +52,7 @@ function pruneDeletedRecords(value, deletedTexts) {
         }
         const leaves = stringLeaves(item);
         const matched = leaves.filter((leaf) => deletedTexts.has(leaf));
-        // Structural record deletion removes several linked canvas elements.
-        // Require two matching values so deleting one freeform text box cannot
-        // accidentally remove the whole semantic record.
-        return matched.length < 2;
+        return matched.length === 0;
       })
       .map((item) => pruneDeletedRecords(item, deletedTexts));
   }
@@ -86,20 +85,23 @@ function editableTextChanges(previousElements, nextElements) {
  * @param {object|null} cvData - Current structured CV profile.
  * @param {object[]} previousElements - Canvas state before an edit.
  * @param {object[]} nextElements - Canvas state after an edit.
- * @returns {object|null} The original profile when no unambiguous mapping exists.
+ * @param {object[]} deletedElements - Tombstones emitted by structural deletes.
+ * @returns {object|null} The updated profile, or the original when no mapping exists.
  */
 export function syncCvDataFromCanvas(cvData, previousElements, nextElements, deletedElements = []) {
   if (!cvData || !Array.isArray(previousElements) || !Array.isArray(nextElements)) {
     return cvData || null;
   }
 
+  const markedRecordDeletes = deletedElements.filter((element) => element?.deletedRecord);
   const deletedTexts = new Set(
     deletedElements
+      .filter((element) => element?.deletedRecord)
       .flatMap((element) => stringLeaves(element?.content))
       .map((text) => text.trim())
       .filter(Boolean),
   );
-  let nextProfile = deletedTexts.size >= 2
+  let nextProfile = markedRecordDeletes.length > 0 && deletedTexts.size > 0
     ? pruneDeletedRecords(cvData, deletedTexts)
     : cvData;
   for (const { from, to } of editableTextChanges(previousElements, nextElements)) {
