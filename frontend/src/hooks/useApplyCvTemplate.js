@@ -75,6 +75,9 @@ export function useApplyCvTemplate() {
       adoptDocumentFlowSpacing?.(DEFAULT_FLOW_SPACING);
       pushToast?.({
         title: "Szablon zmieniony",
+        // Template browsing is one continuous workflow. Keep its latest
+        // outcome visible instead of stacking stale template confirmations.
+        replaceKey: "template-change",
         templateName: template.name,
         templateAccent: template.accent,
         templateBadgeInk: templateBadgeInk(template.accent),

@@ -23,11 +23,11 @@ const VARIANTS = {
 };
 
 /**
- * Central transient notifications.
+ * Compact transient notifications anchored outside the A4 workspace.
  *
- * Toasts are intentionally kept away from editor controls and the AI drawer:
- * a centred composition is readable at any zoom level and makes outcomes feel
- * like a deliberate document-state confirmation rather than browser chrome.
+ * The upper-left placement keeps document feedback visible without covering
+ * the canvas. Notifications remain in a polite live region and errors retain
+ * alert semantics for assistive technologies.
  */
 export default function ToastStack({ toasts, onDismiss }) {
     if (toasts.length === 0) return null;
