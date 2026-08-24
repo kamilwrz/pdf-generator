@@ -80,14 +80,14 @@ const PLACEHOLDER = Object.freeze({
   heading: "Nowa sekcja",
   textarea: "Treść sekcji…",
   education: Object.freeze({
-    title: "Nazwa dyplomu",
-    subtitle: "Uczelnia",
-    meta: "Miasto · okres",
+    title: "Nazwa wpisu",
+    subtitle: "Organizacja",
+    meta: "Lokalizacja · okres",
     description: "Opis…",
   }),
   experience: Object.freeze({
-    title: "Stanowisko",
-    meta: "Firma · okres",
+    title: "Nazwa wpisu",
+    meta: "Organizacja · lokalizacja · okres",
     description: "Opis…",
   }),
   subcategory: Object.freeze({

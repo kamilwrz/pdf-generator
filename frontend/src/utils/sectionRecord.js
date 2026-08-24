@@ -61,14 +61,14 @@ function listEditableSections(elements, pageHeight = 842) {
 /** Polish placeholders — keep aligned with `sectionBuilder` PLACEHOLDER. */
 const PLACEHOLDER = Object.freeze({
   education: Object.freeze([
-    "Nazwa dyplomu",
-    "Uczelnia",
-    "Miasto · okres",
+    "Nazwa wpisu",
+    "Organizacja",
+    "Lokalizacja · okres",
     "Opis…",
   ]),
   experience: Object.freeze([
-    "Stanowisko",
-    "Firma · Lokalizacja · okres",
+    "Nazwa wpisu",
+    "Organizacja · lokalizacja · okres",
     "Opis…",
   ]),
   subcategory: Object.freeze([

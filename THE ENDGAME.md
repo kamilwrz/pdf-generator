@@ -15,6 +15,13 @@ IV.  BUGZ / NEEDED FIXES
 6) Import CV - dane sie nie zapisuja na pozniej;powinny....
 7) Meridian - inny layout;dodawanie sekcji powinno go skopiowac;
 8) Po zapisaniu CV nie moge zmieniac szablonow;Trzeba to zaimplementowac
+9) Problem w niektorych przypadkach z rodzajem rekordu i kategorii rekordu wybieranej automatycznie
+10) Poprawic design i funkcjonalnosc kreatore CV
+11) Dodac kategorie kolorystyczne dla szablonow
+12) Zmiany po AI, powinny przechodzic do innego szablonu (np. CV po tlumaczeniu, skroceniu)
+13) Dodac 2 szablonuy w stylu / layoutem Meridian
+14) Seleckcja tekstu jest niewidoma na B,I,U przez editor panel i na odwrot. Ma byc tylko B,I,U przez   
+    selekcje....
 
  V.  TEMPLATES / CANVA A4
 -----------------------------------------------------------------------------------------

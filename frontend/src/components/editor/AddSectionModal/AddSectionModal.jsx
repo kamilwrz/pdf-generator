@@ -26,13 +26,13 @@ const LAYOUT_OPTIONS = [
   },
   {
     value: SECTION_LAYOUTS.RECORD_EDUCATION,
-    title: "Jak wykształcenie",
-    description: "Dyplom, uczelnia, miasto i okres oraz opis.",
+    title: "Wpis z dodatkowymi szczegółami",
+    description: "Nazwa, organizacja lub miejsce, okres albo lokalizacja oraz opis.",
   },
   {
     value: SECTION_LAYOUTS.RECORD_EXPERIENCE,
-    title: "Jak doświadczenie",
-    description: "Stanowisko, firma i okres oraz opis.",
+    title: "Wpis z opisem",
+    description: "Nazwa, organizacja lub okres oraz opis.",
   },
 ];
 

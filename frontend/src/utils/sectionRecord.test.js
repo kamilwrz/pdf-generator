@@ -109,33 +109,33 @@ describe("sectionSupportsRecordAdd", () => {
 });
 
 describe("placeholderContentsForRecord / inferRecordLayout", () => {
-  it("maps 4-line records to education placeholders", () => {
+  it("maps 4-line records to generic detailed-entry placeholders", () => {
     assert.equal(inferRecordLayout([{}, {}, {}, {}]), SECTION_LAYOUTS.RECORD_EDUCATION);
     assert.deepEqual(placeholderContentsForRecord([{}, {}, {}, {}]), [
-      "Nazwa dyplomu",
-      "Uczelnia",
-      "Miasto · okres",
+      "Nazwa wpisu",
+      "Organizacja",
+      "Lokalizacja · okres",
       "Opis…",
     ]);
   });
 
-  it("maps 3-line records with bullets to experience placeholders", () => {
+  it("maps 3-line records with bullets to generic entry placeholders", () => {
     const exp = [{ bold: true }, {}, { bulletList: true }];
     assert.equal(inferRecordLayout(exp), SECTION_LAYOUTS.RECORD_EXPERIENCE);
     assert.deepEqual(placeholderContentsForRecord(exp), [
-      "Stanowisko",
-      "Firma · okres",
+      "Nazwa wpisu",
+      "Organizacja · lokalizacja · okres",
       "Opis…",
     ]);
   });
 
-  it("maps 3-line records without bullets to education placeholders", () => {
+  it("maps 3-line records without bullets to detailed-entry placeholders", () => {
     const edu = [{ bold: true }, {}, {}];
     assert.equal(inferRecordLayout(edu), SECTION_LAYOUTS.RECORD_EDUCATION);
     assert.deepEqual(placeholderContentsForRecord(edu), [
-      "Nazwa dyplomu",
-      "Uczelnia",
-      "Miasto · okres",
+      "Nazwa wpisu",
+      "Organizacja",
+      "Lokalizacja · okres",
       "Opis…",
     ]);
   });
@@ -166,9 +166,9 @@ describe("appendRecordToSection", () => {
     assert.equal(groups.length, 2);
     assert.equal(groups[0][0].flowGroup, firstGroup);
     assert.notEqual(groups[1][0].flowGroup, firstGroup);
-    assert.equal(groups[1][0].content, "Nazwa dyplomu");
-    assert.equal(groups[1][1].content, "Uczelnia");
-    assert.equal(groups[1][2].content, "Miasto · okres");
+    assert.equal(groups[1][0].content, "Nazwa wpisu");
+    assert.equal(groups[1][1].content, "Organizacja");
+    assert.equal(groups[1][2].content, "Lokalizacja · okres");
     assert.equal(groups[1][3].content, "Opis…");
     assert.equal(groups[1][3].bulletList, true);
     assert.equal(result.firstBodyId, groups[1][0].element_id);
@@ -298,8 +298,8 @@ describe("appendRecordToSection", () => {
     assert.ok(result);
     const body = listSectionContentElements(result.elements, headingId, pageHeight);
     assert.equal(body.length, 6);
-    assert.equal(body[3].content, "Stanowisko");
-    assert.equal(body[4].content, "Firma · okres");
+    assert.equal(body[3].content, "Nazwa wpisu");
+    assert.equal(body[4].content, "Organizacja · lokalizacja · okres");
     assert.equal(body[5].content, "Opis…");
   });
 
@@ -332,10 +332,10 @@ describe("buildRecordClone / pickRecordTemplateGroup", () => {
       },
     ], makeIdFactory("c"));
     assert.equal(clones.length, 3);
-    assert.equal(clones[0].content, "Stanowisko");
+    assert.equal(clones[0].content, "Nazwa wpisu");
     assert.equal(clones[0].bold, true);
     assert.equal(clones[0].color, "#0B1C2C");
-    assert.equal(clones[1].content, "Firma · okres");
+    assert.equal(clones[1].content, "Organizacja · lokalizacja · okres");
     assert.equal(clones[1].bold, false);
     assert.equal(clones[1].color, "#5A6A7A");
     assert.equal(clones[2].content, "Opis…");
@@ -376,9 +376,9 @@ describe("buildRecordClone / pickRecordTemplateGroup", () => {
     assert.equal(expanded[3].bulletList, true);
     const clones = buildRecordClone(shortEdu, makeIdFactory("e"), [shortEdu]);
     assert.equal(clones.length, 4);
-    assert.equal(clones[0].content, "Nazwa dyplomu");
-    assert.equal(clones[1].content, "Uczelnia");
-    assert.equal(clones[2].content, "Miasto · okres");
+    assert.equal(clones[0].content, "Nazwa wpisu");
+    assert.equal(clones[1].content, "Organizacja");
+    assert.equal(clones[2].content, "Lokalizacja · okres");
     assert.equal(clones[3].content, "Opis…");
   });
 });
@@ -394,8 +394,8 @@ describe("listUpperRecordMembers / insertRecordBlockAfterRecord", () => {
     const body = listSectionContentElements(elements, headingId);
     const upper = listUpperRecordMembers(body);
     assert.equal(upper.length, 2);
-    assert.equal(upper[0].content, "Stanowisko");
-    assert.equal(upper[1].content, "Firma · okres");
+    assert.equal(upper[0].content, "Nazwa wpisu");
+    assert.equal(upper[1].content, "Organizacja · lokalizacja · okres");
     assert.equal(elementSupportsRecordBlockAdd(elements, body[0].element_id), true);
     assert.equal(elementSupportsRecordBlockAdd(elements, body[1].element_id), true);
     assert.equal(elementSupportsRecordBlockAdd(elements, body[2].element_id), false);
@@ -429,9 +429,9 @@ describe("listUpperRecordMembers / insertRecordBlockAfterRecord", () => {
     assert.equal(after.length, 8);
     const groups = partitionSectionRecords(after);
     assert.equal(groups.length, 2);
-    assert.equal(groups[1][0].content, "Nazwa dyplomu");
-    assert.equal(groups[1][1].content, "Uczelnia");
-    assert.equal(groups[1][2].content, "Miasto · okres");
+    assert.equal(groups[1][0].content, "Nazwa wpisu");
+    assert.equal(groups[1][1].content, "Organizacja");
+    assert.equal(groups[1][2].content, "Lokalizacja · okres");
     assert.equal(groups[1][3].content, "Opis…");
     assert.equal(groups[1][3].bulletList, true);
     assert.notEqual(groups[1][0].flowGroup, before[0].flowGroup);
@@ -468,8 +468,8 @@ describe("listUpperRecordMembers / insertRecordBlockAfterRecord", () => {
     assert.equal(groups[0][0].flowGroup, firstGroupId);
     assert.notEqual(groups[1][0].flowGroup, firstGroupId);
     assert.notEqual(groups[1][0].flowGroup, secondGroupId);
-    assert.equal(groups[1][0].content, "Stanowisko");
-    assert.equal(groups[1][1].content, "Firma · okres");
+    assert.equal(groups[1][0].content, "Nazwa wpisu");
+    assert.equal(groups[1][1].content, "Organizacja · lokalizacja · okres");
     assert.equal(groups[1][2].content, "Opis…");
     assert.equal(groups[2][0].flowGroup, secondGroupId);
   });
@@ -576,7 +576,7 @@ describe("listUpperRecordMembers / insertRecordBlockAfterRecord", () => {
     assert.ok(groups.length >= 3);
     // Inserted block is full education (4 lines), not degree+school only.
     assert.equal(groups[1].length, 4);
-    assert.equal(groups[1][0].content, "Nazwa dyplomu");
+    assert.equal(groups[1][0].content, "Nazwa wpisu");
     assert.equal(groups[1][3].content, "Opis…");
 
     const lastInserted = groups[1][groups[1].length - 1];
