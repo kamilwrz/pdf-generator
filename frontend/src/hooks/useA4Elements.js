@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { nanoid } from 'nanoid';
-import { getElementBounds } from '../utils/elementBounds';
 import { measureTextareaHeight } from '../utils/textareaHeight';
 import { reflowTextareaHeight } from '../utils/textareaReflow';
 import { reconcileDocumentPages } from '../utils/structureOperation';
@@ -58,7 +57,7 @@ import { useDocumentHistory } from './useDocumentHistory';
 import { applyChannelRemoval, applyChannelAddition, applyChannelRelayout } from '../utils/contactBandOps';
 import { applyNameCaseToggle, applyTitleToggle } from '../utils/mastheadIdentityOps';
 import { canvasFontFamily } from '../utils/canvasFont';
-import { isCanvasInteractionTarget } from '../utils/editZoomExit';
+import { hasActiveTextEdit, isCanvasInteractionTarget } from '../utils/editZoomExit';
 import { useElementSelectionDrag } from './useElementSelectionDrag';
 import API_BASE_URL, { ENDPOINTS } from '../services/api';
 
@@ -267,7 +266,15 @@ export function useA4Elements(titleRef) {
   // temporary edit zoom only after an intentional page/element interaction,
   // not when the user uses the sidebar or toolbar while text remains focused.
   const editZoomExitRequestedRef = useRef(false);
+  // Switching directly from one text element to another briefly clears the
+  // previous `editingElementId`. Delay restoration until the next task so the
+  // replacement edit can claim the document first.
+  const editZoomRestoreTimerRef = useRef(null);
   const restoreEditZoom = useCallback(() => {
+    if (editZoomRestoreTimerRef.current != null) {
+      window.clearTimeout(editZoomRestoreTimerRef.current);
+      editZoomRestoreTimerRef.current = null;
+    }
     editZoomExitRequestedRef.current = true;
     if (editZoomPreviousRef.current != null) {
       setZoomState(editZoomPreviousRef.current);
@@ -308,7 +315,18 @@ export function useA4Elements(titleRef) {
     if (!editingElementId) {
       const shouldRestore = editZoomExitRequestedRef.current;
       if (!shouldRestore) return undefined;
-      restoreEditZoom();
+      if (editZoomRestoreTimerRef.current == null) {
+        editZoomRestoreTimerRef.current = window.setTimeout(() => {
+          editZoomRestoreTimerRef.current = null;
+          // A direct canvas switch clears the old edit before the new edit is
+          // scheduled. Keep the zoomed page when that handoff completed.
+          if (hasActiveTextEdit(elementsRef.current)) {
+            editZoomExitRequestedRef.current = false;
+            return;
+          }
+          restoreEditZoom();
+        }, 0);
+      }
       return undefined;
     }
 

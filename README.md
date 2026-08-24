@@ -1843,6 +1843,8 @@ This does not claim SOC2/compliance — it documents controls that exist in code
 
 Gaps: not a full WCAG audit; continue improving focus traps and contrast where needed.
 
+When switching directly from one text element to another during two-page edit-zoom, restoration of the spread is deferred for one task. If the next text edit has already become active, the focused page and 200% zoom are retained; the spread is restored only when no replacement edit is pending. This prevents the second selection from being unmounted and leaving the first element selected.
+
 ---
 
 ## Known limitations and planned work
@@ -3618,6 +3620,8 @@ Migracje: `create_all` + Alembic (`backend/alembic/`) przy starcie.
 - Toasty i spinner PDF z minimalnym czasem widoczności; `useToasts` / `ToastStack` pokazuje kontrastowe, centralnie umieszczone karty potwierdzeń z animacją wejścia/wyjścia. Toast zmiany szablonu pokazuje wybrany szablon jako plakietkę w jego kolorze zamiast zbędnej treści opisowej, a akcje pobierania niosą blob href w toastcie (nie we wspólnym slocie).
 - Zoom tylko wizualny — eksport zostaje w rozmiarze dokumentu. Edytor otwiera się domyślnie na **100%** (`ZOOM_DEFAULT` w `useA4Elements`); widok dwóch stron nadal wymusza 100% na czas trwania. Rozpoczęcie edycji tekstu w rozkładówce dwóch stron tymczasowo skupia stronę z wybranym elementem, uruchamia ten sam zoom 200% z animacją, a po świadomym wyjściu z edycji przywraca poprzedni zoom i rozkładówkę. Jednowierszowe elementy `text` dzielą jeden `<p>` na wyświetlanie i edycję i nie renderują dzieci Reacta, więc ten remount ponownie wstawia treść z zapisanego stanu (`seedTextEditNode` w `frontend/src/utils/textEditSurface.js`, używane przez `frontend/src/components/canvas/Text/Text.jsx` przy wejściu w edycję). Odłączony albo przejściowy blur nie może finalizować edycji (`shouldCommitTextEditBlur`). Textarea ma osobną powierzchnię edycji, która i tak seeduje treść przy wejściu, więc ta pusta ścieżka jej nie dotyczyła. Edycja z jednej strony przywraca poprzedni zoom dopiero po kliknięciu strony A4 albo elementu na niej, a nie po kliknięciu toolbara, sidebara, ikon edytorskich umieszczonych nad canvasem ani podczas zaznaczania tekstu; robi to także jawna akcja „Zamknij” w panelu właściwości elementu. Atrybut `data-editor-control` oznacza kontrolki sekcji, rekordów, układu list i kontaktu, aby ich kliknięcia nie kończyły edit-zoom. Powierzchnia edytowalna wyznacza autorytatywną wysokość podczas wpisywania i blur, a pierwszy render wyświetlania po niej pomija zduplikowany pomiar w tle, dzięki czemu edit-zoom nie przepakowuje niezmienionych sekcji.
 - Brak pełnego audytu WCAG — kolejne poprawki mile widziane.
+
+Przy bezpośrednim przejściu z jednego elementu tekstowego do drugiego podczas edit-zoomu w widoku dwóch stron przywrócenie rozkładówki jest odroczone o jedną kolejkę zdarzeń. Jeżeli w tym czasie aktywuje się nowa edycja, strona i zoom 200% pozostają zachowane; rozkładówka wraca dopiero wtedy, gdy nie ma oczekującej kolejnej edycji. Dzięki temu drugi wybór nie zostaje odmontowany, a pierwszy element nie pozostaje błędnie zaznaczony.
 
 ---
 

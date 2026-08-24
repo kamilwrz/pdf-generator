@@ -17,3 +17,20 @@ export function isCanvasInteractionTarget(target) {
   if (target?.closest?.("[data-editor-control]")) return false;
   return Boolean(target?.closest?.("[data-page-canvas]"));
 }
+
+/**
+ * Check whether the document already contains an active text edit.
+ *
+ * A canvas click can finish one edit and schedule another on the next frame.
+ * The zoom-restoration effect must not restore the two-page spread between
+ * those two state updates, or the newly selected element can be unmounted.
+ *
+ * @param {object[]|null|undefined} elements
+ * @returns {boolean}
+ */
+export function hasActiveTextEdit(elements) {
+  return (elements || []).some((element) => (
+    element?.isEditing
+    && (element.category === "text" || element.category === "textarea")
+  ));
+}

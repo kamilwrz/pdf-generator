@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { isCanvasInteractionTarget } from "./editZoomExit.js";
+import { hasActiveTextEdit, isCanvasInteractionTarget } from "./editZoomExit.js";
 
 test("recognizes only A4-page clicks as edit-zoom exit interactions", () => {
   const pageTarget = {
@@ -34,4 +34,12 @@ test("recognizes only A4-page clicks as edit-zoom exit interactions", () => {
   assert.equal(isCanvasInteractionTarget(canvasEditorControlTarget), false);
   assert.equal(isCanvasInteractionTarget(editableCanvasTarget), false);
   assert.equal(isCanvasInteractionTarget(null), false);
+});
+
+test("recognizes a replacement text edit before restoring the page spread", () => {
+  assert.equal(hasActiveTextEdit([{ category: "text", isEditing: true }]), true);
+  assert.equal(hasActiveTextEdit([{ category: "textarea", isEditing: true }]), true);
+  assert.equal(hasActiveTextEdit([{ category: "text", isEditing: false }]), false);
+  assert.equal(hasActiveTextEdit([{ category: "image", isEditing: true }]), false);
+  assert.equal(hasActiveTextEdit([]), false);
 });
