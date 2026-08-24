@@ -57,6 +57,7 @@ import { useDocumentHistory } from './useDocumentHistory';
 import { applyChannelRemoval, applyChannelAddition, applyChannelRelayout } from '../utils/contactBandOps';
 import { applyNameCaseToggle, applyTitleToggle } from '../utils/mastheadIdentityOps';
 import {
+  alignSidebarAfterProfileContacts,
   hideProfilePhoto as applyProfilePhotoHide,
   removeProfilePhoto as applyProfilePhotoRemoval,
   showProfilePhoto as applyProfilePhotoShow,
@@ -1509,9 +1510,12 @@ export function useA4Elements(titleRef) {
       if ("content" in dataObject) {
         const edited = newState.find((el) => el.element_id === id);
         if (edited?.contactBandId && edited?.contactChannel && edited.category === "text") {
-          return applyChannelRelayout(
+          const relaid = applyChannelRelayout(
             newState, edited.contactBandId, measureContactLabel, () => nanoid(),
           ).elements;
+          return alignSidebarAfterProfileContacts(
+            relaid, edited.contactBandId, activeTemplateIdRef.current,
+          );
         }
         if (edited?.mastheadRole === "title" && edited.mastheadBandId) {
           const measured = measureContactLabel(
@@ -2331,14 +2335,20 @@ export function useA4Elements(titleRef) {
   // fixed contact zone. Body Y positions remain stable; undo/redo, save, and
   // page-count reconciliation continue through the shared element state.
   const removeContactChannel = useCallback((bandId, channel) => {
-    setA4_Elements((prev) =>
-      applyChannelRemoval(prev, bandId, channel, measureContactLabel, () => nanoid()).elements,
-    );
+    setA4_Elements((prev) => {
+      const next = applyChannelRemoval(
+        prev, bandId, channel, measureContactLabel, () => nanoid(),
+      ).elements;
+      return alignSidebarAfterProfileContacts(next, bandId, activeTemplateIdRef.current);
+    });
   }, [measureContactLabel]);
   const addContactChannel = useCallback((bandId, channel, label) => {
-    setA4_Elements((prev) =>
-      applyChannelAddition(prev, bandId, channel, label, measureContactLabel, () => nanoid()).elements,
-    );
+    setA4_Elements((prev) => {
+      const next = applyChannelAddition(
+        prev, bandId, channel, label, measureContactLabel, () => nanoid(),
+      ).elements;
+      return alignSidebarAfterProfileContacts(next, bandId, activeTemplateIdRef.current);
+    });
   }, [measureContactLabel]);
 
   // Masthead identity toggles (Phase 3). Committed via setA4_Elements so
@@ -2369,6 +2379,9 @@ export function useA4Elements(titleRef) {
           measureContactLabel,
           () => nanoid(),
         ).elements;
+        next = alignSidebarAfterProfileContacts(
+          next, result.contactBandId, activeTemplateIdRef.current,
+        );
       }
       return reconcileDocumentPages(next, nanoid, { collapseEmpty: true }).elements;
     });

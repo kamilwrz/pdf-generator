@@ -247,8 +247,10 @@ def _gen_slate(cv: dict) -> list[dict]:
     # would otherwise discard the tags added later by `tag_masthead_identity`).
     name_index = 0
     title_index: int | None = None
+    # Keep the identity cluster close to the body: the 32 pt name-to-pill
+    # offset leaves a deliberate optical gap while avoiding a top-heavy page.
     header = [
-        _text(name, 24, sans, colors["ink"], main_left, 48, zIndex=3, bold=True),
+        _text(name, 24, sans, colors["ink"], main_left, 60, zIndex=3, bold=True),
     ]
     header[0]["letterSpacing"] = 0.4
     if title:
@@ -260,13 +262,13 @@ def _gen_slate(cv: dict) -> list[dict]:
         # Reserve an extra 16 px for the tracked webfont, whose rendered width
         # can exceed the deterministic generator estimate by a few pixels.
         pill_width = max(120.0, min(float(main_width), len(title) * 5.4 + 40))
-        title_bar = _line(main_left, 86, pill_width, 20, colors["accent"], zIndex=1)
+        title_bar = _line(main_left, 92, pill_width, 20, colors["accent"], zIndex=1)
         title_bar["titleDecoration"] = {
             "minWidth": 120.0, "maxWidth": float(main_width),
             "horizontalPadding": 24.0,
         }
         header.append(title_bar)
-        role = _text(title, 8.2, sans, colors["white"], main_left + 12, 92, zIndex=3, bold=True)
+        role = _text(title, 8.2, sans, colors["white"], main_left + 12, 98, zIndex=3, bold=True)
         role["letterSpacing"] = 1.15
         title_index = len(header)
         header.append(role)

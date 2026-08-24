@@ -6,7 +6,9 @@ import { monumentTemplate } from "../templates/monument.js";
 import { porticoTemplate } from "../templates/portico.js";
 import { slateTemplate } from "../templates/slate.js";
 import { tesseraTemplate } from "../templates/tessera.js";
+import { applyChannelRelayout } from "./contactBandOps.js";
 import {
+  alignSidebarAfterProfileContacts,
   hideProfilePhoto,
   isProfilePhotoHidden,
   profilePhotoControlAnchor,
@@ -67,12 +69,28 @@ describe("profile photo visibility", () => {
       ));
       assert.ok(hiddenPhotoCluster.length >= 6);
       assert.ok(hiddenPhotoCluster.every((element) => element.photoSlotHidden === true));
-      const hiddenSidebarTop = Math.min(...hiddenResult.elements
+      const relaid = applyChannelRelayout(
+        hiddenResult.elements,
+        hiddenResult.contactBandId,
+        (text) => String(text).length * 5,
+        () => "unused-id",
+      ).elements;
+      const aligned = alignSidebarAfterProfileContacts(
+        relaid, hiddenResult.contactBandId, templateId,
+      );
+      const contactBottom = Math.max(...aligned
+        .filter((element) => element.contactBandId === "contact-main" && element.contactChannel)
+        .map((element) => Number(element.top) + Math.max(
+          Number(element.height) || 0,
+          Number(element.lineHeight) || 0,
+          Number(element.fontSize) || 0,
+        )));
+      const hiddenSidebarTop = Math.min(...aligned
         .filter((element) => element.flowRole === "sidebar-chrome")
         .map((element) => Number(element.top)));
       assert.ok(hiddenSidebarTop < originalSidebarTop);
-      assert.equal(hiddenSidebarTop, 173);
-      const shown = showProfilePhoto(hiddenResult.elements, templateId).elements;
+      assert.equal(hiddenSidebarTop - contactBottom, 40);
+      const shown = showProfilePhoto(aligned, templateId).elements;
       const shownAnchor = shown.find((element) => element.element_id === originalAnchor.element_id);
       assert.deepEqual(shownAnchor.contactBand, originalAnchor.contactBand);
       const shownSidebarTop = Math.min(...shown
@@ -100,6 +118,37 @@ describe("profile photo visibility", () => {
       && Number(element.top) < 180
     ));
     assert.ok(legacyCluster.every((element) => element.photoSlotHidden === true));
+  });
+
+  it("brings every hidden-photo contact onto page one before measuring the sidebar gap", () => {
+    const source = withIds(tesseraTemplate).map((element) => (
+      ["github", "website"].includes(element.contactChannel)
+        ? { ...element, page: 2 }
+        : element
+    ));
+    const hidden = hideProfilePhoto(source, "tessera");
+    const contacts = hidden.elements.filter((element) => element.contactChannel);
+    assert.ok(contacts.every((element) => element.page === 1));
+
+    const relaid = applyChannelRelayout(
+      hidden.elements,
+      hidden.contactBandId,
+      (text) => String(text).length * 5,
+      () => "unused-id",
+    ).elements;
+    const aligned = alignSidebarAfterProfileContacts(
+      relaid, hidden.contactBandId, "tessera",
+    );
+    const contactBottom = Math.max(...aligned
+      .filter((element) => element.contactChannel)
+      .map((element) => Number(element.top) + Math.max(
+        Number(element.height) || 0,
+        Number(element.fontSize) || 0,
+      )));
+    const sidebarTop = Math.min(...aligned
+      .filter((element) => element.flowRole === "sidebar-chrome")
+      .map((element) => Number(element.top)));
+    assert.equal(sidebarTop - contactBottom, 40);
   });
 
   it("removes only the user raster and restores its saved placeholder", () => {

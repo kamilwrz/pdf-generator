@@ -36,6 +36,12 @@ test("Slate uses a rectilinear blueprint sidebar and no circles or ellipses", ()
         5,
     );
 
+    const name = slateTemplate.find((element) => element.mastheadRole === "name");
+    const titleBar = slateTemplate.find((element) => element.mastheadRole === "title-decoration");
+    const title = slateTemplate.find((element) => element.mastheadRole === "title");
+    assert.deepEqual([name?.top, titleBar?.top, title?.top], [60, 92, 98]);
+    assert.equal(titleBar.top - name.top, 32);
+
     // Two icon colour variants: white glyphs for badges, accent glyphs for
     // masthead contacts / the photo placeholder.
     const icons = slateTemplate.filter((element) => element.category === "image");

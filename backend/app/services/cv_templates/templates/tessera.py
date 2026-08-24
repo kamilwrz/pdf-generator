@@ -234,15 +234,17 @@ def _gen_tessera(cv: dict) -> list[dict]:
     # Keep the generated preview as forgiving as the live webfont measurement:
     # the final 16 px prevents a tracked white title from touching the bar edge.
     title_bar_width = max(120.0, min(float(main_width), len(title) * 5.4 + 36))
-    title_bar = _line(main_left, 88, title_bar_width, 22, colors["coral"], zIndex=1)
+    title_bar = _line(main_left, 92, title_bar_width, 22, colors["coral"], zIndex=1)
     title_bar["titleDecoration"] = {
         "minWidth": 120.0, "maxWidth": float(main_width),
         "horizontalPadding": 20.0,
     }
+    # Keep the identity cluster close to the body: the 32 pt name-to-bar
+    # offset leaves a deliberate optical gap while avoiding a top-heavy page.
     header = [
-        _text(name, 24, display, colors["aubergine"], main_left, 48, zIndex=3, bold=True),
+        _text(name, 24, display, colors["aubergine"], main_left, 60, zIndex=3, bold=True),
         title_bar,
-        _text(title, 8.2, sans, colors["white"], main_left + 10, 94, zIndex=3, bold=True),
+        _text(title, 8.2, sans, colors["white"], main_left + 10, 98, zIndex=3, bold=True),
         *contact_els,
         _line(main_left, header_rule_y, main_width, 1, colors["rule"], zIndex=2),
         _rect(491, 42, 41, 41, colors["aubergine"], 1.1, zIndex=2),

@@ -33,6 +33,12 @@ test("Tessera uses an original mosaic sidebar and every supported canvas primiti
         4,
     );
 
+    const name = tesseraTemplate.find((element) => element.mastheadRole === "name");
+    const titleBar = tesseraTemplate.find((element) => element.mastheadRole === "title-decoration");
+    const title = tesseraTemplate.find((element) => element.mastheadRole === "title");
+    assert.deepEqual([name?.top, titleBar?.top, title?.top], [60, 92, 98]);
+    assert.equal(titleBar.top - name.top, 32);
+
     const icons = tesseraTemplate.filter(
         (element) => element.category === "image",
     );

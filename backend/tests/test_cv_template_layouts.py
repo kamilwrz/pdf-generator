@@ -134,6 +134,14 @@ class CvTemplateLayoutTests(unittest.TestCase):
             ]),
             4,
         )
+        name = next(element for element in elements if element.get("mastheadRole") == "name")
+        title_bar = next(
+            element
+            for element in elements
+            if element.get("mastheadRole") == "title-decoration"
+        )
+        title = next(element for element in elements if element.get("mastheadRole") == "title")
+        self.assertEqual((name["top"], title_bar["top"], title["top"]), (60, 92, 98))
 
         icons = [
             element
@@ -288,6 +296,14 @@ class CvTemplateLayoutTests(unittest.TestCase):
             ]),
             5,
         )
+        name = next(element for element in elements if element.get("mastheadRole") == "name")
+        title_bar = next(
+            element
+            for element in elements
+            if element.get("mastheadRole") == "title-decoration"
+        )
+        title = next(element for element in elements if element.get("mastheadRole") == "title")
+        self.assertEqual((name["top"], title_bar["top"], title["top"]), (60, 92, 98))
 
         # Slate uses two icon colour variants: white glyphs for filled heading
         # badges and accent glyphs for masthead contact rows / the photo placeholder.

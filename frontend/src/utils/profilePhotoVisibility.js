@@ -112,6 +112,68 @@ export function profilePhotoControlAnchor(elements, templateId) {
   };
 }
 
+/**
+ * Place the first Slate/Tessera sidebar section below the contact stack after
+ * contact-band layout has produced its final coordinates.
+ *
+ * Measuring rendered members instead of predicting row count is important:
+ * active channels and label edits can change independently, while the sidebar
+ * must be correct in the same history mutation as hide/add/remove/edit.
+ */
+export function alignSidebarAfterProfileContacts(elements, bandId, templateId) {
+  const id = String(templateId || "");
+  const list = elements || [];
+  if (!SIDEBAR_CONTACT_TEMPLATE_IDS.has(id) || !isProfilePhotoHidden(list)) return list;
+
+  const anchor = contactAnchor(list);
+  const contacts = list.filter((element) => (
+    (Number(element.page) || 1) === 1
+    && element.contactBandId === bandId
+    && element.contactChannel
+    && Number.isFinite(Number(element.top))
+  ));
+  const contactBottom = contacts.length
+    ? Math.max(...contacts.map((element) => (
+      Number(element.top)
+      + Math.max(
+        Number(element.height) || 0,
+        Number(element.lineHeight) || 0,
+        Number(element.fontSize) || 0,
+      )
+    )))
+    : Number(anchor?.contactBand?.anchor?.startY) || 42;
+  const sidebarMembers = list.filter((element) => (
+    (Number(element.page) || 1) === 1
+    && !element.fixedToPage
+    && !element.contactChannel
+    && (element.flowLane === "sidebar" || element.flowRole === "sidebar-chrome")
+    && Number.isFinite(Number(element.top))
+  ));
+  if (!sidebarMembers.length) return list;
+  const sidebarStart = Math.min(...sidebarMembers.map((element) => Number(element.top)));
+  const shift = contactBottom + SIDEBAR_CONTACT_SECTION_GAP - sidebarStart;
+  if (Math.abs(shift) < 0.01) return list;
+
+  return list.map((element) => {
+    const top = Number(element.top);
+    if (
+      (Number(element.page) || 1) !== 1
+      || element.fixedToPage
+      || element.contactChannel
+      || (element.flowLane !== "sidebar" && element.flowRole !== "sidebar-chrome")
+      || !Number.isFinite(top)
+      || top < sidebarStart
+    ) {
+      return element;
+    }
+    return {
+      ...element,
+      top: top + shift,
+      photoLayoutHome: element.photoLayoutHome || { top },
+    };
+  });
+}
+
 /** Hide the slot and apply the template-specific geometry transition. */
 export function hideProfilePhoto(elements, templateId) {
   if (!supportsProfilePhotoVisibility(templateId) || isProfilePhotoHidden(elements)) {
@@ -120,34 +182,6 @@ export function hideProfilePhoto(elements, templateId) {
   const list = elements || [];
   const id = String(templateId);
   const anchor = contactAnchor(list);
-  const sidebarMembers = SIDEBAR_CONTACT_TEMPLATE_IDS.has(id)
-    ? list.filter((element) => (
-      (Number(element.page) || 1) === 1
-      && element.flowRole === "sidebar-chrome"
-      && Number.isFinite(Number(element.top))
-    ))
-    : [];
-  const sidebarStart = sidebarMembers.length
-    ? Math.min(...sidebarMembers.map((element) => Number(element.top)))
-    : null;
-  const contactCount = new Set(
-    list.filter((element) => element.contactBandId === anchor?.contactBandId && element.contactChannel)
-      .map((element) => element.contactChannel),
-  ).size;
-  const contactLineStep = Number(anchor?.contactBand?.metrics?.lineStep) || 16;
-  const contactHeight = Math.max(
-    Number(anchor?.contactBand?.icon?.sizePt) || 11,
-    Number(anchor?.contactBand?.text?.fontSizePt) || 8,
-  );
-  // The hidden-photo state is denser than the authored photo layout, but the
-  // tiny 7.8 pt contact labels need a stronger boundary before the first
-  // section. Measure 40 pt from the final contact row to the complete section
-  // chrome (including its leading tile), not merely to the heading baseline.
-  const sidebarTargetStart = 42
-    + Math.max(0, contactCount - 1) * contactLineStep
-    + contactHeight
-    + SIDEBAR_CONTACT_SECTION_GAP;
-  const sidebarShift = sidebarStart == null ? 0 : sidebarTargetStart - sidebarStart;
   const next = list.map((element) => {
     if (isSlotMember(element, id)) return { ...element, photoSlotHidden: true };
 
@@ -181,17 +215,16 @@ export function hideProfilePhoto(elements, templateId) {
     }
     if (
       SIDEBAR_CONTACT_TEMPLATE_IDS.has(id)
-      && sidebarStart != null
-      && sidebarShift !== 0
-      && (Number(element.page) || 1) === 1
-      && (element.flowLane === "sidebar" || element.flowRole === "sidebar-chrome")
-      && Number(element.top) >= sidebarStart
+      && anchor
+      && element.contactBandId === anchor.contactBandId
+      && element.contactChannel
     ) {
-      return {
-        ...element,
-        top: Number(element.top) + sidebarShift,
-        photoLayoutHome: { top: Number(element.top) },
-      };
+      // A contact can retain page=2 after an earlier multi-page reflow even
+      // though its managed coordinates are later laid out in the page-one
+      // sidebar. Normalize the complete band before measuring its bottom;
+      // otherwise the initial hide sees only a partial stack and a later
+      // "2 pages to 1" operation appears to fix the spacing by accident.
+      return { ...element, page: 1 };
     }
     return element;
   });
