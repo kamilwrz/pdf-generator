@@ -1382,6 +1382,13 @@ function PdfCanvas() {
     if (!token) return;
     const guestDoc = loadGuestDocument();
     if (!guestDoc || !Array.isArray(guestDoc.elements) || guestDoc.elements.length === 0) return;
+    if (guestDoc.isDemoContent) {
+      // The Regent demo is product content, not a user's draft. Never ask a
+      // newly authenticated account to claim it, and remove the browser copy
+      // so it cannot reappear after a later session on this device.
+      clearGuestDocument();
+      return;
+    }
 
     claimOfferedRef.current = true;
     pendingGuestDocRef.current = guestDoc;

@@ -12,6 +12,9 @@ IV.  BUGZ / NEEDED FIXES
 3) ATRIUM - chipsy kasuja mala linie dekoracyjna
 4) UX / UI "Uklad CV"
 5) Toast przy zmianie szablonow, ma znikac (tylko nowy ma istnies w UI)
+6) Import CV - dane sie nie zapisuja na pozniej;powinny....
+7) Meridian - inny layout;dodawanie sekcji powinno go skopiowac;
+8) Po zapisaniu CV nie moge zmieniac szablonow;Trzeba to zaimplementowac
 
  V.  TEMPLATES / CANVA A4
 -----------------------------------------------------------------------------------------

@@ -77,6 +77,13 @@ test("PdfCanvas publishes demo state through the editor context", async () => {
   assert.match(canvas, /handleLoadAiElements\(response.elements, "Moje CV", "regent"\);\s*\/\/ The generated CV is now an authenticated document[\s\S]*setIsDemoContent\(false\)/);
 });
 
+test("authenticated demo refresh does not offer the demo snapshot for claiming", async () => {
+  const canvas = await source("pages/PdfCanvas.jsx");
+
+  assert.match(canvas, /if \(guestDoc\.isDemoContent\) \{\s*\/\/ The Regent demo is product content/);
+  assert.match(canvas, /if \(guestDoc\.isDemoContent\) \{[\s\S]*clearGuestDocument\(\);[\s\S]*return;/);
+});
+
 test("guest onboarding uses four steps while authenticated wizard keeps templates", async () => {
   const data = await source("utils/bioCvData.js");
   const wizard = await source("components/ai/BioCvModal/BioCvModal.jsx");
