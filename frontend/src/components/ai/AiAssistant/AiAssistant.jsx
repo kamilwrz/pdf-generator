@@ -52,8 +52,8 @@ const ACTION_META = {
  * fields. Record deletion has its own explicit review flow; a correction card
  * must never clear a CV element because a provider returned an empty string.
  */
-function withoutEmptyContentReplacement(fields) {
-    if (!("content" in fields) || String(fields.content ?? "").trim()) {
+function withoutEmptyContentReplacement(fields, allowEmptyContent = false) {
+    if (!("content" in fields) || String(fields.content ?? "").trim() || allowEmptyContent) {
         return fields;
     }
     const { content: _emptyContent, ...remainingFields } = fields;
@@ -1179,7 +1179,10 @@ export default function AiAssistant() {
         const previousElement = A4_Elements.find((element) => element.element_id === element_id);
         const targetExists = Boolean(previousElement);
         if (!targetExists) return;
-        const safeFields = withoutEmptyContentReplacement(fields);
+        const safeFields = withoutEmptyContentReplacement(
+            fields,
+            messages.find((message) => message.id === msgId)?.actionId === "shorten",
+        );
         if (Object.keys(safeFields).length === 0) {
             setCorrectionStates(prev => ({ ...prev, [`${msgId}_${element_id}`]: "rejected" }));
             return;
@@ -1206,7 +1209,7 @@ export default function AiAssistant() {
         }
         setCorrectionStates(prev => ({ ...prev, [`${msgId}_${element_id}`]: "accepted" }));
         collapseSpilledMainIntoSidebar?.();
-    }, [A4_Elements, collapseSpilledMainIntoSidebar, editElementValues, setActiveCvData]);
+    }, [A4_Elements, collapseSpilledMainIntoSidebar, editElementValues, messages, setActiveCvData]);
 
     const rejectCorrection = useCallback((msgId, element_id) => {
         setCorrectionStates(prev => ({ ...prev, [`${msgId}_${element_id}`]: "rejected" }));
@@ -1221,7 +1224,10 @@ export default function AiAssistant() {
             );
             if (previousElement && (correctionStates[key] || "pending") === "pending") {
                 const { element_id, ...fields } = patch;
-                const safeFields = withoutEmptyContentReplacement(fields);
+                const safeFields = withoutEmptyContentReplacement(
+                    fields,
+                    messages.find((message) => message.id === msgId)?.actionId === "shorten",
+                );
                 if (Object.keys(safeFields).length === 0) return;
                 const nextFields = "content" in safeFields
                     ? { ...safeFields, preserveInitialLayout: false }
@@ -1248,7 +1254,7 @@ export default function AiAssistant() {
         });
         setCorrectionStates(prev => ({ ...prev, ...newStates }));
         collapseSpilledMainIntoSidebar?.();
-    }, [A4_Elements, collapseSpilledMainIntoSidebar, correctionStates, editElementValues, setActiveCvData]);
+    }, [A4_Elements, collapseSpilledMainIntoSidebar, correctionStates, editElementValues, messages, setActiveCvData]);
 
     const previewLayoutGroup = useCallback((msgId, group) => {
         setStructurePreviewGroup(null);

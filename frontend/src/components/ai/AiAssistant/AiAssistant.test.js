@@ -2,12 +2,13 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
-test("AI correction handlers never apply an empty content replacement", async () => {
+test("AI correction handlers allow empty content only for shortening", async () => {
     const source = await readFile(new URL("./AiAssistant.jsx", import.meta.url), "utf8");
 
-    assert.match(source, /function withoutEmptyContentReplacement\(fields\)/);
+    assert.match(source, /function withoutEmptyContentReplacement\(fields, allowEmptyContent = false\)/);
     assert.match(source, /String\(fields\.content \?\? ""\)\.trim\(\)/);
-    assert.match(source, /const safeFields = withoutEmptyContentReplacement\(fields\)/);
+    assert.match(source, /const safeFields = withoutEmptyContentReplacement\(/);
+    assert.match(source, /actionId === "shorten"/);
     assert.match(source, /if \(Object\.keys\(safeFields\)\.length === 0\)/);
 });
 
