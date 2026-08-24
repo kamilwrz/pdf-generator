@@ -52,10 +52,44 @@ describe("mergeTemplateContent", () => {
     assert.equal(mergeTemplateContent(current, generated)[0].content, "PODSUMOWANIE ZAWODOWE");
   });
 
+  it("does not map masthead contacts into the name slot", () => {
+    const current = [
+      text({ id: undefined, element_id: "phone", flowRole: "masthead", mastheadRole: "contact", contactChannel: "phone", content: "694 732 542" }),
+      text({ id: undefined, element_id: "name", flowRole: "masthead", mastheadRole: "name", content: "Anna Rojek" }),
+    ];
+    const generated = [
+      text({ id: undefined, element_id: "new-name", flowRole: "masthead", mastheadRole: "name", content: "Name" }),
+      text({ id: undefined, element_id: "new-phone", flowRole: "masthead", mastheadRole: "contact", contactChannel: "phone", content: "Phone" }),
+    ];
+
+    const merged = mergeTemplateContent(current, generated);
+
+    assert.equal(merged[0].content, "Anna Rojek");
+    assert.equal(merged[1].content, "694 732 542");
+  });
+
   it("transfers an intentional empty AI result", () => {
     const current = [text({ content: "" })];
     const generated = [text({ content: "Old source" })];
 
     assert.equal(mergeTemplateContent(current, generated)[0].content, "");
+  });
+
+  it("matches record members when each fill creates a new flowGroup", () => {
+    const current = [
+      text({ id: undefined, element_id: "old-title", flowGroup: "record-old-a", content: "English title" }),
+      text({ id: undefined, element_id: "old-body", flowGroup: "record-old-a", content: "English description" }),
+    ];
+    const generated = [
+      text({ id: undefined, element_id: "new-title", flowGroup: "record-new-b", content: "Polish title" }),
+      text({ id: undefined, element_id: "new-body", flowGroup: "record-new-b", content: "Polish description" }),
+    ];
+
+    const merged = mergeTemplateContent(current, generated);
+
+    assert.deepEqual(merged.map((element) => element.content), [
+      "English title",
+      "English description",
+    ]);
   });
 });

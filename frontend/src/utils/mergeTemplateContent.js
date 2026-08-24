@@ -12,6 +12,11 @@ function isTransferableText(element) {
     element
     && (element.category === "text" || element.category === "textarea")
     && !element.fixedToPage
+    && (
+      element.flowRole === "content"
+      || element.contactChannel
+      || element.mastheadRole
+    )
     && element.flowRole !== "section-chrome"
     && element.flowRole !== "sidebar-chrome"
     && !element.isDecorativeChromeText
@@ -19,19 +24,41 @@ function isTransferableText(element) {
 }
 
 function semanticKey(element) {
-  if (element.id) return `id:${element.id}`;
   if (element.contactChannel) return `contact:${element.contactChannel}`;
   if (element.mastheadRole) return `masthead:${element.mastheadRole}`;
+  if (element.id) return `id:${element.id}`;
   return null;
 }
 
-function structuralKey(element) {
+function structuralBase(element) {
+  // Positional fallback is safe only for ordinary body blocks. Masthead roles
+  // must match by their explicit semantic key so a phone cannot occupy the
+  // name slot when two templates order their headers differently.
   return [
     element.category,
-    element.flowRole || "content",
+    element.flowRole,
     element.flowLane || "main",
-    element.flowGroup || "ungrouped",
   ].join("|");
+}
+
+function contentSlots(elements) {
+  const groupCounters = new Map();
+  const memberCounters = new Map();
+  return elements.map((element) => {
+    const base = structuralBase(element);
+    const groupId = element.flowGroup || "ungrouped";
+    const groupKey = `${base}|${groupId}`;
+    if (!memberCounters.has(groupKey)) memberCounters.set(groupKey, 0);
+    const memberIndex = memberCounters.get(groupKey);
+    memberCounters.set(groupKey, memberIndex + 1);
+    if (!groupCounters.has(base)) groupCounters.set(base, new Map());
+    const groups = groupCounters.get(base);
+    if (!groups.has(groupId)) groups.set(groupId, groups.size);
+    return {
+      element,
+      slotKey: `${base}|${groups.get(groupId)}|${memberIndex}`,
+    };
+  });
 }
 
 /**
@@ -47,18 +74,20 @@ export function mergeTemplateContent(currentElements, generatedElements) {
   const bySemantic = new Map();
   const byStructural = new Map();
 
-  for (const element of currentText) {
+  for (const { element, slotKey } of contentSlots(currentText)) {
     const semantic = semanticKey(element);
     if (semantic) {
       const candidates = bySemantic.get(semantic) || [];
       candidates.push(element);
       bySemantic.set(semantic, candidates);
     }
-    const structural = structuralKey(element);
-    const candidates = byStructural.get(structural) || [];
-    candidates.push(element);
-    byStructural.set(structural, candidates);
+    byStructural.set(slotKey, element);
   }
+
+  const generatedText = (generatedElements || []).filter(isTransferableText);
+  const generatedSlots = new Map(
+    contentSlots(generatedText).map(({ element, slotKey }) => [element, slotKey]),
+  );
 
   return (generatedElements || []).map((generated) => {
     if (!isTransferableText(generated)) return generated;
@@ -66,10 +95,12 @@ export function mergeTemplateContent(currentElements, generatedElements) {
     const semanticCandidates = semanticKey(generated)
       ? (bySemantic.get(semanticKey(generated)) || [])
       : [];
-    const structuralCandidates = byStructural.get(structuralKey(generated)) || [];
+    const structuralCandidate = generated.flowRole === "content"
+      ? byStructural.get(generatedSlots.get(generated))
+      : null;
     const candidates = semanticCandidates.length === 1
       ? semanticCandidates
-      : structuralCandidates;
+      : structuralCandidate ? [structuralCandidate] : [];
     const match = candidates.find((candidate) => !used.has(candidate.element_id));
     if (!match) return generated;
 
