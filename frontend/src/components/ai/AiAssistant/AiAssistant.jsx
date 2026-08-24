@@ -16,6 +16,7 @@ import { IoClose, IoSend } from "react-icons/io5";
 import { MdCheckCircle, MdCancel } from "react-icons/md";
 import classes from "./AiAssistant.module.css";
 import { PdfContext } from "../../../store/pdfgenerator-context";
+import { syncCvDataFromCanvas } from "../../../utils/syncCvDataFromCanvas";
 import { ApiClient, ENDPOINTS, wakeBackend } from "../../../services/api";
 import { measureElements } from "../../../utils/elementBounds";
 import {
@@ -1043,6 +1044,7 @@ export default function AiAssistant() {
         A4_Elements,
         activeTemplateId,
         editElementValues,
+        setActiveCvData,
         collapseSpilledMainIntoSidebar,
         applyLayoutPatches,
         applyStructureOperation,
@@ -1174,7 +1176,8 @@ export default function AiAssistant() {
 
     const acceptCorrection = useCallback((msgId, patch) => {
         const { element_id, ...fields } = patch;
-        const targetExists = A4_Elements.some((element) => element.element_id === element_id);
+        const previousElement = A4_Elements.find((element) => element.element_id === element_id);
+        const targetExists = Boolean(previousElement);
         if (!targetExists) return;
         const safeFields = withoutEmptyContentReplacement(fields);
         if (Object.keys(safeFields).length === 0) {
@@ -1188,9 +1191,20 @@ export default function AiAssistant() {
             ? { ...safeFields, preserveInitialLayout: false }
             : safeFields;
         editElementValues(nextFields, element_id);
+        if ("content" in nextFields) {
+            // Update the source profile at acceptance time, not only through
+            // PdfCanvas's render effect. Several AI cards can be accepted in
+            // one event while reflow replaces the canvas array, which can
+            // otherwise make the next template fill use stale language.
+            setActiveCvData((currentProfile) => syncCvDataFromCanvas(
+                currentProfile,
+                [previousElement],
+                [{ ...previousElement, ...nextFields }],
+            ));
+        }
         setCorrectionStates(prev => ({ ...prev, [`${msgId}_${element_id}`]: "accepted" }));
         collapseSpilledMainIntoSidebar?.();
-    }, [A4_Elements, editElementValues, collapseSpilledMainIntoSidebar]);
+    }, [A4_Elements, collapseSpilledMainIntoSidebar, editElementValues, setActiveCvData]);
 
     const rejectCorrection = useCallback((msgId, element_id) => {
         setCorrectionStates(prev => ({ ...prev, [`${msgId}_${element_id}`]: "rejected" }));
@@ -1200,10 +1214,10 @@ export default function AiAssistant() {
         const acceptedIds = [];
         corrections.forEach(patch => {
             const key = `${msgId}_${patch.element_id}`;
-            const targetExists = A4_Elements.some(
+            const previousElement = A4_Elements.find(
                 (element) => element.element_id === patch.element_id,
             );
-            if (targetExists && (correctionStates[key] || "pending") === "pending") {
+            if (previousElement && (correctionStates[key] || "pending") === "pending") {
                 const { element_id, ...fields } = patch;
                 const safeFields = withoutEmptyContentReplacement(fields);
                 if (Object.keys(safeFields).length === 0) return;
@@ -1211,6 +1225,16 @@ export default function AiAssistant() {
                     ? { ...safeFields, preserveInitialLayout: false }
                     : safeFields;
                 editElementValues(nextFields, element_id);
+                if ("content" in nextFields) {
+                    // Use a functional profile update so every accepted card
+                    // is applied to the result of the previous card rather
+                    // than to the stale profile captured by this render.
+                    setActiveCvData((currentProfile) => syncCvDataFromCanvas(
+                        currentProfile,
+                        [previousElement],
+                        [{ ...previousElement, ...nextFields }],
+                    ));
+                }
                 acceptedIds.push(element_id);
             }
         });
@@ -1220,7 +1244,7 @@ export default function AiAssistant() {
         });
         setCorrectionStates(prev => ({ ...prev, ...newStates }));
         collapseSpilledMainIntoSidebar?.();
-    }, [A4_Elements, correctionStates, editElementValues, collapseSpilledMainIntoSidebar]);
+    }, [A4_Elements, collapseSpilledMainIntoSidebar, correctionStates, editElementValues, setActiveCvData]);
 
     const previewLayoutGroup = useCallback((msgId, group) => {
         setStructurePreviewGroup(null);
