@@ -121,7 +121,7 @@ const CADENZA_ELEMENTS = [
   },
   {
     "category": "image",
-    "src": "/template-assets/iconic/sterling/phone.png",
+    "src": "/template-assets/iconic/cadenza/phone.png",
     "left": 110.9471,
     "top": 111.0,
     "width": 13.0,
@@ -131,7 +131,7 @@ const CADENZA_ELEMENTS = [
     "alignWithText": true,
     "flowRole": "masthead",
     "contactChannel": "phone",
-    "contactBandId": "sterling-contact",
+    "contactBandId": "cadenza-contact",
     "alt": "Contact icon"
   },
   {
@@ -148,11 +148,11 @@ const CADENZA_ELEMENTS = [
     "italic": false,
     "flowRole": "masthead",
     "contactChannel": "phone",
-    "contactBandId": "sterling-contact"
+    "contactBandId": "cadenza-contact"
   },
   {
     "category": "image",
-    "src": "/template-assets/iconic/sterling/email.png",
+    "src": "/template-assets/iconic/cadenza/email.png",
     "left": 215.4985,
     "top": 111.0,
     "width": 13.0,
@@ -162,7 +162,7 @@ const CADENZA_ELEMENTS = [
     "alignWithText": true,
     "flowRole": "masthead",
     "contactChannel": "email",
-    "contactBandId": "sterling-contact",
+    "contactBandId": "cadenza-contact",
     "alt": "Contact icon"
   },
   {
@@ -179,11 +179,11 @@ const CADENZA_ELEMENTS = [
     "italic": false,
     "flowRole": "masthead",
     "contactChannel": "email",
-    "contactBandId": "sterling-contact"
+    "contactBandId": "cadenza-contact"
   },
   {
     "category": "image",
-    "src": "/template-assets/iconic/sterling/linkedin.png",
+    "src": "/template-assets/iconic/cadenza/linkedin.png",
     "left": 357.6405,
     "top": 111.0,
     "width": 13.0,
@@ -193,7 +193,7 @@ const CADENZA_ELEMENTS = [
     "alignWithText": true,
     "flowRole": "masthead",
     "contactChannel": "linkedin",
-    "contactBandId": "sterling-contact",
+    "contactBandId": "cadenza-contact",
     "alt": "Contact icon"
   },
   {
@@ -210,11 +210,11 @@ const CADENZA_ELEMENTS = [
     "italic": false,
     "flowRole": "masthead",
     "contactChannel": "linkedin",
-    "contactBandId": "sterling-contact"
+    "contactBandId": "cadenza-contact"
   },
   {
     "category": "image",
-    "src": "/template-assets/iconic/sterling/location.png",
+    "src": "/template-assets/iconic/cadenza/location.png",
     "left": 265.248,
     "top": 127.0,
     "width": 13.0,
@@ -224,7 +224,7 @@ const CADENZA_ELEMENTS = [
     "alignWithText": true,
     "flowRole": "masthead",
     "contactChannel": "location",
-    "contactBandId": "sterling-contact",
+    "contactBandId": "cadenza-contact",
     "alt": "Contact icon"
   },
   {
@@ -241,7 +241,7 @@ const CADENZA_ELEMENTS = [
     "italic": false,
     "flowRole": "masthead",
     "contactChannel": "location",
-    "contactBandId": "sterling-contact"
+    "contactBandId": "cadenza-contact"
   },
   {
     "category": "line",
@@ -268,7 +268,7 @@ const CADENZA_ELEMENTS = [
     "page": 1,
     "flowRole": "masthead-anchor",
     "contactBand": {
-      "id": "sterling-contact",
+      "id": "cadenza-contact",
       "mode": "centered",
       "anchor": {
         "centerX": 297.5,
@@ -282,7 +282,7 @@ const CADENZA_ELEMENTS = [
       },
       "icon": {
         "sizePt": 13.0,
-        "theme": "sterling"
+        "theme": "cadenza"
       },
       "metrics": {
         "iconGap": 16.0,
@@ -297,7 +297,7 @@ const CADENZA_ELEMENTS = [
         "location"
       ]
     },
-    "contactBandId": "sterling-contact"
+    "contactBandId": "cadenza-contact"
   },
   {
     "category": "text",
@@ -600,7 +600,7 @@ const CADENZA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-121b745d5bca",
+    "flowGroup": "record-cc84467a88b1",
     "flowRole": "content"
   },
   {
@@ -623,7 +623,7 @@ const CADENZA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-121b745d5bca",
+    "flowGroup": "record-cc84467a88b1",
     "flowRole": "content"
   },
   {
@@ -646,7 +646,7 @@ const CADENZA_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-121b745d5bca",
+    "flowGroup": "record-cc84467a88b1",
     "flowRole": "content"
   },
   {
@@ -669,7 +669,7 @@ const CADENZA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-a5e6042659df",
+    "flowGroup": "record-05156c7a719c",
     "flowRole": "content"
   },
   {
@@ -692,7 +692,7 @@ const CADENZA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-a5e6042659df",
+    "flowGroup": "record-05156c7a719c",
     "flowRole": "content"
   },
   {
@@ -715,7 +715,7 @@ const CADENZA_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-a5e6042659df",
+    "flowGroup": "record-05156c7a719c",
     "flowRole": "content"
   },
   {
@@ -738,7 +738,7 @@ const CADENZA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-a5f50855849f",
+    "flowGroup": "record-d839da360b9a",
     "flowRole": "content"
   },
   {
@@ -761,7 +761,7 @@ const CADENZA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-a5f50855849f",
+    "flowGroup": "record-d839da360b9a",
     "flowRole": "content"
   },
   {
@@ -784,7 +784,7 @@ const CADENZA_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-a5f50855849f",
+    "flowGroup": "record-d839da360b9a",
     "flowRole": "content"
   },
   {
@@ -807,7 +807,7 @@ const CADENZA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-67c05ec894c4",
+    "flowGroup": "record-71a0bf1c0749",
     "flowRole": "content"
   },
   {
@@ -830,7 +830,7 @@ const CADENZA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-67c05ec894c4",
+    "flowGroup": "record-71a0bf1c0749",
     "flowRole": "content"
   },
   {
@@ -853,7 +853,7 @@ const CADENZA_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-67c05ec894c4",
+    "flowGroup": "record-71a0bf1c0749",
     "flowRole": "content"
   },
   {
@@ -902,7 +902,7 @@ const CADENZA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-91adc72105b8",
+    "flowGroup": "record-be92067ee891",
     "flowRole": "content"
   },
   {
@@ -925,7 +925,7 @@ const CADENZA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-91adc72105b8",
+    "flowGroup": "record-be92067ee891",
     "flowRole": "content"
   },
   {
@@ -948,7 +948,7 @@ const CADENZA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-91adc72105b8",
+    "flowGroup": "record-be92067ee891",
     "flowRole": "content"
   },
   {
@@ -971,7 +971,7 @@ const CADENZA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-c34e50375f64",
+    "flowGroup": "record-41b7a765a406",
     "flowRole": "content"
   },
   {
@@ -994,7 +994,7 @@ const CADENZA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-c34e50375f64",
+    "flowGroup": "record-41b7a765a406",
     "flowRole": "content"
   },
   {
@@ -1017,7 +1017,7 @@ const CADENZA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-c34e50375f64",
+    "flowGroup": "record-41b7a765a406",
     "flowRole": "content"
   },
   {

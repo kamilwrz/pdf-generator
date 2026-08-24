@@ -326,6 +326,12 @@ SUBSET_THEMES = {
         "#4A6FA5",
         ["email", "phone", "location", "linkedin", "github", "website"],
     ),
+    # Cadenza uses taupe contact glyphs that match its fixed geometry and
+    # rules. It has no section-icon system, so the contact subset is enough.
+    "cadenza": (
+        "#B38B6D",
+        ["email", "phone", "location", "linkedin", "github", "website"],
+    ),
     # Monument needs only black masthead contact glyphs and the portrait
     # placeholder; numbered text plates replace section icons in this layout.
     "monument": (

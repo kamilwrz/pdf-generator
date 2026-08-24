@@ -80,6 +80,26 @@ def _gen_cadenza(cv: dict) -> list[dict]:
 
         if element.get("category") == "image":
             element["alt"] = element.get("alt") or "Contact icon"
+            src = element.get("src")
+            if isinstance(src, str):
+                # Sterling's inherited contact band is structurally compatible,
+                # but its steel-blue icon raster would break Cadenza's taupe
+                # palette. Use Cadenza's dedicated glyph assets instead.
+                element["src"] = src.replace("/iconic/sterling/", "/iconic/cadenza/")
+
+        # The contact-band descriptor is the source of truth when users add,
+        # remove, or relayout a channel in the editor. Repointing only the
+        # initially rendered image elements would make newly added icons revert
+        # to Sterling blue.
+        contact_band = element.get("contactBand")
+        if isinstance(contact_band, dict) and contact_band.get("id") == "sterling-contact":
+            contact_band = deepcopy(contact_band)
+            contact_band["id"] = "cadenza-contact"
+            contact_band.setdefault("icon", {})["theme"] = "cadenza"
+            element["contactBand"] = contact_band
+            element["contactBandId"] = "cadenza-contact"
+        elif element.get("contactBandId") == "sterling-contact":
+            element["contactBandId"] = "cadenza-contact"
 
     pages = max((element.get("page", 1) for element in elements), default=1)
     geometry = [

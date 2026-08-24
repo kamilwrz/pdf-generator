@@ -63,3 +63,28 @@ def test_cadenza_keeps_sidebar_and_record_lanes_from_the_shared_planner() -> Non
     ]
     assert len(record_elements) == 2
     assert record_elements[0]["flowGroup"] == record_elements[1]["flowGroup"]
+
+
+def test_cadenza_uses_its_own_taupe_contact_icon_theme() -> None:
+    """Initial and dynamically added contact channels must share Cadenza's palette."""
+    elements = generate_resume(
+        "cadenza",
+        {
+            "name": "Julia Bernat",
+            "email": "julia@example.com",
+            "phone": "+48 512 340 780",
+            "experience": [],
+            "education": [],
+            "skills": [],
+            "languages": [],
+        },
+    )
+
+    icons = [element for element in elements if element["category"] == "image"]
+    assert icons
+    assert all("/template-assets/iconic/cadenza/" in element["src"] for element in icons)
+    contact_anchor = next(
+        element for element in elements if element.get("contactBandId") == "cadenza-contact"
+        and isinstance(element.get("contactBand"), dict)
+    )
+    assert contact_anchor["contactBand"]["icon"]["theme"] == "cadenza"
