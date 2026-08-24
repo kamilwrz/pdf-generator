@@ -12,6 +12,7 @@ import { fillTemplate } from "../services/fillTemplate";
 import { isTemplateAllowed, planErrorMessage } from "../utils/entitlements";
 import { DEFAULT_FLOW_SPACING } from "../utils/flowSpacing";
 import { getAccessToken } from "../utils/authSession";
+import { mergeTemplateContent } from "../utils/mergeTemplateContent";
 
 function templateBadgeInk(accent) {
   const hex = String(accent || "").replace("#", "");
@@ -71,7 +72,8 @@ export function useApplyCvTemplate() {
       // is already represented by `activeCvData`, including accepted AI edits.
       // Copying fields from the previous canvas here leaks the old template's
       // typography and colours into the target template.
-      replaceActiveElements(res.elements, undefined, template.id);
+      const elementsWithCurrentContent = mergeTemplateContent(A4_Elements, res.elements);
+      replaceActiveElements(elementsWithCurrentContent, undefined, template.id);
       // Keep knobs / Reset baseline / next autosave `spacing_px` aligned
       // with the freshly generated layout (after pinFlowSpacingBaseline).
       adoptDocumentFlowSpacing?.(DEFAULT_FLOW_SPACING);
@@ -91,6 +93,7 @@ export function useApplyCvTemplate() {
     }
   }, [
     activeCvData,
+    A4_Elements,
     adoptDocumentFlowSpacing,
     api,
     entitlements,

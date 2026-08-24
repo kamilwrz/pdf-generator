@@ -1435,7 +1435,7 @@ Implementation:
 
 Once a CV has been filled at least once this session (via PDF import or the bio wizard), the Topbar **Szablony** control restyles the document without re-uploading a PDF or redoing the wizard. It sits on the live left edge of the A4 page (measured from `.page-canvas` relative to the topbar) rather than in the left action group. Clicking the grid icon opens a dialog with the same `TemplateCarousel` gallery. The flanking arrows call the same apply path without opening that dialog, wrapping through templates the current plan may use (`adjacentAllowedTemplate` skips Pro-locked ids).
 
-During restyling, the target template owns presentation, geometry, flow metadata, and decorative chrome. The source of truth for text is `activeCvData`, which must contain accepted AI corrections before the fill request is sent; styles from the previous template are never copied onto the new one.
+During restyling, the target template owns presentation, geometry, flow metadata, and decorative chrome. `mergeTemplateContent` overlays the current editable canvas text, including accepted AI corrections, onto matching generated content slots before the new template is materialized. This protects translations even when a rendered element is a composition of several `cv_data` fields; styles from the previous template are never copied onto the new one.
 
 It calls the same `/ai/fill_template` endpoint via `useApplyCvTemplate` with `PdfContext.activeCvData`. On an open canvas this profile starts from the successful import/wizard fill and synchronizes unambiguous direct text edits; on a saved document it is restored from `Pdf.cv_data`. The carousel receives `selectedId={activeTemplateId}`: the current template is labelled **Obecny**, named in the identity header, and becomes the first card in the browsing window so prev/next starts from that choice.
 
@@ -1455,6 +1455,7 @@ Implementation:
 - `frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`, `frontend/src/components/ai/BioCvModal/BioCvModal.jsx` — `setActiveCvData(...)` on successful fill
 - `frontend/src/components/modals/ModalPdfs/ModalPdfs.jsx`, `showPDF` — hydrates `{ document, elements }`, including the saved `cv_data` snapshot
 - `frontend/src/utils/syncCvDataFromCanvas.js` — conservative, immutable canvas-text-to-profile synchronization
+- `frontend/src/utils/mergeTemplateContent.js`, `mergeTemplateContent` — transfers current editable text and inline runs into target slots while excluding section chrome
 - `backend/app/models/models.py`, `Pdf.cv_data`; `backend/alembic/versions/20260824_0006_pdf_cv_data.py` — persistent, nullable profile snapshot and migration
 
 Tests:
@@ -1462,6 +1463,7 @@ Tests:
 - `frontend/src/utils/cvTemplateSelection.test.js` — wrap among plan-allowed templates; skip Pro-locked ids
 - `frontend/src/components/editor/Topbar/ChangeTemplateModal.test.js` — `DEFAULT_FLOW_SPACING` on `useApplyCvTemplate`; topbar arrows + modal wiring
 - `frontend/src/utils/syncCvDataFromCanvas.test.js` — preserve a uniquely mapped manual text edit and reject ambiguous duplicate values
+- `frontend/src/utils/mergeTemplateContent.test.js` — retain AI-translated text, allow cleared content, and keep target-template style and chrome
 - `backend/tests/test_pdf_editor_mode.py`, `backend/tests/test_pdf_ownership_idor.py` — persist `cv_data` and return it only through the owned document hydration response
 
 ### AI assistant
@@ -3319,7 +3321,7 @@ Implementacja:
 
 Gdy CV zostało w tej sesji przynajmniej raz wypełnione (przez import PDF albo kreator bio), kontrolka **Szablony** w Topbarze przestylizowuje dokument bez ponownego przesyłania PDF-a czy przechodzenia kreatora od nowa. Stoi na żywej lewej krawędzi strony A4 (pomiar `.page-canvas` względem topbara), a nie w lewej grupie akcji. Kliknięcie ikony otwiera dialog z tą samą galerią `TemplateCarousel`. Strzałki obok wołają tę samą ścieżkę aplikowania bez otwierania dialogu i owijają listę szablonów dostępnych w planie (`adjacentAllowedTemplate` pomija identyfikatory zablokowane w Pro).
 
-Podczas restylizacji szablon docelowy posiada style prezentacji, geometrię, metadane przepływu i dekoracyjny chrome. Źródłem treści jest `activeCvData`, które musi zawierać zaakceptowane korekty AI przed wysłaniem żądania wypełnienia; style poprzedniego szablonu nie są kopiowane do nowego.
+Podczas restylizacji szablon docelowy posiada style prezentacji, geometrię, metadane przepływu i dekoracyjny chrome. `mergeTemplateContent` nakłada aktualną edytowalną treść płótna, w tym zaakceptowane korekty AI, na pasujące pola wygenerowanego wyniku przed materializacją nowego szablonu. Chroni to tłumaczenia także wtedy, gdy element jest złożeniem kilku pól `cv_data`; style poprzedniego szablonu nie są kopiowane do nowego.
 
 Wywołuje ten sam endpoint `/ai/fill_template` przez `useApplyCvTemplate`, przekazując `PdfContext.activeCvData`. Na otwartym płótnie profil zaczyna się od udanego importu/kreatora i synchronizuje jednoznaczne ręczne zmiany tekstu; dla zapisanego dokumentu jest odtwarzany z `Pdf.cv_data`. Karuzela dostaje `selectedId={activeTemplateId}`: bieżący szablon ma etykietę **Obecny**, jest nazwany w nagłówku tożsamości i staje się pierwszą kartą w oknie przeglądania, więc strzałki zaczynają od tego wyboru.
 
@@ -3339,6 +3341,7 @@ Implementacja:
 - `frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`, `frontend/src/components/ai/BioCvModal/BioCvModal.jsx` — `setActiveCvData(...)` po udanym wypełnieniu
 - `frontend/src/components/modals/ModalPdfs/ModalPdfs.jsx`, `showPDF` — hydrate’uje `{ document, elements }`, w tym zapisany snapshot `cv_data`
 - `frontend/src/utils/syncCvDataFromCanvas.js` — konserwatywna, niemutująca synchronizacja tekstu płótna z profilem
+- `frontend/src/utils/mergeTemplateContent.js`, `mergeTemplateContent` — przenosi bieżący tekst i inline runs do pól szablonu docelowego, pomijając chrome sekcji
 - `backend/app/models/models.py`, `Pdf.cv_data`; `backend/alembic/versions/20260824_0006_pdf_cv_data.py` — trwały, opcjonalny snapshot profilu oraz migracja
 
 Testy:
@@ -3346,6 +3349,7 @@ Testy:
 - `frontend/src/utils/cvTemplateSelection.test.js` — zawijanie wśród szablonów dostępnych w planie; pomijanie zablokowanych w Pro
 - `frontend/src/components/editor/Topbar/ChangeTemplateModal.test.js` — `DEFAULT_FLOW_SPACING` w `useApplyCvTemplate`; strzałki topbara i podłączenie modala
 - `frontend/src/utils/syncCvDataFromCanvas.test.js` — zachowanie jednoznacznie dopasowanej ręcznej zmiany tekstu i odrzucenie niejednoznacznych, zduplikowanych wartości
+- `frontend/src/utils/mergeTemplateContent.test.js` — zachowanie tłumaczeń AI, wyczyszczonej treści oraz stylu i chrome szablonu docelowego
 - `backend/tests/test_pdf_editor_mode.py`, `backend/tests/test_pdf_ownership_idor.py` — utrwalanie `cv_data` i zwrócenie go wyłącznie przez odpowiedź hydratacji dokumentu należącego do użytkownika
 
 ### Asystent AI
