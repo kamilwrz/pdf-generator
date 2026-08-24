@@ -89,9 +89,18 @@ function editableTextChanges(previousElements, nextElements) {
  * @param {object[]} previousElements - Canvas state before an edit.
  * @param {object[]} nextElements - Canvas state after an edit.
  * @param {object[]} deletedElements - Tombstones emitted by structural deletes.
+ * @param {{allowAmbiguous?: boolean}} [options] - AI corrections may apply the
+ * same translated source phrase to multiple profile leaves; manual edits stay
+ * conservative by default.
  * @returns {object|null} The updated profile, or the original when no mapping exists.
  */
-export function syncCvDataFromCanvas(cvData, previousElements, nextElements, deletedElements = []) {
+export function syncCvDataFromCanvas(
+  cvData,
+  previousElements,
+  nextElements,
+  deletedElements = [],
+  options = {},
+) {
   if (!cvData || !Array.isArray(previousElements) || !Array.isArray(nextElements)) {
     return cvData || null;
   }
@@ -108,7 +117,7 @@ export function syncCvDataFromCanvas(cvData, previousElements, nextElements, del
     ? pruneDeletedRecords(cvData, deletedTexts)
     : cvData;
   for (const { from, to } of editableTextChanges(previousElements, nextElements)) {
-    if (countStringLeaves(nextProfile, from) !== 1) continue;
+    if (!options.allowAmbiguous && countStringLeaves(nextProfile, from) !== 1) continue;
     if (nextProfile === cvData) nextProfile = cloneProfile(cvData);
     nextProfile = replaceUniqueString(nextProfile, from, to);
   }

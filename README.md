@@ -1435,13 +1435,13 @@ Implementation:
 
 Once a CV has been filled at least once this session (via PDF import or the bio wizard), the Topbar **Szablony** control restyles the document without re-uploading a PDF or redoing the wizard. It sits on the live left edge of the A4 page (measured from `.page-canvas` relative to the topbar) rather than in the left action group. Clicking the grid icon opens a dialog with the same `TemplateCarousel` gallery. The flanking arrows call the same apply path without opening that dialog, wrapping through templates the current plan may use (`adjacentAllowedTemplate` skips Pro-locked ids).
 
-During restyling, `reconcileTemplateStyles` preserves user-editable presentation values on uniquely matched text and textarea elements: colour, font family and size, line height, letter spacing, bold, italic, underline, paragraph alignment, text transform, and unchanged inline `runs`. The target template retains ownership of position, dimensions, page assignment, flow metadata, and decorative chrome. Consequently, a saved font-colour or font-size change survives switching templates without carrying the previous template’s geometry.
+During restyling, the target template owns presentation, geometry, flow metadata, and decorative chrome. The source of truth for text is `activeCvData`, which must contain accepted AI corrections before the fill request is sent; styles from the previous template are never copied onto the new one.
 
 It calls the same `/ai/fill_template` endpoint via `useApplyCvTemplate` with `PdfContext.activeCvData`. On an open canvas this profile starts from the successful import/wizard fill and synchronizes unambiguous direct text edits; on a saved document it is restored from `Pdf.cv_data`. The carousel receives `selectedId={activeTemplateId}`: the current template is labelled **Obecny**, named in the identity header, and becomes the first card in the browsing window so prev/next starts from that choice.
 
 The important difference from the initial fill flows: this one applies the result through `replaceActiveElements` (the raw `handleLoadAiElements` from `useA4Elements`) instead of `loadAiElements`. `loadAiElements` is wrapped in `startFreshDocument`, which clears `pdfId` and starts a brand-new, unsaved project — correct for "create a CV," wrong for "restyle this one." `replaceActiveElements` swaps the canvas elements and template id but leaves `pdfId` and the project title untouched, so the next explicit Save updates the *same* saved document instead of creating a duplicate. Sections spacing knobs stay document-local: change-template fills with `DEFAULT_FLOW_SPACING` and resets knobs/baseline via `adoptDocumentFlowSpacing`, so a custom rhythm from the previous template is not reused.
 
-`activeCvData` is set after a fill, persisted only by an explicit Save, and restored by `ModalPdfs.showPDF` from the owned document response. `syncCvDataFromCanvas` copies a manual text change when the former string maps to exactly one profile field, while `AiAssistant` also synchronizes every accepted non-empty AI correction immediately, before canvas reflow can replace the comparison baseline. Structural record/section deletes add explicit `deletedRecord` tombstones, which remove matching profile records before a template fill. These conservative rules prevent an identical phrase in two unrelated fields from being overwritten and prevent deleted or cleared content from returning after a template change. Starting a fresh document or discarding the active document clears the profile. The Topbar control is disabled with an explanatory tooltip for legacy documents that have no recoverable profile snapshot.
+`activeCvData` is set after a fill, persisted only by an explicit Save, and restored by `ModalPdfs.showPDF` from the owned document response. `syncCvDataFromCanvas` copies a manual text change only when the former string maps to exactly one profile field. `AiAssistant` synchronizes each accepted non-empty AI correction immediately, before canvas reflow can replace the comparison baseline, and deliberately applies repeated source phrases because one translation request may update several matching elements. Structural record/section deletes add explicit `deletedRecord` tombstones, which remove matching profile records before a template fill. Starting a fresh document or discarding the active document clears the profile. The Topbar control is disabled with an explanatory tooltip for legacy documents that have no recoverable profile snapshot.
 
 Implementation:
 
@@ -1455,7 +1455,6 @@ Implementation:
 - `frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`, `frontend/src/components/ai/BioCvModal/BioCvModal.jsx` — `setActiveCvData(...)` on successful fill
 - `frontend/src/components/modals/ModalPdfs/ModalPdfs.jsx`, `showPDF` — hydrates `{ document, elements }`, including the saved `cv_data` snapshot
 - `frontend/src/utils/syncCvDataFromCanvas.js` — conservative, immutable canvas-text-to-profile synchronization
-- `frontend/src/utils/reconcileTemplateStyles.js`, `reconcileTemplateStyles` — preserves uniquely matched editable typography and inline runs without copying template geometry
 - `backend/app/models/models.py`, `Pdf.cv_data`; `backend/alembic/versions/20260824_0006_pdf_cv_data.py` — persistent, nullable profile snapshot and migration
 
 Tests:
@@ -1463,7 +1462,6 @@ Tests:
 - `frontend/src/utils/cvTemplateSelection.test.js` — wrap among plan-allowed templates; skip Pro-locked ids
 - `frontend/src/components/editor/Topbar/ChangeTemplateModal.test.js` — `DEFAULT_FLOW_SPACING` on `useApplyCvTemplate`; topbar arrows + modal wiring
 - `frontend/src/utils/syncCvDataFromCanvas.test.js` — preserve a uniquely mapped manual text edit and reject ambiguous duplicate values
-- `frontend/src/utils/reconcileTemplateStyles.test.js` — preserve user typography, reject decorative/unmatched elements, and keep inline runs only for unchanged content
 - `backend/tests/test_pdf_editor_mode.py`, `backend/tests/test_pdf_ownership_idor.py` — persist `cv_data` and return it only through the owned document hydration response
 
 ### AI assistant
@@ -3321,13 +3319,13 @@ Implementacja:
 
 Gdy CV zostało w tej sesji przynajmniej raz wypełnione (przez import PDF albo kreator bio), kontrolka **Szablony** w Topbarze przestylizowuje dokument bez ponownego przesyłania PDF-a czy przechodzenia kreatora od nowa. Stoi na żywej lewej krawędzi strony A4 (pomiar `.page-canvas` względem topbara), a nie w lewej grupie akcji. Kliknięcie ikony otwiera dialog z tą samą galerią `TemplateCarousel`. Strzałki obok wołają tę samą ścieżkę aplikowania bez otwierania dialogu i owijają listę szablonów dostępnych w planie (`adjacentAllowedTemplate` pomija identyfikatory zablokowane w Pro).
 
-Podczas restylizacji `reconcileTemplateStyles` zachowuje na jednoznacznie dopasowanych elementach tekstowych i textarea wartości prezentacji użytkownika: kolor, rodzinę i rozmiar czcionki, wysokość linii, tracking, pogrubienie, kursywę, podkreślenie, wyrównanie akapitu, transformację tekstu oraz niezmienione inline `runs`. Szablon docelowy nadal posiada pozycję, wymiary, przypisanie strony, metadane przepływu i dekoracyjny chrome. Dzięki temu zapisany kolor lub rozmiar czcionki przechodzi do nowego szablonu bez przenoszenia geometrii poprzedniego.
+Podczas restylizacji szablon docelowy posiada style prezentacji, geometrię, metadane przepływu i dekoracyjny chrome. Źródłem treści jest `activeCvData`, które musi zawierać zaakceptowane korekty AI przed wysłaniem żądania wypełnienia; style poprzedniego szablonu nie są kopiowane do nowego.
 
 Wywołuje ten sam endpoint `/ai/fill_template` przez `useApplyCvTemplate`, przekazując `PdfContext.activeCvData`. Na otwartym płótnie profil zaczyna się od udanego importu/kreatora i synchronizuje jednoznaczne ręczne zmiany tekstu; dla zapisanego dokumentu jest odtwarzany z `Pdf.cv_data`. Karuzela dostaje `selectedId={activeTemplateId}`: bieżący szablon ma etykietę **Obecny**, jest nazwany w nagłówku tożsamości i staje się pierwszą kartą w oknie przeglądania, więc strzałki zaczynają od tego wyboru.
 
 Kluczowa różnica względem początkowych ścieżek wypełniania: ta akcja aplikuje wynik przez `replaceActiveElements` (surowe `handleLoadAiElements` z `useA4Elements`), a nie przez `loadAiElements`. `loadAiElements` jest opakowane w `startFreshDocument`, które czyści `pdfId` i zaczyna zupełnie nowy, niezapisany projekt — poprawne dla „utwórz CV”, błędne dla „przestylizuj to CV”. `replaceActiveElements` podmienia elementy płótna i id szablonu, ale zostawia `pdfId` oraz tytuł projektu nietknięte, więc najbliższy jawny Zapis aktualizuje *ten sam* zapisany dokument zamiast tworzyć duplikat. Odstępy z panelu Sekcje są lokalne dla dokumentu: zmiana szablonu wypełnia z `DEFAULT_FLOW_SPACING` i resetuje knoby/baseline przez `adoptDocumentFlowSpacing`, więc rytm poprzedniego szablonu nie jest ponownie używany.
 
-`activeCvData` jest ustawiane po wypełnieniu, utrwalane wyłącznie przez jawny Zapis i odtwarzane przez `ModalPdfs.showPDF` z odpowiedzi należącego do użytkownika dokumentu. `syncCvDataFromCanvas` kopiuje ręczną zmianę tekstu, gdy poprzedni tekst mapuje się dokładnie na jedno pole profilu, a `AiAssistant` dodatkowo synchronizuje każdą zaakceptowaną, niepustą korektę AI natychmiast, zanim reflow płótna zastąpi punkt odniesienia porównania. Strukturalne usunięcie rekordu/sekcji dodaje jawne tombstony `deletedRecord`, które usuwają pasujące rekordy profilu przed wypełnieniem szablonu. Te konserwatywne reguły chronią identyczne frazy w dwóch niezależnych polach przed nadpisaniem i zapobiegają powrotowi skasowanej albo wyczyszczonej treści po zmianie szablonu. Rozpoczęcie nowego dokumentu lub odrzucenie aktywnego dokumentu czyści profil. Kontrolka Topbara pozostaje wyłączona z wyjaśniającym tooltipem dla starszych dokumentów bez możliwego do odzyskania snapshotu profilu.
+`activeCvData` jest ustawiane po wypełnieniu, utrwalane wyłącznie przez jawny Zapis i odtwarzane przez `ModalPdfs.showPDF` z odpowiedzi należącego do użytkownika dokumentu. `syncCvDataFromCanvas` kopiuje ręczną zmianę tekstu tylko wtedy, gdy poprzedni tekst mapuje się dokładnie na jedno pole profilu. `AiAssistant` synchronizuje każdą zaakceptowaną, niepustą korektę AI natychmiast, zanim reflow płótna zastąpi punkt odniesienia porównania, i celowo stosuje powtarzające się frazy źródłowe, ponieważ jedno tłumaczenie może zmienić kilka pasujących elementów. Strukturalne usunięcie rekordu/sekcji dodaje jawne tombstony `deletedRecord`, które usuwają pasujące rekordy profilu przed wypełnieniem szablonu. Rozpoczęcie nowego dokumentu lub odrzucenie aktywnego dokumentu czyści profil. Kontrolka Topbara pozostaje wyłączona z wyjaśniającym tooltipem dla starszych dokumentów bez możliwego do odzyskania snapshotu profilu.
 
 Implementacja:
 
@@ -3341,7 +3339,6 @@ Implementacja:
 - `frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`, `frontend/src/components/ai/BioCvModal/BioCvModal.jsx` — `setActiveCvData(...)` po udanym wypełnieniu
 - `frontend/src/components/modals/ModalPdfs/ModalPdfs.jsx`, `showPDF` — hydrate’uje `{ document, elements }`, w tym zapisany snapshot `cv_data`
 - `frontend/src/utils/syncCvDataFromCanvas.js` — konserwatywna, niemutująca synchronizacja tekstu płótna z profilem
-- `frontend/src/utils/reconcileTemplateStyles.js`, `reconcileTemplateStyles` — zachowuje jednoznacznie dopasowaną typografię i inline runs bez kopiowania geometrii szablonu
 - `backend/app/models/models.py`, `Pdf.cv_data`; `backend/alembic/versions/20260824_0006_pdf_cv_data.py` — trwały, opcjonalny snapshot profilu oraz migracja
 
 Testy:
@@ -3349,7 +3346,6 @@ Testy:
 - `frontend/src/utils/cvTemplateSelection.test.js` — zawijanie wśród szablonów dostępnych w planie; pomijanie zablokowanych w Pro
 - `frontend/src/components/editor/Topbar/ChangeTemplateModal.test.js` — `DEFAULT_FLOW_SPACING` w `useApplyCvTemplate`; strzałki topbara i podłączenie modala
 - `frontend/src/utils/syncCvDataFromCanvas.test.js` — zachowanie jednoznacznie dopasowanej ręcznej zmiany tekstu i odrzucenie niejednoznacznych, zduplikowanych wartości
-- `frontend/src/utils/reconcileTemplateStyles.test.js` — zachowanie typografii, odrzucenie dekoracji/niedopasowanych elementów i runs tylko dla niezmienionej treści
 - `backend/tests/test_pdf_editor_mode.py`, `backend/tests/test_pdf_ownership_idor.py` — utrwalanie `cv_data` i zwrócenie go wyłącznie przez odpowiedź hydratacji dokumentu należącego do użytkownika
 
 ### Asystent AI

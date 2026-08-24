@@ -36,6 +36,20 @@ describe("syncCvDataFromCanvas", () => {
     assert.equal(updated, duplicated);
   });
 
+  it("allows AI to translate repeated source phrases deliberately", () => {
+    const duplicated = { ...profile, experience: [{ description: "Teamwork" }], summary: "Teamwork" };
+    const updated = syncCvDataFromCanvas(
+      duplicated,
+      [text("summary", "Teamwork")],
+      [text("summary", "Praca zespołowa")],
+      [],
+      { allowAmbiguous: true },
+    );
+
+    assert.equal(updated.summary, "Praca zespołowa");
+    assert.equal(updated.experience[0].description, "Praca zespołowa");
+  });
+
   it("persists an AI correction that intentionally clears a field", () => {
     const updated = syncCvDataFromCanvas(
       profile,

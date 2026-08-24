@@ -1200,6 +1200,8 @@ export default function AiAssistant() {
                 currentProfile,
                 [previousElement],
                 [{ ...previousElement, ...nextFields }],
+                [],
+                { allowAmbiguous: true },
             ));
         }
         setCorrectionStates(prev => ({ ...prev, [`${msgId}_${element_id}`]: "accepted" }));
@@ -1233,6 +1235,8 @@ export default function AiAssistant() {
                         currentProfile,
                         [previousElement],
                         [{ ...previousElement, ...nextFields }],
+                        [],
+                        { allowAmbiguous: true },
                     ));
                 }
                 acceptedIds.push(element_id);
