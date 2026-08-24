@@ -201,7 +201,7 @@ pdf-generator/
     └── .env.example
 ```
 
-**Rules:** Frontend templates must stay in sync with `_GENERATORS` in `cv_templates/registry.py` (re-exported from `cv_generator.py`; 10 ids). Each `cv_templates/templates/<id>.py` holds only that template’s live generator — not a shared multi-theme engine with sibling branches. Do not put secrets in the repo. Uploads and generated PDFs are runtime data (`uploads/`, `static/generated/`), not source. User image bytes are not publicly mounted — only via `GET /images/{id}/content`.
+**Rules:** Frontend templates must stay in sync with `_GENERATORS` in `cv_templates/registry.py` (re-exported from `cv_generator.py`; 11 ids). Each `cv_templates/templates/<id>.py` holds only that template’s live generator — not a shared multi-theme engine with sibling branches. Do not put secrets in the repo. Uploads and generated PDFs are runtime data (`uploads/`, `static/generated/`), not source. User image bytes are not publicly mounted — only via `GET /images/{id}/content`.
 
 ---
 
@@ -733,7 +733,7 @@ Implementation:
 
 Limits:
 
-- Free (Darmowy) includes one starter template (Regent), watermarked PDF export, and **one lifetime** CV import. Pro unlocks clean PDF, all 10 templates, further imports, content AI, ATS, and Layout for **59 zł / 30 days**. Stripe Checkout is not wired yet; unpaid selection may activate Pro via `ALLOW_UNPAID_PLAN_SELECTION`.
+- Free (Darmowy) includes the Regent and Sterling starter templates, watermarked PDF export, and **one lifetime** CV import. Pro unlocks clean PDF, all 11 templates, further imports, content AI, ATS, and Layout for **59 zł / 30 days**. Stripe Checkout is not wired yet; unpaid selection may activate Pro via `ALLOW_UNPAID_PLAN_SELECTION`.
 - ATS feedback (**Czytelność dla ATS**) checks whether the final PDF text can be extracted and whether content headings/keywords look standard. It is guidance, not a promise that every recruiter ATS will parse the file the same way.
 - The privacy section describes implemented data use at a high level and does not claim unimplemented certifications or anonymisation.
 
@@ -1020,7 +1020,7 @@ Tests:
 
 ### Sterling wide-sidebar elegant free template
 
-Sterling is a paid, two-column template (`layouts: ["sidebar"]`) with a quiet blue-gray (`#4A6FA5` accent, `#26313F` ink, `#F7F8FA` paper) palette. Its brief is a **centered letterhead masthead** — serif (`CormorantGaramond`) display name, tracked uppercase title, an **icon-based contact row** — sitting on a **full-width tinted "letterhead band"** (a `595`-pt-wide filled rectangle in the rail tint `#EDF1F6`, from the top of the page down to the masthead rule, `repeatOnContinuation: false`) and closed by a **horizontal rule spanning both columns**. The **rail fill and vertical divider are full page height** on every page so live canvas overflow / section-transfer clones copy a single vertical strip onto page 2 — never the letterhead top bar. On page 1 the band sits at a higher z-index and covers the divider through the centered masthead (name/title/contact cross `x = 210`). Reusing the rail tint makes the top band and the left rail read as one continuous field. Below the masthead rule the page splits into a wide sidebar (`210` pt) and the main column; **which section lands in which column is decided by a balance-driven planner** (described next), not a fixed rule. One rule color (`#C7CFDA`) is reused for the masthead underline, the sidebar divider, and every main-column section rule, so the page reads as one coherent system rather than several separately-styled dividers — the "harmonijny" (harmonious) brief was explicit about this. Continuation pages carry no masthead / letterhead band — only the full-height rail, divider, and page number.
+Sterling is a free, two-column template (`layouts: ["sidebar"]`) with a quiet blue-gray (`#4A6FA5` accent, `#26313F` ink, `#F7F8FA` paper) palette. Its brief is a **centered letterhead masthead** — serif (`CormorantGaramond`) display name, tracked uppercase title, an **icon-based contact row** — sitting on a **full-width tinted "letterhead band"** (a `595`-pt-wide filled rectangle in the rail tint `#EDF1F6`, from the top of the page down to the masthead rule, `repeatOnContinuation: false`) and closed by a **horizontal rule spanning both columns**. The **rail fill and vertical divider are full page height** on every page so live canvas overflow / section-transfer clones copy a single vertical strip onto page 2 — never the letterhead top bar. On page 1 the band sits at a higher z-index and covers the divider through the centered masthead (name/title/contact cross `x = 210`). Reusing the rail tint makes the top band and the left rail read as one continuous field. Below the masthead rule the page splits into a wide sidebar (`210` pt) and the main column; **which section lands in which column is decided by a balance-driven planner** (described next), not a fixed rule. One rule color (`#C7CFDA`) is reused for the masthead underline, the sidebar divider, and every main-column section rule, so the page reads as one coherent system rather than several separately-styled dividers — the "harmonijny" (harmonious) brief was explicit about this. Continuation pages carry no masthead / letterhead band — only the full-height rail, divider, and page number.
 
 Sterling's main-column section headings use a 12 px font size (`HEADING_FS` in `backend/app/services/cv_templates/templates/sterling.py`); sidebar kickers keep their independent `KICKER_FS` scale.
 
@@ -1063,6 +1063,24 @@ Tests:
 - `backend/tests/test_cv_template_layouts.py`, `test_sterling_places_education_on_page_two_sidebar_when_page_one_rail_is_full`, lines 1572–1649 — end-to-end: when Experience paginates and page 1's rail is already full, Education renders as a sidebar kicker on page 2 (`left == 34`), not in the main column beside an empty rail
 - `backend/tests/test_cv_template_layouts.py` and `backend/tests/test_template_registry_sync.py` iterate every registered generator, so Sterling is covered for summary-equals-body type size, page bounds, and frontend/backend id / layout-tag / tier parity without a dedicated entry
 
+### Archive wide-sidebar editorial template
+
+Archive is the eleventh paid template (`layouts: ["sidebar"]`). It reinterprets the reference's broad editorial composition with a wide left rail, centered masthead, thin rules, and a mineral-paper palette: `#F3F0E9` paper, `#202724` ink, `#6B7C72` sage, `#E6E5DD` rail, and `#C9C5BA` rules. `Lora` is used for the display name and `Inter` for editable body copy, labels, contact metadata, and records. The implementation deliberately uses no copied logo, photograph, illustration, texture, or exact reference geometry.
+
+Implementation:
+
+- `backend/app/services/cv_templates/templates/archive.py`, function `_gen_archive` — deep-copies Sterling's tested wide-sidebar planner output and applies Archive-only palette and font transformations without mutating Sterling.
+- `backend/app/services/cv_templates/registry.py`, `_GENERATORS["archive"]` and `TEMPLATE_LAYOUTS["archive"]` — registers the deterministic `sidebar` generator.
+- `frontend/src/templates/archive.js`, exported `archiveTemplate` — generated starter matching the backend output.
+- `frontend/src/templates/index.js`, registry entry `archive` (`tier: "paid"`, `layouts: ["sidebar"]`, `accent: "#6B7C72"`).
+- `frontend/scripts/dump-iconic-templates.mjs` and `frontend/public/template-mockups/archive.png` — source-driven preview generated through the same PDF renderer.
+
+Tests:
+
+- `backend/tests/test_archive_template.py` — wide rail, Archive palette, Lora/Inter families, centered masthead, and sidebar flow-lane metadata.
+- `frontend/src/templates/archive.test.js` — starter geometry, palette, typography, and sidebar metadata.
+- `backend/tests/test_template_registry_sync.py` — frontend/backend id and layout parity and confirmation that only the configured free IDs are in the free allowlist.
+
 ### Icon-tagged templates and icon reflow
 
 Regent, Volt, Tessera, Slate, and Portico are individual templates that share the `icons` layout tag (and optionally `sidebar` / `dark`). The same template IDs are generated deterministically by Python. Browser font measurement can change textarea heights, so icon images are explicitly grouped with nearby heading chrome instead of being left at their authored Y coordinate.
@@ -1097,7 +1115,7 @@ python scripts/regenerate_template_starters.py   # rewrites remaining starters (
 
 Atrium is regenerated from the same Julia Bernat persona by `scripts/regenerate_template_starters.py` (re-run that script whenever the shared demo or a generator changes).
 
-`frontend/public/template-mockups/{regent,volt,monument,tessera,slate,portico,atrium,sterling,regent,vestige,meridian}.png` — the previews shown in the Hero template gallery (`frontend/src/pages/Hero/Hero.jsx`), the in-app template picker (`frontend/src/components/modals/TemplatesModal/TemplatesModal.jsx`), and the hover pane in **Wypełnij z mojego CV** (`frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`) — are rendered from those starter arrays, not hand-drawn mockups. After starter changes, regenerate the PNGs:
+`frontend/public/template-mockups/{regent,volt,monument,tessera,slate,portico,atrium,sterling,regent,vestige,meridian,archive}.png` — the previews shown in the Hero template gallery (`frontend/src/pages/Hero/Hero.jsx`), the in-app template picker (`frontend/src/components/modals/TemplatesModal/TemplatesModal.jsx`), and the hover pane in **Wypełnij z mojego CV** (`frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`) — are rendered from those starter arrays, not hand-drawn mockups. After starter changes, regenerate the PNGs:
 
 ```bash
 node frontend/scripts/dump-iconic-templates.mjs
@@ -2587,7 +2605,7 @@ Implementacja:
 
 Ograniczenia:
 
-- Plan Darmowy obejmuje jeden szablon startowy (Regent), eksport PDF ze znakiem wodnym oraz **jeden** import CV w cyklu życia konta. Pro odblokowuje czysty PDF, wszystkie 10 szablonów, kolejne importy, AI treści, ATS i Układ za **59 zł / 30 dni**. Stripe Checkout jeszcze nie jest podłączony; przy `ALLOW_UNPAID_PLAN_SELECTION` Pro można aktywować bez płatności.
+- Plan Darmowy obejmuje dwa szablony startowe (Regent i Sterling), eksport PDF ze znakiem wodnym oraz **jeden** import CV w cyklu życia konta. Pro odblokowuje czysty PDF, wszystkie 11 szablonów, kolejne importy, AI treści, ATS i Układ za **59 zł / 30 dni**. Stripe Checkout jeszcze nie jest podłączony; przy `ALLOW_UNPAID_PLAN_SELECTION` Pro można aktywować bez płatności.
 - Wskazówki **Czytelność dla ATS** sprawdzają odczyt tekstu z finalnego PDF oraz standardowość nagłówków/słów kluczowych. To wskazówka, nie gwarancja że każdy system ATS odczyta plik tak samo.
 - Sekcja prywatności opisuje ogólnie zaimplementowane użycie danych i nie deklaruje niezaimplementowanych certyfikatów ani anonimizacji.
 
@@ -2870,7 +2888,7 @@ Testy:
 
 ### Szablon Sterling (elegancki, szeroki sidebar)
 
-Sterling to płatny, dwukolumnowy szablon (`layouts: ["sidebar"]`) w stonowanej palecie niebiesko-szarej (`#4A6FA5` akcent, `#26313F` tusz, `#F7F8FA` papier). Brief to **wycentrowany masthead w stylu papieru firmowego** — szeryfowe (`CormorantGaramond`) imię i nazwisko, rozstrzelony wielkoliterowy tytuł, **wiersz kontaktu z ikonami** — osadzony na **pełnoszerokościowym, przyciemnionym „pasie papieru firmowego”** (wypełniony prostokąt o szerokości `595` pt w kolorze szyny `#EDF1F6`, od góry strony do linii mastheadu, `repeatOnContinuation: false`) i zamknięty **poziomą linią rozciągającą się na obie kolumny**. **Wypełnienie szyny i pionowy divider mają pełną wysokość strony** na każdej stronie, żeby klony canvasu (overflow / przeniesienie sekcji) kopiowały na stronę 2 jeden pionowy pasek — nigdy górnego pasa letterhead. Na stronie 1 pas ma wyższy z-index i zasłania divider przez wycentrowany masthead (imię/tytuł/kontakt przecinają `x = 210`). Reużycie koloru szyny sprawia, że górny pas i lewa szyna czytają się jako jedno ciągłe pole. Poniżej linii mastheadu strona dzieli się na szeroki sidebar (`210` pt) i kolumnę główną; **o tym, która sekcja trafia do której kolumny, decyduje planer sterowany balansem** (opisany dalej), a nie stała reguła. Jeden kolor linii (`#C7CFDA`) jest reużywany dla podkreślenia mastheadu, dividera sidebaru i każdej linii sekcji w kolumnie głównej, dzięki czemu strona czyta się jako jeden spójny system — brief „harmonijny” był w tej kwestii wyraźny. Strony kontynuacyjne nie mają mastheadu / pasa letterhead — tylko pełną szynę, divider i numer strony.
+Sterling to darmowy, dwukolumnowy szablon (`layouts: ["sidebar"]`) w stonowanej palecie niebiesko-szarej (`#4A6FA5` akcent, `#26313F` tusz, `#F7F8FA` papier). Brief to **wycentrowany masthead w stylu papieru firmowego** — szeryfowe (`CormorantGaramond`) imię i nazwisko, rozstrzelony wielkoliterowy tytuł, **wiersz kontaktu z ikonami** — osadzony na **pełnoszerokościowym, przyciemnionym „pasie papieru firmowego”** (wypełniony prostokąt o szerokości `595` pt w kolorze szyny `#EDF1F6`, od góry strony do linii mastheadu, `repeatOnContinuation: false`) i zamknięty **poziomą linią rozciągającą się na obie kolumny**. **Wypełnienie szyny i pionowy divider mają pełną wysokość strony** na każdej stronie, żeby klony canvasu (overflow / przeniesienie sekcji) kopiowały na stronę 2 jeden pionowy pasek — nigdy górnego pasa letterhead. Na stronie 1 pas ma wyższy z-index i zasłania divider przez wycentrowany masthead (imię/tytuł/kontakt przecinają `x = 210`). Reużycie koloru szyny sprawia, że górny pas i lewa szyna czytają się jako jedno ciągłe pole. Poniżej linii mastheadu strona dzieli się na szeroki sidebar (`210` pt) i kolumnę główną; **o tym, która sekcja trafia do której kolumny, decyduje planer sterowany balansem** (opisany dalej), a nie stała reguła. Jeden kolor linii (`#C7CFDA`) jest reużywany dla podkreślenia mastheadu, dividera sidebaru i każdej linii sekcji w kolumnie głównej, dzięki czemu strona czyta się jako jeden spójny system — brief „harmonijny” był w tej kwestii wyraźny. Strony kontynuacyjne nie mają mastheadu / pasa letterhead — tylko pełną szynę, divider i numer strony.
 
 **Wiersz kontaktu (ikony).** Linia kontaktu w maszcie to rząd par ikona + etykieta (telefon, e-mail, LinkedIn, GitHub, strona www, lokalizacja), wycentrowany i zawijający się do kolejnych wierszy, gdy przekroczy szerokość „papieru firmowego” — ten sam mechanizm `_place_centered_icon_contacts`, którego używa już Atrium, zasilany dedykowanym motywem ikon `sterling` (stalowoniebieskie `#4A6FA5` glify, podzbiór tylko-kontaktowy: `email` / `phone` / `location` / `linkedin` / `github` / `website`). Każda para ikona/etykieta jest otagowana `contactChannel` + wspólnym `contactBandId` (`"sterling-contact"`), a generator emituje zerowej wielkości element `masthead-anchor` niosący deskryptor układu klienckiego paska (tryb `"centered"`) — ten sam mechanizm opisany niżej w sekcjach „Menedżer kanałów kontaktu (Faza 1)” / „(Faza 2)”, dzięki czemu menedżer kanałów kontaktu w edytorze może dodawać/usuwać/przeliczać kanały, a PDF pozostaje piksel w piksel zgodny z canvasem. Zastąpienie poprzedniej pojedynczej textarei z linią połączoną kropkami (`"email · telefon · lokalizacja · …"`) osobno otagowanymi kanałami było też naprawą zgłoszonego buga (patrz niżej).
 
@@ -2911,6 +2929,24 @@ Testy:
 - `backend/tests/test_cv_template_layouts.py`, `test_sterling_places_education_on_page_two_sidebar_when_page_one_rail_is_full`, linie 1572–1649 — end-to-end: gdy Doświadczenie paginuje, a szyna strony 1 jest już pełna, Wykształcenie renderuje się jako kicker sidebara na stronie 2 (`left == 34`), a nie w kolumnie głównej obok pustej szyny
 - `backend/tests/test_cv_template_layouts.py` i `backend/tests/test_template_registry_sync.py` iterują po wszystkich zarejestrowanych generatorach, więc Sterling jest objęty pokryciem (rozmiar podsumowania=body, granice strony, parytet id/tagów/planu) bez dedykowanego wpisu
 
+### Editorialny szablon Archive z szerokim sidebarem
+
+Archive to jedenasty, płatny szablon (`layouts: ["sidebar"]`). Reinterpretuje szeroką editorialną kompozycję z referencji przez szeroką lewą szynę, wycentrowany masthead, cienkie linie i mineralną paletę papieru: papier `#F3F0E9`, tusz `#202724`, szałwia `#6B7C72`, szyna `#E6E5DD` oraz reguły `#C9C5BA`. `Lora` służy do wyświetlania nazwiska, a `Inter` do edytowalnej treści, etykiet, metadanych kontaktowych i rekordów. Implementacja celowo nie używa skopiowanego logotypu, zdjęcia, ilustracji, tekstury ani dokładnej geometrii referencji.
+
+Implementacja:
+
+- `backend/app/services/cv_templates/templates/archive.py`, funkcja `_gen_archive` — wykonuje kopię sprawdzonego planera szerokiego sidebara Sterlinga i nakłada wyłącznie paletę oraz fonty Archive, bez mutowania Sterlinga.
+- `backend/app/services/cv_templates/registry.py`, `_GENERATORS["archive"]` i `TEMPLATE_LAYOUTS["archive"]` — rejestruje deterministyczny generator `sidebar`.
+- `frontend/src/templates/archive.js`, eksport `archiveTemplate` — starter wygenerowany z tego samego wyniku backendu.
+- `frontend/src/templates/index.js`, wpis registry `archive` (`tier: "paid"`, `layouts: ["sidebar"]`, `accent: "#6B7C72"`).
+- `frontend/scripts/dump-iconic-templates.mjs` i `frontend/public/template-mockups/archive.png` — podgląd ze źródła, wygenerowany tym samym rendererem PDF.
+
+Testy:
+
+- `backend/tests/test_archive_template.py` — szeroka szyna, paleta Archive, fonty Lora/Inter, wycentrowany masthead i metadane przepływu sidebara.
+- `frontend/src/templates/archive.test.js` — geometria startera, paleta, typografia i metadane sidebara.
+- `backend/tests/test_template_registry_sync.py` — parytet identyfikatorów i layoutów frontendu/backendu oraz potwierdzenie, że tylko skonfigurowane identyfikatory są na liście darmowej.
+
 ### Szablony z tagiem `icons` i reflow ikon
 
 Regent, Volt, Tessera, Slate i Portico to indywidualne szablony ze wspólnym tagiem layoutu `icons` (opcjonalnie też `sidebar` / `dark`). Te same identyfikatory generuje deterministycznie backend w Pythonie. Ponieważ pomiar fontów w przeglądarce może zmienić wysokości pól tekstowych, obrazy ikon są grupowane z nagłówkami i przesuwają się razem z nimi zamiast pozostawać na pierwotnej współrzędnej Y.
@@ -2945,7 +2981,7 @@ python scripts/regenerate_template_starters.py   # przepisuje pozostałe starter
 
 Atrium jest regenerowane z tej samej persony Julia Bernat przez `scripts/regenerate_template_starters.py` (uruchom ponownie po zmianie wspólnego demo lub generatora).
 
-Pliki `frontend/public/template-mockups/{regent,volt,monument,tessera,slate,portico,atrium,sterling,regent,vestige,meridian}.png` — podglądy w galerii Hero, pickerze i panelu **Wypełnij z mojego CV** — pochodzą z tych tablic starterów, nie z ręcznych grafik. Po zmianie starterów odtwórz PNG:
+Pliki `frontend/public/template-mockups/{regent,volt,monument,tessera,slate,portico,atrium,sterling,regent,vestige,meridian,archive}.png` — podglądy w galerii Hero, pickerze i panelu **Wypełnij z mojego CV** — pochodzą z tych tablic starterów, nie z ręcznych grafik. Po zmianie starterów odtwórz PNG:
 
 ```bash
 node frontend/scripts/dump-iconic-templates.mjs

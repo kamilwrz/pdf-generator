@@ -283,6 +283,7 @@ TEMPLATES = [
     "regent",
     "vestige",
     "meridian",
+    "archive",
 ]
 
 DOC_BLURBS = {
@@ -342,6 +343,11 @@ DOC_BLURBS = {
         " *\n"
         " * Premium navy/steel-blue single column with a compact Montserrat summary\n"
         " * and an accent-blue tick under every section rule."
+    ),
+    "archive": (
+        "Archive template (`layouts: [\"sidebar\"]`).\n"
+        " *\n"
+        " * Mineral-paper editorial layout with a wide sidebar rail."
     ),
 }
 
@@ -458,7 +464,7 @@ def main() -> None:
             cv = REGENT_DEMO_CV
         elif template_id in COMPACT_TEMPLATE_IDS:
             cv = COMPACT_DEMO_CV
-        elif template_id in {"sterling", "vestige"}:
+        elif template_id in {"sterling", "vestige", "archive"}:
             cv = SIDEBAR_DEMO_CV
         else:
             cv = DEMO_CV

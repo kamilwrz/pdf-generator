@@ -9,7 +9,7 @@ IV.  BUGZ / NEEDED FIXES
 
 1) JEZYKI - zbyt krotkie columny w sidebar-templates;dostosowac do innerContent?
 2) SIDEBAR TEMPLATES - overFlow podczas kasowania elementow kontaktowych;niepotrzebnie;staly odstep
-3) ATRIUM - chipsy kasuja mala linie dekoracyjna
+3) ATRIUM - chipsy kasuja mala linie dekoracyjna;zmiana na liste tez
 4) UX / UI "Uklad CV"
 5) Toast przy zmianie szablonow, ma znikac (tylko nowy ma istnies w UI)
 6) Import CV - dane sie nie zapisuja na pozniej;powinny....
@@ -22,6 +22,8 @@ IV.  BUGZ / NEEDED FIXES
 13) Dodac 2 szablonuy w stylu / layoutem Meridian
 14) Seleckcja tekstu jest niewidoma na B,I,U przez editor panel i na odwrot. Ma byc tylko B,I,U przez   
     selekcje....
+15) Jezeli rekord byl wybrakowany i wczytany w ten sposob do CV, nie mozna go skasowac ani dodac (CV30, CV21);
+    W CV21 mozna. Doswiadczenei w CV21 jako kategoria / tresc? Dlaczego? Zrozumiec kod
 
  V.  TEMPLATES / CANVA A4
 -----------------------------------------------------------------------------------------

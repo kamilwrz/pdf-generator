@@ -19,7 +19,8 @@ import {
   sectionElementIds,
   sidebarSectionElementIds,
 } from "./sectionStructure.js";
-import { novaTemplate, voltTemplate } from "../templates/iconic.js";
+import { voltTemplate } from "../templates/iconic.js";
+import { regentTemplate } from "../templates/regent.js";
 import { porticoTemplate } from "../templates/portico.js";
 import { changeSkillsDisplayMode } from "./skillsDisplayMode.js";
 
@@ -78,7 +79,7 @@ function twoColumnFixture() {
 function legacyUntaggedSidebarFixture() {
   return twoColumnFixture().map((element) => {
     if (!String(element.element_id).startsWith("sb-")) return element;
-    const { flowLane, ...rest } = element;
+    const { flowLane: _flowLane, ...rest } = element;
     return { ...rest, flowRole: "content" };
   });
 }
@@ -468,7 +469,7 @@ describe("reorderSection", () => {
     const elements = twoColumnFixture().map((element) => {
       if (!String(element.element_id).startsWith("sb-")) return element;
       if (element.flowRole === "sidebar-chrome") return element;
-      const { flowLane, ...rest } = element;
+      const { flowLane: _flowLane, ...rest } = element;
       return rest;
     });
     assert.equal(
@@ -1467,10 +1468,10 @@ describe("applyFlowSpacing", () => {
   });
 
   it("preserves tight iconic masthead→section gaps instead of forcing 36px", () => {
-    // Nova authors ~8px under the divider; an older MIN gap of 20px treated that
-    // as corruption and shoved every section down by ~28px (Cardinal/Volt too).
+    // Regent authors ~8px under the divider; an older MIN gap of 20px treated
+    // that as corruption and shoved every section down by ~28px (Volt too).
     for (const [name, template] of [
-      ["nova", novaTemplate],
+      ["regent", regentTemplate],
       ["volt", voltTemplate],
     ]) {
       const source = template.map((element, index) => ({
