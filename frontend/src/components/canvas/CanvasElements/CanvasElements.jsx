@@ -38,6 +38,8 @@ import ContactChannelControls from '../ContactChannelControls/ContactChannelCont
 import { listContactBands } from '../../../utils/contactBands';
 import MastheadIdentityControls from '../MastheadIdentityControls/MastheadIdentityControls';
 import { listMastheadBands } from '../../../utils/mastheadBands';
+import ProfilePhotoControls from '../ProfilePhotoControls/ProfilePhotoControls';
+import { profilePhotoControlAnchor } from '../../../utils/profilePhotoVisibility';
 import { useCanvasEnterIds } from '../../../hooks/useCanvasEnterIds';
 import { PdfContext } from '../../../store/pdfgenerator-context';
 import { EDITOR_MODE_TEMPLATE } from '../../../utils/editorMode';
@@ -169,8 +171,23 @@ export default function CanvasElements({ elements }) {
     () => (editorMode === EDITOR_MODE_TEMPLATE ? listMastheadBands(elements) : []),
     [editorMode, elements],
   );
+  const photoControlAnchor = useMemo(
+    () => (editorMode === EDITOR_MODE_TEMPLATE
+      ? profilePhotoControlAnchor(documentElements, activeTemplateId)
+      : null),
+    [editorMode, documentElements, activeTemplateId],
+  );
+  const photoControlIsOnPage = photoControlAnchor
+    ? elements.some((element) => (
+      photoControlAnchor.slotElementIds.includes(element.element_id)
+      || element.element_id === photoControlAnchor.name?.elementId
+    ))
+    : false;
 
   const elementNodes = elements.map((element) => {
+    // Hidden slot members stay in document state for exact, reversible restore
+    // but never produce canvas or PDF-visible chrome while the slot is hidden.
+    if (element.photoSlotHidden === true) return null;
     const enterClass = enterClassName(element.element_id, heldIds, fadingIds);
     let node = null;
     const blockAnchor = recordBlockAnchorsById.get(element.element_id);
@@ -425,6 +442,9 @@ export default function CanvasElements({ elements }) {
       {mastheadBands.map((band) => (
         <MastheadIdentityControls key={band.bandId} band={band} />
       ))}
+      {photoControlAnchor && photoControlIsOnPage
+        ? <ProfilePhotoControls anchor={photoControlAnchor} />
+        : null}
     </>
   );
 }

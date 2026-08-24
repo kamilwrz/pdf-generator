@@ -384,6 +384,57 @@
       "default": null,
       "title": "Photoslot"
     },
+    "photoSlotHidden": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": false,
+      "title": "Photoslothidden"
+    },
+    "photoPlaceholder": {
+      "anyOf": [
+        {
+          "additionalProperties": true,
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Photoplaceholder"
+    },
+    "profilePhotoMainContactBand": {
+      "anyOf": [
+        {
+          "additionalProperties": true,
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Profilephotomaincontactband"
+    },
+    "photoLayoutHome": {
+      "anyOf": [
+        {
+          "additionalProperties": true,
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Photolayouthome"
+    },
     "photoShape": {
       "anyOf": [
         {

@@ -144,6 +144,10 @@ export default function ModalPdfs({ title }) {
                         // Template semantic key + profile-photo slot contract.
                         id: element.extra_properties.id,
                         photoSlot: element.extra_properties.photoSlot,
+                        photoSlotHidden: element.extra_properties.photoSlotHidden,
+                        photoPlaceholder: element.extra_properties.photoPlaceholder,
+                        profilePhotoMainContactBand: element.extra_properties.profilePhotoMainContactBand,
+                        photoLayoutHome: element.extra_properties.photoLayoutHome,
                         photoShape: element.extra_properties.photoShape,
                         objectFit: element.extra_properties.objectFit,
                         flowRole: element.extra_properties.flowRole,

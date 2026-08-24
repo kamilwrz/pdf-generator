@@ -1225,25 +1225,28 @@ Tests: `backend/tests/test_image_upload_security.py` — accepts a real PNG, rej
 
 ### Profile photo slot (template mode)
 
-In **template** mode, clicking a profile frame, portrait glyph, or existing profile photo on the canvas opens the gallery. Clicking a gallery image then immediately fits it into the declared profile-photo slot (no confirmation dialog, no freeform prompt) and closes the gallery panel. This remains available even when the slot is `fixedToPage`: it is the sole allowed interaction for fixed photo chrome. The fitted photo covers the entire slot (`objectFit: "cover"`). Templates mark the area with `photoSlot`:
+In **template** mode, clicking a profile frame, portrait glyph, or existing profile photo on the canvas opens the gallery. Clicking a gallery image then immediately fits it into the declared profile-photo slot (no confirmation dialog, no freeform prompt) and closes the gallery panel. Hovering a supported slot reveals a small eye-off action; an occupied slot also reveals a separate trash action. Eye-off hides the complete slot, while trash removes only the user raster and restores the reusable placeholder/frame. When the slot is hidden, hovering the masthead name reveals an image/eye restore action. These controls are available for Atrium, Vestige, Monument, Portico, Slate, and Tessera. The fitted photo covers the entire slot (`objectFit: "cover"`). Templates mark the area with `photoSlot`:
 
 - `frame` — the designated rectangle or circle chrome (`slate-photo-frame`, `tessera-photo-frame`, `monument-masthead-frame`, `regent-photo-frame`, `portico-photo-frame`; `cinder-frame-one`, `nimbus-photo-frame`, and `harbor-photo-frame` are kept from retired templates so older saved documents still resolve their slot)
 - `glyph` — portrait placeholder image inside the frame (converted into the user photo)
 - `ornament` — decorative shapes covered by a photo in legacy template documents
 - `image` — the applied user photo (`id: "profile-photo"`, locked + `fixedToPage`)
 
-`applyProfilePhoto` insets the raster inside Slate/Tessera frames (border stays visible), replaces Monument’s portrait glyph while raising the frame outline, and fills Regent’s square masthead slot; a circular disc (canvas clips with `borderRadius`) is also supported for any template with a circular photo slot. Fitted photos use `objectFit: "cover"` on canvas and in ReportLab (`PDF_Generator._draw_image_cover`) so the frame is filled without distorting aspect ratio. Fitted photos stay layout-owned in structural edit (`canFreePositionElement`). Semantic `id` / `photoSlot` / `photoShape` / `objectFit` persist through `materializeElementSpecs` and `PdfElements.extra_properties`.
+`applyProfilePhoto` insets the raster inside Slate/Tessera frames (border stays visible), replaces Monument’s portrait glyph while raising the frame outline, and fills Regent’s square masthead slot; a circular disc (canvas clips with `borderRadius`) is also supported for any template with a circular photo slot. When a glyph is converted, `photoPlaceholder` stores its exact asset and geometry so raster deletion is lossless; legacy Atrium rasters fall back to the authored frameless glyph. Hiding Atrium, Vestige, or Monument changes no other coordinates. Portico reclaims the 100 pt photo block and stores every shifted `top` in `photoLayoutHome`, so showing the slot restores the exact masthead/body rhythm. Slate and Tessera replace the managed contact-band descriptor with a stacked sidebar descriptor at x=33/y=42, re-layout all active channels, and move the first sidebar section to 28 pt below the resulting contact stack; showing the slot restores the saved main-column descriptor and every original sidebar position. Hidden slot members remain in state with `photoSlotHidden`, but `CanvasElements` and `PDF_Generator.render_elements` omit them. All restoration metadata persists through `PdfElements.extra_properties` and the shared schema.
 
 Implementation:
 
-- `frontend/src/utils/profilePhoto.js`, lines 199–228, function `findProfilePhotoSlot`; lines 237–246, `hasProfilePhotoSlot`; lines 257–379, `applyProfilePhoto`
+- `frontend/src/utils/profilePhoto.js`, lines 292–450, function `applyProfilePhoto` — apply/replace raster and retain the exact placeholder snapshot
+- `frontend/src/utils/profilePhotoVisibility.js`, lines 58–264, functions `hideProfilePhoto`, `showProfilePhoto`, `removeProfilePhoto`, `profilePhotoControlAnchor` — reversible visibility, Portico reflow, Slate/Tessera contact/sidebar transfer, and legacy Atrium removal fallback
+- `frontend/src/components/canvas/ProfilePhotoControls/ProfilePhotoControls.jsx`, lines 1–126, component `ProfilePhotoControls` — slot/name hover controls with accessible labels
+- `frontend/src/hooks/useA4Elements.js`, lines 2360–2381, callbacks `hideProfilePhoto`, `showProfilePhoto`, `removeProfilePhoto` — history-aware commits and managed contact relayout
 - `frontend/src/components/gallery/GalleryItem/GalleryItem.jsx`, lines 32–45 — template-mode click → `applyProfilePhoto` (no prompt)
 - `frontend/src/utils/sectionStructure.js` — re-exports the helpers for existing imports
 - `frontend/src/utils/editorMode.js` — `photoSlot: "image"|"glyph"` treated as layout-owned
 - `frontend/src/utils/materializeElementSpecs.js` — preserves template semantic `id`
-- `backend/app/schemas/pdf_schema.py` — optional `id`, `photoSlot`, `photoShape`, `objectFit`
-- `shared/pdf-element.schema.json` — `objectFit` enum (`fill` / `cover` / `contain`)
-- `backend/app/crud/pdfs.py` / `frontend/src/components/modals/ModalPdfs/ModalPdfs.jsx` — persist and hydrate those fields
+- `backend/app/schemas/pdf_schema.py`, `shared/pdf-element.schema.json`, `backend/app/crud/pdfs.py`, and `ModalPdfs.jsx` — validate, persist, and hydrate visibility/restoration fields
+- `backend/app/services/pdf_generator.py`, lines 1125–1142, method `render_elements` — skips hidden slot members during export
+- Tests: `frontend/src/utils/profilePhotoVisibility.test.js`, lines 1–142; `backend/tests/test_contact_channel_roundtrip.py`, lines 54–73; `backend/tests/test_pdf_watermark.py`, lines 119–137
 - Generators / starters: `slate`, `tessera`, `monument`, `regent`, `portico`, `atrium` (FE + BE)
 
 Tests: `frontend/src/utils/profilePhoto.test.js` — slot detection on Slate/Tessera/Monument, geometry/z-index after apply, in-place replace.
@@ -1388,7 +1391,7 @@ Additional implementation (on top of Phase 1):
 
 Tests (added): `backend/tests/test_contact_band_templates.py` (per-template anchor + tagging), plus `stacked`/`chip` cases in `test_contact_band_emit.py`, `contactBandLayout.test.js`, `contactBandOps.test.js`.
 
-Deferred to later phases: the profile photo slot and new data fields (extra field, birth date, nationality). The title/role and name-uppercase toggles that were previously deferred here are now implemented — see the masthead identity manager below.
+Deferred to later phases: new data fields (extra field, birth date, nationality). Profile-photo visibility/removal and the title/role and name-uppercase toggles that were previously deferred here are now implemented — see the profile-photo slot and masthead identity sections.
 
 **Add-menu channel set (update).** The `+` menu offers every channel the intake wizard supports — phone, email, LinkedIn, GitHub, website, location — minus the ones already on the band, not just channels that were present when the CV was generated. The manager keys its add-menu, chip sorting, and insertion order off the shared canonical order (`CHANNEL_ORDER` in `contactChannelNames.js`) instead of the band descriptor's generation-time `order`, so GitHub/website can be added even when the CV was generated without them, and it works for documents saved before this change. A newly added channel lands in its canonical slot (e.g. GitHub between LinkedIn and location), and its icon is derived from an existing band icon in the same theme (`github.png` / `website.png` ship for every iconic theme). Because the canonical order matches the generator sequence, active chips are never reordered. Files: `frontend/src/utils/contactChannelNames.js` (`CHANNEL_ORDER`), `contactBands.js` (`inactive` + sort), `contactBandOps.js` (`activeChannels`, `applyChannelAddition`).
 
@@ -3131,25 +3134,28 @@ Testy: `backend/tests/test_image_upload_security.py` — PNG, HTML-as-PNG (415),
 
 ### Slot zdjęcia profilowego (tryb szablonu)
 
-W trybie **template** kliknięcie ramki profilu, ikony portretu albo istniejącego zdjęcia profilowego na kanwie otwiera galerię. Kliknięcie obrazu w galerii od razu dopasowuje go do zadeklarowanego slotu zdjęcia profilowego (bez dialogu potwierdzenia i bez pytania o freeform) i zamyka panel galerii. Działa to również dla slotu `fixedToPage`: jest to jedyna dozwolona interakcja z nieprzesuwalnym chrome zdjęcia. Dopasowane zdjęcie przykrywa cały slot (`objectFit: "cover"`). Szablony oznaczają obszar polem `photoSlot`:
+W trybie **template** kliknięcie ramki profilu, ikony portretu albo istniejącego zdjęcia profilowego na kanwie otwiera galerię. Kliknięcie obrazu w galerii od razu dopasowuje go do zadeklarowanego slotu zdjęcia profilowego (bez dialogu potwierdzenia i bez pytania o freeform) i zamyka panel galerii. Hover nad obsługiwanym slotem pokazuje małą akcję ukrycia z przekreślonym okiem; zajęty slot pokazuje dodatkowo osobny kosz. Oko ukrywa cały slot, a kosz usuwa wyłącznie raster użytkownika i przywraca placeholder/ramkę do następnego zdjęcia. Gdy slot jest ukryty, hover nad imieniem i nazwiskiem pokazuje akcję przywrócenia obraz/oko. Kontrolki działają dla Atrium, Vestige, Monument, Portico, Slate i Tessera. Dopasowane zdjęcie przykrywa cały slot (`objectFit: "cover"`). Szablony oznaczają obszar polem `photoSlot`:
 
 - `frame` — ramka prostokątna lub koło (`slate-photo-frame`, `tessera-photo-frame`, `monument-masthead-frame`, `regent-photo-frame`, `portico-photo-frame`; `cinder-frame-one`, `nimbus-photo-frame` i `harbor-photo-frame` pozostają z wycofanych szablonów, żeby starsze zapisane dokumenty wciąż odnajdywały swój slot)
 - `glyph` — placeholder portretu w ramce (zamieniany na zdjęcie użytkownika)
 - `ornament` — dekoracje przykrywane zdjęciem w starszych dokumentach szablonowych
 - `image` — nałożone zdjęcie użytkownika (`id: "profile-photo"`, `locked` + `fixedToPage`)
 
-`applyProfilePhoto` wstawia raster z insetem w ramkach Slate/Tessera (kontur zostaje), zastępuje ikonę portretu Monument i podnosi obramowanie oraz wypełnia kwadratowy slot mastheadu Regent; koło (na kanwie `borderRadius`) jest też obsługiwane dla dowolnego szablonu z okrągłym slotem zdjęcia. Dopasowane zdjęcia używają `objectFit: "cover"` na kanwie i w ReportLab (`PDF_Generator._draw_image_cover`), żeby ramka była wypełniona bez zaburzenia proporcji. Dopasowane zdjęcie zostaje layout-owned w edycji strukturalnej. Pola `id` / `photoSlot` / `photoShape` / `objectFit` przechodzą przez `materializeElementSpecs` i `PdfElements.extra_properties`.
+`applyProfilePhoto` wstawia raster z insetem w ramkach Slate/Tessera (kontur zostaje), zastępuje ikonę portretu Monument i podnosi obramowanie oraz wypełnia kwadratowy slot mastheadu Regent; koło (na kanwie `borderRadius`) jest też obsługiwane dla dowolnego szablonu z okrągłym slotem zdjęcia. Przy konwersji glifu `photoPlaceholder` zapisuje jego dokładny asset i geometrię, dlatego usunięcie rastra jest bezstratne; starsze rastry Atrium wracają do autorskiego glifu bez ramki. Ukrycie Atrium, Vestige lub Monument nie zmienia innych współrzędnych. Portico odzyskuje blok 100 pt po zdjęciu i zapisuje każde przesunięte `top` w `photoLayoutHome`, więc ponowne pokazanie odtwarza dokładny rytm mastheadu i body. Slate i Tessera podmieniają zarządzany deskryptor kontaktów na stos w sidebarze od x=33/y=42, przeliczają wszystkie aktywne kanały i przesuwają pierwszą sekcję sidebara 28 pt pod wynikowy stos kontaktów; pokazanie slotu odtwarza zapisany deskryptor main oraz wszystkie pierwotne pozycje sidebara. Ukryte elementy slotu zostają w stanie z `photoSlotHidden`, ale `CanvasElements` i `PDF_Generator.render_elements` pomijają je. Wszystkie dane odtwarzania są zapisywane w `PdfElements.extra_properties` i wspólnym schemacie.
 
 Implementacja:
 
-- `frontend/src/utils/profilePhoto.js`, linie 199–228, funkcja `findProfilePhotoSlot`; linie 237–246, `hasProfilePhotoSlot`; linie 257–379, `applyProfilePhoto`
+- `frontend/src/utils/profilePhoto.js`, linie 292–450, funkcja `applyProfilePhoto` — wstawianie/podmiana rastra i zapis dokładnego placeholdera
+- `frontend/src/utils/profilePhotoVisibility.js`, linie 58–264, funkcje `hideProfilePhoto`, `showProfilePhoto`, `removeProfilePhoto`, `profilePhotoControlAnchor` — odwracalna widoczność, reflow Portico, transfer kontaktów/sidebara Slate/Tessera oraz fallback usuwania dla starszego Atrium
+- `frontend/src/components/canvas/ProfilePhotoControls/ProfilePhotoControls.jsx`, linie 1–126, komponent `ProfilePhotoControls` — dostępne kontrolki hover nad slotem i imieniem
+- `frontend/src/hooks/useA4Elements.js`, linie 2360–2381, callbacki `hideProfilePhoto`, `showProfilePhoto`, `removeProfilePhoto` — operacje historii i przeliczenie zarządzanych kontaktów
 - `frontend/src/components/gallery/GalleryItem/GalleryItem.jsx`, linie 32–45 — klik w trybie szablonu → `applyProfilePhoto` (bez promptu)
 - `frontend/src/utils/sectionStructure.js` — re-eksport helperów
 - `frontend/src/utils/editorMode.js` — `photoSlot: "image"|"glyph"` jako layout-owned
 - `frontend/src/utils/materializeElementSpecs.js` — zachowanie semantycznego `id`
-- `backend/app/schemas/pdf_schema.py` — opcjonalne `id`, `photoSlot`, `photoShape`, `objectFit`
-- `shared/pdf-element.schema.json` — enum `objectFit` (`fill` / `cover` / `contain`)
-- `backend/app/crud/pdfs.py` / `ModalPdfs.jsx` — zapis i hydratacja
+- `backend/app/schemas/pdf_schema.py`, `shared/pdf-element.schema.json`, `backend/app/crud/pdfs.py` i `ModalPdfs.jsx` — walidacja, zapis oraz hydratacja pól widoczności/odtwarzania
+- `backend/app/services/pdf_generator.py`, linie 1125–1142, metoda `render_elements` — pomijanie ukrytych elementów slotu podczas eksportu
+- Testy: `frontend/src/utils/profilePhotoVisibility.test.js`, linie 1–142; `backend/tests/test_contact_channel_roundtrip.py`, linie 54–73; `backend/tests/test_pdf_watermark.py`, linie 119–137
 - Generatory / startery: `slate`, `tessera`, `monument`, `regent`, `portico`, `atrium` (FE + BE)
 
 Testy: `frontend/src/utils/profilePhoto.test.js` — wykrywanie slotu (w tym Monument), geometria/z-index po apply, zamiana w miejscu.
@@ -3291,7 +3297,7 @@ Dodatkowa implementacja (ponad Fazę 1):
 
 Testy (dodane): `backend/tests/test_contact_band_templates.py` (anchor + tagowanie per szablon) oraz przypadki `stacked`/`chip` w `test_contact_band_emit.py`, `contactBandLayout.test.js`, `contactBandOps.test.js`.
 
-Odłożone do kolejnych faz: slot zdjęcia profilowego oraz nowe pola danych (dodatkowe pole, data urodzenia, narodowość). Przełączniki tytułu/roli i wielkich liter w imieniu, wcześniej tu odłożone, są już zaimplementowane — patrz menedżer tożsamości masthead poniżej.
+Odłożone do kolejnych faz: nowe pola danych (dodatkowe pole, data urodzenia, narodowość). Widoczność/usuwanie zdjęcia profilowego oraz przełączniki tytułu/roli i wielkich liter w imieniu, wcześniej tu odłożone, są już zaimplementowane — patrz sekcje slotu zdjęcia profilowego i tożsamości masthead.
 
 **Zestaw kanałów w menu dodawania (aktualizacja).** Menu `+` oferuje każdy kanał obsługiwany przez kreatora — telefon, e-mail, LinkedIn, GitHub, stronę WWW, lokalizację — pomniejszony o te już obecne na pasku, a nie tylko kanały obecne w chwili generowania CV. Menedżer opiera menu dodawania, sortowanie chipów i kolejność wstawiania na współdzielonej kolejności kanonicznej (`CHANNEL_ORDER` w `contactChannelNames.js`) zamiast na `order` z deskryptora (z chwili generowania), więc GitHub/stronę WWW można dodać nawet wtedy, gdy CV wygenerowano bez nich, i działa to również dla dokumentów zapisanych przed tą zmianą. Nowo dodany kanał trafia do swojego kanonicznego miejsca (np. GitHub między LinkedIn a lokalizacją), a jego ikona jest wyprowadzana z istniejącej ikony paska w tym samym motywie (`github.png` / `website.png` są dostępne dla każdego motywu ikonicznego). Ponieważ kolejność kanoniczna odpowiada sekwencji generatora, aktywne chipy nigdy nie są przestawiane. Pliki: `frontend/src/utils/contactChannelNames.js` (`CHANNEL_ORDER`), `contactBands.js` (`inactive` + sortowanie), `contactBandOps.js` (`activeChannels`, `applyChannelAddition`).
 

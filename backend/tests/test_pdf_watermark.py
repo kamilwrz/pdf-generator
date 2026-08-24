@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import unittest
+from types import SimpleNamespace
 
 from app.services.pdf_generator import PDF_Generator
 
@@ -116,6 +117,20 @@ class PdfWatermarkTests(unittest.TestCase):
         self.generator.render_elements([], lambda src: src, pages=1, watermark=True)
         calls = self.generator.c.calls
         self.assertIn(("rotate", 45), calls)
+
+    def test_render_elements_skips_hidden_profile_slot_members(self):
+        """Hidden slots remain persisted but must not draw into exported PDFs."""
+        hidden = SimpleNamespace(
+            element_id="photo-frame",
+            category="rectangle",
+            page=1,
+            deleted=False,
+            photoSlotHidden=True,
+        )
+        self.generator.renderRectangle = lambda *_args, **_kwargs: self.fail(
+            "A hidden profile slot must not be rendered",
+        )
+        self.generator.render_elements([hidden], lambda src: src, pages=1)
 
 
 if __name__ == "__main__":

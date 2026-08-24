@@ -112,6 +112,12 @@ class PdfElement(BaseModel):
     id: Optional[str] = None
     # Profile-photo contract: "frame" | "glyph" | "ornament" | "image".
     photoSlot: Optional[str] = None
+    # Reversible profile-photo editor state. Hidden members retain geometry;
+    # placeholder/home descriptors restore the exact template composition.
+    photoSlotHidden: Optional[bool] = False
+    photoPlaceholder: Optional[dict[str, Any]] = None
+    profilePhotoMainContactBand: Optional[dict[str, Any]] = None
+    photoLayoutHome: Optional[dict[str, Any]] = None
     # Optional shape hint for photo fitting: "circle" | "ornament-frame".
     photoShape: Optional[str] = None
     # CSS object-fit for images: "fill" | "cover" | "contain". Profile photo

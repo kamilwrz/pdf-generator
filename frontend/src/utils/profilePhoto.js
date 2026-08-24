@@ -378,6 +378,24 @@ export function applyProfilePhoto(elements, photo, createId = nanoid) {
     isSelected: false,
     isMove: false,
     isEditing: false,
+    // Converting a placeholder glyph into a user raster must remain reversible.
+    // Keep the exact authored glyph geometry and asset so deleting the raster
+    // restores the empty slot instead of deleting the slot itself.
+    ...(glyph ? {
+      photoPlaceholder: {
+        category: glyph.category,
+        src: glyph.src,
+        left: glyph.left,
+        top: glyph.top,
+        width: glyph.width,
+        height: glyph.height,
+        page: glyph.page || 1,
+        zIndex: glyph.zIndex,
+        id: glyph.id,
+        photoShape: glyph.photoShape,
+        alignWithText: glyph.alignWithText,
+      },
+    } : {}),
     // Match the frame's own corner rounding so the photo doesn't poke square
     // corners out past a rounded outline drawn on top of it (frame z-orders
     // above the photo for `coversWell` slots like Portico's).

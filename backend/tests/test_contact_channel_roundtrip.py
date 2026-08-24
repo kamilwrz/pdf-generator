@@ -49,3 +49,25 @@ def test_band_descriptor_unpacks_on_anchor():
     [element] = elements_from_rows([row])
     assert element.contactBand == descriptor
     assert element.contactBandId == "band-1"
+
+
+def test_profile_photo_visibility_state_unpacks_from_extra_properties():
+    """Hidden geometry and restoration snapshots survive a saved-document load."""
+    placeholder = {"src": "/template-assets/portrait.png", "left": 40, "top": 50}
+    main_band = {"mode": "wrapping", "anchor": {"startX": 218, "startY": 121}}
+    row = _Row(
+        element_id="photo", category="image", page=1, left=33, top=40,
+        src="/images/7/content", width=112, height=126,
+        extra_properties={
+            "photoSlot": "image",
+            "photoSlotHidden": True,
+            "photoPlaceholder": placeholder,
+            "profilePhotoMainContactBand": main_band,
+            "photoLayoutHome": {"top": 191},
+        },
+    )
+    [element] = elements_from_rows([row])
+    assert element.photoSlotHidden is True
+    assert element.photoPlaceholder == placeholder
+    assert element.profilePhotoMainContactBand == main_band
+    assert element.photoLayoutHome == {"top": 191}

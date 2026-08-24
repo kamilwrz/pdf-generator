@@ -56,6 +56,11 @@ import { materializeElementSpecs } from '../utils/materializeElementSpecs';
 import { useDocumentHistory } from './useDocumentHistory';
 import { applyChannelRemoval, applyChannelAddition, applyChannelRelayout } from '../utils/contactBandOps';
 import { applyNameCaseToggle, applyTitleToggle } from '../utils/mastheadIdentityOps';
+import {
+  hideProfilePhoto as applyProfilePhotoHide,
+  removeProfilePhoto as applyProfilePhotoRemoval,
+  showProfilePhoto as applyProfilePhotoShow,
+} from '../utils/profilePhotoVisibility';
 import { canvasFontFamily } from '../utils/canvasFont';
 import { isCanvasInteractionTarget, shouldDeferEditZoomRestore } from '../utils/editZoomExit';
 import { useElementSelectionDrag } from './useElementSelectionDrag';
@@ -2346,6 +2351,35 @@ export function useA4Elements(titleRef) {
     setA4_Elements((prev) => applyTitleToggle(prev, bandId, () => nanoid()).elements);
   }, []);
 
+  /**
+   * Hide/show the profile slot through one history-aware canvas mutation.
+   * Slate/Tessera change the contact descriptor first, then run the existing
+   * contact layout engine so all active channels receive exact sidebar/main
+   * positions. Portico's stored positions are reconciled without re-packing.
+   */
+  const setProfilePhotoVisible = useCallback((visible) => {
+    setA4_Elements((prev) => {
+      const operation = visible ? applyProfilePhotoShow : applyProfilePhotoHide;
+      const result = operation(prev, activeTemplateIdRef.current);
+      let next = result.elements;
+      if (result.contactBandId) {
+        next = applyChannelRelayout(
+          next,
+          result.contactBandId,
+          measureContactLabel,
+          () => nanoid(),
+        ).elements;
+      }
+      return reconcileDocumentPages(next, nanoid, { collapseEmpty: true }).elements;
+    });
+  }, [measureContactLabel]);
+
+  const hideProfilePhoto = useCallback(() => setProfilePhotoVisible(false), [setProfilePhotoVisible]);
+  const showProfilePhoto = useCallback(() => setProfilePhotoVisible(true), [setProfilePhotoVisible]);
+  const removeProfilePhoto = useCallback(() => {
+    setA4_Elements((prev) => applyProfilePhotoRemoval(prev, activeTemplateIdRef.current));
+  }, []);
+
 
   return {
     A4_Elements,
@@ -2404,6 +2438,9 @@ export function useA4Elements(titleRef) {
     addContactChannel,
     toggleNameCase,
     toggleTitle,
+    hideProfilePhoto,
+    showProfilePhoto,
+    removeProfilePhoto,
     A4ref,
     canvasAreaRef,
     setPageCanvasRef,

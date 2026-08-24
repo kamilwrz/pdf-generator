@@ -1138,6 +1138,8 @@ class PDF_Generator:
                 by_id[eid] = element
             if getattr(element, "deleted", None) == True:
                 continue
+            if getattr(element, "photoSlotHidden", False) is True:
+                continue
             page_no = getattr(element, "page", 1) or 1
             by_page.setdefault(page_no, []).append(element)
 
