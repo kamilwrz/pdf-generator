@@ -933,13 +933,13 @@ function PdfCanvas() {
   );
 
   // Flagship action: find the loosest rhythm that fits the target, then route.
-  const onFitToPages = useCallback(() => {
+  const onFitToPages = useCallback((targetPages = fitTargetPages) => {
     const pageHeight = pageSize?.height ?? 842;
     const fit = findFitForTarget({
       elements: A4_Elements,
       loosest: baselineFlowSpacing,
       tightest: MIN_FLOW_SPACING,
-      targetPages: fitTargetPages,
+      targetPages,
       pageHeight,
     });
     const { action } = resolveFitAction(fit);
@@ -953,6 +953,27 @@ function PdfCanvas() {
       setLongCvModal({ open: true, variant: "impossible", fit: null });
     }
   }, [A4_Elements, baselineFlowSpacing, fitTargetPages, pageSize, commitFit]);
+
+  // The Topbar offers a one-page shortcut only when the normal spacing ladder
+  // can reach one page. Emergency and impossible results require a separate
+  // user decision or AI shortening and must not be presented as an automatic
+  // action.
+  const onePageFit = useMemo(() => {
+    if (editorMode !== EDITOR_MODE_TEMPLATE || (pageCount ?? 1) <= 1) return null;
+    const fit = findFitForTarget({
+      elements: A4_Elements,
+      loosest: baselineFlowSpacing,
+      tightest: MIN_FLOW_SPACING,
+      targetPages: 1,
+      pageHeight: pageSize?.height ?? 842,
+    });
+    const { action } = resolveFitAction(fit);
+    return action === "commit" ? fit : null;
+  }, [A4_Elements, baselineFlowSpacing, editorMode, pageCount, pageSize]);
+
+  const onFitToOnePage = useCallback(() => {
+    if (onePageFit) onFitToPages(1);
+  }, [onePageFit, onFitToPages]);
 
   // Emergency modal's "Maksymalnie zacieśnij": apply the hard-floor fit.
   const onForceTighten = useCallback(() => {
@@ -1603,6 +1624,8 @@ function PdfCanvas() {
     fitTooLong,
     fitStatus,
     onFitToPages,
+    onePageFit,
+    onFitToOnePage,
     showUnlockFreeform: handleShowUnlockFreeform,
     unlockFreeform: handleUnlockFreeform,
     activeCvData,
@@ -1650,7 +1673,7 @@ function PdfCanvas() {
     setA4_Elements, handleResizeElement, handleDownloadClick,
     clearA4Fresh, discardActiveDocument, confirmDiscardActiveEdits, loadTemplateFresh, loadTemplateWithFillFresh,
     loadAiElementsFresh, handleLoadAiElements, activeTemplateId, setActiveTemplateId,
-    editorMode, setEditorMode, flowSpacing, setFlowSpacing, baselineFlowSpacing, adoptDocumentFlowSpacing, hydrateDocumentMode, fitTooLong, fitStatus, onFitToPages, handleShowUnlockFreeform, handleUnlockFreeform,
+    editorMode, setEditorMode, flowSpacing, setFlowSpacing, baselineFlowSpacing, adoptDocumentFlowSpacing, hydrateDocumentMode, fitTooLong, fitStatus, onFitToPages, onePageFit, onFitToOnePage, handleShowUnlockFreeform, handleUnlockFreeform,
     activeCvData, setActiveCvData,
     pageCount, currentPage, addPage, removePage, goToPage, clonePage, movePage, setPageCount, setCurrentPage,
     isTwoPageView, toggleTwoPageView, handleAddTextarea, handleAddSection, openAddSectionModal, openFlatSectionLayoutModal, openSkillsLayoutModal, handleAddSectionRecord, handleAddRecordBlock, handleRemoveSection, handleRemoveRecordBlock, handleReorderRecordBlock, handleReorderSection, handleTransferSectionLane, handleChangeSkillsDisplayMode, markSelected, handleSetTextareaEditing, requestEditZoomRestore, editZoomSpreadTransitionRef,

@@ -18,7 +18,7 @@
 import classes from "./Topbar.module.css";
 import { use, useMemo } from "react";
 import { PdfContext } from "../../../store/pdfgenerator-context";
-import { RiFileTextLine, RiDownload2Line, RiShuffleLine, RiArrowGoBackLine, RiArrowGoForwardLine, RiArrowLeftSLine, RiArrowRightSLine } from "react-icons/ri";
+import { RiFileTextLine, RiDownload2Line, RiShuffleLine, RiFileReduceLine, RiArrowGoBackLine, RiArrowGoForwardLine, RiArrowLeftSLine, RiArrowRightSLine } from "react-icons/ri";
 import { FiEdit3, FiSave, FiTrash2, FiZoomIn, FiZoomOut } from "react-icons/fi";
 import { TiPen } from "react-icons/ti";
 import { TEMPLATES } from "../../../templates";
@@ -48,6 +48,8 @@ export default function Topbar({ titleRef }) {
         redo,
         canUndo,
         canRedo,
+        onePageFit,
+        onFitToOnePage,
     } = use(PdfContext);
     const { applyTemplate, fillingId } = useApplyCvTemplate();
 
@@ -182,6 +184,18 @@ export default function Topbar({ titleRef }) {
                         )}
                     </div>
                 </div>}
+                {onePageFit ? (
+                    <button
+                        type="button"
+                        className={classes.fitOne}
+                        onClick={onFitToOnePage}
+                        aria-label="Zmieść CV na 1 stronę"
+                        title="Zmieść CV na 1 stronę…"
+                    >
+                        <RiFileReduceLine aria-hidden="true" />
+                        <span aria-hidden="true">1</span>
+                    </button>
+                ) : null}
             </div>
 
             {/* Right: view controls (zoom + pages), then document output. */}

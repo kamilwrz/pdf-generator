@@ -37,3 +37,13 @@ describe("Topbar template switcher", () => {
     assert.doesNotMatch(topbarSource, /querySelector\("\.page-canvas"\)/);
   });
 });
+
+describe("Topbar one-page fit action", () => {
+  it("shows the animated one-page action with the requested tooltip", () => {
+    assert.match(topbarSource, /onePageFit/);
+    assert.match(topbarSource, /onFitToOnePage/);
+    assert.match(topbarSource, /title="Zmieść CV na 1 stronę…"/);
+    assert.match(topbarSource, /RiFileReduceLine/);
+    assert.match(topbarSource, />1<\/span>/);
+  });
+});

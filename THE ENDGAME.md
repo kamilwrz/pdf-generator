@@ -7,7 +7,11 @@ III. FUNNELING
 IV.  BUGZ / NEEDED FIXES
 -----------------------------------------------------------------------------------------
 
-1) JEZYKI - zbyt krotkie columny w sidebar-templates;dostosowac do innerContent
+1) JEZYKI - zbyt krotkie columny w sidebar-templates;dostosowac do innerContent?
+2) SIDEBAR TEMPLATES - overFlow podczas kasowania elementow kontaktowych;niepotrzebnie;staly odstep
+3) ATRIUM - chipsy kasuja mala linie dekoracyjna
+4) UX / UI "Uklad CV"
+5) Toast przy zmianie szablonow, ma znikac (tylko nowy ma istnies w UI)
 
  V.  TEMPLATES / CANVA A4
 -----------------------------------------------------------------------------------------
@@ -69,7 +73,7 @@ VI.  AI
 -----------------------------------------------------------------------------------------  
 
 1) Wykrywanie i poprawiki w danym jezyku CV (DONE)
-2) Skroc CV kasuje niektore elementy tekstowe... Naprawic
+2) Skroc CV kasuje niektore elementy tekstowe... Naprawic (DONE?)
 
 VII. INNE
 -----------------------------------------------------------------------------------------
