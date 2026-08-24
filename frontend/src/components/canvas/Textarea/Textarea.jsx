@@ -15,7 +15,7 @@ import {
     shouldShrinkPreservedLayout,
     trimTrailingEmptyTextareaPayload,
 } from "../../../utils/textareaHeight";
-import { deferTextareaEdit, hasTextareaDragIntent } from "../../../utils/textareaEditing";
+import { hasTextareaDragIntent } from "../../../utils/textareaEditing";
 import { sanitizeTextContent } from "../../../utils/sanitizeTextContent";
 import { canvasFontFamily } from "../../../utils/canvasFont";
 import { hasRuns, sliceRuns } from "../../../utils/textRuns";
@@ -160,7 +160,6 @@ function Textarea({
     const [isResizeable, setIsResizeable] = useState(false);
     const blockRef = useRef(null);
     const editingRef = useRef(null);
-    const editFrameRef = useRef(null);
     const pointerStartRef = useRef(null);
     const spacingHoldTimerRef = useRef(null);
     // Tracks whether the current pointer sequence turned into a drag, so the
@@ -364,9 +363,6 @@ function Textarea({
     }, [isEditing]);
 
     useLayoutEffect(() => () => {
-        if (editFrameRef.current) {
-            window.cancelAnimationFrame(editFrameRef.current);
-        }
         endTextSpacingHold({
             timerRef: spacingHoldTimerRef,
             elementId,
@@ -385,17 +381,11 @@ function Textarea({
         // Mark the replacement synchronously so two-page restoration cannot
         // run between this click and the deferred edit-state update.
         requestTextEdit(elementId);
-        // Finish the double-click event sequence before replacing its target
-        // with a native textarea. Entering edit state during pointerdown lets
-        // the remaining click steal focus from the new input.
-        deferTextareaEdit({
-            requestFrame: window.requestAnimationFrame,
-            cancelFrame: window.cancelAnimationFrame,
-            pendingFrame: editFrameRef,
-            startEditing: () => {
-                setTextareaEditing(elementId, true);
-            },
-        });
+        // This handler runs after pointerup, so the original drag/click
+        // interaction has already finished. Enter synchronously to avoid a
+        // transient no-edit state that could restore two-page view before a
+        // replacement element becomes active.
+        setTextareaEditing(elementId, true);
     }
 
     // Display preserves plain authored blank rows. Bullet-list placeholders
