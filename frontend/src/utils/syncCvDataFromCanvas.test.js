@@ -36,6 +36,16 @@ describe("syncCvDataFromCanvas", () => {
     assert.equal(updated, duplicated);
   });
 
+  it("persists an AI correction that intentionally clears a field", () => {
+    const updated = syncCvDataFromCanvas(
+      profile,
+      [text("summary", "Projektuję czytelne interfejsy.")],
+      [text("summary", "")],
+    );
+
+    assert.equal(updated.summary, "");
+  });
+
   it("removes a structurally deleted record from the next template fill", () => {
     const experience = {
       ...profile,

@@ -75,7 +75,10 @@ function editableTextChanges(previousElements, nextElements) {
     if (!previous || previous.content === next.content) return [];
     const from = String(previous.content ?? "").trim();
     const to = String(next.content ?? "").trim();
-    return from && to && from !== to ? [{ from, to }] : [];
+    // An accepted AI shortening can intentionally clear a field. Ignoring an
+    // empty `to` value would make the old profile text return on the next
+    // template fill, even though the canvas correctly shows it removed.
+    return from && from !== to ? [{ from, to }] : [];
   });
 }
 
