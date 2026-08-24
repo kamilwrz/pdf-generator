@@ -19,6 +19,7 @@ const SUPPORTED_TEMPLATE_IDS = new Set([
 ]);
 
 const SIDEBAR_CONTACT_TEMPLATE_IDS = new Set(["slate", "tessera"]);
+const SIDEBAR_CONTACT_SECTION_GAP = 40;
 const PORTICO_PHOTO_BOTTOM = 159;
 const PORTICO_RECLAIM_PT = 100;
 const LEGACY_FRAMELESS_PLACEHOLDERS = {
@@ -29,8 +30,21 @@ function clone(value) {
   return value == null ? value : JSON.parse(JSON.stringify(value));
 }
 
-function isSlotMember(element) {
-  return Boolean(element?.photoSlot);
+function isSlotMember(element, templateId) {
+  if (element?.photoSlot) return true;
+  if (!SIDEBAR_CONTACT_TEMPLATE_IDS.has(String(templateId || ""))) return false;
+  // Legacy Slate/Tessera documents tagged only the frame and portrait glyph.
+  // Their surrounding fixed sidebar chrome is still the same visual slot and
+  // must disappear with it. The tight page-one photo-zone bounds avoid
+  // capturing the rail background, divider, masthead contacts, or sections.
+  return Boolean(
+    element?.fixedToPage
+    && (Number(element.page) || 1) === 1
+    && element.flowLane === "sidebar"
+    && element.flowRole === "content"
+    && Number(element.left) < 180
+    && Number(element.top) < 180,
+  );
 }
 
 function contactAnchor(elements) {
@@ -48,7 +62,7 @@ export function supportsProfilePhotoVisibility(templateId) {
 
 /** Whether the document currently keeps its profile-photo slot hidden. */
 export function isProfilePhotoHidden(elements) {
-  return (elements || []).some((element) => isSlotMember(element) && element.photoSlotHidden === true);
+  return (elements || []).some((element) => element?.photoSlotHidden === true);
 }
 
 /**
@@ -58,7 +72,7 @@ export function isProfilePhotoHidden(elements) {
 export function profilePhotoControlAnchor(elements, templateId) {
   if (!supportsProfilePhotoVisibility(templateId)) return null;
   const list = elements || [];
-  const slots = list.filter(isSlotMember);
+  const slots = list.filter((element) => isSlotMember(element, templateId));
   if (!slots.length) return null;
   const visibleBox = slots.find((element) => element.photoSlot === "frame")
     || slots.find((element) => element.photoSlot === "image")
@@ -125,16 +139,17 @@ export function hideProfilePhoto(elements, templateId) {
     Number(anchor?.contactBand?.icon?.sizePt) || 11,
     Number(anchor?.contactBand?.text?.fontSizePt) || 8,
   );
-  // The first sidebar section follows the stacked contacts by the same 28 pt
-  // photo-to-section gap authored by Slate/Tessera. This closes the old photo
-  // hole while retaining deliberate whitespace and exact lane symmetry.
+  // The hidden-photo state is denser than the authored photo layout, but the
+  // tiny 7.8 pt contact labels need a stronger boundary before the first
+  // section. Measure 40 pt from the final contact row to the complete section
+  // chrome (including its leading tile), not merely to the heading baseline.
   const sidebarTargetStart = 42
     + Math.max(0, contactCount - 1) * contactLineStep
     + contactHeight
-    + 28;
+    + SIDEBAR_CONTACT_SECTION_GAP;
   const sidebarShift = sidebarStart == null ? 0 : sidebarTargetStart - sidebarStart;
   const next = list.map((element) => {
-    if (isSlotMember(element)) return { ...element, photoSlotHidden: true };
+    if (isSlotMember(element, id)) return { ...element, photoSlotHidden: true };
 
     if (id === "portico") {
       if (element.contactBand?.anchor) {
@@ -194,7 +209,7 @@ export function showProfilePhoto(elements, templateId) {
   const id = String(templateId);
   let restoredBandId = null;
   const next = (elements || []).map((element) => {
-    let updated = isSlotMember(element)
+    let updated = isSlotMember(element, id)
       ? { ...element, photoSlotHidden: false }
       : element;
     if (updated.photoLayoutHome) {

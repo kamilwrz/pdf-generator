@@ -107,6 +107,7 @@ const SLATE_ELEMENTS = [
     "fixedToPage": true,
     "locked": true,
     "repeatOnContinuation": false,
+    "photoSlot": "ornament",
     "flowRole": "content",
     "flowLane": "sidebar"
   },
@@ -125,6 +126,7 @@ const SLATE_ELEMENTS = [
     "fixedToPage": true,
     "locked": true,
     "repeatOnContinuation": false,
+    "photoSlot": "ornament",
     "flowRole": "content",
     "flowLane": "sidebar"
   },
@@ -178,6 +180,7 @@ const SLATE_ELEMENTS = [
     "fixedToPage": true,
     "locked": true,
     "repeatOnContinuation": false,
+    "photoSlot": "ornament",
     "flowRole": "content",
     "flowLane": "sidebar"
   },
@@ -193,6 +196,7 @@ const SLATE_ELEMENTS = [
     "fixedToPage": true,
     "locked": true,
     "repeatOnContinuation": false,
+    "photoSlot": "ornament",
     "flowRole": "content",
     "flowLane": "sidebar"
   },
@@ -208,6 +212,7 @@ const SLATE_ELEMENTS = [
     "fixedToPage": true,
     "locked": true,
     "repeatOnContinuation": false,
+    "photoSlot": "ornament",
     "flowRole": "content",
     "flowLane": "sidebar"
   },

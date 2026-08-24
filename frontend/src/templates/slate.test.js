@@ -31,6 +31,10 @@ test("Slate uses a rectilinear blueprint sidebar and no circles or ellipses", ()
     assert.equal(photoFrame?.category, "rectangle");
     assert.equal(photoFrame?.width, 112);
     assert.equal(photoFrame?.height, 126);
+    assert.equal(
+        slateTemplate.filter((element) => element.photoSlot === "ornament").length,
+        5,
+    );
 
     // Two icon colour variants: white glyphs for badges, accent glyphs for
     // masthead contacts / the photo placeholder.

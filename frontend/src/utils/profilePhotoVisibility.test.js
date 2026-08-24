@@ -58,11 +58,20 @@ describe("profile photo visibility", () => {
       assert.equal(hiddenResult.contactBandId, "contact-main");
       assert.equal(hiddenAnchor.contactBand.mode, "stacked");
       assert.deepEqual(hiddenAnchor.contactBand.anchor, { startX: 33, startY: 42, rightLimit: 174 });
+      const hiddenPhotoCluster = hiddenResult.elements.filter((element) => (
+        element.fixedToPage
+        && element.flowLane === "sidebar"
+        && element.flowRole === "content"
+        && Number(element.left) < 180
+        && Number(element.top) < 180
+      ));
+      assert.ok(hiddenPhotoCluster.length >= 6);
+      assert.ok(hiddenPhotoCluster.every((element) => element.photoSlotHidden === true));
       const hiddenSidebarTop = Math.min(...hiddenResult.elements
         .filter((element) => element.flowRole === "sidebar-chrome")
         .map((element) => Number(element.top)));
       assert.ok(hiddenSidebarTop < originalSidebarTop);
-      assert.equal(hiddenSidebarTop, 161);
+      assert.equal(hiddenSidebarTop, 173);
       const shown = showProfilePhoto(hiddenResult.elements, templateId).elements;
       const shownAnchor = shown.find((element) => element.element_id === originalAnchor.element_id);
       assert.deepEqual(shownAnchor.contactBand, originalAnchor.contactBand);
@@ -70,8 +79,28 @@ describe("profile photo visibility", () => {
         .filter((element) => element.flowRole === "sidebar-chrome")
         .map((element) => Number(element.top)));
       assert.equal(shownSidebarTop, originalSidebarTop);
+      assert.ok(shown
+        .filter((element) => hiddenPhotoCluster.some((member) => member.element_id === element.element_id))
+        .every((element) => element.photoSlotHidden === false));
     });
   }
+
+  it("hides legacy Tessera photo chrome that predates ornament tags", () => {
+    const legacy = withIds(tesseraTemplate).map((element) => {
+      if (element.photoSlot !== "ornament") return element;
+      const { photoSlot: _photoSlot, ...withoutTag } = element;
+      return withoutTag;
+    });
+    const hidden = hideProfilePhoto(legacy, "tessera").elements;
+    const legacyCluster = hidden.filter((element) => (
+      element.fixedToPage
+      && element.flowLane === "sidebar"
+      && element.flowRole === "content"
+      && Number(element.left) < 180
+      && Number(element.top) < 180
+    ));
+    assert.ok(legacyCluster.every((element) => element.photoSlotHidden === true));
+  });
 
   it("removes only the user raster and restores its saved placeholder", () => {
     const elements = [{

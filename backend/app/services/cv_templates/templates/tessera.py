@@ -135,6 +135,9 @@ def _gen_tessera(cv: dict) -> list[dict]:
             photo_left - 5, photo_top + photo_height - 8, 12, colors["coral"], filled=True, zIndex=4,
         )),
     ]
+    # Orbit, node, offset tile, frame, glyph, and lower node form one visual
+    # slot. Mark every member so hiding the portrait never leaves mosaic debris.
+    photo = [{**element, "photoSlot": element.get("photoSlot", "ornament")} for element in photo]
 
     def sidebar_heading(label: str, icon_name: str, top: float) -> list[dict]:
         """Build a compact icon tile + heading + short keyline."""

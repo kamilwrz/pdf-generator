@@ -155,6 +155,10 @@ def _gen_slate(cv: dict) -> list[dict]:
             photo_left, photo_top + photo_height + 4, photo_width, 4, colors["accent"], zIndex=2,
         )),
     ]
+    # The entire drafting cluster is one user-facing photo slot. Tagging every
+    # member lets hide/show remove the underlay, registration marks, and base
+    # bar together with the frame and portrait glyph.
+    photo = [{**element, "photoSlot": element.get("photoSlot", "ornament")} for element in photo]
 
     def sidebar_heading(label: str, icon_name: str, top: float) -> list[dict]:
         """Build a filled accent badge + white glyph + heading + short keyline."""

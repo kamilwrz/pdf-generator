@@ -125,6 +125,15 @@ class CvTemplateLayoutTests(unittest.TestCase):
         self.assertEqual(photo_frame["category"], "rectangle")
         self.assertEqual((photo_frame["width"], photo_frame["height"]), (112, 126))
         self.assertGreater(photo_frame["height"], photo_frame["width"])
+        self.assertEqual(
+            len([
+                element
+                for element in elements
+                if element.get("photoSlot") == "ornament"
+                and element.get("page", 1) == 1
+            ]),
+            4,
+        )
 
         icons = [
             element
@@ -270,6 +279,15 @@ class CvTemplateLayoutTests(unittest.TestCase):
         self.assertGreater(photo_frame["height"], photo_frame["width"])
         self.assertTrue(photo_frame.get("fixedToPage") is True)
         self.assertTrue(photo_frame.get("locked") is True)
+        self.assertEqual(
+            len([
+                element
+                for element in elements
+                if element.get("photoSlot") == "ornament"
+                and element.get("page", 1) == 1
+            ]),
+            5,
+        )
 
         # Slate uses two icon colour variants: white glyphs for filled heading
         # badges and accent glyphs for masthead contact rows / the photo placeholder.

@@ -28,6 +28,10 @@ test("Tessera uses an original mosaic sidebar and every supported canvas primiti
     assert.equal(photoFrame?.category, "rectangle");
     assert.equal(photoFrame?.width, 112);
     assert.equal(photoFrame?.height, 126);
+    assert.equal(
+        tesseraTemplate.filter((element) => element.photoSlot === "ornament").length,
+        4,
+    );
 
     const icons = tesseraTemplate.filter(
         (element) => element.category === "image",
