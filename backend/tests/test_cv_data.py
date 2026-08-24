@@ -86,6 +86,21 @@ class CvDataNormalizationTests(unittest.TestCase):
             for element in elements
         ))
 
+    def test_named_skill_groups_do_not_repeat_ai_or_imported_entries(self):
+        """A skill occurring in two AI-generated groups renders only once."""
+        profile = normalize_cv_data({
+            "name": "Jan Nowak",
+            "skills": [
+                {"category": "Programowanie", "items": ["Python", "SQL"]},
+                {"category": "Automatyzacja", "items": ["Python", "PowerShell"]},
+            ],
+        })
+
+        self.assertEqual(profile["skills"], [
+            {"category": "Programowanie", "items": ["Python", "SQL"]},
+            {"category": "Automatyzacja", "items": ["PowerShell"]},
+        ])
+
     def test_soft_hard_tools_nest_under_skills(self):
         """
         CVs like CV19 list soft skills, hard skills, and tools under separate

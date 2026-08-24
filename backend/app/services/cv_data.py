@@ -357,8 +357,19 @@ def _normalize_skills(value: Any) -> list[Any]:
     # Drop parent-duplicate labels (SKILLS / UMIEJĘTNOŚCI / Obszary) before
     # deciding whether a taxonomy is present.
     scrubbed: list[dict[str, Any]] = []
+    seen_skill_keys: set[str] = set()
     for group in groups:
-        items = list(group["items"])
+        # AI and imported profiles may describe the same skill in multiple
+        # named groups (for example "Python" under both Automatyzacja and
+        # Programowanie). A flat list was already de-duplicated below, but
+        # grouped skills bypassed that path and rendered the chip twice after a
+        # template change. Keep the first category assignment in reading order.
+        items = []
+        for item in group["items"]:
+            key = item.casefold()
+            if item and key not in seen_skill_keys:
+                items.append(item)
+                seen_skill_keys.add(key)
         if not items:
             continue
         category = _text(group.get("category"))
