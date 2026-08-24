@@ -7,8 +7,8 @@ import { FiDownload } from "react-icons/fi";
 
 const VARIANTS = {
     success: {
-        accent: "var(--success)",
-        iconBg: "var(--success-soft)",
+        accent: "#667A6C",
+        iconBg: "#EEF3EF",
         icon: (
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
         ),
@@ -25,7 +25,7 @@ const VARIANTS = {
 /**
  * Compact transient notifications anchored outside the A4 workspace.
  *
- * The upper-left placement keeps document feedback visible without covering
+ * The upper-right placement keeps document feedback visible without covering
  * the canvas. Notifications remain in a polite live region and errors retain
  * alert semantics for assistive technologies.
  */
@@ -49,13 +49,7 @@ export default function ToastStack({ toasts, onDismiss }) {
                         <div className={classes.body}>
                             <div className={classes.title}>{t.title}</div>
                             {t.templateName && (
-                                <span
-                                    className={classes.templateBadge}
-                                    style={{
-                                        "--template-accent": t.templateAccent || "var(--chrome-ink)",
-                                        "--template-badge-ink": t.templateBadgeInk || "#FFFFFF",
-                                    }}
-                                >
+                                <span className={classes.templateBadge}>
                                     {t.templateName}
                                 </span>
                             )}
@@ -66,7 +60,7 @@ export default function ToastStack({ toasts, onDismiss }) {
                                 </a>
                             )}
                         </div>
-                        <CloseButton clickHandler={() => onDismiss(t.id)} top={12} right={12} width="24px" height="24px" radius={0} />
+                        <CloseButton clickHandler={() => onDismiss(t.id)} top={8} right={8} width="22px" height="22px" radius={0} />
                     </div>
                 );
             })}

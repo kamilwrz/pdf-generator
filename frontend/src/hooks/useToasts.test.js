@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { mergeToastQueue } from "./useToasts.js";
+import { mergeToastQueue, toastReplaceKey } from "./useToasts.js";
 
 test("replaces an older toast from the same workflow", () => {
   const previous = [
@@ -18,4 +18,13 @@ test("keeps unrelated notifications and applies the queue limit", () => {
   const next = { id: 4 };
 
   assert.deepEqual(mergeToastQueue(previous, next), [{ id: 2 }, { id: 3 }, next]);
+});
+
+test("derives a replacement category for every toast kind", () => {
+  assert.equal(
+    toastReplaceKey({ variant: "success", title: "Twoje CV jest dość długie" }),
+    "toast:success:Twoje CV jest dość długie",
+  );
+  assert.equal(toastReplaceKey({ variant: "error", title: "Błąd" }), "toast:error:Błąd");
+  assert.equal(toastReplaceKey({ replaceKey: "template-change", title: "X" }), "template-change");
 });

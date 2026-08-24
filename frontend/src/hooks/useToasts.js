@@ -4,13 +4,19 @@ const TOAST_LIFETIME_MS = 6000;
 const TOAST_EXIT_MS = 260;
 const MAX_TOASTS = 3;
 
+/** Returns the stable category used to replace repeated notifications. */
+export function toastReplaceKey(toast) {
+    return toast.replaceKey
+        || `toast:${toast.variant || "success"}:${toast.title || toast.msg || "notification"}`;
+}
+
 /**
- * Adds a toast while replacing an older notification from the same workflow.
+ * Adds a toast while replacing an older notification of the same category.
  *
- * `replaceKey` is intentionally optional: unrelated events may still coexist,
- * while rapid state changes such as template selection keep only their newest
- * result. The function is pure so queue semantics can be regression-tested
- * without mounting React.
+ * Every toast receives a category key before reaching this function. Callers
+ * may provide `replaceKey` for a workflow-specific category; otherwise the hook
+ * derives one from variant + title. Unrelated categories may coexist, but a
+ * repeated category always keeps only its newest result.
  */
 export function mergeToastQueue(previousToasts, toast, maxToasts = MAX_TOASTS) {
     const retainedToasts = toast.replaceKey
@@ -48,15 +54,18 @@ export function useToasts() {
 
     const pushToast = useCallback((toast) => {
         const id = ++seqRef.current;
-        const nextToast = { ...toast, id };
+        // Default category-level deduplication covers every caller, including
+        // notifications that predate explicit workflow replacement keys.
+        const replaceKey = toastReplaceKey(toast);
+        const nextToast = { ...toast, replaceKey, id };
         // A replaced toast must not leave a live timeout that later tries to
         // dismiss a newer notification from the same workflow.
-        const replacedId = toast.replaceKey ? replacementIds.current[toast.replaceKey] : null;
+        const replacedId = replacementIds.current[replaceKey];
         if (replacedId) {
             clearTimeout(timers.current[replacedId]);
             delete timers.current[replacedId];
         }
-        if (toast.replaceKey) replacementIds.current[toast.replaceKey] = id;
+        replacementIds.current[replaceKey] = id;
         setToasts((prev) => mergeToastQueue(prev, nextToast));
         timers.current[id] = setTimeout(() => dismissToast(id), TOAST_LIFETIME_MS);
         return id;
