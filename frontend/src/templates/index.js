@@ -18,6 +18,7 @@ import { regentTemplate } from "./regent";
 import { vestigeTemplate } from "./vestige";
 import { meridianTemplate } from "./meridian";
 import { archiveTemplate } from "./archive";
+import { cadenzaTemplate } from "./cadenza";
 
 export { TEMPLATE_LAYOUT_TAGS } from "../utils/templateLayouts";
 
@@ -33,4 +34,5 @@ export const TEMPLATES = [
     { id: "vestige", tier: "paid", name: "Vestige", description: "Klasyczny, monochromatyczny układ z wąskim sidebarem", layouts: ["sidebar", "icons"], accent: "#3E3E3C", elements: vestigeTemplate },
     { id: "meridian", tier: "paid", name: "Meridian", description: "Premium, granatowo-niebieski układ jednokolumnowy", layouts: ["single", "icons"], accent: "#3D5A80", elements: meridianTemplate },
     { id: "archive", tier: "paid", name: "Archive", description: "Editorialny układ z szerokim sidebarem i mineralną paletą", layouts: ["sidebar"], accent: "#6B7C72", elements: archiveTemplate },
+    { id: "cadenza", tier: "paid", name: "Cadenza", description: "Kremowy układ editorialny z białym sidebarem i geometrią", layouts: ["sidebar", "icons"], accent: "#B38B6D", elements: cadenzaTemplate },
 ];

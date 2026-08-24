@@ -13,6 +13,7 @@ from app.services.cv_templates.templates.regent import _gen_regent
 from app.services.cv_templates.templates.vestige import _gen_vestige
 from app.services.cv_templates.templates.meridian import _gen_meridian
 from app.services.cv_templates.templates.archive import _gen_archive
+from app.services.cv_templates.templates.cadenza import _gen_cadenza
 
 TEMPLATE_LAYOUTS: dict[str, frozenset[str]] = {
     "monument": frozenset({"single"}),
@@ -26,6 +27,7 @@ TEMPLATE_LAYOUTS: dict[str, frozenset[str]] = {
     "vestige": frozenset({"sidebar", "icons"}),
     "meridian": frozenset({"single", "icons"}),
     "archive": frozenset({"sidebar"}),
+    "cadenza": frozenset({"sidebar", "icons"}),
 }
 
 _GENERATORS = {
@@ -40,6 +42,7 @@ _GENERATORS = {
     "vestige": _gen_vestige,
     "meridian": _gen_meridian,
     "archive": _gen_archive,
+    "cadenza": _gen_cadenza,
 }
 
 

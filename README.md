@@ -1096,6 +1096,22 @@ Tests:
 - `frontend/src/templates/archive.test.js` — starter geometry, palette, typography, and sidebar metadata.
 - `backend/tests/test_template_registry_sync.py` — frontend/backend id and layout parity and confirmation that only the configured free IDs are in the free allowlist.
 
+### Cadenza editorial sidebar template
+
+Cadenza is a paid `["sidebar", "icons"]` template. It uses an original, restrained Swiss editorial composition: warm `#F5F1E8` paper, a white information rail, black reading text, taupe `#B38B6D` rules, and muted `#808080` metadata. Lora establishes the display hierarchy while Inter keeps editable copy compact and legible. Its fixed page furniture deliberately uses every supported geometric primitive—rectangle, circle, ellipse, and rules—only as non-editable decoration, so the sidebar and record lanes remain safe for reflow, density changes, pagination, and PDF export.
+
+Implementation:
+
+- `backend/app/services/cv_templates/templates/cadenza.py`, `_gen_cadenza` — reuses the proven multi-page sidebar planner while applying Cadenza-only typography, palette, and fixed geometry.
+- `backend/app/services/cv_templates/registry.py` — registers `_GENERATORS["cadenza"]` and `TEMPLATE_LAYOUTS["cadenza"]`.
+- `frontend/src/templates/cadenza.js` and `frontend/src/templates/index.js` — generated editor starter and paid picker entry.
+- `frontend/public/template-mockups/cadenza.png` — a PDF-rendered picker, gallery, and hover preview.
+
+Tests:
+
+- `backend/tests/test_cadenza_template.py` — layout tags, fixed geometric chrome, sidebar lane, and shared experience record group.
+- `backend/tests/test_template_registry_sync.py` — backend/frontend template parity.
+
 ### Icon-tagged templates and icon reflow
 
 Regent, Volt, Tessera, Slate, and Portico are individual templates that share the `icons` layout tag (and optionally `sidebar` / `dark`). The same template IDs are generated deterministically by Python. Browser font measurement can change textarea heights, so icon images are explicitly grouped with nearby heading chrome instead of being left at their authored Y coordinate.
@@ -1130,7 +1146,7 @@ python scripts/regenerate_template_starters.py   # rewrites remaining starters (
 
 Atrium is regenerated from the same Julia Bernat persona by `scripts/regenerate_template_starters.py` (re-run that script whenever the shared demo or a generator changes).
 
-`frontend/public/template-mockups/{regent,volt,monument,tessera,slate,portico,atrium,sterling,regent,vestige,meridian,archive}.png` — the previews shown in the Hero template gallery (`frontend/src/pages/Hero/Hero.jsx`), the in-app template picker (`frontend/src/components/modals/TemplatesModal/TemplatesModal.jsx`), and the hover pane in **Wypełnij z mojego CV** (`frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`) — are rendered from those starter arrays, not hand-drawn mockups. After starter changes, regenerate the PNGs:
+`frontend/public/template-mockups/{regent,volt,monument,tessera,slate,portico,atrium,sterling,regent,vestige,meridian,archive,cadenza}.png` — the previews shown in the Hero template gallery (`frontend/src/pages/Hero/Hero.jsx`), the in-app template picker (`frontend/src/components/modals/TemplatesModal/TemplatesModal.jsx`), and the hover pane in **Wypełnij z mojego CV** (`frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`) — are rendered from those starter arrays, not hand-drawn mockups. After starter changes, regenerate the PNGs:
 
 ```bash
 node frontend/scripts/dump-iconic-templates.mjs
@@ -2984,6 +3000,22 @@ Testy:
 - `frontend/src/templates/archive.test.js` — geometria startera, paleta, typografia i metadane sidebara.
 - `backend/tests/test_template_registry_sync.py` — parytet identyfikatorów i layoutów frontendu/backendu oraz potwierdzenie, że tylko skonfigurowane identyfikatory są na liście darmowej.
 
+### Editorialny szablon Cadenza z sidebarem
+
+Cadenza to płatny szablon `["sidebar", "icons"]`. Korzysta z autorskiej, spokojnej kompozycji editorialnej w duchu szwajcarskim: ciepły papier `#F5F1E8`, biała szyna informacji, czarny tekst do czytania, taupe `#B38B6D` dla reguł oraz stonowane metadane `#808080`. `Lora` buduje hierarchię ekspozycyjną, a `Inter` zachowuje zwartą i czytelną edytowalną treść. Jego nieruchome wyposażenie strony celowo wykorzystuje wszystkie obsługiwane prymitywy geometryczne — prostokąt, koło, elipsę i linie — wyłącznie jako dekorację, dzięki czemu sidebar i tory rekordów pozostają bezpieczne przy reflow, zmianie gęstości, paginacji oraz eksporcie PDF.
+
+Implementacja:
+
+- `backend/app/services/cv_templates/templates/cadenza.py`, `_gen_cadenza` — reużywa sprawdzonego wielostronicowego planera sidebara i nakłada wyłącznie typografię, paletę oraz nieruchomą geometrię Cadenzy.
+- `backend/app/services/cv_templates/registry.py` — rejestruje `_GENERATORS["cadenza"]` oraz `TEMPLATE_LAYOUTS["cadenza"]`.
+- `frontend/src/templates/cadenza.js` i `frontend/src/templates/index.js` — wygenerowany starter edytora oraz płatny wpis w pickerze.
+- `frontend/public/template-mockups/cadenza.png` — podgląd pickera, galerii i hovera wyrenderowany przez PDF.
+
+Testy:
+
+- `backend/tests/test_cadenza_template.py` — tagi layoutu, nieruchome geometryczne chrome, tor sidebara oraz wspólna grupa rekordu doświadczenia.
+- `backend/tests/test_template_registry_sync.py` — parytet szablonów frontend/backend.
+
 ### Szablony z tagiem `icons` i reflow ikon
 
 Regent, Volt, Tessera, Slate i Portico to indywidualne szablony ze wspólnym tagiem layoutu `icons` (opcjonalnie też `sidebar` / `dark`). Te same identyfikatory generuje deterministycznie backend w Pythonie. Ponieważ pomiar fontów w przeglądarce może zmienić wysokości pól tekstowych, obrazy ikon są grupowane z nagłówkami i przesuwają się razem z nimi zamiast pozostawać na pierwotnej współrzędnej Y.
@@ -3018,7 +3050,7 @@ python scripts/regenerate_template_starters.py   # przepisuje pozostałe starter
 
 Atrium jest regenerowane z tej samej persony Julia Bernat przez `scripts/regenerate_template_starters.py` (uruchom ponownie po zmianie wspólnego demo lub generatora).
 
-Pliki `frontend/public/template-mockups/{regent,volt,monument,tessera,slate,portico,atrium,sterling,regent,vestige,meridian,archive}.png` — podglądy w galerii Hero, pickerze i panelu **Wypełnij z mojego CV** — pochodzą z tych tablic starterów, nie z ręcznych grafik. Po zmianie starterów odtwórz PNG:
+Pliki `frontend/public/template-mockups/{regent,volt,monument,tessera,slate,portico,atrium,sterling,regent,vestige,meridian,archive,cadenza}.png` — podglądy w galerii Hero, pickerze i panelu **Wypełnij z mojego CV** — pochodzą z tych tablic starterów, nie z ręcznych grafik. Po zmianie starterów odtwórz PNG:
 
 ```bash
 node frontend/scripts/dump-iconic-templates.mjs

@@ -284,6 +284,7 @@ TEMPLATES = [
     "vestige",
     "meridian",
     "archive",
+    "cadenza",
 ]
 
 DOC_BLURBS = {
@@ -348,6 +349,12 @@ DOC_BLURBS = {
         "Archive template (`layouts: [\"sidebar\"]`).\n"
         " *\n"
         " * Mineral-paper editorial layout with a wide sidebar rail."
+    ),
+    "cadenza": (
+        "Cadenza template (`layouts: [\"sidebar\", \"icons\"]`).\n"
+        " *\n"
+        " * Swiss-inspired cream editorial layout with a white information rail\n"
+        " * and fixed rectangle, circle, and ellipse page furniture."
     ),
 }
 
@@ -464,7 +471,7 @@ def main() -> None:
             cv = REGENT_DEMO_CV
         elif template_id in COMPACT_TEMPLATE_IDS:
             cv = COMPACT_DEMO_CV
-        elif template_id in {"sterling", "vestige", "archive"}:
+        elif template_id in {"sterling", "vestige", "archive", "cadenza"}:
             cv = SIDEBAR_DEMO_CV
         else:
             cv = DEMO_CV
