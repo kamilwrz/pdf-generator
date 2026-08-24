@@ -193,6 +193,9 @@ class PDFCreateRequest(BaseModel):
     template_id: Optional[str] = None
     # Optional vertical rhythm override (stack/record/section/after_rule px).
     spacing_px: Optional[dict[str, Any]] = None
+    # Provenance from a private extraction snapshot, set only after ownership
+    # validation by the document creation route.
+    source_import_id: Optional[int] = None
 
 
 class PDFUpdateRequest(BaseModel):

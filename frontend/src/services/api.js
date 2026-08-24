@@ -42,6 +42,8 @@ export const ENDPOINTS = {
     },
     AI: {
         EXTRACT_CV: "/ai/extract_cv",
+        IMPORTS: "/ai/imports",
+        IMPORT: (importId) => `/ai/imports/${importId}`,
         FILL_TEMPLATE: "/ai/fill_template",
         BIO_CV_DRAFT: "/ai/bio_cv_draft",
         ASSISTANT: "/ai/assistant",

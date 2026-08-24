@@ -12,12 +12,18 @@ the browser called.
 
 from typing import Any, Optional
 
+import fitz
+
 from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from app.core.security import verify_token, verify_token_optional
 from app.crud.bio_cv_drafts import delete_bio_cv_draft, get_bio_cv_draft, upsert_bio_cv_draft
 from app.crud.user import get_user_by_username
+from app.crud.cv_import_snapshots import (
+    create_snapshot, get_owned_snapshot, linked_pdfs, list_owned_snapshots,
+    mark_snapshot_failed, mark_snapshot_succeeded, soft_delete_snapshot,
+)
 from app.dependencies import get_db
 from app.schemas.cv_data_schema import BioCvDraftRequest, BioCvDraftResponse
 from app.services.cv_data import CvDataValidationError, normalize_cv_data
@@ -35,6 +41,7 @@ from app.services.entitlements import (
 router = APIRouter(prefix="/ai", tags=["ai"])
 
 MAX_PDF_BYTES = 10 * 1024 * 1024  # 10 MB
+MAX_PDF_PAGES = 12
 
 
 class FillRequest(BaseModel):
@@ -44,6 +51,58 @@ class FillRequest(BaseModel):
     template_id: str
     # Optional per-document rhythm from the Sections panel (stack/record/…).
     spacing_px: Optional[dict[str, Any]] = None
+
+
+def _snapshot_payload(snapshot, documents: list | None = None) -> dict:
+    """Return only safe import metadata and normalized results to its owner."""
+    data = snapshot.cv_data or {}
+    return {
+        "id": snapshot.id,
+        "filename": snapshot.source_filename,
+        "size_bytes": snapshot.source_size_bytes,
+        "status": snapshot.status,
+        "error_code": snapshot.error_code,
+        "created_at": snapshot.created_at.isoformat() if snapshot.created_at else None,
+        "completed_at": snapshot.completed_at.isoformat() if snapshot.completed_at else None,
+        "summary": {
+            "name": data.get("name"),
+            "title": data.get("title"),
+            "experience_count": len(data.get("experience") or []),
+            "education_count": len(data.get("education") or []),
+            "skills_count": len(data.get("skills") or []),
+        },
+        "cv_data": data if snapshot.status == "succeeded" else None,
+        "documents": [
+            {
+                "id": document.id,
+                "title": document.title,
+                "template_id": document.template_id,
+                "updated_at": document.updated_at.isoformat() if document.updated_at else None,
+            }
+            for document in (documents or [])
+        ],
+    }
+
+
+async def _read_and_validate_pdf(file: UploadFile) -> bytes:
+    """Read bounded bytes and reject non-PDF, malformed, encrypted, or huge inputs."""
+    data = await file.read(MAX_PDF_BYTES + 1)
+    if len(data) > MAX_PDF_BYTES:
+        raise HTTPException(status_code=400, detail="Plik przekracza limit 10 MB.")
+    if not data.startswith(b"%PDF-"):
+        raise HTTPException(status_code=400, detail="Wybrany plik nie jest prawidłowym PDF.")
+    try:
+        document = fitz.open(stream=data, filetype="pdf")
+        if document.needs_pass:
+            raise HTTPException(status_code=400, detail="Zaszyfrowane PDF-y nie są obsługiwane.")
+        if document.page_count < 1 or document.page_count > MAX_PDF_PAGES:
+            raise HTTPException(status_code=400, detail=f"PDF musi mieć od 1 do {MAX_PDF_PAGES} stron.")
+        document.close()
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail="Nie można odczytać tego pliku PDF.") from exc
+    return data
 
 
 def _current_user_id(db: Session, payload: dict) -> int:
@@ -95,18 +154,51 @@ async def extract_cv(
     if user is None:
         raise HTTPException(status_code=401, detail="Nie znaleziono konta użytkownika.")
     assert_can_extract_cv(db, user)
-    if not (file.filename or "").lower().endswith(".pdf"):
+    filename = (file.filename or "cv.pdf").strip()
+    if not filename.lower().endswith(".pdf"):
         raise HTTPException(status_code=400, detail="Akceptowane są wyłącznie pliki PDF.")
-    data = await file.read()
-    if len(data) > MAX_PDF_BYTES:
-        raise HTTPException(status_code=400, detail="Plik przekracza limit 10 MB.")
+    data = await _read_and_validate_pdf(file)
+    snapshot = create_snapshot(db, owner_id=user.id, filename=filename, size_bytes=len(data))
     try:
         cv_data, usage = extract_cv_data(data)
         charge_ai_credits(db, user.id, usage.get("cost_pln_estimate", 0.0))
         mark_free_import_used(db, user.id)
-        return {"cv_data": cv_data, "usage": usage}
-    except Exception as exc:
-        raise HTTPException(status_code=500, detail=f"Nie udało się wyodrębnić danych z CV: {exc}")
+        snapshot = mark_snapshot_succeeded(db, snapshot, cv_data)
+        return {"import": _snapshot_payload(snapshot), "cv_data": cv_data, "usage": usage}
+    except Exception:
+        mark_snapshot_failed(db, snapshot, "extraction_failed")
+        raise HTTPException(status_code=500, detail="Nie udało się wyodrębnić danych z CV.")
+
+
+@router.get("/imports", status_code=200)
+async def list_imports(payload: dict = Depends(verify_token), db: Session = Depends(get_db)):
+    """List only the authenticated user's non-deleted import snapshots."""
+    owner_id = _current_user_id(db, payload)
+    return {"imports": [
+        _snapshot_payload(snapshot, linked_pdfs(db, snapshot_id=snapshot.id, owner_id=owner_id))
+        for snapshot in list_owned_snapshots(db, owner_id=owner_id)
+    ]}
+
+
+@router.get("/imports/{snapshot_id}", status_code=200)
+async def get_import(snapshot_id: int, payload: dict = Depends(verify_token), db: Session = Depends(get_db)):
+    """Return one owned import, including its stored normalized CV data."""
+    owner_id = _current_user_id(db, payload)
+    snapshot = get_owned_snapshot(db, owner_id=owner_id, snapshot_id=snapshot_id)
+    if snapshot is None:
+        raise HTTPException(status_code=404, detail="Nie znaleziono danych importu.")
+    return _snapshot_payload(snapshot, linked_pdfs(db, snapshot_id=snapshot.id, owner_id=owner_id))
+
+
+@router.delete("/imports/{snapshot_id}", status_code=200)
+async def delete_import(snapshot_id: int, payload: dict = Depends(verify_token), db: Session = Depends(get_db)):
+    """Erase the caller's stored extracted data; source PDFs were never retained."""
+    owner_id = _current_user_id(db, payload)
+    snapshot = get_owned_snapshot(db, owner_id=owner_id, snapshot_id=snapshot_id)
+    if snapshot is None:
+        raise HTTPException(status_code=404, detail="Nie znaleziono danych importu.")
+    soft_delete_snapshot(db, snapshot)
+    return {"deleted": True}
 
 
 @router.get("/bio_cv_draft", response_model=BioCvDraftResponse, status_code=200)

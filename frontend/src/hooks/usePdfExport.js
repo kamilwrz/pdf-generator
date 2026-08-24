@@ -53,6 +53,7 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
     const editor_mode = meta.editorMode === "template" ? "template" : "freeform";
     const template_id = meta.templateId || null;
     const spacing_px = flowSpacingToPayload(meta.flowSpacing);
+    const source_import_id = Number.isInteger(meta.sourceImportId) ? meta.sourceImportId : null;
     const body = JSON.stringify({
       root: sorted,
       pdf_title: titleRef.current.value + ".pdf",
@@ -62,6 +63,7 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
       editor_mode,
       template_id,
       spacing_px,
+      source_import_id,
     });
 
     // Wake a sleeping Render dyno before the heavy create; then retry transient

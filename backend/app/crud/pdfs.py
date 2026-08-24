@@ -136,6 +136,7 @@ def create_new_pdf(
     template_id: str | None = None,
     spacing_px: Mapping[str, Any] | None = None,
     watermarked: bool = False,
+    source_import_id: int | None = None,
 ) -> int:
     """Insert a Pdf row plus one PdfElements row per canvas element.
 
@@ -155,6 +156,7 @@ def create_new_pdf(
         template_id=template_id,
         spacing_px=serialize_spacing_px(spacing_px),
         watermarked=watermarked,
+        source_import_id=source_import_id,
         created_at=datetime.datetime.now(timezone.utc),
         updated_at=datetime.datetime.now(timezone.utc),
     )

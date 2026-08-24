@@ -25,6 +25,7 @@ from sqlalchemy import (
     String,
     Text,
     UniqueConstraint,
+    Index,
 )
 from .database import Base, engine
 
@@ -90,6 +91,8 @@ class Pdf(Base):
     # entitlement and only re-renders when they differ (e.g. right after an
     # upgrade), so an unchanged plan never pays a re-render cost.
     watermarked = Column(Boolean, nullable=False, default=False)
+    # Nullable because manually created documents have no import provenance.
+    source_import_id = Column(Integer, ForeignKey("cv_import_snapshots.id"), nullable=True, index=True)
 
 
 class PdfElements(Base):
@@ -144,6 +147,33 @@ class BioCvDraft(Base):
     cv_data = Column(JSON, nullable=False, default=dict)
     created_at = Column(DateTime, nullable=False)
     updated_at = Column(DateTime, nullable=False)
+
+
+class CvImportSnapshot(Base):
+    """Private normalized result of one PDF CV extraction attempt.
+
+    Original PDF bytes are deliberately never retained. The snapshot lets its
+    owner inspect and reuse extracted structured data without another AI call.
+    """
+
+    __tablename__ = "cv_import_snapshots"
+    __table_args__ = (
+        Index("ix_cv_import_snapshots_owner_created", "owner_id", "created_at"),
+        Index("ix_cv_import_snapshots_owner_status", "owner_id", "status"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    owner_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    source_filename = Column(String(255), nullable=False)
+    source_size_bytes = Column(Integer, nullable=False)
+    # processing | succeeded | failed | deleted
+    status = Column(String(24), nullable=False, default="processing")
+    cv_data = Column(JSON, nullable=True)
+    # Stable user-safe failure category; never a provider exception.
+    error_code = Column(String(64), nullable=True)
+    created_at = Column(DateTime, nullable=False)
+    completed_at = Column(DateTime, nullable=True)
+    deleted_at = Column(DateTime, nullable=True)
 
 
 class Plan(Base):

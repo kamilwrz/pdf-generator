@@ -132,6 +132,7 @@ def create_pdf_document(db: Session, *, user, username: str, pdf_data) -> dict:
             getattr(pdf_data, "template_id", None),
             getattr(pdf_data, "spacing_px", None),
             watermarked=watermark,
+            source_import_id=getattr(pdf_data, "source_import_id", None),
         )
         return {"created": "Utworzono plik PDF.", "link": file_path, "pdf_id": pdf_id}
 
@@ -150,6 +151,7 @@ def create_pdf_document(db: Session, *, user, username: str, pdf_data) -> dict:
         getattr(pdf_data, "template_id", None),
         getattr(pdf_data, "spacing_px", None),
         watermarked=watermark,
+        source_import_id=getattr(pdf_data, "source_import_id", None),
     )
 
     pdf = PDF_Generator(

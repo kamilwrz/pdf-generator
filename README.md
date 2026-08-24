@@ -49,6 +49,21 @@ Forcing registration before a visitor had seen the editor used to be the largest
 3. **Register / login only when it matters** → clicking “Zapisz PDF” / “Pobierz PDF” as a guest opens `SaveGateModal` instead of calling the backend. Registering or logging in preserves the selected `start` intent, and if a guest document exists, `ClaimGuestDocumentModal` asks the now-authenticated visitor to confirm it is theirs before loading that JSON onto the A4 canvas (no automatic `POST /pdf/create_pdf`) — a guest document belongs to the browser, not to any identity, so silently attaching it to whoever happens to log in next would leak one person's draft into an unrelated account.
 4. **Pick a template** → `handleLoadTemplate` materializes specs → canvas.
 5. **Import PDF** (account required) → `POST /ai/extract_cv` → choose template → `POST /ai/fill_template` → Python layout in `cv_generator.generate_resume`.
+
+### Import history
+
+Each account-scoped PDF import creates a separate `CvImportSnapshot` record.
+The application stores only the normalized `cv_data`, safe filename, size,
+status, and timestamps—not the original PDF bytes, URL, or storage key.
+`AiCvPanel` lets the owner reopen a successful snapshot, select a template
+without another AI extraction, and delete the stored data. `Pdf.source_import_id`
+links CVs saved from that snapshot, so history can show their template and open
+them from the document library.
+
+The API validates a PDF signature, parseability, encryption state, 10 MB byte
+limit, and 12-page limit before extraction. `GET /ai/imports`,
+`GET /ai/imports/{id}`, and `DELETE /ai/imports/{id}` are ownership-scoped;
+an import ID alone never grants access to another account's data.
 6. **Bio wizard** → guests use a four-step fullscreen data creator (`BioCvModal`) from the landing CTA or demo conversion, then authenticate. Authenticated users use the five-step wizard with template selection; they use draft CRUD on `/ai/bio_cv_draft`, while guests autosave to `localStorage` (`cvstudio.guest.wizardDraft`). After guest authentication, the snapshot is adopted and `POST /ai/fill_template` generates the Regent before the full editor opens.
 7. **Edit** → drag/resize/style → edits live in memory (backing undo/redo). Authenticated documents are **not** autosaved to the backend — "Moje dokumenty" is updated only by an explicit **Zapisz** (see step 9). Guests still get a debounced `localStorage` write (`guestDocument.js`) so their unclaimed work survives a reload.
 8. **AI assistant** → `POST /ai/assistant` → tips / corrections / reviewable layout groups (account required — every assistant action is entitlement-gated).
@@ -1942,6 +1957,22 @@ Wymuszanie rejestracji zanim odwiedzający zobaczył edytor było dotąd najwię
 3. **Rejestracja / logowanie tylko wtedy, gdy to ma znaczenie** → kliknięcie „Zapisz PDF” / „Pobierz PDF” jako gość otwiera `SaveGateModal` zamiast wywoływać backend. Rejestracja lub logowanie zachowuje wybrany parametr `start`, a jeśli istnieje bufor dokumentu gościa, `ClaimGuestDocumentModal` prosi świeżo zalogowaną osobę o potwierdzenie, że to jej dokument, zanim JSON trafi na płótno A4 (bez automatycznego `POST /pdf/create_pdf`) — dokument gościa należy do przeglądarki, nie do tożsamości, więc ciche przypisanie go komukolwiek, kto akurat się zaloguje, ujawniłoby czyjś szkic na niepowiązanym koncie.
 4. **Wybór szablonu** → `handleLoadTemplate` materializuje elementy → płótno.
 5. **Import PDF** (wymaga konta) → `POST /ai/extract_cv` → szablon → `POST /ai/fill_template` → layout w `cv_generator.generate_resume`.
+
+### Historia importów
+
+Każdy import PDF przypisany do konta tworzy osobny rekord
+`CvImportSnapshot`. Aplikacja zapisuje wyłącznie znormalizowane `cv_data`,
+bezpieczną nazwę pliku, rozmiar, status i znaczniki czasu — nie zapisuje
+oryginalnych bajtów PDF, adresu URL ani klucza storage. `AiCvPanel` pozwala
+właścicielowi ponownie otworzyć udany snapshot, wybrać szablon bez kolejnego
+wywołania AI i usunąć zapisane dane. `Pdf.source_import_id` wiąże CV zapisane
+z danego snapshotu, dzięki czemu historia pokazuje użyty szablon i powiązane
+dokumenty.
+
+API przed ekstrakcją sprawdza sygnaturę PDF, możliwość parsowania, szyfrowanie,
+limit 10 MB i limit 12 stron. `GET /ai/imports`, `GET /ai/imports/{id}` oraz
+`DELETE /ai/imports/{id}` są ograniczone do właściciela; samo ID importu nigdy
+nie daje dostępu do danych innego konta.
 6. **Kreator bio** → goście używają czterostopniowego kreatora danych (`BioCvModal`) z landingu lub demo, a następnie przechodzą do autoryzacji. Zalogowani użytkownicy mają pięć kroków, w tym wybór szablonu; używają CRUD `/ai/bio_cv_draft`, podczas gdy goście zapisują profil do `localStorage` (`cvstudio.guest.wizardDraft`). Po autoryzacji snapshot jest przejmowany, a `POST /ai/fill_template` generuje Regenta przed otwarciem pełnego edytora.
 7. **Edycja** → przeciąganie / styl → zmiany żyją w pamięci (zasilają undo/redo). Dokumenty zalogowanych **nie** są autozapisywane do backendu — „Moje dokumenty” są aktualizowane wyłącznie po jawnym kliknięciu **Zapisz** (zob. krok 9). Goście nadal mają debounced zapis do `localStorage` (`guestDocument.js`), aby ich nieprzejęta praca przetrwała odświeżenie.
 8. **Asystent AI** → `POST /ai/assistant` → wskazówki / poprawki / karty układu do akceptacji (wymaga konta — każde działanie asystenta jest objęte entitlements).

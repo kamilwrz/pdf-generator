@@ -48,6 +48,7 @@ export default function AiCvPanel() {
         entitlements,
         refreshEntitlements,
         setActiveCvData,
+        setActiveImportId,
         flowSpacing,
     } = use(PdfContext);
 
@@ -59,6 +60,9 @@ export default function AiCvPanel() {
     const [isExtracting, setIsExtracting] = useState(false);
     const [fillingId, setFillingId] = useState(null);
     const [error, setError] = useState(null);
+    const [importId, setImportId] = useState(null);
+    const [imports, setImports] = useState([]);
+    const [showHistory, setShowHistory] = useState(false);
     const cvTemplates = useMemo(() => selectCvTemplates(TEMPLATES), []);
     const canExtract = Boolean(entitlements?.extract_cv)
         || (entitlements?.plan_slug === "free" && !entitlements?.free_import_used);
@@ -74,6 +78,7 @@ export default function AiCvPanel() {
         setFileName(null);
         setFileData(null);
         setCvData(null);
+        setImportId(null);
         setWizardStep(1);
         setError(null);
     }, []);
@@ -93,6 +98,19 @@ export default function AiCvPanel() {
         () => new ApiClient({ "Authorization": `Bearer ${localStorage.getItem("token")}` }),
         [],
     );
+
+    const loadHistory = useCallback(async () => {
+        try {
+            const response = await api.httpRequest(ENDPOINTS.AI.IMPORTS, "GET", undefined, "Nie udało się pobrać historii importów");
+            setImports(response.imports || []);
+        } catch (err) {
+            setError(planErrorMessage(err, "Nie udało się pobrać historii importów."));
+        }
+    }, [api]);
+
+    useEffect(() => {
+        if (isAiPanel && showHistory) loadHistory();
+    }, [isAiPanel, showHistory, loadHistory]);
 
     function handleFilePick(e) {
         const f = e.target.files?.[0];
@@ -134,6 +152,7 @@ export default function AiCvPanel() {
                 });
             }
             setCvData(res.cv_data);
+            setImportId(res.import?.id ?? null);
             setWizardStep(2);
             refreshEntitlements?.();
         } catch (err) {
@@ -159,6 +178,7 @@ export default function AiCvPanel() {
             });
             await loadAiElements(res.elements, `CV ${template.name}`, template.id);
             setActiveCvData(cvData);
+            setActiveImportId?.(importId);
             resetImportFlow();
             showAiPanel();
         } catch (err) {
@@ -166,7 +186,25 @@ export default function AiCvPanel() {
         } finally {
             setFillingId(null);
         }
-    }, [api, cvData, entitlements, flowSpacing, loadAiElements, resetImportFlow, setActiveCvData, showAiPanel]);
+    }, [api, cvData, entitlements, flowSpacing, importId, loadAiElements, resetImportFlow, setActiveCvData, setActiveImportId, showAiPanel]);
+
+    const selectHistoricalImport = useCallback((snapshot) => {
+        if (snapshot.status !== "succeeded" || !snapshot.cv_data) return;
+        setCvData(snapshot.cv_data);
+        setImportId(snapshot.id);
+        setShowHistory(false);
+        setWizardStep(2);
+        setError(null);
+    }, []);
+
+    const deleteHistoricalImport = useCallback(async (snapshotId) => {
+        try {
+            await api.httpRequest(ENDPOINTS.AI.IMPORT(snapshotId), "DELETE", undefined, "Nie udało się usunąć importu");
+            setImports((current) => current.filter((item) => item.id !== snapshotId));
+        } catch (err) {
+            setError(planErrorMessage(err, "Nie udało się usunąć danych importu."));
+        }
+    }, [api]);
 
     function goPrevStep() {
         setWizardStep(1);
@@ -187,7 +225,7 @@ export default function AiCvPanel() {
             radius={2}
             bodyClassName={classes.dialogBody}
             title="Importuj CV"
-            subtitle="Prześlij PDF — AI wypełni dowolny szablon Twoimi danymi."
+            subtitle={showHistory ? "Wybierz wcześniej wyodrębnione dane albo usuń je ze swojej historii." : "Prześlij PDF — AI wypełni dowolny szablon Twoimi danymi."}
             footer={(
                 <div className={classes.footerBar}>
                     <span className={classes.stepLabel}>
@@ -238,9 +276,30 @@ export default function AiCvPanel() {
             )}
         >
             <div className={`${classes.wrap} ${onStep2 ? classes.wrapStep2 : ""}`}>
-                {!onStep2 ? (
+                {!onStep2 && showHistory ? (
+                    <div className={classes.stepPane}>
+                        <div className={classes.historyHeader}>
+                            <div className={classes.sectionLabel}>Historia importów</div>
+                            <button type="button" className={classes.guidedLink} onClick={() => setShowHistory(false)}>Nowy import</button>
+                        </div>
+                        {imports.length ? imports.map((snapshot) => (
+                            <article className={classes.historyItem} key={snapshot.id}>
+                                <div>
+                                    <strong>{snapshot.filename}</strong>
+                                    <span>{snapshot.created_at ? new Date(snapshot.created_at).toLocaleString("pl-PL") : ""} · {snapshot.status === "succeeded" ? "Dane gotowe" : "Import nieudany"}</span>
+                                    {snapshot.summary?.name && <small>{snapshot.summary.name} · {snapshot.summary.experience_count} stanowisk · {snapshot.documents?.length || 0} utworzonych CV</small>}
+                                </div>
+                                <div className={classes.historyActions}>
+                                    {snapshot.status === "succeeded" && <button type="button" className={classes.reExtract} onClick={() => selectHistoricalImport(snapshot)}>Utwórz CV</button>}
+                                    <button type="button" className={classes.deleteImport} onClick={() => deleteHistoricalImport(snapshot.id)}>Usuń dane</button>
+                                </div>
+                            </article>
+                        )) : <p className={classes.hint}>Nie masz jeszcze zapisanych importów.</p>}
+                    </div>
+                ) : !onStep2 ? (
                     <div className={classes.stepPane}>
                         <div className={classes.sectionLabel}>Krok 1 · Prześlij swoje CV</div>
+                        <button type="button" className={classes.guidedLink} onClick={() => setShowHistory(true)}>Zobacz historię importów</button>
                         <div
                             className={`${classes.dropzone} ${fileName ? classes.dropzoneDone : ""}`}
                             onClick={() => fileRef.current?.click()}

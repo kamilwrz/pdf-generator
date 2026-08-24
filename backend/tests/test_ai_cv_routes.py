@@ -8,6 +8,8 @@ class AiCvRoutesTests(unittest.TestCase):
         paths = {route.path for route in router.routes}
 
         self.assertIn("/ai/extract_cv", paths)
+        self.assertIn("/ai/imports", paths)
+        self.assertIn("/ai/imports/{snapshot_id}", paths)
         self.assertIn("/ai/fill_template", paths)
         self.assertIn("/ai/bio_cv_draft", paths)
         self.assertNotIn("/ai/generate_deck", paths)

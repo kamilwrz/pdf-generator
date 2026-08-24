@@ -178,6 +178,8 @@ function PdfCanvas() {
   // starts showing something else (fresh document, or a reopened saved PDF
   // in ModalPdfs, which has no persisted cv_data to reuse).
   const [activeCvData, setActiveCvData] = useState(null);
+  // Set only when a canvas was materialized from an owned import snapshot.
+  const [activeImportId, setActiveImportId] = useState(null);
   const isGallery = panel === 'gallery';
   const isDropzone = panel === 'upload';
   const isSectionsPanel = panel === 'sections';
@@ -1086,8 +1088,9 @@ function PdfCanvas() {
       editorMode,
       templateId: activeTemplateId,
       flowSpacing,
+      sourceImportId: activeImportId,
     });
-  }, [A4_Elements, activeTemplateId, createPdf, editorMode, flowSpacing, titleRef, pageCount, pageSize]);
+  }, [A4_Elements, activeImportId, activeTemplateId, createPdf, editorMode, flowSpacing, titleRef, pageCount, pageSize]);
 
   // Update the already-saved document in place. `intent: "save"` marks this as a
   // persistence write (not a download), so the post-spinner effect shows the
@@ -1639,6 +1642,8 @@ function PdfCanvas() {
     unlockFreeform: handleUnlockFreeform,
     activeCvData,
     setActiveCvData,
+    activeImportId,
+    setActiveImportId,
     pageSize,
     zoom,
     zoomIn,
@@ -1683,7 +1688,7 @@ function PdfCanvas() {
     clearA4Fresh, discardActiveDocument, confirmDiscardActiveEdits, loadTemplateFresh, loadTemplateWithFillFresh,
     loadAiElementsFresh, handleLoadAiElements, activeTemplateId, setActiveTemplateId,
     editorMode, setEditorMode, flowSpacing, setFlowSpacing, baselineFlowSpacing, adoptDocumentFlowSpacing, hydrateDocumentMode, fitTooLong, fitStatus, onFitToPages, onePageFit, onFitToOnePage, handleShowUnlockFreeform, handleUnlockFreeform,
-    activeCvData, setActiveCvData,
+    activeCvData, setActiveCvData, activeImportId, setActiveImportId,
     pageCount, currentPage, addPage, removePage, goToPage, clonePage, movePage, setPageCount, setCurrentPage,
     isTwoPageView, toggleTwoPageView, handleAddTextarea, handleAddSection, openAddSectionModal, openFlatSectionLayoutModal, openSkillsLayoutModal, handleAddSectionRecord, handleAddRecordBlock, handleRemoveSection, handleRemoveRecordBlock, handleReorderRecordBlock, handleReorderSection, handleTransferSectionLane, handleChangeSkillsDisplayMode, markSelected, handleSetTextareaEditing, requestTextEdit, requestEditZoomRestore, editZoomSpreadTransitionRef,
     handleDuplicateElement, pageSize, zoom, zoomIn, zoomOut, undo, redo, canUndo, canRedo, resetHistory,

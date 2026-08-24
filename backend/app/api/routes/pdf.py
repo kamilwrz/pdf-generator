@@ -34,6 +34,7 @@ from app.crud.pdfs import (
     request_pdf_elements_by_element_id, update_pdf_elements, request_pdfs_by_id,
     serialize_spacing_px,
 )
+from app.crud.cv_import_snapshots import get_owned_snapshot
 
 from app.utils.pdf_file_ops import delete_pdf_file
 from app.core.config import USE_S3
@@ -88,6 +89,10 @@ async def create_user_pdf(
     db_user = get_user_by_username(db, username=username)
     if db_user is None:
         raise HTTPException(status_code=401, detail="Nie znaleziono konta użytkownika.")
+    if pdf_data.source_import_id is not None and get_owned_snapshot(
+        db, owner_id=db_user.id, snapshot_id=pdf_data.source_import_id,
+    ) is None:
+        raise HTTPException(status_code=404, detail="Nie znaleziono danych importu.")
     assert_can_create_project(db, db_user)
     return create_pdf_document(db, user=db_user, username=username, pdf_data=pdf_data)
 

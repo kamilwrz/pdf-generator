@@ -209,6 +209,56 @@
 
 .guidedLink:hover { text-decoration: underline; }
 
+.historyHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.historyItem {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    padding: 16px 18px;
+    border: 1px solid var(--chrome-border);
+    background: var(--chrome-control);
+}
+
+.historyItem strong,
+.historyItem span,
+.historyItem small {
+    display: block;
+}
+
+.historyItem strong {
+    font: 700 14px var(--font-body);
+    color: var(--chrome-ink);
+}
+
+.historyItem span,
+.historyItem small {
+    margin-top: 4px;
+    font: 500 12px var(--font-body);
+    color: var(--chrome-muted);
+}
+
+.historyActions {
+    display: flex;
+    flex-shrink: 0;
+    gap: 10px;
+}
+
+.deleteImport {
+    border: 0;
+    padding: 0;
+    background: transparent;
+    color: var(--danger, #9d2c2c);
+    font: 600 12px var(--font-body);
+    cursor: pointer;
+}
+
 .extractBtn {
     display: inline-flex;
     align-items: center;

@@ -4,6 +4,7 @@ from __future__ import annotations
 import unittest
 from unittest.mock import patch
 
+import fitz
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -21,6 +22,15 @@ from app.testing_support import ensure_test_auth_env
 
 def _extract_must_not_run(*_args, **_kwargs):
     raise AssertionError("extract_cv_data must not be called once the free import is used")
+
+
+def _valid_pdf_bytes() -> bytes:
+    """Build a minimal parseable PDF because upload validation is intentional."""
+    document = fitz.open()
+    document.new_page()
+    data = document.tobytes()
+    document.close()
+    return data
 
 
 class ExtractCvFreeImportTests(unittest.TestCase):
@@ -65,7 +75,7 @@ class ExtractCvFreeImportTests(unittest.TestCase):
         ):
             response = self.client.post(
                 "/ai/extract_cv",
-                files={"file": ("cv.pdf", b"%PDF-1.4 fake", "application/pdf")},
+                files={"file": ("cv.pdf", _valid_pdf_bytes(), "application/pdf")},
             )
         self.assertEqual(response.status_code, 200, msg=response.text)
         self.db.refresh(self._sub())
@@ -78,7 +88,7 @@ class ExtractCvFreeImportTests(unittest.TestCase):
         with patch("app.api.routes.ai.extract_cv_data", side_effect=_extract_must_not_run):
             response = self.client.post(
                 "/ai/extract_cv",
-                files={"file": ("cv.pdf", b"%PDF-1.4 fake", "application/pdf")},
+                files={"file": ("cv.pdf", _valid_pdf_bytes(), "application/pdf")},
             )
         self.assertEqual(response.status_code, 403)
         detail = response.json()["detail"]
@@ -91,7 +101,7 @@ class ExtractCvFreeImportTests(unittest.TestCase):
         ):
             response = self.client.post(
                 "/ai/extract_cv",
-                files={"file": ("cv.pdf", b"%PDF-1.4 fake", "application/pdf")},
+                files={"file": ("cv.pdf", _valid_pdf_bytes(), "application/pdf")},
             )
         self.assertEqual(response.status_code, 500)
         self.db.refresh(self._sub())
