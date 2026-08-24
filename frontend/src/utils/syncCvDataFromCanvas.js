@@ -34,6 +34,35 @@ function replaceUniqueString(value, from, to) {
   );
 }
 
+function stringLeaves(value) {
+  if (typeof value === "string") return value.trim() ? [value.trim()] : [];
+  if (Array.isArray(value)) return value.flatMap(stringLeaves);
+  if (!value || typeof value !== "object") return [];
+  return Object.values(value).flatMap(stringLeaves);
+}
+
+function pruneDeletedRecords(value, deletedTexts) {
+  if (Array.isArray(value)) {
+    return value
+      .filter((item) => {
+        if (!item || typeof item !== "object" || Array.isArray(item)) {
+          return true;
+        }
+        const leaves = stringLeaves(item);
+        const matched = leaves.filter((leaf) => deletedTexts.has(leaf));
+        // Structural record deletion removes several linked canvas elements.
+        // Require two matching values so deleting one freeform text box cannot
+        // accidentally remove the whole semantic record.
+        return matched.length < 2;
+      })
+      .map((item) => pruneDeletedRecords(item, deletedTexts));
+  }
+  if (!value || typeof value !== "object") return value;
+  return Object.fromEntries(
+    Object.entries(value).map(([key, item]) => [key, pruneDeletedRecords(item, deletedTexts)]),
+  );
+}
+
 function editableTextChanges(previousElements, nextElements) {
   const previousById = new Map(
     previousElements
@@ -59,12 +88,20 @@ function editableTextChanges(previousElements, nextElements) {
  * @param {object[]} nextElements - Canvas state after an edit.
  * @returns {object|null} The original profile when no unambiguous mapping exists.
  */
-export function syncCvDataFromCanvas(cvData, previousElements, nextElements) {
+export function syncCvDataFromCanvas(cvData, previousElements, nextElements, deletedElements = []) {
   if (!cvData || !Array.isArray(previousElements) || !Array.isArray(nextElements)) {
     return cvData || null;
   }
 
-  let nextProfile = cvData;
+  const deletedTexts = new Set(
+    deletedElements
+      .flatMap((element) => stringLeaves(element?.content))
+      .map((text) => text.trim())
+      .filter(Boolean),
+  );
+  let nextProfile = deletedTexts.size >= 2
+    ? pruneDeletedRecords(cvData, deletedTexts)
+    : cvData;
   for (const { from, to } of editableTextChanges(previousElements, nextElements)) {
     if (countStringLeaves(nextProfile, from) !== 1) continue;
     if (nextProfile === cvData) nextProfile = cloneProfile(cvData);

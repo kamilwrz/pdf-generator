@@ -35,4 +35,32 @@ describe("syncCvDataFromCanvas", () => {
 
     assert.equal(updated, duplicated);
   });
+
+  it("removes a structurally deleted record from the next template fill", () => {
+    const experience = {
+      ...profile,
+      experience: [
+        { company: "Acme", position: "Designer", description: "Built products." },
+        { company: "Beta", position: "Lead", description: "Managed a team." },
+      ],
+    };
+    const updated = syncCvDataFromCanvas(
+      experience,
+      [
+        text("acme-company", "Acme"),
+        text("acme-position", "Designer"),
+        text("acme-description", "Built products."),
+        text("beta-company", "Beta"),
+      ],
+      [text("beta-company", "Beta")],
+      [
+        text("acme-company", "Acme"),
+        text("acme-position", "Designer"),
+        text("acme-description", "Built products."),
+      ],
+    );
+
+    assert.equal(updated.experience.length, 1);
+    assert.equal(updated.experience[0].company, "Beta");
+  });
 });

@@ -435,9 +435,10 @@ function PdfCanvas() {
       activeCvData,
       previousElements,
       A4_Elements,
+      A4_Elements_deleted,
     );
     if (syncedCvData !== activeCvData) setActiveCvData(syncedCvData);
-  }, [A4_Elements, activeCvData, pdfId]);
+  }, [A4_Elements, A4_Elements_deleted, activeCvData, pdfId]);
 
   // Wheel on the canvas scrolls the overflow first; at the edge it changes
   // currentPage so PageControls ("Strona N / M") stays in sync. canvasAreaRef
