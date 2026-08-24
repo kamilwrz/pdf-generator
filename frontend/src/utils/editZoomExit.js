@@ -34,3 +34,14 @@ export function hasActiveTextEdit(elements) {
     && (element.category === "text" || element.category === "textarea")
   ));
 }
+
+/**
+ * Decide whether spread restoration must yield to a replacement edit.
+ *
+ * @param {object[]|null|undefined} elements
+ * @param {string|null|undefined} pendingTextEditId
+ * @returns {boolean}
+ */
+export function shouldDeferEditZoomRestore(elements, pendingTextEditId = null) {
+  return pendingTextEditId != null || hasActiveTextEdit(elements);
+}

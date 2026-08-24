@@ -50,6 +50,7 @@ function Text({
         selectMoveElement,
         editElementValues,
         setTextareaEditing,
+        requestTextEdit,
         setSpacingHoldId,
         editZoomSpreadTransitionRef,
     } = use(PdfContext);
@@ -157,6 +158,9 @@ function Text({
             elementId,
             setSpacingHoldId,
         });
+        // Mark the replacement synchronously so two-page restoration cannot
+        // run between this click and the deferred edit-state update.
+        requestTextEdit(elementId);
         // Let the double-click finish before flipping contentEditable, otherwise
         // the leftover click can start a drag or steal the caret.
         deferTextareaEdit({

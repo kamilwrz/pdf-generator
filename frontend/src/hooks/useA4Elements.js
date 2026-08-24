@@ -57,7 +57,7 @@ import { useDocumentHistory } from './useDocumentHistory';
 import { applyChannelRemoval, applyChannelAddition, applyChannelRelayout } from '../utils/contactBandOps';
 import { applyNameCaseToggle, applyTitleToggle } from '../utils/mastheadIdentityOps';
 import { canvasFontFamily } from '../utils/canvasFont';
-import { hasActiveTextEdit, isCanvasInteractionTarget } from '../utils/editZoomExit';
+import { isCanvasInteractionTarget, shouldDeferEditZoomRestore } from '../utils/editZoomExit';
 import { useElementSelectionDrag } from './useElementSelectionDrag';
 import API_BASE_URL, { ENDPOINTS } from '../services/api';
 
@@ -270,6 +270,13 @@ export function useA4Elements(titleRef) {
   // previous `editingElementId`. Delay restoration until the next task so the
   // replacement edit can claim the document first.
   const editZoomRestoreTimerRef = useRef(null);
+  // Set synchronously by a canvas click before the replacement edit is
+  // scheduled with requestAnimationFrame. This closes the race where a timer
+  // could restore the spread before the new edit became active.
+  const pendingTextEditIdRef = useRef(null);
+  const requestTextEdit = useCallback((elementId) => {
+    pendingTextEditIdRef.current = elementId;
+  }, []);
   const restoreEditZoom = useCallback(() => {
     if (editZoomRestoreTimerRef.current != null) {
       window.clearTimeout(editZoomRestoreTimerRef.current);
@@ -320,7 +327,10 @@ export function useA4Elements(titleRef) {
           editZoomRestoreTimerRef.current = null;
           // A direct canvas switch clears the old edit before the new edit is
           // scheduled. Keep the zoomed page when that handoff completed.
-          if (hasActiveTextEdit(elementsRef.current)) {
+          if (shouldDeferEditZoomRestore(
+            elementsRef.current,
+            pendingTextEditIdRef.current,
+          )) {
             editZoomExitRequestedRef.current = false;
             return;
           }
@@ -1199,6 +1209,9 @@ export function useA4Elements(titleRef) {
   }, [finalizeDocumentPages]);
 
   const handleSetTextareaEditing = useCallback((elementId, editing) => {
+    if (editing && pendingTextEditIdRef.current === elementId) {
+      pendingTextEditIdRef.current = null;
+    }
     setA4_Elements(prevState => prevState.map(el => {
       if (el.element_id === elementId) {
         return { ...el, isEditing: editing, isSelected: true };
@@ -2359,6 +2372,7 @@ export function useA4Elements(titleRef) {
     markSelected,
     handleCanvasBackgroundClick,
     handleSetTextareaEditing,
+    requestTextEdit,
     requestEditZoomRestore,
     editZoomSpreadTransitionRef,
     handleAlignElements,

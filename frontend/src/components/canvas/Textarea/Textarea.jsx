@@ -151,6 +151,7 @@ function Textarea({
         A4_Elements,
         selectElement,
         setTextareaEditing,
+        requestTextEdit,
         fitTextareaToContent,
         setSpacingHoldId,
         editZoomSpreadTransitionRef,
@@ -381,6 +382,9 @@ function Textarea({
             elementId,
             setSpacingHoldId,
         });
+        // Mark the replacement synchronously so two-page restoration cannot
+        // run between this click and the deferred edit-state update.
+        requestTextEdit(elementId);
         // Finish the double-click event sequence before replacing its target
         // with a native textarea. Entering edit state during pointerdown lets
         // the remaining click steal focus from the new input.
