@@ -1888,6 +1888,70 @@ describe("applyFlowSpacing", () => {
     assert.equal(byId["m-exp-head"].top, 119, "main column must stay untouched");
   });
 
+  it("keeps the hidden-photo contact boundary after sidebar packing and reorder (Slate/Tessera)", () => {
+    const contactBand = "contact-main";
+    const elements = [
+      { element_id: "hidden-photo", category: "rectangle", fixedToPage: true,
+        photoSlot: "frame", photoSlotHidden: true,
+        left: 33, top: 40, width: 112, height: 126, page: 1 },
+      { element_id: "contact-anchor", category: "line", flowRole: "masthead-anchor",
+        contactBandId: contactBand, page: 1, top: 0, left: 0, width: 0, height: 0,
+        profilePhotoMainContactBand: { mode: "wrapping" },
+        contactBand: { mode: "stacked", anchor: { startX: 33, startY: 42, rightLimit: 174 } } },
+      ...[42, 58, 74, 90, 106, 122].flatMap((top, index) => ([
+        { element_id: `contact-icon-${index}`, category: "image",
+          contactBandId: contactBand, contactChannel: `channel-${index}`,
+          left: 33, top, width: 8, height: 8, page: 1 },
+        { element_id: `contact-label-${index}`, category: "text", content: `Contact ${index}`,
+          contactBandId: contactBand, contactChannel: `channel-${index}`,
+          left: 45, top, fontSize: 8, page: 1 },
+      ])),
+      { element_id: "m-exp-head", category: "text", content: "DOŚWIADCZENIE",
+        flowRole: "section-chrome", left: 245, top: 119, fontSize: 14, height: 16, page: 1 },
+      { element_id: "m-exp-body", category: "textarea", flowRole: "content",
+        left: 245, top: 143, width: 300, height: 80, fontSize: 9, page: 1 },
+      { element_id: "sb-sk-head", category: "text", content: "UMIEJĘTNOŚCI",
+        flowRole: "sidebar-chrome", flowLane: "sidebar",
+        left: 34, top: 170, fontSize: 9.4, height: 12, page: 1 },
+      { element_id: "sb-sk-rule", category: "line",
+        flowRole: "sidebar-chrome", flowLane: "sidebar",
+        left: 34, top: 186, width: 22, height: 1.4, page: 1 },
+      { element_id: "sb-sk-body", category: "textarea", content: "SQL",
+        flowRole: "content", flowLane: "sidebar",
+        left: 34, top: 200, width: 152, height: 30, fontSize: 8.3, page: 1 },
+      { element_id: "sb-lang-head", category: "text", content: "JĘZYKI",
+        flowRole: "sidebar-chrome", flowLane: "sidebar",
+        left: 34, top: 260, fontSize: 9.4, height: 12, page: 1 },
+      { element_id: "sb-lang-rule", category: "line",
+        flowRole: "sidebar-chrome", flowLane: "sidebar",
+        left: 34, top: 276, width: 22, height: 1.4, page: 1 },
+      { element_id: "sb-lang-body", category: "textarea", content: "Polski",
+        flowRole: "content", flowLane: "sidebar",
+        left: 34, top: 290, width: 152, height: 30, fontSize: 8.3, page: 1 },
+    ];
+    const rhythm = { stack: 4, record: 10, section: 21, after_rule: 8 };
+    const expectedFloor = 122 + 8 + 40;
+
+    const packed = applyFlowSpacing(elements, rhythm, 842);
+    const packedById = Object.fromEntries(packed.map((element) => [element.element_id, element]));
+    assert.equal(
+      packedById["sb-sk-head"].top,
+      expectedFloor,
+      "autofit must keep the first section exactly 40 pt below the final contact",
+    );
+
+    const reordered = reorderSection(packed, "sb-lang-head", "up", 842, { spacing: rhythm });
+    assert.ok(reordered);
+    const reorderedById = Object.fromEntries(
+      reordered.map((element) => [element.element_id, element]),
+    );
+    assert.equal(
+      reorderedById["sb-lang-head"].top,
+      expectedFloor,
+      "the promoted section must inherit the same contact boundary",
+    );
+  });
+
   it("ignores full-height fixedToPage background panels when there is no photo well", () => {
     // Cinder / any sidebar template without a rail photo: the only fixedToPage
     // elements are the page paper and sidebar band, both spanning to y=842.

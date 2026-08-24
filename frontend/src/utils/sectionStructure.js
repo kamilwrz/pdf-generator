@@ -19,6 +19,7 @@
 
 import { DEFAULT_FLOW_SPACING, normalizeFlowSpacing } from "./flowSpacing.js";
 import { parseFlatListItems } from "./flatSectionLayout.js";
+import { hiddenProfileContactSectionFloor } from "./profilePhotoVisibility.js";
 import { isRecordOverlay } from "./textareaReflow.js";
 
 /** Keep in sync with `textareaReflow.js` / backend CONTENT margins. */
@@ -942,6 +943,9 @@ function resolveSidebarPhotoFloor(elements, firstHeading, pageHeight) {
   let photoBottom = 0;
   for (const element of elements || []) {
     if (!element || !element.photoSlot) continue;
+    // Hidden Slate/Tessera photo chrome remains in state for lossless restore,
+    // but it must not reserve visual space during density or reorder packing.
+    if (element.photoSlotHidden === true) continue;
     if ((Number(element.left) || 0) > SIDEBAR_PHOTO_MAX_LEFT) continue;
     if (!isSameColumn(element)) continue;
     const abs = absoluteTop(element, pageHeight);
@@ -1166,6 +1170,10 @@ export function packSidebarLane(
   const photoFloor = resolveSidebarPhotoFloor(list, firstHeading, pageHeight);
   if (photoFloor != null) {
     cursorAbs = Math.max(cursorAbs, photoFloor + SIDEBAR_PHOTO_SECTION_GAP);
+  }
+  const contactFloor = hiddenProfileContactSectionFloor(list, pageHeight);
+  if (contactFloor != null) {
+    cursorAbs = Math.max(cursorAbs, contactFloor);
   }
 
   const placedById = new Map();

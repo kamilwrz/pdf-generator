@@ -19,7 +19,7 @@ const SUPPORTED_TEMPLATE_IDS = new Set([
 ]);
 
 const SIDEBAR_CONTACT_TEMPLATE_IDS = new Set(["slate", "tessera"]);
-const SIDEBAR_CONTACT_SECTION_GAP = 40;
+export const SIDEBAR_CONTACT_SECTION_GAP = 40;
 const PORTICO_PHOTO_BOTTOM = 159;
 const PORTICO_RECLAIM_PT = 100;
 const LEGACY_FRAMELESS_PLACEHOLDERS = {
@@ -53,6 +53,49 @@ function contactAnchor(elements) {
     && element.contactBandId
     && element.contactBand
   )) || null;
+}
+
+/**
+ * Resolve the absolute Y coordinate reserved for the first sidebar section
+ * while Slate/Tessera contacts occupy the hidden-photo rail.
+ *
+ * Structural packers call this after spacing or section-order changes. Using
+ * the same measured contact geometry as the hide flow prevents those packers
+ * from reviving the hidden photo's obsolete floor or collapsing the intended
+ * 40 pt boundary.
+ *
+ * @param {object[]} elements
+ * @param {number} [pageHeight=842]
+ * @returns {number|null}
+ */
+export function hiddenProfileContactSectionFloor(elements, pageHeight = 842) {
+  const list = elements || [];
+  const anchor = contactAnchor(list);
+  const isHiddenSidebarBand = Boolean(
+    anchor?.profilePhotoMainContactBand
+    && anchor?.contactBand?.mode === "stacked"
+    && list.some((element) => element?.photoSlotHidden === true),
+  );
+  if (!isHiddenSidebarBand) return null;
+
+  const contacts = list.filter((element) => (
+    element.contactBandId === anchor.contactBandId
+    && element.contactChannel
+    && Number.isFinite(Number(element.top))
+  ));
+  const startY = Number(anchor.contactBand?.anchor?.startY) || 42;
+  const contactBottom = contacts.length
+    ? Math.max(...contacts.map((element) => {
+      const page = Math.max(1, Math.trunc(Number(element.page) || 1));
+      const top = (page - 1) * pageHeight + Number(element.top);
+      return top + Math.max(
+        Number(element.height) || 0,
+        Number(element.lineHeight) || 0,
+        Number(element.fontSize) || 0,
+      );
+    }))
+    : startY;
+  return contactBottom + SIDEBAR_CONTACT_SECTION_GAP;
 }
 
 /** Whether this template exposes the photo visibility affordance. */
@@ -125,23 +168,8 @@ export function alignSidebarAfterProfileContacts(elements, bandId, templateId) {
   const list = elements || [];
   if (!SIDEBAR_CONTACT_TEMPLATE_IDS.has(id) || !isProfilePhotoHidden(list)) return list;
 
-  const anchor = contactAnchor(list);
-  const contacts = list.filter((element) => (
-    (Number(element.page) || 1) === 1
-    && element.contactBandId === bandId
-    && element.contactChannel
-    && Number.isFinite(Number(element.top))
-  ));
-  const contactBottom = contacts.length
-    ? Math.max(...contacts.map((element) => (
-      Number(element.top)
-      + Math.max(
-        Number(element.height) || 0,
-        Number(element.lineHeight) || 0,
-        Number(element.fontSize) || 0,
-      )
-    )))
-    : Number(anchor?.contactBand?.anchor?.startY) || 42;
+  const sectionFloor = hiddenProfileContactSectionFloor(list);
+  if (sectionFloor == null) return list;
   const sidebarMembers = list.filter((element) => (
     (Number(element.page) || 1) === 1
     && !element.fixedToPage
@@ -151,7 +179,7 @@ export function alignSidebarAfterProfileContacts(elements, bandId, templateId) {
   ));
   if (!sidebarMembers.length) return list;
   const sidebarStart = Math.min(...sidebarMembers.map((element) => Number(element.top)));
-  const shift = contactBottom + SIDEBAR_CONTACT_SECTION_GAP - sidebarStart;
+  const shift = sectionFloor - sidebarStart;
   if (Math.abs(shift) < 0.01) return list;
 
   return list.map((element) => {
