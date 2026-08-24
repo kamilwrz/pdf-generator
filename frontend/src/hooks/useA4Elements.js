@@ -296,6 +296,13 @@ export function useA4Elements(titleRef) {
   useEffect(() => {
     const markCanvasEditExit = (event) => {
       if (!isCanvasInteractionTarget(event.target)) return;
+      // Text/Textarea registers a replacement edit in its own pointerdown
+      // handler. This document listener runs afterward in bubbling phase, so
+      // a direct element switch is not mistaken for leaving the edit surface.
+      if (pendingTextEditIdRef.current != null) {
+        editZoomExitRequestedRef.current = false;
+        return;
+      }
       // Structural controls can close the active edit without changing the
       // primitive `editingElementId` dependency. If no edit surface remains,
       // restore immediately so the next canvas click cannot leave stale zoom.
@@ -308,8 +315,8 @@ export function useA4Elements(titleRef) {
       }
       editZoomExitRequestedRef.current = true;
     };
-    document.addEventListener("pointerdown", markCanvasEditExit, true);
-    return () => document.removeEventListener("pointerdown", markCanvasEditExit, true);
+    document.addEventListener("pointerdown", markCanvasEditExit);
+    return () => document.removeEventListener("pointerdown", markCanvasEditExit);
   }, [restoreEditZoom]);
   const requestEditZoomRestore = useCallback(() => {
     // The properties panel's click is preceded by the contentEditable blur.

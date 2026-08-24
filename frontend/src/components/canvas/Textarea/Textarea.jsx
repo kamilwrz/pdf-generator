@@ -572,6 +572,10 @@ function Textarea({
             }}
             onPointerDown={(e) => {
                 if (e.ctrlKey || e.metaKey) return;
+                // Register the replacement before the old editable surface
+                // blurs. The capture-phase canvas listener runs at the same
+                // pointerdown boundary and must not restore the spread first.
+                requestTextEdit(elementId);
                 e.currentTarget.setPointerCapture(e.pointerId);
                 didDragRef.current = false;
                 pointerStartRef.current = {
