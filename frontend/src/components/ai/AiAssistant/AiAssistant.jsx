@@ -1469,11 +1469,13 @@ export default function AiAssistant() {
             // Full-canvas layout analysis can exceed the default 90s auth timeout.
             const timeoutMs = action === "layout" ? 240_000 : 120_000;
             const targetLanguage = options.target_language || "";
-            // Content actions (grammar/language/improve/shorten) may carry a CV
-            // language. An explicit option wins; otherwise reuse the last
+            // Every action that rewrites CV content, including translation,
+            // must carry the canonical profile. The backend then returns the
+            // exact `updated_cv_data` consumed by a later template fill.
+            // An explicit language option wins; otherwise reuse the last
             // detected/selected language. Empty lets the backend auto-detect.
             const cvLanguageOverride = options.cv_language || cvLanguage;
-            const contentActions = ["grammar", "language", "improve", "shorten"];
+            const contentActions = ["grammar", "language", "improve", "shorten", "translate"];
             const res = await api.httpRequest(
                 ENDPOINTS.AI.ASSISTANT, "POST",
                 JSON.stringify({

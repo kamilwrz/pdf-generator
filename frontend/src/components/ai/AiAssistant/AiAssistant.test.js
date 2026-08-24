@@ -122,6 +122,19 @@ test("assistant threads a cv_language override into the request body", async () 
     assert.match(source, /\.\.\.\(cvLanguageOverride[\s\S]*?cv_language: cvLanguageOverride/);
 });
 
+test("translation sends the canonical profile and receives the replacement profile", async () => {
+    const source = await readFile(new URL("./AiAssistant.jsx", import.meta.url), "utf8");
+
+    // Omitting `translate` here routes translation through the legacy
+    // element-only path, which recreates Polish profile text on template swap.
+    assert.match(
+        source,
+        /const contentActions = \["grammar", "language", "improve", "shorten", "translate"\]/,
+    );
+    assert.match(source, /\.\.\.\(contentActions\.includes\(action\) && activeCvData/);
+    assert.match(source, /updatedCvData: res\.updated_cv_data \?\? null/);
+});
+
 test("assistant tracks the detected cv_language from responses", async () => {
     const source = await readFile(new URL("./AiAssistant.jsx", import.meta.url), "utf8");
 

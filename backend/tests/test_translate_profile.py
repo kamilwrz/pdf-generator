@@ -3,7 +3,11 @@ from __future__ import annotations
 
 from unittest.mock import patch
 
-from app.services.ai_assistant_service import _rewrite_profile_content, _translate_cv
+from app.services.ai_assistant_service import (
+    _rewrite_profile_content,
+    _translate_cv,
+    analyze_action,
+)
 
 
 def test_translate_returns_normalized_profile_for_future_template_fills():
@@ -65,3 +69,26 @@ def test_content_actions_return_a_canonical_profile_for_template_switching():
         )
 
     assert result["updated_cv_data"]["summary"] == "Improved summary."
+
+
+def test_translation_dispatch_uses_profile_aware_result_when_cv_data_exists():
+    """Translation must not fall back to the element-only legacy response."""
+    expected = {
+        "message": "Przetłumaczono CV.",
+        "tips": [],
+        "corrections": [],
+        "updated_cv_data": {"name": "Anna Rojek", "summary": "English summary."},
+    }
+    with patch(
+        "app.services.ai_assistant_service._rewrite_profile_content",
+        return_value=expected,
+    ) as rewrite:
+        result = analyze_action(
+            "translate",
+            [{"element_id": "summary", "category": "textarea", "content": "Polskie podsumowanie."}],
+            target_language="en",
+            cv_data={"name": "Anna Rojek", "summary": "Polskie podsumowanie."},
+        )
+
+    assert result["updated_cv_data"]["summary"] == "English summary."
+    rewrite.assert_called_once()
