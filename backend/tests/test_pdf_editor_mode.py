@@ -103,6 +103,27 @@ class PdfEditorModeTests(unittest.TestCase):
         self.assertEqual(row.editor_mode, "freeform")
         self.assertIsNone(row.template_id)
 
+    def test_create_pdf_stores_normalized_cv_snapshot(self):
+        cv_data = {
+            "name": "Anna Kowalska",
+            "title": "UX Designer",
+            "experience": [],
+            "education": [],
+            "skills": ["Figma"],
+        }
+        pdf_id = create_new_pdf(
+            self.db,
+            title="anna.pdf",
+            user_id=self.user_id,
+            file_path="/tmp/anna.pdf",
+            elements=[_element()],
+            cv_data=cv_data,
+        )
+
+        row = request_pdf_by_id(self.db, pdf_id)
+
+        self.assertEqual(row.cv_data, cv_data)
+
 
 if __name__ == "__main__":
     unittest.main()

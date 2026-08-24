@@ -193,6 +193,9 @@ class PDFCreateRequest(BaseModel):
     template_id: Optional[str] = None
     # Optional vertical rhythm override (stack/record/section/after_rule px).
     spacing_px: Optional[dict[str, Any]] = None
+    # Normalized content profile used when changing the document's template.
+    # It is intentionally separate from the geometric canvas element list.
+    cv_data: Optional[dict[str, Any]] = None
     # Provenance from a private extraction snapshot, set only after ownership
     # validation by the document creation route.
     source_import_id: Optional[int] = None
@@ -210,3 +213,5 @@ class PDFUpdateRequest(BaseModel):
     editor_mode: EditorMode = "freeform"
     template_id: Optional[str] = None
     spacing_px: Optional[dict[str, Any]] = None
+    # Updated alongside the canvas only after an explicit user save.
+    cv_data: Optional[dict[str, Any]] = None

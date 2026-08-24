@@ -86,6 +86,10 @@ class Pdf(Base):
     # Per-document vertical rhythm override ({stack,record,section,after_rule}).
     # Null means generator/editor defaults (SPACE_* constants).
     spacing_px = Column(JSON, nullable=True)
+    # Normalized profile used to regenerate this document in another template.
+    # Canvas elements preserve the current layout; this snapshot preserves the
+    # semantic CV content required by `/ai/fill_template` after a reload.
+    cv_data = Column(JSON, nullable=True)
     # What is CURRENTLY baked into the stored file at file_path — not the
     # account's current plan. download_pdf compares this against the live
     # entitlement and only re-renders when they differ (e.g. right after an

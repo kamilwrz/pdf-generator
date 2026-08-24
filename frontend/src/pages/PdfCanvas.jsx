@@ -53,6 +53,7 @@ import { queueGuestEvent, loadGuestEvents, clearGuestEvents } from '../utils/gue
 import { hasGuestWizardDraft } from '../utils/guestWizardDraft';
 import { adoptGuestWizardDraftForAccount } from '../utils/claimGuestWizardDraft';
 import { resolveActiveCvData } from '../utils/resolveActiveCvData';
+import { syncCvDataFromCanvas } from '../utils/syncCvDataFromCanvas';
 import { fillTemplate } from '../services/fillTemplate';
 import { shouldShowStartChooser } from '../utils/startChooser';
 import { previewStructureOperation, reconcileDocumentPages } from '../utils/structureOperation';
@@ -174,9 +175,8 @@ function PdfCanvas() {
   const isSaveGateModal = dialog === 'saveGate';
   const isClaimGuestModal = dialog === 'claimGuest';
   // Structured cv_data behind the CV currently on the canvas. Set by
-  // AiCvPanel/BioCvModal when a fill succeeds; cleared whenever the canvas
-  // starts showing something else (fresh document, or a reopened saved PDF
-  // in ModalPdfs, which has no persisted cv_data to reuse).
+  // AiCvPanel/BioCvModal when a fill succeeds and restored from an owned
+  // document's persisted snapshot when it is reopened.
   const [activeCvData, setActiveCvData] = useState(null);
   // Set only when a canvas was materialized from an owned import snapshot.
   const [activeImportId, setActiveImportId] = useState(null);
@@ -414,6 +414,30 @@ function PdfCanvas() {
     canRedo,
     resetHistory
   } = useA4Elements(titleRef)
+
+  const previousCanvasForCvDataRef = useRef(null);
+  const cvDataDocumentIdRef = useRef(pdfId);
+  useEffect(() => {
+    // Switching documents replaces both the canvas and profile in one state
+    // transition. Establish a new baseline instead of treating the replacement
+    // as a sequence of manual edits to the previously opened CV.
+    if (cvDataDocumentIdRef.current !== pdfId) {
+      cvDataDocumentIdRef.current = pdfId;
+      previousCanvasForCvDataRef.current = A4_Elements;
+      return;
+    }
+
+    const previousElements = previousCanvasForCvDataRef.current;
+    previousCanvasForCvDataRef.current = A4_Elements;
+    if (!previousElements || !activeCvData) return;
+
+    const syncedCvData = syncCvDataFromCanvas(
+      activeCvData,
+      previousElements,
+      A4_Elements,
+    );
+    if (syncedCvData !== activeCvData) setActiveCvData(syncedCvData);
+  }, [A4_Elements, activeCvData, pdfId]);
 
   // Wheel on the canvas scrolls the overflow first; at the edge it changes
   // currentPage so PageControls ("Strona N / M") stays in sync. canvasAreaRef
@@ -1089,8 +1113,9 @@ function PdfCanvas() {
       templateId: activeTemplateId,
       flowSpacing,
       sourceImportId: activeImportId,
+      cvData: activeCvData,
     });
-  }, [A4_Elements, activeImportId, activeTemplateId, createPdf, editorMode, flowSpacing, titleRef, pageCount, pageSize]);
+  }, [A4_Elements, activeCvData, activeImportId, activeTemplateId, createPdf, editorMode, flowSpacing, titleRef, pageCount, pageSize]);
 
   // Update the already-saved document in place. `intent: "save"` marks this as a
   // persistence write (not a download), so the post-spinner effect shows the
@@ -1100,10 +1125,12 @@ function PdfCanvas() {
       editorMode,
       templateId: activeTemplateId,
       flowSpacing,
+      cvData: activeCvData,
       intent: "save",
     });
   }, [
     A4_Elements,
+    activeCvData,
     activeTemplateId,
     editorMode,
     flowSpacing,

@@ -89,8 +89,14 @@ export default function ModalPdfs({ title }) {
                 JSON.stringify(id),
                 "Nie udało się wczytać wybranego PDF!",
             );
-            const pdfCanvas = PDFs.find(element => element.id === id);
-            const elementsData = data.map((element) => {
+            // Newer API responses carry the exact saved metadata alongside
+            // elements, avoiding a stale list entry after another save. Keep
+            // the array fallback while clients finish upgrading the backend.
+            const responseElements = Array.isArray(data) ? data : (data.elements || []);
+            const pdfCanvas = Array.isArray(data)
+                ? PDFs.find(element => element.id === id)
+                : data.document;
+            const elementsData = responseElements.map((element) => {
                 const fixedToPage = element.extra_properties.fixedToPage ?? false;
                 const repeatOnContinuation = element.extra_properties.repeatOnContinuation ?? true;
                 const locked = element.extra_properties.locked ?? fixedToPage;
@@ -187,11 +193,10 @@ export default function ModalPdfs({ title }) {
             setA4_Elements(liveElements);
             hydrateDocumentMode?.(liveElements, pdfCanvas || {});
             handlePdfId(id);
-            // A reopened saved document has no persisted cv_data to reuse —
-            // clear any structured data left over from a previous fill so the
-            // Topbar "Zmień szablon" gallery doesn't offer to reapply an
-            // unrelated CV's content onto this document.
-            setActiveCvData(null);
+            // `cv_data` belongs to the saved document, not the previous editor
+            // session. Restoring it keeps template changes available after a
+            // reload and prevents applying another document's profile.
+            setActiveCvData(pdfCanvas?.cv_data ?? pdfCanvas?.cvData ?? null);
             setIsModalPdfs(false);
         } catch (error) {
             setError(error);

@@ -54,6 +54,7 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
     const template_id = meta.templateId || null;
     const spacing_px = flowSpacingToPayload(meta.flowSpacing);
     const source_import_id = Number.isInteger(meta.sourceImportId) ? meta.sourceImportId : null;
+    const cv_data = meta.cvData || null;
     const body = JSON.stringify({
       root: sorted,
       pdf_title: titleRef.current.value + ".pdf",
@@ -63,6 +64,7 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
       editor_mode,
       template_id,
       spacing_px,
+      cv_data,
       source_import_id,
     });
 
@@ -118,6 +120,7 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
     const editor_mode = meta.editorMode === "template" ? "template" : "freeform";
     const template_id = meta.templateId || null;
     const spacing_px = flowSpacingToPayload(meta.flowSpacing);
+    const cv_data = meta.cvData || null;
     // Topbar "Pobierz" uses update; optional meta.intent lets save-style updates
     // skip the auto-download branch in PdfCanvas.
     const intent = meta.intent === "save" ? "save" : "download";
@@ -131,6 +134,7 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
       editor_mode,
       template_id,
       spacing_px,
+      cv_data,
     });
 
     wakeBackend()
@@ -226,6 +230,7 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
     const editor_mode = meta.editorMode === "template" ? "template" : "freeform";
     const template_id = meta.templateId || null;
     const spacing_px = flowSpacingToPayload(meta.flowSpacing);
+    const cv_data = meta.cvData || null;
     await api.httpRequest(
       ENDPOINTS.PDF.SAVE_ELEMENTS, "PUT",
       JSON.stringify({
@@ -234,6 +239,7 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
         editor_mode,
         template_id,
         spacing_px,
+        cv_data,
       }),
       "Autozapis nie powiódł się.");
   }, []);

@@ -131,6 +131,7 @@ def create_pdf_document(db: Session, *, user, username: str, pdf_data) -> dict:
             getattr(pdf_data, "editor_mode", "freeform"),
             getattr(pdf_data, "template_id", None),
             getattr(pdf_data, "spacing_px", None),
+            cv_data=getattr(pdf_data, "cv_data", None),
             watermarked=watermark,
             source_import_id=getattr(pdf_data, "source_import_id", None),
         )
@@ -150,6 +151,7 @@ def create_pdf_document(db: Session, *, user, username: str, pdf_data) -> dict:
         getattr(pdf_data, "editor_mode", "freeform"),
         getattr(pdf_data, "template_id", None),
         getattr(pdf_data, "spacing_px", None),
+        cv_data=getattr(pdf_data, "cv_data", None),
         watermarked=watermark,
         source_import_id=getattr(pdf_data, "source_import_id", None),
     )
@@ -193,6 +195,7 @@ def update_pdf_document(db: Session, *, pdf_row, user, username: str, pdf_data) 
         )
         pdf_row.template_id = getattr(pdf_data, "template_id", None)
         pdf_row.spacing_px = serialize_spacing_px(getattr(pdf_data, "spacing_px", None))
+        pdf_row.cv_data = getattr(pdf_data, "cv_data", None)
         pdf_row.file_path = (
             f"https://{s3_storage.S3_BUCKET}.s3.{s3_storage.AWS_REGION}.amazonaws.com/{key}"
         )
@@ -212,6 +215,7 @@ def update_pdf_document(db: Session, *, pdf_row, user, username: str, pdf_data) 
     )
     pdf_row.template_id = getattr(pdf_data, "template_id", None)
     pdf_row.spacing_px = serialize_spacing_px(getattr(pdf_data, "spacing_px", None))
+    pdf_row.cv_data = getattr(pdf_data, "cv_data", None)
     db.add(pdf_row)
     existing_by_id = request_pdf_elements_by_element_id(db, pdf_id)
     update_pdf_elements(db, elements, existing_by_id, pdf_id)

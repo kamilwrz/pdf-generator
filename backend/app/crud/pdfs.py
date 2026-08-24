@@ -135,6 +135,7 @@ def create_new_pdf(
     editor_mode: str = "freeform",
     template_id: str | None = None,
     spacing_px: Mapping[str, Any] | None = None,
+    cv_data: Mapping[str, Any] | None = None,
     watermarked: bool = False,
     source_import_id: int | None = None,
 ) -> int:
@@ -155,6 +156,7 @@ def create_new_pdf(
         editor_mode=mode,
         template_id=template_id,
         spacing_px=serialize_spacing_px(spacing_px),
+        cv_data=dict(cv_data) if cv_data is not None else None,
         watermarked=watermarked,
         source_import_id=source_import_id,
         created_at=datetime.datetime.now(timezone.utc),

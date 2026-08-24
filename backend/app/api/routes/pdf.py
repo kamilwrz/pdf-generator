@@ -173,8 +173,12 @@ async def show_user_pdf(
     payload: dict = Depends(verify_token),
     pdf_id=Body(),
 ):
-    """Return all PdfElements for an owned document so the editor can hydrate."""
-    _require_owned_pdf(db, payload, pdf_id)
+    """Return one owned document's metadata and elements for editor hydration.
+
+    The single response avoids combining elements with a potentially stale list
+    entry and includes the normalized CV snapshot needed for template changes.
+    """
+    pdf_row = _require_owned_pdf(db, payload, pdf_id)
     pdf_to_show = request_pdf_by_id_show(db, pdf_id)
 
     if not pdf_to_show:
@@ -182,7 +186,7 @@ async def show_user_pdf(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Nie znaleziono pliku PDF.",
         )
-    return pdf_to_show
+    return {"document": pdf_row, "elements": pdf_to_show}
 
 
 @router.delete("/delete_pdf", status_code=status.HTTP_202_ACCEPTED)
@@ -248,6 +252,7 @@ async def save_pdf_elements(
     )
     pdf_row.template_id = getattr(pdf_data, "template_id", None)
     pdf_row.spacing_px = serialize_spacing_px(getattr(pdf_data, "spacing_px", None))
+    pdf_row.cv_data = getattr(pdf_data, "cv_data", None)
     pdf_row.updated_at = datetime.datetime.now(datetime.timezone.utc)
     db.add(pdf_row)
 

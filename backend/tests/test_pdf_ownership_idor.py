@@ -53,6 +53,7 @@ class PdfOwnershipIdorTests(unittest.TestCase):
             pages=1,
             page_width=595.0,
             page_height=842.0,
+            cv_data={"name": "Owner", "experience": []},
             created_at=now,
             updated_at=now,
         )
@@ -102,9 +103,10 @@ class PdfOwnershipIdorTests(unittest.TestCase):
         response = self.client.post("/pdf/show_pdf", json=self.pdf_id)
         self.assertEqual(response.status_code, 200)
         body = response.json()
-        self.assertIsInstance(body, list)
-        self.assertEqual(len(body), 1)
-        self.assertEqual(body[0]["element_id"], "el-1")
+        self.assertEqual(body["document"]["id"], self.pdf_id)
+        self.assertEqual(body["document"]["cv_data"]["name"], "Owner")
+        self.assertEqual(len(body["elements"]), 1)
+        self.assertEqual(body["elements"][0]["element_id"], "el-1")
 
 
 if __name__ == "__main__":
