@@ -33,6 +33,7 @@ from app.services.layout_gpt import (
     compile_layout_gpt_response,
 )
 from app.services.openai_pricing import empty_usage, usage_from_response
+from app.services.cv_data import normalize_cv_data
 from app.services.ats_readability import (
     AtsReadabilityError,
     analyze_pdf_readability,
@@ -1739,7 +1740,73 @@ def _content_language_directive(lang_code: str) -> str:
     )
 
 
-def _translate_cv(elements: list[dict], target_language: str) -> dict:
+def _rewrite_profile_content(
+    action: str,
+    elements: list[dict],
+    cv_data: dict,
+    *,
+    language_code: str,
+    target_language: str = "",
+) -> dict:
+    """Propose canvas patches and one canonical profile for a content action.
+
+    Canvas text is a presentation of `cv_data`, not a stable persistence
+    contract: templates can add bullets, combine dates, or reorder records.
+    Returning the profile alongside reviewable patches keeps the next template
+    fill consistent after the user accepts every proposed change.
+    """
+    profile = normalize_cv_data(cv_data)
+    action_rules = {
+        "grammar": "Popraw wyłącznie gramatykę, ortografię i interpunkcję.",
+        "language": "Popraw styl i jasność języka, bez zmieniania faktów.",
+        "improve": "Wzmocnij profesjonalny opis bez wymyślania faktów ani metryk.",
+        "shorten": "Skróć treść zachowując najważniejsze fakty; puste pole jest dozwolone tylko gdy usunięcie jest uzasadnione.",
+        "translate": f"Przetłumacz pełną treść na język: {_TRANSLATE_LANGUAGE_NAMES.get(target_language, target_language)}.",
+    }
+    rule = action_rules[action]
+    structured = _extract_structured(elements)
+    system = (
+        "Jesteś redaktorem CV. Zwracasz wyłącznie poprawny JSON. "
+        "Nie zmieniaj danych osobowych, nazw firm, adresów e-mail, telefonów, "
+        "URL-i, dat, identyfikatorów, kluczy JSON ani struktury tablic."
+    )
+    user = f"""Wykonaj akcję: {action}.
+{rule}
+
+KANONICZNY PROFIL CV:
+{json.dumps(profile, ensure_ascii=False)}
+
+ELEMENTY PŁÓTNA:
+{json.dumps(structured, ensure_ascii=False)}
+
+ZASADY:
+- Zwróć `updated_cv_data` jako kompletny profil po zmianach, zachowując jego klucze i strukturę.
+- `corrections` zawiera pełne nowe treści widocznych elementów do indywidualnego podglądu.
+- Nie zmieniaj geometrii ani stylów elementów.
+- Wartości `content` oraz `updated_cv_data` mają być w języku: {language_code}.
+
+Zwróć JSON:
+{{
+  "message": "<krótkie podsumowanie po polsku>",
+  "tips": [],
+  "corrections": [{{"element_id": "<id>", "content": "<pełna nowa treść>"}}],
+  "updated_cv_data": {{"<kompletny profil po zmianach>"}},
+  "web_sources": []
+}}"""
+    raw, usage = _gpt(system, user, action=action)
+    result = _safe_result(raw, allowed_fields=_CONTENT_FIELDS)
+    result["usage"] = usage
+    updated = raw.get("updated_cv_data")
+    if isinstance(updated, dict):
+        result["updated_cv_data"] = normalize_cv_data(updated)
+    return result
+
+
+def _translate_cv(
+    elements: list[dict],
+    target_language: str,
+    cv_data: dict | None = None,
+) -> dict:
     """Translate editable CV text into ``target_language`` via content patches.
 
     Geometry and template chrome stay untouched. Proper names, emails, phones,
@@ -1780,10 +1847,24 @@ def _translate_cv(elements: list[dict], target_language: str) -> dict:
         "Pola message i tips zwracaj po polsku; pole content w corrections musi być "
         "w języku docelowym."
     )
+    structured_profile = normalize_cv_data(cv_data) if isinstance(cv_data, dict) else None
+    profile_instruction = ""
+    if structured_profile is not None:
+        profile_instruction = f"""
+
+KANONICZNY PROFIL CV:
+{json.dumps(structured_profile, ensure_ascii=False)}
+
+Zwróć `translated_cv_data` zawierające kompletną kopię tego profilu. Zachowaj
+identyczne klucze, tablice, kolejność rekordów i wartości nietekstowe. Tłumacz
+wyłącznie wartości tekstowe istotne dla CV; nie tłumacz imion, nazw firm,
+adresów e-mail, telefonów, URL-i ani kodów poziomów językowych."""
+
     user = f"""Przetłumacz treść CV na język: {lang_name} (kod: {lang}).
 
 ELEMENTY DO TŁUMACZENIA:
 {json.dumps(structured, ensure_ascii=False)}
+{profile_instruction}
 
 ZASADY:
 - W corrections uwzględniaj tylko elementy, których treść faktycznie trzeba zmienić.
@@ -1804,9 +1885,17 @@ Zwróć JSON:
   "corrections": [
     {{"element_id": "<id>", "content": "<pełny tekst w języku docelowym>"}}
   ],
+  "translated_cv_data": {{"<pełny przetłumaczony profil albo null>"}},
   "web_sources": []
 }}"""
-    result = _gpt_result(system, user, action="translate", allowed_fields=_CONTENT_FIELDS)
+    raw, usage = _gpt(system, user, action="translate")
+    result = _safe_result(raw, allowed_fields=_CONTENT_FIELDS)
+    result["usage"] = usage
+    translated = raw.get("translated_cv_data")
+    if isinstance(translated, dict):
+        # Normalize the model output before persisting it, preserving the same
+        # contract that `/ai/fill_template` consumes on every template.
+        result["translated_cv_data"] = normalize_cv_data(translated)
     return _strip_protected_corrections(result, protected_ids)
 
 
@@ -2334,6 +2423,7 @@ def analyze_action(
     template_id: str | None = None,
     target_language: str = "",
     cv_language: str = "",
+    cv_data: dict | None = None,
     db=None,
 ) -> dict:
     """Dispatch one assistant button/chat action and return a UI-ready dict.
@@ -2363,22 +2453,37 @@ def analyze_action(
         resolved_language = override
     else:
         resolved_language = _detect_cv_language(elements)["code"]
+    profile_content_action = (
+        action in {"grammar", "language", "improve", "shorten", "translate"}
+        and isinstance(cv_data, dict)
+    )
 
     dispatchers = {
         "rating":          lambda: _rate_cv(text, elements),
         "design_rating":   lambda: _rate_design(elements, page_size),
         "position_rating": lambda: _rate_position(text, job_description),
-        "grammar":         lambda: _fix_grammar(elements, resolved_language),
-        "language":        lambda: _check_style(text, elements, resolved_language),
-        "improve":         lambda: _improve_content(elements, resolved_language),
-        "shorten":         lambda: _shorten_content(elements, resolved_language),
+        "grammar":         lambda: _rewrite_profile_content(
+            "grammar", elements, cv_data, language_code=resolved_language,
+        ) if profile_content_action else _fix_grammar(elements, resolved_language),
+        "language":        lambda: _rewrite_profile_content(
+            "language", elements, cv_data, language_code=resolved_language,
+        ) if profile_content_action else _check_style(text, elements, resolved_language),
+        "improve":         lambda: _rewrite_profile_content(
+            "improve", elements, cv_data, language_code=resolved_language,
+        ) if profile_content_action else _improve_content(elements, resolved_language),
+        "shorten":         lambda: _rewrite_profile_content(
+            "shorten", elements, cv_data, language_code=resolved_language,
+        ) if profile_content_action else _shorten_content(elements, resolved_language),
         "ats_score":       lambda: _ats_score(
             elements,
             page_size,
             template_id,
             image_resolver=ats_resolver,
         ),
-        "translate":       lambda: _translate_cv(elements, target_language),
+        "translate":       lambda: _rewrite_profile_content(
+            "translate", elements, cv_data, language_code=target_language,
+            target_language=target_language,
+        ) if profile_content_action else _translate_cv(elements, target_language, cv_data),
         "chat":            lambda: _chat(message, elements, page_size, history),
         "layout":          lambda: _layout_session(
             message, elements, page_size, history, template_id=template_id

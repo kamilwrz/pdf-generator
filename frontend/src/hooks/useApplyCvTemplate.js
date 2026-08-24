@@ -12,7 +12,6 @@ import { fillTemplate } from "../services/fillTemplate";
 import { isTemplateAllowed, planErrorMessage } from "../utils/entitlements";
 import { DEFAULT_FLOW_SPACING } from "../utils/flowSpacing";
 import { getAccessToken } from "../utils/authSession";
-import { mergeTemplateContent } from "../utils/mergeTemplateContent";
 
 function templateBadgeInk(accent) {
   const hex = String(accent || "").replace("#", "");
@@ -33,7 +32,6 @@ function templateBadgeInk(accent) {
 export function useApplyCvTemplate() {
   const {
     activeCvData,
-    A4_Elements,
     entitlements,
     replaceActiveElements,
     adoptDocumentFlowSpacing,
@@ -68,12 +66,10 @@ export function useApplyCvTemplate() {
       // No title argument: `replaceActiveElements` only overwrites the
       // title input when one is passed, so the project keeps whatever
       // name the user already gave it.
-      // The new template must own all presentation and geometry. User content
-      // is already represented by `activeCvData`, including accepted AI edits.
-      // Copying fields from the previous canvas here leaks the old template's
-      // typography and colours into the target template.
-      const elementsWithCurrentContent = mergeTemplateContent(A4_Elements, res.elements);
-      replaceActiveElements(elementsWithCurrentContent, undefined, template.id);
+      // The generator receives the synchronized profile and owns the whole
+      // target canvas. Cross-template element order is not stable, so copying
+      // source canvas text here can place a record into an unrelated slot.
+      replaceActiveElements(res.elements, undefined, template.id);
       // Keep knobs / Reset baseline / next autosave `spacing_px` aligned
       // with the freshly generated layout (after pinFlowSpacingBaseline).
       adoptDocumentFlowSpacing?.(DEFAULT_FLOW_SPACING);
@@ -93,7 +89,6 @@ export function useApplyCvTemplate() {
     }
   }, [
     activeCvData,
-    A4_Elements,
     adoptDocumentFlowSpacing,
     api,
     entitlements,

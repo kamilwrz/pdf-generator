@@ -1042,6 +1042,7 @@ function ChatMessage({
 export default function AiAssistant() {
     const {
         A4_Elements,
+        activeCvData,
         activeTemplateId,
         editElementValues,
         setActiveCvData,
@@ -1203,8 +1204,6 @@ export default function AiAssistant() {
                 currentProfile,
                 [previousElement],
                 [{ ...previousElement, ...nextFields }],
-                [],
-                { allowAmbiguous: true },
             ));
         }
         setCorrectionStates(prev => ({ ...prev, [`${msgId}_${element_id}`]: "accepted" }));
@@ -1241,8 +1240,6 @@ export default function AiAssistant() {
                         currentProfile,
                         [previousElement],
                         [{ ...previousElement, ...nextFields }],
-                        [],
-                        { allowAmbiguous: true },
                     ));
                 }
                 acceptedIds.push(element_id);
@@ -1253,6 +1250,13 @@ export default function AiAssistant() {
             newStates[`${msgId}_${element_id}`] = "accepted";
         });
         setCorrectionStates(prev => ({ ...prev, ...newStates }));
+        const message = messages.find((item) => item.id === msgId);
+        if (message?.updatedCvData) {
+            // Profile-aware content actions return the exact structure that
+            // later template fills consume. Apply it atomically only after the
+            // user accepts all review cards, preserving the reject workflow.
+            setActiveCvData(message.updatedCvData);
+        }
         collapseSpilledMainIntoSidebar?.();
     }, [A4_Elements, collapseSpilledMainIntoSidebar, correctionStates, editElementValues, messages, setActiveCvData]);
 
@@ -1487,6 +1491,9 @@ export default function AiAssistant() {
                     ...(action === "translate" && targetLanguage
                         ? { target_language: targetLanguage }
                         : {}),
+                    ...(contentActions.includes(action) && activeCvData
+                        ? { cv_data: activeCvData }
+                        : {}),
                     ...(cvLanguageOverride && contentActions.includes(action)
                         ? { cv_language: cvLanguageOverride }
                         : {}),
@@ -1548,6 +1555,7 @@ export default function AiAssistant() {
                 actionId: action,
                 actionLabel: actionMeta?.label,
                 actionColor: actionMeta?.color,
+                updatedCvData: res.updated_cv_data ?? null,
             };
             setMessages(prev => [...prev, assistantMsg]);
             // Refresh balance outside the main try so a entitlements blip cannot
@@ -1571,7 +1579,7 @@ export default function AiAssistant() {
             requestInFlightRef.current = false;
             setIsLoading(false);
         }
-    }, [A4_Elements, activeTemplateId, api, cvLanguage, isLoading, jobDesc, messages, pageSize, refreshEntitlements]);
+    }, [A4_Elements, activeCvData, activeTemplateId, api, cvLanguage, isLoading, jobDesc, messages, pageSize, refreshEntitlements]);
 
     const toggleLayoutMode = useCallback(() => {
         // Keep the client journey clear; the API remains the source of

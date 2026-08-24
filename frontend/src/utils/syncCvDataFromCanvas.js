@@ -43,6 +43,20 @@ function stringLeaves(value) {
   return Object.values(value).flatMap(stringLeaves);
 }
 
+function profileTextForElement(element) {
+  const content = String(element?.content ?? "").trim();
+  if (!element?.bulletList) return content;
+
+  // Template renderers add visual list markers while cv_data stores the plain
+  // source sentence. Compare and persist the source form so an AI translation
+  // of `• Polish text` can update `Polish text` in the profile.
+  return content
+    .split(/\r?\n/)
+    .map((line) => line.replace(/^\s*(?:[•*–—-]\s*)+/, ""))
+    .join("\n")
+    .trim();
+}
+
 function pruneDeletedRecords(value, deletedTexts) {
   if (Array.isArray(value)) {
     return value
@@ -73,8 +87,8 @@ function editableTextChanges(previousElements, nextElements) {
     if (!next?.element_id || !["text", "textarea"].includes(next.category)) return [];
     const previous = previousById.get(next.element_id);
     if (!previous || previous.content === next.content) return [];
-    const from = String(previous.content ?? "").trim();
-    const to = String(next.content ?? "").trim();
+    const from = profileTextForElement(previous);
+    const to = profileTextForElement(next);
     // An accepted AI shortening can intentionally clear a field. Ignoring an
     // empty `to` value would make the old profile text return on the next
     // template fill, even though the canvas correctly shows it removed.
@@ -89,9 +103,6 @@ function editableTextChanges(previousElements, nextElements) {
  * @param {object[]} previousElements - Canvas state before an edit.
  * @param {object[]} nextElements - Canvas state after an edit.
  * @param {object[]} deletedElements - Tombstones emitted by structural deletes.
- * @param {{allowAmbiguous?: boolean}} [options] - AI corrections may apply the
- * same translated source phrase to multiple profile leaves; manual edits stay
- * conservative by default.
  * @returns {object|null} The updated profile, or the original when no mapping exists.
  */
 export function syncCvDataFromCanvas(
@@ -99,7 +110,6 @@ export function syncCvDataFromCanvas(
   previousElements,
   nextElements,
   deletedElements = [],
-  options = {},
 ) {
   if (!cvData || !Array.isArray(previousElements) || !Array.isArray(nextElements)) {
     return cvData || null;
@@ -117,7 +127,7 @@ export function syncCvDataFromCanvas(
     ? pruneDeletedRecords(cvData, deletedTexts)
     : cvData;
   for (const { from, to } of editableTextChanges(previousElements, nextElements)) {
-    if (!options.allowAmbiguous && countStringLeaves(nextProfile, from) !== 1) continue;
+    if (countStringLeaves(nextProfile, from) !== 1) continue;
     if (nextProfile === cvData) nextProfile = cloneProfile(cvData);
     nextProfile = replaceUniqueString(nextProfile, from, to);
   }

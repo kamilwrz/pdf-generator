@@ -59,6 +59,10 @@ class AssistantRequest(BaseModel):
     # Optional CV-language override for content actions (grammar/language/
     # improve/shorten). Empty means the backend auto-detects from the canvas.
     cv_language: str = ""
+    # Canonical profile snapshot. Translate uses it to return a structured
+    # translated profile for future template fills instead of relying on
+    # renderer-specific canvas strings.
+    cv_data: dict | None = None
 
 
 class TokenUsage(BaseModel):
@@ -109,6 +113,9 @@ class AssistantResponse(BaseModel):
     usage: TokenUsage | None = None
     # Language actually used for corrections, echoed so the UI selector syncs.
     cv_language: str = ""
+    # Present for profile-aware content actions: the complete normalized profile
+    # after the proposed corrections, applied by the client on "Apply all".
+    updated_cv_data: dict | None = None
 
 
 @router.post("/assistant", response_model=AssistantResponse, status_code=200)
@@ -178,6 +185,7 @@ async def ai_assistant(
             template_id=request.template_id,
             target_language=target_language,
             cv_language=cv_language,
+            cv_data=request.cv_data,
             db=db,
         )
         charge_ai_credits(db, user.id, result.get("usage", {}).get("cost_pln_estimate", 0.0))

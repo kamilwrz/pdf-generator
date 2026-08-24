@@ -36,17 +36,14 @@ describe("syncCvDataFromCanvas", () => {
     assert.equal(updated, duplicated);
   });
 
-  it("allows AI to translate repeated source phrases deliberately", () => {
-    const duplicated = { ...profile, experience: [{ description: "Teamwork" }], summary: "Teamwork" };
+  it("maps an AI translation of a rendered bullet to its profile sentence", () => {
+    const experience = { ...profile, experience: [{ description: "Teamwork" }] };
     const updated = syncCvDataFromCanvas(
-      duplicated,
-      [text("summary", "Teamwork")],
-      [text("summary", "Praca zespołowa")],
-      [],
-      { allowAmbiguous: true },
+      experience,
+      [{ ...text("description", "• Teamwork"), bulletList: true }],
+      [{ ...text("description", "• Praca zespołowa"), bulletList: true }],
     );
 
-    assert.equal(updated.summary, "Praca zespołowa");
     assert.equal(updated.experience[0].description, "Praca zespołowa");
   });
 
