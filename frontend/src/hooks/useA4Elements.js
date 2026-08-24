@@ -1498,9 +1498,9 @@ export function useA4Elements(titleRef) {
           return element;
         }
       });
-      // A live edit of a contact label changes its width, so the band must
-      // re-space (constant inter-item gap) and downstream flow shift by Δ. Only
-      // label content edits trigger this; position-only edits are left alone.
+      // A live contact edit re-spaces members inside the reserved masthead zone.
+      // The zone boundary and all content below it stay fixed; position-only
+      // edits do not need band layout at all.
       if ("content" in dataObject) {
         const edited = newState.find((el) => el.element_id === id);
         if (edited?.contactBandId && edited?.contactChannel && edited.category === "text") {
@@ -2322,9 +2322,9 @@ export function useA4Elements(titleRef) {
     )));
   }, [setEditorMode]);
 
-  // Remove/add a contact channel (icon + label as a unit) and reflow the band +
-  // downstream document. Committed via setA4_Elements so undo/redo and save
-  // apply unchanged; pageCount re-syncs from the reconciled element pages.
+  // Remove/add a contact channel (icon + label as a unit) inside the template's
+  // fixed contact zone. Body Y positions remain stable; undo/redo, save, and
+  // page-count reconciliation continue through the shared element state.
   const removeContactChannel = useCallback((bandId, channel) => {
     setA4_Elements((prev) =>
       applyChannelRemoval(prev, bandId, channel, measureContactLabel, () => nanoid()).elements,

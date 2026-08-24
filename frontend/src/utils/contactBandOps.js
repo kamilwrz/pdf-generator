@@ -1,16 +1,13 @@
 /**
  * Contact-band add/remove transforms (pure).
  *
- * These mutate the canvas element array when the user adds or removes a contact
- * channel, keeping the band laid out and the document reflowed. The reflow rule
- * was validated by the Task-4 spike:
+ * These transform the canvas element array when the user adds, removes, or
+ * edits a contact channel. The contact band owns a fixed template zone:
  *
  *   1. Recompute the band with the new channel set via `layoutContactBand`.
  *   2. Reposition the band's icon/label pairs to the new placements.
- *   3. Shift every NON-band element whose `top >= oldBottomY` by the band's
- *      height delta (Δ = newBottomY - oldBottomY) — this moves the header rule
- *      and the first section, and everything after them.
- *   4. Re-paginate with `reconcileDocumentPages`.
+ *   3. Preserve the authored Y coordinates of every non-band element.
+ *   4. Reconcile page chrome without moving the document body.
  *
  * The band-anchor element (flowRole "masthead-anchor") carries the descriptor
  * and is never shifted or repositioned; it stays put.
@@ -74,22 +71,9 @@ function itemsFor(channels, labels) {
   }));
 }
 
-// Reposition band pairs to the new placements; shift downstream flow by Δ.
-//
-// `bandPageNo` guards the downstream shift to the band's own page. `top` is
-// page-relative, so without the guard a continuation-page element whose
-// page-relative `top` happens to exceed the band's `oldBottomY` would be
-// shifted as if it sat below the band — crushing/overlapping page-2+ content on
-// every add/remove. The band is a single-page masthead row; its height delta
-// only reflows that page.
-//
-// `fixedToPage` chrome (e.g. Slate's locked photo cluster — corner accent
-// marks and base bar sit well below the masthead's top and can fall below the
-// band's `oldBottomY` once a label grows) is masthead furniture, not flowing
-// body content, and must stay put regardless of the band's height. This
-// mirrors the same guard `shiftBelow` (mastheadIdentityOps.js) already applies
-// for the title show/hide reflow; `reposition` was missing it.
-function reposition(el, bandId, placementByChannel, oldBottomY, delta, bandPageNo) {
+// Reposition contact-band members inside the zone without changing its lower
+// boundary or any non-band element below it.
+function reposition(el, bandId, placementByChannel) {
   if (el.contactBandId === bandId && el.contactChannel) {
     const placement = placementByChannel.get(el.contactChannel);
     if (!placement) return el;
@@ -109,13 +93,9 @@ function reposition(el, bandId, placementByChannel, oldBottomY, delta, bandPageN
     // text label
     return { ...el, left: placement.labelLeft, top: placement.labelTop };
   }
-  // The band anchor (band id but no channel) never moves.
-  if (el.contactBandId === bandId) return el;
-  if (el.fixedToPage) return el;
-  const page = Math.max(1, Math.trunc(Number(el.page) || 1));
-  if (page === bandPageNo && typeof el.top === "number" && el.top >= oldBottomY) {
-    return { ...el, top: el.top + delta };
-  }
+  // The contact zone is a fixed part of every template masthead. Only its own
+  // members may move; section starts and decorative chrome below it keep their
+  // authored Y coordinates when optional channels are added or removed.
   return el;
 }
 
@@ -157,50 +137,21 @@ function deriveChipStyle(elements, bandId, descriptor) {
   };
 }
 
-function relayoutAndReconcile(elements, bandId, descriptor, oldItems, nextItems, measure, createId) {
-  const oldBand = layoutContactBand(descriptor, oldItems, measure);
+function relayoutAndReconcile(elements, bandId, descriptor, nextItems, measure, createId) {
   const newBand = layoutContactBand(descriptor, nextItems, measure);
-  const delta = newBand.bottomY - oldBand.bottomY;
-  const bandPageNo = bandPage(elements, bandId);
   const placementByChannel = new Map(newBand.placements.map((p) => [p.channel, p]));
   const next = elements.map((el) =>
-    reposition(el, bandId, placementByChannel, oldBand.bottomY, delta, bandPageNo),
+    reposition(el, bandId, placementByChannel),
   );
   const reconciled = reconcileDocumentPages(next, createId, { collapseEmpty: true });
   return { elements: reconciled.elements, pageCount: reconciled.pageCount };
 }
 
-// Current bottom row of the band, read from live chip positions. Used as the
-// "before" baseline for a live edit, where the prior layout is not available.
-//
-// This must be measured on the SAME reference line as `layoutContactBand().
-// bottomY`, which is the TOP of the last row. In `chip` mode the pill rectangle
-// sits at the row top, while the icon/label are nudged `(chipH - fontSize)/2`
-// below it for vertical centering — so reading the max element top would return
-// the label top, a constant offset below the true row top. That mismatch made
-// every horizontal-only edit produce a small negative delta and march downstream
-// content upward on each keystroke. Prefer the rectangle top when the band has
-// pill backgrounds (chip mode); otherwise (wrapping/stacked/centered) the icon
-// and label already sit at the row top, so their top is the correct reference.
-function currentBandBottom(elements, bandId) {
-  let bottom = null;
-  let rectBottom = null;
-  for (const el of elements) {
-    if (el.contactBandId === bandId && el.contactChannel && typeof el.top === "number") {
-      bottom = bottom == null ? el.top : Math.max(bottom, el.top);
-      if (el.category === "rectangle") {
-        rectBottom = rectBottom == null ? el.top : Math.max(rectBottom, el.top);
-      }
-    }
-  }
-  return rectBottom != null ? rectBottom : bottom;
-}
-
 /**
  * Re-lay a band from its current label contents (called live while a label is
- * edited) and shift downstream flow by the height delta. Positions only — never
- * touches content, runs, or edit state, so the caret in the edited node is
- * undisturbed.
+ * edited). Only contact-band members move; the template's fixed content origin
+ * below the reserved contact zone stays unchanged. Content, runs, and edit
+ * state are untouched so the caret in the edited node is undisturbed.
  */
 export function applyChannelRelayout(elements, bandId, measure, createId) {
   const descriptor = bandDescriptor(elements, bandId);
@@ -209,20 +160,17 @@ export function applyChannelRelayout(elements, bandId, measure, createId) {
   if (!channels.length) return { elements };
   const labels = channelLabels(elements, bandId);
   const items = itemsFor(channels, labels);
-  const oldBottom = currentBandBottom(elements, bandId);
   const newBand = layoutContactBand(descriptor, items, measure);
-  const delta = oldBottom == null ? 0 : newBand.bottomY - oldBottom;
-  const bandPageNo = bandPage(elements, bandId);
   const placementByChannel = new Map(newBand.placements.map((p) => [p.channel, p]));
   const next = elements.map((el) =>
-    reposition(el, bandId, placementByChannel, oldBottom ?? 0, delta, bandPageNo),
+    reposition(el, bandId, placementByChannel),
   );
   const reconciled = reconcileDocumentPages(next, createId, { collapseEmpty: true });
   return { elements: reconciled.elements, pageCount: reconciled.pageCount };
 }
 
 /**
- * Remove a channel (icon + label) and reflow the band + document.
+ * Remove a channel and re-lay only the remaining contact-band members.
  */
 export function applyChannelRemoval(elements, bandId, channel, measure, createId) {
   const descriptor = bandDescriptor(elements, bandId);
@@ -231,20 +179,19 @@ export function applyChannelRemoval(elements, bandId, channel, measure, createId
   if (!oldChannels.includes(channel)) return { elements };
   const labels = channelLabels(elements, bandId);
   const nextChannels = oldChannels.filter((c) => c !== channel);
-  // Drop the removed pair BEFORE repositioning; oldItems still includes it so
-  // the delta reflects the height the band actually had before removal.
+  // Drop the removed pair before repositioning the remaining band members.
   const kept = elements.filter(
     (el) => !(el.contactBandId === bandId && el.contactChannel === channel),
   );
   return relayoutAndReconcile(
     kept, bandId, descriptor,
-    itemsFor(oldChannels, labels), itemsFor(nextChannels, labels),
+    itemsFor(nextChannels, labels),
     measure, createId,
   );
 }
 
 /**
- * Add an inactive channel (icon + label) and reflow the band + document.
+ * Add an inactive channel and re-lay only the contact-band members.
  * `label` is the seed text; when omitted the label starts empty for the user
  * to type.
  */
@@ -327,7 +274,7 @@ export function applyChannelAddition(elements, bandId, channel, label, measure, 
   const withNew = [...elements, ...extras, iconEl, labelEl];
   return relayoutAndReconcile(
     withNew, bandId, descriptor,
-    itemsFor(oldChannels, labels), itemsFor(nextChannels, nextLabels),
+    itemsFor(nextChannels, nextLabels),
     measure, createId,
   );
 }

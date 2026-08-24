@@ -153,13 +153,9 @@ test("addition creates a plain filled label (no auto-edit) with a placeholder", 
   assert.equal(elements.filter((e) => e.isEditing).length, 0);
 });
 
-test("downstream shift stays on the band's page — never moves continuation content", () => {
-  // A 2-page CV: masthead band on page 1, a section below it on page 1, and a
-  // section on PAGE 2. `top` is page-relative, so the page-2 body's top (90)
-  // exceeds the band's oldBottom (104? no — 90<104 here) is not the point; the
-  // page-2 HEADER at top 130 sits below the band bottom in page-relative terms
-  // and must NOT be dragged when the band grows. Guarding by page keeps every
-  // continuation-page element exactly where it was.
+test("adding a wrapping contact keeps content below the reserved zone fixed", () => {
+  // Optional contacts may rearrange within the masthead, but the authored
+  // contact-zone boundary must not move body content on any page.
   const base = [
     ...doc(),
     { element_id: "p2head", category: "text", content: "EDUCATION", left: 44, top: 130, page: 2 },
@@ -168,22 +164,14 @@ test("downstream shift stays on the band's page — never moves continuation con
   let n = 0;
   const { elements } = applyChannelAddition(base, "b1", "github", undefined, measure, () => `new-${n++}`);
   const g = (id) => elements.find((e) => e.element_id === id);
-  // Page-1 downstream content still reflows.
-  assert.ok(g("head").top >= 146, "page-1 heading reflowed with the band");
-  // Page-2 content is untouched.
+  assert.equal(g("rule").top, 126);
+  assert.equal(g("head").top, 146);
   assert.equal(g("p2head").top, 130);
   assert.equal(g("p2head").page, 2);
   assert.equal(g("p2body").top, 160);
 });
 
-test("live label edit that grows the band never moves fixedToPage masthead chrome", () => {
-  // Regression: Slate's photo cluster (corner accent marks, base bar) is
-  // `fixedToPage` decorative chrome that sits below the masthead's top. Typing
-  // an unusually long value into a contact label (e.g. a GitHub username with
-  // no spaces) widens that row enough to wrap the next channel onto a second
-  // line, growing the band. `reposition` used to shift ANY element with
-  // top >= oldBottomY regardless of `fixedToPage`, dragging locked masthead
-  // ornaments along with genuine downstream body content.
+test("a growing contact label moves neither body content nor masthead chrome", () => {
   const withChrome = [
     ...doc(),
     {
@@ -197,11 +185,14 @@ test("live label edit that grows the band never moves fixedToPage masthead chrom
   const { elements } = applyChannelRelayout(edited, "b1", measure, () => "new-id");
   const ornament = elements.find((e) => e.element_id === "ornament");
   const head = elements.find((e) => e.element_id === "head");
-  // The band did grow (email wrapped to a second row) — otherwise this test
-  // would not exercise the bug at all.
-  assert.ok(head.top > 146, "sanity: the band actually grew and shifted body content");
-  // The locked masthead ornament stayed exactly where it was authored.
+  assert.equal(head.top, 146);
   assert.equal(ornament.top, 110);
+});
+
+test("removing a contact keeps the following section at its authored Y", () => {
+  const { elements } = applyChannelRemoval(doc(), "b1", "email", measure, () => "id");
+  assert.equal(elements.find((e) => e.element_id === "rule").top, 126);
+  assert.equal(elements.find((e) => e.element_id === "head").top, 146);
 });
 
 // ── Chip mode (Volt): rect + icon + label triple per channel ────────────────

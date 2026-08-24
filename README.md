@@ -1334,7 +1334,7 @@ Known limitations: no live A4 preview inside the wizard; template cards still sh
 
 ### Contact links (LinkedIn, GitHub, website)
 
-First-class `cv_data` fields `linkedin`, `github`, and `website` survive `normalize_cv_data` (they were previously dropped). Masthead labels preserve the complete user-entered contact path after removing a URL scheme; no contact channel is shortened with an ellipsis. Icon templates use dedicated PNGs (`linkedin`, `github`, `website`) from `template_assets/iconic/`; wrapping placers move overflow to additional contact rows and push the header rule / flow start so body content does not overlap. Tessera and Slate place every contact channel (phone, email, socials, location) in the masthead as wrapping icon+label rows — no sidebar KONTAKT. Text mastheads append full social labels to `_contact_line`.
+First-class `cv_data` fields `linkedin`, `github`, and `website` survive `normalize_cv_data` (they were previously dropped). Masthead labels preserve the complete user-entered contact path after removing a URL scheme; no contact channel is shortened with an ellipsis. Icon templates use dedicated PNGs (`linkedin`, `github`, `website`) from `template_assets/iconic/`; wrapping placers move overflow to additional rows inside the template's reserved contact zone. Adding, removing, or editing a contact never changes the authored Y positions of the header rule or body sections below that zone. Tessera and Slate place every contact channel (phone, email, socials, location) in the masthead as wrapping icon+label rows — no sidebar KONTAKT. Text mastheads append full social labels to `_contact_line`.
 
 Implementation:
 
@@ -1350,23 +1350,23 @@ Tests: `backend/tests/test_contact_links.py`.
 
 ### Contact channel manager (Phase 1)
 
-After a CV is generated, the masthead contact row is editable channel-by-channel, Enhancv-style. Hovering a contact chip reveals a **trash** that removes that channel — its icon **and** its label as a unit; a **`+`** at the band end lists the channels not currently shown and inserts one (with its icon). After either action the band re-centers / re-wraps and the header rule + first section reflow so nothing overlaps. Editing a channel's text still works by clicking it (single-line `text` element).
+After a CV is generated, the masthead contact row is editable channel-by-channel, Enhancv-style. Hovering a contact chip reveals a **trash** that removes that channel — its icon **and** its label as a unit; a **`+`** at the band end lists the channels not currently shown and inserts one (with its icon). After either action only the contact members re-center / re-wrap inside their reserved masthead zone. The header rule and every section below retain their original Y coordinates, so repeated add/remove actions cannot distort the template rhythm. Editing a channel's text still works by clicking it (single-line `text` element).
 
 Phase 1 covers the six existing channels (`phone`, `email`, `linkedin`, `github`, `website`, `location`) on the **centered** and **wrapping** masthead layouts (e.g. Tessera). Reflow is **client-side and deterministic**: the canvas positions are authoritative for the PDF, so Save/Download reproduce exactly what the editor shows — no backend re-render. Legacy documents generated before this feature (no band descriptor) keep their previous per-element behaviour; there is no migration.
 
-How it works: the generator tags each icon+label pair with `contactChannel` + a shared `contactBandId` and emits a zero-footprint band **anchor** carrying a layout descriptor (mode, anchor geometry, fonts, icon theme, metrics, channel order). The client ports the backend centre/wrap math to recompute placements, then shifts every downstream element (`top >= band bottom`) by the band's height delta and re-paginates.
+How it works: the generator tags each icon+label pair with `contactChannel` + a shared `contactBandId` and emits a zero-footprint band **anchor** carrying a layout descriptor (mode, anchor geometry, fonts, icon theme, metrics, channel order). The client ports the backend centre/wrap math to recompute placements, updates only elements carrying that `contactBandId`, and then reconciles page chrome. Non-band elements are deliberately excluded, which makes the contact-zone boundary stable across centered, wrapping, stacked, and chip layouts.
 
 Implementation:
 
 - `frontend/src/utils/contactBandLayout.js` — pure centre/wrap layout engine (ported from `contact.py`).
-- `frontend/src/utils/contactBandOps.js` — `activeChannels` / `applyChannelRemoval` / `applyChannelAddition` (recompute + Δ reflow + `reconcileDocumentPages`).
+- `frontend/src/utils/contactBandOps.js`, lines 40–280 — `activeChannels`, `applyChannelRelayout`, `applyChannelRemoval`, and `applyChannelAddition` (band-only recompute + fixed downstream Y + `reconcileDocumentPages`).
 - `frontend/src/utils/contactBands.js` — `listContactBands` groups tagged chips per band.
 - `frontend/src/components/canvas/ContactChannelControls/` — inline hover trash + add-channel menu.
-- `frontend/src/hooks/useA4Elements.js` — `removeContactChannel` / `addContactChannel` (canvas-font measure; committed via `setA4_Elements`, so undo/redo + save apply).
+- `frontend/src/hooks/useA4Elements.js`, lines 1501–1510 and 2325–2337 — live `applyChannelRelayout`, `removeContactChannel`, and `addContactChannel` wiring (canvas-font measure; committed via `setA4_Elements`, so undo/redo + save apply).
 - `backend/app/services/cv_templates/shared/contact.py` — `band_id` tagging + descriptor, `build_contact_band_anchor`.
 - `backend/app/schemas/pdf_schema.py`, `backend/app/crud/pdfs.py` — `contactChannel` / `contactBandId` / `contactBand` persisted via `extra_properties`.
 
-Tests: `frontend/src/utils/contactBandLayout.test.js`, `contactBandOps.test.js`, `contactBands.test.js`; `backend/tests/test_contact_band_emit.py`, `test_contact_channel_roundtrip.py`.
+Tests: `frontend/src/utils/contactBandOps.test.js`, lines 156–197 (stable downstream Y for add, remove, and live growth), plus `contactBandLayout.test.js`, `contactBands.test.js`; `backend/tests/test_contact_band_emit.py`, `test_contact_channel_roundtrip.py`.
 
 ### Contact channel manager (Phase 2)
 
@@ -1374,7 +1374,7 @@ Phase 2 makes the manager usable everywhere and adds live editing:
 
 - **All templates.** The manager now works on Atrium, Portico, Tessera and Slate (centered / wrapping masthead), plus **Regent** (a new `stacked` layout mode, one channel per row) and **Volt** (a new `chip` layout mode — each channel is a rounded pill: a `rectangle` background with an icon and a label). Each template passes a `band_id` to its contact placer and appends the band anchor after its masthead `flowRole` pass so the anchor keeps its own `masthead-anchor` role.
 - **A just-added channel is editable.** The added label is seeded with the channel display name (real, clickable glyphs) and edited by clicking it — the same proven click→`setTextareaEditing` path every other text element uses. It is deliberately **not** auto-opened in edit mode: mounting an element already `isEditing:true` is an unreliable focus path, and canvas text uses `line-height: 0` (see `App.css` `.page-canvas p`), so an empty single-line label collapses to zero height and has no hit area. An empty label reserves the width of its placeholder (the channel display name) so the following chip never overlaps it.
-- **Live horizontal reflow while typing.** Editing a channel's label re-spaces the band on every keystroke (constant inter-item gap) and shifts downstream flow by the height delta, via `applyChannelRelayout` wired into `handleEditElementValues`. In `chip` mode the pill background is moved **and resized** with its icon and label.
+- **Live horizontal reflow while typing.** Editing a channel's label re-spaces the band on every keystroke (constant inter-item gap) without moving the rule or document body below the fixed contact zone, via `applyChannelRelayout` wired into `handleEditElementValues`. In `chip` mode the pill background is moved **and resized** with its icon and label.
 - **Canvas↔PDF parity.** The `chip` pill width uses the same character-count formula on the client (`contactBandLayout.js` `chipWidth`) and the backend (`_place_chip_icon_contacts`), so the canvas matches the PDF exactly.
 
 Additional implementation (on top of Phase 1):
@@ -3238,7 +3238,7 @@ Znane ograniczenia: brak live podglądu A4 w kreatorze; karty szablonów nadal p
 
 ### Linki kontaktowe (LinkedIn, GitHub, strona)
 
-Pola pierwszego rzędu `linkedin`, `github` i `website` w `cv_data` przechodzą przez `normalize_cv_data` (wcześniej były odrzucane). Etykiety w mastheadzie zachowują pełną ścieżkę kontaktu wpisaną przez użytkownika po usunięciu schematu URL; żaden kanał kontaktowy nie jest skracany wielokropkiem. Szablony z ikonami używają PNG (`linkedin`, `github`, `website`); zawijanie przenosi nadmiar do kolejnych wierszy kontaktu i przesuwa linię nagłówka / start treści. Tessera i Slate umieszczają wszystkie kanały kontaktu (telefon, email, social, lokalizacja) w mastheadzie jako zawijane wiersze ikona+etykieta — bez bloku KONTAKT w sidebarze. Mastheady tekstowe dopisują pełne etykiety social do `_contact_line`.
+Pola pierwszego rzędu `linkedin`, `github` i `website` w `cv_data` przechodzą przez `normalize_cv_data` (wcześniej były odrzucane). Etykiety w mastheadzie zachowują pełną ścieżkę kontaktu wpisaną przez użytkownika po usunięciu schematu URL; żaden kanał kontaktowy nie jest skracany wielokropkiem. Szablony z ikonami używają PNG (`linkedin`, `github`, `website`); zawijanie przenosi nadmiar do kolejnych wierszy wewnątrz zarezerwowanej strefy kontaktów. Dodanie, usunięcie ani edycja kontaktu nie zmienia autorskich pozycji Y linii nagłówka i sekcji poniżej tej strefy. Tessera i Slate umieszczają wszystkie kanały kontaktu (telefon, email, social, lokalizacja) w mastheadzie jako zawijane wiersze ikona+etykieta — bez bloku KONTAKT w sidebarze. Mastheady tekstowe dopisują pełne etykiety social do `_contact_line`.
 
 Implementacja:
 
@@ -3253,23 +3253,23 @@ Testy: `backend/tests/test_contact_links.py`.
 
 ### Menedżer kanałów kontaktu (Faza 1)
 
-Po wygenerowaniu CV rząd kontaktu w mastheadzie jest edytowalny kanał po kanale, w stylu Enhancv. Najechanie na chip kontaktu odsłania **kosz**, który usuwa dany kanał — jego ikonę **oraz** etykietę jako całość; **`+`** na końcu paska pokazuje kanały aktualnie niewidoczne i wstawia wybrany (wraz z ikoną). Po każdej akcji pasek ponownie się centruje / zawija, a linia nagłówka i pierwsza sekcja przepływają, więc nic się nie nakłada. Edycja tekstu kanału nadal działa przez kliknięcie (jednoliniowy element `text`).
+Po wygenerowaniu CV rząd kontaktu w mastheadzie jest edytowalny kanał po kanale, w stylu Enhancv. Najechanie na chip kontaktu odsłania **kosz**, który usuwa dany kanał — jego ikonę **oraz** etykietę jako całość; **`+`** na końcu paska pokazuje kanały aktualnie niewidoczne i wstawia wybrany (wraz z ikoną). Po każdej akcji wyłącznie elementy kontaktowe ponownie się centrują / zawijają wewnątrz zarezerwowanej strefy mastheadu. Linia nagłówka oraz wszystkie sekcje poniżej zachowują oryginalne współrzędne Y, więc wielokrotne dodawanie i usuwanie nie psuje rytmu szablonu. Edycja tekstu kanału nadal działa przez kliknięcie (jednoliniowy element `text`).
 
 Faza 1 obejmuje sześć istniejących kanałów (`phone`, `email`, `linkedin`, `github`, `website`, `location`) w układach **wycentrowanym** i **zawijanym** masthead (np. Tessera). Reflow jest **po stronie klienta i deterministyczny**: pozycje na płótnie są autorytetem dla PDF, więc Zapisz/Pobierz odtwarzają dokładnie to, co widać w edytorze — bez ponownego renderu backendu. Dokumenty utworzone przed tą funkcją (bez deskryptora paska) zachowują dotychczasowe zachowanie per-element; brak migracji.
 
-Jak to działa: generator taguje każdą parę ikona+etykieta polami `contactChannel` + wspólnym `contactBandId` i emituje zerowej wielkości **anchor** paska z deskryptorem układu (tryb, geometria kotwicy, czcionki, motyw ikon, metryki, kolejność kanałów). Klient przenosi matematykę centrowania/zawijania z backendu, przelicza pozycje, a następnie przesuwa każdy element poniżej (`top >= dół paska`) o deltę wysokości paska i ponownie stronicuje.
+Jak to działa: generator taguje każdą parę ikona+etykieta polami `contactChannel` + wspólnym `contactBandId` i emituje zerowej wielkości **anchor** paska z deskryptorem układu (tryb, geometria kotwicy, czcionki, motyw ikon, metryki, kolejność kanałów). Klient przenosi matematykę centrowania/zawijania z backendu, przelicza pozycje wyłącznie elementów z tym `contactBandId`, a następnie uzgadnia chrome stron. Elementy spoza paska są celowo wyłączone, dzięki czemu granica strefy kontaktowej pozostaje stała w trybach centered, wrapping, stacked i chip.
 
 Implementacja:
 
 - `frontend/src/utils/contactBandLayout.js` — czysty silnik układu (port z `contact.py`).
-- `frontend/src/utils/contactBandOps.js` — `activeChannels` / `applyChannelRemoval` / `applyChannelAddition` (przelicz + reflow Δ + `reconcileDocumentPages`).
+- `frontend/src/utils/contactBandOps.js`, linie 40–280 — `activeChannels`, `applyChannelRelayout`, `applyChannelRemoval` i `applyChannelAddition` (przeliczenie tylko paska + stałe Y treści poniżej + `reconcileDocumentPages`).
 - `frontend/src/utils/contactBands.js` — `listContactBands` grupuje otagowane chipy per pasek.
 - `frontend/src/components/canvas/ContactChannelControls/` — hover kosz + menu dodawania kanału.
-- `frontend/src/hooks/useA4Elements.js` — `removeContactChannel` / `addContactChannel` (pomiar czcionką płótna; zatwierdzane przez `setA4_Elements`, więc undo/redo + zapis działają).
+- `frontend/src/hooks/useA4Elements.js`, linie 1501–1510 i 2325–2337 — podpięcie live `applyChannelRelayout`, `removeContactChannel` i `addContactChannel` (pomiar czcionką płótna; zatwierdzane przez `setA4_Elements`, więc undo/redo + zapis działają).
 - `backend/app/services/cv_templates/shared/contact.py` — tagowanie `band_id` + deskryptor, `build_contact_band_anchor`.
 - `backend/app/schemas/pdf_schema.py`, `backend/app/crud/pdfs.py` — `contactChannel` / `contactBandId` / `contactBand` utrwalane przez `extra_properties`.
 
-Testy: `frontend/src/utils/contactBandLayout.test.js`, `contactBandOps.test.js`, `contactBands.test.js`; `backend/tests/test_contact_band_emit.py`, `test_contact_channel_roundtrip.py`.
+Testy: `frontend/src/utils/contactBandOps.test.js`, linie 156–197 (stałe Y treści poniżej przy dodawaniu, usuwaniu i wzroście etykiety), a także `contactBandLayout.test.js`, `contactBands.test.js`; `backend/tests/test_contact_band_emit.py`, `test_contact_channel_roundtrip.py`.
 
 ### Menedżer kanałów kontaktu (Faza 2)
 
@@ -3277,7 +3277,7 @@ Faza 2 udostępnia menedżera we wszystkich szablonach i dodaje edycję na żywo
 
 - **Wszystkie szablony.** Menedżer działa teraz w Atrium, Portico, Tessera i Slate (masthead wycentrowany / zawijany), a także w **Regent** (nowy tryb układu `stacked`, jeden kanał na wiersz) oraz **Volt** (nowy tryb `chip` — każdy kanał to zaokrąglona pigułka: tło `rectangle` z ikoną i etykietą). Każdy szablon przekazuje `band_id` do swojego placera kontaktów i dopina anchor paska **po** przejściu ustawiającym `flowRole` masthead, aby anchor zachował własną rolę `masthead-anchor`.
 - **Świeżo dodany kanał jest edytowalny.** Dodana etykieta jest zasilana nazwą wyświetlaną kanału (prawdziwe, klikalne glify) i edytowana przez kliknięcie — tą samą, sprawdzoną ścieżką klik→`setTextareaEditing`, której używa każdy inny element tekstowy. Celowo **nie** jest automatycznie otwierana w trybie edycji: montowanie elementu już z `isEditing:true` to zawodna ścieżka fokusu, a tekst na płótnie używa `line-height: 0` (patrz `App.css` `.page-canvas p`), więc pusta jednowierszowa etykieta zapada się do zerowej wysokości i nie ma pola trafienia. Pusta etykieta rezerwuje szerokość swojego placeholdera (nazwy kanału), aby następny chip jej nie nachodził.
-- **Poziomy reflow na żywo podczas pisania.** Edycja etykiety kanału przelicza odstępy paska przy każdym naciśnięciu klawisza (stały odstęp między elementami) i przesuwa dalszy przepływ o deltę wysokości, przez `applyChannelRelayout` wpięte w `handleEditElementValues`. W trybie `chip` tło pigułki jest przesuwane **i skalowane** wraz z ikoną i etykietą.
+- **Poziomy reflow na żywo podczas pisania.** Edycja etykiety kanału przelicza odstępy paska przy każdym naciśnięciu klawisza (stały odstęp między elementami), ale nie przesuwa linii ani treści dokumentu pod stałą strefą kontaktów; odpowiada za to `applyChannelRelayout` wpięte w `handleEditElementValues`. W trybie `chip` tło pigułki jest przesuwane **i skalowane** wraz z ikoną i etykietą.
 - **Parzystość płótno↔PDF.** Szerokość pigułki `chip` używa tej samej formuły opartej na liczbie znaków po stronie klienta (`contactBandLayout.js` `chipWidth`) i backendu (`_place_chip_icon_contacts`), więc płótno odpowiada dokładnie PDF.
 
 Dodatkowa implementacja (ponad Fazę 1):
