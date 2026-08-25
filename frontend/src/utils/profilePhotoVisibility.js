@@ -6,7 +6,9 @@
  * authored geometry and makes show/hide lossless across undo, save, and reload.
  * Portico stores the original position on every reclaimed element. Slate and
  * Tessera store the original contact-band descriptor on its zero-size anchor,
- * then switch the band to a one-row-per-channel sidebar layout.
+ * then switch the band to a one-row-per-channel sidebar layout. Linden starts
+ * with that stacked rail already active and publishes its own hidden-photo
+ * anchor plus a contact-to-section spacing contract.
  */
 
 const SUPPORTED_TEMPLATE_IDS = new Set([
@@ -16,9 +18,10 @@ const SUPPORTED_TEMPLATE_IDS = new Set([
   "portico",
   "slate",
   "tessera",
+  "linden",
 ]);
 
-const SIDEBAR_CONTACT_TEMPLATE_IDS = new Set(["slate", "tessera"]);
+const SIDEBAR_CONTACT_TEMPLATE_IDS = new Set(["slate", "tessera", "linden"]);
 export const SIDEBAR_CONTACT_SECTION_GAP = 40;
 const PORTICO_PHOTO_BOTTOM = 159;
 const PORTICO_RECLAIM_PT = 100;
@@ -56,8 +59,12 @@ function contactAnchor(elements) {
 }
 
 /**
- * Resolve the absolute Y coordinate reserved for the first sidebar section
- * while Slate/Tessera contacts occupy the hidden-photo rail.
+ * Resolve the absolute Y coordinate reserved for the first sidebar section.
+ *
+ * Slate/Tessera use the fallback only while contacts occupy a hidden-photo
+ * rail. Templates such as Linden may publish ``sidebarSectionGap`` directly
+ * on the active contact descriptor, which keeps the same measured boundary
+ * while the photo is visible and after live contact edits.
  *
  * Structural packers call this after spacing or section-order changes. Using
  * the same measured contact geometry as the hide flow prevents those packers
@@ -71,12 +78,14 @@ function contactAnchor(elements) {
 export function hiddenProfileContactSectionFloor(elements, pageHeight = 842) {
   const list = elements || [];
   const anchor = contactAnchor(list);
+  const authoredGap = Number(anchor?.contactBand?.sidebarSectionGap);
+  const hasAuthoredSidebarFloor = Number.isFinite(authoredGap) && authoredGap >= 0;
   const isHiddenSidebarBand = Boolean(
     anchor?.profilePhotoMainContactBand
     && anchor?.contactBand?.mode === "stacked"
     && list.some((element) => element?.photoSlotHidden === true),
   );
-  if (!isHiddenSidebarBand) return null;
+  if (!isHiddenSidebarBand && !hasAuthoredSidebarFloor) return null;
 
   const contacts = list.filter((element) => (
     element.contactBandId === anchor.contactBandId
@@ -95,7 +104,9 @@ export function hiddenProfileContactSectionFloor(elements, pageHeight = 842) {
       );
     }))
     : startY;
-  return contactBottom + SIDEBAR_CONTACT_SECTION_GAP;
+  return contactBottom + (
+    hasAuthoredSidebarFloor ? authoredGap : SIDEBAR_CONTACT_SECTION_GAP
+  );
 }
 
 /** Whether this template exposes the photo visibility affordance. */
@@ -156,7 +167,7 @@ export function profilePhotoControlAnchor(elements, templateId) {
 }
 
 /**
- * Place the first Slate/Tessera sidebar section below the contact stack after
+ * Place the first managed sidebar section below the contact stack after the
  * contact-band layout has produced its final coordinates.
  *
  * Measuring rendered members instead of predicting row count is important:
@@ -166,7 +177,12 @@ export function profilePhotoControlAnchor(elements, templateId) {
 export function alignSidebarAfterProfileContacts(elements, bandId, templateId) {
   const id = String(templateId || "");
   const list = elements || [];
-  if (!SIDEBAR_CONTACT_TEMPLATE_IDS.has(id) || !isProfilePhotoHidden(list)) return list;
+  const anchor = contactAnchor(list);
+  const keepsVisibleContactFloor = Number.isFinite(Number(anchor?.contactBand?.sidebarSectionGap));
+  if (
+    !SIDEBAR_CONTACT_TEMPLATE_IDS.has(id)
+    || (!isProfilePhotoHidden(list) && !keepsVisibleContactFloor)
+  ) return list;
 
   const sectionFloor = hiddenProfileContactSectionFloor(list);
   if (sectionFloor == null) return list;
@@ -213,6 +229,15 @@ export function hideProfilePhoto(elements, templateId) {
   const next = list.map((element) => {
     if (isSlotMember(element, id)) return { ...element, photoSlotHidden: true };
 
+    const hiddenTop = Number(element.profilePhotoHiddenTop);
+    if (Number.isFinite(hiddenTop)) {
+      return {
+        ...element,
+        top: hiddenTop,
+        photoLayoutHome: element.photoLayoutHome || { top: Number(element.top) || 0 },
+      };
+    }
+
     if (id === "portico") {
       if (element.mastheadIdentity?.title?.spec) {
         const original = clone(element.mastheadIdentity);
@@ -255,13 +280,14 @@ export function hideProfilePhoto(elements, templateId) {
 
     if (SIDEBAR_CONTACT_TEMPLATE_IDS.has(id) && anchor && element.element_id === anchor.element_id) {
       const descriptor = clone(element.contactBand);
+      const hidden = descriptor?.photoHidden;
       return {
         ...element,
         profilePhotoMainContactBand: clone(element.contactBand),
         contactBand: {
           ...descriptor,
-          mode: "stacked",
-          anchor: { startX: 33, startY: 42, rightLimit: 174 },
+          mode: hidden?.mode || "stacked",
+          anchor: hidden?.anchor || { startX: 33, startY: 42, rightLimit: 174 },
         },
       };
     }

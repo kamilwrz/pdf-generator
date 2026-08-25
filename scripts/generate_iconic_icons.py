@@ -355,6 +355,13 @@ SUBSET_THEMES = {
         "#B38B6D",
         ["email", "phone", "location", "linkedin", "github", "website"],
     ),
+    # Linden pairs fine forest-green contact glyphs with a rectangular portrait
+    # placeholder. Section headings remain typographic, so no unrelated glyphs
+    # are generated for this restrained editorial system.
+    "linden": (
+        "#285548",
+        ["email", "phone", "location", "linkedin", "github", "website", "portrait"],
+    ),
     # Monument needs only black masthead contact glyphs and the portrait
     # placeholder; numbered text plates replace section icons in this layout.
     "monument": (

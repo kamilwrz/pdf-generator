@@ -2363,9 +2363,10 @@ export function useA4Elements(titleRef) {
 
   /**
    * Hide/show the profile slot through one history-aware canvas mutation.
-   * Slate/Tessera change the contact descriptor first, then run the existing
-   * contact layout engine so all active channels receive exact sidebar/main
-   * positions. Portico's stored positions are reconciled without re-packing.
+   * Slate/Tessera change the contact descriptor first, while Linden switches
+   * between its authored visible/hidden sidebar anchors. The existing contact
+   * layout engine then gives every active channel exact positions. Portico's
+   * stored positions are reconciled without re-packing.
    */
   const setProfilePhotoVisible = useCallback((visible) => {
     setA4_Elements((prev) => {

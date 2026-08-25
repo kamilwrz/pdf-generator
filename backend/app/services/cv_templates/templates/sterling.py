@@ -86,8 +86,21 @@ from app.services.cv_templates.shared.text import (
 )
 
 
-def _gen_sterling(cv: dict) -> list[dict]:
-    """Centered letterhead masthead, wide sidebar rail, single-section main column."""
+def _gen_sterling(
+    cv: dict,
+    *,
+    anchored_main_sections: frozenset[str] = frozenset({"experience"}),
+    page1_sidebar_start: float | None = None,
+) -> list[dict]:
+    """Build Sterling or a presentation variant on its column planner.
+
+    ``anchored_main_sections`` lets a derived template keep a movable section
+    in the primary reading column without duplicating Sterling's pagination
+    algorithm. ``page1_sidebar_start`` reserves template-specific masthead
+    furniture above the first rail bucket. Both parameters are private
+    generator contracts; the public registry continues to call Sterling with
+    its original defaults.
+    """
     C = {
         'paper': '#F7F8FA', 'ink': '#26313F',
         'accent': '#4A6FA5', 'accent_deep': '#33517A',
@@ -250,7 +263,8 @@ def _gen_sterling(cv: dict) -> list[dict]:
     probe = Builder(content_top)
     candidates = _sidebar_candidates(cv, lbl)
     edu_entries = _sidebar_education_entries(cv.get('education'))
-    sidebar_budget = 760.0 - content_top
+    sidebar_page1_top = float(page1_sidebar_start) if page1_sidebar_start is not None else content_top
+    sidebar_budget = 760.0 - sidebar_page1_top
     main_budget = 770.0 - content_top
 
     def main_section_height(body_h: float) -> float:
@@ -269,6 +283,7 @@ def _gen_sterling(cv: dict) -> list[dict]:
             # Summary's rail advance = kicker gap + body + trailing 26 (matches
             # the explicit placement below).
             sidebar_height=CHROME_GAP + summary_side_body + 26.0,
+            anchored_main='summary' in anchored_main_sections,
         ))
 
     if cv.get('experience'):
@@ -284,7 +299,7 @@ def _gen_sterling(cv: dict) -> list[dict]:
         descriptors.append(PlaceableSection(
             'experience', RANK['experience'], 'main',
             main_height=main_section_height(exp_body), sidebar_height=None,
-            anchored_main=True,
+            anchored_main='experience' in anchored_main_sections,
         ))
 
     for candidate in candidates:
@@ -573,7 +588,7 @@ def _gen_sterling(cv: dict) -> list[dict]:
                 continue
             seen.add(key)
             keys.append(key)
-        start_y = content_top if page == 1 else PAGE_TOP
+        start_y = sidebar_page1_top if page == 1 else PAGE_TOP
         els, spill = _render_sidebar_bucket(page, keys, start_y)
         sidebar.extend(els)
 

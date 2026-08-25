@@ -6,6 +6,7 @@ import { monumentTemplate } from "../templates/monument.js";
 import { porticoTemplate } from "../templates/portico.js";
 import { slateTemplate } from "../templates/slate.js";
 import { tesseraTemplate } from "../templates/tessera.js";
+import { lindenTemplate } from "../templates/linden.js";
 import { applyChannelRelayout } from "./contactBandOps.js";
 import { applyTitleToggle } from "./mastheadIdentityOps.js";
 import {
@@ -144,6 +145,42 @@ describe("profile photo visibility", () => {
         .every((element) => element.photoSlotHidden === false));
     });
   }
+
+  it("reflows Linden's existing contact rail when its rectangular photo is hidden", () => {
+    const source = withIds(lindenTemplate);
+    const contactLabel = source.find((element) => element.content === "DANE KONTAKTOWE");
+    const originalLabelTop = contactLabel.top;
+    const hidden = hideProfilePhoto(source, "linden");
+    assert.equal(hidden.contactBandId, "linden-contact");
+    assert.equal(
+      hidden.elements.find((element) => element.element_id === contactLabel.element_id).top,
+      38,
+    );
+
+    const relaid = applyChannelRelayout(
+      hidden.elements,
+      hidden.contactBandId,
+      (text) => String(text).length * 5,
+      () => "unused-id",
+    ).elements;
+    const aligned = alignSidebarAfterProfileContacts(relaid, hidden.contactBandId, "linden");
+    const contactBottom = Math.max(...aligned
+      .filter((element) => element.contactBandId === "linden-contact" && element.contactChannel)
+      .map((element) => Number(element.top) + Math.max(
+        Number(element.height) || 0,
+        Number(element.fontSize) || 0,
+      )));
+    const sidebarTop = Math.min(...aligned
+      .filter((element) => element.flowRole === "sidebar-chrome")
+      .map((element) => Number(element.top)));
+    assert.equal(sidebarTop - contactBottom, 32);
+
+    const restored = showProfilePhoto(aligned, "linden").elements;
+    assert.equal(
+      restored.find((element) => element.element_id === contactLabel.element_id).top,
+      originalLabelTop,
+    );
+  });
 
   it("hides legacy Tessera photo chrome that predates ornament tags", () => {
     const legacy = withIds(tesseraTemplate).map((element) => {

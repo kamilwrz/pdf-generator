@@ -14,6 +14,7 @@ import { regentTemplate } from "../src/templates/regent.js";
 import { meridianTemplate } from "../src/templates/meridian.js";
 import { vestigeTemplate } from "../src/templates/vestige.js";
 import { archiveTemplate } from "../src/templates/archive.js";
+import { lindenTemplate } from "../src/templates/linden.js";
 
 const out = {
     volt: voltTemplate,
@@ -27,6 +28,7 @@ const out = {
     meridian: meridianTemplate,
     vestige: vestigeTemplate,
     archive: archiveTemplate,
+    linden: lindenTemplate,
 };
 writeFileSync(new URL("./iconic-templates.json", import.meta.url), JSON.stringify(out, null, 2));
 console.log("wrote iconic-templates.json");

@@ -285,6 +285,7 @@ TEMPLATES = [
     "meridian",
     "archive",
     "cadenza",
+    "linden",
 ]
 
 DOC_BLURBS = {
@@ -355,6 +356,12 @@ DOC_BLURBS = {
         " *\n"
         " * Swiss-inspired cream editorial layout with a white information rail\n"
         " * and fixed rectangle, circle, and ellipse page furniture."
+    ),
+    "linden": (
+        "Linden template (`layouts: [\"sidebar\", \"icons\"]`).\n"
+        " *\n"
+        " * Botanical editorial layout with a rectangular portrait, forest-green\n"
+        " * identity system, and a measured contact rail."
     ),
 }
 
@@ -471,7 +478,7 @@ def main() -> None:
             cv = REGENT_DEMO_CV
         elif template_id in COMPACT_TEMPLATE_IDS:
             cv = COMPACT_DEMO_CV
-        elif template_id in {"sterling", "vestige", "archive", "cadenza"}:
+        elif template_id in {"sterling", "vestige", "archive", "cadenza", "linden"}:
             cv = SIDEBAR_DEMO_CV
         else:
             cv = DEMO_CV

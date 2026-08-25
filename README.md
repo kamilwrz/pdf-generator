@@ -190,7 +190,7 @@ pdf-generator/
 │   │   ├── pages/            # Hero, Login, Register, PdfCanvas
 │   │   ├── services/         # ApiClient, fillTemplate, authenticatedImage, eventLog
 │   │   ├── store/            # Canvas / UiSurfaces / Session + PdfContext facade
-│   │   ├── templates/        # per-template specs + helpers; guest demo loads regentTemplate
+│   │   ├── templates/        # per-template specs + helpers; linden.js is the botanical editorial starter
 │   │   └── utils/            # geometry/reflow/sections, Sterling appearance palettes + type presets, guest helpers
 │   ├── package.json
 │   └── .env.example
@@ -757,7 +757,7 @@ Implementation:
 
 Limits:
 
-- Free (Darmowy) includes the Regent and Sterling starter templates, watermarked PDF export, and **one lifetime** CV import. Pro unlocks clean PDF, all 11 templates, further imports, content AI, ATS, and Layout for **59 zł / 30 days**. Stripe Checkout is not wired yet; unpaid selection may activate Pro via `ALLOW_UNPAID_PLAN_SELECTION`.
+- Free (Darmowy) includes the Regent and Sterling starter templates, watermarked PDF export, and **one lifetime** CV import. Pro unlocks clean PDF, all 13 templates, further imports, content AI, ATS, and Layout for **59 zł / 30 days**. Stripe Checkout is not wired yet; unpaid selection may activate Pro via `ALLOW_UNPAID_PLAN_SELECTION`.
 - ATS feedback (**Czytelność dla ATS**) checks whether the final PDF text can be extracted and whether content headings/keywords look standard. It is guidance, not a promise that every recruiter ATS will parse the file the same way.
 - The privacy section describes implemented data use at a high level and does not claim unimplemented certifications or anonymisation.
 
@@ -1139,9 +1139,35 @@ Tests:
 - `backend/tests/test_cadenza_template.py` — layout tags, fixed geometric chrome, sidebar lane, and shared experience record group.
 - `backend/tests/test_template_registry_sync.py` — backend/frontend template parity.
 
+### Linden botanical editorial sidebar template
+
+Linden is the thirteenth built-in template and a paid `['sidebar', 'icons']` layout. It interprets the supplied visual reference as an application-native Polish CV instead of copying the reference's sales copy: the document uses warm ivory paper (`#FBFAF6`), a quiet sand identity band (`#E5DDCB`), forest-green display typography (`#285548` / `#1E4037`), a rectangular portrait, and a narrow supporting-information rail. `CormorantGaramond` provides the editorial name and section hierarchy; `Montserrat` keeps contact data and record copy compact and readable. The Polish starter contains real CV sections (`DANE KONTAKTOWE`, `PODSUMOWANIE ZAWODOWE`, `DOŚWIADCZENIE ZAWODOWE`, `WYKSZTAŁCENIE`, `UMIEJĘTNOŚCI`, `JĘZYKI`, and `CERTYFIKATY`) rather than the editing instructions visible in the reference image.
+
+Linden supports the complete template-mode structural workflow. Users can add, remove, and reorder sections and records; move eligible sections between the main column and sidebar; change flat Skills/Languages layouts; add or remove individual contact channels; toggle name case and job-position visibility; hide/show the portrait slot; remove only the uploaded raster while retaining the reusable slot; change document spacing; paginate; compact a long CV; and unlock the result into freeform mode. The summary and experience are anchored in the main reading column, while the deterministic sidebar planner reserves the measured contact stack before placing the first rail section. The contact descriptor publishes a `sidebarSectionGap` of 32 pt and a photo-hidden anchor, so adding/removing contacts, hiding the portrait, changing section order, and applying density controls all derive the rail start from actual contact geometry rather than a fixed guessed Y coordinate. Hiding the title also hides its sand band without moving contacts or body content.
+
+Implementation:
+
+- `backend/app/services/cv_templates/templates/linden.py`, lines 82–317, function `_gen_linden` — applies Linden's visual system, rectangular photo slot, masthead identity contract, stacked contact descriptor, dynamic page-one rail budget, fixed continuation chrome, and transformation of Sterling's semantic lanes.
+- `backend/app/services/cv_templates/templates/sterling.py`, lines 89–649, function `_gen_sterling` — accepts private `anchored_main_sections` and `page1_sidebar_start` parameters so Linden can reuse the proven column planner without duplicating pagination; default Sterling output is unchanged.
+- `backend/app/services/cv_templates/registry.py`, lines 17–48 — registers `linden` with `{'sidebar', 'icons'}` layout metadata.
+- `frontend/src/templates/linden.js`, lines 1–1162, export `lindenTemplate`; `frontend/src/templates/index.js`, lines 22–39 — generated starter and paid picker entry.
+- `frontend/src/utils/profilePhotoVisibility.js`, lines 12–362, functions `hiddenProfileContactSectionFloor`, `alignSidebarAfterProfileContacts`, `hideProfilePhoto`, and `showProfilePhoto` — consumes the authored sidebar gap and photo-hidden contact geometry while preserving exact restore coordinates.
+- `scripts/generate_iconic_icons.py`, lines 361–364 — forest-green Linden contact and portrait glyph set in `backend/template_assets/iconic/linden/`.
+- `scripts/regenerate_template_starters.py`, lines 288–481, and `frontend/scripts/dump-iconic-templates.mjs`, lines 17–31 — starter and mockup regeneration routing.
+- `frontend/public/template-mockups/linden.png` — ReportLab/PyMuPDF-rendered A4 preview used by the Hero, template picker, carousel, and topbar hover cards.
+
+Tests:
+
+- `backend/tests/test_linden_template.py`, lines 1–82 — registry tags, editorial/photo geometry, semantic main/sidebar lanes, record groups, dedicated icons, and the contact/photo descriptor.
+- `frontend/src/templates/linden.test.js`, lines 1–77 — starter geometry, contact band, title decoration toggle, stationary body/contact behavior, and a real sidebar → main → sidebar transfer through `transferSectionLane`.
+- `frontend/src/utils/profilePhotoVisibility.test.js`, lines 149–183 — hide/reflow/show regression with an exact 32 pt contact-to-section boundary.
+- `backend/tests/test_template_registry_sync.py` — frontend/backend registry and paid/free entitlement parity.
+
+Known limitation: Sterling remains the only template with the dedicated six-palette and type-scale panel. Linden still supports normal per-element typography/color editing and every shared structural control, but it does not expose template-wide palette presets yet.
+
 ### Icon-tagged templates and icon reflow
 
-Regent, Volt, Tessera, Slate, and Portico are individual templates that share the `icons` layout tag (and optionally `sidebar` / `dark`). The same template IDs are generated deterministically by Python. Browser font measurement can change textarea heights, so icon images are explicitly grouped with nearby heading chrome instead of being left at their authored Y coordinate.
+Regent, Volt, Tessera, Slate, Portico, Atrium, Vestige, Meridian, Cadenza, and Linden are individual templates that share the `icons` layout tag (and optionally `sidebar` / `dark`). The same template IDs are generated deterministically by Python. Browser font measurement can change textarea heights, so icon images are explicitly grouped with nearby heading chrome instead of being left at their authored Y coordinate.
 
 Tessera and Slate fit complete compact sections via `_fit_sidebar_sections`; anything that does not fit spills into the main column instead of being truncated. Every fitted section's body height (used both to decide what fits and to position the *next* section's heading) is measured by `_sidebar_wrapped_height` (`backend/app/services/cv_templates/shared/extras.py`), which delegates to the same ReportLab-based `Builder.measure_block` used for education, main-column records, and the summary body — not an independent approximation. An earlier character-count heuristic there could diverge from the real wrap point depending on a section's specific text, which showed up as visibly uneven gaps between consecutive sidebar sections (Tessera, Slate, and Sterling all share this code path) once the client canvas corrected each body box down to its real rendered height. The shared Iconic cap offset (`CANVAS_TEXT_CAP_MID = 1.0` in `frontend/src/utils/iconAlignment.js`, mirrored by `PDF_Generator.renderImage`) keeps text-aligned section icons 1:1 between canvas and PDF for Regent, Volt, Tessera, Slate, Portico and similar templates. Iconic experience entries use the same textarea-block stack as project records (`SPACE_STACK` inside a job, `SPACE_RECORD` / 10 px between jobs) so canvas spacing matches exported PDF rhythm.
 
@@ -1173,7 +1199,7 @@ python scripts/regenerate_template_starters.py   # rewrites remaining starters (
 
 Atrium is regenerated from the same Julia Bernat persona by `scripts/regenerate_template_starters.py` (re-run that script whenever the shared demo or a generator changes).
 
-`frontend/public/template-mockups/{regent,volt,monument,tessera,slate,portico,atrium,sterling,regent,vestige,meridian,archive,cadenza}.png` — the previews shown in the Hero template gallery (`frontend/src/pages/Hero/Hero.jsx`), the in-app template picker (`frontend/src/components/modals/TemplatesModal/TemplatesModal.jsx`), and the hover pane in **Wypełnij z mojego CV** (`frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`) — are rendered from those starter arrays, not hand-drawn mockups. After starter changes, regenerate the PNGs:
+`frontend/public/template-mockups/{volt,monument,tessera,slate,portico,atrium,sterling,regent,vestige,meridian,archive,cadenza,linden}.png` — the previews shown in the Hero template gallery (`frontend/src/pages/Hero/Hero.jsx`), the in-app template picker (`frontend/src/components/modals/TemplatesModal/TemplatesModal.jsx`), and the hover pane in **Wypełnij z mojego CV** (`frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`) — are rendered from those starter arrays, not hand-drawn mockups. After starter changes, regenerate the PNGs:
 
 ```bash
 node frontend/scripts/dump-iconic-templates.mjs
@@ -1576,7 +1602,7 @@ Two-tier catalog only:
 | | Darmowy (Free) | Pro |
 |--|--|--|
 | Price | 0 zł | **59 zł / 30 days** (one-shot pass, not auto-renew) |
-| Templates | 2 starters (Regent, Sterling) | all 11 |
+| Templates | 2 starters (Regent, Sterling) | all 13 |
 | Import | 1 lifetime free | further imports from AI credits |
 | Export | watermarked | clean PDF |
 | AI | — | content + ATS + Layout |
@@ -2153,7 +2179,7 @@ pdf-generator/
 │   │   ├── pages/
 │   │   ├── services/         # ApiClient, fillTemplate, authenticatedImage
 │   │   ├── store/            # Canvas / UiSurfaces / Session + fasada PdfContext
-│   │   ├── templates/        # specyfikacje szablonów + helpery; gościnne demo ładuje regentTemplate
+│   │   ├── templates/        # specyfikacje szablonów + helpery; linden.js to botaniczny starter editorialny
 │   │   └── utils/            # geometria/reflow/sekcje, palety i presety tekstu Sterlinga, helpery gościa
 │   ├── package.json
 │   └── .env.example
@@ -2701,7 +2727,7 @@ Implementacja:
 
 Ograniczenia:
 
-- Plan Darmowy obejmuje dwa szablony startowe (Regent i Sterling), eksport PDF ze znakiem wodnym oraz **jeden** import CV w cyklu życia konta. Pro odblokowuje czysty PDF, wszystkie 11 szablonów, kolejne importy, AI treści, ATS i Układ za **59 zł / 30 dni**. Stripe Checkout jeszcze nie jest podłączony; przy `ALLOW_UNPAID_PLAN_SELECTION` Pro można aktywować bez płatności.
+- Plan Darmowy obejmuje dwa szablony startowe (Regent i Sterling), eksport PDF ze znakiem wodnym oraz **jeden** import CV w cyklu życia konta. Pro odblokowuje czysty PDF, wszystkie 13 szablonów, kolejne importy, AI treści, ATS i Układ za **59 zł / 30 dni**. Stripe Checkout jeszcze nie jest podłączony; przy `ALLOW_UNPAID_PLAN_SELECTION` Pro można aktywować bez płatności.
 - Wskazówki **Czytelność dla ATS** sprawdzają odczyt tekstu z finalnego PDF oraz standardowość nagłówków/słów kluczowych. To wskazówka, nie gwarancja że każdy system ATS odczyta plik tak samo.
 - Sekcja prywatności opisuje ogólnie zaimplementowane użycie danych i nie deklaruje niezaimplementowanych certyfikatów ani anonimizacji.
 
@@ -3077,9 +3103,35 @@ Testy:
 - `backend/tests/test_cadenza_template.py` — tagi layoutu, nieruchome geometryczne chrome, tor sidebara oraz wspólna grupa rekordu doświadczenia.
 - `backend/tests/test_template_registry_sync.py` — parytet szablonów frontend/backend.
 
+### Botaniczny szablon editorialny Linden z sidebarem
+
+Linden jest trzynastym wbudowanym szablonem i płatnym layoutem `['sidebar', 'icons']`. Interpretuje dostarczoną referencję wizualną jako natywne dla aplikacji polskie CV, zamiast kopiować tekst sprzedażowy z grafiki: dokument wykorzystuje ciepły papier ivory (`#FBFAF6`), spokojny piaskowy pas tożsamości (`#E5DDCB`), ekspozycyjną typografię w leśnej zieleni (`#285548` / `#1E4037`), prostokątne zdjęcie i wąską szynę informacji uzupełniających. `CormorantGaramond` buduje editorialną hierarchię nazwiska i sekcji, a `Montserrat` utrzymuje zwarte, czytelne kontakty i rekordy. Polski starter zawiera rzeczywiste sekcje CV (`DANE KONTAKTOWE`, `PODSUMOWANIE ZAWODOWE`, `DOŚWIADCZENIE ZAWODOWE`, `WYKSZTAŁCENIE`, `UMIEJĘTNOŚCI`, `JĘZYKI` i `CERTYFIKATY`), a nie instrukcje edycji widoczne na obrazie referencyjnym.
+
+Linden obsługuje pełny przepływ edycji strukturalnej trybu szablonu. Użytkownik może dodawać, usuwać i zmieniać kolejność sekcji oraz rekordów; przenosić kwalifikujące się sekcje między kolumną główną i sidebarem; zmieniać układ płaskich Umiejętności/Języków; dodawać lub usuwać pojedyncze kanały kontaktowe; przełączać wielkość liter imienia i widoczność stanowiska; chować/pokazywać slot portretu; usuwać wyłącznie wgrany raster z zachowaniem slotu; zmieniać rytm dokumentu; paginować; skracać długie CV i odblokować wynik do trybu freeform. Podsumowanie oraz Doświadczenie są zakotwiczone w głównej ścieżce czytania, a deterministyczny planer sidebara rezerwuje zmierzoną wysokość kontaktów przed ustawieniem pierwszej sekcji szyny. Deskryptor kontaktów publikuje `sidebarSectionGap` równy 32 pt oraz anchor dla ukrytego zdjęcia, dlatego dodawanie/usuwanie kontaktów, chowanie portretu, zmiana kolejności sekcji i kontrolki gęstości wyliczają początek szyny z realnej geometrii kontaktów, a nie ze zgadywanej stałej Y. Schowanie stanowiska usuwa również piaskowy pas, nie przesuwając kontaktów ani treści dokumentu.
+
+Implementacja:
+
+- `backend/app/services/cv_templates/templates/linden.py`, linie 82–317, funkcja `_gen_linden` — nakłada system wizualny Linden, prostokątny slot zdjęcia, kontrakt tożsamości mastheadu, stos kontaktów, dynamiczny budżet szyny strony 1, nieruchome chrome kontynuacji i transformację semantycznych torów Sterlinga.
+- `backend/app/services/cv_templates/templates/sterling.py`, linie 89–649, funkcja `_gen_sterling` — przyjmuje prywatne parametry `anchored_main_sections` oraz `page1_sidebar_start`, dzięki czemu Linden reużywa sprawdzony planer kolumn bez duplikowania paginacji; domyślne wyjście Sterlinga pozostaje bez zmian.
+- `backend/app/services/cv_templates/registry.py`, linie 17–48 — rejestruje `linden` z metadanymi layoutu `{'sidebar', 'icons'}`.
+- `frontend/src/templates/linden.js`, linie 1–1162, eksport `lindenTemplate`; `frontend/src/templates/index.js`, linie 22–39 — wygenerowany starter oraz płatny wpis w pickerze.
+- `frontend/src/utils/profilePhotoVisibility.js`, linie 12–362, funkcje `hiddenProfileContactSectionFloor`, `alignSidebarAfterProfileContacts`, `hideProfilePhoto` i `showProfilePhoto` — konsumuje autorski odstęp sidebara oraz geometrię kontaktów po schowaniu zdjęcia, zachowując dokładne pozycje do odtworzenia.
+- `scripts/generate_iconic_icons.py`, linie 361–364 — zielony zestaw glifów kontaktowych i portretu Linden w `backend/template_assets/iconic/linden/`.
+- `scripts/regenerate_template_starters.py`, linie 288–481, oraz `frontend/scripts/dump-iconic-templates.mjs`, linie 17–31 — routing regeneracji startera i mockupu.
+- `frontend/public/template-mockups/linden.png` — podgląd A4 wyrenderowany przez ReportLab/PyMuPDF, używany w Hero, pickerze, karuzeli i podglądach topbara.
+
+Testy:
+
+- `backend/tests/test_linden_template.py`, linie 1–82 — tagi rejestru, geometria editorialna/zdjęcia, semantyczne tory main/sidebar, grupy rekordów, dedykowane ikony oraz deskryptor kontakt/zdjęcie.
+- `frontend/src/templates/linden.test.js`, linie 1–77 — geometria startera, pasek kontaktów, przełączanie dekoracji stanowiska, nieruchoma treść/kontakty oraz prawdziwy transfer sidebar → main → sidebar przez `transferSectionLane`.
+- `frontend/src/utils/profilePhotoVisibility.test.js`, linie 149–183 — regresja hide/reflow/show z dokładną granicą 32 pt między kontaktem i sekcją.
+- `backend/tests/test_template_registry_sync.py` — parytet rejestru frontend/backend oraz uprawnień płatny/darmowy.
+
+Znane ograniczenie: Sterling pozostaje jedynym szablonem z dedykowanym panelem sześciu palet i skali tekstu. Linden nadal obsługuje zwykłą edycję typografii/koloru pojedynczych elementów i wszystkie wspólne kontrolki strukturalne, lecz nie udostępnia jeszcze presetów palety dla całego szablonu.
+
 ### Szablony z tagiem `icons` i reflow ikon
 
-Regent, Volt, Tessera, Slate i Portico to indywidualne szablony ze wspólnym tagiem layoutu `icons` (opcjonalnie też `sidebar` / `dark`). Te same identyfikatory generuje deterministycznie backend w Pythonie. Ponieważ pomiar fontów w przeglądarce może zmienić wysokości pól tekstowych, obrazy ikon są grupowane z nagłówkami i przesuwają się razem z nimi zamiast pozostawać na pierwotnej współrzędnej Y.
+Regent, Volt, Tessera, Slate, Portico, Atrium, Vestige, Meridian, Cadenza i Linden to indywidualne szablony ze wspólnym tagiem layoutu `icons` (opcjonalnie też `sidebar` / `dark`). Te same identyfikatory generuje deterministycznie backend w Pythonie. Ponieważ pomiar fontów w przeglądarce może zmienić wysokości pól tekstowych, obrazy ikon są grupowane z nagłówkami i przesuwają się razem z nimi zamiast pozostawać na pierwotnej współrzędnej Y.
 
 Tessera i Slate pakują kompletne sekcje przez `_fit_sidebar_sections`; to, co się nie mieści, trafia do kolumny głównej zamiast być ucinane. Wysokość body każdej dopasowanej sekcji (używana zarówno do decyzji, co się mieści, jak i do wyznaczenia pozycji nagłówka *następnej* sekcji) jest mierzona przez `_sidebar_wrapped_height` (`backend/app/services/cv_templates/shared/extras.py`), która deleguje do tego samego, opartego na ReportLab `Builder.measure_block`, jakiego używają wykształcenie, rekordy kolumny głównej i treść podsumowania — a nie do niezależnego przybliżenia. Wcześniejsza heurystyka licząca znaki mogła rozjeżdżać się z realnym punktem zawijania w zależności od konkretnego tekstu sekcji, co ujawniało się jako widocznie nierówne odstępy między kolejnymi sekcjami sidebara (Tessera, Slate i Sterling współdzielą tę ścieżkę kodu) po tym, jak canvas po stronie klienta korygował każdy box treści do jego realnej, wyrenderowanej wysokości. Wspólne przesunięcie optyczne Iconic (`CANVAS_TEXT_CAP_MID = 1.0` w `frontend/src/utils/iconAlignment.js`, odwzorowane w `PDF_Generator.renderImage`) utrzymuje ikony sekcji wyrównane do tekstu 1:1 między kanwą a PDF dla Regent, Volt, Tessera, Slate, Portico i podobnych szablonów. Wpisy doświadczenia w Iconic używają tego samego stosu bloków textarea co projekty (`SPACE_STACK` w środku wpisu, `SPACE_RECORD` / 10 px między wpisami), żeby rytm na canvas zgadzał się z eksportem PDF.
 
@@ -3111,7 +3163,7 @@ python scripts/regenerate_template_starters.py   # przepisuje pozostałe starter
 
 Atrium jest regenerowane z tej samej persony Julia Bernat przez `scripts/regenerate_template_starters.py` (uruchom ponownie po zmianie wspólnego demo lub generatora).
 
-Pliki `frontend/public/template-mockups/{regent,volt,monument,tessera,slate,portico,atrium,sterling,regent,vestige,meridian,archive,cadenza}.png` — podglądy w galerii Hero, pickerze i panelu **Wypełnij z mojego CV** — pochodzą z tych tablic starterów, nie z ręcznych grafik. Po zmianie starterów odtwórz PNG:
+Pliki `frontend/public/template-mockups/{volt,monument,tessera,slate,portico,atrium,sterling,regent,vestige,meridian,archive,cadenza,linden}.png` — podglądy w galerii Hero, pickerze i panelu **Wypełnij z mojego CV** — pochodzą z tych tablic starterów, nie z ręcznych grafik. Po zmianie starterów odtwórz PNG:
 
 ```bash
 node frontend/scripts/dump-iconic-templates.mjs
@@ -3510,7 +3562,7 @@ Katalog ma tylko dwa pakiety:
 | | Darmowy (Free) | Pro |
 |--|--|--|
 | Cena | 0 zł | **59 zł / 30 dni** (jednorazowy pass, bez auto-odnawiania) |
-| Szablony | 2 startowe (Regent, Sterling) | wszystkie 11 |
+| Szablony | 2 startowe (Regent, Sterling) | wszystkie 13 |
 | Import | 1 darmowy w życiu konta | kolejne z puli kredytów AI |
 | Eksport | ze znakiem wodnym | czysty PDF |
 | AI | — | treść + ATS + Układ |
