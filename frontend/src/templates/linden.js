@@ -745,18 +745,6 @@ const LINDEN_ELEMENTS = [
   },
   {
     "category": "line",
-    "left": 245.0,
-    "top": 168.0,
-    "width": 300.0,
-    "height": 1.0,
-    "backgroundColor": "#D3CCBC",
-    "zIndex": 2,
-    "page": 1,
-    "fixedToPage": true,
-    "repeatOnContinuation": false
-  },
-  {
-    "category": "line",
     "left": 34.0,
     "top": 806.0,
     "width": 152.0,
@@ -859,6 +847,7 @@ const LINDEN_ELEMENTS = [
     "zIndex": 0,
     "page": 1,
     "flowRole": "masthead-anchor",
+    "mainFlowStart": 190.0,
     "mastheadIdentity": {
       "id": "linden-masthead",
       "name": {

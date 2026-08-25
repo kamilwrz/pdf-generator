@@ -257,19 +257,23 @@ def _gen_linden(cv: dict) -> list[dict]:
     if name_element is not None:
         # A zero reclaim keeps the parallel contact rail and body stationary
         # when the title is hidden; only the title itself is toggled.
-        masthead.append(
-            tag_masthead_identity(
-                name_element,
-                title_element,
-                band_id="linden-masthead",
-                name_default_uppercase=True,
-                title_default_uppercase=False,
-                band_top=title_top,
-                title_reclaim_pt=0.0,
-                contact_band_id=None,
-                title_decorations=[title_band] if title_element is not None else None,
-            )
+        identity_anchor = tag_masthead_identity(
+            name_element,
+            title_element,
+            band_id="linden-masthead",
+            name_default_uppercase=True,
+            title_default_uppercase=False,
+            band_top=title_top,
+            title_reclaim_pt=0.0,
+            contact_band_id=None,
+            title_decorations=[title_band] if title_element is not None else None,
         )
+        # The editorial header intentionally keeps a generous clear zone below
+        # the sand identity band. The browser's structural packer consumes this
+        # contract after section reorder/density changes instead of treating
+        # the authored gap as corruption and collapsing it.
+        identity_anchor["mainFlowStart"] = desired_main_top
+        masthead.append(identity_anchor)
 
     contact_items = _contact_channel_items(cv)
     contacts, _contact_bottom, contact_descriptor = _place_stacked_icon_contacts(
@@ -335,12 +339,10 @@ def _gen_linden(cv: dict) -> list[dict]:
     masthead.extend([photo_well, photo_frame, photo_glyph])
 
     pages = max((int(element.get("page", 1)) for element in transformed), default=1)
-    furniture: list[dict] = [
-        _fixed(
-            _line(MAIN_LEFT, desired_main_top - 22.0, MAIN_WIDTH, 1.0, RULE, zIndex=2, page=1),
-            repeat=False,
-        ),
-    ]
+    # The sand title band already separates identity from body. A second rule
+    # above the first section duplicated that boundary and crossed the visual
+    # rhythm when body sections were reordered.
+    furniture: list[dict] = []
     for page in range(1, pages + 1):
         furniture.extend([
             _fixed(_line(34.0, 806.0, 152.0, 0.8, RULE, zIndex=2, page=page)),

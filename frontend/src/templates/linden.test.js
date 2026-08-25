@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { lindenTemplate } from "./linden.js";
 import { applyTitleToggle } from "../utils/mastheadIdentityOps.js";
 import { transferSectionLane } from "../utils/transferSectionLane.js";
+import { reorderSection } from "../utils/sectionStructure.js";
 import { DEFAULT_FLOW_SPACING } from "../utils/flowSpacing.js";
 
 test("Linden starter exposes the complete editorial structure", () => {
@@ -18,8 +19,48 @@ test("Linden starter exposes the complete editorial structure", () => {
   assert.equal(name.fontFamily, "CormorantGaramond");
   assert.equal(title.italic, true);
   assert.equal(summary.flowRole, "section-chrome");
+  assert.ok(lindenTemplate.some((element) => element.mainFlowStart === summary.top));
+  assert.equal(
+    lindenTemplate.some((element) => (
+      element.fixedToPage
+      && element.category === "line"
+      && element.page === 1
+      && element.left === summary.left
+      && element.top < summary.top
+    )),
+    false,
+    "the sand job-position band is the only masthead/body separator",
+  );
   assert.ok(lindenTemplate.some((element) => element.flowRole === "sidebar-chrome"));
   assert.ok(lindenTemplate.some((element) => element.flowGroup));
+});
+
+test("Linden section reorder preserves the authored main-column start", () => {
+  const source = lindenTemplate.map((element, index) => ({
+    ...element,
+    element_id: `linden-reorder-${index}`,
+  }));
+  const summary = source.find((element) => element.content === "PODSUMOWANIE ZAWODOWE");
+  const experience = source.find((element) => element.content === "DOŚWIADCZENIE ZAWODOWE");
+  const anchor = source.find((element) => Number.isFinite(element.mainFlowStart));
+
+  const reordered = reorderSection(
+    source,
+    experience.element_id,
+    "up",
+    842,
+    { spacing: DEFAULT_FLOW_SPACING },
+  );
+
+  assert.ok(reordered);
+  assert.equal(
+    reordered.find((element) => element.element_id === experience.element_id).top,
+    anchor.mainFlowStart,
+  );
+  assert.ok(
+    reordered.find((element) => element.element_id === summary.element_id).top
+      > anchor.mainFlowStart,
+  );
 });
 
 test("Linden contact band reserves the rail and uses dedicated icons", () => {

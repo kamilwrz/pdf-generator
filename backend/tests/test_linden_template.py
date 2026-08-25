@@ -54,6 +54,19 @@ def test_linden_matches_the_editorial_reference_without_losing_structure() -> No
     )
     assert summary_heading["flowRole"] == "section-chrome"
     assert summary_heading.get("flowLane") != "sidebar"
+    identity_anchor = next(
+        element for element in elements if element.get("mastheadBandId") == "linden-masthead"
+        and element.get("flowRole") == "masthead-anchor"
+    )
+    assert identity_anchor["mainFlowStart"] == summary_heading["top"]
+    assert not any(
+        element.get("fixedToPage")
+        and element.get("category") == "line"
+        and element.get("page", 1) == 1
+        and element.get("left") == summary_heading["left"]
+        and element.get("top", 0) < summary_heading["top"]
+        for element in elements
+    )
 
     sidebar_headings = [
         element for element in elements if element.get("flowRole") == "sidebar-chrome"

@@ -840,6 +840,20 @@ function hasCenteredMasthead(elements) {
  */
 function resolveFlowStart(elements, sections, pageHeight) {
   const list = elements || [];
+  // Some editorial mastheads deliberately leave more whitespace than the
+  // generic corruption-recovery window allows. Their generator publishes the
+  // authored main-column start on a masthead anchor so reorder/density packs
+  // cannot mistake that intentional clearance for a stale gap and pull the
+  // first section into the identity band.
+  const explicitAnchor = list.find((element) => (
+    element
+    && element.flowRole === "masthead-anchor"
+    && Number.isFinite(Number(element.mainFlowStart))
+  ));
+  if (explicitAnchor) {
+    const anchorPage = Math.max(1, Math.trunc(Number(explicitAnchor.page) || 1));
+    return (anchorPage - 1) * pageHeight + Number(explicitAnchor.mainFlowStart);
+  }
   const headingStart = Math.min(...sections.map((section) => section.startAbs));
   const firstHeading = list.find((element) => element.element_id === sections[0]?.headingId);
   const isSameColumn = sameColumnAsHeading(Number(firstHeading?.left) || 0);
