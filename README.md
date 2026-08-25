@@ -813,6 +813,8 @@ Known limitation: long user-provided section names are shortened only inside the
 
 ### Regent executive editorial template
 
+Regent reserves two contact rows even when the document is initially generated with fewer channels. The closing hairline is placed 24 pt below the second row's baseline, leaving 13.5 pt below Regent's 10.5 pt icons. Adding or removing a channel therefore cannot make contacts cross the rule or move the first body section.
+
 Regent is a free monochrome single-column template (`layouts: ["single", "icons"]`) for executives and consultants. It uses only white, charcoal, and neutral grey. A 38 px Cormorant Garamond name establishes the masthead, a widely tracked Montserrat role line keeps the hierarchy disciplined, and a centered band of small phone, email, LinkedIn, and location icons remains understated.
 
 Its defining choice is a 9.5 px Montserrat professional summary with an 11 px line height, matching the compact 11 px leading and face used by job and degree lines, record descriptions, education copy, skills, and languages. The serif display face stays on the masthead name. Only the smaller metadata rows keep their own line metric. This keeps imported multi-sentence summaries compact and lets experience, education, skills, and languages share an A4 page. Each section has a letter-spaced uppercase label and a 0.8 px grey hairline. The deterministic Python generator preserves these metrics for imported and user-authored CVs.
@@ -830,6 +832,8 @@ Tests:
 - `backend/tests/test_regent_template.py` — registry metadata, Montserrat summary at body scale, and contact-icon generation
 
 ### Meridian premium navy/steel-blue template
+
+Meridian uses the same stable two-row contact reservation as Regent, while retaining its denser character. Its hairline sits 24 pt below the second-row baseline (14 pt of visible clearance below a 10 pt icon); the following body heading keeps its authored coordinate, so the safety margin does not change pagination.
 
 Meridian is a paid single-column template (`layouts: ["single", "icons"]`) in the same structural family as Regent — a 34 px Cormorant Garamond name, a tracked Montserrat role line, and a centered band of phone/email/LinkedIn/location icons — but built around a deep navy-slate and steel-blue palette (`#1B2A41` ink, `#3D5A80` accent, `#7A8699` muted, `#D7DEE6` hairlines) instead of Regent's monochrome ink, so it reads as an intentionally distinct, elegant option rather than a recolor.
 
@@ -984,6 +988,19 @@ Known limitation: like Tessera, sidebar sections are atomic and remain on page 1
 Slate also supports manual [main ↔ sidebar section transfer](#transfer-section-between-main-and-sidebar) via the heading hover **↔** control — a movable section restyles for its destination column (Slate's rectilinear badge chrome vs its main-column type) and re-packs both lanes.
 
 ### Portico centered-masthead template
+
+Portico always reserves two contact rows. Its closing rule is measured from that reserved boundary and sits 24 pt below the second-row baseline, which leaves 12 pt of clear space below the 12 pt icons. The first section keeps its authored Y coordinate, so adding or deleting contact channels changes neither the divider/body rhythm nor page capacity.
+
+Shared contact-safety implementation:
+
+- `backend/app/services/cv_templates/shared/contact.py`, lines 432–461, function `_reserved_contact_last_row_top` — derives the minimum two-row band from the live-reflow descriptor
+- `backend/app/services/cv_templates/templates/portico.py`, lines 137–169; `regent.py`, lines 107–138; `meridian.py`, lines 351–380 — template-specific visual clearance while preserving each body's authored start
+- `frontend/src/templates/portico.js`, line 319; `regent.js`, line 215; `meridian.js`, line 216 — source starter divider coordinates
+
+Regression tests:
+
+- `backend/tests/test_contact_band_templates.py`, lines 75–106, test `test_centered_masthead_reserves_two_contact_rows_without_moving_body`
+- `frontend/src/templates/contactMastheadSpacing.test.js`, lines 8–48 — generator/starter parity and at least 12 pt between every contact icon and the divider
 
 Portico is a paid single-column template (`layouts: ["icons"]`) built around a centered masthead with icon chrome. The masthead stacks a centered name, a square profile-photo slot (`portico-photo-frame` / `portico-photo-well` — empty in the editor; gallery click fills it with `objectFit: cover`), a centered title, and a two-row contact band. Everything below the header rule — Summary, Experience, Education, Skills, and any extra sections — drops into the same left-aligned single-column icon body used by Regent. Montserrat is used for the name, title, contact labels, metadata, job positions, and body copy. Section labels use Inter and remain bold, creating a clear scan hierarchy above descriptive copy. All content textareas use a 12 px line height.
 
@@ -2729,14 +2746,16 @@ Znane ograniczenie: długie nazwy sekcji podane przez użytkownika są skracane 
 
 ### Executive editorial: Regent
 
-Regent to płatny, monochromatyczny szablon jednokolumnowy (`layouts: ["single", "icons"]`) dla osób na stanowiskach executive i consultant. Używa wyłącznie bieli, grafitu oraz neutralnych szarości. Nazwisko w Cormorant Garamond o rozmiarze 38 px buduje masthead, rozstrzelona linia stanowiska w Montserrat utrzymuje dyscyplinę hierarchii, a wyśrodkowany pas drobnych ikon telefonu, e-maila, LinkedIn i lokalizacji pozostaje subtelny.
+Regent rezerwuje dwa wiersze kontaktów nawet wtedy, gdy dokument jest początkowo generowany z mniejszą liczbą kanałów. Linia zamykająca znajduje się 24 pt pod bazą drugiego wiersza, co zostawia 13,5 pt prześwitu pod ikonami o wysokości 10,5 pt. Dodanie lub usunięcie kanału nie może więc przeciąć kontaktów linią ani przesunąć pierwszej sekcji body.
+
+Regent to darmowy, monochromatyczny szablon jednokolumnowy (`layouts: ["single", "icons"]`) dla osób na stanowiskach executive i consultant. Używa wyłącznie bieli, grafitu oraz neutralnych szarości. Nazwisko w Cormorant Garamond o rozmiarze 38 px buduje masthead, rozstrzelona linia stanowiska w Montserrat utrzymuje dyscyplinę hierarchii, a wyśrodkowany pas drobnych ikon telefonu, e-maila, LinkedIn i lokalizacji pozostaje subtelny.
 
 Najważniejszym elementem Regenta jest podsumowanie zawodowe złożone krojem Montserrat o rozmiarze 9,5 px i interlinii 11 px, takiej samej jak zwarta interlinia i krój linii stanowisk i dyplomów, opisów rekordów, treści wykształcenia, umiejętności i języków. Szeryfowy krój display zostaje przy nazwisku w mastheadzie, a własne metryki zachowują tylko mniejsze wiersze metadanych. Kompaktowe metryki pozwalają zmieścić wielozdaniowe podsumowanie, doświadczenie, wykształcenie, umiejętności i języki na A4. Każda sekcja ma wersalikową etykietę z rozstrzeleniem oraz szarą linię 0,8 px. Deterministyczny generator Python zachowuje te metryki dla importowanego i edytowanego CV.
 
 Implementacja:
 
 - `frontend/src/templates/regent.js`, eksport `regentTemplate` — edytowalny starter A4, pary ikon kontaktowych oraz monochromatyczne chrome sekcji
-- `frontend/src/templates/index.js`, wpis rejestru `regent` (`tier: "paid"`, `layouts: ["single", "icons"]`)
+- `frontend/src/templates/index.js`, wpis rejestru `regent` (`tier: "free"`, `layouts: ["single", "icons"]`)
 - `backend/app/services/cv_templates/templates/regent.py`, funkcja `_gen_regent` — deterministyczny układ treści i dekoracje stron kontynuacji
 - `backend/app/services/cv_templates/registry.py`, `TEMPLATE_LAYOUTS["regent"]` i `_GENERATORS["regent"]`
 
@@ -2746,6 +2765,8 @@ Testy:
 - `backend/tests/test_regent_template.py` — metadane rejestru, podsumowanie Montserrat w skali treści oraz generowanie ikon kontaktowych
 
 ### Meridian — premium, granatowo-niebieski szablon
+
+Meridian korzysta z tej samej stabilnej rezerwy dwóch wierszy kontaktów co Regent, zachowując przy tym swój gęstszy charakter. Linia znajduje się 24 pt pod bazą drugiego wiersza (14 pt widocznego prześwitu pod ikoną 10 pt), a następujący po niej nagłówek body zachowuje autorską współrzędną Y, dlatego margines bezpieczeństwa nie zmienia paginacji.
 
 Meridian to płatny szablon jednokolumnowy (`layouts: ["single", "icons"]`) z tej samej rodziny strukturalnej co Regent — nazwisko w Cormorant Garamond 34 px, rozstrzelona linia stanowiska w Montserrat oraz wyśrodkowany pas ikon telefonu/e-maila/LinkedIn/lokalizacji — ale zbudowany wokół głębokiej, granatowo-szarej i stalowo-niebieskiej palety (`#1B2A41` — atrament, `#3D5A80` — akcent, `#7A8699` — kolor stonowany, `#D7DEE6` — linie) zamiast monochromatycznego atramentu Regenta, dzięki czemu jest odbierany jako celowo odrębna, elegancka opcja, a nie przebarwiony Regent.
 
@@ -2900,6 +2921,19 @@ Znane ograniczenie: podobnie jak Tessera, sekcje sidebara są atomowe i pozostaj
 Slate obsługuje też ręczne [przenoszenie sekcji między main a sidebarem](#przenoszenie-sekcji-między-kolumną-główną-a-sidebarem) przez kontrolkę **↔** pojawiającą się po najechaniu na nagłówek — przenoszalna sekcja jest restylowana pod docelową kolumnę (prostokątne badge Slate vs typografia kolumny głównej) i oba tory są przepakowywane.
 
 ### Szablon Portico z wycentrowanym mastheadem
+
+Portico zawsze rezerwuje dwa wiersze kontaktów. Linia zamykająca jest liczona od tej zarezerwowanej granicy i znajduje się 24 pt pod bazą drugiego wiersza, co daje 12 pt czystego prześwitu pod ikonami o wysokości 12 pt. Pierwsza sekcja zachowuje autorską współrzędną Y, więc dodawanie i usuwanie kanałów nie zmienia rytmu linia/body ani pojemności strony.
+
+Wspólna implementacja bezpiecznego pasa kontaktowego:
+
+- `backend/app/services/cv_templates/shared/contact.py`, linie 432–461, funkcja `_reserved_contact_last_row_top` — wylicza minimalny pas dwuwierszowy z deskryptora reflow używanego na żywo
+- `backend/app/services/cv_templates/templates/portico.py`, linie 137–169; `regent.py`, linie 107–138; `meridian.py`, linie 351–380 — prześwit dopasowany do szablonu z zachowaniem autorskiego początku body
+- `frontend/src/templates/portico.js`, linia 319; `regent.js`, linia 215; `meridian.js`, linia 216 — współrzędne separatorów w starterach źródłowych
+
+Testy regresji:
+
+- `backend/tests/test_contact_band_templates.py`, linie 75–106, test `test_centered_masthead_reserves_two_contact_rows_without_moving_body`
+- `frontend/src/templates/contactMastheadSpacing.test.js`, linie 8–48 — zgodność generatora ze starterami i co najmniej 12 pt między każdą ikoną kontaktu a separatorem
 
 Portico to płatny szablon jednokolumnowy (`layouts: ["icons"]`) z wycentrowanym mastheadem i chrome ikonowym. Masthead układa wycentrowane imię i nazwisko, kwadratowy slot zdjęcia profilowego (`portico-photo-frame` / `portico-photo-well`), wycentrowany tytuł oraz dwuwierszowy pasek kontaktu. Paleta jest ciepła i stonowana — brąz/taupe (`#7C6A52` akcent, `#22221F` tusz, `#FCFBF8` papier, `#E4DED2` linia). Montserrat jest używany dla imienia, tytułu, kontaktu, metadanych, stanowisk i treści. Nagłówki sekcji używają Inter i są pogrubione. Wszystkie tekstowe pola treści mają line-height 12 px.
 

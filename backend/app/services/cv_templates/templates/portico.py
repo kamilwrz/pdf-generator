@@ -15,6 +15,7 @@ from app.services.cv_generator_primitives import (
 from app.services.cv_templates.shared.contact import (
     _contact_channel_items,
     _place_centered_icon_contacts,
+    _reserved_contact_last_row_top,
     build_contact_band_anchor,
 )
 from app.services.cv_templates.shared.extras import _extra_sections
@@ -134,7 +135,14 @@ def _gen_portico(cv: dict) -> list[dict]:
         band_id="contact-main",
     )
     header.extend(contact_els)
-    header_rule_y = contact_bottom + 16.0
+    # Keep a two-row contact zone even when the generated CV currently uses
+    # one row. Live channel edits can then wrap without colliding with the
+    # divider or shifting the document body. The 24-point baseline gap leaves
+    # 12 points of visible air below Portico's 12-point contact icons.
+    contact_zone_bottom = _reserved_contact_last_row_top(
+        contact_bottom, contact_descriptor, minimum_rows=2,
+    )
+    header_rule_y = contact_zone_bottom + 24.0
     header.append(_line(L, header_rule_y, W, 1, C['rule'], zIndex=2))
     # Name, photo slot, title, contacts, and divider stay out of section packing.
     header = [{**element, "flowRole": "masthead"} for element in header]
@@ -154,7 +162,10 @@ def _gen_portico(cv: dict) -> list[dict]:
             contact_band_id="contact-main",
         ))
 
-    start_y = header_rule_y + 1.0 + SPACE_AFTER_HEADER_RULE
+    # The divider moves within the already reserved masthead whitespace; keep
+    # the first section at its established Y so the safer contact spacing does
+    # not reduce page capacity or trigger unrelated pagination changes.
+    start_y = header_rule_y + 1.0 + SPACE_AFTER_HEADER_RULE - 8.0
     b = Builder(start_y)
     label_fs = 8.5
     section_icon = 14.0

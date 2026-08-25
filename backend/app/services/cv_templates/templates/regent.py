@@ -19,6 +19,7 @@ from app.services.cv_generator_primitives import (
 from app.services.cv_templates.shared.contact import (
     _contact_channel_items,
     _place_centered_icon_contacts,
+    _reserved_contact_last_row_top,
     build_contact_band_anchor,
 )
 from app.services.cv_templates.shared.extras import _extra_sections
@@ -104,7 +105,13 @@ def _gen_regent(cv: dict) -> list[dict]:
         band_id="regent-contact",
     )
     header.extend(contact_elements)
-    rule_y = contact_bottom + 20.0
+    # Reserve two centered contact rows independently of the channels present
+    # at generation time. A 24-point baseline gap leaves 13.5 points below
+    # Regent's icons, so a wrapped second row never touches the hairline.
+    contact_zone_bottom = _reserved_contact_last_row_top(
+        contact_bottom, contact_descriptor, minimum_rows=2,
+    )
+    rule_y = contact_zone_bottom + 24.0
     header.append(_line(L, rule_y, W, 0.8, C["rule"], zIndex=2, page=1))
     header = [{**element, "flowRole": "masthead"} for element in header]
     header.append(build_contact_band_anchor(contact_descriptor))
@@ -126,7 +133,9 @@ def _gen_regent(cv: dict) -> list[dict]:
 
     section_label_fs = 8.7
     section_chrome_h = section_label_fs + 6 + get_spacing().after_rule + 7
-    b = Builder(rule_y + SPACE_AFTER_HEADER_RULE + 1.0)
+    # Absorb the four-point divider adjustment inside the existing masthead
+    # whitespace and preserve the body's established starting coordinate.
+    b = Builder(rule_y + SPACE_AFTER_HEADER_RULE + 1.0 - 4.0)
 
     def section(label: str) -> None:
         """Place a compact heading and hairline that travel as one chrome group."""

@@ -316,7 +316,7 @@ const PORTICO_ELEMENTS = [
   {
     "category": "line",
     "left": 76,
-    "top": 222.0,
+    "top": 230.0,
     "width": 443,
     "height": 1,
     "backgroundColor": "#E4DED2",

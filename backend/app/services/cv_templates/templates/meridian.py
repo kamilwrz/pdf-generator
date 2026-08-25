@@ -53,6 +53,7 @@ from app.services.cv_generator_primitives import (
 from app.services.cv_templates.shared.contact import (
     _contact_channel_items,
     _place_centered_icon_contacts,
+    _reserved_contact_last_row_top,
     build_contact_band_anchor,
 )
 from app.services.cv_templates.shared.extras import _extra_sections
@@ -67,8 +68,8 @@ from app.services.cv_templates.shared.text import _bullets, _compact_text, _labe
 # spacing.
 _NAME_TO_TITLE_GAP = 6.0
 _TITLE_TO_CONTACT_GAP = 14.0
-_CONTACT_TO_RULE_GAP = 14.0
-_MASTHEAD_TO_CONTENT_GAP = 24.0
+_CONTACT_TO_RULE_GAP = 24.0
+_MASTHEAD_TO_CONTENT_GAP = 14.0
 _SECTION_TICK_WIDTH = 18.0
 
 # Right-hand date/location rail: a fixed-width overlay column separated from
@@ -348,7 +349,13 @@ def _gen_meridian(cv: dict) -> list[dict]:
         band_id="meridian-contact",
     )
     header.extend(contact_elements)
-    rule_y = contact_bottom + _CONTACT_TO_RULE_GAP
+    # Meridian keeps its compact editorial rhythm, but the divider is measured
+    # from a stable two-row contact zone. Ten-point icons retain 14 points of
+    # visible clearance while the first body section stays at its original Y.
+    contact_zone_bottom = _reserved_contact_last_row_top(
+        contact_bottom, contact_descriptor, minimum_rows=2,
+    )
+    rule_y = contact_zone_bottom + _CONTACT_TO_RULE_GAP
     header.append(_line(L, rule_y, W, 0.8, C["rule"], zIndex=2, page=1))
     header = [{**element, "flowRole": "masthead"} for element in header]
     header.append(build_contact_band_anchor(contact_descriptor))

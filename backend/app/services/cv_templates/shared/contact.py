@@ -429,6 +429,38 @@ def _place_centered_icon_contacts(
     return elements, (cy - line_step) if non_empty_lines else cy, descriptor
 
 
+def _reserved_contact_last_row_top(
+    contact_bottom: float,
+    descriptor: dict[str, Any],
+    *,
+    minimum_rows: int = 2,
+) -> float:
+    """Return the last-row top after reserving a stable contact-band height.
+
+    Centered mastheads must not move their divider or first body section when
+    the user adds or removes a contact channel. The placer reports only the
+    last row that currently exists, so a document generated with one row would
+    otherwise keep a divider that is too high once live editing creates a
+    second row. This helper derives the reserved row from the same ``startY``
+    and ``lineStep`` values that the client receives in the contact descriptor.
+
+    ``contact_bottom`` remains the lower bound, which preserves any additional
+    rows already required by unusually long contact labels.
+
+    Args:
+        contact_bottom: Top coordinate of the last row placed by the generator.
+        descriptor: Contact-band descriptor returned by a shared placer.
+        minimum_rows: Minimum number of contact rows the masthead must reserve.
+
+    Returns:
+        The top coordinate of the actual or reserved final contact row.
+    """
+    start_y = float(descriptor["anchor"]["startY"])
+    line_step = float(descriptor["metrics"]["lineStep"])
+    reserved_row_top = start_y + max(0, minimum_rows - 1) * line_step
+    return max(float(contact_bottom), reserved_row_top)
+
+
 def _social_contact_line_parts(cv: dict[str, Any]) -> list[str]:
     """Full social labels for mid-dot text contact lines."""
     parts: list[str] = []
