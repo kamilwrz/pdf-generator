@@ -127,6 +127,20 @@ test("Atrium is a centered-axis editorial single column, not a Portico recolor",
     assert.equal(mastheadRules.filter((element) => element.backgroundColor === RULE).length, 2);
     assert.ok(mastheadRules.every((element) => element.height === 1));
 
+    // Six active channels occupy two rows. The lower row keeps a full visual
+    // buffer before the closing hairline, including the 10.5 pt icon box.
+    const contactBottom = Math.max(...icons.map(
+        (element) => element.top + Math.max(element.height ?? 0, element.fontSize ?? 0),
+    ));
+    assert.ok(Math.min(...mastheadRules.map((element) => element.top)) - contactBottom >= 15);
+
+    // Hiding the job title lifts contacts only to the former title's lower
+    // edge. The name-to-contact gap therefore remains deliberate, not crushed.
+    const identity = atriumTemplate.find((element) => element.mastheadIdentity)?.mastheadIdentity;
+    const contactAnchor = atriumTemplate.find((element) => element.contactBand)?.contactBand.anchor;
+    assert.equal(identity.title.reclaimPt, 16);
+    assert.equal(contactAnchor.startY - identity.title.reclaimPt - (name.top + name.height), 21);
+
     // ── Not a timeline: Axis-style record overlays must not appear ────────────
     assert.equal(
         atriumTemplate.some((element) => element.flowRole === "record-overlay"),

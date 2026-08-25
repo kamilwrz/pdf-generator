@@ -71,6 +71,21 @@ test("title show reconstructs the title from spec and reverses the shift", () =>
   assert.equal(elements.find((e) => e.element_id === "mid").mastheadIdentity.title.present, true);
 });
 
+test("title reclaim override preserves an intentional buffer and remains reversible", () => {
+  const source = doc();
+  source.find((e) => e.element_id === "mid").mastheadIdentity.title.reclaimPt = 14;
+
+  const hidden = applyTitleToggle(source, "masthead-main", () => "id").elements;
+  assert.equal(hidden.find((e) => e.element_id === "chip").top, 104 - 14);
+  assert.equal(hidden.find((e) => e.element_id === "rule").top, 126 - 14);
+  assert.equal(hidden.find((e) => e.element_id === "cba").contactBand.anchor.startY, 104 - 14);
+
+  const shown = applyTitleToggle(hidden, "masthead-main", () => "new").elements;
+  assert.equal(shown.find((e) => e.element_id === "chip").top, 104);
+  assert.equal(shown.find((e) => e.element_id === "rule").top, 126);
+  assert.equal(shown.find((e) => e.element_id === "cba").contactBand.anchor.startY, 104);
+});
+
 // The masthead lives on page 1; hiding/showing its title must reflow ONLY
 // page 1. `top` is page-relative, so a page-2 element whose top exceeds the
 // page-1 title top must not be dragged as if it sat below the masthead.

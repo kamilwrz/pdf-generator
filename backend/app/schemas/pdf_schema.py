@@ -117,6 +117,7 @@ class PdfElement(BaseModel):
     photoSlotHidden: Optional[bool] = False
     photoPlaceholder: Optional[dict[str, Any]] = None
     profilePhotoMainContactBand: Optional[dict[str, Any]] = None
+    profilePhotoMainMastheadIdentity: Optional[dict[str, Any]] = None
     photoLayoutHome: Optional[dict[str, Any]] = None
     # Optional shape hint for photo fitting: "circle" | "ornament-frame".
     photoShape: Optional[str] = None

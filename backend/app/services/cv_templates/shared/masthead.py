@@ -35,6 +35,7 @@ def tag_masthead_identity(
     name_default_uppercase: bool,
     band_top: float,
     title_default_uppercase: bool = False,
+    title_reclaim_pt: float | None = None,
     contact_band_id: str | None = None,
     title_decorations: list[dict] | None = None,
 ) -> dict:
@@ -43,8 +44,10 @@ def tag_masthead_identity(
     ``name_default_uppercase`` / ``title_default_uppercase`` seed the reversible
     ``textTransform`` flag for templates whose design uppercases these lines, so
     the stored ``content`` stays original-case. ``band_top`` is the contact
-    band's start Y; ``blockPt`` (the amount downstream flow shifts when the title
-    is hidden) is ``band_top - title_top``.
+    band's start Y; ``blockPt`` records that full geometric span. Templates may
+    pass ``title_reclaim_pt`` when hiding the title should reclaim only part of
+    the span. This keeps a deliberate visual buffer instead of pulling the next
+    masthead row directly against the name.
     """
     name_el["mastheadRole"] = "name"
     name_el["mastheadBandId"] = band_id
@@ -99,11 +102,22 @@ def tag_masthead_identity(
             if key in decoration
         })
 
+    title_descriptor = {
+        "spec": title_spec,
+        "blockPt": block_pt,
+        "present": title_el is not None,
+        "decorations": decoration_specs,
+    }
+    if title_reclaim_pt is not None:
+        # The editor falls back to blockPt for existing templates/documents.
+        # Keeping this override explicit makes the reduced reflow reversible
+        # without changing the authored geometry stored in blockPt.
+        title_descriptor["reclaimPt"] = float(title_reclaim_pt)
+
     descriptor = {
         "id": band_id,
         "name": {"defaultUppercase": bool(name_default_uppercase)},
-        "title": {"spec": title_spec, "blockPt": block_pt,
-                  "present": title_el is not None, "decorations": decoration_specs},
+        "title": title_descriptor,
         "contactBandId": contact_band_id,
     }
     return build_masthead_identity_anchor(descriptor)

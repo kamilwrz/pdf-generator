@@ -76,3 +76,16 @@ def test_masthead_descriptor_reflow_delta_is_positive(template_id):
     assert descriptor["title"]["present"] is True
     assert descriptor["title"]["blockPt"] > 0
     assert descriptor["contactBandId"] == "contact-main"
+
+
+def test_atrium_title_hide_preserves_name_to_contact_buffer():
+    """Atrium reclaims only the inter-row gap when its title is hidden."""
+    elements = generate_resume("atrium", _CV)
+    anchor = next(
+        e for e in elements
+        if e.get("flowRole") == "masthead-anchor" and e.get("mastheadIdentity")
+    )
+
+    title = anchor["mastheadIdentity"]["title"]
+    assert title["blockPt"] == 29.0
+    assert title["reclaimPt"] == 16.0

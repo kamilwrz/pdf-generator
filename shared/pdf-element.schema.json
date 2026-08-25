@@ -422,6 +422,19 @@
       "default": null,
       "title": "Profilephotomaincontactband"
     },
+    "profilePhotoMainMastheadIdentity": {
+      "anyOf": [
+        {
+          "additionalProperties": true,
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Profilephotomainmastheadidentity"
+    },
     "photoLayoutHome": {
       "anyOf": [
         {

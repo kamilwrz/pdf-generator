@@ -12,9 +12,12 @@
  *     `textTransform`) re-measures the box against the browser's real glyph
  *     metrics and grows/shrinks it to fit, the same way a content edit does.
  *   - applyTitleToggle: hide the title (remove it, shift everything at/below its
- *     top up by `blockPt`, nudge the coupled contact band's startY, mark absent)
+ *     top up by `reclaimPt ?? blockPt`, nudge the coupled contact band's startY,
+ *     mark absent)
  *     or show it (reconstruct from the stored spec, reverse the shift, mark
  *     present). `blockPt = contactBandStartY - titleTop`, fixed at generation.
+ *     A template may provide the smaller `reclaimPt` when part of that span is
+ *     an intentional buffer that must remain after the title disappears.
  *
  * The identity anchor (flowRole "masthead-anchor", carrying `mastheadIdentity`)
  * and any fixedToPage chrome (page background, footer) are never shifted.
@@ -197,7 +200,7 @@ function showTitle(elements, bandId, descriptor, blockPt, createId) {
 export function applyTitleToggle(elements, bandId, createId) {
   const descriptor = identityDescriptor(elements, bandId);
   if (!descriptor) return { elements };
-  const blockPt = Number(descriptor.title?.blockPt) || 0;
+  const blockPt = Number(descriptor.title?.reclaimPt ?? descriptor.title?.blockPt) || 0;
   const present = elements.some(
     (el) => el.mastheadBandId === bandId && el.mastheadRole === "title",
   );

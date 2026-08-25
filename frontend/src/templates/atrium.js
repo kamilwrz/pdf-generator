@@ -286,7 +286,7 @@ const ATRIUM_ELEMENTS = [
   {
     "category": "line",
     "left": 251.5,
-    "top": 161.0,
+    "top": 168.0,
     "width": 34.0,
     "height": 1,
     "backgroundColor": "#E5E3DB",
@@ -297,7 +297,7 @@ const ATRIUM_ELEMENTS = [
   {
     "category": "line",
     "left": 292.5,
-    "top": 161.0,
+    "top": 168.0,
     "width": 10.0,
     "height": 1,
     "backgroundColor": "#556158",
@@ -308,7 +308,7 @@ const ATRIUM_ELEMENTS = [
   {
     "category": "line",
     "left": 309.5,
-    "top": 161.0,
+    "top": 168.0,
     "width": 34.0,
     "height": 1,
     "backgroundColor": "#E5E3DB",
@@ -401,7 +401,8 @@ const ATRIUM_ELEMENTS = [
         },
         "blockPt": 29.0,
         "present": true,
-        "decorations": []
+        "decorations": [],
+        "reclaimPt": 16.0
       },
       "contactBandId": "contact-main"
     },

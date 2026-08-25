@@ -214,6 +214,23 @@ export function hideProfilePhoto(elements, templateId) {
     if (isSlotMember(element, id)) return { ...element, photoSlotHidden: true };
 
     if (id === "portico") {
+      if (element.mastheadIdentity?.title?.spec) {
+        const original = clone(element.mastheadIdentity);
+        const identity = clone(element.mastheadIdentity);
+        const titleTop = Number(identity.title.spec.top);
+        if (Number.isFinite(titleTop) && titleTop >= PORTICO_PHOTO_BOTTOM) {
+          identity.title.spec.top = titleTop - PORTICO_RECLAIM_PT;
+        }
+        // Title visibility is an independent reversible operation. Keep its
+        // reconstruction spec in the currently visible (photo-less) coordinate
+        // system, otherwise showing the title before restoring the photo would
+        // rebuild it 100 pt too low inside the document body.
+        return {
+          ...element,
+          mastheadIdentity: identity,
+          profilePhotoMainMastheadIdentity: original,
+        };
+      }
       if (element.contactBand?.anchor) {
         const original = clone(element.contactBand);
         const descriptor = clone(element.contactBand);
@@ -275,6 +292,11 @@ export function showProfilePhoto(elements, templateId) {
     return { elements, contactBandId: null };
   }
   const id = String(templateId);
+  const porticoTitleHome = id === "portico"
+    ? Number((elements || []).find(
+      (element) => element.profilePhotoMainMastheadIdentity,
+    )?.profilePhotoMainMastheadIdentity?.title?.spec?.top)
+    : NaN;
   let restoredBandId = null;
   const next = (elements || []).map((element) => {
     let updated = isSlotMember(element, id)
@@ -289,6 +311,21 @@ export function showProfilePhoto(elements, templateId) {
       const { profilePhotoMainContactBand: _descriptor, ...rest } = updated;
       updated = { ...rest, contactBand: descriptor };
       restoredBandId = updated.contactBandId || restoredBandId;
+    }
+    if (updated.profilePhotoMainMastheadIdentity) {
+      const identity = clone(updated.profilePhotoMainMastheadIdentity);
+      const { profilePhotoMainMastheadIdentity: _identity, ...rest } = updated;
+      updated = { ...rest, mastheadIdentity: identity };
+    }
+    if (
+      id === "portico"
+      && updated.mastheadRole === "title"
+      && Number.isFinite(porticoTitleHome)
+    ) {
+      // A title recreated while the photo is hidden has no photoLayoutHome of
+      // its own because it did not exist when the slot was hidden. Restore it
+      // from the identity snapshot together with the rest of the masthead.
+      updated = { ...updated, top: porticoTitleHome };
     }
     return updated;
   });

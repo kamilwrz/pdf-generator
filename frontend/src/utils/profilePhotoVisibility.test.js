@@ -7,6 +7,7 @@ import { porticoTemplate } from "../templates/portico.js";
 import { slateTemplate } from "../templates/slate.js";
 import { tesseraTemplate } from "../templates/tessera.js";
 import { applyChannelRelayout } from "./contactBandOps.js";
+import { applyTitleToggle } from "./mastheadIdentityOps.js";
 import {
   alignSidebarAfterProfileContacts,
   hideProfilePhoto,
@@ -52,6 +53,41 @@ describe("profile photo visibility", () => {
     });
     const restored = showProfilePhoto(hidden, "portico").elements;
     assert.equal(restored.find((element) => element.element_id === contact.element_id).top, contact.top);
+  });
+
+  it("restores the Portico title inside the compressed masthead while the photo stays hidden", () => {
+    const source = withIds(porticoTemplate);
+    const originalTitle = source.find((element) => element.mastheadRole === "title");
+    const photoHidden = hideProfilePhoto(source, "portico").elements;
+    assert.equal(
+      photoHidden.find((element) => element.mastheadRole === "title").top,
+      originalTitle.top - 100,
+    );
+
+    const titleHidden = applyTitleToggle(photoHidden, "masthead-main", () => "hidden-id").elements;
+    const titleShown = applyTitleToggle(titleHidden, "masthead-main", () => "restored-title").elements;
+    assert.equal(
+      titleShown.find((element) => element.mastheadRole === "title").top,
+      originalTitle.top - 100,
+    );
+
+    const photoShown = showProfilePhoto(titleShown, "portico").elements;
+    assert.equal(
+      photoShown.find((element) => element.mastheadRole === "title").top,
+      originalTitle.top,
+    );
+  });
+
+  it("keeps Portico title restoration correct when the title is hidden before the photo", () => {
+    const source = withIds(porticoTemplate);
+    const originalTitle = source.find((element) => element.mastheadRole === "title");
+    const titleHidden = applyTitleToggle(source, "masthead-main", () => "hidden-id").elements;
+    const photoHidden = hideProfilePhoto(titleHidden, "portico").elements;
+    const titleShown = applyTitleToggle(photoHidden, "masthead-main", () => "restored-title").elements;
+    assert.equal(
+      titleShown.find((element) => element.mastheadRole === "title").top,
+      originalTitle.top - 100,
+    );
   });
 
   for (const [templateId, template] of [["slate", slateTemplate], ["tessera", tesseraTemplate]]) {

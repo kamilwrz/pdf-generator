@@ -145,7 +145,10 @@ def _gen_atrium(cv: dict) -> list[dict]:
         band_id="contact-main",
     )
     header.extend(contact_els)
-    terminator_y = contact_bottom + 19.0
+    # Contact labels render slightly deeper than their placement baseline. A
+    # 26 pt baseline-to-rule interval leaves a calm ~15 pt visual clearance
+    # below the second row instead of letting glyph descenders touch the rule.
+    terminator_y = contact_bottom + 26.0
     header.extend(_header_rule(CENTER_X, terminator_y))
     # Masthead never joins section packing — a short phone line above a rule
     # would otherwise be mistaken for a heading by the rhythm knobs.
@@ -163,6 +166,10 @@ def _gen_atrium(cv: dict) -> list[dict]:
             name_el, title_el,
             band_id="masthead-main", name_default_uppercase=False,
             title_default_uppercase=False, band_top=cursor_y + 16.0,
+            # Hiding the title should lift contacts to the old title's lower
+            # edge, not all the way to its top. Reclaiming only the 16 pt gap
+            # preserves 21 pt between the name and the first contact row.
+            title_reclaim_pt=16.0,
             contact_band_id="contact-main",
         ))
 
@@ -200,7 +207,10 @@ def _gen_atrium(cv: dict) -> list[dict]:
     def close_section() -> None:
         b.gap(get_spacing().section)
 
-    start_y = terminator_y + 1.0 + SPACE_AFTER_HEADER_RULE
+    # The enlarged contact-to-rule safety interval consumes 7 pt from the
+    # existing whitespace below the rule. Keeping the original body start
+    # preserves page capacity while retaining a generous 29 pt visual break.
+    start_y = terminator_y + 1.0 + SPACE_AFTER_HEADER_RULE - 7.0
     b = Builder(start_y)
 
     BODY_FS, BODY_LH = (9.6, 14.1)

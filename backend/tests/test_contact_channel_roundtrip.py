@@ -55,6 +55,7 @@ def test_profile_photo_visibility_state_unpacks_from_extra_properties():
     """Hidden geometry and restoration snapshots survive a saved-document load."""
     placeholder = {"src": "/template-assets/portrait.png", "left": 40, "top": 50}
     main_band = {"mode": "wrapping", "anchor": {"startX": 218, "startY": 121}}
+    main_identity = {"title": {"spec": {"top": 169}, "blockPt": 22}}
     row = _Row(
         element_id="photo", category="image", page=1, left=33, top=40,
         src="/images/7/content", width=112, height=126,
@@ -63,6 +64,7 @@ def test_profile_photo_visibility_state_unpacks_from_extra_properties():
             "photoSlotHidden": True,
             "photoPlaceholder": placeholder,
             "profilePhotoMainContactBand": main_band,
+            "profilePhotoMainMastheadIdentity": main_identity,
             "photoLayoutHome": {"top": 191},
         },
     )
@@ -70,4 +72,5 @@ def test_profile_photo_visibility_state_unpacks_from_extra_properties():
     assert element.photoSlotHidden is True
     assert element.photoPlaceholder == placeholder
     assert element.profilePhotoMainContactBand == main_band
+    assert element.profilePhotoMainMastheadIdentity == main_identity
     assert element.photoLayoutHome == {"top": 191}
