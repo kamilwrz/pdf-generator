@@ -1,8 +1,8 @@
 /**
  * Conversion-focused marketing landing page for CV Studio.
  *
- * Page order: header → hero → before/after → how it works (3 steps) →
- * templates → editor + AI → trust strip → pricing → FAQ → final CTA → footer.
+ * Page order: header → hero → before/after → how it works → document engine →
+ * templates → editor → WYSIWYG → AI → privacy → pricing → FAQ → final CTA.
  *
  * Two funnels, one consistent primary action ("Stwórz CV za darmo" → wizard)
  * and one secondary ("Mam już CV — wgraj PDF" → import):
@@ -39,34 +39,45 @@ const previewById = (id) => TEMPLATE_PREVIEWS.find((template) => template.id ===
 const HOW_IT_WORKS = [
     {
         number: "01",
-        title: "Dodaj swoje dane",
-        text: "Wgraj obecne CV albo odpowiedz na kilka pytań w kreatorze.",
+        title: "Zbierz treść",
+        text: "Odpowiedz na kilka pytań albo zacznij od CV, które już masz. Nie musisz od razu wybierać stylu ani układać strony.",
     },
     {
         number: "02",
-        title: "Wybierz wygląd",
-        text: "Zobacz dostępne szablony i wybierz ten, który najlepiej pasuje.",
+        title: "Nadaj jej formę",
+        text: "Treść trafia do prawdziwego dokumentu A4. Tu zmieniasz kolejność sekcji, dodajesz wpisy, wybierasz szablon i dopracowujesz sposób, w jaki CV jest czytane.",
     },
     {
         number: "03",
-        title: "Dopracuj i pobierz",
-        text: "Edytuj treść na płótnie A4, skorzystaj z podpowiedzi i pobierz PDF.",
+        title: "Dopracuj, zanim wyślesz",
+        text: "Popraw język, sprawdź długość, wybierz gęstość i styl. Gdy wszystko jest na miejscu, pobierasz dokładnie ten dokument, który widzisz w edytorze.",
     },
 ];
 
 const EDITOR_CAPABILITIES = [
     {
-        title: "Popraw treść",
-        text: "Wzmocnij opisy, popraw język albo skróć zbyt długie CV.",
+        title: "Dokument ma strukturę — i możesz ją zmieniać.",
+        text: "Dodawaj sekcje i wpisy, usuwaj je, zmieniaj kolejność albo przenoś wybrane części między kolumnami.",
     },
     {
-        title: "Sprawdź CV",
-        text: "Ocena treści, czytelność dla ATS i dopasowanie do oferty.",
+        title: "Mniej ścisku albo więcej oddechu — bez przebudowy od zera.",
+        text: "Dostosuj rytm dokumentu jednym wyborem albo dopracuj odstępy precyzyjnie.",
     },
     {
-        title: "Dopasuj wygląd",
-        text: "Zmień gęstość, układ i szablon bez przepisywania dokumentu.",
+        title: "Styl można zmieniać, nie rozbierając szablonu na części.",
+        text: "W wybranych szablonach zmienisz paletę i skalę typografii. Reszta kompozycji pozostaje spójna.",
     },
+    {
+        title: "Potrzebujesz więcej swobody? Możesz ją odblokować.",
+        text: "Tryb swobodny daje dostęp do ręcznego układu, tekstu, zdjęć i elementów graficznych. Na co dzień nie musisz z niego korzystać.",
+    },
+];
+
+const AI_CAPABILITIES = [
+    ["Brzmi zbyt ogólnie?", "Popraw styl bez dopisywania nowych faktów."],
+    ["Na stronie zrobiło się za ciasno?", "Skróć tekst dopiero wtedy, gdy sam układ nie wystarcza."],
+    ["Potrzebujesz drugiej wersji językowej?", "Przetłumacz CV, zachowując jego strukturę."],
+    ["Chcesz sprawdzić, jak CV czyta się maszynowo?", "Sprawdź tekst PDF, nagłówki i ogólną czytelność dla ATS."],
 ];
 
 function ArrowIcon() {
@@ -194,12 +205,13 @@ export default function Hero() {
 
             <section id="top" className={classes.hero}>
                 <div className={classes.heroCopy}>
-                    <p className={classes.kicker}>Inteligentny kreator CV</p>
-                    <h1>CV, które dopasowuje się<br /><em>do Twojej treści.</em></h1>
+                    <p className={classes.kicker}>Edytor CV · prawdziwy format A4</p>
+                    <h1>Zmieniaj treść.<br /><em>Nie naprawiaj za każdym razem układu.</em></h1>
                     <p className={classes.heroLead}>
-                        Stwórz CV krok po kroku albo wgraj obecny dokument. Zmieniaj szablony,
-                        poprawiaj treść z AI i edytuj bezpośrednio na A4 — CV Studio pilnuje
-                        układu, odstępów i podziału na strony.
+                        CV Studio bierze na siebie warstwę dokumentu — strukturę, rytm,
+                        odstępy i strony. Ty pracujesz nad treścią: dodajesz doświadczenie,
+                        zmieniasz szablon, skracasz opis albo wybierasz inny styl. Dokument
+                        układa się razem z Tobą.
                     </p>
                     <div className={classes.heroActions}>
                         <CtaLink to={wizardUrl} event="hero_wizard">Stwórz CV za darmo</CtaLink>
@@ -209,17 +221,17 @@ export default function Hero() {
                     </div>
                     <p className={classes.heroTertiary}>
                         <Link to={demoUrl} onClick={() => queueGuestEvent("hero_demo")}>
-                            Najpierw chcesz zobaczyć produkt? Otwórz szablon Regent w edytorze <ArrowIcon />
+                            Chcesz najpierw zobaczyć, jak to działa? Otwórz przykładowe CV <ArrowIcon />
                         </Link>
                     </p>
                     <ul className={classes.heroTrust} aria-label="Korzyści na start">
-                        <li>Bez konta na start</li>
-                        <li>Pierwszy import CV gratis</li>
-                        <li>PDF zgodny z podglądem</li>
+                        <li>Zacznij bez konta</li>
+                        <li>Pierwszy import gratis</li>
+                        <li>Podgląd = gotowy PDF</li>
                     </ul>
                 </div>
 
-                <div className={classes.heroVisual} aria-label="Szablon Nova z CV Studio">
+                <div className={classes.heroVisual} aria-label="Przykładowe szablony CV Studio">
                     <div className={classes.visualOrbit} aria-hidden="true" />
                     <div className={classes.heroStack}>
                         <img
@@ -236,11 +248,11 @@ export default function Hero() {
                             loading="eager"
                             fetchPriority="high"
                         />
-                        <span className={classes.heroChip}>Edytujesz dokładnie ten dokument</span>
+                        <span className={classes.heroChip}>To, co widzisz, trafia do PDF</span>
                     </div>
                     <div className={classes.heroCountLabel}>
                         <b>{TEMPLATE_COUNT}</b>
-                        <span>różnych szablonów</span>
+                        <span>szablonów · jedna treść</span>
                     </div>
                 </div>
             </section>
@@ -248,18 +260,19 @@ export default function Hero() {
             <section className={classes.transformation}>
                 <div className={classes.transformationCopy}>
                     <p className={classes.kicker}>Masz już CV?</p>
-                    <h2>Nie zaczynaj<br />od nowa.<br /><em>Zmień formę, zachowaj doświadczenie.</em></h2>
+                    <h2>Treść już masz.<br /><em>Nie musisz budować dokumentu od początku.</em></h2>
                     <p>
-                        Wgraj swoje CV w PDF. CV Studio przeniesie dane do wybranego szablonu,
-                        a Ty poprawisz wynik bezpośrednio w edytorze.
+                        Wgraj obecne CV, a jego treść trafi do edytowalnej struktury. Potem
+                        zaczyna się właściwa praca: możesz ją uporządkować, skrócić, przenieść
+                        do innego szablonu i dopracować bez przepisywania wszystkiego od nowa.
                     </p>
                     <div className={classes.transformationPoints}>
-                        <span><CheckIcon />Nie przepisujesz całego CV</span>
-                        <span><CheckIcon />Zachowujesz swoje doświadczenie i dane</span>
-                        <span><CheckIcon />Każdą zmianę możesz poprawić ręcznie</span>
+                        <span><CheckIcon />Ta sama treść</span>
+                        <span><CheckIcon />Zupełnie inny dokument</span>
+                        <span><CheckIcon />Dalsza edycja bezpośrednio na A4</span>
                     </div>
                     <CtaLink to={importUrl} event="before_after_import" variant="link">
-                        Wgraj moje CV
+                        Pracuj dalej na swoim CV
                     </CtaLink>
                 </div>
                 <div className={classes.beforeAfter}>
@@ -287,8 +300,12 @@ export default function Hero() {
 
             <section id="jak-to-dziala" className={classes.stepsSection}>
                 <div className={classes.stepsHeading}>
-                    <p className={classes.kicker}>Jak to działa</p>
-                    <h2>Od danych<br />do gotowego PDF.</h2>
+                    <p className={classes.kicker}>Od treści do dokumentu</p>
+                    <h2>Nie musisz myśleć o CV jak o projekcie graficznym.</h2>
+                    <p className={classes.sectionLead}>
+                        Zaczynasz od tego, co chcesz powiedzieć. CV Studio zajmuje się tym,
+                        jak ta treść ma zachować się na stronie.
+                    </p>
                 </div>
                 <ol className={classes.stepsList}>
                     {HOW_IT_WORKS.map((step) => (
@@ -303,15 +320,41 @@ export default function Hero() {
                 </ol>
             </section>
 
+            <section className={classes.documentEngineSection}>
+                <div className={classes.documentEngineIntro}>
+                    <p className={classes.kicker}>Dokument, który reaguje na treść</p>
+                    <h2>Dopisujesz jedno zdanie.<br /><em>Reszta CV wie, co z nim zrobić.</em></h2>
+                </div>
+                <div className={classes.documentEngineBody}>
+                    <p>
+                        Tekst rośnie, rekordy się przesuwają, sekcje przechodzą na kolejną
+                        stronę. CV Studio przelicza układ po zmianach, pilnuje integralności
+                        wpisów i nie zostawia nagłówków samotnie na końcu strony.
+                    </p>
+                    <p>
+                        Jeśli CV robi się za długie, najpierw szukamy miejsca w samym układzie.
+                        Dopiero gdy to nie wystarcza, możesz poprosić AI o skrócenie treści.
+                    </p>
+                    <ul className={classes.documentEngineSignals}>
+                        <li>Więcej treści <ArrowIcon /> układ przelicza strony</li>
+                        <li>Mniej treści <ArrowIcon /> dokument odzyskuje oddech</li>
+                        <li>Za długie CV <ArrowIcon /> najpierw układ, potem AI</li>
+                    </ul>
+                </div>
+            </section>
+
             <section id="szablony" className={classes.templatesSection}>
                 <div className={classes.templatesHeader}>
                     <div>
-                        <p className={classes.kicker}>{TEMPLATE_COUNT} indywidualnych szablonów</p>
-                        <h2>Nie tylko<br />zmiana koloru.</h2>
+                        <p className={classes.kicker}>Szablony, nie klatki</p>
+                        <h2>Zmieniasz charakter dokumentu.<br /><em>Nie zaczynasz od nowa.</em></h2>
                     </div>
                     <p>
-                        Każdy szablon ma własny układ, typografię i charakter — od
-                        klasycznych CV po bardziej wyraziste projekty.
+                        Klasyczny, editorial, techniczny, z sidebarem albo bez. Szablon
+                        odpowiada za język wizualny dokumentu — Twoja treść pozostaje
+                        niezależna od jego wyglądu. Możesz zmienić szablon także później,
+                        kiedy CV jest już napisane i poprawione.
+                        <span className={classes.templateCategories}>Classic · Executive · Editorial · Sidebar · Modern · Tech</span>
                     </p>
                 </div>
                 {/*
@@ -358,7 +401,7 @@ export default function Hero() {
                     </div>
                 </div>
                 <CtaLink to={wizardUrl} event="templates_wizard" variant="link">
-                    Stwórz CV i wybierz styl
+                    Zobacz, jak Twoja treść może wyglądać
                 </CtaLink>
             </section>
 
@@ -372,16 +415,17 @@ export default function Hero() {
                             loading="lazy"
                         />
                     </div>
-                    <span className={`${classes.aiCard} ${classes.aiCardOne}`}>Popraw treść</span>
-                    <span className={`${classes.aiCard} ${classes.aiCardTwo}`}>ATS</span>
-                    <span className={`${classes.aiCard} ${classes.aiCardThree}`}>Dopasuj układ</span>
+                    <span className={`${classes.aiCard} ${classes.aiCardOne}`}>Sekcje i wpisy</span>
+                    <span className={`${classes.aiCard} ${classes.aiCardTwo}`}>Rytm dokumentu</span>
+                    <span className={`${classes.aiCard} ${classes.aiCardThree}`}>Tryb swobodny</span>
                 </div>
                 <div className={classes.editorContent}>
-                    <p className={classes.kicker}>Edytor A4</p>
-                    <h2>Poprawiasz CV.<br />Nie walczysz z formatowaniem.</h2>
+                    <p className={classes.kicker}>Edycja bezpośrednio na A4</p>
+                    <h2>Klikasz w CV i zmieniasz właśnie to, co widzisz.</h2>
                     <p className={classes.editorLead}>
-                        Kliknij tekst, zmień kolejność sekcji albo wybierz inny szablon.
-                        Układ aktualizuje się na tym samym płótnie, z którego powstaje PDF.
+                        Nie edytujesz formularza obok podglądu. Pracujesz bezpośrednio na
+                        stronie: zmieniasz tekst, dodajesz doświadczenia i sekcje, porządkujesz
+                        ich kolejność i obserwujesz, jak dokument układa się razem z treścią.
                     </p>
                     <div className={classes.capabilityList}>
                         {EDITOR_CAPABILITIES.map((capability) => (
@@ -394,33 +438,69 @@ export default function Hero() {
                             </article>
                         ))}
                     </div>
-                    <p className={classes.editorNote}>
-                        <span className={classes.proBadge}>AI w Pro</span>
-                        AI niczego nie zmienia bez Twojej decyzji.
-                    </p>
                 </div>
             </section>
 
-            <section className={classes.trustStrip}>
-                <div className={classes.trustHeading}>
-                    <p className={classes.kicker}>Prywatność</p>
-                    <h2>Twoje CV pozostaje Twoje.</h2>
+            <section className={classes.wysiwygSection}>
+                <div>
+                    <p className={classes.kicker}>Od podglądu do PDF</p>
+                    <h2>Podgląd nie jest przybliżeniem.<br /><em>Jest dokumentem.</em></h2>
+                </div>
+                <div className={classes.wysiwygCopy}>
                     <p>
-                        Dane z CV służą do przygotowania dokumentu i funkcji, które
-                        sam uruchamiasz w edytorze.
+                        Pracujesz na stronie A4 w tych samych proporcjach, które trafiają do
+                        eksportu. Nie odkrywasz po pobraniu, że tekst przesunął się, sekcja
+                        zmieniła stronę albo font zachował się inaczej.
+                    </p>
+                    <strong>To, co widzisz <ArrowIcon /> to pobierasz.</strong>
+                </div>
+            </section>
+
+            <section className={classes.aiSection}>
+                <div className={classes.aiIntro}>
+                    <p className={classes.kicker}>AI, tam gdzie ma sens</p>
+                    <h2>Nie oddawaj AI całego CV.<br /><em>Daj mu konkretne zadanie.</em></h2>
+                    <p>
+                        Popraw ton jednego fragmentu. Skróć zbyt długi opis. Przetłumacz
+                        dokument. Sprawdź, czy treść jest spójna. AI pracuje nad słowami —
+                        geometria CV pozostaje zadaniem edytora.
+                    </p>
+                </div>
+                <div className={classes.aiCapabilityGrid}>
+                    {AI_CAPABILITIES.map(([title, text], index) => (
+                        <article key={title}>
+                            <span>0{index + 1}</span>
+                            <h3>{title}</h3>
+                            <p>{text}</p>
+                        </article>
+                    ))}
+                </div>
+            </section>
+
+            <section id="privacy" className={classes.trustStrip}>
+                <div className={classes.trustHeading}>
+                    <p className={classes.kicker}>CV to prywatny dokument</p>
+                    <h2>Twoje dokumenty nie są publiczne.</h2>
+                    <p>
+                        Dostęp do zapisanych CV i zdjęć jest przypisany do konta, a historia
+                        importu przechowuje ustrukturyzowane dane zamiast kopii oryginalnego PDF.
                     </p>
                 </div>
                 <ul className={classes.trustPoints}>
-                    <li><CheckIcon />Edytujesz każdą zmianę ręcznie</li>
-                    <li><CheckIcon />AI działa tylko dla wybranych funkcji</li>
-                    <li><CheckIcon />Zasady przetwarzania danych opisujemy w aplikacji</li>
+                    <li><CheckIcon />Dokumenty i zdjęcia przypisane do konta</li>
+                    <li><CheckIcon />Historia importu bez kopii źródłowego PDF</li>
+                    <li><CheckIcon /><a href="#privacy">Szczegóły w Polityce prywatności</a></li>
                 </ul>
             </section>
 
             <section id="cennik" className={classes.pricingSection}>
                 <div className={classes.pricingHeading}>
                     <p className={classes.kicker}>Cennik</p>
-                    <h2>Zacznij za darmo.<br />Zapłać dopiero za gotową wersję.</h2>
+                    <h2>Najpierw sprawdź, czy CV Studio Ci odpowiada.<br /><em>Zapłać dopiero za gotowy efekt.</em></h2>
+                    <p>
+                        Darmowy plan pozwala stworzyć i sprawdzić CV. Pro odblokowuje czysty
+                        PDF, wszystkie szablony i narzędzia potrzebne do finalnej wersji.
+                    </p>
                 </div>
                 <div className={classes.pricingGrid}>
                     <article className={classes.priceCard}>
@@ -428,37 +508,38 @@ export default function Hero() {
                         <p className={classes.planPrice}>0 <small>zł</small></p>
                         <p className={classes.planSummary}>Stwórz i sprawdź swoje CV.</p>
                         <ul>
-                            <li><CheckIcon />Kreator i pełna edycja A4</li>
-                            <li><CheckIcon />2 podstawowe szablony</li>
-                            <li><CheckIcon />1 darmowy import CV</li>
-                            <li><CheckIcon />PDF ze znakiem CV Studio</li>
-                            <li><CheckIcon />1 projekt · 3 eksporty / mies.</li>
+                            <li><CheckIcon />Zacznij od Regenta lub Sterlinga</li>
+                            <li><CheckIcon />Zaimportuj jedno istniejące CV</li>
+                            <li><CheckIcon />Edytuj i zapisuj dokument</li>
+                            <li><CheckIcon />Pobierz PDF z oznaczeniem wersji darmowej</li>
                         </ul>
                         <CtaLink to={wizardUrl} event="pricing_free" variant="secondary">
-                            Stwórz CV za darmo
+                            Zacznij za darmo
                         </CtaLink>
                         <p className={classes.planFootnote}>Bez karty.</p>
                     </article>
                     <article className={`${classes.priceCard} ${classes.priceFeatured}`}>
                         <span className={classes.popularTag}>Gotowe CV do wysłania</span>
                         <p className={classes.planName}>Pro</p>
-                        <p className={classes.planPrice}>59 <small>zł / 30 dni</small></p>
+                        <p className={classes.planPrice}>59 <small>zł</small></p>
                         <p className={classes.planSummary}>Gotowe CV do wysłania.</p>
+                        <p className={classes.planPeriod}>30 dni pełnego dostępu</p>
                         <ul>
-                            <li><CheckIcon />PDF bez znaku wodnego</li>
                             <li><CheckIcon />Wszystkie szablony</li>
+                            <li><CheckIcon />Czysty PDF bez oznaczenia CV Studio</li>
+                            <li><CheckIcon />AI do poprawiania, skracania i tłumaczenia treści</li>
+                            <li><CheckIcon />Sprawdzanie czytelności dla ATS</li>
                             <li><CheckIcon />Kolejne importy CV</li>
-                            <li><CheckIcon />AI do treści, ATS i układu</li>
-                            <li><CheckIcon />Wiele wersji CV i eksportów</li>
+                            <li><CheckIcon />Nielimitowane projekty i eksporty w okresie Pro</li>
                         </ul>
                         <Link
                             className={classes.buttonPrimary}
                             to={proRegisterUrl}
                             onClick={() => queueGuestEvent("pricing_pro")}
                         >
-                            Odblokuj Pro <ArrowIcon />
+                            Przejdź na Pro <ArrowIcon />
                         </Link>
-                        <p className={classes.planFootnote}>Jedna płatność · Bez automatycznego odnawiania</p>
+                        <p className={classes.planFootnote}>Jedna płatność · Bez subskrypcji · Bez automatycznego odnowienia</p>
                     </article>
                 </div>
             </section>
@@ -470,28 +551,32 @@ export default function Hero() {
                 </div>
                 <div className={classes.faqList}>
                     <details open>
-                        <summary>Czy muszę przepisywać swoje obecne CV?</summary>
-                        <p>Nie. Wgraj PDF — dane trafią do wybranego szablonu, a Ty poprawisz wynik na płótnie A4. Plan Darmowy obejmuje 1 import; w Pro importujesz kolejne CV.</p>
+                        <summary>Czy mogę najpierw zobaczyć, jak działa CV Studio?</summary>
+                        <p>Tak. Możesz otworzyć przykładowe CV i sprawdzić edycję bez zakładania konta. Konto jest potrzebne później do zapisu i eksportu dokumentu.</p>
                     </details>
                     <details>
-                        <summary>Czy mogę stworzyć CV od zera?</summary>
-                        <p>Tak. Wybierz Kreator CV — poprowadzi przez dane osobowe, doświadczenie, edukację i umiejętności, a potem przejdziesz do wyboru szablonu.</p>
+                        <summary>Mam już gotowe CV. Czy naprawdę muszę wpisywać wszystko od nowa?</summary>
+                        <p>Nie. Możesz wgrać PDF i wykorzystać jego treść jako punkt wyjścia. CV Studio odczyta dane i ułoży je w edytowalnej strukturze. Pierwszy import jest dostępny bezpłatnie po utworzeniu konta.</p>
                     </details>
                     <details>
-                        <summary>Co dostaję w planie Pro?</summary>
-                        <p>PDF bez znaku wodnego, wszystkie szablony, kolejne importy oraz AI do treści, ATS i układu. Wskazówki ATS dotyczą czytelności struktury i treści — nie gwarantują odpowiedzi rekrutera ani identycznego działania każdego systemu ATS.</p>
+                        <summary>Co stanie się z moimi poprawkami, jeśli później zmienię szablon?</summary>
+                        <p>Treść CV pozostaje zapisana niezależnie od jego wyglądu. Możesz więc poprawić opis doświadczenia, a później zmienić szablon bez wracania do wcześniejszej wersji tekstu.</p>
                     </details>
                     <details>
-                        <summary>Czy Pro odnawia się automatycznie?</summary>
-                        <p>Nie. Pro to jedna płatność za 30 dni dostępu. Po wygaśnięciu dokumenty zostają — wracasz do planu Darmowy (eksport ze znakiem wodnym, AI zablokowane). Pro możesz odnowić, gdy znów potrzebujesz czystych PDF i AI.</p>
+                        <summary>Czy CV Studio będzie na siłę wciskać wszystko na jedną stronę?</summary>
+                        <p>Nie. Jedna strona nie zawsze jest lepsza. CV Studio najpierw szuka rozsądnego układu i pilnuje czytelności dokumentu. Jeśli treści jest za dużo, CV może pozostać dwu- lub wielostronicowe.</p>
                     </details>
                     <details>
-                        <summary>Czy AI samo zmienia moje CV?</summary>
-                        <p>Nie. Poprawki tekstu, sugestie struktury i propozycje układu trafiają najpierw do podglądu lub karty decyzji. Możesz zastosować pojedynczą zmianę, odrzucić ją albo edytować dokument ręcznie.</p>
+                        <summary>Czy mogę sprawdzić, czy moje CV jest czytelne dla ATS?</summary>
+                        <p>Tak. CV Studio może sprawdzić, czy tekst PDF jest możliwy do odczytania oraz czy dokument używa czytelnej struktury i typowych nagłówków. Nie jest to gwarancja identycznego wyniku w każdym systemie rekrutacyjnym.</p>
                     </details>
                     <details>
-                        <summary>Czy PDF wygląda tak jak w edytorze?</summary>
-                        <p>Tak. Eksport używa tego samego modelu dokumentu, geometrii i czcionek co płótno, więc zmiana zoomu nie wpływa na układ gotowego PDF.</p>
+                        <summary>Czy pobrany PDF naprawdę będzie wyglądał tak samo jak w edytorze?</summary>
+                        <p>Taki jest model CV Studio. Edytor pracuje na rzeczywistym formacie A4, a PDF korzysta z tej samej geometrii dokumentu.</p>
+                    </details>
+                    <details>
+                        <summary>Czy Pro to subskrypcja?</summary>
+                        <p>Nie. Pro kosztuje 59 zł i daje 30 dni dostępu. Płatność nie odnawia się automatycznie.</p>
                     </details>
                 </div>
             </section>
@@ -499,9 +584,12 @@ export default function Hero() {
             <section className={classes.finalCta}>
                 <div className={classes.finalCtaInner}>
                     <div className={classes.finalCtaCopy}>
-                        <p className={classes.kicker}>Gotowy?</p>
-                        <h2>Zrób pierwszą wersję<br />CV za darmo.</h2>
-                        <p>Zacznij od kreatora albo wgraj dokument, który już masz.</p>
+                        <p className={classes.kicker}>Twoja następna wersja</p>
+                        <h2>Poświęć czas treści.<br /><em>Nie walce z dokumentem.</em></h2>
+                        <p>
+                            Zacznij od kilku kroków albo od CV, które już masz. Gdy treść będzie
+                            gotowa, CV Studio pomoże nadać jej formę, którą możesz naprawdę wysłać.
+                        </p>
                         <div className={classes.finalActions}>
                             <CtaLink to={wizardUrl} event="final_wizard">Stwórz CV za darmo</CtaLink>
                             <CtaLink to={importUrl} event="final_import" variant="link">
@@ -531,7 +619,7 @@ export default function Hero() {
                             <img src="/cv-studio-logo.svg" alt="" />
                         </a>
                         <p className={classes.footerTagline}>
-                            Gotowe CV do wysłania — kreator, edytor A4 i eksport PDF.
+                            Treść jest Twoja. Dokument nie musi być problemem.
                         </p>
                         {/* Social destinations are placeholders until the public
                             profiles exist; each link carries an accessible name so
@@ -556,7 +644,7 @@ export default function Hero() {
                         </div>
                         <div className={classes.footerCol}>
                             <p className={classes.footerColTitle}>Informacje</p>
-                            <a href="#">Prywatność</a>
+                            <a href="#privacy">Prywatność</a>
                             <a href="#">Regulamin</a>
                             <a href="#">Kontakt</a>
                         </div>

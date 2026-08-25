@@ -177,8 +177,11 @@
 .hero h1,
 .transformation h2,
 .stepsHeading h2,
+.documentEngineIntro h2,
 .editorContent h2,
 .templatesHeader h2,
+.wysiwygSection h2,
+.aiIntro h2,
 .trustHeading h2,
 .pricingHeading h2,
 .faqSection h2,
@@ -197,7 +200,13 @@
    baseline without ever carrying text meaning, so contrast stays paper-on-ink
    (AAA). */
 .hero h1 em,
-.transformation h2 em {
+.transformation h2 em,
+.documentEngineIntro h2 em,
+.templatesHeader h2 em,
+.wysiwygSection h2 em,
+.aiIntro h2 em,
+.pricingHeading h2 em,
+.finalCtaCopy h2 em {
     font-style: normal;
     font-weight: 900;
     color: var(--paper);
@@ -250,7 +259,7 @@
 
 .hero h1 {
     max-width: 700px;
-    font-size: clamp(46px, 5.4vw, 78px);
+    font-size: clamp(44px, 4.9vw, 70px);
     line-height: 1;
 }
 
@@ -571,8 +580,11 @@
 
 .transformation,
 .stepsSection,
+.documentEngineSection,
 .editorSection,
 .templatesSection,
+.wysiwygSection,
+.aiSection,
 .pricingSection,
 .faqSection {
     padding-right: clamp(24px, 7vw, 112px);
@@ -749,6 +761,13 @@
     line-height: 1.02;
 }
 
+.sectionLead {
+    max-width: 410px;
+    margin: 24px 0 0;
+    color: var(--ink-body);
+    font: 400 13px/1.7 var(--body);
+}
+
 .stepsList {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -784,6 +803,57 @@
     font: 400 12.5px/1.6 var(--body);
 }
 
+/* ---- Deterministic document engine ------------------------------------ */
+
+.documentEngineSection {
+    display: grid;
+    grid-template-columns: minmax(300px, .95fr) minmax(420px, 1.05fr);
+    gap: clamp(48px, 8vw, 120px);
+    padding-top: clamp(84px, 11vw, 150px);
+    padding-bottom: clamp(84px, 11vw, 150px);
+    background: var(--paper);
+    border-top: 1px solid var(--ink);
+    border-bottom: 1px solid var(--ink);
+}
+
+.documentEngineIntro h2 {
+    max-width: 640px;
+    font-size: clamp(38px, 4.5vw, 64px);
+    line-height: 1.02;
+}
+
+.documentEngineBody > p {
+    max-width: 610px;
+    margin: 0 0 20px;
+    color: var(--ink-body);
+    font: 400 14px/1.75 var(--body);
+}
+
+.documentEngineSignals {
+    display: grid;
+    margin: 34px 0 0;
+    padding: 0;
+    border-top: 1px solid var(--ink);
+    list-style: none;
+}
+
+.documentEngineSignals li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 16px 0;
+    border-bottom: 1px solid var(--line-strong);
+    color: var(--ink);
+    font: 600 10px/1.4 var(--mono);
+    letter-spacing: .07em;
+    text-transform: uppercase;
+}
+
+.documentEngineSignals svg {
+    width: 14px;
+    color: var(--taupe);
+}
+
 /* ---- Templates ---------------------------------------------------------- */
 
 .templatesSection {
@@ -813,6 +883,15 @@
     margin: 0 0 4px;
     color: var(--ink-body);
     font: 400 13px/1.65 var(--body);
+}
+
+.templateCategories {
+    display: block;
+    margin-top: 16px;
+    color: var(--muted);
+    font: 600 9px/1.5 var(--mono);
+    letter-spacing: .08em;
+    text-transform: uppercase;
 }
 
 /*
@@ -1094,6 +1173,105 @@
     text-transform: uppercase;
 }
 
+/* ---- Exact A4 output + task-focused AI -------------------------------- */
+
+.wysiwygSection {
+    display: grid;
+    grid-template-columns: minmax(300px, 1fr) minmax(360px, .9fr);
+    gap: clamp(48px, 8vw, 120px);
+    align-items: end;
+    padding-top: clamp(76px, 9vw, 120px);
+    padding-bottom: clamp(76px, 9vw, 120px);
+    background: var(--beige-deep);
+}
+
+.wysiwygSection h2 {
+    max-width: 690px;
+    font-size: clamp(38px, 4.5vw, 64px);
+    line-height: 1.02;
+}
+
+.wysiwygCopy {
+    padding-top: 24px;
+    border-top: 2px solid var(--ink);
+}
+
+.wysiwygCopy p {
+    margin: 0;
+    color: var(--ink-body);
+    font: 400 14px/1.75 var(--body);
+}
+
+.wysiwygCopy strong {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 30px;
+    color: var(--ink);
+    font: 600 11px/1.4 var(--mono);
+    letter-spacing: .08em;
+    text-transform: uppercase;
+}
+
+.wysiwygCopy svg {
+    color: var(--taupe);
+}
+
+.aiSection {
+    display: grid;
+    grid-template-columns: minmax(300px, .82fr) minmax(500px, 1.18fr);
+    gap: clamp(50px, 8vw, 120px);
+    padding-top: clamp(84px, 11vw, 150px);
+    padding-bottom: clamp(84px, 11vw, 150px);
+    background: var(--paper);
+}
+
+.aiIntro h2 {
+    max-width: 650px;
+    font-size: clamp(38px, 4.4vw, 62px);
+    line-height: 1.02;
+}
+
+.aiIntro > p:last-child {
+    max-width: 550px;
+    margin: 26px 0 0;
+    color: var(--ink-body);
+    font: 400 14px/1.75 var(--body);
+}
+
+.aiCapabilityGrid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    border-top: 1px solid var(--ink);
+    border-left: 1px solid var(--ink);
+}
+
+.aiCapabilityGrid article {
+    min-height: 190px;
+    padding: clamp(22px, 3vw, 34px);
+    border-right: 1px solid var(--ink);
+    border-bottom: 1px solid var(--ink);
+}
+
+.aiCapabilityGrid article > span {
+    color: var(--taupe);
+    font: 600 10px/1 var(--mono);
+    letter-spacing: .08em;
+}
+
+.aiCapabilityGrid h3 {
+    margin: 42px 0 0;
+    color: var(--ink);
+    font: 700 20px/1.2 var(--display);
+    letter-spacing: -.025em;
+}
+
+.aiCapabilityGrid p {
+    margin: 10px 0 0;
+    color: var(--ink-body);
+    font: 400 12px/1.65 var(--body);
+}
+
 /* ---- Trust strip -------------------------------------------------------- */
 
 .trustStrip {
@@ -1132,6 +1310,11 @@
     font-size: 12px;
 }
 
+.trustPoints a {
+    color: inherit;
+    text-underline-offset: 4px;
+}
+
 /* ---- Pricing (light section, black card highlights the Pro tier) -------- */
 
 .pricingSection {
@@ -1148,6 +1331,13 @@
 .pricingHeading h2 {
     font-size: clamp(36px, 4.2vw, 60px);
     line-height: 1.04;
+}
+
+.pricingHeading > p:last-child {
+    max-width: 610px;
+    margin: 24px 0 0;
+    color: var(--ink-body);
+    font: 400 14px/1.7 var(--body);
 }
 
 .pricingGrid {
@@ -1227,6 +1417,18 @@
     margin: 0;
     color: var(--muted);
     font: 400 12px/1.6 var(--body);
+}
+
+.planPeriod {
+    margin: 8px 0 0;
+    color: var(--muted);
+    font: 600 10px/1.4 var(--mono);
+    letter-spacing: .06em;
+    text-transform: uppercase;
+}
+
+.priceFeatured .planPeriod {
+    color: rgba(255, 255, 255, .68);
 }
 
 .priceFeatured .planSummary {
@@ -1630,7 +1832,10 @@
     }
 
     .transformation,
+    .documentEngineSection,
     .editorSection,
+    .wysiwygSection,
+    .aiSection,
     .faqSection {
         gap: 58px;
     }
@@ -1666,7 +1871,10 @@
     }
 
     .transformation,
+    .documentEngineSection,
     .editorSection,
+    .wysiwygSection,
+    .aiSection,
     .trustStrip,
     .faqSection {
         grid-template-columns: 1fr;
@@ -1679,6 +1887,12 @@
 
     .transformationCopy {
         max-width: 600px;
+    }
+
+    .documentEngineBody,
+    .wysiwygCopy,
+    .aiIntro {
+        max-width: 680px;
     }
 
     .transformation {
@@ -1789,6 +2003,14 @@
     .stepsList {
         grid-template-columns: 1fr;
         gap: 0;
+    }
+
+    .aiCapabilityGrid {
+        grid-template-columns: 1fr;
+    }
+
+    .aiCapabilityGrid article {
+        min-height: 0;
     }
 
     .stepsList li {
