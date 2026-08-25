@@ -224,7 +224,14 @@ export function hideProfilePhoto(elements, templateId) {
       }
       const page = Number(element.page) || 1;
       const top = Number(element.top);
-      if (page === 1 && Number.isFinite(top) && top >= PORTICO_PHOTO_BOTTOM) {
+      // Reclaim only document flow. Footer rules, page numbers, and paper are
+      // fixed page chrome whose geometry must never follow masthead reflow.
+      if (
+        !element.fixedToPage
+        && page === 1
+        && Number.isFinite(top)
+        && top >= PORTICO_PHOTO_BOTTOM
+      ) {
         return { ...element, top: top - PORTICO_RECLAIM_PT, photoLayoutHome: { top } };
       }
     }

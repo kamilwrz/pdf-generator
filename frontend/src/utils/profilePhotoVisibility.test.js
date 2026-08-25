@@ -38,12 +38,18 @@ describe("profile photo visibility", () => {
   it("reclaims Portico photo height and restores exact authored positions", () => {
     const source = withIds(porticoTemplate);
     const contact = source.find((element) => element.contactChannel === "phone" && element.category === "text");
+    const fixedChrome = source.filter((element) => element.fixedToPage && !element.photoSlot);
     const hidden = hideProfilePhoto(source, "portico").elements;
     const moved = hidden.find((element) => element.element_id === contact.element_id);
     const hiddenAnchor = hidden.find((element) => element.contactBand);
     assert.equal(moved.top, contact.top - 100);
     assert.deepEqual(moved.photoLayoutHome, { top: contact.top });
     assert.equal(hiddenAnchor.contactBand.anchor.startY, 91);
+    fixedChrome.forEach((element) => {
+      const afterHide = hidden.find((candidate) => candidate.element_id === element.element_id);
+      assert.equal(afterHide.top, element.top, `${element.category} fixed chrome stays anchored`);
+      assert.equal(afterHide.photoLayoutHome, undefined);
+    });
     const restored = showProfilePhoto(hidden, "portico").elements;
     assert.equal(restored.find((element) => element.element_id === contact.element_id).top, contact.top);
   });

@@ -1227,6 +1227,8 @@ Tests: `backend/tests/test_image_upload_security.py` — accepts a real PNG, rej
 
 ### Profile photo slot (template mode)
 
+Portico's 100 pt reclaim applies only to document-flow elements. Page paper, the bottom decorative rule, and the page number are `fixedToPage` chrome and retain their authored coordinates while the photo is hidden; they receive no `photoLayoutHome` snapshot because showing the photo must not move them either.
+
 In **template** mode, clicking a profile frame, portrait glyph, or existing profile photo on the canvas opens the gallery. Clicking a gallery image then immediately fits it into the declared profile-photo slot (no confirmation dialog, no freeform prompt) and closes the gallery panel. Hovering a supported slot reveals a small eye-off action; an occupied slot also reveals a separate trash action. Eye-off hides the complete slot, while trash removes only the user raster and restores the reusable placeholder/frame. When the slot is hidden, hovering the masthead name reveals an image/eye restore action. These controls are available for Atrium, Vestige, Monument, Portico, Slate, and Tessera. The fitted photo covers the entire slot (`objectFit: "cover"`). Templates mark the area with `photoSlot`:
 
 - `frame` — the designated rectangle or circle chrome (`slate-photo-frame`, `tessera-photo-frame`, `monument-masthead-frame`, `regent-photo-frame`, `portico-photo-frame`; `cinder-frame-one`, `nimbus-photo-frame`, and `harbor-photo-frame` are kept from retired templates so older saved documents still resolve their slot)
@@ -1239,7 +1241,7 @@ In **template** mode, clicking a profile frame, portrait glyph, or existing prof
 Implementation:
 
 - `frontend/src/utils/profilePhoto.js`, lines 292–450, function `applyProfilePhoto` — apply/replace raster and retain the exact placeholder snapshot
-- `frontend/src/utils/profilePhotoVisibility.js`, lines 71–340, functions `hiddenProfileContactSectionFloor`, `hideProfilePhoto`, `showProfilePhoto`, `removeProfilePhoto`, `profilePhotoControlAnchor`, `alignSidebarAfterProfileContacts` — shared 40 pt contact floor, reversible visibility, Portico reflow, complete Slate/Tessera cluster hiding, actual contact-stack measurement and contact/sidebar transfer, plus legacy document fallbacks
+- `frontend/src/utils/profilePhotoVisibility.js`, lines 71–347, functions `hiddenProfileContactSectionFloor`, `hideProfilePhoto`, `showProfilePhoto`, `removeProfilePhoto`, `profilePhotoControlAnchor`, `alignSidebarAfterProfileContacts` — shared 40 pt contact floor, reversible visibility, content-only Portico reflow with fixed footer chrome, complete Slate/Tessera cluster hiding, actual contact-stack measurement and contact/sidebar transfer, plus legacy document fallbacks
 - `frontend/src/components/canvas/ProfilePhotoControls/ProfilePhotoControls.jsx`, lines 1–126, component `ProfilePhotoControls` — slot/name hover controls with accessible labels
 - `frontend/src/hooks/useA4Elements.js`, lines 1510–1521, 2337–2352, and 2370–2394, callbacks `removeContactChannel`, `addContactChannel`, `setProfilePhotoVisible`, `hideProfilePhoto`, `showProfilePhoto`, `removeProfilePhoto` — history-aware commits plus post-layout sidebar alignment after contact edits and profile-slot changes
 - `frontend/src/components/gallery/GalleryItem/GalleryItem.jsx`, lines 32–45 — template-mode click → `applyProfilePhoto` (no prompt)
@@ -1248,7 +1250,7 @@ Implementation:
 - `frontend/src/utils/materializeElementSpecs.js` — preserves template semantic `id`
 - `backend/app/schemas/pdf_schema.py`, `shared/pdf-element.schema.json`, `backend/app/crud/pdfs.py`, and `ModalPdfs.jsx` — validate, persist, and hydrate visibility/restoration fields
 - `backend/app/services/pdf_generator.py`, lines 1125–1142, method `render_elements` — skips hidden slot members during export
-- Tests: `frontend/src/utils/profilePhotoVisibility.test.js`, lines 1–220; `frontend/src/utils/sectionStructure.test.js`, lines 1891–1953; `frontend/src/templates/slate.test.js`, lines 6–78; `frontend/src/templates/tessera.test.js`, lines 6–81; `backend/tests/test_cv_template_layouts.py`, lines 103–215 and 258–378; `backend/tests/test_contact_channel_roundtrip.py`, lines 54–73; `backend/tests/test_pdf_watermark.py`, lines 119–137
+- Tests: `frontend/src/utils/profilePhotoVisibility.test.js`, lines 1–226; `frontend/src/utils/sectionStructure.test.js`, lines 1891–1953; `frontend/src/templates/slate.test.js`, lines 6–78; `frontend/src/templates/tessera.test.js`, lines 6–81; `backend/tests/test_cv_template_layouts.py`, lines 103–215 and 258–378; `backend/tests/test_contact_channel_roundtrip.py`, lines 54–73; `backend/tests/test_pdf_watermark.py`, lines 119–137
 - Generators / starters: `slate`, `tessera`, `monument`, `regent`, `portico`, `atrium` (FE + BE)
 
 Tests: `frontend/src/utils/profilePhoto.test.js` — slot detection on Slate/Tessera/Monument, geometry/z-index after apply, in-place replace.
@@ -3138,6 +3140,8 @@ Testy: `backend/tests/test_image_upload_security.py` — PNG, HTML-as-PNG (415),
 
 ### Slot zdjęcia profilowego (tryb szablonu)
 
+Odzyskanie 100 pt w Portico obejmuje wyłącznie elementy przepływu dokumentu. Papier strony, dolna linia dekoracyjna i numer strony są chrome `fixedToPage` i zachowują autorskie współrzędne po ukryciu zdjęcia; nie otrzymują migawki `photoLayoutHome`, ponieważ ponowne pokazanie zdjęcia również nie może ich przesunąć.
+
 W trybie **template** kliknięcie ramki profilu, ikony portretu albo istniejącego zdjęcia profilowego na kanwie otwiera galerię. Kliknięcie obrazu w galerii od razu dopasowuje go do zadeklarowanego slotu zdjęcia profilowego (bez dialogu potwierdzenia i bez pytania o freeform) i zamyka panel galerii. Hover nad obsługiwanym slotem pokazuje małą akcję ukrycia z przekreślonym okiem; zajęty slot pokazuje dodatkowo osobny kosz. Oko ukrywa cały slot, a kosz usuwa wyłącznie raster użytkownika i przywraca placeholder/ramkę do następnego zdjęcia. Gdy slot jest ukryty, hover nad imieniem i nazwiskiem pokazuje akcję przywrócenia obraz/oko. Kontrolki działają dla Atrium, Vestige, Monument, Portico, Slate i Tessera. Dopasowane zdjęcie przykrywa cały slot (`objectFit: "cover"`). Szablony oznaczają obszar polem `photoSlot`:
 
 - `frame` — ramka prostokątna lub koło (`slate-photo-frame`, `tessera-photo-frame`, `monument-masthead-frame`, `regent-photo-frame`, `portico-photo-frame`; `cinder-frame-one`, `nimbus-photo-frame` i `harbor-photo-frame` pozostają z wycofanych szablonów, żeby starsze zapisane dokumenty wciąż odnajdywały swój slot)
@@ -3150,7 +3154,7 @@ W trybie **template** kliknięcie ramki profilu, ikony portretu albo istniejące
 Implementacja:
 
 - `frontend/src/utils/profilePhoto.js`, linie 292–450, funkcja `applyProfilePhoto` — wstawianie/podmiana rastra i zapis dokładnego placeholdera
-- `frontend/src/utils/profilePhotoVisibility.js`, linie 71–340, funkcje `hiddenProfileContactSectionFloor`, `hideProfilePhoto`, `showProfilePhoto`, `removeProfilePhoto`, `profilePhotoControlAnchor`, `alignSidebarAfterProfileContacts` — wspólny próg kontaktów 40 pt, odwracalna widoczność, reflow Portico, ukrycie kompletnego klastra, pomiar rzeczywistego stosu kontaktów i transfer kontaktów/sidebara Slate/Tessera oraz fallbacki starszych dokumentów
+- `frontend/src/utils/profilePhotoVisibility.js`, linie 71–347, funkcje `hiddenProfileContactSectionFloor`, `hideProfilePhoto`, `showProfilePhoto`, `removeProfilePhoto`, `profilePhotoControlAnchor`, `alignSidebarAfterProfileContacts` — wspólny próg kontaktów 40 pt, odwracalna widoczność, reflow Portico ograniczony do treści ze stałym chrome stopki, ukrycie kompletnego klastra, pomiar rzeczywistego stosu kontaktów i transfer kontaktów/sidebara Slate/Tessera oraz fallbacki starszych dokumentów
 - `frontend/src/components/canvas/ProfilePhotoControls/ProfilePhotoControls.jsx`, linie 1–126, komponent `ProfilePhotoControls` — dostępne kontrolki hover nad slotem i imieniem
 - `frontend/src/hooks/useA4Elements.js`, linie 1510–1521, 2337–2352 i 2370–2394, callbacki `removeContactChannel`, `addContactChannel`, `setProfilePhotoVisible`, `hideProfilePhoto`, `showProfilePhoto`, `removeProfilePhoto` — operacje historii oraz wyrównanie sidebara po przeliczeniu edycji kontaktów i zmianie widoczności slotu
 - `frontend/src/components/gallery/GalleryItem/GalleryItem.jsx`, linie 32–45 — klik w trybie szablonu → `applyProfilePhoto` (bez promptu)
@@ -3159,7 +3163,7 @@ Implementacja:
 - `frontend/src/utils/materializeElementSpecs.js` — zachowanie semantycznego `id`
 - `backend/app/schemas/pdf_schema.py`, `shared/pdf-element.schema.json`, `backend/app/crud/pdfs.py` i `ModalPdfs.jsx` — walidacja, zapis oraz hydratacja pól widoczności/odtwarzania
 - `backend/app/services/pdf_generator.py`, linie 1125–1142, metoda `render_elements` — pomijanie ukrytych elementów slotu podczas eksportu
-- Testy: `frontend/src/utils/profilePhotoVisibility.test.js`, linie 1–220; `frontend/src/utils/sectionStructure.test.js`, linie 1891–1953; `frontend/src/templates/slate.test.js`, linie 6–78; `frontend/src/templates/tessera.test.js`, linie 6–81; `backend/tests/test_cv_template_layouts.py`, linie 103–215 i 258–378; `backend/tests/test_contact_channel_roundtrip.py`, linie 54–73; `backend/tests/test_pdf_watermark.py`, linie 119–137
+- Testy: `frontend/src/utils/profilePhotoVisibility.test.js`, linie 1–226; `frontend/src/utils/sectionStructure.test.js`, linie 1891–1953; `frontend/src/templates/slate.test.js`, linie 6–78; `frontend/src/templates/tessera.test.js`, linie 6–81; `backend/tests/test_cv_template_layouts.py`, linie 103–215 i 258–378; `backend/tests/test_contact_channel_roundtrip.py`, linie 54–73; `backend/tests/test_pdf_watermark.py`, linie 119–137
 - Generatory / startery: `slate`, `tessera`, `monument`, `regent`, `portico`, `atrium` (FE + BE)
 
 Testy: `frontend/src/utils/profilePhoto.test.js` — wykrywanie slotu (w tym Monument), geometria/z-index po apply, zamiana w miejscu.
