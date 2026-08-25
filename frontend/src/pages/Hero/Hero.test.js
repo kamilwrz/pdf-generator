@@ -39,4 +39,9 @@ describe("landing product positioning", () => {
     assert.match(source, /id="szablony"/);
     assert.match(source, /id="cennik"/);
   });
+
+  it("features Linden as the primary hero document", () => {
+    assert.match(source, /const heroFront = previewById\("linden"\)/);
+    assert.doesNotMatch(source, /const heroFront = previewById\("portico"\)/);
+  });
 });

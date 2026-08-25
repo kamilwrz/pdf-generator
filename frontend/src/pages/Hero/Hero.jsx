@@ -171,7 +171,7 @@ export default function Hero() {
     const proRegisterUrl = "/register?plan=pro";
 
     // Real template mockups drive every product visual — no stock imagery.
-    const heroFront = previewById("portico");
+    const heroFront = previewById("linden");
     const heroBack = previewById("monument");
     const editorMock = previewById("meridian");
     // A dedicated Sterling render of the SAME CV content shown in the
