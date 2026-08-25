@@ -15,11 +15,16 @@ test("customization panel exposes layout and appearance tabs", async () => {
   assert.match(source, /aria-selected/);
 });
 
-test("appearance is active and presents an honest short empty state", async () => {
+test("appearance presents Sterling palettes, icon-aware previews, and text presets", async () => {
   const source = await readFile(panelUrl, "utf8");
   assert.match(source, /setActiveTab\("appearance"\)/);
-  assert.match(source, /Palety kolorów pojawią się tutaj/);
-  assert.match(source, /kuratorowane warianty/);
+  assert.match(source, /STERLING_PALETTES/);
+  assert.match(source, /Paleta kolorów/);
+  assert.match(source, /zmienia papier, tekst, dekoracje i dopasowany zestaw ikon/);
+  assert.match(source, /STERLING_TEXT_SIZES/);
+  assert.match(source, /Rozmiar tekstu/);
+  assert.match(source, /oryginalny rozmiar szablonu/);
+  assert.match(source, /Palety są dostępne dla Sterlinga/);
 });
 
 test("document card keeps tier-honest fit status and CTA", async () => {

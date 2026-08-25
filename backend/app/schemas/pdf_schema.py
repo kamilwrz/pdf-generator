@@ -180,6 +180,14 @@ class PdfElement(BaseModel):
     mastheadRole: Optional[str] = None
     mastheadBandId: Optional[str] = None
     mastheadIdentity: Optional[dict[str, Any]] = None
+    # Template-scoped appearance intent and immutable typography baselines.
+    # These editor-only properties are persisted in `extra_properties`; the
+    # renderer safely ignores them while saved CVs retain reversible presets.
+    appearanceTemplateId: Optional[str] = None
+    appearanceSettings: Optional[dict[str, Any]] = None
+    appearanceTypographyRole: Optional[str] = None
+    appearanceBaseFontSize: Optional[float] = None
+    appearanceBaseLineHeight: Optional[float] = None
 
 
 EditorMode = Literal["template", "freeform"]

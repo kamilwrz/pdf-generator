@@ -45,6 +45,11 @@ def element(element_id, *, deleted=False):
         source_id=None,
         target_id=None,
         arrow=None,
+        appearanceTemplateId="sterling",
+        appearanceSettings={"palette": "sage", "textSize": "L"},
+        appearanceTypographyRole="body",
+        appearanceBaseFontSize=9.5,
+        appearanceBaseLineHeight=13.8,
     )
 
 
@@ -79,6 +84,12 @@ class PdfElementUpdateTests(unittest.TestCase):
         self.assertFalse(keep_row.extra_properties["repeatOnContinuation"])
         self.assertTrue(keep_row.extra_properties["locked"])
         self.assertTrue(keep_row.extra_properties["filled"])
+        self.assertEqual(keep_row.extra_properties["appearanceTemplateId"], "sterling")
+        self.assertEqual(
+            keep_row.extra_properties["appearanceSettings"],
+            {"palette": "sage", "textSize": "L"},
+        )
+        self.assertEqual(keep_row.extra_properties["appearanceBaseFontSize"], 9.5)
 
     def test_empty_live_payload_removes_every_existing_element(self):
         database = MagicMock()

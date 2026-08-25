@@ -861,6 +861,67 @@
       ],
       "default": null,
       "title": "Mastheadidentity"
+    },
+    "appearanceTemplateId": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Appearancetemplateid"
+    },
+    "appearanceSettings": {
+      "anyOf": [
+        {
+          "additionalProperties": true,
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Appearancesettings"
+    },
+    "appearanceTypographyRole": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Appearancetypographyrole"
+    },
+    "appearanceBaseFontSize": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Appearancebasefontsize"
+    },
+    "appearanceBaseLineHeight": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Appearancebaselineheight"
     }
   },
   "required": [

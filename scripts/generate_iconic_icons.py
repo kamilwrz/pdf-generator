@@ -326,6 +326,29 @@ SUBSET_THEMES = {
         "#4A6FA5",
         ["email", "phone", "location", "linkedin", "github", "website"],
     ),
+    # Each Sterling appearance palette owns real raster assets rather than a
+    # CSS filter. This keeps icon colour identical in the live canvas and PDF
+    # export, including after a saved document is reopened.
+    "sterling-graphite": (
+        "#5B625E",
+        ["email", "phone", "location", "linkedin", "github", "website"],
+    ),
+    "sterling-sage": (
+        "#557565",
+        ["email", "phone", "location", "linkedin", "github", "website"],
+    ),
+    "sterling-burgundy": (
+        "#7A4650",
+        ["email", "phone", "location", "linkedin", "github", "website"],
+    ),
+    "sterling-amber": (
+        "#8A603F",
+        ["email", "phone", "location", "linkedin", "github", "website"],
+    ),
+    "sterling-midnight": (
+        "#315A70",
+        ["email", "phone", "location", "linkedin", "github", "website"],
+    ),
     # Cadenza uses taupe contact glyphs that match its fixed geometry and
     # rules. It has no section-icon system, so the contact subset is enough.
     "cadenza": (

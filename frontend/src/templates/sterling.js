@@ -24,7 +24,12 @@ const STERLING_ELEMENTS = [
     "backgroundColor": "#F7F8FA",
     "zIndex": 0,
     "page": 1,
-    "fixedToPage": true
+    "fixedToPage": true,
+    "appearanceTemplateId": "sterling",
+    "appearanceSettings": {
+      "palette": "northstar",
+      "textSize": "M"
+    }
   },
   {
     "category": "line",

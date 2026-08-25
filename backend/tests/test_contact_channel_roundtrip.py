@@ -74,3 +74,25 @@ def test_profile_photo_visibility_state_unpacks_from_extra_properties():
     assert element.profilePhotoMainContactBand == main_band
     assert element.profilePhotoMainMastheadIdentity == main_identity
     assert element.photoLayoutHome == {"top": 191}
+
+
+def test_sterling_appearance_state_unpacks_from_extra_properties():
+    """Palette intent and reversible type baselines survive document reloads."""
+    row = _Row(
+        element_id="body", category="textarea", page=1, left=245, top=210,
+        content="Profile", fontFamily="Montserrat", fontSize=10.26,
+        color="#25322D", width=300, height=28,
+        extra_properties={
+            "appearanceTemplateId": "sterling",
+            "appearanceSettings": {"palette": "sage", "textSize": "L"},
+            "appearanceTypographyRole": "body",
+            "appearanceBaseFontSize": 9.5,
+            "appearanceBaseLineHeight": 13.8,
+        },
+    )
+    [element] = elements_from_rows([row])
+    assert element.appearanceTemplateId == "sterling"
+    assert element.appearanceSettings == {"palette": "sage", "textSize": "L"}
+    assert element.appearanceTypographyRole == "body"
+    assert element.appearanceBaseFontSize == 9.5
+    assert element.appearanceBaseLineHeight == 13.8

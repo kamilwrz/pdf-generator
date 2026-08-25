@@ -601,6 +601,15 @@ def _gen_sterling(cv: dict) -> list[dict]:
         page_decorations.append(
             {**_line(0, 0, 595, 842, C['paper'], zIndex=0, page=page), 'fixedToPage': True}
         )
+        if page == 1:
+            # Persist appearance intent on stable page chrome. The editor uses
+            # this metadata to restore palette and text-size controls after a
+            # document reload; rendering ignores the extra properties.
+            page_decorations[-1]['appearanceTemplateId'] = 'sterling'
+            page_decorations[-1]['appearanceSettings'] = {
+                'palette': 'northstar',
+                'textSize': 'M',
+            }
         # Full-height rail + divider on every page (including page 1).
         page_decorations.append(
             {**_line(0, 0, SIDEBAR_W, 842, C['sidebar_bg'], zIndex=1, page=page),

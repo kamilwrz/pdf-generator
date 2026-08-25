@@ -1,6 +1,6 @@
 /**
  * Template-mode customization panel ("Dostosuj CV"): document status, section
- * structure, density presets, precise spacing, and a reserved appearance tab. A
+ * structure, density presets, precise spacing, and Sterling appearance tools. A
  * main-column Skills section's list row also gets a layout icon opening
  * `SkillsLayoutModal` (same modal the canvas heading hover control opens —
  * see `SectionRecordAdd`), so the mode picker is reachable without hunting
@@ -11,7 +11,7 @@
  */
 import { use, useEffect, useId, useMemo, useState } from "react";
 import { nanoid } from "nanoid";
-import { FiChevronDown, FiChevronUp, FiMinus, FiPlus, FiX } from "react-icons/fi";
+import { FiCheck, FiChevronDown, FiChevronUp, FiMinus, FiPlus, FiX } from "react-icons/fi";
 import { LuGripVertical, LuLayoutGrid } from "react-icons/lu";
 import { PdfContext } from "../../../store/pdfgenerator-context";
 import {
@@ -34,6 +34,15 @@ import {
 } from "../../../utils/layoutDensity";
 import { reconcileDocumentPages } from "../../../utils/structureOperation";
 import { collapseSpilledMainIntoSidebar } from "../../../utils/collapseMainIntoSidebar";
+import { applyChannelRelayout } from "../../../utils/contactBandOps";
+import {
+  applySterlingPalette,
+  applySterlingTextSize,
+  getSterlingAppearance,
+  isSterlingDocument,
+  STERLING_PALETTES,
+  STERLING_TEXT_SIZES,
+} from "../../../utils/sterlingAppearance";
 import classes from "./SectionsPanel.module.css";
 
 /** User-facing spacing knobs — keys stay aligned with SPACE_* in the generator. */
@@ -83,6 +92,7 @@ export default function SectionsPanel({ onClose }) {
   const {
     A4_Elements,
     setA4_Elements,
+    activeTemplateId,
     pageSize,
     pageCount,
     flowSpacing,
@@ -126,6 +136,12 @@ export default function SectionsPanel({ onClose }) {
   const pageStatus = formatPageCountLabel(pageCount ?? 1);
   const atBaseline = flowSpacingEquals(spacing, baselineSpacing);
   const hasAnySections = sections.length > 0 || sidebarSections.length > 0;
+  const sterlingAppearanceEnabled = activeTemplateId === "sterling"
+    || isSterlingDocument(A4_Elements);
+  const sterlingAppearance = useMemo(
+    () => getSterlingAppearance(A4_Elements),
+    [A4_Elements],
+  );
 
   useEffect(() => {
     if (!onClose) return undefined;
@@ -193,6 +209,27 @@ export default function SectionsPanel({ onClose }) {
     const next = densityPresets[densityId];
     if (!next) return;
     applySpacing(next);
+  }
+
+  function handleSterlingPalette(paletteId) {
+    if (paletteId === sterlingAppearance.palette) return;
+    setA4_Elements((prev) => applySterlingPalette(prev, paletteId));
+  }
+
+  function handleSterlingTextSize(textSizeId) {
+    if (textSizeId === sterlingAppearance.textSize) return;
+    // Auto-height text areas remeasure after this state update. The existing
+    // canvas flow engine then moves downstream sections and paginates them,
+    // so a larger preset never hides a spacing reduction behind the scenes.
+    setA4_Elements((prev) => {
+      const resized = applySterlingTextSize(prev, textSizeId);
+      return applyChannelRelayout(
+        resized,
+        "sterling-contact",
+        null,
+        () => nanoid(),
+      ).elements;
+    });
   }
 
   function handleAutoFit() {
@@ -272,14 +309,92 @@ export default function SectionsPanel({ onClose }) {
       </div>
 
       {activeTab === "appearance" ? (
-        <div className={classes.appearanceEmpty} role="tabpanel">
-          <span className={classes.eyebrow}>Wygląd</span>
-          <h3>Palety kolorów pojawią się tutaj</h3>
-          <p>
-            Przygotowujemy kuratorowane warianty dopasowane do każdego szablonu,
-            aby zmiana stylu nie pogarszała czytelności CV.
-          </p>
-        </div>
+        sterlingAppearanceEnabled ? (
+          <div className={classes.appearanceBody} role="tabpanel">
+            <section className={classes.appearanceSection} aria-labelledby="sterling-palette-heading">
+              <span className={classes.eyebrow}>Sterling</span>
+              <div className={classes.appearanceHeading}>
+                <h3 id="sterling-palette-heading">Paleta kolorów</h3>
+                <p>Każdy wariant zmienia papier, tekst, dekoracje i dopasowany zestaw ikon.</p>
+              </div>
+              <div className={classes.paletteGrid} role="radiogroup" aria-labelledby="sterling-palette-heading">
+                {STERLING_PALETTES.map((palette) => {
+                  const selected = sterlingAppearance.palette === palette.id;
+                  const cardStyle = {
+                    "--palette-paper": palette.colors.paper,
+                    "--palette-ink": palette.colors.ink,
+                    "--palette-accent": palette.colors.accent,
+                    "--palette-sidebar": palette.colors.sidebar,
+                    "--palette-rule": palette.colors.rule,
+                  };
+                  return (
+                    <button
+                      key={palette.id}
+                      type="button"
+                      role="radio"
+                      aria-checked={selected}
+                      className={selected ? classes.paletteOptionActive : classes.paletteOption}
+                      onClick={() => handleSterlingPalette(palette.id)}
+                    >
+                      <span className={classes.palettePaper} style={cardStyle} aria-hidden="true">
+                        <span className={classes.paletteMasthead} />
+                        <span className={classes.paletteRail} />
+                        <span className={classes.paletteTitle} />
+                        <span className={classes.paletteAccent} />
+                        <span className={classes.paletteLines} />
+                        {selected ? <span className={classes.paletteCheck}><FiCheck /></span> : null}
+                      </span>
+                      <span className={classes.paletteName}>{palette.name}</span>
+                      <span className={classes.paletteTagline}>{palette.tagline}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+
+            <section className={classes.appearanceSection} aria-labelledby="sterling-type-heading">
+              <span className={classes.eyebrow}>Typografia</span>
+              <div className={classes.appearanceHeading}>
+                <h3 id="sterling-type-heading">Rozmiar tekstu</h3>
+                <p>Dobierz czytelność do ilości treści. Układ i liczba stron przeliczą się automatycznie.</p>
+              </div>
+              <div className={classes.textSizeGroup} role="radiogroup" aria-labelledby="sterling-type-heading">
+                {STERLING_TEXT_SIZES.map((size) => {
+                  const selected = sterlingAppearance.textSize === size.id;
+                  return (
+                    <button
+                      key={size.id}
+                      type="button"
+                      role="radio"
+                      aria-checked={selected}
+                      className={selected ? classes.textSizeActive : classes.textSize}
+                      onClick={() => handleSterlingTextSize(size.id)}
+                      title={size.description}
+                    >
+                      {size.label}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className={classes.typeNote}>
+                <strong>{sterlingAppearance.textSize}</strong>
+                {sterlingAppearance.textSize === "M"
+                  ? " — oryginalny rozmiar szablonu"
+                  : ` — ${STERLING_TEXT_SIZES.find((size) => size.id === sterlingAppearance.textSize)?.description}`}
+                <span> · {pageStatus}</span>
+              </p>
+            </section>
+          </div>
+        ) : (
+          <div className={classes.appearanceEmpty} role="tabpanel">
+            <span className={classes.eyebrow}>Wygląd</span>
+            <h3>Palety są dostępne dla Sterlinga</h3>
+            <p>
+              Wybierz szablon Sterling, aby dopasować jego kolory, ikony i skalę tekstu.
+              Kolejne szablony otrzymają własne, kuratorowane warianty.
+            </p>
+          </div>
+        )
       ) : (
         <div className={classes.body} role="tabpanel">
           <section className={classes.section} aria-labelledby="document-status-heading">

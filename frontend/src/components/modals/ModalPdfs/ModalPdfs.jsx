@@ -100,9 +100,20 @@ export default function ModalPdfs({ title }) {
                 const fixedToPage = element.extra_properties.fixedToPage ?? false;
                 const repeatOnContinuation = element.extra_properties.repeatOnContinuation ?? true;
                 const locked = element.extra_properties.locked ?? fixedToPage;
+                // Appearance metadata is intentionally restored for every
+                // category. Sterling stores the selected palette on page
+                // chrome and role baselines on individual text elements.
+                const appearanceMetadata = {
+                    appearanceTemplateId: element.extra_properties.appearanceTemplateId,
+                    appearanceSettings: element.extra_properties.appearanceSettings,
+                    appearanceTypographyRole: element.extra_properties.appearanceTypographyRole,
+                    appearanceBaseFontSize: element.extra_properties.appearanceBaseFontSize,
+                    appearanceBaseLineHeight: element.extra_properties.appearanceBaseLineHeight,
+                };
                 if (element.category === "textarea") {
                     return {
                         ...element,
+                        ...appearanceMetadata,
                         // `element.id` is the numeric PdfElements primary key.
                         // Canvas `id` is reserved for an optional semantic
                         // template key stored in extra_properties.
@@ -135,6 +146,7 @@ export default function ModalPdfs({ title }) {
                 if (element.category !== "text") {
                     return {
                         ...element,
+                        ...appearanceMetadata,
                         zIndex: element.extra_properties.zIndex,
                         borderWidth: element.extra_properties.borderWidth,
                         borderRadius: element.extra_properties.borderRadius,
@@ -165,6 +177,7 @@ export default function ModalPdfs({ title }) {
                 }
                 return {
                     ...element,
+                    ...appearanceMetadata,
                     // Do not leak the numeric database row id into the canvas
                     // element contract; semantic template ids are strings.
                     id: element.extra_properties.id,
