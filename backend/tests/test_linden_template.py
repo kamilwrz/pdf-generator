@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from app.services.cv_templates.registry import TEMPLATE_LAYOUTS, generate_resume
+from app.services.cv_templates.shared.contact import _measured_text_width
 
 
 CV = {
@@ -62,6 +63,21 @@ def test_linden_matches_the_editorial_reference_without_losing_structure() -> No
     assert any(element.get("flowGroup") for element in elements)
 
 
+def test_linden_uppercase_name_fits_the_authored_identity_line() -> None:
+    cv = {**CV, "name": "Kamil Wrzochalski"}
+    elements = generate_resume("linden", cv)
+    name = next(element for element in elements if element.get("mastheadRole") == "name")
+
+    glyph_width = _measured_text_width(
+        name["content"].upper(), name["fontFamily"], name["fontSize"]
+    )
+    assert glyph_width is not None
+    rendered_width = glyph_width + (len(name["content"]) - 1) * name["letterSpacing"]
+    assert rendered_width <= name["width"] - 10.0
+    assert name["content"] == "Kamil Wrzochalski"
+    assert name["textTransform"] == "uppercase"
+
+
 def test_linden_contact_descriptor_drives_photo_and_sidebar_reflow() -> None:
     elements = generate_resume("linden", CV)
     anchor = next(element for element in elements if element.get("contactBandId") == "linden-contact" and element.get("contactBand"))
@@ -79,4 +95,3 @@ def test_linden_contact_descriptor_drives_photo_and_sidebar_reflow() -> None:
         for element in elements
         if element.get("contactBandId") == "linden-contact" and element.get("category") == "image"
     )
-

@@ -20,6 +20,7 @@ from copy import deepcopy
 from app.services.cv_generator_primitives import Builder, _line, _rect, _text
 from app.services.cv_templates.shared.contact import (
     _contact_channel_items,
+    _measured_text_width,
     _place_stacked_icon_contacts,
     build_contact_band_anchor,
 )
@@ -52,6 +53,10 @@ CONTACT_LABEL_TOP = 190.0
 CONTACT_START_TOP = 216.0
 CONTACT_LINE_STEP = 15.0
 CONTACT_SECTION_GAP = 32.0
+NAME_MAX_FONT_SIZE = 29.0
+NAME_MIN_FONT_SIZE = 22.0
+NAME_MAX_LETTER_SPACING = 2.6
+NAME_SAFE_WIDTH = MAIN_WIDTH - 14.0
 
 _COLOR_MAP = {
     "#F7F8FA": PAPER,
@@ -77,6 +82,31 @@ def _fixed(element: dict, *, repeat: bool = True) -> dict:
     if not repeat:
         result["repeatOnContinuation"] = False
     return result
+
+
+def _fit_name_typography(name: str) -> tuple[float, float, float]:
+    """Fit Linden's uppercase identity line inside the main column.
+
+    The canvas applies uppercase with CSS while the stored content remains in
+    its authored case. Uppercase glyphs and the editorial tracking are wider
+    than the mixed-case string measured by a normal textarea, so the surname
+    could wrap into a clipped second line on the first render. Measure the
+    actual uppercase display form and scale the font plus tracking together,
+    retaining a small browser/PDF metrics safety margin and a premium minimum
+    display size.
+
+    Returns ``(font_size, line_height, letter_spacing)`` in points.
+    """
+    display_name = name.upper()
+    measured_glyphs = _measured_text_width(display_name, DISPLAY, NAME_MAX_FONT_SIZE)
+    if measured_glyphs is None:
+        measured_glyphs = len(display_name) * NAME_MAX_FONT_SIZE * 0.58
+    measured_width = measured_glyphs + max(0, len(display_name) - 1) * NAME_MAX_LETTER_SPACING
+    scale = min(1.0, NAME_SAFE_WIDTH / max(NAME_SAFE_WIDTH, measured_width))
+    font_size = max(NAME_MIN_FONT_SIZE, round(NAME_MAX_FONT_SIZE * scale, 2))
+    letter_spacing = round(NAME_MAX_LETTER_SPACING * (font_size / NAME_MAX_FONT_SIZE), 2)
+    line_height = round(font_size * 1.086, 2)
+    return font_size, line_height, letter_spacing
 
 
 def _gen_linden(cv: dict) -> list[dict]:
@@ -145,7 +175,10 @@ def _gen_linden(cv: dict) -> list[dict]:
     name_content = _compact_text(cv.get("name"), 54)
     title_content = _compact_text(cv.get("title"), 84)
     name_top = 39.0
-    name_height = Builder.measure_block(name_content, MAIN_WIDTH, 29.0, 31.5, DISPLAY)
+    name_font_size, name_line_height, name_letter_spacing = _fit_name_typography(name_content)
+    name_height = Builder.measure_block(
+        name_content.upper(), MAIN_WIDTH, name_font_size, name_line_height, DISPLAY
+    )
     band_top = max(92.0, name_top + name_height + 6.0)
     title_top = band_top + 12.0
     title_height = Builder.measure_block(title_content, MAIN_WIDTH, 9.2, 12.5, SANS)
@@ -181,9 +214,9 @@ def _gen_linden(cv: dict) -> list[dict]:
             "top": name_top,
             "width": MAIN_WIDTH,
             "height": name_height,
-            "fontSize": 29.0,
-            "lineHeight": 31.5,
-            "letterSpacing": 2.6,
+            "fontSize": name_font_size,
+            "lineHeight": name_line_height,
+            "letterSpacing": name_letter_spacing,
             "color": FOREST_DEEP,
             "fontFamily": DISPLAY,
             "zIndex": 5,
