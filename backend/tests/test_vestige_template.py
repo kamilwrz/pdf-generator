@@ -75,6 +75,15 @@ class VestigeTemplateTests(unittest.TestCase):
         self.assertTrue(main_rules)
         self.assertTrue(all((element["left"], element["width"]) == (210.0, 335.0) for element in main_rules))
 
+        sidebar_rules = [
+            element for element in elements
+            if element.get("flowRole") == "sidebar-chrome" and element["category"] == "line"
+        ]
+        self.assertTrue(sidebar_rules)
+        self.assertTrue(all(element["height"] == 1.0 for element in sidebar_rules))
+        self.assertEqual(contact_rule["height"], 1.0)
+        self.assertTrue(all(element["height"] == 1 for element in main_rules))
+
     def test_vestige_uses_its_own_heading_type_scale(self) -> None:
         """Main headings render at 13px, sidebar headings at 8.4px — distinct
         from Sterling's 14 / 9.4 so the narrow rail reads as its own design."""

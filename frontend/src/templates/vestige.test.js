@@ -42,11 +42,18 @@ test("Vestige keeps contact and compact profile information in a narrow left rai
     assert.ok(sidebarHeadings.length >= 3);
     assert.ok(sidebarHeadings.every((element) => element.left === 27));
 
+    const sidebarRules = vestigeTemplate.filter(
+        (element) => element.flowRole === "sidebar-chrome" && element.category === "line",
+    );
+    assert.ok(sidebarRules.length >= 3);
+    assert.ok(sidebarRules.every((element) => element.height === 1));
+
     const mainRules = vestigeTemplate.filter(
         (element) => element.flowRole === "section-chrome" && element.category === "line",
     );
     assert.ok(mainRules.length >= 1);
     assert.ok(mainRules.every((element) => element.left === 210 && element.width === 335));
+    assert.ok(mainRules.every((element) => element.height === 1));
 });
 
 test("Vestige emits a clickable masthead photo slot", () => {

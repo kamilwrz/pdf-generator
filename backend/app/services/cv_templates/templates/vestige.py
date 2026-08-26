@@ -46,6 +46,10 @@ _PHOTO_H = round(_PHOTO_W * 124.0 / 100.0, 1)
 # that identifies this fixed part of Vestige's sidebar.
 _CONTACT_HEADING_TOP = 23.0
 _CONTACT_START_TOP = 46.0
+# Use one physical-point hairline throughout Vestige. Sterling's 1.4 pt rail
+# ticks can cover two device-pixel rows at fractional Y coordinates, making the
+# first sidebar rule look heavier than its neighbours at common canvas zooms.
+_RULE_HEIGHT = 1.0
 
 # Sterling's own main-column geometry (`sterling.py`'s `MAIN_L` / `MAIN_W`).
 # Needed to proportionally re-translate `grid-member` cells (the languages
@@ -278,6 +282,7 @@ def _gen_vestige(cv: dict) -> list[dict]:
             element["top"] = float(element.get("top", 0)) + sidebar_offset + carried_shift
             if flow_role == "sidebar-chrome" and category == "line":
                 element["width"] = 16.0
+                element["height"] = _RULE_HEIGHT
             # The narrower width invalidates Sterling's measured `height`
             # (wrapped at the original, wider column); recompute it so the
             # very first render already matches what "Dopasuj automatycznie"
@@ -442,7 +447,7 @@ def _gen_vestige(cv: dict) -> list[dict]:
         sidebar_left,
         _CONTACT_HEADING_TOP + 13.5,
         16.0,
-        1.4,
+        _RULE_HEIGHT,
         "#3E3E3C",
         zIndex=2,
         page=1,
