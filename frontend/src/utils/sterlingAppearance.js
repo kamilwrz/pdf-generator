@@ -7,6 +7,8 @@
  * S -> XL -> M deterministic and prevents cumulative scaling drift.
  */
 
+import { measureTextareaHeight } from "./textareaHeight.js";
+
 export const DEFAULT_STERLING_PALETTE = "northstar";
 export const DEFAULT_STERLING_TEXT_SIZE = "M";
 
@@ -269,7 +271,31 @@ export function applySterlingTextSize(elements = [], textSizeId) {
       next.appearanceBaseLineHeight = baseLineHeight;
       next.lineHeight = round(Math.max(next.fontSize * 1.12, baseLineHeight * lineFactor));
     }
-    if (element.category === "textarea" && element.autoHeight) next.preserveInitialLayout = false;
+    if (element.category === "textarea" && element.autoHeight) {
+      next.preserveInitialLayout = false;
+      // A type preset changes every textarea in one state update. Waiting for
+      // independent DOM measurements leaves the structural packer with a mix
+      // of old heights and new font metrics, so later blocks can be placed on
+      // top of text that has already wrapped. Seed a conservative height from
+      // the same canvas-side estimator used by structural builders; the live
+      // browser measurement still refines it after render.
+      if (element.flowRole !== "masthead") {
+        const estimatedHeight = measureTextareaHeight(
+          next.content,
+          next.width,
+          next.fontSize,
+          next.lineHeight,
+          { bulletList: next.bulletList },
+        );
+        // `measureTextareaHeight` includes a 6px editing/caret allowance used
+        // when creating a new field. Existing template boxes need only their
+        // rendered line boxes; carrying that allowance into every record would
+        // add it dozens of times and create a spurious continuation page.
+        if (Number.isFinite(estimatedHeight)) {
+          next.height = round(Math.max(next.lineHeight, estimatedHeight - 6));
+        }
+      }
+    }
     return next;
   });
   return stampSettings(resized, { ...currentSettings, textSize: textSizeId });

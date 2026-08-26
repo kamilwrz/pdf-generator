@@ -34,15 +34,14 @@ import {
 } from "../../../utils/layoutDensity";
 import { reconcileDocumentPages } from "../../../utils/structureOperation";
 import { collapseSpilledMainIntoSidebar } from "../../../utils/collapseMainIntoSidebar";
-import { applyChannelRelayout } from "../../../utils/contactBandOps";
 import {
   applySterlingPalette,
-  applySterlingTextSize,
   getSterlingAppearance,
   isSterlingDocument,
   STERLING_PALETTES,
   STERLING_TEXT_SIZES,
 } from "../../../utils/sterlingAppearance";
+import { applySterlingTextSizeLayout } from "../../../utils/sterlingTypographyLayout";
 import classes from "./SectionsPanel.module.css";
 
 /** User-facing spacing knobs — keys stay aligned with SPACE_* in the generator. */
@@ -218,18 +217,14 @@ export default function SectionsPanel({ onClose }) {
 
   function handleSterlingTextSize(textSizeId) {
     if (textSizeId === sterlingAppearance.textSize) return;
-    // Auto-height text areas remeasure after this state update. The existing
-    // canvas flow engine then moves downstream sections and paginates them,
-    // so a larger preset never hides a spacing reduction behind the scenes.
-    setA4_Elements((prev) => {
-      const resized = applySterlingTextSize(prev, textSizeId);
-      return applyChannelRelayout(
-        resized,
-        "sterling-contact",
-        null,
-        () => nanoid(),
-      ).elements;
-    });
+    // Apply typography and both document lanes atomically. Independent DOM
+    // textarea measurements still refine glyph-specific wrapping afterwards,
+    // but the first painted frame already has collision-free geometry.
+    setA4_Elements((prev) => applySterlingTextSizeLayout(prev, textSizeId, {
+      spacing,
+      pageHeight,
+      createId: () => nanoid(),
+    }));
   }
 
   function handleAutoFit() {
