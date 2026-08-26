@@ -56,7 +56,11 @@ import {
 import { materializeElementSpecs } from '../utils/materializeElementSpecs';
 import { useDocumentHistory } from './useDocumentHistory';
 import { applyChannelRemoval, applyChannelAddition, applyChannelRelayout } from '../utils/contactBandOps';
-import { applyNameCaseToggle, applyTitleToggle } from '../utils/mastheadIdentityOps';
+import {
+  applyNameCaseToggle,
+  applyTitleToggle,
+  resizeContentSizedTitleDecorations,
+} from '../utils/mastheadIdentityOps';
 import {
   alignSidebarAfterProfileContacts,
   hideProfilePhoto as applyProfilePhotoHide,
@@ -1524,31 +1528,7 @@ export function useA4Elements(titleRef) {
             edited.fontFamily,
             edited.fontSize,
           );
-          return newState.map((element) => {
-            if (
-              element.mastheadBandId !== edited.mastheadBandId
-              || element.mastheadRole !== "title-decoration"
-              || !element.titleDecoration
-            ) {
-              return element;
-            }
-            const decoration = element.titleDecoration;
-            const letterSpacing = Number(edited.letterSpacing) || 0;
-            const textWidth = measured ?? String(edited.content || "").length * 5.4;
-            const naturalWidth = textWidth
-              + Math.max(0, String(edited.content || "").length - 1) * letterSpacing
-              // Canvas metrics can be a few pixels narrower than the loaded
-              // webfont. Reserve a final 16 px so the white title never
-              // reaches the coloured bar's right edge while editing.
-              + (Number(decoration.horizontalPadding) || 0)
-              + 16;
-            const minWidth = Number(decoration.minWidth) || 0;
-            const maxWidth = Number(decoration.maxWidth) || naturalWidth;
-            return {
-              ...element,
-              width: Math.max(minWidth, Math.min(maxWidth, naturalWidth)),
-            };
-          });
+          return resizeContentSizedTitleDecorations(newState, edited, measured);
         }
         if (
           edited?.autoHeight

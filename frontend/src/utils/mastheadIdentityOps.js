@@ -34,6 +34,62 @@ function identityDescriptor(elements, bandId) {
   return identityAnchor(elements, bandId)?.mastheadIdentity ?? null;
 }
 
+/**
+ * Resize only masthead decorations that explicitly define content-sized bounds.
+ *
+ * Slate and Tessera use an object descriptor with min/max widths so their title
+ * bars follow edited text. Linden instead uses the string marker
+ * `"identity-band"` for a fixed, full-width strip. Treating that marker as a
+ * sizing descriptor collapses the strip to the title's measured width whenever
+ * the title editor blurs, including when the user merely selects the name next.
+ *
+ * @param {Array<object>} elements - Current document elements.
+ * @param {object} editedTitle - Masthead title whose content was committed.
+ * @param {number|null} measuredTextWidth - Browser-measured title width.
+ * @returns {Array<object>} Elements with eligible dynamic decorations resized.
+ */
+export function resizeContentSizedTitleDecorations(
+  elements,
+  editedTitle,
+  measuredTextWidth,
+) {
+  if (editedTitle?.mastheadRole !== "title" || !editedTitle.mastheadBandId) {
+    return elements;
+  }
+
+  return elements.map((element) => {
+    if (
+      element.mastheadBandId !== editedTitle.mastheadBandId
+      || element.mastheadRole !== "title-decoration"
+      || !element.titleDecoration
+    ) {
+      return element;
+    }
+
+    const decoration = element.titleDecoration;
+    // A string is a semantic fixed-decoration marker, not opt-in sizing data.
+    if (typeof decoration !== "object" || Array.isArray(decoration)) {
+      return element;
+    }
+
+    const content = String(editedTitle.content || "");
+    const letterSpacing = Number(editedTitle.letterSpacing) || 0;
+    const textWidth = measuredTextWidth ?? content.length * 5.4;
+    const naturalWidth = textWidth
+      + Math.max(0, content.length - 1) * letterSpacing
+      // Canvas metrics can be a few pixels narrower than the loaded webfont.
+      // Reserve a final 16 px so the title never reaches the bar's right edge.
+      + (Number(decoration.horizontalPadding) || 0)
+      + 16;
+    const minWidth = Number(decoration.minWidth) || 0;
+    const maxWidth = Number(decoration.maxWidth) || naturalWidth;
+    return {
+      ...element,
+      width: Math.max(minWidth, Math.min(maxWidth, naturalWidth)),
+    };
+  });
+}
+
 /** Flip the name element's case flag; positions untouched. No reflow. */
 export function applyNameCaseToggle(elements, bandId) {
   if (!identityDescriptor(elements, bandId)) return { elements };

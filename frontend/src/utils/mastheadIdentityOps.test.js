@@ -1,6 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { applyNameCaseToggle, applyTitleToggle } from "./mastheadIdentityOps.js";
+import {
+  applyNameCaseToggle,
+  applyTitleToggle,
+  resizeContentSizedTitleDecorations,
+} from "./mastheadIdentityOps.js";
 
 // Minimal masthead: identity anchor + name + title, a contact band anchor whose
 // startY is coupled to the title, one contact chip, a header rule, one section,
@@ -69,6 +73,27 @@ test("title show reconstructs the title from spec and reverses the shift", () =>
   assert.equal(elements.find((e) => e.element_id === "chip").top, 104);
   assert.equal(elements.find((e) => e.element_id === "cba").contactBand.anchor.startY, 104);
   assert.equal(elements.find((e) => e.element_id === "mid").mastheadIdentity.title.present, true);
+});
+
+test("title blur keeps Linden's fixed identity band at its authored width", () => {
+  const elements = doc();
+  const title = elements.find((element) => element.element_id === "title");
+  const bar = elements.find((element) => element.element_id === "title-bar");
+  bar.width = 385;
+  bar.titleDecoration = "identity-band";
+
+  const resized = resizeContentSizedTitleDecorations(elements, title, 58);
+
+  assert.equal(resized.find((element) => element.element_id === "title-bar").width, 385);
+});
+
+test("content-sized title bars still follow edited title text", () => {
+  const elements = doc();
+  const title = elements.find((element) => element.element_id === "title");
+
+  const resized = resizeContentSizedTitleDecorations(elements, title, 180);
+
+  assert.equal(resized.find((element) => element.element_id === "title-bar").width, 220);
 });
 
 test("title reclaim override preserves an intentional buffer and remains reversible", () => {

@@ -1,7 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { lindenTemplate } from "./linden.js";
-import { applyTitleToggle } from "../utils/mastheadIdentityOps.js";
+import {
+  applyTitleToggle,
+  resizeContentSizedTitleDecorations,
+} from "../utils/mastheadIdentityOps.js";
 import { transferSectionLane } from "../utils/transferSectionLane.js";
 import { reorderSection } from "../utils/sectionStructure.js";
 import { DEFAULT_FLOW_SPACING } from "../utils/flowSpacing.js";
@@ -94,6 +97,18 @@ test("Linden job-position toggle keeps the contact rail and body stationary", ()
   const restored = applyTitleToggle(hidden, "linden-masthead", () => "restored-title").elements;
   assert.ok(restored.some((element) => element.mastheadRole === "title"));
   assert.ok(restored.some((element) => element.mastheadRole === "title-decoration"));
+});
+
+test("Linden job-position blur keeps the full-width identity band", () => {
+  const title = lindenTemplate.find((element) => element.mastheadRole === "title");
+  const band = lindenTemplate.find((element) => element.mastheadRole === "title-decoration");
+
+  const committed = resizeContentSizedTitleDecorations(lindenTemplate, title, 58);
+  const committedBand = committed.find((element) => element.mastheadRole === "title-decoration");
+
+  assert.equal(band.titleDecoration, "identity-band");
+  assert.equal(committedBand.width, band.width);
+  assert.equal(committedBand.left, band.left);
 });
 
 test("Linden sidebar sections transfer through the shared structural editor", () => {
