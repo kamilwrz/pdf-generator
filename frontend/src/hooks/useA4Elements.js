@@ -33,6 +33,7 @@ import {
   removeSection,
   reorderSection,
 } from '../utils/sectionStructure';
+import { reflowPorticoAfterMastheadChange } from '../utils/porticoMastheadReflow';
 import { buildSectionElements } from '../utils/sectionBuilder';
 import {
   appendRecordToSection,
@@ -2352,13 +2353,19 @@ export function useA4Elements(titleRef) {
   }, [measureContactLabel]);
 
   // Masthead identity toggles (Phase 3). Committed via setA4_Elements so
-  // undo/redo and save apply unchanged; the case toggle needs no reflow, the
-  // title toggle re-paginates through applyTitleToggle.
+  // undo/redo and save apply unchanged. Portico's title changes its tall,
+  // centred masthead, so the shared section packer must reconsider content
+  // already parked on continuation pages after the local toggle transform.
   const toggleNameCase = useCallback((bandId) => {
     setA4_Elements((prev) => applyNameCaseToggle(prev, bandId).elements);
   }, []);
   const toggleTitle = useCallback((bandId) => {
-    setA4_Elements((prev) => applyTitleToggle(prev, bandId, () => nanoid()).elements);
+    setA4_Elements((prev) => {
+      const next = applyTitleToggle(prev, bandId, () => nanoid()).elements;
+      return activeTemplateIdRef.current === 'portico'
+        ? reflowPorticoAfterMastheadChange(next, flowSpacingRef.current, nanoid)
+        : next;
+    });
   }, []);
 
   /**
@@ -2366,7 +2373,8 @@ export function useA4Elements(titleRef) {
    * Slate/Tessera change the contact descriptor first, while Linden switches
    * between its authored visible/hidden sidebar anchors. The existing contact
    * layout engine then gives every active channel exact positions. Portico's
-   * stored positions are reconciled without re-packing.
+   * masthead changes height, so its complete section flow is packed again and
+   * content from continuation pages can move into newly reclaimed space.
    */
   const setProfilePhotoVisible = useCallback((visible) => {
     setA4_Elements((prev) => {
@@ -2384,7 +2392,9 @@ export function useA4Elements(titleRef) {
           next, result.contactBandId, activeTemplateIdRef.current,
         );
       }
-      return reconcileDocumentPages(next, nanoid, { collapseEmpty: true }).elements;
+      return activeTemplateIdRef.current === 'portico'
+        ? reflowPorticoAfterMastheadChange(next, flowSpacingRef.current, nanoid)
+        : reconcileDocumentPages(next, nanoid, { collapseEmpty: true }).elements;
     });
   }, [measureContactLabel]);
 

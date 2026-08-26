@@ -8,7 +8,9 @@ import { slateTemplate } from "../templates/slate.js";
 import { tesseraTemplate } from "../templates/tessera.js";
 import { lindenTemplate } from "../templates/linden.js";
 import { applyChannelRelayout } from "./contactBandOps.js";
+import { DEFAULT_FLOW_SPACING } from "./flowSpacing.js";
 import { applyTitleToggle } from "./mastheadIdentityOps.js";
+import { reflowPorticoAfterMastheadChange } from "./porticoMastheadReflow.js";
 import {
   alignSidebarAfterProfileContacts,
   hideProfilePhoto,
@@ -17,12 +19,31 @@ import {
   removeProfilePhoto,
   showProfilePhoto,
 } from "./profilePhotoVisibility.js";
+import { listDocumentSections, sectionElementIds } from "./sectionStructure.js";
+import { contentMaxPage } from "./structureOperation.js";
 
 function withIds(elements) {
   return elements.map((element, index) => ({
     ...element,
     element_id: element.element_id || `element-${index}`,
   }));
+}
+
+function twoPagePorticoFixture() {
+  const source = withIds(porticoTemplate);
+  const continuationSections = listDocumentSections(source).slice(2);
+  const continuationIds = new Set(continuationSections.flatMap(
+    (section) => [...sectionElementIds(source, section.headingId)],
+  ));
+  const firstContinuationTop = Math.min(...source
+    .filter((element) => continuationIds.has(element.element_id))
+    .map((element) => Number(element.top)));
+
+  return source.map((element) => (
+    continuationIds.has(element.element_id)
+      ? { ...element, page: 2, top: Number(element.top) - firstContinuationTop + 66 }
+      : element
+  ));
 }
 
 describe("profile photo visibility", () => {
@@ -90,6 +111,39 @@ describe("profile photo visibility", () => {
       originalTitle.top - 100,
     );
   });
+
+  for (const order of ["photo-first", "title-first"]) {
+    it(`reflows Portico continuation sections after ${order} masthead toggles`, () => {
+      let elements = twoPagePorticoFixture();
+      let nextId = 0;
+      const createId = () => `generated-${nextId += 1}`;
+      assert.equal(contentMaxPage(elements), 2);
+
+      const togglePhoto = () => {
+        elements = hideProfilePhoto(elements, "portico").elements;
+        elements = reflowPorticoAfterMastheadChange(
+          elements, DEFAULT_FLOW_SPACING, createId,
+        );
+      };
+      const toggleTitle = () => {
+        elements = applyTitleToggle(elements, "masthead-main", createId).elements;
+        elements = reflowPorticoAfterMastheadChange(
+          elements, DEFAULT_FLOW_SPACING, createId,
+        );
+      };
+
+      if (order === "photo-first") {
+        togglePhoto();
+        toggleTitle();
+      } else {
+        toggleTitle();
+        togglePhoto();
+      }
+
+      assert.equal(contentMaxPage(elements), 1);
+      assert.ok(elements.every((element) => (element.page ?? 1) === 1));
+    });
+  }
 
   for (const [templateId, template] of [["slate", slateTemplate], ["tessera", tesseraTemplate]]) {
     it(`switches ${templateId} contacts to a sidebar stack and back to main`, () => {
