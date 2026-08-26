@@ -52,6 +52,22 @@ class VestigeTemplateTests(unittest.TestCase):
         self.assertTrue(all(element["left"] == 27.0 for element in icons))
         self.assertTrue(all("/template-assets/iconic/vestige/" in element["src"] for element in icons))
 
+        contact_heading = next(
+            element for element in elements
+            if element.get("content") == "DANE KONTAKTOWE"
+        )
+        contact_rule = next(
+            element for element in elements
+            if element.get("flowRole") == "masthead"
+            and element.get("category") == "line"
+            and element.get("left") == contact_heading["left"]
+            and element.get("width") == 16.0
+        )
+        self.assertLess(contact_heading["top"], min(element["top"] for element in icons))
+        self.assertLess(contact_rule["top"], min(element["top"] for element in icons))
+        self.assertFalse(contact_heading.get("contactChannel"))
+        self.assertFalse(contact_rule.get("contactChannel"))
+
         main_rules = [
             element for element in elements
             if element.get("flowRole") == "section-chrome" and element["category"] == "line"
@@ -201,6 +217,26 @@ class VestigeTemplateTests(unittest.TestCase):
         self.assertEqual(descriptor["anchor"]["startX"], 27.0)
         self.assertEqual(descriptor["anchor"]["startY"], 46.0)
         self.assertEqual(descriptor["order"], ["phone", "email"])
+
+    def test_vestige_keeps_static_contact_heading_without_contact_channels(self) -> None:
+        """The sidebar label is template chrome, not an optional channel."""
+        elements = generate_resume(
+            "vestige",
+            {
+                "name": "Alexandra Nowak",
+                "experience": [],
+                "education": [],
+                "skills": [],
+                "languages": [],
+            },
+        )
+
+        heading = next(
+            element for element in elements
+            if element.get("content") == "DANE KONTAKTOWE"
+        )
+        self.assertEqual(heading["flowRole"], "masthead")
+        self.assertFalse(heading.get("contactBandId"))
 
     def test_vestige_emits_masthead_identity_for_name_case_and_title_visibility(self) -> None:
         """Show/hide job title and the name upper/lowercase toggle both depend

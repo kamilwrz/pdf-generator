@@ -43,7 +43,7 @@ function sterlingLikeFixture() {
     { element_id: "m-exp-head", category: "text", content: "DOŚWIADCZENIE ZAWODOWE",
       flowRole: "section-chrome", left: 218, top: 188, fontSize: 10, height: 14, page: 1, bold: true },
     { element_id: "m-exp-rule", category: "line", flowRole: "section-chrome",
-      left: 218, top: 206, width: 329, height: 1, page: 1 },
+      left: 218, top: 206, width: 329, height: 1, page: 1, backgroundColor: "#C7CFDA" },
     { element_id: "m-exp-title", category: "text", content: "AML Analyst",
       flowRole: "content", flowGroup: "job-0",
       left: 218, top: 220, fontSize: 10.4, height: 14, page: 1, bold: true },
@@ -403,7 +403,13 @@ describe("transferSectionLane", () => {
     assert.ok((Number(cells[0].width) || 0) < 120);
     assert.ok(cells[1].left > cells[0].left);
     const langHead = next.find((element) => element.element_id === "sb-lang-head");
+    const langRule = next.find((element) => element.element_id === "sb-lang-rule");
     assert.equal(Number(langHead.fontSize), 10, "main heading size from Experience sample");
+    assert.equal(
+      langRule.backgroundColor,
+      "#C7CFDA",
+      "decorative rule must adopt the destination main-column palette",
+    );
     assert.ok(cells.every((cell) => Number(cell.fontSize) === 9));
   });
 

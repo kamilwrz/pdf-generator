@@ -30,6 +30,12 @@ test("Vestige keeps contact and compact profile information in a narrow left rai
     assert.ok(contactIcons.every((element) => element.src.includes("/template-assets/iconic/vestige/")));
     assert.equal(Math.min(...contactIcons.map((element) => element.top)), name.top);
 
+    const contactHeading = vestigeTemplate.find((element) => element.content === "DANE KONTAKTOWE");
+    assert.equal(contactHeading?.flowRole, "masthead");
+    assert.equal(contactHeading?.left, 27);
+    assert.ok(contactHeading.top < Math.min(...contactIcons.map((element) => element.top)));
+    assert.equal(contactHeading.contactBandId, undefined);
+
     const sidebarHeadings = vestigeTemplate.filter(
         (element) => element.flowRole === "sidebar-chrome" && element.category === "text",
     );

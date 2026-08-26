@@ -856,6 +856,32 @@ const VESTIGE_ELEMENTS = [
     "flowRole": "content"
   },
   {
+    "category": "text",
+    "content": "DANE KONTAKTOWE",
+    "fontSize": 8.4,
+    "fontFamily": "Montserrat",
+    "color": "#262625",
+    "left": 27.0,
+    "top": 23.0,
+    "zIndex": 3,
+    "page": 1,
+    "bold": true,
+    "italic": false,
+    "letterSpacing": 1.3,
+    "flowRole": "masthead"
+  },
+  {
+    "category": "line",
+    "left": 27.0,
+    "top": 36.5,
+    "width": 16.0,
+    "height": 1.4,
+    "backgroundColor": "#3E3E3C",
+    "zIndex": 2,
+    "page": 1,
+    "flowRole": "masthead"
+  },
+  {
     "category": "image",
     "src": "/template-assets/iconic/vestige/phone.png",
     "left": 27.0,

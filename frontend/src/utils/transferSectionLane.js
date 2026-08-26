@@ -241,12 +241,11 @@ function restyleLanguagesMembersAsMain(members, headingId, style, parkTop) {
   if (rule) {
     const restyledRule = restyleMemberAsMain(rule, headingId, style, ruleTop);
     if (restyledRule) {
-      // Keep the languages accent underline when the sampled main rule is a
-      // muted Experience hairline — CEFR runs already use this accent colour.
-      chrome.push({
-        ...restyledRule,
-        backgroundColor: rule.backgroundColor || restyledRule.backgroundColor,
-      });
+      // The rule belongs to the destination lane's section system. Retaining
+      // the source rail colour here made a moved Languages section the only
+      // main-column heading with a sidebar-coloured underline (notably in
+      // Vestige, whose graphite rail rule moves onto a neutral-grey main rule).
+      chrome.push(restyledRule);
     }
   }
 

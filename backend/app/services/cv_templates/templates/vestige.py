@@ -20,7 +20,7 @@ through the same generic client-side reflow every other template relies on.
 """
 from __future__ import annotations
 
-from app.services.cv_generator_primitives import Builder, _rect
+from app.services.cv_generator_primitives import Builder, _line, _rect, _text
 from app.services.cv_templates.shared.contact import (
     _contact_channel_items,
     _place_stacked_icon_contacts,
@@ -40,6 +40,12 @@ _PHOTO_W = 60.0
 # Nova's own portrait well aspect ratio (100 x 124), reused here so the empty
 # slot reads as a conventional headshot frame rather than an arbitrary box.
 _PHOTO_H = round(_PHOTO_W * 124.0 / 100.0, 1)
+
+# Static contact-section chrome. It deliberately sits outside the managed
+# contact band, so removing the final optional channel never removes the label
+# that identifies this fixed part of Vestige's sidebar.
+_CONTACT_HEADING_TOP = 23.0
+_CONTACT_START_TOP = 46.0
 
 # Sterling's own main-column geometry (`sterling.py`'s `MAIN_L` / `MAIN_W`).
 # Needed to proportionally re-translate `grid-member` cells (the languages
@@ -417,12 +423,39 @@ def _gen_vestige(cv: dict) -> list[dict]:
         transformed.append(element)
 
     # ── Rebuild the contact rail directly from `cv` (see module docstring) ──
+    # The heading is fixed masthead chrome rather than a contact-band member:
+    # channel add/remove operations may reflow the rows, but the section label
+    # and its short editorial rule must remain present and stationary.
+    contact_heading = _text(
+        "DANE KONTAKTOWE",
+        8.4,
+        "Montserrat",
+        "#262625",
+        sidebar_left,
+        _CONTACT_HEADING_TOP,
+        zIndex=3,
+        page=1,
+        bold=True,
+    )
+    contact_heading.update({"letterSpacing": 1.3, "flowRole": "masthead"})
+    contact_rule = _line(
+        sidebar_left,
+        _CONTACT_HEADING_TOP + 13.5,
+        16.0,
+        1.4,
+        "#3E3E3C",
+        zIndex=2,
+        page=1,
+    )
+    contact_rule["flowRole"] = "masthead"
+    transformed.extend([contact_heading, contact_rule])
+
     contact_items = _contact_channel_items(cv)
     contact_els, _contact_bottom, contact_descriptor = _place_stacked_icon_contacts(
         theme="vestige",
         items=contact_items,
         start_x=sidebar_left,
-        start_y=46.0,
+        start_y=_CONTACT_START_TOP,
         text_fs=7.7,
         icon_size=9.5,
         text_color="#747472",
