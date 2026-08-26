@@ -7,7 +7,6 @@
  * collections. `tier` drives Free vs paid gating; `elements` are static specs
  * materialized by useA4Elements.handleLoadTemplate (ids assigned at load time).
  */
-import { voltTemplate } from "./iconic";
 import { monumentTemplate } from "./monument";
 import { tesseraTemplate } from "./tessera";
 import { slateTemplate } from "./slate";
@@ -17,7 +16,6 @@ import { sterlingTemplate } from "./sterling";
 import { regentTemplate } from "./regent";
 import { vestigeTemplate } from "./vestige";
 import { meridianTemplate } from "./meridian";
-import { archiveTemplate } from "./archive";
 import { cadenzaTemplate } from "./cadenza";
 import { lindenTemplate } from "./linden";
 
@@ -25,7 +23,6 @@ export { TEMPLATE_LAYOUT_TAGS } from "../utils/templateLayouts";
 
 export const TEMPLATES = [
     { id: "monument", tier: "paid", name: "Monument", description: "Monochromatyczny editorial", layouts: ["single"], accent: "#343434", elements: monumentTemplate },
-    { id: "volt", tier: "paid", name: "Volt", description: "Ciemny sygnał, bursztynowe akcenty", layouts: ["icons", "dark"], accent: "#E8A838", elements: voltTemplate },
     { id: "tessera", tier: "paid", name: "Tessera", description: "Mozaikowy sidebar, prostokątne zdjęcie", layouts: ["sidebar", "icons"], accent: "#E15D4F", elements: tesseraTemplate },
     { id: "slate", tier: "paid", name: "Slate", description: "Stalowy sidebar, siatka i prostokątne zdjęcie", layouts: ["sidebar", "icons"], accent: "#3E5C76", elements: slateTemplate },
     { id: "portico", tier: "paid", name: "Portico", description: "Wycentrowany nagłówek, ikony, spokojny minimalizm", layouts: ["icons"], accent: "#7C6A52", elements: porticoTemplate },
@@ -34,7 +31,6 @@ export const TEMPLATES = [
     { id: "regent", tier: "free", name: "Regent", description: "Klasyczna monochromatyczna typografia executive", layouts: ["single", "icons"], accent: "#151515", elements: regentTemplate },
     { id: "vestige", tier: "paid", name: "Vestige", description: "Klasyczny, monochromatyczny układ z wąskim sidebarem", layouts: ["sidebar", "icons"], accent: "#3E3E3C", elements: vestigeTemplate },
     { id: "meridian", tier: "paid", name: "Meridian", description: "Premium, granatowo-niebieski układ jednokolumnowy", layouts: ["single", "icons"], accent: "#3D5A80", elements: meridianTemplate },
-    { id: "archive", tier: "paid", name: "Archive", description: "Editorialny układ z szerokim sidebarem i mineralną paletą", layouts: ["sidebar"], accent: "#6B7C72", elements: archiveTemplate },
     { id: "cadenza", tier: "paid", name: "Cadenza", description: "Kremowy układ editorialny z białym sidebarem i geometrią", layouts: ["sidebar", "icons"], accent: "#B38B6D", elements: cadenzaTemplate },
     { id: "linden", tier: "paid", name: "Linden", description: "Botaniczny editorial, prostokątne zdjęcie i leśna zieleń", layouts: ["sidebar", "icons"], accent: "#285548", elements: lindenTemplate },
 ];

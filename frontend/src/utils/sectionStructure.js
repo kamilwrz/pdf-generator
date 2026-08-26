@@ -37,7 +37,7 @@ const PAGE_BREAK_GAP_THRESHOLD = 40;
  */
 const DEFAULT_MASTHEAD_CLEARANCE = 36;
 /**
- * Iconic mastheads (Nova / Cardinal / Volt) author 8–18px under the divider;
+ * Compact iconic mastheads author 8–18px under the divider;
  * Nimbus/Nova sit nearer 20–56px. Only gaps outside this window are treated
  * as corruption and replaced with DEFAULT_MASTHEAD_CLEARANCE.
  */
@@ -710,7 +710,7 @@ export function sectionElementIds(elements, headingId, pageHeight = 842) {
       if (isSidebarLaneElement(element)) continue;
       if (!isSameColumn(element)) continue;
       // Another section's title must never join this strip — that is what made
-      // Volt chips from a later band attach to an earlier heading and explode
+      // Contact chips from a later band attach to an earlier heading and explode
       // chrome relTop across a whole page.
       if (
         isSectionHeading(element, list, pageHeight)
@@ -802,7 +802,7 @@ export function listFlatSectionAnchors(elements, pageHeight = 842) {
 }
 
 /**
- * True when the masthead uses Iconic contact glyphs (Nova / Cardinal / Volt /
+ * True when the masthead uses Iconic contact glyphs (Nova / Cardinal /
  * Harbor). Those templates author a tight 8–18px band under the divider; the
  * 36px default masthead fallback is never intentional for them.
  */
@@ -821,7 +821,7 @@ function hasIconicMasthead(elements) {
  * header). Such mastheads author a deliberate ~36px clearance under the divider
  * and must be exempt from the iconic heal-back below, which collapses the
  * over-authored 36px of the tight LEFT-aligned iconic mastheads (Nova / Cardinal
- * / Volt / Harbor) down to 10px.
+ * Harbor) down to 10px.
  */
 function hasCenteredMasthead(elements) {
   return (elements || []).some((element) => (
@@ -896,7 +896,7 @@ function resolveFlowStart(elements, sections, pageHeight) {
   const authoredGap = leadingChromeStart - mastheadBottom;
   // Preserve whatever clearance the template authored, as long as it is sane.
   // The Python generators author ~36px under the divider for iconic templates
-  // (Nova / Cardinal / Volt / Harbor / Portico) via SPACE_AFTER_HEADER_RULE, and
+  // (Nova / Cardinal / Harbor / Portico) via SPACE_AFTER_HEADER_RULE, and
   // the static starter arrays author as little as ~8px — BOTH are legitimate.
   // An earlier version collapsed any 28–40px iconic gap down to 10px on every
   // pack, which meant reordering a section yanked the whole document up ~26px
@@ -910,7 +910,7 @@ function resolveFlowStart(elements, sections, pageHeight) {
     return mastheadBottom + authoredGap;
   }
   // Corruption recovery only: a tight LEFT-aligned iconic masthead (Nova /
-  // Cardinal / Volt / Harbor) recovers to a tight clearance; a centered "Ivy
+  // Cardinal / Harbor) recovers to a tight clearance; a centered "Ivy
   // League" masthead (Portico) and non-iconic templates (Nimbus / Monument) use
   // the wider default. `hasCenteredMasthead` keeps Portico out of the tight band.
   const tightIconic = hasIconicMasthead(list) && !hasCenteredMasthead(list);

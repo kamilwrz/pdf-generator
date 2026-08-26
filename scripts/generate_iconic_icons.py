@@ -13,7 +13,6 @@ from PIL import Image, ImageDraw
 ROOT = Path(__file__).resolve().parents[1] / "backend" / "template_assets" / "iconic"
 
 THEMES = {
-    "volt": "#E8A838",
     "portico": "#7C6A52",
     # Regent uses a neutral charcoal icon set so its masthead remains entirely
     # monochrome while retaining independently editable contact channels.
@@ -257,7 +256,7 @@ ICONS = {
     "email": draw_email,
     "phone": draw_phone,
     "location": draw_location,
-    # Contact profile links — generated for nova/volt and subset themes.
+    # Contact profile links shared by base and template-specific themes.
     "github": draw_github,
     "linkedin": draw_linkedin,
     "website": draw_website,

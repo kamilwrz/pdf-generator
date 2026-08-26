@@ -36,7 +36,6 @@ def _anchor(elements):
         ("slate", "wrapping"),
         ("regent", "centered"),
         ("meridian", "centered"),
-        ("volt", "chip"),
     ],
 )
 def test_template_emits_contact_band(template_id, mode):

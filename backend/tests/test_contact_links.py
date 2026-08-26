@@ -100,7 +100,7 @@ class ContactPlacementTests(unittest.TestCase):
             "location": "Warszawa",
         })
         els, bottom, _descriptor = _place_wrapping_icon_contacts(
-            theme="volt",
+            theme="test",
             items=items,
             start_x=50.0,
             start_y=118.0,
@@ -126,7 +126,7 @@ class ContactPlacementTests(unittest.TestCase):
             "email": "annarojek87@wp.pl",
             "location": "Warszawa",
         })
-        els = generate_resume("volt", cv)
+        els = generate_resume("regent", cv)
         contact_texts = [
             e for e in els
             if e.get("category") == "text"

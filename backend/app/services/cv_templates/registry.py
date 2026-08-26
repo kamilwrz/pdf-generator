@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 from app.services.cv_data import normalize_cv_data
-from app.services.cv_templates.templates.volt import _gen_volt
 from app.services.cv_templates.templates.monument import _gen_monument
 from app.services.cv_templates.templates.tessera import _gen_tessera
 from app.services.cv_templates.templates.slate import _gen_slate
@@ -12,13 +11,11 @@ from app.services.cv_templates.templates.sterling import _gen_sterling
 from app.services.cv_templates.templates.regent import _gen_regent
 from app.services.cv_templates.templates.vestige import _gen_vestige
 from app.services.cv_templates.templates.meridian import _gen_meridian
-from app.services.cv_templates.templates.archive import _gen_archive
 from app.services.cv_templates.templates.cadenza import _gen_cadenza
 from app.services.cv_templates.templates.linden import _gen_linden
 
 TEMPLATE_LAYOUTS: dict[str, frozenset[str]] = {
     "monument": frozenset({"single"}),
-    "volt": frozenset({"icons", "dark"}),
     "tessera": frozenset({"sidebar", "icons"}),
     "slate": frozenset({"sidebar", "icons"}),
     "portico": frozenset({"icons"}),
@@ -27,13 +24,11 @@ TEMPLATE_LAYOUTS: dict[str, frozenset[str]] = {
     "regent": frozenset({"single", "icons"}),
     "vestige": frozenset({"sidebar", "icons"}),
     "meridian": frozenset({"single", "icons"}),
-    "archive": frozenset({"sidebar"}),
     "cadenza": frozenset({"sidebar", "icons"}),
     "linden": frozenset({"sidebar", "icons"}),
 }
 
 _GENERATORS = {
-    "volt": _gen_volt,
     "monument": _gen_monument,
     "tessera": _gen_tessera,
     "slate": _gen_slate,
@@ -43,7 +38,6 @@ _GENERATORS = {
     "regent": _gen_regent,
     "vestige": _gen_vestige,
     "meridian": _gen_meridian,
-    "archive": _gen_archive,
     "cadenza": _gen_cadenza,
     "linden": _gen_linden,
 }

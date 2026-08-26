@@ -115,14 +115,14 @@ function layoutStacked(descriptor, items) {
   return { placements, bottomY };
 }
 
-// Volt-style chip (pill) width. Uses the char-count formula the backend draws
+// Chip (pill) width. Uses the same char-count formula the backend draws
 // with (NOT a measured width), so the canvas pill matches the PDF exactly.
 function chipWidth(text, m) {
   const raw = m.widthBase + String(text).length * m.widthPerChar;
   return Math.max(m.minWidth, Math.min(m.maxWidth, raw));
 }
 
-// Volt-style chip band: each channel is a rounded pill (rect) with an icon and a
+// Chip band: each channel is a rounded pill (rect) with an icon and a
 // label at fixed inset offsets; rows wrap at `rightLimit`. Each placement carries
 // rect geometry in addition to icon/label so the controller can move + resize the
 // pill background. `measure` is unused (width is deterministic per chipWidth).

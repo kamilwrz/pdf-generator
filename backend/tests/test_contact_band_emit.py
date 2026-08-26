@@ -14,14 +14,14 @@ def _fake_rect(x, y, w, h, color):
 
 
 def _fake_icon(key, left, top, size):
-    return {"category": "image", "src": f"x/volt/{key}.png", "left": left, "top": top,
+    return {"category": "image", "src": f"x/test-chip/{key}.png", "left": left, "top": top,
             "width": size, "height": size, "zIndex": 3}
 
 
 def test_chip_tags_triples_and_returns_descriptor():
     items = [("phone", "+48 111 222 333"), ("email", "a@b.pl")]
     elements, bottom_y, descriptor = _place_chip_icon_contacts(
-        theme="volt", items=items, start_x=48, start_y=108, right_limit=547,
+        theme="test-chip", items=items, start_x=48, start_y=108, right_limit=547,
         chip_h=20, icon_size=15, text_fs=7.8, text_color="#333",
         chip_color="#EEE", font="JetBrainsMono",
         rect_builder=_fake_rect, icon_builder=_fake_icon, band_id="contact-main",

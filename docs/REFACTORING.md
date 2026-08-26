@@ -93,7 +93,6 @@ b) POPRAW JEZYK, poprawia na PL, mimo ze jest ANGIELSKI (zrobic angielska wersje
 - Cardinal (Naprawic - Naglowki)
 - Monument
 - Nova
-- Volt
 - Portico
 - Atrium
 - Blueprint

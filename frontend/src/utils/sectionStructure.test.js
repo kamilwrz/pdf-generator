@@ -19,7 +19,6 @@ import {
   sectionElementIds,
   sidebarSectionElementIds,
 } from "./sectionStructure.js";
-import { voltTemplate } from "../templates/iconic.js";
 import { regentTemplate } from "../templates/regent.js";
 import { porticoTemplate } from "../templates/portico.js";
 import { changeSkillsDisplayMode } from "./skillsDisplayMode.js";
@@ -1467,13 +1466,10 @@ describe("applyFlowSpacing", () => {
     );
   });
 
-  it("preserves tight iconic masthead→section gaps instead of forcing 36px", () => {
+  it("preserves Regent's tight iconic masthead→section gap instead of forcing 36px", () => {
     // Regent authors ~8px under the divider; an older MIN gap of 20px treated
-    // that as corruption and shoved every section down by ~28px (Volt too).
-    for (const [name, template] of [
-      ["regent", regentTemplate],
-      ["volt", voltTemplate],
-    ]) {
+    // that as corruption and shoved every section down by ~28px.
+    for (const [name, template] of [["regent", regentTemplate]]) {
       const source = template.map((element, index) => ({
         ...element,
         element_id: `${name}-${index}`,

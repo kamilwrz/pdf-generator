@@ -153,10 +153,9 @@ COMPACT_DEMO_CV = {
     "languages": DEMO_CV["languages"][:3],
 }
 
-# Portico's centered photo masthead is taller, and Volt's denser iconic chrome
-# has a tighter page-one budget; use the compacted bullet set for those previews
+# Portico's centered photo masthead is taller; use the compacted bullet set
 # so the picker mockups still show every section on page 1.
-COMPACT_TEMPLATE_IDS = frozenset({"atrium", "monument", "portico", "volt"})
+COMPACT_TEMPLATE_IDS = frozenset({"atrium", "monument", "portico"})
 
 # Sidebar previews need enough supporting information to balance the tall rail,
 # while Vestige deliberately keeps only the primary contact channels so its
@@ -270,11 +269,9 @@ REGENT_DEMO_CV = {
     ],
 }
 
-# template_id -> (js filename, export const name, layouts blurb for docstring)
-# iconic.js exports volt from one module.
+# Template identifiers regenerated into one frontend starter module each.
 TEMPLATES = [
     "portico",
-    "volt",
     "tessera",
     "slate",
     "monument",
@@ -283,7 +280,6 @@ TEMPLATES = [
     "regent",
     "vestige",
     "meridian",
-    "archive",
     "cadenza",
     "linden",
 ]
@@ -299,11 +295,6 @@ DOC_BLURBS = {
         "Nova template (`layouts: [\"icons\"]`).\n"
         " *\n"
         " * Warm editorial masthead with Playfair + Montserrat and icon chrome."
-    ),
-    "volt": (
-        "Volt template (`layouts: [\"icons\", \"dark\"]`).\n"
-        " *\n"
-        " * Dark amber signal chips with Montserrat + JetBrains Mono."
     ),
     "tessera": (
         "Tessera template (`layouts: [\"sidebar\", \"icons\"]`).\n"
@@ -345,11 +336,6 @@ DOC_BLURBS = {
         " *\n"
         " * Premium navy/steel-blue single column with a compact Montserrat summary\n"
         " * and an accent-blue tick under every section rule."
-    ),
-    "archive": (
-        "Archive template (`layouts: [\"sidebar\"]`).\n"
-        " *\n"
-        " * Mineral-paper editorial layout with a wide sidebar rail."
     ),
     "cadenza": (
         "Cadenza template (`layouts: [\"sidebar\", \"icons\"]`).\n"
@@ -446,31 +432,6 @@ export const {export} = {const}.map((element) => (
 """
 
 
-def iconic_module(volt_elements: list[dict]) -> str:
-    """Volt owns the remaining shared iconic.js module."""
-    volt_json = json.dumps(volt_elements, ensure_ascii=False, indent=2)
-    return f"""/**
- * Icon-driven static layout (Volt).
- *
- * The starter is the backend generator's own output for representative demo
- * content, so the picker preview matches `/ai/fill_template` pixel-for-pixel.
- * Image `src` values are stored relative and get the API base prepended at
- * load time. Icons live under `/template-assets/iconic/<theme>/`.
- */
-import API_BASE_URL from "../services/api.js";
-
-const VOLT_ELEMENTS = {volt_json};
-
-const withAbsoluteAssets = (elements) => elements.map((element) => (
-  element.category === "image" && typeof element.src === "string" && element.src.startsWith("/template-assets")
-    ? {{ ...element, src: `${{API_BASE_URL}}${{element.src}}` }}
-    : element
-));
-
-export const voltTemplate = withAbsoluteAssets(VOLT_ELEMENTS);
-"""
-
-
 def main() -> None:
     generated: dict[str, list[dict]] = {}
     for template_id in TEMPLATES:
@@ -478,7 +439,7 @@ def main() -> None:
             cv = REGENT_DEMO_CV
         elif template_id in COMPACT_TEMPLATE_IDS:
             cv = COMPACT_DEMO_CV
-        elif template_id in {"sterling", "vestige", "archive", "cadenza", "linden"}:
+        elif template_id in {"sterling", "vestige", "cadenza", "linden"}:
             cv = SIDEBAR_DEMO_CV
         else:
             cv = DEMO_CV
@@ -500,18 +461,9 @@ def main() -> None:
 
     # Write single-template modules.
     for template_id in TEMPLATES:
-        if template_id == "volt":
-            continue
         path = FRONTEND_TEMPLATES / f"{template_id}.js"
         path.write_text(js_module(template_id, generated[template_id]), encoding="utf-8")
         print(f"wrote {path.relative_to(REPO_ROOT)}", flush=True)
-
-    iconic_path = FRONTEND_TEMPLATES / "iconic.js"
-    iconic_path.write_text(
-        iconic_module(generated["volt"]),
-        encoding="utf-8",
-    )
-    print(f"wrote {iconic_path.relative_to(REPO_ROOT)}", flush=True)
 
 
 if __name__ == "__main__":

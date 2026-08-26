@@ -34,7 +34,7 @@ def _by_role(elements, role):
 
 @pytest.mark.parametrize(
     "template_id",
-    ["atrium", "portico", "tessera", "slate", "regent", "volt"],
+    ["atrium", "portico", "tessera", "slate", "regent"],
 )
 def test_template_emits_masthead_identity(template_id):
     elements = generate_resume(template_id, _CV)
@@ -62,7 +62,7 @@ def test_template_emits_masthead_identity(template_id):
 
 @pytest.mark.parametrize(
     "template_id",
-    ["atrium", "portico", "tessera", "slate", "regent", "volt"],
+    ["atrium", "portico", "tessera", "slate", "regent"],
 )
 def test_masthead_descriptor_reflow_delta_is_positive(template_id):
     """The title-hide reflow delta (``blockPt``) must be positive so hiding the
@@ -75,7 +75,13 @@ def test_masthead_descriptor_reflow_delta_is_positive(template_id):
     descriptor = anchor["mastheadIdentity"]
     assert descriptor["title"]["present"] is True
     assert descriptor["title"]["blockPt"] > 0
-    assert descriptor["contactBandId"] == "contact-main"
+    contact_band_id = descriptor["contactBandId"]
+    contact_anchor = next(
+        e for e in elements
+        if e.get("flowRole") == "masthead-anchor"
+        and e.get("contactBand", {}).get("id") == contact_band_id
+    )
+    assert contact_anchor["contactBandId"] == contact_band_id
 
 
 def test_atrium_title_hide_preserves_name_to_contact_buffer():

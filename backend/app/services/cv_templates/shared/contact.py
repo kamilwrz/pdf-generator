@@ -284,7 +284,7 @@ def _place_chip_icon_contacts(
     max_width: float = 168.0,
     band_id: str | None = None,
 ) -> tuple[list[dict], float, dict]:
-    """Place icon+label contacts as rounded pills (Volt masthead chips).
+    """Place icon+label contacts as rounded masthead pills.
 
     Each channel is a triple: a background ``rectangle`` pill with an icon and a
     label at fixed inset offsets; rows wrap at ``right_limit``. Chip width uses a
@@ -292,14 +292,14 @@ def _place_chip_icon_contacts(
     reproduce the exact same geometry for canvas↔PDF parity.
 
     ``rect_builder(x, y, w, h, color)`` and ``icon_builder(key, left, top, size)``
-    are supplied by the caller (Volt owns its own ``_rect``/``_icon`` helpers).
+    are supplied by the caller so this layout primitive stays theme-agnostic.
 
     Returns (elements, bottom_y, descriptor). When ``band_id`` is provided every
     rect/icon/label is tagged with its channel + the shared band id; the returned
     ``descriptor`` (mode ``"chip"``) carries the geometry for client reflow.
     """
     line_step = chip_h + 8.0
-    label_offset = pad_left + icon_size + icon_text_gap  # 27 for Volt defaults
+    label_offset = pad_left + icon_size + icon_text_gap
     elements: list[dict] = []
     x = float(start_x)
     chip_top = float(start_y)

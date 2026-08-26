@@ -3,7 +3,6 @@
 // re-transcribing layout geometry. Not part of the app build — run manually
 // with `node frontend/scripts/dump-iconic-templates.mjs`.
 import { writeFileSync } from "node:fs";
-import { voltTemplate } from "../src/templates/iconic.js";
 import { monumentTemplate } from "../src/templates/monument.js";
 import { tesseraTemplate } from "../src/templates/tessera.js";
 import { slateTemplate } from "../src/templates/slate.js";
@@ -13,11 +12,9 @@ import { sterlingTemplate } from "../src/templates/sterling.js";
 import { regentTemplate } from "../src/templates/regent.js";
 import { meridianTemplate } from "../src/templates/meridian.js";
 import { vestigeTemplate } from "../src/templates/vestige.js";
-import { archiveTemplate } from "../src/templates/archive.js";
 import { lindenTemplate } from "../src/templates/linden.js";
 
 const out = {
-    volt: voltTemplate,
     monument: monumentTemplate,
     tessera: tesseraTemplate,
     slate: slateTemplate,
@@ -27,7 +24,6 @@ const out = {
     regent: regentTemplate,
     meridian: meridianTemplate,
     vestige: vestigeTemplate,
-    archive: archiveTemplate,
     linden: lindenTemplate,
 };
 writeFileSync(new URL("./iconic-templates.json", import.meta.url), JSON.stringify(out, null, 2));

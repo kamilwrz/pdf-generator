@@ -74,10 +74,6 @@ g) Nova (DELETED)
 - jest ok, ale slot powinien miec ikone
 - dodac inne paletty kolorow
 
-h) Volt
-- Naglowki dac BOLD
-- Zwiekszyc zakres roszerzania rectangle w kontaktach
-
 i) Vestige
 - Zmniejszyc czcionke w naglowkach (Sidebar + Main)
 

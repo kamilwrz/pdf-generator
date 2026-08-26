@@ -95,7 +95,6 @@ Każdy szablon to osobny byt: własna nazwa i krótki opis stylistyczny. UI nie 
 | Monument | Monochromatyczny editorial |
 | Harbor | Dwukolumnowy, ikony kontaktu |
 | Nova | Redakcyjny masthead z ikonami |
-| Volt | Ciemny sygnał, bursztynowe akcenty |
 | Tessera | Mozaikowy sidebar, prostokątne zdjęcie |
 | Slate | Stalowy sidebar, siatka i prostokątne zdjęcie |
 

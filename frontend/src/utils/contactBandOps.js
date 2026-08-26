@@ -81,7 +81,7 @@ function reposition(el, bandId, placementByChannel) {
       return { ...el, left: placement.iconLeft, top: placement.iconTop };
     }
     if (el.category === "rectangle") {
-      // Chip (Volt) background pill: move AND resize to the recomputed width.
+      // Chip background pill: move AND resize to the recomputed width.
       // Non-chip placements have no rect fields, but no rectangle band element
       // exists in those modes, so this branch is only reached in chip mode.
       return {
@@ -112,10 +112,9 @@ function deriveIconSrc(elements, bandId, descriptor, channel) {
   return `/template-assets/iconic/${descriptor.icon.theme}/${channel}.png`;
 }
 
-// Copy the chip (Volt) pill style from an existing band rectangle so a re-added
-// chip matches the originals exactly — including `filled` (Volt chips are
-// outline-only: backgroundColor is the border colour) and any borderRadius. Falls
-// back to the descriptor's chipColor with Volt's default outline shape when the
+// Copy the chip pill style from an existing band rectangle so a re-added chip
+// matches the originals exactly, including `filled` and any border radius. Falls
+// back to the descriptor's chip color with the default outline shape when the
 // band has no rectangle left to copy from (re-adding into a fully emptied band).
 function deriveChipStyle(elements, bandId, descriptor) {
   const anyRect = elements.find(
@@ -253,7 +252,7 @@ export function applyChannelAddition(elements, bandId, channel, label, measure, 
     // mounting an element already `isEditing:true` is an unreliable focus path.
     placeholder: channelName(channel),
   };
-  // Chip (Volt) channels are a triple: a background pill (rectangle) behind the
+  // Chip channels are a triple: a background pill (rectangle) behind the
   // icon + label. Create it too so the new channel matches the drawn shape; the
   // subsequent relayout confirms every position/size.
   const extras = [];

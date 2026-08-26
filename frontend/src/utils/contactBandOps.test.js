@@ -195,12 +195,12 @@ test("removing a contact keeps the following section at its authored Y", () => {
   assert.equal(elements.find((e) => e.element_id === "head").top, 146);
 });
 
-// ── Chip mode (Volt): rect + icon + label triple per channel ────────────────
+// ── Chip mode: rect + icon + label triple per channel ──────────────────────
 const chipDescriptor = {
   id: "vb", mode: "chip",
   anchor: { startX: 48, startY: 108, rightLimit: 547 },
   text: { fontFamily: "JetBrains Mono", fontSizePt: 7.8, colorHex: "#333" },
-  icon: { sizePt: 15, theme: "volt" },
+  icon: { sizePt: 15, theme: "test-chip" },
   metrics: { chipH: 20, iconSize: 15, padLeft: 6, labelOffset: 27,
     widthBase: 28, widthPerChar: 5.2, minWidth: 120, maxWidth: 168,
     chipGap: 8, lineStep: 28, charWidth: 5.2 },
@@ -216,7 +216,7 @@ function chipDoc() {
       left: 48, top: 108, width: 120, height: 20, page: 1, flowRole: "masthead",
       backgroundColor: "#1A2030", filled: false, borderWidth: 1, borderRadius: null },
     { element_id: "ph-i", category: "image", contactBandId: "vb", contactChannel: "phone",
-      left: 54, top: 114, width: 15, height: 15, page: 1, src: "x/volt/phone.png", flowRole: "masthead" },
+      left: 54, top: 114, width: 15, height: 15, page: 1, src: "x/test-chip/phone.png", flowRole: "masthead" },
     { element_id: "ph-l", category: "text", contactBandId: "vb", contactChannel: "phone",
       content: "+48 111", left: 75, top: 114, page: 1, flowRole: "masthead" },
     { element_id: "head", category: "text", content: "H", top: 200, left: 48, page: 1 },
@@ -239,7 +239,7 @@ test("chip relayout leaves downstream flow put when the row count is unchanged",
   // vertical centering, but layoutContactBand's bottomY is the row top. A stale
   // `currentBandBottom` that read the label top made every horizontal-only edit
   // yield a negative delta, marching downstream content up by that offset on each
-  // keystroke (Volt masthead crept over the summary). A same-row edit must move
+  // keystroke (the chip masthead crept over the summary). A same-row edit must move
   // nothing below the band.
   const edited = chipDoc().map((e) =>
     e.element_id === "ph-l" ? { ...e, content: "+48 111 222" } : e,

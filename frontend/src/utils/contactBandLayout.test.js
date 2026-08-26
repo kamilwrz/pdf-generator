@@ -87,7 +87,7 @@ const chipDesc = {
   mode: "chip",
   anchor: { startX: 48, startY: 108, rightLimit: 547 },
   text: { fontFamily: "JetBrains Mono", fontSizePt: 7.8, colorHex: "#333" },
-  icon: { sizePt: 15, theme: "volt" },
+  icon: { sizePt: 15, theme: "test-chip" },
   metrics: {
     chipH: 20, iconSize: 15, padLeft: 6, labelOffset: 27,
     widthBase: 28, widthPerChar: 5.2, minWidth: 120, maxWidth: 168,
