@@ -673,6 +673,78 @@ function healStackedSectionBodies(elements, sections, membersByHeading, pageHeig
 }
 
 /**
+ * Keep every semantic record inside the section that owns its first member.
+ *
+ * Section membership is normally derived from visual Y intervals. A stale
+ * multi-page layout can place the next section's chrome between two members
+ * of the same `flowGroup` (for example, a job title on page one and its
+ * company/description on page two). Without this repair, the later members
+ * are compacted as body content of the next section and the two sections are
+ * permanently interleaved. The earliest member is the stable ownership
+ * signal because generators and record insertion always emit title/meta/body
+ * in reading order, while every record identifier is document-unique.
+ *
+ * Only ids already accepted by the normal lane/column filters are moved. This
+ * prevents a coincidentally tagged sidebar or masthead element from crossing
+ * into the main flow while still making record ownership atomic.
+ */
+function healSplitFlowGroupMemberships(
+  elements,
+  sections,
+  membersByHeading,
+  pageHeight,
+) {
+  const list = elements || [];
+  const elementById = new Map(list.map((element, index) => [
+    element.element_id,
+    { element, sourceIndex: index },
+  ]));
+  const groups = new Map();
+
+  for (const section of sections) {
+    const ids = membersByHeading.get(section.headingId);
+    if (!ids) continue;
+    for (const id of ids) {
+      const entry = elementById.get(id);
+      const group = flowGroupOf(entry?.element);
+      if (!group) continue;
+
+      const abs = absoluteTop(entry.element, pageHeight);
+      const state = groups.get(group) || {
+        ids: new Set(),
+        owners: new Set(),
+        ownerHeadingId: section.headingId,
+        firstAbs: abs,
+        firstSourceIndex: entry.sourceIndex,
+      };
+      state.ids.add(id);
+      state.owners.add(section.headingId);
+      if (
+        abs < state.firstAbs
+        || (abs === state.firstAbs && entry.sourceIndex < state.firstSourceIndex)
+      ) {
+        state.ownerHeadingId = section.headingId;
+        state.firstAbs = abs;
+        state.firstSourceIndex = entry.sourceIndex;
+      }
+      groups.set(group, state);
+    }
+  }
+
+  for (const state of groups.values()) {
+    if (state.owners.size < 2) continue;
+    for (const headingId of state.owners) {
+      const ids = membersByHeading.get(headingId);
+      if (!ids) continue;
+      for (const id of state.ids) ids.delete(id);
+    }
+    const ownerIds = membersByHeading.get(state.ownerHeadingId);
+    if (!ownerIds) continue;
+    for (const id of state.ids) ownerIds.add(id);
+  }
+}
+
+/**
  * Collect element ids belonging to the section that starts at `headingId`
  * (heading + chrome nearby + content until the next section heading).
  * Cross-column elements (a sidebar rail sharing the same Y band as a
@@ -757,6 +829,7 @@ export function sectionElementIds(elements, headingId, pageHeight = 842) {
   }
 
   healStackedSectionBodies(list, sections, membersByHeading, pageHeight);
+  healSplitFlowGroupMemberships(list, sections, membersByHeading, pageHeight);
   return membersByHeading.get(headingId) || new Set();
 }
 

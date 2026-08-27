@@ -46,6 +46,78 @@ function twoPagePorticoFixture() {
   ));
 }
 
+/**
+ * Reproduce the stale two-page geometry from the reported Portico document.
+ *
+ * The last experience title still fits on page one, but its company line has
+ * already moved to page two. Education chrome was left between those two
+ * `flowGroup` mates. A masthead pack must recover the record's semantic owner
+ * before compacting sections, otherwise the company line is laid out inside
+ * Education and the two sections become visibly interleaved.
+ */
+function splitExperienceBeforeEducationFixture() {
+  const source = withIds(porticoTemplate);
+  const experienceTitle = source.find(
+    (element) => element.content === "Specjalistka Obsługi Klienta",
+  );
+  const experienceGroup = experienceTitle.flowGroup;
+  const experienceMembers = source.filter(
+    (element) => element.flowGroup === experienceGroup,
+  );
+  const education = listDocumentSections(source).find(
+    (section) => section.title === "WYKSZTAŁCENIE",
+  );
+  const skills = listDocumentSections(source).find(
+    (section) => section.title === "UMIEJĘTNOŚCI",
+  );
+  const languages = listDocumentSections(source).find(
+    (section) => section.title === "JĘZYKI",
+  );
+  const educationIds = sectionElementIds(source, education.headingId);
+  const skillsIds = sectionElementIds(source, skills.headingId);
+  const languageIds = sectionElementIds(source, languages.headingId);
+  const educationMembers = source.filter((element) => educationIds.has(element.element_id));
+  const educationChrome = educationMembers.filter(
+    (element) => element.flowRole === "section-chrome",
+  );
+  const educationBody = educationMembers.filter(
+    (element) => element.flowRole !== "section-chrome",
+  );
+
+  const positionBand = (element, members, page, startTop) => {
+    const firstTop = Math.min(...members.map((member) => Number(member.top)));
+    return {
+      ...element,
+      page,
+      top: startTop + Number(element.top) - firstTop,
+    };
+  };
+
+  return source.map((element) => {
+    if (element.element_id === experienceMembers[0].element_id) {
+      return { ...element, page: 1, top: 700 };
+    }
+    if (experienceMembers.slice(1).some((member) => member.element_id === element.element_id)) {
+      return positionBand(element, experienceMembers.slice(1), 2, 66);
+    }
+    if (educationChrome.some((member) => member.element_id === element.element_id)) {
+      return positionBand(element, educationChrome, 1, 730);
+    }
+    if (educationBody.some((member) => member.element_id === element.element_id)) {
+      return positionBand(element, educationBody, 2, 100);
+    }
+    if (skillsIds.has(element.element_id)) {
+      const members = source.filter((member) => skillsIds.has(member.element_id));
+      return positionBand(element, members, 2, 190);
+    }
+    if (languageIds.has(element.element_id)) {
+      const members = source.filter((member) => languageIds.has(member.element_id));
+      return positionBand(element, members, 2, 250);
+    }
+    return element;
+  });
+}
+
 describe("profile photo visibility", () => {
   it("hides Atrium without moving non-slot content and restores it", () => {
     const source = withIds(atriumTemplate);
@@ -144,6 +216,36 @@ describe("profile photo visibility", () => {
       assert.ok(elements.every((element) => (element.page ?? 1) === 1));
     });
   }
+
+  it("keeps a split Portico job record ahead of Education after hiding the photo", () => {
+    const source = splitExperienceBeforeEducationFixture();
+    const experienceTitle = source.find(
+      (element) => element.content === "Specjalistka Obsługi Klienta",
+    );
+    const group = experienceTitle.flowGroup;
+    const educationHeading = source.find((element) => element.content === "WYKSZTAŁCENIE");
+    let nextId = 0;
+    const createId = () => `generated-${nextId += 1}`;
+
+    const hidden = hideProfilePhoto(source, "portico").elements;
+    const reflowed = reflowPorticoAfterMastheadChange(
+      hidden, DEFAULT_FLOW_SPACING, createId,
+    );
+    const recordMembers = reflowed.filter((element) => element.flowGroup === group);
+    const finalEducationHeading = reflowed.find(
+      (element) => element.element_id === educationHeading.element_id,
+    );
+    const absoluteTop = (element) => ((element.page || 1) - 1) * 842 + element.top;
+    const recordBottom = Math.max(...recordMembers.map(
+      (element) => absoluteTop(element) + Number(element.height || element.lineHeight || 12),
+    ));
+
+    assert.equal(new Set(recordMembers.map((element) => element.page)).size, 1);
+    assert.ok(
+      recordBottom < absoluteTop(finalEducationHeading),
+      "the complete job record must finish before Education chrome begins",
+    );
+  });
 
   for (const [templateId, template] of [["slate", slateTemplate], ["tessera", tesseraTemplate]]) {
     it(`switches ${templateId} contacts to a sidebar stack and back to main`, () => {
