@@ -67,4 +67,34 @@ describe("Sterling typography layout", () => {
 
     assert.equal(contentMaxPage(elements), 1);
   });
+
+  it("packs from glyph-measured heights instead of a stale character-count estimate", () => {
+    let nextId = 0;
+    const createId = () => `measured-${nextId += 1}`;
+    const source = withIds(sterlingTemplate);
+    const summaryId = source.find((element) => (
+      element.category === "textarea"
+      && String(element.content || "").startsWith("Analityczka AML")
+    )).element_id;
+    // Deliberately wide glyph metrics reproduce the real failure mode: a line
+    // can wrap earlier than `content.length / charsPerLine` predicts.
+    const measureTextWidth = (text) => String(text).length * 7;
+
+    const heuristic = applySterlingTextSizeLayout(source, "L", {
+      spacing: DEFAULT_FLOW_SPACING,
+      pageHeight: 842,
+      createId,
+    });
+    const measured = applySterlingTextSizeLayout(source, "L", {
+      spacing: DEFAULT_FLOW_SPACING,
+      pageHeight: 842,
+      createId,
+      measureTextWidth,
+    });
+    const heuristicSummary = heuristic.find((element) => element.element_id === summaryId);
+    const measuredSummary = measured.find((element) => element.element_id === summaryId);
+
+    assert.ok(measuredSummary.height > heuristicSummary.height);
+    assert.deepEqual(overlappingFlowText(measured), []);
+  });
 });

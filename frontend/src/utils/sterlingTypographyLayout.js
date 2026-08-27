@@ -18,14 +18,16 @@ import { reconcileDocumentPages } from "./structureOperation.js";
  * @param {object} options.spacing - Active vertical-rhythm settings.
  * @param {number} [options.pageHeight=842] - Canvas page height in points.
  * @param {() => string} options.createId - Identifier factory for cloned chrome.
+ * @param {null|((text: string, style?: object) => number)} [options.measureTextWidth]
+ * Browser-backed glyph-width reader used to seed exact wrapped heights.
  * @returns {object[]} Fully packed elements for the selected typography preset.
  */
 export function applySterlingTextSizeLayout(
   elements,
   textSizeId,
-  { spacing, pageHeight = 842, createId },
+  { spacing, pageHeight = 842, createId, measureTextWidth = null },
 ) {
-  const resized = applySterlingTextSize(elements, textSizeId);
+  const resized = applySterlingTextSize(elements, textSizeId, { measureTextWidth });
   const contacts = applyChannelRelayout(
     resized,
     "sterling-contact",

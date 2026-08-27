@@ -221,7 +221,11 @@ function typographyRole(element) {
  * Auto-height textareas opt into a fresh measurement so existing canvas
  * reflow and pagination can respond to the selected size.
  */
-export function applySterlingTextSize(elements = [], textSizeId) {
+export function applySterlingTextSize(
+  elements = [],
+  textSizeId,
+  { measureTextWidth = null } = {},
+) {
   const scale = TEXT_SCALE[textSizeId];
   if (!scale) return elements;
   const currentSettings = getSterlingAppearance(elements);
@@ -285,7 +289,11 @@ export function applySterlingTextSize(elements = [], textSizeId) {
           next.width,
           next.fontSize,
           next.lineHeight,
-          { bulletList: next.bulletList },
+          {
+            bulletList: next.bulletList,
+            measureTextWidth,
+            textStyle: next,
+          },
         );
         // `measureTextareaHeight` includes a 6px editing/caret allowance used
         // when creating a new field. Existing template boxes need only their

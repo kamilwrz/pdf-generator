@@ -93,3 +93,31 @@ test("measureTextareaHeight ignores trailing bullet placeholders", () => {
   });
   assert.equal(padded, solid);
 });
+
+test("glyph-width measurement catches word wraps hidden by the character-count fallback", () => {
+  const measureTextWidth = (text) => [...String(text)].reduce((width, character) => (
+    width + (character === "W" ? 10 : character === " " ? 2 : 4)
+  ), 0);
+
+  const fallback = measureTextareaHeight("WW WW", 30, 10, 14);
+  const measured = measureTextareaHeight("WW WW", 30, 10, 14, {
+    measureTextWidth,
+  });
+
+  assert.equal(fallback, 20);
+  assert.equal(measured, 34);
+});
+
+test("glyph-width measurement reserves the rendered bullet marker column", () => {
+  const measureTextWidth = (text) => [...String(text)].reduce((width, character) => (
+    width + (character === "W" ? 10 : character === " " ? 2 : 4)
+  ), 0);
+
+  assert.equal(
+    measureTextareaHeight("• WWW", 30, 10, 14, {
+      bulletList: true,
+      measureTextWidth,
+    }),
+    34,
+  );
+});
