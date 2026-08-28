@@ -249,8 +249,9 @@ class VestigeTemplateTests(unittest.TestCase):
 
     def test_vestige_emits_masthead_identity_for_name_case_and_title_visibility(self) -> None:
         """Show/hide job title and the name upper/lowercase toggle both depend
-        on a `mastheadIdentity` descriptor — Sterling (which Vestige forwards)
-        never builds one, so Vestige must tag it directly."""
+        on a template-local `mastheadIdentity` descriptor. Vestige discards the
+        Sterling descriptor it derives from and tags the restyled geometry
+        directly, so the client never sees duplicate controls."""
         elements = generate_resume(
             "vestige",
             {

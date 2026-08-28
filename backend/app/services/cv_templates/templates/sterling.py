@@ -84,6 +84,7 @@ from app.services.cv_templates.shared.text import (
     _measure_skills_body,
     _place_skills_section,
 )
+from app.services.cv_templates.shared.masthead import tag_masthead_identity
 
 
 # Sidebar section ticks must use an integral one-point hairline. The canvas
@@ -150,13 +151,16 @@ def _gen_sterling(
     CONTACT_BAND_ID = 'sterling-contact'
 
     name = _compact_text(cv.get('name'), 40)
-    title = _compact_text(cv.get('title'), 60).upper()
+    title = _compact_text(cv.get('title'), 60)
     contact_items = _contact_channel_items(cv)
 
     header: list[dict] = []
     cursor_y = MAST_TOP
+    name_index: int | None = None
+    title_index: int | None = None
     if name:
         name_h = Builder.measure_block(name, LETTERHEAD_W, NAME_FS, NAME_LH, DISPLAY, bold=True)
+        name_index = len(header)
         header.append({
             'category': 'textarea', 'content': name, 'left': LETTERHEAD_L, 'top': cursor_y,
             'width': LETTERHEAD_W, 'height': name_h, 'fontSize': NAME_FS, 'lineHeight': NAME_LH,
@@ -165,16 +169,26 @@ def _gen_sterling(
             'autoHeight': True, 'preserveInitialLayout': True,
         })
         cursor_y += name_h + 6.0
+    title_top = cursor_y
+    title_h = (
+        Builder.measure_block(title, LETTERHEAD_W, TITLE_FS, TITLE_LH, SANS)
+        if title else TITLE_LH
+    )
+    title_prototype = {
+        'category': 'textarea', 'content': title, 'left': LETTERHEAD_L, 'top': title_top,
+        'width': LETTERHEAD_W, 'height': title_h, 'fontSize': TITLE_FS, 'lineHeight': TITLE_LH,
+        'letterSpacing': 2.0, 'color': C['accent'], 'fontFamily': SANS, 'zIndex': 3,
+        'page': 1, 'bold': False, 'italic': False, 'align': 'center', 'bulletList': False,
+        'autoHeight': True, 'preserveInitialLayout': True,
+    }
     if title:
-        title_h = Builder.measure_block(title, LETTERHEAD_W, TITLE_FS, TITLE_LH, SANS)
-        header.append({
-            'category': 'textarea', 'content': title, 'left': LETTERHEAD_L, 'top': cursor_y,
-            'width': LETTERHEAD_W, 'height': title_h, 'fontSize': TITLE_FS, 'lineHeight': TITLE_LH,
-            'letterSpacing': 2.0, 'color': C['accent'], 'fontFamily': SANS, 'zIndex': 3,
-            'page': 1, 'bold': False, 'italic': False, 'align': 'center', 'bulletList': False,
-            'autoHeight': True, 'preserveInitialLayout': True,
-        })
-        cursor_y += title_h + 10.0
+        title_index = len(header)
+        header.append(title_prototype)
+    # Sterling's page-1 letterhead background is fixed chrome whose lower edge
+    # is derived from this cursor. Reserve the title row even when it is empty,
+    # so adding/removing the title never leaves the fixed band and its divider
+    # at conflicting heights.
+    cursor_y += title_h + 10.0
 
     contact_descriptor: dict | None = None
     if contact_items:
@@ -205,6 +219,20 @@ def _gen_sterling(
     # (matches Cardinal's contact-band anchor placement).
     if contact_descriptor is not None:
         header.append(build_contact_band_anchor(contact_descriptor))
+    name_element = header[name_index] if name_index is not None else None
+    title_element = header[title_index] if title_index is not None else None
+    if name_element is not None:
+        header.append(tag_masthead_identity(
+            name_element,
+            title_element,
+            title_prototype=title_prototype,
+            band_id='sterling-masthead',
+            name_default_uppercase=False,
+            title_default_uppercase=True,
+            band_top=title_top,
+            title_reclaim_pt=0.0,
+            contact_band_id=CONTACT_BAND_ID,
+        ))
 
     content_top = rule_y + 30.0
 

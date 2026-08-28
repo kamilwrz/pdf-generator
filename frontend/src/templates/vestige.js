@@ -24,7 +24,12 @@ const VESTIGE_ELEMENTS = [
     "backgroundColor": "#FFFFFF",
     "zIndex": 0,
     "page": 1,
-    "fixedToPage": true
+    "fixedToPage": true,
+    "appearanceTemplateId": "sterling",
+    "appearanceSettings": {
+      "palette": "northstar",
+      "textSize": "M"
+    }
   },
   {
     "category": "line",
@@ -100,7 +105,7 @@ const VESTIGE_ELEMENTS = [
   },
   {
     "category": "textarea",
-    "content": "ANALITYCZKA AML I COMPLIANCE",
+    "content": "Analityczka AML i Compliance",
     "left": 210.0,
     "top": 86.0,
     "width": 335.0,
@@ -435,7 +440,7 @@ const VESTIGE_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-3864f817a4a2",
+    "flowGroup": "record-14d717558036",
     "flowRole": "content"
   },
   {
@@ -458,7 +463,7 @@ const VESTIGE_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-3864f817a4a2",
+    "flowGroup": "record-14d717558036",
     "flowRole": "content"
   },
   {
@@ -481,7 +486,7 @@ const VESTIGE_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-3864f817a4a2",
+    "flowGroup": "record-14d717558036",
     "flowRole": "content"
   },
   {
@@ -504,7 +509,7 @@ const VESTIGE_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-39d13503a189",
+    "flowGroup": "record-79622c1ddb40",
     "flowRole": "content"
   },
   {
@@ -527,7 +532,7 @@ const VESTIGE_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-39d13503a189",
+    "flowGroup": "record-79622c1ddb40",
     "flowRole": "content"
   },
   {
@@ -550,7 +555,7 @@ const VESTIGE_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-39d13503a189",
+    "flowGroup": "record-79622c1ddb40",
     "flowRole": "content"
   },
   {
@@ -573,7 +578,7 @@ const VESTIGE_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-2bd764ba58ef",
+    "flowGroup": "record-a0ec3e281876",
     "flowRole": "content"
   },
   {
@@ -596,7 +601,7 @@ const VESTIGE_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-2bd764ba58ef",
+    "flowGroup": "record-a0ec3e281876",
     "flowRole": "content"
   },
   {
@@ -619,7 +624,7 @@ const VESTIGE_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-2bd764ba58ef",
+    "flowGroup": "record-a0ec3e281876",
     "flowRole": "content"
   },
   {
@@ -642,7 +647,7 @@ const VESTIGE_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-2d190a6c04e2",
+    "flowGroup": "record-3e31507075e4",
     "flowRole": "content"
   },
   {
@@ -665,7 +670,7 @@ const VESTIGE_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-2d190a6c04e2",
+    "flowGroup": "record-3e31507075e4",
     "flowRole": "content"
   },
   {
@@ -688,7 +693,7 @@ const VESTIGE_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-2d190a6c04e2",
+    "flowGroup": "record-3e31507075e4",
     "flowRole": "content"
   },
   {
@@ -737,7 +742,7 @@ const VESTIGE_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-9a728b05fe8b",
+    "flowGroup": "record-d9809706fa27",
     "flowRole": "content"
   },
   {
@@ -760,7 +765,7 @@ const VESTIGE_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-9a728b05fe8b",
+    "flowGroup": "record-d9809706fa27",
     "flowRole": "content"
   },
   {
@@ -783,7 +788,7 @@ const VESTIGE_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-9a728b05fe8b",
+    "flowGroup": "record-d9809706fa27",
     "flowRole": "content"
   },
   {
@@ -806,7 +811,7 @@ const VESTIGE_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-2be5d6e63541",
+    "flowGroup": "record-512af9e2cadd",
     "flowRole": "content"
   },
   {
@@ -829,7 +834,7 @@ const VESTIGE_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-2be5d6e63541",
+    "flowGroup": "record-512af9e2cadd",
     "flowRole": "content"
   },
   {
@@ -852,7 +857,7 @@ const VESTIGE_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-2be5d6e63541",
+    "flowGroup": "record-512af9e2cadd",
     "flowRole": "content"
   },
   {
@@ -1066,7 +1071,7 @@ const VESTIGE_ELEMENTS = [
       "title": {
         "spec": {
           "category": "textarea",
-          "content": "ANALITYCZKA AML I COMPLIANCE",
+          "content": "Analityczka AML i Compliance",
           "left": 210.0,
           "top": 86.0,
           "width": 335.0,
@@ -1078,8 +1083,12 @@ const VESTIGE_ELEMENTS = [
           "letterSpacing": 1.8,
           "align": "left",
           "autoHeight": true,
+          "preserveInitialLayout": true,
           "textTransform": "uppercase",
-          "bold": false
+          "bold": false,
+          "italic": false,
+          "underline": false,
+          "zIndex": 3
         },
         "blockPt": 0.0,
         "present": true,

@@ -42,6 +42,19 @@ const sample = () => [
       metrics: { charWidth: 5, lineStep: 14 },
     },
   },
+  {
+    category: "text", fontSize: 1,
+    mastheadIdentity: {
+      title: {
+        spec: {
+          category: "textarea", content: "", fontSizePt: 12.5,
+          lineHeight: 16, height: 20, colorHex: "#343434",
+          appearanceTypographyRole: "job",
+        },
+        decorations: [{ category: "line", backgroundColor: "#C8C8C8" }],
+      },
+    },
+  },
 ];
 
 test("Monument exposes six uniquely named editorial palettes", () => {
@@ -62,6 +75,11 @@ test("palette update recolors every Monument semantic and swaps contact and port
   assert.equal(changed[8].color, "#C000FF");
   assert.equal(changed[9].contactBand.icon.theme, "monument-olive");
   assert.equal(changed[9].contactBand.text.colorHex, "#30372C");
+  assert.equal(changed[10].mastheadIdentity.title.spec.colorHex, "#485044");
+  assert.equal(
+    changed[10].mastheadIdentity.title.decorations[0].backgroundColor,
+    "#C9CEC0",
+  );
   assert.deepEqual(getMonumentAppearance(changed), { palette: "olive", textSize: "M" });
 });
 
@@ -86,6 +104,8 @@ test("text presets scale from baseline and M restores Monument's authored metric
   assert.equal(large[3].appearanceTypographyRole, "meta");
   assert.ok(large[2].height > 0);
   assert.ok(large[9].contactBand.text.fontSizePt > 9);
+  assert.ok(large[10].mastheadIdentity.title.spec.fontSizePt > 12.5);
+  assert.ok(large[10].mastheadIdentity.title.spec.lineHeight > 16);
 
   const compact = applyMonumentTextSize(large, "S");
   const restored = applyMonumentTextSize(compact, "M");
@@ -94,5 +114,7 @@ test("text presets scale from baseline and M restores Monument's authored metric
   assert.equal(restored[2].lineHeight, 14);
   assert.equal(restored[3].fontSize, 9);
   assert.equal(restored[3].lineHeight, 12);
+  assert.equal(restored[10].mastheadIdentity.title.spec.fontSizePt, 12.5);
+  assert.equal(restored[10].mastheadIdentity.title.spec.lineHeight, 16);
   assert.deepEqual(getMonumentAppearance(restored), { palette: "inkstone", textSize: "M" });
 });

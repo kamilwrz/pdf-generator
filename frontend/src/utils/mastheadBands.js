@@ -6,6 +6,10 @@
  * present, so legacy documents (no anchor) yield no controls and behave as today.
  */
 
+// Editor-only hint for a recoverable, currently empty professional title.
+// CSS renders this value without writing it into canvas content or PDF text.
+export const MASTHEAD_TITLE_PLACEHOLDER = "Wpisz stanowisko…";
+
 /**
  * @param {object[]} elements - Canvas elements (typically page-filtered).
  * @returns {Array<{bandId:string, descriptor:object, name:object, title:object|null, titlePresent:boolean}>}

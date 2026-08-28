@@ -396,8 +396,12 @@ const ATRIUM_ELEMENTS = [
           "letterSpacing": 2.1,
           "align": "center",
           "autoHeight": true,
+          "preserveInitialLayout": true,
           "textTransform": "none",
-          "bold": false
+          "bold": false,
+          "italic": false,
+          "underline": false,
+          "zIndex": 3
         },
         "blockPt": 29.0,
         "present": true,
@@ -524,7 +528,7 @@ const ATRIUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-a5f6f24f59de",
+    "flowGroup": "record-aa784dad482b",
     "flowRole": "content"
   },
   {
@@ -547,7 +551,7 @@ const ATRIUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-a5f6f24f59de",
+    "flowGroup": "record-aa784dad482b",
     "flowRole": "content"
   },
   {
@@ -570,7 +574,7 @@ const ATRIUM_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-a5f6f24f59de",
+    "flowGroup": "record-aa784dad482b",
     "flowRole": "content"
   },
   {
@@ -593,7 +597,7 @@ const ATRIUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-d831ad5c5cab",
+    "flowGroup": "record-0593858b64e1",
     "flowRole": "content"
   },
   {
@@ -616,7 +620,7 @@ const ATRIUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-d831ad5c5cab",
+    "flowGroup": "record-0593858b64e1",
     "flowRole": "content"
   },
   {
@@ -639,7 +643,7 @@ const ATRIUM_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-d831ad5c5cab",
+    "flowGroup": "record-0593858b64e1",
     "flowRole": "content"
   },
   {
@@ -662,7 +666,7 @@ const ATRIUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-5dd3e1006e43",
+    "flowGroup": "record-d7f68f8b269a",
     "flowRole": "content"
   },
   {
@@ -685,7 +689,7 @@ const ATRIUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-5dd3e1006e43",
+    "flowGroup": "record-d7f68f8b269a",
     "flowRole": "content"
   },
   {
@@ -745,7 +749,7 @@ const ATRIUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-7013fc719da2",
+    "flowGroup": "record-e36a8e062dd5",
     "flowRole": "content"
   },
   {
@@ -768,7 +772,7 @@ const ATRIUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-7013fc719da2",
+    "flowGroup": "record-e36a8e062dd5",
     "flowRole": "content"
   },
   {
@@ -791,7 +795,7 @@ const ATRIUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-7013fc719da2",
+    "flowGroup": "record-e36a8e062dd5",
     "flowRole": "content"
   },
   {
@@ -851,7 +855,7 @@ const ATRIUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-e8474286dfbb",
+    "flowGroup": "record-27aa843ed3ba",
     "flowRole": "content"
   },
   {
@@ -920,7 +924,7 @@ const ATRIUM_ELEMENTS = [
       }
     ],
     "flowRole": "grid-member",
-    "flowGroup": "record-03d44fc354c1"
+    "flowGroup": "record-6e6163bfb90d"
   },
   {
     "category": "textarea",
@@ -951,7 +955,7 @@ const ATRIUM_ELEMENTS = [
       }
     ],
     "flowRole": "grid-member",
-    "flowGroup": "record-03d44fc354c1"
+    "flowGroup": "record-6e6163bfb90d"
   },
   {
     "category": "textarea",
@@ -982,7 +986,7 @@ const ATRIUM_ELEMENTS = [
       }
     ],
     "flowRole": "grid-member",
-    "flowGroup": "record-03d44fc354c1"
+    "flowGroup": "record-6e6163bfb90d"
   }
 ];
 

@@ -22,6 +22,7 @@ import {
     startTextSpacingHold,
 } from "../../../utils/textSpacingHold";
 import { seedTextEditNode, shouldCommitTextEditBlur } from "../../../utils/textEditSurface";
+import { MASTHEAD_TITLE_PLACEHOLDER } from "../../../utils/mastheadBands";
 
 function Text({
     elementId,
@@ -43,6 +44,7 @@ function Text({
     placeholder,
     selectAllOnEdit,
     textTransform,
+    mastheadRole,
 }) {
     const {
         moveElement,
@@ -63,6 +65,12 @@ function Text({
     // click-to-edit tap. Without this a drag-release would immediately flip
     // the element into edit mode.
     const didDragRef = useRef(false);
+    // `placeholder` is editor-only metadata and older saved rows do not carry
+    // it. The persisted semantic role is therefore the durable fallback that
+    // keeps a newly added empty professional title visible and clickable after
+    // save/reload, without putting placeholder copy into the exported PDF.
+    const editorPlaceholder = placeholder
+        || (mastheadRole === "title" ? MASTHEAD_TITLE_PLACEHOLDER : undefined);
 
     const style = {
         fontSize: `${fontSize}px`,
@@ -181,7 +189,7 @@ function Text({
             // A labelled empty contact label reserves a hit area and shows a
             // hint via CSS (see Text.module.css). The attribute is omitted when
             // there is no placeholder so every other text element is unaffected.
-            data-placeholder={placeholder || undefined}
+            data-placeholder={editorPlaceholder}
             contentEditable={isEditing && !fixedToPage}
             suppressContentEditableWarning
             spellCheck={false}

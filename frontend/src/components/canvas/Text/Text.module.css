@@ -36,10 +36,10 @@
     outline: none;
 }
 
-/* A labelled empty contact label (e.g. a just-added channel) needs a hit area
-   and a hint. Both are display-only: the ::before content is CSS-generated so it
-   never enters the contentEditable value, and the min-width only applies while
-   the node is empty, so a filled label keeps hugging its glyphs exactly. */
+/* A labelled empty contact or masthead-title field needs a hit area and a hint.
+   Both are display-only: the ::before content is CSS-generated so it never
+   enters the contentEditable value, and the min-width only applies while the
+   node is empty, so a filled label keeps hugging its glyphs exactly. */
 .textElement[data-placeholder]:empty {
     min-width: 4ch;
 }

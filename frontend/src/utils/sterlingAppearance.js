@@ -117,6 +117,71 @@ for (const palette of STERLING_PALETTES) {
 const round = (value) => Math.round(value * 100) / 100;
 const SIDEBAR_HAIRLINE_HEIGHT = 1;
 
+function recolorMastheadTitleDescriptor(element, palette) {
+  const title = element.mastheadIdentity?.title;
+  if (!title?.spec) return element;
+  const colorFor = (value) => {
+    const role = colorRoleByHex.get(String(value || "").toUpperCase());
+    return role ? palette.colors[role] : value;
+  };
+  const spec = { ...title.spec, colorHex: colorFor(title.spec.colorHex) };
+  const decorations = (title.decorations || []).map((decoration) => {
+    const next = { ...decoration };
+    for (const property of ["color", "backgroundColor", "borderColor"]) {
+      if (property in next) next[property] = colorFor(next[property]);
+    }
+    return next;
+  });
+  return {
+    ...element,
+    mastheadIdentity: {
+      ...element.mastheadIdentity,
+      title: { ...title, spec, decorations },
+    },
+  };
+}
+
+function resizeMastheadTitleDescriptor(element, scale) {
+  const title = element.mastheadIdentity?.title;
+  const spec = title?.spec;
+  if (!spec || !Number.isFinite(Number(spec.fontSizePt))) return element;
+  const role = spec.appearanceTypographyRole || "job";
+  const [fontFactor, lineFactor] = scale[role] || scale.job;
+  const baseFontSize = Number(spec.appearanceBaseFontSize ?? spec.fontSizePt);
+  const nextSpec = {
+    ...spec,
+    appearanceTypographyRole: role,
+    appearanceBaseFontSize: baseFontSize,
+    fontSizePt: round(Math.max(
+      MIN_FONT_SIZE[role] || MIN_FONT_SIZE.job,
+      baseFontSize * fontFactor,
+    )),
+  };
+  if (Number.isFinite(Number(spec.lineHeight))) {
+    const baseLineHeight = Number(spec.appearanceBaseLineHeight ?? spec.lineHeight);
+    nextSpec.appearanceBaseLineHeight = baseLineHeight;
+    nextSpec.lineHeight = round(Math.max(
+      nextSpec.fontSizePt * 1.12,
+      baseLineHeight * lineFactor,
+    ));
+  }
+  if (Number.isFinite(Number(spec.height))) {
+    const baseHeight = Number(spec.appearanceBaseHeight ?? spec.height);
+    nextSpec.appearanceBaseHeight = baseHeight;
+    nextSpec.height = round(Math.max(
+      Number(nextSpec.lineHeight) || 0,
+      baseHeight * lineFactor,
+    ));
+  }
+  return {
+    ...element,
+    mastheadIdentity: {
+      ...element.mastheadIdentity,
+      title: { ...title, spec: nextSpec },
+    },
+  };
+}
+
 /**
  * Upgrades persisted Sterling/Linden rail rules created before the uniform
  * one-point hairline contract.
@@ -211,27 +276,27 @@ export function applySterlingPalette(elements = [], paletteId) {
   if (!palette) return elements;
   const currentSettings = getSterlingAppearance(elements);
   const recolored = elements.map((element) => {
-    let next = element;
+    let next = recolorMastheadTitleDescriptor(element, palette);
     for (const property of ["color", "backgroundColor", "borderColor"]) {
-      const role = colorRoleByHex.get(String(element[property] || "").toUpperCase());
+      const role = colorRoleByHex.get(String(next[property] || "").toUpperCase());
       if (role) next = { ...next, [property]: palette.colors[role] };
     }
-    if (/\/template-assets\/iconic\/sterling(?:-[^/]+)?\//.test(String(element.src || ""))) {
+    if (/\/template-assets\/iconic\/sterling(?:-[^/]+)?\//.test(String(next.src || ""))) {
       next = {
         ...next,
-        src: String(element.src).replace(
+        src: String(next.src).replace(
           /\/template-assets\/iconic\/sterling(?:-[^/]+)?\//,
           `/template-assets/iconic/${palette.iconTheme}/`,
         ),
       };
     }
-    if (element.contactBand?.id === "sterling-contact") {
+    if (next.contactBand?.id === "sterling-contact") {
       next = {
         ...next,
         contactBand: {
-          ...element.contactBand,
-          text: { ...element.contactBand.text, colorHex: palette.colors.muted },
-          icon: { ...element.contactBand.icon, theme: palette.iconTheme },
+          ...next.contactBand,
+          text: { ...next.contactBand.text, colorHex: palette.colors.muted },
+          icon: { ...next.contactBand.icon, theme: palette.iconTheme },
         },
       };
     }
@@ -269,43 +334,44 @@ export function applySterlingTextSize(
   if (!scale) return elements;
   const currentSettings = getSterlingAppearance(elements);
   const resized = elements.map((element) => {
-    if (element.contactBand?.id === "sterling-contact") {
+    const source = resizeMastheadTitleDescriptor(element, scale);
+    if (source.contactBand?.id === "sterling-contact") {
       const baseContactSize = Number(
-        element.contactBand.appearanceBaseFontSize
-        ?? element.contactBand.text?.fontSizePt
+        source.contactBand.appearanceBaseFontSize
+        ?? source.contactBand.text?.fontSizePt
         ?? 9.4,
       );
       const nextContactSize = round(Math.max(
         MIN_FONT_SIZE.contact,
         baseContactSize * scale.contact[0],
       ));
-      const baseMetrics = element.contactBand.appearanceBaseMetrics
-        ?? element.contactBand.metrics;
+      const baseMetrics = source.contactBand.appearanceBaseMetrics
+        ?? source.contactBand.metrics;
       return {
-        ...element,
+        ...source,
         contactBand: {
-          ...element.contactBand,
+          ...source.contactBand,
           appearanceBaseFontSize: baseContactSize,
           appearanceBaseMetrics: baseMetrics,
-          text: { ...element.contactBand.text, fontSizePt: nextContactSize },
+          text: { ...source.contactBand.text, fontSizePt: nextContactSize },
           metrics: {
-            ...element.contactBand.metrics,
+            ...source.contactBand.metrics,
             charWidth: round(baseMetrics.charWidth * scale.contact[0]),
             lineStep: round(baseMetrics.lineStep * scale.contact[1]),
           },
         },
       };
     }
-    if (!["text", "textarea"].includes(element.category) || Number(element.fontSize) <= 1) return element;
-    const role = element.appearanceTypographyRole || typographyRole(element);
-    const baseFontSize = Number(element.appearanceBaseFontSize ?? element.fontSize);
-    const hasLineHeight = Number.isFinite(Number(element.lineHeight));
+    if (!["text", "textarea"].includes(source.category) || Number(source.fontSize) <= 1) return source;
+    const role = source.appearanceTypographyRole || typographyRole(source);
+    const baseFontSize = Number(source.appearanceBaseFontSize ?? source.fontSize);
+    const hasLineHeight = Number.isFinite(Number(source.lineHeight));
     const baseLineHeight = hasLineHeight
-      ? Number(element.appearanceBaseLineHeight ?? element.lineHeight)
+      ? Number(source.appearanceBaseLineHeight ?? source.lineHeight)
       : null;
     const [fontFactor, lineFactor] = scale[role] || scale.body;
     const next = {
-      ...element,
+      ...source,
       appearanceTypographyRole: role,
       appearanceBaseFontSize: baseFontSize,
       fontSize: round(Math.max(MIN_FONT_SIZE[role] || MIN_FONT_SIZE.body, baseFontSize * fontFactor)),
@@ -314,7 +380,7 @@ export function applySterlingTextSize(
       next.appearanceBaseLineHeight = baseLineHeight;
       next.lineHeight = round(Math.max(next.fontSize * 1.12, baseLineHeight * lineFactor));
     }
-    if (element.category === "textarea" && element.autoHeight) {
+    if (source.category === "textarea" && source.autoHeight) {
       next.preserveInitialLayout = false;
       // A type preset changes every textarea in one state update. Waiting for
       // independent DOM measurements leaves the structural packer with a mix
@@ -322,7 +388,7 @@ export function applySterlingTextSize(
       // top of text that has already wrapped. Seed a conservative height from
       // the same canvas-side estimator used by structural builders; the live
       // browser measurement still refines it after render.
-      if (element.flowRole !== "masthead") {
+      if (source.flowRole !== "masthead") {
         const estimatedHeight = measureTextareaHeight(
           next.content,
           next.width,

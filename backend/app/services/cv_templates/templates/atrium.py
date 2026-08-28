@@ -118,13 +118,19 @@ def _gen_atrium(cv: dict) -> list[dict]:
     })
     header[-1]['height'] = PHOTO_HEIGHT
 
+    title_top = cursor_y
+    title_h = (
+        Builder.measure_block(title, W, title_fs, title_lh, SANS)
+        if title else title_lh
+    )
+    title_prototype = _block(
+        title, L, title_top, W, title_h, title_fs, title_lh, ACCENT, SANS,
+        zIndex=3, align='center',
+    )
+    title_prototype['letterSpacing'] = 2.1
     if title:
-        title_h = Builder.measure_block(title, W, title_fs, title_lh, SANS)
-        title_el = _block(title, L, cursor_y, W, title_h, title_fs, title_lh, ACCENT, SANS,
-                          zIndex=3, align='center')
-        title_el['letterSpacing'] = 2.1
         title_index = len(header)
-        header.append(title_el)
+        header.append(title_prototype)
         cursor_y += title_h
 
     contact_fs, contact_icon = (8.4, 10.5)
@@ -164,12 +170,15 @@ def _gen_atrium(cv: dict) -> list[dict]:
     if name_el is not None:
         header.append(tag_masthead_identity(
             name_el, title_el,
+            title_prototype=title_prototype,
             band_id="masthead-main", name_default_uppercase=False,
-            title_default_uppercase=False, band_top=cursor_y + 16.0,
-            # Hiding the title should lift contacts to the old title's lower
-            # edge, not all the way to its top. Reclaiming only the 16 pt gap
-            # preserves 21 pt between the name and the first contact row.
-            title_reclaim_pt=16.0,
+            title_default_uppercase=False,
+            band_top=title_top + title_h + 16.0,
+            # An existing title keeps Atrium's established 16 pt hide delta.
+            # An initially empty slot needs only the title box height: its
+            # contacts already include the authored 16 pt gap, so moving that
+            # gap again on `+` would place them too low.
+            title_reclaim_pt=16.0 if title else title_h,
             contact_band_id="contact-main",
         ))
 

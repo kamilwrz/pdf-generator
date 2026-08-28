@@ -192,6 +192,7 @@ def _gen_linden(cv: dict) -> list[dict]:
     band_top = max(92.0, name_top + name_height + 6.0)
     title_top = band_top + 12.0
     title_height = Builder.measure_block(title_content, MAIN_WIDTH, 9.2, 12.5, SANS)
+    title_box_height = title_height if title_content else 13.0
     desired_main_top = max(190.0, title_top + title_height + 40.0)
     main_shift = desired_main_top - first_main_top
 
@@ -215,7 +216,8 @@ def _gen_linden(cv: dict) -> list[dict]:
         "flowRole": "masthead",
         "titleDecoration": "identity-band",
     }
-    masthead.append(title_band)
+    if title_content:
+        masthead.append(title_band)
     if name_content:
         name_element = {
             "category": "textarea",
@@ -240,29 +242,30 @@ def _gen_linden(cv: dict) -> list[dict]:
             "flowRole": "masthead",
         }
         masthead.append(name_element)
+    title_prototype = {
+        "category": "textarea",
+        "content": title_content,
+        "left": MAIN_LEFT,
+        "top": title_top,
+        "width": MAIN_WIDTH,
+        "height": title_box_height,
+        "fontSize": 9.2,
+        "lineHeight": 12.5,
+        "letterSpacing": 1.25,
+        "color": FOREST_DEEP,
+        "fontFamily": SANS,
+        "zIndex": 5,
+        "page": 1,
+        "bold": False,
+        "italic": True,
+        "align": "left",
+        "bulletList": False,
+        "autoHeight": True,
+        "preserveInitialLayout": True,
+        "flowRole": "masthead",
+    }
     if title_content:
-        title_element = {
-            "category": "textarea",
-            "content": title_content,
-            "left": MAIN_LEFT,
-            "top": title_top,
-            "width": MAIN_WIDTH,
-            "height": title_height,
-            "fontSize": 9.2,
-            "lineHeight": 12.5,
-            "letterSpacing": 1.25,
-            "color": FOREST_DEEP,
-            "fontFamily": SANS,
-            "zIndex": 5,
-            "page": 1,
-            "bold": False,
-            "italic": True,
-            "align": "left",
-            "bulletList": False,
-            "autoHeight": True,
-            "preserveInitialLayout": True,
-            "flowRole": "masthead",
-        }
+        title_element = title_prototype
         masthead.append(title_element)
     if name_element is not None:
         # A zero reclaim keeps the parallel contact rail and body stationary
@@ -270,13 +273,14 @@ def _gen_linden(cv: dict) -> list[dict]:
         identity_anchor = tag_masthead_identity(
             name_element,
             title_element,
+            title_prototype=title_prototype,
             band_id="linden-masthead",
             name_default_uppercase=True,
             title_default_uppercase=False,
             band_top=title_top,
             title_reclaim_pt=0.0,
             contact_band_id=None,
-            title_decorations=[title_band] if title_element is not None else None,
+            title_decorations=[title_band],
         )
         # The editorial header intentionally keeps a generous clear zone below
         # the sand identity band. The browser's structural packer consumes this

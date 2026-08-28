@@ -39,6 +39,7 @@ from app.services.cv_templates.shared.contact import (
     build_contact_band_anchor,
 )
 from app.services.cv_templates.shared.icons import _icon
+from app.services.cv_templates.shared.masthead import tag_masthead_identity
 
 def _gen_monument(cv: dict) -> list[dict]:
     """
@@ -106,21 +107,38 @@ def _gen_monument(cv: dict) -> list[dict]:
         line_step=14,
         band_id="monument-contact",
     )
-    header = [
-        {
-            **_text(name, 33, DISPLAY, C["ink"], 74, 59, zIndex=3, bold=True),
-            "flowRole": "masthead",
-        },
-        {
-            **_block(title, 76, 104, 337, 20, 12.5, 16, C["body"], SANS, zIndex=3, bold=True),
-            "flowRole": "masthead",
-        },
-        *contact_elements,
-        photo_frame,
-        portrait_glyph,
-    ]
-    header[1]["letterSpacing"] = 1.1
+    name_element = {
+        **_text(name, 33, DISPLAY, C["ink"], 74, 59, zIndex=3, bold=True),
+        "flowRole": "masthead",
+    }
+    title_prototype = {
+        **_block(
+            title, 76, 104, 337, 20, 12.5, 16, C["body"], SANS,
+            zIndex=3, bold=True,
+        ),
+        "flowRole": "masthead",
+    }
+    title_prototype["letterSpacing"] = 1.1
+    title_element = title_prototype if title else None
+    header = [name_element]
+    if title_element is not None:
+        header.append(title_element)
+    header.extend([*contact_elements, photo_frame, portrait_glyph])
     header.append(build_contact_band_anchor(contact_descriptor))
+    # Monument permanently reserves the title slot between the name and the
+    # fixed contact/photo geometry. Toggling the title therefore changes only
+    # its visibility; moving the surrounding masthead would break that frame.
+    header.append(tag_masthead_identity(
+        name_element,
+        title_element,
+        title_prototype=title_prototype,
+        band_id="monument-masthead",
+        name_default_uppercase=False,
+        title_default_uppercase=False,
+        band_top=104.0,
+        title_reclaim_pt=0.0,
+        contact_band_id="monument-contact",
+    ))
 
     # Contacts can wrap into several rows. Keep the first section below both
     # that dynamic band and the portrait frame, so imported contact-rich CVs

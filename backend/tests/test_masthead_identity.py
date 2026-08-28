@@ -39,7 +39,8 @@ def test_tag_masthead_identity_captures_centered_title_box():
     name_el = _block("Karolina Zawadzka", 76, 18, 443, 33, 29, 33,
                      "#22221F", "Lora", zIndex=3, bold=True, align="center")
     title_el = _block("Cloud Security Analyst", 76, 169, 443, 14, 10, 14,
-                      "#7C6A52", "Inter", zIndex=3, align="center")
+                      "#7C6A52", "Inter", zIndex=5, italic=True, align="center")
+    title_el["underline"] = True
     anchor = tag_masthead_identity(
         name_el, title_el, band_id="masthead-main",
         name_default_uppercase=False, band_top=179.0,
@@ -51,6 +52,60 @@ def test_tag_masthead_identity_captures_centered_title_box():
     assert spec["align"] == "center"
     assert spec["lineHeight"] == 14
     assert spec["autoHeight"] is True
+    assert spec["preserveInitialLayout"] is True
+    assert spec["italic"] is True
+    assert spec["underline"] is True
+    assert spec["zIndex"] == 5
+
+
+def test_tag_masthead_identity_uses_unrendered_prototype_when_title_is_absent():
+    """An empty profile still needs a complete title spec for the add action.
+
+    The prototype must remain untagged because it is descriptor-only; tagging
+    it would imply that the generator rendered an empty title element.
+    """
+    name_el = _text("Jan Kowalski", 23, "Inter", "#2B2B2B", 44, 44, zIndex=3)
+    title_prototype = _block(
+        "", 245, 104, 300, 13, 9.2, 12.5, "#1E4037", "Montserrat",
+        zIndex=5, italic=True,
+    )
+    title_prototype["underline"] = True
+    anchor = tag_masthead_identity(
+        name_el,
+        None,
+        title_prototype=title_prototype,
+        band_id="linden-masthead",
+        name_default_uppercase=True,
+        band_top=104.0,
+        title_reclaim_pt=0.0,
+    )
+
+    title = anchor["mastheadIdentity"]["title"]
+    assert title["present"] is False
+    assert title["blockPt"] == 0.0
+    assert title["reclaimPt"] == 0.0
+    assert title["spec"] == {
+        "category": "textarea",
+        "content": "",
+        "left": 245,
+        "top": 104.0,
+        "width": 300,
+        "height": 13,
+        "fontSizePt": 9.2,
+        "lineHeight": 12.5,
+        "fontFamily": "Montserrat",
+        "colorHex": "#1E4037",
+        "letterSpacing": 0,
+        "align": "left",
+        "autoHeight": True,
+        "preserveInitialLayout": True,
+        "textTransform": "none",
+        "bold": False,
+        "italic": True,
+        "underline": True,
+        "zIndex": 5,
+    }
+    assert "mastheadRole" not in title_prototype
 
 
 def test_tag_masthead_identity_without_title():

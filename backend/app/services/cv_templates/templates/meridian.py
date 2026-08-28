@@ -321,15 +321,19 @@ def _gen_meridian(cv: dict) -> list[dict]:
         )
         cursor_y += name_height + _NAME_TO_TITLE_GAP
 
+    title_top = cursor_y
+    title_height = (
+        Builder.measure_block(title, W, 9, 12.5, SANS)
+        if title else 13.0
+    )
+    title_prototype = _block(
+        title, L, title_top, W, title_height, 9, 12.5, C["accent"], SANS,
+        zIndex=3, align="left",
+    )
+    title_prototype["letterSpacing"] = 2.0
     if title:
-        title_height = Builder.measure_block(title, W, 9, 12.5, SANS)
         title_index = len(header)
-        title_el = _block(
-            title, L, cursor_y, W, title_height, 9, 12.5, C["accent"], SANS,
-            zIndex=3, align="left",
-        )
-        title_el["letterSpacing"] = 2.0
-        header.append(title_el)
+        header.append(title_prototype)
         cursor_y += title_height
 
     contact_elements, contact_bottom, contact_descriptor = _place_centered_icon_contacts(
@@ -367,10 +371,14 @@ def _gen_meridian(cv: dict) -> list[dict]:
             tag_masthead_identity(
                 name_element,
                 title_element,
+                title_prototype=title_prototype,
                 band_id="masthead-main",
                 name_default_uppercase=False,
                 title_default_uppercase=True,
-                band_top=cursor_y + _TITLE_TO_CONTACT_GAP,
+                band_top=title_top + title_height + _TITLE_TO_CONTACT_GAP,
+                # The no-title layout already owns the authored contact gap,
+                # so materialising the slot must add only its line height.
+                title_reclaim_pt=title_height if not title else None,
                 contact_band_id="meridian-contact",
             )
         )

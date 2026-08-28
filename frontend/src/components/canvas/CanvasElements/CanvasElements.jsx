@@ -223,6 +223,7 @@ export default function CanvasElements({ elements }) {
             fixedToPage={element.fixedToPage}
             textTransform={element.textTransform}
             mastheadRole={element.mastheadRole}
+            placeholder={element.placeholder}
           />
           {blockAnchor ? (
             <RecordBlockAdd
@@ -275,6 +276,7 @@ export default function CanvasElements({ elements }) {
             placeholder={element.placeholder}
             selectAllOnEdit={element.selectAllOnEdit}
             textTransform={element.textTransform}
+            mastheadRole={element.mastheadRole}
           />
           {sectionAnchor ? (
             <SectionRecordAdd

@@ -99,11 +99,13 @@ const STERLING_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowRole": "masthead"
+    "flowRole": "masthead",
+    "mastheadRole": "name",
+    "mastheadBandId": "sterling-masthead"
   },
   {
     "category": "textarea",
-    "content": "ANALITYCZKA AML I COMPLIANCE",
+    "content": "Analityczka AML i Compliance",
     "left": 67.5,
     "top": 86.0,
     "width": 460.0,
@@ -121,7 +123,10 @@ const STERLING_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowRole": "masthead"
+    "flowRole": "masthead",
+    "mastheadRole": "title",
+    "mastheadBandId": "sterling-masthead",
+    "textTransform": "uppercase"
   },
   {
     "category": "image",
@@ -298,6 +303,55 @@ const STERLING_ELEMENTS = [
       ]
     },
     "contactBandId": "sterling-contact"
+  },
+  {
+    "category": "text",
+    "content": "",
+    "left": 0,
+    "top": 0,
+    "width": 0,
+    "height": 0,
+    "fontSize": 1,
+    "fontFamily": "Inter",
+    "color": "#000000",
+    "zIndex": 0,
+    "page": 1,
+    "flowRole": "masthead-anchor",
+    "mastheadIdentity": {
+      "id": "sterling-masthead",
+      "name": {
+        "defaultUppercase": false
+      },
+      "title": {
+        "spec": {
+          "category": "textarea",
+          "content": "Analityczka AML i Compliance",
+          "left": 67.5,
+          "top": 86.0,
+          "width": 460.0,
+          "height": 15,
+          "fontSizePt": 11.5,
+          "lineHeight": 15.0,
+          "fontFamily": "Montserrat",
+          "colorHex": "#4A6FA5",
+          "letterSpacing": 2.0,
+          "align": "center",
+          "autoHeight": true,
+          "preserveInitialLayout": true,
+          "textTransform": "uppercase",
+          "bold": false,
+          "italic": false,
+          "underline": false,
+          "zIndex": 3
+        },
+        "blockPt": 0.0,
+        "present": true,
+        "decorations": [],
+        "reclaimPt": 0.0
+      },
+      "contactBandId": "sterling-contact"
+    },
+    "mastheadBandId": "sterling-masthead"
   },
   {
     "category": "text",
@@ -600,7 +654,7 @@ const STERLING_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-ff6a9010ee05",
+    "flowGroup": "record-4c827cad09f4",
     "flowRole": "content"
   },
   {
@@ -623,7 +677,7 @@ const STERLING_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-ff6a9010ee05",
+    "flowGroup": "record-4c827cad09f4",
     "flowRole": "content"
   },
   {
@@ -646,7 +700,7 @@ const STERLING_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-ff6a9010ee05",
+    "flowGroup": "record-4c827cad09f4",
     "flowRole": "content"
   },
   {
@@ -669,7 +723,7 @@ const STERLING_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-1e40fbfe269c",
+    "flowGroup": "record-6594f0e283e2",
     "flowRole": "content"
   },
   {
@@ -692,7 +746,7 @@ const STERLING_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-1e40fbfe269c",
+    "flowGroup": "record-6594f0e283e2",
     "flowRole": "content"
   },
   {
@@ -715,7 +769,7 @@ const STERLING_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-1e40fbfe269c",
+    "flowGroup": "record-6594f0e283e2",
     "flowRole": "content"
   },
   {
@@ -738,7 +792,7 @@ const STERLING_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-620698f98cf0",
+    "flowGroup": "record-1a060b4cdd28",
     "flowRole": "content"
   },
   {
@@ -761,7 +815,7 @@ const STERLING_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-620698f98cf0",
+    "flowGroup": "record-1a060b4cdd28",
     "flowRole": "content"
   },
   {
@@ -784,7 +838,7 @@ const STERLING_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-620698f98cf0",
+    "flowGroup": "record-1a060b4cdd28",
     "flowRole": "content"
   },
   {
@@ -807,7 +861,7 @@ const STERLING_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-a38e59d39746",
+    "flowGroup": "record-ed170a886387",
     "flowRole": "content"
   },
   {
@@ -830,7 +884,7 @@ const STERLING_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-a38e59d39746",
+    "flowGroup": "record-ed170a886387",
     "flowRole": "content"
   },
   {
@@ -853,7 +907,7 @@ const STERLING_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-a38e59d39746",
+    "flowGroup": "record-ed170a886387",
     "flowRole": "content"
   },
   {
@@ -902,7 +956,7 @@ const STERLING_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-5d78241fc669",
+    "flowGroup": "record-5eeb5e395eae",
     "flowRole": "content"
   },
   {
@@ -925,7 +979,7 @@ const STERLING_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-5d78241fc669",
+    "flowGroup": "record-5eeb5e395eae",
     "flowRole": "content"
   },
   {
@@ -948,7 +1002,7 @@ const STERLING_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-5d78241fc669",
+    "flowGroup": "record-5eeb5e395eae",
     "flowRole": "content"
   },
   {
@@ -971,7 +1025,7 @@ const STERLING_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-f8ed149e0482",
+    "flowGroup": "record-b0be1e47bdba",
     "flowRole": "content"
   },
   {
@@ -994,7 +1048,7 @@ const STERLING_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-f8ed149e0482",
+    "flowGroup": "record-b0be1e47bdba",
     "flowRole": "content"
   },
   {
@@ -1017,7 +1071,7 @@ const STERLING_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-f8ed149e0482",
+    "flowGroup": "record-b0be1e47bdba",
     "flowRole": "content"
   }
 ];

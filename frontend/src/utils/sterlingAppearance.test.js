@@ -16,6 +16,19 @@ const sample = () => [
   { category: "text", content: "Phone", fontSize: 9.4, color: "#6B7684", contactBandId: "sterling-contact" },
   { category: "image", src: "/template-assets/iconic/sterling/phone.png" },
   { category: "text", content: "custom", fontSize: 10, color: "#C000FF" },
+  {
+    category: "text", fontSize: 1,
+    mastheadIdentity: {
+      title: {
+        spec: {
+          category: "textarea", content: "", fontSizePt: 11.5,
+          lineHeight: 15, height: 15, colorHex: "#4A6FA5",
+          appearanceTypographyRole: "job",
+        },
+        decorations: [{ category: "line", backgroundColor: "#C7CFDA" }],
+      },
+    },
+  },
 ];
 
 test("Sterling exposes six uniquely named curated palettes", () => {
@@ -46,6 +59,11 @@ test("palette update recolors semantics, swaps icon assets, and preserves custom
   assert.equal(changed[1].color, "#25322D");
   assert.equal(changed[5].src, "/template-assets/iconic/sterling-sage/phone.png");
   assert.equal(changed[6].color, "#C000FF");
+  assert.equal(changed[7].mastheadIdentity.title.spec.colorHex, "#557565");
+  assert.equal(
+    changed[7].mastheadIdentity.title.decorations[0].backgroundColor,
+    "#C7D1CA",
+  );
   assert.deepEqual(getSterlingAppearance(changed), { palette: "sage", textSize: "M" });
 });
 
@@ -59,6 +77,8 @@ test("text presets scale from baseline and M restores the original metrics", () 
   assert.ok(large[3].fontSize > 9.5);
   assert.ok(Number.isFinite(large[2].height));
   assert.ok(large[2].height > 0);
+  assert.ok(large[7].mastheadIdentity.title.spec.fontSizePt > 11.5);
+  assert.ok(large[7].mastheadIdentity.title.spec.lineHeight > 15);
 
   const compact = applySterlingTextSize(large, "S");
   const restored = applySterlingTextSize(compact, "M");
@@ -66,5 +86,7 @@ test("text presets scale from baseline and M restores the original metrics", () 
   assert.equal(restored[1].lineHeight, 34);
   assert.equal(restored[2].fontSize, 9.5);
   assert.equal(restored[2].lineHeight, 13.8);
+  assert.equal(restored[7].mastheadIdentity.title.spec.fontSizePt, 11.5);
+  assert.equal(restored[7].mastheadIdentity.title.spec.lineHeight, 15);
   assert.deepEqual(getSterlingAppearance(restored), { palette: "northstar", textSize: "M" });
 });

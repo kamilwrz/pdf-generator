@@ -404,8 +404,12 @@ const PORTICO_ELEMENTS = [
           "letterSpacing": 2.0,
           "align": "center",
           "autoHeight": true,
+          "preserveInitialLayout": true,
           "textTransform": "none",
-          "bold": false
+          "bold": false,
+          "italic": false,
+          "underline": false,
+          "zIndex": 3
         },
         "blockPt": 22.0,
         "present": true,
@@ -533,7 +537,7 @@ const PORTICO_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-d3332716b71f",
+    "flowGroup": "record-e9aa7d453cef",
     "flowRole": "content"
   },
   {
@@ -556,7 +560,7 @@ const PORTICO_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-d3332716b71f",
+    "flowGroup": "record-e9aa7d453cef",
     "flowRole": "content"
   },
   {
@@ -579,7 +583,7 @@ const PORTICO_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-d3332716b71f",
+    "flowGroup": "record-e9aa7d453cef",
     "flowRole": "content"
   },
   {
@@ -602,7 +606,7 @@ const PORTICO_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-2c0fd86b93c2",
+    "flowGroup": "record-516bb6f2f0e6",
     "flowRole": "content"
   },
   {
@@ -625,7 +629,7 @@ const PORTICO_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-2c0fd86b93c2",
+    "flowGroup": "record-516bb6f2f0e6",
     "flowRole": "content"
   },
   {
@@ -648,7 +652,7 @@ const PORTICO_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-2c0fd86b93c2",
+    "flowGroup": "record-516bb6f2f0e6",
     "flowRole": "content"
   },
   {
@@ -671,7 +675,7 @@ const PORTICO_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-4f5f5a4298ec",
+    "flowGroup": "record-247d9f25e916",
     "flowRole": "content"
   },
   {
@@ -694,7 +698,7 @@ const PORTICO_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-4f5f5a4298ec",
+    "flowGroup": "record-247d9f25e916",
     "flowRole": "content"
   },
   {
@@ -755,7 +759,7 @@ const PORTICO_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-f68f60567ae4",
+    "flowGroup": "record-48d7695d6c76",
     "flowRole": "content"
   },
   {
@@ -778,7 +782,7 @@ const PORTICO_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-f68f60567ae4",
+    "flowGroup": "record-48d7695d6c76",
     "flowRole": "content"
   },
   {
@@ -801,7 +805,7 @@ const PORTICO_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-f68f60567ae4",
+    "flowGroup": "record-48d7695d6c76",
     "flowRole": "content"
   },
   {
@@ -862,7 +866,7 @@ const PORTICO_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-46822d175ed7",
+    "flowGroup": "record-f55ff145f6a3",
     "flowRole": "content"
   },
   {
@@ -932,7 +936,7 @@ const PORTICO_ELEMENTS = [
       }
     ],
     "flowRole": "grid-member",
-    "flowGroup": "record-2034094b6b4d"
+    "flowGroup": "record-f1adbd8e7b24"
   },
   {
     "category": "textarea",
@@ -963,7 +967,7 @@ const PORTICO_ELEMENTS = [
       }
     ],
     "flowRole": "grid-member",
-    "flowGroup": "record-2034094b6b4d"
+    "flowGroup": "record-f1adbd8e7b24"
   },
   {
     "category": "textarea",
@@ -994,7 +998,7 @@ const PORTICO_ELEMENTS = [
       }
     ],
     "flowRole": "grid-member",
-    "flowGroup": "record-2034094b6b4d"
+    "flowGroup": "record-f1adbd8e7b24"
   }
 ];
 

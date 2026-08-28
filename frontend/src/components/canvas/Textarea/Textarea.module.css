@@ -46,6 +46,14 @@
     color: #8B8478;
 }
 
+/* A semantic masthead title uses its product-specific hint in display mode.
+   The pseudo-content is editor chrome only and is never serialized or sent to
+   the PDF renderer. */
+.block[data-placeholder]:empty::before {
+    content: attr(data-placeholder);
+    text-transform: none;
+}
+
 .selected {
     /* Visual selection chrome is drawn by SelectionOverlay. */
 }
@@ -76,4 +84,5 @@
     content: attr(data-placeholder);
     color: #8B8478;
     pointer-events: none;
+    text-transform: none;
 }

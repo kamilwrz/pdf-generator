@@ -120,6 +120,19 @@ def _gen_vestige(cv: dict) -> list[dict]:
 
     raw_name = _raw_masthead_textarea(True)
     raw_title = _raw_masthead_textarea(False)
+    sterling_identity = next(
+        (
+            element.get("mastheadIdentity")
+            for element in elements
+            if element.get("flowRole") == "masthead-anchor"
+            and element.get("mastheadIdentity", {}).get("id") == "sterling-masthead"
+        ),
+        None,
+    )
+    sterling_title_spec = (
+        sterling_identity.get("title", {}).get("spec")
+        if isinstance(sterling_identity, dict) else None
+    )
     stack_bottom = 0.0
     if raw_name is not None:
         name_height = Builder.measure_block(raw_name.get("content", ""), main_width, 34.0, 38.0, "CormorantGaramond")
@@ -129,6 +142,14 @@ def _gen_vestige(cv: dict) -> list[dict]:
             raw_title.get("content", ""), main_width, 9.5, 13.0, raw_title.get("fontFamily", "Montserrat"),
         )
         stack_bottom = max(stack_bottom, float(raw_title["top"]) + title_height)
+    elif isinstance(sterling_title_spec, dict):
+        # Vestige keeps its masthead divider stationary when the title is
+        # toggled. Reserve one Vestige title line in an initially empty profile
+        # so the latent title can be added without colliding with that divider.
+        stack_bottom = max(
+            stack_bottom,
+            float(sterling_title_spec.get("top", 0.0)) + 13.0,
+        )
     # Fixed gaps below the real name/title stack: enough room for the hairline
     # divider, then a comfortable clearance before the first section heading —
     # matching the rhythm every other masthead-driven template (Nova, etc.)
@@ -217,6 +238,11 @@ def _gen_vestige(cv: dict) -> list[dict]:
         if flow_role == "masthead" and category in {"image", "text"} and element.get("contactChannel"):
             continue
         if flow_role == "masthead-anchor" and element.get("contactBandId") == "sterling-contact":
+            continue
+        if flow_role == "masthead-anchor" and element.get("mastheadIdentity"):
+            # Sterling now emits its own identity descriptor. Vestige replaces
+            # it with a restyled local descriptor below; retaining both would
+            # expose duplicate name/title controls for one visual masthead.
             continue
 
         for field in ("color", "backgroundColor"):
@@ -492,16 +518,43 @@ def _gen_vestige(cv: dict) -> list[dict]:
     # `band_top` equal to the title's own top makes `blockPt` exactly 0, so
     # hiding/showing the title only toggles its presence — nothing else
     # (contacts, sidebar, or main column) is shifted.
+    title_top = (
+        float(title_element["top"])
+        if title_element is not None
+        else float((sterling_title_spec or {}).get("top", 86.0))
+    )
+    title_prototype = {
+        "category": "textarea",
+        "content": "",
+        "left": main_left,
+        "top": title_top,
+        "width": main_width,
+        "height": 13.0,
+        "fontSize": 9.5,
+        "lineHeight": 13.0,
+        "letterSpacing": 1.8,
+        "color": "#3E3E3C",
+        "fontFamily": "Montserrat",
+        "zIndex": 3,
+        "page": 1,
+        "bold": False,
+        "italic": False,
+        "align": "left",
+        "bulletList": False,
+        "autoHeight": True,
+        "preserveInitialLayout": True,
+        "flowRole": "masthead",
+    }
     if name_element is not None:
-        band_top = float(title_element["top"]) if title_element is not None else 0.0
         transformed.append(
             tag_masthead_identity(
                 name_element,
                 title_element,
+                title_prototype=title_prototype,
                 band_id="vestige-masthead",
                 name_default_uppercase=False,
                 title_default_uppercase=True,
-                band_top=band_top,
+                band_top=title_top,
                 contact_band_id=None,
             )
         )

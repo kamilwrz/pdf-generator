@@ -31,6 +31,7 @@ def tag_masthead_identity(
     name_el: dict,
     title_el: dict | None,
     *,
+    title_prototype: dict | None = None,
     band_id: str,
     name_default_uppercase: bool,
     band_top: float,
@@ -41,13 +42,22 @@ def tag_masthead_identity(
 ) -> dict:
     """Stamp identity onto the name/title elements (in place) and build the anchor.
 
+    ``title_prototype`` is an unrendered, empty title element authored by the
+    template generator. It is used only when the source CV has no title, so the
+    descriptor still carries the exact category, geometry, typography, and
+    casing needed by the editor's add-title action. Keeping the prototype next
+    to the generator's real title construction avoids a second style registry
+    that could drift from the template.
+
     ``name_default_uppercase`` / ``title_default_uppercase`` seed the reversible
     ``textTransform`` flag for templates whose design uppercases these lines, so
-    the stored ``content`` stays original-case. ``band_top`` is the contact
-    band's start Y; ``blockPt`` records that full geometric span. Templates may
-    pass ``title_reclaim_pt`` when hiding the title should reclaim only part of
-    the span. This keeps a deliberate visual buffer instead of pulling the next
-    masthead row directly against the name.
+    the stored ``content`` stays original-case. ``band_top`` is the downstream
+    masthead boundary used to derive ``blockPt``; for stacked layouts it is
+    normally the contact band's start Y, while fixed/parallel layouts pass the
+    title's own Y to opt out of reflow. Templates may pass ``title_reclaim_pt``
+    when hiding the title should reclaim only part of the span. This keeps a
+    deliberate visual buffer instead of pulling the next masthead row directly
+    against the name.
     """
     name_el["mastheadRole"] = "name"
     name_el["mastheadBandId"] = band_id
@@ -61,7 +71,16 @@ def tag_masthead_identity(
         title_el["mastheadBandId"] = band_id
         if title_default_uppercase:
             title_el["textTransform"] = "uppercase"
-        title_top = float(title_el.get("top", 0.0))
+
+    # An existing title is always the source of truth because its measured
+    # height can depend on the real text. The prototype is only a latent
+    # fallback for an initially empty profile and is never added to the output
+    # element list by this helper.
+    title_source = title_el if title_el is not None else title_prototype
+    if title_source is not None:
+        if title_default_uppercase:
+            title_source["textTransform"] = "uppercase"
+        title_top = float(title_source.get("top", 0.0))
         block_pt = float(band_top) - title_top
         # Capture the full box geometry, not just the text run. Centered
         # mastheads emit the title as a width-bounded, ``align: "center"``
@@ -71,36 +90,53 @@ def tag_masthead_identity(
         # editing. ``height``/``lineHeight``/``autoHeight`` let the re-added box
         # match the original line metrics exactly.
         title_spec = {
-            "category": title_el.get("category", "text"),
-            "content": title_el.get("content", ""),
-            "left": title_el.get("left"),
+            "category": title_source.get("category", "text"),
+            "content": title_source.get("content", ""),
+            "left": title_source.get("left"),
             "top": title_top,
-            "width": title_el.get("width"),
-            "height": title_el.get("height"),
-            "fontSizePt": title_el.get("fontSize"),
-            "lineHeight": title_el.get("lineHeight"),
-            "fontFamily": title_el.get("fontFamily"),
-            "colorHex": title_el.get("color"),
-            "letterSpacing": title_el.get("letterSpacing"),
-            "align": title_el.get("align"),
-            "autoHeight": bool(title_el.get("autoHeight", False)),
-            "textTransform": title_el.get("textTransform", "none"),
-            "bold": bool(title_el.get("bold", False)),
+            "width": title_source.get("width"),
+            "height": title_source.get("height"),
+            "fontSizePt": title_source.get("fontSize"),
+            "lineHeight": title_source.get("lineHeight"),
+            "fontFamily": title_source.get("fontFamily"),
+            "colorHex": title_source.get("color"),
+            "letterSpacing": title_source.get("letterSpacing"),
+            "align": title_source.get("align"),
+            "autoHeight": bool(title_source.get("autoHeight", False)),
+            "preserveInitialLayout": bool(
+                title_source.get("preserveInitialLayout", False)
+            ),
+            "textTransform": title_source.get("textTransform", "none"),
+            "bold": bool(title_source.get("bold", False)),
+            "italic": bool(title_source.get("italic", False)),
+            "underline": bool(title_source.get("underline", False)),
+            "zIndex": title_source.get("zIndex", 3),
         }
 
     decoration_specs: list[dict] = []
     for decoration in title_decorations or []:
-        decoration["mastheadRole"] = "title-decoration"
-        decoration["mastheadBandId"] = band_id
-        decoration_specs.append({
+        # Decorations supplied beside a real title are rendered elements and
+        # therefore need semantic tags. With a latent prototype they remain
+        # descriptor-only blueprints, preventing empty bars/pills from being
+        # left behind in documents whose title is initially absent.
+        if title_el is not None:
+            decoration["mastheadRole"] = "title-decoration"
+            decoration["mastheadBandId"] = band_id
+        decoration_spec = {
             key: decoration[key]
             for key in (
                 "category", "left", "top", "width", "height", "backgroundColor",
-                "borderWidth", "borderRadius", "filled", "zIndex", "page",
-                "titleDecoration",
+                "borderColor", "borderWidth", "borderRadius", "filled", "zIndex",
+                "page", "flowRole", "titleDecoration",
             )
             if key in decoration
-        })
+        }
+        # A reconstructed title decoration is masthead chrome, even when its
+        # initially empty prototype never passed through the generator's final
+        # flow-role stamping loop. Persist the role in the blueprint so later
+        # structural packing cannot mistake the restored pill/band for content.
+        decoration_spec.setdefault("flowRole", "masthead")
+        decoration_specs.append(decoration_spec)
 
     title_descriptor = {
         "spec": title_spec,

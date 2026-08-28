@@ -441,7 +441,7 @@ const SLATE_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-ef01ac878c02",
+    "flowGroup": "record-cdccc4db01b2",
     "flowRole": "content",
     "flowLane": "sidebar"
   },
@@ -465,7 +465,7 @@ const SLATE_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-ef01ac878c02",
+    "flowGroup": "record-cdccc4db01b2",
     "flowRole": "content",
     "flowLane": "sidebar"
   },
@@ -489,7 +489,7 @@ const SLATE_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-ef01ac878c02",
+    "flowGroup": "record-cdccc4db01b2",
     "flowRole": "content",
     "flowLane": "sidebar"
   },
@@ -513,7 +513,7 @@ const SLATE_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-d6eb7465f6e3",
+    "flowGroup": "record-7be79e4282e9",
     "flowRole": "content",
     "flowLane": "sidebar"
   },
@@ -537,7 +537,7 @@ const SLATE_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-d6eb7465f6e3",
+    "flowGroup": "record-7be79e4282e9",
     "flowRole": "content",
     "flowLane": "sidebar"
   },
@@ -561,7 +561,7 @@ const SLATE_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-d6eb7465f6e3",
+    "flowGroup": "record-7be79e4282e9",
     "flowRole": "content",
     "flowLane": "sidebar"
   },
@@ -880,7 +880,7 @@ const SLATE_ELEMENTS = [
           "category": "text",
           "content": "Analityczka AML i Compliance",
           "left": 230,
-          "top": 92.0,
+          "top": 98.0,
           "width": null,
           "height": null,
           "fontSizePt": 8.2,
@@ -890,21 +890,26 @@ const SLATE_ELEMENTS = [
           "letterSpacing": 1.15,
           "align": null,
           "autoHeight": false,
+          "preserveInitialLayout": false,
           "textTransform": "uppercase",
-          "bold": true
+          "bold": true,
+          "italic": false,
+          "underline": false,
+          "zIndex": 3
         },
-        "blockPt": 27.0,
+        "blockPt": 21.0,
         "present": true,
         "decorations": [
           {
             "category": "line",
             "left": 218,
-            "top": 86,
+            "top": 92,
             "width": 191.20000000000002,
             "height": 20,
             "backgroundColor": "#3E5C76",
             "zIndex": 1,
             "page": 1,
+            "flowRole": "masthead",
             "titleDecoration": {
               "minWidth": 120.0,
               "maxWidth": 329.0,
@@ -1057,7 +1062,7 @@ const SLATE_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-4429a8db6e71",
+    "flowGroup": "record-08dff407ac0c",
     "flowRole": "content"
   },
   {
@@ -1080,7 +1085,7 @@ const SLATE_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-4429a8db6e71",
+    "flowGroup": "record-08dff407ac0c",
     "flowRole": "content"
   },
   {
@@ -1089,7 +1094,7 @@ const SLATE_ELEMENTS = [
     "left": 218,
     "top": 364.0,
     "width": 329,
-    "height": 66,
+    "height": 80,
     "fontSize": 9.0,
     "lineHeight": 13.2,
     "letterSpacing": 0,
@@ -1103,14 +1108,14 @@ const SLATE_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-4429a8db6e71",
+    "flowGroup": "record-08dff407ac0c",
     "flowRole": "content"
   },
   {
     "category": "textarea",
     "content": "Analityczka KYC",
     "left": 218,
-    "top": 440.0,
+    "top": 454.0,
     "width": 329,
     "height": 15,
     "fontSize": 10.4,
@@ -1126,14 +1131,14 @@ const SLATE_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-7a34e4ca5ce5",
+    "flowGroup": "record-820a7f4829eb",
     "flowRole": "content"
   },
   {
     "category": "textarea",
     "content": "Baltic Trust Bank   ·   Warszawa   ·   2019 – 2022",
     "left": 218,
-    "top": 459.0,
+    "top": 473.0,
     "width": 329,
     "height": 12,
     "fontSize": 8.3,
@@ -1149,16 +1154,16 @@ const SLATE_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-7a34e4ca5ce5",
+    "flowGroup": "record-820a7f4829eb",
     "flowRole": "content"
   },
   {
     "category": "textarea",
     "content": "• Weryfikowała profile klientów oraz screening PEP, sanctions i media.\n• Utrzymywała jakość raportów SAR oraz terminowość odpowiedzi na RFI.",
     "left": 218,
-    "top": 475.0,
+    "top": 489.0,
     "width": 329,
-    "height": 27,
+    "height": 40,
     "fontSize": 9.0,
     "lineHeight": 13.2,
     "letterSpacing": 0,
@@ -1172,14 +1177,14 @@ const SLATE_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-7a34e4ca5ce5",
+    "flowGroup": "record-820a7f4829eb",
     "flowRole": "content"
   },
   {
     "category": "textarea",
     "content": "Specjalistka Obsługi Klienta",
     "left": 218,
-    "top": 512.0,
+    "top": 539.0,
     "width": 329,
     "height": 15,
     "fontSize": 10.4,
@@ -1195,14 +1200,14 @@ const SLATE_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-3d8d75528e72",
+    "flowGroup": "record-7f5883a7069b",
     "flowRole": "content"
   },
   {
     "category": "textarea",
     "content": "Helios Services   ·   Kraków   ·   2016 – 2019",
     "left": 218,
-    "top": 531.0,
+    "top": 558.0,
     "width": 329,
     "height": 12,
     "fontSize": 8.3,
@@ -1218,14 +1223,14 @@ const SLATE_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-3d8d75528e72",
+    "flowGroup": "record-7f5883a7069b",
     "flowRole": "content"
   },
   {
     "category": "textarea",
     "content": "• Obsługiwała zamówienia i weryfikację danych klientów na rynkach DACH.",
     "left": 218,
-    "top": 547.0,
+    "top": 574.0,
     "width": 329,
     "height": 27,
     "fontSize": 9.0,
@@ -1241,14 +1246,14 @@ const SLATE_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-3d8d75528e72",
+    "flowGroup": "record-7f5883a7069b",
     "flowRole": "content"
   },
   {
     "category": "textarea",
     "content": "Asystentka ds. zgodności",
     "left": 218,
-    "top": 584.0,
+    "top": 611.0,
     "width": 329,
     "height": 15,
     "fontSize": 10.4,
@@ -1264,14 +1269,14 @@ const SLATE_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-007914a1cef5",
+    "flowGroup": "record-630e8ae815dc",
     "flowRole": "content"
   },
   {
     "category": "textarea",
     "content": "Northline Operations   ·   Kraków   ·   2014 – 2016",
     "left": 218,
-    "top": 603.0,
+    "top": 630.0,
     "width": 329,
     "height": 12,
     "fontSize": 8.3,
@@ -1287,14 +1292,14 @@ const SLATE_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-007914a1cef5",
+    "flowGroup": "record-630e8ae815dc",
     "flowRole": "content"
   },
   {
     "category": "textarea",
     "content": "• Przygotowywała dokumentację klientów i wspierała kontrole jakości danych.\n• Koordynowała odpowiedzi na zapytania operacyjne zespołów sprzedaży i ryzyka.",
     "left": 218,
-    "top": 619.0,
+    "top": 646.0,
     "width": 329,
     "height": 53,
     "fontSize": 9.0,
@@ -1310,7 +1315,7 @@ const SLATE_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-007914a1cef5",
+    "flowGroup": "record-630e8ae815dc",
     "flowRole": "content"
   }
 ];

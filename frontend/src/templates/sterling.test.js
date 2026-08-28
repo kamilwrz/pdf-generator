@@ -67,10 +67,11 @@ test("Sterling is a wide-sidebar, letterhead-masthead layout with structured sid
     assert.equal(name.fontFamily, "CormorantGaramond");
     assert.equal(name.color, INK);
 
-    const title = masthead.find((element) => element.content === "ANALITYCZKA AML I COMPLIANCE");
+    const title = masthead.find((element) => element.content === "Analityczka AML i Compliance");
     assert.ok(title);
     assert.equal(title.align, "center");
     assert.equal(title.color, ACCENT);
+    assert.equal(title.textTransform, "uppercase");
 
     const mastheadRule = masthead.find((element) => element.category === "line");
     assert.ok(mastheadRule, "a horizontal rule separates the masthead from the two-column body");

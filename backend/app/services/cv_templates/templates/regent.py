@@ -77,15 +77,19 @@ def _gen_regent(cv: dict) -> list[dict]:
         )
         cursor_y += name_height + 9.0
 
+    title_top = cursor_y
+    title_height = (
+        Builder.measure_block(title, W, 9.5, 11, SANS)
+        if title else 11.0
+    )
+    title_prototype = _block(
+        title, L, title_top, W, title_height, 9.5, 11, C["ink"], SANS,
+        zIndex=3, align="left",
+    )
+    title_prototype["letterSpacing"] = 2.0
     if title:
-        title_height = Builder.measure_block(title, W, 9.5, 11, SANS)
         title_index = len(header)
-        title_el = _block(
-            title, L, cursor_y, W, title_height, 9.5, 11, C["ink"], SANS,
-            zIndex=3, align="left",
-        )
-        title_el["letterSpacing"] = 2.0
-        header.append(title_el)
+        header.append(title_prototype)
         cursor_y += title_height
 
     contact_elements, contact_bottom, contact_descriptor = _place_centered_icon_contacts(
@@ -123,10 +127,14 @@ def _gen_regent(cv: dict) -> list[dict]:
             tag_masthead_identity(
                 name_element,
                 title_element,
+                title_prototype=title_prototype,
                 band_id="masthead-main",
                 name_default_uppercase=False,
                 title_default_uppercase=True,
-                band_top=cursor_y + 18.0,
+                band_top=title_top + title_height + 18.0,
+                # Preserve Regent's existing 18 pt gap in an initially empty
+                # masthead; `+` inserts only the missing title line.
+                title_reclaim_pt=title_height if not title else None,
                 contact_band_id="regent-contact",
             )
         )

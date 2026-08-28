@@ -295,7 +295,7 @@ const TESSERA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-31f36213a537",
+    "flowGroup": "record-045027d7cfd9",
     "flowRole": "content",
     "flowLane": "sidebar"
   },
@@ -319,7 +319,7 @@ const TESSERA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-31f36213a537",
+    "flowGroup": "record-045027d7cfd9",
     "flowRole": "content",
     "flowLane": "sidebar"
   },
@@ -343,7 +343,7 @@ const TESSERA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-31f36213a537",
+    "flowGroup": "record-045027d7cfd9",
     "flowRole": "content",
     "flowLane": "sidebar"
   },
@@ -367,7 +367,7 @@ const TESSERA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-4f34cc2211dd",
+    "flowGroup": "record-53d451dabef7",
     "flowRole": "content",
     "flowLane": "sidebar"
   },
@@ -391,7 +391,7 @@ const TESSERA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-4f34cc2211dd",
+    "flowGroup": "record-53d451dabef7",
     "flowRole": "content",
     "flowLane": "sidebar"
   },
@@ -415,7 +415,7 @@ const TESSERA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-4f34cc2211dd",
+    "flowGroup": "record-53d451dabef7",
     "flowRole": "content",
     "flowLane": "sidebar"
   },
@@ -967,7 +967,7 @@ const TESSERA_ELEMENTS = [
           "category": "text",
           "content": "Analityczka AML i Compliance",
           "left": 228,
-          "top": 94.0,
+          "top": 98.0,
           "width": null,
           "height": null,
           "fontSizePt": 8.2,
@@ -977,21 +977,26 @@ const TESSERA_ELEMENTS = [
           "letterSpacing": 1.15,
           "align": null,
           "autoHeight": false,
+          "preserveInitialLayout": false,
           "textTransform": "uppercase",
-          "bold": true
+          "bold": true,
+          "italic": false,
+          "underline": false,
+          "zIndex": 3
         },
-        "blockPt": 27.0,
+        "blockPt": 23.0,
         "present": true,
         "decorations": [
           {
             "category": "line",
             "left": 218,
-            "top": 88,
+            "top": 92,
             "width": 187.20000000000002,
             "height": 22,
             "backgroundColor": "#E15D4F",
             "zIndex": 1,
             "page": 1,
+            "flowRole": "masthead",
             "titleDecoration": {
               "minWidth": 120.0,
               "maxWidth": 329.0,
@@ -1198,7 +1203,7 @@ const TESSERA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-d53301fa1587",
+    "flowGroup": "record-9de358847f2b",
     "flowRole": "content"
   },
   {
@@ -1221,7 +1226,7 @@ const TESSERA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-d53301fa1587",
+    "flowGroup": "record-9de358847f2b",
     "flowRole": "content"
   },
   {
@@ -1230,7 +1235,7 @@ const TESSERA_ELEMENTS = [
     "left": 218,
     "top": 366.0,
     "width": 329,
-    "height": 66,
+    "height": 80,
     "fontSize": 9.0,
     "lineHeight": 13.2,
     "letterSpacing": 0,
@@ -1244,14 +1249,14 @@ const TESSERA_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-d53301fa1587",
+    "flowGroup": "record-9de358847f2b",
     "flowRole": "content"
   },
   {
     "category": "textarea",
     "content": "Analityczka KYC",
     "left": 218,
-    "top": 442.0,
+    "top": 456.0,
     "width": 329,
     "height": 15,
     "fontSize": 10.4,
@@ -1267,14 +1272,14 @@ const TESSERA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-a611eb2a2b1a",
+    "flowGroup": "record-50771f9398b6",
     "flowRole": "content"
   },
   {
     "category": "textarea",
     "content": "Baltic Trust Bank   ·   Warszawa   ·   2019 – 2022",
     "left": 218,
-    "top": 461.0,
+    "top": 475.0,
     "width": 329,
     "height": 12,
     "fontSize": 8.3,
@@ -1290,16 +1295,16 @@ const TESSERA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-a611eb2a2b1a",
+    "flowGroup": "record-50771f9398b6",
     "flowRole": "content"
   },
   {
     "category": "textarea",
     "content": "• Weryfikowała profile klientów oraz screening PEP, sanctions i media.\n• Utrzymywała jakość raportów SAR oraz terminowość odpowiedzi na RFI.",
     "left": 218,
-    "top": 477.0,
+    "top": 491.0,
     "width": 329,
-    "height": 27,
+    "height": 40,
     "fontSize": 9.0,
     "lineHeight": 13.2,
     "letterSpacing": 0,
@@ -1313,14 +1318,14 @@ const TESSERA_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-a611eb2a2b1a",
+    "flowGroup": "record-50771f9398b6",
     "flowRole": "content"
   },
   {
     "category": "textarea",
     "content": "Specjalistka Obsługi Klienta",
     "left": 218,
-    "top": 514.0,
+    "top": 541.0,
     "width": 329,
     "height": 15,
     "fontSize": 10.4,
@@ -1336,14 +1341,14 @@ const TESSERA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-40db8b3984d0",
+    "flowGroup": "record-b56a049cb986",
     "flowRole": "content"
   },
   {
     "category": "textarea",
     "content": "Helios Services   ·   Kraków   ·   2016 – 2019",
     "left": 218,
-    "top": 533.0,
+    "top": 560.0,
     "width": 329,
     "height": 12,
     "fontSize": 8.3,
@@ -1359,14 +1364,14 @@ const TESSERA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-40db8b3984d0",
+    "flowGroup": "record-b56a049cb986",
     "flowRole": "content"
   },
   {
     "category": "textarea",
     "content": "• Obsługiwała zamówienia i weryfikację danych klientów na rynkach DACH.",
     "left": 218,
-    "top": 549.0,
+    "top": 576.0,
     "width": 329,
     "height": 27,
     "fontSize": 9.0,
@@ -1382,14 +1387,14 @@ const TESSERA_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-40db8b3984d0",
+    "flowGroup": "record-b56a049cb986",
     "flowRole": "content"
   },
   {
     "category": "textarea",
     "content": "Asystentka ds. zgodności",
     "left": 218,
-    "top": 586.0,
+    "top": 613.0,
     "width": 329,
     "height": 15,
     "fontSize": 10.4,
@@ -1405,14 +1410,14 @@ const TESSERA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-ec34d26598d9",
+    "flowGroup": "record-66cfb2af52e2",
     "flowRole": "content"
   },
   {
     "category": "textarea",
     "content": "Northline Operations   ·   Kraków   ·   2014 – 2016",
     "left": 218,
-    "top": 605.0,
+    "top": 632.0,
     "width": 329,
     "height": 12,
     "fontSize": 8.3,
@@ -1428,14 +1433,14 @@ const TESSERA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-ec34d26598d9",
+    "flowGroup": "record-66cfb2af52e2",
     "flowRole": "content"
   },
   {
     "category": "textarea",
     "content": "• Przygotowywała dokumentację klientów i wspierała kontrole jakości danych.\n• Koordynowała odpowiedzi na zapytania operacyjne zespołów sprzedaży i ryzyka.",
     "left": 218,
-    "top": 621.0,
+    "top": 648.0,
     "width": 329,
     "height": 53,
     "fontSize": 9.0,
@@ -1451,7 +1456,7 @@ const TESSERA_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-ec34d26598d9",
+    "flowGroup": "record-66cfb2af52e2",
     "flowRole": "content"
   }
 ];

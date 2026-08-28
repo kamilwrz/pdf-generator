@@ -298,8 +298,12 @@ const REGENT_ELEMENTS = [
           "letterSpacing": 2.0,
           "align": "left",
           "autoHeight": true,
+          "preserveInitialLayout": true,
           "textTransform": "uppercase",
-          "bold": false
+          "bold": false,
+          "italic": false,
+          "underline": false,
+          "zIndex": 3
         },
         "blockPt": 29.0,
         "present": true,
@@ -403,7 +407,7 @@ const REGENT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-5d6f675c2890",
+    "flowGroup": "record-d4650052cd0d",
     "flowRole": "content"
   },
   {
@@ -426,7 +430,7 @@ const REGENT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-5d6f675c2890",
+    "flowGroup": "record-d4650052cd0d",
     "flowRole": "content"
   },
   {
@@ -449,7 +453,7 @@ const REGENT_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-5d6f675c2890",
+    "flowGroup": "record-d4650052cd0d",
     "flowRole": "content"
   },
   {
@@ -472,7 +476,7 @@ const REGENT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-da5c0f0039ec",
+    "flowGroup": "record-6a80313880fa",
     "flowRole": "content"
   },
   {
@@ -495,7 +499,7 @@ const REGENT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-da5c0f0039ec",
+    "flowGroup": "record-6a80313880fa",
     "flowRole": "content"
   },
   {
@@ -518,7 +522,7 @@ const REGENT_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-da5c0f0039ec",
+    "flowGroup": "record-6a80313880fa",
     "flowRole": "content"
   },
   {
@@ -541,7 +545,7 @@ const REGENT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-1c990a57c28d",
+    "flowGroup": "record-c4b6d1470020",
     "flowRole": "content"
   },
   {
@@ -564,7 +568,7 @@ const REGENT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-1c990a57c28d",
+    "flowGroup": "record-c4b6d1470020",
     "flowRole": "content"
   },
   {
@@ -587,7 +591,7 @@ const REGENT_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-1c990a57c28d",
+    "flowGroup": "record-c4b6d1470020",
     "flowRole": "content"
   },
   {
@@ -636,7 +640,7 @@ const REGENT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-7ae6035835f6",
+    "flowGroup": "record-09d4a0834d48",
     "flowRole": "content"
   },
   {
@@ -659,7 +663,7 @@ const REGENT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-7ae6035835f6",
+    "flowGroup": "record-09d4a0834d48",
     "flowRole": "content"
   },
   {
@@ -682,7 +686,7 @@ const REGENT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-7ae6035835f6",
+    "flowGroup": "record-09d4a0834d48",
     "flowRole": "content"
   },
   {
@@ -705,7 +709,7 @@ const REGENT_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-7ae6035835f6",
+    "flowGroup": "record-09d4a0834d48",
     "flowRole": "content"
   },
   {
@@ -728,7 +732,7 @@ const REGENT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-856043e73866",
+    "flowGroup": "record-93fc87b66b7a",
     "flowRole": "content"
   },
   {
@@ -751,7 +755,7 @@ const REGENT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-856043e73866",
+    "flowGroup": "record-93fc87b66b7a",
     "flowRole": "content"
   },
   {
@@ -774,7 +778,7 @@ const REGENT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-856043e73866",
+    "flowGroup": "record-93fc87b66b7a",
     "flowRole": "content"
   }
 ];

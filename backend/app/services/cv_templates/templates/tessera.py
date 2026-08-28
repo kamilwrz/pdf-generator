@@ -239,21 +239,32 @@ def _gen_tessera(cv: dict) -> list[dict]:
         "minWidth": 120.0, "maxWidth": float(main_width),
         "horizontalPadding": 20.0,
     }
+    title_prototype = _text(
+        title, 8.2, sans, colors["white"], main_left + 10, 98,
+        zIndex=3, bold=True,
+    )
+    title_prototype["letterSpacing"] = 1.15
     # Keep the identity cluster close to the body: the 32 pt name-to-bar
     # offset leaves a deliberate optical gap while avoiding a top-heavy page.
+    # Empty CV data retains the title/bar only as latent descriptor blueprints;
+    # rendering either one would leave an orphan coral strip in the masthead.
     header = [
         _text(name, 24, display, colors["aubergine"], main_left, 60, zIndex=3, bold=True),
-        title_bar,
-        _text(title, 8.2, sans, colors["white"], main_left + 10, 98, zIndex=3, bold=True),
+    ]
+    title_index: int | None = None
+    if title:
+        header.append(title_bar)
+        title_index = len(header)
+        header.append(title_prototype)
+    header.extend([
         *contact_els,
         _line(main_left, header_rule_y, main_width, 1, colors["rule"], zIndex=2),
         _rect(491, 42, 41, 41, colors["aubergine"], 1.1, zIndex=2),
         _line(499, 50, 41, 41, colors["tile"], zIndex=1),
         _circle(506, 58, 13, colors["coral"], filled=True, zIndex=3),
         _ellipse(487, 90, 56, 15, colors["ochre"], borderWidth=1, zIndex=2),
-    ]
+    ])
     header[0]["letterSpacing"] = 0.2
-    header[2]["letterSpacing"] = 1.15
 
     builder = TesseraBuilder(header_rule_y + 1.0 + SPACE_AFTER_HEADER_RULE)
     body_fs, body_lh = 9.0, 13.2
@@ -431,15 +442,21 @@ def _gen_tessera(cv: dict) -> list[dict]:
     # Append the band anchor after the masthead spread so its own flowRole
     # ("masthead-anchor") is preserved rather than overwritten to "masthead".
     header.append(build_contact_band_anchor(contact_descriptor))
-    # `header` was rebuilt by the flowRole comprehension above, so the tagged
-    # name/title must come from those copies (still at indices 0 and 2 — the
-    # coral role tile line sits between them at index 1).
-    name_el, title_el = header[0], header[2]
+    # `header` was rebuilt by the flowRole comprehension above, so any rendered
+    # title/decorations must come from those copies. With an empty source title,
+    # the original prototypes remain descriptor-only and are not rendered.
+    name_el = header[0]
+    title_el = header[title_index] if title_index is not None else None
+    title_decoration = header[title_index - 1] if title_index is not None else title_bar
     header.append(tag_masthead_identity(
-        name_el, title_el if title else None,
+        name_el, title_el,
+        title_prototype=title_prototype,
         band_id="masthead-main", name_default_uppercase=True,
         title_default_uppercase=True, band_top=121.0,
+        # Contacts occupy a fixed reserved row even without the coral title
+        # tile; adding the latent pair must not move that row a second time.
+        title_reclaim_pt=0.0 if not title else None,
         contact_band_id="contact-main",
-        title_decorations=[header[1]] if title else None,
+        title_decorations=[title_decoration],
     ))
     return page_decorations + sidebar + header + flow

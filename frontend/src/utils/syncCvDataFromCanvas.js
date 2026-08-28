@@ -109,6 +109,10 @@ function editableTextChanges(previousElements, nextElements) {
     if (!next?.element_id || !["text", "textarea"].includes(next.category)) return [];
     const previous = previousById.get(next.element_id);
     if (!previous || previous.content === next.content) return [];
+    // The semantic title mapper below owns this field. Letting the generic
+    // unique-string pass process the same edit can mutate a different profile
+    // leaf when the old title text is duplicated elsewhere in the CV.
+    if (previous.mastheadRole === "title" || next.mastheadRole === "title") return [];
     if (isStructuralTextRemap(previous, next)) return [];
     const from = profileTextForElement(previous);
     const to = profileTextForElement(next);
@@ -117,6 +121,58 @@ function editableTextChanges(previousElements, nextElements) {
     // template fill, even though the canvas correctly shows it removed.
     return from && from !== to ? [{ from, to }] : [];
   });
+}
+
+/**
+ * Read an explicit semantic edit of the professional title.
+ *
+ * A title created through the masthead `+` control starts as a new, empty
+ * element. The generic unique-string mapper intentionally ignores new ids and
+ * empty source strings, so it cannot observe the first value typed into that
+ * field. `mastheadRole` is an unambiguous contract shared by every managed
+ * template and lets this one root profile property be synchronized directly.
+ * Removing the element is not treated as a data deletion: hide/show is a
+ * presentation choice and must not erase the title used by another template.
+ */
+function editedMastheadTitle(previousElements, nextElements) {
+  const nextTitle = nextElements.find((element) => (
+    element?.mastheadRole === "title"
+    && ["text", "textarea"].includes(element.category)
+  ));
+  if (!nextTitle) return null;
+
+  const previousTitle = previousElements.find((element) => (
+    element?.element_id === nextTitle.element_id
+    && element?.mastheadRole === "title"
+  ));
+  if (previousTitle) {
+    if (previousTitle.content === nextTitle.content) return null;
+    return { content: profileTextForElement(nextTitle) };
+  }
+
+  // A legitimate `+` materialisation keeps the same identity anchor and flips
+  // only its `title.present` flag. A template replacement gives every element,
+  // including the anchor, a fresh id; treating that replacement as an edit
+  // would persist generator-truncated display copy back into `cv_data.title`.
+  const nextAnchor = nextElements.find((element) => (
+    element?.flowRole === "masthead-anchor"
+    && element?.mastheadBandId === nextTitle.mastheadBandId
+    && element?.mastheadIdentity
+  ));
+  const previousAnchor = nextAnchor
+    ? previousElements.find((element) => (
+      element?.element_id === nextAnchor.element_id
+      && element?.flowRole === "masthead-anchor"
+      && element?.mastheadBandId === nextTitle.mastheadBandId
+      && element?.mastheadIdentity
+    ))
+    : null;
+  const addedInsideExistingBand = (
+    previousAnchor?.mastheadIdentity?.title?.present === false
+    && nextAnchor?.mastheadIdentity?.title?.present === true
+  );
+  if (!addedInsideExistingBand) return null;
+  return { content: profileTextForElement(nextTitle) };
 }
 
 /**
@@ -149,6 +205,14 @@ export function syncCvDataFromCanvas(
   let nextProfile = markedRecordDeletes.length > 0 && deletedTexts.size > 0
     ? pruneDeletedRecords(cvData, deletedTexts)
     : cvData;
+  const titleEdit = editedMastheadTitle(previousElements, nextElements);
+  if (
+    titleEdit
+    && String(nextProfile?.title ?? "").trim() !== titleEdit.content
+  ) {
+    if (nextProfile === cvData) nextProfile = cloneProfile(cvData);
+    nextProfile.title = titleEdit.content;
+  }
   for (const { from, to } of editableTextChanges(previousElements, nextElements)) {
     if (countStringLeaves(nextProfile, from) !== 1) continue;
     if (nextProfile === cvData) nextProfile = cloneProfile(cvData);

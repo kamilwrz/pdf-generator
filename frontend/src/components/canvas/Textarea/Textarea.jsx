@@ -35,6 +35,7 @@ import {
     isCanvasEnterReflowSuppressed,
     onCanvasEnterReflowResume,
 } from "../../../utils/canvasEnter";
+import { MASTHEAD_TITLE_PLACEHOLDER } from "../../../utils/mastheadBands";
 
 // Normalize a bullet's whitespace and render the marker in a dedicated grid
 // column. The column's width is the actual rendered "• " width for the active
@@ -170,6 +171,7 @@ function Textarea({
     fixedToPage,
     textTransform,
     mastheadRole,
+    placeholder,
 }) {
     const {
         moveElement,
@@ -195,6 +197,11 @@ function Textarea({
     // click-to-edit tap. Without this a drag-release would immediately flip
     // the block into edit mode.
     const didDragRef = useRef(false);
+    // Placeholder metadata is not required for persistence: mastheadRole is a
+    // durable semantic marker, so saved/reloaded empty job titles keep the same
+    // editor hint while the PDF renderer continues to receive empty content.
+    const editorPlaceholder = placeholder
+        || (mastheadRole === "title" ? MASTHEAD_TITLE_PLACEHOLDER : undefined);
     const initialLayoutPreservedRef = useRef(false);
     // The editable surface commits an authoritative measured height on every
     // input and again on blur. Do not let the display node immediately perform
@@ -515,7 +522,7 @@ function Textarea({
                     contentEditable
                     suppressContentEditableWarning
                     spellCheck={false}
-                    data-placeholder="Wpisz swój tekst…"
+                    data-placeholder={editorPlaceholder || "Wpisz swój tekst…"}
                     onInput={(e) => commitEditable(e.currentTarget)}
                     onBlur={() => {
                         // The 2-page → focused-page edit zoom unmounts this
@@ -593,6 +600,7 @@ function Textarea({
             key="textarea-display"
             id={elementId}
             ref={blockRef}
+            data-placeholder={editorPlaceholder}
             className={`${classes.block} ${isSelected ? classes.selected : ""}`}
             style={{ ...boxStyle, ...textStyle }}
             onClick={(e) => {

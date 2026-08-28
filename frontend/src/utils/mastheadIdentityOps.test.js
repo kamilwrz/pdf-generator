@@ -75,6 +75,150 @@ test("title show reconstructs the title from spec and reverses the shift", () =>
   assert.equal(elements.find((e) => e.element_id === "mid").mastheadIdentity.title.present, true);
 });
 
+test("title show creates an editable placeholder when the profile title was empty", () => {
+  const source = doc().filter((element) => (
+    element.mastheadRole !== "title" && element.mastheadRole !== "title-decoration"
+  ));
+  const anchor = source.find((element) => element.element_id === "mid");
+  anchor.mastheadIdentity.title = {
+    present: false,
+    blockPt: 24,
+    spec: {
+      category: "textarea",
+      content: "",
+      left: 44,
+      top: 80,
+      width: 300,
+      height: 14,
+      fontSizePt: 11,
+      lineHeight: 14,
+      fontFamily: "Inter",
+      colorHex: "#17A2B8",
+      align: "left",
+      autoHeight: true,
+      appearanceTypographyRole: "job",
+      appearanceBaseFontSize: 11,
+      appearanceBaseLineHeight: 14,
+      appearanceBaseHeight: 14,
+      italic: true,
+      underline: true,
+      zIndex: 9,
+      preserveInitialLayout: true,
+    },
+    decorations: [],
+  };
+
+  const { elements } = applyTitleToggle(source, "masthead-main", () => "new-title");
+  const title = elements.find((element) => element.mastheadRole === "title");
+
+  assert.ok(title, "empty title is reconstructed as an editable element");
+  assert.equal(title.content, "");
+  assert.equal(title.placeholder, "Wpisz stanowisko…");
+  assert.equal(title.category, "textarea");
+  assert.equal(title.width, 300);
+  assert.equal(title.appearanceTypographyRole, "job");
+  assert.equal(title.appearanceBaseFontSize, 11);
+  assert.equal(title.appearanceBaseLineHeight, 14);
+  assert.equal(title.appearanceBaseHeight, 14);
+  assert.equal(title.italic, true, "template-authored title emphasis survives reconstruction");
+  assert.equal(title.underline, true);
+  assert.equal(title.zIndex, 9);
+  assert.equal(title.preserveInitialLayout, true);
+  assert.equal(elements.filter((element) => element.mastheadRole === "title").length, 1);
+});
+
+test("an empty added title keeps the typed value through hide and show", () => {
+  const source = doc().filter((element) => (
+    element.mastheadRole !== "title" && element.mastheadRole !== "title-decoration"
+  ));
+  const anchor = source.find((element) => element.element_id === "mid");
+  anchor.mastheadIdentity.title = {
+    present: false,
+    blockPt: 24,
+    spec: {
+      category: "textarea",
+      content: "",
+      left: 44,
+      top: 80,
+      width: 300,
+      height: 14,
+      fontSizePt: 11,
+      lineHeight: 14,
+      fontFamily: "Inter",
+      colorHex: "#17A2B8",
+      align: "left",
+      autoHeight: true,
+      italic: true,
+      zIndex: 7,
+      preserveInitialLayout: true,
+    },
+    decorations: [],
+  };
+
+  const added = applyTitleToggle(source, "masthead-main", () => "added-title").elements;
+  const edited = added.map((element) => element.mastheadRole === "title" ? {
+    ...element,
+    content: "Senior Product Designer",
+    width: 318,
+    height: 18,
+    lineHeight: 18,
+    fontSize: 13,
+  } : element);
+  const hidden = applyTitleToggle(edited, "masthead-main", () => "hidden").elements;
+  const restored = applyTitleToggle(hidden, "masthead-main", () => "restored").elements;
+  const title = restored.find((element) => element.mastheadRole === "title");
+
+  assert.equal(title.content, "Senior Product Designer");
+  assert.equal(title.width, 318);
+  assert.equal(title.height, 18);
+  assert.equal(title.lineHeight, 18);
+  assert.equal(title.fontSize, 13);
+  assert.equal(title.italic, true);
+  assert.equal(title.zIndex, 7);
+  assert.equal(title.preserveInitialLayout, true);
+  assert.equal(title.placeholder, undefined, "filled titles do not retain empty-field chrome");
+});
+
+test("title hide captures edited content and appearance for an exact re-show", () => {
+  const source = doc();
+  const title = source.find((element) => element.element_id === "title");
+  Object.assign(title, {
+    content: "Senior Security Analyst",
+    category: "textarea",
+    width: 300,
+    height: 17,
+    lineHeight: 17,
+    fontSize: 13,
+    fontFamily: "Montserrat",
+    color: "#557565",
+    align: "center",
+    autoHeight: true,
+    italic: true,
+    runs: [{ start: 0, end: 6, bold: true, color: "#A23B42" }],
+    appearanceTypographyRole: "job",
+    appearanceBaseFontSize: 11,
+    appearanceBaseLineHeight: 14,
+  });
+
+  const hidden = applyTitleToggle(source, "masthead-main", () => "hidden").elements;
+  const restored = applyTitleToggle(hidden, "masthead-main", () => "restored").elements;
+  const restoredTitle = restored.find((element) => element.mastheadRole === "title");
+
+  assert.equal(restoredTitle.content, "Senior Security Analyst");
+  assert.equal(restoredTitle.fontSize, 13);
+  assert.equal(restoredTitle.lineHeight, 17);
+  assert.equal(restoredTitle.fontFamily, "Montserrat");
+  assert.equal(restoredTitle.color, "#557565");
+  assert.equal(restoredTitle.align, "center");
+  assert.equal(restoredTitle.italic, true);
+  assert.deepEqual(
+    restoredTitle.runs,
+    [{ start: 0, end: 6, bold: true, color: "#A23B42" }],
+  );
+  assert.equal(restoredTitle.appearanceTypographyRole, "job");
+  assert.equal(restoredTitle.appearanceBaseFontSize, 11);
+});
+
 test("title blur keeps Linden's fixed identity band at its authored width", () => {
   const elements = doc();
   const title = elements.find((element) => element.element_id === "title");
@@ -150,6 +294,12 @@ function centeredDoc() {
   };
   const name = d.find((e) => e.element_id === "name");
   name.category = "textarea"; name.left = 76; name.width = 443; name.align = "center";
+  const title = d.find((e) => e.element_id === "title");
+  Object.assign(title, {
+    category: "textarea", left: 76, width: 443, height: 14,
+    fontSize: 10, lineHeight: 14, fontFamily: "Inter", color: "#7C6A52",
+    letterSpacing: 2, align: "center", autoHeight: true,
+  });
   return d;
 }
 

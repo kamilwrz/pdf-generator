@@ -4,6 +4,7 @@ import { syncCvDataFromCanvas } from "./syncCvDataFromCanvas";
 
 const profile = {
   name: "Anna Kowalska",
+  title: "",
   summary: "Projektuję czytelne interfejsy.",
   skills: ["Figma", "React"],
   experience: [],
@@ -91,6 +92,118 @@ describe("syncCvDataFromCanvas", () => {
     );
 
     assert.equal(updated.summary, "");
+  });
+
+  it("persists a masthead title typed into a newly added empty field", () => {
+    const emptyTitle = {
+      ...text("masthead-title", ""),
+      mastheadRole: "title",
+      mastheadBandId: "masthead-main",
+    };
+    const updated = syncCvDataFromCanvas(
+      profile,
+      [emptyTitle],
+      [{ ...emptyTitle, content: "Product Manager" }],
+    );
+
+    assert.equal(updated.title, "Product Manager");
+    assert.equal(profile.title, "");
+  });
+
+  it("persists a populated masthead title added with a fresh element id", () => {
+    const hiddenAnchor = {
+      element_id: "masthead-anchor",
+      category: "text",
+      flowRole: "masthead-anchor",
+      mastheadBandId: "masthead-main",
+      mastheadIdentity: { title: { present: false } },
+    };
+    const updated = syncCvDataFromCanvas(
+      profile,
+      [hiddenAnchor],
+      [
+        {
+          ...hiddenAnchor,
+          mastheadIdentity: { title: { present: true } },
+        },
+        {
+          ...text("new-masthead-title", "Product Manager"),
+          mastheadRole: "title",
+          mastheadBandId: "masthead-main",
+        },
+      ],
+    );
+
+    assert.equal(updated.title, "Product Manager");
+  });
+
+  it("does not persist a generator-truncated title during template replacement", () => {
+    const longTitle = "Senior International Product Strategy and Operations Manager";
+    const titledProfile = { ...profile, title: longTitle };
+    const oldAnchor = {
+      element_id: "old-anchor",
+      category: "text",
+      flowRole: "masthead-anchor",
+      mastheadBandId: "masthead-main",
+      mastheadIdentity: { title: { present: true } },
+    };
+    const newAnchor = { ...oldAnchor, element_id: "new-anchor" };
+    const updated = syncCvDataFromCanvas(
+      titledProfile,
+      [
+        oldAnchor,
+        {
+          ...text("old-title", longTitle),
+          mastheadRole: "title",
+          mastheadBandId: "masthead-main",
+        },
+      ],
+      [
+        newAnchor,
+        {
+          ...text("new-title", "Senior International Product Strategy…"),
+          mastheadRole: "title",
+          mastheadBandId: "masthead-main",
+        },
+      ],
+    );
+
+    assert.equal(updated, titledProfile);
+    assert.equal(updated.title, longTitle);
+  });
+
+  it("keeps the semantic profile title when the canvas title is only hidden", () => {
+    const titledProfile = { ...profile, title: "Product Manager" };
+    const titleElement = {
+      ...text("masthead-title", "Product Manager"),
+      mastheadRole: "title",
+      mastheadBandId: "masthead-main",
+    };
+    const updated = syncCvDataFromCanvas(titledProfile, [titleElement], []);
+
+    assert.equal(updated, titledProfile);
+    assert.equal(updated.title, "Product Manager");
+  });
+
+  it("does not rewrite another field that duplicates the previous title", () => {
+    const duplicated = {
+      ...profile,
+      title: "Project Manager",
+      summary: "Project Manager",
+    };
+    const titleElement = {
+      ...text("masthead-title", "Project Manager"),
+      mastheadRole: "title",
+      mastheadBandId: "masthead-main",
+    };
+    const updated = syncCvDataFromCanvas(
+      duplicated,
+      [titleElement],
+      [{ ...titleElement, content: "Product Director" }],
+    );
+
+    assert.equal(updated.title, "Product Director");
+    assert.equal(updated.summary, "Project Manager");
   });
 
   it("removes a structurally deleted record from the next template fill", () => {

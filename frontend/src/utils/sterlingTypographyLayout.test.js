@@ -77,6 +77,7 @@ describe("Sterling typography layout", () => {
     const source = withIds(sterlingTemplate);
     const summaryId = source.find((element) => (
       element.category === "textarea"
+      && element.flowRole === "content"
       && String(element.content || "").startsWith("Analityczka AML")
     )).element_id;
     // Deliberately wide glyph metrics reproduce the real failure mode: a line

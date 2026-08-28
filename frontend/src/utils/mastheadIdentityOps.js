@@ -23,6 +23,7 @@
  * and any fixedToPage chrome (page background, footer) are never shifted.
  */
 import { reconcileDocumentPages } from "./structureOperation.js";
+import { MASTHEAD_TITLE_PLACEHOLDER } from "./mastheadBands.js";
 
 function identityAnchor(elements, bandId) {
   return elements.find(
@@ -143,6 +144,80 @@ function nameElement(elements, bandId) {
   return elements.find((el) => el.mastheadBandId === bandId && el.mastheadRole === "name") ?? null;
 }
 
+/**
+ * Capture the live title before hiding it.
+ *
+ * The descriptor starts as generator-authored reconstruction metadata, but the
+ * visible element can later receive user text edits and template appearance
+ * presets. Persisting the current box into the descriptor makes hide/show
+ * lossless instead of restoring stale generator content, colours, or sizing.
+ */
+function captureVisibleTitle(elements, bandId, title) {
+  const decorationKeys = [
+    "category", "left", "top", "width", "height", "backgroundColor",
+    "borderColor", "borderWidth", "borderRadius", "filled", "zIndex", "page",
+    "flowRole", "titleDecoration",
+  ];
+  const decorations = elements
+    .filter((element) => (
+      element.mastheadBandId === bandId && element.mastheadRole === "title-decoration"
+    ))
+    .map((element) => Object.fromEntries(
+      decorationKeys
+        .filter((key) => key in element)
+        .map((key) => [key, element[key]]),
+    ));
+  const spec = {
+    category: title.category ?? "text",
+    content: title.content ?? "",
+    left: title.left,
+    top: title.top,
+    width: title.width,
+    height: title.height,
+    fontSizePt: title.fontSize,
+    lineHeight: title.lineHeight,
+    fontFamily: title.fontFamily,
+    colorHex: title.color,
+    letterSpacing: title.letterSpacing,
+    align: title.align,
+    autoHeight: Boolean(title.autoHeight),
+    textTransform: title.textTransform ?? "none",
+    bold: Boolean(title.bold),
+    italic: Boolean(title.italic),
+    underline: Boolean(title.underline),
+    zIndex: title.zIndex,
+    preserveInitialLayout: Boolean(title.preserveInitialLayout),
+    appearanceTypographyRole: title.appearanceTypographyRole,
+    appearanceBaseFontSize: title.appearanceBaseFontSize,
+    appearanceBaseLineHeight: title.appearanceBaseLineHeight,
+    appearanceBaseHeight: title.appearanceBaseHeight,
+  };
+  if (Array.isArray(title.runs)) {
+    // Inline toolbar formatting belongs to the title just as much as its box
+    // style. Clone the runs because the live element is removed immediately
+    // after capture and later edits must not mutate the stored blueprint.
+    spec.runs = title.runs.map((run) => ({ ...run }));
+  }
+
+  return elements.map((element) => {
+    if (
+      element.mastheadBandId !== bandId
+      || element.flowRole !== "masthead-anchor"
+      || !element.mastheadIdentity
+    ) {
+      return element;
+    }
+    const identity = element.mastheadIdentity;
+    return {
+      ...element,
+      mastheadIdentity: {
+        ...identity,
+        title: { ...identity.title, spec, decorations },
+      },
+    };
+  });
+}
+
 function hideTitle(elements, bandId, descriptor, blockPt, createId) {
   const title = elements.find(
     (el) => el.mastheadBandId === bandId && el.mastheadRole === "title",
@@ -153,8 +228,9 @@ function hideTitle(elements, bandId, descriptor, blockPt, createId) {
   const contactBandId = descriptor.contactBandId;
   // Tessera/Slate title bars are semantic title decorations. Hide them with
   // the text so the masthead never leaves an empty coloured strip behind.
-  const withoutTitle = elements.filter((el) => (
-    el !== title
+  const captured = captureVisibleTitle(elements, bandId, title);
+  const withoutTitle = captured.filter((el) => (
+    !(el.mastheadBandId === bandId && el.mastheadRole === "title")
     && !(el.mastheadBandId === bandId && el.mastheadRole === "title-decoration")
   ));
   const shifted = withoutTitle.map((el) => shiftBelow(el, boundaryTop, -blockPt, contactBandId, boundaryPage));
@@ -192,7 +268,7 @@ function buildTitleElement(spec, bandId, createId, page, nameEl) {
     content: spec.content ?? "",
     left, top: spec.top,
     fontSize: spec.fontSizePt, fontFamily: spec.fontFamily, color: spec.colorHex,
-    zIndex: 3, page, flowRole: "masthead",
+    zIndex: spec.zIndex ?? 3, page, flowRole: "masthead",
     mastheadRole: "title", mastheadBandId: bandId,
   };
   if (isTextarea) {
@@ -210,11 +286,27 @@ function buildTitleElement(spec, bandId, createId, page, nameEl) {
     el.bulletList = false;
   }
   if (typeof spec.letterSpacing === "number") el.letterSpacing = spec.letterSpacing;
+  if (Array.isArray(spec.runs)) el.runs = spec.runs.map((run) => ({ ...run }));
   if (spec.bold) el.bold = true;
+  if (spec.italic) el.italic = true;
+  if (spec.underline) el.underline = true;
   if (spec.textTransform && spec.textTransform !== "none") el.textTransform = spec.textTransform;
+  if (spec.preserveInitialLayout) el.preserveInitialLayout = true;
+  if (spec.appearanceTypographyRole) {
+    el.appearanceTypographyRole = spec.appearanceTypographyRole;
+  }
+  if (typeof spec.appearanceBaseFontSize === "number") {
+    el.appearanceBaseFontSize = spec.appearanceBaseFontSize;
+  }
+  if (typeof spec.appearanceBaseLineHeight === "number") {
+    el.appearanceBaseLineHeight = spec.appearanceBaseLineHeight;
+  }
+  if (typeof spec.appearanceBaseHeight === "number") {
+    el.appearanceBaseHeight = spec.appearanceBaseHeight;
+  }
   // If the title was empty at generation, give the re-added element a hint + hit
   // area so the user can click it and type (same mechanism as added contacts).
-  if (!spec.content) el.placeholder = "Stanowisko";
+  if (!spec.content) el.placeholder = MASTHEAD_TITLE_PLACEHOLDER;
   return el;
 }
 
@@ -223,6 +315,9 @@ function buildTitleDecorations(specs, bandId, createId, page) {
     ...spec,
     element_id: createId("title-decoration"),
     page: spec.page ?? page,
+    // Re-added pills/bands remain masthead chrome. Older saved descriptors did
+    // not persist this field, so keep a semantic fallback for legacy files.
+    flowRole: spec.flowRole ?? "masthead",
     mastheadRole: "title-decoration",
     mastheadBandId: bandId,
   }));

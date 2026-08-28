@@ -105,13 +105,19 @@ def _gen_portico(cv: dict) -> list[dict]:
     header.extend([photo_well, photo_frame])
     cursor_y = photo_top + PHOTO_HEIGHT + 10.0
 
+    title_top = cursor_y
+    title_h = (
+        Builder.measure_block(title, W, title_fs, title_lh, SANS)
+        if title else title_lh
+    )
+    title_prototype = _block(
+        title, L, title_top, W, title_h, title_fs, title_lh, C['accent'], SANS,
+        zIndex=3, align='center',
+    )
+    title_prototype['letterSpacing'] = 2.0
     if title:
-        title_h = Builder.measure_block(title, W, title_fs, title_lh, SANS)
-        title_el = _block(title, L, cursor_y, W, title_h, title_fs, title_lh, C['accent'], SANS,
-                           zIndex=3, align='center')
-        title_el['letterSpacing'] = 2.0
         title_index = len(header)
-        header.append(title_el)
+        header.append(title_prototype)
         cursor_y += title_h
 
     # Contact row re-centers itself around CENTER_X and wraps a second
@@ -157,8 +163,13 @@ def _gen_portico(cv: dict) -> list[dict]:
     if name_el is not None:
         header.append(tag_masthead_identity(
             name_el, title_el,
+            title_prototype=title_prototype,
             band_id="masthead-main", name_default_uppercase=False,
-            title_default_uppercase=False, band_top=cursor_y + 10.0,
+            title_default_uppercase=False,
+            band_top=title_top + title_h + 10.0,
+            # The empty generator already keeps the 10 pt title-to-contact gap.
+            # Adding the latent title therefore inserts only its own box height.
+            title_reclaim_pt=title_h if not title else None,
             contact_band_id="contact-main",
         ))
 

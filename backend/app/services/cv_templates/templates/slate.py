@@ -253,25 +253,26 @@ def _gen_slate(cv: dict) -> list[dict]:
         _text(name, 24, sans, colors["ink"], main_left, 60, zIndex=3, bold=True),
     ]
     header[0]["letterSpacing"] = 0.4
+    # Size the pill to the truncated title so tracked white text stays inside
+    # the accent field. The extra 16 px covers small differences between the
+    # deterministic estimate and the loaded browser font. With empty content,
+    # keep this minimum-width pill and the title only as descriptor prototypes;
+    # rendering them would leave a blank accent bar on the generated page.
+    pill_width = max(120.0, min(float(main_width), len(title) * 5.4 + 40))
+    title_bar = _line(main_left, 92, pill_width, 20, colors["accent"], zIndex=1)
+    title_bar["titleDecoration"] = {
+        "minWidth": 120.0, "maxWidth": float(main_width),
+        "horizontalPadding": 24.0,
+    }
+    title_prototype = _text(
+        title, 8.2, sans, colors["white"], main_left + 12, 98,
+        zIndex=3, bold=True,
+    )
+    title_prototype["letterSpacing"] = 1.15
     if title:
-        # Size the pill to the (truncated) title so white text never spills onto
-        # the white paper. 5.4 px/char at 8.2 pt tracked, plus horizontal padding,
-        # capped at the main column width. The pill length is derived from the
-        # original-case title; uppercasing preserves character count, so the
-        # reversible `textTransform` flag does not change the fit.
-        # Reserve an extra 16 px for the tracked webfont, whose rendered width
-        # can exceed the deterministic generator estimate by a few pixels.
-        pill_width = max(120.0, min(float(main_width), len(title) * 5.4 + 40))
-        title_bar = _line(main_left, 92, pill_width, 20, colors["accent"], zIndex=1)
-        title_bar["titleDecoration"] = {
-            "minWidth": 120.0, "maxWidth": float(main_width),
-            "horizontalPadding": 24.0,
-        }
         header.append(title_bar)
-        role = _text(title, 8.2, sans, colors["white"], main_left + 12, 98, zIndex=3, bold=True)
-        role["letterSpacing"] = 1.15
         title_index = len(header)
-        header.append(role)
+        header.append(title_prototype)
     header.extend([
         *contact_els,
         _line(main_left, header_rule_y, main_width, 1, colors["hairline"], zIndex=2),
@@ -449,11 +450,16 @@ def _gen_slate(cv: dict) -> list[dict]:
     # can compute the title-hide reflow delta.
     name_el = header[name_index]
     title_el = header[title_index] if title_index is not None else None
+    title_decoration = header[title_index - 1] if title_index is not None else title_bar
     header.append(tag_masthead_identity(
         name_el, title_el,
+        title_prototype=title_prototype,
         band_id="masthead-main", name_default_uppercase=True,
         title_default_uppercase=True, band_top=119.0,
+        # Slate reserves the contact row independently from its title pill.
+        # An initially absent pill is therefore restored with zero reflow.
+        title_reclaim_pt=0.0 if not title else None,
         contact_band_id="contact-main",
-        title_decorations=[header[title_index - 1]] if title_index is not None else None,
+        title_decorations=[title_decoration],
     ))
     return page_decorations + sidebar + header + flow

@@ -218,7 +218,7 @@ pdf-generator/
     └── .env.example
 ```
 
-**Rules:** Frontend templates must stay in sync with `_GENERATORS` in `cv_templates/registry.py` (re-exported from `cv_generator.py`; 11 ids). Each `cv_templates/templates/<id>.py` holds only that template’s live generator — not a shared multi-theme engine with sibling branches. Do not put secrets in the repo. Uploads and generated PDFs are runtime data (`uploads/`, `static/generated/`), not source. User image bytes are not publicly mounted — only via `GET /images/{id}/content`.
+**Rules:** Frontend templates must stay in sync with `_GENERATORS` in `cv_templates/registry.py` (re-exported from `cv_generator.py`; 10 ids). Each `cv_templates/templates/<id>.py` holds only that template’s live generator — not a shared multi-theme engine with sibling branches. Do not put secrets in the repo. Uploads and generated PDFs are runtime data (`uploads/`, `static/generated/`), not source. User image bytes are not publicly mounted — only via `GET /images/{id}/content`.
 
 ---
 
@@ -770,19 +770,20 @@ Implementation:
 
 Limits:
 
-- Free (Darmowy) includes the Regent and Sterling starter templates, watermarked PDF export, and **one lifetime** CV import. Pro unlocks clean PDF, all 11 templates, further imports, content AI, ATS, and Layout for **59 zł / 30 days**. Stripe Checkout is not wired yet; unpaid selection may activate Pro via `ALLOW_UNPAID_PLAN_SELECTION`.
+- Free (Darmowy) includes the Regent and Sterling starter templates, watermarked PDF export, and **one lifetime** CV import. Pro unlocks clean PDF, all 10 templates, further imports, content AI, ATS, and Layout for **59 zł / 30 days**. Stripe Checkout is not wired yet; unpaid selection may activate Pro via `ALLOW_UNPAID_PLAN_SELECTION`.
 - ATS feedback (**Czytelność dla ATS**) checks whether the final PDF text can be extracted and whether content headings/keywords look standard. It is guidance, not a promise that every recruiter ATS will parse the file the same way.
 - The privacy section describes implemented data use at a high level and does not claim unimplemented certifications or anonymisation.
 
 ### Template load
 
-Loads static specs; assigns `element_id`, interaction flags, locks chrome.
+Loads static specs; assigns `element_id`, interaction flags, locks chrome. The public registry contains exactly ten starters: Atrium, Linden, Meridian, Monument, Portico, Regent, Slate, Sterling, Tessera, and Vestige. All ten are generator-owned snapshots rather than hand-maintained approximations; `scripts/regenerate_template_starters.py` regenerates one module for every identifier in its `TEMPLATES` list.
 
 Implementation:
 
-- `frontend/src/templates/index.js` — `TEMPLATES` registry (`name` + `description` for UI; `layouts` tags for generators)
+- `frontend/src/templates/index.js`, lines 10–34 — the complete ten-entry `TEMPLATES` registry (`name` + `description` for UI; `layouts` tags for generators)
 - `frontend/src/utils/materializeElementSpecs.js`, `materializeElementSpecs`
 - `frontend/src/hooks/useA4Elements.js`, `handleLoadTemplate` / `useDocumentHistory`
+- `scripts/regenerate_template_starters.py`, lines 272–284 and 428–463 — the exact ten-id regeneration list and `main`; generated modules: `frontend/src/templates/{atrium,linden,meridian,monument,portico,regent,slate,sterling,tessera,vestige}.js`
 
 ### Canvas enter fade
 
@@ -895,7 +896,7 @@ The layout preserves a generous editorial measure in the main column while the n
 `_gen_vestige` builds by calling `_gen_sterling` and then geometrically transforming (not regenerating) the shared record/sidebar-planner output — but three parts of the masthead are rebuilt directly from `cv` rather than repositioned, because reusing Sterling's own elements verbatim was unsafe:
 
 - **Contact channel manager (add/remove a channel).** Sterling's contact row is one *centered* band (`_place_centered_icon_contacts`, tied to the title's Y) whose reflow descriptor describes that layout mode. Vestige used to reposition those same elements into a left-rail stack while leaving the stale centered-mode descriptor attached — any add/remove edit would then re-lay the band as a centered row, breaking the rail. Vestige now drops Sterling's contact elements and descriptor entirely and builds its own via `_place_stacked_icon_contacts` (the same "stacked" mode Regent uses, `band_id: "vestige-contact"`), so the client's generic contact-band reflow works correctly.
-- **Masthead identity (show/hide job title, name upper/lowercase toggle).** Sterling never calls `tag_masthead_identity` at all (unlike Atrium, Meridian, Regent, Portico, Slate, and Tessera), so Vestige inherited that gap with nothing to fix by repositioning. Vestige now tags its own name/title elements and appends a `mastheadIdentity` anchor (`band_id: "vestige-masthead"`) directly. The contact rail is intentionally **not** coupled to this anchor (`contact_band_id=None`): unlike templates whose contact row sits directly under the title, Vestige's rail is a parallel sidebar column pinned near the page top, so it must not shift when the title is hidden/shown.
+- **Masthead identity (show/hide job title, name upper/lowercase toggle).** Sterling emits its own `sterling-masthead` identity descriptor, but its geometry belongs to Sterling's centered letterhead. Vestige therefore discards that inherited anchor while transforming the parent output, then tags its restyled name/title elements and appends one local `mastheadIdentity` anchor (`band_id: "vestige-masthead"`). Keeping both descriptors would expose duplicate controls and could reconstruct the title at Sterling's stale coordinates. The contact rail is intentionally **not** coupled to the Vestige anchor (`contact_band_id=None`): unlike templates whose contact row sits directly under the title, Vestige's rail is a parallel sidebar column pinned near the page top, so it must not shift when the title is hidden/shown.
 - **Languages grid collision (main-column overlap).** When a languages section spills into the main column, Sterling renders it as a `_place_languages_grid` of side-by-side `grid-member` cells sharing one row. Vestige's earlier blanket main-column reposition (`left = main_left`, `width = main_width`) applied identically to every cell in a row, collapsing all of them onto the same box — the overlapping "PolishNative"-style garble a user could see. `grid-member` cells are now excluded from that blanket rule and instead translated proportionally (`main_scale = main_width / 300`, matching Sterling's own `MAIN_L` / `MAIN_W`), so each column keeps its own distinct, non-overlapping position.
 - **Languages transfer rule retained the sidebar colour.** The language-specific sidebar → main conversion first rebuilt its thin rule with the sampled main-column style, then overwrote that result with the source sidebar rule colour. Vestige therefore showed a graphite Languages underline beside neutral-grey main-column rules. `restyleLanguagesMembersAsMain` now keeps the already-restyled destination rule; CEFR text runs remain independently accented.
 
@@ -1196,13 +1197,13 @@ Tests:
 
 **Shared demo persona.** Built-in starters and the guest Regent demo generally use the fictional **Julia Bernat** profile — AML/compliance analyst with three experience roles, one degree, five skills, three languages, plus phone / email / LinkedIn / GitHub / website / Warszawa — so picker mockups stay comparable and follow each generator's `SPACE_*` rhythm on page 1. Regent intentionally uses Alexandra Nowak, a strategy-consulting persona sized to demonstrate its large editorial lead. Monument and Portico use a slightly compacted bullet set so every section still fits page 1 of the mockup.
 
-**Regenerating source-driven starters and mockups.** Most `frontend/src/templates/*.js` starters are dumps of `generate_resume` output. To refresh them from the shared persona:
+**Regenerating source-driven starters and mockups.** All ten public `frontend/src/templates/*.js` starters — Atrium, Linden, Meridian, Monument, Portico, Regent, Slate, Sterling, Tessera, and Vestige — are dumps of `generate_resume` output. The current set was regenerated after the masthead-title contract changed. To refresh every starter from the shared persona:
 
 ```bash
-python scripts/regenerate_template_starters.py   # rewrites one module per active template
+python scripts/regenerate_template_starters.py   # rewrites all ten active template modules
 ```
 
-Atrium is regenerated from the same Julia Bernat persona by `scripts/regenerate_template_starters.py` (re-run that script whenever the shared demo or a generator changes).
+The authoritative list is `TEMPLATES` at `scripts/regenerate_template_starters.py`, lines 272–284; `main`, lines 428–463, loops over that list for generation and writing. Re-run it whenever the shared demo, a generator, or the shared masthead descriptor changes.
 
 `frontend/public/template-mockups/{monument,tessera,slate,portico,atrium,sterling,regent,vestige,meridian,linden}.png` — the previews shown in the Hero template gallery (`frontend/src/pages/Hero/Hero.jsx`), the in-app template picker (`frontend/src/components/modals/TemplatesModal/TemplatesModal.jsx`), and the hover pane in **Wypełnij z mojego CV** (`frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`) — are rendered from those starter arrays, not hand-drawn mockups. After starter changes, regenerate the PNGs:
 
@@ -1461,29 +1462,38 @@ Deferred to later phases: new data fields (extra field, birth date, nationality)
 
 ### Masthead identity toggles (Phase 3)
 
-Two inline toggles on the masthead name/title block, mirroring the contact channel manager's hover-affordance model:
+The same identity contract now covers **all ten public templates**: Atrium, Linden, Meridian, Monument, Portico, Regent, Slate, Sterling, Tessera, and Vestige. Each generator tags the name and an optional live title, then emits one zero-footprint `masthead-anchor` with the template's reconstruction and reflow descriptor.
 
-- **Name-case toggle.** Hovering the name reveals an `Aa`/`AA` chip that flips a reversible `textTransform` flag ("uppercase" ↔ "none"). Because the flag is honoured identically by the canvas (CSS `text-transform`) and the PDF renderer (`renderText` uppercases the drawn glyphs while the stored `content` keeps its original case), the toggle is reversible and existing PDFs stay byte-stable. Templates whose design uppercases the name by default (Tessera, Slate) now express those caps through the flag rather than a baked `.upper()`.
-- **Title/role show-hide.** Hovering the title reveals a hide button; hiding it removes the title element and reflows the masthead — the contact band and everything below it **on the title's page** shift up by `reclaimPt ?? blockPt`, and the coupled contact band's `startY` moves with it. `blockPt = contactBandStartY − titleTop` remains the authored full span; an optional smaller `reclaimPt` preserves intentional whitespace (Atrium uses 16 pt, leaving 21 pt below the name). The local identity transform is page-scoped because `top` is page-relative. Portico then runs an additional full-document section pack so page-2 sections can occupy reclaimed page-1 space; other templates keep their continuation geometry unchanged. When hidden, a `+` next to the name re-adds the title from its stored spec and reverses the same delta. Centered mastheads (Portico, Atrium, Tessera) store the complete textarea geometry. Portico additionally moves that stored spec with the hidden-photo layout, so toggling the title before restoring the photo cannot rebuild it in the Summary section. Documents saved before full geometry capture recover the centered band from the sibling name element.
-- **All five contact-band templates.** Atrium, Portico, Tessera, Slate and Regent each tag their name/title via `tag_masthead_identity` and append a zero-footprint identity anchor (`flowRole: "masthead-anchor"`, `mastheadIdentity.id == "masthead-main"`).
-- **Legacy-safe.** Documents generated before Phase 3 carry no identity anchor, so `listMastheadBands` yields no controls and they behave exactly as before. No database migration; the four new element fields round-trip through `extra_properties`.
+- **Name-case toggle.** Hovering the name reveals an `Aa`/`AA` chip that flips the reversible `textTransform` flag (`"uppercase"` ↔ `"none"`). Canvas and PDF apply the flag while stored `content` keeps its original case. Tessera, Slate, and Linden author uppercase names through this flag rather than baking uppercase text into the data.
+- **Initially missing job position.** A generator with empty `cv_data.title` still builds `title_prototype`, but passes it only as a **latent, unrendered specification**. The output contains no empty live `text`/`textarea`, no title decoration, and therefore no blank pill, strip, or orphan bar. The descriptor preserves the template's category, box geometry, font, line height, colour, tracking, alignment, casing, `bold`, `italic`, `underline`, z-index, auto-height, initial-layout flag, and decoration blueprints.
+- **Add and edit.** When no live title exists, the hover UI shows `+` beside the name. It materialises exactly one empty template-native field with the editor-only placeholder **`Wpisz stanowisko…`**. The hint is rendered through `data-placeholder`; it is never copied into element `content`, structured CV data, saved text, or the PDF. Typing a value synchronises it into `cv_data.title`, so changing the template rebuilds the next masthead with that value. Hiding the title is a presentation choice and does not clear `cv_data.title`.
+- **Lossless hide/show.** Before hiding a populated title, the client captures its current text, complete box style, inline `runs` formatting (partial bold/italic/underline/colour), appearance baselines, geometry, and live title decorations back into the descriptor. Hiding removes the title and every tagged title decoration together; showing reconstructs them from the latest descriptor. A title entered through `+` therefore survives both hide/show and a later template change without stale copy, lost emphasis, or orphan chrome.
+- **Exact layout deltas.** Filled sequential mastheads (Atrium, Portico, Tessera, Slate, Regent, Meridian) use a positive authored hide delta and move only content on the title's page; coupled contact anchors move by the same amount. Their initially-empty descriptors carry a separate add delta because the empty generator already owns the title-to-contact gap—reusing the filled-title delta would double-shift the masthead. Fixed or parallel mastheads (Linden, Vestige, Monument, Sterling) use a zero delta because their title row, letterhead, photo, contact rail, or body boundary is already reserved. Thus the first `+`, ordinary hide/show, contacts, and the first section all return to the generator-authored coordinates.
+- **Hidden appearance state.** Monument and Sterling apply palette and S/M/L/XL typography changes to the latent title spec and its decoration blueprints as well as visible elements. A job-position field added after changing appearance therefore uses the current palette and font size, not the generator's stale defaults.
+- **Legacy-safe.** Documents generated before the identity anchor existed expose no controls and otherwise behave as before; no database migration is required because the semantic fields round-trip through `extra_properties`.
 
 Implementation:
 
-- `backend/app/services/cv_templates/shared/masthead.py` — `tag_masthead_identity` (stamps `mastheadRole`/`mastheadBandId`, seeds the reversible `textTransform` default, captures the title spec — including box geometry `category`/`width`/`height`/`lineHeight`/`align`/`autoHeight` — plus `blockPt`), `build_masthead_identity_anchor`.
+- `backend/app/services/cv_templates/shared/masthead.py`, lines 12–27 and 30–159 — `build_masthead_identity_anchor` and `tag_masthead_identity`; `title_prototype` is selected only as a descriptor source, the full style is captured at lines 92–114, and decoration blueprints remain descriptor-only for an absent title while retaining their masthead flow role at lines 116–146.
 - `backend/app/services/pdf_generator.py` — `renderText(..., textTransform=None)` uppercases the drawn string when flagged.
 - `backend/app/schemas/pdf_schema.py` + `backend/app/crud/pdfs.py` — `textTransform`, `mastheadRole`, `mastheadBandId`, `mastheadIdentity` fields + round-trip.
-- Template call sites: `backend/app/services/cv_templates/templates/{atrium,portico,tessera,slate,regent}.py`.
-- `frontend/src/utils/mastheadIdentityOps.js` — `applyNameCaseToggle` (reversible flag flip) and `applyTitleToggle` (hide/show with downstream reflow via `reconcileDocumentPages`).
+- All ten generator call sites: `atrium.py`, lines 121–183; `linden.py`, lines 245–284; `meridian.py`, lines 324–384; `monument.py`, lines 110–141; `portico.py`, lines 108–174; `regent.py`, lines 80–140; `slate.py`, lines 255–275 and 445–464; `sterling.py`, lines 172–235; `tessera.py`, lines 234–266 and 442–461; `vestige.py`, lines 521–560.
+- `frontend/src/utils/mastheadIdentityOps.js`, lines 147–361 — `captureVisibleTitle`, `hideTitle`, `buildTitleElement`, `buildTitleDecorations`, `showTitle`, and `applyTitleToggle`; captures current content/style/inline runs/decorations, removes and restores the whole cluster (including `flowRole: "masthead"` for every title decoration), applies the correct delta, and assigns the empty-field placeholder.
 - `frontend/src/utils/porticoMastheadReflow.js`, lines 1–27, `reflowPorticoAfterMastheadChange` — Portico-only cross-page repack after the local title/photo transform.
-- `frontend/src/utils/mastheadBands.js` — `listMastheadBands` groups tagged name/title + descriptor into blocks for the hover UI (legacy blocks skipped).
-- `frontend/src/components/canvas/MastheadIdentityControls/` — inline hover chip (case), hide button (title), and add-title `+`.
-- `frontend/src/components/canvas/Text/Text.jsx` + `Text.module.css` — applies `textTransform` display-only; placeholder guarded against the inherited transform.
+- `frontend/src/utils/mastheadBands.js`, lines 9–52 — exact `MASTHEAD_TITLE_PLACEHOLDER` constant and `listMastheadBands`; `frontend/src/components/canvas/MastheadIdentityControls/MastheadIdentityControls.jsx`, lines 20–116 — inline case/hide controls and the add-title `+` shown only when `titlePresent` is false.
+- `frontend/src/components/canvas/CanvasElements/CanvasElements.jsx`, lines 196–280 and 444–446; `frontend/src/components/canvas/Text/Text.jsx`, lines 68–73 and 185–196; `frontend/src/components/canvas/Textarea/Textarea.jsx`, lines 200–204 and 517–603 — thread `mastheadRole`/placeholder to the editable element and render the hint only as CSS `data-placeholder`.
+- `frontend/src/utils/syncCvDataFromCanvas.js`, lines 101–222 — `editableTextChanges`, `editedMastheadTitle`, and `syncCvDataFromCanvas`; saves the first typed value to the structured profile while deliberately treating a missing live title as hide, not semantic deletion. A fresh title id counts as `+` only when the same identity anchor survives and flips `present: false → true`; a full template replacement creates a new anchor and cannot persist generator-truncated display text over the complete `cv_data.title`. Masthead-title edits are also excluded from the generic unique-string mapper, so an identical phrase in the summary or another field cannot be overwritten after the semantic title update.
+- `frontend/src/utils/monumentAppearance.js`, lines 124–187, 221–274, and 307–389; `frontend/src/utils/sterlingAppearance.js`, lines 120–183, 248–306, and 328–415 — recolour and resize hidden descriptor specs/decorations together with visible template elements.
+- `scripts/regenerate_template_starters.py`, lines 272–284 and 428–463 — regenerates all ten starter modules after generator-contract changes.
 - `frontend/src/hooks/useA4Elements.js`, `store/pdfgenerator-context.jsx`, `pages/PdfCanvas.jsx` — `toggleNameCase` / `toggleTitle` ops on the shared history path.
 
-Tests: `backend/tests/test_text_transform.py` (renderer + round-trip), `test_masthead_identity.py` (helper), `test_masthead_templates.py` (per-template anchor + reversible caps); `frontend/src/utils/mastheadIdentityOps.test.js`, `mastheadBands.test.js`.
+Tests:
 
-Known limitation: on Slate the title is drawn on a coloured pill (a separate `_line` background). Hiding the title removes the role text but not the pill background, which is not part of the managed identity block; the pill is only fully coherent with the title shown.
+- `backend/tests/test_masthead_identity.py`, lines 10–108 — full style capture, including italic/underline/z-index, plus an absent-title prototype that remains unrendered.
+- `backend/tests/test_masthead_templates.py`, lines 56–254 — all ten anchors, casing/style, positive vs zero deltas, separate initially-empty deltas, complete latent specs, and absence of empty live titles or orphan decorations.
+- `frontend/src/templates/mastheadIdentityAllTemplates.test.js`, lines 1–180 — registry-wide regression over the exact ten public starters; every title hides, restores empty, preserves all authored title and decoration fields (including `italic` and decoration `flowRole`), and leaves no decoration behind.
+- `frontend/src/utils/mastheadIdentityOps.test.js`, lines 65–220 — reconstruction, exact placeholder, full styling plus inline runs, typed-value hide/show, and live appearance capture; `frontend/src/utils/syncCvDataFromCanvas.test.js`, lines 97–207 — first typed title persists, template replacement cannot save a truncated title, hide preserves semantic profile data, and duplicate old title text in another profile field remains untouched.
+- `frontend/src/utils/monumentAppearance.test.js`, lines 45–120, and `frontend/src/utils/sterlingAppearance.test.js`, lines 19–92 — palette and typography presets update hidden title descriptors and restore their M baselines.
 
 ### CV PDF extract
 
@@ -1615,7 +1625,7 @@ Two-tier catalog only:
 | | Darmowy (Free) | Pro |
 |--|--|--|
 | Price | 0 zł | **59 zł / 30 days** (one-shot pass, not auto-renew) |
-| Templates | 2 starters (Regent, Sterling) | all 11 |
+| Templates | 2 starters (Regent, Sterling) | all 10 |
 | Import | 1 lifetime free | further imports from AI credits |
 | Export | watermarked | clean PDF |
 | AI | — | content + ATS + Layout |
@@ -2792,15 +2802,18 @@ Implementacja:
 
 Ograniczenia:
 
-- Plan Darmowy obejmuje dwa szablony startowe (Regent i Sterling), eksport PDF ze znakiem wodnym oraz **jeden** import CV w cyklu życia konta. Pro odblokowuje czysty PDF, wszystkie 11 szablonów, kolejne importy, AI treści, ATS i Układ za **59 zł / 30 dni**. Stripe Checkout jeszcze nie jest podłączony; przy `ALLOW_UNPAID_PLAN_SELECTION` Pro można aktywować bez płatności.
+- Plan Darmowy obejmuje dwa szablony startowe (Regent i Sterling), eksport PDF ze znakiem wodnym oraz **jeden** import CV w cyklu życia konta. Pro odblokowuje czysty PDF, wszystkie 10 szablonów, kolejne importy, AI treści, ATS i Układ za **59 zł / 30 dni**. Stripe Checkout jeszcze nie jest podłączony; przy `ALLOW_UNPAID_PLAN_SELECTION` Pro można aktywować bez płatności.
 - Wskazówki **Czytelność dla ATS** sprawdzają odczyt tekstu z finalnego PDF oraz standardowość nagłówków/słów kluczowych. To wskazówka, nie gwarancja że każdy system ATS odczyta plik tak samo.
 - Sekcja prywatności opisuje ogólnie zaimplementowane użycie danych i nie deklaruje niezaimplementowanych certyfikatów ani anonimizacji.
 
 ### Ładowanie szablonu
 
-- `frontend/src/templates/index.js` — `TEMPLATES` (`name` + `description` w UI; tagi `layouts` dla generatorów)
+Publiczny rejestr zawiera dokładnie dziesięć starterów: Atrium, Linden, Meridian, Monument, Portico, Regent, Slate, Sterling, Tessera i Vestige. Wszystkie dziesięć to snapshoty generowane ze źródłowych generatorów, a nie ręcznie utrzymywane przybliżenia; `scripts/regenerate_template_starters.py` odtwarza po jednym module dla każdego identyfikatora z listy `TEMPLATES`.
+
+- `frontend/src/templates/index.js`, linie 10–34 — kompletny, dziesięcioelementowy rejestr `TEMPLATES` (`name` + `description` w UI; tagi `layouts` dla generatorów)
 - `frontend/src/utils/materializeElementSpecs.js` — `materializeElementSpecs`
 - `frontend/src/hooks/useA4Elements.js` — `handleLoadTemplate` / `useDocumentHistory`
+- `scripts/regenerate_template_starters.py`, linie 272–284 i 428–463 — dokładna lista dziesięciu id oraz `main`; generowane moduły: `frontend/src/templates/{atrium,linden,meridian,monument,portico,regent,slate,sterling,tessera,vestige}.js`
 
 ### Fade wejścia na kanwie
 
@@ -2913,7 +2926,7 @@ Układ zachowuje wygodną redakcyjną szerokość tekstu w głównej kolumnie, a
 `_gen_vestige` działa, wywołując `_gen_sterling`, a następnie geometrycznie transformując (nie regenerując) wyjście współdzielonego planera rekordów/sidebara — ale trzy części mastheadu są odbudowywane bezpośrednio z `cv`, a nie tylko przesuwane, ponieważ dosłowne ponowne użycie elementów Sterlinga było niebezpieczne:
 
 - **Menedżer kanałów kontaktu (dodawanie/usuwanie kanału).** Wiersz kontaktu Sterlinga to jeden *wycentrowany* pas (`_place_centered_icon_contacts`, powiązany z osią Y stanowiska), którego deskryptor reflow opisuje właśnie ten tryb układu. Vestige wcześniej przesuwał te same elementy do stosu w lewym panelu, pozostawiając przy nich nieaktualny deskryptor trybu wycentrowanego — każda edycja dodania/usunięcia kanału ponownie układała pas jako wiersz wycentrowany, psując panel. Vestige teraz całkowicie porzuca elementy kontaktowe i deskryptor Sterlinga i buduje własne przez `_place_stacked_icon_contacts` (ten sam tryb "stacked", którego używa Regent, `band_id: "vestige-contact"`), dzięki czemu ogólny mechanizm reflow paska kontaktowego po stronie klienta działa poprawnie.
-- **Tożsamość mastheadu (pokaż/ukryj stanowisko, przełącznik wielkich/małych liter imienia).** Sterling w ogóle nie wywołuje `tag_masthead_identity` (w odróżnieniu od Atrium, Meridian, Regent, Portico, Slate i Tessera), więc Vestige odziedziczył tę lukę bez niczego do naprawienia przez samo przesunięcie. Vestige teraz sam taguje swoje elementy imienia/stanowiska i dołącza anchor `mastheadIdentity` (`band_id: "vestige-masthead"`) bezpośrednio. Panel kontaktowy celowo **nie** jest sprzężony z tym anchorem (`contact_band_id=None`): w odróżnieniu od szablonów, których wiersz kontaktu leży bezpośrednio pod stanowiskiem, panel Vestige to równoległa kolumna sidebara przypięta blisko góry strony, więc nie powinien przesuwać się przy ukryciu/pokazaniu stanowiska.
+- **Tożsamość mastheadu (pokaż/ukryj stanowisko, przełącznik wielkich/małych liter imienia).** Sterling emituje własny deskryptor `sterling-masthead`, lecz jego geometria należy do wycentrowanego letterheadu Sterlinga. Vestige usuwa więc ten odziedziczony anchor podczas transformowania wyjścia bazowego, a następnie taguje przestylizowane elementy imienia/stanowiska i dołącza jeden lokalny anchor `mastheadIdentity` (`band_id: "vestige-masthead"`). Pozostawienie obu deskryptorów pokazałoby zduplikowane kontrolki i mogłoby odtworzyć stanowisko na nieaktualnych współrzędnych Sterlinga. Panel kontaktowy celowo **nie** jest sprzężony z anchorem Vestige (`contact_band_id=None`): w odróżnieniu od szablonów, których wiersz kontaktu leży bezpośrednio pod stanowiskiem, panel Vestige to równoległa kolumna sidebara przypięta blisko góry strony, więc nie powinien przesuwać się przy ukryciu/pokazaniu stanowiska.
 - **Kolizja siatki języków (nakładanie się w kolumnie głównej).** Gdy sekcja języków trafia do kolumny głównej, Sterling renderuje ją jako `_place_languages_grid` z komórkami `grid-member` ułożonymi obok siebie w jednym wierszu. Wcześniejsze, ogólne przesunięcie kolumny głównej w Vestige (`left = main_left`, `width = main_width`) stosowało się identycznie do każdej komórki w wierszu, zapadając wszystkie na tym samym boksie — to właśnie ten nakładający się, rozmyty tekst widoczny na zrzucie ekranu. Komórki `grid-member` są teraz wykluczone z tej ogólnej reguły i zamiast tego przesuwane proporcjonalnie (`main_scale = main_width / 300`, zgodnie z własnymi `MAIN_L` / `MAIN_W` Sterlinga), więc każda kolumna zachowuje własną, nienakładającą się pozycję.
 - **Linia Języków zachowywała kolor sidebara po transferze.** Specjalna konwersja sidebar → kolumna główna najpierw poprawnie przebudowywała cienką linię według stylu kolumny docelowej, po czym nadpisywała wynik kolorem źródłowym z sidebara. W Vestige grafitowa linia Języków odstawała więc od neutralnoszarych linii sekcji głównych. `restyleLanguagesMembersAsMain` zachowuje teraz już przestylizowaną linię docelową; akcenty tekstowe CEFR pozostają niezależne.
 
@@ -3212,13 +3225,13 @@ Testy:
 
 **Wspólna persona demo.** Wbudowane startery oraz gościnna Regent demo zazwyczaj używają tej samej fikcyjnej osoby **Julia Bernat** — analityczki AML/compliance z trzema rolami, jednym wykształceniem, pięcioma umiejętnościami, trzema językami oraz telefonem / e-mailem / LinkedIn / GitHub / stroną / Warszawą — żeby mockupy w pickerze były porównywalne i trzymały rytm `SPACE_*` generatora na stronie 1. Regent celowo używa Alexandry Nowak, persony strategy consultant, aby zaprezentować duży redakcyjny lead. Monument i Portico mają lekko skrócone bullet’y, żeby wszystkie sekcje nadal mieściły się na stronie 1 mockupu.
 
-**Regenerowanie starterów i podglądów ze źródła.** Większość plików `frontend/src/templates/*.js` to zrzuty wyjścia `generate_resume`. Odświeżenie ze wspólnej persony:
+**Regenerowanie starterów i podglądów ze źródła.** Wszystkie dziesięć publicznych starterów `frontend/src/templates/*.js` — Atrium, Linden, Meridian, Monument, Portico, Regent, Slate, Sterling, Tessera i Vestige — to zrzuty wyjścia `generate_resume`. Bieżący zestaw został zregenerowany po zmianie kontraktu stanowiska w mastheadzie. Aby odświeżyć wszystkie startery ze wspólnej persony:
 
 ```bash
-python scripts/regenerate_template_starters.py   # przepisuje po jednym module na aktywny szablon
+python scripts/regenerate_template_starters.py   # przepisuje wszystkie dziesięć aktywnych modułów
 ```
 
-Atrium jest regenerowane z tej samej persony Julia Bernat przez `scripts/regenerate_template_starters.py` (uruchom ponownie po zmianie wspólnego demo lub generatora).
+Autorytatywna lista to `TEMPLATES` w `scripts/regenerate_template_starters.py`, linie 272–284; `main`, linie 428–463, iteruje po niej zarówno przy generowaniu, jak i zapisie. Uruchom skrypt ponownie po zmianie wspólnego demo, generatora albo współdzielonego deskryptora mastheadu.
 
 Pliki `frontend/public/template-mockups/{monument,tessera,slate,portico,atrium,sterling,regent,vestige,meridian,linden}.png` — podglądy w galerii Hero, pickerze i panelu **Wypełnij z mojego CV** — pochodzą z tych tablic starterów, nie z ręcznych grafik. Po zmianie starterów odtwórz PNG:
 
@@ -3474,29 +3487,38 @@ Odłożone do kolejnych faz: nowe pola danych (dodatkowe pole, data urodzenia, n
 
 ### Przełączniki tożsamości masthead (Faza 3)
 
-Dwa wbudowane przełączniki na bloku imienia/tytułu w mastheadzie, odwzorowujące model afordancji hover z menedżera kanałów kontaktu:
+Ten sam kontrakt tożsamości obejmuje teraz **wszystkie dziesięć publicznych szablonów**: Atrium, Linden, Meridian, Monument, Portico, Regent, Slate, Sterling, Tessera i Vestige. Każdy generator taguje imię oraz opcjonalny żywy element stanowiska, a następnie emituje jeden bezwymiarowy `masthead-anchor` z deskryptorem rekonstrukcji i reflow właściwym dla szablonu.
 
-- **Przełącznik wielkości liter imienia.** Najechanie na imię odsłania chip `Aa`/`AA`, który przełącza odwracalną flagę `textTransform` („uppercase” ↔ „none”). Ponieważ flaga jest interpretowana identycznie przez płótno (CSS `text-transform`) i renderer PDF (`renderText` zamienia rysowane glify na wielkie litery, podczas gdy zapisane `content` zachowuje oryginalną wielkość liter), przełącznik jest odwracalny, a istniejące pliki PDF pozostają bajt-w-bajt stabilne. Szablony, których projekt domyślnie zapisuje imię wielkimi literami (Tessera, Slate), wyrażają teraz te wielkie litery przez flagę, a nie przez wypieczone `.upper()`.
-- **Pokaż/ukryj tytuł/rolę.** Najechanie na tytuł odsłania przycisk ukrycia; ukrycie usuwa element tytułu i przelewa masthead — pasek kontaktu i wszystko poniżej **na stronie tytułu** przesuwają się w górę o `reclaimPt ?? blockPt`, a sprzężone `startY` paska kontaktu przesuwa się razem z nim. `blockPt = contactBandStartY − titleTop` pozostaje pełnym autorskim zakresem; opcjonalny mniejszy `reclaimPt` zachowuje celowy prześwit (Atrium używa 16 pt i zostawia 21 pt pod imieniem). Lokalna transformacja tożsamości jest ograniczona do strony, ponieważ `top` jest względem strony. Portico uruchamia potem dodatkowe pełne pakowanie sekcji, aby sekcje ze strony 2 mogły zająć odzyskane miejsce na stronie 1; pozostałe szablony zachowują geometrię stron kontynuacji. Gdy tytuł jest ukryty, `+` obok imienia odtwarza go z zapisanej specyfikacji i odwraca tę samą deltę. Wyśrodkowane mastheady (Portico, Atrium, Tessera) zapisują pełną geometrię textarei. Portico dodatkowo przesuwa tę specyfikację razem z układem bez zdjęcia, więc pokazanie stanowiska przed zdjęciem nie może odtworzyć go w sekcji Podsumowanie. Starsze dokumenty odzyskują wyśrodkowany pas z sąsiedniego elementu imienia.
-- **Wszystkie pięć szablonów z paskiem kontaktu.** Atrium, Portico, Tessera, Slate i Regent tagują swoje imię/tytuł przez `tag_masthead_identity` i dopinają zerowej powierzchni anchor tożsamości (`flowRole: "masthead-anchor"`, `mastheadIdentity.id == "masthead-main"`).
-- **Bezpieczne dla starszych dokumentów.** Dokumenty wygenerowane przed Fazą 3 nie mają anchora tożsamości, więc `listMastheadBands` nie zwraca żadnych kontrolek i zachowują się dokładnie jak wcześniej. Brak migracji bazy danych; cztery nowe pola elementu przechodzą tam i z powrotem przez `extra_properties`.
+- **Przełącznik wielkości liter imienia.** Najechanie na imię odsłania chip `Aa`/`AA`, który przełącza odwracalną flagę `textTransform` (`"uppercase"` ↔ `"none"`). Canvas i PDF stosują flagę, podczas gdy zapisane `content` zachowuje oryginalną wielkość liter. Tessera, Slate i Linden projektują domyślne wersaliki przez tę flagę, a nie przez zapis wielkimi literami w danych.
+- **Początkowo brakujące stanowisko.** Generator z pustym `cv_data.title` nadal buduje `title_prototype`, ale przekazuje go wyłącznie jako **ukrytą, nierenderowaną specyfikację**. Wyjście nie zawiera pustego żywego `text`/`textarea` ani dekoracji stanowiska, więc nie powstaje pusta pigułka, pas ani osierocona belka. Deskryptor zachowuje kategorię, geometrię pola, font, interlinię, kolor, tracking, wyrównanie, wielkość liter, `bold`, `italic`, `underline`, z-index, auto-height, flagę układu początkowego oraz wzorce dekoracji.
+- **Dodawanie i edycja.** Gdy nie ma żywego stanowiska, UI hover pokazuje `+` obok imienia. Kliknięcie materializuje dokładnie jedno puste pole zgodne ze stylem szablonu z placeholderem widocznym tylko w edytorze: **`Wpisz stanowisko…`**. Podpowiedź jest renderowana przez `data-placeholder`; nigdy nie trafia do `content` elementu, strukturalnych danych CV, zapisanego tekstu ani PDF. Wpisana wartość synchronizuje się do `cv_data.title`, dlatego zmiana szablonu odbudowuje kolejny masthead z tą treścią. Ukrycie stanowiska jest decyzją prezentacyjną i nie czyści `cv_data.title`.
+- **Bezstratne hide/show.** Przed ukryciem wypełnionego stanowiska klient zapisuje do deskryptora jego bieżącą treść, pełny styl pola, formatowanie fragmentów w `runs` (częściowe pogrubienie/kursywa/podkreślenie/kolor), baseline'y wyglądu, geometrię i żywe dekoracje. Ukrycie usuwa razem stanowisko i wszystkie otagowane dekoracje; pokazanie odtwarza je z najnowszego deskryptora. Stanowisko wpisane przez `+` przetrwa więc hide/show i późniejszą zmianę szablonu bez powrotu starej treści, utraty wyróżnienia ani osieroconego chrome.
+- **Dokładne delty układu.** Wypełnione, sekwencyjne mastheady (Atrium, Portico, Tessera, Slate, Regent, Meridian) używają dodatniej autorskiej delty ukrycia i przesuwają tylko treść na stronie stanowiska; sprzężone anchory kontaktów przesuwają się o tę samą wartość. Ich deskryptory początkowo pustego stanowiska mają osobną deltę dodawania, ponieważ pusty generator już zawiera odstęp stanowisko→kontakt — ponowne użycie delty wypełnionego tytułu przesunęłoby masthead podwójnie. Mastheady stałe lub równoległe (Linden, Vestige, Monument, Sterling) używają delty zero, bo wiersz stanowiska, letterhead, zdjęcie, szyna kontaktów albo granica treści są już zarezerwowane. Pierwsze `+`, zwykłe hide/show, kontakty i pierwsza sekcja wracają dzięki temu dokładnie na współrzędne ustalone przez generator.
+- **Wygląd ukrytego stanu.** Monument i Sterling stosują zmianę palety oraz typografii S/M/L/XL także do latentnej specyfikacji stanowiska i blueprintów dekoracji, nie tylko do żywych elementów. Pole dodane po zmianie wyglądu używa więc bieżącej palety i rozmiaru fontu, a nie starych wartości generatora.
+- **Bezpieczne dla starszych dokumentów.** Dokumenty sprzed anchora tożsamości nie pokazują kontrolek i poza tym zachowują się jak wcześniej; migracja bazy nie jest potrzebna, ponieważ pola semantyczne przechodzą przez `extra_properties`.
 
 Implementacja:
 
-- `backend/app/services/cv_templates/shared/masthead.py` — `tag_masthead_identity` (stempluje `mastheadRole`/`mastheadBandId`, zasila odwracalny domyślny `textTransform`, zapisuje specyfikację tytułu — w tym geometrię pudełka `category`/`width`/`height`/`lineHeight`/`align`/`autoHeight` — oraz `blockPt`), `build_masthead_identity_anchor`.
+- `backend/app/services/cv_templates/shared/masthead.py`, linie 12–27 i 30–159 — `build_masthead_identity_anchor` i `tag_masthead_identity`; `title_prototype` jest wyłącznie źródłem deskryptora, pełny styl jest przechwytywany w liniach 92–114, a wzorce dekoracji pozostają tylko w deskryptorze przy nieobecnym stanowisku i zachowują rolę flow mastheadu w liniach 116–146.
 - `backend/app/services/pdf_generator.py` — `renderText(..., textTransform=None)` zamienia rysowany ciąg na wielkie litery, gdy flaga jest ustawiona.
 - `backend/app/schemas/pdf_schema.py` + `backend/app/crud/pdfs.py` — pola `textTransform`, `mastheadRole`, `mastheadBandId`, `mastheadIdentity` + round-trip.
-- Miejsca wywołań szablonów: `backend/app/services/cv_templates/templates/{harbor,atrium,portico,tessera,slate,regent}.py`.
-- `frontend/src/utils/mastheadIdentityOps.js` — `applyNameCaseToggle` (odwracalne przełączenie flagi) i `applyTitleToggle` (ukryj/pokaż z reflowem w dół przez `reconcileDocumentPages`).
+- Miejsca wywołań wszystkich dziesięciu generatorów: `atrium.py`, linie 121–183; `linden.py`, linie 245–284; `meridian.py`, linie 324–384; `monument.py`, linie 110–141; `portico.py`, linie 108–174; `regent.py`, linie 80–140; `slate.py`, linie 255–275 i 445–464; `sterling.py`, linie 172–235; `tessera.py`, linie 234–266 i 442–461; `vestige.py`, linie 521–560.
+- `frontend/src/utils/mastheadIdentityOps.js`, linie 147–361 — `captureVisibleTitle`, `hideTitle`, `buildTitleElement`, `buildTitleDecorations`, `showTitle` i `applyTitleToggle`; zapisują bieżącą treść/styl/formatowanie inline/dekoracje, usuwają i odtwarzają cały klaster (łącznie z `flowRole: "masthead"` każdej dekoracji stanowiska), stosują właściwą deltę i nadają placeholder pustemu polu.
 - `frontend/src/utils/porticoMastheadReflow.js`, linie 1–27, `reflowPorticoAfterMastheadChange` — właściwe dla Portico pakowanie przez granice stron po lokalnej transformacji tytułu/zdjęcia.
-- `frontend/src/utils/mastheadBands.js` — `listMastheadBands` grupuje otagowane imię/tytuł + deskryptor w bloki dla UI hover (bloki starszych dokumentów pomijane).
-- `frontend/src/components/canvas/MastheadIdentityControls/` — wbudowany chip hover (wielkość liter), przycisk ukrycia (tytuł) oraz `+` dodania tytułu.
-- `frontend/src/components/canvas/Text/Text.jsx` + `Text.module.css` — stosuje `textTransform` tylko do wyświetlania; placeholder zabezpieczony przed dziedziczoną transformacją.
+- `frontend/src/utils/mastheadBands.js`, linie 9–52 — dokładna stała `MASTHEAD_TITLE_PLACEHOLDER` i `listMastheadBands`; `frontend/src/components/canvas/MastheadIdentityControls/MastheadIdentityControls.jsx`, linie 20–116 — kontrolki case/hide oraz `+` dodania stanowiska pokazywany wyłącznie przy `titlePresent === false`.
+- `frontend/src/components/canvas/CanvasElements/CanvasElements.jsx`, linie 196–280 i 444–446; `frontend/src/components/canvas/Text/Text.jsx`, linie 68–73 i 185–196; `frontend/src/components/canvas/Textarea/Textarea.jsx`, linie 200–204 i 517–603 — przekazują `mastheadRole`/placeholder do elementu edytowalnego i renderują podpowiedź wyłącznie jako CSS `data-placeholder`.
+- `frontend/src/utils/syncCvDataFromCanvas.js`, linie 101–222 — `editableTextChanges`, `editedMastheadTitle` i `syncCvDataFromCanvas`; zapisują pierwszą wpisaną wartość do profilu strukturalnego, a brak żywego stanowiska traktują celowo jako hide, nie usunięcie semantyczne. Świeże id stanowiska jest uznawane za wynik `+` tylko wtedy, gdy ten sam anchor tożsamości przetrwał i zmienił `present: false → true`; pełna zmiana szablonu tworzy nowy anchor i nie może nadpisać kompletnego `cv_data.title` skróconą treścią wyświetlaną przez generator. Edycje stanowiska są też wykluczone z ogólnego mapowania unikalnych stringów, więc identyczna fraza w podsumowaniu lub innym polu nie zostanie nadpisana po semantycznej aktualizacji tytułu.
+- `frontend/src/utils/monumentAppearance.js`, linie 124–187, 221–274 i 307–389; `frontend/src/utils/sterlingAppearance.js`, linie 120–183, 248–306 i 328–415 — zmieniają kolor i rozmiar ukrytych specyfikacji/dekoracji razem z żywymi elementami szablonu.
+- `scripts/regenerate_template_starters.py`, linie 272–284 i 428–463 — regeneruje wszystkie dziesięć modułów starterów po zmianie kontraktu generatora.
 - `frontend/src/hooks/useA4Elements.js`, `store/pdfgenerator-context.jsx`, `pages/PdfCanvas.jsx` — operacje `toggleNameCase` / `toggleTitle` na wspólnej ścieżce historii.
 
-Testy: `backend/tests/test_text_transform.py` (renderer + round-trip), `test_masthead_identity.py` (helper), `test_masthead_templates.py` (anchor per szablon + odwracalne wielkie litery); `frontend/src/utils/mastheadIdentityOps.test.js`, `mastheadBands.test.js`.
+Testy:
 
-Znane ograniczenie: w Slate tytuł jest rysowany na kolorowej pigułce (osobne tło `_line`). Ukrycie tytułu usuwa tekst roli, ale nie tło pigułki, które nie jest częścią zarządzanego bloku tożsamości; pigułka jest w pełni spójna tylko przy widocznym tytule.
+- `backend/tests/test_masthead_identity.py`, linie 10–108 — pełne przechwycenie stylu, w tym italic/underline/z-index, oraz prototyp nieobecnego stanowiska, który pozostaje nierenderowany.
+- `backend/tests/test_masthead_templates.py`, linie 56–254 — anchory wszystkich dziesięciu szablonów, casing/styl, dodatnie i zerowe delty, osobne delty początkowo pustego stanu, kompletne ukryte specyfikacje oraz brak pustych żywych stanowisk i osieroconych dekoracji.
+- `frontend/src/templates/mastheadIdentityAllTemplates.test.js`, linie 1–180 — regresja registry-wide na dokładnie dziesięciu publicznych starterach; każde stanowisko chowa się, odtwarza puste, zachowuje wszystkie autorskie pola stanowiska i dekoracji (w tym `italic` oraz `flowRole` dekoracji) i nie zostawia dekoracji.
+- `frontend/src/utils/mastheadIdentityOps.test.js`, linie 65–220 — rekonstrukcja, dokładny placeholder, pełny styl z formatowaniem inline, wpisana wartość przez hide/show i zapis bieżącego wyglądu; `frontend/src/utils/syncCvDataFromCanvas.test.js`, linie 97–207 — pierwsze wpisane stanowisko jest utrwalane, zmiana szablonu nie zapisuje skróconego tytułu, hide zachowuje dane semantyczne profilu, a zduplikowana stara treść stanowiska w innym polu profilu pozostaje nietknięta.
+- `frontend/src/utils/monumentAppearance.test.js`, linie 45–120, oraz `frontend/src/utils/sterlingAppearance.test.js`, linie 19–92 — preset palety i typografii aktualizuje ukryte deskryptory stanowiska i odtwarza baseline M.
 
 ### Extract CV z PDF
 
@@ -3627,7 +3649,7 @@ Katalog ma tylko dwa pakiety:
 | | Darmowy (Free) | Pro |
 |--|--|--|
 | Cena | 0 zł | **59 zł / 30 dni** (jednorazowy pass, bez auto-odnawiania) |
-| Szablony | 2 startowe (Regent, Sterling) | wszystkie 11 |
+| Szablony | 2 startowe (Regent, Sterling) | wszystkie 10 |
 | Import | 1 darmowy w życiu konta | kolejne z puli kredytów AI |
 | Eksport | ze znakiem wodnym | czysty PDF |
 | AI | — | treść + ATS + Układ |
