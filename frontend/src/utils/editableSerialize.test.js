@@ -1,7 +1,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 
-import { serializeEditable, runsToHtml } from "./editableSerialize.js";
+import {
+  bulletRunsToEditableHtml,
+  serializeEditable,
+  runsToHtml,
+} from "./editableSerialize.js";
 
 // Minimal DOM stand-ins so the serializer can be tested under plain Node (the
 // project's test runner has no jsdom). Only the properties the serializer reads
@@ -89,4 +94,46 @@ test("runsToHtml emits the data-* attributes the serializer reads back", () => {
   assert.match(html, /Analiza /);
   assert.match(html, /data-bold="true"/);
   assert.match(html, />KYC</);
+});
+
+test("bullet edit HTML gives the Monument training copy a dedicated marker column", () => {
+  const content = (
+    "• W trakcie (bezpłatnie): Cisco Networking Academy (Junior "
+    + "Cybersecurity Analyst), Fortinet NSE 1-3."
+  );
+  const html = bulletRunsToEditableHtml(content, []);
+
+  assert.match(html, /data-editable-paragraph="bullet"/);
+  assert.match(html, /data-editable-bullet-marker="true">• <\/span>/);
+  assert.match(
+    html,
+    /data-editable-bullet-body="true">W trakcie .*Fortinet NSE 1-3\.<\/span>/,
+  );
+  assert.equal(html.includes("<div data-editable-paragraph=\"plain\">"), false);
+});
+
+test("bullet edit HTML keeps plain rows full-width and slices inline runs per paragraph", () => {
+  const content = "Nagłówek\n\n• Analiza KYC";
+  const start = content.indexOf("KYC");
+  const html = bulletRunsToEditableHtml(content, [
+    { start, end: start + 3, bold: true },
+  ]);
+
+  assert.equal((html.match(/data-editable-paragraph="plain"/g) || []).length, 2);
+  assert.equal((html.match(/data-editable-paragraph="bullet"/g) || []).length, 1);
+  assert.match(html, /data-bold="true"[^>]*>KYC<\/span>/);
+});
+
+test("Textarea wires bullet edit paragraphs to the same CSS grid as display mode", async () => {
+  const [source, css] = await Promise.all([
+    readFile(new URL("../components/canvas/Textarea/Textarea.jsx", import.meta.url), "utf8"),
+    readFile(new URL("../components/canvas/Textarea/Textarea.module.css", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(source, /node\.innerHTML = bulletRunsToEditableHtml\(seeded,/);
+  assert.match(source, /measureEditableContentHeight\([\s\S]*\{ bulletList: !!bulletList \}/);
+  assert.match(
+    css,
+    /\.bulletLine,\s*\.editing \[data-editable-paragraph="bullet"\][\s\S]*grid-template-columns: max-content minmax\(0, 1fr\)/,
+  );
 });

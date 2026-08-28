@@ -21,6 +21,7 @@ import { canvasFontFamily } from "../../../utils/canvasFont";
 import { hasRuns, sliceRuns } from "../../../utils/textRuns";
 import { renderStyledText } from "../../../utils/renderStyledText";
 import {
+    bulletRunsToEditableHtml,
     getSelectionOffsets,
     runsToHtml,
     serializeEditable,
@@ -89,11 +90,11 @@ function renderTextareaBody(content, runs, bulletList) {
 // Enter or paste). Under white-space: pre-wrap those wrappers coexist with the
 // original "\n" text nodes, so every line is counted twice and the element's own
 // scrollHeight returns roughly double the real height. Measuring a detached
-// mirror that holds exactly the serialized content (flat text + inline run spans,
-// never block wrappers) yields the same height the display <div> and the former
-// <textarea> produced. The mirror is cloned from the live node so it inherits the
-// identical box width and typography, then sized to content.
-function measureEditableContentHeight(node, content, runs) {
+// mirror that holds exactly the serialized content (flat run spans for ordinary
+// text, deterministic marker/body paragraphs for bullets) yields the same height
+// as the display <div>. The mirror is cloned from the live node so it inherits
+// the identical box width and typography, then sizes itself to the content.
+function measureEditableContentHeight(node, content, runs, { bulletList = false } = {}) {
     if (!node?.cloneNode || typeof document === "undefined") {
         return measureNaturalScrollHeight(node);
     }
@@ -105,14 +106,41 @@ function measureEditableContentHeight(node, content, runs) {
     mirror.style.position = "absolute";
     mirror.style.left = "-99999px";
     mirror.style.top = "0";
-    // runsToHtml produces the same flat structure the edit surface should hold.
-    mirror.innerHTML = runsToHtml(content, runs);
+    // Bullet mirrors need the same paragraph grid as the live editor; ordinary
+    // textareas retain their flat run-span structure.
+    mirror.innerHTML = bulletList
+        ? bulletRunsToEditableHtml(content, runs)
+        : runsToHtml(content, runs);
     // Append inside the same parent so inherited styles and the containing block
     // width match the live edit box exactly.
     (node.parentNode ?? document.body).appendChild(mirror);
     const height = mirror.scrollHeight;
     mirror.remove();
     return Number.isFinite(height) && height > 0 ? height : measureNaturalScrollHeight(node);
+}
+
+// Rebuild only when Enter/paste/delete changed the logical paragraph shape.
+// Normal character input stays in the live DOM so Chromium keeps its native
+// caret, IME composition, and undo history. A rebuild gives every bullet line
+// the same marker/body grid used by display mode and the PDF renderer.
+function normalizeBulletEditableDom(node, content, runs) {
+    if (!node) return;
+    const lines = String(content ?? "").split("\n");
+    const paragraphs = Array.from(node.children || []).filter(
+        (child) => child.hasAttribute?.("data-editable-paragraph"),
+    );
+    const structureMatches = paragraphs.length === lines.length
+        && lines.every((line, index) => {
+            const expected = /^\s*•/.test(line) ? "bullet" : "plain";
+            return paragraphs[index]?.getAttribute("data-editable-paragraph") === expected;
+        });
+    if (structureMatches) return;
+
+    const selection = getSelectionOffsets(node);
+    node.innerHTML = bulletRunsToEditableHtml(content, runs);
+    if (selection) {
+        setSelectionOffsets(node, selection.start, selection.end);
+    }
 }
 
 function Textarea({
@@ -333,7 +361,9 @@ function Textarea({
             { bulletList: !!bulletList },
         );
         const seeded = seededPayload.content;
-        if (hasRuns(seededPayload.runs)) {
+        if (bulletList) {
+            node.innerHTML = bulletRunsToEditableHtml(seeded, seededPayload.runs);
+        } else if (hasRuns(seededPayload.runs)) {
             node.innerHTML = runsToHtml(seeded, seededPayload.runs);
         } else {
             node.textContent = seeded;
@@ -432,19 +462,29 @@ function Textarea({
 
             // On blur, collapse trimmed bullet placeholders before exit so the
             // last paint matches stored height. Plain textarea blank rows never
-            // enter this branch. Mid-edit we never rewrite the DOM because that
-            // used to steal caret position and make a second Enter a no-op.
+            // enter this branch. During bullet editing, rebuild only after a
+            // structural change such as Enter/paste; ordinary typing keeps the
+            // live DOM intact so the browser owns caret and undo behaviour.
             if (finalize && nextContent !== serialized.content) {
-                if (hasRuns(nextRuns)) {
+                if (bulletList) {
+                    node.innerHTML = bulletRunsToEditableHtml(nextContent, nextRuns);
+                } else if (hasRuns(nextRuns)) {
                     node.innerHTML = runsToHtml(nextContent, nextRuns);
                 } else {
                     node.textContent = nextContent;
                 }
+            } else if (bulletList) {
+                normalizeBulletEditableDom(node, nextContent, nextRuns);
             }
 
             // Measure from the serialized content, not the live editable DOM,
             // so browser-inserted block wrappers cannot inflate height.
-            const measuredHeight = measureEditableContentHeight(node, nextContent, nextRuns);
+            const measuredHeight = measureEditableContentHeight(
+                node,
+                nextContent,
+                nextRuns,
+                { bulletList: !!bulletList },
+            );
             node.style.height = `${measuredHeight}px`;
             if (autoHeight) {
                 editElementValues({ content: nextContent, runs: nextRuns }, elementId);

@@ -82,5 +82,33 @@ class BulletLayoutTests(unittest.TestCase):
             msg=f"unexpected wrap points: {bodies!r}",
         )
 
+    def test_monument_training_wrap_keeps_hanging_indent_for_every_continuation(self):
+        """Pin the PDF side of the edit/display/PDF parity regression.
+
+        At Monument's 152 px sidebar width, ``NSE`` belongs on the fourth PDF
+        line because every continuation reserves the same marker column. The
+        contentEditable surface must mirror this geometry instead of using the
+        wider flat-text wrap that previously kept ``NSE`` on line three.
+        """
+        font, _, _ = PDF_Generator._resolve_font("Montserrat", False, False)
+        content = (
+            "• W trakcie (bezpłatnie): Cisco Networking Academy (Junior "
+            "Cybersecurity Analyst), Fortinet NSE 1-3."
+        )
+
+        lines = PDF_Generator._wrap_textarea(
+            content, font, 8.3, 0.0, 152.0, bullet_list=True,
+        )
+
+        self.assertEqual(
+            [line for line, *_ in lines],
+            [
+                "W trakcie (bezpłatnie): Cisco",
+                "Networking Academy (Junior",
+                "Cybersecurity Analyst), Fortinet",
+                "NSE 1-3.",
+            ],
+        )
+
 if __name__ == "__main__":
     unittest.main()

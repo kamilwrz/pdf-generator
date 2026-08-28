@@ -19,19 +19,24 @@
     cursor: move;
 }
 
-.bulletLine {
+/* Display and edit mode intentionally share one marker/body grid. ReportLab
+   reserves the same rendered `• ` prefix width for continuation lines. */
+.bulletLine,
+.editing [data-editable-paragraph="bullet"] {
     display: grid;
     grid-template-columns: max-content minmax(0, 1fr);
     width: 100%;
 }
 
-.bulletMarker {
+.bulletMarker,
+.editing [data-editable-bullet-marker="true"] {
     /* Preserve the trailing space: it is the exact gap used by the PDF. */
     white-space: pre;
     text-align: left;
 }
 
-.bulletBody {
+.bulletBody,
+.editing [data-editable-bullet-body="true"] {
     min-width: 0;
     text-align: inherit;
 }
@@ -52,6 +57,12 @@
     outline-offset: 2px;
     -webkit-user-select: text;
     user-select: text;
+}
+
+/* A deliberately blank paragraph still owns one line box while editing. The
+   pseudo-content is visual only and therefore never enters serialization. */
+.editing [data-editable-paragraph="plain"]:empty::before {
+    content: "\200B";
 }
 
 .editing::placeholder {

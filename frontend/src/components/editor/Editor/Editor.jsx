@@ -56,6 +56,7 @@ import {
 import { CANVAS_FONT_STACKS } from "../../../utils/canvasFont";
 import { pathCurvesForKind } from "../../../utils/freeformShapes";
 import {
+  bulletRunsToEditableHtml,
   getSelectionOffsets,
   runsToHtml,
   serializeEditable,
@@ -295,7 +296,9 @@ export default function Editor() {
     }
     const nextRuns = normalizeRuns(newContent, rawRuns);
 
-    if (hasRuns(nextRuns)) {
+    if (selectedElement.bulletList) {
+      el.innerHTML = bulletRunsToEditableHtml(newContent, nextRuns);
+    } else if (hasRuns(nextRuns)) {
       el.innerHTML = runsToHtml(newContent, nextRuns);
     } else {
       el.textContent = newContent;
@@ -433,7 +436,9 @@ export default function Editor() {
       nextValue = !rangeHasMark(content, runs, offsets.start, offsets.end, mark);
     }
     const nextRuns = applyMark(content, runs, offsets.start, offsets.end, mark, nextValue);
-    node.innerHTML = runsToHtml(content, nextRuns);
+    node.innerHTML = selectedElement.category === "textarea" && selectedElement.bulletList
+      ? bulletRunsToEditableHtml(content, nextRuns)
+      : runsToHtml(content, nextRuns);
     setSelectionOffsets(node, offsets.start, offsets.end);
     editElementValues({ content, runs: nextRuns }, selectedElement.element_id);
     // Textarea remasures height from its own input handler.

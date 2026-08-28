@@ -16,7 +16,7 @@
  * selection offsets always line up with `content`.
  */
 
-import { normalizeRuns, styledSegments } from "./textRuns.js";
+import { normalizeRuns, sliceRuns, styledSegments } from "./textRuns.js";
 import { sanitizeChar } from "./sanitizeTextContent.js";
 
 const TEXT_NODE = 3;
@@ -66,6 +66,47 @@ export function runsToHtml(content, runs) {
       return `<span ${attrs.join(" ")} style="${styles.join(";")}">${text}</span>`;
     })
     .join("");
+}
+
+/**
+ * Render a bullet-list editing surface as explicit logical paragraphs.
+ *
+ * Display mode and the PDF renderer reserve a separate, font-sized column for
+ * the normalized `• ` marker. A flat contentEditable text node cannot express
+ * that hanging indent: wrapped continuation lines receive the full box width
+ * and may keep one extra word. These paragraph nodes give edit mode the same
+ * two-column geometry while preserving the stored plain-text representation.
+ * Non-bullet paragraphs remain full-width because bullet-list textareas can
+ * intentionally contain a heading or blank row between bullet groups.
+ *
+ * @param {string} content - Sanitized textarea content.
+ * @param {Array} runs - Inline style runs indexed against `content`.
+ * @returns {string} Deterministic HTML for seeding or measuring the editor.
+ */
+export function bulletRunsToEditableHtml(content, runs) {
+  const text = typeof content === "string" ? content : String(content ?? "");
+  let offset = 0;
+  return text.split("\n").map((line) => {
+    const lineStart = offset;
+    const lineEnd = lineStart + line.length;
+    offset = lineEnd + 1;
+
+    const bulletMatch = line.match(/^\s*•[ \t]*/);
+    if (!bulletMatch) {
+      const lineRuns = sliceRuns(runs, lineStart, lineEnd);
+      return `<div data-editable-paragraph="plain">${runsToHtml(line, lineRuns)}</div>`;
+    }
+
+    const bodyStart = lineStart + bulletMatch[0].length;
+    const body = line.slice(bulletMatch[0].length);
+    const bodyRuns = sliceRuns(runs, bodyStart, lineEnd);
+    return (
+      '<div data-editable-paragraph="bullet">'
+      + '<span data-editable-bullet-marker="true">• </span>'
+      + `<span data-editable-bullet-body="true">${runsToHtml(body, bodyRuns)}</span>`
+      + "</div>"
+    );
+  }).join("");
 }
 
 // Read the marks an element node contributes, layered over inherited marks.
@@ -290,6 +331,8 @@ function domPositionForOffset(root, offset) {
   let remaining = offset;
   let lastText = null;
   let lastTextLen = 0;
+  let emittedAny = false;
+  let lastChar = "";
 
   const walk = (node) => {
     const children = node.childNodes || [];
@@ -304,6 +347,10 @@ function domPositionForOffset(root, offset) {
           return found;
         }
         remaining -= len;
+        if (len > 0) {
+          emittedAny = true;
+          lastChar = child.nodeValue[len - 1];
+        }
         continue;
       }
       if (child.nodeType !== ELEMENT_NODE) continue;
@@ -315,7 +362,16 @@ function domPositionForOffset(root, offset) {
           return found;
         }
         remaining -= 1;
+        emittedAny = true;
+        lastChar = "\n";
         continue;
+      }
+      // `flatten` inserts one newline before each non-leading block. Consume
+      // the same synthetic character here so restoring a caret after bullet
+      // paragraph normalization lands at the correct stored-text offset.
+      if (BLOCK_TAGS.has(tag) && emittedAny && lastChar !== "\n") {
+        remaining -= 1;
+        lastChar = "\n";
       }
       const result = walk(child);
       if (result) return result;
