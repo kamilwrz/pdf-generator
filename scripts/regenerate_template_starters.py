@@ -280,7 +280,6 @@ TEMPLATES = [
     "regent",
     "vestige",
     "meridian",
-    "cadenza",
     "linden",
 ]
 
@@ -336,12 +335,6 @@ DOC_BLURBS = {
         " *\n"
         " * Premium navy/steel-blue single column with a compact Montserrat summary\n"
         " * and an accent-blue tick under every section rule."
-    ),
-    "cadenza": (
-        "Cadenza template (`layouts: [\"sidebar\", \"icons\"]`).\n"
-        " *\n"
-        " * Swiss-inspired cream editorial layout with a white information rail\n"
-        " * and fixed rectangle, circle, and ellipse page furniture."
     ),
     "linden": (
         "Linden template (`layouts: [\"sidebar\", \"icons\"]`).\n"
@@ -439,7 +432,7 @@ def main() -> None:
             cv = REGENT_DEMO_CV
         elif template_id in COMPACT_TEMPLATE_IDS:
             cv = COMPACT_DEMO_CV
-        elif template_id in {"sterling", "vestige", "cadenza", "linden"}:
+        elif template_id in {"sterling", "vestige", "linden"}:
             cv = SIDEBAR_DEMO_CV
         else:
             cv = DEMO_CV

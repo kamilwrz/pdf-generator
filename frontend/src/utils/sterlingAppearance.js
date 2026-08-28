@@ -124,7 +124,7 @@ const SIDEBAR_HAIRLINE_HEIGHT = 1;
  * Only the two known legacy shapes are changed: 1.4-point section ticks in
  * either template and Linden's 0.8-point fixed footer rule. This deliberately
  * avoids rewriting user-authored lines or geometry in other Sterling-derived
- * templates such as Cadenza and Vestige.
+ * templates such as Vestige.
  *
  * @param {object[]} elements - Materialized canvas elements from persistence.
  * @param {string|null|undefined} templateId - Saved document template id.

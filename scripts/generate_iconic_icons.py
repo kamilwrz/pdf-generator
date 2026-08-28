@@ -365,12 +365,6 @@ SUBSET_THEMES = {
         "#315A70",
         ["email", "phone", "location", "linkedin", "github", "website"],
     ),
-    # Cadenza uses taupe contact glyphs that match its fixed geometry and
-    # rules. It has no section-icon system, so the contact subset is enough.
-    "cadenza": (
-        "#B38B6D",
-        ["email", "phone", "location", "linkedin", "github", "website"],
-    ),
     # Linden pairs fine forest-green contact glyphs with a rectangular portrait
     # placeholder. Section headings remain typographic, so no unrelated glyphs
     # are generated for this restrained editorial system.

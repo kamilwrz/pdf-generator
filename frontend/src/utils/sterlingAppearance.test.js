@@ -37,7 +37,7 @@ test("legacy Sterling and Linden sidebar hairlines normalize without touching ot
   const linden = normalizeSterlingFamilySidebarHairlines(legacy, "linden");
   assert.deepEqual(linden.map(({ height }) => height), [1, 1, 1.4]);
 
-  assert.equal(normalizeSterlingFamilySidebarHairlines(legacy, "cadenza"), legacy);
+  assert.equal(normalizeSterlingFamilySidebarHairlines(legacy, "vestige"), legacy);
 });
 
 test("palette update recolors semantics, swaps icon assets, and preserves custom color", () => {
