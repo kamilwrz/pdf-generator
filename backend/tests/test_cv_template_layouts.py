@@ -1363,6 +1363,18 @@ class CvTemplateLayoutTests(unittest.TestCase):
         )
         self.assertEqual(exp_heading["left"], 245)
 
+    def test_sterling_sidebar_section_rules_share_one_point_height(self):
+        """Fractional rail ticks must not rasterize at mixed visual weights."""
+        elements = generate_resume("sterling", LONG_CV)
+        sidebar_rules = [
+            element for element in elements
+            if element.get("flowRole") == "sidebar-chrome"
+            and element.get("category") == "line"
+        ]
+
+        self.assertTrue(sidebar_rules)
+        self.assertEqual({float(element["height"]) for element in sidebar_rules}, {1.0})
+
     def test_sterling_places_overflow_sidebar_content_on_a_continuation_page_rail(self):
         """A CV long enough for Sterling's main column to spill onto page 2, with
         more sidebar-eligible content than page 1's rail can hold, places the

@@ -65,7 +65,7 @@ def _cadenza_geometry(page: int) -> list[dict]:
 
 def _gen_cadenza(cv: dict) -> list[dict]:
     """Build Cadenza from normalized CV data with a sidebar-safe layout."""
-    elements = deepcopy(_gen_sterling(cv))
+    elements = deepcopy(_gen_sterling(cv, sidebar_section_rule_height=1.4))
     for element in elements:
         for field in ("color", "backgroundColor"):
             if element.get(field) in _COLOR_MAP:

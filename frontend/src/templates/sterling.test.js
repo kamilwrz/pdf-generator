@@ -119,6 +119,15 @@ test("Sterling is a wide-sidebar, letterhead-masthead layout with structured sid
     assert.ok(sidebarKickers.every((element) => (element.page ?? 1) === 1));
     assert.ok(sidebarKickers.every((element) => element.flowLane === "sidebar"));
 
+    const sidebarRules = sterlingTemplate.filter(
+        (element) => element.flowRole === "sidebar-chrome" && element.category === "line",
+    );
+    assert.ok(sidebarRules.length >= 3);
+    assert.ok(
+        sidebarRules.every((element) => element.height === 1),
+        "every sidebar section tick uses the same one-point hairline",
+    );
+
     const summaryBody = sterlingTemplate.find(
         (element) => typeof element.content === "string"
             && element.content.includes("Analityczka AML łącząca wiedzę regulacyjną"),

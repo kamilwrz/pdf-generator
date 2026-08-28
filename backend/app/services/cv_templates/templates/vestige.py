@@ -46,9 +46,9 @@ _PHOTO_H = round(_PHOTO_W * 124.0 / 100.0, 1)
 # that identifies this fixed part of Vestige's sidebar.
 _CONTACT_HEADING_TOP = 23.0
 _CONTACT_START_TOP = 46.0
-# Use one physical-point hairline throughout Vestige. Sterling's 1.4 pt rail
-# ticks can cover two device-pixel rows at fractional Y coordinates, making the
-# first sidebar rule look heavier than its neighbours at common canvas zooms.
+# Use one physical-point hairline throughout Vestige. Fractional-height rules
+# can cover two device-pixel rows at some Y coordinates, making one sidebar
+# divider look heavier than its neighbours at common canvas zooms.
 _RULE_HEIGHT = 1.0
 
 # Sterling's own main-column geometry (`sterling.py`'s `MAIN_L` / `MAIN_W`).

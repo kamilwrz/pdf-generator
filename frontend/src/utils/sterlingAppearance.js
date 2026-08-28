@@ -115,6 +115,45 @@ for (const palette of STERLING_PALETTES) {
 }
 
 const round = (value) => Math.round(value * 100) / 100;
+const SIDEBAR_HAIRLINE_HEIGHT = 1;
+
+/**
+ * Upgrades persisted Sterling/Linden rail rules created before the uniform
+ * one-point hairline contract.
+ *
+ * Only the two known legacy shapes are changed: 1.4-point section ticks in
+ * either template and Linden's 0.8-point fixed footer rule. This deliberately
+ * avoids rewriting user-authored lines or geometry in other Sterling-derived
+ * templates such as Cadenza and Vestige.
+ *
+ * @param {object[]} elements - Materialized canvas elements from persistence.
+ * @param {string|null|undefined} templateId - Saved document template id.
+ * @returns {object[]} The original array when no migration is required.
+ */
+export function normalizeSterlingFamilySidebarHairlines(elements = [], templateId = null) {
+  const normalizedId = String(templateId || "").toLowerCase();
+  if (normalizedId !== "sterling" && normalizedId !== "linden") return elements;
+
+  let changed = false;
+  const normalized = elements.map((element) => {
+    const height = Number(element.height);
+    const isLegacySectionTick = element.category === "line"
+      && element.flowRole === "sidebar-chrome"
+      && height === 1.4;
+    const isLegacyLindenFooter = normalizedId === "linden"
+      && element.category === "line"
+      && element.fixedToPage
+      && Number(element.left) === 34
+      && Number(element.top) === 806
+      && Number(element.width) === 152
+      && height === 0.8;
+    if (!isLegacySectionTick && !isLegacyLindenFooter) return element;
+    changed = true;
+    return { ...element, height: SIDEBAR_HAIRLINE_HEIGHT };
+  });
+
+  return changed ? normalized : elements;
+}
 
 function settingsAnchorIndex(elements) {
   const explicit = elements.findIndex((element) => element.appearanceTemplateId === "sterling");

@@ -4,6 +4,7 @@ import {
   applySterlingPalette,
   applySterlingTextSize,
   getSterlingAppearance,
+  normalizeSterlingFamilySidebarHairlines,
   STERLING_PALETTES,
 } from "./sterlingAppearance.js";
 
@@ -21,6 +22,22 @@ test("Sterling exposes six uniquely named curated palettes", () => {
   assert.equal(STERLING_PALETTES.length, 6);
   assert.equal(new Set(STERLING_PALETTES.map(({ id }) => id)).size, 6);
   assert.equal(new Set(STERLING_PALETTES.map(({ name }) => name)).size, 6);
+});
+
+test("legacy Sterling and Linden sidebar hairlines normalize without touching other templates", () => {
+  const legacy = [
+    { category: "line", flowRole: "sidebar-chrome", height: 1.4 },
+    { category: "line", fixedToPage: true, left: 34, top: 806, width: 152, height: 0.8 },
+    { category: "line", left: 80, top: 400, width: 120, height: 1.4 },
+  ];
+
+  const sterling = normalizeSterlingFamilySidebarHairlines(legacy, "sterling");
+  assert.deepEqual(sterling.map(({ height }) => height), [1, 0.8, 1.4]);
+
+  const linden = normalizeSterlingFamilySidebarHairlines(legacy, "linden");
+  assert.deepEqual(linden.map(({ height }) => height), [1, 1, 1.4]);
+
+  assert.equal(normalizeSterlingFamilySidebarHairlines(legacy, "cadenza"), legacy);
 });
 
 test("palette update recolors semantics, swaps icon assets, and preserves custom color", () => {

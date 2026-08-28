@@ -73,6 +73,15 @@ def test_linden_matches_the_editorial_reference_without_losing_structure() -> No
     ]
     assert sidebar_headings
     assert all(element.get("flowLane") == "sidebar" for element in sidebar_headings)
+    sidebar_rules = [
+        element for element in elements
+        if element.get("category") == "line"
+        and float(element.get("left", 0)) < 210.0
+        and float(element.get("width", 0)) > float(element.get("height", 0))
+        and float(element.get("width", 0)) <= 152.0
+    ]
+    assert sidebar_rules
+    assert {float(element["height"]) for element in sidebar_rules} == {1.0}
     assert any(element.get("flowGroup") for element in elements)
 
 

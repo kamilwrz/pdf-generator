@@ -35,6 +35,17 @@ test("Linden starter exposes the complete editorial structure", () => {
     "the sand job-position band is the only masthead/body separator",
   );
   assert.ok(lindenTemplate.some((element) => element.flowRole === "sidebar-chrome"));
+  const sidebarRules = lindenTemplate.filter(
+    (element) => element.category === "line"
+      && element.left < 210
+      && element.width > element.height
+      && element.width <= 152,
+  );
+  assert.ok(sidebarRules.length >= 3);
+  assert.ok(
+    sidebarRules.every((element) => element.height === 1),
+    "section, contact, and footer rules use one shared sidebar hairline",
+  );
   assert.ok(lindenTemplate.some((element) => element.flowGroup));
 });
 

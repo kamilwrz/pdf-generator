@@ -27,7 +27,10 @@ from app.services.cv_templates.shared.contact import (
 from app.services.cv_templates.shared.icons import _icon
 from app.services.cv_templates.shared.masthead import tag_masthead_identity
 from app.services.cv_templates.shared.text import _compact_text
-from app.services.cv_templates.templates.sterling import _gen_sterling
+from app.services.cv_templates.templates.sterling import (
+    SIDEBAR_SECTION_RULE_HEIGHT,
+    _gen_sterling,
+)
 
 
 PAPER = "#FBFAF6"
@@ -117,6 +120,7 @@ def _gen_linden(cv: dict) -> list[dict]:
             cv,
             anchored_main_sections=frozenset({"summary", "experience"}),
             page1_sidebar_start=sidebar_start,
+            sidebar_section_rule_height=SIDEBAR_SECTION_RULE_HEIGHT,
         )
     )
 
@@ -153,6 +157,12 @@ def _gen_linden(cv: dict) -> list[dict]:
                 element["color"] = FOREST_DEEP
             elif element.get("category") == "line":
                 element["backgroundColor"] = FOREST if float(element.get("width", 0)) < 80 else RULE
+                if element.get("flowRole") == "sidebar-chrome":
+                    # Keep Linden's inherited section ticks aligned with its
+                    # one-point contact rule. Reasserting the derived-template
+                    # contract here prevents future Sterling styling changes
+                    # from silently reintroducing mixed rail weights.
+                    element["height"] = SIDEBAR_SECTION_RULE_HEIGHT
 
         if element.get("fontFamily") == "Montserrat":
             element["fontFamily"] = SANS
@@ -306,7 +316,15 @@ def _gen_linden(cv: dict) -> list[dict]:
         "flowRole": "masthead",
         "profilePhotoHiddenTop": 38.0,
     })
-    contact_rule = _line(SIDEBAR_LEFT, CONTACT_LABEL_TOP + 14.0, 56.0, 1.0, FOREST, zIndex=4, page=1)
+    contact_rule = _line(
+        SIDEBAR_LEFT,
+        CONTACT_LABEL_TOP + 14.0,
+        56.0,
+        SIDEBAR_SECTION_RULE_HEIGHT,
+        FOREST,
+        zIndex=4,
+        page=1,
+    )
     contact_rule.update({"flowRole": "masthead", "profilePhotoHiddenTop": 52.0})
     masthead.extend([contact_label, contact_rule])
 
@@ -345,7 +363,17 @@ def _gen_linden(cv: dict) -> list[dict]:
     furniture: list[dict] = []
     for page in range(1, pages + 1):
         furniture.extend([
-            _fixed(_line(34.0, 806.0, 152.0, 0.8, RULE, zIndex=2, page=page)),
+            _fixed(
+                _line(
+                    SIDEBAR_LEFT,
+                    806.0,
+                    SIDEBAR_WIDTH,
+                    SIDEBAR_SECTION_RULE_HEIGHT,
+                    RULE,
+                    zIndex=2,
+                    page=page,
+                )
+            ),
             _fixed(_rect(34.0, 798.0, 7.0, 7.0, FOREST, filled=True, zIndex=3, page=page)),
         ])
 

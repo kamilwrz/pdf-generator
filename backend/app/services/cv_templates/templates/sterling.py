@@ -86,20 +86,31 @@ from app.services.cv_templates.shared.text import (
 )
 
 
+# Sidebar section ticks must use an integral one-point hairline. The canvas
+# renders generator coordinates as CSS pixels, and a fractional 1.4-point box
+# can cover one or two device-pixel rows depending on its Y coordinate and the
+# current display scale. A single canonical height keeps every tick visually
+# equal in the editor and gives the PDF renderer the same geometry.
+SIDEBAR_SECTION_RULE_HEIGHT = 1.0
+
+
 def _gen_sterling(
     cv: dict,
     *,
     anchored_main_sections: frozenset[str] = frozenset({"experience"}),
     page1_sidebar_start: float | None = None,
+    sidebar_section_rule_height: float = SIDEBAR_SECTION_RULE_HEIGHT,
 ) -> list[dict]:
     """Build Sterling or a presentation variant on its column planner.
 
     ``anchored_main_sections`` lets a derived template keep a movable section
     in the primary reading column without duplicating Sterling's pagination
     algorithm. ``page1_sidebar_start`` reserves template-specific masthead
-    furniture above the first rail bucket. Both parameters are private
-    generator contracts; the public registry continues to call Sterling with
-    its original defaults.
+    furniture above the first rail bucket. Derived presentation variants can
+    retain a legacy ``sidebar_section_rule_height`` while restyling their own
+    chrome, which avoids shifting unrelated template geometry. These
+    parameters are private generator contracts; the public registry continues
+    to call Sterling with its original defaults.
     """
     C = {
         'paper': '#F7F8FA', 'ink': '#26313F',
@@ -206,6 +217,9 @@ def _gen_sterling(
     # 11.0), 2)`), so the summary reads at the same size as the fitted sidebar
     # candidates (`test_summary_matches_experience_body_type_size`).
     SIDE_SUMMARY_FS, SIDE_SUMMARY_LH = (8.3, 12.04)
+    # Preserve the authored body offset while narrowing only the visual tick.
+    # Tying this gap to the new height would pull every later rail section up
+    # by 0.4 points and turn a paint-only correction into a layout reflow.
     CHROME_GAP = KICKER_FS * 1.2 + 5.0 + 1.4 + 10.0
     # Main-column section labels use a compact 12px scale; sidebar kickers
     # intentionally keep their separate, smaller typography.
@@ -228,7 +242,14 @@ def _gen_sterling(
         heading = _text(label.upper(), KICKER_FS, SANS, C['accent_deep'], SIDE_L, top, zIndex=3, bold=True)
         heading['letterSpacing'] = 1.3
         heading['flowRole'] = 'sidebar-chrome'
-        tick = _line(SIDE_L, top + KICKER_FS * 1.2 + 5.0, 22, 1.4, C['accent'], zIndex=2)
+        tick = _line(
+            SIDE_L,
+            top + KICKER_FS * 1.2 + 5.0,
+            22,
+            sidebar_section_rule_height,
+            C['accent'],
+            zIndex=2,
+        )
         tick['flowRole'] = 'sidebar-chrome'
         return [heading, tick]
 
