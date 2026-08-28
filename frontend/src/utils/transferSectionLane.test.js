@@ -11,6 +11,7 @@ import {
   sectionElementIds,
   sidebarSectionElementIds,
 } from "./sectionStructure.js";
+import { syncCvDataFromCanvas } from "./syncCvDataFromCanvas.js";
 
 const PAGE_HEIGHT = 842;
 const SPACING = { stack: 4, record: 10, section: 21, after_rule: 8 };
@@ -371,6 +372,34 @@ describe("transferSectionLane", () => {
     assert.ok(chipBodies.every((element) => Number(element.fontSize) === 9.5));
     // Heading and first category share a page — no orphaned chrome alone.
     assert.equal(Number(heading.page) || 1, Number(categories[0].page) || 1);
+
+    const backOnSidebar = transferSectionLane(next, "sb-sk-head", PAGE_HEIGHT, SPACING);
+    assert.ok(backOnSidebar);
+    const sidebarBody = backOnSidebar.find((element) => (
+      element.flowLane === "sidebar"
+      && element.flowRole === "content"
+      && element.category === "textarea"
+      && element.bulletList
+    ));
+    assert.ok(sidebarBody);
+    const mainContentIds = new Set(
+      next
+        .filter((element) => element.flowRole === "content")
+        .map((element) => element.element_id),
+    );
+    assert.equal(mainContentIds.has(sidebarBody.element_id), false);
+
+    const profileBeforeTransfer = {
+      skills: [
+        { category: "Python", items: ["Backend development", "REST APIs"] },
+        { category: "C++", items: ["OOP", "basic STL"] },
+      ],
+    };
+    const syncedProfile = syncCvDataFromCanvas(profileBeforeTransfer, next, backOnSidebar);
+    assert.equal(syncedProfile, profileBeforeTransfer);
+    assert.deepEqual(syncedProfile, profileBeforeTransfer);
+    assert.equal(syncedProfile.skills.filter(({ category }) => category === "Python").length, 1);
+    assert.equal(syncedProfile.skills.filter(({ category }) => category === "C++").length, 1);
   });
 
   it("expands sidebar languages into a main-column accent grid", () => {

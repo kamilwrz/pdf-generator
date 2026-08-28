@@ -47,6 +47,42 @@ describe("syncCvDataFromCanvas", () => {
     assert.equal(updated.experience[0].description, "Praca zespołowa");
   });
 
+  it("does not write a lane-transfer composite into a Skills category", () => {
+    const grouped = {
+      ...profile,
+      skills: [
+        { category: "Research and IT", items: ["AI", "UX"] },
+        { category: "Soft Skills", items: ["Communication", "Teamwork"] },
+      ],
+    };
+    const combined = [
+      "Research and IT",
+      "• AI",
+      "• UX",
+      "Soft Skills",
+      "• Communication",
+      "• Teamwork",
+    ].join("\n");
+    const updated = syncCvDataFromCanvas(
+      grouped,
+      [{
+        ...text("research-category", "Research and IT"),
+        flowRole: "content",
+        flowGroup: "skills-research",
+        bulletList: false,
+      }],
+      [{
+        ...text("research-category", combined),
+        flowRole: "content",
+        flowLane: "sidebar",
+        bulletList: true,
+      }],
+    );
+
+    assert.equal(updated, grouped);
+    assert.deepEqual(updated.skills, grouped.skills);
+  });
+
   it("persists an AI correction that intentionally clears a field", () => {
     const updated = syncCvDataFromCanvas(
       profile,

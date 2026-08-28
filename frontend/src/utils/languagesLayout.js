@@ -17,6 +17,25 @@ const LANGUAGE_SEP_RE = /\s+[—–-]\s+/;
 const LEADING_BULLET_RE = /^\s*[-•–*—∙·]\s*/;
 const LANGUAGES_TITLE_RE = /język|jezyk|language/i;
 
+/**
+ * Allocate an id for the aggregate sidebar language body.
+ *
+ * A main grid contains one semantic node per language, while the rail uses one
+ * combined textarea. Reusing a grid-cell id makes profile synchronization read
+ * that representation change as an edit of the first language name.
+ */
+function compositeSidebarBodyId(members, headingId) {
+  const sourceIds = new Set((members || []).map((element) => element?.element_id));
+  const base = `${headingId}-languages-sidebar-composite`;
+  let candidate = base;
+  let suffix = 2;
+  while (sourceIds.has(candidate)) {
+    candidate = `${base}-${suffix}`;
+    suffix += 1;
+  }
+  return candidate;
+}
+
 /** Default column count for the main-column languages grid (backend default). */
 export const LANGUAGES_GRID_COLUMNS = 4;
 
@@ -335,12 +354,9 @@ export function restyleLanguagesMembersAsSidebar(members, headingId, style, park
     });
   }
 
-  const bodyId = members.find((element) => (
-    element.element_id !== headingId
-    && (element.category === "textarea" || element.category === "text")
-    && element.flowRole !== "section-chrome"
-    && element.flowRole !== "sidebar-chrome"
-  ))?.element_id || `${headingId}-body`;
+  // The rail body combines every language cell and therefore has a different
+  // semantic identity from each source cell.
+  const bodyId = compositeSidebarBodyId(members, headingId);
 
   const body = buildLanguagesSidebarBody(entries, {
     bodyLeft: Number.isFinite(Number(style.bodyLeft)) ? Number(style.bodyLeft) : headingLeft,

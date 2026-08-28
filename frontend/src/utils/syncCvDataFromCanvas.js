@@ -57,6 +57,28 @@ function profileTextForElement(element) {
     .trim();
 }
 
+/**
+ * Return whether the same canvas id now represents a different structural
+ * text node rather than an edit of the original semantic field.
+ *
+ * Lane transfers and layout conversions may replace a category/body pair with
+ * one aggregate textarea. Older documents could reuse a source id for that new
+ * node, so content equality alone is not enough to establish identity. Writing
+ * the aggregate text back into `cv_data` would turn an entire Skills section
+ * into one category and duplicate its remaining items on the next template
+ * fill. Only structurally stable nodes are eligible for profile synchronization.
+ */
+function isStructuralTextRemap(previous, next) {
+  const normalized = (value) => value ?? null;
+  return (
+    normalized(previous?.category) !== normalized(next?.category)
+    || normalized(previous?.flowLane) !== normalized(next?.flowLane)
+    || normalized(previous?.flowRole) !== normalized(next?.flowRole)
+    || normalized(previous?.flowGroup) !== normalized(next?.flowGroup)
+    || Boolean(previous?.bulletList) !== Boolean(next?.bulletList)
+  );
+}
+
 function pruneDeletedRecords(value, deletedTexts) {
   if (Array.isArray(value)) {
     return value
@@ -87,6 +109,7 @@ function editableTextChanges(previousElements, nextElements) {
     if (!next?.element_id || !["text", "textarea"].includes(next.category)) return [];
     const previous = previousById.get(next.element_id);
     if (!previous || previous.content === next.content) return [];
+    if (isStructuralTextRemap(previous, next)) return [];
     const from = profileTextForElement(previous);
     const to = profileTextForElement(next);
     // An accepted AI shortening can intentionally clear a field. Ignoring an

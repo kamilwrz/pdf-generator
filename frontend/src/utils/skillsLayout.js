@@ -34,6 +34,25 @@ export const SKILLS_LAYOUT_MODES = [
 const LEADING_BULLET_RE = /^[\s]*[•\-–*—∙·]\s+(.*)$/;
 
 /**
+ * Allocate an id for a composite sidebar body that did not exist in `members`.
+ *
+ * The aggregate represents several category/body records, so inheriting one
+ * source id would falsely tell `syncCvDataFromCanvas` that the corresponding
+ * profile leaf was manually replaced with the complete serialized section.
+ */
+function compositeSidebarBodyId(members, headingId) {
+  const sourceIds = new Set((members || []).map((element) => element?.element_id));
+  const base = `${headingId}-skills-sidebar-composite`;
+  let candidate = base;
+  let suffix = 2;
+  while (sourceIds.has(candidate)) {
+    candidate = `${base}-${suffix}`;
+    suffix += 1;
+  }
+  return candidate;
+}
+
+/**
  * @param {string|null|undefined} title
  * @returns {boolean}
  */
@@ -857,12 +876,10 @@ export function restyleSkillsMembersAsSidebar(members, headingId, style, parkTop
     });
   }
 
-  const bodyId = members.find((element) => (
-    element.element_id !== headingId
-    && (element.category === "textarea" || element.category === "text")
-    && element.flowRole !== "section-chrome"
-    && element.flowRole !== "sidebar-chrome"
-  ))?.element_id || `${headingId}-body`;
+  // This textarea is a new composite of every category and item. It must not
+  // inherit a category/body id, because that id is used to map real text edits
+  // back into the normalized profile before a later template fill.
+  const bodyId = compositeSidebarBodyId(members, headingId);
 
   chrome.push({
     element_id: bodyId,

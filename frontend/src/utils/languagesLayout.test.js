@@ -124,6 +124,7 @@ describe("collectLanguageEntries + restyleLanguagesMembersAsSidebar", () => {
     assert.ok(rail);
     assert.equal(rail.length, 3);
     const body = rail.find((element) => element.category === "textarea");
+    assert.equal(members.some((element) => element.element_id === body.element_id), false);
     assert.equal(body.flowLane, "sidebar");
     assert.ok(body.content.includes("Polski - A2"));
     assert.ok(body.content.includes("Niemiecki - C1"));

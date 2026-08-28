@@ -9,6 +9,7 @@ import {
   restyleSkillsMembersAsMain,
   restyleSkillsMembersAsSidebar,
 } from "./skillsLayout.js";
+import { syncCvDataFromCanvas } from "./syncCvDataFromCanvas.js";
 
 describe("isSkillsSectionHeading", () => {
   it("matches Polish and English skills titles", () => {
@@ -139,6 +140,7 @@ describe("restyleSkillsMembersAsMain / AsSidebar", () => {
 
   it("collapses main groups back to one sidebar textarea", () => {
     const main = restyleSkillsMembersAsMain(railMembers, "sk-h", mainStyle, 10000);
+    const sourceIds = new Set(main.map((element) => element.element_id));
     const railStyle = {
       left: 34,
       bodyLeft: 34,
@@ -151,11 +153,23 @@ describe("restyleSkillsMembersAsMain / AsSidebar", () => {
     assert.ok(back);
     const body = back.find((element) => element.element_id === "sk-b" || element.bulletList);
     assert.ok(body);
+    assert.equal(sourceIds.has(body.element_id), false);
     assert.equal(body.flowLane, "sidebar");
     assert.ok((Number(body.width) || 0) < 200);
     const groups = collectSkillGroups(back, "sk-h");
     assert.equal(groups.length, 2);
     assert.equal(groups[0].category, "Python");
     assert.ok(groups[0].items.includes("Backend development"));
+
+    const profileBeforeTransfer = {
+      skills: [
+        { category: "Python", items: ["Backend development", "REST APIs"] },
+        { category: "C++", items: ["OOP"] },
+      ],
+    };
+    assert.equal(
+      syncCvDataFromCanvas(profileBeforeTransfer, main, back),
+      profileBeforeTransfer,
+    );
   });
 });
