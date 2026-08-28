@@ -906,6 +906,15 @@ class CvTemplateLayoutTests(unittest.TestCase):
 
         self.assertTrue(text_elements)
         self.assertGreater(max(element.get("page", 1) for element in elements), 1)
+        appearance_anchor = next(
+            element
+            for element in elements
+            if element.get("appearanceTemplateId") == "monument"
+        )
+        self.assertEqual(
+            appearance_anchor.get("appearanceSettings"),
+            {"palette": "inkstone", "textSize": "M"},
+        )
         # Authored Monument sizes bottom out at 9 px. Nested project subtitles
         # from the shared record helper may use body * 0.92 and sit slightly below.
         primary_text = [

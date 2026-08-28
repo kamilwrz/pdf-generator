@@ -6,29 +6,37 @@ const panelUrl = new URL("./SectionsPanel.jsx", import.meta.url);
 const cssUrl = new URL("./SectionsPanel.module.css", import.meta.url);
 const sidebarUrl = new URL("../Sidebar/Sidebar.jsx", import.meta.url);
 
-test("customization panel exposes Appearance only for the active Sterling template", async () => {
+test("customization panel exposes Appearance only for reviewed Sterling and Monument templates", async () => {
   const source = await readFile(panelUrl, "utf8");
   assert.match(source, /Dostosuj CV/);
   assert.match(source, /role="tablist"/);
   assert.match(source, />\s*Układ\s*</);
   assert.match(source, />\s*Wygląd\s*</);
   assert.match(source, /aria-selected/);
-  assert.match(source, /const sterlingAppearanceEnabled = activeTemplateId === "sterling"/);
-  assert.match(source, /const renderedTab = sterlingAppearanceEnabled \? activeTab : "layout"/);
-  assert.match(source, /sterlingAppearanceEnabled \? \(/);
+  assert.match(source, /const isSterlingAppearance = activeTemplateId === "sterling"/);
+  assert.match(source, /const isMonumentAppearance = activeTemplateId === "monument"/);
+  assert.match(source, /const appearanceEnabled = isSterlingAppearance \|\| isMonumentAppearance/);
+  assert.match(source, /const renderedTab = appearanceEnabled \? activeTab : "layout"/);
+  assert.match(source, /appearanceEnabled \? \(/);
   assert.doesNotMatch(source, /isSterlingDocument/);
 });
 
-test("appearance presents Sterling palettes, icon-aware previews, and text presets", async () => {
+test("appearance presents template-specific palettes, Monument previews, and text presets", async () => {
   const source = await readFile(panelUrl, "utf8");
   assert.match(source, /setActiveTab\("appearance"\)/);
   assert.match(source, /STERLING_PALETTES/);
+  assert.match(source, /MONUMENT_PALETTES/);
+  assert.match(source, /palettePaperMonument/);
+  assert.match(source, /paletteMonumentFrame/);
+  assert.match(source, /paletteMonumentBadge/);
+  assert.match(source, /paletteMonumentFooter/);
   assert.match(source, /Paleta kolorów/);
   assert.match(source, /zmienia papier, tekst, dekoracje i dopasowany zestaw ikon/);
   assert.match(source, /STERLING_TEXT_SIZES/);
+  assert.match(source, /MONUMENT_TEXT_SIZES/);
   assert.match(source, /Rozmiar tekstu/);
   assert.match(source, /oryginalny rozmiar szablonu/);
-  assert.match(source, /if \(!sterlingAppearanceEnabled\) return/);
+  assert.match(source, /if \(!appearanceEnabled\) return/);
 });
 
 test("document card keeps tier-honest fit status and CTA", async () => {

@@ -107,8 +107,14 @@ def _gen_monument(cv: dict) -> list[dict]:
         band_id="monument-contact",
     )
     header = [
-        _text(name, 33, DISPLAY, C["ink"], 74, 59, zIndex=3, bold=True),
-        _block(title, 76, 104, 337, 20, 12.5, 16, C["body"], SANS, zIndex=3, bold=True),
+        {
+            **_text(name, 33, DISPLAY, C["ink"], 74, 59, zIndex=3, bold=True),
+            "flowRole": "masthead",
+        },
+        {
+            **_block(title, 76, 104, 337, 20, 12.5, 16, C["body"], SANS, zIndex=3, bold=True),
+            "flowRole": "masthead",
+        },
         *contact_elements,
         photo_frame,
         portrait_glyph,
@@ -256,8 +262,21 @@ def _gen_monument(cv: dict) -> list[dict]:
     pages_used = max([element.get("page", 1) for element in selectable] or [1])
     page_decorations = []
     for page in range(1, pages_used + 1):
+        page_background = {
+            **_line(0, 0, 595, 842, C["paper"], zIndex=0, page=page),
+            "fixedToPage": True,
+        }
+        if page == 1:
+            # Persist the authored appearance on stable page chrome. Palette
+            # and text-size changes update this anchor; ReportLab ignores the
+            # editor-only metadata while saved documents restore the controls.
+            page_background["appearanceTemplateId"] = "monument"
+            page_background["appearanceSettings"] = {
+                "palette": "inkstone",
+                "textSize": "M",
+            }
         page_decorations.extend([
-            {**_line(0, 0, 595, 842, C["paper"], zIndex=0, page=page), "fixedToPage": True},
+            page_background,
             {**_rect(34, 32, 527, 778, C["rule"], 0.8, page=page), "fixedToPage": True},
         ])
         # The tall bars belong to the name-and-position masthead. Repeating

@@ -24,7 +24,12 @@ const MONUMENT_ELEMENTS = [
     "backgroundColor": "#F7F7F7",
     "zIndex": 0,
     "page": 1,
-    "fixedToPage": true
+    "fixedToPage": true,
+    "appearanceTemplateId": "monument",
+    "appearanceSettings": {
+      "palette": "inkstone",
+      "textSize": "M"
+    }
   },
   {
     "category": "rectangle",
@@ -112,7 +117,7 @@ const MONUMENT_ELEMENTS = [
     "page": 1,
     "bold": true,
     "italic": false,
-    "flowRole": "content"
+    "flowRole": "masthead"
   },
   {
     "category": "textarea",
@@ -134,7 +139,7 @@ const MONUMENT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowRole": "content"
+    "flowRole": "masthead"
   },
   {
     "category": "image",

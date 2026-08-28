@@ -55,6 +55,23 @@
 .paletteLines::before, .paletteLines::after { position: absolute; right: 0; left: 0; height: 1px; background: var(--palette-rule); content: ""; }
 .paletteLines::before { top: 9px; }
 .paletteLines::after { top: 19px; }
+.palettePaperMonument { background: var(--palette-paper); }
+.paletteMonumentFrame { position: absolute; inset: 6px; border: 1px solid var(--palette-rule); }
+.paletteMonumentRail { position: absolute; top: 11px; bottom: 11px; left: 10px; width: 3px; background: var(--palette-ink); box-shadow: 53px 0 0 var(--palette-pale); }
+.paletteMonumentPortrait { position: absolute; top: 11px; right: 12px; width: 14px; height: 19px; border: 1px solid var(--palette-ink); }
+.paletteMonumentPortrait::before { position: absolute; top: 4px; left: 50%; width: 4px; height: 4px; transform: translateX(-50%); border: 1px solid var(--palette-ink); border-radius: 50%; content: ""; }
+.paletteMonumentPortrait::after { position: absolute; right: 3px; bottom: 3px; left: 3px; height: 5px; border: 1px solid var(--palette-ink); border-bottom: 0; border-radius: 5px 5px 0 0; content: ""; }
+.paletteMonumentName { position: absolute; top: 14px; left: 17px; width: 31px; height: 4px; background: var(--palette-ink); }
+.paletteMonumentName::after { position: absolute; top: 8px; left: 1px; width: 25px; height: 2px; background: var(--palette-ink); opacity: .68; content: ""; }
+.paletteMonumentBadge { position: absolute; top: 39px; left: 14px; width: 8px; height: 8px; background: var(--palette-ink); }
+.paletteMonumentHeading { position: absolute; top: 39px; left: 24px; width: 29px; height: 8px; border: 1px solid var(--palette-ink); }
+.paletteMonumentRule { position: absolute; top: 43px; right: 13px; width: 10px; height: 1px; background: var(--palette-rule); }
+.paletteMonumentCopy { position: absolute; top: 54px; right: 14px; left: 17px; height: 20px; border-top: 1px solid var(--palette-ink); border-bottom: 1px solid var(--palette-rule); }
+.paletteMonumentCopy::before, .paletteMonumentCopy::after { position: absolute; right: 0; left: 0; height: 1px; background: var(--palette-rule); content: ""; }
+.paletteMonumentCopy::before { top: 6px; }
+.paletteMonumentCopy::after { top: 12px; }
+.paletteMonumentFooter { position: absolute; right: 12px; bottom: 11px; left: 14px; height: 1px; background: var(--palette-rule); }
+.paletteMonumentFooter::before { position: absolute; top: 4px; left: 0; width: 8px; height: 3px; background: var(--palette-ink); content: ""; }
 .paletteCheck { position: absolute; top: 6px; right: 6px; display: inline-flex; width: 17px; height: 17px; align-items: center; justify-content: center; border-radius: 50%; background: var(--palette-ink); color: var(--palette-paper); }
 .paletteCheck svg { width: 11px; height: 11px; stroke-width: 2.5; }
 .paletteName { display: block; margin-top: 7px; overflow: hidden; font: 650 11px/1.25 var(--font-body); text-overflow: ellipsis; white-space: nowrap; }

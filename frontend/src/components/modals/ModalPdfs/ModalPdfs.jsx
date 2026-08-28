@@ -101,8 +101,9 @@ export default function ModalPdfs({ title }) {
                 const repeatOnContinuation = element.extra_properties.repeatOnContinuation ?? true;
                 const locked = element.extra_properties.locked ?? fixedToPage;
                 // Appearance metadata is intentionally restored for every
-                // category. Sterling stores the selected palette on page
-                // chrome and role baselines on individual text elements.
+                // category. Appearance-enabled templates store the selected
+                // palette on page chrome and reversible role baselines on
+                // individual text elements.
                 const appearanceMetadata = {
                     appearanceTemplateId: element.extra_properties.appearanceTemplateId,
                     appearanceSettings: element.extra_properties.appearanceSettings,

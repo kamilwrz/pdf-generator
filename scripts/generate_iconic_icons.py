@@ -65,6 +65,23 @@ def _normalize(img: Image.Image) -> Image.Image:
     return out
 
 
+def _save_png(image: Image.Image, path: Path) -> bool:
+    """Write a glyph only when its rendered RGBA pixels actually changed.
+
+    Pillow versions can encode identical pixels into different PNG byte
+    streams. Comparing decoded pixels first prevents a palette-only addition
+    from rewriting every established icon theme in the repository.
+    """
+    if path.exists():
+        with Image.open(path) as existing:
+            current = existing.convert("RGBA")
+            candidate = image.convert("RGBA")
+            if current.size == candidate.size and current.tobytes() == candidate.tobytes():
+                return False
+    image.save(path, "PNG")
+    return True
+
+
 def draw_email(color: str) -> Image.Image:
     img, d = _draft()
     col = _hex(color)
@@ -361,10 +378,31 @@ SUBSET_THEMES = {
         "#285548",
         ["email", "phone", "location", "linkedin", "github", "website", "portrait"],
     ),
-    # Monument needs only black masthead contact glyphs and the portrait
-    # placeholder; numbered text plates replace section icons in this layout.
+    # Monument needs masthead contact glyphs and the portrait placeholder;
+    # numbered text plates replace section icons in this layout. Each curated
+    # appearance owns real ink-coloured PNGs so editor and PDF export match.
     "monument": (
         "#111111",
+        ["email", "phone", "location", "linkedin", "github", "website", "portrait"],
+    ),
+    "monument-blueprint": (
+        "#223338",
+        ["email", "phone", "location", "linkedin", "github", "website", "portrait"],
+    ),
+    "monument-olive": (
+        "#30372C",
+        ["email", "phone", "location", "linkedin", "github", "website", "portrait"],
+    ),
+    "monument-oxblood": (
+        "#4B3034",
+        ["email", "phone", "location", "linkedin", "github", "website", "portrait"],
+    ),
+    "monument-travertine": (
+        "#493A2F",
+        ["email", "phone", "location", "linkedin", "github", "website", "portrait"],
+    ),
+    "monument-midnight": (
+        "#243141",
         ["email", "phone", "location", "linkedin", "github", "website", "portrait"],
     ),
 }
@@ -379,12 +417,12 @@ def main() -> None:
         out_dir.mkdir(parents=True, exist_ok=True)
         for name, fn in ICONS.items():
             path = out_dir / f"{name}.png"
-            fn(color).save(path, "PNG")
-            print("wrote", path.relative_to(ROOT.parent))
+            if _save_png(fn(color), path):
+                print("wrote", path.relative_to(ROOT.parent))
         for name in THEME_EXTRA_ICONS.get(theme, []):
             path = out_dir / f"{name}.png"
-            EXTRA_ICONS[name](color).save(path, "PNG")
-            print("wrote", path.relative_to(ROOT.parent))
+            if _save_png(EXTRA_ICONS[name](color), path):
+                print("wrote", path.relative_to(ROOT.parent))
 
     # Curated subset themes (Harbor) get only the glyphs they reference.
     for theme, (color, names) in SUBSET_THEMES.items():
@@ -392,8 +430,8 @@ def main() -> None:
         out_dir.mkdir(parents=True, exist_ok=True)
         for name in names:
             path = out_dir / f"{name}.png"
-            all_glyphs[name](color).save(path, "PNG")
-            print("wrote", path.relative_to(ROOT.parent))
+            if _save_png(all_glyphs[name](color), path):
+                print("wrote", path.relative_to(ROOT.parent))
 
 
 if __name__ == "__main__":

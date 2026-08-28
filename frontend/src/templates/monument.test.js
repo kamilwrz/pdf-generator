@@ -4,6 +4,13 @@ import test from "node:test";
 import { monumentTemplate } from "./monument.js";
 
 test("Monument keeps its text hierarchy readable and monochrome", () => {
+    const appearanceAnchor = monumentTemplate.find(
+        (element) => element.appearanceTemplateId === "monument",
+    );
+    assert.deepEqual(
+        appearanceAnchor?.appearanceSettings,
+        { palette: "inkstone", textSize: "M" },
+    );
     const textElements = monumentTemplate.filter(
         (element) => (
             (element.category === "text" || element.category === "textarea")

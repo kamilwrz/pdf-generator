@@ -1,6 +1,7 @@
 /**
  * Template-mode customization panel ("Dostosuj CV"): document status, section
- * structure, density presets, precise spacing, and Sterling appearance tools. A
+ * structure, density presets, precise spacing, and template-scoped appearance
+ * tools for Sterling and Monument. A
  * main-column Skills section's list row also gets a layout icon opening
  * `SkillsLayoutModal` (same modal the canvas heading hover control opens —
  * see `SectionRecordAdd`), so the mode picker is reachable without hunting
@@ -44,6 +45,16 @@ import {
   applySterlingRenderedHeightsLayout,
   applySterlingTextSizeLayout,
 } from "../../../utils/sterlingTypographyLayout";
+import {
+  applyMonumentPalette,
+  getMonumentAppearance,
+  MONUMENT_PALETTES,
+  MONUMENT_TEXT_SIZES,
+} from "../../../utils/monumentAppearance";
+import {
+  applyMonumentRenderedHeightsLayout,
+  applyMonumentTextSizeLayout,
+} from "../../../utils/monumentTypographyLayout";
 import {
   createCanvasTextWidthMeasurer,
   measureNaturalScrollHeight,
@@ -113,7 +124,7 @@ export default function SectionsPanel({ onClose }) {
   const densityGroupId = useId();
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("layout");
-  const sterlingTypographyRequestRef = useRef(0);
+  const appearanceTypographyRequestRef = useRef(0);
 
   const spacing = useMemo(
     () => normalizeFlowSpacing(flowSpacing),
@@ -147,11 +158,29 @@ export default function SectionsPanel({ onClose }) {
   // detector, but their colors are not wired to Sterling's palette roles.
   // Gate the tab by the selected template ID until each template has its own
   // reviewed appearance contract.
-  const sterlingAppearanceEnabled = activeTemplateId === "sterling";
-  const renderedTab = sterlingAppearanceEnabled ? activeTab : "layout";
-  const sterlingAppearance = useMemo(
-    () => getSterlingAppearance(A4_Elements),
-    [A4_Elements],
+  const isSterlingAppearance = activeTemplateId === "sterling";
+  const isMonumentAppearance = activeTemplateId === "monument";
+  const appearanceEnabled = isSterlingAppearance || isMonumentAppearance;
+  const renderedTab = appearanceEnabled ? activeTab : "layout";
+  const appearanceDefinition = useMemo(
+    () => isMonumentAppearance ? {
+      templateName: "Monument",
+      palettes: MONUMENT_PALETTES,
+      textSizes: MONUMENT_TEXT_SIZES,
+      value: getMonumentAppearance(A4_Elements),
+      applyPalette: applyMonumentPalette,
+      applyTextSizeLayout: applyMonumentTextSizeLayout,
+      applyRenderedHeightsLayout: applyMonumentRenderedHeightsLayout,
+    } : {
+      templateName: "Sterling",
+      palettes: STERLING_PALETTES,
+      textSizes: STERLING_TEXT_SIZES,
+      value: getSterlingAppearance(A4_Elements),
+      applyPalette: applySterlingPalette,
+      applyTextSizeLayout: applySterlingTextSizeLayout,
+      applyRenderedHeightsLayout: applySterlingRenderedHeightsLayout,
+    },
+    [A4_Elements, isMonumentAppearance],
   );
 
   useEffect(() => {
@@ -165,7 +194,7 @@ export default function SectionsPanel({ onClose }) {
 
   useEffect(() => () => {
     // Cancel a pending post-paint typography settle when the panel unmounts.
-    sterlingTypographyRequestRef.current += 1;
+    appearanceTypographyRequestRef.current += 1;
   }, []);
 
   function move(headingId, direction) {
@@ -227,21 +256,21 @@ export default function SectionsPanel({ onClose }) {
     applySpacing(next);
   }
 
-  function handleSterlingPalette(paletteId) {
-    if (!sterlingAppearanceEnabled) return;
-    if (paletteId === sterlingAppearance.palette) return;
-    setA4_Elements((prev) => applySterlingPalette(prev, paletteId));
+  function handleAppearancePalette(paletteId) {
+    if (!appearanceEnabled) return;
+    if (paletteId === appearanceDefinition.value.palette) return;
+    setA4_Elements((prev) => appearanceDefinition.applyPalette(prev, paletteId));
   }
 
-  function handleSterlingTextSize(textSizeId) {
-    if (!sterlingAppearanceEnabled) return;
-    if (textSizeId === sterlingAppearance.textSize) return;
-    // Apply typography and both document lanes atomically. Independent DOM
-    // measurements still verify the result afterwards, but the transaction
+  function handleAppearanceTextSize(textSizeId) {
+    if (!appearanceEnabled) return;
+    if (textSizeId === appearanceDefinition.value.textSize) return;
+    // Apply typography, the template's flow lanes, and contacts atomically.
+    // Independent DOM measurements still verify the result afterwards, but the transaction
     // already uses the browser's active font metrics and word wrapping. This
     // prevents a long final record from growing underneath the next heading.
     const measureTextWidth = createCanvasTextWidthMeasurer();
-    setA4_Elements((prev) => applySterlingTextSizeLayout(prev, textSizeId, {
+    setA4_Elements((prev) => appearanceDefinition.applyTextSizeLayout(prev, textSizeId, {
       spacing,
       pageHeight,
       createId: () => nanoid(),
@@ -253,8 +282,8 @@ export default function SectionsPanel({ onClose }) {
     // complete snapshot. This avoids the race where independent component
     // effects settle in a different order and leave Education on top of the
     // final Experience record. A newer click cancels this pending settle.
-    const requestId = sterlingTypographyRequestRef.current + 1;
-    sterlingTypographyRequestRef.current = requestId;
+    const requestId = appearanceTypographyRequestRef.current + 1;
+    appearanceTypographyRequestRef.current = requestId;
     const settleRenderedTypography = async () => {
       if (typeof document === "undefined" || typeof window === "undefined") return;
       try {
@@ -265,7 +294,7 @@ export default function SectionsPanel({ onClose }) {
       }
       await new Promise((resolve) => window.requestAnimationFrame(resolve));
       await new Promise((resolve) => window.requestAnimationFrame(resolve));
-      if (sterlingTypographyRequestRef.current !== requestId) return;
+      if (appearanceTypographyRequestRef.current !== requestId) return;
 
       const measuredHeights = new Map();
       for (const element of A4_Elements) {
@@ -284,7 +313,7 @@ export default function SectionsPanel({ onClose }) {
       }
       if (measuredHeights.size === 0) return;
 
-      setA4_Elements((prev) => applySterlingRenderedHeightsLayout(
+      setA4_Elements((prev) => appearanceDefinition.applyRenderedHeightsLayout(
         prev,
         measuredHeights,
         {
@@ -362,7 +391,7 @@ export default function SectionsPanel({ onClose }) {
         >
           Układ
         </button>
-        {sterlingAppearanceEnabled ? (
+        {appearanceEnabled ? (
           <button
             type="button"
             role="tab"
@@ -375,23 +404,24 @@ export default function SectionsPanel({ onClose }) {
         ) : null}
       </div>
 
-      {renderedTab === "appearance" && sterlingAppearanceEnabled ? (
+      {renderedTab === "appearance" && appearanceEnabled ? (
         <div className={classes.appearanceBody} role="tabpanel">
-            <section className={classes.appearanceSection} aria-labelledby="sterling-palette-heading">
-              <span className={classes.eyebrow}>Sterling</span>
+            <section className={classes.appearanceSection} aria-labelledby="appearance-palette-heading">
+              <span className={classes.eyebrow}>{appearanceDefinition.templateName}</span>
               <div className={classes.appearanceHeading}>
-                <h3 id="sterling-palette-heading">Paleta kolorów</h3>
+                <h3 id="appearance-palette-heading">Paleta kolorów</h3>
                 <p>Każdy wariant zmienia papier, tekst, dekoracje i dopasowany zestaw ikon.</p>
               </div>
-              <div className={classes.paletteGrid} role="radiogroup" aria-labelledby="sterling-palette-heading">
-                {STERLING_PALETTES.map((palette) => {
-                  const selected = sterlingAppearance.palette === palette.id;
+              <div className={classes.paletteGrid} role="radiogroup" aria-labelledby="appearance-palette-heading">
+                {appearanceDefinition.palettes.map((palette) => {
+                  const selected = appearanceDefinition.value.palette === palette.id;
                   const cardStyle = {
                     "--palette-paper": palette.colors.paper,
                     "--palette-ink": palette.colors.ink,
                     "--palette-accent": palette.colors.accent,
-                    "--palette-sidebar": palette.colors.sidebar,
+                    "--palette-sidebar": palette.colors.sidebar ?? palette.colors.pale,
                     "--palette-rule": palette.colors.rule,
+                    "--palette-pale": palette.colors.pale ?? palette.colors.sidebar,
                   };
                   return (
                     <button
@@ -400,14 +430,34 @@ export default function SectionsPanel({ onClose }) {
                       role="radio"
                       aria-checked={selected}
                       className={selected ? classes.paletteOptionActive : classes.paletteOption}
-                      onClick={() => handleSterlingPalette(palette.id)}
+                      onClick={() => handleAppearancePalette(palette.id)}
                     >
-                      <span className={classes.palettePaper} style={cardStyle} aria-hidden="true">
-                        <span className={classes.paletteMasthead} />
-                        <span className={classes.paletteRail} />
-                        <span className={classes.paletteTitle} />
-                        <span className={classes.paletteAccent} />
-                        <span className={classes.paletteLines} />
+                      <span
+                        className={`${classes.palettePaper} ${isMonumentAppearance ? classes.palettePaperMonument : ""}`}
+                        style={cardStyle}
+                        aria-hidden="true"
+                      >
+                        {isMonumentAppearance ? (
+                          <>
+                            <span className={classes.paletteMonumentFrame} />
+                            <span className={classes.paletteMonumentRail} />
+                            <span className={classes.paletteMonumentPortrait} />
+                            <span className={classes.paletteMonumentName} />
+                            <span className={classes.paletteMonumentBadge} />
+                            <span className={classes.paletteMonumentHeading} />
+                            <span className={classes.paletteMonumentRule} />
+                            <span className={classes.paletteMonumentCopy} />
+                            <span className={classes.paletteMonumentFooter} />
+                          </>
+                        ) : (
+                          <>
+                            <span className={classes.paletteMasthead} />
+                            <span className={classes.paletteRail} />
+                            <span className={classes.paletteTitle} />
+                            <span className={classes.paletteAccent} />
+                            <span className={classes.paletteLines} />
+                          </>
+                        )}
                         {selected ? <span className={classes.paletteCheck}><FiCheck /></span> : null}
                       </span>
                       <span className={classes.paletteName}>{palette.name}</span>
@@ -418,15 +468,15 @@ export default function SectionsPanel({ onClose }) {
               </div>
             </section>
 
-            <section className={classes.appearanceSection} aria-labelledby="sterling-type-heading">
+            <section className={classes.appearanceSection} aria-labelledby="appearance-type-heading">
               <span className={classes.eyebrow}>Typografia</span>
               <div className={classes.appearanceHeading}>
-                <h3 id="sterling-type-heading">Rozmiar tekstu</h3>
+                <h3 id="appearance-type-heading">Rozmiar tekstu</h3>
                 <p>Dobierz czytelność do ilości treści. Układ i liczba stron przeliczą się automatycznie.</p>
               </div>
-              <div className={classes.textSizeGroup} role="radiogroup" aria-labelledby="sterling-type-heading">
-                {STERLING_TEXT_SIZES.map((size) => {
-                  const selected = sterlingAppearance.textSize === size.id;
+              <div className={classes.textSizeGroup} role="radiogroup" aria-labelledby="appearance-type-heading">
+                {appearanceDefinition.textSizes.map((size) => {
+                  const selected = appearanceDefinition.value.textSize === size.id;
                   return (
                     <button
                       key={size.id}
@@ -434,7 +484,7 @@ export default function SectionsPanel({ onClose }) {
                       role="radio"
                       aria-checked={selected}
                       className={selected ? classes.textSizeActive : classes.textSize}
-                      onClick={() => handleSterlingTextSize(size.id)}
+                      onClick={() => handleAppearanceTextSize(size.id)}
                       title={size.description}
                     >
                       {size.label}
@@ -443,10 +493,10 @@ export default function SectionsPanel({ onClose }) {
                 })}
               </div>
               <p className={classes.typeNote}>
-                <strong>{sterlingAppearance.textSize}</strong>
-                {sterlingAppearance.textSize === "M"
+                <strong>{appearanceDefinition.value.textSize}</strong>
+                {appearanceDefinition.value.textSize === "M"
                   ? " — oryginalny rozmiar szablonu"
-                  : ` — ${STERLING_TEXT_SIZES.find((size) => size.id === sterlingAppearance.textSize)?.description}`}
+                  : ` — ${appearanceDefinition.textSizes.find((size) => size.id === appearanceDefinition.value.textSize)?.description}`}
                 <span> · {pageStatus}</span>
               </p>
             </section>
