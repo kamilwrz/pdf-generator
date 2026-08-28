@@ -9,7 +9,7 @@
  * Renders as a docked flyout to the right of the 72px sidebar rail.
  * Does not own pagination / orphan keep-together / LongCv 3+ page correction.
  */
-import { use, useEffect, useId, useMemo, useState } from "react";
+import { use, useEffect, useId, useMemo, useRef, useState } from "react";
 import { nanoid } from "nanoid";
 import { FiCheck, FiChevronDown, FiChevronUp, FiMinus, FiPlus, FiX } from "react-icons/fi";
 import { LuGripVertical, LuLayoutGrid } from "react-icons/lu";
@@ -41,8 +41,14 @@ import {
   STERLING_PALETTES,
   STERLING_TEXT_SIZES,
 } from "../../../utils/sterlingAppearance";
-import { applySterlingTextSizeLayout } from "../../../utils/sterlingTypographyLayout";
-import { createCanvasTextWidthMeasurer } from "../../../utils/textareaHeight";
+import {
+  applySterlingRenderedHeightsLayout,
+  applySterlingTextSizeLayout,
+} from "../../../utils/sterlingTypographyLayout";
+import {
+  createCanvasTextWidthMeasurer,
+  measureNaturalScrollHeight,
+} from "../../../utils/textareaHeight";
 import classes from "./SectionsPanel.module.css";
 
 /** User-facing spacing knobs — keys stay aligned with SPACE_* in the generator. */
@@ -108,6 +114,7 @@ export default function SectionsPanel({ onClose }) {
   const densityGroupId = useId();
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("layout");
+  const sterlingTypographyRequestRef = useRef(0);
 
   const spacing = useMemo(
     () => normalizeFlowSpacing(flowSpacing),
@@ -151,6 +158,11 @@ export default function SectionsPanel({ onClose }) {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
+
+  useEffect(() => () => {
+    // Cancel a pending post-paint typography settle when the panel unmounts.
+    sterlingTypographyRequestRef.current += 1;
+  }, []);
 
   function move(headingId, direction) {
     setA4_Elements((prev) => {
@@ -229,6 +241,54 @@ export default function SectionsPanel({ onClose }) {
       createId: () => nanoid(),
       measureTextWidth,
     }));
+
+    // Chromium is the final wrap authority. Wait until the new type has
+    // painted, collect every mounted textarea height, and pack once from that
+    // complete snapshot. This avoids the race where independent component
+    // effects settle in a different order and leave Education on top of the
+    // final Experience record. A newer click cancels this pending settle.
+    const requestId = sterlingTypographyRequestRef.current + 1;
+    sterlingTypographyRequestRef.current = requestId;
+    const settleRenderedTypography = async () => {
+      if (typeof document === "undefined" || typeof window === "undefined") return;
+      try {
+        await (document.fonts?.ready ?? Promise.resolve());
+      } catch {
+        // A failed optional webfont must not block layout; the rendered fallback
+        // face below is still measurable and preferable to stale box heights.
+      }
+      await new Promise((resolve) => window.requestAnimationFrame(resolve));
+      await new Promise((resolve) => window.requestAnimationFrame(resolve));
+      if (sterlingTypographyRequestRef.current !== requestId) return;
+
+      const measuredHeights = new Map();
+      for (const element of A4_Elements) {
+        if (
+          element.category !== "textarea"
+          || element.fixedToPage
+          || element.flowRole === "masthead"
+        ) {
+          continue;
+        }
+        const node = document.getElementById(element.element_id);
+        const measuredHeight = measureNaturalScrollHeight(node);
+        if (Number.isFinite(measuredHeight) && measuredHeight > 0) {
+          measuredHeights.set(element.element_id, measuredHeight);
+        }
+      }
+      if (measuredHeights.size === 0) return;
+
+      setA4_Elements((prev) => applySterlingRenderedHeightsLayout(
+        prev,
+        measuredHeights,
+        {
+          spacing,
+          pageHeight,
+          createId: () => nanoid(),
+        },
+      ));
+    };
+    void settleRenderedTypography();
   }
 
   function handleAutoFit() {

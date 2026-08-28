@@ -3,7 +3,10 @@ import { describe, it } from "node:test";
 import { sterlingTemplate } from "../templates/sterling.js";
 import { DEFAULT_FLOW_SPACING } from "./flowSpacing.js";
 import { contentMaxPage } from "./structureOperation.js";
-import { applySterlingTextSizeLayout } from "./sterlingTypographyLayout.js";
+import {
+  applySterlingRenderedHeightsLayout,
+  applySterlingTextSizeLayout,
+} from "./sterlingTypographyLayout.js";
 
 function withIds(elements) {
   return elements.map((element, index) => ({
@@ -96,5 +99,57 @@ describe("Sterling typography layout", () => {
 
     assert.ok(measuredSummary.height > heuristicSummary.height);
     assert.deepEqual(overlappingFlowText(measured), []);
+  });
+
+  it("batch-packs browser heights so a long final job cannot overlap Education", () => {
+    let nextId = 0;
+    const createId = () => `settled-${nextId += 1}`;
+    const elements = [
+      {
+        element_id: "experience-heading", category: "text", content: "DOŚWIADCZENIE ZAWODOWE",
+        flowRole: "section-chrome", left: 245, top: 174, width: 300, fontSize: 9.4, page: 1,
+      },
+      {
+        element_id: "job-title", category: "textarea", content: "Customer Service Specialist with German",
+        flowRole: "content", flowGroup: "job-4", autoHeight: true,
+        left: 245, top: 202, width: 300, height: 14, fontSize: 10.8, lineHeight: 14, page: 1,
+      },
+      {
+        element_id: "job-meta", category: "textarea", content: "Amazon CS Poland · Warszawa · 08/2020–06/2022",
+        flowRole: "content", flowGroup: "job-4", autoHeight: true,
+        left: 245, top: 220, width: 300, height: 12, fontSize: 8.6, lineHeight: 11.8, page: 1,
+      },
+      {
+        element_id: "job-bullets", category: "textarea", content: "Long four-item job description",
+        flowRole: "content", flowGroup: "job-4", autoHeight: true, bulletList: true,
+        left: 245, top: 236, width: 300, height: 110, fontSize: 9.5, lineHeight: 13.8, page: 1,
+      },
+      {
+        element_id: "education-heading", category: "text", content: "WYKSZTAŁCENIE",
+        flowRole: "section-chrome", left: 245, top: 312, width: 300, fontSize: 9.4, page: 1,
+      },
+      {
+        element_id: "degree", category: "textarea", content: "Bachelor of Laws (LL.B.)",
+        flowRole: "content", flowGroup: "edu-1", autoHeight: true,
+        left: 245, top: 340, width: 300, height: 14, fontSize: 10.8, lineHeight: 14, page: 1,
+      },
+    ];
+
+    const settled = applySterlingRenderedHeightsLayout(
+      elements,
+      // The browser height is already stored, reproducing the race where a
+      // per-field effect updated the box but left the next section at stale Y.
+      new Map([["job-bullets", 110]]),
+      { spacing: DEFAULT_FLOW_SPACING, pageHeight: 842, createId },
+    );
+    const bullets = settled.find((element) => element.element_id === "job-bullets");
+    const education = settled.find((element) => element.element_id === "education-heading");
+
+    assert.equal(bullets.height, 110);
+    assert.ok(
+      (education.page - 1) * 842 + education.top
+        >= (bullets.page - 1) * 842 + bullets.top + bullets.height,
+    );
+    assert.deepEqual(overlappingFlowText(settled), []);
   });
 });
