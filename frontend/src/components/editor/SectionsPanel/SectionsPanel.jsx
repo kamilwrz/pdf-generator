@@ -37,7 +37,6 @@ import { collapseSpilledMainIntoSidebar } from "../../../utils/collapseMainIntoS
 import {
   applySterlingPalette,
   getSterlingAppearance,
-  isSterlingDocument,
   STERLING_PALETTES,
   STERLING_TEXT_SIZES,
 } from "../../../utils/sterlingAppearance";
@@ -143,8 +142,13 @@ export default function SectionsPanel({ onClose }) {
   const pageStatus = formatPageCountLabel(pageCount ?? 1);
   const atBaseline = flowSpacingEquals(spacing, baselineSpacing);
   const hasAnySections = sections.length > 0 || sidebarSections.length > 0;
-  const sterlingAppearanceEnabled = activeTemplateId === "sterling"
-    || isSterlingDocument(A4_Elements);
+  // Appearance is intentionally released template by template. Some sidebar
+  // documents resemble Sterling closely enough to pass the structural legacy
+  // detector, but their colors are not wired to Sterling's palette roles.
+  // Gate the tab by the selected template ID until each template has its own
+  // reviewed appearance contract.
+  const sterlingAppearanceEnabled = activeTemplateId === "sterling";
+  const renderedTab = sterlingAppearanceEnabled ? activeTab : "layout";
   const sterlingAppearance = useMemo(
     () => getSterlingAppearance(A4_Elements),
     [A4_Elements],
@@ -224,11 +228,13 @@ export default function SectionsPanel({ onClose }) {
   }
 
   function handleSterlingPalette(paletteId) {
+    if (!sterlingAppearanceEnabled) return;
     if (paletteId === sterlingAppearance.palette) return;
     setA4_Elements((prev) => applySterlingPalette(prev, paletteId));
   }
 
   function handleSterlingTextSize(textSizeId) {
+    if (!sterlingAppearanceEnabled) return;
     if (textSizeId === sterlingAppearance.textSize) return;
     // Apply typography and both document lanes atomically. Independent DOM
     // measurements still verify the result afterwards, but the transaction
@@ -350,26 +356,27 @@ export default function SectionsPanel({ onClose }) {
         <button
           type="button"
           role="tab"
-          aria-selected={activeTab === "layout"}
-          className={activeTab === "layout" ? classes.tabActive : classes.tab}
+          aria-selected={renderedTab === "layout"}
+          className={renderedTab === "layout" ? classes.tabActive : classes.tab}
           onClick={() => setActiveTab("layout")}
         >
           Układ
         </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={activeTab === "appearance"}
-          className={activeTab === "appearance" ? classes.tabActive : classes.tab}
-          onClick={() => setActiveTab("appearance")}
-        >
-          Wygląd
-        </button>
+        {sterlingAppearanceEnabled ? (
+          <button
+            type="button"
+            role="tab"
+            aria-selected={renderedTab === "appearance"}
+            className={renderedTab === "appearance" ? classes.tabActive : classes.tab}
+            onClick={() => setActiveTab("appearance")}
+          >
+            Wygląd
+          </button>
+        ) : null}
       </div>
 
-      {activeTab === "appearance" ? (
-        sterlingAppearanceEnabled ? (
-          <div className={classes.appearanceBody} role="tabpanel">
+      {renderedTab === "appearance" && sterlingAppearanceEnabled ? (
+        <div className={classes.appearanceBody} role="tabpanel">
             <section className={classes.appearanceSection} aria-labelledby="sterling-palette-heading">
               <span className={classes.eyebrow}>Sterling</span>
               <div className={classes.appearanceHeading}>
@@ -443,17 +450,7 @@ export default function SectionsPanel({ onClose }) {
                 <span> · {pageStatus}</span>
               </p>
             </section>
-          </div>
-        ) : (
-          <div className={classes.appearanceEmpty} role="tabpanel">
-            <span className={classes.eyebrow}>Wygląd</span>
-            <h3>Palety są dostępne dla Sterlinga</h3>
-            <p>
-              Wybierz szablon Sterling, aby dopasować jego kolory, ikony i skalę tekstu.
-              Kolejne szablony otrzymają własne, kuratorowane warianty.
-            </p>
-          </div>
-        )
+        </div>
       ) : (
         <div className={classes.body} role="tabpanel">
           <section className={classes.section} aria-labelledby="document-status-heading">

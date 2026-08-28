@@ -4,6 +4,7 @@ import { porticoTemplate } from "../templates/portico.js";
 import { DEFAULT_FLOW_SPACING } from "./flowSpacing.js";
 import { applyTitleToggle } from "./mastheadIdentityOps.js";
 import { reflowPorticoAfterMastheadChange } from "./porticoMastheadReflow.js";
+import { reflowTextareaHeight } from "./textareaReflow.js";
 import {
   hideProfilePhoto,
   isProfilePhotoHidden,
@@ -77,6 +78,30 @@ function absoluteTop(element) {
   return ((element.page || 1) - 1) * PAGE_HEIGHT + Number(element.top);
 }
 
+function sectionMembershipSnapshot(elements) {
+  return listDocumentSections(elements).map((section) => ({
+    ...section,
+    memberIds: sectionElementIds(elements, section.headingId),
+  }));
+}
+
+function assertSectionContentFollowsItsHeading(elements, sections) {
+  for (const section of sections) {
+    const heading = elements.find(
+      (element) => element.element_id === section.headingId,
+    );
+    const bodyMembers = elements.filter((element) => (
+      section.memberIds.has(element.element_id)
+      && element.element_id !== section.headingId
+      && element.flowRole !== "section-chrome"
+    ));
+    assert.ok(
+      bodyMembers.every((element) => absoluteTop(element) > absoluteTop(heading)),
+      `${section.title} content must remain below its heading`,
+    );
+  }
+}
+
 describe("Portico photo and job-title round trip", () => {
   for (const hideOrder of ["photo-first", "title-first"]) {
     for (const showOrder of ["photo-first", "title-first"]) {
@@ -84,10 +109,7 @@ describe("Portico photo and job-title round trip", () => {
         let nextId = 0;
         const createId = () => `generated-${nextId += 1}`;
         let elements = completeExperienceBeforeEducationFixture();
-        const expectedSections = listDocumentSections(elements).map((section) => ({
-          ...section,
-          memberIds: sectionElementIds(elements, section.headingId),
-        }));
+        const expectedSections = sectionMembershipSnapshot(elements);
         const reflow = (membershipReference) => {
           elements = reflowPorticoAfterMastheadChange(
             elements,
@@ -160,21 +182,95 @@ describe("Portico photo and job-title round trip", () => {
           recordBottom < absoluteTop(educationHeading),
           "the final Experience record must finish before Education starts",
         );
-        for (const section of expectedSections) {
-          const heading = elements.find(
-            (element) => element.element_id === section.headingId,
-          );
-          const bodyMembers = elements.filter((element) => (
-            section.memberIds.has(element.element_id)
-            && element.element_id !== section.headingId
-            && element.flowRole !== "section-chrome"
-          ));
-          assert.ok(
-            bodyMembers.every((element) => absoluteTop(element) > absoluteTop(heading)),
-            `${section.title} content must remain below its heading`,
-          );
-        }
+        assertSectionContentFollowsItsHeading(elements, expectedSections);
       });
     }
   }
+
+  it("uses pre-toggle ownership when continuation content crosses its heading", () => {
+    const reference = completeExperienceBeforeEducationFixture();
+    const expectedSections = sectionMembershipSnapshot(reference);
+    const education = expectedSections.find((section) => section.title === "WYKSZTAŁCENIE");
+    const skills = expectedSections.find((section) => section.title === "UMIEJĘTNOŚCI");
+    const educationBody = reference
+      .filter((element) => (
+        education.memberIds.has(element.element_id)
+        && element.flowRole !== "section-chrome"
+      ))
+      .sort((left, right) => absoluteTop(left) - absoluteTop(right));
+    const skillsBody = reference.find((element) => (
+      skills.memberIds.has(element.element_id)
+      && element.flowRole !== "section-chrome"
+    ));
+
+    // Reproduce the transient geometry visible in the report: the first degree
+    // sits at the end of Experience and the Skills body precedes its heading.
+    // IDs and semantic ownership are still unchanged from `reference`.
+    const crossed = reference.map((element) => {
+      if (element.element_id === educationBody[0].element_id) {
+        return { ...element, page: 1, top: 748 };
+      }
+      if (element.element_id === skillsBody.element_id) {
+        return { ...element, page: 2, top: 150 };
+      }
+      return element;
+    });
+    let nextId = 0;
+    const packed = reflowPorticoAfterMastheadChange(
+      crossed,
+      DEFAULT_FLOW_SPACING,
+      () => `repair-${nextId += 1}`,
+      reference,
+    );
+
+    assertSectionContentFollowsItsHeading(packed, expectedSections);
+    assert.deepEqual(
+      listDocumentSections(packed).map((section) => section.title),
+      expectedSections.map((section) => section.title),
+    );
+  });
+
+  it("keeps section ownership while remounted continuation textareas settle", () => {
+    let elements = completeExperienceBeforeEducationFixture();
+    const expectedSections = sectionMembershipSnapshot(elements);
+    let nextId = 0;
+    const createId = () => `settle-${nextId += 1}`;
+    const togglePhoto = (visible) => {
+      const reference = elements;
+      elements = (visible ? showProfilePhoto : hideProfilePhoto)(
+        elements,
+        "portico",
+      ).elements;
+      elements = reflowPorticoAfterMastheadChange(
+        elements,
+        DEFAULT_FLOW_SPACING,
+        createId,
+        reference,
+      );
+    };
+
+    togglePhoto(false);
+    togglePhoto(true);
+    const textareaIds = elements
+      .filter((element) => element.category === "textarea" && element.autoHeight)
+      .map((element) => element.element_id);
+    for (const elementId of textareaIds) {
+      const current = elements.find((element) => element.element_id === elementId);
+      const settled = reflowTextareaHeight(
+        elements,
+        elementId,
+        Number(current.height),
+        PAGE_HEIGHT,
+        {
+          pageTop: 66,
+          bottomMargin: 72,
+          allowReclaim: true,
+          spacing: DEFAULT_FLOW_SPACING,
+        },
+      );
+      elements = settled.elements;
+    }
+
+    assertSectionContentFollowsItsHeading(elements, expectedSections);
+  });
 });

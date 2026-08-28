@@ -6,13 +6,17 @@ const panelUrl = new URL("./SectionsPanel.jsx", import.meta.url);
 const cssUrl = new URL("./SectionsPanel.module.css", import.meta.url);
 const sidebarUrl = new URL("../Sidebar/Sidebar.jsx", import.meta.url);
 
-test("customization panel exposes layout and appearance tabs", async () => {
+test("customization panel exposes Appearance only for the active Sterling template", async () => {
   const source = await readFile(panelUrl, "utf8");
   assert.match(source, /Dostosuj CV/);
   assert.match(source, /role="tablist"/);
   assert.match(source, />\s*Układ\s*</);
   assert.match(source, />\s*Wygląd\s*</);
   assert.match(source, /aria-selected/);
+  assert.match(source, /const sterlingAppearanceEnabled = activeTemplateId === "sterling"/);
+  assert.match(source, /const renderedTab = sterlingAppearanceEnabled \? activeTab : "layout"/);
+  assert.match(source, /sterlingAppearanceEnabled \? \(/);
+  assert.doesNotMatch(source, /isSterlingDocument/);
 });
 
 test("appearance presents Sterling palettes, icon-aware previews, and text presets", async () => {
@@ -24,7 +28,7 @@ test("appearance presents Sterling palettes, icon-aware previews, and text prese
   assert.match(source, /STERLING_TEXT_SIZES/);
   assert.match(source, /Rozmiar tekstu/);
   assert.match(source, /oryginalny rozmiar szablonu/);
-  assert.match(source, /Palety są dostępne dla Sterlinga/);
+  assert.match(source, /if \(!sterlingAppearanceEnabled\) return/);
 });
 
 test("document card keeps tier-honest fit status and CTA", async () => {
