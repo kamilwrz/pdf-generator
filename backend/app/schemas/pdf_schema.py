@@ -53,6 +53,30 @@ class TextRun(BaseModel):
     color: Optional[str] = None
 
 
+class ResolvedTextLine(BaseModel):
+    """One browser-authored visual line for a textarea export.
+
+    ``start`` / ``end`` address the unchanged plain ``content`` string. Soft
+    break whitespace and explicit newline characters may sit between adjacent
+    records. The payload is transient rendering metadata: editor state and the
+    persisted document continue to store semantic text rather than hard wraps.
+    """
+
+    text: str
+    start: int = Field(..., ge=0)
+    end: int = Field(..., ge=0)
+    paragraphEnd: bool = False
+    indent: float = Field(0.0, ge=0)
+    bulletPrefix: Literal["", "• "] = ""
+    # Browser-measured text start relative to the textarea's left edge. This
+    # preserves right/center alignment and the exact bullet-body start.
+    xOffset: Optional[float] = Field(None, ge=0)
+    # Browser-measured horizontal advance of the visible line. ReportLab uses
+    # it to compensate for the remaining shaping/kerning delta after preserving
+    # the browser's line break and start position.
+    advanceWidth: Optional[float] = Field(None, ge=0)
+
+
 class PdfElement(BaseModel):
     """One canvas element as sent by the editor.
 
@@ -85,6 +109,10 @@ class PdfElement(BaseModel):
     # single-font fast path (identical Canvas↔PDF wrapping as before this field
     # existed). Populated only for text/textarea that carry mixed styling.
     runs: Optional[list[TextRun]] = None
+    # Transient Chromium soft-wrap decisions attached immediately before PDF
+    # rendering. The backend validates every slice and falls back to its own
+    # wrapper when records are absent or inconsistent with current content.
+    resolvedLines: Optional[list[ResolvedTextLine]] = None
     # textarea: left | center | right | justify
     align: Optional[str] = "left"
     # Hang indent for lines that start with a bullet marker.

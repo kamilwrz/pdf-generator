@@ -112,7 +112,7 @@ flowchart LR
 
 ### Coordinate system
 
-Canvas and stored geometry use **top-left** origin (CSS-like). ReportLab uses **bottom-left**; `PDF_Generator` flips `top` using `page_h` before drawing (`backend/app/services/pdf_generator.py`). Textarea soft-wrap uses the same word-break rules as the canvas, plus a 2 px `WRAP_WIDTH_TOLERANCE_PX` so borderline last words (tight Inter body lines) stay on the same line in the PDF as on the canvas — see `tests/test_pdf_bullet_layout.py`. After a font change the canvas reflows measured `height` / following `top` values; auto-height PDF export **honours those stored heights** (clipping overflow) instead of recomputing box height from PDF wrap alone — recomputing used to open fake gaps or draw through the next block so Canvas≠PDF rhythm while the editor still looked correct. Stub heights from a pre-measure export still expand. Canvas painting maps Helvetica/Courier → Inter via `canvasFontFamily` to match the PDF Unicode aliases.
+Canvas and stored geometry use **top-left** origin (CSS-like). ReportLab uses **bottom-left**; `PDF_Generator` flips `top` using `page_h` before drawing (`backend/app/services/pdf_generator.py`). Immediately before create, update, or render-on-demand export, `resolveBrowserTextLayouts` builds an off-screen mirror with the textarea's exact CSS width and typography. Chromium `Range` rectangles provide the authoritative soft-wrap slices, bullet indent, line start, and horizontal advance. ReportLab validates this transient metadata against the complete current content and box bounds, then draws those exact lines and compensates the remaining kerning delta so their start and end positions match the canvas. The records exist only in the outgoing request and are never persisted. If the DOM, the requested primary font (including inline bold/italic variants), or validation is unavailable, export falls back safely to the backend wrapper. That fallback uses literal width for Montserrat and all uncalibrated families; only Inter retains its independently verified 2 px `INTER_WRAP_WIDTH_TOLERANCE_PX` correction. After a font change the canvas reflows measured `height` / following `top` values; auto-height PDF export **honours those stored heights** (clipping overflow) instead of recomputing box height from PDF wrap alone. Stub heights from a pre-measure export still expand. Canvas painting maps Helvetica/Courier → Inter via `canvasFontFamily` to match the PDF Unicode aliases.
 
 ### Auto-height reflow and aligned icons
 
@@ -193,11 +193,11 @@ pdf-generator/
 │   │   ├── services/         # ApiClient, fillTemplate, authenticatedImage, eventLog
 │   │   ├── store/            # Canvas / UiSurfaces / Session + PdfContext facade
 │   │   ├── templates/        # per-template specs + helpers; linden.js is the botanical editorial starter
-│   │   └── utils/            # geometry/reflow/sections, Sterling/Monument palettes + type presets, guest helpers
+│   │   └── utils/            # geometry/reflow/sections, browser text-export layout, template appearance, guest helpers
 │   ├── package.json
 │   └── .env.example
 ├── shared/
-│   └── pdf-element.schema.json  # Exported from Pydantic PdfElement
+│   └── pdf-element.schema.json  # Exported PdfElement + transient ResolvedTextLine contract
 └── backend/
     ├── app/
     │   ├── api/routes/       # auth, pdf, images, ai, assistant, billing, events
@@ -243,6 +243,8 @@ Schema is created by `init_db()` during app lifespan (not at import): `Base.meta
 | `payments` | Future payment ledger |
 | `maintenance_markers` | One-off cleanup keys |
 
+`resolvedLines` is deliberately absent from `pdf_elements.extra_properties`: it is browser-authored render metadata attached only to create/update/download requests. Saved documents retain semantic `content` and `runs`, so reopening a CV never restores stale line breaks measured for an earlier width or font state.
+
 **Relationships:** One user owns many `pdfs` and `images`. Each `pdf` has many `pdf_elements`. Subscription and usage are per user.
 
 Models: `backend/app/models/models.py` (`User`, `Pdf`, `PdfElements`, …).
@@ -282,7 +284,7 @@ Implementation:
 - `frontend/src/utils/canvasElementSchema.js` — categories `polygon`, `path`
 - `backend/app/schemas/pdf_schema.py` — `ElementCategory` + `shape` / `points` / `pathKind` / `curves`
 - `backend/app/crud/pdfs.py` — pack/unpack those fields in `extra_properties`
-- `backend/app/services/pdf_generator.py`, methods `renderRectangle` (filled), `renderPolygon`, `renderPath` (lines 223–329)
+- `backend/app/services/pdf_generator.py`, methods `renderRectangle` (lines 272–313), `renderPolygon` (314–340), and `renderPath` (341–379)
 - `shared/pdf-element.schema.json` — regenerated via `python -m app.schemas.export_pdf_element_schema`
 
 Tests:
@@ -332,7 +334,7 @@ Implementation:
 - `frontend/src/utils/monumentAppearance.js`, lines 18–75, `MONUMENT_PALETTES`; lines 156–218 and 242–323, functions `getMonumentAppearance`, `applyMonumentPalette`, and `applyMonumentTextSize` — seven-role Monument colour contract, matching contact/portrait icon paths, reversible role-aware baselines, height seeding, and persisted intent; tests: `monumentAppearance.test.js`, lines 47–98
 - `frontend/src/utils/textareaHeight.js`, lines 78–205, functions `createCanvasTextWidthMeasurer`, `measuredWrappedLineCount`, and `measureTextareaHeight` — browser-canvas glyph measurement, word-boundary wrapping, bullet-column width reservation, and the deterministic non-DOM fallback; regressions: `frontend/src/utils/textareaHeight.test.js`, lines 97–123
 - `frontend/src/utils/sterlingTypographyLayout.js`, functions `applySterlingTextSizeLayout` and `applySterlingRenderedHeightsLayout`; `frontend/src/utils/monumentTypographyLayout.js`, lines 24–42 and 56–84, functions `applyMonumentTextSizeLayout` and `applyMonumentRenderedHeightsLayout` — conservative glyph-aware preset transactions followed by one post-paint batch of browser-measured textarea heights and a final lane-aware pack; Monument regressions: `monumentTypographyLayout.test.js`, lines 55–115
-- `backend/app/schemas/pdf_schema.py`, lines 186–190, model `PdfElement`; `shared/pdf-element.schema.json`, lines 865–924; `backend/app/crud/pdfs.py`, lines 116–120, 211–215, 364–368, and 434–438; `frontend/src/components/modals/ModalPdfs/ModalPdfs.jsx`, lines 106–111 — validate, pack, update, unpack, and hydrate template appearance metadata through `extra_properties`; persistence tests: `test_contact_channel_roundtrip.py` and `test_pdf_element_updates.py`
+- `backend/app/schemas/pdf_schema.py`, lines 214–218, `PdfElement` appearance fields; `shared/pdf-element.schema.json`, lines 952–1012; `backend/app/crud/pdfs.py`, lines 116–120, 211–215, 364–368, and 434–438; `frontend/src/components/modals/ModalPdfs/ModalPdfs.jsx`, lines 108–112 — validate, pack, update, unpack, and hydrate template appearance metadata through `extra_properties`; persistence tests: `test_contact_channel_roundtrip.py` and `test_pdf_element_updates.py`
 - `scripts/generate_iconic_icons.py`, lines 68–82, `_save_png`, and lines 308–414, `SUBSET_THEMES`; `backend/template_assets/iconic/{sterling-*,monument-*}` — six matching icon themes per appearance-enabled template; asset-colour tests: `backend/tests/test_sterling_appearance_assets.py` and `test_monument_appearance_assets.py`, lines 1–37
 - `frontend/src/utils/sectionStructure.js` — `packDocumentSections`, `applyFlowSpacing`, reorder; leading section chrome reserved with the **full first `flowGroup` record** (degree + meta + description, not only the first body line — same orphan rule as `textareaReflow.avoidOrphanChrome` / backend `need_section`); later body records keep mates on one page via private `flowGroupEndIndex` / `remainingStripRecordHeight` inside `placeStrip`. Before strips are compacted, private `healSplitFlowGroupMemberships` assigns every mate of a record to the section that owns its earliest member. This repairs stale multi-page geometry where a following section heading sits between a job title and its company/description, preventing Experience and Education from being interleaved during any pack. Intra-chrome offsets are preserved (never `SPACE_STACK`); section boundaries use the chrome **band** start (badge/frame above the title), via private `resolveSectionChromeBandStart`, so the next Monument-style pre-heading chrome is not absorbed into the previous section during pack; flow start is anchored under the masthead so single-column header rules (Regent, Monument) are not absorbed into sections. Per-strip placement is factored into the private `placeStrip(strip, cursorAbs, pageHeight, pageTop, bottomMargin)` helper, reused by `packDocumentSections`, `appendSectionAtEnd(elements, newElements, pageHeight, options)` (end-of-document), and `insertSectionAfter` (under a chosen section) — placement primitives that drop a freshly built section at the end of the document flow (one `SPACE_SECTION` gap below the deepest non-`fixedToPage` element) and then force-pack every section with `applyFlowSpacing` so wizard-authored gaps and the new strip share one `stack` / `record` / `section` / `after_rule` rhythm. Add section, add record, reorder, and rhythm knobs all go through this packer, so structural edits inherit the same keep-together contract as textarea reflow. `appendSectionAtEnd` is wired to the Sections panel's "+ Dodaj sekcję" button — see [Add Section (structural editor)](#add-section-structural-editor) below for the end-to-end flow and its own file/symbol references. On two-column sidebar templates (Tessera, Slate, Sterling), every main-column sweep is scoped to the section's own column via private `sameColumnAsHeading` (`SIDEBAR_LEFT_GAP = 150`) **and** skips any element with `flowLane: "sidebar"` (so a right-rail sidebar body cannot be absorbed either). A candidate is treated as a different (left) sidebar column only when it sits more than 150px to the **left** of the section's heading **and does not reach the heading horizontally** (its right edge stops before the heading's left). That two-part test is what makes it safe for a **centered** heading (Atrium): a full-width body under a centered heading also starts left of it, but extends across and past it, so it stays in-column; a narrow left rail (`side_left` ≈ 25-51 vs `main_left` ≈ 218-248) ends before the heading and is excluded. Chrome legitimately parked to the right or a modest distance left of a heading (a marker parked ~450px right, Monument's badge ~50px left) is never affected. Sidebar kickers are tagged `flowRole: "sidebar-chrome"` + `flowLane: "sidebar"` so they never enter `listDocumentSections`; `applyFlowSpacing` then calls `packSidebarLane` (lines 1200–1281) on an independent vertical cursor that retargets the same `stack` / `record` / `section` / `after_rule` rhythm inside the rail without folding it into the main column. Structural add / reorder / remove auto-detect sidebar kickers: `reorderSection` / `removeSection` swap or delete within `listSidebarSections` and re-pack via `packSidebarLane` (optional `orderedHeadingIds`); `appendSectionAtEnd` / `insertSectionAfter` accept `lane: "sidebar"` (or infer it from a sidebar `afterHeadingId`) so new strips join the rail. Canvas heading hover and the Układ CV panel list both lanes. Untagged legacy rails remain geometrically excluded and untouched.
 - `frontend/src/pages/PdfCanvas.jsx`, component `PdfCanvas` (`start=templates|import|wizard|blank`, unlock copy; mounts `Editor` outside `Sidebar`)
@@ -793,7 +795,7 @@ Implementation:
 - `frontend/src/components/canvas/CanvasElements/CanvasElements.jsx` + `CanvasElements.module.css`
 - `frontend/src/hooks/useA4Elements.js` — `handleLoadAiElements`, `handleLoadTemplate`, `handleLoadTemplateWithFill` call `markContentElementsEnter`
 - `frontend/src/components/canvas/CanvasElements/CanvasElements.jsx`, lines 51–78; `frontend/src/components/canvas/Textarea/Textarea.jsx`, lines 42–164 — skip the initial textarea measurement when `preserveInitialLayout` is set
-- `backend/app/schemas/pdf_schema.py`, lines 44–46; `backend/app/crud/pdfs.py`, lines 81–82, 187–188, 226–227; `frontend/src/components/modals/ModalPdfs/ModalPdfs.jsx`, lines 104–105 — persist and restore `flowRole` / `preserveInitialLayout`
+- `backend/app/schemas/pdf_schema.py`, fields `flowRole` (line 123) and `preserveInitialLayout` (line 135); `backend/app/crud/pdfs.py`, hydrate lines 78–82, create 225–229, insert 378–382, and update 448–452; `frontend/src/components/modals/ModalPdfs/ModalPdfs.jsx`, lines 134–138 — persist and restore `flowRole` / `preserveInitialLayout`
 
 Tests:
 
@@ -1198,7 +1200,7 @@ Implementation:
 - `frontend/src/utils/textareaReflow.js`, functions `isTextAlignedImage`, `isPositionLockedForReflow`, `belongsToFlowLane`, `packGapAfterPageBreak`, `rawSamePageGap`, `remainingRecordHeight`, `avoidOrphanChrome`, `precedingChromeCluster`, `precedingRecordMates`, `followingRecordMates`, `hasInterveningLaneContent`, `placeRecordCluster`, and `reflowTextareaHeight`
 - `frontend/src/components/canvas/Image/Image.jsx`, lines 93–110 — default `object-fit: fill` (full-page backgrounds stretch like ReportLab `drawImage`); profile slots / explicit `objectFit: "cover"` center-crop instead
 - `frontend/src/utils/iconAlignment.js`, `CANVAS_TEXT_CAP_MID` / `iconicDrawTop` — shared optical offset for text-aligned icons (canvas source of truth)
-- `backend/app/services/pdf_generator.py`, lines 150–240, methods `PDF_Generator.renderImage` / `_draw_image_cover`
+- `backend/app/services/pdf_generator.py`, lines 151–217 and 218–252, methods `PDF_Generator.renderImage` and `_draw_image_cover`
 - `backend/app/crud/pdfs.py` / `backend/app/schemas/pdf_schema.py` — persist `alignWithText` in `extra_properties`
 
 Tests:
@@ -1231,6 +1233,8 @@ The starter modules use explicit `.js` import extensions, and `frontend/src/serv
 
 Save and Download are two independent actions.
 
+All three rendering paths (`createPdf`, `updatePdf`, and `downloadPdf`) first call `resolveBrowserTextLayouts` on the sanitized, z-sorted snapshot. The loading state begins before font resolution, preventing a second click from starting a concurrent metered export. The helper waits for every actually used base and inline-run font face; only then does it attach transient `resolvedLines`. A missing face leaves that textarea unchanged so the server uses its calibrated fallback instead of treating fallback-font measurements as authoritative.
+
 **Zapisz** (`createPdf` when there is no `pdfId`, otherwise `updatePdf` with intent `save`) writes to "Moje dokumenty": create inserts the row and renders the initial file (`POST /pdf/create_pdf`); update re-renders and syncs elements for the existing row (`PUT /pdf/update_pdf`). The payload also stores the normalized `cv_data` snapshot used for a later template change. This is the only path that persists to the account. A successful save marks the in-memory document clean (`savedCleanRef`) so a later document switch does not warn about unsaved edits.
 
 **Pobierz** (`downloadPdf`) wakes the API (`wakeBackend`), retries transient network blips, then posts the current canvas to `POST /pdf/render_pdf`, which renders the document and **streams the PDF bytes without persisting anything** (no `Pdf` / `PdfElements` row is created). This is what makes Download independent of Save — an unsaved document still exports. `triggerBlobDownload` triggers the browser download and the same object URL is baked into the success toast action. The bytes are always proxied through the API (never a cross-origin S3 fetch, which failed with opaque `Failed to fetch` without bucket CORS). Every download charges the export quota.
@@ -1239,7 +1243,8 @@ Save and Download are two independent actions.
 
 Implementation:
 
-- `frontend/src/hooks/usePdfExport.js`, `createPdf` / `updatePdf` / `downloadPdf` — `wakeBackend` + retries; `downloadPdf` streams the render-on-demand blob
+- `frontend/src/hooks/usePdfExport.js`, lines 34–223, functions `createPdf`, `updatePdf`, and `downloadPdf` — browser line resolution, loading guard, `wakeBackend` + retries; `downloadPdf` streams the render-on-demand blob
+- `frontend/src/utils/browserTextLayout.js`, lines 187–348, functions `resolveTextareaBrowserLines` and `resolveBrowserTextLayouts` — exact CSS mirror, primary-face readiness, DOM Range line geometry, Unicode-safe offsets, and fail-open fallback
 - `frontend/src/pages/PdfCanvas.jsx`, `handleSaveClick` (create-or-update), `handleDownloadClick` (render + toast), post-spinner save toast effect (`savedCleanRef`)
 - `frontend/src/components/modals/ModalPdfs/ModalPdfs.jsx`, `downloadPdf` — click-to-download a stored id; list fetch not tied to download state
 - `frontend/src/utils/download.js`, `fetchOwnedPdfDownload`, `triggerBlobDownload`
@@ -1247,7 +1252,7 @@ Implementation:
 - `backend/app/api/routes/pdf.py`, `create_user_pdf`, `update_user_pdf`, `render_user_pdf` (render-on-demand, metered, no persist), `download_pdf` (stored binary attachment)
 - `backend/app/services/document_service.py`, `render_document_bytes` — renders canvas bytes without persistence
 - `backend/app/main.py` — CORS `expose_headers=["Content-Disposition"]`
-- `backend/app/services/pdf_generator.py`, class `PDF_Generator`, `render_elements` (line 492+)
+- `backend/app/services/pdf_generator.py`, lines 1338–1452, method `PDF_Generator.render_elements`
 - `backend/app/crud/pdfs.py`, `create_new_pdf`, `update_pdf_elements`
 
 ### Image upload (validated, private content)
@@ -1320,7 +1325,7 @@ Implementation:
 - `frontend/src/utils/editorMode.js` — `photoSlot: "image"|"glyph"` treated as layout-owned
 - `frontend/src/utils/materializeElementSpecs.js` — preserves template semantic `id`
 - `backend/app/schemas/pdf_schema.py`, `shared/pdf-element.schema.json`, `backend/app/crud/pdfs.py`, and `ModalPdfs.jsx` — validate, persist, and hydrate visibility/restoration fields
-- `backend/app/services/pdf_generator.py`, lines 1125–1242, method `render_elements` — skips hidden slot members during export
+- `backend/app/services/pdf_generator.py`, lines 1338–1452, method `render_elements`; hidden-slot filter at lines 1352–1355
 - Tests: `frontend/src/utils/porticoVisibilityRoundTrip.test.js`, lines 1–276 (all four photo/job-title hide/show orders, transient Education/Skills heading crossings, and remounted-textarea settling); `frontend/src/utils/profilePhotoVisibility.test.js`, lines 187–248 (two-page hide reflow in both toggle orders plus a split job-record/next-section regression); `frontend/src/utils/sectionStructure.test.js`, lines 1887–1950; `frontend/src/templates/slate.test.js`, lines 6–78; `frontend/src/templates/tessera.test.js`, lines 6–81; `backend/tests/test_cv_template_layouts.py`, lines 103–215 and 258–378; `backend/tests/test_contact_channel_roundtrip.py`, lines 54–76; `backend/tests/test_pdf_watermark.py`, lines 119–137
 - Generators / starters: `slate`, `tessera`, `monument`, `regent`, `portico`, `atrium` (FE + BE)
 
@@ -1658,7 +1663,7 @@ Implementation:
 - `backend/app/services/entitlements.py`, line 337 (`get_entitlements` exposes `free_import_used`), lines 443–465 (`assert_can_extract_cv` — Free's one-trial branch), lines 467–478 (`mark_free_import_used`, no-op unless Free and unused)
 - `backend/app/api/routes/ai.py`, line 106, function `extract_cv` — calls `mark_free_import_used(db, user.id)` strictly after a successful `extract_cv_data()`, inside the same `try` block, so a raised exception never reaches it
 - `frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`, line 63 (`canExtract` now also true for `plan_slug === "free" && !free_import_used`), line 94 (distinct "already used" copy vs. the Pro-upgrade message)
-- `backend/app/services/pdf_generator.py`, lines 954–978, method `_draw_watermark` (diagonal overlay, isolated via `saveState`/`restoreState` so it cannot leak fill/alpha/font state); line 980, `render_elements(..., watermark=False)` — opt-in 4th parameter, drawn once per page immediately before `showPage()`
+- `backend/app/services/pdf_generator.py`, lines 1312–1336, method `_draw_watermark` (diagonal overlay, isolated via `saveState`/`restoreState` so it cannot leak fill/alpha/font state); lines 1338–1452, `render_elements(..., watermark=False)`, with the per-page call at 1448–1450
 - `backend/app/crud/pdfs.py`, line 41, function `elements_from_rows` — reconstructs full `PdfElement` objects (including `runs`, connectors, `flowRole`, `borderRadius`, …) from stored rows, the inverse of this file's existing `extra_properties` packing in `create_new_pdf` / `update_pdf_elements`
 - `backend/app/services/document_service.py`, line 73, `create_pdf_document`; line 146, `update_pdf_document` (now takes a `user` parameter) — both compute `watermark = get_entitlements(db, user)["plan_slug"] == "free"` and set `Pdf.watermarked` to match what was actually rendered; line 202, `render_pdf_for_download(db, pdf_row, watermark)` — re-renders a stored document in place (local disk: overwrite; S3: re-upload to the same key) and updates `pdf_row.watermarked`
 - `backend/app/api/routes/pdf.py`, line 143, `update_user_pdf` (now fetches the owning `User` row, matching the pattern already used by `create_user_pdf`/`download_pdf`); lines 193–222, `download_pdf` — computes `watermark_required` from the live plan and only calls `render_pdf_for_download` when it disagrees with `pdf_row.watermarked`
@@ -1727,12 +1732,15 @@ byte-for-byte as before. `runs` is persisted in the existing `extra_properties`
 JSON (no database migration).
 
 Canvas↔PDF parity. Inline decoration breaks the "one font per element"
-assumption the 1:1 export relies on, because real bold/italic variants have
-different glyph metrics. Both sides therefore became run-aware while keeping the
-old path untouched: the browser wraps inline styled spans natively, and the PDF
-renderer sums per-run widths (each measured with the font that span draws in) so
-wrap points still match. Justify combined with runs degrades to left in v1;
-per-run font-family/size and hyperlinks are out of scope.
+assumption because real bold/italic variants have different glyph metrics, and
+even identical TTF files are shaped differently by Chromium and ReportLab.
+Every rendering request therefore measures the final textarea DOM in Chromium.
+`resolvedLines` carries each visual slice, paragraph boundary, bullet indent,
+browser X start, and measured horizontal advance. ReportLab preserves those
+breaks and endpoints for plain, mixed-run, centred, right-aligned, and justified
+lines. Its run-aware width wrapper remains the compatibility fallback when a
+primary font cannot be confirmed or the transient records fail validation.
+Per-run font-family/size and hyperlinks remain out of scope.
 
 Bullet lists apply the same parity rule to paragraph geometry, not only glyph
 metrics. Display and edit mode share one marker/body grid, and ReportLab reserves
@@ -1740,17 +1748,34 @@ the same normalized `• ` prefix column for every continuation line. The plain
 stored `content` string remains unchanged; only the temporary editable DOM is
 structured into paragraphs.
 
+The browser metadata is deliberately ephemeral. `usePdfExport` attaches it to
+the sanitized snapshot sent by create/update/download, but does not write it to
+React state. CRUD persists `content` and `runs`, never `resolvedLines`. The
+backend rejects incomplete coverage, skipped or injected blank paragraphs,
+invalid bullet prefixes, non-finite/out-of-box geometry, and content-mismatched
+slices; it then reverts the complete textarea to width-based wrapping. Strong
+RTL text and length-expanding uppercase transforms currently use that fallback
+because ReportLab's text path does not yet provide equivalent bidi shaping.
+
 Implementation:
 
-- Data model / contract: `backend/app/schemas/pdf_schema.py` — `TextRun`,
-  `PdfElement.runs`; regenerated `shared/pdf-element.schema.json`.
+- Data model / contract: `backend/app/schemas/pdf_schema.py`, lines 56–77 and
+  112–115 — `ResolvedTextLine` and `PdfElement.resolvedLines`, alongside
+  `TextRun` / `PdfElement.runs`; regenerated `shared/pdf-element.schema.json`,
+  lines 3–74 and 327–340.
 - Persistence: `backend/app/crud/pdfs.py` — `serialize_runs`, `"runs"` in the
   three `extra_properties` writers; hydration read-back in
   `frontend/src/components/modals/ModalPdfs/ModalPdfs.jsx`.
-- PDF rendering: `backend/app/services/pdf_generator.py` — `_prepare_styled`,
-  `_build_char_styles`, `_sanitize_with_styles`, `_styled_run_width`,
-  `_wrap_textarea_styled`, and the styled branches of `renderText`,
-  `renderTextarea`, `measure_textarea_height`.
+- PDF rendering: `backend/app/services/pdf_generator.py`, lines 580–599,
+  803–918, and 1092–1305 — Inter-only fallback tolerance,
+  `_validated_resolved_lines`, and `renderTextarea`; `_prepare_styled`,
+  `_wrap_textarea_styled`, and `measure_textarea_height` retain the run-aware
+  fallback.
+- Browser export measurement: `frontend/src/utils/browserTextLayout.js`, lines
+  58–178 and 187–348 — Range grouping, required font variants, exact textarea
+  mirror, transient line records, and fallback gates; `frontend/src/hooks/usePdfExport.js`,
+  lines 34–223 — create/update/download wiring. `saveElements` (lines 229–251)
+  intentionally does not generate rendering metadata.
 - Frontend model + serialization: `frontend/src/utils/textRuns.js`
   (`normalizeRuns`, `applyMark`, `rangeHasMark`, `sliceRuns`, `styledSegments`),
   `frontend/src/utils/editableSerialize.js`, lines 39–110 and 330–408
@@ -1785,10 +1810,18 @@ Tests:
   `frontend/src/utils/editableSerialize.test.js`, lines 99–139 — normalization,
   mark toggling, run slicing, DOM serialization round-trip, the Monument training
   paragraph, and production wiring to the shared grid.
-- `backend/tests/test_pdf_bullet_layout.py`, lines 85–111 — the matching 152 px
-  Montserrat hanging-indent wrap (`… Fortinet` / `NSE 1-3.`).
+- `backend/tests/test_pdf_bullet_layout.py`, lines 86–163 — Monument and Linden
+  152 px Montserrat fallback wrapping; lines 164–383 — authoritative browser
+  lines, validation/fallback, blank/null safety, advance calibration, and runs.
+- `frontend/src/utils/browserTextLayout.test.js`, lines 10–108 — no-DOM,
+  missing-font and RTL fallback, all run font variants, and create/update/download wiring.
 - `frontend/src/utils/textEditSurface.test.js` — remount seed from stored
   content; detached / in-transition blur must not finalize an edit.
+
+Further reading:
+
+- [MDN: `Range.getClientRects()`](https://developer.mozilla.org/en-US/docs/Web/API/Range/getClientRects) — browser geometry used to identify visual lines without inserting spans that would disable kerning.
+- [MDN: `FontFaceSet.load()`](https://developer.mozilla.org/en-US/docs/Web/API/FontFaceSet/load) — explicit font-face readiness used before a line measurement becomes authoritative.
 
 ---
 
@@ -1836,7 +1869,7 @@ Content-Type: application/x-www-form-urlencoded
 username=demo&password=secret
 ```
 
-Example save/elements body shape: `{ "pdf_id", "pdf_title", "root": [PdfElement...], "pages", "page_width", "page_height", "cv_data" }`. `cv_data` is optional for legacy/freeform documents and is the normalized source for a later template change. The render-on-demand download body (`POST /pdf/render_pdf`) is the same shape **without** `pdf_id` and does not persist `cv_data` (it reuses `PDFCreateRequest`). See `backend/app/schemas/pdf_schema.py`.
+Example save/elements body shape: `{ "pdf_id", "pdf_title", "root": [PdfElement...], "pages", "page_width", "page_height", "cv_data" }`. `cv_data` is optional for legacy/freeform documents and is the normalized source for a later template change. The render-on-demand download body (`POST /pdf/render_pdf`) is the same shape **without** `pdf_id` and does not persist `cv_data` (it reuses `PDFCreateRequest`). For rendering create/update/download requests, a textarea may additionally carry optional `PdfElement.resolvedLines: ResolvedTextLine[]`. These records are content- and bounds-validated, consumed only by `PDF_Generator.renderTextarea`, and never stored; clients may omit them and receive the calibrated backend wrap. The elements-only `save_elements` path intentionally does not generate them. See `backend/app/schemas/pdf_schema.py`, lines 56–77 and 112–115.
 
 ---
 
@@ -1939,7 +1972,7 @@ Never commit real secrets.
 ## Testing
 
 - **Framework:** Python `unittest` under `backend/tests/`.
-- **Coverage focus:** image upload security (format sniffing, traversal, size/count limits, owner-only content), PDF ownership IDOR, export metering HTTP, Free extract rejection, PdfElement schema contract (`shared/pdf-element.schema.json`), layout analysis safety, AI chat/command sanitisation, entitlements, template registry sync (frontend `TEMPLATES` ↔ `_GENERATORS` ↔ `FREE_STARTER_TEMPLATE_IDS`), PDF element upsert/`fixedToPage`, CV data normalisation, bullet layout, Unicode fonts.
+- **Coverage focus:** image upload security (format sniffing, traversal, size/count limits, owner-only content), PDF ownership IDOR, export metering HTTP, Free extract rejection, PdfElement schema contract (`shared/pdf-element.schema.json`), per-font PDF wrapping, transient browser-line validation and advance calibration, layout analysis safety, AI chat/command sanitisation, entitlements, template registry sync (frontend `TEMPLATES` ↔ `_GENERATORS` ↔ `FREE_STARTER_TEMPLATE_IDS`), PDF element upsert/`fixedToPage`, CV data normalisation, bullet layout, Unicode fonts. Frontend tests also verify primary/run font readiness and all three rendering-request integrations; real Chromium Range output is additionally checked during visual export QA, not by the Node unit runner.
 - **Run:** `cd backend && python -m unittest discover -s tests`.
 - **Frontend:** ESLint via `npm run lint`; unit tests via `cd frontend && npm test` (Node built-in runner).
 - **CI:** `.github/workflows/ci.yml` runs both suites on push/PR.
@@ -2135,7 +2168,7 @@ flowchart LR
 
 ### Współrzędne
 
-Kanwa: początek **lewy-górny**. ReportLab: **lewy-dolny**; `PDF_Generator` odwraca `top` przez `page_h`. Soft-wrap textarea używa tych samych reguł łamania co kanwa oraz 2 px `WRAP_WIDTH_TOLERANCE_PX`, żeby graniczne ostatnie słowa (ciasne linie Inter) zostawały w PDF w tej samej linii co na kanwie — zob. `tests/test_pdf_bullet_layout.py`. Po zmianie czcionki kanwa przepakowuje zmierzone `height` / kolejne `top`; eksport auto-height **respektuje te zapisane wysokości** (przycinając overflow) zamiast przeliczać wysokość boxa wyłącznie z zawijania PDF — przeliczanie otwierało sztuczne luki albo rysowało przez następny blok, więc rytm Canvas≠PDF przy poprawnym wyglądzie edytora. Stub wysokości sprzed pierwszego pomiaru nadal się rozszerza. Malowanie na kanwie mapuje Helvetica/Courier → Inter przez `canvasFontFamily`, zgodnie z aliasami Unicode w PDF.
+Kanwa: początek **lewy-górny**. ReportLab: **lewy-dolny**; `PDF_Generator` odwraca `top` przez `page_h`. Bezpośrednio przed create, update lub renderem na żądanie `resolveBrowserTextLayouts` tworzy poza ekranem lustro o dokładnej szerokości i typografii textarea. Prostokąty `Range` z Chromium wyznaczają autorytatywne fragmenty wierszy, wcięcie punktora, początek linii i jej poziomy advance. ReportLab waliduje te tymczasowe dane względem pełnej bieżącej treści i granic boxa, a następnie rysuje dokładnie te wiersze i kompensuje pozostałą różnicę kerningu, aby ich początki i końce zgadzały się z kanwą. Rekordy istnieją tylko w wysyłanym żądaniu i nigdy nie są utrwalane. Jeśli DOM, właściwy font bazowy (w tym warianty bold/italic z runów) albo walidacja są niedostępne, eksport bezpiecznie wraca do wrappera backendu. Fallback używa literalnej szerokości dla Montserrat i wszystkich nieskalibrowanych rodzin; tylko Inter zachowuje niezależnie potwierdzoną korektę 2 px `INTER_WRAP_WIDTH_TOLERANCE_PX`. Po zmianie czcionki kanwa przepakowuje zmierzone `height` / kolejne `top`; eksport auto-height **respektuje te zapisane wysokości** i przycina overflow. Stub wysokości sprzed pierwszego pomiaru nadal się rozszerza. Malowanie na kanwie mapuje Helvetica/Courier → Inter przez `canvasFontFamily`, zgodnie z aliasami Unicode w PDF.
 
 ### Reflow automatycznej wysokości i wyrównanie ikon
 
@@ -2214,11 +2247,11 @@ pdf-generator/
 │   │   ├── services/         # ApiClient, fillTemplate, authenticatedImage
 │   │   ├── store/            # Canvas / UiSurfaces / Session + fasada PdfContext
 │   │   ├── templates/        # specyfikacje szablonów + helpery; linden.js to botaniczny starter editorialny
-│   │   └── utils/            # geometria/reflow/sekcje, palety i presety tekstu Sterlinga, helpery gościa
+│   │   └── utils/            # geometria/reflow/sekcje, przeglądarkowy layout eksportu tekstu, wygląd szablonów, helpery gościa
 │   ├── package.json
 │   └── .env.example
 ├── shared/
-│   └── pdf-element.schema.json  # Eksport z Pydantic PdfElement
+│   └── pdf-element.schema.json  # Eksport kontraktu PdfElement + tymczasowy ResolvedTextLine
 └── backend/
     ├── app/
     │   ├── api/routes/
@@ -2262,6 +2295,8 @@ pdf-generator/
 | `payments` | Ledger płatności (przyszłość) |
 | `maintenance_markers` | Jednorazowe cleanupy |
 
+`resolvedLines` celowo nie trafia do `pdf_elements.extra_properties`: to metadane renderowania wyznaczane przez przeglądarkę i dołączane wyłącznie do żądań create/update/download. Zapisany dokument zachowuje semantyczne `content` oraz `runs`, więc ponowne otwarcie CV nie przywraca nieaktualnych podziałów zmierzonych dla wcześniejszej szerokości lub stanu fontu.
+
 Modele: `backend/app/models/models.py`.
 
 ---
@@ -2299,7 +2334,7 @@ Implementacja:
 - `frontend/src/utils/canvasElementSchema.js` — kategorie `polygon`, `path`
 - `backend/app/schemas/pdf_schema.py` — `ElementCategory` + `shape` / `points` / `pathKind` / `curves`
 - `backend/app/crud/pdfs.py` — pack/unpack tych pól w `extra_properties`
-- `backend/app/services/pdf_generator.py`, metody `renderRectangle` (wypełnienie), `renderPolygon`, `renderPath` (linie 223–329)
+- `backend/app/services/pdf_generator.py`, metody `renderRectangle` (linie 272–313), `renderPolygon` (314–340) i `renderPath` (341–379)
 - `shared/pdf-element.schema.json` — regenerowany przez `python -m app.schemas.export_pdf_element_schema`
 
 Testy:
@@ -2342,7 +2377,7 @@ Implementacja:
 - `frontend/src/utils/monumentAppearance.js`, linie 18–75, `MONUMENT_PALETTES`; linie 156–218 i 242–323, funkcje `getMonumentAppearance`, `applyMonumentPalette` i `applyMonumentTextSize` — siedmiorolowy kontrakt kolorów Monument, dopasowane ścieżki ikon kontaktów/portretu, odwracalne bazowe metryki, estymacja wysokości i zapis zamiaru; testy: `monumentAppearance.test.js`, linie 47–98
 - `frontend/src/utils/textareaHeight.js`, linie 78–205, funkcje `createCanvasTextWidthMeasurer`, `measuredWrappedLineCount` i `measureTextareaHeight` — pomiar glifów przez canvas przeglądarki, zawijanie na granicach słów, rezerwacja szerokości kolumny punktora oraz deterministyczny fallback bez DOM; regresje: `frontend/src/utils/textareaHeight.test.js`, linie 97–123
 - `frontend/src/utils/sterlingTypographyLayout.js`, funkcje `applySterlingTextSizeLayout` i `applySterlingRenderedHeightsLayout`; `frontend/src/utils/monumentTypographyLayout.js`, linie 24–42 i 56–84, funkcje `applyMonumentTextSizeLayout` i `applyMonumentRenderedHeightsLayout` — konserwatywne transakcje presetu, po których następuje jeden zbiorczy pomiar textarea i pack właściwy dla torów; regresje Monument: `monumentTypographyLayout.test.js`, linie 55–115
-- `backend/app/schemas/pdf_schema.py`, linie 186–190, model `PdfElement`; `shared/pdf-element.schema.json`, linie 865–924; `backend/app/crud/pdfs.py`, linie 116–120, 211–215, 364–368 i 434–438; `frontend/src/components/modals/ModalPdfs/ModalPdfs.jsx`, linie 106–111 — walidacja, pakowanie, aktualizacja, odpakowanie i hydratacja metadanych wyglądu szablonu przez `extra_properties`; testy trwałości: `test_contact_channel_roundtrip.py` i `test_pdf_element_updates.py`
+- `backend/app/schemas/pdf_schema.py`, linie 214–218, pola wyglądu `PdfElement`; `shared/pdf-element.schema.json`, linie 952–1012; `backend/app/crud/pdfs.py`, linie 116–120, 211–215, 364–368 i 434–438; `frontend/src/components/modals/ModalPdfs/ModalPdfs.jsx`, linie 108–112 — walidacja, pakowanie, aktualizacja, odpakowanie i hydratacja metadanych wyglądu szablonu przez `extra_properties`; testy trwałości: `test_contact_channel_roundtrip.py` i `test_pdf_element_updates.py`
 - `scripts/generate_iconic_icons.py`, linie 68–82, `_save_png`, oraz linie 308–414, `SUBSET_THEMES`; `backend/template_assets/iconic/{sterling-*,monument-*}` — po sześć pasujących motywów ikon dla każdego szablonu z wyglądem; testy kolorów: `backend/tests/test_sterling_appearance_assets.py` i `test_monument_appearance_assets.py`, linie 1–37
 - `frontend/src/pages/PdfCanvas.jsx` — intencje `templates|import|wizard|blank`, unlock z kopią; `Editor` montowany poza `Sidebar`
 - `frontend/src/hooks/useA4Elements.js` (klon/usuń/resize no-op w trybie szablonu), `useElementSelectionDrag.js`, `textareaReflow.js` (`allowReclaim`, `spacing`)
@@ -2791,7 +2826,7 @@ Implementacja:
 - `frontend/src/components/canvas/CanvasElements/CanvasElements.jsx` + `CanvasElements.module.css`
 - `frontend/src/hooks/useA4Elements.js` — `handleLoadAiElements`, `handleLoadTemplate`, `handleLoadTemplateWithFill` wywołują `markContentElementsEnter`
 - `frontend/src/components/canvas/CanvasElements/CanvasElements.jsx`, linie 51–78; `frontend/src/components/canvas/Textarea/Textarea.jsx`, linie 42–164 — pominięcie pierwszego pomiaru textarea, gdy ustawiono `preserveInitialLayout`
-- `backend/app/schemas/pdf_schema.py`, linie 44–46; `backend/app/crud/pdfs.py`, linie 81–82, 187–188, 226–227; `frontend/src/components/modals/ModalPdfs/ModalPdfs.jsx`, linie 104–105 — zapis i odtwarzanie `flowRole` / `preserveInitialLayout`
+- `backend/app/schemas/pdf_schema.py`, pola `flowRole` (linia 123) i `preserveInitialLayout` (linia 135); `backend/app/crud/pdfs.py`, hydratacja 78–82, create 225–229, insert 378–382 i update 448–452; `frontend/src/components/modals/ModalPdfs/ModalPdfs.jsx`, linie 134–138 — zapis i odtwarzanie `flowRole` / `preserveInitialLayout`
 
 Testy:
 
@@ -3227,6 +3262,8 @@ Moduły starterów używają jawnych rozszerzeń `.js` w importach, a `frontend/
 
 Zapis i Pobieranie to dwie niezależne akcje.
 
+Wszystkie trzy ścieżki renderowania (`createPdf`, `updatePdf` i `downloadPdf`) najpierw wywołują `resolveBrowserTextLayouts` dla oczyszczonego snapshotu posortowanego po Z. Stan ładowania zaczyna się przed rozwiązywaniem fontów, więc drugi klik nie uruchomi równoległego, naliczanego eksportu. Helper czeka na każdą realnie używaną odmianę fontu bazowego oraz runów inline; dopiero wtedy dołącza tymczasowe `resolvedLines`. Brak właściwej odmiany pozostawia textarea bez zmian, aby serwer użył skalibrowanego fallbacku zamiast uznać pomiar fontem zastępczym za autorytatywny.
+
 **Zapisz** (`createPdf`, gdy nie ma `pdfId`, w przeciwnym razie `updatePdf` z intentem `save`) zapisuje do „Moich dokumentów”: create wstawia wiersz i renderuje początkowy plik (`POST /pdf/create_pdf`); update renderuje ponownie i synchronizuje elementy istniejącego wiersza (`PUT /pdf/update_pdf`). Payload zapisuje także znormalizowany snapshot `cv_data`, używany przy późniejszej zmianie szablonu. To jedyna ścieżka utrwalania na koncie. Udany zapis oznacza dokument w pamięci jako „czysty” (`savedCleanRef`), więc późniejsza zmiana dokumentu nie ostrzega o niezapisanych zmianach.
 
 **Pobierz** (`downloadPdf`) budzi API (`wakeBackend`), ponawia chwilowe błędy sieci, a następnie wysyła bieżące płótno do `POST /pdf/render_pdf`, który renderuje dokument i **strumieniuje bajty PDF bez utrwalania czegokolwiek** (nie powstaje wiersz `Pdf` / `PdfElements`). To właśnie czyni Pobieranie niezależnym od Zapisu — niezapisany dokument także się eksportuje. `triggerBlobDownload` uruchamia pobieranie w przeglądarce, a ten sam object URL jest wklejany w akcję toasta sukcesu. Bajty zawsze przechodzą przez API (nigdy cross-origin fetch do S3, który bez CORS bucketu kończył się nieprzezroczystym `Failed to fetch`). Każde pobranie nalicza limit eksportów.
@@ -3235,7 +3272,8 @@ Pobieranie w **Moje dokumenty** pobiera *zapisany* dokument po id przez `POST /p
 
 Implementacja:
 
-- `frontend/src/hooks/usePdfExport.js` — `createPdf` / `updatePdf` / `downloadPdf` — `wakeBackend` + ponowienia; `downloadPdf` strumieniuje blob renderowany na żądanie
+- `frontend/src/hooks/usePdfExport.js`, linie 34–223, funkcje `createPdf`, `updatePdf` i `downloadPdf` — rozwiązanie wierszy w przeglądarce, blokada ładowania, `wakeBackend` + ponowienia; `downloadPdf` strumieniuje blob renderowany na żądanie
+- `frontend/src/utils/browserTextLayout.js`, linie 187–348, funkcje `resolveTextareaBrowserLines` i `resolveBrowserTextLayouts` — dokładne lustro CSS, gotowość właściwych odmian fontu, geometria wierszy przez DOM Range, offsety bezpieczne dla Unicode i bezpieczny fallback
 - `frontend/src/pages/PdfCanvas.jsx` — `handleSaveClick` (create-or-update), `handleDownloadClick` (render + toast), efekt toasta zapisu po spinnerze (`savedCleanRef`)
 - `frontend/src/components/modals/ModalPdfs/ModalPdfs.jsx`, `downloadPdf` — klik dla zapisanego id; fetch listy niezależny od stanu pobierania
 - `frontend/src/utils/download.js`, `fetchOwnedPdfDownload`, `triggerBlobDownload`
@@ -3243,7 +3281,7 @@ Implementacja:
 - `backend/app/api/routes/pdf.py` — `create_user_pdf`, `update_user_pdf`, `render_user_pdf` (render na żądanie, naliczany, bez utrwalania), `download_pdf` (załącznik binarny zapisanego dokumentu)
 - `backend/app/services/document_service.py` — `render_document_bytes` — renderuje bajty płótna bez utrwalania
 - `backend/app/main.py` — CORS `expose_headers=["Content-Disposition"]`
-- `backend/app/services/pdf_generator.py` — `PDF_Generator.render_elements` (ok. 492+)
+- `backend/app/services/pdf_generator.py`, linie 1338–1452 — `PDF_Generator.render_elements`
 - `backend/app/crud/pdfs.py` — `create_new_pdf`, `update_pdf_elements`
 
 ### Upload obrazów (walidowany, prywatna treść)
@@ -3316,7 +3354,7 @@ Implementacja:
 - `frontend/src/utils/editorMode.js` — `photoSlot: "image"|"glyph"` jako layout-owned
 - `frontend/src/utils/materializeElementSpecs.js` — zachowanie semantycznego `id`
 - `backend/app/schemas/pdf_schema.py`, `shared/pdf-element.schema.json`, `backend/app/crud/pdfs.py` i `ModalPdfs.jsx` — walidacja, zapis oraz hydratacja pól widoczności/odtwarzania
-- `backend/app/services/pdf_generator.py`, linie 1125–1242, metoda `render_elements` — pomijanie ukrytych elementów slotu podczas eksportu
+- `backend/app/services/pdf_generator.py`, linie 1338–1452, metoda `render_elements`; filtr ukrytego slotu w liniach 1352–1355
 - Testy: `frontend/src/utils/porticoVisibilityRoundTrip.test.js`, linie 1–276 (wszystkie cztery kolejności ukrywania/pokazywania zdjęcia i stanowiska, przejściowe przekroczenie nagłówków Wykształcenia/Umiejętności oraz osiadanie ponownie zamontowanych textarea); `frontend/src/utils/profilePhotoVisibility.test.js`, linie 187–248 (dwustronicowy reflow ukrywania w obu kolejnościach oraz regresja rekordu stanowiska rozciętego nagłówkiem następnej sekcji); `frontend/src/utils/sectionStructure.test.js`, linie 1887–1950; `frontend/src/templates/slate.test.js`, linie 6–78; `frontend/src/templates/tessera.test.js`, linie 6–81; `backend/tests/test_cv_template_layouts.py`, linie 103–215 i 258–378; `backend/tests/test_contact_channel_roundtrip.py`, linie 54–76; `backend/tests/test_pdf_watermark.py`, linie 119–137
 - Generatory / startery: `slate`, `tessera`, `monument`, `regent`, `portico`, `atrium` (FE + BE)
 
@@ -3648,7 +3686,7 @@ Implementacja:
 - `backend/app/services/entitlements.py`, linia 337 (`get_entitlements` udostępnia `free_import_used`), linie 443–465 (`assert_can_extract_cv` — gałąź jednej próby dla Free), linie 467–478 (`mark_free_import_used`, no-op poza kontem Free z niewykorzystaną próbą)
 - `backend/app/api/routes/ai.py`, linia 106, funkcja `extract_cv` — woła `mark_free_import_used(db, user.id)` wyłącznie po udanym `extract_cv_data()`, w tym samym bloku `try`, więc wyjątek nigdy tam nie dotrze
 - `frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`, linia 63 (`canExtract` jest teraz też `true` dla `plan_slug === "free" && !free_import_used`), linia 94 (osobny komunikat „już wykorzystano” vs. komunikat o Pro)
-- `backend/app/services/pdf_generator.py`, linie 954–978, metoda `_draw_watermark` (ukośna nakładka, izolowana przez `saveState`/`restoreState`, więc nie może wyciec kolor wypełnienia/przezroczystości/fontu); linia 980, `render_elements(..., watermark=False)` — opcjonalny 4. parametr, rysowany raz na stronę tuż przed `showPage()`
+- `backend/app/services/pdf_generator.py`, linie 1312–1336, metoda `_draw_watermark` (ukośna nakładka, izolowana przez `saveState`/`restoreState`, więc nie może wyciec kolor wypełnienia/przezroczystości/fontu); linie 1338–1452, `render_elements(..., watermark=False)`, z wywołaniem per strona w liniach 1448–1450
 - `backend/app/crud/pdfs.py`, linia 41, funkcja `elements_from_rows` — rekonstruuje pełne obiekty `PdfElement` (w tym `runs`, konektory, `flowRole`, `borderRadius`, …) z zapisanych wierszy, odwrotność istniejącego pakowania `extra_properties` w `create_new_pdf` / `update_pdf_elements`
 - `backend/app/services/document_service.py`, linia 73, `create_pdf_document`; linia 146, `update_pdf_document` (przyjmuje teraz parametr `user`) — oba liczą `watermark = get_entitlements(db, user)["plan_slug"] == "free"` i ustawiają `Pdf.watermarked` zgodnie z tym, co faktycznie wyrenderowano; linia 202, `render_pdf_for_download(db, pdf_row, watermark)` — przerenderowuje zapisany dokument w miejscu (dysk lokalny: nadpisanie; S3: ponowny upload pod ten sam klucz) i aktualizuje `pdf_row.watermarked`
 - `backend/app/api/routes/pdf.py`, linia 143, `update_user_pdf` (pobiera teraz właściciela — wiersz `User` — zgodnie ze wzorcem już używanym przez `create_user_pdf`/`download_pdf`); linie 193–222, `download_pdf` — liczy `watermark_required` z bieżącego planu i woła `render_pdf_for_download` tylko wtedy, gdy różni się od `pdf_row.watermarked`
@@ -3710,13 +3748,16 @@ w PDF idzie oryginalną **szybką ścieżką** jedno-fontową, więc niesformato
 dokumenty renderują się bajt-w-bajt jak wcześniej. `runs` zapisywane jest w
 istniejącym JSON-ie `extra_properties` (bez migracji bazy).
 
-Parytet Canvas↔PDF. Dekoracja inline łamie założenie „jeden font na element”, na
-którym opiera się eksport 1:1, bo realne warianty bold/italic mają inne metryki
-glifów. Obie strony stały się więc świadome runów, nie ruszając starej ścieżki:
-przeglądarka zawija stylowane spany inline natywnie, a renderer PDF sumuje
-szerokości poszczególnych runów (każdy mierzony fontem, którym się rysuje), więc
-punkty zawijania nadal się zgadzają. Justowanie łączone z runami degraduje się w
-v1 do wyrównania do lewej; font/rozmiar per-run oraz hiperłącza są poza zakresem.
+Parytet Canvas↔PDF. Dekoracja inline łamie założenie „jeden font na element”, bo
+realne warianty bold/italic mają inne metryki glifów, a nawet identyczne pliki
+TTF są inaczej kształtowane przez Chromium i ReportLab. Każde żądanie renderu
+mierzy więc końcowy DOM textarea w Chromium. `resolvedLines` przenosi każdy
+widoczny fragment, granicę akapitu, wcięcie punktora, przeglądarkowy początek X i
+zmierzony poziomy advance. ReportLab zachowuje te podziały oraz końce dla linii
+zwykłych, mieszanych runów, wycentrowanych, wyrównanych do prawej i justowanych.
+Wrapper świadomy runów pozostaje fallbackiem zgodności, gdy nie można potwierdzić
+właściwego fontu albo tymczasowe rekordy nie przejdą walidacji. Font/rozmiar
+per-run i hiperłącza nadal są poza zakresem.
 
 Listy punktowane stosują tę samą zasadę parytetu również do geometrii akapitu,
 nie tylko metryk glifów. Wyświetlanie i edycja dzielą jedną siatkę marker/treść,
@@ -3724,17 +3765,35 @@ a ReportLab rezerwuje tę samą znormalizowaną kolumnę prefiksu `• ` dla ka�
 linii kontynuacji. Zwykły string `content` pozostaje bez zmian; tylko tymczasowy
 DOM edycji jest strukturyzowany na akapity.
 
+Metadane przeglądarki są celowo krótkotrwałe. `usePdfExport` dołącza je do
+oczyszczonego snapshotu wysyłanego przez create/update/download, ale nie zapisuje
+ich w stanie React. CRUD utrwala `content` i `runs`, nigdy `resolvedLines`.
+Backend odrzuca niepełne pokrycie, pominięte lub wstrzyknięte puste akapity,
+błędne prefiksy punktów, geometrię niefinitywną/poza boxem oraz fragmenty
+niezgodne z treścią; wtedy cała textarea wraca do zawijania po szerokości. Tekst
+z silnym RTL i uppercase zwiększający długość korzystają obecnie z fallbacku,
+ponieważ ścieżka tekstowa ReportLab nie zapewnia jeszcze równoważnego bidi shaping.
+
 Implementacja:
 
-- Model danych / kontrakt: `backend/app/schemas/pdf_schema.py` — `TextRun`,
-  `PdfElement.runs`; wygenerowany ponownie `shared/pdf-element.schema.json`.
+- Model danych / kontrakt: `backend/app/schemas/pdf_schema.py`, linie 56–77 i
+  112–115 — `ResolvedTextLine` oraz `PdfElement.resolvedLines`, obok `TextRun` /
+  `PdfElement.runs`; wygenerowany ponownie `shared/pdf-element.schema.json`,
+  linie 3–74 i 327–340.
 - Trwałość: `backend/app/crud/pdfs.py` — `serialize_runs`, `"runs"` w trzech
   miejscach zapisujących `extra_properties`; odczyt przy hydratacji w
   `frontend/src/components/modals/ModalPdfs/ModalPdfs.jsx`.
-- Render PDF: `backend/app/services/pdf_generator.py` — `_prepare_styled`,
-  `_build_char_styles`, `_sanitize_with_styles`, `_styled_run_width`,
-  `_wrap_textarea_styled` oraz stylowane gałęzie `renderText`, `renderTextarea`,
-  `measure_textarea_height`.
+- Render PDF: `backend/app/services/pdf_generator.py`, linie 580–599, 803–918 i
+  1092–1305 — tolerancja fallbacku wyłącznie dla Inter,
+  `_validated_resolved_lines` oraz `renderTextarea`; `_prepare_styled`,
+  `_wrap_textarea_styled` i `measure_textarea_height` zachowują fallback świadomy
+  runów.
+- Pomiar eksportu w przeglądarce: `frontend/src/utils/browserTextLayout.js`,
+  linie 58–178 i 187–348 — grupowanie Range, wymagane odmiany fontów, dokładne
+  lustro textarea, tymczasowe rekordy linii i bramki fallbacku;
+  `frontend/src/hooks/usePdfExport.js`, linie 34–223 — podłączenie
+  create/update/download. `saveElements` (linie 229–251) celowo nie generuje
+  metadanych renderowania.
 - Model + serializacja na froncie: `frontend/src/utils/textRuns.js`
   (`normalizeRuns`, `applyMark`, `rangeHasMark`, `sliceRuns`, `styledSegments`),
   `frontend/src/utils/editableSerialize.js`, linie 39–110 i 330–408
@@ -3771,10 +3830,20 @@ Testy:
   `frontend/src/utils/editableSerialize.test.js`, linie 99–139 — normalizacja,
   przełączanie marek, cięcie runów, round-trip serializacji DOM, akapit szkolenia
   z Monument oraz podłączenie produkcyjne do wspólnej siatki.
-- `backend/tests/test_pdf_bullet_layout.py`, linie 85–111 — odpowiadające
-  zawijanie Montserrat przy 152 px (`… Fortinet` / `NSE 1-3.`).
+- `backend/tests/test_pdf_bullet_layout.py`, linie 86–163 — fallbackowe
+  zawijanie Montserrat 152 px dla Monument i Linden; linie 164–383 —
+  autorytatywne linie przeglądarki, walidacja/fallback, bezpieczeństwo pustej/null
+  treści, kalibracja advance i runy.
+- `frontend/src/utils/browserTextLayout.test.js`, linie 10–108 — fallback bez
+  DOM, przy braku fontu i dla RTL, wszystkie odmiany fontów z runów oraz podłączenie
+  create/update/download.
 - `frontend/src/utils/textEditSurface.test.js` — ponowne wstawienie treści po
   remoncie; odłączony / przejściowy blur nie finalizuje edycji.
+
+Dalsza lektura:
+
+- [MDN: `Range.getClientRects()`](https://developer.mozilla.org/en-US/docs/Web/API/Range/getClientRects) — geometria przeglądarki używana do wykrywania widocznych linii bez wstawiania spanów, które wyłączyłyby kerning.
+- [MDN: `FontFaceSet.load()`](https://developer.mozilla.org/en-US/docs/Web/API/FontFaceSet/load) — jawne oczekiwanie na właściwą odmianę fontu, zanim pomiar linii stanie się autorytatywny.
 
 ---
 
@@ -3810,7 +3879,7 @@ URL bazowy: `VITE_API_URL`. Auth: `Authorization: Bearer <jwt>` (chyba że zazna
 
 `POST /events/log` przyjmuje ustalony słownik `event_type` (`EventLogRequest.event_type` w `backend/app/api/routes/events.py`): pierwotne `template_picked` / `template_dismissed`; zdarzenia lejka gościa `landing_cta_clicked`, `guest_editor_opened`, `guest_demo_loaded`, `guest_first_edit`, `save_gate_shown`, `register_completed`, `guest_doc_claimed`; oraz zdarzenia CTA landingu z konkretnym źródłem dodane wraz z przebudową landingu — `hero_wizard`, `hero_import`, `hero_demo`, `before_after_import`, `templates_wizard`, `pricing_free`, `pricing_pro`, `final_wizard`, `final_import`. Endpoint nadal wymaga JWT; zdarzenia landingu/lejka gościa buforują się po stronie klienta, gdy użytkownik jest anonimowy (`frontend/src/utils/guestEvents.js`), i są wysyłane przez ten sam uwierzytelniony endpoint, gdy tylko pojawi się token (zob. [Tryb gościa](#tryb-gościa-edytor-bez-konta)).
 
-Schemat elementów: `backend/app/schemas/pdf_schema.py`. Ciało zapisu/`save_elements`: `{ "pdf_id", "pdf_title", "root": [PdfElement...], "pages", "page_width", "page_height", "cv_data" }`. `cv_data` jest opcjonalne dla starszych dokumentów i projektów własnych oraz stanowi znormalizowane źródło późniejszej zmiany szablonu. Ciało pobierania na żądanie (`POST /pdf/render_pdf`) ma ten sam kształt **bez** `pdf_id` i nie utrwala `cv_data` (używa ponownie `PDFCreateRequest`).
+Schemat elementów: `backend/app/schemas/pdf_schema.py`. Ciało zapisu/`save_elements`: `{ "pdf_id", "pdf_title", "root": [PdfElement...], "pages", "page_width", "page_height", "cv_data" }`. `cv_data` jest opcjonalne dla starszych dokumentów i projektów własnych oraz stanowi znormalizowane źródło późniejszej zmiany szablonu. Ciało pobierania na żądanie (`POST /pdf/render_pdf`) ma ten sam kształt **bez** `pdf_id` i nie utrwala `cv_data` (używa ponownie `PDFCreateRequest`). W renderujących żądaniach create/update/download textarea może dodatkowo nieść opcjonalne `PdfElement.resolvedLines: ResolvedTextLine[]`. Rekordy są walidowane względem treści i granic, zużywane wyłącznie przez `PDF_Generator.renderTextarea` i nigdy nie są zapisywane; klient może je pominąć i otrzymać skalibrowane zawijanie backendu. Ścieżka element-only `save_elements` celowo ich nie generuje. Zob. `backend/app/schemas/pdf_schema.py`, linie 56–77 i 112–115.
 
 ---
 
@@ -3875,7 +3944,7 @@ Frontend: `VITE_API_URL`.
 ## Testy
 
 - **Framework:** `unittest` w `backend/tests/`.
-- **Zakres:** bezpieczeństwo uploadu (w tym content tylko dla właściciela), IDOR PDF, metering eksportów HTTP, reject extract na Free, kontrakt schematu `PdfElement` (`shared/pdf-element.schema.json`), analiza układu, sanityzacja AI, entitlements, synchronizacja rejestru szablonów, upsert elementów PDF, normalizacja `cv_data`, listy punktów, fonty Unicode.
+- **Zakres:** bezpieczeństwo uploadu (w tym content tylko dla właściciela), IDOR PDF, metering eksportów HTTP, reject extract na Free, kontrakt schematu `PdfElement` (`shared/pdf-element.schema.json`), zawijanie PDF per font, walidacja tymczasowych linii przeglądarki i kalibracja advance, analiza układu, sanityzacja AI, entitlements, synchronizacja rejestru szablonów, upsert elementów PDF, normalizacja `cv_data`, listy punktów, fonty Unicode. Testy frontendowe sprawdzają też gotowość bazowych/runowych fontów i podłączenie wszystkich trzech żądań renderu; realny wynik Chromium Range jest dodatkowo sprawdzany podczas wizualnego QA eksportu, a nie przez runner jednostkowy Node.
 - **Uruchomienie:** `cd backend && python -m unittest discover -s tests`.
 - **Frontend:** `npm run lint` oraz `npm test`.
 - **CI:** `.github/workflows/ci.yml` uruchamia obie suity przy push/PR.

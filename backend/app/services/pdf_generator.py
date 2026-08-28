@@ -21,6 +21,7 @@ from reportlab.pdfbase.pdfmetrics import stringWidth, getAscentDescent
 from pathlib import Path
 from PIL import Image as PilImage
 import io
+import math
 import re
 from fontTools.ttLib import TTFont as _FTFont
 
@@ -36,12 +37,12 @@ _PDF_INVISIBLE_RE = re.compile(
     r"[\u00ad\u200b-\u200f\u2028\u2029\u2060\ufeff\ufffc\ufffd]"
 )
 
-# ReportLab stringWidth and the browser's soft-wrap disagree by ~1–2 px on
-# Inter at CV body sizes when a line is packed to the box edge. Without this
-# slack the PDF wraps a final word (e.g. "korporacyjnych.") while the canvas
-# still shows it on the previous line. Prefer matching the canvas; a 2 px
-# overshoot is invisible and does not clip under overflow:hidden.
-WRAP_WIDTH_TOLERANCE_PX = 2.0
+# ReportLab stringWidth overestimates some tightly packed Inter lines by
+# ~1–2 px compared with Chromium. This tolerance is deliberately Inter-only:
+# applying it to Montserrat let PDF text draw beyond the authored box and kept
+# words on lines that the canvas correctly wrapped. Other families use the
+# literal box width until they have an independently measured calibration.
+INTER_WRAP_WIDTH_TOLERANCE_PX = 2.0
 
 
 def sanitize_pdf_text(text) -> str:
@@ -576,11 +577,25 @@ class PDF_Generator:
         return stringWidth(text, font, size) + len(text) * letter_spacing
 
     @classmethod
+    def _wrap_width_tolerance(cls, font):
+        """Return browser-calibrated wrap slack for one resolved font family.
+
+        Inter keeps the historical two-pixel correction required by its
+        ReportLab-vs-Chromium regression. Montserrat and every other family
+        use the exact element width; granting them Inter's slack can render
+        text outside the canvas box and changes the browser-authored wraps.
+        """
+        normalized = cls._UNICODE_FONT_ALIASES.get(str(font), str(font))
+        if normalized == "Inter" or normalized.startswith("Inter-"):
+            return INTER_WRAP_WIDTH_TOLERANCE_PX
+        return 0.0
+
+    @classmethod
     def _fits_wrap_width(cls, text, font, size, letter_spacing, avail_width):
-        """True when ``text`` fits the wrap column, with canvas-matching slack."""
+        """True when ``text`` fits using its family-specific browser calibration."""
         return (
             cls._line_width(text, font, size, letter_spacing)
-            <= float(avail_width) + WRAP_WIDTH_TOLERANCE_PX
+            <= float(avail_width) + cls._wrap_width_tolerance(font)
         )
 
     @classmethod
@@ -771,11 +786,136 @@ class PDF_Generator:
         return total
 
     def _styled_fits(self, text, styles, family, size, letter_spacing, avail_width):
-        """Run-aware analogue of ``_fits_wrap_width`` using the same slack."""
+        """Run-aware analogue of ``_fits_wrap_width`` using the same policy."""
         return (
             self._styled_run_width(text, styles, family, size, letter_spacing)
-            <= float(avail_width) + WRAP_WIDTH_TOLERANCE_PX
+            <= float(avail_width) + self._wrap_width_tolerance(family)
         )
+
+    @staticmethod
+    def _resolved_line_value(line, key, default=None):
+        """Read a browser-line field from Pydantic models or plain test dicts."""
+        if isinstance(line, dict):
+            return line.get(key, default)
+        return getattr(line, key, default)
+
+    @classmethod
+    def _validated_resolved_lines(cls, content, resolved_lines, width, bullet_list):
+        """Validate transient browser line records against current content.
+
+        Export measurements are intentionally advisory. A content-inconsistent
+        or malformed set must never corrupt a PDF, so any invalid text slice,
+        order, prefix, or numeric position rejects the complete set and returns
+        ``None``; the caller then uses the established width-based wrapper.
+        """
+        if (
+            not resolved_lines
+            or len(resolved_lines) > max(1, len(content) + 1)
+        ):
+            return None
+
+        normalized = []
+        previous_end = 0
+        previous_paragraph_end = None
+        seen_ranges = set()
+        for raw in resolved_lines:
+            try:
+                start = int(cls._resolved_line_value(raw, "start"))
+                end = int(cls._resolved_line_value(raw, "end"))
+                indent = float(cls._resolved_line_value(raw, "indent", 0.0) or 0.0)
+                raw_x = cls._resolved_line_value(raw, "xOffset", None)
+                x_offset = None if raw_x is None else float(raw_x)
+                raw_advance = cls._resolved_line_value(raw, "advanceWidth", None)
+                advance_width = None if raw_advance is None else float(raw_advance)
+            except (TypeError, ValueError):
+                return None
+
+            text = cls._resolved_line_value(raw, "text", "")
+            prefix = cls._resolved_line_value(raw, "bulletPrefix", "") or ""
+            paragraph_end = bool(
+                cls._resolved_line_value(raw, "paragraphEnd", False)
+            )
+            gap = content[previous_end:start]
+            newline_count = gap.count("\n")
+            expected_newlines = 0 if previous_paragraph_end in {None, False} else 1
+            if prefix:
+                # The browser omits the semantic bullet marker from the body
+                # slice and asks ReportLab to draw the normalized `• ` prefix.
+                # Apart from that marker, gaps may contain only wrap/newline
+                # whitespace that is not visibly painted on either side.
+                gap_without_marker = re.sub(r"[ \t]*•[ \t]*$", "", gap)
+                valid_gap = gap_without_marker != gap and not gap_without_marker.strip()
+            else:
+                valid_gap = not gap.strip()
+            empty_line_is_valid = (
+                start != end
+                or (
+                    paragraph_end
+                    and (
+                        bool(prefix)
+                        or content == ""
+                        or (start == 0 and content.startswith("\n"))
+                        or "\n" in gap
+                    )
+                )
+            )
+            if (
+                not isinstance(text, str)
+                or start < previous_end
+                or end < start
+                or end > len(content)
+                or content[start:end] != text
+                or prefix not in {"", "• "}
+                or (prefix and not bullet_list)
+                or not valid_gap
+                or newline_count != expected_newlines
+                or (start, end) in seen_ranges
+                or not empty_line_is_valid
+                or not math.isfinite(indent)
+                or indent < 0
+                or indent > width
+                or (x_offset is None) != (advance_width is None)
+                or (
+                    x_offset is not None
+                    and (
+                        not math.isfinite(x_offset)
+                        or x_offset < 0
+                        or x_offset > width
+                    )
+                )
+                or (
+                    advance_width is not None
+                    and (
+                        not math.isfinite(advance_width)
+                        or advance_width < 0
+                        or (bool(text.strip()) and advance_width == 0)
+                        or (x_offset or 0.0) + advance_width > width + 1.0
+                    )
+                )
+            ):
+                return None
+
+            normalized.append({
+                "text": text,
+                "start": start,
+                "end": end,
+                "paragraph_end": paragraph_end,
+                "indent": indent,
+                "bullet_prefix": prefix,
+                "x_offset": x_offset,
+                "advance_width": advance_width,
+            })
+            seen_ranges.add((start, end))
+            previous_end = end
+            previous_paragraph_end = paragraph_end
+
+        # A complete browser layout has one terminal line for every logical
+        # paragraph. Any missing paragraph would otherwise silently remove
+        # visible vertical space even if all omitted characters were whitespace.
+        tail = content[previous_end:]
+        if previous_paragraph_end is not True or "\n" in tail or tail.strip():
+            return None
+        return normalized or None
 
     @staticmethod
     def _line_to_pieces(text, styles):
@@ -949,7 +1089,7 @@ class PDF_Generator:
         )
         return len(lines) * float(line_height)
 
-    def renderTextarea(self, left, top, width, height, fontFamily, fontSize, color, content, lineHeight, letterSpacing, bold=False, italic=False, underline=False, align="left", bulletList=False, autoHeight=False, runs=None, textTransform=None):
+    def renderTextarea(self, left, top, width, height, fontFamily, fontSize, color, content, lineHeight, letterSpacing, bold=False, italic=False, underline=False, align="left", bulletList=False, autoHeight=False, runs=None, textTransform=None, resolvedLines=None):
         """Render a multi-line text box so it matches the on-canvas edit-mode
         box: same wrap, line-height, letter-spacing and font metrics. Lines
         whose top falls outside the box height are clipped (mirrors the
@@ -957,14 +1097,19 @@ class PDF_Generator:
 
         When ``runs`` carry inline decoration the styled path draws each line as
         a sequence of per-span pieces; otherwise the original single-font path
-        runs unchanged. Justify combined with inline runs degrades to left in
-        v1 (mixed-font word-space stretching is out of scope)."""
+        runs unchanged. Browser-resolved lines also carry their measured
+        horizontal advance, so mixed-font and justified lines can preserve the
+        canvas start and end positions despite ReportLab shaping differences."""
         # Display-and-render casing (Phase 3 masthead identity). Atrium / Portico
         # build the masthead name as a multi-line block (a textarea), so the
         # reversible textTransform flag is honored here as well. Uppercasing keeps
         # the STORED content original-case so the toggle is reversible, and it
         # preserves character count, so any `runs` style ranges stay aligned with
         # the transformed string.
+        # Pydantic keeps `content` optional for non-text categories and legacy
+        # payloads. Normalizing here protects the browser-line validator while
+        # preserving the established empty-textarea rendering path.
+        content = "" if content is None else str(content)
         if textTransform == "uppercase" and content:
             content = content.upper()
         width = float(width)
@@ -986,11 +1131,27 @@ class PDF_Generator:
         font_height = ascent - descent
         half_leading = (line_height - font_height) / 2.0
 
+        resolved_layout = None
+        if sanitize_pdf_text(content) == content:
+            resolved_layout = self._validated_resolved_lines(
+                content, resolvedLines, width, bool(bulletList)
+            )
         prepared = self._prepare_styled(content, runs, bold, italic, underline, color)
 
         if prepared is None:
             # Fast path: uniform styling, byte-identical to the pre-runs renderer.
-            lines = self._wrap_textarea(content, measure_font, fontSize, letter_spacing, width, bulletList)
+            if resolved_layout is not None:
+                lines = [
+                    (
+                        line["text"],
+                        line["paragraph_end"],
+                        line["indent"],
+                        line["bullet_prefix"],
+                    )
+                    for line in resolved_layout
+                ]
+            else:
+                lines = self._wrap_textarea(content, measure_font, fontSize, letter_spacing, width, bulletList)
             if autoHeight:
                 # The canvas is the typography authority: after fonts load / the user
                 # changes a face, `reflowTextareaHeight` stores measured heights and
@@ -1020,13 +1181,25 @@ class PDF_Generator:
                 # whole effective box right by indent_px.
                 eff_left = left + indent_px
                 eff_width = width - indent_px
-                x = eff_left
+                resolved_x = resolved_layout[i]["x_offset"] if resolved_layout is not None else None
+                resolved_advance = resolved_layout[i]["advance_width"] if resolved_layout is not None else None
+                x = left + resolved_x if resolved_x is not None else eff_left
                 word_space = 0.0
+                draw_letter_spacing = letter_spacing
                 if line:
                     line_w = self._line_width(line, measure_font, fontSize, letter_spacing)
-                    if align == "right":
+                    if resolved_advance is not None:
+                        if align == "justify" and not is_last and line.count(" "):
+                            word_space = (
+                                resolved_advance - line_w
+                            ) / line.count(" ")
+                        elif len(line) > 1:
+                            draw_letter_spacing += (
+                                resolved_advance - line_w
+                            ) / len(line)
+                    elif resolved_x is None and align == "right":
                         x = eff_left + (eff_width - line_w)
-                    elif align == "center":
+                    elif resolved_x is None and align == "center":
                         x = eff_left + (eff_width - line_w) / 2.0
                     elif align == "justify" and not is_last:
                         spaces = line.count(" ")
@@ -1038,16 +1211,35 @@ class PDF_Generator:
                         left, y, bullet_prefix, fontFamily, fontSize, color,
                         bold, italic, underline, letter_spacing,
                     )
-                self._draw_text_line(x, y, line, fontFamily, fontSize, color, bold, italic, underline, letter_spacing, word_space)
+                self._draw_text_line(
+                    x, y, line, fontFamily, fontSize, color, bold, italic,
+                    underline, draw_letter_spacing, word_space,
+                )
             return
 
         # Styled path: run-aware wrap, then draw each line's pieces in sequence.
         clean, clean_styles = prepared
         base_style = (bool(bold), bool(italic), bool(underline), color)
-        lines = self._wrap_textarea_styled(
-            clean, clean_styles, fontFamily, fontSize, letter_spacing,
-            width, base_style, bulletList,
-        )
+        # Sanitization normally happened on the frontend before browser line
+        # measurement. If it changed content here, offsets are no longer safe
+        # and the validated layout must be discarded in favour of normal wrap.
+        if resolved_layout is not None and clean != content:
+            resolved_layout = None
+        if resolved_layout is not None:
+            lines = []
+            for line in resolved_layout:
+                line_styles = clean_styles[line["start"]:line["end"]]
+                lines.append((
+                    self._line_to_pieces(line["text"], line_styles),
+                    line["paragraph_end"],
+                    line["indent"],
+                    line["bullet_prefix"],
+                ))
+        else:
+            lines = self._wrap_textarea_styled(
+                clean, clean_styles, fontFamily, fontSize, letter_spacing,
+                width, base_style, bulletList,
+            )
         if autoHeight:
             computed_height = len(lines) * line_height
             if height < line_height * 0.5:
@@ -1062,16 +1254,32 @@ class PDF_Generator:
 
             eff_left = left + indent_px
             eff_width = width - indent_px
-            x = eff_left
+            resolved_x = resolved_layout[i]["x_offset"] if resolved_layout is not None else None
+            resolved_advance = resolved_layout[i]["advance_width"] if resolved_layout is not None else None
+            x = left + resolved_x if resolved_x is not None else eff_left
+            draw_letter_spacing = letter_spacing
+            word_space = 0.0
             if pieces:
                 # Total line width sums the pieces, each measured with the font
-                # its span actually draws in. Justify is not applied for styled
-                # lines (v1 degradation): right/center still offset, else left.
+                # its span actually draws in. A browser advance can then close
+                # the remaining kerning delta or distribute justified spacing.
                 line_w = 0.0
                 for text, (pb, pit, _pu, _pc) in pieces:
                     piece_font, _, _ = self._resolve_font(fontFamily, pb, pit)
                     line_w += self._line_width(text, piece_font, fontSize, letter_spacing)
-                if align == "right":
+                line_text = "".join(text for text, _style in pieces)
+                if resolved_advance is not None:
+                    if align == "justify" and not is_last and line_text.count(" "):
+                        word_space = (
+                            resolved_advance - line_w
+                        ) / line_text.count(" ")
+                    elif len(line_text) > 1:
+                        draw_letter_spacing += (
+                            resolved_advance - line_w
+                        ) / len(line_text)
+                elif resolved_x is not None:
+                    pass
+                elif align == "right":
                     x = eff_left + (eff_width - line_w)
                 elif align == "center":
                     x = eff_left + (eff_width - line_w) / 2.0
@@ -1086,10 +1294,15 @@ class PDF_Generator:
             for text, (pb, pit, pu, pc) in pieces:
                 self._draw_text_line(
                     piece_x, y, text, fontFamily, fontSize, pc or color,
-                    pb, pit, pu, letter_spacing,
+                    pb, pit, pu, draw_letter_spacing, word_space,
                 )
                 piece_font, _, _ = self._resolve_font(fontFamily, pb, pit)
-                piece_x += self._line_width(text, piece_font, fontSize, letter_spacing)
+                piece_x += (
+                    self._line_width(
+                        text, piece_font, fontSize, draw_letter_spacing
+                    )
+                    + word_space * text.count(" ")
+                )
 
     def generatePDF(self):
         """Finalize the current page and write the PDF to the canvas destination."""
@@ -1166,6 +1379,7 @@ class PDF_Generator:
                         getattr(element, "autoHeight", False),
                         getattr(element, "runs", None),
                         getattr(element, "textTransform", None),
+                        getattr(element, "resolvedLines", None),
                     )
                 elif category == "line":
                     self.renderLine(float(element.width), float(element.height), element.left, element.top, element.backgroundColor)

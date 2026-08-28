@@ -3,6 +3,7 @@ import { ApiClient, ENDPOINTS, wakeBackend } from "../services/api";
 import { sanitizeElementsContent } from "../utils/sanitizeTextContent";
 import { assertCanvasElementRoot } from "../utils/canvasElementSchema";
 import { flowSpacingToPayload } from "../utils/flowSpacing";
+import { resolveBrowserTextLayouts } from "../utils/browserTextLayout";
 
 /**
  * PDF create / update / download against the backend.
@@ -55,29 +56,32 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
     const spacing_px = flowSpacingToPayload(meta.flowSpacing);
     const source_import_id = Number.isInteger(meta.sourceImportId) ? meta.sourceImportId : null;
     const cv_data = meta.cvData || null;
-    const body = JSON.stringify({
-      root: sorted,
-      pdf_title: titleRef.current.value + ".pdf",
-      pages,
-      page_width: pageSize?.width ?? 595,
-      page_height: pageSize?.height ?? 842,
-      editor_mode,
-      template_id,
-      spacing_px,
-      cv_data,
-      source_import_id,
-    });
-
     // Wake a sleeping Render dyno before the heavy create; then retry transient
     // "Failed to fetch" blips that otherwise surface as a cold-start toast.
-    wakeBackend()
-      .then(() => api.httpRequest(
+    // Chromium resolves soft wraps first so ReportLab draws the exact lines
+    // visible on the canvas instead of estimating them with another shaper.
+    resolveBrowserTextLayouts(sorted)
+      .then((renderRoot) => {
+        const body = JSON.stringify({
+          root: renderRoot,
+          pdf_title: titleRef.current.value + ".pdf",
+          pages,
+          page_width: pageSize?.width ?? 595,
+          page_height: pageSize?.height ?? 842,
+          editor_mode,
+          template_id,
+          spacing_px,
+          cv_data,
+          source_import_id,
+        });
+        return wakeBackend().then(() => api.httpRequest(
         ENDPOINTS.PDF.CREATE,
         "POST",
         body,
         "Nie udało się utworzyć PDF!",
         { retries: 2, timeoutMs: 120_000 },
-      ))
+        ));
+      })
       .then((data) => {
         handlePdfId(data.pdf_id);
         setResponsePDF({
@@ -124,27 +128,28 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
     // Topbar "Pobierz" uses update; optional meta.intent lets save-style updates
     // skip the auto-download branch in PdfCanvas.
     const intent = meta.intent === "save" ? "save" : "download";
-    const body = JSON.stringify({
-      root: elements,
-      pdf_id: PDF_ID,
-      pdf_title: titleRef.current.value +".pdf",
-      pages,
-      page_width: pageSize?.width ?? 595,
-      page_height: pageSize?.height ?? 842,
-      editor_mode,
-      template_id,
-      spacing_px,
-      cv_data,
-    });
-
-    wakeBackend()
-      .then(() => api.httpRequest(
+    resolveBrowserTextLayouts(sorted)
+      .then((renderRoot) => {
+        const body = JSON.stringify({
+          root: [...renderRoot, ...sanitizeElementsContent(A4_Elements_deleted)],
+          pdf_id: PDF_ID,
+          pdf_title: titleRef.current.value +".pdf",
+          pages,
+          page_width: pageSize?.width ?? 595,
+          page_height: pageSize?.height ?? 842,
+          editor_mode,
+          template_id,
+          spacing_px,
+          cv_data,
+        });
+        return wakeBackend().then(() => api.httpRequest(
         ENDPOINTS.PDF.UPDATE,
         "PUT",
         body,
         "Nie udało się zaktualizować PDF!",
         { retries: 2, timeoutMs: 120_000 },
-      ))
+        ));
+      })
       .then((data) => {
         setResponsePDF({
           success: data.updated,
@@ -170,32 +175,33 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
   // can still be exported. The backend still meters every export, so a blocked
   // free-plan quota rejects here exactly like a stored-file download.
   const downloadPdf = useCallback(async (A4_Elements, titleRef, pages = 1, pageSize, meta = {}) => {
-    const sorted = sanitizeElementsContent(
-      [...A4_Elements].sort((a, b) => a.zIndex - b.zIndex),
-    );
-    // Reuse the same schema guard as create/update so a malformed canvas fails
-    // fast with a readable error instead of a 422 from the server.
-    assertCanvasElementRoot(sorted);
-
-    const api = new ApiClient({ "Authorization": `Bearer ${localStorage.getItem("token")}` });
-    const editor_mode = meta.editorMode === "template" ? "template" : "freeform";
-    const template_id = meta.templateId || null;
-    const spacing_px = flowSpacingToPayload(meta.flowSpacing);
-    const baseTitle = titleRef.current?.value || "cv";
-    const body = JSON.stringify({
-      root: sorted,
-      pdf_title: baseTitle + ".pdf",
-      pages,
-      page_width: pageSize?.width ?? 595,
-      page_height: pageSize?.height ?? 842,
-      editor_mode,
-      template_id,
-      spacing_px,
-    });
-
     setIsPdfLoading(true);
     const startedAt = Date.now();
     try {
+      const sorted = sanitizeElementsContent(
+        [...A4_Elements].sort((a, b) => a.zIndex - b.zIndex),
+      );
+      // Reuse the same schema guard as create/update so a malformed canvas
+      // fails fast with a readable error instead of a 422 from the server.
+      assertCanvasElementRoot(sorted);
+
+      const renderRoot = await resolveBrowserTextLayouts(sorted);
+      const api = new ApiClient({ "Authorization": `Bearer ${localStorage.getItem("token")}` });
+      const editor_mode = meta.editorMode === "template" ? "template" : "freeform";
+      const template_id = meta.templateId || null;
+      const spacing_px = flowSpacingToPayload(meta.flowSpacing);
+      const baseTitle = titleRef.current?.value || "cv";
+      const body = JSON.stringify({
+        root: renderRoot,
+        pdf_title: baseTitle + ".pdf",
+        pages,
+        page_width: pageSize?.width ?? 595,
+        page_height: pageSize?.height ?? 842,
+        editor_mode,
+        template_id,
+        spacing_px,
+      });
+
       // Wake a sleeping Render dyno first, then retry transient cold-start blips
       // — mirrors the create/update path so the first download after idle works.
       const { blob, filename } = await wakeBackend().then(() => api.httpRequestBlob(

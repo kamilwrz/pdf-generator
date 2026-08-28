@@ -1,5 +1,77 @@
 {
   "$defs": {
+    "ResolvedTextLine": {
+      "description": "One browser-authored visual line for a textarea export.\n\n``start`` / ``end`` address the unchanged plain ``content`` string. Soft\nbreak whitespace and explicit newline characters may sit between adjacent\nrecords. The payload is transient rendering metadata: editor state and the\npersisted document continue to store semantic text rather than hard wraps.",
+      "properties": {
+        "text": {
+          "title": "Text",
+          "type": "string"
+        },
+        "start": {
+          "minimum": 0,
+          "title": "Start",
+          "type": "integer"
+        },
+        "end": {
+          "minimum": 0,
+          "title": "End",
+          "type": "integer"
+        },
+        "paragraphEnd": {
+          "default": false,
+          "title": "Paragraphend",
+          "type": "boolean"
+        },
+        "indent": {
+          "default": 0.0,
+          "minimum": 0,
+          "title": "Indent",
+          "type": "number"
+        },
+        "bulletPrefix": {
+          "default": "",
+          "enum": [
+            "",
+            "• "
+          ],
+          "title": "Bulletprefix",
+          "type": "string"
+        },
+        "xOffset": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Xoffset"
+        },
+        "advanceWidth": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Advancewidth"
+        }
+      },
+      "required": [
+        "text",
+        "start",
+        "end"
+      ],
+      "title": "ResolvedTextLine",
+      "type": "object"
+    },
     "TextRun": {
       "description": "One inline-formatted span inside a ``text`` / ``textarea`` element.\n\nA run is a style overlay addressed by character offset into ``content``;\n``content`` itself stays plain text. Offsets are half-open ``[start, end)``\nover the sanitized content string. Only the marks a run declares override\nthe element's base style — an absent mark falls through to the element-level\n``bold`` / ``italic`` / ``underline`` / ``color``.\n\nRuns are normalized before persistence: non-overlapping, sorted, clamped to\nthe content length, with empty spans dropped and adjacent equal spans merged.\nWhen an element carries no runs, every renderer path takes the original\nsingle-font fast path, so unformatted documents are byte-for-byte unchanged.",
       "properties": {
@@ -251,6 +323,21 @@
       ],
       "default": null,
       "title": "Runs"
+    },
+    "resolvedLines": {
+      "anyOf": [
+        {
+          "items": {
+            "$ref": "#/$defs/ResolvedTextLine"
+          },
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Resolvedlines"
     },
     "align": {
       "anyOf": [
