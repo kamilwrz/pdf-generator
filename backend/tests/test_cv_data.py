@@ -101,6 +101,72 @@ class CvDataNormalizationTests(unittest.TestCase):
             {"category": "Automatyzacja", "items": ["PowerShell"]},
         ])
 
+    def test_translated_grouped_headings_survive_template_refill(self):
+        """Repeated normalization must not restore Polish template chrome."""
+        translated = normalize_cv_data({
+            "name": "Jacob Andrew Rauch",
+            "labels": {
+                "summary": "PROFESSIONAL SUMMARY",
+                "experience": "WORK EXPERIENCE",
+                "education": "EDUCATION",
+                "skills": "SKILLS",
+            },
+            "skills": [
+                {"category": "Soft Skills", "items": ["Communication"]},
+                {"category": "Research and IT", "items": ["AI"]},
+            ],
+            "languages": [
+                {"name": "English", "level": "native"},
+                {"name": "Polish", "level": "native"},
+            ],
+            "extra_sections": [{
+                "title": "LANGUAGES",
+                "kind": "languages",
+                "placement": "after_skills",
+                "items": ["English — native", "Polish — native"],
+            }],
+        })
+
+        # Template fills normalize an already normalized profile again. The
+        # second pass is intentional and is the exact path used after a user
+        # chooses another template in the editor.
+        refilled = normalize_cv_data(translated, require_name=True)
+        language_section = next(
+            section
+            for section in refilled["extra_sections"]
+            if section["kind"] == "languages"
+        )
+
+        self.assertEqual(refilled["labels"]["skills"], "SKILLS")
+        self.assertEqual(language_section["title"], "LANGUAGES")
+
+        content = "\n".join(
+            str(element.get("content", ""))
+            for element in generate_resume("portico", refilled)
+        )
+        self.assertIn("SKILLS", content)
+        self.assertIn("LANGUAGES", content)
+        self.assertNotIn("UMIEJĘTNOŚCI", content)
+        self.assertNotIn("JĘZYKI", content)
+
+    def test_group_category_name_cannot_become_parent_skills_heading(self):
+        """A child label used as parent chrome must not render twice."""
+        profile = normalize_cv_data({
+            "name": "Jacob Andrew Rauch",
+            "labels": {"skills": "SOFT SKILLS"},
+            "skills": [
+                {"category": "Soft Skills", "items": ["Communication"]},
+                {"category": "Research and IT", "items": ["AI"]},
+            ],
+        })
+
+        self.assertEqual(profile["labels"]["skills"], "UMIEJĘTNOŚCI")
+        content = "\n".join(
+            str(element.get("content", ""))
+            for element in generate_resume("portico", profile)
+        )
+        self.assertEqual(content.upper().count("SOFT SKILLS"), 1)
+
     def test_soft_hard_tools_nest_under_skills(self):
         """
         CVs like CV19 list soft skills, hard skills, and tools under separate

@@ -97,9 +97,9 @@ _SKILLS_TITLE_TOKENS = (
     "tools",
 )
 
-# Named skill-family headings that become *subsections* under UMIEJĘTNOŚCI when
-# more than one is present (soft / hard / tools), instead of separate top-level
-# canvas sections or one flattened chip list.
+# Named skill-family headings that become *subsections* under the localized
+# parent Skills heading when more than one is present (soft / hard / tools),
+# instead of separate top-level canvas sections or one flattened chip list.
 _DISTINCT_SKILL_FAMILY_TOKENS = (
     "soft skill",
     "hard skill",
@@ -160,8 +160,8 @@ def is_distinct_skill_family_title(title: object) -> bool:
     """
     True for soft skills / hard skills / tools headings.
 
-    These become named subsections under the parent UMIEJĘTNOŚCI slot when more
-    than one family is present, instead of separate top-level sections.
+    These become named subsections under the localized parent Skills slot when
+    more than one family is present, instead of separate top-level sections.
     """
     folded = fold_section_label(title)
     if not folded:
@@ -438,7 +438,8 @@ def _expand_skill_category_lines(
     mistaken for a skill taxonomy.
 
     Returns ``(skills, languages, used_parent_label)`` where ``used_parent_label``
-    means the caller should keep ``labels.skills`` as the generic UMIEJĘTNOŚCI.
+    means the caller should keep the existing localized ``labels.skills`` as a
+    parent heading instead of replacing it with a child category title.
     """
     if _skills_have_named_groups(skills):
         # Extractor already returned structured groups — keep them.
@@ -918,6 +919,27 @@ def _derive_manual_sections(extra_sections: Any) -> tuple[list[dict[str, str]], 
     return languages, custom_sections
 
 
+def _language_section_title(extra_sections: Any) -> str:
+    """Return the persisted Languages heading, with a Polish legacy fallback.
+
+    Languages have both an editable structured list and a derived
+    ``extra_sections`` representation used by template generators. A template
+    refill normalizes that already-normalized profile again, so rebuilding the
+    derived section from a hard-coded title would discard an accepted AI
+    translation such as ``LANGUAGES``.
+    """
+    if isinstance(extra_sections, list):
+        for section in extra_sections:
+            if not isinstance(section, Mapping):
+                continue
+            if _text(section.get("kind")).casefold() != "languages":
+                continue
+            title = _text(section.get("title"))
+            if title:
+                return title.upper()
+    return "JĘZYKI"
+
+
 def _absorb_skills_alias_sections(
     skills: list[Any],
     sections: list[dict[str, Any]],
@@ -938,7 +960,7 @@ def _absorb_skills_alias_sections(
     - one family alone with empty skills → fills the skills slot (flat chips +
       that heading), same as a lone generic alias
     - two or more families, or families alongside existing skills → become
-      named ``{category, items}`` groups under parent ``UMIEJĘTNOŚCI``
+      named ``{category, items}`` groups under the localized parent Skills label
     """
     kept: list[dict[str, Any]] = []
     distinct_aliases: list[dict[str, Any]] = []
@@ -960,9 +982,9 @@ def _absorb_skills_alias_sections(
     next_skills: list[Any] = list(skills)
     use_parent_label = force_parent_skills_label
 
-    # Multiple named families (or families + existing skills) → subsections
-    # under UMIEJĘTNOŚCI. A solitary family with an empty skills slot still
-    # fills that slot with a single heading (Obsługa-komputera path).
+    # Multiple named families (or families + existing skills) become
+    # subsections under the current localized Skills label. A solitary family
+    # with an empty skills slot still fills that slot with a single heading.
     nest_distinct = (
         len(distinct_aliases) >= 2
         or (distinct_aliases and (skills_have_content(skills) or absorbed_flat))
@@ -989,10 +1011,18 @@ def _absorb_skills_alias_sections(
         next_skills = _merge_skill_entries(next_skills, absorbed_flat)
 
     next_labels = dict(labels)
-    if use_parent_label:
-        # Parent chrome for nested subsections — never a child category name.
+    parent_label_folded = fold_section_label(next_labels.get("skills"))
+    parent_matches_child = use_parent_label and bool(parent_label_folded) and any(
+        isinstance(group, Mapping)
+        and fold_section_label(group.get("category")) == parent_label_folded
+        for group in next_skills
+    )
+    if parent_matches_child:
+        # Legacy profiles can carry a child category (for example Soft Skills)
+        # as the parent label. Keep translated parent labels such as SKILLS, but
+        # restore the neutral fallback when parent and child would render twice.
         next_labels["skills"] = DEFAULT_LABELS["skills"]
-    elif alias_title and (
+    elif not use_parent_label and alias_title and (
         not labels_skills_explicit or is_generic_skills_label(next_labels.get("skills"))
     ):
         next_labels["skills"] = alias_title
@@ -1012,6 +1042,7 @@ def normalize_cv_data(value: Mapping[str, Any] | None, *, require_name: bool = F
 
     raw = deepcopy(dict(value))
     address = _text(raw.get("address") or raw.get("location"))
+    language_section_title = _language_section_title(raw.get("extra_sections"))
     fallback_languages, fallback_sections = _derive_manual_sections(raw.get("extra_sections"))
     # Prefer the editable `languages` / `custom_sections` fields when present.
     # An explicit empty `custom_sections: []` means the user cleared structured
@@ -1051,8 +1082,8 @@ def normalize_cv_data(value: Mapping[str, Any] | None, *, require_name: bool = F
         for key, default in DEFAULT_LABELS.items()
     }
 
-    # Promote "Bezpieczeństwo: …" rows to named skill groups under UMIEJĘTNOŚCI
-    # before alias absorb (soft/hard/tools families nest the same way).
+    # Promote "Bezpieczeństwo: …" rows to named skill groups under the current
+    # Skills label before alias absorb (soft/hard/tools families nest likewise).
     skills, languages, category_parent_label = _expand_skill_category_lines(
         _normalize_skills(raw.get("skills")),
         languages,
@@ -1074,7 +1105,7 @@ def normalize_cv_data(value: Mapping[str, Any] | None, *, require_name: bool = F
     extra_sections = list(custom_sections)
     if language_items:
         extra_sections.append({
-            "title": "JĘZYKI",
+            "title": language_section_title,
             "kind": "languages",
             "placement": "after_skills",
             "items": language_items,

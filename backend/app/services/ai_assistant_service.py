@@ -2502,11 +2502,16 @@ def analyze_action(
         }
     try:
         result = fn()
-        # Echo the resolved correction language back so the UI selector can
-        # stay in sync with what was actually used, even for actions (like
-        # rating) that never consulted it.
+        # A translation changes the CV's working language to its target. Echo
+        # that target so later grammar/style actions do not reuse the source
+        # language selected before translation. Other actions keep the
+        # detected or explicitly selected correction language.
         if isinstance(result, dict):
-            result.setdefault("cv_language", resolved_language)
+            translated_language = (target_language or "").strip().lower()
+            if action == "translate" and translated_language in _SUPPORTED_LANGS:
+                result["cv_language"] = translated_language
+            else:
+                result.setdefault("cv_language", resolved_language)
         return result
     except AtsReadabilityError as exc:
         raise AIServiceError(
