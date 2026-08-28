@@ -4,14 +4,11 @@
  * Content enter fades come from ids marked via `markElementsEnter` /
  * `markContentElementsEnter`; decorative chrome is never animated.
  *
- * Template-mode section headings (main `section-chrome` and sidebar
- * `sidebar-chrome`) get a `SectionRecordAdd` affordance (hover trash/+ left,
- * reorder arrows right → add/delete/reorder section and re-pack within the
- * same lane). On Sterling (and other sidebar CVs once enabled) a left-right
- * transfer arrow also appears on the destination side of the heading. Each
- * multi-line record also gets one `RecordBlockAdd` on its title line (hover
- * anywhere on the upper block → insert, delete, or reorder a record, then
- * re-pack). Flat-list section bodies (Languages, flat custom sections —
+ * Template-mode section headings and record title bands reveal one shared,
+ * grouped toolbar in the nearest A4 gutter. Hover reveals it, click pins it,
+ * and the matching semantic block is highlighted without covering authored
+ * content. Direct controls add/reorder; layout, lane transfer, and deletion
+ * live in the overflow menu. Flat-list section bodies (Languages, flat custom sections —
  * exactly one textarea per section) get a `FlatSectionLayoutToggle` icon to
  * their left, centered on the block's height, instead — opening a modal to
  * switch between an inline mid-dot row and a bullet list. A main-column
@@ -22,7 +19,7 @@
  * `skillsMode` anchor is excluded from `flatSectionAnchorsById` below to
  * avoid showing both icons on the same row.
  */
-import { use, useMemo } from 'react';
+import { use, useEffect, useMemo } from 'react';
 import Text from '../Text/Text';
 import Image from '../Image/Image';
 import Line from '../Line/Line';
@@ -47,6 +44,8 @@ import {
   listDocumentSections,
   listFlatSectionAnchors,
   listSidebarSections,
+  sectionElementIds,
+  sidebarSectionElementIds,
 } from '../../../utils/sectionStructure';
 import { listRecordBlockAddAnchors } from '../../../utils/sectionRecord';
 import { resolveSectionLaneTransfer } from '../../../utils/transferSectionLane';
@@ -72,6 +71,8 @@ const LANE_TRANSFER_TEMPLATE_IDS = new Set([
   "linden",
 ]);
 
+const STRUCTURAL_TOOLBAR_HINT_KEY = "cv-studio:structuralToolbarHintSeen";
+
 function enterClassName(elementId, heldIds, fadingIds) {
   if (fadingIds.has(elementId)) return classes.enter;
   if (heldIds.has(elementId)) return classes.enterHeld;
@@ -82,11 +83,57 @@ function enterClassName(elementId, heldIds, fadingIds) {
  * Map heading ids → ↑/↓ flags (and optional lane transfer) for one lane.
  * Indexes are lane-local so a sidebar kicker cannot reorder into the main column.
  */
-function fillSectionAnchors(map, sections, documentElements, pageHeight, allowLaneTransfer) {
+function elementBoundsOnPage(documentElements, memberIds, page) {
+  const members = documentElements.filter((element) => (
+    memberIds.has(element.element_id)
+    && Math.max(1, Math.trunc(Number(element.page) || 1)) === page
+  ));
+  if (members.length === 0) return null;
+
+  const left = Math.min(...members.map((element) => Number(element.left) || 0));
+  const top = Math.min(...members.map((element) => Number(element.top) || 0));
+  const right = Math.max(...members.map((element) => (
+    (Number(element.left) || 0) + Math.max(0, Number(element.width) || 0)
+  )));
+  const bottom = Math.max(...members.map((element) => {
+    const explicitHeight = Number(element.height);
+    const fallbackHeight = (Number(element.fontSize) || 10) * 1.35;
+    return (Number(element.top) || 0)
+      + (Number.isFinite(explicitHeight) && explicitHeight > 0
+        ? explicitHeight
+        : fallbackHeight);
+  }));
+  return {
+    left,
+    top,
+    width: Math.max(1, right - left),
+    height: Math.max(1, bottom - top),
+  };
+}
+
+function fillSectionAnchors(
+  map,
+  sections,
+  documentElements,
+  pageHeight,
+  allowLaneTransfer,
+  resolveMemberIds,
+  gutterSide,
+) {
   sections.forEach((section, index) => {
+    const heading = documentElements.find((element) => (
+      element.element_id === section.headingId
+    ));
+    const page = Math.max(1, Math.trunc(Number(heading?.page) || 1));
     map.set(section.headingId, {
       canMoveUp: index > 0,
       canMoveDown: index < sections.length - 1,
+      gutterSide,
+      highlight: elementBoundsOnPage(
+        documentElements,
+        resolveMemberIds(documentElements, section.headingId, pageHeight),
+        page,
+      ),
       laneTransfer: allowLaneTransfer
         ? resolveSectionLaneTransfer(documentElements, section.headingId, pageHeight)
         : null,
@@ -98,7 +145,13 @@ export default function CanvasElements({ elements }) {
   const { heldIds, fadingIds } = useCanvasEnterIds(elements);
   // `elements` is page-filtered by PdfCanvas. Reorder ↑/↓ must use the full
   // document so a heading/record on page 2 still sees neighbours on page 1.
-  const { editorMode, pageSize, A4_Elements, activeTemplateId } = use(PdfContext);
+  const {
+    editorMode,
+    pageSize,
+    A4_Elements,
+    activeTemplateId,
+    pushToast,
+  } = use(PdfContext);
   const pageHeight = pageSize?.height ?? 842;
   const documentElements = A4_Elements?.length ? A4_Elements : elements;
   const allowLaneTransfer = LANE_TRANSFER_TEMPLATE_IDS.has(activeTemplateId);
@@ -113,6 +166,8 @@ export default function CanvasElements({ elements }) {
       documentElements,
       pageHeight,
       allowLaneTransfer,
+      sectionElementIds,
+      "right",
     );
     fillSectionAnchors(
       map,
@@ -120,6 +175,8 @@ export default function CanvasElements({ elements }) {
       documentElements,
       pageHeight,
       allowLaneTransfer,
+      sidebarSectionElementIds,
+      "left",
     );
     // Skills layout picker (chips / list / text) is main-column only — a
     // sidebar kicker's headingId never matches, so this only ever augments
@@ -130,6 +187,18 @@ export default function CanvasElements({ elements }) {
     }
     return map;
   }, [editorMode, documentElements, pageHeight, allowLaneTransfer]);
+
+  useEffect(() => {
+    if (editorMode !== EDITOR_MODE_TEMPLATE || sectionAnchorsById.size === 0) return;
+    if (localStorage.getItem(STRUCTURAL_TOOLBAR_HINT_KEY)) return;
+    localStorage.setItem(STRUCTURAL_TOOLBAR_HINT_KEY, "1");
+    pushToast?.({
+      title: "Edytuj bezpośrednio na CV",
+      msg: "Najedź na sekcję lub wpis. Kliknij, aby przypiąć kontrolki; kliknij tekst dwukrotnie, aby go edytować.",
+      variant: "success",
+      replaceKey: "canvas-structural-toolbar-hint",
+    });
+  }, [editorMode, pushToast, sectionAnchorsById]);
 
   const recordBlockAnchorsById = useMemo(() => {
     const map = new Map();
@@ -236,6 +305,7 @@ export default function CanvasElements({ elements }) {
               fontSize={blockAnchor.fontSize}
               canMoveUp={blockAnchor.canMoveUp}
               canMoveDown={blockAnchor.canMoveDown}
+              highlight={blockAnchor.highlight}
             />
           ) : null}
           {flatAnchor ? (
@@ -289,6 +359,8 @@ export default function CanvasElements({ elements }) {
               canMoveDown={sectionAnchor.canMoveDown}
               laneTransfer={sectionAnchor.laneTransfer}
               skillsMode={sectionAnchor.skillsMode ?? null}
+              gutterSide={sectionAnchor.gutterSide}
+              highlight={sectionAnchor.highlight}
             />
           ) : null}
           {blockAnchor ? (
@@ -302,6 +374,7 @@ export default function CanvasElements({ elements }) {
               fontSize={blockAnchor.fontSize}
               canMoveUp={blockAnchor.canMoveUp}
               canMoveDown={blockAnchor.canMoveDown}
+              highlight={blockAnchor.highlight}
             />
           ) : null}
         </>

@@ -194,8 +194,8 @@ function Textarea({
     const spacingHoldTimerRef = useRef(null);
     // Tracks whether the current pointer sequence turned into a drag, so the
     // trailing click (fired on pointerup) can be told apart from a plain
-    // click-to-edit tap. Without this a drag-release would immediately flip
-    // the block into edit mode.
+    // click-to-select action. Without this a drag-release would immediately
+    // re-select the block and pin its structural toolbar.
     const didDragRef = useRef(false);
     // Placeholder metadata is not required for persistence: mastheadRole is a
     // durable semantic marker, so saved/reloaded empty job titles keep the same
@@ -416,7 +416,7 @@ function Textarea({
             setSpacingHoldId,
         });
         // Mark the replacement synchronously so two-page restoration cannot
-        // run between this click and the deferred edit-state update.
+        // run between this double click and the deferred edit-state update.
         requestTextEdit(elementId);
         // This handler runs after pointerup, so the original drag/click
         // interaction has already finished. Enter synchronously to avoid a
@@ -605,7 +605,7 @@ function Textarea({
             style={{ ...boxStyle, ...textStyle }}
             onClick={(e) => {
                 // A drag release also dispatches a trailing click; ignore it so
-                // the block does not jump into edit mode right after a move.
+                // the moved block does not also trigger a selection action.
                 if (didDragRef.current) {
                     didDragRef.current = false;
                     return;
@@ -614,16 +614,16 @@ function Textarea({
                     selectElement(elementId, true);
                     return;
                 }
-                // Single click enters edit mode directly (previously required a
-                // double click); ctrl/meta-click above still only multi-selects.
+                // Single click selects/pins structural controls. Text editing is
+                // deliberately reserved for the double-click handler below.
+                selectElement(elementId, false);
+            }}
+            onDoubleClick={(e) => {
+                if (didDragRef.current) return;
                 startEditing(e);
             }}
             onPointerDown={(e) => {
                 if (e.ctrlKey || e.metaKey) return;
-                // Register the replacement before the old editable surface
-                // blurs. The capture-phase canvas listener runs at the same
-                // pointerdown boundary and must not restore the spread first.
-                requestTextEdit(elementId);
                 e.currentTarget.setPointerCapture(e.pointerId);
                 didDragRef.current = false;
                 pointerStartRef.current = {

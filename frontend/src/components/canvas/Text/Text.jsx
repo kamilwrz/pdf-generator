@@ -62,8 +62,8 @@ function Text({
     const spacingHoldTimerRef = useRef(null);
     // Tracks whether the current pointer sequence turned into a drag, so the
     // trailing click (fired on pointerup) can be told apart from a plain
-    // click-to-edit tap. Without this a drag-release would immediately flip
-    // the element into edit mode.
+    // click-to-select action. Without this a drag-release would immediately
+    // re-select the element and pin its structural toolbar.
     const didDragRef = useRef(false);
     // `placeholder` is editor-only metadata and older saved rows do not carry
     // it. The persisted semantic role is therefore the durable fallback that
@@ -163,7 +163,7 @@ function Text({
             setSpacingHoldId,
         });
         // Mark the replacement synchronously so two-page restoration cannot
-        // run between this click and the deferred edit-state update.
+        // run between this double click and the deferred edit-state update.
         requestTextEdit(elementId);
         // This handler runs after pointerup, so the original drag/click
         // interaction has already finished. Enter synchronously to avoid a
@@ -208,7 +208,7 @@ function Text({
                     return;
                 }
                 // A drag release also dispatches a trailing click; ignore it so
-                // the element does not jump into edit mode right after a move.
+                // the moved element does not also trigger a selection action.
                 if (didDragRef.current) {
                     didDragRef.current = false;
                     return;
@@ -217,8 +217,13 @@ function Text({
                     selectElement(elementId, true);
                     return;
                 }
-                // Single click enters edit mode directly (previously required a
-                // double click); ctrl/meta-click above still only multi-selects.
+                // Keep structural selection and text editing distinct: a single
+                // click selects/pins canvas controls; double click below enters
+                // the contentEditable surface.
+                selectElement(elementId, false);
+            }}
+            onDoubleClick={(e) => {
+                if (fixedToPage || isEditing || didDragRef.current) return;
                 startEditing(e);
             }}
             onInput={(e) => {
@@ -254,10 +259,6 @@ function Text({
                     return;
                 }
                 if (e.ctrlKey || e.metaKey) return;
-                // Register the replacement before the old editable surface
-                // blurs. The capture-phase canvas listener runs at the same
-                // pointerdown boundary and must not restore the spread first.
-                requestTextEdit(elementId);
                 e.currentTarget.setPointerCapture(e.pointerId);
                 didDragRef.current = false;
                 pointerStartRef.current = {

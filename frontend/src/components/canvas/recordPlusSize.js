@@ -32,3 +32,30 @@ export function recordPlusLayoutSize(zoom = 1, fontSize = 10) {
   void fontSize;
   return { buttonSize: iconSize, iconSize, gap };
 }
+
+/**
+ * Larger, screen-stable dimensions for the grouped section/record toolbar.
+ *
+ * Unlike small single-purpose canvas icons, structural actions need enough
+ * room for reliable pointer targeting and a short text label. Every value is
+ * divided by the A4 zoom because the parent page transform scales it back to
+ * the intended on-screen dimensions.
+ *
+ * @param {number} [zoom=1]
+ * @returns {{buttonSize:number,iconSize:number,gap:number,labelWidth:number,fontSize:number,menuWidth:number,offset:number,borderWidth:number}}
+ */
+export function structuralToolbarLayoutSize(zoom = 1) {
+  const safeZoom = Number.isFinite(Number(zoom)) && Number(zoom) > 0.05
+    ? Number(zoom)
+    : 1;
+  return {
+    buttonSize: 40 / safeZoom,
+    iconSize: 17 / safeZoom,
+    gap: 4 / safeZoom,
+    labelWidth: 82 / safeZoom,
+    fontSize: 11 / safeZoom,
+    menuWidth: 184 / safeZoom,
+    offset: 12 / safeZoom,
+    borderWidth: 1 / safeZoom,
+  };
+}

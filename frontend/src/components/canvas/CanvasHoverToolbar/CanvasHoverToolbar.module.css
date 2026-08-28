@@ -1,0 +1,217 @@
+.highlight {
+    position: absolute;
+    z-index: 34;
+    box-sizing: border-box;
+    pointer-events: none;
+    background: rgba(23, 23, 23, .025);
+    border-style: solid;
+    border-color: rgba(23, 23, 23, .28);
+    border-radius: 0;
+    animation: canvasHighlightIn 160ms ease-out both;
+}
+
+.highlightPinned {
+    background: rgba(23, 23, 23, .045);
+    border-color: rgba(23, 23, 23, .62);
+}
+
+.anchor {
+    position: absolute;
+    z-index: 45;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+}
+
+.toolbar {
+    position: absolute;
+    top: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--canvas-control-gap);
+    padding: var(--canvas-control-gap);
+    width: max-content;
+    background: #FCFDFB;
+    border: var(--canvas-control-border) solid rgba(23, 23, 23, .22);
+    border-radius: 0;
+    box-shadow: 0 10px 26px -18px rgba(23, 23, 23, .48);
+    pointer-events: auto;
+    animation: canvasToolbarIn 170ms cubic-bezier(.16, 1, .3, 1) both;
+}
+
+.right {
+    left: var(--canvas-control-offset);
+}
+
+.left {
+    right: var(--canvas-control-offset);
+}
+
+.control {
+    position: relative;
+    box-sizing: border-box;
+    width: var(--canvas-control-size);
+    height: var(--canvas-control-size);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: #5F5F5A;
+    cursor: pointer;
+    transition: color 160ms ease-out, background-color 160ms ease-out;
+}
+
+.control svg {
+    width: var(--canvas-control-icon);
+    height: var(--canvas-control-icon);
+    flex-shrink: 0;
+}
+
+.control:hover:not(:disabled),
+.controlActive {
+    color: #171717;
+    background: #F1EFEA;
+}
+
+.control:active:not(:disabled) {
+    transform: translateY(1px);
+}
+
+.control:disabled {
+    opacity: .28;
+    cursor: default;
+}
+
+.addControl {
+    width: var(--canvas-control-label-width);
+    gap: calc(var(--canvas-control-gap) * .8);
+    padding: 0 calc(var(--canvas-control-gap) * 1.4);
+    justify-content: flex-start;
+    color: #272724;
+    font: 650 var(--canvas-control-font)/1 var(--font-body, sans-serif);
+    white-space: nowrap;
+}
+
+.separator {
+    width: var(--canvas-control-border);
+    height: calc(var(--canvas-control-size) * .55);
+    background: rgba(23, 23, 23, .16);
+}
+
+/* Tooltips are editor chrome, not browser title bubbles. The delay keeps them
+   out of the way while the pointer merely crosses the compact toolbar. */
+.control[data-tooltip]::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    left: 50%;
+    top: calc(100% + var(--canvas-control-gap));
+    z-index: 4;
+    transform: translate(-50%, -2px);
+    width: max-content;
+    max-width: calc(var(--canvas-control-menu-width) * 1.15);
+    padding: calc(var(--canvas-control-gap) * .85) var(--canvas-control-gap);
+    background: #242421;
+    color: #FFFFFF;
+    font: 600 var(--canvas-control-font)/1.2 var(--font-body, sans-serif);
+    letter-spacing: .01em;
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 120ms ease-out 380ms, transform 120ms ease-out 380ms,
+        visibility 0ms linear 500ms;
+}
+
+.control[data-tooltip]:hover::after {
+    opacity: 1;
+    visibility: visible;
+    transform: translate(-50%, 0);
+    transition-delay: 380ms;
+}
+
+.menu {
+    position: absolute;
+    right: 0;
+    top: calc(100% + var(--canvas-control-gap));
+    z-index: 3;
+    box-sizing: border-box;
+    width: var(--canvas-control-menu-width);
+    display: grid;
+    padding: var(--canvas-control-gap);
+    background: #FCFDFB;
+    border: var(--canvas-control-border) solid rgba(23, 23, 23, .22);
+    box-shadow: 0 16px 36px -20px rgba(23, 23, 23, .5);
+}
+
+.menuItem {
+    min-height: var(--canvas-control-size);
+    display: flex;
+    align-items: center;
+    gap: calc(var(--canvas-control-gap) * 1.25);
+    padding: 0 calc(var(--canvas-control-gap) * 1.5);
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: #292925;
+    font: 600 var(--canvas-control-font)/1.25 var(--font-body, sans-serif);
+    text-align: left;
+    cursor: pointer;
+}
+
+.menuItem:hover:not(:disabled) {
+    background: #F1EFEA;
+}
+
+.menuItem:disabled {
+    opacity: .38;
+    cursor: default;
+}
+
+.menuItemDanger {
+    color: #A13F2D;
+}
+
+.menuItemDanger:hover:not(:disabled) {
+    background: #F8ECE8;
+    color: #7E2E20;
+}
+
+.menuIcon {
+    width: var(--canvas-control-icon);
+    height: var(--canvas-control-icon);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+}
+
+.menuIcon svg {
+    width: 100%;
+    height: 100%;
+}
+
+@keyframes canvasToolbarIn {
+    from { opacity: 0; transform: translateY(-3px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes canvasHighlightIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .toolbar,
+    .highlight {
+        animation: none;
+    }
+
+    .control,
+    .control[data-tooltip]::after {
+        transition: none;
+    }
+}

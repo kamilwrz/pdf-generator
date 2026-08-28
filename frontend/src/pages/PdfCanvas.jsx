@@ -1648,6 +1648,7 @@ function PdfCanvas() {
     duplicateSelectedElements: handleDuplicateSelectedElements,
     resizeElement: handleResizeElement,
     setA4_Elements,
+    A4_Elements_deleted,
     setA4_Elements_deleted,
     activePdfId: pdfId,
     confirmDiscardActiveEdits,
@@ -1710,7 +1711,7 @@ function PdfCanvas() {
     aiCorrectionHighlights,
     setAiCorrectionHighlights,
   }), [
-    A4_Elements, isDemoContent, groupMoveDelta, setPageCanvasRef, isPdfLoading, pdfId, setA4_Elements_deleted,
+    A4_Elements, isDemoContent, groupMoveDelta, setPageCanvasRef, isPdfLoading, pdfId, setA4_Elements_deleted, A4_Elements_deleted,
     handleAddImage, handleAddText, handleAddLine, handleAddRectangle, handleAddCircle, handleAddEllipse,
     handleAddPolygon, handleAddPath,
     handleSelectElement, handleMoveElement, handleMoveSelectedElements, handleSelectMoveElement,

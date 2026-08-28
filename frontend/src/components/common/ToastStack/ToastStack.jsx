@@ -3,7 +3,7 @@
  */
 import classes from "./ToastStack.module.css";
 import CloseButton from "../CloseButton/CloseButton";
-import { FiDownload } from "react-icons/fi";
+import { FiDownload, FiRotateCcw } from "react-icons/fi";
 
 const VARIANTS = {
     success: {
@@ -54,7 +54,19 @@ export default function ToastStack({ toasts, onDismiss }) {
                                 </span>
                             )}
                             {t.msg && <div className={classes.msg}>{t.msg}</div>}
-                            {t.action && (
+                            {t.action?.kind === "button" && (
+                                <button
+                                    type="button"
+                                    className={classes.action}
+                                    onClick={() => {
+                                        t.action.onClick?.();
+                                        onDismiss(t.id);
+                                    }}
+                                >
+                                    <FiRotateCcw /> {t.action.label}
+                                </button>
+                            )}
+                            {t.action && t.action.kind !== "button" && (
                                 <a className={classes.action} href={t.action.href} download={t.action.download}>
                                     <FiDownload /> {t.action.label}
                                 </a>

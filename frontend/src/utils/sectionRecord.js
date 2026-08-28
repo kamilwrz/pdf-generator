@@ -738,6 +738,7 @@ export function elementSupportsRecordBlockAdd(elements, elementId, pageHeight = 
  *   height: number,
  *   width: number,
  *   fontSize: number,
+ *   highlight: {left:number,top:number,width:number,height:number},
  *   canMoveUp: boolean,
  *   canMoveDown: boolean,
  * }[]}
@@ -755,6 +756,26 @@ export function listRecordBlockAddAnchors(elements, pageHeight = 842) {
       const upper = listUpperRecordMembers(group);
       if (upper.length === 0) return;
       const title = upper[0];
+      const titlePage = Math.max(1, Math.trunc(Number(title.page) || 1));
+      // A record may continue onto another page. Highlight only the members
+      // painted beside this title's toolbar; spanning both pages with one box
+      // would create a misleading overlay through the page break.
+      const pageMembers = group.filter((member) => (
+        Math.max(1, Math.trunc(Number(member.page) || 1)) === titlePage
+      ));
+      const left = Math.min(...pageMembers.map((member) => Number(member.left) || 0));
+      const top = Math.min(...pageMembers.map((member) => Number(member.top) || 0));
+      const right = Math.max(...pageMembers.map((member) => (
+        (Number(member.left) || 0) + Math.max(0, Number(member.width) || 0)
+      )));
+      const bottom = Math.max(...pageMembers.map((member) => {
+        const explicitHeight = Number(member.height);
+        const fallbackHeight = (Number(member.fontSize) || 10) * 1.35;
+        return (Number(member.top) || 0)
+          + (Number.isFinite(explicitHeight) && explicitHeight > 0
+            ? explicitHeight
+            : fallbackHeight);
+      }));
       anchors.push({
         elementId: title.element_id,
         hoverIds: upper.map((element) => element.element_id),
@@ -763,6 +784,12 @@ export function listRecordBlockAddAnchors(elements, pageHeight = 842) {
         height: Number(title.height) || 0,
         width: Number(title.width) || 0,
         fontSize: Number(title.fontSize) || 10,
+        highlight: {
+          left,
+          top,
+          width: Math.max(1, right - left),
+          height: Math.max(1, bottom - top),
+        },
         canMoveUp: groupIndex > 0,
         canMoveDown: groupIndex < groups.length - 1,
       });

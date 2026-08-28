@@ -1,36 +1,32 @@
 /**
- * Hover affordance on the upper part of a template-mode record (title / meta):
- * left cluster = trash + "+" ; right cluster = reorder arrows at the same
- * vertical height. Insert / delete / reorder all re-pack under the template
- * rhythm.
+ * Contextual structural toolbar for one template-mode record.
  *
- * One instance is mounted per record (on the title). Hovering any upper line
- * shows both clusters. Only one canvas affordance is exclusive-visible at a
- * time. Size follows canvas zoom so 100% view stays compact.
+ * Hovering the record title/meta reveals a grouped toolbar in the nearest A4
+ * gutter. Clicking pins it, a double click hands control to text editing, and
+ * deletion remains recoverable through the global toast action.
  */
-import { use, useCallback, useEffect, useRef, useState } from "react";
-import { FiChevronDown, FiChevronUp, FiPlus, FiTrash2 } from "react-icons/fi";
+import { use } from "react";
+import { FiTrash2 } from "react-icons/fi";
 import { PdfContext } from "../../../store/pdfgenerator-context";
 import { EDITOR_MODE_TEMPLATE } from "../../../utils/editorMode";
 import { elementSupportsRecordBlockAdd } from "../../../utils/sectionRecord";
-import { useHoverPlusExclusive } from "../../../hooks/useHoverPlusExclusive";
-import { recordPlusLayoutSize } from "../recordPlusSize";
-import classes from "../SectionRecordAdd/SectionRecordAdd.module.css";
-
-/** Hide delay after the pointer leaves the trigger or either control cluster. */
-const HIDE_AFTER_LEAVE_MS = 3000;
+import { useCanvasHoverToolbar } from "../../../hooks/useCanvasHoverToolbar";
+import { useCanvasDeletionUndo } from "../../../hooks/useCanvasDeletionUndo";
+import { structuralToolbarLayoutSize } from "../recordPlusSize";
+import CanvasHoverToolbar from "../CanvasHoverToolbar/CanvasHoverToolbar";
 
 /**
  * @param {{
- *   elementId: string,
- *   hoverIds?: string[],
- *   left: number,
- *   top: number,
- *   height?: number,
- *   width?: number,
- *   fontSize?: number,
- *   canMoveUp?: boolean,
- *   canMoveDown?: boolean,
+ *   elementId:string,
+ *   hoverIds?:string[],
+ *   left:number,
+ *   top:number,
+ *   height?:number,
+ *   width?:number,
+ *   fontSize?:number,
+ *   highlight?:{left:number,top:number,width:number,height:number}|null,
+ *   canMoveUp?:boolean,
+ *   canMoveDown?:boolean,
  * }} props
  */
 export default function RecordBlockAdd({
@@ -41,6 +37,7 @@ export default function RecordBlockAdd({
   height,
   width = 0,
   fontSize = 10,
+  highlight = null,
   canMoveUp = false,
   canMoveDown = false,
 }) {
@@ -53,230 +50,81 @@ export default function RecordBlockAdd({
     reorderRecordBlock,
     zoom = 1,
   } = use(PdfContext);
-
-  const [visible, setVisible] = useState(false);
-  const hideTimerRef = useRef(null);
-  const exclusiveKey = `record:${elementId}`;
-  const { isExclusiveActive, claimExclusive, releaseExclusive } = useHoverPlusExclusive(
-    exclusiveKey,
-  );
-
+  const deleteWithUndo = useCanvasDeletionUndo();
   const pageHeight = pageSize?.height ?? 842;
-  const listenIds = (hoverIds?.length ? hoverIds : [elementId]);
+  const anchorElement = A4_Elements.find((element) => element.element_id === elementId);
+  const triggerIds = hoverIds?.length ? hoverIds : [elementId];
   const eligible = editorMode === EDITOR_MODE_TEMPLATE
+    && !anchorElement?.isEditing
     && elementSupportsRecordBlockAdd(A4_Elements, elementId, pageHeight);
-
-  const clearHideTimer = useCallback(() => {
-    if (hideTimerRef.current != null) {
-      window.clearTimeout(hideTimerRef.current);
-      hideTimerRef.current = null;
-    }
-  }, []);
-
-  const hide = useCallback(() => {
-    clearHideTimer();
-    setVisible(false);
-    releaseExclusive();
-  }, [clearHideTimer, releaseExclusive]);
-
-  const show = useCallback(() => {
-    if (!eligible) return;
-    clearHideTimer();
-    claimExclusive();
-    setVisible(true);
-  }, [claimExclusive, clearHideTimer, eligible]);
-
-  const scheduleHide = useCallback(() => {
-    clearHideTimer();
-    hideTimerRef.current = window.setTimeout(() => {
-      setVisible(false);
-      hideTimerRef.current = null;
-      releaseExclusive();
-    }, HIDE_AFTER_LEAVE_MS);
-  }, [clearHideTimer, releaseExclusive]);
-
-  useEffect(() => () => clearHideTimer(), [clearHideTimer]);
-
-  useEffect(() => {
-    if (!eligible) hide();
-  }, [eligible, hide]);
-
-  // Another affordance claimed the exclusive slot — drop immediately.
-  useEffect(() => {
-    if (!isExclusiveActive && visible) {
-      clearHideTimer();
-      setVisible(false);
-    }
-  }, [clearHideTimer, isExclusiveActive, visible]);
-
-  useEffect(() => {
-    if (!eligible) return undefined;
-    const nodes = listenIds
-      .map((id) => document.getElementById(id))
-      .filter(Boolean);
-    if (nodes.length === 0) return undefined;
-
-    const onEnter = () => {
-      show();
-    };
-    const onLeave = () => {
-      scheduleHide();
-    };
-
-    for (const node of nodes) {
-      node.addEventListener("pointerenter", onEnter);
-      node.addEventListener("pointerleave", onLeave);
-    }
-    return () => {
-      for (const node of nodes) {
-        node.removeEventListener("pointerenter", onEnter);
-        node.removeEventListener("pointerleave", onLeave);
-      }
-    };
-  }, [eligible, listenIds.join("|"), scheduleHide, show]);
+  const exclusiveKey = `record:${elementId}`;
+  const {
+    visible,
+    pinned,
+    menuOpen,
+    toolbarPointerProps,
+    hide,
+    openMenu,
+    closeMenu,
+  } = useCanvasHoverToolbar({ exclusiveKey, eligible, triggerIds });
 
   if (!eligible) return null;
 
-  const { buttonSize, iconSize, gap } = recordPlusLayoutSize(zoom, fontSize);
+  const layout = structuralToolbarLayoutSize(zoom);
   const boxHeight = Number.isFinite(Number(height)) && Number(height) > 0
     ? Number(height)
     : (Number(fontSize) || 10);
-  // Prefer authored width; fall back to the live title box so arrows sit past
-  // the glyphs even when template text nodes omit an explicit width.
-  const titleNode = typeof document !== "undefined"
-    ? document.getElementById(elementId)
-    : null;
-  const titleWidth = Number.isFinite(Number(width)) && Number(width) > 0
+  const boxWidth = Number.isFinite(Number(width)) && Number(width) > 0
     ? Number(width)
-    : (titleNode?.offsetWidth || 120);
-
-  // Trash sits to the left of plus; cluster right edge stays `gap` from title.
-  const leftClusterWidth = buttonSize * 2 + gap;
-  const leftStyle = {
-    left: left - gap - leftClusterWidth,
-    top: top + boxHeight / 2 - buttonSize / 2,
+    : 120;
+  const resolvedHighlight = highlight || {
+    left: Number(left) || 0,
+    top: Number(top) || 0,
+    width: boxWidth,
+    height: Math.max(boxHeight, Number(fontSize) || 10),
   };
-  // Arrows sit to the right of the title line at the same vertical center.
-  const rightStyle = {
-    left: left + titleWidth + gap,
-    top: top + boxHeight / 2 - buttonSize / 2,
-  };
-  const clusterStyle = {
-    gap,
-  };
-  const buttonStyle = {
-    width: buttonSize,
-    height: buttonSize,
-  };
-  const iconStyle = {
-    width: iconSize,
-    height: iconSize,
-  };
-  const showControls = visible && isExclusiveActive;
-  const showReorder = canMoveUp || canMoveDown;
-
-  const clusterPointerProps = {
-    onPointerEnter: () => {
-      show();
-    },
-    onPointerLeave: () => {
-      scheduleHide();
-    },
-  };
+  const toolbarTop = (Number(top) || 0) + boxHeight / 2 - layout.buttonSize / 2;
+  const side = (Number(left) || 0) < (pageSize?.width ?? 595) * 0.38 ? "left" : "right";
+  const recordLabel = String(anchorElement?.content || "").trim();
 
   return (
-    <>
-      <div className={classes.anchor} style={leftStyle} data-editor-control="true">
-        {showControls ? (
-          <div className={classes.cluster} style={clusterStyle} {...clusterPointerProps}>
-            <button
-              type="button"
-              className={classes.trash}
-              style={buttonStyle}
-              aria-label="Usuń ten rekord"
-              title="Usuń rekord"
-              onPointerDown={(event) => {
-                event.stopPropagation();
-              }}
-              onClick={(event) => {
-                event.stopPropagation();
-                event.preventDefault();
-                removeRecordBlock?.(elementId);
-                hide();
-              }}
-            >
-              <FiTrash2 style={iconStyle} />
-            </button>
-            <button
-              type="button"
-              className={classes.plus}
-              style={buttonStyle}
-              aria-label="Dodaj rekord pod tym wpisem"
-              title="Dodaj rekord"
-              onPointerDown={(event) => {
-                event.stopPropagation();
-              }}
-              onClick={(event) => {
-                event.stopPropagation();
-                event.preventDefault();
-                addRecordBlock?.(elementId);
-                hide();
-              }}
-            >
-              <FiPlus style={iconStyle} />
-            </button>
-          </div>
-        ) : null}
-      </div>
-
-      {showReorder ? (
-        <div className={classes.anchor} style={rightStyle} data-editor-control="true">
-          {showControls ? (
-            <div className={classes.cluster} style={clusterStyle} {...clusterPointerProps}>
-              <button
-                type="button"
-                className={classes.arrow}
-                style={buttonStyle}
-                aria-label="Przenieś rekord wyżej"
-                title="Wyżej"
-                disabled={!canMoveUp}
-                onPointerDown={(event) => {
-                  event.stopPropagation();
-                }}
-                onClick={(event) => {
-                  event.stopPropagation();
-                  event.preventDefault();
-                  if (!canMoveUp) return;
-                  reorderRecordBlock?.(elementId, "up");
-                  hide();
-                }}
-              >
-                <FiChevronUp style={iconStyle} />
-              </button>
-              <button
-                type="button"
-                className={classes.arrow}
-                style={buttonStyle}
-                aria-label="Przenieś rekord niżej"
-                title="Niżej"
-                disabled={!canMoveDown}
-                onPointerDown={(event) => {
-                  event.stopPropagation();
-                }}
-                onClick={(event) => {
-                  event.stopPropagation();
-                  event.preventDefault();
-                  if (!canMoveDown) return;
-                  reorderRecordBlock?.(elementId, "down");
-                  hide();
-                }}
-              >
-                <FiChevronDown style={iconStyle} />
-              </button>
-            </div>
-          ) : null}
-        </div>
-      ) : null}
-    </>
+    <CanvasHoverToolbar
+      toolbarKey={exclusiveKey}
+      visible={visible}
+      pinned={pinned}
+      side={side}
+      top={toolbarTop}
+      pageWidth={pageSize?.width ?? 595}
+      highlight={resolvedHighlight}
+      layout={layout}
+      addLabel="Wpis"
+      addTooltip="Dodaj wpis poniżej"
+      onAdd={() => {
+        addRecordBlock?.(elementId);
+        hide();
+      }}
+      canMoveUp={canMoveUp}
+      canMoveDown={canMoveDown}
+      onMoveUp={() => reorderRecordBlock?.(elementId, "up")}
+      onMoveDown={() => reorderRecordBlock?.(elementId, "down")}
+      menuOpen={menuOpen}
+      onOpenMenu={openMenu}
+      onCloseMenu={closeMenu}
+      menuItems={[{
+        key: "delete",
+        label: "Usuń wpis",
+        icon: <FiTrash2 aria-hidden="true" />,
+        danger: true,
+        onSelect: () => {
+          deleteWithUndo({
+            title: recordLabel ? `Usunięto wpis „${recordLabel}”` : "Usunięto wpis",
+            msg: "Możesz natychmiast przywrócić wpis wraz z jego treścią.",
+            remove: () => removeRecordBlock?.(elementId),
+          });
+          hide();
+        },
+      }]}
+      toolbarPointerProps={toolbarPointerProps}
+    />
   );
 }

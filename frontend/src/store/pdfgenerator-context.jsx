@@ -10,6 +10,7 @@ import { createContext } from "react";
 
 export const PdfContext = createContext({
     A4_Elements: [],
+    A4_Elements_deleted: [],
     groupMoveDelta: null,
     isTwoPageView: false,
     toggleTwoPageView: () => {},
@@ -112,6 +113,9 @@ export const PdfContext = createContext({
     logout: () => {},
     isPdfLoading: false,
     setA4_Elements_deleted: () => {},
+    pageCount: 1,
+    setPageCount: () => {},
+    pushToast: () => {},
     structurePreviewGroup: null,
     setStructurePreviewGroup: () => {},
     deletionPreviewIds: [],

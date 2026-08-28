@@ -404,6 +404,14 @@ describe("listUpperRecordMembers / insertRecordBlockAfterRecord", () => {
     assert.equal(anchors.length, 1);
     assert.equal(anchors[0].elementId, body[0].element_id);
     assert.deepEqual(anchors[0].hoverIds, [body[0].element_id, body[1].element_id]);
+    assert.equal(
+      anchors[0].highlight.top,
+      Math.min(...body.map((element) => Number(element.top) || 0)),
+    );
+    assert.ok(
+      anchors[0].highlight.height > (Number(body[1].top) || 0) - anchors[0].highlight.top,
+      "record highlight must include the description below its hover-only title/meta band",
+    );
     assert.equal(listRecordBlockAddElementIds(elements).has(body[0].element_id), true);
     assert.equal(listRecordBlockAddElementIds(elements).has(body[1].element_id), false);
   });
