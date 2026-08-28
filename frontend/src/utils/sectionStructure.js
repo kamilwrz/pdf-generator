@@ -2106,7 +2106,7 @@ function placeStrip(strip, cursorAbs, pageHeight, pageTop, bottomMargin) {
  * @param {object[]} elements
  * @param {string[]} orderedHeadingIds
  * @param {number} [pageHeight=842]
- * @param {{ pageTop?: number, bottomMargin?: number, sectionGap?: number, spacing?: object, forceTargets?: boolean }} [options]
+ * @param {{ pageTop?: number, bottomMargin?: number, sectionGap?: number, spacing?: object, forceTargets?: boolean, membershipReference?: object[] }} [options]
  * @returns {object[]}
  */
 export function packDocumentSections(
@@ -2119,6 +2119,7 @@ export function packDocumentSections(
     sectionGap,
     spacing,
     forceTargets = false,
+    membershipReference = null,
   } = {},
 ) {
   const rhythm = normalizeFlowSpacing(spacing || DEFAULT_FLOW_SPACING);
@@ -2126,6 +2127,17 @@ export function packDocumentSections(
   const list = elements || [];
   const sections = listDocumentSections(list, pageHeight);
   if (sections.length === 0 || !orderedHeadingIds?.length) return list;
+
+  // A masthead visibility transition can move a continuation-page record
+  // across a section heading before this pack gets a chance to normalize the
+  // document. Deriving membership from that transient geometry would attach
+  // the complete record to the wrong section permanently. Callers that own a
+  // trustworthy pre-transition snapshot may supply it here; element IDs stay
+  // stable during masthead toggles, so the snapshot provides semantic section
+  // ownership while the current list still supplies the geometry to place.
+  const membershipSource = Array.isArray(membershipReference)
+    ? membershipReference
+    : list;
 
   const byHeading = new Map(sections.map((section) => [section.headingId, section]));
   const order = orderedHeadingIds
@@ -2136,7 +2148,7 @@ export function packDocumentSections(
   const flowStart = resolveFlowStart(list, sections, pageHeight);
   const memberIds = new Set();
   const strips = order.map((section) => {
-    const ids = sectionElementIds(list, section.headingId, pageHeight);
+    const ids = sectionElementIds(membershipSource, section.headingId, pageHeight);
     ids.forEach((id) => memberIds.add(id));
     const members = list.filter((element) => ids.has(element.element_id));
     return compactSectionStrip(members, pageHeight, rhythm, forceTargets);
@@ -2653,7 +2665,13 @@ export function applyFlowSpacing(elements, spacing, pageHeight = 842, options = 
   let next = healDecorativeOrdinalBaselines(elements || [], pageHeight);
   next = healSkillChipLabelBaselines(next);
   next = healSimpleChromeRuleGaps(next, pageHeight);
-  const sections = listDocumentSections(next, pageHeight);
+  // Portico passes the pre-toggle document as the membership reference. Its
+  // masthead transition is allowed to move content through a page boundary,
+  // but it must never let that temporary geometry redefine section ownership.
+  const membershipSource = Array.isArray(options.membershipReference)
+    ? options.membershipReference
+    : next;
+  const sections = listDocumentSections(membershipSource, pageHeight);
   if (sections.length > 0) {
     next = packDocumentSections(
       next,
@@ -2664,6 +2682,7 @@ export function applyFlowSpacing(elements, spacing, pageHeight = 842, options = 
         spacing: rhythm,
         sectionGap: rhythm.section,
         forceTargets: true,
+        membershipReference: membershipSource,
       },
     );
   }

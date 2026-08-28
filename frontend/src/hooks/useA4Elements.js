@@ -2343,7 +2343,7 @@ export function useA4Elements(titleRef) {
     setA4_Elements((prev) => {
       const next = applyTitleToggle(prev, bandId, () => nanoid()).elements;
       return activeTemplateIdRef.current === 'portico'
-        ? reflowPorticoAfterMastheadChange(next, flowSpacingRef.current, nanoid)
+        ? reflowPorticoAfterMastheadChange(next, flowSpacingRef.current, nanoid, prev)
         : next;
     });
   }, []);
@@ -2373,7 +2373,7 @@ export function useA4Elements(titleRef) {
         );
       }
       return activeTemplateIdRef.current === 'portico'
-        ? reflowPorticoAfterMastheadChange(next, flowSpacingRef.current, nanoid)
+        ? reflowPorticoAfterMastheadChange(next, flowSpacingRef.current, nanoid, prev)
         : reconcileDocumentPages(next, nanoid, { collapseEmpty: true }).elements;
     });
   }, [measureContactLabel]);

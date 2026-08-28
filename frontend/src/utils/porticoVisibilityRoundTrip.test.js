@@ -84,23 +84,30 @@ describe("Portico photo and job-title round trip", () => {
         let nextId = 0;
         const createId = () => `generated-${nextId += 1}`;
         let elements = completeExperienceBeforeEducationFixture();
-        const reflow = () => {
+        const expectedSections = listDocumentSections(elements).map((section) => ({
+          ...section,
+          memberIds: sectionElementIds(elements, section.headingId),
+        }));
+        const reflow = (membershipReference) => {
           elements = reflowPorticoAfterMastheadChange(
             elements,
             DEFAULT_FLOW_SPACING,
             createId,
+            membershipReference,
           );
         };
         const toggleTitle = () => {
+          const membershipReference = elements;
           elements = applyTitleToggle(elements, "masthead-main", createId).elements;
-          reflow();
+          reflow(membershipReference);
         };
         const togglePhoto = (visible) => {
+          const membershipReference = elements;
           elements = (visible ? showProfilePhoto : hideProfilePhoto)(
             elements,
             "portico",
           ).elements;
-          reflow();
+          reflow(membershipReference);
         };
 
         if (hideOrder === "photo-first") {
@@ -135,15 +142,38 @@ describe("Portico photo and job-title round trip", () => {
         const recordBottom = Math.max(...recordMembers.map(
           (element) => absoluteTop(element) + Number(element.height || element.lineHeight || 12),
         ));
+        const sections = listDocumentSections(elements);
+        const sectionTitles = sections.map((section) => section.title);
 
         assert.equal(isProfilePhotoHidden(elements), false);
         assert.equal(title.top, 169);
         assert.equal(identity.title.present, true);
         assert.equal(summaryHeading.top, 259);
+        assert.deepEqual(sectionTitles, [
+          "PODSUMOWANIE ZAWODOWE",
+          "DOŚWIADCZENIE ZAWODOWE",
+          "WYKSZTAŁCENIE",
+          "UMIEJĘTNOŚCI",
+          "JĘZYKI",
+        ]);
         assert.ok(
           recordBottom < absoluteTop(educationHeading),
           "the final Experience record must finish before Education starts",
         );
+        for (const section of expectedSections) {
+          const heading = elements.find(
+            (element) => element.element_id === section.headingId,
+          );
+          const bodyMembers = elements.filter((element) => (
+            section.memberIds.has(element.element_id)
+            && element.element_id !== section.headingId
+            && element.flowRole !== "section-chrome"
+          ));
+          assert.ok(
+            bodyMembers.every((element) => absoluteTop(element) > absoluteTop(heading)),
+            `${section.title} content must remain below its heading`,
+          );
+        }
       });
     }
   }

@@ -12,9 +12,16 @@ import { reconcileDocumentPages } from "./structureOperation.js";
  * @param {object[]} elements - Elements after the masthead transformation.
  * @param {object} spacing - The document's current vertical-rhythm settings.
  * @param {() => string} createId - Identifier factory for continuation chrome.
+ * @param {object[]} [membershipReference=elements] - Elements immediately
+ *   before the transformation, used to preserve semantic section ownership.
  * @returns {object[]} Repacked elements with the correct final page count.
  */
-export function reflowPorticoAfterMastheadChange(elements, spacing, createId) {
-  const packed = applyFlowSpacing(elements, spacing);
+export function reflowPorticoAfterMastheadChange(
+  elements,
+  spacing,
+  createId,
+  membershipReference = elements,
+) {
+  const packed = applyFlowSpacing(elements, spacing, 842, { membershipReference });
   return reconcileDocumentPages(packed, createId, { collapseEmpty: true }).elements;
 }
