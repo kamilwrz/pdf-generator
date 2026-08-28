@@ -29,6 +29,12 @@ const LEGACY_FRAMELESS_PLACEHOLDERS = {
   atrium: "/template-assets/iconic/atrium-accent/portrait.png",
 };
 
+function isPorticoPackedFlowElement(element) {
+  return element?.flowRole === "section-chrome"
+    || element?.flowRole === "content"
+    || element?.flowRole === "grid-member";
+}
+
 function clone(value) {
   return value == null ? value : JSON.parse(JSON.stringify(value));
 }
@@ -318,40 +324,75 @@ export function showProfilePhoto(elements, templateId) {
     return { elements, contactBandId: null };
   }
   const id = String(templateId);
-  const porticoTitleHome = id === "portico"
+  const porticoTitleRestoreTop = id === "portico"
     ? Number((elements || []).find(
       (element) => element.profilePhotoMainMastheadIdentity,
-    )?.profilePhotoMainMastheadIdentity?.title?.spec?.top)
+    )?.mastheadIdentity?.title?.spec?.top) + PORTICO_RECLAIM_PT
     : NaN;
   let restoredBandId = null;
   const next = (elements || []).map((element) => {
     let updated = isSlotMember(element, id)
       ? { ...element, photoSlotHidden: false }
       : element;
-    if (updated.photoLayoutHome) {
+
+    const shouldShiftPackedPorticoFlow = id === "portico"
+      && isPorticoPackedFlowElement(updated)
+      && Number.isFinite(Number(updated.top));
+    if (shouldShiftPackedPorticoFlow) {
       const { photoLayoutHome: _home, ...rest } = updated;
-      updated = { ...rest, top: updated.photoLayoutHome.top };
+      // Every packed member moves by the same inverse photo delta, including
+      // members that came from a continuation page and therefore had no home
+      // snapshot when the slot was hidden. This preserves reading order until
+      // the following full-document pack assigns final pages and coordinates.
+      updated = { ...rest, top: Number(updated.top) + PORTICO_RECLAIM_PT };
+    } else if (updated.photoLayoutHome) {
+      const { photoLayoutHome: _home, ...rest } = updated;
+      // Portico composes photo and title visibility as independent deltas.
+      // Reversing the photo's 100 pt shift from the CURRENT coordinate keeps a
+      // simultaneous title shift intact; restoring an old absolute top would
+      // lose that 22 pt state. Other templates still use exact authored homes.
+      updated = id === "portico"
+        ? { ...rest, top: Number(updated.top) + PORTICO_RECLAIM_PT }
+        : { ...rest, top: updated.photoLayoutHome.top };
     }
     if (updated.profilePhotoMainContactBand) {
-      const descriptor = clone(updated.profilePhotoMainContactBand);
+      const storedDescriptor = clone(updated.profilePhotoMainContactBand);
+      const descriptor = id === "portico"
+        ? clone(updated.contactBand) || storedDescriptor
+        : storedDescriptor;
+      if (
+        id === "portico"
+        && Number.isFinite(Number(descriptor?.anchor?.startY))
+      ) {
+        descriptor.anchor.startY = Number(descriptor.anchor.startY) + PORTICO_RECLAIM_PT;
+      }
       const { profilePhotoMainContactBand: _descriptor, ...rest } = updated;
       updated = { ...rest, contactBand: descriptor };
       restoredBandId = updated.contactBandId || restoredBandId;
     }
     if (updated.profilePhotoMainMastheadIdentity) {
-      const identity = clone(updated.profilePhotoMainMastheadIdentity);
+      const storedIdentity = clone(updated.profilePhotoMainMastheadIdentity);
+      const identity = id === "portico"
+        ? clone(updated.mastheadIdentity) || storedIdentity
+        : storedIdentity;
+      if (
+        id === "portico"
+        && Number.isFinite(Number(identity?.title?.spec?.top))
+      ) {
+        identity.title.spec.top = Number(identity.title.spec.top) + PORTICO_RECLAIM_PT;
+      }
       const { profilePhotoMainMastheadIdentity: _identity, ...rest } = updated;
       updated = { ...rest, mastheadIdentity: identity };
     }
     if (
       id === "portico"
       && updated.mastheadRole === "title"
-      && Number.isFinite(porticoTitleHome)
+      && Number.isFinite(porticoTitleRestoreTop)
     ) {
       // A title recreated while the photo is hidden has no photoLayoutHome of
       // its own because it did not exist when the slot was hidden. Restore it
       // from the identity snapshot together with the rest of the masthead.
-      updated = { ...updated, top: porticoTitleHome };
+      updated = { ...updated, top: porticoTitleRestoreTop };
     }
     return updated;
   });
