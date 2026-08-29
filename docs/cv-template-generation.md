@@ -278,7 +278,7 @@ Normalizacja (`cv_data.normalize_cv_data`) przyjmuje już obiekty `{title, bulle
 | Ekstrakcja treści z PDF → JSON | `ai_service.extract_cv_data` | Cloudflare Gemma 4 (tekst) / Qwen 3.8 (tylko skany) |
 | Asystent na canvasie (edycja, ATS, układ istniejących elementów) | `ai_assistant_service` | osobny tor, po wygenerowaniu CV |
 
-Przy ekstrakcji AI dostaje **instrukcję schematu JSON** (experience, education z `school/city/degree/...`, skills, labels PL, `extra_sections` z `kind` / `placement` oraz **rekordowymi** `items` dla projektów/referencji). Temperatura niska (`0.1`), format `json_object`.
+Przy ekstrakcji AI dostaje **instrukcję schematu JSON** (experience, education z `school/city/degree/...`, skills, labels PL, `extra_sections` z `kind` / `placement` oraz **rekordowymi** `items` dla projektów/referencji). Temperatura jest niska (`0.1`). Dla Cloudflare Gemma/Qwen żądanie używa `max_completion_tokens=8000` i `reasoning_effort=low`, ale nie wysyła `response_format`, ponieważ te modele nie znajdują się na aktualnej allowliście Workers AI JSON Mode. Ścisły prompt i parser backendu wymagają jednego obiektu JSON oraz tolerują wyłącznie opcjonalny Markdown fence lub typowane fragmenty tekstowe. Jawny rollback OpenAI nadal używa `response_format=json_object`.
 
 Heurystyczna grupacja w Pythonie pokrywa typowe spłaszczenia; pełna decyzyjność przy niejednoznacznych listach to naturalne miejsce na opcjonalny drugi pass LLM (Standard/Premium, kredyty AI) **przed** `generate_resume`, bez zmiany geometrii szablonów.
 

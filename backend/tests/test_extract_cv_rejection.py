@@ -125,6 +125,28 @@ class ExtractCvFreeImportTests(unittest.TestCase):
         self.assertTrue(response.json()["detail"]["retryable"])
         self.assertEqual(self._usage().cv_imports_count, 0)
 
+    def test_empty_provider_response_returns_retryable_502_without_consumption(self):
+        """Preserve the safe service error and leave the monthly meter untouched."""
+        error = CvExtractionError(
+            "extract_provider_empty_response",
+            "Model nie zwrócił danych CV. Spróbuj ponownie.",
+            status_code=502,
+            retryable=True,
+        )
+        with patch("app.api.routes.ai.extract_cv_data", side_effect=error):
+            response = self.client.post(
+                "/ai/extract_cv",
+                files={"file": ("cv.pdf", _valid_pdf_bytes(), "application/pdf")},
+            )
+
+        self.assertEqual(response.status_code, 502)
+        self.assertEqual(
+            response.json()["detail"]["code"],
+            "extract_provider_empty_response",
+        )
+        self.assertTrue(response.json()["detail"]["retryable"])
+        self.assertEqual(self._usage().cv_imports_count, 0)
+
 
 if __name__ == "__main__":
     unittest.main()
