@@ -28,8 +28,8 @@ _CV = {
 
 # Templates whose design uppercases the name by default. These must express
 # the caps through the reversible flag rather than a baked ``.upper()``.
-_UPPERCASE_NAME = {"slate", "linden"}
-_UPPERCASE_TITLE = {"slate", "regent", "meridian", "vestige", "sterling"}
+_UPPERCASE_NAME = {"slate", "linden", "cadenza"}
+_UPPERCASE_TITLE = {"slate", "regent", "meridian", "vestige", "sterling", "cadenza"}
 _BAND_IDS = {
     "atrium": "masthead-main",
     "portico": "masthead-main",
@@ -40,6 +40,7 @@ _BAND_IDS = {
     "vestige": "vestige-masthead",
     "monument": "monument-masthead",
     "sterling": "sterling-masthead",
+    "cadenza": "masthead-main",
 }
 _TITLE_CATEGORIES = {
     template_id: "text" if template_id in {"slate"} else "textarea"
@@ -98,7 +99,7 @@ def test_template_emits_masthead_identity(template_id):
 
 @pytest.mark.parametrize(
     "template_id",
-    ["atrium", "portico", "slate", "regent", "meridian"],
+    ["atrium", "portico", "slate", "regent", "meridian", "cadenza"],
 )
 def test_masthead_descriptor_reflow_delta_is_positive(template_id):
     """The title-hide reflow delta (``blockPt``) must be positive so hiding the

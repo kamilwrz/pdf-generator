@@ -194,7 +194,7 @@ pdf-generator/
 │   │   ├── pages/            # Hero, Login, Register, PdfCanvas
 │   │   ├── services/         # ApiClient, fillTemplate, authenticatedImage, eventLog
 │   │   ├── store/            # Canvas / UiSurfaces / Session + PdfContext facade
-│   │   ├── templates/        # per-template specs + helpers; linden.js is the botanical editorial starter
+│   │   ├── templates/        # per-template specs + helpers; cadenza.js is the warm editorial starter
 │   │   └── utils/            # geometry/reflow/sections, browser text-export layout, template appearance, guest helpers
 │   │       ├── canvasHighlightBounds.js # Model-first bounds and post-commit ink limits
 │   │       ├── canvasHighlightBounds.test.js # Focused semantic-highlight geometry regressions
@@ -409,7 +409,7 @@ Tests:
 
 - `frontend/src/utils/canvasHoverToolbarState.test.js`, lines 1–45 — one-second leave delay, transient hover, persistent click pin, menu pin, and full reset transitions
 - `frontend/src/components/canvas/recordPlusSize.test.js`, lines 1–39 — compact screen-stable dimensions plus outer-gutter resolution for both sheets of a spread and lane-gutter preservation on one page
-- `frontend/src/utils/canvasHighlightBounds.test.js`, lines 1–323 — focused regressions for Portico/legacy icon optical ink, zero pre-commit DOM reads, upward member pollution, oversized-body clipping, bounded current/next live Ranges, stale-Range rejection, and corrupt-limit suppression; `frontend/src/utils/canvasHighlightAllTemplates.test.js`, lines 1–160 — independent explicit-heading completeness checks plus model membership and two-sided isolation for every main/sidebar section in all nine built-in starters
+- `frontend/src/utils/canvasHighlightBounds.test.js`, lines 1–323 — focused regressions for Portico/legacy icon optical ink, zero pre-commit DOM reads, upward member pollution, oversized-body clipping, bounded current/next live Ranges, stale-Range rejection, and corrupt-limit suppression; `frontend/src/utils/canvasHighlightAllTemplates.test.js`, lines 1–160 — independent explicit-heading completeness checks plus model membership and two-sided isolation for every main/sidebar section in all ten built-in starters
 
 ### Record-overlay elements survive structural repacking
 
@@ -796,14 +796,14 @@ Limits:
 
 ### Template load
 
-Loads static specs; assigns `element_id`, interaction flags, locks chrome. The public registry contains exactly nine starters: Atrium, Linden, Meridian, Monument, Portico, Regent, Slate, Sterling, and Vestige. All nine are generator-owned snapshots rather than hand-maintained approximations; `scripts/regenerate_template_starters.py` regenerates one module for every identifier in its `TEMPLATES` list.
+Loads static specs; assigns `element_id`, interaction flags, locks chrome. The public registry contains exactly ten starters: Atrium, Cadenza, Linden, Meridian, Monument, Portico, Regent, Slate, Sterling, and Vestige. All ten are generator-owned snapshots rather than hand-maintained approximations; `scripts/regenerate_template_starters.py` regenerates one module for every identifier in its `TEMPLATES` list.
 
 Implementation:
 
-- `frontend/src/templates/index.js`, lines 10–34 — the complete ten-entry `TEMPLATES` registry (`name` + `description` for UI; `layouts` tags for generators)
+- `frontend/src/templates/index.js`, lines 11–34 — the complete ten-entry `TEMPLATES` registry (`name` + `description` for UI; `layouts` tags for generators)
 - `frontend/src/utils/materializeElementSpecs.js`, `materializeElementSpecs`
 - `frontend/src/hooks/useA4Elements.js`, `handleLoadTemplate` / `useDocumentHistory`
-- `scripts/regenerate_template_starters.py`, lines 272–284 and 428–463 — the exact nine-id regeneration list and `main`; generated modules: `frontend/src/templates/{atrium,linden,meridian,monument,portico,regent,slate,sterling,vestige}.js`
+- `scripts/regenerate_template_starters.py`, lines 273–284 and 430–468, `TEMPLATES` and `main` — the exact ten-id regeneration list; optional positional ids regenerate only selected modules, for example `python scripts/regenerate_template_starters.py cadenza`; generated modules: `frontend/src/templates/{atrium,cadenza,linden,meridian,monument,portico,regent,slate,sterling,vestige}.js`
 
 ### Canvas enter fade
 
@@ -906,6 +906,28 @@ Implementation:
 Tests:
 
 - `backend/tests/test_meridian_template.py` — registry metadata, 8.6 px / 11 px summary metrics, contact icons, the accent-tick section marker, the pinned period-above-city experience rail with each line anchored to its exact content-line top (period↔title, city↔company), the school-before-degree education row order with a city-above-period rail (city↔school, period↔degree), the bullets-only anchor fallback when company is absent, dropping an unanchorable second rail line, and a realistic multi-sentence summary staying on page one
+
+### Cadenza warm editorial template
+
+Cadenza is a paid single-column template (`layouts: ["single", "icons"]`) for users who want the formality of a traditional editorial résumé without surrendering CV Studio's predictable content editing. It uses a warm-white page (`#FFFEFB`), blue-charcoal ink (`#263238`), Lora body copy, and a centered uppercase Playfair Display identity. Section names sit in full-width pale blue-grey bands (`#E8EDEE`); a single 3 pt muted-copper register mark (`#9B735A`) at the left edge is the only repeated decorative accent. The result deliberately borrows the reference convention—serif masthead, thin rules, restrained bands, one reading column—without reproducing its exact artwork.
+
+Contact data remains functional rather than flattened into one decorative string. The centered band uses the dedicated thin copper icon set in `backend/template_assets/iconic/cadenza/`, reserves two rows, and closes with a hairline 24 pt below the second row. Adding or removing phone, email, LinkedIn, GitHub, website, or location therefore uses the existing contact-band manager and cannot move the first body section unexpectedly. The reversible masthead identity contract also keeps the uppercase name and optional job title editable.
+
+Dates follow the Meridian behavior requested for this design. Experience keeps title → company → bullets in normal left-column flow while period and city are right-aligned `record-overlay` elements pinned to the exact title/company tops. Education intentionally follows the degree-first convention visible in the reference: degree → italic school → optional bullets on the left, period next to the degree and city next to the school on the right. Because the rail anchors to real textareas in the same `flowGroup`, live text growth, density changes, section reordering, and pagination preserve each row. Continuation pages add only a compact uppercase name and hairline above the standard page flow, plus the shared footer rule/page number, so long CVs remain recognisable without repeating the full masthead.
+
+Implementation:
+
+- `backend/app/services/cv_templates/templates/cadenza.py`, lines 50–166 (`_cadenza_education_height`, `_cadenza_place_education`) and 168–409 (`_gen_cadenza`) — degree-first education rail, masthead/contact geometry, editorial bands, Meridian-compatible experience rail, page flow, and continuation chrome
+- `backend/app/services/cv_templates/registry.py`, lines 14–39 — `TEMPLATE_LAYOUTS["cadenza"]` and `_GENERATORS["cadenza"]`
+- `frontend/src/templates/cadenza.js`, lines 18–1349, exported `cadenzaTemplate` — source-generated editable starter; `frontend/src/templates/index.js`, lines 19–33 — paid picker entry and layout metadata
+- `backend/template_assets/iconic/cadenza/` — phone, email, LinkedIn, GitHub, website, and location PNG glyphs; `frontend/public/template-mockups/cadenza.png` — page-one preview generated from the starter graph
+- `scripts/regenerate_template_starters.py`, lines 273–351 and 430–468 — Cadenza id, blurb/persona, and optional targeted regeneration; `frontend/scripts/dump-iconic-templates.mjs`, lines 15–27, plus `scripts/render_iconic_mockups.py`, lines 90–106 — starter dump and optional targeted mockup rendering
+
+Tests:
+
+- `backend/tests/test_cadenza_template.py`, lines 24–115 — registry metadata, masthead/band/icon identity, exact experience and education period anchors, and continuation-page identity
+- `frontend/src/templates/cadenza.test.js`, lines 1–46 — starter palette, masthead, section bands, copper markers, date rail, and icon paths
+- `backend/tests/test_contact_band_templates.py`, lines 27–105; `frontend/src/templates/contactMastheadSpacing.test.js`, lines 1–50 — centered contact-band safety; `backend/tests/test_masthead_templates.py`, lines 31–267 and `frontend/src/templates/mastheadIdentityAllTemplates.test.js`, lines 1–180 — reversible title/name contract across all ten public templates
 
 ### Vestige narrow-sidebar editorial template
 
@@ -1188,19 +1210,21 @@ Tests:
 
 **Shared demo persona.** Built-in starters and the guest Regent demo generally use the fictional **Julia Bernat** profile — AML/compliance analyst with three experience roles, one degree, five skills, three languages, plus phone / email / LinkedIn / GitHub / website / Warszawa — so picker mockups stay comparable and follow each generator's `SPACE_*` rhythm on page 1. Regent intentionally uses Alexandra Nowak, a strategy-consulting persona sized to demonstrate its large editorial lead. Monument and Portico use a slightly compacted bullet set so every section still fits page 1 of the mockup.
 
-**Regenerating source-driven starters and mockups.** All nine public `frontend/src/templates/*.js` starters — Atrium, Linden, Meridian, Monument, Portico, Regent, Slate, Sterling, and Vestige — are dumps of `generate_resume` output. The current set was regenerated after the masthead-title contract changed. To refresh every starter from the shared persona:
+**Regenerating source-driven starters and mockups.** All ten public `frontend/src/templates/*.js` starters — Atrium, Cadenza, Linden, Meridian, Monument, Portico, Regent, Slate, Sterling, and Vestige — are dumps of `generate_resume` output. To refresh every starter from the shared persona, or only Cadenza after an isolated design change:
 
 ```bash
 python scripts/regenerate_template_starters.py   # rewrites all ten active template modules
+python scripts/regenerate_template_starters.py cadenza  # rewrites only cadenza.js
 ```
 
-The authoritative list is `TEMPLATES` at `scripts/regenerate_template_starters.py`, lines 272–284; `main`, lines 428–463, loops over that list for generation and writing. Re-run it whenever the shared demo, a generator, or the shared masthead descriptor changes.
+The authoritative list is `TEMPLATES` at `scripts/regenerate_template_starters.py`, lines 273–284; `main`, lines 430–468, loops over the full list when no ids are supplied and validates/writes only requested ids otherwise. Re-run it whenever the shared demo, a generator, or the shared masthead descriptor changes.
 
-`frontend/public/template-mockups/{monument,slate,portico,atrium,sterling,regent,vestige,meridian,linden}.png` — the previews shown in the Hero template gallery (`frontend/src/pages/Hero/Hero.jsx`), the in-app template picker (`frontend/src/components/modals/TemplatesModal/TemplatesModal.jsx`), and the hover pane in **Wypełnij z mojego CV** (`frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`) — are rendered from those starter arrays, not hand-drawn mockups. After starter changes, regenerate the PNGs:
+`frontend/public/template-mockups/{monument,slate,portico,atrium,sterling,regent,vestige,meridian,linden,cadenza}.png` — the previews shown in the Hero template gallery (`frontend/src/pages/Hero/Hero.jsx`), the in-app template picker (`frontend/src/components/modals/TemplatesModal/TemplatesModal.jsx`), and the hover pane in **Wypełnij z mojego CV** (`frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`) — are rendered from those starter arrays, not hand-drawn mockups. After starter changes, regenerate every PNG or only the edited template:
 
 ```bash
 node frontend/scripts/dump-iconic-templates.mjs
 python scripts/render_iconic_mockups.py           # renders each theme through ReportLab, rasterizes page 1 with PyMuPDF
+python scripts/render_iconic_mockups.py cadenza   # renders only Cadenza
 ```
 
 The starter modules use explicit `.js` import extensions, and `frontend/src/services/api.js` falls back safely when Vite's `import.meta.env` object is absent. The dump therefore runs directly in Node without a custom loader. The intermediate JSON is git-ignored — it is always regenerated from the starter modules, never edited by hand.
@@ -1431,7 +1455,7 @@ Tests: `frontend/src/utils/contactBandOps.test.js`, lines 156–197 (stable down
 
 Phase 2 makes the manager usable everywhere and adds live editing:
 
-- **All templates.** The manager now works on Atrium, Portico, Slate (centered / wrapping masthead), plus **Regent** (a `stacked` layout mode, one channel per row). Each template passes a `band_id` to its contact placer and appends the band anchor after its masthead `flowRole` pass so the anchor keeps its own `masthead-anchor` role.
+- **Managed contact bands.** The manager covers the descriptor-backed mastheads, including Atrium, Cadenza, Meridian, Portico, Regent, and Slate (centered or wrapping placement), plus the transformed stacked bands used by sidebar designs such as Vestige. Each generator passes a `band_id` to its contact placer and appends the band anchor after its masthead `flowRole` pass so the anchor keeps its own `masthead-anchor` role.
 - **A just-added channel is editable.** The added label is seeded with the channel display name (real, clickable glyphs) and edited by double-clicking it — the same double-click→`setTextareaEditing` path every other text element uses. A single click only selects the label. It is deliberately **not** auto-opened in edit mode: mounting an element already `isEditing:true` is an unreliable focus path, and canvas text uses `line-height: 0` (see `App.css` `.page-canvas p`), so an empty single-line label collapses to zero height and has no hit area. An empty label reserves the width of its placeholder (the channel display name) so the following chip never overlaps it.
 - **Live horizontal reflow while typing.** Editing a channel's label re-spaces the band on every keystroke (constant inter-item gap) without moving the rule or document body below the fixed contact zone, via `applyChannelRelayout` wired into `handleEditElementValues`. In `chip` mode the pill background is moved **and resized** with its icon and label.
 - **Canvas↔PDF parity.** The `chip` pill width uses the same character-count formula on the client (`contactBandLayout.js` `chipWidth`) and the backend (`_place_chip_icon_contacts`), so the canvas matches the PDF exactly.
@@ -1453,13 +1477,13 @@ Deferred to later phases: new data fields (extra field, birth date, nationality)
 
 ### Masthead identity toggles (Phase 3)
 
-The same identity contract now covers **all nine public templates**: Atrium, Linden, Meridian, Monument, Portico, Regent, Slate, Sterling, and Vestige. Each generator tags the name and an optional live title, then emits one zero-footprint `masthead-anchor` with the template's reconstruction and reflow descriptor.
+The same identity contract now covers **all ten public templates**: Atrium, Cadenza, Linden, Meridian, Monument, Portico, Regent, Slate, Sterling, and Vestige. Each generator tags the name and an optional live title, then emits one zero-footprint `masthead-anchor` with the template's reconstruction and reflow descriptor.
 
-- **Name-case toggle.** Hovering the name reveals an `Aa`/`AA` chip that flips the reversible `textTransform` flag (`"uppercase"` ↔ `"none"`). Canvas and PDF apply the flag while stored `content` keeps its original case. Slate, and Linden author uppercase names through this flag rather than baking uppercase text into the data.
+- **Name-case toggle.** Hovering the name reveals an `Aa`/`AA` chip that flips the reversible `textTransform` flag (`"uppercase"` ↔ `"none"`). Canvas and PDF apply the flag while stored `content` keeps its original case. Cadenza, Slate, and Linden author uppercase names through this flag rather than baking uppercase text into the data.
 - **Initially missing job position.** A generator with empty `cv_data.title` still builds `title_prototype`, but passes it only as a **latent, unrendered specification**. The output contains no empty live `text`/`textarea`, no title decoration, and therefore no blank pill, strip, or orphan bar. The descriptor preserves the template's category, box geometry, font, line height, colour, tracking, alignment, casing, `bold`, `italic`, `underline`, z-index, auto-height, initial-layout flag, and decoration blueprints.
 - **Add and edit.** When no live title exists, the hover UI shows `+` beside the name. It materialises exactly one empty template-native field with the editor-only placeholder **`Wpisz stanowisko…`**. The hint is rendered through `data-placeholder`; it is never copied into element `content`, structured CV data, saved text, or the PDF. Typing a value synchronises it into `cv_data.title`, so changing the template rebuilds the next masthead with that value. Hiding the title is a presentation choice and does not clear `cv_data.title`.
 - **Lossless hide/show.** Before hiding a populated title, the client captures its current text, complete box style, inline `runs` formatting (partial bold/italic/underline/colour), appearance baselines, geometry, and live title decorations back into the descriptor. Hiding removes the title and every tagged title decoration together; showing reconstructs them from the latest descriptor. A title entered through `+` therefore survives both hide/show and a later template change without stale copy, lost emphasis, or orphan chrome.
-- **Exact layout deltas.** Filled sequential mastheads (Atrium, Portico, Slate, Regent, Meridian) use a positive authored hide delta and move only content on the title's page; coupled contact anchors move by the same amount. Their initially-empty descriptors carry a separate add delta because the empty generator already owns the title-to-contact gap—reusing the filled-title delta would double-shift the masthead. Fixed or parallel mastheads (Linden, Vestige, Monument, Sterling) use a zero delta because their title row, letterhead, photo, contact rail, or body boundary is already reserved. Thus the first `+`, ordinary hide/show, contacts, and the first section all return to the generator-authored coordinates.
+- **Exact layout deltas.** Filled sequential mastheads (Atrium, Cadenza, Portico, Slate, Regent, Meridian) use a positive authored hide delta and move only content on the title's page; coupled contact anchors move by the same amount. Their initially-empty descriptors carry a separate add delta because the empty generator already owns the title-to-contact gap—reusing the filled-title delta would double-shift the masthead. Fixed or parallel mastheads (Linden, Vestige, Monument, Sterling) use a zero delta because their title row, letterhead, photo, contact rail, or body boundary is already reserved. Thus the first `+`, ordinary hide/show, contacts, and the first section all return to the generator-authored coordinates.
 - **Hidden appearance state.** Monument and Sterling apply palette and S/M/L/XL typography changes to the latent title spec and its decoration blueprints as well as visible elements. A job-position field added after changing appearance therefore uses the current palette and font size, not the generator's stale defaults.
 - **Legacy-safe.** Documents generated before the identity anchor existed expose no controls and otherwise behave as before; no database migration is required because the semantic fields round-trip through `extra_properties`.
 
@@ -1468,20 +1492,20 @@ Implementation:
 - `backend/app/services/cv_templates/shared/masthead.py`, lines 12–27 and 30–159 — `build_masthead_identity_anchor` and `tag_masthead_identity`; `title_prototype` is selected only as a descriptor source, the full style is captured at lines 92–114, and decoration blueprints remain descriptor-only for an absent title while retaining their masthead flow role at lines 116–146.
 - `backend/app/services/pdf_generator.py` — `renderText(..., textTransform=None)` uppercases the drawn string when flagged.
 - `backend/app/schemas/pdf_schema.py` + `backend/app/crud/pdfs.py` — `textTransform`, `mastheadRole`, `mastheadBandId`, `mastheadIdentity` fields + round-trip.
-- All nine generator call sites: `atrium.py`, lines 121–183; `linden.py`, lines 245–284; `meridian.py`, lines 324–384; `monument.py`, lines 110–141; `portico.py`, lines 108–174; `regent.py`, lines 80–140; `slate.py`, lines 255–275 and 445–464; `sterling.py`, lines 172–235; `vestige.py`, lines 521–560.
+- All ten generator call sites: `atrium.py`, lines 121–183; `cadenza.py`, lines 198–268; `linden.py`, lines 245–284; `meridian.py`, lines 324–384; `monument.py`, lines 110–141; `portico.py`, lines 108–174; `regent.py`, lines 80–140; `slate.py`, lines 255–275 and 445–464; `sterling.py`, lines 172–235; `vestige.py`, lines 521–560.
 - `frontend/src/utils/mastheadIdentityOps.js`, lines 147–361 — `captureVisibleTitle`, `hideTitle`, `buildTitleElement`, `buildTitleDecorations`, `showTitle`, and `applyTitleToggle`; captures current content/style/inline runs/decorations, removes and restores the whole cluster (including `flowRole: "masthead"` for every title decoration), applies the correct delta, and assigns the empty-field placeholder.
 - `frontend/src/utils/porticoMastheadReflow.js`, lines 1–27, `reflowPorticoAfterMastheadChange` — Portico-only cross-page repack after the local title/photo transform.
 - `frontend/src/utils/mastheadBands.js`, lines 9–52 — exact `MASTHEAD_TITLE_PLACEHOLDER` constant and `listMastheadBands`; `frontend/src/components/canvas/MastheadIdentityControls/MastheadIdentityControls.jsx`, lines 20–116 — inline case/hide controls and the add-title `+` shown only when `titlePresent` is false.
 - `frontend/src/components/canvas/CanvasElements/CanvasElements.jsx`, lines 301–386; `frontend/src/components/canvas/Text/Text.jsx`, lines 68–73 and 185–196; `frontend/src/components/canvas/Textarea/Textarea.jsx`, lines 200–204 and 517–603 — thread `mastheadRole`/placeholder to the editable element and render the hint only as CSS `data-placeholder`.
 - `frontend/src/utils/syncCvDataFromCanvas.js`, lines 101–222 — `editableTextChanges`, `editedMastheadTitle`, and `syncCvDataFromCanvas`; saves the first typed value to the structured profile while deliberately treating a missing live title as hide, not semantic deletion. A fresh title id counts as `+` only when the same identity anchor survives and flips `present: false → true`; a full template replacement creates a new anchor and cannot persist generator-truncated display text over the complete `cv_data.title`. Masthead-title edits are also excluded from the generic unique-string mapper, so an identical phrase in the summary or another field cannot be overwritten after the semantic title update.
 - `frontend/src/utils/monumentAppearance.js`, lines 124–187, 221–274, and 307–389; `frontend/src/utils/sterlingAppearance.js`, lines 120–183, 248–306, and 328–415 — recolour and resize hidden descriptor specs/decorations together with visible template elements.
-- `scripts/regenerate_template_starters.py`, lines 272–284 and 428–463 — regenerates all ten starter modules after generator-contract changes.
+- `scripts/regenerate_template_starters.py`, lines 273–284 and 430–468 — regenerates all ten starter modules, or only validated positional template ids, after generator-contract changes.
 - `frontend/src/hooks/useA4Elements.js`, `store/pdfgenerator-context.jsx`, `pages/PdfCanvas.jsx` — `toggleNameCase` / `toggleTitle` ops on the shared history path.
 
 Tests:
 
 - `backend/tests/test_masthead_identity.py`, lines 10–108 — full style capture, including italic/underline/z-index, plus an absent-title prototype that remains unrendered.
-- `backend/tests/test_masthead_templates.py`, lines 56–254 — all ten anchors, casing/style, positive vs zero deltas, separate initially-empty deltas, complete latent specs, and absence of empty live titles or orphan decorations.
+- `backend/tests/test_masthead_templates.py`, lines 56–267 — all ten anchors, casing/style, positive vs zero deltas, separate initially-empty deltas, complete latent specs, and absence of empty live titles or orphan decorations.
 - `frontend/src/templates/mastheadIdentityAllTemplates.test.js`, lines 1–180 — registry-wide regression over the exact ten public starters; every title hides, restores empty, preserves all authored title and decoration fields (including `italic` and decoration `flowRole`), and leaves no decoration behind.
 - `frontend/src/utils/mastheadIdentityOps.test.js`, lines 65–220 — reconstruction, exact placeholder, full styling plus inline runs, typed-value hide/show, and live appearance capture; `frontend/src/utils/syncCvDataFromCanvas.test.js`, lines 97–207 — first typed title persists, template replacement cannot save a truncated title, hide preserves semantic profile data, and duplicate old title text in another profile field remains untouched.
 - `frontend/src/utils/monumentAppearance.test.js`, lines 45–120, and `frontend/src/utils/sterlingAppearance.test.js`, lines 19–92 — palette and typography presets update hidden title descriptors and restore their M baselines.
@@ -2237,7 +2261,7 @@ pdf-generator/
 │   │   ├── pages/
 │   │   ├── services/         # ApiClient, fillTemplate, authenticatedImage
 │   │   ├── store/            # Canvas / UiSurfaces / Session + fasada PdfContext
-│   │   ├── templates/        # specyfikacje szablonów + helpery; linden.js to botaniczny starter editorialny
+│   │   ├── templates/        # specyfikacje szablonów + helpery; cadenza.js to ciepły starter editorialny
 │   │   └── utils/            # geometria/reflow/sekcje, przeglądarkowy layout eksportu tekstu, wygląd szablonów, helpery gościa
 │   │       ├── canvasHighlightBounds.js # Bounds z modelu i limity tuszu po commicie
 │   │       ├── canvasHighlightBounds.test.js # Dokładne regresje geometrii obrysu semantycznego
@@ -2440,7 +2464,7 @@ Testy:
 
 - `frontend/src/utils/canvasHoverToolbarState.test.js`, linie 1–45 — sekundowe opóźnienie znikania, hover przejściowy, trwałe przypięcie kliknięciem, przypięcie menu i pełny reset stanu
 - `frontend/src/components/canvas/recordPlusSize.test.js`, linie 1–39 — kompaktowe, stałe ekranowo wymiary, zewnętrzne guttery obu kartek spreadu i zachowanie guttera toru przy jednej stronie
-- `frontend/src/utils/canvasHighlightBounds.test.js`, linie 1–323 — dokładne regresje tuszu ikony Portico/legacy, braku odczytu DOM przed commitem, obcego członka nad sekcją, przycinania zbyt wysokiego body, ograniczonych żywych Range bieżącego/następnego nagłówka, odrzucenia starego Range i ukrycia obrysu przy uszkodzonych limitach; `frontend/src/utils/canvasHighlightAllTemplates.test.js`, linie 1–160 — niezależna kontrola kompletności jawnych nagłówków oraz membership i dwustronna izolacja każdej sekcji main/sidebara we wszystkich dziewięciu wbudowanych starterach
+- `frontend/src/utils/canvasHighlightBounds.test.js`, linie 1–323 — dokładne regresje tuszu ikony Portico/legacy, braku odczytu DOM przed commitem, obcego członka nad sekcją, przycinania zbyt wysokiego body, ograniczonych żywych Range bieżącego/następnego nagłówka, odrzucenia starego Range i ukrycia obrysu przy uszkodzonych limitach; `frontend/src/utils/canvasHighlightAllTemplates.test.js`, linie 1–160 — niezależna kontrola kompletności jawnych nagłówków oraz membership i dwustronna izolacja każdej sekcji main/sidebara we wszystkich dziesięciu wbudowanych starterach
 
 ### Elementy record-overlay przetrwają strukturalne przepakowanie
 
@@ -2820,12 +2844,12 @@ Ograniczenia:
 
 ### Ładowanie szablonu
 
-Publiczny rejestr zawiera dokładnie dziewięć starterów: Atrium, Linden, Meridian, Monument, Portico, Regent, Slate, Sterling i Vestige. Wszystkie dziewięć to snapshoty generowane ze źródłowych generatorów, a nie ręcznie utrzymywane przybliżenia; `scripts/regenerate_template_starters.py` odtwarza po jednym module dla każdego identyfikatora z listy `TEMPLATES`.
+Publiczny rejestr zawiera dokładnie dziesięć starterów: Atrium, Cadenza, Linden, Meridian, Monument, Portico, Regent, Slate, Sterling i Vestige. Wszystkie dziesięć to snapshoty generowane ze źródłowych generatorów, a nie ręcznie utrzymywane przybliżenia; `scripts/regenerate_template_starters.py` odtwarza po jednym module dla każdego identyfikatora z listy `TEMPLATES`.
 
-- `frontend/src/templates/index.js`, linie 10–34 — kompletny, dziesięcioelementowy rejestr `TEMPLATES` (`name` + `description` w UI; tagi `layouts` dla generatorów)
+- `frontend/src/templates/index.js`, linie 11–34 — kompletny, dziesięcioelementowy rejestr `TEMPLATES` (`name` + `description` w UI; tagi `layouts` dla generatorów)
 - `frontend/src/utils/materializeElementSpecs.js` — `materializeElementSpecs`
 - `frontend/src/hooks/useA4Elements.js` — `handleLoadTemplate` / `useDocumentHistory`
-- `scripts/regenerate_template_starters.py`, linie 272–284 i 428–463 — dokładna lista dziewięciu id oraz `main`; generowane moduły: `frontend/src/templates/{atrium,linden,meridian,monument,portico,regent,slate,sterling,vestige}.js`
+- `scripts/regenerate_template_starters.py`, linie 273–284 i 430–468, `TEMPLATES` i `main` — dokładna lista dziesięciu id; opcjonalne argumenty pozycyjne regenerują tylko wybrane moduły, np. `python scripts/regenerate_template_starters.py cadenza`; generowane moduły: `frontend/src/templates/{atrium,cadenza,linden,meridian,monument,portico,regent,slate,sterling,vestige}.js`
 
 ### Fade wejścia na kanwie
 
@@ -2928,6 +2952,28 @@ Implementacja:
 Testy:
 
 - `backend/tests/test_meridian_template.py` — metadane rejestru, metryki podsumowania 8,6 px / 11 px, ikony kontaktu, akcentowy znacznik linii sekcji, przypięty pas doświadczenia z każdą linią zakotwiczoną na dokładnej górnej krawędzi jej linii treści (okres↔stanowisko, miasto↔firma), kolejność uczelnia-przed-kierunkiem w wykształceniu z pasem miasto-nad-okresem (miasto↔uczelnia, okres↔kierunek), zapasowe kotwiczenie do punktorów, gdy firma jest nieobecna, pomijanie niemożliwej do zakotwiczenia drugiej linii pasa oraz realistyczne wielozdaniowe podsumowanie pozostające na pierwszej stronie
+
+### Cadenza — ciepły szablon editorialny
+
+Cadenza to płatny szablon jednokolumnowy (`layouts: ["single", "icons"]`) dla osób, które chcą formalności tradycyjnego CV editorialnego bez rezygnowania z przewidywalnej edycji treści w CV Studio. Korzysta z ciepłej bieli papieru (`#FFFEFB`), granatowo-grafitowego atramentu (`#263238`), treści w Lora i wyśrodkowanej tożsamości pisanej wersalikami w Playfair Display. Nazwy sekcji znajdują się w pełnej szerokości jasnych, niebieskoszarych pasów (`#E8EDEE`); jedynym powtarzalnym akcentem dekoracyjnym jest 3-punktowy, stonowany miedziany znacznik (`#9B735A`) przy lewej krawędzi. Projekt świadomie wykorzystuje kanon referencji — serifowy masthead, cienkie linie, spokojne pasy i jedną oś czytania — bez kopiowania jej grafiki 1:1.
+
+Dane kontaktowe pozostają funkcjonalne, zamiast być spłaszczone do jednego ozdobnego ciągu. Wycentrowany pas korzysta z dedykowanego zestawu cienkich miedzianych ikon w `backend/template_assets/iconic/cadenza/`, rezerwuje dwa wiersze i zamyka się hairline'em 24 pt pod drugim wierszem. Dodanie lub usunięcie telefonu, e-maila, LinkedIn, GitHuba, strony WWW albo lokalizacji przechodzi więc przez istniejący menedżer pasów kontaktu i nie przesuwa niespodziewanie pierwszej sekcji body. Odwracalny kontrakt tożsamości mastheadu zachowuje też edytowalne wersaliki imienia i opcjonalne stanowisko.
+
+Daty działają zgodnie z zachowaniem Meridiana wskazanym dla tego projektu. Doświadczenie utrzymuje stanowisko → firmę → punktory w zwykłym przepływie lewej kolumny, a okres i miasto są wyrównanymi do prawej elementami `record-overlay`, przypiętymi do dokładnych górnych krawędzi stanowiska i firmy. Wykształcenie świadomie stosuje kolejność z referencji: kierunek → uczelnia kursywą → opcjonalne punktory po lewej, z okresem obok kierunku i miastem obok uczelni po prawej. Ponieważ pas kotwiczy się do prawdziwych textarea we wspólnym `flowGroup`, wzrost treści na żywo, zmiana gęstości, kolejności sekcji i paginacja zachowują każdy wiersz. Strony kontynuacji dodają tylko zwarte imię wersalikami i hairline nad standardowym przepływem oraz wspólną linię stopki i numer strony, dzięki czemu długie CV zachowuje tożsamość bez powtarzania całego mastheadu.
+
+Implementacja:
+
+- `backend/app/services/cv_templates/templates/cadenza.py`, linie 50–166 (`_cadenza_education_height`, `_cadenza_place_education`) i 168–409 (`_gen_cadenza`) — układ wykształcenia kierunek-najpierw, geometria mastheadu/kontaktów, pasy editorialne, pas doświadczenia zgodny z Meridianem, przepływ stron i chrome kontynuacji
+- `backend/app/services/cv_templates/registry.py`, linie 14–39 — `TEMPLATE_LAYOUTS["cadenza"]` i `_GENERATORS["cadenza"]`
+- `frontend/src/templates/cadenza.js`, linie 18–1349, eksport `cadenzaTemplate` — edytowalny starter generowany ze źródła; `frontend/src/templates/index.js`, linie 19–33 — płatny wpis pickera i metadane layoutu
+- `backend/template_assets/iconic/cadenza/` — glify PNG telefonu, e-maila, LinkedIn, GitHuba, strony WWW i lokalizacji; `frontend/public/template-mockups/cadenza.png` — podgląd strony 1 wygenerowany z grafu startera
+- `scripts/regenerate_template_starters.py`, linie 273–351 i 430–468 — id, opis/persona Cadenzy i opcjonalna regeneracja pojedynczego szablonu; `frontend/scripts/dump-iconic-templates.mjs`, linie 15–27, oraz `scripts/render_iconic_mockups.py`, linie 90–106 — dump startera i opcjonalne renderowanie pojedynczego mockupu
+
+Testy:
+
+- `backend/tests/test_cadenza_template.py`, linie 24–115 — metadane rejestru, tożsamość mastheadu/pasów/ikon, dokładne anchory okresu doświadczenia i wykształcenia oraz tożsamość stron kontynuacji
+- `frontend/src/templates/cadenza.test.js`, linie 1–46 — paleta startera, masthead, pasy sekcji, miedziane znaczniki, pas dat i ścieżki ikon
+- `backend/tests/test_contact_band_templates.py`, linie 27–105; `frontend/src/templates/contactMastheadSpacing.test.js`, linie 1–50 — bezpieczeństwo wycentrowanego pasa kontaktów; `backend/tests/test_masthead_templates.py`, linie 31–267 i `frontend/src/templates/mastheadIdentityAllTemplates.test.js`, linie 1–180 — odwracalny kontrakt stanowiska/imienia we wszystkich dziesięciu publicznych szablonach
 
 ### Vestige — redakcyjny szablon z wąskim sidebarem
 
@@ -3208,19 +3254,21 @@ Testy:
 
 **Wspólna persona demo.** Wbudowane startery oraz gościnna Regent demo zazwyczaj używają tej samej fikcyjnej osoby **Julia Bernat** — analityczki AML/compliance z trzema rolami, jednym wykształceniem, pięcioma umiejętnościami, trzema językami oraz telefonem / e-mailem / LinkedIn / GitHub / stroną / Warszawą — żeby mockupy w pickerze były porównywalne i trzymały rytm `SPACE_*` generatora na stronie 1. Regent celowo używa Alexandry Nowak, persony strategy consultant, aby zaprezentować duży redakcyjny lead. Monument i Portico mają lekko skrócone bullet’y, żeby wszystkie sekcje nadal mieściły się na stronie 1 mockupu.
 
-**Regenerowanie starterów i podglądów ze źródła.** Wszystkie dziewięć publicznych starterów `frontend/src/templates/*.js` — Atrium, Linden, Meridian, Monument, Portico, Regent, Slate, Sterling i Vestige — to zrzuty wyjścia `generate_resume`. Bieżący zestaw został zregenerowany po zmianie kontraktu stanowiska w mastheadzie. Aby odświeżyć wszystkie startery ze wspólnej persony:
+**Regenerowanie starterów i podglądów ze źródła.** Wszystkie dziesięć publicznych starterów `frontend/src/templates/*.js` — Atrium, Cadenza, Linden, Meridian, Monument, Portico, Regent, Slate, Sterling i Vestige — to zrzuty wyjścia `generate_resume`. Aby odświeżyć wszystkie startery ze wspólnej persony albo tylko Cadenzę po odizolowanej zmianie projektu:
 
 ```bash
 python scripts/regenerate_template_starters.py   # przepisuje wszystkie dziesięć aktywnych modułów
+python scripts/regenerate_template_starters.py cadenza  # przepisuje tylko cadenza.js
 ```
 
-Autorytatywna lista to `TEMPLATES` w `scripts/regenerate_template_starters.py`, linie 272–284; `main`, linie 428–463, iteruje po niej zarówno przy generowaniu, jak i zapisie. Uruchom skrypt ponownie po zmianie wspólnego demo, generatora albo współdzielonego deskryptora mastheadu.
+Autorytatywna lista to `TEMPLATES` w `scripts/regenerate_template_starters.py`, linie 273–284; `main`, linie 430–468, iteruje po pełnej liście bez argumentów, a z argumentami waliduje i zapisuje tylko wskazane id. Uruchom skrypt ponownie po zmianie wspólnego demo, generatora albo współdzielonego deskryptora mastheadu.
 
-Pliki `frontend/public/template-mockups/{monument,slate,portico,atrium,sterling,regent,vestige,meridian,linden}.png` — podglądy w galerii Hero, pickerze i panelu **Wypełnij z mojego CV** — pochodzą z tych tablic starterów, nie z ręcznych grafik. Po zmianie starterów odtwórz PNG:
+Pliki `frontend/public/template-mockups/{monument,slate,portico,atrium,sterling,regent,vestige,meridian,linden,cadenza}.png` — podglądy w galerii Hero, pickerze i panelu **Wypełnij z mojego CV** — pochodzą z tych tablic starterów, nie z ręcznych grafik. Po zmianie starterów odtwórz wszystkie PNG albo tylko zmieniony szablon:
 
 ```bash
 node frontend/scripts/dump-iconic-templates.mjs
 python scripts/render_iconic_mockups.py           # renderuje każdy motyw przez ReportLab i rasteryzuje stronę 1 w PyMuPDF
+python scripts/render_iconic_mockups.py cadenza   # renderuje tylko Cadenzę
 ```
 
 Moduły starterów używają jawnych rozszerzeń `.js` w importach, a `frontend/src/services/api.js` bezpiecznie korzysta z wartości domyślnej, gdy obiekt Vite `import.meta.env` nie istnieje. Dzięki temu zrzut działa bezpośrednio w Node bez własnego loadera. Pośredni plik JSON jest w `.gitignore` — zawsze generowany na nowo z modułów starterów, nigdy edytowany ręcznie.
@@ -3448,7 +3496,7 @@ Testy: `frontend/src/utils/contactBandOps.test.js`, linie 156–197 (stałe Y tr
 
 Faza 2 udostępnia menedżera we wszystkich szablonach i dodaje edycję na żywo:
 
-- **Wszystkie szablony.** Menedżer działa teraz w Atrium, Portico, Slate (masthead wycentrowany / zawijany), a także w **Regent** (tryb układu `stacked`, jeden kanał na wiersz). Każdy szablon przekazuje `band_id` do swojego placera kontaktów i dopina anchor paska **po** przejściu ustawiającym `flowRole` masthead, aby anchor zachował własną rolę `masthead-anchor`.
+- **Zarządzane pasy kontaktów.** Menedżer obejmuje mastheady z deskryptorem, w tym Atrium, Cadenzę, Meridian, Portico, Regent i Slate (układ wycentrowany lub zawijany), a także transformowane pasy stosowe szablonów sidebarowych, takich jak Vestige. Każdy generator przekazuje `band_id` do swojego placera kontaktów i dopina anchor paska **po** przejściu ustawiającym `flowRole` masthead, aby anchor zachował własną rolę `masthead-anchor`.
 - **Świeżo dodany kanał jest edytowalny.** Dodana etykieta jest zasilana nazwą wyświetlaną kanału (prawdziwe, klikalne glify) i edytowana przez dwuklik — tą samą ścieżką dwuklik→`setTextareaEditing`, której używa każdy inny element tekstowy. Pojedynczy klik tylko ją zaznacza. Celowo **nie** jest automatycznie otwierana w trybie edycji: montowanie elementu już z `isEditing:true` to zawodna ścieżka fokusu, a tekst na płótnie używa `line-height: 0` (patrz `App.css` `.page-canvas p`), więc pusta jednowierszowa etykieta zapada się do zerowej wysokości i nie ma pola trafienia. Pusta etykieta rezerwuje szerokość swojego placeholdera (nazwy kanału), aby następny chip jej nie nachodził.
 - **Poziomy reflow na żywo podczas pisania.** Edycja etykiety kanału przelicza odstępy paska przy każdym naciśnięciu klawisza (stały odstęp między elementami), ale nie przesuwa linii ani treści dokumentu pod stałą strefą kontaktów; odpowiada za to `applyChannelRelayout` wpięte w `handleEditElementValues`. W trybie `chip` tło pigułki jest przesuwane **i skalowane** wraz z ikoną i etykietą.
 - **Parzystość płótno↔PDF.** Szerokość pigułki `chip` używa tej samej formuły opartej na liczbie znaków po stronie klienta (`contactBandLayout.js` `chipWidth`) i backendu (`_place_chip_icon_contacts`), więc płótno odpowiada dokładnie PDF.
@@ -3470,13 +3518,13 @@ Odłożone do kolejnych faz: nowe pola danych (dodatkowe pole, data urodzenia, n
 
 ### Przełączniki tożsamości masthead (Faza 3)
 
-Ten sam kontrakt tożsamości obejmuje teraz **wszystkie dziewięć publicznych szablonów**: Atrium, Linden, Meridian, Monument, Portico, Regent, Slate, Sterling i Vestige. Każdy generator taguje imię oraz opcjonalny żywy element stanowiska, a następnie emituje jeden bezwymiarowy `masthead-anchor` z deskryptorem rekonstrukcji i reflow właściwym dla szablonu.
+Ten sam kontrakt tożsamości obejmuje teraz **wszystkie dziesięć publicznych szablonów**: Atrium, Cadenza, Linden, Meridian, Monument, Portico, Regent, Slate, Sterling i Vestige. Każdy generator taguje imię oraz opcjonalny żywy element stanowiska, a następnie emituje jeden bezwymiarowy `masthead-anchor` z deskryptorem rekonstrukcji i reflow właściwym dla szablonu.
 
-- **Przełącznik wielkości liter imienia.** Najechanie na imię odsłania chip `Aa`/`AA`, który przełącza odwracalną flagę `textTransform` (`"uppercase"` ↔ `"none"`). Canvas i PDF stosują flagę, podczas gdy zapisane `content` zachowuje oryginalną wielkość liter. Slate i Linden projektują domyślne wersaliki przez tę flagę, a nie przez zapis wielkimi literami w danych.
+- **Przełącznik wielkości liter imienia.** Najechanie na imię odsłania chip `Aa`/`AA`, który przełącza odwracalną flagę `textTransform` (`"uppercase"` ↔ `"none"`). Canvas i PDF stosują flagę, podczas gdy zapisane `content` zachowuje oryginalną wielkość liter. Cadenza, Slate i Linden projektują domyślne wersaliki przez tę flagę, a nie przez zapis wielkimi literami w danych.
 - **Początkowo brakujące stanowisko.** Generator z pustym `cv_data.title` nadal buduje `title_prototype`, ale przekazuje go wyłącznie jako **ukrytą, nierenderowaną specyfikację**. Wyjście nie zawiera pustego żywego `text`/`textarea` ani dekoracji stanowiska, więc nie powstaje pusta pigułka, pas ani osierocona belka. Deskryptor zachowuje kategorię, geometrię pola, font, interlinię, kolor, tracking, wyrównanie, wielkość liter, `bold`, `italic`, `underline`, z-index, auto-height, flagę układu początkowego oraz wzorce dekoracji.
 - **Dodawanie i edycja.** Gdy nie ma żywego stanowiska, UI hover pokazuje `+` obok imienia. Kliknięcie materializuje dokładnie jedno puste pole zgodne ze stylem szablonu z placeholderem widocznym tylko w edytorze: **`Wpisz stanowisko…`**. Podpowiedź jest renderowana przez `data-placeholder`; nigdy nie trafia do `content` elementu, strukturalnych danych CV, zapisanego tekstu ani PDF. Wpisana wartość synchronizuje się do `cv_data.title`, dlatego zmiana szablonu odbudowuje kolejny masthead z tą treścią. Ukrycie stanowiska jest decyzją prezentacyjną i nie czyści `cv_data.title`.
 - **Bezstratne hide/show.** Przed ukryciem wypełnionego stanowiska klient zapisuje do deskryptora jego bieżącą treść, pełny styl pola, formatowanie fragmentów w `runs` (częściowe pogrubienie/kursywa/podkreślenie/kolor), baseline'y wyglądu, geometrię i żywe dekoracje. Ukrycie usuwa razem stanowisko i wszystkie otagowane dekoracje; pokazanie odtwarza je z najnowszego deskryptora. Stanowisko wpisane przez `+` przetrwa więc hide/show i późniejszą zmianę szablonu bez powrotu starej treści, utraty wyróżnienia ani osieroconego chrome.
-- **Dokładne delty układu.** Wypełnione, sekwencyjne mastheady (Atrium, Portico, Slate, Regent, Meridian) używają dodatniej autorskiej delty ukrycia i przesuwają tylko treść na stronie stanowiska; sprzężone anchory kontaktów przesuwają się o tę samą wartość. Ich deskryptory początkowo pustego stanowiska mają osobną deltę dodawania, ponieważ pusty generator już zawiera odstęp stanowisko→kontakt — ponowne użycie delty wypełnionego tytułu przesunęłoby masthead podwójnie. Mastheady stałe lub równoległe (Linden, Vestige, Monument, Sterling) używają delty zero, bo wiersz stanowiska, letterhead, zdjęcie, szyna kontaktów albo granica treści są już zarezerwowane. Pierwsze `+`, zwykłe hide/show, kontakty i pierwsza sekcja wracają dzięki temu dokładnie na współrzędne ustalone przez generator.
+- **Dokładne delty układu.** Wypełnione, sekwencyjne mastheady (Atrium, Cadenza, Portico, Slate, Regent, Meridian) używają dodatniej autorskiej delty ukrycia i przesuwają tylko treść na stronie stanowiska; sprzężone anchory kontaktów przesuwają się o tę samą wartość. Ich deskryptory początkowo pustego stanowiska mają osobną deltę dodawania, ponieważ pusty generator już zawiera odstęp stanowisko→kontakt — ponowne użycie delty wypełnionego tytułu przesunęłoby masthead podwójnie. Mastheady stałe lub równoległe (Linden, Vestige, Monument, Sterling) używają delty zero, bo wiersz stanowiska, letterhead, zdjęcie, szyna kontaktów albo granica treści są już zarezerwowane. Pierwsze `+`, zwykłe hide/show, kontakty i pierwsza sekcja wracają dzięki temu dokładnie na współrzędne ustalone przez generator.
 - **Wygląd ukrytego stanu.** Monument i Sterling stosują zmianę palety oraz typografii S/M/L/XL także do latentnej specyfikacji stanowiska i blueprintów dekoracji, nie tylko do żywych elementów. Pole dodane po zmianie wyglądu używa więc bieżącej palety i rozmiaru fontu, a nie starych wartości generatora.
 - **Bezpieczne dla starszych dokumentów.** Dokumenty sprzed anchora tożsamości nie pokazują kontrolek i poza tym zachowują się jak wcześniej; migracja bazy nie jest potrzebna, ponieważ pola semantyczne przechodzą przez `extra_properties`.
 
@@ -3485,20 +3533,20 @@ Implementacja:
 - `backend/app/services/cv_templates/shared/masthead.py`, linie 12–27 i 30–159 — `build_masthead_identity_anchor` i `tag_masthead_identity`; `title_prototype` jest wyłącznie źródłem deskryptora, pełny styl jest przechwytywany w liniach 92–114, a wzorce dekoracji pozostają tylko w deskryptorze przy nieobecnym stanowisku i zachowują rolę flow mastheadu w liniach 116–146.
 - `backend/app/services/pdf_generator.py` — `renderText(..., textTransform=None)` zamienia rysowany ciąg na wielkie litery, gdy flaga jest ustawiona.
 - `backend/app/schemas/pdf_schema.py` + `backend/app/crud/pdfs.py` — pola `textTransform`, `mastheadRole`, `mastheadBandId`, `mastheadIdentity` + round-trip.
-- Miejsca wywołań wszystkich dziewięciu generatorów: `atrium.py`, linie 121–183; `linden.py`, linie 245–284; `meridian.py`, linie 324–384; `monument.py`, linie 110–141; `portico.py`, linie 108–174; `regent.py`, linie 80–140; `slate.py`, linie 255–275 i 445–464; `sterling.py`, linie 172–235; `vestige.py`, linie 521–560.
+- Miejsca wywołań wszystkich dziesięciu generatorów: `atrium.py`, linie 121–183; `cadenza.py`, linie 198–268; `linden.py`, linie 245–284; `meridian.py`, linie 324–384; `monument.py`, linie 110–141; `portico.py`, linie 108–174; `regent.py`, linie 80–140; `slate.py`, linie 255–275 i 445–464; `sterling.py`, linie 172–235; `vestige.py`, linie 521–560.
 - `frontend/src/utils/mastheadIdentityOps.js`, linie 147–361 — `captureVisibleTitle`, `hideTitle`, `buildTitleElement`, `buildTitleDecorations`, `showTitle` i `applyTitleToggle`; zapisują bieżącą treść/styl/formatowanie inline/dekoracje, usuwają i odtwarzają cały klaster (łącznie z `flowRole: "masthead"` każdej dekoracji stanowiska), stosują właściwą deltę i nadają placeholder pustemu polu.
 - `frontend/src/utils/porticoMastheadReflow.js`, linie 1–27, `reflowPorticoAfterMastheadChange` — właściwe dla Portico pakowanie przez granice stron po lokalnej transformacji tytułu/zdjęcia.
 - `frontend/src/utils/mastheadBands.js`, linie 9–52 — dokładna stała `MASTHEAD_TITLE_PLACEHOLDER` i `listMastheadBands`; `frontend/src/components/canvas/MastheadIdentityControls/MastheadIdentityControls.jsx`, linie 20–116 — kontrolki case/hide oraz `+` dodania stanowiska pokazywany wyłącznie przy `titlePresent === false`.
 - `frontend/src/components/canvas/CanvasElements/CanvasElements.jsx`, linie 301–386; `frontend/src/components/canvas/Text/Text.jsx`, linie 68–73 i 185–196; `frontend/src/components/canvas/Textarea/Textarea.jsx`, linie 200–204 i 517–603 — przekazują `mastheadRole`/placeholder do elementu edytowalnego i renderują podpowiedź wyłącznie jako CSS `data-placeholder`.
 - `frontend/src/utils/syncCvDataFromCanvas.js`, linie 101–222 — `editableTextChanges`, `editedMastheadTitle` i `syncCvDataFromCanvas`; zapisują pierwszą wpisaną wartość do profilu strukturalnego, a brak żywego stanowiska traktują celowo jako hide, nie usunięcie semantyczne. Świeże id stanowiska jest uznawane za wynik `+` tylko wtedy, gdy ten sam anchor tożsamości przetrwał i zmienił `present: false → true`; pełna zmiana szablonu tworzy nowy anchor i nie może nadpisać kompletnego `cv_data.title` skróconą treścią wyświetlaną przez generator. Edycje stanowiska są też wykluczone z ogólnego mapowania unikalnych stringów, więc identyczna fraza w podsumowaniu lub innym polu nie zostanie nadpisana po semantycznej aktualizacji tytułu.
 - `frontend/src/utils/monumentAppearance.js`, linie 124–187, 221–274 i 307–389; `frontend/src/utils/sterlingAppearance.js`, linie 120–183, 248–306 i 328–415 — zmieniają kolor i rozmiar ukrytych specyfikacji/dekoracji razem z żywymi elementami szablonu.
-- `scripts/regenerate_template_starters.py`, linie 272–284 i 428–463 — regeneruje wszystkie dziesięć modułów starterów po zmianie kontraktu generatora.
+- `scripts/regenerate_template_starters.py`, linie 273–284 i 430–468 — regeneruje wszystkie dziesięć modułów starterów albo tylko zwalidowane id przekazane pozycyjnie po zmianie kontraktu generatora.
 - `frontend/src/hooks/useA4Elements.js`, `store/pdfgenerator-context.jsx`, `pages/PdfCanvas.jsx` — operacje `toggleNameCase` / `toggleTitle` na wspólnej ścieżce historii.
 
 Testy:
 
 - `backend/tests/test_masthead_identity.py`, linie 10–108 — pełne przechwycenie stylu, w tym italic/underline/z-index, oraz prototyp nieobecnego stanowiska, który pozostaje nierenderowany.
-- `backend/tests/test_masthead_templates.py`, linie 56–254 — anchory wszystkich dziesięciu szablonów, casing/styl, dodatnie i zerowe delty, osobne delty początkowo pustego stanu, kompletne ukryte specyfikacje oraz brak pustych żywych stanowisk i osieroconych dekoracji.
+- `backend/tests/test_masthead_templates.py`, linie 56–267 — anchory wszystkich dziesięciu szablonów, casing/styl, dodatnie i zerowe delty, osobne delty początkowo pustego stanu, kompletne ukryte specyfikacje oraz brak pustych żywych stanowisk i osieroconych dekoracji.
 - `frontend/src/templates/mastheadIdentityAllTemplates.test.js`, linie 1–180 — regresja registry-wide na dokładnie dziesięciu publicznych starterach; każde stanowisko chowa się, odtwarza puste, zachowuje wszystkie autorskie pola stanowiska i dekoracji (w tym `italic` oraz `flowRole` dekoracji) i nie zostawia dekoracji.
 - `frontend/src/utils/mastheadIdentityOps.test.js`, linie 65–220 — rekonstrukcja, dokładny placeholder, pełny styl z formatowaniem inline, wpisana wartość przez hide/show i zapis bieżącego wyglądu; `frontend/src/utils/syncCvDataFromCanvas.test.js`, linie 97–207 — pierwsze wpisane stanowisko jest utrwalane, zmiana szablonu nie zapisuje skróconego tytułu, hide zachowuje dane semantyczne profilu, a zduplikowana stara treść stanowiska w innym polu profilu pozostaje nietknięta.
 - `frontend/src/utils/monumentAppearance.test.js`, linie 45–120, oraz `frontend/src/utils/sterlingAppearance.test.js`, linie 19–92 — preset palety i typografii aktualizuje ukryte deskryptory stanowiska i odtwarza baseline M.

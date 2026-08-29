@@ -12,6 +12,7 @@ one of the arrays exported by the dump script:
 
     node frontend/scripts/dump-iconic-templates.mjs
     python scripts/render_iconic_mockups.py
+    python scripts/render_iconic_mockups.py cadenza
 """
 
 from __future__ import annotations
@@ -88,8 +89,16 @@ def rasterize_first_page(pdf_bytes: bytes) -> bytes:
 
 def main():
     data = json.loads(ELEMENTS_JSON.read_text(encoding="utf-8"))
+    requested = sys.argv[1:]
+    unknown = [theme for theme in requested if theme not in data]
+    if unknown:
+        raise SystemExit(
+            f"Unknown template id(s): {', '.join(unknown)}. Available: {', '.join(data)}"
+        )
+    selected_themes = requested or list(data)
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-    for theme, elements in data.items():
+    for theme in selected_themes:
+        elements = data[theme]
         pdf_bytes = render_theme(theme, elements)
         png_bytes = rasterize_first_page(pdf_bytes)
         out_path = OUTPUT_DIR / f"{theme}.png"

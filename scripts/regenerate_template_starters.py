@@ -280,6 +280,7 @@ TEMPLATES = [
     "vestige",
     "meridian",
     "linden",
+    "cadenza",
 ]
 
 DOC_BLURBS = {
@@ -336,11 +337,18 @@ DOC_BLURBS = {
         " * Botanical editorial layout with a rectangular portrait, forest-green\n"
         " * identity system, and a measured contact rail."
     ),
+    "cadenza": (
+        "Cadenza template (`layouts: [\"single\", \"icons\"]`).\n"
+        " *\n"
+        " * Warm editorial single column with centered serif identity, pale section\n"
+        " * bands, and an exact-anchor date rail shared with Meridian."
+    ),
 }
 
 STARTER_PERSONAS = {
     "regent": "Aleksandra Nowak — strategy & operations manager with three roles, two degrees, ten skills, and three languages",
     "meridian": "Aleksandra Nowak — strategy & operations manager with three roles, two degrees, ten skills, and three languages",
+    "cadenza": "Julia Bernat — three roles, one degree, five skills, and three languages",
 }
 
 LOCALHOST_ASSET = re.compile(r"^https?://[^/]+(/template-assets/.+)$")
@@ -420,8 +428,15 @@ export const {export} = {const}.map((element) => (
 
 
 def main() -> None:
+    requested = sys.argv[1:]
+    selected_templates = requested or TEMPLATES
+    unknown = [template_id for template_id in selected_templates if template_id not in TEMPLATES]
+    if unknown:
+        raise SystemExit(
+            f"Unknown template id(s): {', '.join(unknown)}. Available: {', '.join(TEMPLATES)}"
+        )
     generated: dict[str, list[dict]] = {}
-    for template_id in TEMPLATES:
+    for template_id in selected_templates:
         if template_id in ("regent", "meridian"):
             cv = REGENT_DEMO_CV
         elif template_id in COMPACT_TEMPLATE_IDS:
@@ -447,7 +462,7 @@ def main() -> None:
         print(f"{template_id:10} page1={len(page_one):3}", flush=True)
 
     # Write single-template modules.
-    for template_id in TEMPLATES:
+    for template_id in selected_templates:
         path = FRONTEND_TEMPLATES / f"{template_id}.js"
         path.write_text(js_module(template_id, generated[template_id]), encoding="utf-8")
         print(f"wrote {path.relative_to(REPO_ROOT)}", flush=True)

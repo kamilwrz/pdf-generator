@@ -4,11 +4,13 @@ import test from "node:test";
 import { meridianTemplate } from "./meridian.js";
 import { porticoTemplate } from "./portico.js";
 import { regentTemplate } from "./regent.js";
+import { cadenzaTemplate } from "./cadenza.js";
 
 const EDITORIAL_TEMPLATES = [
     ["Portico", porticoTemplate],
     ["Regent", regentTemplate],
     ["Meridian", meridianTemplate],
+    ["Cadenza", cadenzaTemplate],
 ];
 
 /**
