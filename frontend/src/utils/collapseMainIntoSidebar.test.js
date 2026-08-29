@@ -5,7 +5,11 @@ import {
   isAnchoredMainSectionTitle,
   moveMainSectionsToSidebar,
 } from "./collapseMainIntoSidebar.js";
-import { listDocumentSections, listSidebarSections } from "./sectionStructure.js";
+import {
+  listDocumentSections,
+  listSidebarSections,
+  sidebarSectionElementIds,
+} from "./sectionStructure.js";
 import { contentMaxPage } from "./structureOperation.js";
 
 const PAGE_HEIGHT = 842;
@@ -206,5 +210,110 @@ describe("moveMainSectionsToSidebar", () => {
       eduBody.height < 400,
       `sidebar-measured height (${eduBody.height}) must be smaller than the main-column box`,
     );
+  });
+
+  it("keeps Languages and Skills as separate sidebar sections when both move together", () => {
+    const source = [
+      { element_id: "sb-contact-head", category: "text", content: "DANE KONTAKTOWE",
+        flowRole: "sidebar-chrome", flowLane: "sidebar",
+        left: 34, top: 120, fontSize: 8, height: 11, page: 1, bold: true },
+      { element_id: "sb-contact-rule", category: "line",
+        flowRole: "sidebar-chrome", flowLane: "sidebar",
+        left: 34, top: 134, width: 22, height: 1, page: 1 },
+      { element_id: "sb-contact-body", category: "textarea", content: "k@example.com",
+        flowRole: "content", flowLane: "sidebar", autoHeight: true,
+        left: 34, top: 144, width: 152, height: 12, fontSize: 7, lineHeight: 10, page: 1 },
+
+      { element_id: "m-lang-head", category: "text", content: "JĘZYKI",
+        flowRole: "section-chrome", left: 218, top: 200, fontSize: 10, height: 14, page: 1, bold: true },
+      { element_id: "m-lang-rule", category: "line", flowRole: "section-chrome",
+        left: 218, top: 218, width: 329, height: 1, page: 1 },
+      { element_id: "m-lang-body", category: "textarea",
+        content: "Angielski — B2\nPolski — Native", flowRole: "content", autoHeight: true,
+        left: 218, top: 230, width: 329, height: 28, fontSize: 9, lineHeight: 13, page: 1 },
+
+      { element_id: "m-skills-head", category: "text", content: "UMIEJĘTNOŚCI",
+        flowRole: "section-chrome", left: 218, top: 290, fontSize: 10, height: 14, page: 1, bold: true },
+      { element_id: "m-skills-rule", category: "line", flowRole: "section-chrome",
+        left: 218, top: 308, width: 329, height: 1, page: 1 },
+      { element_id: "m-skills-body", category: "textarea",
+        content: "React · SQL · Python", flowRole: "content", autoHeight: true,
+        left: 218, top: 320, width: 329, height: 18, fontSize: 9, lineHeight: 13, page: 1 },
+    ];
+
+    const next = moveMainSectionsToSidebar(
+      source,
+      ["m-lang-head", "m-skills-head"],
+      PAGE_HEIGHT,
+      SPACING,
+    );
+    assert.ok(next);
+    assert.deepEqual(
+      listSidebarSections(next, PAGE_HEIGHT).map((section) => section.title),
+      ["DANE KONTAKTOWE", "JĘZYKI", "UMIEJĘTNOŚCI"],
+    );
+
+    const languageIds = sidebarSectionElementIds(next, "m-lang-head", PAGE_HEIGHT);
+    const skillsIds = sidebarSectionElementIds(next, "m-skills-head", PAGE_HEIGHT);
+    const languageBodyId = "m-lang-head-languages-sidebar-composite";
+    const skillsBodyId = "m-skills-head-skills-sidebar-composite";
+
+    assert.ok(languageIds.has(languageBodyId), "Languages keeps its aggregate body");
+    assert.ok(!languageIds.has(skillsBodyId), "Languages must not absorb the Skills body");
+    assert.ok(skillsIds.has(skillsBodyId), "Skills keeps its aggregate body");
+    assert.ok(!skillsIds.has(languageBodyId), "Skills must not absorb the Languages body");
+  });
+
+  it("keeps any batch of moved sections separate and in document order", () => {
+    const source = [
+      { element_id: "rail-head", category: "text", content: "KONTAKT",
+        flowRole: "sidebar-chrome", flowLane: "sidebar",
+        left: 34, top: 100, fontSize: 8, height: 11, page: 1, bold: true },
+      { element_id: "rail-rule", category: "line",
+        flowRole: "sidebar-chrome", flowLane: "sidebar",
+        left: 34, top: 114, width: 24, height: 1, page: 1 },
+      { element_id: "rail-body", category: "textarea", content: "mail@example.com",
+        flowRole: "content", flowLane: "sidebar", autoHeight: true,
+        left: 34, top: 124, width: 152, height: 12, fontSize: 7, lineHeight: 10, page: 1 },
+      ...["PROJEKTY", "WOLONTARIAT", "PUBLIKACJE"].flatMap((title, index) => {
+        const top = 200 + index * 100;
+        const prefix = `custom-${index + 1}`;
+        return [
+          { element_id: `${prefix}-head`, category: "text", content: title,
+            flowRole: "section-chrome", left: 218, top, fontSize: 10, height: 14, page: 1, bold: true },
+          { element_id: `${prefix}-rule`, category: "line", flowRole: "section-chrome",
+            left: 218, top: top + 18, width: 329, height: 1, page: 1 },
+          { element_id: `${prefix}-body`, category: "textarea", content: `${title} — treść`,
+            flowRole: "content", autoHeight: true,
+            left: 218, top: top + 30, width: 329, height: 24, fontSize: 9, lineHeight: 13, page: 1 },
+        ];
+      }),
+    ];
+
+    // Callers do not need to pre-sort IDs. The transfer derives the canonical
+    // order from the source document before staging any of the sections.
+    const next = moveMainSectionsToSidebar(
+      source,
+      ["custom-3-head", "custom-1-head", "custom-2-head"],
+      PAGE_HEIGHT,
+      SPACING,
+    );
+    assert.ok(next);
+    assert.deepEqual(
+      listSidebarSections(next, PAGE_HEIGHT).map((section) => section.title),
+      ["KONTAKT", "PROJEKTY", "WOLONTARIAT", "PUBLIKACJE"],
+    );
+
+    for (let index = 1; index <= 3; index += 1) {
+      const ids = sidebarSectionElementIds(next, `custom-${index}-head`, PAGE_HEIGHT);
+      assert.ok(ids.has(`custom-${index}-body`), `section ${index} keeps its body`);
+      for (let other = 1; other <= 3; other += 1) {
+        if (other === index) continue;
+        assert.ok(
+          !ids.has(`custom-${other}-body`),
+          `section ${index} must not absorb section ${other}`,
+        );
+      }
+    }
   });
 });

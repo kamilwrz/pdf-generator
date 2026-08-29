@@ -28,12 +28,45 @@ import {
 } from "./skillsLayout.js";
 import { buildSectionIconChromeMarkers } from "./sectionIcons.js";
 
+// Temporary canvas-space Y coordinate used only inside one synchronous state
+// transformation. The final `applyFlowSpacing` call immediately places every
+// staged section back into real page coordinates.
+const SIDEBAR_TRANSFER_STAGING_TOP = 10_000;
+// Keep staged chrome bands more than the 24 px leading-mark recovery window
+// apart. Otherwise the preceding section's short rail rule can be mistaken for
+// the next heading's leading chrome before the final pack.
+const SIDEBAR_TRANSFER_STAGING_GAP = 32;
+
 /**
  * @returns {() => string}
  */
 function makeIdFactory(prefix) {
   let n = 0;
   return () => `${prefix}-${Date.now().toString(36)}-${++n}`;
+}
+
+/**
+ * Returns the lower edge of a staged section using its freshly measured boxes.
+ *
+ * Text and thin chrome can omit an explicit height, so the font-size line box
+ * remains the fallback. The value only advances the next temporary staging
+ * cursor; final layout still comes exclusively from `applyFlowSpacing`.
+ *
+ * @param {object[]} elements
+ * @param {number} fallbackTop
+ * @returns {number}
+ */
+function stagedSectionBottom(elements, fallbackTop) {
+  return (elements || []).reduce((bottom, element) => {
+    const top = Number.isFinite(Number(element?.top))
+      ? Number(element.top)
+      : fallbackTop;
+    const explicitHeight = Number(element?.height);
+    const height = Number.isFinite(explicitHeight) && explicitHeight > 0
+      ? explicitHeight
+      : Math.max(Number(element?.fontSize) || 0, 1);
+    return Math.max(bottom, top + height);
+  }, fallbackTop);
 }
 
 /**
@@ -193,89 +226,102 @@ function restyleMemberAsSidebar(element, headingId, style, appendTop) {
  */
 export function moveMainSectionsToSidebar(elements, headingIds, pageHeight, spacing) {
   const list = elements || [];
-  const ids = (headingIds || []).filter(Boolean);
+  const requestedIds = [...new Set((headingIds || []).filter(Boolean))];
+  const documentOrder = new Map(
+    listDocumentSections(list, pageHeight).map((section, index) => [section.headingId, index]),
+  );
+  const ids = requestedIds.sort((left, right) => (
+    (documentOrder.get(left) ?? Number.POSITIVE_INFINITY)
+    - (documentOrder.get(right) ?? Number.POSITIVE_INFINITY)
+  ));
   if (ids.length === 0) return null;
   if (listSidebarSections(list, pageHeight).length === 0) return null;
 
   const style = deriveSectionStyle(list, pageHeight, null, { lane: "sidebar" });
-  const movedIds = new Set();
-  let next = list;
-
-  // Restyle deepest first so each `sectionElementIds` sweep still sees the
-  // remaining main-column neighbour as the band end.
-  for (const headingId of [...ids].reverse()) {
-    const memberIds = sectionElementIds(next, headingId, pageHeight);
+  // Capture every source strip before mutating the document. This preserves
+  // the original heading boundaries while allowing the transformed strips to
+  // be staged and appended in their natural reading order below.
+  const sourceSections = ids.map((headingId) => {
+    const memberIds = sectionElementIds(list, headingId, pageHeight);
     if (memberIds.size === 0) return null;
-    const members = next.filter((element) => memberIds.has(element.element_id));
+    return {
+      headingId,
+      memberIds,
+      members: list.filter((element) => memberIds.has(element.element_id)),
+    };
+  });
+  if (sourceSections.some((section) => section == null)) return null;
+
+  const sourceMemberIds = new Set();
+  sourceSections.forEach((section) => {
+    section.memberIds.forEach((elementId) => sourceMemberIds.add(elementId));
+  });
+  let next = list.filter((element) => !sourceMemberIds.has(element.element_id));
+  let stagingTop = SIDEBAR_TRANSFER_STAGING_TOP;
+
+  for (const { headingId, members } of sourceSections) {
     const heading = members.find((element) => element.element_id === headingId);
-    // Park the strip below the current rail so Y-order listing appends it
-    // after existing kickers, while preserving intra-section reading order.
     const minAbs = Math.min(...members.map((element) => (
       (Math.max(1, Math.trunc(element.page || 1)) - 1) * pageHeight
       + (Number(element.top) || 0)
     )));
+    let restyledElements = null;
 
     // Main-column languages grids collapse to one hyphenated sidebar textarea
     // (the rail never keeps per-cell grid-member geometry).
     if (heading && isLanguagesSectionTitle(heading.content)) {
-      const restyled = restyleLanguagesMembersAsSidebar(
-        members, headingId, style, 10_000,
+      restyledElements = restyleLanguagesMembersAsSidebar(
+        members, headingId, style, stagingTop,
       );
-      if (!restyled) return null;
-      next = [
-        ...next.filter((element) => !memberIds.has(element.element_id)),
-        ...restyled,
-      ];
-      next = appendTransferIconMarkers(next, list, style, headingId, pageHeight);
-      movedIds.add(headingId);
-      continue;
-    }
-
-    // Main-column skill subcategories collapse to one `_skills_sidebar_content`
-    // textarea (category lines + bullets) on the rail.
-    if (heading && isSkillsSectionHeading(heading.content)) {
-      const restyled = restyleSkillsMembersAsSidebar(
-        members, headingId, style, 10_000,
+    } else if (heading && isSkillsSectionHeading(heading.content)) {
+      // Main-column skill subcategories collapse to one
+      // `_skills_sidebar_content` textarea (category lines + bullets).
+      restyledElements = restyleSkillsMembersAsSidebar(
+        members, headingId, style, stagingTop,
       );
-      if (!restyled) return null;
-      next = [
-        ...next.filter((element) => !memberIds.has(element.element_id)),
-        ...restyled,
-      ];
-      next = appendTransferIconMarkers(next, list, style, headingId, pageHeight);
-      movedIds.add(headingId);
-      continue;
-    }
-
-    const restyledById = new Map();
-    for (const element of members) {
-      const abs = (Math.max(1, Math.trunc(element.page || 1)) - 1) * pageHeight
-        + (Number(element.top) || 0);
-      const restyled = restyleMemberAsSidebar(
-        element, headingId, style, 10_000 + (abs - minAbs),
-      );
-      if (restyled) restyledById.set(element.element_id, restyled);
-    }
-    if (!restyledById.has(headingId)) return null;
-    // Re-park the rule at the rail's canonical heading→rule offset instead of
-    // the preserved main-column gap, so the moved kicker matches other rail
-    // sections (the packer preserves this sidebar-chrome intra-offset).
-    const restyledHeadForRule = restyledById.get(headingId);
-    for (const restyled of restyledById.values()) {
-      if (restyled.flowRole === "sidebar-chrome" && restyled.category === "line") {
-        restyled.top = 10_000 + sectionChromeRuleRelTop(style, restyledHeadForRule.height);
+    } else {
+      const restyledById = new Map();
+      for (const element of members) {
+        const abs = (Math.max(1, Math.trunc(element.page || 1)) - 1) * pageHeight
+          + (Number(element.top) || 0);
+        const restyled = restyleMemberAsSidebar(
+          element, headingId, style, stagingTop + (abs - minAbs),
+        );
+        if (restyled) restyledById.set(element.element_id, restyled);
       }
+      if (!restyledById.has(headingId)) return null;
+      // Re-park the rule at the rail's canonical heading→rule offset instead
+      // of the preserved main-column gap, so the moved kicker matches other
+      // rail sections (the packer preserves this intra-chrome offset).
+      const restyledHeadForRule = restyledById.get(headingId);
+      for (const restyled of restyledById.values()) {
+        if (restyled.flowRole === "sidebar-chrome" && restyled.category === "line") {
+          restyled.top = stagingTop
+            + sectionChromeRuleRelTop(style, restyledHeadForRule.height);
+        }
+      }
+      restyledElements = members.flatMap((element) => {
+        const restyled = restyledById.get(element.element_id);
+        return restyled ? [restyled] : [];
+      });
     }
-    next = next.flatMap((element) => {
-      if (!memberIds.has(element.element_id)) return [element];
-      const restyled = restyledById.get(element.element_id);
-      return restyled ? [restyled] : [];
-    });
+
+    if (!restyledElements || restyledElements.length === 0) return null;
+    next = [...next, ...restyledElements];
+    const idsBeforeMarkers = new Set(next.map((element) => element.element_id));
     next = appendTransferIconMarkers(next, list, style, headingId, pageHeight);
-    movedIds.add(headingId);
+    const generatedMarkers = next.filter((element) => !idsBeforeMarkers.has(element.element_id));
+    // Each moved section gets its own non-overlapping staging band. In the old
+    // implementation every heading was parked at exactly 10_000, causing
+    // `sidebarSectionElementIds` to give one section an empty interval and the
+    // other both bodies. That semantic merge also produced one combined hover
+    // outline on the canvas.
+    stagingTop = stagedSectionBottom(
+      [...restyledElements, ...generatedMarkers],
+      stagingTop,
+    ) + SIDEBAR_TRANSFER_STAGING_GAP;
   }
 
-  if (movedIds.size === 0) return null;
   return applyFlowSpacing(next, spacing, pageHeight);
 }
 
