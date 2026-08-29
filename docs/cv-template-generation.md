@@ -8,7 +8,7 @@ Ten dokument opisuje pełną ścieżkę od danych kandydata do elementów na pł
 
 | Warstwa | Co robi | Czego **nie** robi |
 |---|---|---|
-| **AI (Cloudflare Workers AI)** | Czyta natywny tekst PDF (Gemma 4), a tylko strony skanowane jako obrazy (Qwen 3.8), i zwraca **ustrukturyzowany JSON** | Nie układa elementów, nie liczy Y, nie wybiera kolorów, nie paginuje |
+| **AI (Cloudflare Workers AI)** | Czyta natywny tekst PDF (Llama 3.1 8B Fast + JSON Mode), a tylko strony skanowane jako obrazy (Qwen 3.8), i zwraca **ustrukturyzowany JSON** | Nie układa elementów, nie liczy Y, nie wybiera kolorów, nie paginuje |
 | **`cv_data.normalize_cv_data`** | Ujednolica dane z PDF **i** z kreatora (wizard) do jednego schematu | Nie generuje layoutu |
 | **`cv_generator.generate_resume`** | Bierze `(template_id, cv_data)` i zwraca listę elementów canvas | Nie woła OpenAI; nie „projektuje” wizualnie w locie |
 | **Frontend (`templates/*.js`)** | Statyczna **próbka / podgląd** szablonu z przykładową treścią | Nie wypełnia realnym CV użytkownika |
@@ -57,9 +57,10 @@ Użytkownik może wypełnić CV na dwa sposoby. Oba kończą się tym samym obie
 1. Frontend wysyła plik PDF.
 2. `ai_service.extract_cv_data`:
    - odczytuje tekst wszystkich zaakceptowanych stron przez `PyMuPDF` (domyślnie maks. 12),
-   - wysyła zwykły dokument tekstowy do **Gemma 4 26B**,
+   - wysyła zwykły dokument tekstowy do **Llama 3.1 8B Fast** w JSON Mode,
    - rasteruje do PNG wyłącznie strony bez wystarczającej warstwy tekstowej i wtedy przełącza całe żądanie na **Qwen 3.8 27B Vision**,
-   - korzysta z OpenAI-compatible endpointu Cloudflare i promptu „zwróć wyłącznie JSON o takiej strukturze…”.
+   - korzysta z OpenAI-compatible endpointu Cloudflare i promptu „zwróć wyłącznie JSON o takiej strukturze…”,
+   - po pustym wyniku jawnego override'u Gemmy wykonuje najwyżej jeden fallback tekstowy na Llamę; domyślna konfiguracja używa Llamy od pierwszej próby.
 3. Odpowiedź modelu jest parsowana i przepuszczana przez `normalize_cv_data`.
 4. Frontend trzyma wynik i przy wyborze szablonu woła `fill_template`.
 
@@ -275,10 +276,10 @@ Normalizacja (`cv_data.normalize_cv_data`) przyjmuje już obiekty `{title, bulle
 
 | Zadanie | Moduł | Model |
 |---|---|---|
-| Ekstrakcja treści z PDF → JSON | `ai_service.extract_cv_data` | Cloudflare Gemma 4 (tekst) / Qwen 3.8 (tylko skany) |
+| Ekstrakcja treści z PDF → JSON | `ai_service.extract_cv_data` | Cloudflare Llama 3.1 8B Fast (tekst) / Qwen 3.8 (tylko skany) |
 | Asystent na canvasie (edycja, ATS, układ istniejących elementów) | `ai_assistant_service` | osobny tor, po wygenerowaniu CV |
 
-Przy ekstrakcji AI dostaje **instrukcję schematu JSON** (experience, education z `school/city/degree/...`, skills, labels PL, `extra_sections` z `kind` / `placement` oraz **rekordowymi** `items` dla projektów/referencji). Temperatura jest niska (`0.1`). Dla Cloudflare Gemma/Qwen żądanie używa `max_completion_tokens=8000` i `reasoning_effort=low`, ale nie wysyła `response_format`, ponieważ te modele nie znajdują się na aktualnej allowliście Workers AI JSON Mode. Ścisły prompt i parser backendu wymagają jednego obiektu JSON oraz tolerują wyłącznie opcjonalny Markdown fence lub typowane fragmenty tekstowe. Jawny rollback OpenAI nadal używa `response_format=json_object`.
+Przy ekstrakcji AI dostaje **instrukcję schematu JSON** (experience, education z `school/city/degree/...`, skills, labels PL, `extra_sections` z `kind` / `placement` oraz **rekordowymi** `items` dla projektów/referencji). Temperatura jest niska (`0.1`). Llama tekstowa używa `max_tokens=8000` i oficjalnego `response_format=json_object`; Qwen Vision używa `max_completion_tokens=8000` oraz `reasoning_effort=low`, bez JSON Mode. Ścisły prompt i parser backendu nadal wymagają jednego obiektu JSON oraz tolerują wyłącznie opcjonalny Markdown fence lub typowane fragmenty tekstowe. Jawny rollback OpenAI używa `response_format=json_object`.
 
 Heurystyczna grupacja w Pythonie pokrywa typowe spłaszczenia; pełna decyzyjność przy niejednoznacznych listach to naturalne miejsce na opcjonalny drugi pass LLM (Standard/Premium, kredyty AI) **przed** `generate_resume`, bez zmiany geometrii szablonów.
 
@@ -358,7 +359,7 @@ Bez kroku 2–3 podgląd w bibliotece istnieje, ale **fill_template rzuci „Nie
 | Plik | Rola |
 |---|---|
 | `backend/app/services/ai_service.py` | PDF → tekst / obrazy skanów → Workers AI; cienka fasada `generate_resume` |
-| `backend/app/services/cloudflare_pricing.py` | Telemetria stawek tokenowych Gemma/Qwen; bez bramki kredytów asystenta |
+| `backend/app/services/cloudflare_pricing.py` | Telemetria stawek Llama/Gemma/Qwen i sumowanie prób fallbacku; bez bramki kredytów asystenta |
 | `backend/app/services/cv_data.py` | Normalizacja / walidacja profilu CV |
 | `backend/app/services/cv_generator.py` | **Deterministyczny silnik layoutu** (ten dokument) |
 | `backend/app/api/routes/ai.py` | HTTP: extract_cv, fill_template, draft bio |

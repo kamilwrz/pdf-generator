@@ -67,12 +67,12 @@ class CloudflareCvExtractionTests(unittest.TestCase):
         self.assertFalse(any(item["type"] == "image_url" for item in user_content))
         self.assertIn("Jan Kowalski", user_content[0]["text"])
         self.assertEqual(
-            request["max_completion_tokens"],
+            request["max_tokens"],
             ai_service.CV_EXTRACT_MAX_COMPLETION_TOKENS,
         )
-        self.assertEqual(request["reasoning_effort"], "low")
-        self.assertNotIn("max_tokens", request)
-        self.assertNotIn("response_format", request)
+        self.assertEqual(request["response_format"], {"type": "json_object"})
+        self.assertNotIn("max_completion_tokens", request)
+        self.assertNotIn("reasoning_effort", request)
         self.assertEqual(cv_data["name"], "Jan Kowalski")
         self.assertEqual(usage["provider"], "cloudflare")
         self.assertEqual(usage["extraction_mode"], "text")
@@ -94,6 +94,12 @@ class CloudflareCvExtractionTests(unittest.TestCase):
         images = [item for item in user_content if item["type"] == "image_url"]
         self.assertEqual(len(images), 1)
         self.assertTrue(images[0]["image_url"]["url"].startswith("data:image/png;base64,"))
+        self.assertEqual(
+            request["max_completion_tokens"],
+            ai_service.CV_EXTRACT_MAX_COMPLETION_TOKENS,
+        )
+        self.assertEqual(request["reasoning_effort"], "low")
+        self.assertNotIn("response_format", request)
         self.assertEqual(usage["extraction_mode"], "vision")
 
     def test_invalid_model_json_is_a_safe_validation_error(self):
@@ -187,6 +193,64 @@ class CloudflareCvExtractionTests(unittest.TestCase):
         self.assertTrue(context.exception.retryable)
         self.assertIn("finish_reason=length", logs.output[0])
         self.assertNotIn("internal", logs.output[0])
+
+    def test_empty_reasoning_text_response_retries_once_with_json_mode_fallback(self):
+        """Recover a legacy Gemma override without asking for another upload."""
+        client = MagicMock()
+        empty_response = SimpleNamespace(
+            choices=[
+                SimpleNamespace(
+                    message=SimpleNamespace(content="", reasoning="internal"),
+                    finish_reason="length",
+                )
+            ],
+            usage=SimpleNamespace(
+                prompt_tokens=2_000,
+                completion_tokens=8_000,
+                total_tokens=10_000,
+            ),
+        )
+        client.chat.completions.create.side_effect = [
+            empty_response,
+            _response({"name": "Jan Kowalski", "skills": ["Python"]}),
+        ]
+        primary_model = "@cf/google/gemma-4-26b-a4b-it"
+
+        with patch.object(
+            ai_service,
+            "_provider_settings",
+            return_value=(client, primary_model, "cloudflare"),
+        ):
+            with self.assertLogs("cv_extraction", level="WARNING") as logs:
+                cv_data, usage = ai_service.extract_cv_data(
+                    _pdf_bytes("Jan Kowalski Python Developer " * 20)
+                )
+
+        self.assertEqual(cv_data["name"], "Jan Kowalski")
+        self.assertEqual(client.chat.completions.create.call_count, 2)
+        primary_request = client.chat.completions.create.call_args_list[0].kwargs
+        fallback_request = client.chat.completions.create.call_args_list[1].kwargs
+        self.assertEqual(primary_request["model"], primary_model)
+        self.assertEqual(primary_request["reasoning_effort"], "low")
+        self.assertEqual(
+            fallback_request["model"],
+            ai_service.CLOUDFLARE_TEXT_FALLBACK_MODEL,
+        )
+        self.assertEqual(
+            fallback_request["response_format"],
+            {"type": "json_object"},
+        )
+        self.assertNotIn("reasoning_effort", fallback_request)
+        self.assertTrue(usage["fallback_used"])
+        self.assertEqual(
+            [row["model"] for row in usage["model_attempts"]],
+            [primary_model, ai_service.CLOUDFLARE_TEXT_FALLBACK_MODEL],
+        )
+        self.assertEqual(usage["prompt_tokens"], 3_000)
+        self.assertEqual(usage["completion_tokens"], 8_500)
+        self.assertEqual(usage["total_tokens"], 11_500)
+        self.assertTrue(any("fallback_model=" in line for line in logs.output))
+        self.assertFalse(any("internal" in line for line in logs.output))
 
     def test_missing_cloudflare_credentials_fails_before_network(self):
         with (

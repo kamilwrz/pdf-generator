@@ -16,6 +16,7 @@ from openai import APIError, OpenAI
 from app.core.config import (
     CLOUDFLARE_ACCOUNT_ID,
     CLOUDFLARE_API_TOKEN,
+    CLOUDFLARE_TEXT_FALLBACK_MODEL,
     CLOUDFLARE_TEXT_MODEL,
     CLOUDFLARE_VISION_MODEL,
     CV_EXTRACT_MAX_COMPLETION_TOKENS,
@@ -25,12 +26,23 @@ from app.core.config import (
     CV_EXTRACT_PROVIDER,
     OPENAI_API_KEY,
 )
-from app.services.cloudflare_pricing import usage_from_cloudflare_response
+from app.services.cloudflare_pricing import usage_from_cloudflare_attempts
 from app.services.cv_data import CvDataValidationError, normalize_cv_data
 from app.services.openai_pricing import usage_from_response
 
 
 logger = logging.getLogger("cv_extraction")
+
+# Cloudflare documents JSON Mode for this stable, non-reasoning text model.
+# Reasoning models use different completion-budget semantics and are kept only
+# for vision or explicit deployment overrides.
+_CLOUDFLARE_JSON_MODE_MODELS = frozenset({
+    "@cf/meta/llama-3.1-8b-instruct-fast",
+})
+_CLOUDFLARE_REASONING_MODELS = frozenset({
+    "@cf/google/gemma-4-26b-a4b-it",
+    "@cf/qwen/qwen3.8-27b",
+})
 
 
 class CvExtractionError(RuntimeError):
@@ -53,6 +65,93 @@ class CvExtractionError(RuntimeError):
         self.user_message = user_message
         self.status_code = status_code
         self.retryable = retryable
+
+
+def _completion_request_options(provider: str, model: str) -> dict:
+    """Return only completion parameters supported by the selected model.
+
+    Cloudflare's reasoning models count hidden reasoning inside
+    ``max_completion_tokens``. Its JSON-mode Llama uses the older
+    ``max_tokens`` parameter and must not receive ``reasoning_effort``.
+
+    @param provider - Configured provider slug (``cloudflare`` or ``openai``).
+    @param model - Exact provider model identifier.
+    @returns Keyword arguments for ``chat.completions.create``.
+    """
+    if provider == "cloudflare":
+        if model in _CLOUDFLARE_JSON_MODE_MODELS:
+            return {
+                "max_tokens": CV_EXTRACT_MAX_COMPLETION_TOKENS,
+                "response_format": {"type": "json_object"},
+            }
+        if model in _CLOUDFLARE_REASONING_MODELS:
+            return {
+                "max_completion_tokens": CV_EXTRACT_MAX_COMPLETION_TOKENS,
+                "reasoning_effort": "low",
+            }
+        # Custom Cloudflare overrides get the broadly supported parameter only;
+        # JSON/reasoning features must be added above after capability review.
+        return {"max_tokens": CV_EXTRACT_MAX_COMPLETION_TOKENS}
+    return {
+        "max_tokens": CV_EXTRACT_MAX_COMPLETION_TOKENS,
+        "response_format": {"type": "json_object"},
+    }
+
+
+def _request_completion(client: OpenAI, create_kwargs: dict):
+    """Call the provider and map SDK failures to safe extraction errors."""
+    try:
+        return client.chat.completions.create(**create_kwargs)
+    except APIError as exc:
+        provider_status = getattr(exc, "status_code", None)
+        if provider_status == 429:
+            raise CvExtractionError(
+                "extract_provider_rate_limited",
+                "Usługa importu jest chwilowo przeciążona. Spróbuj ponownie za moment.",
+                status_code=429,
+                retryable=True,
+            ) from exc
+        raise CvExtractionError(
+            "extract_provider_unavailable",
+            "Usługa importu jest chwilowo niedostępna. Spróbuj ponownie później.",
+            status_code=503,
+            retryable=True,
+        ) from exc
+
+
+def _visible_response_text(
+    response: object,
+    *,
+    provider: str,
+    model: str,
+    extraction_mode: str,
+) -> str:
+    """Return visible content and safely log metadata for empty completions."""
+    choices = getattr(response, "choices", None) or []
+    choice = choices[0] if choices else None
+    raw_content = _message_text(getattr(choice, "message", None))
+    if isinstance(raw_content, str) and raw_content.strip():
+        return raw_content
+
+    message = getattr(choice, "message", None)
+    reasoning = (
+        getattr(message, "reasoning", None)
+        or getattr(message, "reasoning_content", None)
+    )
+    usage = getattr(response, "usage", None)
+    # Log only provider metadata. CV content, model reasoning, credentials,
+    # and raw response bodies must never enter application logs.
+    logger.warning(
+        "CV extraction returned empty visible content: provider=%s model=%s "
+        "mode=%s finish_reason=%s reasoning_present=%s completion_tokens=%s",
+        provider,
+        model,
+        extraction_mode,
+        getattr(choice, "finish_reason", None),
+        bool(reasoning),
+        getattr(usage, "completion_tokens", None),
+    )
+    return ""
 
 
 # ── PDF → images ──────────────────────────────────────────────────────────────
@@ -167,10 +266,10 @@ def _message_text(message: object | None) -> str:
 def _parse_model_json(raw_content: str) -> Mapping:
     """Parse a JSON object even when a model wraps it in a Markdown fence.
 
-    Cloudflare's documented JSON Mode model list does not currently include the
-    selected Gemma and Qwen models. Their prompt therefore requests plain JSON,
-    and this boundary tolerates only presentation text around one valid object.
-    Arbitrary prose or non-object JSON remains a validation error.
+    The default text model uses Cloudflare JSON Mode. Vision and custom model
+    overrides may still rely on the prompt, so this boundary tolerates only
+    presentation text around one valid object. Arbitrary prose or non-object
+    JSON remains a validation error.
     """
     stripped = raw_content.strip()
     if stripped.startswith("```") and stripped.endswith("```"):
@@ -336,58 +435,55 @@ def extract_cv_data(pdf_bytes: bytes) -> tuple[dict, dict]:
         ],
         "temperature": 0.1,
     }
-    if provider == "cloudflare":
-        # This limit includes hidden reasoning tokens for Cloudflare's Gemma and
-        # Qwen models, so low reasoning preserves most of the budget for CV JSON.
-        create_kwargs["max_completion_tokens"] = CV_EXTRACT_MAX_COMPLETION_TOKENS
-        create_kwargs["reasoning_effort"] = "low"
-    else:
-        # The OpenAI rollback model supports JSON mode. Cloudflare's published
-        # JSON Mode allowlist does not yet include the selected Gemma/Qwen pair,
-        # even though their generic request schema exposes response_format.
-        create_kwargs["max_tokens"] = CV_EXTRACT_MAX_COMPLETION_TOKENS
-        create_kwargs["response_format"] = {"type": "json_object"}
+    create_kwargs.update(_completion_request_options(provider, model))
+    response = _request_completion(client, create_kwargs)
+    cloudflare_attempts = [(model, response)] if provider == "cloudflare" else []
+    raw_content = _visible_response_text(
+        response,
+        provider=provider,
+        model=model,
+        extraction_mode=extraction_mode,
+    )
 
-    try:
-        response = client.chat.completions.create(**create_kwargs)
-    except APIError as exc:
-        provider_status = getattr(exc, "status_code", None)
-        if provider_status == 429:
-            raise CvExtractionError(
-                "extract_provider_rate_limited",
-                "Usługa importu jest chwilowo przeciążona. Spróbuj ponownie za moment.",
-                status_code=429,
-                retryable=True,
-            ) from exc
-        raise CvExtractionError(
-            "extract_provider_unavailable",
-            "Usługa importu jest chwilowo niedostępna. Spróbuj ponownie później.",
-            status_code=503,
-            retryable=True,
-        ) from exc
-
-    choices = getattr(response, "choices", None) or []
-    choice = choices[0] if choices else None
-    raw_content = _message_text(getattr(choice, "message", None))
-    if not isinstance(raw_content, str) or not raw_content.strip():
-        message = getattr(choice, "message", None)
-        reasoning = (
-            getattr(message, "reasoning", None)
-            or getattr(message, "reasoning_content", None)
-        )
-        usage = getattr(response, "usage", None)
-        # Log only provider metadata. CV content, model reasoning, credentials,
-        # and raw response bodies must never enter application logs.
+    # Some reasoning-model deployments return `finish_reason=length` after
+    # spending the whole completion budget on hidden reasoning, leaving visible
+    # content empty. Retry once only for native-text PDFs with the documented
+    # JSON-mode model. Vision failures stay single-attempt because another text
+    # model cannot read the rasterised pages.
+    fallback_model = CLOUDFLARE_TEXT_FALLBACK_MODEL.strip()
+    can_use_text_fallback = (
+        not raw_content.strip()
+        and provider == "cloudflare"
+        and extraction_mode == "text"
+        and fallback_model
+        and fallback_model != model
+    )
+    if can_use_text_fallback:
         logger.warning(
-            "CV extraction returned empty visible content: provider=%s model=%s "
-            "mode=%s finish_reason=%s reasoning_present=%s completion_tokens=%s",
-            provider,
+            "Retrying empty CV extraction with configured text fallback: "
+            "primary_model=%s fallback_model=%s",
             model,
-            extraction_mode,
-            getattr(choice, "finish_reason", None),
-            bool(reasoning),
-            getattr(usage, "completion_tokens", None),
+            fallback_model,
         )
+        fallback_kwargs = {
+            "model": fallback_model,
+            "messages": create_kwargs["messages"],
+            "temperature": create_kwargs["temperature"],
+        }
+        fallback_kwargs.update(
+            _completion_request_options(provider, fallback_model)
+        )
+        response = _request_completion(client, fallback_kwargs)
+        model = fallback_model
+        cloudflare_attempts.append((model, response))
+        raw_content = _visible_response_text(
+            response,
+            provider=provider,
+            model=model,
+            extraction_mode=extraction_mode,
+        )
+
+    if not raw_content.strip():
         raise CvExtractionError(
             "extract_provider_empty_response",
             "Model nie zwrócił danych CV. Spróbuj ponownie.",
@@ -405,9 +501,8 @@ def extract_cv_data(pdf_bytes: bytes) -> tuple[dict, dict]:
         ) from exc
 
     if provider == "cloudflare":
-        usage = usage_from_cloudflare_response(
-            response,
-            model=model,
+        usage = usage_from_cloudflare_attempts(
+            cloudflare_attempts,
             extraction_mode=extraction_mode,
         )
     else:

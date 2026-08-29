@@ -66,8 +66,15 @@ CV_EXTRACT_PROVIDER = (os.getenv("CV_EXTRACT_PROVIDER", "cloudflare").strip().lo
 CLOUDFLARE_ACCOUNT_ID = os.getenv("CLOUDFLARE_ACCOUNT_ID", "").strip()
 CLOUDFLARE_API_TOKEN = os.getenv("CLOUDFLARE_API_TOKEN", "").strip()
 CLOUDFLARE_TEXT_MODEL = (
-    os.getenv("CLOUDFLARE_TEXT_MODEL", "@cf/google/gemma-4-26b-a4b-it").strip()
-    or "@cf/google/gemma-4-26b-a4b-it"
+    os.getenv("CLOUDFLARE_TEXT_MODEL", "@cf/meta/llama-3.1-8b-instruct-fast").strip()
+    or "@cf/meta/llama-3.1-8b-instruct-fast"
+)
+# A deployment may still override the primary text model with reasoning-based
+# Gemma. An empty visible completion gets one deterministic JSON-mode retry on
+# this model instead of asking the user to submit and meter the whole import.
+CLOUDFLARE_TEXT_FALLBACK_MODEL = (
+    os.getenv("CLOUDFLARE_TEXT_FALLBACK_MODEL", "@cf/meta/llama-3.1-8b-instruct-fast").strip()
+    or "@cf/meta/llama-3.1-8b-instruct-fast"
 )
 CLOUDFLARE_VISION_MODEL = (
     os.getenv("CLOUDFLARE_VISION_MODEL", "@cf/qwen/qwen3.8-27b").strip()
