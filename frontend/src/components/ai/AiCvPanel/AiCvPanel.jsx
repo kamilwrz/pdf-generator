@@ -14,6 +14,11 @@ import { ApiClient, ENDPOINTS } from "../../../services/api";
 import { fillTemplate } from "../../../services/fillTemplate";
 import { TEMPLATES } from "../../../templates";
 import { selectCvTemplates } from "../../../utils/cvTemplateSelection";
+import {
+    CV_IMPORT_REQUEST_OPTIONS,
+    CV_IMPORT_TIMEOUT_MESSAGE,
+    cvImportStatusLabel,
+} from "../../../utils/cvImportRequest";
 import { isTemplateAllowed, planErrorMessage } from "../../../utils/entitlements";
 import DialogShell from "../../common/DialogShell/DialogShell";
 import TemplateCarousel from "./TemplateCarousel";
@@ -138,7 +143,13 @@ export default function AiCvPanel() {
         try {
             const form = new FormData();
             form.append("file", fileData);
-            const res = await api.httpRequest(ENDPOINTS.AI.EXTRACT_CV, "POST", form, "Ekstrakcja CV nie powiodła się");
+            const res = await api.httpRequest(
+                ENDPOINTS.AI.EXTRACT_CV,
+                "POST",
+                form,
+                "Ekstrakcja CV nie powiodła się",
+                CV_IMPORT_REQUEST_OPTIONS,
+            );
             if (res.usage) {
                 console.log("[CV import AI usage]", {
                     action: "extract_cv",
@@ -159,7 +170,15 @@ export default function AiCvPanel() {
             setWizardStep(2);
             refreshEntitlements?.();
         } catch (err) {
-            setError(planErrorMessage(err, "Nie udało się wyodrębnić danych z CV."));
+            if (err?.name === "AbortError") {
+                // A browser timeout does not cancel an inference already
+                // running at Cloudflare. Open history so the user can recover
+                // that snapshot instead of starting a billable duplicate.
+                setShowHistory(true);
+                setError(CV_IMPORT_TIMEOUT_MESSAGE);
+            } else {
+                setError(planErrorMessage(err, "Nie udało się wyodrębnić danych z CV."));
+            }
         } finally {
             setIsExtracting(false);
         }
@@ -283,18 +302,21 @@ export default function AiCvPanel() {
                     <div className={classes.stepPane}>
                         <div className={classes.historyHeader}>
                             <div className={classes.sectionLabel}>Historia importów</div>
-                            <button type="button" className={classes.guidedLink} onClick={() => setShowHistory(false)}>Nowy import</button>
+                            <div className={classes.historyHeaderActions}>
+                                <button type="button" className={classes.guidedLink} onClick={loadHistory}>Odśwież status</button>
+                                <button type="button" className={classes.guidedLink} onClick={() => setShowHistory(false)}>Nowy import</button>
+                            </div>
                         </div>
                         {imports.length ? imports.map((snapshot) => (
                             <article className={classes.historyItem} key={snapshot.id}>
                                 <div>
                                     <strong>{snapshot.filename}</strong>
-                                    <span>{snapshot.created_at ? new Date(snapshot.created_at).toLocaleString("pl-PL") : ""} · {snapshot.status === "succeeded" ? "Dane gotowe" : "Import nieudany"}</span>
+                                    <span>{snapshot.created_at ? new Date(snapshot.created_at).toLocaleString("pl-PL") : ""} · {cvImportStatusLabel(snapshot.status)}</span>
                                     {snapshot.summary?.name && <small>{snapshot.summary.name} · {snapshot.summary.experience_count} stanowisk · {snapshot.documents?.length || 0} utworzonych CV</small>}
                                 </div>
                                 <div className={classes.historyActions}>
                                     {snapshot.status === "succeeded" && <button type="button" className={classes.reExtract} onClick={() => selectHistoricalImport(snapshot)}>Utwórz CV</button>}
-                                    <button type="button" className={classes.deleteImport} onClick={() => deleteHistoricalImport(snapshot.id)}>Usuń dane</button>
+                                    {snapshot.status !== "processing" && <button type="button" className={classes.deleteImport} onClick={() => deleteHistoricalImport(snapshot.id)}>Usuń dane</button>}
                                 </div>
                             </article>
                         )) : <p className={classes.hint}>Nie masz jeszcze zapisanych importów.</p>}

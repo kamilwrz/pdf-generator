@@ -17,6 +17,7 @@ import fitz
 from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
+from starlette.concurrency import run_in_threadpool
 from app.core.config import CV_EXTRACT_MAX_PAGES
 from app.core.security import verify_token, verify_token_optional
 from app.crud.bio_cv_drafts import delete_bio_cv_draft, get_bio_cv_draft, upsert_bio_cv_draft
@@ -161,7 +162,10 @@ async def extract_cv(
     data = await _read_and_validate_pdf(file)
     snapshot = create_snapshot(db, owner_id=user.id, filename=filename, size_bytes=len(data))
     try:
-        cv_data, usage = extract_cv_data(data)
+        # The OpenAI-compatible Cloudflare SDK is synchronous. Run it outside
+        # the ASGI event-loop thread so status/history requests and unrelated
+        # users remain responsive during a long vision-model inference.
+        cv_data, usage = await run_in_threadpool(extract_cv_data, data)
         record_cv_import(db, user.id)
         snapshot = mark_snapshot_succeeded(db, snapshot, cv_data)
         return {"import": _snapshot_payload(snapshot), "cv_data": cv_data, "usage": usage}

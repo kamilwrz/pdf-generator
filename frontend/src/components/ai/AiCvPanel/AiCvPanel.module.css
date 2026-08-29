@@ -216,6 +216,12 @@
     gap: 16px;
 }
 
+.historyHeaderActions {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
 .historyItem {
     display: flex;
     align-items: center;
