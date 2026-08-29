@@ -52,7 +52,10 @@ import {
 import { listRecordBlockAddAnchors } from '../../../utils/sectionRecord';
 import { resolveSectionLaneTransfer } from '../../../utils/transferSectionLane';
 import { listSkillsDisplayAnchors } from '../../../utils/skillsDisplayMode';
-import { elementBoundsOnPage } from '../../../utils/canvasHighlightBounds';
+import {
+  elementBoundsOnPage,
+  sectionVisualStartOnPage,
+} from '../../../utils/canvasHighlightBounds';
 import classes from './CanvasElements.module.css';
 
 /**
@@ -94,33 +97,57 @@ function fillSectionAnchors(
   resolveMemberIds,
   gutterSide,
 ) {
-  sections.forEach((section, index) => {
+  // Resolve every lane-local start before building rectangles so the current
+  // section can stop at the next section's true visual chrome edge. All values
+  // come from persisted model geometry; reading DOM Ranges here would observe
+  // the previous layout because this helper runs before React's commit.
+  const anchors = sections.map((section) => {
     const heading = documentElements.find((element) => (
       element.element_id === section.headingId
     ));
     const page = Math.max(1, Math.trunc(Number(heading?.page) || 1));
-    const pageStartAbs = (page - 1) * pageHeight;
-    const nextStartAbs = Number(sections[index + 1]?.startAbs);
-    // Section membership is based on element tops, while a textarea's stored
-    // box can legitimately retain extra height after a transfer or reflow. Use
-    // the next lane-local section start as a hard visual boundary so the hover
-    // outline never absorbs its neighbour. Both main and sidebar calls share
-    // this path, making the rule template- and lane-neutral.
-    const maxBottom = Number.isFinite(nextStartAbs)
-      && nextStartAbs >= pageStartAbs
-      && nextStartAbs < pageStartAbs + pageHeight
-      ? nextStartAbs - pageStartAbs
-      : null;
+    const memberIds = resolveMemberIds(documentElements, section.headingId, pageHeight);
+    return {
+      section,
+      page,
+      memberIds,
+      minTop: sectionVisualStartOnPage(
+        documentElements,
+        memberIds,
+        section.headingId,
+        page,
+        pageHeight,
+        section.startAbs,
+      ),
+    };
+  });
+
+  anchors.forEach((anchor, index) => {
+    const {
+      section,
+      page,
+      memberIds,
+      minTop,
+    } = anchor;
+    const next = anchors[index + 1];
+    // A section outline is page-local. Its lower edge stops at the next visual
+    // chrome start in the same lane/page, or at the physical page edge when the
+    // lane continues on another page. The upper limit prevents stale or
+    // polluted membership from pulling a moved section into its predecessor.
+    const maxBottom = next?.page === page ? next.minTop : pageHeight;
+    const highlightLimits = { minTop, maxBottom };
     map.set(section.headingId, {
       canMoveUp: index > 0,
       canMoveDown: index < sections.length - 1,
       gutterSide,
       highlight: elementBoundsOnPage(
         documentElements,
-        resolveMemberIds(documentElements, section.headingId, pageHeight),
+        memberIds,
         page,
-        { maxBottom },
+        highlightLimits,
       ),
+      highlightLimits,
+      nextHeadingId: next?.page === page ? next.section.headingId : null,
       laneTransfer: allowLaneTransfer
         ? resolveSectionLaneTransfer(documentElements, section.headingId, pageHeight)
         : null,
@@ -248,6 +275,28 @@ export default function CanvasElements({ elements, spreadSide = null }) {
     let node = null;
     const blockAnchor = recordBlockAnchorsById.get(element.element_id);
     const flatAnchor = flatSectionAnchorsById.get(element.element_id);
+    const sectionAnchor = sectionAnchorsById.get(element.element_id);
+    // Section detection accepts both text primitives. Mount the same structural
+    // toolbar outside the category branches so legacy/custom textarea headings
+    // do not silently lose section controls while ordinary text headings work.
+    const sectionToolbar = sectionAnchor ? (
+      <SectionRecordAdd
+        headingId={element.element_id}
+        nextHeadingId={sectionAnchor.nextHeadingId}
+        left={Number(element.left) || 0}
+        top={Number(element.top) || 0}
+        width={Number(element.width) || 0}
+        fontSize={Number(element.fontSize) || 10}
+        canMoveUp={sectionAnchor.canMoveUp}
+        canMoveDown={sectionAnchor.canMoveDown}
+        laneTransfer={sectionAnchor.laneTransfer}
+        skillsMode={sectionAnchor.skillsMode ?? null}
+        gutterSide={sectionAnchor.gutterSide}
+        highlight={sectionAnchor.highlight}
+        highlightLimits={sectionAnchor.highlightLimits}
+        spreadSide={spreadSide}
+      />
+    ) : null;
 
     if (element.category === "textarea") {
       node = (
@@ -308,7 +357,6 @@ export default function CanvasElements({ elements, spreadSide = null }) {
         </>
       );
     } else if (element.category === "text") {
-      const sectionAnchor = sectionAnchorsById.get(element.element_id);
       node = (
         <>
           <Text
@@ -336,22 +384,6 @@ export default function CanvasElements({ elements, spreadSide = null }) {
             textTransform={element.textTransform}
             mastheadRole={element.mastheadRole}
           />
-          {sectionAnchor ? (
-            <SectionRecordAdd
-              headingId={element.element_id}
-              left={Number(element.left) || 0}
-              top={Number(element.top) || 0}
-              width={Number(element.width) || 0}
-              fontSize={Number(element.fontSize) || 10}
-              canMoveUp={sectionAnchor.canMoveUp}
-              canMoveDown={sectionAnchor.canMoveDown}
-              laneTransfer={sectionAnchor.laneTransfer}
-              skillsMode={sectionAnchor.skillsMode ?? null}
-              gutterSide={sectionAnchor.gutterSide}
-              highlight={sectionAnchor.highlight}
-              spreadSide={spreadSide}
-            />
-          ) : null}
           {blockAnchor ? (
             <RecordBlockAdd
               elementId={blockAnchor.elementId}
@@ -489,6 +521,7 @@ export default function CanvasElements({ elements, spreadSide = null }) {
     return (
       <div key={element.element_id} className={enterClass}>
         {node}
+        {sectionToolbar}
       </div>
     );
   });

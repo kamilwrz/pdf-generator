@@ -7,7 +7,7 @@
  * keeps editor chrome out of the CV content without introducing a separate
  * properties panel.
  */
-import { use } from "react";
+import { use, useLayoutEffect, useState } from "react";
 import { FiTrash2 } from "react-icons/fi";
 import { LuArrowLeftRight, LuLayoutGrid } from "react-icons/lu";
 import { PdfContext } from "../../../store/pdfgenerator-context";
@@ -18,17 +18,49 @@ import {
   resolveStructuralToolbarSide,
   structuralToolbarLayoutSize,
 } from "../recordPlusSize";
-import { includeRenderedElementBounds } from "../../../utils/canvasHighlightBounds";
+import {
+  includeRenderedBounds,
+  resolveRenderedHighlightLimits,
+} from "../../../utils/canvasHighlightBounds";
+import { getVisualBounds } from "../../../utils/elementBounds";
 import CanvasHoverToolbar from "../CanvasHoverToolbar/CanvasHoverToolbar";
+
+function sameBounds(left, right) {
+  if (!left || !right) return left === right;
+  return left.left === right.left
+    && left.top === right.top
+    && left.width === right.width
+    && left.height === right.height;
+}
+
+function measurementKeyPart(element) {
+  return [
+    element?.element_id,
+    element?.page,
+    element?.left,
+    element?.top,
+    element?.width,
+    element?.height,
+    element?.fontSize,
+    element?.fontFamily,
+    element?.bold,
+    element?.italic,
+    element?.content,
+    element?.runs,
+    element?.textTransform,
+  ];
+}
 
 /**
  * @param {{
  *   headingId:string,
+ *   nextHeadingId?:string|null,
  *   left:number,
  *   top:number,
  *   width?:number,
  *   fontSize?:number,
  *   highlight?:{left:number,top:number,width:number,height:number}|null,
+ *   highlightLimits?:{minTop?:number|null,maxBottom?:number|null},
  *   gutterSide?:"left"|"right",
  *   spreadSide?:"left"|"right"|null,
  *   canMoveUp?:boolean,
@@ -39,11 +71,13 @@ import CanvasHoverToolbar from "../CanvasHoverToolbar/CanvasHoverToolbar";
  */
 export default function SectionRecordAdd({
   headingId,
+  nextHeadingId = null,
   left,
   top,
   width = 0,
   fontSize = 10,
   highlight = null,
+  highlightLimits = {},
   gutterSide = "right",
   spreadSide = null,
   canMoveUp = false,
@@ -64,6 +98,9 @@ export default function SectionRecordAdd({
   } = use(PdfContext);
   const deleteWithUndo = useCanvasDeletionUndo();
   const heading = A4_Elements.find((element) => element.element_id === headingId);
+  const nextHeading = nextHeadingId
+    ? A4_Elements.find((element) => element.element_id === nextHeadingId)
+    : null;
   const eligible = editorMode === EDITOR_MODE_TEMPLATE && !heading?.isEditing;
   const exclusiveKey = `heading:${headingId}`;
   const {
@@ -80,6 +117,41 @@ export default function SectionRecordAdd({
     triggerIds: [headingId],
   });
 
+  // A section can move while this toolbar stays pinned. Key the post-commit
+  // measurement to the exact model geometry so a Range captured for the old
+  // position is never reused during the render that applies the new one.
+  const headingMeasurementKey = JSON.stringify([
+    measurementKeyPart(heading),
+    measurementKeyPart(nextHeading),
+    zoom,
+  ]);
+  const [renderedHeadingMeasurement, setRenderedHeadingMeasurement] = useState(null);
+
+  useLayoutEffect(() => {
+    if (!visible || !heading) return;
+    // React has committed Text/Textarea coordinates by this point. Measuring
+    // inside render would still see the previous reorder/transfer position and
+    // is the root cause of neighbouring section outlines being merged.
+    const headingBounds = getVisualBounds(heading);
+    const nextHeadingBounds = nextHeading ? getVisualBounds(nextHeading) : null;
+    // The synchronous layout-state update is intentional: React performs the
+    // follow-up render before paint, so users never see the model-only fallback
+    // cut through line-height:1 glyph ink. Moving this to a passive effect would
+    // produce a one-frame border jump on every first hover.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setRenderedHeadingMeasurement((current) => (
+      current?.key === headingMeasurementKey
+      && sameBounds(current.headingBounds, headingBounds)
+      && sameBounds(current.nextHeadingBounds, nextHeadingBounds)
+        ? current
+        : {
+          key: headingMeasurementKey,
+          headingBounds,
+          nextHeadingBounds,
+        }
+    ));
+  }, [heading, headingMeasurementKey, nextHeading, visible]);
+
   if (!eligible) return null;
 
   const layout = structuralToolbarLayoutSize(zoom);
@@ -93,12 +165,32 @@ export default function SectionRecordAdd({
     width: headingWidth,
     height: Math.max(headingHeight * 1.35, 12),
   };
-  // Re-measure when hover/pin makes the toolbar rerender. A single-line text
-  // heading uses `line-height: 1`, so its glyph Range can extend above the
-  // stored flow box. The union preserves the full-section rectangle while
-  // moving its top edge high enough to contain the actually painted heading.
+  const currentMeasurement = renderedHeadingMeasurement?.key === headingMeasurementKey
+    ? renderedHeadingMeasurement
+    : null;
+  const headingTopExtension = Math.max(4, (Number(heading?.fontSize) || headingHeight) * 0.75);
+  const nextHeadingTopExtension = Math.max(
+    4,
+    (Number(nextHeading?.fontSize) || headingHeight) * 0.75,
+  );
+  const resolvedHighlightLimits = resolveRenderedHighlightLimits(
+    highlightLimits,
+    {
+      headingBounds: currentMeasurement?.headingBounds,
+      nextHeadingBounds: currentMeasurement?.nextHeadingBounds,
+      headingTopExtension,
+      nextHeadingTopExtension,
+    },
+  );
+  // Merge only a measurement associated with the current committed geometry.
+  // Reapply both lane-local limits after the union; the live heading may extend
+  // the top slightly for line-height:1 ink, but it cannot absorb a neighbour.
   const resolvedHighlight = visible
-    ? includeRenderedElementBounds(storedHighlight, heading)
+    ? includeRenderedBounds(
+      storedHighlight,
+      currentMeasurement?.headingBounds,
+      resolvedHighlightLimits,
+    )
     : storedHighlight;
   // A single page follows its content lane. A spread instead uses the outer
   // edge of each sheet because the centre gap is narrower than the toolbar.
