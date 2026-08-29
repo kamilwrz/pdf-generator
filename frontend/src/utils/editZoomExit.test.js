@@ -7,9 +7,25 @@ import {
   shouldDeferEditZoomRestore,
 } from "./editZoomExit.js";
 
-test("recognizes only A4-page clicks as edit-zoom exit interactions", () => {
-  const pageTarget = {
-    closest: (selector) => (selector === "[data-page-canvas]" ? {} : null),
+test("restores edit zoom only from canvas background clicks", () => {
+  const pageTarget = {};
+  pageTarget.closest = (selector) => (
+    selector === "[data-page-canvas]" ? pageTarget : null
+  );
+  const canvasAreaTarget = {};
+  canvasAreaTarget.closest = (selector) => (
+    selector === ".canvas-area" ? canvasAreaTarget : null
+  );
+  const canvasElementPage = {};
+  const canvasArea = {};
+  const canvasElementTarget = {
+    closest: (selector) => (
+      selector === "[data-page-canvas]"
+        ? canvasElementPage
+        : selector === ".canvas-area"
+          ? canvasArea
+          : null
+    ),
   };
   const toolbarTarget = {
     closest: () => null,
@@ -34,6 +50,8 @@ test("recognizes only A4-page clicks as edit-zoom exit interactions", () => {
   };
 
   assert.equal(isCanvasInteractionTarget(pageTarget), true);
+  assert.equal(isCanvasInteractionTarget(canvasAreaTarget), true);
+  assert.equal(isCanvasInteractionTarget(canvasElementTarget), false);
   assert.equal(isCanvasInteractionTarget(toolbarTarget), false);
   assert.equal(isCanvasInteractionTarget(canvasEditorControlTarget), false);
   assert.equal(isCanvasInteractionTarget(editableCanvasTarget), false);

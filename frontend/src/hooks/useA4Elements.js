@@ -273,17 +273,18 @@ export function useA4Elements(titleRef) {
   // browser blur is a view-transition side effect, not a user edit finalisation.
   // Store the affected id until the replacement edit node is mounted and seeded.
   const editZoomSpreadTransitionRef = useRef(null);
-  // A blur can be caused by any control outside the canvas. Restore the
-  // temporary edit zoom only after an intentional page/element interaction,
-  // not when the user uses the sidebar or toolbar while text remains focused.
+  // A blur can be caused by another canvas element or any control outside the
+  // canvas. Restore the temporary edit zoom only after an intentional
+  // background click, not when selection moves to an element, sidebar, or
+  // toolbar while the focused 200% view should remain in place.
   const editZoomExitRequestedRef = useRef(false);
-  // Switching directly from one text element to another briefly clears the
-  // previous `editingElementId`. Delay restoration until the next task so the
-  // replacement edit can claim the document first.
+  // Switching directly from one text element to another can briefly clear the
+  // previous `editingElementId` during React reconciliation. Delay restoration
+  // until the next task so the replacement edit can claim the document first.
   const editZoomRestoreTimerRef = useRef(null);
-  // Set synchronously by a canvas click before the replacement edit is
-  // scheduled with requestAnimationFrame. This closes the race where a timer
-  // could restore the spread before the new edit became active.
+  // Set synchronously by the double-click handler before its edit-state update.
+  // This closes the race where a pending timer could restore the spread before
+  // React exposes the replacement edit as active.
   const pendingTextEditIdRef = useRef(null);
   const requestTextEdit = useCallback((elementId) => {
     pendingTextEditIdRef.current = elementId;
@@ -307,16 +308,17 @@ export function useA4Elements(titleRef) {
   useEffect(() => {
     const markCanvasEditExit = (event) => {
       if (!isCanvasInteractionTarget(event.target)) return;
-      // Text/Textarea registers a replacement edit in its own pointerdown
-      // handler. This document listener runs afterward in bubbling phase, so
-      // a direct element switch is not mistaken for leaving the edit surface.
+      // A replacement text edit may already be registered while a deferred
+      // restoration is pending. Preserve that handoff instead of returning to
+      // the pre-edit zoom between the old and new edit surfaces.
       if (pendingTextEditIdRef.current != null) {
         editZoomExitRequestedRef.current = false;
         return;
       }
-      // Structural controls can close the active edit without changing the
-      // primitive `editingElementId` dependency. If no edit surface remains,
-      // restore immediately so the next canvas click cannot leave stale zoom.
+      // Another element or control may already have closed the active edit
+      // while deliberately preserving the focused view. Once the user later
+      // clicks the background, restore immediately because no blur-driven edit
+      // state change remains to trigger the effect below.
       if (
         !document.querySelector('[contenteditable="true"]')
         && editZoomPreviousRef.current != null
@@ -343,8 +345,8 @@ export function useA4Elements(titleRef) {
       if (editZoomRestoreTimerRef.current == null) {
         editZoomRestoreTimerRef.current = window.setTimeout(() => {
           editZoomRestoreTimerRef.current = null;
-          // A direct canvas switch clears the old edit before the new edit is
-          // scheduled. Keep the zoomed page when that handoff completed.
+          // A direct text switch can clear the old edit before React exposes the
+          // replacement. Keep the zoomed page when that handoff completed.
           if (shouldDeferEditZoomRestore(
             elementsRef.current,
             pendingTextEditIdRef.current,
@@ -372,8 +374,8 @@ export function useA4Elements(titleRef) {
       return undefined;
     }
 
-    // A click on another canvas element also marks a potential exit. Reset the
-    // signal when that click immediately opens the next text edit instead.
+    // Starting or switching a text edit claims the focused view. Reset any
+    // background-exit signal that preceded this edit-state transition.
     editZoomExitRequestedRef.current = false;
     setZoomState((current) => {
       if (editZoomPreviousRef.current == null) editZoomPreviousRef.current = current;

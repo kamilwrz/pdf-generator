@@ -1,9 +1,10 @@
 /**
  * Identify interactions that are allowed to end the temporary text-edit zoom.
  *
- * Toolbar, sidebar, and browser-chrome clicks can blur a contentEditable node,
- * but they are not document-navigation actions. Only an A4 page interaction
- * should restore the user's pre-edit zoom.
+ * Toolbar, sidebar, browser-chrome, and element clicks can blur a
+ * contentEditable node, but they are not requests to leave the focused canvas
+ * view. Only the bare A4 surface or the surrounding canvas area should restore
+ * the user's pre-edit zoom.
  */
 export function isCanvasInteractionTarget(target) {
   // Dragging across an active edit surface is text selection, not navigation
@@ -12,10 +13,20 @@ export function isCanvasInteractionTarget(target) {
   // be too late to prevent the blur-driven zoom restore.
   if (target?.closest?.('[contenteditable="true"], textarea')) return false;
   // Section and record affordances are mounted over the A4 page, but they are
-  // editor chrome. Clicking their icons must not end edit-zoom; only a click
-  // on the document surface or another document element should do that.
+  // editor chrome. Clicking their icons must not end edit-zoom.
   if (target?.closest?.("[data-editor-control]")) return false;
-  return Boolean(target?.closest?.("[data-page-canvas]"));
+
+  // A rendered element is always a descendant of the page node. Comparing the
+  // nearest page by identity distinguishes that element click from a genuine
+  // click on the page's own blank surface without requiring every element type
+  // to stop propagation or opt into a special marker.
+  const page = target?.closest?.("[data-page-canvas]");
+  if (page) return page === target;
+
+  // The scroll container's padding and gutters are also intentional canvas
+  // background. Descendants outside an A4 page (for example a zoom wrapper's
+  // unused area) follow the same exit behaviour as the bare page surface.
+  return Boolean(target?.closest?.(".canvas-area"));
 }
 
 /**
