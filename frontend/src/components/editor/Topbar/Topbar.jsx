@@ -2,17 +2,18 @@
  * Editor chrome for both the full editor and the reduced product-demo mode.
  * Demo mode keeps history, layout, zoom, and pagination;
  * account, import, persistence, and destructive document actions are omitted.
- * Action buttons are icon-only with tooltips (title + aria-label).
+ * Ambiguous document actions keep short visible labels, while conventional
+ * history, zoom, and pagination controls remain icon-only with tooltips.
  * Save (`createPdf`) is the only path that writes to "Moje dokumenty" (create on
  * first save, update thereafter). Download (`downloadPdf`) is independent: it
  * renders the current canvas on demand without saving. Both are
  * entitlement-gated upstream.
  *
- * The project name field and the templates control both live in the left
- * action group (rather than centered over the canvas or anchored to the A4
- * page edge). This leaves the middle of the topbar free so the element-
- * properties panel (`Editor.jsx`, docked left of `[data-anchor="topbar-zoom"]`)
- * never overlaps them. The grid button still opens the change-template modal;
+ * The project name and CV workflow controls live in the left action group
+ * (rather than centered over the canvas or anchored to the A4 page edge).
+ * This leaves the middle of the topbar free so the element-properties panel
+ * (`Editor.jsx`, docked left of `[data-anchor="topbar-zoom"]`) never overlaps
+ * them. The labelled template button opens the change-template modal;
  * flanking arrows restyle in place without opening that dialog.
  */
 import classes from "./Topbar.module.css";
@@ -69,10 +70,9 @@ export default function Topbar({ titleRef }) {
 
     return (
         <header className={classes.topbar}>
-            {/* Left: document identity, content-creation entry points, edit
-                history, then the template switcher — all grouped here so the
-                middle of the topbar stays clear for the element-properties
-                panel docked left of the zoom control. */}
+            {/* Left: document identity, creation/appearance workflow, then edit
+                history. The ordering keeps document-wide actions together and
+                reserves icon-only controls for conventions users already know. */}
             <div className={classes.group}>
                 {isDemoContent ? (
                     <div className={classes.demoIdentity} aria-label="CV Studio Demo">
@@ -89,50 +89,41 @@ export default function Topbar({ titleRef }) {
                         id="title"
                         ref={titleRef}
                         placeholder="Projekt bez tytułu"
-                        aria-label="Nazwa bieżącego projektu"
+                        aria-label="Nazwa bieżącego dokumentu"
                     />
                     <button
                         type="button"
                         className={classes.rename}
-                        aria-label="Zmień nazwę projektu"
-                        title="Zmień nazwę projektu"
+                        aria-label="Zmień nazwę dokumentu"
+                        title="Zmień nazwę dokumentu"
                         onClick={() => titleRef?.current?.focus()}
                     >
                         <TiPen />
                     </button>
                 </div>}
-                <span className={classes.divider} aria-hidden="true" />
-                {!isDemoContent && <div className={classes.cluster} role="group" aria-label="Twórz i importuj">
+                {!isDemoContent && <span className={classes.divider} aria-hidden="true" />}
+                {!isDemoContent && <div className={classes.workflowCluster} role="group" aria-label="Tworzenie i wygląd CV">
                     <button
                         type="button"
-                        className={classes.feature}
+                        className={`${classes.feature} ${classes.labeled}`}
                         onClick={showAiPanel}
-                        aria-label="Importuj CV"
-                        title="Importuj CV"
+                        aria-label="Importuj PDF"
+                        title="Importuj PDF"
                     >
                         <RiFileTextLine />
+                        <span className={`${classes.actionLabel} ${classes.toolLabel}`}>Importuj PDF</span>
                     </button>
                     <button
                         type="button"
-                        className={classes.feature}
+                        className={`${classes.feature} ${classes.labeled}`}
                         onClick={showBioCvModal}
-                        aria-label="Utwórz CV krok po kroku"
-                        title="Utwórz CV krok po kroku"
+                        aria-label="Kreator CV"
+                        title="Kreator CV krok po kroku"
                     >
                         <FiEdit3 />
+                        <span className={`${classes.actionLabel} ${classes.toolLabel}`}>Kreator CV</span>
                     </button>
-                </div>}
-                <span className={classes.divider} aria-hidden="true" />
-                <div className={classes.cluster} role="group" aria-label="Historia zmian">
-                    <button type="button" className={classes.iconBtn} onClick={undo} disabled={!canUndo} aria-label="Cofnij" title="Cofnij (Ctrl+Z)">
-                        <RiArrowGoBackLine />
-                    </button>
-                    <button type="button" className={classes.iconBtn} onClick={redo} disabled={!canRedo} aria-label="Ponów" title="Ponów (Ctrl+Shift+Z)">
-                        <RiArrowGoForwardLine />
-                    </button>
-                </div>
-                <span className={classes.divider} aria-hidden="true" />
-                {!isDemoContent && <div className={classes.cluster} role="group" aria-label="Szablon CV">
+                    <div className={classes.templateCluster} role="group" aria-label="Szablon CV">
                     {/* Hovering/focusing an arrow reveals a small live mockup of the
                         template it would switch to, instead of a plain text tooltip —
                         `title` is only set for the disabled edge case (no adjacent
@@ -157,13 +148,14 @@ export default function Topbar({ titleRef }) {
                     </div>
                     <button
                         type="button"
-                        className={classes.feature}
+                        className={`${classes.feature} ${classes.labeled}`}
                         onClick={showChangeTemplateModal}
                         disabled={!activeCvData}
-                        aria-label="Szablony"
+                        aria-label="Zmień szablon"
                         title={templatesHint}
                     >
                         <RiShuffleLine />
+                        <span className={`${classes.actionLabel} ${classes.toolLabel}`}>Zmień szablon</span>
                     </button>
                     <div className={classes.templateNavAnchor}>
                         <button
@@ -183,7 +175,17 @@ export default function Topbar({ titleRef }) {
                             </div>
                         )}
                     </div>
+                    </div>
                 </div>}
+                <span className={classes.divider} aria-hidden="true" />
+                <div className={classes.cluster} role="group" aria-label="Historia zmian">
+                    <button type="button" className={classes.iconBtn} onClick={undo} disabled={!canUndo} aria-label="Cofnij" title="Cofnij (Ctrl+Z)">
+                        <RiArrowGoBackLine />
+                    </button>
+                    <button type="button" className={classes.iconBtn} onClick={redo} disabled={!canRedo} aria-label="Ponów" title="Ponów (Ctrl+Shift+Z)">
+                        <RiArrowGoForwardLine />
+                    </button>
+                </div>
                 {onePageFit ? (
                     <button
                         type="button"
@@ -244,38 +246,43 @@ export default function Topbar({ titleRef }) {
                     </>
                 ) : null}
                 {!isDemoContent && <><span className={classes.divider} aria-hidden="true" />
-                <div className={classes.cluster} role="group" aria-label="Zapisz i pobierz">
+                <div className={classes.cluster} role="group" aria-label="Operacje dokumentu">
                     <button
                         type="button"
                         className={classes.ghost}
                         onClick={clearA4}
-                        aria-label="Wyczyść"
-                        title="Wyczyść"
+                        aria-label="Wyczyść zawartość CV"
+                        title="Wyczyść zawartość CV"
                     >
                         <FiTrash2 />
                     </button>
+                    <span className={classes.actionDivider} aria-hidden="true" />
                     {/* Download is independent of Save: it renders the current
                         canvas on demand, so it stays enabled even before the
                         document has ever been saved to "Moje dokumenty". */}
                     <button
                         type="button"
-                        className={classes.secondary}
+                        className={`${classes.secondary} ${classes.labeled}`}
                         onClick={downloadPdf}
                         disabled={isPdfLoading}
                         aria-label="Pobierz PDF"
                         title="Pobierz PDF"
+                        aria-busy={isPdfLoading}
                     >
                         <RiDownload2Line />
+                        <span className={`${classes.actionLabel} ${classes.outputLabel}`}>Pobierz PDF</span>
                     </button>
                     <button
                         type="button"
-                        className={classes.primary}
+                        className={`${classes.primary} ${classes.labeled}`}
                         onClick={createPdf}
                         disabled={isPdfLoading}
-                        aria-label="Zapisz PDF"
-                        title="Zapisz PDF"
+                        aria-label="Zapisz dokument"
+                        title="Zapisz dokument w Moich dokumentach"
+                        aria-busy={isPdfLoading}
                     >
                         <FiSave />
+                        <span className={`${classes.actionLabel} ${classes.outputLabel}`}>Zapisz</span>
                     </button>
                 </div></>}
             </div>

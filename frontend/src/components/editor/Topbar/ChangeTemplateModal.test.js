@@ -27,7 +27,7 @@ describe("ChangeTemplateModal spacing", () => {
 
 describe("Topbar template switcher", () => {
   it("opens the modal from the templates control and cycles with arrows", () => {
-    assert.match(topbarSource, /aria-label="Szablony"/);
+    assert.match(topbarSource, /aria-label="Zmień szablon"/);
     assert.match(topbarSource, /showChangeTemplateModal/);
     assert.match(topbarSource, /adjacentAllowedTemplate/);
   });

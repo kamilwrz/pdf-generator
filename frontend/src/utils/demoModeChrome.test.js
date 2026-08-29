@@ -23,7 +23,7 @@ test("demo mode hides account and upload tools from the sidebar", async () => {
   assert.match(sidebar, /!isDemoContent/);
   assert.match(sidebar, /isGuest \|\| isDemoContent/);
   assert.match(sidebar, /labelText="Moje dokumenty"/);
-  assert.match(sidebar, /labelText="Zdjęcia"/);
+  assert.match(sidebar, /const photoLabel = isTemplate \? "Zdjęcie profilowe" : "Zdjęcia"/);
 });
 
 test("demo mode keeps its product-focused banner copy", async () => {
@@ -38,7 +38,8 @@ test("demo mode keeps its product-focused banner copy", async () => {
 test("demo mode removes template switching from the topbar", async () => {
   const topbar = await source("components/editor/Topbar/Topbar.jsx");
 
-  assert.match(topbar, /!isDemoContent && <div className={classes.cluster} role="group" aria-label="Szablon CV">/);
+  assert.match(topbar, /!isDemoContent && <div className={classes.workflowCluster}/);
+  assert.match(topbar, /className={classes.templateCluster} role="group" aria-label="Szablon CV"/);
   assert.doesNotMatch(topbar, /classes\.demoTemplate/);
 });
 

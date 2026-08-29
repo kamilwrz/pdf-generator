@@ -144,6 +144,7 @@ export const PdfContext = createContext({
     setActiveTemplateId: () => {},
     hydrateDocumentMode: () => {},
     showUnlockFreeform: () => {},
+    isUnlockFreeformModal: false,
     unlockFreeform: () => {},
     showSections: () => {},
     isSectionsPanel: false,

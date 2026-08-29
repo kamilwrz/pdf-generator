@@ -36,6 +36,24 @@
     flex-shrink: 0;
 }
 
+.workflowCluster,
+.templateCluster {
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.workflowCluster {
+    gap: 3px;
+}
+
+.templateCluster {
+    gap: 1px;
+    margin-left: 3px;
+    padding-left: 4px;
+    border-left: 1px solid var(--topbar-border);
+}
+
 /* ---- "current project" field, left-aligned in the left action group ---- */
 .projectField {
     display: inline-flex;
@@ -124,7 +142,8 @@
     color: var(--topbar-accent);
 }
 
-/* Icon-only action buttons (labels live in title / aria-label). */
+/* Ambiguous actions use `.labeled`; conventional history/view actions stay
+   icon-only. This keeps the toolbar scannable without changing any workflow. */
 .feature,
 .ghost,
 .secondary,
@@ -140,6 +159,18 @@
     cursor: pointer;
     flex-shrink: 0;
     transition: background .15s, border-color .15s, color .15s;
+}
+
+.labeled {
+    width: auto;
+    gap: 7px;
+    padding: 0 10px;
+    font: 600 11px var(--font-body);
+    white-space: nowrap;
+}
+
+.actionLabel {
+    line-height: 1;
 }
 
 .feature svg,
@@ -267,6 +298,14 @@
     cursor: not-allowed;
 }
 
+.actionDivider {
+    width: 1px;
+    height: 18px;
+    margin: 0 3px;
+    background: var(--topbar-border);
+    flex-shrink: 0;
+}
+
 .divider {
     width: 1px;
     height: 20px;
@@ -300,10 +339,21 @@
     cursor: not-allowed;
 }
 
+.feature:focus-visible,
+.ghost:focus-visible,
+.secondary:focus-visible,
+.primary:focus-visible,
+.iconBtn:focus-visible,
+.zoomBtn:focus-visible,
+.rename:focus-visible {
+    outline: 2px solid var(--topbar-accent);
+    outline-offset: 2px;
+}
+
 /* Template switch arrows: hovering/focusing reveals a small mockup of the
    adjacent template instead of a text tooltip. `position: relative` anchor
    around just the arrow keeps the preview from disturbing the cluster's own
-   flex layout or the "Szablony" button between the two arrows. */
+   flex layout or the "Zmień szablon" button between the two arrows. */
 .templateNavAnchor {
     position: relative;
     display: inline-flex;
@@ -432,6 +482,31 @@
     .projectField {
         width: 110px;
         padding: 0 4px;
+    }
+}
+
+/* Preserve the same controls at laptop widths; only their redundant visible
+   labels collapse because every button retains its tooltip and accessible name. */
+@media (max-width: 1450px) {
+    .toolLabel {
+        display: none;
+    }
+
+    .feature.labeled {
+        width: 34px;
+        padding: 0;
+    }
+}
+
+@media (max-width: 1120px) {
+    .outputLabel {
+        display: none;
+    }
+
+    .secondary.labeled,
+    .primary.labeled {
+        width: 34px;
+        padding: 0;
     }
 }
 

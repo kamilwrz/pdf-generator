@@ -64,9 +64,9 @@ export default function PageControls() {
                 className={`${classes.navBtn} ${isTwoPageView ? classes.spreadActive : ""}`}
                 onClick={toggleTwoPageView}
                 disabled={pageCount < 2}
-                aria-label="Pokaż dwie strony obok siebie"
+                aria-label={isTwoPageView ? "Wyłącz widok dwóch stron" : "Włącz widok dwóch stron"}
                 aria-pressed={isTwoPageView}
-                title="Widok dwóch stron"
+                title={isTwoPageView ? "Wyłącz widok dwóch stron" : "Włącz widok dwóch stron"}
             >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round">
                     <rect x="3" y="4" width="7" height="16" rx="1.2" />

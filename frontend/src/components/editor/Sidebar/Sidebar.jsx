@@ -33,10 +33,14 @@ export default function Sidebar({ children }) {
         addPath,
         addTextarea,
         showGallery,
+        isGallery,
         showSections,
+        isSectionsPanel,
         showUnlockFreeform,
+        isUnlockFreeformModal,
         editorMode,
         setIsModalPdfs,
+        isModalPdfs,
         logout,
         isGuest,
         PDFs,
@@ -49,6 +53,7 @@ export default function Sidebar({ children }) {
     // Demo content is intentionally locked to the template tool rail even if a
     // transient editor-mode update occurs while the starter is being replaced.
     const isTemplate = editorMode === EDITOR_MODE_TEMPLATE || isDemoContent;
+    const photoLabel = isTemplate ? "Zdjęcie profilowe" : "Zdjęcia";
 
     function showModalWithPDFs() {
         setIsModalPdfs(bool => !bool);
@@ -70,7 +75,13 @@ export default function Sidebar({ children }) {
         <div className={classes.toolsContainer}>
             <div className={classes.toolsList}>
                 {!isDemoContent ? (
-                    <SidebarControls icon={<LuImagePlus />} labelText="Zdjęcia" sidebarEvent={showGallery} />
+                    <SidebarControls
+                        icon={<LuImagePlus />}
+                        labelText={photoLabel}
+                        tooltipText={isTemplate ? "Dodaj lub zmień zdjęcie profilowe" : "Dodaj zdjęcie"}
+                        sidebarEvent={showGallery}
+                        active={isGallery}
+                    />
                 ) : null}
                 {isTemplate ? (
                     <>
@@ -79,12 +90,15 @@ export default function Sidebar({ children }) {
                             labelText="Dostosuj CV"
                             sidebarEvent={showSections}
                             badge={fitTooLong}
+                            active={isSectionsPanel}
                         />
                         {!isDemoContent ? (
                             <SidebarControls
                                 icon={<LuLockOpen />}
-                                labelText="Odblokuj edycję (kopia freeform)"
+                                labelText="Edytuj jako kopię"
+                                tooltipText="Utwórz kopię do swobodnej edycji"
                                 sidebarEvent={showUnlockFreeform}
+                                active={isUnlockFreeformModal}
                             />
                         ) : null}
                     </>
@@ -138,7 +152,13 @@ export default function Sidebar({ children }) {
         <div className={classes.toolsContainer}>
             <div className={classes.toolsList}>
                 {!isDemoContent ? (
-                    <SidebarControls icon={<FaRegFolderOpen />} labelText="Moje dokumenty" sidebarEvent={showModalWithPDFs} documents={PDFs.length} />
+                    <SidebarControls
+                        icon={<FaRegFolderOpen />}
+                        labelText="Moje dokumenty"
+                        sidebarEvent={showModalWithPDFs}
+                        documents={PDFs.length}
+                        active={isModalPdfs}
+                    />
                 ) : null}
             </div>
         </div>
