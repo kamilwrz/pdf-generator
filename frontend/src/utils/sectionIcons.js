@@ -37,12 +37,6 @@ const BASE_ICON_NAMES = Object.freeze([
 export const THEME_ICON_NAMES = Object.freeze({
   nova: BASE_ICON_NAMES,
   portico: BASE_ICON_NAMES,
-  tessera: Object.freeze([
-    "summary", "experience", "education", "skills", "languages",
-    "interests", "references", "certifications", "other",
-    "email", "phone", "linkedin", "github", "website", "location",
-    "calendar", "portrait",
-  ]),
   slate: Object.freeze([
     "summary", "experience", "education", "skills", "languages",
     "interests", "references", "certifications", "other",
@@ -54,7 +48,6 @@ export const THEME_ICON_NAMES = Object.freeze({
 /** Registry template id → iconic theme folder used for section headings. */
 export const TEMPLATE_ICON_THEME = Object.freeze({
   nova: "nova",
-  tessera: "tessera",
   slate: "slate",
   portico: "portico",
 });
@@ -182,7 +175,7 @@ export function templateOffersSectionIcons(templateId, elements = []) {
 
 /** Themes that decorate section headings with iconic glyphs (not contact-only). */
 const SECTION_HEADING_ICON_THEMES = new Set([
-  "nova", "tessera", "slate", "portico",
+  "nova", "slate", "portico",
 ]);
 
 /**
@@ -313,7 +306,7 @@ export function applySelectedSectionIcon(
  *
  * `transferSectionLane.js` / `collapseMainIntoSidebar.js` restyle a section
  * for its destination column but drop every source decorative shape (main
- * and sidebar icon clusters differ in shape count/size — compare `_gen_tessera`
+ * and sidebar icon clusters differ in shape count/size — compare `_gen_slate`
  * `section()` with `sidebar_heading()` — so the source cluster can never be
  * reused verbatim). `style.markers` (from `deriveSectionStyle`) already
  * samples a sibling heading's cluster in the DESTINATION lane; this only

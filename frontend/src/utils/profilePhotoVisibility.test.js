@@ -5,7 +5,6 @@ import { atriumTemplate } from "../templates/atrium.js";
 import { monumentTemplate } from "../templates/monument.js";
 import { porticoTemplate } from "../templates/portico.js";
 import { slateTemplate } from "../templates/slate.js";
-import { tesseraTemplate } from "../templates/tessera.js";
 import { lindenTemplate } from "../templates/linden.js";
 import { applyChannelRelayout } from "./contactBandOps.js";
 import { DEFAULT_FLOW_SPACING } from "./flowSpacing.js";
@@ -247,7 +246,7 @@ describe("profile photo visibility", () => {
     );
   });
 
-  for (const [templateId, template] of [["slate", slateTemplate], ["tessera", tesseraTemplate]]) {
+  for (const [templateId, template] of [["slate", slateTemplate]]) {
     it(`switches ${templateId} contacts to a sidebar stack and back to main`, () => {
       const source = withIds(template);
       const originalAnchor = source.find((element) => element.contactBand);
@@ -338,13 +337,13 @@ describe("profile photo visibility", () => {
     );
   });
 
-  it("hides legacy Tessera photo chrome that predates ornament tags", () => {
-    const legacy = withIds(tesseraTemplate).map((element) => {
+  it("hides legacy Slate photo chrome that predates ornament tags", () => {
+    const legacy = withIds(slateTemplate).map((element) => {
       if (element.photoSlot !== "ornament") return element;
       const { photoSlot: _photoSlot, ...withoutTag } = element;
       return withoutTag;
     });
-    const hidden = hideProfilePhoto(legacy, "tessera").elements;
+    const hidden = hideProfilePhoto(legacy, "slate").elements;
     const legacyCluster = hidden.filter((element) => (
       element.fixedToPage
       && element.flowLane === "sidebar"
@@ -356,12 +355,12 @@ describe("profile photo visibility", () => {
   });
 
   it("brings every hidden-photo contact onto page one before measuring the sidebar gap", () => {
-    const source = withIds(tesseraTemplate).map((element) => (
+    const source = withIds(slateTemplate).map((element) => (
       ["github", "website"].includes(element.contactChannel)
         ? { ...element, page: 2 }
         : element
     ));
-    const hidden = hideProfilePhoto(source, "tessera");
+    const hidden = hideProfilePhoto(source, "slate");
     const contacts = hidden.elements.filter((element) => element.contactChannel);
     assert.ok(contacts.every((element) => element.page === 1));
 
@@ -372,7 +371,7 @@ describe("profile photo visibility", () => {
       () => "unused-id",
     ).elements;
     const aligned = alignSidebarAfterProfileContacts(
-      relaid, hidden.contactBandId, "tessera",
+      relaid, hidden.contactBandId, "slate",
     );
     const contactBottom = Math.max(...aligned
       .filter((element) => element.contactChannel)

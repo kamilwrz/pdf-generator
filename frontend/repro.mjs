@@ -1,5 +1,4 @@
 import { slateTemplate } from "./src/templates/slate.js";
-import { tesseraTemplate } from "./src/templates/tessera.js";
 import { transferSectionLane } from "./src/utils/transferSectionLane.js";
 import { isSidebarSectionHeading, sidebarSectionElementIds } from "./src/utils/sectionStructure.js";
 
@@ -38,4 +37,3 @@ function run(name, template) {
 }
 
 run("SLATE", slateTemplate);
-run("TESSERA", tesseraTemplate);

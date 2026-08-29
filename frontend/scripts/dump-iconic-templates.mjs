@@ -4,7 +4,6 @@
 // with `node frontend/scripts/dump-iconic-templates.mjs`.
 import { writeFileSync } from "node:fs";
 import { monumentTemplate } from "../src/templates/monument.js";
-import { tesseraTemplate } from "../src/templates/tessera.js";
 import { slateTemplate } from "../src/templates/slate.js";
 import { porticoTemplate } from "../src/templates/portico.js";
 import { atriumTemplate } from "../src/templates/atrium.js";
@@ -16,7 +15,6 @@ import { lindenTemplate } from "../src/templates/linden.js";
 
 const out = {
     monument: monumentTemplate,
-    tessera: tesseraTemplate,
     slate: slateTemplate,
     portico: porticoTemplate,
     atrium: atriumTemplate,

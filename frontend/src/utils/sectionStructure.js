@@ -47,7 +47,7 @@ const MAX_AUTHORED_MASTHEAD_CLEARANCE = 56;
 /**
  * Gap (px) between a sidebar photo well's bottom and the first rail section's
  * chrome band. Mirrors the generators' authored `sidebar_sections_start =
- * photo_bottom + 28` (Slate `slate.py`, Tessera `tessera.py`). Used as the
+ * photo_bottom + 28` (Slate `slate.py`). Used as the
  * photo floor in `packSidebarLane` when a section is promoted to become the
  * rail's new first item, so the photo→heading clearance matches a freshly
  * generated document instead of collapsing to the tighter inter-section gap.
@@ -544,10 +544,10 @@ function isLeadingSectionMark(element) {
 }
 
 /**
- * Two-column templates (Tessera, Slate, Harbor, Sterling — `layouts: ["sidebar", …]`)
+ * Two-column templates (Slate, Sterling — `layouts: ["sidebar", …]`)
  * place a narrow rail beside the main content column. Sidebar kickers are
  * tagged `flowRole: "sidebar-chrome"` + `flowLane: "sidebar"` (see e.g.
- * `tessera.py` `sidebar_heading()` / `sidebar_kicker()`), so
+ * `slate.py` `sidebar_heading()` / `sidebar_kicker()`), so
  * `isSectionHeading` never promotes them into the main section list. Without
  * the column check below, every Y-only sweep (section membership,
  * masthead-bottom detection, flow-bottom detection, insert "hole" shifting)

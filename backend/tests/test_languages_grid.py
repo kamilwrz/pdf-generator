@@ -103,7 +103,7 @@ class LanguagesGridTests(unittest.TestCase):
         return len(first_row_lefts)
 
     def test_sidebar_templates_use_a_3_column_languages_grid_not_4(self) -> None:
-        """Sterling/Vestige/Tessera/Slate's main column (~300-335 pt) is
+        """Sterling/Vestige/Slate's main column (~300-335 pt) is
         narrower than a single-column template's (~460-500 pt); a 4-column
         grid leaves too little width per cell for a "Name — Level" line,
         wrapping or cutting it off. Sidebar templates must use 3 columns —

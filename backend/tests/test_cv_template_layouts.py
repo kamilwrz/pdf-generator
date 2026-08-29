@@ -89,7 +89,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
 
     def test_template_images_resolve_to_versioned_local_assets(self):
         for template_id in (
-            "tessera", "slate",
+            "slate",
         ):
             with self.subTest(template_id=template_id):
                 image = next(
@@ -99,161 +99,6 @@ class CvTemplateLayoutTests(unittest.TestCase):
                 )
                 local_path = Path(image_src_to_local_path(image["src"]))
                 self.assertTrue(local_path.is_file())
-
-    def test_tessera_is_original_icon_sidebar_with_rectangular_photo(self):
-        """Tessera must use every supported primitive and preserve complete flow."""
-        multi_page_cv = {
-            **LONG_CV,
-            "experience": LONG_CV["experience"] * 3,
-        }
-        elements = generate_resume("tessera", multi_page_cv)
-        categories = {element["category"] for element in elements}
-        pages = {element.get("page", 1) for element in elements}
-
-        self.assertEqual(
-            categories,
-            {"text", "textarea", "line", "rectangle", "circle", "ellipse", "image"},
-        )
-        self.assertNotIn("connector", categories)
-        self.assertGreater(max(pages), 1)
-
-        photo_frame = next(
-            element
-            for element in elements
-            if element.get("id") == "tessera-photo-frame"
-        )
-        self.assertEqual(photo_frame["category"], "rectangle")
-        self.assertEqual((photo_frame["width"], photo_frame["height"]), (112, 126))
-        self.assertGreater(photo_frame["height"], photo_frame["width"])
-        self.assertEqual(
-            len([
-                element
-                for element in elements
-                if element.get("photoSlot") == "ornament"
-                and element.get("page", 1) == 1
-            ]),
-            4,
-        )
-        name = next(element for element in elements if element.get("mastheadRole") == "name")
-        title_bar = next(
-            element
-            for element in elements
-            if element.get("mastheadRole") == "title-decoration"
-        )
-        title = next(element for element in elements if element.get("mastheadRole") == "title")
-        self.assertEqual((name["top"], title_bar["top"], title["top"]), (60, 92, 98))
-
-        icons = [
-            element
-            for element in elements
-            if element["category"] == "image"
-            and "/template-assets/iconic/tessera/" in element["src"]
-        ]
-        self.assertGreaterEqual(len(icons), 8)
-        self.assertTrue(any(icon["src"].endswith("/portrait.png") for icon in icons))
-        self.assertTrue(all(
-            Path(image_src_to_local_path(icon["src"])).is_file()
-            for icon in icons
-        ))
-
-        self.assertTrue(all(
-            element.get("autoHeight") is True
-            and element.get("preserveInitialLayout") is True
-            and element["top"] + element["height"] <= 770
-            for element in elements
-            if element["category"] == "textarea"
-        ))
-        self.assertTrue(any(
-            element.get("flowRole") == "section-chrome"
-            for element in elements
-        ))
-        self.assertTrue(all(
-            element.get("fixedToPage") is True
-            and element.get("locked") is True
-            for element in elements
-            if element.get("id") == "tessera-photo-frame"
-        ))
-        # Sidebar section bodies must remain editable; only photo chrome and
-        # page rails are inert (`fixedToPage`). Contact is masthead-only.
-        side_width = 178
-        editable_sidebar = [
-            element for element in elements
-            if element.get("page", 1) == 1
-            and element["category"] in {"text", "textarea"}
-            and element["left"] < side_width
-            and not element.get("fixedToPage")
-        ]
-        self.assertGreaterEqual(len(editable_sidebar), 4)
-        self.assertTrue(all(
-            not element.get("locked")
-            for element in editable_sidebar
-        ))
-        self.assertFalse(any(
-            element.get("content") == "KONTAKT"
-            for element in elements
-            if element["category"] == "text" and element["left"] < side_width
-        ))
-        masthead_contact_labels = [
-            element for element in elements
-            if element["category"] == "text"
-            and element.get("flowRole") == "masthead"
-            and element["left"] >= 218
-            and not element.get("bold")
-            and element.get("fontSize", 0) < 10
-        ]
-        self.assertGreaterEqual(len(masthead_contact_labels), 2)
-        contact_icons = [
-            element for element in elements
-            if element["category"] == "image"
-            and element.get("flowRole") == "masthead"
-            and any(
-                element["src"].endswith(f"/{name}.png")
-                for name in ("phone", "email", "location", "linkedin", "github", "website")
-            )
-        ]
-        self.assertGreaterEqual(len(contact_icons), 2)
-
-    def test_tessera_main_section_icon_is_centered_in_its_coral_box(self):
-        """Main-column heading glyphs must sit in the geometric centre of their
-        20px coral frame. The glyph is placed geometrically (`alignWithText`
-        False) rather than via `_icon_beside` (which optically centres on the
-        heading TEXT line and left the icon hanging near the top of the box)."""
-        elements = generate_resume("tessera", LONG_CV)
-        # Main-column coral outline frames: 20x20 rectangles tagged section-chrome
-        # in the main column (left >= 200), one per main section heading.
-        boxes = [
-            element for element in elements
-            if element["category"] == "rectangle"
-            and element.get("flowRole") == "section-chrome"
-            and element.get("width") == 20 and element.get("height") == 20
-            and element["left"] >= 200
-        ]
-        main_icons = [
-            element for element in elements
-            if element["category"] == "image"
-            and element.get("flowRole") == "section-chrome"
-            and "/template-assets/iconic/tessera/" in element["src"]
-            and element["left"] >= 200
-        ]
-        self.assertGreaterEqual(len(boxes), 1)
-        self.assertEqual(len(main_icons), len(boxes))
-        for icon in main_icons:
-            # Geometric placement only — an optical (text-aligned) glyph would be
-            # pulled ~half its height up out of the box on the canvas / PDF.
-            self.assertFalse(
-                icon.get("alignWithText", True),
-                f"main section icon {icon['src']} must be geometrically placed",
-            )
-            box = min(
-                boxes,
-                key=lambda b: abs(b["top"] - icon["top"]) + abs(b["left"] - icon["left"]),
-            )
-            icon_cx = icon["left"] + icon["width"] / 2
-            icon_cy = icon["top"] + icon["height"] / 2
-            box_cx = box["left"] + box["width"] / 2
-            box_cy = box["top"] + box["height"] / 2
-            self.assertAlmostEqual(icon_cx, box_cx, delta=0.5)
-            self.assertAlmostEqual(icon_cy, box_cy, delta=0.5)
 
     def test_slate_is_rectilinear_icon_sidebar_with_rectangular_photo(self):
         """Slate keeps a rectilinear (no circle/ellipse) blueprint identity."""
@@ -265,9 +110,8 @@ class CvTemplateLayoutTests(unittest.TestCase):
         categories = {element["category"] for element in elements}
         pages = {element.get("page", 1) for element in elements}
 
-        # The rectilinear vocabulary is Slate's point of difference from Tessera:
-        # only filled/outlined rectangles, text, and icons — never circles or
-        # ellipses.
+        # Slate keeps a rectilinear vocabulary: only filled/outlined rectangles,
+        # text, and icons — never circles or ellipses.
         self.assertEqual(
             categories,
             {"text", "textarea", "line", "rectangle", "image"},
@@ -384,7 +228,6 @@ class CvTemplateLayoutTests(unittest.TestCase):
         }
         # template_id → expected fixed panel width at left=0
         panels = {
-            "tessera": 178,
             "slate": 178,
         }
 
@@ -459,10 +302,10 @@ class CvTemplateLayoutTests(unittest.TestCase):
         # matching single-column ``_place_education_record``.
         structured_education_parts = {"MBA", "SGH", "2020"}
 
-        for template_id in ("tessera",):
+        for template_id in ("slate",):
             with self.subTest(template_id=template_id):
                 elements = generate_resume(template_id, cv)
-                # Tessera sidebar bodies sit at left=25; mosaic headings at 51.
+                # Slate sidebar bodies sit at left=25; section headings at 49.
                 sidebar_bodies = {
                     element["content"]
                     for element in elements
@@ -472,7 +315,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
                     element["content"]
                     for element in elements
                     if element["category"] == "text"
-                    and element.get("left") in {25, 51}
+                    and element.get("left") in {25, 49}
                     and not element.get("fixedToPage")
                 }
                 main_copy = "\n".join(
@@ -502,76 +345,6 @@ class CvTemplateLayoutTests(unittest.TestCase):
                     self.assertNotIn(part, main_copy)
                 self.assertIn("Platforma obsługi klienta", main_copy)
 
-
-
-    def test_sidebar_templates_keep_oversized_sections_complete_in_main_column(self):
-        skills = [f"Kompetencja strategiczna i operacyjna numer {index}" for index in range(1, 25)]
-        languages = [f"Język zawodowy poziom zaawansowany numer {index}" for index in range(1, 25)]
-        education = [
-            {
-                "degree": f"Studia podyplomowe z zarządzania transformacją {index}",
-                "detail": f"Akademia Rozwoju Organizacji {index}",
-                "period": f"20{index:02d} – 20{index + 1:02d}",
-            }
-            for index in range(1, 8)
-        ]
-        cv = {
-            **LONG_CV,
-            "skills": skills,
-            "education": education,
-            "extra_sections": [{
-                "title": "JĘZYKI",
-                "kind": "languages",
-                "placement": "after_skills",
-                "items": languages,
-            }],
-        }
-
-        elements = generate_resume("tessera", cv)
-        sidebar_heading_copy = {
-            element["content"]
-            for element in elements
-            if element["category"] == "text"
-            and element.get("left") in {25, 51}
-            and not element.get("fixedToPage")
-        }
-        sidebar_bodies = "\n".join(
-            element["content"]
-            for element in elements
-            if element["category"] == "textarea" and element["left"] == 25
-        )
-        # Main column starts at 218; language grid cells sit at 218 + n·col_w.
-        main_textareas = [
-            element for element in elements
-            if element["category"] == "textarea" and element["left"] >= 218
-        ]
-        main_copy = "\n".join(element["content"] for element in main_textareas)
-
-        # Skills/languages are far taller than the first-page sidebar budget, so
-        # they stay complete in the main column (never truncated in the sidebar).
-        self.assertNotIn("UMIEJĘTNOŚCI", sidebar_heading_copy)
-        self.assertNotIn("JĘZYKI", sidebar_heading_copy)
-        self.assertIn(skills[0], main_copy)
-        self.assertIn(skills[-1], main_copy)
-        # Overflow languages land in the main column as a 4-column grid
-        # (one textarea per language, not a bulleted block).
-        self.assertIn(languages[0], main_copy)
-        self.assertIn(languages[-1], main_copy)
-        language_cells = [
-            element for element in main_textareas
-            if element.get("flowRole") == "grid-member"
-            and any(lang in str(element.get("content", "")) for lang in languages)
-        ]
-        self.assertEqual(len(language_cells), len(languages))
-        # Education may still fit wholly in the sidebar at a smaller font; if so,
-        # every record must be present. Otherwise the full set is in the main column.
-        if "WYKSZTAŁCENIE" in sidebar_heading_copy:
-            self.assertIn(education[0]["degree"], sidebar_bodies)
-            self.assertIn(education[-1]["degree"], sidebar_bodies)
-            self.assertNotIn(education[0]["degree"], main_copy)
-        else:
-            self.assertIn(education[0]["degree"], main_copy)
-            self.assertIn(education[-1]["degree"], main_copy)
 
 
 
@@ -631,7 +404,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
                 "Analiza jakości obsługi klienta oraz przygotowywanie raportów.",
             ],
         }
-        elements = generate_resume("tessera", {
+        elements = generate_resume("slate", {
             **LONG_CV,
             "experience": [*LONG_CV["experience"], fourth_job],
         })
@@ -667,7 +440,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
                 "bullets": ["Weryfikacja klientów.", "Kontrola dokumentacji."],
             },
         ]
-        elements = generate_resume("tessera", {
+        elements = generate_resume("slate", {
             "name": "Anna Kowalska",
             "title": "AML Analyst",
             "experience": jobs,
@@ -703,7 +476,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
             10,
         )
 
-        # Tessera uppercases the masthead name and role, but the caps are now
+        # Slate uppercases the masthead name and role, but the caps are now
         # applied reversibly through the ``textTransform`` flag (Phase 3 masthead
         # identity): the stored ``content`` stays original-case so the toggle can
         # restore mixed case, while the renderer draws the identical uppercase
@@ -717,9 +490,9 @@ class CvTemplateLayoutTests(unittest.TestCase):
         self.assertTrue(
             all(element.get("textTransform") == "uppercase" for element in header_texts)
         )
-        # Name sits on the main column; the role line sits on the coral title tile.
+        # Name sits on the main column; the role line sits on the steel title tile.
         self.assertTrue(all(element["left"] >= 218 for element in header_texts))
-        self.assertTrue(all(element["left"] < 230 for element in header_texts))
+        self.assertTrue(all(element["left"] <= 230 for element in header_texts))
 
     def test_education_is_structured_in_main_column_and_sidebar(self):
         education = [{
@@ -741,7 +514,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
             element["content"]
             for element in main
             # Main-column templates currently start between 80 pt and
-            # 218 pt (Tessera). The threshold excludes sidebar copy without
+            # 218 pt (Slate). The threshold excludes sidebar copy without
             # coupling this structural test to one template's exact margin.
             if element["category"] == "textarea" and element.get("left", 0) >= 90
         ]
@@ -750,7 +523,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
         self.assertIn("Warszawa   ·   2017 – 2022", main_copy)
         self.assertIn("• Specjalizacja: prawo europejskie", main_copy)
 
-        for template_id in ("tessera", "slate"):
+        for template_id in ("slate",):
             with self.subTest(template_id=template_id):
                 sidebar = generate_resume(template_id, {
                     "name": "Anna Kowalska",
@@ -832,15 +605,15 @@ class CvTemplateLayoutTests(unittest.TestCase):
         # forced into the main column because their sidebar has a deliberately
         # separate palette.
         affected_templates = (
-            "tessera", "monument",
+            "slate", "monument",
         )
 
         for template_id in affected_templates:
             with self.subTest(template_id=template_id):
-                if template_id == "tessera":
-                    # Tessera imports the helper into its own module namespace.
+                if template_id == "slate":
+                    # Slate imports the helper into its own module namespace.
                     with patch(
-                        "app.services.cv_templates.templates.tessera._fit_sidebar_sections",
+                        "app.services.cv_templates.templates.slate._fit_sidebar_sections",
                         return_value=([], set()),
                     ):
                         elements = generate_resume(template_id, cv)
@@ -1613,7 +1386,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
 
     def test_active_templates_keep_textareas_inside_page_bounds(self):
         for template_id in (
-            "monument", "tessera", "regent",
+            "monument", "slate", "regent",
         ):
             with self.subTest(template_id=template_id):
                 multi_page_cv = {

@@ -32,7 +32,6 @@ def _anchor(elements):
     [
         ("atrium", "centered"),
         ("portico", "centered"),
-        ("tessera", "wrapping"),
         ("slate", "wrapping"),
         ("regent", "centered"),
         ("meridian", "centered"),

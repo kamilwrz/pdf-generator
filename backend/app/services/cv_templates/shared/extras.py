@@ -181,7 +181,7 @@ def _extra_sections(b: Builder, cv: dict, placement: str,
     advance (Iconic is taller than the default label-only estimate).
 
     ``languages_columns`` sizes the languages grid's cells to the caller's own
-    main-column width. Sidebar templates (Sterling, Tessera, Slate — narrower
+    main-column width. Sidebar templates (Sterling, Slate — narrower
     ~300-335pt main columns, versus ~460-500pt for single-column templates)
     pass 3 instead of the default 4: at 4 columns a narrow main column gives
     each cell too little width for a "Name — Level" line to fit without
@@ -365,8 +365,8 @@ def _sidebar_candidates(cv: dict, labels: dict) -> list[dict]:
             "key": "education",
             "kind": "education",
             "title": labels["education"],
-            # Structured records (degree / school / meta / bullets) — Tessera,
-            # Slate and Sterling emit separate elements, not one mashed textarea.
+            # Structured records (degree / school / meta / bullets) — Slate
+            # and Sterling emit separate elements, not one mashed textarea.
             "entries": education_entries,
             "structured": True,
             # Empty content keeps flat-section height math from KeyErroring if a
@@ -406,7 +406,7 @@ def _fit_sidebar_sections(
     A previous per-section cap of 160 px rejected ordinary wizard skill lists
     (~10–12 lines) and pushed them into the main column even when the sidebar
     still had hundreds of free points — while shorter PDF-extracted lists fit.
-    Sections that cannot fit intact fall through (Tessera/Slate: main column;
+    Sections that cannot fit intact fall through (Slate: main column;
     Sterling multi-page: the next rail) instead of being truncated.
 
     A kicker is never placed without room for at least two body lines. The

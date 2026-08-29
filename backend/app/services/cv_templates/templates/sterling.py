@@ -16,8 +16,8 @@ Experience (plus any record-style extras, e.g. Projects). One rule color
 sidebar divider, and every section rule, so the page reads as one coherent,
 quiet system rather than a collection of separately-styled dividers.
 
-Structural family: the same proven two-column shape as Tessera / Slate /
-Harbor. Sidebar content lives on an independent `flowLane: "sidebar"`
+Structural family: the same proven two-column shape as Slate / Harbor.
+Sidebar content lives on an independent `flowLane: "sidebar"`
 cursor (`sectionStructure.js`'s `packSidebarLane`), with its kickers tagged
 `flowRole: "sidebar-chrome"` so density knobs retarget the rail without it
 ever entering the main-column packer (`listDocumentSections` /

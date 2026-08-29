@@ -272,7 +272,6 @@ REGENT_DEMO_CV = {
 # Template identifiers regenerated into one frontend starter module each.
 TEMPLATES = [
     "portico",
-    "tessera",
     "slate",
     "monument",
     "atrium",
@@ -294,11 +293,6 @@ DOC_BLURBS = {
         "Nova template (`layouts: [\"icons\"]`).\n"
         " *\n"
         " * Warm editorial masthead with Playfair + Montserrat and icon chrome."
-    ),
-    "tessera": (
-        "Tessera template (`layouts: [\"sidebar\", \"icons\"]`).\n"
-        " *\n"
-        " * Mosaic sidebar with rectangular photo and coral accent tiles."
     ),
     "slate": (
         "Slate template (`layouts: [\"sidebar\", \"icons\"]`).\n"

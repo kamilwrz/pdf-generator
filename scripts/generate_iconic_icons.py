@@ -288,7 +288,7 @@ ICONS = {
     "other": draw_other,
 }
 
-# Glyphs used only by Harbor / Slate / Tessera subsets, not every Iconic theme.
+# Glyphs used only by Harbor / Slate subsets, not every Iconic theme.
 EXTRA_ICONS = {
     "calendar": draw_calendar,
     "diamond": draw_diamond,
@@ -306,18 +306,6 @@ _SLATE_GLYPHS = [
 # Only these subsets are generated, so existing themes are untouched.
 # Format: theme -> (colour, [icon names]).
 SUBSET_THEMES = {
-    # Tessera uses aubergine line icons inside coral/cream mosaic tiles. The
-    # glyph set is broad because contact, sidebar, section, date,
-    # profile-link, and photo-placeholder roles all use icons.
-    "tessera": (
-        "#4A2347",
-        [
-            "email", "phone", "linkedin", "github", "website", "location",
-            "calendar", "portrait",
-            "summary", "experience", "education", "skills", "languages",
-            "interests", "references", "certifications", "other",
-        ],
-    ),
     # Slate (Sidebar collection) uses two colour variants of the same glyph set:
     #   * `slate`        — white glyphs meant to sit inside filled steel-blue
     #                      section-heading badges (white-on-accent).

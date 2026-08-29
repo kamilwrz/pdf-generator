@@ -22,10 +22,10 @@
 import { nanoid } from "nanoid";
 
 /**
- * Symbolic frame ids used by Slate, Tessera, Monument, Nova, Portico.
- * `cinder-frame-one`, `nimbus-photo-frame`, and `harbor-photo-frame` belong to
- * retired templates and are kept only so previously saved documents still
- * resolve their photo slot.
+ * Symbolic frame ids used by Slate, Monument, Nova, Portico.
+ * `cinder-frame-one`, `nimbus-photo-frame`, `harbor-photo-frame`, and
+ * `tessera-photo-frame` belong to retired templates and are kept only so
+ * previously saved documents still resolve their photo slot.
  */
 export const PROFILE_PHOTO_FRAME_IDS = new Set([
   "slate-photo-frame",

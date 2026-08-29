@@ -17,11 +17,10 @@ const SUPPORTED_TEMPLATE_IDS = new Set([
   "monument",
   "portico",
   "slate",
-  "tessera",
   "linden",
 ]);
 
-const SIDEBAR_CONTACT_TEMPLATE_IDS = new Set(["slate", "tessera", "linden"]);
+const SIDEBAR_CONTACT_TEMPLATE_IDS = new Set(["slate", "linden"]);
 export const SIDEBAR_CONTACT_SECTION_GAP = 40;
 const PORTICO_PHOTO_BOTTOM = 159;
 const PORTICO_RECLAIM_PT = 100;

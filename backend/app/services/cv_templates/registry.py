@@ -3,7 +3,6 @@ from __future__ import annotations
 
 from app.services.cv_data import normalize_cv_data
 from app.services.cv_templates.templates.monument import _gen_monument
-from app.services.cv_templates.templates.tessera import _gen_tessera
 from app.services.cv_templates.templates.slate import _gen_slate
 from app.services.cv_templates.templates.portico import _gen_portico
 from app.services.cv_templates.templates.atrium import _gen_atrium
@@ -15,7 +14,6 @@ from app.services.cv_templates.templates.linden import _gen_linden
 
 TEMPLATE_LAYOUTS: dict[str, frozenset[str]] = {
     "monument": frozenset({"single"}),
-    "tessera": frozenset({"sidebar", "icons"}),
     "slate": frozenset({"sidebar", "icons"}),
     "portico": frozenset({"icons"}),
     "atrium": frozenset({"single", "icons"}),
@@ -28,7 +26,6 @@ TEMPLATE_LAYOUTS: dict[str, frozenset[str]] = {
 
 _GENERATORS = {
     "monument": _gen_monument,
-    "tessera": _gen_tessera,
     "slate": _gen_slate,
     "portico": _gen_portico,
     "atrium": _gen_atrium,

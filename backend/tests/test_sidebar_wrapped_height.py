@@ -1,4 +1,4 @@
-"""Regression test for the Sterling/Tessera/Slate sidebar section gap bug.
+"""Regression test for the Sterling/Slate sidebar section gap bug.
 
 `_fit_sidebar_sections` (backend/app/services/cv_templates/shared/extras.py)
 positions every sidebar section's heading at a fixed absolute top computed from

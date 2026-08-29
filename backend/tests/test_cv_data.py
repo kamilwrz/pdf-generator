@@ -68,12 +68,12 @@ class CvDataNormalizationTests(unittest.TestCase):
             for section in profile["extra_sections"]
         ))
 
-        elements = generate_resume("tessera", profile)
-        # Tessera mosaic headings sit at left=51; sidebar bodies at left=25.
+        elements = generate_resume("slate", profile)
+        # Slate sidebar headings sit at left=49; sidebar bodies at left=25.
         sidebar_titles = {
             element["content"]
             for element in elements
-            if element["category"] == "text" and element["left"] in {25, 51}
+            if element["category"] == "text" and element["left"] in {25, 49}
         }
         self.assertIn("OBSŁUGA KOMPUTERA", sidebar_titles)
         self.assertNotIn("OBSZARY", sidebar_titles)
@@ -427,7 +427,7 @@ class CvDataNormalizationTests(unittest.TestCase):
         self.assertEqual(profile["labels"]["skills"], "OBSŁUGA KOMPUTERA")
         self.assertEqual(profile["skills"], ["Excel", "Word"])
 
-    def test_extract_style_skills_label_reaches_tessera_sidebar(self):
+    def test_extract_style_skills_label_reaches_slate_sidebar(self):
         profile = normalize_cv_data({
             "name": "Anna Rojek",
             "skills": ["biegła znajomość pakietu Excel, PowerPoint"],
@@ -439,11 +439,11 @@ class CvDataNormalizationTests(unittest.TestCase):
             }],
         })
         self.assertEqual(profile["labels"]["skills"], "OBSŁUGA KOMPUTERA")
-        elements = generate_resume("tessera", profile)
+        elements = generate_resume("slate", profile)
         sidebar_titles = {
             element["content"]
             for element in elements
-            if element["category"] == "text" and element["left"] in {25, 51}
+            if element["category"] == "text" and element["left"] in {25, 49}
         }
         self.assertIn("OBSŁUGA KOMPUTERA", sidebar_titles)
         self.assertNotIn("UMIEJĘTNOŚCI", sidebar_titles)

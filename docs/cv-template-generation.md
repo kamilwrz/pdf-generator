@@ -117,7 +117,7 @@ Zarówno frontendowe próbki (`frontend/src/templates/*.js`), jak i backendowy g
 
 Wspólne pola pozycjonowania: `left`, `top`, `width`, `height`, `page`, `zIndex`, często `fixedToPage` dla dekoracji powtarzanych na każdej stronie.
 
-Frontendowe pliki JS (`nimbus.js`, `tessera.js`, …) to **statyczny mock** z przykładową karierą — służą do podglądu w bibliotece i jako wizualny „kontrakt” designu.  
+Frontendowe pliki JS (`slate.js`, `sterling.js`, …) to **statyczny mock** z przykładową karierą — służą do podglądu w bibliotece i jako wizualny „kontrakt” designu.  
 **Wypełnienie realnym CV zawsze idzie przez Pythona**, nie przez podmianę stringów w pliku JS.
 
 ---
@@ -192,7 +192,7 @@ helpery treści             _bullets, _company_period, _labels,
                            logika sidebara (`_fit_sidebar_sections`)
         │
 generatory per szablon     _gen_nimbus, _gen_monument, _gen_harbor,
-                           _gen_tessera, …
+                           _gen_slate, …
 ```
 
 ### 6.3 `Builder` — rytm pionowy i paginacja
@@ -239,8 +239,8 @@ Każdy z 14 szablonów ma osobny plik `cv_templates/templates/<id>.py` z funkcj�
 | Tag layoutu | Szablony |
 |---|---|
 | `single` | nimbus, cinder, monument, atrium, blueprint |
-| `icons` | nova, portico, axis (+ harbor, tessera, slate, atrium) |
-| `sidebar` | harbor, tessera, slate, sterling |
+| `icons` | nova, portico, axis (+ harbor, slate, atrium) |
+| `sidebar` | harbor, slate, sterling |
 
 Algorytm flow (summary → experience → …) jest wspólny koncepcyjnie; paleta, assety i chrome nagłówków są per szablon.
 
@@ -253,7 +253,7 @@ Dla szablonów z tagiem `sidebar` działa wspólna logika w `shared/extras.py`:
 3. `_fitted_sidebar_body_elements` — education emituje osobne textarea (dyplom / uczelnia / meta / opis z `bulletList: true`); pozostałe sekcje zostają jednym blokiem.
 4. Indeksy `extra_sections` już umieszczonych w sidebarze są pomijane w `_extra_sections`, żeby nie dublować treści.
 
-Harbor, Tessera, Slate i Sterling używają `_fit_sidebar_sections` ze wspólnymi kandydatami `_sidebar_candidates` (Harbor ma własny Builder sidebara z diamentami). Tessera zmienia kolejność (education przed skills).
+Harbor, Slate i Sterling używają `_fit_sidebar_sections` ze wspólnymi kandydatami `_sidebar_candidates` (Harbor ma własny Builder sidebara z diamentami).
 
 ### 6.7 Extra sections
 
@@ -303,7 +303,7 @@ Dlaczego tak? Layout CV musi być przewidywalny, testowalny (`backend/tests/test
 
 ```
 Biblioteka szablonów
-   TEMPLATES[i].elements  ←  statyczny import z nimbus.js / tessera.js / …
+   TEMPLATES[i].elements  ←  statyczny import z slate.js / sterling.js / …
    (przykładowa treść „Katarzyna Zielińska” itd.)
 
 Wybór „wypełnij z PDF / z wizarda”
@@ -348,7 +348,7 @@ Bez kroku 2–3 podgląd w bibliotece istnieje, ale **fill_template rzuci „Nie
 | „W podglądzie biblioteki skills są w sidebarze, a po fill nie” | JS i `_gen_*` były niespójne — fill bierze tylko Pythona. |
 | „Endpoint `/ai/fill_template` używa GPT” | Nie — tylko deleguje do `cv_generator`. |
 | „Za dużo treści = ucięcie” | Zasadniczo nie: `Builder` dokłada strony. Wyjątek: sidebar może *odmówić* za dużej sekcji i przenieść ją do main (complete-section policy). |
-| „Zmieniłem tylko `tessera.js`” | Zmienia podgląd; fill wymaga zmian w `_gen_tessera`. |
+| „Zmieniłem tylko `slate.js`” | Zmienia podgląd; fill wymaga zmian w `_gen_slate`. |
 
 ---
 

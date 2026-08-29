@@ -1,19 +1,15 @@
 """Slate CV template: a steel-blue/graphite two-column sidebar with a
 rectilinear "blueprint" decoration language.
 
-Slate shares the proven Tessera information architecture (a fixed left rail that
-owns the rectangular photo slot and as many complete compact sections as fit,
-with overflow moving into the main column) but its visual identity is
-deliberately distinct from Tessera. Where Tessera uses warm mosaic tiles, coral
-circles, ochre ellipses, and a serif masthead, Slate uses a cool palette and
-only filled/outlined rectangles: solid steel-blue heading badges with white
-glyphs, a filled title pill, and drafting-style corner brackets around the
-photo. There are no circles or ellipses — the
-rectilinear vocabulary is the point of difference.
+Slate uses a fixed left rail that owns the rectangular photo slot and as many
+complete compact sections as fit, with overflow moving into the main column. Its
+visual identity is a cool palette and only filled/outlined rectangles: solid
+steel-blue heading badges with white glyphs, a filled title pill, and
+drafting-style corner brackets around the photo. There are no circles or
+ellipses — the rectilinear vocabulary is the point of difference.
 
 Contact is masthead-only (wrapping accent icon+label rows under the name/role
-pill), never a duplicated KONTAKT block in the rail — same channel set and
-placer as Tessera.
+pill), never a duplicated KONTAKT block in the rail.
 """
 from __future__ import annotations
 
@@ -76,8 +72,8 @@ def _gen_slate(cv: dict) -> list[dict]:
     side_width = 178
     main_left, main_width = 218, 329
     side_left, side_body_width = 25, 128
-    # Slate uses a single geometric sans throughout; the masthead differs from
-    # Tessera's serif specifically to reinforce the cool, corporate identity.
+    # Slate uses a single geometric sans throughout to reinforce the cool,
+    # corporate identity.
     sans = "Montserrat"
     # White glyphs sit inside filled accent badges; accent glyphs sit bare on
     # the paper for masthead contacts and the photo placeholder.
@@ -222,9 +218,9 @@ def _gen_slate(cv: dict) -> list[dict]:
     name = _compact_text(cv.get("name"), 30)
     title = _compact_text(cv.get("title"), 48)
     contact_fs, contact_icon = 7.8, 11.0
-    # Accent glyphs on white paper (slate white glyphs would vanish). Same
-    # placer / channel order as Tessera so LinkedIn / GitHub / website wrap
-    # onto a second row and push the header rule with them.
+    # Accent glyphs on white paper (slate white glyphs would vanish). The
+    # wrapping placer lets LinkedIn / GitHub / website flow onto a second row
+    # and push the header rule with them.
     contact_els, contact_bottom, contact_descriptor = _place_wrapping_icon_contacts(
         theme=icon_theme_accent,
         items=_contact_channel_items(cv),
@@ -412,8 +408,7 @@ def _gen_slate(cv: dict) -> list[dict]:
         page_decorations.extend([
             {**_line(0, 0, 595, A4_H, colors["paper"], zIndex=0, page=page), "fixedToPage": True},
             {**_line(0, 0, side_width, A4_H, colors["sidebar"], zIndex=1, page=page), "fixedToPage": True},
-            # Thin accent hairline on the inner sidebar edge (2 px, versus
-            # Tessera's 4 px coral bar).
+            # Thin accent hairline on the inner sidebar edge (2 px).
             {**_line(side_width, 0, 2, A4_H, colors["accent"], zIndex=2, page=page), "fixedToPage": True},
             {**_line(main_left, 798, main_width, 1, colors["hairline"], zIndex=2, page=page), "fixedToPage": True},
             # Keep the page-number tab aligned to the footer rule; its previous
@@ -435,7 +430,7 @@ def _gen_slate(cv: dict) -> list[dict]:
         for element in sidebar_static
     ]
     # Entire masthead (name, role pill, icon contacts, grid, rule) must stay
-    # exempt from section packing — same contract as Tessera.
+    # exempt from section packing.
     header = [
         {**element, "flowRole": "masthead"}
         for element in header

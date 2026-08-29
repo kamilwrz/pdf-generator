@@ -62,7 +62,7 @@ describe("listSectionIconOptions", () => {
       },
       {
         element_id: "i1", category: "image", flowRole: "section-chrome",
-        src: "/template-assets/iconic/tessera/references.png",
+        src: "/template-assets/iconic/slate/references.png",
         left: 52, top: 100, width: 12, height: 12, alignWithText: true,
       },
       {

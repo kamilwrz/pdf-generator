@@ -57,7 +57,7 @@ import classes from './CanvasElements.module.css';
 /**
  * Lane-transfer hover control: templates whose generator output carries the
  * `flowLane: "sidebar"` / `flowRole` tags `transferSectionLane.js` depends on
- * to restyle a section for its destination column. Sterling, Tessera, Slate,
+ * to restyle a section for its destination column. Sterling, Slate,
  * Vestige and Linden emit the required tags for their sidebar
  * sections, so the same general utility works unchanged for all of them.
  */
@@ -67,7 +67,6 @@ import classes from './CanvasElements.module.css';
 // never offered to the user.
 const LANE_TRANSFER_TEMPLATE_IDS = new Set([
   "sterling",
-  "tessera",
   "slate",
   "vestige",
   "linden",

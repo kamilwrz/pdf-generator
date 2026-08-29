@@ -51,7 +51,7 @@ class AssistantRequest(BaseModel):
     page_size: dict = {}
     # Prior turns from the open editor session (role + content). Chat / layout.
     history: list[dict] = []
-    # Optional template slug (e.g. "monument", "tessera") for layout_contract hints.
+    # Optional template slug (e.g. "monument", "slate") for layout_contract hints.
     # Freestyle / saved documents may omit this; the layout session still works.
     template_id: str | None = None
     # Target language code for the translate action (ignored by other actions).

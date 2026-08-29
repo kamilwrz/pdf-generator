@@ -90,7 +90,7 @@ function iconicSidebarFixture() {
     { element_id: `${id}-icon`, category: "image",
       flowRole: flowLane ? "sidebar-chrome" : "section-chrome", flowLane,
       left: left + 4, top: top + 2, width: 12, height: 12,
-      src: `/template-assets/iconic/tessera/${name}.png`, alignWithText: false, page: 1 },
+      src: `/template-assets/iconic/slate/${name}.png`, alignWithText: false, page: 1 },
   ]);
 
   return [
@@ -499,8 +499,8 @@ describe("moveSidebarSectionsToMain", () => {
   });
 });
 
-describe("section-rule gap stays consistent after transfer (Tessera icon cluster)", () => {
-  // Tessera-style geometry: main sections have a 20px tile + rect + icon + a
+describe("section-rule gap stays consistent after transfer (Slate icon cluster)", () => {
+  // Slate-style geometry: main sections have a 20px tile + rect + icon + a
   // wide underline; sidebar sections have an 18px tile cluster + a short coral
   // keyline. A transferred section used to keep a different heading→rule gap
   // than its neighbours because it routed through a different compactChromeCluster
@@ -510,7 +510,7 @@ describe("section-rule gap stays consistent after transfer (Tessera icon cluster
     const sb = (id, top, name, title) => ([
       { element_id: `${id}-tile`, category: "line", flowRole: "sidebar-chrome", flowLane: "sidebar", left: 34, top: top - 2, width: 18, height: 18, backgroundColor: "#FFF", page: 1 },
       { element_id: `${id}-rect`, category: "rectangle", flowRole: "sidebar-chrome", flowLane: "sidebar", left: 36, top, width: 18, height: 18, borderWidth: 0.8, filled: false, backgroundColor: "#E15D4F", page: 1 },
-      { element_id: `${id}-icon`, category: "image", flowRole: "sidebar-chrome", flowLane: "sidebar", left: 38, top: top + 2, width: 12, height: 12, src: `/template-assets/iconic/tessera/${name}.png`, alignWithText: false, page: 1 },
+      { element_id: `${id}-icon`, category: "image", flowRole: "sidebar-chrome", flowLane: "sidebar", left: 38, top: top + 2, width: 12, height: 12, src: `/template-assets/iconic/slate/${name}.png`, alignWithText: false, page: 1 },
       { element_id: `${id}-head`, category: "text", content: title, flowRole: "sidebar-chrome", flowLane: "sidebar", left: 60, top: top + 3, fontSize: 7.6, height: 12, page: 1, bold: true },
       { element_id: `${id}-rule`, category: "line", flowRole: "sidebar-chrome", flowLane: "sidebar", left: 60, top: top + 16, width: 50, height: 1, backgroundColor: "#E15D4F", page: 1 },
       { element_id: `${id}-body`, category: "textarea", content: "A\nB", flowRole: "content", flowLane: "sidebar", autoHeight: true, bulletList: true, left: 34, top: top + 28, width: 152, height: 30, fontSize: 6.6, lineHeight: 9, page: 1 },
@@ -518,7 +518,7 @@ describe("section-rule gap stays consistent after transfer (Tessera icon cluster
     const mn = (id, top, name, title) => ([
       { element_id: `${id}-tile`, category: "line", flowRole: "section-chrome", left: 218, top: top - 2, width: 20, height: 20, backgroundColor: "#F7E9DF", page: 1 },
       { element_id: `${id}-rect`, category: "rectangle", flowRole: "section-chrome", left: 220, top, width: 20, height: 20, borderWidth: 0.8, filled: false, backgroundColor: "#E15D4F", page: 1 },
-      { element_id: `${id}-icon`, category: "image", flowRole: "section-chrome", left: 224, top: top + 4, width: 12, height: 12, src: `/template-assets/iconic/tessera/${name}.png`, alignWithText: false, page: 1 },
+      { element_id: `${id}-icon`, category: "image", flowRole: "section-chrome", left: 224, top: top + 4, width: 12, height: 12, src: `/template-assets/iconic/slate/${name}.png`, alignWithText: false, page: 1 },
       { element_id: `${id}-head`, category: "text", content: title, flowRole: "section-chrome", left: 248, top: top + 3, fontSize: 8.1, height: 14, page: 1, bold: true },
       { element_id: `${id}-rule`, category: "line", flowRole: "section-chrome", left: 248, top: top + 21, width: 299, height: 1, backgroundColor: "#D8C5C7", page: 1 },
       { element_id: `${id}-body`, category: "textarea", content: "Body copy.", flowRole: "content", autoHeight: true, left: 218, top: top + 30, width: 329, height: 40, fontSize: 9, lineHeight: 13, page: 1 },
@@ -561,7 +561,7 @@ describe("section-rule gap stays consistent after transfer (Tessera icon cluster
   });
 });
 
-describe("icon chrome rebuilt on transfer (Tessera/Slate-style templates)", () => {
+describe("icon chrome rebuilt on transfer (Slate-style templates)", () => {
   it("gives a sidebar section its own icon glyph after moving to main, not the sampled sibling's", () => {
     const next = moveSidebarSectionsToMain(
       iconicSidebarFixture(), ["sb-sk-head"], PAGE_HEIGHT, SPACING,

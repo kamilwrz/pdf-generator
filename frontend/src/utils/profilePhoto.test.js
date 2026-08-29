@@ -12,7 +12,6 @@ import {
 } from "./profilePhoto.js";
 import { materializeElementSpecs } from "./materializeElementSpecs.js";
 import { slateTemplate } from "../templates/slate.js";
-import { tesseraTemplate } from "../templates/tessera.js";
 import { monumentTemplate } from "../templates/monument.js";
 import { atriumTemplate } from "../templates/atrium.js";
 
@@ -24,12 +23,6 @@ describe("findProfilePhotoSlot", () => {
     assert.ok(slot);
     assert.equal(slot.photoSlot, "glyph");
     assert.ok(String(slot.src).endsWith("/portrait.png"));
-  });
-
-  it("finds the tessera portrait glyph via photoSlot", () => {
-    const slot = findProfilePhotoSlot(tesseraTemplate);
-    assert.ok(slot);
-    assert.equal(slot.photoSlot, "glyph");
   });
 
   it("finds the Monument portrait glyph", () => {
@@ -78,17 +71,6 @@ describe("applyProfilePhoto", () => {
     assert.equal(next.filter((el) => el.photoSlot === "glyph").length, 0);
   });
 
-  it("fits a photo inside the tessera frame", () => {
-    const elements = materializeElementSpecs(tesseraTemplate, () => `t-${Math.random()}`);
-    const next = applyProfilePhoto(elements, PHOTO, () => "new-photo");
-    const photo = next.find((el) => el.photoSlot === "image");
-    assert.ok(photo);
-    assert.equal(photo.left, 36);
-    assert.equal(photo.top, 43);
-    assert.equal(photo.width, 106);
-    assert.equal(photo.height, 120);
-  });
-
   it("keeps Atrium's direct 60 × 80 pt photo geometry", () => {
     const elements = materializeElementSpecs(atriumTemplate, () => `a-${Math.random()}`);
     const next = applyProfilePhoto(elements, PHOTO, () => "atrium-photo");
@@ -130,7 +112,6 @@ describe("applyProfilePhoto", () => {
 
   it("reports hasProfilePhotoSlot for tagged templates", () => {
     assert.equal(hasProfilePhotoSlot(slateTemplate), true);
-    assert.equal(hasProfilePhotoSlot(tesseraTemplate), true);
     assert.equal(hasProfilePhotoSlot(monumentTemplate), true);
     assert.equal(hasProfilePhotoSlot(atriumTemplate), true);
     assert.equal(hasProfilePhotoSlot([]), false);

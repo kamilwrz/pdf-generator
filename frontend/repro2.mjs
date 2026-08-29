@@ -1,5 +1,4 @@
 import { slateTemplate } from "./src/templates/slate.js";
-import { tesseraTemplate } from "./src/templates/tessera.js";
 import { transferSectionLane, resolveSectionLaneTransfer } from "./src/utils/transferSectionLane.js";
 import { sidebarSectionElementIds, sectionElementIds } from "./src/utils/sectionStructure.js";
 
@@ -41,4 +40,3 @@ function roundTrip(name, template) {
 }
 
 roundTrip("SLATE", slateTemplate);
-roundTrip("TESSERA", tesseraTemplate);
