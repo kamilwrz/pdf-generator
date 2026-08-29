@@ -108,13 +108,20 @@ class EntitlementsTests(unittest.TestCase):
             ent.assert_can_use_ai_assistant(self.db, user)
         self.assertEqual(ctx.exception.detail["code"], "plan_feature_ai_assistant")
 
-    def test_free_allows_one_lifetime_extract_then_blocks(self):
+    def test_free_allows_three_monthly_imports_then_blocks(self):
         user = self._make_user()
-        ent.assert_can_extract_cv(self.db, user)
-        ent.mark_free_import_used(self.db, user.id)
+        for _ in range(3):
+            ent.assert_can_extract_cv(self.db, user)
+            ent.record_cv_import(self.db, user.id)
         with self.assertRaises(ent.PlanLimitError) as ctx:
             ent.assert_can_extract_cv(self.db, user)
-        self.assertEqual(ctx.exception.detail["code"], "plan_feature_extract_cv")
+        self.assertEqual(ctx.exception.detail["code"], "plan_limit_cv_imports")
+
+        # The recorder repeats the check atomically after the provider call so
+        # concurrent requests cannot make the persisted count exceed three.
+        with self.assertRaises(ent.PlanLimitError) as record_ctx:
+            ent.record_cv_import(self.db, user.id)
+        self.assertEqual(record_ctx.exception.detail["code"], "plan_limit_cv_imports")
 
     def test_free_template_gate(self):
         user = self._make_user()
@@ -129,12 +136,14 @@ class EntitlementsTests(unittest.TestCase):
         payload = ent.get_entitlements(self.db, user)
         self.assertEqual(payload["plan_slug"], "free")
         self.assertFalse(payload["ai_assistant"])
-        self.assertFalse(payload["extract_cv"])
+        self.assertTrue(payload["extract_cv"])
         self.assertEqual(payload["template_tier"], "starter")
         self.assertIn("regent", payload["allowed_template_ids"])
         self.assertIn("sterling", payload["allowed_template_ids"])
         self.assertEqual(payload["limits"]["max_projects"], 1)
         self.assertEqual(payload["limits"]["max_exports_per_month"], 3)
+        self.assertEqual(payload["limits"]["max_cv_imports_per_month"], 3)
+        self.assertEqual(payload["remaining"]["cv_imports"], 3)
 
     def test_pro_allows_ai_layout_and_all_templates(self):
         user = self._make_user("bob")
@@ -186,7 +195,9 @@ class PlanSeedAndMigrationTests(unittest.TestCase):
         from app.models.models import Plan
         active = {p.slug: p for p in self.db.query(Plan).filter_by(is_active=True).all()}
         self.assertEqual(active["free"].max_ai_actions_per_month, 0)
+        self.assertEqual(active["free"].max_cv_imports_per_month, 3)
         self.assertEqual(active["pro"].max_ai_actions_per_month, 200)
+        self.assertIsNone(active["pro"].max_cv_imports_per_month)
         self.assertEqual(active["pro"].name, "Pro")
         self.assertNotIn("standard", active)
         self.assertNotIn("premium", active)

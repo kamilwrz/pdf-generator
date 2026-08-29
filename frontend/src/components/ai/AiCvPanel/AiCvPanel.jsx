@@ -64,8 +64,9 @@ export default function AiCvPanel() {
     const [imports, setImports] = useState([]);
     const [showHistory, setShowHistory] = useState(false);
     const cvTemplates = useMemo(() => selectCvTemplates(TEMPLATES), []);
+    const remainingImports = entitlements?.remaining?.cv_imports;
     const canExtract = Boolean(entitlements?.extract_cv)
-        || (entitlements?.plan_slug === "free" && !entitlements?.free_import_used);
+        && (remainingImports == null || remainingImports > 0);
     const extracted = Boolean(cvData?.name);
     const onStep2 = extracted && wizardStep === 2;
 
@@ -127,7 +128,7 @@ export default function AiCvPanel() {
         if (!canExtract) {
             setError(
                 entitlements?.plan_slug === "free"
-                    ? "Wykorzystano już darmowy import CV. Odblokuj Pro, aby importować więcej dokumentów."
+                    ? "Wykorzystano miesięczny limit importów CV. Odblokuj Pro, aby importować bez limitu."
                     : "Ekstrakcja CV z PDF jest dostępna w planie Pro.",
             );
             return;
@@ -139,9 +140,11 @@ export default function AiCvPanel() {
             form.append("file", fileData);
             const res = await api.httpRequest(ENDPOINTS.AI.EXTRACT_CV, "POST", form, "Ekstrakcja CV nie powiodła się");
             if (res.usage) {
-                console.log("[GPT API cost]", {
+                console.log("[CV import AI usage]", {
                     action: "extract_cv",
+                    provider: res.usage.provider,
                     model: res.usage.model,
+                    extraction_mode: res.usage.extraction_mode,
                     prompt_tokens: res.usage.prompt_tokens,
                     completion_tokens: res.usage.completion_tokens,
                     total_tokens: res.usage.total_tokens,
@@ -262,12 +265,12 @@ export default function AiCvPanel() {
                                 className={classes.extractBtn}
                                 onClick={handleExtract}
                                 disabled={!fileName || isExtracting || !canExtract}
-                                title={!canExtract ? "Dostępne w planie Pro" : undefined}
+                                title={!canExtract ? "Miesięczny limit importów został wykorzystany" : undefined}
                             >
                                 {isExtracting ? (
                                     <><span className={classes.spinner} />Wyodrębnianie CV…</>
                                 ) : (
-                                    <><SparkIcon />{canExtract ? "Wyodrębnij dane CV" : "Pro — ekstrakcja"}</>
+                                    <><SparkIcon />{canExtract ? "Wyodrębnij dane CV" : "Limit importów wykorzystany"}</>
                                 )}
                             </button>
                         )}
@@ -343,7 +346,12 @@ export default function AiCvPanel() {
                         </button>
                         {!canExtract && (
                             <p className={classes.hint}>
-                                Wykorzystano darmowy import albo wymagany jest Pro. Kreator krok po kroku działa na planie Darmowy.
+                                Wykorzystano miesięczny limit importów. Kreator krok po kroku nadal działa w planie Darmowy.
+                            </p>
+                        )}
+                        {canExtract && remainingImports != null && (
+                            <p className={classes.hint}>
+                                Pozostało importów w tym miesiącu: {remainingImports}.
                             </p>
                         )}
                         {extracted && (

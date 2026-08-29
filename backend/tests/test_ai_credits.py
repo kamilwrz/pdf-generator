@@ -62,13 +62,12 @@ class CreditMeteringTests(unittest.TestCase):
         with self.assertRaises(ent.PlanLimitError):
             ent.assert_can_use_ai_assistant(self.db, user)
 
-    def test_extract_cv_blocked_when_credits_exhausted(self):
+    def test_extract_cv_is_independent_from_assistant_credits(self):
         user = _make_user(self.db)
         ent.charge_ai_credits(self.db, user.id, 200 * 0.05)  # exactly 200 credits
         with self.assertRaises(ent.PlanLimitError):
             ent.assert_can_use_ai_assistant(self.db, user)
-        with self.assertRaises(ent.PlanLimitError):
-            ent.assert_can_extract_cv(self.db, user)
+        ent.assert_can_extract_cv(self.db, user)
 
     def test_extract_cv_allowed_with_credits_remaining(self):
         user = _make_user(self.db)

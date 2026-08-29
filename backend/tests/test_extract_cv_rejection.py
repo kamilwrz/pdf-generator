@@ -1,4 +1,4 @@
-"""Free-plan gate on POST /ai/extract_cv: one lifetime free import, then blocked."""
+"""Free-plan monthly quota on POST /ai/extract_cv."""
 from __future__ import annotations
 
 import unittest
@@ -14,14 +14,15 @@ from app.core.security import verify_token
 from app.crud import user as user_crud
 from app.dependencies import get_db
 from app.main import app
-from app.models.models import Base, User, UserSubscription
+from app.models.models import Base, UsageCounter, User
 from app.schemas.user_schema import UserCreateRequest
 from app.services import entitlements as ent
+from app.services.ai_service import CvExtractionError
 from app.testing_support import ensure_test_auth_env
 
 
 def _extract_must_not_run(*_args, **_kwargs):
-    raise AssertionError("extract_cv_data must not be called once the free import is used")
+    raise AssertionError("extract_cv_data must not run after the monthly quota is exhausted")
 
 
 def _valid_pdf_bytes() -> bytes:
@@ -34,7 +35,7 @@ def _valid_pdf_bytes() -> bytes:
 
 
 class ExtractCvFreeImportTests(unittest.TestCase):
-    """Free plans get exactly one lifetime free `/ai/extract_cv` call."""
+    """Free plans get three successful `/ai/extract_cv` calls per UTC month."""
 
     def setUp(self):
         ensure_test_auth_env()
@@ -63,12 +64,12 @@ class ExtractCvFreeImportTests(unittest.TestCase):
         self.db.close()
         self.engine.dispose()
 
-    def _sub(self) -> UserSubscription:
-        return self.db.query(UserSubscription).filter(
-            UserSubscription.user_id == self.user.id
+    def _usage(self) -> UsageCounter:
+        return self.db.query(UsageCounter).filter(
+            UsageCounter.user_id == self.user.id
         ).one()
 
-    def test_free_users_first_import_succeeds_and_consumes_the_trial(self):
+    def test_successful_import_increments_the_monthly_counter(self):
         with patch(
             "app.api.routes.ai.extract_cv_data",
             return_value=({"name": "Test"}, {"cost_pln_estimate": 0.0}),
@@ -78,12 +79,12 @@ class ExtractCvFreeImportTests(unittest.TestCase):
                 files={"file": ("cv.pdf", _valid_pdf_bytes(), "application/pdf")},
             )
         self.assertEqual(response.status_code, 200, msg=response.text)
-        self.db.refresh(self._sub())
-        self.assertTrue(self._sub().free_import_used)
+        self.db.refresh(self._usage())
+        self.assertEqual(self._usage().cv_imports_count, 1)
 
-    def test_free_users_second_import_is_rejected(self):
-        self._sub().free_import_used = True
-        self.db.commit()
+    def test_free_users_fourth_import_is_rejected_before_provider_call(self):
+        for _ in range(3):
+            ent.record_cv_import(self.db, self.user.id)
 
         with patch("app.api.routes.ai.extract_cv_data", side_effect=_extract_must_not_run):
             response = self.client.post(
@@ -92,20 +93,37 @@ class ExtractCvFreeImportTests(unittest.TestCase):
             )
         self.assertEqual(response.status_code, 403)
         detail = response.json()["detail"]
-        self.assertEqual(detail["code"], "plan_feature_extract_cv")
+        self.assertEqual(detail["code"], "plan_limit_cv_imports")
 
-    def test_failed_extraction_does_not_consume_the_free_import(self):
+    def test_failed_extraction_does_not_consume_the_monthly_quota(self):
         with patch(
             "app.api.routes.ai.extract_cv_data",
-            side_effect=RuntimeError("openai boom"),
+            side_effect=RuntimeError("provider boom"),
         ):
             response = self.client.post(
                 "/ai/extract_cv",
                 files={"file": ("cv.pdf", _valid_pdf_bytes(), "application/pdf")},
             )
         self.assertEqual(response.status_code, 500)
-        self.db.refresh(self._sub())
-        self.assertFalse(self._sub().free_import_used)
+        self.assertEqual(self._usage().cv_imports_count, 0)
+
+    def test_provider_rate_limit_returns_safe_retryable_detail_without_consumption(self):
+        error = CvExtractionError(
+            "extract_provider_rate_limited",
+            "Usługa importu jest chwilowo przeciążona. Spróbuj ponownie za moment.",
+            status_code=429,
+            retryable=True,
+        )
+        with patch("app.api.routes.ai.extract_cv_data", side_effect=error):
+            response = self.client.post(
+                "/ai/extract_cv",
+                files={"file": ("cv.pdf", _valid_pdf_bytes(), "application/pdf")},
+            )
+
+        self.assertEqual(response.status_code, 429)
+        self.assertEqual(response.json()["detail"]["code"], "extract_provider_rate_limited")
+        self.assertTrue(response.json()["detail"]["retryable"])
+        self.assertEqual(self._usage().cv_imports_count, 0)
 
 
 if __name__ == "__main__":

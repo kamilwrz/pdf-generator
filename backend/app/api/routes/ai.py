@@ -2,7 +2,7 @@
 CV extract, bio-draft persistence, and deterministic template fill.
 
 These routes sit next to the conversational assistant but use different
-pipelines: PDF→structured `cv_data` via OpenAI extract, private draft CRUD,
+pipelines: PDF→structured `cv_data` via the configured model provider, private draft CRUD,
 and Python layout generation in `cv_generator` (not LLM layout).
 
 Template asset URLs are rebased to the public API origin so canvases opened
@@ -17,6 +17,7 @@ import fitz
 from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
+from app.core.config import CV_EXTRACT_MAX_PAGES
 from app.core.security import verify_token, verify_token_optional
 from app.crud.bio_cv_drafts import delete_bio_cv_draft, get_bio_cv_draft, upsert_bio_cv_draft
 from app.crud.user import get_user_by_username
@@ -27,21 +28,20 @@ from app.crud.cv_import_snapshots import (
 from app.dependencies import get_db
 from app.schemas.cv_data_schema import BioCvDraftRequest, BioCvDraftResponse
 from app.services.cv_data import CvDataValidationError, normalize_cv_data
-from app.services.ai_service import extract_cv_data, generate_resume
+from app.services.ai_service import CvExtractionError, extract_cv_data, generate_resume
 from app.services.cv_generator_primitives import use_spacing
 from app.services.entitlements import (
     FREE_STARTER_TEMPLATE_IDS,
     PlanLimitError,
     assert_can_extract_cv,
     assert_template_allowed,
-    charge_ai_credits,
-    mark_free_import_used,
+    record_cv_import,
 )
 
 router = APIRouter(prefix="/ai", tags=["ai"])
 
 MAX_PDF_BYTES = 10 * 1024 * 1024  # 10 MB
-MAX_PDF_PAGES = 12
+MAX_PDF_PAGES = CV_EXTRACT_MAX_PAGES
 
 
 class FillRequest(BaseModel):
@@ -147,7 +147,8 @@ async def extract_cv(
 ):
     """Extract structured CV fields from an uploaded PDF (entitlement-gated).
 
-    Side effects: OpenAI extract call and AI credit charge on success.
+    Side effects: a Cloudflare/OpenAI provider call, a monthly import-counter
+    increment, and a normalized import snapshot on success.
     Rejects non-PDF filenames and bodies over 10 MB before contacting the model.
     """
     user = get_user_by_username(db, username=payload.get("sub"))
@@ -161,13 +162,32 @@ async def extract_cv(
     snapshot = create_snapshot(db, owner_id=user.id, filename=filename, size_bytes=len(data))
     try:
         cv_data, usage = extract_cv_data(data)
-        charge_ai_credits(db, user.id, usage.get("cost_pln_estimate", 0.0))
-        mark_free_import_used(db, user.id)
+        record_cv_import(db, user.id)
         snapshot = mark_snapshot_succeeded(db, snapshot, cv_data)
         return {"import": _snapshot_payload(snapshot), "cv_data": cv_data, "usage": usage}
-    except Exception:
+    except CvExtractionError as exc:
+        mark_snapshot_failed(db, snapshot, exc.code)
+        raise HTTPException(
+            status_code=exc.status_code,
+            detail={
+                "code": exc.code,
+                "message": exc.user_message,
+                "retryable": exc.retryable,
+            },
+        ) from exc
+    except PlanLimitError as exc:
+        # A second atomic quota check runs after the provider call. This branch
+        # handles the rare case of concurrent requests that passed the first
+        # gate together; only requests within the allowance may succeed.
+        code = exc.detail.get("code", "plan_limit_cv_imports")
+        mark_snapshot_failed(db, snapshot, code)
+        raise
+    except Exception as exc:
         mark_snapshot_failed(db, snapshot, "extraction_failed")
-        raise HTTPException(status_code=500, detail="Nie udało się wyodrębnić danych z CV.")
+        raise HTTPException(
+            status_code=500,
+            detail="Nie udało się wyodrębnić danych z CV.",
+        ) from exc
 
 
 @router.get("/imports", status_code=200)

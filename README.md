@@ -32,7 +32,7 @@ This README is the technical entry point for developers. A beginner-friendly dee
 
 Job seekers need CVs that look professional and export cleanly to PDF. Generic form builders hide layout; design tools are too heavy. CV Studio gives a true A4 canvas (595×842 pt), templates filled with real career data, and AI that extracts or improves content without inventing unsafe coordinates for decorative chrome.
 
-Forcing registration before a visitor had seen the editor used to be the largest funnel loss: every new visitor had to create an account — and pick a paid plan during registration — before touching a single template. **Guest mode** removes that wall: `/cvstudio/guest` works with no JWT at all (authenticated users open `/cvstudio/{username}`), so a visitor can pick a template, run the guided wizard, or freeform-edit and see the exact document they would export, with state kept in `localStorage` instead of the backend. An account is only required at the point of real value — saving or exporting the PDF (a "save-gate" modal) — or for CV import, which stays account-gated because it calls the paid OpenAI extract endpoint. See [Guest mode (editor without an account)](#guest-mode-editor-without-an-account) for the full implementation.
+Forcing registration before a visitor had seen the editor used to be the largest funnel loss: every new visitor had to create an account — and pick a paid plan during registration — before touching a single template. **Guest mode** removes that wall: `/cvstudio/guest` works with no JWT at all (authenticated users open `/cvstudio/{username}`), so a visitor can pick a template, run the guided wizard, or freeform-edit and see the exact document they would export, with state kept in `localStorage` instead of the backend. An account is only required at the point of real value — saving or exporting the PDF (a "save-gate" modal) — or for CV import, which stays account-gated because it sends personal CV data to a server-side AI provider and consumes an account-wide quota. See [Guest mode (editor without an account)](#guest-mode-editor-without-an-account) for the full implementation.
 
 **Implemented today:** editor (including guest mode without an account), templates, extract/fill, bio draft, AI assistant (goal-oriented actions, rating dashboard, translate, layout review cards), entitlements (Darmowy / Pro — 59 zł / 30 days), explicit save + independent render-on-demand download, guest-only localStorage autosave, local or S3 storage, JWT auth.
 
@@ -79,7 +79,8 @@ flowchart LR
     API --> AI[extract / fill / assistant]
     API --> DB[(SQLite or Postgres)]
     API --> Files[local disk or S3]
-    API --> OpenAI[OpenAI API]
+    AI --> Cloudflare[Cloudflare Workers AI<br/>CV import]
+    AI --> OpenAI[OpenAI API<br/>assistant / optional import rollback]
     Canvas --> ReportLab[ReportLab PDF]
 ```
 
@@ -151,15 +152,16 @@ Elements with `fixedToPage: true` (backgrounds, frames, sidebars, page numbers) 
 | SQLAlchemy | (requirements) | ORM | `models/`, `crud/` |
 | SQLite / PostgreSQL | via `DATABASE_URL` | Persistence | `database.py` |
 | ReportLab + fontTools | (requirements) | PDF drawing + TTF name fixes | `pdf_generator.py` |
-| PyMuPDF (fitz) | (requirements) | PDF → images for extract | `ai_service.py` |
-| OpenAI SDK | (requirements) | Extract + assistant | `ai_service.py`, `ai_assistant_service.py` |
+| PyMuPDF (fitz) | 1.26.6 | Native PDF text extraction and scan-page rasterisation | `ai_service.py`, `ats_readability.py` |
+| OpenAI SDK | 2.14.0 | OpenAI assistant calls and OpenAI-compatible Cloudflare transport | `ai_service.py`, `ai_assistant_service.py` |
+| Cloudflare Workers AI | hosted API | Text-first CV extraction (Gemma 4) and scan fallback (Qwen 3.8 Vision) | `ai_service.py`, `cloudflare_pricing.py` |
 | python-jose / passlib bcrypt | (requirements) | JWT + passwords | `core/security.py` |
 | boto3 | optional | S3 uploads | `s3_storage.py` |
 | nanoid | ^5.1 | Client element ids | canvas hooks |
 | motion | ^12 | UI motion | modals / assistant |
 | unittest | stdlib | Backend tests | `backend/tests/` |
 
-Official docs: [React](https://react.dev/), [Vite](https://vite.dev/), [FastAPI](https://fastapi.tiangolo.com/), [SQLAlchemy](https://docs.sqlalchemy.org/), [ReportLab](https://www.reportlab.com/docs/reportlab-userguide.pdf), [OpenAI API](https://platform.openai.com/docs).
+Official docs: [React](https://react.dev/), [Vite](https://vite.dev/), [FastAPI](https://fastapi.tiangolo.com/), [SQLAlchemy](https://docs.sqlalchemy.org/), [ReportLab](https://www.reportlab.com/docs/reportlab-userguide.pdf), [Cloudflare Workers AI](https://developers.cloudflare.com/workers-ai/), [Workers AI OpenAI compatibility](https://developers.cloudflare.com/workers-ai/configuration/open-ai-compatibility/), and [OpenAI API](https://platform.openai.com/docs).
 
 ---
 
@@ -210,14 +212,16 @@ pdf-generator/
     │   ├── crud/
     │   ├── models/
     │   ├── schemas/          # PdfElement + JSON Schema export
-    │   ├── services/         # pdf, document_service, cv_generator (+ cv_templates/), ai, ats_readability, entitlements
+    │   ├── services/         # pdf, document_service, cv_generator (+ cv_templates/), ats_readability, entitlements
+    │   │   ├── ai_service.py             # text-first/vision CV extraction + deterministic fill entry
+    │   │   └── cloudflare_pricing.py     # Workers AI token-rate telemetry
     │   ├── utils/            # image_src_to_path, metrics_logging, upload_security
     │   ├── main.py
     │   └── dependencies.py
-    ├── alembic/              # Schema migrations (replaces ad-hoc ALTER)
+    ├── alembic/              # Schema migrations (including 0007 monthly CV-import quota)
     ├── fonts/                # Bundled TTFs for PDF
     ├── template_assets/      # Sidebar, IT and Iconic artwork/icons
-    ├── tests/
+    ├── tests/                # includes test_cloudflare_cv_extraction.py
     ├── alembic.ini
     ├── requirements.txt
     └── .env.example
@@ -242,13 +246,20 @@ Schema is created by `init_db()` during app lifespan (not at import): `Base.meta
 | `pdfs` | CV documents: title, path, pages, page_width/height (default 595×842), owner, `editor_mode`, `template_id`, optional `spacing_px` rhythm JSON, and nullable `cv_data` source snapshot |
 | `pdf_elements` | Canvas elements; geometry + style columns; extras in `extra_properties` JSON (`fixedToPage`, `repeatOnContinuation`, `locked`, `flowRole`, `flowGroup`, `preserveInitialLayout`, Sterling `appearanceSettings` + reversible type baselines, bold, `runs` inline-decoration overlay, connectors, …) |
 | `bio_cv_drafts` | One private JSON draft per user |
-| `plans` | Free (Darmowy) / Pro limits and feature flags (legacy `standard`/`premium` rows deactivated) |
+| `plans` | Free (Darmowy) / Pro limits and feature flags, including nullable `max_cv_imports_per_month` (legacy `standard`/`premium` rows deactivated) |
 | `user_subscriptions` | Current plan per user (Stripe columns ready, often null) |
-| `usage_counters` | Monthly exports + AI credit usage (`period_key` = `YYYY-MM` UTC) |
+| `usage_counters` | Monthly exports, successful CV imports, and AI credit usage (`period_key` = `YYYY-MM` UTC) |
 | `payments` | Future payment ledger |
 | `maintenance_markers` | One-off cleanup keys |
 
 `resolvedLines` is deliberately absent from `pdf_elements.extra_properties`: it is browser-authored render metadata attached only to create/update/download requests. Saved documents retain semantic `content` and `runs`, so reopening a CV never restores stale line breaks measured for an earlier width or font state.
+
+CV-import quota fields:
+
+- `plans.max_cv_imports_per_month`: nullable integer; `3` for Free and `NULL` (unlimited) for Pro after `seed_plans`.
+- `usage_counters.cv_imports_count`: non-null integer, default/server default `0`; incremented only after a successful normalized import.
+- `usage_counters.user_id`: foreign key to `users.id`; together with `period_key` it has unique constraint `uq_usage_user_period`, so one user owns at most one UTC monthly counter row.
+- Migration `20260829_0007` adds these columns idempotently. No source-CV backfill is needed; existing monthly rows start at zero. The legacy `user_subscriptions.free_import_used` boolean is retained but ignored.
 
 **Relationships:** One user owns many `pdfs` and `images`. Each `pdf` has many `pdf_elements`. Subscription and usage are per user.
 
@@ -625,7 +636,7 @@ Every product visual is a **real template mockup** from `frontend/public/templat
 
 The before/after section is a genuine same-content transformation, not two unrelated documents: the "PRZED" (before) card shows a real screenshot of a dated Word-style CV (`frontend/public/images/bad_cv.png`, Jan Kowalski), sized and cropped exactly like the after card's mockup (`object-fit: cover`, `object-position: top`, same `min-height`) so the pair reads as one comparison; the "PO" (after) card shows a dedicated Sterling render of the **exact same CV content** (`frontend/public/template-mockups/sterling-showcase.png`, generated from the same Jan Kowalski data, not the standard per-template picker mockup with the generic demo persona). `afterMock` in `Hero.jsx` is a small inline object (`{ name: "Sterling", image: "/template-mockups/sterling-showcase.png" }`), not `previewById(...)`, precisely because this image is unique to this section.
 
-Landing start intents used in the hero: `start=wizard`, `start=import`, `start=demo`. Legacy deep links `start=templates` and `start=blank` still work in `PdfCanvas` but are no longer offered on the landing. Every intent except `import` routes through `getEditorPath` (`/cvstudio/guest?start=...` or `/cvstudio/{username}?start=...` when a JWT is present — `buildStartUrl` in `Hero.jsx`) — see [Guest mode](#guest-mode-editor-without-an-account) below for why. `import` still detours through `/register` (or straight to the personalised editor path if already authenticated) because it calls the paid `POST /ai/extract_cv` endpoint. `PdfCanvas` opens the matching surface once and strips the query param.
+Landing start intents used in the hero: `start=wizard`, `start=import`, `start=demo`. Legacy deep links `start=templates` and `start=blank` still work in `PdfCanvas` but are no longer offered on the landing. Every intent except `import` routes through `getEditorPath` (`/cvstudio/guest?start=...` or `/cvstudio/{username}?start=...` when a JWT is present — `buildStartUrl` in `Hero.jsx`) — see [Guest mode](#guest-mode-editor-without-an-account) below for why. `import` still detours through `/register` (or straight to the personalised editor path if already authenticated) because `POST /ai/extract_cv` sends personal CV content to the configured provider and must be attached to a monthly account quota. `PdfCanvas` opens the matching surface once and strips the query param.
 
 **Consistent CTA hierarchy.** The hero leads with **“Zmieniaj treść. Nie naprawiaj za każdym razem układu.”**, making the structured A4 engine the primary promise. Its primary action remains **“Stwórz CV za darmo”** (→ wizard), the secondary remains **“Mam już CV — wgraj PDF”** (→ import), and the tertiary link opens an example CV. The compact trust row now states **“Zacznij bez konta”**, **“Pierwszy import gratis”**, and **“Podgląd = gotowy PDF”**. Each call-to-action still fires the same per-source event through `queueGuestEvent`: `hero_wizard`, `hero_import`, `hero_demo`, `before_after_import`, `templates_wizard`, `pricing_free`, `pricing_pro`, `final_wizard`, `final_import`.
 
@@ -662,7 +673,7 @@ Implementation (Topbar / landing entry points):
 
 ### Guest mode (editor without an account)
 
-**Problem this solves.** Every visitor used to have to create an account — and pick a paid plan during registration — before touching a single template. That forced-registration wall was the largest funnel loss: visitors who only wanted to see whether the editor was worth using had to commit before they could find out. Guest mode lets a visitor do everything that does not cost the backend money (template editing, the guided wizard, freeform canvas, undo/redo, section/record editing) with zero account, and asks for one only at the point where real value has been created: saving or exporting the PDF. CV import stays account-gated in every case, because it calls the paid OpenAI extract endpoint (`POST /ai/extract_cv`) and giving that away for free would let anonymous traffic consume API budget.
+**Problem this solves.** Every visitor used to have to create an account — and pick a paid plan during registration — before touching a single template. That forced-registration wall was the largest funnel loss: visitors who only wanted to see whether the editor was worth using had to commit before they could find out. Guest mode lets a visitor do everything that does not consume account-scoped storage or quotas (template editing, the guided wizard, freeform canvas, undo/redo, section/record editing) with zero account, and asks for one only at the point where real value has been created: saving or exporting the PDF. CV import stays account-gated in every case because `POST /ai/extract_cv` transmits personal CV content to Cloudflare Workers AI and consumes the application account's monthly import allowance.
 
 **How it works.** The editor lives at `/cvstudio/:workspace` (`guest` without a JWT, otherwise the account username). `frontend/src/App.jsx` does not wrap that route in a `ProtectedRoute` (that component was deleted from the repo); the route is public, and `PdfCanvas` branches on token presence wherever a call would otherwise 401. The URL slug is cosmetic for bookmarks — API authorisation still comes from the JWT. Legacy `/pdfcanvas` bookmarks redirect through `getEditorPath`.
 
@@ -740,7 +751,7 @@ Dependencies: `localStorage` for the guest buffer; confirm only hydrates the can
 
 Limitations:
 
-- CV import (`POST /ai/extract_cv`) is intentionally **not** part of guest mode — it remains account-gated because every call costs OpenAI API money.
+- CV import (`POST /ai/extract_cv`) is intentionally **not** part of guest mode — it remains account-gated for consent, ownership, abuse control, and monthly quota metering.
 - A guest document lives only in the current browser's `localStorage`; clearing site data, using a private window, or switching devices loses any unclaimed work. After confirm, the canvas is unsaved (`pdfId` null) until the user clicks “Zapisz”, so a refresh before that save can lose the hydrated work.
 - The guest event buffer is capped at 50 entries — a tab left open through an unusually long anonymous session drops its oldest funnel events first.
 - No entitlement, billing, watermarking, or Stripe changes are part of guest mode; once the user saves from the Topbar, the document becomes an ordinary Free-plan (or other plan) document like any other.
@@ -790,7 +801,7 @@ Implementation:
 
 Limits:
 
-- Free (Darmowy) includes the Regent and Sterling starter templates, watermarked PDF export, and **one lifetime** CV import. Pro unlocks clean PDF, all 10 templates, further imports, content AI, ATS, and Layout for **59 zł / 30 days**. Stripe Checkout is not wired yet; unpaid selection may activate Pro via `ALLOW_UNPAID_PLAN_SELECTION`.
+- Free (Darmowy) includes the Regent and Sterling starter templates, watermarked PDF export, and **three successful CV imports per UTC month**. Pro unlocks clean PDF, all 10 templates, unlimited CV imports, content AI, ATS, and Layout for **59 zł / 30 days**. Stripe Checkout is not wired yet; unpaid selection may activate Pro via `ALLOW_UNPAID_PLAN_SELECTION`.
 - ATS feedback (**Czytelność dla ATS**) checks whether the final PDF text can be extracted and whether content headings/keywords look standard. It is guidance, not a promise that every recruiter ATS will parse the file the same way.
 - The privacy section describes implemented data use at a high level and does not claim unimplemented certifications or anonymisation.
 
@@ -1512,18 +1523,24 @@ Tests:
 
 ### CV PDF extract
 
-Vision extract of first pages → structured `cv_data`, including `linkedin` / `github` / `website` from the header and record-shaped `extra_sections` items when the source CV has titled entries with description bullets. Domain heuristics re-categorize misplaced URLs during normalize.
+`POST /ai/extract_cv` uses a text-first Cloudflare Workers AI pipeline and returns structured `cv_data`, including `linkedin` / `github` / `website` from the header and record-shaped `extra_sections` for titled entries with description bullets. PyMuPDF first reads every accepted page in source order. When each page has at least `CV_EXTRACT_MIN_TEXT_CHARS_PER_PAGE` non-whitespace characters (80 by default), only native text is sent to the inexpensive `@cf/google/gemma-4-26b-a4b-it` model. If a page is empty or looks scanned, only that page is rasterised at 150 DPI; the request switches to `@cf/qwen/qwen3.8-27b` and contains the readable native text plus labelled PNG data URLs for the scan pages. The original PDF is never stored by the extraction service.
+
+The provider is called through Cloudflare's OpenAI-compatible base URL, using the existing `openai` Python SDK. Client construction is lazy: missing Cloudflare credentials do not prevent `/health`, authentication, editing, or PDF export from starting. `CV_EXTRACT_PROVIDER=openai` and `CV_EXTRACT_OPENAI_MODEL=gpt-4o` are an explicit rollback path, not an automatic fallback; a Cloudflare outage therefore cannot silently send a user's CV to another processor. Provider rate limits become a retryable 429, temporary/provider failures become 503, and invalid/empty model JSON becomes a safe 422. Raw provider exceptions are never returned to the browser.
 
 When the source CV has **separate** skill-family headings (e.g. Umiejętności miękkie, Umiejętności twarde, Znane narzędzia) or **subsections** under one UMIEJĘTNOŚCI heading (CV16-style `Bezpieczeństwo: …` / `Przemysł / OT: …`), the extract prompt returns `skills` as `[{category, items}, …]` with `labels.skills = "UMIEJĘTNOŚCI"` — not separate `extra_sections` for those categories. A flat English **SKILLS** sidebar without real subsections must be shape A (plain string chips), never a single `{category: "SKILLS"}` group; `_normalize_skills` flattens that mistake if the model still emits it. Templates render one section chrome plus bold category labels and chip bodies (`_place_skills_section`) only when two or more real categories remain. A nested `Języki:` row merges into `languages`. `_expand_skill_category_lines` / `_absorb_skills_alias_sections` build the same nested groups when the model returns flat `Category:` lines or family extras. Only a lone generic skills alias (e.g. Obsługa komputera) still fills the primary skills slot with that heading. Training blocks such as **Szkolenia z cyberbezpieczeństwa** must be extracted as `kind: "certifications"` (`placement: "after_experience"`). Extract `max_tokens` is 8000 so dense multi-section CVs are less likely to truncate mid-list.
 
 Implementation:
 
-- `backend/app/services/ai_service.py`, lines 39–136, `extract_cv_data` — JSON schema shape A/B for skills, nested groups, szkolenia rules
-- `backend/app/api/routes/ai.py`, `extract_cv`
+- `backend/app/services/ai_service.py`, lines 56–348, functions `_pdf_text_pages`, `_pdf_pages_to_b64_images`, `_provider_settings`, and `extract_cv_data` — provider selection, text/vision routing, prompt, safe errors, JSON validation
+- `backend/app/services/cloudflare_pricing.py`, lines 25–82, function `usage_from_cloudflare_response` — published token-rate telemetry; it does not gate imports or consume assistant credits
+- `backend/app/core/config.py`, lines 56–79, Cloudflare and `CV_EXTRACT_*` settings — server-only credentials, models, page/text/completion limits
+- `backend/app/api/routes/ai.py`, lines 142–190, function `extract_cv` — authentication, file validation, snapshot lifecycle, monthly quota recording, safe HTTP errors
 - `backend/app/services/cv_data.py`, `normalize_cv_data` + `skill_groups` + `is_distinct_skill_family_title` + `_expand_skill_category_lines` + `_absorb_skills_alias_sections` + `extract_contact_fields_from_raw`
 - `backend/app/services/cv_templates/shared/text.py`, `_place_skills_section`
 
-Tests: `backend/tests/test_cv_data.py`, `test_soft_hard_tools_nest_under_skills`, `test_lone_tools_section_still_fills_skills_slot`, `test_skill_category_lines_become_nested_groups`, `test_single_colon_skill_line_is_not_promoted`.
+Tests: `backend/tests/test_cloudflare_cv_extraction.py` covers text-only requests, scan-page vision fallback, invalid model JSON, and missing credentials without a network call. `backend/tests/test_extract_cv_rejection.py` covers monthly quota and failure-not-consuming behaviour. `backend/tests/test_cv_data.py` covers nested skills normalization.
+
+Official references: [Workers AI REST setup](https://developers.cloudflare.com/workers-ai/get-started/rest-api/) explains token permissions; [OpenAI compatibility](https://developers.cloudflare.com/workers-ai/configuration/open-ai-compatibility/) documents the `/ai/v1` endpoint; [Gemma 4](https://developers.cloudflare.com/workers-ai/models/gemma-4-26b-a4b-it/) and [Qwen 3.8](https://developers.cloudflare.com/workers-ai/models/qwen3.8-27b/) document model capabilities and prices; [Workers AI pricing](https://developers.cloudflare.com/workers-ai/platform/pricing/) explains the account-wide daily Free neuron allocation.
 
 ### Template carousel (import and change template)
 
@@ -1579,7 +1596,7 @@ Tests:
 
 ### AI assistant
 
-The floating assistant uses **goal-oriented** quick actions (not one tile per API mode): **Sprawdź CV**, **Popraw treść**, **Dopasuj do oferty**, **Sprawdź wygląd** (Pro), and **Przetłumacz CV**. Backend handlers stay specialised (`rating`, `grammar`, `language`, `improve`, `shorten`, `design_rating`, `layout`, `ats_score`, `position_rating`, `translate`, `chat`). Free has no AI assistant (except the one lifetime CV import).
+The floating assistant uses **goal-oriented** quick actions (not one tile per API mode): **Sprawdź CV**, **Popraw treść**, **Dopasuj do oferty**, **Sprawdź wygląd** (Pro), and **Przetłumacz CV**. Backend handlers stay specialised (`rating`, `grammar`, `language`, `improve`, `shorten`, `design_rating`, `layout`, `ats_score`, `position_rating`, `translate`, `chat`). Free has no conversational AI assistant; its Cloudflare-backed CV imports use a separate monthly meter.
 
 **Popraw treść** opens four subactions: `improve` (stronger wording), `language` (style), `grammar` (spelling/punctuation), and **Skróć CV** (`shorten`). `shorten` is the AI escalation of the "CV too long" flow (see [Too-long CV assistant](#too-long-cv-assistant-compact-spacing--ai-shortening)): unlike `improve` (which strengthens and may add placeholder metrics), it only condenses, merges, or removes the least important fragments without inventing new facts, returning the same `corrections` shape so the familiar Przed/Po review cards render. It never touches geometry, headings, names, contact data, or dates (`_CONTENT_FIELDS` scope only). The editor still recalculates an accepted textarea's rendered height; long AI-written summaries can grow beyond their placeholder, while an intentionally cleared auto-height block collapses to eliminate its gap. Implementation: `_shorten_content` in `backend/app/services/ai_assistant_service.py`, `"shorten"` in `VALID_ACTIONS` (`ai_assistant.py`) and the service dispatcher; `CONTENT_SUBACTIONS` + `ACTION_META.shorten` in `frontend/src/components/ai/AiAssistant/AiAssistant.jsx`.
 
@@ -1642,7 +1659,7 @@ Two-tier catalog only:
 |--|--|--|
 | Price | 0 zł | **59 zł / 30 days** (one-shot pass, not auto-renew) |
 | Templates | 2 starters (Regent, Sterling) | all 10 |
-| Import | 1 lifetime free | further imports from AI credits |
+| CV imports | 3 successful imports / UTC month | unlimited |
 | Export | watermarked | clean PDF |
 | AI | — | content + ATS + Layout |
 | Credits | 0 | **200** / period (internal metering; 1 credit = 0.05 PLN) |
@@ -1652,7 +1669,7 @@ Legacy slugs `standard` and `premium` remap to `pro` at registration and `POST /
 
 Implementation:
 
-- `backend/app/services/entitlements.py`, lines 30–65 (`PRO_PASS_DAYS`, `PLAN_SEEDS`, `CREDIT_PLN`), 74–78 (`normalize_plan_slug`), 138–164 (`migrate_legacy_plans_to_pro`), 231–262 (`PLAN_DISPLAY`), 265–298 (`list_selectable_plans`), 300–319 (`set_user_plan` — 30-day pass + credit reset), 489–511 (`assert_can_use_ai_action`), `get_entitlements`, `assert_can_export`, `charge_ai_credits`
+- `backend/app/services/entitlements.py`, lines 32–59 (`PLAN_SEEDS`), 384–439 (`get_entitlements`), 520–534 (`assert_can_extract_cv`), and 574–602 (`record_cv_import`); assistant credits remain in `charge_ai_credits`
 - `backend/app/api/routes/billing.py`, `get_plans`, `select_plan`
 - `frontend/src/components/modals/PlanSelectModal/PlanSelectModal.jsx` — two-card picker
 - `frontend/src/pages/Hero/Hero.jsx` — pricing + FAQ for Darmowy/Pro
@@ -1660,22 +1677,23 @@ Implementation:
 
 Tests: `backend/tests/test_entitlements.py`, `test_plan_selection.py`, `test_ai_credits.py`.
 
-### Free-plan watermark and one lifetime free CV import
+### Free-plan watermark and monthly CV-import quota
 
-**Problem this solves.** Guest mode (see [Guest mode](#guest-mode-editor-without-an-account)) fixed the funnel-entry problem, but once a guest claims a document into a Free account, nothing signals that upgrading buys anything: Free already got clean PDF exports, and CV import was hard-blocked. Watermark + one free import create a clear Free→Pro path inside the two-plan offer.
+**Problem this solves.** Guest mode (see [Guest mode](#guest-mode-editor-without-an-account)) fixed the funnel-entry problem. Cloudflare's lower extraction cost now makes a useful recurring Free allowance viable without opening the provider to anonymous abuse: Free gets three imports each month, while Pro removes that product quota. The watermarked export still distinguishes the Free download.
 
 **Watermark.** Every Free-plan PDF export carries a diagonal, low-opacity "CV STUDIO — WERSJA DARMOWA" stamp, repeated three times down the page. Pro exports are byte-for-byte unaffected — the watermark code path only runs when `watermark=True` is explicitly passed, and every existing call site defaults to `False`. `Pdf.watermarked` records what is *currently baked into* the stored file (not the account's plan); `POST /pdf/download_pdf` compares that against the account's *live* plan on every request and only re-renders when they disagree — the common case (no plan change since the last save) is an unmodified, cheap static-file serve, exactly as before this feature. The one time they disagree is right after a plan change, so upgrading from Free instantly unlocks a clean re-download of an already-exported document, with no need to reopen the editor and save again.
 
 Re-rendering from stored state (rather than the live editor payload) required a new reconstruction step: `PdfElements` rows keep most style information (bold, inline `runs`, connectors, `flowRole`, `borderRadius`, …) packed inside an `extra_properties` JSON column, and — until this feature — nothing on the backend ever unpacked that back into a renderable shape (only the frontend's own save/load hydration did). `elements_from_rows` fills that gap: it is the inverse of `crud/pdfs.py`'s existing `extra_properties` packing, producing full `PdfElement` objects a re-render can use exactly as if the client had just sent them.
 
-**One lifetime free import.** `POST /ai/extract_cv` (CV import) still requires an account for every plan — importing calls a paid OpenAI vision endpoint — but a Free account gets exactly **one** successful import for free before further imports require Pro (and then consume AI credits). The trial is tracked as a single boolean (`UserSubscription.free_import_used`), not a monthly counter — `assert_can_extract_cv` only lets a Free account through once, and only a **successful** `extract_cv_data()` call consumes it; a transient OpenAI error or an unreadable PDF never burns the one try.
+**Monthly CV imports.** `POST /ai/extract_cv` requires an account on every plan because the source contains personal data and provider usage must be attributable. Free gets exactly **three successful imports per UTC calendar month**; Pro has no CV-import count limit. `Plan.max_cv_imports_per_month` stores the nullable allowance, and `UsageCounter.cv_imports_count` stores the count under the same `YYYY-MM` UTC period key used by export and AI meters. `assert_can_extract_cv` checks this dedicated counter before any provider call. The route calls `record_cv_import` only after Cloudflare/OpenAI returned valid JSON and `normalize_cv_data(..., require_name=True)` succeeded, so a timeout, rate limit, unreadable PDF, or malformed response never consumes an import. CV imports no longer consume Pro assistant credits. The old `UserSubscription.free_import_used` column remains only for rolling-deploy/schema compatibility and is ignored by the new gate.
 
 Implementation:
 
-- `backend/alembic/versions/20260809_0004_watermark_free_import.py` — adds `pdfs.watermarked` and `user_subscriptions.free_import_used` (both `bool`, default `false`)
-- `backend/app/services/entitlements.py`, line 337 (`get_entitlements` exposes `free_import_used`), lines 443–465 (`assert_can_extract_cv` — Free's one-trial branch), lines 467–478 (`mark_free_import_used`, no-op unless Free and unused)
-- `backend/app/api/routes/ai.py`, line 106, function `extract_cv` — calls `mark_free_import_used(db, user.id)` strictly after a successful `extract_cv_data()`, inside the same `try` block, so a raised exception never reaches it
-- `frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`, line 63 (`canExtract` now also true for `plan_slug === "free" && !free_import_used`), line 94 (distinct "already used" copy vs. the Pro-upgrade message)
+- `backend/alembic/versions/20260829_0007_cloudflare_cv_import_quota.py`, lines 1–70, migration `20260829_0007` — adds nullable `plans.max_cv_imports_per_month` and zero-filled `usage_counters.cv_imports_count`; the downgrade removes only these two columns
+- `backend/app/models/models.py`, lines 183–239, classes `Plan`, `UserSubscription`, and `UsageCounter` — persisted limit, legacy flag, and monthly count
+- `backend/app/services/entitlements.py`, lines 32–59, 384–439, 520–534, and 574–602 — Free=3, Pro=unlimited, payload exposes limit/usage/remaining, and the final increment repeats the quota check atomically
+- `backend/app/api/routes/ai.py`, lines 142–190, function `extract_cv` — records one import only after successful normalization and maps `CvExtractionError` to safe 422/429/503 responses
+- `frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`, lines 67–69, 126–166, 263–275, and 347–355, component `AiCvPanel` — disables extraction at zero remaining, displays the remaining count, and refreshes entitlements after success
 - `backend/app/services/pdf_generator.py`, lines 1312–1336, method `_draw_watermark` (diagonal overlay, isolated via `saveState`/`restoreState` so it cannot leak fill/alpha/font state); lines 1338–1452, `render_elements(..., watermark=False)`, with the per-page call at 1448–1450
 - `backend/app/crud/pdfs.py`, line 41, function `elements_from_rows` — reconstructs full `PdfElement` objects (including `runs`, connectors, `flowRole`, `borderRadius`, …) from stored rows, the inverse of this file's existing `extra_properties` packing in `create_new_pdf` / `update_pdf_elements`
 - `backend/app/services/document_service.py`, line 73, `create_pdf_document`; line 146, `update_pdf_document` (now takes a `user` parameter) — both compute `watermark = get_entitlements(db, user)["plan_slug"] == "free"` and set `Pdf.watermarked` to match what was actually rendered; line 202, `render_pdf_for_download(db, pdf_row, watermark)` — re-renders a stored document in place (local disk: overwrite; S3: re-upload to the same key) and updates `pdf_row.watermarked`
@@ -1683,7 +1701,8 @@ Implementation:
 
 Tests:
 
-- `backend/tests/test_extract_cv_rejection.py` — first Free import succeeds and consumes the trial; second is rejected; a failed extraction does not consume it
+- `backend/tests/test_extract_cv_rejection.py`, lines 37–127, class `ExtractCvFreeImportTests` — successful metering, fourth-call rejection, failure-not-consuming, and safe retryable 429 mapping
+- `backend/tests/test_cloudflare_cv_extraction.py`, lines 38–110, class `CloudflareCvExtractionTests` — provider selection, text/vision payloads, safe validation failures, and server-side credential gating
 - `backend/tests/test_pdf_watermark.py` — `_draw_watermark` rotates/lowers alpha and stays balanced (`saveState`/`restoreState` counts match, verified with a stack-depth walk so a dropped `restoreState` cannot pass silently); `render_elements` skips the overlay by default and draws it only when asked
 - `backend/tests/test_elements_from_rows.py` — round-trips every field `create_new_pdf` packs into `extra_properties` (including `runs`, connectors, `borderRadius`, and editor-only fields `zIndex`/`isSelected`/`isMove`) through a real save → DB → reconstruct cycle, not a hand-built fixture
 - `backend/tests/test_download_watermark.py` — a Free-plan download re-renders and marks the file watermarked; an already-matching state skips the re-render; upgrading and re-downloading produces a clean file
@@ -1861,7 +1880,7 @@ Base URL: `VITE_API_URL` (frontend) / deployed backend. Auth: `Authorization: Be
 | GET | `/images/fetch_images` | yes | List images | `fetch_user_images` |
 | GET | `/images/{img_id}/content` | yes | Private image bytes (owner only) | `get_image_content` |
 | DELETE | `/images/delete_image` | yes | Delete if unused | `delete_user_image` |
-| POST | `/ai/extract_cv` | yes | PDF → cv_data | `extract_cv` |
+| POST | `/ai/extract_cv` | yes | Multipart `file` (PDF, ≤10 MB, ≤`CV_EXTRACT_MAX_PAGES`) → `{ import, cv_data, usage }`; 403 quota, 422 unreadable/model JSON, 429 provider limit, 503 provider config/outage | `extract_cv` |
 | POST | `/ai/fill_template` | optional | cv_data + template → elements (guests: Free starter templates only) | `fill_template` |
 | GET/PUT/DELETE | `/ai/bio_cv_draft` | yes | Private draft | bio draft routes |
 | POST | `/ai/assistant` | yes | Assistant actions | `ai_assistant` |
@@ -1893,7 +1912,8 @@ Example save/elements body shape: `{ "pdf_id", "pdf_title", "root": [PdfElement.
 - Node.js 20+ recommended (Vite 7)
 - Python 3.11+ recommended
 - Optional: PostgreSQL; otherwise SQLite file is fine
-- Optional: OpenAI API key for AI routes
+- Cloudflare account ID + Workers AI token for PDF CV import
+- Optional: OpenAI API key for the assistant or explicit import rollback
 
 ### Backend
 
@@ -1937,7 +1957,16 @@ App: `http://localhost:5173`.
 | `DATABASE_URL` | no | DB URL (default SQLite file) | `sqlite:///./pdfgenerator.db` |
 | `CORS_ORIGINS` | no | Comma-separated origins | `http://localhost:5173` |
 | `BACKEND_URL` | no | Public API base for links | `http://localhost:8000` |
-| `API_GPT_KEY` | for AI | OpenAI API key | `sk-...` |
+| `CV_EXTRACT_PROVIDER` | no | CV import provider: `cloudflare` (default) or explicit `openai` rollback | `cloudflare` |
+| `CLOUDFLARE_ACCOUNT_ID` | for Cloudflare import | Workers AI account identifier; server-side only | `replace-with-account-id` |
+| `CLOUDFLARE_API_TOKEN` | for Cloudflare import | Token with Workers AI Read + Edit; server-side secret | `replace-with-token` |
+| `CLOUDFLARE_TEXT_MODEL` | no | Native-text CV model | `@cf/google/gemma-4-26b-a4b-it` |
+| `CLOUDFLARE_VISION_MODEL` | no | Scan-page CV model | `@cf/qwen/qwen3.8-27b` |
+| `CV_EXTRACT_OPENAI_MODEL` | no | Model used only when provider=`openai` | `gpt-4o` |
+| `CV_EXTRACT_MAX_PAGES` | no | Upload/extraction page cap | `12` |
+| `CV_EXTRACT_MIN_TEXT_CHARS_PER_PAGE` | no | Below this native-text count, rasterise the page | `80` |
+| `CV_EXTRACT_MAX_COMPLETION_TOKENS` | no | CV JSON completion budget | `8000` |
+| `API_GPT_KEY` | for assistant / OpenAI rollback | OpenAI API key | `sk-...` |
 | `AI_ASSISTANT_MODEL` | no | Default assistant model (non-layout) | `gpt-5.4-mini` |
 | `AI_LAYOUT_MODEL` | no | Model for **Układ** (`action=layout`) | `gpt-5.6-luna` |
 | `AI_LAYOUT_REASONING_EFFORT` | no | Layout reasoning effort (Luna max: `high`) | `high` |
@@ -1960,6 +1989,8 @@ App: `http://localhost:5173`.
 
 Never commit real secrets.
 
+For local Cloudflare setup, copy `backend/.env.example` to `backend/.env`, paste the account ID and token into the two server-only variables, and leave `CV_EXTRACT_PROVIDER=cloudflare`. Restart Uvicorn after changing `.env`; configuration is loaded at process start. Do not prefix these variables with `VITE_`, because that would bundle a secret into browser JavaScript.
+
 ### Scripts
 
 | Area | Command | Notes |
@@ -1977,7 +2008,9 @@ Never commit real secrets.
 
 - **Login “Failed to fetch” on Render:** free dyno cold start. Frontend uses long timeouts + retries and `wakeBackend()`; `/health` must answer while DB init runs in background (`main.py` lifespan).
 - **Asystent AI / Układ “trwa uruchamianie” or timeout:** AI calls wake the dyno, retry network blips (not client timeouts), and use longer waits (`layout` up to 240s for `gpt-5.6-luna`). A timeout message means the client aborted — retry once; if it persists, check Render logs for OpenAI errors.
-- **AI 500 with Polish message:** check `API_GPT_KEY` and server logs (`AIServiceError` handler).
+- **CV import says it is not configured (503):** verify `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN`, and `CV_EXTRACT_PROVIDER=cloudflare`, then restart the backend. Never paste the token into the browser console or frontend `.env`.
+- **CV import is temporarily unavailable / rate-limited:** inspect the safe response code and Render logs; 429 is retryable, 503 indicates configuration, connectivity, or provider availability. Cloudflare's Free allocation is account-wide and resets daily, independently of the application's per-user monthly quota.
+- **Assistant 500 with Polish message:** check `API_GPT_KEY` and server logs (`AIServiceError` handler).
 - **Fonts look wrong in PDF:** bold/italic TTFs are remapped via fontTools in `pdf_generator.py` — do not replace fonts without re-testing Polish glyphs.
 
 ---
@@ -1996,7 +2029,7 @@ Never commit real secrets.
 
 Typical production split (as used with Render):
 
-- **Backend service** — Uvicorn / FastAPI, Postgres, env vars above, optional S3.
+- **Backend service** — Uvicorn / FastAPI, Postgres, env vars above, optional S3. Add `CV_EXTRACT_PROVIDER`, `CLOUDFLARE_ACCOUNT_ID`, and `CLOUDFLARE_API_TOKEN` in Render → backend service → Environment; add the two optional model overrides only when intentionally changing defaults. Redeploy/restart after saving.
 - **Frontend static** — `npm run build`, host `frontend/dist` (or co-host via `main.py` SPA fallback when `frontend/dist` exists next to the backend tree).
 
 Cold-start behaviour is intentional: DB init is deferred so `/health` stays fast.
@@ -2015,7 +2048,9 @@ CI/CD: configure in your host (Render dashboards / GitHub Actions) — no commit
 - CORS: explicit origin allowlist (`CORS_ORIGINS`).
 - Uploads: profile-photo library (max 4 by default); format verified from file bytes (PNG/JPEG/WEBP/GIF; SVG rejected), stored under server-generated names (no path traversal), size-capped (`MAX_UPLOAD_BYTES`) and count-limited per user (`MAX_IMAGES_PER_USER`); images owned by user; delete blocked while referenced by a PDF element; bytes served only via ownership-checked `GET /images/{id}/content` (no public `/uploads` mount) (`upload_security.py`, `images.py`).
 - Registration: duplicate username/email rejected with 400; email format-validated (`auth.py`, `user_schema.py`).
-- AI: provider errors mapped to generic Polish 500; details stay in logs.
+- AI errors: CV-import failures are mapped to stable safe codes and 422/429/503 responses; assistant failures use a generic Polish 500. Raw provider details never reach the browser.
+- CV privacy: PDF bytes are validated in memory, sent server-to-server to the configured provider, and then discarded; import history stores normalized fields and metadata, never the source PDF. Cloudflare states that it does not train models on Customer Content, but CV content is still third-party processing and must be covered by the product privacy notice. See [Workers AI data usage](https://developers.cloudflare.com/workers-ai/platform/data-usage/).
+- Provider secrets: Cloudflare account ID/token and OpenAI key exist only in backend environment variables; no `VITE_` variable may contain them.
 - Metrics: `/events/log` logs numeric `user_id`, not raw usernames (`metrics_logging.py`).
 - Secrets: env only; never in README or git.
 
@@ -2100,7 +2135,7 @@ Ten README to wejście techniczne dla programistów. Obszerne, napisane dla pocz
 
 Kandydaci potrzebują CV, które wygląda profesjonalnie i eksportuje się do PDF bez niespodzianek. Formularze ukrywają układ; ciężkie narzędzia graficzne są nadmiarem. CV Studio daje prawdziwe płótno A4 (595×842 pt), szablony z danymi kariery oraz AI, które wyciąga lub poprawia treść bez wymyślania niebezpiecznych pozycji dla dekoracji szablonu.
 
-Wymuszanie rejestracji zanim odwiedzający zobaczył edytor było dotąd największą stratą lejka: każdy nowy odwiedzający musiał założyć konto — i wybrać płatny plan już przy rejestracji — zanim dotknął jakiegokolwiek szablonu. **Tryb gościa** usuwa tę barierę: `/cvstudio/guest` działa bez JWT (zalogowani użytkownicy otwierają `/cvstudio/{username}`), więc odwiedzający może wybrać szablon, przejść kreator krok po kroku albo edytować w trybie swobodnym i zobaczyć dokładnie ten dokument, który wyeksportuje — stan trzymany jest w `localStorage` zamiast w backendzie. Konto jest potrzebne dopiero w momencie realnej wartości: przy zapisie lub eksporcie PDF (modal „save-gate”) albo przy imporcie CV, który pozostaje wymagający konta, bo wywołuje płatny endpoint OpenAI. Pełny opis: [Tryb gościa (edytor bez konta)](#tryb-gościa-edytor-bez-konta).
+Wymuszanie rejestracji zanim odwiedzający zobaczył edytor było dotąd największą stratą lejka: każdy nowy odwiedzający musiał założyć konto — i wybrać płatny plan już przy rejestracji — zanim dotknął jakiegokolwiek szablonu. **Tryb gościa** usuwa tę barierę: `/cvstudio/guest` działa bez JWT (zalogowani użytkownicy otwierają `/cvstudio/{username}`), więc odwiedzający może wybrać szablon, przejść kreator krok po kroku albo edytować w trybie swobodnym i zobaczyć dokładnie ten dokument, który wyeksportuje — stan trzymany jest w `localStorage` zamiast w backendzie. Konto jest potrzebne dopiero w momencie realnej wartości: przy zapisie lub eksporcie PDF (modal „save-gate”) albo przy imporcie CV, który wysyła dane osobowe do serwerowego dostawcy AI i zużywa limit przypisany do konta. Pełny opis: [Tryb gościa (edytor bez konta)](#tryb-gościa-edytor-bez-konta).
 
 **Zaimplementowane:** edytor (w tym tryb gościa bez konta), szablony, extract/fill, szkic bio, asystent AI (cele użytkownika, dashboard oceny, tłumaczenie, karty układu), entitlements (Darmowy / Pro — 59 zł / 30 dni), jawny zapis + niezależne pobieranie renderowane na żądanie, autozapis do localStorage tylko dla gości, dysk lokalny lub S3, JWT.
 
@@ -2148,7 +2183,8 @@ flowchart LR
     API --> AI[extract / fill / asystent]
     API --> DB[(SQLite lub Postgres)]
     API --> Files[dysk lub S3]
-    API --> OpenAI[OpenAI API]
+    AI --> Cloudflare[Cloudflare Workers AI<br/>import CV]
+    AI --> OpenAI[OpenAI API<br/>asystent / opcjonalny rollback importu]
     Canvas --> ReportLab[PDF ReportLab]
 ```
 
@@ -2220,13 +2256,14 @@ Elementy z `fixedToPage: true` — tła, ramki, sidebary, numery stron — są d
 | SQLAlchemy | requirements | ORM | `models/`, `crud/` |
 | SQLite / PostgreSQL | `DATABASE_URL` | Persistencja | `database.py` |
 | ReportLab + fontTools | requirements | PDF + fonty | `pdf_generator.py` |
-| PyMuPDF | requirements | PDF → obrazki (extract) | `ai_service.py` |
-| OpenAI SDK | requirements | Extract + asystent | serwisy AI |
+| PyMuPDF | 1.26.6 | Tekst natywny PDF i rasteryzacja stron skanowanych | `ai_service.py`, `ats_readability.py` |
+| OpenAI SDK | 2.14.0 | Asystent OpenAI i transport kompatybilnego API Cloudflare | serwisy AI |
+| Cloudflare Workers AI | hostowane API | Tekstowy import CV (Gemma 4) i fallback skanów (Qwen 3.8 Vision) | `ai_service.py`, `cloudflare_pricing.py` |
 | python-jose / bcrypt | requirements | JWT + hasła | `security.py` |
 | boto3 | opcjonalnie | S3 | `s3_storage.py` |
 | unittest | stdlib | Testy backendu | `backend/tests/` |
 
-Dokumentacja oficjalna: [React](https://react.dev/), [Vite](https://vite.dev/), [FastAPI](https://fastapi.tiangolo.com/), [SQLAlchemy](https://docs.sqlalchemy.org/), [ReportLab](https://www.reportlab.com/docs/reportlab-userguide.pdf), [OpenAI](https://platform.openai.com/docs).
+Dokumentacja oficjalna: [React](https://react.dev/), [Vite](https://vite.dev/), [FastAPI](https://fastapi.tiangolo.com/), [SQLAlchemy](https://docs.sqlalchemy.org/), [ReportLab](https://www.reportlab.com/docs/reportlab-userguide.pdf), [Cloudflare Workers AI](https://developers.cloudflare.com/workers-ai/), [zgodność z OpenAI API](https://developers.cloudflare.com/workers-ai/configuration/open-ai-compatibility/) i [OpenAI](https://platform.openai.com/docs).
 
 ---
 
@@ -2277,14 +2314,16 @@ pdf-generator/
     │   ├── crud/
     │   ├── models/
     │   ├── schemas/          # PdfElement + eksport JSON Schema
-    │   ├── services/         # pdf, document_service, cv_generator (+ cv_templates/), ai, …
+    │   ├── services/         # pdf, document_service, cv_generator (+ cv_templates/), ATS, entitlements
+    │   │   ├── ai_service.py             # tekst-first/vision importu CV + wejście fill
+    │   │   └── cloudflare_pricing.py     # telemetria stawek Workers AI
     │   ├── utils/
     │   ├── main.py
     │   └── dependencies.py
-    ├── alembic/              # Migracje schematu
+    ├── alembic/              # Migracje, w tym 0007 z miesięcznym limitem importów
     ├── fonts/
     ├── template_assets/
-    ├── tests/
+    ├── tests/                # m.in. test_cloudflare_cv_extraction.py
     ├── alembic.ini
     ├── requirements.txt
     └── .env.example
@@ -2307,13 +2346,20 @@ pdf-generator/
 | `pdfs` | Dokumenty CV (`editor_mode`, `template_id`, opcjonalne `spacing_px`) |
 | `pdf_elements` | Elementy kanwy (+ `extra_properties`, m.in. `fixedToPage`, `repeatOnContinuation`, `locked`, `flowRole`, `flowGroup`, `preserveInitialLayout`, Sterling `appearanceSettings` i odwracalne bazowe metryki tekstu, `runs` — nakładka dekoracji inline) |
 | `bio_cv_drafts` | Jeden prywatny szkic bio / user |
-| `plans` | Limity Darmowy (Free) / Pro (legacy `standard`/`premium` dezaktywowane) |
+| `plans` | Limity Darmowy/Pro, w tym nullable `max_cv_imports_per_month` (legacy `standard`/`premium` dezaktywowane) |
 | `user_subscriptions` | Aktualny plan |
-| `usage_counters` | Eksporty i kredyty AI / miesiąc UTC |
+| `usage_counters` | Eksporty, udane importy CV i kredyty AI / miesiąc UTC |
 | `payments` | Ledger płatności (przyszłość) |
 | `maintenance_markers` | Jednorazowe cleanupy |
 
 `resolvedLines` celowo nie trafia do `pdf_elements.extra_properties`: to metadane renderowania wyznaczane przez przeglądarkę i dołączane wyłącznie do żądań create/update/download. Zapisany dokument zachowuje semantyczne `content` oraz `runs`, więc ponowne otwarcie CV nie przywraca nieaktualnych podziałów zmierzonych dla wcześniejszej szerokości lub stanu fontu.
+
+Pola limitu importów CV:
+
+- `plans.max_cv_imports_per_month`: nullable integer; `3` dla Darmowego i `NULL` (bez limitu) dla Pro po `seed_plans`.
+- `usage_counters.cv_imports_count`: non-null integer, default/server default `0`; rośnie dopiero po udanym, znormalizowanym imporcie.
+- `usage_counters.user_id`: klucz obcy do `users.id`; wraz z `period_key` ma unique constraint `uq_usage_user_period`, więc użytkownik ma najwyżej jeden licznik na miesiąc UTC.
+- Migracja `20260829_0007` dodaje kolumny idempotentnie. Nie wymaga backfillu danych źródłowych; istniejące liczniki miesięczne zaczynają od zera. Legacy boolean `user_subscriptions.free_import_used` zostaje, ale jest ignorowany.
 
 Modele: `backend/app/models/models.py`.
 
@@ -2680,7 +2726,7 @@ Każdy wizual produktu to **realny mockup szablonu** z `frontend/public/template
 
 Sekcja przed/po to prawdziwa transformacja tej samej treści, nie dwa niepowiązane dokumenty: karta „PRZED” pokazuje prawdziwy zrzut ekranu przestarzałego CV w stylu Worda (`frontend/public/images/bad_cv.png`, Jan Kowalski), przyciętą i wykadrowaną dokładnie tak samo jak mockup karty „po” (`object-fit: cover`, `object-position: top`, ta sama `min-height`), więc para czyta się jako jedno porównanie; karta „PO” pokazuje dedykowany render Sterlinga z DOKŁADNIE tą samą treścią CV (`frontend/public/template-mockups/sterling-showcase.png`, wygenerowany z tych samych danych Jana Kowalskiego, a nie standardowy mockup pickera szablonów z ogólną personą demo). `afterMock` w `Hero.jsx` to mały obiekt inline (`{ name: "Sterling", image: "/template-mockups/sterling-showcase.png" }`), a nie `previewById(...)`, właśnie dlatego, że ten obraz jest unikalny dla tej sekcji.
 
-Intencje startu używane na hero: `start=wizard`, `start=import`, `start=demo`. Legacy deep linki `start=templates` i `start=blank` nadal działają w `PdfCanvas`, ale nie są oferowane na landingu. Każda intencja poza `import` prowadzi przez `getEditorPath` (`/cvstudio/guest?start=...` albo `/cvstudio/{username}?start=...` przy JWT — `buildStartUrl` w `Hero.jsx`) — zob. [Tryb gościa](#tryb-gościa-edytor-bez-konta) poniżej. `import` nadal kieruje przez `/register` (albo od razu do spersonalizowanej ścieżki edytora, jeśli użytkownik jest już zalogowany), bo wywołuje płatny `POST /ai/extract_cv`. `PdfCanvas` otwiera właściwą powierzchnię raz i usuwa parametr z URL.
+Intencje startu używane na hero: `start=wizard`, `start=import`, `start=demo`. Legacy deep linki `start=templates` i `start=blank` nadal działają w `PdfCanvas`, ale nie są oferowane na landingu. Każda intencja poza `import` prowadzi przez `getEditorPath` (`/cvstudio/guest?start=...` albo `/cvstudio/{username}?start=...` przy JWT — `buildStartUrl` w `Hero.jsx`) — zob. [Tryb gościa](#tryb-gościa-edytor-bez-konta) poniżej. `import` nadal kieruje przez `/register` (albo od razu do spersonalizowanej ścieżki edytora, jeśli użytkownik jest już zalogowany), bo `POST /ai/extract_cv` wysyła osobiste dane CV do skonfigurowanego dostawcy i wymaga miesięcznego limitu konta. `PdfCanvas` otwiera właściwą powierzchnię raz i usuwa parametr z URL.
 
 **Spójna hierarchia CTA.** Hero prowadzi hasłem **„Zmieniaj treść. Nie naprawiaj za każdym razem układu.”**, więc strukturalny silnik A4 pozostaje główną obietnicą produktu. Główne działanie nadal brzmi **„Stwórz CV za darmo”** (→ kreator), drugorzędne **„Mam już CV — wgraj PDF”** (→ import), a trzeciorzędny link otwiera przykładowe CV. Zwarty trust row komunikuje teraz **„Zacznij bez konta”**, **„Pierwszy import gratis”** i **„Podgląd = gotowy PDF”**. Każde CTA nadal wysyła przez `queueGuestEvent` te same zdarzenia źródłowe: `hero_wizard`, `hero_import`, `hero_demo`, `before_after_import`, `templates_wizard`, `pricing_free`, `pricing_pro`, `final_wizard`, `final_import`.
 
@@ -2717,7 +2763,7 @@ Implementacja:
 
 ### Tryb gościa (edytor bez konta)
 
-**Jaki problem to rozwiązuje.** Każdy odwiedzający musiał wcześniej założyć konto — i wybrać płatny plan już przy rejestracji — zanim dotknął jakiegokolwiek szablonu. Ta bariera wymuszonej rejestracji była największą stratą lejka: osoby, które chciały tylko sprawdzić, czy edytor jest wart użycia, musiały się zaangażować, zanim mogły się o tym przekonać. Tryb gościa pozwala zrobić wszystko, co nie kosztuje backendu pieniędzy (edycja szablonu, kreator krok po kroku, płótno swobodne, undo/redo, edycja sekcji/rekordów) bez żadnego konta, i prosi o nie dopiero w momencie, gdy powstała realna wartość: przy zapisie lub eksporcie PDF. Import CV pozostaje wymagający konta zawsze, bo wywołuje płatny endpoint OpenAI (`POST /ai/extract_cv`), a udostępnienie go za darmo pozwoliłoby anonimowemu ruchowi zużywać budżet API.
+**Jaki problem to rozwiązuje.** Każdy odwiedzający musiał wcześniej założyć konto — i wybrać płatny plan już przy rejestracji — zanim dotknął jakiegokolwiek szablonu. Ta bariera wymuszonej rejestracji była największą stratą lejka: osoby, które chciały tylko sprawdzić, czy edytor jest wart użycia, musiały się zaangażować, zanim mogły się o tym przekonać. Tryb gościa pozwala zrobić wszystko, co nie zużywa storage ani limitów przypisanych do konta (edycja szablonu, kreator krok po kroku, płótno swobodne, undo/redo, edycja sekcji/rekordów) bez konta, i prosi o nie dopiero w momencie realnej wartości: przy zapisie lub eksporcie PDF. Import CV zawsze wymaga konta, ponieważ `POST /ai/extract_cv` przekazuje osobiste dane CV do Cloudflare Workers AI i zużywa miesięczny limit importów aplikacji.
 
 **Jak to działa.** Edytor jest pod `/cvstudio/:workspace` (`guest` bez JWT, w przeciwnym razie nazwa użytkownika konta). `frontend/src/App.jsx` nie owija tej trasy w `ProtectedRoute` (ten komponent został usunięty z repozytorium); trasa jest publiczna, a `PdfCanvas` rozgałęzia się na obecność tokenu wszędzie tam, gdzie wywołanie skończyłoby się błędem 401. Slug w URL jest kosmetyczny dla zakładek — autoryzacja API nadal pochodzi z JWT. Stare zakładki `/pdfcanvas` są przekierowywane przez `getEditorPath`.
 
@@ -2788,7 +2834,7 @@ Zależności: `localStorage` dla bufora gościa; potwierdzenie tylko hydrate’u
 
 Ograniczenia:
 
-- Import CV (`POST /ai/extract_cv`) celowo **nie** jest częścią trybu gościa — pozostaje wymagający konta, bo każde wywołanie kosztuje pieniądze w OpenAI.
+- Import CV (`POST /ai/extract_cv`) celowo **nie** jest częścią trybu gościa — konto zapewnia zgodę, własność danych, ochronę przed nadużyciami i rozliczanie miesięcznego limitu.
 - Dokument gościa istnieje wyłącznie w `localStorage` bieżącej przeglądarki; wyczyszczenie danych strony, tryb prywatny albo zmiana urządzenia powoduje utratę nieprzejętej pracy. Po potwierdzeniu płótno jest niezapisane (`pdfId` null), dopóki użytkownik nie kliknie „Zapisz”, więc odświeżenie przed tym zapisem może utracić wczytaną pracę.
 - Bufor zdarzeń gościa ma limit 50 wpisów — karta pozostawiona otwarta przez wyjątkowo długą anonimową sesję traci najpierw najstarsze zdarzenia lejka.
 - Tryb gościa nie wprowadza żadnych zmian w entitlements, rozliczeniach, znakach wodnych ani Stripe; po zapisie z Topbara dokument staje się zwykłym dokumentem na planie Free (lub innym), jak każdy inny.
@@ -2838,7 +2884,7 @@ Implementacja:
 
 Ograniczenia:
 
-- Plan Darmowy obejmuje dwa szablony startowe (Regent i Sterling), eksport PDF ze znakiem wodnym oraz **jeden** import CV w cyklu życia konta. Pro odblokowuje czysty PDF, wszystkie 10 szablonów, kolejne importy, AI treści, ATS i Układ za **59 zł / 30 dni**. Stripe Checkout jeszcze nie jest podłączony; przy `ALLOW_UNPAID_PLAN_SELECTION` Pro można aktywować bez płatności.
+- Plan Darmowy obejmuje dwa szablony startowe (Regent i Sterling), eksport PDF ze znakiem wodnym oraz **trzy udane importy CV na miesiąc UTC**. Pro odblokowuje czysty PDF, wszystkie 10 szablonów, importy bez limitu, AI treści, ATS i Układ za **59 zł / 30 dni**. Stripe Checkout jeszcze nie jest podłączony; przy `ALLOW_UNPAID_PLAN_SELECTION` Pro można aktywować bez płatności.
 - Wskazówki **Czytelność dla ATS** sprawdzają odczyt tekstu z finalnego PDF oraz standardowość nagłówków/słów kluczowych. To wskazówka, nie gwarancja że każdy system ATS odczyta plik tak samo.
 - Sekcja prywatności opisuje ogólnie zaimplementowane użycie danych i nie deklaruje niezaimplementowanych certyfikatów ani anonimizacji.
 
@@ -3553,17 +3599,23 @@ Testy:
 
 ### Extract CV z PDF
 
-Wizyjna ekstrakcja pierwszych stron → strukturalne `cv_data`, w tym `linkedin` / `github` / `website` z nagłówka. Heurystyki domenowe poprawiają kategorię URL-i przy normalizacji.
+`POST /ai/extract_cv` używa tekstowego w pierwszej kolejności pipeline'u Cloudflare Workers AI i zwraca strukturalne `cv_data`, w tym `linkedin` / `github` / `website` z nagłówka oraz rekordowe `extra_sections`. PyMuPDF najpierw odczytuje natywny tekst każdej zaakceptowanej strony w kolejności źródłowej. Gdy każda strona ma co najmniej `CV_EXTRACT_MIN_TEXT_CHARS_PER_PAGE` znaków innych niż białe (domyślnie 80), do niedrogiego modelu `@cf/google/gemma-4-26b-a4b-it` trafia wyłącznie tekst. Jeśli strona jest pusta lub wygląda jak skan, rasteryzowana jest tylko ta strona w 150 DPI; całe żądanie przełącza się na `@cf/qwen/qwen3.8-27b` i zawiera odczytany tekst oraz podpisane adresy data URL PNG stron skanowanych. Oryginalny PDF nie jest zapisywany przez usługę ekstrakcji.
+
+Dostawca jest wywoływany przez kompatybilny z OpenAI adres bazowy Cloudflare przy użyciu istniejącego SDK `openai`. Klient powstaje leniwie: brak danych Cloudflare nie blokuje startu `/health`, logowania, edycji ani eksportu PDF. `CV_EXTRACT_PROVIDER=openai` wraz z `CV_EXTRACT_OPENAI_MODEL=gpt-4o` to jawna ścieżka rollbacku, nie automatyczny fallback; awaria Cloudflare nie może więc po cichu wysłać CV do innego procesora. Limit dostawcy daje ponawialny 429, przejściowa awaria lub konfiguracja — 503, a pusty albo niepoprawny JSON modelu — bezpieczny 422. Surowe wyjątki dostawcy nie trafiają do przeglądarki.
 
 Gdy CV źródłowe ma **osobne** nagłówki rodzin umiejętności (np. Umiejętności miękkie, Umiejętności twarde, Znane narzędzia) albo **podsekcje** pod jednym nagłówkiem UMIEJĘTNOŚCI (styl CV16: `Bezpieczeństwo: …` / `Przemysł / OT: …`), prompt ekstrakcji zwraca `skills` jako `[{category, items}, …]` z `labels.skills = "UMIEJĘTNOŚCI"` — nie osobne `extra_sections` dla tych kategorii. Płaski angielski sidebar **SKILLS** bez prawdziwych podsekcji musi być kształtem A (zwykłe stringi), nigdy samotną grupą `{category: "SKILLS"}`; `_normalize_skills` spłaszcza ten błąd, jeśli model go mimo to zwróci. Szablony rysują jeden chrome sekcji oraz pogrubione etykiety kategorii i chipy (`_place_skills_section`) tylko gdy zostaną co najmniej dwie realne kategorie. Wiersz `Języki:` trafia do `languages`. `_expand_skill_category_lines` / `_absorb_skills_alias_sections` budują te same zagnieżdżone grupy, gdy model zwróci płaskie linie `Kategoria:` albo extras rodzin. Tylko samotny ogólny alias skills (np. Obsługa komputera) nadal wypełnia główny slot skills z tym nagłówkiem. Bloki szkoleń (np. **Szkolenia z cyberbezpieczeństwa**) muszą być ekstrahowane jako `kind: "certifications"` (`placement: "after_experience"`). `max_tokens` ekstrakcji wynosi 8000.
 
-- `backend/app/services/ai_service.py`, linie 39–136 — `extract_cv_data` — kształty A/B skills, grupy zagnieżdżone, reguły szkoleń
-- `backend/app/api/routes/ai.py` — `extract_cv`
+- `backend/app/services/ai_service.py`, linie 56–348, funkcje `_pdf_text_pages`, `_pdf_pages_to_b64_images`, `_provider_settings` i `extract_cv_data` — wybór dostawcy, routing tekst/vision, prompt, bezpieczne błędy i walidacja JSON
+- `backend/app/services/cloudflare_pricing.py`, linie 25–82, funkcja `usage_from_cloudflare_response` — telemetria według opublikowanych stawek; nie bramkuje importu i nie pobiera kredytów asystenta
+- `backend/app/core/config.py`, linie 56–79, ustawienia Cloudflare i `CV_EXTRACT_*` — sekrety serwerowe, modele, limity stron/tekstu/odpowiedzi
+- `backend/app/api/routes/ai.py`, linie 142–190, funkcja `extract_cv` — auth, walidacja pliku, snapshot, miesięczny licznik i bezpieczne statusy HTTP
 - `backend/app/services/cv_data.py` — `normalize_cv_data` + `skill_groups` + `is_distinct_skill_family_title` + `_expand_skill_category_lines` + `_absorb_skills_alias_sections` + `extract_contact_fields_from_raw`
 - `backend/app/services/cv_templates/shared/text.py` — `_place_skills_section`
 - `backend/app/services/contact_links.py`
 
-Testy: `backend/tests/test_cv_data.py`, `test_soft_hard_tools_nest_under_skills`, `test_lone_tools_section_still_fills_skills_slot`, `test_skill_category_lines_become_nested_groups`, `test_single_colon_skill_line_is_not_promoted`.
+Testy: `backend/tests/test_cloudflare_cv_extraction.py` obejmuje żądania text-only, vision dla skanu, błędny JSON i brak danych logowania bez sieci. `backend/tests/test_extract_cv_rejection.py` sprawdza miesięczny limit oraz brak naliczenia po błędzie. `backend/tests/test_cv_data.py` obejmuje normalizację zagnieżdżonych skills.
+
+Oficjalne źródła: [REST Workers AI](https://developers.cloudflare.com/workers-ai/get-started/rest-api/) opisuje uprawnienia tokenu; [zgodność z OpenAI](https://developers.cloudflare.com/workers-ai/configuration/open-ai-compatibility/) — endpoint `/ai/v1`; [Gemma 4](https://developers.cloudflare.com/workers-ai/models/gemma-4-26b-a4b-it/) i [Qwen 3.8](https://developers.cloudflare.com/workers-ai/models/qwen3.8-27b/) — możliwości i ceny; [cennik Workers AI](https://developers.cloudflare.com/workers-ai/platform/pricing/) — wspólną dla konta dzienną pulę neuronów Free.
 
 ### Karuzela szablonów (import, kreator bio, zmiana szablonu)
 
@@ -3619,7 +3671,7 @@ Testy:
 
 ### Asystent AI
 
-Asystent używa **celów użytkownika**, a nie osobnego kafelka na każdy endpoint: **Sprawdź CV**, **Popraw treść**, **Dopasuj do oferty**, **Sprawdź wygląd** (Pro) i **Przetłumacz CV**. Backend nadal ma wyspecjalizowane handlery (`rating`, `grammar`, `language`, `improve`, `shorten`, `design_rating`, `layout`, `ats_score`, `position_rating`, `translate`, `chat`). Darmowy nie ma asystenta AI (poza jednym importem CV).
+Asystent używa **celów użytkownika**, a nie osobnego kafelka na każdy endpoint: **Sprawdź CV**, **Popraw treść**, **Dopasuj do oferty**, **Sprawdź wygląd** (Pro) i **Przetłumacz CV**. Backend nadal ma wyspecjalizowane handlery (`rating`, `grammar`, `language`, `improve`, `shorten`, `design_rating`, `layout`, `ats_score`, `position_rating`, `translate`, `chat`). Darmowy nie ma konwersacyjnego asystenta AI; importy Cloudflare mają osobny miesięczny licznik.
 
 **Popraw treść** otwiera cztery subakcje: `improve` (mocniejsze opisy), `language` (styl), `grammar` (ortografia/interpunkcja) oraz **Skróć CV** (`shorten`). `shorten` to krok AI w przepływie „CV za długie" (zob. [Asystent zbyt długiego CV](#asystent-zbyt-długiego-cv-kompaktowe-odstępy--skracanie-ai)): w przeciwieństwie do `improve` (który wzmacnia i może dodać zastępcze metryki), wyłącznie skraca, łączy lub usuwa najmniej istotne fragmenty bez wymyślania nowych faktów, zwracając ten sam kształt `corrections`, więc renderują się znane karty Przed/Po. Nigdy nie rusza geometrii, nagłówków, imion, danych kontaktowych ani dat (tylko zakres `_CONTENT_FIELDS`). Edytor nadal przelicza wyrenderowaną wysokość zaakceptowanego textarea: długie podsumowanie napisane przez AI może urosnąć ponad placeholder, a celowo wyczyszczony blok auto-height zapada się, usuwając pustą lukę. Implementacja: `_shorten_content` w `backend/app/services/ai_assistant_service.py`, `"shorten"` w `VALID_ACTIONS` (`ai_assistant.py`) i dispatcherze serwisu; `CONTENT_SUBACTIONS` + `ACTION_META.shorten` w `frontend/src/components/ai/AiAssistant/AiAssistant.jsx`.
 
@@ -3682,7 +3734,7 @@ Katalog ma tylko dwa pakiety:
 |--|--|--|
 | Cena | 0 zł | **59 zł / 30 dni** (jednorazowy pass, bez auto-odnawiania) |
 | Szablony | 2 startowe (Regent, Sterling) | wszystkie 10 |
-| Import | 1 darmowy w życiu konta | kolejne z puli kredytów AI |
+| Importy CV | 3 udane / miesiąc UTC | bez limitu |
 | Eksport | ze znakiem wodnym | czysty PDF |
 | AI | — | treść + ATS + Układ |
 | Kredyty | 0 | **200** / okres (wewnętrzne rozliczanie; 1 kredyt = 0,05 PLN) |
@@ -3690,7 +3742,7 @@ Katalog ma tylko dwa pakiety:
 
 Legacy slugi `standard` i `premium` mapują się na `pro`. Po wygaśnięciu Pro dokumenty zostają — konto wraca do Darmowego. Copy: Darmowy = „Stwórz i sprawdź swoje CV”; Pro = „Gotowe CV do wysłania”.
 
-- `backend/app/services/entitlements.py`, linie 30–65 (`PRO_PASS_DAYS`, `PLAN_SEEDS`, `CREDIT_PLN`), 74–78 (`normalize_plan_slug`), 138–164 (`migrate_legacy_plans_to_pro`), 231–262 (`PLAN_DISPLAY`), 265–298 (`list_selectable_plans`), 300–319 (`set_user_plan`), 489–511 (`assert_can_use_ai_action`)
+- `backend/app/services/entitlements.py`, linie 32–59 (`PLAN_SEEDS`), 384–439 (`get_entitlements`), 520–534 (`assert_can_extract_cv`) i 574–602 (`record_cv_import`); kredyty asystenta pozostają w `charge_ai_credits`
 - `backend/app/api/routes/billing.py`
 - `frontend/src/components/modals/PlanSelectModal/PlanSelectModal.jsx`
 - `frontend/src/pages/Hero/Hero.jsx`
@@ -3698,22 +3750,23 @@ Legacy slugi `standard` i `premium` mapują się na `pro`. Po wygaśnięciu Pro 
 
 Testy: `backend/tests/test_entitlements.py`, `test_plan_selection.py`, `test_ai_credits.py`.
 
-### Znak wodny na planie Free i jeden darmowy import CV na zawsze
+### Znak wodny na planie Free i miesięczny limit importów CV
 
-**Jaki problem to rozwiązuje.** Tryb gościa (zob. [Tryb gościa](#tryb-gościa-edytor-bez-konta)) naprawił problem wejścia do lejka, ale gdy gość przejmie dokument na konto Free, nic nie sygnalizuje, że ulepszenie planu coś daje. Znak wodny + jeden darmowy import budują klarowną ścieżkę Darmowy→Pro w ofercie dwóch pakietów.
+**Jaki problem to rozwiązuje.** Tryb gościa (zob. [Tryb gościa](#tryb-gościa-edytor-bez-konta)) naprawił wejście do lejka. Niższy koszt Cloudflare pozwala zaoferować realny, odnawialny limit Free bez wystawiania dostawcy na anonimowe nadużycia: Darmowy ma trzy importy miesięcznie, a Pro usuwa limit produktowy. Znak wodny nadal odróżnia darmowy eksport.
 
 **Znak wodny.** Każdy eksport PDF na planie Free ma ukośny, półprzezroczysty napis „CV STUDIO — WERSJA DARMOWA”, powtórzony trzykrotnie w dół strony. Eksporty Pro są nietknięte bajt w bajt — ścieżka kodu ze znakiem wodnym uruchamia się wyłącznie, gdy jawnie przekazano `watermark=True`, a każde dotychczasowe wywołanie domyślnie ma `False`. `Pdf.watermarked` zapisuje, co jest *aktualnie* zapisane w pliku (nie plan konta); `POST /pdf/download_pdf` porównuje to z *bieżącym* planem konta przy każdym żądaniu i przerenderowuje tylko wtedy, gdy się różnią — typowy przypadek (brak zmiany planu od ostatniego zapisu) to niezmieniony, tani odczyt statycznego pliku, dokładnie jak przed tą funkcją. Różnią się tylko tuż po zmianie planu, więc ulepszenie z Free natychmiast odblokowuje czyste pobranie już wyeksportowanego dokumentu, bez konieczności ponownego otwierania edytora i zapisu.
 
 Przerenderowanie z zapisanego stanu (zamiast z żywego payloadu edytora) wymagało nowego kroku rekonstrukcji: wiersze `PdfElements` trzymają większość informacji o stylu (pogrubienie, inline `runs`, konektory, `flowRole`, `borderRadius`, …) spakowaną w kolumnie JSON `extra_properties`, a do tej funkcji nic po stronie backendu nigdy nie rozpakowywało tego z powrotem do renderowalnej postaci (robiła to tylko hydratacja zapisu/odczytu na froncie). `elements_from_rows` domyka tę lukę: to odwrotność istniejącego pakowania `extra_properties` w `crud/pdfs.py`, produkująca pełne obiekty `PdfElement`, których przerenderowanie może użyć dokładnie tak, jakby klient właśnie je wysłał.
 
-**Jeden darmowy import na zawsze.** `POST /ai/extract_cv` (import CV) nadal wymaga konta na każdym planie — import wywołuje płatny endpoint OpenAI vision — ale konto Free dostaje dokładnie **jeden** udany import za darmo; kolejne wymagają Pro (i potem zużywają kredyty AI). Próba jest śledzona jako pojedynczy boolean (`UserSubscription.free_import_used`), nie licznik miesięczny — `assert_can_extract_cv` wpuszcza konto Free tylko raz, a zużywa próbę wyłącznie **udane** wywołanie `extract_cv_data()`; przejściowy błąd OpenAI albo nieczytelny PDF nigdy nie spala jedynej szansy.
+**Miesięczne importy CV.** `POST /ai/extract_cv` wymaga konta na każdym planie, ponieważ źródło zawiera dane osobowe, a użycie dostawcy musi być przypisane. Darmowy ma dokładnie **trzy udane importy w miesiącu kalendarzowym UTC**; Pro nie ma limitu liczby importów. `Plan.max_cv_imports_per_month` przechowuje limit nullable, a `UsageCounter.cv_imports_count` — licznik pod tym samym kluczem `YYYY-MM` UTC co eksporty i AI. `assert_can_extract_cv` sprawdza osobny licznik przed kontaktem z dostawcą. Route woła `record_cv_import` dopiero po poprawnym JSON-ie i udanym `normalize_cv_data(..., require_name=True)`, więc timeout, rate limit, nieczytelny PDF lub błędna odpowiedź nie zużywa importu. Import CV nie zużywa już kredytów asystenta w Pro. Stara kolumna `UserSubscription.free_import_used` zostaje wyłącznie dla zgodności schema/rolling deploy i nie bierze udziału w bramce.
 
 Implementacja:
 
-- `backend/alembic/versions/20260809_0004_watermark_free_import.py` — dodaje `pdfs.watermarked` i `user_subscriptions.free_import_used` (oba `bool`, domyślnie `false`)
-- `backend/app/services/entitlements.py`, linia 337 (`get_entitlements` udostępnia `free_import_used`), linie 443–465 (`assert_can_extract_cv` — gałąź jednej próby dla Free), linie 467–478 (`mark_free_import_used`, no-op poza kontem Free z niewykorzystaną próbą)
-- `backend/app/api/routes/ai.py`, linia 106, funkcja `extract_cv` — woła `mark_free_import_used(db, user.id)` wyłącznie po udanym `extract_cv_data()`, w tym samym bloku `try`, więc wyjątek nigdy tam nie dotrze
-- `frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`, linia 63 (`canExtract` jest teraz też `true` dla `plan_slug === "free" && !free_import_used`), linia 94 (osobny komunikat „już wykorzystano” vs. komunikat o Pro)
+- `backend/alembic/versions/20260829_0007_cloudflare_cv_import_quota.py`, linie 1–70, migracja `20260829_0007` — dodaje nullable `plans.max_cv_imports_per_month` i wyzerowane `usage_counters.cv_imports_count`; downgrade usuwa tylko te kolumny
+- `backend/app/models/models.py`, linie 183–239, klasy `Plan`, `UserSubscription`, `UsageCounter` — utrwalony limit, legacy flag i miesięczny licznik
+- `backend/app/services/entitlements.py`, linie 32–59, 384–439, 520–534 i 574–602 — Darmowy=3, Pro=bez limitu, payload zawiera limit/użycie/pozostałe, a końcowy increment atomowo powtarza bramkę
+- `backend/app/api/routes/ai.py`, linie 142–190, funkcja `extract_cv` — nalicza import po normalizacji i mapuje `CvExtractionError` na bezpieczne 422/429/503
+- `frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`, linie 67–69, 126–166, 263–275 i 347–355, komponent `AiCvPanel` — blokuje przy zerze, pokazuje pozostałą liczbę i odświeża entitlements po sukcesie
 - `backend/app/services/pdf_generator.py`, linie 1312–1336, metoda `_draw_watermark` (ukośna nakładka, izolowana przez `saveState`/`restoreState`, więc nie może wyciec kolor wypełnienia/przezroczystości/fontu); linie 1338–1452, `render_elements(..., watermark=False)`, z wywołaniem per strona w liniach 1448–1450
 - `backend/app/crud/pdfs.py`, linia 41, funkcja `elements_from_rows` — rekonstruuje pełne obiekty `PdfElement` (w tym `runs`, konektory, `flowRole`, `borderRadius`, …) z zapisanych wierszy, odwrotność istniejącego pakowania `extra_properties` w `create_new_pdf` / `update_pdf_elements`
 - `backend/app/services/document_service.py`, linia 73, `create_pdf_document`; linia 146, `update_pdf_document` (przyjmuje teraz parametr `user`) — oba liczą `watermark = get_entitlements(db, user)["plan_slug"] == "free"` i ustawiają `Pdf.watermarked` zgodnie z tym, co faktycznie wyrenderowano; linia 202, `render_pdf_for_download(db, pdf_row, watermark)` — przerenderowuje zapisany dokument w miejscu (dysk lokalny: nadpisanie; S3: ponowny upload pod ten sam klucz) i aktualizuje `pdf_row.watermarked`
@@ -3721,7 +3774,8 @@ Implementacja:
 
 Testy:
 
-- `backend/tests/test_extract_cv_rejection.py` — pierwszy import Free się udaje i zużywa próbę; drugi jest odrzucony; nieudana ekstrakcja jej nie zużywa
+- `backend/tests/test_extract_cv_rejection.py`, linie 37–127, klasa `ExtractCvFreeImportTests` — naliczanie, blokada czwartego wywołania, brak zużycia po błędzie i bezpieczne mapowanie ponawialnego 429
+- `backend/tests/test_cloudflare_cv_extraction.py`, linie 38–110, klasa `CloudflareCvExtractionTests` — wybór dostawcy, payloady text/vision, bezpieczne błędy walidacji i server-only credentials
 - `backend/tests/test_pdf_watermark.py` — `_draw_watermark` obraca/obniża przezroczystość i pozostaje zbalansowany (liczby `saveState`/`restoreState` się zgadzają, weryfikowane przejściem po stosie głębokości, więc zgubione `restoreState` nie przejdzie po cichu); `render_elements` domyślnie pomija nakładkę i rysuje ją tylko na żądanie
 - `backend/tests/test_elements_from_rows.py` — odtwarza każde pole, które `create_new_pdf` pakuje do `extra_properties` (w tym `runs`, konektory, `borderRadius` oraz pola tylko-edytorowe `zIndex`/`isSelected`/`isMove`) przez prawdziwy cykl zapis → baza → rekonstrukcja, nie ręcznie zbudowaną fikstrę
 - `backend/tests/test_download_watermark.py` — pobranie na planie Free przerenderowuje i oznacza plik jako ze znakiem wodnym; już zgodny stan pomija przerenderowanie; ulepszenie planu i ponowne pobranie daje czysty plik
@@ -3898,7 +3952,7 @@ URL bazowy: `VITE_API_URL`. Auth: `Authorization: Bearer <jwt>` (chyba że zazna
 | GET | `/images/fetch_images` | tak | Lista obrazów | `fetch_user_images` |
 | GET | `/images/{img_id}/content` | tak | Bajty obrazu (tylko właściciel) | `get_image_content` |
 | DELETE | `/images/delete_image` | tak | Usuń nieużywany | `delete_user_image` |
-| POST | `/ai/extract_cv` | tak | Extract | `extract_cv` |
+| POST | `/ai/extract_cv` | tak | Multipart `file` (PDF ≤10 MB, ≤`CV_EXTRACT_MAX_PAGES`) → `{ import, cv_data, usage }`; 403 limit, 422 plik/JSON, 429 limit dostawcy, 503 konfiguracja/awaria | `extract_cv` |
 | POST | `/ai/fill_template` | opcjonalnie | Fill (goście: tylko szablony Free starter) | `fill_template` |
 | GET/PUT/DELETE | `/ai/bio_cv_draft` | tak | Szkic bio | routes/ai |
 | POST | `/ai/assistant` | tak | Asystent | `ai_assistant` |
@@ -3917,7 +3971,8 @@ Schemat elementów: `backend/app/schemas/pdf_schema.py`. Ciało zapisu/`save_ele
 
 - Node.js 20+ (zalecane)
 - Python 3.11+ (zalecane)
-- Opcjonalnie PostgreSQL i klucz OpenAI
+- Account ID Cloudflare i token Workers AI do importu CV
+- Opcjonalnie PostgreSQL oraz klucz OpenAI dla asystenta lub jawnego rollbacku importu
 
 ### Backend
 
@@ -3946,9 +4001,34 @@ Aplikacja: `http://localhost:5173`.
 
 ### Zmienne środowiskowe
 
-Backend (m.in.): `SECRET_KEY` (min. 16 znaków, bez placeholderów; boot-check w lifespan), `ALGORITHM`, `ACCESS_TOKEN_EXPIRE_MINUTES`, `DATABASE_URL`, `CORS_ORIGINS`, `BACKEND_URL`, `API_GPT_KEY`, `AI_ASSISTANT_MODEL`, `AI_LAYOUT_MODEL`, `AI_LAYOUT_REASONING_EFFORT`, `AI_LAYOUT_SERVICE_TIER`, `AI_LAYOUT_MAX_COMPLETION_TOKENS`, `USD_TO_PLN`, `S3_BUCKET_NAME`, `AWS_*`, `ALLOW_UNPAID_PLAN_SELECTION` (domyślnie `false`; lokalnie `true`), `ADMIN_RESET_SECRET` (osobny sekret ops, bez fallbacku do `SECRET_KEY`), `ALLOW_INSECURE_SECRET` (tylko lokalne throwaway), `MAX_UPLOAD_BYTES` (domyślnie 8 MB), `MAX_IMAGES_PER_USER` (domyślnie 5).
+Backend (`backend/.env.example` i `app/core/config.py`):
+
+| Zmienna | Wymagana | Cel | Przykład |
+|---------|----------|-----|----------|
+| `SECRET_KEY` | tak w prod | Podpis JWT; min. 16 znaków, bez placeholdera | długi losowy tekst |
+| `DATABASE_URL` | nie | Baza; domyślnie SQLite | `sqlite:///./pdfgenerator.db` |
+| `CORS_ORIGINS` | nie | Lista originów frontendu | `http://localhost:5173` |
+| `CV_EXTRACT_PROVIDER` | nie | `cloudflare` (domyślnie) lub jawny rollback `openai` | `cloudflare` |
+| `CLOUDFLARE_ACCOUNT_ID` | dla Cloudflare | Identyfikator konta Workers AI, tylko backend | `replace-with-account-id` |
+| `CLOUDFLARE_API_TOKEN` | dla Cloudflare | Sekret z Workers AI Read + Edit, tylko backend | `replace-with-token` |
+| `CLOUDFLARE_TEXT_MODEL` | nie | Model dla natywnego tekstu PDF | `@cf/google/gemma-4-26b-a4b-it` |
+| `CLOUDFLARE_VISION_MODEL` | nie | Model dla stron skanowanych | `@cf/qwen/qwen3.8-27b` |
+| `CV_EXTRACT_OPENAI_MODEL` | nie | Model tylko przy provider=`openai` | `gpt-4o` |
+| `CV_EXTRACT_MAX_PAGES` | nie | Limit uploadu i ekstrakcji | `12` |
+| `CV_EXTRACT_MIN_TEXT_CHARS_PER_PAGE` | nie | Poniżej progu strona trafia do vision | `80` |
+| `CV_EXTRACT_MAX_COMPLETION_TOKENS` | nie | Budżet JSON CV | `8000` |
+| `API_GPT_KEY` | dla asystenta/rollbacku | Klucz OpenAI | `sk-...` |
+| `AI_ASSISTANT_MODEL` | nie | Model asystenta poza Układem | `gpt-5.4-mini` |
+| `AI_LAYOUT_MODEL` | nie | Model akcji Układ | `gpt-5.6-luna` |
+| `USD_TO_PLN` | nie | Kurs do telemetrii/kredytów | `4.0` |
+| `S3_BUCKET_NAME` / `AWS_*` | dla S3 | Opcjonalny storage | — |
+| `ALLOW_UNPAID_PLAN_SELECTION` | nie | Tymczasowa aktywacja Pro bez Stripe | `true` lokalnie |
+| `ADMIN_RESET_SECRET` | dla admin reset | Osobny sekret operacyjny | długi losowy tekst |
+| `MAX_UPLOAD_BYTES` / `MAX_IMAGES_PER_USER` | nie | Limity zdjęć: 8 MB / 4 | `8388608` / `4` |
 
 Frontend: `VITE_API_URL`.
+
+Lokalnie skopiuj `backend/.env.example` do `backend/.env`, wstaw Account ID i token do dwóch zmiennych serwerowych, zostaw `CV_EXTRACT_PROVIDER=cloudflare`, a następnie zrestartuj Uvicorn. Nigdy nie dodawaj prefiksu `VITE_` do tokenu — taki sekret zostałby wbudowany w JavaScript przeglądarki.
 
 ### Skrypty
 
@@ -3964,7 +4044,9 @@ Frontend: `VITE_API_URL`.
 
 - Cold start Render: długie timeouty + `wakeBackend()`; `/health` bez blokady na DB.
 - Asystent / Układ: `wakeBackend` + retry sieci (bez ponawiania AbortError); `layout` ma timeout do 240 s pod `gpt-5.6-luna`.
-- Błędy AI: sprawdź `API_GPT_KEY` i logi.
+- Import CV 503 „nie skonfigurowany”: sprawdź `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN`, `CV_EXTRACT_PROVIDER=cloudflare` i zrestartuj backend.
+- Import CV 429/503: 429 jest ponawialnym limitem dostawcy; 503 oznacza konfigurację, sieć lub dostępność. Dzienna pula Free Cloudflare jest wspólna dla konta i niezależna od miesięcznego limitu użytkownika w aplikacji.
+- Błąd asystenta AI: sprawdź `API_GPT_KEY` i logi.
 - Fonty PDF: nie wymieniaj TTF bez testu polskich znaków (remap fontTools).
 
 ---
@@ -3983,7 +4065,7 @@ Frontend: `VITE_API_URL`.
 
 Typowy podział (Render):
 
-- Backend: Uvicorn/FastAPI + Postgres + env (+ opcjonalnie S3).
+- Backend: Uvicorn/FastAPI + Postgres + env (+ opcjonalnie S3). W Render → usługa backendu → Environment ustaw `CV_EXTRACT_PROVIDER`, `CLOUDFLARE_ACCOUNT_ID` i `CLOUDFLARE_API_TOKEN`; override modeli dodawaj tylko świadomie. Po zapisie wykonaj restart/redeploy.
 - Frontend: `npm run build` → hosting `dist` (albo SPA z `main.py`, gdy `frontend/dist` jest dostępny).
 
 Migracje: `create_all` + Alembic (`backend/alembic/`) przy starcie.
@@ -3998,7 +4080,9 @@ Migracje: `create_all` + Alembic (`backend/alembic/`) przy starcie.
 - CORS z allowlistą.
 - Upload: biblioteka zdjęć profilowych (domyślnie maks. 4); format weryfikowany z bajtów pliku (PNG/JPEG/WEBP/GIF; SVG odrzucany), nazwy generowane po stronie serwera (brak path traversal), limit rozmiaru (`MAX_UPLOAD_BYTES`) i liczby zdjęć na użytkownika (`MAX_IMAGES_PER_USER`); usuwanie blokowane, gdy obraz jest używany przez element PDF; bajty tylko przez `GET /images/{id}/content` z kontrolą właściciela (bez publicznego `/uploads`) (`upload_security.py`, `images.py`).
 - Rejestracja: zajęta nazwa/e-mail odrzucane z 400; e-mail walidowany formatem (`auth.py`, `user_schema.py`).
-- Błędy AI bez wycieku szczegółów do klienta.
+- Błędy importu CV mają stabilne kody i bezpieczne 422/429/503; asystent zwraca ogólne 500. Surowe szczegóły dostawcy nie trafiają do klienta.
+- Prywatność CV: bajty PDF są walidowane w pamięci, wysyłane server-to-server do skonfigurowanego dostawcy i odrzucane; historia zapisuje znormalizowane pola i metadane, nigdy źródłowy PDF. Cloudflare deklaruje, że nie trenuje modeli na Customer Content, ale nadal jest to przetwarzanie przez stronę trzecią i musi być opisane w polityce prywatności produktu. Zob. [Workers AI data usage](https://developers.cloudflare.com/workers-ai/platform/data-usage/).
+- Sekrety dostawców: Account ID/token Cloudflare i klucz OpenAI tylko w env backendu; żadna zmienna `VITE_` nie może ich zawierać.
 - Metryki z `user_id`, nie raw username.
 - Sekrety tylko w env.
 

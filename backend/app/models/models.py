@@ -191,6 +191,8 @@ class Plan(Base):
     max_projects = Column(Integer, nullable=True)
     max_exports_per_month = Column(Integer, nullable=True)
     max_ai_actions_per_month = Column(Integer, nullable=True)
+    # Successful provider-backed CV imports per UTC calendar month.
+    max_cv_imports_per_month = Column(Integer, nullable=True)
     ai_assistant = Column(Boolean, nullable=False, default=False)
     extract_cv = Column(Boolean, nullable=False, default=False)
     # "starter" | "all"
@@ -214,13 +216,13 @@ class UserSubscription(Base):
     stripe_customer_id = Column(String, nullable=True)
     stripe_subscription_id = Column(String, nullable=True)
     updated_at = Column(DateTime, nullable=False)
-    # Consumed once, on a successful /ai/extract_cv call, while on the Free
-    # plan — see entitlements.assert_can_extract_cv / mark_free_import_used.
+    # Legacy one-time trial marker retained for migration compatibility. New
+    # imports use UsageCounter.cv_imports_count and ignore this value.
     free_import_used = Column(Boolean, nullable=False, default=False)
 
 
 class UsageCounter(Base):
-    """Per-user monthly meters for exports and AI actions."""
+    """Per-user monthly meters for exports, CV imports, and AI actions."""
 
     __tablename__ = "usage_counters"
     __table_args__ = (
@@ -232,6 +234,7 @@ class UsageCounter(Base):
     # YYYY-MM (UTC)
     period_key = Column(String, nullable=False, index=True)
     exports_count = Column(Integer, nullable=False, default=0)
+    cv_imports_count = Column(Integer, nullable=False, default=0)
     ai_actions_count = Column(Integer, nullable=False, default=0)
 
 

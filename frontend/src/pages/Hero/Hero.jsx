@@ -164,7 +164,7 @@ export default function Hero() {
         wakeBackend();
     }, []);
 
-    // Free includes one lifetime import; Pro unlocks more imports + clean PDF + AI.
+    // Free includes three monthly imports; Pro removes that quota and unlocks clean PDF + AI.
     const importUrl = buildStartUrl("import", "free");
     const wizardUrl = buildStartUrl("wizard", "free");
     const demoUrl = getEditorPath({ start: "demo" });
@@ -509,7 +509,7 @@ export default function Hero() {
                         <p className={classes.planSummary}>Stwórz i sprawdź swoje CV.</p>
                         <ul>
                             <li><CheckIcon />Zacznij od Regenta lub Sterlinga</li>
-                            <li><CheckIcon />Zaimportuj jedno istniejące CV</li>
+                            <li><CheckIcon />Zaimportuj 3 CV miesięcznie</li>
                             <li><CheckIcon />Edytuj i zapisuj dokument</li>
                             <li><CheckIcon />Pobierz PDF z oznaczeniem wersji darmowej</li>
                         </ul>
@@ -529,7 +529,7 @@ export default function Hero() {
                             <li><CheckIcon />Czysty PDF bez oznaczenia CV Studio</li>
                             <li><CheckIcon />AI do poprawiania, skracania i tłumaczenia treści</li>
                             <li><CheckIcon />Sprawdzanie czytelności dla ATS</li>
-                            <li><CheckIcon />Kolejne importy CV</li>
+                            <li><CheckIcon />Importy CV bez limitu</li>
                             <li><CheckIcon />Nielimitowane projekty i eksporty w okresie Pro</li>
                         </ul>
                         <Link

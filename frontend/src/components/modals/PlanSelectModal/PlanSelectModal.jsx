@@ -23,7 +23,7 @@ const FALLBACK_PLANS = [
         highlights: [
             "Kreator i pełna edycja A4",
             "2 podstawowe szablony",
-            "1 darmowy import CV",
+            "3 importy CV / mies.",
             "PDF ze znakiem CV Studio",
             "1 zapisany dokument · 3 eksporty / mies.",
         ],
@@ -38,8 +38,8 @@ const FALLBACK_PLANS = [
         blurb: "Gotowe CV do wysłania.",
         highlights: [
             "PDF bez znaku wodnego",
-            "Wszystkie 14 szablonów",
-            "Import kolejnych CV",
+            "Wszystkie 10 szablonów",
+            "Importy CV bez limitu",
             "AI do treści, ATS i układu",
             "200 kredytów AI · wiele wersji CV",
         ],

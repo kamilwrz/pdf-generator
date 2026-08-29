@@ -36,8 +36,9 @@ PLAN_SEEDS: list[dict[str, Any]] = [
         "max_projects": 1,
         "max_exports_per_month": 3,
         "max_ai_actions_per_month": 0,
+        "max_cv_imports_per_month": 3,
         "ai_assistant": False,
-        "extract_cv": False,
+        "extract_cv": True,
         "template_tier": "starter",
         "stripe_price_id_monthly": None,
         "is_active": True,
@@ -48,6 +49,7 @@ PLAN_SEEDS: list[dict[str, Any]] = [
         "max_projects": None,
         "max_exports_per_month": None,
         "max_ai_actions_per_month": 200,
+        "max_cv_imports_per_month": None,
         "ai_assistant": True,
         "extract_cv": True,
         "template_tier": "all",
@@ -236,7 +238,7 @@ PLAN_DISPLAY: dict[str, dict[str, Any]] = {
         "highlights": [
             "Kreator i pełna edycja A4",
             "2 podstawowe szablony",
-            "1 darmowy import CV",
+            "3 importy CV / mies.",
             "PDF ze znakiem CV Studio",
             "1 zapisany dokument · 3 eksporty / mies.",
         ],
@@ -250,8 +252,8 @@ PLAN_DISPLAY: dict[str, dict[str, Any]] = {
         "blurb": "Gotowe CV do wysłania.",
         "highlights": [
             "PDF bez znaku wodnego",
-            "Wszystkie 14 szablonów",
-            "Import kolejnych CV",
+            "Wszystkie 10 szablonów",
+            "Importy CV bez limitu",
             "AI do treści, ATS i układu",
             "200 kredytów AI · wiele wersji CV",
         ],
@@ -288,6 +290,7 @@ def list_selectable_plans(db: Session) -> list[dict[str, Any]]:
             "period_note": display.get("period_note"),
             "max_projects": row.max_projects,
             "max_exports_per_month": row.max_exports_per_month,
+            "max_cv_imports_per_month": row.max_cv_imports_per_month,
             "monthly_ai_credits": row.max_ai_actions_per_month,
             "ai_assistant": bool(row.ai_assistant),
             "extract_cv": bool(row.extract_cv),
@@ -363,6 +366,7 @@ def _usage_row(db: Session, user_id: int, period_key: str | None = None) -> Usag
             user_id=user_id,
             period_key=key,
             exports_count=0,
+            cv_imports_count=0,
             ai_actions_count=0,
         )
         db.add(row)
@@ -387,6 +391,7 @@ def get_entitlements(db: Session, user: User) -> dict[str, Any]:
     max_projects = plan.max_projects
     max_exports = plan.max_exports_per_month
     max_ai = plan.max_ai_actions_per_month
+    max_cv_imports = plan.max_cv_imports_per_month
 
     def remaining(used: int, limit: int | None) -> int | None:
         if limit is None:
@@ -413,17 +418,20 @@ def get_entitlements(db: Session, user: User) -> dict[str, Any]:
         "limits": {
             "max_projects": max_projects,
             "max_exports_per_month": max_exports,
+            "max_cv_imports_per_month": max_cv_imports,
             "monthly_ai_credits": max_ai,
         },
         "usage": {
             "period_key": usage.period_key,
             "projects": project_count,
             "exports_count": usage.exports_count,
+            "cv_imports_count": usage.cv_imports_count,
             "ai_credits_used": usage.ai_actions_count,
         },
         "remaining": {
             "projects": remaining(project_count, max_projects),
             "exports": remaining(usage.exports_count, max_exports),
+            "cv_imports": remaining(usage.cv_imports_count, max_cv_imports),
             "ai_credits": remaining(usage.ai_actions_count, max_ai),
         },
         "stripe_customer_id": sub.stripe_customer_id,
@@ -490,8 +498,8 @@ def assert_can_use_ai_action(db: Session, user: User, action: str) -> None:
     """Require the plan entitlement for one requested AI-assistant action.
 
     Pro includes content AI (ratings, role fit, grammar, style, ATS, chat) and
-    the full-canvas Layout session. Free has no AI assistant (except the one
-    lifetime extract_cv trial handled separately).
+    the full-canvas Layout session. Free has no conversational AI assistant;
+    its separately metered CV imports are handled by `assert_can_extract_cv`.
 
     @param db - Active database session used to resolve the subscription.
     @param user - Authenticated user requesting the action.
@@ -510,35 +518,27 @@ def assert_can_use_ai_action(db: Session, user: User, action: str) -> None:
 
 
 def assert_can_extract_cv(db: Session, user: User) -> None:
-    """Require extract_cv feature flag plus remaining AI credits.
-
-    Free-plan accounts get exactly one lifetime free extract before this
-    gate blocks them (see `mark_free_import_used`, called by the
-    `/ai/extract_cv` route only after a successful extraction).
-    """
+    """Require the feature flag and remaining monthly CV-import allowance."""
     entitlements = get_entitlements(db, user)
     if not entitlements["extract_cv"]:
-        if entitlements["plan_slug"] == "free" and not entitlements["free_import_used"]:
-            return
-        if entitlements["plan_slug"] == "free":
-            raise PlanLimitError(
-                "plan_feature_extract_cv",
-                "Wykorzystano już darmowy import CV. Odblokuj Pro, "
-                "aby importować więcej dokumentów.",
-            )
         raise PlanLimitError(
             "plan_feature_extract_cv",
             "Ekstrakcja CV z PDF jest dostępna w planie Pro.",
         )
-    assert_has_ai_credits(db, user)
+    limit = entitlements["limits"]["max_cv_imports_per_month"]
+    if limit is not None and entitlements["usage"]["cv_imports_count"] >= limit:
+        raise PlanLimitError(
+            "plan_limit_cv_imports",
+            f"Wykorzystano limit {limit} importów CV w tym miesiącu. "
+            "Odblokuj Pro, aby importować bez limitu.",
+        )
 
 
 def mark_free_import_used(db: Session, user_id: int) -> None:
-    """Consume the Free plan's one lifetime `extract_cv` trial.
+    """Set the retired one-time trial marker for backward compatibility.
 
-    Uses a conditional UPDATE (not read-then-write) so two concurrent
-    successful extractions from the same account cannot both consume the
-    trial. Safe to call unconditionally after ANY successful extraction.
+    New code must call `record_cv_import`; this function exists only for old
+    migrations, clients, and deployments during a rolling release.
     """
     db.query(UserSubscription).filter(
         UserSubscription.user_id == user_id,
@@ -567,6 +567,37 @@ def record_export(db: Session, user_id: int) -> UsageCounter:
     row.exports_count = int(row.exports_count or 0) + 1
     db.add(row)
     db.commit()
+    db.refresh(row)
+    return row
+
+
+def record_cv_import(db: Session, user_id: int) -> UsageCounter:
+    """Atomically increment the UTC month's import meter after model success.
+
+    Failed provider calls never reach this function, so transient Cloudflare
+    errors do not consume a user's allowance. The route performs the quota gate
+    before the provider call and records only a normalized successful result.
+    The conditional SQL update repeats the limit check so concurrent imports
+    cannot push a Free account past its allowance after both provider calls end.
+    """
+    row = _usage_row(db, user_id)
+    subscription = _expire_pro_if_needed(db, get_or_create_subscription(db, user_id))
+    plan = get_plan(db, subscription.plan_slug)
+    limit = plan.max_cv_imports_per_month
+    query = db.query(UsageCounter).filter(UsageCounter.id == row.id)
+    if limit is not None:
+        query = query.filter(UsageCounter.cv_imports_count < limit)
+    updated = query.update(
+        {UsageCounter.cv_imports_count: UsageCounter.cv_imports_count + 1},
+        synchronize_session=False,
+    )
+    db.commit()
+    if updated != 1:
+        raise PlanLimitError(
+            "plan_limit_cv_imports",
+            f"Wykorzystano limit {limit} importów CV w tym miesiącu. "
+            "Odblokuj Pro, aby importować bez limitu.",
+        )
     db.refresh(row)
     return row
 
