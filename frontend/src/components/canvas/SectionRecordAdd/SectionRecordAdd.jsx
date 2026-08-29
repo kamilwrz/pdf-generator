@@ -18,6 +18,7 @@ import {
   resolveStructuralToolbarSide,
   structuralToolbarLayoutSize,
 } from "../recordPlusSize";
+import { includeRenderedElementBounds } from "../../../utils/canvasHighlightBounds";
 import CanvasHoverToolbar from "../CanvasHoverToolbar/CanvasHoverToolbar";
 
 /**
@@ -86,12 +87,19 @@ export default function SectionRecordAdd({
   const headingWidth = Number.isFinite(Number(width)) && Number(width) > 0
     ? Number(width)
     : 120;
-  const resolvedHighlight = highlight || {
+  const storedHighlight = highlight || {
     left: Number(left) || 0,
     top: Number(top) || 0,
     width: headingWidth,
     height: Math.max(headingHeight * 1.35, 12),
   };
+  // Re-measure when hover/pin makes the toolbar rerender. A single-line text
+  // heading uses `line-height: 1`, so its glyph Range can extend above the
+  // stored flow box. The union preserves the full-section rectangle while
+  // moving its top edge high enough to contain the actually painted heading.
+  const resolvedHighlight = visible
+    ? includeRenderedElementBounds(storedHighlight, heading)
+    : storedHighlight;
   // A single page follows its content lane. A spread instead uses the outer
   // edge of each sheet because the centre gap is narrower than the toolbar.
   const side = resolveStructuralToolbarSide(gutterSide, spreadSide);

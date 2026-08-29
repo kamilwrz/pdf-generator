@@ -52,6 +52,7 @@ import {
 import { listRecordBlockAddAnchors } from '../../../utils/sectionRecord';
 import { resolveSectionLaneTransfer } from '../../../utils/transferSectionLane';
 import { listSkillsDisplayAnchors } from '../../../utils/skillsDisplayMode';
+import { elementBoundsOnPage } from '../../../utils/canvasHighlightBounds';
 import classes from './CanvasElements.module.css';
 
 /**
@@ -84,34 +85,6 @@ function enterClassName(elementId, heldIds, fadingIds) {
  * Map heading ids → ↑/↓ flags (and optional lane transfer) for one lane.
  * Indexes are lane-local so a sidebar kicker cannot reorder into the main column.
  */
-function elementBoundsOnPage(documentElements, memberIds, page) {
-  const members = documentElements.filter((element) => (
-    memberIds.has(element.element_id)
-    && Math.max(1, Math.trunc(Number(element.page) || 1)) === page
-  ));
-  if (members.length === 0) return null;
-
-  const left = Math.min(...members.map((element) => Number(element.left) || 0));
-  const top = Math.min(...members.map((element) => Number(element.top) || 0));
-  const right = Math.max(...members.map((element) => (
-    (Number(element.left) || 0) + Math.max(0, Number(element.width) || 0)
-  )));
-  const bottom = Math.max(...members.map((element) => {
-    const explicitHeight = Number(element.height);
-    const fallbackHeight = (Number(element.fontSize) || 10) * 1.35;
-    return (Number(element.top) || 0)
-      + (Number.isFinite(explicitHeight) && explicitHeight > 0
-        ? explicitHeight
-        : fallbackHeight);
-  }));
-  return {
-    left,
-    top,
-    width: Math.max(1, right - left),
-    height: Math.max(1, bottom - top),
-  };
-}
-
 function fillSectionAnchors(
   map,
   sections,

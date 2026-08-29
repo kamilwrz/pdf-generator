@@ -2,6 +2,7 @@
 // (useA4Elements.js) and the AI assistant's geometry snapshot sent to the
 // backend need the real rendered size of an element, not stale stored
 // values — especially for textareas, whose height depends on wrapped text.
+import { imageDisplayTop } from "./iconAlignment";
 
 function getCanvasMeasurement(node) {
   const canvas = node.closest("[data-page-canvas]");
@@ -126,7 +127,11 @@ export function getVisualBounds(element) {
     return getTextContentBounds(element);
   }
   const left = Number(element?.left) || 0;
-  const top = Number(element?.top) || 0;
+  // Text-aligned template icons store the companion label's line top rather
+  // than the image's painted top. Consumers asking for *visual* bounds (for
+  // example a section highlight) must include that optical shift or their top
+  // border will cross the icon halfway down its glyph.
+  const top = imageDisplayTop(element);
   const { width, height } = getElementBounds(element);
   return { left, top, width, height };
 }
