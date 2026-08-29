@@ -12,7 +12,10 @@ import { EDITOR_MODE_TEMPLATE } from "../../../utils/editorMode";
 import { elementSupportsRecordBlockAdd } from "../../../utils/sectionRecord";
 import { useCanvasHoverToolbar } from "../../../hooks/useCanvasHoverToolbar";
 import { useCanvasDeletionUndo } from "../../../hooks/useCanvasDeletionUndo";
-import { structuralToolbarLayoutSize } from "../recordPlusSize";
+import {
+  resolveStructuralToolbarSide,
+  structuralToolbarLayoutSize,
+} from "../recordPlusSize";
 import CanvasHoverToolbar from "../CanvasHoverToolbar/CanvasHoverToolbar";
 
 /**
@@ -25,6 +28,7 @@ import CanvasHoverToolbar from "../CanvasHoverToolbar/CanvasHoverToolbar";
  *   width?:number,
  *   fontSize?:number,
  *   highlight?:{left:number,top:number,width:number,height:number}|null,
+ *   spreadSide?:"left"|"right"|null,
  *   canMoveUp?:boolean,
  *   canMoveDown?:boolean,
  * }} props
@@ -38,6 +42,7 @@ export default function RecordBlockAdd({
   width = 0,
   fontSize = 10,
   highlight = null,
+  spreadSide = null,
   canMoveUp = false,
   canMoveDown = false,
 }) {
@@ -84,7 +89,10 @@ export default function RecordBlockAdd({
     height: Math.max(boxHeight, Number(fontSize) || 10),
   };
   const toolbarTop = (Number(top) || 0) + boxHeight / 2 - layout.buttonSize / 2;
-  const side = (Number(left) || 0) < (pageSize?.width ?? 595) * 0.38 ? "left" : "right";
+  const preferredSide = (Number(left) || 0) < (pageSize?.width ?? 595) * 0.38
+    ? "left"
+    : "right";
+  const side = resolveStructuralToolbarSide(preferredSide, spreadSide);
   const recordLabel = String(anchorElement?.content || "").trim();
 
   return (

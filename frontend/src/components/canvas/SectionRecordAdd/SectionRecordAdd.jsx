@@ -14,7 +14,10 @@ import { PdfContext } from "../../../store/pdfgenerator-context";
 import { EDITOR_MODE_TEMPLATE } from "../../../utils/editorMode";
 import { useCanvasHoverToolbar } from "../../../hooks/useCanvasHoverToolbar";
 import { useCanvasDeletionUndo } from "../../../hooks/useCanvasDeletionUndo";
-import { structuralToolbarLayoutSize } from "../recordPlusSize";
+import {
+  resolveStructuralToolbarSide,
+  structuralToolbarLayoutSize,
+} from "../recordPlusSize";
 import CanvasHoverToolbar from "../CanvasHoverToolbar/CanvasHoverToolbar";
 
 /**
@@ -26,6 +29,7 @@ import CanvasHoverToolbar from "../CanvasHoverToolbar/CanvasHoverToolbar";
  *   fontSize?:number,
  *   highlight?:{left:number,top:number,width:number,height:number}|null,
  *   gutterSide?:"left"|"right",
+ *   spreadSide?:"left"|"right"|null,
  *   canMoveUp?:boolean,
  *   canMoveDown?:boolean,
  *   laneTransfer?:"to-sidebar"|"to-main"|null,
@@ -40,6 +44,7 @@ export default function SectionRecordAdd({
   fontSize = 10,
   highlight = null,
   gutterSide = "right",
+  spreadSide = null,
   canMoveUp = false,
   canMoveDown = false,
   laneTransfer = null,
@@ -87,9 +92,9 @@ export default function SectionRecordAdd({
     width: headingWidth,
     height: Math.max(headingHeight * 1.35, 12),
   };
-  // Sidebar sections use the left editing gutter; main-column sections use
-  // the right. The toolbar therefore never covers the authored column.
-  const side = gutterSide;
+  // A single page follows its content lane. A spread instead uses the outer
+  // edge of each sheet because the centre gap is narrower than the toolbar.
+  const side = resolveStructuralToolbarSide(gutterSide, spreadSide);
   const toolbarTop = (Number(top) || 0) + headingHeight / 2 - layout.buttonSize / 2;
   const sectionLabel = String(heading?.content || "").trim();
   const skillsModeLabel = {

@@ -34,7 +34,7 @@ export function recordPlusLayoutSize(zoom = 1, fontSize = 10) {
 }
 
 /**
- * Larger, screen-stable dimensions for the grouped section/record toolbar.
+ * Screen-stable dimensions for the grouped section/record toolbar.
  *
  * Unlike small single-purpose canvas icons, structural actions need enough
  * room for reliable pointer targeting and a short text label. Every value is
@@ -49,13 +49,31 @@ export function structuralToolbarLayoutSize(zoom = 1) {
     ? Number(zoom)
     : 1;
   return {
-    buttonSize: 40 / safeZoom,
-    iconSize: 17 / safeZoom,
-    gap: 4 / safeZoom,
-    labelWidth: 82 / safeZoom,
-    fontSize: 11 / safeZoom,
-    menuWidth: 184 / safeZoom,
-    offset: 12 / safeZoom,
+    buttonSize: 36 / safeZoom,
+    iconSize: 15 / safeZoom,
+    gap: 3 / safeZoom,
+    labelWidth: 76 / safeZoom,
+    fontSize: 10.5 / safeZoom,
+    menuWidth: 176 / safeZoom,
+    offset: 10 / safeZoom,
     borderWidth: 1 / safeZoom,
   };
+}
+
+/**
+ * Resolve the page-edge gutter used by a structural toolbar.
+ *
+ * A single page follows the template lane: sidebar controls use the left
+ * gutter and main-column controls use the right. In a two-page spread the
+ * 18 px centre gap cannot contain the grouped toolbar, so each page must use
+ * its outside edge. This prevents the first page's toolbar from rendering
+ * underneath (or, with a higher z-index, on top of) the second A4 page.
+ *
+ * @param {"left"|"right"} preferredSide - Lane-derived gutter on one page.
+ * @param {"left"|"right"|null|undefined} spreadSide - Physical side in a spread.
+ * @returns {"left"|"right"}
+ */
+export function resolveStructuralToolbarSide(preferredSide, spreadSide) {
+  if (spreadSide === "left" || spreadSide === "right") return spreadSide;
+  return preferredSide === "left" ? "left" : "right";
 }

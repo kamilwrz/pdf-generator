@@ -13,6 +13,15 @@ export const CANVAS_TOOLBAR_INITIAL_STATE = Object.freeze({
 });
 
 /**
+ * Time in milliseconds that a transient toolbar remains visible after leave.
+ *
+ * The toolbar lives outside the A4 content, and in a two-page spread it moves
+ * to the outer page edge. One second gives the pointer enough time to cross
+ * that distance without making the toolbar feel permanently sticky.
+ */
+export const CANVAS_TOOLBAR_HIDE_DELAY_MS = 1_000;
+
+/**
  * Reduce one canvas-toolbar interaction event.
  *
  * @param {{visible:boolean,pinned:boolean,menuOpen:boolean}} state

@@ -1,9 +1,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  CANVAS_TOOLBAR_HIDE_DELAY_MS,
   CANVAS_TOOLBAR_INITIAL_STATE,
   reduceCanvasHoverToolbarState,
 } from "./canvasHoverToolbarState.js";
+
+test("keeps a transient toolbar available for one second after pointer leave", () => {
+  assert.equal(CANVAS_TOOLBAR_HIDE_DELAY_MS, 1_000);
+});
 
 test("hover reveal stays transient until the trigger is clicked", () => {
   const shown = reduceCanvasHoverToolbarState(

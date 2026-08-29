@@ -8,12 +8,10 @@
 import { useCallback, useEffect, useReducer, useRef } from "react";
 import { useHoverPlusExclusive } from "./useHoverPlusExclusive";
 import {
+  CANVAS_TOOLBAR_HIDE_DELAY_MS,
   CANVAS_TOOLBAR_INITIAL_STATE,
   reduceCanvasHoverToolbarState,
 } from "../utils/canvasHoverToolbarState";
-
-/** Short grace period for crossing from A4 content into its gutter toolbar. */
-const HIDE_AFTER_LEAVE_MS = 420;
 
 /**
  * @param {{exclusiveKey:string,eligible:boolean,triggerIds:string[]}} options
@@ -81,7 +79,7 @@ export function useCanvasHoverToolbar({ exclusiveKey, eligible, triggerIds }) {
       if (!stateRef.current.pinned && !stateRef.current.menuOpen) {
         releaseExclusive();
       }
-    }, HIDE_AFTER_LEAVE_MS);
+    }, CANVAS_TOOLBAR_HIDE_DELAY_MS);
   }, [clearHideTimer, releaseExclusive]);
 
   const openMenu = useCallback(() => {

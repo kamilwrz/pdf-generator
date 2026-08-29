@@ -1924,7 +1924,7 @@ function PdfCanvas() {
                   ) : null}
                   <div className={isTwoPageView ? "canvas-spread" : "canvas-single"}>
                     {isTwoPageView ? (
-                      visiblePages.map((page) => (
+                      visiblePages.map((page, pageIndex) => (
                         <A4
                           key={page}
                           page={page}
@@ -1936,7 +1936,10 @@ function PdfCanvas() {
                           onPointerDownCapture={(event) => handleCanvasPointerDownCapture(event, page)}
                         >
                           <div style={layoutPreviewPatches.length > 0 || structurePreviewGroup || deletionPreviewIds.length > 0 ? { pointerEvents: "none" } : undefined}>
-                            <CanvasElements elements={previewedElements.filter((element) => (element.page ?? 1) === page)} />
+                            <CanvasElements
+                              elements={previewedElements.filter((element) => (element.page ?? 1) === page)}
+                              spreadSide={pageIndex === 0 ? "left" : "right"}
+                            />
                             <Connectors elements={previewedElements} page={page} />
                             <AiCorrectionOverlay elements={previewedElements} page={page} />
                             <SelectionOverlay elements={previewedElements} page={page} />

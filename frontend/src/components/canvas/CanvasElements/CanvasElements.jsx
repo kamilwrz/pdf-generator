@@ -5,10 +5,12 @@
  * `markContentElementsEnter`; decorative chrome is never animated.
  *
  * Template-mode section headings and record title bands reveal one shared,
- * grouped toolbar in the nearest A4 gutter. Hover reveals it, click pins it,
- * and the matching semantic block is highlighted without covering authored
- * content. Direct controls add/reorder; layout, lane transfer, and deletion
- * live in the overflow menu. Flat-list section bodies (Languages, flat custom sections —
+ * grouped toolbar in an A4 gutter. A single page uses the nearest lane edge;
+ * a two-page spread sends each toolbar to its page's outside edge. Hover
+ * reveals it, click pins it, and the matching semantic block is highlighted
+ * without covering authored content. Direct controls add/reorder; layout,
+ * lane transfer, and deletion live in the overflow menu. Flat-list section
+ * bodies (Languages, flat custom sections —
  * exactly one textarea per section) get a `FlatSectionLayoutToggle` icon to
  * their left, centered on the block's height, instead — opening a modal to
  * switch between an inline mid-dot row and a bullet list. A main-column
@@ -141,7 +143,7 @@ function fillSectionAnchors(
   });
 }
 
-export default function CanvasElements({ elements }) {
+export default function CanvasElements({ elements, spreadSide = null }) {
   const { heldIds, fadingIds } = useCanvasEnterIds(elements);
   // `elements` is page-filtered by PdfCanvas. Reorder ↑/↓ must use the full
   // document so a heading/record on page 2 still sees neighbours on page 1.
@@ -306,6 +308,7 @@ export default function CanvasElements({ elements }) {
               canMoveUp={blockAnchor.canMoveUp}
               canMoveDown={blockAnchor.canMoveDown}
               highlight={blockAnchor.highlight}
+              spreadSide={spreadSide}
             />
           ) : null}
           {flatAnchor ? (
@@ -361,6 +364,7 @@ export default function CanvasElements({ elements }) {
               skillsMode={sectionAnchor.skillsMode ?? null}
               gutterSide={sectionAnchor.gutterSide}
               highlight={sectionAnchor.highlight}
+              spreadSide={spreadSide}
             />
           ) : null}
           {blockAnchor ? (
@@ -375,6 +379,7 @@ export default function CanvasElements({ elements }) {
               canMoveUp={blockAnchor.canMoveUp}
               canMoveDown={blockAnchor.canMoveDown}
               highlight={blockAnchor.highlight}
+              spreadSide={spreadSide}
             />
           ) : null}
         </>

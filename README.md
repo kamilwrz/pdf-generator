@@ -182,6 +182,7 @@ pdf-generator/
 │   │   │   ├── canvas/CanvasHoverToolbar/ # Shared gutter toolbar, delayed tooltips, semantic-block highlight, overflow menu
 │   │   │   ├── canvas/SectionRecordAdd/  # Section hover/pin adapter: Add section, reorder, layout/transfer/delete menu
 │   │   │   ├── canvas/RecordBlockAdd/    # Record hover/pin adapter: Add entry, reorder, recoverable deletion
+│   │   │   ├── canvas/recordPlusSize(.test).js # Screen-stable toolbar sizing and single/spread gutter resolution
 │   │   │   ├── canvas/FlatSectionLayoutToggle/ # Hover icon on flat-list sections (Skills, Languages) to open the layout modal
 │   │   │   ├── editor/AddSectionModal/   # "+ Dodaj sekcję" modal (name + aa/cc-sub/cc-edu/cc-exp layout picker)
 │   │   │   ├── editor/FlatSectionLayoutModal/  # Inline row ↔ bullet list picker with a live content preview
@@ -389,19 +390,20 @@ Known limitations:
 
 ### Add / reorder section from heading hover
 
-In **template mode**, hovering a detected **main or sidebar** section heading reveals one grouped toolbar in the nearest editing gutter, outside the authored A4 content. The whole section strip on the heading's page receives a subtle pointer-inert outline, so the user sees the scope before acting. The toolbar exposes the labelled **Sekcja** add action and **↑/↓** directly (disabled at lane boundaries); lane transfer, Skills layout, and the destructive action live under **More**. A single click on the heading pins the toolbar across pointer leave, a click elsewhere dismisses it, and a double click on text hides structural chrome and opens text editing. Transient hover uses a 420 ms crossing grace period. Controls retain a 40 px on-screen target at every canvas zoom, delayed Polish tooltips, neutral Swiss-style chrome, and single-toolbar exclusivity. The first template-editor visit also shows a one-time hint explaining hover, pin, and double-click editing. Adding still inserts immediately **under that section** in the same lane; reorder and deletion still re-pack under the active rhythm.
+In **template mode**, hovering a detected **main or sidebar** section heading reveals one grouped toolbar outside the authored A4 content. A single page follows the section lane (sidebar on the left, main column on the right). In two-page view, the first sheet always uses its outer-left gutter and the second its outer-right gutter; the 18 px centre gap is intentionally never used because the grouped toolbar would render beneath or over the neighbouring page. The spread reserves 220 px on each outside edge inside its horizontal scroll extent, so neither toolbar is clipped on narrower editor windows. The whole section strip on the heading's page receives a subtle pointer-inert outline, so the user sees the scope before acting. The toolbar exposes the labelled **Sekcja** add action and **↑/↓** directly (disabled at lane boundaries); lane transfer, Skills layout, and the destructive action live under **More**. A single click on the heading pins the toolbar across pointer leave, a click elsewhere dismisses it, and a double click on text hides structural chrome and opens text editing. Transient hover remains visible for 1,000 ms after pointer leave, giving the user enough time to reach an outer gutter. Controls retain a compact 36 px on-screen target at every canvas zoom, with 15 px icons, delayed Polish tooltips, neutral Swiss-style chrome, and single-toolbar exclusivity. The first template-editor visit also shows a one-time hint explaining hover, pin, and double-click editing. Adding still inserts immediately **under that section** in the same lane; reorder and deletion still re-pack under the active rhythm.
 
 Implementation:
 
-- `frontend/src/components/canvas/CanvasHoverToolbar/CanvasHoverToolbar.jsx`, lines 35–175, component `CanvasHoverToolbar`, and `CanvasHoverToolbar.module.css`, lines 1–218 — grouped gutter surface, screen-stable controls, delayed tooltips, semantic highlight, and overflow menu; `frontend/src/components/canvas/SectionRecordAdd/SectionRecordAdd.jsx`, lines 35–165, component `SectionRecordAdd` — section-specific add/reorder/transfer/layout/delete actions
+- `frontend/src/components/canvas/CanvasHoverToolbar/CanvasHoverToolbar.jsx`, lines 35–174, component `CanvasHoverToolbar`, and `CanvasHoverToolbar.module.css`, lines 1–217 — grouped gutter surface, screen-stable controls, delayed tooltips, semantic highlight, and overflow menu; `frontend/src/components/canvas/SectionRecordAdd/SectionRecordAdd.jsx`, lines 39–170, component `SectionRecordAdd` — section-specific add/reorder/transfer/layout/delete actions and spread-side override
 - `frontend/src/hooks/useA4Elements.js`, function `handleReorderSection` (lines 937–) — exposed through `PdfContext` as `reorderSection`
-- `frontend/src/hooks/useCanvasHoverToolbar.js`, lines 30–170, hook `useCanvasHoverToolbar`, and `frontend/src/utils/canvasHoverToolbarState.js`, lines 22–42, function `reduceCanvasHoverToolbarState` — shared hover/pin/menu/dismiss lifecycle with exclusive ownership
+- `frontend/src/hooks/useCanvasHoverToolbar.js`, lines 28–168, hook `useCanvasHoverToolbar`, and `frontend/src/utils/canvasHoverToolbarState.js`, lines 1–50, constants `CANVAS_TOOLBAR_HIDE_DELAY_MS` / `CANVAS_TOOLBAR_INITIAL_STATE` plus function `reduceCanvasHoverToolbarState` — shared one-second hover/pin/menu/dismiss lifecycle with exclusive ownership
 - `frontend/src/utils/sectionStructure.js`, functions `insertSectionAfter`, `removeSection`, `reorderSection`
-- `frontend/src/components/canvas/CanvasElements/CanvasElements.jsx`, lines 74–231 and 262–380, `sectionAnchorsById` — computes lane-local movement/transfer flags plus a page-local semantic highlight from full-document main + sidebar membership; `frontend/src/pages/PdfCanvas.jsx`, lines 1592–1735, publishes deletion snapshots and structural handlers through `PdfContext`
+- `frontend/src/components/canvas/CanvasElements/CanvasElements.jsx`, lines 146–191 and 311–383, `sectionAnchorsById` and prop `spreadSide` — computes lane-local movement/transfer flags plus a page-local semantic highlight and forwards the physical spread edge; `frontend/src/pages/PdfCanvas.jsx`, lines 1927–1946, two-page `visiblePages.map` — assigns outer-left / outer-right toolbar gutters while publishing deletion snapshots and structural handlers through `PdfContext`; `frontend/src/App.css`, lines 121–133, `.canvas-spread` — reserves both outside gutters inside the horizontal scroll extent
 
 Tests:
 
-- `frontend/src/utils/canvasHoverToolbarState.test.js`, lines 1–42 — transient hover, persistent click pin, menu pin, and full reset transitions
+- `frontend/src/utils/canvasHoverToolbarState.test.js`, lines 1–45 — one-second leave delay, transient hover, persistent click pin, menu pin, and full reset transitions
+- `frontend/src/components/canvas/recordPlusSize.test.js`, lines 1–39 — compact screen-stable dimensions plus outer-gutter resolution for both sheets of a spread and lane-gutter preservation on one page
 
 ### Record-overlay elements survive structural repacking
 
@@ -489,8 +491,8 @@ Implementation:
 - `frontend/src/hooks/useA4Elements.js`, functions `handleAddRecordBlock`, `handleRemoveRecordBlock`, `handleReorderRecordBlock` — exposed through `PdfContext` as `addRecordBlock` / `removeRecordBlock` / `reorderRecordBlock`
 - `frontend/src/hooks/useCanvasEnterIds.js` — prunes hold/fade when ids leave a page filter; re-queues cancelled enter ids so per-page `CanvasElements` cannot strand new content invisible
 - `frontend/src/hooks/useCanvasHoverToolbar.js` + `useHoverPlusExclusive.js` — shared hover/pin lifecycle and one active toolbar slot
-- `frontend/src/components/canvas/recordPlusSize.js`, lines 47–61, function `structuralToolbarLayoutSize` — screen-stable 40 px targets and menu/label dimensions
-- `frontend/src/components/canvas/RecordBlockAdd/RecordBlockAdd.jsx`, lines 32–130, component `RecordBlockAdd` — record-specific **Wpis**, reorder, and recoverable delete actions on the shared toolbar
+- `frontend/src/components/canvas/recordPlusSize.js`, lines 47–79, functions `structuralToolbarLayoutSize` / `resolveStructuralToolbarSide` — screen-stable 36 px targets, menu/label dimensions, and outer-gutter resolution in two-page view
+- `frontend/src/components/canvas/RecordBlockAdd/RecordBlockAdd.jsx`, lines 36–138, component `RecordBlockAdd` — record-specific **Wpis**, reorder, recoverable delete, and spread-side gutter actions on the shared toolbar
 - `frontend/src/components/canvas/CanvasElements/CanvasElements.jsx`, lines 203–211 and 262–380, `recordBlockAnchorsById`; `frontend/src/utils/sectionRecord.js`, lines 746–800, function `listRecordBlockAddAnchors` — one affordance and full-record highlight per record
 
 Tests:
@@ -2238,6 +2240,7 @@ pdf-generator/
 │   │   │   ├── canvas/CanvasHoverToolbar/ # Wspólny pasek w gutterze, tooltipy, obrys bloku semantycznego i menu nadmiarowe
 │   │   │   ├── canvas/SectionRecordAdd/  # Adapter hover/pin sekcji: dodawanie, kolejność, menu układu/transferu/usunięcia
 │   │   │   ├── canvas/RecordBlockAdd/    # Adapter hover/pin wpisu: dodawanie, kolejność i odwracalne usunięcie
+│   │   │   ├── canvas/recordPlusSize(.test).js # Stały ekranowo rozmiar paska i wybór guttera dla jednej/dwóch stron
 │   │   │   ├── canvas/FlatSectionLayoutToggle/ # ikona hover na płaskich sekcjach (Umiejętności, Języki) otwierająca modal układu
 │   │   │   ├── editor/AddSectionModal/   # modal „+ Dodaj sekcję” (nazwa + wybór układu aa/cc-sub/cc-edu/cc-exp)
 │   │   │   ├── editor/FlatSectionLayoutModal/  # wybór w linii ↔ lista z podglądem treści na żywo
@@ -2433,19 +2436,20 @@ Znane ograniczenia:
 
 ### Dodawanie / zmiana kolejności sekcji po najechaniu na nagłówek
 
-W **trybie szablonu** najechanie na wykryty nagłówek sekcji **głównej lub sidebara** odsłania jeden pogrupowany pasek w najbliższym gutterze edycyjnym, poza autorską treścią A4. Cały pasek sekcji na stronie nagłówka dostaje subtelny obrys bez obsługi pointera, więc zakres operacji jest widoczny przed kliknięciem. Bezpośrednio dostępne są podpisana akcja **Sekcja** oraz **↑/↓** (wyłączone na granicach toru); transfer między kolumnami, układ Umiejętności i usunięcie trafiają do menu **Więcej**. Pojedynczy klik nagłówka przypina pasek mimo zejścia kursora, klik poza nim zamyka go, a dwuklik tekstu ukrywa chrome strukturalne i otwiera edycję treści. Hover przejściowy ma 420 ms na przejście do paska. Cele zachowują 40 px na ekranie przy każdym zoomie, tooltipy po polsku mają opóźnienie, styl jest neutralny i jednocześnie aktywny może być tylko jeden pasek. Przy pierwszej wizycie w edytorze szablonu pojawia się też jednorazowa podpowiedź o hoverze, przypięciu i dwukliku. Dodawanie nadal wstawia sekcję bezpośrednio **pod bieżącą** w tym samym torze, a zmiana kolejności i usunięcie przepakowują dokument w aktywnym rytmie.
+W **trybie szablonu** najechanie na wykryty nagłówek sekcji **głównej lub sidebara** odsłania jeden pogrupowany pasek poza autorską treścią A4. Widok jednej strony respektuje tor sekcji (sidebar po lewej, kolumna główna po prawej). W widoku dwóch stron pierwsza kartka zawsze korzysta z zewnętrznego lewego guttera, a druga z zewnętrznego prawego; środkowa przerwa 18 px celowo nie jest używana, ponieważ zgrupowany pasek wchodziłby pod sąsiednią stronę albo ją zasłaniał. Spread rezerwuje po 220 px na obu zewnętrznych krawędziach w poziomym obszarze przewijania, dlatego panel nie jest ucinany również w węższym oknie edytora. Cały pasek sekcji na stronie nagłówka dostaje subtelny obrys bez obsługi pointera, więc zakres operacji jest widoczny przed kliknięciem. Bezpośrednio dostępne są podpisana akcja **Sekcja** oraz **↑/↓** (wyłączone na granicach toru); transfer między kolumnami, układ Umiejętności i usunięcie trafiają do menu **Więcej**. Pojedynczy klik nagłówka przypina pasek mimo zejścia kursora, klik poza nim zamyka go, a dwuklik tekstu ukrywa chrome strukturalne i otwiera edycję treści. Hover przejściowy pozostaje widoczny przez 1000 ms po zejściu kursora, co daje czas na dotarcie do zewnętrznego guttera. Cele zachowują kompaktowe 36 px na ekranie przy każdym zoomie, ikony mają 15 px, tooltipy po polsku są opóźnione, styl jest neutralny i jednocześnie aktywny może być tylko jeden pasek. Przy pierwszej wizycie w edytorze szablonu pojawia się też jednorazowa podpowiedź o hoverze, przypięciu i dwukliku. Dodawanie nadal wstawia sekcję bezpośrednio **pod bieżącą** w tym samym torze, a zmiana kolejności i usunięcie przepakowują dokument w aktywnym rytmie.
 
 Implementacja:
 
-- `frontend/src/components/canvas/CanvasHoverToolbar/CanvasHoverToolbar.jsx`, linie 35–175, komponent `CanvasHoverToolbar`, oraz `CanvasHoverToolbar.module.css`, linie 1–218 — pogrupowany pasek w gutterze, stały ekranowo rozmiar, tooltipy, obrys semantyczny i menu; `SectionRecordAdd.jsx`, linie 35–165, komponent `SectionRecordAdd` — akcje dodawania/kolejności/transferu/układu/usunięcia sekcji
+- `frontend/src/components/canvas/CanvasHoverToolbar/CanvasHoverToolbar.jsx`, linie 35–174, komponent `CanvasHoverToolbar`, oraz `CanvasHoverToolbar.module.css`, linie 1–217 — pogrupowany pasek w gutterze, stały ekranowo rozmiar, tooltipy, obrys semantyczny i menu; `SectionRecordAdd.jsx`, linie 39–170, komponent `SectionRecordAdd` — akcje dodawania/kolejności/transferu/układu/usunięcia sekcji i nadpisanie strony spreadu
 - `frontend/src/hooks/useA4Elements.js`, funkcja `handleReorderSection` (linie 937–) — wystawiana przez `PdfContext` jako `reorderSection`
-- `frontend/src/hooks/useCanvasHoverToolbar.js`, linie 30–170, hook `useCanvasHoverToolbar`, oraz `frontend/src/utils/canvasHoverToolbarState.js`, linie 22–42, funkcja `reduceCanvasHoverToolbarState` — wspólny cykl hover/przypięcie/menu/zamknięcie z wyłącznym właścicielem
+- `frontend/src/hooks/useCanvasHoverToolbar.js`, linie 28–168, hook `useCanvasHoverToolbar`, oraz `frontend/src/utils/canvasHoverToolbarState.js`, linie 1–50, stałe `CANVAS_TOOLBAR_HIDE_DELAY_MS` / `CANVAS_TOOLBAR_INITIAL_STATE` i funkcja `reduceCanvasHoverToolbarState` — wspólny sekundowy cykl hover/przypięcie/menu/zamknięcie z wyłącznym właścicielem
 - `frontend/src/utils/sectionStructure.js`, funkcje `insertSectionAfter`, `removeSection`, `reorderSection`
-- `frontend/src/components/canvas/CanvasElements/CanvasElements.jsx`, linie 74–231 i 262–380, `sectionAnchorsById` — wylicza flagi kolejności/transferu oraz lokalny dla strony obrys semantyczny z pełnego członkostwa main + sidebar; `frontend/src/pages/PdfCanvas.jsx`, linie 1592–1735, publikuje snapshot usunięcia i handlery strukturalne przez `PdfContext`
+- `frontend/src/components/canvas/CanvasElements/CanvasElements.jsx`, linie 146–191 i 311–383, `sectionAnchorsById` i prop `spreadSide` — wylicza lokalne dla toru flagi kolejności/transferu, obrys semantyczny strony i przekazuje fizyczną krawędź spreadu; `frontend/src/pages/PdfCanvas.jsx`, linie 1927–1946, mapowanie `visiblePages` widoku dwóch stron — przypisuje zewnętrzny lewy/prawy gutter i publikuje snapshoty usuwania oraz handlery strukturalne przez `PdfContext`; `frontend/src/App.css`, linie 121–133, `.canvas-spread` — rezerwuje oba zewnętrzne guttery w poziomym obszarze przewijania
 
 Testy:
 
-- `frontend/src/utils/canvasHoverToolbarState.test.js`, linie 1–42 — hover przejściowy, trwałe przypięcie kliknięciem, przypięcie menu i pełny reset stanu
+- `frontend/src/utils/canvasHoverToolbarState.test.js`, linie 1–45 — sekundowe opóźnienie znikania, hover przejściowy, trwałe przypięcie kliknięciem, przypięcie menu i pełny reset stanu
+- `frontend/src/components/canvas/recordPlusSize.test.js`, linie 1–39 — kompaktowe, stałe ekranowo wymiary, zewnętrzne guttery obu kartek spreadu i zachowanie guttera toru przy jednej stronie
 
 ### Elementy record-overlay przetrwają strukturalne przepakowanie
 
@@ -2533,8 +2537,8 @@ Implementacja:
 - `frontend/src/hooks/useA4Elements.js`, funkcje `handleAddRecordBlock`, `handleRemoveRecordBlock`, `handleReorderRecordBlock` — wystawiane przez `PdfContext` jako `addRecordBlock` / `removeRecordBlock` / `reorderRecordBlock`
 - `frontend/src/hooks/useCanvasEnterIds.js` — czyści hold/fade gdy id opuszcza filtr strony; wraca anulowane id do puli enter, żeby per-page `CanvasElements` nie zostawiał nowej treści niewidocznej
 - `frontend/src/hooks/useCanvasHoverToolbar.js` + `useHoverPlusExclusive.js` — wspólny cykl hover/przypięcie i jeden aktywny slot paska
-- `frontend/src/components/canvas/recordPlusSize.js`, linie 47–61, funkcja `structuralToolbarLayoutSize` — stałe ekranowo cele 40 px oraz wymiary menu/etykiety
-- `frontend/src/components/canvas/RecordBlockAdd/RecordBlockAdd.jsx`, linie 32–130, komponent `RecordBlockAdd` — akcje **Wpis**, kolejności i odwracalnego usunięcia na wspólnym pasku
+- `frontend/src/components/canvas/recordPlusSize.js`, linie 47–79, funkcje `structuralToolbarLayoutSize` / `resolveStructuralToolbarSide` — stałe ekranowo cele 36 px, wymiary menu/etykiety i wybór zewnętrznego guttera w widoku dwóch stron
+- `frontend/src/components/canvas/RecordBlockAdd/RecordBlockAdd.jsx`, linie 36–138, komponent `RecordBlockAdd` — akcje **Wpis**, kolejności, odwracalnego usunięcia i guttera spreadu na wspólnym pasku
 - `frontend/src/components/canvas/CanvasElements/CanvasElements.jsx`, linie 203–211 i 262–380, `recordBlockAnchorsById`; `frontend/src/utils/sectionRecord.js`, linie 746–800, funkcja `listRecordBlockAddAnchors` — jeden affordance i obrys całego wpisu na rekord
 
 Testy:

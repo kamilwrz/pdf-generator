@@ -119,13 +119,17 @@
 }
 
 .canvas-spread {
+    /* Reserve both outside gutters inside the horizontal scroll extent. The
+       structural toolbar is about 203px wide at 100%, so 220px keeps its
+       border and shadow reachable even when two A4 sheets fill the viewport. */
+    --canvas-spread-outer-gutter: 220px;
     display: flex;
     align-items: flex-start;
     justify-content: center;
     gap: 18px;
     width: max-content;
     min-width: 100%;
-    padding: 0 8px;
+    padding: 0 var(--canvas-spread-outer-gutter);
 }
 
 .page-canvas p {
