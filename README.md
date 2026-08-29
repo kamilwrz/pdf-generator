@@ -218,10 +218,10 @@ pdf-generator/
     │   ├── utils/            # image_src_to_path, metrics_logging, upload_security
     │   ├── main.py
     │   └── dependencies.py
-    ├── alembic/              # Schema migrations (including 0007 monthly CV-import quota)
+    ├── alembic/              # Schema migrations (0005 SQLite-safe history relation; 0007 monthly import quota)
     ├── fonts/                # Bundled TTFs for PDF
     ├── template_assets/      # Sidebar, IT and Iconic artwork/icons
-    ├── tests/                # includes test_cloudflare_cv_extraction.py
+    ├── tests/                # includes Cloudflare extraction and SQLite migration-recovery regressions
     ├── alembic.ini
     ├── requirements.txt
     └── .env.example
@@ -236,6 +236,8 @@ pdf-generator/
 Configured by `DATABASE_URL` (`backend/app/models/database.py`). Default if unset: `sqlite:///./pdfgenerator.db`. `postgres://` URLs are rewritten to `postgresql://`. Postgres uses `pool_pre_ping` for Render cold starts.
 
 Schema is created by `init_db()` during app lifespan (not at import): `Base.metadata.create_all` for missing tables, then `alembic upgrade head` for schema changes (multi-page columns live in `backend/alembic/versions/`). Billing catalog is seeded via `bootstrap_billing`. Manual CLI: `cd backend && alembic upgrade head`.
+
+Revision `20260824_0005` links `pdfs.source_import_id` to the private `cv_import_snapshots` history. SQLite cannot add that foreign key with a regular `ALTER TABLE`, so `upgrade` uses Alembic `batch_alter_table`: SQLite performs a reflected move-and-copy while PostgreSQL uses normal ALTER operations. The migration inspects the table, column, relation, and index independently, which makes a retry repair the partially committed state left by an older failed SQLite run. Do not `stamp` past this revision after an error; update the code, back up the database, and rerun `upgrade head`. Implementation: `backend/alembic/versions/20260824_0005_import_history.py`, lines 19–78, function `upgrade`. Regression tests: `backend/tests/test_alembic_import_history_migration.py`, lines 18–143, class `ImportHistoryMigrationTests`.
 
 ### Tables (business purpose)
 
@@ -2007,6 +2009,7 @@ For local Cloudflare setup, copy `backend/.env.example` to `backend/.env`, paste
 ### Troubleshooting
 
 - **Login “Failed to fetch” on Render:** free dyno cold start. Frontend uses long timeouts + retries and `wakeBackend()`; `/health` must answer while DB init runs in background (`main.py` lifespan).
+- **SQLite reports `No support for ALTER of constraints`:** this came from the former revision `0005`. The current migration uses batch mode and can resume after the table/column were already committed. Keep the database at its reported Alembic revision, create a backup, and rerun `python -m alembic upgrade head`; do not delete the partially created table and do not use `alembic stamp` to skip the relation.
 - **Asystent AI / Układ “trwa uruchamianie” or timeout:** AI calls wake the dyno, retry network blips (not client timeouts), and use longer waits (`layout` up to 240s for `gpt-5.6-luna`). A timeout message means the client aborted — retry once; if it persists, check Render logs for OpenAI errors.
 - **CV import says it is not configured (503):** verify `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN`, and `CV_EXTRACT_PROVIDER=cloudflare`, then restart the backend. Never paste the token into the browser console or frontend `.env`.
 - **CV import is temporarily unavailable / rate-limited:** inspect the safe response code and Render logs; 429 is retryable, 503 indicates configuration, connectivity, or provider availability. Cloudflare's Free allocation is account-wide and resets daily, independently of the application's per-user monthly quota.
@@ -2018,7 +2021,7 @@ For local Cloudflare setup, copy `backend/.env.example` to `backend/.env`, paste
 ## Testing
 
 - **Framework:** Python `unittest` under `backend/tests/`.
-- **Coverage focus:** image upload security (format sniffing, traversal, size/count limits, owner-only content), PDF ownership IDOR, export metering HTTP, Free extract rejection, PdfElement schema contract (`shared/pdf-element.schema.json`), per-font PDF wrapping, transient browser-line validation and advance calibration, layout analysis safety, AI chat/command sanitisation, entitlements, template registry sync (frontend `TEMPLATES` ↔ `_GENERATORS` ↔ `FREE_STARTER_TEMPLATE_IDS`), PDF element upsert/`fixedToPage`, CV data normalisation, bullet layout, Unicode fonts. Frontend tests also verify primary/run font readiness and all three rendering-request integrations; real Chromium Range output is additionally checked during visual export QA, not by the Node unit runner.
+- **Coverage focus:** image upload security (format sniffing, traversal, size/count limits, owner-only content), PDF ownership IDOR, export metering HTTP, Free extract rejection, clean and partially committed SQLite migration `0005`, PdfElement schema contract (`shared/pdf-element.schema.json`), per-font PDF wrapping, transient browser-line validation and advance calibration, layout analysis safety, AI chat/command sanitisation, entitlements, template registry sync (frontend `TEMPLATES` ↔ `_GENERATORS` ↔ `FREE_STARTER_TEMPLATE_IDS`), PDF element upsert/`fixedToPage`, CV data normalisation, bullet layout, Unicode fonts. Frontend tests also verify primary/run font readiness and all three rendering-request integrations; real Chromium Range output is additionally checked during visual export QA, not by the Node unit runner.
 - **Run:** `cd backend && python -m unittest discover -s tests`.
 - **Frontend:** ESLint via `npm run lint`; unit tests via `cd frontend && npm test` (Node built-in runner).
 - **CI:** `.github/workflows/ci.yml` runs both suites on push/PR.
@@ -2094,6 +2097,7 @@ Notable product facts:
 - [React documentation](https://react.dev/) — components, hooks, rendering.
 - [FastAPI documentation](https://fastapi.tiangolo.com/) — routes, dependencies, OpenAPI.
 - [SQLAlchemy 2.x documentation](https://docs.sqlalchemy.org/) — ORM sessions and models.
+- [Alembic batch migrations](https://alembic.sqlalchemy.org/en/latest/batch.html) — official move-and-copy workflow required for SQLite constraint changes.
 - [ReportLab user guide](https://www.reportlab.com/docs/reportlab-userguide.pdf) — PDF canvas drawing.
 - [OpenAI platform docs](https://platform.openai.com/docs) — chat and vision APIs.
 - [Vite guide](https://vite.dev/guide/) — frontend tooling.
@@ -2320,10 +2324,10 @@ pdf-generator/
     │   ├── utils/
     │   ├── main.py
     │   └── dependencies.py
-    ├── alembic/              # Migracje, w tym 0007 z miesięcznym limitem importów
+    ├── alembic/              # Migracje: 0005 bezpieczne dla SQLite; 0007 z miesięcznym limitem importów
     ├── fonts/
     ├── template_assets/
-    ├── tests/                # m.in. test_cloudflare_cv_extraction.py
+    ├── tests/                # m.in. regresje ekstrakcji Cloudflare i naprawy migracji SQLite
     ├── alembic.ini
     ├── requirements.txt
     └── .env.example
@@ -2338,6 +2342,8 @@ pdf-generator/
 `DATABASE_URL` (`database.py`). Domyślnie SQLite. `postgres://` → `postgresql://`. Postgres: `pool_pre_ping`.
 
 `init_db()` w lifespanie: `create_all` + `alembic upgrade head` (kolumny wielostronicowe w `backend/alembic/versions/`); seed planów przez `bootstrap_billing`. CLI: `cd backend && alembic upgrade head`.
+
+Rewizja `20260824_0005` łączy `pdfs.source_import_id` z prywatną historią `cv_import_snapshots`. SQLite nie potrafi dodać takiego klucza obcego zwykłym `ALTER TABLE`, dlatego funkcja `upgrade` używa `batch_alter_table`: SQLite wykonuje odzwierciedlenie oraz „move-and-copy”, a PostgreSQL zwykłe operacje ALTER. Migracja niezależnie sprawdza tabelę, kolumnę, relację i indeks, więc ponowienie naprawia także częściowo zatwierdzony stan po błędzie starszej wersji. Po błędzie nie używaj `stamp`, aby przeskoczyć tę rewizję; zaktualizuj kod, wykonaj kopię bazy i ponów `upgrade head`. Implementacja: `backend/alembic/versions/20260824_0005_import_history.py`, linie 19–78, funkcja `upgrade`. Testy regresyjne: `backend/tests/test_alembic_import_history_migration.py`, linie 18–143, klasa `ImportHistoryMigrationTests`.
 
 | Tabela | Cel |
 |--------|-----|
@@ -4043,6 +4049,7 @@ Lokalnie skopiuj `backend/.env.example` do `backend/.env`, wstaw Account ID i to
 ### Rozwiązywanie problemów
 
 - Cold start Render: długie timeouty + `wakeBackend()`; `/health` bez blokady na DB.
+- SQLite zgłasza `No support for ALTER of constraints`: błąd pochodził ze starszej wersji rewizji `0005`. Aktualna migracja używa batch mode i potrafi kontynuować, gdy tabela lub kolumna zostały już zatwierdzone. Pozostaw wersję Alembic bez zmian, zrób kopię bazy i ponów `python -m alembic upgrade head`; nie usuwaj częściowo utworzonej tabeli i nie omijaj relacji przez `alembic stamp`.
 - Asystent / Układ: `wakeBackend` + retry sieci (bez ponawiania AbortError); `layout` ma timeout do 240 s pod `gpt-5.6-luna`.
 - Import CV 503 „nie skonfigurowany”: sprawdź `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN`, `CV_EXTRACT_PROVIDER=cloudflare` i zrestartuj backend.
 - Import CV 429/503: 429 jest ponawialnym limitem dostawcy; 503 oznacza konfigurację, sieć lub dostępność. Dzienna pula Free Cloudflare jest wspólna dla konta i niezależna od miesięcznego limitu użytkownika w aplikacji.
@@ -4054,7 +4061,7 @@ Lokalnie skopiuj `backend/.env.example` do `backend/.env`, wstaw Account ID i to
 ## Testy
 
 - **Framework:** `unittest` w `backend/tests/`.
-- **Zakres:** bezpieczeństwo uploadu (w tym content tylko dla właściciela), IDOR PDF, metering eksportów HTTP, reject extract na Free, kontrakt schematu `PdfElement` (`shared/pdf-element.schema.json`), zawijanie PDF per font, walidacja tymczasowych linii przeglądarki i kalibracja advance, analiza układu, sanityzacja AI, entitlements, synchronizacja rejestru szablonów, upsert elementów PDF, normalizacja `cv_data`, listy punktów, fonty Unicode. Testy frontendowe sprawdzają też gotowość bazowych/runowych fontów i podłączenie wszystkich trzech żądań renderu; realny wynik Chromium Range jest dodatkowo sprawdzany podczas wizualnego QA eksportu, a nie przez runner jednostkowy Node.
+- **Zakres:** bezpieczeństwo uploadu (w tym content tylko dla właściciela), IDOR PDF, metering eksportów HTTP, reject extract na Free, czysta i częściowo zatwierdzona migracja SQLite `0005`, kontrakt schematu `PdfElement` (`shared/pdf-element.schema.json`), zawijanie PDF per font, walidacja tymczasowych linii przeglądarki i kalibracja advance, analiza układu, sanityzacja AI, entitlements, synchronizacja rejestru szablonów, upsert elementów PDF, normalizacja `cv_data`, listy punktów, fonty Unicode. Testy frontendowe sprawdzają też gotowość bazowych/runowych fontów i podłączenie wszystkich trzech żądań renderu; realny wynik Chromium Range jest dodatkowo sprawdzany podczas wizualnego QA eksportu, a nie przez runner jednostkowy Node.
 - **Uruchomienie:** `cd backend && python -m unittest discover -s tests`.
 - **Frontend:** `npm run lint` oraz `npm test`.
 - **CI:** `.github/workflows/ci.yml` uruchamia obie suity przy push/PR.
@@ -4118,6 +4125,7 @@ Zobacz [`BUGZ.MD`](BUGZ.MD) i [`TODOS.md`](TODOS.md).
 - [React](https://react.dev/)
 - [FastAPI](https://fastapi.tiangolo.com/)
 - [SQLAlchemy](https://docs.sqlalchemy.org/)
+- [Alembic: migracje batch](https://alembic.sqlalchemy.org/en/latest/batch.html) — oficjalny mechanizm move-and-copy dla zmian ograniczeń w SQLite.
 - [ReportLab](https://www.reportlab.com/docs/reportlab-userguide.pdf)
 - [OpenAI](https://platform.openai.com/docs)
 - [Vite](https://vite.dev/guide/)

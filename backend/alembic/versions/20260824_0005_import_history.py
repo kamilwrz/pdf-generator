@@ -17,6 +17,15 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
+    """Create import history and link saved PDFs to their source snapshot.
+
+    ``batch_alter_table`` is required for the foreign key because SQLite cannot
+    add constraints with ``ALTER TABLE``. Alembic recreates the table and copies
+    its rows while PostgreSQL continues to use ordinary ALTER statements. Each
+    object is inspected independently so rerunning after a non-transactional
+    SQLite failure repairs the missing constraint and index without duplicating
+    the table or column that may already have been committed.
+    """
     bind = op.get_bind()
     inspector = sa.inspect(bind)
     tables = set(inspector.get_table_names())
@@ -40,9 +49,31 @@ def upgrade() -> None:
 
     if "pdfs" in tables:
         columns = {column["name"] for column in inspector.get_columns("pdfs")}
-        if "source_import_id" not in columns:
-            op.add_column("pdfs", sa.Column("source_import_id", sa.Integer(), nullable=True))
-            op.create_foreign_key("fk_pdfs_source_import_id", "pdfs", "cv_import_snapshots", ["source_import_id"], ["id"])
+        foreign_keys = inspector.get_foreign_keys("pdfs")
+        indexes = {index["name"] for index in inspector.get_indexes("pdfs")}
+        source_column_missing = "source_import_id" not in columns
+        source_foreign_key_missing = not any(
+            foreign_key.get("constrained_columns") == ["source_import_id"]
+            and foreign_key.get("referred_table") == "cv_import_snapshots"
+            and foreign_key.get("referred_columns") == ["id"]
+            for foreign_key in foreign_keys
+        )
+
+        if source_column_missing or source_foreign_key_missing:
+            with op.batch_alter_table("pdfs") as batch_op:
+                if source_column_missing:
+                    batch_op.add_column(
+                        sa.Column("source_import_id", sa.Integer(), nullable=True)
+                    )
+                if source_foreign_key_missing:
+                    batch_op.create_foreign_key(
+                        "fk_pdfs_source_import_id",
+                        "cv_import_snapshots",
+                        ["source_import_id"],
+                        ["id"],
+                    )
+
+        if "ix_pdfs_source_import_id" not in indexes:
             op.create_index("ix_pdfs_source_import_id", "pdfs", ["source_import_id"])
 
 
