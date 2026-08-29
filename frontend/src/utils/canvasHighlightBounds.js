@@ -53,14 +53,33 @@ export function unionCanvasBounds(bounds) {
  * @param {object[]} documentElements - Complete canvas document state.
  * @param {Set<string>} memberIds - IDs belonging to the highlighted block.
  * @param {number} page - One-based page whose members should be measured.
+ * `maxBottom` is a page-local semantic boundary, normally the start of the
+ * next section in the same lane. It prevents a stale or deliberately generous
+ * textarea height from making the current highlight cover that next section.
+ *
+ * @param {{maxBottom?:number|null}} [options]
  * @returns {{left:number,top:number,width:number,height:number}|null}
  */
-export function elementBoundsOnPage(documentElements, memberIds, page) {
+export function elementBoundsOnPage(
+  documentElements,
+  memberIds,
+  page,
+  { maxBottom = null } = {},
+) {
   const members = documentElements.filter((element) => (
     memberIds.has(element.element_id)
     && Math.max(1, Math.trunc(Number(element.page) || 1)) === page
   ));
-  return unionCanvasBounds(members.map(getVisualBounds));
+  const bounds = unionCanvasBounds(members.map(getVisualBounds));
+  if (maxBottom == null) return bounds;
+  const numericMaxBottom = Number(maxBottom);
+  if (!bounds || !Number.isFinite(numericMaxBottom)) return bounds;
+
+  const boundedBottom = Math.min(bounds.top + bounds.height, numericMaxBottom);
+  return {
+    ...bounds,
+    height: Math.max(0, boundedBottom - bounds.top),
+  };
 }
 
 /**

@@ -99,6 +99,18 @@ function fillSectionAnchors(
       element.element_id === section.headingId
     ));
     const page = Math.max(1, Math.trunc(Number(heading?.page) || 1));
+    const pageStartAbs = (page - 1) * pageHeight;
+    const nextStartAbs = Number(sections[index + 1]?.startAbs);
+    // Section membership is based on element tops, while a textarea's stored
+    // box can legitimately retain extra height after a transfer or reflow. Use
+    // the next lane-local section start as a hard visual boundary so the hover
+    // outline never absorbs its neighbour. Both main and sidebar calls share
+    // this path, making the rule template- and lane-neutral.
+    const maxBottom = Number.isFinite(nextStartAbs)
+      && nextStartAbs >= pageStartAbs
+      && nextStartAbs < pageStartAbs + pageHeight
+      ? nextStartAbs - pageStartAbs
+      : null;
     map.set(section.headingId, {
       canMoveUp: index > 0,
       canMoveDown: index < sections.length - 1,
@@ -107,6 +119,7 @@ function fillSectionAnchors(
         documentElements,
         resolveMemberIds(documentElements, section.headingId, pageHeight),
         page,
+        { maxBottom },
       ),
       laneTransfer: allowLaneTransfer
         ? resolveSectionLaneTransfer(documentElements, section.headingId, pageHeight)

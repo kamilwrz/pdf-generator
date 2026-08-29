@@ -84,4 +84,59 @@ describe("canvas semantic highlight bounds", () => {
     );
     assert.ok(Math.abs(resolved.height - stored.height) < 1e-9);
   });
+
+  it("clips an oversized body box at the next semantic section boundary", () => {
+    const elements = [
+      {
+        element_id: "skills-heading",
+        category: "text",
+        content: "UMIEJĘTNOŚCI",
+        left: 34,
+        top: 337,
+        width: 92,
+        height: 10,
+        page: 1,
+      },
+      {
+        element_id: "skills-rule",
+        category: "line",
+        left: 34,
+        top: 353,
+        width: 22,
+        height: 1,
+        page: 1,
+      },
+      {
+        element_id: "skills-body",
+        category: "textarea",
+        left: 34,
+        top: 365,
+        width: 152,
+        // Mirrors the live failure: the stored auto-height box retained blank
+        // space below its visible copy and crossed the Languages heading.
+        height: 335,
+        page: 1,
+      },
+      {
+        element_id: "languages-heading",
+        category: "text",
+        content: "JĘZYKI",
+        left: 34,
+        top: 653,
+        width: 48,
+        height: 10,
+        page: 1,
+      },
+    ];
+
+    const bounds = elementBoundsOnPage(
+      elements,
+      new Set(["skills-heading", "skills-rule", "skills-body"]),
+      1,
+      { maxBottom: 653 },
+    );
+
+    assert.equal(bounds.top, 337);
+    assert.equal(bounds.top + bounds.height, 653);
+  });
 });
