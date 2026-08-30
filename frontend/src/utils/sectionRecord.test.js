@@ -464,6 +464,10 @@ describe("buildRecordClone / pickRecordTemplateGroup", () => {
     assert.ok(clones[2].height < 80, "placeholder description should not keep tall source height");
     assert.equal(clones[0].isEditing, false);
     assert.equal(new Set(clones.map((element) => element.flowGroup)).size, 1);
+    assert.ok(clones.every((element) => element.editorAddedRecord));
+    assert.deepEqual(clones.map((element) => element.editorRecordField), [
+      "title", "meta", "description",
+    ]);
   });
 
   it("prefers the longest bold-title template over a short hovered group", () => {

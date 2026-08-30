@@ -616,7 +616,7 @@ export function ensureCanonicalRecordTemplate(
  * @param {() => string} [idFactory]
  * @param {object[][]|null} [sectionGroups]
  * @param {{ sectionTitle?: string|null, pageHeight?: number }} [options]
- * @returns {object[]}
+ * @returns {object[]} Cloned canvas fields tagged for cv_data synchronization.
  */
 export function buildRecordClone(
   members,
@@ -631,6 +631,7 @@ export function buildRecordClone(
   });
   if (source.length === 0) return [];
   const placeholders = placeholderContentsForRecord(source, { sectionTitle });
+  const layout = inferRecordLayout(source, { sectionTitle });
   const group = `record-${idFactory()}`;
   const realSource = source.filter((element) => !isRecordOverlay(element, source, pageHeight));
   const originAbs = realSource.length > 0
@@ -682,7 +683,34 @@ export function buildRecordClone(
       locked: false,
       zIndex: Number.isFinite(Number(element.zIndex)) ? Number(element.zIndex) : 4,
       page: 1,
+      // Unlike generator-authored records, this group has no representation in
+      // cv_data yet. Semantic field roles allow the canvas/profile synchronizer
+      // to append and subsequently update the exact record without relying on
+      // translated heading text or template-specific element positions.
+      editorAddedRecord: true,
+      editorRecordLayout: layout,
+      editorRecordField: (() => {
+        const placeholder = String(content || "").trim().toLocaleLowerCase();
+        if (placeholder === "okres") return "period";
+        if (placeholder === "lokalizacja") return "city";
+        if (element?.bulletList) return "description";
+        if (layout === SECTION_LAYOUTS.RECORD_EDUCATION) {
+          if (element?.bold) return "degree";
+          if (placeholder === "organizacja") return "school";
+          return index === 1 ? "school" : "meta";
+        }
+        if (layout === SECTION_LAYOUTS.RECORD_SUBCATEGORY) {
+          return element?.bold || index === 0 ? "title" : "body";
+        }
+        if (element?.bold || index === 0) return "title";
+        if (placeholder === "organizacja") return "organization";
+        return "meta";
+      })(),
     };
+    if (element.editorAddedSection && element.editorSectionId) {
+      next.editorAddedSection = true;
+      next.editorSectionId = element.editorSectionId;
+    }
     // Preserve sidebar lane so cloned records stay in the rail packer.
     if (element.flowLane === "sidebar") next.flowLane = "sidebar";
     return next;
@@ -1202,6 +1230,10 @@ function buildRecordDescription(
   const targetFlowLane = (targetGroup || []).find((element) => (
     typeof element?.flowLane === "string" && element.flowLane
   ))?.flowLane;
+  const editorRecord = (targetGroup || []).find((element) => element?.editorAddedRecord);
+  const editorSection = (targetGroup || []).find((element) => (
+    element?.editorAddedSection && element?.editorSectionId
+  ));
 
   const description = {
     element_id: idFactory(),
@@ -1237,6 +1269,15 @@ function buildRecordDescription(
   if (targetFlowGroup) description.flowGroup = targetFlowGroup;
   if (targetFlowLane || source?.flowLane === "sidebar") {
     description.flowLane = targetFlowLane || "sidebar";
+  }
+  if (editorRecord) {
+    description.editorAddedRecord = true;
+    description.editorRecordLayout = editorRecord.editorRecordLayout;
+    description.editorRecordField = "description";
+  }
+  if (editorSection) {
+    description.editorAddedSection = true;
+    description.editorSectionId = editorSection.editorSectionId;
   }
   return description;
 }

@@ -138,7 +138,8 @@ function contentTextarea({
   elementId, content, left, top, width,
   fontSize, fontFamily, lineHeight, color,
   bold = false, bulletList = false, flowGroup = null,
-  flowLane = null,
+  flowLane = null, editorSectionId = null,
+  editorRecordLayout = null, editorRecordField = null,
 }) {
   const lh = lineHeight || Math.round(fontSize * 1.4);
   const element = {
@@ -173,6 +174,15 @@ function contentTextarea({
   };
   if (flowGroup) element.flowGroup = flowGroup;
   if (flowLane) element.flowLane = flowLane;
+  if (editorSectionId) {
+    // User-authored structure must survive a later template regeneration.
+    // Canvas geometry is intentionally not persisted into cv_data; these
+    // semantic tags let syncCvDataFromCanvas rebuild the section's content.
+    element.editorAddedSection = true;
+    element.editorSectionId = editorSectionId;
+  }
+  if (editorRecordLayout) element.editorRecordLayout = editorRecordLayout;
+  if (editorRecordField) element.editorRecordField = editorRecordField;
   return element;
 }
 
@@ -297,6 +307,9 @@ function badgeNumberElement({
  *
  * Pass `lane: "sidebar"` to stamp `flowLane: "sidebar"` and
  * `flowRole: "sidebar-chrome"` so the strip joins the rail packer.
+ * Every user-created heading/body also receives editor semantic tags. They do
+ * not affect layout or export; `syncCvDataFromCanvas` consumes them to persist
+ * the section in cv_data before a later template regeneration.
  */
 export function buildSectionElements({
   name, layout, style, spacing, sectionOrdinal, idFactory, lane = "main",
@@ -357,6 +370,9 @@ export function buildSectionElements({
     locked: false,
     zIndex: 3,
     page: 1,
+    editorAddedSection: true,
+    editorSectionId: headingId,
+    editorSectionLayout: layout,
   };
   if (flowLane) headingElement.flowLane = flowLane;
   elements.push(headingElement);
@@ -452,6 +468,13 @@ export function buildSectionElements({
         bulletList: Boolean(line.bulletList),
         flowGroup: group,
         flowLane,
+        editorSectionId: headingId,
+        editorRecordLayout: layout,
+        editorRecordField: layout === SECTION_LAYOUTS.RECORD_EDUCATION
+          ? ["degree", "school", "meta", "description"][index]
+          : layout === SECTION_LAYOUTS.RECORD_SUBCATEGORY
+            ? ["title", "body"][index]
+            : ["title", "meta", "description"][index],
       }));
       // Advance by the real box height (not bare lineHeight) so authored
       // intra-record gaps stay non-negative before forceTargets re-pins them.
@@ -470,6 +493,7 @@ export function buildSectionElements({
       lineHeight: style.body.lineHeight,
       color: style.body.color,
       flowLane,
+      editorSectionId: headingId,
     }));
   }
 

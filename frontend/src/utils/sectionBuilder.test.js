@@ -36,6 +36,8 @@ describe("buildSectionElements", () => {
     assert.equal(heading.flowRole, "section-chrome");
     assert.equal(heading.content, "Profil");
     assert.equal(heading.color, "#733B43");
+    assert.equal(heading.editorAddedSection, true);
+    assert.equal(heading.editorSectionId, headingId);
 
     const chrome = elements.filter((element) => element.flowRole === "section-chrome");
     assert.ok(chrome.some((element) => element.category === "line"));      // rule
@@ -47,6 +49,7 @@ describe("buildSectionElements", () => {
     assert.equal(body[0].category, "textarea");
     assert.equal(body[0].autoHeight, true);
     assert.equal(body[0].width, 466);
+    assert.equal(body[0].editorSectionId, headingId);
   });
 
   it("places record body on bodyLeft when it differs from the heading column (Monument gutter)", () => {
@@ -178,6 +181,9 @@ describe("buildSectionElements", () => {
     assert.equal(body[1].color, "#756F6B");           // company·period uses muted color
     assert.equal(body[1].bold, false);
     assert.equal(body[2].bulletList, true);           // description is a bullet list
+    assert.deepEqual(body.map((element) => element.editorRecordField), [
+      "title", "meta", "description",
+    ]);
   });
 
   it("round-trips (cc-edu): built section is detectable and its body is collected", () => {
