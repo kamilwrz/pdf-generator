@@ -22,6 +22,7 @@ import { hasRuns, sliceRuns } from "../../../utils/textRuns";
 import { renderStyledText } from "../../../utils/renderStyledText";
 import {
     bulletRunsToEditableHtml,
+    createTextareaBackspaceEdit,
     createTextareaEnterEdit,
     getSelectionOffsets,
     runsToHtml,
@@ -377,6 +378,52 @@ function Textarea({
             node.textContent = seeded;
         }
 
+        // A record can enter edit mode before its display node ever performs
+        // the auto-height mount pass (newly inserted records are the common
+        // case). Measure the seeded edit DOM immediately; otherwise the box
+        // keeps its generator/copied height until the first `input` event and
+        // users have to create and Backspace a throwaway blank row just to
+        // collapse the stale empty space.
+        //
+        // Keep the generator contract on the first preserved-layout pass:
+        // browser metrics may remove overshoot, but must not grow the authored
+        // stack before the user changes content. Later typing still uses
+        // `commitEditable`, whose measurement can grow or shrink normally.
+        const shrinkOnlyFirstPass = preserveInitialLayout
+            && !initialLayoutPreservedRef.current;
+        if (shrinkOnlyFirstPass) {
+            initialLayoutPreservedRef.current = true;
+        }
+        let cancelled = false;
+        const measureSeededEditable = () => {
+            const target = editingRef.current;
+            if (cancelled || !autoHeight || !target) return;
+            const current = serializeEditable(target);
+            const measuredHeight = measureEditableContentHeight(
+                target,
+                current.content,
+                current.runs,
+                { bulletList: !!bulletList },
+            );
+            if (!Number.isFinite(measuredHeight) || measuredHeight <= 0) return;
+            if (
+                shrinkOnlyFirstPass
+                && !shouldShrinkPreservedLayout(heightRef.current, measuredHeight)
+            ) {
+                return;
+            }
+            target.style.height = `${measuredHeight}px`;
+            // Entry-time normalization is background layout work. Keep it out
+            // of undo history; only subsequent authored input is a user step.
+            fitTextareaToContent(elementId, measuredHeight, { quiet: true });
+        };
+
+        measureSeededEditable();
+        const unsubscribeResume = onCanvasEnterReflowResume(measureSeededEditable);
+        if (typeof document !== "undefined" && document.fonts?.ready) {
+            document.fonts.ready.then(measureSeededEditable);
+        }
+
         const focusFrame = window.requestAnimationFrame(() => {
             const target = editingRef.current;
             if (!target) return;
@@ -394,7 +441,11 @@ function Textarea({
                 editZoomSpreadTransitionRef.current = null;
             }
         });
-        return () => window.cancelAnimationFrame(focusFrame);
+        return () => {
+            cancelled = true;
+            unsubscribeResume();
+            window.cancelAnimationFrame(focusFrame);
+        };
         // Seed only when entering edit; content/runs changes during editing come
         // from the DOM itself, so they must not re-seed and move the caret.
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -539,6 +590,28 @@ function Textarea({
                         if (e.key === "Escape") {
                             e.preventDefault();
                             e.currentTarget.blur();
+                            return;
+                        }
+                        // Chromium sometimes reports Backspace on an empty
+                        // explicit paragraph without removing that paragraph.
+                        // Handle only structural bullet-list boundaries here;
+                        // ordinary character deletion stays native.
+                        if (e.key === "Backspace" && bulletList) {
+                            const node = e.currentTarget;
+                            const serialized = serializeEditable(node);
+                            const selection = getSelectionOffsets(node);
+                            const edit = createTextareaBackspaceEdit({
+                                content: serialized.content,
+                                runs: serialized.runs,
+                                selection,
+                                bulletList: true,
+                            });
+                            if (edit) {
+                                e.preventDefault();
+                                node.innerHTML = bulletRunsToEditableHtml(edit.content, edit.runs);
+                                setSelectionOffsets(node, edit.caret, edit.caret);
+                                commitEditable(node);
+                            }
                             return;
                         }
                         // Build Enter from stored-text offsets rather than the

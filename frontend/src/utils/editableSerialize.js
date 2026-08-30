@@ -195,6 +195,65 @@ export function createTextareaEnterEdit({
   );
 }
 
+/**
+ * Build a structural Backspace edit for a bullet-list paragraph boundary.
+ *
+ * Chromium can emit `input` for Backspace in an empty explicit paragraph
+ * without removing that paragraph from the contentEditable DOM. Returning a
+ * deterministic edit for paragraph boundaries makes one Backspace remove one
+ * authored empty row immediately. Backspace inside ordinary text returns
+ * `null`, preserving native caret, IME, and undo behavior for character edits.
+ * At the start of a bullet body, Backspace removes only the marker and turns
+ * the item into a plain paragraph, matching familiar list-editor behavior.
+ *
+ * @param {{
+ *   content: string,
+ *   runs?: object[],
+ *   selection?: {start: number, end: number}|null,
+ *   bulletList?: boolean,
+ * }} options
+ * @returns {{content: string, runs: object[], caret: number}|null}
+ */
+export function createTextareaBackspaceEdit({
+  content,
+  runs,
+  selection,
+  bulletList = false,
+}) {
+  if (!bulletList || !Number.isFinite(selection?.start)) return null;
+
+  const text = typeof content === "string" ? content : String(content ?? "");
+  const rawStart = Math.max(0, Math.min(text.length, selection.start));
+  const rawEnd = Number.isFinite(selection?.end)
+    ? Math.max(0, Math.min(text.length, selection.end))
+    : rawStart;
+  if (rawStart !== rawEnd) return null;
+
+  const lineStart = text.lastIndexOf("\n", rawStart - 1) + 1;
+  const lineEndIndex = text.indexOf("\n", rawStart);
+  const lineEnd = lineEndIndex === -1 ? text.length : lineEndIndex;
+  const line = text.slice(lineStart, lineEnd);
+  const bulletMatch = line.match(/^\s*•[ \t]*/);
+
+  if (bulletMatch && rawStart === lineStart + bulletMatch[0].length) {
+    return replaceEditableTextRange(
+      text,
+      runs,
+      lineStart,
+      lineStart + bulletMatch[0].length,
+      "",
+    );
+  }
+
+  if (rawStart === lineStart && lineStart > 0) {
+    // Remove exactly the newline before the current paragraph. Consecutive
+    // blank rows therefore collapse one at a time and keep undo granularity.
+    return replaceEditableTextRange(text, runs, lineStart - 1, lineStart, "");
+  }
+
+  return null;
+}
+
 // Read the marks an element node contributes, layered over inherited marks.
 function marksFromElement(node, inherited) {
   const marks = { ...inherited };

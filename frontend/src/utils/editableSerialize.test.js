@@ -4,6 +4,7 @@ import { readFile } from "node:fs/promises";
 
 import {
   bulletRunsToEditableHtml,
+  createTextareaBackspaceEdit,
   createTextareaEnterEdit,
   serializeEditable,
   runsToHtml,
@@ -183,6 +184,45 @@ test("Enter inside a styled bullet keeps the split suffix run aligned", () => {
   assert.equal(edit.caret, 10);
 });
 
+test("Backspace removes one trailing plain paragraph from a bullet list", () => {
+  const content = "• First\n\n";
+  const edit = createTextareaBackspaceEdit({
+    content,
+    runs: [],
+    selection: { start: content.length, end: content.length },
+    bulletList: true,
+  });
+
+  assert.equal(edit.content, "• First\n");
+  assert.equal(edit.caret, edit.content.length);
+});
+
+test("Backspace at the start of a bullet body converts it to a plain paragraph", () => {
+  const content = "• First\n• Second";
+  const secondBodyStart = content.indexOf("Second");
+  const edit = createTextareaBackspaceEdit({
+    content,
+    runs: [],
+    selection: { start: secondBodyStart, end: secondBodyStart },
+    bulletList: true,
+  });
+
+  assert.equal(edit.content, "• First\nSecond");
+  assert.equal(edit.caret, secondBodyStart - 2);
+});
+
+test("Backspace inside bullet text stays native", () => {
+  assert.equal(
+    createTextareaBackspaceEdit({
+      content: "• First",
+      runs: [],
+      selection: { start: 5, end: 5 },
+      bulletList: true,
+    }),
+    null,
+  );
+});
+
 test("selection restoration targets the empty paragraph after a newline", () => {
   const first = element("DIV", [textNode("First")]);
   const second = element("DIV");
@@ -273,7 +313,13 @@ test("Textarea wires bullet edit paragraphs to the same CSS grid as display mode
 
   assert.match(source, /node\.innerHTML = bulletRunsToEditableHtml\(seeded,/);
   assert.match(source, /createTextareaEnterEdit\(\{/);
+  assert.match(source, /createTextareaBackspaceEdit\(\{/);
   assert.match(source, /measureEditableContentHeight\([\s\S]*\{ bulletList: !!bulletList \}/);
+  assert.match(
+    source,
+    /const measureSeededEditable = \(\) => \{[\s\S]*serializeEditable\(target\)[\s\S]*fitTextareaToContent\(elementId, measuredHeight, \{ quiet: true \}\)/,
+    "entering bullet edit mode must normalize a stale auto-height box before input",
+  );
   assert.match(
     css,
     /\.bulletLine,\s*\.editing \[data-editable-paragraph="bullet"\][\s\S]*grid-template-columns: max-content minmax\(0, 1fr\)/,
