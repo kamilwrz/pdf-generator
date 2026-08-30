@@ -8,6 +8,8 @@ asserts the Free plan forwards ``watermark=True`` into the renderer.
 from __future__ import annotations
 
 import unittest
+from pathlib import Path
+from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
 from fastapi.testclient import TestClient
@@ -19,7 +21,7 @@ from app.core.security import verify_token
 from app.crud import user as user_crud
 from app.dependencies import get_db
 from app.main import app
-from app.models.models import Base, Pdf, UsageCounter, User
+from app.models.models import Base, Image as ImageRow, Pdf, UsageCounter, User
 from app.schemas.user_schema import UserCreateRequest
 from app.services import document_service as doc_service
 from app.services import entitlements as ent
@@ -102,6 +104,54 @@ class RenderOnDemandTests(unittest.TestCase):
         self.assertEqual(self._exports_count(), 1)
         # Independence from Save: no "Moje dokumenty" row was created.
         self.assertEqual(self.db.query(Pdf).count(), 0)
+
+    def test_render_streams_pdf_with_authenticated_circular_profile_photo(self):
+        """Exercise the live editor's real image URL and circular PDF clip."""
+        try:
+            from PIL import Image
+        except ImportError:
+            self.skipTest("Pillow is required for the profile-photo export check")
+
+        with TemporaryDirectory() as tmp_dir:
+            photo_path = Path(tmp_dir) / "profile.jpg"
+            # Phone portraits are commonly much larger than their 104 pt CV
+            # slot. Noise prevents the fixture from compressing into an
+            # unrealistically tiny source and catches full-resolution embeds.
+            Image.effect_noise((1600, 1200), 80).convert("RGB").save(
+                photo_path, quality=90,
+            )
+            image_row = ImageRow(
+                filename="profile.jpg",
+                file_path=str(photo_path),
+                file_size=photo_path.stat().st_size,
+                mime_type="image/jpeg",
+                owner_id=self.user.id,
+            )
+            self.db.add(image_row)
+            self.db.commit()
+
+            payload = _payload("cv-with-photo")
+            payload["root"].append({
+                "category": "image",
+                "element_id": "profile-photo",
+                "src": f"https://api.example.com/images/{image_row.id}/content",
+                "img_id": image_row.id,
+                "page": 1,
+                "left": 433,
+                "top": 36,
+                "width": 104,
+                "height": 104,
+                "photoSlot": "image",
+                "objectFit": "cover",
+                "borderRadius": 52,
+                "alignWithText": False,
+            })
+            response = self.client.post("/pdf/render_pdf", json=payload)
+
+        self.assertEqual(response.status_code, 200, msg=response.text)
+        self.assertIn("application/pdf", response.headers.get("content-type", ""))
+        self.assertTrue(response.content.startswith(b"%PDF"))
+        self.assertLess(len(response.content), 750_000)
 
     def test_free_plan_export_quota_blocks_fourth_render(self):
         for i in range(3):

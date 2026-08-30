@@ -19,7 +19,7 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfbase.pdfmetrics import stringWidth, getAscentDescent
 from pathlib import Path
-from PIL import Image as PilImage
+from PIL import Image as PilImage, ImageOps
 import io
 import math
 import re
@@ -261,7 +261,14 @@ class PDF_Generator:
     def _draw_image_cover(
         self, src, left, bottom, width, height, *, border_radius=None,
     ):
-        """Center-crop ``src`` into the clipped box (CSS object-fit: cover)."""
+        """Center-crop and bound ``src`` before drawing it into the PDF.
+
+        Profile photos are often multi-megapixel phone images but occupy only
+        about 100 points on the page. Embedding the full decoded raster can
+        consume hundreds of megabytes during ReportLab compression and produce
+        a multi-megabyte PDF for one tiny slot. A 2× target keeps 144 DPI at the
+        authored point size while bounding render memory and output size.
+        """
         # Establish clipping before image decoding so the fallback draw path
         # cannot leak square corners when PIL cannot inspect the source.
         self._clip_image_box(
@@ -270,7 +277,11 @@ class PDF_Generator:
         path = Path(str(src))
         try:
             with PilImage.open(path if path.is_file() else src) as opened:
-                image = opened.convert("RGBA") if opened.mode in ("P", "LA", "L") else opened.copy()
+                # Respect phone-camera EXIF rotation before calculating the
+                # centered cover crop, otherwise portrait photos can export
+                # sideways even when the browser preview is upright.
+                oriented = ImageOps.exif_transpose(opened)
+                image = oriented.convert("RGBA") if oriented.mode in ("P", "LA", "L") else oriented.copy()
                 if image.mode != "RGBA" and "A" in image.getbands():
                     image = image.convert("RGBA")
                 elif image.mode not in ("RGB", "RGBA"):
@@ -278,17 +289,22 @@ class PDF_Generator:
                 iw, ih = image.size
                 if iw <= 0 or ih <= 0:
                     raise ValueError("empty image")
-                scale = max(float(width) / float(iw), float(height) / float(ih))
-                draw_w = float(iw) * scale
-                draw_h = float(ih) * scale
-                draw_x = float(left) - (draw_w - float(width)) / 2.0
-                draw_y = float(bottom) - (draw_h - float(height)) / 2.0
+                target_size = (
+                    max(1, int(math.ceil(float(width) * 2.0))),
+                    max(1, int(math.ceil(float(height) * 2.0))),
+                )
+                image = ImageOps.fit(
+                    image,
+                    target_size,
+                    method=PilImage.Resampling.LANCZOS,
+                    centering=(0.5, 0.5),
+                )
                 self.c.drawImage(
                     ImageReader(image),
-                    draw_x,
-                    draw_y,
-                    width=draw_w,
-                    height=draw_h,
+                    float(left),
+                    float(bottom),
+                    width=float(width),
+                    height=float(height),
                     mask="auto",
                 )
                 return
