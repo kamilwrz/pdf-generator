@@ -6,7 +6,7 @@ const panelUrl = new URL("./SectionsPanel.jsx", import.meta.url);
 const cssUrl = new URL("./SectionsPanel.module.css", import.meta.url);
 const sidebarUrl = new URL("../Sidebar/Sidebar.jsx", import.meta.url);
 
-test("customization panel exposes Appearance only for reviewed Sterling and Monument templates", async () => {
+test("customization panel exposes Appearance only for reviewed Sterling, Monument, and Slate templates", async () => {
   const source = await readFile(panelUrl, "utf8");
   assert.match(source, /Dostosuj CV/);
   assert.match(source, /role="tablist"/);
@@ -15,25 +15,32 @@ test("customization panel exposes Appearance only for reviewed Sterling and Monu
   assert.match(source, /aria-selected/);
   assert.match(source, /const isSterlingAppearance = activeTemplateId === "sterling"/);
   assert.match(source, /const isMonumentAppearance = activeTemplateId === "monument"/);
-  assert.match(source, /const appearanceEnabled = isSterlingAppearance \|\| isMonumentAppearance/);
+  assert.match(source, /const isSlateAppearance = activeTemplateId === "slate"/);
+  assert.match(source, /const appearanceEnabled = isSterlingAppearance \|\| isMonumentAppearance \|\| isSlateAppearance/);
   assert.match(source, /const renderedTab = appearanceEnabled \? activeTab : "layout"/);
   assert.match(source, /appearanceEnabled \? \(/);
   assert.doesNotMatch(source, /isSterlingDocument/);
 });
 
-test("appearance presents template-specific palettes, Monument previews, and text presets", async () => {
+test("appearance presents template-specific palettes, Slate and Monument previews, and text presets", async () => {
   const source = await readFile(panelUrl, "utf8");
   assert.match(source, /setActiveTab\("appearance"\)/);
   assert.match(source, /STERLING_PALETTES/);
   assert.match(source, /MONUMENT_PALETTES/);
+  assert.match(source, /SLATE_PALETTES/);
   assert.match(source, /palettePaperMonument/);
   assert.match(source, /paletteMonumentFrame/);
   assert.match(source, /paletteMonumentBadge/);
   assert.match(source, /paletteMonumentFooter/);
+  assert.match(source, /palettePaperSlate/);
+  assert.match(source, /paletteSlatePhoto/);
+  assert.match(source, /paletteSlateBadges/);
+  assert.match(source, /paletteSlateFooter/);
   assert.match(source, /Paleta kolorów/);
   assert.match(source, /zmienia papier, tekst, dekoracje i dopasowany zestaw ikon/);
   assert.match(source, /STERLING_TEXT_SIZES/);
   assert.match(source, /MONUMENT_TEXT_SIZES/);
+  assert.match(source, /SLATE_TEXT_SIZES/);
   assert.match(source, /Rozmiar tekstu/);
   assert.match(source, /oryginalny rozmiar szablonu/);
   assert.match(source, /if \(!appearanceEnabled\) return/);
