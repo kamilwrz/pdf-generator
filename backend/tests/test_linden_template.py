@@ -48,11 +48,11 @@ def test_linden_matches_the_editorial_reference_without_losing_structure() -> No
     assert name["textTransform"] == "uppercase"
     assert name["fontFamily"] == "CormorantGaramond"
     assert title["italic"] is True
-    assert title["color"] == "#FBFAF6"
+    assert title["color"] == "#1E4037"
     title_band = next(
         element for element in elements if element.get("titleDecoration") == "identity-band"
     )
-    assert title_band["backgroundColor"] == "#1E4037"
+    assert title_band["backgroundColor"] == "#E5DDCB"
     appearance_anchor = next(
         element for element in elements if element.get("appearanceTemplateId") == "linden"
     )

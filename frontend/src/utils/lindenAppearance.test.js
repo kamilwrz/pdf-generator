@@ -62,11 +62,14 @@ const sample = () => [
   },
 ];
 
-test("Linden exposes six distinct palettes whose job band is darker than the sidebar", () => {
+test("Linden preserves its authored sand band while new palettes use a darker band", () => {
   assert.equal(LINDEN_PALETTES.length, 6);
   assert.equal(new Set(LINDEN_PALETTES.map(({ id }) => id)).size, 6);
   assert.equal(new Set(LINDEN_PALETTES.map(({ name }) => name)).size, 6);
-  for (const palette of LINDEN_PALETTES) {
+  const botanical = LINDEN_PALETTES.find(({ id }) => id === "botanical");
+  assert.equal(botanical.colors.jobBand, "#E5DDCB");
+  assert.equal(botanical.colors.jobText, "#1E4037");
+  for (const palette of LINDEN_PALETTES.filter(({ id }) => id !== "botanical")) {
     assert.ok(
       relativeLuminance(palette.colors.jobBand) < relativeLuminance(palette.colors.sidebar),
       `${palette.name} keeps the job band darker than its sidebar`,

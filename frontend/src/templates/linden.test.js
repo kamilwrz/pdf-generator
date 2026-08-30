@@ -13,6 +13,7 @@ test("Linden starter exposes the complete editorial structure", () => {
   const frame = lindenTemplate.find((element) => element.photoSlot === "frame");
   const name = lindenTemplate.find((element) => element.mastheadRole === "name");
   const title = lindenTemplate.find((element) => element.mastheadRole === "title");
+  const titleBand = lindenTemplate.find((element) => element.mastheadRole === "title-decoration");
   const summary = lindenTemplate.find((element) => element.content === "PODSUMOWANIE ZAWODOWE");
 
   assert.ok(frame);
@@ -21,6 +22,7 @@ test("Linden starter exposes the complete editorial structure", () => {
   assert.equal(name.textTransform, "uppercase");
   assert.equal(name.fontFamily, "CormorantGaramond");
   assert.equal(title.italic, true);
+  assert.deepEqual([titleBand.backgroundColor, title.color], ["#E5DDCB", "#1E4037"]);
   assert.equal(summary.flowRole, "section-chrome");
   assert.ok(lindenTemplate.some((element) => element.mainFlowStart === summary.top));
   assert.equal(

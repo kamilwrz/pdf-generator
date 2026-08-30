@@ -4,7 +4,7 @@ import {
   applySterlingPalette,
   applySterlingTextSize,
   getSterlingAppearance,
-  normalizeSterlingFamilySidebarHairlines,
+  normalizeSterlingFamilyPersistence,
   STERLING_PALETTES,
 } from "./sterlingAppearance.js";
 
@@ -44,13 +44,38 @@ test("legacy Sterling and Linden sidebar hairlines normalize without touching ot
     { category: "line", left: 80, top: 400, width: 120, height: 1.4 },
   ];
 
-  const sterling = normalizeSterlingFamilySidebarHairlines(legacy, "sterling");
+  const sterling = normalizeSterlingFamilyPersistence(legacy, "sterling");
   assert.deepEqual(sterling.map(({ height }) => height), [1, 0.8, 1.4]);
 
-  const linden = normalizeSterlingFamilySidebarHairlines(legacy, "linden");
+  const linden = normalizeSterlingFamilyPersistence(legacy, "linden");
   assert.deepEqual(linden.map(({ height }) => height), [1, 1, 1.4]);
 
-  assert.equal(normalizeSterlingFamilySidebarHairlines(legacy, "cadenza"), legacy);
+  assert.equal(normalizeSterlingFamilyPersistence(legacy, "cadenza"), legacy);
+});
+
+test("persisted Botanical Linden restores only the short-lived identity-band regression", () => {
+  const buggy = [
+    { appearanceTemplateId: "linden", appearanceSettings: { palette: "botanical", textSize: "M" } },
+    { category: "rectangle", mastheadBandId: "linden-masthead", titleDecoration: "identity-band", backgroundColor: "#1E4037" },
+    { category: "textarea", mastheadBandId: "linden-masthead", mastheadRole: "title", color: "#FBFAF6" },
+    {
+      mastheadIdentity: {
+        id: "linden-masthead",
+        title: {
+          spec: { colorHex: "#FBFAF6" },
+          decorations: [{ titleDecoration: "identity-band", backgroundColor: "#1E4037" }],
+        },
+      },
+    },
+    { category: "rectangle", backgroundColor: "#1E4037" },
+  ];
+
+  const restored = normalizeSterlingFamilyPersistence(buggy, "linden");
+  assert.equal(restored[1].backgroundColor, "#E5DDCB");
+  assert.equal(restored[2].color, "#1E4037");
+  assert.equal(restored[3].mastheadIdentity.title.spec.colorHex, "#1E4037");
+  assert.equal(restored[3].mastheadIdentity.title.decorations[0].backgroundColor, "#E5DDCB");
+  assert.equal(restored[4], buggy[4]);
 });
 
 test("palette update recolors semantics, swaps icon assets, and preserves custom color", () => {

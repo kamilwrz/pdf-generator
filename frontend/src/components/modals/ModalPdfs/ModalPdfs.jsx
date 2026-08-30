@@ -18,7 +18,7 @@ import { FiSearch } from "react-icons/fi";
 import { PdfContext } from "../../../store/pdfgenerator-context";
 import { sanitizeTextContent } from "../../../utils/sanitizeTextContent";
 import { fetchOwnedPdfDownload, triggerBlobDownload } from "../../../utils/download";
-import { normalizeSterlingFamilySidebarHairlines } from "../../../utils/sterlingAppearance";
+import { normalizeSterlingFamilyPersistence } from "../../../utils/sterlingAppearance";
 import { ApiClient } from "../../../services/api";
 import { ENDPOINTS } from "../../../services/api";
 
@@ -206,7 +206,7 @@ export default function ModalPdfs({ title }) {
             setPageCount(pdfCanvas?.pages || 1);
             setCurrentPage(1);
             setA4_Elements_deleted([]);
-            const liveElements = normalizeSterlingFamilySidebarHairlines(elementsData.filter(element => element.category !== "title"), pdfCanvas?.template_id ?? pdfCanvas?.templateId);
+            const liveElements = normalizeSterlingFamilyPersistence(elementsData.filter(element => element.category !== "title"), pdfCanvas?.template_id ?? pdfCanvas?.templateId);
             setA4_Elements(liveElements);
             hydrateDocumentMode?.(liveElements, pdfCanvas || {});
             handlePdfId(id);

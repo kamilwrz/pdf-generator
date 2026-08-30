@@ -116,6 +116,55 @@ for (const palette of STERLING_PALETTES) {
 
 const round = (value) => Math.round(value * 100) / 100;
 const SIDEBAR_HAIRLINE_HEIGHT = 1;
+const LINDEN_BROKEN_BOTANICAL_BAND = "#1E4037";
+const LINDEN_BROKEN_BOTANICAL_TEXT = "#FBFAF6";
+const LINDEN_AUTHORED_BOTANICAL_BAND = "#E5DDCB";
+const LINDEN_AUTHORED_BOTANICAL_TEXT = "#1E4037";
+
+function normalizeLindenBotanicalIdentity(element) {
+  let next = element;
+  const isIdentityBand = element.titleDecoration === "identity-band"
+    || (element.mastheadBandId === "linden-masthead" && element.category === "rectangle");
+  if (
+    isIdentityBand
+    && String(element.backgroundColor || "").toUpperCase() === LINDEN_BROKEN_BOTANICAL_BAND
+  ) {
+    next = { ...next, backgroundColor: LINDEN_AUTHORED_BOTANICAL_BAND };
+  }
+
+  const isJobTitle = element.mastheadBandId === "linden-masthead"
+    && element.category === "textarea"
+    && element.mastheadRole === "title";
+  if (
+    isJobTitle
+    && String(element.color || "").toUpperCase() === LINDEN_BROKEN_BOTANICAL_TEXT
+  ) {
+    next = { ...next, color: LINDEN_AUTHORED_BOTANICAL_TEXT };
+  }
+
+  const identity = element.mastheadIdentity;
+  const title = identity?.id === "linden-masthead" ? identity.title : null;
+  if (!title?.spec) return next;
+  const spec = String(title.spec.colorHex || "").toUpperCase() === LINDEN_BROKEN_BOTANICAL_TEXT
+    ? { ...title.spec, colorHex: LINDEN_AUTHORED_BOTANICAL_TEXT }
+    : title.spec;
+  const decorations = (title.decorations || []).map((decoration) => (
+    decoration.titleDecoration === "identity-band"
+      && String(decoration.backgroundColor || "").toUpperCase() === LINDEN_BROKEN_BOTANICAL_BAND
+      ? { ...decoration, backgroundColor: LINDEN_AUTHORED_BOTANICAL_BAND }
+      : decoration
+  ));
+  const descriptorChanged = spec !== title.spec
+    || decorations.some((decoration, index) => decoration !== title.decorations[index]);
+  if (!descriptorChanged) return next;
+  return {
+    ...next,
+    mastheadIdentity: {
+      ...identity,
+      title: { ...title, spec, decorations },
+    },
+  };
+}
 
 function recolorMastheadTitleDescriptor(element, palette) {
   const title = element.mastheadIdentity?.title;
@@ -183,21 +232,27 @@ function resizeMastheadTitleDescriptor(element, scale) {
 }
 
 /**
- * Upgrades persisted Sterling/Linden rail rules created before the uniform
- * one-point hairline contract.
+ * Upgrades known persisted Sterling/Linden values that predate current
+ * template contracts.
  *
- * Only the two known legacy shapes are changed: 1.4-point section ticks in
- * either template and Linden's 0.8-point fixed footer rule. This deliberately
- * avoids rewriting user-authored lines or geometry in other Sterling-derived
- * templates.
+ * Only exact legacy shapes are changed: 1.4-point section ticks in either
+ * template, Linden's 0.8-point fixed footer rule, and the short-lived green
+ * Botanical identity band regression. The colour migration is limited to a
+ * document explicitly persisted with the Botanical palette, and it updates
+ * only the masthead title, its semantic band, and their restore descriptor.
+ * User-authored lines, custom colours, and every other palette stay untouched.
  *
  * @param {object[]} elements - Materialized canvas elements from persistence.
  * @param {string|null|undefined} templateId - Saved document template id.
  * @returns {object[]} The original array when no migration is required.
  */
-export function normalizeSterlingFamilySidebarHairlines(elements = [], templateId = null) {
+export function normalizeSterlingFamilyPersistence(elements = [], templateId = null) {
   const normalizedId = String(templateId || "").toLowerCase();
   if (normalizedId !== "sterling" && normalizedId !== "linden") return elements;
+  const isBotanicalLinden = normalizedId === "linden" && elements.some((element) => (
+    element.appearanceTemplateId === "linden"
+    && element.appearanceSettings?.palette === "botanical"
+  ));
 
   let changed = false;
   const normalized = elements.map((element) => {
@@ -212,9 +267,12 @@ export function normalizeSterlingFamilySidebarHairlines(elements = [], templateI
       && Number(element.top) === 806
       && Number(element.width) === 152
       && height === 0.8;
-    if (!isLegacySectionTick && !isLegacyLindenFooter) return element;
-    changed = true;
-    return { ...element, height: SIDEBAR_HAIRLINE_HEIGHT };
+    let next = isLegacySectionTick || isLegacyLindenFooter
+      ? { ...element, height: SIDEBAR_HAIRLINE_HEIGHT }
+      : element;
+    if (isBotanicalLinden) next = normalizeLindenBotanicalIdentity(next);
+    if (next !== element) changed = true;
+    return next;
   });
 
   return changed ? normalized : elements;

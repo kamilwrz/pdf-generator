@@ -46,7 +46,7 @@ export const LINDEN_PALETTES = Object.freeze([
       paper: "#FBFAF6", sidebar: "#F2EFE6", ink: "#252823", sidebarInk: "#252823",
       accent: "#285548", accentDeep: "#1E4037", sidebarHeading: "#1E4037",
       muted: "#666C65", sidebarMuted: "#666C65", rule: "#D3CCBC",
-      jobBand: "#1E4037", jobText: "#FBFAF6", photo: "#F8F5ED",
+      jobBand: "#E5DDCB", jobText: "#1E4037", photo: "#F8F5ED",
     },
   },
   {
