@@ -377,6 +377,29 @@ SUBSET_THEMES = {
         "#285548",
         ["email", "phone", "location", "linkedin", "github", "website", "portrait"],
     ),
+    # Linden's palettes share the same restrained glyph set. Each variant is
+    # rendered in real palette ink so neither the browser nor PDF export needs
+    # an approximate CSS filter.
+    "linden-gallery": (
+        "#0E6870",
+        ["email", "phone", "location", "linkedin", "github", "website", "portrait"],
+    ),
+    "linden-carmine": (
+        "#A2444E",
+        ["email", "phone", "location", "linkedin", "github", "website", "portrait"],
+    ),
+    "linden-midnight": (
+        "#C19752",
+        ["email", "phone", "location", "linkedin", "github", "website", "portrait"],
+    ),
+    "linden-cobalt": (
+        "#B44F38",
+        ["email", "phone", "location", "linkedin", "github", "website", "portrait"],
+    ),
+    "linden-plum": (
+        "#B07B68",
+        ["email", "phone", "location", "linkedin", "github", "website", "portrait"],
+    ),
     # Monument needs masthead contact glyphs and the portrait placeholder;
     # numbered text plates replace section icons in this layout. Each curated
     # appearance owns real ink-coloured PNGs so editor and PDF export match.

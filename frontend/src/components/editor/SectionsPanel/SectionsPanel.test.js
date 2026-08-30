@@ -6,7 +6,7 @@ const panelUrl = new URL("./SectionsPanel.jsx", import.meta.url);
 const cssUrl = new URL("./SectionsPanel.module.css", import.meta.url);
 const sidebarUrl = new URL("../Sidebar/Sidebar.jsx", import.meta.url);
 
-test("customization panel exposes Appearance only for reviewed Sterling, Monument, Slate, and Meridian templates", async () => {
+test("customization panel exposes Appearance only for reviewed Sterling, Linden, Monument, Slate, and Meridian templates", async () => {
   const source = await readFile(panelUrl, "utf8");
   assert.match(source, /Dostosuj CV/);
   assert.match(source, /role="tablist"/);
@@ -14,9 +14,11 @@ test("customization panel exposes Appearance only for reviewed Sterling, Monumen
   assert.match(source, />\s*Wygląd\s*</);
   assert.match(source, /aria-selected/);
   assert.match(source, /const isSterlingAppearance = activeTemplateId === "sterling"/);
+  assert.match(source, /const isLindenAppearance = activeTemplateId === "linden"/);
   assert.match(source, /const isMonumentAppearance = activeTemplateId === "monument"/);
   assert.match(source, /const isSlateAppearance = activeTemplateId === "slate"/);
   assert.match(source, /const isMeridianAppearance = activeTemplateId === "meridian"/);
+  assert.match(source, /\|\| isLindenAppearance/);
   assert.match(source, /\|\| isMeridianAppearance/);
   assert.match(source, /const renderedTab = appearanceEnabled \? activeTab : "layout"/);
   assert.match(source, /appearanceEnabled \? \(/);
@@ -27,10 +29,14 @@ test("appearance presents template-specific palettes, reviewed previews, and tex
   const source = await readFile(panelUrl, "utf8");
   assert.match(source, /setActiveTab\("appearance"\)/);
   assert.match(source, /STERLING_PALETTES/);
+  assert.match(source, /LINDEN_PALETTES/);
   assert.match(source, /MONUMENT_PALETTES/);
   assert.match(source, /SLATE_PALETTES/);
   assert.match(source, /MERIDIAN_PALETTES/);
   assert.match(source, /palettePaperMonument/);
+  assert.match(source, /palettePaperLinden/);
+  assert.match(source, /paletteLindenJob/);
+  assert.match(source, /paletteLindenPhoto/);
   assert.match(source, /paletteMonumentFrame/);
   assert.match(source, /paletteMonumentBadge/);
   assert.match(source, /paletteMonumentFooter/);
@@ -45,10 +51,12 @@ test("appearance presents template-specific palettes, reviewed previews, and tex
   assert.match(source, /Paleta kolorów/);
   assert.match(source, /zmienia papier, tekst, dekoracje i dopasowany zestaw ikon/);
   assert.match(source, /STERLING_TEXT_SIZES/);
+  assert.match(source, /LINDEN_TEXT_SIZES/);
   assert.match(source, /MONUMENT_TEXT_SIZES/);
   assert.match(source, /SLATE_TEXT_SIZES/);
   assert.match(source, /MERIDIAN_TEXT_SIZES/);
   assert.match(source, /Białe tło pozostaje bez zmian/);
+  assert.match(source, /pasek stanowiska pozostaje jej najciemniejszym akcentem/);
   assert.match(source, /Rozmiar tekstu/);
   assert.match(source, /oryginalny rozmiar szablonu/);
   assert.match(source, /if \(!appearanceEnabled\) return/);

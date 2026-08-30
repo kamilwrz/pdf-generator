@@ -37,9 +37,10 @@ PAPER = "#FBFAF6"
 INK = "#252823"
 FOREST = "#285548"
 FOREST_DEEP = "#1E4037"
-MUTED = "#70766F"
+MUTED = "#666C65"
 RAIL = "#F2EFE6"
-SAND = "#E5DDCB"
+JOB_BAND = FOREST_DEEP
+JOB_TEXT = PAPER
 RULE = "#D3CCBC"
 DISPLAY = "CormorantGaramond"
 SANS = "Montserrat"
@@ -148,6 +149,17 @@ def _gen_linden(cv: dict) -> list[dict]:
             if element.get(field) in _COLOR_MAP:
                 element[field] = _COLOR_MAP[element[field]]
 
+        # Sterling supplies the shared page-background anchor, but Linden owns
+        # an independent appearance contract. Re-stamping the inherited anchor
+        # prevents saved Linden documents from being interpreted as Sterling
+        # when the editor restores palette and typography intent.
+        if element.get("appearanceTemplateId") == "sterling":
+            element["appearanceTemplateId"] = "linden"
+            element["appearanceSettings"] = {
+                "palette": "botanical",
+                "textSize": "M",
+            }
+
         if element.get("flowRole") in {"section-chrome", "sidebar-chrome"}:
             if element.get("category") == "text":
                 element["fontFamily"] = DISPLAY
@@ -212,7 +224,7 @@ def _gen_linden(cv: dict) -> list[dict]:
     name_element: dict | None = None
     title_element: dict | None = None
     title_band = {
-        **_rect(210.0, band_top, 385.0, 38.0, SAND, filled=True, zIndex=2, page=1),
+        **_rect(210.0, band_top, 385.0, 38.0, JOB_BAND, filled=True, zIndex=2, page=1),
         "flowRole": "masthead",
         "titleDecoration": "identity-band",
     }
@@ -252,7 +264,7 @@ def _gen_linden(cv: dict) -> list[dict]:
         "fontSize": 9.2,
         "lineHeight": 12.5,
         "letterSpacing": 1.25,
-        "color": FOREST_DEEP,
+        "color": JOB_TEXT,
         "fontFamily": SANS,
         "zIndex": 5,
         "page": 1,

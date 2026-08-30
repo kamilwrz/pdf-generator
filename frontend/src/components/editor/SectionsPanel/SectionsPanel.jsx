@@ -1,7 +1,7 @@
 /**
  * Template-mode customization panel ("Dostosuj CV"): document status, section
  * structure, density presets, precise spacing, and template-scoped appearance
- * tools for Sterling, Monument, Slate, and Meridian. A
+ * tools for Sterling, Linden, Monument, Slate, and Meridian. A
  * main-column Skills section's list row also gets a layout icon opening
  * `SkillsLayoutModal` (same modal the canvas heading hover control opens —
  * see `SectionRecordAdd`), so the mode picker is reachable without hunting
@@ -45,6 +45,16 @@ import {
   applySterlingRenderedHeightsLayout,
   applySterlingTextSizeLayout,
 } from "../../../utils/sterlingTypographyLayout";
+import {
+  applyLindenPalette,
+  getLindenAppearance,
+  LINDEN_PALETTES,
+  LINDEN_TEXT_SIZES,
+} from "../../../utils/lindenAppearance";
+import {
+  applyLindenRenderedHeightsLayout,
+  applyLindenTextSizeLayout,
+} from "../../../utils/lindenTypographyLayout";
 import {
   applyMonumentPalette,
   getMonumentAppearance,
@@ -173,21 +183,31 @@ export default function SectionsPanel({ onClose }) {
   const pageStatus = formatPageCountLabel(pageCount ?? 1);
   const atBaseline = flowSpacingEquals(spacing, baselineSpacing);
   const hasAnySections = sections.length > 0 || sidebarSections.length > 0;
-  // Appearance is intentionally released template by template. Some sidebar
-  // documents resemble Sterling closely enough to pass the structural legacy
-  // detector, but their colors are not wired to Sterling's palette roles.
-  // Gate the tab by the selected template ID until each template has its own
-  // reviewed appearance contract.
+  // Appearance is intentionally released template by template. The tab is
+  // gated by the selected template ID so a visually similar document never
+  // receives another template's semantic colour or typography contract.
   const isSterlingAppearance = activeTemplateId === "sterling";
+  const isLindenAppearance = activeTemplateId === "linden";
   const isMonumentAppearance = activeTemplateId === "monument";
   const isSlateAppearance = activeTemplateId === "slate";
   const isMeridianAppearance = activeTemplateId === "meridian";
   const appearanceEnabled = isSterlingAppearance
+    || isLindenAppearance
     || isMonumentAppearance
     || isSlateAppearance
     || isMeridianAppearance;
   const renderedTab = appearanceEnabled ? activeTab : "layout";
   const appearanceDefinition = useMemo(() => {
+    if (isLindenAppearance) return {
+      templateName: "Linden",
+      palettes: LINDEN_PALETTES,
+      textSizes: LINDEN_TEXT_SIZES,
+      value: getLindenAppearance(A4_Elements),
+      applyPalette: applyLindenPalette,
+      applyTextSizeLayout: applyLindenTextSizeLayout,
+      applyRenderedHeightsLayout: applyLindenRenderedHeightsLayout,
+      paletteDescription: "Paleta zmienia obie kolumny, dekoracje i ikony; pasek stanowiska pozostaje jej najciemniejszym akcentem.",
+    };
     if (isMonumentAppearance) return {
       templateName: "Monument",
       palettes: MONUMENT_PALETTES,
@@ -225,7 +245,7 @@ export default function SectionsPanel({ onClose }) {
       applyTextSizeLayout: applySterlingTextSizeLayout,
       applyRenderedHeightsLayout: applySterlingRenderedHeightsLayout,
     };
-  }, [A4_Elements, isMeridianAppearance, isMonumentAppearance, isSlateAppearance]);
+  }, [A4_Elements, isLindenAppearance, isMeridianAppearance, isMonumentAppearance, isSlateAppearance]);
 
   useEffect(() => {
     if (!onClose) return undefined;
@@ -463,13 +483,15 @@ export default function SectionsPanel({ onClose }) {
                   const cardStyle = {
                     "--palette-paper": palette.colors.paper,
                     "--palette-ink": palette.colors.ink,
-                    "--palette-body": palette.colors.body,
+                    "--palette-body": palette.colors.body ?? palette.colors.ink,
                     "--palette-muted": palette.colors.muted,
                     "--palette-accent": palette.colors.accent,
                     "--palette-sidebar": palette.colors.sidebar ?? palette.colors.pale,
                     "--palette-rule": palette.colors.rule,
                     "--palette-pale": palette.colors.pale ?? palette.colors.sidebar,
                     "--palette-photo": palette.colors.photo ?? palette.colors.pale ?? palette.colors.sidebar,
+                    "--palette-job": palette.colors.jobBand ?? palette.colors.accent,
+                    "--palette-job-text": palette.colors.jobText ?? palette.colors.paper,
                   };
                   return (
                     <button
@@ -481,11 +503,23 @@ export default function SectionsPanel({ onClose }) {
                       onClick={() => handleAppearancePalette(palette.id)}
                     >
                       <span
-                        className={`${classes.palettePaper} ${isMonumentAppearance ? classes.palettePaperMonument : ""} ${isSlateAppearance ? classes.palettePaperSlate : ""} ${isMeridianAppearance ? classes.palettePaperMeridian : ""}`}
+                        className={`${classes.palettePaper} ${isLindenAppearance ? classes.palettePaperLinden : ""} ${isMonumentAppearance ? classes.palettePaperMonument : ""} ${isSlateAppearance ? classes.palettePaperSlate : ""} ${isMeridianAppearance ? classes.palettePaperMeridian : ""}`}
                         style={cardStyle}
                         aria-hidden="true"
                       >
-                        {isMeridianAppearance ? (
+                        {isLindenAppearance ? (
+                          <>
+                            <span className={classes.paletteLindenSidebar} />
+                            <span className={classes.paletteLindenPhoto} />
+                            <span className={classes.paletteLindenContactHeading} />
+                            <span className={classes.paletteLindenContacts} />
+                            <span className={classes.paletteLindenName} />
+                            <span className={classes.paletteLindenJob} />
+                            <span className={classes.paletteLindenHeading} />
+                            <span className={classes.paletteLindenCopy} />
+                            <span className={classes.paletteLindenFooter} />
+                          </>
+                        ) : isMeridianAppearance ? (
                           <>
                             <span className={classes.paletteMeridianName} />
                             <span className={classes.paletteMeridianContacts} />
