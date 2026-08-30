@@ -4,11 +4,14 @@ import test from "node:test";
 import { cadenzaTemplate } from "./cadenza.js";
 import { DEFAULT_FLOW_SPACING } from "../utils/flowSpacing.js";
 import {
+    appendSectionAtEnd,
     applyFlowSpacing,
+    deriveSectionStyle,
     listDocumentSections,
     reorderSection,
     sectionElementIds,
 } from "../utils/sectionStructure.js";
+import { buildSectionElements, SECTION_LAYOUTS } from "../utils/sectionBuilder.js";
 import {
     listSectionContentElements,
     partitionSectionRecords,
@@ -109,6 +112,49 @@ test("Cadenza preserves its editorial hierarchy and exact date rail", () => {
     assert.ok(
         icons.every((element) => element.src.includes("/template-assets/iconic/cadenza/")),
     );
+});
+
+test("Cadenza Add section reproduces the filled title band and accent", () => {
+    const source = withElementIds(cadenzaTemplate);
+    const sections = listDocumentSections(source, PAGE_HEIGHT);
+    const anchor = sections[sections.length - 1];
+    const style = deriveSectionStyle(source, PAGE_HEIGHT, anchor.headingId);
+    let nextId = 0;
+    const built = buildSectionElements({
+        name: "NOWA SEKCJA",
+        layout: SECTION_LAYOUTS.RECORD_SUBCATEGORY,
+        style,
+        spacing: DEFAULT_FLOW_SPACING,
+        idFactory: () => `cadenza-added-${nextId += 1}`,
+    });
+    const appended = appendSectionAtEnd(
+        source,
+        built.elements,
+        PAGE_HEIGHT,
+        { spacing: DEFAULT_FLOW_SPACING },
+    );
+    const added = listDocumentSections(appended, PAGE_HEIGHT)
+        .find((section) => section.headingId === built.headingId);
+
+    assert.ok(added, "the newly built heading remains a detectable section");
+    const members = sectionMembers(appended, added.headingId);
+    const band = members.find((element) => (
+        element.flowRole === "section-chrome"
+        && element.backgroundColor === "#E8EDEE"
+        && Number(element.width) === 479
+        && Number(element.height) === 18
+    ));
+    const accent = members.find((element) => (
+        element.flowRole === "section-chrome"
+        && element.backgroundColor === "#9B735A"
+        && Number(element.width) === 3
+        && Number(element.height) === 18
+    ));
+
+    assert.ok(band, "the added section keeps Cadenza's full-width title band");
+    assert.ok(accent, "the added section keeps Cadenza's narrow copper accent");
+    assert.equal(absoluteTop(accent), absoluteTop(band));
+    assert.equal(accent.left, band.left);
 });
 
 test("Cadenza spacing remains idempotent and keeps every title band together", () => {

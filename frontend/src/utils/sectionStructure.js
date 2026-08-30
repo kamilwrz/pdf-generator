@@ -3013,6 +3013,15 @@ export function deriveSectionStyle(
       && (Number(element.height) || 0) <= 4)
     .sort((a, b) => (Number(b.width) || 0) - (Number(a.width) || 0))[0] || null;
 
+  // Cadenza does not use a thin heading rule. Its title sits inside a filled
+  // full-column band with a narrow accent at the band's left edge. Because the
+  // title itself is centred, both shapes can begin more than the generic 60px
+  // heading-column allowance to its left. Reuse the same explicit band
+  // contract that section membership and packing use, so Add section samples
+  // the complete authored cluster without weakening cross-column protection
+  // for unrelated sidebar shapes.
+  const filledSectionBand = members.find((element) => isFilledSectionBand(element)) || null;
+
   // Decorative shapes cluster near the heading's own left edge in most
   // templates (Nimbus, Monument, Cinder, …), but Cinder places its
   // mark at the FAR RIGHT end of the underline rule instead (16px square at
@@ -3022,6 +3031,13 @@ export function deriveSectionStyle(
   // near either end of the rule the section actually draws is part of this
   // section, not a different column's sidebar chrome.
   const inDecorativeShapeColumn = (element) => {
+    if (
+      isFilledSectionBand(element)
+      || (filledSectionBand
+        && isMatchingSectionBandAccent(element, filledSectionBand, pageHeight))
+    ) {
+      return true;
+    }
     const elementLeft = Number(element.left) || 0;
     if (inHeadingColumn(element)) return true;
     if (!rule) return false;
