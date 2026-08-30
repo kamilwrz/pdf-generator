@@ -367,7 +367,7 @@ Bez kroku 2–3 podgląd w bibliotece istnieje, ale **fill_template rzuci „Nie
 | Plik | Rola |
 |---|---|
 | `backend/app/services/ai_service.py` | PDF → tekst / obrazy skanów → Workers AI; cienka fasada `generate_resume` |
-| `backend/app/services/cv_source_layout.py` | Geometria linii i grubość fontu PDF → osobne kolumny / sekcje → pełne podsumowanie, zagnieżdżone skills, ochrona stanowiska i referencje |
+| `backend/app/services/cv_source_layout.py` | Dokładne aliasy nagłówków + geometria linii i grubość fontu PDF → osobne kolumny / sekcje bez fałszywych granic w zdaniach → pełne podsumowanie, zagnieżdżone skills, ochrona stanowiska i referencje |
 | `backend/app/services/cloudflare_pricing.py` | Telemetria stawek Llama/Gemma/Qwen i sumowanie prób fallbacku; bez bramki kredytów asystenta |
 | `backend/app/services/cv_data.py` | Normalizacja / walidacja profilu CV |
 | `backend/app/services/cv_generator.py` | **Deterministyczny silnik layoutu** (ten dokument) |

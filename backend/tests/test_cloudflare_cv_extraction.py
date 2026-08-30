@@ -70,8 +70,9 @@ def _portico_style_cv_pdf_bytes() -> bytes:
         (90, "Full professional summary continues", False),
         (106, "across every wrapped line and human-", False),
         (122, "centered topic in the source CV.", False),
-        (160, "EDUCATION", True),
-        (180, "Example University", False),
+        (138, "education. I possess practical knowledge.", False),
+        (176, "EDUCATION", True),
+        (196, "Example University", False),
     ]
     right_lines = [
         (70, "WORK EXPERIENCE", True),
@@ -80,8 +81,8 @@ def _portico_style_cv_pdf_bytes() -> bytes:
         (126, "- Delivered training programs.", False),
         (160, "UMIEJETNOSCI", True),
         (180, "Soft Skills", True),
-        (198, "Critical thinking.  ·  Strong", False),
-        (214, "communication.  ·  Teamwork.", False),
+        (198, "Critical thinking.  ·  Communicativeness, interpersonal", False),
+        (214, "skills, and empathy.  ·  Communication and teamwork.", False),
         (240, "Research and IT", True),
         (258, "AI research.  ·  Data analysis", False),
         (274, "and business modeling.", False),
@@ -413,7 +414,8 @@ class CloudflareCvExtractionTests(unittest.TestCase):
         self.assertEqual(
             cv_data["summary"],
             "Full professional summary continues across every wrapped line and "
-            "human-centered topic in the source CV.",
+            "human-centered topic in the source CV. education. I possess practical "
+            "knowledge.",
         )
         self.assertEqual(cv_data["experience"][0]["title"], "")
         self.assertEqual(
@@ -421,7 +423,11 @@ class CloudflareCvExtractionTests(unittest.TestCase):
             [
                 {
                     "category": "Soft Skills",
-                    "items": ["Critical thinking.", "Strong communication.", "Teamwork."],
+                    "items": [
+                        "Critical thinking.",
+                        "Communicativeness, interpersonal skills, and empathy.",
+                        "Communication and teamwork.",
+                    ],
                 },
                 {
                     "category": "Research and IT",
@@ -437,7 +443,7 @@ class CloudflareCvExtractionTests(unittest.TestCase):
             str(element.get("content") or "")
             for element in generate_resume("atrium", cv_data)
         )
-        self.assertIn("human-centered topic in the source CV", rendered_content)
+        self.assertIn("education. I possess practical knowledge", rendered_content)
         self.assertIn("Soft Skills", rendered_content)
         self.assertIn("Research and IT", rendered_content)
         self.assertNotIn("WORK EXPERIENCE", rendered_content)

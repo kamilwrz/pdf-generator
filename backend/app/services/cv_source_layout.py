@@ -32,11 +32,13 @@ _ASCII_TRANSLITERATION = str.maketrans({
 })
 _HEADING_ALIASES: dict[str, tuple[str, ...]] = {
     "summary": (
+        "podsumowaniezawodowe",
         "podsumowanie",
         "profilzawodowy",
         "profil",
         "professionalsummary",
         "professionalprofile",
+        "summaryofqualifications",
         "summary",
         "aboutme",
         "omnie",
@@ -55,6 +57,7 @@ _HEADING_ALIASES: dict[str, tuple[str, ...]] = {
         "wyksztalcenie",
         "edukacja",
         "education",
+        "educationalbackground",
         "academicbackground",
         "ausbildung",
     ),
@@ -159,12 +162,20 @@ def _collapse(value: Any) -> str:
 
 
 def _heading_kind(value: Any) -> str | None:
-    """Map a source heading to a stable section kind without using model output."""
+    """Map an exact source heading to a stable kind without model output.
+
+    Source grounding treats detected headings as hard geometric boundaries, so
+    prefix matching is unsafe here. A wrapped prose line such as ``education. I
+    possess...`` or ``skills, and empathy...`` must remain part of its current
+    section instead of truncating the summary or splitting a skill category.
+    Punctuation and letter spacing are still tolerated because ``_fold`` keeps
+    only accent-free alphanumeric characters.
+    """
     key = _fold(value)
     if not key:
         return None
     for kind, aliases in _HEADING_ALIASES.items():
-        if any(key == alias or key.startswith(alias) for alias in aliases):
+        if key in aliases:
             return kind
     return None
 
