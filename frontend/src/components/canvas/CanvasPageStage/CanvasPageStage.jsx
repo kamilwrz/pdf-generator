@@ -6,7 +6,7 @@
  * Direction follows the page step: next slides up subtly, previous slides down.
  * Honours `prefers-reduced-motion` with a quick opacity crossfade only.
  */
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { AnimatePresence, motion as Motion, useReducedMotion } from "framer-motion";
 import classes from "./CanvasPageStage.module.css";
 
 const SLIDE_PX = 36;
@@ -56,7 +56,7 @@ export default function CanvasPageStage({ pageKey, direction, animate, children 
 
     return (
         <AnimatePresence mode="wait" initial={false} custom={direction}>
-            <motion.div
+            <Motion.div
                 key={pageKey}
                 className={classes.stage}
                 custom={direction}
@@ -70,7 +70,7 @@ export default function CanvasPageStage({ pageKey, direction, animate, children 
                 }}
             >
                 {children}
-            </motion.div>
+            </Motion.div>
         </AnimatePresence>
     );
 }

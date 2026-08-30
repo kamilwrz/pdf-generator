@@ -4,7 +4,7 @@
  * Hidden entirely in template (structural) mode — layout owns width/height.
  */
 import classes from "./Resize.module.css";
-import { use, useEffect } from "react";
+import { use, useCallback, useEffect } from "react";
 import { PdfContext } from "../../../store/pdfgenerator-context";
 import { canResizeElement } from "../../../utils/editorMode";
 
@@ -16,7 +16,7 @@ export default function Resize({ selectedElement, isResizeable, handleIsResizabl
     // must follow that shifted position, not the logical top, or the resize box
     // detaches from the icon.
     const frameTop = displayTop ?? selectedElement.top;
-    const stopResizing = () => handleIsResizable(false);
+    const stopResizing = useCallback(() => handleIsResizable(false), [handleIsResizable]);
 
     useEffect(() => {
         if (!allowResize) return undefined;
@@ -26,7 +26,7 @@ export default function Resize({ selectedElement, isResizeable, handleIsResizabl
             window.removeEventListener("pointerup", stopResizing);
             window.removeEventListener("pointercancel", stopResizing);
         };
-    }, [allowResize, handleIsResizable]);
+    }, [allowResize, stopResizing]);
 
     if (!allowResize) return null;
 

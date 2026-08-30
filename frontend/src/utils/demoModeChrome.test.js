@@ -43,7 +43,7 @@ test("demo mode removes template switching from the topbar", async () => {
   assert.doesNotMatch(topbar, /classes\.demoTemplate/);
 });
 
-test("empty-state chooser offers saved documents and shields editor chrome", async () => {
+test("empty-state chooser offers saved documents while preserving editor chrome", async () => {
   const chooser = await source("components/editor/StartChooser/StartChooser.jsx");
   const styles = await source("components/editor/StartChooser/StartChooser.module.css");
   const canvas = await source("pages/PdfCanvas.jsx");
@@ -54,7 +54,7 @@ test("empty-state chooser offers saved documents and shields editor chrome", asy
   assert.match(chooser, /onLogout/);
   assert.match(chooser, /CV STUDIO/);
   assert.match(chooser, /cv-studio-mark\.svg/);
-  assert.match(styles, /position: fixed/);
+  assert.match(styles, /\.overlay\s*\{[\s\S]*position: absolute/);
   assert.match(styles, /grid-template-columns: repeat\(2, minmax\(0, 1fr\)\)/);
   assert.match(canvas, /onDocuments=\{\(\) => \{/);
   assert.match(canvas, /documents=\{PDFs\}/);

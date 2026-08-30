@@ -1,99 +1,225 @@
 :root {
-    /* Quiet Luxury editor chrome: warm-white surfaces, black/charcoal actions,
-       gold used sparingly as a signature accent (never as a large button fill —
-       gold-on-white text fails WCAG contrast, so gold stays on kickers, active
-       underlines, icons, badges, and dividers). Layout and control geometry
-       stay unchanged — only the colour system moves from the former
-       navy-blue/gold theme. */
+    /*
+     * Application-wide Swiss design tokens.
+     *
+     * Every route and shared surface resolves through these semantic values.
+     * The compatibility aliases below keep older CSS Modules functional while
+     * they share the same palette, typography, geometry, and motion contract.
+     * User-authored CV templates define their own document styles separately.
+     */
 
-    /* ---- Surfaces & backgrounds ---- */
-    --primary-bg: #FFFFFF;
-    --secondary-bg: #FFFFFF;
-    --surface-2: #F6F5F2;
-    --bg-cream: #FAF9F6;
+    /* Core palette from DESIGN.md. */
+    --color-ink: #161616;
+    --color-paper: #FFFFFF;
+    --color-canvas: #F5F1E8;
+    --color-surface: #ECE8DF;
+    --color-muted: #686868;
+    --color-border: #C9C5BC;
+    --color-accent: #8A664F;
+    --color-focus: #155EEF;
+    --color-success: #18794E;
+    --color-warning: #9A6700;
+    --color-danger: #B42318;
 
-    /* ---- Shared editor chrome (topbar, sidebar, panels, modals) ---- */
-    --chrome-ink: #171717;
-    --chrome-muted: #6B675E;
-    --chrome-border: #E2DFD8;
-    --chrome-surface: #FFFFFF;
-    --chrome-control: #F6F5F2;
-    --chrome-hover: #EFEDE7;
-    --chrome-accent: #171717;
-    --chrome-accent-strong: #000000;
-    --chrome-shadow: 0 14px 34px -18px rgba(23, 23, 23, .16);
+    --color-ink-soft: color-mix(in srgb, var(--color-ink) 72%, var(--color-paper));
+    --color-border-soft: color-mix(in srgb, var(--color-border) 56%, var(--color-paper));
+    --color-accent-soft: color-mix(in srgb, var(--color-accent) 12%, var(--color-paper));
+    --color-focus-soft: color-mix(in srgb, var(--color-focus) 12%, var(--color-paper));
+    --color-success-soft: color-mix(in srgb, var(--color-success) 12%, var(--color-paper));
+    --color-warning-soft: color-mix(in srgb, var(--color-warning) 12%, var(--color-paper));
+    --color-danger-soft: color-mix(in srgb, var(--color-danger) 10%, var(--color-paper));
+    --color-overlay: color-mix(in srgb, var(--color-ink) 74%, transparent);
 
-    /* ---- Brand accent (black) ---- */
-    --accent: #171717;
-    --accent-strong: #000000;
-    --accent-soft: rgba(23, 23, 23, .06);
-    --accent-grad: linear-gradient(135deg, #2B2B2B, #171717);
-    --on-accent: #FFFFFF;
+    /* Typography. Document fonts remain isolated inside the A4 canvas. */
+    --font-ui: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    --font-mono: JetBrainsMono, "JetBrains Mono", Consolas, monospace;
+    --font-display: var(--font-ui);
+    --font-body: var(--font-ui);
 
-    /* Secondary accents */
-    --gold: #B8954A;
-    --gold-deep: #8F7130;
-    --gold-soft: rgba(184, 149, 74, .12);
-    --amber: #B8954A;
-    --green: #3F9A6F;
+    /* Four-pixel spacing rhythm. */
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 12px;
+    --space-4: 16px;
+    --space-6: 24px;
+    --space-8: 32px;
+    --space-12: 48px;
+    --space-16: 64px;
+    --space-24: 96px;
 
-    /* ---- Buttons ---- */
-    --primary-btn: var(--accent);
-    --secondary-btn: #F6F5F2;
-    --close-btn: #EFEDE7;
-
-    /* ---- Text ---- */
-    --primary-font: #171717;
-    --ink-2: #171717;
-    --secondary-font: #57534E;
-    --muted-font: #8B877D;
-    --label-font: #A39D8F;
-    --deco-font: #B8954A;
-
-    /* ---- Lines & borders ---- */
-    --border: #E2DFD8;
-    --border-soft: #EDEBE5;
-    --border-line: #E2DFD8;
-
-    /* ---- Status ---- */
-    --success: #3F9A6F;
-    --success-soft: rgba(63, 154, 111, .14);
-    --danger: #C0563F;
-    --danger-soft: rgba(192, 86, 63, .12);
-
-    /* ---- Editor chrome geometry ---- */
-    /* Shared topbar height so overlay panels (gallery, AI assistant) can open
-       flush under it instead of covering it. */
+    /* Geometry and interaction sizing. */
+    --radius-panel: 0;
+    --radius-control: 2px;
+    --radius-pill: 999px;
+    --control-height: 44px;
+    --control-height-compact: 36px;
     --topbar-h: 48px;
 
-    /* ---- Radius scale ---- */
-    --r-xl: 12px;
-    --r-lg: 8px;
-    --r-md: 4px;
-    --r-sm: 3px;
+    /* One restrained elevation language; borders remain the primary divider. */
+    --shadow-pop: 0 12px 32px rgba(22, 22, 22, .16);
+    --shadow-card: none;
+    --shadow-accent: none;
 
-    /* ---- Elevation ---- */
-    --shadow-card: 0 1px 2px rgba(23, 23, 23, .06), 0 18px 40px -24px rgba(23, 23, 23, .20);
-    --shadow-pop: 0 18px 44px -16px rgba(23, 23, 23, .16);
-    --shadow-accent: 0 12px 24px -10px rgba(23, 23, 23, .30);
+    /* Motion and stacking contracts. */
+    --motion-fast: 120ms;
+    --motion-standard: 200ms;
+    --motion-slow: 320ms;
+    --motion-ease: cubic-bezier(.2, 0, 0, 1);
+    --z-sticky: 100;
+    --z-popover: 200;
+    --z-modal: 300;
+    --z-editor-affordance: 400;
+    --z-toast: 500;
 
-    /* ---- Typography ---- */
-    --font-display: 'Nunito', sans-serif;
-    --font-body: 'Nunito Sans', sans-serif;
-    --font-serif: 'Playfair Display', serif;
+    /* Shared surface aliases used by existing CSS Modules. */
+    --primary-bg: var(--color-paper);
+    --secondary-bg: var(--color-paper);
+    --surface: var(--color-paper);
+    --surface-2: var(--color-surface);
+    --bg-cream: var(--color-canvas);
 
-    /* legacy aliases kept so existing references resolve */
-    --primary-font-family: 'Nunito Sans', sans-serif;
-    --secondary-font-family: 'Nunito Sans', sans-serif;
+    --chrome-ink: var(--color-ink);
+    --chrome-muted: var(--color-muted);
+    --chrome-border: var(--color-border);
+    --chrome-surface: var(--color-paper);
+    --chrome-control: var(--color-surface);
+    --chrome-hover: var(--color-accent-soft);
+    --chrome-accent: var(--color-ink);
+    --chrome-accent-strong: var(--color-ink);
+    --chrome-shadow: none;
+
+    --accent: var(--color-accent);
+    --accent-strong: var(--color-ink);
+    --accent-soft: var(--color-accent-soft);
+    /* The legacy name remains for compatibility, but intentionally resolves
+       to a solid fill because gradients are outside the Swiss system. */
+    --accent-grad: var(--color-ink);
+    --on-accent: var(--color-paper);
+    --gold: var(--color-accent);
+    --gold-deep: var(--color-accent);
+    --gold-soft: var(--color-accent-soft);
+    --amber: var(--color-warning);
+    --green: var(--color-success);
+
+    --primary-btn: var(--color-ink);
+    --secondary-btn: var(--color-paper);
+    --close-btn: var(--color-surface);
+
+    --primary-font: var(--color-ink);
+    --ink-2: var(--color-ink);
+    --secondary-font: var(--color-muted);
+    --muted-font: var(--color-muted);
+    --label-font: var(--color-muted);
+    --deco-font: var(--color-accent);
+
+    --border: var(--color-border);
+    --border-soft: var(--color-border-soft);
+    --border-line: var(--color-border);
+    --focus: var(--color-focus);
+    --success: var(--color-success);
+    --success-soft: var(--color-success-soft);
+    --warning: var(--color-warning);
+    --warning-soft: var(--color-warning-soft);
+    --danger: var(--color-danger);
+    --danger-soft: var(--color-danger-soft);
+
+    --r-xl: var(--radius-panel);
+    --r-lg: var(--radius-panel);
+    --r-md: var(--radius-control);
+    --r-sm: var(--radius-control);
+
+    --primary-font-family: var(--font-ui);
+    --secondary-font-family: var(--font-ui);
 }
 
-@keyframes spin { to { transform: rotate(360deg) } }
-@keyframes indet { 0% { transform: translateX(-100%) } 50% { transform: translateX(60%) } 100% { transform: translateX(220%) } }
-@keyframes floaty { 0%, 100% { transform: translateY(0) } 50% { transform: translateY(-10px) } }
+html {
+    color-scheme: light;
+    background: var(--color-paper);
+    scroll-behavior: smooth;
+}
 
-/* Shared surface-system animations (DialogShell, PanelShell, ToastStack) */
-@keyframes popIn { from { opacity: 0; transform: translateY(-8px) scale(.985) } to { opacity: 1; transform: none } }
-@keyframes slideFromLeft { from { opacity: 0; transform: translateX(-18px) } to { opacity: 1; transform: none } }
-@keyframes slideFromRight { from { opacity: 0; transform: translateX(18px) } to { opacity: 1; transform: none } }
-@keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
-@keyframes shimmer { 0% { background-position: -220px 0 } 100% { background-position: 320px 0 } }
+body {
+    margin: 0;
+    min-width: 320px;
+    min-height: 100vh;
+    min-height: 100dvh;
+    background: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-ui);
+}
+
+button,
+input,
+select,
+textarea {
+    font: inherit;
+}
+
+button,
+a,
+input,
+select,
+textarea,
+[tabindex]:not([tabindex="-1"]) {
+    -webkit-tap-highlight-color: transparent;
+}
+
+:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+}
+
+::selection {
+    background: var(--color-accent-soft);
+    color: var(--color-ink);
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+@keyframes indet {
+    0% { transform: translateX(-100%); }
+    50% { transform: translateX(60%); }
+    100% { transform: translateX(220%); }
+}
+
+@keyframes popIn {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideFromLeft {
+    from { opacity: 0; transform: translateX(-18px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes slideFromRight {
+    from { opacity: 0; transform: translateX(18px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes shimmer {
+    from { background-position: -220px 0; }
+    to { background-position: 320px 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html {
+        scroll-behavior: auto;
+    }
+
+    *,
+    *::before,
+    *::after {
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .01ms !important;
+        scroll-behavior: auto !important;
+    }
+}

@@ -82,7 +82,6 @@ export default function LongCvModal({
       open={open}
       onClose={onClose}
       width={520}
-      radius={2}
       title={title}
       footer={<div className={classes.actions}>{actions}</div>}
     >

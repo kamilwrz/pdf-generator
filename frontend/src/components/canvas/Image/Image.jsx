@@ -71,6 +71,9 @@ function Image({
 
     useEffect(() => {
         if (!needsAuthFetch) {
+            // A template/public source must not retain the object URL from a
+            // previously rendered authenticated image in this reused node.
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setAuthDisplaySrc(null);
             return undefined;
         }

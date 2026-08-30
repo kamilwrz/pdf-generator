@@ -68,5 +68,5 @@
     color: var(--danger);
     background: var(--danger-soft);
     border-radius: 2px;
-    border: 1px solid rgba(232, 138, 115, .35);
+    border: 1px solid color-mix(in srgb, var(--color-danger) 35%, transparent);
 }

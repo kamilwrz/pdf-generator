@@ -101,7 +101,6 @@ export default function SkillsLayoutModal({
       open={open}
       onClose={onCancel}
       width={640}
-      radius={2}
       title="Styl umiejętności"
       subtitle="Wybierz, jak umiejętności mają się wyświetlać na CV."
     >

@@ -1,12 +1,9 @@
 import { IoMdClose } from "react-icons/io";
 import classes from "./CloseButton.module.css";
 
-// `radius` is an optional per-instance corner-radius override (mirrors
-// DialogShell's own `radius` prop): applied inline only when provided, so
-// callers that omit it keep the shared 6px radius from the stylesheet. The
-// unified modal shell (DialogShell) passes a sharper radius; PanelShell and
-// ToastStack keep the default rounder look for their own smaller surfaces.
-export default function CloseButton({left, right, top, width, height, radius, clickHandler}) {
+// `radius` remains available for compact embedded surfaces such as toasts. All
+// variants share the same visible focus treatment and accessible default name.
+export default function CloseButton({left, right, top, width, height, radius, clickHandler, ariaLabel = "Zamknij"}) {
     return (
         <button
             type="button"
@@ -16,8 +13,10 @@ export default function CloseButton({left, right, top, width, height, radius, cl
                 ...(radius != null ? { borderRadius: radius } : {}),
             }}
             onClick={clickHandler}
+            aria-label={ariaLabel}
+            title={ariaLabel}
         >
-            <IoMdClose/>
+            <IoMdClose aria-hidden="true" />
         </button>
     )
 }

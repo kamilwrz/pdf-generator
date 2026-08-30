@@ -85,7 +85,6 @@ import {
   TOO_LONG_MIN_PAGES,
   SIDEBAR_TOO_LONG_MIN_PAGES,
 } from '../utils/documentLength';
-import { collapseSpilledMainIntoSidebar } from '../utils/collapseMainIntoSidebar';
 import { regentTemplate } from '../templates/regent';
 import { TEMPLATES } from '../templates';
 import { templateHasLayout } from '../utils/templateLayouts';
@@ -351,8 +350,6 @@ function PdfCanvas() {
     handleTransferSectionLane,
     handleChangeSkillsDisplayMode,
     connectMode,
-    connectSourceId,
-    startConnecting,
     cancelConnecting,
     pickConnectorAt,
     markSelected,
@@ -360,7 +357,6 @@ function PdfCanvas() {
     handleSetTextareaEditing,
     requestTextEdit,
     requestEditZoomRestore,
-    editZoomSpreadTransitionRef,
     handleSelectElement,
     handleDeleteElement,
     handleDeleteSelectedElements,
@@ -517,6 +513,10 @@ function PdfCanvas() {
   // responsePDF is ever set for the request in flight).
   function noopShowModal() {}
 
+  const handlePdfId = useCallback((nextPdfId) => {
+    setPdfId(nextPdfId);
+  }, []);
+
   const { createPdf, updatePdf, downloadPdf, responsePDF, isPdfLoading } = usePdfExport(handlePdfId, noopShowModal, titleRef, A4_Elements_deleted, setA4_Elements_deleted);
   const wasPdfLoadingRef = useRef(false);
   // Set false by any canvas mutation (edit, load, reflow); flipped true only by
@@ -568,10 +568,10 @@ function PdfCanvas() {
     return undefined;
   }, [isPdfLoading, responsePDF, titleRef]);
 
-  function handleLogout() {
+  const handleLogout = useCallback(() => {
     clearAccessToken();
     navigate("/");
-  }
+  }, [navigate]);
 
 
   // A single-page app does not naturally revisit a protected route while a
@@ -1251,10 +1251,6 @@ function PdfCanvas() {
     [currentPage, isTwoPageView, pageCount],
   );
 
-  function handlePdfId(pdfId) {
-    setPdfId(pdfId)
-  }
-
   // Loading a template / AI doc / clearing starts a fresh, unsaved document,
   // replacing the current canvas. Confirm first so unsaved edits are not lost
   // (background autosave no longer persists them). Callers that already ran
@@ -1721,12 +1717,13 @@ function PdfCanvas() {
     handleEditElementValues, handleEditSelectedElementValues, handleFitTextareaToContent, applyLayoutPatches,
     handleAlignElements, handleDeleteElement, handleDeleteSelectedElements, handleDuplicateSelectedElements,
     setA4_Elements, handleResizeElement, handleDownloadClick,
+    handleCollapseSpilledMainIntoSidebar,
     clearA4Fresh, discardActiveDocument, confirmDiscardActiveEdits, loadTemplateFresh, loadTemplateWithFillFresh,
     loadAiElementsFresh, handleLoadAiElements, activeTemplateId, setActiveTemplateId,
     editorMode, setEditorMode, flowSpacing, setFlowSpacing, baselineFlowSpacing, adoptDocumentFlowSpacing, hydrateDocumentMode, fitTooLong, fitStatus, onFitToPages, onePageFit, onFitToOnePage, handleShowUnlockFreeform, handleUnlockFreeform,
     activeCvData, setActiveCvData, activeImportId, setActiveImportId,
     pageCount, currentPage, addPage, removePage, goToPage, clonePage, movePage, setPageCount, setCurrentPage,
-    isTwoPageView, toggleTwoPageView, handleAddTextarea, handleAddSection, openAddSectionModal, openFlatSectionLayoutModal, openSkillsLayoutModal, handleAddSectionRecord, handleAddRecordBlock, handleRemoveSection, handleRemoveRecordBlock, handleReorderRecordBlock, handleReorderSection, handleTransferSectionLane, handleChangeSkillsDisplayMode, markSelected, handleSetTextareaEditing, requestTextEdit, requestEditZoomRestore, editZoomSpreadTransitionRef,
+    isTwoPageView, toggleTwoPageView, handleAddTextarea, handleAddSection, openAddSectionModal, openFlatSectionLayoutModal, openSkillsLayoutModal, handleAddSectionRecord, handleAddRecordBlock, handleRemoveSection, handleRemoveRecordBlock, handleReorderRecordBlock, handleReorderSection, handleTransferSectionLane, handleChangeSkillsDisplayMode, markSelected, handleSetTextareaEditing, requestTextEdit, requestEditZoomRestore,
     handleDuplicateElement, pageSize, zoom, zoomIn, zoomOut, undo, redo, canUndo, canRedo, resetHistory,
     deletionPreviewIds, layoutPreviewPatches, structurePreviewGroup, spacingHoldId,
     aiCorrectionHighlights,

@@ -55,7 +55,7 @@
     justify-content: center;
     width: 36px;
     height: 36px;
-    border-radius: 2px;
+    border-radius: var(--radius-panel);
     border: 1px solid var(--chrome-border);
     background: var(--chrome-control);
     color: var(--chrome-ink);
@@ -117,19 +117,19 @@
     border: 1px solid var(--chrome-border);
     overflow: hidden;
     background: var(--chrome-control);
-    box-shadow: 0 10px 26px rgba(0, 0, 0, .22);
+    box-shadow: none;
     transition: border-color .15s, box-shadow .15s;
 }
 
 .card:hover:not(:disabled):not(.cardSelected) .imgWrap,
 .card:focus-visible:not(.cardSelected) .imgWrap {
     border-color: var(--chrome-accent);
-    box-shadow: 0 16px 36px rgba(0, 0, 0, .32);
+    box-shadow: var(--shadow-pop);
 }
 
 .cardSelected .imgWrap {
-    border-color: var(--chrome-accent);
-    box-shadow: 0 0 0 2px var(--chrome-accent), 0 12px 28px rgba(0, 0, 0, .24);
+    border: 2px solid var(--chrome-accent);
+    box-shadow: none;
 }
 
 .card:disabled .imgWrap {
@@ -162,7 +162,7 @@
 }
 
 .currentBadge {
-    color: #FFFFFF;
+    color: var(--color-paper);
     background: var(--chrome-ink);
 }
 
@@ -172,7 +172,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(10, 12, 16, .55);
+    background: color-mix(in srgb, var(--color-ink) 55%, transparent);
 }
 
 /* `spin` is defined globally in src/index.css (Vite's CSS Modules setup does
@@ -181,8 +181,8 @@
     display: inline-block;
     width: 22px;
     height: 22px;
-    border: 2.5px solid rgba(255, 255, 255, .3);
-    border-top-color: #fff;
+    border: 2.5px solid color-mix(in srgb, var(--color-paper) 30%, transparent);
+    border-top-color: var(--color-paper);
     border-radius: 50%;
     animation: spin .7s linear infinite;
 }
@@ -234,21 +234,21 @@
 }
 
 .atsBadge_very_safe {
-    border-color: color-mix(in srgb, #5FA777 45%, var(--chrome-border));
-    color: #3F7A55;
-    background: color-mix(in srgb, #5FA777 12%, var(--chrome-surface));
+    border-color: color-mix(in srgb, var(--color-success) 45%, var(--chrome-border));
+    color: var(--color-success);
+    background: color-mix(in srgb, var(--color-success) 12%, var(--chrome-surface));
 }
 
 .atsBadge_safe {
-    border-color: color-mix(in srgb, #3E5C76 40%, var(--chrome-border));
-    color: #3E5C76;
-    background: color-mix(in srgb, #3E5C76 10%, var(--chrome-surface));
+    border-color: color-mix(in srgb, var(--color-focus) 40%, var(--chrome-border));
+    color: var(--color-focus);
+    background: color-mix(in srgb, var(--color-focus) 10%, var(--chrome-surface));
 }
 
 .atsBadge_creative {
-    border-color: color-mix(in srgb, #C45C26 40%, var(--chrome-border));
-    color: #A34A1C;
-    background: color-mix(in srgb, #C45C26 10%, var(--chrome-surface));
+    border-color: color-mix(in srgb, var(--color-warning) 40%, var(--chrome-border));
+    color: var(--color-warning);
+    background: color-mix(in srgb, var(--color-warning) 10%, var(--chrome-surface));
 }
 
 .actionLabel {

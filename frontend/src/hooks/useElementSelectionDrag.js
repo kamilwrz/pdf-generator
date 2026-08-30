@@ -154,7 +154,7 @@ export function useElementSelectionDrag({
       }
       return moved.elements;
     });
-  }, [canvasForPage, elementsRef, pageSizeRef, setDeletedElements, setElements, visibleCanvasEntries]);
+  }, [canvasForPage, editorModeRef, elementsRef, pageSizeRef, setDeletedElements, setElements, visibleCanvasEntries]);
 
   // Moving an element to the neighbour page remounts it in a different A4
   // surface, which releases its original pointer capture. Continue listening

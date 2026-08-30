@@ -38,16 +38,22 @@ export function useDocumentHistory({
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
 
-  const buildSnapshot = () => ({
-    elements: elementsRef.current.map(({ isSelected, isMove, isEditing, ...keep }) => keep),
+  const buildSnapshot = useCallback(() => ({
+    elements: elementsRef.current.map((element) => {
+      const snapshotElement = { ...element };
+      delete snapshotElement.isSelected;
+      delete snapshotElement.isMove;
+      delete snapshotElement.isEditing;
+      return snapshotElement;
+    }),
     pageCount: pageCountRef.current,
-  });
+  }), [elementsRef, pageCountRef]);
 
-  const syncHistoryFlags = () => {
+  const syncHistoryFlags = useCallback(() => {
     const { stack, index } = historyRef.current;
     setCanUndo(index > 0);
     setCanRedo(index < stack.length - 1);
-  };
+  }, []);
 
   // Extend (never shorten) the quiet window so overlapping reflows stay quiet.
   const markHistoryQuiet = useCallback((ms = HISTORY_QUIET_MS) => {
@@ -57,7 +63,7 @@ export function useDocumentHistory({
     );
   }, []);
 
-  const recordSnapshot = () => {
+  const recordSnapshot = useCallback(() => {
     const snap = buildSnapshot();
     // A quiet record is a load/reflow settle: it refreshes the current tip in
     // place and preserves the redo tail. A non-quiet record is a real edit: it
@@ -70,7 +76,7 @@ export function useDocumentHistory({
       limit: HISTORY_LIMIT,
     });
     syncHistoryFlags();
-  };
+  }, [buildSnapshot, syncHistoryFlags]);
 
   // Debounced recorder: coalesces drag frames / keystrokes into a single step.
   // While quiet (reflow settle), use a shorter delay so authored→measured height
@@ -80,7 +86,7 @@ export function useDocumentHistory({
     const quiet = Date.now() < historyQuietUntilRef.current;
     historyTimerRef.current = setTimeout(recordSnapshot, quiet ? 80 : 350);
     return () => clearTimeout(historyTimerRef.current);
-  }, [elements, pageCount]);
+  }, [elements, pageCount, recordSnapshot]);
 
   // Wipe history to a fresh baseline (loading a template / AI doc / saved PDF /
   // clearing) so you can't undo BACK into the previous document. Stay quiet
@@ -112,7 +118,7 @@ export function useDocumentHistory({
     h.index -= 1;
     applySnapshot(h.stack[h.index]);
     syncHistoryFlags();
-  }, [applySnapshot]);
+  }, [applySnapshot, syncHistoryFlags]);
 
   const redo = useCallback(() => {
     const h = historyRef.current;
@@ -120,7 +126,7 @@ export function useDocumentHistory({
     h.index += 1;
     applySnapshot(h.stack[h.index]);
     syncHistoryFlags();
-  }, [applySnapshot]);
+  }, [applySnapshot, syncHistoryFlags]);
 
   return {
     canUndo,

@@ -78,6 +78,9 @@ export default function Gallery() {
         if (!isGallery) return undefined;
 
         if (!localStorage.getItem("token")) {
+            // Authentication changes invalidate the complete private gallery
+            // snapshot; clear it atomically before exposing the signed-out state.
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setImages([]);
             setPreviewUrls({});
             setLoaded(true);
@@ -160,7 +163,7 @@ export default function Gallery() {
                 initial: { opacity: 0, x: 28 },
                 animate: { opacity: 1, x: 0 },
                 exit: { opacity: 0, x: 28 },
-                transition: { type: "spring", damping: 26, stiffness: 320 },
+                transition: { duration: 0.2, ease: [0.2, 0, 0, 1] },
             }}
             title="Zdjęcia profilowe"
             subtitle="4 miejsca · kliknij zdjęcie, aby wstawić w slot CV"

@@ -99,7 +99,7 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
           setA4_Elements_deleted([]);
         }, Math.max(0, MIN_SPINNER_MS - (Date.now() - startedAt)));
       });
-  }, [handlePdfId, handleShowModal, titleRef, setA4_Elements_deleted]);
+  }, [handlePdfId, handleShowModal, setA4_Elements_deleted]);
 
   
   const updatePdf = useCallback((A4_Elements, PDF_ID, titleRef, A4_Elements_deleted, pages = 1, pageSize, meta = {}) => {
@@ -166,7 +166,7 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
           setA4_Elements_deleted([]);
         }, Math.max(0, MIN_SPINNER_MS - (Date.now() - startedAt)));
       });
-  }, [handleShowModal, titleRef, setA4_Elements_deleted])
+  }, [handleShowModal, setA4_Elements_deleted])
 
 
   // Render-on-demand download: render the current canvas to a PDF and return a

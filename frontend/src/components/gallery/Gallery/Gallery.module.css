@@ -4,7 +4,7 @@
     width: min(460px, calc(100vw - 88px));
     background: var(--chrome-surface);
     border: 1px solid var(--chrome-border);
-    box-shadow: 0 10px 30px -14px rgba(47, 67, 82, .45);
+    box-shadow: var(--shadow-pop);
     font-family: var(--font-body);
     /* Docked to the editor chrome's right edge, independent of the A4 page's
        size/zoom — the panel must stay put while the user zooms the page,
@@ -19,7 +19,7 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    z-index: 1500;
+    z-index: var(--z-popover);
 }
 
 .layout {
@@ -81,13 +81,7 @@
     min-height: 0;
     border-radius: 0;
     border: 1.5px dashed color-mix(in srgb, var(--chrome-border) 85%, var(--chrome-muted));
-    background:
-        linear-gradient(
-            160deg,
-            color-mix(in srgb, var(--chrome-control) 70%, transparent) 0%,
-            var(--primary-bg) 55%,
-            color-mix(in srgb, var(--chrome-hover) 55%, transparent) 100%
-        );
+    background: var(--chrome-control);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -128,4 +122,21 @@
     font: 500 11px var(--font-body);
     padding: 1rem 1.25rem;
     text-align: center;
+}
+
+@media (max-width: 720px) {
+    .gallery {
+        top: var(--topbar-h);
+        right: 0;
+        width: calc(100vw - 56px);
+        height: calc(100vh - var(--topbar-h));
+        height: calc(100dvh - var(--topbar-h));
+        border-right: 0;
+        border-bottom: 0;
+    }
+
+    .slotsRegion,
+    .dropRegion {
+        padding-inline: 12px;
+    }
 }

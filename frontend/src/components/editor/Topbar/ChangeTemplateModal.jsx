@@ -42,7 +42,6 @@ export default function ChangeTemplateModal() {
             open={Boolean(isChangeTemplateModal)}
             onClose={showChangeTemplateModal}
             width={1400}
-            radius={2}
             title="Zmień szablon"
             subtitle="Dane Twojego CV zostają takie same — zmienia się tylko wygląd."
         >

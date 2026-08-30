@@ -4,7 +4,7 @@
  * position/structure/deletion/clone review cards before mutating PdfContext.
  */
 import { useState, useRef, useEffect, useCallback, useMemo, use } from "react";
-import { AnimatePresence, motion as Motion } from "framer-motion";
+import { AnimatePresence, motion as Motion, useReducedMotion } from "framer-motion";
 import { nanoid } from "nanoid";
 import { BsStars } from "react-icons/bs";
 import {
@@ -30,7 +30,7 @@ import { collectPendingAiHighlights } from "../../../utils/aiCorrectionHighlight
 // ── goal-oriented quick actions ───────────────────────────────────────────
 // User-facing tiles map to goals; backend still uses specialised API actions
 // (rating, grammar, layout, …). Do not expose every endpoint as its own tile.
-const CHROME_ACCENT = "#171717";
+const CHROME_ACCENT = "var(--color-ink)";
 
 /** Labels for API actions shown on assistant message chips. */
 const ACTION_META = {
@@ -322,7 +322,11 @@ function RatingBadge({ value, percent: percentProp }) {
         ? Math.max(0, Math.min(100, Math.round(percentProp)))
         : ratingToPercent(value);
     if (percent == null) return null;
-    const color = percent >= 80 ? "#5FA777" : percent >= 60 ? "#F59E0B" : "#D2503C";
+    const color = percent >= 80
+        ? "var(--color-success)"
+        : percent >= 60
+            ? "var(--color-warning)"
+            : "var(--color-danger)";
     return (
         <div className={classes.ratingBadge} style={{ borderColor: color, color }}>
             <span className={classes.ratingNum}>{percent}</span>
@@ -580,8 +584,8 @@ function CorrectionCard({ msgId, patch, correctionStates, onAccept, onReject, A4
                     </button>
                 </div>
             )}
-            {state === "accepted" && <span className={classes.corrBadge} style={{ color: "#5FA777" }}>✓ Zastosowano</span>}
-            {state === "rejected" && <span className={classes.corrBadge} style={{ color: "#9A8E7F" }}>✗ Pominięto</span>}
+            {state === "accepted" && <span className={classes.corrBadge} style={{ color: "var(--color-success)" }}>✓ Zastosowano</span>}
+            {state === "rejected" && <span className={classes.corrBadge} style={{ color: "var(--color-muted)" }}>✗ Pominięto</span>}
         </div>
     );
 }
@@ -625,8 +629,8 @@ function LayoutGroupCard({ msgId, group, layoutStates, onPreview, onClearPreview
                     </button>
                 </div>
             )}
-            {state === "accepted" && <span className={classes.corrBadge} style={{ color: "#5FA777" }}>✓ Zastosowano</span>}
-            {state === "rejected" && <span className={classes.corrBadge} style={{ color: "#9A8E7F" }}>✗ Pominięto</span>}
+            {state === "accepted" && <span className={classes.corrBadge} style={{ color: "var(--color-success)" }}>✓ Zastosowano</span>}
+            {state === "rejected" && <span className={classes.corrBadge} style={{ color: "var(--color-muted)" }}>✗ Pominięto</span>}
         </div>
     );
 }
@@ -669,8 +673,8 @@ function StructureGroupCard({ msgId, group, structureStates, onPreview, onClearP
                     </button>
                 </div>
             )}
-            {state === "accepted" && <span className={classes.corrBadge} style={{ color: "#5FA777" }}>✓ Zastosowano</span>}
-            {state === "rejected" && <span className={classes.corrBadge} style={{ color: "#9A8E7F" }}>✗ Pominięto</span>}
+            {state === "accepted" && <span className={classes.corrBadge} style={{ color: "var(--color-success)" }}>✓ Zastosowano</span>}
+            {state === "rejected" && <span className={classes.corrBadge} style={{ color: "var(--color-muted)" }}>✗ Pominięto</span>}
         </div>
     );
 }
@@ -712,8 +716,8 @@ function CloneGroupCard({ msgId, group, cloneStates, onPreview, onClearPreview, 
                     </button>
                 </div>
             )}
-            {state === "accepted" && <span className={classes.corrBadge} style={{ color: "#5FA777" }}>✓ Zastosowano</span>}
-            {state === "rejected" && <span className={classes.corrBadge} style={{ color: "#9A8E7F" }}>✗ Pominięto</span>}
+            {state === "accepted" && <span className={classes.corrBadge} style={{ color: "var(--color-success)" }}>✓ Zastosowano</span>}
+            {state === "rejected" && <span className={classes.corrBadge} style={{ color: "var(--color-muted)" }}>✗ Pominięto</span>}
         </div>
     );
 }
@@ -755,8 +759,8 @@ function DeletionGroupCard({ msgId, group, deletionStates, onPreview, onClearPre
                     </button>
                 </div>
             )}
-            {state === "accepted" && <span className={classes.corrBadge} style={{ color: "#D2503C" }}>✓ Usunięto</span>}
-            {state === "rejected" && <span className={classes.corrBadge} style={{ color: "#9A8E7F" }}>✗ Pominięto</span>}
+            {state === "accepted" && <span className={classes.corrBadge} style={{ color: "var(--color-danger)" }}>✓ Usunięto</span>}
+            {state === "rejected" && <span className={classes.corrBadge} style={{ color: "var(--color-muted)" }}>✗ Pominięto</span>}
         </div>
     );
 }
@@ -1040,6 +1044,7 @@ function ChatMessage({
 // ── main component ────────────────────────────────────────────────────────
 
 export default function AiAssistant() {
+    const reduceMotion = useReducedMotion();
     const {
         A4_Elements,
         activeCvData,
@@ -1083,6 +1088,7 @@ export default function AiAssistant() {
 
     const messagesEndRef = useRef(null);
     const inputRef = useRef(null);
+    const fabRef = useRef(null);
     const layoutHistoryStartRef = useRef(null);
     // Synchronous in-flight guard: React state `isLoading` updates too late to
     // block a double-click on suggestion chips before the next render.
@@ -1740,14 +1746,49 @@ export default function AiAssistant() {
         }
     };
 
+    useEffect(() => {
+        if (!isOpen) return undefined;
+
+        const focusRequest = window.requestAnimationFrame(() => {
+            inputRef.current?.focus({ preventScroll: true });
+        });
+        const opener = fabRef.current;
+        const onKeyDown = (event) => {
+            if (event.key !== "Escape") return;
+            event.preventDefault();
+            setLayoutPreviewPatches([]);
+            setStructurePreviewGroup(null);
+            setDeletionPreviewIds([]);
+            setIsOpen(false);
+        };
+
+        window.addEventListener("keydown", onKeyDown);
+        return () => {
+            window.cancelAnimationFrame(focusRequest);
+            window.removeEventListener("keydown", onKeyDown);
+            if (opener?.isConnected) {
+                opener.focus({ preventScroll: true });
+            }
+        };
+    }, [
+        isOpen,
+        setDeletionPreviewIds,
+        setLayoutPreviewPatches,
+        setStructurePreviewGroup,
+    ]);
+
     return (
         <>
             {/* ── floating action button ── */}
             <button
+                ref={fabRef}
+                type="button"
                 className={`${classes.fab} ${isLoading ? classes.fabLoading : ""}`}
                 onClick={() => setIsOpen(o => !o)}
                 title="Asystent AI"
-                aria-label="Otwórz asystenta AI"
+                aria-label={isOpen ? "Zamknij asystenta AI" : "Otwórz asystenta AI"}
+                aria-expanded={isOpen}
+                aria-controls="ai-assistant-panel"
             >
                 <BsStars />
                 <span className={classes.fabLabel}>Asystent AI</span>
@@ -1757,11 +1798,15 @@ export default function AiAssistant() {
             <AnimatePresence>
                 {isOpen && (
                     <Motion.aside
+                        id="ai-assistant-panel"
                         className={classes.panel}
-                        initial={{ x: "100%" }}
+                        initial={reduceMotion ? false : { x: "100%" }}
                         animate={{ x: 0 }}
                         exit={{ x: "100%" }}
-                        transition={{ type: "spring", damping: 28, stiffness: 320 }}
+                        transition={reduceMotion
+                            ? { duration: 0 }
+                            : { duration: 0.2, ease: [0.2, 0, 0, 1] }}
+                        aria-label="Asystent AI"
                     >
                         {/* header */}
                         <div className={classes.header}>
@@ -1786,13 +1831,13 @@ export default function AiAssistant() {
                                         <span className={classes.creditPillLabel}>kredytów AI</span>
                                     </div>
                                 )}
-                                <button className={classes.closeBtn} onClick={() => {
+                                <button type="button" className={classes.closeBtn} aria-label="Zamknij asystenta AI" onClick={() => {
                                     setLayoutPreviewPatches([]);
                                     setStructurePreviewGroup(null);
                                     setDeletionPreviewIds([]);
                                     setIsOpen(false);
                                 }}>
-                                    <IoClose />
+                                    <IoClose aria-hidden="true" />
                                 </button>
                             </div>
                         </div>

@@ -4,6 +4,7 @@
  */
 import classes from "./EditorControls.module.css";
 import { CANVAS_FONT_STACKS } from "../../../utils/canvasFont";
+import { useId } from "react";
 
 /** CSS font-family used to preview each option in the font picker. */
 const FONT_PREVIEW = CANVAS_FONT_STACKS;
@@ -23,14 +24,17 @@ const FONT_OPTIONS = [
 
 export default function EditorControls({ labelText, type, inputValue, onChangeFn, isSelect, isDisabled }) {
     const selectFont = FONT_PREVIEW[inputValue] || undefined;
+    const controlId = useId();
 
     return (
         <div className={classes.formControl}>
-            <label>{labelText}</label>
+            <label htmlFor={controlId}>{labelText}</label>
             {isSelect ? (
                 <select
+                    id={controlId}
                     value={inputValue}
                     onChange={onChangeFn}
+                    disabled={isDisabled}
                     style={selectFont ? { fontFamily: selectFont } : undefined}
                 >
                     {FONT_OPTIONS.map(({ value, label }) => (
@@ -44,7 +48,7 @@ export default function EditorControls({ labelText, type, inputValue, onChangeFn
                     ))}
                 </select>
             ) : (
-                <input type={type} value={inputValue} onChange={onChangeFn} disabled={isDisabled} />
+                <input id={controlId} type={type} value={inputValue} onChange={onChangeFn} disabled={isDisabled} />
             )}
         </div>
     );

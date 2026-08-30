@@ -3,16 +3,16 @@
     z-index: 34;
     box-sizing: border-box;
     pointer-events: none;
-    background: rgba(23, 23, 23, .025);
+    background: color-mix(in srgb, var(--color-ink) 2.5%, transparent);
     border-style: solid;
-    border-color: rgba(23, 23, 23, .28);
+    border-color: color-mix(in srgb, var(--color-ink) 28%, transparent);
     border-radius: 0;
     animation: canvasHighlightIn 160ms ease-out both;
 }
 
 .highlightPinned {
-    background: rgba(23, 23, 23, .045);
-    border-color: rgba(23, 23, 23, .62);
+    background: color-mix(in srgb, var(--color-ink) 4.5%, transparent);
+    border-color: color-mix(in srgb, var(--color-ink) 62%, transparent);
 }
 
 .anchor {
@@ -31,10 +31,10 @@
     gap: var(--canvas-control-gap);
     padding: var(--canvas-control-gap);
     width: max-content;
-    background: #FCFDFB;
-    border: var(--canvas-control-border) solid rgba(23, 23, 23, .22);
+    background: var(--color-paper);
+    border: var(--canvas-control-border) solid color-mix(in srgb, var(--color-ink) 22%, transparent);
     border-radius: 0;
-    box-shadow: 0 10px 26px -18px rgba(23, 23, 23, .48);
+    box-shadow: var(--shadow-pop);
     pointer-events: auto;
     animation: canvasToolbarIn 170ms cubic-bezier(.16, 1, .3, 1) both;
 }
@@ -60,7 +60,7 @@
     border: 0;
     border-radius: 0;
     background: transparent;
-    color: #5F5F5A;
+    color: var(--color-muted);
     cursor: pointer;
     transition: color 160ms ease-out, background-color 160ms ease-out;
 }
@@ -73,8 +73,8 @@
 
 .control:hover:not(:disabled),
 .controlActive {
-    color: #171717;
-    background: #F1EFEA;
+    color: var(--color-ink);
+    background: var(--color-surface);
 }
 
 .control:active:not(:disabled) {
@@ -91,15 +91,15 @@
     gap: calc(var(--canvas-control-gap) * .8);
     padding: 0 calc(var(--canvas-control-gap) * 1.4);
     justify-content: flex-start;
-    color: #272724;
-    font: 650 var(--canvas-control-font)/1 var(--font-body, sans-serif);
+    color: var(--color-ink);
+    font: 600 var(--canvas-control-font)/1 var(--font-body, sans-serif);
     white-space: nowrap;
 }
 
 .separator {
     width: var(--canvas-control-border);
     height: calc(var(--canvas-control-size) * .55);
-    background: rgba(23, 23, 23, .16);
+    background: color-mix(in srgb, var(--color-ink) 16%, transparent);
 }
 
 /* Tooltips are editor chrome, not browser title bubbles. The delay keeps them
@@ -114,8 +114,8 @@
     width: max-content;
     max-width: calc(var(--canvas-control-menu-width) * 1.15);
     padding: calc(var(--canvas-control-gap) * .85) var(--canvas-control-gap);
-    background: #242421;
-    color: #FFFFFF;
+    background: var(--color-ink);
+    color: var(--color-paper);
     font: 600 var(--canvas-control-font)/1.2 var(--font-body, sans-serif);
     letter-spacing: .01em;
     white-space: nowrap;
@@ -142,9 +142,9 @@
     width: var(--canvas-control-menu-width);
     display: grid;
     padding: var(--canvas-control-gap);
-    background: #FCFDFB;
-    border: var(--canvas-control-border) solid rgba(23, 23, 23, .22);
-    box-shadow: 0 16px 36px -20px rgba(23, 23, 23, .5);
+    background: var(--color-paper);
+    border: var(--canvas-control-border) solid color-mix(in srgb, var(--color-ink) 22%, transparent);
+    box-shadow: var(--shadow-pop);
 }
 
 .menuItem {
@@ -156,14 +156,14 @@
     border: 0;
     border-radius: 0;
     background: transparent;
-    color: #292925;
+    color: var(--color-ink);
     font: 600 var(--canvas-control-font)/1.25 var(--font-body, sans-serif);
     text-align: left;
     cursor: pointer;
 }
 
 .menuItem:hover:not(:disabled) {
-    background: #F1EFEA;
+    background: var(--color-surface);
 }
 
 .menuItem:disabled {
@@ -172,12 +172,12 @@
 }
 
 .menuItemDanger {
-    color: #A13F2D;
+    color: var(--color-danger);
 }
 
 .menuItemDanger:hover:not(:disabled) {
-    background: #F8ECE8;
-    color: #7E2E20;
+    background: var(--color-danger-soft);
+    color: var(--color-danger);
 }
 
 .menuIcon {

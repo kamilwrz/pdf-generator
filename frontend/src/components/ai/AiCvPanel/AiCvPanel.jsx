@@ -33,7 +33,7 @@ const UploadIcon = () => (
 );
 
 const SparkIcon = () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275Z"/>
     </svg>
 );
@@ -246,7 +246,6 @@ export default function AiCvPanel() {
             open={isAiPanel}
             onClose={handleClose}
             width={onStep2 ? 1400 : 960}
-            radius={2}
             bodyClassName={classes.dialogBody}
             title="Importuj CV"
             subtitle={showHistory ? "Wybierz wcześniej wyodrębnione dane albo usuń je ze swojej historii." : "Prześlij PDF — AI wypełni dowolny szablon Twoimi danymi."}

@@ -133,7 +133,6 @@ export default function PlanSelectModal() {
             open={Boolean(isPlanModal)}
             onClose={() => showPlanModal?.()}
             width={960}
-            radius={2}
             title="Twój plan"
             subtitle="Darmowy do stworzenia i sprawdzenia CV. Pro — gotowe CV do wysłania (30 dni, jedna płatność)."
         >

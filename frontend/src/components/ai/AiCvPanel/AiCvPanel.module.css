@@ -305,7 +305,7 @@
     border: 0;
     padding: 0;
     background: transparent;
-    color: var(--danger, #9d2c2c);
+    color: var(--danger, var(--color-danger));
     font: 600 12px var(--font-body);
     cursor: pointer;
 }
@@ -382,7 +382,7 @@
     display: inline-block;
     width: 18px;
     height: 18px;
-    border: 2px solid rgba(15, 18, 22, .25);
+    border: 2px solid color-mix(in srgb, var(--color-ink) 25%, transparent);
     border-top-color: var(--on-accent);
     border-radius: 50%;
     animation: spin .7s linear infinite;
@@ -396,6 +396,12 @@
     color: var(--danger);
     background: var(--danger-soft);
     border-radius: 2px;
-    border: 1px solid rgba(232, 138, 115, .35);
+    border: 1px solid color-mix(in srgb, var(--color-danger) 35%, transparent);
     flex-shrink: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .spinner {
+        animation: none;
+    }
 }

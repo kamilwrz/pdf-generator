@@ -81,21 +81,21 @@
 }
 
 .atsBadge_very_safe {
-    border-color: color-mix(in srgb, #5FA777 45%, var(--chrome-border));
-    color: #3F7A55;
-    background: color-mix(in srgb, #5FA777 12%, var(--chrome-surface));
+    border-color: color-mix(in srgb, var(--color-success) 45%, var(--chrome-border));
+    color: var(--color-success);
+    background: color-mix(in srgb, var(--color-success) 12%, var(--chrome-surface));
 }
 
 .atsBadge_safe {
-    border-color: color-mix(in srgb, #3E5C76 40%, var(--chrome-border));
-    color: #3E5C76;
-    background: color-mix(in srgb, #3E5C76 10%, var(--chrome-surface));
+    border-color: color-mix(in srgb, var(--color-focus) 40%, var(--chrome-border));
+    color: var(--color-focus);
+    background: color-mix(in srgb, var(--color-focus) 10%, var(--chrome-surface));
 }
 
 .atsBadge_creative {
-    border-color: color-mix(in srgb, #C45C26 40%, var(--chrome-border));
-    color: #A34A1C;
-    background: color-mix(in srgb, #C45C26 10%, var(--chrome-surface));
+    border-color: color-mix(in srgb, var(--color-warning) 40%, var(--chrome-border));
+    color: var(--color-warning);
+    background: color-mix(in srgb, var(--color-warning) 10%, var(--chrome-surface));
 }
 
 .useBtn {
@@ -127,8 +127,8 @@
     position: absolute;
     top: 8px;
     right: 8px;
-    background: #25241E;
-    color: #F6F7F9;
+    background: var(--color-ink);
+    color: var(--color-paper);
     font: 700 10px var(--font-body);
     letter-spacing: 0.04em;
     text-transform: uppercase;
@@ -156,8 +156,8 @@
 .paper {
     width: 168px;
     height: 237px;
-    background: #fff;
-    box-shadow: 0 4px 14px rgba(30, 48, 78, .18);
+    background: var(--color-paper);
+    box-shadow: var(--shadow-pop);
     border-radius: 2px;
     overflow: hidden;
 }
@@ -183,77 +183,18 @@
     .paper { width: 148px; height: 209px; }
 }
 
-/* ---- replace-canvas confirmation (matches ModalPdfs confirm) ---- */
-.confirmBackdrop {
-    position: fixed;
-    inset: 0;
-    z-index: 6000;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 1rem;
-    background: rgba(28, 36, 48, .42);
-    backdrop-filter: blur(2px);
-    animation: fadeIn .16s ease both;
-}
-
-.confirmDialog {
-    width: 380px;
-    max-width: 100%;
-    background: var(--chrome-surface);
-    border: 1px solid var(--chrome-border);
-    border-radius: 8px;
-    box-shadow: 0 24px 54px -28px rgba(47, 67, 82, .55);
-    overflow: hidden;
-    animation: popIn .18s cubic-bezier(.2, .8, .3, 1) both;
-    font-family: var(--font-body);
-}
-
-.confirmHeader {
-    display: flex;
-    align-items: flex-start;
-    gap: 11px;
-    padding: 14px 16px;
-}
-
-.confirmIcon {
-    width: 32px;
-    height: 32px;
-    border-radius: 6px;
-    background: var(--danger-soft);
-    color: var(--danger);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-}
-
-.confirmHeader h2 {
-    margin: 0;
-    font: 700 14px var(--font-display);
-    color: var(--chrome-ink);
-}
-
-.confirmHeader p {
-    margin: 3px 0 0;
-    font: 500 11px/1.5 var(--font-body);
-    color: var(--chrome-muted);
-}
-
-.confirmFooter {
+.confirmActions {
     display: flex;
     align-items: center;
     justify-content: flex-end;
     gap: 6px;
-    padding: 10px 16px;
-    border-top: 1px solid var(--chrome-border);
-    background: var(--chrome-control);
+    margin-left: auto;
 }
 
 .confirmCancel {
     height: 28px;
     padding: 0 12px;
-    border-radius: 6px;
+    border-radius: var(--radius-control);
     border: 1px solid var(--chrome-border);
     background: var(--primary-bg);
     font: 600 10.5px var(--font-body);
@@ -268,7 +209,7 @@
 .confirmApply {
     height: 28px;
     padding: 0 12px;
-    border-radius: 6px;
+    border-radius: var(--radius-control);
     border: 1px solid transparent;
     background: var(--accent-grad);
     color: var(--on-accent);
@@ -276,16 +217,4 @@
     cursor: pointer;
 }
 
-.confirmApply:hover {
-    background: var(--chrome-accent);
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
-
-@keyframes popIn {
-    from { opacity: 0; transform: translateY(6px) scale(.98); }
-    to { opacity: 1; transform: none; }
-}
+.confirmApply:hover { background: var(--chrome-accent); }

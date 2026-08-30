@@ -135,7 +135,7 @@ export default function Topbar({ titleRef }) {
                             onClick={() => prevTemplate && applyTemplate(prevTemplate)}
                             disabled={!canRestyle || !prevTemplate}
                             aria-label={prevTemplate ? `Poprzedni szablon: ${prevTemplate.name}` : "Poprzedni szablon"}
-                            title={prevTemplate ? undefined : templatesHint}
+                            title={prevTemplate ? `Poprzedni szablon: ${prevTemplate.name}` : templatesHint}
                         >
                             <RiArrowLeftSLine />
                         </button>
@@ -164,7 +164,7 @@ export default function Topbar({ titleRef }) {
                             onClick={() => nextTemplate && applyTemplate(nextTemplate)}
                             disabled={!canRestyle || !nextTemplate}
                             aria-label={nextTemplate ? `Następny szablon: ${nextTemplate.name}` : "Następny szablon"}
-                            title={nextTemplate ? undefined : templatesHint}
+                            title={nextTemplate ? `Następny szablon: ${nextTemplate.name}` : templatesHint}
                         >
                             <RiArrowRightSLine />
                         </button>

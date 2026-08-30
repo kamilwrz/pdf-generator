@@ -20,7 +20,7 @@
  * suppressed in template mode.
  */
 import classes from "./Editor.module.css";
-import { useEffect, useLayoutEffect, useState, useRef, use } from "react";
+import { useCallback, useEffect, useLayoutEffect, useState, useRef, use } from "react";
 import { createPortal } from "react-dom";
 import { RiDeleteBin2Line, RiFileCopyLine } from "react-icons/ri";
 import { CiTextAlignLeft, CiTextAlignCenter, CiTextAlignRight, CiTextAlignJustify } from "react-icons/ci";
@@ -39,7 +39,7 @@ import { RxLetterSpacing, RxWidth, RxHeight, RxLayers } from "react-icons/rx";
 import { TbArrowBigRightLines } from "react-icons/tb";
 
 import { PdfContext } from "../../../store/pdfgenerator-context";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion as Motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import {
   canCloneOrDeleteElements,
   canEditElementLayer,
@@ -102,6 +102,7 @@ function toColorInputValue(value, fallback = "#000000") {
 }
 
 export default function Editor() {
+  const reduceMotion = useReducedMotion();
   const {
     A4_Elements,
     editElementValues,
@@ -124,10 +125,6 @@ export default function Editor() {
   const selectedElement = selectedElements[0];
   const someElementSelected = selectedElements.length > 0;
   const isMultiSelection = selectedElements.length > 1;
-  const positionLocked = Boolean(
-    selectedElement?.locked
-    || (selectedElement && !canFreePositionElement(selectedElement, editorMode)),
-  );
   // Hide no-op geometry / structure actions instead of showing disabled chrome.
   const showPositionFields = Boolean(
     selectedElement && canEditElementPosition(selectedElement, editorMode),
@@ -346,6 +343,10 @@ export default function Editor() {
   }
 
   useEffect(() => {
+    // The toolbar fields are editable drafts. Replacing the canvas selection
+    // must synchronously reset the complete draft so values from the previous
+    // element cannot be submitted to the newly selected element.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setElementValues({
       element_id: selectedElement?.element_id,
       content: selectedElement?.content,
@@ -369,6 +370,9 @@ export default function Editor() {
   }, [someElementSelected, selectedElement]);
 
   useEffect(() => {
+    // Group deltas are relative to the current selection; carrying them into
+    // a different selection would move newly selected elements unexpectedly.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setGroupMoveValues({ x: "0", y: "0" });
     groupMoveOffsetRef.current = { x: 0, y: 0 };
   }, [selectionKey]);
@@ -380,6 +384,9 @@ export default function Editor() {
       && (selectedElement?.category === "text" || selectedElement?.category === "textarea")
       && !isMultiSelection;
     if (!editing) {
+      // The browser selection no longer belongs to an editable canvas node,
+      // so the contextual formatting toolbar must disappear immediately.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setInlineSelection(null);
       return undefined;
     }
@@ -457,7 +464,7 @@ export default function Editor() {
   }
 
   /** Union bbox of every selected element's live canvas DOM node. */
-  function readSelectionAnchorRect() {
+  const readSelectionAnchorRect = useCallback(() => {
     const ids = selectionKey ? selectionKey.split("|").filter(Boolean) : [];
     const rects = ids
       .map((id) => document.getElementById(id)?.getBoundingClientRect())
@@ -469,7 +476,7 @@ export default function Editor() {
         height: rect.height,
       }));
     return unionRects(rects);
-  }
+  }, [selectionKey]);
 
   // Topbar-docked panel: right edge sits GAP_FROM_ZOOM_PX left of the zoom
   // control, vertically centered on it. Only the zoom cluster's position (not
@@ -554,6 +561,7 @@ export default function Editor() {
     zoom,
     isTwoPageView,
     currentPage,
+    readSelectionAnchorRect,
   ]);
 
   const cat = selectedElement?.category;
@@ -561,16 +569,16 @@ export default function Editor() {
   const panel = (
     <AnimatePresence>
       {someElementSelected && (
-        <motion.aside
+        <Motion.aside
           ref={panelRef}
           className={classes.editor}
           role="toolbar"
           aria-label="Właściwości elementu"
           style={{ top: panelPosition.top, left: panelPosition.left }}
-          initial={{ opacity: 0, y: -6, scale: 0.98 }}
+          initial={reduceMotion ? false : { opacity: 0, y: -6, scale: 0.98 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: -6, scale: 0.98 }}
-          transition={{ duration: 0.16, ease: "easeOut" }}
+          exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -6, scale: 0.98 }}
+          transition={{ duration: reduceMotion ? 0 : 0.16, ease: [0.2, 0, 0, 1] }}
           onPointerDown={(event) => event.stopPropagation()}
           onMouseDown={(event) => event.stopPropagation()}
         >
@@ -934,7 +942,7 @@ export default function Editor() {
               </>
             )}
           </form>
-        </motion.aside>
+        </Motion.aside>
       )}
     </AnimatePresence>
   );
@@ -946,16 +954,16 @@ export default function Editor() {
   const selectionPanel = (
     <AnimatePresence>
       {inlineSelection ? (
-        <motion.aside
+        <Motion.aside
           ref={selectionPanelRef}
           className={classes.editor}
           role="toolbar"
           aria-label="Formatowanie zaznaczenia"
           style={{ top: selectionPanelPosition.top, left: selectionPanelPosition.left }}
-          initial={{ opacity: 0, y: 4, scale: 0.98 }}
+          initial={reduceMotion ? false : { opacity: 0, y: 4, scale: 0.98 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: 4, scale: 0.98 }}
-          transition={{ duration: 0.16, ease: "easeOut" }}
+          exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 4, scale: 0.98 }}
+          transition={{ duration: reduceMotion ? 0 : 0.16, ease: [0.2, 0, 0, 1] }}
           // Keep the contentEditable selection alive while using the panel.
           onMouseDown={(event) => event.preventDefault()}
         >
@@ -989,7 +997,7 @@ export default function Editor() {
               />
             </Group>
           </form>
-        </motion.aside>
+        </Motion.aside>
       ) : null}
     </AnimatePresence>
   );

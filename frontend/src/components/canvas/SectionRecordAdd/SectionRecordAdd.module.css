@@ -20,9 +20,9 @@
        the Swiss card tokens from DESIGN.md: white surface, 1px hairline grey
        stroke, subtle sharp shadow, 0px corner radius. */
     padding: 2px 3px;
-    background: #FFFFFF;
-    border: 1px solid rgba(128, 128, 128, 0.2);
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+    background: var(--color-paper);
+    border: 1px solid color-mix(in srgb, var(--color-muted) 20%, transparent);
+    box-shadow: var(--shadow-pop);
     pointer-events: auto;
 }
 
@@ -41,7 +41,7 @@
     padding: 0;
     border: none;
     background: transparent;
-    color: #6B6B66;
+    color: var(--color-muted);
     cursor: pointer;
     pointer-events: auto;
     transition: color .2s, opacity .2s;
@@ -57,15 +57,15 @@
 
 .plus:hover,
 .arrow:hover:not(:disabled) {
-    color: #2B2B2B;
+    color: var(--color-ink);
 }
 
 .trash {
-    color: #C0563F;
+    color: var(--color-danger);
 }
 
 .trash:hover {
-    color: #8E3320;
+    color: var(--color-danger);
 }
 
 .arrow:disabled {

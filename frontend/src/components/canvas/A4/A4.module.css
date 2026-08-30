@@ -18,11 +18,10 @@
 
 .A4 {
     position: relative;
-    background-color: white;
-    border-radius: 4px;
-    box-shadow:
-        0 0 0 1px rgba(23, 23, 23, .08),
-        0 24px 56px -18px rgba(23, 23, 23, .22);
+    background-color: var(--color-paper);
+    border: 0;
+    border-radius: var(--radius-panel);
+    box-shadow: var(--shadow-pop);
     transition: transform 240ms ease-out;
 }
 

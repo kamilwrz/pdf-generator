@@ -45,7 +45,6 @@ export default function FlatSectionLayoutModal({ open, onCancel, element, onAppl
       open={open}
       onClose={onCancel}
       width={620}
-      radius={2}
       title="Układ listy"
       subtitle="Wybierz, jak elementy tej sekcji mają się wyświetlać na CV."
     >

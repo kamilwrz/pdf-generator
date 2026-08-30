@@ -1,5 +1,5 @@
 /*
- * Empty-state onboarding surface. Covers the editor chrome and centres a
+ * Empty-state onboarding surface. Covers the canvas region and centres a
  * four-card chooser. Uses the
  * editor's muted chrome tokens for colour/typography and DESIGN.md's Swiss
  * structural rules: sharp 0px corners, 1px borders, a single subtle shadow,
@@ -7,23 +7,17 @@
  */
 
 .overlay {
-  position: fixed;
+  position: absolute;
   inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 2rem 1.5rem;
   isolation: isolate;
-  /* The base stops every underlying editor control from showing through. */
-  background:
-    linear-gradient(
-      120deg,
-      #f5f1e8 0%,
-      #ffffff 46%,
-      #e8dccf 100%
-    );
+  /* The base hides the underlying canvas while sidebar and topbar stay usable. */
+  background: var(--color-canvas);
   overflow: auto;
-  z-index: 2000;
+  z-index: 1;
 }
 
 .overlay::before,
@@ -34,39 +28,21 @@
   content: "";
 }
 
-/* A quiet Swiss grid gives the empty surface structure without competing with
-   the primary choices or looking like a decorative illustration. */
+/* Orthogonal axes expose the layout grid without decorative gradients. */
 .overlay::before {
-  opacity: 0.42;
-  background-image:
-    linear-gradient(
-      90deg,
-      rgba(128, 128, 128, 0.12) 1px,
-      transparent 1px
-    ),
-    linear-gradient(
-      0deg,
-      rgba(128, 128, 128, 0.1) 1px,
-      transparent 1px
-    );
-  background-size: 96px 96px;
+  right: auto;
+  left: 50%;
+  width: 1px;
+  background: var(--color-border);
+  opacity: .5;
 }
 
-/* Two oversized, muted light fields add depth while remaining below WCAG
-   content contrast requirements because all text sits above this layer. */
 .overlay::after {
-  opacity: 1;
-  background:
-    radial-gradient(
-      ellipse at 88% 82%,
-      rgba(179, 139, 109, 0.18),
-      transparent 26rem
-    ),
-    radial-gradient(
-      ellipse at 52% 0%,
-      rgba(255, 255, 255, 0.7),
-      transparent 24rem
-    );
+  top: 50%;
+  bottom: auto;
+  height: 1px;
+  background: var(--color-border);
+  opacity: .5;
 }
 
 .brand {
@@ -77,8 +53,8 @@
   display: inline-flex;
   align-items: center;
   gap: 0.7rem;
-  color: var(--chrome-ink, #171717);
-  font-family: var(--font-body, "Nunito Sans", sans-serif);
+  color: var(--chrome-ink);
+  font-family: var(--font-body);
   font-size: 1.05rem;
   font-weight: 800;
   letter-spacing: 0.14em;
@@ -92,13 +68,13 @@
 }
 
 .brand:focus-visible {
-  outline: 2px solid var(--chrome-accent, #171717);
+  outline: 2px solid var(--color-focus);
   outline-offset: 5px;
 }
 
 .inner {
   width: 100%;
-  max-width: 1280px;
+  max-width: 1440px;
   position: relative;
   z-index: 1;
   display: flex;
@@ -118,19 +94,19 @@
 
 .title {
   margin: 0;
-  font-family: var(--font-display, "Nunito", sans-serif);
+  font-family: var(--font-display);
   font-weight: 700;
   letter-spacing: -0.01em;
   font-size: clamp(1.6rem, 3.4vw, 2.25rem);
-  color: var(--chrome-ink, #171717);
+  color: var(--chrome-ink);
 }
 
 .subtitle {
   margin: 0;
-  font-family: var(--font-body, "Nunito Sans", sans-serif);
+  font-family: var(--font-body);
   font-size: 1rem;
   line-height: 1.6;
-  color: var(--chrome-muted, #6b675e);
+  color: var(--chrome-muted);
 }
 
 .cards {
@@ -152,9 +128,9 @@
   cursor: pointer;
   /* DESIGN.md: sharp 0px corners, surface fill, 1px stroke, subtle shadow. */
   border-radius: 0;
-  border: 1px solid var(--chrome-border, #e2dfd8);
-  background: var(--chrome-surface, #fff);
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  border: 1px solid var(--chrome-border);
+  background: var(--chrome-surface);
+  box-shadow: none;
   /* Only transform/opacity animate; staggered entry set per-card below. */
   transition: transform 200ms ease-out, box-shadow 200ms ease-out,
     border-color 200ms ease-out;
@@ -175,8 +151,8 @@
 
 .card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.1);
-  border-color: var(--chrome-accent, #171717);
+  box-shadow: none;
+  border-color: var(--chrome-accent);
 }
 
 .card:active {
@@ -184,13 +160,13 @@
 }
 
 .card:focus-visible {
-  outline: 2px solid var(--chrome-accent, #171717);
+  outline: 2px solid var(--color-focus);
   outline-offset: 2px;
 }
 
 /* The recommended path reads slightly heavier without a colour clash. */
 .cardPrimary {
-  border-color: var(--chrome-accent, #171717);
+  border-color: var(--chrome-accent);
 }
 
 .iconWrap {
@@ -200,9 +176,9 @@
   width: 44px;
   height: 44px;
   margin-bottom: 0.4rem;
-  border: 1px solid var(--chrome-border, #e2dfd8);
-  background: var(--bg-cream, #f5f1e8);
-  color: var(--chrome-accent, #171717);
+  border: 1px solid var(--chrome-border);
+  background: var(--bg-cream);
+  color: var(--chrome-accent);
 }
 
 .icon {
@@ -211,17 +187,17 @@
 }
 
 .cardTitle {
-  font-family: var(--font-display, "Nunito", sans-serif);
+  font-family: var(--font-display);
   font-weight: 700;
   font-size: 1.15rem;
-  color: var(--chrome-ink, #171717);
+  color: var(--chrome-ink);
 }
 
 .cardText {
-  font-family: var(--font-body, "Nunito Sans", sans-serif);
+  font-family: var(--font-body);
   font-size: 0.9rem;
   line-height: 1.55;
-  color: var(--chrome-muted, #6b675e);
+  color: var(--chrome-muted);
 }
 
 /* Primary CTA: accent fill, sharp edges, no glow (DESIGN.md primary button). */
@@ -230,12 +206,12 @@
   align-self: stretch;
   text-align: center;
   padding: 0.6rem 1rem;
-  font-family: var(--font-body, "Nunito Sans", sans-serif);
+  font-family: var(--font-body);
   font-weight: 600;
   font-size: 0.9rem;
-  color: var(--on-accent, #fff);
-  background: var(--chrome-accent, #171717);
-  border: 1px solid var(--chrome-accent, #171717);
+  color: var(--on-accent);
+  background: var(--chrome-accent);
+  border: 1px solid var(--chrome-accent);
 }
 
 /* Secondary CTA: outline/ghost variant. */
@@ -244,16 +220,16 @@
   align-self: stretch;
   text-align: center;
   padding: 0.6rem 1rem;
-  font-family: var(--font-body, "Nunito Sans", sans-serif);
+  font-family: var(--font-body);
   font-weight: 600;
   font-size: 0.9rem;
-  color: var(--chrome-ink, #171717);
+  color: var(--chrome-ink);
   background: transparent;
-  border: 1.5px solid var(--chrome-border, #e2dfd8);
+  border: 1px solid var(--chrome-border);
 }
 
 .card:hover .ctaGhost {
-  border-color: var(--chrome-accent, #171717);
+  border-color: var(--chrome-accent);
 }
 
 .secondaryActions {
@@ -264,7 +240,7 @@
   align-items: stretch;
   gap: 0.8rem;
   padding-top: 1.25rem;
-  border-top: 1px solid var(--chrome-border, #e2dfd8);
+  border-top: 1px solid var(--chrome-border);
   animation: startChooserRise 420ms ease-out 240ms both;
 }
 
@@ -276,7 +252,7 @@
   padding: 0.8rem 0;
   border: 0;
   background: transparent;
-  color: var(--chrome-ink, #171717);
+  color: var(--chrome-ink);
   text-align: left;
   cursor: pointer;
 }
@@ -287,7 +263,7 @@
 }
 
 .recentDocument:focus-visible {
-  outline: 2px solid var(--chrome-accent, #171717);
+  outline: 2px solid var(--color-focus);
   outline-offset: 4px;
 }
 
@@ -298,8 +274,8 @@
   justify-content: center;
   width: 36px;
   height: 36px;
-  border: 1px solid var(--chrome-border, #e2dfd8);
-  color: var(--chrome-accent, #171717);
+  border: 1px solid var(--chrome-border);
+  color: var(--chrome-accent);
 }
 
 .secondaryIcon svg {
@@ -315,7 +291,7 @@
 }
 
 .secondaryLabel {
-  font-family: var(--font-body, "Nunito Sans", sans-serif);
+  font-family: var(--font-body);
   font-size: 0.95rem;
   font-weight: 700;
 }
@@ -323,14 +299,14 @@
 .secondaryMeta,
 .documentsEmpty {
   margin: 0;
-  color: var(--chrome-muted, #6b675e);
-  font-family: var(--font-body, "Nunito Sans", sans-serif);
+  color: var(--chrome-muted);
+  font-family: var(--font-body);
   font-size: 0.85rem;
 }
 
 .secondaryArrow {
   margin-left: auto;
-  color: var(--chrome-muted, #6b675e);
+  color: var(--chrome-muted);
   font-size: 1.1rem;
 }
 
@@ -346,8 +322,8 @@
   border: 0;
   background: transparent;
   padding: 0;
-  color: var(--chrome-muted, #6b675e);
-  font-family: var(--font-body, "Nunito Sans", sans-serif);
+  color: var(--chrome-muted);
+  font-family: var(--font-body);
   font-size: 0.85rem;
   text-decoration: underline;
   text-underline-offset: 3px;
@@ -355,16 +331,16 @@
 }
 
 .blankLink:hover {
-  color: var(--chrome-ink, #171717);
+  color: var(--chrome-ink);
 }
 
 .blankLink:focus-visible {
-  outline: 2px solid var(--chrome-accent, #171717);
+  outline: 2px solid var(--color-focus);
   outline-offset: 4px;
 }
 
 .logout {
-  position: fixed;
+  position: absolute;
   left: 1.25rem;
   bottom: 1.25rem;
   display: inline-flex;
@@ -373,10 +349,10 @@
   width: 36px;
   height: 36px;
   padding: 0;
-  border: 1px solid var(--chrome-border, #e2dfd8);
-  border-radius: 5px;
+  border: 1px solid var(--chrome-border);
+  border-radius: var(--radius-control);
   background: transparent;
-  color: var(--chrome-muted, #6b675e);
+  color: var(--chrome-muted);
   cursor: pointer;
   transition: color 150ms ease-out, border-color 150ms ease-out,
     background 150ms ease-out;
@@ -389,18 +365,23 @@
 }
 
 .logout:hover {
-  border-color: var(--chrome-accent, #171717);
-  background: var(--chrome-hover, #f0ede6);
-  color: var(--chrome-ink, #171717);
+  border-color: var(--chrome-accent);
+  background: var(--chrome-hover);
+  color: var(--chrome-ink);
 }
 
 .logout:focus-visible {
-  outline: 2px solid var(--chrome-accent, #171717);
+  outline: 2px solid var(--color-focus);
   outline-offset: 2px;
 }
 
 /* Mobile: single column, no horizontal overflow. */
 @media (max-width: 767px) {
+  .overlay::before,
+  .overlay::after {
+    display: none;
+  }
+
   .cards {
     grid-template-columns: 1fr;
   }

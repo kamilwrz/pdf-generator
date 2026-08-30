@@ -3,7 +3,7 @@
     position: fixed;
     right: 20px;
     bottom: 24px;
-    z-index: 1350;
+    z-index: var(--z-popover);
     height: 44px;
     padding: 0 16px 0 14px;
     border-radius: 999px;
@@ -27,7 +27,7 @@
 .fab:hover {
     transform: translateY(-1px);
     background: var(--chrome-accent);
-    box-shadow: 0 12px 26px -18px rgba(47, 67, 82, .55);
+    box-shadow: var(--shadow-pop);
 }
 
 .fab:active { transform: scale(0.97); }
@@ -46,10 +46,11 @@
     top: var(--topbar-h);
     width: min(520px, 100vw);
     height: calc(100vh - var(--topbar-h));
-    z-index: 2000;
+    height: calc(100dvh - var(--topbar-h));
+    z-index: var(--z-popover);
     background: var(--chrome-surface);
     border-left: 1px solid var(--chrome-border);
-    box-shadow: -10px 0 30px -22px rgba(47, 67, 82, .45);
+    box-shadow: var(--shadow-pop);
     display: flex;
     flex-direction: column;
     font-family: var(--font-body);
@@ -92,7 +93,7 @@
 .closeBtn {
     width: 28px;
     height: 28px;
-    border-radius: 6px;
+    border-radius: var(--radius-control);
     border: 1px solid var(--chrome-border);
     background: var(--chrome-control);
     color: var(--chrome-muted);
@@ -104,6 +105,7 @@
     transition: color .15s, border-color .15s;
 }
 .closeBtn:hover { color: var(--chrome-accent); background: var(--chrome-hover); }
+.closeBtn:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
 
 .headerRight {
     display: flex;
@@ -156,7 +158,7 @@
     gap: 3px;
     padding: 7px 3px;
     border: 1px solid var(--chrome-border);
-    border-radius: 6px;
+    border-radius: var(--radius-control);
     background: var(--chrome-control);
     cursor: pointer;
     font: 600 10px var(--font-body);
@@ -184,7 +186,7 @@
 .layoutModeBanner {
     margin: 0 10px 8px;
     padding: 7px 9px;
-    border-radius: 6px;
+    border-radius: var(--radius-control);
     border: 1px solid var(--chrome-border);
     background: var(--accent-soft);
     color: var(--chrome-ink);
@@ -194,7 +196,7 @@
 .structureCard {
     padding: 8px;
     border: 1px solid var(--chrome-border);
-    border-radius: 7px;
+    border-radius: var(--radius-control);
     background: var(--chrome-control);
     display: flex;
     flex-direction: column;
@@ -220,16 +222,16 @@
 
 .deletionCard {
     padding: 8px;
-    border: 1px solid rgba(232, 138, 115, .45);
-    border-radius: 7px;
+    border: 1px solid color-mix(in srgb, var(--color-danger) 45%, transparent);
+    border-radius: var(--radius-control);
     background: var(--danger-soft);
     display: flex;
     flex-direction: column;
     gap: 5px;
 }
 
-.deletion_preview { border-color: var(--danger); background: rgba(232, 138, 115, .22); }
-.deletion_accepted { border-color: rgba(232, 138, 115, .35); background: rgba(232, 138, 115, .1); }
+.deletion_preview { border-color: var(--danger); background: var(--color-danger-soft); }
+.deletion_accepted { border-color: color-mix(in srgb, var(--color-danger) 35%, transparent); background: color-mix(in srgb, var(--color-danger) 10%, transparent); }
 .deletion_rejected { opacity: .72; }
 
 .deletionCard strong { font: 700 11px var(--font-body); color: var(--chrome-ink); }
@@ -237,15 +239,15 @@
 
 .deleteAccept {
     padding: 5px 8px;
-    border: 1px solid #c75645;
-    border-radius: 5px;
-    background: #d2503c;
-    color: #FFFFFF;
+    border: 1px solid var(--color-danger);
+    border-radius: var(--radius-control);
+    background: var(--color-danger);
+    color: var(--color-paper);
     font: 700 10px var(--font-body);
     cursor: pointer;
 }
 
-.deleteAccept:hover { background: #b83e2d; }
+.deleteAccept:hover { background: var(--color-danger); }
 
 /* ── Job Description ─────────────────────────────────────────────── */
 .jobDescArea {
@@ -269,7 +271,7 @@
     width: 100%;
     padding: 7px 9px;
     border: 1px solid var(--chrome-border);
-    border-radius: 6px;
+    border-radius: var(--radius-control);
     background: var(--chrome-surface);
     font: 500 11px var(--font-body);
     color: var(--chrome-ink);
@@ -277,7 +279,7 @@
     outline: none;
     transition: border-color .15s;
 }
-.jobDescInput:focus { border-color: var(--chrome-accent); box-shadow: 0 0 0 2px var(--accent-soft); }
+.jobDescInput:focus { border-color: var(--color-focus); box-shadow: 0 0 0 2px var(--color-focus-soft); }
 
 .jobDescRow {
     display: flex;
@@ -289,7 +291,7 @@
 .jobDescCancel {
     padding: 5px 9px;
     border: 1px solid var(--chrome-border);
-    border-radius: 6px;
+    border-radius: var(--radius-control);
     background: transparent;
     font: 600 10.5px var(--font-body);
     color: var(--chrome-muted);
@@ -299,7 +301,7 @@
 .jobDescAnalyse {
     padding: 5px 10px;
     border: none;
-    border-radius: 6px;
+    border-radius: var(--radius-control);
     background: var(--accent-grad);
     font: 600 10.5px var(--font-body);
     color: var(--on-accent);
@@ -347,7 +349,7 @@
 .msgIcon {
     width: 26px;
     height: 26px;
-    border-radius: 7px;
+    border-radius: var(--radius-control);
     background: var(--accent-soft);
     color: var(--chrome-accent);
     display: flex;
@@ -375,13 +377,13 @@
 .msgUser .msgBubble > .msgText {
     background: var(--accent-soft);
     color: var(--chrome-ink);
-    border-radius: 8px;
+    border-radius: var(--radius-control);
 }
 
 .msgAssistant .msgBubble > .msgText {
     background: var(--chrome-control);
     border: 1px solid var(--chrome-border);
-    border-radius: 8px;
+    border-radius: var(--radius-control);
 }
 
 .msgAction {
@@ -422,7 +424,7 @@
     padding: 9px 11px 9px 26px;
     background: var(--chrome-control);
     border: 1px solid var(--chrome-border);
-    border-radius: 8px;
+    border-radius: var(--radius-control);
     font: 500 12.5px/1.55 var(--font-body);
     color: var(--chrome-ink);
     list-style: disc;
@@ -460,7 +462,7 @@
     margin: 0;
     padding: 4px 8px;
     border: 1px solid color-mix(in srgb, var(--chrome-border) 88%, transparent);
-    border-radius: 5px;
+    border-radius: var(--radius-control);
     background: color-mix(in srgb, var(--chrome-control) 70%, transparent);
     color: var(--chrome-muted);
     font: 500 10px/1.35 var(--font-body);
@@ -476,7 +478,7 @@
 }
 
 .layoutSuggestion:focus-visible {
-    outline: 2px solid color-mix(in srgb, var(--chrome-accent) 70%, transparent);
+    outline: 2px solid var(--color-focus);
     outline-offset: 1px;
 }
 
@@ -505,7 +507,7 @@
     margin: 0 10px 8px;
     padding: 10px;
     border: 1px solid var(--chrome-border);
-    border-radius: 8px;
+    border-radius: var(--radius-control);
     background: var(--chrome-control);
     display: flex;
     flex-direction: column;
@@ -545,8 +547,8 @@
 }
 
 .cvLangSelect:focus {
-    border-color: var(--chrome-accent);
-    box-shadow: 0 0 0 2px var(--accent-soft);
+    border-color: var(--color-focus);
+    box-shadow: 0 0 0 2px var(--color-focus-soft);
 }
 
 .subPanelList {
@@ -563,7 +565,7 @@
     text-align: left;
     padding: 8px 9px;
     border: 1px solid var(--chrome-border);
-    border-radius: 7px;
+    border-radius: var(--radius-control);
     background: var(--chrome-surface);
     cursor: pointer;
     color: var(--chrome-ink);
@@ -616,7 +618,7 @@
     gap: 6px;
     padding: 7px 8px;
     border: 1px solid var(--chrome-border);
-    border-radius: 6px;
+    border-radius: var(--radius-control);
     background: var(--chrome-surface);
     font: 600 11px var(--font-body);
     color: var(--chrome-ink);
@@ -648,7 +650,7 @@
     gap: 2px;
     padding: 7px 12px;
     border: 1px solid;
-    border-radius: 8px;
+    border-radius: var(--radius-control);
     background: var(--chrome-surface);
     align-self: flex-start;
 }
@@ -663,7 +665,7 @@
     margin-bottom: 2px;
     padding: 12px;
     border: 1px solid var(--chrome-border);
-    border-radius: 10px;
+    border-radius: var(--radius-control);
     background: color-mix(in srgb, var(--chrome-control) 55%, var(--chrome-surface));
 }
 
@@ -770,7 +772,7 @@
     width: 7px;
     height: 7px;
     border-radius: 50%;
-    background: color-mix(in srgb, #5FA777 75%, var(--chrome-accent));
+    background: color-mix(in srgb, var(--color-success) 75%, var(--chrome-accent));
 }
 
 .priorityList {
@@ -797,7 +799,7 @@
     flex-shrink: 0;
     width: 22px;
     height: 22px;
-    border-radius: 6px;
+    border-radius: var(--radius-control);
     background: var(--accent-soft);
     color: var(--chrome-accent);
     font: 700 11px/22px var(--font-body);
@@ -884,7 +886,7 @@
     scroll-margin-block: 16px;
     background: var(--chrome-surface);
     border: 1px solid var(--chrome-border);
-    border-radius: 8px;
+    border-radius: var(--radius-control);
     padding: 7px 8px;
     display: flex;
     flex-direction: column;
@@ -914,13 +916,9 @@
     transform: translateX(-2px) scale(1.01);
     padding: 12px 13px;
     gap: 8px;
-    border-color: rgba(70, 107, 130, .34);
-    background:
-        linear-gradient(180deg, rgba(255, 255, 255, .98), rgba(247, 249, 251, .98));
-    box-shadow:
-        -20px 18px 42px -22px rgba(47, 67, 82, .42),
-        0 10px 28px -20px rgba(47, 67, 82, .28),
-        0 0 0 1px rgba(70, 107, 130, .08);
+    border-color: var(--chrome-border);
+    background: var(--chrome-surface);
+    box-shadow: var(--shadow-pop);
 }
 .corr_accepted { border-color: var(--success); background: var(--success-soft); }
 .corr_accepted.corrCardExpanded {
@@ -966,7 +964,7 @@
     display: flex;
     flex-direction: column;
     gap: 0;
-    border-radius: 7px;
+    border-radius: var(--radius-control);
     padding: 0;
     border: 1px solid transparent;
     transition:
@@ -980,12 +978,12 @@
     padding: 8px 10px;
 }
 .corrCardExpanded .diffBlock[data-side="old"] {
-    background: rgba(210, 80, 60, .08);
-    border-color: rgba(210, 80, 60, .16);
+    background: var(--color-danger-soft);
+    border-color: color-mix(in srgb, var(--color-danger) 16%, transparent);
 }
 .corrCardExpanded .diffBlock[data-side="new"] {
-    background: rgba(95, 167, 119, .1);
-    border-color: rgba(95, 167, 119, .18);
+    background: var(--color-success-soft);
+    border-color: color-mix(in srgb, var(--color-success) 18%, transparent);
 }
 
 .diffLabel {
@@ -1065,7 +1063,7 @@
     align-items: center;
     gap: 4px;
     padding: 4px 7px;
-    border-radius: 6px;
+    border-radius: var(--radius-control);
     font: 600 9.5px var(--font-body);
     cursor: pointer;
     border: none;
@@ -1094,6 +1092,18 @@
     }
 }
 
+@media (max-width: 720px) {
+    .panel {
+        left: 56px;
+        width: auto;
+    }
+
+    .fab {
+        right: 12px;
+        bottom: 12px;
+    }
+}
+
 /* ── Layout Review Cards ─────────────────────────────────────────── */
 .layoutGroups {
     display: flex;
@@ -1108,7 +1118,7 @@
     padding: 8px 9px;
     background: var(--chrome-control);
     border: 1px solid var(--chrome-border);
-    border-radius: 6px;
+    border-radius: var(--radius-control);
     color: var(--chrome-ink);
 }
 
@@ -1140,7 +1150,7 @@
 .severity_low { background: var(--accent-soft); color: var(--chrome-accent); }
 .severity_high { background: var(--danger-soft); color: var(--danger); }
 .severity_critical { background: var(--danger-soft); color: var(--danger); font-weight: 700; }
-.severity_warning { background: rgba(229, 166, 92, .18); color: var(--amber); }
+.severity_warning { background: var(--color-warning-soft); color: var(--color-warning); }
 .severity_review { background: var(--accent-soft); color: var(--chrome-accent); }
 
 .layoutMoves {
@@ -1164,7 +1174,7 @@
     align-items: center;
     gap: 4px;
     padding: 4px 7px;
-    border-radius: 6px;
+    border-radius: var(--radius-control);
     font: 600 9.5px var(--font-body);
     cursor: pointer;
     transition: filter .15s, transform .1s;
@@ -1197,7 +1207,7 @@
 
 .layout_preview {
     border-color: var(--chrome-accent);
-    box-shadow: 0 0 0 2px rgba(70, 107, 130, .1);
+    box-shadow: 0 0 0 2px var(--color-focus-soft);
 }
 
 .layout_accepted { border-color: var(--success); background: var(--success-soft); }
@@ -1213,7 +1223,7 @@
     margin: 0;
     padding: 9px 11px 9px 26px;
     border: 1px solid var(--chrome-border);
-    border-radius: 8px;
+    border-radius: var(--radius-control);
     background: var(--chrome-control);
     color: var(--chrome-ink);
     font: 500 12.5px/1.5 var(--font-body);
@@ -1228,7 +1238,7 @@
     padding: 6px 8px;
     background: var(--chrome-control);
     border: 1px solid var(--chrome-border);
-    border-radius: 6px;
+    border-radius: var(--radius-control);
 }
 .sourcesLabel { font: 700 9px var(--font-body); color: var(--chrome-muted); text-transform: uppercase; letter-spacing: .06em; }
 .sourceLink   { font: 600 9.5px var(--font-body); color: var(--chrome-accent); text-decoration: none; }
@@ -1241,7 +1251,7 @@
     gap: 4px;
     padding: 8px 10px;
     background: var(--chrome-control);
-    border-radius: 6px;
+    border-radius: var(--radius-control);
     width: fit-content;
 }
 
@@ -1275,7 +1285,7 @@
     box-sizing: border-box;
     padding: 9px 11px;
     border: 1px solid var(--chrome-border);
-    border-radius: 7px;
+    border-radius: var(--radius-control);
     background: var(--chrome-control);
     font: 500 13px/1.5 var(--font-body);
     color: var(--chrome-ink);
@@ -1286,13 +1296,13 @@
     overflow-y: auto;
     transition: border-color .15s, box-shadow .15s;
 }
-.chatInput:focus { border-color: var(--chrome-accent); box-shadow: 0 0 0 2px var(--accent-soft); }
+.chatInput:focus { border-color: var(--color-focus); box-shadow: 0 0 0 2px var(--color-focus-soft); }
 .chatInput::placeholder { color: var(--label-font); }
 
 .sendBtn {
     width: 42px;
     height: 42px;
-    border-radius: 7px;
+    border-radius: var(--radius-control);
     border: none;
     background: var(--accent-grad);
     color: var(--on-accent);

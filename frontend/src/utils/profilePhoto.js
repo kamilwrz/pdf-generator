@@ -118,15 +118,6 @@ function isPortraitGlyph(element) {
 }
 
 /**
- * @param {object} element
- * @returns {boolean}
- */
-function isOrnament(element) {
-  if (!element) return false;
-  return element.photoSlot === "ornament";
-}
-
-/**
  * @param {object[]} elements
  * @returns {object|null}
  */

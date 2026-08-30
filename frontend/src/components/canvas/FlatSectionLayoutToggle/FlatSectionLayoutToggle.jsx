@@ -81,12 +81,18 @@ export default function FlatSectionLayoutToggle({
   useEffect(() => () => clearHideTimer(), [clearHideTimer]);
 
   useEffect(() => {
+    // Eligibility is derived from the selected section. Closing the transient
+    // canvas affordance here prevents controls for a stale selection remaining.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (!eligible) hide();
   }, [eligible, hide]);
 
   useEffect(() => {
     if (!isExclusiveActive && visible) {
       clearHideTimer();
+      // Another canvas affordance owns the exclusive hover slot; synchronise
+      // local visibility immediately so two toolbars never overlap.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setVisible(false);
     }
   }, [clearHideTimer, isExclusiveActive, visible]);

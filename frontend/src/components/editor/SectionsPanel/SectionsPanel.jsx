@@ -390,7 +390,7 @@ export default function SectionsPanel({ onClose }) {
   }
 
   return (
-    <div className={classes.panel} role="dialog" aria-label="Dostosuj CV">
+    <aside className={classes.panel} aria-label="Dostosuj CV">
       <div className={classes.header}>
         <div className={classes.headerText}>
           <h2>Dostosuj CV</h2>
@@ -672,6 +672,6 @@ export default function SectionsPanel({ onClose }) {
           </section>
         </div>
       )}
-    </div>
+    </aside>
   );
 }

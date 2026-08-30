@@ -8,14 +8,13 @@
  */
 import classes from "./ModalPdfs.module.css";
 
-import { createPortal } from "react-dom";
 import { useEffect, useState, use, useMemo } from "react";
 import { BsFileEarmarkPdf } from "react-icons/bs";
 import { IoMdDownload } from "react-icons/io";
 import { MdDelete } from "react-icons/md";
 import { CiClock1 } from "react-icons/ci";
 import { GrView } from "react-icons/gr";
-import { FiSearch, FiAlertTriangle } from "react-icons/fi";
+import { FiSearch } from "react-icons/fi";
 import { PdfContext } from "../../../store/pdfgenerator-context";
 import { sanitizeTextContent } from "../../../utils/sanitizeTextContent";
 import { fetchOwnedPdfDownload, triggerBlobDownload } from "../../../utils/download";
@@ -344,7 +343,6 @@ export default function ModalPdfs({ title }) {
             open={isModalPdfs}
             onClose={closeDialog}
             width={1280}
-            radius={2}
             title="Moje dokumenty"
             subtitle="Otwieraj, pobieraj i usuwaj zapisane projekty."
             footer={<>
@@ -433,28 +431,23 @@ export default function ModalPdfs({ title }) {
                 )}
             </div>
 
-            {confirmDeleteId != null && createPortal(
-                <div className={classes.confirmBackdrop} onClick={() => setConfirmDeleteId(null)}>
-                    <div className={classes.confirmDialog} onClick={(e) => e.stopPropagation()}>
-                        <div className={classes.confirmHeader}>
-                            <div className={classes.confirmIcon}><FiAlertTriangle /></div>
-                            <div>
-                                <h2>Usunąć dokument?</h2>
-                                <p>
-                                    {confirmTarget
-                                        ? `„${confirmTarget.title.split(".")[0]}” zniknie z Twoich dokumentów wraz z zapisanym plikiem PDF. Tej operacji nie można cofnąć.`
-                                        : ""}
-                                </p>
-                            </div>
-                        </div>
-                        <div className={classes.confirmFooter}>
-                            <button type="button" className={classes.confirmCancel} onClick={() => setConfirmDeleteId(null)}>Anuluj</button>
+            <DialogShell
+                open={confirmDeleteId != null}
+                onClose={() => setConfirmDeleteId(null)}
+                width={440}
+                role="alertdialog"
+                initialFocusSelector="[data-dialog-initial-focus]"
+                title="Usunąć dokument?"
+                subtitle={confirmTarget
+                    ? `„${confirmTarget.title.split(".")[0]}” zniknie z Twoich dokumentów wraz z zapisanym plikiem PDF. Tej operacji nie można cofnąć.`
+                    : ""}
+                footer={(
+                    <div className={classes.confirmActions}>
+                            <button type="button" className={classes.confirmCancel} data-dialog-initial-focus onClick={() => setConfirmDeleteId(null)}>Anuluj</button>
                             <button type="button" className={classes.confirmDelete} onClick={confirmDelete}>Usuń trwale</button>
-                        </div>
                     </div>
-                </div>,
-                document.body
-            )}
+                )}
+            />
         </DialogShell>
     );
 }

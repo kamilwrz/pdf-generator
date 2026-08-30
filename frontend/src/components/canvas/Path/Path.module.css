@@ -4,8 +4,8 @@
   height: 10px;
   margin: 0;
   padding: 0;
-  border: 1.5px solid #1f2937;
-  background: #ffffff;
+  border: 1.5px solid var(--color-ink);
+  background: var(--color-paper);
   transform: translate(-50%, -50%);
   cursor: grab;
   box-sizing: border-box;
@@ -22,5 +22,5 @@
 
 .control {
   border-radius: 999px;
-  border-color: #9e2532;
+  border-color: var(--color-danger);
 }

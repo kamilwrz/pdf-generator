@@ -176,7 +176,7 @@
 }
 
 .selectFilled select {
-    font-weight: 650;
+    font-weight: 600;
     color: var(--chrome-ink);
 }
 
@@ -194,8 +194,8 @@
 .field input:focus,
 .field textarea:focus,
 .field select:focus {
-    border-color: var(--chrome-accent);
-    box-shadow: 0 0 0 2px color-mix(in srgb, var(--chrome-accent) 13%, transparent);
+    border-color: var(--color-focus);
+    box-shadow: 0 0 0 2px var(--color-focus-soft);
 }
 
 .field small {
@@ -556,7 +556,7 @@
     border: 1px solid var(--chrome-border);
     border-radius: 2px;
     background: var(--chrome-surface);
-    box-shadow: 0 12px 28px -16px rgba(0, 0, 0, 0.45);
+    box-shadow: var(--shadow-pop);
     z-index: 2;
 }
 
@@ -606,7 +606,7 @@
 .error {
     margin-top: 16px;
     padding: 11px 12px;
-    border: 1px solid rgba(232, 138, 115, .35);
+    border: 1px solid color-mix(in srgb, var(--color-danger) 35%, transparent);
     border-radius: 2px;
     background: var(--danger-soft);
     color: var(--danger);

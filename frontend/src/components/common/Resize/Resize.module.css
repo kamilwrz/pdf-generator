@@ -1,19 +1,19 @@
 .resizeWrapper {
-    z-index: 960;
+    z-index: var(--z-editor-affordance);
     pointer-events: none;
 }
 
 .resizeButtons {
     position: absolute;
-    z-index: 1000;
+    z-index: calc(var(--z-editor-affordance) + 1);
     width: 11px;
     height: 11px;
-    background-color: #FFFFFF;
+    background-color: var(--color-paper);
     border: 1.5px solid var(--accent);
     border-radius: 2px;
     padding: 0;
     pointer-events: auto;
-    box-shadow: 0 1px 3px rgba(49, 41, 31, .22);
+    box-shadow: var(--shadow-pop);
     transition: background-color 120ms ease, transform 120ms ease;
 }
 

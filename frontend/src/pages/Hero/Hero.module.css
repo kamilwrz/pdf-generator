@@ -7,35 +7,35 @@
  * structural / decorative signal — never as the sole carrier of text meaning,
  * so every text/background pair keeps WCAG AAA contrast.
  *
- * Theming is deliberately scoped to `.page` via local custom properties. The
- * editor, auth screens, and CV templates load different fonts and use the
- * light global tokens in index.css; nothing here leaks out of this component.
+ * Page aliases resolve to the application-wide tokens in index.css, so the
+ * narrative surface shares its visual language with authentication and the
+ * editor while remaining locally scoped from user-authored CV templates.
  */
 .page {
     /* Ink ramp — all pure text stays on this ramp against paper/black so
        contrast never depends on the taupe accent. */
-    --ink: #111111;        /* headings, primary text (~18:1 on white) */
-    --ink-body: #2B2B2B;   /* body copy (~14:1 on white, AAA) */
-    --muted: #565656;      /* captions and labels (~7.3:1 on white, AAA) */
+    --ink: var(--color-ink);
+    --ink-body: var(--color-ink);
+    --muted: var(--color-muted);
 
-    --paper: #FFFFFF;
-    --beige: #F5F1E8;      /* light section tint */
-    --beige-deep: #ECE7DB; /* slightly deeper tint for the steps band */
-    --black: #111111;      /* inverted (dark) section surface */
-    --black-2: #1C1C1C;    /* raised card on inverted sections */
+    --paper: var(--color-paper);
+    --beige: var(--color-canvas);
+    --beige-deep: var(--color-surface);
+    --black: var(--color-ink);
+    --black-2: color-mix(in srgb, var(--color-ink) 92%, var(--color-paper));
 
     /* Hairlines. Swiss layouts are built on visible rules; keep them crisp. */
-    --line: rgba(17, 17, 17, .16);
-    --line-strong: rgba(17, 17, 17, .32);
-    --line-dark: rgba(255, 255, 255, .22);
+    --line: color-mix(in srgb, var(--color-ink) 16%, transparent);
+    --line-strong: color-mix(in srgb, var(--color-ink) 32%, transparent);
+    --line-dark: color-mix(in srgb, var(--color-paper) 22%, transparent);
 
     /* The single accent. Reserved for rules, markers, underlines and small
        geometric blocks — its contrast is too low to carry small text. */
-    --taupe: #B38B6D;
+    --taupe: var(--color-accent);
 
-    --display: "Archivo", "Arial Narrow", sans-serif;
-    --body: "Archivo", system-ui, sans-serif;
-    --mono: "JetBrains Mono", ui-monospace, monospace;
+    --display: var(--font-ui);
+    --body: var(--font-ui);
+    --mono: var(--font-mono);
 
     /* Drives the numbered section index printed in every kicker. Reset here so
        the count always restarts at the top of the page and follows document
@@ -570,7 +570,7 @@
 }
 
 .heroCountLabel span {
-    color: rgba(255, 255, 255, .82);
+    color: color-mix(in srgb, var(--color-paper) 82%, transparent);
     font: 500 8px/1.1 var(--mono);
     letter-spacing: .14em;
     text-transform: uppercase;
@@ -896,8 +896,8 @@
 
 /*
  * Full-bleed endless strip. Negative side margins cancel the shared section
- * gutters so the track can exit under the viewport edges; soft masks keep the
- * cut from looking abrupt. Vertical padding leaves room for the hover scale.
+ * gutters so the track can exit under the viewport edges. Vertical padding
+ * leaves room for the hover scale without adding a decorative gradient mask.
  */
 .templateMarquee {
     --marquee-gap: clamp(14px, 1.6vw, 22px);
@@ -907,13 +907,6 @@
     margin-right: calc(-1 * clamp(24px, 7vw, 112px));
     margin-left: calc(-1 * clamp(24px, 7vw, 112px));
     padding: 18px 0 28px;
-    mask-image: linear-gradient(
-        to right,
-        transparent 0,
-        #000 3%,
-        #000 97%,
-        transparent 100%
-    );
 }
 
 .templateMarqueeTrack {
@@ -957,7 +950,7 @@
 .templateCard:focus-visible {
     z-index: 2;
     border-color: var(--ink);
-    box-shadow: 0 10px 28px rgba(17, 17, 17, .12);
+    box-shadow: var(--shadow-pop);
     transform: scale(1.06);
 }
 
@@ -1052,7 +1045,7 @@
     margin: 0 0 14px;
     padding: 7px 10px;
     border: 1px solid var(--line-dark);
-    color: rgba(255, 255, 255, .9);
+    color: color-mix(in srgb, var(--color-paper) 90%, transparent);
     font: 500 9px/1 var(--mono);
     letter-spacing: .12em;
     text-transform: uppercase;
@@ -1109,7 +1102,7 @@
 
 .editorLead {
     margin: 24px 0 0;
-    color: rgba(255, 255, 255, .74);
+    color: color-mix(in srgb, var(--color-paper) 74%, transparent);
     font: 400 14px/1.7 var(--body);
 }
 
@@ -1150,7 +1143,7 @@
 
 .capabilityList p {
     margin: 6px 0 0;
-    color: rgba(255, 255, 255, .68);
+    color: color-mix(in srgb, var(--color-paper) 68%, transparent);
     font: 400 11px/1.6 var(--body);
 }
 
@@ -1159,7 +1152,7 @@
     align-items: center;
     gap: 12px;
     margin: 26px 0 0;
-    color: rgba(255, 255, 255, .78);
+    color: color-mix(in srgb, var(--color-paper) 78%, transparent);
     font: 500 11px/1.4 var(--body);
 }
 
@@ -1368,7 +1361,7 @@
    single strongest contrast move on the page. */
 .priceFeatured {
     background: var(--ink);
-    color: rgba(255, 255, 255, .82);
+    color: color-mix(in srgb, var(--color-paper) 82%, transparent);
 }
 
 .popularTag {
@@ -1409,7 +1402,7 @@
 }
 
 .priceFeatured .planPrice small {
-    color: rgba(255, 255, 255, .6);
+    color: color-mix(in srgb, var(--color-paper) 60%, transparent);
 }
 
 .planSummary {
@@ -1428,11 +1421,11 @@
 }
 
 .priceFeatured .planPeriod {
-    color: rgba(255, 255, 255, .68);
+    color: color-mix(in srgb, var(--color-paper) 68%, transparent);
 }
 
 .priceFeatured .planSummary {
-    color: rgba(255, 255, 255, .7);
+    color: color-mix(in srgb, var(--color-paper) 70%, transparent);
 }
 
 .planFootnote {
@@ -1442,7 +1435,7 @@
 }
 
 .priceFeatured .planFootnote {
-    color: rgba(255, 255, 255, .62);
+    color: color-mix(in srgb, var(--color-paper) 62%, transparent);
 }
 
 .priceCard ul {
@@ -1464,7 +1457,7 @@
 }
 
 .priceFeatured li {
-    color: rgba(255, 255, 255, .82);
+    color: color-mix(in srgb, var(--color-paper) 82%, transparent);
 }
 
 .priceFeatured li svg,
@@ -1601,7 +1594,7 @@
 .finalCtaCopy > p:not(.kicker):not(.finalFootnote) {
     max-width: 460px;
     margin: 24px 0 0;
-    color: rgba(255, 255, 255, .78);
+    color: color-mix(in srgb, var(--color-paper) 78%, transparent);
     font: 400 14px/1.7 var(--body);
 }
 
@@ -1632,7 +1625,7 @@
 
 .finalFootnote {
     margin: 24px 0 0;
-    color: rgba(255, 255, 255, .6);
+    color: color-mix(in srgb, var(--color-paper) 60%, transparent);
     font: 500 10px/1.5 var(--mono);
     letter-spacing: .1em;
     text-transform: uppercase;
@@ -1681,7 +1674,7 @@
 .footer {
     padding: clamp(56px, 7vw, 82px) clamp(24px, 5vw, 78px) 34px;
     background: var(--ink);
-    color: rgba(255, 255, 255, .62);
+    color: color-mix(in srgb, var(--color-paper) 62%, transparent);
     border-top: 1px solid var(--line-dark);
 }
 
@@ -1706,7 +1699,7 @@
 .footerTagline {
     max-width: 320px;
     margin: 20px 0 24px;
-    color: rgba(255, 255, 255, .6);
+    color: color-mix(in srgb, var(--color-paper) 60%, transparent);
     font: 400 13px/1.6 var(--body);
 }
 
@@ -1723,7 +1716,7 @@
     width: 38px;
     height: 38px;
     border: 1px solid var(--line-dark);
-    color: rgba(255, 255, 255, .72);
+    color: color-mix(in srgb, var(--color-paper) 72%, transparent);
     transition: color 200ms ease, background 200ms ease, border-color 200ms ease;
 }
 
@@ -1761,7 +1754,7 @@
 
 .footerCol a {
     width: fit-content;
-    color: rgba(255, 255, 255, .66);
+    color: color-mix(in srgb, var(--color-paper) 66%, transparent);
     font: 500 12px/1.3 var(--body);
     letter-spacing: .02em;
     text-decoration: none;
@@ -1784,7 +1777,7 @@
 }
 
 .footerBottom small {
-    color: rgba(255, 255, 255, .5);
+    color: color-mix(in srgb, var(--color-paper) 50%, transparent);
     font: 500 10px/1.4 var(--mono);
     letter-spacing: .08em;
 }

@@ -3,31 +3,31 @@
  *
  * Shares the exact design language of the login screen and the marketing
  * landing page (see DESIGN.md, Hero.module.css, Login.module.css): monochrome
- * ink/paper with a single warm taupe accent, Archivo grotesque + JetBrains
- * Mono, sharp 0px corners, hairline rules, and flat geometric composition.
+ * ink/paper with a single warm taupe accent, the shared sans + mono stack,
+ * sharp corners, hairline rules, and flat geometric composition.
  *
  * Split screen: dark inverted "story" panel (with the three-step numbered
- * index) on the left, paper form column on the right. Tokens are scoped to
- * `.container` so nothing leaks into the editor or CV templates.
+ * index) on the left, paper form column on the right. Local aliases resolve to
+ * global UI tokens without leaking into user-authored CV templates.
  */
 .container {
-    --ink: #111111;
-    --ink-body: #2B2B2B;
-    --muted: #565656;
+    --ink: var(--color-ink);
+    --ink-body: var(--color-ink);
+    --muted: var(--color-muted);
 
-    --paper: #FFFFFF;
-    --beige: #F5F1E8;
-    --beige-deep: #ECE7DB;
-    --black: #111111;
-    --taupe: #B38B6D;
+    --paper: var(--color-paper);
+    --beige: var(--color-canvas);
+    --beige-deep: var(--color-surface);
+    --black: var(--color-ink);
+    --taupe: var(--color-accent);
 
-    --line: rgba(17, 17, 17, .16);
-    --line-strong: rgba(17, 17, 17, .32);
-    --line-dark: rgba(255, 255, 255, .22);
+    --line: color-mix(in srgb, var(--color-ink) 16%, transparent);
+    --line-strong: color-mix(in srgb, var(--color-ink) 32%, transparent);
+    --line-dark: color-mix(in srgb, var(--color-paper) 22%, transparent);
 
-    --display: "Archivo", "Arial Narrow", sans-serif;
-    --body: "Archivo", system-ui, sans-serif;
-    --mono: "JetBrains Mono", ui-monospace, monospace;
+    --display: var(--font-ui);
+    --body: var(--font-ui);
+    --mono: var(--font-mono);
 
     display: grid;
     grid-template-columns: minmax(350px, .94fr) minmax(470px, 1.06fr);
@@ -148,7 +148,7 @@
 .storyCopy > p:last-child {
     max-width: 432px;
     margin: 24px 0 0;
-    color: rgba(255, 255, 255, .72);
+    color: color-mix(in srgb, var(--color-paper) 72%, transparent);
     font: 400 14px/1.7 var(--body);
 }
 
@@ -194,20 +194,17 @@
 
 .storySteps p {
     margin: 4px 0 0;
-    color: rgba(255, 255, 255, .58);
+    color: color-mix(in srgb, var(--color-paper) 58%, transparent);
     font: 400 10px/1.5 var(--body);
 }
 
-/* ---- Auth column (paper, faint modular grid) --------------------------- */
+/* ---- Auth column ------------------------------------------------------- */
 
 .authColumn {
     display: grid;
     place-items: center;
     padding: clamp(30px, 6vw, 88px);
-    background:
-        linear-gradient(90deg, var(--line) 0 1px, transparent 1px) 0 0 / 40px 40px,
-        linear-gradient(var(--line) 0 1px, transparent 1px) 0 0 / 40px 40px,
-        var(--beige);
+    background: var(--beige);
 }
 
 .loginCard {
@@ -217,7 +214,7 @@
     border: 1px solid var(--ink);
     border-radius: 0;
     background: var(--paper);
-    box-shadow: 0 2px 16px rgba(17, 17, 17, .06);
+    box-shadow: var(--shadow-pop);
     animation: cardEnter 460ms cubic-bezier(.22, .61, .36, 1) both;
 }
 
@@ -278,7 +275,7 @@
     padding: 11px 13px;
     border-left: 3px solid var(--taupe);
     background: var(--beige);
-    color: #5F4A38;
+    color: var(--color-accent);
     font: 500 10.5px/1.55 var(--body);
 }
 
@@ -321,7 +318,7 @@
 .field:focus-within {
     border-color: var(--ink);
     color: var(--ink);
-    box-shadow: 0 0 0 2px var(--paper), 0 0 0 4px var(--taupe);
+    box-shadow: 0 0 0 2px var(--paper), 0 0 0 4px var(--color-focus);
 }
 
 .field input {
@@ -335,16 +332,16 @@
 }
 
 .field input::placeholder {
-    color: #8B8B8B;
+    color: var(--color-muted);
 }
 
 .fieldError {
-    border-color: #B23A2E;
-    background: #FCF4F2;
+    border-color: var(--color-danger);
+    background: var(--color-danger-soft);
 }
 
 .fieldError:focus-within {
-    box-shadow: 0 0 0 2px var(--paper), 0 0 0 4px #B23A2E;
+    box-shadow: 0 0 0 2px var(--paper), 0 0 0 4px var(--color-danger);
 }
 
 /* ---- Password-strength meter ------------------------------------------- */
@@ -366,7 +363,7 @@
    staying inside the monochrome-plus-taupe palette. */
 .strengthOn[data-level="1"],
 .strengthOn[data-level="2"] {
-    background: #B9B2A6;
+    background: var(--color-border);
 }
 
 .strengthOn[data-level="3"] {
@@ -440,15 +437,15 @@
 }
 
 .error {
-    border-left: 3px solid #B23A2E;
-    background: #FCF4F2;
-    color: #8D2C22;
+    border-left: 3px solid var(--color-danger);
+    background: var(--color-danger-soft);
+    color: var(--color-danger);
 }
 
 .status {
     border-left: 3px solid var(--taupe);
     background: var(--beige);
-    color: #5F4A38;
+    color: var(--color-accent);
 }
 
 /* ---- Responsive -------------------------------------------------------- */

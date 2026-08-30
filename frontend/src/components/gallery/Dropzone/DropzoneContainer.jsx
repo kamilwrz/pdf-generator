@@ -21,7 +21,6 @@ export default function DropzoneContainer() {
             open={isDropzone}
             onClose={showDropzone}
             width={720}
-            radius={2}
             title="Prześlij zdjęcia profilowe"
             subtitle={`Do użycia w CV · maks. ${MAX_PROFILE_PHOTOS} zdjęć · JPG, PNG, WEBP, GIF`}
             footer={(

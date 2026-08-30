@@ -28,6 +28,10 @@ export function useCanvasEnterIds(elements) {
   const [heldIds, setHeldIds] = useState(() => new Set());
   const [fadingIds, setFadingIds] = useState(() => new Set());
 
+  /* State here is a render gate derived from the currently mounted page ids.
+     It must be reconciled before paint to avoid flashing elements on the wrong
+     page during packing; deferring these updates would reintroduce that flash. */
+  /* eslint-disable react-hooks/set-state-in-effect */
   useLayoutEffect(() => {
     const ids = idsKey ? idsKey.split("\0").filter(Boolean) : [];
     const idSet = new Set(ids);
@@ -110,6 +114,7 @@ export function useCanvasEnterIds(elements) {
       }
     };
   }, [idsKey]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   return { heldIds, fadingIds };
 }

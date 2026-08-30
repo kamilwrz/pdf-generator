@@ -6,26 +6,26 @@
 .vLine,
 .hLine {
     position: absolute;
-    z-index: 5000;
+    z-index: var(--z-editor-affordance);
     pointer-events: none;
     background: transparent;
 }
 
 .vLine {
     width: 0;
-    border-left: 1px dotted #4A4A4A;
+    border-left: 1px dotted var(--color-ink-soft);
 }
 
 .hLine {
     height: 0;
-    border-top: 1px dotted #4A4A4A;
+    border-top: 1px dotted var(--color-ink-soft);
 }
 
 /* Vertical spacing markers (orange): distance above / below. */
 .spacingY {
     position: absolute;
     width: 0;
-    z-index: 5001;
+    z-index: calc(var(--z-editor-affordance) + 1);
     pointer-events: none;
     transform: translateX(-0.5px);
 }
@@ -36,7 +36,7 @@
     top: 0;
     bottom: 0;
     width: 1px;
-    background: #E4572E;
+    background: var(--color-accent);
     opacity: 0.9;
 }
 
@@ -46,7 +46,7 @@
     left: -3px;
     width: 7px;
     height: 1px;
-    background: #E4572E;
+    background: var(--color-accent);
 }
 
 .spacingCapYStart { top: 0; }
@@ -57,11 +57,11 @@
     top: 50%;
     padding: 0 3px;
     border-radius: 2px;
-    background: #E4572E;
-    color: #fff;
+    background: var(--color-accent);
+    color: var(--color-paper);
     font: 700 8px/1.15 var(--font-body, "Segoe UI", sans-serif);
     white-space: nowrap;
-    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.16);
+    box-shadow: var(--shadow-pop);
 }
 
 .spacingY[data-label-side="right"] .spacingLabelY {
@@ -80,7 +80,7 @@
 .spacingX {
     position: absolute;
     height: 0;
-    z-index: 5001;
+    z-index: calc(var(--z-editor-affordance) + 1);
     pointer-events: none;
     transform: translateY(-0.5px);
 }
@@ -91,7 +91,7 @@
     left: 0;
     right: 0;
     height: 1px;
-    background: #2F9E44;
+    background: var(--color-focus);
     opacity: 0.9;
 }
 
@@ -101,7 +101,7 @@
     top: -3px;
     width: 1px;
     height: 7px;
-    background: #2F9E44;
+    background: var(--color-focus);
 }
 
 .spacingCapXStart { left: 0; }
@@ -112,11 +112,11 @@
     left: 50%;
     padding: 0 3px;
     border-radius: 2px;
-    background: #2F9E44;
-    color: #fff;
+    background: var(--color-focus);
+    color: var(--color-paper);
     font: 700 8px/1.15 var(--font-body, "Segoe UI", sans-serif);
     white-space: nowrap;
-    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.16);
+    box-shadow: var(--shadow-pop);
 }
 
 .spacingX[data-label-side="below"] .spacingLabelX {

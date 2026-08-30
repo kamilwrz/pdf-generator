@@ -114,8 +114,8 @@ export default function AddSectionModal({
       open={open}
       onClose={onCancel}
       width={hasIcons ? 1280 : 560}
-      radius={2}
       title="Dodaj sekcję"
+      restoreFocusSelector='button[aria-label="Dostosuj CV"]'
       subtitle={insertAfterHeading
         ? "Nowa sekcja pojawi się bezpośrednio pod wybraną sekcją, w stylu obecnego szablonu."
         : "Nowa sekcja pojawi się na końcu CV, w stylu obecnego szablonu."}

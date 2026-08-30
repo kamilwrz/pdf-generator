@@ -12,7 +12,7 @@
     background: var(--sidebar-surface);
     border-right: 1px solid var(--sidebar-border);
     position: relative;
-    z-index: 1000;
+    z-index: var(--z-sticky);
     display: flex;
     flex-direction: column;
     padding: 8px 12px;
@@ -35,7 +35,7 @@
 .logoMark {
     width: 30px;
     height: 30px;
-    border-radius: 6px;
+    border-radius: var(--radius-control);
     background: transparent;
     display: flex;
     align-items: center;
@@ -49,7 +49,11 @@
 .logoMark:hover,
 .logoMark:focus-visible {
     opacity: 0.82;
-    outline: none;
+}
+
+.logoMark:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
 }
 
 .logoMark img {
@@ -190,7 +194,7 @@
     line-height: 1;
     padding: 4px 6px;
     border: 1px solid var(--sidebar-border);
-    border-radius: 8px;
+    border-radius: var(--radius-control);
     background: var(--sidebar-hover);
     cursor: default;
 }
@@ -241,6 +245,20 @@
     margin-top: 8px;
 }
 
+@media (max-width: 720px) {
+    .sidebar {
+        width: 56px;
+        min-width: 56px;
+        padding-inline: 6px;
+    }
+
+    .logoMark,
+    .logoMark img {
+        width: 28px;
+        height: 28px;
+    }
+}
+
 .btn {
     flex: 1;
     text-align: center;
@@ -262,7 +280,7 @@
 .logout {
     width: 30px;
     height: 30px;
-    border-radius: 5px;
+    border-radius: var(--radius-control);
     background: transparent;
     border: 1px solid transparent;
     display: flex;

@@ -2,7 +2,7 @@
     position: absolute;
     inset: 0;
     pointer-events: none;
-    z-index: 950;
+    z-index: var(--z-editor-affordance);
 }
 
 /* One selection colour everywhere — matches Textarea's own edit-mode accent
@@ -12,7 +12,7 @@
 .frame {
     position: absolute;
     box-sizing: border-box;
-    border: 1px solid var(--accent, #171717);
+    border: 1px solid var(--accent, var(--color-ink));
     border-radius: 0;
     box-shadow: none;
     animation: selectIn 160ms cubic-bezier(0.2, 0.8, 0.2, 1);
@@ -23,7 +23,7 @@
 }
 
 .frameMoving {
-    border-color: #6B8BB0;
+    border-color: var(--color-focus);
     border-width: 1px;
     background: transparent;
     box-shadow: none;
@@ -32,7 +32,7 @@
 .groupFrame {
     position: absolute;
     box-sizing: border-box;
-    border: 1px dashed #8FA8C4;
+    border: 1px dashed var(--color-focus);
     border-radius: 0;
     background: transparent;
     box-shadow: none;
@@ -46,11 +46,11 @@
     padding: 4px 10px;
     border-radius: 999px;
     background: var(--accent);
-    color: #FFFFFF;
+    color: var(--color-paper);
     font: 700 11px/1 var(--font-body);
     letter-spacing: 0.01em;
     white-space: nowrap;
-    box-shadow: 0 10px 22px -12px rgba(122, 47, 29, 0.7);
+    box-shadow: var(--shadow-pop);
     transform: translateY(-100%);
     margin-top: -8px;
     animation: badgeIn 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
@@ -60,8 +60,8 @@
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background: rgba(255, 248, 241, 0.85);
-    box-shadow: 0 0 0 3px rgba(255, 248, 241, 0.18);
+    background: color-mix(in srgb, var(--color-paper) 85%, transparent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-paper) 18%, transparent);
 }
 
 .movingBadge {
@@ -69,10 +69,10 @@
     padding: 4px 9px;
     border-radius: 999px;
     background: var(--accent-strong);
-    color: #FFFFFF;
+    color: var(--color-paper);
     font: 700 10px/1 var(--font-body);
     white-space: nowrap;
-    box-shadow: 0 8px 18px -10px rgba(122, 47, 29, 0.78);
+    box-shadow: var(--shadow-pop);
     transform: translateY(-100%);
     margin-top: -8px;
 }
@@ -85,12 +85,12 @@
     margin-top: 10px;
     padding: 4px 8px;
     border: 1px solid var(--accent);
-    border-radius: 5px;
-    background: rgba(255, 253, 248, 0.96);
+    border-radius: var(--radius-control);
+    background: color-mix(in srgb, var(--color-paper) 96%, transparent);
     color: var(--accent);
     font: 700 10px/1 var(--font-body);
     white-space: nowrap;
-    box-shadow: 0 6px 16px -10px rgba(49, 41, 31, 0.55);
+    box-shadow: var(--shadow-pop);
 }
 
 @keyframes selectIn {
@@ -106,5 +106,12 @@
     to {
         opacity: 1;
         transform: translateY(-100%);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .box,
+    .badge {
+        animation: none;
     }
 }

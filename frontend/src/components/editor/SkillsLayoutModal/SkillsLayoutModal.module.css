@@ -90,7 +90,7 @@
   padding: 3px 10px;
   border-radius: 999px;
   background: var(--chrome-accent);
-  color: var(--on-accent, #FFFFFF);
+  color: var(--on-accent, var(--color-paper));
   font: 600 11px var(--font-body);
   white-space: nowrap;
 }

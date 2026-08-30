@@ -5,12 +5,12 @@
 
 .editor {
     position: fixed;
-    /* Must clear the topbar's z-index (1400, Topbar.module.css) — the
+    /* Editor affordances use their dedicated global layer above sticky chrome.
        properties panel docks vertically centered on the topbar's zoom
        cluster, so it paints directly under the topbar's opaque background
        unless it stacks above it. Below Gallery/DemoBanner (1500) and all
        modal/toast layers so those still win when both are open. */
-    z-index: 1450;
+    z-index: var(--z-editor-affordance);
     width: max-content;
     max-width: calc(100vw - 16px);
     display: flex;
@@ -25,12 +25,12 @@
     font-family: var(--font-body);
     border: 1px solid var(--chrome-border, var(--border-soft));
     /* rounded.md from DESIGN.md's token scale (2/4/8px). */
-    border-radius: 4px;
+    border-radius: var(--radius-panel);
     /* Minimal separation shadow only — enough to lift the panel off the
        canvas below it without the heavier multi-layer shadow that made it
        look like a detached floating card next to the topbar's flat,
        shadow-free chrome. */
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+    box-shadow: var(--shadow-pop);
     pointer-events: auto;
     overflow-x: auto;
     overflow-y: hidden;
@@ -57,7 +57,7 @@
     gap: 1px;
     min-height: 24px;
     padding: 1px;
-    border-radius: 5px;
+    border-radius: var(--radius-control);
     background: color-mix(in srgb, var(--chrome-control, var(--secondary-bg)) 50%, transparent);
     flex-shrink: 0;
 }
@@ -78,7 +78,7 @@
     align-items: center;
     justify-content: center;
     border: 1px solid transparent;
-    border-radius: 4px;
+    border-radius: var(--radius-control);
     background: transparent;
     color: var(--chrome-muted, var(--muted-font));
     cursor: pointer;
@@ -121,7 +121,7 @@
     height: 22px;
     padding: 0 2px 0 3px;
     border: 1px solid var(--chrome-border, var(--border));
-    border-radius: 4px;
+    border-radius: var(--radius-control);
     background: color-mix(in srgb, var(--primary-bg) 76%, transparent);
     transition: border-color .12s, background .12s;
 }
@@ -148,7 +148,7 @@
     border: none;
     background: transparent;
     color: var(--chrome-ink, var(--primary-font));
-    font: 650 10px/1 var(--font-body);
+    font: 600 10px/1 var(--font-body);
     padding: 0 1px;
     outline: none;
     -moz-appearance: textfield;
@@ -171,7 +171,7 @@
     align-items: center;
     justify-content: center;
     border: 1px solid var(--chrome-border, var(--border));
-    border-radius: 4px;
+    border-radius: var(--radius-control);
     overflow: hidden;
     cursor: pointer;
     background: var(--primary-bg);
@@ -190,7 +190,7 @@
     height: 22px;
     width: 78px;
     border: 1px solid var(--chrome-border, var(--border));
-    border-radius: 4px;
+    border-radius: var(--radius-control);
     background: color-mix(in srgb, var(--primary-bg) 70%, transparent);
     color: var(--chrome-ink, var(--primary-font));
     font: 600 9.5px/1 var(--font-body);
@@ -200,7 +200,7 @@
 }
 
 .fontSelect:focus {
-    border-color: var(--chrome-accent, var(--accent));
+    border-color: var(--color-focus);
 }
 
 .axis {
@@ -231,7 +231,7 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    border-radius: 4px;
+    border-radius: var(--radius-control);
     background: var(--accent-soft);
     color: var(--chrome-accent, var(--accent));
     font: 800 9px/1 var(--font-display);

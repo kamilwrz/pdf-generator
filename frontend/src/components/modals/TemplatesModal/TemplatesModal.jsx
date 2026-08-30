@@ -4,8 +4,6 @@
  * Each template is an individual card (name + short stylistic description).
  */
 import { use, useState } from "react";
-import { createPortal } from "react-dom";
-import { FiAlertTriangle } from "react-icons/fi";
 import classes from "./TemplatesModal.module.css";
 import { PdfContext } from "../../../store/pdfgenerator-context";
 import { TEMPLATES } from "../../../templates";
@@ -81,7 +79,6 @@ export default function TemplatesModal() {
                 open={isTemplates}
                 onClose={handleClose}
                 width={1280}
-                radius={2}
                 title="Szablony"
                 subtitle="Wybierz układ — treść na płótnie zostanie zastąpiona."
                 footer={(
@@ -125,31 +122,22 @@ export default function TemplatesModal() {
                 </div>
             </DialogShell>
 
-            {pendingTemplate != null && createPortal(
-                <div className={classes.confirmBackdrop} onClick={() => setPendingTemplate(null)}>
-                    <div
-                        className={classes.confirmDialog}
-                        role="alertdialog"
-                        aria-labelledby="template-replace-title"
-                        aria-describedby="template-replace-desc"
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        <div className={classes.confirmHeader}>
-                            <div className={classes.confirmIcon} aria-hidden="true">
-                                <FiAlertTriangle />
-                            </div>
-                            <div>
-                                <h2 id="template-replace-title">Zastąpić płótno?</h2>
-                                <p id="template-replace-desc">
-                                    Szablon „{pendingTemplate.name}” zastąpi bieżącą treść.
-                                    Niezapisane elementy zostaną usunięte.
-                                </p>
-                            </div>
-                        </div>
-                        <div className={classes.confirmFooter}>
+            <DialogShell
+                open={pendingTemplate != null}
+                onClose={() => setPendingTemplate(null)}
+                width={420}
+                role="alertdialog"
+                initialFocusSelector="[data-dialog-initial-focus]"
+                title="Zastąpić płótno?"
+                subtitle={pendingTemplate
+                    ? `Szablon „${pendingTemplate.name}” zastąpi bieżącą treść. Niezapisane elementy zostaną usunięte.`
+                    : ""}
+                footer={(
+                    <div className={classes.confirmActions}>
                             <button
                                 type="button"
                                 className={classes.confirmCancel}
+                                data-dialog-initial-focus
                                 onClick={() => setPendingTemplate(null)}
                             >
                                 Anuluj
@@ -161,11 +149,9 @@ export default function TemplatesModal() {
                             >
                                 Zastąp szablonem
                             </button>
-                        </div>
                     </div>
-                </div>,
-                document.body,
-            )}
+                )}
+            />
         </>
     );
 }

@@ -1,7 +1,7 @@
 /*
  * `.right-pane` (frontend/src/App.css) is a flex column with `overflow:
  * hidden`: the DemoBanner is the first child, followed by the Topbar
- * (flex-shrink: 0, z-index: 1400 — see Topbar.module.css) and then
+ * (flex-shrink: 0, shared sticky-chrome layer — see Topbar.module.css) and then
  * `.canvas-area` (flex: 1). The banner used to be `position: absolute`
  * pinned to `top: 0`, which placed it directly underneath the Topbar in the
  * same top-left corner; because Topbar has an opaque background and a much
@@ -23,7 +23,7 @@
  */
 .banner {
   position: relative;
-  z-index: 1500;
+  z-index: var(--z-sticky);
   flex-shrink: 0;
   display: flex;
   align-items: center;

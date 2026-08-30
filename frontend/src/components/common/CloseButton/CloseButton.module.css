@@ -1,6 +1,6 @@
 .closeBtn {
     position: absolute;
-    border-radius: 6px;
+    border-radius: var(--radius-control);
     border: 1px solid var(--chrome-border);
     color: var(--chrome-muted);
     background: var(--chrome-control);
@@ -11,7 +11,12 @@
     justify-content: center;
     width: 28px;
     height: 28px;
-    transition: background .15s, color .15s;
+    transition: background var(--motion-fast) var(--motion-ease), color var(--motion-fast) var(--motion-ease);
+}
+
+.closeBtn:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
 }
 
 .closeBtn svg {

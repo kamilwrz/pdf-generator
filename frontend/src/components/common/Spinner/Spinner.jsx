@@ -6,8 +6,8 @@ import classes from "./Spinner.module.css";
 const CANVAS_TOP_OFFSET_PX = 100;
 
 /**
- * PDF export loading state: frosted full-viewport overlay with a status card
- * pinned 100px below the live A4 page top (viewport pixels via
+ * PDF export loading state: flat, high-contrast status surface pinned 100px
+ * below the live A4 page top (viewport pixels via
  * `getBoundingClientRect`, so canvas zoom does not change the offset).
  *
  * @param {{ loading?: boolean, anchorRef?: React.RefObject<HTMLElement|null> }} props
@@ -18,6 +18,9 @@ export default function Spinner({ loading = true, anchorRef = null }) {
 
     useLayoutEffect(() => {
         if (!loading) {
+            // Reset viewport coordinates between export runs so a later run
+            // never flashes at the previous document's measured position.
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setCardSlotStyle(null);
             return undefined;
         }
@@ -59,19 +62,15 @@ export default function Spinner({ loading = true, anchorRef = null }) {
                 <div className={classes.card}>
                     <div className={classes.stage}>
                         <span className={classes.ring} aria-hidden="true" />
-                        <span className={classes.glow} aria-hidden="true" />
                         <span className={classes.page} aria-hidden="true">
                             <i className={classes.corner} />
                             <span className={classes.line} />
                             <span className={classes.line} />
                             <span className={classes.line} />
                             <span className={classes.line} />
-                            <span className={classes.beam} />
                         </span>
                     </div>
-                    <div className={classes.title}>
-                        Generowanie PDF<span className={classes.dots} aria-hidden="true" />
-                    </div>
+                    <div className={classes.title}>Generowanie PDF</div>
                     <div className={classes.subtitle}>Układanie stron i renderowanie</div>
                     <div className={classes.bar}><span /></div>
                 </div>

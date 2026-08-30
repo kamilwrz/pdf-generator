@@ -7,8 +7,8 @@ import { FiDownload, FiRotateCcw } from "react-icons/fi";
 
 const VARIANTS = {
     success: {
-        accent: "#667A6C",
-        iconBg: "#EEF3EF",
+        accent: "var(--success)",
+        iconBg: "var(--success-soft)",
         icon: (
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
         ),

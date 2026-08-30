@@ -43,7 +43,7 @@
 
 .block:empty::before {
     content: "Double-click to edit";
-    color: #8B8478;
+    color: var(--color-muted);
 }
 
 /* A semantic masthead title uses its product-specific hint in display mode.
@@ -61,7 +61,7 @@
 .editing {
     resize: none;
     cursor: text;
-    outline: 1px solid var(--accent, #171717);
+    outline: 1px solid var(--accent, var(--color-ink));
     outline-offset: 2px;
     -webkit-user-select: text;
     user-select: text;
@@ -74,7 +74,7 @@
 }
 
 .editing::placeholder {
-    color: #8B8478;
+    color: var(--color-muted);
 }
 
 /* The edit surface is now a contentEditable div (to host inline decoration),
@@ -82,7 +82,7 @@
    only while the box is empty. */
 .editing:empty::before {
     content: attr(data-placeholder);
-    color: #8B8478;
+    color: var(--color-muted);
     pointer-events: none;
     text-transform: none;
 }

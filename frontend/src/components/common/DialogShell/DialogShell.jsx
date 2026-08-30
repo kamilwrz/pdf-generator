@@ -1,18 +1,15 @@
-import { useEffect } from "react";
+import { useEffect, useId, useRef } from "react";
 import { createPortal } from "react-dom";
 import classes from "./DialogShell.module.css";
 import CloseButton from "../CloseButton/CloseButton";
 
-// Shared modal shell for Docs/Templates/Plans/AI. Owns the backdrop,
-// popIn animation, header (title+subtitle+close) and Escape-to-close so
-// every dialog gets identical dismiss behavior.
+// Shared modal shell for Docs/Templates/Plans/AI. Owns the backdrop, semantic
+// dialog labelling, keyboard focus lifecycle, header, and Escape-to-close so
+// every modal gets identical interaction behavior.
 //
 // `variant="fullscreen"` is used by the bio/CV wizard: edge-to-edge overlay
 // with a single scroll surface (body), sticky header/footer, and no floating
 // card over the editor. Other dialogs keep the default centered card.
-//
-// `radius` is an optional per-instance override for the dialog corner radius.
-// It is applied inline only when provided (ignored for fullscreen).
 //
 // Portals to `document.body` so stacking context / overflow on the editor
 // chrome cannot clip the dialog. Callers must keep a single open instance —
@@ -21,33 +18,103 @@ export default function DialogShell({
     open,
     onClose,
     width = 560,
-    radius,
     title,
     subtitle,
     footer,
     bodyClassName,
     variant = "modal",
+    role = "dialog",
+    initialFocusSelector,
+    restoreFocusSelector,
     children,
 }) {
     const isFullscreen = variant === "fullscreen";
+    const dialogRef = useRef(null);
+    const previousFocusRef = useRef(null);
+    const onCloseRef = useRef(onClose);
+    const titleId = useId();
+    const subtitleId = useId();
 
     useEffect(() => {
-        if (!open) return;
-        const onKey = (e) => {
-            if (e.key === "Escape") onClose();
-        };
-        window.addEventListener("keydown", onKey);
-        return () => window.removeEventListener("keydown", onKey);
-    }, [open, onClose]);
+        // Callers often create `onClose` inline. Keep the newest callback in a
+        // ref so their re-renders do not restart the focus lifecycle and replace
+        // the original opener with a control that is already inside the dialog.
+        onCloseRef.current = onClose;
+    }, [onClose]);
 
     useEffect(() => {
-        if (!open || !isFullscreen) return undefined;
-        const previous = document.body.style.overflow;
+        if (!open) return undefined;
+
+        previousFocusRef.current = document.activeElement;
+        const previousBodyOverflow = document.body.style.overflow;
         document.body.style.overflow = "hidden";
-        return () => {
-            document.body.style.overflow = previous;
+
+        const focusableSelector = [
+            "button:not([disabled])",
+            "[href]",
+            "input:not([disabled])",
+            "select:not([disabled])",
+            "textarea:not([disabled])",
+            "[tabindex]:not([tabindex='-1'])",
+        ].join(",");
+
+        const focusInitialControl = window.requestAnimationFrame(() => {
+            const firstControl = initialFocusSelector
+                ? dialogRef.current?.querySelector(initialFocusSelector)
+                : dialogRef.current?.querySelector(focusableSelector);
+            (firstControl || dialogRef.current)?.focus({ preventScroll: true });
+        });
+
+        const onKeyDown = (event) => {
+            const openDialogs = document.querySelectorAll("[data-dialog-shell]");
+            if (openDialogs[openDialogs.length - 1] !== dialogRef.current) return;
+
+            if (event.key === "Escape") {
+                event.preventDefault();
+                onCloseRef.current();
+                return;
+            }
+
+            if (event.key !== "Tab" || !dialogRef.current) return;
+
+            const focusableControls = Array.from(
+                dialogRef.current.querySelectorAll(focusableSelector),
+            ).filter((element) => element.getAttribute("aria-hidden") !== "true");
+
+            if (focusableControls.length === 0) {
+                event.preventDefault();
+                dialogRef.current.focus();
+                return;
+            }
+
+            const firstControl = focusableControls[0];
+            const lastControl = focusableControls[focusableControls.length - 1];
+            const focusIsOutsideDialog = !dialogRef.current.contains(document.activeElement);
+
+            if (event.shiftKey && (document.activeElement === firstControl || focusIsOutsideDialog)) {
+                event.preventDefault();
+                lastControl.focus();
+            } else if (!event.shiftKey && document.activeElement === lastControl) {
+                event.preventDefault();
+                firstControl.focus();
+            }
         };
-    }, [open, isFullscreen]);
+
+        window.addEventListener("keydown", onKeyDown);
+        return () => {
+            window.cancelAnimationFrame(focusInitialControl);
+            window.removeEventListener("keydown", onKeyDown);
+            document.body.style.overflow = previousBodyOverflow;
+            const focusTarget = previousFocusRef.current?.isConnected
+                ? previousFocusRef.current
+                : restoreFocusSelector
+                    ? document.querySelector(restoreFocusSelector)
+                    : null;
+            if (focusTarget instanceof HTMLElement) {
+                focusTarget.focus({ preventScroll: true });
+            }
+        };
+    }, [initialFocusSelector, open, restoreFocusSelector]);
 
     if (!open) return null;
 
@@ -57,18 +124,23 @@ export default function DialogShell({
             onClick={onClose}
         >
             <div
+                ref={dialogRef}
+                data-dialog-shell=""
                 className={`${classes.dialog}${isFullscreen ? ` ${classes.dialogFullscreen}` : ""}`}
-                style={isFullscreen
-                    ? undefined
-                    : { width, ...(radius != null ? { borderRadius: radius } : {}) }}
+                style={isFullscreen ? undefined : { width }}
+                role={role}
+                aria-modal="true"
+                aria-labelledby={titleId}
+                aria-describedby={subtitle ? subtitleId : undefined}
+                tabIndex={-1}
                 onClick={(e) => e.stopPropagation()}
             >
                 <div className={classes.header}>
                     <div>
-                        <h2>{title}</h2>
-                        {subtitle && <p>{subtitle}</p>}
+                        <h2 id={titleId}>{title}</h2>
+                        {subtitle && <p id={subtitleId}>{subtitle}</p>}
                     </div>
-                    <CloseButton clickHandler={onClose} top={18} right={28} width={32} height={32} radius={2} />
+                    <CloseButton ariaLabel={`Zamknij: ${title}`} clickHandler={onClose} top={18} right={28} width={32} height={32} />
                 </div>
                 <div className={`${classes.body}${bodyClassName ? ` ${bodyClassName}` : ""}`}>
                     {children}

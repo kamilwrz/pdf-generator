@@ -1,3 +1,32 @@
+## Application-wide Swiss design system
+
+`DESIGN.md` is the mandatory visual and interaction specification for the entire frontend. It applies to every route and user-visible surface, not only the landing page. This includes authentication, the editor shell and canvas tools, sidebars, galleries, AI workflows, dialogs, drawers, menus, banners, toasts, and every loading, empty, validation, error, success, disabled, and responsive state.
+
+### Scope and precedence
+
+* Read `DESIGN.md` completely before creating, restyling, or reviewing any user interface.
+* Treat its tokens, grid, typography, component contracts, accessibility rules, motion rules, prohibited patterns, and definition of done as acceptance criteria.
+* Reuse central design tokens and shared UI primitives. Do not create a route-specific theme or solve a local inconsistency with arbitrary colors, spacing, radii, shadows, or type values.
+* Preserve the intentional visual identity of user-selectable CV document templates unless the task explicitly changes those templates. The application chrome around the document must still follow `DESIGN.md`, and application styles must not leak into PDF output.
+* If a task-specific user requirement conflicts with `DESIGN.md`, follow the explicit user requirement and update `DESIGN.md` when the change establishes a new product-wide rule.
+
+### Required workflow for frontend changes
+
+1. Inventory every affected route, component, and state before editing. Include default, hover, active, focus-visible, disabled, loading, empty, validation, error, success, and relevant responsive states.
+2. Identify the existing global tokens and shared primitives that should own the change. Extend them when the concept is reusable instead of duplicating styles in CSS Modules.
+3. Apply the system to the complete user flow. Do not stop after making the landing page or the default desktop state visually correct.
+4. Keep task-heavy editor screens compact and narrative pages spacious, while retaining the same typography, palette, geometry, grid logic, and interaction language.
+5. Verify keyboard navigation, focus order and restoration, semantic HTML, accessible names, form labels and errors, contrast, target sizes, 200% zoom, reduced motion, and the absence of unintended horizontal overflow.
+6. Verify representative compact, tablet, laptop, and wide layouts. Mobile editor panels must remain usable as drawers or sheets without hiding the current primary task.
+7. Confirm that editor overlays, handles, guides, toolbars, and other application chrome do not alter printed dimensions or appear in exported PDFs.
+8. Remove obsolete styles, variants, assets, and components made redundant by the change.
+9. Run the relevant frontend tests, lint, and production build. Add or update tests when interaction behavior or a regression-prone contract changes.
+10. Update `README.md` in complete English and Polish versions whenever implementation, user-facing behavior, architecture, dependencies, configuration, or documented references change.
+
+### UI completion gate
+
+Do not describe frontend work as complete unless all affected surfaces comply with `DESIGN.md`. A polished landing page does not compensate for inconsistent authentication, editor, modal, AI, feedback, or responsive states. Any intentional exception must be documented with its product or technical reason and kept as narrow as possible.
+
 ## Readme
 
 # README Documentation Requirements

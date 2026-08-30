@@ -2234,7 +2234,7 @@ export function useA4Elements(titleRef) {
       setPageCount(1);
       setCurrentPage(1);
       titleRef.current.value = "";
-  }, [adoptDocumentFlowSpacing, resetHistory, setEditorMode])
+  }, [adoptDocumentFlowSpacing, resetHistory, setEditorMode, titleRef])
 
   // Replace the canvas with generated/authored specs. `title` is used verbatim.
   // Content fades in after fonts settle; fixedToPage chrome appears immediately.
@@ -2254,7 +2254,7 @@ export function useA4Elements(titleRef) {
     if (titleRef?.current && title) {
       titleRef.current.value = title;
     }
-  }, [pinFlowSpacingBaseline, resetHistory, setEditorMode])
+  }, [pinFlowSpacingBaseline, resetHistory, setEditorMode, titleRef])
 
   const handleLoadTemplateWithFill = useCallback((templateElements, templateName, fills, templateId = null) => {
     resetHistory();
@@ -2279,7 +2279,7 @@ export function useA4Elements(titleRef) {
     if (titleRef?.current && templateName) {
       titleRef.current.value = `${templateName} CV`;
     }
-  }, [pinFlowSpacingBaseline, setEditorMode])
+  }, [pinFlowSpacingBaseline, resetHistory, setEditorMode, titleRef])
 
   const handleLoadTemplate = useCallback((templateElements, title, templateId = null) => {
     resetHistory();
@@ -2296,7 +2296,7 @@ export function useA4Elements(titleRef) {
     if (titleRef?.current && title) {
       titleRef.current.value = title;
     }
-  }, [pinFlowSpacingBaseline, resetHistory, setEditorMode])
+  }, [pinFlowSpacingBaseline, resetHistory, setEditorMode, titleRef])
 
   /**
    * Convert the current template document into a freeform project in place.

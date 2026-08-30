@@ -9,7 +9,7 @@
  * "Zmień szablon"), browsing starts at that card and it is marked as current.
  */
 import { useEffect, useMemo, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion as Motion, useReducedMotion } from "framer-motion";
 import classes from "./TemplateCarousel.module.css";
 import { isTemplateAllowed } from "../../../utils/entitlements";
 import {
@@ -48,6 +48,7 @@ export default function TemplateCarousel({
     visibleCount = DEFAULT_VISIBLE_COUNT,
     actionLabel = null,
 }) {
+    const reduceMotion = useReducedMotion();
     const windowCount = Math.max(1, Number(visibleCount) || DEFAULT_VISIBLE_COUNT);
     const orderedTemplates = useMemo(
         () => listTemplatesInRegistryOrder(templates),
@@ -118,19 +119,20 @@ export default function TemplateCarousel({
                                 ? `Aktualny szablon: ${t.name}`
                                 : (t.description || t.name);
                         return (
-                            <motion.button
+                            <Motion.button
                                 type="button"
                                 key={t.id}
                                 layout
-                                initial={{ opacity: 0, scale: 0.85 }}
+                                initial={reduceMotion ? false : { opacity: 0, scale: 0.96 }}
                                 animate={{ opacity: 1, scale: 1 }}
-                                exit={{ opacity: 0, scale: 0.85 }}
-                                whileHover={locked || selected ? undefined : { scale: 1.09, zIndex: 2 }}
-                                whileFocus={locked || selected ? undefined : { scale: 1.09, zIndex: 2 }}
+                                exit={reduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.96 }}
+                                whileHover={reduceMotion || locked || selected ? undefined : { y: -2, zIndex: 2 }}
+                                whileFocus={reduceMotion || locked || selected ? undefined : { y: -2, zIndex: 2 }}
                                 transition={{
-                                    layout: { type: "spring", stiffness: 320, damping: 32 },
-                                    opacity: { duration: 0.18 },
-                                    scale: { duration: 0.18 },
+                                    layout: { duration: reduceMotion ? 0 : 0.2, ease: [0.2, 0, 0, 1] },
+                                    opacity: { duration: reduceMotion ? 0 : 0.16 },
+                                    scale: { duration: reduceMotion ? 0 : 0.16 },
+                                    y: { duration: reduceMotion ? 0 : 0.16 },
                                 }}
                                 className={`${classes.card}${selected ? ` ${classes.cardSelected}` : ""}`}
                                 onClick={() => {
@@ -168,7 +170,7 @@ export default function TemplateCarousel({
                                         <span className={classes.actionLabel}>{actionLabel}</span>
                                     )}
                                 </span>
-                            </motion.button>
+                            </Motion.button>
                         );
                     })}
                 </AnimatePresence>

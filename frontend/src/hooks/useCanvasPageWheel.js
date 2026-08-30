@@ -27,9 +27,12 @@ function prefersReducedMotion() {
  */
 export function useCanvasPageWheel(containerRef, { currentPage, pageCount, goToPage }) {
   const latestRef = useRef({ currentPage, pageCount, goToPage, lastChangeAt: 0 });
-  latestRef.current.currentPage = currentPage;
-  latestRef.current.pageCount = pageCount;
-  latestRef.current.goToPage = goToPage;
+
+  useEffect(() => {
+    latestRef.current.currentPage = currentPage;
+    latestRef.current.pageCount = pageCount;
+    latestRef.current.goToPage = goToPage;
+  }, [currentPage, goToPage, pageCount]);
 
   useEffect(() => {
     const el = containerRef?.current;

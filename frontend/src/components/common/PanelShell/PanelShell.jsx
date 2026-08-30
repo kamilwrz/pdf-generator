@@ -1,5 +1,5 @@
-import { useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useEffect, useId } from "react";
+import { motion as Motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import classes from "./PanelShell.module.css";
 import CloseButton from "../CloseButton/CloseButton";
 
@@ -10,6 +10,12 @@ import CloseButton from "../CloseButton/CloseButton";
 // right-edge drawer — genuinely different shapes, not worth forcing into
 // one geometry.
 export default function PanelShell({ open, onClose, className, style, motionProps, title, subtitle, footer, children }) {
+    const titleId = useId();
+    const reduceMotion = useReducedMotion();
+    const resolvedMotionProps = reduceMotion
+        ? { ...motionProps, initial: false, transition: { duration: 0 } }
+        : motionProps;
+
     useEffect(() => {
         if (!open) return;
         const onKey = (e) => {
@@ -22,19 +28,19 @@ export default function PanelShell({ open, onClose, className, style, motionProp
     return (
         <AnimatePresence>
             {open && (
-                <motion.section className={className} style={style} {...motionProps}>
+                <Motion.section className={className} style={style} aria-labelledby={titleId} {...resolvedMotionProps}>
                     <div className={classes.header}>
                         <div>
-                            <h2>{title}</h2>
+                            <h2 id={titleId}>{title}</h2>
                             {subtitle && <p>{subtitle}</p>}
                         </div>
-                        <CloseButton clickHandler={onClose} top={12} right={16} />
+                        <CloseButton ariaLabel={`Zamknij: ${title}`} clickHandler={onClose} top={12} right={16} />
                     </div>
                     <div className={classes.body}>
                         {children}
                     </div>
                     {footer && <div className={classes.footer}>{footer}</div>}
-                </motion.section>
+                </Motion.section>
             )}
         </AnimatePresence>
     );
