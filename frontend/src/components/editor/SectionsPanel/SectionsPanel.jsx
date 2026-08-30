@@ -1,7 +1,7 @@
 /**
  * Template-mode customization panel ("Dostosuj CV"): document status, section
  * structure, density presets, precise spacing, and template-scoped appearance
- * tools for Sterling and Monument. A
+ * tools for Sterling, Monument, and Slate. A
  * main-column Skills section's list row also gets a layout icon opening
  * `SkillsLayoutModal` (same modal the canvas heading hover control opens —
  * see `SectionRecordAdd`), so the mode picker is reachable without hunting
@@ -55,6 +55,16 @@ import {
   applyMonumentRenderedHeightsLayout,
   applyMonumentTextSizeLayout,
 } from "../../../utils/monumentTypographyLayout";
+import {
+  applySlatePalette,
+  getSlateAppearance,
+  SLATE_PALETTES,
+  SLATE_TEXT_SIZES,
+} from "../../../utils/slateAppearance";
+import {
+  applySlateRenderedHeightsLayout,
+  applySlateTextSizeLayout,
+} from "../../../utils/slateTypographyLayout";
 import {
   createCanvasTextWidthMeasurer,
   measureNaturalScrollHeight,
@@ -160,10 +170,11 @@ export default function SectionsPanel({ onClose }) {
   // reviewed appearance contract.
   const isSterlingAppearance = activeTemplateId === "sterling";
   const isMonumentAppearance = activeTemplateId === "monument";
-  const appearanceEnabled = isSterlingAppearance || isMonumentAppearance;
+  const isSlateAppearance = activeTemplateId === "slate";
+  const appearanceEnabled = isSterlingAppearance || isMonumentAppearance || isSlateAppearance;
   const renderedTab = appearanceEnabled ? activeTab : "layout";
-  const appearanceDefinition = useMemo(
-    () => isMonumentAppearance ? {
+  const appearanceDefinition = useMemo(() => {
+    if (isMonumentAppearance) return {
       templateName: "Monument",
       palettes: MONUMENT_PALETTES,
       textSizes: MONUMENT_TEXT_SIZES,
@@ -171,7 +182,17 @@ export default function SectionsPanel({ onClose }) {
       applyPalette: applyMonumentPalette,
       applyTextSizeLayout: applyMonumentTextSizeLayout,
       applyRenderedHeightsLayout: applyMonumentRenderedHeightsLayout,
-    } : {
+    };
+    if (isSlateAppearance) return {
+      templateName: "Slate",
+      palettes: SLATE_PALETTES,
+      textSizes: SLATE_TEXT_SIZES,
+      value: getSlateAppearance(A4_Elements),
+      applyPalette: applySlatePalette,
+      applyTextSizeLayout: applySlateTextSizeLayout,
+      applyRenderedHeightsLayout: applySlateRenderedHeightsLayout,
+    };
+    return {
       templateName: "Sterling",
       palettes: STERLING_PALETTES,
       textSizes: STERLING_TEXT_SIZES,
@@ -179,9 +200,8 @@ export default function SectionsPanel({ onClose }) {
       applyPalette: applySterlingPalette,
       applyTextSizeLayout: applySterlingTextSizeLayout,
       applyRenderedHeightsLayout: applySterlingRenderedHeightsLayout,
-    },
-    [A4_Elements, isMonumentAppearance],
-  );
+    };
+  }, [A4_Elements, isMonumentAppearance, isSlateAppearance]);
 
   useEffect(() => {
     if (!onClose) return undefined;
@@ -422,6 +442,7 @@ export default function SectionsPanel({ onClose }) {
                     "--palette-sidebar": palette.colors.sidebar ?? palette.colors.pale,
                     "--palette-rule": palette.colors.rule,
                     "--palette-pale": palette.colors.pale ?? palette.colors.sidebar,
+                    "--palette-photo": palette.colors.photo ?? palette.colors.pale ?? palette.colors.sidebar,
                   };
                   return (
                     <button
@@ -433,7 +454,7 @@ export default function SectionsPanel({ onClose }) {
                       onClick={() => handleAppearancePalette(palette.id)}
                     >
                       <span
-                        className={`${classes.palettePaper} ${isMonumentAppearance ? classes.palettePaperMonument : ""}`}
+                        className={`${classes.palettePaper} ${isMonumentAppearance ? classes.palettePaperMonument : ""} ${isSlateAppearance ? classes.palettePaperSlate : ""}`}
                         style={cardStyle}
                         aria-hidden="true"
                       >
@@ -448,6 +469,17 @@ export default function SectionsPanel({ onClose }) {
                             <span className={classes.paletteMonumentRule} />
                             <span className={classes.paletteMonumentCopy} />
                             <span className={classes.paletteMonumentFooter} />
+                          </>
+                        ) : isSlateAppearance ? (
+                          <>
+                            <span className={classes.paletteSlateSidebar} />
+                            <span className={classes.paletteSlatePhoto} />
+                            <span className={classes.paletteSlateName} />
+                            <span className={classes.paletteSlatePill} />
+                            <span className={classes.paletteSlateContacts} />
+                            <span className={classes.paletteSlateBadges} />
+                            <span className={classes.paletteSlateCopy} />
+                            <span className={classes.paletteSlateFooter} />
                           </>
                         ) : (
                           <>
