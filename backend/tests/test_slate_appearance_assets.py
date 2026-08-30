@@ -16,6 +16,7 @@ PALETTE_ICON_COLORS = {
 }
 ACCENT_ICONS = (
     "email", "phone", "location", "linkedin", "github", "website", "portrait",
+    "contact",
 )
 
 

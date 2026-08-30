@@ -262,6 +262,23 @@ def draw_portrait(color: str) -> Image.Image:
     return _normalize(img)
 
 
+def draw_contact(color: str) -> Image.Image:
+    """Geometric contact-card mark for Slate's photo-less sidebar heading.
+
+    The compact identity silhouette and two aligned data rules read as one
+    contact dossier at small canvas and PDF sizes. The open interior keeps the
+    glyph lighter than the filled Slate heading badges around it.
+    """
+    img, d = _draft()
+    col = _hex(color)
+    d.rounded_rectangle((28, 42, 132, 118), radius=8, outline=col, width=STROKE)
+    d.ellipse((44, 56, 70, 82), outline=col, width=STROKE - 1)
+    d.arc((38, 76, 76, 108), start=180, end=360, fill=col, width=STROKE - 1)
+    d.line([(86, 66), (116, 66)], fill=col, width=STROKE - 1)
+    d.line([(86, 88), (120, 88)], fill=col, width=STROKE - 1)
+    return _normalize(img)
+
+
 ICONS = {
     "email": draw_email,
     "phone": draw_phone,
@@ -286,9 +303,11 @@ EXTRA_ICONS = {
     "calendar": draw_calendar,
     "diamond": draw_diamond,
     "portrait": draw_portrait,
+    "contact": draw_contact,
 }
 
-# Full glyph set shared by both Slate colour variants (see SUBSET_THEMES below).
+# Established Slate glyph inventory shared by the white badge theme and the
+# primary steel-blue accent family (see the contact-only extension below).
 _SLATE_GLYPHS = [
     "email", "phone", "linkedin", "github", "website", "location",
     "calendar", "portrait",
@@ -296,11 +315,17 @@ _SLATE_GLYPHS = [
     "interests", "references", "certifications", "other",
 ]
 
+# Slate's six Appearance palettes render the photo-less contact heading as
+# accent ink directly on the rail. The shared white badge family intentionally
+# remains unchanged because the contact mark is not a regular section badge.
+_SLATE_PALETTE_GLYPHS = [*_SLATE_GLYPHS, "contact"]
+
 # Palette variants only replace glyphs drawn directly on paper: masthead
 # contacts and the photo placeholder. White section glyphs remain on the
 # shared `slate` theme because every palette keeps filled accent badges.
 _SLATE_ACCENT_GLYPHS = [
     "email", "phone", "location", "linkedin", "github", "website", "portrait",
+    "contact",
 ]
 
 # Meridian uses icons only in its centered masthead contact band. Each
@@ -337,10 +362,11 @@ SUBSET_THEMES = {
     #                      section-heading badges (white-on-accent).
     #   * `slate-accent` — steel-blue glyphs for bare contact rows and the
     #                      rectangular photo placeholder (accent-on-paper).
-    # Both variants carry the full set so any section-heading key (white badge)
-    # or contact/photo role (accent) always resolves to an existing asset.
+    # Both variants carry the established full set so every section-heading key
+    # (white badge) or contact/photo role (accent) resolves to an asset. The new
+    # photo-less contact heading extends only the six palette-ink families.
     "slate": ("#FFFFFF", _SLATE_GLYPHS),
-    "slate-accent": ("#3E5C76", _SLATE_GLYPHS),
+    "slate-accent": ("#3E5C76", _SLATE_PALETTE_GLYPHS),
     "slate-monochrome-accent": ("#242424", _SLATE_ACCENT_GLYPHS),
     "slate-copper-accent": ("#A14F2B", _SLATE_ACCENT_GLYPHS),
     "slate-forest-accent": ("#2F6A50", _SLATE_ACCENT_GLYPHS),

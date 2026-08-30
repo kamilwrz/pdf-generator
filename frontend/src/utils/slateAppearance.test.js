@@ -7,6 +7,7 @@ import {
   getSlateAppearance,
   SLATE_PALETTES,
 } from "./slateAppearance.js";
+import { hideProfilePhoto, showProfilePhoto } from "./profilePhotoVisibility.js";
 
 const sample = () => [
   {
@@ -60,6 +61,24 @@ const sample = () => [
   },
 ];
 
+function relativeLuminance(hex) {
+  const channels = String(hex).slice(1).match(/../g).map((channel) => {
+    const value = Number.parseInt(channel, 16) / 255;
+    return value <= 0.04045
+      ? value / 12.92
+      : ((value + 0.055) / 1.055) ** 2.4;
+  });
+  return (0.2126 * channels[0]) + (0.7152 * channels[1]) + (0.0722 * channels[2]);
+}
+
+function contrastRatio(foreground, background) {
+  const values = [
+    relativeLuminance(foreground),
+    relativeLuminance(background),
+  ].sort((left, right) => right - left);
+  return (values[0] + 0.05) / (values[1] + 0.05);
+}
+
 test("Slate exposes six distinct palettes including a strict black-white-grey option", () => {
   assert.equal(SLATE_PALETTES.length, 6);
   assert.equal(new Set(SLATE_PALETTES.map(({ id }) => id)).size, 6);
@@ -72,22 +91,120 @@ test("Slate exposes six distinct palettes including a strict black-white-grey op
   }
 });
 
+test("every Slate text role meets WCAG AA on paper and the sidebar rail", () => {
+  for (const palette of SLATE_PALETTES) {
+    for (const role of ["ink", "body", "muted"]) {
+      for (const surface of ["paper", "sidebar"]) {
+        const ratio = contrastRatio(palette.colors[role], palette.colors[surface]);
+        assert.ok(
+          ratio >= 4.5,
+          `${palette.id}.${role}/${surface} contrast is ${ratio.toFixed(2)}:1`,
+        );
+      }
+    }
+    const badgeRatio = contrastRatio(palette.colors.badgeText, palette.colors.accent);
+    assert.ok(
+      badgeRatio >= 4.5,
+      `${palette.id}.badgeText/accent contrast is ${badgeRatio.toFixed(2)}:1`,
+    );
+  }
+});
+
 test("palette update recolors Slate chrome, swaps accent icons, and preserves white badge glyphs", () => {
   const changed = applySlatePalette(sample(), "copper");
   assert.equal(changed[0].backgroundColor, "#FFFDF9");
   assert.equal(changed[1].backgroundColor, "#F6EDE3");
   assert.equal(changed[2].color, "#33251D");
   assert.equal(changed[3].color, "#534338");
-  assert.equal(changed[5].color, "#837468");
+  assert.equal(changed[5].color, "#76665B");
   assert.equal(changed[6].src, "/template-assets/iconic/slate-copper-accent/phone.png");
   assert.equal(changed[7].src, "/template-assets/iconic/slate-copper-accent/portrait.png");
   assert.equal(changed[8].src, "/template-assets/iconic/slate/skills.png");
   assert.equal(changed[9].color, "#C000FF");
   assert.equal(changed[10].contactBand.icon.theme, "slate-copper-accent");
-  assert.equal(changed[10].contactBand.text.colorHex, "#837468");
+  assert.equal(changed[10].contactBand.text.colorHex, "#76665B");
   assert.equal(changed[11].mastheadIdentity.title.spec.colorHex, "#FFFFFF");
   assert.equal(changed[11].mastheadIdentity.title.decorations[0].backgroundColor, "#A14F2B");
   assert.deepEqual(getSlateAppearance(changed), { palette: "copper", textSize: "M" });
+});
+
+test("every Slate palette styles the photo-less contact heading in either operation order", () => {
+  for (const palette of SLATE_PALETTES) {
+    const paletteThenHidden = hideProfilePhoto(
+      applySlatePalette(slateTemplate, palette.id),
+      "slate",
+    ).elements;
+    const hiddenThenPalette = applySlatePalette(
+      hideProfilePhoto(slateTemplate, "slate").elements,
+      palette.id,
+    );
+
+    for (const document of [paletteThenHidden, hiddenThenPalette]) {
+      const members = document.filter(
+        (element) => element.flowRole === "photo-contact-header",
+      );
+      const icon = members.find((element) => element.category === "image");
+      const label = members.find((element) => element.category === "text");
+      const rule = members.find((element) => element.category === "line");
+      assert.equal(members.length, 3, palette.id);
+      assert.match(
+        icon.src,
+        new RegExp(`/${palette.accentIconTheme}/contact\\.png$`),
+        palette.id,
+      );
+      assert.equal(label.color, palette.colors.ink, palette.id);
+      assert.equal(rule.backgroundColor, palette.colors.accent, palette.id);
+    }
+  }
+});
+
+test("photo-less heading inherits S–XL size without remaining sidebar chrome", () => {
+  const noSidebarHeadings = slateTemplate.filter(
+    (element) => element.flowRole !== "sidebar-chrome",
+  );
+  const expected = { S: 7.37, M: 7.6, L: 7.98, XL: 8.36 };
+
+  for (const [textSize, fontSize] of Object.entries(expected)) {
+    const resized = applySlateTextSize(noSidebarHeadings, textSize);
+    const hidden = hideProfilePhoto(resized, "slate").elements;
+    const label = hidden.find((element) => (
+      element.flowRole === "photo-contact-header" && element.category === "text"
+    ));
+    assert.equal(label.fontSize, fontSize, textSize);
+    assert.equal(label.appearanceBaseFontSize, 7.6, textSize);
+  }
+});
+
+test("hidden Slate keeps palette, typography, and portrait fallback when the photo returns", () => {
+  const userPhoto = {
+    category: "image",
+    src: "/uploads/profile.png",
+    photoSlot: "image",
+    photoPlaceholder: {
+      src: "/template-assets/iconic/slate-accent/portrait.png",
+      photoSlot: "glyph",
+    },
+  };
+  const source = [...slateTemplate, userPhoto];
+  const originalAnchor = source.find((element) => element.contactBand?.id === "contact-main");
+  const hidden = hideProfilePhoto(source, "slate").elements;
+  const themed = applySlatePalette(hidden, "copper");
+  const resized = applySlateTextSize(themed, "XL");
+  const shown = showProfilePhoto(resized, "slate").elements;
+  const restoredAnchor = shown.find((element) => element.contactBand?.id === "contact-main");
+  const restoredPhoto = shown.find((element) => element.src === "/uploads/profile.png");
+
+  assert.equal(restoredAnchor.contactBand.icon.theme, "slate-copper-accent");
+  assert.equal(restoredAnchor.contactBand.text.colorHex, "#76665B");
+  assert.ok(
+    restoredAnchor.contactBand.text.fontSizePt
+      > originalAnchor.contactBand.text.fontSizePt,
+  );
+  assert.match(restoredPhoto.photoPlaceholder.src, /\/slate-copper-accent\/portrait\.png$/);
+  assert.equal(
+    shown.some((element) => element.flowRole === "photo-contact-header"),
+    false,
+  );
 });
 
 test("every visible authored Slate decoration belongs to the palette contract", () => {

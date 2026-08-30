@@ -25,7 +25,7 @@ export const SLATE_PALETTES = Object.freeze([
     accentIconTheme: "slate-accent",
     colors: {
       paper: "#FFFFFF", sidebar: "#F1F4F8", ink: "#1C2530",
-      body: "#3A424C", muted: "#7A8794", accent: "#3E5C76",
+      body: "#3A424C", muted: "#626F7C", accent: "#3E5C76",
       rule: "#D3DAE2", photo: "#E7ECF2", badgeText: "#FFFFFF",
     },
   },
@@ -36,7 +36,7 @@ export const SLATE_PALETTES = Object.freeze([
     accentIconTheme: "slate-monochrome-accent",
     colors: {
       paper: "#FFFFFF", sidebar: "#F0F0F0", ink: "#151515",
-      body: "#383838", muted: "#707070", accent: "#242424",
+      body: "#383838", muted: "#686868", accent: "#242424",
       rule: "#CCCCCC", photo: "#E4E4E4", badgeText: "#FFFFFF",
     },
   },
@@ -47,7 +47,7 @@ export const SLATE_PALETTES = Object.freeze([
     accentIconTheme: "slate-copper-accent",
     colors: {
       paper: "#FFFDF9", sidebar: "#F6EDE3", ink: "#33251D",
-      body: "#534338", muted: "#837468", accent: "#A14F2B",
+      body: "#534338", muted: "#76665B", accent: "#A14F2B",
       rule: "#DDC9B8", photo: "#EEDFD0", badgeText: "#FFFFFF",
     },
   },
@@ -58,7 +58,7 @@ export const SLATE_PALETTES = Object.freeze([
     accentIconTheme: "slate-forest-accent",
     colors: {
       paper: "#FBFDFB", sidebar: "#EAF2ED", ink: "#1D3028",
-      body: "#3C5047", muted: "#718178", accent: "#2F6A50",
+      body: "#3C5047", muted: "#5F6F66", accent: "#2F6A50",
       rule: "#C7D7CE", photo: "#DDEAE2", badgeText: "#FFFFFF",
     },
   },
@@ -69,7 +69,7 @@ export const SLATE_PALETTES = Object.freeze([
     accentIconTheme: "slate-plum-accent",
     colors: {
       paper: "#FEFBFD", sidebar: "#F3EAF1", ink: "#352530",
-      body: "#55434F", muted: "#81727C", accent: "#764466",
+      body: "#55434F", muted: "#74656F", accent: "#764466",
       rule: "#D8C5D1", photo: "#EADCE5", badgeText: "#FFFFFF",
     },
   },
@@ -80,7 +80,7 @@ export const SLATE_PALETTES = Object.freeze([
     accentIconTheme: "slate-teal-accent",
     colors: {
       paper: "#F9FDFD", sidebar: "#E5F2F1", ink: "#173134",
-      body: "#385154", muted: "#6D8082", accent: "#007473",
+      body: "#385154", muted: "#5A6D6F", accent: "#007473",
       rule: "#BFD6D4", photo: "#D6E9E7", badgeText: "#FFFFFF",
     },
   },
@@ -130,8 +130,32 @@ for (const palette of SLATE_PALETTES) {
   }
 }
 
+// Documents saved before the AA contrast refinement still carry the former
+// muted tokens. Keep them in the semantic lookup so the next palette change
+// upgrades those values instead of misclassifying them as manual colours.
+for (const legacyMuted of [
+  "#7A8794", "#707070", "#837468", "#718178", "#81727C", "#6D8082",
+]) {
+  colorRolesByHex.set(legacyMuted, new Set(["muted"]));
+}
+
 const round = (value) => Math.round(value * 100) / 100;
 const ACCENT_ICON_PATH = /\/template-assets\/iconic\/slate(?:-[a-z0-9]+)*-accent\//;
+
+/**
+ * Return the central Slate font factor for a semantic typography role.
+ *
+ * Photo-less chrome is materialized after a size preset may already have been
+ * applied. Exposing the factor keeps that late-created label on the same S–XL
+ * scale even when the document no longer contains a sidebar heading to copy.
+ *
+ * @param {string} textSizeId - Slate S, M, L, or XL preset identifier.
+ * @param {string} role - Semantic role such as `heading` or `contact`.
+ * @returns {number} The font-size multiplier, defaulting to M.
+ */
+export function slateTypographyFontFactor(textSizeId, role) {
+  return TEXT_SCALE[textSizeId]?.[role]?.[0] ?? 1;
+}
 
 function isPageBackground(element, property) {
   return property === "backgroundColor"
@@ -180,6 +204,40 @@ function recolorMastheadTitleDescriptor(element, palette) {
     mastheadIdentity: {
       ...element.mastheadIdentity,
       title: { ...title, spec, decorations },
+    },
+  };
+}
+
+function recolorContactBandDescriptor(descriptor, palette) {
+  if (descriptor?.id !== "contact-main") return descriptor;
+  return {
+    ...descriptor,
+    text: { ...descriptor.text, colorHex: palette.colors.muted },
+    icon: { ...descriptor.icon, theme: palette.accentIconTheme },
+  };
+}
+
+function resizeContactBandDescriptor(descriptor, scale) {
+  if (descriptor?.id !== "contact-main") return descriptor;
+  const baseContactSize = Number(
+    descriptor.appearanceBaseFontSize
+    ?? descriptor.text?.fontSizePt
+    ?? 7.8,
+  );
+  const nextContactSize = round(Math.max(
+    MIN_FONT_SIZE.contact,
+    baseContactSize * scale.contact[0],
+  ));
+  const baseMetrics = descriptor.appearanceBaseMetrics ?? descriptor.metrics;
+  return {
+    ...descriptor,
+    appearanceBaseFontSize: baseContactSize,
+    appearanceBaseMetrics: baseMetrics,
+    text: { ...descriptor.text, fontSizePt: nextContactSize },
+    metrics: {
+      ...descriptor.metrics,
+      charWidth: round(baseMetrics.charWidth * scale.contact[0]),
+      lineStep: round(baseMetrics.lineStep * scale.contact[1]),
     },
   };
 }
@@ -290,14 +348,28 @@ export function applySlatePalette(elements = [], paletteId) {
         ),
       };
     }
+    if (ACCENT_ICON_PATH.test(String(next.photoPlaceholder?.src || ""))) {
+      next = {
+        ...next,
+        photoPlaceholder: {
+          ...next.photoPlaceholder,
+          src: String(next.photoPlaceholder.src).replace(
+            ACCENT_ICON_PATH,
+            `/template-assets/iconic/${palette.accentIconTheme}/`,
+          ),
+        },
+      };
+    }
     if (next.contactBand?.id === "contact-main") {
       next = {
         ...next,
-        contactBand: {
-          ...next.contactBand,
-          text: { ...next.contactBand.text, colorHex: palette.colors.muted },
-          icon: { ...next.contactBand.icon, theme: palette.accentIconTheme },
-        },
+        contactBand: recolorContactBandDescriptor(next.contactBand, palette),
+        ...(next.profilePhotoMainContactBand ? {
+          profilePhotoMainContactBand: recolorContactBandDescriptor(
+            next.profilePhotoMainContactBand,
+            palette,
+          ),
+        } : {}),
       };
     }
     return next;
@@ -347,30 +419,15 @@ export function applySlateTextSize(
   const resized = elements.map((element) => {
     const source = resizeMastheadTitleDescriptor(element, scale);
     if (source.contactBand?.id === "contact-main") {
-      const baseContactSize = Number(
-        source.contactBand.appearanceBaseFontSize
-        ?? source.contactBand.text?.fontSizePt
-        ?? 7.8,
-      );
-      const nextContactSize = round(Math.max(
-        MIN_FONT_SIZE.contact,
-        baseContactSize * scale.contact[0],
-      ));
-      const baseMetrics = source.contactBand.appearanceBaseMetrics
-        ?? source.contactBand.metrics;
       return {
         ...source,
-        contactBand: {
-          ...source.contactBand,
-          appearanceBaseFontSize: baseContactSize,
-          appearanceBaseMetrics: baseMetrics,
-          text: { ...source.contactBand.text, fontSizePt: nextContactSize },
-          metrics: {
-            ...source.contactBand.metrics,
-            charWidth: round(baseMetrics.charWidth * scale.contact[0]),
-            lineStep: round(baseMetrics.lineStep * scale.contact[1]),
-          },
-        },
+        contactBand: resizeContactBandDescriptor(source.contactBand, scale),
+        ...(source.profilePhotoMainContactBand ? {
+          profilePhotoMainContactBand: resizeContactBandDescriptor(
+            source.profilePhotoMainContactBand,
+            scale,
+          ),
+        } : {}),
       };
     }
     if (!["text", "textarea"].includes(source.category) || Number(source.fontSize) <= 1) {

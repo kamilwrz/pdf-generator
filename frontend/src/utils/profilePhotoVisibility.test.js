@@ -11,6 +11,7 @@ import {
   alignSidebarAfterProfileContacts,
   hideProfilePhoto,
   isProfilePhotoHidden,
+  normalizeProfilePhotoVisibilityPersistence,
   profilePhotoControlAnchor,
   removeProfilePhoto,
   showProfilePhoto,
@@ -69,6 +70,30 @@ describe("profile photo visibility", () => {
       assert.equal(hiddenResult.contactBandId, "contact-main");
       assert.equal(hiddenAnchor.contactBand.mode, "stacked");
       assert.deepEqual(hiddenAnchor.contactBand.anchor, { startX: 33, startY: 42, rightLimit: 174 });
+      const contactHeader = hiddenResult.elements.filter(
+        (element) => element.flowRole === "photo-contact-header",
+      );
+      assert.equal(contactHeader.length, 3);
+      const contactHeaderIcon = contactHeader.find((element) => element.category === "image");
+      const contactHeaderLabel = contactHeader.find((element) => element.category === "text");
+      const contactHeaderRule = contactHeader.find((element) => element.category === "line");
+      assert.ok(contactHeader.every((element) => (
+        element.fixedToPage === true
+        && element.locked === true
+        && element.repeatOnContinuation === false
+        && element.flowLane === "sidebar"
+        && !element.photoSlot
+        && !element.contactChannel
+      )));
+      assert.match(contactHeaderIcon.src, /\/slate-accent\/contact\.png$/);
+      assert.deepEqual(
+        [contactHeaderIcon.left, contactHeaderIcon.top, contactHeaderIcon.width, contactHeaderIcon.height],
+        [27, 20, 12, 12],
+      );
+      assert.equal(contactHeaderLabel.content, "DANE KONTAKTOWE");
+      assert.deepEqual([contactHeaderLabel.left, contactHeaderLabel.top], [49, 21]);
+      assert.equal(contactHeaderRule.backgroundColor, "#3E5C76");
+      assert.deepEqual([contactHeaderRule.left, contactHeaderRule.top, contactHeaderRule.width], [49, 34, 46]);
       const hiddenPhotoCluster = hiddenResult.elements.filter((element) => (
         element.fixedToPage
         && element.flowLane === "sidebar"
@@ -87,6 +112,10 @@ describe("profile photo visibility", () => {
       const aligned = alignSidebarAfterProfileContacts(
         relaid, hiddenResult.contactBandId, templateId,
       );
+      const hiddenContactTop = Math.min(...aligned
+        .filter((element) => element.contactBandId === "contact-main" && element.contactChannel)
+        .map((element) => Number(element.top)));
+      assert.equal(hiddenContactTop, 42);
       const contactBottom = Math.max(...aligned
         .filter((element) => element.contactBandId === "contact-main" && element.contactChannel)
         .map((element) => Number(element.top) + Math.max(
@@ -99,13 +128,51 @@ describe("profile photo visibility", () => {
         .map((element) => Number(element.top)));
       assert.ok(hiddenSidebarTop < originalSidebarTop);
       assert.equal(hiddenSidebarTop - contactBottom, 40);
-      const shown = showProfilePhoto(aligned, templateId).elements;
+      const shownResult = showProfilePhoto(aligned, templateId);
+      const shownRelaid = applyChannelRelayout(
+        shownResult.elements,
+        shownResult.contactBandId,
+        (text) => String(text).length * 5,
+        () => "unused-id",
+      ).elements;
+      const shown = alignSidebarAfterProfileContacts(
+        shownRelaid, shownResult.contactBandId, templateId,
+      );
       const shownAnchor = shown.find((element) => element.element_id === originalAnchor.element_id);
       assert.deepEqual(shownAnchor.contactBand, originalAnchor.contactBand);
+      assert.equal(
+        shown.some((element) => element.flowRole === "photo-contact-header"),
+        false,
+      );
       const shownSidebarTop = Math.min(...shown
         .filter((element) => element.flowRole === "sidebar-chrome")
         .map((element) => Number(element.top)));
       assert.equal(shownSidebarTop, originalSidebarTop);
+      const originalContactGeometry = source
+        .filter((element) => element.contactChannel)
+        .map((element) => [element.element_id, element.left, element.top, element.page]);
+      const shownContactGeometry = shown
+        .filter((element) => element.contactChannel)
+        .map((element) => [element.element_id, element.left, element.top, element.page]);
+      assert.deepEqual(shownContactGeometry, originalContactGeometry);
+      assert.deepEqual(
+        shown.map((element) => [
+          element.element_id,
+          element.left,
+          element.top,
+          element.width,
+          element.height,
+          element.page,
+        ]),
+        source.map((element) => [
+          element.element_id,
+          element.left,
+          element.top,
+          element.width,
+          element.height,
+          element.page,
+        ]),
+      );
       assert.ok(shown
         .filter((element) => hiddenPhotoCluster.some((member) => member.element_id === element.element_id))
         .every((element) => element.photoSlotHidden === false));
@@ -163,6 +230,37 @@ describe("profile photo visibility", () => {
       && Number(element.top) < 180
     ));
     assert.ok(legacyCluster.every((element) => element.photoSlotHidden === true));
+  });
+
+  it("hydrates a legacy photo-less Slate heading once without moving contacts", () => {
+    const source = withIds(slateTemplate);
+    const hidden = hideProfilePhoto(source, "slate").elements;
+    const legacyHidden = hidden.filter(
+      (element) => element.flowRole !== "photo-contact-header",
+    );
+    const contactGeometry = legacyHidden
+      .filter((element) => element.contactChannel)
+      .map((element) => [element.element_id, element.left, element.top, element.page]);
+
+    const normalized = normalizeProfilePhotoVisibilityPersistence(
+      legacyHidden,
+      "slate",
+      (part) => `persisted-${part}`,
+    );
+    assert.equal(
+      normalized.filter((element) => element.flowRole === "photo-contact-header").length,
+      3,
+    );
+    assert.deepEqual(
+      normalized
+        .filter((element) => element.contactChannel)
+        .map((element) => [element.element_id, element.left, element.top, element.page]),
+      contactGeometry,
+    );
+    assert.equal(
+      normalizeProfilePhotoVisibilityPersistence(normalized, "slate"),
+      normalized,
+    );
   });
 
   it("brings every hidden-photo contact onto page one before measuring the sidebar gap", () => {

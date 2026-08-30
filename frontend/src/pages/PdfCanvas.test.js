@@ -53,3 +53,19 @@ test("LongCvModal receives the two-variant props (no onApplyCompact)", async () 
   assert.match(source, /onForceTighten=/);
   assert.doesNotMatch(source, /onApplyCompact=/);
 });
+
+test("guest restore and claim run the hidden-photo persistence migration", async () => {
+  const source = await readFile(url, "utf8");
+  assert.match(
+    source,
+    /import \{ normalizeProfilePhotoVisibilityPersistence \} from '\.\.\/utils\/profilePhotoVisibility'/,
+  );
+  assert.equal(
+    (source.match(/normalizeProfilePhotoVisibilityPersistence\(/g) || []).length,
+    2,
+  );
+  assert.equal(
+    (source.match(/normalizeSterlingFamilyPersistence\(guestDoc\.elements, guestDoc\.templateId\)/g) || []).length,
+    2,
+  );
+});

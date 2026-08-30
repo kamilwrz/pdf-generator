@@ -6,11 +6,18 @@
  * authored geometry and makes show/hide lossless across undo, save, and reload.
  * Slate and Tessera store the original contact-band descriptor on its
  * zero-size anchor, then switch the band to a one-row-per-channel sidebar
- * layout. Linden starts with that stacked rail already active and publishes
- * its own hidden-photo anchor plus a contact-to-section spacing contract.
- * Vellum's circular masthead slot is independent of the flow column, so its
- * hide/show transition changes only the semantically tagged photo cluster.
+ * layout. Slate additionally materializes a palette-aware contact heading in
+ * the space released by its photo and removes that chrome on restore. Linden
+ * starts with the stacked rail already active and publishes its own hidden-
+ * photo anchor plus a contact-to-section spacing contract. Vellum's circular
+ * masthead slot is independent of the flow column, so its hide/show transition
+ * changes only the semantically tagged photo cluster.
  */
+
+import {
+  getSlateAppearance,
+  slateTypographyFontFactor,
+} from "./slateAppearance.js";
 
 const SUPPORTED_TEMPLATE_IDS = new Set([
   "atrium",
@@ -22,6 +29,21 @@ const SUPPORTED_TEMPLATE_IDS = new Set([
 
 const SIDEBAR_CONTACT_TEMPLATE_IDS = new Set(["slate", "linden"]);
 export const SIDEBAR_CONTACT_SECTION_GAP = 40;
+const SLATE_HIDDEN_CONTACT_ANCHOR = Object.freeze({
+  startX: 33,
+  startY: 42,
+  rightLimit: 174,
+});
+const SLATE_CONTACT_HEADER_ROLE = "photo-contact-header";
+const SLATE_CONTACT_HEADER_LAYOUT = Object.freeze({
+  iconLeft: 27,
+  iconTop: 20,
+  iconSize: 12,
+  textLeft: 49,
+  textTop: 21,
+  ruleTop: 34,
+  ruleWidth: 46,
+});
 const LEGACY_FRAMELESS_PLACEHOLDERS = {
   atrium: "/template-assets/iconic/atrium-accent/portrait.png",
 };
@@ -53,6 +75,148 @@ function contactAnchor(elements) {
     && element.contactBandId
     && element.contactBand
   )) || null;
+}
+
+function isSlateContactHeader(element) {
+  return element?.flowRole === SLATE_CONTACT_HEADER_ROLE;
+}
+
+function slateAccentColor(elements) {
+  const sidebarRule = (elements || []).find((element) => (
+    element.flowRole === "sidebar-chrome"
+    && element.category === "line"
+    && Number(element.height) <= 2
+    && Number(element.width) >= 40
+    && Number(element.width) <= 80
+    && element.backgroundColor
+  ));
+  if (sidebarRule) return sidebarRule.backgroundColor;
+
+  const railEdge = (elements || []).find((element) => (
+    element.category === "line"
+    && element.fixedToPage
+    && Number(element.left) === 178
+    && Number(element.width) === 2
+    && Number(element.height) >= 800
+    && element.backgroundColor
+  ));
+  return railEdge?.backgroundColor || "#3E5C76";
+}
+
+function slateHeadingStyle(elements, anchor) {
+  const authoredHeading = (elements || []).find((element) => (
+    element.flowRole === "sidebar-chrome"
+    && element.category === "text"
+    && String(element.content || "").trim()
+  ));
+  const mastheadName = (elements || []).find((element) => (
+    element.mastheadRole === "name" && element.color
+  ));
+  const bandIcon = (elements || []).find((element) => (
+    element.contactBandId === anchor?.contactBandId
+    && element.contactChannel
+    && element.category === "image"
+    && element.src
+  ));
+  const iconTheme = anchor?.contactBand?.icon?.theme || "slate-accent";
+  const iconSrc = bandIcon?.src
+    ? String(bandIcon.src).replace(/[^/]+\.png(\?.*)?$/, "contact.png")
+    : `/template-assets/iconic/${iconTheme}/contact.png`;
+  const baseFontSize = Number(
+    authoredHeading?.appearanceBaseFontSize ?? authoredHeading?.fontSize,
+  ) || 7.6;
+  const activeTextSize = getSlateAppearance(elements).textSize;
+  const materializedFontSize = Math.round(
+    baseFontSize * slateTypographyFontFactor(activeTextSize, "heading") * 100,
+  ) / 100;
+
+  return {
+    iconSrc,
+    fontFamily: authoredHeading?.fontFamily
+      || anchor?.contactBand?.text?.fontFamily
+      || "Montserrat",
+    fontSize: Number(authoredHeading?.fontSize) || materializedFontSize,
+    baseFontSize,
+    color: authoredHeading?.color || mastheadName?.color || "#1C2530",
+    letterSpacing: Number(authoredHeading?.letterSpacing) || 0.85,
+    accent: slateAccentColor(elements),
+  };
+}
+
+/**
+ * Build the three locked elements that identify Slate's temporary contact rail.
+ *
+ * The icon URL is derived from a live contact glyph so API prefixes and the
+ * selected palette survive unchanged. Heading typography is copied from the
+ * current sidebar chrome, which also preserves an active S/M/L/XL preset.
+ * Deterministic fallback identifiers keep the pure helper usable in tests;
+ * the editor supplies NanoID identifiers for real history transactions.
+ */
+function materializeSlateContactHeader(elements, anchor, createId) {
+  const withoutStaleHeader = (elements || []).filter(
+    (element) => !isSlateContactHeader(element),
+  );
+  const style = slateHeadingStyle(withoutStaleHeader, anchor);
+  const nextId = (part) => (
+    createId?.(`slate-contact-header-${part}`)
+    || `slate-contact-header-${part}`
+  );
+  const common = {
+    page: 1,
+    fixedToPage: true,
+    repeatOnContinuation: false,
+    locked: true,
+    flowRole: SLATE_CONTACT_HEADER_ROLE,
+    flowLane: "sidebar",
+  };
+  const layout = SLATE_CONTACT_HEADER_LAYOUT;
+
+  return [
+    ...withoutStaleHeader,
+    {
+      ...common,
+      element_id: nextId("icon"),
+      id: "slate-contact-header-icon",
+      category: "image",
+      src: style.iconSrc,
+      left: layout.iconLeft,
+      top: layout.iconTop,
+      width: layout.iconSize,
+      height: layout.iconSize,
+      zIndex: 3,
+      alignWithText: false,
+    },
+    {
+      ...common,
+      element_id: nextId("label"),
+      id: "slate-contact-header-label",
+      category: "text",
+      content: "DANE KONTAKTOWE",
+      left: layout.textLeft,
+      top: layout.textTop,
+      fontSize: style.fontSize,
+      fontFamily: style.fontFamily,
+      color: style.color,
+      bold: true,
+      italic: false,
+      letterSpacing: style.letterSpacing,
+      zIndex: 3,
+      appearanceTypographyRole: "heading",
+      appearanceBaseFontSize: style.baseFontSize,
+    },
+    {
+      ...common,
+      element_id: nextId("rule"),
+      id: "slate-contact-header-rule",
+      category: "line",
+      left: layout.textLeft,
+      top: layout.ruleTop,
+      width: layout.ruleWidth,
+      height: 1,
+      backgroundColor: style.accent,
+      zIndex: 2,
+    },
+  ];
 }
 
 /**
@@ -114,6 +278,32 @@ export function supportsProfilePhotoVisibility(templateId) {
 /** Whether the document currently keeps its profile-photo slot hidden. */
 export function isProfilePhotoHidden(elements) {
   return (elements || []).some((element) => element?.photoSlotHidden === true);
+}
+
+/**
+ * Upgrade a persisted Slate document that was already photo-less before the
+ * contact heading contract existed.
+ *
+ * The migration is intentionally idempotent and does not alter contact or
+ * sidebar coordinates. A complete current heading is returned unchanged;
+ * missing or partial legacy chrome is rebuilt from the document's live palette
+ * and typography so save/reload never introduces a default-colour duplicate.
+ *
+ * @param {object[]} elements - Hydrated canvas elements.
+ * @param {string} templateId - Persisted template identifier.
+ * @param {null|((part: string) => string)} [createId] - Optional identifier factory.
+ * @returns {object[]} The original array or a normalized Slate array.
+ */
+export function normalizeProfilePhotoVisibilityPersistence(
+  elements,
+  templateId,
+  createId = null,
+) {
+  const list = elements || [];
+  if (String(templateId || "") !== "slate" || !isProfilePhotoHidden(list)) return list;
+  const headerMembers = list.filter((element) => isSlateContactHeader(element));
+  if (headerMembers.length === 3) return list;
+  return materializeSlateContactHeader(list, contactAnchor(list), createId);
 }
 
 /**
@@ -215,15 +405,23 @@ export function alignSidebarAfterProfileContacts(elements, bandId, templateId) {
   });
 }
 
-/** Hide the slot and apply the template-specific geometry transition. */
-export function hideProfilePhoto(elements, templateId) {
+/**
+ * Hide the slot and apply the template-specific geometry transition.
+ *
+ * @param {object[]} elements - Current document elements.
+ * @param {string} templateId - Active template identifier.
+ * @param {null|((part: string) => string)} [createId] - Optional identifier
+ * factory for temporary Slate contact-header chrome.
+ * @returns {{elements: object[], contactBandId: string|null}}
+ */
+export function hideProfilePhoto(elements, templateId, createId = null) {
   if (!supportsProfilePhotoVisibility(templateId) || isProfilePhotoHidden(elements)) {
     return { elements, contactBandId: null };
   }
   const list = elements || [];
   const id = String(templateId);
   const anchor = contactAnchor(list);
-  const next = list.map((element) => {
+  const transitioned = list.map((element) => {
     if (isSlotMember(element, id)) return { ...element, photoSlotHidden: true };
 
     const hiddenTop = Number(element.profilePhotoHiddenTop);
@@ -238,13 +436,16 @@ export function hideProfilePhoto(elements, templateId) {
     if (SIDEBAR_CONTACT_TEMPLATE_IDS.has(id) && anchor && element.element_id === anchor.element_id) {
       const descriptor = clone(element.contactBand);
       const hidden = descriptor?.photoHidden;
+      const hiddenAnchor = id === "slate"
+        ? SLATE_HIDDEN_CONTACT_ANCHOR
+        : hidden?.anchor || { startX: 33, startY: 42, rightLimit: 174 };
       return {
         ...element,
         profilePhotoMainContactBand: clone(element.contactBand),
         contactBand: {
           ...descriptor,
           mode: hidden?.mode || "stacked",
-          anchor: hidden?.anchor || { startX: 33, startY: 42, rightLimit: 174 },
+          anchor: hiddenAnchor,
         },
       };
     }
@@ -263,20 +464,30 @@ export function hideProfilePhoto(elements, templateId) {
     }
     return element;
   });
+  const next = id === "slate"
+    ? materializeSlateContactHeader(transitioned, contactAnchor(transitioned), createId)
+    : transitioned;
   return {
     elements: next,
     contactBandId: SIDEBAR_CONTACT_TEMPLATE_IDS.has(id) ? anchor?.contactBandId ?? null : null,
   };
 }
 
-/** Restore the slot and every position/descriptor captured by hideProfilePhoto. */
+/**
+ * Restore the slot and every position/descriptor captured by hideProfilePhoto.
+ * Slate's temporary contact heading is removed before authored positions and
+ * the original main-column contact descriptor are restored.
+ */
 export function showProfilePhoto(elements, templateId) {
   if (!supportsProfilePhotoVisibility(templateId) || !isProfilePhotoHidden(elements)) {
     return { elements, contactBandId: null };
   }
   const id = String(templateId);
   let restoredBandId = null;
-  const next = (elements || []).map((element) => {
+  const source = id === "slate"
+    ? (elements || []).filter((element) => !isSlateContactHeader(element))
+    : (elements || []);
+  const next = source.map((element) => {
     let updated = isSlotMember(element, id)
       ? { ...element, photoSlotHidden: false }
       : element;

@@ -90,6 +90,7 @@ import { regentTemplate } from '../templates/regent';
 import { TEMPLATES } from '../templates';
 import { templateHasLayout } from '../utils/templateLayouts';
 import { normalizeSterlingFamilyPersistence } from '../utils/sterlingAppearance';
+import { normalizeProfilePhotoVisibilityPersistence } from '../utils/profilePhotoVisibility';
 import { nanoid } from 'nanoid';
 /**
  * Authenticated CV editor page: canvas, toolbars, dialogs, and autosave.
@@ -1398,7 +1399,12 @@ function PdfCanvas() {
       || !Array.isArray(guestDoc.elements)
       || guestDoc.elements.length === 0
     ) return;
-    const restoredElements = normalizeSterlingFamilyPersistence(guestDoc.elements, guestDoc.templateId);
+    // Local guest snapshots bypass ModalPdfs, so apply the same idempotent
+    // persistence migrations before any editor mode or history is hydrated.
+    const restoredElements = normalizeProfilePhotoVisibilityPersistence(
+      normalizeSterlingFamilyPersistence(guestDoc.elements, guestDoc.templateId),
+      guestDoc.templateId,
+    );
     demoGuestRestoredRef.current = true;
     setA4_Elements(restoredElements);
     setA4_Elements_deleted(Array.isArray(guestDoc.deletedIds) ? guestDoc.deletedIds : []);
@@ -1516,7 +1522,12 @@ function PdfCanvas() {
     const buffered = loadGuestEvents();
     buffered.forEach((event) => logEvent(event.eventType));
     clearGuestEvents();
-    const restoredElements = normalizeSterlingFamilyPersistence(guestDoc.elements, guestDoc.templateId);
+    // Claiming a guest draft must preserve the same saved Slate hide/show
+    // contract as opening an authenticated document from “Moje dokumenty”.
+    const restoredElements = normalizeProfilePhotoVisibilityPersistence(
+      normalizeSterlingFamilyPersistence(guestDoc.elements, guestDoc.templateId),
+      guestDoc.templateId,
+    );
     // Unsaved editor document: authenticated autosave waits for a real pdfId.
     setPdfId(null);
     setA4_Elements(restoredElements);

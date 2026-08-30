@@ -16,9 +16,10 @@ import { CiClock1 } from "react-icons/ci";
 import { GrView } from "react-icons/gr";
 import { FiSearch } from "react-icons/fi";
 import { PdfContext } from "../../../store/pdfgenerator-context";
-import { sanitizeTextContent } from "../../../utils/sanitizeTextContent";
 import { fetchOwnedPdfDownload, triggerBlobDownload } from "../../../utils/download";
 import { normalizeSterlingFamilyPersistence } from "../../../utils/sterlingAppearance";
+import { normalizeProfilePhotoVisibilityPersistence } from "../../../utils/profilePhotoVisibility";
+import { hydratePersistedCanvasElement } from "../../../utils/persistedCanvasElement";
 import { ApiClient } from "../../../services/api";
 import { ENDPOINTS } from "../../../services/api";
 
@@ -95,108 +96,11 @@ export default function ModalPdfs({ title }) {
             const pdfCanvas = Array.isArray(data)
                 ? PDFs.find(element => element.id === id)
                 : data.document;
-            const elementsData = responseElements.map((element) => {
-                const fixedToPage = element.extra_properties.fixedToPage ?? false;
-                const repeatOnContinuation = element.extra_properties.repeatOnContinuation ?? true;
-                const locked = element.extra_properties.locked ?? fixedToPage;
-                // Appearance metadata is intentionally restored for every
-                // category. Appearance-enabled templates store the selected
-                // palette on page chrome and reversible role baselines on
-                // individual text elements.
-                const appearanceMetadata = {
-                    appearanceTemplateId: element.extra_properties.appearanceTemplateId,
-                    appearanceSettings: element.extra_properties.appearanceSettings,
-                    appearanceTypographyRole: element.extra_properties.appearanceTypographyRole,
-                    appearanceBaseFontSize: element.extra_properties.appearanceBaseFontSize,
-                    appearanceBaseLineHeight: element.extra_properties.appearanceBaseLineHeight,
-                };
-                if (element.category === "textarea") {
-                    return {
-                        ...element,
-                        ...appearanceMetadata,
-                        // `element.id` is the numeric PdfElements primary key.
-                        // Canvas `id` is reserved for an optional semantic
-                        // template key stored in extra_properties.
-                        id: element.extra_properties.id,
-                        content: sanitizeTextContent(element.content),
-                        zIndex: element.extra_properties.zIndex,
-                        lineHeight: element.extra_properties.lineHeight,
-                        letterSpacing: element.extra_properties.letterSpacing,
-                        bold: element.extra_properties.bold,
-                        italic: element.extra_properties.italic,
-                        underline: element.extra_properties.underline,
-                        // Inline decoration overlay; null keeps the plain fast path.
-                        runs: element.extra_properties.runs ?? null,
-                        align: element.extra_properties.align,
-                        bulletList: element.extra_properties.bulletList ?? false,
-                        autoHeight: element.extra_properties.autoHeight ?? false,
-                        flowRole: element.extra_properties.flowRole,
-                        flowLane: element.extra_properties.flowLane,
-                        flowGroup: element.extra_properties.flowGroup,
-                        isDecorativeChromeText: element.extra_properties.isDecorativeChromeText ?? false,
-                        preserveInitialLayout: element.extra_properties.preserveInitialLayout ?? false,
-                        fixedToPage,
-                        repeatOnContinuation,
-                        locked,
-                        width: parseFloat(element.width),
-                        height: parseFloat(element.height),
-                        isEditing: false,
-                    };
-                }
-                if (element.category !== "text") {
-                    return {
-                        ...element,
-                        ...appearanceMetadata,
-                        zIndex: element.extra_properties.zIndex,
-                        borderWidth: element.extra_properties.borderWidth,
-                        borderRadius: element.extra_properties.borderRadius,
-                        filled: element.extra_properties.filled ?? false,
-                        // Preserve explicit false for geometrically centred Iconic contact icons.
-                        alignWithText: element.extra_properties.alignWithText,
-                        // Template semantic key + profile-photo slot contract.
-                        id: element.extra_properties.id,
-                        photoSlot: element.extra_properties.photoSlot,
-                        photoSlotHidden: element.extra_properties.photoSlotHidden,
-                        photoPlaceholder: element.extra_properties.photoPlaceholder,
-                        profilePhotoMainContactBand: element.extra_properties.profilePhotoMainContactBand,
-                        photoLayoutHome: element.extra_properties.photoLayoutHome,
-                        photoShape: element.extra_properties.photoShape,
-                        objectFit: element.extra_properties.objectFit,
-                        flowRole: element.extra_properties.flowRole,
-                        flowLane: element.extra_properties.flowLane,
-                        flowGroup: element.extra_properties.flowGroup,
-                        fixedToPage,
-                        repeatOnContinuation,
-                        locked,
-                        source_id: element.extra_properties.source_id,
-                        target_id: element.extra_properties.target_id,
-                        arrow: element.extra_properties.arrow,
-                        width: parseFloat(element.width),
-                        height: parseFloat(element.height),
-                    };
-                }
-                return {
-                    ...element,
-                    ...appearanceMetadata,
-                    // Do not leak the numeric database row id into the canvas
-                    // element contract; semantic template ids are strings.
-                    id: element.extra_properties.id,
-                    content: sanitizeTextContent(element.content),
-                    zIndex: element.extra_properties.zIndex,
-                    bold: element.extra_properties.bold,
-                    italic: element.extra_properties.italic,
-                    underline: element.extra_properties.underline,
-                    // Inline decoration overlay; null keeps the plain fast path.
-                    runs: element.extra_properties.runs ?? null,
-                    flowRole: element.extra_properties.flowRole,
-                    flowLane: element.extra_properties.flowLane,
-                    flowGroup: element.extra_properties.flowGroup,
-                    isDecorativeChromeText: element.extra_properties.isDecorativeChromeText ?? false,
-                    fixedToPage,
-                    repeatOnContinuation,
-                    locked,
-                };
-            });
+            // Rebuild the flat canvas contract for every category. Contact,
+            // photo, flow and appearance metadata can live on text anchors or
+            // textarea bodies, so category-specific partial unpacking is not
+            // sufficient for a saved hide/show round trip.
+            const elementsData = responseElements.map(hydratePersistedCanvasElement);
 
             // Restore the saved page count, title and content as one state
             // transition, then make this loaded PDF autosave-active.
@@ -206,7 +110,19 @@ export default function ModalPdfs({ title }) {
             setPageCount(pdfCanvas?.pages || 1);
             setCurrentPage(1);
             setA4_Elements_deleted([]);
-            const liveElements = normalizeSterlingFamilyPersistence(elementsData.filter(element => element.category !== "title"), pdfCanvas?.template_id ?? pdfCanvas?.templateId);
+            const templateId = pdfCanvas?.template_id ?? pdfCanvas?.templateId;
+            const persistenceNormalized = normalizeSterlingFamilyPersistence(
+                elementsData.filter(element => element.category !== "title"),
+                templateId,
+            );
+            // Slate documents saved while the photo was hidden before the
+            // contact-heading contract existed receive the missing first-page
+            // chrome during hydration. The pure normalizer is idempotent, so
+            // current documents retain their stored element identities.
+            const liveElements = normalizeProfilePhotoVisibilityPersistence(
+                persistenceNormalized,
+                templateId,
+            );
             setA4_Elements(liveElements);
             hydrateDocumentMode?.(liveElements, pdfCanvas || {});
             handlePdfId(id);

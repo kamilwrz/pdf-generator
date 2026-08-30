@@ -8,8 +8,10 @@ steel-blue heading badges with white glyphs, a filled title pill, and
 drafting-style corner brackets around the photo. There are no circles or
 ellipses — the rectilinear vocabulary is the point of difference.
 
-Contact is masthead-only (wrapping accent icon+label rows under the name/role
-pill), never a duplicated KONTAKT block in the rail.
+The generator authors contact only in the masthead as wrapping accent
+icon+label rows under the name/role pill. When the user hides the photo, the
+client moves that same managed band into the rail and adds temporary
+``DANE KONTAKTOWE`` chrome; it never duplicates the contact data.
 """
 from __future__ import annotations
 
@@ -54,16 +56,17 @@ def _gen_slate(cv: dict) -> list[dict]:
 
     The left rail owns the rectangular photo placeholder and as many complete
     compact sections as fit. Overflow sections move to the main column instead
-    of being truncated. Contact lives only in the masthead as wrapping
-    icon+label rows. Main-column records use Builder page flow and remain
-    atomic through ``flowGroup`` tags.
+    of being truncated. The authored state keeps contact in the masthead as
+    wrapping icon+label rows; the client can reversibly relocate that same band
+    into the rail when the photo is hidden. Main-column records use Builder page
+    flow and remain atomic through ``flowGroup`` tags.
     """
     colors = {
         "paper": "#FFFFFF",
         "sidebar": "#F1F4F8",
         "ink": "#1C2530",
         "body": "#3A424C",
-        "muted": "#7A8794",
+        "muted": "#626F7C",
         "accent": "#3E5C76",
         "hairline": "#D3DAE2",
         "photo_bg": "#E7ECF2",
@@ -172,7 +175,9 @@ def _gen_slate(cv: dict) -> list[dict]:
             for element in (badge, glyph, heading, keyline)
         ]
 
-    # Photo chrome only — contact is exclusively in the masthead (see below).
+    # The authored rail contains photo chrome only. The client reuses the same
+    # contact band here, with temporary labelled chrome, only while the user
+    # keeps the photo hidden.
     sidebar_static: list[dict] = [*photo]
 
     # Slate follows the shared sidebar order (skills, languages, certifications,

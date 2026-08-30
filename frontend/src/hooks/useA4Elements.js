@@ -2424,14 +2424,16 @@ export function useA4Elements(titleRef) {
 
   /**
    * Hide/show the profile slot through one history-aware canvas mutation.
-   * Slate/Tessera change the contact descriptor first, while Linden switches
-   * between its authored visible/hidden sidebar anchors. The existing contact
-   * layout engine then gives every active channel exact positions.
+   * Slate/Tessera change the contact descriptor first; Slate also creates its
+   * temporary, palette-aware sidebar heading with transaction-safe IDs. Linden
+   * switches between authored visible/hidden sidebar anchors. The existing
+   * contact layout engine then gives every active channel exact positions.
    */
   const setProfilePhotoVisible = useCallback((visible) => {
     setA4_Elements((prev) => {
-      const operation = visible ? applyProfilePhotoShow : applyProfilePhotoHide;
-      const result = operation(prev, activeTemplateIdRef.current);
+      const result = visible
+        ? applyProfilePhotoShow(prev, activeTemplateIdRef.current)
+        : applyProfilePhotoHide(prev, activeTemplateIdRef.current, () => nanoid());
       let next = result.elements;
       if (result.contactBandId) {
         next = applyChannelRelayout(

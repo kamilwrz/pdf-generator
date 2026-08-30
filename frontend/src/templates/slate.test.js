@@ -51,7 +51,8 @@ test("Slate uses a rectilinear blueprint sidebar and no circles or ellipses", ()
     assert.ok(icons.some((element) => element.src.includes("/iconic/slate-accent/")));
     assert.ok(icons.some((element) => element.src.endsWith("/portrait.png")));
 
-    // Contact is masthead-only — never a duplicated KONTAKT block in the rail.
+    // The authored state is masthead-only. The photo visibility transaction
+    // later moves this same managed band into the rail without duplicating it.
     assert.equal(
         slateTemplate.some(
             (element) => element.category === "text" && element.content === "KONTAKT",
