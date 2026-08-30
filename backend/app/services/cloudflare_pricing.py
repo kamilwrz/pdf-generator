@@ -7,7 +7,7 @@ account remains inside Cloudflare's daily Free allocation.
 
 Rates checked 2026-08 against the official Workers AI pricing table:
 - Llama 3.1 8B fast: $0.045 input / $0.384 output per one million tokens.
-- Gemma 4 26B: $0.10 input / $0.30 output per one million tokens (legacy override).
+- Gemma 4 26B: $0.10 input / $0.30 output per one million tokens.
 - Qwen 3.8 27B: $0.45 input / $3.20 output per one million tokens.
 """
 from __future__ import annotations
@@ -84,11 +84,15 @@ def usage_from_cloudflare_response(
         "meter": "monthly_cv_imports",
         "usd_to_pln": _USD_TO_PLN,
         "rates_usd_per_1m": {"input": input_rate, "output": output_rate},
+        # A model-capacity fallback has no response/usage object. Keeping that
+        # zero-token attempt in telemetry explains the fallback without
+        # pretending Cloudflare reported billable tokens for the rejected call.
+        "provider_response_received": response is not None,
     }
 
 
 def usage_from_cloudflare_attempts(
-    attempts: list[tuple[str, Any]],
+    attempts: list[tuple[str, Any | None]],
     *,
     extraction_mode: str,
 ) -> dict[str, Any]:
@@ -98,7 +102,9 @@ def usage_from_cloudflare_attempts(
     visible content. Summing all attempts keeps diagnostics and cost estimates
     honest while retaining the final model in the existing top-level fields.
 
-    @param attempts - Ordered ``(model, response)`` pairs sent for one import.
+    @param attempts - Ordered ``(model, response)`` pairs sent for one import;
+        ``response`` is ``None`` when Cloudflare rejected a model for capacity
+        before returning token usage.
     @param extraction_mode - ``text`` or ``vision`` routing decision.
     @returns Safe aggregate usage with per-attempt, content-free diagnostics.
     """
@@ -131,6 +137,7 @@ def usage_from_cloudflare_attempts(
                 "completion_tokens": row["completion_tokens"],
                 "total_tokens": row["total_tokens"],
                 "cost_usd": row["cost_usd"],
+                "provider_response_received": row["provider_response_received"],
             }
             for row in rows
         ],

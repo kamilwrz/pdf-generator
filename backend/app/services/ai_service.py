@@ -16,6 +16,7 @@ from openai import APIError, OpenAI
 from app.core.config import (
     CLOUDFLARE_ACCOUNT_ID,
     CLOUDFLARE_API_TOKEN,
+    CLOUDFLARE_TEXT_ENABLE_THINKING,
     CLOUDFLARE_TEXT_FALLBACK_MODEL,
     CLOUDFLARE_TEXT_MODEL,
     CLOUDFLARE_TEXT_REASONING_EFFORT,
@@ -48,8 +49,9 @@ logger = logging.getLogger("cv_extraction")
 _CLOUDFLARE_JSON_MODE_MODELS = frozenset({
     "@cf/meta/llama-3.1-8b-instruct-fast",
 })
+_CLOUDFLARE_GEMMA_MODEL = "@cf/google/gemma-4-26b-a4b-it"
 _CLOUDFLARE_REASONING_MODELS = frozenset({
-    "@cf/google/gemma-4-26b-a4b-it",
+    _CLOUDFLARE_GEMMA_MODEL,
     "@cf/qwen/qwen3.8-27b",
 })
 
@@ -68,12 +70,17 @@ class CvExtractionError(RuntimeError):
         *,
         status_code: int = 502,
         retryable: bool = False,
+        provider_code: int | None = None,
     ) -> None:
         super().__init__(user_message)
         self.code = code
         self.user_message = user_message
         self.status_code = status_code
         self.retryable = retryable
+        # Cloudflare's numeric code is safe operational metadata. It is kept
+        # server-side so the attempt loop can distinguish account exhaustion
+        # from model-specific capacity without exposing raw provider bodies.
+        self.provider_code = provider_code
 
 
 def _completion_request_options(
@@ -84,8 +91,11 @@ def _completion_request_options(
     """Return only completion parameters supported by the selected model.
 
     Cloudflare's reasoning models count hidden reasoning inside
-    ``max_completion_tokens``. Its JSON-mode Llama uses the older
-    ``max_tokens`` parameter and must not receive ``reasoning_effort``.
+    ``max_completion_tokens``. Native-text Gemma disables thinking by default
+    through Cloudflare's documented chat-template flag, so the large budget is
+    available to the final JSON instead of a long hidden chain. Its JSON-mode
+    Llama uses the older ``max_tokens`` parameter and must not receive
+    ``reasoning_effort``.
 
     @param provider - Configured provider slug (``cloudflare`` or ``openai``).
     @param model - Exact provider model identifier.
@@ -104,14 +114,26 @@ def _completion_request_options(
                 "response_format": {"type": "json_object"},
             }
         if model in _CLOUDFLARE_REASONING_MODELS:
-            return {
+            options = {
                 "max_completion_tokens": completion_budget,
-                "reasoning_effort": (
+            }
+            if (
+                model == _CLOUDFLARE_GEMMA_MODEL
+                and extraction_mode == "text"
+                and not CLOUDFLARE_TEXT_ENABLE_THINKING
+            ):
+                # ``chat_template_kwargs`` is Cloudflare-specific, so the
+                # OpenAI SDK must forward it through ``extra_body``.
+                options["extra_body"] = {
+                    "chat_template_kwargs": {"enable_thinking": False},
+                }
+            else:
+                options["reasoning_effort"] = (
                     CLOUDFLARE_TEXT_REASONING_EFFORT
                     if extraction_mode == "text"
                     else "low"
-                ),
-            }
+                )
+            return options
         # Custom Cloudflare overrides get the broadly supported parameter only;
         # JSON/reasoning features must be added above after capability review.
         return {"max_tokens": completion_budget}
@@ -121,18 +143,71 @@ def _completion_request_options(
     }
 
 
+def _cloudflare_internal_error_code(exc: APIError) -> int | None:
+    """Extract a known numeric Workers AI code from a nested SDK error body.
+
+    Cloudflare's OpenAI-compatible endpoint can wrap ``errors`` at different
+    depths. Only the documented account-limit and capacity codes are relevant;
+    arbitrary provider text is deliberately ignored and never logged.
+    """
+    pending = [getattr(exc, "body", None)]
+    while pending:
+        value = pending.pop()
+        if isinstance(value, Mapping):
+            raw_code = value.get("code")
+            try:
+                code = int(raw_code)
+            except (TypeError, ValueError):
+                code = None
+            if code in {3036, 3040}:
+                return code
+            pending.extend(value.values())
+        elif isinstance(value, (list, tuple)):
+            pending.extend(value)
+    return None
+
+
 def _request_completion(client: OpenAI, create_kwargs: dict):
-    """Call the provider and map SDK failures to safe extraction errors."""
+    """Call the provider and map SDK failures to safe extraction errors.
+
+    The caller owns retries. Cloudflare code 3036 means the account-wide daily
+    neuron allocation is exhausted; 3040 means only the requested model lacks
+    capacity and may be eligible for the configured same-provider fallback.
+    """
     try:
         return client.chat.completions.create(**create_kwargs)
     except APIError as exc:
         provider_status = getattr(exc, "status_code", None)
         if provider_status == 429:
+            provider_code = _cloudflare_internal_error_code(exc)
+            logger.warning(
+                "CV extraction provider rate limit: model=%s status=%s provider_code=%s",
+                create_kwargs.get("model"),
+                provider_status,
+                provider_code,
+            )
+            if provider_code == 3036:
+                raise CvExtractionError(
+                    "extract_provider_daily_limit",
+                    "Wykorzystano dzienny limit importu AI. Limit odnawia się o 00:00 UTC.",
+                    status_code=429,
+                    retryable=False,
+                    provider_code=provider_code,
+                ) from exc
+            if provider_code == 3040:
+                raise CvExtractionError(
+                    "extract_provider_capacity",
+                    "Wybrany model AI jest chwilowo przeciążony. Spróbuj ponownie za moment.",
+                    status_code=429,
+                    retryable=True,
+                    provider_code=provider_code,
+                ) from exc
             raise CvExtractionError(
                 "extract_provider_rate_limited",
                 "Usługa importu jest chwilowo przeciążona. Spróbuj ponownie za moment.",
                 status_code=429,
                 retryable=True,
+                provider_code=provider_code,
             ) from exc
         raise CvExtractionError(
             "extract_provider_unavailable",
@@ -237,7 +312,18 @@ def _provider_settings(extraction_mode: str) -> tuple[OpenAI, str, str]:
             "https://api.cloudflare.com/client/v4/accounts/"
             f"{CLOUDFLARE_ACCOUNT_ID}/ai/v1"
         )
-        return OpenAI(api_key=CLOUDFLARE_API_TOKEN, base_url=base_url), model, provider
+        # The extraction attempt loop owns recovery. Disabling the SDK's two
+        # implicit retries prevents one capacity error from waiting through the
+        # same slow model three times before the Llama fallback can run.
+        return (
+            OpenAI(
+                api_key=CLOUDFLARE_API_TOKEN,
+                base_url=base_url,
+                max_retries=0,
+            ),
+            model,
+            provider,
+        )
     if provider == "openai":
         if not OPENAI_API_KEY:
             raise CvExtractionError(
@@ -245,7 +331,11 @@ def _provider_settings(extraction_mode: str) -> tuple[OpenAI, str, str]:
                 "Import CV nie jest jeszcze skonfigurowany. Spróbuj ponownie później.",
                 status_code=503,
             )
-        return OpenAI(api_key=OPENAI_API_KEY), CV_EXTRACT_OPENAI_MODEL, provider
+        return (
+            OpenAI(api_key=OPENAI_API_KEY, max_retries=0),
+            CV_EXTRACT_OPENAI_MODEL,
+            provider,
+        )
     raise CvExtractionError(
         "extract_provider_invalid",
         "Import CV ma nieprawidłową konfigurację dostawcy.",
@@ -472,11 +562,12 @@ def extract_cv_data(pdf_bytes: bytes) -> tuple[dict, dict]:
     ):
         model_attempts.append(fallback_model)
 
-    cloudflare_attempts: list[tuple[str, object]] = []
+    cloudflare_attempts: list[tuple[str, object | None]] = []
     response: object | None = None
     cv_data: dict | None = None
     source_grounded_fields: list[str] = []
     for attempt_index, attempt_model in enumerate(model_attempts):
+        has_fallback = attempt_index + 1 < len(model_attempts)
         create_kwargs = {
             "model": attempt_model,
             "messages": messages,
@@ -485,7 +576,27 @@ def extract_cv_data(pdf_bytes: bytes) -> tuple[dict, dict]:
         create_kwargs.update(
             _completion_request_options(provider, attempt_model, extraction_mode)
         )
-        response = _request_completion(client, create_kwargs)
+        try:
+            response = _request_completion(client, create_kwargs)
+        except CvExtractionError as exc:
+            if (
+                provider == "cloudflare"
+                and extraction_mode == "text"
+                and has_fallback
+                and exc.provider_code == 3040
+            ):
+                # Code 3040 is model capacity, not account exhaustion. Record
+                # the failed attempt with zero reported tokens and move to the
+                # cheaper JSON fallback without asking the user to re-upload.
+                cloudflare_attempts.append((attempt_model, None))
+                logger.warning(
+                    "Retrying CV extraction with configured text fallback: "
+                    "primary_model=%s fallback_model=%s reason=provider_capacity",
+                    attempt_model,
+                    model_attempts[attempt_index + 1],
+                )
+                continue
+            raise
         if provider == "cloudflare":
             cloudflare_attempts.append((attempt_model, response))
         raw_content = _visible_response_text(
@@ -494,7 +605,6 @@ def extract_cv_data(pdf_bytes: bytes) -> tuple[dict, dict]:
             model=attempt_model,
             extraction_mode=extraction_mode,
         )
-        has_fallback = attempt_index + 1 < len(model_attempts)
         if not raw_content.strip():
             if has_fallback:
                 logger.warning(

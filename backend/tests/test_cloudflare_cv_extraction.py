@@ -7,6 +7,8 @@ from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 import fitz
+import httpx
+from openai import RateLimitError
 
 from app.services import ai_service
 from app.services.cv_generator import generate_resume
@@ -118,6 +120,22 @@ def _response(payload: dict | str):
     )
 
 
+def _cloudflare_rate_limit(code: int) -> RateLimitError:
+    """Build the SDK error shape returned by Workers AI for HTTP 429."""
+    response = httpx.Response(
+        429,
+        request=httpx.Request(
+            "POST",
+            "https://api.cloudflare.test/ai/v1/chat/completions",
+        ),
+    )
+    return RateLimitError(
+        "Workers AI rejected the request",
+        response=response,
+        body={"errors": [{"code": code, "message": "provider detail"}]},
+    )
+
+
 class CloudflareCvExtractionTests(unittest.TestCase):
     def _client(self, payload: dict | str) -> MagicMock:
         client = MagicMock()
@@ -149,15 +167,31 @@ class CloudflareCvExtractionTests(unittest.TestCase):
             ai_service.CV_EXTRACT_TEXT_MAX_COMPLETION_TOKENS,
         )
         self.assertEqual(
-            request["reasoning_effort"],
-            ai_service.CLOUDFLARE_TEXT_REASONING_EFFORT,
+            request["extra_body"],
+            {"chat_template_kwargs": {"enable_thinking": False}},
         )
+        self.assertNotIn("reasoning_effort", request)
         self.assertNotIn("max_tokens", request)
         self.assertNotIn("response_format", request)
         self.assertEqual(cv_data["name"], "Jan Kowalski")
         self.assertEqual(usage["provider"], "cloudflare")
         self.assertEqual(usage["extraction_mode"], "text")
         self.assertEqual(usage["credits_charged"], 0)
+
+    def test_gemma_thinking_can_be_opted_in_for_quality_experiments(self):
+        """The opt-in restores reasoning effort and removes the disable flag."""
+        with patch.object(ai_service, "CLOUDFLARE_TEXT_ENABLE_THINKING", True):
+            options = ai_service._completion_request_options(
+                "cloudflare",
+                "@cf/google/gemma-4-26b-a4b-it",
+                "text",
+            )
+
+        self.assertEqual(
+            options["reasoning_effort"],
+            ai_service.CLOUDFLARE_TEXT_REASONING_EFFORT,
+        )
+        self.assertNotIn("extra_body", options)
 
     def test_page_without_text_uses_vision_model_and_png_data_url(self):
         client = self._client({"name": "Anna Nowak"})
@@ -346,7 +380,11 @@ class CloudflareCvExtractionTests(unittest.TestCase):
         primary_request = client.chat.completions.create.call_args_list[0].kwargs
         fallback_request = client.chat.completions.create.call_args_list[1].kwargs
         self.assertEqual(primary_request["model"], primary_model)
-        self.assertEqual(primary_request["reasoning_effort"], "low")
+        self.assertEqual(
+            primary_request["extra_body"],
+            {"chat_template_kwargs": {"enable_thinking": False}},
+        )
+        self.assertNotIn("reasoning_effort", primary_request)
         self.assertEqual(
             primary_request["max_completion_tokens"],
             ai_service.CV_EXTRACT_TEXT_MAX_COMPLETION_TOKENS,
@@ -374,6 +412,55 @@ class CloudflareCvExtractionTests(unittest.TestCase):
         self.assertEqual(usage["total_tokens"], 11_500)
         self.assertTrue(any("fallback_model=" in line for line in logs.output))
         self.assertFalse(any("internal" in line for line in logs.output))
+
+    def test_model_capacity_falls_back_to_llama_without_another_upload(self):
+        """Cloudflare 3040 is model-specific and should not abort the import."""
+        client = MagicMock()
+        client.chat.completions.create.side_effect = [
+            _cloudflare_rate_limit(3040),
+            _response({"name": "Jan Kowalski", "skills": ["Python"]}),
+        ]
+
+        with patch.object(
+            ai_service,
+            "_provider_settings",
+            return_value=(client, ai_service.CLOUDFLARE_TEXT_MODEL, "cloudflare"),
+        ):
+            with self.assertLogs("cv_extraction", level="WARNING") as logs:
+                cv_data, usage = ai_service.extract_cv_data(
+                    _pdf_bytes("Jan Kowalski Python Developer " * 20)
+                )
+
+        self.assertEqual(cv_data["name"], "Jan Kowalski")
+        self.assertEqual(client.chat.completions.create.call_count, 2)
+        self.assertEqual(
+            client.chat.completions.create.call_args_list[1].kwargs["model"],
+            ai_service.CLOUDFLARE_TEXT_FALLBACK_MODEL,
+        )
+        self.assertTrue(usage["fallback_used"])
+        self.assertFalse(usage["model_attempts"][0]["provider_response_received"])
+        self.assertTrue(usage["model_attempts"][1]["provider_response_received"])
+        self.assertTrue(any("reason=provider_capacity" in line for line in logs.output))
+
+    def test_daily_neuron_limit_is_not_retried(self):
+        """Cloudflare 3036 applies to the whole account, including fallback models."""
+        client = MagicMock()
+        client.chat.completions.create.side_effect = _cloudflare_rate_limit(3036)
+
+        with patch.object(
+            ai_service,
+            "_provider_settings",
+            return_value=(client, ai_service.CLOUDFLARE_TEXT_MODEL, "cloudflare"),
+        ):
+            with self.assertRaises(ai_service.CvExtractionError) as context:
+                ai_service.extract_cv_data(
+                    _pdf_bytes("Jan Kowalski Python Developer " * 20)
+                )
+
+        self.assertEqual(context.exception.code, "extract_provider_daily_limit")
+        self.assertEqual(context.exception.provider_code, 3036)
+        self.assertFalse(context.exception.retryable)
+        self.assertEqual(client.chat.completions.create.call_count, 1)
 
     def test_two_column_source_grounds_summary_specialisations_and_references(self):
         """Source geometry must correct plausible but unsupported model JSON."""
@@ -504,6 +591,28 @@ class CloudflareCvExtractionTests(unittest.TestCase):
 
         self.assertEqual(context.exception.code, "cloudflare_not_configured")
         self.assertEqual(context.exception.status_code, 503)
+
+    def test_cloudflare_client_disables_hidden_sdk_retries(self):
+        """Capacity recovery belongs to the explicit model-attempt loop."""
+        with (
+            patch.object(ai_service, "CV_EXTRACT_PROVIDER", "cloudflare"),
+            patch.object(ai_service, "CLOUDFLARE_ACCOUNT_ID", "account-id"),
+            patch.object(ai_service, "CLOUDFLARE_API_TOKEN", "token"),
+            patch.object(ai_service, "OpenAI") as openai_client,
+        ):
+            client, model, provider = ai_service._provider_settings("text")
+
+        openai_client.assert_called_once_with(
+            api_key="token",
+            base_url=(
+                "https://api.cloudflare.com/client/v4/accounts/"
+                "account-id/ai/v1"
+            ),
+            max_retries=0,
+        )
+        self.assertIs(client, openai_client.return_value)
+        self.assertEqual(model, ai_service.CLOUDFLARE_TEXT_MODEL)
+        self.assertEqual(provider, "cloudflare")
 
 
 if __name__ == "__main__":

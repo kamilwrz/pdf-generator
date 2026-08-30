@@ -23,6 +23,23 @@ def _int_env(name: str, default: int) -> int:
         return default
     return value if value > 0 else default
 
+
+def _bool_env(name: str, default: bool) -> bool:
+    """Read a conventional boolean environment value without failing startup.
+
+    Empty or unrecognised values fall back to the documented default so a
+    deployment typo cannot silently enable an expensive AI execution mode.
+    """
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    normalized = raw.strip().lower()
+    if normalized in {"1", "true", "yes", "on"}:
+        return True
+    if normalized in {"0", "false", "no", "off"}:
+        return False
+    return default
+
 # Browser origins allowed to call the API with credentials.
 # Local Vite + production Render frontend are the safe defaults when unset.
 _raw = os.getenv(
@@ -82,6 +99,14 @@ CLOUDFLARE_TEXT_REASONING_EFFORT = (
 )
 if CLOUDFLARE_TEXT_REASONING_EFFORT not in {"low", "medium", "high"}:
     CLOUDFLARE_TEXT_REASONING_EFFORT = "low"
+# CV extraction is schema conversion rather than open-ended problem solving.
+# Cloudflare's Gemma guide explicitly supports disabling thinking; doing so
+# avoids generating thousands of hidden tokens before the final JSON. Operators
+# can opt back in for controlled quality experiments without changing code.
+CLOUDFLARE_TEXT_ENABLE_THINKING = _bool_env(
+    "CLOUDFLARE_TEXT_ENABLE_THINKING",
+    False,
+)
 CLOUDFLARE_VISION_MODEL = (
     os.getenv("CLOUDFLARE_VISION_MODEL", "@cf/qwen/qwen3.8-27b").strip()
     or "@cf/qwen/qwen3.8-27b"
@@ -90,8 +115,9 @@ CV_EXTRACT_OPENAI_MODEL = os.getenv("CV_EXTRACT_OPENAI_MODEL", "gpt-4o").strip()
 CV_EXTRACT_MAX_PAGES = _int_env("CV_EXTRACT_MAX_PAGES", 12)
 CV_EXTRACT_MIN_TEXT_CHARS_PER_PAGE = _int_env("CV_EXTRACT_MIN_TEXT_CHARS_PER_PAGE", 80)
 # Preserve the old shared override for existing deployments. When it is absent,
-# native-text Gemma gets extra reasoning/final-JSON headroom while JSON-only
-# fallback and vision requests retain the previous 8k ceiling.
+# native-text Gemma gets enough final-JSON headroom for long CVs while JSON-only
+# fallback and vision requests retain the previous 8k ceiling. Thinking is a
+# separate opt-in and does not consume this large budget in the normal path.
 CV_EXTRACT_MAX_COMPLETION_TOKENS = _int_env("CV_EXTRACT_MAX_COMPLETION_TOKENS", 8000)
 _CV_EXTRACT_LEGACY_BUDGET_CONFIGURED = os.getenv("CV_EXTRACT_MAX_COMPLETION_TOKENS") is not None
 CV_EXTRACT_TEXT_MAX_COMPLETION_TOKENS = _int_env(
