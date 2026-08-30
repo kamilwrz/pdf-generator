@@ -332,8 +332,8 @@ DOC_BLURBS = {
     "vellum": (
         "Vellum template (`layouts: [\"single\", \"icons\"]`).\n"
         " *\n"
-        " * Asymmetric portrait-led editorial with a softly tinted summary field,\n"
-        " * tracked section labels, and Meridian/Cadenza's exact date rail."
+        " * White-paper, portrait-led editorial with an adaptive summary field, six\n"
+        " * semantic palettes, tracked labels, and Meridian/Cadenza's exact date rail."
     ),
 }
 

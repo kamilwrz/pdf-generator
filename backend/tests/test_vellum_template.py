@@ -30,6 +30,20 @@ def test_vellum_registers_as_a_single_column_icon_template():
 def test_vellum_uses_asymmetric_identity_summary_field_and_circular_photo():
     elements = generate_resume("vellum", _base_cv())
 
+    page_background = next(
+        element for element in elements
+        if element.get("fixedToPage")
+        and element.get("left") == 0
+        and element.get("top") == 0
+        and element.get("height") == 842
+    )
+    assert page_background["backgroundColor"] == "#FFFFFF"
+    assert page_background["appearanceTemplateId"] == "vellum"
+    assert page_background["appearanceSettings"] == {
+        "palette": "sage",
+        "textSize": "M",
+    }
+
     name = next(element for element in elements if element.get("mastheadRole") == "name")
     assert name["fontFamily"] == "CormorantGaramond"
     assert name["align"] == "left"
@@ -40,7 +54,10 @@ def test_vellum_uses_asymmetric_identity_summary_field_and_circular_photo():
     assert frame["category"] == "circle"
     assert frame["photoShape"] == "circle"
     assert frame["width"] == frame["height"] == 104.0
+    assert frame["backgroundColor"] == "#E5ECE8"
+    assert frame["appearanceColorRole"] == "photo"
     assert glyph["photoSlot"] == "glyph"
+    assert "/iconic/vellum-sage/portrait.png" in glyph["src"]
     photo_cluster = [element for element in elements if element.get("photoSlot")]
     assert len(photo_cluster) == 3
     assert all(element.get("fixedToPage") is True for element in photo_cluster)
@@ -49,13 +66,13 @@ def test_vellum_uses_asymmetric_identity_summary_field_and_circular_photo():
     summary_band = next(
         element for element in elements
         if element.get("flowRole") == "section-chrome"
-        and element.get("backgroundColor") == "#E7ECE8"
+        and element.get("backgroundColor") == "#EDF2EF"
         and element.get("width") == 595
     )
     summary_background = next(
         element for element in elements
         if element.get("flowRole") == "section-background"
-        and element.get("backgroundColor") == "#E7ECE8"
+        and element.get("backgroundColor") == "#EDF2EF"
         and element.get("width") == 595
     )
     summary = next(element for element in elements if element.get("content") == _SUMMARY)
@@ -63,6 +80,10 @@ def test_vellum_uses_asymmetric_identity_summary_field_and_circular_photo():
     assert summary_background["top"] == summary["top"]
     assert summary_background["flowGroup"] == summary["flowGroup"]
     assert summary_background["id"] == "vellum-summary-background"
+    assert summary_background["appearanceColorRole"] == "field"
+    assert summary["appearanceColorRole"] == "summaryText"
+    assert summary["color"] == "#3B4540"
+
 
 def test_vellum_places_skills_before_experience_and_anchors_periods_exactly():
     elements = generate_resume(

@@ -1,8 +1,8 @@
 /**
  * Vellum template (`layouts: ["single", "icons"]`).
  *
- * Asymmetric portrait-led editorial with a softly tinted summary field,
- * tracked section labels, and Meridian/Cadenza's exact date rail.
+ * White-paper, portrait-led editorial with an adaptive summary field, six
+ * semantic palettes, tracked labels, and Meridian/Cadenza's exact date rail.
  *
  * This static starter is the backend generator's own output
  * (`backend/app/services/cv_templates/templates/vellum.py`) for
@@ -22,10 +22,15 @@ const VELLUM_ELEMENTS = [
     "top": 0,
     "width": 595,
     "height": 842,
-    "backgroundColor": "#FFFEFA",
+    "backgroundColor": "#FFFFFF",
     "zIndex": 0,
     "page": 1,
-    "fixedToPage": true
+    "fixedToPage": true,
+    "appearanceTemplateId": "vellum",
+    "appearanceSettings": {
+      "palette": "sage",
+      "textSize": "M"
+    }
   },
   {
     "category": "line",
@@ -33,7 +38,7 @@ const VELLUM_ELEMENTS = [
     "top": 796,
     "width": 479.0,
     "height": 0.7,
-    "backgroundColor": "#C8D1CC",
+    "backgroundColor": "#D4DCD7",
     "zIndex": 1,
     "page": 1,
     "fixedToPage": true
@@ -43,7 +48,7 @@ const VELLUM_ELEMENTS = [
     "content": "01",
     "fontSize": 7.2,
     "fontFamily": "Montserrat",
-    "color": "#A16049",
+    "color": "#8A5E47",
     "left": 517.0,
     "top": 806,
     "zIndex": 2,
@@ -62,7 +67,7 @@ const VELLUM_ELEMENTS = [
     "fontSize": 28.5,
     "lineHeight": 32.0,
     "letterSpacing": 3.3,
-    "color": "#20352F",
+    "color": "#202623",
     "fontFamily": "CormorantGaramond",
     "zIndex": 3,
     "page": 1,
@@ -87,7 +92,7 @@ const VELLUM_ELEMENTS = [
     "fontSize": 8.0,
     "lineHeight": 11.0,
     "letterSpacing": 2.2,
-    "color": "#A16049",
+    "color": "#8A5E47",
     "fontFamily": "Montserrat",
     "zIndex": 3,
     "page": 1,
@@ -97,6 +102,7 @@ const VELLUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
+    "appearanceTypographyRole": "job",
     "flowRole": "masthead",
     "mastheadRole": "title",
     "mastheadBandId": "masthead-main",
@@ -104,7 +110,7 @@ const VELLUM_ELEMENTS = [
   },
   {
     "category": "image",
-    "src": "/template-assets/iconic/cadenza/phone.png",
+    "src": "/template-assets/iconic/vellum-sage/phone.png",
     "left": 95.95585,
     "top": 102.0,
     "width": 8.6,
@@ -121,7 +127,7 @@ const VELLUM_ELEMENTS = [
     "content": "+48 512 340 780",
     "fontSize": 6.9,
     "fontFamily": "Montserrat",
-    "color": "#6F7873",
+    "color": "#66706B",
     "left": 105.95585,
     "top": 102.0,
     "zIndex": 3,
@@ -134,7 +140,7 @@ const VELLUM_ELEMENTS = [
   },
   {
     "category": "image",
-    "src": "/template-assets/iconic/cadenza/email.png",
+    "src": "/template-assets/iconic/vellum-sage/email.png",
     "left": 172.67975,
     "top": 102.0,
     "width": 8.6,
@@ -151,7 +157,7 @@ const VELLUM_ELEMENTS = [
     "content": "julia.bernat@email.com",
     "fontSize": 6.9,
     "fontFamily": "Montserrat",
-    "color": "#6F7873",
+    "color": "#66706B",
     "left": 182.67975,
     "top": 102.0,
     "zIndex": 3,
@@ -164,7 +170,7 @@ const VELLUM_ELEMENTS = [
   },
   {
     "category": "image",
-    "src": "/template-assets/iconic/cadenza/linkedin.png",
+    "src": "/template-assets/iconic/vellum-sage/linkedin.png",
     "left": 276.99675,
     "top": 102.0,
     "width": 8.6,
@@ -181,7 +187,7 @@ const VELLUM_ELEMENTS = [
     "content": "linkedin.com/in/jbernat",
     "fontSize": 6.9,
     "fontFamily": "Montserrat",
-    "color": "#6F7873",
+    "color": "#66706B",
     "left": 286.99675,
     "top": 102.0,
     "zIndex": 3,
@@ -194,7 +200,7 @@ const VELLUM_ELEMENTS = [
   },
   {
     "category": "image",
-    "src": "/template-assets/iconic/cadenza/github.png",
+    "src": "/template-assets/iconic/vellum-sage/github.png",
     "left": 130.61455,
     "top": 114.5,
     "width": 8.6,
@@ -211,7 +217,7 @@ const VELLUM_ELEMENTS = [
     "content": "github.com/jbernat",
     "fontSize": 6.9,
     "fontFamily": "Montserrat",
-    "color": "#6F7873",
+    "color": "#66706B",
     "left": 140.61455,
     "top": 114.5,
     "zIndex": 3,
@@ -224,7 +230,7 @@ const VELLUM_ELEMENTS = [
   },
   {
     "category": "image",
-    "src": "/template-assets/iconic/cadenza/website.png",
+    "src": "/template-assets/iconic/vellum-sage/website.png",
     "left": 220.32425,
     "top": 114.5,
     "width": 8.6,
@@ -241,7 +247,7 @@ const VELLUM_ELEMENTS = [
     "content": "juliabernat.pl",
     "fontSize": 6.9,
     "fontFamily": "Montserrat",
-    "color": "#6F7873",
+    "color": "#66706B",
     "left": 230.32425,
     "top": 114.5,
     "zIndex": 3,
@@ -254,7 +260,7 @@ const VELLUM_ELEMENTS = [
   },
   {
     "category": "image",
-    "src": "/template-assets/iconic/cadenza/location.png",
+    "src": "/template-assets/iconic/vellum-sage/location.png",
     "left": 287.78145,
     "top": 114.5,
     "width": 8.6,
@@ -271,7 +277,7 @@ const VELLUM_ELEMENTS = [
     "content": "Warszawa",
     "fontSize": 6.9,
     "fontFamily": "Montserrat",
-    "color": "#6F7873",
+    "color": "#66706B",
     "left": 297.78145,
     "top": 114.5,
     "zIndex": 3,
@@ -288,7 +294,7 @@ const VELLUM_ELEMENTS = [
     "top": 138.5,
     "width": 348.0,
     "height": 0.8,
-    "backgroundColor": "#C8D1CC",
+    "backgroundColor": "#D4DCD7",
     "zIndex": 2,
     "page": 1,
     "flowRole": "masthead"
@@ -299,12 +305,13 @@ const VELLUM_ELEMENTS = [
     "top": 32.0,
     "width": 112.0,
     "height": 112.0,
-    "backgroundColor": "#A16049",
+    "backgroundColor": "#B47B5B",
     "filled": true,
     "borderWidth": 1,
     "zIndex": 2,
     "page": 1,
     "photoSlot": "ornament",
+    "appearanceColorRole": "ornament",
     "fixedToPage": true,
     "repeatOnContinuation": false,
     "flowRole": "masthead"
@@ -315,7 +322,7 @@ const VELLUM_ELEMENTS = [
     "top": 36.0,
     "width": 104.0,
     "height": 104.0,
-    "backgroundColor": "#E7ECE8",
+    "backgroundColor": "#E5ECE8",
     "filled": true,
     "borderWidth": 1,
     "zIndex": 3,
@@ -323,13 +330,14 @@ const VELLUM_ELEMENTS = [
     "id": "vellum-photo-frame",
     "photoSlot": "frame",
     "photoShape": "circle",
+    "appearanceColorRole": "photo",
     "fixedToPage": true,
     "repeatOnContinuation": false,
     "flowRole": "masthead"
   },
   {
     "category": "image",
-    "src": "/template-assets/iconic/monument/portrait.png",
+    "src": "/template-assets/iconic/vellum-sage/portrait.png",
     "left": 465.0,
     "top": 68.0,
     "width": 40.0,
@@ -368,11 +376,11 @@ const VELLUM_ELEMENTS = [
       "text": {
         "fontFamily": "Montserrat",
         "fontSizePt": 6.9,
-        "colorHex": "#6F7873"
+        "colorHex": "#66706B"
       },
       "icon": {
         "sizePt": 8.6,
-        "theme": "cadenza"
+        "theme": "vellum-sage"
       },
       "metrics": {
         "iconGap": 10.0,
@@ -420,7 +428,7 @@ const VELLUM_ELEMENTS = [
           "fontSizePt": 8.0,
           "lineHeight": 11.0,
           "fontFamily": "Montserrat",
-          "colorHex": "#A16049",
+          "colorHex": "#8A5E47",
           "letterSpacing": 2.2,
           "align": "left",
           "autoHeight": true,
@@ -445,9 +453,10 @@ const VELLUM_ELEMENTS = [
     "top": 150.5,
     "width": 595,
     "height": 20.0,
-    "backgroundColor": "#E7ECE8",
+    "backgroundColor": "#EDF2EF",
     "zIndex": 1,
     "page": 1,
+    "appearanceColorRole": "field",
     "flowRole": "section-chrome"
   },
   {
@@ -455,7 +464,7 @@ const VELLUM_ELEMENTS = [
     "content": "PODSUMOWANIE ZAWODOWE",
     "fontSize": 7.4,
     "fontFamily": "Montserrat",
-    "color": "#20352F",
+    "color": "#263B33",
     "left": 58.0,
     "top": 156.7,
     "zIndex": 3,
@@ -463,6 +472,7 @@ const VELLUM_ELEMENTS = [
     "bold": true,
     "italic": false,
     "letterSpacing": 2.1,
+    "appearanceColorRole": "headingOnField",
     "flowRole": "section-chrome"
   },
   {
@@ -471,12 +481,13 @@ const VELLUM_ELEMENTS = [
     "top": 170.5,
     "width": 595,
     "height": 31.0,
-    "backgroundColor": "#E7ECE8",
+    "backgroundColor": "#EDF2EF",
     "zIndex": 1,
     "page": 1,
     "id": "vellum-summary-background",
     "flowRole": "section-background",
-    "flowGroup": "record-1525b1fe9203"
+    "appearanceColorRole": "field",
+    "flowGroup": "record-14df767e5ad4"
   },
   {
     "category": "textarea",
@@ -488,7 +499,7 @@ const VELLUM_ELEMENTS = [
     "fontSize": 8.35,
     "lineHeight": 11.2,
     "letterSpacing": 0,
-    "color": "#3E4944",
+    "color": "#3B4540",
     "fontFamily": "Lora",
     "zIndex": 2,
     "page": 1,
@@ -498,7 +509,8 @@ const VELLUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-1525b1fe9203",
+    "appearanceColorRole": "summaryText",
+    "flowGroup": "record-14df767e5ad4",
     "flowRole": "content"
   },
   {
@@ -506,7 +518,7 @@ const VELLUM_ELEMENTS = [
     "content": "UMIEJĘTNOŚCI",
     "fontSize": 7.4,
     "fontFamily": "Montserrat",
-    "color": "#20352F",
+    "color": "#263B33",
     "left": 58.0,
     "top": 214.5,
     "zIndex": 3,
@@ -514,6 +526,7 @@ const VELLUM_ELEMENTS = [
     "bold": true,
     "italic": false,
     "letterSpacing": 2.1,
+    "appearanceColorRole": "headingOnPaper",
     "flowRole": "section-chrome"
   },
   {
@@ -522,9 +535,10 @@ const VELLUM_ELEMENTS = [
     "top": 227.5,
     "width": 24.0,
     "height": 1.2,
-    "backgroundColor": "#A16049",
+    "backgroundColor": "#B47B5B",
     "zIndex": 3,
     "page": 1,
+    "appearanceColorRole": "ornament",
     "flowRole": "section-chrome"
   },
   {
@@ -533,7 +547,7 @@ const VELLUM_ELEMENTS = [
     "top": 227.7,
     "width": 445.0,
     "height": 0.8,
-    "backgroundColor": "#C8D1CC",
+    "backgroundColor": "#D4DCD7",
     "zIndex": 2,
     "page": 1,
     "flowRole": "section-chrome"
@@ -548,7 +562,7 @@ const VELLUM_ELEMENTS = [
     "fontSize": 8.35,
     "lineHeight": 11.2,
     "letterSpacing": 0,
-    "color": "#3E4944",
+    "color": "#3B4540",
     "fontFamily": "Lora",
     "zIndex": 2,
     "page": 1,
@@ -558,7 +572,7 @@ const VELLUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-807e24f95b82",
+    "flowGroup": "record-30a1fe56b6d6",
     "flowRole": "content"
   },
   {
@@ -566,7 +580,7 @@ const VELLUM_ELEMENTS = [
     "content": "DOŚWIADCZENIE ZAWODOWE",
     "fontSize": 7.4,
     "fontFamily": "Montserrat",
-    "color": "#20352F",
+    "color": "#263B33",
     "left": 58.0,
     "top": 269.7,
     "zIndex": 3,
@@ -574,6 +588,7 @@ const VELLUM_ELEMENTS = [
     "bold": true,
     "italic": false,
     "letterSpacing": 2.1,
+    "appearanceColorRole": "headingOnPaper",
     "flowRole": "section-chrome"
   },
   {
@@ -582,9 +597,10 @@ const VELLUM_ELEMENTS = [
     "top": 282.7,
     "width": 24.0,
     "height": 1.2,
-    "backgroundColor": "#A16049",
+    "backgroundColor": "#B47B5B",
     "zIndex": 3,
     "page": 1,
+    "appearanceColorRole": "ornament",
     "flowRole": "section-chrome"
   },
   {
@@ -593,7 +609,7 @@ const VELLUM_ELEMENTS = [
     "top": 282.9,
     "width": 445.0,
     "height": 0.8,
-    "backgroundColor": "#C8D1CC",
+    "backgroundColor": "#D4DCD7",
     "zIndex": 2,
     "page": 1,
     "flowRole": "section-chrome"
@@ -608,7 +624,7 @@ const VELLUM_ELEMENTS = [
     "fontSize": 9.7,
     "lineHeight": 12.4,
     "letterSpacing": 0,
-    "color": "#20352F",
+    "color": "#202623",
     "fontFamily": "Lora",
     "zIndex": 2,
     "page": 1,
@@ -618,7 +634,7 @@ const VELLUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-361417c65bcb",
+    "flowGroup": "record-ef9cb12259da",
     "flowRole": "content"
   },
   {
@@ -631,7 +647,7 @@ const VELLUM_ELEMENTS = [
     "fontSize": 7.5,
     "lineHeight": 10.2,
     "letterSpacing": 0,
-    "color": "#6F7873",
+    "color": "#66706B",
     "fontFamily": "Lora",
     "zIndex": 2,
     "page": 1,
@@ -641,7 +657,7 @@ const VELLUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-361417c65bcb",
+    "flowGroup": "record-ef9cb12259da",
     "flowRole": "content"
   },
   {
@@ -654,7 +670,7 @@ const VELLUM_ELEMENTS = [
     "fontSize": 8.35,
     "lineHeight": 11.2,
     "letterSpacing": 0,
-    "color": "#3E4944",
+    "color": "#3B4540",
     "fontFamily": "Lora",
     "zIndex": 2,
     "page": 1,
@@ -664,7 +680,7 @@ const VELLUM_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-361417c65bcb",
+    "flowGroup": "record-ef9cb12259da",
     "flowRole": "content"
   },
   {
@@ -677,7 +693,7 @@ const VELLUM_ELEMENTS = [
     "fontSize": 7.5,
     "lineHeight": 10.2,
     "letterSpacing": 0,
-    "color": "#6F7873",
+    "color": "#66706B",
     "fontFamily": "Lora",
     "zIndex": 3,
     "page": 1,
@@ -688,7 +704,7 @@ const VELLUM_ELEMENTS = [
     "autoHeight": false,
     "preserveInitialLayout": true,
     "flowRole": "record-overlay",
-    "flowGroup": "record-361417c65bcb"
+    "flowGroup": "record-ef9cb12259da"
   },
   {
     "category": "textarea",
@@ -700,7 +716,7 @@ const VELLUM_ELEMENTS = [
     "fontSize": 7.5,
     "lineHeight": 10.2,
     "letterSpacing": 0,
-    "color": "#6F7873",
+    "color": "#66706B",
     "fontFamily": "Lora",
     "zIndex": 3,
     "page": 1,
@@ -711,7 +727,7 @@ const VELLUM_ELEMENTS = [
     "autoHeight": false,
     "preserveInitialLayout": true,
     "flowRole": "record-overlay",
-    "flowGroup": "record-361417c65bcb"
+    "flowGroup": "record-ef9cb12259da"
   },
   {
     "category": "textarea",
@@ -723,7 +739,7 @@ const VELLUM_ELEMENTS = [
     "fontSize": 9.7,
     "lineHeight": 12.4,
     "letterSpacing": 0,
-    "color": "#20352F",
+    "color": "#202623",
     "fontFamily": "Lora",
     "zIndex": 2,
     "page": 1,
@@ -733,7 +749,7 @@ const VELLUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-45f958dccc69",
+    "flowGroup": "record-52878232bbfe",
     "flowRole": "content"
   },
   {
@@ -746,7 +762,7 @@ const VELLUM_ELEMENTS = [
     "fontSize": 7.5,
     "lineHeight": 10.2,
     "letterSpacing": 0,
-    "color": "#6F7873",
+    "color": "#66706B",
     "fontFamily": "Lora",
     "zIndex": 2,
     "page": 1,
@@ -756,7 +772,7 @@ const VELLUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-45f958dccc69",
+    "flowGroup": "record-52878232bbfe",
     "flowRole": "content"
   },
   {
@@ -769,7 +785,7 @@ const VELLUM_ELEMENTS = [
     "fontSize": 8.35,
     "lineHeight": 11.2,
     "letterSpacing": 0,
-    "color": "#3E4944",
+    "color": "#3B4540",
     "fontFamily": "Lora",
     "zIndex": 2,
     "page": 1,
@@ -779,7 +795,7 @@ const VELLUM_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-45f958dccc69",
+    "flowGroup": "record-52878232bbfe",
     "flowRole": "content"
   },
   {
@@ -792,7 +808,7 @@ const VELLUM_ELEMENTS = [
     "fontSize": 7.5,
     "lineHeight": 10.2,
     "letterSpacing": 0,
-    "color": "#6F7873",
+    "color": "#66706B",
     "fontFamily": "Lora",
     "zIndex": 3,
     "page": 1,
@@ -803,7 +819,7 @@ const VELLUM_ELEMENTS = [
     "autoHeight": false,
     "preserveInitialLayout": true,
     "flowRole": "record-overlay",
-    "flowGroup": "record-45f958dccc69"
+    "flowGroup": "record-52878232bbfe"
   },
   {
     "category": "textarea",
@@ -815,7 +831,7 @@ const VELLUM_ELEMENTS = [
     "fontSize": 7.5,
     "lineHeight": 10.2,
     "letterSpacing": 0,
-    "color": "#6F7873",
+    "color": "#66706B",
     "fontFamily": "Lora",
     "zIndex": 3,
     "page": 1,
@@ -826,7 +842,7 @@ const VELLUM_ELEMENTS = [
     "autoHeight": false,
     "preserveInitialLayout": true,
     "flowRole": "record-overlay",
-    "flowGroup": "record-45f958dccc69"
+    "flowGroup": "record-52878232bbfe"
   },
   {
     "category": "textarea",
@@ -838,7 +854,7 @@ const VELLUM_ELEMENTS = [
     "fontSize": 9.7,
     "lineHeight": 12.4,
     "letterSpacing": 0,
-    "color": "#20352F",
+    "color": "#202623",
     "fontFamily": "Lora",
     "zIndex": 2,
     "page": 1,
@@ -848,7 +864,7 @@ const VELLUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-0319cb135afb",
+    "flowGroup": "record-a94822ee6e6a",
     "flowRole": "content"
   },
   {
@@ -861,7 +877,7 @@ const VELLUM_ELEMENTS = [
     "fontSize": 7.5,
     "lineHeight": 10.2,
     "letterSpacing": 0,
-    "color": "#6F7873",
+    "color": "#66706B",
     "fontFamily": "Lora",
     "zIndex": 2,
     "page": 1,
@@ -871,7 +887,7 @@ const VELLUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-0319cb135afb",
+    "flowGroup": "record-a94822ee6e6a",
     "flowRole": "content"
   },
   {
@@ -884,7 +900,7 @@ const VELLUM_ELEMENTS = [
     "fontSize": 8.35,
     "lineHeight": 11.2,
     "letterSpacing": 0,
-    "color": "#3E4944",
+    "color": "#3B4540",
     "fontFamily": "Lora",
     "zIndex": 2,
     "page": 1,
@@ -894,7 +910,7 @@ const VELLUM_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-0319cb135afb",
+    "flowGroup": "record-a94822ee6e6a",
     "flowRole": "content"
   },
   {
@@ -907,7 +923,7 @@ const VELLUM_ELEMENTS = [
     "fontSize": 7.5,
     "lineHeight": 10.2,
     "letterSpacing": 0,
-    "color": "#6F7873",
+    "color": "#66706B",
     "fontFamily": "Lora",
     "zIndex": 3,
     "page": 1,
@@ -918,7 +934,7 @@ const VELLUM_ELEMENTS = [
     "autoHeight": false,
     "preserveInitialLayout": true,
     "flowRole": "record-overlay",
-    "flowGroup": "record-0319cb135afb"
+    "flowGroup": "record-a94822ee6e6a"
   },
   {
     "category": "textarea",
@@ -930,7 +946,7 @@ const VELLUM_ELEMENTS = [
     "fontSize": 7.5,
     "lineHeight": 10.2,
     "letterSpacing": 0,
-    "color": "#6F7873",
+    "color": "#66706B",
     "fontFamily": "Lora",
     "zIndex": 3,
     "page": 1,
@@ -941,7 +957,7 @@ const VELLUM_ELEMENTS = [
     "autoHeight": false,
     "preserveInitialLayout": true,
     "flowRole": "record-overlay",
-    "flowGroup": "record-0319cb135afb"
+    "flowGroup": "record-a94822ee6e6a"
   },
   {
     "category": "textarea",
@@ -953,7 +969,7 @@ const VELLUM_ELEMENTS = [
     "fontSize": 9.7,
     "lineHeight": 12.4,
     "letterSpacing": 0,
-    "color": "#20352F",
+    "color": "#202623",
     "fontFamily": "Lora",
     "zIndex": 2,
     "page": 1,
@@ -963,7 +979,7 @@ const VELLUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-a4cfbd6bc0b5",
+    "flowGroup": "record-93942fdc01aa",
     "flowRole": "content"
   },
   {
@@ -976,7 +992,7 @@ const VELLUM_ELEMENTS = [
     "fontSize": 7.5,
     "lineHeight": 10.2,
     "letterSpacing": 0,
-    "color": "#6F7873",
+    "color": "#66706B",
     "fontFamily": "Lora",
     "zIndex": 2,
     "page": 1,
@@ -986,7 +1002,7 @@ const VELLUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-a4cfbd6bc0b5",
+    "flowGroup": "record-93942fdc01aa",
     "flowRole": "content"
   },
   {
@@ -999,7 +1015,7 @@ const VELLUM_ELEMENTS = [
     "fontSize": 8.35,
     "lineHeight": 11.2,
     "letterSpacing": 0,
-    "color": "#3E4944",
+    "color": "#3B4540",
     "fontFamily": "Lora",
     "zIndex": 2,
     "page": 1,
@@ -1009,7 +1025,7 @@ const VELLUM_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-a4cfbd6bc0b5",
+    "flowGroup": "record-93942fdc01aa",
     "flowRole": "content"
   },
   {
@@ -1022,7 +1038,7 @@ const VELLUM_ELEMENTS = [
     "fontSize": 7.5,
     "lineHeight": 10.2,
     "letterSpacing": 0,
-    "color": "#6F7873",
+    "color": "#66706B",
     "fontFamily": "Lora",
     "zIndex": 3,
     "page": 1,
@@ -1033,7 +1049,7 @@ const VELLUM_ELEMENTS = [
     "autoHeight": false,
     "preserveInitialLayout": true,
     "flowRole": "record-overlay",
-    "flowGroup": "record-a4cfbd6bc0b5"
+    "flowGroup": "record-93942fdc01aa"
   },
   {
     "category": "textarea",
@@ -1045,7 +1061,7 @@ const VELLUM_ELEMENTS = [
     "fontSize": 7.5,
     "lineHeight": 10.2,
     "letterSpacing": 0,
-    "color": "#6F7873",
+    "color": "#66706B",
     "fontFamily": "Lora",
     "zIndex": 3,
     "page": 1,
@@ -1056,14 +1072,14 @@ const VELLUM_ELEMENTS = [
     "autoHeight": false,
     "preserveInitialLayout": true,
     "flowRole": "record-overlay",
-    "flowGroup": "record-a4cfbd6bc0b5"
+    "flowGroup": "record-93942fdc01aa"
   },
   {
     "category": "text",
     "content": "WYKSZTAŁCENIE",
     "fontSize": 7.4,
     "fontFamily": "Montserrat",
-    "color": "#20352F",
+    "color": "#263B33",
     "left": 58.0,
     "top": 562.9,
     "zIndex": 3,
@@ -1071,6 +1087,7 @@ const VELLUM_ELEMENTS = [
     "bold": true,
     "italic": false,
     "letterSpacing": 2.1,
+    "appearanceColorRole": "headingOnPaper",
     "flowRole": "section-chrome"
   },
   {
@@ -1079,9 +1096,10 @@ const VELLUM_ELEMENTS = [
     "top": 575.9,
     "width": 24.0,
     "height": 1.2,
-    "backgroundColor": "#A16049",
+    "backgroundColor": "#B47B5B",
     "zIndex": 3,
     "page": 1,
+    "appearanceColorRole": "ornament",
     "flowRole": "section-chrome"
   },
   {
@@ -1090,7 +1108,7 @@ const VELLUM_ELEMENTS = [
     "top": 576.1,
     "width": 445.0,
     "height": 0.8,
-    "backgroundColor": "#C8D1CC",
+    "backgroundColor": "#D4DCD7",
     "zIndex": 2,
     "page": 1,
     "flowRole": "section-chrome"
@@ -1105,7 +1123,7 @@ const VELLUM_ELEMENTS = [
     "fontSize": 9.3,
     "lineHeight": 12.0,
     "letterSpacing": 0,
-    "color": "#20352F",
+    "color": "#202623",
     "fontFamily": "Lora",
     "zIndex": 2,
     "page": 1,
@@ -1115,7 +1133,7 @@ const VELLUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-1be3194cafa2",
+    "flowGroup": "record-6e06f1c59311",
     "flowRole": "content"
   },
   {
@@ -1128,7 +1146,7 @@ const VELLUM_ELEMENTS = [
     "fontSize": 7.5,
     "lineHeight": 10.2,
     "letterSpacing": 0,
-    "color": "#6F7873",
+    "color": "#66706B",
     "fontFamily": "Lora",
     "zIndex": 2,
     "page": 1,
@@ -1138,7 +1156,7 @@ const VELLUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-1be3194cafa2",
+    "flowGroup": "record-6e06f1c59311",
     "flowRole": "content"
   },
   {
@@ -1151,7 +1169,7 @@ const VELLUM_ELEMENTS = [
     "fontSize": 7.5,
     "lineHeight": 10.2,
     "letterSpacing": 0,
-    "color": "#6F7873",
+    "color": "#66706B",
     "fontFamily": "Lora",
     "zIndex": 3,
     "page": 1,
@@ -1162,7 +1180,7 @@ const VELLUM_ELEMENTS = [
     "autoHeight": false,
     "preserveInitialLayout": true,
     "flowRole": "record-overlay",
-    "flowGroup": "record-1be3194cafa2"
+    "flowGroup": "record-6e06f1c59311"
   },
   {
     "category": "textarea",
@@ -1174,7 +1192,7 @@ const VELLUM_ELEMENTS = [
     "fontSize": 9.3,
     "lineHeight": 12.0,
     "letterSpacing": 0,
-    "color": "#20352F",
+    "color": "#202623",
     "fontFamily": "Lora",
     "zIndex": 2,
     "page": 1,
@@ -1184,7 +1202,7 @@ const VELLUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-2f9bbd8f2f53",
+    "flowGroup": "record-8f9333dfbcc2",
     "flowRole": "content"
   },
   {
@@ -1197,7 +1215,7 @@ const VELLUM_ELEMENTS = [
     "fontSize": 7.5,
     "lineHeight": 10.2,
     "letterSpacing": 0,
-    "color": "#6F7873",
+    "color": "#66706B",
     "fontFamily": "Lora",
     "zIndex": 2,
     "page": 1,
@@ -1207,7 +1225,7 @@ const VELLUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-2f9bbd8f2f53",
+    "flowGroup": "record-8f9333dfbcc2",
     "flowRole": "content"
   },
   {
@@ -1220,7 +1238,7 @@ const VELLUM_ELEMENTS = [
     "fontSize": 7.5,
     "lineHeight": 10.2,
     "letterSpacing": 0,
-    "color": "#6F7873",
+    "color": "#66706B",
     "fontFamily": "Lora",
     "zIndex": 3,
     "page": 1,
@@ -1231,14 +1249,14 @@ const VELLUM_ELEMENTS = [
     "autoHeight": false,
     "preserveInitialLayout": true,
     "flowRole": "record-overlay",
-    "flowGroup": "record-2f9bbd8f2f53"
+    "flowGroup": "record-8f9333dfbcc2"
   },
   {
     "category": "text",
     "content": "JĘZYKI",
     "fontSize": 7.4,
     "fontFamily": "Montserrat",
-    "color": "#20352F",
+    "color": "#263B33",
     "left": 58.0,
     "top": 670.1,
     "zIndex": 3,
@@ -1246,6 +1264,7 @@ const VELLUM_ELEMENTS = [
     "bold": true,
     "italic": false,
     "letterSpacing": 2.1,
+    "appearanceColorRole": "headingOnPaper",
     "flowRole": "section-chrome"
   },
   {
@@ -1254,9 +1273,10 @@ const VELLUM_ELEMENTS = [
     "top": 683.1,
     "width": 24.0,
     "height": 1.2,
-    "backgroundColor": "#A16049",
+    "backgroundColor": "#B47B5B",
     "zIndex": 3,
     "page": 1,
+    "appearanceColorRole": "ornament",
     "flowRole": "section-chrome"
   },
   {
@@ -1265,7 +1285,7 @@ const VELLUM_ELEMENTS = [
     "top": 683.3000000000001,
     "width": 445.0,
     "height": 0.8,
-    "backgroundColor": "#C8D1CC",
+    "backgroundColor": "#D4DCD7",
     "zIndex": 2,
     "page": 1,
     "flowRole": "section-chrome"
@@ -1280,7 +1300,7 @@ const VELLUM_ELEMENTS = [
     "fontSize": 8.35,
     "lineHeight": 11.2,
     "letterSpacing": 0,
-    "color": "#3E4944",
+    "color": "#3B4540",
     "fontFamily": "Lora",
     "zIndex": 2,
     "page": 1,
@@ -1295,11 +1315,11 @@ const VELLUM_ELEMENTS = [
         "start": 9,
         "end": 17,
         "italic": true,
-        "color": "#A16049"
+        "color": "#8A5E47"
       }
     ],
     "flowRole": "grid-member",
-    "flowGroup": "record-4651160e350f"
+    "flowGroup": "record-605a9c05b0ba"
   },
   {
     "category": "textarea",
@@ -1311,7 +1331,7 @@ const VELLUM_ELEMENTS = [
     "fontSize": 8.35,
     "lineHeight": 11.2,
     "letterSpacing": 0,
-    "color": "#3E4944",
+    "color": "#3B4540",
     "fontFamily": "Lora",
     "zIndex": 2,
     "page": 1,
@@ -1326,11 +1346,11 @@ const VELLUM_ELEMENTS = [
         "start": 12,
         "end": 14,
         "italic": true,
-        "color": "#A16049"
+        "color": "#8A5E47"
       }
     ],
     "flowRole": "grid-member",
-    "flowGroup": "record-4651160e350f"
+    "flowGroup": "record-605a9c05b0ba"
   },
   {
     "category": "textarea",
@@ -1342,7 +1362,7 @@ const VELLUM_ELEMENTS = [
     "fontSize": 8.35,
     "lineHeight": 11.2,
     "letterSpacing": 0,
-    "color": "#3E4944",
+    "color": "#3B4540",
     "fontFamily": "Lora",
     "zIndex": 2,
     "page": 1,
@@ -1357,11 +1377,11 @@ const VELLUM_ELEMENTS = [
         "start": 12,
         "end": 14,
         "italic": true,
-        "color": "#A16049"
+        "color": "#8A5E47"
       }
     ],
     "flowRole": "grid-member",
-    "flowGroup": "record-4651160e350f"
+    "flowGroup": "record-605a9c05b0ba"
   },
   {
     "category": "textarea",
@@ -1373,7 +1393,7 @@ const VELLUM_ELEMENTS = [
     "fontSize": 8.35,
     "lineHeight": 11.2,
     "letterSpacing": 0,
-    "color": "#3E4944",
+    "color": "#3B4540",
     "fontFamily": "Lora",
     "zIndex": 2,
     "page": 1,
@@ -1388,11 +1408,11 @@ const VELLUM_ELEMENTS = [
         "start": 12,
         "end": 14,
         "italic": true,
-        "color": "#A16049"
+        "color": "#8A5E47"
       }
     ],
     "flowRole": "grid-member",
-    "flowGroup": "record-4651160e350f"
+    "flowGroup": "record-605a9c05b0ba"
   }
 ];
 

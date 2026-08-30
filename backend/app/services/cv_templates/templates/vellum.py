@@ -3,8 +3,11 @@
 Vellum adapts the reference resume's quiet editorial language to CV Studio's
 editable canvas: an asymmetric identity masthead, a circular portrait that
 balances the text block, a softly tinted summary field, widely tracked section
-labels, and one ATS-friendly reading column. The restrained forest-and-copper
-palette gives the document a distinct identity without reducing legibility.
+labels, and one ATS-friendly reading column. Its authored Sage Vellum palette
+prints on white paper and assigns independent semantic roles to the summary
+field, field copy, portrait halo, job title, icons, and section rules. The
+frontend Appearance controller can therefore offer light and strong identities
+without changing geometry or relying on browser-only colour filters.
 
 Experience and education deliberately reuse Meridian/Cadenza's exact-anchor
 date rail. Period and city labels are non-flowing overlays pinned to real
@@ -170,17 +173,25 @@ def _vellum_place_education(
 def _gen_vellum(cv: dict) -> list[dict]:
     """Build the asymmetric, portrait-led Vellum editorial CV."""
     palette = {
-        "paper": "#FFFEFA",
-        "ink": "#20352F",
-        "body": "#3E4944",
-        "muted": "#6F7873",
-        "band": "#E7ECE8",
-        "rule": "#C8D1CC",
-        "accent": "#A16049",
+        # Sage Vellum is the authored light palette. Every appearance keeps
+        # paper white; strong variants reverse only copy that actually sits
+        # inside the summary field and leave ordinary body text near-black.
+        "paper": "#FFFFFF",
+        "ink": "#202623",
+        "body": "#3B4540",
+        "muted": "#66706B",
+        "field": "#EDF2EF",
+        "rule": "#D4DCD7",
+        "accent": "#8A5E47",
+        "ornament": "#B47B5B",
+        "photo": "#E5ECE8",
+        "heading_on_paper": "#263B33",
+        "heading_on_field": "#263B33",
+        "summary_text": "#3B4540",
         "display": "CormorantGaramond",
         "body_font": "Lora",
         "sans": "Montserrat",
-        "icon_theme": "cadenza",
+        "icon_theme": "vellum-sage",
         "left": 58.0,
         "width": 479.0,
     }
@@ -224,6 +235,7 @@ def _gen_vellum(cv: dict) -> list[dict]:
         title, left, title_top, header_width, title_height, 8.0, 11.0,
         palette["accent"], sans, zIndex=3,
     )
+    title_prototype["appearanceTypographyRole"] = "job"
     title_prototype["letterSpacing"] = 2.2
     if title:
         title_index = len(header)
@@ -260,21 +272,23 @@ def _gen_vellum(cv: dict) -> list[dict]:
     # photo fills the inner circular frame. Every member is semantically tagged
     # so hide/show and raster removal remain lossless in the editor.
     photo_outer = {
-        **_circle(429.0, 32.0, 112.0, palette["accent"], filled=True, zIndex=2, page=1),
+        **_circle(429.0, 32.0, 112.0, palette["ornament"], filled=True, zIndex=2, page=1),
         "photoSlot": "ornament",
+        "appearanceColorRole": "ornament",
         "fixedToPage": True,
         "repeatOnContinuation": False,
     }
     photo_frame = {
-        **_circle(433.0, 36.0, 104.0, palette["band"], filled=True, zIndex=3, page=1),
+        **_circle(433.0, 36.0, 104.0, palette["photo"], filled=True, zIndex=3, page=1),
         "id": "vellum-photo-frame",
         "photoSlot": "frame",
         "photoShape": "circle",
+        "appearanceColorRole": "photo",
         "fixedToPage": True,
         "repeatOnContinuation": False,
     }
     photo_glyph = {
-        **_icon("monument", "portrait", 465.0, 68.0, 40.0, zIndex=4),
+        **_icon(palette["icon_theme"], "portrait", 465.0, 68.0, 40.0, zIndex=4),
         "id": "vellum-photo-glyph",
         "photoSlot": "glyph",
         "photoShape": "circle",
@@ -313,12 +327,14 @@ def _gen_vellum(cv: dict) -> list[dict]:
         """Place a tracked label with either a tinted band or split hairline."""
         y, page = builder.y, builder.pg
         if filled:
-            band = _line(0, y, 595, 20.0, palette["band"], zIndex=1, page=page)
+            band = _line(0, y, 595, 20.0, palette["field"], zIndex=1, page=page)
             heading = _text(
-                label, section_label_fs, sans, palette["ink"],
+                label, section_label_fs, sans, palette["heading_on_field"],
                 left, y + 6.2, zIndex=3, page=page, bold=True,
             )
             heading["letterSpacing"] = 2.1
+            band["appearanceColorRole"] = "field"
+            heading["appearanceColorRole"] = "headingOnField"
             for element in (band, heading):
                 element["flowRole"] = "section-chrome"
             builder.els.extend([band, heading])
@@ -326,14 +342,16 @@ def _gen_vellum(cv: dict) -> list[dict]:
             return
 
         heading = _text(
-            label, section_label_fs, sans, palette["ink"],
+            label, section_label_fs, sans, palette["heading_on_paper"],
             left, y, zIndex=3, page=page, bold=True,
         )
         heading["letterSpacing"] = 2.1
+        heading["appearanceColorRole"] = "headingOnPaper"
         accent_rule = _line(
             left, y + _SECTION_RULE_TOP, 24.0, 1.2,
-            palette["accent"], zIndex=3, page=page,
+            palette["ornament"], zIndex=3, page=page,
         )
+        accent_rule["appearanceColorRole"] = "ornament"
         long_rule = _line(
             left + 34.0, y + _SECTION_RULE_TOP + 0.2,
             width - 34.0, 0.8, palette["rule"], zIndex=2, page=page,
@@ -361,7 +379,7 @@ def _gen_vellum(cv: dict) -> list[dict]:
             body_top, page = builder.y, builder.pg
             summary_background = _line(
                 0, body_top, 595, summary_height + 8.0,
-                palette["band"], zIndex=1, page=page,
+                palette["field"], zIndex=1, page=page,
             )
             # Unlike a date rail, this overlay must also paint the active
             # chrome-to-body gap introduced by the spacing controls. The
@@ -371,12 +389,16 @@ def _gen_vellum(cv: dict) -> list[dict]:
             summary_background.update({
                 "id": "vellum-summary-background",
                 "flowRole": "section-background",
+                "appearanceColorRole": "field",
             })
             builder.els.append(summary_background)
             builder.block(
                 cv["summary"], left, width, body_fs, body_lh,
-                palette["body"], body_font,
+                palette["summary_text"], body_font,
             )
+            # Strong palettes reverse only this field-bound copy. The explicit
+            # role avoids treating every ordinary Lora paragraph as light text.
+            builder.els[-1]["appearanceColorRole"] = "summaryText"
         close_section()
 
     # Skills precede career history, echoing the reference composition and
@@ -454,21 +476,29 @@ def _gen_vellum(cv: dict) -> list[dict]:
     pages_used = max([element.get("page", 1) for element in header + flow] or [1])
     decorations: list[dict] = []
     for page in range(1, pages_used + 1):
-        decorations.extend([
-            {
-                **_line(0, 0, 595, 842, palette["paper"], zIndex=0, page=page),
-                "fixedToPage": True,
-            },
-            {
-                **_line(left, 796, width, 0.7, palette["rule"], zIndex=1, page=page),
-                "fixedToPage": True,
-            },
-            {
-                **_text(
-                    f"{page:02d}", 7.2, sans, palette["accent"],
-                    517.0, 806, zIndex=2, page=page,
-                ),
-                "fixedToPage": True,
-            },
-        ])
+        page_background = {
+            **_line(0, 0, 595, 842, palette["paper"], zIndex=0, page=page),
+            "fixedToPage": True,
+        }
+        if page == 1:
+            # A stable page-chrome anchor persists appearance intent. Legacy
+            # documents are still recognised by `vellum-contact` and upgraded
+            # when the user first selects a palette or typography preset.
+            page_background["appearanceTemplateId"] = "vellum"
+            page_background["appearanceSettings"] = {
+                "palette": "sage",
+                "textSize": "M",
+            }
+        decorations.append(page_background)
+        decorations.append({
+            **_line(left, 796, width, 0.7, palette["rule"], zIndex=1, page=page),
+            "fixedToPage": True,
+        })
+        decorations.append({
+            **_text(
+                f"{page:02d}", 7.2, sans, palette["accent"],
+                517.0, 806, zIndex=2, page=page,
+            ),
+            "fixedToPage": True,
+        })
     return decorations + header + flow

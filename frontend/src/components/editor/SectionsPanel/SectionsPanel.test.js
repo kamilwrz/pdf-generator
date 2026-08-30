@@ -6,7 +6,7 @@ const panelUrl = new URL("./SectionsPanel.jsx", import.meta.url);
 const cssUrl = new URL("./SectionsPanel.module.css", import.meta.url);
 const sidebarUrl = new URL("../Sidebar/Sidebar.jsx", import.meta.url);
 
-test("customization panel exposes Appearance only for reviewed template contracts including Cadenza", async () => {
+test("customization panel exposes Appearance only for reviewed template contracts including Vellum", async () => {
   const source = await readFile(panelUrl, "utf8");
   assert.match(source, /Dostosuj CV/);
   assert.match(source, /role="tablist"/);
@@ -19,9 +19,11 @@ test("customization panel exposes Appearance only for reviewed template contract
   assert.match(source, /const isSlateAppearance = activeTemplateId === "slate"/);
   assert.match(source, /const isMeridianAppearance = activeTemplateId === "meridian"/);
   assert.match(source, /const isCadenzaAppearance = activeTemplateId === "cadenza"/);
+  assert.match(source, /const isVellumAppearance = activeTemplateId === "vellum"/);
   assert.match(source, /\|\| isLindenAppearance/);
   assert.match(source, /\|\| isMeridianAppearance/);
   assert.match(source, /\|\| isCadenzaAppearance/);
+  assert.match(source, /\|\| isVellumAppearance/);
   assert.match(source, /const renderedTab = appearanceEnabled \? activeTab : "layout"/);
   assert.match(source, /appearanceEnabled \? \(/);
   assert.doesNotMatch(source, /isSterlingDocument/);
@@ -36,6 +38,7 @@ test("appearance presents template-specific palettes, reviewed previews, and tex
   assert.match(source, /SLATE_PALETTES/);
   assert.match(source, /MERIDIAN_PALETTES/);
   assert.match(source, /CADENZA_PALETTES/);
+  assert.match(source, /VELLUM_PALETTES/);
   assert.match(source, /palettePaperMonument/);
   assert.match(source, /palettePaperLinden/);
   assert.match(source, /paletteLindenJob/);
@@ -54,6 +57,10 @@ test("appearance presents template-specific palettes, reviewed previews, and tex
   assert.match(source, /palettePaperCadenza/);
   assert.match(source, /paletteCadenzaBand/);
   assert.match(source, /paletteCadenzaJob/);
+  assert.match(source, /palettePaperVellum/);
+  assert.match(source, /paletteVellumPhoto/);
+  assert.match(source, /paletteVellumField/);
+  assert.match(source, /paletteVellumJob/);
   assert.match(source, /Paleta kolorów/);
   assert.match(source, /zmienia papier, tekst, dekoracje i dopasowany zestaw ikon/);
   assert.match(source, /STERLING_TEXT_SIZES/);
@@ -62,9 +69,11 @@ test("appearance presents template-specific palettes, reviewed previews, and tex
   assert.match(source, /SLATE_TEXT_SIZES/);
   assert.match(source, /MERIDIAN_TEXT_SIZES/);
   assert.match(source, /CADENZA_TEXT_SIZES/);
+  assert.match(source, /VELLUM_TEXT_SIZES/);
   assert.match(source, /Białe tło pozostaje bez zmian/);
   assert.match(source, /pasek stanowiska pozostaje jej najciemniejszym akcentem/);
   assert.match(source, /Trzy lekkie i trzy mocne palety/);
+  assert.match(source, /pole résumé, jego kontrast, portret, stanowisko, reguły oraz prawdziwe ikony/);
   assert.match(source, /Rozmiar tekstu/);
   assert.match(source, /oryginalny rozmiar szablonu/);
   assert.match(source, /if \(!appearanceEnabled\) return/);

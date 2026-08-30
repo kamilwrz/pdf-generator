@@ -30,7 +30,7 @@ function assertSummaryBandIsContinuous(elements) {
   );
   const headingBand = elements.find(
     (element) => element.flowRole === "section-chrome"
-      && element.backgroundColor === "#E7ECE8"
+      && element.appearanceColorRole === "field"
       && element.width === 595,
   );
   const summaryBackground = elements.find(
@@ -56,7 +56,9 @@ test("Vellum preserves its portrait-led hierarchy and exact date rail", () => {
   const pageSurface = vellumTemplate.find(
     (element) => element.fixedToPage && element.width === 595 && element.height === 842,
   );
-  assert.equal(pageSurface?.backgroundColor, "#FFFEFA");
+  assert.equal(pageSurface?.backgroundColor, "#FFFFFF");
+  assert.equal(pageSurface?.appearanceTemplateId, "vellum");
+  assert.deepEqual(pageSurface?.appearanceSettings, { palette: "sage", textSize: "M" });
 
   const name = vellumTemplate.find((element) => element.mastheadRole === "name");
   assert.equal(name?.fontFamily, "CormorantGaramond");
@@ -68,7 +70,10 @@ test("Vellum preserves its portrait-led hierarchy and exact date rail", () => {
   assert.equal(frame?.category, "circle");
   assert.equal(frame?.photoShape, "circle");
   assert.equal(frame?.width, 104);
+  assert.equal(frame?.backgroundColor, "#E5ECE8");
+  assert.equal(frame?.appearanceColorRole, "photo");
   assert.equal(glyph?.photoSlot, "glyph");
+  assert.match(glyph?.src, /\/vellum-sage\/portrait\.png$/);
   const photoCluster = vellumTemplate.filter((element) => element.photoSlot);
   assert.equal(photoCluster.length, 3);
   assert.ok(photoCluster.every((element) => (
@@ -85,6 +90,8 @@ test("Vellum preserves its portrait-led hierarchy and exact date rail", () => {
   assert.equal(summaryBackground?.top, summary.top);
   assert.equal(summaryBackground?.flowGroup, summary.flowGroup);
   assert.equal(summaryBackground?.id, "vellum-summary-background");
+  assert.equal(summaryBackground?.appearanceColorRole, "field");
+  assert.equal(summary?.appearanceColorRole, "summaryText");
 
   const identified = withElementIds(vellumTemplate);
   const headings = listDocumentSections(identified, PAGE_HEIGHT);

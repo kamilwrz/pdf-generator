@@ -126,6 +126,22 @@
 .paletteCadenzaCopy { position: absolute; top: 63px; right: 13px; left: 13px; height: 1px; background: var(--palette-body); box-shadow: 0 4px 0 var(--palette-rule), 0 19px 0 var(--palette-body), 0 23px 0 var(--palette-muted); }
 .paletteCadenzaFooter { position: absolute; right: 9px; bottom: 9px; left: 9px; height: 1px; background: var(--palette-rule); }
 .paletteCadenzaFooter::after { position: absolute; right: 27px; bottom: -5px; width: 6px; height: 3px; background: var(--palette-accent); content: ""; }
+.palettePaperVellum { background: var(--palette-paper); }
+.paletteVellumName { position: absolute; top: 11px; left: 9px; width: 38px; height: 4px; background: var(--palette-ink); }
+.paletteVellumJob { position: absolute; top: 20px; left: 9px; width: 29px; height: 2px; background: var(--palette-accent); }
+.paletteVellumContacts { position: absolute; top: 29px; left: 11px; width: 3px; height: 3px; background: var(--palette-accent); box-shadow: 13px 0 0 var(--palette-accent), 26px 0 0 var(--palette-accent); }
+.paletteVellumPhoto { position: absolute; top: 8px; right: 9px; width: 23px; height: 23px; border: 3px solid var(--palette-ornament); border-radius: 50%; background: var(--palette-photo); box-shadow: inset 0 0 0 1px var(--palette-paper); }
+.paletteVellumPhoto::before { position: absolute; top: 5px; left: 50%; width: 5px; height: 5px; transform: translateX(-50%); border: 1px solid var(--palette-accent); border-radius: 50%; content: ""; }
+.paletteVellumPhoto::after { position: absolute; right: 4px; bottom: 3px; left: 4px; height: 6px; border: 1px solid var(--palette-accent); border-bottom: 0; border-radius: 7px 7px 0 0; content: ""; }
+.paletteVellumMastheadRule { position: absolute; top: 39px; right: 35px; left: 9px; height: 1px; background: var(--palette-rule); }
+.paletteVellumField { position: absolute; top: 47px; right: 0; left: 0; height: 21px; background: var(--palette-field); }
+.paletteVellumField::before { position: absolute; top: 4px; left: 9px; width: 28px; height: 2px; background: var(--palette-heading-field); content: ""; }
+.paletteVellumField::after { position: absolute; top: 11px; right: 11px; left: 9px; height: 1px; background: var(--palette-summary-text); box-shadow: 0 4px 0 color-mix(in srgb, var(--palette-summary-text) 62%, transparent); content: ""; }
+.paletteVellumCopy { position: absolute; top: 74px; right: 10px; left: 10px; height: 1px; background: var(--palette-body); box-shadow: 0 5px 0 var(--palette-rule), 0 18px 0 var(--palette-body), 0 23px 0 var(--palette-rule); }
+.paletteVellumSection { position: absolute; top: 83px; left: 10px; width: 27px; height: 2px; background: var(--palette-heading-paper); }
+.paletteVellumSection::after { position: absolute; top: 6px; left: 0; width: 12px; height: 2px; background: var(--palette-ornament); box-shadow: 17px 0 0 var(--palette-rule), 28px 0 0 var(--palette-rule), 39px 0 0 var(--palette-rule); content: ""; }
+.paletteVellumFooter { position: absolute; right: 9px; bottom: 9px; left: 9px; height: 1px; background: var(--palette-rule); }
+.paletteVellumFooter::after { position: absolute; right: 0; bottom: -5px; width: 6px; height: 3px; background: var(--palette-accent); content: ""; }
 .paletteCheck { position: absolute; top: 6px; right: 6px; display: inline-flex; width: 17px; height: 17px; align-items: center; justify-content: center; border-radius: 50%; background: var(--palette-ink); color: var(--palette-paper); }
 .paletteCheck svg { width: 11px; height: 11px; stroke-width: 2.5; }
 .paletteName { display: block; margin-top: 7px; overflow: hidden; font: 600 11px/1.25 var(--font-body); text-overflow: ellipsis; white-space: nowrap; }

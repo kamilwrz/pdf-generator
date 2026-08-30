@@ -1,7 +1,7 @@
 /**
  * Template-mode customization panel ("Dostosuj CV"): document status, section
  * structure, density presets, precise spacing, and template-scoped appearance
- * tools for Sterling, Linden, Monument, Slate, Meridian, and Cadenza. A
+ * tools for Sterling, Linden, Monument, Slate, Meridian, Cadenza, and Vellum. A
  * main-column Skills section's list row also gets a layout icon opening
  * `SkillsLayoutModal` (same modal the canvas heading hover control opens —
  * see `SectionRecordAdd`), so the mode picker is reachable without hunting
@@ -95,6 +95,16 @@ import {
   applyCadenzaRenderedHeightsLayout,
   applyCadenzaTextSizeLayout,
 } from "../../../utils/cadenzaTypographyLayout";
+import {
+  applyVellumPalette,
+  getVellumAppearance,
+  VELLUM_PALETTES,
+  VELLUM_TEXT_SIZES,
+} from "../../../utils/vellumAppearance";
+import {
+  applyVellumRenderedHeightsLayout,
+  applyVellumTextSizeLayout,
+} from "../../../utils/vellumTypographyLayout";
 import {
   createCanvasTextWidthMeasurer,
   measureNaturalScrollHeight,
@@ -202,12 +212,14 @@ export default function SectionsPanel({ onClose }) {
   const isSlateAppearance = activeTemplateId === "slate";
   const isMeridianAppearance = activeTemplateId === "meridian";
   const isCadenzaAppearance = activeTemplateId === "cadenza";
+  const isVellumAppearance = activeTemplateId === "vellum";
   const appearanceEnabled = isSterlingAppearance
     || isLindenAppearance
     || isMonumentAppearance
     || isSlateAppearance
     || isMeridianAppearance
-    || isCadenzaAppearance;
+    || isCadenzaAppearance
+    || isVellumAppearance;
   const renderedTab = appearanceEnabled ? activeTab : "layout";
   const appearanceDefinition = useMemo(() => {
     if (isLindenAppearance) return {
@@ -258,6 +270,16 @@ export default function SectionsPanel({ onClose }) {
       applyRenderedHeightsLayout: applyCadenzaRenderedHeightsLayout,
       paletteDescription: "Białe tło pozostaje stałe. Trzy lekkie i trzy mocne palety zmieniają pasy, kontrast nagłówków, stanowisko, znaczniki oraz ikony.",
     };
+    if (isVellumAppearance) return {
+      templateName: "Vellum",
+      palettes: VELLUM_PALETTES,
+      textSizes: VELLUM_TEXT_SIZES,
+      value: getVellumAppearance(A4_Elements),
+      applyPalette: applyVellumPalette,
+      applyTextSizeLayout: applyVellumTextSizeLayout,
+      applyRenderedHeightsLayout: applyVellumRenderedHeightsLayout,
+      paletteDescription: "Białe tło pozostaje stałe. Trzy lekkie i trzy mocne palety zmieniają pole résumé, jego kontrast, portret, stanowisko, reguły oraz prawdziwe ikony.",
+    };
     return {
       templateName: "Sterling",
       palettes: STERLING_PALETTES,
@@ -267,7 +289,7 @@ export default function SectionsPanel({ onClose }) {
       applyTextSizeLayout: applySterlingTextSizeLayout,
       applyRenderedHeightsLayout: applySterlingRenderedHeightsLayout,
     };
-  }, [A4_Elements, isCadenzaAppearance, isLindenAppearance, isMeridianAppearance, isMonumentAppearance, isSlateAppearance]);
+  }, [A4_Elements, isCadenzaAppearance, isLindenAppearance, isMeridianAppearance, isMonumentAppearance, isSlateAppearance, isVellumAppearance]);
 
   useEffect(() => {
     if (!onClose) return undefined;
@@ -517,6 +539,11 @@ export default function SectionsPanel({ onClose }) {
                     "--palette-band": palette.colors.band ?? palette.colors.pale ?? palette.colors.sidebar,
                     "--palette-heading-text": palette.colors.headingText ?? palette.colors.ink,
                     "--palette-mark": palette.colors.mark ?? palette.colors.accent,
+                    "--palette-field": palette.colors.field ?? palette.colors.band ?? palette.colors.pale,
+                    "--palette-heading-field": palette.colors.headingOnField ?? palette.colors.headingText ?? palette.colors.ink,
+                    "--palette-heading-paper": palette.colors.headingOnPaper ?? palette.colors.ink,
+                    "--palette-summary-text": palette.colors.summaryText ?? palette.colors.body ?? palette.colors.ink,
+                    "--palette-ornament": palette.colors.ornament ?? palette.colors.accent,
                   };
                   return (
                     <button
@@ -528,7 +555,7 @@ export default function SectionsPanel({ onClose }) {
                       onClick={() => handleAppearancePalette(palette.id)}
                     >
                       <span
-                        className={`${classes.palettePaper} ${isLindenAppearance ? classes.palettePaperLinden : ""} ${isMonumentAppearance ? classes.palettePaperMonument : ""} ${isSlateAppearance ? classes.palettePaperSlate : ""} ${isMeridianAppearance ? classes.palettePaperMeridian : ""} ${isCadenzaAppearance ? classes.palettePaperCadenza : ""}`}
+                        className={`${classes.palettePaper} ${isLindenAppearance ? classes.palettePaperLinden : ""} ${isMonumentAppearance ? classes.palettePaperMonument : ""} ${isSlateAppearance ? classes.palettePaperSlate : ""} ${isMeridianAppearance ? classes.palettePaperMeridian : ""} ${isCadenzaAppearance ? classes.palettePaperCadenza : ""} ${isVellumAppearance ? classes.palettePaperVellum : ""}`}
                         style={cardStyle}
                         aria-hidden="true"
                       >
@@ -543,6 +570,18 @@ export default function SectionsPanel({ onClose }) {
                             <span className={classes.paletteLindenHeading} />
                             <span className={classes.paletteLindenCopy} />
                             <span className={classes.paletteLindenFooter} />
+                          </>
+                        ) : isVellumAppearance ? (
+                          <>
+                            <span className={classes.paletteVellumName} />
+                            <span className={classes.paletteVellumJob} />
+                            <span className={classes.paletteVellumContacts} />
+                            <span className={classes.paletteVellumPhoto} />
+                            <span className={classes.paletteVellumMastheadRule} />
+                            <span className={classes.paletteVellumField} />
+                            <span className={classes.paletteVellumCopy} />
+                            <span className={classes.paletteVellumSection} />
+                            <span className={classes.paletteVellumFooter} />
                           </>
                         ) : isCadenzaAppearance ? (
                           <>

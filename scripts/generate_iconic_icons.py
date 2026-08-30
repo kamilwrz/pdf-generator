@@ -310,10 +310,16 @@ _MERIDIAN_CONTACT_GLYPHS = [
 ]
 
 # Cadenza uses the same compact contact-channel inventory, but owns a separate
-# family so its light and strong editorial palettes can evolve independently
-# without changing Meridian or the legacy copper glyphs still used by Vellum.
+# family so its light and strong editorial palettes can evolve independently.
 _CADENZA_CONTACT_GLYPHS = [
     "email", "phone", "location", "linkedin", "github", "website",
+]
+
+# Vellum carries the same contact channels plus its circular portrait
+# placeholder. A single real-ink theme per palette keeps all small line art
+# consistent between the canvas and ReportLab export.
+_VELLUM_GLYPHS = [
+    "email", "phone", "location", "linkedin", "github", "website", "portrait",
 ]
 
 # Only these subsets are generated, so existing themes are untouched.
@@ -348,6 +354,15 @@ SUBSET_THEMES = {
     "cadenza-cobalt": ("#245F91", _CADENZA_CONTACT_GLYPHS),
     "cadenza-burgundy": ("#85364F", _CADENZA_CONTACT_GLYPHS),
     "cadenza-emerald": ("#23664F", _CADENZA_CONTACT_GLYPHS),
+    # Three light and three strong Vellum identities. The accent is reserved
+    # for the role line, contacts, portrait glyph and page number; the portrait
+    # halo and summary field own separate vector colour roles in the document.
+    "vellum-sage": ("#8A5E47", _VELLUM_GLYPHS),
+    "vellum-mist": ("#3F7086", _VELLUM_GLYPHS),
+    "vellum-rose": ("#805064", _VELLUM_GLYPHS),
+    "vellum-ink": ("#345F7B", _VELLUM_GLYPHS),
+    "vellum-burgundy": ("#843E51", _VELLUM_GLYPHS),
+    "vellum-emerald": ("#2D6A57", _VELLUM_GLYPHS),
     # Atrium (centered-axis editorial single column) uses graphite-sage contact
     # glyphs in the centered masthead only. Section headings are centered text
     # with a printer's-mark ornament (no icons), so just the contact set is
