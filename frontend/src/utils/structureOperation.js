@@ -261,6 +261,11 @@ export function cloneFixedPageDecorations(elements, firstNewPage, targetMaxPage,
         && (element.page ?? 1) === sourcePage
         && element.category !== "connector"
         && element.repeatOnContinuation !== false
+        // A profile-photo cluster belongs to the page-one identity even in
+        // legacy documents that predate `repeatOnContinuation`. Treat every
+        // semantic slot member as first-page-only so an overflow page cannot
+        // duplicate its halo, frame, placeholder glyph, or applied raster.
+        && !element.photoSlot
         // Legacy docs may omit `repeatOnContinuation` on the letterhead band.
         && !isLetterheadBandChrome(element, pageHeight)
       ))

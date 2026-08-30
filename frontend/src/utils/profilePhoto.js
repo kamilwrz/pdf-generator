@@ -367,6 +367,10 @@ export function applyProfilePhoto(elements, photo, createId = nanoid) {
     alignWithText: false,
     locked: true,
     fixedToPage: true,
+    // Profile identity belongs to page one. The explicit flag keeps newly
+    // applied photos out of continuation-page chrome cloning, while the
+    // structure-operation fallback still protects older saved documents.
+    repeatOnContinuation: false,
     isSelected: false,
     isMove: false,
     isEditing: false,
@@ -425,6 +429,7 @@ export function applyProfilePhoto(elements, photo, createId = nanoid) {
         photoSlot: "glyph",
         locked: true,
         fixedToPage: true,
+        repeatOnContinuation: false,
       };
     }
     return element;

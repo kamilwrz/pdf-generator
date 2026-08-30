@@ -263,6 +263,7 @@ def _gen_vellum(cv: dict) -> list[dict]:
         **_circle(429.0, 32.0, 112.0, palette["accent"], filled=True, zIndex=2, page=1),
         "photoSlot": "ornament",
         "fixedToPage": True,
+        "repeatOnContinuation": False,
     }
     photo_frame = {
         **_circle(433.0, 36.0, 104.0, palette["band"], filled=True, zIndex=3, page=1),
@@ -270,6 +271,7 @@ def _gen_vellum(cv: dict) -> list[dict]:
         "photoSlot": "frame",
         "photoShape": "circle",
         "fixedToPage": True,
+        "repeatOnContinuation": False,
     }
     photo_glyph = {
         **_icon("monument", "portrait", 465.0, 68.0, 40.0, zIndex=4),
@@ -278,6 +280,7 @@ def _gen_vellum(cv: dict) -> list[dict]:
         "photoShape": "circle",
         "alignWithText": False,
         "fixedToPage": True,
+        "repeatOnContinuation": False,
     }
     photo_glyph["height"] = 40.0
     header.extend([photo_outer, photo_frame, photo_glyph])

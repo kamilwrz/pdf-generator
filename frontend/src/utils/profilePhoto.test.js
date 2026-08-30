@@ -118,6 +118,7 @@ describe("applyProfilePhoto", () => {
     assert.equal(photo.width, 104);
     assert.equal(photo.height, 104);
     assert.equal(photo.borderRadius, 52);
+    assert.equal(photo.repeatOnContinuation, false);
   });
 
   it("replaces an already-applied profile photo in place", () => {

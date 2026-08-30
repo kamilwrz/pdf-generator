@@ -222,6 +222,7 @@ describe("profile photo visibility", () => {
     assert.equal(slot.src, "/template-assets/portrait.png");
     assert.equal(slot.img_id, undefined);
     assert.equal(slot.left, 30);
+    assert.equal(slot.repeatOnContinuation, false);
   });
 
   it("restores the Atrium glyph for photos saved before placeholder snapshots", () => {

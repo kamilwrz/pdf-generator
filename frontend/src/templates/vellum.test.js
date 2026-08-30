@@ -67,6 +67,11 @@ test("Vellum preserves its portrait-led hierarchy and exact date rail", () => {
   assert.equal(frame?.photoShape, "circle");
   assert.equal(frame?.width, 104);
   assert.equal(glyph?.photoSlot, "glyph");
+  const photoCluster = vellumTemplate.filter((element) => element.photoSlot);
+  assert.equal(photoCluster.length, 3);
+  assert.ok(photoCluster.every((element) => (
+    element.fixedToPage === true && element.repeatOnContinuation === false
+  )));
 
   const summary = vellumTemplate.find(
     (element) => element.content?.startsWith("Analityczka AML łącząca"),

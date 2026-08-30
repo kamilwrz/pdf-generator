@@ -306,6 +306,7 @@ const VELLUM_ELEMENTS = [
     "page": 1,
     "photoSlot": "ornament",
     "fixedToPage": true,
+    "repeatOnContinuation": false,
     "flowRole": "masthead"
   },
   {
@@ -323,6 +324,7 @@ const VELLUM_ELEMENTS = [
     "photoSlot": "frame",
     "photoShape": "circle",
     "fixedToPage": true,
+    "repeatOnContinuation": false,
     "flowRole": "masthead"
   },
   {
@@ -339,7 +341,8 @@ const VELLUM_ELEMENTS = [
     "id": "vellum-photo-glyph",
     "photoSlot": "glyph",
     "photoShape": "circle",
-    "fixedToPage": true
+    "fixedToPage": true,
+    "repeatOnContinuation": false
   },
   {
     "category": "text",

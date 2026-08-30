@@ -41,6 +41,10 @@ def test_vellum_uses_asymmetric_identity_summary_field_and_circular_photo():
     assert frame["photoShape"] == "circle"
     assert frame["width"] == frame["height"] == 104.0
     assert glyph["photoSlot"] == "glyph"
+    photo_cluster = [element for element in elements if element.get("photoSlot")]
+    assert len(photo_cluster) == 3
+    assert all(element.get("fixedToPage") is True for element in photo_cluster)
+    assert all(element.get("repeatOnContinuation") is False for element in photo_cluster)
 
     summary_band = next(
         element for element in elements

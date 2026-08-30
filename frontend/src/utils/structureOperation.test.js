@@ -251,3 +251,28 @@ test("does not clone a page-1 masthead / photo frame onto a page that already ha
   );
   assert.equal(clones.length, 0, "no chrome cloned onto a fully-decorated continuation page");
 });
+
+test("does not clone a legacy Vellum photo slot onto a blank overflow page", () => {
+  // Persisted documents may not carry `repeatOnContinuation: false` yet. The
+  // semantic photoSlot tags must still keep the complete page-one identity
+  // cluster off a continuation created by live textarea overflow.
+  let count = 0;
+  const clones = cloneFixedPageDecorations([
+    { element_id: "paper", category: "line", fixedToPage: true, page: 1,
+      left: 0, top: 0, width: 595, height: 842, backgroundColor: "#FFFEFA" },
+    { element_id: "photo-halo", category: "circle", fixedToPage: true, page: 1,
+      photoSlot: "ornament", left: 429, top: 32, width: 112, height: 112 },
+    { element_id: "photo-frame", category: "circle", fixedToPage: true, page: 1,
+      photoSlot: "frame", left: 433, top: 36, width: 104, height: 104 },
+    { element_id: "photo-glyph", category: "image", fixedToPage: true, page: 1,
+      photoSlot: "glyph", left: 465, top: 68, width: 40, height: 40 },
+    { element_id: "footer", category: "line", fixedToPage: true, page: 1,
+      left: 58, top: 806, width: 479, height: 0.8 },
+    { element_id: "number", category: "text", fixedToPage: true, page: 1,
+      left: 523, top: 812, content: "01" },
+  ], 2, 2, () => `id-${++count}`);
+
+  assert.equal(clones.some((element) => element.photoSlot), false);
+  assert.ok(clones.some((element) => element.page === 2 && element.content === "02"));
+  assert.ok(clones.some((element) => element.page === 2 && element.top === 806));
+});

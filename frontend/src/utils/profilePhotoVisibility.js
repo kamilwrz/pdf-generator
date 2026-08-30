@@ -344,6 +344,7 @@ export function removeProfilePhoto(elements, templateId) {
       photoSlot: "glyph",
       id: placeholder.id || base.id,
       fixedToPage: true,
+      repeatOnContinuation: false,
       locked: true,
       isSelected: false,
       isMove: false,
