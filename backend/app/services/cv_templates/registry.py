@@ -4,11 +4,9 @@ from __future__ import annotations
 from app.services.cv_data import normalize_cv_data
 from app.services.cv_templates.templates.monument import _gen_monument
 from app.services.cv_templates.templates.slate import _gen_slate
-from app.services.cv_templates.templates.portico import _gen_portico
 from app.services.cv_templates.templates.atrium import _gen_atrium
 from app.services.cv_templates.templates.sterling import _gen_sterling
 from app.services.cv_templates.templates.regent import _gen_regent
-from app.services.cv_templates.templates.vestige import _gen_vestige
 from app.services.cv_templates.templates.meridian import _gen_meridian
 from app.services.cv_templates.templates.linden import _gen_linden
 from app.services.cv_templates.templates.cadenza import _gen_cadenza
@@ -16,11 +14,9 @@ from app.services.cv_templates.templates.cadenza import _gen_cadenza
 TEMPLATE_LAYOUTS: dict[str, frozenset[str]] = {
     "monument": frozenset({"single"}),
     "slate": frozenset({"sidebar", "icons"}),
-    "portico": frozenset({"icons"}),
     "atrium": frozenset({"single", "icons"}),
     "sterling": frozenset({"sidebar"}),
     "regent": frozenset({"single", "icons"}),
-    "vestige": frozenset({"sidebar", "icons"}),
     "meridian": frozenset({"single", "icons"}),
     "linden": frozenset({"sidebar", "icons"}),
     "cadenza": frozenset({"single", "icons"}),
@@ -29,11 +25,9 @@ TEMPLATE_LAYOUTS: dict[str, frozenset[str]] = {
 _GENERATORS = {
     "monument": _gen_monument,
     "slate": _gen_slate,
-    "portico": _gen_portico,
     "atrium": _gen_atrium,
     "sterling": _gen_sterling,
     "regent": _gen_regent,
-    "vestige": _gen_vestige,
     "meridian": _gen_meridian,
     "linden": _gen_linden,
     "cadenza": _gen_cadenza,

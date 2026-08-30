@@ -20,7 +20,7 @@ import {
   sidebarSectionElementIds,
 } from "./sectionStructure.js";
 import { regentTemplate } from "../templates/regent.js";
-import { porticoTemplate } from "../templates/portico.js";
+import { cadenzaTemplate } from "../templates/cadenza.js";
 import { changeSkillsDisplayMode } from "./skillsDisplayMode.js";
 
 /**
@@ -1508,41 +1508,6 @@ describe("applyFlowSpacing", () => {
     }
   });
 
-  it("keeps a centered iconic masthead's authored clearance on reorder (Portico)", () => {
-    // Portico is icon-tagged but authors a deliberate ~36px "Ivy League"
-    // masthead clearance (SPACE_AFTER_HEADER_RULE) under its centered name /
-    // title / contact block. The iconic heal-back that collapses Nova/Cardinal's
-    // over-authored 36px down to a tight 10px must NOT fire here — otherwise
-    // reordering sections yanks the whole document up by ~26px.
-    const source = porticoTemplate.map((element, index) => ({
-      ...element,
-      element_id: `p-${index}`,
-      page: 1,
-    }));
-    const before = listDocumentSections(source, 842);
-    const firstBefore = source.find((element) => (
-      element.element_id === before[0]?.headingId
-    ));
-    assert.ok(firstBefore, "expected a first Portico section before reorder");
-
-    const packed = reorderSection(source, before[1].headingId, "up", 842, {
-      spacing: { stack: 4, record: 10, section: 21, after_rule: 8 },
-    });
-    const after = listDocumentSections(packed, 842);
-    const firstAfter = packed.find((element) => (
-      element.element_id === after[0]?.headingId
-    ));
-    // The reorder swaps which section is first, but whichever heading lands at
-    // the top must keep the authored masthead clearance (~36px), i.e. the same
-    // absolute top the original first section occupied — not a collapsed 10px.
-    assert.equal(
-      firstAfter?.top,
-      firstBefore.top,
-      `Portico first section must keep its ${firstBefore.top}px masthead `
-      + `clearance after reorder, got ${firstAfter?.top}`,
-    );
-  });
-
   it("keeps authored masthead clearance when packing after a corrupted heading gap", () => {
     // Masthead rule stays at 158; a prior pack pushed the first heading to 280
     // and opened a large white band. Packing must re-anchor under the masthead
@@ -1983,7 +1948,7 @@ describe("applyFlowSpacing", () => {
   });
 
   it("ignores a masthead photo slot in the main column, not just the sidebar's own rail photo", () => {
-    // Regression: Vestige's masthead photo slot sits in the MAIN column
+    // Regression: a masthead photo slot can sit in the MAIN column
     // (left=505, far right of the narrow sidebar rail), unlike Slate/Tessera
     // whose photo well is physically inside the rail. `sameColumnAsHeading`
     // is deliberately biased to treat anything at/right of a heading as
@@ -2531,9 +2496,9 @@ describe("listFlatSectionAnchors", () => {
   // so chips sections must NOT get the list/layout toggle. A synthetic mid-dot
   // skills textarea still must. The base fixture is a real single-column icon
   // starter; the chips variant is produced with the skills display-mode util.
-  const source = porticoTemplate.map((element, index) => ({
+  const source = cadenzaTemplate.map((element, index) => ({
     ...element,
-    element_id: `p-${index}`,
+    element_id: `c-${index}`,
     page: 1,
   }));
 
@@ -2599,7 +2564,6 @@ describe("listFlatSectionAnchors", () => {
       "chips",
       842,
       undefined,
-      "portico",
     );
     const anchors = listFlatSectionAnchors(chipSource, 842);
     const sections = listDocumentSections(chipSource, 842);

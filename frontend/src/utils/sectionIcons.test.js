@@ -32,8 +32,8 @@ function makeIdFactory(prefix = "id") {
 
 describe("parseIconicSrc / buildIconicSrc", () => {
   it("parses theme and name from an absolute iconic URL", () => {
-    const parsed = parseIconicSrc("https://example.com/template-assets/iconic/portico/experience.png");
-    assert.deepEqual(parsed, { theme: "portico", name: "experience" });
+    const parsed = parseIconicSrc("https://example.com/template-assets/iconic/nova/experience.png");
+    assert.deepEqual(parsed, { theme: "nova", name: "experience" });
   });
 
   it("builds a src that round-trips through parseIconicSrc", () => {
@@ -43,11 +43,11 @@ describe("parseIconicSrc / buildIconicSrc", () => {
 });
 
 describe("listSectionIconOptions", () => {
-  it("lists portico heading icons for the portico template", () => {
-    const options = listSectionIconOptions({ templateId: "portico", elements: [] });
+  it("lists nova heading icons for the nova template", () => {
+    const options = listSectionIconOptions({ templateId: "nova", elements: [] });
     assert.ok(options.length >= 8);
     assert.ok(options.some((option) => option.name === "experience"));
-    assert.ok(options.every((option) => option.src.includes("/iconic/portico/")));
+    assert.ok(options.every((option) => option.src.includes("/iconic/nova/")));
   });
 
   it("hides the gallery for an unmapped template unless a heading icon already exists", () => {
@@ -89,7 +89,7 @@ describe("applySelectedSectionIcon", () => {
     const elements = [
       {
         element_id: "icon", category: "image", flowRole: "section-chrome",
-        src: "https://api.test/template-assets/iconic/portico/summary.png",
+        src: "https://api.test/template-assets/iconic/nova/summary.png",
         left: 48, top: 100, width: 15, height: 15, alignWithText: true,
       },
       {
@@ -110,13 +110,13 @@ describe("applySelectedSectionIcon", () => {
     assert.equal(style.markers.length, 1);
     assert.equal(style.markers[0].category, "image");
     assert.equal(style.markers[0].alignWithText, true);
-    assert.match(style.markers[0].src, /portico\/summary\.png$/);
+    assert.match(style.markers[0].src, /nova\/summary\.png$/);
 
     const withIcon = applySelectedSectionIcon(style, elements, 842, {
-      templateId: "portico",
+      templateId: "nova",
       iconName: "certifications",
     });
-    assert.match(withIcon.markers[0].src, /portico\/certifications\.png$/);
+    assert.match(withIcon.markers[0].src, /nova\/certifications\.png$/);
     assert.equal(withIcon.markers[0].relLeft, 48 - 66);
     assert.equal(withIcon.markers[0].width, 15);
 
@@ -129,7 +129,7 @@ describe("applySelectedSectionIcon", () => {
     const heading = built.find((element) => element.element_id === headingId);
     const icon = built.find((element) => element.category === "image");
     assert.ok(icon);
-    assert.match(icon.src, /portico\/certifications\.png$/);
+    assert.match(icon.src, /nova\/certifications\.png$/);
     assert.equal(icon.alignWithText, true);
     assert.equal(icon.left, heading.left + (48 - 66));
     assert.equal(icon.top, heading.top);

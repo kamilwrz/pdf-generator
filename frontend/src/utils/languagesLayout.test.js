@@ -61,7 +61,7 @@ describe("buildLanguagesMainGrid", () => {
   it("defaults to 3 columns for a narrow (sidebar-template) main column", () => {
     // Regression: a 4th column left too little width per cell for a
     // "Name — Level" line in a narrow (~300pt) sidebar-template main column
-    // (Sterling/Tessera/Slate/Vestige), wrapping or cutting it off mid-word.
+    // (Sterling/Tessera/Slate), wrapping or cutting it off mid-word.
     // No template-id context reaches this call site (only the sampled
     // `recordWidth`), so the column count is derived from the width itself.
     // Four entries discriminate the column count directly: at 3 columns the

@@ -74,7 +74,7 @@ g) Nova (DELETED)
 - jest ok, ale slot powinien miec ikone
 - dodac inne paletty kolorow
 
-i) Vestige
+i) Vestige (DELETED)
 - Zmniejszyc czcionke w naglowkach (Sidebar + Main)
 
 VI.  AI

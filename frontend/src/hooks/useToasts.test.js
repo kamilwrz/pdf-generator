@@ -8,7 +8,7 @@ test("replaces an older toast from the same workflow", () => {
     { id: 1, title: "Szablon zmieniony", templateName: "Slate", replaceKey: "template-change" },
     { id: 2, title: "PDF gotowy" },
   ];
-  const next = { id: 3, title: "Szablon zmieniony", templateName: "Portico", replaceKey: "template-change" };
+  const next = { id: 3, title: "Szablon zmieniony", templateName: "Cadenza", replaceKey: "template-change" };
 
   assert.deepEqual(mergeToastQueue(previous, next), [previous[1], next]);
 });

@@ -61,8 +61,8 @@ def _two_column_cv_pdf_bytes() -> bytes:
     return data
 
 
-def _portico_style_cv_pdf_bytes() -> bytes:
-    """Build wrapped prose and bold nested skills like the Portico fixture."""
+def _two_column_wrapped_cv_pdf_bytes() -> bytes:
+    """Build wrapped prose and bold nested skills in a two-column layout."""
     document = fitz.open()
     page = document.new_page()
     left_lines = [
@@ -435,7 +435,7 @@ class CloudflareCvExtractionTests(unittest.TestCase):
         self.assertIn("Hydraulik Cezary Hrynski", rendered_content)
         self.assertIn("Manager Julia Oleszko", rendered_content)
 
-    def test_portico_source_preserves_full_summary_and_nested_skill_groups(self):
+    def test_two_column_source_preserves_full_summary_and_nested_skill_groups(self):
         """Wrapped native text must beat shortened and flattened model output."""
         client = self._client({
             "name": "Jacob Andrew Rauch",
@@ -454,7 +454,7 @@ class CloudflareCvExtractionTests(unittest.TestCase):
             "_provider_settings",
             return_value=(client, ai_service.CLOUDFLARE_TEXT_MODEL, "cloudflare"),
         ):
-            cv_data, usage = ai_service.extract_cv_data(_portico_style_cv_pdf_bytes())
+            cv_data, usage = ai_service.extract_cv_data(_two_column_wrapped_cv_pdf_bytes())
 
         self.assertEqual(
             cv_data["summary"],

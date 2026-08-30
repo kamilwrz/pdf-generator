@@ -29,15 +29,13 @@ _CV = {
 # Templates whose design uppercases the name by default. These must express
 # the caps through the reversible flag rather than a baked ``.upper()``.
 _UPPERCASE_NAME = {"slate", "linden", "cadenza"}
-_UPPERCASE_TITLE = {"slate", "regent", "meridian", "vestige", "sterling", "cadenza"}
+_UPPERCASE_TITLE = {"slate", "regent", "meridian", "sterling", "cadenza"}
 _BAND_IDS = {
     "atrium": "masthead-main",
-    "portico": "masthead-main",
     "slate": "masthead-main",
     "regent": "masthead-main",
     "meridian": "masthead-main",
     "linden": "linden-masthead",
-    "vestige": "vestige-masthead",
     "monument": "monument-masthead",
     "sterling": "sterling-masthead",
     "cadenza": "masthead-main",
@@ -99,7 +97,7 @@ def test_template_emits_masthead_identity(template_id):
 
 @pytest.mark.parametrize(
     "template_id",
-    ["atrium", "portico", "slate", "regent", "meridian", "cadenza"],
+    ["atrium", "slate", "regent", "meridian", "cadenza"],
 )
 def test_masthead_descriptor_reflow_delta_is_positive(template_id):
     """The title-hide reflow delta (``blockPt``) must be positive so hiding the
@@ -123,7 +121,7 @@ def test_masthead_descriptor_reflow_delta_is_positive(template_id):
 
 @pytest.mark.parametrize(
     "template_id",
-    ["linden", "vestige", "monument", "sterling"],
+    ["linden", "monument", "sterling"],
 )
 def test_fixed_or_parallel_mastheads_do_not_reflow_when_title_toggles(template_id):
     """These layouts reserve the title row or run it beside independent rails."""
@@ -196,7 +194,7 @@ def test_empty_title_emits_complete_latent_spec_without_orphan_elements(template
 @pytest.mark.parametrize(
     "template_id",
     [
-        "atrium", "portico", "slate", "regent", "meridian",
+        "atrium", "slate", "regent", "meridian",
         "monument", "sterling",
     ],
 )

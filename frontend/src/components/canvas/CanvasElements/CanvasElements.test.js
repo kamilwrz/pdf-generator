@@ -9,7 +9,7 @@ test("every structurally compatible sidebar template exposes lane-transfer contr
   // restyles a section for the destination lane. These generators emit the
   // same sidebar-chrome/content metadata, so omitting any ID would leave the
   // tested transfer utility unreachable in the live editor.
-  for (const templateId of ["sterling", "slate", "vestige", "linden"]) {
+  for (const templateId of ["sterling", "slate", "linden"]) {
     assert.match(source, new RegExp(`"${templateId}"`));
   }
   assert.match(source, /const allowLaneTransfer = LANE_TRANSFER_TEMPLATE_IDS\.has\(activeTemplateId\)/);

@@ -22,10 +22,11 @@
 import { nanoid } from "nanoid";
 
 /**
- * Symbolic frame ids used by Slate, Monument, Nova, Portico.
- * `cinder-frame-one`, `nimbus-photo-frame`, `harbor-photo-frame`, and
- * `tessera-photo-frame` belong to retired templates and are kept only so
- * previously saved documents still resolve their photo slot.
+ * Symbolic frame ids used by Slate, Monument, Nova.
+ * `cinder-frame-one`, `nimbus-photo-frame`, `harbor-photo-frame`,
+ * `tessera-photo-frame`, and `portico-photo-frame` belong to retired
+ * templates and are kept only so previously saved documents still resolve
+ * their photo slot.
  */
 export const PROFILE_PHOTO_FRAME_IDS = new Set([
   "slate-photo-frame",
@@ -174,8 +175,8 @@ function findGlyphInFrame(elements, frame) {
  * @returns {number}
  */
 function insetForFrame(frame) {
-  // Nova / Portico / Vestige: gallery photo fills the well edge-to-edge
-  // (object-fit cover).
+  // Nova (and the retired Portico / Vestige templates): gallery photo fills
+  // the well edge-to-edge (object-fit cover).
   if (
     frame?.id === "nova-photo-frame"
     || frame?.id === "portico-photo-frame"
@@ -398,7 +399,7 @@ export function applyProfilePhoto(elements, photo, createId = nanoid) {
     } : {}),
     // Match the frame's own corner rounding so the photo doesn't poke square
     // corners out past a rounded outline drawn on top of it (frame z-orders
-    // above the photo for `coversWell` slots like Portico's).
+    // above the photo for `coversWell` slots).
     ...(isCircle
       ? { borderRadius: Math.min(photoBox.width, photoBox.height) / 2 }
       : (Number(frame?.borderRadius) > 0 ? { borderRadius: Number(frame.borderRadius) } : {})),

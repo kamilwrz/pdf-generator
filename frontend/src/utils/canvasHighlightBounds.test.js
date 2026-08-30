@@ -10,12 +10,12 @@ import {
 } from "./canvasHighlightBounds.js";
 
 describe("canvas semantic highlight bounds", () => {
-  it("includes an optically shifted Portico section icon above the stored heading top", () => {
+  it("includes an optically shifted Nova section icon above the stored heading top", () => {
     const elements = [
       {
         element_id: "summary-icon",
         category: "image",
-        src: "/template-assets/iconic/portico/summary.png",
+        src: "/template-assets/iconic/nova/summary.png",
         alignWithText: true,
         left: 54,
         top: 259,
@@ -58,7 +58,7 @@ describe("canvas semantic highlight bounds", () => {
       1,
     );
 
-    // Portico stores icon.top at the label line. Its painted 14 px glyph starts
+    // Nova stores icon.top at the label line. Its painted 14 px glyph starts
     // at 259 + 1 - 14/2 = 253, which must become the section border's top.
     assert.equal(bounds.top, 253);
     assert.equal(bounds.left, 54);
@@ -241,7 +241,7 @@ describe("canvas semantic highlight bounds", () => {
       {
         element_id: "summary-icon",
         category: "image",
-        src: "/template-assets/iconic/portico/summary.png",
+        src: "/template-assets/iconic/nova/summary.png",
         alignWithText: true,
         left: 54,
         top: 259,

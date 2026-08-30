@@ -255,9 +255,9 @@ describe("changeSkillsDisplayMode", () => {
     );
   });
 
-  it("renders Portico chips as an unfilled outline pill, not the shared solid fill", () => {
+  it("keeps every template's chips as the shared solid-fill pill", () => {
     const next = changeSkillsDisplayMode(
-      flatSkillsFixture(), "sk-head", "chips", PAGE_HEIGHT, SPACING, "portico",
+      flatSkillsFixture(), "sk-head", "chips", PAGE_HEIGHT, SPACING,
     );
     assert.ok(next);
     const memberIds = sectionElementIds(next, "sk-head", PAGE_HEIGHT);
@@ -266,23 +266,7 @@ describe("changeSkillsDisplayMode", () => {
     ));
     assert.ok(pills.length > 0);
     for (const pill of pills) {
-      assert.equal(pill.filled, false, "Portico pills must be unfilled");
-      assert.ok(pill.borderWidth > 0, "Portico pills must have a visible stroke");
-    }
-  });
-
-  it("keeps every other template's chips as the shared solid-fill pill", () => {
-    const next = changeSkillsDisplayMode(
-      flatSkillsFixture(), "sk-head", "chips", PAGE_HEIGHT, SPACING, "monument",
-    );
-    assert.ok(next);
-    const memberIds = sectionElementIds(next, "sk-head", PAGE_HEIGHT);
-    const pills = next.filter((element) => (
-      memberIds.has(element.element_id) && element.category === "rectangle" && element.flowRole === "grid-member"
-    ));
-    assert.ok(pills.length > 0);
-    for (const pill of pills) {
-      assert.equal(pill.filled, true, "non-Portico pills must stay filled");
+      assert.equal(pill.filled, true, "pills must stay filled");
     }
   });
 

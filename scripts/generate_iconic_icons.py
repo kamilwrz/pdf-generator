@@ -13,21 +13,14 @@ from PIL import Image, ImageDraw
 ROOT = Path(__file__).resolve().parents[1] / "backend" / "template_assets" / "iconic"
 
 THEMES = {
-    "portico": "#7C6A52",
     # Regent uses a neutral charcoal icon set so its masthead remains entirely
     # monochrome while retaining independently editable contact channels.
     "regent": "#151515",
-    # Vestige uses restrained graphite contact glyphs against its soft-gray rail.
-    "vestige": "#4A4A48",
 }
 THEME_VARIANTS = {}
 # Full Iconic themes normally receive the base glyph set. Nova additionally
 # uses the portrait placeholder inside its masthead photo frame.
-THEME_EXTRA_ICONS = {
-    # Vestige's masthead photo slot reuses the same portrait placeholder glyph,
-    # drawn in the template's own graphite ink instead of Nova's terracotta.
-    "vestige": ["portrait"],
-}
+THEME_EXTRA_ICONS = {}
 
 SIZE = 128
 # Ink area inside the canvas — equal padding on every side after normalize.

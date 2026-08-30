@@ -62,13 +62,6 @@ export function listSkillsDisplayAnchors(elements, pageHeight = 842) {
   return anchors;
 }
 
-/** Templates whose chip pills render as an unfilled, bordered outline instead
- * of a solid fill — their own accent palette reads as too pale/neutral for a
- * filled pill to look intentional (matches the "Analiza AML/KYC" outline
- * look requested for Portico specifically, not the shared filled-pill
- * default every other chip-capable template already uses). */
-const OUTLINE_CHIP_TEMPLATE_IDS = new Set(["portico"]);
-
 /**
  * Switch one main-column Skills section into `mode`, in place (does not move
  * or reorder the section), then re-pack the document under the live flow
@@ -80,10 +73,9 @@ const OUTLINE_CHIP_TEMPLATE_IDS = new Set(["portico"]);
  * @param {"inline"|"bullet"|"chips"} mode
  * @param {number} [pageHeight=842]
  * @param {object} [spacing]
- * @param {string|null} [templateId] active template id — selects chip pill style
  * @returns {object[]|null} null when the section cannot be found/converted or is already in `mode`
  */
-export function changeSkillsDisplayMode(elements, headingId, mode, pageHeight = 842, spacing, templateId = null) {
+export function changeSkillsDisplayMode(elements, headingId, mode, pageHeight = 842, spacing) {
   if (!SKILLS_LAYOUT_MODES.includes(mode)) return null;
   const list = elements || [];
   const section = listDocumentSections(list, pageHeight)
@@ -98,7 +90,7 @@ export function changeSkillsDisplayMode(elements, headingId, mode, pageHeight = 
   // Sample this section's OWN current geometry/type (not another section's) —
   // `deriveSectionStyle` samples whichever heading id it is given.
   const style = deriveSectionStyle(list, pageHeight, headingId, { lane: "main" });
-  const chipStyle = OUTLINE_CHIP_TEMPLATE_IDS.has(templateId) ? "outline" : "filled";
+  const chipStyle = "filled";
   const { chipBg, chipFg } = resolveSkillChipColors(members, list, style, { chipStyle });
   const parkTop = Math.min(...members.map((element) => absoluteTop(element, pageHeight)));
 

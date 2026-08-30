@@ -279,7 +279,7 @@ test("title toggle reflows only the title's page, never continuation pages", () 
   assert.equal(s("p2body").top, 90);
 });
 
-// A centered masthead (Portico/Atrium/Tessera) stores the title as a
+// A centered masthead (Atrium/Tessera) stores the title as a
 // width-bounded, center-aligned textarea. Hiding then re-adding it must
 // reconstruct that box, not a left-anchored point-text run, or the title lands
 // at the band's left edge and cannot be kept centered while editing.

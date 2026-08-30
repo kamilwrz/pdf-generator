@@ -64,11 +64,9 @@ describe("all template starters expose a reversible masthead title", () => {
         "linden",
         "meridian",
         "monument",
-        "portico",
         "regent",
         "slate",
         "sterling",
-        "vestige",
       ],
     );
   });

@@ -536,7 +536,7 @@ export function buildSkillsChipGroups(groups, options) {
           top: cursor + dy,
           width: chipW,
           height: chipH,
-          // Outline style (Portico): unfilled pill, thin stroke in chipBg —
+          // Outline style: unfilled pill, thin stroke in chipBg —
           // `backgroundColor` doubles as the stroke colour when filled=false
           // (same convention the backend `_rect`/photo-frame elements use).
           // Filled style (every other chip-capable template): solid pill.
@@ -595,8 +595,8 @@ export function resolveSkillChipColors(sectionMembers, allElements, style, optio
     const rect = (pool || []).find((element) => (
       element?.flowRole === "grid-member"
       && element.category === "rectangle"
-      // Filled pills (every other chip template) and outline pills (Portico,
-      // `filled: false` + a stroke) are both legitimate existing chip chrome
+      // Filled pills (every chip-capable template today) and outline pills
+      // (`filled: false` + a stroke) are both legitimate existing chip chrome
       // — matching only `filled` here would make round-tripping an outline
       // section through another mode and back to chips forget its own colors.
       && (element.filled || Number(element.borderWidth) > 0)

@@ -18,7 +18,7 @@ export const DEFAULT_FLOW_SPACING = Object.freeze({
  * Compact rhythm preset: ~30% tighter than the generator defaults, applied
  * deterministically (no API cost) as the first attempt to fit a too-long CV
  * on fewer pages. Deliberately NOT a literal halving of every value — that
- * kills the visual rhythm of templates like Monument / Portico. Each knob is
+ * kills the visual rhythm of templates like Monument. Each knob is
  * reduced proportionally but kept above a legible minimum.
  */
 export const COMPACT_FLOW_SPACING = Object.freeze({

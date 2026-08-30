@@ -132,7 +132,7 @@ export function clampCanvasBounds(
  *
  * `sectionStartAbs` is structural model data. Only the current heading and its
  * explicitly tagged leading chrome may extend that start upward optically.
- * This keeps Portico icons and Monument badges inside the outline without
+ * This keeps Nova icons and Monument badges inside the outline without
  * allowing an accidentally supplied body member from the previous section to
  * move the boundary.
  *

@@ -4,35 +4,24 @@
  *
  * Slot elements stay in document state while hidden. This preserves the exact
  * authored geometry and makes show/hide lossless across undo, save, and reload.
- * Portico stores the original position on every reclaimed element. Slate and
- * Tessera store the original contact-band descriptor on its zero-size anchor,
- * then switch the band to a one-row-per-channel sidebar layout. Linden starts
- * with that stacked rail already active and publishes its own hidden-photo
- * anchor plus a contact-to-section spacing contract.
+ * Slate and Tessera store the original contact-band descriptor on its
+ * zero-size anchor, then switch the band to a one-row-per-channel sidebar
+ * layout. Linden starts with that stacked rail already active and publishes
+ * its own hidden-photo anchor plus a contact-to-section spacing contract.
  */
 
 const SUPPORTED_TEMPLATE_IDS = new Set([
   "atrium",
-  "vestige",
   "monument",
-  "portico",
   "slate",
   "linden",
 ]);
 
 const SIDEBAR_CONTACT_TEMPLATE_IDS = new Set(["slate", "linden"]);
 export const SIDEBAR_CONTACT_SECTION_GAP = 40;
-const PORTICO_PHOTO_BOTTOM = 159;
-const PORTICO_RECLAIM_PT = 100;
 const LEGACY_FRAMELESS_PLACEHOLDERS = {
   atrium: "/template-assets/iconic/atrium-accent/portrait.png",
 };
-
-function isPorticoPackedFlowElement(element) {
-  return element?.flowRole === "section-chrome"
-    || element?.flowRole === "content"
-    || element?.flowRole === "grid-member";
-}
 
 function clone(value) {
   return value == null ? value : JSON.parse(JSON.stringify(value));
@@ -243,46 +232,6 @@ export function hideProfilePhoto(elements, templateId) {
       };
     }
 
-    if (id === "portico") {
-      if (element.mastheadIdentity?.title?.spec) {
-        const original = clone(element.mastheadIdentity);
-        const identity = clone(element.mastheadIdentity);
-        const titleTop = Number(identity.title.spec.top);
-        if (Number.isFinite(titleTop) && titleTop >= PORTICO_PHOTO_BOTTOM) {
-          identity.title.spec.top = titleTop - PORTICO_RECLAIM_PT;
-        }
-        // Title visibility is an independent reversible operation. Keep its
-        // reconstruction spec in the currently visible (photo-less) coordinate
-        // system, otherwise showing the title before restoring the photo would
-        // rebuild it 100 pt too low inside the document body.
-        return {
-          ...element,
-          mastheadIdentity: identity,
-          profilePhotoMainMastheadIdentity: original,
-        };
-      }
-      if (element.contactBand?.anchor) {
-        const original = clone(element.contactBand);
-        const descriptor = clone(element.contactBand);
-        if (Number.isFinite(Number(descriptor.anchor.startY))) {
-          descriptor.anchor.startY -= PORTICO_RECLAIM_PT;
-        }
-        return { ...element, contactBand: descriptor, profilePhotoMainContactBand: original };
-      }
-      const page = Number(element.page) || 1;
-      const top = Number(element.top);
-      // Reclaim only document flow. Footer rules, page numbers, and paper are
-      // fixed page chrome whose geometry must never follow masthead reflow.
-      if (
-        !element.fixedToPage
-        && page === 1
-        && Number.isFinite(top)
-        && top >= PORTICO_PHOTO_BOTTOM
-      ) {
-        return { ...element, top: top - PORTICO_RECLAIM_PT, photoLayoutHome: { top } };
-      }
-    }
-
     if (SIDEBAR_CONTACT_TEMPLATE_IDS.has(id) && anchor && element.element_id === anchor.element_id) {
       const descriptor = clone(element.contactBand);
       const hidden = descriptor?.photoHidden;
@@ -323,75 +272,26 @@ export function showProfilePhoto(elements, templateId) {
     return { elements, contactBandId: null };
   }
   const id = String(templateId);
-  const porticoTitleRestoreTop = id === "portico"
-    ? Number((elements || []).find(
-      (element) => element.profilePhotoMainMastheadIdentity,
-    )?.mastheadIdentity?.title?.spec?.top) + PORTICO_RECLAIM_PT
-    : NaN;
   let restoredBandId = null;
   const next = (elements || []).map((element) => {
     let updated = isSlotMember(element, id)
       ? { ...element, photoSlotHidden: false }
       : element;
 
-    const shouldShiftPackedPorticoFlow = id === "portico"
-      && isPorticoPackedFlowElement(updated)
-      && Number.isFinite(Number(updated.top));
-    if (shouldShiftPackedPorticoFlow) {
+    if (updated.photoLayoutHome) {
       const { photoLayoutHome: _home, ...rest } = updated;
-      // Every packed member moves by the same inverse photo delta, including
-      // members that came from a continuation page and therefore had no home
-      // snapshot when the slot was hidden. This preserves reading order until
-      // the following full-document pack assigns final pages and coordinates.
-      updated = { ...rest, top: Number(updated.top) + PORTICO_RECLAIM_PT };
-    } else if (updated.photoLayoutHome) {
-      const { photoLayoutHome: _home, ...rest } = updated;
-      // Portico composes photo and title visibility as independent deltas.
-      // Reversing the photo's 100 pt shift from the CURRENT coordinate keeps a
-      // simultaneous title shift intact; restoring an old absolute top would
-      // lose that 22 pt state. Other templates still use exact authored homes.
-      updated = id === "portico"
-        ? { ...rest, top: Number(updated.top) + PORTICO_RECLAIM_PT }
-        : { ...rest, top: updated.photoLayoutHome.top };
+      updated = { ...rest, top: updated.photoLayoutHome.top };
     }
     if (updated.profilePhotoMainContactBand) {
-      const storedDescriptor = clone(updated.profilePhotoMainContactBand);
-      const descriptor = id === "portico"
-        ? clone(updated.contactBand) || storedDescriptor
-        : storedDescriptor;
-      if (
-        id === "portico"
-        && Number.isFinite(Number(descriptor?.anchor?.startY))
-      ) {
-        descriptor.anchor.startY = Number(descriptor.anchor.startY) + PORTICO_RECLAIM_PT;
-      }
+      const descriptor = clone(updated.profilePhotoMainContactBand);
       const { profilePhotoMainContactBand: _descriptor, ...rest } = updated;
       updated = { ...rest, contactBand: descriptor };
       restoredBandId = updated.contactBandId || restoredBandId;
     }
     if (updated.profilePhotoMainMastheadIdentity) {
-      const storedIdentity = clone(updated.profilePhotoMainMastheadIdentity);
-      const identity = id === "portico"
-        ? clone(updated.mastheadIdentity) || storedIdentity
-        : storedIdentity;
-      if (
-        id === "portico"
-        && Number.isFinite(Number(identity?.title?.spec?.top))
-      ) {
-        identity.title.spec.top = Number(identity.title.spec.top) + PORTICO_RECLAIM_PT;
-      }
+      const identity = clone(updated.profilePhotoMainMastheadIdentity);
       const { profilePhotoMainMastheadIdentity: _identity, ...rest } = updated;
       updated = { ...rest, mastheadIdentity: identity };
-    }
-    if (
-      id === "portico"
-      && updated.mastheadRole === "title"
-      && Number.isFinite(porticoTitleRestoreTop)
-    ) {
-      // A title recreated while the photo is hidden has no photoLayoutHome of
-      // its own because it did not exist when the slot was hidden. Restore it
-      // from the identity snapshot together with the rest of the masthead.
-      updated = { ...updated, top: porticoTitleRestoreTop };
     }
     return updated;
   });
@@ -403,8 +303,8 @@ export function showProfilePhoto(elements, templateId) {
 
 /**
  * Remove only the selected user raster while retaining the reusable slot.
- * Converted glyphs carry their own placeholder snapshot; frame-only Portico
- * simply drops the inserted image and keeps its frame/well.
+ * Converted glyphs carry their own placeholder snapshot; frame-only templates
+ * simply drop the inserted image and keep their frame/well.
  */
 export function removeProfilePhoto(elements, templateId) {
   const list = elements || [];

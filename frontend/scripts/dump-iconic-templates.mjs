@@ -5,24 +5,20 @@
 import { writeFileSync } from "node:fs";
 import { monumentTemplate } from "../src/templates/monument.js";
 import { slateTemplate } from "../src/templates/slate.js";
-import { porticoTemplate } from "../src/templates/portico.js";
 import { atriumTemplate } from "../src/templates/atrium.js";
 import { sterlingTemplate } from "../src/templates/sterling.js";
 import { regentTemplate } from "../src/templates/regent.js";
 import { meridianTemplate } from "../src/templates/meridian.js";
-import { vestigeTemplate } from "../src/templates/vestige.js";
 import { lindenTemplate } from "../src/templates/linden.js";
 import { cadenzaTemplate } from "../src/templates/cadenza.js";
 
 const out = {
     monument: monumentTemplate,
     slate: slateTemplate,
-    portico: porticoTemplate,
     atrium: atriumTemplate,
     sterling: sterlingTemplate,
     regent: regentTemplate,
     meridian: meridianTemplate,
-    vestige: vestigeTemplate,
     linden: lindenTemplate,
     cadenza: cadenzaTemplate,
 };

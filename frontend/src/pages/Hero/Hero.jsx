@@ -180,7 +180,7 @@ export default function Hero() {
     // standard per-template mockup path) — so the before/after pair reads as
     // one real transformation, not two unrelated documents.
     const afterMock = { name: "Sterling", image: "/template-mockups/sterling-showcase.png" };
-    const finalDocs = ["regent", "vestige", "slate"].map(previewById);
+    const finalDocs = ["regent", "cadenza", "slate"].map(previewById);
 
     return (
         <main className={classes.page}>

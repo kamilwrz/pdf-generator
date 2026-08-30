@@ -14,7 +14,7 @@ import {
 } from "./sectionStructure.js";
 import { decorativeShapeElement } from "./sectionBuilder.js";
 
-/** Shared base glyphs generated for nova / portico. */
+/** Shared base glyphs generated for nova. */
 const BASE_ICON_NAMES = Object.freeze([
   "summary",
   "experience",
@@ -36,7 +36,6 @@ const BASE_ICON_NAMES = Object.freeze([
 /** Theme folder → icon file stems (must match `scripts/generate_iconic_icons.py`). */
 export const THEME_ICON_NAMES = Object.freeze({
   nova: BASE_ICON_NAMES,
-  portico: BASE_ICON_NAMES,
   slate: Object.freeze([
     "summary", "experience", "education", "skills", "languages",
     "interests", "references", "certifications", "other",
@@ -49,7 +48,6 @@ export const THEME_ICON_NAMES = Object.freeze({
 export const TEMPLATE_ICON_THEME = Object.freeze({
   nova: "nova",
   slate: "slate",
-  portico: "portico",
 });
 
 const ICON_LABELS_PL = Object.freeze({
@@ -175,14 +173,14 @@ export function templateOffersSectionIcons(templateId, elements = []) {
 
 /** Themes that decorate section headings with iconic glyphs (not contact-only). */
 const SECTION_HEADING_ICON_THEMES = new Set([
-  "nova", "slate", "portico",
+  "nova", "slate",
 ]);
 
 /**
  * Gallery options for the active template / document.
  *
  * Shown when the document already has a section-heading icon, or when the
- * template theme is known to place icons beside headings (Nova, Portico, …).
+ * template theme is known to place icons beside headings (Nova, …).
  * Contact-only themes stay hidden unless a heading icon exists.
  *
  * @param {{ templateId?: string|null, elements?: object[] }} [args]

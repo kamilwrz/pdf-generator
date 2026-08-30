@@ -249,7 +249,7 @@ Każdy z 14 szablonów ma osobny plik `cv_templates/templates/<id>.py` z funkcj�
 | Tag layoutu | Szablony |
 |---|---|
 | `single` | nimbus, cinder, monument, atrium, blueprint |
-| `icons` | nova, portico, axis (+ harbor, slate, atrium) |
+| `icons` | nova, axis (+ harbor, slate, atrium) |
 | `sidebar` | harbor, slate, sterling |
 
 Algorytm flow (summary → experience → …) jest wspólny koncepcyjnie; paleta, assety i chrome nagłówków są per szablon.

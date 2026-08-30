@@ -142,7 +142,7 @@ class CvDataNormalizationTests(unittest.TestCase):
 
         content = "\n".join(
             str(element.get("content", ""))
-            for element in generate_resume("portico", refilled)
+            for element in generate_resume("regent", refilled)
         )
         self.assertIn("SKILLS", content)
         self.assertIn("LANGUAGES", content)
@@ -163,7 +163,7 @@ class CvDataNormalizationTests(unittest.TestCase):
         self.assertEqual(profile["labels"]["skills"], "UMIEJĘTNOŚCI")
         content = "\n".join(
             str(element.get("content", ""))
-            for element in generate_resume("portico", profile)
+            for element in generate_resume("regent", profile)
         )
         self.assertEqual(content.upper().count("SOFT SKILLS"), 1)
 

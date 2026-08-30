@@ -14,7 +14,7 @@ const PAGE_CENTER = 595 / 2; // 297.5
 const isTextual = (element) =>
     element.category === "textarea" || element.category === "text";
 
-test("Atrium is a centered-axis editorial single column, not a Portico recolor", () => {
+test("Atrium is a centered-axis editorial single column, not a generic icon-template recolor", () => {
     // ── Single column: the only full-height element is the paper surface. A
     // second tall band would imply a sidebar, which this layout must never grow.
     const tall = atriumTemplate.filter((element) => (element.height ?? 0) >= 300);
@@ -28,8 +28,8 @@ test("Atrium is a centered-axis editorial single column, not a Portico recolor",
         );
     }
 
-    // ── Restrained content column, centered on the page. It remains narrower
-    // than Portico while giving long body lines enough room to breathe.
+    // ── Restrained content column, centered on the page, narrow enough to
+    // give long body lines room to breathe.
     const columnBlocks = atriumTemplate.filter(
         (element) => isTextual(element) && element.left === L && element.width === W,
     );
@@ -42,7 +42,7 @@ test("Atrium is a centered-axis editorial single column, not a Portico recolor",
     assert.equal(name.category, "textarea");
     assert.equal(name.align, "center");
     assert.equal(name.flowRole, "masthead");
-    assert.equal(name.fontFamily, "PlayfairDisplay"); // high-contrast serif — not Portico's Lora
+    assert.equal(name.fontFamily, "PlayfairDisplay"); // high-contrast serif, Atrium's own choice
     const title = atriumTemplate.find(
         (element) => element.content === "Analityczka AML i Compliance",
     );
@@ -51,7 +51,7 @@ test("Atrium is a centered-axis editorial single column, not a Portico recolor",
     assert.equal(title?.color, ACCENT);
 
     // ── Photo slot: frameless (per Atrium's "no framing shapes" identity) ────
-    // Unlike Nova/Portico/Harbor, there is no surrounding rect/circle chrome —
+    // Unlike Nova, there is no surrounding rect/circle chrome —
     // only a plain image glyph marks the slot until a photo is applied.
     const photoGlyph = atriumTemplate.find((element) => element.photoSlot === "glyph");
     assert.ok(photoGlyph, "Atrium must expose a photo glyph slot");

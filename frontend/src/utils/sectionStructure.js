@@ -974,8 +974,8 @@ function hasIconicMasthead(elements) {
 }
 
 /**
- * True when the masthead centers its name / title block (Portico's "Ivy League"
- * header). Such mastheads author a deliberate ~36px clearance under the divider
+ * True when the masthead centers its name / title block (an "Ivy League"
+ * style header). Such mastheads author a deliberate ~36px clearance under the divider
  * and must be exempt from the iconic heal-back below, which collapses the
  * over-authored 36px of the tight LEFT-aligned iconic mastheads (Nova / Cardinal
  * Harbor) down to 10px.
@@ -1038,8 +1038,8 @@ function resolveFlowStart(elements, sections, pageHeight) {
     // OR BELOW the photo's bottom by construction, so the divider element
     // (still counted below) always dominates — excluding the photo itself
     // changes nothing for them. Templates whose masthead photo sits in a
-    // different column from the name/title stack entirely (Vestige: name in
-    // the main column, photo flush against the page's right margin) have no
+    // different column from the name/title stack entirely (name in the main
+    // column, photo flush against the page's right margin) have no
     // such relationship, and a short/title-less masthead could otherwise let
     // the photo alone decide "how tall is the masthead" here.
     if (element.photoSlot) continue;
@@ -1053,7 +1053,7 @@ function resolveFlowStart(elements, sections, pageHeight) {
   const authoredGap = leadingChromeStart - mastheadBottom;
   // Preserve whatever clearance the template authored, as long as it is sane.
   // The Python generators author ~36px under the divider for iconic templates
-  // (Nova / Cardinal / Harbor / Portico) via SPACE_AFTER_HEADER_RULE, and
+  // (Nova / Cardinal / Harbor) via SPACE_AFTER_HEADER_RULE, and
   // the static starter arrays author as little as ~8px — BOTH are legitimate.
   // An earlier version collapsed any 28–40px iconic gap down to 10px on every
   // pack, which meant reordering a section yanked the whole document up ~26px
@@ -1068,8 +1068,8 @@ function resolveFlowStart(elements, sections, pageHeight) {
   }
   // Corruption recovery only: a tight LEFT-aligned iconic masthead (Nova /
   // Cardinal / Harbor) recovers to a tight clearance; a centered "Ivy
-  // League" masthead (Portico) and non-iconic templates (Nimbus / Monument) use
-  // the wider default. `hasCenteredMasthead` keeps Portico out of the tight band.
+  // League" masthead and non-iconic templates (Nimbus / Monument) use
+  // the wider default. `hasCenteredMasthead` keeps centered mastheads out of the tight band.
   const tightIconic = hasIconicMasthead(list) && !hasCenteredMasthead(list);
   return mastheadBottom + (
     tightIconic ? 10 : DEFAULT_MASTHEAD_CLEARANCE
@@ -1099,7 +1099,7 @@ function resolveFlowStart(elements, sections, pageHeight) {
 // plus margin. `sameColumnAsHeading` is deliberately biased to treat anything
 // at or to the right of a heading as "same column" (single-column templates
 // park chrome far right of a narrow heading), which is the wrong bias here:
-// Vestige's masthead photo slot sits at left=505, in the MAIN column, far to
+// A masthead photo slot can sit in the MAIN column at left=505, far to
 // the right of the sidebar's own heading — `sameColumnAsHeading` alone would
 // wrongly count it as the rail's own photo. A rail's own photo well is always
 // physically inside the narrow rail, so bound the candidate's own left
@@ -2765,9 +2765,10 @@ export function applyFlowSpacing(elements, spacing, pageHeight = 842, options = 
   let next = healDecorativeOrdinalBaselines(elements || [], pageHeight);
   next = healSkillChipLabelBaselines(next);
   next = healSimpleChromeRuleGaps(next, pageHeight);
-  // Portico passes the pre-toggle document as the membership reference. Its
-  // masthead transition is allowed to move content through a page boundary,
-  // but it must never let that temporary geometry redefine section ownership.
+  // A caller mid masthead transition may pass the pre-toggle document as the
+  // membership reference: content is allowed to move through a page boundary
+  // during that transition, but it must never let that temporary geometry
+  // redefine section ownership.
   const membershipSource = Array.isArray(options.membershipReference)
     ? options.membershipReference
     : next;

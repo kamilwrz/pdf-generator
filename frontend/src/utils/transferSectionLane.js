@@ -243,8 +243,8 @@ function restyleLanguagesMembersAsMain(members, headingId, style, parkTop) {
     if (restyledRule) {
       // The rule belongs to the destination lane's section system. Retaining
       // the source rail colour here made a moved Languages section the only
-      // main-column heading with a sidebar-coloured underline (notably in
-      // Vestige, whose graphite rail rule moves onto a neutral-grey main rule).
+      // main-column heading with a sidebar-coloured underline (e.g. a
+      // sidebar template's graphite rail rule moving onto a neutral-grey main rule).
       chrome.push(restyledRule);
     }
   }

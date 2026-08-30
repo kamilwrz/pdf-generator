@@ -241,7 +241,7 @@ function Textarea({
         fontStyle: italic ? "italic" : "normal",
         textDecoration: underline ? "underline" : "none",
         textAlign: align || "left",
-        // Display-only casing (Phase 3 masthead identity). Atrium / Portico build
+        // Display-only casing (Phase 3 masthead identity). Atrium builds
         // the masthead name/title as a textarea block; CSS transforms the drawn
         // glyphs while the stored content stays original-case, so the name-case
         // toggle is reversible here too.
@@ -288,7 +288,7 @@ function Textarea({
                 // reflow" contract for the case/title toggles). `fitTextareaToContent`
                 // runs the generic record-flow cascade (`reflowTextareaHeight`),
                 // which reasons about section/record lanes the masthead does not
-                // belong to. On Vestige's split-column masthead this produced a
+                // belong to. On a split-column masthead this produced a
                 // stray shifted line under the job title when a case toggle
                 // caused the name to wrap onto two lines. Grow/shrink the box in
                 // place instead so the fix for clipped text cannot itself

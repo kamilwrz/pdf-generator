@@ -93,7 +93,7 @@ The source of truth for constants like `1.35` (font-size → line-height ratio) 
 
 ### Per-template generators
 
-- [`cv_templates/templates/`](../backend/app/services/cv_templates/templates/) — 16 files, one per CV template (matches the registry's `template_id`s). Each builds a `Builder` and emits that design's full element list. `axis.py`, `nova.py`, `portico.py` contain their own `* 1.35` fallback constants; `axis.py` also matches on `flowRole`/`flowGroup` tokens.
+- [`cv_templates/templates/`](../backend/app/services/cv_templates/templates/) — 16 files, one per CV template (matches the registry's `template_id`s). Each builds a `Builder` and emits that design's full element list. `axis.py`, `nova.py` contain their own `* 1.35` fallback constants; `axis.py` also matches on `flowRole`/`flowGroup` tokens.
 
 ### Layout analysis / AI editing
 

@@ -1100,8 +1100,8 @@ class PDF_Generator:
         runs unchanged. Browser-resolved lines also carry their measured
         horizontal advance, so mixed-font and justified lines can preserve the
         canvas start and end positions despite ReportLab shaping differences."""
-        # Display-and-render casing (Phase 3 masthead identity). Atrium / Portico
-        # build the masthead name as a multi-line block (a textarea), so the
+        # Display-and-render casing (Phase 3 masthead identity). Atrium
+        # builds the masthead name as a multi-line block (a textarea), so the
         # reversible textTransform flag is honored here as well. Uppercasing keeps
         # the STORED content original-case so the toggle is reversible, and it
         # preserves character count, so any `runs` style ranges stay aligned with

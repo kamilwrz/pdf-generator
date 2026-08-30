@@ -128,7 +128,7 @@ COMPACT_DEMO_CV = {
         "Prowadzę monitoring transakcji i raporty SAR, dbając o jakość analiz."
     ),
     # Trim bullets further so Monument still fits page 1 with the four-column
-    # languages grid (and Portico's taller centered photo masthead).
+    # languages grid.
     "experience": [
         {
             **DEMO_CV["experience"][0],
@@ -153,13 +153,11 @@ COMPACT_DEMO_CV = {
     "languages": DEMO_CV["languages"][:3],
 }
 
-# Portico's centered photo masthead is taller; use the compacted bullet set
-# so the picker mockups still show every section on page 1.
-COMPACT_TEMPLATE_IDS = frozenset({"atrium", "monument", "portico"})
+# Templates with a taller centered photo masthead use the compacted bullet
+# set so the picker mockups still show every section on page 1.
+COMPACT_TEMPLATE_IDS = frozenset({"atrium", "monument"})
 
-# Sidebar previews need enough supporting information to balance the tall rail,
-# while Vestige deliberately keeps only the primary contact channels so its
-# narrow masthead does not become a dense list of links.
+# Sidebar previews need enough supporting information to balance the tall rail.
 SIDEBAR_DEMO_CV = {
     **DEMO_CV,
     "github": None,
@@ -271,25 +269,17 @@ REGENT_DEMO_CV = {
 
 # Template identifiers regenerated into one frontend starter module each.
 TEMPLATES = [
-    "portico",
     "slate",
     "monument",
     "atrium",
     "sterling",
     "regent",
-    "vestige",
     "meridian",
     "linden",
     "cadenza",
 ]
 
 DOC_BLURBS = {
-    "portico": (
-        "Portico template (`layouts: [\"icons\"]`).\n"
-        " *\n"
-        " * Centered masthead with icon contact chrome; left-aligned body with\n"
-        " * icon-in-gutter section headings."
-    ),
     "nova": (
         "Nova template (`layouts: [\"icons\"]`).\n"
         " *\n"
@@ -319,11 +309,6 @@ DOC_BLURBS = {
         "Regent template (`layouts: [\"single\", \"icons\"]`).\n"
         " *\n"
         " * Monochrome executive editorial layout with compact Montserrat summary copy."
-    ),
-    "vestige": (
-        "Vestige template (`layouts: [\"sidebar\", \"icons\"]`).\n"
-        " *\n"
-        " * Narrow neutral-gray sidebar with a classical editorial main column."
     ),
     "meridian": (
         "Meridian template (`layouts: [\"single\", \"icons\"]`).\n"
@@ -441,7 +426,7 @@ def main() -> None:
             cv = REGENT_DEMO_CV
         elif template_id in COMPACT_TEMPLATE_IDS:
             cv = COMPACT_DEMO_CV
-        elif template_id in {"sterling", "vestige", "linden"}:
+        elif template_id in {"sterling", "linden"}:
             cv = SIDEBAR_DEMO_CV
         else:
             cv = DEMO_CV

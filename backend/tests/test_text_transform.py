@@ -29,7 +29,7 @@ def test_render_text_leaves_content_untouched_without_flag():
 
 
 def test_render_textarea_uppercases_when_flagged():
-    # Atrium / Portico build the masthead name as a multi-line block (a
+    # Atrium builds the masthead name as a multi-line block (a
     # `textarea`), so the reversible textTransform flag must be honored by the
     # textarea render path too, not only renderText.
     gen, drawn = _capturing_generator()

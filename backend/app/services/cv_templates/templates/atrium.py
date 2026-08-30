@@ -282,7 +282,7 @@ def _gen_atrium(cv: dict) -> list[dict]:
         page_decorations.append(
             {**_line(0, 0, 595, 842, C['paper'], zIndex=0, page=page), 'fixedToPage': True}
         )
-        # Centered footer page number (Portico puts its number at the right edge).
+        # Centered footer page number.
         page_decorations.append(
             {**_text(f'{page:02d}', 8, SANS, C['mute'], CENTER_X - 6, 806, page=page),
              'fixedToPage': True}

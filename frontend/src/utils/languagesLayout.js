@@ -43,8 +43,8 @@ export const LANGUAGES_GRID_COLUMNS = 4;
  * Below this main-column width, a 4-column grid leaves too little space per
  * cell for a "Name — Level" line without wrapping or cutting off mid-word.
  * Matches the backend's own `languages_columns=3` cutoff (`shared/extras.py`):
- * sidebar templates' main column is ~300-335pt (Sterling/Tessera/Slate/
- * Vestige), single-column templates' is ~460-500pt. This call site has no
+ * sidebar templates' main column is ~300-335pt (Sterling/Tessera/Slate),
+ * single-column templates' is ~460-500pt. This call site has no
  * template-id context (only the sampled `style.recordWidth`), so the column
  * count is derived from the actual available width instead of a template
  * allow-list — self-adapting instead of needing an update whenever a new
