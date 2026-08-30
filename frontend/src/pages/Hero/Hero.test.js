@@ -3,13 +3,30 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
 const source = readFileSync(new URL("./Hero.jsx", import.meta.url), "utf8");
+const styles = readFileSync(new URL("./Hero.module.css", import.meta.url), "utf8");
 
 describe("landing product positioning", () => {
-  it("leads with the structured A4 document promise", () => {
-    assert.match(source, /Zmieniaj treść\./);
-    assert.match(source, /Nie naprawiaj za każdym razem układu\./);
+  it("leads with the recruitment outcome and explains how the product supports it", () => {
+    assert.match(source, /Pokaż, dlaczego warto/);
+    assert.match(source, /zaprosić Cię/);
+    assert.match(source, /profesjonalne CV dopasowane/);
+    assert.match(source, /bez zmyślania faktów/);
     assert.match(source, /Dokument, który reaguje na treść/);
     assert.match(source, /Podgląd nie jest przybliżeniem/);
+  });
+
+  it("keeps the highlighted hero heading in independent non-overlapping blocks", () => {
+    assert.match(styles, /\.hero h1\s*\{[^}]*display:\s*flex;[^}]*flex-direction:\s*column;/s);
+    assert.match(styles, /\.hero h1 > span,[\s\S]*?\.hero h1 > em\s*\{[^}]*min-width:\s*0;[^}]*overflow-wrap:\s*break-word;/s);
+    assert.match(styles, /\.hero h1 em\s*\{[^}]*display:\s*block;[^}]*line-height:\s*1;/s);
+    assert.match(styles, /@media \(max-width: 1024px\)\s*\{[\s\S]*?\.hero\s*\{[^}]*grid-template-columns:\s*1fr;/);
+  });
+
+  it("communicates import transformation, AI support, and the planned Free export promise", () => {
+    assert.match(source, /Wgraj stare CV\./);
+    assert.match(source, /szablonu premium/);
+    assert.match(source, /AI pomaga dopasować CV do oferty/);
+    assert.match(source, /PDF bez znaku wodnego w planie Free/);
   });
 
   it("describes AI as an explicit task tool and keeps product caveats", () => {

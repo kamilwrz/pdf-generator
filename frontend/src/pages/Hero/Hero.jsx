@@ -205,29 +205,33 @@ export default function Hero() {
 
             <section id="top" className={classes.hero}>
                 <div className={classes.heroCopy}>
-                    <p className={classes.kicker}>Edytor CV · prawdziwy format A4</p>
-                    <h1>Zmieniaj treść.<br /><em>Nie naprawiaj za każdym razem układu.</em></h1>
+                    <p className={classes.kicker}>CV gotowe na konkretną rekrutację</p>
+                    <h1>
+                        <span>Pokaż, dlaczego warto</span>
+                        <em>zaprosić Cię</em>
+                        <em>na rozmowę.</em>
+                    </h1>
                     <p className={classes.heroLead}>
-                        CV Studio bierze na siebie warstwę dokumentu — strukturę, rytm,
-                        odstępy i strony. Ty pracujesz nad treścią: dodajesz doświadczenie,
-                        zmieniasz szablon, skracasz opis albo wybierasz inny styl. Dokument
-                        układa się razem z Tobą.
+                        CV Studio zamienia Twoje doświadczenie w profesjonalne CV dopasowane
+                        do konkretnej oferty. Pomaga wyostrzyć treść bez zmyślania faktów,
+                        sprawdzić czytelność dla ATS i pobrać dopracowany PDF — bez walki
+                        z formatowaniem.
                     </p>
                     <div className={classes.heroActions}>
                         <CtaLink to={wizardUrl} event="hero_wizard">Stwórz CV za darmo</CtaLink>
                         <CtaLink to={importUrl} event="hero_import" variant="secondary">
-                            Mam już CV — wgraj PDF
+                            Wgraj swoje CV
                         </CtaLink>
                     </div>
                     <p className={classes.heroTertiary}>
                         <Link to={demoUrl} onClick={() => queueGuestEvent("hero_demo")}>
-                            Chcesz najpierw zobaczyć, jak to działa? Otwórz przykładowe CV <ArrowIcon />
+                            Najpierw zobacz przykładowe CV <ArrowIcon />
                         </Link>
                     </p>
                     <ul className={classes.heroTrust} aria-label="Korzyści na start">
-                        <li>Zacznij bez konta</li>
-                        <li>Pierwszy import gratis</li>
-                        <li>Podgląd = gotowy PDF</li>
+                        <li>Zacznij za darmo</li>
+                        <li>AI pomaga dopasować CV do oferty</li>
+                        <li>PDF bez znaku wodnego w planie Free</li>
                     </ul>
                 </div>
 
@@ -248,7 +252,13 @@ export default function Hero() {
                             loading="eager"
                             fetchPriority="high"
                         />
-                        <span className={classes.heroChip}>To, co widzisz, trafia do PDF</span>
+                        <span className={classes.heroChip}>
+                            <strong>Wgraj stare CV.</strong>
+                            <span>
+                                W kilka chwil treść trafi do szablonu premium, a inteligentny
+                                układ rozmieści ją automatycznie.
+                            </span>
+                        </span>
                     </div>
                     <div className={classes.heroCountLabel}>
                         <b>{TEMPLATE_COUNT}</b>

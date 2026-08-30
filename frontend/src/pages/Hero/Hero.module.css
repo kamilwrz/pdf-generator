@@ -258,8 +258,34 @@
 }
 
 .hero h1 {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: clamp(5px, .55vw, 8px);
     max-width: 700px;
-    font-size: clamp(44px, 4.9vw, 70px);
+    font-size: clamp(42px, 4.5vw, 66px);
+    line-height: 1.04;
+}
+
+/* Each highlighted phrase owns a separate line box. Keeping the blocks
+   independent prevents the background and tight display leading from folding
+   neighbouring lines into each other at intermediate viewport widths. */
+.hero h1 > span,
+.hero h1 > em {
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: break-word;
+}
+
+.hero h1 > span {
+    text-wrap: balance;
+}
+
+.hero h1 em {
+    display: block;
+    width: fit-content;
+    padding-top: .02em;
+    padding-bottom: .08em;
     line-height: 1;
 }
 
@@ -395,9 +421,9 @@
 }
 
 .heroTrust {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px 0;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0;
     margin: 24px 0 0;
     padding: 12px 0 0;
     border-top: 1px solid var(--line-strong);
@@ -409,16 +435,15 @@
 }
 
 .heroTrust li {
-    display: inline-flex;
-    align-items: center;
+    display: flex;
+    align-items: flex-start;
+    min-width: 0;
+    padding: 0 12px;
+    border-left: 2px solid var(--taupe);
 }
 
-.heroTrust li:not(:last-child)::after {
-    width: 3px;
-    height: 3px;
-    margin: 0 10px;
-    background: var(--taupe);
-    content: "";
+.heroTrust li:first-child {
+    padding-left: 10px;
 }
 
 /* ---- Hero visual: real A4 template mockups, grid-aligned ---------------- */
@@ -539,14 +564,22 @@
 .heroChip {
     position: absolute;
     left: -12px;
-    bottom: 14%;
+    bottom: 8%;
     z-index: 3;
-    padding: 10px 13px;
+    display: grid;
+    gap: 5px;
+    width: min(280px, 76%);
+    padding: 12px 14px;
     background: var(--paper);
     border: 1px solid var(--ink);
     border-radius: 0;
-    font: 500 10px/1.2 var(--mono);
-    letter-spacing: .04em;
+    font: 500 11px/1.35 var(--body);
+    letter-spacing: 0;
+}
+
+.heroChip strong {
+    font: 700 10px/1.2 var(--mono);
+    letter-spacing: .08em;
     text-transform: uppercase;
 }
 
@@ -1839,11 +1872,10 @@
     }
 }
 
-@media (max-width: 880px) {
-    .navigation > a:not(.navStart) {
-        display: none;
-    }
-
+/* Collapse the hero earlier than the remaining narrative sections. This gives
+   the outcome headline a full reading column on compact laptops and at 200%
+   browser zoom instead of squeezing it beside the product mockup. */
+@media (max-width: 1024px) {
     .hero {
         grid-template-columns: 1fr;
         min-height: auto;
@@ -1861,6 +1893,12 @@
     .heroVisual {
         width: min(92%, 520px);
         margin: 20px auto 0;
+    }
+}
+
+@media (max-width: 880px) {
+    .navigation > a:not(.navStart) {
+        display: none;
     }
 
     .transformation,
@@ -1966,6 +2004,16 @@
         font-size: clamp(40px, 11.5vw, 54px);
     }
 
+    .heroTrust {
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+
+    .heroTrust li,
+    .heroTrust li:first-child {
+        padding: 0 0 0 10px;
+    }
+
     .heroLead {
         margin-top: 22px;
         font-size: 14px;
@@ -1985,7 +2033,9 @@
 
     .heroChip {
         left: -6px;
-        font-size: 9px;
+        bottom: 5%;
+        width: min(260px, 82%);
+        font-size: 10px;
     }
 
     .heroCountLabel {
