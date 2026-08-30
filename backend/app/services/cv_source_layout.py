@@ -638,6 +638,46 @@ def _reference_records(lines: list[dict[str, Any]]) -> list[dict[str, Any]]:
     ]
 
 
+def _source_experience_cities(
+    pages: list[dict[str, Any]],
+) -> dict[tuple[str, str], str]:
+    """Return unambiguous cities from ``role | company | city`` source rows.
+
+    Employment records produced by many CV builders encode their metadata in
+    one pipe-delimited visual line. The extraction prompt now requests
+    ``experience[].city``, but a model may still omit that optional-looking
+    field. Matching both role and employer lets the source guard restore the
+    third segment without guessing from prose or confusing it with another
+    record. Duplicate role/employer pairs are accepted only when every source
+    occurrence names the same city.
+
+    @param pages - Layout-aware source pages used for the model request.
+    @returns A mapping from folded ``(role, employer)`` pairs to source cities.
+    """
+    candidates: dict[tuple[str, str], set[str]] = {}
+    for page in pages:
+        for raw_line in str(page.get("plain_text") or "").splitlines():
+            parts = [_collapse(part) for part in raw_line.split("|")]
+            if len(parts) < 3:
+                continue
+            title, company, city = parts[:3]
+            key = (_fold(title), _fold(company))
+            if not all((*key, city)):
+                continue
+            # A third segment containing a year is a period in common compact
+            # CV formats, not a city. Refusing it is safer than creating a
+            # plausible but false location in the editable import wizard.
+            if re.search(r"\b(?:19|20)\d{2}\b", city):
+                continue
+            candidates.setdefault(key, set()).add(city)
+
+    return {
+        key: next(iter(cities))
+        for key, cities in candidates.items()
+        if len(cities) == 1
+    }
+
+
 def ground_cv_data_from_source(
     model_data: Mapping[str, Any],
     pages: list[dict[str, Any]],
@@ -668,8 +708,10 @@ def ground_cv_data_from_source(
 
     experience = grounded.get("experience")
     if isinstance(experience, list):
+        source_cities = _source_experience_cities(pages)
         cleaned_experience: list[Any] = []
         removed_heading_title = False
+        restored_city = False
         for entry in experience:
             if not isinstance(entry, Mapping):
                 cleaned_experience.append(entry)
@@ -681,10 +723,20 @@ def ground_cv_data_from_source(
                 # WORK EXPERIENCE / DOŚWIADCZENIE ZAWODOWE into the role field.
                 cleaned_entry["title"] = ""
                 removed_heading_title = True
+            source_city = source_cities.get((
+                _fold(cleaned_entry.get("title")),
+                _fold(cleaned_entry.get("company")),
+            ))
+            if source_city and _collapse(cleaned_entry.get("city")) != source_city:
+                cleaned_entry["city"] = source_city
+                restored_city = True
             cleaned_experience.append(cleaned_entry)
-        if removed_heading_title:
+        if removed_heading_title or restored_city:
             grounded["experience"] = cleaned_experience
+        if removed_heading_title:
             source_grounded_fields.append("experience_titles")
+        if restored_city:
+            source_grounded_fields.append("experience_cities")
 
     skill_sections = [section for section in sections if section.get("kind") == "skills"]
     skill_groups: list[dict[str, Any]] = []

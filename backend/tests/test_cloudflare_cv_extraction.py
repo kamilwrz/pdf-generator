@@ -102,6 +102,28 @@ def _two_column_wrapped_cv_pdf_bytes() -> bytes:
     return data
 
 
+def _pipe_delimited_experience_city_pdf_bytes() -> bytes:
+    """Build native CV rows that expose a distinct city for each employer."""
+    document = fitz.open()
+    page = document.new_page()
+    lines = [
+        (36, 44, "JAN KOWALSKI"),
+        (36, 66, "jan@example.com"),
+        (36, 82, "+48 500 000 000"),
+        (36, 98, "Warszawa, Polska"),
+        (36, 140, "DOSWIADCZENIE ZAWODOWE"),
+        (36, 160, "2022 - obecnie"),
+        (36, 176, "Senior Developer | Example SA | Warszawa"),
+        (36, 210, "2019 - 2022"),
+        (36, 226, "Developer | Remote Labs | Amsterdam"),
+    ]
+    for x, y, text in lines:
+        page.insert_text((x, y), text, fontsize=10)
+    data = document.tobytes()
+    document.close()
+    return data
+
+
 def _plain_nested_skills_cv_pdf_bytes() -> bytes:
     """Build skill categories whose PDF font flags do not preserve hierarchy."""
     document = fitz.open()
@@ -213,6 +235,73 @@ class CloudflareCvExtractionTests(unittest.TestCase):
         self.assertEqual(usage["provider"], "cloudflare")
         self.assertEqual(usage["extraction_mode"], "text")
         self.assertEqual(usage["credits_charged"], 0)
+
+    def test_experience_cities_are_requested_and_restored_from_pipe_rows(self):
+        """A model omission cannot erase cities explicitly attached to jobs."""
+        client = self._client({
+            "name": "Jan Kowalski",
+            "experience": [
+                {
+                    "title": "Senior Developer",
+                    "company": "Example SA",
+                    "city": "",
+                    "period": "2022 - obecnie",
+                    "bullets": [],
+                },
+                {
+                    "title": "Developer",
+                    "company": "Remote Labs",
+                    "period": "2019 - 2022",
+                    "bullets": [],
+                },
+            ],
+        })
+
+        with patch.object(
+            ai_service,
+            "_provider_settings",
+            return_value=(client, ai_service.CLOUDFLARE_TEXT_MODEL, "cloudflare"),
+        ):
+            cv_data, usage = ai_service.extract_cv_data(
+                _pipe_delimited_experience_city_pdf_bytes()
+            )
+
+        prompt = client.chat.completions.create.call_args.kwargs[
+            "messages"
+        ][1]["content"][0]["text"]
+        self.assertIn(
+            '"experience":[{"title":"","company":"","city":"","period":"","bullets":[]}]',
+            prompt,
+        )
+        self.assertIn("'Stanowisko | Firma | Miasto'", prompt)
+        self.assertEqual(
+            [entry["city"] for entry in cv_data["experience"]],
+            ["Warszawa", "Amsterdam"],
+        )
+        self.assertEqual(usage["source_grounded_fields"], ["experience_cities"])
+
+    def test_conflicting_pipe_rows_do_not_guess_an_experience_city(self):
+        """Repeated role/employer pairs must agree before overriding the model."""
+        grounded, fields = ai_service.ground_cv_data_from_source(
+            {
+                "experience": [{
+                    "title": "Developer",
+                    "company": "Example SA",
+                    "city": "",
+                }],
+            },
+            [{
+                "plain_text": (
+                    "Developer | Example SA | Warszawa\n"
+                    "Developer | Example SA | Krakow\n"
+                    "Developer | Period Co | 2020 - 2024"
+                ),
+                "sections": [],
+            }],
+        )
+
+        self.assertEqual(grounded["experience"][0]["city"], "")
+        self.assertEqual(fields, [])
 
     def test_gemma_thinking_can_be_opted_in_for_quality_experiments(self):
         """The opt-in restores reasoning effort and removes the disable flag."""

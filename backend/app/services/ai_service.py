@@ -431,7 +431,7 @@ def extract_cv_data(pdf_bytes: bytes) -> tuple[dict, dict]:
                 '  "name":"","title":"","email":"","phone":"","location":"",\n'
                 '  "linkedin":"","github":"","website":"",\n'
                 '  "summary":"",\n'
-                '  "experience":[{"title":"","company":"","period":"","bullets":[]}],\n'
+                '  "experience":[{"title":"","company":"","city":"","period":"","bullets":[]}],\n'
                 '  "education":[{"school":"","city":"","degree":"","period":"","description":""}],\n'
                 '  "skills":[] | [{"category":"","items":[]}],\n'
                 '  "language":"Polish",\n'
@@ -449,9 +449,12 @@ def extract_cv_data(pdf_bytes: bytes) -> tuple[dict, dict]:
                 "  linkedin = profil LinkedIn (URL lub ścieżka /in/...), github = GitHub,\n"
                 "  website = osobista strona / portfolio (nie LinkedIn i nie GitHub).\n"
                 "  Puste stringi, gdy brak w CV. Nie wklejaj tych URL-i do email/phone/location.\n"
-                "- experience: WSZYSTKIE stanowiska od najnowszego; WSZYSTKIE punkty (bez limitu)\n"
+                "- experience: WSZYSTKIE stanowiska od najnowszego; WSZYSTKIE punkty (bez limitu).\n"
                 "  title = wyłącznie nazwa stanowiska jawnie zapisana przy danym pracodawcy. "
                 "Jeśli jej brak, zostaw pusty string; nigdy nie kopiuj nagłówka sekcji WORK EXPERIENCE / DOŚWIADCZENIE ZAWODOWE.\n"
+                "  company = pracodawca, city = miasto przypisane do tego konkretnego miejsca pracy,\n"
+                "  period = okres zatrudnienia. Jeżeli źródłowy rekord ma postać\n"
+                "  'Stanowisko | Firma | Miasto', trzeci człon ZAWSZE wpisz do city.\n"
                 "- education: WSZYSTKIE wpisy od najnowszego. Dla każdego wpisu:\n"
                 "  school = uczelnia/szkoła, city = miasto, degree = kierunek/tytuł/dyplom,\n"
                 "  period = lata, description = opis pod dyplomem (specjalizacja, praca dyplomowa,\n"

@@ -36,3 +36,12 @@ def test_each_slate_palette_has_correctly_colored_accent_icons() -> None:
             pixels = Image.open(icon_path).convert("RGBA").get_flattened_data()
             visible_colors = {pixel[:3] for pixel in pixels if pixel[3] > 0}
             assert expected_rgb in visible_colors
+
+
+def test_slate_contact_heading_has_white_badge_glyph() -> None:
+    """The photo-less heading mirrors every other white-on-accent badge."""
+    icon_path = ASSET_ROOT / "slate" / "contact.png"
+    assert icon_path.exists(), f"Missing Slate badge icon: {icon_path}"
+    pixels = Image.open(icon_path).convert("RGBA").get_flattened_data()
+    visible_colors = {pixel[:3] for pixel in pixels if pixel[3] > 0}
+    assert (255, 255, 255) in visible_colors

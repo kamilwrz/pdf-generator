@@ -121,13 +121,20 @@ test("saved hidden Slate hydrates every semantic field and restores exact geomet
 
   const normalized = normalizeProfilePhotoVisibilityPersistence(hydrated, "slate");
   const header = normalized.filter((element) => element.flowRole === "photo-contact-header");
-  assert.equal(header.length, 3);
+  assert.equal(header.length, 4);
   assert.match(
     header.find((element) => element.category === "image").src,
-    /\/slate-copper-accent\/contact\.png$/,
+    /\/slate\/contact\.png$/,
   );
   assert.equal(header.find((element) => element.category === "text").color, "#33251D");
-  assert.equal(header.find((element) => element.category === "line").backgroundColor, "#A14F2B");
+  assert.equal(
+    header.find((element) => element.element_id === "slate-contact-header-badge").backgroundColor,
+    "#A14F2B",
+  );
+  assert.equal(
+    header.find((element) => element.element_id === "slate-contact-header-rule").backgroundColor,
+    "#A14F2B",
+  );
 
   const shownResult = showProfilePhoto(normalized, "slate");
   const shown = relayout(shownResult.elements, shownResult.contactBandId);

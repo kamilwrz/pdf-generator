@@ -31,17 +31,20 @@ const SIDEBAR_CONTACT_TEMPLATE_IDS = new Set(["slate", "linden"]);
 export const SIDEBAR_CONTACT_SECTION_GAP = 40;
 const SLATE_HIDDEN_CONTACT_ANCHOR = Object.freeze({
   startX: 33,
-  startY: 42,
+  startY: 84,
   rightLimit: 174,
 });
 const SLATE_CONTACT_HEADER_ROLE = "photo-contact-header";
 const SLATE_CONTACT_HEADER_LAYOUT = Object.freeze({
+  badgeLeft: 25,
+  badgeTop: 60,
+  badgeSize: 16,
   iconLeft: 27,
-  iconTop: 20,
+  iconTop: 62,
   iconSize: 12,
   textLeft: 49,
-  textTop: 21,
-  ruleTop: 34,
+  textTop: 63,
+  ruleTop: 76,
   ruleWidth: 46,
 });
 const LEGACY_FRAMELESS_PLACEHOLDERS = {
@@ -118,10 +121,12 @@ function slateHeadingStyle(elements, anchor) {
     && element.category === "image"
     && element.src
   ));
-  const iconTheme = anchor?.contactBand?.icon?.theme || "slate-accent";
   const iconSrc = bandIcon?.src
-    ? String(bandIcon.src).replace(/[^/]+\.png(\?.*)?$/, "contact.png")
-    : `/template-assets/iconic/${iconTheme}/contact.png`;
+    ? String(bandIcon.src).replace(
+      /\/slate(?:-[a-z0-9]+)*-accent\/[^/]+\.png/,
+      "/slate/contact.png",
+    )
+    : "/template-assets/iconic/slate/contact.png";
   const baseFontSize = Number(
     authoredHeading?.appearanceBaseFontSize ?? authoredHeading?.fontSize,
   ) || 7.6;
@@ -144,13 +149,15 @@ function slateHeadingStyle(elements, anchor) {
 }
 
 /**
- * Build the three locked elements that identify Slate's temporary contact rail.
+ * Build the four locked elements that identify Slate's temporary contact rail.
  *
- * The icon URL is derived from a live contact glyph so API prefixes and the
- * selected palette survive unchanged. Heading typography is copied from the
- * current sidebar chrome, which also preserves an active S/M/L/XL preset.
- * Deterministic fallback identifiers keep the pure helper usable in tests;
- * the editor supplies NanoID identifiers for real history transactions.
+ * The filled 16 pt badge and its inset 12 pt white glyph deliberately mirror
+ * Slate's authored sidebar-section chrome. Only the badge and rule take the
+ * active palette accent; the white glyph keeps sufficient contrast in every
+ * palette. Heading typography is copied from current sidebar chrome, which
+ * also preserves an active S/M/L/XL preset. Deterministic fallback identifiers
+ * keep the pure helper usable in tests; the editor supplies NanoID identifiers
+ * for real history transactions.
  */
 function materializeSlateContactHeader(elements, anchor, createId) {
   const withoutStaleHeader = (elements || []).filter(
@@ -173,6 +180,18 @@ function materializeSlateContactHeader(elements, anchor, createId) {
 
   return [
     ...withoutStaleHeader,
+    {
+      ...common,
+      element_id: nextId("badge"),
+      id: "slate-contact-header-badge",
+      category: "line",
+      left: layout.badgeLeft,
+      top: layout.badgeTop,
+      width: layout.badgeSize,
+      height: layout.badgeSize,
+      backgroundColor: style.accent,
+      zIndex: 2,
+    },
     {
       ...common,
       element_id: nextId("icon"),
@@ -302,7 +321,7 @@ export function normalizeProfilePhotoVisibilityPersistence(
   const list = elements || [];
   if (String(templateId || "") !== "slate" || !isProfilePhotoHidden(list)) return list;
   const headerMembers = list.filter((element) => isSlateContactHeader(element));
-  if (headerMembers.length === 3) return list;
+  if (headerMembers.length === 4) return list;
   return materializeSlateContactHeader(list, contactAnchor(list), createId);
 }
 

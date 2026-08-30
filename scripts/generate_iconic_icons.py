@@ -312,17 +312,14 @@ _SLATE_GLYPHS = [
     "email", "phone", "linkedin", "github", "website", "location",
     "calendar", "portrait",
     "summary", "experience", "education", "skills", "languages",
-    "interests", "references", "certifications", "other",
+    "interests", "references", "certifications", "other", "contact",
 ]
-
-# Slate's six Appearance palettes render the photo-less contact heading as
-# accent ink directly on the rail. The shared white badge family intentionally
-# remains unchanged because the contact mark is not a regular section badge.
-_SLATE_PALETTE_GLYPHS = [*_SLATE_GLYPHS, "contact"]
 
 # Palette variants only replace glyphs drawn directly on paper: masthead
 # contacts and the photo placeholder. White section glyphs remain on the
-# shared `slate` theme because every palette keeps filled accent badges.
+# shared `slate` theme because every palette keeps filled accent badges. The
+# accent `contact` copies remain for documents saved with the earlier bare-icon
+# contact heading; new headings use the white glyph inside a palette badge.
 _SLATE_ACCENT_GLYPHS = [
     "email", "phone", "location", "linkedin", "github", "website", "portrait",
     "contact",
@@ -362,11 +359,12 @@ SUBSET_THEMES = {
     #                      section-heading badges (white-on-accent).
     #   * `slate-accent` — steel-blue glyphs for bare contact rows and the
     #                      rectangular photo placeholder (accent-on-paper).
-    # Both variants carry the established full set so every section-heading key
-    # (white badge) or contact/photo role (accent) resolves to an asset. The new
-    # photo-less contact heading extends only the six palette-ink families.
+    # Both primary variants carry the full set so every section-heading key
+    # (white badge) or contact/photo role (accent) resolves to an asset. The
+    # photo-less contact heading uses `slate/contact.png` inside a palette badge;
+    # accent contact copies remain compatible with already-saved documents.
     "slate": ("#FFFFFF", _SLATE_GLYPHS),
-    "slate-accent": ("#3E5C76", _SLATE_PALETTE_GLYPHS),
+    "slate-accent": ("#3E5C76", _SLATE_GLYPHS),
     "slate-monochrome-accent": ("#242424", _SLATE_ACCENT_GLYPHS),
     "slate-copper-accent": ("#A14F2B", _SLATE_ACCENT_GLYPHS),
     "slate-forest-accent": ("#2F6A50", _SLATE_ACCENT_GLYPHS),

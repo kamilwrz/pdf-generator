@@ -143,15 +143,17 @@ test("every Slate palette styles the photo-less contact heading in either operat
       const members = document.filter(
         (element) => element.flowRole === "photo-contact-header",
       );
+      const badge = members.find(
+        (element) => element.element_id === "slate-contact-header-badge",
+      );
       const icon = members.find((element) => element.category === "image");
       const label = members.find((element) => element.category === "text");
-      const rule = members.find((element) => element.category === "line");
-      assert.equal(members.length, 3, palette.id);
-      assert.match(
-        icon.src,
-        new RegExp(`/${palette.accentIconTheme}/contact\\.png$`),
-        palette.id,
+      const rule = members.find(
+        (element) => element.element_id === "slate-contact-header-rule",
       );
+      assert.equal(members.length, 4, palette.id);
+      assert.match(icon.src, /\/slate\/contact\.png$/, palette.id);
+      assert.equal(badge.backgroundColor, palette.colors.accent, palette.id);
       assert.equal(label.color, palette.colors.ink, palette.id);
       assert.equal(rule.backgroundColor, palette.colors.accent, palette.id);
     }

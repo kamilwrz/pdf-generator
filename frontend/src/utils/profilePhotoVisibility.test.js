@@ -69,14 +69,19 @@ describe("profile photo visibility", () => {
       const hiddenAnchor = hiddenResult.elements.find((element) => element.element_id === originalAnchor.element_id);
       assert.equal(hiddenResult.contactBandId, "contact-main");
       assert.equal(hiddenAnchor.contactBand.mode, "stacked");
-      assert.deepEqual(hiddenAnchor.contactBand.anchor, { startX: 33, startY: 42, rightLimit: 174 });
+      assert.deepEqual(hiddenAnchor.contactBand.anchor, { startX: 33, startY: 84, rightLimit: 174 });
       const contactHeader = hiddenResult.elements.filter(
         (element) => element.flowRole === "photo-contact-header",
       );
-      assert.equal(contactHeader.length, 3);
+      assert.equal(contactHeader.length, 4);
+      const contactHeaderBadge = contactHeader.find(
+        (element) => element.element_id === "slate-contact-header-badge",
+      );
       const contactHeaderIcon = contactHeader.find((element) => element.category === "image");
       const contactHeaderLabel = contactHeader.find((element) => element.category === "text");
-      const contactHeaderRule = contactHeader.find((element) => element.category === "line");
+      const contactHeaderRule = contactHeader.find(
+        (element) => element.element_id === "slate-contact-header-rule",
+      );
       assert.ok(contactHeader.every((element) => (
         element.fixedToPage === true
         && element.locked === true
@@ -85,15 +90,24 @@ describe("profile photo visibility", () => {
         && !element.photoSlot
         && !element.contactChannel
       )));
-      assert.match(contactHeaderIcon.src, /\/slate-accent\/contact\.png$/);
+      assert.deepEqual(
+        [contactHeaderBadge.left, contactHeaderBadge.top, contactHeaderBadge.width, contactHeaderBadge.height],
+        [25, 60, 16, 16],
+      );
+      assert.equal(contactHeaderBadge.backgroundColor, "#3E5C76");
+      assert.equal(
+        contactHeaderBadge.top,
+        source.find((element) => element.mastheadRole === "name").top,
+      );
+      assert.match(contactHeaderIcon.src, /\/slate\/contact\.png$/);
       assert.deepEqual(
         [contactHeaderIcon.left, contactHeaderIcon.top, contactHeaderIcon.width, contactHeaderIcon.height],
-        [27, 20, 12, 12],
+        [27, 62, 12, 12],
       );
       assert.equal(contactHeaderLabel.content, "DANE KONTAKTOWE");
-      assert.deepEqual([contactHeaderLabel.left, contactHeaderLabel.top], [49, 21]);
+      assert.deepEqual([contactHeaderLabel.left, contactHeaderLabel.top], [49, 63]);
       assert.equal(contactHeaderRule.backgroundColor, "#3E5C76");
-      assert.deepEqual([contactHeaderRule.left, contactHeaderRule.top, contactHeaderRule.width], [49, 34, 46]);
+      assert.deepEqual([contactHeaderRule.left, contactHeaderRule.top, contactHeaderRule.width], [49, 76, 46]);
       const hiddenPhotoCluster = hiddenResult.elements.filter((element) => (
         element.fixedToPage
         && element.flowLane === "sidebar"
@@ -115,7 +129,7 @@ describe("profile photo visibility", () => {
       const hiddenContactTop = Math.min(...aligned
         .filter((element) => element.contactBandId === "contact-main" && element.contactChannel)
         .map((element) => Number(element.top)));
-      assert.equal(hiddenContactTop, 42);
+      assert.equal(hiddenContactTop, 84);
       const contactBottom = Math.max(...aligned
         .filter((element) => element.contactBandId === "contact-main" && element.contactChannel)
         .map((element) => Number(element.top) + Math.max(
@@ -126,7 +140,7 @@ describe("profile photo visibility", () => {
       const hiddenSidebarTop = Math.min(...aligned
         .filter((element) => element.flowRole === "sidebar-chrome")
         .map((element) => Number(element.top)));
-      assert.ok(hiddenSidebarTop < originalSidebarTop);
+      assert.ok(hiddenSidebarTop > originalSidebarTop);
       assert.equal(hiddenSidebarTop - contactBottom, 40);
       const shownResult = showProfilePhoto(aligned, templateId);
       const shownRelaid = applyChannelRelayout(
@@ -249,7 +263,7 @@ describe("profile photo visibility", () => {
     );
     assert.equal(
       normalized.filter((element) => element.flowRole === "photo-contact-header").length,
-      3,
+      4,
     );
     assert.deepEqual(
       normalized
