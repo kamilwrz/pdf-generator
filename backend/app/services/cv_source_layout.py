@@ -357,6 +357,13 @@ def extract_pdf_source_pages(
                     "column": int(heading.get("lane") or 1),
                     "kind": kind,
                     "title": _source_title(heading["text"], kind),
+                    # Heading style is internal grounding metadata. It lets the
+                    # guard distinguish a standalone Languages section from a
+                    # same-style category that visually continues Skills.
+                    "heading_text": heading["text"],
+                    "heading_y0": heading["y0"],
+                    "heading_font_size": heading["font_size"],
+                    "heading_is_bold": heading["is_bold"],
                     "body": body,
                     "body_lines": body_lines,
                 })
@@ -451,20 +458,61 @@ def _bullet_items(lines: list[dict[str, Any]]) -> list[str]:
     return items
 
 
-def _nested_skill_groups(section: Mapping[str, Any]) -> list[dict[str, Any]]:
-    """Parse bold subsection labels inside one source Skills section.
+def _looks_like_plain_skill_group_label(
+    lines: list[dict[str, Any]],
+    index: int,
+) -> bool:
+    """Recognize a short, unstyled label that introduces a bullet run.
 
-    Many designed CVs use a single parent heading followed by bold category
-    names and regular-weight prose separated by middle dots. Treating PDF wraps
-    as individual skills loses both the categories and complete item text. A
-    label is accepted only when it owns at least one following regular-weight
-    line, which avoids mistaking a row of bold skill chips for category labels.
+    Some PDF exporters discard the visual weight of nested skill headings, so
+    category labels and bullet text arrive with the same font flags. A label is
+    accepted only when it starts like a title, is followed immediately by a
+    bullet, and does not look like a wrapped continuation. Requiring at least
+    two labels later in ``_nested_skill_groups`` prevents a single capitalized
+    skill from creating a false taxonomy.
     """
-    lines = list(section.get("body_lines") or [])
-    candidates: list[int] = []
+    line = lines[index]
+    text = _collapse(line.get("text"))
+    if (
+        not text
+        or line.get("is_bold")
+        or _BULLET_PREFIX.match(text)
+        or index + 1 >= len(lines)
+        or not _BULLET_PREFIX.match(_collapse(lines[index + 1].get("text")))
+    ):
+        return False
+    if len(text) > 48 or len(text.split()) > 6:
+        return False
+    if text.endswith((".", ",", ";", ":", ")", "]", "-", "—")):
+        return False
+    first_alpha = next((char for char in text if char.isalpha()), "")
+    if not first_alpha or not first_alpha.isupper():
+        return False
+
+    if index > 0:
+        previous = _collapse(lines[index - 1].get("text"))
+        # An unfinished delimiter on the previous row is strong evidence that
+        # this row completes the preceding bullet (for example ``OpenCV,`` +
+        # ``YOLO)`` or a wrapped language level), not that it starts a category.
+        if previous.endswith((",", ";", "/", "-", "—")):
+            return False
+        if previous.count("(") > previous.count(")"):
+            return False
+        if previous.count("[") > previous.count("]"):
+            return False
+    return True
+
+
+def _skill_group_label_indices(lines: list[dict[str, Any]]) -> list[int]:
+    """Return bold or structurally inferred labels for one Skills section."""
+    candidates: set[int] = set()
     for index, line in enumerate(lines):
         text = _collapse(line.get("text"))
-        if not text or not line.get("is_bold") or _BULLET_PREFIX.match(text):
+        if not text or _BULLET_PREFIX.match(text):
+            continue
+        if _looks_like_plain_skill_group_label(lines, index):
+            candidates.add(index)
+        if not line.get("is_bold"):
             continue
         next_bold = next(
             (
@@ -479,7 +527,21 @@ def _nested_skill_groups(section: Mapping[str, Any]) -> list[dict[str, Any]]:
             _collapse(owned.get("text")) and not owned.get("is_bold")
             for owned in owned_lines
         ):
-            candidates.append(index)
+            candidates.add(index)
+    return sorted(candidates)
+
+
+def _nested_skill_groups(section: Mapping[str, Any]) -> list[dict[str, Any]]:
+    """Parse styled or structurally delimited labels inside a Skills section.
+
+    Many designed CVs use a single parent heading followed by bold category
+    names and regular-weight prose separated by middle dots. Treating PDF wraps
+    as individual skills loses both the categories and complete item text. Some
+    exporters flatten the label weight; in that case, short title-like rows that
+    introduce bullet runs recover the same taxonomy without another model call.
+    """
+    lines = list(section.get("body_lines") or [])
+    candidates = _skill_group_label_indices(lines)
 
     if len(candidates) < 2:
         return []
@@ -491,6 +553,60 @@ def _nested_skill_groups(section: Mapping[str, Any]) -> list[dict[str, Any]]:
         if items:
             groups.append({"category": _collapse(lines[index]["text"]), "items": items})
     return groups if len(groups) >= 2 else []
+
+
+def _nested_language_skill_group(
+    skill_section: Mapping[str, Any],
+    language_section: Mapping[str, Any],
+    groups: list[dict[str, Any]],
+) -> dict[str, Any] | None:
+    """Return a visually subordinate Languages block as one skill group.
+
+    A language heading can be a true top-level section or the final category
+    under Skills. It is nested only when it immediately follows a proven skill
+    taxonomy in the same page/column and its font size/weight matches the
+    category labels. This preserves layouts such as the reported Monument CV
+    without folding ordinary standalone Languages sections into Skills.
+    """
+    if len(groups) < 2:
+        return None
+    if (
+        skill_section.get("page") != language_section.get("page")
+        or skill_section.get("column") != language_section.get("column")
+    ):
+        return None
+
+    label_names = {_collapse(group.get("category")) for group in groups}
+    label_lines = [
+        line
+        for line in skill_section.get("body_lines") or []
+        if _collapse(line.get("text")) in label_names
+    ]
+    if not label_lines:
+        return None
+    label_size = statistics.median(
+        max(float(line.get("font_size") or 0), 1.0)
+        for line in label_lines
+    )
+    heading_size = max(float(language_section.get("heading_font_size") or 0), 1.0)
+    label_bold = sum(bool(line.get("is_bold")) for line in label_lines) >= (
+        len(label_lines) / 2
+    )
+    if (
+        bool(language_section.get("heading_is_bold")) != label_bold
+        or abs(heading_size - label_size) > max(0.75, label_size * 0.12)
+    ):
+        return None
+
+    items = _bullet_items(list(language_section.get("body_lines") or []))
+    if not items:
+        return None
+    return {
+        "category": _collapse(
+            language_section.get("heading_text") or language_section.get("title")
+        ),
+        "items": items,
+    }
 
 
 def _reference_records(lines: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -530,8 +646,9 @@ def ground_cv_data_from_source(
 
     The model still handles flexible record schemas and classification. Source
     geometry owns fields whose boundaries are unambiguous: professional
-    summary prose, named skills/specialisation lists, and reference records.
-    This prevents prompt examples or neighbouring columns from replacing facts.
+    summary prose, named skills/specialisation lists, language rows, and
+    reference records. This prevents prompt examples or neighbouring columns
+    from replacing facts.
 
     @param model_data - Parsed provider JSON before application normalization.
     @param pages - Layout-aware pages returned by ``extract_pdf_source_pages``.
@@ -571,9 +688,31 @@ def ground_cv_data_from_source(
 
     skill_sections = [section for section in sections if section.get("kind") == "skills"]
     skill_groups: list[dict[str, Any]] = []
+    nested_language_ids: set[str] = set()
     for section in skill_sections:
         nested_groups = _nested_skill_groups(section)
         if nested_groups:
+            following = min(
+                (
+                    candidate
+                    for candidate in sections
+                    if candidate.get("page") == section.get("page")
+                    and candidate.get("column") == section.get("column")
+                    and float(candidate.get("heading_y0") or -1)
+                    > float(section.get("heading_y0") or -1)
+                ),
+                key=lambda candidate: float(candidate.get("heading_y0") or 0),
+                default=None,
+            )
+            if following and following.get("kind") == "languages":
+                language_group = _nested_language_skill_group(
+                    section,
+                    following,
+                    nested_groups,
+                )
+                if language_group:
+                    nested_groups.append(language_group)
+                    nested_language_ids.add(str(following.get("id") or ""))
             skill_groups.extend(nested_groups)
         else:
             skill_groups.append({
@@ -592,6 +731,34 @@ def ground_cv_data_from_source(
         labels = dict(grounded.get("labels") or {}) if isinstance(grounded.get("labels"), Mapping) else {}
         labels["skills"] = skill_groups[0]["category"] if len(skill_groups) == 1 else "UMIEJĘTNOŚCI"
         grounded["labels"] = labels
+
+    language_sections = [
+        section
+        for section in sections
+        if section.get("kind") == "languages"
+        and str(section.get("id") or "") not in nested_language_ids
+    ]
+    language_items = [
+        item
+        for section in language_sections
+        for item in _bullet_items(section.get("body_lines") or [])
+    ]
+    if language_items:
+        grounded["languages"] = language_items
+        source_grounded_fields.append("languages")
+    elif nested_language_ids:
+        # The visually subordinate language rows now live inside Skills. Clear
+        # model-created top-level copies so normalization cannot render both.
+        grounded["languages"] = []
+        extras = grounded.get("extra_sections")
+        if isinstance(extras, list):
+            grounded["extra_sections"] = [
+                dict(extra)
+                for extra in extras
+                if isinstance(extra, Mapping)
+                and extra.get("kind") != "languages"
+                and _heading_kind(extra.get("title")) != "languages"
+            ]
 
     reference_sections = [section for section in sections if section.get("kind") == "references"]
     if reference_sections:

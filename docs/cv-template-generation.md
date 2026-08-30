@@ -8,7 +8,7 @@ Ten dokument opisuje pełną ścieżkę od danych kandydata do elementów na pł
 
 | Warstwa | Co robi | Czego **nie** robi |
 |---|---|---|
-| **Geometria źródła (`cv_source_layout`)** | Rozdziela natywne linie PDF na kolumny, wykrywa nagłówki i po odpowiedzi modelu ugruntowuje podsumowanie, specjalizacje oraz referencje | Nie interpretuje elastycznych rekordów doświadczenia i edukacji ani skanów bez warstwy tekstowej |
+| **Geometria źródła (`cv_source_layout`)** | Rozdziela natywne linie PDF na kolumny, wykrywa nagłówki, analizuje styl i strukturę list, a po odpowiedzi modelu ugruntowuje podsumowanie, specjalizacje, zagnieżdżone umiejętności i języki oraz referencje | Nie interpretuje elastycznych rekordów doświadczenia i edukacji ani skanów bez warstwy tekstowej |
 | **AI (Cloudflare Workers AI)** | Czyta tekst PDF zachowujący kolumny (Gemma 4 z wyłączonym thinkingiem, z jednorazowym fallbackiem Llama 3.1 8B Fast + JSON Mode), a tylko strony skanowane jako obrazy (Qwen 3.8), i zwraca **ustrukturyzowany JSON** | Nie układa elementów, nie liczy Y, nie wybiera kolorów, nie paginuje |
 | **`cv_data.normalize_cv_data`** | Ujednolica dane z PDF **i** z kreatora (wizard) do jednego schematu | Nie generuje layoutu |
 | **`cv_generator.generate_resume`** | Bierze `(template_id, cv_data)` i zwraca listę elementów canvas | Nie woła OpenAI; nie „projektuje” wizualnie w locie |
@@ -69,7 +69,7 @@ Użytkownik może wypełnić CV na dwa sposoby. Oba kończą się tym samym obie
    - rasteruje do PNG wyłącznie strony bez wystarczającej warstwy tekstowej i wtedy przełącza całe żądanie na **Qwen 3.8 27B Vision**,
    - korzysta z OpenAI-compatible endpointu Cloudflare i promptu „zwróć wyłącznie JSON o takiej strukturze…”,
    - po pustym, niepoprawnym JSON-ie albo wyniku, którego nie da się znormalizować, wykonuje najwyżej jeden fallback tekstowy na **Llamę 3.1 8B Fast** w JSON Mode.
-3. Odpowiedź modelu jest parsowana. `ground_cv_data_from_source` składa pełne podsumowanie ze wszystkich zawiniętych wierszy, zachowuje łączone słowa, odczytuje pogrubione podkategorie Umiejętności/Specjalizacji i elementy rozdzielone kropką środkową oraz buduje referencje z rozpoznanych sekcji natywnego tekstu. Usuwa też skopiowany nagłówek WORK EXPERIENCE z pola stanowiska, jeśli źródło nie podaje jawnej roli. Dopiero tak ugruntowany obiekt przechodzi przez `normalize_cv_data`.
+3. Odpowiedź modelu jest parsowana. `ground_cv_data_from_source` składa pełne podsumowanie ze wszystkich zawiniętych wierszy, zachowuje łączone słowa i odtwarza podkategorie Umiejętności/Specjalizacji. Kategorie mogą być oznaczone pogrubieniem albo wynikać ze struktury: krótki wiersz tytułowy bez znaku listy musi bezpośrednio poprzedzać serię punktów, a w sekcji muszą wystąpić co najmniej dwa takie wiersze. Warunki te chronią przed uznaniem zawiniętego tekstu, poziomu języka lub końcówki nazwy narzędzia za nową kategorię. Sekcja języków o takim samym stylu, położona bezpośrednio pod rozpoznaną taksonomią umiejętności, zostaje jej ostatnią podkategorią; wizualnie niezależna sekcja języków nadal trafia do pola `languages`. Warstwa źródłowa buduje również referencje, a także usuwa skopiowany nagłówek WORK EXPERIENCE z pola stanowiska, jeśli źródło nie podaje jawnej roli. Dopiero tak ugruntowany obiekt przechodzi przez `normalize_cv_data`.
 4. Frontend trzyma wynik i przy wyborze szablonu woła `fill_template`.
 
 AI tu jest **ekstraktorem treści** (OCR/rozumienie dokumentu), nie silnikiem layoutu.
@@ -367,7 +367,7 @@ Bez kroku 2–3 podgląd w bibliotece istnieje, ale **fill_template rzuci „Nie
 | Plik | Rola |
 |---|---|
 | `backend/app/services/ai_service.py` | PDF → tekst / obrazy skanów → Workers AI; cienka fasada `generate_resume` |
-| `backend/app/services/cv_source_layout.py` | Dokładne aliasy nagłówków + geometria linii i grubość fontu PDF → osobne kolumny / sekcje bez fałszywych granic w zdaniach → pełne podsumowanie, zagnieżdżone skills, ochrona stanowiska i referencje |
+| `backend/app/services/cv_source_layout.py` | Dokładne aliasy nagłówków + geometria linii, grubość fontu i struktura list PDF → osobne kolumny / sekcje bez fałszywych granic w zdaniach → pełne podsumowanie, zagnieżdżone umiejętności i języki, ochrona stanowiska i referencje |
 | `backend/app/services/cloudflare_pricing.py` | Telemetria stawek Llama/Gemma/Qwen i sumowanie prób fallbacku; bez bramki kredytów asystenta |
 | `backend/app/services/cv_data.py` | Normalizacja / walidacja profilu CV |
 | `backend/app/services/cv_generator.py` | **Deterministyczny silnik layoutu** (ten dokument) |

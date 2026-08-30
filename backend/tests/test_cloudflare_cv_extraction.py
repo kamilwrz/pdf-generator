@@ -102,6 +102,42 @@ def _two_column_wrapped_cv_pdf_bytes() -> bytes:
     return data
 
 
+def _plain_nested_skills_cv_pdf_bytes() -> bytes:
+    """Build skill categories whose PDF font flags do not preserve hierarchy."""
+    document = fitz.open()
+    page = document.new_page()
+    lines = [
+        (60, "UMIEJETNOSCI", True),
+        (82, "Bezpieczenstwo", False),
+        (98, "- analiza SIEM/logow", False),
+        (114, "- triage alertow i raportowanie", False),
+        (130, "incydentow", False),
+        (146, "- Wireshark", False),
+        (162, "Przemysl / OT", False),
+        (178, "- oprogramowanie PLC", False),
+        (194, "- systemy wbudowane", False),
+        (210, "Programowanie i systemy", False),
+        (226, "- Python", False),
+        (242, "- wizja komputerowa (OpenCV,", False),
+        (258, "YOLO)", False),
+        (274, "- integracja API", False),
+        (290, "Jezyki obce", False),
+        (306, "- angielski - B2 pisemny/techniczny,", False),
+        (322, "B1+ mowiony", False),
+        (338, "- rosyjski i ukrainski - jezyki ojczyste", False),
+    ]
+    for y, text, bold in lines:
+        page.insert_text(
+            (36, y),
+            text,
+            fontsize=10,
+            fontname="hebo" if bold else "helv",
+        )
+    data = document.tobytes()
+    document.close()
+    return data
+
+
 def _response(payload: dict | str):
     """Return the minimal OpenAI-compatible response consumed by the service."""
     content = payload if isinstance(payload, str) else json.dumps(payload)
@@ -579,6 +615,63 @@ class CloudflareCvExtractionTests(unittest.TestCase):
         self.assertIn("Soft Skills", rendered_content)
         self.assertIn("Research and IT", rendered_content)
         self.assertNotIn("WORK EXPERIENCE", rendered_content)
+
+    def test_plain_pdf_skill_labels_are_restored_as_nested_groups(self):
+        """Bullet structure must recover categories after font-weight flattening."""
+        client = self._client({
+            "name": "Anton Tseytlin",
+            "skills": ["Gemma returned one flat skills list"],
+            "languages": [{"name": "duplicate", "level": "model value"}],
+            "extra_sections": [{
+                "title": "JEZYKI",
+                "kind": "languages",
+                "placement": "after_skills",
+                "items": ["duplicate model value"],
+            }],
+        })
+
+        with patch.object(
+            ai_service,
+            "_provider_settings",
+            return_value=(client, ai_service.CLOUDFLARE_TEXT_MODEL, "cloudflare"),
+        ):
+            cv_data, usage = ai_service.extract_cv_data(
+                _plain_nested_skills_cv_pdf_bytes()
+            )
+
+        groups = {
+            group["category"]: group["items"]
+            for group in cv_data["skills"]
+            if isinstance(group, dict)
+        }
+        self.assertEqual(
+            list(groups),
+            [
+                "Bezpieczenstwo",
+                "Przemysl / OT",
+                "Programowanie i systemy",
+                "Jezyki obce",
+            ],
+        )
+        self.assertIn(
+            "triage alertow i raportowanie incydentow",
+            groups["Bezpieczenstwo"],
+        )
+        self.assertIn(
+            "wizja komputerowa (OpenCV, YOLO)",
+            groups["Programowanie i systemy"],
+        )
+        self.assertNotIn("YOLO)", groups)
+        self.assertNotIn("B1+ mowiony", groups)
+        self.assertEqual(cv_data["languages"], [])
+        self.assertEqual(usage["source_grounded_fields"], ["skills"])
+
+        rendered_content = "\n".join(
+            str(element.get("content") or "")
+            for element in generate_resume("monument", cv_data)
+        )
+        for category in groups:
+            self.assertIn(category, rendered_content)
 
     def test_missing_cloudflare_credentials_fails_before_network(self):
         with (
