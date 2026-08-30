@@ -2,10 +2,12 @@
  * “Import CV PDF → pick template” dialog.
  * Extract is entitlement-gated; fill uses deterministic backend layout.
  *
- * Two exclusive wizard steps fill the dialog body (no stacked scroll):
+ * Two exclusive wizard steps fill the dialog body:
  *   1) upload / extract
  *   2) template gallery
  * Footer arrows switch steps; they sit between the step label and Anuluj.
+ * The history header and dialog footer stay fixed while only the snapshot list
+ * scrolls, so every saved import remains reachable in a short viewport.
  */
 import { useRef, useState, useCallback, use, useMemo, useEffect } from "react";
 import classes from "./AiCvPanel.module.css";
@@ -299,7 +301,7 @@ export default function AiCvPanel() {
         >
             <div className={`${classes.wrap} ${onStep2 ? classes.wrapStep2 : ""}`}>
                 {!onStep2 && showHistory ? (
-                    <div className={classes.stepPane}>
+                    <div className={`${classes.stepPane} ${classes.historyPane}`}>
                         <div className={classes.historyHeader}>
                             <div className={classes.sectionLabel}>Historia importów</div>
                             <div className={classes.historyHeaderActions}>
@@ -307,19 +309,26 @@ export default function AiCvPanel() {
                                 <button type="button" className={classes.guidedLink} onClick={() => setShowHistory(false)}>Nowy import</button>
                             </div>
                         </div>
-                        {imports.length ? imports.map((snapshot) => (
-                            <article className={classes.historyItem} key={snapshot.id}>
-                                <div>
-                                    <strong>{snapshot.filename}</strong>
-                                    <span>{snapshot.created_at ? new Date(snapshot.created_at).toLocaleString("pl-PL") : ""} · {cvImportStatusLabel(snapshot.status)}</span>
-                                    {snapshot.summary?.name && <small>{snapshot.summary.name} · {snapshot.summary.experience_count} stanowisk · {snapshot.documents?.length || 0} utworzonych CV</small>}
-                                </div>
-                                <div className={classes.historyActions}>
-                                    {snapshot.status === "succeeded" && <button type="button" className={classes.reExtract} onClick={() => selectHistoricalImport(snapshot)}>Utwórz CV</button>}
-                                    {snapshot.status !== "processing" && <button type="button" className={classes.deleteImport} onClick={() => deleteHistoricalImport(snapshot.id)}>Usuń dane</button>}
-                                </div>
-                            </article>
-                        )) : <p className={classes.hint}>Nie masz jeszcze zapisanych importów.</p>}
+                        <div
+                            className={classes.historyList}
+                            role="region"
+                            aria-label="Lista importów CV"
+                            tabIndex={0}
+                        >
+                            {imports.length ? imports.map((snapshot) => (
+                                <article className={classes.historyItem} key={snapshot.id}>
+                                    <div>
+                                        <strong>{snapshot.filename}</strong>
+                                        <span>{snapshot.created_at ? new Date(snapshot.created_at).toLocaleString("pl-PL") : ""} · {cvImportStatusLabel(snapshot.status)}</span>
+                                        {snapshot.summary?.name && <small>{snapshot.summary.name} · {snapshot.summary.experience_count} stanowisk · {snapshot.documents?.length || 0} utworzonych CV</small>}
+                                    </div>
+                                    <div className={classes.historyActions}>
+                                        {snapshot.status === "succeeded" && <button type="button" className={classes.reExtract} onClick={() => selectHistoricalImport(snapshot)}>Utwórz CV</button>}
+                                        {snapshot.status !== "processing" && <button type="button" className={classes.deleteImport} onClick={() => deleteHistoricalImport(snapshot.id)}>Usuń dane</button>}
+                                    </div>
+                                </article>
+                            )) : <p className={classes.hint}>Nie masz jeszcze zapisanych importów.</p>}
+                        </div>
                     </div>
                 ) : !onStep2 ? (
                     <div className={classes.stepPane}>

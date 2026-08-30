@@ -60,6 +60,13 @@ without another AI extraction, and delete the stored data. `Pdf.source_import_id
 links CVs saved from that snapshot, so history can show their template and open
 them from the document library.
 
+The dialog keeps its history heading, refresh/new-import controls, and footer
+visible while the snapshot list scrolls inside the available `82vh` shell. The
+list is a named, focusable region, so mouse-wheel, touch, and keyboard scrolling
+can reach every import without allowing cards to disappear under the footer.
+The upload pane uses the same bounded overflow rule only when a short viewport
+cannot fit the first step.
+
 The API validates a PDF signature, parseability, encryption state, 10 MB byte
 limit, and 12-page limit before extraction. `GET /ai/imports`,
 `GET /ai/imports/{id}`, and `DELETE /ai/imports/{id}` are ownership-scoped;
@@ -200,6 +207,7 @@ pdf-generator/
 │   │   └── utils/            # geometry/reflow/sections, browser text-export layout, template appearance, guest helpers
 │   │       ├── cvImportRequest.js # Four-minute, no-retry CV extraction request and recovery policy
 │   │       ├── cvImportRequest.test.js # Timeout and persisted-status regression tests
+│   │       ├── aiCvPanelScroll.test.js # Import-history overflow and keyboard-access regression guards
 │   │       ├── canvasHighlightBounds.js # Model-first bounds and post-commit ink limits
 │   │       ├── canvasHighlightBounds.test.js # Focused semantic-highlight geometry regressions
 │   │       └── canvasHighlightAllTemplates.test.js # Main/sidebar isolation contract for every built-in template
@@ -1544,11 +1552,12 @@ Implementation:
 - `backend/app/core/config.py`, lines 65–86, Cloudflare and `CV_EXTRACT_*` settings — server-only credentials, primary/fallback models, and page/text/completion limits
 - `backend/app/api/routes/ai.py`, lines 143–195, function `extract_cv` — authentication, file validation, thread-pool provider call, snapshot lifecycle, monthly quota recording, and safe HTTP errors
 - `frontend/src/utils/cvImportRequest.js`, lines 1–28, constants `CV_IMPORT_REQUEST_OPTIONS` / `CV_IMPORT_TIMEOUT_MESSAGE` and function `cvImportStatusLabel` — four-minute no-retry policy and persisted status labels
-- `frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`, lines 131–185 and 301–323, component `AiCvPanel` — request timeout recovery, history refresh, and safe reuse of completed snapshots
+- `frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`, lines 133–187 and 303–332, component `AiCvPanel` — request timeout recovery, history refresh, safe reuse of completed snapshots, and the accessible history-list scroll region
+- `frontend/src/components/ai/AiCvPanel/AiCvPanel.module.css`, lines 27–77 and 256–262, selectors `stepPane`, `historyPane`, `historyList`, and `historyHeader` — bounded overflow, visible thin scrollbar, stable scrollbar gutter, keyboard focus ring, and fixed history controls
 - `backend/app/services/cv_data.py`, `normalize_cv_data` + `skill_groups` + `is_distinct_skill_family_title` + `_expand_skill_category_lines` + `_absorb_skills_alias_sections` + `extract_contact_fields_from_raw`
 - `backend/app/services/cv_templates/shared/text.py`, `_place_skills_section`
 
-Tests: `backend/tests/test_cloudflare_cv_extraction.py`, lines 43–269, class `CloudflareCvExtractionTests`, covers text-only JSON Mode, scan-page vision fallback, model-specific Cloudflare parameters, fenced/typed content, safe reasoning-only failures, the one-shot Gemma-to-Llama fallback with aggregated telemetry, OpenAI rollback JSON Mode, invalid model JSON, and missing credentials without a network call. `backend/tests/test_extract_cv_rejection.py` covers monthly quota and failure-not-consuming behaviour. `frontend/src/utils/cvImportRequest.test.js`, lines 1–21, locks the four-minute no-retry contract and all import-history status labels. `backend/tests/test_cv_data.py` covers nested skills normalization.
+Tests: `backend/tests/test_cloudflare_cv_extraction.py`, lines 43–269, class `CloudflareCvExtractionTests`, covers text-only JSON Mode, scan-page vision fallback, model-specific Cloudflare parameters, fenced/typed content, safe reasoning-only failures, the one-shot Gemma-to-Llama fallback with aggregated telemetry, OpenAI rollback JSON Mode, invalid model JSON, and missing credentials without a network call. `backend/tests/test_extract_cv_rejection.py` covers monthly quota and failure-not-consuming behaviour. `frontend/src/utils/cvImportRequest.test.js`, lines 1–21, locks the four-minute no-retry contract and all import-history status labels. `frontend/src/utils/aiCvPanelScroll.test.js`, lines 8–35, protects the fixed-controls/scrolling-list split, stable scrollbar gutter, accessible region, and short-viewport upload overflow. `backend/tests/test_cv_data.py` covers nested skills normalization.
 
 Official references: [Workers AI REST setup](https://developers.cloudflare.com/workers-ai/get-started/rest-api/) explains token permissions; [OpenAI compatibility](https://developers.cloudflare.com/workers-ai/configuration/open-ai-compatibility/) documents the `/ai/v1` endpoint; [Llama 3.1 8B Fast](https://developers.cloudflare.com/ai/models/%40cf/meta/llama-3.1-8b-instruct-fast/) documents the text model; [Qwen 3.8](https://developers.cloudflare.com/workers-ai/models/qwen3.8-27b/) documents vision, reasoning, and `max_completion_tokens`; [JSON Mode](https://developers.cloudflare.com/workers-ai/features/json-mode/) lists Llama Fast as supported; [Workers AI pricing](https://developers.cloudflare.com/workers-ai/platform/pricing/) explains the account-wide daily Free neuron allocation.
 
@@ -1562,7 +1571,7 @@ Implementation:
 - `frontend/src/components/ai/AiCvPanel/TemplateCarousel.jsx` — modulo-indexed visible window, optional `selectedId` / `visibleCount` / `actionLabel`, arrows, hover-enlarge
 - `frontend/src/utils/templateLayouts.js` — registry order, `layouts` helpers, `startIndexForSelectedTemplate`, `getTemplateAtsReadability`
 - `frontend/src/components/modals/TemplatesModal/TemplatesModal.jsx` — flat name/description grid with soft ATS badges
-- `frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx` — exclusive step panes (no modal scroll), footer step arrows between the step label and Anuluj, step-2 carousel + `handleFill`; `resetImportFlow` clears the extracted session after filling or closing so Topbar **Importuj PDF** always opens the dropzone, while template changes remain in **Zmień szablon**
+- `frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx` — exclusive step panes (no whole-dialog scroll; step 1 and the history list own bounded overflow), footer step arrows between the step label and Anuluj, step-2 carousel + `handleFill`; `resetImportFlow` clears the extracted session after filling or closing so Topbar **Importuj PDF** always opens the dropzone, while template changes remain in **Zmień szablon**
 - `frontend/src/components/ai/BioCvModal/BioCvModal.jsx`, `handleWizardComplete` — saves the four-step profile and starts the Regent handoff
 - `frontend/src/components/editor/Topbar/ChangeTemplateModal.jsx` — restyle via `replaceActiveElements`
 - Assets: `frontend/public/template-mockups/{id}.png`
@@ -1703,7 +1712,7 @@ Implementation:
 - `backend/app/models/models.py`, lines 183–239, classes `Plan`, `UserSubscription`, and `UsageCounter` — persisted limit, legacy flag, and monthly count
 - `backend/app/services/entitlements.py`, lines 32–59, 384–439, 520–534, and 574–602 — Free=3, Pro=unlimited, payload exposes limit/usage/remaining, and the final increment repeats the quota check atomically
 - `backend/app/api/routes/ai.py`, lines 143–195, function `extract_cv` — records one import only after successful normalization and maps `CvExtractionError` to safe 422/429/502/503 responses
-- `frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`, lines 60–76, 131–185, 301–323, and 369–378, component `AiCvPanel` — disables extraction at zero remaining, displays the remaining count, recovers long-running snapshots through history, and refreshes entitlements after success
+- `frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`, lines 62–78, 133–187, 303–332, and 378–387, component `AiCvPanel` — disables extraction at zero remaining, displays the remaining count, recovers long-running snapshots through history, and refreshes entitlements after success
 - `backend/app/services/pdf_generator.py`, lines 1312–1336, method `_draw_watermark` (diagonal overlay, isolated via `saveState`/`restoreState` so it cannot leak fill/alpha/font state); lines 1338–1452, `render_elements(..., watermark=False)`, with the per-page call at 1448–1450
 - `backend/app/crud/pdfs.py`, line 41, function `elements_from_rows` — reconstructs full `PdfElement` objects (including `runs`, connectors, `flowRole`, `borderRadius`, …) from stored rows, the inverse of this file's existing `extra_properties` packing in `create_new_pdf` / `update_pdf_elements`
 - `backend/app/services/document_service.py`, line 73, `create_pdf_document`; line 146, `update_pdf_document` (now takes a `user` parameter) — both compute `watermark = get_entitlements(db, user)["plan_slug"] == "free"` and set `Pdf.watermarked` to match what was actually rendered; line 202, `render_pdf_for_download(db, pdf_row, watermark)` — re-renders a stored document in place (local disk: overwrite; S3: re-upload to the same key) and updates `pdf_row.watermarked`
@@ -2179,6 +2188,13 @@ wywołania AI i usunąć zapisane dane. `Pdf.source_import_id` wiąże CV zapisa
 z danego snapshotu, dzięki czemu historia pokazuje użyty szablon i powiązane
 dokumenty.
 
+Dialog pozostawia widoczny nagłówek historii, kontrolki odświeżenia/nowego
+importu oraz stopkę, a lista snapshotów przewija się wewnątrz dostępnej powłoki
+`82vh`. Lista jest nazwanym regionem dostępnym z klawiatury, dlatego kółko
+myszy, dotyk i klawisze pozwalają dotrzeć do każdego importu bez chowania kart
+pod stopką. Panel wysyłania pliku korzysta z tego samego ograniczonego
+przewijania tylko wtedy, gdy pierwszy krok nie mieści się w niskim oknie.
+
 API przed ekstrakcją sprawdza sygnaturę PDF, możliwość parsowania, szyfrowanie,
 limit 10 MB i limit 12 stron. `GET /ai/imports`, `GET /ai/imports/{id}` oraz
 `DELETE /ai/imports/{id}` są ograniczone do właściciela; samo ID importu nigdy
@@ -2317,6 +2333,7 @@ pdf-generator/
 │   │   └── utils/            # geometria/reflow/sekcje, przeglądarkowy layout eksportu tekstu, wygląd szablonów, helpery gościa
 │   │       ├── cvImportRequest.js # Czterominutowa polityka importu CV bez automatycznego retry
 │   │       ├── cvImportRequest.test.js # Regresje timeoutu i statusów zapisanych importów
+│   │       ├── aiCvPanelScroll.test.js # Regresje overflow historii importów i dostępu z klawiatury
 │   │       ├── canvasHighlightBounds.js # Bounds z modelu i limity tuszu po commicie
 │   │       ├── canvasHighlightBounds.test.js # Dokładne regresje geometrii obrysu semantycznego
 │   │       └── canvasHighlightAllTemplates.test.js # Kontrakt izolacji main/sidebara dla każdego wbudowanego szablonu
@@ -3633,12 +3650,13 @@ Gdy CV źródłowe ma **osobne** nagłówki rodzin umiejętności (np. Umiejętn
 - `backend/app/core/config.py`, linie 65–86, ustawienia Cloudflare i `CV_EXTRACT_*` — sekrety serwerowe, modele główny/awaryjny i limity stron/tekstu/odpowiedzi
 - `backend/app/api/routes/ai.py`, linie 143–195, funkcja `extract_cv` — auth, walidacja pliku, wywołanie dostawcy w puli wątków, snapshot, miesięczny licznik i bezpieczne statusy HTTP
 - `frontend/src/utils/cvImportRequest.js`, linie 1–28, stałe `CV_IMPORT_REQUEST_OPTIONS` / `CV_IMPORT_TIMEOUT_MESSAGE` i funkcja `cvImportStatusLabel` — czterominutowa polityka bez retry oraz etykiety statusów
-- `frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`, linie 131–185 i 301–323, komponent `AiCvPanel` — odzyskiwanie po timeout, odświeżanie historii i bezpieczne użycie gotowego snapshotu
+- `frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`, linie 133–187 i 303–332, komponent `AiCvPanel` — odzyskiwanie po timeout, odświeżanie historii, bezpieczne użycie gotowego snapshotu oraz dostępny region przewijania listy historii
+- `frontend/src/components/ai/AiCvPanel/AiCvPanel.module.css`, linie 27–77 i 256–262, selektory `stepPane`, `historyPane`, `historyList` i `historyHeader` — ograniczone przewijanie, widoczny cienki scrollbar, stabilny gutter, obrys fokusu klawiatury i nieruchome kontrolki historii
 - `backend/app/services/cv_data.py` — `normalize_cv_data` + `skill_groups` + `is_distinct_skill_family_title` + `_expand_skill_category_lines` + `_absorb_skills_alias_sections` + `extract_contact_fields_from_raw`
 - `backend/app/services/cv_templates/shared/text.py` — `_place_skills_section`
 - `backend/app/services/contact_links.py`
 
-Testy: `backend/tests/test_cloudflare_cv_extraction.py`, linie 43–269, klasa `CloudflareCvExtractionTests`, obejmuje tekstowy JSON Mode, vision dla skanu, parametry zależne od modelu, fenced/typed content, bezpieczny błąd przy samym reasoningu, jednorazowy fallback Gemma→Llama z agregacją telemetrii, JSON Mode rollbacku OpenAI, błędny JSON i brak danych logowania bez sieci. `backend/tests/test_extract_cv_rejection.py` sprawdza miesięczny limit oraz brak naliczenia po błędzie. `frontend/src/utils/cvImportRequest.test.js`, linie 1–21, utrwala kontrakt czterech minut bez retry i wszystkie etykiety historii importów. `backend/tests/test_cv_data.py` obejmuje normalizację zagnieżdżonych skills.
+Testy: `backend/tests/test_cloudflare_cv_extraction.py`, linie 43–269, klasa `CloudflareCvExtractionTests`, obejmuje tekstowy JSON Mode, vision dla skanu, parametry zależne od modelu, fenced/typed content, bezpieczny błąd przy samym reasoningu, jednorazowy fallback Gemma→Llama z agregacją telemetrii, JSON Mode rollbacku OpenAI, błędny JSON i brak danych logowania bez sieci. `backend/tests/test_extract_cv_rejection.py` sprawdza miesięczny limit oraz brak naliczenia po błędzie. `frontend/src/utils/cvImportRequest.test.js`, linie 1–21, utrwala kontrakt czterech minut bez retry i wszystkie etykiety historii importów. `frontend/src/utils/aiCvPanelScroll.test.js`, linie 8–35, chroni podział na nieruchome kontrolki i przewijaną listę, stabilny gutter scrollbara, dostępny region oraz overflow panelu wysyłania w niskim oknie. `backend/tests/test_cv_data.py` obejmuje normalizację zagnieżdżonych skills.
 
 Oficjalne źródła: [REST Workers AI](https://developers.cloudflare.com/workers-ai/get-started/rest-api/) opisuje uprawnienia tokenu; [zgodność z OpenAI](https://developers.cloudflare.com/workers-ai/configuration/open-ai-compatibility/) — endpoint `/ai/v1`; [Llama 3.1 8B Fast](https://developers.cloudflare.com/ai/models/%40cf/meta/llama-3.1-8b-instruct-fast/) — model tekstowy; [Qwen 3.8](https://developers.cloudflare.com/workers-ai/models/qwen3.8-27b/) — vision, reasoning i `max_completion_tokens`; [JSON Mode](https://developers.cloudflare.com/workers-ai/features/json-mode/) wymienia Llamę Fast jako wspieraną; [cennik Workers AI](https://developers.cloudflare.com/workers-ai/platform/pricing/) opisuje wspólną dzienną pulę neuronów Free.
 
@@ -3652,7 +3670,7 @@ Implementacja:
 - `frontend/src/components/ai/AiCvPanel/TemplateCarousel.jsx` — okno modulo, opcjonalne `selectedId` / `visibleCount` / `actionLabel`, strzałki, powiększenie
 - `frontend/src/utils/templateLayouts.js` — kolejność rejestru, helpery `layouts`, `startIndexForSelectedTemplate`, `getTemplateAtsReadability`
 - `frontend/src/components/modals/TemplatesModal/TemplatesModal.jsx` — płaska siatka nazwa/opis z plakietkami ATS
-- `frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx` — osobne panele kroków (bez scrolla modala), strzałki w stopce między etykietą kroku a Anuluj, karuzela kroku 2 + `handleFill`; `resetImportFlow` czyści sesję importu po wypełnieniu lub zamknięciu, więc Topbar **Importuj PDF** zawsze otwiera dropzone, a zmianę szablonu obsługuje wyłącznie **Zmień szablon**
+- `frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx` — osobne panele kroków (bez scrolla całego dialogu; krok 1 i lista historii mają własny ograniczony overflow), strzałki w stopce między etykietą kroku a Anuluj, karuzela kroku 2 + `handleFill`; `resetImportFlow` czyści sesję importu po wypełnieniu lub zamknięciu, więc Topbar **Importuj PDF** zawsze otwiera dropzone, a zmianę szablonu obsługuje wyłącznie **Zmień szablon**
 - `frontend/src/components/ai/BioCvModal/BioCvModal.jsx`, linie 913–940 — karuzela w `renderReview`
 - `frontend/src/components/editor/Topbar/ChangeTemplateModal.jsx` — restyl przez `replaceActiveElements`
 - Pliki: `frontend/public/template-mockups/{id}.png`
@@ -3791,7 +3809,7 @@ Implementacja:
 - `backend/app/models/models.py`, linie 183–239, klasy `Plan`, `UserSubscription`, `UsageCounter` — utrwalony limit, legacy flag i miesięczny licznik
 - `backend/app/services/entitlements.py`, linie 32–59, 384–439, 520–534 i 574–602 — Darmowy=3, Pro=bez limitu, payload zawiera limit/użycie/pozostałe, a końcowy increment atomowo powtarza bramkę
 - `backend/app/api/routes/ai.py`, linie 143–195, funkcja `extract_cv` — nalicza import po normalizacji i mapuje `CvExtractionError` na bezpieczne 422/429/502/503
-- `frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`, linie 60–76, 131–185, 301–323 i 369–378, komponent `AiCvPanel` — blokuje przy zerze, pokazuje pozostałą liczbę, odzyskuje długo działający snapshot przez historię i odświeża entitlements po sukcesie
+- `frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`, linie 62–78, 133–187, 303–332 i 378–387, komponent `AiCvPanel` — blokuje przy zerze, pokazuje pozostałą liczbę, odzyskuje długo działający snapshot przez historię i odświeża entitlements po sukcesie
 - `backend/app/services/pdf_generator.py`, linie 1312–1336, metoda `_draw_watermark` (ukośna nakładka, izolowana przez `saveState`/`restoreState`, więc nie może wyciec kolor wypełnienia/przezroczystości/fontu); linie 1338–1452, `render_elements(..., watermark=False)`, z wywołaniem per strona w liniach 1448–1450
 - `backend/app/crud/pdfs.py`, linia 41, funkcja `elements_from_rows` — rekonstruuje pełne obiekty `PdfElement` (w tym `runs`, konektory, `flowRole`, `borderRadius`, …) z zapisanych wierszy, odwrotność istniejącego pakowania `extra_properties` w `create_new_pdf` / `update_pdf_elements`
 - `backend/app/services/document_service.py`, linia 73, `create_pdf_document`; linia 146, `update_pdf_document` (przyjmuje teraz parametr `user`) — oba liczą `watermark = get_entitlements(db, user)["plan_slug"] == "free"` i ustawiają `Pdf.watermarked` zgodnie z tym, co faktycznie wyrenderowano; linia 202, `render_pdf_for_download(db, pdf_row, watermark)` — przerenderowuje zapisany dokument w miejscu (dysk lokalny: nadpisanie; S3: ponowny upload pod ten sam klucz) i aktualizuje `pdf_row.watermarked`

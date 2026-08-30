@@ -1,7 +1,8 @@
 /*
  * “Wypełnij z mojego CV” wizard. Step 1 and step 2 are exclusive full-body
- * panes (no stacked scroll). DialogShell body overflow is turned off via
- * `.dialogBody` so the gallery fits the 82vh shell without an inner scrollbar.
+ * panes. DialogShell body overflow is turned off via `.dialogBody` so the
+ * footer never moves. Step 1 owns overflow for short viewports; import history
+ * narrows that surface to the snapshot list so its controls stay visible.
  * Footer hosts step arrows between the step label and Anuluj.
  */
 
@@ -30,6 +31,49 @@
     padding: 26px 32px;
     flex: 1;
     min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+}
+
+.historyPane {
+    overflow: hidden;
+}
+
+.historyList {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    flex-direction: column;
+    gap: 16px;
+    padding: 2px 8px 2px 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+}
+
+.stepPane,
+.historyList {
+    scrollbar-width: thin;
+    scrollbar-color: var(--chrome-muted) transparent;
+}
+
+.stepPane::-webkit-scrollbar,
+.historyList::-webkit-scrollbar {
+    width: 10px;
+}
+
+.stepPane::-webkit-scrollbar-thumb,
+.historyList::-webkit-scrollbar-thumb {
+    background: var(--chrome-muted);
+    border: 3px solid transparent;
+    border-radius: 999px;
+    background-clip: padding-box;
+}
+
+.historyList:focus-visible {
+    outline: 2px solid var(--chrome-accent);
+    outline-offset: 4px;
 }
 
 .step2Pane {
@@ -214,6 +258,7 @@
     align-items: center;
     justify-content: space-between;
     gap: 16px;
+    flex-shrink: 0;
 }
 
 .historyHeaderActions {
