@@ -33,19 +33,20 @@ test("shrinks preserveInitialLayout boxes only when browser metrics are shorter"
   assert.equal(shouldShrinkPreservedLayout("66", "58"), true);
 });
 
-test("trims trailing blank and bare-bullet lines from bullet lists", () => {
+test("removes trailing bare bullets while preserving authored blank paragraphs", () => {
   assert.equal(isEmptyTextareaLine("• ", true), true);
   assert.equal(isEmptyTextareaLine("• real item", true), false);
   assert.equal(
     trimTrailingEmptyTextareaLines("• one\n• two\n\n• \n\n", { bulletList: true }),
-    "• one\n• two",
+    "• one\n• two\n\n\n",
   );
   assert.equal(
-    trimTrailingEmptyTextareaLines("• one\n\n", {
-      bulletList: true,
-      keepTrailingEmptyLines: 1,
-    }),
-    "• one\n",
+    trimTrailingEmptyTextareaLines("• one\n• ", { bulletList: true }),
+    "• one",
+  );
+  assert.equal(
+    trimTrailingEmptyTextareaLines("• one\n\n", { bulletList: true }),
+    "• one\n\n",
   );
 });
 
@@ -61,7 +62,7 @@ test("preserves blank paragraphs between a heading line and a bullet group", () 
     trimTrailingEmptyTextareaLines("Języki\n\n• Polski\n• Angielski\n\n", {
       bulletList: true,
     }),
-    "Języki\n\n• Polski\n• Angielski",
+    "Języki\n\n• Polski\n• Angielski\n\n",
   );
   assert.equal(
     trimTrailingEmptyTextareaLines("Intro\n\n• one\n\n• two\n• three", {
@@ -76,7 +77,7 @@ test("re-bases runs when trailing empties are removed", () => {
   const result = trimTrailingEmptyTextareaPayload("• abc\n\n• \n\n", runs, {
     bulletList: true,
   });
-  assert.equal(result.content, "• abc");
+  assert.equal(result.content, "• abc\n\n\n");
   assert.deepEqual(result.runs, [{ start: 0, end: 5, bold: true }]);
 });
 
@@ -88,10 +89,14 @@ test("measureTextareaHeight counts authored plain trailing empty rows", () => {
 
 test("measureTextareaHeight ignores trailing bullet placeholders", () => {
   const solid = measureTextareaHeight("• hello", 200, 10, 14, { bulletList: true });
-  const padded = measureTextareaHeight("• hello\n• \n\n", 200, 10, 14, {
+  const placeholder = measureTextareaHeight("• hello\n• ", 200, 10, 14, {
     bulletList: true,
   });
-  assert.equal(padded, solid);
+  const exitedList = measureTextareaHeight("• hello\n• \n", 200, 10, 14, {
+    bulletList: true,
+  });
+  assert.equal(placeholder, solid);
+  assert.equal(exitedList, solid + 14);
 });
 
 test("glyph-width measurement catches word wraps hidden by the character-count fallback", () => {

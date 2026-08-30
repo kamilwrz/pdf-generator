@@ -16,7 +16,12 @@
  * selection offsets always line up with `content`.
  */
 
-import { normalizeRuns, sliceRuns, styledSegments } from "./textRuns.js";
+import {
+  normalizeRuns,
+  runsToPerChar,
+  sliceRuns,
+  styledSegments,
+} from "./textRuns.js";
 import { sanitizeChar } from "./sanitizeTextContent.js";
 
 const TEXT_NODE = 3;
@@ -109,6 +114,87 @@ export function bulletRunsToEditableHtml(content, runs) {
   }).join("");
 }
 
+// Replace one stored-text range and move every inline run with its character.
+// Inserted paragraph separators and bullet markers intentionally start without
+// marks; text on either side keeps the exact decoration it had before Enter.
+function replaceEditableTextRange(content, runs, start, end, insertedText) {
+  const text = typeof content === "string" ? content : String(content ?? "");
+  const beforeMarks = runsToPerChar(text, runs);
+  const insertion = String(insertedText ?? "");
+  const nextContent = text.slice(0, start) + insertion + text.slice(end);
+  const nextMarks = [
+    ...beforeMarks.slice(0, start),
+    ...new Array(insertion.length).fill(null),
+    ...beforeMarks.slice(end),
+  ];
+  const rawRuns = [];
+  for (let index = 0; index < nextMarks.length; index += 1) {
+    const marks = nextMarks[index];
+    if (!marks) continue;
+    rawRuns.push({ start: index, end: index + 1, ...marks });
+  }
+  return {
+    content: nextContent,
+    runs: normalizeRuns(nextContent, rawRuns),
+    caret: start + insertion.length,
+  };
+}
+
+/**
+ * Build the authoritative textarea payload produced by pressing Enter.
+ *
+ * Bullet editing follows the familiar list contract: a filled item creates a
+ * new `• ` item, an empty item exits the list into a plain empty paragraph,
+ * and Enter inside a plain paragraph creates another plain paragraph. The
+ * operation is DOM-independent so Chromium cannot relocate the caret while a
+ * bullet paragraph is being rebuilt into its marker/body grid.
+ *
+ * @param {{
+ *   content: string,
+ *   runs?: object[],
+ *   selection?: {start: number, end: number}|null,
+ *   bulletList?: boolean,
+ * }} options
+ * @returns {{content: string, runs: object[], caret: number}}
+ */
+export function createTextareaEnterEdit({
+  content,
+  runs,
+  selection,
+  bulletList = false,
+}) {
+  const text = typeof content === "string" ? content : String(content ?? "");
+  const rawStart = Number.isFinite(selection?.start) ? selection.start : text.length;
+  const rawEnd = Number.isFinite(selection?.end) ? selection.end : rawStart;
+  const from = Math.max(0, Math.min(text.length, Math.min(rawStart, rawEnd)));
+  const to = Math.max(from, Math.min(text.length, Math.max(rawStart, rawEnd)));
+
+  if (!bulletList) {
+    return replaceEditableTextRange(text, runs, from, to, "\n");
+  }
+
+  const lineStart = text.lastIndexOf("\n", from - 1) + 1;
+  const lineEndIndex = text.indexOf("\n", from);
+  const lineEnd = lineEndIndex === -1 ? text.length : lineEndIndex;
+  const line = text.slice(lineStart, lineEnd);
+  const bulletMatch = line.match(/^\s*•[ \t]*/);
+
+  if (bulletMatch && line.slice(bulletMatch[0].length).trim() === "") {
+    // Replace the complete marker-only row, not just the marker glyph. This
+    // leaves the surrounding newline in place and therefore creates one real
+    // plain paragraph that can accept text or another Enter immediately.
+    return replaceEditableTextRange(text, runs, lineStart, lineEnd, "");
+  }
+
+  return replaceEditableTextRange(
+    text,
+    runs,
+    from,
+    to,
+    bulletMatch ? "\n• " : "\n",
+  );
+}
+
 // Read the marks an element node contributes, layered over inherited marks.
 function marksFromElement(node, inherited) {
   const marks = { ...inherited };
@@ -142,6 +228,7 @@ function marksFromElement(node, inherited) {
 function flatten(root) {
   const chars = [];
   const marks = [];
+  let explicitParagraphCount = 0;
 
   const pushBreak = (inherited) => {
     // Avoid a leading newline and collapse doubles the browser sometimes emits.
@@ -168,7 +255,22 @@ function flatten(root) {
         marks.push(inherited);
         continue;
       }
-      if (BLOCK_TAGS.has(tag)) pushBreak(inherited);
+      const isExplicitParagraph = BLOCK_TAGS.has(tag)
+        && child.getAttribute?.("data-editable-paragraph") !== null;
+      if (isExplicitParagraph) {
+        // Our bullet editor renders one explicit block per stored logical
+        // line. Every boundary is authoritative, including two adjacent empty
+        // paragraphs; collapsing those boundaries made repeated Enter a no-op.
+        if (explicitParagraphCount > 0) {
+          chars.push("\n");
+          marks.push(inherited);
+        }
+        explicitParagraphCount += 1;
+      } else if (BLOCK_TAGS.has(tag)) {
+        // Browser-created wrappers can coexist with literal newline nodes.
+        // Keep the legacy de-duplication only for those unowned wrappers.
+        pushBreak(inherited);
+      }
       walk(child, marksFromElement(child, inherited));
     }
   };
@@ -216,6 +318,7 @@ function offsetOfBoundary(root, targetNode, targetOffset) {
   let count = 0;
   let found = false;
   let lastChar = "";
+  let explicitParagraphCount = 0;
 
   const pushBreak = () => {
     if (count === 0 || lastChar === "\n") return;
@@ -252,7 +355,17 @@ function offsetOfBoundary(root, targetNode, targetOffset) {
         }
         continue;
       }
-      if (BLOCK_TAGS.has(tag)) pushBreak();
+      const isExplicitParagraph = BLOCK_TAGS.has(tag)
+        && child.getAttribute?.("data-editable-paragraph") !== null;
+      if (isExplicitParagraph) {
+        if (explicitParagraphCount > 0) {
+          count += 1;
+          lastChar = "\n";
+        }
+        explicitParagraphCount += 1;
+      } else if (BLOCK_TAGS.has(tag)) {
+        pushBreak();
+      }
       // Selection anchored to an element container at a child index.
       if (child === targetNode) {
         walkUntilChildIndex(child, targetOffset);
@@ -333,6 +446,7 @@ function domPositionForOffset(root, offset) {
   let lastTextLen = 0;
   let emittedAny = false;
   let lastChar = "";
+  let explicitParagraphCount = 0;
 
   const walk = (node) => {
     const children = node.childNodes || [];
@@ -341,6 +455,19 @@ function domPositionForOffset(root, offset) {
         const len = (child.nodeValue ?? "").length;
         lastText = child;
         lastTextLen = len;
+        const endsAtBulletMarker = remaining === len
+          && child.parentNode?.getAttribute?.("data-editable-bullet-marker") === "true";
+        if (endsAtBulletMarker) {
+          // The stored offset after `• ` is also the start of the bullet body.
+          // Prefer that semantic insertion point over the visual end of the
+          // marker span, otherwise newly typed copy widens the marker column.
+          remaining = 0;
+          if (len > 0) {
+            emittedAny = true;
+            lastChar = child.nodeValue[len - 1];
+          }
+          continue;
+        }
         if (remaining <= len) {
           const found = { node: child, offset: remaining };
           remaining = -1;
@@ -355,6 +482,12 @@ function domPositionForOffset(root, offset) {
       }
       if (child.nodeType !== ELEMENT_NODE) continue;
       const tag = (child.nodeName || "").toUpperCase();
+      if (
+        remaining <= 0
+        && child.getAttribute?.("data-editable-bullet-body") === "true"
+      ) {
+        return { node: child, offset: 0 };
+      }
       if (tag === "BR") {
         if (remaining <= 0) {
           const found = { node: child.parentNode, offset: 0 };
@@ -366,12 +499,40 @@ function domPositionForOffset(root, offset) {
         lastChar = "\n";
         continue;
       }
-      // `flatten` inserts one newline before each non-leading block. Consume
-      // the same synthetic character here so restoring a caret after bullet
-      // paragraph normalization lands at the correct stored-text offset.
-      if (BLOCK_TAGS.has(tag) && emittedAny && lastChar !== "\n") {
+      const isExplicitParagraph = BLOCK_TAGS.has(tag)
+        && child.getAttribute?.("data-editable-paragraph") !== null;
+      if (isExplicitParagraph) {
+        // `flatten` preserves every boundary between our explicit logical
+        // paragraphs, including consecutive empty rows. Consume the same
+        // synthetic newline for offset-to-DOM restoration.
+        if (explicitParagraphCount > 0) {
+          remaining -= 1;
+          emittedAny = true;
+          lastChar = "\n";
+          if (remaining <= 0) {
+            return { node: child, offset: 0 };
+          }
+        }
+        explicitParagraphCount += 1;
+        if (explicitParagraphCount === 1 && remaining <= 0) {
+          return { node: child, offset: 0 };
+        }
+      // Unowned browser block wrappers retain the collapsed-boundary contract
+      // used by `flatten` so literal newlines are never counted twice.
+      } else if (BLOCK_TAGS.has(tag) && emittedAny && lastChar !== "\n") {
         remaining -= 1;
         lastChar = "\n";
+        // Offset immediately after that newline belongs at the start of this
+        // paragraph. Falling through used to return the previous text node
+        // when this paragraph was empty, so Enter appeared to do nothing and
+        // the next keystroke continued the preceding bullet instead.
+        if (remaining <= 0) {
+          return { node: child, offset: 0 };
+        }
+      } else if (BLOCK_TAGS.has(tag) && !emittedAny && remaining <= 0) {
+        // Empty editors and offset zero of the first paragraph need a concrete
+        // insertion point inside that paragraph, not beside it at root level.
+        return { node: child, offset: 0 };
       }
       const result = walk(child);
       if (result) return result;

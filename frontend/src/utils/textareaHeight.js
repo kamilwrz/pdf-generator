@@ -19,37 +19,39 @@ export function isEmptyTextareaLine(line, bulletList = false) {
 }
 
 /**
- * Drop trailing empty rows from bullet-list textarea content.
+ * Drop trailing bare bullet placeholders from bullet-list textarea content.
  *
  * Plain textareas preserve every authored newline, including trailing blank
- * paragraphs. Those rows are user-controlled spacing and must remain visible
- * after edit mode closes. Bullet lists still accumulate bare `•` placeholders
- * while editing; trimming those placeholders prevents accidental list chrome
- * from inflating section rhythm after reflow.
+ * paragraphs. Bullet-list textareas follow the same authored-spacing rule: a
+ * blank paragraph created by exiting a list must remain available for typing
+ * and stay visible after edit mode closes. Only bare `•` placeholders are
+ * editor chrome and are removed before persistence/measurement.
  *
- * Only *trailing* empties are removed. Blank lines between real content
- * (paragraph breaks, a heading line above a bullet group) are preserved.
+ * Marker-only rows are removed only from the trailing empty suffix. Blank rows
+ * in that suffix and between real content are preserved exactly.
  *
  * @param {string|null|undefined} content
- * @param {{ bulletList?: boolean, keepTrailingEmptyLines?: number }} [options]
+ * @param {{ bulletList?: boolean }} [options]
  * @returns {string}
  */
 export function trimTrailingEmptyTextareaLines(
   content,
-  { bulletList = false, keepTrailingEmptyLines = 0 } = {},
+  { bulletList = false } = {},
 ) {
-  if (!bulletList) {
-    return String(content ?? "");
-  }
+  const text = String(content ?? "");
+  if (!bulletList) return text;
 
-  const lines = String(content ?? "").split("\n");
-  let end = lines.length;
-  while (end > 0 && isEmptyTextareaLine(lines[end - 1], bulletList)) {
-    end -= 1;
+  const lines = text.split("\n");
+  let suffixStart = lines.length;
+  while (suffixStart > 0 && isEmptyTextareaLine(lines[suffixStart - 1], true)) {
+    suffixStart -= 1;
   }
-  const keep = Math.max(0, Math.floor(Number(keepTrailingEmptyLines) || 0));
-  const keepCount = Math.min(keep, lines.length - end);
-  return lines.slice(0, end + keepCount).join("\n");
+  const suffix = lines.slice(suffixStart);
+  if (!suffix.some((line) => /^\s*•\s*$/.test(line))) return text;
+  return [
+    ...lines.slice(0, suffixStart),
+    ...suffix.filter((line) => !/^\s*•\s*$/.test(line)),
+  ].join("\n");
 }
 
 /**
@@ -57,7 +59,7 @@ export function trimTrailingEmptyTextareaLines(
  *
  * @param {string|null|undefined} content
  * @param {object[]|null|undefined} runs
- * @param {{ bulletList?: boolean, keepTrailingEmptyLines?: number }} [options]
+ * @param {{ bulletList?: boolean }} [options]
  * @returns {{ content: string, runs: object[]|null|undefined }}
  */
 export function trimTrailingEmptyTextareaPayload(

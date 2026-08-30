@@ -22,6 +22,7 @@ import { hasRuns, sliceRuns } from "../../../utils/textRuns";
 import { renderStyledText } from "../../../utils/renderStyledText";
 import {
     bulletRunsToEditableHtml,
+    createTextareaEnterEdit,
     getSelectionOffsets,
     runsToHtml,
     serializeEditable,
@@ -540,44 +541,29 @@ function Textarea({
                             e.currentTarget.blur();
                             return;
                         }
-                        // Insert newlines as a plain "\n" text character instead of
-                        // letting the browser wrap lines in <div> blocks. Under
-                        // white-space: pre-wrap a block wrapper leaves the original
-                        // "\n" text node in place, so each line is counted twice and
-                        // measureNaturalScrollHeight returns ~2x the real height. A
-                        // flat "\n"-only structure keeps the edit surface as reliable
-                        // to measure as the former <textarea>. insertText fires a
-                        // native input event, so commitEditable still runs.
-                        //
-                        // Bullet lists: Enter after a filled item continues with
-                        // "• "; Enter on a bare "•" clears the marker into a blank
-                        // paragraph so the user can start a new non-list block
-                        // (e.g. a heading line above another bullet group).
+                        // Build Enter from stored-text offsets rather than the
+                        // deprecated execCommand path. Bullet paragraphs have a
+                        // marker/body DOM grid; native insertion followed by an
+                        // immediate grid rebuild could restore the caret to the
+                        // previous item, making the new line look impossible.
+                        // The pure edit operation keeps runs aligned and gives the
+                        // rebuilt paragraph one explicit caret offset.
                         if (e.key === "Enter") {
                             e.preventDefault();
-                            if (!bulletList) {
-                                document.execCommand("insertText", false, "\n");
-                                return;
-                            }
                             const node = e.currentTarget;
-                            const { content: liveContent } = serializeEditable(node);
+                            const serialized = serializeEditable(node);
                             const selection = getSelectionOffsets(node);
-                            const caret = selection?.start ?? liveContent.length;
-                            const lineStart = liveContent.lastIndexOf("\n", caret - 1) + 1;
-                            const lineEndIdx = liveContent.indexOf("\n", caret);
-                            const lineEnd = lineEndIdx === -1 ? liveContent.length : lineEndIdx;
-                            const line = liveContent.slice(lineStart, lineEnd);
-                            if (/^\s*•\s*$/.test(line)) {
-                                const marker = line.match(/^\s*•[ \t]*/)?.[0] ?? "";
-                                setSelectionOffsets(node, lineStart, lineStart + marker.length);
-                                document.execCommand("insertText", false, "");
-                                return;
-                            }
-                            if (/^\s*•/.test(line)) {
-                                document.execCommand("insertText", false, "\n• ");
-                                return;
-                            }
-                            document.execCommand("insertText", false, "\n");
+                            const edit = createTextareaEnterEdit({
+                                content: serialized.content,
+                                runs: serialized.runs,
+                                selection,
+                                bulletList: !!bulletList,
+                            });
+                            node.innerHTML = bulletList
+                                ? bulletRunsToEditableHtml(edit.content, edit.runs)
+                                : runsToHtml(edit.content, edit.runs);
+                            setSelectionOffsets(node, edit.caret, edit.caret);
+                            commitEditable(node);
                         }
                     }}
                     onPaste={(e) => {
