@@ -475,6 +475,32 @@ export function isSectionHeading(element, elements = [], pageHeight = 842) {
 function resolveSectionChromeBandStart(elements, heading, pageHeight) {
   const headingAbs = absoluteTop(heading, pageHeight);
   let bandStart = headingAbs;
+
+  // A filled band owns the heading whose baseline it contains. Recognising it
+  // first also gives us a stable reference for reclaiming a narrow accent that
+  // an older, broken spacing pass left one section-gap above the band.
+  const filledBand = (elements || [])
+    .filter((element) => {
+      if (!isFilledSectionBand(element)) return false;
+      const abs = absoluteTop(element, pageHeight);
+      return abs >= headingAbs - 24
+        && abs <= headingAbs + 1
+        && headingAbs <= abs + elementHeight(element) + 1;
+    })
+    .sort((left, right) => (
+      Math.abs(absoluteTop(left, pageHeight) - headingAbs)
+      - Math.abs(absoluteTop(right, pageHeight) - headingAbs)
+    ))[0] || null;
+
+  if (filledBand) {
+    bandStart = Math.min(bandStart, absoluteTop(filledBand, pageHeight));
+    for (const element of elements || []) {
+      if (isMatchingSectionBandAccent(element, filledBand, pageHeight)) {
+        bandStart = Math.min(bandStart, absoluteTop(element, pageHeight));
+      }
+    }
+  }
+
   for (const element of elements || []) {
     if (!element || element.fixedToPage) continue;
     if (element.element_id === heading.element_id) continue;
@@ -570,6 +596,57 @@ function isLeadingSectionMark(element) {
  * both cases with comfortable margin.
  */
 const SIDEBAR_LEFT_GAP = 150;
+
+// Cadenza-style section bands combine a full-width, filled line with a narrow
+// accent line at the same left edge. The centered heading text can begin more
+// than SIDEBAR_LEFT_GAP pixels to their right, so horizontal position alone is
+// not a valid lane signal for explicitly tagged main-section chrome.
+const FILLED_SECTION_BAND_MIN_HEIGHT = 8;
+const SECTION_BAND_ACCENT_MAX_WIDTH = 12;
+const SECTION_BAND_ACCENT_RECOVERY_WINDOW = 48;
+
+/**
+ * Whether an explicitly owned chrome line is a filled section-title band,
+ * rather than the thin underline used by many other templates.
+ *
+ * Filled bands can safely define the start of their own section because the
+ * heading baseline sits inside the band. A thin underline above the next
+ * heading still belongs to the preceding section and must not move the
+ * boundary.
+ *
+ * @param {object|null|undefined} element
+ * @returns {boolean}
+ */
+function isFilledSectionBand(element) {
+  return element?.flowRole === "section-chrome"
+    && element.category === "line"
+    && (Number(element.width) || 0) >= 120
+    && elementHeight(element) >= FILLED_SECTION_BAND_MIN_HEIGHT;
+}
+
+/**
+ * Whether `accent` is the narrow edge marker paired with `band`.
+ *
+ * The recovery window intentionally exceeds the healthy zero-pixel offset.
+ * Older spacing passes could leave the marker at its previous Y while moving
+ * the band by one section gap (typically 21–35 px). Matching the authored
+ * left edge and height prevents unrelated chrome from being reclaimed.
+ *
+ * @param {object|null|undefined} accent
+ * @param {object|null|undefined} band
+ * @param {number} pageHeight
+ * @returns {boolean}
+ */
+function isMatchingSectionBandAccent(accent, band, pageHeight) {
+  if (!accent || !band || accent === band) return false;
+  if (accent.flowRole !== "section-chrome" || accent.category !== "line") return false;
+  const accentWidth = Number(accent.width) || 0;
+  if (accentWidth <= 0 || accentWidth > SECTION_BAND_ACCENT_MAX_WIDTH) return false;
+  if (Math.abs((Number(accent.left) || 0) - (Number(band.left) || 0)) > 4) return false;
+  if (Math.abs(elementHeight(accent) - elementHeight(band)) > 2) return false;
+  return Math.abs(absoluteTop(accent, pageHeight) - absoluteTop(band, pageHeight))
+    <= SECTION_BAND_ACCENT_RECOVERY_WINDOW;
+}
 
 /**
  * Predicate for "not a different (sidebar) column from `headingLeft`".
@@ -780,7 +857,14 @@ export function sectionElementIds(elements, headingId, pageHeight = 842) {
       // the RIGHT of the main heading and would otherwise pass the one-way
       // `sameColumnAsHeading` check.
       if (isSidebarLaneElement(element)) continue;
-      if (!isSameColumn(element)) continue;
+      // `section-chrome` is an explicit main-lane ownership contract. Cadenza
+      // places its slim accent at x=58 while the centered label begins near
+      // x=219; applying the generic sidebar-gap heuristic to that marker leaves
+      // it behind, then lets the filled band drift into the previous section on
+      // the next pack. Sidebar chrome has its own `sidebar-chrome` role and was
+      // already excluded above, so bypassing the column heuristic here cannot
+      // fold the sidebar rail into the main document flow.
+      if (!isSameColumn(element) && element.flowRole !== "section-chrome") continue;
       // Another section's title must never join this strip — that is what made
       // Contact chips from a later band attach to an earlier heading and explode
       // chrome relTop across a whole page.
@@ -1482,6 +1566,22 @@ function compactChromeCluster(chromeElements, pageHeight) {
       element,
       relTop: absoluteTop(element, pageHeight) - headingAbs,
     }));
+
+    // Heal Cadenza-style filled bands saved after the former column-filter bug.
+    // The band stayed with the heading while its narrow accent remained at the
+    // previous Y. Once section membership reclaims both pieces, snap the accent
+    // back onto the band's top before normalising the cluster. This makes the
+    // first spacing/reorder action repair old documents and keeps future packs
+    // idempotent.
+    const filledBand = chromeElements.find(isFilledSectionBand);
+    if (filledBand) {
+      const bandItem = items.find((item) => item.element === filledBand);
+      for (const item of items) {
+        if (bandItem && isMatchingSectionBandAccent(item.element, filledBand, pageHeight)) {
+          item.relTop = bandItem.relTop;
+        }
+      }
+    }
     // Third corruption signature: Monument ordinal digits drifted below the
     // title baseline (square+16 instead of square+8). Snap them back onto the
     // title before minRel normalisation so packing alone repairs open docs.
