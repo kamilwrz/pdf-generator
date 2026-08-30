@@ -286,15 +286,15 @@ def _gen_meridian(cv: dict) -> list[dict]:
         "paper": "#FFFFFF",
         "ink": "#1B2A41",
         "body": "#33475A",
-        "muted": "#7A8699",
+        "muted": "#657287",
         "rule": "#D7DEE6",
         "accent": "#3D5A80",
         "display": "CormorantGaramond",
         "sans": "Montserrat",
-        # Meridian reuses Regent's thin, neutral contact glyphs: they are
-        # colorless silhouettes designed to sit under any ink color, so no
-        # new icon asset set is needed for the navy/steel-blue palette.
-        "icon_theme": "regent",
+        # Meridian owns a palette-specific contact glyph family. The paths are
+        # persisted in canvas data so the browser and ReportLab export render
+        # the same ink without relying on a CSS filter.
+        "icon_theme": "meridian",
         "L": 62,
         "W": 471,
     }
@@ -483,12 +483,20 @@ def _gen_meridian(cv: dict) -> list[dict]:
     pages_used = max([element.get("page", 1) for element in header + flow] or [1])
     decorations: list[dict] = []
     for page in range(1, pages_used + 1):
-        decorations.append(
-            {
-                **_line(0, 0, 595, 842, C["paper"], zIndex=0, page=page),
-                "fixedToPage": True,
+        page_background = {
+            **_line(0, 0, 595, 842, C["paper"], zIndex=0, page=page),
+            "fixedToPage": True,
+        }
+        if page == 1:
+            # Persist the authored Appearance intent on stable page chrome.
+            # Meridian palettes deliberately keep this paper white; only text,
+            # rules, ticks, page numbers, and contact icons are recoloured.
+            page_background["appearanceTemplateId"] = "meridian"
+            page_background["appearanceSettings"] = {
+                "palette": "navy",
+                "textSize": "M",
             }
-        )
+        decorations.append(page_background)
         decorations.append(
             {
                 **_text(f"{page:02d}", 8, SANS, C["accent"], 510, 806, zIndex=2, page=page),

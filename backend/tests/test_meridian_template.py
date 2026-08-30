@@ -1,4 +1,4 @@
-"""Regression coverage for the navy/steel-blue Meridian template."""
+"""Regression coverage for the appearance-enabled Meridian template."""
 from __future__ import annotations
 
 import unittest
@@ -40,9 +40,20 @@ class MeridianTemplateTests(unittest.TestCase):
 
         icons = [element for element in elements if element["category"] == "image"]
         self.assertEqual(len(icons), 4)
-        # Meridian reuses Regent's neutral icon glyphs rather than shipping a
-        # new asset set for the navy/steel-blue palette.
-        self.assertTrue(all("/template-assets/iconic/regent/" in element["src"] for element in icons))
+        self.assertTrue(all("/template-assets/iconic/meridian/" in element["src"] for element in icons))
+
+        background = next(
+            element for element in elements
+            if element.get("fixedToPage")
+            and element.get("left") == 0
+            and element.get("top") == 0
+        )
+        self.assertEqual(background["backgroundColor"], "#FFFFFF")
+        self.assertEqual(background["appearanceTemplateId"], "meridian")
+        self.assertEqual(
+            background["appearanceSettings"],
+            {"palette": "navy", "textSize": "M"},
+        )
 
         headings = [
             element

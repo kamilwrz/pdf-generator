@@ -25,7 +25,12 @@ const MERIDIAN_ELEMENTS = [
     "backgroundColor": "#FFFFFF",
     "zIndex": 0,
     "page": 1,
-    "fixedToPage": true
+    "fixedToPage": true,
+    "appearanceTemplateId": "meridian",
+    "appearanceSettings": {
+      "palette": "navy",
+      "textSize": "M"
+    }
   },
   {
     "category": "text",
@@ -92,7 +97,7 @@ const MERIDIAN_ELEMENTS = [
   },
   {
     "category": "image",
-    "src": "/template-assets/iconic/regent/phone.png",
+    "src": "/template-assets/iconic/meridian/phone.png",
     "left": 80.09999999999997,
     "top": 117.0,
     "width": 10.0,
@@ -109,7 +114,7 @@ const MERIDIAN_ELEMENTS = [
     "content": "+48 000 000 000",
     "fontSize": 8.0,
     "fontFamily": "Montserrat",
-    "color": "#7A8699",
+    "color": "#657287",
     "left": 91.09999999999997,
     "top": 117.0,
     "zIndex": 3,
@@ -122,7 +127,7 @@ const MERIDIAN_ELEMENTS = [
   },
   {
     "category": "image",
-    "src": "/template-assets/iconic/regent/email.png",
+    "src": "/template-assets/iconic/meridian/email.png",
     "left": 176.04399999999998,
     "top": 117.0,
     "width": 10.0,
@@ -139,7 +144,7 @@ const MERIDIAN_ELEMENTS = [
     "content": "aleksandra.nowak@example.com",
     "fontSize": 8.0,
     "fontFamily": "Montserrat",
-    "color": "#7A8699",
+    "color": "#657287",
     "left": 187.04399999999998,
     "top": 117.0,
     "zIndex": 3,
@@ -152,7 +157,7 @@ const MERIDIAN_ELEMENTS = [
   },
   {
     "category": "image",
-    "src": "/template-assets/iconic/regent/linkedin.png",
+    "src": "/template-assets/iconic/meridian/linkedin.png",
     "left": 338.26,
     "top": 117.0,
     "width": 10.0,
@@ -169,7 +174,7 @@ const MERIDIAN_ELEMENTS = [
     "content": "linkedin.com/in/aleksandra-nowak-demo",
     "fontSize": 8.0,
     "fontFamily": "Montserrat",
-    "color": "#7A8699",
+    "color": "#657287",
     "left": 349.26,
     "top": 117.0,
     "zIndex": 3,
@@ -182,7 +187,7 @@ const MERIDIAN_ELEMENTS = [
   },
   {
     "category": "image",
-    "src": "/template-assets/iconic/regent/location.png",
+    "src": "/template-assets/iconic/meridian/location.png",
     "left": 256.304,
     "top": 130.5,
     "width": 10.0,
@@ -199,7 +204,7 @@ const MERIDIAN_ELEMENTS = [
     "content": "Warszawa, Polska",
     "fontSize": 8.0,
     "fontFamily": "Montserrat",
-    "color": "#7A8699",
+    "color": "#657287",
     "left": 267.304,
     "top": 130.5,
     "zIndex": 3,
@@ -245,11 +250,11 @@ const MERIDIAN_ELEMENTS = [
       "text": {
         "fontFamily": "Montserrat",
         "fontSizePt": 8.0,
-        "colorHex": "#7A8699"
+        "colorHex": "#657287"
       },
       "icon": {
         "sizePt": 10.0,
-        "theme": "regent"
+        "theme": "meridian"
       },
       "metrics": {
         "iconGap": 11.0,
@@ -443,7 +448,7 @@ const MERIDIAN_ELEMENTS = [
     "fontSize": 7.9,
     "lineHeight": 10.8,
     "letterSpacing": 0,
-    "color": "#7A8699",
+    "color": "#657287",
     "fontFamily": "Montserrat",
     "zIndex": 2,
     "page": 1,
@@ -489,7 +494,7 @@ const MERIDIAN_ELEMENTS = [
     "fontSize": 7.9,
     "lineHeight": 10.8,
     "letterSpacing": 0,
-    "color": "#7A8699",
+    "color": "#657287",
     "fontFamily": "Montserrat",
     "zIndex": 3,
     "page": 1,
@@ -535,7 +540,7 @@ const MERIDIAN_ELEMENTS = [
     "fontSize": 7.9,
     "lineHeight": 10.8,
     "letterSpacing": 0,
-    "color": "#7A8699",
+    "color": "#657287",
     "fontFamily": "Montserrat",
     "zIndex": 2,
     "page": 1,
@@ -581,7 +586,7 @@ const MERIDIAN_ELEMENTS = [
     "fontSize": 7.9,
     "lineHeight": 10.8,
     "letterSpacing": 0,
-    "color": "#7A8699",
+    "color": "#657287",
     "fontFamily": "Montserrat",
     "zIndex": 3,
     "page": 1,
@@ -627,7 +632,7 @@ const MERIDIAN_ELEMENTS = [
     "fontSize": 7.9,
     "lineHeight": 10.8,
     "letterSpacing": 0,
-    "color": "#7A8699",
+    "color": "#657287",
     "fontFamily": "Montserrat",
     "zIndex": 2,
     "page": 1,
@@ -673,7 +678,7 @@ const MERIDIAN_ELEMENTS = [
     "fontSize": 7.9,
     "lineHeight": 10.8,
     "letterSpacing": 0,
-    "color": "#7A8699",
+    "color": "#657287",
     "fontFamily": "Montserrat",
     "zIndex": 3,
     "page": 1,
@@ -802,7 +807,7 @@ const MERIDIAN_ELEMENTS = [
     "fontSize": 7.9,
     "lineHeight": 10.8,
     "letterSpacing": 0,
-    "color": "#7A8699",
+    "color": "#657287",
     "fontFamily": "Montserrat",
     "zIndex": 3,
     "page": 1,
@@ -871,7 +876,7 @@ const MERIDIAN_ELEMENTS = [
     "fontSize": 7.9,
     "lineHeight": 10.8,
     "letterSpacing": 0,
-    "color": "#7A8699",
+    "color": "#657287",
     "fontFamily": "Montserrat",
     "zIndex": 3,
     "page": 1,

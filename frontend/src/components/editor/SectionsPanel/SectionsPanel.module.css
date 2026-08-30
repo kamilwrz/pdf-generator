@@ -86,6 +86,17 @@
 .paletteSlateCopy { position: absolute; top: 54px; right: 10px; left: 37%; height: 1px; background: var(--palette-ink); opacity: .7; box-shadow: 0 4px 0 var(--palette-rule), 0 21px 0 var(--palette-ink), 0 25px 0 var(--palette-rule); }
 .paletteSlateFooter { position: absolute; right: 10px; bottom: 9px; left: 37%; height: 1px; background: var(--palette-rule); }
 .paletteSlateFooter::after { position: absolute; top: 0; right: 4px; width: 8px; height: 5px; background: var(--palette-accent); content: ""; }
+.palettePaperMeridian { background: var(--palette-paper); }
+.paletteMeridianName { position: absolute; top: 10px; left: 10px; width: 43px; height: 4px; background: var(--palette-ink); }
+.paletteMeridianName::after { position: absolute; top: 8px; left: 0; width: 31px; height: 2px; background: var(--palette-accent); content: ""; }
+.paletteMeridianContacts { position: absolute; top: 29px; left: 17px; width: 3px; height: 3px; background: var(--palette-accent); box-shadow: 14px 0 0 var(--palette-accent), 28px 0 0 var(--palette-accent), 42px 0 0 var(--palette-accent); }
+.paletteMeridianMastheadRule { position: absolute; top: 39px; right: 10px; left: 10px; height: 1px; background: var(--palette-rule); }
+.paletteMeridianHeading { position: absolute; top: 49px; left: 10px; width: 27px; height: 2px; background: var(--palette-ink); }
+.paletteMeridianSectionRule { position: absolute; top: 56px; right: 10px; left: 10px; height: 1px; background: var(--palette-rule); }
+.paletteMeridianSectionRule::before { position: absolute; top: -1px; left: 0; width: 9px; height: 2px; background: var(--palette-accent); content: ""; }
+.paletteMeridianRecord { position: absolute; top: 65px; right: 27px; left: 10px; height: 1px; background: var(--palette-body); box-shadow: 0 5px 0 var(--palette-muted), 0 12px 0 var(--palette-rule), 0 17px 0 var(--palette-rule); }
+.paletteMeridianRail { position: absolute; top: 65px; right: 10px; width: 12px; height: 1px; background: var(--palette-muted); box-shadow: 0 5px 0 var(--palette-muted); }
+.paletteMeridianPageNumber { position: absolute; right: 10px; bottom: 9px; width: 7px; height: 3px; background: var(--palette-accent); }
 .paletteCheck { position: absolute; top: 6px; right: 6px; display: inline-flex; width: 17px; height: 17px; align-items: center; justify-content: center; border-radius: 50%; background: var(--palette-ink); color: var(--palette-paper); }
 .paletteCheck svg { width: 11px; height: 11px; stroke-width: 2.5; }
 .paletteName { display: block; margin-top: 7px; overflow: hidden; font: 600 11px/1.25 var(--font-body); text-overflow: ellipsis; white-space: nowrap; }

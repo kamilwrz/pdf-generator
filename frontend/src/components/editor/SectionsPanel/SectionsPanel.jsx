@@ -1,7 +1,7 @@
 /**
  * Template-mode customization panel ("Dostosuj CV"): document status, section
  * structure, density presets, precise spacing, and template-scoped appearance
- * tools for Sterling, Monument, and Slate. A
+ * tools for Sterling, Monument, Slate, and Meridian. A
  * main-column Skills section's list row also gets a layout icon opening
  * `SkillsLayoutModal` (same modal the canvas heading hover control opens —
  * see `SectionRecordAdd`), so the mode picker is reachable without hunting
@@ -65,6 +65,16 @@ import {
   applySlateRenderedHeightsLayout,
   applySlateTextSizeLayout,
 } from "../../../utils/slateTypographyLayout";
+import {
+  applyMeridianPalette,
+  getMeridianAppearance,
+  MERIDIAN_PALETTES,
+  MERIDIAN_TEXT_SIZES,
+} from "../../../utils/meridianAppearance";
+import {
+  applyMeridianRenderedHeightsLayout,
+  applyMeridianTextSizeLayout,
+} from "../../../utils/meridianTypographyLayout";
 import {
   createCanvasTextWidthMeasurer,
   measureNaturalScrollHeight,
@@ -171,7 +181,11 @@ export default function SectionsPanel({ onClose }) {
   const isSterlingAppearance = activeTemplateId === "sterling";
   const isMonumentAppearance = activeTemplateId === "monument";
   const isSlateAppearance = activeTemplateId === "slate";
-  const appearanceEnabled = isSterlingAppearance || isMonumentAppearance || isSlateAppearance;
+  const isMeridianAppearance = activeTemplateId === "meridian";
+  const appearanceEnabled = isSterlingAppearance
+    || isMonumentAppearance
+    || isSlateAppearance
+    || isMeridianAppearance;
   const renderedTab = appearanceEnabled ? activeTab : "layout";
   const appearanceDefinition = useMemo(() => {
     if (isMonumentAppearance) return {
@@ -192,6 +206,16 @@ export default function SectionsPanel({ onClose }) {
       applyTextSizeLayout: applySlateTextSizeLayout,
       applyRenderedHeightsLayout: applySlateRenderedHeightsLayout,
     };
+    if (isMeridianAppearance) return {
+      templateName: "Meridian",
+      palettes: MERIDIAN_PALETTES,
+      textSizes: MERIDIAN_TEXT_SIZES,
+      value: getMeridianAppearance(A4_Elements),
+      applyPalette: applyMeridianPalette,
+      applyTextSizeLayout: applyMeridianTextSizeLayout,
+      applyRenderedHeightsLayout: applyMeridianRenderedHeightsLayout,
+      paletteDescription: "Białe tło pozostaje bez zmian; paleta zmienia tekst, dekoracje i dopasowany zestaw ikon.",
+    };
     return {
       templateName: "Sterling",
       palettes: STERLING_PALETTES,
@@ -201,7 +225,7 @@ export default function SectionsPanel({ onClose }) {
       applyTextSizeLayout: applySterlingTextSizeLayout,
       applyRenderedHeightsLayout: applySterlingRenderedHeightsLayout,
     };
-  }, [A4_Elements, isMonumentAppearance, isSlateAppearance]);
+  }, [A4_Elements, isMeridianAppearance, isMonumentAppearance, isSlateAppearance]);
 
   useEffect(() => {
     if (!onClose) return undefined;
@@ -430,7 +454,8 @@ export default function SectionsPanel({ onClose }) {
               <span className={classes.eyebrow}>{appearanceDefinition.templateName}</span>
               <div className={classes.appearanceHeading}>
                 <h3 id="appearance-palette-heading">Paleta kolorów</h3>
-                <p>Każdy wariant zmienia papier, tekst, dekoracje i dopasowany zestaw ikon.</p>
+                <p>{appearanceDefinition.paletteDescription
+                  ?? "Każdy wariant zmienia papier, tekst, dekoracje i dopasowany zestaw ikon."}</p>
               </div>
               <div className={classes.paletteGrid} role="radiogroup" aria-labelledby="appearance-palette-heading">
                 {appearanceDefinition.palettes.map((palette) => {
@@ -438,6 +463,8 @@ export default function SectionsPanel({ onClose }) {
                   const cardStyle = {
                     "--palette-paper": palette.colors.paper,
                     "--palette-ink": palette.colors.ink,
+                    "--palette-body": palette.colors.body,
+                    "--palette-muted": palette.colors.muted,
                     "--palette-accent": palette.colors.accent,
                     "--palette-sidebar": palette.colors.sidebar ?? palette.colors.pale,
                     "--palette-rule": palette.colors.rule,
@@ -454,11 +481,22 @@ export default function SectionsPanel({ onClose }) {
                       onClick={() => handleAppearancePalette(palette.id)}
                     >
                       <span
-                        className={`${classes.palettePaper} ${isMonumentAppearance ? classes.palettePaperMonument : ""} ${isSlateAppearance ? classes.palettePaperSlate : ""}`}
+                        className={`${classes.palettePaper} ${isMonumentAppearance ? classes.palettePaperMonument : ""} ${isSlateAppearance ? classes.palettePaperSlate : ""} ${isMeridianAppearance ? classes.palettePaperMeridian : ""}`}
                         style={cardStyle}
                         aria-hidden="true"
                       >
-                        {isMonumentAppearance ? (
+                        {isMeridianAppearance ? (
+                          <>
+                            <span className={classes.paletteMeridianName} />
+                            <span className={classes.paletteMeridianContacts} />
+                            <span className={classes.paletteMeridianMastheadRule} />
+                            <span className={classes.paletteMeridianHeading} />
+                            <span className={classes.paletteMeridianSectionRule} />
+                            <span className={classes.paletteMeridianRecord} />
+                            <span className={classes.paletteMeridianRail} />
+                            <span className={classes.paletteMeridianPageNumber} />
+                          </>
+                        ) : isMonumentAppearance ? (
                           <>
                             <span className={classes.paletteMonumentFrame} />
                             <span className={classes.paletteMonumentRail} />

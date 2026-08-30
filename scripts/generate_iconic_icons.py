@@ -303,6 +303,12 @@ _SLATE_ACCENT_GLYPHS = [
     "email", "phone", "location", "linkedin", "github", "website", "portrait",
 ]
 
+# Meridian uses icons only in its centered masthead contact band. Each
+# Appearance palette gets real PNG ink so canvas and PDF output stay identical.
+_MERIDIAN_CONTACT_GLYPHS = [
+    "email", "phone", "location", "linkedin", "github", "website",
+]
+
 # Only these subsets are generated, so existing themes are untouched.
 # Format: theme -> (colour, [icon names]).
 SUBSET_THEMES = {
@@ -320,6 +326,12 @@ SUBSET_THEMES = {
     "slate-forest-accent": ("#2F6A50", _SLATE_ACCENT_GLYPHS),
     "slate-plum-accent": ("#764466", _SLATE_ACCENT_GLYPHS),
     "slate-teal-accent": ("#007473", _SLATE_ACCENT_GLYPHS),
+    "meridian": ("#3D5A80", _MERIDIAN_CONTACT_GLYPHS),
+    "meridian-monochrome": ("#242424", _MERIDIAN_CONTACT_GLYPHS),
+    "meridian-burgundy": ("#8A3F53", _MERIDIAN_CONTACT_GLYPHS),
+    "meridian-forest": ("#2E6B52", _MERIDIAN_CONTACT_GLYPHS),
+    "meridian-copper": ("#A35732", _MERIDIAN_CONTACT_GLYPHS),
+    "meridian-teal": ("#0B6B70", _MERIDIAN_CONTACT_GLYPHS),
     # Atrium (centered-axis editorial single column) uses graphite-sage contact
     # glyphs in the centered masthead only. Section headings are centered text
     # with a printer's-mark ornament (no icons), so just the contact set is
