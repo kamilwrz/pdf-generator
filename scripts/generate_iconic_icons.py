@@ -322,6 +322,13 @@ _VELLUM_GLYPHS = [
     "email", "phone", "location", "linkedin", "github", "website", "portrait",
 ]
 
+# Atrium uses the same six centered contact channels plus its frameless 3:4
+# portrait placeholder. Every Appearance edition owns real raster ink so the
+# canvas and PDF export remain identical on light, dark, and saturated paper.
+_ATRIUM_GLYPHS = [
+    "email", "phone", "location", "linkedin", "github", "website", "portrait",
+]
+
 # Only these subsets are generated, so existing themes are untouched.
 # Format: theme -> (colour, [icon names]).
 SUBSET_THEMES = {
@@ -363,14 +370,19 @@ SUBSET_THEMES = {
     "vellum-ink": ("#345F7B", _VELLUM_GLYPHS),
     "vellum-burgundy": ("#843E51", _VELLUM_GLYPHS),
     "vellum-emerald": ("#2D6A57", _VELLUM_GLYPHS),
-    # Atrium (centered-axis editorial single column) uses graphite-sage contact
-    # glyphs in the centered masthead only. Section headings are centered text
-    # with a printer's-mark ornament (no icons), so just the contact set is
-    # generated — nothing else references this theme.
+    # Legacy Atrium contacts remain available for saved documents created
+    # before Appearance. New documents use one complete seven-glyph family per
+    # palette; left-aligned section labels retain their linear lead-in rules.
     "atrium": (
         "#556158",
         ["email", "phone", "location", "linkedin", "github", "website"],
     ),
+    "atrium-sage": ("#556158", _ATRIUM_GLYPHS),
+    "atrium-carrara": ("#765640", _ATRIUM_GLYPHS),
+    "atrium-nocturne": ("#D7B66D", _ATRIUM_GLYPHS),
+    "atrium-cobalt": ("#F2CB78", _ATRIUM_GLYPHS),
+    "atrium-burgundy": ("#F2C986", _ATRIUM_GLYPHS),
+    "atrium-emerald": ("#E4C777", _ATRIUM_GLYPHS),
     # Sterling (institutional two-column layout) uses its own steel-blue accent
     # for the centered letterhead contact row only. Section headings stay plain
     # text + rule (no icons), so just the contact set is generated.

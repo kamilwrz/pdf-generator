@@ -297,9 +297,9 @@ DOC_BLURBS = {
         " * Monochrome editorial single column with strong rules and plates."
     ),
     "atrium": (
-        "Atrium template (`layouts: [\"single\"]`).\n"
+        "Atrium template (`layouts: [\"single\", \"icons\"]`).\n"
         " *\n"
-        " * Centered-axis editorial single column with graphite-sage accents."
+        " * Architectural editorial with original travertine, white, dark, and three saturated Appearance editions."
     ),
     "sterling": (
         "Sterling template (`layouts: [\"sidebar\"]`).\n"

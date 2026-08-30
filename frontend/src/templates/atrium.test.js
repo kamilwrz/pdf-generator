@@ -20,6 +20,8 @@ test("Atrium is a centered-axis editorial single column, not a generic icon-temp
     const tall = atriumTemplate.filter((element) => (element.height ?? 0) >= 300);
     assert.equal(tall.length, 1);
     assert.equal(tall[0].backgroundColor, PAPER);
+    assert.equal(tall[0].appearanceTemplateId, "atrium");
+    assert.deepEqual(tall[0].appearanceSettings, { palette: "sage", textSize: "M" });
     for (const category of ["rectangle", "circle", "ellipse"]) {
         assert.equal(
             atriumTemplate.some((element) => element.category === category),
@@ -65,17 +67,18 @@ test("Atrium is a centered-axis editorial single column, not a generic icon-temp
     assert.equal(photoGlyph.width, 60);
     assert.equal(photoGlyph.height, 80);
     assert.equal(photoGlyph.photoShape, "direct");
+    assert.ok(photoGlyph.src.includes("/template-assets/iconic/atrium-sage/portrait.png"));
     assert.ok(
         atriumTemplate.every((element) => element.photoSlot !== "frame"),
         "Atrium must not declare a photo frame — the slot has no surrounding chrome",
     );
 
-    // ── Contact row: icons from the new `atrium` theme, optically aligned ─────
+    // ── Contact row: real sage glyphs, optically aligned ─────────────────────
     const icons = atriumTemplate.filter(
         (element) => element.category === "image" && element.photoSlot !== "glyph",
     );
     assert.equal(icons.length, 6); // phone, email, linkedin, github, website, location
-    assert.ok(icons.every((element) => element.src.includes("/template-assets/iconic/atrium/")));
+    assert.ok(icons.every((element) => element.src.includes("/template-assets/iconic/atrium-sage/")));
     assert.ok(icons.every((element) => element.alignWithText === true));
     assert.ok(icons.every((element) => element.flowRole === "masthead"));
 

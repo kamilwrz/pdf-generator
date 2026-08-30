@@ -22,7 +22,7 @@ export { TEMPLATE_LAYOUT_TAGS } from "../utils/templateLayouts";
 export const TEMPLATES = [
     { id: "monument", tier: "paid", name: "Monument", description: "Monochromatyczny editorial", layouts: ["single"], accent: "#343434", elements: monumentTemplate },
     { id: "slate", tier: "paid", name: "Slate", description: "Stalowy sidebar, siatka i prostokątne zdjęcie", layouts: ["sidebar", "icons"], accent: "#3E5C76", elements: slateTemplate },
-    { id: "atrium", tier: "paid", name: "Atrium", description: "Wycentrowana editorialna kompozycja z drukarskim mikro-ornamentem", layouts: ["single", "icons"], accent: "#556158", elements: atriumTemplate },
+    { id: "atrium", tier: "paid", name: "Atrium", description: "Architektoniczny editorial z sześcioma paletami Wyglądu", layouts: ["single", "icons"], accent: "#556158", elements: atriumTemplate },
     { id: "sterling", tier: "free", name: "Sterling", description: "Elegancki, niebiesko-szary układ z szerokim sidebarem", layouts: ["sidebar"], accent: "#4A6FA5", elements: sterlingTemplate },
     { id: "regent", tier: "free", name: "Regent", description: "Klasyczna monochromatyczna typografia executive", layouts: ["single", "icons"], accent: "#151515", elements: regentTemplate },
     { id: "meridian", tier: "paid", name: "Meridian", description: "Premium, granatowo-niebieski układ jednokolumnowy", layouts: ["single", "icons"], accent: "#3D5A80", elements: meridianTemplate },

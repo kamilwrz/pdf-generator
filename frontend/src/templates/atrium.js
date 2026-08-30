@@ -1,7 +1,7 @@
 /**
- * Atrium template (`layouts: ["single"]`).
+ * Atrium template (`layouts: ["single", "icons"]`).
  *
- * Centered-axis editorial single column with graphite-sage accents.
+ * Architectural editorial with original travertine, white, dark, and three saturated Appearance editions.
  *
  * This static starter is the backend generator's own output
  * (`backend/app/services/cv_templates/templates/atrium.py`) for
@@ -24,7 +24,13 @@ const ATRIUM_ELEMENTS = [
     "backgroundColor": "#FBFAF7",
     "zIndex": 0,
     "page": 1,
-    "fixedToPage": true
+    "fixedToPage": true,
+    "appearanceColorRole": "paper",
+    "appearanceTemplateId": "atrium",
+    "appearanceSettings": {
+      "palette": "sage",
+      "textSize": "M"
+    }
   },
   {
     "category": "text",
@@ -38,7 +44,9 @@ const ATRIUM_ELEMENTS = [
     "page": 1,
     "bold": false,
     "italic": false,
-    "fixedToPage": true
+    "fixedToPage": true,
+    "appearanceColorRole": "folio",
+    "appearanceTypographyRole": "folio"
   },
   {
     "category": "textarea",
@@ -60,13 +68,15 @@ const ATRIUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
+    "appearanceColorRole": "ink",
+    "appearanceTypographyRole": "display",
     "flowRole": "masthead",
     "mastheadRole": "name",
     "mastheadBandId": "masthead-main"
   },
   {
     "category": "image",
-    "src": "/template-assets/iconic/atrium-accent/portrait.png",
+    "src": "/template-assets/iconic/atrium-sage/portrait.png",
     "left": 462.0,
     "top": 19.0,
     "width": 60.0,
@@ -77,7 +87,8 @@ const ATRIUM_ELEMENTS = [
     "flowRole": "masthead",
     "id": "atrium-photo-glyph",
     "photoSlot": "glyph",
-    "photoShape": "direct"
+    "photoShape": "direct",
+    "appearanceColorRole": "photo"
   },
   {
     "category": "textarea",
@@ -99,13 +110,15 @@ const ATRIUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
+    "appearanceColorRole": "accent",
+    "appearanceTypographyRole": "job",
     "flowRole": "masthead",
     "mastheadRole": "title",
     "mastheadBandId": "masthead-main"
   },
   {
     "category": "image",
-    "src": "/template-assets/iconic/atrium/phone.png",
+    "src": "/template-assets/iconic/atrium-sage/phone.png",
     "left": 128.0006,
     "top": 126.0,
     "width": 10.5,
@@ -135,7 +148,7 @@ const ATRIUM_ELEMENTS = [
   },
   {
     "category": "image",
-    "src": "/template-assets/iconic/atrium/email.png",
+    "src": "/template-assets/iconic/atrium-sage/email.png",
     "left": 225.12099999999998,
     "top": 126.0,
     "width": 10.5,
@@ -165,7 +178,7 @@ const ATRIUM_ELEMENTS = [
   },
   {
     "category": "image",
-    "src": "/template-assets/iconic/atrium/linkedin.png",
+    "src": "/template-assets/iconic/atrium-sage/linkedin.png",
     "left": 355.83299999999997,
     "top": 126.0,
     "width": 10.5,
@@ -195,7 +208,7 @@ const ATRIUM_ELEMENTS = [
   },
   {
     "category": "image",
-    "src": "/template-assets/iconic/atrium/github.png",
+    "src": "/template-assets/iconic/atrium-sage/github.png",
     "left": 170.19379999999998,
     "top": 142.0,
     "width": 10.5,
@@ -225,7 +238,7 @@ const ATRIUM_ELEMENTS = [
   },
   {
     "category": "image",
-    "src": "/template-assets/iconic/atrium/website.png",
+    "src": "/template-assets/iconic/atrium-sage/website.png",
     "left": 283.123,
     "top": 142.0,
     "width": 10.5,
@@ -255,7 +268,7 @@ const ATRIUM_ELEMENTS = [
   },
   {
     "category": "image",
-    "src": "/template-assets/iconic/atrium/location.png",
+    "src": "/template-assets/iconic/atrium-sage/location.png",
     "left": 368.9622,
     "top": 142.0,
     "width": 10.5,
@@ -292,6 +305,7 @@ const ATRIUM_ELEMENTS = [
     "backgroundColor": "#E5E3DB",
     "zIndex": 2,
     "page": 1,
+    "appearanceColorRole": "rule",
     "flowRole": "masthead"
   },
   {
@@ -303,6 +317,7 @@ const ATRIUM_ELEMENTS = [
     "backgroundColor": "#556158",
     "zIndex": 2,
     "page": 1,
+    "appearanceColorRole": "ornament",
     "flowRole": "masthead"
   },
   {
@@ -314,6 +329,7 @@ const ATRIUM_ELEMENTS = [
     "backgroundColor": "#E5E3DB",
     "zIndex": 2,
     "page": 1,
+    "appearanceColorRole": "rule",
     "flowRole": "masthead"
   },
   {
@@ -344,7 +360,7 @@ const ATRIUM_ELEMENTS = [
       },
       "icon": {
         "sizePt": 10.5,
-        "theme": "atrium"
+        "theme": "atrium-sage"
       },
       "metrics": {
         "iconGap": 12.5,
@@ -425,7 +441,9 @@ const ATRIUM_ELEMENTS = [
     "bold": true,
     "italic": false,
     "letterSpacing": 1.25,
-    "flowRole": "section-chrome"
+    "flowRole": "section-chrome",
+    "appearanceColorRole": "accent",
+    "appearanceTypographyRole": "heading"
   },
   {
     "category": "line",
@@ -436,7 +454,8 @@ const ATRIUM_ELEMENTS = [
     "backgroundColor": "#556158",
     "zIndex": 2,
     "page": 1,
-    "flowRole": "section-chrome"
+    "flowRole": "section-chrome",
+    "appearanceColorRole": "ornament"
   },
   {
     "category": "line",
@@ -447,7 +466,8 @@ const ATRIUM_ELEMENTS = [
     "backgroundColor": "#E5E3DB",
     "zIndex": 2,
     "page": 1,
-    "flowRole": "section-chrome"
+    "flowRole": "section-chrome",
+    "appearanceColorRole": "rule"
   },
   {
     "category": "textarea",
@@ -484,7 +504,9 @@ const ATRIUM_ELEMENTS = [
     "bold": true,
     "italic": false,
     "letterSpacing": 1.25,
-    "flowRole": "section-chrome"
+    "flowRole": "section-chrome",
+    "appearanceColorRole": "accent",
+    "appearanceTypographyRole": "heading"
   },
   {
     "category": "line",
@@ -495,7 +517,8 @@ const ATRIUM_ELEMENTS = [
     "backgroundColor": "#556158",
     "zIndex": 2,
     "page": 1,
-    "flowRole": "section-chrome"
+    "flowRole": "section-chrome",
+    "appearanceColorRole": "ornament"
   },
   {
     "category": "line",
@@ -506,7 +529,8 @@ const ATRIUM_ELEMENTS = [
     "backgroundColor": "#E5E3DB",
     "zIndex": 2,
     "page": 1,
-    "flowRole": "section-chrome"
+    "flowRole": "section-chrome",
+    "appearanceColorRole": "rule"
   },
   {
     "category": "textarea",
@@ -528,7 +552,7 @@ const ATRIUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-aa784dad482b",
+    "flowGroup": "record-c4b9fb0a99a7",
     "flowRole": "content"
   },
   {
@@ -551,7 +575,7 @@ const ATRIUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-aa784dad482b",
+    "flowGroup": "record-c4b9fb0a99a7",
     "flowRole": "content"
   },
   {
@@ -574,7 +598,7 @@ const ATRIUM_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-aa784dad482b",
+    "flowGroup": "record-c4b9fb0a99a7",
     "flowRole": "content"
   },
   {
@@ -597,7 +621,7 @@ const ATRIUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-0593858b64e1",
+    "flowGroup": "record-d27ceb4e21e0",
     "flowRole": "content"
   },
   {
@@ -620,7 +644,7 @@ const ATRIUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-0593858b64e1",
+    "flowGroup": "record-d27ceb4e21e0",
     "flowRole": "content"
   },
   {
@@ -643,7 +667,7 @@ const ATRIUM_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-0593858b64e1",
+    "flowGroup": "record-d27ceb4e21e0",
     "flowRole": "content"
   },
   {
@@ -666,7 +690,7 @@ const ATRIUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-d7f68f8b269a",
+    "flowGroup": "record-8fe6832c59fb",
     "flowRole": "content"
   },
   {
@@ -689,7 +713,7 @@ const ATRIUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-d7f68f8b269a",
+    "flowGroup": "record-8fe6832c59fb",
     "flowRole": "content"
   },
   {
@@ -705,7 +729,9 @@ const ATRIUM_ELEMENTS = [
     "bold": true,
     "italic": false,
     "letterSpacing": 1.25,
-    "flowRole": "section-chrome"
+    "flowRole": "section-chrome",
+    "appearanceColorRole": "accent",
+    "appearanceTypographyRole": "heading"
   },
   {
     "category": "line",
@@ -716,7 +742,8 @@ const ATRIUM_ELEMENTS = [
     "backgroundColor": "#556158",
     "zIndex": 2,
     "page": 1,
-    "flowRole": "section-chrome"
+    "flowRole": "section-chrome",
+    "appearanceColorRole": "ornament"
   },
   {
     "category": "line",
@@ -727,7 +754,8 @@ const ATRIUM_ELEMENTS = [
     "backgroundColor": "#E5E3DB",
     "zIndex": 2,
     "page": 1,
-    "flowRole": "section-chrome"
+    "flowRole": "section-chrome",
+    "appearanceColorRole": "rule"
   },
   {
     "category": "textarea",
@@ -749,7 +777,7 @@ const ATRIUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-e36a8e062dd5",
+    "flowGroup": "record-fcae48ae5720",
     "flowRole": "content"
   },
   {
@@ -772,7 +800,7 @@ const ATRIUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-e36a8e062dd5",
+    "flowGroup": "record-fcae48ae5720",
     "flowRole": "content"
   },
   {
@@ -795,7 +823,7 @@ const ATRIUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-e36a8e062dd5",
+    "flowGroup": "record-fcae48ae5720",
     "flowRole": "content"
   },
   {
@@ -811,7 +839,9 @@ const ATRIUM_ELEMENTS = [
     "bold": true,
     "italic": false,
     "letterSpacing": 1.25,
-    "flowRole": "section-chrome"
+    "flowRole": "section-chrome",
+    "appearanceColorRole": "accent",
+    "appearanceTypographyRole": "heading"
   },
   {
     "category": "line",
@@ -822,7 +852,8 @@ const ATRIUM_ELEMENTS = [
     "backgroundColor": "#556158",
     "zIndex": 2,
     "page": 1,
-    "flowRole": "section-chrome"
+    "flowRole": "section-chrome",
+    "appearanceColorRole": "ornament"
   },
   {
     "category": "line",
@@ -833,7 +864,8 @@ const ATRIUM_ELEMENTS = [
     "backgroundColor": "#E5E3DB",
     "zIndex": 2,
     "page": 1,
-    "flowRole": "section-chrome"
+    "flowRole": "section-chrome",
+    "appearanceColorRole": "rule"
   },
   {
     "category": "textarea",
@@ -855,7 +887,7 @@ const ATRIUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-27aa843ed3ba",
+    "flowGroup": "record-0334233da465",
     "flowRole": "content"
   },
   {
@@ -871,7 +903,9 @@ const ATRIUM_ELEMENTS = [
     "bold": true,
     "italic": false,
     "letterSpacing": 1.25,
-    "flowRole": "section-chrome"
+    "flowRole": "section-chrome",
+    "appearanceColorRole": "accent",
+    "appearanceTypographyRole": "heading"
   },
   {
     "category": "line",
@@ -882,7 +916,8 @@ const ATRIUM_ELEMENTS = [
     "backgroundColor": "#556158",
     "zIndex": 2,
     "page": 1,
-    "flowRole": "section-chrome"
+    "flowRole": "section-chrome",
+    "appearanceColorRole": "ornament"
   },
   {
     "category": "line",
@@ -893,7 +928,8 @@ const ATRIUM_ELEMENTS = [
     "backgroundColor": "#E5E3DB",
     "zIndex": 2,
     "page": 1,
-    "flowRole": "section-chrome"
+    "flowRole": "section-chrome",
+    "appearanceColorRole": "rule"
   },
   {
     "category": "textarea",
@@ -924,7 +960,7 @@ const ATRIUM_ELEMENTS = [
       }
     ],
     "flowRole": "grid-member",
-    "flowGroup": "record-6e6163bfb90d"
+    "flowGroup": "record-334aa5ecb6ed"
   },
   {
     "category": "textarea",
@@ -955,7 +991,7 @@ const ATRIUM_ELEMENTS = [
       }
     ],
     "flowRole": "grid-member",
-    "flowGroup": "record-6e6163bfb90d"
+    "flowGroup": "record-334aa5ecb6ed"
   },
   {
     "category": "textarea",
@@ -986,7 +1022,7 @@ const ATRIUM_ELEMENTS = [
       }
     ],
     "flowRole": "grid-member",
-    "flowGroup": "record-6e6163bfb90d"
+    "flowGroup": "record-334aa5ecb6ed"
   }
 ];
 

@@ -46,7 +46,7 @@ def _gen_atrium(cv: dict) -> list[dict]:
     C = {
         'paper': '#FBFAF7', 'ink': '#242521', 'accent': '#556158',
         'mute': '#78796F', 'body': '#2C2C29', 'rule': '#E5E3DB',
-        'display': 'PlayfairDisplay', 'sans': 'Montserrat', 'icon_theme': 'atrium',
+        'display': 'PlayfairDisplay', 'sans': 'Montserrat', 'icon_theme': 'atrium-sage',
         # The 82 pt margins retain Atrium's gallery-like whitespace while giving
         # long body lines and contact rows enough room to breathe.
         'L': 82, 'W': 431,
@@ -66,11 +66,22 @@ def _gen_atrium(cv: dict) -> list[dict]:
         dense contact row and looked like an accidental registration artifact.
         """
         outer, center, gap = 34.0, 10.0, 7.0
-        return [
-            _line(center_x - center / 2.0 - gap - outer, y, outer, 1, RULE, zIndex=2, page=page),
-            _line(center_x - center / 2.0, y, center, 1, ACCENT, zIndex=2, page=page),
-            _line(center_x + center / 2.0 + gap, y, outer, 1, RULE, zIndex=2, page=page),
-        ]
+        left_rule = _line(
+            center_x - center / 2.0 - gap - outer, y, outer, 1, RULE,
+            zIndex=2, page=page,
+        )
+        center_rule = _line(
+            center_x - center / 2.0, y, center, 1, ACCENT,
+            zIndex=2, page=page,
+        )
+        right_rule = _line(
+            center_x + center / 2.0 + gap, y, outer, 1, RULE,
+            zIndex=2, page=page,
+        )
+        left_rule['appearanceColorRole'] = 'rule'
+        center_rule['appearanceColorRole'] = 'ornament'
+        right_rule['appearanceColorRole'] = 'rule'
+        return [left_rule, center_rule, right_rule]
 
     # ── Masthead (centered name / title / contact band) ──────────────────────
     name = _compact_text(cv.get('name'), 34)
@@ -91,6 +102,8 @@ def _gen_atrium(cv: dict) -> list[dict]:
         name_index = len(header)
         header.append(_block(name, L, cursor_y, W, name_h, name_fs, name_lh, C['ink'], DISP,
                              zIndex=3, bold=True, align='center'))
+        header[-1]['appearanceColorRole'] = 'ink'
+        header[-1]['appearanceTypographyRole'] = 'display'
         cursor_y += name_h + 8.0
 
     # ── Photo slot: frameless, top-right of the masthead ──────────────────────
@@ -110,11 +123,12 @@ def _gen_atrium(cv: dict) -> list[dict]:
     PHOTO_LEFT = 462.0
     PHOTO_TOP = 19.0
     header.append({
-        **_icon('atrium-accent', 'portrait', PHOTO_LEFT, PHOTO_TOP, PHOTO_WIDTH, zIndex=3),
+        **_icon(ICON, 'portrait', PHOTO_LEFT, PHOTO_TOP, PHOTO_WIDTH, zIndex=3),
         'id': 'atrium-photo-glyph',
         'photoSlot': 'glyph',
         'photoShape': 'direct',
         'alignWithText': False,
+        'appearanceColorRole': 'photo',
     })
     header[-1]['height'] = PHOTO_HEIGHT
 
@@ -128,6 +142,8 @@ def _gen_atrium(cv: dict) -> list[dict]:
         zIndex=3, align='center',
     )
     title_prototype['letterSpacing'] = 2.1
+    title_prototype['appearanceColorRole'] = 'accent'
+    title_prototype['appearanceTypographyRole'] = 'job'
     if title:
         title_index = len(header)
         header.append(title_prototype)
@@ -201,15 +217,19 @@ def _gen_atrium(cv: dict) -> list[dict]:
         heading['letterSpacing'] = label_ls
         heading['bold'] = True
         heading['flowRole'] = 'section-chrome'
+        heading['appearanceColorRole'] = 'accent'
+        heading['appearanceTypographyRole'] = 'heading'
         b.els.append(heading)
         # A short sage lead-in identifies the section; the pale continuation
         # organizes the column without turning into a heavy underline.
         tick_y = y + label_fs + 5.0
         accent_rule = _line(L, tick_y, 18, 1.2, ACCENT, zIndex=2, page=page)
         accent_rule['flowRole'] = 'section-chrome'
+        accent_rule['appearanceColorRole'] = 'ornament'
         b.els.append(accent_rule)
         quiet_rule = _line(L + 26, tick_y, W - 26, 1, RULE, zIndex=2, page=page)
         quiet_rule['flowRole'] = 'section-chrome'
+        quiet_rule['appearanceColorRole'] = 'rule'
         b.els.append(quiet_rule)
         b.y = tick_y + 1.2 + get_spacing().after_rule
 
@@ -279,14 +299,24 @@ def _gen_atrium(cv: dict) -> list[dict]:
     pages_used = max([element.get('page', 1) for element in header + flow] or [1])
     page_decorations: list[dict] = []
     for page in range(1, pages_used + 1):
-        page_decorations.append(
-            {**_line(0, 0, 595, 842, C['paper'], zIndex=0, page=page), 'fixedToPage': True}
-        )
+        background = {
+            **_line(0, 0, 595, 842, C['paper'], zIndex=0, page=page),
+            'fixedToPage': True,
+            'appearanceColorRole': 'paper',
+        }
+        # Store one document-level Appearance anchor. Continuation paper is
+        # still tagged semantically but does not duplicate persisted settings.
+        if page == 1:
+            background['appearanceTemplateId'] = 'atrium'
+            background['appearanceSettings'] = {'palette': 'sage', 'textSize': 'M'}
+        page_decorations.append(background)
         # Centered footer page number.
-        page_decorations.append(
-            {**_text(f'{page:02d}', 8, SANS, C['mute'], CENTER_X - 6, 806, page=page),
-             'fixedToPage': True}
-        )
+        page_decorations.append({
+            **_text(f'{page:02d}', 8, SANS, C['mute'], CENTER_X - 6, 806, page=page),
+            'fixedToPage': True,
+            'appearanceColorRole': 'folio',
+            'appearanceTypographyRole': 'folio',
+        })
         # Continuation pages carry no top ornament — just the footer page number.
         # (An earlier build repeated the masthead crosshair here; it read as a
         # stray "+" floating above the first continued heading.)

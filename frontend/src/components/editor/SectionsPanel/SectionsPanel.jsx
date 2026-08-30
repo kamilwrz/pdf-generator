@@ -1,7 +1,7 @@
 /**
  * Template-mode customization panel ("Dostosuj CV"): document status, section
  * structure, density presets, precise spacing, and template-scoped appearance
- * tools for Sterling, Linden, Monument, Slate, Meridian, Cadenza, and Vellum. A
+ * tools for Atrium, Sterling, Linden, Monument, Slate, Meridian, Cadenza, and Vellum. A
  * main-column Skills section's list row also gets a layout icon opening
  * `SkillsLayoutModal` (same modal the canvas heading hover control opens —
  * see `SectionRecordAdd`), so the mode picker is reachable without hunting
@@ -105,6 +105,16 @@ import {
   applyVellumRenderedHeightsLayout,
   applyVellumTextSizeLayout,
 } from "../../../utils/vellumTypographyLayout";
+import {
+  applyAtriumPalette,
+  ATRIUM_PALETTES,
+  ATRIUM_TEXT_SIZES,
+  getAtriumAppearance,
+} from "../../../utils/atriumAppearance";
+import {
+  applyAtriumRenderedHeightsLayout,
+  applyAtriumTextSizeLayout,
+} from "../../../utils/atriumTypographyLayout";
 import {
   createCanvasTextWidthMeasurer,
   measureNaturalScrollHeight,
@@ -213,7 +223,9 @@ export default function SectionsPanel({ onClose }) {
   const isMeridianAppearance = activeTemplateId === "meridian";
   const isCadenzaAppearance = activeTemplateId === "cadenza";
   const isVellumAppearance = activeTemplateId === "vellum";
-  const appearanceEnabled = isSterlingAppearance
+  const isAtriumAppearance = activeTemplateId === "atrium";
+  const appearanceEnabled = isAtriumAppearance
+    || isSterlingAppearance
     || isLindenAppearance
     || isMonumentAppearance
     || isSlateAppearance
@@ -222,6 +234,16 @@ export default function SectionsPanel({ onClose }) {
     || isVellumAppearance;
   const renderedTab = appearanceEnabled ? activeTab : "layout";
   const appearanceDefinition = useMemo(() => {
+    if (isAtriumAppearance) return {
+      templateName: "Atrium",
+      palettes: ATRIUM_PALETTES,
+      textSizes: ATRIUM_TEXT_SIZES,
+      value: getAtriumAppearance(A4_Elements),
+      applyPalette: applyAtriumPalette,
+      applyTextSizeLayout: applyAtriumTextSizeLayout,
+      applyRenderedHeightsLayout: applyAtriumRenderedHeightsLayout,
+      paletteDescription: "Oryginał pozostaje bez zmian. Białe Carrara, dark mode i trzy mocne edycje zmieniają papier, stanowisko, nagłówki, intarsje, folio i prawdziwe ikony.",
+    };
     if (isLindenAppearance) return {
       templateName: "Linden",
       palettes: LINDEN_PALETTES,
@@ -289,7 +311,7 @@ export default function SectionsPanel({ onClose }) {
       applyTextSizeLayout: applySterlingTextSizeLayout,
       applyRenderedHeightsLayout: applySterlingRenderedHeightsLayout,
     };
-  }, [A4_Elements, isCadenzaAppearance, isLindenAppearance, isMeridianAppearance, isMonumentAppearance, isSlateAppearance, isVellumAppearance]);
+  }, [A4_Elements, isAtriumAppearance, isCadenzaAppearance, isLindenAppearance, isMeridianAppearance, isMonumentAppearance, isSlateAppearance, isVellumAppearance]);
 
   useEffect(() => {
     if (!onClose) return undefined;
@@ -544,6 +566,7 @@ export default function SectionsPanel({ onClose }) {
                     "--palette-heading-paper": palette.colors.headingOnPaper ?? palette.colors.ink,
                     "--palette-summary-text": palette.colors.summaryText ?? palette.colors.body ?? palette.colors.ink,
                     "--palette-ornament": palette.colors.ornament ?? palette.colors.accent,
+                    "--palette-folio": palette.colors.folio ?? palette.colors.accent,
                   };
                   return (
                     <button
@@ -555,11 +578,23 @@ export default function SectionsPanel({ onClose }) {
                       onClick={() => handleAppearancePalette(palette.id)}
                     >
                       <span
-                        className={`${classes.palettePaper} ${isLindenAppearance ? classes.palettePaperLinden : ""} ${isMonumentAppearance ? classes.palettePaperMonument : ""} ${isSlateAppearance ? classes.palettePaperSlate : ""} ${isMeridianAppearance ? classes.palettePaperMeridian : ""} ${isCadenzaAppearance ? classes.palettePaperCadenza : ""} ${isVellumAppearance ? classes.palettePaperVellum : ""}`}
+                        className={`${classes.palettePaper} ${isAtriumAppearance ? classes.palettePaperAtrium : ""} ${isLindenAppearance ? classes.palettePaperLinden : ""} ${isMonumentAppearance ? classes.palettePaperMonument : ""} ${isSlateAppearance ? classes.palettePaperSlate : ""} ${isMeridianAppearance ? classes.palettePaperMeridian : ""} ${isCadenzaAppearance ? classes.palettePaperCadenza : ""} ${isVellumAppearance ? classes.palettePaperVellum : ""}`}
                         style={cardStyle}
                         aria-hidden="true"
                       >
-                        {isLindenAppearance ? (
+                        {isAtriumAppearance ? (
+                          <>
+                            <span className={classes.paletteAtriumName} />
+                            <span className={classes.paletteAtriumJob} />
+                            <span className={classes.paletteAtriumContacts} />
+                            <span className={classes.paletteAtriumPortrait} />
+                            <span className={classes.paletteAtriumMastheadRule} />
+                            <span className={classes.paletteAtriumHeading} />
+                            <span className={classes.paletteAtriumSectionRule} />
+                            <span className={classes.paletteAtriumCopy} />
+                            <span className={classes.paletteAtriumFolio} />
+                          </>
+                        ) : isLindenAppearance ? (
                           <>
                             <span className={classes.paletteLindenSidebar} />
                             <span className={classes.paletteLindenPhoto} />

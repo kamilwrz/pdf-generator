@@ -6,7 +6,7 @@ const panelUrl = new URL("./SectionsPanel.jsx", import.meta.url);
 const cssUrl = new URL("./SectionsPanel.module.css", import.meta.url);
 const sidebarUrl = new URL("../Sidebar/Sidebar.jsx", import.meta.url);
 
-test("customization panel exposes Appearance only for reviewed template contracts including Vellum", async () => {
+test("customization panel exposes Appearance only for reviewed template contracts including Atrium", async () => {
   const source = await readFile(panelUrl, "utf8");
   assert.match(source, /Dostosuj CV/);
   assert.match(source, /role="tablist"/);
@@ -20,6 +20,8 @@ test("customization panel exposes Appearance only for reviewed template contract
   assert.match(source, /const isMeridianAppearance = activeTemplateId === "meridian"/);
   assert.match(source, /const isCadenzaAppearance = activeTemplateId === "cadenza"/);
   assert.match(source, /const isVellumAppearance = activeTemplateId === "vellum"/);
+  assert.match(source, /const isAtriumAppearance = activeTemplateId === "atrium"/);
+  assert.match(source, /const appearanceEnabled = isAtriumAppearance/);
   assert.match(source, /\|\| isLindenAppearance/);
   assert.match(source, /\|\| isMeridianAppearance/);
   assert.match(source, /\|\| isCadenzaAppearance/);
@@ -39,6 +41,7 @@ test("appearance presents template-specific palettes, reviewed previews, and tex
   assert.match(source, /MERIDIAN_PALETTES/);
   assert.match(source, /CADENZA_PALETTES/);
   assert.match(source, /VELLUM_PALETTES/);
+  assert.match(source, /ATRIUM_PALETTES/);
   assert.match(source, /palettePaperMonument/);
   assert.match(source, /palettePaperLinden/);
   assert.match(source, /paletteLindenJob/);
@@ -61,6 +64,11 @@ test("appearance presents template-specific palettes, reviewed previews, and tex
   assert.match(source, /paletteVellumPhoto/);
   assert.match(source, /paletteVellumField/);
   assert.match(source, /paletteVellumJob/);
+  assert.match(source, /palettePaperAtrium/);
+  assert.match(source, /paletteAtriumPortrait/);
+  assert.match(source, /paletteAtriumMastheadRule/);
+  assert.match(source, /paletteAtriumSectionRule/);
+  assert.match(source, /paletteAtriumFolio/);
   assert.match(source, /Paleta kolorów/);
   assert.match(source, /zmienia papier, tekst, dekoracje i dopasowany zestaw ikon/);
   assert.match(source, /STERLING_TEXT_SIZES/);
@@ -70,10 +78,12 @@ test("appearance presents template-specific palettes, reviewed previews, and tex
   assert.match(source, /MERIDIAN_TEXT_SIZES/);
   assert.match(source, /CADENZA_TEXT_SIZES/);
   assert.match(source, /VELLUM_TEXT_SIZES/);
+  assert.match(source, /ATRIUM_TEXT_SIZES/);
   assert.match(source, /Białe tło pozostaje bez zmian/);
   assert.match(source, /pasek stanowiska pozostaje jej najciemniejszym akcentem/);
   assert.match(source, /Trzy lekkie i trzy mocne palety/);
   assert.match(source, /pole résumé, jego kontrast, portret, stanowisko, reguły oraz prawdziwe ikony/);
+  assert.match(source, /Białe Carrara, dark mode i trzy mocne edycje/);
   assert.match(source, /Rozmiar tekstu/);
   assert.match(source, /oryginalny rozmiar szablonu/);
   assert.match(source, /if \(!appearanceEnabled\) return/);
