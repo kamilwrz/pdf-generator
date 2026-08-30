@@ -10,6 +10,7 @@ from app.services.cv_templates.templates.regent import _gen_regent
 from app.services.cv_templates.templates.meridian import _gen_meridian
 from app.services.cv_templates.templates.linden import _gen_linden
 from app.services.cv_templates.templates.cadenza import _gen_cadenza
+from app.services.cv_templates.templates.vellum import _gen_vellum
 
 TEMPLATE_LAYOUTS: dict[str, frozenset[str]] = {
     "monument": frozenset({"single"}),
@@ -20,6 +21,7 @@ TEMPLATE_LAYOUTS: dict[str, frozenset[str]] = {
     "meridian": frozenset({"single", "icons"}),
     "linden": frozenset({"sidebar", "icons"}),
     "cadenza": frozenset({"single", "icons"}),
+    "vellum": frozenset({"single", "icons"}),
 }
 
 _GENERATORS = {
@@ -31,6 +33,7 @@ _GENERATORS = {
     "meridian": _gen_meridian,
     "linden": _gen_linden,
     "cadenza": _gen_cadenza,
+    "vellum": _gen_vellum,
 }
 
 

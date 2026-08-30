@@ -28,8 +28,8 @@ _CV = {
 
 # Templates whose design uppercases the name by default. These must express
 # the caps through the reversible flag rather than a baked ``.upper()``.
-_UPPERCASE_NAME = {"slate", "linden", "cadenza"}
-_UPPERCASE_TITLE = {"slate", "regent", "meridian", "sterling", "cadenza"}
+_UPPERCASE_NAME = {"slate", "linden", "cadenza", "vellum"}
+_UPPERCASE_TITLE = {"slate", "regent", "meridian", "sterling", "cadenza", "vellum"}
 _BAND_IDS = {
     "atrium": "masthead-main",
     "slate": "masthead-main",
@@ -39,6 +39,7 @@ _BAND_IDS = {
     "monument": "monument-masthead",
     "sterling": "sterling-masthead",
     "cadenza": "masthead-main",
+    "vellum": "masthead-main",
 }
 _TITLE_CATEGORIES = {
     template_id: "text" if template_id in {"slate"} else "textarea"
@@ -97,7 +98,7 @@ def test_template_emits_masthead_identity(template_id):
 
 @pytest.mark.parametrize(
     "template_id",
-    ["atrium", "slate", "regent", "meridian", "cadenza"],
+    ["atrium", "slate", "regent", "meridian", "cadenza", "vellum"],
 )
 def test_masthead_descriptor_reflow_delta_is_positive(template_id):
     """The title-hide reflow delta (``blockPt``) must be positive so hiding the
@@ -195,7 +196,7 @@ def test_empty_title_emits_complete_latent_spec_without_orphan_elements(template
     "template_id",
     [
         "atrium", "slate", "regent", "meridian",
-        "monument", "sterling",
+        "monument", "sterling", "vellum",
     ],
 )
 def test_empty_title_add_delta_matches_the_authored_contact_position(template_id):

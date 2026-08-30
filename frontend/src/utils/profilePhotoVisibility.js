@@ -8,6 +8,8 @@
  * zero-size anchor, then switch the band to a one-row-per-channel sidebar
  * layout. Linden starts with that stacked rail already active and publishes
  * its own hidden-photo anchor plus a contact-to-section spacing contract.
+ * Vellum's circular masthead slot is independent of the flow column, so its
+ * hide/show transition changes only the semantically tagged photo cluster.
  */
 
 const SUPPORTED_TEMPLATE_IDS = new Set([
@@ -15,6 +17,7 @@ const SUPPORTED_TEMPLATE_IDS = new Set([
   "monument",
   "slate",
   "linden",
+  "vellum",
 ]);
 
 const SIDEBAR_CONTACT_TEMPLATE_IDS = new Set(["slate", "linden"]);

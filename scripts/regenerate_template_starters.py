@@ -277,6 +277,7 @@ TEMPLATES = [
     "meridian",
     "linden",
     "cadenza",
+    "vellum",
 ]
 
 DOC_BLURBS = {
@@ -328,12 +329,19 @@ DOC_BLURBS = {
         " * Warm editorial single column with centered serif identity, pale section\n"
         " * bands, and an exact-anchor date rail shared with Meridian."
     ),
+    "vellum": (
+        "Vellum template (`layouts: [\"single\", \"icons\"]`).\n"
+        " *\n"
+        " * Asymmetric portrait-led editorial with a softly tinted summary field,\n"
+        " * tracked section labels, and Meridian/Cadenza's exact date rail."
+    ),
 }
 
 STARTER_PERSONAS = {
     "regent": "Aleksandra Nowak — strategy & operations manager with three roles, two degrees, ten skills, and three languages",
     "meridian": "Aleksandra Nowak — strategy & operations manager with three roles, two degrees, ten skills, and three languages",
     "cadenza": "Julia Bernat — three roles, one degree, five skills, and three languages",
+    "vellum": "Julia Bernat — four roles, two degrees, eight skills, and four languages",
 }
 
 LOCALHOST_ASSET = re.compile(r"^https?://[^/]+(/template-assets/.+)$")

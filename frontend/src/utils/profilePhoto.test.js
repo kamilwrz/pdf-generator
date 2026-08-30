@@ -14,6 +14,7 @@ import { materializeElementSpecs } from "./materializeElementSpecs.js";
 import { slateTemplate } from "../templates/slate.js";
 import { monumentTemplate } from "../templates/monument.js";
 import { atriumTemplate } from "../templates/atrium.js";
+import { vellumTemplate } from "../templates/vellum.js";
 
 const PHOTO = { src: "/images/9/content", img_id: 9 };
 
@@ -36,6 +37,13 @@ describe("findProfilePhotoSlot", () => {
     const slot = findProfilePhotoSlot(atriumTemplate);
     assert.ok(slot);
     assert.equal(slot.photoSlot, "glyph");
+  });
+
+  it("finds the Vellum portrait glyph", () => {
+    const slot = findProfilePhotoSlot(vellumTemplate);
+    assert.ok(slot);
+    assert.equal(slot.photoSlot, "glyph");
+    assert.equal(slot.id, "vellum-photo-glyph");
   });
 
   it("still prefers a large near-top non-icon image (legacy)", () => {
@@ -98,6 +106,18 @@ describe("applyProfilePhoto", () => {
     assert.equal(photo.width, 76);
     assert.equal(photo.height, 103);
     assert.ok(frame.zIndex > photo.zIndex);
+  });
+
+  it("fills Vellum's circular portrait and clips the raster to the frame", () => {
+    const elements = materializeElementSpecs(vellumTemplate, () => `v-${Math.random()}`);
+    const next = applyProfilePhoto(elements, PHOTO, () => "vellum-photo");
+    const photo = next.find((el) => el.photoSlot === "image");
+    assert.ok(photo);
+    assert.equal(photo.left, 433);
+    assert.equal(photo.top, 36);
+    assert.equal(photo.width, 104);
+    assert.equal(photo.height, 104);
+    assert.equal(photo.borderRadius, 52);
   });
 
   it("replaces an already-applied profile photo in place", () => {

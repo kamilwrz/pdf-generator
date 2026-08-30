@@ -2,7 +2,7 @@
 
 # CV Studio
 
-CV Studio is a Polish-language A4 CV editor: a WYSIWYG canvas, eight individual templates (each with its own name and short stylistic description), PDF import via AI, a guided bio wizard, a floating AI assistant, and ReportLab PDF export that matches the canvas 1:1 (coordinates in points, top-left origin on the frontend, flipped for ReportLab).
+CV Studio is a Polish-language A4 CV editor: a WYSIWYG canvas, nine individual templates (each with its own name and short stylistic description), PDF import via AI, a guided bio wizard, a floating AI assistant, and ReportLab PDF export that matches the canvas 1:1 (coordinates in points, top-left origin on the frontend, flipped for ReportLab).
 
 This README is the technical entry point for developers. A beginner-friendly deep guide to canvas coordinates, React interaction, deterministic Python layout, AI responsibilities, reflow, persistence, and ReportLab export lives in [`CANVA.md`](CANVA.md). Every live AI prompt (full text, variables, file/line references) is documented in [`PROMPTS.md`](PROMPTS.md). Product-oriented feature copy lives in [`docs/FEATURES.md`](docs/FEATURES.md). Marketing brief for the website „Dlaczego CV STUDIO” section (features + competitive positioning, no competitor brand names in public copy) lives in [`FEATURES_MARKETING.md`](FEATURES_MARKETING.md). Template generation (AI extract vs Python layout) is explained in [`docs/cv-template-generation.md`](docs/cv-template-generation.md). A layperson-friendly end-to-end guide covering Frontend and Backend (flows, files, classes, functions) lives in [`CV_GENERATOR.md`](CV_GENERATOR.md).
 
@@ -238,7 +238,7 @@ pdf-generator/
     └── .env.example
 ```
 
-**Rules:** Frontend templates must stay in sync with `_GENERATORS` in `cv_templates/registry.py` (re-exported from `cv_generator.py`; 10 ids). Each `cv_templates/templates/<id>.py` holds only that template’s live generator — not a shared multi-theme engine with sibling branches. Do not put secrets in the repo. Uploads and generated PDFs are runtime data (`uploads/`, `static/generated/`), not source. User image bytes are not publicly mounted — only via `GET /images/{id}/content`.
+**Rules:** Frontend templates must stay in sync with `_GENERATORS` in `cv_templates/registry.py` (re-exported from `cv_generator.py`; 9 ids). Each `cv_templates/templates/<id>.py` holds only that template’s live generator — not a shared multi-theme engine with sibling branches. Do not put secrets in the repo. Uploads and generated PDFs are runtime data (`uploads/`, `static/generated/`), not source. User image bytes are not publicly mounted — only via `GET /images/{id}/content`.
 
 ---
 
@@ -434,7 +434,7 @@ Tests:
 
 - `frontend/src/utils/canvasHoverToolbarState.test.js`, lines 1–45 — one-second leave delay, transient hover, persistent click pin, menu pin, and full reset transitions
 - `frontend/src/components/canvas/recordPlusSize.test.js`, lines 1–39 — compact screen-stable dimensions plus outer-gutter resolution for both sheets of a spread and lane-gutter preservation on one page
-- `frontend/src/utils/canvasHighlightBounds.test.js`, lines 1–323 — focused regressions for legacy icon optical ink, zero pre-commit DOM reads, upward member pollution, oversized-body clipping, bounded current/next live Ranges, stale-Range rejection, and corrupt-limit suppression; `frontend/src/utils/canvasHighlightAllTemplates.test.js`, lines 1–160 — independent explicit-heading completeness checks plus model membership and two-sided isolation for every main/sidebar section in all eight built-in starters
+- `frontend/src/utils/canvasHighlightBounds.test.js`, lines 1–323 — focused regressions for legacy icon optical ink, zero pre-commit DOM reads, upward member pollution, oversized-body clipping, bounded current/next live Ranges, stale-Range rejection, and corrupt-limit suppression; `frontend/src/utils/canvasHighlightAllTemplates.test.js`, lines 1–160 — independent explicit-heading completeness checks plus model membership and two-sided isolation for every main/sidebar section in all nine built-in starters
 
 ### Record-overlay elements survive structural repacking
 
@@ -817,20 +817,20 @@ Implementation:
 
 Limits:
 
-- Free (Darmowy) includes the Regent and Sterling starter templates, watermarked PDF export, and **three successful CV imports per UTC month**. Pro unlocks clean PDF, all eight templates, unlimited CV imports, content AI, ATS, and Layout for **59 zł / 30 days**. Stripe Checkout is not wired yet; unpaid selection may activate Pro via `ALLOW_UNPAID_PLAN_SELECTION`.
+- Free (Darmowy) includes the Regent and Sterling starter templates, watermarked PDF export, and **three successful CV imports per UTC month**. Pro unlocks clean PDF, all nine templates, unlimited CV imports, content AI, ATS, and Layout for **59 zł / 30 days**. Stripe Checkout is not wired yet; unpaid selection may activate Pro via `ALLOW_UNPAID_PLAN_SELECTION`.
 - ATS feedback (**Czytelność dla ATS**) checks whether the final PDF text can be extracted and whether content headings/keywords look standard. It is guidance, not a promise that every recruiter ATS will parse the file the same way.
 - The privacy section describes implemented data use at a high level and does not claim unimplemented certifications or anonymisation.
 
 ### Template load
 
-Loads static specs; assigns `element_id`, interaction flags, locks chrome. The public registry contains exactly eight starters: Atrium, Cadenza, Linden, Meridian, Monument, Regent, Slate, and Sterling. All eight are generator-owned snapshots rather than hand-maintained approximations; `scripts/regenerate_template_starters.py` regenerates one module for every identifier in its `TEMPLATES` list.
+Loads static specs; assigns `element_id`, interaction flags, locks chrome. The public registry contains exactly nine starters: Atrium, Cadenza, Linden, Meridian, Monument, Regent, Slate, Sterling, and Vellum. All nine are generator-owned snapshots rather than hand-maintained approximations; `scripts/regenerate_template_starters.py` regenerates one module for every identifier in its `TEMPLATES` list.
 
 Implementation:
 
-- `frontend/src/templates/index.js`, lines 11–30 — the complete eight-entry `TEMPLATES` registry (`name` + `description` for UI; `layouts` tags for generators)
+- `frontend/src/templates/index.js`, complete nine-entry `TEMPLATES` registry (`name` + `description` for UI; `layouts` tags for generators)
 - `frontend/src/utils/materializeElementSpecs.js`, `materializeElementSpecs`
 - `frontend/src/hooks/useA4Elements.js`, `handleLoadTemplate` / `useDocumentHistory`
-- `scripts/regenerate_template_starters.py`, lines 273–284 and 430–468, `TEMPLATES` and `main` — the exact eight-id regeneration list; optional positional ids regenerate only selected modules, for example `python scripts/regenerate_template_starters.py cadenza`; generated modules: `frontend/src/templates/{atrium,cadenza,linden,meridian,monument,regent,slate,sterling}.js`
+- `scripts/regenerate_template_starters.py`, `TEMPLATES` and `main` — the exact nine-id regeneration list; optional positional ids regenerate only selected modules, for example `python scripts/regenerate_template_starters.py vellum`; generated modules: `frontend/src/templates/{atrium,cadenza,linden,meridian,monument,regent,slate,sterling,vellum}.js`
 
 ### Canvas enter fade
 
@@ -957,7 +957,29 @@ Tests:
 
 - `backend/tests/test_cadenza_template.py`, lines 24–115 — registry metadata, masthead/band/icon identity, exact experience and education period anchors, and continuation-page identity
 - `frontend/src/templates/cadenza.test.js`, lines 72–112 — starter palette, masthead, section bands, copper markers, date rail, and icon paths; lines 114–215 — idempotent repeated spacing, repair of persisted displaced accents, blank-page prevention, record reorder, and section reorder
-- `backend/tests/test_contact_band_templates.py`, lines 27–104; `frontend/src/templates/contactMastheadSpacing.test.js`, lines 1–48 — centered contact-band safety; `backend/tests/test_masthead_templates.py`, lines 31–265 and `frontend/src/templates/mastheadIdentityAllTemplates.test.js`, lines 1–178 — reversible title/name contract across all eight public templates
+- `backend/tests/test_contact_band_templates.py`; `frontend/src/templates/contactMastheadSpacing.test.js` — centered contact-band safety; `backend/tests/test_masthead_templates.py` and `frontend/src/templates/mastheadIdentityAllTemplates.test.js` — reversible title/name contract across all nine public templates
+
+### Vellum portrait-led editorial template
+
+Vellum is a paid single-column template (`layouts: ["single", "icons"]`) inspired by the supplied two-page editorial résumé. It preserves the reference's expressive choices—a widely tracked uppercase identity, compact icon contacts, a large circular portrait, a softly tinted professional-summary field, generous white space, and restrained section rules—while rebuilding them as native CV Studio elements rather than a flattened image. Its warm-white page, deep forest ink (`#20352F`), sage-grey field (`#E7ECE8`), and muted copper accent (`#A16049`) create an elegant but distinctive alternative to Cadenza and Meridian. Cormorant Garamond carries the identity, Lora handles long-form copy, and Montserrat keeps labels and contacts crisp.
+
+The first page uses an intentionally asymmetric masthead: the name, optional job title, and managed contact band occupy the left text column, while a 104 pt circular profile-photo frame sits on the right inside a 112 pt copper halo. The slot supports gallery apply/replace/remove and lossless hide/show. The profile photo, name, and contacts do not repeat on continuation pages; later pages retain only the quiet footer rule and page number, as requested. The contact band still reserves two rows and uses the standard add/remove/edit manager, so a new GitHub, website, or location channel cannot collide with the summary.
+
+Vellum places Skills before Experience to echo the reference's quick capability scan. Experience and education use the exact Meridian/Cadenza date contract: period labels are right-aligned `record-overlay` elements pinned to the genuine job-title or degree textarea top, and city labels pin to the matching company/school row. The tinted summary background is also an overlay grouped with its textarea, which lets section reorder and spacing controls move the field with the text without counting the background as a second content row. All visible copy remains selectable, editable, reorderable, and export-safe.
+
+Implementation:
+
+- `backend/app/services/cv_templates/templates/vellum.py`, lines 52–168, functions `_vellum_education_height` and `_vellum_place_education`; lines 170–463, function `_gen_vellum` — masthead/photo geometry, summary field, skills-first section order, exact date rail, and page chrome
+- `backend/app/services/cv_templates/registry.py`, lines 13–36, `TEMPLATE_LAYOUTS["vellum"]` and `_GENERATORS["vellum"]`; `frontend/src/templates/index.js`, lines 18–31, paid Vellum registry entry
+- `frontend/src/templates/vellum.js`, lines 18–1399, exported `vellumTemplate` — source-generated page-one starter; `frontend/public/template-mockups/vellum.png` — ReportLab/PyMuPDF A4 preview used by every template picker
+- `frontend/src/utils/profilePhotoVisibility.js`, lines 11–20, `SUPPORTED_TEMPLATE_IDS` — reversible Vellum photo-cluster visibility without moving body flow
+- `scripts/regenerate_template_starters.py`, lines 271–346 and 423–465, `TEMPLATES`, `DOC_BLURBS`, `STARTER_PERSONAS`, and `main`; `frontend/scripts/dump-iconic-templates.mjs`, lines 14–25, and `scripts/render_iconic_mockups.py`, lines 46–110, functions `render_theme`, `rasterize_first_page`, and `main` — deterministic starter and mockup regeneration
+
+Tests:
+
+- `backend/tests/test_vellum_template.py`, lines 26–148 — registry metadata, asymmetric identity, circular photo slot, grouped summary tint, skills-first order, exact experience/education period and city anchors, and continuation pages without repeated identity/contact data
+- `frontend/src/templates/vellum.test.js`, lines 16–84 — starter hierarchy plus flow-packing invariants for the summary tint and period rail
+- `frontend/src/utils/profilePhoto.test.js`, lines 42–48 and 111–122; `frontend/src/utils/profilePhotoVisibility.test.js`, lines 38–58 — circular crop geometry and coordinate-stable hide/show
 
 ### Regent editorial masthead template
 
@@ -1158,23 +1180,23 @@ Tests:
 - `backend/tests/test_cv_template_layouts.py`, `test_iconic_experience_record_gap_matches_projects`
 - `backend/tests/test_sidebar_wrapped_height.py` — pins `_sidebar_wrapped_height` to the same output as `Builder.measure_block` for realistic bulleted and plain sidebar content, plus an end-to-end check that two differently-shaped fitted sections keep an identical trailing gap
 
-**Shared demo persona.** Built-in starters and the guest Regent demo generally use the fictional **Julia Bernat** profile — AML/compliance analyst with three experience roles, one degree, five skills, three languages, plus phone / email / LinkedIn / GitHub / website / Warszawa — so picker mockups stay comparable and follow each generator's `SPACE_*` rhythm on page 1. Regent intentionally uses Alexandra Nowak, a strategy-consulting persona sized to demonstrate its large editorial lead. Monument uses a slightly compacted bullet set so every section still fits page 1 of the mockup.
+**Shared demo persona.** Built-in starters generally use the fictional **Julia Bernat** profile — AML/compliance analyst with four experience roles, two degrees, eight skills, four languages, plus phone / email / LinkedIn / GitHub / website / Warszawa — so picker mockups stay comparable and follow each generator's `SPACE_*` rhythm on page 1. Regent and Meridian intentionally use Alexandra Nowak, a strategy-consulting persona sized to demonstrate their editorial leads. Atrium and Monument use compacted variants so every section still fits page 1 of the mockup.
 
-**Regenerating source-driven starters and mockups.** All eight public `frontend/src/templates/*.js` starters — Atrium, Cadenza, Linden, Meridian, Monument, Regent, Slate, and Sterling — are dumps of `generate_resume` output. To refresh every starter from the shared persona, or only Cadenza after an isolated design change:
+**Regenerating source-driven starters and mockups.** All nine public `frontend/src/templates/*.js` starters — Atrium, Cadenza, Linden, Meridian, Monument, Regent, Slate, Sterling, and Vellum — are dumps of `generate_resume` output. To refresh every starter from its documented persona, or only Vellum after an isolated design change:
 
 ```bash
-python scripts/regenerate_template_starters.py   # rewrites all eight active template modules
-python scripts/regenerate_template_starters.py cadenza  # rewrites only cadenza.js
+python scripts/regenerate_template_starters.py   # rewrites all nine active template modules
+python scripts/regenerate_template_starters.py vellum  # rewrites only vellum.js
 ```
 
 The authoritative list is `TEMPLATES` at `scripts/regenerate_template_starters.py`, lines 271–280; `main`, lines 415–457, loops over the full list when no ids are supplied and validates/writes only requested ids otherwise. Re-run it whenever the shared demo, a generator, or the shared masthead descriptor changes.
 
-`frontend/public/template-mockups/{monument,slate,atrium,sterling,regent,meridian,linden,cadenza}.png` — the previews shown in the Hero template gallery (`frontend/src/pages/Hero/Hero.jsx`), the in-app template picker (`frontend/src/components/modals/TemplatesModal/TemplatesModal.jsx`), and the hover pane in **Wypełnij z mojego CV** (`frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`) — are rendered from those starter arrays, not hand-drawn mockups. After starter changes, regenerate every PNG or only the edited template:
+`frontend/public/template-mockups/{monument,slate,atrium,sterling,regent,meridian,linden,cadenza,vellum}.png` — the previews shown in the Hero template gallery (`frontend/src/pages/Hero/Hero.jsx`), the in-app template picker (`frontend/src/components/modals/TemplatesModal/TemplatesModal.jsx`), and the hover pane in **Wypełnij z mojego CV** (`frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`) — are rendered from those starter arrays, not hand-drawn mockups. After starter changes, regenerate every PNG or only the edited template:
 
 ```bash
 node frontend/scripts/dump-iconic-templates.mjs
 python scripts/render_iconic_mockups.py           # renders each theme through ReportLab, rasterizes page 1 with PyMuPDF
-python scripts/render_iconic_mockups.py cadenza   # renders only Cadenza
+python scripts/render_iconic_mockups.py vellum    # renders only Vellum
 ```
 
 The starter modules use explicit `.js` import extensions, and `frontend/src/services/api.js` falls back safely when Vite's `import.meta.env` object is absent. The dump therefore runs directly in Node without a custom loader. The intermediate JSON is git-ignored — it is always regenerated from the starter modules, never edited by hand.
@@ -1252,14 +1274,14 @@ Tests: `backend/tests/test_image_upload_security.py` — accepts a real PNG, rej
 
 ### Profile photo slot (template mode)
 
-In **template** mode, clicking a profile frame, portrait glyph, or existing profile photo on the canvas opens the gallery. Clicking a gallery image then immediately fits it into the declared profile-photo slot (no confirmation dialog, no freeform prompt) and closes the gallery panel. Hovering a supported slot reveals a small eye-off action; an occupied slot also reveals a separate trash action. Eye-off hides the complete slot, while trash removes only the user raster and restores the reusable placeholder/frame. When the slot is hidden, hovering the masthead name reveals an image/eye restore action. These controls are available for Atrium, Monument, and Slate. The fitted photo covers the entire slot (`objectFit: "cover"`). Templates mark the area with `photoSlot`:
+In **template** mode, clicking a profile frame, portrait glyph, or existing profile photo on the canvas opens the gallery. Clicking a gallery image then immediately fits it into the declared profile-photo slot (no confirmation dialog, no freeform prompt) and closes the gallery panel. Hovering a supported slot reveals a small eye-off action; an occupied slot also reveals a separate trash action. Eye-off hides the complete slot, while trash removes only the user raster and restores the reusable placeholder/frame. When the slot is hidden, hovering the masthead name reveals an image/eye restore action. These controls are available for Atrium, Linden, Monument, Slate, and Vellum. The fitted photo covers the entire slot (`objectFit: "cover"`). Templates mark the area with `photoSlot`:
 
-- `frame` — the designated rectangle or circle chrome (`slate-photo-frame`, `monument-masthead-frame`, `regent-photo-frame`; `tessera-photo-frame`, `cinder-frame-one`, `nimbus-photo-frame`, and `harbor-photo-frame` are kept from retired templates so older saved documents still resolve their slot)
+- `frame` — the designated rectangle or circle chrome (`slate-photo-frame`, `monument-masthead-frame`, `regent-photo-frame`, `vellum-photo-frame`; `tessera-photo-frame`, `cinder-frame-one`, `nimbus-photo-frame`, and `harbor-photo-frame` are kept from retired templates so older saved documents still resolve their slot)
 - `glyph` — portrait placeholder image inside the frame (converted into the user photo)
 - `ornament` — decorative shapes covered by a photo in legacy template documents
 - `image` — the applied user photo (`id: "profile-photo"`, locked + `fixedToPage`)
 
-`applyProfilePhoto` insets the raster inside Slate frames (border stays visible), replaces Monument’s portrait glyph while raising the frame outline, and fills Regent’s square masthead slot; a circular disc (canvas clips with `borderRadius`) is also supported for any template with a circular photo slot. When a glyph is converted, `photoPlaceholder` stores its exact asset and geometry so raster deletion is lossless; legacy Atrium rasters fall back to the authored frameless glyph. Hiding Atrium or Monument changes no other coordinates. Slate hide every frame, glyph, and `ornament` member, replace the managed contact-band descriptor with a stacked sidebar descriptor at x=33/y=42, normalise every managed contact to page one, and re-layout all active channels before measuring their actual final geometry. The first sidebar section chrome is then aligned exactly 40 pt below the lowest contact member. The same measurement runs after contact addition, removal, or content edits, so correct spacing appears immediately and does not depend on a later two-pages-to-one-page reconciliation. Legacy saved Slate documents are recognised by the bounded fixed sidebar photo zone even when their ornaments predate the semantic tag. Showing the slot restores the saved main-column descriptor and every original sidebar position. Hidden slot members remain in state with `photoSlotHidden`, but `CanvasElements` and `PDF_Generator.render_elements` omit them. All restoration metadata persists through `PdfElements.extra_properties` and the shared schema.
+`applyProfilePhoto` insets the raster inside Slate frames (border stays visible), replaces Monument’s portrait glyph while raising the frame outline, fills Regent’s square masthead slot, and center-crops Vellum inside its circular 104 pt frame. When a glyph is converted, `photoPlaceholder` stores its exact asset and geometry so raster deletion is lossless; legacy Atrium rasters fall back to the authored frameless glyph. Hiding Atrium, Linden, Monument, or Vellum changes no other coordinates. Slate alone relocates contacts into its sidebar: it hides every frame, glyph, and `ornament` member, replaces the managed contact-band descriptor with a stacked sidebar descriptor at x=33/y=42, normalises every managed contact to page one, and re-layouts all active channels before measuring their final geometry. The first sidebar section chrome is then aligned exactly 40 pt below the lowest contact member. The same measurement runs after contact addition, removal, or content edits, so correct spacing appears immediately and does not depend on a later two-pages-to-one-page reconciliation. Legacy saved Slate documents are recognised by the bounded fixed sidebar photo zone even when their ornaments predate the semantic tag. Showing the slot restores the saved main-column descriptor and every original sidebar position. Hidden slot members remain in state with `photoSlotHidden`, but `CanvasElements` and `PDF_Generator.render_elements` omit them. All restoration metadata persists through `PdfElements.extra_properties` and the shared schema.
 
 Implementation:
 
@@ -1274,9 +1296,9 @@ Implementation:
 - `backend/app/schemas/pdf_schema.py`, `shared/pdf-element.schema.json`, `backend/app/crud/pdfs.py`, and `ModalPdfs.jsx` — validate, persist, and hydrate visibility/restoration fields
 - `backend/app/services/pdf_generator.py`, lines 1338–1452, method `render_elements`; hidden-slot filter at lines 1352–1355
 - Tests: `frontend/src/utils/profilePhotoVisibility.test.js`, lines 25–242 (hide/show, legacy slots, contact reflow, raster removal, and accessible hover actions); `frontend/src/utils/sectionStructure.test.js`, lines 1887–1950; `frontend/src/templates/slate.test.js`, lines 6–78; `backend/tests/test_cv_template_layouts.py`, `test_slate_is_rectilinear_icon_sidebar_with_rectangular_photo`; `backend/tests/test_contact_channel_roundtrip.py`, lines 54–76; `backend/tests/test_pdf_watermark.py`, lines 119–137
-- Generators / starters: `slate`, `monument`, `regent`, `atrium` (FE + BE)
+- Generators / starters: `atrium`, `linden`, `monument`, `regent`, `slate`, `vellum` (FE + BE)
 
-Tests: `frontend/src/utils/profilePhoto.test.js` — slot detection on Slate/Monument, geometry/z-index after apply, in-place replace.
+Tests: `frontend/src/utils/profilePhoto.test.js` — slot detection on Slate, Monument, and Vellum; circular Vellum geometry, geometry/z-index after apply, and in-place replace.
 
 ### Deterministic template fill
 
@@ -1424,9 +1446,9 @@ Deferred to later phases: new data fields (extra field, birth date, nationality)
 
 ### Masthead identity toggles (Phase 3)
 
-The same identity contract now covers **all eight public templates**: Atrium, Cadenza, Linden, Meridian, Monument, Regent, Slate, and Sterling. Each generator tags the name and an optional live title, then emits one zero-footprint `masthead-anchor` with the template's reconstruction and reflow descriptor.
+The same identity contract now covers **all nine public templates**: Atrium, Cadenza, Linden, Meridian, Monument, Regent, Slate, Sterling, and Vellum. Each generator tags the name and an optional live title, then emits one zero-footprint `masthead-anchor` with the template's reconstruction and reflow descriptor.
 
-- **Name-case toggle.** Hovering the name reveals an `Aa`/`AA` chip that flips the reversible `textTransform` flag (`"uppercase"` ↔ `"none"`). Canvas and PDF apply the flag while stored `content` keeps its original case. Cadenza, Slate, and Linden author uppercase names through this flag rather than baking uppercase text into the data.
+- **Name-case toggle.** Hovering the name reveals an `Aa`/`AA` chip that flips the reversible `textTransform` flag (`"uppercase"` ↔ `"none"`). Canvas and PDF apply the flag while stored `content` keeps its original case. Cadenza, Slate, Linden, and Vellum author uppercase names through this flag rather than baking uppercase text into the data.
 - **Initially missing job position.** A generator with empty `cv_data.title` still builds `title_prototype`, but passes it only as a **latent, unrendered specification**. The output contains no empty live `text`/`textarea`, no title decoration, and therefore no blank pill, strip, or orphan bar. The descriptor preserves the template's category, box geometry, font, line height, colour, tracking, alignment, casing, `bold`, `italic`, `underline`, z-index, auto-height, initial-layout flag, and decoration blueprints.
 - **Add and edit.** When no live title exists, the hover UI shows `+` beside the name. It materialises exactly one empty template-native field with the editor-only placeholder **`Wpisz stanowisko…`**. The hint is rendered through `data-placeholder`; it is never copied into element `content`, structured CV data, saved text, or the PDF. Typing a value synchronises it into `cv_data.title`, so changing the template rebuilds the next masthead with that value. Hiding the title is a presentation choice and does not clear `cv_data.title`.
 - **Lossless hide/show.** Before hiding a populated title, the client captures its current text, complete box style, inline `runs` formatting (partial bold/italic/underline/colour), appearance baselines, geometry, and live title decorations back into the descriptor. Hiding removes the title and every tagged title decoration together; showing reconstructs them from the latest descriptor. A title entered through `+` therefore survives both hide/show and a later template change without stale copy, lost emphasis, or orphan chrome.
@@ -1439,20 +1461,20 @@ Implementation:
 - `backend/app/services/cv_templates/shared/masthead.py`, lines 12–27 and 30–159 — `build_masthead_identity_anchor` and `tag_masthead_identity`; `title_prototype` is selected only as a descriptor source, the full style is captured at lines 92–114, and decoration blueprints remain descriptor-only for an absent title while retaining their masthead flow role at lines 116–146.
 - `backend/app/services/pdf_generator.py` — `renderText(..., textTransform=None)` uppercases the drawn string when flagged.
 - `backend/app/schemas/pdf_schema.py` + `backend/app/crud/pdfs.py` — `textTransform`, `mastheadRole`, `mastheadBandId`, `mastheadIdentity` fields + round-trip.
-- All eight generator call sites: `atrium.py`, lines 121–183; `cadenza.py`, lines 198–268; `linden.py`, lines 245–284; `meridian.py`, lines 324–384; `monument.py`, lines 110–141; `regent.py`, lines 80–140; `slate.py`, lines 255–275 and 445–464; `sterling.py`, lines 172–235.
+- All nine generator call sites: `atrium.py`, lines 121–183; `cadenza.py`, lines 198–268; `linden.py`, lines 245–284; `meridian.py`, lines 324–384; `monument.py`, lines 110–141; `regent.py`, lines 80–140; `slate.py`, lines 255–275 and 445–464; `sterling.py`, lines 172–235; `vellum.py`, function `_gen_vellum`.
 - `frontend/src/utils/mastheadIdentityOps.js`, lines 147–361 — `captureVisibleTitle`, `hideTitle`, `buildTitleElement`, `buildTitleDecorations`, `showTitle`, and `applyTitleToggle`; captures current content/style/inline runs/decorations, removes and restores the whole cluster (including `flowRole: "masthead"` for every title decoration), applies the correct delta, and assigns the empty-field placeholder.
 - `frontend/src/utils/mastheadBands.js`, lines 9–52 — exact `MASTHEAD_TITLE_PLACEHOLDER` constant and `listMastheadBands`; `frontend/src/components/canvas/MastheadIdentityControls/MastheadIdentityControls.jsx`, lines 20–116 — inline case/hide controls and the add-title `+` shown only when `titlePresent` is false.
 - `frontend/src/components/canvas/CanvasElements/CanvasElements.jsx`, lines 301–386; `frontend/src/components/canvas/Text/Text.jsx`, lines 68–73 and 185–196; `frontend/src/components/canvas/Textarea/Textarea.jsx`, lines 200–204 and 517–603 — thread `mastheadRole`/placeholder to the editable element and render the hint only as CSS `data-placeholder`.
 - `frontend/src/utils/syncCvDataFromCanvas.js`, lines 101–222 — `editableTextChanges`, `editedMastheadTitle`, and `syncCvDataFromCanvas`; saves the first typed value to the structured profile while deliberately treating a missing live title as hide, not semantic deletion. A fresh title id counts as `+` only when the same identity anchor survives and flips `present: false → true`; a full template replacement creates a new anchor and cannot persist generator-truncated display text over the complete `cv_data.title`. Masthead-title edits are also excluded from the generic unique-string mapper, so an identical phrase in the summary or another field cannot be overwritten after the semantic title update.
 - `frontend/src/utils/monumentAppearance.js`, `frontend/src/utils/sterlingAppearance.js`, and `frontend/src/utils/slateAppearance.js` — recolour and resize hidden descriptor specs/decorations together with visible template elements.
-- `scripts/regenerate_template_starters.py`, lines 271–280 and 415–457 — regenerates all eight starter modules, or only validated positional template ids, after generator-contract changes.
+- `scripts/regenerate_template_starters.py`, `TEMPLATES` and `main` — regenerates all nine starter modules, or only validated positional template ids, after generator-contract changes.
 - `frontend/src/hooks/useA4Elements.js`, `store/pdfgenerator-context.jsx`, `pages/PdfCanvas.jsx` — `toggleNameCase` / `toggleTitle` ops on the shared history path.
 
 Tests:
 
 - `backend/tests/test_masthead_identity.py`, lines 10–108 — full style capture, including italic/underline/z-index, plus an absent-title prototype that remains unrendered.
-- `backend/tests/test_masthead_templates.py`, lines 56–265 — all eight anchors, casing/style, positive vs zero deltas, separate initially-empty deltas, complete latent specs, and absence of empty live titles or orphan decorations.
-- `frontend/src/templates/mastheadIdentityAllTemplates.test.js`, lines 1–178 — registry-wide regression over the exact eight public starters; every title hides, restores empty, preserves all authored title and decoration fields (including `italic` and decoration `flowRole`), and leaves no decoration behind.
+- `backend/tests/test_masthead_templates.py` — all nine anchors, casing/style, positive vs zero deltas, separate initially-empty deltas, complete latent specs, and absence of empty live titles or orphan decorations.
+- `frontend/src/templates/mastheadIdentityAllTemplates.test.js` — registry-wide regression over exactly nine public starters; every title hides, restores empty, preserves all authored title and decoration fields (including `italic` and decoration `flowRole`), and leaves no decoration behind.
 - `frontend/src/utils/mastheadIdentityOps.test.js`, lines 65–220 — reconstruction, exact placeholder, full styling plus inline runs, typed-value hide/show, and live appearance capture; `frontend/src/utils/syncCvDataFromCanvas.test.js`, lines 97–207 — first typed title persists, template replacement cannot save a truncated title, hide preserves semantic profile data, and duplicate old title text in another profile field remains untouched.
 - `frontend/src/utils/monumentAppearance.test.js`, `frontend/src/utils/sterlingAppearance.test.js`, and `frontend/src/utils/slateAppearance.test.js` — palette and typography presets update hidden title descriptors and restore their M baselines.
 
@@ -2065,7 +2087,7 @@ Notable product facts:
 
 # CV Studio
 
-CV Studio to polski edytor CV na A4: płótno WYSIWYG, osiem indywidualnych szablonów (każdy z własną nazwą i krótkim opisem stylistycznym), import PDF przez AI, kreator bio, pływający asystent AI oraz eksport PDF w ReportLab zgodny z kanwą 1:1 (współrzędne w punktach, początek układu lewy-górny na froncie, odwrócenie Y w ReportLab).
+CV Studio to polski edytor CV na A4: płótno WYSIWYG, dziewięć indywidualnych szablonów (każdy z własną nazwą i krótkim opisem stylistycznym), import PDF przez AI, kreator bio, pływający asystent AI oraz eksport PDF w ReportLab zgodny z kanwą 1:1 (współrzędne w punktach, początek układu lewy-górny na froncie, odwrócenie Y w ReportLab).
 
 Ten README to wejście techniczne dla programistów. Obszerne, napisane dla początkujących wyjaśnienie współrzędnych canvasu, interakcji React, deterministycznego layoutu Python, roli AI, reflow, zapisu i eksportu ReportLab znajduje się w [`CANVA.md`](CANVA.md). Wszystkie prompty AI (treść, zmienne, numery linii): [`PROMPTS.md`](PROMPTS.md). Opis produktowy funkcji: [`docs/FEATURES.md`](docs/FEATURES.md). Brief marketingowy pod sekcję „Dlaczego CV STUDIO” na stronie (funkcje + pozycjonowanie względem rynku, bez nazw marek konkurencji w copy publicznym): [`FEATURES_MARKETING.md`](FEATURES_MARKETING.md). Generowanie szablonów (AI extract vs layout w Pythonie): [`docs/cv-template-generation.md`](docs/cv-template-generation.md). Przystępny, kompletny przewodnik Frontend + Backend (ścieżki, pliki, klasy, funkcje): [`CV_GENERATOR.md`](CV_GENERATOR.md).
 
@@ -2300,7 +2322,7 @@ pdf-generator/
     └── .env.example
 ```
 
-**Zasady:** 10 id szablonów frontu muszą odpowiadać `_GENERATORS` w `cv_templates/registry.py` (re-eksport z `cv_generator.py`). Każdy `cv_templates/templates/<id>.py` zawiera wyłącznie żywy generator tego szablonu — bez wspólnego silnika multi-theme i martwych gałęzi siblingów. Sekrety tylko w env. `uploads/` i `static/generated/` to dane runtime. Bajty obrazów użytkownika nie są publicznie montowane — tylko przez `GET /images/{id}/content`.
+**Zasady:** 9 id szablonów frontu musi odpowiadać `_GENERATORS` w `cv_templates/registry.py` (re-eksport z `cv_generator.py`). Każdy `cv_templates/templates/<id>.py` zawiera wyłącznie żywy generator tego szablonu — bez wspólnego silnika multi-theme i martwych gałęzi siblingów. Sekrety tylko w env. `uploads/` i `static/generated/` to dane runtime. Bajty obrazów użytkownika nie są publicznie montowane — tylko przez `GET /images/{id}/content`.
 
 ---
 
@@ -2484,7 +2506,7 @@ Testy:
 
 - `frontend/src/utils/canvasHoverToolbarState.test.js`, linie 1–45 — sekundowe opóźnienie znikania, hover przejściowy, trwałe przypięcie kliknięciem, przypięcie menu i pełny reset stanu
 - `frontend/src/components/canvas/recordPlusSize.test.js`, linie 1–39 — kompaktowe, stałe ekranowo wymiary, zewnętrzne guttery obu kartek spreadu i zachowanie guttera toru przy jednej stronie
-- `frontend/src/utils/canvasHighlightBounds.test.js`, linie 1–323 — dokładne regresje tuszu ikony legacy, braku odczytu DOM przed commitem, obcego członka nad sekcją, przycinania zbyt wysokiego body, ograniczonych żywych Range bieżącego/następnego nagłówka, odrzucenia starego Range i ukrycia obrysu przy uszkodzonych limitach; `frontend/src/utils/canvasHighlightAllTemplates.test.js`, linie 1–160 — niezależna kontrola kompletności jawnych nagłówków oraz membership i dwustronna izolacja każdej sekcji main/sidebara we wszystkich ośmiu wbudowanych starterach
+- `frontend/src/utils/canvasHighlightBounds.test.js`, linie 1–323 — dokładne regresje tuszu ikony legacy, braku odczytu DOM przed commitem, obcego członka nad sekcją, przycinania zbyt wysokiego body, ograniczonych żywych Range bieżącego/następnego nagłówka, odrzucenia starego Range i ukrycia obrysu przy uszkodzonych limitach; `frontend/src/utils/canvasHighlightAllTemplates.test.js`, linie 1–160 — niezależna kontrola kompletności jawnych nagłówków oraz membership i dwustronna izolacja każdej sekcji main/sidebara we wszystkich dziewięciu wbudowanych starterach
 
 ### Elementy record-overlay przetrwają strukturalne przepakowanie
 
@@ -2860,18 +2882,18 @@ Implementacja:
 
 Ograniczenia:
 
-- Plan Darmowy obejmuje dwa szablony startowe (Regent i Sterling), eksport PDF ze znakiem wodnym oraz **trzy udane importy CV na miesiąc UTC**. Pro odblokowuje czysty PDF, wszystkie osiem szablonów, importy bez limitu, AI treści, ATS i Układ za **59 zł / 30 dni**. Stripe Checkout jeszcze nie jest podłączony; przy `ALLOW_UNPAID_PLAN_SELECTION` Pro można aktywować bez płatności.
+- Plan Darmowy obejmuje dwa szablony startowe (Regent i Sterling), eksport PDF ze znakiem wodnym oraz **trzy udane importy CV na miesiąc UTC**. Pro odblokowuje czysty PDF, wszystkie dziewięć szablonów, importy bez limitu, AI treści, ATS i Układ za **59 zł / 30 dni**. Stripe Checkout jeszcze nie jest podłączony; przy `ALLOW_UNPAID_PLAN_SELECTION` Pro można aktywować bez płatności.
 - Wskazówki **Czytelność dla ATS** sprawdzają odczyt tekstu z finalnego PDF oraz standardowość nagłówków/słów kluczowych. To wskazówka, nie gwarancja że każdy system ATS odczyta plik tak samo.
 - Sekcja prywatności opisuje ogólnie zaimplementowane użycie danych i nie deklaruje niezaimplementowanych certyfikatów ani anonimizacji.
 
 ### Ładowanie szablonu
 
-Publiczny rejestr zawiera dokładnie osiem starterów: Atrium, Cadenza, Linden, Meridian, Monument, Regent, Slate i Sterling. Wszystkie osiem to snapshoty generowane ze źródłowych generatorów, a nie ręcznie utrzymywane przybliżenia; `scripts/regenerate_template_starters.py` odtwarza po jednym module dla każdego identyfikatora z listy `TEMPLATES`.
+Publiczny rejestr zawiera dokładnie dziewięć starterów: Atrium, Cadenza, Linden, Meridian, Monument, Regent, Slate, Sterling i Vellum. Wszystkie dziewięć to snapshoty generowane ze źródłowych generatorów, a nie ręcznie utrzymywane przybliżenia; `scripts/regenerate_template_starters.py` odtwarza po jednym module dla każdego identyfikatora z listy `TEMPLATES`.
 
-- `frontend/src/templates/index.js`, linie 11–30 — kompletny, ośmioelementowy rejestr `TEMPLATES` (`name` + `description` w UI; tagi `layouts` dla generatorów)
+- `frontend/src/templates/index.js` — kompletny, dziewięcioelementowy rejestr `TEMPLATES` (`name` + `description` w UI; tagi `layouts` dla generatorów)
 - `frontend/src/utils/materializeElementSpecs.js` — `materializeElementSpecs`
 - `frontend/src/hooks/useA4Elements.js` — `handleLoadTemplate` / `useDocumentHistory`
-- `scripts/regenerate_template_starters.py`, linie 273–284 i 430–468, `TEMPLATES` i `main` — dokładna lista ośmiu id; opcjonalne argumenty pozycyjne regenerują tylko wybrane moduły, np. `python scripts/regenerate_template_starters.py cadenza`; generowane moduły: `frontend/src/templates/{atrium,cadenza,linden,meridian,monument,regent,slate,sterling}.js`
+- `scripts/regenerate_template_starters.py`, `TEMPLATES` i `main` — dokładna lista dziewięciu id; opcjonalne argumenty pozycyjne regenerują tylko wybrane moduły, np. `python scripts/regenerate_template_starters.py vellum`; generowane moduły: `frontend/src/templates/{atrium,cadenza,linden,meridian,monument,regent,slate,sterling,vellum}.js`
 
 ### Fade wejścia na kanwie
 
@@ -2998,7 +3020,29 @@ Testy:
 
 - `backend/tests/test_cadenza_template.py`, linie 24–115 — metadane rejestru, tożsamość mastheadu/pasów/ikon, dokładne anchory okresu doświadczenia i wykształcenia oraz tożsamość stron kontynuacji
 - `frontend/src/templates/cadenza.test.js`, linie 72–112 — paleta startera, masthead, pasy sekcji, miedziane znaczniki, pas dat i ścieżki ikon; linie 114–215 — idempotentne powtarzanie odstępów, naprawa zapisanych przesuniętych akcentów, zapobieganie pustym stronom oraz zmiana kolejności rekordu i sekcji
-- `backend/tests/test_contact_band_templates.py`, linie 27–104; `frontend/src/templates/contactMastheadSpacing.test.js`, linie 1–48 — bezpieczeństwo wycentrowanego pasa kontaktów; `backend/tests/test_masthead_templates.py`, linie 31–265 i `frontend/src/templates/mastheadIdentityAllTemplates.test.js`, linie 1–178 — odwracalny kontrakt stanowiska/imienia we wszystkich ośmiu publicznych szablonach
+- `backend/tests/test_contact_band_templates.py`; `frontend/src/templates/contactMastheadSpacing.test.js` — bezpieczeństwo wycentrowanego pasa kontaktów; `backend/tests/test_masthead_templates.py` i `frontend/src/templates/mastheadIdentityAllTemplates.test.js` — odwracalny kontrakt stanowiska/imienia we wszystkich dziewięciu publicznych szablonach
+
+### Vellum — portretowy szablon editorialny
+
+Vellum to płatny szablon jednokolumnowy (`layouts: ["single", "icons"]`) inspirowany dostarczonym dwustronicowym CV editorialnym. Zachowuje wyraziste rozwiązania referencji — szeroko trackowaną tożsamość pisaną wersalikami, zwarte kontakty z ikonami, duży okrągły portret, miękko barwione pole podsumowania zawodowego, dużą ilość światła oraz oszczędne linie sekcji — ale odbudowuje je jako natywne elementy CV Studio, a nie spłaszczony obraz. Ciepła biel strony, głęboka leśna zieleń (`#20352F`), szałwiowoszare pole (`#E7ECE8`) i stonowana miedź (`#A16049`) tworzą elegancką, wyrazistą alternatywę dla Cadenzy i Meridiana. Cormorant Garamond prowadzi tożsamość, Lora dłuższy tekst, a Montserrat zachowuje ostrość etykiet i kontaktów.
+
+Pierwsza strona korzysta z celowo asymetrycznego mastheadu: imię, opcjonalne stanowisko oraz zarządzany pas kontaktów zajmują lewą kolumnę tekstu, a po prawej znajduje się okrągła ramka zdjęcia 104 pt wewnątrz miedzianego halo 112 pt. Slot obsługuje dodanie, podmianę i usunięcie zdjęcia z galerii oraz bezstratne ukrycie/pokazanie. Zdjęcie, imię i kontakty nie powtarzają się na stronach kontynuacji; kolejne strony zachowują tylko spokojną linię stopki i numer strony, zgodnie z wymaganiem. Pas kontaktów nadal rezerwuje dwa wiersze i korzysta ze standardowego menedżera dodawania/usuwania/edycji, więc nowy GitHub, strona WWW albo lokalizacja nie kolidują z podsumowaniem.
+
+Vellum umieszcza Umiejętności przed Doświadczeniem, odtwarzając szybki skan kompetencji z referencji. Doświadczenie i wykształcenie stosują dokładny kontrakt dat z Meridiana/Cadenzy: okres jest wyrównanym do prawej elementem `record-overlay`, przypiętym do prawdziwej górnej krawędzi stanowiska albo kierunku, a miasto do odpowiadającego wiersza firmy lub uczelni. Tło podsumowania również jest overlayem zgrupowanym ze swoim textarea, dzięki czemu zmiana kolejności sekcji i odstępów przenosi pole razem z tekstem bez liczenia tła jako drugiego wiersza treści. Cały widoczny tekst pozostaje zaznaczalny, edytowalny, możliwy do zmiany kolejności i bezpieczny dla eksportu.
+
+Implementacja:
+
+- `backend/app/services/cv_templates/templates/vellum.py`, linie 52–168, funkcje `_vellum_education_height` i `_vellum_place_education`; linie 170–463, funkcja `_gen_vellum` — geometria mastheadu/zdjęcia, pole podsumowania, kolejność umiejętności przed doświadczeniem, dokładny pas dat i chrome strony
+- `backend/app/services/cv_templates/registry.py`, linie 13–36, `TEMPLATE_LAYOUTS["vellum"]` i `_GENERATORS["vellum"]`; `frontend/src/templates/index.js`, linie 18–31, płatny wpis Vellum w rejestrze
+- `frontend/src/templates/vellum.js`, linie 18–1399, eksport `vellumTemplate` — starter strony pierwszej generowany ze źródła; `frontend/public/template-mockups/vellum.png` — podgląd A4 ReportLab/PyMuPDF używany przez każdy picker szablonów
+- `frontend/src/utils/profilePhotoVisibility.js`, linie 11–20, `SUPPORTED_TEMPLATE_IDS` — odwracalna widoczność klastra zdjęcia Vellum bez przesuwania przepływu body
+- `scripts/regenerate_template_starters.py`, linie 271–346 i 423–465, `TEMPLATES`, `DOC_BLURBS`, `STARTER_PERSONAS` i `main`; `frontend/scripts/dump-iconic-templates.mjs`, linie 14–25, oraz `scripts/render_iconic_mockups.py`, linie 46–110, funkcje `render_theme`, `rasterize_first_page` i `main` — deterministyczna regeneracja startera i mockupu
+
+Testy:
+
+- `backend/tests/test_vellum_template.py`, linie 26–148 — metadane rejestru, asymetryczna tożsamość, okrągły slot zdjęcia, zgrupowane tło podsumowania, kolejność umiejętności przed doświadczeniem, dokładne anchory okresu i miasta doświadczenia/wykształcenia oraz strony kontynuacji bez powtórzonych danych tożsamości i kontaktu
+- `frontend/src/templates/vellum.test.js`, linie 16–84 — hierarchia startera oraz inwarianty pakowania tła podsumowania i pasa okresów
+- `frontend/src/utils/profilePhoto.test.js`, linie 42–48 i 111–122; `frontend/src/utils/profilePhotoVisibility.test.js`, linie 38–58 — geometria okrągłego kadru i stabilne współrzędne hide/show
 
 ### Szablon redakcyjny Regent
 
@@ -3197,23 +3241,23 @@ Testy:
 - `backend/tests/test_cv_template_layouts.py`, `test_iconic_experience_record_gap_matches_projects`
 - `backend/tests/test_sidebar_wrapped_height.py` — przypina `_sidebar_wrapped_height` do tego samego wyniku co `Builder.measure_block` dla realistycznej treści wypunktowanej i zwykłej w sidebarze, plus sprawdzenie end-to-end, że dwie inaczej ukształtowane dopasowane sekcje zachowują identyczny odstęp końcowy
 
-**Wspólna persona demo.** Wbudowane startery oraz gościnna Regent demo zazwyczaj używają tej samej fikcyjnej osoby **Julia Bernat** — analityczki AML/compliance z trzema rolami, jednym wykształceniem, pięcioma umiejętnościami, trzema językami oraz telefonem / e-mailem / LinkedIn / GitHub / stroną / Warszawą — żeby mockupy w pickerze były porównywalne i trzymały rytm `SPACE_*` generatora na stronie 1. Regent celowo używa Alexandry Nowak, persony strategy consultant, aby zaprezentować duży redakcyjny lead. Monument ma lekko skrócone bullet’y, żeby wszystkie sekcje nadal mieściły się na stronie 1 mockupu.
+**Wspólna persona demo.** Wbudowane startery zazwyczaj używają tej samej fikcyjnej osoby **Julia Bernat** — analityczki AML/compliance z czterema rolami, dwoma pozycjami wykształcenia, ośmioma umiejętnościami, czterema językami oraz telefonem / e-mailem / LinkedIn / GitHub / stroną / Warszawą — żeby mockupy w pickerze były porównywalne i trzymały rytm `SPACE_*` generatora na stronie 1. Regent i Meridian celowo używają Alexandry Nowak, persony strategy consultant, aby zaprezentować swoje redakcyjne leady. Atrium i Monument mają zwarte warianty, żeby wszystkie sekcje nadal mieściły się na stronie 1 mockupu.
 
-**Regenerowanie starterów i podglądów ze źródła.** Wszystkie osiem publicznych starterów `frontend/src/templates/*.js` — Atrium, Cadenza, Linden, Meridian, Monument, Regent, Slate i Sterling — to zrzuty wyjścia `generate_resume`. Aby odświeżyć wszystkie startery ze wspólnej persony albo tylko Cadenzę po odizolowanej zmianie projektu:
+**Regenerowanie starterów i podglądów ze źródła.** Wszystkie dziewięć publicznych starterów `frontend/src/templates/*.js` — Atrium, Cadenza, Linden, Meridian, Monument, Regent, Slate, Sterling i Vellum — to zrzuty wyjścia `generate_resume`. Aby odświeżyć wszystkie startery z opisanych person albo tylko Vellum po odizolowanej zmianie projektu:
 
 ```bash
-python scripts/regenerate_template_starters.py   # przepisuje wszystkie osiem aktywnych modułów
-python scripts/regenerate_template_starters.py cadenza  # przepisuje tylko cadenza.js
+python scripts/regenerate_template_starters.py   # przepisuje wszystkie dziewięć aktywnych modułów
+python scripts/regenerate_template_starters.py vellum  # przepisuje tylko vellum.js
 ```
 
 Autorytatywna lista to `TEMPLATES` w `scripts/regenerate_template_starters.py`, linie 271–280; `main`, linie 415–457, iteruje po pełnej liście bez argumentów, a z argumentami waliduje i zapisuje tylko wskazane id. Uruchom skrypt ponownie po zmianie wspólnego demo, generatora albo współdzielonego deskryptora mastheadu.
 
-Pliki `frontend/public/template-mockups/{monument,slate,atrium,sterling,regent,meridian,linden,cadenza}.png` — podglądy w galerii Hero, pickerze i panelu **Wypełnij z mojego CV** — pochodzą z tych tablic starterów, nie z ręcznych grafik. Po zmianie starterów odtwórz wszystkie PNG albo tylko zmieniony szablon:
+Pliki `frontend/public/template-mockups/{monument,slate,atrium,sterling,regent,meridian,linden,cadenza,vellum}.png` — podglądy w galerii Hero, pickerze i panelu **Wypełnij z mojego CV** — pochodzą z tych tablic starterów, nie z ręcznych grafik. Po zmianie starterów odtwórz wszystkie PNG albo tylko zmieniony szablon:
 
 ```bash
 node frontend/scripts/dump-iconic-templates.mjs
 python scripts/render_iconic_mockups.py           # renderuje każdy motyw przez ReportLab i rasteryzuje stronę 1 w PyMuPDF
-python scripts/render_iconic_mockups.py cadenza   # renderuje tylko Cadenzę
+python scripts/render_iconic_mockups.py vellum    # renderuje tylko Vellum
 ```
 
 Moduły starterów używają jawnych rozszerzeń `.js` w importach, a `frontend/src/services/api.js` bezpiecznie korzysta z wartości domyślnej, gdy obiekt Vite `import.meta.env` nie istnieje. Dzięki temu zrzut działa bezpośrednio w Node bez własnego loadera. Pośredni plik JSON jest w `.gitignore` — zawsze generowany na nowo z modułów starterów, nigdy edytowany ręcznie.
@@ -3291,14 +3335,14 @@ Testy: `backend/tests/test_image_upload_security.py` — PNG, HTML-as-PNG (415),
 
 ### Slot zdjęcia profilowego (tryb szablonu)
 
-W trybie **template** kliknięcie ramki profilu, ikony portretu albo istniejącego zdjęcia profilowego na kanwie otwiera galerię. Kliknięcie obrazu w galerii od razu dopasowuje go do zadeklarowanego slotu zdjęcia profilowego (bez dialogu potwierdzenia i bez pytania o freeform) i zamyka panel galerii. Hover nad obsługiwanym slotem pokazuje małą akcję ukrycia z przekreślonym okiem; zajęty slot pokazuje dodatkowo osobny kosz. Oko ukrywa cały slot, a kosz usuwa wyłącznie raster użytkownika i przywraca placeholder/ramkę do następnego zdjęcia. Gdy slot jest ukryty, hover nad imieniem i nazwiskiem pokazuje akcję przywrócenia obraz/oko. Kontrolki działają dla Atrium, Monument, Slate. Dopasowane zdjęcie przykrywa cały slot (`objectFit: "cover"`). Szablony oznaczają obszar polem `photoSlot`:
+W trybie **template** kliknięcie ramki profilu, ikony portretu albo istniejącego zdjęcia profilowego na kanwie otwiera galerię. Kliknięcie obrazu w galerii od razu dopasowuje go do zadeklarowanego slotu zdjęcia profilowego (bez dialogu potwierdzenia i bez pytania o freeform) i zamyka panel galerii. Hover nad obsługiwanym slotem pokazuje małą akcję ukrycia z przekreślonym okiem; zajęty slot pokazuje dodatkowo osobny kosz. Oko ukrywa cały slot, a kosz usuwa wyłącznie raster użytkownika i przywraca placeholder/ramkę do następnego zdjęcia. Gdy slot jest ukryty, hover nad imieniem i nazwiskiem pokazuje akcję przywrócenia obraz/oko. Kontrolki działają dla Atrium, Linden, Monument, Slate i Vellum. Dopasowane zdjęcie przykrywa cały slot (`objectFit: "cover"`). Szablony oznaczają obszar polem `photoSlot`:
 
-- `frame` — ramka prostokątna lub koło (`slate-photo-frame`, `monument-masthead-frame`, `regent-photo-frame`; `tessera-photo-frame`, `cinder-frame-one`, `nimbus-photo-frame` i `harbor-photo-frame` pozostają z wycofanych szablonów, żeby starsze zapisane dokumenty wciąż odnajdywały swój slot)
+- `frame` — ramka prostokątna lub koło (`slate-photo-frame`, `monument-masthead-frame`, `regent-photo-frame`, `vellum-photo-frame`; `tessera-photo-frame`, `cinder-frame-one`, `nimbus-photo-frame` i `harbor-photo-frame` pozostają z wycofanych szablonów, żeby starsze zapisane dokumenty wciąż odnajdywały swój slot)
 - `glyph` — placeholder portretu w ramce (zamieniany na zdjęcie użytkownika)
 - `ornament` — dekoracje przykrywane zdjęciem w starszych dokumentach szablonowych
 - `image` — nałożone zdjęcie użytkownika (`id: "profile-photo"`, `locked` + `fixedToPage`)
 
-`applyProfilePhoto` wstawia raster z insetem w ramkach Slate (kontur zostaje), zastępuje ikonę portretu Monument i podnosi obramowanie oraz wypełnia kwadratowy slot mastheadu Regent; koło (na kanwie `borderRadius`) jest też obsługiwane dla dowolnego szablonu z okrągłym slotem zdjęcia. Przy konwersji glifu `photoPlaceholder` zapisuje jego dokładny asset i geometrię, dlatego usunięcie rastra jest bezstratne; starsze rastry Atrium wracają do autorskiego glifu bez ramki. Ukrycie Atrium lub Monument nie zmienia innych współrzędnych. Slate ukrywają wszystkie elementy `frame`, `glyph` i `ornament`, podmieniają zarządzany deskryptor kontaktów na stos w sidebarze od x=33/y=42, normalizują wszystkie zarządzane kontakty do pierwszej strony i przeliczają aktywne kanały przed zmierzeniem ich rzeczywistej końcowej geometrii. Chrome pierwszej sekcji sidebara jest następnie ustawiany dokładnie 40 pt pod najniższym elementem kontaktowym. Ten sam pomiar jest wykonywany po dodaniu, usunięciu albo edycji treści kontaktu, więc poprawny odstęp pojawia się od razu i nie zależy od późniejszego scalenia dwóch stron do jednej. Starsze zapisane dokumenty Slate są rozpoznawane po ograniczonej strefie stałego zdjęcia w sidebarze, nawet jeśli ich dekoracje powstały przed dodaniem tagu semantycznego. Pokazanie slotu odtwarza zapisany deskryptor main oraz wszystkie pierwotne pozycje sidebara. Ukryte elementy slotu zostają w stanie z `photoSlotHidden`, ale `CanvasElements` i `PDF_Generator.render_elements` pomijają je. Wszystkie dane odtwarzania są zapisywane w `PdfElements.extra_properties` i wspólnym schemacie.
+`applyProfilePhoto` wstawia raster z insetem w ramkach Slate (kontur zostaje), zastępuje ikonę portretu Monument i podnosi obramowanie, wypełnia kwadratowy slot mastheadu Regent oraz centruje i kadruje Vellum wewnątrz okrągłej ramki 104 pt. Przy konwersji glifu `photoPlaceholder` zapisuje jego dokładny asset i geometrię, dlatego usunięcie rastra jest bezstratne; starsze rastry Atrium wracają do autorskiego glifu bez ramki. Ukrycie Atrium, Linden, Monument lub Vellum nie zmienia innych współrzędnych. Tylko Slate przenosi kontakty do sidebara: ukrywa wszystkie elementy `frame`, `glyph` i `ornament`, podmienia zarządzany deskryptor kontaktów na stos w sidebarze od x=33/y=42, normalizuje wszystkie zarządzane kontakty do pierwszej strony i przelicza aktywne kanały przed zmierzeniem ich rzeczywistej końcowej geometrii. Chrome pierwszej sekcji sidebara jest następnie ustawiany dokładnie 40 pt pod najniższym elementem kontaktowym. Ten sam pomiar jest wykonywany po dodaniu, usunięciu albo edycji treści kontaktu, więc poprawny odstęp pojawia się od razu i nie zależy od późniejszego scalenia dwóch stron do jednej. Starsze zapisane dokumenty Slate są rozpoznawane po ograniczonej strefie stałego zdjęcia w sidebarze, nawet jeśli ich dekoracje powstały przed dodaniem tagu semantycznego. Pokazanie slotu odtwarza zapisany deskryptor main oraz wszystkie pierwotne pozycje sidebara. Ukryte elementy slotu zostają w stanie z `photoSlotHidden`, ale `CanvasElements` i `PDF_Generator.render_elements` pomijają je. Wszystkie dane odtwarzania są zapisywane w `PdfElements.extra_properties` i wspólnym schemacie.
 
 Implementacja:
 
@@ -3313,9 +3357,9 @@ Implementacja:
 - `backend/app/schemas/pdf_schema.py`, `shared/pdf-element.schema.json`, `backend/app/crud/pdfs.py` i `ModalPdfs.jsx` — walidacja, zapis oraz hydratacja pól widoczności/odtwarzania
 - `backend/app/services/pdf_generator.py`, linie 1338–1452, metoda `render_elements`; filtr ukrytego slotu w liniach 1352–1355
 - Testy: `frontend/src/utils/profilePhotoVisibility.test.js`, linie 25–242 (hide/show, stare sloty, reflow kontaktów, usuwanie rastra i dostępne akcje hover); `frontend/src/utils/sectionStructure.test.js`, linie 1887–1950; `frontend/src/templates/slate.test.js`, linie 6–78; `backend/tests/test_cv_template_layouts.py`, `test_slate_is_rectilinear_icon_sidebar_with_rectangular_photo`; `backend/tests/test_contact_channel_roundtrip.py`, linie 54–76; `backend/tests/test_pdf_watermark.py`, linie 119–137
-- Generatory / startery: `slate`, `monument`, `regent`, `atrium` (FE + BE)
+- Generatory / startery: `atrium`, `linden`, `monument`, `regent`, `slate`, `vellum` (FE + BE)
 
-Testy: `frontend/src/utils/profilePhoto.test.js` — wykrywanie slotu (w tym Monument), geometria/z-index po apply, zamiana w miejscu.
+Testy: `frontend/src/utils/profilePhoto.test.js` — wykrywanie slotu Slate, Monument i Vellum, okrągła geometria Vellum, geometria/z-index po apply oraz zamiana w miejscu.
 
 ### Deterministyczne wypełnianie szablonu
 
@@ -3460,9 +3504,9 @@ Odłożone do kolejnych faz: nowe pola danych (dodatkowe pole, data urodzenia, n
 
 ### Przełączniki tożsamości masthead (Faza 3)
 
-Ten sam kontrakt tożsamości obejmuje teraz **wszystkie osiem publicznych szablonów**: Atrium, Cadenza, Linden, Meridian, Monument, Regent, Slate i Sterling. Każdy generator taguje imię oraz opcjonalny żywy element stanowiska, a następnie emituje jeden bezwymiarowy `masthead-anchor` z deskryptorem rekonstrukcji i reflow właściwym dla szablonu.
+Ten sam kontrakt tożsamości obejmuje teraz **wszystkie dziewięć publicznych szablonów**: Atrium, Cadenza, Linden, Meridian, Monument, Regent, Slate, Sterling i Vellum. Każdy generator taguje imię oraz opcjonalny żywy element stanowiska, a następnie emituje jeden bezwymiarowy `masthead-anchor` z deskryptorem rekonstrukcji i reflow właściwym dla szablonu.
 
-- **Przełącznik wielkości liter imienia.** Najechanie na imię odsłania chip `Aa`/`AA`, który przełącza odwracalną flagę `textTransform` (`"uppercase"` ↔ `"none"`). Canvas i PDF stosują flagę, podczas gdy zapisane `content` zachowuje oryginalną wielkość liter. Cadenza, Slate i Linden projektują domyślne wersaliki przez tę flagę, a nie przez zapis wielkimi literami w danych.
+- **Przełącznik wielkości liter imienia.** Najechanie na imię odsłania chip `Aa`/`AA`, który przełącza odwracalną flagę `textTransform` (`"uppercase"` ↔ `"none"`). Canvas i PDF stosują flagę, podczas gdy zapisane `content` zachowuje oryginalną wielkość liter. Cadenza, Slate, Linden i Vellum projektują domyślne wersaliki przez tę flagę, a nie przez zapis wielkimi literami w danych.
 - **Początkowo brakujące stanowisko.** Generator z pustym `cv_data.title` nadal buduje `title_prototype`, ale przekazuje go wyłącznie jako **ukrytą, nierenderowaną specyfikację**. Wyjście nie zawiera pustego żywego `text`/`textarea` ani dekoracji stanowiska, więc nie powstaje pusta pigułka, pas ani osierocona belka. Deskryptor zachowuje kategorię, geometrię pola, font, interlinię, kolor, tracking, wyrównanie, wielkość liter, `bold`, `italic`, `underline`, z-index, auto-height, flagę układu początkowego oraz wzorce dekoracji.
 - **Dodawanie i edycja.** Gdy nie ma żywego stanowiska, UI hover pokazuje `+` obok imienia. Kliknięcie materializuje dokładnie jedno puste pole zgodne ze stylem szablonu z placeholderem widocznym tylko w edytorze: **`Wpisz stanowisko…`**. Podpowiedź jest renderowana przez `data-placeholder`; nigdy nie trafia do `content` elementu, strukturalnych danych CV, zapisanego tekstu ani PDF. Wpisana wartość synchronizuje się do `cv_data.title`, dlatego zmiana szablonu odbudowuje kolejny masthead z tą treścią. Ukrycie stanowiska jest decyzją prezentacyjną i nie czyści `cv_data.title`.
 - **Bezstratne hide/show.** Przed ukryciem wypełnionego stanowiska klient zapisuje do deskryptora jego bieżącą treść, pełny styl pola, formatowanie fragmentów w `runs` (częściowe pogrubienie/kursywa/podkreślenie/kolor), baseline'y wyglądu, geometrię i żywe dekoracje. Ukrycie usuwa razem stanowisko i wszystkie otagowane dekoracje; pokazanie odtwarza je z najnowszego deskryptora. Stanowisko wpisane przez `+` przetrwa więc hide/show i późniejszą zmianę szablonu bez powrotu starej treści, utraty wyróżnienia ani osieroconego chrome.
@@ -3475,20 +3519,20 @@ Implementacja:
 - `backend/app/services/cv_templates/shared/masthead.py`, linie 12–27 i 30–159 — `build_masthead_identity_anchor` i `tag_masthead_identity`; `title_prototype` jest wyłącznie źródłem deskryptora, pełny styl jest przechwytywany w liniach 92–114, a wzorce dekoracji pozostają tylko w deskryptorze przy nieobecnym stanowisku i zachowują rolę flow mastheadu w liniach 116–146.
 - `backend/app/services/pdf_generator.py` — `renderText(..., textTransform=None)` zamienia rysowany ciąg na wielkie litery, gdy flaga jest ustawiona.
 - `backend/app/schemas/pdf_schema.py` + `backend/app/crud/pdfs.py` — pola `textTransform`, `mastheadRole`, `mastheadBandId`, `mastheadIdentity` + round-trip.
-- Miejsca wywołań wszystkich ośmiu generatorów: `atrium.py`, linie 121–183; `cadenza.py`, linie 198–268; `linden.py`, linie 245–284; `meridian.py`, linie 324–384; `monument.py`, linie 110–141; `regent.py`, linie 80–140; `slate.py`, linie 255–275 i 445–464; `sterling.py`, linie 172–235.
+- Miejsca wywołań wszystkich dziewięciu generatorów: `atrium.py`, linie 121–183; `cadenza.py`, linie 198–268; `linden.py`, linie 245–284; `meridian.py`, linie 324–384; `monument.py`, linie 110–141; `regent.py`, linie 80–140; `slate.py`, linie 255–275 i 445–464; `sterling.py`, linie 172–235; `vellum.py`, funkcja `_gen_vellum`.
 - `frontend/src/utils/mastheadIdentityOps.js`, linie 147–361 — `captureVisibleTitle`, `hideTitle`, `buildTitleElement`, `buildTitleDecorations`, `showTitle` i `applyTitleToggle`; zapisują bieżącą treść/styl/formatowanie inline/dekoracje, usuwają i odtwarzają cały klaster (łącznie z `flowRole: "masthead"` każdej dekoracji stanowiska), stosują właściwą deltę i nadają placeholder pustemu polu.
 - `frontend/src/utils/mastheadBands.js`, linie 9–52 — dokładna stała `MASTHEAD_TITLE_PLACEHOLDER` i `listMastheadBands`; `frontend/src/components/canvas/MastheadIdentityControls/MastheadIdentityControls.jsx`, linie 20–116 — kontrolki case/hide oraz `+` dodania stanowiska pokazywany wyłącznie przy `titlePresent === false`.
 - `frontend/src/components/canvas/CanvasElements/CanvasElements.jsx`, linie 301–386; `frontend/src/components/canvas/Text/Text.jsx`, linie 68–73 i 185–196; `frontend/src/components/canvas/Textarea/Textarea.jsx`, linie 200–204 i 517–603 — przekazują `mastheadRole`/placeholder do elementu edytowalnego i renderują podpowiedź wyłącznie jako CSS `data-placeholder`.
 - `frontend/src/utils/syncCvDataFromCanvas.js`, linie 101–222 — `editableTextChanges`, `editedMastheadTitle` i `syncCvDataFromCanvas`; zapisują pierwszą wpisaną wartość do profilu strukturalnego, a brak żywego stanowiska traktują celowo jako hide, nie usunięcie semantyczne. Świeże id stanowiska jest uznawane za wynik `+` tylko wtedy, gdy ten sam anchor tożsamości przetrwał i zmienił `present: false → true`; pełna zmiana szablonu tworzy nowy anchor i nie może nadpisać kompletnego `cv_data.title` skróconą treścią wyświetlaną przez generator. Edycje stanowiska są też wykluczone z ogólnego mapowania unikalnych stringów, więc identyczna fraza w podsumowaniu lub innym polu nie zostanie nadpisana po semantycznej aktualizacji tytułu.
 - `frontend/src/utils/monumentAppearance.js`, `frontend/src/utils/sterlingAppearance.js` i `frontend/src/utils/slateAppearance.js` — zmieniają kolor i rozmiar ukrytych specyfikacji/dekoracji razem z żywymi elementami szablonu.
-- `scripts/regenerate_template_starters.py`, linie 273–284 i 430–468 — regeneruje wszystkie dziesięć modułów starterów albo tylko zwalidowane id przekazane pozycyjnie po zmianie kontraktu generatora.
+- `scripts/regenerate_template_starters.py`, `TEMPLATES` i `main` — regeneruje wszystkie dziewięć modułów starterów albo tylko zwalidowane id przekazane pozycyjnie po zmianie kontraktu generatora.
 - `frontend/src/hooks/useA4Elements.js`, `store/pdfgenerator-context.jsx`, `pages/PdfCanvas.jsx` — operacje `toggleNameCase` / `toggleTitle` na wspólnej ścieżce historii.
 
 Testy:
 
 - `backend/tests/test_masthead_identity.py`, linie 10–108 — pełne przechwycenie stylu, w tym italic/underline/z-index, oraz prototyp nieobecnego stanowiska, który pozostaje nierenderowany.
-- `backend/tests/test_masthead_templates.py`, linie 56–265 — anchory wszystkich ośmiu szablonów, casing/styl, dodatnie i zerowe delty, osobne delty początkowo pustego stanu, kompletne ukryte specyfikacje oraz brak pustych żywych stanowisk i osieroconych dekoracji.
-- `frontend/src/templates/mastheadIdentityAllTemplates.test.js`, linie 1–178 — regresja registry-wide na dokładnie ośmiu publicznych starterach; każde stanowisko chowa się, odtwarza puste, zachowuje wszystkie autorskie pola stanowiska i dekoracji (w tym `italic` oraz `flowRole` dekoracji) i nie zostawia dekoracji.
+- `backend/tests/test_masthead_templates.py` — anchory wszystkich dziewięciu szablonów, casing/styl, dodatnie i zerowe delty, osobne delty początkowo pustego stanu, kompletne ukryte specyfikacje oraz brak pustych żywych stanowisk i osieroconych dekoracji.
+- `frontend/src/templates/mastheadIdentityAllTemplates.test.js` — regresja registry-wide na dokładnie dziewięciu publicznych starterach; każde stanowisko chowa się, odtwarza puste, zachowuje wszystkie autorskie pola stanowiska i dekoracji (w tym `italic` oraz `flowRole` dekoracji) i nie zostawia dekoracji.
 - `frontend/src/utils/mastheadIdentityOps.test.js`, linie 65–220 — rekonstrukcja, dokładny placeholder, pełny styl z formatowaniem inline, wpisana wartość przez hide/show i zapis bieżącego wyglądu; `frontend/src/utils/syncCvDataFromCanvas.test.js`, linie 97–207 — pierwsze wpisane stanowisko jest utrwalane, zmiana szablonu nie zapisuje skróconego tytułu, hide zachowuje dane semantyczne profilu, a zduplikowana stara treść stanowiska w innym polu profilu pozostaje nietknięta.
 - `frontend/src/utils/monumentAppearance.test.js`, `frontend/src/utils/sterlingAppearance.test.js` i `frontend/src/utils/slateAppearance.test.js` — preset palety i typografii aktualizuje ukryte deskryptory stanowiska i odtwarza baseline M.
 

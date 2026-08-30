@@ -5,6 +5,7 @@ import { atriumTemplate } from "../templates/atrium.js";
 import { monumentTemplate } from "../templates/monument.js";
 import { slateTemplate } from "../templates/slate.js";
 import { lindenTemplate } from "../templates/linden.js";
+import { vellumTemplate } from "../templates/vellum.js";
 import { applyChannelRelayout } from "./contactBandOps.js";
 import {
   alignSidebarAfterProfileContacts,
@@ -32,6 +33,28 @@ describe("profile photo visibility", () => {
     });
     const restored = showProfilePhoto(hidden, "atrium").elements;
     assert.equal(isProfilePhotoHidden(restored), false);
+  });
+
+  it("hides Vellum's circular photo cluster without moving the document flow", () => {
+    const source = withIds(vellumTemplate);
+    const flowGeometry = source
+      .filter((element) => !element.photoSlot)
+      .map((element) => [element.element_id, element.page, element.top]);
+    const hidden = hideProfilePhoto(source, "vellum").elements;
+    const hiddenCluster = hidden.filter((element) => element.photoSlot);
+    assert.ok(hiddenCluster.length >= 3);
+    assert.ok(hiddenCluster.every((element) => element.photoSlotHidden === true));
+    assert.deepEqual(
+      hidden.filter((element) => !element.photoSlot)
+        .map((element) => [element.element_id, element.page, element.top]),
+      flowGeometry,
+    );
+
+    const restored = showProfilePhoto(hidden, "vellum").elements;
+    assert.ok(
+      restored.filter((element) => element.photoSlot)
+        .every((element) => element.photoSlotHidden === false),
+    );
   });
 
   for (const [templateId, template] of [["slate", slateTemplate]]) {
