@@ -303,13 +303,6 @@ _SLATE_GLYPHS = [
     "interests", "references", "certifications", "other",
 ]
 
-# Palette variants only replace glyphs drawn directly on paper: masthead
-# contacts and the photo placeholder. White section glyphs remain on the
-# shared `slate` theme because every palette keeps filled accent badges.
-_SLATE_ACCENT_GLYPHS = [
-    "email", "phone", "location", "linkedin", "github", "website", "portrait",
-]
-
 # Only these subsets are generated, so existing themes are untouched.
 # Format: theme -> (colour, [icon names]).
 SUBSET_THEMES = {
@@ -322,11 +315,6 @@ SUBSET_THEMES = {
     # or contact/photo role (accent) always resolves to an existing asset.
     "slate": ("#FFFFFF", _SLATE_GLYPHS),
     "slate-accent": ("#3E5C76", _SLATE_GLYPHS),
-    "slate-monochrome-accent": ("#242424", _SLATE_ACCENT_GLYPHS),
-    "slate-copper-accent": ("#A14F2B", _SLATE_ACCENT_GLYPHS),
-    "slate-forest-accent": ("#2F6A50", _SLATE_ACCENT_GLYPHS),
-    "slate-plum-accent": ("#764466", _SLATE_ACCENT_GLYPHS),
-    "slate-teal-accent": ("#007473", _SLATE_ACCENT_GLYPHS),
     # Atrium (centered-axis editorial single column) uses graphite-sage contact
     # glyphs in the centered masthead only. Section headings are centered text
     # with a printer's-mark ornament (no icons), so just the contact set is

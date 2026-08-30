@@ -72,20 +72,6 @@
 .paletteMonumentCopy::after { top: 12px; }
 .paletteMonumentFooter { position: absolute; right: 12px; bottom: 11px; left: 14px; height: 1px; background: var(--palette-rule); }
 .paletteMonumentFooter::before { position: absolute; top: 4px; left: 0; width: 8px; height: 3px; background: var(--palette-ink); content: ""; }
-.palettePaperSlate { background: var(--palette-paper); }
-.paletteSlateSidebar { position: absolute; inset: 0 auto 0 0; width: 30%; border-right: 2px solid var(--palette-accent); background: var(--palette-sidebar); }
-.paletteSlatePhoto { position: absolute; top: 9px; left: 6px; width: 17px; height: 21px; border: 1px solid var(--palette-ink); background: var(--palette-photo); box-shadow: 2px 2px 0 var(--palette-rule); }
-.paletteSlatePhoto::before, .paletteSlatePhoto::after { position: absolute; width: 4px; height: 4px; background: var(--palette-accent); content: ""; }
-.paletteSlatePhoto::before { top: -3px; left: -3px; }
-.paletteSlatePhoto::after { right: -3px; bottom: -3px; }
-.paletteSlateName { position: absolute; top: 11px; left: 37%; width: 39%; height: 4px; background: var(--palette-ink); }
-.paletteSlatePill { position: absolute; top: 19px; left: 37%; width: 34%; height: 6px; background: var(--palette-accent); }
-.paletteSlateContacts { position: absolute; top: 30px; left: 37%; width: 49%; height: 1px; background: var(--palette-rule); box-shadow: 0 4px 0 var(--palette-rule); }
-.paletteSlateBadges { position: absolute; top: 43px; left: 37%; width: 7px; height: 7px; background: var(--palette-accent); box-shadow: 0 17px 0 var(--palette-accent); }
-.paletteSlateBadges::after { position: absolute; top: 3px; left: 10px; width: 39px; height: 1px; background: var(--palette-rule); box-shadow: 0 17px 0 var(--palette-rule); content: ""; }
-.paletteSlateCopy { position: absolute; top: 54px; right: 10px; left: 37%; height: 1px; background: var(--palette-ink); opacity: .7; box-shadow: 0 4px 0 var(--palette-rule), 0 21px 0 var(--palette-ink), 0 25px 0 var(--palette-rule); }
-.paletteSlateFooter { position: absolute; right: 10px; bottom: 9px; left: 37%; height: 1px; background: var(--palette-rule); }
-.paletteSlateFooter::after { position: absolute; top: 0; right: 4px; width: 8px; height: 5px; background: var(--palette-accent); content: ""; }
 .paletteCheck { position: absolute; top: 6px; right: 6px; display: inline-flex; width: 17px; height: 17px; align-items: center; justify-content: center; border-radius: 50%; background: var(--palette-ink); color: var(--palette-paper); }
 .paletteCheck svg { width: 11px; height: 11px; stroke-width: 2.5; }
 .paletteName { display: block; margin-top: 7px; overflow: hidden; font: 650 11px/1.25 var(--font-body); text-overflow: ellipsis; white-space: nowrap; }

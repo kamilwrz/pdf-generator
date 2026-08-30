@@ -22,6 +22,7 @@ from app.core.config import (
     CLOUDFLARE_VISION_MODEL,
     CV_EXTRACT_MAX_PAGES,
     CV_EXTRACT_MIN_TEXT_CHARS_PER_PAGE,
+    CV_EXTRACT_JSON_MAX_COMPLETION_TOKENS,
     CV_EXTRACT_OPENAI_MODEL,
     CV_EXTRACT_PROVIDER,
     CV_EXTRACT_TEXT_MAX_COMPLETION_TOKENS,
@@ -99,7 +100,7 @@ def _completion_request_options(
     if provider == "cloudflare":
         if model in _CLOUDFLARE_JSON_MODE_MODELS:
             return {
-                "max_tokens": completion_budget,
+                "max_tokens": CV_EXTRACT_JSON_MAX_COMPLETION_TOKENS,
                 "response_format": {"type": "json_object"},
             }
         if model in _CLOUDFLARE_REASONING_MODELS:
@@ -115,7 +116,7 @@ def _completion_request_options(
         # JSON/reasoning features must be added above after capability review.
         return {"max_tokens": completion_budget}
     return {
-        "max_tokens": completion_budget,
+        "max_tokens": CV_EXTRACT_JSON_MAX_COMPLETION_TOKENS,
         "response_format": {"type": "json_object"},
     }
 

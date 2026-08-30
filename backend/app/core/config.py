@@ -90,13 +90,20 @@ CV_EXTRACT_OPENAI_MODEL = os.getenv("CV_EXTRACT_OPENAI_MODEL", "gpt-4o").strip()
 CV_EXTRACT_MAX_PAGES = _int_env("CV_EXTRACT_MAX_PAGES", 12)
 CV_EXTRACT_MIN_TEXT_CHARS_PER_PAGE = _int_env("CV_EXTRACT_MIN_TEXT_CHARS_PER_PAGE", 80)
 # Preserve the old shared override for existing deployments. When it is absent,
-# native-text Gemma gets extra reasoning/final-JSON headroom while expensive
-# vision requests retain the previous 8k ceiling.
+# native-text Gemma gets extra reasoning/final-JSON headroom while JSON-only
+# fallback and vision requests retain the previous 8k ceiling.
 CV_EXTRACT_MAX_COMPLETION_TOKENS = _int_env("CV_EXTRACT_MAX_COMPLETION_TOKENS", 8000)
 _CV_EXTRACT_LEGACY_BUDGET_CONFIGURED = os.getenv("CV_EXTRACT_MAX_COMPLETION_TOKENS") is not None
 CV_EXTRACT_TEXT_MAX_COMPLETION_TOKENS = _int_env(
     "CV_EXTRACT_TEXT_MAX_COMPLETION_TOKENS",
-    CV_EXTRACT_MAX_COMPLETION_TOKENS if _CV_EXTRACT_LEGACY_BUDGET_CONFIGURED else 16000,
+    CV_EXTRACT_MAX_COMPLETION_TOKENS if _CV_EXTRACT_LEGACY_BUDGET_CONFIGURED else 32000,
+)
+# JSON-mode fallback models emit only the final object and do not need the
+# reasoning headroom reserved for Gemma. Keeping a separate cap also avoids
+# sending unsupported 32k output requests to smaller rollback models.
+CV_EXTRACT_JSON_MAX_COMPLETION_TOKENS = _int_env(
+    "CV_EXTRACT_JSON_MAX_COMPLETION_TOKENS",
+    CV_EXTRACT_MAX_COMPLETION_TOKENS,
 )
 CV_EXTRACT_VISION_MAX_COMPLETION_TOKENS = _int_env(
     "CV_EXTRACT_VISION_MAX_COMPLETION_TOKENS",

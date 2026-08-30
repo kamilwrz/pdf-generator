@@ -275,7 +275,7 @@ class CloudflareCvExtractionTests(unittest.TestCase):
         self.assertEqual(request["response_format"], {"type": "json_object"})
         self.assertEqual(
             request["max_tokens"],
-            ai_service.CV_EXTRACT_TEXT_MAX_COMPLETION_TOKENS,
+            ai_service.CV_EXTRACT_JSON_MAX_COMPLETION_TOKENS,
         )
         self.assertNotIn("max_completion_tokens", request)
         self.assertNotIn("reasoning_effort", request)
@@ -358,6 +358,10 @@ class CloudflareCvExtractionTests(unittest.TestCase):
         self.assertEqual(
             fallback_request["response_format"],
             {"type": "json_object"},
+        )
+        self.assertEqual(
+            fallback_request["max_tokens"],
+            ai_service.CV_EXTRACT_JSON_MAX_COMPLETION_TOKENS,
         )
         self.assertNotIn("reasoning_effort", fallback_request)
         self.assertTrue(usage["fallback_used"])
