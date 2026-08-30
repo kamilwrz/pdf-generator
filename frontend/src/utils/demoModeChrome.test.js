@@ -43,7 +43,7 @@ test("demo mode removes template switching from the topbar", async () => {
   assert.doesNotMatch(topbar, /classes\.demoTemplate/);
 });
 
-test("empty-state chooser offers saved documents while preserving editor chrome", async () => {
+test("empty-state chooser replaces editor chrome and Pro-only AI actions", async () => {
   const chooser = await source("components/editor/StartChooser/StartChooser.jsx");
   const styles = await source("components/editor/StartChooser/StartChooser.module.css");
   const canvas = await source("pages/PdfCanvas.jsx");
@@ -54,11 +54,19 @@ test("empty-state chooser offers saved documents while preserving editor chrome"
   assert.match(chooser, /onLogout/);
   assert.match(chooser, /CV STUDIO/);
   assert.match(chooser, /cv-studio-mark\.svg/);
+  assert.match(chooser, /aria-labelledby="start-chooser-title"/);
+  assert.match(chooser, /titleRef\.current\?\.focus/);
   assert.match(styles, /\.overlay\s*\{[\s\S]*position: absolute/);
+  assert.match(styles, /z-index: var\(--z-popover\)/);
   assert.match(styles, /grid-template-columns: repeat\(2, minmax\(0, 1fr\)\)/);
   assert.match(canvas, /onDocuments=\{\(\) => \{/);
   assert.match(canvas, /documents=\{PDFs\}/);
   assert.match(canvas, /documentsLoaded=\{pdfsLoaded\}/);
+  assert.match(canvas, /!showStartChooser \? \(\s*<Sidebar>/);
+  assert.match(canvas, /!showStartChooser \? <Editor \/>/);
+  assert.match(canvas, /!showStartChooser \? \(\s*<div className="right-pane">/);
+  assert.match(canvas, /!showStartChooser \? <Gallery \/>/);
+  assert.match(canvas, /!showStartChooser && entitlements\?\.ai_assistant \? <AiAssistant \/>/);
   assert.match(
     canvas,
     /onDocuments=\{\(\) => \{\s*\/\/ Keep the chooser mounted behind the documents modal\./,

@@ -1798,9 +1798,9 @@ function PdfCanvas() {
     [canvasValue, uiValue, sessionValue],
   );
 
-  // Empty-state onboarding: replace the blank freeform A4 a fresh user lands on
-  // with the two guided paths (wizard / import). Gating lives in the pure
-  // `shouldShowStartChooser` helper so it can be unit-tested without a DOM.
+  // Empty-state onboarding replaces the complete editor shell a fresh user
+  // lands on with the two guided paths (wizard / import). Gating lives in the
+  // pure `shouldShowStartChooser` helper so it can be unit-tested without a DOM.
   const showStartChooser = shouldShowStartChooser({
     elementsCount: A4_Elements.length,
     isDemoContent,
@@ -1875,109 +1875,116 @@ function PdfCanvas() {
                 onRequestAiShorten={handleRequestAiShorten}
                 onClose={closeLongCvModal}
               />
-              <Sidebar>
-                {isSectionsPanel ? (
-                  <SectionsPanel onClose={() => setPanel(null)} />
-                ) : null}
-              </Sidebar>
-              {/* Floating property inspector (portal); not docked to the tool rail. */}
-              <Editor />
-              <div className="right-pane">
-                {isDemoContent ? (
-                  <DemoBanner onUseOwnData={handleDemoUseOwnData} />
-                ) : null}
-                <Topbar titleRef={titleRef} />
-                {/* Portal loader: card sits 100px under the live A4 top edge
-                    (viewport px via A4ref), independent of canvas zoom. */}
-                {isPdfLoading || isConversionLoading ? (
-                  <Spinner loading={isPdfLoading || isConversionLoading} anchorRef={A4ref} />
-                ) : null}
-                <div className="canvas-area" ref={canvasAreaRef} onClick={handleCanvasBackgroundClick}>
-                  {showStartChooser ? (
-                    <StartChooser
-                      onWizard={() => {
-                        // Keep the chooser behind the modal so cancelling the
-                        // wizard returns to the start screen. A successful
-                        // fill adds canvas elements and hides it naturally.
-                        handleShowBioCvModal();
-                      }}
-                      onImport={() => {
-                        // Import follows the same return path as the wizard:
-                        // closing its modal restores the start screen, while a
-                        // successful import replaces the empty workspace.
-                        handleShowAiPanel();
-                      }}
-                      onDocuments={() => {
-                        // Keep the chooser mounted behind the documents modal.
-                        // Closing the modal must return the user to the same
-                        // start screen instead of exposing the blank freeform
-                        // canvas.
-                        setIsModalPdfs(true);
-                      }}
-                      documents={PDFs}
-                      documentsLoaded={pdfsLoaded}
-                      onBlank={() => setStartChooserDismissed(true)}
-                      onLogout={handleLogout}
-                    />
+              {/* Do not merely paint over editor chrome: leaving its controls
+                  mounted would expose invisible Topbar, Sidebar, and AI actions
+                  to keyboard and assistive-technology users. */}
+              {!showStartChooser ? (
+                <Sidebar>
+                  {isSectionsPanel ? (
+                    <SectionsPanel onClose={() => setPanel(null)} />
                   ) : null}
-                  <div className={isTwoPageView ? "canvas-spread" : "canvas-single"}>
-                    {isTwoPageView ? (
-                      visiblePages.map((page, pageIndex) => (
-                        <A4
-                          key={page}
-                          page={page}
-                          width={`${pageSize.width}px`}
-                          height={`${pageSize.height}px`}
-                          zoom={1}
-                          isSpread
-                          ref={(node) => setPageCanvasRef(page, node)}
-                          onPointerDownCapture={(event) => handleCanvasPointerDownCapture(event, page)}
-                        >
-                          <div style={layoutPreviewPatches.length > 0 || structurePreviewGroup || deletionPreviewIds.length > 0 ? { pointerEvents: "none" } : undefined}>
-                            <CanvasElements
-                              elements={previewedElements.filter((element) => (element.page ?? 1) === page)}
-                              spreadSide={pageIndex === 0 ? "left" : "right"}
-                            />
-                            <Connectors elements={previewedElements} page={page} />
-                            <AiCorrectionOverlay elements={previewedElements} page={page} />
-                            <SelectionOverlay elements={previewedElements} page={page} />
-                            <Guides page={page} />
-                          </div>
-                        </A4>
-                      ))
-                    ) : (
-                      <CanvasPageStage
-                        pageKey={visiblePages[0] ?? currentPage}
-                        direction={pageNav.direction}
-                        animate
-                      >
-                        {visiblePages.map((page) => (
+                </Sidebar>
+              ) : null}
+              {/* Floating property inspector (portal); not docked to the tool rail. */}
+              {!showStartChooser ? <Editor /> : null}
+              {!showStartChooser ? (
+                <div className="right-pane">
+                  {isDemoContent ? (
+                    <DemoBanner onUseOwnData={handleDemoUseOwnData} />
+                  ) : null}
+                  <Topbar titleRef={titleRef} />
+                  {/* Portal loader: card sits 100px under the live A4 top edge
+                      (viewport px via A4ref), independent of canvas zoom. */}
+                  {isPdfLoading || isConversionLoading ? (
+                    <Spinner loading={isPdfLoading || isConversionLoading} anchorRef={A4ref} />
+                  ) : null}
+                  <div className="canvas-area" ref={canvasAreaRef} onClick={handleCanvasBackgroundClick}>
+                    <div className={isTwoPageView ? "canvas-spread" : "canvas-single"}>
+                      {isTwoPageView ? (
+                        visiblePages.map((page, pageIndex) => (
                           <A4
                             key={page}
                             page={page}
                             width={`${pageSize.width}px`}
                             height={`${pageSize.height}px`}
-                            zoom={zoom}
-                            isSpread={false}
+                            zoom={1}
+                            isSpread
                             ref={(node) => setPageCanvasRef(page, node)}
                             onPointerDownCapture={(event) => handleCanvasPointerDownCapture(event, page)}
                           >
                             <div style={layoutPreviewPatches.length > 0 || structurePreviewGroup || deletionPreviewIds.length > 0 ? { pointerEvents: "none" } : undefined}>
-                              <CanvasElements elements={previewedElements.filter((element) => (element.page ?? 1) === page)} />
+                              <CanvasElements
+                                elements={previewedElements.filter((element) => (element.page ?? 1) === page)}
+                                spreadSide={pageIndex === 0 ? "left" : "right"}
+                              />
                               <Connectors elements={previewedElements} page={page} />
                               <AiCorrectionOverlay elements={previewedElements} page={page} />
                               <SelectionOverlay elements={previewedElements} page={page} />
                               <Guides page={page} />
                             </div>
                           </A4>
-                        ))}
-                      </CanvasPageStage>
-                    )}
+                        ))
+                      ) : (
+                        <CanvasPageStage
+                          pageKey={visiblePages[0] ?? currentPage}
+                          direction={pageNav.direction}
+                          animate
+                        >
+                          {visiblePages.map((page) => (
+                            <A4
+                              key={page}
+                              page={page}
+                              width={`${pageSize.width}px`}
+                              height={`${pageSize.height}px`}
+                              zoom={zoom}
+                              isSpread={false}
+                              ref={(node) => setPageCanvasRef(page, node)}
+                              onPointerDownCapture={(event) => handleCanvasPointerDownCapture(event, page)}
+                            >
+                              <div style={layoutPreviewPatches.length > 0 || structurePreviewGroup || deletionPreviewIds.length > 0 ? { pointerEvents: "none" } : undefined}>
+                                <CanvasElements elements={previewedElements.filter((element) => (element.page ?? 1) === page)} />
+                                <Connectors elements={previewedElements} page={page} />
+                                <AiCorrectionOverlay elements={previewedElements} page={page} />
+                                <SelectionOverlay elements={previewedElements} page={page} />
+                                <Guides page={page} />
+                              </div>
+                            </A4>
+                          ))}
+                        </CanvasPageStage>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-              <Gallery />
-              {entitlements?.ai_assistant ? <AiAssistant /> : null}
+              ) : null}
+              {showStartChooser ? (
+                <StartChooser
+                  onWizard={() => {
+                    // Keep the chooser behind the modal so cancelling the
+                    // wizard returns to the start screen. A successful fill
+                    // adds canvas elements and restores the editor shell.
+                    handleShowBioCvModal();
+                  }}
+                  onImport={() => {
+                    // Import follows the same return path as the wizard:
+                    // closing its modal restores the start screen, while a
+                    // successful import replaces the empty workspace.
+                    handleShowAiPanel();
+                  }}
+                  onDocuments={() => {
+                    // Keep the chooser mounted behind the documents modal.
+                    // Closing the modal must return the user to the same
+                    // start screen instead of exposing the blank freeform
+                    // canvas.
+                    setIsModalPdfs(true);
+                  }}
+                  documents={PDFs}
+                  documentsLoaded={pdfsLoaded}
+                  onBlank={() => setStartChooserDismissed(true)}
+                  onLogout={handleLogout}
+                />
+              ) : null}
+              {!showStartChooser ? <Gallery /> : null}
+              {!showStartChooser && entitlements?.ai_assistant ? <AiAssistant /> : null}
               <ToastStack toasts={toasts} onDismiss={dismissToast} />
             </PdfContext.Provider>
           </SessionContext.Provider>

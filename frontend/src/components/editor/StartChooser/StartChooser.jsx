@@ -9,13 +9,16 @@
  *
  * Visibility is decided by `shouldShowStartChooser` (utils/startChooser.js);
  * this component assumes the caller only mounts it when that returns true.
+ * It replaces the complete editor shell so tool chrome and subscription-only
+ * floating actions cannot compete with the user's initial decision.
  *
  * Visual language follows DESIGN.md (Swiss/grid): sharp 0px corners, the muted
  * chrome token palette, a clear type hierarchy, an icon system (no emojis), and
  * a fade + translate-Y entry that respects `prefers-reduced-motion`.
  */
-import classes from "./StartChooser.module.css";
+import { useEffect, useRef } from "react";
 import { AiOutlineLogout } from "react-icons/ai";
+import classes from "./StartChooser.module.css";
 
 /**
  * Pen / step-by-step glyph for the wizard path (Lucide "square-pen" shape).
@@ -78,25 +81,6 @@ function DocumentsIcon() {
   );
 }
 
-/** New-document glyph for entering the unrestricted freeform canvas. */
-function BlankIcon() {
-  return (
-    <svg
-      className={classes.icon}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.6"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M6 3h9l3 3v15H6z" />
-      <path d="M15 3v4h4M12 11v6M9 14h6" />
-    </svg>
-  );
-}
-
 /**
  * @param {object} props
  * @param {() => void} props.onWizard - open the step-by-step wizard (BioCvModal)
@@ -115,6 +99,7 @@ export default function StartChooser({
   onBlank,
   onLogout,
 }) {
+  const titleRef = useRef(null);
   const latestDocument = [...documents]
     .sort((left, right) => new Date(right.created_at || 0) - new Date(left.created_at || 0))[0];
   const latestDocumentDate = latestDocument?.created_at
@@ -125,15 +110,30 @@ export default function StartChooser({
     }).format(new Date(latestDocument.created_at))
     : null;
 
+  useEffect(() => {
+    // The chooser may replace an already-focused editor control after the
+    // empty-document state resolves. Moving focus to its heading makes the
+    // new full-screen task boundary explicit without trapping focus like a
+    // modal; the editor chrome is unmounted by PdfCanvas while this is shown.
+    titleRef.current?.focus({ preventScroll: true });
+  }, []);
+
   return (
-    <div className={classes.overlay} role="region" aria-label="Zacznij nowe CV">
+    <section className={classes.overlay} aria-labelledby="start-chooser-title">
       <a href="/" className={classes.brand} aria-label="CV Studio — strona główna">
         <img src="/cv-studio-mark.svg" alt="" />
         <span>CV STUDIO</span>
       </a>
       <div className={classes.inner}>
         <header className={classes.head}>
-          <h1 className={classes.title}>Jak chcesz zacząć?</h1>
+          <h1
+            ref={titleRef}
+            id="start-chooser-title"
+            className={classes.title}
+            tabIndex={-1}
+          >
+            Jak chcesz zacząć?
+          </h1>
           <p className={classes.subtitle}>
             Zacznij od kreatora lub importu — resztą zajmiemy się my.
           </p>
@@ -210,6 +210,6 @@ export default function StartChooser({
       >
         <AiOutlineLogout aria-hidden="true" />
       </button>
-    </div>
+    </section>
   );
 }

@@ -44,9 +44,8 @@
     flex: 1;
     min-width: 0;
     min-height: 0;
-    /* Positioned ancestor for the empty-state StartChooser overlay, which
-       fills exactly this scroll region (below the Topbar, right of the tool
-       rail). Static-flow children (the A4 pages) are unaffected. */
+    /* Canvas-local controls may anchor to this scroll region. The full-screen
+       StartChooser now anchors to `.main-container`, outside editor chrome. */
     position: relative;
     overflow: auto;
     padding: 8px 0;

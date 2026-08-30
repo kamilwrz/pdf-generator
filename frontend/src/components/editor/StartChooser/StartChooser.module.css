@@ -1,23 +1,27 @@
 /*
- * Empty-state onboarding surface. Covers the canvas region and centres a
- * four-card chooser. Uses the
- * editor's muted chrome tokens for colour/typography and DESIGN.md's Swiss
- * structural rules: sharp 0px corners, 1px borders, a single subtle shadow,
- * and transform/opacity-only motion.
+ * Empty-state onboarding surface. Covers the complete editor shell and keeps
+ * the initial wizard/import decision visually separate from editing tools.
+ * Uses the editor's muted chrome tokens and DESIGN.md's Swiss structural
+ * rules: sharp 0px corners, 1px borders, and transform/opacity-only motion.
  */
 
 .overlay {
   position: absolute;
   inset: 0;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: 2rem 1.5rem;
+  /* `safe center` falls back to the start edge when tall/zoomed content must
+     scroll, preventing the heading and first actions from being clipped. */
+  justify-content: safe center;
+  min-height: 100%;
+  padding: var(--space-16) var(--space-6);
   isolation: isolate;
-  /* The base hides the underlying canvas while sidebar and topbar stay usable. */
+  /* Dialog portals stay above this layer; all editor chrome stays below it. */
   background: var(--color-canvas);
   overflow: auto;
-  z-index: 1;
+  overscroll-behavior: contain;
+  z-index: var(--z-popover);
 }
 
 .overlay::before,
@@ -89,7 +93,7 @@
   flex-direction: column;
   gap: 0.6rem;
   /* Fade + translate-Y entry (DESIGN.md), guarded below. */
-  animation: startChooserRise 420ms ease-out both;
+  animation: startChooserRise var(--motion-slow) var(--motion-ease) both;
 }
 
 .title {
@@ -99,6 +103,12 @@
   letter-spacing: -0.01em;
   font-size: clamp(1.6rem, 3.4vw, 2.25rem);
   color: var(--chrome-ink);
+}
+
+/* Focus is moved here only to announce the new page-level task boundary. The
+   heading is not interactive, so it does not use the control focus ring. */
+.title:focus {
+  outline: none;
 }
 
 .subtitle {
@@ -131,22 +141,10 @@
   border: 1px solid var(--chrome-border);
   background: var(--chrome-surface);
   box-shadow: none;
-  /* Only transform/opacity animate; staggered entry set per-card below. */
-  transition: transform 200ms ease-out, box-shadow 200ms ease-out,
-    border-color 200ms ease-out;
-  animation: startChooserRise 420ms ease-out both;
-}
-
-.card:nth-child(1) {
-  animation-delay: 80ms;
-}
-
-.card:nth-child(2) {
-  animation-delay: 160ms;
-}
-
-.card:nth-child(3) {
-  animation-delay: 240ms;
+  /* Entry and interaction feedback stay within the shared motion contract. */
+  transition: transform var(--motion-standard) var(--motion-ease),
+    border-color var(--motion-standard) var(--motion-ease);
+  animation: startChooserRise var(--motion-slow) var(--motion-ease) both;
 }
 
 .card:hover {
@@ -241,7 +239,7 @@
   gap: 0.8rem;
   padding-top: 1.25rem;
   border-top: 1px solid var(--chrome-border);
-  animation: startChooserRise 420ms ease-out 240ms both;
+  animation: startChooserRise var(--motion-slow) var(--motion-ease) both;
 }
 
 .recentDocument {
@@ -354,8 +352,9 @@
   background: transparent;
   color: var(--chrome-muted);
   cursor: pointer;
-  transition: color 150ms ease-out, border-color 150ms ease-out,
-    background 150ms ease-out;
+  transition: color var(--motion-fast) var(--motion-ease),
+    border-color var(--motion-fast) var(--motion-ease),
+    background var(--motion-fast) var(--motion-ease);
   z-index: 1;
 }
 
@@ -377,6 +376,10 @@
 
 /* Mobile: single column, no horizontal overflow. */
 @media (max-width: 767px) {
+  .overlay {
+    padding: var(--space-16) var(--space-4) var(--space-12);
+  }
+
   .overlay::before,
   .overlay::after {
     display: none;
@@ -397,6 +400,13 @@
     width: 36px;
     height: 36px;
   }
+
+  .logout {
+    top: var(--space-4);
+    right: var(--space-4);
+    bottom: auto;
+    left: auto;
+  }
 }
 
 @keyframes startChooserRise {
@@ -414,6 +424,7 @@
   .head,
   .card,
   .secondaryActions {
+    animation: none;
     transition: none;
   }
   .logout {

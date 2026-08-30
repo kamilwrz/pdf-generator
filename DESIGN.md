@@ -198,6 +198,8 @@ Use CSS Grid for page structure and Flexbox for one-dimensional alignment. Wide 
 
 Landing, onboarding, and explanatory pages may use generous whitespace and asymmetric editorial compositions. Prefer split layouts, staggered content, and strong typographic anchors. Avoid generic three-card feature rows.
 
+A full-screen onboarding decision surface replaces the complete editor shell until the user chooses a path. Editor navigation, tool rails, canvas controls, and persistent AI actions must not remain visible or keyboard-reachable behind it. Dialogs launched from onboarding may appear above the surface and must restore focus to their onboarding trigger when closed.
+
 ### Working surfaces
 
 The editor and other task-heavy screens may be denser, but must remain grid-based:
