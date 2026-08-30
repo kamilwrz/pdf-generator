@@ -9,7 +9,7 @@ Ten dokument opisuje pełną ścieżkę od danych kandydata do elementów na pł
 | Warstwa | Co robi | Czego **nie** robi |
 |---|---|---|
 | **Geometria źródła (`cv_source_layout`)** | Rozdziela natywne linie PDF na kolumny, wykrywa nagłówki i po odpowiedzi modelu ugruntowuje podsumowanie, specjalizacje oraz referencje | Nie interpretuje elastycznych rekordów doświadczenia i edukacji ani skanów bez warstwy tekstowej |
-| **AI (Cloudflare Workers AI)** | Czyta tekst PDF zachowujący kolumny (Llama 3.1 8B Fast + JSON Mode), a tylko strony skanowane jako obrazy (Qwen 3.8), i zwraca **ustrukturyzowany JSON** | Nie układa elementów, nie liczy Y, nie wybiera kolorów, nie paginuje |
+| **AI (Cloudflare Workers AI)** | Czyta tekst PDF zachowujący kolumny (reasoningowa Gemma 4, z jednorazowym fallbackiem Llama 3.1 8B Fast + JSON Mode), a tylko strony skanowane jako obrazy (Qwen 3.8), i zwraca **ustrukturyzowany JSON** | Nie układa elementów, nie liczy Y, nie wybiera kolorów, nie paginuje |
 | **`cv_data.normalize_cv_data`** | Ujednolica dane z PDF **i** z kreatora (wizard) do jednego schematu | Nie generuje layoutu |
 | **`cv_generator.generate_resume`** | Bierze `(template_id, cv_data)` i zwraca listę elementów canvas | Nie woła OpenAI; nie „projektuje” wizualnie w locie |
 | **Frontend (`templates/*.js`)** | Statyczna **próbka / podgląd** szablonu z przykładową treścią | Nie wypełnia realnym CV użytkownika |
@@ -65,10 +65,10 @@ Użytkownik może wypełnić CV na dwa sposoby. Oba kończą się tym samym obie
    - odczytuje przez `PyMuPDF` linie i spany wraz z prostokątami położenia (domyślnie maks. 12 stron),
    - `cv_source_layout.extract_pdf_source_pages` grupuje początki linii w osobne kolumny, dzięki czemu nagłówek z lewego sidebara nie łączy się z treścią prawej kolumny,
    - przekazuje modelowi zwarty `SOURCE_SECTIONS` i tekst każdej kolumny w osobnych ogranicznikach,
-   - wysyła zwykły dokument tekstowy do **Llama 3.1 8B Fast** w JSON Mode,
+   - wysyła zwykły dokument tekstowy do reasoningowej **Gemmy 4 26B**, z niskim poziomem reasoningu i budżetem 16 000 tokenów,
    - rasteruje do PNG wyłącznie strony bez wystarczającej warstwy tekstowej i wtedy przełącza całe żądanie na **Qwen 3.8 27B Vision**,
    - korzysta z OpenAI-compatible endpointu Cloudflare i promptu „zwróć wyłącznie JSON o takiej strukturze…”,
-   - po pustym wyniku jawnego override'u Gemmy wykonuje najwyżej jeden fallback tekstowy na Llamę; domyślna konfiguracja używa Llamy od pierwszej próby.
+   - po pustym, niepoprawnym JSON-ie albo wyniku, którego nie da się znormalizować, wykonuje najwyżej jeden fallback tekstowy na **Llamę 3.1 8B Fast** w JSON Mode.
 3. Odpowiedź modelu jest parsowana. `ground_cv_data_from_source` składa pełne podsumowanie ze wszystkich zawiniętych wierszy, zachowuje łączone słowa, odczytuje pogrubione podkategorie Umiejętności/Specjalizacji i elementy rozdzielone kropką środkową oraz buduje referencje z rozpoznanych sekcji natywnego tekstu. Usuwa też skopiowany nagłówek WORK EXPERIENCE z pola stanowiska, jeśli źródło nie podaje jawnej roli. Dopiero tak ugruntowany obiekt przechodzi przez `normalize_cv_data`.
 4. Frontend trzyma wynik i przy wyborze szablonu woła `fill_template`.
 
@@ -284,10 +284,10 @@ Normalizacja (`cv_data.normalize_cv_data`) przyjmuje już obiekty `{title, bulle
 
 | Zadanie | Moduł | Model |
 |---|---|---|
-| Ekstrakcja treści z PDF → JSON | `ai_service.extract_cv_data` | Cloudflare Llama 3.1 8B Fast (tekst) / Qwen 3.8 (tylko skany) |
+| Ekstrakcja treści z PDF → JSON | `ai_service.extract_cv_data` | Cloudflare Gemma 4 26B (tekst), Llama 3.1 8B Fast (fallback JSON) / Qwen 3.8 (tylko skany) |
 | Asystent na canvasie (edycja, ATS, układ istniejących elementów) | `ai_assistant_service` | osobny tor, po wygenerowaniu CV |
 
-Przy ekstrakcji AI dostaje **instrukcję schematu JSON** (experience, education z `school/city/degree/...`, skills, labels PL, `extra_sections` z `kind` / `placement` oraz **rekordowymi** `items` dla projektów/referencji). Temperatura jest niska (`0.1`). Llama tekstowa używa `max_tokens=8000` i oficjalnego `response_format=json_object`; Qwen Vision używa `max_completion_tokens=8000` oraz `reasoning_effort=low`, bez JSON Mode. Ścisły prompt i parser backendu nadal wymagają jednego obiektu JSON oraz tolerują wyłącznie opcjonalny Markdown fence lub typowane fragmenty tekstowe. Jawny rollback OpenAI używa `response_format=json_object`.
+Przy ekstrakcji AI dostaje **instrukcję schematu JSON** (experience, education z `school/city/degree/...`, skills, labels PL, `extra_sections` z `kind` / `placement` oraz **rekordowymi** `items` dla projektów/referencji). Temperatura jest niska (`0.1`). Główna Gemma tekstowa używa `max_completion_tokens=16000` i konfigurowalnego `reasoning_effort` (domyślnie `low`), bez niewspieranego JSON Mode. Jeśli jej odpowiedź jest pusta, nie jest poprawnym obiektem JSON albo nie przechodzi normalizacji, Llama tekstowa wykonuje jedną próbę z `max_tokens=16000` i oficjalnym `response_format=json_object`. Qwen Vision używa `max_completion_tokens=8000` oraz `reasoning_effort=low`, bez JSON Mode. Ścisły prompt i parser backendu nadal wymagają jednego obiektu JSON oraz tolerują wyłącznie opcjonalny Markdown fence lub typowane fragmenty tekstowe. Jawny rollback OpenAI używa `response_format=json_object` i tekstowego budżetu tokenów.
 
 Heurystyczna grupacja w Pythonie pokrywa typowe spłaszczenia; pełna decyzyjność przy niejednoznacznych listach to naturalne miejsce na opcjonalny drugi pass LLM (Standard/Premium, kredyty AI) **przed** `generate_resume`, bez zmiany geometrii szablonów.
 

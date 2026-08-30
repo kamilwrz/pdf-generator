@@ -66,16 +66,22 @@ CV_EXTRACT_PROVIDER = (os.getenv("CV_EXTRACT_PROVIDER", "cloudflare").strip().lo
 CLOUDFLARE_ACCOUNT_ID = os.getenv("CLOUDFLARE_ACCOUNT_ID", "").strip()
 CLOUDFLARE_API_TOKEN = os.getenv("CLOUDFLARE_API_TOKEN", "").strip()
 CLOUDFLARE_TEXT_MODEL = (
-    os.getenv("CLOUDFLARE_TEXT_MODEL", "@cf/meta/llama-3.1-8b-instruct-fast").strip()
-    or "@cf/meta/llama-3.1-8b-instruct-fast"
+    os.getenv("CLOUDFLARE_TEXT_MODEL", "@cf/google/gemma-4-26b-a4b-it").strip()
+    or "@cf/google/gemma-4-26b-a4b-it"
 )
-# A deployment may still override the primary text model with reasoning-based
-# Gemma. An empty visible completion gets one deterministic JSON-mode retry on
-# this model instead of asking the user to submit and meter the whole import.
+# Gemma provides the primary semantic extraction quality. Llama remains a
+# deterministic JSON-mode retry when Gemma returns no visible answer or invalid
+# JSON, so one provider-side failure does not consume another monthly import.
 CLOUDFLARE_TEXT_FALLBACK_MODEL = (
     os.getenv("CLOUDFLARE_TEXT_FALLBACK_MODEL", "@cf/meta/llama-3.1-8b-instruct-fast").strip()
     or "@cf/meta/llama-3.1-8b-instruct-fast"
 )
+CLOUDFLARE_TEXT_REASONING_EFFORT = (
+    os.getenv("CLOUDFLARE_TEXT_REASONING_EFFORT", "low").strip().lower()
+    or "low"
+)
+if CLOUDFLARE_TEXT_REASONING_EFFORT not in {"low", "medium", "high"}:
+    CLOUDFLARE_TEXT_REASONING_EFFORT = "low"
 CLOUDFLARE_VISION_MODEL = (
     os.getenv("CLOUDFLARE_VISION_MODEL", "@cf/qwen/qwen3.8-27b").strip()
     or "@cf/qwen/qwen3.8-27b"
@@ -83,7 +89,19 @@ CLOUDFLARE_VISION_MODEL = (
 CV_EXTRACT_OPENAI_MODEL = os.getenv("CV_EXTRACT_OPENAI_MODEL", "gpt-4o").strip() or "gpt-4o"
 CV_EXTRACT_MAX_PAGES = _int_env("CV_EXTRACT_MAX_PAGES", 12)
 CV_EXTRACT_MIN_TEXT_CHARS_PER_PAGE = _int_env("CV_EXTRACT_MIN_TEXT_CHARS_PER_PAGE", 80)
+# Preserve the old shared override for existing deployments. When it is absent,
+# native-text Gemma gets extra reasoning/final-JSON headroom while expensive
+# vision requests retain the previous 8k ceiling.
 CV_EXTRACT_MAX_COMPLETION_TOKENS = _int_env("CV_EXTRACT_MAX_COMPLETION_TOKENS", 8000)
+_CV_EXTRACT_LEGACY_BUDGET_CONFIGURED = os.getenv("CV_EXTRACT_MAX_COMPLETION_TOKENS") is not None
+CV_EXTRACT_TEXT_MAX_COMPLETION_TOKENS = _int_env(
+    "CV_EXTRACT_TEXT_MAX_COMPLETION_TOKENS",
+    CV_EXTRACT_MAX_COMPLETION_TOKENS if _CV_EXTRACT_LEGACY_BUDGET_CONFIGURED else 16000,
+)
+CV_EXTRACT_VISION_MAX_COMPLETION_TOKENS = _int_env(
+    "CV_EXTRACT_VISION_MAX_COMPLETION_TOKENS",
+    CV_EXTRACT_MAX_COMPLETION_TOKENS,
+)
 
 # Pre-Stripe: allow choosing a paid plan without payment. Defaults to False so
 # production cannot self-activate Standard/Premium by accident. Local/dev

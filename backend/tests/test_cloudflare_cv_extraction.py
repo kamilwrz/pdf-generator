@@ -145,12 +145,15 @@ class CloudflareCvExtractionTests(unittest.TestCase):
         self.assertFalse(any(item["type"] == "image_url" for item in user_content))
         self.assertIn("Jan Kowalski", user_content[0]["text"])
         self.assertEqual(
-            request["max_tokens"],
-            ai_service.CV_EXTRACT_MAX_COMPLETION_TOKENS,
+            request["max_completion_tokens"],
+            ai_service.CV_EXTRACT_TEXT_MAX_COMPLETION_TOKENS,
         )
-        self.assertEqual(request["response_format"], {"type": "json_object"})
-        self.assertNotIn("max_completion_tokens", request)
-        self.assertNotIn("reasoning_effort", request)
+        self.assertEqual(
+            request["reasoning_effort"],
+            ai_service.CLOUDFLARE_TEXT_REASONING_EFFORT,
+        )
+        self.assertNotIn("max_tokens", request)
+        self.assertNotIn("response_format", request)
         self.assertEqual(cv_data["name"], "Jan Kowalski")
         self.assertEqual(usage["provider"], "cloudflare")
         self.assertEqual(usage["extraction_mode"], "text")
@@ -174,7 +177,7 @@ class CloudflareCvExtractionTests(unittest.TestCase):
         self.assertTrue(images[0]["image_url"]["url"].startswith("data:image/png;base64,"))
         self.assertEqual(
             request["max_completion_tokens"],
-            ai_service.CV_EXTRACT_MAX_COMPLETION_TOKENS,
+            ai_service.CV_EXTRACT_VISION_MAX_COMPLETION_TOKENS,
         )
         self.assertEqual(request["reasoning_effort"], "low")
         self.assertNotIn("response_format", request)
@@ -192,6 +195,39 @@ class CloudflareCvExtractionTests(unittest.TestCase):
 
         self.assertEqual(context.exception.code, "extract_provider_invalid_response")
         self.assertEqual(context.exception.status_code, 422)
+        self.assertEqual(client.chat.completions.create.call_count, 2)
+
+    def test_invalid_gemma_json_retries_once_with_json_mode_fallback(self):
+        """A malformed reasoning response must not consume another import."""
+        client = MagicMock()
+        client.chat.completions.create.side_effect = [
+            _response("not-json"),
+            _response({"name": "Jan Kowalski", "skills": ["Python"]}),
+        ]
+
+        with patch.object(
+            ai_service,
+            "_provider_settings",
+            return_value=(client, ai_service.CLOUDFLARE_TEXT_MODEL, "cloudflare"),
+        ):
+            with self.assertLogs("cv_extraction", level="WARNING") as logs:
+                cv_data, usage = ai_service.extract_cv_data(
+                    _pdf_bytes("Jan Kowalski Python Developer " * 20)
+                )
+
+        self.assertEqual(cv_data["name"], "Jan Kowalski")
+        self.assertEqual(client.chat.completions.create.call_count, 2)
+        fallback_request = client.chat.completions.create.call_args_list[1].kwargs
+        self.assertEqual(
+            fallback_request["model"],
+            ai_service.CLOUDFLARE_TEXT_FALLBACK_MODEL,
+        )
+        self.assertEqual(
+            fallback_request["response_format"],
+            {"type": "json_object"},
+        )
+        self.assertTrue(usage["fallback_used"])
+        self.assertTrue(any("reason=invalid_response" in line for line in logs.output))
 
     def test_markdown_fenced_json_is_accepted_without_cloudflare_json_mode(self):
         client = self._client('```json\n{"name":"Ewa Testowa"}\n```')
@@ -239,7 +275,7 @@ class CloudflareCvExtractionTests(unittest.TestCase):
         self.assertEqual(request["response_format"], {"type": "json_object"})
         self.assertEqual(
             request["max_tokens"],
-            ai_service.CV_EXTRACT_MAX_COMPLETION_TOKENS,
+            ai_service.CV_EXTRACT_TEXT_MAX_COMPLETION_TOKENS,
         )
         self.assertNotIn("max_completion_tokens", request)
         self.assertNotIn("reasoning_effort", request)
@@ -269,11 +305,12 @@ class CloudflareCvExtractionTests(unittest.TestCase):
 
         self.assertEqual(context.exception.code, "extract_provider_empty_response")
         self.assertTrue(context.exception.retryable)
+        self.assertEqual(client.chat.completions.create.call_count, 2)
         self.assertIn("finish_reason=length", logs.output[0])
         self.assertNotIn("internal", logs.output[0])
 
     def test_empty_reasoning_text_response_retries_once_with_json_mode_fallback(self):
-        """Recover a legacy Gemma override without asking for another upload."""
+        """Recover the default Gemma attempt without asking for another upload."""
         client = MagicMock()
         empty_response = SimpleNamespace(
             choices=[
@@ -310,6 +347,10 @@ class CloudflareCvExtractionTests(unittest.TestCase):
         fallback_request = client.chat.completions.create.call_args_list[1].kwargs
         self.assertEqual(primary_request["model"], primary_model)
         self.assertEqual(primary_request["reasoning_effort"], "low")
+        self.assertEqual(
+            primary_request["max_completion_tokens"],
+            ai_service.CV_EXTRACT_TEXT_MAX_COMPLETION_TOKENS,
+        )
         self.assertEqual(
             fallback_request["model"],
             ai_service.CLOUDFLARE_TEXT_FALLBACK_MODEL,
