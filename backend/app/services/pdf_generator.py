@@ -148,7 +148,17 @@ class PDF_Generator:
         """Set the PDF document title metadata shown in viewers."""
         self.c.setTitle(title)
 
-    def renderImage(self, src, width, height, left, top, align_with_text=None, object_fit=None):
+    def renderImage(
+        self,
+        src,
+        width,
+        height,
+        left,
+        top,
+        align_with_text=None,
+        object_fit=None,
+        border_radius=None,
+    ):
         """Draw a bitmap after flipping Y so `top` matches the editor.
 
         PNG/RGBA icons must use ``mask='auto'`` — with ``mask=None`` ReportLab
@@ -165,6 +175,10 @@ class PDF_Generator:
         - ``\"cover\"`` — scale uniformly and center-crop into the box (profile
           photo slots). Matches canvas ``object-fit: cover``.
         - anything else — stretch to the authored box (legacy fill).
+
+        ``border_radius`` clips the raster with the same authored radius as the
+        browser canvas. A half-size radius on a square box becomes an exact
+        circular PDF path, so Vellum profile photos export 1:1.
         """
         # Must match frontend/src/utils/iconAlignment.js `CANVAS_TEXT_CAP_MID`.
         # A previous -1.2 offset made PDF icons sit ~2.2 px higher than canvas.
@@ -196,8 +210,19 @@ class PDF_Generator:
         self.c.saveState()
         try:
             if fit == "cover":
-                self._draw_image_cover(src_s, left, corrected_y, w, h)
+                self._draw_image_cover(
+                    src_s,
+                    left,
+                    corrected_y,
+                    w,
+                    h,
+                    border_radius=border_radius,
+                )
             else:
+                if float(border_radius or 0) > 0:
+                    self._clip_image_box(
+                        left, corrected_y, w, h, border_radius=border_radius,
+                    )
                 try:
                     reader = self._image_reader_for_pdf(src_s)
                     self.c.drawImage(
@@ -215,8 +240,33 @@ class PDF_Generator:
         finally:
             self.c.restoreState()
 
-    def _draw_image_cover(self, src, left, bottom, width, height):
-        """Center-crop ``src`` into the box (CSS object-fit: cover)."""
+    def _clip_image_box(
+        self, left, bottom, width, height, *, border_radius=None,
+    ):
+        """Apply the canvas image box as a rectangular or rounded PDF clip."""
+        x = float(left)
+        y = float(bottom)
+        w = float(width)
+        h = float(height)
+        radius = max(0.0, min(float(border_radius or 0), w / 2.0, h / 2.0))
+        clip = self.c.beginPath()
+        if radius >= min(w, h) / 2.0 - 0.01 and abs(w - h) <= 0.01:
+            clip.ellipse(x, y, x + w, y + h)
+        elif radius > 0:
+            clip.roundRect(x, y, w, h, radius)
+        else:
+            clip.rect(x, y, w, h)
+        self.c.clipPath(clip, stroke=0, fill=0)
+
+    def _draw_image_cover(
+        self, src, left, bottom, width, height, *, border_radius=None,
+    ):
+        """Center-crop ``src`` into the clipped box (CSS object-fit: cover)."""
+        # Establish clipping before image decoding so the fallback draw path
+        # cannot leak square corners when PIL cannot inspect the source.
+        self._clip_image_box(
+            left, bottom, width, height, border_radius=border_radius,
+        )
         path = Path(str(src))
         try:
             with PilImage.open(path if path.is_file() else src) as opened:
@@ -233,9 +283,6 @@ class PDF_Generator:
                 draw_h = float(ih) * scale
                 draw_x = float(left) - (draw_w - float(width)) / 2.0
                 draw_y = float(bottom) - (draw_h - float(height)) / 2.0
-                clip = self.c.beginPath()
-                clip.rect(float(left), float(bottom), float(width), float(height))
-                self.c.clipPath(clip, stroke=0, fill=0)
                 self.c.drawImage(
                     ImageReader(image),
                     draw_x,
@@ -1444,6 +1491,7 @@ class PDF_Generator:
                         # Preserve explicit False (geometric contact icons); None → path heuristic.
                         align_with_text=getattr(element, "alignWithText", None),
                         object_fit=object_fit,
+                        border_radius=getattr(element, "borderRadius", None),
                     )
             if watermark:
                 self._draw_watermark()

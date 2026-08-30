@@ -119,7 +119,8 @@ class PdfElement(BaseModel):
     bulletList: Optional[bool] = False
     # Template fields whose height follows content and participates in reflow.
     autoHeight: Optional[bool] = False
-    # Flow classifier used by reflow: "section-chrome" or "content".
+    # Flow classifier used by reflow, including non-flowing record overlays and
+    # section backgrounds that remain attached to their textarea anchor.
     flowRole: Optional[str] = None
     # Two-column rail tag: "sidebar" keeps body copy on the packSidebarLane
     # cursor. Without it, only sidebar-chrome kickers reorder and rail body
@@ -164,9 +165,9 @@ class PdfElement(BaseModel):
     backgroundColor: Optional[str] = None
     # Rectangle outline thickness in px.
     borderWidth: Optional[float] = None
-    # Rectangle corner radius in px. None/0 renders square corners; a positive
-    # value draws a rounded outline (used by tag/pill chrome such as skill
-    # pills). Ignored by non-rectangle categories.
+    # Rectangle or image corner radius in px. Shape rectangles use it for
+    # rounded chrome; image elements use the same value for matching canvas
+    # and ReportLab clipping (half a square side produces an exact circle).
     borderRadius: Optional[float] = None
     # Circle/ellipse/polygon/rectangle: solid fill when true, outline when false.
     filled: Optional[bool] = False

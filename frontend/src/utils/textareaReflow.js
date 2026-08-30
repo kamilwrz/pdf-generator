@@ -80,9 +80,9 @@ function isGridMember(element) {
 }
 
 /**
- * Whether `element` is a non-flowing decoration pinned beside a real content
- * line (a date/location rail, Axis's date gutter, Harbor's date/city/icon
- * row) rather than a genuinely stacked line of its own.
+ * Whether `element` is a non-flowing decoration pinned to real content: either
+ * a horizontal date/location rail or a section background that paints behind
+ * a textarea without becoming a stacked content row of its own.
  *
  * Exported so the structural packer (`sectionStructure.js`) can exclude these
  * elements from sequential stacking/height math the same way live reflow
@@ -91,7 +91,7 @@ function isGridMember(element) {
  * line's position.
  */
 export function isRecordOverlay(element, elements = [], pageHeight = 842) {
-  if (element?.flowRole === "record-overlay") return true;
+  if (["record-overlay", "section-background"].includes(element?.flowRole)) return true;
   if (!["image", "text"].includes(element?.category)) return false;
   const group = flowGroupOf(element);
   if (!group) return false;
@@ -109,7 +109,7 @@ export function isRecordOverlay(element, elements = [], pageHeight = 842) {
 }
 
 /**
- * Find the textarea that owns a horizontal record overlay.
+ * Find the textarea that owns a horizontal record overlay or section fill.
  *
  * Harbor dates, cities and line icons share a Y coordinate with the company
  * or sidebar text they annotate. They intentionally share the record's
@@ -119,16 +119,27 @@ function recordOverlayAnchor(elements, overlay, pageHeight) {
   const group = flowGroupOf(overlay);
   if (!group) return null;
   const overlayTop = absoluteTop(overlay, pageHeight);
-  // New overlays may carry a small authored baseline correction (Harbor uses
-  // 1.5–2px). Legacy inferred overlays had the exact textarea top.
-  const maxTopOffset = overlay.flowRole === "record-overlay" ? 3 : 0.5;
-
-  return elements.find((candidate) => (
+  const textareaCandidates = elements.filter((candidate) => (
     candidate.element_id !== overlay.element_id
     && !isRecordOverlay(candidate, elements, pageHeight)
     && candidate.category === "textarea"
     && flowGroupOf(candidate) === group
-    && pageOf(candidate) === pageOf(overlay)
+  ));
+
+  // A section background deliberately starts above its textarea after a
+  // spacing pass because it also fills the chrome-to-body gap. Its semantic
+  // group, not a near-equal top coordinate, is therefore the stable anchor.
+  if (overlay.flowRole === "section-background") {
+    return textareaCandidates.find(
+      (candidate) => pageOf(candidate) === pageOf(overlay),
+    ) || textareaCandidates[0] || null;
+  }
+  // New overlays may carry a small authored baseline correction (Harbor uses
+  // 1.5–2px). Legacy inferred overlays had the exact textarea top.
+  const maxTopOffset = overlay.flowRole === "record-overlay" ? 3 : 0.5;
+
+  return textareaCandidates.find((candidate) => (
+    pageOf(candidate) === pageOf(overlay)
     && Math.abs(absoluteTop(candidate, pageHeight) - overlayTop) <= maxTopOffset
   )) || null;
 }
@@ -1121,10 +1132,17 @@ export function reflowTextareaHeight(
       if (placedAnchor) {
         const relativeTop = absoluteTop(element, safePageHeight)
           - absoluteTop(anchor, safePageHeight);
+        const followsAnchorHeight = element.flowRole === "section-background";
+        const anchorHeightDelta = followsAnchorHeight
+          ? elementHeight(placedAnchor) - elementHeight(anchor)
+          : 0;
         const moved = {
           ...element,
           page: pageOf(placedAnchor),
           top: number(placedAnchor.top) + relativeTop,
+          ...(followsAnchorHeight
+            ? { height: Math.max(0, elementHeight(element) + anchorHeightDelta) }
+            : {}),
         };
         maxPage = Math.max(maxPage, pageOf(moved));
         return moved;

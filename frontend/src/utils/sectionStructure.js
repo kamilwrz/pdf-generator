@@ -680,6 +680,7 @@ function isSectionBodyElement(element, elements, pageHeight) {
   if (element.flowRole === "masthead") return false;
   if (isSectionHeading(element, elements, pageHeight)) return false;
   if (element.flowRole === "section-chrome") return false;
+  if (isRecordOverlay(element, elements, pageHeight)) return false;
   if (isChromeLike(element)) return false;
   return true;
 }
@@ -1788,12 +1789,12 @@ function compactSectionStrip(sectionElements, pageHeight, spacing, forceTargets 
     gridAnchor = isGridMember(element) ? items[items.length - 1] : null;
   }
 
-  return insertRecordOverlayItems(items, overlays, pageHeight);
+  return insertRecordOverlayItems(items, overlays, pageHeight, chromeBottom);
 }
 
 /**
- * Reinsert record-overlay elements (held out of the sequential stacker above)
- * immediately after the real content item they are pinned beside.
+ * Reinsert non-flowing overlays (held out of the sequential stacker above)
+ * immediately after the real content item they are pinned to.
  *
  * An overlay must never be treated as an ordinary stacked line: its top is
  * designed to equal another line's top (not extend the record downward), so
@@ -1807,9 +1808,13 @@ function compactSectionStrip(sectionElements, pageHeight, spacing, forceTargets 
  * anchor's top). Reinserting directly after the anchor (rather than
  * appending at the strip's tail) keeps the record's `flowGroup` run
  * index-contiguous, which `flowGroupEndIndex` / `remainingStripRecordHeight`
- * require.
+ * require. A `section-background` is the one intentional exception to the
+ * same-top rail geometry: it starts at the chrome band's bottom and grows
+ * through the active `after_rule` gap, its anchor textarea, and the authored
+ * lower padding. Recomputing the old top gap prevents repeated packs from
+ * accumulating height.
  */
-function insertRecordOverlayItems(items, overlays, pageHeight) {
+function insertRecordOverlayItems(items, overlays, pageHeight, chromeBottom = 0) {
   if (!overlays.length) return items;
 
   const overlaysByAnchorId = new Map();
@@ -1817,10 +1822,31 @@ function insertRecordOverlayItems(items, overlays, pageHeight) {
   for (const element of sortByReadingOrder(overlays, pageHeight)) {
     const anchorItem = findRecordOverlayAnchorItem(items, element, pageHeight);
     if (anchorItem) {
-      const delta = absoluteTop(element, pageHeight) - absoluteTop(anchorItem.element, pageHeight);
+      const isSectionBackground = element.flowRole === "section-background";
+      const authoredDelta = absoluteTop(element, pageHeight)
+        - absoluteTop(anchorItem.element, pageHeight);
+      const backgroundTop = Math.min(anchorItem.relTop, Math.max(0, chromeBottom));
+      const oldTopGap = isSectionBackground ? Math.max(0, -authoredDelta) : 0;
+      const bottomPadding = isSectionBackground
+        ? Math.max(
+          0,
+          elementHeight(element) - oldTopGap - elementHeight(anchorItem.element),
+        )
+        : 0;
+      const delta = isSectionBackground
+        ? backgroundTop - anchorItem.relTop
+        : authoredDelta;
+      const placedElement = isSectionBackground
+        ? {
+          ...element,
+          height: elementHeight(anchorItem.element)
+            + Math.max(0, anchorItem.relTop - backgroundTop)
+            + bottomPadding,
+        }
+        : element;
       const mates = overlaysByAnchorId.get(anchorItem.element.element_id) || [];
       mates.push({
-        element,
+        element: placedElement,
         relTop: anchorItem.relTop + delta,
         leadingChrome: false,
         // Consumed by `placeStrip`: position this item from the anchor's
@@ -1859,6 +1885,12 @@ function insertRecordOverlayItems(items, overlays, pageHeight) {
 function findRecordOverlayAnchorItem(items, overlayElement, pageHeight) {
   const group = flowGroupOf(overlayElement);
   if (!group) return null;
+  if (overlayElement.flowRole === "section-background") {
+    return items.find((item) => (
+      flowGroupOf(item.element) === group
+      && item.element.category === "textarea"
+    )) || null;
+  }
   const overlayAbs = absoluteTop(overlayElement, pageHeight);
   let best = null;
   let bestDelta = Infinity;

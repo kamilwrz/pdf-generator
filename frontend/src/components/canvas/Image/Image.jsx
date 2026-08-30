@@ -116,8 +116,8 @@ function Image({
         position: "absolute",
         zIndex: zIndex,
         objectFit: resolvedFit,
-        // Circular profile slots clip the raster on canvas; PDF export
-        // still draws the full box, which covers the underlying disc.
+        // ReportLab receives the same radius and applies an equivalent PDF
+        // clipping path, so circular profile slots match canvas and export.
         ...(borderRadius ? { borderRadius: `${borderRadius}px` } : {}),
         // Fixed profile glyphs/photos are deliberately clickable so users can
         // open the gallery directly on every template's visible photo slot.

@@ -2,7 +2,12 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { vellumTemplate } from "./vellum.js";
-import { applyFlowSpacing, listDocumentSections } from "../utils/sectionStructure.js";
+import {
+  applyFlowSpacing,
+  listDocumentSections,
+  reorderSection,
+} from "../utils/sectionStructure.js";
+import { reflowTextareaHeight } from "../utils/textareaReflow.js";
 
 const PAGE_HEIGHT = 842;
 
@@ -11,6 +16,38 @@ function withElementIds(elements) {
     ...element,
     element_id: `vellum-${index}`,
   }));
+}
+
+function absoluteTop(element) {
+  return ((Number(element?.page) || 1) - 1) * PAGE_HEIGHT + (Number(element?.top) || 0);
+}
+
+function assertSummaryBandIsContinuous(elements) {
+  const summary = elements.find(
+    (element) => element.content?.startsWith("Analityczka AML łącząca"),
+  );
+  const headingBand = elements.find(
+    (element) => element.flowRole === "section-chrome"
+      && element.backgroundColor === "#E7ECE8"
+      && element.width === 595,
+  );
+  const summaryBackground = elements.find(
+    (element) => element.flowRole === "section-background",
+  );
+  assert.ok(summary);
+  assert.ok(headingBand);
+  assert.ok(summaryBackground);
+  assert.equal(summaryBackground.page, summary.page);
+  assert.equal(
+    absoluteTop(summaryBackground),
+    absoluteTop(headingBand) + Number(headingBand.height),
+    "the title band and summary fill must meet without a white seam",
+  );
+  assert.ok(
+    absoluteTop(summaryBackground) + Number(summaryBackground.height)
+      >= absoluteTop(summary) + Number(summary.height) + 8,
+    "the fill must cover the active top gap, summary copy, and lower padding",
+  );
 }
 
 test("Vellum preserves its portrait-led hierarchy and exact date rail", () => {
@@ -35,13 +72,12 @@ test("Vellum preserves its portrait-led hierarchy and exact date rail", () => {
     (element) => element.content?.startsWith("Analityczka AML łącząca"),
   );
   const summaryBackground = vellumTemplate.find(
-    (element) => element.flowRole === "record-overlay"
-      && element.backgroundColor === "#E7ECE8"
-      && element.width === 595,
+    (element) => element.flowRole === "section-background",
   );
   assert.ok(summary);
   assert.equal(summaryBackground?.top, summary.top);
   assert.equal(summaryBackground?.flowGroup, summary.flowGroup);
+  assert.equal(summaryBackground?.id, "vellum-summary-background");
 
   const headings = listDocumentSections(withElementIds(vellumTemplate), PAGE_HEIGHT);
   assert.ok(
@@ -59,26 +95,53 @@ test("Vellum preserves its portrait-led hierarchy and exact date rail", () => {
   assert.equal(period.autoHeight, false);
 });
 
-test("Vellum flow packing keeps the summary tint and period anchored", () => {
+test("Vellum keeps one continuous summary field through spacing, reorder, and live reflow", () => {
   const source = withElementIds(vellumTemplate);
+  const rhythm = { stack: 6, record: 16, section: 28, after_rule: 10 };
   const packed = applyFlowSpacing(
     source,
-    { stack: 6, record: 16, section: 28, after_rule: 10 },
+    rhythm,
     PAGE_HEIGHT,
   );
-  const summary = packed.find(
-    (element) => element.content?.startsWith("Analityczka AML łącząca"),
+  assertSummaryBandIsContinuous(packed);
+
+  const repacked = applyFlowSpacing(packed, rhythm, PAGE_HEIGHT);
+  const packedBackground = packed.find(
+    (element) => element.flowRole === "section-background",
   );
-  const summaryBackground = packed.find(
-    (element) => element.flowRole === "record-overlay"
-      && element.backgroundColor === "#E7ECE8"
-      && element.width === 595,
+  const repackedBackground = repacked.find(
+    (element) => element.flowRole === "section-background",
   );
+  assert.equal(repackedBackground?.top, packedBackground?.top);
+  assert.equal(repackedBackground?.height, packedBackground?.height);
+
   const jobTitle = packed.find((element) => element.content === "Analityczka AML");
   const period = packed.find((element) => element.content === "2022 – obecnie");
-
-  assert.equal(summaryBackground?.page, summary?.page);
-  assert.equal(summaryBackground?.top, summary?.top);
   assert.equal(period?.page, jobTitle?.page);
   assert.equal(period?.top, jobTitle?.top);
+
+  const summarySection = listDocumentSections(repacked, PAGE_HEIGHT).find(
+    (section) => section.title === "PODSUMOWANIE ZAWODOWE",
+  );
+  const reordered = reorderSection(
+    repacked,
+    summarySection.headingId,
+    "down",
+    PAGE_HEIGHT,
+    { spacing: rhythm },
+  );
+  assert.ok(reordered);
+  assertSummaryBandIsContinuous(reordered);
+
+  const reorderedSummary = reordered.find(
+    (element) => element.content?.startsWith("Analityczka AML łącząca"),
+  );
+  const grown = reflowTextareaHeight(
+    reordered,
+    reorderedSummary.element_id,
+    Number(reorderedSummary.height) + 22,
+    PAGE_HEIGHT,
+    { pageTop: 66, bottomMargin: 72, spacing: rhythm },
+  ).elements;
+  assertSummaryBandIsContinuous(grown);
 });

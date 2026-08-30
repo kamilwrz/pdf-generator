@@ -50,7 +50,7 @@ def test_vellum_uses_asymmetric_identity_summary_field_and_circular_photo():
     )
     summary_background = next(
         element for element in elements
-        if element.get("flowRole") == "record-overlay"
+        if element.get("flowRole") == "section-background"
         and element.get("backgroundColor") == "#E7ECE8"
         and element.get("width") == 595
     )
@@ -58,6 +58,7 @@ def test_vellum_uses_asymmetric_identity_summary_field_and_circular_photo():
     assert summary_band["top"] < summary["top"]
     assert summary_background["top"] == summary["top"]
     assert summary_background["flowGroup"] == summary["flowGroup"]
+    assert summary_background["id"] == "vellum-summary-background"
 
 def test_vellum_places_skills_before_experience_and_anchors_periods_exactly():
     elements = generate_resume(

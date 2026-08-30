@@ -1,5 +1,7 @@
 import unittest
+from io import BytesIO
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from types import SimpleNamespace
 
 from app.services.pdf_generator import PDF_Generator
@@ -22,6 +24,15 @@ class RecordingPath:
 
     def close(self):
         self.ops.append(("close",))
+
+    def rect(self, x, y, width, height):
+        self.ops.append(("rect", x, y, width, height))
+
+    def roundRect(self, x, y, width, height, radius):
+        self.ops.append(("roundRect", x, y, width, height, radius))
+
+    def ellipse(self, x1, y1, x2, y2):
+        self.ops.append(("ellipse", x1, y1, x2, y2))
 
     def getCode(self):
         return "path"
@@ -65,6 +76,9 @@ class RecordingCanvas:
     def drawPath(self, path, stroke=1, fill=0):
         self.calls.append(("drawPath", path.ops, stroke, fill))
 
+    def clipPath(self, path, stroke=0, fill=0):
+        self.calls.append(("clipPath", path.ops, stroke, fill))
+
     def drawImage(self, *args, **kwargs):
         self.calls.append(("drawImage", args, kwargs))
 
@@ -73,6 +87,12 @@ class RecordingCanvas:
 
     def restoreState(self):
         self.calls.append(("restoreState",))
+
+    def showPage(self):
+        self.calls.append(("showPage",))
+
+    def save(self):
+        self.calls.append(("save",))
 
 
 class PdfShapeTests(unittest.TestCase):
@@ -129,6 +149,71 @@ class PdfShapeTests(unittest.TestCase):
         _name, args, _kwargs = draw_calls[0]
         # PDF y = page_h - top - h = 842 - 140.7 - 9 = 692.3
         self.assertAlmostEqual(args[2], 692.3, places=1)
+
+    def test_render_elements_clips_vellum_profile_photo_to_an_exact_circle(self):
+        portrait = Path(__file__).resolve().parents[1] / "template_assets" / "regent-portrait.png"
+        element = SimpleNamespace(
+            category="image",
+            src=str(portrait),
+            width=104,
+            height=104,
+            left=433,
+            top=36,
+            page=1,
+            deleted=False,
+            photoSlot="image",
+            photoSlotHidden=False,
+            objectFit="cover",
+            borderRadius=52,
+            alignWithText=False,
+        )
+
+        self.generator.render_elements([element], lambda src: src)
+
+        self.assertIn(
+            ("ellipse", 433.0, 702.0, 537.0, 806.0),
+            self.generator.c.paths[0].ops,
+        )
+        self.assertTrue(any(call[0] == "clipPath" for call in self.generator.c.calls))
+
+    def test_circular_profile_photo_pdf_has_clean_page_colored_corners(self):
+        try:
+            import fitz
+            from PIL import Image
+            from reportlab.pdfgen import canvas
+        except ImportError:
+            self.skipTest("PyMuPDF, Pillow, and ReportLab are required")
+
+        with TemporaryDirectory() as tmp_dir:
+            source = Path(tmp_dir) / "wide-red.png"
+            Image.new("RGB", (180, 90), (220, 10, 10)).save(source)
+            buffer = BytesIO()
+            pdf_canvas = canvas.Canvas(buffer, pagesize=(595, 842))
+            generator = PDF_Generator(
+                SimpleNamespace(page_height=842, page_width=595),
+                pdf_canvas,
+            )
+            generator.renderImage(
+                str(source),
+                100,
+                100,
+                100,
+                100,
+                object_fit="cover",
+                border_radius=50,
+            )
+            pdf_canvas.showPage()
+            pdf_canvas.save()
+
+        document = fitz.open(stream=buffer.getvalue(), filetype="pdf")
+        pixmap = document[0].get_pixmap()
+        raster = Image.frombytes("RGB", (pixmap.width, pixmap.height), pixmap.samples)
+        corner = raster.getpixel((102, 102))
+        center = raster.getpixel((150, 150))
+        self.assertTrue(all(channel >= 245 for channel in corner))
+        self.assertGreater(center[0], 180)
+        self.assertLess(center[1], 60)
+        self.assertLess(center[2], 60)
 
     def test_iconic_png_exports_without_opaque_black_squares(self):
         try:

@@ -360,7 +360,15 @@ def _gen_vellum(cv: dict) -> list[dict]:
                 0, body_top, 595, summary_height + 8.0,
                 palette["band"], zIndex=1, page=page,
             )
-            summary_background["flowRole"] = "record-overlay"
+            # Unlike a date rail, this overlay must also paint the active
+            # chrome-to-body gap introduced by the spacing controls. The
+            # dedicated role lets both structural packing and live textarea
+            # reflow extend the fill upward to the heading band while keeping
+            # its lower padding attached to the summary copy.
+            summary_background.update({
+                "id": "vellum-summary-background",
+                "flowRole": "section-background",
+            })
             builder.els.append(summary_background)
             builder.block(
                 cv["summary"], left, width, body_fs, body_lh,
