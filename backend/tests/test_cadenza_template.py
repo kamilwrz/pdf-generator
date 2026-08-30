@@ -48,6 +48,15 @@ def test_cadenza_uses_editorial_bands_and_its_dedicated_contact_icons():
     assert len(marks) == 1
     assert marks[0]["width"] == 3.0
 
+    heading = next(
+        element for element in elements
+        if element.get("content") == "PODSUMOWANIE ZAWODOWE"
+    )
+    assert heading["left"] == bands[0]["left"]
+    assert heading["width"] == bands[0]["width"]
+    assert heading["align"] == "center"
+    assert heading["letterSpacing"] == 1.8
+
     icons = [element for element in elements if element.get("category") == "image"]
     assert icons
     assert all("/template-assets/iconic/cadenza/" in element["src"] for element in icons)

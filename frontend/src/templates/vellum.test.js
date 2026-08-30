@@ -4,7 +4,9 @@ import test from "node:test";
 import { vellumTemplate } from "./vellum.js";
 import {
   applyFlowSpacing,
+  deriveSectionStyle,
   listDocumentSections,
+  normalizeFilledBandSectionHeading,
   reorderSection,
 } from "../utils/sectionStructure.js";
 import { reflowTextareaHeight } from "../utils/textareaReflow.js";
@@ -84,7 +86,22 @@ test("Vellum preserves its portrait-led hierarchy and exact date rail", () => {
   assert.equal(summaryBackground?.flowGroup, summary.flowGroup);
   assert.equal(summaryBackground?.id, "vellum-summary-background");
 
-  const headings = listDocumentSections(withElementIds(vellumTemplate), PAGE_HEIGHT);
+  const identified = withElementIds(vellumTemplate);
+  const headings = listDocumentSections(identified, PAGE_HEIGHT);
+  const summaryHeading = headings.find(
+    (section) => section.title === "PODSUMOWANIE ZAWODOWE",
+  );
+  const summaryStyle = deriveSectionStyle(
+    identified,
+    PAGE_HEIGHT,
+    summaryHeading.headingId,
+  );
+  assert.equal(summaryStyle.heading.frameWidth, undefined);
+  assert.strictEqual(
+    normalizeFilledBandSectionHeading(identified, summaryHeading.headingId, PAGE_HEIGHT),
+    identified,
+    "a filled summary background without Cadenza's edge accent stays left-aligned",
+  );
   assert.ok(
     headings.findIndex((section) => section.title === "UMIEJĘTNOŚCI")
       < headings.findIndex((section) => section.title === "DOŚWIADCZENIE ZAWODOWE"),

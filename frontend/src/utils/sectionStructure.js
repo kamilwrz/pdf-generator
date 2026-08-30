@@ -919,6 +919,70 @@ export function sectionElementIds(elements, headingId, pageHeight = 842) {
 }
 
 /**
+ * Give a filled-band section heading a stable full-band alignment frame.
+ *
+ * Cadenza historically stored section labels as intrinsic-width text with a
+ * precomputed `left`. That coordinate was valid only for the original label:
+ * changing the content kept the old X position and made shorter or longer
+ * headings drift away from the band's visual centre. A fixed frame plus
+ * `align: "center"` lets CSS re-centre on every contentEditable input event,
+ * while the PDF renderer uses the same persisted width/alignment contract.
+ *
+ * The function also repairs older saved sections on their first edit. It is a
+ * no-op for templates without the explicit filled-band signature and returns
+ * the original array reference when the heading is already normalised.
+ *
+ * @param {object[]} elements
+ * @param {string} headingId
+ * @param {number} [pageHeight=842]
+ * @returns {object[]}
+ */
+export function normalizeFilledBandSectionHeading(elements, headingId, pageHeight = 842) {
+  const list = Array.isArray(elements) ? elements : [];
+  const heading = list.find((element) => element.element_id === headingId);
+  if (
+    !heading
+    || heading.flowRole !== "section-chrome"
+    || (heading.category !== "text" && heading.category !== "textarea")
+  ) {
+    return list;
+  }
+
+  const memberIds = sectionElementIds(list, headingId, pageHeight);
+  const band = list.find((element) => (
+    memberIds.has(element.element_id) && isFilledSectionBand(element)
+  ));
+  if (!band) return list;
+  const accent = list.find((element) => (
+    memberIds.has(element.element_id)
+    && isMatchingSectionBandAccent(element, band, pageHeight)
+  ));
+  // A filled background alone is not an alignment contract. Vellum's summary
+  // band is intentionally left-aligned and has no narrow edge marker; the
+  // paired band/accent signature isolates Cadenza without a template-id branch.
+  if (!accent) return list;
+
+  const frameLeft = Number(band.left);
+  const frameWidth = Number(band.width);
+  if (!Number.isFinite(frameLeft) || !Number.isFinite(frameWidth) || frameWidth <= 0) {
+    return list;
+  }
+  if (
+    Number(heading.left) === frameLeft
+    && Number(heading.width) === frameWidth
+    && heading.align === "center"
+  ) {
+    return list;
+  }
+
+  return list.map((element) => (
+    element.element_id === headingId
+      ? { ...element, left: frameLeft, width: frameWidth, align: "center" }
+      : element
+  ));
+}
+
+/**
  * Sections eligible for the inline/bullet-list layout toggle: exactly one
  * non-chrome `textarea` body element, whose content currently parses into at
  * least two items. Record-style sections (Experience, Education, Projects, …)
@@ -3021,6 +3085,17 @@ export function deriveSectionStyle(
   // the complete authored cluster without weakening cross-column protection
   // for unrelated sidebar shapes.
   const filledSectionBand = members.find((element) => isFilledSectionBand(element)) || null;
+  const filledSectionBandAccent = filledSectionBand
+    ? members.find((element) => (
+      isMatchingSectionBandAccent(element, filledSectionBand, pageHeight)
+    )) || null
+    : null;
+  const filledBandLeft = Number(filledSectionBand?.left);
+  const filledBandWidth = Number(filledSectionBand?.width);
+  const hasCenteredHeadingFrame = Boolean(filledSectionBandAccent)
+    && Number.isFinite(filledBandLeft)
+    && Number.isFinite(filledBandWidth)
+    && filledBandWidth > 0;
 
   // Decorative shapes cluster near the heading's own left edge in most
   // templates (Nimbus, Monument, Cinder, …), but Cinder places its
@@ -3182,6 +3257,12 @@ export function deriveSectionStyle(
       color: String(heading?.color || defaults.heading.color),
       letterSpacing: Number(heading?.letterSpacing) || 0,
       bold: Boolean(heading?.bold),
+      // Filled-band labels use the whole band as their alignment box. This is
+      // intentionally separate from `style.left`, which remains the sampled
+      // heading origin used to preserve marker/rule relative offsets.
+      ...(hasCenteredHeadingFrame
+        ? { frameLeft: filledBandLeft, frameWidth: filledBandWidth, align: "center" }
+        : {}),
     },
     rule: rule
       ? {

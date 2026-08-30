@@ -610,7 +610,19 @@ class PDF_Generator:
             self.c.setStrokeColor(HexColor(color))
             self.c.line(x, uy, x + width, uy)
 
-    def renderText(self, left, top, fontFamily, fontSize, color, content, bold=False, italic=False, underline=False, runs=None, textTransform=None):
+    def renderText(
+        self, left, top, fontFamily, fontSize, color, content,
+        bold=False, italic=False, underline=False, runs=None,
+        textTransform=None, width=None, align="left", letterSpacing=0.0,
+    ):
+        """Render one editable single-line text element.
+
+        Intrinsic-width text keeps the historical absolute-X behavior. When a
+        positive ``width`` and horizontal ``align`` are provided, the string is
+        positioned inside that frame using the exact font variant and tracking
+        used for drawing. This is the export counterpart of the canvas text
+        alignment frame used by editable Cadenza section headings.
+        """
         # Display-and-render casing (Phase 3 masthead identity). Uppercasing here
         # keeps the STORED content original-case so the toggle is reversible, while
         # the drawn glyphs match the canvas. Uppercase preserves character count, so
@@ -618,23 +630,51 @@ class PDF_Generator:
         # string.
         if textTransform == "uppercase" and content:
             content = content.upper()
+        letter_spacing = float(letterSpacing or 0.0)
+        try:
+            frame_width = float(width) if width is not None else None
+        except (TypeError, ValueError):
+            frame_width = None
+        if frame_width is not None and frame_width <= 0:
+            frame_width = None
+
+        def aligned_left(line_width):
+            if frame_width is None:
+                return left
+            if align == "center":
+                return left + (frame_width - line_width) / 2.0
+            if align == "right":
+                return left + frame_width - line_width
+            return left
+
         corrected_y = self.page_h - top - fontSize * 0.34
         prepared = self._prepare_styled(content, runs, bold, italic, underline, color)
         if prepared is None:
             # Fast path: uniform single-line text, byte-identical to before runs.
-            self._draw_text_line(left, corrected_y, content, fontFamily, fontSize, color, bold, italic, underline)
+            draw_font, _, _ = self._resolve_font(fontFamily, bold, italic)
+            line_width = self._line_width(content, draw_font, fontSize, letter_spacing)
+            self._draw_text_line(
+                aligned_left(line_width), corrected_y, content, fontFamily,
+                fontSize, color, bold, italic, underline, letter_spacing,
+            )
             return
         # Single line: no wrapping, just draw each styled piece left-to-right,
         # advancing x by the piece's rendered width.
         clean, clean_styles = prepared
-        piece_x = left
-        for text, (piece_bold, piece_italic, piece_underline, piece_color) in self._line_to_pieces(clean, clean_styles):
+        pieces = self._line_to_pieces(clean, clean_styles)
+        line_width = 0.0
+        for text, (piece_bold, piece_italic, _piece_underline, _piece_color) in pieces:
+            piece_font, _, _ = self._resolve_font(fontFamily, piece_bold, piece_italic)
+            line_width += self._line_width(text, piece_font, fontSize, letter_spacing)
+        piece_x = aligned_left(line_width)
+        for text, (piece_bold, piece_italic, piece_underline, piece_color) in pieces:
             self._draw_text_line(
                 piece_x, corrected_y, text, fontFamily, fontSize,
                 piece_color or color, piece_bold, piece_italic, piece_underline,
+                letter_spacing,
             )
             piece_font, _, _ = self._resolve_font(fontFamily, piece_bold, piece_italic)
-            piece_x += self._line_width(text, piece_font, fontSize, 0.0)
+            piece_x += self._line_width(text, piece_font, fontSize, letter_spacing)
 
     @staticmethod
     def _line_width(text, font, size, letter_spacing):
@@ -1435,6 +1475,9 @@ class PDF_Generator:
                         getattr(element, "bold", False), getattr(element, "italic", False), getattr(element, "underline", False),
                         getattr(element, "runs", None),
                         getattr(element, "textTransform", None),
+                        getattr(element, "width", None),
+                        getattr(element, "align", "left") or "left",
+                        getattr(element, "letterSpacing", 0.0) or 0.0,
                     )
                 elif category == "textarea":
                     self.renderTextarea(

@@ -2,6 +2,8 @@
 uppercase in the PDF while the stored content keeps its original case."""
 from types import SimpleNamespace
 
+import pytest
+
 from app.services.pdf_generator import PDF_Generator
 
 
@@ -26,6 +28,36 @@ def test_render_text_leaves_content_untouched_without_flag():
     gen, drawn = _capturing_generator()
     gen.renderText(10, 10, "Inter", 12, "#000000", "Jan Kowalski")
     assert drawn == ["Jan Kowalski"]
+
+
+def test_render_text_centers_every_input_value_inside_its_alignment_frame():
+    gen = PDF_Generator(SimpleNamespace(page_height=842, page_width=595), None)
+    drawn = []
+    gen._draw_text_line = (  # type: ignore[method-assign]
+        lambda x, _y, text, _family, _size, _color,
+        _bold=False, _italic=False, _underline=False,
+        letter_spacing=0.0, _word_space=0.0:
+        drawn.append((x, text, letter_spacing))
+    )
+    left = 58.0
+    width = 479.0
+    band_center = left + width / 2.0
+    font_size = 7.4
+    tracking = 1.8
+    draw_font, _, _ = gen._resolve_font("Montserrat", True, False)
+
+    for value in ("N", "NOWA SEKCJA", "BARDZO DŁUGA NAZWA SEKCJI"):
+        drawn.clear()
+        gen.renderText(
+            left, 100, "Montserrat", font_size, "#263238", value,
+            bold=True, width=width, align="center", letterSpacing=tracking,
+        )
+        text_width = gen._line_width(value, draw_font, font_size, tracking)
+        assert len(drawn) == 1
+        draw_x, rendered, rendered_tracking = drawn[0]
+        assert rendered == value
+        assert rendered_tracking == tracking
+        assert draw_x + text_width / 2.0 == pytest.approx(band_center)
 
 
 def test_render_textarea_uppercases_when_flagged():

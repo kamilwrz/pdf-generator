@@ -30,8 +30,11 @@ function Text({
     fontSize,
     color,
     fontFamily,
+    letterSpacing,
     left,
     top,
+    width,
+    align,
     isSelected,
     isEditing,
     isMove,
@@ -72,6 +75,10 @@ function Text({
     const editorPlaceholder = placeholder
         || (mastheadRole === "title" ? MASTHEAD_TITLE_PLACEHOLDER : undefined);
 
+    const frameWidth = Number(width);
+    const hasAlignmentFrame = Number.isFinite(frameWidth)
+        && frameWidth > 0
+        && ["left", "center", "right"].includes(align);
     const style = {
         fontSize: `${fontSize}px`,
         color,
@@ -80,6 +87,7 @@ function Text({
         fontWeight: bold ? 700 : 400,
         fontStyle: italic ? "italic" : "normal",
         textDecoration: underline ? "underline" : "none",
+        letterSpacing: `${Number(letterSpacing) || 0}px`,
         // Display-only casing (Phase 3 masthead identity). CSS transforms the
         // rendered glyphs while the contentEditable value stays original-case, so
         // the name-case toggle is reversible and serialization is unchanged.
@@ -87,6 +95,7 @@ function Text({
         position: "absolute",
         left,
         top,
+        ...(hasAlignmentFrame ? { width: frameWidth, textAlign: align } : {}),
         zIndex,
         ...(fixedToPage ? { pointerEvents: "none" } : {}),
     };

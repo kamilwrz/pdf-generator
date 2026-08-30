@@ -356,7 +356,9 @@ export function buildSectionElements({
     category: "text",
     content: label,
     flowRole: chromeRole,
-    left,
+    left: Number.isFinite(Number(style.heading.frameLeft))
+      ? Number(style.heading.frameLeft)
+      : left,
     top: 0,
     fontSize: style.heading.fontSize,
     fontFamily: style.heading.fontFamily,
@@ -374,6 +376,10 @@ export function buildSectionElements({
     editorSectionId: headingId,
     editorSectionLayout: layout,
   };
+  if (Number.isFinite(Number(style.heading.frameWidth)) && Number(style.heading.frameWidth) > 0) {
+    headingElement.width = Number(style.heading.frameWidth);
+  }
+  if (style.heading.align) headingElement.align = style.heading.align;
   if (flowLane) headingElement.flowLane = flowLane;
   elements.push(headingElement);
 

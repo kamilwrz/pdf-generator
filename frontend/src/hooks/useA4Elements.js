@@ -30,6 +30,7 @@ import {
   isSidebarSectionHeading,
   listDocumentSections,
   listSidebarSections,
+  normalizeFilledBandSectionHeading,
   removeSection,
   reorderSection,
 } from '../utils/sectionStructure';
@@ -1595,6 +1596,20 @@ export function useA4Elements(titleRef) {
             edited.fontSize,
           );
           return resizeContentSizedTitleDecorations(newState, edited, measured);
+        }
+        if (
+          edited?.flowRole === "section-chrome"
+          && (edited.category === "text" || edited.category === "textarea")
+        ) {
+          // Text.onInput calls this updater for every keystroke. Normalising a
+          // legacy Cadenza title here gives it a persistent full-band frame;
+          // subsequent content changes are centred automatically by CSS and
+          // export uses the same width/alignment values.
+          return normalizeFilledBandSectionHeading(
+            newState,
+            id,
+            pageSizeRef.current.height,
+          );
         }
         if (
           edited?.autoHeight

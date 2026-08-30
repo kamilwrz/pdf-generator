@@ -18,7 +18,6 @@ from app.services.cv_generator_primitives import (
     _block,
     _line,
     _text,
-    _text_width,
     get_spacing,
 )
 from app.services.cv_templates.shared.contact import (
@@ -275,14 +274,18 @@ def _gen_cadenza(cv: dict) -> list[dict]:
         y, page = builder.y, builder.pg
         band = _line(left, y, width, _SECTION_BAND_H, palette["band"], zIndex=1, page=page)
         mark = _line(left, y, _SECTION_MARK_W, _SECTION_BAND_H, palette["accent"], zIndex=2, page=page)
-        visible_label_width = _text_width(label, sans, section_label_fs)
-        visible_label_width += max(len(label) - 1, 0) * 1.8
         heading = _text(
             label, section_label_fs, sans, palette["ink"],
-            left + (width - visible_label_width) / 2.0, y + 5.1,
+            left, y + 5.1,
             zIndex=3, page=page, bold=True,
         )
         heading["letterSpacing"] = 1.8
+        # Keep the label in a persistent full-band alignment frame. The editor
+        # can then re-centre every contentEditable input without recomputing a
+        # one-off X coordinate, and the PDF renderer consumes the same width /
+        # align contract for export.
+        heading["width"] = width
+        heading["align"] = "center"
         for element in (band, mark, heading):
             element["flowRole"] = "section-chrome"
         builder.els.extend([band, mark, heading])

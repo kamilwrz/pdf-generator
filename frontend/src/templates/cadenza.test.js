@@ -8,6 +8,7 @@ import {
     applyFlowSpacing,
     deriveSectionStyle,
     listDocumentSections,
+    normalizeFilledBandSectionHeading,
     reorderSection,
     sectionElementIds,
 } from "../utils/sectionStructure.js";
@@ -98,6 +99,21 @@ test("Cadenza preserves its editorial hierarchy and exact date rail", () => {
     assert.ok(bands.every((element) => element.width === 479));
     assert.ok(marks.every((element) => element.width === 3));
 
+    const headings = cadenzaTemplate.filter((element) => (
+        element.flowRole === "section-chrome" && element.category === "text"
+    ));
+    assert.equal(headings.length, bands.length);
+    for (const heading of headings) {
+        const band = bands.find((candidate) => (
+            Math.abs(Number(candidate.top) + 5.1 - Number(heading.top)) < 0.01
+        ));
+        assert.ok(band, `${heading.content} keeps its owning title band`);
+        assert.equal(heading.left, band.left);
+        assert.equal(heading.width, band.width);
+        assert.equal(heading.align, "center");
+        assert.equal(heading.letterSpacing, 1.8);
+    }
+
     const jobTitle = cadenzaTemplate.find((element) => element.content === "Analityczka AML");
     const period = cadenzaTemplate.find((element) => element.content === "2022 – obecnie");
     assert.ok(jobTitle);
@@ -155,6 +171,56 @@ test("Cadenza Add section reproduces the filled title band and accent", () => {
     assert.ok(accent, "the added section keeps Cadenza's narrow copper accent");
     assert.equal(absoluteTop(accent), absoluteTop(band));
     assert.equal(accent.left, band.left);
+    const heading = members.find((element) => element.element_id === built.headingId);
+    assert.equal(heading.left, band.left);
+    assert.equal(heading.width, band.width);
+    assert.equal(heading.align, "center");
+});
+
+test("Cadenza re-centres a legacy added heading after every input value", () => {
+    const source = withElementIds(cadenzaTemplate);
+    const anchor = listDocumentSections(source, PAGE_HEIGHT).at(-1);
+    const style = deriveSectionStyle(source, PAGE_HEIGHT, anchor.headingId);
+    let nextId = 0;
+    const built = buildSectionElements({
+        name: "NOWA SEKCJA",
+        layout: SECTION_LAYOUTS.RECORD_SUBCATEGORY,
+        style,
+        spacing: DEFAULT_FLOW_SPACING,
+        idFactory: () => `cadenza-live-${nextId += 1}`,
+    });
+    const appended = appendSectionAtEnd(
+        source,
+        built.elements,
+        PAGE_HEIGHT,
+        { spacing: DEFAULT_FLOW_SPACING },
+    );
+    // Simulate a document saved before the full-band alignment contract.
+    let edited = appended.map((element) => {
+        if (element.element_id !== built.headingId) return element;
+        const legacy = { ...element, left: style.left };
+        delete legacy.width;
+        delete legacy.align;
+        return legacy;
+    });
+
+    for (const content of ["N", "NOWA SEKCJA", "BARDZO DŁUGA NAZWA SEKCJI"]) {
+        edited = edited.map((element) => (
+            element.element_id === built.headingId ? { ...element, content } : element
+        ));
+        edited = normalizeFilledBandSectionHeading(edited, built.headingId, PAGE_HEIGHT);
+        const members = sectionMembers(edited, built.headingId);
+        const heading = members.find((element) => element.element_id === built.headingId);
+        const band = members.find((element) => (
+            element.backgroundColor === "#E8EDEE" && Number(element.width) === 479
+        ));
+
+        assert.ok(band);
+        assert.equal(heading.content, content);
+        assert.equal(heading.left, band.left);
+        assert.equal(heading.width, band.width);
+        assert.equal(heading.align, "center");
+    }
 });
 
 test("Cadenza spacing remains idempotent and keeps every title band together", () => {
