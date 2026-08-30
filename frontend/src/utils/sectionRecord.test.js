@@ -177,6 +177,124 @@ describe("appendRecordToSection", () => {
     assert.equal(result.firstBodyId, groups[1][0].element_id);
   });
 
+  it("preserves a right-column metadata rail and assigns field-specific placeholders", () => {
+    const pageHeight = 842;
+    const heading = {
+      element_id: "rail-heading",
+      category: "text",
+      content: "WYKSZTAŁCENIE",
+      flowRole: "section-chrome",
+      left: 62,
+      top: 100,
+      height: 13,
+      page: 1,
+    };
+    const group = "rail-education";
+    const elements = [
+      heading,
+      {
+        element_id: "rail-degree", category: "textarea", content: "Magister informatyki",
+        flowRole: "content", flowGroup: group, bold: true, autoHeight: true,
+        left: 62, top: 125, width: 329, height: 13, fontSize: 9.8, lineHeight: 12.5, page: 1,
+      },
+      {
+        element_id: "rail-period", category: "textarea", content: "2018 – 2023",
+        flowRole: "record-overlay", flowGroup: group, align: "right", autoHeight: false,
+        left: 403, top: 125, width: 130, height: 11, fontSize: 7.9, lineHeight: 10.8, page: 1,
+      },
+      {
+        element_id: "rail-school", category: "textarea", content: "Politechnika Warszawska",
+        flowRole: "content", flowGroup: group, autoHeight: true,
+        left: 62, top: 142, width: 329, height: 13, fontSize: 9.8, lineHeight: 12.5, page: 1,
+      },
+      {
+        element_id: "rail-location", category: "textarea", content: "Warszawa",
+        flowRole: "record-overlay", flowGroup: group, align: "right", autoHeight: false,
+        left: 403, top: 142, width: 130, height: 11, fontSize: 7.9, lineHeight: 10.8, page: 1,
+      },
+    ];
+
+    const result = appendRecordToSection(elements, heading.element_id, pageHeight, {
+      idFactory: makeIdFactory("rail-new"),
+    });
+    assert.ok(result);
+
+    const records = partitionSectionRecords(
+      listSectionContentElements(result.elements, heading.element_id, pageHeight),
+    );
+    assert.equal(records.length, 2);
+    const added = records[1];
+    assert.equal(added.length, 4, "the clone keeps the authored two-row/two-overlay shape");
+
+    const degree = added.find((element) => element.content === "Nazwa wpisu");
+    const school = added.find((element) => element.content === "Organizacja");
+    const period = added.find((element) => element.content === "Okres");
+    const location = added.find((element) => element.content === "Lokalizacja");
+    assert.ok(degree);
+    assert.ok(school);
+    assert.ok(period);
+    assert.ok(location);
+    assert.equal(degree.left, 62);
+    assert.equal(school.left, 62);
+    assert.equal(period.left, 403);
+    assert.equal(location.left, 403);
+    assert.equal(period.align, "right");
+    assert.equal(location.align, "right");
+    assert.equal(period.autoHeight, false);
+    assert.equal(location.autoHeight, false);
+    assert.equal(period.top, degree.top, "period stays level with the degree/title row");
+    assert.equal(location.top, school.top, "location stays level with the school row");
+  });
+
+  it("keeps an experience period on the title row without inventing a vertical period field", () => {
+    const pageHeight = 842;
+    const heading = {
+      element_id: "exp-rail-heading", category: "text", content: "DOŚWIADCZENIE ZAWODOWE",
+      flowRole: "section-chrome", left: 62, top: 100, height: 13, page: 1,
+    };
+    const group = "rail-experience";
+    const elements = [
+      heading,
+      {
+        element_id: "exp-rail-title", category: "textarea", content: "Analityk",
+        flowRole: "content", flowGroup: group, bold: true, autoHeight: true,
+        left: 62, top: 125, width: 329, height: 13, fontSize: 10.3, lineHeight: 13, page: 1,
+      },
+      {
+        element_id: "exp-rail-period", category: "textarea", content: "2023 – obecnie",
+        flowRole: "record-overlay", flowGroup: group, align: "right", autoHeight: false,
+        left: 403, top: 125, width: 130, height: 11, fontSize: 7.9, lineHeight: 10.8, page: 1,
+      },
+      {
+        element_id: "exp-rail-company", category: "textarea", content: "Firma",
+        flowRole: "content", flowGroup: group, autoHeight: true,
+        left: 62, top: 142, width: 329, height: 11, fontSize: 7.9, lineHeight: 10.8, page: 1,
+      },
+      {
+        element_id: "exp-rail-description", category: "textarea", content: "• Osiągnięcie",
+        flowRole: "content", flowGroup: group, bulletList: true, autoHeight: true,
+        left: 62, top: 157, width: 471, height: 11, fontSize: 8.6, lineHeight: 11, page: 1,
+      },
+    ];
+
+    const result = appendRecordToSection(elements, heading.element_id, pageHeight, {
+      idFactory: makeIdFactory("exp-rail-new"),
+    });
+    assert.ok(result);
+    const added = partitionSectionRecords(
+      listSectionContentElements(result.elements, heading.element_id, pageHeight),
+    )[1];
+    const title = added.find((element) => element.content === "Nazwa wpisu");
+    const period = added.find((element) => element.content === "Okres");
+    assert.equal(added.length, 4);
+    assert.ok(title);
+    assert.ok(period);
+    assert.equal(period.left, 403);
+    assert.equal(period.top, title.top);
+    assert.ok(added.some((element) => element.content === "Organizacja · lokalizacja"));
+    assert.ok(added.some((element) => element.content === "Opis…"));
+  });
+
   it("appends a skills subcategory as heading + body, not an education record", () => {
     const pageHeight = 842;
     const groupId = "skills-lang";

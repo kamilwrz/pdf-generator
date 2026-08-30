@@ -175,7 +175,14 @@ function findGroupOverlayAnchor(group, overlayElement, pageHeight) {
   let best = null;
   let bestDelta = Infinity;
   for (const candidate of group) {
-    if (candidate.element_id === overlayElement.element_id) continue;
+    if (
+      candidate === overlayElement
+      || (
+        candidate.element_id
+        && overlayElement.element_id
+        && candidate.element_id === overlayElement.element_id
+      )
+    ) continue;
     if (candidate.flowGroup !== groupId) continue;
     if (isRecordOverlay(candidate, group, pageHeight)) continue;
     const delta = Math.abs(absoluteTop(candidate, pageHeight) - overlayAbs);
@@ -332,20 +339,94 @@ export function sectionSupportsRecordAdd(elements, headingId, pageHeight = 842) 
  */
 export function inferRecordLayout(members, options = {}) {
   const list = members || [];
-  const count = list.length;
+  // Right-column dates and locations are fields in the record, but they are
+  // not extra rows in its vertical layout. Classify from the flowing column
+  // so a three-row experience record remains experience when it also owns one
+  // or two `record-overlay` fields.
+  const linear = list.filter((element) => !isRecordOverlay(element, list));
+  const hasOverlay = linear.length !== list.length;
+  const count = linear.length;
+  if (hasOverlay && isEducationSectionTitle(options.sectionTitle)) {
+    return SECTION_LAYOUTS.RECORD_EDUCATION;
+  }
+  if (isSkillsSectionTitle(options.sectionTitle)) {
+    return SECTION_LAYOUTS.RECORD_SUBCATEGORY;
+  }
   if (count >= 4) return SECTION_LAYOUTS.RECORD_EDUCATION;
   if (count === 3) {
-    if (list.some((element) => element.bulletList)) {
+    if (linear.some((element) => element.bulletList)) {
       return SECTION_LAYOUTS.RECORD_EXPERIENCE;
     }
     // degree / school / city·period without description
     return SECTION_LAYOUTS.RECORD_EDUCATION;
   }
   // Bare 2-line bold+body is ambiguous (subcategory vs short education).
-  if (count === 2 && list[0]?.bold && isSubcategorySectionTitle(options.sectionTitle)) {
+  if (count === 2 && linear[0]?.bold && isSubcategorySectionTitle(options.sectionTitle)) {
     return SECTION_LAYOUTS.RECORD_SUBCATEGORY;
   }
   return null;
+}
+
+/**
+ * Field copy for records that place metadata beside flowing text.
+ *
+ * The relationship is derived from structure, not a template name: an overlay
+ * pinned to the bold title/degree row is the period, while an overlay pinned to
+ * the organisation/school row is the location. This covers Cadenza, Meridian,
+ * Vellum, and any later template authored with the same `record-overlay`
+ * contract. Records without overlays keep the legacy positional placeholders.
+ *
+ * @param {object[]} members
+ * @param {"cc-edu"|"cc-exp"|"cc-sub"|null} layout
+ * @returns {string[]|null}
+ */
+function overlayRecordPlaceholders(members, layout) {
+  const list = members || [];
+  const overlays = list.filter((element) => isRecordOverlay(element, list));
+  if (overlays.length === 0) return null;
+
+  const linear = list.filter((element) => !isRecordOverlay(element, list));
+  const overlayAnchors = new Map(overlays.map((overlay, index) => [
+    overlay,
+    findGroupOverlayAnchor(list, overlay, 842) || linear[index] || linear[0] || null,
+  ]));
+  const locationAnchorIds = new Set(overlays.flatMap((overlay, index) => {
+    const anchor = overlayAnchors.get(overlay);
+    const isPeriod = Boolean(anchor?.bold)
+      || (!linear.some((element) => element?.bold) && index === 0);
+    return isPeriod || !anchor?.element_id ? [] : [anchor.element_id];
+  }));
+
+  let plainLineIndex = 0;
+  let overlayIndex = 0;
+  return list.map((element) => {
+    if (isRecordOverlay(element, list)) {
+      const anchor = overlayAnchors.get(element);
+      const isPeriod = Boolean(anchor?.bold)
+        || (!linear.some((candidate) => candidate?.bold) && overlayIndex === 0);
+      overlayIndex += 1;
+      return isPeriod ? "Okres" : "Lokalizacja";
+    }
+    if (element?.bulletList) return PLACEHOLDER.education[3];
+    if (element?.bold) return PLACEHOLDER.education[0];
+
+    const currentPlainIndex = plainLineIndex;
+    plainLineIndex += 1;
+    if (layout === SECTION_LAYOUTS.RECORD_SUBCATEGORY) {
+      return currentPlainIndex === 0
+        ? PLACEHOLDER.subcategory[0]
+        : PLACEHOLDER.subcategory[1];
+    }
+
+    // When a location already has its own right-column field, the left row is
+    // organisation only. Otherwise retain location in the flowing metadata so
+    // a period-only rail does not remove a field from the generic record.
+    const hasRightLocation = element?.element_id
+      ? locationAnchorIds.has(element.element_id)
+      : overlays.some((overlay) => overlayAnchors.get(overlay) === element
+        && !element.bold);
+    return hasRightLocation ? "Organizacja" : "Organizacja · lokalizacja";
+  });
 }
 
 /**
@@ -357,6 +438,8 @@ export function inferRecordLayout(members, options = {}) {
  */
 export function placeholderContentsForRecord(members, options = {}) {
   const layout = inferRecordLayout(members, options);
+  const overlayPlaceholders = overlayRecordPlaceholders(members, layout);
+  if (overlayPlaceholders) return overlayPlaceholders;
   if (layout === SECTION_LAYOUTS.RECORD_EDUCATION) {
     return [...PLACEHOLDER.education];
   }
@@ -445,6 +528,11 @@ export function ensureCanonicalRecordTemplate(
   const source = members || [];
   if (source.length === 0) return source;
 
+  // An explicit overlay rail is already a complete, template-authored record
+  // shape. Expanding it by raw element count would turn right-column metadata
+  // into invented vertical rows and destroy the source structure.
+  if (source.some((element) => isRecordOverlay(element, source))) return source;
+
   const sectionTitle = options.sectionTitle ?? null;
   const layout = inferRecordLayout(source, { sectionTitle });
   // Subcategory / heading+body — keep the 2-line shape.
@@ -527,7 +615,7 @@ export function ensureCanonicalRecordTemplate(
  * @param {object[]} members last record members in reading order
  * @param {() => string} [idFactory]
  * @param {object[][]|null} [sectionGroups]
- * @param {{ sectionTitle?: string|null }} [options]
+ * @param {{ sectionTitle?: string|null, pageHeight?: number }} [options]
  * @returns {object[]}
  */
 export function buildRecordClone(
@@ -537,12 +625,17 @@ export function buildRecordClone(
   options = {},
 ) {
   const sectionTitle = options.sectionTitle ?? null;
+  const pageHeight = Number(options.pageHeight) || 842;
   const source = ensureCanonicalRecordTemplate(members, sectionGroups, {
     sectionTitle,
   });
   if (source.length === 0) return [];
   const placeholders = placeholderContentsForRecord(source, { sectionTitle });
   const group = `record-${idFactory()}`;
+  const realSource = source.filter((element) => !isRecordOverlay(element, source, pageHeight));
+  const originAbs = realSource.length > 0
+    ? absoluteTop(realSource[0], pageHeight)
+    : absoluteTop(source[0], pageHeight);
   return source.map((element, index) => {
     const fontSize = Number(element.fontSize) || 9.3;
     const lineHeight = Number(element.lineHeight) || Math.round(fontSize * 1.4);
@@ -561,10 +654,15 @@ export function buildRecordClone(
       content,
       flowRole: element.flowRole || "content",
       flowGroup: group,
-      autoHeight: element.category === "text" ? Boolean(element.autoHeight) : true,
+      autoHeight: isRecordOverlay(element, source, pageHeight)
+        ? false
+        : (element.category === "text" ? Boolean(element.autoHeight) : true),
       preserveInitialLayout: true,
       left: Number(element.left) || 66,
-      top: 0,
+      // Retain source-relative Y long enough for placement to recover which
+      // flowing row owns each right-column overlay. Callers translate the
+      // completed record to its final page before the document packer runs.
+      top: absoluteTop(element, pageHeight) - originAbs,
       width,
       height,
       fontSize,
@@ -589,6 +687,85 @@ export function buildRecordClone(
     if (element.flowLane === "sidebar") next.flowLane = "sidebar";
     return next;
   });
+}
+
+/**
+ * Translate a cloned record to a flow position without counting overlays as
+ * vertical rows. Overlay fields are pinned to the same cloned row as in the
+ * source record, preserving any small authored baseline correction.
+ *
+ * @param {object[]} clones
+ * @param {number} startAbs
+ * @param {object} rhythm
+ * @param {number} pageHeight
+ * @param {{ intoSidebar?: boolean, bandCeiling?: number|null }} [options]
+ * @returns {object[]}
+ */
+function placeRecordClone(
+  clones,
+  startAbs,
+  rhythm,
+  pageHeight,
+  { intoSidebar = false, bandCeiling = null } = {},
+) {
+  const list = clones || [];
+  const real = list.filter((element) => !isRecordOverlay(element, list, pageHeight));
+  const overlays = list.filter((element) => isRecordOverlay(element, list, pageHeight));
+  const overlayAnchors = new Map(overlays.map((overlay) => [
+    overlay.element_id,
+    findGroupOverlayAnchor(list, overlay, pageHeight),
+  ]));
+
+  const deltas = overlays.map((overlay) => {
+    const anchor = overlayAnchors.get(overlay.element_id);
+    return anchor
+      ? absoluteTop(overlay, pageHeight) - absoluteTop(anchor, pageHeight)
+      : 0;
+  });
+  const maxPositiveDelta = Math.max(0, ...deltas);
+  const tightBand = bandCeiling != null && Number.isFinite(Number(bandCeiling));
+  const microAdvance = tightBand ? 0.01 : null;
+  let cursorAbs = Number(startAbs) || 0;
+  if (tightBand) {
+    // Keep every provisional member inside the section's old membership band
+    // while retaining distinct row tops, so the packer can still pair each
+    // overlay with the correct row before it opens real space for the record.
+    cursorAbs = Math.min(
+      cursorAbs,
+      Number(bandCeiling) - Math.max(0, real.length - 1) * microAdvance - maxPositiveDelta,
+    );
+  }
+
+  const placedById = new Map();
+  for (const element of real) {
+    const page = Math.max(1, Math.floor(cursorAbs / pageHeight) + 1);
+    const top = cursorAbs - (page - 1) * pageHeight;
+    const placed = { ...element, page, top };
+    if (intoSidebar) placed.flowLane = "sidebar";
+    placedById.set(element.element_id, placed);
+    cursorAbs += microAdvance ?? (elementHeight(element) + rhythm.stack);
+  }
+
+  const placedOverlays = new Map();
+  overlays.forEach((overlay, index) => {
+    const anchor = overlayAnchors.get(overlay.element_id);
+    const placedAnchor = anchor ? placedById.get(anchor.element_id) : null;
+    let overlayAbs = placedAnchor
+      ? absoluteTop(placedAnchor, pageHeight) + deltas[index]
+      : cursorAbs;
+    if (tightBand) overlayAbs = Math.min(overlayAbs, Number(bandCeiling));
+    const page = Math.max(1, Math.floor(overlayAbs / pageHeight) + 1);
+    const top = overlayAbs - (page - 1) * pageHeight;
+    const placed = { ...overlay, page, top };
+    if (intoSidebar) placed.flowLane = "sidebar";
+    placedOverlays.set(overlay.element_id, placed);
+  });
+
+  return list.map((element) => (
+    placedById.get(element.element_id)
+    || placedOverlays.get(element.element_id)
+    || element
+  ));
 }
 
 /**
@@ -620,11 +797,13 @@ export function appendRecordToSection(
   const sectionTitle = heading?.content ?? null;
   const clones = buildRecordClone(templateGroup, idFactory, groups, {
     sectionTitle,
+    pageHeight,
   });
   if (clones.length === 0) return null;
 
   const rhythm = normalizeFlowSpacing(spacing || DEFAULT_FLOW_SPACING);
-  const lastBody = body[body.length - 1];
+  const flowingBody = body.filter((element) => !isRecordOverlay(element, body, pageHeight));
+  const lastBody = flowingBody[flowingBody.length - 1] || body[body.length - 1];
   const intoSidebar = Boolean(heading && isSidebarSectionHeading(heading));
 
   // New lines must stay inside this section's absolute band so
@@ -647,22 +826,9 @@ export function appendRecordToSection(
   if (bandCeiling != null) {
     cursorAbs = Math.min(cursorAbs, bandCeiling);
   }
-
-  const placedClones = clones.map((element) => {
-    let abs = cursorAbs;
-    if (bandCeiling != null) {
-      abs = Math.min(abs, bandCeiling);
-    }
-    const page = Math.max(1, Math.floor(abs / pageHeight) + 1);
-    const top = abs - (page - 1) * pageHeight;
-    const placed = { ...element, page, top };
-    if (intoSidebar) placed.flowLane = "sidebar";
-    // Micro-advance under a tight ceiling so every clone stays in-band even
-    // when stacked on top of each other; the packer resolves real gaps.
-    cursorAbs = bandCeiling != null
-      ? abs + 0.01
-      : abs + elementHeight(element) + rhythm.stack;
-    return placed;
+  const placedClones = placeRecordClone(clones, cursorAbs, rhythm, pageHeight, {
+    intoSidebar,
+    bandCeiling,
   });
 
   const next = applyFlowSpacing(
@@ -931,15 +1097,24 @@ export function insertRecordBlockAfterRecord(
   const sectionTitle = heading?.content ?? null;
   const clones = buildRecordClone(templateGroup, idFactory, groups, {
     sectionTitle,
+    pageHeight,
   });
   if (clones.length === 0) return null;
 
   const rhythm = normalizeFlowSpacing(spacing || DEFAULT_FLOW_SPACING);
-  const lastMate = group[group.length - 1];
+  const flowingGroup = group.filter((element) => !isRecordOverlay(element, group, pageHeight));
+  const lastMate = flowingGroup.reduce((latest, element) => (
+    !latest || absoluteBottom(element, pageHeight) > absoluteBottom(latest, pageHeight)
+      ? element
+      : latest
+  ), null) || group[group.length - 1];
   const anchorIds = new Set(group.map((element) => element.element_id));
   const intoSidebar = Boolean(heading && isSidebarSectionHeading(heading));
 
-  const cloneStackHeight = clones.reduce((sum, element, index) => (
+  const cloneFlowLines = clones.filter((element) => (
+    !isRecordOverlay(element, clones, pageHeight)
+  ));
+  const cloneStackHeight = cloneFlowLines.reduce((sum, element, index) => (
     sum + elementHeight(element) + (index > 0 ? rhythm.stack : 0)
   ), 0);
   // Open a lane-scoped hole under the anchor. Shifting only this section's
@@ -967,14 +1142,9 @@ export function insertRecordBlockAfterRecord(
     return { ...element, page, top };
   });
 
-  let cursorAbs = thresholdAbs + rhythm.record;
-  const placedClones = clones.map((element) => {
-    const page = Math.max(1, Math.floor(cursorAbs / pageHeight) + 1);
-    const top = cursorAbs - (page - 1) * pageHeight;
-    const placed = { ...element, page, top };
-    if (intoSidebar) placed.flowLane = "sidebar";
-    cursorAbs += elementHeight(element) + rhythm.stack;
-    return placed;
+  const cursorAbs = thresholdAbs + rhythm.record;
+  const placedClones = placeRecordClone(clones, cursorAbs, rhythm, pageHeight, {
+    intoSidebar,
   });
 
   const mateIndex = list.findIndex((element) => element.element_id === lastMate.element_id);
