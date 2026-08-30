@@ -28,6 +28,11 @@ from app.core.config import (
 )
 from app.services.cloudflare_pricing import usage_from_cloudflare_attempts
 from app.services.cv_data import CvDataValidationError, normalize_cv_data
+from app.services.cv_source_layout import (
+    extract_pdf_source_pages,
+    ground_cv_data_from_source,
+    source_sections_prompt,
+)
 from app.services.openai_pricing import usage_from_response
 
 
@@ -157,28 +162,19 @@ def _visible_response_text(
 # ── PDF → images ──────────────────────────────────────────────────────────────
 
 def _pdf_text_pages(pdf_bytes: bytes, max_pages: int = CV_EXTRACT_MAX_PAGES) -> list[dict]:
-    """Extract page-ordered native text and identify likely scanned pages.
+    """Extract column-aware native text and identify likely scanned pages.
 
-    ``sort=True`` asks PyMuPDF to approximate reading order. Short pages are not
-    discarded: their available text is still included in the prompt, while the
-    page image supplies text that the PDF font layer could not expose.
+    Flattening a two-column CV by vertical position joins unrelated headings
+    and paragraphs. The layout service keeps each horizontal lane separate and
+    records source section boundaries used to ground high-confidence fields.
+    Short pages still retain their native text while the page image supplies
+    content that the PDF font layer could not expose.
     """
-    document = fitz.open(stream=pdf_bytes, filetype="pdf")
-    try:
-        pages: list[dict] = []
-        for index, page in enumerate(document):
-            if index >= max_pages:
-                break
-            raw_text = page.get_text("text", sort=True)
-            text = "\n".join(line.rstrip() for line in raw_text.splitlines()).strip()
-            pages.append({
-                "number": index + 1,
-                "text": text,
-                "needs_vision": len("".join(text.split())) < CV_EXTRACT_MIN_TEXT_CHARS_PER_PAGE,
-            })
-        return pages
-    finally:
-        document.close()
+    return extract_pdf_source_pages(
+        pdf_bytes,
+        max_pages=max_pages,
+        min_text_chars_per_page=CV_EXTRACT_MIN_TEXT_CHARS_PER_PAGE,
+    )
 
 
 def _pdf_pages_to_b64_images(pdf_bytes: bytes, page_numbers: set[int]) -> dict[int, str]:
@@ -335,6 +331,12 @@ def extract_cv_data(pdf_bytes: bytes) -> tuple[dict, dict]:
                 '  "extra_sections":[{"title":"","kind":"languages|certifications|interests|projects|references|awards|publications|volunteering|other","placement":"after_skills","items":[]}]\n'
                 "}\n\n"
                 "Zasady:\n"
+                "- Każda wartość faktograficzna musi występować w MATERIAL_CV. "
+                "Nie kopiuj nazw ani przykładów z tych instrukcji do wyniku.\n"
+                "- SOURCE_SECTIONS jest geometrycznym spisem sekcji. Odczytaj treść sekcji "
+                "wyłącznie z odpowiadającej jej kolumny w MATERIAL_CV i uwzględnij każdą sekcję raz.\n"
+                "- summary = dokładny tekst bezpośrednio pod źródłowym nagłówkiem podsumowania. "
+                "Nigdy nie używaj jako summary nagłówka, stanowiska ani tekstu z sąsiedniej kolumny.\n"
                 "- linkedin / github / website: linki kontaktowe z nagłówka CV.\n"
                 "  linkedin = profil LinkedIn (URL lub ścieżka /in/...), github = GitHub,\n"
                 "  website = osobista strona / portfolio (nie LinkedIn i nie GitHub).\n"
@@ -348,7 +350,7 @@ def extract_cv_data(pdf_bytes: bytes) -> tuple[dict, dict]:
                 "  degree NIE może być samym okresem — period trzymaj w polu period.\n"
                 "- skills — DWA DOZWOLONE KSZTAŁTY:\n"
                 "  A) Płaska lista stringów, gdy CV ma jedną listę bez podsekcji\n"
-                "     (np. sama 'UMIEJĘTNOŚCI' / 'SKILLS' / 'OBSŁUGA KOMPUTERA' z chipami).\n"
+                "     (jeden nagłówek źródłowy i jego elementy).\n"
                 "     Angielski nagłówek 'SKILLS' bez podkategorii = kształt A (płaskie stringi),\n"
                 "     NIGDY jeden obiekt {\"category\":\"SKILLS\",\"items\":[…]}.\n"
                 "  B) Lista obiektów {\"category\":\"Nazwa\",\"items\":[\"chip\",\"…\"]} TYLKO gdy CV ma\n"
@@ -367,7 +369,7 @@ def extract_cv_data(pdf_bytes: bytes) -> tuple[dict, dict]:
                 "- labels: summary/experience/education zawsze po polsku WIELKIMI LITERAMI:\n"
                 "  'PODSUMOWANIE ZAWODOWE', 'DOŚWIADCZENIE ZAWODOWE', 'WYKSZTAŁCENIE'.\n"
                 "  labels.skills = 'UMIEJĘTNOŚCI' gdy skills ma grupy/podsekcje; przy jednej\n"
-                "  płaskiej liście = dokładny nagłówek z CV (np. 'OBSŁUGA KOMPUTERA').\n"
+                "  płaskiej liście = dokładny nagłówek wykryty w SOURCE_SECTIONS.\n"
                 "  Nigdy nie wstawiaj nazwy podsekcji (np. 'BEZPIECZEŃSTWO') jako labels.skills.\n"
                 "- extra_sections: każda sekcja CV NIEobjęta experience/education/skills/summary.\n"
                 "  Przykłady: Certyfikaty, Języki, Projekty, Nagrody, Publikacje,\n"
@@ -395,10 +397,14 @@ def extract_cv_data(pdf_bytes: bytes) -> tuple[dict, dict]:
         }
     ]
     text_pages = "\n\n".join(
-        f"--- STRONA {page['number']} ---\n{page['text'] or '[brak tekstu w warstwie PDF]'}"
+        page["text"] or f"--- STRONA {page['number']} ---\n[brak tekstu w warstwie PDF]"
         for page in pages
     )
-    content[0]["text"] += f"\n\n<MATERIAL_CV>\n{text_pages}\n</MATERIAL_CV>"
+    section_inventory = source_sections_prompt(pages)
+    content[0]["text"] += (
+        f"\n\n<SOURCE_SECTIONS>\n{section_inventory}\n</SOURCE_SECTIONS>"
+        f"\n\n<MATERIAL_CV>\n{text_pages}\n</MATERIAL_CV>"
+    )
 
     if vision_page_numbers:
         images = _pdf_pages_to_b64_images(pdf_bytes, vision_page_numbers)
@@ -492,7 +498,11 @@ def extract_cv_data(pdf_bytes: bytes) -> tuple[dict, dict]:
         )
     try:
         parsed = _parse_model_json(raw_content)
-        cv_data = normalize_cv_data(parsed, require_name=True)
+        # Source geometry owns the fields most vulnerable to column mixing and
+        # prompt-example leakage. Flexible records such as jobs and education
+        # remain model-structured, then the complete object is normalized once.
+        grounded, source_grounded_fields = ground_cv_data_from_source(parsed, pages)
+        cv_data = normalize_cv_data(grounded, require_name=True)
     except (json.JSONDecodeError, TypeError, CvDataValidationError) as exc:
         raise CvExtractionError(
             "extract_provider_invalid_response",
@@ -515,6 +525,9 @@ def extract_cv_data(pdf_bytes: bytes) -> tuple[dict, dict]:
             "credits_charged": 0,
             "meter": "monthly_cv_imports",
         })
+    # Field names are safe operational telemetry; source CV content is never
+    # copied into usage metadata or logs.
+    usage["source_grounded_fields"] = source_grounded_fields
     return cv_data, usage
 
 

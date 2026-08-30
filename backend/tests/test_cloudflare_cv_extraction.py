@@ -9,6 +9,7 @@ from unittest.mock import MagicMock, patch
 import fitz
 
 from app.services import ai_service
+from app.services.cv_generator import generate_resume
 
 
 def _pdf_bytes(text: str = "") -> bytes:
@@ -17,6 +18,44 @@ def _pdf_bytes(text: str = "") -> bytes:
     page = document.new_page()
     if text:
         page.insert_textbox(fitz.Rect(36, 36, 560, 800), text, fontsize=11)
+    data = document.tobytes()
+    document.close()
+    return data
+
+
+def _two_column_cv_pdf_bytes() -> bytes:
+    """Build a CV whose vertically overlapping columns must remain separate."""
+    document = fitz.open()
+    page = document.new_page()
+    left_lines = [
+        (70, "PODSUMOWANIE ZAWODOWE"),
+        (88, "Dokladne podsumowanie ze zrodlowego CV."),
+        (130, "SPECJALIZACJE"),
+        (148, "- Instalacje wodne"),
+        (164, "- Interpretacja planu"),
+        (210, "REFERENCJE"),
+        (228, "Hydraulik Cezary Hrynski"),
+        (244, "Firma Pipe"),
+        (260, "Email: cezary@example.com"),
+        (292, "Manager Julia Oleszko"),
+        (308, "Firma Tensor"),
+        (324, "Email: julia@example.com"),
+    ]
+    right_lines = [
+        (50, "KAROL DABEK"),
+        (70, "HYDRAULIK"),
+        (88, "HISTORIA ZATRUDNIENIA"),
+        (106, "HYDRAULIK I MONTER"),
+        (122, "Firma Tensor | 2015 - obecnie"),
+        (148, "- Naprawa systemow hydraulicznych"),
+        (180, "WYKSZTALCENIE"),
+        (198, "CENTRUM EDUKACYJNE NOVA"),
+        (216, "Kurs zawodowy | 2009 - 2011"),
+    ]
+    for y, text in left_lines:
+        page.insert_text((36, y), text, fontsize=10)
+    for y, text in right_lines:
+        page.insert_text((300, y), text, fontsize=10)
     data = document.tobytes()
     document.close()
     return data
@@ -251,6 +290,66 @@ class CloudflareCvExtractionTests(unittest.TestCase):
         self.assertEqual(usage["total_tokens"], 11_500)
         self.assertTrue(any("fallback_model=" in line for line in logs.output))
         self.assertFalse(any("internal" in line for line in logs.output))
+
+    def test_two_column_source_grounds_summary_specialisations_and_references(self):
+        """Source geometry must correct plausible but unsupported model JSON."""
+        client = self._client({
+            "name": "Karol Dabek",
+            "title": "Hydraulik",
+            "summary": "PODSUMOWANIE ZAWODOWE HYDRAULIK",
+            "skills": ["OBSLUGA KOMPUTERA"],
+            "experience": [{
+                "title": "Hydraulik",
+                "company": "Firma Tensor",
+                "period": "2015 - obecnie",
+                "bullets": ["Naprawa instalacji"],
+            }],
+            "extra_sections": [],
+        })
+
+        with patch.object(
+            ai_service,
+            "_provider_settings",
+            return_value=(client, ai_service.CLOUDFLARE_TEXT_MODEL, "cloudflare"),
+        ):
+            cv_data, usage = ai_service.extract_cv_data(_two_column_cv_pdf_bytes())
+
+        request = client.chat.completions.create.call_args.kwargs
+        prompt = request["messages"][1]["content"][0]["text"]
+        self.assertIn("<SOURCE_SECTIONS>", prompt)
+        self.assertIn("[KOLUMNA 1;", prompt)
+        self.assertIn("[KOLUMNA 2;", prompt)
+        self.assertNotIn("OBSŁUGA KOMPUTERA", prompt)
+        self.assertNotIn("OBSLUGA KOMPUTERA", prompt)
+        self.assertEqual(
+            cv_data["summary"],
+            "Dokladne podsumowanie ze zrodlowego CV.",
+        )
+        self.assertEqual(
+            cv_data["skills"],
+            ["Instalacje wodne", "Interpretacja planu"],
+        )
+        self.assertEqual(cv_data["labels"]["skills"], "SPECJALIZACJE")
+        references = next(
+            section
+            for section in cv_data["extra_sections"]
+            if section["kind"] == "references"
+        )
+        self.assertEqual(len(references["items"]), 2)
+        self.assertEqual(references["items"][0]["title"], "Hydraulik Cezary Hrynski")
+        self.assertEqual(references["items"][1]["title"], "Manager Julia Oleszko")
+        self.assertEqual(
+            usage["source_grounded_fields"],
+            ["summary", "skills", "references"],
+        )
+        rendered_content = "\n".join(
+            str(element.get("content") or "")
+            for element in generate_resume("atrium", cv_data)
+        )
+        self.assertIn("SPECJALIZACJE", rendered_content)
+        self.assertIn("REFERENCJE", rendered_content)
+        self.assertIn("Hydraulik Cezary Hrynski", rendered_content)
+        self.assertIn("Manager Julia Oleszko", rendered_content)
 
     def test_missing_cloudflare_credentials_fails_before_network(self):
         with (

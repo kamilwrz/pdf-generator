@@ -8,7 +8,8 @@ Ten dokument opisuje pełną ścieżkę od danych kandydata do elementów na pł
 
 | Warstwa | Co robi | Czego **nie** robi |
 |---|---|---|
-| **AI (Cloudflare Workers AI)** | Czyta natywny tekst PDF (Llama 3.1 8B Fast + JSON Mode), a tylko strony skanowane jako obrazy (Qwen 3.8), i zwraca **ustrukturyzowany JSON** | Nie układa elementów, nie liczy Y, nie wybiera kolorów, nie paginuje |
+| **Geometria źródła (`cv_source_layout`)** | Rozdziela natywne linie PDF na kolumny, wykrywa nagłówki i po odpowiedzi modelu ugruntowuje podsumowanie, specjalizacje oraz referencje | Nie interpretuje elastycznych rekordów doświadczenia i edukacji ani skanów bez warstwy tekstowej |
+| **AI (Cloudflare Workers AI)** | Czyta tekst PDF zachowujący kolumny (Llama 3.1 8B Fast + JSON Mode), a tylko strony skanowane jako obrazy (Qwen 3.8), i zwraca **ustrukturyzowany JSON** | Nie układa elementów, nie liczy Y, nie wybiera kolorów, nie paginuje |
 | **`cv_data.normalize_cv_data`** | Ujednolica dane z PDF **i** z kreatora (wizard) do jednego schematu | Nie generuje layoutu |
 | **`cv_generator.generate_resume`** | Bierze `(template_id, cv_data)` i zwraca listę elementów canvas | Nie woła OpenAI; nie „projektuje” wizualnie w locie |
 | **Frontend (`templates/*.js`)** | Statyczna **próbka / podgląd** szablonu z przykładową treścią | Nie wypełnia realnym CV użytkownika |
@@ -25,6 +26,11 @@ PDF upload / kreator bio
 │  (opcjonalnie)    │
 └─────────┬─────────┘
           │  surowy JSON
+          ▼
+┌───────────────────┐
+│ ground from PDF   │  ← deterministyczne granice sekcji tekstowych
+└─────────┬─────────┘
+          │  JSON ugruntowany źródłem
           ▼
 ┌───────────────────┐
 │ normalize_cv_data │  ← zawsze przed fill
@@ -56,12 +62,14 @@ Użytkownik może wypełnić CV na dwa sposoby. Oba kończą się tym samym obie
 
 1. Frontend wysyła plik PDF.
 2. `ai_service.extract_cv_data`:
-   - odczytuje tekst wszystkich zaakceptowanych stron przez `PyMuPDF` (domyślnie maks. 12),
+   - odczytuje przez `PyMuPDF` linie i spany wraz z prostokątami położenia (domyślnie maks. 12 stron),
+   - `cv_source_layout.extract_pdf_source_pages` grupuje początki linii w osobne kolumny, dzięki czemu nagłówek z lewego sidebara nie łączy się z treścią prawej kolumny,
+   - przekazuje modelowi zwarty `SOURCE_SECTIONS` i tekst każdej kolumny w osobnych ogranicznikach,
    - wysyła zwykły dokument tekstowy do **Llama 3.1 8B Fast** w JSON Mode,
    - rasteruje do PNG wyłącznie strony bez wystarczającej warstwy tekstowej i wtedy przełącza całe żądanie na **Qwen 3.8 27B Vision**,
    - korzysta z OpenAI-compatible endpointu Cloudflare i promptu „zwróć wyłącznie JSON o takiej strukturze…”,
    - po pustym wyniku jawnego override'u Gemmy wykonuje najwyżej jeden fallback tekstowy na Llamę; domyślna konfiguracja używa Llamy od pierwszej próby.
-3. Odpowiedź modelu jest parsowana i przepuszczana przez `normalize_cv_data`.
+3. Odpowiedź modelu jest parsowana. `ground_cv_data_from_source` zastępuje podsumowanie, pojedynczą listę umiejętności/specjalizacji oraz referencje dokładnymi treściami z rozpoznanych sekcji natywnego tekstu. Dopiero tak ugruntowany obiekt przechodzi przez `normalize_cv_data`.
 4. Frontend trzyma wynik i przy wyborze szablonu woła `fill_template`.
 
 AI tu jest **ekstraktorem treści** (OCR/rozumienie dokumentu), nie silnikiem layoutu.
@@ -359,6 +367,7 @@ Bez kroku 2–3 podgląd w bibliotece istnieje, ale **fill_template rzuci „Nie
 | Plik | Rola |
 |---|---|
 | `backend/app/services/ai_service.py` | PDF → tekst / obrazy skanów → Workers AI; cienka fasada `generate_resume` |
+| `backend/app/services/cv_source_layout.py` | Geometria linii PDF → osobne kolumny / sekcje → deterministyczne ugruntowanie podsumowania, skills i referencji |
 | `backend/app/services/cloudflare_pricing.py` | Telemetria stawek Llama/Gemma/Qwen i sumowanie prób fallbacku; bez bramki kredytów asystenta |
 | `backend/app/services/cv_data.py` | Normalizacja / walidacja profilu CV |
 | `backend/app/services/cv_generator.py` | **Deterministyczny silnik layoutu** (ten dokument) |
