@@ -132,6 +132,18 @@ class RenderOnDemandTests(unittest.TestCase):
 
             payload = _payload("cv-with-photo")
             payload["root"].append({
+                "category": "circle",
+                "element_id": "profile-frame",
+                "page": 1,
+                "left": 433,
+                "top": 36,
+                "width": 104,
+                "height": 104,
+                "backgroundColor": "#E7ECE8",
+                "filled": True,
+                "zIndex": 3,
+            })
+            payload["root"].append({
                 "category": "image",
                 "element_id": "profile-photo",
                 "src": f"https://api.example.com/images/{image_row.id}/content",
@@ -145,6 +157,7 @@ class RenderOnDemandTests(unittest.TestCase):
                 "objectFit": "cover",
                 "borderRadius": 52,
                 "alignWithText": False,
+                "zIndex": 4,
             })
             response = self.client.post("/pdf/render_pdf", json=payload)
 
@@ -152,6 +165,17 @@ class RenderOnDemandTests(unittest.TestCase):
         self.assertIn("application/pdf", response.headers.get("content-type", ""))
         self.assertTrue(response.content.startswith(b"%PDF"))
         self.assertLess(len(response.content), 750_000)
+        import fitz
+
+        document = fitz.open(stream=response.content, filetype="pdf")
+        pixmap = document[0].get_pixmap()
+        raster = Image.frombytes(
+            "RGB", (pixmap.width, pixmap.height), pixmap.samples,
+        )
+        # The image is drawn above the sage frame. A missing/empty ellipse clip
+        # leaves the center at the frame colour (230, 235, 232).
+        center = raster.getpixel((485, 88))
+        self.assertLess(sum(center), 620)
 
     def test_free_plan_export_quota_blocks_fourth_render(self):
         for i in range(3):

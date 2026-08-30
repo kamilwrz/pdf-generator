@@ -31,8 +31,8 @@ class RecordingPath:
     def roundRect(self, x, y, width, height, radius):
         self.ops.append(("roundRect", x, y, width, height, radius))
 
-    def ellipse(self, x1, y1, x2, y2):
-        self.ops.append(("ellipse", x1, y1, x2, y2))
+    def ellipse(self, x, y, width, height):
+        self.ops.append(("ellipse", x, y, width, height))
 
     def getCode(self):
         return "path"
@@ -171,7 +171,7 @@ class PdfShapeTests(unittest.TestCase):
         self.generator.render_elements([element], lambda src: src)
 
         self.assertIn(
-            ("ellipse", 433.0, 702.0, 537.0, 806.0),
+            ("ellipse", 433.0, 702.0, 104.0, 104.0),
             self.generator.c.paths[0].ops,
         )
         self.assertTrue(any(call[0] == "clipPath" for call in self.generator.c.calls))

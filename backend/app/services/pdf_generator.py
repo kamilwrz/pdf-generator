@@ -251,7 +251,12 @@ class PDF_Generator:
         radius = max(0.0, min(float(border_radius or 0), w / 2.0, h / 2.0))
         clip = self.c.beginPath()
         if radius >= min(w, h) / 2.0 - 0.01 and abs(w - h) <= 0.01:
-            clip.ellipse(x, y, x + w, y + h)
+            # Unlike ``Canvas.ellipse(x1, y1, x2, y2)``, ReportLab's
+            # ``PDFPathObject.ellipse`` accepts x/y plus width/height. Passing
+            # the opposite corner here creates a giant off-page clip that can
+            # hide the complete profile photo even though its image XObject is
+            # correctly embedded in the PDF.
+            clip.ellipse(x, y, w, h)
         elif radius > 0:
             clip.roundRect(x, y, w, h, radius)
         else:
