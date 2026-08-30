@@ -1,7 +1,7 @@
 /**
  * Template-mode customization panel ("Dostosuj CV"): document status, section
  * structure, density presets, precise spacing, and template-scoped appearance
- * tools for Sterling, Linden, Monument, Slate, and Meridian. A
+ * tools for Sterling, Linden, Monument, Slate, Meridian, and Cadenza. A
  * main-column Skills section's list row also gets a layout icon opening
  * `SkillsLayoutModal` (same modal the canvas heading hover control opens —
  * see `SectionRecordAdd`), so the mode picker is reachable without hunting
@@ -85,6 +85,16 @@ import {
   applyMeridianRenderedHeightsLayout,
   applyMeridianTextSizeLayout,
 } from "../../../utils/meridianTypographyLayout";
+import {
+  applyCadenzaPalette,
+  CADENZA_PALETTES,
+  CADENZA_TEXT_SIZES,
+  getCadenzaAppearance,
+} from "../../../utils/cadenzaAppearance";
+import {
+  applyCadenzaRenderedHeightsLayout,
+  applyCadenzaTextSizeLayout,
+} from "../../../utils/cadenzaTypographyLayout";
 import {
   createCanvasTextWidthMeasurer,
   measureNaturalScrollHeight,
@@ -191,11 +201,13 @@ export default function SectionsPanel({ onClose }) {
   const isMonumentAppearance = activeTemplateId === "monument";
   const isSlateAppearance = activeTemplateId === "slate";
   const isMeridianAppearance = activeTemplateId === "meridian";
+  const isCadenzaAppearance = activeTemplateId === "cadenza";
   const appearanceEnabled = isSterlingAppearance
     || isLindenAppearance
     || isMonumentAppearance
     || isSlateAppearance
-    || isMeridianAppearance;
+    || isMeridianAppearance
+    || isCadenzaAppearance;
   const renderedTab = appearanceEnabled ? activeTab : "layout";
   const appearanceDefinition = useMemo(() => {
     if (isLindenAppearance) return {
@@ -236,6 +248,16 @@ export default function SectionsPanel({ onClose }) {
       applyRenderedHeightsLayout: applyMeridianRenderedHeightsLayout,
       paletteDescription: "Białe tło pozostaje bez zmian; paleta zmienia tekst, dekoracje i dopasowany zestaw ikon.",
     };
+    if (isCadenzaAppearance) return {
+      templateName: "Cadenza",
+      palettes: CADENZA_PALETTES,
+      textSizes: CADENZA_TEXT_SIZES,
+      value: getCadenzaAppearance(A4_Elements),
+      applyPalette: applyCadenzaPalette,
+      applyTextSizeLayout: applyCadenzaTextSizeLayout,
+      applyRenderedHeightsLayout: applyCadenzaRenderedHeightsLayout,
+      paletteDescription: "Białe tło pozostaje stałe. Trzy lekkie i trzy mocne palety zmieniają pasy, kontrast nagłówków, stanowisko, znaczniki oraz ikony.",
+    };
     return {
       templateName: "Sterling",
       palettes: STERLING_PALETTES,
@@ -245,7 +267,7 @@ export default function SectionsPanel({ onClose }) {
       applyTextSizeLayout: applySterlingTextSizeLayout,
       applyRenderedHeightsLayout: applySterlingRenderedHeightsLayout,
     };
-  }, [A4_Elements, isLindenAppearance, isMeridianAppearance, isMonumentAppearance, isSlateAppearance]);
+  }, [A4_Elements, isCadenzaAppearance, isLindenAppearance, isMeridianAppearance, isMonumentAppearance, isSlateAppearance]);
 
   useEffect(() => {
     if (!onClose) return undefined;
@@ -492,6 +514,9 @@ export default function SectionsPanel({ onClose }) {
                     "--palette-photo": palette.colors.photo ?? palette.colors.pale ?? palette.colors.sidebar,
                     "--palette-job": palette.colors.jobBand ?? palette.colors.accent,
                     "--palette-job-text": palette.colors.jobText ?? palette.colors.paper,
+                    "--palette-band": palette.colors.band ?? palette.colors.pale ?? palette.colors.sidebar,
+                    "--palette-heading-text": palette.colors.headingText ?? palette.colors.ink,
+                    "--palette-mark": palette.colors.mark ?? palette.colors.accent,
                   };
                   return (
                     <button
@@ -503,7 +528,7 @@ export default function SectionsPanel({ onClose }) {
                       onClick={() => handleAppearancePalette(palette.id)}
                     >
                       <span
-                        className={`${classes.palettePaper} ${isLindenAppearance ? classes.palettePaperLinden : ""} ${isMonumentAppearance ? classes.palettePaperMonument : ""} ${isSlateAppearance ? classes.palettePaperSlate : ""} ${isMeridianAppearance ? classes.palettePaperMeridian : ""}`}
+                        className={`${classes.palettePaper} ${isLindenAppearance ? classes.palettePaperLinden : ""} ${isMonumentAppearance ? classes.palettePaperMonument : ""} ${isSlateAppearance ? classes.palettePaperSlate : ""} ${isMeridianAppearance ? classes.palettePaperMeridian : ""} ${isCadenzaAppearance ? classes.palettePaperCadenza : ""}`}
                         style={cardStyle}
                         aria-hidden="true"
                       >
@@ -518,6 +543,17 @@ export default function SectionsPanel({ onClose }) {
                             <span className={classes.paletteLindenHeading} />
                             <span className={classes.paletteLindenCopy} />
                             <span className={classes.paletteLindenFooter} />
+                          </>
+                        ) : isCadenzaAppearance ? (
+                          <>
+                            <span className={classes.paletteCadenzaName} />
+                            <span className={classes.paletteCadenzaJob} />
+                            <span className={classes.paletteCadenzaContacts} />
+                            <span className={classes.paletteCadenzaMastheadRule} />
+                            <span className={classes.paletteCadenzaBand} />
+                            <span className={classes.paletteCadenzaCopy} />
+                            <span className={classes.paletteCadenzaSecondBand} />
+                            <span className={classes.paletteCadenzaFooter} />
                           </>
                         ) : isMeridianAppearance ? (
                           <>

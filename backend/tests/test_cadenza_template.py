@@ -1,4 +1,4 @@
-"""Regression coverage for the warm editorial Cadenza template."""
+"""Regression coverage for the appearance-enabled editorial Cadenza template."""
 from __future__ import annotations
 
 from app.services.cv_templates.registry import TEMPLATE_LAYOUTS, generate_resume
@@ -36,12 +36,12 @@ def test_cadenza_uses_editorial_bands_and_its_dedicated_contact_icons():
     bands = [
         element for element in elements
         if element.get("flowRole") == "section-chrome"
-        and element.get("backgroundColor") == "#E8EDEE"
+        and element.get("backgroundColor") == "#F0F2F2"
     ]
     marks = [
         element for element in elements
         if element.get("flowRole") == "section-chrome"
-        and element.get("backgroundColor") == "#9B735A"
+        and element.get("backgroundColor") == "#B88465"
     ]
     assert len(bands) == 1
     assert bands[0]["width"] == 479.0
@@ -56,10 +56,21 @@ def test_cadenza_uses_editorial_bands_and_its_dedicated_contact_icons():
     assert heading["width"] == bands[0]["width"]
     assert heading["align"] == "center"
     assert heading["letterSpacing"] == 1.8
+    assert heading["color"] == "#2D3437"
 
     icons = [element for element in elements if element.get("category") == "image"]
     assert icons
-    assert all("/template-assets/iconic/cadenza/" in element["src"] for element in icons)
+    assert all("/template-assets/iconic/cadenza-porcelain/" in element["src"] for element in icons)
+
+    background = next(
+        element for element in elements
+        if element.get("fixedToPage")
+        and element.get("left") == 0
+        and element.get("top") == 0
+    )
+    assert background["backgroundColor"] == "#FFFFFF"
+    assert background["appearanceTemplateId"] == "cadenza"
+    assert background["appearanceSettings"] == {"palette": "porcelain", "textSize": "M"}
 
 
 def test_cadenza_periods_share_exact_title_and_degree_anchors():

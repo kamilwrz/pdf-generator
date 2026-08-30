@@ -309,6 +309,13 @@ _MERIDIAN_CONTACT_GLYPHS = [
     "email", "phone", "location", "linkedin", "github", "website",
 ]
 
+# Cadenza uses the same compact contact-channel inventory, but owns a separate
+# family so its light and strong editorial palettes can evolve independently
+# without changing Meridian or the legacy copper glyphs still used by Vellum.
+_CADENZA_CONTACT_GLYPHS = [
+    "email", "phone", "location", "linkedin", "github", "website",
+]
+
 # Only these subsets are generated, so existing themes are untouched.
 # Format: theme -> (colour, [icon names]).
 SUBSET_THEMES = {
@@ -332,6 +339,15 @@ SUBSET_THEMES = {
     "meridian-forest": ("#2E6B52", _MERIDIAN_CONTACT_GLYPHS),
     "meridian-copper": ("#A35732", _MERIDIAN_CONTACT_GLYPHS),
     "meridian-teal": ("#0B6B70", _MERIDIAN_CONTACT_GLYPHS),
+    # Three light and three strong Cadenza identities. Icons use the same
+    # accent as the role line and page number; headings own a separate
+    # field/text contrast pair in the template appearance contract.
+    "cadenza-porcelain": ("#855C46", _CADENZA_CONTACT_GLYPHS),
+    "cadenza-mist": ("#3F6F85", _CADENZA_CONTACT_GLYPHS),
+    "cadenza-sage": ("#4B725C", _CADENZA_CONTACT_GLYPHS),
+    "cadenza-cobalt": ("#245F91", _CADENZA_CONTACT_GLYPHS),
+    "cadenza-burgundy": ("#85364F", _CADENZA_CONTACT_GLYPHS),
+    "cadenza-emerald": ("#23664F", _CADENZA_CONTACT_GLYPHS),
     # Atrium (centered-axis editorial single column) uses graphite-sage contact
     # glyphs in the centered masthead only. Section headings are centered text
     # with a printer's-mark ornament (no icons), so just the contact set is

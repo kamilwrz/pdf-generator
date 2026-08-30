@@ -326,8 +326,8 @@ DOC_BLURBS = {
     "cadenza": (
         "Cadenza template (`layouts: [\"single\", \"icons\"]`).\n"
         " *\n"
-        " * Warm editorial single column with centered serif identity, pale section\n"
-        " * bands, and an exact-anchor date rail shared with Meridian."
+        " * White-paper editorial single column with centered serif identity, adaptive\n"
+        " * section fields, and an exact-anchor date rail shared with Meridian."
     ),
     "vellum": (
         "Vellum template (`layouts: [\"single\", \"icons\"]`).\n"

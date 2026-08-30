@@ -44,11 +44,11 @@ function assertCadenzaBandsAreHealthy(elements, afterRuleGap) {
         const members = sectionMembers(elements, section.headingId);
         const band = members.find((element) => (
             element.flowRole === "section-chrome"
-            && element.backgroundColor === "#E8EDEE"
+            && element.backgroundColor === "#F0F2F2"
         ));
         const accent = members.find((element) => (
             element.flowRole === "section-chrome"
-            && element.backgroundColor === "#9B735A"
+            && element.backgroundColor === "#B88465"
             && Number(element.width) === 3
         ));
         const firstBody = members
@@ -78,7 +78,9 @@ test("Cadenza preserves its editorial hierarchy and exact date rail", () => {
     const pageSurface = cadenzaTemplate.find(
         (element) => element.fixedToPage && element.width === 595 && element.height === 842,
     );
-    assert.equal(pageSurface?.backgroundColor, "#FFFEFB");
+    assert.equal(pageSurface?.backgroundColor, "#FFFFFF");
+    assert.equal(pageSurface?.appearanceTemplateId, "cadenza");
+    assert.deepEqual(pageSurface?.appearanceSettings, { palette: "porcelain", textSize: "M" });
 
     const name = cadenzaTemplate.find((element) => element.mastheadRole === "name");
     assert.equal(name?.fontFamily, "PlayfairDisplay");
@@ -88,12 +90,12 @@ test("Cadenza preserves its editorial hierarchy and exact date rail", () => {
     const bands = cadenzaTemplate.filter(
         (element) =>
             element.flowRole === "section-chrome"
-            && element.backgroundColor === "#E8EDEE",
+            && element.backgroundColor === "#F0F2F2",
     );
     const marks = cadenzaTemplate.filter(
         (element) =>
             element.flowRole === "section-chrome"
-            && element.backgroundColor === "#9B735A",
+            && element.backgroundColor === "#B88465",
     );
     assert.ok(bands.length >= 4);
     assert.equal(bands.length, marks.length);
@@ -127,7 +129,7 @@ test("Cadenza preserves its editorial hierarchy and exact date rail", () => {
     const icons = cadenzaTemplate.filter((element) => element.category === "image");
     assert.ok(icons.length > 0);
     assert.ok(
-        icons.every((element) => element.src.includes("/template-assets/iconic/cadenza/")),
+        icons.every((element) => element.src.includes("/template-assets/iconic/cadenza-porcelain/")),
     );
 });
 
@@ -157,13 +159,13 @@ test("Cadenza Add section reproduces the filled title band and accent", () => {
     const members = sectionMembers(appended, added.headingId);
     const band = members.find((element) => (
         element.flowRole === "section-chrome"
-        && element.backgroundColor === "#E8EDEE"
+        && element.backgroundColor === "#F0F2F2"
         && Number(element.width) === 479
         && Number(element.height) === 18
     ));
     const accent = members.find((element) => (
         element.flowRole === "section-chrome"
-        && element.backgroundColor === "#9B735A"
+        && element.backgroundColor === "#B88465"
         && Number(element.width) === 3
         && Number(element.height) === 18
     ));
@@ -213,7 +215,7 @@ test("Cadenza re-centres a legacy added heading after every input value", () => 
         const members = sectionMembers(edited, built.headingId);
         const heading = members.find((element) => element.element_id === built.headingId);
         const band = members.find((element) => (
-            element.backgroundColor === "#E8EDEE" && Number(element.width) === 479
+            element.backgroundColor === "#F0F2F2" && Number(element.width) === 479
         ));
 
         assert.ok(band);
@@ -306,7 +308,7 @@ test("Cadenza repairs title accents left behind by an older spacing pass", () =>
     // headings, while each narrow accent stayed one former section step above.
     const corrupted = healthy.map((element) => {
         const isAccent = element.flowRole === "section-chrome"
-            && element.backgroundColor === "#9B735A"
+            && element.backgroundColor === "#B88465"
             && Number(element.width) === 3;
         if (!isAccent || !keptFirstAccent) {
             if (isAccent) keptFirstAccent = true;

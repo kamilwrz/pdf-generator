@@ -1,8 +1,8 @@
 /**
  * Cadenza template (`layouts: ["single", "icons"]`).
  *
- * Warm editorial single column with centered serif identity, pale section
- * bands, and an exact-anchor date rail shared with Meridian.
+ * White-paper editorial single column with centered serif identity, adaptive
+ * section fields, and an exact-anchor date rail shared with Meridian.
  *
  * This static starter is the backend generator's own output
  * (`backend/app/services/cv_templates/templates/cadenza.py`) for
@@ -22,10 +22,15 @@ const CADENZA_ELEMENTS = [
     "top": 0,
     "width": 595,
     "height": 842,
-    "backgroundColor": "#FFFEFB",
+    "backgroundColor": "#FFFFFF",
     "zIndex": 0,
     "page": 1,
-    "fixedToPage": true
+    "fixedToPage": true,
+    "appearanceTemplateId": "cadenza",
+    "appearanceSettings": {
+      "palette": "porcelain",
+      "textSize": "M"
+    }
   },
   {
     "category": "line",
@@ -33,7 +38,7 @@ const CADENZA_ELEMENTS = [
     "top": 796,
     "width": 479.0,
     "height": 0.7,
-    "backgroundColor": "#CCD4D5",
+    "backgroundColor": "#D6DDE0",
     "zIndex": 1,
     "page": 1,
     "fixedToPage": true
@@ -43,7 +48,7 @@ const CADENZA_ELEMENTS = [
     "content": "01",
     "fontSize": 7.2,
     "fontFamily": "Montserrat",
-    "color": "#9B735A",
+    "color": "#855C46",
     "left": 292.5,
     "top": 806,
     "zIndex": 2,
@@ -62,7 +67,7 @@ const CADENZA_ELEMENTS = [
     "fontSize": 27.5,
     "lineHeight": 32.0,
     "letterSpacing": 3.6,
-    "color": "#263238",
+    "color": "#24292C",
     "fontFamily": "PlayfairDisplay",
     "zIndex": 3,
     "page": 1,
@@ -87,7 +92,7 @@ const CADENZA_ELEMENTS = [
     "fontSize": 8.2,
     "lineHeight": 11.0,
     "letterSpacing": 2.1,
-    "color": "#9B735A",
+    "color": "#855C46",
     "fontFamily": "Montserrat",
     "zIndex": 3,
     "page": 1,
@@ -104,7 +109,7 @@ const CADENZA_ELEMENTS = [
   },
   {
     "category": "image",
-    "src": "/template-assets/iconic/cadenza/phone.png",
+    "src": "/template-assets/iconic/cadenza-porcelain/phone.png",
     "left": 70.42119999999997,
     "top": 107.0,
     "width": 9.0,
@@ -121,7 +126,7 @@ const CADENZA_ELEMENTS = [
     "content": "+48 512 340 780",
     "fontSize": 7.2,
     "fontFamily": "Montserrat",
-    "color": "#72797B",
+    "color": "#606A6E",
     "left": 80.92119999999997,
     "top": 107.0,
     "zIndex": 3,
@@ -134,7 +139,7 @@ const CADENZA_ELEMENTS = [
   },
   {
     "category": "image",
-    "src": "/template-assets/iconic/cadenza/email.png",
+    "src": "/template-assets/iconic/cadenza-porcelain/email.png",
     "left": 152.02439999999999,
     "top": 107.0,
     "width": 9.0,
@@ -151,7 +156,7 @@ const CADENZA_ELEMENTS = [
     "content": "julia.bernat@email.com",
     "fontSize": 7.2,
     "fontFamily": "Montserrat",
-    "color": "#72797B",
+    "color": "#606A6E",
     "left": 162.52439999999999,
     "top": 107.0,
     "zIndex": 3,
@@ -164,7 +169,7 @@ const CADENZA_ELEMENTS = [
   },
   {
     "category": "image",
-    "src": "/template-assets/iconic/cadenza/linkedin.png",
+    "src": "/template-assets/iconic/cadenza-porcelain/linkedin.png",
     "left": 262.4204,
     "top": 107.0,
     "width": 9.0,
@@ -181,7 +186,7 @@ const CADENZA_ELEMENTS = [
     "content": "linkedin.com/in/jbernat",
     "fontSize": 7.2,
     "fontFamily": "Montserrat",
-    "color": "#72797B",
+    "color": "#606A6E",
     "left": 272.9204,
     "top": 107.0,
     "zIndex": 3,
@@ -194,7 +199,7 @@ const CADENZA_ELEMENTS = [
   },
   {
     "category": "image",
-    "src": "/template-assets/iconic/cadenza/github.png",
+    "src": "/template-assets/iconic/cadenza-porcelain/github.png",
     "left": 371.49159999999995,
     "top": 107.0,
     "width": 9.0,
@@ -211,7 +216,7 @@ const CADENZA_ELEMENTS = [
     "content": "github.com/jbernat",
     "fontSize": 7.2,
     "fontFamily": "Montserrat",
-    "color": "#72797B",
+    "color": "#606A6E",
     "left": 381.99159999999995,
     "top": 107.0,
     "zIndex": 3,
@@ -224,7 +229,7 @@ const CADENZA_ELEMENTS = [
   },
   {
     "category": "image",
-    "src": "/template-assets/iconic/cadenza/website.png",
+    "src": "/template-assets/iconic/cadenza-porcelain/website.png",
     "left": 466.64519999999993,
     "top": 107.0,
     "width": 9.0,
@@ -241,7 +246,7 @@ const CADENZA_ELEMENTS = [
     "content": "juliabernat.pl",
     "fontSize": 7.2,
     "fontFamily": "Montserrat",
-    "color": "#72797B",
+    "color": "#606A6E",
     "left": 477.14519999999993,
     "top": 107.0,
     "zIndex": 3,
@@ -254,7 +259,7 @@ const CADENZA_ELEMENTS = [
   },
   {
     "category": "image",
-    "src": "/template-assets/iconic/cadenza/location.png",
+    "src": "/template-assets/iconic/cadenza-porcelain/location.png",
     "left": 273.674,
     "top": 120.0,
     "width": 9.0,
@@ -271,7 +276,7 @@ const CADENZA_ELEMENTS = [
     "content": "Warszawa",
     "fontSize": 7.2,
     "fontFamily": "Montserrat",
-    "color": "#72797B",
+    "color": "#606A6E",
     "left": 284.174,
     "top": 120.0,
     "zIndex": 3,
@@ -288,7 +293,7 @@ const CADENZA_ELEMENTS = [
     "top": 144.0,
     "width": 479.0,
     "height": 0.8,
-    "backgroundColor": "#CCD4D5",
+    "backgroundColor": "#D6DDE0",
     "zIndex": 2,
     "page": 1,
     "flowRole": "masthead"
@@ -317,11 +322,11 @@ const CADENZA_ELEMENTS = [
       "text": {
         "fontFamily": "Montserrat",
         "fontSizePt": 7.2,
-        "colorHex": "#72797B"
+        "colorHex": "#606A6E"
       },
       "icon": {
         "sizePt": 9.0,
-        "theme": "cadenza"
+        "theme": "cadenza-porcelain"
       },
       "metrics": {
         "iconGap": 10.5,
@@ -369,7 +374,7 @@ const CADENZA_ELEMENTS = [
           "fontSizePt": 8.2,
           "lineHeight": 11.0,
           "fontFamily": "Montserrat",
-          "colorHex": "#9B735A",
+          "colorHex": "#855C46",
           "letterSpacing": 2.1,
           "align": "center",
           "autoHeight": true,
@@ -394,7 +399,7 @@ const CADENZA_ELEMENTS = [
     "top": 163.0,
     "width": 479.0,
     "height": 18.0,
-    "backgroundColor": "#E8EDEE",
+    "backgroundColor": "#F0F2F2",
     "zIndex": 1,
     "page": 1,
     "flowRole": "section-chrome"
@@ -405,7 +410,7 @@ const CADENZA_ELEMENTS = [
     "top": 163.0,
     "width": 3.0,
     "height": 18.0,
-    "backgroundColor": "#9B735A",
+    "backgroundColor": "#B88465",
     "zIndex": 2,
     "page": 1,
     "flowRole": "section-chrome"
@@ -415,7 +420,7 @@ const CADENZA_ELEMENTS = [
     "content": "PODSUMOWANIE ZAWODOWE",
     "fontSize": 7.4,
     "fontFamily": "Montserrat",
-    "color": "#263238",
+    "color": "#2D3437",
     "left": 58.0,
     "top": 168.1,
     "zIndex": 3,
@@ -437,7 +442,7 @@ const CADENZA_ELEMENTS = [
     "fontSize": 8.4,
     "lineHeight": 11.2,
     "letterSpacing": 0,
-    "color": "#42494B",
+    "color": "#3F4547",
     "fontFamily": "Lora",
     "zIndex": 2,
     "page": 1,
@@ -455,7 +460,7 @@ const CADENZA_ELEMENTS = [
     "top": 233.0,
     "width": 479.0,
     "height": 18.0,
-    "backgroundColor": "#E8EDEE",
+    "backgroundColor": "#F0F2F2",
     "zIndex": 1,
     "page": 1,
     "flowRole": "section-chrome"
@@ -466,7 +471,7 @@ const CADENZA_ELEMENTS = [
     "top": 233.0,
     "width": 3.0,
     "height": 18.0,
-    "backgroundColor": "#9B735A",
+    "backgroundColor": "#B88465",
     "zIndex": 2,
     "page": 1,
     "flowRole": "section-chrome"
@@ -476,7 +481,7 @@ const CADENZA_ELEMENTS = [
     "content": "DOŚWIADCZENIE ZAWODOWE",
     "fontSize": 7.4,
     "fontFamily": "Montserrat",
-    "color": "#263238",
+    "color": "#2D3437",
     "left": 58.0,
     "top": 238.1,
     "zIndex": 3,
@@ -498,7 +503,7 @@ const CADENZA_ELEMENTS = [
     "fontSize": 9.6,
     "lineHeight": 12.4,
     "letterSpacing": 0,
-    "color": "#263238",
+    "color": "#24292C",
     "fontFamily": "Lora",
     "zIndex": 2,
     "page": 1,
@@ -508,7 +513,7 @@ const CADENZA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-a6e326767893",
+    "flowGroup": "record-b221d39d72bc",
     "flowRole": "content"
   },
   {
@@ -521,7 +526,7 @@ const CADENZA_ELEMENTS = [
     "fontSize": 7.7,
     "lineHeight": 10.4,
     "letterSpacing": 0,
-    "color": "#72797B",
+    "color": "#606A6E",
     "fontFamily": "Lora",
     "zIndex": 2,
     "page": 1,
@@ -531,7 +536,7 @@ const CADENZA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-a6e326767893",
+    "flowGroup": "record-b221d39d72bc",
     "flowRole": "content"
   },
   {
@@ -544,7 +549,7 @@ const CADENZA_ELEMENTS = [
     "fontSize": 8.4,
     "lineHeight": 11.2,
     "letterSpacing": 0,
-    "color": "#42494B",
+    "color": "#3F4547",
     "fontFamily": "Lora",
     "zIndex": 2,
     "page": 1,
@@ -554,7 +559,7 @@ const CADENZA_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-a6e326767893",
+    "flowGroup": "record-b221d39d72bc",
     "flowRole": "content"
   },
   {
@@ -567,7 +572,7 @@ const CADENZA_ELEMENTS = [
     "fontSize": 7.7,
     "lineHeight": 10.4,
     "letterSpacing": 0,
-    "color": "#72797B",
+    "color": "#606A6E",
     "fontFamily": "Lora",
     "zIndex": 3,
     "page": 1,
@@ -578,7 +583,7 @@ const CADENZA_ELEMENTS = [
     "autoHeight": false,
     "preserveInitialLayout": true,
     "flowRole": "record-overlay",
-    "flowGroup": "record-a6e326767893"
+    "flowGroup": "record-b221d39d72bc"
   },
   {
     "category": "textarea",
@@ -590,7 +595,7 @@ const CADENZA_ELEMENTS = [
     "fontSize": 7.7,
     "lineHeight": 10.4,
     "letterSpacing": 0,
-    "color": "#72797B",
+    "color": "#606A6E",
     "fontFamily": "Lora",
     "zIndex": 3,
     "page": 1,
@@ -601,7 +606,7 @@ const CADENZA_ELEMENTS = [
     "autoHeight": false,
     "preserveInitialLayout": true,
     "flowRole": "record-overlay",
-    "flowGroup": "record-a6e326767893"
+    "flowGroup": "record-b221d39d72bc"
   },
   {
     "category": "textarea",
@@ -613,7 +618,7 @@ const CADENZA_ELEMENTS = [
     "fontSize": 9.6,
     "lineHeight": 12.4,
     "letterSpacing": 0,
-    "color": "#263238",
+    "color": "#24292C",
     "fontFamily": "Lora",
     "zIndex": 2,
     "page": 1,
@@ -623,7 +628,7 @@ const CADENZA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-bc707e2c5d08",
+    "flowGroup": "record-ffe2faf4496e",
     "flowRole": "content"
   },
   {
@@ -636,7 +641,7 @@ const CADENZA_ELEMENTS = [
     "fontSize": 7.7,
     "lineHeight": 10.4,
     "letterSpacing": 0,
-    "color": "#72797B",
+    "color": "#606A6E",
     "fontFamily": "Lora",
     "zIndex": 2,
     "page": 1,
@@ -646,7 +651,7 @@ const CADENZA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-bc707e2c5d08",
+    "flowGroup": "record-ffe2faf4496e",
     "flowRole": "content"
   },
   {
@@ -659,7 +664,7 @@ const CADENZA_ELEMENTS = [
     "fontSize": 8.4,
     "lineHeight": 11.2,
     "letterSpacing": 0,
-    "color": "#42494B",
+    "color": "#3F4547",
     "fontFamily": "Lora",
     "zIndex": 2,
     "page": 1,
@@ -669,7 +674,7 @@ const CADENZA_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-bc707e2c5d08",
+    "flowGroup": "record-ffe2faf4496e",
     "flowRole": "content"
   },
   {
@@ -682,7 +687,7 @@ const CADENZA_ELEMENTS = [
     "fontSize": 7.7,
     "lineHeight": 10.4,
     "letterSpacing": 0,
-    "color": "#72797B",
+    "color": "#606A6E",
     "fontFamily": "Lora",
     "zIndex": 3,
     "page": 1,
@@ -693,7 +698,7 @@ const CADENZA_ELEMENTS = [
     "autoHeight": false,
     "preserveInitialLayout": true,
     "flowRole": "record-overlay",
-    "flowGroup": "record-bc707e2c5d08"
+    "flowGroup": "record-ffe2faf4496e"
   },
   {
     "category": "textarea",
@@ -705,7 +710,7 @@ const CADENZA_ELEMENTS = [
     "fontSize": 7.7,
     "lineHeight": 10.4,
     "letterSpacing": 0,
-    "color": "#72797B",
+    "color": "#606A6E",
     "fontFamily": "Lora",
     "zIndex": 3,
     "page": 1,
@@ -716,7 +721,7 @@ const CADENZA_ELEMENTS = [
     "autoHeight": false,
     "preserveInitialLayout": true,
     "flowRole": "record-overlay",
-    "flowGroup": "record-bc707e2c5d08"
+    "flowGroup": "record-ffe2faf4496e"
   },
   {
     "category": "textarea",
@@ -728,7 +733,7 @@ const CADENZA_ELEMENTS = [
     "fontSize": 9.6,
     "lineHeight": 12.4,
     "letterSpacing": 0,
-    "color": "#263238",
+    "color": "#24292C",
     "fontFamily": "Lora",
     "zIndex": 2,
     "page": 1,
@@ -738,7 +743,7 @@ const CADENZA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-b296297b0f34",
+    "flowGroup": "record-84b805355afa",
     "flowRole": "content"
   },
   {
@@ -751,7 +756,7 @@ const CADENZA_ELEMENTS = [
     "fontSize": 7.7,
     "lineHeight": 10.4,
     "letterSpacing": 0,
-    "color": "#72797B",
+    "color": "#606A6E",
     "fontFamily": "Lora",
     "zIndex": 2,
     "page": 1,
@@ -761,7 +766,7 @@ const CADENZA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-b296297b0f34",
+    "flowGroup": "record-84b805355afa",
     "flowRole": "content"
   },
   {
@@ -774,7 +779,7 @@ const CADENZA_ELEMENTS = [
     "fontSize": 8.4,
     "lineHeight": 11.2,
     "letterSpacing": 0,
-    "color": "#42494B",
+    "color": "#3F4547",
     "fontFamily": "Lora",
     "zIndex": 2,
     "page": 1,
@@ -784,7 +789,7 @@ const CADENZA_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-b296297b0f34",
+    "flowGroup": "record-84b805355afa",
     "flowRole": "content"
   },
   {
@@ -797,7 +802,7 @@ const CADENZA_ELEMENTS = [
     "fontSize": 7.7,
     "lineHeight": 10.4,
     "letterSpacing": 0,
-    "color": "#72797B",
+    "color": "#606A6E",
     "fontFamily": "Lora",
     "zIndex": 3,
     "page": 1,
@@ -808,7 +813,7 @@ const CADENZA_ELEMENTS = [
     "autoHeight": false,
     "preserveInitialLayout": true,
     "flowRole": "record-overlay",
-    "flowGroup": "record-b296297b0f34"
+    "flowGroup": "record-84b805355afa"
   },
   {
     "category": "textarea",
@@ -820,7 +825,7 @@ const CADENZA_ELEMENTS = [
     "fontSize": 7.7,
     "lineHeight": 10.4,
     "letterSpacing": 0,
-    "color": "#72797B",
+    "color": "#606A6E",
     "fontFamily": "Lora",
     "zIndex": 3,
     "page": 1,
@@ -831,7 +836,7 @@ const CADENZA_ELEMENTS = [
     "autoHeight": false,
     "preserveInitialLayout": true,
     "flowRole": "record-overlay",
-    "flowGroup": "record-b296297b0f34"
+    "flowGroup": "record-84b805355afa"
   },
   {
     "category": "textarea",
@@ -843,7 +848,7 @@ const CADENZA_ELEMENTS = [
     "fontSize": 9.6,
     "lineHeight": 12.4,
     "letterSpacing": 0,
-    "color": "#263238",
+    "color": "#24292C",
     "fontFamily": "Lora",
     "zIndex": 2,
     "page": 1,
@@ -853,7 +858,7 @@ const CADENZA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-9c8995190f1a",
+    "flowGroup": "record-39139b4d0092",
     "flowRole": "content"
   },
   {
@@ -866,7 +871,7 @@ const CADENZA_ELEMENTS = [
     "fontSize": 7.7,
     "lineHeight": 10.4,
     "letterSpacing": 0,
-    "color": "#72797B",
+    "color": "#606A6E",
     "fontFamily": "Lora",
     "zIndex": 2,
     "page": 1,
@@ -876,7 +881,7 @@ const CADENZA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-9c8995190f1a",
+    "flowGroup": "record-39139b4d0092",
     "flowRole": "content"
   },
   {
@@ -889,7 +894,7 @@ const CADENZA_ELEMENTS = [
     "fontSize": 8.4,
     "lineHeight": 11.2,
     "letterSpacing": 0,
-    "color": "#42494B",
+    "color": "#3F4547",
     "fontFamily": "Lora",
     "zIndex": 2,
     "page": 1,
@@ -899,7 +904,7 @@ const CADENZA_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-9c8995190f1a",
+    "flowGroup": "record-39139b4d0092",
     "flowRole": "content"
   },
   {
@@ -912,7 +917,7 @@ const CADENZA_ELEMENTS = [
     "fontSize": 7.7,
     "lineHeight": 10.4,
     "letterSpacing": 0,
-    "color": "#72797B",
+    "color": "#606A6E",
     "fontFamily": "Lora",
     "zIndex": 3,
     "page": 1,
@@ -923,7 +928,7 @@ const CADENZA_ELEMENTS = [
     "autoHeight": false,
     "preserveInitialLayout": true,
     "flowRole": "record-overlay",
-    "flowGroup": "record-9c8995190f1a"
+    "flowGroup": "record-39139b4d0092"
   },
   {
     "category": "textarea",
@@ -935,7 +940,7 @@ const CADENZA_ELEMENTS = [
     "fontSize": 7.7,
     "lineHeight": 10.4,
     "letterSpacing": 0,
-    "color": "#72797B",
+    "color": "#606A6E",
     "fontFamily": "Lora",
     "zIndex": 3,
     "page": 1,
@@ -946,7 +951,7 @@ const CADENZA_ELEMENTS = [
     "autoHeight": false,
     "preserveInitialLayout": true,
     "flowRole": "record-overlay",
-    "flowGroup": "record-9c8995190f1a"
+    "flowGroup": "record-39139b4d0092"
   },
   {
     "category": "line",
@@ -954,7 +959,7 @@ const CADENZA_ELEMENTS = [
     "top": 530.0,
     "width": 479.0,
     "height": 18.0,
-    "backgroundColor": "#E8EDEE",
+    "backgroundColor": "#F0F2F2",
     "zIndex": 1,
     "page": 1,
     "flowRole": "section-chrome"
@@ -965,7 +970,7 @@ const CADENZA_ELEMENTS = [
     "top": 530.0,
     "width": 3.0,
     "height": 18.0,
-    "backgroundColor": "#9B735A",
+    "backgroundColor": "#B88465",
     "zIndex": 2,
     "page": 1,
     "flowRole": "section-chrome"
@@ -975,7 +980,7 @@ const CADENZA_ELEMENTS = [
     "content": "WYKSZTAŁCENIE",
     "fontSize": 7.4,
     "fontFamily": "Montserrat",
-    "color": "#263238",
+    "color": "#2D3437",
     "left": 58.0,
     "top": 535.1,
     "zIndex": 3,
@@ -997,7 +1002,7 @@ const CADENZA_ELEMENTS = [
     "fontSize": 9.3,
     "lineHeight": 12.0,
     "letterSpacing": 0,
-    "color": "#263238",
+    "color": "#24292C",
     "fontFamily": "Lora",
     "zIndex": 2,
     "page": 1,
@@ -1007,7 +1012,7 @@ const CADENZA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-de5802332fa4",
+    "flowGroup": "record-74652d5911c4",
     "flowRole": "content"
   },
   {
@@ -1020,7 +1025,7 @@ const CADENZA_ELEMENTS = [
     "fontSize": 7.7,
     "lineHeight": 10.4,
     "letterSpacing": 0,
-    "color": "#72797B",
+    "color": "#606A6E",
     "fontFamily": "Lora",
     "zIndex": 2,
     "page": 1,
@@ -1030,7 +1035,7 @@ const CADENZA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-de5802332fa4",
+    "flowGroup": "record-74652d5911c4",
     "flowRole": "content"
   },
   {
@@ -1043,7 +1048,7 @@ const CADENZA_ELEMENTS = [
     "fontSize": 7.7,
     "lineHeight": 10.4,
     "letterSpacing": 0,
-    "color": "#72797B",
+    "color": "#606A6E",
     "fontFamily": "Lora",
     "zIndex": 3,
     "page": 1,
@@ -1054,7 +1059,7 @@ const CADENZA_ELEMENTS = [
     "autoHeight": false,
     "preserveInitialLayout": true,
     "flowRole": "record-overlay",
-    "flowGroup": "record-de5802332fa4"
+    "flowGroup": "record-74652d5911c4"
   },
   {
     "category": "textarea",
@@ -1066,7 +1071,7 @@ const CADENZA_ELEMENTS = [
     "fontSize": 9.3,
     "lineHeight": 12.0,
     "letterSpacing": 0,
-    "color": "#263238",
+    "color": "#24292C",
     "fontFamily": "Lora",
     "zIndex": 2,
     "page": 1,
@@ -1076,7 +1081,7 @@ const CADENZA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-6b770a323f33",
+    "flowGroup": "record-0a6b23bf5c52",
     "flowRole": "content"
   },
   {
@@ -1089,7 +1094,7 @@ const CADENZA_ELEMENTS = [
     "fontSize": 7.7,
     "lineHeight": 10.4,
     "letterSpacing": 0,
-    "color": "#72797B",
+    "color": "#606A6E",
     "fontFamily": "Lora",
     "zIndex": 2,
     "page": 1,
@@ -1099,7 +1104,7 @@ const CADENZA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-6b770a323f33",
+    "flowGroup": "record-0a6b23bf5c52",
     "flowRole": "content"
   },
   {
@@ -1112,7 +1117,7 @@ const CADENZA_ELEMENTS = [
     "fontSize": 7.7,
     "lineHeight": 10.4,
     "letterSpacing": 0,
-    "color": "#72797B",
+    "color": "#606A6E",
     "fontFamily": "Lora",
     "zIndex": 3,
     "page": 1,
@@ -1123,7 +1128,7 @@ const CADENZA_ELEMENTS = [
     "autoHeight": false,
     "preserveInitialLayout": true,
     "flowRole": "record-overlay",
-    "flowGroup": "record-6b770a323f33"
+    "flowGroup": "record-0a6b23bf5c52"
   },
   {
     "category": "line",
@@ -1131,7 +1136,7 @@ const CADENZA_ELEMENTS = [
     "top": 641.0,
     "width": 479.0,
     "height": 18.0,
-    "backgroundColor": "#E8EDEE",
+    "backgroundColor": "#F0F2F2",
     "zIndex": 1,
     "page": 1,
     "flowRole": "section-chrome"
@@ -1142,7 +1147,7 @@ const CADENZA_ELEMENTS = [
     "top": 641.0,
     "width": 3.0,
     "height": 18.0,
-    "backgroundColor": "#9B735A",
+    "backgroundColor": "#B88465",
     "zIndex": 2,
     "page": 1,
     "flowRole": "section-chrome"
@@ -1152,7 +1157,7 @@ const CADENZA_ELEMENTS = [
     "content": "UMIEJĘTNOŚCI",
     "fontSize": 7.4,
     "fontFamily": "Montserrat",
-    "color": "#263238",
+    "color": "#2D3437",
     "left": 58.0,
     "top": 646.1,
     "zIndex": 3,
@@ -1174,7 +1179,7 @@ const CADENZA_ELEMENTS = [
     "fontSize": 8.4,
     "lineHeight": 11.2,
     "letterSpacing": 0,
-    "color": "#42494B",
+    "color": "#3F4547",
     "fontFamily": "Lora",
     "zIndex": 2,
     "page": 1,
@@ -1184,7 +1189,7 @@ const CADENZA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-1e1a9ed1c8c5",
+    "flowGroup": "record-f4cc23c1a55a",
     "flowRole": "content"
   },
   {
@@ -1193,7 +1198,7 @@ const CADENZA_ELEMENTS = [
     "top": 700.0,
     "width": 479.0,
     "height": 18.0,
-    "backgroundColor": "#E8EDEE",
+    "backgroundColor": "#F0F2F2",
     "zIndex": 1,
     "page": 1,
     "flowRole": "section-chrome"
@@ -1204,7 +1209,7 @@ const CADENZA_ELEMENTS = [
     "top": 700.0,
     "width": 3.0,
     "height": 18.0,
-    "backgroundColor": "#9B735A",
+    "backgroundColor": "#B88465",
     "zIndex": 2,
     "page": 1,
     "flowRole": "section-chrome"
@@ -1214,7 +1219,7 @@ const CADENZA_ELEMENTS = [
     "content": "JĘZYKI",
     "fontSize": 7.4,
     "fontFamily": "Montserrat",
-    "color": "#263238",
+    "color": "#2D3437",
     "left": 58.0,
     "top": 705.1,
     "zIndex": 3,
@@ -1236,7 +1241,7 @@ const CADENZA_ELEMENTS = [
     "fontSize": 8.4,
     "lineHeight": 11.2,
     "letterSpacing": 0,
-    "color": "#42494B",
+    "color": "#3F4547",
     "fontFamily": "Lora",
     "zIndex": 2,
     "page": 1,
@@ -1251,11 +1256,11 @@ const CADENZA_ELEMENTS = [
         "start": 9,
         "end": 17,
         "italic": true,
-        "color": "#9B735A"
+        "color": "#855C46"
       }
     ],
     "flowRole": "grid-member",
-    "flowGroup": "record-bbff19361c90"
+    "flowGroup": "record-89d7732145b9"
   },
   {
     "category": "textarea",
@@ -1267,7 +1272,7 @@ const CADENZA_ELEMENTS = [
     "fontSize": 8.4,
     "lineHeight": 11.2,
     "letterSpacing": 0,
-    "color": "#42494B",
+    "color": "#3F4547",
     "fontFamily": "Lora",
     "zIndex": 2,
     "page": 1,
@@ -1282,11 +1287,11 @@ const CADENZA_ELEMENTS = [
         "start": 12,
         "end": 14,
         "italic": true,
-        "color": "#9B735A"
+        "color": "#855C46"
       }
     ],
     "flowRole": "grid-member",
-    "flowGroup": "record-bbff19361c90"
+    "flowGroup": "record-89d7732145b9"
   },
   {
     "category": "textarea",
@@ -1298,7 +1303,7 @@ const CADENZA_ELEMENTS = [
     "fontSize": 8.4,
     "lineHeight": 11.2,
     "letterSpacing": 0,
-    "color": "#42494B",
+    "color": "#3F4547",
     "fontFamily": "Lora",
     "zIndex": 2,
     "page": 1,
@@ -1313,11 +1318,11 @@ const CADENZA_ELEMENTS = [
         "start": 12,
         "end": 14,
         "italic": true,
-        "color": "#9B735A"
+        "color": "#855C46"
       }
     ],
     "flowRole": "grid-member",
-    "flowGroup": "record-bbff19361c90"
+    "flowGroup": "record-89d7732145b9"
   },
   {
     "category": "textarea",
@@ -1329,7 +1334,7 @@ const CADENZA_ELEMENTS = [
     "fontSize": 8.4,
     "lineHeight": 11.2,
     "letterSpacing": 0,
-    "color": "#42494B",
+    "color": "#3F4547",
     "fontFamily": "Lora",
     "zIndex": 2,
     "page": 1,
@@ -1344,11 +1349,11 @@ const CADENZA_ELEMENTS = [
         "start": 12,
         "end": 14,
         "italic": true,
-        "color": "#9B735A"
+        "color": "#855C46"
       }
     ],
     "flowRole": "grid-member",
-    "flowGroup": "record-bbff19361c90"
+    "flowGroup": "record-89d7732145b9"
   }
 ];
 

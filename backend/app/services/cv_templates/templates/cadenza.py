@@ -165,19 +165,25 @@ def _cadenza_place_education(
 
 
 def _gen_cadenza(cv: dict) -> list[dict]:
-    """Build the warm, restrained Cadenza editorial CV from normalized data."""
+    """Build the white-paper, restrained Cadenza editorial CV from normalized data."""
     palette = {
-        "paper": "#FFFEFB",
-        "ink": "#263238",
-        "body": "#42494B",
-        "muted": "#72797B",
-        "band": "#E8EDEE",
-        "rule": "#CCD4D5",
-        "accent": "#9B735A",
+        # Porcelain Sepia is Cadenza's authored light palette. The Appearance
+        # controller keeps paper white across all six variants and changes the
+        # section field, register mark, role line, and contact glyphs by their
+        # semantic roles rather than by altering any document geometry.
+        "paper": "#FFFFFF",
+        "ink": "#24292C",
+        "body": "#3F4547",
+        "muted": "#606A6E",
+        "band": "#F0F2F2",
+        "rule": "#D6DDE0",
+        "accent": "#855C46",
+        "mark": "#B88465",
+        "heading_text": "#2D3437",
         "display": "PlayfairDisplay",
         "body_font": "Lora",
         "sans": "Montserrat",
-        "icon_theme": "cadenza",
+        "icon_theme": "cadenza-porcelain",
         "left": 58.0,
         "width": 479.0,
     }
@@ -270,12 +276,12 @@ def _gen_cadenza(cv: dict) -> list[dict]:
     builder = Builder(divider_y + 19.0)
 
     def section(label: str) -> None:
-        """Place a pale editorial band with one restrained copper register mark."""
+        """Place a tonal editorial field with one contrasting register mark."""
         y, page = builder.y, builder.pg
         band = _line(left, y, width, _SECTION_BAND_H, palette["band"], zIndex=1, page=page)
-        mark = _line(left, y, _SECTION_MARK_W, _SECTION_BAND_H, palette["accent"], zIndex=2, page=page)
+        mark = _line(left, y, _SECTION_MARK_W, _SECTION_BAND_H, palette["mark"], zIndex=2, page=page)
         heading = _text(
-            label, section_label_fs, sans, palette["ink"],
+            label, section_label_fs, sans, palette["heading_text"],
             left, y + 5.1,
             zIndex=3, page=page, bold=True,
         )
@@ -380,10 +386,20 @@ def _gen_cadenza(cv: dict) -> list[dict]:
     pages_used = max([element.get("page", 1) for element in header + flow] or [1])
     decorations: list[dict] = []
     for page in range(1, pages_used + 1):
-        decorations.append({
+        page_background = {
             **_line(0, 0, 595, 842, palette["paper"], zIndex=0, page=page),
             "fixedToPage": True,
-        })
+        }
+        if page == 1:
+            # Persist appearance intent on stable page chrome. Older Cadenza
+            # documents without this metadata are recognised by their contact
+            # band and upgraded when the user first selects a palette or size.
+            page_background["appearanceTemplateId"] = "cadenza"
+            page_background["appearanceSettings"] = {
+                "palette": "porcelain",
+                "textSize": "M",
+            }
+        decorations.append(page_background)
         decorations.append({
             **_line(left, 796, width, 0.7, palette["rule"], zIndex=1, page=page),
             "fixedToPage": True,
