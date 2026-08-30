@@ -446,129 +446,156 @@
     padding-left: 10px;
 }
 
-/* ---- Hero visual: real A4 template mockups, grid-aligned ---------------- */
+/* ---- Hero visual: animated A4 proof sheet ------------------------------- */
 
 .heroVisual {
     position: relative;
+    isolation: isolate;
     z-index: 2;
     align-self: center;
-    width: min(100%, 560px);
+    min-width: 0;
+    width: min(100%, 580px);
     margin-left: auto;
-    padding: 28px;
+    padding: 20px 24px 28px;
+    overflow: clip;
+    border-top: 1px solid var(--ink);
+    border-bottom: 1px solid var(--ink);
+    background: var(--beige);
 }
 
-/* Print register / crop marks at opposing corners frame the product shot like a
-   plate positioned on a grid sheet. Two corners is enough to read as
-   registration without boxing the composition in. */
-.heroVisual::before,
-.heroVisual::after {
+.heroSequence {
+    position: relative;
+    z-index: 4;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    min-height: 44px;
+    border-bottom: 1px solid var(--line-strong);
+    color: var(--ink);
+    font: 600 9px/1.2 var(--mono);
+    letter-spacing: .1em;
+    text-transform: uppercase;
+}
+
+.heroSequence > span:nth-child(2) {
+    min-width: 0;
+    padding: 0 16px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* The moving rule communicates progress through the three five-second
+   document phases. Scaling keeps the loop on the compositor and avoids layout
+   work while the real A4 images change. */
+.heroSequence::after {
     content: "";
     position: absolute;
-    width: 20px;
-    height: 20px;
-    border: 2px solid var(--ink);
-    z-index: 3;
-}
-
-.heroVisual::before {
-    top: 0;
-    left: 0;
-    border-right: 0;
-    border-bottom: 0;
-}
-
-.heroVisual::after {
     right: 0;
-    bottom: 0;
-    border-left: 0;
-    border-top: 0;
-}
-
-/* Constructivist backdrop: a solid taupe disc ringed by a concentric ink
-   outline, drawn straight from the Müller-Brockmann poster vocabulary. It sits
-   behind the document stack so the real CV stays the focal point while the
-   geometry supplies the "Swiss poster" atmosphere. Circles are a deliberate
-   geometric primitive here — the 0px radius rule governs component corners, not
-   the decorative composition. */
-.visualOrbit {
-    position: absolute;
-    z-index: 0;
-    top: 1%;
-    right: 3%;
-    width: 46%;
-    aspect-ratio: 1;
+    bottom: -1px;
+    left: 0;
+    height: 2px;
     background: var(--taupe);
-    border-radius: 50%;
+    transform: scaleX(0);
+    transform-origin: left;
+    animation: heroSequenceProgress 15s linear infinite;
 }
 
-/* Concentric outline ring around the disc. */
-.visualOrbit::before {
-    content: "";
-    position: absolute;
-    inset: -20%;
-    border: 2px solid var(--ink);
-    border-radius: 50%;
-}
-
-/* Solid grid-anchor block — a small square tick that locks the round forms back
-   onto the orthogonal grid. */
-.visualOrbit::after {
-    content: "";
-    position: absolute;
-    left: -13px;
-    bottom: 8%;
-    width: 28px;
-    height: 28px;
-    background: var(--ink);
-}
-
-.heroStack {
+.heroMotionToggle {
     position: relative;
     z-index: 1;
-    width: min(100%, 460px);
-    margin-left: auto;
-    aspect-ratio: 1 / 1;
+    min-width: 60px;
+    min-height: 44px;
+    padding: 0 10px;
+    border: 0;
+    border-left: 1px solid var(--line-strong);
+    border-radius: 0;
+    background: transparent;
+    color: var(--ink);
+    cursor: pointer;
+    font: 700 9px/1 var(--mono);
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    transition: background-color 160ms ease, color 160ms ease;
 }
 
-.heroDocFront,
-.heroDocBack {
-    display: block;
-    height: auto;
+.heroMotionToggle:hover {
+    background: var(--ink);
+    color: var(--paper);
+}
+
+.heroMotionToggle:active {
+    background: var(--black-2);
+    color: var(--paper);
+}
+
+.heroMotionToggle:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+}
+
+.heroDocumentDeck {
+    position: relative;
+    isolation: isolate;
+    min-width: 0;
+    width: 100%;
+    aspect-ratio: 1.05 / 1;
+    overflow: clip;
+}
+
+.heroDocument {
+    position: absolute;
+    top: 4%;
+    left: 50%;
+    z-index: 1;
+    width: 64%;
+    margin: 0;
+    overflow: hidden;
     border: 1px solid var(--ink);
     border-radius: 0;
-    object-fit: cover;
-    object-position: top;
-    /* Straight, un-rotated documents — the grid does the composition. */
+    background: var(--paper);
+    opacity: 0;
+    transform: translate3d(calc(-50% + 28px), -8px, 0) scale(.985);
+    animation: heroTemplateCycle 15s cubic-bezier(.2, 0, 0, 1) var(--hero-document-delay) infinite;
+    will-change: transform, opacity;
 }
 
-.heroDocFront {
-    position: absolute;
-    right: 0;
-    bottom: 0;
-    width: 70%;
-    z-index: 2;
+.heroDocument img {
+    display: block;
+    width: 100%;
+    height: auto;
     background: var(--paper);
 }
 
-.heroDocBack {
+.heroDocument figcaption {
     position: absolute;
-    left: 0;
-    top: 0;
-    width: 58%;
-    z-index: 1;
-    background: var(--paper);
-    filter: grayscale(1);
-    opacity: .9;
+    right: -1px;
+    bottom: -1px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 28px;
+    padding: 6px 9px;
+    background: var(--ink);
+    color: var(--paper);
+    font: 700 9px/1 var(--mono);
+    letter-spacing: .09em;
+    text-transform: uppercase;
+}
+
+.heroDocument figcaption span {
+    color: color-mix(in srgb, var(--color-paper) 70%, transparent);
 }
 
 .heroChip {
     position: absolute;
-    left: -12px;
-    bottom: 8%;
+    left: 0;
+    bottom: 18px;
     z-index: 3;
     display: grid;
     gap: 5px;
-    width: min(280px, 76%);
+    width: min(300px, 70%);
+    margin: 0;
     padding: 12px 14px;
     background: var(--paper);
     border: 1px solid var(--ink);
@@ -583,30 +610,43 @@
     text-transform: uppercase;
 }
 
-.heroCountLabel {
-    position: absolute;
-    right: -6px;
-    top: 2%;
-    z-index: 3;
-    display: grid;
-    gap: 4px;
-    padding: 14px 16px;
-    background: var(--ink);
-    border-radius: 0;
-    text-align: center;
+.heroVisualPaused .heroDocument,
+.heroVisualPaused .heroSequence::after {
+    animation-play-state: paused;
 }
 
-.heroCountLabel b {
-    font: 800 34px/1 var(--display);
-    letter-spacing: -.04em;
-    color: var(--paper);
+@keyframes heroTemplateCycle {
+    0%,
+    28% {
+        opacity: 1;
+        transform: translate3d(-50%, 0, 0) scale(1);
+    }
+
+    32.5% {
+        opacity: 0;
+        transform: translate3d(calc(-50% - 28px), 8px, 0) scale(.985);
+    }
+
+    32.51%,
+    95% {
+        opacity: 0;
+        transform: translate3d(calc(-50% + 28px), -8px, 0) scale(.985);
+    }
+
+    100% {
+        opacity: 1;
+        transform: translate3d(-50%, 0, 0) scale(1);
+    }
 }
 
-.heroCountLabel span {
-    color: color-mix(in srgb, var(--color-paper) 82%, transparent);
-    font: 500 8px/1.1 var(--mono);
-    letter-spacing: .14em;
-    text-transform: uppercase;
+@keyframes heroSequenceProgress {
+    from {
+        transform: scaleX(0);
+    }
+
+    to {
+        transform: scaleX(1);
+    }
 }
 
 /* ---- Shared section horizontal rhythm ---------------------------------- */
@@ -1891,7 +1931,7 @@
     }
 
     .heroVisual {
-        width: min(92%, 520px);
+        width: min(96%, 560px);
         margin: 20px auto 0;
     }
 }
@@ -2028,19 +2068,32 @@
     }
 
     .heroVisual {
-        width: 96%;
+        width: 100%;
+        padding: 16px 8px 24px;
+    }
+
+    .heroSequence {
+        padding-left: 8px;
+    }
+
+    .heroSequence > span:nth-child(2) {
+        padding: 0 8px;
+    }
+
+    .heroDocumentDeck {
+        aspect-ratio: .92 / 1;
+    }
+
+    .heroDocument {
+        top: 2%;
+        width: 74%;
     }
 
     .heroChip {
-        left: -6px;
-        bottom: 5%;
-        width: min(260px, 82%);
+        left: 0;
+        bottom: 14px;
+        width: min(270px, 84%);
         font-size: 10px;
-    }
-
-    .heroCountLabel {
-        right: -4px;
-        padding: 12px 14px;
     }
 
     .stepsList {
@@ -2131,6 +2184,7 @@
     .buttonPrimary,
     .buttonSecondary,
     .templateCard,
+    .heroMotionToggle,
     .navigation a,
     .navigation .navStart,
     .buttonPrimary svg,
@@ -2145,6 +2199,40 @@
     .heroCopy > *,
     .heroVisual {
         animation: none;
+    }
+
+    /* The moving proof sheet becomes a static three-document fan. Visitors
+       still see every named template without receiving an unexpected loop. */
+    .heroSequence::after {
+        animation: none;
+        transform: scaleX(1);
+    }
+
+    .heroMotionToggle {
+        display: none;
+    }
+
+    .heroDocument {
+        animation: none;
+        opacity: .74;
+        transform: translate3d(-32%, 2%, 0) scale(.82);
+        will-change: auto;
+    }
+
+    .heroDocument:nth-child(1) {
+        z-index: 3;
+        opacity: 1;
+        transform: translate3d(-66%, 4%, 0) scale(.82);
+    }
+
+    .heroDocument:nth-child(2) {
+        z-index: 2;
+        opacity: .88;
+        transform: translate3d(-49%, -2%, 0) scale(.82);
+    }
+
+    .heroDocument:nth-child(3) {
+        z-index: 1;
     }
 
     /* Replace the endless strip with a static wrap of the first (focusable)

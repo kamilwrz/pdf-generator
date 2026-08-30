@@ -57,8 +57,21 @@ describe("landing product positioning", () => {
     assert.match(source, /id="cennik"/);
   });
 
-  it("features Linden as the primary hero document", () => {
-    assert.match(source, /const heroFront = previewById\("linden"\)/);
-    assert.doesNotMatch(source, /const heroFront = previewById\("portico"\)/);
+  it("cycles Linden, Sterling, and Vellum without the retired static hero stack", () => {
+    assert.match(source, /const HERO_SHOWCASE_IDS = \["linden", "sterling", "vellum"\];/);
+    assert.match(source, /const HERO_SHOWCASE = HERO_SHOWCASE_IDS\.map\(previewById\);/);
+    assert.match(source, /const HERO_SHOWCASE_DELAYS = \["0s", "-10s", "-5s"\];/);
+    assert.doesNotMatch(source, /const heroFront|const heroBack|classes\.heroCountLabel|classes\.visualOrbit|classes\.heroDocFront|classes\.heroDocBack/);
+    assert.doesNotMatch(styles, /\.heroCountLabel\b|\.visualOrbit\b|\.heroDocFront\b|\.heroDocBack\b/);
+  });
+
+  it("runs a controllable infinite proof-sheet animation with a reduced-motion fallback", () => {
+    assert.match(styles, /@keyframes heroTemplateCycle[\s\S]*?translate3d/);
+    assert.match(styles, /\.heroDocument\s*\{[^}]*animation:\s*heroTemplateCycle 15s[^;]*infinite;/s);
+    assert.match(styles, /\.heroSequence::after\s*\{[^}]*animation:\s*heroSequenceProgress 15s linear infinite;/s);
+    assert.match(source, /aria-pressed=\{isHeroShowcasePaused\}/);
+    assert.match(styles, /\.heroVisualPaused \.heroDocument,[\s\S]*?animation-play-state:\s*paused;/);
+    assert.match(styles, /@media \(prefers-reduced-motion: reduce\)[\s\S]*?\.heroDocument\s*\{[^}]*animation:\s*none;/s);
+    assert.match(styles, /@media \(prefers-reduced-motion: reduce\)[\s\S]*?\.heroMotionToggle\s*\{[^}]*display:\s*none;/s);
   });
 });

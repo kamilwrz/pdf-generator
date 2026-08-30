@@ -5,7 +5,7 @@
  * templates → editor → WYSIWYG → AI → privacy → pricing → FAQ → final CTA.
  *
  * Two funnels, one consistent primary action ("Stwórz CV za darmo" → wizard)
- * and one secondary ("Mam już CV — wgraj PDF" → import):
+ * and one secondary ("Wgraj swoje CV" → import):
  *   - Wizard → enter data → pick template → editor (frontend-only, guest mode)
  *   - Import → extract data → pick template → editor (paid OpenAI extract)
  *
@@ -15,7 +15,7 @@
  * authenticated). Each CTA queues a per-source funnel event so analytics can
  * tell which surface drove the click (see queueGuestEvent + events.py).
  */
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import classes from "./Hero.module.css";
 import { TEMPLATES } from "../../templates";
@@ -30,11 +30,19 @@ const TEMPLATE_PREVIEWS = TEMPLATES.map((template) => ({
     image: `/template-mockups/${template.id}.png`,
 }));
 
-// Dynamic template count so pricing/marketing copy never drifts from the
-// actual registry (landing kicker / hero chip read TEMPLATES.length).
+// Dynamic template count keeps the full template gallery and its accessible
+// name aligned with the actual registry.
 const TEMPLATE_COUNT = TEMPLATES.length;
 
 const previewById = (id) => TEMPLATE_PREVIEWS.find((template) => template.id === id);
+
+// The hero deliberately limits its moving proof sheet to three distinct
+// editorial directions. The full registry remains available in the template
+// marquee below, so the opening composition stays legible instead of becoming
+// a miniature version of the entire gallery.
+const HERO_SHOWCASE_IDS = ["linden", "sterling", "vellum"];
+const HERO_SHOWCASE = HERO_SHOWCASE_IDS.map(previewById);
+const HERO_SHOWCASE_DELAYS = ["0s", "-10s", "-5s"];
 
 const HOW_IT_WORKS = [
     {
@@ -158,6 +166,8 @@ function CtaLink({ to, event, variant = "primary", children }) {
 }
 
 export default function Hero() {
+    const [isHeroShowcasePaused, setIsHeroShowcasePaused] = useState(false);
+
     useEffect(() => {
         // Warm the optional API while visitors read the landing page. Loading
         // the marketing content never depends on the backend being available.
@@ -171,8 +181,6 @@ export default function Hero() {
     const proRegisterUrl = "/register?plan=pro";
 
     // Real template mockups drive every product visual — no stock imagery.
-    const heroFront = previewById("linden");
-    const heroBack = previewById("monument");
     const editorMock = previewById("meridian");
     // A dedicated Sterling render of the SAME CV content shown in the
     // "before" card (Jan Kowalski) — not a template picker mockup with the
@@ -235,35 +243,60 @@ export default function Hero() {
                     </ul>
                 </div>
 
-                <div className={classes.heroVisual} aria-label="Przykładowe szablony CV Studio">
-                    <div className={classes.visualOrbit} aria-hidden="true" />
-                    <div className={classes.heroStack}>
-                        <img
-                            className={classes.heroDocBack}
-                            src={heroBack.image}
-                            alt=""
-                            aria-hidden="true"
-                            loading="eager"
-                        />
-                        <img
-                            className={classes.heroDocFront}
-                            src={heroFront.image}
-                            alt={`Szablon ${heroFront.name} w CV Studio`}
-                            loading="eager"
-                            fetchPriority="high"
-                        />
-                        <span className={classes.heroChip}>
-                            <strong>Wgraj stare CV.</strong>
-                            <span>
-                                W kilka chwil treść trafi do szablonu premium, a inteligentny
-                                układ rozmieści ją automatycznie.
-                            </span>
+                <div
+                    className={`${classes.heroVisual} ${isHeroShowcasePaused ? classes.heroVisualPaused : ""}`}
+                >
+                    <div className={classes.heroSequence}>
+                        <span aria-hidden="true">01—03</span>
+                        <span aria-hidden="true">Linden · Sterling · Vellum</span>
+                        <button
+                            type="button"
+                            className={classes.heroMotionToggle}
+                            aria-controls="hero-template-showcase"
+                            aria-pressed={isHeroShowcasePaused}
+                            onClick={() => setIsHeroShowcasePaused((isPaused) => !isPaused)}
+                        >
+                            {isHeroShowcasePaused ? "Wznów" : "Pauza"}
+                        </button>
+                    </div>
+
+                    <div
+                        id="hero-template-showcase"
+                        className={classes.heroDocumentDeck}
+                        role="img"
+                        aria-label="Podgląd szablonów Linden, Sterling i Vellum"
+                    >
+                        {HERO_SHOWCASE.map((template, index) => (
+                            <figure
+                                key={template.id}
+                                className={classes.heroDocument}
+                                style={{ "--hero-document-delay": HERO_SHOWCASE_DELAYS[index] }}
+                                aria-hidden="true"
+                            >
+                                <img
+                                    src={template.image}
+                                    alt=""
+                                    width="595"
+                                    height="842"
+                                    loading="eager"
+                                    decoding="async"
+                                    fetchPriority={index === 0 ? "high" : undefined}
+                                />
+                                <figcaption>
+                                    <span>{String(index + 1).padStart(2, "0")}</span>
+                                    {template.name}
+                                </figcaption>
+                            </figure>
+                        ))}
+                    </div>
+
+                    <p className={classes.heroChip}>
+                        <strong>Wgraj stare CV.</strong>
+                        <span>
+                            W kilka chwil treść trafi do szablonu premium, a inteligentny
+                            układ rozmieści ją automatycznie.
                         </span>
-                    </div>
-                    <div className={classes.heroCountLabel}>
-                        <b>{TEMPLATE_COUNT}</b>
-                        <span>szablonów · jedna treść</span>
-                    </div>
+                    </p>
                 </div>
             </section>
 
