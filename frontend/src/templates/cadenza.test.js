@@ -7,6 +7,7 @@ import {
     appendSectionAtEnd,
     applyFlowSpacing,
     deriveSectionStyle,
+    insertSectionAfter,
     listDocumentSections,
     normalizeFilledBandSectionHeading,
     reorderSection,
@@ -221,6 +222,57 @@ test("Cadenza re-centres a legacy added heading after every input value", () => 
         assert.equal(heading.width, band.width);
         assert.equal(heading.align, "center");
     }
+});
+
+test("Cadenza insertion keeps every legacy language-grid cell with its section", () => {
+    // Documents saved before Cadenza adopted a full-width heading frame keep
+    // the label as a narrow intrinsic-width element centred inside the band.
+    // The first language cell then sits far to the label's left even though it
+    // belongs to the same full-width main lane.
+    const source = withElementIds(cadenzaTemplate).map((element) => {
+        if (element.flowRole !== "section-chrome" || element.category !== "text") {
+            return element;
+        }
+        const legacy = { ...element, left: 280 };
+        delete legacy.width;
+        delete legacy.align;
+        return legacy;
+    });
+    const experience = listDocumentSections(source, PAGE_HEIGHT)
+        .find((section) => section.title.includes("DOŚWIADCZENIE"));
+    assert.ok(experience);
+
+    let nextId = 0;
+    const built = buildSectionElements({
+        name: "PROJEKTY",
+        layout: SECTION_LAYOUTS.RECORD_SUBCATEGORY,
+        style: deriveSectionStyle(source, PAGE_HEIGHT, experience.headingId),
+        spacing: DEFAULT_FLOW_SPACING,
+        idFactory: () => `cadenza-legacy-insert-${nextId += 1}`,
+    });
+    const inserted = insertSectionAfter(
+        source,
+        built.elements,
+        experience.headingId,
+        PAGE_HEIGHT,
+        { spacing: DEFAULT_FLOW_SPACING },
+    );
+    const languages = listDocumentSections(inserted, PAGE_HEIGHT)
+        .find((section) => section.title === "JĘZYKI");
+    assert.ok(languages);
+
+    const memberIds = sectionElementIds(inserted, languages.headingId, PAGE_HEIGHT);
+    const languageCells = inserted.filter((element) => element.flowRole === "grid-member");
+    assert.equal(languageCells.length, 4);
+    assert.ok(
+        languageCells.every((element) => memberIds.has(element.element_id)),
+        "every language cell remains owned by the Languages section",
+    );
+    assert.equal(
+        new Set(languageCells.map((element) => `${element.page}:${element.top}`)).size,
+        1,
+        "the row keeps one shared page and top after insertion",
+    );
 });
 
 test("Cadenza spacing remains idempotent and keeps every title band together", () => {

@@ -479,18 +479,7 @@ function resolveSectionChromeBandStart(elements, heading, pageHeight) {
   // A filled band owns the heading whose baseline it contains. Recognising it
   // first also gives us a stable reference for reclaiming a narrow accent that
   // an older, broken spacing pass left one section-gap above the band.
-  const filledBand = (elements || [])
-    .filter((element) => {
-      if (!isFilledSectionBand(element)) return false;
-      const abs = absoluteTop(element, pageHeight);
-      return abs >= headingAbs - 24
-        && abs <= headingAbs + 1
-        && headingAbs <= abs + elementHeight(element) + 1;
-    })
-    .sort((left, right) => (
-      Math.abs(absoluteTop(left, pageHeight) - headingAbs)
-      - Math.abs(absoluteTop(right, pageHeight) - headingAbs)
-    ))[0] || null;
+  const filledBand = findFilledSectionBandForHeading(elements, heading, pageHeight);
 
   if (filledBand) {
     bandStart = Math.min(bandStart, absoluteTop(filledBand, pageHeight));
@@ -649,6 +638,36 @@ function isMatchingSectionBandAccent(accent, band, pageHeight) {
 }
 
 /**
+ * Resolve the full-width filled band whose vertical span owns `heading`.
+ *
+ * Section boundaries and main-lane classification must use the same band.
+ * Older Cadenza documents store the centred label as a narrow intrinsic-width
+ * text node, so its own X coordinate cannot describe the complete lane used by
+ * the language grid.
+ *
+ * @param {object[]} elements
+ * @param {object|null|undefined} heading
+ * @param {number} pageHeight
+ * @returns {object|null}
+ */
+function findFilledSectionBandForHeading(elements, heading, pageHeight) {
+  if (!heading) return null;
+  const headingAbs = absoluteTop(heading, pageHeight);
+  return (elements || [])
+    .filter((element) => {
+      if (!isFilledSectionBand(element)) return false;
+      const abs = absoluteTop(element, pageHeight);
+      return abs >= headingAbs - 24
+        && abs <= headingAbs + 1
+        && headingAbs <= abs + elementHeight(element) + 1;
+    })
+    .sort((left, right) => (
+      Math.abs(absoluteTop(left, pageHeight) - headingAbs)
+      - Math.abs(absoluteTop(right, pageHeight) - headingAbs)
+    ))[0] || null;
+}
+
+/**
  * Predicate for "not a different (sidebar) column from `headingLeft`".
  *
  * An element is a different column only when it sits well to the LEFT of the
@@ -683,6 +702,49 @@ function isSectionBodyElement(element, elements, pageHeight) {
   if (isRecordOverlay(element, elements, pageHeight)) return false;
   if (isChromeLike(element)) return false;
   return true;
+}
+
+/**
+ * Return the authoritative main-lane predicate for a section heading.
+ *
+ * A legacy Cadenza heading is a narrow text node centred near x=280, while its
+ * first language-grid cell begins at x=58 and ends before the text. The generic
+ * heading-origin heuristic therefore mistakes that cell for a sidebar and
+ * leaves it behind when a new section opens a Y hole. For the paired filled
+ * band + narrow accent signature, the band's full horizontal span defines the
+ * lane instead. Requiring the accent keeps unrelated filled backgrounds out of
+ * this compatibility path.
+ *
+ * @param {object[]} elements
+ * @param {object|null|undefined} heading
+ * @param {number} pageHeight
+ * @returns {(element: {left?: number, width?: number}) => boolean}
+ */
+function sameMainLaneAsSectionHeading(elements, heading, pageHeight) {
+  const fallback = sameColumnAsHeading(Number(heading?.left) || 0);
+  const band = findFilledSectionBandForHeading(elements, heading, pageHeight);
+  const accent = band
+    ? (elements || []).find((element) => (
+      isMatchingSectionBandAccent(element, band, pageHeight)
+    )) || null
+    : null;
+  if (!band || !accent) return fallback;
+
+  const bandLeft = Number(band.left);
+  const bandWidth = Number(band.width);
+  if (!Number.isFinite(bandLeft) || !Number.isFinite(bandWidth) || bandWidth <= 0) {
+    return fallback;
+  }
+  const bandRight = bandLeft + bandWidth;
+  return (element) => {
+    const left = Number(element?.left);
+    if (!Number.isFinite(left)) return false;
+    const width = Number(element?.width);
+    if (!Number.isFinite(width) || width <= 0) {
+      return left >= bandLeft - 0.01 && left <= bandRight + 0.01;
+    }
+    return left < bandRight - 0.01 && left + width > bandLeft + 0.01;
+  };
 }
 
 /**
@@ -847,7 +909,7 @@ export function sectionElementIds(elements, headingId, pageHeight = 842) {
       ? sections[sectionIndex + 1].startAbs
       : Number.POSITIVE_INFINITY;
     const heading = list.find((element) => element.element_id === section.headingId);
-    const isSameColumn = sameColumnAsHeading(Number(heading?.left) || 0);
+    const isSameColumn = sameMainLaneAsSectionHeading(list, heading, pageHeight);
     const ids = membersByHeading.get(section.headingId);
 
     for (const element of list) {
@@ -1078,7 +1140,7 @@ function resolveFlowStart(elements, sections, pageHeight) {
   }
   const headingStart = Math.min(...sections.map((section) => section.startAbs));
   const firstHeading = list.find((element) => element.element_id === sections[0]?.headingId);
-  const isSameColumn = sameColumnAsHeading(Number(firstHeading?.left) || 0);
+  const isSameColumn = sameMainLaneAsSectionHeading(list, firstHeading, pageHeight);
   // Explicit midline chrome can begin a fraction of a pixel above the title's
   // stored top. Start packing from that true band edge; compactChromeCluster
   // normalizes the minimum offset to zero, so this keeps the heading itself at
@@ -2470,7 +2532,7 @@ export function appendSectionAtEnd(
     ? list.find((element) => element.element_id === sections[0].headingId)
     : null;
   const isSameColumn = firstHeading
-    ? sameColumnAsHeading(Number(firstHeading.left) || 0)
+    ? sameMainLaneAsSectionHeading(list, firstHeading, pageHeight)
     : () => true;
 
   let flowBottom = 0;
@@ -2664,7 +2726,7 @@ export function insertSectionAfter(
   // content after the anchor, and later section chrome/body) moves down so
   // section membership stays correct before applyFlowSpacing.
   const hole = Math.max(0, bottomAbs + rhythm.section - cursorAbs);
-  const isSameColumn = sameColumnAsHeading(Number(anchorHeading?.left) || 0);
+  const isSameColumn = sameMainLaneAsSectionHeading(list, anchorHeading, pageHeight);
   const shifted = list.map((element) => {
     if (!element || element.fixedToPage) return element;
     if (anchorIds.has(element.element_id)) return element;
