@@ -342,6 +342,8 @@ def extract_cv_data(pdf_bytes: bytes) -> tuple[dict, dict]:
                 "  website = osobista strona / portfolio (nie LinkedIn i nie GitHub).\n"
                 "  Puste stringi, gdy brak w CV. Nie wklejaj tych URL-i do email/phone/location.\n"
                 "- experience: WSZYSTKIE stanowiska od najnowszego; WSZYSTKIE punkty (bez limitu)\n"
+                "  title = wyłącznie nazwa stanowiska jawnie zapisana przy danym pracodawcy. "
+                "Jeśli jej brak, zostaw pusty string; nigdy nie kopiuj nagłówka sekcji WORK EXPERIENCE / DOŚWIADCZENIE ZAWODOWE.\n"
                 "- education: WSZYSTKIE wpisy od najnowszego. Dla każdego wpisu:\n"
                 "  school = uczelnia/szkoła, city = miasto, degree = kierunek/tytuł/dyplom,\n"
                 "  period = lata, description = opis pod dyplomem (specjalizacja, praca dyplomowa,\n"

@@ -69,7 +69,7 @@ Użytkownik może wypełnić CV na dwa sposoby. Oba kończą się tym samym obie
    - rasteruje do PNG wyłącznie strony bez wystarczającej warstwy tekstowej i wtedy przełącza całe żądanie na **Qwen 3.8 27B Vision**,
    - korzysta z OpenAI-compatible endpointu Cloudflare i promptu „zwróć wyłącznie JSON o takiej strukturze…”,
    - po pustym wyniku jawnego override'u Gemmy wykonuje najwyżej jeden fallback tekstowy na Llamę; domyślna konfiguracja używa Llamy od pierwszej próby.
-3. Odpowiedź modelu jest parsowana. `ground_cv_data_from_source` zastępuje podsumowanie, pojedynczą listę umiejętności/specjalizacji oraz referencje dokładnymi treściami z rozpoznanych sekcji natywnego tekstu. Dopiero tak ugruntowany obiekt przechodzi przez `normalize_cv_data`.
+3. Odpowiedź modelu jest parsowana. `ground_cv_data_from_source` składa pełne podsumowanie ze wszystkich zawiniętych wierszy, zachowuje łączone słowa, odczytuje pogrubione podkategorie Umiejętności/Specjalizacji i elementy rozdzielone kropką środkową oraz buduje referencje z rozpoznanych sekcji natywnego tekstu. Usuwa też skopiowany nagłówek WORK EXPERIENCE z pola stanowiska, jeśli źródło nie podaje jawnej roli. Dopiero tak ugruntowany obiekt przechodzi przez `normalize_cv_data`.
 4. Frontend trzyma wynik i przy wyborze szablonu woła `fill_template`.
 
 AI tu jest **ekstraktorem treści** (OCR/rozumienie dokumentu), nie silnikiem layoutu.
@@ -367,7 +367,7 @@ Bez kroku 2–3 podgląd w bibliotece istnieje, ale **fill_template rzuci „Nie
 | Plik | Rola |
 |---|---|
 | `backend/app/services/ai_service.py` | PDF → tekst / obrazy skanów → Workers AI; cienka fasada `generate_resume` |
-| `backend/app/services/cv_source_layout.py` | Geometria linii PDF → osobne kolumny / sekcje → deterministyczne ugruntowanie podsumowania, skills i referencji |
+| `backend/app/services/cv_source_layout.py` | Geometria linii i grubość fontu PDF → osobne kolumny / sekcje → pełne podsumowanie, zagnieżdżone skills, ochrona stanowiska i referencje |
 | `backend/app/services/cloudflare_pricing.py` | Telemetria stawek Llama/Gemma/Qwen i sumowanie prób fallbacku; bez bramki kredytów asystenta |
 | `backend/app/services/cv_data.py` | Normalizacja / walidacja profilu CV |
 | `backend/app/services/cv_generator.py` | **Deterministyczny silnik layoutu** (ten dokument) |

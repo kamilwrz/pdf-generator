@@ -61,6 +61,44 @@ def _two_column_cv_pdf_bytes() -> bytes:
     return data
 
 
+def _portico_style_cv_pdf_bytes() -> bytes:
+    """Build wrapped prose and bold nested skills like the Portico fixture."""
+    document = fitz.open()
+    page = document.new_page()
+    left_lines = [
+        (70, "PROFESSIONAL SUMMARY", True),
+        (90, "Full professional summary continues", False),
+        (106, "across every wrapped line and human-", False),
+        (122, "centered topic in the source CV.", False),
+        (160, "EDUCATION", True),
+        (180, "Example University", False),
+    ]
+    right_lines = [
+        (70, "WORK EXPERIENCE", True),
+        (90, "Example Employer", False),
+        (106, "2022 - 2026", False),
+        (126, "- Delivered training programs.", False),
+        (160, "UMIEJETNOSCI", True),
+        (180, "Soft Skills", True),
+        (198, "Critical thinking.  ·  Strong", False),
+        (214, "communication.  ·  Teamwork.", False),
+        (240, "Research and IT", True),
+        (258, "AI research.  ·  Data analysis", False),
+        (274, "and business modeling.", False),
+    ]
+    for x, lines in ((36, left_lines), (300, right_lines)):
+        for y, text, bold in lines:
+            page.insert_text(
+                (x, y),
+                text,
+                fontsize=10,
+                fontname="hebo" if bold else "helv",
+            )
+    data = document.tobytes()
+    document.close()
+    return data
+
+
 def _response(payload: dict | str):
     """Return the minimal OpenAI-compatible response consumed by the service."""
     content = payload if isinstance(payload, str) else json.dumps(payload)
@@ -350,6 +388,59 @@ class CloudflareCvExtractionTests(unittest.TestCase):
         self.assertIn("REFERENCJE", rendered_content)
         self.assertIn("Hydraulik Cezary Hrynski", rendered_content)
         self.assertIn("Manager Julia Oleszko", rendered_content)
+
+    def test_portico_source_preserves_full_summary_and_nested_skill_groups(self):
+        """Wrapped native text must beat shortened and flattened model output."""
+        client = self._client({
+            "name": "Jacob Andrew Rauch",
+            "summary": "Full professional summary continues",
+            "experience": [{
+                "title": "WORK EXPERIENCE",
+                "company": "Example Employer",
+                "period": "2022 - 2026",
+                "bullets": ["Delivered training programs."],
+            }],
+            "skills": ["Soft Skills", "Critical thinking"],
+        })
+
+        with patch.object(
+            ai_service,
+            "_provider_settings",
+            return_value=(client, ai_service.CLOUDFLARE_TEXT_MODEL, "cloudflare"),
+        ):
+            cv_data, usage = ai_service.extract_cv_data(_portico_style_cv_pdf_bytes())
+
+        self.assertEqual(
+            cv_data["summary"],
+            "Full professional summary continues across every wrapped line and "
+            "human-centered topic in the source CV.",
+        )
+        self.assertEqual(cv_data["experience"][0]["title"], "")
+        self.assertEqual(
+            cv_data["skills"],
+            [
+                {
+                    "category": "Soft Skills",
+                    "items": ["Critical thinking.", "Strong communication.", "Teamwork."],
+                },
+                {
+                    "category": "Research and IT",
+                    "items": ["AI research.", "Data analysis and business modeling."],
+                },
+            ],
+        )
+        self.assertEqual(
+            usage["source_grounded_fields"],
+            ["summary", "experience_titles", "skills"],
+        )
+        rendered_content = "\n".join(
+            str(element.get("content") or "")
+            for element in generate_resume("atrium", cv_data)
+        )
+        self.assertIn("human-centered topic in the source CV", rendered_content)
+        self.assertIn("Soft Skills", rendered_content)
+        self.assertIn("Research and IT", rendered_content)
+        self.assertNotIn("WORK EXPERIENCE", rendered_content)
 
     def test_missing_cloudflare_credentials_fails_before_network(self):
         with (

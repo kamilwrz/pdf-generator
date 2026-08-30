@@ -231,6 +231,13 @@ def _page_lines(page: fitz.Page) -> list[dict[str, Any]]:
                 "x1": bbox[2],
                 "y1": bbox[3],
                 "font_size": max((float(span.get("size") or 0) for span in spans), default=0.0),
+                # PDF font flags use bit 4 for bold. The font-name fallback
+                # covers producers that omit or rewrite the standard flags.
+                "is_bold": any(
+                    bool(int(span.get("flags") or 0) & 16)
+                    or "bold" in str(span.get("font") or "").casefold()
+                    for span in spans
+                ),
             })
     return lines
 
@@ -377,7 +384,31 @@ def source_sections_prompt(pages: list[dict[str, Any]]) -> str:
 
 
 def _prose(lines: list[dict[str, Any]]) -> str:
-    return _collapse(" ".join(line["text"] for line in lines))
+    """Join visual wraps into one paragraph without breaking hyphenated words."""
+    result = ""
+    for line in lines:
+        text = _collapse(line.get("text"))
+        if not text:
+            continue
+        if result.endswith("-") and text[0].islower():
+            # A line-ending hyphen belongs to the word (for example
+            # "human-" + "centered"), so adding a space would corrupt it.
+            result += text
+        else:
+            result = f"{result} {text}".strip()
+    return _collapse(result)
+
+
+def _middle_dot_items(lines: list[dict[str, Any]]) -> list[str]:
+    """Recover complete items separated by middle dots across visual wraps."""
+    joined = _prose(lines)
+    if "·" not in joined:
+        return []
+    return [
+        item
+        for part in re.split(r"\s*·\s*", joined)
+        if (item := _collapse(part).strip(" -•▪●◦‣"))
+    ]
 
 
 def _bullet_items(lines: list[dict[str, Any]]) -> list[str]:
@@ -385,6 +416,9 @@ def _bullet_items(lines: list[dict[str, Any]]) -> list[str]:
         return []
     has_bullets = any(_BULLET_PREFIX.match(line["text"]) for line in lines)
     if not has_bullets:
+        middle_dot_items = _middle_dot_items(lines)
+        if middle_dot_items:
+            return middle_dot_items
         return [_collapse(line["text"]) for line in lines if _collapse(line["text"])]
 
     items: list[str] = []
@@ -404,6 +438,48 @@ def _bullet_items(lines: list[dict[str, Any]]) -> list[str]:
     if current:
         items.append(current)
     return items
+
+
+def _nested_skill_groups(section: Mapping[str, Any]) -> list[dict[str, Any]]:
+    """Parse bold subsection labels inside one source Skills section.
+
+    Many designed CVs use a single parent heading followed by bold category
+    names and regular-weight prose separated by middle dots. Treating PDF wraps
+    as individual skills loses both the categories and complete item text. A
+    label is accepted only when it owns at least one following regular-weight
+    line, which avoids mistaking a row of bold skill chips for category labels.
+    """
+    lines = list(section.get("body_lines") or [])
+    candidates: list[int] = []
+    for index, line in enumerate(lines):
+        text = _collapse(line.get("text"))
+        if not text or not line.get("is_bold") or _BULLET_PREFIX.match(text):
+            continue
+        next_bold = next(
+            (
+                other_index
+                for other_index in range(index + 1, len(lines))
+                if lines[other_index].get("is_bold")
+            ),
+            len(lines),
+        )
+        owned_lines = lines[index + 1:next_bold]
+        if any(
+            _collapse(owned.get("text")) and not owned.get("is_bold")
+            for owned in owned_lines
+        ):
+            candidates.append(index)
+
+    if len(candidates) < 2:
+        return []
+
+    groups: list[dict[str, Any]] = []
+    for offset, index in enumerate(candidates):
+        end = candidates[offset + 1] if offset + 1 < len(candidates) else len(lines)
+        items = _bullet_items(lines[index + 1:end])
+        if items:
+            groups.append({"category": _collapse(lines[index]["text"]), "items": items})
+    return groups if len(groups) >= 2 else []
 
 
 def _reference_records(lines: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -462,14 +538,37 @@ def ground_cv_data_from_source(
         grounded["summary"] = summary
         source_grounded_fields.append("summary")
 
+    experience = grounded.get("experience")
+    if isinstance(experience, list):
+        cleaned_experience: list[Any] = []
+        removed_heading_title = False
+        for entry in experience:
+            if not isinstance(entry, Mapping):
+                cleaned_experience.append(entry)
+                continue
+            cleaned_entry = dict(entry)
+            if _heading_kind(cleaned_entry.get("title")) == "experience":
+                # Some CVs intentionally omit a job title and start the record
+                # with the employer. A model must not fill that blank by copying
+                # WORK EXPERIENCE / DOŚWIADCZENIE ZAWODOWE into the role field.
+                cleaned_entry["title"] = ""
+                removed_heading_title = True
+            cleaned_experience.append(cleaned_entry)
+        if removed_heading_title:
+            grounded["experience"] = cleaned_experience
+            source_grounded_fields.append("experience_titles")
+
     skill_sections = [section for section in sections if section.get("kind") == "skills"]
-    skill_groups = [
-        {
-            "category": section["title"],
-            "items": _bullet_items(section.get("body_lines") or []),
-        }
-        for section in skill_sections
-    ]
+    skill_groups: list[dict[str, Any]] = []
+    for section in skill_sections:
+        nested_groups = _nested_skill_groups(section)
+        if nested_groups:
+            skill_groups.extend(nested_groups)
+        else:
+            skill_groups.append({
+                "category": section["title"],
+                "items": _bullet_items(section.get("body_lines") or []),
+            })
     skill_groups = [group for group in skill_groups if group["items"]]
     if skill_groups:
         next_skills: list[Any]
