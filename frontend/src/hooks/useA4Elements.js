@@ -35,8 +35,10 @@ import {
 } from '../utils/sectionStructure';
 import { buildSectionElements } from '../utils/sectionBuilder';
 import {
+  addRecordDescription,
   appendRecordToSection,
   insertRecordBlockAfterRecord,
+  removeRecordDescription,
   removeRecordBlock,
   reorderRecordBlock,
 } from '../utils/sectionRecord';
@@ -1059,6 +1061,47 @@ export function useA4Elements(titleRef) {
   }, [finalizeDocumentPages]);
 
   /**
+   * Add the optional bullet description to one template-mode record and enter
+   * text editing immediately so the placeholder can be replaced in one step.
+   *
+   * @param {string} elementId upper-line anchor of the target record
+   */
+  const handleAddRecordDescription = useCallback((elementId) => {
+    if (!elementId) return;
+    if (editorModeRef.current !== EDITOR_MODE_TEMPLATE) return;
+
+    let jumpToPage = null;
+    setA4_Elements((prev) => {
+      const pageHeight = pageSizeRef.current?.height ?? 842;
+      const result = addRecordDescription(prev, elementId, pageHeight, {
+        spacing: flowSpacingRef.current,
+        idFactory: nanoid,
+      });
+      if (!result) return prev;
+
+      const packed = result.elements.find((element) => (
+        element.element_id === result.descriptionId
+      ));
+      if (packed) {
+        const page = Math.max(1, Math.trunc(Number(packed.page) || 1));
+        if (page !== currentPageRef.current) jumpToPage = page;
+      }
+
+      const selected = result.elements.map((element) => {
+        if (element.element_id === result.descriptionId) {
+          return { ...element, isSelected: true, isEditing: true };
+        }
+        if (element.isSelected || element.isEditing) {
+          return { ...element, isSelected: false, isEditing: false };
+        }
+        return element;
+      });
+      return finalizeDocumentPages(selected, { collapseEmpty: true });
+    });
+    if (jumpToPage != null) setCurrentPage(jumpToPage);
+  }, [finalizeDocumentPages]);
+
+  /**
    * Queue removed canvas elements for autosave tombstones (same contract as
    * bulk selection delete).
    *
@@ -1128,6 +1171,29 @@ export function useA4Elements(titleRef) {
       if (!result) return prev;
 
       rememberDeletedElements(prev, result.removedIds, true);
+      return finalizeDocumentPages(result.elements, { collapseEmpty: true });
+    });
+  }, [rememberDeletedElements, finalizeDocumentPages]);
+
+  /**
+   * Remove only a record's optional bullet description. The title, metadata,
+   * overlays, and flowGroup remain intact while the following content closes
+   * the freed space.
+   *
+   * @param {string} elementId upper-line anchor of the target record
+   */
+  const handleRemoveRecordDescription = useCallback((elementId) => {
+    if (!elementId) return;
+    if (editorModeRef.current !== EDITOR_MODE_TEMPLATE) return;
+
+    setA4_Elements((prev) => {
+      const pageHeight = pageSizeRef.current?.height ?? 842;
+      const result = removeRecordDescription(prev, elementId, pageHeight, {
+        spacing: flowSpacingRef.current,
+      });
+      if (!result) return prev;
+
+      rememberDeletedElements(prev, result.removedIds);
       return finalizeDocumentPages(result.elements, { collapseEmpty: true });
     });
   }, [rememberDeletedElements, finalizeDocumentPages]);
@@ -2396,8 +2462,10 @@ export function useA4Elements(titleRef) {
     handleAddSection,
     handleAddSectionRecord,
     handleAddRecordBlock,
+    handleAddRecordDescription,
     handleRemoveSection,
     handleRemoveRecordBlock,
+    handleRemoveRecordDescription,
     handleReorderRecordBlock,
     handleReorderSection,
     handleTransferSectionLane,

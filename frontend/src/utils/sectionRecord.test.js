@@ -7,10 +7,12 @@ import {
   listDocumentSections,
 } from "./sectionStructure.js";
 import {
+  addRecordDescription,
   appendRecordToSection,
   buildRecordClone,
   elementSupportsRecordBlockAdd,
   ensureCanonicalRecordTemplate,
+  getRecordDescriptionAction,
   inferRecordLayout,
   insertRecordBlockAfterRecord,
   listRecordBlockAddAnchors,
@@ -20,6 +22,7 @@ import {
   partitionSectionRecords,
   pickRecordTemplateGroup,
   placeholderContentsForRecord,
+  removeRecordDescription,
   removeRecordBlock,
   reorderRecordBlock,
   sectionSupportsRecordAdd,
@@ -623,6 +626,133 @@ describe("listUpperRecordMembers / insertRecordBlockAfterRecord", () => {
     assert.equal(listRecordBlockAddElementIds(aa).size, 0);
     assert.equal(insertRecordBlockAfterRecord(aa, aaBody[0].element_id), null);
     assert.equal(insertRecordBlockAfterRecord(doc, "missing"), null);
+  });
+});
+
+describe("optional record descriptions", () => {
+  it("removes and restores one education description without changing its record", () => {
+    const pageHeight = 842;
+    const rhythm = { ...DEFAULT_FLOW_SPACING };
+    const { elements: built, headingId } = buildSectionElements({
+      name: "Wykształcenie",
+      layout: SECTION_LAYOUTS.RECORD_EDUCATION,
+      style,
+      idFactory: makeIdFactory("edu"),
+    });
+    let doc = appendSectionAtEnd([], built, pageHeight, { spacing: rhythm });
+    const appended = appendRecordToSection(doc, headingId, pageHeight, {
+      spacing: rhythm,
+      idFactory: makeIdFactory("edu2"),
+    });
+    assert.ok(appended);
+    doc = appended.elements;
+
+    const before = listSectionContentElements(doc, headingId, pageHeight);
+    const firstTitleId = before[0].element_id;
+    const firstGroupId = before[0].flowGroup;
+    const firstDescription = before[3];
+    const secondTitleTopBefore = before[4].top;
+    assert.equal(firstDescription.bulletList, true);
+    assert.equal(getRecordDescriptionAction(doc, firstTitleId, pageHeight), "remove");
+
+    const removed = removeRecordDescription(doc, firstTitleId, pageHeight, {
+      spacing: rhythm,
+    });
+    assert.ok(removed);
+    assert.deepEqual([...removed.removedIds], [firstDescription.element_id]);
+    const withoutDescription = listSectionContentElements(
+      removed.elements,
+      headingId,
+      pageHeight,
+    );
+    const groupsWithoutDescription = partitionSectionRecords(withoutDescription);
+    assert.equal(groupsWithoutDescription[0].length, 3);
+    assert.equal(groupsWithoutDescription[1].length, 4);
+    assert.ok(
+      groupsWithoutDescription[1][0].top < secondTitleTopBefore,
+      "the following record must close the removed description gap",
+    );
+    assert.equal(
+      getRecordDescriptionAction(removed.elements, firstTitleId, pageHeight),
+      "add",
+    );
+    assert.equal(
+      listRecordBlockAddAnchors(removed.elements, pageHeight)[0].descriptionAction,
+      "add",
+    );
+
+    const restored = addRecordDescription(
+      removed.elements,
+      firstTitleId,
+      pageHeight,
+      { spacing: rhythm, idFactory: makeIdFactory("description") },
+    );
+    assert.ok(restored);
+    const restoredBody = listSectionContentElements(restored.elements, headingId, pageHeight);
+    const restoredGroups = partitionSectionRecords(restoredBody);
+    const description = restoredGroups[0].find((element) => element.bulletList);
+    assert.ok(description);
+    assert.equal(description.element_id, restored.descriptionId);
+    assert.equal(description.content, "Opis…");
+    assert.equal(description.flowGroup, firstGroupId);
+    assert.equal(restoredGroups[0].length, 4);
+    assert.equal(restoredGroups[1].length, 4);
+    assert.equal(
+      getRecordDescriptionAction(restored.elements, firstTitleId, pageHeight),
+      "remove",
+    );
+  });
+
+  it("restores a missing description in a single Experience record", () => {
+    const { elements, headingId } = buildSectionElements({
+      name: "Doświadczenie",
+      layout: SECTION_LAYOUTS.RECORD_EXPERIENCE,
+      style,
+      idFactory: makeIdFactory("exp"),
+    });
+    const body = listSectionContentElements(elements, headingId);
+    const titleId = body[0].element_id;
+    const removed = removeRecordDescription(elements, titleId);
+    assert.ok(removed);
+    assert.equal(getRecordDescriptionAction(removed.elements, titleId), "add");
+
+    const restored = addRecordDescription(removed.elements, titleId, 842, {
+      idFactory: makeIdFactory("restored"),
+    });
+    assert.ok(restored);
+    const restoredBody = listSectionContentElements(restored.elements, headingId);
+    assert.equal(restoredBody.length, 3);
+    assert.equal(restoredBody[2].content, "Opis…");
+    assert.equal(restoredBody[2].bulletList, true);
+  });
+
+  it("does not offer a duplicate description for Skills subcategories", () => {
+    const { elements, headingId } = buildSectionElements({
+      name: "Umiejętności",
+      layout: SECTION_LAYOUTS.RECORD_SUBCATEGORY,
+      style,
+      idFactory: makeIdFactory("skills"),
+    });
+    const body = listSectionContentElements(elements, headingId);
+    assert.equal(body.length, 2);
+    assert.equal(getRecordDescriptionAction(elements, body[0].element_id), null);
+    assert.equal(addRecordDescription(elements, body[0].element_id), null);
+    assert.equal(removeRecordDescription(elements, body[0].element_id), null);
+    assert.equal(listRecordBlockAddAnchors(elements)[0].descriptionAction, null);
+  });
+
+  it("accepts only the record upper band as an operation anchor", () => {
+    const { elements, headingId } = buildSectionElements({
+      name: "Doświadczenie",
+      layout: SECTION_LAYOUTS.RECORD_EXPERIENCE,
+      style,
+      idFactory: makeIdFactory("exp"),
+    });
+    const body = listSectionContentElements(elements, headingId);
+    const descriptionId = body.find((element) => element.bulletList).element_id;
+    assert.equal(getRecordDescriptionAction(elements, descriptionId), null);
+    assert.equal(addRecordDescription(elements, descriptionId), null);
+    assert.equal(removeRecordDescription(elements, descriptionId), null);
   });
 });
 

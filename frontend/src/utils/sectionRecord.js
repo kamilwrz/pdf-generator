@@ -8,8 +8,8 @@
  * body — 2 lines).
  *
  * Hovering the upper part of an existing record (title / meta, not the bullet
- * description) shows "+" / trash on the left and up/down arrows on the right.
- * Insert, delete, and reorder all re-pack with `applyFlowSpacing`.
+ * description) shows the structural toolbar. Insert, optional-description
+ * add/remove, delete, and reorder all re-pack with `applyFlowSpacing`.
  */
 
 import { nanoid } from "nanoid";
@@ -92,6 +92,14 @@ const SKILLS_SECTION_TITLE_RE = /umiejęt|umiejet|skills|kompetenc/i;
 const EDUCATION_SECTION_TITLE_RE = /wykształc|wyksztalc|edukac|studia|education|school/i;
 
 /**
+ * Common record-oriented headings whose two-line shape means title + metadata,
+ * rather than a Skills-style subcategory heading + body. A fuller sibling with
+ * a bullet description remains the primary, language-independent signal; this
+ * fallback covers a single imported record whose description was omitted.
+ */
+const DESCRIPTION_RECORD_SECTION_TITLE_RE = /doświadc|doswiad|experience|employment|historia pracy|work history|projek|project|wolont|volunteer|staż|staz|intern/i;
+
+/**
  * @param {string|null|undefined} title
  * @returns {boolean}
  */
@@ -105,6 +113,14 @@ export function isSkillsSectionTitle(title) {
  */
 export function isEducationSectionTitle(title) {
   return EDUCATION_SECTION_TITLE_RE.test(String(title || ""));
+}
+
+/**
+ * @param {string|null|undefined} title
+ * @returns {boolean}
+ */
+export function isDescriptionRecordSectionTitle(title) {
+  return DESCRIPTION_RECORD_SECTION_TITLE_RE.test(String(title || ""));
 }
 
 /**
@@ -709,6 +725,73 @@ export function listUpperRecordMembers(group) {
 }
 
 /**
+ * Return the optional bullet-description field owned by one record.
+ *
+ * Record titles, metadata, and date/location overlays may all share the same
+ * `flowGroup`; `bulletList` is the persisted semantic flag that distinguishes
+ * the authored description from those structural lines.
+ *
+ * @param {object[]} group
+ * @returns {object|null}
+ */
+export function findRecordDescription(group) {
+  return (group || []).find((element) => Boolean(element?.bulletList)) || null;
+}
+
+/**
+ * Decide which description operation belongs in a record's overflow menu.
+ *
+ * Existing bullet fields can always be removed. A missing field can be added
+ * when the record is structurally education-like, belongs to a known
+ * experience/project section, or has a fuller sibling proving that this
+ * section supports descriptions. Skills-style subcategories are deliberately
+ * excluded because their second line is already the record body.
+ *
+ * @param {object[]} group
+ * @param {object[][]} groups
+ * @param {string|null|undefined} sectionTitle
+ * @returns {"add"|"remove"|null}
+ */
+function descriptionActionForGroup(group, groups, sectionTitle) {
+  if (findRecordDescription(group)) return "remove";
+  if (isSkillsSectionTitle(sectionTitle)) return null;
+
+  const siblingHasDescription = (groups || []).some((candidate) => (
+    candidate !== group && Boolean(findRecordDescription(candidate))
+  ));
+  if (siblingHasDescription) return "add";
+
+  const realLineCount = (group || []).filter((element) => (
+    element?.flowRole !== "record-overlay"
+  )).length;
+  if (realLineCount >= 3) return "add";
+  if (isEducationSectionTitle(sectionTitle)) return "add";
+  if (isDescriptionRecordSectionTitle(sectionTitle)) return "add";
+  return null;
+}
+
+/**
+ * Resolve the dynamic description action for the record owning an upper-line
+ * canvas anchor.
+ *
+ * @param {object[]} elements
+ * @param {string} elementId
+ * @param {number} [pageHeight=842]
+ * @returns {"add"|"remove"|null}
+ */
+export function getRecordDescriptionAction(elements, elementId, pageHeight = 842) {
+  const anchor = findRecordGroupForElement(elements, elementId, pageHeight);
+  if (!anchor) return null;
+  if (!listUpperRecordMembers(anchor.group).some((member) => member.element_id === elementId)) {
+    return null;
+  }
+
+  const groups = partitionSectionRecords(anchor.body);
+  const heading = (elements || []).find((element) => element.element_id === anchor.headingId);
+  return descriptionActionForGroup(anchor.group, groups, heading?.content);
+}
+
+/**
  * Whether a content element may trigger the in-record "+" (upper lines only).
  *
  * @param {object[]} elements
@@ -741,6 +824,7 @@ export function elementSupportsRecordBlockAdd(elements, elementId, pageHeight = 
  *   highlight: {left:number,top:number,width:number,height:number},
  *   canMoveUp: boolean,
  *   canMoveDown: boolean,
+ *   descriptionAction: "add"|"remove"|null,
  * }[]}
  */
 export function listRecordBlockAddAnchors(elements, pageHeight = 842) {
@@ -752,6 +836,7 @@ export function listRecordBlockAddAnchors(elements, pageHeight = 842) {
     }
     const body = listSectionContentElements(elements, section.headingId, pageHeight);
     const groups = partitionSectionRecords(body);
+    const heading = (elements || []).find((element) => element.element_id === section.headingId);
     groups.forEach((group, groupIndex) => {
       const upper = listUpperRecordMembers(group);
       if (upper.length === 0) return;
@@ -792,6 +877,7 @@ export function listRecordBlockAddAnchors(elements, pageHeight = 842) {
         },
         canMoveUp: groupIndex > 0,
         canMoveDown: groupIndex < groups.length - 1,
+        descriptionAction: descriptionActionForGroup(group, groups, heading?.content),
       });
     });
   }
@@ -911,6 +997,217 @@ export function insertRecordBlockAfterRecord(
   return {
     elements: next,
     firstBodyId,
+  };
+}
+
+/**
+ * Build one renderer-ready placeholder description for an existing record.
+ *
+ * A sibling description is the strongest style source because templates may
+ * use a body width/color that differs from title and metadata lines. When no
+ * sibling exists, the last real line supplies a conservative same-column
+ * fallback. UI-only selection/editing flags and stale geometry are never
+ * copied into the new element.
+ *
+ * @param {object|null} templateDescription
+ * @param {object} fallbackLine
+ * @param {object[]} targetGroup
+ * @param {() => string} idFactory
+ * @returns {object}
+ */
+function buildRecordDescription(
+  templateDescription,
+  fallbackLine,
+  targetGroup,
+  idFactory,
+) {
+  const source = templateDescription || fallbackLine;
+  const fontSize = Number(source?.fontSize) || 9.3;
+  const lineHeight = Number(source?.lineHeight) || Math.round(fontSize * 1.4);
+  const width = Number(source?.width) || Number(fallbackLine?.width) || 466;
+  const content = PLACEHOLDER.education[3];
+  const targetFlowGroup = (targetGroup || []).find((element) => (
+    typeof element?.flowGroup === "string" && element.flowGroup
+  ))?.flowGroup;
+  const targetFlowLane = (targetGroup || []).find((element) => (
+    typeof element?.flowLane === "string" && element.flowLane
+  ))?.flowLane;
+
+  const description = {
+    element_id: idFactory(),
+    category: "textarea",
+    content,
+    flowRole: "content",
+    autoHeight: true,
+    preserveInitialLayout: true,
+    left: Number(source?.left) || Number(fallbackLine?.left) || 66,
+    top: 0,
+    width,
+    height: measurePlaceholderHeight(content, width, fontSize, lineHeight),
+    fontSize,
+    fontFamily: source?.fontFamily || fallbackLine?.fontFamily || "Inter",
+    lineHeight,
+    letterSpacing: Number(source?.letterSpacing) || 0,
+    color: source?.color || fallbackLine?.color || "#24201E",
+    bold: false,
+    italic: Boolean(source?.italic),
+    underline: false,
+    align: source?.align || "left",
+    bulletList: true,
+    isSelected: false,
+    isMove: false,
+    isEditing: false,
+    locked: false,
+    zIndex: Number.isFinite(Number(source?.zIndex)) ? Number(source.zIndex) : 4,
+    page: 1,
+  };
+  // Do not invent a flowGroup for legacy untagged records: one tagged line in
+  // an otherwise untagged section would make every other line partition as a
+  // separate solo record. Existing groups and sidebar lanes are safe to copy.
+  if (targetFlowGroup) description.flowGroup = targetFlowGroup;
+  if (targetFlowLane || source?.flowLane === "sidebar") {
+    description.flowLane = targetFlowLane || "sidebar";
+  }
+  return description;
+}
+
+/**
+ * Add an editable "Opis…" bullet field to the record owning `elementId`.
+ *
+ * The operation opens a lane-scoped geometry hole before re-packing. This is
+ * required when a record sits directly above another section: inserting the
+ * field at its natural bottom without moving the boundary first can make the
+ * next section temporarily claim it during membership detection.
+ *
+ * @param {object[]} elements
+ * @param {string} elementId any upper-line member of the target record
+ * @param {number} [pageHeight=842]
+ * @param {{ spacing?: object, idFactory?: () => string }} [options]
+ * @returns {{ elements: object[], descriptionId: string }|null}
+ */
+export function addRecordDescription(
+  elements,
+  elementId,
+  pageHeight = 842,
+  { spacing, idFactory = nanoid } = {},
+) {
+  const anchor = findRecordGroupForElement(elements, elementId, pageHeight);
+  if (!anchor) return null;
+  if (!listUpperRecordMembers(anchor.group).some((member) => member.element_id === elementId)) {
+    return null;
+  }
+
+  const groups = partitionSectionRecords(anchor.body);
+  const heading = (elements || []).find((element) => element.element_id === anchor.headingId);
+  if (descriptionActionForGroup(anchor.group, groups, heading?.content) !== "add") {
+    return null;
+  }
+
+  const realMembers = anchor.group.filter((element) => (
+    !isRecordOverlay(element, anchor.group, pageHeight)
+  ));
+  if (realMembers.length === 0) return null;
+  const lastReal = realMembers.reduce((latest, element) => (
+    absoluteBottom(element, pageHeight) > absoluteBottom(latest, pageHeight)
+      ? element
+      : latest
+  ));
+  const templateDescription = groups
+    .filter((group) => group !== anchor.group)
+    .map((group) => findRecordDescription(group))
+    .find(Boolean) || null;
+  const description = buildRecordDescription(
+    templateDescription,
+    lastReal,
+    anchor.group,
+    idFactory,
+  );
+
+  const rhythm = normalizeFlowSpacing(spacing || DEFAULT_FLOW_SPACING);
+  const groupIds = new Set(anchor.group.map((element) => element.element_id));
+  const intoSidebar = Boolean(heading && isSidebarSectionHeading(heading));
+  const thresholdAbs = Math.max(...realMembers.map((element) => (
+    absoluteBottom(element, pageHeight)
+  )));
+  const hole = rhythm.stack + elementHeight(description);
+
+  const shifted = (elements || []).map((element) => {
+    if (!element || element.fixedToPage || groupIds.has(element.element_id)) return element;
+    if (element.flowRole === "masthead") return element;
+    if (intoSidebar) {
+      if (!isSidebarLaneElement(element)) return element;
+    } else if (isSidebarLaneElement(element)) {
+      return element;
+    }
+    if (absoluteTop(element, pageHeight) + 0.01 < thresholdAbs) return element;
+    const newAbs = absoluteTop(element, pageHeight) + hole;
+    const page = Math.max(1, Math.floor(newAbs / pageHeight) + 1);
+    const top = newAbs - (page - 1) * pageHeight;
+    return { ...element, page, top };
+  });
+
+  const descriptionAbs = thresholdAbs + rhythm.stack;
+  const descriptionPage = Math.max(1, Math.floor(descriptionAbs / pageHeight) + 1);
+  const placedDescription = {
+    ...description,
+    page: descriptionPage,
+    top: descriptionAbs - (descriptionPage - 1) * pageHeight,
+    ...(intoSidebar ? { flowLane: "sidebar" } : {}),
+  };
+  const lastGroupIndex = shifted.reduce((latest, element, index) => (
+    groupIds.has(element.element_id) ? index : latest
+  ), -1);
+  const withDescription = lastGroupIndex >= 0
+    ? [
+      ...shifted.slice(0, lastGroupIndex + 1),
+      placedDescription,
+      ...shifted.slice(lastGroupIndex + 1),
+    ]
+    : [...shifted, placedDescription];
+  const next = applyFlowSpacing(withDescription, rhythm, pageHeight);
+  const packedBody = listSectionContentElements(next, anchor.headingId, pageHeight);
+  if (!packedBody.some((element) => element.element_id === description.element_id)) {
+    return null;
+  }
+
+  return {
+    elements: next,
+    descriptionId: description.element_id,
+  };
+}
+
+/**
+ * Remove only the optional bullet description from a record, preserving title,
+ * metadata, overlays, and the rest of the section before rhythm re-packing.
+ *
+ * @param {object[]} elements
+ * @param {string} elementId any upper-line member of the target record
+ * @param {number} [pageHeight=842]
+ * @param {{ spacing?: object }} [options]
+ * @returns {{ elements: object[], removedIds: Set<string> }|null}
+ */
+export function removeRecordDescription(
+  elements,
+  elementId,
+  pageHeight = 842,
+  { spacing } = {},
+) {
+  const anchor = findRecordGroupForElement(elements, elementId, pageHeight);
+  if (!anchor) return null;
+  if (!listUpperRecordMembers(anchor.group).some((member) => member.element_id === elementId)) {
+    return null;
+  }
+
+  const description = findRecordDescription(anchor.group);
+  if (!description) return null;
+  const removedIds = new Set([description.element_id]);
+  const remaining = (elements || []).filter((element) => (
+    !removedIds.has(element.element_id)
+  ));
+  const rhythm = normalizeFlowSpacing(spacing || DEFAULT_FLOW_SPACING);
+  return {
+    elements: applyFlowSpacing(remaining, rhythm, pageHeight),
+    removedIds,
   };
 }
 

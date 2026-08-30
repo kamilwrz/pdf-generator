@@ -339,6 +339,7 @@ export default function CanvasElements({ elements, spreadSide = null }) {
               fontSize={blockAnchor.fontSize}
               canMoveUp={blockAnchor.canMoveUp}
               canMoveDown={blockAnchor.canMoveDown}
+              descriptionAction={blockAnchor.descriptionAction}
               highlight={blockAnchor.highlight}
               spreadSide={spreadSide}
             />
@@ -393,6 +394,7 @@ export default function CanvasElements({ elements, spreadSide = null }) {
               fontSize={blockAnchor.fontSize}
               canMoveUp={blockAnchor.canMoveUp}
               canMoveDown={blockAnchor.canMoveDown}
+              descriptionAction={blockAnchor.descriptionAction}
               highlight={blockAnchor.highlight}
               spreadSide={spreadSide}
             />

@@ -3,10 +3,10 @@
  *
  * Hovering the record title/meta reveals a grouped toolbar in the nearest A4
  * gutter. Clicking pins it, a double click hands control to text editing, and
- * deletion remains recoverable through the global toast action.
+ * description/record removals remain recoverable through the global toast.
  */
 import { use } from "react";
-import { FiTrash2 } from "react-icons/fi";
+import { FiFileMinus, FiFilePlus, FiTrash2 } from "react-icons/fi";
 import { PdfContext } from "../../../store/pdfgenerator-context";
 import { EDITOR_MODE_TEMPLATE } from "../../../utils/editorMode";
 import { elementSupportsRecordBlockAdd } from "../../../utils/sectionRecord";
@@ -31,6 +31,7 @@ import CanvasHoverToolbar from "../CanvasHoverToolbar/CanvasHoverToolbar";
  *   spreadSide?:"left"|"right"|null,
  *   canMoveUp?:boolean,
  *   canMoveDown?:boolean,
+ *   descriptionAction?:"add"|"remove"|null,
  * }} props
  */
 export default function RecordBlockAdd({
@@ -45,13 +46,16 @@ export default function RecordBlockAdd({
   spreadSide = null,
   canMoveUp = false,
   canMoveDown = false,
+  descriptionAction = null,
 }) {
   const {
     A4_Elements,
     pageSize,
     editorMode,
     addRecordBlock,
+    addRecordDescription,
     removeRecordBlock,
+    removeRecordDescription,
     reorderRecordBlock,
     zoom = 1,
   } = use(PdfContext);
@@ -94,6 +98,44 @@ export default function RecordBlockAdd({
     : "right";
   const side = resolveStructuralToolbarSide(preferredSide, spreadSide);
   const recordLabel = String(anchorElement?.content || "").trim();
+  const menuItems = [
+    ...(descriptionAction ? [{
+      key: "description",
+      label: descriptionAction === "add" ? "Dodaj opis" : "Usuń opis",
+      icon: descriptionAction === "add"
+        ? <FiFilePlus aria-hidden="true" />
+        : <FiFileMinus aria-hidden="true" />,
+      danger: descriptionAction === "remove",
+      onSelect: () => {
+        if (descriptionAction === "add") {
+          addRecordDescription?.(elementId);
+        } else {
+          deleteWithUndo({
+            title: recordLabel
+              ? `Usunięto opis z wpisu „${recordLabel}”`
+              : "Usunięto opis wpisu",
+            msg: "Możesz natychmiast przywrócić opis wraz z jego treścią.",
+            remove: () => removeRecordDescription?.(elementId),
+          });
+        }
+        hide();
+      },
+    }] : []),
+    {
+      key: "delete",
+      label: "Usuń wpis",
+      icon: <FiTrash2 aria-hidden="true" />,
+      danger: true,
+      onSelect: () => {
+        deleteWithUndo({
+          title: recordLabel ? `Usunięto wpis „${recordLabel}”` : "Usunięto wpis",
+          msg: "Możesz natychmiast przywrócić wpis wraz z jego treścią.",
+          remove: () => removeRecordBlock?.(elementId),
+        });
+        hide();
+      },
+    },
+  ];
 
   return (
     <CanvasHoverToolbar
@@ -118,20 +160,7 @@ export default function RecordBlockAdd({
       menuOpen={menuOpen}
       onOpenMenu={openMenu}
       onCloseMenu={closeMenu}
-      menuItems={[{
-        key: "delete",
-        label: "Usuń wpis",
-        icon: <FiTrash2 aria-hidden="true" />,
-        danger: true,
-        onSelect: () => {
-          deleteWithUndo({
-            title: recordLabel ? `Usunięto wpis „${recordLabel}”` : "Usunięto wpis",
-            msg: "Możesz natychmiast przywrócić wpis wraz z jego treścią.",
-            remove: () => removeRecordBlock?.(elementId),
-          });
-          hide();
-        },
-      }]}
+      menuItems={menuItems}
       toolbarPointerProps={toolbarPointerProps}
     />
   );
