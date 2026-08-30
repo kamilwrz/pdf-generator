@@ -59,6 +59,7 @@ test("document card keeps tier-honest fit status and CTA", async () => {
   assert.match(source, /formatPageCountLabel/);
   assert.match(source, /fitStatus/);
   assert.match(source, /onFitToPages/);
+  assert.match(source, /onClick=\{\(\) => onFitToPages\(\)\}/);
   assert.match(source, /Zmieść na /);
   assert.match(source, /Układ wygląda dobrze/);
   assert.match(source, /po skróceniu treści/);

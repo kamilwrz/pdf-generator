@@ -31,13 +31,15 @@ single objective.
 
 ## Decisions (locked)
 
-- **Entry point:** a user-initiated **"Zmieść na 1 stronie"** flow. The only
+- **Entry point:** a user-initiated **"Zmieść na …"** flow. The only
   automatic signal for a too-long CV is a gentle badge + one-time toast; no
   auto-opening modal.
 - **Proactive panel hint:** the *Układ CV* panel shows a page-fit affordance
   when `pageCount > targetPages`, with tier-honest copy.
-- **Target:** the existing `diagnoseDocumentLength().targetPages` (exactly `1`
-  for sidebar layouts, `pages - 1` for single-column). Label adapts.
+- **Target:** `pages - 1`, never below `1`, for every layout. Sidebar templates
+  still surface the long-CV nudge one page sooner, but a three-page document
+  first targets two pages instead of promising an implausible jump to one.
+  The label adapts.
 - **Clean-vs-emergency boundary:** named tiers relative to `COMPACT` and the
   hard floor (see the tier table).
 - **Commit:** apply immediately + toast + undo (one history entry), consistent

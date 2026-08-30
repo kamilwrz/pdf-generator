@@ -40,6 +40,13 @@ test("detection now drives a badge flag, not an auto-opened modal", async () => 
   assert.match(source, /fitStatus/);
 });
 
+test("all layouts use the same realistic one-page reduction target", async () => {
+  const source = await readFile(url, "utf8");
+  assert.match(source, /getNextPageFitTarget\(pageCount\)/);
+  assert.match(source, /Number\.isFinite\(numericTarget\)/);
+  assert.doesNotMatch(source, /isSidebarTemplate\s*\?\s*1\s*:/);
+});
+
 test("LongCvModal receives the two-variant props (no onApplyCompact)", async () => {
   const source = await readFile(url, "utf8");
   assert.match(source, /variant={longCvModal\.variant}/);

@@ -606,7 +606,7 @@ Tests:
 
 ### Progressive page-fit and AI shortening
 
-In template mode, a document that exceeds its target page count shows a small badge on the **Dostosuj CV** tile, a one-page-fit action in the Topbar only when the safe spacing ladder can reach one page, and one gentle toast per document; it never opens a blocking modal automatically. The target is one page for sidebar templates and one page fewer for other layouts. The Topbar action appears reactively when the document becomes too long, uses the tooltip **“Zmieść CV na 1 stronę…”**, and delegates to the same progressive fit handler as the panel. Emergency or impossible fits stay in the panel because they require an explicit decision or AI shortening. Opening **Dostosuj CV** runs the progressive page-fit probe only while the panel is visible and displays an honest hint with a **Zmieść na …** action.
+In template mode, a document that exceeds its target page count shows a small badge on the **Dostosuj CV** tile, a one-page-fit action in the Topbar only when the safe spacing ladder can reach one page, and one gentle toast per document; it never opens a blocking modal automatically. The panel target is always one page fewer than the current document, never below one, for both sidebar and single-column layouts. A three-page CV therefore first targets two pages; after that reduction, the user may separately try two → one. Sidebar layouts still surface the long-CV nudge at two pages because their profile rail is authored on page 1, but they no longer promise an unrealistic multi-page jump. The panel button calls the fit handler without forwarding React's click event, and the handler independently accepts only finite numeric target overrides; this prevents an event object from falling through to the engine's one-page default. The Topbar action appears reactively only when the safe probe can genuinely reach one page, uses the tooltip **“Zmieść CV na 1 stronę…”**, and delegates to the same progressive fit handler as the panel. Emergency or impossible fits stay in the panel because they require an explicit decision or AI shortening. Opening **Dostosuj CV** runs the progressive page-fit probe only while the panel is visible and displays an honest hint with a **Zmieść na …** action.
 
 `fitToPages.js` searches from the document's baseline rhythm toward the hidden hard floor `MIN_FLOW_SPACING = {stack:2, record:2, section:10, after_rule:2}`. Each candidate is packed through `applyFlowSpacing` and `collapseSpilledMainIntoSidebar`; the engine returns the first, therefore loosest, rhythm that meets the target. It classifies the result as `clean`, `tight`, `emergency`, or `impossible`. Clean and tight fits apply immediately as one undoable layout change. An emergency fit opens `LongCvModal`, offering **Maksymalnie zacieśnij** or AI shortening; an impossible fit offers AI shortening only.
 
@@ -618,6 +618,7 @@ AI content corrections cannot clear an existing CV element. The backend drops em
 
 Implementation:
 
+- `frontend/src/utils/documentLength.js` — long-document thresholds and `getNextPageFitTarget`, the shared incremental target rule
 - `frontend/src/utils/fitToPages.js` — pure ladder, tier, pack, target-fit, action-routing, and Polish target-label engine
 - `frontend/src/utils/flowSpacing.js` — `COMPACT_FLOW_SPACING`, `MIN_FLOW_SPACING`, and spacing normalization
 - `frontend/src/components/editor/LongCvModal/LongCvModal.jsx` + `.module.css` — emergency/impossible decision modal
@@ -630,6 +631,7 @@ Implementation:
 
 Tests:
 
+- `frontend/src/utils/documentLength.test.js` — long-document thresholds and realistic 3 → 2 → 1 target regressions for every layout
 - `frontend/src/utils/fitToPages.test.js` — hard-floor search, loosest-fitting candidate, tiers, action routing, and target labels
 - `frontend/src/utils/flowSpacing.test.js` — `MIN_FLOW_SPACING` invariants
 - `frontend/src/components/editor/LongCvModal/LongCvModal.test.js` and `frontend/src/pages/PdfCanvas.test.js` — modal variants and progressive-fit orchestration guards
@@ -2701,7 +2703,7 @@ Testy:
 
 ### Progresywne dopasowanie stron i skracanie AI
 
-W trybie szablonu dokument przekraczający docelową liczbę stron pokazuje małą plakietkę przy kafelku **Dostosuj CV**, akcję dopasowania do jednej strony w Topbarze tylko wtedy, gdy bezpieczna drabina odstępów potrafi osiągnąć jedną stronę, oraz jeden delikatny toast na dokument; blokujący modal nie otwiera się automatycznie. Celem jest jedna strona dla szablonów z sidebarem i o jedną stronę mniej dla pozostałych układów. Akcja w Topbarze pojawia się reaktywnie po przekroczeniu limitu, ma tooltip **„Zmieść CV na 1 stronę…”** i korzysta z tego samego progresywnego handlera dopasowania co panel. Wyniki emergency lub impossible pozostają w panelu, ponieważ wymagają decyzji użytkownika albo skracania AI. Po otwarciu **Dostosuj CV** uruchamiane jest progowe sprawdzenie dopasowania tylko wtedy, gdy panel jest widoczny; pokazuje ono uczciwą podpowiedź z akcją **Zmieść na …**.
+W trybie szablonu dokument przekraczający docelową liczbę stron pokazuje małą plakietkę przy kafelku **Dostosuj CV**, akcję dopasowania do jednej strony w Topbarze tylko wtedy, gdy bezpieczna drabina odstępów potrafi osiągnąć jedną stronę, oraz jeden delikatny toast na dokument; blokujący modal nie otwiera się automatycznie. Cel panelu to zawsze o jedną stronę mniej niż bieżący dokument, nigdy mniej niż jedna, zarówno dla układów z sidebarem, jak i jednokolumnowych. Trzystronicowe CV najpierw celuje więc w dwie strony; dopiero po tej redukcji użytkownik może osobno spróbować przejścia 2 → 1. Układy z sidebarem nadal pokazują podpowiedź o długim CV już przy dwóch stronach, ponieważ ich szyna profilu jest projektowana na stronie 1, ale nie obiecują już nierealnego skoku o kilka stron. Przycisk panelu wywołuje handler bez przekazywania zdarzenia kliknięcia Reacta, a sam handler niezależnie akceptuje tylko skończone wartości liczbowe jako nadpisanie celu; obiekt zdarzenia nie może więc uruchomić awaryjnego celu jednej strony w silniku. Akcja w Topbarze pojawia się reaktywnie tylko wtedy, gdy bezpieczny test naprawdę potrafi osiągnąć jedną stronę, ma tooltip **„Zmieść CV na 1 stronę…”** i korzysta z tego samego progresywnego handlera dopasowania co panel. Wyniki emergency lub impossible pozostają w panelu, ponieważ wymagają decyzji użytkownika albo skracania AI. Po otwarciu **Dostosuj CV** uruchamiane jest progowe sprawdzenie dopasowania tylko wtedy, gdy panel jest widoczny; pokazuje ono uczciwą podpowiedź z akcją **Zmieść na …**.
 
 `fitToPages.js` przeszukuje odstępy od rytmu bazowego dokumentu do ukrytej twardej granicy `MIN_FLOW_SPACING = {stack:2, record:2, section:10, after_rule:2}`. Każdy kandydat jest pakowany przez `applyFlowSpacing` i `collapseSpilledMainIntoSidebar`; silnik zwraca pierwszy, a więc najluźniejszy, rytm spełniający cel. Wynik jest klasyfikowany jako `clean`, `tight`, `emergency` albo `impossible`. Dopasowania clean i tight są stosowane od razu jako jedna operacja obsługiwana przez undo. Dopasowanie emergency otwiera `LongCvModal` z wyborem **Maksymalnie zacieśnij** albo skracania AI; wynik impossible oferuje wyłącznie skracanie AI.
 
@@ -2713,6 +2715,7 @@ Poprawki treści z AI nie mogą wyczyścić istniejącego elementu CV. Backend o
 
 Implementacja:
 
+- `frontend/src/utils/documentLength.js` — progi długiego dokumentu i `getNextPageFitTarget`, wspólna reguła stopniowego celu
 - `frontend/src/utils/fitToPages.js` — czysty silnik drabiny, tierów, pakowania, dopasowania do celu, routingu akcji i polskich etykiet celu
 - `frontend/src/utils/flowSpacing.js` — `COMPACT_FLOW_SPACING`, `MIN_FLOW_SPACING` oraz normalizacja odstępów
 - `frontend/src/components/editor/LongCvModal/LongCvModal.jsx` + `.module.css` — modal decyzyjny emergency/impossible
@@ -2725,6 +2728,7 @@ Implementacja:
 
 Testy:
 
+- `frontend/src/utils/documentLength.test.js` — progi długiego dokumentu i regresje realistycznego celu 3 → 2 → 1 dla każdego układu
 - `frontend/src/utils/fitToPages.test.js` — wyszukiwanie do twardej granicy, najluźniejszy pasujący kandydat, tiery, routing akcji i etykiety celu
 - `frontend/src/utils/flowSpacing.test.js` — inwarianty `MIN_FLOW_SPACING`
 - `frontend/src/components/editor/LongCvModal/LongCvModal.test.js` i `frontend/src/pages/PdfCanvas.test.js` — warianty modala i osłony orkiestracji progresywnego dopasowania

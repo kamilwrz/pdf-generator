@@ -60,6 +60,7 @@ describe("classifyFitTier", () => {
 });
 
 import { findFitForTarget } from "./fitToPages.js";
+import { getNextPageFitTarget } from "./documentLength.js";
 
 // Fake pack: page count = 1 once `section` drops to/below `threshold`, else 2.
 // Tags each returned array so we can assert WHICH candidate won.
@@ -73,6 +74,25 @@ function fakePackFn(threshold) {
 }
 
 describe("findFitForTarget", () => {
+  it("recognizes a compact 3-to-2 reduction as a deterministic success", () => {
+    const r = findFitForTarget({
+      elements: [],
+      loosest: BASELINE,
+      tightest: FLOOR,
+      targetPages: getNextPageFitTarget(3),
+      packFn: (_elements, spacing) => [{
+        element_id: "probe",
+        page: spacing.section <= COMPACT_FLOW_SPACING.section ? 2 : 3,
+        top: 0,
+        height: 10,
+      }],
+    });
+
+    assert.equal(r.fits, true);
+    assert.equal(r.pageCount, 2);
+    assert.deepEqual(resolveFitAction(r), { action: "commit" });
+  });
+
   it("returns the LOOSEST candidate that fits, never the tightest", () => {
     // With threshold 16, the first ladder rung whose section<=16 wins — that is
     // well above the floor (section 10), proving we do not over-tighten.

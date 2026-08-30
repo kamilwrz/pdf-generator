@@ -5,6 +5,7 @@ import {
   SPARSE_LAST_PAGE_RATIO,
   TOO_LONG_MIN_PAGES,
   diagnoseDocumentLength,
+  getNextPageFitTarget,
   measureLastPageUtilization,
   shouldResetLongCvOffer,
 } from "./documentLength.js";
@@ -97,14 +98,14 @@ describe("diagnoseDocumentLength", () => {
       );
     });
 
-    it("always targets exactly one page, regardless of current page count", () => {
+    it("keeps the earlier warning but reduces sidebar CVs by one page at a time", () => {
       assert.equal(
         diagnoseDocumentLength({ pageCount: 2, elements: [], isSidebarLayout: true }).targetPages,
         1,
       );
       assert.equal(
         diagnoseDocumentLength({ pageCount: 5, elements: [], isSidebarLayout: true }).targetPages,
-        1,
+        4,
       );
     });
 
@@ -120,6 +121,20 @@ describe("diagnoseDocumentLength", () => {
         "content",
       );
     });
+  });
+});
+
+describe("getNextPageFitTarget", () => {
+  it("sets a realistic one-page reduction goal", () => {
+    assert.equal(getNextPageFitTarget(5), 4);
+    assert.equal(getNextPageFitTarget(3), 2);
+    assert.equal(getNextPageFitTarget(2), 1);
+    assert.equal(getNextPageFitTarget(1), 1);
+  });
+
+  it("normalizes invalid page counts without promising zero pages", () => {
+    assert.equal(getNextPageFitTarget(0), 1);
+    assert.equal(getNextPageFitTarget(Number.NaN), 1);
   });
 });
 

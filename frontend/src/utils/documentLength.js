@@ -25,10 +25,10 @@ export const TOO_LONG_MIN_PAGES = 3;
  * continuation page repeats just the rail background/divider chrome with no
  * sidebar content. A 2nd page is therefore never "a little more CV" the way
  * it is for a single-column template — it means the rail's own promise (the
- * reader sees the whole profile at a glance) is already broken. So the bar
- * is one page lower than the single-column threshold, and the target is
- * always exactly one page rather than "one page fewer" — see
- * `diagnoseDocumentLength`'s `isSidebarLayout` option.
+ * reader sees the whole profile at a glance) is already broken. The detection
+ * threshold therefore stays one page lower than for a single-column layout.
+ * The remedy remains incremental, however: a long CV is reduced by one page
+ * per action instead of promising an implausible jump straight to page 1.
  */
 export const SIDEBAR_TOO_LONG_MIN_PAGES = 2;
 
@@ -39,6 +39,22 @@ export const SIDEBAR_TOO_LONG_MIN_PAGES = 2;
  * genuinely full and the modal leads with AI content shortening instead.
  */
 export const SPARSE_LAST_PAGE_RATIO = 0.45;
+
+/**
+ * Return the next realistic page-count goal for the deterministic fit action.
+ *
+ * Page fitting is intentionally progressive for every template family: a
+ * three-page CV targets two pages, while a two-page CV targets one. This keeps
+ * the CTA honest and lets the spacing probe report a successful one-page
+ * reduction instead of misclassifying it as an impossible one-page document.
+ *
+ * @param {number} pageCount current document page count
+ * @returns {number} one page fewer, clamped to one
+ */
+export function getNextPageFitTarget(pageCount) {
+  const pages = Math.max(1, Math.trunc(Number(pageCount) || 1));
+  return Math.max(1, pages - 1);
+}
 
 function elementBottom(element) {
   const top = Number(element?.top) || 0;
@@ -97,10 +113,10 @@ export function diagnoseDocumentLength({ pageCount, elements, isSidebarLayout = 
     tooLong,
     mode,
     pageCount: pages,
-    // Single-column: one page fewer at a time, never below one page.
-    // Sidebar: the rail only ever renders on page 1, so anything past that
-    // is the firm target regardless of how many pages currently exist.
-    targetPages: isSidebarLayout ? 1 : Math.max(1, pages - 1),
+    // Keep every reduction achievable and explicit: 3 → 2, then 2 → 1 if the
+    // user chooses to tighten again. Sidebar layout affects when we warn, not
+    // the size of the promised reduction.
+    targetPages: getNextPageFitTarget(pages),
     utilization,
   };
 }

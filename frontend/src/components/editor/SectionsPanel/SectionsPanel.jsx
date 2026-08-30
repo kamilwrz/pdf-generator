@@ -583,7 +583,7 @@ export default function SectionsPanel({ onClose }) {
                 <p><span aria-hidden="true">✓</span> Układ wygląda dobrze · standardowe odstępy.</p>
               )}
               {fitStatus?.reducible ? (
-                <button type="button" className={classes.fitCta} onClick={onFitToPages}>
+                <button type="button" className={classes.fitCta} onClick={() => onFitToPages()}>
                   Zmieść na {fitStatus.targetLabel}
                 </button>
               ) : null}

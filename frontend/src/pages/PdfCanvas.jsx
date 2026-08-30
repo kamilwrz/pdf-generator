@@ -81,6 +81,7 @@ import {
 import { listSectionIconOptions } from '../utils/sectionIcons';
 import { convertFlatListContent } from '../utils/flatSectionLayout';
 import {
+  getNextPageFitTarget,
   shouldResetLongCvOffer,
   TOO_LONG_MIN_PAGES,
   SIDEBAR_TOO_LONG_MIN_PAGES,
@@ -943,11 +944,10 @@ function PdfCanvas() {
     requestAssistantAction('shorten');
   }, [canUseAiAssistant, handleShowPlanModal, pageCount, requestAssistantAction, closeLongCvModal]);
 
-  // Sidebar templates (Tessera, Slate, Harbor, Sterling, …) only
-  // ever author the rail on page 1 — a continuation page repeats the rail
-  // background/divider with no sidebar content — so the same "too long"
-  // assistant applies one page sooner and always targets exactly one page
-  // (see SIDEBAR_TOO_LONG_MIN_PAGES / documentLength.js).
+  // Sidebar templates (Tessera, Slate, Harbor, Sterling, …) only author the
+  // profile rail on page 1, so the "too long" nudge applies one page sooner.
+  // The fit target itself is still progressive for every layout (3 → 2, then
+  // 2 → 1) so the UI never promises an implausible multi-page jump.
   const isSidebarTemplate = useMemo(
     () => templateHasLayout(
       TEMPLATES.find((template) => template.id === activeTemplateId),
@@ -956,15 +956,23 @@ function PdfCanvas() {
     [activeTemplateId],
   );
 
-  // Target page count: sidebar rails only ever render on page 1, so exactly 1;
-  // single-column shrinks one page at a time. Mirrors diagnoseDocumentLength.
+  // One shared product rule owns the panel hint, CTA, modal copy, and probe:
+  // reduce by exactly one page at a time, regardless of template layout.
   const fitTargetPages = useMemo(
-    () => (isSidebarTemplate ? 1 : Math.max(1, (pageCount ?? 1) - 1)),
-    [isSidebarTemplate, pageCount],
+    () => getNextPageFitTarget(pageCount),
+    [pageCount],
   );
 
   // Flagship action: find the loosest rhythm that fits the target, then route.
-  const onFitToPages = useCallback((targetPages = fitTargetPages) => {
+  const onFitToPages = useCallback((requestedTargetPages = fitTargetPages) => {
+    // React click handlers receive a SyntheticEvent as their first argument.
+    // Treat only a finite numeric override as an intentional target; otherwise
+    // use the live incremental goal. Without this guard, passing the handler
+    // directly to a button normalized the event to the engine's fallback of 1.
+    const numericTarget = Number(requestedTargetPages);
+    const targetPages = Number.isFinite(numericTarget)
+      ? numericTarget
+      : fitTargetPages;
     const pageHeight = pageSize?.height ?? 842;
     const fit = findFitForTarget({
       elements: A4_Elements,
