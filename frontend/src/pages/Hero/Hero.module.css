@@ -224,13 +224,43 @@
     display: grid;
     grid-template-columns: minmax(0, 960px);
     place-content: center;
+    overflow: hidden;
+    isolation: isolate;
     min-height: min(760px, calc(100dvh - 82px));
     padding: clamp(56px, 7vw, 108px) clamp(24px, 7vw, 112px);
     background: var(--paper);
 }
 
+.heroMedia {
+    position: absolute;
+    z-index: -1;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.heroMedia img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center 44%;
+    filter: saturate(.58) contrast(.88);
+    transform: scale(1.015);
+}
+
+/* The flat paper veil keeps the photograph editorial and guarantees that the
+   centred message remains the dominant, readable layer without a gradient. */
+.heroMedia::after {
+    position: absolute;
+    content: "";
+    inset: 0;
+    background: var(--paper);
+    opacity: .82;
+}
+
 .heroCopy {
     position: relative;
+    z-index: 1;
     align-self: center;
     width: 100%;
     max-width: 960px;
@@ -1806,6 +1836,14 @@
 
     .hero {
         padding-top: 54px;
+    }
+
+    .heroMedia img {
+        object-position: 52% center;
+    }
+
+    .heroMedia::after {
+        opacity: .88;
     }
 
     .hero h1 {

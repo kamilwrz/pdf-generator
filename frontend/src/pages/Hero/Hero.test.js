@@ -10,8 +10,8 @@ describe("landing product positioning", () => {
     assert.match(source, /Stwórz CV,/);
     assert.match(source, /które prowadzi/);
     assert.match(source, /do rozmowy\./);
-    assert.match(source, /profesjonalne CV dopasowane/);
-    assert.match(source, /bez zmyślania faktów/);
+    assert.match(source, /Wgraj stare CV lub zacznij od zera/);
+    assert.match(source, /profesjonalny dokument gotowy do/);
     assert.match(source, /Dokument, który reaguje na treść/);
     assert.match(source, /Podgląd nie jest przybliżeniem/);
   });
@@ -60,7 +60,9 @@ describe("landing product positioning", () => {
     assert.match(source, /id="cennik"/);
   });
 
-  it("renders one centered white hero without the retired animated showcase", () => {
+  it("renders one centered hero with a subdued editorial background image", () => {
+    assert.match(source, /women-job-call\.png/);
+    assert.match(styles, /\.heroMedia::after\s*\{[^}]*background:\s*var\(--paper\);[^}]*opacity:\s*\.82;/s);
     assert.doesNotMatch(source, /HERO_SHOWCASE|isHeroShowcasePaused|Wgraj stare CV\.|szablonu premium/);
     assert.doesNotMatch(styles, /heroVisual|heroSequence|heroMotionToggle|heroDocument|heroChip|heroTemplateCycle|heroSequenceProgress/);
     assert.doesNotMatch(styles, /\.hero::before|\.hero::after/);

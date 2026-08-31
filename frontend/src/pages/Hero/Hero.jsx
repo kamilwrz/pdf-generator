@@ -202,6 +202,9 @@ export default function Hero() {
             </header>
 
             <section id="top" className={classes.hero}>
+                <div className={classes.heroMedia} aria-hidden="true">
+                    <img src="/women-job-call.png" alt="" />
+                </div>
                 <div className={classes.heroCopy}>
                     <p className={classes.kicker}>CV gotowe na konkretną rekrutację</p>
                     <h1>
@@ -210,10 +213,9 @@ export default function Hero() {
                         <em>do rozmowy.</em>
                     </h1>
                     <p className={classes.heroLead}>
-                        CV Studio zamienia Twoje doświadczenie w profesjonalne CV dopasowane
-                        do konkretnej oferty. Pomaga wyostrzyć treść bez zmyślania faktów,
-                        sprawdzić czytelność dla ATS i pobrać dopracowany PDF — bez walki
-                        z formatowaniem.
+                        Wgraj stare CV lub zacznij od zera. CV Studio pomoże Ci dopasować
+                        treść do oferty i ułoży ją w profesjonalny dokument gotowy do
+                        wysłania.
                     </p>
                     <div className={classes.heroActions}>
                         <CtaLink to={wizardUrl} event="hero_wizard">Stwórz CV za darmo</CtaLink>
