@@ -19,7 +19,10 @@ describe("landing product positioning", () => {
     assert.match(styles, /\.hero h1\s*\{[^}]*display:\s*flex;[^}]*flex-direction:\s*column;/s);
     assert.match(styles, /\.hero h1 > span,[\s\S]*?\.hero h1 > em\s*\{[^}]*min-width:\s*0;[^}]*overflow-wrap:\s*break-word;/s);
     assert.match(styles, /\.hero h1 em\s*\{[^}]*display:\s*block;[^}]*line-height:\s*1;/s);
-    assert.match(styles, /\.hero\s*\{[^}]*grid-template-columns:\s*minmax\(0, 660px\);[^}]*place-content:\s*center;/s);
+    assert.match(styles, /\.hero\s*\{[^}]*grid-template-columns:\s*minmax\(0, 960px\);[^}]*place-content:\s*center;/s);
+    assert.match(styles, /\.heroCopy\s*\{[^}]*max-width:\s*960px;[^}]*text-align:\s*center;/s);
+    assert.match(styles, /\.hero h1\s*\{[^}]*align-items:\s*center;[^}]*max-width:\s*960px;[^}]*text-align:\s*center;/s);
+    assert.match(styles, /\.heroActions\s*\{[^}]*justify-content:\s*center;/s);
   });
 
   it("keeps AI support and the planned Free export promise", () => {
