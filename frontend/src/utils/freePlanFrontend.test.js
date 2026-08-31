@@ -8,19 +8,23 @@ async function source(relativePath) {
     return readFile(new URL(relativePath, root), "utf8");
 }
 
-test("landing pricing and FAQ present Free as a complete clean-PDF plan", async () => {
+test("landing labels, pricing, and FAQ keep the Free limits explicit", async () => {
     const hero = await source("pages/Hero/Hero.jsx");
+    const pricingStart = hero.indexOf('<section id="cennik"');
+    const faqStart = hero.indexOf('<section className={classes.faqSection}', pricingStart);
+    const faqEnd = hero.indexOf("</section>", faqStart);
+    const planMarkup = hero.slice(pricingStart, faqEnd);
 
-    assert.match(hero, /FREE_PLAN_HIGHLIGHTS\.map/);
-    assert.match(hero, /PRO_PLAN_HIGHLIGHTS\.map/);
-    assert.match(hero, /Gotowe CV za 0 zł/);
-    assert.match(hero, /CZYSTY PDF/);
-    assert.doesNotMatch(hero, /POMOC AI/);
-    assert.match(hero, /1 udany import CV w każdym miesiącu/);
-    assert.match(hero, /3 profesjonalnych szablonów z 6 wersjami wyglądu każdy/);
-    assert.match(hero, /nie wygasa i nie obejmuje funkcji AI/);
-    assert.match(hero, /Tak, w planie Pro/);
-    assert.doesNotMatch(hero, /znak wodny|oznaczeni(?:e|a) CV Studio|3 importy CV/i);
+    assert.ok(pricingStart >= 0 && faqStart > pricingStart && faqEnd > faqStart);
+    assert.match(planMarkup, /FREE_PLAN_HIGHLIGHTS\.map/);
+    assert.match(planMarkup, /PRO_PLAN_HIGHLIGHTS\.map/);
+    assert.match(planMarkup, /Gotowe CV za 0 zł/);
+    assert.doesNotMatch(planMarkup, /POMOC AI/);
+    assert.match(planMarkup, /1 udany import CV w każdym miesiącu/);
+    assert.match(planMarkup, /3 profesjonalnych szablonów z 6 wersjami wyglądu każdy/);
+    assert.match(planMarkup, /nie wygasa i nie obejmuje funkcji AI/);
+    assert.match(planMarkup, /Tak, w planie Pro/);
+    assert.doesNotMatch(planMarkup, /znak wodny|oznaczeni(?:e|a) CV Studio|3 importy CV/i);
 });
 
 test("plan modal keeps loading, fallback, current, and pending states explicit", async () => {

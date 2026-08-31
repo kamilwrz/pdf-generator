@@ -3,8 +3,8 @@
  *
  * Page order: header → hero → product offer + templates → privacy → pricing → FAQ → footer.
  *
- * Two funnels, one consistent primary action ("Stwórz CV za darmo" → wizard)
- * and one secondary ("Wgraj swoje CV" → import):
+ * Two funnels, one consistent primary action ("Kreator CV" → wizard)
+ * and one secondary ("Import CV" → import):
  *   - Wizard → enter data → register → Free Meridian → editor
  *   - Import → register → extract data → pick template → editor (metered request)
  *
@@ -152,25 +152,29 @@ export default function Hero() {
                     <img src="/women-job-call.png" alt="" />
                 </div>
                 <div className={classes.heroCopy}>
-                    <p className={classes.kicker} data-section-index="01">CV gotowe na konkretną rekrutację</p>
+                    <p className={classes.kicker} data-section-index="01">CV GOTOWE NA REKRUTACJE</p>
                     <h1>
-                        <span>Nowe CV.</span>
-                        <em>Nowa praca.</em>
+                        <span>Nowe CV</span>
+                        <em>Nowa praca</em>
                     </h1>
                     <div className={classes.heroActions}>
-                        <CtaLink to={wizardUrl} event="hero_wizard">Stwórz CV za darmo</CtaLink>
+                        <CtaLink to={wizardUrl} event="hero_wizard">Kreator CV</CtaLink>
                         <CtaLink to={importUrl} event="hero_import" variant="secondary">
-                            Wgraj swoje CV
+                            Import CV
                         </CtaLink>
                     </div>
                     <p className={classes.heroTertiary}>
-                        <Link to={demoUrl} onClick={() => queueGuestEvent("hero_demo")}>
-                            Najpierw zobacz przykładowe CV <ArrowIcon />
+                        <Link
+                            to={demoUrl}
+                            aria-label="Zobacz przykładowe CV — demo"
+                            onClick={() => queueGuestEvent("hero_demo")}
+                        >
+                            DEMO <ArrowIcon />
                         </Link>
                     </p>
                     <ul className={classes.heroTrust} aria-label="Korzyści na start">
-                        <li>ZA DARMO</li>
-                        <li>CZYSTY PDF</li>
+                        <li>100% ZA DARMO</li>
+                        <li>POMOC AI</li>
                         <li>INTELIGENTNY LAYOUT</li>
                     </ul>
                 </div>

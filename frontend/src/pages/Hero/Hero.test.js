@@ -7,8 +7,9 @@ const styles = readFileSync(new URL("./Hero.module.css", import.meta.url), "utf8
 
 describe("landing product positioning", () => {
   it("welcomes the user with the recruitment outcome and no supporting subheading", () => {
-    assert.match(source, /Nowe CV\./);
-    assert.match(source, /Nowa praca\./);
+    assert.match(source, /<span>Nowe CV<\/span>/);
+    assert.match(source, /<em>Nowa praca<\/em>/);
+    assert.doesNotMatch(source, /Nowe CV\.|Nowa praca\./);
     assert.doesNotMatch(source, /Stwórz CV,|które prowadzi|do rozmowy\./);
     assert.doesNotMatch(source, /Wgraj stare CV lub zacznij od zera/);
     assert.doesNotMatch(source, /profesjonalny dokument gotowy do/);
@@ -23,7 +24,7 @@ describe("landing product positioning", () => {
   it("uses a wide lockup and a compact asymmetric stack for the hero heading", () => {
     assert.match(
       source,
-      /<h1>\s*<span>Nowe CV\.<\/span>\s*<em>Nowa praca\.<\/em>\s*<\/h1>/s,
+      /<h1>\s*<span>Nowe CV<\/span>\s*<em>Nowa praca<\/em>\s*<\/h1>/s,
     );
     assert.match(styles, /\.hero h1\s*\{[^}]*display:\s*flex;[^}]*flex-direction:\s*column;/s);
     assert.match(styles, /\.hero h1 > span,[\s\S]*?\.hero h1 > em\s*\{[^}]*min-width:\s*0;[^}]*overflow-wrap:\s*break-word;/s);
@@ -38,10 +39,24 @@ describe("landing product positioning", () => {
     assert.match(styles, /\.heroActions\s*\{[^}]*justify-content:\s*center;/s);
   });
 
-  it("keeps the concise hero benefit labels", () => {
-    assert.match(source, /ZA DARMO/);
-    assert.match(source, /CZYSTY PDF/);
-    assert.match(source, /INTELIGENTNY LAYOUT/);
+  it("uses concise action and benefit labels in section 01", () => {
+    const heroStart = source.indexOf('<section id="top"');
+    const heroEnd = source.indexOf("</section>", heroStart);
+    const heroMarkup = source.slice(heroStart, heroEnd);
+
+    assert.ok(heroStart >= 0 && heroEnd > heroStart);
+    assert.match(heroMarkup, /CV GOTOWE NA REKRUTACJE/);
+    assert.match(heroMarkup, /event="hero_wizard">Kreator CV<\/CtaLink>/);
+    assert.match(heroMarkup, /event="hero_import" variant="secondary">\s*Import CV/s);
+    assert.match(heroMarkup, /aria-label="Zobacz przykładowe CV — demo"/);
+    assert.match(heroMarkup, />\s*DEMO <ArrowIcon \/>/s);
+    assert.match(heroMarkup, /<li>100% ZA DARMO<\/li>/);
+    assert.match(heroMarkup, /<li>POMOC AI<\/li>/);
+    assert.match(heroMarkup, /<li>INTELIGENTNY LAYOUT<\/li>/);
+    assert.doesNotMatch(
+      heroMarkup,
+      /Stwórz CV za darmo|Wgraj swoje CV|Najpierw zobacz przykładowe CV|CZYSTY PDF/,
+    );
   });
 
   it("presents section 02 as three concrete capabilities before the template gallery", () => {
