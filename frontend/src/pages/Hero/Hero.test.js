@@ -7,8 +7,9 @@ const styles = readFileSync(new URL("./Hero.module.css", import.meta.url), "utf8
 
 describe("landing product positioning", () => {
   it("leads with the recruitment outcome and explains how the product supports it", () => {
-    assert.match(source, /Pokaż, dlaczego warto/);
-    assert.match(source, /zaprosić Cię/);
+    assert.match(source, /Stwórz CV,/);
+    assert.match(source, /które prowadzi/);
+    assert.match(source, /do rozmowy\./);
     assert.match(source, /profesjonalne CV dopasowane/);
     assert.match(source, /bez zmyślania faktów/);
     assert.match(source, /Dokument, który reaguje na treść/);

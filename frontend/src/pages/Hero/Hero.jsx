@@ -205,9 +205,9 @@ export default function Hero() {
                 <div className={classes.heroCopy}>
                     <p className={classes.kicker}>CV gotowe na konkretną rekrutację</p>
                     <h1>
-                        <span>Pokaż, dlaczego warto</span>
-                        <em>zaprosić Cię</em>
-                        <em>na rozmowę.</em>
+                        <span>Stwórz CV,</span>
+                        <em>które prowadzi</em>
+                        <em>do rozmowy.</em>
                     </h1>
                     <p className={classes.heroLead}>
                         CV Studio zamienia Twoje doświadczenie w profesjonalne CV dopasowane
