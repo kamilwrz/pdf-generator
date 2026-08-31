@@ -8,12 +8,16 @@ async function source(relativePath) {
   return readFile(new URL(relativePath, root), "utf8");
 }
 
-test("demo mode exposes only editor-focused topbar actions", async () => {
+test("demo mode exposes import conversion while layout stays in the sidebar", async () => {
   const topbar = await source("components/editor/Topbar/Topbar.jsx");
+  const sidebar = await source("components/editor/Sidebar/Sidebar.jsx");
 
   assert.match(topbar, /isDemoContent/);
-  assert.match(topbar, /showSections/);
-  assert.match(topbar, /Dostosuj CV/);
+  assert.match(topbar, /to="\/register\?start=import"/);
+  assert.match(topbar, /Wgraj CV/);
+  assert.doesNotMatch(topbar, /Dostosuj CV/);
+  assert.match(sidebar, /labelText="Dostosuj CV"/);
+  assert.match(sidebar, /sidebarEvent={showSections}/);
   assert.match(topbar, /!isDemoContent &&/);
 });
 

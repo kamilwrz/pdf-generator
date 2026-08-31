@@ -275,6 +275,9 @@
 }
 
 .demoAction {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     min-height: 30px;
     padding: 0 10px;
     border: 1px solid var(--topbar-border);
@@ -283,6 +286,7 @@
     color: var(--topbar-ink);
     font: 600 11px var(--font-body);
     cursor: pointer;
+    text-decoration: none;
     transition: background .2s, border-color .2s, color .2s;
 }
 
@@ -296,6 +300,15 @@
 .primary:disabled {
     opacity: .55;
     cursor: not-allowed;
+}
+
+.demoAction:active {
+    background: var(--chrome-control);
+}
+
+.demoAction:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
 }
 
 .actionDivider {

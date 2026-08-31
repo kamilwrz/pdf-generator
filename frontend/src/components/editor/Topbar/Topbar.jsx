@@ -1,7 +1,7 @@
 /**
  * Editor chrome for both the full editor and the reduced product-demo mode.
- * Demo mode keeps history, layout, zoom, and pagination;
- * account, import, persistence, and destructive document actions are omitted.
+ * Demo mode keeps history, zoom, pagination, and one account-gated CV import
+ * entry point; persistence and destructive document actions are omitted.
  * Ambiguous document actions keep short visible labels, while conventional
  * history, zoom, and pagination controls remain icon-only with tooltips.
  * Save (`createPdf`) is the only path that writes to "Moje dokumenty" (create on
@@ -18,6 +18,7 @@
  */
 import classes from "./Topbar.module.css";
 import { use, useMemo } from "react";
+import { Link } from "react-router-dom";
 import { PdfContext } from "../../../store/pdfgenerator-context";
 import { RiFileTextLine, RiDownload2Line, RiShuffleLine, RiFileReduceLine, RiArrowGoBackLine, RiArrowGoForwardLine, RiArrowLeftSLine, RiArrowRightSLine } from "react-icons/ri";
 import { FiEdit3, FiSave, FiTrash2, FiZoomIn, FiZoomOut } from "react-icons/fi";
@@ -32,7 +33,6 @@ export default function Topbar({ titleRef }) {
         showAiPanel,
         showBioCvModal,
         showChangeTemplateModal,
-        showSections,
         isDemoContent,
         activeCvData,
         activeTemplateId,
@@ -235,14 +235,13 @@ export default function Topbar({ titleRef }) {
                 {isDemoContent ? (
                     <>
                         <span className={classes.divider} aria-hidden="true" />
-                        <button
-                            type="button"
+                        <Link
                             className={classes.demoAction}
-                            onClick={showSections}
-                            aria-label="Otwórz układ CV"
+                            to="/register?start=import"
+                            aria-label="Wgraj własne CV po utworzeniu konta"
                         >
-                            Dostosuj CV
-                        </button>
+                            Wgraj CV
+                        </Link>
                     </>
                 ) : null}
                 {!isDemoContent && <><span className={classes.divider} aria-hidden="true" />
