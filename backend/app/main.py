@@ -136,11 +136,32 @@ TEMPLATE_ASSETS_DIR.mkdir(parents=True, exist_ok=True)
 # Optional same-origin SPA hosting when frontend/dist is present next to backend.
 DIST_DIR = Path(__file__).resolve().parent.parent.parent / "frontend" / "dist"
 
-# User uploads are no longer public StaticFiles — bytes are served only through
-# ownership-checked GET /images/{id}/content (see images.py). Template assets
-# and generated PDFs remain mountable for ReportLab/canvas template art.
+# User uploads and generated PDFs are private. Their bytes are served only
+# through ownership-checked API routes (`/images/{id}/content` and
+# `/pdf/download_pdf`). Built-in template assets are application-owned and stay
+# public because the editor canvas and ReportLab both need stable asset URLs.
 app.mount("/template-assets", StaticFiles(directory=str(TEMPLATE_ASSETS_DIR)), name="template_assets")
-app.mount("/static/generated", StaticFiles(directory=str(PDF_UPLOAD_DIR)), name="static")
+
+
+@app.api_route(
+    "/static/generated",
+    methods=["GET", "HEAD"],
+    include_in_schema=False,
+)
+@app.api_route(
+    "/static/generated/{requested_path:path}",
+    methods=["GET", "HEAD"],
+    include_in_schema=False,
+)
+async def block_generated_pdf_static_access(requested_path: str = ""):
+    """Keep retired direct PDF URLs private instead of falling into the SPA.
+
+    The explicit tombstone matters when `frontend/dist` is present: without it,
+    the SPA catch-all would return `index.html` with HTTP 200 for an old
+    `/static/generated/...` URL. Stored PDF bytes are available exclusively via
+    the authenticated, ownership-checked, export-metered download route.
+    """
+    raise HTTPException(status_code=404, detail="Nie znaleziono")
 
 app.include_router(auth.router)
 app.include_router(pdf.router)

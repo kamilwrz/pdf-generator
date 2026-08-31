@@ -1,6 +1,6 @@
 /**
  * Guided bio/CV wizard with draft autosave. Every onboarding entry collects
- * four data steps; guests authenticate before the Regent is generated, while
+ * four data steps; guests authenticate before the Free starter is generated, while
  * authenticated users can generate it immediately.
  *
  * Authenticated users persist drafts via PUT /ai/bio_cv_draft.
@@ -51,6 +51,7 @@ import {
     validateBioCvStep,
 } from "../../../utils/bioCvData";
 import { availableExtraContactKinds } from "../../../utils/contactLinks";
+import { FREE_WIZARD_TEMPLATE_ID } from "../../../utils/onboardingTemplates";
 
 function formatSavedAt(timestamp) {
     if (!timestamp) return "";
@@ -667,31 +668,36 @@ export default function BioCvModal({ variant = "full" }) {
         }
         const payload = buildBioCvPayload(profile);
         const conversionIntent = isDemoConversion ? "demo-conversion" : "wizard-conversion";
+        const onboardingTemplateId = isDemoConversion ? "linden" : FREE_WIZARD_TEMPLATE_ID;
         setSaveError(null);
         try {
             if (!getAccessToken()) {
                 saveGuestWizardDraft({
                     step: finalStep,
                     profile: payload,
-                    selectedTemplateId: "regent",
+                    selectedTemplateId: onboardingTemplateId,
                 });
                 navigate(`/register?start=${conversionIntent}`);
                 return;
             }
             setIsLoading(true);
             await saveDraft(payload, { silent: true, stepOverride: finalStep });
-            const response = await fillTemplate(payload, "regent", {
+            const response = await fillTemplate(payload, onboardingTemplateId, {
                 errorMessage: "Nie udało się utworzyć CV.",
                 spacing: flowSpacing,
             });
-            await loadAiElements(response.elements, "Moje CV", "regent");
+            await loadAiElements(response.elements, "Moje CV", onboardingTemplateId);
             setActiveCvData(payload);
             showBioCvModal();
         } catch (error) {
             if (isAuthFailure(error)) {
                 clearAccessToken();
                 setIsGuestSession(true);
-                saveGuestWizardDraft({ step: finalStep, profile: payload, selectedTemplateId: "regent" });
+                saveGuestWizardDraft({
+                    step: finalStep,
+                    profile: payload,
+                    selectedTemplateId: onboardingTemplateId,
+                });
                 navigate(`/register?start=${conversionIntent}`);
                 return;
             }
@@ -1057,7 +1063,9 @@ export default function BioCvModal({ variant = "full" }) {
                 <p className={classes.inlineHint}>
                     {!hasAuthenticatedSession
                         ? "Twoje dane z kreatora zostaną zachowane."
-                        : "Regent zostanie wygenerowany na podstawie wprowadzonych danych."}
+                        : isDemoConversion
+                            ? "Linden zostanie wygenerowany na podstawie wprowadzonych danych."
+                            : "Meridian zostanie wygenerowany na podstawie wprowadzonych danych."}
                 </p>
                 <button type="button" className={classes.primaryBtn} onClick={handleWizardComplete}>
                     {!hasAuthenticatedSession ? "Utwórz konto i moje CV" : "Utwórz moje CV"}

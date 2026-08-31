@@ -2,7 +2,7 @@
  * Client-side persistence for a canvas that has not been saved to the backend
  * yet — the guest-mode counterpart to the elements the backend stores per
  * `Pdf`/`PdfElements` row. Guests edit fully client-side (no account, no
- * OpenAI cost); this is the only place that state lives until they register
+ * external extraction cost); this is the only place that state lives until they register
  * and confirm loading it onto the authenticated A4 canvas (see PdfCanvas's
  * claim effect — hydrate only, no automatic `create_pdf`).
  */

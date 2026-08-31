@@ -28,7 +28,7 @@ describe("landing product positioning", () => {
 
   it("keeps the concise hero benefit labels", () => {
     assert.match(source, /ZA DARMO/);
-    assert.match(source, /POMOC AI/);
+    assert.match(source, /CZYSTY PDF/);
     assert.match(source, /INTELIGENTNY LAYOUT/);
   });
 

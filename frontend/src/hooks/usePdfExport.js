@@ -86,7 +86,6 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
         handlePdfId(data.pdf_id);
         setResponsePDF({
           success: data.created,
-          link: data.link,
           pdf_id: data.pdf_id,
           intent: "save",
         });
@@ -153,7 +152,6 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
       .then((data) => {
         setResponsePDF({
           success: data.updated,
-          link: data.link,
           pdf_id: data.pdf_id,
           intent,
         });
@@ -189,6 +187,7 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
       const api = new ApiClient({ "Authorization": `Bearer ${localStorage.getItem("token")}` });
       const editor_mode = meta.editorMode === "template" ? "template" : "freeform";
       const template_id = meta.templateId || null;
+      const pdf_id = Number.isInteger(meta.pdfId) ? meta.pdfId : null;
       const spacing_px = flowSpacingToPayload(meta.flowSpacing);
       const baseTitle = titleRef.current?.value || "cv";
       const body = JSON.stringify({
@@ -199,6 +198,7 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
         page_height: pageSize?.height ?? 842,
         editor_mode,
         template_id,
+        pdf_id,
         spacing_px,
       });
 

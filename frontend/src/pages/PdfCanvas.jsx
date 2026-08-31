@@ -91,6 +91,7 @@ import { TEMPLATES } from '../templates';
 import { templateHasLayout } from '../utils/templateLayouts';
 import { normalizeSterlingFamilyPersistence } from '../utils/sterlingAppearance';
 import { normalizeProfilePhotoVisibilityPersistence } from '../utils/profilePhotoVisibility';
+import { FREE_WIZARD_TEMPLATE_ID } from '../utils/onboardingTemplates';
 import { nanoid } from 'nanoid';
 /**
  * Authenticated CV editor page: canvas, toolbars, dialogs, and autosave.
@@ -1171,6 +1172,10 @@ function PdfCanvas() {
       const { blob, title } = await downloadPdf(A4_Elements, titleRef, pageCount, pageSize, {
         editorMode,
         templateId: activeTemplateId,
+        // A saved paid-template document may remain editable after Pro expires.
+        // The backend accepts its paid template only when this owned id proves
+        // legacy continuity; new or unsaved paid-template payloads stay blocked.
+        pdfId,
         flowSpacing,
       });
       triggerBlobDownload(blob, title);
@@ -1199,6 +1204,7 @@ function PdfCanvas() {
     flowSpacing,
     pageCount,
     pageSize,
+    pdfId,
     pushToast,
     refreshEntitlements,
     titleRef,
@@ -1480,7 +1486,7 @@ function PdfCanvas() {
           // never flashes an empty or partially filled authenticated canvas.
           const conversionTemplateId = initialStartIntentRef.current === "demo-conversion"
             ? "linden"
-            : "regent";
+            : FREE_WIZARD_TEMPLATE_ID;
           const response = await fillTemplate(claim.profile, conversionTemplateId, {
             errorMessage: "Nie udało się utworzyć Twojego CV.",
             spacing: flowSpacing,
@@ -1513,10 +1519,10 @@ function PdfCanvas() {
   }, [conversionPending, flowSpacing, handleLoadAiElements]);
 
   // Load the browser-buffered guest JSON onto the A4 canvas only.
-  // Do not call `createPdf` / `POST /pdf/create_pdf` here — that would render
-  // and persist a server document (and count toward Free export limits)
-  // before the user asked to save. They keep an unsaved canvas (`pdfId`
-  // null) and use “Zapisz PDF” when ready.
+  // Do not call `createPdf` / `POST /pdf/create_pdf` here — that would render and
+  // persist a server document before the user asked to save. Saving does not
+  // consume an export; the separate authenticated download does. They keep an unsaved
+  // canvas (`pdfId` null) and use “Zapisz PDF” when ready.
   //
   // Elements are applied directly via `hydrateDocumentMode` instead of
   // `handleLoadTemplate` / `handleLoadAiElements`. Those call

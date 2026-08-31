@@ -14,7 +14,7 @@ from app.core.security import verify_token
 from app.crud import user as user_crud
 from app.dependencies import get_db
 from app.main import app
-from app.models.models import Base, UsageCounter, User
+from app.models.models import Base, CvImportSnapshot, UsageCounter, User
 from app.schemas.user_schema import UserCreateRequest
 from app.services import entitlements as ent
 from app.services.ai_service import CvExtractionError
@@ -35,7 +35,7 @@ def _valid_pdf_bytes() -> bytes:
 
 
 class ExtractCvFreeImportTests(unittest.TestCase):
-    """Free plans get three successful `/ai/extract_cv` calls per UTC month."""
+    """Free plans get one successful `/ai/extract_cv` call per UTC month."""
 
     def setUp(self):
         ensure_test_auth_env()
@@ -82,9 +82,8 @@ class ExtractCvFreeImportTests(unittest.TestCase):
         self.db.refresh(self._usage())
         self.assertEqual(self._usage().cv_imports_count, 1)
 
-    def test_free_users_fourth_import_is_rejected_before_provider_call(self):
-        for _ in range(3):
-            ent.record_cv_import(self.db, self.user.id)
+    def test_free_users_second_import_is_rejected_before_provider_call(self):
+        ent.record_cv_import(self.db, self.user.id)
 
         with patch("app.api.routes.ai.extract_cv_data", side_effect=_extract_must_not_run):
             response = self.client.post(
@@ -106,6 +105,36 @@ class ExtractCvFreeImportTests(unittest.TestCase):
             )
         self.assertEqual(response.status_code, 500)
         self.assertEqual(self._usage().cv_imports_count, 0)
+
+    def test_snapshot_success_failure_rolls_back_the_import_claim(self):
+        """A 500 after provider success must leave the Free slot reusable."""
+        extracted = ({"name": "Test"}, {"cost_pln_estimate": 0.0})
+        with patch("app.api.routes.ai.extract_cv_data", return_value=extracted), \
+             patch(
+                 "app.api.routes.ai.mark_snapshot_succeeded",
+                 side_effect=RuntimeError("snapshot write failed"),
+             ):
+            failed = self.client.post(
+                "/ai/extract_cv",
+                files={"file": ("cv.pdf", _valid_pdf_bytes(), "application/pdf")},
+            )
+
+        self.assertEqual(failed.status_code, 500)
+        self.assertEqual(self._usage().cv_imports_count, 0)
+        failed_snapshot = self.db.query(CvImportSnapshot).order_by(
+            CvImportSnapshot.id.desc(),
+        ).first()
+        self.assertEqual(failed_snapshot.status, "failed")
+        self.assertEqual(failed_snapshot.error_code, "extraction_failed")
+
+        # The rolled-back claim did not burn the only monthly Free import.
+        with patch("app.api.routes.ai.extract_cv_data", return_value=extracted):
+            retry = self.client.post(
+                "/ai/extract_cv",
+                files={"file": ("cv.pdf", _valid_pdf_bytes(), "application/pdf")},
+            )
+        self.assertEqual(retry.status_code, 200, msg=retry.text)
+        self.assertEqual(self._usage().cv_imports_count, 1)
 
     def test_provider_rate_limit_returns_safe_retryable_detail_without_consumption(self):
         error = CvExtractionError(

@@ -72,8 +72,17 @@ export default function AiCvPanel() {
     const [showHistory, setShowHistory] = useState(false);
     const cvTemplates = useMemo(() => selectCvTemplates(TEMPLATES), []);
     const remainingImports = entitlements?.remaining?.cv_imports;
-    const canExtract = Boolean(entitlements?.extract_cv)
+    const isFreePlan = entitlements?.plan_slug === "free";
+    // The backend remains authoritative. Before entitlements finish loading,
+    // allow the signed-in user to continue instead of falsely presenting an
+    // exhausted quota; a real plan rejection is rendered inline below.
+    const importFeatureEnabled = entitlements?.extract_cv ?? true;
+    const canExtract = importFeatureEnabled
         && (remainingImports == null || remainingImports > 0);
+    const importLimitReached = Boolean(entitlements)
+        && importFeatureEnabled
+        && remainingImports != null
+        && remainingImports <= 0;
     const extracted = Boolean(cvData?.name);
     const onStep2 = extracted && wizardStep === 2;
 
@@ -134,9 +143,9 @@ export default function AiCvPanel() {
         if (!fileData) return;
         if (!canExtract) {
             setError(
-                entitlements?.plan_slug === "free"
-                    ? "Wykorzystano miesięczny limit importów CV. Odblokuj Pro, aby importować bez limitu."
-                    : "Ekstrakcja CV z PDF jest dostępna w planie Pro.",
+                isFreePlan && importLimitReached
+                    ? "Plan Darmowy obejmuje 1 udany import CV miesięcznie. Limit został wykorzystany — w Pro możesz importować bez limitu."
+                    : "Import CV z PDF jest dostępny w planie Pro.",
             );
             return;
         }
@@ -184,7 +193,7 @@ export default function AiCvPanel() {
         } finally {
             setIsExtracting(false);
         }
-    }, [api, canExtract, entitlements?.plan_slug, fileData, refreshEntitlements]);
+    }, [api, canExtract, fileData, importLimitReached, isFreePlan, refreshEntitlements]);
 
     const handleFill = useCallback(async (template) => {
         if (!cvData) return;
@@ -248,7 +257,7 @@ export default function AiCvPanel() {
             width={onStep2 ? 1400 : 960}
             bodyClassName={classes.dialogBody}
             title="Importuj CV"
-            subtitle={showHistory ? "Wybierz wcześniej wyodrębnione dane albo usuń je ze swojej historii." : "Prześlij PDF — AI wypełni dowolny szablon Twoimi danymi."}
+            subtitle={showHistory ? "Wybierz wcześniej odczytane dane albo usuń je ze swojej historii." : "Prześlij PDF — odczytamy dane i wypełnimy nimi wybrany szablon."}
             footer={(
                 <div className={classes.footerBar}>
                     <span className={classes.stepLabel}>
@@ -285,7 +294,11 @@ export default function AiCvPanel() {
                                 className={classes.extractBtn}
                                 onClick={handleExtract}
                                 disabled={!fileName || isExtracting || !canExtract}
-                                title={!canExtract ? "Miesięczny limit importów został wykorzystany" : undefined}
+                                title={importLimitReached
+                                    ? "Plan Darmowy: wykorzystano 1 import CV w tym miesiącu"
+                                    : !canExtract
+                                        ? "Import CV jest dostępny w planie Pro"
+                                        : undefined}
                             >
                                 {isExtracting ? (
                                     <><span className={classes.spinner} />Wyodrębnianie CV…</>
@@ -374,14 +387,15 @@ export default function AiCvPanel() {
                         <button type="button" className={classes.guidedLink} onClick={showBioCvModal}>
                             Nie masz gotowego PDF? Utwórz CV krok po kroku
                         </button>
-                        {!canExtract && (
+                        {importLimitReached && (
                             <p className={classes.hint}>
-                                Wykorzystano miesięczny limit importów. Kreator krok po kroku nadal działa w planie Darmowy.
+                                Plan Darmowy obejmuje 1 udany import CV miesięcznie. Limit został wykorzystany,
+                                ale kreator krok po kroku nadal działa bez ograniczeń czasowych.
                             </p>
                         )}
-                        {canExtract && remainingImports != null && (
+                        {canExtract && isFreePlan && remainingImports != null && (
                             <p className={classes.hint}>
-                                Pozostało importów w tym miesiącu: {remainingImports}.
+                                Plan Darmowy — dostępne importy CV w tym miesiącu: {remainingImports}.
                             </p>
                         )}
                         {extracted && (

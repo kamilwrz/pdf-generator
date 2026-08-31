@@ -137,7 +137,7 @@ CV_EXTRACT_VISION_MAX_COMPLETION_TOKENS = _int_env(
 )
 
 # Pre-Stripe: allow choosing a paid plan without payment. Defaults to False so
-# production cannot self-activate Standard/Premium by accident. Local/dev
+# production cannot self-activate Pro by accident. Local/dev
 # `.env` should set ALLOW_UNPAID_PLAN_SELECTION=true until Stripe Checkout lands.
 ALLOW_UNPAID_PLAN_SELECTION = os.getenv("ALLOW_UNPAID_PLAN_SELECTION", "false").lower() == "true"
 

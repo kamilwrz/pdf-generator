@@ -10,6 +10,13 @@
     padding: 16px 8px 12px;
 }
 
+.catalogStatus {
+    min-height: 1.4em;
+    margin: 4px 8px 0;
+    color: var(--chrome-muted);
+    font: 500 12px/1.4 var(--font-body);
+}
+
 .card {
     display: flex;
     flex-direction: column;

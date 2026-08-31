@@ -1,9 +1,8 @@
 """Keep frontend TEMPLATES, backend _GENERATORS, and Free allowlist in sync.
 
 The product has two template registries by design (static FE previews vs
-deterministic Python fill). This test is the contract that stops free-tier
-and fill-template drift such as Regent or Regent being free in the UI but
-blocked by ``FREE_STARTER_TEMPLATE_IDS``.
+deterministic Python fill). This contract prevents frontend tier metadata from
+drifting away from ``FREE_STARTER_TEMPLATE_IDS`` or backend generators.
 """
 from __future__ import annotations
 

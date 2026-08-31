@@ -49,12 +49,12 @@ class ExportMeteringTests(unittest.TestCase):
             username="u1", email="u1@e.pl", password="pw"))
         self.user = self.db.query(User).filter(User.username == "u1").one()
 
-        # Use a writable temp path rather than a hardcoded "/tmp/..." string: the
-        # first download in this test now self-heals the watermark (a fresh row
-        # defaults `watermarked=False` while a Free account requires `True`), so
-        # the local export branch actually writes this file to disk.
+        # Use a writable temp path rather than a hardcoded "/tmp/..." string and
+        # seed clean bytes, matching documents created under the current plan
+        # contract. This test covers metering rather than legacy-file repair.
         self.tmpdir = tempfile.mkdtemp()
         self.file_path = str(Path(self.tmpdir) / "export-cv.pdf")
+        Path(self.file_path).write_bytes(b"%PDF-1.4 clean stub")
 
         now = datetime.now(timezone.utc)
         pdf = Pdf(
@@ -71,9 +71,8 @@ class ExportMeteringTests(unittest.TestCase):
         self.db.commit()
         self.db.refresh(pdf)
         self.pdf_id = pdf.id
-        # Give the self-heal re-render a real element to draw; the metering
-        # contract is unaffected, but this keeps the exercised render path
-        # representative rather than an empty document.
+        # Keep a representative persisted element even though clean downloads
+        # stream the stored file without invoking ReportLab again.
         self.db.add(PdfElements(
             pdf_id=self.pdf_id, element_id="e1", category="text", page=1,
             left=10, top=10, content="hi", fontFamily="Inter", fontSize=12,
@@ -88,11 +87,9 @@ class ExportMeteringTests(unittest.TestCase):
         app.dependency_overrides[verify_token] = lambda: {"sub": "u1"}
         self.client = TestClient(app)
 
-        # Pin the export re-render to the local filesystem branch so this test is
-        # hermetic even when the developer's `.env` sets S3_BUCKET_NAME (which
-        # flips `document_service.USE_S3` to True). Without this the first
-        # download would upload to a real bucket. Mirrors the route-level
-        # `patch(pdf_route.USE_S3, False)` used inside the test body.
+        # Pin both service and route configuration to local storage so this test
+        # remains hermetic if a future fixture marks the file as legacy and
+        # exercises the repair path. The current clean file is streamed directly.
         s3_patch = patch.object(doc_service, "USE_S3", False)
         s3_patch.start()
         self.addCleanup(s3_patch.stop)
@@ -135,6 +132,15 @@ class ExportMeteringTests(unittest.TestCase):
             self.assertEqual(detail["code"], "plan_limit_exports")
             # Failed gate must not increment the counter past the free limit.
             self.assertEqual(self._exports_count(), 3)
+
+    def test_missing_local_file_does_not_consume_an_export(self):
+        Path(self.file_path).unlink()
+
+        with patch.object(pdf_route, "USE_S3", False):
+            response = self.client.post("/pdf/download_pdf", json=self.pdf_id)
+
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(self._exports_count(), 0)
 
 
 if __name__ == "__main__":

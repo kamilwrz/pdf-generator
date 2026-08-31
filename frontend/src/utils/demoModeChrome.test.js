@@ -89,7 +89,8 @@ test("PdfCanvas publishes demo state through the editor context", async () => {
   assert.match(canvas, /import \{ lindenTemplate \} from '\.\.\/templates\/linden'/);
   assert.match(canvas, /handleLoadTemplate\(lindenTemplate, "DEMO_CV", "linden"\)/);
   assert.match(canvas, /guestDoc\.templateId !== "linden"[\s\S]*clearGuestDocument\(\)[\s\S]*handleLoadTemplate\(lindenTemplate/);
-  assert.match(canvas, /initialStartIntentRef\.current === "demo-conversion"[\s\S]*\? "linden"[\s\S]*: "regent"/);
+  assert.match(canvas, /import \{ FREE_WIZARD_TEMPLATE_ID \} from '\.\.\/utils\/onboardingTemplates'/);
+  assert.match(canvas, /initialStartIntentRef\.current === "demo-conversion"[\s\S]*\? "linden"[\s\S]*: FREE_WIZARD_TEMPLATE_ID/);
   assert.match(canvas, /fillTemplate\(claim.profile, conversionTemplateId/);
   assert.match(canvas, /handleLoadAiElements\(response.elements, "Moje CV", conversionTemplateId\);\s*\/\/ The generated CV is now an authenticated document[\s\S]*setIsDemoContent\(false\)/);
 });
@@ -115,6 +116,9 @@ test("guest onboarding uses four steps while authenticated wizard keeps template
   assert.match(wizard, /hasAuthenticatedSession = Boolean\(getAccessToken\(\)\)/);
   assert.match(wizard, /"Utwórz konto i moje CV"/);
   assert.match(wizard, /"Utwórz moje CV"/);
+  assert.match(wizard, /FREE_WIZARD_TEMPLATE_ID/);
+  assert.match(wizard, /onboardingTemplateId = isDemoConversion \? "linden" : FREE_WIZARD_TEMPLATE_ID/);
+  assert.doesNotMatch(wizard, /fillTemplate\(payload, "regent"/);
 });
 
 test("registration and login preserve the demo conversion intent", async () => {
@@ -125,11 +129,11 @@ test("registration and login preserve the demo conversion intent", async () => {
   assert.match(register, /"wizard-conversion"/);
   assert.match(register, /przeniesiemy dane z kreatora/);
   assert.match(register, /utworzymy Twoje CV w Linden/);
-  assert.match(register, /utworzymy Twoje CV w Regencie/);
+  assert.match(register, /utworzymy Twoje CV w Meridianie/);
   assert.match(register, /startIntent === "wizard" \? null : startIntent/);
   assert.match(login, /"demo-conversion"/);
   assert.match(login, /"wizard-conversion"/);
   assert.match(login, /utworzymy Twoje CV w Linden/);
-  assert.match(login, /utworzymy Twoje CV w Regencie/);
+  assert.match(login, /utworzymy Twoje CV w Meridianie/);
   assert.match(login, /startIntent === "wizard" \? null : startIntent/);
 });

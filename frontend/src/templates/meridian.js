@@ -1,7 +1,7 @@
 /**
  * Meridian template (`layouts: ["single", "icons"]`).
  *
- * Premium navy/steel-blue single column with a compact Montserrat summary
+ * Navy/steel-blue single column with a compact Montserrat summary
  * and an accent-blue tick under every section rule.
  *
  * This static starter is the backend generator's own output

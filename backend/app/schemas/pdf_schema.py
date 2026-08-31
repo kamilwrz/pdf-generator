@@ -225,6 +225,10 @@ EditorMode = Literal["template", "freeform"]
 class PDFCreateRequest(BaseModel):
     """Create payload: full element list plus title and page geometry."""
 
+    # Optional only for render-on-demand. It proves that a downgraded Free user
+    # is rendering an existing owned paid-template document. `/create_pdf`
+    # never uses it as an entitlement exception.
+    pdf_id: Optional[int] = None
     root: list[PdfElement]
     pdf_title: str
     pages: int = 1

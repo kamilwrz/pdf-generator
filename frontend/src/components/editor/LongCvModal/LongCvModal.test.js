@@ -25,7 +25,7 @@ test("both variants route to AI shortening with Pro-gated copy", async () => {
   const source = await readFile(modalUrl, "utf8");
   assert.match(source, /onRequestAiShorten/);
   assert.match(source, /Skróć treść z AI/);
-  assert.match(source, /Skróć z AI \(Pro\)/);
+  assert.match(source, /Odblokuj skracanie AI w Pro/);
   assert.match(source, /canUseAi/);
 });
 

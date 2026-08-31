@@ -40,11 +40,26 @@ def list_owned_snapshots(db: Session, *, owner_id: int) -> list[CvImportSnapshot
     ).order_by(CvImportSnapshot.created_at.desc()).all()
 
 
-def mark_snapshot_succeeded(db: Session, snapshot: CvImportSnapshot, cv_data: dict) -> CvImportSnapshot:
+def mark_snapshot_succeeded(
+    db: Session,
+    snapshot: CvImportSnapshot,
+    cv_data: dict,
+    *,
+    commit: bool = True,
+) -> CvImportSnapshot:
+    """Stage or persist a successful normalized extraction result.
+
+    ``commit=False`` is reserved for the extraction route, which commits this
+    state together with its conditional monthly quota claim. Other callers keep
+    the historical self-contained commit behaviour.
+    """
     snapshot.status = "succeeded"
     snapshot.cv_data = cv_data
     snapshot.error_code = None
     snapshot.completed_at = datetime.now(timezone.utc)
+    db.add(snapshot)
+    if not commit:
+        return snapshot
     db.commit()
     db.refresh(snapshot)
     return snapshot

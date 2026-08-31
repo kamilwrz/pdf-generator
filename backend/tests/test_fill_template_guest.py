@@ -53,13 +53,13 @@ class FillTemplateGuestTests(unittest.TestCase):
         with patch("app.api.routes.ai.generate_resume", side_effect=_fake_elements) as mocked:
             response = self.client.post(
                 "/ai/fill_template",
-                json={"cv_data": {"name": "Anna Kowalska"}, "template_id": "regent"},
+                json={"cv_data": {"name": "Anna Kowalska"}, "template_id": "sterling"},
             )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["elements"][0]["content"], "Anna Kowalska")
         mocked.assert_called_once()
 
-    def test_guest_cannot_fill_standard_template(self):
+    def test_guest_cannot_fill_pro_template(self):
         with patch("app.api.routes.ai.generate_resume", side_effect=_fake_elements) as mocked:
             response = self.client.post(
                 "/ai/fill_template",
@@ -68,6 +68,8 @@ class FillTemplateGuestTests(unittest.TestCase):
         self.assertEqual(response.status_code, 403)
         detail = response.json()["detail"]
         self.assertEqual(detail["code"], "plan_feature_template")
+        self.assertIn("planie Pro", detail["message"])
+        self.assertNotIn("Standard", detail["message"])
         mocked.assert_not_called()
 
     def test_stale_bearer_token_is_treated_as_guest(self):
@@ -75,7 +77,7 @@ class FillTemplateGuestTests(unittest.TestCase):
         with patch("app.api.routes.ai.generate_resume", side_effect=_fake_elements):
             response = self.client.post(
                 "/ai/fill_template",
-                json={"cv_data": {"name": "Anna Kowalska"}, "template_id": "regent"},
+                json={"cv_data": {"name": "Anna Kowalska"}, "template_id": "sterling"},
                 headers={"Authorization": "Bearer not-a-real-jwt"},
             )
         self.assertEqual(response.status_code, 200)

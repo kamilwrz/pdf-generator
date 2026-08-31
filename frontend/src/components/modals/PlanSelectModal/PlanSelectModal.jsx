@@ -12,42 +12,10 @@ import { useUiSurfaces } from "../../../store/ui-surfaces-context";
 import { useSession } from "../../../store/session-context";
 import { ApiClient, ENDPOINTS } from "../../../services/api";
 import { planErrorMessage } from "../../../utils/entitlements";
-
-const FALLBACK_PLANS = [
-    {
-        slug: "free",
-        name: "Darmowy",
-        price_pln: 0,
-        price_label: "0 zł",
-        blurb: "Stwórz i sprawdź swoje CV.",
-        highlights: [
-            "Kreator i pełna edycja A4",
-            "2 podstawowe szablony",
-            "3 importy CV / mies.",
-            "PDF ze znakiem CV Studio",
-            "1 zapisany dokument · 3 eksporty / mies.",
-        ],
-        period_note: "Bez karty. Bez zobowiązań.",
-        cta: "Stwórz CV za darmo",
-    },
-    {
-        slug: "pro",
-        name: "Pro",
-        price_pln: 59,
-        price_label: "59 zł / 30 dni",
-        blurb: "Gotowe CV do wysłania.",
-        highlights: [
-            "PDF bez znaku wodnego",
-            "Wszystkie 10 szablonów",
-            "Importy CV bez limitu",
-            "AI do treści, ATS i układu",
-            "200 kredytów AI · wiele wersji CV",
-        ],
-        period_note: "Jedna płatność · Bez automatycznego odnawiania",
-        badge: "Najlepszy wybór do szukania pracy",
-        cta: "Odblokuj Pro",
-    },
-];
+import {
+    applyPlanPresentation,
+    FALLBACK_PLAN_CATALOG,
+} from "../../../utils/planPresentation";
 
 export default function PlanSelectModal() {
     const { isPlanModal, showPlanModal } = useUiSurfaces();
@@ -58,26 +26,34 @@ export default function PlanSelectModal() {
         [],
     );
 
-    const [plans, setPlans] = useState(FALLBACK_PLANS);
+    const [plans, setPlans] = useState(FALLBACK_PLAN_CATALOG);
     const [currentSlug, setCurrentSlug] = useState(entitlements?.plan_slug || "free");
     const [pendingSlug, setPendingSlug] = useState(null);
-    const [loadingCatalog, setLoadingCatalog] = useState(false);
+    const [catalogState, setCatalogState] = useState("idle");
 
     useEffect(() => {
         if (!isPlanModal) return;
         let cancelled = false;
-        setLoadingCatalog(true);
+        setCatalogState("loading");
         api.httpRequest(ENDPOINTS.BILLING.PLANS, "GET", null, "Nie udało się pobrać planów.")
             .then((data) => {
                 if (cancelled) return;
-                if (Array.isArray(data.plans) && data.plans.length) setPlans(data.plans);
+                if (Array.isArray(data.plans) && data.plans.length) {
+                    const bySlug = new Map(data.plans.map((plan) => [plan.slug, plan]));
+                    setPlans(FALLBACK_PLAN_CATALOG.map((fallback) => applyPlanPresentation({
+                        ...fallback,
+                        ...(bySlug.get(fallback.slug) || {}),
+                    })));
+                }
                 if (data.current_plan_slug) setCurrentSlug(data.current_plan_slug);
+                setCatalogState("ready");
             })
             .catch(() => {
-                if (!cancelled) setCurrentSlug(entitlements?.plan_slug || "free");
-            })
-            .finally(() => {
-                if (!cancelled) setLoadingCatalog(false);
+                if (!cancelled) {
+                    setPlans(FALLBACK_PLAN_CATALOG);
+                    setCurrentSlug(entitlements?.plan_slug || "free");
+                    setCatalogState("fallback");
+                }
             });
         return () => { cancelled = true; };
     }, [api, entitlements?.plan_slug, isPlanModal]);
@@ -134,8 +110,15 @@ export default function PlanSelectModal() {
             onClose={() => showPlanModal?.()}
             width={960}
             title="Twój plan"
-            subtitle="Darmowy do stworzenia i sprawdzenia CV. Pro — gotowe CV do wysłania (30 dni, jedna płatność)."
+            subtitle="Darmowy wystarcza do jednego kompletnego CV. Pro daje więcej wersji, wszystkie szablony i narzędzia AI."
         >
+            <p className={classes.catalogStatus} role="status" aria-live="polite">
+                {catalogState === "loading"
+                    ? "Pobieramy aktualne dane planów…"
+                    : catalogState === "fallback"
+                        ? "Nie udało się odświeżyć cennika. Pokazujemy aktualne zasady zapisane w aplikacji."
+                        : "\u00A0"}
+            </p>
             <div className={classes.grid}>
                 {plans.map((plan) => {
                     const active = plan.slug === currentSlug;
@@ -145,6 +128,7 @@ export default function PlanSelectModal() {
                         <article
                             key={plan.slug}
                             className={`${classes.card} ${active ? classes.cardActive : ""}`}
+                            aria-label={`Plan ${plan.name}${active ? ", aktualny" : ""}`}
                         >
                             <header className={classes.cardHead}>
                                 <h3 className={classes.planName}>{plan.name}</h3>
@@ -169,8 +153,9 @@ export default function PlanSelectModal() {
                             <button
                                 type="button"
                                 className={active ? classes.btnCurrent : classes.btnSelect}
-                                disabled={active || Boolean(pendingSlug) || loadingCatalog}
+                                disabled={active || Boolean(pendingSlug) || catalogState === "loading"}
                                 onClick={() => handleSelect(plan.slug)}
+                                aria-busy={busy}
                             >
                                 {busy
                                     ? "Aktywuję…"

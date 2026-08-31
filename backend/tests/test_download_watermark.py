@@ -1,5 +1,4 @@
-"""download_pdf re-renders only when the stored file's watermark state no
-longer matches the account's current plan."""
+"""download_pdf lazily replaces legacy watermarked files with clean PDFs."""
 from __future__ import annotations
 
 import tempfile
@@ -43,6 +42,7 @@ class DownloadWatermarkTests(unittest.TestCase):
 
         self.tmpdir = tempfile.mkdtemp()
         self.file_path = str(Path(self.tmpdir) / "cv.pdf")
+        Path(self.file_path).write_bytes(b"%PDF-1.4 clean stub")
 
         now = datetime.now(timezone.utc)
         pdf = Pdf(
@@ -86,7 +86,19 @@ class DownloadWatermarkTests(unittest.TestCase):
     def _pdf_row(self) -> Pdf:
         return self.db.query(Pdf).filter(Pdf.id == self.pdf_id).one()
 
-    def test_free_plan_download_re_renders_and_marks_watermarked(self):
+    def test_clean_free_plan_download_skips_rerender(self):
+        with patch.object(pdf_route, "USE_S3", False), \
+             patch.object(pdf_route, "render_pdf_for_download") as mock_render:
+            response = self.client.post("/pdf/download_pdf", json=self.pdf_id)
+        self.assertEqual(response.status_code, 200, msg=response.text)
+        self.assertEqual(response.content, b"%PDF-1.4 clean stub")
+        mock_render.assert_not_called()
+        self.assertFalse(self._pdf_row().watermarked)
+
+    def test_legacy_watermarked_free_download_rerenders_clean(self):
+        self._pdf_row().watermarked = True
+        self.db.commit()
+
         with patch.object(pdf_route, "USE_S3", False):
             response = self.client.post("/pdf/download_pdf", json=self.pdf_id)
         self.assertEqual(response.status_code, 200, msg=response.text)
@@ -94,32 +106,11 @@ class DownloadWatermarkTests(unittest.TestCase):
         self.assertTrue(response.content.startswith(b"%PDF"))
         self.assertIn("attachment", response.headers.get("content-disposition", ""))
         self.db.refresh(self._pdf_row())
-        self.assertTrue(self._pdf_row().watermarked)
+        self.assertFalse(self._pdf_row().watermarked)
         self.assertTrue(Path(self.file_path).exists())
 
-    def test_already_matching_state_skips_rerender(self):
-        self._pdf_row().watermarked = True  # already matches Free's requirement
-        self.db.commit()
-        # Write a minimal PDF so the local FileResponse path has bytes to serve
-        # when the re-render is correctly skipped.
-        Path(self.file_path).write_bytes(b"%PDF-1.4 stub")
-        # `app.api.routes.pdf` imports `render_pdf_for_download` directly into its
-        # own module namespace (`from app.services.document_service import ...
-        # render_pdf_for_download`), so the route calls the name bound inside
-        # `app.api.routes.pdf`, not the one in `app.services.document_service`.
-        # Patching the latter would never intercept the route's call, silently
-        # turning this into a vacuous test that passes even if a re-render
-        # happened on every download. Patch the name as resolved in the route
-        # module instead.
-        with patch.object(pdf_route, "USE_S3", False), \
-             patch.object(pdf_route, "render_pdf_for_download") as mock_render:
-            response = self.client.post("/pdf/download_pdf", json=self.pdf_id)
-        self.assertEqual(response.status_code, 200, msg=response.text)
-        self.assertEqual(response.content, b"%PDF-1.4 stub")
-        mock_render.assert_not_called()
-
-    def test_upgrade_triggers_clean_rerender(self):
-        self._pdf_row().watermarked = True  # stale from before the upgrade
+    def test_legacy_watermarked_pro_download_rerenders_clean(self):
+        self._pdf_row().watermarked = True
         self.db.commit()
         ent.set_user_plan(self.db, self.user.id, "pro")
 

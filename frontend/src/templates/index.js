@@ -24,9 +24,9 @@ export const TEMPLATES = [
     { id: "slate", tier: "paid", name: "Slate", description: "Stalowy sidebar, siatka i prostokątne zdjęcie", layouts: ["sidebar", "icons"], accent: "#3E5C76", elements: slateTemplate },
     { id: "atrium", tier: "paid", name: "Atrium", description: "Architektoniczny editorial z sześcioma paletami Wyglądu", layouts: ["single", "icons"], accent: "#556158", elements: atriumTemplate },
     { id: "sterling", tier: "free", name: "Sterling", description: "Elegancki, niebiesko-szary układ z szerokim sidebarem", layouts: ["sidebar"], accent: "#4A6FA5", elements: sterlingTemplate },
-    { id: "regent", tier: "free", name: "Regent", description: "Klasyczna monochromatyczna typografia executive", layouts: ["single", "icons"], accent: "#151515", elements: regentTemplate },
-    { id: "meridian", tier: "paid", name: "Meridian", description: "Premium, granatowo-niebieski układ jednokolumnowy", layouts: ["single", "icons"], accent: "#3D5A80", elements: meridianTemplate },
-    { id: "linden", tier: "paid", name: "Linden", description: "Botaniczny editorial, prostokątne zdjęcie i leśna zieleń", layouts: ["sidebar", "icons"], accent: "#285548", elements: lindenTemplate },
+    { id: "regent", tier: "paid", name: "Regent", description: "Klasyczna monochromatyczna typografia executive", layouts: ["single", "icons"], accent: "#151515", elements: regentTemplate },
+    { id: "meridian", tier: "free", name: "Meridian", description: "Granatowo-niebieski układ executive w jednej kolumnie", layouts: ["single", "icons"], accent: "#3D5A80", elements: meridianTemplate },
+    { id: "linden", tier: "free", name: "Linden", description: "Botaniczny editorial, prostokątne zdjęcie i leśna zieleń", layouts: ["sidebar", "icons"], accent: "#285548", elements: lindenTemplate },
     { id: "cadenza", tier: "paid", name: "Cadenza", description: "Klasyczny editorial, pasy sekcji i prawa oś dat", layouts: ["single", "icons"], accent: "#855C46", elements: cadenzaTemplate },
     { id: "vellum", tier: "paid", name: "Vellum", description: "Portretowy editorial, miękkie pole résumé i prawa oś dat", layouts: ["single", "icons"], accent: "#8A5E47", elements: vellumTemplate },
 ];

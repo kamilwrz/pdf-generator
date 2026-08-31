@@ -166,8 +166,15 @@ async def extract_cv(
         # the ASGI event-loop thread so status/history requests and unrelated
         # users remain responsive during a long vision-model inference.
         cv_data, usage = await run_in_threadpool(extract_cv_data, data)
-        record_cv_import(db, user.id)
-        snapshot = mark_snapshot_succeeded(db, snapshot, cv_data)
+        # Claim the finite import slot and transition the snapshot in one
+        # transaction. If either operation or the final commit fails, the
+        # generic handler rolls both back before recording the failed snapshot.
+        # This prevents a 500 response from consuming the user's only Free
+        # import while leaving its snapshot stuck in processing.
+        record_cv_import(db, user.id, commit=False)
+        snapshot = mark_snapshot_succeeded(db, snapshot, cv_data, commit=False)
+        db.commit()
+        db.refresh(snapshot)
         return {"import": _snapshot_payload(snapshot), "cv_data": cv_data, "usage": usage}
     except CvExtractionError as exc:
         mark_snapshot_failed(db, snapshot, exc.code)
@@ -184,9 +191,14 @@ async def extract_cv(
         # handles the rare case of concurrent requests that passed the first
         # gate together; only requests within the allowance may succeed.
         code = exc.detail.get("code", "plan_limit_cv_imports")
+        db.rollback()
         mark_snapshot_failed(db, snapshot, code)
         raise
     except Exception as exc:
+        # A flush/commit failure leaves the session unusable until rollback.
+        # Roll back the conditional quota increment and staged success before
+        # persisting the independent failed-snapshot outcome.
+        db.rollback()
         mark_snapshot_failed(db, snapshot, "extraction_failed")
         raise HTTPException(
             status_code=500,
@@ -284,12 +296,12 @@ async def fill_template(
     """
     # Guest path: optional auth returned None (missing, expired, or malformed
     # JWT). Enforce the Free starter allowlist so anonymous traffic cannot
-    # bypass Standard-tier template locks, then run the same layout pipeline.
+    # bypass Pro-tier template locks, then run the same layout pipeline.
     if payload is None:
         if request.template_id not in FREE_STARTER_TEMPLATE_IDS:
             raise PlanLimitError(
                 "plan_feature_template",
-                "Ten szablon jest dostępny w planie Standard.",
+                "Ten szablon jest dostępny w planie Pro.",
             )
     else:
         user = get_user_by_username(db, username=payload.get("sub"))

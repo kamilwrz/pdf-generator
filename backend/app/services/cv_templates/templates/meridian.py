@@ -1,6 +1,6 @@
 """Meridian CV template generator.
 
-Meridian is a premium single-column executive resume in the same family as
+Meridian is a polished single-column executive resume in the same family as
 Regent (serif masthead, restrained sans-serif body, generous single column
 kept ATS-friendly), but built around a deep navy/steel-blue palette instead
 of Regent's monochrome ink, a noticeably more compact body type scale, and a
@@ -400,7 +400,7 @@ def _gen_meridian(cv: dict) -> list[dict]:
         rule = _line(L, rule_top, W, 0.8, C["rule"], zIndex=2, page=page)
         rule["flowRole"] = "section-chrome"
         b.els.append(rule)
-        # Premium marker: a short accent-blue tick sitting on the hairline,
+        # Signature Meridian marker: a short accent-blue tick on the hairline,
         # distinguishing Meridian's section chrome from Regent's plain
         # full-width rule.
         tick = _line(L, rule_top, _SECTION_TICK_WIDTH, 1.6, C["accent"], zIndex=3, page=page)

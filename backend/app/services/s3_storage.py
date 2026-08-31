@@ -1,9 +1,11 @@
 """AWS S3 helpers for PDF and image object storage.
 
-Enabled when `S3_BUCKET` is set. Public HTTPS URLs are returned after upload
-so ReportLab resolvers can locate objects. PDF export downloads bytes through
-the API (`download_bytes`) rather than browser-side presigned GETs, so the
-bucket does not need CORS rules for the React origin.
+Enabled when `S3_BUCKET` is set. Uploads deliberately omit an ACL: S3 objects
+are private by default, and Bucket owner enforced buckets reject most ACL
+headers. The returned HTTPS value is a server-side storage locator, not a
+browser download URL. Production buckets must keep Block Public Access enabled
+and must not have a public bucket policy. PDF export reads bytes through the API
+(`download_bytes`), so the bucket does not need CORS rules for the React origin.
 """
 
 import os
@@ -17,7 +19,13 @@ def get_client():
 
 
 def upload_bytes(key: str, body: bytes, content_type: str = "application/octet-stream") -> str:
-    """Put an object and return its HTTPS URL."""
+    """Put a private-by-default object and return its server-side locator.
+
+    No ACL header is sent. Besides preserving S3's private default, omission is
+    required for compatibility with Bucket owner enforced Object Ownership.
+    Bucket-level Block Public Access remains an operational requirement because
+    this helper cannot neutralise a public bucket policy.
+    """
     get_client().put_object(Bucket=S3_BUCKET, Key=key, Body=body, ContentType=content_type)
     return f"https://{S3_BUCKET}.s3.{AWS_REGION}.amazonaws.com/{key}"
 
@@ -63,13 +71,3 @@ def image_src_to_path_for_reportlab(src: str, imgs_dir: str) -> str:
             f.write(data)
         return path
     return src
-
-
-def generate_presigned_download_url(key: str, expires_in: int = 300) -> str:
-    """Return a temporary GET URL. Default lifetime is five minutes."""
-    client = get_client()
-    return client.generate_presigned_url(
-        "get_object",
-        Params={"Bucket": S3_BUCKET, "Key": key},
-        ExpiresIn=expires_in,
-    )

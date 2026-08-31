@@ -39,7 +39,7 @@ export default function LongCvModal({
   if (!open || !variant) return null;
 
   const targetLabel = formatFitTargetLabel(targetPages ?? 1);
-  const aiLabel = canUseAi ? "Skróć treść z AI" : "Skróć z AI (Pro)";
+  const aiLabel = canUseAi ? "Skróć treść z AI" : "Odblokuj skracanie AI w Pro";
 
   let title;
   let body;
@@ -48,7 +48,8 @@ export default function LongCvModal({
     body = (
       <p className={classes.lead}>
         Żeby zmieścić CV na {targetLabel}, możemy mocno zmniejszyć odstępy albo
-        skrócić treść. Skrócenie treści wygląda lepiej.
+        skrócić treść. Skrócenie treści wygląda lepiej
+        {canUseAi ? "." : " i jest dostępne w planie Pro."}
       </p>
     );
   } else {
@@ -56,7 +57,9 @@ export default function LongCvModal({
     body = (
       <p className={classes.lead}>
         Samo zmniejszenie odstępów nie zmieści CV na {targetLabel} — jest za dużo
-        treści. Możemy wskazać fragmenty do skrócenia, bez zmiany faktów.
+        treści. {canUseAi
+          ? "Możemy wskazać fragmenty do skrócenia, bez zmiany faktów."
+          : "Możesz skrócić ją ręcznie albo odblokować skracanie AI w planie Pro."}
       </p>
     );
   }

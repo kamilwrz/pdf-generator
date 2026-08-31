@@ -115,7 +115,7 @@ export default function Login() {
             : startIntent === "demo-conversion"
                 ? "Po zalogowaniu przeniesiemy dane z kreatora i utworzymy Twoje CV w Linden."
             : startIntent === "wizard-conversion"
-                ? "Po zalogowaniu przeniesiemy dane z kreatora i utworzymy Twoje CV w Regencie."
+                ? "Po zalogowaniu przeniesiemy dane z kreatora i utworzymy Twoje CV w Meridianie."
                 : startIntent === "blank"
                     ? "Po zalogowaniu otworzymy pusty projekt własny."
                     : "Wróć do swoich dokumentów i kontynuuj od miejsca, w którym skończyłeś.";

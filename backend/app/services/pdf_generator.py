@@ -1418,7 +1418,7 @@ class PDF_Generator:
         self.c.save()
 
     def _draw_watermark(self):
-        """Overlay a faint diagonal "free plan" watermark on the current page.
+        """Overlay the retired diagonal watermark for compatibility tests.
 
         Drawn AFTER normal element rendering and fully isolated with
         saveState/restoreState, so it can never affect the coordinate
@@ -1448,9 +1448,8 @@ class PDF_Generator:
         document page. Elements are grouped by their ``page`` attribute
         (1-based). Empty pages are still emitted so the page count is
         preserved. ``image_resolver(src)`` returns a local path ReportLab
-        can read. ``watermark=True`` overlays a diagonal "free plan" stamp
-        on every page after its elements are drawn (Free-plan exports only
-        — see `document_service.py` / `pdf.py` callers)."""
+        can read. ``watermark=True`` exercises the retired compatibility-only
+        overlay; product callers always pass ``False`` for every plan."""
         by_page = {}
         by_id = {}
         for element in elements:

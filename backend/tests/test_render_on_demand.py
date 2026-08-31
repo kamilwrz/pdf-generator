@@ -3,7 +3,7 @@
 Covers the "Pobierz" button that is independent of "Zapisz": the current canvas
 is rendered and streamed without ever creating a "Moje dokumenty" row, while
 still being export-metered exactly like /download_pdf. A separate unit check
-asserts the Free plan forwards ``watermark=True`` into the renderer.
+asserts the Free plan renders the same clean PDF as Pro.
 """
 from __future__ import annotations
 
@@ -196,16 +196,17 @@ class RenderOnDemandTests(unittest.TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertEqual(self._exports_count(), 0)
 
-    def test_free_plan_forwards_watermark_flag_to_renderer(self):
-        # Assert the Free plan stamps the watermark without decoding PDF bytes:
-        # capture the flag passed into the shared render buffer helper.
+    def test_free_plan_forwards_clean_render_flag_to_renderer(self):
+        # Capture the shared render-buffer call without decoding PDF bytes. Free
+        # exports must remain clean even though the helper retains its legacy
+        # watermark parameter for stored-file compatibility.
         from app.schemas.pdf_schema import PDFCreateRequest
 
         pdf_data = PDFCreateRequest(**_payload())
         with patch.object(doc_service, "build_pdf_to_buffer", return_value=b"%PDF-fake") as buf:
             doc_service.render_document_bytes(self.db, user=self.user, pdf_data=pdf_data)
         self.assertTrue(buf.called)
-        self.assertTrue(buf.call_args.kwargs["watermark"])
+        self.assertFalse(buf.call_args.kwargs["watermark"])
 
 
 if __name__ == "__main__":

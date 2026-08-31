@@ -6,11 +6,11 @@
  *
  * Two funnels, one consistent primary action ("Stwórz CV za darmo" → wizard)
  * and one secondary ("Wgraj swoje CV" → import):
- *   - Wizard → enter data → pick template → editor (frontend-only, guest mode)
- *   - Import → extract data → pick template → editor (paid OpenAI extract)
+ *   - Wizard → enter data → register → Free Meridian → editor
+ *   - Import → register → extract data → pick template → editor (metered request)
  *
  * Only the "import" CTA still detours through registration/login, because it
- * calls the paid `POST /ai/extract_cv` endpoint. Wizard and demo go straight
+ * calls the account-scoped `POST /ai/extract_cv` endpoint. Wizard and demo go straight
  * to `/cvstudio/guest?start=...` (or `/cvstudio/{username}` when already
  * authenticated). Each CTA queues a per-source funnel event so analytics can
  * tell which surface drove the click (see queueGuestEvent + events.py).
@@ -22,6 +22,10 @@ import { TEMPLATES } from "../../templates";
 import { wakeBackend } from "../../services/api";
 import { queueGuestEvent } from "../../utils/guestEvents";
 import { getAccessToken, getEditorPath } from "../../utils/authSession";
+import {
+    FREE_PLAN_HIGHLIGHTS,
+    PRO_PLAN_HIGHLIGHTS,
+} from "../../utils/planPresentation";
 
 const TEMPLATE_PREVIEWS = TEMPLATES.map((template) => ({
     id: template.id,
@@ -124,11 +128,10 @@ function XIcon() {
     );
 }
 
-// "import" costs a paid OpenAI call (POST /ai/extract_cv) and stays gated
-// behind registration — anonymous visitors are deliberately not given it for
-// free (see docs/superpowers/specs/2026-08-07-onboarding-monetization-design.md
-// §4.5). Every other start intent is frontend-only / zero-cost, so it goes
-// straight into guest mode regardless of auth state.
+// "import" starts a metered extraction request (POST /ai/extract_cv) and stays
+// behind registration because the monthly allowance and personal-data history
+// belong to an account. Free receives one successful import per UTC month.
+// Every other start intent is local or deterministic, so it can enter guest mode.
 function buildStartUrl(start, plan) {
     if (start === "import") {
         if (getAccessToken()) return getEditorPath({ start });
@@ -164,7 +167,8 @@ export default function Hero() {
         wakeBackend();
     }, []);
 
-    // Free includes three monthly imports; Pro removes that quota and unlocks clean PDF + AI.
+    // Free includes one successful monthly import; Pro removes that quota and
+    // adds scale, every template, and AI workflows without changing PDF quality.
     const importUrl = buildStartUrl("import", "free");
     const wizardUrl = buildStartUrl("wizard", "free");
     const demoUrl = getEditorPath({ start: "demo" });
@@ -230,7 +234,7 @@ export default function Hero() {
                     </p>
                     <ul className={classes.heroTrust} aria-label="Korzyści na start">
                         <li>ZA DARMO</li>
-                        <li>POMOC AI</li>
+                        <li>CZYSTY PDF</li>
                         <li>INTELIGENTNY LAYOUT</li>
                     </ul>
                 </div>
@@ -441,9 +445,9 @@ export default function Hero() {
                     <p className={classes.kicker}>AI, tam gdzie ma sens</p>
                     <h2>Nie oddawaj AI całego CV.<br /><em>Daj mu konkretne zadanie.</em></h2>
                     <p>
-                        Popraw ton jednego fragmentu. Skróć zbyt długi opis. Przetłumacz
-                        dokument. Sprawdź, czy treść jest spójna. AI pracuje nad słowami —
-                        geometria CV pozostaje zadaniem edytora.
+                        W planie Pro poprawiasz konkretny fragment, skracasz opis albo
+                        przygotowujesz tłumaczenie. AI pracuje nad słowami — geometria CV
+                        pozostaje zadaniem edytora.
                     </p>
                 </div>
                 <div className={classes.aiCapabilityGrid}>
@@ -476,41 +480,37 @@ export default function Hero() {
             <section id="cennik" className={classes.pricingSection}>
                 <div className={classes.pricingHeading}>
                     <p className={classes.kicker}>Cennik</p>
-                    <h2>Najpierw sprawdź, czy CV Studio Ci odpowiada.<br /><em>Zapłać dopiero za gotowy efekt.</em></h2>
+                    <h2>Gotowe CV za 0 zł.<br /><em>Pro, gdy potrzebujesz więcej wersji.</em></h2>
                     <p>
-                        Darmowy plan pozwala stworzyć i sprawdzić CV. Pro odblokowuje czysty
-                        PDF, wszystkie szablony i narzędzia potrzebne do finalnej wersji.
+                        Plan Darmowy wystarcza, by stworzyć jedno kompletne CV i pobrać czysty PDF.
+                        Pro daje więcej projektów, wszystkie szablony oraz narzędzia AI i ATS.
                     </p>
                 </div>
                 <div className={classes.pricingGrid}>
                     <article className={classes.priceCard}>
                         <p className={classes.planName}>Darmowy</p>
                         <p className={classes.planPrice}>0 <small>zł</small></p>
-                        <p className={classes.planSummary}>Stwórz i sprawdź swoje CV.</p>
+                        <p className={classes.planSummary}>Jedno kompletne CV, gotowe do wysłania.</p>
                         <ul>
-                            <li><CheckIcon />Zacznij od Regenta lub Sterlinga</li>
-                            <li><CheckIcon />Zaimportuj 3 CV miesięcznie</li>
-                            <li><CheckIcon />Edytuj i zapisuj dokument</li>
-                            <li><CheckIcon />Pobierz PDF z oznaczeniem wersji darmowej</li>
+                            {FREE_PLAN_HIGHLIGHTS.map((feature) => (
+                                <li key={feature}><CheckIcon />{feature}</li>
+                            ))}
                         </ul>
                         <CtaLink to={wizardUrl} event="pricing_free" variant="secondary">
                             Zacznij za darmo
                         </CtaLink>
-                        <p className={classes.planFootnote}>Bez karty.</p>
+                        <p className={classes.planFootnote}>Bez karty · Bez limitu czasu</p>
                     </article>
                     <article className={`${classes.priceCard} ${classes.priceFeatured}`}>
-                        <span className={classes.popularTag}>Gotowe CV do wysłania</span>
+                        <span className={classes.popularTag}>Dla aktywnego szukania pracy</span>
                         <p className={classes.planName}>Pro</p>
                         <p className={classes.planPrice}>59 <small>zł</small></p>
-                        <p className={classes.planSummary}>Gotowe CV do wysłania.</p>
+                        <p className={classes.planSummary}>Więcej wersji CV i szybsze dopracowanie.</p>
                         <p className={classes.planPeriod}>30 dni pełnego dostępu</p>
                         <ul>
-                            <li><CheckIcon />Wszystkie szablony</li>
-                            <li><CheckIcon />Czysty PDF bez oznaczenia CV Studio</li>
-                            <li><CheckIcon />AI do poprawiania, skracania i tłumaczenia treści</li>
-                            <li><CheckIcon />Sprawdzanie czytelności dla ATS</li>
-                            <li><CheckIcon />Importy CV bez limitu</li>
-                            <li><CheckIcon />Nielimitowane projekty i eksporty w okresie Pro</li>
+                            {PRO_PLAN_HIGHLIGHTS.map((feature) => (
+                                <li key={feature}><CheckIcon />{feature}</li>
+                            ))}
                         </ul>
                         <Link
                             className={classes.buttonPrimary}
@@ -536,7 +536,11 @@ export default function Hero() {
                     </details>
                     <details>
                         <summary>Mam już gotowe CV. Czy naprawdę muszę wpisywać wszystko od nowa?</summary>
-                        <p>Nie. Możesz wgrać PDF i wykorzystać jego treść jako punkt wyjścia. CV Studio odczyta dane i ułoży je w edytowalnej strukturze. Pierwszy import jest dostępny bezpłatnie po utworzeniu konta.</p>
+                        <p>Nie. Możesz wgrać PDF i wykorzystać jego treść jako punkt wyjścia. CV Studio odczyta dane i ułoży je w edytowalnej strukturze. Plan Darmowy obejmuje 1 udany import CV w każdym miesiącu.</p>
+                    </details>
+                    <details>
+                        <summary>Co dokładnie obejmuje plan Darmowy?</summary>
+                        <p>Możesz zapisać 1 projekt CV, używać 3 profesjonalnych szablonów z 6 wersjami wyglądu każdy, edytować czcionki, typografię, odstępy i sekcje oraz pobrać 3 czyste PDF-y miesięcznie. Plan nie wymaga karty, nie wygasa i nie obejmuje funkcji AI.</p>
                     </details>
                     <details>
                         <summary>Co stanie się z moimi poprawkami, jeśli później zmienię szablon?</summary>
@@ -548,11 +552,11 @@ export default function Hero() {
                     </details>
                     <details>
                         <summary>Czy mogę sprawdzić, czy moje CV jest czytelne dla ATS?</summary>
-                        <p>Tak. CV Studio może sprawdzić, czy tekst PDF jest możliwy do odczytania oraz czy dokument używa czytelnej struktury i typowych nagłówków. Nie jest to gwarancja identycznego wyniku w każdym systemie rekrutacyjnym.</p>
+                        <p>Tak, w planie Pro. CV Studio może sprawdzić, czy tekst PDF jest możliwy do odczytania oraz czy dokument używa czytelnej struktury i typowych nagłówków. Nie jest to gwarancja identycznego wyniku w każdym systemie rekrutacyjnym.</p>
                     </details>
                     <details>
                         <summary>Czy pobrany PDF naprawdę będzie wyglądał tak samo jak w edytorze?</summary>
-                        <p>Taki jest model CV Studio. Edytor pracuje na rzeczywistym formacie A4, a PDF korzysta z tej samej geometrii dokumentu.</p>
+                        <p>Tak — również w planie Darmowym. Edytor pracuje na rzeczywistym formacie A4, a czysty PDF korzysta z tej samej geometrii dokumentu.</p>
                     </details>
                     <details>
                         <summary>Czy Pro to subskrypcja?</summary>

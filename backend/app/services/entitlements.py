@@ -1,8 +1,9 @@
 """Plan entitlements, usage meters, and Free/Pro enforcement.
 
 Product catalog is two tiers:
-- Free (Darmowy) — create and preview a CV (watermarked export, starter templates).
-- Pro — clean PDF + full templates + AI, activated as a 30-day pass (not an
+- Free (Darmowy) — one complete CV, three starter templates, clean PDF exports,
+  and one monthly CV import without user-facing AI features.
+- Pro — multiple CV versions, all templates, and AI, activated as a 30-day pass (not an
   auto-renewing subscription). Fair-use AI budget is 200 credits / period.
 
 Stripe checkout/webhooks come later — they will flip `UserSubscription.plan_slug`
@@ -15,6 +16,9 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from fastapi import HTTPException
+from sqlalchemy import text
+from sqlalchemy.dialects.postgresql import insert as postgresql_insert
+from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.orm import Session
 
 from app.models.models import Pdf, Plan, UsageCounter, User, UserSubscription
@@ -22,8 +26,9 @@ from app.models.models import Pdf, Plan, UsageCounter, User, UserSubscription
 # Must match frontend TEMPLATES entries with tier: "free" in
 # frontend/src/templates/index.js. Enforced by tests/test_template_registry_sync.py.
 FREE_STARTER_TEMPLATE_IDS: tuple[str, ...] = (
-    "regent",
     "sterling",
+    "linden",
+    "meridian",
 )
 
 # Length of a paid Pro activation window (one-shot pass, not auto-renew).
@@ -36,7 +41,7 @@ PLAN_SEEDS: list[dict[str, Any]] = [
         "max_projects": 1,
         "max_exports_per_month": 3,
         "max_ai_actions_per_month": 0,
-        "max_cv_imports_per_month": 3,
+        "max_cv_imports_per_month": 1,
         "ai_assistant": False,
         "extract_cv": True,
         "template_tier": "starter",
@@ -234,13 +239,13 @@ PLAN_DISPLAY: dict[str, dict[str, Any]] = {
     "free": {
         "price_pln": 0,
         "price_label": "0 zł",
-        "blurb": "Stwórz i sprawdź swoje CV.",
+        "blurb": "Stwórz kompletne CV gotowe do wysłania.",
         "highlights": [
-            "Kreator i pełna edycja A4",
-            "2 podstawowe szablony",
-            "3 importy CV / mies.",
-            "PDF ze znakiem CV Studio",
-            "1 zapisany dokument · 3 eksporty / mies.",
+            "Pełny edytor, czcionki i odstępy",
+            "3 szablony · po 6 wariantów wyglądu",
+            "1 import CV / mies.",
+            "1 zapisane CV · 3 eksporty PDF / mies.",
+            "PDF bez znaku wodnego",
         ],
         "cta": "Stwórz CV za darmo",
         "badge": None,
@@ -249,13 +254,13 @@ PLAN_DISPLAY: dict[str, dict[str, Any]] = {
     "pro": {
         "price_pln": 59,
         "price_label": "59 zł / 30 dni",
-        "blurb": "Gotowe CV do wysłania.",
+        "blurb": "Wiele wersji CV i narzędzia do skutecznej rekrutacji.",
         "highlights": [
-            "PDF bez znaku wodnego",
-            "Wszystkie 10 szablonów",
+            "Wszystkie szablony i warianty wyglądu",
+            "Wiele zapisanych CV · eksporty bez limitu",
             "Importy CV bez limitu",
             "AI do treści, ATS i układu",
-            "200 kredytów AI · wiele wersji CV",
+            "200 kredytów AI / okres",
         ],
         "cta": "Odblokuj Pro",
         "badge": "Najlepszy wybór do szukania pracy",
@@ -328,7 +333,7 @@ def set_user_plan(db: Session, user_id: int, plan_slug: str) -> UserSubscription
 
 
 def _expire_pro_if_needed(db: Session, sub: UserSubscription) -> UserSubscription:
-    """Downgrade an expired Pro pass to Free. Documents stay; clean export/AI stop."""
+    """Downgrade expired Pro to Free; keep documents and resume Free quotas."""
     if sub.plan_slug != "pro":
         return sub
     end = _as_utc(sub.current_period_end)
@@ -355,6 +360,13 @@ def get_plan(db: Session, plan_slug: str) -> Plan:
 
 
 def _usage_row(db: Session, user_id: int, period_key: str | None = None) -> UsageCounter:
+    """Return the monthly usage row, creating it without a first-write race.
+
+    Both production Postgres and local/test SQLite enforce a unique
+    ``(user_id, period_key)`` key. A dialect-native ``ON CONFLICT DO NOTHING``
+    lets concurrent first requests converge on that single row instead of one
+    request failing with an integrity error after both observed no row.
+    """
     key = period_key or current_period_key()
     row = (
         db.query(UsageCounter)
@@ -362,16 +374,42 @@ def _usage_row(db: Session, user_id: int, period_key: str | None = None) -> Usag
         .first()
     )
     if row is None:
-        row = UsageCounter(
-            user_id=user_id,
-            period_key=key,
-            exports_count=0,
-            cv_imports_count=0,
-            ai_actions_count=0,
-        )
-        db.add(row)
+        values = {
+            "user_id": user_id,
+            "period_key": key,
+            "exports_count": 0,
+            "cv_imports_count": 0,
+            "ai_actions_count": 0,
+        }
+        dialect_name = db.get_bind().dialect.name
+        if dialect_name == "postgresql":
+            statement = postgresql_insert(UsageCounter).values(**values)
+            statement = statement.on_conflict_do_nothing(
+                index_elements=["user_id", "period_key"],
+            )
+            db.execute(statement)
+        elif dialect_name == "sqlite":
+            # End the preceding lookup transaction before becoming a writer.
+            # Otherwise simultaneous first requests can hold read locks while
+            # each tries to upgrade, producing SQLITE_BUSY instead of letting
+            # the unique-key UPSERT serialize them.
+            db.commit()
+            statement = sqlite_insert(UsageCounter).values(**values)
+            statement = statement.on_conflict_do_nothing(
+                index_elements=["user_id", "period_key"],
+            )
+            db.execute(statement)
+        else:
+            # The application officially supports Postgres and SQLite. Keep a
+            # straightforward fallback for development against another SQL
+            # dialect; callers still benefit from the database unique key.
+            db.add(UsageCounter(**values))
         db.commit()
-        db.refresh(row)
+        row = (
+            db.query(UsageCounter)
+            .filter(UsageCounter.user_id == user_id, UsageCounter.period_key == key)
+            .one()
+        )
     return row
 
 
@@ -440,15 +478,46 @@ def get_entitlements(db: Session, user: User) -> dict[str, Any]:
 
 
 def assert_can_create_project(db: Session, user: User) -> None:
-    """Raise PlanLimitError when the user already hit max_projects."""
-    entitlements = get_entitlements(db, user)
-    limit = entitlements["limits"]["max_projects"]
+    """Lock the user's project scope and reject creation above the plan limit.
+
+    A plain count followed by an insert lets two simultaneous requests both see
+    an available slot. Postgres serializes creators with a row lock on the
+    owning user. SQLite has no row-level ``FOR UPDATE``, so ``BEGIN IMMEDIATE``
+    takes its database write reservation before the count. The successful
+    caller deliberately keeps this transaction open; ``create_new_pdf`` commits
+    the inserted Pdf row and releases the lock as one critical section.
+    """
+    user_id = int(user.id)
+    subscription = _expire_pro_if_needed(
+        db, get_or_create_subscription(db, user_id),
+    )
+    plan = get_plan(db, subscription.plan_slug)
+    limit = plan.max_projects
+    plan_name = plan.name
     if limit is None:
         return
-    if entitlements["usage"]["projects"] >= limit:
+
+    dialect_name = db.get_bind().dialect.name
+    if dialect_name == "sqlite":
+        # Authentication/plan lookups may already have opened a read
+        # transaction. End it before BEGIN IMMEDIATE so SQLite can reserve the
+        # writer slot without attempting an unsafe read-to-write upgrade.
+        db.commit()
+        db.execute(text("BEGIN IMMEDIATE"))
+    else:
+        # Production Postgres: a stable per-user row is the lock target. The
+        # lock remains held until the document insert commits or the request is
+        # rolled back by the session dependency.
+        db.query(User.id).filter(User.id == user_id).with_for_update().one()
+
+    project_count = db.query(Pdf).filter(Pdf.owner_id == user_id).count()
+    if project_count >= limit:
+        # Release the lock before returning a plan error. The exception itself
+        # does not invalidate a SQLAlchemy transaction.
+        db.rollback()
         raise PlanLimitError(
             "plan_limit_projects",
-            f"Plan {entitlements['plan_name']} pozwala na maksymalnie {limit} projekt(y). "
+            f"Plan {plan_name} pozwala na maksymalnie {limit} projekt(y). "
             "Odblokuj Pro, aby dodać kolejny.",
         )
 
@@ -548,13 +617,31 @@ def mark_free_import_used(db: Session, user_id: int) -> None:
     db.commit()
 
 
-def assert_template_allowed(db: Session, user: User, template_id: str) -> None:
-    """Block Free-tier users from non-starter templates."""
+def assert_template_allowed(
+    db: Session,
+    user: User,
+    template_id: str,
+    *,
+    existing_pdf: Pdf | None = None,
+) -> None:
+    """Block paid templates unless this is an owned legacy document.
+
+    ``existing_pdf`` is an intentionally narrow downgrade exception: a Free
+    user may continue editing/rendering an already saved paid-template document
+    only when that exact owned row still records the same template. It must
+    never be supplied by new-document creation or anonymous template fill.
+    """
     entitlements = get_entitlements(db, user)
     allowed = entitlements["allowed_template_ids"]
     if allowed is None:
         return
     if template_id not in allowed:
+        if (
+            existing_pdf is not None
+            and existing_pdf.owner_id == user.id
+            and existing_pdf.template_id == template_id
+        ):
+            return
         raise PlanLimitError(
             "plan_feature_template",
             "Ten szablon jest dostępny w planie Pro.",
@@ -562,16 +649,84 @@ def assert_template_allowed(db: Session, user: User, template_id: str) -> None:
 
 
 def record_export(db: Session, user_id: int) -> UsageCounter:
-    """Increment this month's export counter after a successful download gate."""
-    row = _usage_row(db, user_id)
-    row.exports_count = int(row.exports_count or 0) + 1
-    db.add(row)
+    """Atomically claim one export slot after PDF bytes are available.
+
+    The route may perform an early read-only gate to avoid an unnecessary
+    render, but this conditional UPSERT is the authoritative quota decision.
+    Concurrent requests cannot increment a finite plan beyond its limit. A
+    caller must not send the prepared bytes unless this function returns.
+    """
+    subscription = _expire_pro_if_needed(
+        db, get_or_create_subscription(db, user_id),
+    )
+    plan = get_plan(db, subscription.plan_slug)
+    limit = plan.max_exports_per_month
+    plan_name = plan.name
+    if limit is not None and limit <= 0:
+        raise PlanLimitError(
+            "plan_limit_exports",
+            f"Wykorzystano limit {limit} eksportów w tym miesiącu na planie "
+            f"{plan_name}. Odblokuj Pro, aby pobrać więcej PDF.",
+        )
+
+    key = current_period_key()
+    values = {
+        "user_id": user_id,
+        "period_key": key,
+        "exports_count": 1,
+        "cv_imports_count": 0,
+        "ai_actions_count": 0,
+    }
+    dialect_name = db.get_bind().dialect.name
+    if dialect_name == "postgresql":
+        statement = postgresql_insert(UsageCounter).values(**values)
+    elif dialect_name == "sqlite":
+        # The subscription/plan reads above opened a deferred transaction.
+        # Finish it before the atomic writer statement so concurrent SQLite
+        # callers queue as writers instead of deadlocking on lock upgrades.
+        db.commit()
+        statement = sqlite_insert(UsageCounter).values(**values)
+    else:
+        # Unsupported development dialects use the same user-scope lock as the
+        # project quota before falling back to a conditional ORM update.
+        db.query(User.id).filter(User.id == user_id).with_for_update().one()
+        row = _usage_row(db, user_id, key)
+        if limit is not None and row.exports_count >= limit:
+            db.rollback()
+            raise PlanLimitError(
+                "plan_limit_exports",
+                f"Wykorzystano limit {limit} eksportów w tym miesiącu na planie "
+                f"{plan_name}. Odblokuj Pro, aby pobrać więcej PDF.",
+            )
+        row.exports_count += 1
+        db.commit()
+        db.refresh(row)
+        return row
+
+    update_where = None if limit is None else UsageCounter.exports_count < limit
+    statement = statement.on_conflict_do_update(
+        index_elements=["user_id", "period_key"],
+        set_={"exports_count": UsageCounter.exports_count + 1},
+        where=update_where,
+    ).returning(UsageCounter.id)
+    claimed_id = db.execute(statement).scalar_one_or_none()
+    if claimed_id is None:
+        db.rollback()
+        raise PlanLimitError(
+            "plan_limit_exports",
+            f"Wykorzystano limit {limit} eksportów w tym miesiącu na planie "
+            f"{plan_name}. Odblokuj Pro, aby pobrać więcej PDF.",
+        )
     db.commit()
-    db.refresh(row)
-    return row
+    return db.query(UsageCounter).filter(UsageCounter.id == claimed_id).one()
 
 
-def record_cv_import(db: Session, user_id: int) -> UsageCounter:
+def record_cv_import(
+    db: Session,
+    user_id: int,
+    *,
+    commit: bool = True,
+) -> UsageCounter:
     """Atomically increment the UTC month's import meter after model success.
 
     Failed provider calls never reach this function, so transient Cloudflare
@@ -579,27 +734,41 @@ def record_cv_import(db: Session, user_id: int) -> UsageCounter:
     before the provider call and records only a normalized successful result.
     The conditional SQL update repeats the limit check so concurrent imports
     cannot push a Free account past its allowance after both provider calls end.
+
+    Set ``commit=False`` only when the caller must include another database
+    mutation in the same success transaction. The CV extraction route uses it
+    to make the quota claim and snapshot transition indivisible.
     """
     row = _usage_row(db, user_id)
     subscription = _expire_pro_if_needed(db, get_or_create_subscription(db, user_id))
     plan = get_plan(db, subscription.plan_slug)
     limit = plan.max_cv_imports_per_month
-    query = db.query(UsageCounter).filter(UsageCounter.id == row.id)
+    row_id = row.id
+    if db.get_bind().dialect.name == "sqlite":
+        # End read transactions opened by the usage/plan lookups before the
+        # conditional writer statement. This lets concurrent SQLite imports
+        # queue for the write lock instead of deadlocking during lock upgrade.
+        # No usage has been claimed yet, and the processing snapshot was
+        # committed before the external provider call.
+        db.commit()
+    query = db.query(UsageCounter).filter(UsageCounter.id == row_id)
     if limit is not None:
         query = query.filter(UsageCounter.cv_imports_count < limit)
     updated = query.update(
         {UsageCounter.cv_imports_count: UsageCounter.cv_imports_count + 1},
         synchronize_session=False,
     )
-    db.commit()
     if updated != 1:
+        db.rollback()
         raise PlanLimitError(
             "plan_limit_cv_imports",
             f"Wykorzystano limit {limit} importów CV w tym miesiącu. "
             "Odblokuj Pro, aby importować bez limitu.",
         )
-    db.refresh(row)
-    return row
+    if not commit:
+        return row
+    db.commit()
+    return db.query(UsageCounter).filter(UsageCounter.id == row_id).one()
 
 
 def reset_ai_credits(db: Session, user_id: int) -> UsageCounter:

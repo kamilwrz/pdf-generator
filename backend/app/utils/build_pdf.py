@@ -10,7 +10,8 @@ def build_pdf_to_buffer(pdf_data, elements, image_src_resolver, watermark: bool 
 
     `image_src_resolver(src)` must return a filesystem path ReportLab can open.
     Page size defaults to A4 portrait when the payload omits geometry.
-    `watermark=True` overlays the Free-plan diagonal stamp on every page.
+    `watermark=True` is retained only for compatibility tests of the retired
+    overlay. Product export paths always pass `False` for every plan.
     """
     buffer = io.BytesIO()
     page_w = float(getattr(pdf_data, "page_width", 595) or 595)

@@ -1,6 +1,6 @@
 /**
- * Registration form. Every new account is created on the Free plan by
- * default (the backend applies this default; no plan is sent from here).
+ * Registration form. Every new account requests Free unless a supported plan
+ * is explicitly present in the URL; the backend validates the final choice.
  * Wakes the backend in the background like Login to survive Render cold start.
  */
 import classes from "./Register.module.css";
@@ -108,7 +108,7 @@ export default function Register() {
     }
 
     const startNotice = startIntent === "import"
-        ? "Po utworzeniu konta otworzymy import PDF, aby przenieść Twoje dane do nowego szablonu."
+        ? "Po utworzeniu konta otworzymy import PDF. Plan Darmowy obejmuje 1 udany import CV w miesiącu."
         : startIntent === "wizard"
             ? "Po utworzeniu konta otworzymy kreator CV krok po kroku."
             : startIntent === "templates"
@@ -116,11 +116,11 @@ export default function Register() {
         : startIntent === "demo-conversion"
             ? "Po utworzeniu konta przeniesiemy dane z kreatora i utworzymy Twoje CV w Linden."
         : startIntent === "wizard-conversion"
-            ? "Po utworzeniu konta przeniesiemy dane z kreatora i utworzymy Twoje CV w Regencie."
+            ? "Po utworzeniu konta przeniesiemy dane z kreatora i utworzymy Twoje CV w Meridianie."
             : startIntent === "blank"
                     ? "Po utworzeniu konta otworzymy pusty projekt własny ze swobodną edycją."
                     : requestedPlan === "pro" || requestedPlan === "standard" || requestedPlan === "premium"
-                        ? "Konto z dostępem Pro (gdy aktywacja bez płatności jest włączona) — czysty PDF, wszystkie szablony i AI."
+                        ? "Konto z dostępem Pro (gdy aktywacja bez płatności jest włączona) — wszystkie szablony, więcej projektów i narzędzia AI."
                         : "Utwórz darmowe konto i zacznij od szablonu, importu PDF albo projektu własnego.";
 
     return (
@@ -152,7 +152,7 @@ export default function Register() {
                     <p className={classes.subHeading}>
                         {requestedPlan === "pro" || requestedPlan === "standard" || requestedPlan === "premium"
                             ? "Pro — 59 zł / 30 dni. Jedna płatność, bez automatycznego odnawiania (Stripe wkrótce)."
-                            : "Zacznij bez karty i bez zobowiązań."}
+                            : "Plan Darmowy: 1 CV, 3 szablony i 3 czyste PDF-y miesięcznie. Bez karty i limitu czasu."}
                     </p>
                     <p className={classes.intentNotice}>{startNotice}</p>
                     <form onSubmit={handleSubmit} className={classes.form}>

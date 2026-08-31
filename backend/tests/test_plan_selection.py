@@ -138,6 +138,15 @@ class SelectPlanEndpointTests(unittest.TestCase):
         self.assertEqual(body["current_plan_slug"], "free")
         slugs = [p["slug"] for p in body["plans"]]
         self.assertEqual(slugs, ["free", "pro"])
+        free = next(plan for plan in body["plans"] if plan["slug"] == "free")
+        self.assertEqual(free["max_projects"], 1)
+        self.assertEqual(free["max_exports_per_month"], 3)
+        self.assertEqual(free["max_cv_imports_per_month"], 1)
+        self.assertEqual(free["monthly_ai_credits"], 0)
+        self.assertFalse(free["ai_assistant"])
+        self.assertTrue(
+            any("bez znaku wodnego" in highlight.lower() for highlight in free["highlights"])
+        )
         self.assertIn("allow_unpaid_selection", body)
         self.assertIsInstance(body["allow_unpaid_selection"], bool)
 

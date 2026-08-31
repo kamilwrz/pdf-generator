@@ -53,10 +53,15 @@ class ImageUploadSecurityTests(unittest.TestCase):
         self.db.commit()
 
         # Redirect writes to a throwaway directory so the suite never touches the
-        # real backend/uploads folder.
+        # real backend/uploads folder. Force the route's imported storage flag
+        # off as well: a developer may legitimately keep S3_BUCKET_NAME in the
+        # local .env, but a security test must never upload fixtures to that
+        # external bucket.
         self._tmp = tempfile.TemporaryDirectory()
         self._orig_upload_dir = images_route.IMAGES_UPLOAD_DIR
+        self._orig_use_s3 = images_route.USE_S3
         images_route.IMAGES_UPLOAD_DIR = Path(self._tmp.name)
+        images_route.USE_S3 = False
 
         def _override_db():
             yield self.db
@@ -68,6 +73,7 @@ class ImageUploadSecurityTests(unittest.TestCase):
     def tearDown(self):
         app.dependency_overrides.clear()
         images_route.IMAGES_UPLOAD_DIR = self._orig_upload_dir
+        images_route.USE_S3 = self._orig_use_s3
         self._tmp.cleanup()
         self.db.close()
         self.engine.dispose()

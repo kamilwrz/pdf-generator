@@ -174,9 +174,15 @@ export default function Sidebar({ children }) {
                         "Zmień plan",
                         entitlements.plan_name,
                         entitlements.remaining?.exports != null
-                            ? `Eksporty: ${entitlements.usage?.exports_count ?? 0}/${entitlements.limits?.max_exports_per_month ?? "∞"}`
+                            ? `Pobrania PDF: ${entitlements.usage?.exports_count ?? 0}/${entitlements.limits?.max_exports_per_month ?? "∞"}`
                             : null,
-                        entitlements.limits?.monthly_ai_credits != null
+                        entitlements.remaining?.projects != null
+                            ? `Projekty CV: ${entitlements.usage?.projects ?? 0}/${entitlements.limits?.max_projects ?? "∞"}`
+                            : null,
+                        entitlements.remaining?.cv_imports != null
+                            ? `Importy CV: ${entitlements.usage?.cv_imports_count ?? 0}/${entitlements.limits?.max_cv_imports_per_month ?? "∞"}`
+                            : null,
+                        entitlements.limits?.monthly_ai_credits > 0
                             ? `Kredyty AI: ${entitlements.usage?.ai_credits_used ?? 0}/${entitlements.limits.monthly_ai_credits}`
                             : null,
                     ].filter(Boolean).join(" · ")}

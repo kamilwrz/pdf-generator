@@ -17,7 +17,7 @@ export default function SaveGateModal({ open, onCancel }) {
       onClose={onCancel}
       width={440}
       title="Nie zgub swojej pracy"
-      subtitle="Utwórz darmowe konto, aby zapisać CV i pobrać gotowy PDF"
+      subtitle="Utwórz darmowe konto, aby zapisać 1 CV i pobrać do 3 czystych PDF-ów miesięcznie"
       footer={(
         <div className={classes.actions}>
           <button type="button" className={classes.ghost} onClick={onCancel}>
