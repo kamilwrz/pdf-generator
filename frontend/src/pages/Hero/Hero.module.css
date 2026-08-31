@@ -245,49 +245,46 @@
     display: grid;
     grid-auto-rows: 1fr;
     align-items: stretch;
-    justify-items: start;
+    justify-items: center;
     gap: var(--space-2);
     width: fit-content;
     max-width: 100%;
     margin-right: auto;
     margin-left: auto;
     font-size: clamp(2.5rem, 6vw, 5.5rem);
-    line-height: .94;
+    line-height: 1;
     letter-spacing: -.04em;
-    text-align: left;
+    text-align: center;
 }
 
-/* Equal fractional grid rows make both title fields as tall as the larger
-   outcome phrase without changing either type scale. The compact layout keeps
-   the smaller opening field aligned to the highlighted line's right edge,
-   creating a deliberate step without rotation or transformed overflow. */
+/* Both clauses share one inherited type scale and a fixed typographic block
+   height. Flex centring keeps the visible letterforms optically aligned despite
+   the fonts' different glyph shapes, while the grid centres the complete lockup
+   in both the horizontal and compact stacked layouts. */
 .hero h1 > span,
 .hero h1 > em {
+    display: flex;
     align-self: stretch;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    block-size: 1.18em;
     min-width: 0;
     max-width: 100%;
-    overflow-wrap: break-word;
+    padding: 0 var(--space-4);
+    font-size: inherit;
+    line-height: 1;
+    text-align: center;
+    white-space: nowrap;
 }
 
 .hero h1 > span {
-    display: flex;
-    align-items: center;
-    justify-self: end;
-    margin-right: var(--space-4);
-    padding: 0 var(--space-4);
     background: var(--taupe);
     color: var(--paper);
-    font-size: clamp(2rem, 4vw, 3.5rem);
-    line-height: 1;
-    text-wrap: balance;
 }
 
 .hero h1 em {
-    display: block;
     width: fit-content;
-    padding-top: .04em;
-    padding-bottom: .1em;
-    line-height: 1;
 }
 
 @media (min-width: 1200px) {
@@ -295,11 +292,6 @@
         grid-template-columns: max-content max-content;
         grid-template-rows: 1fr;
         gap: var(--space-4);
-    }
-
-    .hero h1 > span {
-        justify-self: start;
-        margin-right: 0;
     }
 }
 
