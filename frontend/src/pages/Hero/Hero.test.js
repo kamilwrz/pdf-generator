@@ -6,15 +6,17 @@ const source = readFileSync(new URL("./Hero.jsx", import.meta.url), "utf8");
 const styles = readFileSync(new URL("./Hero.module.css", import.meta.url), "utf8");
 
 describe("landing product positioning", () => {
-  it("leads with the recruitment outcome and explains how the product supports it", () => {
+  it("welcomes the user with the recruitment outcome and no supporting subheading", () => {
     assert.match(source, /Stwórz CV,/);
     assert.match(source, /które prowadzi/);
     assert.match(source, /do rozmowy\./);
-    assert.match(source, /Wgraj stare CV lub zacznij od zera/);
-    assert.match(source, /profesjonalny dokument gotowy do/);
+    assert.doesNotMatch(source, /Wgraj stare CV lub zacznij od zera/);
+    assert.doesNotMatch(source, /profesjonalny dokument gotowy do/);
+    assert.doesNotMatch(source, /heroLead/);
     assert.match(source, /CV Studio w praktyce/);
-    assert.match(source, /Od pierwszych informacji/);
-    assert.match(source, /do gotowego PDF/);
+    assert.match(source, /Jedno CV\./);
+    assert.match(source, /Wiele wersji\./);
+    assert.match(source, /Bez pisania od nowa\./);
     assert.match(source, /Gotowe CV za 0 zł/);
   });
 
@@ -34,37 +36,43 @@ describe("landing product positioning", () => {
     assert.match(source, /INTELIGENTNY LAYOUT/);
   });
 
-  it("presents section 02 as a five-step offer before the template gallery", () => {
-    const steps = [
-      "Zacznij po swojemu",
-      "Dopracuj treść",
-      "Ułóż dokument",
-      "Zmień wygląd",
-      "Pobierz PDF",
+  it("presents section 02 as three concrete capabilities before the template gallery", () => {
+    const capabilities = [
+      "Dopasuj treść do oferty",
+      "Edytuj bezpośrednio na stronie A4",
+      "Zmień szablon bez przepisywania",
     ];
-    const offerStart = source.indexOf('<ol className={classes.offerSteps}');
-    const offerEnd = source.indexOf("</ol>", offerStart);
+    const offerStart = source.indexOf('<ul className={classes.offerSteps}');
+    const offerEnd = source.indexOf("</ul>", offerStart);
     const galleryStart = source.indexOf('<div className={classes.templateGalleryHeader}>');
     const offerMarkup = source.slice(offerStart, offerEnd);
+    const statementStart = source.indexOf('<div className={classes.offerStatement}>');
+    const statementEnd = source.indexOf("</div>", statementStart);
+    const statementMarkup = source.slice(statementStart, statementEnd);
 
     assert.ok(offerStart >= 0 && offerEnd > offerStart);
     assert.ok(galleryStart > offerEnd);
-    assert.equal((offerMarkup.match(/<li>/g) || []).length, 5);
-    assert.match(offerMarkup, /role="list"/);
-    for (let index = 1; index < steps.length; index += 1) {
-      assert.ok(offerMarkup.indexOf(steps[index - 1]) < offerMarkup.indexOf(steps[index]));
+    assert.equal((offerMarkup.match(/<li>/g) || []).length, 3);
+    assert.match(offerMarkup, /Najważniejsze funkcje CV Studio/);
+    for (let index = 1; index < capabilities.length; index += 1) {
+      assert.ok(
+        offerMarkup.indexOf(capabilities[index - 1]) < offerMarkup.indexOf(capabilities[index]),
+      );
     }
+    assert.doesNotMatch(statementMarkup, /<em>|<u>/);
 
     assert.match(source, /Ta sama treść\. Inny charakter\./);
     assert.match(source, /Stwórz CV w wybranym szablonie/);
     assert.match(styles, /\.templatesSection\s*\{[^}]*background:\s*var\(--paper\);/s);
     assert.match(styles, /\.offerIntro\s*\{[^}]*display:\s*grid;[^}]*grid-template-columns:/s);
+    assert.match(styles, /\.offerStatement h2\s*\{[^}]*display:\s*flex;[^}]*flex-direction:\s*column;[^}]*gap:/s);
+    assert.match(styles, /\.offerStatement h2 > span\s*\{[^}]*display:\s*block;[^}]*line-height:\s*1\.04;[^}]*overflow-wrap:\s*break-word;/s);
     assert.match(styles, /@media \(max-width: 1024px\)[\s\S]*?\.offerIntro\s*\{[^}]*grid-template-columns:\s*1fr;/s);
   });
 
   it("keeps the retained template, privacy, pricing, and FAQ caveats", () => {
     assert.match(source, /Twoje dokumenty nie są publiczne/);
-    assert.match(source, /bez przepisywania gotowej treści/);
+    assert.match(source, /Zmień szablon bez przepisywania/);
     assert.match(source, /Nie jest to gwarancja identycznego wyniku w każdym systemie rekrutacyjnym/);
   });
 

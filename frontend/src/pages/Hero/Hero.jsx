@@ -158,11 +158,6 @@ export default function Hero() {
                         <em>które prowadzi</em>
                         <em>do rozmowy.</em>
                     </h1>
-                    <p className={classes.heroLead}>
-                        Wgraj stare CV lub zacznij od zera. CV Studio pomoże Ci dopasować
-                        treść do oferty i ułoży ją w profesjonalny dokument gotowy do
-                        wysłania.
-                    </p>
                     <div className={classes.heroActions}>
                         <CtaLink to={wizardUrl} event="hero_wizard">Stwórz CV za darmo</CtaLink>
                         <CtaLink to={importUrl} event="hero_import" variant="secondary">
@@ -187,52 +182,44 @@ export default function Hero() {
                 <div className={classes.offerIntro}>
                     <div className={classes.offerStatement}>
                         <p className={classes.kicker} data-section-index="02">CV Studio w praktyce</p>
-                        <h2>Od pierwszych informacji<br /><em>do gotowego PDF.</em></h2>
+                        <h2>
+                            <span>Jedno CV.</span>
+                            <span>Wiele wersji.</span>
+                            <span>Bez pisania od nowa.</span>
+                        </h2>
                         <p className={classes.offerLead}>
-                            CV Studio pomaga stworzyć, poprawić i dopasować CV w jednym miejscu.
+                            Wgraj obecne CV albo zacznij od zera. Dopasuj treść do ogłoszenia,
+                            zmień wygląd i pobierz gotowy PDF.
                         </p>
                     </div>
                     {/*
-                      The ordered, ruled workflow replaces generic feature cards. Its
-                      source order is also the reading order on compact and zoomed layouts.
+                      The ruled feature list replaces generic cards without pretending
+                      the product has one mandatory workflow. Its source order remains
+                      the reading order on compact and zoomed layouts.
                     */}
-                    <ol className={classes.offerSteps} role="list" aria-label="Jak CV Studio pomaga stworzyć CV">
+                    <ul className={classes.offerSteps} aria-label="Najważniejsze funkcje CV Studio">
                         <li>
                             <span className={classes.offerStepIndex} aria-hidden="true">01</span>
                             <div>
-                                <h3>Zacznij po swojemu</h3>
-                                <p>Wgraj obecne CV albo zbuduj nowe krok po kroku.</p>
+                                <h3>Dopasuj treść do oferty</h3>
+                                <p>Wklej ogłoszenie i popraw tylko te fragmenty, które mają znaczenie.</p>
                             </div>
                         </li>
                         <li>
                             <span className={classes.offerStepIndex} aria-hidden="true">02</span>
                             <div>
-                                <h3>Dopracuj treść</h3>
-                                <p>Popraw język, wzmocnij opisy, skróć dokument i dopasuj go do oferty.</p>
+                                <h3>Edytuj bezpośrednio na stronie A4</h3>
+                                <p>Zmieniaj tekst, sekcje i układ dokładnie tam, gdzie je widzisz.</p>
                             </div>
                         </li>
                         <li>
                             <span className={classes.offerStepIndex} aria-hidden="true">03</span>
                             <div>
-                                <h3>Ułóż dokument</h3>
-                                <p>Edytuj CV bezpośrednio na stronie A4 i kontroluj każdą zmianę.</p>
+                                <h3>Zmień szablon bez przepisywania</h3>
+                                <p>Ta sama treść, inny wygląd. Gotowy dokument pobierasz jako PDF.</p>
                             </div>
                         </li>
-                        <li>
-                            <span className={classes.offerStepIndex} aria-hidden="true">04</span>
-                            <div>
-                                <h3>Zmień wygląd</h3>
-                                <p>Wybierz inny szablon bez przepisywania gotowej treści.</p>
-                            </div>
-                        </li>
-                        <li>
-                            <span className={classes.offerStepIndex} aria-hidden="true">05</span>
-                            <div>
-                                <h3>Pobierz PDF</h3>
-                                <p>Eksportuj czysty dokument gotowy do wysłania.</p>
-                            </div>
-                        </li>
-                    </ol>
+                    </ul>
                 </div>
 
                 <div className={classes.templateGalleryHeader}>
