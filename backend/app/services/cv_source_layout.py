@@ -577,6 +577,54 @@ def _compact_list_items(lines: list[dict[str, Any]]) -> list[str]:
     return [_collapse(line.get("text")) for line in lines if _collapse(line.get("text"))]
 
 
+def _source_supported_field_value(
+    value: Any,
+    source_lines: list[dict[str, Any]],
+) -> str | list[str]:
+    """Keep only model field fragments present in one geometric source section.
+
+    A model can correctly identify an Education record but continue its
+    ``description`` across the next visual section, for example copying every
+    Courses row into the degree. Section geometry is stronger evidence than
+    that continuation. Delimited fragments are retained only when their folded
+    text occurs in the source Education body; list inputs keep their list shape
+    so the normalizer still handles explicit bullets correctly.
+
+    @param value - Model string or list field to validate.
+    @param source_lines - Native PDF lines owned by the source section.
+    @returns The source-supported subset, preserving string/list shape.
+    """
+    source_line_keys = {
+        key
+        for line in source_lines
+        if (key := _fold(line.get("text")))
+    }
+    source_text_key = _fold(" ".join(
+        _collapse(line.get("text")) for line in source_lines
+    ))
+
+    is_list = isinstance(value, list)
+    raw_parts = value if is_list else re.split(
+        r"(?:\r?\n|[;•▪●◦‣]+|\s+·\s+)",
+        str(value or ""),
+    )
+    supported: list[str] = []
+    for raw_part in raw_parts:
+        part = _collapse(raw_part)
+        key = _fold(part)
+        if not key:
+            continue
+        # Short values such as "IT" must match a complete source line; a raw
+        # substring check would accept them inside unrelated longer words.
+        occurs_in_source = key in source_line_keys or (
+            len(key) >= 8 and key in source_text_key
+        )
+        if occurs_in_source:
+            supported.append(part)
+
+    return supported if is_list else "\n".join(supported)
+
+
 def _looks_like_plain_skill_group_label(
     lines: list[dict[str, Any]],
     index: int,
@@ -856,6 +904,38 @@ def ground_cv_data_from_source(
             source_grounded_fields.append("experience_titles")
         if restored_city:
             source_grounded_fields.append("experience_cities")
+
+    education_sections = [
+        section for section in sections if section.get("kind") == "education"
+    ]
+    education = grounded.get("education")
+    if education_sections and isinstance(education, list):
+        source_education_lines = [
+            line
+            for section in education_sections
+            for line in section.get("body_lines") or []
+        ]
+        cleaned_education: list[Any] = []
+        cleaned_education_fields = False
+        for entry in education:
+            if not isinstance(entry, Mapping):
+                cleaned_education.append(entry)
+                continue
+            cleaned_entry = dict(entry)
+            for field in ("description", "details", "notes", "detail", "bullets", "items"):
+                if field not in cleaned_entry:
+                    continue
+                supported_value = _source_supported_field_value(
+                    cleaned_entry.get(field),
+                    source_education_lines,
+                )
+                if supported_value != cleaned_entry.get(field):
+                    cleaned_entry[field] = supported_value
+                    cleaned_education_fields = True
+            cleaned_education.append(cleaned_entry)
+        if cleaned_education_fields:
+            grounded["education"] = cleaned_education
+            source_grounded_fields.append("education_descriptions")
 
     skill_sections = [section for section in sections if section.get("kind") == "skills"]
     skill_groups: list[dict[str, Any]] = []

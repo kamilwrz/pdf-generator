@@ -892,6 +892,21 @@ class CloudflareCvExtractionTests(unittest.TestCase):
         """Indented chrome must not let the model invent groups or a licence."""
         client = self._client({
             "name": "Iwona Przybylska",
+            "experience": [{
+                "title": "Content Creator",
+                "company": "Voliera",
+                "period": "03.2024 - obecnie",
+                "bullets": ["Tworzenie tresci"],
+            }],
+            "education": [{
+                "school": "Uniwersytet Miejski",
+                "degree": "Marketing i komunikacja rynkowa",
+                "period": "2019 - 2022",
+                "description": (
+                    "Marketing internetowy w praktyce; "
+                    "Copywriting i komunikacja marketingowa."
+                ),
+            }],
             "skills": [
                 {
                     "category": "Umiejetnosci twarde",
@@ -954,6 +969,20 @@ class CloudflareCvExtractionTests(unittest.TestCase):
                 "Copywriting i komunikacja marketingowa.",
             ],
         )
+        self.assertEqual(cv_data["education"][0]["description"], "")
+        self.assertNotIn(
+            "Marketing internetowy w praktyce",
+            cv_data["education"][0]["detail"],
+        )
+        regent_elements = generate_resume("regent", cv_data)
+        rendered_text = [
+            str(element.get("content") or "") for element in regent_elements
+        ]
+        self.assertEqual(rendered_text.count("KURSY"), 1)
+        self.assertEqual(
+            sum("Marketing internetowy w praktyce" in text for text in rendered_text),
+            1,
+        )
         rendered_data = json.dumps(cv_data, ensure_ascii=False)
         self.assertNotIn("Umiejetnosci twarde", rendered_data)
         self.assertNotIn("Umiejetnosci miekkie", rendered_data)
@@ -963,6 +992,7 @@ class CloudflareCvExtractionTests(unittest.TestCase):
             usage["source_grounded_fields"],
             [
                 "summary",
+                "education_descriptions",
                 "skills",
                 "certifications",
                 "driving_license",
