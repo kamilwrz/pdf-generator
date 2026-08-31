@@ -160,6 +160,43 @@ def _plain_nested_skills_cv_pdf_bytes() -> bytes:
     return data
 
 
+def _fragmented_skills_and_courses_pdf_bytes() -> bytes:
+    """Build a two-column CV with one justified skill row split into objects."""
+    document = fitz.open()
+    page = document.new_page()
+
+    for y, text in [
+        (60, "PODSUMOWANIE ZAWODOWE"),
+        (80, "Dokladne podsumowanie kandydatki."),
+        (120, "DOSWIADCZENIE ZAWODOWE"),
+        (140, "Content Creator"),
+        (156, "Voliera sp. z o.o. | 03.2024 - obecnie"),
+    ]:
+        page.insert_text((36, y), text, fontsize=10)
+
+    page.insert_text((330, 60), "UMIEJETNOSCI", fontsize=10, fontname="hebo")
+    x = 300.0
+    for fragment in ("Tworzenie", "tresci marketingowych", "i"):
+        page.insert_text((x, 82), fragment, fontsize=10)
+        x += fitz.get_text_length(fragment, fontname="helv", fontsize=10) + 6
+    page.insert_text((300, 98), "informacyjnych;", fontsize=10)
+    page.insert_text((300, 114), "Planowanie publikacji internetowych;", fontsize=10)
+
+    page.insert_text((350, 158), "KURSY", fontsize=10, fontname="hebo")
+    page.insert_text((300, 180), "Marketing internetowy w praktyce;", fontsize=10)
+    page.insert_text((300, 196), "Tworzenie tresci dla mediow", fontsize=10)
+    page.insert_text((300, 212), "spolecznosciowych;", fontsize=10)
+    page.insert_text((300, 228), "Copywriting i komunikacja marketingowa;", fontsize=10)
+    page.insert_text((300, 244), "Podstawy projektowania tresci wizualnych.", fontsize=10)
+
+    page.insert_text((340, 286), "JEZYKI OBCE", fontsize=10, fontname="hebo")
+    page.insert_text((300, 306), "Polski - jezyk ojczysty", fontsize=10)
+
+    data = document.tobytes()
+    document.close()
+    return data
+
+
 def _response(payload: dict | str):
     """Return the minimal OpenAI-compatible response consumed by the service."""
     content = payload if isinstance(payload, str) else json.dumps(payload)
@@ -761,6 +798,54 @@ class CloudflareCvExtractionTests(unittest.TestCase):
         )
         for category in groups:
             self.assertIn(category, rendered_content)
+
+    def test_fragmented_skill_row_and_courses_are_grounded_to_their_sections(self):
+        """Source geometry must undo model cross-contamination between sections."""
+        client = self._client({
+            "name": "Iwona Przybylska",
+            "skills": ["Tworzenie", "informacyjnych"],
+            "extra_sections": [{
+                "title": "KURSY",
+                "kind": "certifications",
+                "placement": "after_experience",
+                "items": ["tresci marketingowych"],
+            }],
+        })
+
+        with patch.object(
+            ai_service,
+            "_provider_settings",
+            return_value=(client, ai_service.CLOUDFLARE_TEXT_MODEL, "cloudflare"),
+        ):
+            cv_data, usage = ai_service.extract_cv_data(
+                _fragmented_skills_and_courses_pdf_bytes()
+            )
+
+        self.assertEqual(
+            cv_data["skills"],
+            [
+                "Tworzenie tresci marketingowych i informacyjnych",
+                "Planowanie publikacji internetowych",
+            ],
+        )
+        courses = next(
+            section
+            for section in cv_data["extra_sections"]
+            if section["title"] == "KURSY"
+        )
+        self.assertEqual(
+            courses["items"],
+            [
+                "Marketing internetowy w praktyce",
+                "Tworzenie tresci dla mediow spolecznosciowych",
+                "Copywriting i komunikacja marketingowa",
+                "Podstawy projektowania tresci wizualnych.",
+            ],
+        )
+        self.assertEqual(
+            usage["source_grounded_fields"],
+            ["summary", "skills", "certifications", "languages"],
+        )
 
     def test_missing_cloudflare_credentials_fails_before_network(self):
         with (

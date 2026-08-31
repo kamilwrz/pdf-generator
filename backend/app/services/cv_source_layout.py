@@ -94,10 +94,12 @@ _HEADING_ALIASES: dict[str, tuple[str, ...]] = {
     "certifications": (
         "certyfikaty",
         "certyfikacje",
+        "kursy",
         "kursyiszkolenia",
         "szkolenia",
         "certifications",
         "certificates",
+        "courses",
         "coursesandtraining",
         "training",
     ),
@@ -223,10 +225,18 @@ def _join_spans(spans: list[dict[str, Any]]) -> str:
 
 
 def _page_lines(page: fitz.Page) -> list[dict[str, Any]]:
-    """Extract individual visual lines with geometry and type information."""
+    """Extract and reassemble visual lines with geometry and type information.
+
+    PDF producers may encode one justified row as several independent text
+    objects, often one object per word or phrase. Keeping those fragments as
+    separate lines makes their different ``x0`` values look like extra columns
+    and can move part of a Skills row into a neighbouring Courses section. The
+    reassembly step joins only same-baseline fragments separated by a word-sized
+    gap; the larger gutter between real CV columns remains a hard boundary.
+    """
     lines: list[dict[str, Any]] = []
     page_dict = page.get_text("dict", sort=False)
-    for block in page_dict.get("blocks") or []:
+    for block_index, block in enumerate(page_dict.get("blocks") or []):
         if block.get("type") != 0:
             continue
         for line in block.get("lines") or []:
@@ -242,6 +252,7 @@ def _page_lines(page: fitz.Page) -> list[dict[str, Any]]:
                 "x1": bbox[2],
                 "y1": bbox[3],
                 "font_size": max((float(span.get("size") or 0) for span in spans), default=0.0),
+                "block_index": block_index,
                 # PDF font flags use bit 4 for bold. The font-name fallback
                 # covers producers that omit or rewrite the standard flags.
                 "is_bold": any(
@@ -250,7 +261,82 @@ def _page_lines(page: fitz.Page) -> list[dict[str, Any]]:
                     for span in spans
                 ),
             })
-    return lines
+    return _merge_visual_line_fragments(lines)
+
+
+def _merge_visual_line_fragments(lines: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Join independently encoded phrases that occupy one visual text row.
+
+    Same-block fragments receive a slightly wider allowance because word
+    spacing in justified text can be large. Cross-block joins are deliberately
+    stricter and cover producers that emit every phrase as its own text object.
+    Both limits scale with the source font and remain below a normal column
+    gutter, preventing rows from adjacent lanes from being combined.
+    """
+    if len(lines) < 2:
+        return lines
+
+    rows: list[list[dict[str, Any]]] = []
+    for line in sorted(lines, key=lambda item: (item["y0"], item["x0"])):
+        line_height = max(line["y1"] - line["y0"], line.get("font_size") or 1.0, 1.0)
+        row = next(
+            (
+                candidate
+                for candidate in reversed(rows)
+                if abs(candidate[0]["y0"] - line["y0"]) <= max(1.5, line_height * 0.3)
+                and min(candidate[0]["y1"], line["y1"])
+                - max(candidate[0]["y0"], line["y0"])
+                >= min(candidate[0]["y1"] - candidate[0]["y0"], line["y1"] - line["y0"]) * 0.55
+            ),
+            None,
+        )
+        if row is None:
+            rows.append([line])
+        else:
+            row.append(line)
+
+    merged_lines: list[dict[str, Any]] = []
+    for row in rows:
+        ordered = sorted(row, key=lambda item: item["x0"])
+        current = dict(ordered[0])
+        for fragment in ordered[1:]:
+            font_size = max(
+                float(current.get("font_size") or 0),
+                float(fragment.get("font_size") or 0),
+                1.0,
+            )
+            same_block = current.get("block_index") == fragment.get("block_index")
+            max_gap = font_size * (3.0 if same_block else 1.8)
+            gap = fragment["x0"] - current["x1"]
+            if -font_size * 0.2 <= gap <= max_gap:
+                fragment_text = _collapse(fragment.get("text"))
+                separator = ""
+                if (
+                    current["text"]
+                    and fragment_text
+                    and not current["text"].endswith((" ", "-", "/"))
+                    and not fragment_text.startswith((",", ".", ":", ";", ")", "]"))
+                ):
+                    separator = " "
+                current["text"] = _collapse(
+                    f"{current['text']}{separator}{fragment_text}"
+                )
+                current["x1"] = max(current["x1"], fragment["x1"])
+                current["y0"] = min(current["y0"], fragment["y0"])
+                current["y1"] = max(current["y1"], fragment["y1"])
+                current["font_size"] = font_size
+                # A mixed-weight row is body copy with an emphasized phrase,
+                # not a standalone section/category heading.
+                current["is_bold"] = bool(current.get("is_bold")) and bool(
+                    fragment.get("is_bold")
+                )
+                if not same_block:
+                    current["block_index"] = None
+                continue
+            merged_lines.append(current)
+            current = dict(fragment)
+        merged_lines.append(current)
+    return merged_lines
 
 
 def _assign_lanes(lines: list[dict[str, Any]], page_width: float) -> None:
@@ -456,6 +542,31 @@ def _bullet_items(lines: list[dict[str, Any]]) -> list[str]:
     if current:
         items.append(current)
     return items
+
+
+def _compact_list_items(lines: list[dict[str, Any]]) -> list[str]:
+    """Recover bullets, middle-dot chips, or semicolon-delimited list items.
+
+    Course sections frequently use semicolons instead of visible bullets, and
+    one logical course may wrap over multiple PDF rows. Joining the rows before
+    splitting on semicolons preserves the complete course title instead of
+    turning the wrapped continuation into another item.
+    """
+    if not lines:
+        return []
+    if any(_BULLET_PREFIX.match(_collapse(line.get("text"))) for line in lines):
+        return _bullet_items(lines)
+    middle_dot_items = _middle_dot_items(lines)
+    if middle_dot_items:
+        return middle_dot_items
+    joined = _prose(lines)
+    if ";" in joined:
+        return [
+            item
+            for part in re.split(r"\s*;\s*", joined)
+            if (item := _collapse(part).strip(" -•▪●◦‣"))
+        ]
+    return [_collapse(line.get("text")) for line in lines if _collapse(line.get("text"))]
 
 
 def _looks_like_plain_skill_group_label(
@@ -769,7 +880,7 @@ def ground_cv_data_from_source(
         else:
             skill_groups.append({
                 "category": section["title"],
-                "items": _bullet_items(section.get("body_lines") or []),
+                "items": _compact_list_items(section.get("body_lines") or []),
             })
     skill_groups = [group for group in skill_groups if group["items"]]
     if skill_groups:
@@ -783,6 +894,32 @@ def ground_cv_data_from_source(
         labels = dict(grounded.get("labels") or {}) if isinstance(grounded.get("labels"), Mapping) else {}
         labels["skills"] = skill_groups[0]["category"] if len(skill_groups) == 1 else "UMIEJĘTNOŚCI"
         grounded["labels"] = labels
+
+    certification_sections = [
+        section for section in sections if section.get("kind") == "certifications"
+    ]
+    if certification_sections:
+        extras = [
+            dict(section)
+            for section in (grounded.get("extra_sections") or [])
+            if isinstance(section, Mapping)
+            and section.get("kind") != "certifications"
+            and _heading_kind(section.get("title")) != "certifications"
+        ]
+        restored_certifications = []
+        for section in certification_sections:
+            items = _compact_list_items(section.get("body_lines") or [])
+            if not items:
+                continue
+            restored_certifications.append({
+                "title": section["title"],
+                "kind": "certifications",
+                "placement": "after_experience",
+                "items": items,
+            })
+        if restored_certifications:
+            grounded["extra_sections"] = [*extras, *restored_certifications]
+            source_grounded_fields.append("certifications")
 
     language_sections = [
         section
