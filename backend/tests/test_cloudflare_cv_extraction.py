@@ -3,12 +3,14 @@ from __future__ import annotations
 
 import json
 import unittest
+from io import BytesIO
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 import fitz
 import httpx
 from openai import RateLimitError
+from reportlab.pdfgen import canvas
 
 from app.services import ai_service
 from app.services.cv_generator import generate_resume
@@ -249,6 +251,26 @@ def _horizontal_languages_cv_pdf_bytes() -> bytes:
     data = document.tobytes()
     document.close()
     return data
+
+
+def _wrapped_horizontal_languages_cv_pdf_bytes() -> bytes:
+    """Reproduce Sterling's shared label row with wrapped CEFR levels."""
+    buffer = BytesIO()
+    pdf = canvas.Canvas(buffer, pagesize=(595, 842))
+    pdf.setFont("Helvetica-Bold", 10)
+    pdf.drawString(245, 782, "JEZYKI")
+    pdf.setFont("Helvetica", 9.5)
+    # ReportLab/PyMuPDF groups the first two columns into one text block,
+    # matching CV_STERLING.pdf. Only the first level fits inline; the next two
+    # wrap below their labels at the same x-coordinate.
+    pdf.drawString(245, 752, "Polski - ")
+    pdf.drawString(287, 752, "A2")
+    pdf.drawString(320, 752, "Niemiecki -")
+    pdf.drawString(320, 738, "C1")
+    pdf.drawString(395, 752, "Angielski -")
+    pdf.drawString(395, 738, "B2")
+    pdf.save()
+    return buffer.getvalue()
 
 
 def _centred_languages_before_computer_skills_pdf_bytes() -> bytes:
@@ -1127,6 +1149,53 @@ class CloudflareCvExtractionTests(unittest.TestCase):
         for source_language in language_section["items"]:
             self.assertEqual(rendered.count(source_language), 1)
         self.assertFalse(any("Hiszpanski" in text for text in rendered))
+
+    def test_wrapped_horizontal_language_levels_stay_with_their_columns(self):
+        """A lower CEFR row must attach to the label directly above it."""
+        client = self._client({
+            "name": "Kamil Testowy",
+            # Reproduce the flattened, mispaired response observed after
+            # importing CV_STERLING.pdf. Source geometry must replace it.
+            "languages": [
+                {"name": "Polski", "level": "A2 Niemiecki"},
+                {"name": "C1", "level": "B2"},
+                {"name": "Angielski", "level": ""},
+            ],
+            "extra_sections": [],
+        })
+
+        with (
+            patch.object(ai_service, "CV_EXTRACT_MIN_TEXT_CHARS_PER_PAGE", 1),
+            patch.object(
+                ai_service,
+                "_provider_settings",
+                return_value=(
+                    client,
+                    ai_service.CLOUDFLARE_TEXT_MODEL,
+                    "cloudflare",
+                ),
+            ),
+        ):
+            cv_data, usage = ai_service.extract_cv_data(
+                _wrapped_horizontal_languages_cv_pdf_bytes()
+            )
+
+        expected = [
+            {"name": "Polski", "level": "A2"},
+            {"name": "Niemiecki", "level": "C1"},
+            {"name": "Angielski", "level": "B2"},
+        ]
+        self.assertEqual(cv_data["languages"], expected)
+        self.assertIn("languages", usage["source_grounded_fields"])
+        language_section = next(
+            section
+            for section in cv_data["extra_sections"]
+            if section["kind"] == "languages"
+        )
+        self.assertEqual(
+            language_section["items"],
+            ["Polski — A2", "Niemiecki — C1", "Angielski — B2"],
+        )
 
     def test_centred_languages_stop_before_computer_skills_heading(self):
         """An adjacent Skills heading must never become a language row."""

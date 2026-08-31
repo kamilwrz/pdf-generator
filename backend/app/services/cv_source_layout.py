@@ -389,7 +389,7 @@ def _page_lines(page: fitz.Page) -> list[dict[str, Any]]:
             bbox = tuple(float(value) for value in (line.get("bbox") or (0, 0, 0, 0)))
             if not _line_is_visible(spans, bbox, background_fills):
                 continue
-            lines.append({
+            extracted_line = {
                 "text": text,
                 "x0": bbox[0],
                 "y0": bbox[1],
@@ -404,7 +404,14 @@ def _page_lines(page: fitz.Page) -> list[dict[str, Any]]:
                     or "bold" in str(span.get("font") or "").casefold()
                     for span in spans
                 ),
-            })
+            }
+            # Keep each producer-owned line before the generic visual-row
+            # merger runs. Horizontal language grids can place several names
+            # on one baseline and wrap only their CEFR levels; the original
+            # fragments are required to reconnect each wrapped level to the
+            # label directly above it instead of trusting flattened text order.
+            extracted_line["source_fragments"] = [dict(extracted_line)]
+            lines.append(extracted_line)
     return _merge_visual_line_fragments(lines)
 
 
@@ -469,6 +476,10 @@ def _merge_visual_line_fragments(lines: list[dict[str, Any]]) -> list[dict[str, 
                 current["y0"] = min(current["y0"], fragment["y0"])
                 current["y1"] = max(current["y1"], fragment["y1"])
                 current["font_size"] = font_size
+                current["source_fragments"] = [
+                    *(current.get("source_fragments") or []),
+                    *(fragment.get("source_fragments") or []),
+                ]
                 # A mixed-weight row is body copy with an emphasized phrase,
                 # not a standalone section/category heading.
                 current["is_bold"] = bool(current.get("is_bold")) and bool(
@@ -481,6 +492,137 @@ def _merge_visual_line_fragments(lines: list[dict[str, Any]]) -> list[dict[str, 
             current = dict(fragment)
         merged_lines.append(current)
     return merged_lines
+
+
+def _language_level_only(value: Any) -> str:
+    """Return a standalone proficiency marker, or an empty string.
+
+    @param value - Text from one producer-owned PDF line.
+    @returns The compact level when the complete line is a CEFR or named
+        proficiency marker; otherwise an empty string.
+    """
+    text = _collapse(value).strip(" ()[]-–—|:")
+    return text if text and _LANGUAGE_LEVEL_MARKER.fullmatch(text) else ""
+
+
+def _reconstruct_language_grid_lines(
+    lines: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Rebuild language cells whose level wrapped below a shared label row.
+
+    PDF producers frequently encode a three-column grid as several independent
+    lines. The generic row merger correctly joins nearby prose but cannot know
+    that ``Niemiecki —`` and a lower ``C1`` at the same x-coordinate form one
+    semantic cell. This function expands the preserved producer fragments,
+    pairs only geometrically aligned labels and standalone levels, and returns
+    one ordered row per language. Unmatched standalone levels are discarded
+    because treating ``B2`` as a language name is always invalid.
+
+    @param lines - Language-section body lines after cross-lane recovery.
+    @returns Source-shaped language rows ordered top-to-bottom and left-to-right.
+    """
+    fragments: list[dict[str, Any]] = []
+    seen: set[tuple[str, float, float, float, float]] = set()
+    for line in lines:
+        source_fragments = line.get("source_fragments") or [line]
+        for fragment in source_fragments:
+            text = _collapse(fragment.get("text"))
+            key = (
+                text,
+                round(float(fragment.get("x0") or 0), 2),
+                round(float(fragment.get("y0") or 0), 2),
+                round(float(fragment.get("x1") or 0), 2),
+                round(float(fragment.get("y1") or 0), 2),
+            )
+            if not text or key in seen:
+                continue
+            fragments.append({**fragment, "text": text})
+            seen.add(key)
+
+    ordered = sorted(fragments, key=lambda item: (item["y0"], item["x0"]))
+    level_indices = {
+        index: level
+        for index, fragment in enumerate(ordered)
+        if (level := _language_level_only(fragment.get("text")))
+    }
+    used_levels: set[int] = set()
+    reconstructed: list[dict[str, Any]] = []
+
+    for index, fragment in enumerate(ordered):
+        if index in level_indices:
+            continue
+        text = _collapse(fragment.get("text"))
+        marker = _LANGUAGE_LEVEL_MARKER.search(text)
+        # Inline entries such as ``Polski — A2`` are already complete and
+        # retain their original source punctuation and geometry.
+        if marker is not None:
+            reconstructed.append(fragment)
+            continue
+
+        label = text.rstrip(" -–—|:")
+        if not label or not any(character.isalpha() for character in label):
+            continue
+
+        font_size = max(float(fragment.get("font_size") or 0), 1.0)
+        line_height = max(
+            float(fragment.get("y1") or 0) - float(fragment.get("y0") or 0),
+            font_size,
+            1.0,
+        )
+        aligned_level_index = min(
+            (
+                level_index
+                for level_index in level_indices
+                if level_index not in used_levels
+                and float(ordered[level_index]["y0"]) >= float(fragment["y0"])
+                and (
+                    (
+                        # Inline spans can still be separate producer lines.
+                        abs(
+                            float(ordered[level_index]["y0"])
+                            - float(fragment["y0"])
+                        ) <= line_height * 0.45
+                        and 0 <= (
+                            float(ordered[level_index]["x0"])
+                            - float(fragment["x1"])
+                        ) <= font_size * 1.5
+                    )
+                    or (
+                        # Wrapped levels start below, aligned to the cell's
+                        # left edge rather than following its rendered width.
+                        float(ordered[level_index]["y0"])
+                        - float(fragment["y0"]) <= line_height * 2.2
+                        and abs(
+                            float(ordered[level_index]["x0"])
+                            - float(fragment["x0"])
+                        ) <= max(4.0, font_size * 0.6)
+                    )
+                )
+            ),
+            key=lambda level_index: (
+                abs(
+                    float(ordered[level_index]["x0"]) - float(fragment["x0"])
+                ),
+                float(ordered[level_index]["y0"]),
+            ),
+            default=None,
+        )
+        if aligned_level_index is None:
+            # A language without a declared level is still valid source data.
+            reconstructed.append(fragment)
+            continue
+
+        level_fragment = ordered[aligned_level_index]
+        reconstructed.append({
+            **fragment,
+            "text": f"{label} — {level_indices[aligned_level_index]}",
+            "x1": max(float(fragment["x1"]), float(level_fragment["x1"])),
+            "y1": max(float(fragment["y1"]), float(level_fragment["y1"])),
+            "source_fragments": [fragment, level_fragment],
+        })
+        used_levels.add(aligned_level_index)
+
+    return sorted(reconstructed, key=lambda item: (item["y0"], item["x0"]))
 
 
 def _assign_lanes(lines: list[dict[str, Any]], page_width: float) -> None:
@@ -598,10 +740,49 @@ def _section_body_lines(
         if shares_confirmed_baseline or sits_inside_bounded_section:
             cross_lane_lines.append(line)
 
-    return sorted(
-        [*body_lines, *cross_lane_lines],
+    # When a wrapped level lives in another lane, its label may be a separate
+    # producer line in that same lane and contain no proficiency marker of its
+    # own. Recover only a dash-terminated label directly above and aligned to a
+    # confirmed standalone level. This is the CV_STERLING.pdf shape; the tight
+    # x/y contract prevents ordinary neighbouring-column prose from entering
+    # the Languages section.
+    cross_lane_labels: list[dict[str, Any]] = []
+    for level_line in cross_lane_lines:
+        if not _language_level_only(level_line.get("text")):
+            continue
+        level_height = max(
+            float(level_line["y1"]) - float(level_line["y0"]),
+            float(level_line.get("font_size") or 0),
+            1.0,
+        )
+        label = min(
+            (
+                candidate
+                for candidate in lines
+                if candidate.get("lane") == level_line.get("lane")
+                and candidate is not level_line
+                and _LANGUAGE_LEVEL_MARKER.search(
+                    _collapse(candidate.get("text"))
+                ) is None
+                and _collapse(candidate.get("text")).rstrip().endswith(
+                    ("-", "–", "—", "|", ":")
+                )
+                and abs(
+                    float(candidate["x0"]) - float(level_line["x0"])
+                ) <= max(4.0, level_height * 0.6)
+                and 0 <= float(level_line["y0"]) - float(candidate["y0"])
+                <= level_height * 2.2
+            ),
+            key=lambda candidate: float(level_line["y0"]) - float(candidate["y0"]),
+            default=None,
+        )
+        if label is not None:
+            cross_lane_labels.append(label)
+
+    return _reconstruct_language_grid_lines(sorted(
+        [*body_lines, *cross_lane_labels, *cross_lane_lines],
         key=lambda line: (line["y0"], line["x0"]),
-    )
+    ))
 
 
 def _layout_text(lines: list[dict[str, Any]], page_number: int) -> str:
@@ -1037,25 +1218,38 @@ def _source_supported_language_items(
     candidates: list[str],
     pages: list[dict[str, Any]],
 ) -> list[str]:
-    """Keep provider language rows whose complete text occurs in the PDF.
+    """Keep provider language rows supported by reconstructed source geometry.
 
-    A horizontal language grid is intentionally split into lanes to protect
-    unrelated CV columns. Only the lane containing the Languages heading is
-    available through ``section.body_lines``; the other cells still occur in
-    ``plain_text``. Matching complete folded candidates recovers those cells
-    without accepting a language or proficiency invented by the model.
+    When a Languages heading is recognised, its reconstructed body rows are
+    authoritative. Globally flattened ``plain_text`` can concatenate adjacent
+    grid cells and must not validate that corrupted model shape. The global
+    text fallback is used only when the source has no recognised Languages
+    section, where it can still reject provider inventions on native PDFs.
 
     @param candidates - Ordered language rows collected from provider JSON.
     @param pages - Layout-aware source pages containing visible native text.
     @returns The subset supported by visible source text.
     """
-    source_keys = {
+    section_source_keys = {
+        _fold(source_item)
+        for page in pages
+        for section in page.get("sections") or []
+        if section.get("kind") == "languages"
+        for line in section.get("body_lines") or []
+        for source_item in _split_language_candidate_rows(line.get("text"))
+        if _fold(source_item)
+    }
+    plain_source_keys = {
         _fold(source_item)
         for page in pages
         for raw_line in str(page.get("plain_text") or "").splitlines()
         for source_item in _split_language_candidate_rows(raw_line)
         if _fold(source_item)
     }
+    # Once geometry has identified a Languages section, its reconstructed rows
+    # are stronger evidence than globally flattened text. Falling back to the
+    # latter is reserved for native PDFs whose heading was not recognised.
+    source_keys = section_source_keys or plain_source_keys
     return [candidate for candidate in candidates if _fold(candidate) in source_keys]
 
 
