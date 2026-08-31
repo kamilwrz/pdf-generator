@@ -129,6 +129,11 @@ _HEADING_ALIASES: dict[str, tuple[str, ...]] = {
         "volunteering",
         "volunteerexperience",
     ),
+    "driving_license": (
+        "prawojazdy",
+        "drivinglicence",
+        "drivinglicense",
+    ),
 }
 
 _CANONICAL_POLISH_TITLES = {
@@ -144,6 +149,7 @@ _CANONICAL_POLISH_TITLES = {
     "awards": "NAGRODY",
     "publications": "PUBLIKACJE",
     "volunteering": "WOLONTARIAT",
+    "driving_license": "PRAWO JAZDY",
 }
 
 
@@ -343,10 +349,12 @@ def _assign_lanes(lines: list[dict[str, Any]], page_width: float) -> None:
     """Cluster line starts into columns so neighbouring lanes never merge.
 
     The tolerance intentionally follows the page width instead of absolute PDF
-    points. It joins modest indentation within a column while keeping the
-    common A4 two-column gutter separate.
+    points. Designed CVs often centre a short section heading over left-aligned
+    body copy, which can shift the heading start by more than one tenth of an A4
+    page. Those lines must remain in one lane; real A4 columns are separated by
+    a substantially wider gutter.
     """
-    tolerance = max(36.0, page_width * 0.09)
+    tolerance = max(42.0, page_width * 0.14)
     clusters: list[dict[str, Any]] = []
     for line in sorted(lines, key=lambda item: item["x0"]):
         closest = min(
@@ -920,6 +928,42 @@ def ground_cv_data_from_source(
         if restored_certifications:
             grounded["extra_sections"] = [*extras, *restored_certifications]
             source_grounded_fields.append("certifications")
+
+    driving_license_sections = [
+        section for section in sections if section.get("kind") == "driving_license"
+    ]
+    has_complete_native_text = bool(pages) and all(
+        not bool(page.get("needs_vision")) for page in pages
+    )
+    if driving_license_sections or has_complete_native_text:
+        # A model may infer a common licence category even when the source CV
+        # never mentions one. On fully native PDFs, absence from the geometric
+        # section inventory is reliable negative evidence, so remove any such
+        # model-created section. Scanned/mixed documents retain model output
+        # because an image-only page cannot be disproved by native geometry.
+        extras = [
+            dict(section)
+            for section in (grounded.get("extra_sections") or [])
+            if isinstance(section, Mapping)
+            and section.get("kind") != "driving_license"
+            and _heading_kind(section.get("title")) != "driving_license"
+        ]
+        restored_driving_licenses = []
+        for section in driving_license_sections:
+            items = _compact_list_items(section.get("body_lines") or [])
+            if not items:
+                continue
+            restored_driving_licenses.append({
+                "title": section["title"],
+                "kind": "other",
+                "placement": "after_skills",
+                "items": items,
+            })
+        if restored_driving_licenses or len(extras) != len(
+            grounded.get("extra_sections") or []
+        ):
+            grounded["extra_sections"] = [*extras, *restored_driving_licenses]
+            source_grounded_fields.append("driving_license")
 
     language_sections = [
         section

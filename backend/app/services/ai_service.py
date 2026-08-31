@@ -491,6 +491,8 @@ def extract_cv_data(pdf_bytes: bytes) -> tuple[dict, dict]:
                 "  SZKOLENIA / TRENINGI / COURSES / TRAINING (np. 'SZKOLENIA Z CYBERBEZPIECZEŃSTWA'):\n"
                 "  ZAWSZE osobny extra_sections, kind='certifications', placement='after_experience',\n"
                 "  pełna lista punktów — NIGDY nie pomijaj tej sekcji.\n"
+                "  PRAWO JAZDY / DRIVING LICENCE to osobny extra_sections, kind='other',\n"
+                "  placement='after_skills'; nigdy nie dodawaj go do languages ani skills.\n"
                 "  NIE duplikuj skills ani podsekcji skills w extra_sections.\n"
                 "  kind: 'languages' | 'certifications' | 'interests' | 'projects' | 'references' |\n"
                 "        'awards' | 'publications' | 'volunteering' | 'other'.\n"

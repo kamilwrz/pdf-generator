@@ -197,6 +197,47 @@ def _fragmented_skills_and_courses_pdf_bytes() -> bytes:
     return data
 
 
+def _centered_right_column_cv_pdf_bytes(*, include_driving_license: bool) -> bytes:
+    """Build flat right-column sections whose centred headings are indented."""
+    document = fitz.open()
+    page = document.new_page()
+
+    for x, y, text in [
+        (36, 42, "IWONA PRZYBYLSKA"),
+        (36, 62, "CONTENT CREATOR"),
+        (36, 100, "PODSUMOWANIE ZAWODOWE"),
+        (36, 120, "Dokladne podsumowanie kandydatki."),
+        (36, 160, "DOSWIADCZENIE ZAWODOWE"),
+        (36, 180, "Content Creator | Voliera | 03.2024 - obecnie"),
+        (360, 60, "UMIEJETNOSCI"),
+        (300, 82, "Tworzenie tresci marketingowych i"),
+        (300, 98, "informacyjnych;"),
+        (300, 114, "Planowanie publikacji internetowych;"),
+        (300, 130, "Organizacja pracy i zarzadzanie wieloma"),
+        (300, 146, "zadaniami jednoczesnie."),
+        (360, 190, "WYKSZTALCENIE"),
+        (300, 212, "Uniwersytet Miejski | 2019 - 2022"),
+        # The 75-point heading indentation is wider than the old lane
+        # tolerance and reproduces the geometry of the reported CV7 file.
+        (375, 250, "KURSY"),
+        (300, 272, "Marketing internetowy w praktyce;"),
+        (300, 288, "Copywriting i komunikacja marketingowa."),
+        (355, 330, "JEZYKI OBCE"),
+        (300, 352, "Polski - jezyk ojczysty"),
+        (300, 368, "Angielski - B2"),
+        (300, 384, "Niemiecki - A2"),
+    ]:
+        page.insert_text((x, y), text, fontsize=10)
+
+    if include_driving_license:
+        page.insert_text((365, 426), "PRAWO JAZDY", fontsize=10)
+        page.insert_text((300, 448), "Kategoria B", fontsize=10)
+
+    data = document.tobytes()
+    document.close()
+    return data
+
+
 def _response(payload: dict | str):
     """Return the minimal OpenAI-compatible response consumed by the service."""
     content = payload if isinstance(payload, str) else json.dumps(payload)
@@ -846,6 +887,121 @@ class CloudflareCvExtractionTests(unittest.TestCase):
             usage["source_grounded_fields"],
             ["summary", "skills", "certifications", "languages"],
         )
+
+    def test_centered_headings_keep_flat_skills_and_remove_unsupported_licence(self):
+        """Indented chrome must not let the model invent groups or a licence."""
+        client = self._client({
+            "name": "Iwona Przybylska",
+            "skills": [
+                {
+                    "category": "Umiejetnosci twarde",
+                    "items": ["Marketing automation"],
+                },
+                {
+                    "category": "Umiejetnosci miekkie",
+                    "items": ["Komunikacja"],
+                },
+            ],
+            "languages": [
+                "Polski - jezyk ojczysty",
+                "Angielski - B2",
+                "Niemiecki - A2",
+                "Prawo jazdy - Kategoria B",
+            ],
+            "extra_sections": [
+                {
+                    "title": "PRAWO JAZDY",
+                    "kind": "other",
+                    "placement": "after_skills",
+                    "items": ["Kategoria B"],
+                },
+                {
+                    "title": "KURSY",
+                    "kind": "certifications",
+                    "placement": "after_experience",
+                    "items": ["Modelowa, bledna lista"],
+                },
+            ],
+        })
+
+        with patch.object(
+            ai_service,
+            "_provider_settings",
+            return_value=(client, ai_service.CLOUDFLARE_TEXT_MODEL, "cloudflare"),
+        ):
+            cv_data, usage = ai_service.extract_cv_data(
+                _centered_right_column_cv_pdf_bytes(include_driving_license=False)
+            )
+
+        self.assertEqual(
+            cv_data["skills"],
+            [
+                "Tworzenie tresci marketingowych i informacyjnych",
+                "Planowanie publikacji internetowych",
+                "Organizacja pracy i zarzadzanie wieloma zadaniami jednoczesnie.",
+            ],
+        )
+        self.assertTrue(all(isinstance(item, str) for item in cv_data["skills"]))
+        courses = next(
+            section
+            for section in cv_data["extra_sections"]
+            if section["title"] == "KURSY"
+        )
+        self.assertEqual(
+            courses["items"],
+            [
+                "Marketing internetowy w praktyce",
+                "Copywriting i komunikacja marketingowa.",
+            ],
+        )
+        rendered_data = json.dumps(cv_data, ensure_ascii=False)
+        self.assertNotIn("Umiejetnosci twarde", rendered_data)
+        self.assertNotIn("Umiejetnosci miekkie", rendered_data)
+        self.assertNotIn("Prawo jazdy", rendered_data)
+        self.assertNotIn("PRAWO JAZDY", rendered_data)
+        self.assertEqual(
+            usage["source_grounded_fields"],
+            [
+                "summary",
+                "skills",
+                "certifications",
+                "driving_license",
+                "languages",
+            ],
+        )
+
+    def test_source_driving_licence_is_restored_as_a_separate_section(self):
+        """A genuine licence heading must never become a language row."""
+        client = self._client({
+            "name": "Iwona Przybylska",
+            "skills": ["Modelowa umiejetnosc"],
+            "languages": [
+                "Polski - jezyk ojczysty",
+                "Prawo jazdy - Kategoria B",
+            ],
+            "extra_sections": [],
+        })
+
+        with patch.object(
+            ai_service,
+            "_provider_settings",
+            return_value=(client, ai_service.CLOUDFLARE_TEXT_MODEL, "cloudflare"),
+        ):
+            cv_data, usage = ai_service.extract_cv_data(
+                _centered_right_column_cv_pdf_bytes(include_driving_license=True)
+            )
+
+        driving_licence = next(
+            section
+            for section in cv_data["custom_sections"]
+            if section["title"] == "PRAWO JAZDY"
+        )
+        self.assertEqual(driving_licence["kind"], "other")
+        self.assertEqual(driving_licence["items"], ["Kategoria B"])
+        self.assertFalse(
+            any("Prawo jazdy" in language["name"] for language in cv_data["languages"])
+        )
+        self.assertIn("driving_license", usage["source_grounded_fields"])
 
     def test_missing_cloudflare_credentials_fails_before_network(self):
         with (
