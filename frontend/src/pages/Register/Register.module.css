@@ -6,9 +6,9 @@
  * ink/paper with a single warm taupe accent, the shared sans + mono stack,
  * sharp corners, hairline rules, and flat geometric composition.
  *
- * Split screen: dark inverted "story" panel (with the three-step numbered
- * index) on the left, paper form column on the right. Local aliases resolve to
- * global UI tokens without leaking into user-authored CV templates.
+ * Split screen: dark inverted plan comparison on the left, paper form column
+ * on the right. Local aliases resolve to global UI tokens without leaking into
+ * user-authored CV templates.
  */
 .container {
     --ink: var(--color-ink);
@@ -108,12 +108,12 @@
     transform: translateX(-4px);
 }
 
-.storyCopy {
+.planComparison {
     position: relative;
     z-index: 1;
-    max-width: 495px;
-    margin: auto 0 42px;
-    padding-top: 72px;
+    width: min(100%, 560px);
+    margin: auto 0;
+    padding: 64px 0 20px;
 }
 
 .storyEyebrow,
@@ -137,65 +137,140 @@
     flex: 0 0 auto;
 }
 
-.storyCopy h2 {
-    max-width: 495px;
+.planComparison h2 {
+    max-width: 520px;
     margin: 22px 0 0;
-    font: 800 clamp(40px, 4.4vw, 64px)/1 var(--display);
+    font: 800 clamp(38px, 4vw, 60px)/.98 var(--display);
     letter-spacing: -.035em;
     text-wrap: balance;
 }
 
-.storyCopy > p:last-child {
-    max-width: 432px;
-    margin: 24px 0 0;
-    color: color-mix(in srgb, var(--color-paper) 72%, transparent);
-    font: 400 14px/1.7 var(--body);
+.planTabs {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin-top: 28px;
+    border-bottom: 1px solid var(--line-dark);
 }
 
-/* ---- Numbered three-step index ----------------------------------------- */
-
-.storySteps {
+.planTab {
     position: relative;
-    z-index: 1;
     display: grid;
-    gap: 14px;
-    max-width: 470px;
+    gap: 7px;
+    min-height: 70px;
+    padding: 12px 14px;
+    border: 0;
+    border-right: 1px solid var(--line-dark);
+    background: transparent;
+    color: color-mix(in srgb, var(--color-paper) 58%, transparent);
+    cursor: pointer;
+    text-align: left;
+    transition: background var(--motion-standard) var(--motion-ease), color var(--motion-standard) var(--motion-ease);
+}
+
+.planTab:first-child {
+    border-left: 1px solid var(--line-dark);
+}
+
+.planTab::after {
+    content: "";
+    position: absolute;
+    right: 0;
+    bottom: -1px;
+    left: 0;
+    height: 3px;
+    background: transparent;
+}
+
+.planTab:hover {
+    background: color-mix(in srgb, var(--color-paper) 7%, transparent);
+    color: var(--paper);
+}
+
+.planTab:focus-visible {
+    z-index: 1;
+}
+
+.planTabActive {
+    background: color-mix(in srgb, var(--color-paper) 10%, transparent);
+    color: var(--paper);
+}
+
+.planTabActive::after {
+    background: var(--taupe);
+}
+
+.planTab span {
+    font: 700 12px/1.2 var(--mono);
+    letter-spacing: .12em;
+    text-transform: uppercase;
+}
+
+.planTab strong {
+    font: 700 15px/1.25 var(--display);
+}
+
+.planDetails {
+    padding-top: 22px;
+}
+
+.planLead {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.planLead p {
     margin: 0;
-    padding: 22px 0 0;
+    color: var(--paper);
+    font: 700 16px/1.35 var(--display);
+}
+
+.planLead span {
+    max-width: 220px;
+    color: color-mix(in srgb, var(--color-paper) 68%, transparent);
+    font: 500 10px/1.45 var(--mono);
+    text-align: right;
+}
+
+/* Numbered feature rows keep the comparison factual without introducing a
+   generic card wall or decorative icon language. */
+.planFeatures {
+    display: grid;
+    margin: 18px 0 0;
+    padding: 0;
     border-top: 1px solid var(--line-dark);
     list-style: none;
 }
 
-.storySteps li {
+.planFeatures li {
     display: grid;
-    grid-template-columns: 38px 1fr;
-    column-gap: 13px;
+    grid-template-columns: 36px minmax(0, 1fr);
+    gap: 12px;
     align-items: baseline;
+    min-height: 43px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--line-dark);
 }
 
-/* Inverted index chip (paper on ink) matching the landing-page kicker chip on
-   dark sections; spans both rows so it labels the whole step. */
-.storySteps span {
-    grid-row: span 2;
-    align-self: start;
-    justify-self: start;
-    padding: 4px 6px;
-    background: var(--paper);
-    color: var(--ink);
+.planFeatures span {
+    color: var(--taupe);
     font: 700 10px/1 var(--mono);
-    letter-spacing: .04em;
+    letter-spacing: .06em;
 }
 
-.storySteps b {
+.planFeatures p {
+    margin: 0;
     color: var(--paper);
-    font: 700 12px/1.3 var(--display);
-    letter-spacing: -.01em;
+    font: 500 13px/1.45 var(--body);
 }
 
-.storySteps p {
-    margin: 4px 0 0;
-    color: color-mix(in srgb, var(--color-paper) 58%, transparent);
-    font: 400 10px/1.5 var(--body);
+.planPeriod {
+    margin: 16px 0 0;
+    color: color-mix(in srgb, var(--color-paper) 64%, transparent);
+    font: 500 10px/1.4 var(--mono);
+    letter-spacing: .05em;
+    text-transform: uppercase;
 }
 
 /* ---- Auth column ------------------------------------------------------- */
@@ -456,20 +531,35 @@
     }
 
     .storyPanel {
-        min-height: 380px;
+        min-height: auto;
         padding: 26px 24px;
         border-right: 0;
         border-bottom: 1px solid var(--ink);
     }
 
-    .storyCopy {
-        margin: auto 0 26px;
-        padding: 54px 0 0;
+    .planComparison {
+        width: 100%;
+        margin: 0;
+        padding: 54px 0 12px;
     }
 
-    .storyCopy h2 {
+    .planComparison h2 {
         max-width: 600px;
         font-size: clamp(36px, 9.5vw, 54px);
+    }
+
+    .planLead {
+        max-width: 720px;
+    }
+
+    .planFeatures {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        border-top: 0;
+        column-gap: 24px;
+    }
+
+    .planFeatures li:nth-child(-n + 2) {
+        border-top: 1px solid var(--line-dark);
     }
 
     .authColumn {
@@ -479,15 +569,44 @@
 
 @media (max-width: 460px) {
     .storyPanel {
-        min-height: 330px;
+        padding: 22px 16px;
     }
 
-    .storyCopy > p:last-child {
-        display: none;
+    .planComparison {
+        padding-top: 44px;
     }
 
-    .storySteps {
-        display: none;
+    .planComparison h2 {
+        font-size: 36px;
+    }
+
+    .planTabs {
+        margin-top: 22px;
+    }
+
+    .planTab {
+        min-height: 66px;
+        padding: 10px;
+    }
+
+    .planLead {
+        display: block;
+    }
+
+    .planLead span {
+        display: block;
+        max-width: none;
+        margin-top: 8px;
+        text-align: left;
+    }
+
+    .planFeatures {
+        grid-template-columns: 1fr;
+        column-gap: 0;
+    }
+
+    .planFeatures li:nth-child(2) {
+        border-top: 0;
     }
 
     .loginCard {

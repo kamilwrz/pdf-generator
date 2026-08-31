@@ -806,20 +806,20 @@ Implementation:
 - `frontend/public/cv-studio-mark.svg`, lines 1–8 — compact mark
 - `frontend/src/pages/Hero/Hero.jsx`, the header and footer `.brand` lockups; `Hero.module.css`, `.brand` / `.footer .brand` — landing header/footer lockup
 - `frontend/src/pages/Login/Login.jsx`, lines 127–131; `Login.module.css`, lines 184–195 — login lockup
-- `frontend/src/pages/Register/Register.jsx`, lines 132–134; `Register.module.css`, lines 180–191 — registration lockup
+- `frontend/src/pages/Register/Register.jsx`, lines 223–225; `Register.module.css`, lines 318–329 — registration lockup
 - `frontend/src/components/editor/Sidebar/Sidebar.jsx` — compact editor mark; clicking it navigates to the landing page (`/`)
 - `frontend/index.html`, line 5 — SVG favicon
 
 ### Auth screens aligned with the landing
 
-Login and registration use the same Swiss visual language as the rest of the product. Both views retain a spacious, responsive split layout: an ink story panel with restrained geometric marks and a warm-paper form panel using the shared typography, borders, focus blue, semantic validation colours, square controls, and the single permitted elevation token. On small screens, the story panel becomes a compact header above the form without changing field labels, error semantics, or keyboard order.
+Login and registration use the same Swiss visual language as the rest of the product. Both views retain a spacious, responsive split layout: an ink information panel with restrained geometric marks and a warm-paper form panel using the shared typography, borders, focus blue, semantic validation colours, square controls, and the single permitted elevation token. On small screens, the information panel becomes a full-width section above the form without changing field labels, error semantics, or keyboard order.
 
-The intent-aware copy remains functional. Login confirms whether it will open PDF import or the guided wizard after authentication; registration confirms the selected path before account creation. Registration no longer asks the visitor to choose a plan — every new account is created on Free by default (`Register.jsx`'s request body is `{ username, email, password }` only; the former `PlanSelector.jsx` component was deleted). Prices and entitlement gates are unchanged.
+The intent-aware copy remains functional. Login confirms whether it will open PDF import or the guided wizard after authentication; registration confirms the selected path before account creation. Registration now places an accessible Free/Pro comparison in the left panel. Its tab panel reuses the canonical `PLAN_PRESENTATION` highlights, shows the current price and period note, supports click plus Left/Right/Home/End keyboard navigation, preserves the existing `start` query parameter, and synchronises the selected plan with both the form copy and the submitted `{ username, email, password, plan }` payload. Free remains the default when the URL contains no supported plan.
 
 Implementation:
 
 - `frontend/src/pages/Login/Login.module.css`, lines 1–476; `frontend/src/pages/Login/Login.jsx`, component `Login`
-- `frontend/src/pages/Register/Register.module.css`, lines 1–511; `frontend/src/pages/Register/Register.jsx`, component `Register`
+- `frontend/src/pages/Register/Register.module.css`, lines 1–630; `frontend/src/pages/Register/Register.jsx`, lines 38–320, component `Register`
 
 ### Application-wide Swiss design system
 
@@ -834,7 +834,7 @@ Implementation:
 - `DESIGN.md`, lines 80–368 — scope, tokens, layout, components, accessibility, motion, prohibited patterns, and UI definition of done
 - `frontend/src/index.css`, lines 1–225 — canonical colour/type/spacing/radius/elevation/motion/z-index tokens, compatibility aliases, global focus, selection, and reduced-motion rules
 - `frontend/src/App.css`, lines 1–120 — viewport shell, canvas gutters, neutral scrollbars, and compact breakpoint; lines 122–350 keep document typography isolated inside `.page-canvas`
-- `frontend/src/pages/Hero/Hero.module.css`, lines 1–1359; `frontend/src/pages/Login/Login.module.css`, lines 1–476; `frontend/src/pages/Register/Register.module.css`, lines 1–511 — spacious narrative and authentication surfaces on the shared tokens
+- `frontend/src/pages/Hero/Hero.module.css`, lines 1–1359; `frontend/src/pages/Login/Login.module.css`, lines 1–476; `frontend/src/pages/Register/Register.module.css`, lines 1–630 — spacious narrative and authentication surfaces on the shared tokens
 - `frontend/src/components/common/DialogShell/DialogShell.jsx`, lines 17–153, component `DialogShell`; `DialogShell.module.css`, lines 1–117 — shared modal/alertdialog semantics, focus containment/restoration, nested-dialog ordering, body scroll lock, mobile fullscreen layout, and reduced motion
 - `frontend/src/components/common/PanelShell/PanelShell.jsx`, lines 12–47, component `PanelShell`; `PanelShell.module.css`, lines 1–38 — common docked-panel primitive with labelled headings, Escape handling, and reduced Framer Motion
 - `frontend/src/components/editor/StartChooser/StartChooser.module.css`, lines 8–433; `frontend/src/components/editor/SectionsPanel/SectionsPanel.module.css`, lines 3–161; `frontend/src/components/gallery/Gallery/Gallery.module.css`, lines 1–142; `frontend/src/components/ai/AiAssistant/AiAssistant.module.css`, lines 2–1319 — compact desktop chrome and mobile drawers/sheets
@@ -1984,7 +1984,7 @@ Base URL: `VITE_API_URL` (frontend) / deployed backend. Auth: `Authorization: Be
 | Method | Path | Auth | Purpose | Handler |
 |--------|------|------|---------|---------|
 | GET | `/health` | no | Liveness / dyno wake | `health` in `main.py` |
-| POST | `/auth/register` | no | Create user (`plan` optional, defaults to Free; the registration UI no longer offers a picker) | `register_user` |
+| POST | `/auth/register` | no | Create user (`plan` optional, defaults to Free; the registration comparison submits the selected Free/Pro tier) | `register_user` |
 | POST | `/auth/token` | no | OAuth2 password → JWT | `login_for_acess_token` |
 | GET | `/auth/verify-token/{token}` | token in path | Validity check | `verify_user_token` |
 | GET | `/auth/me/entitlements` | yes | Plan limits for UI | `me_entitlements` |
@@ -3032,20 +3032,20 @@ Implementacja:
 - `frontend/public/cv-studio-mark.svg`, linie 1–8 — skrócony znak
 - `frontend/src/pages/Hero/Hero.jsx`, lockupy `.brand` w nagłówku i stopce; `Hero.module.css`, `.brand` / `.footer .brand` — lockup w nagłówku i stopce strony głównej
 - `frontend/src/pages/Login/Login.jsx`, linie 127–131; `Login.module.css`, linie 184–195 — logo logowania
-- `frontend/src/pages/Register/Register.jsx`, linie 132–134; `Register.module.css`, linie 180–191 — logo rejestracji
+- `frontend/src/pages/Register/Register.jsx`, linie 223–225; `Register.module.css`, linie 318–329 — logo rejestracji
 - `frontend/src/components/editor/Sidebar/Sidebar.jsx` — skrócony znak w edytorze; kliknięcie prowadzi na landing (`/`)
 - `frontend/index.html`, linia 5 — favicon SVG
 
 ### Ekrany uwierzytelniania spójne z landing page
 
-Logowanie i rejestracja używają tego samego szwajcarskiego języka co reszta produktu. Oba widoki zachowują przestronny, responsywny układ dzielony: tuszowy panel narracyjny z oszczędną geometrią oraz formularz na ciepłym papierze ze wspólną typografią, obramowaniami, niebieskim focusem, semantyczną walidacją, prostokątnymi kontrolkami i jednym tokenem elewacji. Na małych ekranach panel narracyjny staje się zwartym nagłówkiem nad formularzem bez zmiany etykiet pól, semantyki błędów ani kolejności klawiatury.
+Logowanie i rejestracja używają tego samego szwajcarskiego języka co reszta produktu. Oba widoki zachowują przestronny, responsywny układ dzielony: tuszowy panel informacyjny z oszczędną geometrią oraz formularz na ciepłym papierze ze wspólną typografią, obramowaniami, niebieskim focusem, semantyczną walidacją, prostokątnymi kontrolkami i jednym tokenem elewacji. Na małych ekranach panel informacyjny staje się pełnoszeroką sekcją nad formularzem bez zmiany etykiet pól, semantyki błędów ani kolejności klawiatury.
 
-Treść zależna od intencji nadal działa. Login potwierdza, czy po uwierzytelnieniu otworzy import PDF, czy kreator krok po kroku; rejestracja pokazuje tę ścieżkę jeszcze przed utworzeniem konta. Rejestracja nie pyta już o wybór planu — każde nowe konto powstaje domyślnie na planie Free (treść żądania w `Register.jsx` to wyłącznie `{ username, email, password }`; dawny komponent `PlanSelector.jsx` został usunięty). Ceny i bramki uprawnień nie uległy zmianie.
+Treść zależna od intencji nadal działa. Login potwierdza, czy po uwierzytelnieniu otworzy import PDF, czy kreator krok po kroku; rejestracja pokazuje tę ścieżkę jeszcze przed utworzeniem konta. Rejestracja ma teraz po lewej dostępne porównanie Free/Pro. Panel taba korzysta z kanonicznych funkcji `PLAN_PRESENTATION`, pokazuje aktualną cenę i informację o okresie, obsługuje kliknięcie oraz klawisze Lewo/Prawo/Home/End, zachowuje istniejący parametr `start` i synchronizuje wybrany plan zarówno z tekstem formularza, jak i wysyłanym payloadem `{ username, email, password, plan }`. Gdy URL nie zawiera obsługiwanego planu, domyślnie wybrany jest Free.
 
 Implementacja:
 
 - `frontend/src/pages/Login/Login.module.css`, linie 1–476; `frontend/src/pages/Login/Login.jsx`, komponent `Login`
-- `frontend/src/pages/Register/Register.module.css`, linie 1–511; `frontend/src/pages/Register/Register.jsx`, komponent `Register`
+- `frontend/src/pages/Register/Register.module.css`, linie 1–630; `frontend/src/pages/Register/Register.jsx`, linie 38–320, komponent `Register`
 
 ### Szwajcarski system projektowy całej aplikacji
 
@@ -3060,7 +3060,7 @@ Implementacja:
 - `DESIGN.md`, linie 80–368 — zakres, tokeny, layout, komponenty, dostępność, ruch, wzorce zakazane i definicja ukończenia UI
 - `frontend/src/index.css`, linie 1–225 — kanoniczne tokeny koloru/typu/odstępów/promieni/elewacji/ruchu/z-index, aliasy zgodności, globalny focus, zaznaczenie i reduced motion
 - `frontend/src/App.css`, linie 1–120 — shell viewportu, rynny canvasa, neutralne scrollbary i breakpoint compact; linie 122–350 izolują typografię dokumentu wewnątrz `.page-canvas`
-- `frontend/src/pages/Hero/Hero.module.css`, linie 1–1359; `frontend/src/pages/Login/Login.module.css`, linie 1–476; `frontend/src/pages/Register/Register.module.css`, linie 1–511 — przestronne powierzchnie narracyjne/auth na wspólnych tokenach
+- `frontend/src/pages/Hero/Hero.module.css`, linie 1–1359; `frontend/src/pages/Login/Login.module.css`, linie 1–476; `frontend/src/pages/Register/Register.module.css`, linie 1–630 — przestronne powierzchnie narracyjne/auth na wspólnych tokenach
 - `frontend/src/components/common/DialogShell/DialogShell.jsx`, linie 17–153, komponent `DialogShell`; `DialogShell.module.css`, linie 1–117 — wspólna semantyka modal/alertdialog, pułapka i przywracanie fokusu, kolejność zagnieżdżonych dialogów, blokada scrolla, mobilny fullscreen i reduced motion
 - `frontend/src/components/common/PanelShell/PanelShell.jsx`, linie 12–47, komponent `PanelShell`; `PanelShell.module.css`, linie 1–38 — wspólny prymityw panelu z opisanym nagłówkiem, Escape i ograniczeniem ruchu Framer Motion
 - `frontend/src/components/editor/StartChooser/StartChooser.module.css`, linie 8–433; `frontend/src/components/editor/SectionsPanel/SectionsPanel.module.css`, linie 3–161; `frontend/src/components/gallery/Gallery/Gallery.module.css`, linie 1–142; `frontend/src/components/ai/AiAssistant/AiAssistant.module.css`, linie 2–1319 — zwarte chrome desktopowe i mobilne drawery/sheets

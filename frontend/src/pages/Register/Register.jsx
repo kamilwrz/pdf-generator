@@ -10,6 +10,9 @@ import { ApiClient, ENDPOINTS, wakeBackend } from "../../services/api";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
 import { queueGuestEvent } from "../../utils/guestEvents";
+import { PLAN_PRESENTATION } from "../../utils/planPresentation";
+
+const REGISTER_PLANS = [PLAN_PRESENTATION.free, PLAN_PRESENTATION.pro];
 
 // Field icons inherit `currentColor` from `.field`, so they follow the same
 // muted -> ink transition the input border does on focus (see Register.module.css).
@@ -36,7 +39,7 @@ export default function Register() {
 
     const navigate = useNavigate();
 
-    const [searchParams] = useSearchParams();
+    const [searchParams, setSearchParams] = useSearchParams();
     const startIntent = ["import", "wizard", "templates", "blank", "demo-conversion", "wizard-conversion"].includes(searchParams.get("start"))
         ? searchParams.get("start")
         : null;
@@ -44,6 +47,10 @@ export default function Register() {
     const requestedPlan = ["free", "pro", "standard", "premium"].includes(searchParams.get("plan"))
         ? searchParams.get("plan")
         : "free";
+    const selectedPlanSlug = requestedPlan === "standard" || requestedPlan === "premium"
+        ? "pro"
+        : requestedPlan;
+    const selectedPlan = PLAN_PRESENTATION[selectedPlanSlug];
 
     const [username, setUsername] = useState("");
     const [email, setEmail] = useState("");
@@ -59,6 +66,37 @@ export default function Register() {
             if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
         };
     }, []);
+
+    /**
+     * Keeps the plan comparison, registration copy, URL, and submitted account
+     * tier synchronized. Existing start intent parameters remain untouched.
+     */
+    function selectPlan(planSlug, focusTab = false) {
+        const nextParams = new URLSearchParams(searchParams);
+        nextParams.set("plan", planSlug);
+        setSearchParams(nextParams, { replace: true });
+
+        if (focusTab) {
+            requestAnimationFrame(() => {
+                document.getElementById(`register-plan-tab-${planSlug}`)?.focus();
+            });
+        }
+    }
+
+    /** Implements the WAI-ARIA horizontal-tabs keyboard interaction. */
+    function handlePlanTabKeyDown(event) {
+        const currentIndex = REGISTER_PLANS.findIndex((plan) => plan.slug === selectedPlanSlug);
+        let nextIndex = currentIndex;
+
+        if (event.key === "ArrowRight") nextIndex = (currentIndex + 1) % REGISTER_PLANS.length;
+        else if (event.key === "ArrowLeft") nextIndex = (currentIndex - 1 + REGISTER_PLANS.length) % REGISTER_PLANS.length;
+        else if (event.key === "Home") nextIndex = 0;
+        else if (event.key === "End") nextIndex = REGISTER_PLANS.length - 1;
+        else return;
+
+        event.preventDefault();
+        selectPlan(REGISTER_PLANS[nextIndex].slug, true);
+    }
 
     async function handleSubmit(e) {
         e.preventDefault();
@@ -79,7 +117,7 @@ export default function Register() {
             await api.httpRequest(
                 ENDPOINTS.AUTH.REGISTER,
                 "POST",
-                JSON.stringify({ username, email, password, plan: requestedPlan }),
+                JSON.stringify({ username, email, password, plan: selectedPlanSlug }),
                 "Rejestracja nie powiodła się",
                 {
                     timeoutMs: 90_000,
@@ -119,7 +157,7 @@ export default function Register() {
             ? "Po utworzeniu konta przeniesiemy dane z kreatora i utworzymy Twoje CV w Meridianie."
             : startIntent === "blank"
                     ? "Po utworzeniu konta otworzymy pusty projekt własny ze swobodną edycją."
-                    : requestedPlan === "pro" || requestedPlan === "standard" || requestedPlan === "premium"
+                    : selectedPlanSlug === "pro"
                         ? "Konto z dostępem Pro (gdy aktywacja bez płatności jest włączona) — wszystkie szablony, więcej projektów i narzędzia AI."
                         : "Utwórz darmowe konto i zacznij od szablonu, importu PDF albo projektu własnego.";
 
@@ -130,16 +168,54 @@ export default function Register() {
                     <span aria-hidden="true">←</span>
                     CV STUDIO
                 </Link>
-                <div className={classes.storyCopy}>
-                    <p className={classes.storyEyebrow}>Jedno CV, dwa sposoby startu</p>
-                    <h2>Nie musisz zaczynać od pustej kartki.</h2>
-                    <p>Wgraj dotychczasowe CV albo ułóż pierwszą wersję w kreatorze. Później wybierzesz szablon i dopracujesz każdy szczegół.</p>
+                <div className={classes.planComparison}>
+                    <p className={classes.storyEyebrow}>Wybierz zakres pracy</p>
+                    <h2>Co dostajesz w CV Studio.</h2>
+
+                    <div className={classes.planTabs} role="tablist" aria-label="Wybierz plan konta">
+                        {REGISTER_PLANS.map((plan) => {
+                            const isSelected = selectedPlanSlug === plan.slug;
+                            return (
+                                <button
+                                    key={plan.slug}
+                                    id={`register-plan-tab-${plan.slug}`}
+                                    type="button"
+                                    role="tab"
+                                    aria-selected={isSelected}
+                                    aria-controls="register-plan-panel"
+                                    tabIndex={isSelected ? 0 : -1}
+                                    className={`${classes.planTab} ${isSelected ? classes.planTabActive : ""}`}
+                                    onClick={() => selectPlan(plan.slug)}
+                                    onKeyDown={handlePlanTabKeyDown}
+                                >
+                                    <span>{plan.name}</span>
+                                    <strong>{plan.price_label}</strong>
+                                </button>
+                            );
+                        })}
+                    </div>
+
+                    <section
+                        id="register-plan-panel"
+                        className={classes.planDetails}
+                        role="tabpanel"
+                        aria-labelledby={`register-plan-tab-${selectedPlanSlug}`}
+                    >
+                        <div className={classes.planLead}>
+                            <p>{selectedPlan.blurb}</p>
+                            {selectedPlan.badge && <span>{selectedPlan.badge}</span>}
+                        </div>
+                        <ol className={classes.planFeatures}>
+                            {selectedPlan.highlights.map((feature, index) => (
+                                <li key={feature}>
+                                    <span aria-hidden="true">{String(index + 1).padStart(2, "0")}</span>
+                                    <p>{feature}</p>
+                                </li>
+                            ))}
+                        </ol>
+                        <p className={classes.planPeriod}>{selectedPlan.period_note}</p>
+                    </section>
                 </div>
-                <ol className={classes.storySteps}>
-                    <li><span>01</span><b>Wybierz start</b><p>Import PDF albo kreator.</p></li>
-                    <li><span>02</span><b>Wybierz wygląd</b><p>Porównaj szablony na własnych danych.</p></li>
-                    <li><span>03</span><b>Dopracuj i pobierz</b><p>Edytuj na A4, potem eksportuj PDF.</p></li>
-                </ol>
             </aside>
 
             <section className={classes.authColumn} aria-labelledby="register-title">
@@ -150,7 +226,7 @@ export default function Register() {
                     <p className={classes.cardEyebrow}>Pierwsza wersja CV</p>
                     <h1 id="register-title" className={classes.mainHeading}>Utwórz konto</h1>
                     <p className={classes.subHeading}>
-                        {requestedPlan === "pro" || requestedPlan === "standard" || requestedPlan === "premium"
+                        {selectedPlanSlug === "pro"
                             ? "Pro — 59 zł / 30 dni. Jedna płatność, bez automatycznego odnawiania (Stripe wkrótce)."
                             : "Plan Darmowy: 1 CV, 3 szablony i 3 czyste PDF-y miesięcznie. Bez karty i limitu czasu."}
                     </p>

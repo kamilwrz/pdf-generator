@@ -45,6 +45,14 @@ test("registration, import, and account gates communicate the real Free limits",
 
     assert.match(register, /1 CV, 3 szablony i 3 czyste PDF-y miesięcznie/);
     assert.match(register, /Bez karty i limitu czasu/);
+    assert.match(register, /PLAN_PRESENTATION/);
+    assert.match(register, /role="tablist" aria-label="Wybierz plan konta"/);
+    assert.match(register, /role="tab"/);
+    assert.match(register, /role="tabpanel"/);
+    assert.match(register, /selectedPlan\.highlights\.map/);
+    assert.match(register, /ArrowRight/);
+    assert.match(register, /ArrowLeft/);
+    assert.match(register, /JSON\.stringify\(\{ username, email, password, plan: selectedPlanSlug \}\)/);
     assert.match(importPanel, /1 udany import CV miesięcznie/);
     assert.match(importPanel, /odczytamy dane i wypełnimy nimi wybrany szablon/);
     assert.doesNotMatch(importPanel, /AI wypełni dowolny szablon/);
