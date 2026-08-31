@@ -463,9 +463,29 @@ export default function Editor() {
       });
     }
 
-    document.addEventListener("selectionchange", updateInlineSelection);
-    updateInlineSelection();
-    return () => document.removeEventListener("selectionchange", updateInlineSelection);
+    const node = document.getElementById(elementId);
+    let animationFrame = null;
+    // Browser selection settles after the pointer/key event that created it.
+    // Scheduling one frame later prevents a transient collapsed range from
+    // hiding the toolbar before the final selected range is available.
+    function scheduleInlineSelectionUpdate() {
+      if (animationFrame !== null) window.cancelAnimationFrame(animationFrame);
+      animationFrame = window.requestAnimationFrame(() => {
+        animationFrame = null;
+        updateInlineSelection();
+      });
+    }
+
+    document.addEventListener("selectionchange", scheduleInlineSelectionUpdate);
+    node?.addEventListener("pointerup", scheduleInlineSelectionUpdate);
+    node?.addEventListener("keyup", scheduleInlineSelectionUpdate);
+    scheduleInlineSelectionUpdate();
+    return () => {
+      if (animationFrame !== null) window.cancelAnimationFrame(animationFrame);
+      document.removeEventListener("selectionchange", scheduleInlineSelectionUpdate);
+      node?.removeEventListener("pointerup", scheduleInlineSelectionUpdate);
+      node?.removeEventListener("keyup", scheduleInlineSelectionUpdate);
+    };
   }, [
     isMultiSelection,
     selectedElement?.category,
@@ -1031,7 +1051,7 @@ export default function Editor() {
       {inlineSelection ? (
         <Motion.aside
           ref={selectionPanelRef}
-          className={classes.editor}
+          className={`${classes.editor} ${classes.selectionEditor}`}
           role="toolbar"
           aria-label="Formatowanie zaznaczenia"
           style={{ top: selectionPanelPosition.top, left: selectionPanelPosition.left }}

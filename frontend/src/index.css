@@ -69,6 +69,8 @@
     --z-popover: 200;
     --z-modal: 300;
     --z-editor-affordance: 400;
+    --z-editor-context: 410;
+    --z-editor-selection: 420;
     --z-toast: 500;
 
     /* Shared surface aliases used by existing CSS Modules. */

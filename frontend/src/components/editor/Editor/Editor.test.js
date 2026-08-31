@@ -32,6 +32,18 @@ test("Editor renders selection formatting as its own panel, independent of the w
 test("Editor panel uses the editor-affordance layer above sticky chrome", async () => {
   const editorCss = await readFile(new URL("./Editor.module.css", import.meta.url), "utf8");
   assert.match(editorCss, /z-index:\s*var\(--z-editor-affordance\)/);
+  assert.match(editorCss, /\.selectionEditor\s*\{[^}]*z-index:\s*var\(--z-editor-selection\)/s);
+  assert.match(editorCss, /\.selectionEditor\s*\{[^}]*container-type:\s*normal/s);
+  assert.doesNotMatch(editorCss, /:has\(/);
+});
+
+test("inline selection updates after pointer and keyboard range changes", async () => {
+  const source = await readFile(new URL("./Editor.jsx", import.meta.url), "utf8");
+
+  assert.match(source, /scheduleInlineSelectionUpdate/);
+  assert.match(source, /addEventListener\("pointerup", scheduleInlineSelectionUpdate\)/);
+  assert.match(source, /addEventListener\("keyup", scheduleInlineSelectionUpdate\)/);
+  assert.match(source, /classes\.selectionEditor/);
 });
 
 test("Editor exposes plain-language labels, multi-select help, and stepper buttons", async () => {

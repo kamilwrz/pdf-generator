@@ -269,19 +269,21 @@
 .numField button:focus-visible,
 .colorField input:focus-visible { outline: 2px solid var(--color-focus); outline-offset: -2px; }
 
-/* A selection toolbar has .bar as its first child; keep that secondary surface
-   compact instead of applying the full inspector grid. */
-.editor:has(> .bar:first-child) {
+/* Inline formatting is an explicit surface rather than a structural selector
+   guess. This keeps it compact and visible in every supported browser. */
+.selectionEditor {
+    z-index: var(--z-editor-selection);
+    container-type: normal;
     width: max-content !important;
     height: auto !important;
     max-width: calc(100vw - 16px);
     border-left-width: 1px;
-    overflow-x: auto;
+    overflow: visible;
 }
 
-.editor:has(> .bar:first-child) .bar { display: flex; width: max-content; overflow: visible; padding: 4px; }
-.editor:has(> .bar:first-child) .group { padding: 4px; border-top-width: 1px; }
-.editor:has(> .bar:first-child) .groupLabel { display: none; }
+.selectionEditor .bar { display: flex; width: max-content; overflow: visible; padding: 4px; }
+.selectionEditor .group { padding: 4px; border-top-width: 1px; }
+.selectionEditor .groupLabel { display: none; }
 
 @media (max-width: 900px) {
     .bar { grid-template-columns: 1fr; }
@@ -295,7 +297,7 @@
 }
 
 @media (max-width: 720px) {
-    .editor:not(:has(> .bar:first-child)) {
+    .editor:not(.selectionEditor) {
         left: 56px !important;
         right: 0;
         width: auto !important;

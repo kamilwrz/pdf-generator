@@ -30,9 +30,19 @@
     animation: canvasElementHighlightIn 110ms ease-out both;
 }
 
-.anchor {
+.origin {
     position: absolute;
-    z-index: 45;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+}
+
+/* The actionable controls are portalled outside the transformed A4 page so
+   their stacking level can sit above the inspector without lifting PDF
+   content or page highlights above application chrome. */
+.portalAnchor {
+    position: fixed;
+    z-index: var(--z-editor-context);
     width: 0;
     height: 0;
     pointer-events: none;
