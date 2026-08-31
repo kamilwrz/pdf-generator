@@ -37,6 +37,16 @@ test("Editor panel uses the editor-affordance layer above sticky chrome", async 
   assert.doesNotMatch(editorCss, /:has\(/);
 });
 
+test("Editor uses white working surfaces and keeps beige as a restrained accent", async () => {
+  const editorCss = await readFile(new URL("./Editor.module.css", import.meta.url), "utf8");
+
+  assert.match(editorCss, /\.selectionTip\s*\{[^}]*background:\s*var\(--chrome-surface\)/s);
+  assert.match(editorCss, /\.group\s*\{[^}]*background:\s*var\(--chrome-surface\)/s);
+  assert.match(editorCss, /\.group\s*\{[^}]*border-left:\s*4px solid var\(--chrome-control\)/s);
+  assert.match(editorCss, /\.numField button\s*\{[^}]*background:\s*var\(--chrome-surface\)/s);
+  assert.doesNotMatch(editorCss, /\.group\s*\{[^}]*background:\s*color-mix/s);
+});
+
 test("inline selection updates after pointer and keyboard range changes", async () => {
   const source = await readFile(new URL("./Editor.jsx", import.meta.url), "utf8");
 

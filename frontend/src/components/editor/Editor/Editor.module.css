@@ -67,8 +67,8 @@
     align-items: center;
     min-height: 44px;
     padding: 8px 14px;
-    background: var(--color-canvas);
-    border-bottom: 1px solid var(--chrome-border);
+    background: var(--chrome-surface);
+    border-bottom: 4px solid var(--chrome-control);
     color: var(--chrome-muted);
     font: 500 11px/1.25 var(--font-body);
     flex-shrink: 0;
@@ -104,7 +104,10 @@
     flex-direction: column;
     gap: 8px;
     padding: 10px;
-    background: color-mix(in srgb, var(--chrome-control) 52%, var(--chrome-surface));
+    background: var(--chrome-surface);
+    border-right: 1px solid var(--chrome-border);
+    border-bottom: 1px solid var(--chrome-border);
+    border-left: 4px solid var(--chrome-control);
     border-top: 2px solid var(--chrome-ink);
 }
 
@@ -186,7 +189,7 @@
     justify-content: center;
     padding: 0;
     border: 0;
-    background: var(--chrome-control);
+    background: var(--chrome-surface);
     color: var(--chrome-muted);
     cursor: pointer;
 }
