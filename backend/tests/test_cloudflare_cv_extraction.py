@@ -238,6 +238,19 @@ def _centered_right_column_cv_pdf_bytes(*, include_driving_license: bool) -> byt
     return data
 
 
+def _horizontal_languages_cv_pdf_bytes() -> bytes:
+    """Build one Languages heading over three same-baseline grid cells."""
+    document = fitz.open()
+    page = document.new_page()
+    page.insert_text((250, 60), "JEZYKI", fontsize=10, fontname="hebo")
+    page.insert_text((250, 82), "Polski - A2", fontsize=10)
+    page.insert_text((360, 82), "Angielski - C1", fontsize=10)
+    page.insert_text((480, 82), "Niemiecki - B2", fontsize=10)
+    data = document.tobytes()
+    document.close()
+    return data
+
+
 def _overlapping_native_text_cv_pdf_bytes() -> bytes:
     """Build Canva-like rows whose adjacent font boxes overlap vertically.
 
@@ -385,6 +398,10 @@ class CloudflareCvExtractionTests(unittest.TestCase):
         user_content = request["messages"][1]["content"]
         self.assertFalse(any(item["type"] == "image_url" for item in user_content))
         self.assertIn("Jan Kowalski", user_content[0]["text"])
+        self.assertIn(
+            '"languages":[{"name":"","level":""}]',
+            user_content[0]["text"],
+        )
         self.assertEqual(
             request["max_completion_tokens"],
             ai_service.CV_EXTRACT_TEXT_MAX_COMPLETION_TOKENS,
@@ -1028,6 +1045,117 @@ class CloudflareCvExtractionTests(unittest.TestCase):
         )
         self.assertEqual(grounded["languages"], ["Angielski - C1"])
         self.assertEqual(fields, ["summary", "skills", "languages"])
+
+    def test_horizontal_language_grid_keeps_all_source_languages(self):
+        """Adjacent language cells must not be lost as separate page lanes."""
+        client = self._client({
+            "name": "Kamil Testowy",
+            # Geometry must recover the two omitted cells and reject the one
+            # provider value that has no visible source evidence.
+            "languages": [
+                {"name": "Polski", "level": "A2"},
+                {"name": "Hiszpanski", "level": "C2"},
+            ],
+            "extra_sections": [],
+        })
+
+        with (
+            patch.object(ai_service, "CV_EXTRACT_MIN_TEXT_CHARS_PER_PAGE", 1),
+            patch.object(
+                ai_service,
+                "_provider_settings",
+                return_value=(
+                    client,
+                    ai_service.CLOUDFLARE_TEXT_MODEL,
+                    "cloudflare",
+                ),
+            ),
+        ):
+            cv_data, usage = ai_service.extract_cv_data(
+                _horizontal_languages_cv_pdf_bytes()
+            )
+
+        expected = [
+            {"name": "Polski", "level": "A2"},
+            {"name": "Angielski", "level": "C1"},
+            {"name": "Niemiecki", "level": "B2"},
+        ]
+        self.assertEqual(cv_data["languages"], expected)
+        self.assertIn("languages", usage["source_grounded_fields"])
+        self.assertNotIn("Hiszpanski", json.dumps(cv_data, ensure_ascii=False))
+
+        language_section = next(
+            section
+            for section in cv_data["extra_sections"]
+            if section["kind"] == "languages"
+        )
+        self.assertEqual(
+            language_section["items"],
+            ["Polski — A2", "Angielski — C1", "Niemiecki — B2"],
+        )
+        rendered = [
+            str(element.get("content") or "")
+            for element in generate_resume("meridian", cv_data)
+        ]
+        for source_language in language_section["items"]:
+            self.assertEqual(rendered.count(source_language), 1)
+        self.assertFalse(any("Hiszpanski" in text for text in rendered))
+
+    def test_native_pdf_without_languages_rejects_model_invention(self):
+        """Document language must not become a candidate competency."""
+        source = (
+            "MICHAL TESTOWY DATA ENGINEER PROFESSIONAL SUMMARY "
+            "Builds reliable data platforms with Python and SQL. "
+        ) * 8
+        client = self._client({
+            "name": "Michal Testowy",
+            "languages": [{"name": "Polski", "level": "A2"}],
+            "extra_sections": [{
+                "title": "JEZYKI",
+                "kind": "languages",
+                "placement": "after_skills",
+                "items": ["Polski - A2"],
+            }],
+        })
+
+        with patch.object(
+            ai_service,
+            "_provider_settings",
+            return_value=(client, ai_service.CLOUDFLARE_TEXT_MODEL, "cloudflare"),
+        ):
+            cv_data, usage = ai_service.extract_cv_data(_pdf_bytes(source))
+
+        self.assertEqual(cv_data["languages"], [])
+        self.assertFalse(
+            any(
+                section.get("kind") == "languages"
+                for section in cv_data["extra_sections"]
+            )
+        )
+        self.assertIn("languages", usage["source_grounded_fields"])
+
+    def test_vision_language_grounding_keeps_named_provider_rows_only(self):
+        """Incomplete native text cannot reject vision facts, only bad shapes."""
+        grounded, fields = ai_service.ground_cv_data_from_source(
+            {
+                "name": "Jan Testowy",
+                "languages": [
+                    {"name": "", "level": "C1"},
+                    "B2+",
+                    {"name": "English", "level": "C1"},
+                ],
+                "extra_sections": [],
+            },
+            [{
+                "number": 1,
+                "plain_text": "",
+                "sections": [],
+                "needs_vision": True,
+            }],
+        )
+
+        self.assertEqual(grounded["languages"], ["English — C1"])
+        self.assertEqual(fields, ["languages"])
 
     def test_fragmented_skill_row_and_courses_are_grounded_to_their_sections(self):
         """Source geometry must undo model cross-contamination between sections."""

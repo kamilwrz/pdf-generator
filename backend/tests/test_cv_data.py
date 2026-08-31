@@ -468,6 +468,50 @@ class CvDataNormalizationTests(unittest.TestCase):
             [{"title": "Platforma X", "bullets": []}],
         )
 
+    def test_pipe_delimited_language_row_becomes_separate_entries(self):
+        """A compact horizontal language row must not collapse after A2."""
+        profile = normalize_cv_data({
+            "name": "Jan Nowak",
+            "languages": [
+                "Polski - A2 | Angielski - C1 | Niemiecki - B2",
+            ],
+        })
+
+        self.assertEqual(
+            profile["languages"],
+            [
+                {"name": "Polski", "level": "A2"},
+                {"name": "Angielski", "level": "C1"},
+                {"name": "Niemiecki", "level": "B2"},
+            ],
+        )
+        self.assertEqual(
+            profile["extra_sections"][0]["items"],
+            ["Polski — A2", "Angielski — C1", "Niemiecki — B2"],
+        )
+
+    def test_structured_language_levels_keep_detail_punctuation(self):
+        """Level notes are not separate languages and blank names are ignored."""
+        profile = normalize_cv_data({
+            "name": "Jan Nowak",
+            "languages": [
+                {"name": "Angielski", "level": "C1; certyfikat CAE"},
+                {"name": "", "level": "C1"},
+                "English - C1; certificate CAE",
+                "Niemiecki - fließend; Polski - ojczysty",
+            ],
+        })
+
+        self.assertEqual(
+            profile["languages"],
+            [
+                {"name": "Angielski", "level": "C1; certyfikat CAE"},
+                {"name": "English", "level": "C1; certificate CAE"},
+                {"name": "Niemiecki", "level": "fließend"},
+                {"name": "Polski", "level": "ojczysty"},
+            ],
+        )
+
     def test_flat_projects_list_regroups_into_title_and_bullets(self):
         profile = normalize_cv_data({
             "name": "Ewa Nowak",

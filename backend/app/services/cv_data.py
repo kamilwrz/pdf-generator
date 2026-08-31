@@ -19,6 +19,13 @@ _LEADING_LIST_MARKER = re.compile(r"^[\s]*[•\-–*—∙·]\s*")
 _SKILL_CATEGORY_LINE = re.compile(r"^(?P<title>[^:]{2,48}?):\s+(?P<body>\S.+)$")
 _SKILL_BODY_SPLIT = re.compile(r"\s*[,;|•·]\s*")
 _LANGUAGE_CATEGORY_TOKENS = ("jezyk", "language", "lingua", "sprache")
+_LANGUAGE_LEVEL_MARKER = re.compile(
+    r"(?:\b[ABC][12](?:\+|\s*/\s*[ABC][12])?(?=\W|$)"
+    r"|\b(?:native|fluent|advanced|intermediate|basic|beginner)\b"
+    r"|\b(?:ojczyst\w*|bieg\w*|zaawansowan\w*|średniozaawansowan\w*|podstawow\w*)\b"
+    r"|\b(?:muttersprache|fliessend|fließend|fortgeschritten|grundkenntnisse)\b)",
+    re.IGNORECASE,
+)
 
 
 DEFAULT_LABELS = {
@@ -800,22 +807,75 @@ def _normalize_education(value: Any) -> list[dict[str, Any]]:
     return result
 
 
+def _split_language_rows(value: Any) -> list[str]:
+    """Split legacy multi-language strings without breaking level details.
+
+    Horizontal PDF grids sometimes reach normalization as one provider string,
+    for example ``Polski - A2 | Angielski - C1``. A pipe or semicolon denotes
+    a new language only when every following fragment contains a name before a
+    proficiency marker; otherwise it remains part of one entry, as in
+    ``English - C1; certyfikat CAE`` or ``English | C1``.
+
+    @param value - One language string that may contain several entries.
+    @returns Ordered standalone language rows.
+    """
+    rows: list[str] = []
+    for raw_part in re.split(
+        r"(?:\r?\n|[•▪●◦‣]+|\s+·\s+)",
+        str(value or ""),
+    ):
+        part = _text(raw_part).strip(" -•▪●◦‣")
+        if not part:
+            continue
+        delimited_parts = [
+            _text(candidate).strip(" -•▪●◦‣")
+            for candidate in re.split(r"\s*[|;]\s*", part)
+        ]
+        starts_new_rows = len(delimited_parts) > 1 and all(
+            (
+                (marker := _LANGUAGE_LEVEL_MARKER.search(candidate)) is not None
+                and any(character.isalpha() for character in candidate[:marker.start()])
+            )
+            for candidate in delimited_parts[1:]
+        )
+        rows.extend(delimited_parts if starts_new_rows else [part])
+    return [row for row in rows if row]
+
+
 def _normalize_languages(value: Any) -> list[dict[str, str]]:
+    """Normalize current mappings and legacy strings into editable languages."""
     if not isinstance(value, list):
         return []
 
-    result = []
-    seen: set[tuple[str, str]] = set()
+    entries: list[tuple[str, str]] = []
     for item in value:
         if isinstance(item, Mapping):
             name = _text(item.get("name") or item.get("language"))
             level = _text(item.get("level") or item.get("proficiency"))
-        else:
-            raw = _text(item)
-            name, separator, level = raw.partition("—")
-            if not separator:
-                name, separator, level = raw.partition("-")
-            name, level = name.strip(), level.strip()
+            # Structured mappings already separate name from level. Preserve
+            # punctuation inside the level (for example ``C1; certyfikat
+            # CAE``) instead of re-parsing it as another language row.
+            if name:
+                entries.append((name, level))
+            continue
+
+        for raw in _split_language_rows(_text(item)):
+            separator = re.search(
+                r"\s*(?:—|–|:|\|)\s*|\s+-\s+|-(?=[ABC][12](?:\b|\+))",
+                raw,
+                flags=re.IGNORECASE,
+            )
+            if separator:
+                name = raw[:separator.start()].strip()
+                level = raw[separator.end():].strip()
+            else:
+                name, level = raw.strip(), ""
+            if name:
+                entries.append((name, level))
+
+    result: list[dict[str, str]] = []
+    seen: set[tuple[str, str]] = set()
+    for name, level in entries:
         key = (name.casefold(), level.casefold())
         if name and key not in seen:
             result.append({"name": name, "level": level})

@@ -22,6 +22,15 @@ import fitz
 
 
 _BULLET_PREFIX = re.compile(r"^\s*[-•▪●◦‣]\s*")
+_LANGUAGE_LEVEL_MARKER = re.compile(
+    r"(?:"
+    r"\b[ABC][12](?:\+|\s*/\s*[ABC][12])?(?=\W|$)"
+    r"|\b(?:native|fluent|advanced|intermediate|basic|beginner)\b"
+    r"|\b(?:ojczyst\w*|bieg\w*|zaawansowan\w*|średniozaawansowan\w*|podstawow\w*)\b"
+    r"|\b(?:muttersprache|fliessend|fließend|fortgeschritten|grundkenntnisse)\b"
+    r")",
+    re.IGNORECASE,
+)
 _ASCII_TRANSLITERATION = str.maketrans({
     "ł": "l",
     "Ł": "L",
@@ -503,6 +512,8 @@ def _section_body_lines(
     lines: list[dict[str, Any]],
     heading_index: int,
     headings: list[tuple[int, dict[str, Any], str]],
+    *,
+    kind: str,
 ) -> list[dict[str, Any]]:
     """Return lines visually below one heading and before its next peer.
 
@@ -522,7 +533,7 @@ def _section_body_lines(
             and other["y0"] > heading["y0"]
         ):
             next_center = min(next_center, (other["y0"] + other["y1"]) / 2)
-    return [
+    body_lines = [
         line
         for index, line in enumerate(lines)
         if index != heading_index
@@ -530,6 +541,51 @@ def _section_body_lines(
         and (line["y0"] + line["y1"]) / 2 > heading_center
         and (line["y0"] + line["y1"]) / 2 < next_center
     ]
+    if kind != "languages" or not body_lines:
+        return body_lines
+
+    # Language competencies are often rendered as a full-width horizontal
+    # grid. Lane clustering correctly separates those cells, but the section
+    # heading then owns only its first cell. Recover adjacent cells only when
+    # they share a baseline with a confirmed same-lane row and carry an
+    # explicit proficiency marker. The marker requirement prevents an
+    # unrelated Experience or Education row at the same height from leaking
+    # across a genuine two-column CV.
+    language_rows = [
+        line
+        for line in body_lines
+        if _LANGUAGE_LEVEL_MARKER.search(_collapse(line.get("text")))
+    ]
+    if not language_rows:
+        return body_lines
+    row_centres = [
+        ((line["y0"] + line["y1"]) / 2, max(line["y1"] - line["y0"], 1.0))
+        for line in language_rows
+    ]
+    cross_lane_lines = []
+    for index, line in enumerate(lines):
+        if index == heading_index or line.get("lane") == heading.get("lane"):
+            continue
+        text = _collapse(line.get("text"))
+        if (
+            not text
+            or _heading_kind(text) is not None
+            or _inline_heading_value(text) is not None
+            or not _LANGUAGE_LEVEL_MARKER.search(text)
+        ):
+            continue
+        centre = (line["y0"] + line["y1"]) / 2
+        height = max(line["y1"] - line["y0"], 1.0)
+        if any(
+            abs(centre - row_centre) <= max(2.0, min(height, row_height) * 0.45)
+            for row_centre, row_height in row_centres
+        ):
+            cross_lane_lines.append(line)
+
+    return sorted(
+        [*body_lines, *cross_lane_lines],
+        key=lambda line: (line["y0"], line["x0"]),
+    )
 
 
 def _layout_text(lines: list[dict[str, Any]], page_number: int) -> str:
@@ -584,7 +640,12 @@ def extract_pdf_source_pages(
                 inline_headings[index] = (source_heading, inline_value)
             sections: list[dict[str, Any]] = []
             for heading_index, heading, kind in headings:
-                body_lines = _section_body_lines(lines, heading_index, headings)
+                body_lines = _section_body_lines(
+                    lines,
+                    heading_index,
+                    headings,
+                    kind=kind,
+                )
                 source_heading, inline_value = inline_headings.get(
                     heading_index,
                     (heading["text"], ""),
@@ -815,6 +876,160 @@ def _source_supported_field_value(
             supported.append(part)
 
     return supported if is_list else "\n".join(supported)
+
+
+def _language_candidate_text(value: Any) -> str:
+    """Return one provider language candidate in the source's display shape.
+
+    Providers may use either the current ``{name, level}`` contract or the
+    legacy string form stored in ``extra_sections``. Reassembling mappings with
+    a dash gives the source-evidence matcher one representation for both forms;
+    punctuation is irrelevant because ``_fold`` removes it.
+
+    @param value - A provider language mapping or legacy string.
+    @returns A compact display string, or an empty string for unusable input.
+    """
+    if isinstance(value, Mapping):
+        name = _collapse(value.get("name") or value.get("language"))
+        level = _collapse(value.get("level") or value.get("proficiency"))
+        return " — ".join(part for part in (name, level) if part) if name else ""
+    return _collapse(value)
+
+
+def _split_language_candidate_rows(value: Any) -> list[str]:
+    """Split compound provider/source text only at language-list boundaries.
+
+    Pipes and semicolons are ambiguous: ``English | C1`` and
+    ``English - C1; certificate CAE`` are one entry each, while
+    ``Polski - A2 | English - C1`` contains two. A delimiter starts new rows
+    only when every following fragment contains both a language-name prefix
+    and a recognised proficiency marker.
+
+    @param value - Provider or visible source text that may contain many rows.
+    @returns Ordered candidate rows without bullet/list punctuation.
+    """
+    rows: list[str] = []
+    for raw_part in re.split(
+        r"(?:\r?\n|[•▪●◦‣]+|\s+·\s+)",
+        str(value or ""),
+    ):
+        part = _collapse(raw_part).strip(" -•▪●◦‣")
+        if not part:
+            continue
+        delimited_parts = [
+            _collapse(candidate).strip(" -•▪●◦‣")
+            for candidate in re.split(r"\s*[|;]\s*", part)
+        ]
+        following_parts_start_languages = len(delimited_parts) > 1 and all(
+            (
+                (marker := _LANGUAGE_LEVEL_MARKER.search(candidate)) is not None
+                and any(character.isalpha() for character in candidate[:marker.start()])
+            )
+            for candidate in delimited_parts[1:]
+        )
+        rows.extend(
+            delimited_parts if following_parts_start_languages else [part]
+        )
+    return [row for row in rows if row]
+
+
+def _model_language_items(model_data: Mapping[str, Any]) -> list[str]:
+    """Collect and deduplicate every language candidate returned by a model.
+
+    The explicit top-level ``languages`` field is the current provider
+    contract. ``extra_sections`` remains accepted for rolling deployments and
+    older extraction responses. Compound legacy rows are split only on strong
+    list delimiters, never on a plain dash or comma that may belong to a level
+    description.
+
+    @param model_data - Parsed provider JSON before source grounding.
+    @returns Ordered language rows from all supported response shapes.
+    """
+    raw_items: list[Any] = []
+    languages = model_data.get("languages")
+    if isinstance(languages, list):
+        raw_items.extend(languages)
+    elif languages:
+        raw_items.append(languages)
+
+    extras = model_data.get("extra_sections")
+    if isinstance(extras, list):
+        for section in extras:
+            if not isinstance(section, Mapping):
+                continue
+            if (
+                str(section.get("kind") or "").casefold() != "languages"
+                and _heading_kind(section.get("title")) != "languages"
+            ):
+                continue
+            items = section.get("items")
+            if isinstance(items, list):
+                raw_items.extend(items)
+            elif items:
+                raw_items.append(items)
+
+    candidates: list[str] = []
+    seen: set[str] = set()
+    for raw_item in raw_items:
+        text = _language_candidate_text(raw_item)
+        for candidate in _split_language_candidate_rows(text):
+            key = _fold(candidate)
+            if (
+                not key
+                or key in seen
+                or _LANGUAGE_LEVEL_MARKER.fullmatch(candidate) is not None
+            ):
+                continue
+            # Compact CV sidebars occasionally let a provider misclassify the
+            # adjacent ``Prawo jazdy — Kategoria B`` row as a language. It is a
+            # recognised source heading/value pair, not a competency.
+            if _heading_kind(candidate) == "driving_license":
+                continue
+            inline_heading = _inline_heading_value(candidate)
+            if inline_heading and inline_heading[0] == "driving_license":
+                continue
+            candidates.append(candidate)
+            seen.add(key)
+    return candidates
+
+
+def _source_supported_language_items(
+    candidates: list[str],
+    pages: list[dict[str, Any]],
+) -> list[str]:
+    """Keep provider language rows whose complete text occurs in the PDF.
+
+    A horizontal language grid is intentionally split into lanes to protect
+    unrelated CV columns. Only the lane containing the Languages heading is
+    available through ``section.body_lines``; the other cells still occur in
+    ``plain_text``. Matching complete folded candidates recovers those cells
+    without accepting a language or proficiency invented by the model.
+
+    @param candidates - Ordered language rows collected from provider JSON.
+    @param pages - Layout-aware source pages containing visible native text.
+    @returns The subset supported by visible source text.
+    """
+    source_keys = {
+        _fold(source_item)
+        for page in pages
+        for raw_line in str(page.get("plain_text") or "").splitlines()
+        for source_item in _split_language_candidate_rows(raw_line)
+        if _fold(source_item)
+    }
+    return [candidate for candidate in candidates if _fold(candidate) in source_keys]
+
+
+def _deduplicate_language_items(items: list[str]) -> list[str]:
+    """Deduplicate language rows while preserving source/provider order."""
+    result: list[str] = []
+    seen: set[str] = set()
+    for item in items:
+        text = _collapse(item)
+        key = _fold(text)
+        if text and key not in seen:
+            result.append(text)
+            seen.add(key)
+    return result
 
 
 def _looks_like_plain_skill_group_label(
@@ -1248,22 +1463,78 @@ def ground_cv_data_from_source(
         for section in language_sections
         for item in _bullet_items(section.get("body_lines") or [])
     ]
-    if language_items:
-        grounded["languages"] = language_items
+    model_language_items = _model_language_items(grounded)
+    language_extras = [
+        section
+        for section in (grounded.get("extra_sections") or [])
+        if isinstance(section, Mapping)
+        and (
+            str(section.get("kind") or "").casefold() == "languages"
+            or _heading_kind(section.get("title")) == "languages"
+        )
+    ]
+    if language_sections:
+        # A section can render its competencies as a horizontal grid. The
+        # geometric items are authoritative, while exact source-supported
+        # provider candidates recover any grid cell that fell into another
+        # lane. Unsupported candidates are discarded on fully native PDFs;
+        # mixed/vision imports keep the provider values because native text is
+        # incomplete and cannot disprove them.
+        supported_model_items = (
+            _source_supported_language_items(model_language_items, pages)
+            if has_complete_native_text
+            else model_language_items
+        )
+        grounded["languages"] = _deduplicate_language_items([
+            *language_items,
+            *supported_model_items,
+        ])
         source_grounded_fields.append("languages")
     elif nested_language_ids:
         # The visually subordinate language rows now live inside Skills. Clear
         # model-created top-level copies so normalization cannot render both.
         grounded["languages"] = []
+    elif model_language_items or language_extras:
+        # When no heading was recognised, retain only provider rows supported
+        # by a complete native-text source. Vision results pass through because
+        # an image-only page has no trustworthy negative text evidence.
+        grounded["languages"] = _deduplicate_language_items(
+            _source_supported_language_items(model_language_items, pages)
+            if has_complete_native_text
+            else model_language_items
+        )
+        source_grounded_fields.append("languages")
+
+    if language_sections or nested_language_ids or model_language_items or language_extras:
         extras = grounded.get("extra_sections")
         if isinstance(extras, list):
-            grounded["extra_sections"] = [
+            non_language_extras = [
                 dict(extra)
                 for extra in extras
                 if isinstance(extra, Mapping)
-                and extra.get("kind") != "languages"
+                and str(extra.get("kind") or "").casefold() != "languages"
                 and _heading_kind(extra.get("title")) != "languages"
             ]
+            if not nested_language_ids or language_sections:
+                source_or_model_title = next(
+                    (
+                        _collapse(section.get("title"))
+                        for section in [*language_sections, *language_extras]
+                        if _collapse(section.get("title"))
+                    ),
+                    "",
+                )
+                if source_or_model_title:
+                    # Keep the verified/localised heading but remove raw items;
+                    # normalization rebuilds one canonical language section
+                    # from the grounded top-level list.
+                    non_language_extras.append({
+                        "title": source_or_model_title,
+                        "kind": "languages",
+                        "placement": "after_skills",
+                        "items": [],
+                    })
+            grounded["extra_sections"] = non_language_extras
 
     reference_sections = [section for section in sections if section.get("kind") == "references"]
     if reference_sections:

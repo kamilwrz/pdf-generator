@@ -434,9 +434,10 @@ def extract_cv_data(pdf_bytes: bytes) -> tuple[dict, dict]:
                 '  "experience":[{"title":"","company":"","city":"","period":"","bullets":[]}],\n'
                 '  "education":[{"school":"","city":"","degree":"","period":"","description":""}],\n'
                 '  "skills":[] | [{"category":"","items":[]}],\n'
+                '  "languages":[{"name":"","level":""}],\n'
                 '  "language":"Polish",\n'
                 '  "labels":{"summary":"PODSUMOWANIE ZAWODOWE","experience":"DOŚWIADCZENIE ZAWODOWE","education":"WYKSZTAŁCENIE","skills":"UMIEJĘTNOŚCI"},\n'
-                '  "extra_sections":[{"title":"","kind":"languages|certifications|interests|projects|references|awards|publications|volunteering|other","placement":"after_skills","items":[]}]\n'
+                '  "extra_sections":[{"title":"","kind":"certifications|interests|projects|references|awards|publications|volunteering|other","placement":"after_skills","items":[]}]\n'
                 "}\n\n"
                 "Zasady:\n"
                 "- Każda wartość faktograficzna musi występować w MATERIAL_CV. "
@@ -478,14 +479,18 @@ def extract_cv_data(pdf_bytes: bytes) -> tuple[dict, dict]:
                 "     * NIE wrzucaj tych kategorii do extra_sections.\n"
                 "  Jedna samotna podsekcja bez drugiej → kształt A (płaskie stringi).\n"
                 "  Podsekcję 'Języki'/'Languages' wrzuć do languages, nie do skills.\n"
-                "- language: główny język CV (np. 'Polish', 'English', 'German')\n"
+                "- languages: WSZYSTKIE kompetencje językowe jako osobne obiekty "
+                "{\"name\":\"nazwa ze źródła\",\"level\":\"poziom ze źródła\"}. "
+                "Nie łącz kilku języków w jednym stringu i nie duplikuj tej listy w extra_sections.\n"
+                "- language: wyłącznie główny język dokumentu CV (np. 'Polish', 'English', 'German'); "
+                "nie wpisuj tu kompetencji językowych kandydata.\n"
                 "- labels: summary/experience/education zawsze po polsku WIELKIMI LITERAMI:\n"
                 "  'PODSUMOWANIE ZAWODOWE', 'DOŚWIADCZENIE ZAWODOWE', 'WYKSZTAŁCENIE'.\n"
                 "  labels.skills = 'UMIEJĘTNOŚCI' gdy skills ma grupy/podsekcje; przy jednej\n"
                 "  płaskiej liście = dokładny nagłówek wykryty w SOURCE_SECTIONS.\n"
                 "  Nigdy nie wstawiaj nazwy podsekcji (np. 'BEZPIECZEŃSTWO') jako labels.skills.\n"
-                "- extra_sections: każda sekcja CV NIEobjęta experience/education/skills/summary.\n"
-                "  Przykłady: Certyfikaty, Języki, Projekty, Nagrody, Publikacje,\n"
+                "- extra_sections: każda sekcja CV NIEobjęta experience/education/skills/languages/summary.\n"
+                "  Przykłady: Certyfikaty, Projekty, Nagrody, Publikacje,\n"
                 "  Wolontariat, Zainteresowania, Referencje, Kursy, Szkolenia,\n"
                 "  Szkolenia z cyberbezpieczeństwa — tytuł WIELKIMI LITERAMI, pełne punkty.\n"
                 "  SZKOLENIA / TRENINGI / COURSES / TRAINING (np. 'SZKOLENIA Z CYBERBEZPIECZEŃSTWA'):\n"
@@ -494,13 +499,13 @@ def extract_cv_data(pdf_bytes: bytes) -> tuple[dict, dict]:
                 "  PRAWO JAZDY / DRIVING LICENCE to osobny extra_sections, kind='other',\n"
                 "  placement='after_skills'; nigdy nie dodawaj go do languages ani skills.\n"
                 "  NIE duplikuj skills ani podsekcji skills w extra_sections.\n"
-                "  kind: 'languages' | 'certifications' | 'interests' | 'projects' | 'references' |\n"
+                "  kind: 'certifications' | 'interests' | 'projects' | 'references' |\n"
                 "        'awards' | 'publications' | 'volunteering' | 'other'.\n"
                 "  placement: 'after_experience' dla sekcji rekordowych (projekty, nagrody, wolontariat,\n"
                 "             referencje z opisem) ORAZ szkoleń/kursów; 'after_skills' dla zwartych list\n"
-                "             (języki, certyfikaty-listy, zainteresowania).\n"
+                "             (certyfikaty-listy, zainteresowania).\n"
                 "  items — ZALEŻY OD RODZAJU SEKCJI:\n"
-                "  * languages / certifications / interests / zwarte listy: płaska lista stringów.\n"
+                "  * certifications / interests / zwarte listy: płaska lista stringów.\n"
                 "  * projects / references / awards / publications / volunteering: lista OBIEKTÓW\n"
                 "    {\"title\":\"nazwa\",\"subtitle\":\"opcjonalnie\",\"bullets\":[\"punkt\",\"...\"]}.\n"
                 "    title = nazwa projektu/referencji (NIE wrzucaj tytułu jako zwykłego bulletu),\n"
