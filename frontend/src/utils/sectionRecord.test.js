@@ -524,11 +524,15 @@ describe("listUpperRecordMembers / insertRecordBlockAfterRecord", () => {
     assert.equal(elementSupportsRecordBlockAdd(elements, body[0].element_id), true);
     assert.equal(elementSupportsRecordBlockAdd(elements, body[1].element_id), true);
     assert.equal(elementSupportsRecordBlockAdd(elements, body[2].element_id), false);
-    // One mounted "+" per record (title), listening to title + meta.
+    // One mounted "+" per record (title), listening to every editable field.
     const anchors = listRecordBlockAddAnchors(elements);
     assert.equal(anchors.length, 1);
     assert.equal(anchors[0].elementId, body[0].element_id);
-    assert.deepEqual(anchors[0].hoverIds, [body[0].element_id, body[1].element_id]);
+    assert.deepEqual(
+      anchors[0].hoverIds,
+      body.map((element) => element.element_id),
+      "the description must reveal its own inner hover outline",
+    );
     assert.equal(
       anchors[0].highlight.top,
       Math.min(...body.map((element) => Number(element.top) || 0)),
@@ -539,6 +543,29 @@ describe("listUpperRecordMembers / insertRecordBlockAfterRecord", () => {
     );
     assert.equal(listRecordBlockAddElementIds(elements).has(body[0].element_id), true);
     assert.equal(listRecordBlockAddElementIds(elements).has(body[1].element_id), false);
+  });
+
+  it("includes description fields in Experience and Education hover triggers", () => {
+    for (const [name, layout] of [
+      ["Doświadczenie", SECTION_LAYOUTS.RECORD_EXPERIENCE],
+      ["Wykształcenie", SECTION_LAYOUTS.RECORD_EDUCATION],
+    ]) {
+      const { elements, headingId } = buildSectionElements({
+        name,
+        layout,
+        style,
+        idFactory: makeIdFactory(`hover-${name}`),
+      });
+      const body = listSectionContentElements(elements, headingId);
+      const description = body.find((element) => element.bulletList);
+      const [anchor] = listRecordBlockAddAnchors(elements);
+
+      assert.ok(description, `${name} fixture must contain a description`);
+      assert.ok(
+        anchor.hoverIds.includes(description.element_id),
+        `${name} description must participate in nested hover highlighting`,
+      );
+    }
   });
 
   it("inserts a full placeholder record under the hovered block", () => {

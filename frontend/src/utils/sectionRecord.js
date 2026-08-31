@@ -7,8 +7,8 @@
  * education (4 lines), experience (3), or skills subcategory (bold heading +
  * body — 2 lines).
  *
- * Hovering the upper part of an existing record (title / meta, not the bullet
- * description) shows the structural toolbar. Insert, optional-description
+ * Hovering any editable field of an existing record shows the structural
+ * toolbar and an exact-field inner outline. Insert, optional-description
  * add/remove, delete, and reorder all re-pack with `applyFlowSpacing`.
  */
 
@@ -1001,9 +1001,11 @@ export function elementSupportsRecordBlockAdd(elements, elementId, pageHeight = 
 }
 
 /**
- * One affordance anchor per record: mounted on the title line, listening to all
- * upper lines (title / meta) so a single control cluster covers the whole upper
- * block. Includes reorder flags when the section has sibling records.
+ * One affordance anchor per record: mounted on the title line, listening to
+ * every editable field painted on the title's page so title, metadata, and
+ * description can each reveal an exact inner outline. Structural operations
+ * still use the upper-line title anchor. Includes reorder flags when the
+ * section has sibling records.
  *
  * @param {object[]} elements
  * @param {number} [pageHeight=842]
@@ -1057,7 +1059,7 @@ export function listRecordBlockAddAnchors(elements, pageHeight = 842) {
       }));
       anchors.push({
         elementId: title.element_id,
-        hoverIds: upper.map((element) => element.element_id),
+        hoverIds: pageMembers.map((element) => element.element_id),
         left: Number(title.left) || 0,
         top: Number(title.top) || 0,
         height: Number(title.height) || 0,

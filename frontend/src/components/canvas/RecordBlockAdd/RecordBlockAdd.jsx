@@ -1,10 +1,10 @@
 /**
  * Contextual structural toolbar for one template-mode record.
  *
- * Hovering the record title/meta reveals a grouped toolbar in the nearest A4
- * gutter plus an inner frame around the exact field. A single click edits
- * text, while description/record removals remain recoverable through the
- * global toast.
+ * Hovering any current-page record field reveals a grouped toolbar in the
+ * nearest A4 gutter plus an inner frame around the exact title, metadata, or
+ * description field. A single click edits text, while description/record
+ * removals remain recoverable through the global toast.
  */
 import { use } from "react";
 import { FiFileMinus, FiFilePlus, FiTrash2 } from "react-icons/fi";
