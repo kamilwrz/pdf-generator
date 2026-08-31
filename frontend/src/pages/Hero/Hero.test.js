@@ -20,7 +20,7 @@ describe("landing product positioning", () => {
     assert.match(source, /Gotowe CV za 0 zł/);
   });
 
-  it("keeps the highlighted hero heading in independent non-overlapping blocks", () => {
+  it("uses a wide lockup and a compact asymmetric stack for the hero heading", () => {
     assert.match(
       source,
       /<h1>\s*<span>Nowe CV\.<\/span>\s*<em>Nowa praca\.<\/em>\s*<\/h1>/s,
@@ -28,11 +28,13 @@ describe("landing product positioning", () => {
     assert.match(styles, /\.hero h1\s*\{[^}]*display:\s*flex;[^}]*flex-direction:\s*column;/s);
     assert.match(styles, /\.hero h1 > span,[\s\S]*?\.hero h1 > em\s*\{[^}]*min-width:\s*0;[^}]*overflow-wrap:\s*break-word;/s);
     assert.match(styles, /\.hero h1 em\s*\{[^}]*display:\s*block;[^}]*line-height:\s*1;/s);
-    assert.match(styles, /\.hero h1\s*\{[^}]*gap:\s*clamp\(var\(--space-2\),\s*1\.1vw,\s*var\(--space-4\)\);[^}]*font-size:\s*clamp\(2\.5rem,\s*6vw,\s*5\.5rem\);[^}]*line-height:\s*\.94;/s);
+    assert.match(styles, /\.hero h1\s*\{[^}]*align-items:\s*flex-start;[^}]*gap:\s*var\(--space-2\);[^}]*width:\s*fit-content;[^}]*max-width:\s*100%;[^}]*font-size:\s*clamp\(2\.5rem,\s*6vw,\s*5\.5rem\);[^}]*text-align:\s*left;/s);
+    assert.match(styles, /\.hero h1 > span\s*\{[^}]*align-self:\s*flex-end;[^}]*margin-right:\s*var\(--space-4\);[^}]*font-size:\s*clamp\(2rem,\s*4vw,\s*3\.5rem\);/s);
+    assert.match(styles, /@media \(min-width: 1200px\)[\s\S]*?\.hero h1\s*\{[^}]*flex-direction:\s*row;[^}]*align-items:\s*baseline;[^}]*gap:\s*var\(--space-4\);/s);
+    assert.match(styles, /@media \(min-width: 1200px\)[\s\S]*?\.hero h1 > span\s*\{[^}]*align-self:\s*auto;[^}]*margin-right:\s*0;/s);
     assert.match(styles, /@media \(max-width: 620px\)[\s\S]*?\.hero h1\s*\{[^}]*font-size:\s*clamp\(2\.5rem,\s*12vw,\s*3\.5rem\);/s);
     assert.match(styles, /\.hero\s*\{[^}]*grid-template-columns:\s*minmax\(0, 960px\);[^}]*place-content:\s*center;/s);
     assert.match(styles, /\.heroCopy\s*\{[^}]*max-width:\s*960px;[^}]*text-align:\s*center;/s);
-    assert.match(styles, /\.hero h1\s*\{[^}]*align-items:\s*center;[^}]*max-width:\s*960px;[^}]*text-align:\s*center;/s);
     assert.match(styles, /\.heroActions\s*\{[^}]*justify-content:\s*center;/s);
   });
 
