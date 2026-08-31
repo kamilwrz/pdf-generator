@@ -187,8 +187,8 @@ export default function Hero() {
                         <p className={classes.kicker} data-section-index="02">CV Studio w praktyce</p>
                         <h2>
                             <span>Jedno CV.</span>
-                            <span>Wiele wersji.</span>
-                            <span>Bez pisania od nowa.</span>
+                            <span>Wiele mocnych wersji.</span>
+                            <span>Bez wysiłku.</span>
                         </h2>
                         <p className={classes.offerLead}>
                             Wgraj obecne CV albo zacznij od zera. Dopasuj treść do ogłoszenia,
@@ -228,7 +228,7 @@ export default function Hero() {
                 <div className={classes.templateGalleryHeader}>
                     <p className={classes.templateGalleryLabel}>Szablony CV</p>
                     <h3 id="template-gallery-title">Ta sama treść. Inny charakter.</h3>
-                    <p>Klasyczny, nowoczesny, techniczny albo editorial. Wybierz układ odpowiedni dla siebie.</p>
+                    <p>Klasyczny, nowoczesny, techniczny albo editorial.</p>
                 </div>
                 {/*
                   Endless right→left marquee of every template mockup. The track

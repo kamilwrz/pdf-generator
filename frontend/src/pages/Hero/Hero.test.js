@@ -16,8 +16,9 @@ describe("landing product positioning", () => {
     assert.doesNotMatch(source, /heroLead/);
     assert.match(source, /CV Studio w praktyce/);
     assert.match(source, /Jedno CV\./);
-    assert.match(source, /Wiele wersji\./);
-    assert.match(source, /Bez pisania od nowa\./);
+    assert.match(source, /Wiele mocnych wersji\./);
+    assert.match(source, /Bez wysiłku\./);
+    assert.doesNotMatch(source, /Wybierz układ odpowiedni dla siebie\./);
     assert.match(source, /Gotowe CV za 0 zł/);
   });
 
