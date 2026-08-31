@@ -12,8 +12,8 @@ describe("landing product positioning", () => {
     assert.match(source, /do rozmowy\./);
     assert.match(source, /Wgraj stare CV lub zacznij od zera/);
     assert.match(source, /profesjonalny dokument gotowy do/);
-    assert.match(source, /Dokument, który reaguje na treść/);
-    assert.match(source, /Podgląd nie jest przybliżeniem/);
+    assert.match(source, /Szablony, nie klatki/);
+    assert.match(source, /Gotowe CV za 0 zł/);
   });
 
   it("keeps the highlighted hero heading in independent non-overlapping blocks", () => {
@@ -32,22 +32,30 @@ describe("landing product positioning", () => {
     assert.match(source, /INTELIGENTNY LAYOUT/);
   });
 
-  it("describes AI as an explicit task tool and keeps product caveats", () => {
-    assert.match(source, /Daj mu konkretne zadanie/);
-    assert.match(source, /W wybranych szablonach zmienisz paletę/);
+  it("keeps the retained template, privacy, pricing, and FAQ caveats", () => {
+    assert.match(source, /Twoje dokumenty nie są publiczne/);
+    assert.match(source, /Twoja treść pozostaje/);
     assert.match(source, /Nie jest to gwarancja identycznego wyniku w każdym systemie rekrutacyjnym/);
   });
 
-  it("preserves directed starts, analytics events, anchors, and dynamic template count", () => {
+  it("renders only sections 01, 05, 09, 10, and 11 before the footer", () => {
+    assert.deepEqual(
+      [...source.matchAll(/<section\b[\s\S]*?data-section-index="(\d{2})"[\s\S]*?<\/section>/g)]
+        .map((match) => match[1]),
+      ["01", "05", "09", "10", "11"],
+    );
+    assert.equal((source.match(/<section\b/g) || []).length, 5);
+    assert.equal((source.match(/<footer\b/g) || []).length, 1);
+    assert.doesNotMatch(source, /before_after_import|id="jak-to-dziala"|final_wizard|final_import/);
+  });
+
+  it("preserves retained directed starts, analytics events, anchors, and dynamic template count", () => {
     for (const event of [
       "hero_wizard",
       "hero_import",
-      "before_after_import",
       "templates_wizard",
       "pricing_free",
       "pricing_pro",
-      "final_wizard",
-      "final_import",
     ]) {
       assert.match(source, new RegExp(`event=\\"${event}\\"|queueGuestEvent\\(\\"${event}\\"\\)`));
     }
@@ -55,8 +63,8 @@ describe("landing product positioning", () => {
     assert.match(source, /buildStartUrl\("wizard", "free"\)/);
     assert.match(source, /buildStartUrl\("import", "free"\)/);
     assert.match(source, /\{TEMPLATE_COUNT\}/);
-    assert.match(source, /id="jak-to-dziala"/);
     assert.match(source, /id="szablony"/);
+    assert.match(source, /id="privacy"/);
     assert.match(source, /id="cennik"/);
   });
 

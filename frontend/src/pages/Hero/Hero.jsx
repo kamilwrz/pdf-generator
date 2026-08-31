@@ -1,8 +1,7 @@
 /**
  * Conversion-focused marketing landing page for CV Studio.
  *
- * Page order: header → hero → before/after → how it works → document engine →
- * templates → editor → WYSIWYG → AI → privacy → pricing → FAQ → final CTA.
+ * Page order: header → hero → templates → privacy → pricing → FAQ → footer.
  *
  * Two funnels, one consistent primary action ("Stwórz CV za darmo" → wizard)
  * and one secondary ("Wgraj swoje CV" → import):
@@ -37,52 +36,6 @@ const TEMPLATE_PREVIEWS = TEMPLATES.map((template) => ({
 // Dynamic template count keeps the full template gallery and its accessible
 // name aligned with the actual registry.
 const TEMPLATE_COUNT = TEMPLATES.length;
-
-const previewById = (id) => TEMPLATE_PREVIEWS.find((template) => template.id === id);
-
-const HOW_IT_WORKS = [
-    {
-        number: "01",
-        title: "Zbierz treść",
-        text: "Odpowiedz na kilka pytań albo zacznij od CV, które już masz. Nie musisz od razu wybierać stylu ani układać strony.",
-    },
-    {
-        number: "02",
-        title: "Nadaj jej formę",
-        text: "Treść trafia do prawdziwego dokumentu A4. Tu zmieniasz kolejność sekcji, dodajesz wpisy, wybierasz szablon i dopracowujesz sposób, w jaki CV jest czytane.",
-    },
-    {
-        number: "03",
-        title: "Dopracuj, zanim wyślesz",
-        text: "Popraw język, sprawdź długość, wybierz gęstość i styl. Gdy wszystko jest na miejscu, pobierasz dokładnie ten dokument, który widzisz w edytorze.",
-    },
-];
-
-const EDITOR_CAPABILITIES = [
-    {
-        title: "Dokument ma strukturę — i możesz ją zmieniać.",
-        text: "Dodawaj sekcje i wpisy, usuwaj je, zmieniaj kolejność albo przenoś wybrane części między kolumnami.",
-    },
-    {
-        title: "Mniej ścisku albo więcej oddechu — bez przebudowy od zera.",
-        text: "Dostosuj rytm dokumentu jednym wyborem albo dopracuj odstępy precyzyjnie.",
-    },
-    {
-        title: "Styl można zmieniać, nie rozbierając szablonu na części.",
-        text: "W wybranych szablonach zmienisz paletę i skalę typografii. Reszta kompozycji pozostaje spójna.",
-    },
-    {
-        title: "Potrzebujesz więcej swobody? Możesz ją odblokować.",
-        text: "Tryb swobodny daje dostęp do ręcznego układu, tekstu, zdjęć i elementów graficznych. Na co dzień nie musisz z niego korzystać.",
-    },
-];
-
-const AI_CAPABILITIES = [
-    ["Brzmi zbyt ogólnie?", "Popraw styl bez dopisywania nowych faktów."],
-    ["Na stronie zrobiło się za ciasno?", "Skróć tekst dopiero wtedy, gdy sam układ nie wystarcza."],
-    ["Potrzebujesz drugiej wersji językowej?", "Przetłumacz CV, zachowując jego strukturę."],
-    ["Chcesz sprawdzić, jak CV czyta się maszynowo?", "Sprawdź tekst PDF, nagłówki i ogólną czytelność dla ATS."],
-];
 
 function ArrowIcon() {
     return (
@@ -174,16 +127,6 @@ export default function Hero() {
     const demoUrl = getEditorPath({ start: "demo" });
     const proRegisterUrl = "/register?plan=pro";
 
-    // Real template mockups drive every product visual — no stock imagery.
-    const editorMock = previewById("meridian");
-    // A dedicated Sterling render of the SAME CV content shown in the
-    // "before" card (Jan Kowalski) — not a template picker mockup with the
-    // generic demo persona, and not `previewById` (which only resolves the
-    // standard per-template mockup path) — so the before/after pair reads as
-    // one real transformation, not two unrelated documents.
-    const afterMock = { name: "Sterling", image: "/template-mockups/sterling-showcase.png" };
-    const finalDocs = ["regent", "cadenza", "slate"].map(previewById);
-
     return (
         <main className={classes.page}>
             <header className={classes.header}>
@@ -191,7 +134,6 @@ export default function Hero() {
                     <img src="/cv-studio-logo.svg" alt="" />
                 </a>
                 <nav className={classes.navigation} aria-label="Główna nawigacja">
-                    <a href="#jak-to-dziala">Jak to działa</a>
                     <a href="#szablony">Szablony</a>
                     <a href="#cennik">Cennik</a>
                     <Link to="/login">Zaloguj się</Link>
@@ -210,7 +152,7 @@ export default function Hero() {
                     <img src="/women-job-call.png" alt="" />
                 </div>
                 <div className={classes.heroCopy}>
-                    <p className={classes.kicker}>CV gotowe na konkretną rekrutację</p>
+                    <p className={classes.kicker} data-section-index="01">CV gotowe na konkretną rekrutację</p>
                     <h1>
                         <span>Stwórz CV,</span>
                         <em>które prowadzi</em>
@@ -241,96 +183,10 @@ export default function Hero() {
 
             </section>
 
-            <section className={classes.transformation}>
-                <div className={classes.transformationCopy}>
-                    <p className={classes.kicker}>Masz już CV?</p>
-                    <h2>Treść już masz.<br /><em>Nie musisz budować dokumentu od początku.</em></h2>
-                    <p>
-                        Wgraj obecne CV, a jego treść trafi do edytowalnej struktury. Potem
-                        zaczyna się właściwa praca: możesz ją uporządkować, skrócić, przenieść
-                        do innego szablonu i dopracować bez przepisywania wszystkiego od nowa.
-                    </p>
-                    <div className={classes.transformationPoints}>
-                        <span><CheckIcon />Ta sama treść</span>
-                        <span><CheckIcon />Zupełnie inny dokument</span>
-                        <span><CheckIcon />Dalsza edycja bezpośrednio na A4</span>
-                    </div>
-                    <CtaLink to={importUrl} event="before_after_import" variant="link">
-                        Pracuj dalej na swoim CV
-                    </CtaLink>
-                </div>
-                <div className={classes.beforeAfter}>
-                    <article className={classes.beforeCard}>
-                        <div className={classes.documentLabel}><span>PRZED</span> Dotychczasowe CV</div>
-                        <img
-                            className={classes.oldDocument}
-                            src="/images/bad_cv.png"
-                            alt="Przykład dotychczasowego CV w formie zwykłego dokumentu tekstowego"
-                        />
-                        <p>Ta sama treść, tylko trudna do odświeżenia.</p>
-                    </article>
-                    <div className={classes.transformArrow} aria-hidden="true">
-                        <span>Twoje dane</span>
-                        <ArrowIcon />
-                        <span>nowy układ</span>
-                    </div>
-                    <article className={classes.afterCard}>
-                        <div className={classes.documentLabel}><span>PO</span> Wersja w CV Studio</div>
-                        <img src={afterMock.image} alt={`Przykład odświeżonego CV w szablonie ${afterMock.name}`} />
-                        <p>Nowy szablon, te same informacje i dalsza edycja.</p>
-                    </article>
-                </div>
-            </section>
-
-            <section id="jak-to-dziala" className={classes.stepsSection}>
-                <div className={classes.stepsHeading}>
-                    <p className={classes.kicker}>Od treści do dokumentu</p>
-                    <h2>Nie musisz myśleć o CV jak o projekcie graficznym.</h2>
-                    <p className={classes.sectionLead}>
-                        Zaczynasz od tego, co chcesz powiedzieć. CV Studio zajmuje się tym,
-                        jak ta treść ma zachować się na stronie.
-                    </p>
-                </div>
-                <ol className={classes.stepsList}>
-                    {HOW_IT_WORKS.map((step) => (
-                        <li key={step.number}>
-                            <span>{step.number}</span>
-                            <div>
-                                <h3>{step.title}</h3>
-                                <p>{step.text}</p>
-                            </div>
-                        </li>
-                    ))}
-                </ol>
-            </section>
-
-            <section className={classes.documentEngineSection}>
-                <div className={classes.documentEngineIntro}>
-                    <p className={classes.kicker}>Dokument, który reaguje na treść</p>
-                    <h2>Dopisujesz jedno zdanie.<br /><em>Reszta CV wie, co z nim zrobić.</em></h2>
-                </div>
-                <div className={classes.documentEngineBody}>
-                    <p>
-                        Tekst rośnie, rekordy się przesuwają, sekcje przechodzą na kolejną
-                        stronę. CV Studio przelicza układ po zmianach, pilnuje integralności
-                        wpisów i nie zostawia nagłówków samotnie na końcu strony.
-                    </p>
-                    <p>
-                        Jeśli CV robi się za długie, najpierw szukamy miejsca w samym układzie.
-                        Dopiero gdy to nie wystarcza, możesz poprosić AI o skrócenie treści.
-                    </p>
-                    <ul className={classes.documentEngineSignals}>
-                        <li>Więcej treści <ArrowIcon /> układ przelicza strony</li>
-                        <li>Mniej treści <ArrowIcon /> dokument odzyskuje oddech</li>
-                        <li>Za długie CV <ArrowIcon /> najpierw układ, potem AI</li>
-                    </ul>
-                </div>
-            </section>
-
             <section id="szablony" className={classes.templatesSection}>
                 <div className={classes.templatesHeader}>
                     <div>
-                        <p className={classes.kicker}>Szablony, nie klatki</p>
+                        <p className={classes.kicker} data-section-index="05">Szablony, nie klatki</p>
                         <h2>Zmieniasz charakter dokumentu.<br /><em>Nie zaczynasz od nowa.</em></h2>
                     </div>
                     <p>
@@ -389,81 +245,9 @@ export default function Hero() {
                 </CtaLink>
             </section>
 
-            <section className={classes.editorSection}>
-                <div className={classes.editorVisual}>
-                    <div className={classes.editorCaption}>Edytor CV / A4</div>
-                    <div className={classes.editorMock}>
-                        <img
-                            src={editorMock.image}
-                            alt={`Dokument CV w edytorze A4 — szablon ${editorMock.name}`}
-                            loading="lazy"
-                        />
-                    </div>
-                    <span className={`${classes.aiCard} ${classes.aiCardOne}`}>Sekcje i wpisy</span>
-                    <span className={`${classes.aiCard} ${classes.aiCardTwo}`}>Rytm dokumentu</span>
-                    <span className={`${classes.aiCard} ${classes.aiCardThree}`}>Tryb swobodny</span>
-                </div>
-                <div className={classes.editorContent}>
-                    <p className={classes.kicker}>Edycja bezpośrednio na A4</p>
-                    <h2>Klikasz w CV i zmieniasz właśnie to, co widzisz.</h2>
-                    <p className={classes.editorLead}>
-                        Nie edytujesz formularza obok podglądu. Pracujesz bezpośrednio na
-                        stronie: zmieniasz tekst, dodajesz doświadczenia i sekcje, porządkujesz
-                        ich kolejność i obserwujesz, jak dokument układa się razem z treścią.
-                    </p>
-                    <div className={classes.capabilityList}>
-                        {EDITOR_CAPABILITIES.map((capability) => (
-                            <article key={capability.title}>
-                                <span><CheckIcon /></span>
-                                <div>
-                                    <h3>{capability.title}</h3>
-                                    <p>{capability.text}</p>
-                                </div>
-                            </article>
-                        ))}
-                    </div>
-                </div>
-            </section>
-
-            <section className={classes.wysiwygSection}>
-                <div>
-                    <p className={classes.kicker}>Od podglądu do PDF</p>
-                    <h2>Podgląd nie jest przybliżeniem.<br /><em>Jest dokumentem.</em></h2>
-                </div>
-                <div className={classes.wysiwygCopy}>
-                    <p>
-                        Pracujesz na stronie A4 w tych samych proporcjach, które trafiają do
-                        eksportu. Nie odkrywasz po pobraniu, że tekst przesunął się, sekcja
-                        zmieniła stronę albo font zachował się inaczej.
-                    </p>
-                    <strong>To, co widzisz <ArrowIcon /> to pobierasz.</strong>
-                </div>
-            </section>
-
-            <section className={classes.aiSection}>
-                <div className={classes.aiIntro}>
-                    <p className={classes.kicker}>AI, tam gdzie ma sens</p>
-                    <h2>Nie oddawaj AI całego CV.<br /><em>Daj mu konkretne zadanie.</em></h2>
-                    <p>
-                        W planie Pro poprawiasz konkretny fragment, skracasz opis albo
-                        przygotowujesz tłumaczenie. AI pracuje nad słowami — geometria CV
-                        pozostaje zadaniem edytora.
-                    </p>
-                </div>
-                <div className={classes.aiCapabilityGrid}>
-                    {AI_CAPABILITIES.map(([title, text], index) => (
-                        <article key={title}>
-                            <span>0{index + 1}</span>
-                            <h3>{title}</h3>
-                            <p>{text}</p>
-                        </article>
-                    ))}
-                </div>
-            </section>
-
             <section id="privacy" className={classes.trustStrip}>
                 <div className={classes.trustHeading}>
-                    <p className={classes.kicker}>CV to prywatny dokument</p>
+                    <p className={classes.kicker} data-section-index="09">CV to prywatny dokument</p>
                     <h2>Twoje dokumenty nie są publiczne.</h2>
                     <p>
                         Dostęp do zapisanych CV i zdjęć jest przypisany do konta, a historia
@@ -479,7 +263,7 @@ export default function Hero() {
 
             <section id="cennik" className={classes.pricingSection}>
                 <div className={classes.pricingHeading}>
-                    <p className={classes.kicker}>Cennik</p>
+                    <p className={classes.kicker} data-section-index="10">Cennik</p>
                     <h2>Gotowe CV za 0 zł.<br /><em>Pro, gdy potrzebujesz więcej wersji.</em></h2>
                     <p>
                         Plan Darmowy wystarcza, by stworzyć jedno kompletne CV i pobrać czysty PDF.
@@ -526,7 +310,7 @@ export default function Hero() {
 
             <section className={classes.faqSection}>
                 <div>
-                    <p className={classes.kicker}>FAQ</p>
+                    <p className={classes.kicker} data-section-index="11">FAQ</p>
                     <h2>Najczęstsze pytania</h2>
                 </div>
                 <div className={classes.faqList}>
@@ -565,37 +349,6 @@ export default function Hero() {
                 </div>
             </section>
 
-            <section className={classes.finalCta}>
-                <div className={classes.finalCtaInner}>
-                    <div className={classes.finalCtaCopy}>
-                        <p className={classes.kicker}>Twoja następna wersja</p>
-                        <h2>Poświęć czas treści.<br /><em>Nie walce z dokumentem.</em></h2>
-                        <p>
-                            Zacznij od kilku kroków albo od CV, które już masz. Gdy treść będzie
-                            gotowa, CV Studio pomoże nadać jej formę, którą możesz naprawdę wysłać.
-                        </p>
-                        <div className={classes.finalActions}>
-                            <CtaLink to={wizardUrl} event="final_wizard">Stwórz CV za darmo</CtaLink>
-                            <CtaLink to={importUrl} event="final_import" variant="link">
-                                Mam już CV — wgraj PDF
-                            </CtaLink>
-                        </div>
-                        <p className={classes.finalFootnote}>Bez karty · Pro nie odnawia się automatycznie</p>
-                    </div>
-                    <div className={classes.finalStack} aria-hidden="true">
-                        {finalDocs.map((doc, index) => (
-                            <img
-                                key={doc.id}
-                                src={doc.image}
-                                alt=""
-                                loading="lazy"
-                                className={classes[`finalDoc${index + 1}`]}
-                            />
-                        ))}
-                    </div>
-                </div>
-            </section>
-
             <footer className={classes.footer}>
                 <div className={classes.footerTop}>
                     <div>
@@ -617,7 +370,6 @@ export default function Hero() {
                     <nav className={classes.footerNav} aria-label="Stopka">
                         <div className={classes.footerCol}>
                             <p className={classes.footerColTitle}>Produkt</p>
-                            <a href="#jak-to-dziala">Jak to działa</a>
                             <a href="#szablony">Szablony</a>
                             <a href="#cennik">Cennik</a>
                         </div>
