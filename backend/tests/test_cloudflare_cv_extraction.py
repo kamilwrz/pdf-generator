@@ -276,6 +276,55 @@ def _overlapping_native_text_cv_pdf_bytes() -> bytes:
     return data
 
 
+def _hidden_summary_under_skills_panel_pdf_bytes() -> bytes:
+    """Build a Canva-like sidebar with invisible black text on black fill."""
+    document = fitz.open()
+    page = document.new_page()
+    page.insert_text((36, 60), "O MNIE", fontsize=10, fontname="hebo")
+    page.insert_text(
+        (36, 82),
+        "Widoczne podsumowanie kandydatki.",
+        fontsize=10,
+    )
+
+    page.draw_rect(
+        fitz.Rect(20, 180, 250, 500),
+        color=None,
+        fill=(0, 0, 0),
+        width=0,
+    )
+    # Canva can leave a duplicated source text box in the PDF. The copy is
+    # technically extractable but visually absent because it matches the panel.
+    page.insert_text(
+        (36, 248),
+        "Widoczne podsumowanie kandydatki.",
+        fontsize=10,
+        color=(0, 0, 0),
+    )
+    page.insert_text(
+        (36, 210),
+        "UMIEJETNOSCI",
+        fontsize=10,
+        fontname="hebo",
+        color=(1, 1, 1),
+    )
+    page.insert_text((55, 232), "Art Direction", fontsize=10, color=(1, 1, 1))
+    page.insert_text((55, 248), "Visual Storytelling", fontsize=10, color=(1, 1, 1))
+    page.insert_text((55, 264), "Adobe Photoshop", fontsize=10, color=(1, 1, 1))
+    page.insert_text(
+        (36, 310),
+        "JEZYKI",
+        fontsize=10,
+        fontname="hebo",
+        color=(1, 1, 1),
+    )
+    page.insert_text((55, 332), "Angielski - C1", fontsize=10, color=(1, 1, 1))
+
+    data = document.tobytes()
+    document.close()
+    return data
+
+
 def _response(payload: dict | str):
     """Return the minimal OpenAI-compatible response consumed by the service."""
     content = payload if isinstance(payload, str) else json.dumps(payload)
@@ -936,6 +985,49 @@ class CloudflareCvExtractionTests(unittest.TestCase):
             }],
         )
         self.assertEqual(fields, ["skills", "driving_license"])
+
+    def test_same_colour_text_under_sidebar_panel_is_ignored(self):
+        """Invisible Canva text must not contaminate the visible Skills list."""
+        pages = ai_service._pdf_text_pages(
+            _hidden_summary_under_skills_panel_pdf_bytes()
+        )
+        sections = {
+            section["kind"]: section
+            for section in pages[0]["sections"]
+        }
+
+        self.assertEqual(
+            sections["summary"]["body"],
+            "Widoczne podsumowanie kandydatki.",
+        )
+        self.assertEqual(
+            sections["skills"]["body"].splitlines(),
+            ["Art Direction", "Visual Storytelling", "Adobe Photoshop"],
+        )
+        self.assertEqual(
+            pages[0]["plain_text"].count("Widoczne podsumowanie kandydatki."),
+            1,
+        )
+
+        grounded, fields = ai_service.ground_cv_data_from_source(
+            {
+                "name": "Anna Walczak",
+                "summary": "incomplete model value",
+                "skills": ["incomplete model value"],
+                "languages": [],
+            },
+            pages,
+        )
+        self.assertEqual(
+            grounded["summary"],
+            "Widoczne podsumowanie kandydatki.",
+        )
+        self.assertEqual(
+            grounded["skills"],
+            ["Art Direction", "Visual Storytelling", "Adobe Photoshop"],
+        )
+        self.assertEqual(grounded["languages"], ["Angielski - C1"])
+        self.assertEqual(fields, ["summary", "skills", "languages"])
 
     def test_fragmented_skill_row_and_courses_are_grounded_to_their_sections(self):
         """Source geometry must undo model cross-contamination between sections."""

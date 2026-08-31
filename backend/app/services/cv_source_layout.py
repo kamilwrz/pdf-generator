@@ -255,6 +255,102 @@ def _join_spans(spans: list[dict[str, Any]]) -> str:
     return _collapse("".join(fragments))
 
 
+def _relative_luminance(color: tuple[float, float, float]) -> float:
+    """Return WCAG relative luminance for an sRGB colour in the 0..1 range."""
+    linear = [
+        channel / 12.92
+        if channel <= 0.04045
+        else ((channel + 0.055) / 1.055) ** 2.4
+        for channel in color
+    ]
+    return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2]
+
+
+def _contrast_ratio(
+    first: tuple[float, float, float],
+    second: tuple[float, float, float],
+) -> float:
+    """Return the WCAG contrast ratio between two opaque sRGB colours."""
+    first_luminance = _relative_luminance(first)
+    second_luminance = _relative_luminance(second)
+    lighter = max(first_luminance, second_luminance)
+    darker = min(first_luminance, second_luminance)
+    return (lighter + 0.05) / (darker + 0.05)
+
+
+def _opaque_rect_fills(
+    page: fitz.Page,
+) -> list[tuple[fitz.Rect, tuple[float, float, float]]]:
+    """Return solid rectangular page fills that can act as text backgrounds.
+
+    Restricting the check to one-item rectangle paths avoids treating the
+    bounding boxes of decorative polygons as filled backgrounds. The smallest
+    containing rectangle later wins, so a local sidebar panel takes precedence
+    over the page-wide canvas colour.
+    """
+    fills: list[tuple[fitz.Rect, tuple[float, float, float]]] = []
+    for drawing in page.get_drawings():
+        fill = drawing.get("fill")
+        items = drawing.get("items") or []
+        if (
+            fill is None
+            or len(fill) != 3
+            or float(drawing.get("fill_opacity") or 0) < 0.99
+            or len(items) != 1
+            or items[0][0] != "re"
+        ):
+            continue
+        rect = fitz.Rect(drawing.get("rect"))
+        if rect.is_empty or rect.get_area() <= 0:
+            continue
+        fills.append((rect, tuple(float(channel) for channel in fill)))
+    return fills
+
+
+def _line_is_visible(
+    spans: list[dict[str, Any]],
+    bbox: tuple[float, float, float, float],
+    background_fills: list[tuple[fitz.Rect, tuple[float, float, float]]],
+) -> bool:
+    """Reject transparent or same-colour text hidden inside a solid panel.
+
+    Canva can retain an earlier text box after covering it with a new sidebar.
+    Such text remains extractable even though its colour matches the panel and
+    it is invisible to the user. Keeping it lets deterministic grounding copy
+    a hidden Summary paragraph into Skills. A line is removed only when every
+    non-transparent span has negligible contrast against a solid rectangle
+    that fully contains the line; text over images and complex artwork remains
+    untouched because its background cannot be established safely.
+    """
+    opaque_spans = [
+        span
+        for span in spans
+        if _collapse(span.get("text")) and int(span.get("alpha", 255)) > 2
+    ]
+    if not opaque_spans:
+        return False
+
+    line_rect = fitz.Rect(bbox)
+    containing_fills = [
+        (rect, color)
+        for rect, color in background_fills
+        if rect.contains(line_rect)
+    ]
+    if not containing_fills:
+        return True
+    _rect, background_color = min(
+        containing_fills,
+        key=lambda candidate: candidate[0].get_area(),
+    )
+
+    for span in opaque_spans:
+        red, green, blue = fitz.sRGB_to_rgb(int(span.get("color") or 0))
+        text_color = (red / 255, green / 255, blue / 255)
+        if _contrast_ratio(text_color, background_color) >= 1.15:
+            return True
+    return False
+
+
 def _page_lines(page: fitz.Page) -> list[dict[str, Any]]:
     """Extract and reassemble visual lines with geometry and type information.
 
@@ -266,6 +362,7 @@ def _page_lines(page: fitz.Page) -> list[dict[str, Any]]:
     gap; the larger gutter between real CV columns remains a hard boundary.
     """
     lines: list[dict[str, Any]] = []
+    background_fills = _opaque_rect_fills(page)
     page_dict = page.get_text("dict", sort=False)
     for block_index, block in enumerate(page_dict.get("blocks") or []):
         if block.get("type") != 0:
@@ -276,6 +373,8 @@ def _page_lines(page: fitz.Page) -> list[dict[str, Any]]:
             if not text:
                 continue
             bbox = tuple(float(value) for value in (line.get("bbox") or (0, 0, 0, 0)))
+            if not _line_is_visible(spans, bbox, background_fills):
+                continue
             lines.append({
                 "text": text,
                 "x0": bbox[0],
