@@ -113,6 +113,15 @@ class RegentTemplateTests(unittest.TestCase):
         self.assertEqual(summary["fontFamily"], "Montserrat")
         self.assertEqual(summary["color"], "#151515")
 
+        appearance_anchor = next(
+            element for element in elements
+            if element.get("appearanceTemplateId") == "regent"
+        )
+        self.assertEqual(
+            appearance_anchor["appearanceSettings"],
+            {"palette": "monochrome", "textSize": "M"},
+        )
+
         icons = [element for element in elements if element["category"] == "image"]
         self.assertEqual(len(icons), 4)
         self.assertTrue(all("/template-assets/iconic/regent/" in element["src"] for element in icons))

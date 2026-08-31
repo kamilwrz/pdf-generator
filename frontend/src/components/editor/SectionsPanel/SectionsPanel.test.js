@@ -42,6 +42,9 @@ test("appearance presents template-specific palettes, reviewed previews, and tex
   assert.match(source, /CADENZA_PALETTES/);
   assert.match(source, /VELLUM_PALETTES/);
   assert.match(source, /ATRIUM_PALETTES/);
+  assert.match(source, /REGENT_PALETTES/);
+  assert.match(source, /activeTemplateId === "regent"/);
+  assert.match(source, /applyRegentPalette/);
   assert.match(source, /palettePaperMonument/);
   assert.match(source, /palettePaperLinden/);
   assert.match(source, /paletteLindenJob/);

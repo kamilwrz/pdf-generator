@@ -24,7 +24,12 @@ const REGENT_ELEMENTS = [
     "backgroundColor": "#FFFFFF",
     "zIndex": 0,
     "page": 1,
-    "fixedToPage": true
+    "fixedToPage": true,
+    "appearanceTemplateId": "regent",
+    "appearanceSettings": {
+      "palette": "monochrome",
+      "textSize": "M"
+    }
   },
   {
     "category": "text",

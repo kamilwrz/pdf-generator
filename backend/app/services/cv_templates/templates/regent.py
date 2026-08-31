@@ -237,12 +237,19 @@ def _gen_regent(cv: dict) -> list[dict]:
     pages_used = max([element.get("page", 1) for element in header + flow] or [1])
     decorations: list[dict] = []
     for page in range(1, pages_used + 1):
-        decorations.append(
-            {
-                **_line(0, 0, 595, 842, C["paper"], zIndex=0, page=page),
-                "fixedToPage": True,
-            }
-        )
+        page_surface = {
+            **_line(0, 0, 595, 842, C["paper"], zIndex=0, page=page),
+            "fixedToPage": True,
+        }
+        # Persist the original Regent edition on page one. Continuation-page
+        # surfaces remain ordinary fixed chrome; appearance switching recolors
+        # all of them while this single anchor stores the user's selection.
+        if page == 1:
+            page_surface.update({
+                "appearanceTemplateId": "regent",
+                "appearanceSettings": {"palette": "monochrome", "textSize": "M"},
+            })
+        decorations.append(page_surface)
         decorations.append(
             {
                 **_text(f"{page:02d}", 8, SANS, C["muted"], 510, 806, zIndex=2, page=page),

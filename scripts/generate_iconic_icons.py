@@ -17,7 +17,14 @@ THEMES = {
     # monochrome while retaining independently editable contact channels.
     "regent": "#151515",
 }
-THEME_VARIANTS = {}
+THEME_VARIANTS = {
+    # Regent's complete icon vocabulary is available to user-added sections,
+    # not only to the authored contact row. Generate every glyph for each
+    # edition so changing palette can never leave a broken section icon.
+    "regent-ivory": "#765536",
+    "regent-sapphire": "#E2BD72",
+    "regent-burgundy": "#E6BE78",
+}
 # Full Iconic themes normally receive the base glyph set. Nova additionally
 # uses the portrait placeholder inside its masthead photo frame.
 THEME_EXTRA_ICONS = {}

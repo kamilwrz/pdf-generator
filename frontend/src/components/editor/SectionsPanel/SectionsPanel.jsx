@@ -1,7 +1,8 @@
 /**
  * Template-mode customization panel ("Dostosuj CV"): document status, section
  * structure, density presets, precise spacing, and template-scoped appearance
- * tools for Atrium, Sterling, Linden, Monument, Slate, Meridian, Cadenza, and Vellum. A
+ * tools for Atrium, Regent, Sterling, Linden, Monument, Slate, Meridian,
+ * Cadenza, and Vellum. A
  * main-column Skills section's list row also gets a layout icon opening
  * `SkillsLayoutModal` (same modal the canvas heading hover control opens —
  * see `SectionRecordAdd`), so the mode picker is reachable without hunting
@@ -116,6 +117,16 @@ import {
   applyAtriumTextSizeLayout,
 } from "../../../utils/atriumTypographyLayout";
 import {
+  applyRegentPalette,
+  getRegentAppearance,
+  REGENT_PALETTES,
+  REGENT_TEXT_SIZES,
+} from "../../../utils/regentAppearance";
+import {
+  applyRegentRenderedHeightsLayout,
+  applyRegentTextSizeLayout,
+} from "../../../utils/regentTypographyLayout";
+import {
   createCanvasTextWidthMeasurer,
   measureNaturalScrollHeight,
 } from "../../../utils/textareaHeight";
@@ -224,7 +235,9 @@ export default function SectionsPanel({ onClose }) {
   const isCadenzaAppearance = activeTemplateId === "cadenza";
   const isVellumAppearance = activeTemplateId === "vellum";
   const isAtriumAppearance = activeTemplateId === "atrium";
+  const isRegentAppearance = activeTemplateId === "regent";
   const appearanceEnabled = isAtriumAppearance
+    || isRegentAppearance
     || isSterlingAppearance
     || isLindenAppearance
     || isMonumentAppearance
@@ -234,6 +247,16 @@ export default function SectionsPanel({ onClose }) {
     || isVellumAppearance;
   const renderedTab = appearanceEnabled ? activeTab : "layout";
   const appearanceDefinition = useMemo(() => {
+    if (isRegentAppearance) return {
+      templateName: "Regent",
+      palettes: REGENT_PALETTES,
+      textSizes: REGENT_TEXT_SIZES,
+      value: getRegentAppearance(A4_Elements),
+      applyPalette: applyRegentPalette,
+      applyTextSizeLayout: applyRegentTextSizeLayout,
+      applyRenderedHeightsLayout: applyRegentRenderedHeightsLayout,
+      paletteDescription: "Dwie klasyczne edycje zachowują jasny papier. Dwie kreatywne łączą głęboki kolor tła, jasną typografię i szlachetny złoty akcent.",
+    };
     if (isAtriumAppearance) return {
       templateName: "Atrium",
       palettes: ATRIUM_PALETTES,
@@ -311,7 +334,7 @@ export default function SectionsPanel({ onClose }) {
       applyTextSizeLayout: applySterlingTextSizeLayout,
       applyRenderedHeightsLayout: applySterlingRenderedHeightsLayout,
     };
-  }, [A4_Elements, isAtriumAppearance, isCadenzaAppearance, isLindenAppearance, isMeridianAppearance, isMonumentAppearance, isSlateAppearance, isVellumAppearance]);
+  }, [A4_Elements, isAtriumAppearance, isCadenzaAppearance, isLindenAppearance, isMeridianAppearance, isMonumentAppearance, isRegentAppearance, isSlateAppearance, isVellumAppearance]);
 
   useEffect(() => {
     if (!onClose) return undefined;
@@ -543,7 +566,7 @@ export default function SectionsPanel({ onClose }) {
                 <p>{appearanceDefinition.paletteDescription
                   ?? "Każdy wariant zmienia papier, tekst, dekoracje i dopasowany zestaw ikon."}</p>
               </div>
-              <div className={classes.paletteGrid} role="radiogroup" aria-labelledby="appearance-palette-heading">
+              <div className={`${classes.paletteGrid} ${isRegentAppearance ? classes.paletteGridRegent : ""}`} role="radiogroup" aria-labelledby="appearance-palette-heading">
                 {appearanceDefinition.palettes.map((palette) => {
                   const selected = appearanceDefinition.value.palette === palette.id;
                   const cardStyle = {
@@ -578,11 +601,22 @@ export default function SectionsPanel({ onClose }) {
                       onClick={() => handleAppearancePalette(palette.id)}
                     >
                       <span
-                        className={`${classes.palettePaper} ${isAtriumAppearance ? classes.palettePaperAtrium : ""} ${isLindenAppearance ? classes.palettePaperLinden : ""} ${isMonumentAppearance ? classes.palettePaperMonument : ""} ${isSlateAppearance ? classes.palettePaperSlate : ""} ${isMeridianAppearance ? classes.palettePaperMeridian : ""} ${isCadenzaAppearance ? classes.palettePaperCadenza : ""} ${isVellumAppearance ? classes.palettePaperVellum : ""}`}
+                        className={`${classes.palettePaper} ${isAtriumAppearance ? classes.palettePaperAtrium : ""} ${isRegentAppearance ? classes.palettePaperRegent : ""} ${isLindenAppearance ? classes.palettePaperLinden : ""} ${isMonumentAppearance ? classes.palettePaperMonument : ""} ${isSlateAppearance ? classes.palettePaperSlate : ""} ${isMeridianAppearance ? classes.palettePaperMeridian : ""} ${isCadenzaAppearance ? classes.palettePaperCadenza : ""} ${isVellumAppearance ? classes.palettePaperVellum : ""}`}
                         style={cardStyle}
                         aria-hidden="true"
                       >
-                        {isAtriumAppearance ? (
+                        {isRegentAppearance ? (
+                          <>
+                            <span className={classes.paletteRegentName} />
+                            <span className={classes.paletteRegentJob} />
+                            <span className={classes.paletteRegentContacts} />
+                            <span className={classes.paletteRegentMastheadRule} />
+                            <span className={classes.paletteRegentHeading} />
+                            <span className={classes.paletteRegentSectionRule} />
+                            <span className={classes.paletteRegentCopy} />
+                            <span className={classes.paletteRegentFolio} />
+                          </>
+                        ) : isAtriumAppearance ? (
                           <>
                             <span className={classes.paletteAtriumName} />
                             <span className={classes.paletteAtriumJob} />

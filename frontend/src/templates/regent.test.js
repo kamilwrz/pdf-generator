@@ -15,6 +15,8 @@ test("Regent preserves its monochrome editorial hierarchy", () => {
         (element) => element.fixedToPage && element.width === 595 && element.height === 842,
     );
     assert.equal(pageSurface?.backgroundColor, "#FFFFFF");
+    assert.equal(pageSurface?.appearanceTemplateId, "regent");
+    assert.deepEqual(pageSurface?.appearanceSettings, { palette: "monochrome", textSize: "M" });
 
     const summary = regentTemplate.find(
         (element) =>
