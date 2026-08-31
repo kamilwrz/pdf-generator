@@ -82,6 +82,23 @@ test("bulk B/I/U toggles stay visible for a multi-selection even when an element
   assert.match(source, /TEXT_STYLE_KEYS = new Set\(\["bold", "italic", "underline"\]\)/);
   assert.match(
     source,
-    /TEXT_STYLE_KEYS\.has\(key\)\s*\n?\s*\? \(element\.category === "text" \|\| element\.category === "textarea"\)/,
+    /TEXT_STYLE_KEYS\.has\(key\)[\s\S]*TEXT_ELEMENT_CATEGORIES\.has\(element\.category\)/,
   );
+});
+
+test("bulk textarea spacing controls stay visible and update the whole selection", async () => {
+  // Generated and legacy textareas are allowed to omit default typography
+  // keys. Capability therefore follows the category, while a mixed selection
+  // is represented by an empty number input until the user enters one value
+  // that is then committed through the selected-elements update path.
+  const source = await readFile(new URL("./Editor.jsx", import.meta.url), "utf8");
+
+  assert.match(source, /key === "lineHeight"\s*\n?\s*\? element\.category === "textarea"/);
+  assert.match(source, /key === "letterSpacing"[\s\S]*TEXT_ELEMENT_CATEGORIES\.has\(element\.category\)/);
+  assert.match(source, /<Group label="Odstępy zaznaczenia">/);
+  assert.match(source, /value=\{isValueMixed\("lineHeight"\) \? "" : valueForField\("lineHeight"\)\}/);
+  assert.match(source, /onChange=\{\(e\) => onChangeValue\(e, "lineHeight"\)\}/);
+  assert.match(source, /value=\{isValueMixed\("letterSpacing"\) \? "" : valueForField\("letterSpacing"\)\}/);
+  assert.match(source, /onChange=\{\(e\) => onChangeValue\(e, "letterSpacing"\)\}/);
+  assert.match(source, /editSelectedElementValues\(\{ \[identifier\]: value \}\)/);
 });

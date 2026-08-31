@@ -248,20 +248,20 @@ export default function Editor() {
     editElementValues({ [key]: !selectedElement[key] }, selectedElement.element_id);
   }
 
-  // Bold/italic/underline are text-styling toggles applicable to every
-  // text/textarea element, but the backend generators only ever serialize
-  // `bold`/`italic` on `_text()` primitives — `underline` is never set at
-  // all (it stays implicitly false). A strict `hasOwnProperty` check made
-  // the whole B/I/U row vanish from the bulk toolbar whenever a selection
-  // included any such element (e.g. two section headings), even though a
-  // single selected element shows the same toggles unconditionally. For
-  // these three keys, "supported" means "is a text-bearing element", not
-  // "already carries this exact property key".
+  // Text formatting support is defined by the element category rather than
+  // by keys already serialized on a particular document. Older templates and
+  // generated elements may omit false/zero/default properties. Treating those
+  // omissions as unsupported made valid bulk controls disappear. `lineHeight`
+  // stays textarea-only because single-line `text` uses a fixed canvas line
+  // box, while tracking and B/I/U are valid for both text-bearing categories.
+  const TEXT_ELEMENT_CATEGORIES = new Set(["text", "textarea"]);
   const TEXT_STYLE_KEYS = new Set(["bold", "italic", "underline"]);
   const supportsBulkField = (key) => selectedElements.every((element) => (
-    TEXT_STYLE_KEYS.has(key)
-      ? (element.category === "text" || element.category === "textarea")
-      : Object.prototype.hasOwnProperty.call(element, key)
+    key === "lineHeight"
+      ? element.category === "textarea"
+      : (key === "letterSpacing" || TEXT_STYLE_KEYS.has(key))
+        ? TEXT_ELEMENT_CATEGORIES.has(element.category)
+        : Object.prototype.hasOwnProperty.call(element, key)
   ));
   const bulkValue = (key) => selectedElements[0]?.[key] ?? "";
   const isBulkValueMixed = (key) => selectedElements.some((element) => (
@@ -1293,6 +1293,32 @@ function BulkToolbar({
                 label="Kolor tekstu"
                 value={valueForField("color")}
                 onChange={(e) => onChangeValue(e, "color")}
+              />
+            )}
+          </Group>
+        </>
+      )}
+      {(supportsField("lineHeight") || supportsField("letterSpacing")) && (
+        <>
+          <Sep />
+          <Group label="Odstępy zaznaczenia">
+            {supportsField("lineHeight") && (
+              <NumField
+                label="Odstęp między wierszami"
+                icon={<MdFormatLineSpacing />}
+                value={isValueMixed("lineHeight") ? "" : valueForField("lineHeight")}
+                onChange={(e) => onChangeValue(e, "lineHeight")}
+                width={34}
+              />
+            )}
+            {supportsField("letterSpacing") && (
+              <NumField
+                label="Odstęp między znakami"
+                icon={<RxLetterSpacing />}
+                value={isValueMixed("letterSpacing") ? "" : valueForField("letterSpacing")}
+                onChange={(e) => onChangeValue(e, "letterSpacing")}
+                width={32}
+                step={0.1}
               />
             )}
           </Group>
