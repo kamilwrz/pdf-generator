@@ -22,6 +22,8 @@ THEME_VARIANTS = {
     # not only to the authored contact row. Generate every glyph for each
     # edition so changing palette can never leave a broken section icon.
     "regent-ivory": "#765536",
+    "regent-pearl": "#355D73",
+    "regent-sage": "#466049",
     "regent-sapphire": "#E2BD72",
     "regent-burgundy": "#E6BE78",
 }

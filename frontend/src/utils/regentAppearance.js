@@ -1,8 +1,8 @@
 /**
  * Premium appearance system for the Regent CV template.
  *
- * Regent keeps one editorial geometry while four curated editions change the
- * paper, semantic text hierarchy, rules, folio, and real raster icons. Two
+ * Regent keeps one editorial geometry while six curated editions change the
+ * paper, semantic text hierarchy, rules, folio, and real raster icons. Four
  * editions remain classically light; two use deep coloured paper with a warm
  * metallic accent. Unknown user-assigned colours are never overwritten.
  */
@@ -43,6 +43,38 @@ export const REGENT_PALETTES = Object.freeze([
       rule: "#C9BEAE",
       accent: "#765536",
       folio: "#765536",
+    },
+  },
+  {
+    id: "pearl",
+    name: "Perłowa Kancelaria",
+    tagline: "Klasyczna · chłodna elegancja",
+    group: "classic",
+    iconTheme: "regent-pearl",
+    colors: {
+      paper: "#EEF2F4",
+      ink: "#172630",
+      body: "#2E3D46",
+      muted: "#5B6971",
+      rule: "#B8C4C9",
+      accent: "#355D73",
+      folio: "#355D73",
+    },
+  },
+  {
+    id: "sage",
+    name: "Szałwiowe Archiwum",
+    tagline: "Klasyczna · mineralna zieleń",
+    group: "classic",
+    iconTheme: "regent-sage",
+    colors: {
+      paper: "#EEF0E8",
+      ink: "#20271F",
+      body: "#343E34",
+      muted: "#5E695C",
+      rule: "#BFC6B8",
+      accent: "#466049",
+      folio: "#466049",
     },
   },
   {

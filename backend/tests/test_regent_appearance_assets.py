@@ -9,6 +9,8 @@ ASSET_ROOT = Path(__file__).parents[1] / "template_assets" / "iconic"
 PALETTE_ICON_COLORS = {
     "regent": "#151515",
     "regent-ivory": "#765536",
+    "regent-pearl": "#355D73",
+    "regent-sage": "#466049",
     "regent-sapphire": "#E2BD72",
     "regent-burgundy": "#E6BE78",
 }

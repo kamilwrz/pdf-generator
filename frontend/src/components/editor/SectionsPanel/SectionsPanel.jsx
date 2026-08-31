@@ -255,7 +255,7 @@ export default function SectionsPanel({ onClose }) {
       applyPalette: applyRegentPalette,
       applyTextSizeLayout: applyRegentTextSizeLayout,
       applyRenderedHeightsLayout: applyRegentRenderedHeightsLayout,
-      paletteDescription: "Dwie klasyczne edycje zachowują jasny papier. Dwie kreatywne łączą głęboki kolor tła, jasną typografię i szlachetny złoty akcent.",
+      paletteDescription: "Cztery klasyczne edycje korzystają z jasnych papierów. Dwie kreatywne łączą głęboki kolor tła, jasną typografię i szlachetny złoty akcent.",
     };
     if (isAtriumAppearance) return {
       templateName: "Atrium",

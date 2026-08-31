@@ -37,15 +37,15 @@ function geometry(elements) {
   }));
 }
 
-test("Regent exposes two classic and two creative premium editions", () => {
+test("Regent exposes four classic and two creative premium editions", () => {
   assert.deepEqual(
     REGENT_PALETTES.map(({ id }) => id),
-    ["monochrome", "ivory", "sapphire", "burgundy"],
+    ["monochrome", "ivory", "pearl", "sage", "sapphire", "burgundy"],
   );
-  assert.equal(REGENT_PALETTES.filter(({ group }) => group === "classic").length, 2);
+  assert.equal(REGENT_PALETTES.filter(({ group }) => group === "classic").length, 4);
   assert.equal(REGENT_PALETTES.filter(({ group }) => group === "creative").length, 2);
-  assert.equal(new Set(REGENT_PALETTES.map(({ name }) => name)).size, 4);
-  assert.equal(new Set(REGENT_PALETTES.map(({ iconTheme }) => iconTheme)).size, 4);
+  assert.equal(new Set(REGENT_PALETTES.map(({ name }) => name)).size, 6);
+  assert.equal(new Set(REGENT_PALETTES.map(({ iconTheme }) => iconTheme)).size, 6);
   assert.ok(REGENT_PALETTES.filter(({ group }) => group === "creative").every(
     ({ colors }) => relativeLuminance(colors.paper) < 0.06,
   ));
