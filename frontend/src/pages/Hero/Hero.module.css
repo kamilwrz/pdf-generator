@@ -169,9 +169,7 @@
 /* Accent phrases are set as solid ink highlight blocks with paper text — the
    single boldest typographic gesture on the page, echoing Swiss poster
    lettering. `box-decoration-break: clone` keeps the block intact when a phrase
-   wraps across lines. The inset taupe bar adds the one warm accent along the
-   baseline without ever carrying text meaning, so contrast stays paper-on-ink
-   (AAA). */
+   wraps across lines. */
 .hero h1 em,
 .pricingHeading h2 em {
     font-style: normal;
@@ -179,9 +177,14 @@
     color: var(--paper);
     background: var(--ink);
     padding: 0 .16em .04em;
-    box-shadow: inset 0 -.16em 0 var(--taupe);
     -webkit-box-decoration-break: clone;
     box-decoration-break: clone;
+}
+
+/* Pricing retains its restrained warm baseline; the outcome-led hero uses a
+   clean ink field without a decorative lower rule. */
+.pricingHeading h2 em {
+    box-shadow: inset 0 -.16em 0 var(--taupe);
 }
 
 /* ---- Hero --------------------------------------------------------------- */

@@ -31,7 +31,9 @@ describe("landing product positioning", () => {
     assert.match(styles, /\.hero h1\s*\{[^}]*justify-items:\s*center;[^}]*gap:\s*var\(--space-2\);[^}]*width:\s*fit-content;[^}]*max-width:\s*100%;[^}]*font-size:\s*clamp\(2\.5rem,\s*6vw,\s*5\.5rem\);[^}]*line-height:\s*1;[^}]*text-align:\s*center;/s);
     assert.match(styles, /\.hero h1 > span\s*\{[^}]*background:\s*var\(--taupe\);[^}]*color:\s*var\(--paper\);/s);
     assert.doesNotMatch(styles, /\.hero h1 > span\s*\{[^}]*font-size:/s);
-    assert.match(styles, /\.hero h1 em,[\s\S]*?background:\s*var\(--ink\);[^}]*box-shadow:\s*inset 0 -\.16em 0 var\(--taupe\);/s);
+    assert.match(styles, /\.hero h1 em,[\s\S]*?background:\s*var\(--ink\);/s);
+    assert.doesNotMatch(styles, /\.hero h1 em,\s*\.pricingHeading h2 em\s*\{[^}]*box-shadow:/s);
+    assert.match(styles, /\.pricingHeading h2 em\s*\{[^}]*box-shadow:\s*inset 0 -\.16em 0 var\(--taupe\);/s);
     assert.match(styles, /@media \(min-width: 1200px\)[\s\S]*?\.hero h1\s*\{[^}]*grid-template-columns:\s*max-content max-content;[^}]*grid-template-rows:\s*1fr;[^}]*gap:\s*var\(--space-4\);/s);
     assert.match(styles, /@media \(max-width: 620px\)[\s\S]*?\.hero h1\s*\{[^}]*font-size:\s*clamp\(2\.5rem,\s*12vw,\s*3\.5rem\);/s);
     assert.match(styles, /\.hero\s*\{[^}]*grid-template-columns:\s*minmax\(0, 960px\);[^}]*place-content:\s*center;/s);
