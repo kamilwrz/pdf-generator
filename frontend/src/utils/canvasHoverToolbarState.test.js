@@ -10,7 +10,7 @@ test("keeps a transient toolbar available for one second after pointer leave", (
   assert.equal(CANVAS_TOOLBAR_HIDE_DELAY_MS, 1_000);
 });
 
-test("hover reveal stays transient until the trigger is clicked", () => {
+test("pointer or keyboard reveal stays transient", () => {
   const shown = reduceCanvasHoverToolbarState(
     CANVAS_TOOLBAR_INITIAL_STATE,
     { type: "SHOW" },
@@ -21,23 +21,28 @@ test("hover reveal stays transient until the trigger is clicked", () => {
     CANVAS_TOOLBAR_INITIAL_STATE,
   );
 });
-test("click-pinned toolbar survives pointer leave", () => {
-  const pinned = reduceCanvasHoverToolbarState(
-    CANVAS_TOOLBAR_INITIAL_STATE,
-    { type: "PIN" },
-  );
-  assert.deepEqual(
-    reduceCanvasHoverToolbarState(pinned, { type: "HIDE_IF_TRANSIENT" }),
-    pinned,
-  );
-});
 
-test("opening a menu pins the toolbar and reset clears the complete interaction", () => {
+test("only an open menu pins the toolbar across pointer leave", () => {
   const menu = reduceCanvasHoverToolbarState(
     CANVAS_TOOLBAR_INITIAL_STATE,
     { type: "OPEN_MENU" },
   );
   assert.deepEqual(menu, { visible: true, pinned: true, menuOpen: true });
+  assert.deepEqual(
+    reduceCanvasHoverToolbarState(menu, { type: "HIDE_IF_TRANSIENT" }),
+    menu,
+  );
+  assert.deepEqual(
+    reduceCanvasHoverToolbarState(menu, { type: "CLOSE_MENU" }),
+    { visible: true, pinned: false, menuOpen: false },
+  );
+});
+
+test("reset clears the complete menu interaction", () => {
+  const menu = reduceCanvasHoverToolbarState(
+    CANVAS_TOOLBAR_INITIAL_STATE,
+    { type: "OPEN_MENU" },
+  );
   assert.deepEqual(
     reduceCanvasHoverToolbarState(menu, { type: "RESET" }),
     CANVAS_TOOLBAR_INITIAL_STATE,

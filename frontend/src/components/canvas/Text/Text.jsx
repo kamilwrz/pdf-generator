@@ -11,7 +11,11 @@ import classes from "./Text.module.css";
 import { memo, useLayoutEffect, useRef } from "react";
 import { use } from "react";
 import { PdfContext } from "../../../store/pdfgenerator-context";
-import { hasTextareaDragIntent } from "../../../utils/textareaEditing";
+import {
+    hasTextareaDragIntent,
+    resolveTextClickIntent,
+} from "../../../utils/textareaEditing";
+import { EDITOR_MODE_TEMPLATE } from "../../../utils/editorMode";
 import { sanitizeTextContent } from "../../../utils/sanitizeTextContent";
 import { canvasFontFamily } from "../../../utils/canvasFont";
 import { hasRuns } from "../../../utils/textRuns";
@@ -58,6 +62,7 @@ function Text({
         requestTextEdit,
         setSpacingHoldId,
         editZoomSpreadTransitionRef,
+        editorMode,
     } = use(PdfContext);
 
     const nodeRef = useRef(null);
@@ -172,7 +177,7 @@ function Text({
             setSpacingHoldId,
         });
         // Mark the replacement synchronously so two-page restoration cannot
-        // run between this double click and the deferred edit-state update.
+        // run between this completed click and the edit-state update.
         requestTextEdit(elementId);
         // This handler runs after pointerup, so the original drag/click
         // interaction has already finished. Enter synchronously to avoid a
@@ -202,11 +207,22 @@ function Text({
             contentEditable={isEditing && !fixedToPage}
             suppressContentEditableWarning
             spellCheck={false}
+            tabIndex={fixedToPage ? -1 : 0}
             className={`${classes.textElement} ${isEditing ? classes.editing : ""} ${isSelected && !isMove ? classes.selectedElement : ""} ${isMove ? classes.movingElement : ""}`}
             style={style}
             onClick={(e) => {
-                if (fixedToPage) return;
-                if (isEditing) {
+                const intent = resolveTextClickIntent({
+                    didDrag: didDragRef.current,
+                    additive: e.ctrlKey || e.metaKey,
+                    isEditing,
+                    fixedToPage,
+                    templateMode: editorMode === EDITOR_MODE_TEMPLATE,
+                });
+                if (intent === "ignore") {
+                    didDragRef.current = false;
+                    return;
+                }
+                if (intent === "focus") {
                     e.stopPropagation();
                     // The element can be flagged editing before the browser has
                     // placed the caret in it (e.g. auto-edit on a just-added
@@ -216,23 +232,27 @@ function Text({
                     }
                     return;
                 }
-                // A drag release also dispatches a trailing click; ignore it so
-                // the moved element does not also trigger a selection action.
-                if (didDragRef.current) {
-                    didDragRef.current = false;
-                    return;
-                }
-                if (e.ctrlKey || e.metaKey) {
+                if (intent === "select-additive") {
                     selectElement(elementId, true);
                     return;
                 }
-                // Keep structural selection and text editing distinct: a single
-                // click selects/pins canvas controls; double click below enters
-                // the contentEditable surface.
+                if (intent === "edit") {
+                    startEditing(e);
+                    return;
+                }
                 selectElement(elementId, false);
             }}
             onDoubleClick={(e) => {
-                if (fixedToPage || isEditing || didDragRef.current) return;
+                // Freeform text keeps double click because its first click must
+                // expose resize/position controls. Template text edits on the
+                // first click and therefore leaves the browser's second click
+                // available for native word selection.
+                if (
+                    editorMode === EDITOR_MODE_TEMPLATE
+                    || fixedToPage
+                    || isEditing
+                    || didDragRef.current
+                ) return;
                 startEditing(e);
             }}
             onInput={(e) => {
@@ -255,6 +275,10 @@ function Text({
                 if (isEditing) finishEditing();
             }}
             onKeyDown={(e) => {
+                if (!isEditing && (e.key === "Enter" || e.key === "F2")) {
+                    startEditing(e);
+                    return;
+                }
                 if (!isEditing) return;
                 if (e.key === "Enter" || e.key === "Escape") {
                     e.preventDefault();

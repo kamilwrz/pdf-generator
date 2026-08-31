@@ -5,42 +5,8 @@
 import { useMemo } from "react";
 import { use } from "react";
 import { PdfContext } from "../../../store/pdfgenerator-context";
-import { getElementBounds, getTextContentBounds } from "../../../utils/elementBounds";
-import { imageDisplayTop } from "../../../utils/iconAlignment";
+import { getElementOutlineBounds } from "../../../utils/elementBounds";
 import classes from "./SelectionOverlay.module.css";
-
-function frameForElement(element) {
-    const left = Number(element.left) || 0;
-    // Text-aligned icons render their glyph above the stored top, so the outline
-    // must hug the shifted glyph position (matches the <img> and resize handles).
-    const top = imageDisplayTop(element);
-
-    // Text: hug rendered glyphs. Use the live ink box (not the line box) so the
-    // frame stays tight while dragging. Do not pad with fontSize floors — that
-    // made the border taller than the letters.
-    if (element.category === "text") {
-        const {
-            width,
-            height,
-            left: contentLeft,
-            top: contentTop,
-        } = getTextContentBounds(element);
-        return {
-            left: Number.isFinite(contentLeft) ? contentLeft : left,
-            top: Number.isFinite(contentTop) ? contentTop : top,
-            width: Math.max(width, 1),
-            height: Math.max(height, 1),
-        };
-    }
-
-    const { width, height } = getElementBounds(element);
-    return {
-        left,
-        top,
-        width: Math.max(width, 1),
-        height: Math.max(height, 1),
-    };
-}
 
 export default function SelectionOverlay({ elements, page }) {
     const { A4_Elements, currentPage, groupMoveDelta } = use(PdfContext);
@@ -73,11 +39,11 @@ export default function SelectionOverlay({ elements, page }) {
     if (displayed.length === 0) return null;
     const frames = framed.map((element) => ({
         id: element.element_id,
-        ...frameForElement(element),
+        ...getElementOutlineBounds(element),
     }));
     const groupFrames = displayed.map((element) => ({
         id: element.element_id,
-        ...frameForElement(element),
+        ...getElementOutlineBounds(element),
     }));
 
     const groupBox = groupFrames.reduce((box, frame) => ({

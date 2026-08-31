@@ -42,7 +42,7 @@
 }
 
 .block:empty::before {
-    content: "Double-click to edit";
+    content: attr(data-empty-hint);
     color: var(--color-muted);
 }
 

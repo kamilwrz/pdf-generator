@@ -148,7 +148,7 @@ test("addition creates a plain filled label (no auto-edit) with a placeholder", 
   assert.equal(label.content, channelName("email"));
   assert.equal(label.placeholder, channelName("email"));
   // Not auto-edited: mounting an element already isEditing is an unreliable
-  // focus path; the user double-clicks to edit through the shared text flow.
+  // focus path; the user edits through the shared template single-click flow.
   assert.ok(!label.isEditing);
   assert.equal(elements.filter((e) => e.isEditing).length, 0);
 });

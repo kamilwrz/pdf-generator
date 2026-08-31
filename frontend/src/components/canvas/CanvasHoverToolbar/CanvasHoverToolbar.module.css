@@ -15,6 +15,21 @@
     border-color: color-mix(in srgb, var(--color-ink) 62%, transparent);
 }
 
+/* A semantic section/record frame provides the outer context. This second,
+   pointer-inert frame identifies the exact authored element under the pointer
+   without selecting it or changing the document model. */
+.elementHighlight {
+    position: absolute;
+    z-index: 35;
+    box-sizing: border-box;
+    pointer-events: none;
+    background: transparent;
+    border-style: solid;
+    border-color: var(--color-accent, var(--accent));
+    border-radius: 0;
+    animation: canvasElementHighlightIn 110ms ease-out both;
+}
+
 .anchor {
     position: absolute;
     z-index: 45;
@@ -204,9 +219,15 @@
     to { opacity: 1; }
 }
 
+@keyframes canvasElementHighlightIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
 @media (prefers-reduced-motion: reduce) {
     .toolbar,
-    .highlight {
+    .highlight,
+    .elementHighlight {
         animation: none;
     }
 

@@ -1,11 +1,11 @@
 /**
- * Shared hover/pin lifecycle for structural controls painted around the A4.
+ * Shared hover/menu lifecycle for structural controls painted around the A4.
  *
  * The hook deliberately listens to the rendered canvas nodes instead of
  * changing their component contracts. This keeps the PDF element DOM stable
  * while section and record affordances share identical timing and exclusivity.
  */
-import { useCallback, useEffect, useReducer, useRef } from "react";
+import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { useHoverPlusExclusive } from "./useHoverPlusExclusive";
 import {
   CANVAS_TOOLBAR_HIDE_DELAY_MS,
@@ -19,6 +19,7 @@ import {
  *   visible:boolean,
  *   pinned:boolean,
  *   menuOpen:boolean,
+ *   hoveredTriggerId:string|null,
  *   toolbarPointerProps:object,
  *   hide:() => void,
  *   openMenu:() => void,
@@ -30,6 +31,10 @@ export function useCanvasHoverToolbar({ exclusiveKey, eligible, triggerIds }) {
     reduceCanvasHoverToolbarState,
     CANVAS_TOOLBAR_INITIAL_STATE,
   );
+  // The hovered element is transient editor chrome only. Keeping its id out of
+  // A4_Elements prevents hover from opening the inspector, entering history,
+  // or disturbing a real multi-selection.
+  const [hoveredTriggerId, setHoveredTriggerId] = useState(null);
   const stateRef = useRef(state);
   const hideTimerRef = useRef(null);
   const { isExclusiveActive, claimExclusive, releaseExclusive } = useHoverPlusExclusive(
@@ -55,13 +60,6 @@ export function useCanvasHoverToolbar({ exclusiveKey, eligible, triggerIds }) {
     clearHideTimer();
     claimExclusive();
     dispatch({ type: "SHOW" });
-  }, [claimExclusive, clearHideTimer, eligible]);
-
-  const pin = useCallback(() => {
-    if (!eligible) return;
-    clearHideTimer();
-    claimExclusive();
-    dispatch({ type: "PIN" });
   }, [claimExclusive, clearHideTimer, eligible]);
 
   const hide = useCallback(() => {
@@ -115,28 +113,36 @@ export function useCanvasHoverToolbar({ exclusiveKey, eligible, triggerIds }) {
       .filter(Boolean);
     if (nodes.length === 0) return undefined;
 
-    const onEnter = () => show();
-    const onLeave = () => scheduleHide();
-    const onClick = () => pin();
-    // A text-edit double click hands control to the contentEditable surface;
-    // structural chrome must disappear before the edit toolbar takes over.
-    const onDoubleClick = () => hide();
-
-    nodes.forEach((node) => {
-      node.addEventListener("pointerenter", onEnter);
-      node.addEventListener("pointerleave", onLeave);
-      node.addEventListener("click", onClick);
-      node.addEventListener("dblclick", onDoubleClick);
+    const listeners = nodes.map((node) => {
+      const elementId = node.id;
+      const onPointerEnter = () => {
+        setHoveredTriggerId(elementId);
+        show();
+      };
+      const onPointerLeave = () => {
+        setHoveredTriggerId((current) => (current === elementId ? null : current));
+        scheduleHide();
+      };
+      // Keyboard focus reveals the structural context too. The focused node's
+      // native focus-visible outline remains blue, so the brown pointer-hover
+      // frame is intentionally not duplicated for keyboard users.
+      const onFocusIn = () => show();
+      const onFocusOut = () => scheduleHide();
+      node.addEventListener("pointerenter", onPointerEnter);
+      node.addEventListener("pointerleave", onPointerLeave);
+      node.addEventListener("focusin", onFocusIn);
+      node.addEventListener("focusout", onFocusOut);
+      return { node, onPointerEnter, onPointerLeave, onFocusIn, onFocusOut };
     });
     return () => {
-      nodes.forEach((node) => {
-        node.removeEventListener("pointerenter", onEnter);
-        node.removeEventListener("pointerleave", onLeave);
-        node.removeEventListener("click", onClick);
-        node.removeEventListener("dblclick", onDoubleClick);
+      listeners.forEach(({ node, onPointerEnter, onPointerLeave, onFocusIn, onFocusOut }) => {
+        node.removeEventListener("pointerenter", onPointerEnter);
+        node.removeEventListener("pointerleave", onPointerLeave);
+        node.removeEventListener("focusin", onFocusIn);
+        node.removeEventListener("focusout", onFocusOut);
       });
     };
-  }, [eligible, hide, pin, scheduleHide, show, triggerKey]);
+  }, [eligible, scheduleHide, show, triggerKey]);
 
   useEffect(() => {
     if (!state.pinned) return undefined;
@@ -157,9 +163,14 @@ export function useCanvasHoverToolbar({ exclusiveKey, eligible, triggerIds }) {
     visible: state.visible && isExclusiveActive,
     pinned: state.pinned,
     menuOpen: state.menuOpen,
+    hoveredTriggerId: eligible && isExclusiveActive && state.visible
+      ? hoveredTriggerId
+      : null,
     toolbarPointerProps: {
       onPointerEnter: show,
       onPointerLeave: scheduleHide,
+      onFocusCapture: show,
+      onBlurCapture: scheduleHide,
     },
     hide,
     openMenu,

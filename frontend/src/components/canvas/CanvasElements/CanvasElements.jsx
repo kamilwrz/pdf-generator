@@ -7,9 +7,10 @@
  * Template-mode section headings and record title bands reveal one shared,
  * grouped toolbar in an A4 gutter. A single page uses the nearest lane edge;
  * a two-page spread sends each toolbar to its page's outside edge. Hover
- * reveals it, click pins it, and the matching semantic block is highlighted
- * without covering authored content. Direct controls add/reorder; layout,
- * lane transfer, and deletion live in the overflow menu. Flat-list section
+ * reveals it and the matching semantic block; hovering an exact trigger adds
+ * a second, accent-coloured element frame without selecting it. Direct
+ * controls add/reorder; layout, lane transfer, and deletion live in the
+ * overflow menu. Flat-list section
  * bodies (Languages, flat custom sections —
  * exactly one textarea per section) get a `FlatSectionLayoutToggle` icon to
  * their left, centered on the block's height, instead — opening a modal to
@@ -206,7 +207,7 @@ export default function CanvasElements({ elements, spreadSide = null }) {
     localStorage.setItem(STRUCTURAL_TOOLBAR_HINT_KEY, "1");
     pushToast?.({
       title: "Edytuj bezpośrednio na CV",
-      msg: "Najedź na sekcję lub wpis. Kliknij, aby przypiąć kontrolki; kliknij tekst dwukrotnie, aby go edytować.",
+      msg: "Najedź na sekcję lub wpis, aby zobaczyć kontrolki. Kliknij tekst raz, aby go edytować.",
       variant: "success",
       replaceKey: "canvas-structural-toolbar-hint",
     });

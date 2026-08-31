@@ -1,11 +1,11 @@
 /**
  * Contextual structural toolbar for a template-mode section heading.
  *
- * Hover reveals one grouped toolbar in the A4 gutter; clicking the heading
- * pins it. The directly visible controls are add/reorder, while layout,
- * column-transfer, and destructive actions live in the overflow menu. This
- * keeps editor chrome out of the CV content without introducing a separate
- * properties panel.
+ * Hover or keyboard focus reveals one grouped toolbar in the A4 gutter and an
+ * inner frame around the exact heading. Directly visible controls are
+ * add/reorder, while layout, column-transfer, and destructive actions live in
+ * the overflow menu. This keeps editor chrome out of the CV content without
+ * introducing a separate properties panel.
  */
 import { use, useLayoutEffect, useState } from "react";
 import { FiTrash2 } from "react-icons/fi";
@@ -22,7 +22,7 @@ import {
   includeRenderedBounds,
   resolveRenderedHighlightLimits,
 } from "../../../utils/canvasHighlightBounds";
-import { getVisualBounds } from "../../../utils/elementBounds";
+import { getElementOutlineBounds, getVisualBounds } from "../../../utils/elementBounds";
 import CanvasHoverToolbar from "../CanvasHoverToolbar/CanvasHoverToolbar";
 
 function sameBounds(left, right) {
@@ -107,6 +107,7 @@ export default function SectionRecordAdd({
     visible,
     pinned,
     menuOpen,
+    hoveredTriggerId,
     toolbarPointerProps,
     hide,
     openMenu,
@@ -117,9 +118,9 @@ export default function SectionRecordAdd({
     triggerIds: [headingId],
   });
 
-  // A section can move while this toolbar stays pinned. Key the post-commit
-  // measurement to the exact model geometry so a Range captured for the old
-  // position is never reused during the render that applies the new one.
+  // A section can move while an open overflow menu keeps this toolbar pinned.
+  // Key the post-commit measurement to the exact model geometry so a Range
+  // captured for the old position is never reused by the next render.
   const headingMeasurementKey = JSON.stringify([
     measurementKeyPart(heading),
     measurementKeyPart(nextHeading),
@@ -197,6 +198,12 @@ export default function SectionRecordAdd({
   const side = resolveStructuralToolbarSide(gutterSide, spreadSide);
   const toolbarTop = (Number(top) || 0) + headingHeight / 2 - layout.buttonSize / 2;
   const sectionLabel = String(heading?.content || "").trim();
+  const hoveredHeading = hoveredTriggerId === headingId ? heading : null;
+  const elementHighlight = hoveredHeading
+    && !hoveredHeading.isSelected
+    && !hoveredHeading.isEditing
+    ? getElementOutlineBounds(hoveredHeading)
+    : null;
   const skillsModeLabel = {
     inline: "w linii",
     bullet: "lista",
@@ -249,6 +256,7 @@ export default function SectionRecordAdd({
       top={toolbarTop}
       pageWidth={pageSize?.width ?? 595}
       highlight={resolvedHighlight}
+      elementHighlight={elementHighlight}
       layout={layout}
       addLabel="Sekcja"
       addTooltip="Dodaj sekcję poniżej"

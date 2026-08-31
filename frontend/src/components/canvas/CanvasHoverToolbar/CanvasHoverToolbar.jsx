@@ -17,6 +17,7 @@ import classes from "./CanvasHoverToolbar.module.css";
  *   top:number,
  *   pageWidth:number,
  *   highlight?:{left:number,top:number,width:number,height:number}|null,
+ *   elementHighlight?:{left:number,top:number,width:number,height:number}|null,
  *   layout:{buttonSize:number,iconSize:number,gap:number,labelWidth:number,fontSize:number,menuWidth:number,offset:number,borderWidth:number},
  *   addLabel:string,
  *   addTooltip:string,
@@ -40,6 +41,7 @@ export default function CanvasHoverToolbar({
   top,
   pageWidth,
   highlight = null,
+  elementHighlight = null,
   layout,
   addLabel,
   addTooltip,
@@ -85,6 +87,20 @@ export default function CanvasHoverToolbar({
             top: highlight.top,
             width: highlight.width,
             height: highlight.height,
+            borderWidth: layout.borderWidth,
+          }}
+          aria-hidden="true"
+        />
+      ) : null}
+
+      {elementHighlight ? (
+        <div
+          className={classes.elementHighlight}
+          style={{
+            left: elementHighlight.left,
+            top: elementHighlight.top,
+            width: elementHighlight.width,
+            height: elementHighlight.height,
             borderWidth: layout.borderWidth,
           }}
           aria-hidden="true"

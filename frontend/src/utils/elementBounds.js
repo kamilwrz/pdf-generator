@@ -136,6 +136,28 @@ export function getVisualBounds(element) {
   return { left, top, width, height };
 }
 
+/**
+ * Return the page-local rectangle used by editor selection and hover chrome.
+ *
+ * Single-line text follows its rendered glyph ink instead of its optional
+ * alignment width. Every other category follows the rendered element box,
+ * including the optical top shift applied to text-aligned icons. The one-pixel
+ * minimum keeps an empty but editable element discoverable without changing
+ * its authored geometry.
+ *
+ * @param {object} element - A mounted or model-only canvas element.
+ * @returns {{left:number,top:number,width:number,height:number}}
+ */
+export function getElementOutlineBounds(element) {
+  const bounds = getVisualBounds(element);
+  return {
+    left: Number.isFinite(bounds.left) ? bounds.left : Number(element?.left) || 0,
+    top: Number.isFinite(bounds.top) ? bounds.top : Number(element?.top) || 0,
+    width: Math.max(Number(bounds.width) || 0, 1),
+    height: Math.max(Number(bounds.height) || 0, 1),
+  };
+}
+
 // Attaches a real, DOM-measured layout_bounds to every element that's
 // currently mounted on screen (i.e. on the page currently being viewed).
 // Elements with no live DOM node are marked bounds_estimated so the backend

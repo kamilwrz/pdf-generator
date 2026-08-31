@@ -284,7 +284,7 @@ export function useA4Elements(titleRef) {
   // previous `editingElementId` during React reconciliation. Delay restoration
   // until the next task so the replacement edit can claim the document first.
   const editZoomRestoreTimerRef = useRef(null);
-  // Set synchronously by the double-click handler before its edit-state update.
+  // Set synchronously by the completed click/key handler before its edit-state update.
   // This closes the race where a pending timer could restore the spread before
   // React exposes the replacement edit as active.
   const pendingTextEditIdRef = useRef(null);

@@ -15,7 +15,11 @@ import {
     shouldShrinkPreservedLayout,
     trimTrailingEmptyTextareaPayload,
 } from "../../../utils/textareaHeight";
-import { hasTextareaDragIntent } from "../../../utils/textareaEditing";
+import {
+    hasTextareaDragIntent,
+    resolveTextClickIntent,
+} from "../../../utils/textareaEditing";
+import { EDITOR_MODE_TEMPLATE } from "../../../utils/editorMode";
 import { sanitizeTextContent } from "../../../utils/sanitizeTextContent";
 import { canvasFontFamily } from "../../../utils/canvasFont";
 import { hasRuns, sliceRuns } from "../../../utils/textRuns";
@@ -187,6 +191,7 @@ function Textarea({
         fitTextareaToContent,
         setSpacingHoldId,
         editZoomSpreadTransitionRef,
+        editorMode,
     } = use(PdfContext);
 
     const [isResizeable, setIsResizeable] = useState(false);
@@ -195,9 +200,8 @@ function Textarea({
     const pointerStartRef = useRef(null);
     const spacingHoldTimerRef = useRef(null);
     // Tracks whether the current pointer sequence turned into a drag, so the
-    // trailing click (fired on pointerup) can be told apart from a plain
-    // click-to-select action. Without this a drag-release would immediately
-    // re-select the block and pin its structural toolbar.
+    // trailing click (fired on pointerup) can be told apart from a plain click.
+    // Without this a drag-release could select the block or enter editing.
     const didDragRef = useRef(false);
     // Placeholder metadata is not required for persistence: mastheadRole is a
     // durable semantic marker, so saved/reloaded empty job titles keep the same
@@ -468,7 +472,7 @@ function Textarea({
             setSpacingHoldId,
         });
         // Mark the replacement synchronously so two-page restoration cannot
-        // run between this double click and the deferred edit-state update.
+        // run between this completed click and the edit-state update.
         requestTextEdit(elementId);
         // This handler runs after pointerup, so the original drag/click
         // interaction has already finished. Enter synchronously to avoid a
@@ -660,26 +664,42 @@ function Textarea({
             id={elementId}
             ref={blockRef}
             data-placeholder={editorPlaceholder}
+            data-empty-hint={editorMode === EDITOR_MODE_TEMPLATE
+                ? "Kliknij, aby edytować"
+                : "Kliknij dwukrotnie, aby edytować"}
+            tabIndex={0}
             className={`${classes.block} ${isSelected ? classes.selected : ""}`}
             style={{ ...boxStyle, ...textStyle }}
             onClick={(e) => {
-                // A drag release also dispatches a trailing click; ignore it so
-                // the moved block does not also trigger a selection action.
-                if (didDragRef.current) {
+                const intent = resolveTextClickIntent({
+                    didDrag: didDragRef.current,
+                    additive: e.ctrlKey || e.metaKey,
+                    templateMode: editorMode === EDITOR_MODE_TEMPLATE,
+                });
+                if (intent === "ignore") {
                     didDragRef.current = false;
                     return;
                 }
-                if (e.ctrlKey || e.metaKey) {
+                if (intent === "select-additive") {
                     selectElement(elementId, true);
                     return;
                 }
-                // Single click selects/pins structural controls. Text editing is
-                // deliberately reserved for the double-click handler below.
+                if (intent === "edit") {
+                    startEditing(e);
+                    return;
+                }
                 selectElement(elementId, false);
             }}
             onDoubleClick={(e) => {
-                if (didDragRef.current) return;
+                // Freeform textareas need their first click for resize/position
+                // selection. Template textareas enter edit on that first click.
+                if (editorMode === EDITOR_MODE_TEMPLATE || didDragRef.current) return;
                 startEditing(e);
+            }}
+            onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === "F2") {
+                    startEditing(e);
+                }
             }}
             onPointerDown={(e) => {
                 if (e.ctrlKey || e.metaKey) return;

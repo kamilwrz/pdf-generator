@@ -2,14 +2,16 @@
  * Contextual structural toolbar for one template-mode record.
  *
  * Hovering the record title/meta reveals a grouped toolbar in the nearest A4
- * gutter. Clicking pins it, a double click hands control to text editing, and
- * description/record removals remain recoverable through the global toast.
+ * gutter plus an inner frame around the exact field. A single click edits
+ * text, while description/record removals remain recoverable through the
+ * global toast.
  */
 import { use } from "react";
 import { FiFileMinus, FiFilePlus, FiTrash2 } from "react-icons/fi";
 import { PdfContext } from "../../../store/pdfgenerator-context";
 import { EDITOR_MODE_TEMPLATE } from "../../../utils/editorMode";
 import { elementSupportsRecordBlockAdd } from "../../../utils/sectionRecord";
+import { getElementOutlineBounds } from "../../../utils/elementBounds";
 import { useCanvasHoverToolbar } from "../../../hooks/useCanvasHoverToolbar";
 import { useCanvasDeletionUndo } from "../../../hooks/useCanvasDeletionUndo";
 import {
@@ -63,14 +65,18 @@ export default function RecordBlockAdd({
   const pageHeight = pageSize?.height ?? 842;
   const anchorElement = A4_Elements.find((element) => element.element_id === elementId);
   const triggerIds = hoverIds?.length ? hoverIds : [elementId];
+  const triggerElements = triggerIds
+    .map((triggerId) => A4_Elements.find((element) => element.element_id === triggerId))
+    .filter(Boolean);
   const eligible = editorMode === EDITOR_MODE_TEMPLATE
-    && !anchorElement?.isEditing
+    && !triggerElements.some((element) => element.isEditing)
     && elementSupportsRecordBlockAdd(A4_Elements, elementId, pageHeight);
   const exclusiveKey = `record:${elementId}`;
   const {
     visible,
     pinned,
     menuOpen,
+    hoveredTriggerId,
     toolbarPointerProps,
     hide,
     openMenu,
@@ -98,6 +104,14 @@ export default function RecordBlockAdd({
     : "right";
   const side = resolveStructuralToolbarSide(preferredSide, spreadSide);
   const recordLabel = String(anchorElement?.content || "").trim();
+  const hoveredElement = triggerElements.find((element) => (
+    element.element_id === hoveredTriggerId
+  ));
+  const elementHighlight = hoveredElement
+    && !hoveredElement.isSelected
+    && !hoveredElement.isEditing
+    ? getElementOutlineBounds(hoveredElement)
+    : null;
   const menuItems = [
     ...(descriptionAction ? [{
       key: "description",
@@ -146,6 +160,7 @@ export default function RecordBlockAdd({
       top={toolbarTop}
       pageWidth={pageSize?.width ?? 595}
       highlight={resolvedHighlight}
+      elementHighlight={elementHighlight}
       layout={layout}
       addLabel="Wpis"
       addTooltip="Dodaj wpis poniżej"
