@@ -251,6 +251,33 @@ def _horizontal_languages_cv_pdf_bytes() -> bytes:
     return data
 
 
+def _centred_languages_before_computer_skills_pdf_bytes() -> bytes:
+    """Reproduce CV30's centred headings and left-aligned section bodies."""
+    document = fitz.open()
+    page = document.new_page()
+    page.insert_text((250, 60), "JEZYKI OBCE", fontsize=10, fontname="hebo")
+    page.insert_text(
+        (36, 82),
+        "angielski (biegly), francuski (poziom zaawansowany-B2), "
+        "rosyjski (komunikatywny)",
+        fontsize=10,
+    )
+    page.insert_text(
+        (235, 112),
+        "OBSLUGA KOMPUTERA",
+        fontsize=10,
+        fontname="hebo",
+    )
+    page.insert_text(
+        (36, 134),
+        "Biegla znajomosc MSOffice, Excel, PowerPoint.",
+        fontsize=10,
+    )
+    data = document.tobytes()
+    document.close()
+    return data
+
+
 def _overlapping_native_text_cv_pdf_bytes() -> bytes:
     """Build Canva-like rows whose adjacent font boxes overlap vertically.
 
@@ -1100,6 +1127,57 @@ class CloudflareCvExtractionTests(unittest.TestCase):
         for source_language in language_section["items"]:
             self.assertEqual(rendered.count(source_language), 1)
         self.assertFalse(any("Hiszpanski" in text for text in rendered))
+
+    def test_centred_languages_stop_before_computer_skills_heading(self):
+        """An adjacent Skills heading must never become a language row."""
+        client = self._client({
+            "name": "Anna Rojek",
+            "skills": ["Biegla znajomosc MSOffice", "Excel", "PowerPoint"],
+            # Reproduce the provider mistake reported for CV30. Source
+            # geometry must replace this heading with the actual language row.
+            "languages": [{"name": "OBSLUGA KOMPUTERA", "level": ""}],
+            "labels": {"skills": "OBSLUGA KOMPUTERA"},
+            "extra_sections": [{
+                "title": "JEZYKI OBCE",
+                "kind": "languages",
+                "placement": "after_skills",
+                "items": ["OBSLUGA KOMPUTERA"],
+            }],
+        })
+
+        with (
+            patch.object(ai_service, "CV_EXTRACT_MIN_TEXT_CHARS_PER_PAGE", 1),
+            patch.object(
+                ai_service,
+                "_provider_settings",
+                return_value=(
+                    client,
+                    ai_service.CLOUDFLARE_TEXT_MODEL,
+                    "cloudflare",
+                ),
+            ),
+        ):
+            cv_data, usage = ai_service.extract_cv_data(
+                _centred_languages_before_computer_skills_pdf_bytes()
+            )
+
+        self.assertEqual(
+            cv_data["languages"],
+            [
+                {"name": "angielski", "level": "biegly"},
+                {
+                    "name": "francuski",
+                    "level": "poziom zaawansowany-B2",
+                },
+                {"name": "rosyjski", "level": "komunikatywny"},
+            ],
+        )
+        self.assertEqual(cv_data["labels"]["skills"], "OBSLUGA KOMPUTERA")
+        self.assertNotIn(
+            "OBSLUGA KOMPUTERA",
+            json.dumps(cv_data["languages"], ensure_ascii=False),
+        )
+        self.assertIn("languages", usage["source_grounded_fields"])
 
     def test_native_pdf_without_languages_rejects_model_invention(self):
         """Document language must not become a candidate competency."""

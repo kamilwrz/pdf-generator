@@ -22,7 +22,8 @@ _LANGUAGE_CATEGORY_TOKENS = ("jezyk", "language", "lingua", "sprache")
 _LANGUAGE_LEVEL_MARKER = re.compile(
     r"(?:\b[ABC][12](?:\+|\s*/\s*[ABC][12])?(?=\W|$)"
     r"|\b(?:native|fluent|advanced|intermediate|basic|beginner)\b"
-    r"|\b(?:ojczyst\w*|bieg\w*|zaawansowan\w*|średniozaawansowan\w*|podstawow\w*)\b"
+    r"|\b(?:ojczyst\w*|bieg\w*|zaawansowan\w*|średniozaawansowan\w*|podstawow\w*|komunikatyw\w*)\b"
+    r"|\bcommunicative\b"
     r"|\b(?:muttersprache|fliessend|fließend|fortgeschritten|grundkenntnisse)\b)",
     re.IGNORECASE,
 )
@@ -865,7 +866,24 @@ def _normalize_languages(value: Any) -> list[dict[str, str]]:
                 raw,
                 flags=re.IGNORECASE,
             )
-            if separator:
+            parenthesized_level = re.fullmatch(
+                r"(?P<name>.+?)\s*\((?P<level>[^()]+)\)\s*",
+                raw,
+            )
+            parenthesized_is_primary = (
+                parenthesized_level
+                and _LANGUAGE_LEVEL_MARKER.search(
+                    parenthesized_level.group("level")
+                )
+                and (
+                    separator is None
+                    or separator.start() >= raw.find("(")
+                )
+            )
+            if parenthesized_is_primary:
+                name = parenthesized_level.group("name").strip()
+                level = parenthesized_level.group("level").strip()
+            elif separator:
                 name = raw[:separator.start()].strip()
                 level = raw[separator.end():].strip()
             else:

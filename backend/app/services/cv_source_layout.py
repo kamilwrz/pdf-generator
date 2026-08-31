@@ -26,7 +26,8 @@ _LANGUAGE_LEVEL_MARKER = re.compile(
     r"(?:"
     r"\b[ABC][12](?:\+|\s*/\s*[ABC][12])?(?=\W|$)"
     r"|\b(?:native|fluent|advanced|intermediate|basic|beginner)\b"
-    r"|\b(?:ojczyst\w*|bieg\w*|zaawansowan\w*|średniozaawansowan\w*|podstawow\w*)\b"
+    r"|\b(?:ojczyst\w*|bieg\w*|zaawansowan\w*|średniozaawansowan\w*|podstawow\w*|komunikatyw\w*)\b"
+    r"|\bcommunicative\b"
     r"|\b(?:muttersprache|fliessend|fließend|fortgeschritten|grundkenntnisse)\b"
     r")",
     re.IGNORECASE,
@@ -75,8 +76,12 @@ _HEADING_ALIASES: dict[str, tuple[str, ...]] = {
         "specjalizacja",
         "umiejetnosci",
         "kompetencje",
+        "obslugakomputera",
+        "obslugikomputera",
         "mocnestrony",
         "skills",
+        "computerskills",
+        "itskills",
         "expertise",
         "corecompetencies",
         "specializations",
@@ -541,7 +546,7 @@ def _section_body_lines(
         and (line["y0"] + line["y1"]) / 2 > heading_center
         and (line["y0"] + line["y1"]) / 2 < next_center
     ]
-    if kind != "languages" or not body_lines:
+    if kind != "languages":
         return body_lines
 
     # Language competencies are often rendered as a full-width horizontal
@@ -556,8 +561,6 @@ def _section_body_lines(
         for line in body_lines
         if _LANGUAGE_LEVEL_MARKER.search(_collapse(line.get("text")))
     ]
-    if not language_rows:
-        return body_lines
     row_centres = [
         ((line["y0"] + line["y1"]) / 2, max(line["y1"] - line["y0"], 1.0))
         for line in language_rows
@@ -576,10 +579,23 @@ def _section_body_lines(
             continue
         centre = (line["y0"] + line["y1"]) / 2
         height = max(line["y1"] - line["y0"], 1.0)
-        if any(
+        shares_confirmed_baseline = any(
             abs(centre - row_centre) <= max(2.0, min(height, row_height) * 0.45)
             for row_centre, row_height in row_centres
-        ):
+        )
+        # Some word processors emit centred section headings in a separate
+        # x-origin lane while the full-width body remains in the page's main
+        # text lane. When the next recognised heading supplies a finite lower
+        # boundary, a proficiency-bearing row inside that vertical band is
+        # stronger evidence than lane membership. Requiring both the boundary
+        # and a level marker prevents unrelated records from another column
+        # leaking into an open-ended Languages section.
+        sits_inside_bounded_section = (
+            not language_rows
+            and next_center != float("inf")
+            and heading_center < centre < next_center
+        )
+        if shares_confirmed_baseline or sits_inside_bounded_section:
             cross_lane_lines.append(line)
 
     return sorted(
@@ -927,9 +943,27 @@ def _split_language_candidate_rows(value: Any) -> list[str]:
             )
             for candidate in delimited_parts[1:]
         )
-        rows.extend(
+        primary_rows = (
             delimited_parts if following_parts_start_languages else [part]
         )
+        for primary_row in primary_rows:
+            comma_parts = [
+                _collapse(candidate).strip(" -•▪●◦‣")
+                for candidate in re.split(r"\s*,\s*", primary_row)
+            ]
+            comma_separates_languages = len(comma_parts) > 1 and all(
+                (
+                    (marker := _LANGUAGE_LEVEL_MARKER.search(candidate)) is not None
+                    and any(
+                        character.isalpha()
+                        for character in candidate[:marker.start()]
+                    )
+                )
+                for candidate in comma_parts
+            )
+            rows.extend(
+                comma_parts if comma_separates_languages else [primary_row]
+            )
     return [row for row in rows if row]
 
 
@@ -979,6 +1013,12 @@ def _model_language_items(model_data: Mapping[str, Any]) -> list[str]:
                 or key in seen
                 or _LANGUAGE_LEVEL_MARKER.fullmatch(candidate) is not None
             ):
+                continue
+            # A visible section heading is source evidence for structure, not
+            # for a language competency. This blocks adjacent headings such as
+            # ``Obsługa komputera`` from surviving merely because the same text
+            # is present in the PDF.
+            if _heading_kind(candidate) is not None:
                 continue
             # Compact CV sidebars occasionally let a provider misclassify the
             # adjacent ``Prawo jazdy — Kategoria B`` row as a language. It is a
@@ -1459,9 +1499,10 @@ def ground_cv_data_from_source(
         and str(section.get("id") or "") not in nested_language_ids
     ]
     language_items = [
-        item
+        candidate
         for section in language_sections
         for item in _bullet_items(section.get("body_lines") or [])
+        for candidate in _split_language_candidate_rows(item)
     ]
     model_language_items = _model_language_items(grounded)
     language_extras = [
