@@ -15,7 +15,7 @@
  * authenticated). Each CTA queues a per-source funnel event so analytics can
  * tell which surface drove the click (see queueGuestEvent + events.py).
  */
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import classes from "./Hero.module.css";
 import { TEMPLATES } from "../../templates";
@@ -35,14 +35,6 @@ const TEMPLATE_PREVIEWS = TEMPLATES.map((template) => ({
 const TEMPLATE_COUNT = TEMPLATES.length;
 
 const previewById = (id) => TEMPLATE_PREVIEWS.find((template) => template.id === id);
-
-// The hero deliberately limits its moving proof sheet to three distinct
-// editorial directions. The full registry remains available in the template
-// marquee below, so the opening composition stays legible instead of becoming
-// a miniature version of the entire gallery.
-const HERO_SHOWCASE_IDS = ["linden", "sterling", "vellum"];
-const HERO_SHOWCASE = HERO_SHOWCASE_IDS.map(previewById);
-const HERO_SHOWCASE_DELAYS = ["0s", "-10s", "-5s"];
 
 const HOW_IT_WORKS = [
     {
@@ -166,8 +158,6 @@ function CtaLink({ to, event, variant = "primary", children }) {
 }
 
 export default function Hero() {
-    const [isHeroShowcasePaused, setIsHeroShowcasePaused] = useState(false);
-
     useEffect(() => {
         // Warm the optional API while visitors read the landing page. Loading
         // the marketing content never depends on the backend being available.
@@ -243,61 +233,6 @@ export default function Hero() {
                     </ul>
                 </div>
 
-                <div
-                    className={`${classes.heroVisual} ${isHeroShowcasePaused ? classes.heroVisualPaused : ""}`}
-                >
-                    <div className={classes.heroSequence}>
-                        <span aria-hidden="true">01—03</span>
-                        <span aria-hidden="true">Linden · Sterling · Vellum</span>
-                        <button
-                            type="button"
-                            className={classes.heroMotionToggle}
-                            aria-controls="hero-template-showcase"
-                            aria-pressed={isHeroShowcasePaused}
-                            onClick={() => setIsHeroShowcasePaused((isPaused) => !isPaused)}
-                        >
-                            {isHeroShowcasePaused ? "Wznów" : "Pauza"}
-                        </button>
-                    </div>
-
-                    <div
-                        id="hero-template-showcase"
-                        className={classes.heroDocumentDeck}
-                        role="img"
-                        aria-label="Podgląd szablonów Linden, Sterling i Vellum"
-                    >
-                        {HERO_SHOWCASE.map((template, index) => (
-                            <figure
-                                key={template.id}
-                                className={classes.heroDocument}
-                                style={{ "--hero-document-delay": HERO_SHOWCASE_DELAYS[index] }}
-                                aria-hidden="true"
-                            >
-                                <img
-                                    src={template.image}
-                                    alt=""
-                                    width="595"
-                                    height="842"
-                                    loading="eager"
-                                    decoding="async"
-                                    fetchPriority={index === 0 ? "high" : undefined}
-                                />
-                                <figcaption>
-                                    <span>{String(index + 1).padStart(2, "0")}</span>
-                                    {template.name}
-                                </figcaption>
-                            </figure>
-                        ))}
-                    </div>
-
-                    <p className={classes.heroChip}>
-                        <strong>Wgraj stare CV.</strong>
-                        <span>
-                            W kilka chwil treść trafi do szablonu premium, a inteligentny
-                            układ rozmieści ją automatycznie.
-                        </span>
-                    </p>
-                </div>
             </section>
 
             <section className={classes.transformation}>

@@ -19,12 +19,10 @@ describe("landing product positioning", () => {
     assert.match(styles, /\.hero h1\s*\{[^}]*display:\s*flex;[^}]*flex-direction:\s*column;/s);
     assert.match(styles, /\.hero h1 > span,[\s\S]*?\.hero h1 > em\s*\{[^}]*min-width:\s*0;[^}]*overflow-wrap:\s*break-word;/s);
     assert.match(styles, /\.hero h1 em\s*\{[^}]*display:\s*block;[^}]*line-height:\s*1;/s);
-    assert.match(styles, /@media \(max-width: 1024px\)\s*\{[\s\S]*?\.hero\s*\{[^}]*grid-template-columns:\s*1fr;/);
+    assert.match(styles, /\.hero\s*\{[^}]*grid-template-columns:\s*minmax\(0, 660px\);[^}]*place-content:\s*center;/s);
   });
 
-  it("communicates import transformation, AI support, and the planned Free export promise", () => {
-    assert.match(source, /Wgraj stare CV\./);
-    assert.match(source, /szablonu premium/);
+  it("keeps AI support and the planned Free export promise", () => {
     assert.match(source, /AI pomaga dopasować CV do oferty/);
     assert.match(source, /PDF bez znaku wodnego w planie Free/);
   });
@@ -57,21 +55,9 @@ describe("landing product positioning", () => {
     assert.match(source, /id="cennik"/);
   });
 
-  it("cycles Linden, Sterling, and Vellum without the retired static hero stack", () => {
-    assert.match(source, /const HERO_SHOWCASE_IDS = \["linden", "sterling", "vellum"\];/);
-    assert.match(source, /const HERO_SHOWCASE = HERO_SHOWCASE_IDS\.map\(previewById\);/);
-    assert.match(source, /const HERO_SHOWCASE_DELAYS = \["0s", "-10s", "-5s"\];/);
-    assert.doesNotMatch(source, /const heroFront|const heroBack|classes\.heroCountLabel|classes\.visualOrbit|classes\.heroDocFront|classes\.heroDocBack/);
-    assert.doesNotMatch(styles, /\.heroCountLabel\b|\.visualOrbit\b|\.heroDocFront\b|\.heroDocBack\b/);
-  });
-
-  it("runs a controllable infinite proof-sheet animation with a reduced-motion fallback", () => {
-    assert.match(styles, /@keyframes heroTemplateCycle[\s\S]*?translate3d/);
-    assert.match(styles, /\.heroDocument\s*\{[^}]*animation:\s*heroTemplateCycle 15s[^;]*infinite;/s);
-    assert.match(styles, /\.heroSequence::after\s*\{[^}]*animation:\s*heroSequenceProgress 15s linear infinite;/s);
-    assert.match(source, /aria-pressed=\{isHeroShowcasePaused\}/);
-    assert.match(styles, /\.heroVisualPaused \.heroDocument,[\s\S]*?animation-play-state:\s*paused;/);
-    assert.match(styles, /@media \(prefers-reduced-motion: reduce\)[\s\S]*?\.heroDocument\s*\{[^}]*animation:\s*none;/s);
-    assert.match(styles, /@media \(prefers-reduced-motion: reduce\)[\s\S]*?\.heroMotionToggle\s*\{[^}]*display:\s*none;/s);
+  it("renders one centered white hero without the retired animated showcase", () => {
+    assert.doesNotMatch(source, /HERO_SHOWCASE|isHeroShowcasePaused|Wgraj stare CV\.|szablonu premium/);
+    assert.doesNotMatch(styles, /heroVisual|heroSequence|heroMotionToggle|heroDocument|heroChip|heroTemplateCycle|heroSequenceProgress/);
+    assert.doesNotMatch(styles, /\.hero::before|\.hero::after/);
   });
 });
