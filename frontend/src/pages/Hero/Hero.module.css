@@ -760,8 +760,24 @@
 }
 
 .pricingHeading h2 {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-2);
     font-size: clamp(36px, 4.2vw, 60px);
-    line-height: 1.04;
+    line-height: 1.08;
+}
+
+/* Independent line boxes keep the highlighted Pro message from collapsing
+   into the first line when either phrase wraps at narrow widths or 200% zoom. */
+.pricingHeading h2 > span,
+.pricingHeading h2 > em {
+    display: block;
+    width: fit-content;
+    max-width: 100%;
+    box-sizing: border-box;
+    line-height: 1.08;
+    overflow-wrap: break-word;
 }
 
 .pricingHeading > p:last-child {
@@ -774,25 +790,22 @@
 .pricingGrid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0;
-    max-width: 920px;
+    gap: clamp(var(--space-8), 5vw, var(--space-16));
+    max-width: 1040px;
     margin-inline: auto;
-    border: 1px solid var(--ink);
 }
 
 .priceCard {
     position: relative;
     display: flex;
     flex-direction: column;
+    min-width: 0;
     min-height: 480px;
     padding: clamp(26px, 3vw, 40px);
+    border: 1px solid var(--ink);
     background: var(--paper);
     color: var(--ink-body);
-}
-
-/* Shared grid seam between the two tiers. */
-.priceCard + .priceCard {
-    border-left: 1px solid var(--ink);
+    overflow-wrap: break-word;
 }
 
 /* The Pro tier is highlighted by inverting it to a solid black block — the
@@ -1195,6 +1208,7 @@
 
     .pricingGrid {
         grid-template-columns: 1fr;
+        gap: var(--space-12);
         max-width: 550px;
     }
 
@@ -1202,11 +1216,6 @@
         min-height: auto;
     }
 
-    /* Stacked tiers: swap the vertical seam for a horizontal one. */
-    .priceCard + .priceCard {
-        border-left: 0;
-        border-top: 1px solid var(--ink);
-    }
 }
 
 @media (max-width: 620px) {
@@ -1299,6 +1308,10 @@
     .templateCard > span {
         min-height: 54px;
         padding: 10px;
+    }
+
+    .pricingGrid {
+        gap: var(--space-8);
     }
 
     .faqList summary {

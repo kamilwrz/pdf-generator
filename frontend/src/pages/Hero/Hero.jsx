@@ -186,9 +186,9 @@ export default function Hero() {
                     <div className={classes.offerStatement}>
                         <p className={classes.kicker} data-section-index="02">CV Studio w praktyce</p>
                         <h2>
-                            <span>Jedno CV.</span>
-                            <span>Wiele mocnych wersji.</span>
-                            <span>Bez wysiłku.</span>
+                            <span>Jedno CV</span>
+                            <span>Wiele mocnych wersji</span>
+                            <span>Bez wysiłku...</span>
                         </h2>
                         <p className={classes.offerLead}>
                             Wgraj obecne CV albo zacznij od zera. Dopasuj treść do ogłoszenia,
@@ -228,7 +228,6 @@ export default function Hero() {
                 <div className={classes.templateGalleryHeader}>
                     <p className={classes.templateGalleryLabel}>Szablony CV</p>
                     <h3 id="template-gallery-title">Ta sama treść. Inny charakter.</h3>
-                    <p>Klasyczny, nowoczesny, techniczny albo editorial.</p>
                 </div>
                 {/*
                   Endless right→left marquee of every template mockup. The track
@@ -299,7 +298,10 @@ export default function Hero() {
             <section id="cennik" className={classes.pricingSection}>
                 <div className={classes.pricingHeading}>
                     <p className={classes.kicker} data-section-index="10">Cennik</p>
-                    <h2>Gotowe CV za 0 zł.<br /><em>Pro, gdy potrzebujesz więcej wersji.</em></h2>
+                    <h2>
+                        <span>Gotowe CV za 0 zł.</span>
+                        <em>Pro, gdy chcesz więcej.</em>
+                    </h2>
                     <p>
                         Plan Darmowy wystarcza, by stworzyć jedno kompletne CV i pobrać czysty PDF.
                         Pro daje więcej projektów, wszystkie szablony oraz narzędzia AI i ATS.

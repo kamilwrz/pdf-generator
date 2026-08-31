@@ -15,11 +15,13 @@ describe("landing product positioning", () => {
     assert.doesNotMatch(source, /profesjonalny dokument gotowy do/);
     assert.doesNotMatch(source, /heroLead/);
     assert.match(source, /CV Studio w praktyce/);
-    assert.match(source, /Jedno CV\./);
-    assert.match(source, /Wiele mocnych wersji\./);
-    assert.match(source, /Bez wysiłku\./);
+    assert.match(source, /<span>Jedno CV<\/span>/);
+    assert.match(source, /<span>Wiele mocnych wersji<\/span>/);
+    assert.match(source, /<span>Bez wysiłku\.\.\.<\/span>/);
+    assert.doesNotMatch(source, /Jedno CV\.|Wiele mocnych wersji\./);
     assert.doesNotMatch(source, /Wybierz układ odpowiedni dla siebie\./);
-    assert.match(source, /Gotowe CV za 0 zł/);
+    assert.match(source, /Pro, gdy chcesz więcej\./);
+    assert.doesNotMatch(source, /Pro, gdy potrzebujesz więcej wersji\./);
   });
 
   it("uses equal-size, equal-height centred accent fields in every lockup", () => {
@@ -87,7 +89,8 @@ describe("landing product positioning", () => {
     }
     assert.doesNotMatch(statementMarkup, /<em>|<u>/);
 
-    assert.match(source, /Ta sama treść\. Inny charakter\./);
+    assert.match(source, /<h3 id="template-gallery-title">Ta sama treść\. Inny charakter\.<\/h3>/);
+    assert.doesNotMatch(source, /Klasyczny, nowoczesny, techniczny albo editorial\./);
     assert.match(source, /Stwórz CV w wybranym szablonie/);
     assert.match(styles, /\.templatesSection\s*\{[^}]*background:\s*var\(--paper\);/s);
     assert.match(styles, /\.offerIntro\s*\{[^}]*display:\s*grid;[^}]*grid-template-columns:/s);
@@ -100,6 +103,20 @@ describe("landing product positioning", () => {
     assert.match(source, /Twoje dokumenty nie są publiczne/);
     assert.match(source, /Zmień szablon bez przepisywania/);
     assert.match(source, /Nie jest to gwarancja identycznego wyniku w każdym systemie rekrutacyjnym/);
+  });
+
+  it("keeps pricing copy stable and separates the Free and Pro plans", () => {
+    assert.match(
+      source,
+      /<h2>\s*<span>Gotowe CV za 0 zł\.<\/span>\s*<em>Pro, gdy chcesz więcej\.<\/em>\s*<\/h2>/s,
+    );
+    assert.match(styles, /\.pricingHeading h2\s*\{[^}]*display:\s*flex;[^}]*flex-direction:\s*column;[^}]*gap:\s*var\(--space-2\);[^}]*line-height:\s*1\.08;/s);
+    assert.match(styles, /\.pricingHeading h2 > span,[\s\S]*?\.pricingHeading h2 > em\s*\{[^}]*display:\s*block;[^}]*max-width:\s*100%;[^}]*line-height:\s*1\.08;[^}]*overflow-wrap:\s*break-word;/s);
+    assert.match(styles, /\.pricingGrid\s*\{[^}]*grid-template-columns:\s*repeat\(2, minmax\(0, 1fr\)\);[^}]*gap:\s*clamp\(var\(--space-8\), 5vw, var\(--space-16\)\);[^}]*max-width:\s*1040px;/s);
+    assert.match(styles, /\.priceCard\s*\{[^}]*min-width:\s*0;[^}]*border:\s*1px solid var\(--ink\);[^}]*overflow-wrap:\s*break-word;/s);
+    assert.doesNotMatch(styles, /\.priceCard \+ \.priceCard\s*\{/);
+    assert.match(styles, /@media \(max-width: 880px\)[\s\S]*?\.pricingGrid\s*\{[^}]*gap:\s*var\(--space-12\);/s);
+    assert.match(styles, /@media \(max-width: 620px\)[\s\S]*?\.pricingGrid\s*\{[^}]*gap:\s*var\(--space-8\);/s);
   });
 
   it("renders only sections 01, 02, 09, 10, and 11 before the footer", () => {
