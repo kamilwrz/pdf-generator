@@ -43,7 +43,6 @@
 .appearanceHeading p { max-width: 35ch; margin: 5px 0 0; color: var(--chrome-muted); font: 500 11px/1.5 var(--font-body); }
 
 .paletteGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px 9px; }
-.paletteGridRegent { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 12px; }
 .paletteOption, .paletteOptionActive { min-width: 0; padding: 0; border: 0; background: transparent; color: var(--chrome-ink); text-align: left; cursor: pointer; }
 .palettePaper { position: relative; display: block; aspect-ratio: 210 / 297; overflow: hidden; border: 1px solid color-mix(in srgb, var(--chrome-border) 82%, transparent); background: var(--palette-paper); box-shadow: var(--shadow-pop); transition: border-color .16s ease, box-shadow .16s ease, transform .16s ease; }
 .paletteOption:hover .palettePaper { transform: translateY(-1px); border-color: var(--chrome-muted); box-shadow: var(--shadow-pop); }

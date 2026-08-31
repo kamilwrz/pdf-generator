@@ -566,7 +566,7 @@ export default function SectionsPanel({ onClose }) {
                 <p>{appearanceDefinition.paletteDescription
                   ?? "Każdy wariant zmienia papier, tekst, dekoracje i dopasowany zestaw ikon."}</p>
               </div>
-              <div className={`${classes.paletteGrid} ${isRegentAppearance ? classes.paletteGridRegent : ""}`} role="radiogroup" aria-labelledby="appearance-palette-heading">
+              <div className={classes.paletteGrid} role="radiogroup" aria-labelledby="appearance-palette-heading">
                 {appearanceDefinition.palettes.map((palette) => {
                   const selected = appearanceDefinition.value.palette === palette.id;
                   const cardStyle = {

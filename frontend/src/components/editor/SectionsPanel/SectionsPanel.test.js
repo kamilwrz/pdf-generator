@@ -92,6 +92,18 @@ test("appearance presents template-specific palettes, reviewed previews, and tex
   assert.match(source, /if \(!appearanceEnabled\) return/);
 });
 
+test("Regent uses the shared three-column palette grid for two rows of editions", async () => {
+  const [source, css] = await Promise.all([
+    readFile(panelUrl, "utf8"),
+    readFile(cssUrl, "utf8"),
+  ]);
+
+  assert.match(source, /<div className=\{classes\.paletteGrid\} role="radiogroup"/);
+  assert.match(css, /\.paletteGrid\s*\{[^}]*grid-template-columns:\s*repeat\(3, minmax\(0, 1fr\)\);/s);
+  assert.doesNotMatch(source, /paletteGridRegent/);
+  assert.doesNotMatch(css, /\.paletteGridRegent/);
+});
+
 test("document card keeps tier-honest fit status and CTA", async () => {
   const source = await readFile(panelUrl, "utf8");
   assert.match(source, /formatPageCountLabel/);
