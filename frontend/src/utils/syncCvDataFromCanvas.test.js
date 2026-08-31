@@ -264,6 +264,39 @@ describe("syncCvDataFromCanvas", () => {
     assert.equal(updated.experience[0].company, "Beta");
   });
 
+  it("treats a repeated Skills category tombstone as an idempotent no-op", () => {
+    const grouped = {
+      ...profile,
+      skills: [
+        { category: "Narzędzia", items: ["Figma", "Miro"] },
+        { category: "Technologie", items: ["React", "TypeScript"] },
+      ],
+    };
+    const remainingCanvas = [text("technologies-category", "Technologie")];
+    const tombstones = [
+      { ...text("tools-category", "Narzędzia"), deletedRecord: true },
+      { ...text("tools-items", "Figma, Miro"), deletedRecord: true },
+    ];
+
+    const once = syncCvDataFromCanvas(
+      grouped,
+      [text("tools-category", "Narzędzia"), ...remainingCanvas],
+      remainingCanvas,
+      tombstones,
+    );
+    const twice = syncCvDataFromCanvas(
+      once,
+      remainingCanvas,
+      remainingCanvas,
+      tombstones,
+    );
+
+    assert.deepEqual(once.skills, [
+      { category: "Technologie", items: ["React", "TypeScript"] },
+    ]);
+    assert.equal(twice, once);
+  });
+
   it("persists a user-added experience record for a later template fill", () => {
     const heading = sectionHeading("experience-heading", "DOŚWIADCZENIE ZAWODOWE");
     const added = [
@@ -455,8 +488,11 @@ describe("syncCvDataFromCanvas", () => {
     };
 
     const updated = syncCvDataFromCanvas(source, [], [], [tombstone]);
+    const repeated = syncCvDataFromCanvas(updated, [], [], [tombstone]);
 
     assert.equal(updated.experience.length, 1);
     assert.equal(updated.experience[0].__canvasGroup, "record-second");
+    assert.equal(repeated, updated);
+    assert.equal(repeated.experience[0].__canvasGroup, "record-second");
   });
 });

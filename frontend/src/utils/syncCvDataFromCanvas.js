@@ -404,29 +404,54 @@ function isStructuralTextRemap(previous, next) {
   );
 }
 
+/**
+ * Remove legacy records matched by deleted canvas text with structural sharing.
+ *
+ * Tombstones remain queued until an explicit save, so the same deletion is
+ * processed after `activeCvData` changes. Returning the original reference
+ * when nothing is removed prevents that repeated pass from scheduling another
+ * React state update.
+ */
 function pruneDeletedRecords(value, deletedTexts) {
   if (Array.isArray(value)) {
-    return value
-      .filter((item) => {
-        if (!item || typeof item !== "object" || Array.isArray(item)) {
-          return true;
-        }
+    let changed = false;
+    const next = [];
+    for (const item of value) {
+      if (item && typeof item === "object" && !Array.isArray(item)) {
         const leaves = stringLeaves(item);
-        const matched = leaves.filter((leaf) => deletedTexts.has(leaf));
-        return matched.length === 0;
-      })
-      .map((item) => pruneDeletedRecords(item, deletedTexts));
+        if (leaves.some((leaf) => deletedTexts.has(leaf))) {
+          changed = true;
+          continue;
+        }
+      }
+      const pruned = pruneDeletedRecords(item, deletedTexts);
+      if (pruned !== item) changed = true;
+      next.push(pruned);
+    }
+    return changed ? next : value;
   }
   if (!value || typeof value !== "object") return value;
-  return Object.fromEntries(
-    Object.entries(value).map(([key, item]) => [key, pruneDeletedRecords(item, deletedTexts)]),
-  );
+  let changed = false;
+  const entries = Object.entries(value).map(([key, item]) => {
+    const pruned = pruneDeletedRecords(item, deletedTexts);
+    if (pruned !== item) changed = true;
+    return [key, pruned];
+  });
+  return changed ? Object.fromEntries(entries) : value;
 }
 
+/**
+ * Remove records carrying explicit canvas ids while preserving unchanged refs.
+ *
+ * This has the same idempotency requirement as the legacy text fallback: a
+ * retained tombstone must become a reference-equal no-op after its first pass.
+ */
 function pruneCanvasStructures(value, deletedGroupIds, deletedSectionIds) {
   if (Array.isArray(value)) {
-    return value
-      .filter((item) => !(
+    let changed = false;
+    const next = [];
+    for (const item of value) {
+      if (
         item
         && typeof item === "object"
         && !Array.isArray(item)
@@ -434,16 +459,24 @@ function pruneCanvasStructures(value, deletedGroupIds, deletedSectionIds) {
           deletedGroupIds.has(item.__canvasGroup)
           || deletedSectionIds.has(item.__canvasHeadingId)
         )
-      ))
-      .map((item) => pruneCanvasStructures(item, deletedGroupIds, deletedSectionIds));
+      ) {
+        changed = true;
+        continue;
+      }
+      const pruned = pruneCanvasStructures(item, deletedGroupIds, deletedSectionIds);
+      if (pruned !== item) changed = true;
+      next.push(pruned);
+    }
+    return changed ? next : value;
   }
   if (!value || typeof value !== "object") return value;
-  return Object.fromEntries(
-    Object.entries(value).map(([key, item]) => [
-      key,
-      pruneCanvasStructures(item, deletedGroupIds, deletedSectionIds),
-    ]),
-  );
+  let changed = false;
+  const entries = Object.entries(value).map(([key, item]) => {
+    const pruned = pruneCanvasStructures(item, deletedGroupIds, deletedSectionIds);
+    if (pruned !== item) changed = true;
+    return [key, pruned];
+  });
+  return changed ? Object.fromEntries(entries) : value;
 }
 
 function canvasStructureIds(value, groups = new Set(), sections = new Set()) {
@@ -579,7 +612,18 @@ export function syncCvDataFromCanvas(
     element?.editorSectionId
     && knownStructureIds.sections.has(element.editorSectionId)
   ));
-  const identifiedDeleteIds = new Set(canvasIdentifiedDeletes.map((element) => element.element_id));
+  // Editor-stamped tombstones stay semantic after their profile record is gone.
+  // Without this stable classification, the next effect pass could downgrade
+  // the same tombstone to text matching and remove an unrelated duplicate.
+  const identifiedDeleteIds = new Set(
+    markedRecordDeletes
+      .filter((element) => (
+        canvasIdentifiedDeletes.includes(element)
+        || element?.editorAddedRecord
+        || element?.editorAddedSection
+      ))
+      .map((element) => element.element_id),
+  );
   const deletedTexts = new Set(
     deletedElements
       .filter((element) => element?.deletedRecord && !identifiedDeleteIds.has(element.element_id))
