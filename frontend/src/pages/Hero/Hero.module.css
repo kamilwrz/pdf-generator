@@ -155,7 +155,7 @@
 }
 
 .hero h1,
-.templatesHeader h2,
+.offerStatement h2,
 .trustHeading h2,
 .pricingHeading h2,
 .faqSection h2 {
@@ -173,7 +173,7 @@
    baseline without ever carrying text meaning, so contrast stays paper-on-ink
    (AAA). */
 .hero h1 em,
-.templatesHeader h2 em,
+.offerStatement h2 em,
 .pricingHeading h2 em {
     font-style: normal;
     font-weight: 900;
@@ -449,7 +449,7 @@
     padding-left: clamp(24px, 7vw, 112px);
 }
 
-/* ---- Templates ---------------------------------------------------------- */
+/* ---- Product offer + templates ----------------------------------------- */
 
 .templatesSection {
     padding-top: clamp(84px, 11vw, 150px);
@@ -457,36 +457,95 @@
     background: var(--paper);
 }
 
-.templatesHeader {
-    display: flex;
-    justify-content: space-between;
-    gap: 50px;
-    align-items: end;
-    margin-bottom: 48px;
-    padding-bottom: 26px;
-    border-bottom: 1px solid var(--ink);
+.offerIntro {
+    display: grid;
+    grid-template-columns: minmax(0, 5fr) minmax(460px, 6fr);
+    gap: clamp(48px, 8vw, 120px);
+    align-items: start;
+    margin-bottom: clamp(64px, 8vw, 96px);
 }
 
-.templatesHeader h2 {
+.offerStatement h2 {
     max-width: 650px;
     font-size: clamp(38px, 4.4vw, 62px);
     line-height: 1.01;
 }
 
-.templatesHeader > p {
-    max-width: 320px;
-    margin: 0 0 4px;
+.offerLead {
+    max-width: 480px;
+    margin: 28px 0 0;
     color: var(--ink-body);
-    font: 400 13px/1.65 var(--body);
+    font: 400 15px/1.65 var(--body);
 }
 
-.templateCategories {
-    display: block;
-    margin-top: 16px;
+.offerSteps {
+    margin: 0;
+    padding: 0;
+    border-top: 1px solid var(--ink);
+    list-style: none;
+}
+
+.offerSteps li {
+    display: grid;
+    grid-template-columns: 42px minmax(0, 1fr);
+    gap: 18px;
+    min-width: 0;
+    padding: 22px 0 24px;
+    border-bottom: 1px solid var(--line-strong);
+}
+
+.offerStepIndex {
+    padding-top: 3px;
     color: var(--muted);
-    font: 600 9px/1.5 var(--mono);
-    letter-spacing: .08em;
+    font: 600 10px/1.2 var(--mono);
+    letter-spacing: .1em;
+}
+
+.offerSteps h3 {
+    margin: 0;
+    color: var(--ink);
+    font: 800 clamp(18px, 1.65vw, 24px)/1.15 var(--display);
+    letter-spacing: -.025em;
+}
+
+.offerSteps p {
+    max-width: 520px;
+    margin: 8px 0 0;
+    color: var(--muted);
+    font: 400 13px/1.6 var(--body);
+}
+
+.templateGalleryHeader {
+    display: grid;
+    grid-template-columns: minmax(120px, 2fr) minmax(280px, 5fr) minmax(260px, 4fr);
+    gap: clamp(24px, 4vw, 64px);
+    align-items: end;
+    margin-bottom: 24px;
+    padding-top: 32px;
+    border-top: 1px solid var(--ink);
+}
+
+.templateGalleryLabel {
+    margin: 0 0 5px;
+    color: var(--muted);
+    font: 600 10px/1.3 var(--mono);
+    letter-spacing: .14em;
     text-transform: uppercase;
+}
+
+.templateGalleryHeader h3 {
+    margin: 0;
+    color: var(--ink);
+    font: 800 clamp(28px, 3.2vw, 46px)/1.02 var(--display);
+    letter-spacing: -.035em;
+    text-wrap: balance;
+}
+
+.templateGalleryHeader > p:last-child {
+    max-width: 420px;
+    margin: 0 0 3px;
+    color: var(--ink-body);
+    font: 400 13px/1.65 var(--body);
 }
 
 /*
@@ -1076,6 +1135,11 @@
     .hero {
         min-height: auto;
     }
+
+    .offerIntro {
+        grid-template-columns: 1fr;
+        gap: 48px;
+    }
 }
 
 @media (max-width: 880px) {
@@ -1093,14 +1157,13 @@
         order: initial;
     }
 
-    .templatesHeader {
-        display: grid;
-        gap: 20px;
+    .templateGalleryHeader {
+        grid-template-columns: minmax(120px, 1fr) minmax(0, 3fr);
         align-items: start;
     }
 
-    .templatesHeader > p {
-        max-width: 520px;
+    .templateGalleryHeader > p:last-child {
+        grid-column: 2;
     }
 
     .pricingGrid {
@@ -1178,6 +1241,36 @@
 
     .heroActions a {
         width: 100%;
+    }
+
+    .offerIntro {
+        gap: 40px;
+        margin-bottom: 64px;
+    }
+
+    .offerStatement h2 {
+        font-size: clamp(36px, 10vw, 50px);
+    }
+
+    .offerLead {
+        margin-top: 22px;
+        font-size: 14px;
+    }
+
+    .offerSteps li {
+        grid-template-columns: 32px minmax(0, 1fr);
+        gap: 12px;
+        padding: 18px 0 20px;
+    }
+
+    .templateGalleryHeader {
+        grid-template-columns: 1fr;
+        gap: 12px;
+        padding-top: 24px;
+    }
+
+    .templateGalleryHeader > p:last-child {
+        grid-column: auto;
     }
 
     .templateCard > span {

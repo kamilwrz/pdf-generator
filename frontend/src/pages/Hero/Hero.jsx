@@ -1,7 +1,7 @@
 /**
  * Conversion-focused marketing landing page for CV Studio.
  *
- * Page order: header → hero → templates → privacy → pricing → FAQ → footer.
+ * Page order: header → hero → product offer + templates → privacy → pricing → FAQ → footer.
  *
  * Two funnels, one consistent primary action ("Stwórz CV za darmo" → wizard)
  * and one secondary ("Wgraj swoje CV" → import):
@@ -184,18 +184,61 @@ export default function Hero() {
             </section>
 
             <section id="szablony" className={classes.templatesSection}>
-                <div className={classes.templatesHeader}>
-                    <div>
-                        <p className={classes.kicker} data-section-index="05">Szablony, nie klatki</p>
-                        <h2>Zmieniasz charakter dokumentu.<br /><em>Nie zaczynasz od nowa.</em></h2>
+                <div className={classes.offerIntro}>
+                    <div className={classes.offerStatement}>
+                        <p className={classes.kicker} data-section-index="02">CV Studio w praktyce</p>
+                        <h2>Od pierwszych informacji<br /><em>do gotowego PDF.</em></h2>
+                        <p className={classes.offerLead}>
+                            CV Studio pomaga stworzyć, poprawić i dopasować CV w jednym miejscu.
+                        </p>
                     </div>
-                    <p>
-                        Klasyczny, editorial, techniczny, z sidebarem albo bez. Szablon
-                        odpowiada za język wizualny dokumentu — Twoja treść pozostaje
-                        niezależna od jego wyglądu. Możesz zmienić szablon także później,
-                        kiedy CV jest już napisane i poprawione.
-                        <span className={classes.templateCategories}>Classic · Executive · Editorial · Sidebar · Modern · Tech</span>
-                    </p>
+                    {/*
+                      The ordered, ruled workflow replaces generic feature cards. Its
+                      source order is also the reading order on compact and zoomed layouts.
+                    */}
+                    <ol className={classes.offerSteps} role="list" aria-label="Jak CV Studio pomaga stworzyć CV">
+                        <li>
+                            <span className={classes.offerStepIndex} aria-hidden="true">01</span>
+                            <div>
+                                <h3>Zacznij po swojemu</h3>
+                                <p>Wgraj obecne CV albo zbuduj nowe krok po kroku.</p>
+                            </div>
+                        </li>
+                        <li>
+                            <span className={classes.offerStepIndex} aria-hidden="true">02</span>
+                            <div>
+                                <h3>Dopracuj treść</h3>
+                                <p>Popraw język, wzmocnij opisy, skróć dokument i dopasuj go do oferty.</p>
+                            </div>
+                        </li>
+                        <li>
+                            <span className={classes.offerStepIndex} aria-hidden="true">03</span>
+                            <div>
+                                <h3>Ułóż dokument</h3>
+                                <p>Edytuj CV bezpośrednio na stronie A4 i kontroluj każdą zmianę.</p>
+                            </div>
+                        </li>
+                        <li>
+                            <span className={classes.offerStepIndex} aria-hidden="true">04</span>
+                            <div>
+                                <h3>Zmień wygląd</h3>
+                                <p>Wybierz inny szablon bez przepisywania gotowej treści.</p>
+                            </div>
+                        </li>
+                        <li>
+                            <span className={classes.offerStepIndex} aria-hidden="true">05</span>
+                            <div>
+                                <h3>Pobierz PDF</h3>
+                                <p>Eksportuj czysty dokument gotowy do wysłania.</p>
+                            </div>
+                        </li>
+                    </ol>
+                </div>
+
+                <div className={classes.templateGalleryHeader}>
+                    <p className={classes.templateGalleryLabel}>Szablony CV</p>
+                    <h3 id="template-gallery-title">Ta sama treść. Inny charakter.</h3>
+                    <p>Klasyczny, nowoczesny, techniczny albo editorial. Wybierz układ odpowiedni dla siebie.</p>
                 </div>
                 {/*
                   Endless right→left marquee of every template mockup. The track
@@ -204,7 +247,9 @@ export default function Hero() {
                 */}
                 <div
                     className={classes.templateMarquee}
-                    aria-label={`Galeria ${TEMPLATE_COUNT} szablonów CV`}
+                    role="region"
+                    aria-labelledby="template-gallery-title"
+                    aria-description={`Galeria ${TEMPLATE_COUNT} szablonów CV`}
                     style={{
                         // ~3.2s per card keeps the strip readable as the registry grows.
                         ["--marquee-duration"]: `${Math.max(36, TEMPLATE_COUNT * 3.2)}s`,
@@ -241,7 +286,7 @@ export default function Hero() {
                     </div>
                 </div>
                 <CtaLink to={wizardUrl} event="templates_wizard" variant="link">
-                    Zobacz, jak Twoja treść może wyglądać
+                    Stwórz CV w wybranym szablonie
                 </CtaLink>
             </section>
 

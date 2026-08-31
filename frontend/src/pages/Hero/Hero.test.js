@@ -12,7 +12,9 @@ describe("landing product positioning", () => {
     assert.match(source, /do rozmowy\./);
     assert.match(source, /Wgraj stare CV lub zacznij od zera/);
     assert.match(source, /profesjonalny dokument gotowy do/);
-    assert.match(source, /Szablony, nie klatki/);
+    assert.match(source, /CV Studio w praktyce/);
+    assert.match(source, /Od pierwszych informacji/);
+    assert.match(source, /do gotowego PDF/);
     assert.match(source, /Gotowe CV za 0 zł/);
   });
 
@@ -32,17 +34,45 @@ describe("landing product positioning", () => {
     assert.match(source, /INTELIGENTNY LAYOUT/);
   });
 
+  it("presents section 02 as a five-step offer before the template gallery", () => {
+    const steps = [
+      "Zacznij po swojemu",
+      "Dopracuj treść",
+      "Ułóż dokument",
+      "Zmień wygląd",
+      "Pobierz PDF",
+    ];
+    const offerStart = source.indexOf('<ol className={classes.offerSteps}');
+    const offerEnd = source.indexOf("</ol>", offerStart);
+    const galleryStart = source.indexOf('<div className={classes.templateGalleryHeader}>');
+    const offerMarkup = source.slice(offerStart, offerEnd);
+
+    assert.ok(offerStart >= 0 && offerEnd > offerStart);
+    assert.ok(galleryStart > offerEnd);
+    assert.equal((offerMarkup.match(/<li>/g) || []).length, 5);
+    assert.match(offerMarkup, /role="list"/);
+    for (let index = 1; index < steps.length; index += 1) {
+      assert.ok(offerMarkup.indexOf(steps[index - 1]) < offerMarkup.indexOf(steps[index]));
+    }
+
+    assert.match(source, /Ta sama treść\. Inny charakter\./);
+    assert.match(source, /Stwórz CV w wybranym szablonie/);
+    assert.match(styles, /\.templatesSection\s*\{[^}]*background:\s*var\(--paper\);/s);
+    assert.match(styles, /\.offerIntro\s*\{[^}]*display:\s*grid;[^}]*grid-template-columns:/s);
+    assert.match(styles, /@media \(max-width: 1024px\)[\s\S]*?\.offerIntro\s*\{[^}]*grid-template-columns:\s*1fr;/s);
+  });
+
   it("keeps the retained template, privacy, pricing, and FAQ caveats", () => {
     assert.match(source, /Twoje dokumenty nie są publiczne/);
-    assert.match(source, /Twoja treść pozostaje/);
+    assert.match(source, /bez przepisywania gotowej treści/);
     assert.match(source, /Nie jest to gwarancja identycznego wyniku w każdym systemie rekrutacyjnym/);
   });
 
-  it("renders only sections 01, 05, 09, 10, and 11 before the footer", () => {
+  it("renders only sections 01, 02, 09, 10, and 11 before the footer", () => {
     assert.deepEqual(
       [...source.matchAll(/<section\b[\s\S]*?data-section-index="(\d{2})"[\s\S]*?<\/section>/g)]
         .map((match) => match[1]),
-      ["01", "05", "09", "10", "11"],
+      ["01", "02", "09", "10", "11"],
     );
     assert.equal((source.match(/<section\b/g) || []).length, 5);
     assert.equal((source.match(/<footer\b/g) || []).length, 1);
