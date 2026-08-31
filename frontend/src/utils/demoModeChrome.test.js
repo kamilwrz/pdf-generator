@@ -30,7 +30,7 @@ test("demo mode keeps its product-focused banner copy", async () => {
   const banner = await source("components/editor/DemoBanner/DemoBanner.jsx");
 
   assert.match(banner, /Wypróbuj CV Studio/);
-  assert.match(banner, /Edytuj tekst Regenta/);
+  assert.match(banner, /Edytuj przykładowe CV w Linden/);
   assert.match(banner, /Stwórz moje CV/);
   assert.doesNotMatch(banner, /Zacznij od zera/);
 });
@@ -82,14 +82,18 @@ test("PdfCanvas publishes demo state through the editor context", async () => {
   assert.match(canvas, /demo-conversion/);
   assert.match(canvas, /loadGuestDocument\(\)\?\.isDemoContent/);
   assert.match(canvas, /demoGuestRestoredRef/);
-  assert.match(canvas, /fillTemplate\(claim.profile, "regent"/);
-  assert.match(canvas, /handleLoadAiElements\(response.elements, "Moje CV", "regent"\);\s*\/\/ The generated CV is now an authenticated document[\s\S]*setIsDemoContent\(false\)/);
+  assert.match(canvas, /import \{ lindenTemplate \} from '\.\.\/templates\/linden'/);
+  assert.match(canvas, /handleLoadTemplate\(lindenTemplate, "DEMO_CV", "linden"\)/);
+  assert.match(canvas, /guestDoc\.templateId !== "linden"[\s\S]*clearGuestDocument\(\)[\s\S]*handleLoadTemplate\(lindenTemplate/);
+  assert.match(canvas, /initialStartIntentRef\.current === "demo-conversion"[\s\S]*\? "linden"[\s\S]*: "regent"/);
+  assert.match(canvas, /fillTemplate\(claim.profile, conversionTemplateId/);
+  assert.match(canvas, /handleLoadAiElements\(response.elements, "Moje CV", conversionTemplateId\);\s*\/\/ The generated CV is now an authenticated document[\s\S]*setIsDemoContent\(false\)/);
 });
 
 test("authenticated demo refresh does not offer the demo snapshot for claiming", async () => {
   const canvas = await source("pages/PdfCanvas.jsx");
 
-  assert.match(canvas, /if \(guestDoc\.isDemoContent\) \{\s*\/\/ The Regent demo is product content/);
+  assert.match(canvas, /if \(guestDoc\.isDemoContent\) \{\s*\/\/ The Linden demo is product content/);
   assert.match(canvas, /if \(guestDoc\.isDemoContent\) \{[\s\S]*clearGuestDocument\(\);[\s\S]*return;/);
 });
 
@@ -116,9 +120,12 @@ test("registration and login preserve the demo conversion intent", async () => {
   assert.match(register, /"demo-conversion"/);
   assert.match(register, /"wizard-conversion"/);
   assert.match(register, /przeniesiemy dane z kreatora/);
+  assert.match(register, /utworzymy Twoje CV w Linden/);
+  assert.match(register, /utworzymy Twoje CV w Regencie/);
   assert.match(register, /startIntent === "wizard" \? null : startIntent/);
   assert.match(login, /"demo-conversion"/);
   assert.match(login, /"wizard-conversion"/);
+  assert.match(login, /utworzymy Twoje CV w Linden/);
   assert.match(login, /utworzymy Twoje CV w Regencie/);
   assert.match(login, /startIntent === "wizard" \? null : startIntent/);
 });

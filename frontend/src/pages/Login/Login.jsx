@@ -112,7 +112,9 @@ export default function Login() {
             ? "Po zalogowaniu otworzymy kreator CV krok po kroku."
             : startIntent === "templates"
                 ? "Po zalogowaniu otworzymy wybór szablonów."
-            : (startIntent === "demo-conversion" || startIntent === "wizard-conversion")
+            : startIntent === "demo-conversion"
+                ? "Po zalogowaniu przeniesiemy dane z kreatora i utworzymy Twoje CV w Linden."
+            : startIntent === "wizard-conversion"
                 ? "Po zalogowaniu przeniesiemy dane z kreatora i utworzymy Twoje CV w Regencie."
                 : startIntent === "blank"
                     ? "Po zalogowaniu otworzymy pusty projekt własny."

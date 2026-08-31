@@ -113,7 +113,9 @@ export default function Register() {
             ? "Po utworzeniu konta otworzymy kreator CV krok po kroku."
             : startIntent === "templates"
                 ? "Po utworzeniu konta otworzymy wybór szablonów."
-        : (startIntent === "demo-conversion" || startIntent === "wizard-conversion")
+        : startIntent === "demo-conversion"
+            ? "Po utworzeniu konta przeniesiemy dane z kreatora i utworzymy Twoje CV w Linden."
+        : startIntent === "wizard-conversion"
             ? "Po utworzeniu konta przeniesiemy dane z kreatora i utworzymy Twoje CV w Regencie."
             : startIntent === "blank"
                     ? "Po utworzeniu konta otworzymy pusty projekt własny ze swobodną edycją."

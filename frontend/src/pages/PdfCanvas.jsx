@@ -86,7 +86,7 @@ import {
   TOO_LONG_MIN_PAGES,
   SIDEBAR_TOO_LONG_MIN_PAGES,
 } from '../utils/documentLength';
-import { regentTemplate } from '../templates/regent';
+import { lindenTemplate } from '../templates/linden';
 import { TEMPLATES } from '../templates';
 import { templateHasLayout } from '../utils/templateLayouts';
 import { normalizeSterlingFamilyPersistence } from '../utils/sterlingAppearance';
@@ -820,14 +820,14 @@ function PdfCanvas() {
     markTemplatesModalSeen();
   }, [handleClearA4, markTemplatesModalSeen, setActiveTemplateId, setEditorMode])
 
-  // Demo path: load the Regent starter with the fuller executive persona
-  // once, no dialog, so the visitor lands on an editable document instead
-  // of a template picker.
+  // Demo path: load the authored Linden starter once, no dialog, so the
+  // visitor sees the exact Julia Bernat document used by the Linden picker
+  // mockup instead of a separately maintained approximation.
   const demoStartAppliedRef = useRef(false);
   useEffect(() => {
     if (initialStartIntentRef.current !== "demo" || demoStartAppliedRef.current) return;
     demoStartAppliedRef.current = true;
-    handleLoadTemplate(regentTemplate, "DEMO_CV", "regent");
+    handleLoadTemplate(lindenTemplate, "DEMO_CV", "linden");
     setIsDemoContent(true);
     // The shared zoom step is 10%, so five increments land exactly on 150%
     // without introducing a separate demo-only zoom setter.
@@ -1390,7 +1390,7 @@ function PdfCanvas() {
   // cannot identify which surface was active, so restore the persisted demo
   // snapshot before the empty-state chooser can classify the page as legacy
   // guest onboarding. A direct `?start=demo` intentionally skips this restore
-  // and loads a fresh Regent starter instead.
+  // and loads a fresh Linden starter instead.
   useEffect(() => {
     if (demoGuestRestoredRef.current || getAccessToken() || initialStartIntentRef.current) return;
     const guestDoc = loadGuestDocument();
@@ -1399,6 +1399,16 @@ function PdfCanvas() {
       || !Array.isArray(guestDoc.elements)
       || guestDoc.elements.length === 0
     ) return;
+    // Regent powered the previous demo. Replace that persisted product sample
+    // instead of restoring stale demo content after the canonical starter was
+    // moved to Linden; user-authored guest documents never enter this branch.
+    if (guestDoc.templateId !== "linden") {
+      demoGuestRestoredRef.current = true;
+      clearGuestDocument();
+      handleLoadTemplate(lindenTemplate, "DEMO_CV", "linden");
+      setIsDemoContent(true);
+      return;
+    }
     // Local guest snapshots bypass ModalPdfs, so apply the same idempotent
     // persistence migrations before any editor mode or history is hydrated.
     const restoredElements = normalizeProfilePhotoVisibilityPersistence(
@@ -1416,6 +1426,7 @@ function PdfCanvas() {
     if (titleRef.current && guestDoc.title) titleRef.current.value = guestDoc.title;
   }, [
     hydrateDocumentMode,
+    handleLoadTemplate,
     resetHistory,
     setA4_Elements,
     setA4_Elements_deleted,
@@ -1430,7 +1441,7 @@ function PdfCanvas() {
     const guestDoc = loadGuestDocument();
     if (!guestDoc || !Array.isArray(guestDoc.elements) || guestDoc.elements.length === 0) return;
     if (guestDoc.isDemoContent) {
-      // The Regent demo is product content, not a user's draft. Never ask a
+      // The Linden demo is product content, not a user's draft. Never ask a
       // newly authenticated account to claim it, and remove the browser copy
       // so it cannot reappear after a later session on this device.
       clearGuestDocument();
@@ -1452,7 +1463,7 @@ function PdfCanvas() {
     if (!token || !conversionPending || !hasGuestWizardDraft()) return;
     wizardDraftAdoptedRef.current = true;
     // Keep the empty canvas from flashing while the authenticated profile is
-    // adopted and the first Regent layout is generated.
+    // adopted and its destination layout is generated.
     setIsConversionLoading(true);
     let cancelled = false;
     (async () => {
@@ -1467,12 +1478,15 @@ function PdfCanvas() {
         ) {
           // Delay layout generation until authentication succeeds so the demo
           // never flashes an empty or partially filled authenticated canvas.
-          const response = await fillTemplate(claim.profile, "regent", {
+          const conversionTemplateId = initialStartIntentRef.current === "demo-conversion"
+            ? "linden"
+            : "regent";
+          const response = await fillTemplate(claim.profile, conversionTemplateId, {
             errorMessage: "Nie udało się utworzyć Twojego CV.",
             spacing: flowSpacing,
           });
           if (cancelled) return;
-          handleLoadAiElements(response.elements, "Moje CV", "regent");
+          handleLoadAiElements(response.elements, "Moje CV", conversionTemplateId);
           // The generated CV is now an authenticated document. Clear the
           // presentation-only demo flag so the full editor chrome becomes
           // available immediately after the handoff.

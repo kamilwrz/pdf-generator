@@ -1,7 +1,7 @@
 /**
  * Persistent product-demo banner shown while the canvas holds the guest-mode
- * Regent starter (loaded via ?start=demo). Demo mode intentionally exposes
- * Regent only; template selection becomes available in the full editor after
+ * Linden starter (loaded via ?start=demo). Demo mode intentionally exposes
+ * Linden only; template selection becomes available in the full editor after
  * the visitor creates an account.
  */
 import classes from "./DemoBanner.module.css";
@@ -12,7 +12,7 @@ export default function DemoBanner({ onUseOwnData }) {
       <div className={classes.message}>
         <span className={classes.eyebrow}>Wypróbuj CV Studio</span>
         <span className={classes.text}>
-          Edytuj tekst Regenta i sprawdź, jak układ A4 reaguje na Twoją treść.
+          Edytuj przykładowe CV w Linden i sprawdź, jak układ A4 reaguje na Twoją treść.
         </span>
       </div>
       <div className={classes.actions}>
