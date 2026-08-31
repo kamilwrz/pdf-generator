@@ -405,18 +405,59 @@ function isStructuralTextRemap(previous, next) {
 }
 
 /**
+ * Collect semantic identifiers for editor-authored structures that still exist
+ * on the canvas.
+ *
+ * Generated template groups deliberately do not participate. Their identifiers
+ * are layout-only and cannot safely override the legacy tombstone fallback.
+ */
+function liveCanvasStructureIds(elements) {
+  const groups = new Set();
+  const sections = new Set();
+  for (const element of elements || []) {
+    if (element?.editorAddedRecord && element?.flowGroup) {
+      groups.add(element.flowGroup);
+    }
+    if (element?.editorAddedSection && element?.editorSectionId) {
+      sections.add(element.editorSectionId);
+    }
+  }
+  return { groups, sections };
+}
+
+function isLiveCanvasStructure(value, liveStructureIds) {
+  return Boolean(
+    value
+    && typeof value === "object"
+    && !Array.isArray(value)
+    && (
+      liveStructureIds.groups.has(value.__canvasGroup)
+      || liveStructureIds.sections.has(value.__canvasHeadingId)
+    )
+  );
+}
+
+/**
  * Remove legacy records matched by deleted canvas text with structural sharing.
  *
  * Tombstones remain queued until an explicit save, so the same deletion is
  * processed after `activeCvData` changes. Returning the original reference
  * when nothing is removed prevents that repeated pass from scheduling another
- * React state update.
+ * React state update. A live editor-authored structure is authoritative over a
+ * legacy tombstone with matching copy: that tombstone refers to the old canvas
+ * ids and must not erase a replacement the user has just added.
  */
-function pruneDeletedRecords(value, deletedTexts) {
+function pruneDeletedRecords(value, deletedTexts, liveStructureIds) {
   if (Array.isArray(value)) {
     let changed = false;
     const next = [];
     for (const item of value) {
+      // Protect the complete semantic subtree. Custom sections can contain
+      // nested records whose copy overlaps a retained legacy tombstone.
+      if (isLiveCanvasStructure(item, liveStructureIds)) {
+        next.push(item);
+        continue;
+      }
       if (item && typeof item === "object" && !Array.isArray(item)) {
         const leaves = stringLeaves(item);
         if (leaves.some((leaf) => deletedTexts.has(leaf))) {
@@ -424,7 +465,7 @@ function pruneDeletedRecords(value, deletedTexts) {
           continue;
         }
       }
-      const pruned = pruneDeletedRecords(item, deletedTexts);
+      const pruned = pruneDeletedRecords(item, deletedTexts, liveStructureIds);
       if (pruned !== item) changed = true;
       next.push(pruned);
     }
@@ -433,7 +474,7 @@ function pruneDeletedRecords(value, deletedTexts) {
   if (!value || typeof value !== "object") return value;
   let changed = false;
   const entries = Object.entries(value).map(([key, item]) => {
-    const pruned = pruneDeletedRecords(item, deletedTexts);
+    const pruned = pruneDeletedRecords(item, deletedTexts, liveStructureIds);
     if (pruned !== item) changed = true;
     return [key, pruned];
   });
@@ -598,6 +639,7 @@ export function syncCvDataFromCanvas(
     return cvData || null;
   }
 
+  const liveStructureIds = liveCanvasStructureIds(nextElements);
   const markedRecordDeletes = deletedElements.filter((element) => element?.deletedRecord);
   const deletedGroupIds = new Set(
     markedRecordDeletes.map((element) => element?.flowGroup).filter(Boolean),
@@ -635,7 +677,7 @@ export function syncCvDataFromCanvas(
     ? pruneCanvasStructures(cvData, deletedGroupIds, deletedSectionIds)
     : cvData;
   if (markedRecordDeletes.length > 0 && deletedTexts.size > 0) {
-    nextProfile = pruneDeletedRecords(nextProfile, deletedTexts);
+    nextProfile = pruneDeletedRecords(nextProfile, deletedTexts, liveStructureIds);
   }
   nextProfile = syncEditorStructures(nextProfile, nextElements);
   const titleEdit = editedMastheadTitle(previousElements, nextElements);
@@ -651,5 +693,10 @@ export function syncCvDataFromCanvas(
     if (nextProfile === cvData) nextProfile = cloneProfile(cvData);
     nextProfile = replaceUniqueString(nextProfile, from, to);
   }
-  return nextProfile;
+  if (nextProfile === cvData) return cvData;
+  // A retained semantic tombstone (for example after restoring the same group)
+  // can still prune and re-upsert an equal structure within one call. Preserve
+  // the public no-op contract so the React synchronization effect cannot loop
+  // on a value-equivalent profile with a fresh reference.
+  return JSON.stringify(nextProfile) === JSON.stringify(cvData) ? cvData : nextProfile;
 }

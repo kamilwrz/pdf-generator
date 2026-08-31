@@ -297,6 +297,170 @@ describe("syncCvDataFromCanvas", () => {
     assert.equal(twice, once);
   });
 
+  it("keeps a re-added Skills category stable while its old tombstone awaits save", () => {
+    const grouped = {
+      ...profile,
+      skills: [
+        { category: "Narzędzia", items: ["Figma", "Miro"] },
+        { category: "Technologie", items: ["React", "TypeScript"] },
+      ],
+      labels: { skills: "UMIEJĘTNOŚCI" },
+    };
+    const heading = sectionHeading("skills-heading", "UMIEJĘTNOŚCI");
+    const tools = [
+      { ...text("tools-category", "Narzędzia"), flowRole: "content", flowGroup: "tools" },
+      { ...text("tools-items", "Figma, Miro"), flowRole: "content", flowGroup: "tools" },
+    ];
+    const technologies = [
+      {
+        ...text("technologies-category", "Technologie"),
+        flowRole: "content",
+        flowGroup: "technologies",
+        top: 130,
+        left: 60,
+        page: 1,
+      },
+    ];
+    const tombstones = tools.map((element) => ({ ...element, deletedRecord: true }));
+    const canvasAfterDeletion = [heading, ...technologies];
+    const afterDeletion = syncCvDataFromCanvas(
+      grouped,
+      [heading, ...tools, ...technologies],
+      canvasAfterDeletion,
+      tombstones,
+    );
+    const restoredRecord = [
+      addedRecordField("restored-category", "Narzędzia", "title", {
+        flowGroup: "record-restored",
+        editorRecordLayout: "cc-sub",
+        top: 160,
+      }),
+      addedRecordField("restored-items", "Figma, Miro", "body", {
+        flowGroup: "record-restored",
+        editorRecordLayout: "cc-sub",
+        top: 175,
+      }),
+    ];
+    const restoredCanvas = [...canvasAfterDeletion, ...restoredRecord];
+
+    const restored = syncCvDataFromCanvas(
+      afterDeletion,
+      canvasAfterDeletion,
+      restoredCanvas,
+      tombstones,
+    );
+    const repeated = syncCvDataFromCanvas(
+      restored,
+      restoredCanvas,
+      restoredCanvas,
+      tombstones,
+    );
+
+    assert.deepEqual(restored.skills.map(({ category }) => category), [
+      "Technologie",
+      "Narzędzia",
+    ]);
+    assert.equal(repeated, restored);
+  });
+
+  it("keeps a restored Skills group stable while its semantic tombstone remains queued", () => {
+    const heading = sectionHeading("skills-heading", "UMIEJĘTNOŚCI");
+    const restoredRecord = [
+      addedRecordField("restored-category", "Narzędzia", "title", {
+        flowGroup: "record-restored",
+        editorRecordLayout: "cc-sub",
+        top: 130,
+      }),
+      addedRecordField("restored-items", "Figma, Miro", "body", {
+        flowGroup: "record-restored",
+        editorRecordLayout: "cc-sub",
+        top: 145,
+      }),
+    ];
+    const canvas = [heading, ...restoredRecord];
+    const restoredProfile = {
+      ...profile,
+      labels: { skills: "UMIEJĘTNOŚCI" },
+      custom_sections: [],
+      skills: [{
+        category: "Narzędzia",
+        items: ["Figma, Miro"],
+        __canvasGroup: "record-restored",
+      }],
+    };
+    const tombstones = restoredRecord.map((element) => ({
+      ...element,
+      deletedRecord: true,
+    }));
+
+    const repeated = syncCvDataFromCanvas(
+      restoredProfile,
+      canvas,
+      canvas,
+      tombstones,
+    );
+
+    assert.equal(repeated, restoredProfile);
+  });
+
+  it("protects a re-added custom section until that live section is deleted again", () => {
+    const heading = sectionHeading("restored-heading", "OSIĄGNIĘCIA", {
+      editorAddedSection: true,
+      editorSectionId: "restored-heading",
+      editorSectionLayout: "aa",
+    });
+    const body = {
+      ...text("restored-body", "Nagroda branżowa 2026"),
+      flowRole: "content",
+      top: 130,
+      left: 60,
+      page: 1,
+      editorAddedSection: true,
+      editorSectionId: "restored-heading",
+    };
+    const canvas = [heading, body];
+    const source = { ...profile, custom_sections: [] };
+    const legacyTombstones = [
+      { ...text("old-heading", "OSIĄGNIĘCIA"), deletedRecord: true },
+      { ...text("old-body", "Nagroda branżowa 2026"), deletedRecord: true },
+    ];
+
+    const restored = syncCvDataFromCanvas(
+      source,
+      [],
+      canvas,
+      legacyTombstones,
+    );
+    const repeated = syncCvDataFromCanvas(
+      restored,
+      canvas,
+      canvas,
+      legacyTombstones,
+    );
+
+    assert.deepEqual(restored.custom_sections, [{
+      title: "OSIĄGNIĘCIA",
+      items: ["Nagroda branżowa 2026"],
+      kind: "other",
+      placement: "after_skills",
+      __canvasHeadingId: "restored-heading",
+    }]);
+    assert.equal(repeated, restored);
+
+    const semanticTombstones = canvas.map((element) => ({
+      ...element,
+      deletedRecord: true,
+    }));
+    const removedAgain = syncCvDataFromCanvas(
+      repeated,
+      canvas,
+      [],
+      [...legacyTombstones, ...semanticTombstones],
+    );
+
+    assert.deepEqual(removedAgain.custom_sections, []);
+  });
+
   it("persists a user-added experience record for a later template fill", () => {
     const heading = sectionHeading("experience-heading", "DOŚWIADCZENIE ZAWODOWE");
     const added = [
