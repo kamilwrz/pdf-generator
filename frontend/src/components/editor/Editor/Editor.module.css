@@ -1,243 +1,310 @@
-/* Shared chrome for both floating panels Editor.jsx renders: the topbar-docked
-   element-properties panel and the canvas-anchored selection-formatting panel.
-   Compact, content-width, grouped by intent: content → type → paragraph →
-   geometry → position → actions. */
-
+/* The primary inspector is a measured workspace panel. The small inline-text
+   toolbar reuses the same surface token but opts into its compact layout. */
 .editor {
     position: fixed;
-    /* Editor affordances use their dedicated global layer above sticky chrome.
-       properties panel docks vertically centered on the topbar's zoom
-       cluster, so it paints directly under the topbar's opaque background
-       unless it stacks above it. Below Gallery/DemoBanner (1500) and all
-       modal/toast layers so those still win when both are open. */
     z-index: var(--z-editor-affordance);
-    width: max-content;
-    max-width: calc(100vw - 16px);
     display: flex;
     flex-direction: column;
-    align-items: stretch;
-    /* Flat fill matching the topbar's own surface exactly (same variable
-       Topbar.module.css uses for --topbar-surface) — no gradient, so the
-       panel reads as chrome bolted onto the topbar rather than a card
-       floating above it. */
-    background: var(--chrome-surface, var(--primary-bg));
-    color: var(--chrome-ink, var(--primary-font));
-    font-family: var(--font-body);
-    border: 1px solid var(--chrome-border, var(--border-soft));
-    /* rounded.md from DESIGN.md's token scale (2/4/8px). */
+    min-width: 0;
+    max-width: calc(100vw - 8px);
+    background: var(--chrome-surface, var(--color-paper));
+    color: var(--chrome-ink, var(--color-ink));
+    border: 1px solid var(--chrome-border, var(--color-border));
+    border-left: 3px solid var(--chrome-ink, var(--color-ink));
     border-radius: var(--radius-panel);
-    /* Minimal separation shadow only — enough to lift the panel off the
-       canvas below it without the heavier multi-layer shadow that made it
-       look like a detached floating card next to the topbar's flat,
-       shadow-free chrome. */
     box-shadow: var(--shadow-pop);
+    font-family: var(--font-body);
     pointer-events: auto;
-    overflow-x: auto;
-    overflow-y: hidden;
-    scrollbar-width: none;
+    overflow: hidden;
+    container-type: inline-size;
 }
 
-.editor::-webkit-scrollbar {
-    display: none;
+.panelHeader {
+    min-height: 68px;
+    padding: 13px 12px 11px 14px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    background: var(--chrome-ink);
+    color: var(--chrome-surface);
+    border-bottom: 1px solid var(--chrome-border);
+    flex-shrink: 0;
+}
+
+.panelHeader h2 {
+    margin: 3px 0 0;
+    color: inherit;
+    font: 700 17px/1.08 var(--font-body);
+    letter-spacing: -0.02em;
+}
+
+.panelHeader .iconBtn {
+    width: 32px;
+    height: 32px;
+    color: var(--chrome-surface);
+    border-color: color-mix(in srgb, var(--chrome-surface) 32%, transparent);
+    background: transparent;
+}
+
+.panelHeader .iconBtn:hover:not(:disabled) {
+    background: var(--chrome-surface);
+    color: var(--chrome-ink);
+}
+
+.eyebrow {
+    display: block;
+    font: 700 9px/1 var(--font-body);
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    opacity: .72;
+}
+
+.selectionTip {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 8px;
+    align-items: center;
+    min-height: 44px;
+    padding: 8px 14px;
+    background: var(--color-canvas);
+    border-bottom: 1px solid var(--chrome-border);
+    color: var(--chrome-muted);
+    font: 500 11px/1.25 var(--font-body);
+    flex-shrink: 0;
+}
+
+.tipKeys {
+    color: var(--chrome-ink);
+    font: 700 9.5px/1 var(--font-mono);
+    letter-spacing: -.02em;
+    padding: 6px 7px;
+    background: var(--chrome-surface);
+    border: 1px solid var(--chrome-border);
+    border-bottom-color: var(--chrome-muted);
+    overflow-wrap: anywhere;
 }
 
 .bar {
-    display: flex;
-    flex-wrap: nowrap;
-    align-items: center;
-    width: max-content;
-    gap: 3px;
-    padding: 3px;
+    min-height: 0;
+    overflow: auto;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-content: start;
+    gap: 10px;
+    padding: 12px;
     margin: 0;
+    scrollbar-width: thin;
+    scrollbar-color: var(--chrome-ink) var(--chrome-control);
 }
 
 .group {
-    display: inline-flex;
-    align-items: center;
-    gap: 1px;
-    min-height: 24px;
-    padding: 1px;
-    border-radius: var(--radius-control);
-    background: color-mix(in srgb, var(--chrome-control, var(--secondary-bg)) 50%, transparent);
-    flex-shrink: 0;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px;
+    background: color-mix(in srgb, var(--chrome-control) 52%, var(--chrome-surface));
+    border-top: 2px solid var(--chrome-ink);
 }
 
-.sep {
-    width: 1px;
-    height: 14px;
-    margin: 0 1px;
-    background: color-mix(in srgb, var(--chrome-border, var(--border-soft)) 75%, transparent);
-    flex-shrink: 0;
-    align-self: center;
+.groupLabel {
+    color: var(--chrome-muted);
+    font: 700 9px/1.2 var(--font-body);
+    letter-spacing: .09em;
+    text-transform: uppercase;
+}
+
+.groupControls {
+    min-width: 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 8px;
+}
+
+.sep { display: none; }
+
+.field {
+    min-width: 104px;
+    flex: 1 1 104px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    color: var(--chrome-ink);
+}
+
+.fieldLabel {
+    min-height: 13px;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font: 600 10px/1.25 var(--font-body);
+    color: var(--chrome-ink);
 }
 
 .iconBtn {
-    width: 22px;
-    height: 22px;
+    width: 36px;
+    height: 36px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    border: 1px solid transparent;
+    border: 1px solid var(--chrome-border);
     border-radius: var(--radius-control);
-    background: transparent;
-    color: var(--chrome-muted, var(--muted-font));
+    background: var(--chrome-surface);
+    color: var(--chrome-muted);
     cursor: pointer;
-    font-size: 11px;
+    font-size: 13px;
     padding: 0;
-    transition: background 0.12s, color 0.12s, border-color 0.12s;
+    transition: background var(--motion-fast), color var(--motion-fast), border-color var(--motion-fast), transform var(--motion-fast);
 }
 
-.iconBtn svg {
-    width: 12px;
-    height: 12px;
-}
-
-.iconBtn:hover:not(:disabled) {
-    background: var(--chrome-hover, var(--secondary-bg));
-    color: var(--chrome-accent, var(--accent));
-}
-
-.iconBtn:disabled {
-    opacity: 0.35;
-    cursor: default;
-}
-
-.iconBtnActive {
-    background: color-mix(in srgb, var(--chrome-accent, var(--accent)) 17%, transparent) !important;
-    color: var(--chrome-accent, var(--accent)) !important;
-    border-color: color-mix(in srgb, var(--chrome-accent, var(--accent)) 45%, transparent);
-    box-shadow: 0 0 0 1px color-mix(in srgb, var(--chrome-accent, var(--accent)) 8%, transparent) inset;
-}
-
-.iconBtnDanger:hover:not(:disabled) {
-    background: var(--danger-soft);
-    color: var(--danger);
-}
+.iconBtn svg { width: 16px; height: 16px; }
+.iconBtn:hover:not(:disabled) { background: var(--chrome-hover); border-color: var(--chrome-ink); color: var(--chrome-ink); }
+.iconBtn:active:not(:disabled) { transform: translateY(1px); }
+.iconBtn:disabled { opacity: .38; cursor: not-allowed; }
+.iconBtnActive { background: var(--chrome-ink) !important; color: var(--chrome-surface) !important; border-color: var(--chrome-ink) !important; }
+.iconBtnDanger:hover:not(:disabled) { background: var(--danger-soft); border-color: var(--danger); color: var(--danger); }
 
 .numField {
+    height: 36px;
+    display: grid;
+    grid-template-columns: 32px minmax(42px, 1fr) 32px;
+    overflow: hidden;
+    background: var(--chrome-surface);
+    border: 1px solid var(--chrome-border);
+    border-radius: var(--radius-control);
+}
+
+.numField:focus-within { border-color: var(--color-focus); box-shadow: 0 0 0 1px var(--color-focus); }
+
+.numField button {
+    min-width: 32px;
+    height: 34px;
     display: inline-flex;
     align-items: center;
-    gap: 1px;
-    height: 22px;
-    padding: 0 2px 0 3px;
-    border: 1px solid var(--chrome-border, var(--border));
-    border-radius: var(--radius-control);
-    background: color-mix(in srgb, var(--primary-bg) 76%, transparent);
-    transition: border-color .12s, background .12s;
+    justify-content: center;
+    padding: 0;
+    border: 0;
+    background: var(--chrome-control);
+    color: var(--chrome-muted);
+    cursor: pointer;
 }
 
-.numField:focus-within {
-    border-color: var(--chrome-accent, var(--accent));
-    background: var(--primary-bg);
-}
-
-.numIcon {
-    display: inline-flex;
-    color: var(--chrome-muted, var(--muted-font));
-    font-size: 10px;
-    line-height: 1;
-}
-
-.numIcon svg {
-    width: 10px;
-    height: 10px;
-}
+.numField button:first-child { border-right: 1px solid var(--chrome-border); }
+.numField button:last-child { border-left: 1px solid var(--chrome-border); }
+.numField button:hover:not(:disabled) { background: var(--chrome-ink); color: var(--chrome-surface); }
+.numField button:disabled { opacity: .38; cursor: not-allowed; }
+.numField button svg { width: 13px; height: 13px; }
 
 .numField input {
-    height: 19px;
-    border: none;
+    width: 100% !important;
+    min-width: 0;
+    height: 34px;
+    padding: 0 4px;
+    border: 0;
+    outline: 0;
     background: transparent;
-    color: var(--chrome-ink, var(--primary-font));
-    font: 600 10px/1 var(--font-body);
-    padding: 0 1px;
-    outline: none;
+    color: var(--chrome-ink);
+    text-align: center;
+    font: 700 11px/1 var(--font-mono);
     -moz-appearance: textfield;
 }
 
 .numField input::-webkit-outer-spin-button,
-.numField input::-webkit-inner-spin-button {
-    -webkit-appearance: none;
-    margin: 0;
-}
+.numField input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 
-.numField input:disabled {
-    opacity: 0.45;
-}
+.numIcon { display: inline-flex; align-items: center; color: var(--chrome-muted); }
+.numIcon svg { width: 12px; height: 12px; }
 
 .colorField {
-    width: 22px;
-    height: 22px;
-    display: inline-flex;
+    min-width: 100%;
+    height: 36px;
+    display: grid;
+    grid-template-columns: 42px 1fr;
     align-items: center;
-    justify-content: center;
-    border: 1px solid var(--chrome-border, var(--border));
-    border-radius: var(--radius-control);
     overflow: hidden;
-    cursor: pointer;
-    background: var(--primary-bg);
+    background: var(--chrome-surface);
+    border: 1px solid var(--chrome-border);
+    border-radius: var(--radius-control);
 }
 
-.colorField input {
-    width: 28px;
-    height: 28px;
-    border: none;
-    padding: 0;
-    cursor: pointer;
-    background: transparent;
-}
+.colorField input { width: 46px; height: 42px; margin: -3px; padding: 0; border: 0; background: transparent; cursor: pointer; }
+.colorField > span { padding-left: 9px; border-left: 1px solid var(--chrome-border); color: var(--chrome-muted); font: 600 10px/1 var(--font-mono); text-transform: uppercase; }
 
 .fontSelect {
-    height: 22px;
-    width: 78px;
-    border: 1px solid var(--chrome-border, var(--border));
+    width: 100%;
+    height: 36px;
+    padding: 0 9px;
+    border: 1px solid var(--chrome-border);
     border-radius: var(--radius-control);
-    background: color-mix(in srgb, var(--primary-bg) 70%, transparent);
-    color: var(--chrome-ink, var(--primary-font));
-    font: 600 9.5px/1 var(--font-body);
-    padding: 0 3px;
-    outline: none;
+    outline: 0;
+    background: var(--chrome-surface);
+    color: var(--chrome-ink);
+    font-size: 11px;
     cursor: pointer;
 }
 
-.fontSelect:focus {
-    border-color: var(--color-focus);
-}
-
-.axis {
-    font: 800 8px/1 var(--font-display);
-    color: var(--chrome-muted, var(--muted-font));
-    min-width: 8px;
-    text-align: center;
-}
-
-.glyphBold {
-    font: 800 10.5px/1 var(--font-body);
-}
-
-.glyphItalic {
-    font: italic 700 10.5px/1 var(--font-body);
-}
-
-.glyphUnderline {
-    font: 700 10.5px/1 var(--font-body);
-    text-decoration: underline;
-    text-underline-offset: 2px;
-}
+.fontSelect:focus { border-color: var(--color-focus); box-shadow: 0 0 0 1px var(--color-focus); }
+.axis { font: 800 9px/1 var(--font-mono); }
+.glyphBold { font: 800 13px/1 var(--font-body); }
+.glyphItalic { font: italic 700 13px/1 var(--font-body); }
+.glyphUnderline { font: 700 13px/1 var(--font-body); text-decoration: underline; text-underline-offset: 2px; }
+.insertBullet { font: 750 11px/1 var(--font-body); letter-spacing: -1px; }
 
 .bulkBadge {
-    min-width: 20px;
-    height: 20px;
-    padding: 0 4px;
+    min-width: 32px;
+    height: 32px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    border-radius: var(--radius-control);
-    background: var(--accent-soft);
-    color: var(--chrome-accent, var(--accent));
-    font: 800 9px/1 var(--font-display);
+    grid-column: 1 / -1;
+    justify-self: start;
+    background: var(--chrome-ink);
+    color: var(--chrome-surface);
+    font: 800 11px/1 var(--font-mono);
 }
 
-.insertBullet {
-    font: 750 9px/1 var(--font-body);
-    letter-spacing: -1px;
+.iconBtn:focus-visible,
+.numField button:focus-visible,
+.colorField input:focus-visible { outline: 2px solid var(--color-focus); outline-offset: -2px; }
+
+/* A selection toolbar has .bar as its first child; keep that secondary surface
+   compact instead of applying the full inspector grid. */
+.editor:has(> .bar:first-child) {
+    width: max-content !important;
+    height: auto !important;
+    max-width: calc(100vw - 16px);
+    border-left-width: 1px;
+    overflow-x: auto;
+}
+
+.editor:has(> .bar:first-child) .bar { display: flex; width: max-content; overflow: visible; padding: 4px; }
+.editor:has(> .bar:first-child) .group { padding: 4px; border-top-width: 1px; }
+.editor:has(> .bar:first-child) .groupLabel { display: none; }
+
+@media (max-width: 900px) {
+    .bar { grid-template-columns: 1fr; }
+    .selectionTip { grid-template-columns: 1fr; gap: 4px; }
+}
+
+@container (max-width: 380px) {
+    .bar { grid-template-columns: 1fr; }
+    .selectionTip { grid-template-columns: 1fr; gap: 4px; }
+    .panelHeader h2 { font-size: 15px; }
+}
+
+@media (max-width: 720px) {
+    .editor:not(:has(> .bar:first-child)) {
+        left: 56px !important;
+        right: 0;
+        width: auto !important;
+        max-width: none;
+        height: calc(100dvh - var(--topbar-h)) !important;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .iconBtn,
+    .numField button { transition: none; }
 }

@@ -69,7 +69,7 @@ export default function Topbar({ titleRef }) {
         : "Najpierw wypełnij CV z PDF albo kreatorem krok po kroku";
 
     return (
-        <header className={classes.topbar}>
+        <header className={classes.topbar} data-anchor="editor-topbar">
             {/* Left: document identity, creation/appearance workflow, then edit
                 history. The ordering keeps document-wide actions together and
                 reserves icon-only controls for conventions users already know. */}

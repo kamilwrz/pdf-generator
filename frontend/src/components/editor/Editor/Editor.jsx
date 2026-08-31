@@ -1,10 +1,11 @@
 /**
- * Element-properties panel (Enhancv-style form, CV STUDIO chrome). Icon-first
- * controls; Text vs TextArea keep different field sets. Docks in the topbar,
- * 50px left of the zoom control (`Topbar.jsx`'s `[data-anchor="topbar-zoom"]`)
- * — not anchored to the canvas selection — so it reads as editor chrome
- * rather than a tooltip hovering over the page. It mounts/unmounts (fade +
- * slide) with element selection.
+ * Element-properties panel (CV STUDIO chrome). Text vs TextArea keep different
+ * field sets. The inspector occupies the quiet top-left workspace between the
+ * tool rail and the A4 sheet: its top follows the live topbar, its bottom
+ * follows the divider above “Moje dokumenty”, and its right edge keeps a 15px
+ * breathing space before the visible page. It mounts/unmounts with a short
+ * directional transition and becomes an overlay drawer when that exact dock
+ * is too narrow for usable controls.
  *
  * While a text/textarea is contentEditable and the caret range is non-empty,
  * a second, fully independent floating bar ("Zaznaczenie") appears anchored
@@ -20,7 +21,7 @@
  * suppressed in template mode.
  */
 import classes from "./Editor.module.css";
-import { useCallback, useEffect, useLayoutEffect, useState, useRef, use } from "react";
+import { useEffect, useLayoutEffect, useState, useRef, use } from "react";
 import { createPortal } from "react-dom";
 import { RiDeleteBin2Line, RiFileCopyLine } from "react-icons/ri";
 import { CiTextAlignLeft, CiTextAlignCenter, CiTextAlignRight, CiTextAlignJustify } from "react-icons/ci";
@@ -37,6 +38,7 @@ import {
 } from "react-icons/md";
 import { RxLetterSpacing, RxWidth, RxHeight, RxLayers } from "react-icons/rx";
 import { TbArrowBigRightLines } from "react-icons/tb";
+import { FiMinus, FiPlus } from "react-icons/fi";
 
 import { PdfContext } from "../../../store/pdfgenerator-context";
 import { motion as Motion, AnimatePresence, useReducedMotion } from "framer-motion";
@@ -88,6 +90,29 @@ const FONT_OPTIONS = [
 
 const BULLET_PREFIX_PATTERN = /^\s*•[ \t]*/;
 const HEX_COLOR_PATTERN = /^#[0-9A-Fa-f]{6}$/;
+const PANEL_A4_GAP_PX = 15;
+const PANEL_MIN_WIDTH_PX = 120;
+const PANEL_VIEWPORT_GUTTER_PX = 8;
+
+const CATEGORY_LABELS = {
+  text: "tekst",
+  textarea: "pole tekstowe",
+  image: "zdjęcie",
+  line: "linię",
+  rectangle: "prostokąt",
+  circle: "koło",
+  ellipse: "elipsę",
+  polygon: "kształt",
+  path: "ozdobną linię",
+  connector: "łącznik",
+};
+
+function polishElementCount(count) {
+  const lastTwo = count % 100;
+  const last = count % 10;
+  if (last >= 2 && last <= 4 && (lastTwo < 12 || lastTwo > 14)) return `${count} elementy`;
+  return `${count} elementów`;
+}
 
 function canonicalBulletLine(line) {
   return `• ${line.replace(BULLET_PREFIX_PATTERN, "").trimStart()}`;
@@ -99,6 +124,21 @@ function toColorInputValue(value, fallback = "#000000") {
   if (HEX_COLOR_PATTERN.test(candidate)) return candidate;
   if (HEX_COLOR_PATTERN.test(fallback)) return fallback;
   return "#000000";
+}
+
+/** Return the live union rectangle for the selected canvas element IDs. */
+function readSelectionAnchorRect(selectionKey) {
+  const ids = selectionKey ? selectionKey.split("|").filter(Boolean) : [];
+  const rects = ids
+    .map((id) => document.getElementById(id)?.getBoundingClientRect())
+    .filter(Boolean)
+    .map((rect) => ({
+      left: rect.left,
+      top: rect.top,
+      width: rect.width,
+      height: rect.height,
+    }));
+  return unionRects(rects);
 }
 
 export default function Editor() {
@@ -148,7 +188,12 @@ export default function Editor() {
   const [groupMoveValues, setGroupMoveValues] = useState({ x: "0", y: "0" });
   const groupMoveOffsetRef = useRef({ x: 0, y: 0 });
   const panelRef = useRef(null);
-  const [panelPosition, setPanelPosition] = useState({ top: 0, left: 0 });
+  const [panelPosition, setPanelPosition] = useState({
+    top: 0,
+    left: 0,
+    width: PANEL_MIN_WIDTH_PX,
+    height: 320,
+  });
   // Non-collapsed caret range inside the editing text node. Selection marks
   // (B/I/U/colour) render in their own floating panel, anchored to the
   // selected element on canvas — independent of the topbar-docked panel
@@ -463,67 +508,88 @@ export default function Editor() {
     });
   }
 
-  /** Union bbox of every selected element's live canvas DOM node. */
-  const readSelectionAnchorRect = useCallback(() => {
-    const ids = selectionKey ? selectionKey.split("|").filter(Boolean) : [];
-    const rects = ids
-      .map((id) => document.getElementById(id)?.getBoundingClientRect())
-      .filter(Boolean)
-      .map((rect) => ({
-        left: rect.left,
-        top: rect.top,
-        width: rect.width,
-        height: rect.height,
-      }));
-    return unionRects(rects);
-  }, [selectionKey]);
-
-  // Topbar-docked panel: right edge sits GAP_FROM_ZOOM_PX left of the zoom
-  // control, vertically centered on it. Only the zoom cluster's position (not
-  // the canvas selection) drives this, so panning/zooming the page never
-  // moves the panel — it reads as part of the editor chrome, not a tooltip.
-  const GAP_FROM_ZOOM_PX = 50;
+  // The inspector is part of the workspace grid, not a tooltip. Read live DOM
+  // geometry because text editing animates the page to 200% and recentres its
+  // scroll position. ResizeObserver plus transition/scroll listeners keep the
+  // 15px page gap exact after both layout and transform changes.
   useLayoutEffect(() => {
     if (!someElementSelected) return undefined;
 
     function updatePosition() {
-      const panel = panelRef.current;
-      const zoomAnchor = document.querySelector('[data-anchor="topbar-zoom"]');
-      if (!panel || !zoomAnchor) return;
-      const anchorRect = zoomAnchor.getBoundingClientRect();
-      const panelWidth = panel.offsetWidth;
-      const panelHeight = panel.offsetHeight;
-      const left = Math.max(8, anchorRect.left - GAP_FROM_ZOOM_PX - panelWidth);
-      const top = anchorRect.top + anchorRect.height / 2 - panelHeight / 2;
+      const sidebar = document.querySelector('[data-anchor="editor-sidebar"]');
+      const topbar = document.querySelector('[data-anchor="editor-topbar"]');
+      const documentsDivider = document.querySelector('[data-anchor="sidebar-documents-divider"]');
+      const canvasArea = document.querySelector(".canvas-area");
+      const visiblePage = document.querySelector(`[data-page-canvas="${currentPage}"]`)
+        || document.querySelector("[data-page-canvas]");
+      if (!sidebar || !topbar || !documentsDivider || !canvasArea || !visiblePage) return;
+
+      const sidebarRect = sidebar.getBoundingClientRect();
+      const topbarRect = topbar.getBoundingClientRect();
+      const dividerRect = documentsDivider.getBoundingClientRect();
+      const canvasRect = canvasArea.getBoundingClientRect();
+      const pageRect = visiblePage.getBoundingClientRect();
+      const left = Math.round(sidebarRect.right);
+      const top = Math.round(topbarRect.bottom);
+      const exactDockWidth = Math.floor(pageRect.left - PANEL_A4_GAP_PX - left);
+      const availableWidth = Math.max(0, Math.floor(canvasRect.right - left - PANEL_VIEWPORT_GUTTER_PX));
+      const width = Math.min(
+        Math.max(PANEL_MIN_WIDTH_PX, exactDockWidth),
+        availableWidth,
+      );
+      const exactDockHeight = Math.floor(dividerRect.top - top);
+      // Template/demo rails contain far fewer tools, so their documents rule
+      // can sit directly under the topbar. In that state the freeform-sized
+      // dock does not exist; use a viewport-contained drawer instead of
+      // crushing the form to a few pixels. A full freeform rail keeps the
+      // exact divider height requested by the workspace grid.
+      const height = exactDockHeight >= 280
+        ? exactDockHeight
+        : Math.min(460, Math.max(320, window.innerHeight - top - 16));
       setPanelPosition((previous) => (
-        previous.top === top && previous.left === left
+        previous.top === top
+          && previous.left === left
+          && previous.width === width
+          && previous.height === height
           ? previous
-          : { top, left }
+          : { top, left, width, height }
       ));
     }
 
     updatePosition();
-    const panel = panelRef.current;
-    const resizeObserver = typeof ResizeObserver !== "undefined" && panel
+    const observedNodes = [
+      document.querySelector('[data-anchor="editor-sidebar"]'),
+      document.querySelector('[data-anchor="editor-topbar"]'),
+      document.querySelector('[data-anchor="sidebar-documents-divider"]'),
+      document.querySelector(".canvas-area"),
+      document.querySelector(`[data-page-canvas="${currentPage}"]`) || document.querySelector("[data-page-canvas]"),
+    ].filter(Boolean);
+    const resizeObserver = typeof ResizeObserver !== "undefined"
       ? new ResizeObserver(updatePosition)
       : null;
-    if (resizeObserver && panel) resizeObserver.observe(panel);
+    observedNodes.forEach((node) => resizeObserver?.observe(node));
+    const canvasArea = document.querySelector(".canvas-area");
+    const page = document.querySelector(`[data-page-canvas="${currentPage}"]`) || document.querySelector("[data-page-canvas]");
     window.addEventListener("resize", updatePosition);
+    canvasArea?.addEventListener("scroll", updatePosition, { passive: true });
+    page?.addEventListener("transitionend", updatePosition);
     return () => {
       resizeObserver?.disconnect();
       window.removeEventListener("resize", updatePosition);
+      canvasArea?.removeEventListener("scroll", updatePosition);
+      page?.removeEventListener("transitionend", updatePosition);
     };
-  }, [someElementSelected, selectionKey]);
+  }, [someElementSelected, selectionKey, zoom, currentPage, isTwoPageView]);
 
-  // Selection-formatting panel: anchored to the selected element on canvas
-  // (same geometry the topbar panel used before it moved), independent of
-  // the topbar panel above.
+  // Selection-formatting remains a separate, content-sized surface anchored
+  // to the selected canvas text. It must not inherit or alter the measured
+  // geometry of the top-left workspace inspector.
   useLayoutEffect(() => {
     if (!inlineSelection) return undefined;
 
     function updatePosition() {
       const panel = selectionPanelRef.current;
-      const anchor = readSelectionAnchorRect();
+      const anchor = readSelectionAnchorRect(selectionKey);
       if (!panel || !anchor) return;
       const next = computeFloatingPanelPosition(
         anchor,
@@ -561,10 +627,12 @@ export default function Editor() {
     zoom,
     isTwoPageView,
     currentPage,
-    readSelectionAnchorRect,
   ]);
 
   const cat = selectedElement?.category;
+  const panelTitle = isMultiSelection
+    ? `Edytujesz ${polishElementCount(selectedElements.length)}`
+    : `Edytujesz ${CATEGORY_LABELS[cat] || "element"}`;
 
   const panel = (
     <AnimatePresence>
@@ -572,16 +640,28 @@ export default function Editor() {
         <Motion.aside
           ref={panelRef}
           className={classes.editor}
-          role="toolbar"
-          aria-label="Właściwości elementu"
-          style={{ top: panelPosition.top, left: panelPosition.left }}
-          initial={reduceMotion ? false : { opacity: 0, y: -6, scale: 0.98 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -6, scale: 0.98 }}
-          transition={{ duration: reduceMotion ? 0 : 0.16, ease: [0.2, 0, 0, 1] }}
+          aria-labelledby="element-inspector-title"
+          style={panelPosition}
+          initial={reduceMotion ? false : { opacity: 0, x: -18 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={reduceMotion ? { opacity: 0 } : { opacity: 0, x: -18 }}
+          transition={{ duration: reduceMotion ? 0 : 0.24, ease: [0.2, 0, 0, 1] }}
           onPointerDown={(event) => event.stopPropagation()}
           onMouseDown={(event) => event.stopPropagation()}
         >
+          <div className={classes.panelHeader}>
+            <div>
+              <span className={classes.eyebrow}>Ustawienia elementu</span>
+              <h2 id="element-inspector-title">{panelTitle}</h2>
+            </div>
+            <IconBtn label="Zamknij panel edycji" onClick={handleCloseEditor}>
+              <MdClose />
+            </IconBtn>
+          </div>
+          <div className={classes.selectionTip}>
+            <span className={classes.tipKeys}>Ctrl + lewy przycisk myszy</span>
+            <span>zaznacza wiele elementów</span>
+          </div>
           <form className={classes.bar} onSubmit={(event) => event.preventDefault()}>
             {isMultiSelection ? (
               <BulkToolbar
@@ -599,7 +679,6 @@ export default function Editor() {
                 allowCloneOrDelete={allowCloneOrDelete}
                 onDuplicateSelected={duplicateSelectedElements}
                 onDeleteSelected={deleteSelectedElements}
-                onClose={handleCloseEditor}
               />
             ) : (
               <>
@@ -651,14 +730,14 @@ export default function Editor() {
                         <Sep />
                         <Group label="Odstępy i rozmiar">
                           <NumField
-                            label="Wysokość linii"
+                            label="Odstęp między wierszami"
                             icon={<MdFormatLineSpacing />}
                             value={elementValues.lineHeight}
                             onChange={(e) => handleChangeValues(e, "lineHeight")}
                             width={34}
                           />
                           <NumField
-                            label="Odstęp między literami"
+                            label="Odstęp między znakami"
                             icon={<RxLetterSpacing />}
                             value={elementValues.letterSpacing}
                             onChange={(e) => handleChangeValues(e, "letterSpacing")}
@@ -882,14 +961,14 @@ export default function Editor() {
                             <MdAlignHorizontalRight />
                           </IconBtn>
                           <NumField
-                            label="X (px)"
+                            label="Od lewej krawędzi"
                             icon={<span className={classes.axis}>X</span>}
                             value={elementValues.left}
                             onChange={(e) => handleChangeValues(e, "left")}
                             width={34}
                           />
                           <NumField
-                            label="Y (px)"
+                            label="Od górnej krawędzi"
                             icon={<span className={classes.axis}>Y</span>}
                             value={elementValues.top}
                             onChange={(e) => handleChangeValues(e, "top")}
@@ -899,7 +978,7 @@ export default function Editor() {
                       )}
                       {showLayerField && (
                         <NumField
-                          label="Warstwa"
+                          label="Kolejność na stronie"
                           icon={<RxLayers />}
                           value={elementValues.zIndex}
                           onChange={(e) => handleChangeValues(e, "zIndex")}
@@ -935,10 +1014,6 @@ export default function Editor() {
                   </>
                 )}
 
-                <Sep />
-                <IconBtn label="Zamknij" onClick={handleCloseEditor}>
-                  <MdClose />
-                </IconBtn>
               </>
             )}
           </form>
@@ -1015,7 +1090,8 @@ export default function Editor() {
 function Group({ children, label }) {
   return (
     <div className={classes.group} role="group" aria-label={label}>
-      {children}
+      <span className={classes.groupLabel}>{label}</span>
+      <div className={classes.groupControls}>{children}</div>
     </div>
   );
 }
@@ -1046,26 +1122,50 @@ function IconBtn({
 function NumField({
   label, icon, value, onChange, width = 40, disabled, step,
 }) {
+  const amount = Number(step) || 1;
+
+  function nudge(direction) {
+    const current = Number(value);
+    const next = (Number.isFinite(current) ? current : 0) + direction * amount;
+    const precision = String(amount).includes(".") ? String(amount).split(".")[1].length : 0;
+    onChange({ target: { value: precision ? next.toFixed(precision) : String(next) } });
+  }
+
   return (
-    <label className={classes.numField} title={label}>
-      {icon ? <span className={classes.numIcon} aria-hidden="true">{icon}</span> : null}
-      <input
-        type="number"
-        aria-label={label}
-        value={value ?? ""}
-        onChange={onChange}
-        disabled={disabled}
-        step={step}
-        style={{ width }}
-      />
-    </label>
+    <div className={classes.field}>
+      <label className={classes.fieldLabel}>
+        {icon ? <span className={classes.numIcon} aria-hidden="true">{icon}</span> : null}
+        <span>{label}</span>
+      </label>
+      <div className={classes.numField}>
+        <button type="button" onClick={() => nudge(-1)} disabled={disabled} aria-label={`Zmniejsz: ${label}`}>
+          <FiMinus />
+        </button>
+        <input
+          type="number"
+          aria-label={label}
+          value={value ?? ""}
+          onChange={onChange}
+          disabled={disabled}
+          step={step}
+          style={{ width }}
+        />
+        <button type="button" onClick={() => nudge(1)} disabled={disabled} aria-label={`Zwiększ: ${label}`}>
+          <FiPlus />
+        </button>
+      </div>
+    </div>
   );
 }
 
 function ColorField({ label, value, onChange }) {
   return (
-    <label className={classes.colorField} title={label}>
-      <input type="color" aria-label={label} value={value || "#000000"} onChange={onChange} />
+    <label className={classes.field}>
+      <span className={classes.fieldLabel}>{label}</span>
+      <span className={classes.colorField} title={label}>
+        <input type="color" aria-label={label} value={value || "#000000"} onChange={onChange} />
+        <span>{value || "#000000"}</span>
+      </span>
     </label>
   );
 }
@@ -1073,20 +1173,22 @@ function ColorField({ label, value, onChange }) {
 function FontField({ value, onChange }) {
   const selectFont = FONT_PREVIEW[value] || undefined;
   return (
-    <select
-      className={classes.fontSelect}
-      aria-label="Rodzina czcionki"
-      title="Rodzina czcionki"
-      value={value || "Inter"}
-      onChange={onChange}
-      style={selectFont ? { fontFamily: selectFont } : undefined}
-    >
-      {FONT_OPTIONS.map(({ value: fontValue, label }) => (
-        <option key={fontValue} value={fontValue} style={{ fontFamily: FONT_PREVIEW[fontValue] }}>
-          {label}
-        </option>
-      ))}
-    </select>
+    <label className={classes.field}>
+      <span className={classes.fieldLabel}>Krój pisma</span>
+      <select
+        className={classes.fontSelect}
+        aria-label="Krój pisma"
+        value={value || "Inter"}
+        onChange={onChange}
+        style={selectFont ? { fontFamily: selectFont } : undefined}
+      >
+        {FONT_OPTIONS.map(({ value: fontValue, label }) => (
+          <option key={fontValue} value={fontValue} style={{ fontFamily: FONT_PREVIEW[fontValue] }}>
+            {label}
+          </option>
+        ))}
+      </select>
+    </label>
   );
 }
 
@@ -1141,7 +1243,6 @@ function BulkToolbar({
   allowCloneOrDelete = true,
   onDuplicateSelected,
   onDeleteSelected,
-  onClose,
 }) {
   const hasTextStyle = ["bold", "italic", "underline"].every(supportsField);
   const showBulkPosition = allowGroupMove || (allowLock && supportsField("locked"));
@@ -1220,14 +1321,14 @@ function BulkToolbar({
             {allowGroupMove && (
               <>
                 <NumField
-                  label="Przesuń grupę X"
+                  label="Przesuń w bok"
                   icon={<span className={classes.axis}>X</span>}
                   value={groupMoveValues.x}
                   onChange={(e) => onGroupMoveValueChange(e, "x")}
                   width={34}
                 />
                 <NumField
-                  label="Przesuń grupę Y"
+                  label="Przesuń w górę lub w dół"
                   icon={<span className={classes.axis}>Y</span>}
                   value={groupMoveValues.y}
                   onChange={(e) => onGroupMoveValueChange(e, "y")}
@@ -1259,9 +1360,6 @@ function BulkToolbar({
             </IconBtn>
           </>
         )}
-        <IconBtn label="Zamknij" onClick={onClose}>
-          <MdClose />
-        </IconBtn>
       </Group>
     </>
   );

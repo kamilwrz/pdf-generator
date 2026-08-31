@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
-test("Editor renders selection formatting as its own panel, independent of the topbar-docked properties panel", async () => {
+test("Editor renders selection formatting as its own panel, independent of the workspace inspector", async () => {
   const source = await readFile(new URL("./Editor.jsx", import.meta.url), "utf8");
 
   assert.match(source, /inlineSelection/);
@@ -22,31 +22,30 @@ test("Editor renders selection formatting as its own panel, independent of the t
   // Layer (zIndex) is freeform-only — structural mode has nothing useful to stack.
   assert.match(source, /canEditElementLayer/);
   assert.match(source, /showLayerField && \(/);
-  // Topbar panel docks off the zoom anchor, not the canvas selection.
-  assert.match(source, /data-anchor="topbar-zoom"/);
-  assert.match(source, /GAP_FROM_ZOOM_PX/);
+  // The inspector uses live workspace anchors and preserves a 15px A4 gap.
+  assert.match(source, /data-anchor="editor-sidebar"/);
+  assert.match(source, /data-anchor="editor-topbar"/);
+  assert.match(source, /sidebar-documents-divider/);
+  assert.match(source, /PANEL_A4_GAP_PX = 15/);
 });
 
-test("Editor panel stacks above the topbar it docks against", async () => {
-  // The properties panel is vertically centered on the topbar's zoom
-  // cluster, so it paints underneath the topbar's opaque background unless
-  // its z-index clears the topbar's. Regression guard for that exact bug:
-  // a shadow was visible but the panel body was hidden behind the topbar.
+test("Editor panel uses the editor-affordance layer above sticky chrome", async () => {
   const editorCss = await readFile(new URL("./Editor.module.css", import.meta.url), "utf8");
-  const topbarCss = await readFile(
-    new URL("../Topbar/Topbar.module.css", import.meta.url),
-    "utf8",
-  );
+  assert.match(editorCss, /z-index:\s*var\(--z-editor-affordance\)/);
+});
 
-  const editorZIndex = Number(editorCss.match(/\.editor\s*{[^}]*z-index:\s*(\d+)/)?.[1]);
-  const topbarZIndex = Number(topbarCss.match(/\.topbar\s*{[^}]*z-index:\s*(\d+)/)?.[1]);
+test("Editor exposes plain-language labels, multi-select help, and stepper buttons", async () => {
+  const source = await readFile(new URL("./Editor.jsx", import.meta.url), "utf8");
 
-  assert.ok(Number.isFinite(editorZIndex), "could not find .editor z-index");
-  assert.ok(Number.isFinite(topbarZIndex), "could not find .topbar z-index");
-  assert.ok(
-    editorZIndex > topbarZIndex,
-    `.editor z-index (${editorZIndex}) must be greater than .topbar z-index (${topbarZIndex})`,
-  );
+  assert.match(source, /Ctrl \+ lewy przycisk myszy/);
+  assert.match(source, /zaznacza wiele elementów/);
+  assert.match(source, /Krój pisma/);
+  assert.match(source, /Odstęp między wierszami/);
+  assert.match(source, /Od lewej krawędzi/);
+  assert.match(source, /Zmniejsz: \$\{label\}/);
+  assert.match(source, /Zwiększ: \$\{label\}/);
+  assert.match(source, /<FiMinus/);
+  assert.match(source, /<FiPlus/);
 });
 
 test("bulk B/I/U toggles stay visible for a multi-selection even when an element never serialized `underline`", async () => {

@@ -59,7 +59,7 @@ export default function Sidebar({ children }) {
         setIsModalPdfs(bool => !bool);
     }
 
-    return <aside className={classes.sidebar}>
+    return <aside className={classes.sidebar} data-anchor="editor-sidebar">
 
         <div className={classes.logoContainer}>
             <Link
@@ -149,7 +149,7 @@ export default function Sidebar({ children }) {
             </div>
         </div>
 
-        <div className={classes.toolsContainer}>
+        <div className={classes.toolsContainer} data-anchor="sidebar-documents-divider">
             <div className={classes.toolsList}>
                 {!isDemoContent ? (
                     <SidebarControls
