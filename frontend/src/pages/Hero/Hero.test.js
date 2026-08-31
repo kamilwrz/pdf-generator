@@ -7,9 +7,9 @@ const styles = readFileSync(new URL("./Hero.module.css", import.meta.url), "utf8
 
 describe("landing product positioning", () => {
   it("welcomes the user with the recruitment outcome and no supporting subheading", () => {
-    assert.match(source, /Stwórz CV,/);
-    assert.match(source, /które prowadzi/);
-    assert.match(source, /do rozmowy\./);
+    assert.match(source, /Nowe CV\./);
+    assert.match(source, /Nowa praca\./);
+    assert.doesNotMatch(source, /Stwórz CV,|które prowadzi|do rozmowy\./);
     assert.doesNotMatch(source, /Wgraj stare CV lub zacznij od zera/);
     assert.doesNotMatch(source, /profesjonalny dokument gotowy do/);
     assert.doesNotMatch(source, /heroLead/);
@@ -21,9 +21,15 @@ describe("landing product positioning", () => {
   });
 
   it("keeps the highlighted hero heading in independent non-overlapping blocks", () => {
+    assert.match(
+      source,
+      /<h1>\s*<span>Nowe CV\.<\/span>\s*<em>Nowa praca\.<\/em>\s*<\/h1>/s,
+    );
     assert.match(styles, /\.hero h1\s*\{[^}]*display:\s*flex;[^}]*flex-direction:\s*column;/s);
     assert.match(styles, /\.hero h1 > span,[\s\S]*?\.hero h1 > em\s*\{[^}]*min-width:\s*0;[^}]*overflow-wrap:\s*break-word;/s);
     assert.match(styles, /\.hero h1 em\s*\{[^}]*display:\s*block;[^}]*line-height:\s*1;/s);
+    assert.match(styles, /\.hero h1\s*\{[^}]*gap:\s*clamp\(var\(--space-2\),\s*1\.1vw,\s*var\(--space-4\)\);[^}]*font-size:\s*clamp\(2\.5rem,\s*6vw,\s*5\.5rem\);[^}]*line-height:\s*\.94;/s);
+    assert.match(styles, /@media \(max-width: 620px\)[\s\S]*?\.hero h1\s*\{[^}]*font-size:\s*clamp\(2\.5rem,\s*12vw,\s*3\.5rem\);/s);
     assert.match(styles, /\.hero\s*\{[^}]*grid-template-columns:\s*minmax\(0, 960px\);[^}]*place-content:\s*center;/s);
     assert.match(styles, /\.heroCopy\s*\{[^}]*max-width:\s*960px;[^}]*text-align:\s*center;/s);
     assert.match(styles, /\.hero h1\s*\{[^}]*align-items:\s*center;[^}]*max-width:\s*960px;[^}]*text-align:\s*center;/s);
