@@ -26,9 +26,10 @@ describe("landing product positioning", () => {
     assert.match(styles, /\.heroActions\s*\{[^}]*justify-content:\s*center;/s);
   });
 
-  it("keeps AI support and the planned Free export promise", () => {
-    assert.match(source, /AI pomaga dopasować CV do oferty/);
-    assert.match(source, /PDF bez znaku wodnego w planie Free/);
+  it("keeps the concise hero benefit labels", () => {
+    assert.match(source, /ZA DARMO/);
+    assert.match(source, /POMOC AI/);
+    assert.match(source, /INTELIGENTNY LAYOUT/);
   });
 
   it("describes AI as an explicit task tool and keeps product caveats", () => {

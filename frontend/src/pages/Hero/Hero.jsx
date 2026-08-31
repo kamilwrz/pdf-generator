@@ -227,9 +227,9 @@ export default function Hero() {
                         </Link>
                     </p>
                     <ul className={classes.heroTrust} aria-label="Korzyści na start">
-                        <li>Zacznij za darmo</li>
-                        <li>AI pomaga dopasować CV do oferty</li>
-                        <li>PDF bez znaku wodnego w planie Free</li>
+                        <li>ZA DARMO</li>
+                        <li>POMOC AI</li>
+                        <li>INTELIGENTNY LAYOUT</li>
                     </ul>
                 </div>
 
