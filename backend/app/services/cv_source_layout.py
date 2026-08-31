@@ -188,6 +188,31 @@ def _heading_kind(value: Any) -> str | None:
     return None
 
 
+def _inline_heading_value(value: Any) -> tuple[str, str, str] | None:
+    """Recognize a source heading whose value shares the same visual row.
+
+    Most section headings must match an alias exactly because prefix matching
+    can turn ordinary prose into a hard section boundary. A driving-licence row
+    is a narrow exception used by compact CV sidebars: producers commonly emit
+    ``Prawo jazdy: Kategoria B`` as one text object. Splitting only this known
+    heading preserves the value while preventing it from becoming a language
+    or skill item.
+
+    @param value - Text from one reconstructed PDF line.
+    @returns ``(kind, source heading, inline body)`` when the row is supported.
+    """
+    collapsed = _collapse(value)
+    for separator in (":", "|", "—", "–", "-"):
+        if separator not in collapsed:
+            continue
+        heading_text, inline_value = (
+            _collapse(part) for part in collapsed.split(separator, 1)
+        )
+        if _heading_kind(heading_text) == "driving_license" and inline_value:
+            return "driving_license", heading_text, inline_value
+    return None
+
+
 def _source_title(text: str, kind: str) -> str:
     """Preserve ordinary headings and repair letter-spaced known headings."""
     collapsed = _collapse(text)
@@ -380,22 +405,31 @@ def _section_body_lines(
     heading_index: int,
     headings: list[tuple[int, dict[str, Any], str]],
 ) -> list[dict[str, Any]]:
+    """Return lines visually below one heading and before its next peer.
+
+    Font bounding boxes from Canva and similar producers overlap even when two
+    rows have distinct baselines. Comparing a body line's top with the heading
+    box's bottom therefore drops the first item in a section. Vertical centres
+    preserve the visual order without assuming that glyph rectangles never
+    overlap.
+    """
     heading = lines[heading_index]
-    next_y = float("inf")
+    heading_center = (heading["y0"] + heading["y1"]) / 2
+    next_center = float("inf")
     for other_index, other, _kind in headings:
         if (
             other_index != heading_index
             and other.get("lane") == heading.get("lane")
             and other["y0"] > heading["y0"]
         ):
-            next_y = min(next_y, other["y0"])
+            next_center = min(next_center, (other["y0"] + other["y1"]) / 2)
     return [
         line
         for index, line in enumerate(lines)
         if index != heading_index
         and line.get("lane") == heading.get("lane")
-        and line["y0"] >= heading["y1"] - 0.5
-        and line["y0"] < next_y
+        and (line["y0"] + line["y1"]) / 2 > heading_center
+        and (line["y0"] + line["y1"]) / 2 < next_center
     ]
 
 
@@ -436,25 +470,41 @@ def extract_pdf_source_pages(
             lines = _page_lines(page)
             _assign_lanes(lines, float(page.rect.width))
             lines.sort(key=lambda item: (int(item.get("lane") or 1), item["y0"], item["x0"]))
-            headings = [
-                (index, line, kind)
-                for index, line in enumerate(lines)
-                if (kind := _heading_kind(line["text"])) is not None
-            ]
+            headings: list[tuple[int, dict[str, Any], str]] = []
+            inline_headings: dict[int, tuple[str, str]] = {}
+            for index, line in enumerate(lines):
+                kind = _heading_kind(line["text"])
+                if kind is not None:
+                    headings.append((index, line, kind))
+                    continue
+                inline_heading = _inline_heading_value(line["text"])
+                if inline_heading is None:
+                    continue
+                kind, source_heading, inline_value = inline_heading
+                headings.append((index, line, kind))
+                inline_headings[index] = (source_heading, inline_value)
             sections: list[dict[str, Any]] = []
             for heading_index, heading, kind in headings:
                 body_lines = _section_body_lines(lines, heading_index, headings)
+                source_heading, inline_value = inline_headings.get(
+                    heading_index,
+                    (heading["text"], ""),
+                )
+                if inline_value:
+                    # Keep geometry/style metadata because downstream list
+                    # parsing consumes the same line shape as ordinary bodies.
+                    body_lines.insert(0, {**heading, "text": inline_value})
                 body = "\n".join(line["text"] for line in body_lines).strip()
                 sections.append({
                     "id": f"p{page_index + 1}-c{heading.get('lane', 1)}-{kind}-{len(sections) + 1}",
                     "page": page_index + 1,
                     "column": int(heading.get("lane") or 1),
                     "kind": kind,
-                    "title": _source_title(heading["text"], kind),
+                    "title": _source_title(source_heading, kind),
                     # Heading style is internal grounding metadata. It lets the
                     # guard distinguish a standalone Languages section from a
                     # same-style category that visually continues Skills.
-                    "heading_text": heading["text"],
+                    "heading_text": source_heading,
                     "heading_y0": heading["y0"],
                     "heading_font_size": heading["font_size"],
                     "heading_is_bold": heading["is_bold"],
@@ -523,6 +573,49 @@ def _middle_dot_items(lines: list[dict[str, Any]]) -> list[str]:
     ]
 
 
+def _plain_list_items(lines: list[dict[str, Any]]) -> list[str]:
+    """Reassemble visually wrapped list items that expose no text bullet.
+
+    Some designed PDFs draw bullets as vector shapes, leaving native text as a
+    sequence of plain rows. A lowercase continuation or a row that closes an
+    unmatched bracket belongs to the preceding item. Uppercase rows otherwise
+    remain separate, so compact language and skill lists retain their records.
+
+    @param lines - Ordered body lines from one geometric source section.
+    @returns Complete logical items with visual wraps joined.
+    """
+    items: list[str] = []
+    for line in lines:
+        text = _collapse(line.get("text"))
+        if not text:
+            continue
+        if not items:
+            items.append(text)
+            continue
+
+        first_alpha = next((character for character in text if character.isalpha()), "")
+        previous = items[-1]
+        closes_previous_delimiter = (
+            previous.count("(") > previous.count(")") and ")" in text
+        ) or (
+            previous.count("[") > previous.count("]") and "]" in text
+        ) or (
+            previous.count("{") > previous.count("}") and "}" in text
+        )
+        is_continuation = bool(first_alpha and first_alpha.islower()) or (
+            closes_previous_delimiter
+        )
+        if not is_continuation:
+            items.append(text)
+            continue
+
+        if previous.endswith("-") and first_alpha and first_alpha.islower():
+            items[-1] = f"{previous}{text}"
+        else:
+            items[-1] = _collapse(f"{previous} {text}")
+    return items
+
+
 def _bullet_items(lines: list[dict[str, Any]]) -> list[str]:
     if not lines:
         return []
@@ -531,7 +624,7 @@ def _bullet_items(lines: list[dict[str, Any]]) -> list[str]:
         middle_dot_items = _middle_dot_items(lines)
         if middle_dot_items:
             return middle_dot_items
-        return [_collapse(line["text"]) for line in lines if _collapse(line["text"])]
+        return _plain_list_items(lines)
 
     items: list[str] = []
     current = ""
@@ -574,7 +667,7 @@ def _compact_list_items(lines: list[dict[str, Any]]) -> list[str]:
             for part in re.split(r"\s*;\s*", joined)
             if (item := _collapse(part).strip(" -•▪●◦‣"))
         ]
-    return [_collapse(line.get("text")) for line in lines if _collapse(line.get("text"))]
+    return _plain_list_items(lines)
 
 
 def _source_supported_field_value(

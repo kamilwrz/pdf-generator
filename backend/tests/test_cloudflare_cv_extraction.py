@@ -238,6 +238,44 @@ def _centered_right_column_cv_pdf_bytes(*, include_driving_license: bool) -> byt
     return data
 
 
+def _overlapping_native_text_cv_pdf_bytes() -> bytes:
+    """Build Canva-like rows whose adjacent font boxes overlap vertically.
+
+    The baseline spacing is intentionally smaller than PyMuPDF's reported font
+    box height. The rows remain visually separate, but a parser that compares
+    the heading's bottom edge with the body's top edge will drop the first item.
+    """
+    document = fitz.open()
+    page = document.new_page()
+    lines = [
+        (60, "UMIEJETNOSCI", True),
+        (82, "Umiejetnosci twarde", True),
+        (95, "Prowadzenie kampanii", False),
+        (108, "internetowych", False),
+        (121, "Analiza danych", False),
+        (145, "Umiejetnosci miekkie", True),
+        (158, "Komunikacja i prezentacja", False),
+        (171, "wynikow", False),
+        (195, "Jezyki obce", True),
+        (208, "Angielski - C1 (certyfikat", False),
+        (221, "CAE)", False),
+        (234, "Niemiecki - A2", False),
+        (247, "Prawo jazdy: Kategoria B", False),
+        (275, "ZAINTERESOWANIA", True),
+        (288, "Marketing cyfrowy", False),
+    ]
+    for y, text, bold in lines:
+        page.insert_text(
+            (36, y),
+            text,
+            fontsize=10,
+            fontname="hebo" if bold else "helv",
+        )
+    data = document.tobytes()
+    document.close()
+    return data
+
+
 def _response(payload: dict | str):
     """Return the minimal OpenAI-compatible response consumed by the service."""
     content = payload if isinstance(payload, str) else json.dumps(payload)
@@ -839,6 +877,65 @@ class CloudflareCvExtractionTests(unittest.TestCase):
         )
         for category in groups:
             self.assertIn(category, rendered_content)
+
+    def test_overlapping_font_boxes_keep_first_language_and_inline_licence(self):
+        """Canva-style glyph overlap must not clip the first section row."""
+        pages = ai_service._pdf_text_pages(
+            _overlapping_native_text_cv_pdf_bytes()
+        )
+        sections = {
+            section["kind"]: section
+            for section in pages[0]["sections"]
+        }
+
+        self.assertEqual(
+            [line["text"] for line in sections["languages"]["body_lines"]],
+            [
+                "Angielski - C1 (certyfikat",
+                "CAE)",
+                "Niemiecki - A2",
+            ],
+        )
+        self.assertEqual(sections["driving_license"]["title"], "PRAWO JAZDY")
+        self.assertEqual(sections["driving_license"]["body"], "Kategoria B")
+
+        grounded, fields = ai_service.ground_cv_data_from_source(
+            {
+                "name": "Maja Zielinska",
+                "skills": ["incomplete model value"],
+                "languages": ["incomplete model value"],
+                "extra_sections": [],
+            },
+            pages,
+        )
+        groups = {
+            group["category"]: group["items"]
+            for group in grounded["skills"]
+            if isinstance(group, dict)
+        }
+        self.assertEqual(
+            groups["Umiejetnosci twarde"],
+            ["Prowadzenie kampanii internetowych", "Analiza danych"],
+        )
+        self.assertEqual(
+            groups["Umiejetnosci miekkie"],
+            ["Komunikacja i prezentacja wynikow"],
+        )
+        self.assertEqual(
+            groups["Jezyki obce"],
+            ["Angielski - C1 (certyfikat CAE)", "Niemiecki - A2"],
+        )
+        self.assertEqual(grounded["languages"], [])
+        self.assertEqual(
+            grounded["extra_sections"],
+            [{
+                "title": "PRAWO JAZDY",
+                "kind": "other",
+                "placement": "after_skills",
+                "items": ["Kategoria B"],
+            }],
+        )
+        self.assertEqual(fields, ["skills", "driving_license"])
 
     def test_fragmented_skill_row_and_courses_are_grounded_to_their_sections(self):
         """Source geometry must undo model cross-contamination between sections."""
