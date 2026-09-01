@@ -50,18 +50,20 @@ from app.services.ats_readability import (
 from app.services.document_service import make_image_resolver
 from app.utils.image_src_to_path import image_src_to_local_path
 
-# Default assistant model for ratings / chat / grammar / ATS / …
-_MODEL = os.getenv("AI_ASSISTANT_MODEL", "gpt-5.4-mini")
-# Layout uses the cost-efficient GPT-5.6 Luna model. Operators can override
-# this default through AI_LAYOUT_MODEL without changing the action dispatcher.
-_LAYOUT_MODEL = os.getenv("AI_LAYOUT_MODEL", "gpt-5.6-luna")
-# Luna supports none/low/medium/high — use the ceiling by default for Układ.
-# Pair with AI_LAYOUT_MAX_COMPLETION_TOKENS (default 48k) so hidden reasoning
-# does not empty the visible JSON budget on full A4 snapshots.
+# Terra is the shared default so conversational and layout actions use the
+# same quality tier while retaining their separate latency and token budgets.
+_MODEL = os.getenv("AI_ASSISTANT_MODEL", "gpt-5.6-terra")
+_LAYOUT_MODEL = os.getenv("AI_LAYOUT_MODEL", "gpt-5.6-terra")
+_ASSISTANT_REASONING_EFFORT = (
+    os.getenv("AI_ASSISTANT_REASONING_EFFORT", "high").strip().lower() or "high"
+)
+# Pair high-effort layout reasoning with AI_LAYOUT_MAX_COMPLETION_TOKENS
+# (default 48k) so hidden reasoning does not exhaust the visible JSON budget
+# on full A4 snapshots.
 _LAYOUT_REASONING_EFFORT = (
     os.getenv("AI_LAYOUT_REASONING_EFFORT", "high").strip().lower() or "high"
 )
-# Fast mode (service_tier fast/priority) ~2× Luna token price for lower latency.
+# Fast mode (service_tier fast/priority) ~2× Terra token price for lower latency.
 # Set AI_LAYOUT_SERVICE_TIER=default (or empty) to bill/run Standard processing.
 _LAYOUT_SERVICE_TIER_RAW = os.getenv("AI_LAYOUT_SERVICE_TIER", "fast").strip().lower()
 # Reasoning models spend completion budget on hidden thinking before any JSON
@@ -100,15 +102,16 @@ def _max_completion_tokens_for_action(action: str) -> int:
 
 
 def _reasoning_effort_for_action(action: str) -> str:
-    """Pick reasoning effort. Layout defaults to high (Luna's maximum)."""
-    if action == "layout":
-        # gpt-5.6-luna accepts none/low/medium/high. Keep xhigh/max in the
-        # allow-list for env overrides if the model id is swapped upward.
-        allowed = {"none", "minimal", "low", "medium", "high", "xhigh", "max"}
-        if _LAYOUT_REASONING_EFFORT in allowed:
-            return _LAYOUT_REASONING_EFFORT
-        return "high"
-    return "medium"
+    """Pick a validated effort; Terra defaults to high for every action."""
+    requested = (
+        _LAYOUT_REASONING_EFFORT
+        if action == "layout"
+        else _ASSISTANT_REASONING_EFFORT
+    )
+    allowed = {"none", "minimal", "low", "medium", "high", "xhigh", "max"}
+    if requested in allowed:
+        return requested
+    return "high"
 
 
 def _service_tier_for_action(action: str) -> str | None:
@@ -951,7 +954,7 @@ def _gpt(system: str, user: str, *, action: str = "") -> tuple[dict, dict]:
         "reasoning_effort": reasoning_effort,
         "max_completion_tokens": max_completion_tokens,
     }
-    # Fast mode: lower latency at ~2× Luna token rates. Metering uses the same
+    # Fast mode: lower latency at ~2× Terra token rates. Metering uses the same
     # tier so credits stay aligned with OpenAI Fast mode pricing.
     if service_tier:
         create_kwargs["service_tier"] = service_tier

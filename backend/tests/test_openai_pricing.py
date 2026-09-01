@@ -19,6 +19,10 @@ class OpenAIPricingTests(unittest.TestCase):
         # 1M in + 1M out = 5.00 + 30.00
         self.assertAlmostEqual(estimate_cost_usd("gpt-5.6-sol", 1_000_000, 1_000_000), 35.0)
 
+    def test_estimate_gpt_5_6_terra(self):
+        # Standard API short-context tier: 1M in + 1M out = 2.00 + 12.00.
+        self.assertAlmostEqual(estimate_cost_usd("gpt-5.6-terra", 1_000_000, 1_000_000), 14.0)
+
     def test_estimate_gpt_5_6_luna(self):
         # Standard API short-context tier: 1M in + 1M out = 0.20 + 1.20.
         self.assertAlmostEqual(estimate_cost_usd("gpt-5.6-luna", 1_000_000, 1_000_000), 1.4)
@@ -60,25 +64,45 @@ class OpenAIPricingTests(unittest.TestCase):
         self.assertEqual(usage["credit_pln"], 0.05)
         self.assertEqual(usage["credits_charged"], credits_for_cost(usage["cost_pln_estimate"]))
 
-    def test_layout_luna_fast_usage_uses_fast_rates_for_credit_metering(self):
-        # Layout defaults to Fast mode on Luna; credits must use the 2× sheet.
+    def test_layout_terra_fast_usage_uses_fast_rates_for_credit_metering(self):
+        # Layout defaults to Fast mode on Terra; credits must use the 2× sheet.
         resp = SimpleNamespace(
             service_tier="priority",  # API still echoes priority for GPT-5.6 Fast
             usage=SimpleNamespace(prompt_tokens=50_000, completion_tokens=4_000, total_tokens=54_000),
         )
-        luna = usage_from_response(
+        terra = usage_from_response(
             resp,
-            model="gpt-5.6-luna",
+            model="gpt-5.6-terra",
             action="layout",
             service_tier="fast",
         )
-        self.assertEqual(luna["action"], "layout")
-        self.assertEqual(luna["service_tier"], "priority")
-        self.assertEqual(luna["rates_usd_per_1m"], {"input": 0.40, "output": 2.40})
-        # 50000/1e6 * 0.40 + 4000/1e6 * 2.40 = 0.02 + 0.0096
-        self.assertAlmostEqual(luna["cost_usd"], 0.0296, places=6)
-        self.assertAlmostEqual(luna["cost_pln_estimate"], 0.1184, places=4)
-        self.assertEqual(luna["credits_charged"], 3)
+        self.assertEqual(terra["action"], "layout")
+        self.assertEqual(terra["service_tier"], "priority")
+        self.assertEqual(terra["rates_usd_per_1m"], {"input": 4.00, "output": 24.00})
+        # 50000/1e6 * 4.00 + 4000/1e6 * 24.00 = 0.20 + 0.096
+        self.assertAlmostEqual(terra["cost_usd"], 0.296, places=6)
+        self.assertAlmostEqual(terra["cost_pln_estimate"], 1.184, places=4)
+        self.assertEqual(terra["credits_charged"], 24)
+
+    def test_usage_cost_is_logged_without_request_content(self):
+        resp = SimpleNamespace(
+            usage=SimpleNamespace(prompt_tokens=100, completion_tokens=20, total_tokens=120)
+        )
+
+        with self.assertLogs("ai_cost", level="INFO") as captured:
+            usage_from_response(
+                resp,
+                model="gpt-5.6-terra",
+                action="grammar",
+            )
+
+        event = captured.output[0]
+        self.assertIn("model=gpt-5.6-terra", event)
+        self.assertIn("action=grammar", event)
+        self.assertIn("cost_usd=", event)
+        self.assertIn("usd_to_pln=4.0000", event)
+        self.assertIn("cost_pln=", event)
+        self.assertIn("estimated_credits=", event)
 
 
 if __name__ == "__main__":

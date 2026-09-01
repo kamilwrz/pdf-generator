@@ -371,7 +371,10 @@ class AiAssistantExceptionHandlingTests(unittest.TestCase):
         self.assertIn("węższego zlecenia", detail["message"])
         self.assertNotIn("finish_reason", detail["message"])
 
-    def test_layout_defaults_to_high_reasoning_and_fast_service_tier(self):
+    def test_assistant_defaults_to_terra_high_with_layout_fast(self):
+        self.assertEqual(ai_assistant_service._model_for_action("chat"), "gpt-5.6-terra")
+        self.assertEqual(ai_assistant_service._model_for_action("layout"), "gpt-5.6-terra")
+        self.assertEqual(ai_assistant_service._reasoning_effort_for_action("chat"), "high")
         self.assertEqual(ai_assistant_service._reasoning_effort_for_action("layout"), "high")
         self.assertEqual(ai_assistant_service._service_tier_for_action("layout"), "fast")
         self.assertIsNone(ai_assistant_service._service_tier_for_action("chat"))
@@ -398,10 +401,11 @@ class AiAssistantExceptionHandlingTests(unittest.TestCase):
             payload, usage = ai_assistant_service._gpt("system", "user", action="layout")
 
         self.assertEqual(captured.get("reasoning_effort"), "high")
+        self.assertEqual(captured.get("model"), "gpt-5.6-terra")
         self.assertEqual(captured.get("service_tier"), "fast")
         self.assertEqual(payload.get("status"), "no_changes")
         self.assertEqual(usage["service_tier"], "priority")
-        self.assertEqual(usage["rates_usd_per_1m"], {"input": 0.40, "output": 2.40})
+        self.assertEqual(usage["rates_usd_per_1m"], {"input": 4.00, "output": 24.00})
 
 
 if __name__ == "__main__":

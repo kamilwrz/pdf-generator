@@ -14,10 +14,13 @@ openai.com/api-fast-mode/
 """
 from __future__ import annotations
 
+import logging
 import os
 from typing import Any
 
 from app.services.entitlements import CREDIT_PLN, credits_for_cost
+
+logger = logging.getLogger("ai_cost")
 
 # Rough USD→PLN for credit metering (override via env when FX drifts).
 _USD_TO_PLN = float(os.getenv("USD_TO_PLN", "4.0"))
@@ -134,7 +137,12 @@ def usage_from_response(
     action: str = "",
     service_tier: str | None = None,
 ) -> dict[str, Any]:
-    """Build a frontend-friendly usage payload from an OpenAI chat response."""
+    """Build usage data and emit privacy-safe provider-cost telemetry.
+
+    The INFO event is written after OpenAI returns token usage. It deliberately
+    excludes prompts, model output, CV content, user identifiers, and document
+    identifiers, while retaining the fields needed to reconcile token costs.
+    """
     usage = getattr(resp, "usage", None)
     # Real SDK objects expose ints; mocks / missing attrs must not crash.
     if usage is not None and not hasattr(usage, "prompt_tokens") and not hasattr(usage, "input_tokens"):
@@ -151,7 +159,7 @@ def usage_from_response(
     )
     cost_pln = estimate_cost_pln(cost_usd)
     rates = rates_for_model(model, effective_tier)
-    return {
+    payload = {
         "model": model,
         "action": action,
         "service_tier": effective_tier,
@@ -169,6 +177,22 @@ def usage_from_response(
             "output": rates[1],
         },
     }
+    logger.info(
+        "OpenAI cost model=%s action=%s service_tier=%s "
+        "prompt_tokens=%d completion_tokens=%d total_tokens=%d "
+        "cost_usd=%.6f usd_to_pln=%.4f cost_pln=%.4f estimated_credits=%d",
+        payload["model"],
+        payload["action"] or "unknown",
+        payload["service_tier"],
+        payload["prompt_tokens"],
+        payload["completion_tokens"],
+        payload["total_tokens"],
+        payload["cost_usd"],
+        payload["usd_to_pln"],
+        payload["cost_pln_estimate"],
+        payload["credits_charged"],
+    )
+    return payload
 
 
 def empty_usage(
