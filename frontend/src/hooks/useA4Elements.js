@@ -1275,12 +1275,14 @@ export function useA4Elements(titleRef) {
 
   /**
    * Switch a main-column Skills section (flat or with subcategories) between
-   * the inline mid-dot row, a bullet list, or wrapped chip pills, in place.
+   * the inline mid-dot row, a bullet list, or wrapped chips in one of seven
+   * visual treatments, in place.
    *
    * @param {string} headingId
    * @param {"inline"|"bullet"|"chips"} mode
+   * @param {string} [chipVariant]
    */
-  const handleChangeSkillsDisplayMode = useCallback((headingId, mode) => {
+  const handleChangeSkillsDisplayMode = useCallback((headingId, mode, chipVariant) => {
     if (!headingId) return;
     if (editorModeRef.current !== EDITOR_MODE_TEMPLATE) return;
 
@@ -1292,6 +1294,7 @@ export function useA4Elements(titleRef) {
         mode,
         pageHeight,
         flowSpacingRef.current,
+        chipVariant,
       );
       if (!next) return prev;
       return finalizeDocumentPages(next, { collapseEmpty: true });

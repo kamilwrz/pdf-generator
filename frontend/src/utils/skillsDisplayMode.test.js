@@ -1,7 +1,17 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { changeSkillsDisplayMode, listSkillsDisplayAnchors } from "./skillsDisplayMode.js";
-import { collectSkillGroups } from "./skillsLayout.js";
+import {
+  SKILL_CHIP_VARIANT_PILL_FILLED,
+  SKILL_CHIP_VARIANT_PILL_OUTLINE,
+  SKILL_CHIP_VARIANT_RECT_FILLED,
+  SKILL_CHIP_VARIANT_RECT_OUTLINE,
+  SKILL_CHIP_VARIANT_ROUNDED_FILLED,
+  SKILL_CHIP_VARIANT_ROUNDED_OUTLINE,
+  SKILL_CHIP_VARIANT_UNDERLINE,
+  collectSkillGroups,
+  detectSkillChipVariant,
+} from "./skillsLayout.js";
 import { sectionElementIds } from "./sectionStructure.js";
 
 const PAGE_HEIGHT = 842;
@@ -255,19 +265,65 @@ describe("changeSkillsDisplayMode", () => {
     );
   });
 
-  it("keeps every template's chips as the shared solid-fill pill", () => {
-    const next = changeSkillsDisplayMode(
-      flatSkillsFixture(), "sk-head", "chips", PAGE_HEIGHT, SPACING,
-    );
-    assert.ok(next);
-    const memberIds = sectionElementIds(next, "sk-head", PAGE_HEIGHT);
-    const pills = next.filter((element) => (
-      memberIds.has(element.element_id) && element.category === "rectangle" && element.flowRole === "grid-member"
-    ));
-    assert.ok(pills.length > 0);
-    for (const pill of pills) {
-      assert.equal(pill.filled, true, "pills must stay filled");
+  it("builds and detects all seven persisted chip variants", () => {
+    const variants = [
+      { value: SKILL_CHIP_VARIANT_PILL_FILLED, category: "rectangle", filled: true, radius: "pill" },
+      { value: SKILL_CHIP_VARIANT_PILL_OUTLINE, category: "rectangle", filled: false, radius: "pill" },
+      { value: SKILL_CHIP_VARIANT_RECT_FILLED, category: "rectangle", filled: true, radius: 0 },
+      { value: SKILL_CHIP_VARIANT_RECT_OUTLINE, category: "rectangle", filled: false, radius: 0 },
+      { value: SKILL_CHIP_VARIANT_ROUNDED_OUTLINE, category: "rectangle", filled: false, radius: 6 },
+      { value: SKILL_CHIP_VARIANT_ROUNDED_FILLED, category: "rectangle", filled: true, radius: 6 },
+      { value: SKILL_CHIP_VARIANT_UNDERLINE, category: "line" },
+    ];
+
+    for (const expected of variants) {
+      const next = changeSkillsDisplayMode(
+        flatSkillsFixture(), "sk-head", "chips", PAGE_HEIGHT, SPACING, expected.value,
+      );
+      assert.ok(next, `expected ${expected.value} to be created`);
+      const memberIds = sectionElementIds(next, "sk-head", PAGE_HEIGHT);
+      const members = next.filter((element) => memberIds.has(element.element_id));
+      const shapes = members.filter((element) => (
+        element.flowRole === "grid-member" && element.category === expected.category
+      ));
+      assert.equal(shapes.length, 4, `${expected.value} needs one shape per skill`);
+      assert.equal(detectSkillChipVariant(members), expected.value);
+      assert.deepEqual(groupsFor(next, "sk-head"), [
+        { category: "", items: ["AML", "KYC", "SQL", "Python"] },
+      ]);
+
+      if (expected.category === "rectangle") {
+        assert.ok(shapes.every((shape) => shape.filled === expected.filled));
+        if (expected.radius === "pill") {
+          assert.ok(shapes.every((shape) => shape.borderRadius === shape.height / 2));
+        } else {
+          assert.ok(shapes.every((shape) => shape.borderRadius === expected.radius));
+        }
+      }
     }
+  });
+
+  it("changes the chip treatment while remaining in chip mode", () => {
+    const filled = changeSkillsDisplayMode(
+      flatSkillsFixture(), "sk-head", "chips", PAGE_HEIGHT, SPACING,
+      SKILL_CHIP_VARIANT_PILL_FILLED,
+    );
+    const outlined = changeSkillsDisplayMode(
+      filled, "sk-head", "chips", PAGE_HEIGHT, SPACING,
+      SKILL_CHIP_VARIANT_PILL_OUTLINE,
+    );
+    assert.ok(outlined);
+    const memberIds = sectionElementIds(outlined, "sk-head", PAGE_HEIGHT);
+    const members = outlined.filter((element) => memberIds.has(element.element_id));
+    assert.equal(detectSkillChipVariant(members), SKILL_CHIP_VARIANT_PILL_OUTLINE);
+    assert.equal(
+      changeSkillsDisplayMode(
+        outlined, "sk-head", "chips", PAGE_HEIGHT, SPACING,
+        SKILL_CHIP_VARIANT_PILL_OUTLINE,
+      ),
+      null,
+      "reapplying the current chip variant must remain a no-op",
+    );
   });
 
   it("keeps chip rows aligned within one category (grid does not scatter)", () => {

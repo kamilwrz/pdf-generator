@@ -23,6 +23,54 @@ export { isSkillsSectionTitle };
 /** Third main-column skills layout, alongside `FLAT_SECTION_LAYOUT_INLINE` / `_BULLET`. */
 export const SKILLS_LAYOUT_CHIPS = "chips";
 
+export const SKILL_CHIP_VARIANT_PILL_FILLED = "pill-filled";
+export const SKILL_CHIP_VARIANT_PILL_OUTLINE = "pill-outline";
+export const SKILL_CHIP_VARIANT_RECT_FILLED = "rect-filled";
+export const SKILL_CHIP_VARIANT_RECT_OUTLINE = "rect-outline";
+export const SKILL_CHIP_VARIANT_ROUNDED_OUTLINE = "rounded-outline";
+export const SKILL_CHIP_VARIANT_ROUNDED_FILLED = "rounded-filled";
+export const SKILL_CHIP_VARIANT_UNDERLINE = "underline";
+
+/** Every chip treatment exposed by the Skills layout picker, in display order. */
+export const SKILL_CHIP_VARIANTS = [
+  SKILL_CHIP_VARIANT_PILL_FILLED,
+  SKILL_CHIP_VARIANT_PILL_OUTLINE,
+  SKILL_CHIP_VARIANT_RECT_FILLED,
+  SKILL_CHIP_VARIANT_RECT_OUTLINE,
+  SKILL_CHIP_VARIANT_ROUNDED_OUTLINE,
+  SKILL_CHIP_VARIANT_ROUNDED_FILLED,
+  SKILL_CHIP_VARIANT_UNDERLINE,
+];
+
+const SKILL_CHIP_VARIANT_SET = new Set(SKILL_CHIP_VARIANTS);
+
+/** Unknown or legacy values deliberately fall back to the original filled pill. */
+export function normalizeSkillChipVariant(variant) {
+  return SKILL_CHIP_VARIANT_SET.has(variant)
+    ? variant
+    : SKILL_CHIP_VARIANT_PILL_FILLED;
+}
+
+function chipVariantGeometry(variant, chipHeight) {
+  const normalized = normalizeSkillChipVariant(variant);
+  const pillRadius = chipHeight / 2;
+  const roundedRadius = Math.min(6, pillRadius);
+  return {
+    variant: normalized,
+    filled: normalized === SKILL_CHIP_VARIANT_PILL_FILLED
+      || normalized === SKILL_CHIP_VARIANT_RECT_FILLED
+      || normalized === SKILL_CHIP_VARIANT_ROUNDED_FILLED,
+    underline: normalized === SKILL_CHIP_VARIANT_UNDERLINE,
+    borderRadius: normalized === SKILL_CHIP_VARIANT_PILL_FILLED
+      || normalized === SKILL_CHIP_VARIANT_PILL_OUTLINE
+      ? pillRadius
+      : normalized === SKILL_CHIP_VARIANT_ROUNDED_OUTLINE
+        || normalized === SKILL_CHIP_VARIANT_ROUNDED_FILLED
+        ? roundedRadius
+        : 0,
+  };
+}
+
 /** Every mode the main-column skills layout picker offers, in display order. */
 export const SKILLS_LAYOUT_MODES = [
   FLAT_SECTION_LAYOUT_INLINE,
@@ -441,9 +489,11 @@ function layoutSkillChips(items, width, fontSize) {
 }
 
 /**
- * Build main-column skill subcategory blocks as wrapped, filled rounded-pill
- * chips — the canvas equivalent of the backend's `_place_skill_chips_row`
- * (`mode="chips"` in `_place_skills_section`).
+ * Build main-column skill subcategory blocks as wrapped chips. Seven visual
+ * treatments share one layout contract: filled/outlined pills, filled/
+ * outlined square or rounded rectangles, and a text label with a bottom rule.
+ * All use the same geometry as the backend's `_place_skill_chips_row`, so a
+ * variant change never changes wrapping or section height.
  *
  * Each category's label + every one of its chip rows share one `flowGroup`
  * (same contract as `buildSkillsMainGroups`) so `_measure_skill_group`'s
@@ -455,8 +505,9 @@ function layoutSkillChips(items, width, fontSize) {
  *   bodyLeft: number,
  *   recordWidth: number,
  *   body: object,
- *   chipBg: string,
- *   chipFg: string,
+ *   chipBg?: string,
+ *   chipFg?: string,
+ *   chipVariant?: string,
  *   appendTop: number,
  *   idFactory: () => string,
  *   stackGap?: number,
@@ -478,9 +529,10 @@ export function buildSkillsChipGroups(groups, options) {
   const catLh = catFs + 2;
   const bodyColor = body.color || "#26313F";
   const fontFamily = body.fontFamily || "Montserrat";
-  const outline = options.chipStyle === "outline";
-  const chipBg = options.chipBg || (outline ? "#7C6A52" : "#2B2B2B");
-  const chipFg = options.chipFg || (outline ? "#22221F" : "#FFFFFF");
+  const chipVariant = normalizeSkillChipVariant(options.chipVariant);
+  const variantGeometry = chipVariantGeometry(chipVariant, bodyFs + 2 * CHIP_PAD_Y);
+  const chipBg = options.chipBg || "#2B2B2B";
+  const chipFg = options.chipFg || (variantGeometry.filled ? "#FFFFFF" : bodyColor);
   const stackGap = Number.isFinite(Number(options.stackGap)) ? Number(options.stackGap) : 4;
   const recordGap = Number.isFinite(Number(options.recordGap)) ? Number(options.recordGap) : 10;
   const idFactory = options.idFactory || (() => `skill-${Math.random().toString(36).slice(2, 9)}`);
@@ -525,9 +577,25 @@ export function buildSkillsChipGroups(groups, options) {
     if (hasBody) {
       const { placements, height: rowHeight } = layoutSkillChips(items, recordWidth, bodyFs);
       const chipH = bodyFs + 2 * CHIP_PAD_Y;
-      const radius = chipH / 2;
       for (const { skill, dx, dy, width: chipW } of placements) {
-        elements.push({
+        // The underline treatment uses the existing line primitive. Every
+        // other treatment uses the rectangle primitive whose `filled`,
+        // `borderWidth`, and `borderRadius` fields already persist and export.
+        // No separate variant metadata is required: the shape is the source
+        // of truth and can be detected again after save/reload.
+        elements.push(variantGeometry.underline ? {
+          element_id: idFactory(),
+          category: "line",
+          flowRole: "grid-member",
+          flowGroup,
+          left: bodyLeft + dx,
+          top: cursor + dy + chipH - 1,
+          width: chipW,
+          height: 1,
+          backgroundColor: chipBg,
+          page: 1,
+          zIndex: 2,
+        } : {
           element_id: idFactory(),
           category: "rectangle",
           flowRole: "grid-member",
@@ -536,13 +604,9 @@ export function buildSkillsChipGroups(groups, options) {
           top: cursor + dy,
           width: chipW,
           height: chipH,
-          // Outline style: unfilled pill, thin stroke in chipBg —
-          // `backgroundColor` doubles as the stroke colour when filled=false
-          // (same convention the backend `_rect`/photo-frame elements use).
-          // Filled style (every other chip-capable template): solid pill.
-          filled: !outline,
-          borderWidth: outline ? 1 : 0,
-          borderRadius: radius,
+          filled: variantGeometry.filled,
+          borderWidth: variantGeometry.filled ? 0 : 1,
+          borderRadius: variantGeometry.borderRadius,
           backgroundColor: chipBg,
           page: 1,
           zIndex: 2,
@@ -574,7 +638,7 @@ export function buildSkillsChipGroups(groups, options) {
 }
 
 /**
- * Best-effort chip pill colors for a section switching into chip mode.
+ * Best-effort chip treatment colors for a section switching into chip mode.
  *
  * Prefers the section's own existing chip colors (round-tripping chips → a
  * different mode → chips must not repaint them), then any other chip section
@@ -586,30 +650,35 @@ export function buildSkillsChipGroups(groups, options) {
  * @param {object[]} sectionMembers - current members of the section being converted
  * @param {object[]} allElements - full document, for the "another chip section" fallback
  * @param {object} style - `deriveSectionStyle` result for this section
- * @param {{ chipStyle?: "filled"|"outline" }} [options]
+ * @param {{ chipVariant?: string }} [options]
  * @returns {{ chipBg: string, chipFg: string }}
  */
 export function resolveSkillChipColors(sectionMembers, allElements, style, options = {}) {
-  const outline = options.chipStyle === "outline";
+  const variant = normalizeSkillChipVariant(options.chipVariant);
+  const destinationFilled = chipVariantGeometry(variant, 20).filled;
   const findChipPair = (pool) => {
-    const rect = (pool || []).find((element) => (
+    const shape = (pool || []).find((element) => (
       element?.flowRole === "grid-member"
-      && element.category === "rectangle"
-      // Filled pills (every chip-capable template today) and outline pills
-      // (`filled: false` + a stroke) are both legitimate existing chip chrome
-      // — matching only `filled` here would make round-tripping an outline
-      // section through another mode and back to chips forget its own colors.
-      && (element.filled || Number(element.borderWidth) > 0)
+      && (element.category === "rectangle" || element.category === "line")
       && element.backgroundColor
     ));
-    if (!rect) return null;
+    if (!shape) return null;
     const text = (pool || []).find((element) => (
       element?.flowRole === "grid-member"
       && element.category === "text"
-      && element.flowGroup === rect.flowGroup
+      && element.flowGroup === shape.flowGroup
       && element.color
     ));
-    return { chipBg: rect.backgroundColor, chipFg: text?.color || (outline ? "#22221F" : "#FFFFFF") };
+    const sourceFilled = shape.category === "rectangle" && Boolean(shape.filled);
+    return {
+      chipBg: shape.backgroundColor,
+      // Dark text from an outline/underline must not be carried onto a newly
+      // filled chip. Conversely, white text from a filled chip must not be
+      // carried onto paper when switching to an unfilled treatment.
+      chipFg: destinationFilled
+        ? (sourceFilled && text?.color ? text.color : "#FFFFFF")
+        : style?.body?.color || "#22221F",
+    };
   };
 
   return findChipPair(sectionMembers)
@@ -624,8 +693,8 @@ export function resolveSkillChipColors(sectionMembers, allElements, style, optio
       // with, so it must be tried BEFORE the rule — preferring the rule here
       // repaints a converted-back-to-chips section in that neutral divider
       // gray instead of the template's real accent.
-      chipBg: style?.heading?.color || style?.rule?.backgroundColor || (outline ? "#7C6A52" : "#2B2B2B"),
-      chipFg: outline ? "#22221F" : "#FFFFFF",
+      chipBg: style?.heading?.color || style?.rule?.backgroundColor || "#2B2B2B",
+      chipFg: destinationFilled ? "#FFFFFF" : style?.body?.color || "#22221F",
     };
 }
 
@@ -760,7 +829,7 @@ export function restyleSkillsMembersAsMode(
       ...bodyOptions,
       chipBg: style.chipBg,
       chipFg: style.chipFg,
-      chipStyle: style.chipStyle,
+      chipVariant: style.chipVariant,
     })
     : buildSkillsMainGroups(groups, { ...bodyOptions, mode });
   if (bodies.length === 0) return null;
@@ -787,25 +856,55 @@ export function restyleSkillsMembersAsMain(members, headingId, style, parkTop, s
 }
 
 /**
- * Current main-column layout mode of a skills section, detected from its
- * live elements (never persisted separately — the section IS the source of
- * truth). Grid-member filled rectangles mean chips; a bulleted body means
- * the bullet list; otherwise the mid-dot inline row.
+ * Current main-column layout mode of a skills section, detected from its live
+ * elements (never persisted separately — the section IS the source of truth).
+ * A grid-member rectangle or bottom-rule line means chips; a bulleted body
+ * means the bullet list; otherwise the mid-dot inline row.
  *
  * @param {object[]} members - a skills section's own members
  * @returns {"inline"|"bullet"|"chips"}
  */
 export function detectSkillsDisplayMode(members) {
-  const hasChipPill = (members || []).some((element) => (
-    element?.flowRole === "grid-member" && element.category === "rectangle"
+  const hasChipChrome = (members || []).some((element) => (
+    element?.flowRole === "grid-member"
+    && (element.category === "rectangle" || element.category === "line")
   ));
-  if (hasChipPill) return SKILLS_LAYOUT_CHIPS;
+  if (hasChipChrome) return SKILLS_LAYOUT_CHIPS;
   const hasBulletBody = (members || []).some((element) => (
     element?.flowRole === "content"
     && (element.category === "textarea" || element.category === "text")
     && element.bulletList === true
   ));
   return hasBulletBody ? FLAT_SECTION_LAYOUT_BULLET : FLAT_SECTION_LAYOUT_INLINE;
+}
+
+/**
+ * Detect a chip treatment from the persisted rectangle/line geometry.
+ * Legacy chip sections are the original filled pill by construction.
+ *
+ * @param {object[]} members
+ * @returns {string}
+ */
+export function detectSkillChipVariant(members) {
+  const shape = (members || []).find((element) => (
+    element?.flowRole === "grid-member"
+    && (element.category === "rectangle" || element.category === "line")
+  ));
+  if (!shape || shape.category === "line") {
+    return shape ? SKILL_CHIP_VARIANT_UNDERLINE : SKILL_CHIP_VARIANT_PILL_FILLED;
+  }
+
+  const filled = Boolean(shape.filled);
+  const radius = Math.max(0, Number(shape.borderRadius) || 0);
+  const height = Math.max(0, Number(shape.height) || 0);
+  const isPill = radius > 0 && radius >= Math.max(1, height / 2 - 0.75);
+  if (isPill) {
+    return filled ? SKILL_CHIP_VARIANT_PILL_FILLED : SKILL_CHIP_VARIANT_PILL_OUTLINE;
+  }
+  if (radius > 0) {
+    return filled ? SKILL_CHIP_VARIANT_ROUNDED_FILLED : SKILL_CHIP_VARIANT_ROUNDED_OUTLINE;
+  }
+  return filled ? SKILL_CHIP_VARIANT_RECT_FILLED : SKILL_CHIP_VARIANT_RECT_OUTLINE;
 }
 
 /**

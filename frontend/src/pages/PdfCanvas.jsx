@@ -743,13 +743,13 @@ export function EditorController() {
     setFlatSectionLayoutModal({ open: false, elementId: null });
   }, [flatSectionLayoutElement, handleEditElementValues]);
 
-  const handleApplySkillsLayout = useCallback((mode) => {
+  const handleApplySkillsLayout = useCallback((mode, chipVariant) => {
     const headingId = skillsLayoutModal.headingId;
     if (!headingId) return;
     // Same commit path as reorder/transfer — full structural re-pack, not a
     // single-element edit, so undo/redo and autosave apply with no extra
     // plumbing (see `handleChangeSkillsDisplayMode` in `useA4Elements`).
-    handleChangeSkillsDisplayMode(headingId, mode);
+    handleChangeSkillsDisplayMode(headingId, mode, chipVariant);
     setSkillsLayoutModal({ open: false, headingId: null });
   }, [skillsLayoutModal.headingId, handleChangeSkillsDisplayMode]);
 

@@ -1,8 +1,9 @@
 /**
  * Main-column skills layout picker: switch a Skills section (flat or with
  * subcategories) between the inline mid-dot row, a bullet list, or wrapped
- * chip pills — one mode for the whole section, matching how the backend
- * generators render it (`_place_skills_section(mode=...)`).
+ * chips. Chip mode additionally supports seven shape treatments; all share
+ * the generator's wrapping geometry and persist through ordinary canvas
+ * rectangle/line properties.
  *
  * Sidebar skills always stay `_skills_sidebar_content` (bullet list); this
  * picker only offers a mode change for a section already in the main column
@@ -16,9 +17,13 @@ import {
   sectionElementIds,
 } from "./sectionStructure.js";
 import {
+  SKILL_CHIP_VARIANT_PILL_FILLED,
   SKILLS_LAYOUT_MODES,
+  SKILLS_LAYOUT_CHIPS,
+  detectSkillChipVariant,
   detectSkillsDisplayMode,
   isSkillsSectionTitle,
+  normalizeSkillChipVariant,
   resolveSkillChipColors,
   restyleSkillsMembersAsMode,
 } from "./skillsLayout.js";
@@ -73,9 +78,17 @@ export function listSkillsDisplayAnchors(elements, pageHeight = 842) {
  * @param {"inline"|"bullet"|"chips"} mode
  * @param {number} [pageHeight=842]
  * @param {object} [spacing]
- * @returns {object[]|null} null when the section cannot be found/converted or is already in `mode`
+ * @param {string} [chipVariant="pill-filled"]
+ * @returns {object[]|null} null when the section cannot be found/converted or already has the requested mode and chip variant
  */
-export function changeSkillsDisplayMode(elements, headingId, mode, pageHeight = 842, spacing) {
+export function changeSkillsDisplayMode(
+  elements,
+  headingId,
+  mode,
+  pageHeight = 842,
+  spacing,
+  chipVariant = SKILL_CHIP_VARIANT_PILL_FILLED,
+) {
   if (!SKILLS_LAYOUT_MODES.includes(mode)) return null;
   const list = elements || [];
   const section = listDocumentSections(list, pageHeight)
@@ -85,17 +98,31 @@ export function changeSkillsDisplayMode(elements, headingId, mode, pageHeight = 
   const memberIds = sectionElementIds(list, headingId, pageHeight);
   if (memberIds.size === 0) return null;
   const members = list.filter((element) => memberIds.has(element.element_id));
-  if (detectSkillsDisplayMode(members) === mode) return null;
+  const currentMode = detectSkillsDisplayMode(members);
+  const targetChipVariant = normalizeSkillChipVariant(chipVariant);
+  if (
+    currentMode === mode
+    && (mode !== SKILLS_LAYOUT_CHIPS || detectSkillChipVariant(members) === targetChipVariant)
+  ) return null;
 
   // Sample this section's OWN current geometry/type (not another section's) —
   // `deriveSectionStyle` samples whichever heading id it is given.
   const style = deriveSectionStyle(list, pageHeight, headingId, { lane: "main" });
-  const chipStyle = "filled";
-  const { chipBg, chipFg } = resolveSkillChipColors(members, list, style, { chipStyle });
+  const { chipBg, chipFg } = resolveSkillChipColors(
+    members,
+    list,
+    style,
+    { chipVariant: targetChipVariant },
+  );
   const parkTop = Math.min(...members.map((element) => absoluteTop(element, pageHeight)));
 
   const restyled = restyleSkillsMembersAsMode(
-    members, headingId, { ...style, chipBg, chipFg, chipStyle }, parkTop, spacing, mode,
+    members,
+    headingId,
+    { ...style, chipBg, chipFg, chipVariant: targetChipVariant },
+    parkTop,
+    spacing,
+    mode,
   );
   if (!restyled) return null;
 
