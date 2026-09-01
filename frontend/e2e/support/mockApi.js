@@ -157,6 +157,27 @@ const PRO_ENTITLEMENTS = Object.freeze({
   },
 });
 
+export const IMPORT_HISTORY = Object.freeze([
+  {
+    id: 136,
+    filename: "CV-Kamil-Frontend-2026.pdf",
+    created_at: "2026-09-01T16:28:13.000000",
+    status: "succeeded",
+    size_bytes: 191_488,
+    document_count: 0,
+    error_code: null,
+  },
+  {
+    id: 135,
+    filename: "CV-Kamil-starsze.pdf",
+    created_at: "2026-08-31T09:23:42.000000",
+    status: "failed",
+    size_bytes: 859_136,
+    document_count: 0,
+    error_code: "extract_provider_timeout",
+  },
+]);
+
 function json(route, value, status = 200) {
   return route.fulfill({ status, contentType: "application/json", body: JSON.stringify(value) });
 }
@@ -169,11 +190,15 @@ function json(route, value, status = 200) {
  * local or production backend. Deployed Render origins are separately aborted
  * and asserted at the end of each smoke flow.
  */
-export async function installMockApi(page, { documents = [SAVED_DOCUMENT] } = {}) {
+export async function installMockApi(
+  page,
+  { documents = [SAVED_DOCUMENT], imports = IMPORT_HISTORY } = {},
+) {
   const calls = [];
   const unexpected = [];
   const productionRequests = [];
   let currentRevision = SAVED_DOCUMENT.revision;
+  let currentImports = imports.map((item) => ({ ...item }));
 
   await page.route("https://**/*", async (route) => {
     const url = route.request().url();
@@ -239,6 +264,14 @@ export async function installMockApi(page, { documents = [SAVED_DOCUMENT] } = {}
     if (method === "POST" && path === "/events/log") return json(route, { logged: true });
     if (method === "GET" && path === "/billing/plans") return json(route, { plans: [] });
     if (method === "GET" && path === "/ai/bio_cv_draft") return json(route, { draft: null });
+    if (method === "GET" && path === "/ai/imports") {
+      return json(route, { items: currentImports, next_cursor: null });
+    }
+    if (method === "DELETE" && /^\/ai\/imports\/\d+$/.test(path)) {
+      const snapshotId = Number(path.split("/").at(-1));
+      currentImports = currentImports.filter((item) => item.id !== snapshotId);
+      return json(route, { deleted: true });
+    }
 
     unexpected.push(`${method} ${path}`);
     return json(route, {

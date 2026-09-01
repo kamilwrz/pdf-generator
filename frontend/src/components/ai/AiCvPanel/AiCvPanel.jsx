@@ -378,7 +378,7 @@ export default function AiCvPanel() {
                     </div>
                     <div className={classes.footerActions}>
                         <button type="button" className={classes.cancelBtn} onClick={showAiPanel}>Anuluj</button>
-                        {!onStep2 && (
+                        {!onStep2 && !showHistory && (
                             <button
                                 type="button"
                                 className={classes.extractBtn}
