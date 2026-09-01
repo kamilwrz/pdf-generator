@@ -296,7 +296,33 @@ class DeploymentBootstrapTests(unittest.TestCase):
 
         self.assertIn("preDeployCommand: python -m app.services.deployment_bootstrap", manifest)
         self.assertIn("healthCheckPath: /ready", manifest)
-        self.assertIn("key: VITE_API_URL", manifest)
+        # The static bundle must use the API's public URL, not Render's private
+        # service hostname, because requests originate in the user's browser.
+        self.assertIn(
+            """      - key: VITE_API_URL
+        fromService:
+          name: cv-studio-api
+          type: web
+          envVarKey: RENDER_EXTERNAL_URL""",
+            manifest,
+        )
+        frontend_public_url_reference = """      - key: CORS_ORIGINS
+        fromService:
+          name: cv-studio-web
+          type: web
+          envVarKey: RENDER_EXTERNAL_URL"""
+        # Both Python processes import the shared production configuration.
+        # Supplying the generated HTTPS frontend origin to each process keeps
+        # API startup and scheduled cleanup on the same fail-closed contract.
+        self.assertEqual(manifest.count(frontend_public_url_reference), 2)
+        self.assertIn(
+            """      - key: BACKEND_URL
+        fromService:
+          name: cv-studio-api
+          type: web
+          envVarKey: RENDER_EXTERNAL_URL""",
+            manifest,
+        )
         self.assertEqual(manifest.count("autoDeployTrigger: checksPass"), 3)
         self.assertIn("key: TRUST_PROXY_HEADERS", manifest)
         self.assertIn("key: TRUSTED_PROXY_CIDRS", manifest)
