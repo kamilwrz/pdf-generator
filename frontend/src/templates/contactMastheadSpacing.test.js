@@ -5,8 +5,10 @@ import { meridianTemplate } from "./meridian.js";
 import { regentTemplate } from "./regent.js";
 import { cadenzaTemplate } from "./cadenza.js";
 import { vellumTemplate } from "./vellum.js";
+import { aureliaTemplate } from "./aurelia.js";
 
 const EDITORIAL_TEMPLATES = [
+    ["Aurelia", aureliaTemplate],
     ["Regent", regentTemplate],
     ["Meridian", meridianTemplate],
     ["Cadenza", cadenzaTemplate],
@@ -27,9 +29,10 @@ for (const [name, elements] of EDITORIAL_TEMPLATES) {
         const descriptor = contactDescriptor(elements);
         assert.ok(descriptor);
 
-        const divider = elements.find(
-            (element) => element.category === "line" && element.flowRole === "masthead",
-        );
+        const divider = elements.find((element) => element.mastheadDivider)
+            || elements.find(
+                (element) => element.category === "line" && element.flowRole === "masthead",
+            );
         assert.ok(divider);
 
         const reservedSecondRowTop =

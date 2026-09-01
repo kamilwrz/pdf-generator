@@ -20,12 +20,14 @@ test("customization panel exposes Appearance only for reviewed template contract
   assert.match(source, /const isMeridianAppearance = activeTemplateId === "meridian"/);
   assert.match(source, /const isCadenzaAppearance = activeTemplateId === "cadenza"/);
   assert.match(source, /const isVellumAppearance = activeTemplateId === "vellum"/);
+  assert.match(source, /const isAureliaAppearance = activeTemplateId === "aurelia"/);
   assert.match(source, /const isAtriumAppearance = activeTemplateId === "atrium"/);
   assert.match(source, /const appearanceEnabled = isAtriumAppearance/);
   assert.match(source, /\|\| isLindenAppearance/);
   assert.match(source, /\|\| isMeridianAppearance/);
   assert.match(source, /\|\| isCadenzaAppearance/);
   assert.match(source, /\|\| isVellumAppearance/);
+  assert.match(source, /\|\| isAureliaAppearance/);
   assert.match(source, /const renderedTab = appearanceEnabled \? activeTab : "layout"/);
   assert.match(source, /appearanceEnabled \? \(/);
   assert.doesNotMatch(source, /isSterlingDocument/);
@@ -41,6 +43,7 @@ test("appearance presents template-specific palettes, reviewed previews, and tex
   assert.match(source, /MERIDIAN_PALETTES/);
   assert.match(source, /CADENZA_PALETTES/);
   assert.match(source, /VELLUM_PALETTES/);
+  assert.match(source, /AURELIA_PALETTES/);
   assert.match(source, /ATRIUM_PALETTES/);
   assert.match(source, /REGENT_PALETTES/);
   assert.match(source, /activeTemplateId === "regent"/);
@@ -67,6 +70,9 @@ test("appearance presents template-specific palettes, reviewed previews, and tex
   assert.match(source, /paletteVellumPhoto/);
   assert.match(source, /paletteVellumField/);
   assert.match(source, /paletteVellumJob/);
+  assert.match(source, /palettePaperAurelia/);
+  assert.match(source, /paletteAureliaFrame/);
+  assert.match(source, /paletteAureliaSectionRule/);
   assert.match(source, /palettePaperAtrium/);
   assert.match(source, /paletteAtriumPortrait/);
   assert.match(source, /paletteAtriumMastheadRule/);
@@ -81,6 +87,7 @@ test("appearance presents template-specific palettes, reviewed previews, and tex
   assert.match(source, /MERIDIAN_TEXT_SIZES/);
   assert.match(source, /CADENZA_TEXT_SIZES/);
   assert.match(source, /VELLUM_TEXT_SIZES/);
+  assert.match(source, /AURELIA_TEXT_SIZES/);
   assert.match(source, /ATRIUM_TEXT_SIZES/);
   assert.match(source, /Białe tło pozostaje bez zmian/);
   assert.match(source, /pasek stanowiska pozostaje jej najciemniejszym akcentem/);

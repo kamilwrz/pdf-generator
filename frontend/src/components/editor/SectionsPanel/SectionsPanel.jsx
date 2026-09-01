@@ -2,7 +2,7 @@
  * Template-mode customization panel ("Dostosuj CV"): document status, section
  * structure, density presets, precise spacing, and template-scoped appearance
  * tools for Atrium, Regent, Sterling, Linden, Monument, Slate, Meridian,
- * Cadenza, and Vellum. A
+ * Cadenza, Vellum, and Aurelia. A
  * main-column Skills section's list row also gets a layout icon opening
  * `SkillsLayoutModal` (same modal the canvas heading hover control opens —
  * see `SectionRecordAdd`), so the mode picker is reachable without hunting
@@ -107,6 +107,16 @@ import {
   applyVellumRenderedHeightsLayout,
   applyVellumTextSizeLayout,
 } from "../../../utils/vellumTypographyLayout";
+import {
+  applyAureliaPalette,
+  AURELIA_PALETTES,
+  AURELIA_TEXT_SIZES,
+  getAureliaAppearance,
+} from "../../../utils/aureliaAppearance";
+import {
+  applyAureliaRenderedHeightsLayout,
+  applyAureliaTextSizeLayout,
+} from "../../../utils/aureliaTypographyLayout";
 import {
   applyAtriumPalette,
   ATRIUM_PALETTES,
@@ -235,6 +245,7 @@ export default function SectionsPanel({ onClose }) {
   const isMeridianAppearance = activeTemplateId === "meridian";
   const isCadenzaAppearance = activeTemplateId === "cadenza";
   const isVellumAppearance = activeTemplateId === "vellum";
+  const isAureliaAppearance = activeTemplateId === "aurelia";
   const isAtriumAppearance = activeTemplateId === "atrium";
   const isRegentAppearance = activeTemplateId === "regent";
   const appearanceEnabled = isAtriumAppearance
@@ -245,7 +256,8 @@ export default function SectionsPanel({ onClose }) {
     || isSlateAppearance
     || isMeridianAppearance
     || isCadenzaAppearance
-    || isVellumAppearance;
+    || isVellumAppearance
+    || isAureliaAppearance;
   const renderedTab = appearanceEnabled ? activeTab : "layout";
   const appearanceDefinition = useMemo(() => {
     if (isRegentAppearance) return {
@@ -326,6 +338,16 @@ export default function SectionsPanel({ onClose }) {
       applyRenderedHeightsLayout: applyVellumRenderedHeightsLayout,
       paletteDescription: "Białe tło pozostaje stałe. Trzy lekkie i trzy mocne palety zmieniają pole résumé, jego kontrast, portret, stanowisko, reguły oraz prawdziwe ikony.",
     };
+    if (isAureliaAppearance) return {
+      templateName: "Aurelia",
+      palettes: AURELIA_PALETTES,
+      textSizes: AURELIA_TEXT_SIZES,
+      value: getAureliaAppearance(A4_Elements),
+      applyPalette: applyAureliaPalette,
+      applyTextSizeLayout: applyAureliaTextSizeLayout,
+      applyRenderedHeightsLayout: applyAureliaRenderedHeightsLayout,
+      paletteDescription: "Białe tło pozostaje stałe. Paleta zmienia ramę mastheadu, stanowisko, reguły sekcji, folio, tekst i dopasowany zestaw ikon.",
+    };
     return {
       templateName: "Sterling",
       palettes: STERLING_PALETTES,
@@ -335,7 +357,7 @@ export default function SectionsPanel({ onClose }) {
       applyTextSizeLayout: applySterlingTextSizeLayout,
       applyRenderedHeightsLayout: applySterlingRenderedHeightsLayout,
     };
-  }, [A4_Elements, isAtriumAppearance, isCadenzaAppearance, isLindenAppearance, isMeridianAppearance, isMonumentAppearance, isRegentAppearance, isSlateAppearance, isVellumAppearance]);
+  }, [A4_Elements, isAtriumAppearance, isAureliaAppearance, isCadenzaAppearance, isLindenAppearance, isMeridianAppearance, isMonumentAppearance, isRegentAppearance, isSlateAppearance, isVellumAppearance]);
 
   useEffect(() => {
     if (!onClose) return undefined;
@@ -602,11 +624,23 @@ export default function SectionsPanel({ onClose }) {
                       onClick={() => handleAppearancePalette(palette.id)}
                     >
                       <span
-                        className={`${classes.palettePaper} ${isAtriumAppearance ? classes.palettePaperAtrium : ""} ${isRegentAppearance ? classes.palettePaperRegent : ""} ${isLindenAppearance ? classes.palettePaperLinden : ""} ${isMonumentAppearance ? classes.palettePaperMonument : ""} ${isSlateAppearance ? classes.palettePaperSlate : ""} ${isMeridianAppearance ? classes.palettePaperMeridian : ""} ${isCadenzaAppearance ? classes.palettePaperCadenza : ""} ${isVellumAppearance ? classes.palettePaperVellum : ""}`}
+                        className={`${classes.palettePaper} ${isAtriumAppearance ? classes.palettePaperAtrium : ""} ${isRegentAppearance ? classes.palettePaperRegent : ""} ${isLindenAppearance ? classes.palettePaperLinden : ""} ${isMonumentAppearance ? classes.palettePaperMonument : ""} ${isSlateAppearance ? classes.palettePaperSlate : ""} ${isMeridianAppearance ? classes.palettePaperMeridian : ""} ${isCadenzaAppearance ? classes.palettePaperCadenza : ""} ${isVellumAppearance ? classes.palettePaperVellum : ""} ${isAureliaAppearance ? classes.palettePaperAurelia : ""}`}
                         style={cardStyle}
                         aria-hidden="true"
                       >
-                        {isRegentAppearance ? (
+                        {isAureliaAppearance ? (
+                          <>
+                            <span className={classes.paletteAureliaFrame} />
+                            <span className={classes.paletteAureliaName} />
+                            <span className={classes.paletteAureliaJob} />
+                            <span className={classes.paletteAureliaContacts} />
+                            <span className={classes.paletteAureliaMastheadRule} />
+                            <span className={classes.paletteAureliaHeading} />
+                            <span className={classes.paletteAureliaSectionRule} />
+                            <span className={classes.paletteAureliaCopy} />
+                            <span className={classes.paletteAureliaFolio} />
+                          </>
+                        ) : isRegentAppearance ? (
                           <>
                             <span className={classes.paletteRegentName} />
                             <span className={classes.paletteRegentJob} />

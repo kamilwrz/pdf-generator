@@ -155,7 +155,7 @@ COMPACT_DEMO_CV = {
 
 # Templates with a taller centered photo masthead use the compacted bullet
 # set so the picker mockups still show every section on page 1.
-COMPACT_TEMPLATE_IDS = frozenset({"atrium", "monument"})
+COMPACT_TEMPLATE_IDS = frozenset({"atrium", "aurelia", "monument"})
 
 # Sidebar previews need enough supporting information to balance the tall rail.
 SIDEBAR_DEMO_CV = {
@@ -278,6 +278,7 @@ TEMPLATES = [
     "linden",
     "cadenza",
     "vellum",
+    "aurelia",
 ]
 
 DOC_BLURBS = {
@@ -335,6 +336,12 @@ DOC_BLURBS = {
         " * White-paper, portrait-led editorial with an adaptive summary field, six\n"
         " * semantic palettes, tracked labels, and Meridian/Cadenza's exact date rail."
     ),
+    "aurelia": (
+        "Aurelia template (`layouts: [\"single\", \"icons\"]`).\n"
+        " *\n"
+        " * Olive-gold single-column editorial with an outlined identity frame,\n"
+        " * centered contact band, and exact-anchor record metadata."
+    ),
 }
 
 STARTER_PERSONAS = {
@@ -342,6 +349,18 @@ STARTER_PERSONAS = {
     "meridian": "Aleksandra Nowak — strategy & operations manager with three roles, two degrees, ten skills, and three languages",
     "cadenza": "Julia Bernat — three roles, one degree, five skills, and three languages",
     "vellum": "Julia Bernat — four roles, two degrees, eight skills, and four languages",
+    "aurelia": "Julia Bernat — four roles, two degrees, eight skills, and four languages",
+}
+
+# Aurelia's tall framed masthead needs concise records, but the gallery preview
+# should still demonstrate a realistically filled executive page. Keep all
+# four roles and both degrees while trimming each role to one evidence line.
+AURELIA_DEMO_CV = {
+    **DEMO_CV,
+    "experience": [
+        {**record, "bullets": record.get("bullets", [])[:1]}
+        for record in DEMO_CV["experience"]
+    ],
 }
 
 LOCALHOST_ASSET = re.compile(r"^https?://[^/]+(/template-assets/.+)$")
@@ -432,6 +451,8 @@ def main() -> None:
     for template_id in selected_templates:
         if template_id in ("regent", "meridian"):
             cv = REGENT_DEMO_CV
+        elif template_id == "aurelia":
+            cv = AURELIA_DEMO_CV
         elif template_id in COMPACT_TEMPLATE_IDS:
             cv = COMPACT_DEMO_CV
         elif template_id in {"sterling", "linden"}:

@@ -24,4 +24,5 @@ export const TEMPLATES = [
     { id: "linden", tier: "free", name: "Linden", description: "Botaniczny editorial, prostokątne zdjęcie i leśna zieleń", layouts: ["sidebar", "icons"], accent: "#285548", elements: lindenTemplate },
     { id: "cadenza", tier: "paid", name: "Cadenza", description: "Klasyczny editorial, pasy sekcji i prawa oś dat", layouts: ["single", "icons"], accent: "#855C46", serverMaterialized: true },
     { id: "vellum", tier: "paid", name: "Vellum", description: "Portretowy editorial, miękkie pole résumé i prawa oś dat", layouts: ["single", "icons"], accent: "#8A5E47", serverMaterialized: true },
+    { id: "aurelia", tier: "paid", name: "Aurelia", description: "Oliwkowo-złoty editorial z ramowym mastheadem", layouts: ["single", "icons"], accent: "#98884D", serverMaterialized: true },
 ];

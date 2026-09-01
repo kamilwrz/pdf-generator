@@ -60,6 +60,7 @@ describe("all template starters expose a reversible masthead title", () => {
       TEMPLATES.map((template) => template.id).sort(),
       [
         "atrium",
+        "aurelia",
         "cadenza",
         "linden",
         "meridian",

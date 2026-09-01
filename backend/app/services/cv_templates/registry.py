@@ -13,6 +13,7 @@ from app.services.cv_templates.templates.meridian import _gen_meridian
 from app.services.cv_templates.templates.linden import _gen_linden
 from app.services.cv_templates.templates.cadenza import _gen_cadenza
 from app.services.cv_templates.templates.vellum import _gen_vellum
+from app.services.cv_templates.templates.aurelia import _gen_aurelia
 
 
 @dataclass(frozen=True)
@@ -70,6 +71,10 @@ TEMPLATE_CATALOG: tuple[TemplateMetadata, ...] = (
         "vellum", "Vellum", "Portretowy editorial, miękkie pole résumé i prawa oś dat", "pro",
         ("icons", "single"), "#8A5E47", "/template-mockups/vellum.png",
     ),
+    TemplateMetadata(
+        "aurelia", "Aurelia", "Oliwkowo-złoty editorial z ramowym mastheadem", "pro",
+        ("icons", "single"), "#98884D", "/template-mockups/aurelia.png",
+    ),
 )
 
 TEMPLATE_LAYOUTS: dict[str, frozenset[str]] = {
@@ -82,6 +87,7 @@ TEMPLATE_LAYOUTS: dict[str, frozenset[str]] = {
     "linden": frozenset({"sidebar", "icons"}),
     "cadenza": frozenset({"single", "icons"}),
     "vellum": frozenset({"single", "icons"}),
+    "aurelia": frozenset({"single", "icons"}),
 }
 
 _GENERATORS = {
@@ -94,6 +100,7 @@ _GENERATORS = {
     "linden": _gen_linden,
     "cadenza": _gen_cadenza,
     "vellum": _gen_vellum,
+    "aurelia": _gen_aurelia,
 }
 
 

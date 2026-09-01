@@ -30,6 +30,7 @@ def _anchor(elements):
 @pytest.mark.parametrize(
     "template_id,mode",
     [
+        ("aurelia", "centered"),
         ("atrium", "centered"),
         ("slate", "wrapping"),
         ("regent", "centered"),
@@ -55,6 +56,12 @@ def test_template_emits_contact_band(template_id, mode):
 
 def _masthead_divider(elements):
     """Return the decorative line that closes a single-column masthead."""
+    explicit = next(
+        (element for element in elements if element.get("mastheadDivider")),
+        None,
+    )
+    if explicit is not None:
+        return explicit
     return next(
         element for element in elements
         if element.get("category") == "line"
@@ -71,7 +78,7 @@ def _first_section_top(elements):
     )
 
 
-@pytest.mark.parametrize("template_id", ["regent", "meridian", "cadenza", "vellum"])
+@pytest.mark.parametrize("template_id", ["aurelia", "regent", "meridian", "cadenza", "vellum"])
 def test_centered_masthead_reserves_two_contact_rows_without_moving_body(template_id):
     """A newly added second contact row must not collide with or move content."""
     sparse_cv = {

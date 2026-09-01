@@ -14,6 +14,7 @@ import { meridianTemplate } from "./meridian";
 import { lindenTemplate } from "./linden";
 import { cadenzaTemplate } from "./cadenza";
 import { vellumTemplate } from "./vellum";
+import { aureliaTemplate } from "./aurelia";
 
 export const TEST_TEMPLATES = [
   { id: "monument", elements: monumentTemplate },
@@ -25,4 +26,5 @@ export const TEST_TEMPLATES = [
   { id: "linden", elements: lindenTemplate },
   { id: "cadenza", elements: cadenzaTemplate },
   { id: "vellum", elements: vellumTemplate },
+  { id: "aurelia", elements: aureliaTemplate },
 ];

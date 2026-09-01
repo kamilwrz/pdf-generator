@@ -346,6 +346,12 @@ _CADENZA_CONTACT_GLYPHS = [
     "email", "phone", "location", "linkedin", "github", "website",
 ]
 
+# Aurelia uses contact line art only. Each Appearance edition receives real
+# palette ink so the framed masthead remains identical in canvas and PDF.
+_AURELIA_CONTACT_GLYPHS = [
+    "email", "phone", "location", "linkedin", "github", "website",
+]
+
 # Vellum carries the same contact channels plus its circular portrait
 # placeholder. A single real-ink theme per palette keeps all small line art
 # consistent between the canvas and ReportLab export.
@@ -394,6 +400,12 @@ SUBSET_THEMES = {
     "cadenza-cobalt": ("#245F91", _CADENZA_CONTACT_GLYPHS),
     "cadenza-burgundy": ("#85364F", _CADENZA_CONTACT_GLYPHS),
     "cadenza-emerald": ("#23664F", _CADENZA_CONTACT_GLYPHS),
+    "aurelia-gilded": ("#98884D", _AURELIA_CONTACT_GLYPHS),
+    "aurelia-pewter": ("#68726E", _AURELIA_CONTACT_GLYPHS),
+    "aurelia-sage": ("#4E6D5C", _AURELIA_CONTACT_GLYPHS),
+    "aurelia-cobalt": ("#356486", _AURELIA_CONTACT_GLYPHS),
+    "aurelia-burgundy": ("#7E4050", _AURELIA_CONTACT_GLYPHS),
+    "aurelia-noir": ("#A17C39", _AURELIA_CONTACT_GLYPHS),
     # Three light and three strong Vellum identities. The accent is reserved
     # for the role line, contacts, portrait glyph and page number; the portrait
     # halo and summary field own separate vector colour roles in the document.

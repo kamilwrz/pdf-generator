@@ -55,6 +55,16 @@
 .paletteLines::before, .paletteLines::after { position: absolute; right: 0; left: 0; height: 1px; background: var(--palette-rule); content: ""; }
 .paletteLines::before { top: 9px; }
 .paletteLines::after { top: 19px; }
+.palettePaperAurelia { background: var(--palette-paper); }
+.paletteAureliaFrame { position: absolute; top: 7px; right: 9px; left: 9px; height: 25px; border: 1px solid var(--palette-accent); }
+.paletteAureliaName { position: absolute; top: 14px; left: 24px; width: 40px; height: 4px; background: var(--palette-ink); }
+.paletteAureliaJob { position: absolute; top: 24px; left: 31px; width: 26px; height: 2px; background: var(--palette-accent); }
+.paletteAureliaContacts { position: absolute; top: 39px; left: 18px; width: 3px; height: 3px; background: var(--palette-accent); box-shadow: 15px 0 0 var(--palette-accent), 30px 0 0 var(--palette-accent), 45px 0 0 var(--palette-accent); }
+.paletteAureliaMastheadRule { position: absolute; top: 47px; right: 9px; left: 9px; height: 1px; background: var(--palette-rule); }
+.paletteAureliaHeading { position: absolute; top: 56px; left: 30px; width: 28px; height: 2px; background: var(--palette-heading-text); }
+.paletteAureliaSectionRule { position: absolute; top: 63px; right: 9px; left: 9px; height: 1px; background: var(--palette-accent); }
+.paletteAureliaCopy { position: absolute; top: 71px; right: 10px; left: 10px; height: 1px; background: var(--palette-body); box-shadow: 0 5px 0 var(--palette-muted), 0 12px 0 var(--palette-rule), 0 21px 0 var(--palette-body), 0 26px 0 var(--palette-muted); }
+.paletteAureliaFolio { position: absolute; bottom: 8px; left: 50%; width: 7px; height: 3px; transform: translateX(-50%); background: var(--palette-accent); }
 .palettePaperRegent { background: var(--palette-paper); }
 .paletteRegentName { position: absolute; top: 11px; left: 10px; width: 48px; height: 5px; background: var(--palette-ink); }
 .paletteRegentName::after { position: absolute; top: 9px; left: 0; width: 34px; height: 2px; background: var(--palette-accent); content: ""; }

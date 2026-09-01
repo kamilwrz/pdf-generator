@@ -18,6 +18,7 @@ one of the arrays exported by the dump script:
 from __future__ import annotations
 
 import json
+import re
 import sys
 import types
 from pathlib import Path
@@ -35,12 +36,37 @@ from app.utils.image_src_to_path import image_src_to_local_path
 
 ELEMENTS_JSON = REPO_ROOT / "frontend" / "scripts" / "iconic-templates.json"
 OUTPUT_DIR = REPO_ROOT / "frontend" / "public" / "template-mockups"
+FRONTEND_TEMPLATES = REPO_ROOT / "frontend" / "src" / "templates"
 
 # Match the exact pixel size of every other frontend/public/template-mockups/*.png
 # so the marketing grid and the in-app picker stay visually consistent.
 PAGE_W_PT, PAGE_H_PT = 595, 842
 # Supersample then downscale for crisper text than a direct 72 dpi render.
 RENDER_SCALE = 3
+
+
+def load_generated_starter(template_id: str) -> list[dict] | None:
+    """Read one generator-owned JS starter when the shared dump is stale.
+
+    ``regenerate_template_starters.py`` writes its element array as plain JSON
+    after a ``const <ID>_ELEMENTS =`` assignment. Parsing only that delimited
+    payload keeps this fallback deterministic and avoids evaluating JavaScript.
+    It is used for isolated mockup work when Node.js is unavailable; the normal
+    full-catalog path still consumes ``iconic-templates.json``.
+    """
+    source_path = FRONTEND_TEMPLATES / f"{template_id}.js"
+    if not source_path.exists():
+        return None
+    source = source_path.read_text(encoding="utf-8")
+    match = re.search(
+        r"const\s+[A-Z0-9_]+_ELEMENTS\s*=\s*(\[.*?\]);\s*\n\s*export\s+const",
+        source,
+        flags=re.DOTALL,
+    )
+    if not match:
+        return None
+    parsed = json.loads(match.group(1))
+    return parsed if isinstance(parsed, list) else None
 
 
 def render_theme(theme: str, elements_data: list[dict]) -> bytes:
@@ -90,6 +116,12 @@ def rasterize_first_page(pdf_bytes: bytes) -> bytes:
 def main():
     data = json.loads(ELEMENTS_JSON.read_text(encoding="utf-8"))
     requested = sys.argv[1:]
+    for theme in requested:
+        if theme in data:
+            continue
+        generated = load_generated_starter(theme)
+        if generated is not None:
+            data[theme] = generated
     unknown = [theme for theme in requested if theme not in data]
     if unknown:
         raise SystemExit(

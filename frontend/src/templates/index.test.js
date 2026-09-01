@@ -55,7 +55,7 @@ test("Regent stays registered for previously saved documents", () => {
 test("paid authored packs are not imported by the production registry", async () => {
   const { readFile } = await import("node:fs/promises");
   const source = await readFile(new URL("./index.js", import.meta.url), "utf8");
-  for (const id of ["monument", "slate", "atrium", "regent", "cadenza", "vellum"]) {
+  for (const id of ["monument", "slate", "atrium", "regent", "cadenza", "vellum", "aurelia"]) {
     assert.doesNotMatch(source, new RegExp(`from ["']\\./${id}["']`));
   }
 });
