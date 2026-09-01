@@ -409,7 +409,9 @@ export default function AiCvPanel() {
                                     {imports.map((snapshot) => (
                                         <article className={classes.historyItem} key={snapshot.id}>
                                     <div>
-                                        <strong>Import #{snapshot.id}</strong>
+                                        <strong title={snapshot.filename || undefined}>
+                                            {snapshot.filename || "Import CV"}
+                                        </strong>
                                         <span>{snapshot.created_at ? new Date(snapshot.created_at).toLocaleString("pl-PL") : ""} · {cvImportStatusLabel(snapshot.status)}</span>
                                         <small>
                                             {snapshot.size_bytes != null ? `${Math.ceil(snapshot.size_bytes / 1024)} KB` : "Rozmiar nieznany"}

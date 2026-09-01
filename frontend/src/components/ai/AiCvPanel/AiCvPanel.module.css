@@ -294,6 +294,10 @@
 .historyItem strong {
     font: 700 14px var(--font-body);
     color: var(--chrome-ink);
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .historyItem span,

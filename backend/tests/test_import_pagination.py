@@ -70,15 +70,15 @@ class ImportPaginationTests(unittest.TestCase):
         self.db.close()
         self.engine.dispose()
 
-    def test_list_is_bounded_private_and_cursor_paginated(self):
+    def test_list_is_bounded_owner_readable_and_cursor_paginated(self):
         first = self.client.get("/ai/imports").json()
         self.assertEqual(len(first["items"]), 20)
         self.assertIsNotNone(first["next_cursor"])
         serialized = str(first)
         self.assertNotIn("Private Person", serialized)
-        self.assertNotIn("private-person", serialized)
         self.assertNotIn("cv_data", serialized)
         self.assertNotIn("Private document title", serialized)
+        self.assertEqual(first["items"][0]["filename"], "private-person-24.pdf")
 
         second = self.client.get(
             "/ai/imports",

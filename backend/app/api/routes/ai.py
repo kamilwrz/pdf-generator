@@ -96,9 +96,15 @@ def _snapshot_payload(snapshot, documents: list | None = None) -> dict:
 
 
 def _snapshot_list_payload(snapshot, *, document_count: int) -> dict:
-    """Return history metadata without extracted content or user-supplied names."""
+    """Return owner-visible history metadata without extracted CV content.
+
+    The original filename is safe to return here because the route has already
+    resolved and scoped the query to the authenticated owner. It is the only
+    human-readable identifier available after source PDF bytes are discarded.
+    """
     return {
         "id": snapshot.id,
+        "filename": snapshot.source_filename,
         "size_bytes": snapshot.source_size_bytes,
         "status": snapshot.status,
         "error_code": snapshot.error_code,
