@@ -2,8 +2,8 @@
  * Modal for choosing a main-column Skills section's layout: an inline mid-dot
  * row, a vertical bullet list, or wrapped chip pills. Works for both flat
  * skills and skills grouped into subcategories — one mode applies to the
- * whole section. Each card previews the section's own real skills
- * re-formatted in that style, not a generic example.
+ * whole section. The previews deliberately use the same short example rather
+ * than CV content, so unusually long skills never distort the picker.
  */
 import DialogShell from "../../common/DialogShell/DialogShell";
 import {
@@ -12,7 +12,6 @@ import {
 } from "../../../utils/flatSectionLayout";
 import {
   SKILLS_LAYOUT_CHIPS,
-  collectSkillGroups,
   detectSkillsDisplayMode,
 } from "../../../utils/skillsLayout";
 import { sectionElementIds } from "../../../utils/sectionStructure";
@@ -36,37 +35,28 @@ const STYLE_OPTIONS = [
   },
 ];
 
-/** One category's items formatted for the inline/bullet text preview. */
-function textPreviewGroup(group, mode) {
-  const items = (group.items || []).filter(Boolean);
-  if (items.length === 0) return group.category || "";
-  const body = mode === FLAT_SECTION_LAYOUT_BULLET
-    ? items.map((item) => `• ${item}`).join("\n")
-    : items.join("  ·  ");
-  return group.category ? `${group.category}\n${body}` : body;
-}
+const PREVIEW_SKILLS = ["React", "TypeScript", "Node.js", "SQL"];
 
-function TextPreview({ groups, mode }) {
+/** Renders a compact, content-independent example for a text layout option. */
+function TextPreview({ mode }) {
+  const example = mode === FLAT_SECTION_LAYOUT_BULLET
+    ? PREVIEW_SKILLS.map((item) => `• ${item}`).join("\n")
+    : PREVIEW_SKILLS.join("  ·  ");
+
   return (
-    <span className={classes.cardPreview}>
-      {groups.map((group) => textPreviewGroup(group, mode)).join("\n\n")}
-    </span>
+    <span className={classes.cardPreview}>{example}</span>
   );
 }
 
-function ChipPreview({ groups }) {
+/** Renders the same fixed example as pills so all three choices stay comparable. */
+function ChipPreview() {
   return (
     <span className={classes.cardPreview}>
-      {groups.map((group) => (
-        <span key={group.category || group.items.join("|")} className={classes.chipGroup}>
-          {group.category ? <span className={classes.chipCategory}>{group.category}</span> : null}
-          <span className={classes.chipRow}>
-            {(group.items || []).filter(Boolean).map((item) => (
-              <span key={item} className={classes.chipPill}>{item}</span>
-            ))}
-          </span>
-        </span>
-      ))}
+      <span className={classes.chipRow}>
+        {PREVIEW_SKILLS.map((item) => (
+          <span key={item} className={classes.chipPill}>{item}</span>
+        ))}
+      </span>
     </span>
   );
 }
@@ -90,17 +80,13 @@ export default function SkillsLayoutModal({
   const members = (elements || []).filter((element) => memberIds.has(element.element_id));
   if (members.length === 0) return null;
 
-  const groups = collectSkillGroups(members, headingId).filter((group) => (
-    group.category || (group.items || []).length > 0
-  ));
-  if (groups.length === 0) return null;
   const currentMode = detectSkillsDisplayMode(members);
 
   return (
     <DialogShell
       open={open}
       onClose={onCancel}
-      width={640}
+      width={960}
       title="Styl umiejętności"
       subtitle="Wybierz, jak umiejętności mają się wyświetlać na CV."
     >
@@ -112,6 +98,7 @@ export default function SkillsLayoutModal({
               key={option.value}
               type="button"
               className={`${classes.card}${active ? ` ${classes.cardActive}` : ""}`}
+              aria-pressed={active}
               onClick={() => onApply(option.value)}
             >
               <span className={classes.cardHeader}>
@@ -120,8 +107,8 @@ export default function SkillsLayoutModal({
               </span>
               <span className={classes.cardDesc}>{option.description}</span>
               {option.value === SKILLS_LAYOUT_CHIPS
-                ? <ChipPreview groups={groups} />
-                : <TextPreview groups={groups} mode={option.value} />}
+                ? <ChipPreview />
+                : <TextPreview mode={option.value} />}
             </button>
           );
         })}

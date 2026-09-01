@@ -1,8 +1,8 @@
 .options {
   padding: 24px 28px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
 }
 
 .card {
@@ -16,11 +16,22 @@
   cursor: pointer;
   background: var(--chrome-control);
   text-align: left;
-  transition: border-color .15s, background .15s;
+  transition:
+    border-color var(--motion-fast) var(--motion-ease),
+    background var(--motion-fast) var(--motion-ease);
 }
 
 .card:hover {
   background: var(--chrome-hover);
+}
+
+.card:active {
+  background: var(--primary-bg);
+}
+
+.card:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
 }
 
 .cardActive {
@@ -43,7 +54,7 @@
   font: 700 9.5px var(--font-body);
   letter-spacing: .06em;
   text-transform: uppercase;
-  color: var(--amber);
+  color: var(--chrome-accent);
 }
 
 .cardDesc {
@@ -53,6 +64,7 @@
 
 .cardPreview {
   align-self: stretch;
+  min-height: 108px;
   margin-top: 4px;
   padding: 10px 12px;
   border-radius: 2px;
@@ -62,25 +74,10 @@
   white-space: pre-wrap;
 }
 
-/* Chip preview: one block per category, wrapping pills below the label. */
-.chipGroup {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.chipGroup + .chipGroup {
-  margin-top: 8px;
-}
-
-.chipCategory {
-  font-weight: 700;
-  color: var(--chrome-ink);
-}
-
 .chipRow {
   display: flex;
   flex-wrap: wrap;
+  align-content: flex-start;
   gap: 6px;
 }
 
@@ -93,4 +90,21 @@
   color: var(--on-accent, var(--color-paper));
   font: 600 11px var(--font-body);
   white-space: nowrap;
+}
+
+@media (max-width: 760px) {
+  .options {
+    grid-template-columns: 1fr;
+    padding: 16px;
+  }
+
+  .cardPreview {
+    min-height: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card {
+    transition: none;
+  }
 }
