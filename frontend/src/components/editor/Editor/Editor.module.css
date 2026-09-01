@@ -26,8 +26,8 @@
     align-items: flex-start;
     justify-content: space-between;
     gap: 12px;
-    background: var(--chrome-ink);
-    color: var(--chrome-surface);
+    background: var(--chrome-control);
+    color: var(--chrome-ink);
     border-bottom: 1px solid var(--chrome-border);
     flex-shrink: 0;
 }
@@ -42,14 +42,14 @@
 .panelHeader .iconBtn {
     width: 32px;
     height: 32px;
-    color: var(--chrome-surface);
-    border-color: color-mix(in srgb, var(--chrome-surface) 32%, transparent);
+    color: var(--chrome-ink);
+    border-color: var(--chrome-border);
     background: transparent;
 }
 
 .panelHeader .iconBtn:hover:not(:disabled) {
-    background: var(--chrome-surface);
-    color: var(--chrome-ink);
+    background: var(--chrome-ink);
+    color: var(--chrome-surface);
 }
 
 .eyebrow {

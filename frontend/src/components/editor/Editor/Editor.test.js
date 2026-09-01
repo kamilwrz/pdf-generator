@@ -37,9 +37,12 @@ test("Editor panel uses the editor-affordance layer above sticky chrome", async 
   assert.doesNotMatch(editorCss, /:has\(/);
 });
 
-test("Editor uses white working surfaces and keeps beige as a restrained accent", async () => {
+test("Editor uses light system surfaces and keeps dark fills compact", async () => {
   const editorCss = await readFile(new URL("./Editor.module.css", import.meta.url), "utf8");
 
+  assert.match(editorCss, /\.panelHeader\s*\{[^}]*background:\s*var\(--chrome-control\)/s);
+  assert.match(editorCss, /\.panelHeader\s*\{[^}]*color:\s*var\(--chrome-ink\)/s);
+  assert.match(editorCss, /\.panelHeader \.iconBtn:hover:not\(:disabled\)\s*\{[^}]*background:\s*var\(--chrome-ink\)/s);
   assert.match(editorCss, /\.selectionTip\s*\{[^}]*background:\s*var\(--chrome-surface\)/s);
   assert.match(editorCss, /\.group\s*\{[^}]*background:\s*var\(--chrome-surface\)/s);
   assert.match(editorCss, /\.group\s*\{[^}]*border-left:\s*4px solid var\(--chrome-control\)/s);
