@@ -20,3 +20,11 @@ test("structural triggers do not intercept click or double-click editing", () =>
   assert.doesNotMatch(source, /removeEventListener\(["']click["']/);
   assert.doesNotMatch(source, /removeEventListener\(["']dblclick["']/);
 });
+
+test("structural hover listeners rebind when selection replaces a trigger node", () => {
+  assert.match(source, /triggerRevision\s*=\s*""/);
+  assert.match(
+    source,
+    /\[eligible, scheduleHide, show, triggerKey, triggerRevision\]/,
+  );
+});

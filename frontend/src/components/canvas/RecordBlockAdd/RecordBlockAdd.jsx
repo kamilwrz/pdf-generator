@@ -67,10 +67,15 @@ export default function RecordBlockAdd({
   const triggerElements = triggerIds
     .map((triggerId) => A4_Elements.find((element) => element.element_id === triggerId))
     .filter(Boolean);
+  // Selection and inline editing are independent from structural hover. In
+  // template mode one click starts editing, so excluding an editing field here
+  // would remove the complete record outline exactly when the user selects it.
   const eligible = editorMode === EDITOR_MODE_TEMPLATE
-    && !triggerElements.some((element) => element.isEditing)
     && elementSupportsRecordBlockAdd(A4_Elements, elementId, pageHeight);
   const exclusiveKey = `record:${elementId}`;
+  const triggerRevision = triggerElements.map((element) => (
+    `${element.element_id}:${Boolean(element.isSelected)}:${Boolean(element.isEditing)}`
+  )).join("|");
   const {
     visible,
     pinned,
@@ -80,7 +85,12 @@ export default function RecordBlockAdd({
     hide,
     openMenu,
     closeMenu,
-  } = useCanvasHoverToolbar({ exclusiveKey, eligible, triggerIds });
+  } = useCanvasHoverToolbar({
+    exclusiveKey,
+    eligible,
+    triggerIds,
+    triggerRevision,
+  });
 
   if (!eligible) return null;
 
@@ -107,8 +117,6 @@ export default function RecordBlockAdd({
     element.element_id === hoveredTriggerId
   ));
   const elementHighlight = hoveredElement
-    && !hoveredElement.isSelected
-    && !hoveredElement.isEditing
     ? getElementOutlineBounds(hoveredElement)
     : null;
   const menuItems = [
@@ -160,6 +168,7 @@ export default function RecordBlockAdd({
       pageWidth={pageSize?.width ?? 595}
       highlight={resolvedHighlight}
       elementHighlight={elementHighlight}
+      elementHighlightSelected={Boolean(hoveredElement?.isSelected)}
       layout={layout}
       addLabel="Wpis"
       addTooltip="Dodaj wpis poniżej"

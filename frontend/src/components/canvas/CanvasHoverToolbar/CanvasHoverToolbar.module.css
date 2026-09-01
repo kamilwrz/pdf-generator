@@ -30,6 +30,16 @@
     animation: canvasElementHighlightIn 110ms ease-out both;
 }
 
+/* A selected field keeps its persistent accent frame. Move the transient
+   pointer-hover frame outside it instead of painting over the same pixels, so
+   both states stay legible while editing and while crossing record siblings. */
+.elementHighlightSelected {
+    outline: var(--canvas-control-border, 1px) solid
+        color-mix(in srgb, var(--color-ink) 72%, transparent);
+    outline-offset: 4px;
+    border-color: transparent;
+}
+
 .origin {
     position: absolute;
     width: 0;

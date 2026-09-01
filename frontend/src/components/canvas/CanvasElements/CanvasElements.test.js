@@ -15,3 +15,26 @@ test("every structurally compatible sidebar template exposes lane-transfer contr
   assert.match(source, /const allowLaneTransfer = LANE_TRANSFER_TEMPLATE_IDS\.has\(activeTemplateId\)/);
   assert.match(source, /resolveSectionLaneTransfer\(documentElements, section\.headingId, pageHeight\)/);
 });
+
+test("selected and editing structural fields remain eligible hover targets", async () => {
+  const recordSource = await readFile(
+    new URL("../RecordBlockAdd/RecordBlockAdd.jsx", import.meta.url),
+    "utf8",
+  );
+  const sectionSource = await readFile(
+    new URL("../SectionRecordAdd/SectionRecordAdd.jsx", import.meta.url),
+    "utf8",
+  );
+
+  assert.doesNotMatch(recordSource, /!triggerElements\.some\([^)]*isEditing/);
+  assert.doesNotMatch(recordSource, /!hoveredElement\.isSelected/);
+  assert.doesNotMatch(recordSource, /!hoveredElement\.isEditing/);
+  assert.match(recordSource, /elementHighlightSelected=\{Boolean\(hoveredElement\?\.isSelected\)\}/);
+  assert.match(recordSource, /triggerRevision/);
+
+  assert.doesNotMatch(sectionSource, /!heading\?\.isEditing/);
+  assert.doesNotMatch(sectionSource, /!hoveredHeading\.isSelected/);
+  assert.doesNotMatch(sectionSource, /!hoveredHeading\.isEditing/);
+  assert.match(sectionSource, /elementHighlightSelected=\{Boolean\(hoveredHeading\?\.isSelected\)\}/);
+  assert.match(sectionSource, /triggerRevision/);
+});

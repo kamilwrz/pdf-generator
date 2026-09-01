@@ -101,8 +101,16 @@ export default function SectionRecordAdd({
   const nextHeading = nextHeadingId
     ? A4_Elements.find((element) => element.element_id === nextHeadingId)
     : null;
-  const eligible = editorMode === EDITOR_MODE_TEMPLATE && !heading?.isEditing;
+  // A selected heading remains a structural hover target while it is edited.
+  // Selection owns its persistent frame; this component adds only transient
+  // section and exact-heading hover context around it.
+  const eligible = editorMode === EDITOR_MODE_TEMPLATE;
   const exclusiveKey = `heading:${headingId}`;
+  const triggerRevision = [
+    heading?.element_id,
+    Boolean(heading?.isSelected),
+    Boolean(heading?.isEditing),
+  ].join(":");
   const {
     visible,
     pinned,
@@ -116,6 +124,7 @@ export default function SectionRecordAdd({
     exclusiveKey,
     eligible,
     triggerIds: [headingId],
+    triggerRevision,
   });
 
   // A section can move while an open overflow menu keeps this toolbar pinned.
@@ -200,8 +209,6 @@ export default function SectionRecordAdd({
   const sectionLabel = String(heading?.content || "").trim();
   const hoveredHeading = hoveredTriggerId === headingId ? heading : null;
   const elementHighlight = hoveredHeading
-    && !hoveredHeading.isSelected
-    && !hoveredHeading.isEditing
     ? getElementOutlineBounds(hoveredHeading)
     : null;
   const skillsModeLabel = {
@@ -257,6 +264,7 @@ export default function SectionRecordAdd({
       pageWidth={pageSize?.width ?? 595}
       highlight={resolvedHighlight}
       elementHighlight={elementHighlight}
+      elementHighlightSelected={Boolean(hoveredHeading?.isSelected)}
       layout={layout}
       addLabel="Sekcja"
       addTooltip="Dodaj sekcję poniżej"

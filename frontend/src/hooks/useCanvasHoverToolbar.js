@@ -14,7 +14,12 @@ import {
 } from "../utils/canvasHoverToolbarState";
 
 /**
- * @param {{exclusiveKey:string,eligible:boolean,triggerIds:string[]}} options
+ * @param {{
+ *   exclusiveKey:string,
+ *   eligible:boolean,
+ *   triggerIds:string[],
+ *   triggerRevision?:string,
+ * }} options
  * @returns {{
  *   visible:boolean,
  *   pinned:boolean,
@@ -26,7 +31,12 @@ import {
  *   closeMenu:() => void,
  * }}
  */
-export function useCanvasHoverToolbar({ exclusiveKey, eligible, triggerIds }) {
+export function useCanvasHoverToolbar({
+  exclusiveKey,
+  eligible,
+  triggerIds,
+  triggerRevision = "",
+}) {
   const [state, dispatch] = useReducer(
     reduceCanvasHoverToolbarState,
     CANVAS_TOOLBAR_INITIAL_STATE,
@@ -142,7 +152,11 @@ export function useCanvasHoverToolbar({ exclusiveKey, eligible, triggerIds }) {
         node.removeEventListener("focusout", onFocusOut);
       });
     };
-  }, [eligible, scheduleHide, show, triggerKey]);
+    // Textarea swaps its display node for a distinct contentEditable node when
+    // selection enters edit mode. `triggerRevision` makes this effect detach
+    // from the retired node and bind the same id on the newly committed node,
+    // so selecting a field cannot silently disable record/section hover.
+  }, [eligible, scheduleHide, show, triggerKey, triggerRevision]);
 
   useEffect(() => {
     if (!state.pinned) return undefined;

@@ -14,3 +14,12 @@ test("structural toolbar escapes the scaled page and stacks above the inspector"
   assert.match(css, /\.portalAnchor\s*\{[^}]*position:\s*fixed/s);
   assert.match(css, /z-index:\s*var\(--z-editor-context\)/);
 });
+
+test("selected elements keep selection and receive a separate hover ring", async () => {
+  const source = await readFile(new URL("./CanvasHoverToolbar.jsx", import.meta.url), "utf8");
+  const css = await readFile(new URL("./CanvasHoverToolbar.module.css", import.meta.url), "utf8");
+
+  assert.match(source, /elementHighlightSelected/);
+  assert.match(css, /\.elementHighlightSelected\s*\{[^}]*outline-offset:\s*4px/s);
+  assert.match(css, /\.elementHighlightSelected\s*\{[^}]*border-color:\s*transparent/s);
+});
