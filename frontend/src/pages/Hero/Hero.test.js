@@ -6,9 +6,9 @@ const source = readFileSync(new URL("./Hero.jsx", import.meta.url), "utf8");
 const styles = readFileSync(new URL("./Hero.module.css", import.meta.url), "utf8");
 
 describe("landing product positioning", () => {
-  it("welcomes the user with an action-led slogan and no supporting subheading", () => {
-    assert.match(source, /<span>Stwórz CV<\/span>/);
-    assert.match(source, /<em>Zwiększ swoje szanse<\/em>/);
+  it("welcomes the user with one main heading and a supporting subheading", () => {
+    assert.match(source, /<h1>Stwórz CV<\/h1>/);
+    assert.match(source, /<p className=\{classes\.heroSubheading\}>Zwiększ swoje szanse<\/p>/);
     assert.doesNotMatch(source, /Stwórz CV\.|Zwiększ swoje szanse\./);
     assert.doesNotMatch(source, /Stwórz CV,|które prowadzi|do rozmowy\./);
     assert.doesNotMatch(source, /Wgraj stare CV lub zacznij od zera/);
@@ -24,22 +24,17 @@ describe("landing product positioning", () => {
     assert.doesNotMatch(source, /Pro, gdy potrzebujesz więcej wersji\./);
   });
 
-  it("uses centred accent fields that keep the longer slogan readable", () => {
+  it("uses a centred two-level heading with the requested brand colours", () => {
     assert.match(
       source,
-      /<h1>\s*<span>Stwórz CV<\/span>\s*<em>Zwiększ swoje szanse<\/em>\s*<\/h1>/s,
+      /<div className=\{classes\.heroHeading\}>\s*<h1>Stwórz CV<\/h1>\s*<p className=\{classes\.heroSubheading\}>Zwiększ swoje szanse<\/p>\s*<\/div>/s,
     );
-    assert.match(styles, /\.hero h1\s*\{[^}]*display:\s*grid;[^}]*grid-auto-rows:\s*1fr;[^}]*align-items:\s*stretch;/s);
-    assert.match(styles, /\.hero h1 > span,[\s\S]*?\.hero h1 > em\s*\{[^}]*display:\s*flex;[^}]*align-items:\s*center;[^}]*justify-content:\s*center;[^}]*block-size:\s*1\.18em;[^}]*font-size:\s*inherit;[^}]*line-height:\s*1;[^}]*text-align:\s*center;[^}]*white-space:\s*nowrap;/s);
-    assert.match(styles, /\.hero h1\s*\{[^}]*justify-items:\s*center;[^}]*gap:\s*var\(--space-2\);[^}]*width:\s*fit-content;[^}]*max-width:\s*100%;[^}]*font-size:\s*clamp\(2\.5rem,\s*4vw,\s*4\.5rem\);[^}]*line-height:\s*1;[^}]*text-align:\s*center;/s);
-    assert.match(styles, /\.hero h1 > span\s*\{[^}]*background:\s*var\(--taupe\);[^}]*color:\s*var\(--paper\);/s);
-    assert.doesNotMatch(styles, /\.hero h1 > span\s*\{[^}]*font-size:/s);
-    assert.match(styles, /\.hero h1 em,[\s\S]*?background:\s*var\(--ink\);/s);
-    assert.doesNotMatch(styles, /\.hero h1 em,\s*\.pricingHeading h2 em\s*\{[^}]*box-shadow:/s);
+    assert.match(styles, /\.heroHeading\s*\{[^}]*display:\s*grid;[^}]*justify-items:\s*center;[^}]*gap:\s*var\(--space-3\);[^}]*width:\s*fit-content;[^}]*max-width:\s*100%;[^}]*text-align:\s*center;/s);
+    assert.match(styles, /\.hero h1\s*\{[^}]*color:\s*var\(--taupe\);[^}]*font-size:\s*clamp\(2\.5rem,\s*6vw,\s*5\.5rem\);[^}]*line-height:\s*\.94;/s);
+    assert.match(styles, /\.heroSubheading\s*\{[^}]*max-width:\s*min\(100%,\s*28ch\);[^}]*background:\s*var\(--ink\);[^}]*color:\s*var\(--beige\);[^}]*font-size:\s*clamp\(1\.5rem,\s*2\.5vw,\s*2\.25rem\);[^}]*line-height:\s*1\.1;/s);
     assert.match(styles, /\.pricingHeading h2 em\s*\{[^}]*box-shadow:\s*inset 0 -\.16em 0 var\(--taupe\);/s);
-    assert.match(styles, /@media \(min-width: 1200px\)[\s\S]*?\.hero h1\s*\{[^}]*grid-template-columns:\s*max-content max-content;[^}]*grid-template-rows:\s*1fr;[^}]*gap:\s*var\(--space-4\);/s);
-    assert.match(styles, /@media \(max-width: 620px\)[\s\S]*?\.hero h1\s*\{[^}]*grid-auto-rows:\s*auto;[^}]*font-size:\s*clamp\(2\.5rem,\s*12vw,\s*3\.5rem\);/s);
-    assert.match(styles, /@media \(max-width: 620px\)[\s\S]*?\.hero h1 > em\s*\{[^}]*block-size:\s*auto;[^}]*width:\s*100%;[^}]*white-space:\s*normal;/s);
+    assert.match(styles, /@media \(max-width: 620px\)[\s\S]*?\.hero h1\s*\{[^}]*font-size:\s*clamp\(2\.5rem,\s*14vw,\s*4rem\);/s);
+    assert.match(styles, /@media \(max-width: 620px\)[\s\S]*?\.heroSubheading\s*\{[^}]*width:\s*100%;/s);
     assert.match(styles, /\.hero\s*\{[^}]*grid-template-columns:\s*minmax\(0, 1280px\);[^}]*place-content:\s*center;/s);
     assert.match(styles, /\.heroCopy\s*\{[^}]*max-width:\s*1280px;[^}]*text-align:\s*center;/s);
     assert.match(styles, /\.heroActions\s*\{[^}]*justify-content:\s*center;/s);

@@ -166,11 +166,9 @@
     text-wrap: balance;
 }
 
-/* Accent phrases are set as solid ink highlight blocks with paper text — the
-   single boldest typographic gesture on the page, echoing Swiss poster
-   lettering. `box-decoration-break: clone` keeps the block intact when a phrase
-   wraps across lines. */
-.hero h1 em,
+/* Pricing keeps its solid ink highlight block. The hero has its own two-level
+   title treatment below so its main heading and supporting promise no longer
+   compete at the same scale. */
 .pricingHeading h2 em {
     font-style: normal;
     font-weight: 900;
@@ -244,57 +242,40 @@
     margin-left: auto;
 }
 
-.hero h1 {
+.heroHeading {
     display: grid;
-    grid-auto-rows: 1fr;
-    align-items: stretch;
     justify-items: center;
-    gap: var(--space-2);
+    gap: var(--space-3);
     width: fit-content;
     max-width: 100%;
     margin-right: auto;
     margin-left: auto;
-    font-size: clamp(2.5rem, 4vw, 4.5rem);
-    line-height: 1;
-    letter-spacing: -.04em;
     text-align: center;
 }
 
-/* Both clauses share one inherited type scale. Flex centring keeps the visible
-   letterforms optically aligned, while the wider grid lets the action-led copy
-   remain a single editorial row on large screens. */
-.hero h1 > span,
-.hero h1 > em {
-    display: flex;
-    align-self: stretch;
-    align-items: center;
-    justify-content: center;
-    box-sizing: border-box;
-    block-size: 1.18em;
-    min-width: 0;
-    max-width: 100%;
-    padding: 0 var(--space-4);
-    font-size: inherit;
-    line-height: 1;
-    text-align: center;
-    white-space: nowrap;
+.hero h1 {
+    color: var(--taupe);
+    font-size: clamp(2.5rem, 6vw, 5.5rem);
+    line-height: .94;
+    letter-spacing: -.045em;
 }
 
-.hero h1 > span {
-    background: var(--taupe);
-    color: var(--paper);
-}
-
-.hero h1 em {
+/* The promise is deliberately subordinate to the h1. Canvas beige on the ink
+   field connects the landing page to the editor surface while preserving high
+   contrast over the photographic hero at every viewport width. */
+.heroSubheading {
     width: fit-content;
-}
-
-@media (min-width: 1200px) {
-    .hero h1 {
-        grid-template-columns: max-content max-content;
-        grid-template-rows: 1fr;
-        gap: var(--space-4);
-    }
+    max-width: min(100%, 28ch);
+    margin: 0;
+    padding: var(--space-2) var(--space-4) var(--space-3);
+    background: var(--ink);
+    color: var(--beige);
+    font-family: var(--display);
+    font-size: clamp(1.5rem, 2.5vw, 2.25rem);
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: -.025em;
+    text-wrap: balance;
 }
 
 .heroActions {
@@ -1157,7 +1138,7 @@
 }
 
 .heroCopy > .kicker { animation-delay: 40ms; }
-.heroCopy > h1 { animation-delay: 100ms; }
+.heroCopy > .heroHeading { animation-delay: 100ms; }
 .heroCopy > .heroActions { animation-delay: 180ms; }
 .heroCopy > .heroNote { animation-delay: 240ms; }
 .heroCopy > .heroTertiary { animation-delay: 260ms; }
@@ -1252,19 +1233,12 @@
     }
 
     .hero h1 {
-        grid-auto-rows: auto;
-        font-size: clamp(2.5rem, 12vw, 3.5rem);
+        font-size: clamp(2.5rem, 14vw, 4rem);
     }
 
-    /* The benefit clause is intentionally allowed to wrap on narrow screens.
-       Keeping it inside its ink field prevents clipped copy at compact widths
-       and at 200% browser zoom without shrinking the display type into UI text. */
-    .hero h1 > em {
-        block-size: auto;
-        min-block-size: 1.18em;
+    .heroSubheading {
         width: 100%;
-        padding-block: var(--space-2);
-        white-space: normal;
+        padding: var(--space-2) var(--space-3) var(--space-3);
     }
 
     .heroTrust {
