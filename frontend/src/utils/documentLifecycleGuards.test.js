@@ -167,7 +167,7 @@ test("central dirty guard covers router and browser exits", async () => {
   assert.match(source, /flushGuestDraftRef\.current\?\.\(\)/);
 });
 
-test("import history keeps PII out of list rows and fetches detail on demand", async () => {
+test("import history keeps extracted PII out of list rows and fetches detail on demand", async () => {
   const source = await read("../components/ai/AiCvPanel/AiCvPanel.jsx");
 
   assert.match(source, /response\.items \|\| response\.imports \|\| \[\]/);
@@ -175,6 +175,7 @@ test("import history keeps PII out of list rows and fetches detail on demand", a
   assert.match(source, /Pokaż starsze importy/);
   assert.match(source, /ENDPOINTS\.AI\.IMPORT\(snapshot\.id\),\s*"GET"/s);
   assert.match(source, /detail\.cv_data/);
-  assert.doesNotMatch(source, /snapshot\.cv_data|snapshot\.filename|snapshot\.summary/);
+  assert.match(source, /snapshot\.filename/);
+  assert.doesNotMatch(source, /snapshot\.cv_data|snapshot\.summary/);
   assert.match(source, /<button\s+type="button"\s+className={`\$\{classes\.dropzone}/s);
 });
