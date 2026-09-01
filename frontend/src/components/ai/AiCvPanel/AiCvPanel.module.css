@@ -315,6 +315,12 @@
     color: var(--chrome-muted);
 }
 
+.historyItem .failureHint {
+    max-width: 56ch;
+    color: var(--danger);
+    line-height: 1.4;
+}
+
 .historyActions {
     display: flex;
     align-items: center;

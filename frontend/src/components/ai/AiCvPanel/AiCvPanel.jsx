@@ -22,6 +22,7 @@ import { selectCvTemplates } from "../../../utils/cvTemplateSelection";
 import {
     CV_IMPORT_REQUEST_OPTIONS,
     CV_IMPORT_TIMEOUT_MESSAGE,
+    cvImportRecoveryMessage,
     cvImportStatusLabel,
 } from "../../../utils/cvImportRequest";
 import { isTemplateAllowed, planErrorMessage } from "../../../utils/entitlements";
@@ -429,6 +430,11 @@ export default function AiCvPanel() {
                                             {snapshot.size_bytes != null ? `${Math.ceil(snapshot.size_bytes / 1024)} KB` : "Rozmiar nieznany"}
                                             {` · ${snapshot.document_count || 0} utworzonych CV`}
                                         </small>
+                                        {snapshot.status === "failed" && (
+                                            <small className={classes.failureHint}>
+                                                {cvImportRecoveryMessage(snapshot.error_code)}
+                                            </small>
+                                        )}
                                     </div>
                                     <div className={classes.historyActions}>
                                         {confirmDeleteImportId === snapshot.id ? (
