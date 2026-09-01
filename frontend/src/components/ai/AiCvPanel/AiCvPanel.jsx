@@ -71,6 +71,8 @@ export default function AiCvPanel() {
     const [importsNextCursor, setImportsNextCursor] = useState(null);
     const [isLoadingHistory, setIsLoadingHistory] = useState(false);
     const [openingImportId, setOpeningImportId] = useState(null);
+    const [confirmDeleteImportId, setConfirmDeleteImportId] = useState(null);
+    const [deletingImportId, setDeletingImportId] = useState(null);
     const [showHistory, setShowHistory] = useState(false);
     const cvTemplates = useMemo(() => selectCvTemplates(TEMPLATES), []);
     const remainingImports = entitlements?.remaining?.cv_imports;
@@ -156,6 +158,10 @@ export default function AiCvPanel() {
     useEffect(() => {
         if (isAiPanel && showHistory) loadHistory();
     }, [isAiPanel, showHistory, loadHistory]);
+
+    useEffect(() => {
+        if (!showHistory) setConfirmDeleteImportId(null);
+    }, [showHistory]);
 
     const acceptFile = useCallback((f) => {
         if (!f) return;
@@ -308,13 +314,19 @@ export default function AiCvPanel() {
     }, [api, openingImportId]);
 
     const deleteHistoricalImport = useCallback(async (snapshotId) => {
+        if (deletingImportId != null) return;
+        setDeletingImportId(snapshotId);
+        setError(null);
         try {
             await api.httpRequest(ENDPOINTS.AI.IMPORT(snapshotId), "DELETE", undefined, "Nie udało się usunąć importu");
             setImports((current) => current.filter((item) => item.id !== snapshotId));
+            setConfirmDeleteImportId(null);
         } catch (err) {
             setError(planErrorMessage(err, "Nie udało się usunąć danych importu."));
+        } finally {
+            setDeletingImportId(null);
         }
-    }, [api]);
+    }, [api, deletingImportId]);
 
     function goPrevStep() {
         setWizardStep(1);
@@ -419,7 +431,31 @@ export default function AiCvPanel() {
                                         </small>
                                     </div>
                                     <div className={classes.historyActions}>
-                                        {snapshot.status === "succeeded" && (
+                                        {confirmDeleteImportId === snapshot.id ? (
+                                            <div
+                                                className={classes.deleteConfirmation}
+                                                role="group"
+                                                aria-label={`Potwierdź usunięcie danych z pliku ${snapshot.filename || "CV"}`}
+                                            >
+                                                <button
+                                                    type="button"
+                                                    className={classes.cancelDeleteImport}
+                                                    onClick={() => setConfirmDeleteImportId(null)}
+                                                    disabled={deletingImportId != null}
+                                                >
+                                                    Anuluj
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    className={classes.confirmDeleteImport}
+                                                    onClick={() => deleteHistoricalImport(snapshot.id)}
+                                                    disabled={deletingImportId != null}
+                                                    aria-busy={deletingImportId === snapshot.id}
+                                                >
+                                                    {deletingImportId === snapshot.id ? "Usuwanie…" : "Usuń trwale"}
+                                                </button>
+                                            </div>
+                                        ) : snapshot.status === "succeeded" && (
                                             <button
                                                 type="button"
                                                 className={classes.reExtract}
@@ -430,7 +466,18 @@ export default function AiCvPanel() {
                                                 {openingImportId === snapshot.id ? "Pobieranie…" : "Utwórz CV"}
                                             </button>
                                         )}
-                                        {snapshot.status !== "processing" && <button type="button" className={classes.deleteImport} onClick={() => deleteHistoricalImport(snapshot.id)}>Usuń dane</button>}
+                                        {snapshot.status !== "processing" && confirmDeleteImportId !== snapshot.id && (
+                                            <button
+                                                type="button"
+                                                className={classes.deleteImport}
+                                                onClick={() => {
+                                                    setConfirmDeleteImportId(snapshot.id);
+                                                    setError(null);
+                                                }}
+                                            >
+                                                Usuń dane
+                                            </button>
+                                        )}
                                     </div>
                                         </article>
                                     ))}

@@ -309,8 +309,42 @@
 
 .historyActions {
     display: flex;
+    align-items: center;
     flex-shrink: 0;
     gap: 10px;
+}
+
+.deleteConfirmation {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.cancelDeleteImport,
+.confirmDeleteImport {
+    min-height: 36px;
+    padding: 0 10px;
+    border-radius: 2px;
+    font: 600 12px var(--font-body);
+    cursor: pointer;
+}
+
+.cancelDeleteImport {
+    border: 1px solid var(--chrome-border);
+    background: var(--chrome-control);
+    color: var(--chrome-ink);
+}
+
+.confirmDeleteImport {
+    border: 1px solid var(--danger);
+    background: var(--danger);
+    color: var(--on-accent);
+}
+
+.cancelDeleteImport:disabled,
+.confirmDeleteImport:disabled {
+    cursor: not-allowed;
+    opacity: .55;
 }
 
 .deleteImport {
