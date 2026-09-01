@@ -181,7 +181,7 @@
     box-decoration-break: clone;
 }
 
-/* Pricing retains its restrained warm baseline; the outcome-led hero uses a
+/* Pricing retains its restrained warm baseline; the action-led hero uses a
    clean ink field without a decorative lower rule. */
 .pricingHeading h2 em {
     box-shadow: inset 0 -.16em 0 var(--taupe);
@@ -192,7 +192,7 @@
 .hero {
     position: relative;
     display: grid;
-    grid-template-columns: minmax(0, 960px);
+    grid-template-columns: minmax(0, 1280px);
     place-content: center;
     overflow: hidden;
     isolation: isolate;
@@ -233,7 +233,7 @@
     z-index: 1;
     align-self: center;
     width: 100%;
-    max-width: 960px;
+    max-width: 1280px;
     text-align: center;
 }
 
@@ -254,16 +254,15 @@
     max-width: 100%;
     margin-right: auto;
     margin-left: auto;
-    font-size: clamp(2.5rem, 6vw, 5.5rem);
+    font-size: clamp(2.5rem, 4vw, 4.5rem);
     line-height: 1;
     letter-spacing: -.04em;
     text-align: center;
 }
 
-/* Both clauses share one inherited type scale and a fixed typographic block
-   height. Flex centring keeps the visible letterforms optically aligned despite
-   the fonts' different glyph shapes, while the grid centres the complete lockup
-   in both the horizontal and compact stacked layouts. */
+/* Both clauses share one inherited type scale. Flex centring keeps the visible
+   letterforms optically aligned, while the wider grid lets the action-led copy
+   remain a single editorial row on large screens. */
 .hero h1 > span,
 .hero h1 > em {
     display: flex;
@@ -1253,7 +1252,19 @@
     }
 
     .hero h1 {
+        grid-auto-rows: auto;
         font-size: clamp(2.5rem, 12vw, 3.5rem);
+    }
+
+    /* The benefit clause is intentionally allowed to wrap on narrow screens.
+       Keeping it inside its ink field prevents clipped copy at compact widths
+       and at 200% browser zoom without shrinking the display type into UI text. */
+    .hero h1 > em {
+        block-size: auto;
+        min-block-size: 1.18em;
+        width: 100%;
+        padding-block: var(--space-2);
+        white-space: normal;
     }
 
     .heroTrust {

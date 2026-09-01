@@ -6,10 +6,10 @@ const source = readFileSync(new URL("./Hero.jsx", import.meta.url), "utf8");
 const styles = readFileSync(new URL("./Hero.module.css", import.meta.url), "utf8");
 
 describe("landing product positioning", () => {
-  it("welcomes the user with the recruitment outcome and no supporting subheading", () => {
-    assert.match(source, /<span>Nowe CV<\/span>/);
-    assert.match(source, /<em>Nowa praca<\/em>/);
-    assert.doesNotMatch(source, /Nowe CV\.|Nowa praca\./);
+  it("welcomes the user with an action-led slogan and no supporting subheading", () => {
+    assert.match(source, /<span>Stwórz CV<\/span>/);
+    assert.match(source, /<em>Zwiększ swoje szanse<\/em>/);
+    assert.doesNotMatch(source, /Stwórz CV\.|Zwiększ swoje szanse\./);
     assert.doesNotMatch(source, /Stwórz CV,|które prowadzi|do rozmowy\./);
     assert.doesNotMatch(source, /Wgraj stare CV lub zacznij od zera/);
     assert.doesNotMatch(source, /profesjonalny dokument gotowy do/);
@@ -24,23 +24,24 @@ describe("landing product positioning", () => {
     assert.doesNotMatch(source, /Pro, gdy potrzebujesz więcej wersji\./);
   });
 
-  it("uses equal-size, equal-height centred accent fields in every lockup", () => {
+  it("uses centred accent fields that keep the longer slogan readable", () => {
     assert.match(
       source,
-      /<h1>\s*<span>Nowe CV<\/span>\s*<em>Nowa praca<\/em>\s*<\/h1>/s,
+      /<h1>\s*<span>Stwórz CV<\/span>\s*<em>Zwiększ swoje szanse<\/em>\s*<\/h1>/s,
     );
     assert.match(styles, /\.hero h1\s*\{[^}]*display:\s*grid;[^}]*grid-auto-rows:\s*1fr;[^}]*align-items:\s*stretch;/s);
     assert.match(styles, /\.hero h1 > span,[\s\S]*?\.hero h1 > em\s*\{[^}]*display:\s*flex;[^}]*align-items:\s*center;[^}]*justify-content:\s*center;[^}]*block-size:\s*1\.18em;[^}]*font-size:\s*inherit;[^}]*line-height:\s*1;[^}]*text-align:\s*center;[^}]*white-space:\s*nowrap;/s);
-    assert.match(styles, /\.hero h1\s*\{[^}]*justify-items:\s*center;[^}]*gap:\s*var\(--space-2\);[^}]*width:\s*fit-content;[^}]*max-width:\s*100%;[^}]*font-size:\s*clamp\(2\.5rem,\s*6vw,\s*5\.5rem\);[^}]*line-height:\s*1;[^}]*text-align:\s*center;/s);
+    assert.match(styles, /\.hero h1\s*\{[^}]*justify-items:\s*center;[^}]*gap:\s*var\(--space-2\);[^}]*width:\s*fit-content;[^}]*max-width:\s*100%;[^}]*font-size:\s*clamp\(2\.5rem,\s*4vw,\s*4\.5rem\);[^}]*line-height:\s*1;[^}]*text-align:\s*center;/s);
     assert.match(styles, /\.hero h1 > span\s*\{[^}]*background:\s*var\(--taupe\);[^}]*color:\s*var\(--paper\);/s);
     assert.doesNotMatch(styles, /\.hero h1 > span\s*\{[^}]*font-size:/s);
     assert.match(styles, /\.hero h1 em,[\s\S]*?background:\s*var\(--ink\);/s);
     assert.doesNotMatch(styles, /\.hero h1 em,\s*\.pricingHeading h2 em\s*\{[^}]*box-shadow:/s);
     assert.match(styles, /\.pricingHeading h2 em\s*\{[^}]*box-shadow:\s*inset 0 -\.16em 0 var\(--taupe\);/s);
     assert.match(styles, /@media \(min-width: 1200px\)[\s\S]*?\.hero h1\s*\{[^}]*grid-template-columns:\s*max-content max-content;[^}]*grid-template-rows:\s*1fr;[^}]*gap:\s*var\(--space-4\);/s);
-    assert.match(styles, /@media \(max-width: 620px\)[\s\S]*?\.hero h1\s*\{[^}]*font-size:\s*clamp\(2\.5rem,\s*12vw,\s*3\.5rem\);/s);
-    assert.match(styles, /\.hero\s*\{[^}]*grid-template-columns:\s*minmax\(0, 960px\);[^}]*place-content:\s*center;/s);
-    assert.match(styles, /\.heroCopy\s*\{[^}]*max-width:\s*960px;[^}]*text-align:\s*center;/s);
+    assert.match(styles, /@media \(max-width: 620px\)[\s\S]*?\.hero h1\s*\{[^}]*grid-auto-rows:\s*auto;[^}]*font-size:\s*clamp\(2\.5rem,\s*12vw,\s*3\.5rem\);/s);
+    assert.match(styles, /@media \(max-width: 620px\)[\s\S]*?\.hero h1 > em\s*\{[^}]*block-size:\s*auto;[^}]*width:\s*100%;[^}]*white-space:\s*normal;/s);
+    assert.match(styles, /\.hero\s*\{[^}]*grid-template-columns:\s*minmax\(0, 1280px\);[^}]*place-content:\s*center;/s);
+    assert.match(styles, /\.heroCopy\s*\{[^}]*max-width:\s*1280px;[^}]*text-align:\s*center;/s);
     assert.match(styles, /\.heroActions\s*\{[^}]*justify-content:\s*center;/s);
   });
 

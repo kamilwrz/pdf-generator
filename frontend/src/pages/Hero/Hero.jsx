@@ -154,8 +154,8 @@ export default function Hero() {
                 <div className={classes.heroCopy}>
                     <p className={classes.kicker} data-section-index="01">CV GOTOWE NA REKRUTACJE</p>
                     <h1>
-                        <span>Nowe CV</span>
-                        <em>Nowa praca</em>
+                        <span>Stwórz CV</span>
+                        <em>Zwiększ swoje szanse</em>
                     </h1>
                     <div className={classes.heroActions}>
                         <CtaLink to={wizardUrl} event="hero_wizard">Kreator CV</CtaLink>
