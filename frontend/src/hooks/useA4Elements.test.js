@@ -1,6 +1,14 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import { moveElementsToPage } from "../utils/pageDrag.js";
+
+test("opens the single-page editor at 160% zoom", async () => {
+  const source = await readFile(new URL("./useA4Elements.js", import.meta.url), "utf8");
+
+  assert.match(source, /const ZOOM_DEFAULT = 1\.6;/);
+  assert.match(source, /useState\(ZOOM_DEFAULT\)/);
+});
 
 test("moves a selected group into the adjacent page and keeps its shared clamp", () => {
   const result = moveElementsToPage([
