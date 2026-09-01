@@ -6,9 +6,8 @@
  * description field. A single click edits text, while description/record
  * removals remain recoverable through the global toast.
  */
-import { use } from "react";
 import { FiFileMinus, FiFilePlus, FiTrash2 } from "react-icons/fi";
-import { PdfContext } from "../../../store/pdfgenerator-context";
+import { useCanvasContext } from "../../../store/canvas-context";
 import { EDITOR_MODE_TEMPLATE } from "../../../utils/editorMode";
 import { elementSupportsRecordBlockAdd } from "../../../utils/sectionRecord";
 import { getElementOutlineBounds } from "../../../utils/elementBounds";
@@ -60,7 +59,7 @@ export default function RecordBlockAdd({
     removeRecordDescription,
     reorderRecordBlock,
     zoom = 1,
-  } = use(PdfContext);
+  } = useCanvasContext();
   const deleteWithUndo = useCanvasDeletionUndo();
   const pageHeight = pageSize?.height ?? 842;
   const anchorElement = A4_Elements.find((element) => element.element_id === elementId);

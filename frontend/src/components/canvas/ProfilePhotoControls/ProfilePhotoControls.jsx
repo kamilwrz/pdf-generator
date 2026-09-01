@@ -6,9 +6,9 @@
  * The controls bind to existing canvas element ids, so they add no pointer
  * surface outside the authored slot/name geometry.
  */
-import { use, useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { FiEye, FiEyeOff, FiImage, FiTrash2 } from "react-icons/fi";
-import { PdfContext } from "../../../store/pdfgenerator-context";
+import { useCanvasContext } from "../../../store/canvas-context";
 import { recordPlusLayoutSize } from "../recordPlusSize";
 import cluster from "../SectionRecordAdd/SectionRecordAdd.module.css";
 import classes from "./ProfilePhotoControls.module.css";
@@ -16,7 +16,7 @@ import classes from "./ProfilePhotoControls.module.css";
 const HIDE_AFTER_LEAVE_MS = 600;
 
 export default function ProfilePhotoControls({ anchor }) {
-  const { hideProfilePhoto, showProfilePhoto, removeProfilePhoto, zoom = 1 } = use(PdfContext);
+  const { hideProfilePhoto, showProfilePhoto, removeProfilePhoto, zoom = 1 } = useCanvasContext();
   const [hover, setHover] = useState(null);
   const hideTimerRef = useRef(null);
   const clearHide = useCallback(() => {

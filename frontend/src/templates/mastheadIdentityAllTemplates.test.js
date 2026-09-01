@@ -1,7 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 
-import { TEMPLATES } from "./index.js";
+import { TEST_TEMPLATES as TEMPLATES } from "./testTemplatePacks.js";
 import { listMastheadBands } from "../utils/mastheadBands.js";
 import { applyTitleToggle } from "../utils/mastheadIdentityOps.js";
 import { materializeElementSpecs } from "../utils/materializeElementSpecs.js";

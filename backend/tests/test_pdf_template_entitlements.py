@@ -43,6 +43,7 @@ def _payload(*, template_id: str, pdf_id: int | None = None) -> dict:
     }
     if pdf_id is not None:
         payload["pdf_id"] = pdf_id
+        payload["expected_revision"] = 1
     return payload
 
 
@@ -58,10 +59,10 @@ class PdfTemplateEntitlementTests(unittest.TestCase):
         self.db = sessionmaker(bind=self.engine)()
         ent.seed_plans(self.db)
         user_crud.create_user(self.db, UserCreateRequest(
-            username="free", email="free@example.com", password="pw",
+            username="free", email="free@example.com", password="correct horse battery",
         ))
         user_crud.create_user(self.db, UserCreateRequest(
-            username="other", email="other@example.com", password="pw",
+            username="other", email="other@example.com", password="correct horse battery",
         ))
         self.user = self.db.query(User).filter(User.username == "free").one()
         other = self.db.query(User).filter(User.username == "other").one()
@@ -128,6 +129,7 @@ class PdfTemplateEntitlementTests(unittest.TestCase):
             response = self.client.post(
                 "/pdf/create_pdf",
                 json=_payload(template_id="regent", pdf_id=self.legacy.id),
+                headers={"Idempotency-Key": "paid-template-create"},
             )
         self.assert_template_blocked(response)
         create.assert_not_called()

@@ -6,11 +6,14 @@ import StartChooser from '../components/editor/StartChooser/StartChooser';
 import A4 from "../components/canvas/A4/A4";
 import CanvasPageStage from "../components/canvas/CanvasPageStage/CanvasPageStage";
 import Editor from '../components/editor/Editor/Editor';
-import { PdfContext } from '../store/pdfgenerator-context';
 import { CanvasContext } from '../store/canvas-context';
 import { UiSurfacesContext } from '../store/ui-surfaces-context';
 import { SessionContext } from '../store/session-context';
-import { useState, useEffect, useMemo, useCallback, useRef} from 'react';
+import {
+  DocumentLifecycleContext,
+  useDocumentLifecycleController,
+} from '../store/document-lifecycle-context';
+import { lazy, Suspense, useState, useEffect, useMemo, useCallback, useRef} from 'react';
 import { useA4Elements } from "../hooks/useA4Elements";
 import { usePdfExport } from '../hooks/usePdfExport';
 import CanvasElements from "../components/canvas/CanvasElements/CanvasElements";
@@ -35,8 +38,6 @@ import Guides from '../components/canvas/Guides/Guides';
 import Connectors from '../components/canvas/Connectors/Connectors';
 import TemplatesModal from '../components/modals/TemplatesModal/TemplatesModal';
 import PlanSelectModal from '../components/modals/PlanSelectModal/PlanSelectModal';
-import AiCvPanel from '../components/ai/AiCvPanel/AiCvPanel';
-import BioCvModal from '../components/ai/BioCvModal/BioCvModal';
 import ChangeTemplateModal from '../components/editor/Topbar/ChangeTemplateModal';
 import UnlockFreeformModal from '../components/editor/UnlockFreeformModal/UnlockFreeformModal';
 import SaveGateModal from '../components/editor/SaveGateModal/SaveGateModal';
@@ -46,7 +47,6 @@ import AddSectionModal from '../components/editor/AddSectionModal/AddSectionModa
 import FlatSectionLayoutModal from '../components/editor/FlatSectionLayoutModal/FlatSectionLayoutModal';
 import SkillsLayoutModal from '../components/editor/SkillsLayoutModal/SkillsLayoutModal';
 import LongCvModal from '../components/editor/LongCvModal/LongCvModal';
-import AiAssistant from '../components/ai/AiAssistant/AiAssistant';
 import { logEvent } from '../services/eventLog';
 import { saveGuestDocument, loadGuestDocument, clearGuestDocument } from '../utils/guestDocument';
 import { queueGuestEvent, loadGuestEvents, clearGuestEvents } from '../utils/guestEvents';
@@ -61,17 +61,25 @@ import { visiblePageNumbers } from '../utils/pageSpread';
 import { planErrorMessage } from '../utils/entitlements';
 import { triggerBlobDownload } from '../utils/download';
 import { useCanvasPageWheel } from '../hooks/useCanvasPageWheel';
+import { useDirtyGuard } from '../hooks/useDirtyGuard';
+import {
+  createPersistedDocumentSnapshot,
+  hasPersistedDocumentContent,
+  persistedDocumentSignature,
+} from '../utils/persistedDocumentSnapshot';
+import UnsavedChangesDialog from '../components/common/UnsavedChangesDialog/UnsavedChangesDialog';
+import { ErrorBoundary } from '../components/common/ErrorBoundary/ErrorBoundary';
+import { DialogSuspensionContext } from '../components/common/DialogShell/DialogSuspensionContext';
 import {
   EDITOR_MODE_FREEFORM,
   EDITOR_MODE_TEMPLATE,
-  inferEditorMode,
-  normalizeEditorMode,
 } from '../utils/editorMode';
 import {
   COMPACT_FLOW_SPACING,
   DEFAULT_FLOW_SPACING,
   MIN_FLOW_SPACING,
   flowSpacingEquals,
+  normalizeFlowSpacing,
 } from '../utils/flowSpacing';
 import {
   findFitForTarget,
@@ -93,12 +101,15 @@ import { normalizeSterlingFamilyPersistence } from '../utils/sterlingAppearance'
 import { normalizeProfilePhotoVisibilityPersistence } from '../utils/profilePhotoVisibility';
 import { FREE_WIZARD_TEMPLATE_ID } from '../utils/onboardingTemplates';
 import { nanoid } from 'nanoid';
+import { materializeElementSpecs } from '../utils/materializeElementSpecs';
+import { markContentElementsEnter } from '../utils/canvasEnter';
+import { normalizeCommittedDocumentSnapshot } from '../utils/documentSnapshotCommit';
 /**
  * Authenticated CV editor page: canvas, toolbars, dialogs, and autosave.
  *
- * Composes `useA4Elements` + `usePdfExport` into focused contexts
- * (Canvas / UiSurfaces / Session) plus a temporary merged `PdfContext` facade
- * so existing `use(PdfContext)` consumers keep working during migration.
+ * Composes `useA4Elements` + `usePdfExport` into focused Canvas, UiSurfaces,
+ * and Session contexts. Consumers subscribe only to the domain they need,
+ * preventing unrelated surface or session updates from invalidating canvas UI.
  * Dialog (`docs` / `templates` / AI / plan) and panel (`upload` / `gallery`)
  * surfaces are mutually exclusive so only one overlay owns focus at a time.
  */
@@ -106,10 +117,73 @@ import { nanoid } from 'nanoid';
 // Session-scoped flag so the template-first onboarding modal (see
 // markTemplatesModalSeen below) never re-triggers after being resolved once.
 const TEMPLATES_MODAL_SEEN_KEY = "cv-studio:templatesModalSeen";
+const LazyAiAssistant = lazy(() => import('../components/ai/AiAssistant/AiAssistant'));
+const LazyAiCvPanel = lazy(() => import('../components/ai/AiCvPanel/AiCvPanel'));
+const LazyBioCvModal = lazy(() => import('../components/ai/BioCvModal/BioCvModal'));
 
-function PdfCanvas() {
+function LazyAiFallback({ modal = false }) {
+  return (
+    <div
+      className={modal ? "editor-lazy-status editor-lazy-status--modal" : "editor-lazy-status"}
+      role="status"
+      aria-live="polite"
+    >
+      Ładowanie narzędzia AI…
+    </div>
+  );
+}
+
+/**
+ * Presentation/provider boundary for the editor.
+ *
+ * `EditorController` owns state, effects, persistence, and command callbacks.
+ * This component owns only the DOM shell, error reset boundary, and context
+ * topology. Keeping the boundary deliberately small avoids a risky mechanical
+ * rewrite of the mature canvas view while making controller/view ownership
+ * explicit and independently runtime-testable.
+ */
+export function EditorView({
+  className,
+  onMouseMove,
+  dialogsSuspended = false,
+  documentLifecycle,
+  documentSessionKey,
+  canvasValue,
+  uiValue,
+  sessionValue,
+  children,
+}) {
+  return (
+    <main className={className} onMouseMove={onMouseMove}>
+      <DialogSuspensionContext.Provider value={dialogsSuspended}>
+        <DocumentLifecycleContext.Provider value={documentLifecycle}>
+          <ErrorBoundary resetKey={documentSessionKey} compact>
+            <CanvasContext.Provider value={canvasValue}>
+              <UiSurfacesContext.Provider value={uiValue}>
+                <SessionContext.Provider value={sessionValue}>
+                  {children}
+                </SessionContext.Provider>
+              </UiSurfacesContext.Provider>
+            </CanvasContext.Provider>
+          </ErrorBoundary>
+        </DocumentLifecycleContext.Provider>
+      </DialogSuspensionContext.Provider>
+    </main>
+  );
+}
+
+export function EditorController() {
 
   const navigate = useNavigate();
+  const lifecycleController = useDocumentLifecycleController();
+  const {
+    sessionKey: documentSessionKey,
+    observeDocumentSignature,
+    captureDocumentScope,
+    isDocumentScopeCurrent,
+    advanceDocumentSession,
+  } = lifecycleController;
+  const [isGuest, setIsGuest] = useState(() => !getAccessToken());
   const { workspace } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
   const startIntent = searchParams.get("start");
@@ -182,6 +256,18 @@ function PdfCanvas() {
   const [activeCvData, setActiveCvData] = useState(null);
   // Set only when a canvas was materialized from an owned import snapshot.
   const [activeImportId, setActiveImportId] = useState(null);
+  const [isDemoContent, setIsDemoContent] = useState(() => {
+    if (startIntent === "demo") return true;
+    if (getAccessToken() || initialStartIntentRef.current) return false;
+    return Boolean(loadGuestDocument()?.isDemoContent);
+  });
+  const [isConversionLoading, setIsConversionLoading] = useState(false);
+  const isDemoContentRef = useRef(isDemoContent);
+  isDemoContentRef.current = isDemoContent;
+  // Keep the explicitly chosen freeform path hidden for this empty workspace.
+  const [startChooserDismissed, setStartChooserDismissed] = useState(false);
+  const guestFirstEditLoggedRef = useRef(false);
+  const guestEditorOpenedLoggedRef = useRef(false);
   const isGallery = panel === 'gallery';
   const isDropzone = panel === 'upload';
   const isSectionsPanel = panel === 'sections';
@@ -286,6 +372,10 @@ function PdfCanvas() {
   const [valueImageUpload, setValueImageUpload] = useState(0);
   //state for seting the PDF id, used in ModalPdf.jsx
   const [pdfId, setPdfId] = useState(null);
+  // Backend revision for optimistic concurrency. This is intentionally
+  // separate from DocumentLifecycleContext's local edit revision: the former
+  // changes only after an authoritative persistence response.
+  const [serverRevision, setServerRevision] = useState(null);
   //FETCHED PDF's
   const [PDFs, setPDFs] = useState([]);
   // true once ModalPdfs' fetch-on-mount has resolved (success or failure) —
@@ -305,7 +395,9 @@ function PdfCanvas() {
     autoOpenedTemplatesRef.current = value;
     setAutoOpenedTemplatesState(value);
   }, []);
-  //the title of the PDF, loadded when pdf loaded
+  // The title is controlled so typing participates in dirty-state snapshots.
+  // Keep the ref for the existing PDF export boundary, which reads `.value`.
+  const [documentTitle, setDocumentTitle] = useState("");
   const titleRef = useRef();
 
   const { toasts, pushToast, dismissToast } = useToasts();
@@ -362,6 +454,7 @@ function PdfCanvas() {
     handleSetTextareaEditing,
     requestTextEdit,
     requestEditZoomRestore,
+    editZoomSpreadTransitionRef,
     handleSelectElement,
     handleDeleteElement,
     handleDeleteSelectedElements,
@@ -384,11 +477,6 @@ function PdfCanvas() {
     showProfilePhoto,
     removeProfilePhoto,
     handleResizeElement,
-    handleClearA4,
-    handleLoadTemplate,
-    handleLoadTemplateWithFill,
-    handleLoadAiElements,
-    handleUnlockFreeform,
     activeTemplateId,
     setActiveTemplateId,
     editorMode,
@@ -419,14 +507,164 @@ function PdfCanvas() {
     resetHistory
   } = useA4Elements(titleRef)
 
+  const persistedSnapshot = useMemo(() => createPersistedDocumentSnapshot({
+    title: documentTitle,
+    elements: A4_Elements,
+    deletedElements: A4_Elements_deleted,
+    pageCount,
+    pageSize,
+    editorMode,
+    templateId: activeTemplateId,
+    flowSpacing,
+    cvData: activeCvData,
+    sourceImportId: activeImportId,
+  }), [
+    A4_Elements,
+    A4_Elements_deleted,
+    activeCvData,
+    activeImportId,
+    activeTemplateId,
+    documentTitle,
+    editorMode,
+    flowSpacing,
+    pageCount,
+    pageSize,
+  ]);
+  const documentSignature = useMemo(
+    () => persistedDocumentSignature(persistedSnapshot),
+    [persistedSnapshot],
+  );
+  const postSaveDocumentSignature = useMemo(
+    () => persistedDocumentSignature({
+      ...persistedSnapshot,
+      deletedElements: [],
+    }),
+    [persistedSnapshot],
+  );
+  const persistedSnapshotRef = useRef(persistedSnapshot);
+  persistedSnapshotRef.current = persistedSnapshot;
+
+  const flushGuestDraft = useCallback(() => {
+    if (!isGuest || pdfId != null) return false;
+    const snapshot = persistedSnapshotRef.current;
+    if (!hasPersistedDocumentContent(snapshot)) return false;
+    saveGuestDocument({
+      elements: snapshot.elements,
+      deletedIds: snapshot.deletedElements.map((element) => (
+        typeof element === "string" ? element : element.element_id
+      )),
+      title: snapshot.title,
+      pageCount: snapshot.pageCount,
+      editorMode: snapshot.editorMode,
+      templateId: snapshot.templateId,
+      spacingPx: snapshot.flowSpacing,
+      isDemoContent: isDemoContentRef.current,
+      cvData: snapshot.cvData,
+      updatedAt: Date.now(),
+    });
+    if (!guestFirstEditLoggedRef.current) {
+      guestFirstEditLoggedRef.current = true;
+      queueGuestEvent("guest_first_edit");
+    }
+    return true;
+  }, [isGuest, pdfId]);
+
+  const dirtyGuard = useDirtyGuard({
+    signature: documentSignature,
+    isGuest,
+    flushGuestDraft,
+  });
+  const confirmDiscardActiveEdits = dirtyGuard.confirmDiscard;
+  const allowNextNavigation = dirtyGuard.allowNextNavigation;
+  const markDocumentClean = dirtyGuard.markClean;
+
+  /**
+   * Commit a complete document replacement through one synchronous boundary.
+   *
+   * React batches these state writes into one render. Every field receives an
+   * explicit value from the normalized snapshot, so no pdf id, revision,
+   * template, CV profile, or import provenance can leak from document A to B.
+   * Callers must finish dirty/stale checks before invoking this function.
+   */
+  const commitDocumentSnapshot = useCallback((input, options = {}) => {
+    const snapshot = normalizeCommittedDocumentSnapshot(input);
+    const committedFlowSpacing = normalizeFlowSpacing(
+      snapshot.flowSpacing ?? DEFAULT_FLOW_SPACING,
+    );
+    const scope = advanceDocumentSession();
+
+    resetHistory();
+    if (options.animateContent) markContentElementsEnter(snapshot.elements);
+    setA4_Elements(snapshot.elements);
+    setA4_Elements_deleted(snapshot.deletedElements);
+    setDocumentTitle(snapshot.title);
+    if (titleRef.current) titleRef.current.value = snapshot.title;
+    setPageCount(snapshot.pageCount);
+    setCurrentPage(snapshot.currentPage);
+    setActiveTemplateId(snapshot.templateId);
+    setEditorMode(snapshot.editorMode);
+    adoptDocumentFlowSpacing(committedFlowSpacing);
+    setActiveCvData(snapshot.cvData);
+    setActiveImportId(snapshot.sourceImportId);
+    setPdfId(snapshot.pdfId);
+    setServerRevision(snapshot.serverRevision);
+    setIsDemoContent(snapshot.isDemoContent);
+
+    // Preview state describes the previous element graph and must never cross
+    // the same atomic boundary into a newly committed document.
+    setLayoutPreviewPatches([]);
+    setStructurePreviewGroup(null);
+    setDeletionPreviewIds([]);
+    setAiCorrectionHighlights([]);
+    setSpacingHoldId(null);
+
+    if (options.markClean) {
+      markDocumentClean(persistedDocumentSignature(createPersistedDocumentSnapshot({
+        title: snapshot.title,
+        elements: snapshot.elements,
+        deletedElements: snapshot.deletedElements,
+        pageCount: snapshot.pageCount,
+        pageSize,
+        editorMode: snapshot.editorMode,
+        templateId: snapshot.templateId,
+        flowSpacing: committedFlowSpacing,
+        cvData: snapshot.cvData,
+        sourceImportId: snapshot.sourceImportId,
+      })));
+    }
+
+    return { scope, snapshot: { ...snapshot, flowSpacing: committedFlowSpacing } };
+  }, [
+    adoptDocumentFlowSpacing,
+    advanceDocumentSession,
+    markDocumentClean,
+    pageSize,
+    resetHistory,
+    setA4_Elements,
+    setA4_Elements_deleted,
+    setActiveTemplateId,
+    setCurrentPage,
+    setEditorMode,
+    setPageCount,
+  ]);
+
+  const documentLifecycle = useMemo(() => ({
+    ...lifecycleController,
+    commitDocumentSnapshot,
+  }), [commitDocumentSnapshot, lifecycleController]);
+
+  useEffect(() => {
+    observeDocumentSignature(documentSignature);
+  }, [documentSignature, observeDocumentSignature]);
+
   const previousCanvasForCvDataRef = useRef(null);
-  const cvDataDocumentIdRef = useRef(pdfId);
+  const cvDataSessionKeyRef = useRef(documentSessionKey);
   useEffect(() => {
     // Switching documents replaces both the canvas and profile in one state
     // transition. Establish a new baseline instead of treating the replacement
     // as a sequence of manual edits to the previously opened CV.
-    if (cvDataDocumentIdRef.current !== pdfId) {
-      cvDataDocumentIdRef.current = pdfId;
+    if (cvDataSessionKeyRef.current !== documentSessionKey) {
+      cvDataSessionKeyRef.current = documentSessionKey;
       previousCanvasForCvDataRef.current = A4_Elements;
       return;
     }
@@ -442,7 +680,7 @@ function PdfCanvas() {
       A4_Elements_deleted,
     );
     if (syncedCvData !== activeCvData) setActiveCvData(syncedCvData);
-  }, [A4_Elements, A4_Elements_deleted, activeCvData, pdfId]);
+  }, [A4_Elements, A4_Elements_deleted, activeCvData, documentSessionKey]);
 
   // Wheel on the canvas scrolls the overflow first; at the edge it changes
   // currentPage so PageControls ("Strona N / M") stays in sync. canvasAreaRef
@@ -518,17 +756,59 @@ function PdfCanvas() {
   // responsePDF is ever set for the request in flight).
   function noopShowModal() {}
 
-  const handlePdfId = useCallback((nextPdfId) => {
-    setPdfId(nextPdfId);
+  const saveScopeRef = useRef(null);
+  const saveSignatureRef = useRef(null);
+  const saveRequestPendingRef = useRef(false);
+  const dialogSaveCompletionRef = useRef(null);
+  const savedDeletedIdsRef = useRef(new Set());
+  const deleteClearRequestedRef = useRef(false);
+  const settleDialogSave = useCallback((saved, error = null) => {
+    const completion = dialogSaveCompletionRef.current;
+    dialogSaveCompletionRef.current = null;
+    if (!completion) return;
+    if (saved) completion.resolve(true);
+    else completion.reject(error || new Error("Nie udało się zapisać dokumentu."));
   }, []);
+  const handlePdfId = useCallback((nextPdfId, options = {}) => {
+    const { force = false } = options;
+    if (
+      !force
+      && saveScopeRef.current
+      && !isDocumentScopeCurrent(saveScopeRef.current)
+    ) return;
+    setPdfId(nextPdfId);
+    if (nextPdfId == null || Object.hasOwn(options, "revision")) {
+      const parsedRevision = Number(options.revision);
+      setServerRevision(
+        Number.isInteger(parsedRevision) && parsedRevision >= 1 ? parsedRevision : null,
+      );
+    }
+  }, [isDocumentScopeCurrent]);
 
-  const { createPdf, updatePdf, downloadPdf, responsePDF, isPdfLoading } = usePdfExport(handlePdfId, noopShowModal, titleRef, A4_Elements_deleted, setA4_Elements_deleted);
+  // Several fresh-document flows predate `handlePdfId` and assign null
+  // directly. Keep their server concurrency token in lockstep until those
+  // call sites are fully migrated to the focused session context.
+  useEffect(() => {
+    if (pdfId == null) setServerRevision(null);
+  }, [pdfId]);
+
+  const clearSavedDeletedElements = useCallback((nextValue) => {
+    if (
+      saveScopeRef.current
+      && !isDocumentScopeCurrent(saveScopeRef.current)
+    ) return;
+    if (Array.isArray(nextValue) && nextValue.length === 0) {
+      // usePdfExport requests a clear in `finally`, including failed writes.
+      // Defer the mutation until responsePDF confirms success so a network
+      // error never resurrects rows the user intended to delete.
+      deleteClearRequestedRef.current = true;
+      return;
+    }
+    setA4_Elements_deleted(nextValue);
+  }, [isDocumentScopeCurrent, setA4_Elements_deleted]);
+
+  const { createPdf, updatePdf, downloadPdf, responsePDF, isPdfLoading } = usePdfExport(handlePdfId, noopShowModal, titleRef, A4_Elements_deleted, clearSavedDeletedElements);
   const wasPdfLoadingRef = useRef(false);
-  // Set false by any canvas mutation (edit, load, reflow); flipped true only by
-  // a successful "Zapisz". Combined with `canUndo` (edited-since-load), this is
-  // the "unsaved changes not yet in Moje dokumenty" signal used to guard
-  // canvas-replacing actions now that background autosave is gone.
-  const savedCleanRef = useRef(false);
 
   // Stable callback ref for the post-spinner effect so a `pushToast` identity
   // change does not re-run the effect for an already-handled response.
@@ -547,36 +827,72 @@ function PdfCanvas() {
       return undefined;
     }
     wasPdfLoadingRef.current = isPdfLoading;
-
-    if (responsePDF?.message) {
-      pushToastRef.current({
-        title: responsePDF?.code?.startsWith?.("plan_") ? "Limit planu" : "Coś poszło nie tak",
-        msg: planErrorMessage(responsePDF, responsePDF.message),
-        variant: "error",
-      });
+    if (!saveRequestPendingRef.current) return undefined;
+    saveRequestPendingRef.current = false;
+    const clearSubmittedDeletes = deleteClearRequestedRef.current;
+    deleteClearRequestedRef.current = false;
+    if (!isDocumentScopeCurrent(saveScopeRef.current)) {
+      settleDialogSave(false, new Error(
+        "Dokument zmienił się podczas zapisu. Sprawdź bieżącą wersję i spróbuj ponownie.",
+      ));
       return undefined;
     }
-    if (!responsePDF?.success) return undefined;
 
-    // The current canvas now matches what is stored in "Moje dokumenty", so a
-    // subsequent document switch must not warn about unsaved changes.
-    savedCleanRef.current = true;
-    const fileLabel = titleRef.current?.value ? `${titleRef.current.value}.pdf` : "CV";
+    if (responsePDF?.message) {
+      const localizedMessage = planErrorMessage(responsePDF, responsePDF.message);
+      pushToastRef.current({
+        title: responsePDF?.code === "document_conflict"
+          ? "Konflikt zapisu"
+          : (responsePDF?.code?.startsWith?.("plan_") ? "Limit planu" : "Coś poszło nie tak"),
+        msg: localizedMessage,
+        variant: "error",
+      });
+      settleDialogSave(false, new Error(localizedMessage));
+      return undefined;
+    }
+    if (!responsePDF?.success) {
+      settleDialogSave(false, new Error("Serwer nie potwierdził zapisu dokumentu."));
+      return undefined;
+    }
+
+    // Ignore completion from a document replaced while the request was in
+    // flight. For a still-current session, mark exactly the submitted snapshot
+    // clean: edits made after clicking Save remain dirty.
+    markDocumentClean(saveSignatureRef.current);
+    if (clearSubmittedDeletes) {
+      const submittedIds = savedDeletedIdsRef.current;
+      setA4_Elements_deleted((current) => current.filter((element) => {
+        const elementId = typeof element === "string" ? element : element.element_id;
+        return !submittedIds.has(elementId);
+      }));
+    }
+    const fileLabel = documentTitle ? `${documentTitle}.pdf` : "CV";
     pushToastRef.current({
       title: "Zapisano w Moich dokumentach",
-      msg: `CV zostało zapisane pomyślnie${titleRef.current?.value ? `: ${fileLabel}` : "."}`,
+      msg: `CV zostało zapisane pomyślnie${documentTitle ? `: ${fileLabel}` : "."}`,
       variant: "success",
     });
     // A create consumes a project entitlement; refresh so plan counters stay
     // current without waiting for the next natural fetch.
     refreshEntitlementsRef.current?.();
+    settleDialogSave(true);
     return undefined;
-  }, [isPdfLoading, responsePDF, titleRef]);
+  }, [
+    documentTitle,
+    isDocumentScopeCurrent,
+    isPdfLoading,
+    markDocumentClean,
+    responsePDF,
+    setA4_Elements_deleted,
+    settleDialogSave,
+  ]);
 
-  const handleLogout = useCallback(() => {
+  const handleLogout = useCallback(async () => {
+    if (!(await confirmDiscardActiveEdits())) return;
+    allowNextNavigation();
     clearAccessToken();
     navigate("/");
-  }, [navigate]);
+  }, [allowNextNavigation, confirmDiscardActiveEdits, navigate]);
 
 
   // A single-page app does not naturally revisit a protected route while a
@@ -600,17 +916,20 @@ function PdfCanvas() {
     const token = getAccessToken();
     if (!token) return;
 
-    const api = new ApiClient();
-    api.httpRequest(ENDPOINTS.AUTH.TOKEN + token, "GET", null, "Weryfikacja tokenu nie powiodła się!").
-      catch((error) => {
+    const api = new ApiClient({ Authorization: `Bearer ${token}` });
+    api.httpRequest(ENDPOINTS.AUTH.TOKEN, "GET", null, "Weryfikacja tokenu nie powiodła się!").
+      catch(async (error) => {
         console.log(error);
         if (error.status === 401 || error.status === 403) {
+          if (!(await confirmDiscardActiveEdits())) return;
+          allowNextNavigation();
           clearAccessToken();
+          setIsGuest(true);
           navigate(getEditorPath(), { replace: true });
         }
       })
 
-  }, [checkActivity, navigate])
+  }, [allowNextNavigation, checkActivity, confirmDiscardActiveEdits, navigate])
 
 
   // Each visible page receives this capture handler, allowing connector source
@@ -645,37 +964,6 @@ function PdfCanvas() {
     return () => window.removeEventListener("keydown", onKey);
   }, [undo, redo])
 
-  // Background autosave to the backend was intentionally removed: "Moje
-  // dokumenty" is updated ONLY on an explicit "Zapisz". Edits therefore live in
-  // memory (backing undo/redo) until saved. Any canvas mutation clears the
-  // clean flag; a successful save re-sets it (see the post-spinner effect).
-  useEffect(() => {
-    savedCleanRef.current = false;
-  }, [
-    A4_Elements,
-    A4_Elements_deleted,
-    activeTemplateId,
-    editorMode,
-    flowSpacing,
-    pageCount,
-    pageSize,
-  ]);
-
-  // Guard for actions that replace the current canvas (load template / AI doc /
-  // clear / open another saved document). With no background autosave, such a
-  // switch would silently drop unsaved edits, so warn first. Returns true when
-  // it is safe to proceed. `canUndo` means "edited since this document loaded"
-  // (history resets on every load); `savedCleanRef` means "already committed via
-  // Zapisz" — only a document that is edited AND uncommitted is worth warning
-  // about, so a pristine or just-saved document switches without a prompt.
-  const confirmDiscardActiveEdits = useCallback(() => {
-    if (!canUndo || savedCleanRef.current) return true;
-    return window.confirm(
-      "Masz niezapisane zmiany, które nie zostały jeszcze zapisane w Moich dokumentach.\n\n"
-        + "Kontynuować i je odrzucić?",
-    );
-  }, [canUndo]);
-
   // Guest-mode autosave: guests have no account to save into, so their
   // in-progress work is persisted to localStorage (a backend write would 401).
   // This local draft is intentionally kept even though authenticated background
@@ -683,68 +971,19 @@ function PdfCanvas() {
   // before they register. A 2s settle debounce mirrors the editing cadence.
   // Skipped once a real pdfId exists: from that point the document is a saved
   // account document, updated only by an explicit "Zapisz".
-  const [isDemoContent, setIsDemoContent] = useState(() => {
-    if (startIntent === "demo") return true;
-    if (getAccessToken() || initialStartIntentRef.current) return false;
-    return Boolean(loadGuestDocument()?.isDemoContent);
-  });
-  const [isConversionLoading, setIsConversionLoading] = useState(false);
-  const isDemoContentRef = useRef(isDemoContent);
-  isDemoContentRef.current = isDemoContent;
-  // Keep the explicitly chosen freeform path hidden for this empty workspace.
-  // Other chooser actions remain visible behind their modal and return here
-  // when cancelled.
-  const [startChooserDismissed, setStartChooserDismissed] = useState(false);
-  const activeCvDataRef = useRef(activeCvData);
-  activeCvDataRef.current = activeCvData;
-  const guestFirstEditLoggedRef = useRef(false);
-  const guestEditorOpenedLoggedRef = useRef(false);
   useEffect(() => {
-    if (localStorage.getItem("token") || pdfId != null) return undefined;
+    if (!isGuest || pdfId != null) return undefined;
 
     if (!guestEditorOpenedLoggedRef.current) {
       guestEditorOpenedLoggedRef.current = true;
       queueGuestEvent("guest_editor_opened");
     }
 
-    const hasContent = A4_Elements.some(
-      (el) => !(el.category === "text" || el.category === "textarea") || (el.content || "").trim() !== ""
-    );
-    if (!hasContent) return undefined;
-
-    const timer = setTimeout(() => {
-      saveGuestDocument({
-        elements: A4_Elements,
-        deletedIds: A4_Elements_deleted.map((el) => el.element_id),
-        title: titleRef.current?.value || "",
-        pageCount,
-        editorMode,
-        templateId: activeTemplateId,
-        spacingPx: flowSpacing,
-        isDemoContent: isDemoContentRef.current,
-        // Keep wizard/import profile next to the canvas JSON so "Zmień szablon"
-        // can be re-enabled after register/login (React state does not survive).
-        cvData: activeCvDataRef.current,
-        updatedAt: Date.now(),
-      });
-      if (!guestFirstEditLoggedRef.current) {
-        guestFirstEditLoggedRef.current = true;
-        queueGuestEvent("guest_first_edit");
-      }
-    }, 2000);
+    if (!hasPersistedDocumentContent(persistedSnapshot)) return undefined;
+    const timer = setTimeout(flushGuestDraft, 2000);
 
     return () => clearTimeout(timer);
-  }, [
-    A4_Elements,
-    A4_Elements_deleted,
-    activeCvData,
-    activeTemplateId,
-    editorMode,
-    flowSpacing,
-    pageCount,
-    pdfId,
-    titleRef,
-  ]);
+  }, [documentSignature, flushGuestDraft, isGuest, pdfId, persistedSnapshot]);
 
   // Upload lives inside the gallery panel (lower third dropzone), so the
   // sidebar "Prześlij zdjęcia" control opens the same sliding gallery.
@@ -815,11 +1054,20 @@ function PdfCanvas() {
   useEffect(() => {
     if (initialStartIntentRef.current !== "blank" || blankStartAppliedRef.current) return;
     blankStartAppliedRef.current = true;
-    setEditorMode(EDITOR_MODE_FREEFORM);
-    setActiveTemplateId(null);
-    handleClearA4();
+    commitDocumentSnapshot({
+      elements: [],
+      title: "",
+      pageCount: 1,
+      templateId: null,
+      editorMode: EDITOR_MODE_FREEFORM,
+      flowSpacing: DEFAULT_FLOW_SPACING,
+      cvData: null,
+      sourceImportId: null,
+      pdfId: null,
+      revision: null,
+    }, { markClean: true });
     markTemplatesModalSeen();
-  }, [handleClearA4, markTemplatesModalSeen, setActiveTemplateId, setEditorMode])
+  }, [commitDocumentSnapshot, markTemplatesModalSeen])
 
   // Demo path: load the authored Linden starter once, no dialog, so the
   // visitor sees the exact Julia Bernat document used by the Linden picker
@@ -828,14 +1076,24 @@ function PdfCanvas() {
   useEffect(() => {
     if (initialStartIntentRef.current !== "demo" || demoStartAppliedRef.current) return;
     demoStartAppliedRef.current = true;
-    handleLoadTemplate(lindenTemplate, "DEMO_CV", "linden");
-    setIsDemoContent(true);
+    commitDocumentSnapshot({
+      elements: materializeElementSpecs(lindenTemplate, nanoid),
+      title: "DEMO_CV",
+      templateId: "linden",
+      editorMode: EDITOR_MODE_TEMPLATE,
+      flowSpacing,
+      cvData: null,
+      sourceImportId: null,
+      pdfId: null,
+      revision: null,
+      isDemoContent: true,
+    }, { animateContent: true });
     // The shared zoom step is 10%, so five increments land exactly on 150%
     // without introducing a separate demo-only zoom setter.
     for (let i = 0; i < 5; i += 1) zoomIn();
     queueGuestEvent("guest_demo_loaded");
     markTemplatesModalSeen();
-  }, [handleLoadTemplate, markTemplatesModalSeen, zoomIn]);
+  }, [commitDocumentSnapshot, flowSpacing, markTemplatesModalSeen, zoomIn]);
 
   const handleShowAiPanel = useCallback(() => {
     const next = dialog !== 'ai';
@@ -1124,30 +1382,45 @@ function PdfCanvas() {
 
 
   const createPdfWithElements = useCallback(() => {
+    saveRequestPendingRef.current = true;
+    savedDeletedIdsRef.current = new Set(A4_Elements_deleted.map((element) => (
+      typeof element === "string" ? element : element.element_id
+    )));
+    saveScopeRef.current = captureDocumentScope();
+    saveSignatureRef.current = postSaveDocumentSignature;
     createPdf(A4_Elements, titleRef, pageCount, pageSize, {
+      documentSessionKey,
       editorMode,
       templateId: activeTemplateId,
       flowSpacing,
       sourceImportId: activeImportId,
       cvData: activeCvData,
     });
-  }, [A4_Elements, activeCvData, activeImportId, activeTemplateId, createPdf, editorMode, flowSpacing, titleRef, pageCount, pageSize]);
+  }, [A4_Elements, A4_Elements_deleted, activeCvData, activeImportId, activeTemplateId, captureDocumentScope, createPdf, documentSessionKey, editorMode, flowSpacing, postSaveDocumentSignature, titleRef, pageCount, pageSize]);
 
   // Update the already-saved document in place. `intent: "save"` marks this as a
   // persistence write (not a download), so the post-spinner effect shows the
   // "Zapisano" toast rather than any download handling.
   const updatePdfWithElements = useCallback(() => {
+    saveRequestPendingRef.current = true;
+    savedDeletedIdsRef.current = new Set(A4_Elements_deleted.map((element) => (
+      typeof element === "string" ? element : element.element_id
+    )));
+    saveScopeRef.current = captureDocumentScope();
+    saveSignatureRef.current = postSaveDocumentSignature;
     updatePdf(A4_Elements, pdfId, titleRef, A4_Elements_deleted, pageCount, pageSize, {
       editorMode,
       templateId: activeTemplateId,
       flowSpacing,
       cvData: activeCvData,
+      expectedRevision: serverRevision,
       intent: "save",
     });
   }, [
     A4_Elements,
     activeCvData,
     activeTemplateId,
+    captureDocumentScope,
     editorMode,
     flowSpacing,
     pdfId,
@@ -1156,7 +1429,41 @@ function PdfCanvas() {
     A4_Elements_deleted,
     pageCount,
     pageSize,
+    postSaveDocumentSignature,
+    serverRevision,
   ]);
+
+  /**
+   * Save the snapshot currently guarded by the unsaved-changes dialog.
+   *
+   * Resolution is owned by the post-spinner response effect above, after a
+   * successful response has updated the authoritative pdf id/revision and the
+   * exact submitted signature has been marked clean. Rejections intentionally
+   * leave the guard promise pending so navigation or replacement cannot run.
+   */
+  const saveCurrentDocumentAndWait = useCallback(() => {
+    if (!localStorage.getItem("token")) {
+      return Promise.reject(new Error("Zaloguj się, aby zapisać dokument."));
+    }
+    if (isPdfLoading || saveRequestPendingRef.current || dialogSaveCompletionRef.current) {
+      return Promise.reject(new Error("Zapis dokumentu już trwa. Poczekaj na jego zakończenie."));
+    }
+
+    return new Promise((resolve, reject) => {
+      dialogSaveCompletionRef.current = { resolve, reject };
+      try {
+        if (pdfId == null) createPdfWithElements();
+        else updatePdfWithElements();
+      } catch (error) {
+        dialogSaveCompletionRef.current = null;
+        reject(error);
+      }
+    });
+  }, [createPdfWithElements, isPdfLoading, pdfId, updatePdfWithElements]);
+
+  const handleSaveAndContinue = useCallback(() => (
+    dirtyGuard.confirmDialogSave(saveCurrentDocumentAndWait)
+  ), [dirtyGuard, saveCurrentDocumentAndWait]);
 
   // Render the current canvas to a PDF and download it — independent of
   // "Zapisz". Works even for a never-saved document because the backend renders
@@ -1268,59 +1575,118 @@ function PdfCanvas() {
     [currentPage, isTwoPageView, pageCount],
   );
 
-  // Loading a template / AI doc / clearing starts a fresh, unsaved document,
-  // replacing the current canvas. Confirm first so unsaved edits are not lost
-  // (background autosave no longer persists them). Callers that already ran
-  // their own discard prompt pass `skipDiscardGuard` to avoid a double dialog.
-  const startFreshDocument = useCallback((loadDocument, { skipDiscardGuard = false } = {}) => {
-    if (!skipDiscardGuard && !confirmDiscardActiveEdits()) return;
-    setPdfId(null);
-    // A brand-new document has no known cv_data yet. AiCvPanel/BioCvModal
-    // set it again right after a successful fill; every other fresh-start
-    // path (blank template, cleared canvas) correctly leaves it cleared.
-    setActiveCvData(null);
-    // The canvas is about to hold something other than the demo CV. Clear the
-    // flag only when content actually replaces it; opening the conversion
-    // wizard must leave the demo visible if the visitor cancels.
-    setIsDemoContent(false);
-    loadDocument();
-  }, [confirmDiscardActiveEdits]);
+  // Loading a template / AI doc / clearing starts a fresh, unsaved document.
+  // The dirty guard runs before the one complete snapshot commit; no caller is
+  // allowed to partially mutate document fields before confirmation succeeds.
+  const startFreshDocument = useCallback(async (snapshot, options = {}) => {
+    if (!(await confirmDiscardActiveEdits())) return false;
+    commitDocumentSnapshot({
+      ...snapshot,
+      pdfId: null,
+      revision: null,
+      isDemoContent: false,
+    }, options);
+    return true;
+  }, [commitDocumentSnapshot, confirmDiscardActiveEdits]);
 
   const loadTemplateFresh = useCallback(
-    (...args) => startFreshDocument(() => handleLoadTemplate(...args)),
-    [handleLoadTemplate, startFreshDocument],
+    (templateElements, title, templateId = null, metadata = {}) => startFreshDocument({
+      ...metadata,
+      elements: materializeElementSpecs(templateElements, nanoid),
+      deletedElements: [],
+      title: title || "",
+      templateId,
+      editorMode: EDITOR_MODE_TEMPLATE,
+      flowSpacing: metadata.flowSpacing ?? flowSpacing,
+      cvData: metadata.cvData ?? null,
+      sourceImportId: metadata.sourceImportId ?? null,
+    }, { animateContent: true }),
+    [flowSpacing, startFreshDocument],
   );
   const loadTemplateWithFillFresh = useCallback(
-    (...args) => startFreshDocument(() => handleLoadTemplateWithFill(...args)),
-    [handleLoadTemplateWithFill, startFreshDocument],
+    (templateElements, templateName, fills, templateId = null, metadata = {}) => {
+      const fillMap = Object.fromEntries((fills || []).map((fill) => [fill.id, fill.content]));
+      const filled = templateElements.map((element, index) => {
+        const content = fillMap[String(index)];
+        const canFill = element.category === "text" || element.category === "textarea";
+        return canFill && content != null && content !== ""
+          ? { ...element, content }
+          : element;
+      });
+      return startFreshDocument({
+        ...metadata,
+        elements: materializeElementSpecs(filled, nanoid),
+        deletedElements: [],
+        title: templateName ? `${templateName} CV` : "",
+        templateId,
+        editorMode: EDITOR_MODE_TEMPLATE,
+        flowSpacing: metadata.flowSpacing ?? flowSpacing,
+        cvData: metadata.cvData ?? null,
+        sourceImportId: metadata.sourceImportId ?? null,
+      }, { animateContent: true });
+    },
+    [flowSpacing, startFreshDocument],
   );
   const loadAiElementsFresh = useCallback(
-    (...args) => startFreshDocument(() => handleLoadAiElements(...args)),
-    [handleLoadAiElements, startFreshDocument],
+    (specs, title, templateId = null, metadata = {}) => startFreshDocument({
+      ...metadata,
+      elements: materializeElementSpecs(specs, nanoid),
+      deletedElements: [],
+      title: title || "",
+      templateId,
+      editorMode: EDITOR_MODE_TEMPLATE,
+      flowSpacing: metadata.flowSpacing ?? flowSpacing,
+      cvData: metadata.cvData ?? null,
+      sourceImportId: metadata.sourceImportId ?? null,
+    }, { animateContent: true }),
+    [flowSpacing, startFreshDocument],
   );
   const clearA4Fresh = useCallback(
-    () => {
-      if (editorMode === EDITOR_MODE_TEMPLATE) {
-        // This template-specific prompt already asks the user to confirm
-        // discarding the current document, so skip the generic discard guard
-        // inside startFreshDocument to avoid stacking two dialogs.
-        const leaveTemplate = window.confirm(
-          "Wyczyścić dokument?\n\nOK — zacznij pusty projekt własny.\nAnuluj — pozostaw bieżący szablon.",
-        );
-        if (!leaveTemplate) return;
-        startFreshDocument(handleClearA4, { skipDiscardGuard: true });
-        return;
-      }
-      startFreshDocument(handleClearA4);
-    },
-    [editorMode, handleClearA4, startFreshDocument],
+    () => startFreshDocument({
+      elements: [],
+      deletedElements: [],
+      title: "",
+      pageCount: 1,
+      templateId: null,
+      editorMode: EDITOR_MODE_FREEFORM,
+      flowSpacing: DEFAULT_FLOW_SPACING,
+      cvData: null,
+      sourceImportId: null,
+    }),
+    [startFreshDocument],
   );
+
+  const replaceActiveElements = useCallback((specs, title, templateId = null, metadata = {}) => {
+    commitDocumentSnapshot({
+      elements: materializeElementSpecs(specs, nanoid),
+      deletedElements: [],
+      title: title ?? documentTitle,
+      templateId,
+      editorMode: EDITOR_MODE_TEMPLATE,
+      flowSpacing: metadata.flowSpacing ?? flowSpacing,
+      cvData: Object.hasOwn(metadata, "cvData") ? metadata.cvData : activeCvData,
+      sourceImportId: Object.hasOwn(metadata, "sourceImportId")
+        ? metadata.sourceImportId
+        : activeImportId,
+      pdfId,
+      revision: serverRevision,
+      currentPage: 1,
+    }, { animateContent: true });
+  }, [
+    activeCvData,
+    activeImportId,
+    commitDocumentSnapshot,
+    documentTitle,
+    flowSpacing,
+    pdfId,
+    serverRevision,
+  ]);
 
   // Unlocking freeform CLONES the current canvas into a new, unsaved freeform
   // copy (fresh element ids, cleared pdfId). No edits are discarded — the
   // in-memory content is carried into the copy — so no discard guard is needed.
   const confirmUnlockFreeform = useCallback(() => {
-    const baseTitle = (titleRef.current?.value || "Projekt").trim() || "Projekt";
+    const baseTitle = (documentTitle || "Projekt").trim() || "Projekt";
     const copyTitle = `${baseTitle} (swobodny)`;
     const cloned = A4_Elements.map((element) => ({
       ...element,
@@ -1330,13 +1696,20 @@ function PdfCanvas() {
       isEditing: false,
       preserveInitialLayout: false,
     }));
-    setPdfId(null);
-    setActiveCvData(null);
-    resetHistory();
-    setA4_Elements(cloned);
-    setA4_Elements_deleted([]);
-    if (titleRef.current) titleRef.current.value = copyTitle;
-    handleUnlockFreeform();
+    commitDocumentSnapshot({
+      elements: cloned,
+      deletedElements: [],
+      title: copyTitle,
+      pageCount,
+      currentPage,
+      templateId: null,
+      editorMode: EDITOR_MODE_FREEFORM,
+      flowSpacing,
+      cvData: null,
+      sourceImportId: null,
+      pdfId: null,
+      revision: null,
+    });
     setDialog(null);
     pushToast?.({
       title: "Projekt własny",
@@ -1345,27 +1718,13 @@ function PdfCanvas() {
     });
   }, [
     A4_Elements,
-    handleUnlockFreeform,
+    commitDocumentSnapshot,
+    currentPage,
+    documentTitle,
+    flowSpacing,
+    pageCount,
     pushToast,
-    resetHistory,
-    setA4_Elements,
-    setA4_Elements_deleted,
   ]);
-
-  const hydrateDocumentMode = useCallback((elements, pdfMeta = {}) => {
-    const savedMode = pdfMeta.editor_mode ?? pdfMeta.editorMode;
-    const savedTemplate = pdfMeta.template_id ?? pdfMeta.templateId ?? null;
-    const savedSpacing = pdfMeta.spacing_px ?? pdfMeta.spacingPx ?? pdfMeta.flowSpacing;
-    // Pin Reset to the loaded document's rhythm (or generator defaults).
-    adoptDocumentFlowSpacing(savedSpacing || DEFAULT_FLOW_SPACING);
-    if (savedTemplate) setActiveTemplateId(savedTemplate);
-    else setActiveTemplateId(null);
-    if (savedMode) {
-      setEditorMode(normalizeEditorMode(savedMode));
-      return;
-    }
-    setEditorMode(inferEditorMode(elements, savedTemplate));
-  }, [adoptDocumentFlowSpacing, setActiveTemplateId, setEditorMode]);
 
   // Offer to claim a buffered guest document once a JWT exists — covers both
   // the save-gate's register/login round trip and simply reloading the page
@@ -1382,11 +1741,8 @@ function PdfCanvas() {
   // legitimate case: the same visitor who edited as a guest and later signs
   // in themselves.
   //
-  // Deliberately placed after `hydrateDocumentMode` (rather than immediately
-  // next to the Task 7 guest-autosave effect above) because the confirm
-  // handler references `hydrateDocumentMode`, which is declared via
-  // `useCallback` just above this line — referencing it earlier in the
-  // component body would hit the temporal-dead-zone for that `const` binding.
+  // These refs coordinate the explicit browser-draft ownership prompt and the
+  // authenticated wizard conversion without allowing duplicate adoption.
   const claimOfferedRef = useRef(false);
   const pendingGuestDocRef = useRef(null);
   const wizardDraftAdoptedRef = useRef(false);
@@ -1411,8 +1767,18 @@ function PdfCanvas() {
     if (guestDoc.templateId !== "linden") {
       demoGuestRestoredRef.current = true;
       clearGuestDocument();
-      handleLoadTemplate(lindenTemplate, "DEMO_CV", "linden");
-      setIsDemoContent(true);
+      commitDocumentSnapshot({
+        elements: materializeElementSpecs(lindenTemplate, nanoid),
+        title: "DEMO_CV",
+        templateId: "linden",
+        editorMode: EDITOR_MODE_TEMPLATE,
+        flowSpacing,
+        cvData: null,
+        sourceImportId: null,
+        pdfId: null,
+        revision: null,
+        isDemoContent: true,
+      }, { animateContent: true });
       return;
     }
     // Local guest snapshots bypass ModalPdfs, so apply the same idempotent
@@ -1422,22 +1788,20 @@ function PdfCanvas() {
       guestDoc.templateId,
     );
     demoGuestRestoredRef.current = true;
-    setA4_Elements(restoredElements);
-    setA4_Elements_deleted(Array.isArray(guestDoc.deletedIds) ? guestDoc.deletedIds : []);
-    resetHistory();
-    hydrateDocumentMode(restoredElements, guestDoc);
-    setPageCount(guestDoc.pageCount || 1);
-    setCurrentPage(guestDoc.currentPage || 1);
-    setIsDemoContent(true);
-    if (titleRef.current && guestDoc.title) titleRef.current.value = guestDoc.title;
+    commitDocumentSnapshot({
+      ...guestDoc,
+      elements: restoredElements,
+      deletedElements: Array.isArray(guestDoc.deletedIds) ? guestDoc.deletedIds : [],
+      title: guestDoc.title || "",
+      cvData: guestDoc.cvData ?? null,
+      sourceImportId: null,
+      pdfId: null,
+      revision: null,
+      isDemoContent: true,
+    }, { markClean: true });
   }, [
-    hydrateDocumentMode,
-    handleLoadTemplate,
-    resetHistory,
-    setA4_Elements,
-    setA4_Elements_deleted,
-    setCurrentPage,
-    setPageCount,
+    commitDocumentSnapshot,
+    flowSpacing,
   ]);
 
   useEffect(() => {
@@ -1468,6 +1832,7 @@ function PdfCanvas() {
     const token = localStorage.getItem("token");
     if (!token || !conversionPending || !hasGuestWizardDraft()) return;
     wizardDraftAdoptedRef.current = true;
+    const requestScope = captureDocumentScope();
     // Keep the empty canvas from flashing while the authenticated profile is
     // adopted and its destination layout is generated.
     setIsConversionLoading(true);
@@ -1481,6 +1846,7 @@ function PdfCanvas() {
           !cancelled
           && conversionPending
           && claim.profile
+          && isDocumentScopeCurrent(requestScope, { requireSameRevision: true })
         ) {
           // Delay layout generation until authentication succeeds so the demo
           // never flashes an empty or partially filled authenticated canvas.
@@ -1491,13 +1857,22 @@ function PdfCanvas() {
             errorMessage: "Nie udało się utworzyć Twojego CV.",
             spacing: flowSpacing,
           });
-          if (cancelled) return;
-          handleLoadAiElements(response.elements, "Moje CV", conversionTemplateId);
-          // The generated CV is now an authenticated document. Clear the
-          // presentation-only demo flag so the full editor chrome becomes
-          // available immediately after the handoff.
-          setIsDemoContent(false);
-          setActiveCvData(claim.profile);
+          if (
+            cancelled
+            || !isDocumentScopeCurrent(requestScope, { requireSameRevision: true })
+          ) return;
+          commitDocumentSnapshot({
+            elements: materializeElementSpecs(response.elements, nanoid),
+            title: "Moje CV",
+            templateId: conversionTemplateId,
+            editorMode: EDITOR_MODE_TEMPLATE,
+            flowSpacing,
+            cvData: claim.profile,
+            sourceImportId: null,
+            pdfId: null,
+            revision: null,
+            isDemoContent: false,
+          }, { animateContent: true });
           queueGuestEvent(initialStartIntentRef.current === "wizard-conversion"
             ? "wizard_conversion_completed"
             : "demo_conversion_completed");
@@ -1516,7 +1891,13 @@ function PdfCanvas() {
     return () => {
       cancelled = true;
     };
-  }, [conversionPending, flowSpacing, handleLoadAiElements]);
+  }, [
+    captureDocumentScope,
+    commitDocumentSnapshot,
+    conversionPending,
+    flowSpacing,
+    isDocumentScopeCurrent,
+  ]);
 
   // Load the browser-buffered guest JSON onto the A4 canvas only.
   // Do not call `createPdf` / `POST /pdf/create_pdf` here — that would render and
@@ -1524,12 +1905,9 @@ function PdfCanvas() {
   // consume an export; the separate authenticated download does. They keep an unsaved
   // canvas (`pdfId` null) and use “Zapisz PDF” when ready.
   //
-  // Elements are applied directly via `hydrateDocumentMode` instead of
-  // `handleLoadTemplate` / `handleLoadAiElements`. Those call
-  // `materializeElementSpecs`, which mints fresh `element_id`s and remaps
-  // connectors through a symbolic `spec.id` that raw guest-canvas elements
-  // do not carry — re-materializing would silently break connectors.
-  // `hydrateDocumentMode` is the same primitive `ModalPdfs.showPDF` uses.
+  // Raw guest elements already have stable ids. They go directly through the
+  // snapshot commit instead of materialization, which would mint new ids and
+  // break connector references that do not carry symbolic template spec ids.
   const handleClaimGuestDocumentConfirm = useCallback(() => {
     const guestDoc = pendingGuestDocRef.current;
     pendingGuestDocRef.current = null;
@@ -1548,22 +1926,19 @@ function PdfCanvas() {
       normalizeSterlingFamilyPersistence(guestDoc.elements, guestDoc.templateId),
       guestDoc.templateId,
     );
-    // Unsaved editor document: authenticated autosave waits for a real pdfId.
-    setPdfId(null);
-    setA4_Elements(restoredElements);
-    setA4_Elements_deleted([]);
-    resetHistory();
-    hydrateDocumentMode(restoredElements, {
-      editorMode: guestDoc.editorMode,
-      templateId: guestDoc.templateId,
-      spacingPx: guestDoc.spacingPx,
+    // Unsaved editor document: authenticated persistence waits for an explicit
+    // save, but every in-memory field lands in the same replacement commit.
+    const { scope: claimedScope } = commitDocumentSnapshot({
+      ...guestDoc,
+      elements: restoredElements,
+      deletedElements: [],
+      currentPage: 1,
+      cvData: guestDoc.cvData ?? null,
+      sourceImportId: null,
+      pdfId: null,
+      revision: null,
+      isDemoContent: Boolean(guestDoc.isDemoContent),
     });
-    setPageCount(guestDoc.pageCount || 1);
-    setCurrentPage(1);
-    if (titleRef.current && guestDoc.title) {
-      titleRef.current.value = guestDoc.title;
-    }
-    setIsDemoContent(Boolean(guestDoc.isDemoContent));
     clearGuestDocument();
 
     // Re-enable Topbar "Zmień szablon": fill set `activeCvData` in the guest
@@ -1576,9 +1951,9 @@ function PdfCanvas() {
         ? new ApiClient({ Authorization: `Bearer ${token}` })
         : null,
     }).then((cvData) => {
-      setActiveCvData(cvData);
+      if (isDocumentScopeCurrent(claimedScope)) setActiveCvData(cvData);
     }).catch(() => {
-      setActiveCvData(null);
+      if (isDocumentScopeCurrent(claimedScope)) setActiveCvData(null);
     });
 
     pushToast({
@@ -1587,16 +1962,10 @@ function PdfCanvas() {
       variant: "success",
     });
   }, [
-    hydrateDocumentMode,
+    commitDocumentSnapshot,
+    isDocumentScopeCurrent,
     pushToast,
-    resetHistory,
-    setA4_Elements,
-    setA4_Elements_deleted,
     setActiveCvData,
-    setCurrentPage,
-    setIsDemoContent,
-    setPageCount,
-    titleRef,
   ]);
 
   // Declining discards the buffered draft outright rather than leaving it to
@@ -1614,10 +1983,20 @@ function PdfCanvas() {
   // removed from the server. Background autosave is gone, so there is no pending
   // timer to cancel — dropping the pdfId is enough to detach the canvas.
   const discardActiveDocument = useCallback(() => {
-    setPdfId(null);
-    setActiveCvData(null);
-    handleClearA4();
-  }, [handleClearA4]);
+    commitDocumentSnapshot({
+      elements: [],
+      deletedElements: [],
+      title: "",
+      pageCount: 1,
+      templateId: null,
+      editorMode: EDITOR_MODE_FREEFORM,
+      flowSpacing: DEFAULT_FLOW_SPACING,
+      cvData: null,
+      sourceImportId: null,
+      pdfId: null,
+      revision: null,
+    }, { markClean: true });
+  }, [commitDocumentSnapshot]);
 
   // Keep the demo canvas visible while the visitor enters their data. The
   // conversion flow saves the profile locally and asks for authentication
@@ -1659,6 +2038,7 @@ function PdfCanvas() {
     setTextareaEditing: handleSetTextareaEditing,
     requestTextEdit,
     requestEditZoomRestore,
+    editZoomSpreadTransitionRef,
     selectElement: handleSelectElement,
     moveElement: handleMoveElement,
     moveSelectedElements: handleMoveSelectedElements,
@@ -1696,8 +2076,9 @@ function PdfCanvas() {
     loadTemplate: loadTemplateFresh,
     loadTemplateWithFill: loadTemplateWithFillFresh,
     loadAiElements: loadAiElementsFresh,
-    // Raw canvas replace (no pdfId/title reset) — Topbar "Zmień szablon".
-    replaceActiveElements: handleLoadAiElements,
+    // Restyling preserves id/title but starts a new element-id epoch.
+    replaceActiveElements,
+    setDocumentTitle,
     activeTemplateId,
     setActiveTemplateId,
     editorMode,
@@ -1706,14 +2087,12 @@ function PdfCanvas() {
     setFlowSpacing,
     baselineFlowSpacing,
     adoptDocumentFlowSpacing,
-    hydrateDocumentMode,
     fitTooLong,
     fitStatus,
     onFitToPages,
     onePageFit,
     onFitToOnePage,
     showUnlockFreeform: handleShowUnlockFreeform,
-    unlockFreeform: handleUnlockFreeform,
     activeCvData,
     setActiveCvData,
     activeImportId,
@@ -1762,11 +2141,11 @@ function PdfCanvas() {
     setA4_Elements, handleResizeElement, handleDownloadClick,
     handleCollapseSpilledMainIntoSidebar,
     clearA4Fresh, discardActiveDocument, confirmDiscardActiveEdits, loadTemplateFresh, loadTemplateWithFillFresh,
-    loadAiElementsFresh, handleLoadAiElements, activeTemplateId, setActiveTemplateId,
-    editorMode, setEditorMode, flowSpacing, setFlowSpacing, baselineFlowSpacing, adoptDocumentFlowSpacing, hydrateDocumentMode, fitTooLong, fitStatus, onFitToPages, onePageFit, onFitToOnePage, handleShowUnlockFreeform, handleUnlockFreeform,
+    loadAiElementsFresh, replaceActiveElements, activeTemplateId, setActiveTemplateId,
+    editorMode, setEditorMode, flowSpacing, setFlowSpacing, baselineFlowSpacing, adoptDocumentFlowSpacing, fitTooLong, fitStatus, onFitToPages, onePageFit, onFitToOnePage, handleShowUnlockFreeform,
     activeCvData, setActiveCvData, activeImportId, setActiveImportId,
     pageCount, currentPage, addPage, removePage, goToPage, clonePage, movePage, setPageCount, setCurrentPage,
-    isTwoPageView, toggleTwoPageView, handleAddTextarea, handleAddSection, openAddSectionModal, openFlatSectionLayoutModal, openSkillsLayoutModal, handleAddSectionRecord, handleAddRecordBlock, handleAddRecordDescription, handleRemoveSection, handleRemoveRecordBlock, handleRemoveRecordDescription, handleReorderRecordBlock, handleReorderSection, handleTransferSectionLane, handleChangeSkillsDisplayMode, markSelected, handleSetTextareaEditing, requestTextEdit, requestEditZoomRestore,
+    isTwoPageView, toggleTwoPageView, handleAddTextarea, handleAddSection, openAddSectionModal, openFlatSectionLayoutModal, openSkillsLayoutModal, handleAddSectionRecord, handleAddRecordBlock, handleAddRecordDescription, handleRemoveSection, handleRemoveRecordBlock, handleRemoveRecordDescription, handleReorderRecordBlock, handleReorderSection, handleTransferSectionLane, handleChangeSkillsDisplayMode, markSelected, handleSetTextareaEditing, requestTextEdit, requestEditZoomRestore, editZoomSpreadTransitionRef,
     handleDuplicateElement, pageSize, zoom, zoomIn, zoomOut, undo, redo, canUndo, canRedo, resetHistory,
     deletionPreviewIds, layoutPreviewPatches, structurePreviewGroup, spacingHoldId,
     aiCorrectionHighlights,
@@ -1813,12 +2192,6 @@ function PdfCanvas() {
     assistantAction, requestAssistantAction,
   ]);
 
-  // Guest visits never carry a token, and every transition into an
-  // authenticated session (login/register redirect, or a fresh reload with
-  // an existing token) remounts PdfCanvas — so a plain read here is already
-  // correct for the whole mount; it does not need to be state.
-  const isGuest = !localStorage.getItem("token");
-
   const sessionValue = useMemo(() => ({
     handlePdfId,
     pushToast,
@@ -1835,12 +2208,6 @@ function PdfCanvas() {
     PDFs, setPDFs, pdfsLoaded, setPdfsLoaded,
   ]);
 
-  // Temporary facade — remove once all consumers use the focused hooks.
-  const ctxValue = useMemo(
-    () => ({ ...canvasValue, ...uiValue, ...sessionValue }),
-    [canvasValue, uiValue, sessionValue],
-  );
-
   // Empty-state onboarding replaces the complete editor shell a fresh user
   // lands on with the two guided paths (wizard / import). Gating lives in the
   // pure `shouldShowStartChooser` helper so it can be unit-tested without a DOM.
@@ -1854,24 +2221,41 @@ function PdfCanvas() {
   });
 
   return (
-    <main
+    <EditorView
       className={`main-container ${isDemoContent ? "has-demo-banner" : ""}`}
       onMouseMove={throttledHandleIsActive}
+      dialogsSuspended={dirtyGuard.dialogOpen}
+      documentLifecycle={documentLifecycle}
+      documentSessionKey={documentSessionKey}
+      canvasValue={canvasValue}
+      uiValue={uiValue}
+      sessionValue={sessionValue}
     >
-
-      <CanvasContext.Provider value={canvasValue}>
-        <UiSurfacesContext.Provider value={uiValue}>
-          <SessionContext.Provider value={sessionValue}>
-            <PdfContext.Provider value={ctxValue}>
-              <ModalPdfs title={titleRef}/>
+              <ModalPdfs />
+              <UnsavedChangesDialog
+                open={dirtyGuard.dialogOpen}
+                onCancel={dirtyGuard.cancelDialogDiscard}
+                onDiscard={dirtyGuard.confirmDialogDiscard}
+                onSave={handleSaveAndContinue}
+                isSaving={dirtyGuard.dialogSaving}
+                error={dirtyGuard.dialogError}
+              />
               <TemplatesModal />
               <PlanSelectModal />
-              <AiCvPanel />
-              <BioCvModal
-                variant={isDemoContent
-                  ? "demo-conversion"
-                  : (isGuest ? "guest-onboarding" : "full")}
-              />
+              {isAiPanel ? (
+                <Suspense fallback={<LazyAiFallback modal />}>
+                  <LazyAiCvPanel />
+                </Suspense>
+              ) : null}
+              {isBioCvModal ? (
+                <Suspense fallback={<LazyAiFallback modal />}>
+                  <LazyBioCvModal
+                    variant={isDemoContent
+                      ? "demo-conversion"
+                      : (isGuest ? "guest-onboarding" : "full")}
+                  />
+                </Suspense>
+              ) : null}
               <ChangeTemplateModal />
               <UnlockFreeformModal
                 open={isUnlockFreeformModal}
@@ -1935,7 +2319,11 @@ function PdfCanvas() {
                   {isDemoContent ? (
                     <DemoBanner onUseOwnData={handleDemoUseOwnData} />
                   ) : null}
-                  <Topbar titleRef={titleRef} />
+                  <Topbar
+                    titleRef={titleRef}
+                    title={documentTitle}
+                    onTitleChange={setDocumentTitle}
+                  />
                   {/* Portal loader: card sits 100px under the live A4 top edge
                       (viewport px via A4ref), independent of canvas zoom. */}
                   {isPdfLoading || isConversionLoading ? (
@@ -2027,14 +2415,14 @@ function PdfCanvas() {
                 />
               ) : null}
               {!showStartChooser ? <Gallery /> : null}
-              {!showStartChooser && entitlements?.ai_assistant ? <AiAssistant /> : null}
+              {!showStartChooser && entitlements?.ai_assistant ? (
+                <Suspense fallback={<LazyAiFallback />}>
+                  <LazyAiAssistant key={documentSessionKey} />
+                </Suspense>
+              ) : null}
               <ToastStack toasts={toasts} onDismiss={dismissToast} />
-            </PdfContext.Provider>
-          </SessionContext.Provider>
-        </UiSurfacesContext.Provider>
-      </CanvasContext.Provider>
-    </main>
+    </EditorView>
   )
 }
 
-export default PdfCanvas;
+export default EditorController;

@@ -15,8 +15,8 @@ Safety invariants:
 import json
 import os
 import re
-from openai import OpenAI, APIError
-from app.core.config import OPENAI_API_KEY
+from openai import APIConnectionError, APIError, APIStatusError, APITimeoutError, OpenAI
+from app.core.config import AI_PROVIDER_TIMEOUT_SECONDS, OPENAI_API_KEY
 from app.services.layout_analysis import (
     extract_bounds,
     resolve_clone_operation,
@@ -32,7 +32,12 @@ from app.services.layout_gpt import (
     build_layout_user_prompt,
     compile_layout_gpt_response,
 )
-from app.services.openai_pricing import empty_usage, usage_from_response
+from app.services.openai_pricing import (
+    empty_usage,
+    estimate_cost_pln,
+    estimate_cost_usd,
+    usage_from_response,
+)
 from app.services.cv_data import normalize_cv_data
 from app.services.ats_readability import (
     AtsReadabilityError,
@@ -67,7 +72,11 @@ _DEFAULT_MAX_COMPLETION_TOKENS = 16_000
 _LAYOUT_MAX_COMPLETION_TOKENS = int(
     os.getenv("AI_LAYOUT_MAX_COMPLETION_TOKENS", "48000")
 )
-_client = OpenAI(api_key=OPENAI_API_KEY)
+_client = OpenAI(
+    api_key=OPENAI_API_KEY,
+    max_retries=0,
+    timeout=AI_PROVIDER_TIMEOUT_SECONDS,
+)
 
 _EMPTY_REASONING_BUDGET_MESSAGE = (
     "Analiza układu wyczerpała limit odpowiedzi modelu (zbyt dużo „myślenia” "
@@ -115,6 +124,24 @@ def _service_tier_for_action(action: str) -> str | None:
     return "fast"
 
 
+def assistant_reservation_cost_pln(action: str, request_bytes: int) -> float:
+    """Return a conservative PLN ceiling for a bounded assistant request.
+
+    UTF-8 byte length is used as an intentionally pessimistic prompt-token
+    bound and includes extra system-prompt headroom. Completion uses the exact
+    provider cap selected by the action. This ceiling is reserved before the
+    provider starts; normal metering later settles only the reported usage.
+    """
+    prompt_token_ceiling = max(1, int(request_bytes)) + 8_192
+    cost_usd = estimate_cost_usd(
+        _model_for_action(action),
+        prompt_token_ceiling,
+        _max_completion_tokens_for_action(action),
+        service_tier=_service_tier_for_action(action),
+    )
+    return estimate_cost_pln(cost_usd)
+
+
 class AIServiceError(Exception):
     """Raised when the AI Assistant's OpenAI call fails in an expected way
     (timeout, rate limit, connection error, malformed/empty response).
@@ -129,11 +156,18 @@ class AIServiceError(Exception):
         elements_count: int = 0,
         original: Exception | None = None,
         user_message: str | None = None,
+        reservation_outcome: str = "release",
+        usage: dict | None = None,
     ):
         super().__init__(message)
         self.action = action
         self.elements_count = elements_count
         self.original = original
+        # ``release`` is used for confirmed non-2xx/local failures,
+        # ``settle_usage`` for a provider response whose payload was unusable,
+        # and ``uncertain`` only when the response may have been lost in flight.
+        self.reservation_outcome = reservation_outcome
+        self.usage = usage
         # Optional safe, user-facing Polish copy. When set, the HTTP handler
         # returns it instead of the generic "temporarily unavailable" text.
         self.user_message = user_message
@@ -924,9 +958,19 @@ def _gpt(system: str, user: str, *, action: str = "") -> tuple[dict, dict]:
     try:
         resp = _client.chat.completions.create(**create_kwargs)
     except APIError as exc:
-        # Covers APITimeoutError, RateLimitError, APIConnectionError, and any
-        # other openai SDK failure — all are subclasses of APIError.
-        raise AIServiceError(f"OpenAI request failed: {type(exc).__name__}", original=exc) from exc
+        # A concrete HTTP status proves that no assistant response was accepted,
+        # so its reservation can be released immediately. Timeouts and broken
+        # connections are different: the provider may have completed the call
+        # after our client lost the response, and remain conservatively pending.
+        response_lost = isinstance(exc, (APITimeoutError, APIConnectionError))
+        confirmed_non_2xx = isinstance(exc, APIStatusError)
+        raise AIServiceError(
+            f"OpenAI request failed: {type(exc).__name__}",
+            original=exc,
+            reservation_outcome=(
+                "release" if confirmed_non_2xx or not response_lost else "uncertain"
+            ),
+        ) from exc
 
     usage = usage_from_response(
         resp,
@@ -955,9 +999,13 @@ def _gpt(system: str, user: str, *, action: str = "") -> tuple[dict, dict]:
                 f"max_completion_tokens={max_completion_tokens})",
                 action=action,
                 user_message=user_message,
+                reservation_outcome="settle_usage",
+                usage=usage,
             )
         raise AIServiceError(
-            f"Model returned empty content (finish_reason={finish_reason})"
+            f"Model returned empty content (finish_reason={finish_reason})",
+            reservation_outcome="settle_usage",
+            usage=usage,
         )
     stripped = content.strip()
     if stripped.startswith("```"):
@@ -966,9 +1014,45 @@ def _gpt(system: str, user: str, *, action: str = "") -> tuple[dict, dict]:
             stripped = stripped[4:]
         stripped = stripped.rsplit("```", 1)[0].strip()
     try:
-        return json.loads(stripped), usage
+        parsed = json.loads(stripped)
     except json.JSONDecodeError as exc:
-        raise AIServiceError(f"OpenAI returned malformed JSON: {exc}", original=exc) from exc
+        raise AIServiceError(
+            f"OpenAI returned malformed JSON: {exc}",
+            original=exc,
+            reservation_outcome="settle_usage",
+            usage=usage,
+        ) from exc
+    if not isinstance(parsed, dict):
+        raise AIServiceError(
+            "OpenAI returned JSON with a non-object root",
+            reservation_outcome="settle_usage",
+            usage=usage,
+        )
+    return parsed, usage
+
+
+def _safe_result_with_usage(
+    raw: dict,
+    usage: dict,
+    *,
+    allowed_fields: set,
+) -> dict:
+    """Normalize a provider object without losing known metering on bad shape.
+
+    Once a provider response and its usage have arrived, nested schema errors
+    are billable failed responses rather than confirmed pre-provider failures.
+    Converting those errors here prevents the route's generic local-error path
+    from releasing credits after the model has already completed.
+    """
+    try:
+        return _safe_result(raw, allowed_fields=allowed_fields)
+    except (AttributeError, KeyError, TypeError, ValueError) as exc:
+        raise AIServiceError(
+            "OpenAI returned an invalid assistant response shape",
+            original=exc,
+            reservation_outcome="settle_usage",
+            usage=usage,
+        ) from exc
 
 
 def _gpt_result(
@@ -979,7 +1063,11 @@ def _gpt_result(
     allowed_fields: set | None = None,
 ) -> dict:
     raw, usage = _gpt(system, user, action=action)
-    result = _safe_result(raw, allowed_fields=allowed_fields or _ALLOWED_FIELDS)
+    result = _safe_result_with_usage(
+        raw,
+        usage,
+        allowed_fields=allowed_fields or _ALLOWED_FIELDS,
+    )
     result["usage"] = usage
     return result
 
@@ -1077,8 +1165,18 @@ def _safe_result(raw: dict, allowed_fields: set = _ALLOWED_FIELDS) -> dict:
     separate, explicitly reviewed operation; allowing an empty string here lets
     a malformed model response silently erase CV content.
     """
+    raw_corrections = raw.get("corrections", [])
+    raw_tips = raw.get("tips", [])
+    raw_sources = raw.get("web_sources", [])
+    if not isinstance(raw_corrections, list):
+        raise ValueError("corrections must be a list")
+    if not isinstance(raw_tips, list):
+        raise ValueError("tips must be a list")
+    if not isinstance(raw_sources, list):
+        raise ValueError("web_sources must be a list")
+
     corrections = []
-    for c in raw.get("corrections", []):
+    for c in raw_corrections:
         if not isinstance(c, dict) or not c.get("element_id"):
             continue
         patch = {"element_id": c["element_id"]}
@@ -1092,7 +1190,7 @@ def _safe_result(raw: dict, allowed_fields: set = _ALLOWED_FIELDS) -> dict:
 
     # Drop legacy "Rozkład oceny: …" tip strings — scores live in `categories`.
     tips = []
-    for tip in raw.get("tips", []):
+    for tip in raw_tips:
         text = str(tip).strip()
         if not text:
             continue
@@ -1117,7 +1215,7 @@ def _safe_result(raw: dict, allowed_fields: set = _ALLOWED_FIELDS) -> dict:
         "rating": raw.get("rating") if isinstance(raw.get("rating"), int) else None,
         "tips": tips[:8],
         "corrections": corrections,
-        "web_sources": [str(s) for s in raw.get("web_sources", [])][:5],
+        "web_sources": [str(s) for s in raw_sources][:5],
         "categories": _normalize_categories(raw.get("categories")),
         "strengths": strengths,
         "priorities": priorities,
@@ -1794,7 +1892,11 @@ Zwróć JSON:
   "web_sources": []
 }}"""
     raw, usage = _gpt(system, user, action=action)
-    result = _safe_result(raw, allowed_fields=_CONTENT_FIELDS)
+    result = _safe_result_with_usage(
+        raw,
+        usage,
+        allowed_fields=_CONTENT_FIELDS,
+    )
     result["usage"] = usage
     updated = raw.get("updated_cv_data")
     if isinstance(updated, dict):
@@ -1889,7 +1991,11 @@ Zwróć JSON:
   "web_sources": []
 }}"""
     raw, usage = _gpt(system, user, action="translate")
-    result = _safe_result(raw, allowed_fields=_CONTENT_FIELDS)
+    result = _safe_result_with_usage(
+        raw,
+        usage,
+        allowed_fields=_CONTENT_FIELDS,
+    )
     result["usage"] = usage
     translated = raw.get("translated_cv_data")
     if isinstance(translated, dict):
@@ -2236,7 +2342,11 @@ Zwróć JSON:
             "usage": usage,
         }
 
-    result = _safe_result(raw)
+    result = _safe_result_with_usage(
+        raw,
+        usage,
+        allowed_fields=_ALLOWED_FIELDS,
+    )
     result["usage"] = usage
 
     directive = raw.get("position_operation")
@@ -2425,6 +2535,7 @@ def analyze_action(
     cv_language: str = "",
     cv_data: dict | None = None,
     db=None,
+    image_resolver=None,
 ) -> dict:
     """Dispatch one assistant button/chat action and return a UI-ready dict.
 
@@ -2442,7 +2553,10 @@ def analyze_action(
     text = _extract_text(elements)
     # Prefer the DB-backed resolver so user-uploaded `/images/{id}/content`
     # paths resolve during ATS PDF render; fall back to filesystem/template paths.
-    ats_resolver = make_image_resolver(db) if db is not None else image_src_to_local_path
+    ats_resolver = (
+        image_resolver
+        or (make_image_resolver(db) if db is not None else image_src_to_local_path)
+    )
 
     # Resolve the correction language once: an explicit override always wins
     # (the UI selector lets a user force a language); otherwise auto-detect
@@ -2520,6 +2634,7 @@ def analyze_action(
             elements_count=len(elements),
             original=exc,
             user_message=exc.user_message,
+            reservation_outcome="release",
         ) from exc
     except AIServiceError as exc:
         exc.action = exc.action or action

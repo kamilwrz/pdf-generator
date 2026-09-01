@@ -46,14 +46,17 @@ class ExportMeteringTests(unittest.TestCase):
         ent.seed_plans(self.db)
 
         user_crud.create_user(self.db, UserCreateRequest(
-            username="u1", email="u1@e.pl", password="pw"))
-        self.user = self.db.query(User).filter(User.username == "u1").one()
+            username="usr1", email="u1@e.pl", password="correct horse battery"))
+        self.user = self.db.query(User).filter(User.username == "usr1").one()
 
         # Use a writable temp path rather than a hardcoded "/tmp/..." string and
         # seed clean bytes, matching documents created under the current plan
         # contract. This test covers metering rather than legacy-file repair.
-        self.tmpdir = tempfile.mkdtemp()
-        self.file_path = str(Path(self.tmpdir) / "export-cv.pdf")
+        self.storage = tempfile.TemporaryDirectory()
+        self.storage_root = Path(self.storage.name)
+        legacy_user_dir = self.storage_root / self.user.username
+        legacy_user_dir.mkdir(parents=True)
+        self.file_path = str(legacy_user_dir / "export-cv.pdf")
         Path(self.file_path).write_bytes(b"%PDF-1.4 clean stub")
 
         now = datetime.now(timezone.utc)
@@ -84,7 +87,7 @@ class ExportMeteringTests(unittest.TestCase):
             yield self.db
 
         app.dependency_overrides[get_db] = _override_db
-        app.dependency_overrides[verify_token] = lambda: {"sub": "u1"}
+        app.dependency_overrides[verify_token] = lambda: {"sub": "usr1"}
         self.client = TestClient(app)
 
         # Pin both service and route configuration to local storage so this test
@@ -93,11 +96,15 @@ class ExportMeteringTests(unittest.TestCase):
         s3_patch = patch.object(doc_service, "USE_S3", False)
         s3_patch.start()
         self.addCleanup(s3_patch.stop)
+        storage_patch = patch.object(doc_service, "PDF_UPLOAD_DIR", self.storage_root)
+        storage_patch.start()
+        self.addCleanup(storage_patch.stop)
 
     def tearDown(self):
         app.dependency_overrides.clear()
         self.db.close()
         self.engine.dispose()
+        self.storage.cleanup()
 
     def _exports_count(self) -> int:
         period = ent.current_period_key()

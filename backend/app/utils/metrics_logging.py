@@ -9,7 +9,7 @@ it's measuring (fire-and-forget).
 import logging
 from sqlalchemy.orm import Session
 
-from app.crud.user import get_user_by_username
+from app.core.security import resolve_user_from_payload
 
 logger = logging.getLogger("metrics")
 
@@ -20,7 +20,7 @@ def log_metric_event(message: str, db: Session, payload: dict, **fields) -> None
     Never raises — logging failures must not break the measured user action.
     """
     try:
-        user = get_user_by_username(db, username=payload.get("sub"))
+        user = resolve_user_from_payload(db, payload)
         field_str = " ".join(f"{key}={value}" for key, value in fields.items())
         logger.info("%s user_id=%s %s", message, user.id if user else None, field_str)
     except Exception:

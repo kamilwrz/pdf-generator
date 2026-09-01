@@ -8,9 +8,9 @@
  * context ops. Mirrors `ContactChannelControls` timing/exclusivity + the shared
  * `.cluster` surface chip; only managed blocks (with a descriptor) reach here.
  */
-import { use, useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { FiPlus, FiEyeOff } from "react-icons/fi";
-import { PdfContext } from "../../../store/pdfgenerator-context";
+import { useCanvasContext } from "../../../store/canvas-context";
 import { recordPlusLayoutSize } from "../recordPlusSize";
 import cluster from "../SectionRecordAdd/SectionRecordAdd.module.css";
 import classes from "./MastheadIdentityControls.module.css";
@@ -18,7 +18,7 @@ import classes from "./MastheadIdentityControls.module.css";
 const HIDE_AFTER_LEAVE_MS = 600;
 
 export default function MastheadIdentityControls({ band }) {
-  const { toggleNameCase, toggleTitle, zoom = 1 } = use(PdfContext);
+  const { toggleNameCase, toggleTitle, zoom = 1 } = useCanvasContext();
   const [hover, setHover] = useState(null); // "name" | "title" | null
   const hideTimerRef = useRef(null);
 

@@ -8,6 +8,7 @@ the same allowlist as the Free (Darmowy) plan.
 from __future__ import annotations
 
 import unittest
+from datetime import datetime, timezone
 from unittest.mock import patch
 
 from fastapi.testclient import TestClient
@@ -17,7 +18,8 @@ from sqlalchemy.pool import StaticPool
 
 from app.dependencies import get_db
 from app.main import app
-from app.models.models import Base
+from app.core.security import DEFAULT_JWT_KEY_VERSION, verify_token_optional
+from app.models.models import Base, User
 from app.services import entitlements as ent
 from app.testing_support import ensure_test_auth_env
 
@@ -81,6 +83,84 @@ class FillTemplateGuestTests(unittest.TestCase):
                 headers={"Authorization": "Bearer not-a-real-jwt"},
             )
         self.assertEqual(response.status_code, 200)
+
+    def test_authenticated_free_user_cannot_materialize_pro_template(self):
+        user = User(
+            username="free-user",
+            email="free@example.test",
+            hashed_password="unused",
+            created_at=datetime.now(timezone.utc),
+            is_active=True,
+        )
+        self.db.add(user)
+        self.db.commit()
+        ent.ensure_free_subscription(self.db, user.id)
+        app.dependency_overrides[verify_token_optional] = lambda: {
+            "sub": str(user.id),
+            "ver": DEFAULT_JWT_KEY_VERSION,
+        }
+
+        with patch("app.api.routes.ai.generate_resume", side_effect=_fake_elements) as mocked:
+            response = self.client.post(
+                "/ai/fill_template",
+                json={"cv_data": {"name": "Anna Kowalska"}, "template_id": "monument"},
+            )
+
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.json()["detail"]["code"], "plan_feature_template")
+        mocked.assert_not_called()
+
+    def test_authenticated_pro_user_can_materialize_pro_template(self):
+        user = User(
+            username="pro-user",
+            email="pro@example.test",
+            hashed_password="unused",
+            created_at=datetime.now(timezone.utc),
+            is_active=True,
+        )
+        self.db.add(user)
+        self.db.commit()
+        subscription = ent.ensure_free_subscription(self.db, user.id)
+        subscription.plan_slug = "pro"
+        self.db.commit()
+        app.dependency_overrides[verify_token_optional] = lambda: {
+            "sub": str(user.id),
+            "ver": DEFAULT_JWT_KEY_VERSION,
+        }
+
+        with patch("app.api.routes.ai.generate_resume", side_effect=_fake_elements) as mocked:
+            response = self.client.post(
+                "/ai/fill_template",
+                json={"cv_data": {"name": "Anna Kowalska"}, "template_id": "monument"},
+            )
+
+        self.assertEqual(response.status_code, 200, msg=response.text)
+        mocked.assert_called_once()
+
+    def test_unknown_template_is_rejected_before_entitlement_or_generator(self):
+        with patch("app.api.routes.ai.generate_resume", side_effect=_fake_elements) as mocked:
+            response = self.client.post(
+                "/ai/fill_template",
+                json={"cv_data": {"name": "Anna Kowalska"}, "template_id": "missing"},
+            )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()["detail"]["code"], "unknown_template")
+        mocked.assert_not_called()
+
+    def test_internal_generator_error_does_not_leak_exception_text(self):
+        with patch(
+            "app.api.routes.ai.generate_resume",
+            side_effect=RuntimeError("provider-token-sk-private"),
+        ):
+            response = self.client.post(
+                "/ai/fill_template",
+                json={"cv_data": {"name": "Anna Kowalska"}, "template_id": "sterling"},
+            )
+
+        self.assertEqual(response.status_code, 500)
+        self.assertEqual(response.json()["detail"]["code"], "template_generation_failed")
+        self.assertNotIn("provider-token", response.text)
 
 
 if __name__ == "__main__":

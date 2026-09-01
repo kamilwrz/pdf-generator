@@ -1,34 +1,34 @@
-"""Local filesystem helpers for generated PDF files.
+"""Contained compatibility helpers for historic local PDF callers."""
 
-Used when `USE_S3` is false. Failures on delete are swallowed so DB cleanup
-can still succeed if the file was already removed manually.
-"""
+from pathlib import Path
 
-import os
+from app.core.config import PDF_UPLOAD_DIR
 
 
-def delete_pdf_file(file_path):
-    """Best-effort unlink of a local PDF path."""
+def delete_pdf_file(file_path, *, root: Path = PDF_UPLOAD_DIR):
+    """Best-effort unlink only when a legacy path stays below private storage.
+
+    Historic rows contain filesystem locators, so this compatibility boundary
+    must treat the database value as untrusted. Returning a generic failure
+    keeps one corrupt row from blocking a bulk cleanup without following it
+    outside the configured generated-PDF directory.
+    """
     try:
-        os.remove(file_path)
-    except Exception:
-        return {"message": f"Nie znaleziono pliku „{file_path}”."}
+        root_path = Path(root).resolve()
+        candidate = Path(str(file_path or "")).resolve()
+        candidate.relative_to(root_path)
+        candidate.unlink(missing_ok=True)
+    except (OSError, TypeError, ValueError):
+        return {"message": "Nie znaleziono bezpiecznego pliku PDF."}
+    return None
 
 
 def rename_pdf_file(pdf: object, title: str) -> str:
-    """Rename the on-disk PDF to match a new document title and update the ORM row.
+    """Compatibility shim that updates display metadata without moving bytes.
 
-    Side effects: filesystem rename plus mutating `pdf.title` / `pdf.file_path`.
-    Assumes titles are used as filenames under the user folder.
+    Storage V2 objects use immutable server-generated keys. Historic callers may
+    still import this helper during a rolling deployment, but a user-controlled
+    title must never become a filesystem path or S3 key again.
     """
-    pdf_file_path = str(pdf.file_path)
-
-    new_file_path = pdf_file_path.split("/")
-    new_file_path[-1] = title
-
-    os.rename(pdf_file_path, "/".join(new_file_path))
-
     pdf.title = title
-    pdf.file_path = "/".join(new_file_path)
-
-    return "/".join(new_file_path)
+    return str(getattr(pdf, "file_path", "") or "")

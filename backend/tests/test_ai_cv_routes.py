@@ -1,6 +1,9 @@
 import unittest
+import inspect
 
-from app.api.routes.ai import router
+from app.api.routes import ai
+
+router = ai.router
 
 
 class AiCvRoutesTests(unittest.TestCase):
@@ -14,3 +17,16 @@ class AiCvRoutesTests(unittest.TestCase):
         self.assertIn("/ai/bio_cv_draft", paths)
         self.assertNotIn("/ai/generate_deck", paths)
         self.assertNotIn("/ai/generate_article", paths)
+
+    def test_blocking_ai_routes_are_regular_threadpool_handlers(self):
+        handlers = (
+            ai.extract_cv,
+            ai.list_imports,
+            ai.get_import,
+            ai.delete_import,
+            ai.get_bio_cv_draft_route,
+            ai.upsert_bio_cv_draft_route,
+            ai.delete_bio_cv_draft_route,
+            ai.fill_template,
+        )
+        self.assertTrue(all(not inspect.iscoroutinefunction(handler) for handler in handlers))

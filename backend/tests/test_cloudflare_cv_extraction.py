@@ -585,6 +585,7 @@ class CloudflareCvExtractionTests(unittest.TestCase):
 
         self.assertEqual(context.exception.code, "extract_provider_invalid_response")
         self.assertEqual(context.exception.status_code, 422)
+        self.assertEqual(context.exception.reservation_outcome, "consume")
         self.assertEqual(client.chat.completions.create.call_count, 2)
 
     def test_invalid_gemma_json_retries_once_with_json_mode_fallback(self):
@@ -1526,6 +1527,7 @@ class CloudflareCvExtractionTests(unittest.TestCase):
                 "account-id/ai/v1"
             ),
             max_retries=0,
+            timeout=ai_service.AI_PROVIDER_TIMEOUT_SECONDS,
         )
         self.assertIs(client, openai_client.return_value)
         self.assertEqual(model, ai_service.CLOUDFLARE_TEXT_MODEL)

@@ -11,11 +11,12 @@
  * Renders as a docked flyout to the right of the 72px sidebar rail.
  * Does not own pagination / orphan keep-together / LongCv 3+ page correction.
  */
-import { use, useEffect, useId, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { nanoid } from "nanoid";
 import { FiCheck, FiChevronDown, FiChevronUp, FiMinus, FiPlus, FiX } from "react-icons/fi";
 import { LuGripVertical, LuLayoutGrid } from "react-icons/lu";
-import { PdfContext } from "../../../store/pdfgenerator-context";
+import { useCanvasContext } from "../../../store/canvas-context";
+import { useSession } from "../../../store/session-context";
 import {
   applyFlowSpacing,
   listDocumentSections,
@@ -187,10 +188,10 @@ export default function SectionsPanel({ onClose }) {
     baselineFlowSpacing,
     openAddSectionModal,
     openSkillsLayoutModal,
-    pushToast,
     fitStatus,
     onFitToPages,
-  } = use(PdfContext);
+  } = useCanvasContext();
+  const { pushToast } = useSession();
   const pageHeight = pageSize?.height ?? 842;
   const densityGroupId = useId();
   const [advancedOpen, setAdvancedOpen] = useState(false);

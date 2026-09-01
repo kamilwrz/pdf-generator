@@ -16,39 +16,59 @@ button, which is independent of "Zapisz" (Save): an unsaved document can still
 be exported. Like `/download_pdf`, it is export-metered.
 """
 
-import datetime
-from pathlib import Path
+import logging
+import unicodedata
 from urllib.parse import quote
 
-from fastapi import APIRouter, Body, Depends, HTTPException
+from fastapi import APIRouter, Body, Depends, Header, HTTPException
 from fastapi.responses import Response
 from starlette import status
 from sqlalchemy.orm import Session
-from app.core.security import verify_token
-from app.crud.user import get_user_by_username
+from app.core.security import resolve_user_from_payload, verify_token
 from app.schemas.pdf_schema import PDFCreateRequest, PDFUpdateRequest
 from app.dependencies import get_db
+from app.core.config import USE_S3  # Compatibility attribute for legacy tests/deploy hooks.
 
 from app.crud.pdfs import (
-    request_pdf_by_id, delete_pdf_by_id, request_pdf_by_id_show,
-    request_pdf_elements_by_element_id, update_pdf_elements, request_pdfs_by_id,
-    serialize_spacing_px,
+    request_pdf_by_id, request_pdf_by_id_show,
+    request_pdfs_by_id,
 )
 from app.crud.cv_import_snapshots import get_owned_snapshot
 
-from app.utils.pdf_file_ops import delete_pdf_file
-from app.core.config import USE_S3
 from app.services.entitlements import (
     assert_can_create_project, assert_can_export, assert_template_allowed,
-    record_export,
+    record_export, refund_export,
 )
 from app.services.document_service import (
-    create_pdf_document, update_pdf_document, render_pdf_for_download,
+    create_pdf_document,
+    delete_pdf_document,
+    read_pdf_document_bytes,
     render_document_bytes,
+    render_pdf_for_download,
+    resolve_create_replay,
+    save_pdf_elements_document,
+    update_pdf_document,
 )
 
-if USE_S3:
-    from app.services import s3_storage
+
+logger = logging.getLogger(__name__)
+
+
+def _refund_failed_export(db: Session, *, user_id: int, period_key: str) -> None:
+    """Best-effort refund without replacing the original local failure.
+
+    The quota claim is committed before expensive rendering/storage work so it
+    is visible to every worker. If that local work fails, release the exact
+    period claim. A database outage during compensation is logged and leaves a
+    conservative charge rather than hiding the original renderer/storage error.
+    """
+
+    try:
+        db.rollback()
+        refund_export(db, int(user_id), period_key=period_key)
+    except Exception:
+        db.rollback()
+        logger.exception("Failed to refund provisional PDF export claim")
 
 
 def _pdf_download_filename(title: str | None) -> str:
@@ -61,10 +81,23 @@ def _pdf_download_filename(title: str | None) -> str:
 
 def _content_disposition(filename: str) -> str:
     """Build Content-Disposition with ASCII fallback + RFC 5987 UTF-8 name."""
-    ascii_fallback = filename.encode("ascii", "replace").decode("ascii").replace("?", "_")
+    # Legacy rows predate title validation, so sanitize again at the final
+    # header boundary. Percent-encoding protects filename*, while replacing
+    # control characters protects the quoted ASCII fallback from CR/LF injection.
+    safe_filename = "".join(
+        "_" if unicodedata.category(char) == "Cc" else char
+        for char in str(filename or "cv.pdf")
+    )
+    ascii_fallback = (
+        safe_filename.encode("ascii", "replace")
+        .decode("ascii")
+        .replace("?", "_")
+        .replace('"', "_")
+        .replace("\\", "_")
+    )
     return (
         f'attachment; filename="{ascii_fallback}"; '
-        f"filename*=UTF-8''{quote(filename)}"
+        f"filename*=UTF-8''{quote(safe_filename, safe='')}"
     )
 
 
@@ -86,6 +119,8 @@ def _public_pdf_metadata(pdf_row) -> dict:
         "page_height": pdf_row.page_height,
         "editor_mode": pdf_row.editor_mode,
         "template_id": pdf_row.template_id,
+        "origin_template_id": pdf_row.origin_template_id,
+        "revision": int(pdf_row.revision or 1),
         "spacing_px": pdf_row.spacing_px,
         "cv_data": pdf_row.cv_data,
         "source_import_id": pdf_row.source_import_id,
@@ -99,21 +134,38 @@ router = APIRouter(
 
 
 @router.post("/create_pdf")
-async def create_user_pdf(
+def create_user_pdf(
     pdf_data: PDFCreateRequest,
+    idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
     payload: dict = Depends(verify_token),
     db: Session = Depends(get_db),
 ):
     """Create a document from the current canvas and render an initial PDF file.
 
     Side effects: project entitlement check, Pdf + PdfElements insert, and a
-    ReportLab render written to S3 or the local generated folder. Duplicate
-    titles for the same user are rejected so stored-file names stay unambiguous.
+    ReportLab render written to S3 or the local generated folder. Display-title
+    uniqueness remains a per-user product rule; storage keys never use titles.
     """
-    username = payload.get("sub")
-    db_user = get_user_by_username(db, username=username)
+    db_user = resolve_user_from_payload(db, payload)
     if db_user is None:
         raise HTTPException(status_code=401, detail="Nie znaleziono konta użytkownika.")
+    username = db_user.username
+    if idempotency_key is None:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "code": "invalid_idempotency_key",
+                "message": "Nagłówek Idempotency-Key jest wymagany.",
+            },
+        )
+    replay = resolve_create_replay(
+        db,
+        owner_id=db_user.id,
+        pdf_data=pdf_data,
+        idempotency_key=idempotency_key,
+    )
+    if replay is not None:
+        return replay
     if pdf_data.source_import_id is not None and get_owned_snapshot(
         db, owner_id=db_user.id, snapshot_id=pdf_data.source_import_id,
     ) is None:
@@ -124,11 +176,17 @@ async def create_user_pdf(
     if pdf_data.template_id:
         assert_template_allowed(db, db_user, pdf_data.template_id)
     assert_can_create_project(db, db_user)
-    return create_pdf_document(db, user=db_user, username=username, pdf_data=pdf_data)
+    return create_pdf_document(
+        db,
+        user=db_user,
+        username=username,
+        pdf_data=pdf_data,
+        idempotency_key=idempotency_key,
+    )
 
 
 @router.post("/render_pdf", status_code=status.HTTP_200_OK)
-async def render_user_pdf(
+def render_user_pdf(
     pdf_data: PDFCreateRequest,
     payload: dict = Depends(verify_token),
     db: Session = Depends(get_db),
@@ -143,16 +201,15 @@ async def render_user_pdf(
     a downgraded user is rendering the same paid-template document they own; it
     never causes this route to persist the canvas.
 
-    Side effects: export entitlement check (`assert_can_export`) then the
-    monthly export counter (`record_export`) — so every download counts against
-    the plan quota exactly like `/download_pdf`. The render is attempted before
-    the counter increments, so a failed render never consumes an export.
+    Side effects: an atomic provisional export claim is committed before
+    ReportLab starts. A local render/validation failure refunds that claim, so
+    failed work is free while concurrent bursts cannot start more renderers
+    than the plan has available slots.
     """
-    username = payload.get("sub")
-    db_user = get_user_by_username(db, username=username)
+    db_user = resolve_user_from_payload(db, payload)
     if db_user is None:
         raise HTTPException(status_code=401, detail="Nie znaleziono konta użytkownika.")
-    if pdf_data.template_id:
+    if pdf_data.editor_mode == "template" and pdf_data.template_id:
         legacy_pdf = None
         if pdf_data.pdf_id is not None:
             candidate = request_pdf_by_id(db, pdf_data.pdf_id)
@@ -164,10 +221,21 @@ async def render_user_pdf(
             pdf_data.template_id,
             existing_pdf=legacy_pdf,
         )
-    # Gate before rendering so a blocked export neither renders nor meters.
+    # The read-only gate avoids a needless atomic claim in the common exhausted
+    # case. ``record_export`` is the authoritative cross-worker admission and
+    # must succeed before ReportLab starts.
     assert_can_export(db, db_user)
-    pdf_bytes = render_document_bytes(db, user=db_user, pdf_data=pdf_data)
-    record_export(db, db_user.id)
+    claim = record_export(db, db_user.id)
+    claim_period = str(claim.period_key)
+    try:
+        pdf_bytes = render_document_bytes(db, user=db_user, pdf_data=pdf_data)
+    except Exception:
+        _refund_failed_export(
+            db,
+            user_id=int(db_user.id),
+            period_key=claim_period,
+        )
+        raise
 
     filename = _pdf_download_filename(pdf_data.pdf_title)
     return Response(
@@ -178,13 +246,15 @@ async def render_user_pdf(
 
 
 @router.get("/fetch_pdfs", status_code=status.HTTP_200_OK)
-async def fetch_user_pdfs(
+def fetch_user_pdfs(
     payload: dict = Depends(verify_token),
     db: Session = Depends(get_db),
 ):
     """List documents owned by the caller (My Docs). Empty libraries return 404."""
-    username = payload.get("sub")
-    db_user = get_user_by_username(db, username=username)
+    db_user = resolve_user_from_payload(db, payload)
+    if db_user is None:
+        raise HTTPException(status_code=401, detail="Nie znaleziono konta użytkownika.")
+    username = db_user.username
 
     pdfs = request_pdfs_by_id(db, db_user.id)
 
@@ -202,7 +272,7 @@ def _require_owned_pdf(db: Session, payload: dict, pdf_id):
     Every by-id pdf route MUST go through this — fetching by id alone lets any
     logged-in user read/modify anyone's documents (IDOR).
     """
-    db_user = get_user_by_username(db, username=payload.get("sub"))
+    db_user = resolve_user_from_payload(db, payload)
     pdf_row = request_pdf_by_id(db, pdf_id)
     if pdf_row is None:
         raise HTTPException(status_code=404, detail="Nie znaleziono pliku PDF.")
@@ -212,7 +282,7 @@ def _require_owned_pdf(db: Session, payload: dict, pdf_id):
 
 
 @router.post("/show_pdf", status_code=status.HTTP_200_OK)
-async def show_user_pdf(
+def show_user_pdf(
     db: Session = Depends(get_db),
     payload: dict = Depends(verify_token),
     pdf_id=Body(),
@@ -234,44 +304,41 @@ async def show_user_pdf(
 
 
 @router.delete("/delete_pdf", status_code=status.HTTP_202_ACCEPTED)
-async def delete_user_pdf(
+def delete_user_pdf(
     db: Session = Depends(get_db),
     payload: dict = Depends(verify_token),
     pdf_id=Body(),
 ):
-    """Delete an owned document's DB rows and best-effort remove the PDF file."""
+    """Delete owned DB rows and durably queue private-object removal."""
     pdf_to_delete = _require_owned_pdf(db, payload, pdf_id)
 
-    delete_pdf_by_id(db, pdf_id)
-    if USE_S3:
-        key = s3_storage.key_from_file_path(pdf_to_delete.file_path)
-        if key:
-            try:
-                s3_storage.delete_object(key)
-            except Exception:
-                pass
-    else:
-        delete_pdf_file(pdf_to_delete.file_path)
-    return {"deleted": "Usunięto plik PDF.", "name": pdf_to_delete.title, "pdf_id": pdf_to_delete.id}
+    db_user = resolve_user_from_payload(db, payload)
+    if db_user is None:
+        raise HTTPException(status_code=401, detail="Nie znaleziono konta użytkownika.")
+    username = db_user.username
+    deleted_title = pdf_to_delete.title
+    deleted_id = pdf_to_delete.id
+    delete_pdf_document(db, pdf_row=pdf_to_delete, username=username)
+    return {"deleted": "Usunięto plik PDF.", "name": deleted_title, "pdf_id": deleted_id}
 
 
 @router.put("/update_pdf", status_code=status.HTTP_201_CREATED)
-async def update_user_pdf(
+def update_user_pdf(
     pdf_data: PDFUpdateRequest,
     db: Session = Depends(get_db),
     payload: dict = Depends(verify_token),
 ):
     """Persist elements and regenerate the downloadable PDF for an owned document.
 
-    Heavier than autosave: rewrites the file on disk/S3 and syncs PdfElements
-    to the authoritative client list (including deletions).
+    Heavier than autosave: publishes a new immutable local/S3 object, switches
+    the database pointer, and syncs PdfElements (including deletions).
     """
-    username = payload.get("sub")
-    db_user = get_user_by_username(db, username=username)
+    db_user = resolve_user_from_payload(db, payload)
     if db_user is None:
         raise HTTPException(status_code=401, detail="Nie znaleziono konta użytkownika.")
+    username = db_user.username
     pdf_row = _require_owned_pdf(db, payload, pdf_data.pdf_id)
-    if pdf_data.template_id:
+    if pdf_data.editor_mode == "template" and pdf_data.template_id:
         # A downgraded user may keep the row's existing paid template, but may
         # not turn a Free document into a paid-template document through update.
         assert_template_allowed(
@@ -281,7 +348,7 @@ async def update_user_pdf(
 
 
 @router.put("/save_elements", status_code=status.HTTP_200_OK)
-async def save_pdf_elements(
+def save_pdf_elements(
     pdf_data: PDFUpdateRequest,
     db: Session = Depends(get_db),
     payload: dict = Depends(verify_token),
@@ -293,34 +360,24 @@ async def save_pdf_elements(
     reopening loads from these saved elements (`show_pdf` reads PdfElements).
     """
     pdf_row = _require_owned_pdf(db, payload, pdf_data.pdf_id)
-    db_user = get_user_by_username(db, username=payload.get("sub"))
+    db_user = resolve_user_from_payload(db, payload)
     if db_user is None:
         raise HTTPException(status_code=401, detail="Nie znaleziono konta użytkownika.")
-    if pdf_data.template_id:
+    if pdf_data.editor_mode == "template" and pdf_data.template_id:
         assert_template_allowed(
             db, db_user, pdf_data.template_id, existing_pdf=pdf_row,
         )
 
-    pdf_row.pages = pdf_data.pages
-    pdf_row.page_width = pdf_data.page_width
-    pdf_row.page_height = pdf_data.page_height
-    pdf_row.editor_mode = (
-        "template" if getattr(pdf_data, "editor_mode", "freeform") == "template" else "freeform"
+    return save_pdf_elements_document(
+        db,
+        pdf_row=pdf_row,
+        user=db_user,
+        pdf_data=pdf_data,
     )
-    pdf_row.template_id = getattr(pdf_data, "template_id", None)
-    pdf_row.spacing_px = serialize_spacing_px(getattr(pdf_data, "spacing_px", None))
-    pdf_row.cv_data = getattr(pdf_data, "cv_data", None)
-    pdf_row.updated_at = datetime.datetime.now(datetime.timezone.utc)
-    db.add(pdf_row)
-
-    existing_by_id = request_pdf_elements_by_element_id(db, pdf_data.pdf_id)
-    update_pdf_elements(db, pdf_data.root, existing_by_id, pdf_data.pdf_id)
-    db.commit()
-    return {"saved": True, "pdf_id": pdf_row.id}
 
 
 @router.post("/download_pdf", status_code=status.HTTP_200_OK)
-async def download_pdf(
+def download_pdf(
     db: Session = Depends(get_db),
     id=Body(),
     payload: dict = Depends(verify_token),
@@ -328,8 +385,8 @@ async def download_pdf(
     """Stream an owned PDF as an attachment after the export entitlement check.
 
     Side effects: increments the monthly export counter via `record_export`.
-    Re-renders a legacy watermarked stored file in place before serving it.
-    Clean files never pay that compatibility cost.
+    Re-renders a legacy watermarked file into a new Storage V2 object before
+    serving it. Clean files never pay that compatibility cost.
 
     Bytes are always proxied through this API (local disk or S3 ``get_object``).
     Returning a browser-side S3 presigned URL used to fail with opaque
@@ -338,46 +395,46 @@ async def download_pdf(
     config, so the API streams the file instead.
     """
     pdf_row = _require_owned_pdf(db, payload, id)
-    username = payload.get("sub")
-    db_user = get_user_by_username(db, username=username)
+    db_user = resolve_user_from_payload(db, payload)
     if db_user is None:
         raise HTTPException(status_code=401, detail="Nie znaleziono konta użytkownika.")
+    username = db_user.username
     assert_can_export(db, db_user)
-    # Older deployments persisted Free-plan files with a watermark. Keep the
-    # database flag true until those bytes are actually rebuilt, then clear it.
-    # This lazy migration works for both local and S3 storage without pretending
-    # that a data-only migration also changed the file contents.
-    if bool(pdf_row.watermarked):
-        render_pdf_for_download(db, pdf_row)
-        db.commit()
+    claim = record_export(db, db_user.id)
+    claim_period = str(claim.period_key)
+    try:
+        # Older deployments persisted Free-plan files with a watermark. Keep
+        # the flag true until those bytes are rebuilt. Admission happens first
+        # because this compatibility render is as costly as live-canvas export.
+        if bool(pdf_row.watermarked):
+            pdf_row = render_pdf_for_download(
+                db,
+                pdf_row,
+                user=db_user,
+                username=username,
+            )
+        pdf_bytes = read_pdf_document_bytes(pdf_row, username=username)
+    except (FileNotFoundError, OSError, ValueError) as exc:
+        _refund_failed_export(
+            db,
+            user_id=int(db_user.id),
+            period_key=claim_period,
+        )
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "code": "pdf_storage_not_found",
+                "message": "Nie znaleziono pliku PDF w magazynie.",
+            },
+        ) from exc
+    except Exception:
+        _refund_failed_export(
+            db,
+            user_id=int(db_user.id),
+            period_key=claim_period,
+        )
+        raise
 
-    if USE_S3:
-        key = s3_storage.key_from_file_path(pdf_row.file_path)
-        try:
-            pdf_bytes = s3_storage.download_bytes(key)
-        except Exception as exc:
-            raise HTTPException(
-                status_code=404,
-                detail="Nie znaleziono pliku PDF w magazynie.",
-            ) from exc
-    else:
-        path = Path(pdf_row.file_path) if pdf_row.file_path else None
-        if path is None or not path.is_file():
-            raise HTTPException(status_code=404, detail="Nie znaleziono pliku PDF na dysku.")
-        try:
-            # CV PDFs are small enough to prepare in memory. Reading before the
-            # atomic claim proves the bytes exist, while claiming before the
-            # Response is constructed guarantees no unmetered file is sent.
-            pdf_bytes = path.read_bytes()
-        except OSError as exc:
-            raise HTTPException(
-                status_code=404,
-                detail="Nie znaleziono pliku PDF na dysku.",
-            ) from exc
-
-    # This is the authoritative conditional quota claim. It deliberately runs
-    # after storage access succeeds but before any response can stream bytes.
-    record_export(db, db_user.id)
     filename = _pdf_download_filename(pdf_row.title)
     disposition = _content_disposition(filename)
     return Response(

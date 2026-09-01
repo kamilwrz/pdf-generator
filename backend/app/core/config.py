@@ -7,7 +7,10 @@ side-effect light (no DB/network) aside from reading `os.environ`.
 """
 
 from pathlib import Path
+import ipaddress
 import os, tempfile
+from typing import Mapping
+from urllib.parse import urlparse
 
 
 def _int_env(name: str, default: int) -> int:
@@ -40,13 +43,111 @@ def _bool_env(name: str, default: bool) -> bool:
         return False
     return default
 
+def resolve_cors_origins(env: Mapping[str, str] = os.environ) -> list[str]:
+    """Return an explicit credentialed CORS allowlist for this environment.
+
+    Production is detected through ``APP_ENV=production`` or Render's native
+    marker. It must provide CORS_ORIGINS; localhost is only a development
+    default. Wildcards and origins containing paths are rejected because this
+    API authorizes browser requests with bearer credentials.
+    """
+    is_production = (
+        env.get("APP_ENV", "").strip().lower() == "production"
+        or env.get("RENDER", "").strip().lower() in {"1", "true", "yes"}
+    )
+    raw = env.get("CORS_ORIGINS", "").strip()
+    if not raw:
+        if is_production:
+            raise RuntimeError("CORS_ORIGINS must be set explicitly in production.")
+        raw = "http://localhost:5173"
+
+    resolved: list[str] = []
+    for candidate in (item.strip().rstrip("/") for item in raw.split(",")):
+        if not candidate:
+            continue
+        parsed = urlparse(candidate)
+        if candidate == "*" or parsed.scheme not in {"http", "https"} or not parsed.netloc:
+            raise RuntimeError(f"Invalid CORS origin: {candidate!r}")
+        if parsed.path or parsed.params or parsed.query or parsed.fragment:
+            raise RuntimeError(f"CORS origins must not contain paths: {candidate!r}")
+        if is_production and parsed.scheme != "https":
+            raise RuntimeError("Production CORS_ORIGINS must use HTTPS.")
+        if candidate not in resolved:
+            resolved.append(candidate)
+    if not resolved:
+        raise RuntimeError("CORS_ORIGINS must contain at least one origin.")
+    return resolved
+
+
+def assert_private_storage_configured(env: Mapping[str, str] = os.environ) -> None:
+    """Fail closed when a production process would use ephemeral storage.
+
+    Local filesystem storage remains convenient for development and tests. A
+    Render/production process, however, must use the private S3 backend because
+    its root filesystem disappears on restart and would leave durable database
+    rows pointing at missing personal files.
+    """
+
+    is_production = (
+        env.get("APP_ENV", "").strip().lower() == "production"
+        or env.get("RENDER", "").strip().lower() in {"1", "true", "yes"}
+    )
+    if not is_production:
+        return
+    required = (
+        "S3_BUCKET_NAME",
+        "AWS_ACCESS_KEY_ID",
+        "AWS_SECRET_ACCESS_KEY",
+        "AWS_REGION",
+    )
+    missing = [name for name in required if not env.get(name, "").strip()]
+    if missing:
+        raise RuntimeError(
+            "Production private storage is incomplete; configure: "
+            + ", ".join(missing)
+        )
+
+
+def assert_trusted_proxy_configured(env: Mapping[str, str] = os.environ) -> None:
+    """Require an explicit, bounded peer allowlist for proxy-derived IPs.
+
+    Authentication throttles may trust ``X-Forwarded-For`` only when the
+    immediate socket peer is a known reverse proxy. Failing startup on an
+    absent, malformed, or catch-all CIDR prevents a deployment typo from
+    turning an attacker-controlled header into an unlimited throttle bypass.
+    """
+
+    trust_headers = env.get("TRUST_PROXY_HEADERS", "").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
+    if not trust_headers:
+        return
+    raw_networks = [
+        value.strip()
+        for value in env.get("TRUSTED_PROXY_CIDRS", "").split(",")
+        if value.strip()
+    ]
+    if not raw_networks:
+        raise RuntimeError(
+            "TRUSTED_PROXY_CIDRS must list the exact reverse-proxy peer networks "
+            "when TRUST_PROXY_HEADERS is enabled."
+        )
+    for raw_network in raw_networks:
+        try:
+            network = ipaddress.ip_network(raw_network, strict=False)
+        except ValueError as exc:
+            raise RuntimeError(
+                f"Invalid trusted proxy CIDR: {raw_network!r}"
+            ) from exc
+        if network.prefixlen == 0:
+            raise RuntimeError("TRUSTED_PROXY_CIDRS must not trust every address.")
+
+
 # Browser origins allowed to call the API with credentials.
-# Local Vite + production Render frontend are the safe defaults when unset.
-_raw = os.getenv(
-    "CORS_ORIGINS",
-    "http://localhost:5173,https://pdf-generator-react.onrender.com",
-)
-origins = [o.strip() for o in _raw.split(",") if o.strip()]
+origins = resolve_cors_origins()
 
 # Public base URL of this API (used when building absolute asset URLs).
 BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8000")
@@ -74,6 +175,16 @@ USE_S3 = bool(S3_BUCKET)
 # has its own provider configuration below so Free imports do not require an
 # OpenAI key and can be metered independently from assistant credits.
 OPENAI_API_KEY = os.getenv("API_GPT_KEY", "")
+
+# External AI calls must finish before the ten-minute database reservation
+# lease can expire. The SDK retry loops are disabled at each call site, and the
+# configured per-request timeout is capped with a full minute of settlement
+# headroom so a second request cannot start while the first provider call is
+# still expected to return.
+AI_PROVIDER_TIMEOUT_SECONDS = min(
+    _int_env("AI_PROVIDER_TIMEOUT_SECONDS", 480),
+    540,
+)
 
 # PDF CV extraction defaults to Cloudflare Workers AI. The OpenAI-compatible
 # endpoint lets the existing SDK talk to Cloudflare without another dependency.

@@ -38,6 +38,7 @@ frontend/scripts/iconic-templates.json
 
 # Node / Frontend
 node_modules/
+.pnpm-store/
 frontend/node_modules/
 frontend/dist/
 frontend/dist-ssr/

@@ -1,26 +1,25 @@
-"""
-Authentication primitives: password hashing and JWT access tokens.
+"""Argon2id passwords, legacy bcrypt migration, and versioned JWT identity."""
+from __future__ import annotations
 
-Passwords are stored as bcrypt hashes. Bcrypt itself silently truncates input
-at 72 bytes, so this module truncates explicitly before hash/verify so login
-and registration always use the same byte prefix.
+from datetime import datetime, timedelta, timezone
+import os
+import unicodedata
 
-Access tokens are JWTs whose `sub` claim is the username. Lifetime defaults to
-seven days and can be overridden with ACCESS_TOKEN_EXPIRE_MINUTES.
-"""
-
-from passlib.context import CryptContext
+from argon2 import PasswordHasher, Type
+from argon2.exceptions import InvalidHashError, VerificationError, VerifyMismatchError
 import bcrypt as bcrypt_lib
+from dotenv import load_dotenv
 from fastapi import Depends, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer, OAuth2PasswordBearer
-from datetime import datetime, timedelta, timezone
-from jose import jwt, JWTError
-import os
-from dotenv import load_dotenv
+import jwt
+from jwt import InvalidTokenError
+from sqlalchemy.orm import Session
+
+from app.dependencies import get_db
+from app.models.models import User
 
 load_dotenv()
 
-# Known placeholders that must never ship as a production signing key.
 _WEAK_SECRET_KEYS = frozenset({
     "",
     "your-secret-key-here",
@@ -31,122 +30,206 @@ _WEAK_SECRET_KEYS = frozenset({
     "development",
 })
 
-secret_key = (os.getenv("SECRET_KEY") or "").strip()
 algorithm = (os.getenv("ALGORITHM") or "HS256").strip()
 DEFAULT_ACCESS_TOKEN_EXPIRE_MINUTES = 7 * 24 * 60
+DEFAULT_JWT_KEY_VERSION = "2026-09-01-v2"
+
+# OWASP-aligned Argon2id parameters: 64 MiB, three iterations, two lanes.
+# The encoded hash records these values, allowing future rehash-on-login when
+# the work factor changes without keeping a separate password schema version.
+_argon2 = PasswordHasher(
+    time_cost=3,
+    memory_cost=64 * 1024,
+    parallelism=2,
+    hash_len=32,
+    salt_len=16,
+    type=Type.ID,
+)
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token")
+optional_bearer = HTTPBearer(auto_error=False)
+
+
+def _secret_key() -> str:
+    """Read the current signing key so deploy-time rotation takes effect."""
+    return (os.getenv("SECRET_KEY") or "").strip()
+
+
+def _jwt_key_version() -> str:
+    """Return the login epoch required in every newly issued token."""
+    return (os.getenv("JWT_KEY_VERSION") or DEFAULT_JWT_KEY_VERSION).strip()
 
 
 def assert_secret_key_configured() -> None:
-    """Fail fast when SECRET_KEY is missing or an obvious placeholder.
-
-    Called from the FastAPI lifespan so unit tests that never start the app
-    can still import modules. Re-reads the environment so TestClient setups
-    can set SECRET_KEY before creating the client. Set
-    ALLOW_INSECURE_SECRET=true only for local throwaway environments —
-    never in production.
-    """
-    key = (os.getenv("SECRET_KEY") or secret_key or "").strip()
-    if key and key.lower() not in _WEAK_SECRET_KEYS and len(key) >= 16:
+    """Fail startup when the JWT key is missing, weak, or a placeholder."""
+    key = _secret_key()
+    if key and key.lower() not in _WEAK_SECRET_KEYS and len(key) >= 32:
         return
     if os.getenv("ALLOW_INSECURE_SECRET", "").lower() == "true":
         return
     raise RuntimeError(
-        "SECRET_KEY must be set to a strong value (at least 16 characters, "
-        "not a placeholder). For local throwaway runs only, set "
-        "ALLOW_INSECURE_SECRET=true."
+        "SECRET_KEY must be set to a strong value of at least 32 characters. "
+        "For local throwaway runs only, set ALLOW_INSECURE_SECRET=true."
     )
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-# Token URL matches the OAuth2 password form used by /auth/token.
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token")
-# Optional Bearer for guest-capable routes (e.g. fill_template). Prefer
-# HTTPBearer over a second OAuth2PasswordBearer so OpenAPI does not mark the
-# route as requiring the password flow, and missing credentials yield None
-# instead of FastAPI's English "Not authenticated" 401.
-optional_bearer = HTTPBearer(auto_error=False)
 
 def get_access_token_expire_minutes() -> int:
-    """Return a positive token lifetime in minutes, falling back to seven days."""
+    """Return a positive token lifetime, falling back to seven days."""
     try:
         lifetime = int(
             os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", str(DEFAULT_ACCESS_TOKEN_EXPIRE_MINUTES))
         )
     except ValueError:
         return DEFAULT_ACCESS_TOKEN_EXPIRE_MINUTES
-
     return lifetime if lifetime > 0 else DEFAULT_ACCESS_TOKEN_EXPIRE_MINUTES
 
-def create_access_token(data: dict, expires_delta: timedelta | None = None) -> str:
-    """Encode a JWT for the given claims, always setting an absolute `exp`.
 
-    Callers typically pass ``{"sub": username}``. The returned string is what
-    the frontend stores and sends as a Bearer token.
-    """
+def create_access_token(data: dict, expires_delta: timedelta | None = None) -> str:
+    """Encode a versioned JWT; new callers use immutable ``user.id`` as sub."""
     to_encode = data.copy()
-    if expires_delta:
-        expire = datetime.now(timezone.utc) + expires_delta
-    else:
-        expire = datetime.now(timezone.utc) + timedelta(minutes=get_access_token_expire_minutes())
-    to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, secret_key, algorithm=algorithm)
-    return encoded_jwt
+    expire = datetime.now(timezone.utc) + (
+        expires_delta
+        if expires_delta is not None
+        else timedelta(minutes=get_access_token_expire_minutes())
+    )
+    to_encode.update({"exp": expire, "ver": _jwt_key_version()})
+    return jwt.encode(to_encode, _secret_key(), algorithm=algorithm)
+
+
+def _decode_token(token: str) -> dict:
+    """Decode and validate signature, subject, and the forced-login epoch.
+
+    Tokens without ``ver`` are accepted only as a deployment bridge. Rotating
+    ``SECRET_KEY`` after the new frontend is live invalidates that entire
+    legacy population, while a token carrying a different explicit epoch is
+    always rejected immediately.
+    """
+    payload = jwt.decode(token, _secret_key(), algorithms=[algorithm])
+    subject = payload.get("sub")
+    if subject is None or str(subject).strip() == "":
+        raise InvalidTokenError("missing subject")
+    token_version = payload.get("ver")
+    if token_version is not None and token_version != _jwt_key_version():
+        raise InvalidTokenError("stale token version")
+    return payload
+
+
+def _token_error() -> HTTPException:
+    return HTTPException(
+        status_code=401,
+        detail={"code": "invalid_token", "message": "Token jest nieprawidłowy lub wygasł."},
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+
 
 def verify_token(token: str = Depends(oauth2_scheme)) -> dict:
-    """FastAPI dependency: require a valid Bearer JWT and return its payload.
-
-    Raises HTTP 403 with a Polish message when the token is missing, malformed,
-    expired, or lacks a `sub` claim. Routes that need the username should read
-    ``payload["sub"]``.
-    """
+    """Require a valid Bearer JWT without ever accepting a URL token."""
     try:
-        payload = jwt.decode(token, secret_key, algorithms=[algorithm])
-        username: str = payload.get("sub")
-        if username is None:
-            raise HTTPException(status_code=403, detail="Token jest nieprawidłowy lub wygasł")
-        return payload
-    except JWTError:
-        raise HTTPException(status_code=403, detail="Token jest nieprawidłowy lub wygasł")
+        return _decode_token(token)
+    except InvalidTokenError as exc:
+        raise _token_error() from exc
 
 
 def verify_token_optional(
     credentials: HTTPAuthorizationCredentials | None = Depends(optional_bearer),
 ) -> dict | None:
-    """Return a JWT payload when a valid Bearer token is present, else ``None``.
-
-    Used by guest-capable routes such as ``POST /ai/fill_template``. A missing,
-    malformed, or expired token is treated as an anonymous guest rather than a
-    hard 401/403 — the route itself decides Free-tier limits for that case.
-    """
+    """Return a valid payload for guest-capable routes, otherwise ``None``."""
     if credentials is None or not credentials.credentials:
         return None
-    token = credentials.credentials
     try:
-        payload = jwt.decode(token, secret_key, algorithms=[algorithm])
-        username: str = payload.get("sub")
-        if username is None:
-            return None
-        return payload
-    except JWTError:
+        return _decode_token(credentials.credentials)
+    except InvalidTokenError:
         return None
 
-def _password_to_72_bytes(password: str | bytes | None) -> bytes:
-    """Bcrypt accepts at most 72 bytes. Return password as bytes, never longer than 72."""
+
+def canonical_identity(value: str | None) -> str:
+    """Normalize a username/email lookup key without altering display text."""
+    return unicodedata.normalize("NFKC", value or "").strip().casefold()
+
+
+def resolve_user_from_payload(db: Session, payload: dict) -> User | None:
+    """Resolve versioned numeric subjects or exact legacy usernames.
+
+    A legacy token has no ``ver`` claim and its subject is the exact username
+    stored by the issuing N-1 worker. It must never be case-folded or parsed as
+    an integer: either interpretation could authorize a different account when
+    an old worker created a canonical collision or a numeric username.
+    """
+    subject = str(payload.get("sub") or "").strip()
+    token_version = payload.get("ver")
+    if token_version is not None:
+        if token_version != _jwt_key_version() or not subject.isdigit():
+            return None
+        return db.query(User).filter(User.id == int(subject), User.is_active.is_(True)).first()
+    # The equality is deliberately exact. A canonical lookup would let an N-1
+    # `alice` token select a current `Alice` row before its own null-canonical
+    # row, while digit parsing would turn username `123` into user id 123.
+    return db.query(User).filter(
+        User.username == subject,
+        User.is_active.is_(True),
+    ).first()
+
+
+def get_current_user(
+    payload: dict = Depends(verify_token),
+    db: Session = Depends(get_db),
+) -> User:
+    """Central auth dependency: validate token, activity, and immutable owner."""
+    user = resolve_user_from_payload(db, payload)
+    if user is None:
+        raise _token_error()
+    return user
+
+
+def _legacy_bcrypt_bytes(password: str | bytes | None) -> bytes:
+    """Reproduce the retired 72-byte bcrypt behavior only for old hashes."""
     if password is None:
         return b""
-    if isinstance(password, bytes):
-        return password[:72]
-    s = password if isinstance(password, str) else str(password)
-    encoded = s.encode("utf-8")
+    encoded = password if isinstance(password, bytes) else str(password).encode("utf-8")
     return encoded[:72]
 
 
 def hash_password(password: str) -> str:
-    """Hash a password for storage. Long passwords are truncated to 72 bytes for bcrypt."""
-    pw_bytes = _password_to_72_bytes(password)
-    return bcrypt_lib.hashpw(pw_bytes, bcrypt_lib.gensalt()).decode("ascii")
+    """Hash a complete 12–128 character password with Argon2id."""
+    return _argon2.hash(password)
+
+
+def hash_legacy_password(password: str) -> str:
+    """Create the temporary bcrypt rollback hash stored for N-1 workers.
+
+    The current application never authenticates against this value when an
+    Argon2id hash is available. Bcrypt's historical 72-byte input limit is
+    therefore isolated to rollback compatibility and cannot weaken normal
+    authentication of 12–128 character passwords.
+    """
+    return bcrypt_lib.hashpw(
+        _legacy_bcrypt_bytes(password),
+        bcrypt_lib.gensalt(),
+    ).decode("ascii")
+
+
+def verify_password_and_rehash(plain: str, hashed: str) -> tuple[bool, str | None]:
+    """Verify Argon2id or legacy bcrypt and return an optional upgraded hash."""
+    if not hashed:
+        return False, None
+    if hashed.startswith("$argon2"):
+        try:
+            valid = _argon2.verify(hashed, plain)
+        except (VerifyMismatchError, VerificationError, InvalidHashError):
+            return False, None
+        if valid and _argon2.check_needs_rehash(hashed):
+            return True, hash_password(plain)
+        return bool(valid), None
+    if hashed.startswith(("$2a$", "$2b$", "$2y$")):
+        try:
+            valid = bcrypt_lib.checkpw(_legacy_bcrypt_bytes(plain), hashed.encode("ascii"))
+        except (ValueError, TypeError, UnicodeError):
+            return False, None
+        return (True, hash_password(plain)) if valid else (False, None)
+    return False, None
 
 
 def verify_password(plain: str, hashed: str) -> bool:
-    """Verify a plain password against a hash. Long passwords are truncated to 72 bytes."""
-    pw_bytes = _password_to_72_bytes(plain)
-    return bcrypt_lib.checkpw(pw_bytes, hashed.encode("ascii"))
+    """Compatibility boolean wrapper around migration-aware verification."""
+    valid, _replacement = verify_password_and_rehash(plain, hashed)
+    return valid

@@ -495,40 +495,37 @@ class TranslateRouteValidationTests(unittest.TestCase):
         self.client = TestClient(app)
         self._user_patch = patch.object(
             ai_assistant_route,
-            "get_user_by_username",
+            "resolve_user_from_payload",
             return_value=SimpleNamespace(id=1, username="testuser"),
         )
         self._entitlement_patch = patch.object(
             ai_assistant_route, "assert_can_use_ai_action", return_value=None
         )
-        self._record_patch = patch.object(
-            ai_assistant_route, "charge_ai_credits", return_value=None
-        )
         self._user_patch.start()
         self._entitlement_patch.start()
-        self._record_patch.start()
 
     def tearDown(self):
         self._user_patch.stop()
         self._entitlement_patch.stop()
-        self._record_patch.stop()
         app.dependency_overrides.clear()
 
     def test_translate_requires_target_language(self):
         response = self.client.post(
             "/ai/assistant",
             json={"action": "translate", "elements": []},
+            headers={"Idempotency-Key": "translate-missing-language"},
         )
         self.assertEqual(response.status_code, 400)
-        self.assertIn("target_language", response.json()["detail"])
+        self.assertEqual(response.json()["detail"]["code"], "target_language_required")
 
     def test_translate_rejects_unknown_language(self):
         response = self.client.post(
             "/ai/assistant",
             json={"action": "translate", "elements": [], "target_language": "xx"},
+            headers={"Idempotency-Key": "translate-unknown-language"},
         )
         self.assertEqual(response.status_code, 400)
-        self.assertIn("Nieobsługiwany język", response.json()["detail"])
+        self.assertEqual(response.json()["detail"]["code"], "unsupported_target_language")
 
 
 class SupportedLanguagesTests(unittest.TestCase):

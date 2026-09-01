@@ -11,8 +11,25 @@ Schema via ``python -m app.schemas.export_pdf_element_schema`` (written to
 category / identity rules without TypeScript.
 """
 
+import unicodedata
 from typing import Any, Literal, Optional
-from pydantic import BaseModel, Field
+
+from pydantic import BaseModel, Field, field_validator, model_validator
+
+# These limits bound JSON parsing, validation, persistence, and ReportLab work
+# while remaining well above the largest built-in multi-page CV templates. The
+# transport limit is enforced before JSON decoding in ``app.main``; collection
+# limits remain necessary because a compact body can still describe thousands
+# of renderer operations.
+MAX_PDF_REQUEST_BYTES = 4 * 1024 * 1024
+MAX_PDF_ELEMENTS = 1_000
+MAX_PDF_PAGES = 20
+MAX_TEXT_RUNS = 2_000
+MAX_RESOLVED_TEXT_LINES = 2_000
+MAX_POLYGON_POINTS = 128
+MAX_PATH_CURVES = 128
+MAX_ELEMENT_TEXT_CHARS = 100_000
+MAX_ELEMENT_ID_CHARS = 256
 
 # Categories the ReportLab renderer and frontend factories understand.
 ElementCategory = Literal[
@@ -62,7 +79,7 @@ class ResolvedTextLine(BaseModel):
     persisted document continue to store semantic text rather than hard wraps.
     """
 
-    text: str
+    text: str = Field(..., max_length=MAX_ELEMENT_TEXT_CHARS)
     start: int = Field(..., ge=0)
     end: int = Field(..., ge=0)
     paragraphEnd: bool = False
@@ -89,16 +106,16 @@ class PdfElement(BaseModel):
 
     category: ElementCategory
     # Client nanoid — stable across autosaves for upsert matching.
-    element_id: str = Field(..., min_length=1)
+    element_id: str = Field(..., min_length=1, max_length=MAX_ELEMENT_ID_CHARS)
     # 1-based page index matching the multi-page editor.
-    page: Optional[int] = 1
+    page: Optional[int] = Field(1, ge=1, le=MAX_PDF_PAGES)
     # Top-left origin, same coordinate system as the React A4 canvas.
     left: Optional[float] = None
     top: Optional[float] = None
     fontFamily: Optional[str] = None
     fontSize: Optional[float] = None
     color: Optional[str] = None
-    content: Optional[str] = None
+    content: Optional[str] = Field(None, max_length=MAX_ELEMENT_TEXT_CHARS)
     # textarea: leading and tracking in px.
     lineHeight: Optional[float] = None
     letterSpacing: Optional[float] = None
@@ -108,11 +125,14 @@ class PdfElement(BaseModel):
     # Inline decoration overlay. Empty/None keeps the element on the uniform
     # single-font fast path (identical Canvas↔PDF wrapping as before this field
     # existed). Populated only for text/textarea that carry mixed styling.
-    runs: Optional[list[TextRun]] = None
+    runs: Optional[list[TextRun]] = Field(None, max_length=MAX_TEXT_RUNS)
     # Transient Chromium soft-wrap decisions attached immediately before PDF
     # rendering. The backend validates every slice and falls back to its own
     # wrapper when records are absent or inconsistent with current content.
-    resolvedLines: Optional[list[ResolvedTextLine]] = None
+    resolvedLines: Optional[list[ResolvedTextLine]] = Field(
+        None,
+        max_length=MAX_RESOLVED_TEXT_LINES,
+    )
     # textarea: left | center | right | justify
     align: Optional[str] = "left"
     # Hang indent for lines that start with a bullet marker.
@@ -174,11 +194,17 @@ class PdfElement(BaseModel):
     # Freeform polygon preset id (`triangle` / `diamond` / `hexagon`).
     shape: Optional[str] = None
     # Normalized polygon vertices in unit-square space ``[[x, y], …]``.
-    points: Optional[list[list[float]]] = None
+    points: Optional[list[list[float]]] = Field(
+        None,
+        max_length=MAX_POLYGON_POINTS,
+    )
     # Freeform cubic path preset id (`wave` / `arc` / `flourish`).
     pathKind: Optional[str] = None
     # Cubic path segments in unit-square space (``M`` / ``C`` dicts).
-    curves: Optional[list[dict[str, Any]]] = None
+    curves: Optional[list[dict[str, Any]]] = Field(
+        None,
+        max_length=MAX_PATH_CURVES,
+    )
     # Connector endpoints reference other elements by client element_id.
     source_id: Optional[str] = None
     target_id: Optional[str] = None
@@ -222,6 +248,20 @@ class PdfElement(BaseModel):
 EditorMode = Literal["template", "freeform"]
 
 
+def _normalize_pdf_title(value: str) -> str:
+    """Return a display-only PDF title that can never act as a path segment."""
+    if not isinstance(value, str):
+        raise ValueError("Tytuł dokumentu musi być tekstem.")
+    normalized = unicodedata.normalize("NFC", value).strip()
+    if not normalized:
+        raise ValueError("Tytuł dokumentu nie może być pusty.")
+    if "/" in normalized or "\\" in normalized:
+        raise ValueError("Tytuł dokumentu nie może zawierać separatorów ścieżki.")
+    if any(unicodedata.category(char) == "Cc" for char in normalized):
+        raise ValueError("Tytuł dokumentu nie może zawierać znaków sterujących.")
+    return normalized
+
+
 class PDFCreateRequest(BaseModel):
     """Create payload: full element list plus title and page geometry."""
 
@@ -229,12 +269,12 @@ class PDFCreateRequest(BaseModel):
     # is rendering an existing owned paid-template document. `/create_pdf`
     # never uses it as an entitlement exception.
     pdf_id: Optional[int] = None
-    root: list[PdfElement]
-    pdf_title: str
-    pages: int = 1
+    root: list[PdfElement] = Field(..., max_length=MAX_PDF_ELEMENTS)
+    pdf_title: str = Field(..., min_length=1, max_length=120)
+    pages: int = Field(1, ge=1, le=MAX_PDF_PAGES)
     # Page size in pt; A4 portrait is the product default.
-    page_width: float = 595
-    page_height: float = 842
+    page_width: float = Field(595, gt=0, le=5_000)
+    page_height: float = Field(842, gt=0, le=5_000)
     # Constrained template edit vs freeform project.
     editor_mode: EditorMode = "freeform"
     # Originating template slug when the document came from a generator.
@@ -248,18 +288,47 @@ class PDFCreateRequest(BaseModel):
     # validation by the document creation route.
     source_import_id: Optional[int] = None
 
+    @field_validator("pdf_title", mode="before")
+    @classmethod
+    def _validate_pdf_title(cls, value: str) -> str:
+        return _normalize_pdf_title(value)
+
+    @model_validator(mode="after")
+    def _require_template_for_template_mode(self):
+        """A constrained editor document must identify its template."""
+        if self.editor_mode == "template" and not str(self.template_id or "").strip():
+            raise ValueError("Tryb szablonu wymaga identyfikatora szablonu.")
+        if self.template_id is not None:
+            self.template_id = self.template_id.strip() or None
+        return self
+
 
 class PDFUpdateRequest(BaseModel):
     """Update/autosave payload including the existing document id."""
 
     pdf_id: int
-    pdf_title: str
-    root: list[PdfElement]
-    pages: int = 1
-    page_width: float = 595
-    page_height: float = 842
+    expected_revision: int = Field(..., ge=1)
+    pdf_title: str = Field(..., min_length=1, max_length=120)
+    root: list[PdfElement] = Field(..., max_length=MAX_PDF_ELEMENTS)
+    pages: int = Field(1, ge=1, le=MAX_PDF_PAGES)
+    page_width: float = Field(595, gt=0, le=5_000)
+    page_height: float = Field(842, gt=0, le=5_000)
     editor_mode: EditorMode = "freeform"
     template_id: Optional[str] = None
     spacing_px: Optional[dict[str, Any]] = None
     # Updated alongside the canvas only after an explicit user save.
     cv_data: Optional[dict[str, Any]] = None
+
+    @field_validator("pdf_title", mode="before")
+    @classmethod
+    def _validate_pdf_title(cls, value: str) -> str:
+        return _normalize_pdf_title(value)
+
+    @model_validator(mode="after")
+    def _require_template_for_template_mode(self):
+        """Reject ambiguous template-mode writes before persistence."""
+        if self.editor_mode == "template" and not str(self.template_id or "").strip():
+            raise ValueError("Tryb szablonu wymaga identyfikatora szablonu.")
+        if self.template_id is not None:
+            self.template_id = self.template_id.strip() or None
+        return self

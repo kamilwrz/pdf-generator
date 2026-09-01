@@ -8,12 +8,15 @@
  * personalised path so old bookmarks keep working.
  */
 import './App.css';
+import { lazy, Suspense } from 'react';
 import { createBrowserRouter, Navigate, RouterProvider, useSearchParams } from 'react-router-dom';
-import PdfCanvas from './pages/PdfCanvas';
-import Login from './pages/Login/Login';
-import Register from './pages/Register/Register';
-import Hero from './pages/Hero/Hero';
 import { getEditorPath } from './utils/authSession';
+import { NotFoundPage, RouteErrorPage } from './components/common/ErrorBoundary/ErrorBoundary';
+
+const PdfCanvas = lazy(() => import('./pages/PdfCanvas'));
+const Login = lazy(() => import('./pages/Login/Login'));
+const Register = lazy(() => import('./pages/Register/Register'));
+const Hero = lazy(() => import('./pages/Hero/Hero'));
 
 /**
  * Preserve `?start=...` when rewriting deprecated `/pdfcanvas` bookmarks.
@@ -25,16 +28,24 @@ function PdfCanvasLegacyRedirect() {
 }
 
 const router = createBrowserRouter([
-  { path: "/cvstudio/:workspace", element: <PdfCanvas /> },
-  { path: "/pdfcanvas", element: <PdfCanvasLegacyRedirect /> },
-  { path: "/register", element: <Register /> },
-  { path: "/login", element: <Login /> },
-  { path: "/", element: <Hero /> },
+  { path: "/cvstudio/:workspace", element: <PdfCanvas />, errorElement: <RouteErrorPage /> },
+  { path: "/pdfcanvas", element: <PdfCanvasLegacyRedirect />, errorElement: <RouteErrorPage /> },
+  { path: "/register", element: <Register />, errorElement: <RouteErrorPage /> },
+  { path: "/login", element: <Login />, errorElement: <RouteErrorPage /> },
+  { path: "/", element: <Hero />, errorElement: <RouteErrorPage /> },
+  { path: "*", element: <NotFoundPage />, errorElement: <RouteErrorPage /> },
 ])
 
 function App() {
   return (
-    <RouterProvider router={router} />
+    <Suspense fallback={(
+      <main className="route-loading" role="status" aria-live="polite">
+        <span aria-hidden="true" />
+        <strong>Ładowanie widoku</strong>
+      </main>
+    )}>
+      <RouterProvider router={router} />
+    </Suspense>
   )
 }
 

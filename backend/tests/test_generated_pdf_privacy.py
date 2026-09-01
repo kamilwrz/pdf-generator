@@ -48,6 +48,7 @@ def _payload(title: str, pdf_id: int | None = None) -> dict:
     }
     if pdf_id is not None:
         payload["pdf_id"] = pdf_id
+        payload["expected_revision"] = 1
     return payload
 
 
@@ -69,7 +70,7 @@ class GeneratedPdfPrivacyTests(unittest.TestCase):
             UserCreateRequest(
                 username="private-owner",
                 email="private-owner@example.com",
-                password="pw",
+                password="correct horse battery",
             ),
         )
         self.user = self.db.query(User).filter(User.username == "private-owner").one()
@@ -119,7 +120,11 @@ class GeneratedPdfPrivacyTests(unittest.TestCase):
         )
 
     def test_save_responses_and_document_metadata_never_expose_storage(self):
-        created = self.client.post("/pdf/create_pdf", json=_payload("private.pdf"))
+        created = self.client.post(
+            "/pdf/create_pdf",
+            json=_payload("private.pdf"),
+            headers={"Idempotency-Key": "privacy-metadata-create"},
+        )
         self.assertEqual(created.status_code, 200, msg=created.text)
         created_body = created.json()
         self.assertNotIn("link", created_body)
@@ -149,7 +154,11 @@ class GeneratedPdfPrivacyTests(unittest.TestCase):
         self.assertNotIn("file_path", updated.json())
 
     def test_only_authenticated_download_route_serves_and_meters_saved_bytes(self):
-        created = self.client.post("/pdf/create_pdf", json=_payload("private.pdf"))
+        created = self.client.post(
+            "/pdf/create_pdf",
+            json=_payload("private.pdf"),
+            headers={"Idempotency-Key": "privacy-download-create"},
+        )
         self.assertEqual(created.status_code, 200, msg=created.text)
         pdf_id = created.json()["pdf_id"]
         self.assertEqual(self._exports_count(), 0)
@@ -166,6 +175,26 @@ class GeneratedPdfPrivacyTests(unittest.TestCase):
         self.assertIn("application/pdf", downloaded.headers.get("content-type", ""))
         self.assertTrue(downloaded.content.startswith(b"%PDF"))
         self.assertEqual(self._exports_count(), 1)
+
+    def test_delete_returns_cached_metadata_and_removes_private_object(self):
+        created = self.client.post(
+            "/pdf/create_pdf",
+            json=_payload("delete-me.pdf"),
+            headers={"Idempotency-Key": "privacy-delete-create"},
+        )
+        self.assertEqual(created.status_code, 200, msg=created.text)
+        pdf_id = created.json()["pdf_id"]
+        pdf_row = self.db.query(Pdf).filter(Pdf.id == pdf_id).one()
+        stored_path = Path(pdf_row.file_path)
+        self.assertTrue(stored_path.exists())
+
+        deleted = self.client.request("DELETE", "/pdf/delete_pdf", json=pdf_id)
+
+        self.assertEqual(deleted.status_code, 202, msg=deleted.text)
+        self.assertEqual(deleted.json()["name"], "delete-me.pdf")
+        self.assertEqual(deleted.json()["pdf_id"], pdf_id)
+        self.assertIsNone(self.db.query(Pdf).filter(Pdf.id == pdf_id).first())
+        self.assertFalse(stored_path.exists())
 
 
 if __name__ == "__main__":

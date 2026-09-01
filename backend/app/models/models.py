@@ -12,6 +12,7 @@ time create_all used to crash uvicorn before it could listen for /health.
 
 import logging
 import time
+import unicodedata
 
 from sqlalchemy import (
     VARCHAR,
@@ -26,8 +27,11 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
     Index,
+    event,
+    inspect as sqlalchemy_inspect,
 )
 from .database import Base, engine
+from app.utils.document_integrity import canonical_title_key
 
 logger = logging.getLogger(__name__)
 
@@ -39,10 +43,82 @@ class User(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String, unique=True, index=True)
+    # Nullable for the two-release N-1 window: an old worker can still insert a
+    # user without knowing this column. New code always populates it, and the
+    # unique index continues to protect every non-null canonical identity.
+    username_canonical = Column(String(32), unique=True, nullable=True, index=True)
     email = Column(String, unique=True)
+    email_canonical = Column(String(320), unique=True, nullable=True, index=True)
+    # ``hashed_password`` remains the legacy bcrypt slot during the two-release
+    # compatibility window. Old workers know only this column, so replacing it
+    # with Argon2id would make newly registered accounts unreadable after a
+    # rollback. Current workers authenticate against ``argon2_password_hash``
+    # whenever it is present and never fall back to a stale legacy password.
     hashed_password = Column(String)
+    argon2_password_hash = Column(String, nullable=True)
     created_at = Column(DateTime)
     is_active = Column(Boolean)
+    # Counts committed images plus the upload currently reserved by this user.
+    # A conditional UPDATE owns quota allocation so concurrent workers cannot
+    # all pass an independent COUNT(*) check before publishing private bytes.
+    image_slots_used = Column(
+        Integer,
+        nullable=False,
+        default=0,
+        server_default="0",
+    )
+
+
+def _canonical_identity_or_none(value: str | None) -> str | None:
+    """Return a canonical identity while retaining N-1-compatible nulls."""
+    canonical = unicodedata.normalize("NFKC", value or "").strip().casefold()
+    return canonical or None
+
+
+@event.listens_for(User, "before_insert")
+def _populate_user_canonical_keys_on_insert(_mapper, _connection, user: User) -> None:
+    """Populate canonical keys for every insert performed by the current app."""
+    user.username_canonical = _canonical_identity_or_none(user.username)
+    user.email_canonical = _canonical_identity_or_none(user.email)
+
+
+@event.listens_for(User, "before_update")
+def _populate_user_canonical_keys_on_update(_mapper, _connection, user: User) -> None:
+    """Keep populated keys aligned without upgrading legacy rows accidentally.
+
+    A user inserted by an N-1 worker can legitimately have null canonical keys.
+    A password-only update must retain those nulls until a dedicated finalizing
+    migration can detect cross-worker collisions. Identity edits, and ordinary
+    updates of already-migrated users, still keep both keys synchronized.
+    """
+    state = sqlalchemy_inspect(user)
+    if user.username_canonical is not None or state.attrs.username.history.has_changes():
+        user.username_canonical = _canonical_identity_or_none(user.username)
+    if user.email_canonical is not None or state.attrs.email.history.has_changes():
+        user.email_canonical = _canonical_identity_or_none(user.email)
+
+
+class AuthRateLimit(Base):
+    """Database-backed fixed-window counter for authentication abuse controls."""
+
+    __tablename__ = "auth_rate_limits"
+    __table_args__ = (
+        UniqueConstraint(
+            "scope",
+            "key_hash",
+            "window_start",
+            name="uq_auth_rate_limit_window",
+        ),
+        Index("ix_auth_rate_limits_window_end", "window_end"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    scope = Column(String(32), nullable=False)
+    # HMAC digest; raw usernames, emails and IP addresses are never retained.
+    key_hash = Column(String(64), nullable=False)
+    window_start = Column(DateTime, nullable=False)
+    window_end = Column(DateTime, nullable=False)
+    attempts = Column(Integer, nullable=False, default=0)
 
 
 class Image(Base):
@@ -68,21 +144,45 @@ class Pdf(Base):
     """
 
     __tablename__ = "pdfs"
+    __table_args__ = (
+        UniqueConstraint("owner_id", "title_key", name="uq_pdf_owner_title_key"),
+        UniqueConstraint(
+            "owner_id",
+            "create_idempotency_key",
+            name="uq_pdf_owner_create_idempotency",
+        ),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String)
+    # Nullable only while N-1 workers may create documents without this field.
+    # The per-owner unique constraint still rejects duplicate non-null keys.
+    title_key = Column(String(140), nullable=True)
     # Generated export path when present; canvas documents may omit it until export.
     file_path = Column(String, nullable=True)
+    # Storage V2 keeps the backend and immutable server-generated object key
+    # separate from the user-facing title. ``file_path`` remains during the
+    # rolling migration so older rows and workers can still be read safely.
+    storage_backend = Column(String(16), nullable=True)
+    storage_key = Column(String(255), nullable=True, unique=True, index=True)
     created_at = Column(DateTime)
     updated_at = Column(DateTime)
     owner_id = Column(Integer, ForeignKey("users.id"))
+    # The server default keeps an N-1 mapper (which does not name this column)
+    # insert-compatible; migration triggers materialize its title key and then
+    # advance the compatibility write to revision 2.
+    revision = Column(Integer, nullable=False, default=1, server_default="1")
+    create_idempotency_key = Column(String(128), nullable=True)
+    create_request_hash = Column(String(64), nullable=True)
     pages = Column(Integer, default=1)
     page_width = Column(Float, default=595)
     page_height = Column(Float, default=842)
     # "template" = constrained layout; "freeform" = free positioning.
     editor_mode = Column(String, default="freeform")
-    # Originating template slug when known (may remain set after unlock).
+    # Active constrained-layout template. Freeform unlock clears this field.
     template_id = Column(String, nullable=True)
+    # Immutable provenance survives template unlocks and plan downgrades.
+    origin_template_id = Column(String, nullable=True)
     # Per-document vertical rhythm override ({stack,record,section,after_rule}).
     # Null means generator/editor defaults (SPACE_* constants).
     spacing_px = Column(JSON, nullable=True)
@@ -97,6 +197,74 @@ class Pdf(Base):
     watermarked = Column(Boolean, nullable=False, default=False)
     # Nullable because manually created documents have no import provenance.
     source_import_id = Column(Integer, ForeignKey("cv_import_snapshots.id"), nullable=True, index=True)
+
+
+@event.listens_for(Pdf, "before_insert")
+def _populate_pdf_title_key_on_insert(_mapper, _connection, pdf: Pdf) -> None:
+    """Populate a missing key while preserving migration-assigned keys."""
+    if not pdf.title_key:
+        pdf.title_key = canonical_title_key(pdf.title)
+
+
+@event.listens_for(Pdf, "before_update")
+def _populate_pdf_title_key_on_update(_mapper, _connection, pdf: Pdf) -> None:
+    """Re-key only real title changes, not unrelated document updates.
+
+    Migration 0012 gives duplicate legacy titles stable suffixed keys. Rewriting
+    one of those keys during an autosave would collide with the first document,
+    even though its display title did not change.
+    """
+    title_changed = sqlalchemy_inspect(pdf).attrs.title.history.has_changes()
+    if not pdf.title_key or title_changed:
+        pdf.title_key = canonical_title_key(pdf.title)
+
+
+class StorageCleanupJob(Base):
+    """Durable request to remove an obsolete private PDF or image object.
+
+    Metadata deletion/pointer replacement is committed with this outbox row
+    before cleanup is attempted. A finite retry budget ends in a retained dead
+    letter, preventing one corrupt locator from consuming worker capacity
+    forever while preserving enough state for an operator to investigate.
+    """
+
+    __tablename__ = "storage_cleanup_jobs"
+    __table_args__ = (
+        UniqueConstraint(
+            "storage_backend",
+            "storage_key",
+            name="uq_storage_cleanup_backend_key",
+        ),
+        Index(
+            "ix_storage_cleanup_jobs_status_next_attempt",
+            "status",
+            "next_attempt_at",
+        ),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    storage_backend = Column(String(16), nullable=False)
+    storage_key = Column(String(255), nullable=False)
+    # ``pdf`` and ``image`` select separate validated private-storage roots.
+    resource_kind = Column(
+        String(16),
+        nullable=False,
+        default="pdf",
+        server_default="pdf",
+    )
+    # pending | dead_letter. Terminal rows remain available for operator audit
+    # but are excluded from automatic and request-scoped retry processing.
+    status = Column(
+        String(16),
+        nullable=False,
+        default="pending",
+        server_default="pending",
+    )
+    attempts = Column(Integer, nullable=False, default=0)
+    next_attempt_at = Column(DateTime, nullable=True)
+    last_error = Column(Text, nullable=True)
+    created_at = Column(DateTime, nullable=False)
+    terminal_at = Column(DateTime, nullable=True)
 
 
 class PdfElements(Base):
@@ -236,6 +404,52 @@ class UsageCounter(Base):
     exports_count = Column(Integer, nullable=False, default=0)
     cv_imports_count = Column(Integer, nullable=False, default=0)
     ai_actions_count = Column(Integer, nullable=False, default=0)
+    # Credits temporarily claimed before a provider request starts. Keeping
+    # reservations separate from settled usage makes the quota invariant
+    # enforceable even when concurrent requests reach different workers.
+    ai_credits_reserved = Column(Integer, nullable=False, default=0)
+
+
+class AiCreditReservation(Base):
+    """Idempotent, durable claim for one external AI assistant operation.
+
+    ``active_slot`` is 1 only while a provider call may still be running and
+    becomes NULL when it settles or is released. The unique user/slot key
+    therefore permits any number of historical rows but only one active call
+    per user across all application workers.
+    """
+
+    __tablename__ = "ai_credit_reservations"
+    __table_args__ = (
+        UniqueConstraint(
+            "user_id",
+            "idempotency_key",
+            name="uq_ai_reservation_user_idempotency",
+        ),
+        UniqueConstraint(
+            "user_id",
+            "active_slot",
+            name="uq_ai_reservation_user_active_slot",
+        ),
+        Index("ix_ai_reservation_user_status", "user_id", "status"),
+        Index("ix_ai_reservation_expires_at", "expires_at"),
+    )
+
+    id = Column(String(36), primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    period_key = Column(String(7), nullable=False, index=True)
+    action = Column(String(32), nullable=False)
+    idempotency_key = Column(String(128), nullable=False)
+    request_hash = Column(String(64), nullable=False)
+    reserved_credits = Column(Integer, nullable=False)
+    charged_credits = Column(Integer, nullable=False, default=0)
+    # pending | settled | failed | released | expired
+    status = Column(String(16), nullable=False)
+    active_slot = Column(Integer, nullable=True)
+    response_json = Column(JSON, nullable=True)
+    created_at = Column(DateTime, nullable=False)
+    expires_at = Column(DateTime, nullable=False)
+    settled_at = Column(DateTime, nullable=True)
 
 
 class Payment(Base):

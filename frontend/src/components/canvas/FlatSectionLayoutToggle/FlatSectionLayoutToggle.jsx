@@ -11,9 +11,9 @@
  * a two-cluster set — there is nothing to insert/delete/reorder here, only a
  * layout choice to open.
  */
-import { use, useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { FiList } from "react-icons/fi";
-import { PdfContext } from "../../../store/pdfgenerator-context";
+import { useCanvasContext } from "../../../store/canvas-context";
 import { EDITOR_MODE_TEMPLATE } from "../../../utils/editorMode";
 import { useHoverPlusExclusive } from "../../../hooks/useHoverPlusExclusive";
 import { recordPlusLayoutSize } from "../recordPlusSize";
@@ -38,7 +38,7 @@ export default function FlatSectionLayoutToggle({
   height = 0,
   fontSize = 10,
 }) {
-  const { editorMode, openFlatSectionLayoutModal, zoom = 1 } = use(PdfContext);
+  const { editorMode, openFlatSectionLayoutModal, zoom = 1 } = useCanvasContext();
 
   const [visible, setVisible] = useState(false);
   const hideTimerRef = useRef(null);

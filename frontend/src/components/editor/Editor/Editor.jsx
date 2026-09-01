@@ -21,7 +21,7 @@
  * suppressed in template mode.
  */
 import classes from "./Editor.module.css";
-import { useEffect, useLayoutEffect, useState, useRef, use } from "react";
+import { useEffect, useLayoutEffect, useState, useRef } from "react";
 import { createPortal } from "react-dom";
 import { RiDeleteBin2Line, RiFileCopyLine } from "react-icons/ri";
 import { CiTextAlignLeft, CiTextAlignCenter, CiTextAlignRight, CiTextAlignJustify } from "react-icons/ci";
@@ -40,7 +40,7 @@ import { RxLetterSpacing, RxWidth, RxHeight, RxLayers } from "react-icons/rx";
 import { TbArrowBigRightLines } from "react-icons/tb";
 import { FiMinus, FiPlus } from "react-icons/fi";
 
-import { PdfContext } from "../../../store/pdfgenerator-context";
+import { useCanvasContext } from "../../../store/canvas-context";
 import { motion as Motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import {
   canCloneOrDeleteElements,
@@ -159,7 +159,7 @@ export default function Editor() {
     zoom,
     isTwoPageView,
     currentPage,
-  } = use(PdfContext);
+  } = useCanvasContext();
 
   const selectedElements = A4_Elements.filter((element) => element.isSelected);
   const selectedElement = selectedElements[0];

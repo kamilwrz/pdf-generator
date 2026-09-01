@@ -5,8 +5,8 @@
  * resize reuse the same pointer contract as rectangle/ellipse. Fill vs stroke
  * follows the shared `filled` / `borderWidth` / `backgroundColor` fields.
  */
-import { memo, use, useState } from "react";
-import { PdfContext } from "../../../store/pdfgenerator-context";
+import { memo, useState } from "react";
+import { useCanvasContext } from "../../../store/canvas-context";
 import Resize from "../../common/Resize/Resize";
 import { polygonToSvgPoints } from "../../../utils/freeformShapes";
 
@@ -32,7 +32,7 @@ function Polygon({
     selectMoveElement,
     A4_Elements,
     resizeElement,
-  } = use(PdfContext);
+  } = useCanvasContext();
   const [isResizeable, setIsResizeable] = useState(false);
   const selectedCount = A4_Elements.filter((element) => element.isSelected).length;
   const selectedElement = A4_Elements.find((element) => element.element_id === elementId);

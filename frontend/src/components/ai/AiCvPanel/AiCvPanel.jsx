@@ -9,9 +9,12 @@
  * The history header and dialog footer stay fixed while only the snapshot list
  * scrolls, so every saved import remains reachable in a short viewport.
  */
-import { useRef, useState, useCallback, use, useMemo, useEffect } from "react";
+import { useRef, useState, useCallback, useMemo, useEffect } from "react";
+import { nanoid } from "nanoid";
 import classes from "./AiCvPanel.module.css";
-import { PdfContext } from "../../../store/pdfgenerator-context";
+import { useCanvasContext } from "../../../store/canvas-context";
+import { useSession } from "../../../store/session-context";
+import { useUiSurfaces } from "../../../store/ui-surfaces-context";
 import { ApiClient, ENDPOINTS } from "../../../services/api";
 import { fillTemplate } from "../../../services/fillTemplate";
 import { TEMPLATES } from "../../../templates";
@@ -24,6 +27,7 @@ import {
 import { isTemplateAllowed, planErrorMessage } from "../../../utils/entitlements";
 import DialogShell from "../../common/DialogShell/DialogShell";
 import TemplateCarousel from "./TemplateCarousel";
+import { useDocumentLifecycle } from "../../../store/document-lifecycle-context";
 
 const UploadIcon = () => (
     <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--chrome-accent)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
@@ -47,19 +51,14 @@ const ChevronRight = () => (
 );
 
 export default function AiCvPanel() {
-    const {
-        isAiPanel,
-        showAiPanel,
-        showBioCvModal,
-        loadAiElements,
-        entitlements,
-        refreshEntitlements,
-        setActiveCvData,
-        setActiveImportId,
-        flowSpacing,
-    } = use(PdfContext);
+    const { captureDocumentScope, isDocumentScopeCurrent } = useDocumentLifecycle();
+    const { isAiPanel, showAiPanel, showBioCvModal } = useUiSurfaces();
+    const { loadAiElements, flowSpacing } = useCanvasContext();
+    const { entitlements, refreshEntitlements } = useSession();
 
     const fileRef = useRef(null);
+    const importIdempotencyKeyRef = useRef(null);
+    const historyLoadingRef = useRef(false);
     const [fileName, setFileName] = useState(null);
     const [fileData, setFileData] = useState(null);
     const [cvData, setCvData] = useState(null);
@@ -69,6 +68,9 @@ export default function AiCvPanel() {
     const [error, setError] = useState(null);
     const [importId, setImportId] = useState(null);
     const [imports, setImports] = useState([]);
+    const [importsNextCursor, setImportsNextCursor] = useState(null);
+    const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+    const [openingImportId, setOpeningImportId] = useState(null);
     const [showHistory, setShowHistory] = useState(false);
     const cvTemplates = useMemo(() => selectCvTemplates(TEMPLATES), []);
     const remainingImports = entitlements?.remaining?.cv_imports;
@@ -98,6 +100,7 @@ export default function AiCvPanel() {
         setImportId(null);
         setWizardStep(1);
         setError(null);
+        importIdempotencyKeyRef.current = null;
     }, []);
 
     const handleClose = useCallback(() => {
@@ -116,27 +119,60 @@ export default function AiCvPanel() {
         [],
     );
 
-    const loadHistory = useCallback(async () => {
+    const fetchHistoryPage = useCallback(async (cursor = null, append = false) => {
+        if (historyLoadingRef.current) return;
+        historyLoadingRef.current = true;
+        setIsLoadingHistory(true);
         try {
-            const response = await api.httpRequest(ENDPOINTS.AI.IMPORTS, "GET", undefined, "Nie udało się pobrać historii importów");
-            setImports(response.imports || []);
+            const endpoint = cursor
+                ? `${ENDPOINTS.AI.IMPORTS}?cursor=${encodeURIComponent(cursor)}`
+                : ENDPOINTS.AI.IMPORTS;
+            const response = await api.httpRequest(endpoint, "GET", undefined, "Nie udało się pobrać historii importów");
+            const pageItems = response.items || response.imports || [];
+            setImports((current) => {
+                if (!append) return pageItems;
+                const existingIds = new Set(current.map((item) => item.id));
+                return [...current, ...pageItems.filter((item) => !existingIds.has(item.id))];
+            });
+            setImportsNextCursor(response.next_cursor || null);
         } catch (err) {
             setError(planErrorMessage(err, "Nie udało się pobrać historii importów."));
+        } finally {
+            historyLoadingRef.current = false;
+            setIsLoadingHistory(false);
         }
     }, [api]);
+
+    const loadHistory = useCallback(
+        () => fetchHistoryPage(null, false),
+        [fetchHistoryPage],
+    );
+
+    const loadMoreHistory = useCallback(
+        () => importsNextCursor && fetchHistoryPage(importsNextCursor, true),
+        [fetchHistoryPage, importsNextCursor],
+    );
 
     useEffect(() => {
         if (isAiPanel && showHistory) loadHistory();
     }, [isAiPanel, showHistory, loadHistory]);
 
-    function handleFilePick(e) {
-        const f = e.target.files?.[0];
+    const acceptFile = useCallback((f) => {
         if (!f) return;
+        if (f.type !== "application/pdf" && !f.name?.toLowerCase().endsWith(".pdf")) {
+            setError("Wybierz plik PDF.");
+            return;
+        }
         setFileName(f.name);
         setFileData(f);
         setCvData(null);
         setWizardStep(1);
         setError(null);
+        importIdempotencyKeyRef.current = globalThis.crypto?.randomUUID?.() || nanoid();
+    }, []);
+
+    function handleFilePick(e) {
+        acceptFile(e.target.files?.[0]);
     }
 
     const handleExtract = useCallback(async () => {
@@ -154,12 +190,19 @@ export default function AiCvPanel() {
         try {
             const form = new FormData();
             form.append("file", fileData);
+            const idempotencyKey = importIdempotencyKeyRef.current
+                || globalThis.crypto?.randomUUID?.()
+                || nanoid();
+            importIdempotencyKeyRef.current = idempotencyKey;
             const res = await api.httpRequest(
                 ENDPOINTS.AI.EXTRACT_CV,
                 "POST",
                 form,
                 "Ekstrakcja CV nie powiodła się",
-                CV_IMPORT_REQUEST_OPTIONS,
+                {
+                    ...CV_IMPORT_REQUEST_OPTIONS,
+                    headers: { "Idempotency-Key": idempotencyKey },
+                },
             );
             if (res.usage) {
                 console.log("[CV import AI usage]", {
@@ -188,6 +231,12 @@ export default function AiCvPanel() {
                 setShowHistory(true);
                 setError(CV_IMPORT_TIMEOUT_MESSAGE);
             } else {
+                // A confirmed provider/application failure is a new logical
+                // attempt. Pending/active conflicts keep the current key so a
+                // later retry can replay the original persisted snapshot.
+                if (!["ai_request_in_progress", "ai_operation_active"].includes(err?.code)) {
+                    importIdempotencyKeyRef.current = null;
+                }
                 setError(planErrorMessage(err, "Nie udało się wyodrębnić danych z CV."));
             }
         } finally {
@@ -203,15 +252,24 @@ export default function AiCvPanel() {
         }
         setFillingId(template.id);
         setError(null);
+        const requestScope = captureDocumentScope();
         try {
             const res = await fillTemplate(cvData, template.id, {
                 api,
                 errorMessage: "Generowanie szablonu nie powiodło się",
                 spacing: flowSpacing,
             });
-            await loadAiElements(res.elements, `CV ${template.name}`, template.id);
-            setActiveCvData(cvData);
-            setActiveImportId?.(importId);
+            if (!isDocumentScopeCurrent(requestScope, { requireSameRevision: true })) {
+                setError("Dokument zmienił się w trakcie generowania. Wybierz szablon ponownie.");
+                return;
+            }
+            const replaced = await loadAiElements(
+                res.elements,
+                `CV ${template.name}`,
+                template.id,
+                { cvData, sourceImportId: importId },
+            );
+            if (!replaced) return;
             resetImportFlow();
             showAiPanel();
         } catch (err) {
@@ -219,16 +277,35 @@ export default function AiCvPanel() {
         } finally {
             setFillingId(null);
         }
-    }, [api, cvData, entitlements, flowSpacing, importId, loadAiElements, resetImportFlow, setActiveCvData, setActiveImportId, showAiPanel]);
+    }, [api, captureDocumentScope, cvData, entitlements, flowSpacing, importId, isDocumentScopeCurrent, loadAiElements, resetImportFlow, showAiPanel]);
 
-    const selectHistoricalImport = useCallback((snapshot) => {
-        if (snapshot.status !== "succeeded" || !snapshot.cv_data) return;
-        setCvData(snapshot.cv_data);
-        setImportId(snapshot.id);
-        setShowHistory(false);
-        setWizardStep(2);
+    const selectHistoricalImport = useCallback(async (snapshot) => {
+        if (snapshot.status !== "succeeded" || openingImportId != null) return;
+        setOpeningImportId(snapshot.id);
         setError(null);
-    }, []);
+        try {
+            // List rows deliberately omit extracted PII. Fetch the owned detail
+            // only after an explicit selection, then keep the full profile in
+            // this short-lived wizard state rather than the history collection.
+            const detail = await api.httpRequest(
+                ENDPOINTS.AI.IMPORT(snapshot.id),
+                "GET",
+                undefined,
+                "Nie udało się pobrać danych importu",
+            );
+            if (detail.status !== "succeeded" || !detail.cv_data) {
+                throw new Error("Ten import nie zawiera jeszcze gotowych danych CV.");
+            }
+            setCvData(detail.cv_data);
+            setImportId(snapshot.id);
+            setShowHistory(false);
+            setWizardStep(2);
+        } catch (err) {
+            setError(planErrorMessage(err, "Nie udało się pobrać danych importu."));
+        } finally {
+            setOpeningImportId(null);
+        }
+    }, [api, openingImportId]);
 
     const deleteHistoricalImport = useCallback(async (snapshotId) => {
         try {
@@ -317,7 +394,7 @@ export default function AiCvPanel() {
                         <div className={classes.historyHeader}>
                             <div className={classes.sectionLabel}>Historia importów</div>
                             <div className={classes.historyHeaderActions}>
-                                <button type="button" className={classes.guidedLink} onClick={loadHistory}>Odśwież status</button>
+                                <button type="button" className={classes.guidedLink} onClick={loadHistory} disabled={isLoadingHistory}>Odśwież status</button>
                                 <button type="button" className={classes.guidedLink} onClick={() => setShowHistory(false)}>Nowy import</button>
                             </div>
                         </div>
@@ -327,30 +404,70 @@ export default function AiCvPanel() {
                             aria-label="Lista importów CV"
                             tabIndex={0}
                         >
-                            {imports.length ? imports.map((snapshot) => (
-                                <article className={classes.historyItem} key={snapshot.id}>
+                            {imports.length ? (
+                                <>
+                                    {imports.map((snapshot) => (
+                                        <article className={classes.historyItem} key={snapshot.id}>
                                     <div>
-                                        <strong>{snapshot.filename}</strong>
+                                        <strong>Import #{snapshot.id}</strong>
                                         <span>{snapshot.created_at ? new Date(snapshot.created_at).toLocaleString("pl-PL") : ""} · {cvImportStatusLabel(snapshot.status)}</span>
-                                        {snapshot.summary?.name && <small>{snapshot.summary.name} · {snapshot.summary.experience_count} stanowisk · {snapshot.documents?.length || 0} utworzonych CV</small>}
+                                        <small>
+                                            {snapshot.size_bytes != null ? `${Math.ceil(snapshot.size_bytes / 1024)} KB` : "Rozmiar nieznany"}
+                                            {` · ${snapshot.document_count || 0} utworzonych CV`}
+                                        </small>
                                     </div>
                                     <div className={classes.historyActions}>
-                                        {snapshot.status === "succeeded" && <button type="button" className={classes.reExtract} onClick={() => selectHistoricalImport(snapshot)}>Utwórz CV</button>}
+                                        {snapshot.status === "succeeded" && (
+                                            <button
+                                                type="button"
+                                                className={classes.reExtract}
+                                                onClick={() => selectHistoricalImport(snapshot)}
+                                                disabled={openingImportId != null}
+                                                aria-busy={openingImportId === snapshot.id}
+                                            >
+                                                {openingImportId === snapshot.id ? "Pobieranie…" : "Utwórz CV"}
+                                            </button>
+                                        )}
                                         {snapshot.status !== "processing" && <button type="button" className={classes.deleteImport} onClick={() => deleteHistoricalImport(snapshot.id)}>Usuń dane</button>}
                                     </div>
-                                </article>
-                            )) : <p className={classes.hint}>Nie masz jeszcze zapisanych importów.</p>}
+                                        </article>
+                                    ))}
+                                    {importsNextCursor && (
+                                        <button
+                                            type="button"
+                                            className={classes.guidedLink}
+                                            onClick={loadMoreHistory}
+                                            disabled={isLoadingHistory}
+                                        >
+                                            {isLoadingHistory ? "Pobieranie…" : "Pokaż starsze importy"}
+                                        </button>
+                                    )}
+                                </>
+                            ) : <p className={classes.hint}>{isLoadingHistory ? "Pobieranie historii…" : "Nie masz jeszcze zapisanych importów."}</p>}
                         </div>
                     </div>
                 ) : !onStep2 ? (
                     <div className={classes.stepPane}>
                         <div className={classes.sectionLabel}>Krok 1 · Prześlij swoje CV</div>
                         <button type="button" className={classes.guidedLink} onClick={() => setShowHistory(true)}>Zobacz historię importów</button>
-                        <div
+                        <input
+                            ref={fileRef}
+                            type="file"
+                            accept=".pdf"
+                            style={{ display: "none" }}
+                            onChange={handleFilePick}
+                        />
+                        <button
+                            type="button"
                             className={`${classes.dropzone} ${fileName ? classes.dropzoneDone : ""}`}
                             onClick={() => fileRef.current?.click()}
+                            onDragOver={(event) => event.preventDefault()}
+                            onDrop={(event) => {
+                                event.preventDefault();
+                                acceptFile(event.dataTransfer.files?.[0]);
+                            }}
+                            aria-label={fileName ? `Wybrano ${fileName}. Wybierz inny plik PDF` : "Wybierz plik PDF do importu"}
                         >
-                            <input ref={fileRef} type="file" accept=".pdf" style={{ display: "none" }} onChange={handleFilePick} />
                             {fileName ? (
                                 <>
                                     <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
@@ -363,7 +480,7 @@ export default function AiCvPanel() {
                                     <span className={classes.dropText}>Upuść PDF tutaj lub kliknij, aby wybrać plik</span>
                                 </>
                             )}
-                        </div>
+                        </button>
                         {extracted && (
                             <div className={classes.preview}>
                                 <div className={classes.previewName}>{cvData.name}</div>

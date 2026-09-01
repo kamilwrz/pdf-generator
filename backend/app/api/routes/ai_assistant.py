@@ -7,17 +7,31 @@ the model's estimated PLN cost. Provider failures bubble as `AIServiceError`
 and are mapped to a stable Polish 500 by the app-level handler in `main.py`.
 """
 
+import hashlib
+import json
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from fastapi import APIRouter, Depends, Header, HTTPException, Request as HttpRequest
+from pydantic import BaseModel, Field, model_validator
 from sqlalchemy.orm import Session
 
-from app.core.security import verify_token
-from app.crud.user import get_user_by_username
+from app.core.security import resolve_user_from_payload, verify_token
 from app.dependencies import get_db
-from app.services.ai_assistant_service import AIServiceError, analyze_action
-from app.services.entitlements import assert_can_use_ai_action, charge_ai_credits
+from app.services.ai_assistant_service import (
+    AIServiceError,
+    assistant_reservation_cost_pln,
+    analyze_action,
+)
+from app.services.ats_readability import AtsReadabilityError
+from app.services.document_service import validate_and_resolve_image_elements
+from app.services.entitlements import (
+    assert_can_use_ai_action,
+    credits_for_cost,
+    release_ai_reservation,
+    reserve_ai_credits,
+    settle_ai_reservation,
+    settle_failed_ai_reservation,
+)
 from app.utils.metrics_logging import log_metric_event
 
 logger = logging.getLogger("ai_assistant")
@@ -34,6 +48,11 @@ VALID_ACTIONS = {
 SUPPORTED_LANGUAGES = frozenset({"pl", "en", "de", "fr", "es", "uk", "it", "nl"})
 # Backwards-compatible alias for the translate action's existing references.
 TRANSLATE_LANGUAGES = SUPPORTED_LANGUAGES
+MAX_ASSISTANT_REQUEST_BYTES = 1024 * 1024
+MAX_ASSISTANT_ELEMENTS = 500
+MAX_ASSISTANT_HISTORY = 20
+MAX_ASSISTANT_MESSAGE_CHARS = 4_000
+MAX_JOB_DESCRIPTION_CHARS = 20_000
 
 
 class AssistantRequest(BaseModel):
@@ -45,12 +64,12 @@ class AssistantRequest(BaseModel):
     """
 
     action: str
-    elements: list[dict] = []
-    message: str = ""
-    job_description: str = ""
-    page_size: dict = {}
+    elements: list[dict] = Field(default_factory=list, max_length=MAX_ASSISTANT_ELEMENTS)
+    message: str = Field(default="", max_length=MAX_ASSISTANT_MESSAGE_CHARS)
+    job_description: str = Field(default="", max_length=MAX_JOB_DESCRIPTION_CHARS)
+    page_size: dict = Field(default_factory=dict)
     # Prior turns from the open editor session (role + content). Chat / layout.
-    history: list[dict] = []
+    history: list[dict] = Field(default_factory=list, max_length=MAX_ASSISTANT_HISTORY)
     # Optional template slug (e.g. "monument", "slate") for layout_contract hints.
     # Freestyle / saved documents may omit this; the layout session still works.
     template_id: str | None = None
@@ -63,6 +82,19 @@ class AssistantRequest(BaseModel):
     # translated profile for future template fills instead of relying on
     # renderer-specific canvas strings.
     cv_data: dict | None = None
+
+    @model_validator(mode="after")
+    def validate_history_messages(self):
+        """Bound nested history content before it reaches prompts or logs."""
+        for entry in self.history:
+            if not isinstance(entry, dict):
+                raise ValueError("Każdy wpis historii musi być obiektem.")
+            content = entry.get("content", "")
+            if not isinstance(content, str) or len(content) > MAX_ASSISTANT_MESSAGE_CHARS:
+                raise ValueError("Wpis historii może mieć maksymalnie 4000 znaków.")
+            if entry.get("role") not in {"user", "assistant"}:
+                raise ValueError("Historia może zawierać tylko role user i assistant.")
+        return self
 
 
 class TokenUsage(BaseModel):
@@ -119,24 +151,33 @@ class AssistantResponse(BaseModel):
 
 
 @router.post("/assistant", response_model=AssistantResponse, status_code=200)
-async def ai_assistant(
+def ai_assistant(
     request: AssistantRequest,
+    http_request: HttpRequest,
+    idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
     payload: dict = Depends(verify_token),
     db: Session = Depends(get_db),
 ):
     """Run one assistant action against the caller's canvas snapshot.
 
-    Side effects: metric log, OpenAI call, and AI credit charge on success.
-    Credits are charged only after a successful analysis so failed provider
-    calls do not consume the monthly budget.
+    Side effects: metric log, OpenAI call, and durable credit settlement.
+    Successful or usage-bearing responses charge only reported usage;
+    confirmed non-2xx/local failures release the reservation, while response
+    loss stays pending until its conservative lease expiry.
     """
     if request.action not in VALID_ACTIONS:
-        raise HTTPException(status_code=400, detail=f"Nieznana akcja: {request.action}")
+        raise HTTPException(
+            status_code=400,
+            detail={"code": "invalid_ai_action", "message": "Wybrana akcja AI jest nieprawidłowa."},
+        )
 
     if request.action == "position_rating" and not request.job_description.strip():
         raise HTTPException(
             status_code=400,
-            detail="Pole job_description jest wymagane dla akcji position_rating.",
+            detail={
+                "code": "job_description_required",
+                "message": "Opis stanowiska jest wymagany dla oceny dopasowania.",
+            },
         )
 
     target_language = (request.target_language or "").strip().lower()
@@ -144,37 +185,108 @@ async def ai_assistant(
         if not target_language:
             raise HTTPException(
                 status_code=400,
-                detail="Pole target_language jest wymagane dla akcji translate.",
+                detail={
+                    "code": "target_language_required",
+                    "message": "Język docelowy jest wymagany dla tłumaczenia.",
+                },
             )
         if target_language not in TRANSLATE_LANGUAGES:
             raise HTTPException(
                 status_code=400,
-                detail=(
-                    "Nieobsługiwany język tłumaczenia. "
-                    "Dozwolone: pl, en, de, fr, es, uk, it, nl."
-                ),
+                detail={
+                    "code": "unsupported_target_language",
+                    "message": "Nieobsługiwany język tłumaczenia.",
+                },
             )
 
     cv_language = (request.cv_language or "").strip().lower()
     if cv_language and cv_language not in SUPPORTED_LANGUAGES:
         raise HTTPException(
             status_code=400,
-            detail=(
-                "Nieobsługiwany język CV. "
-                "Dozwolone: pl, en, de, fr, es, uk, it, nl."
-            ),
+            detail={"code": "unsupported_cv_language", "message": "Nieobsługiwany język CV."},
         )
 
-    user = get_user_by_username(db, username=payload.get("sub"))
+    canonical_body = json.dumps(
+        request.model_dump(mode="json"),
+        ensure_ascii=False,
+        separators=(",", ":"),
+        sort_keys=True,
+    ).encode("utf-8")
+    declared_length = http_request.headers.get("content-length")
+    if (
+        len(canonical_body) > MAX_ASSISTANT_REQUEST_BYTES
+        or (declared_length and declared_length.isdigit() and int(declared_length) > MAX_ASSISTANT_REQUEST_BYTES)
+    ):
+        raise HTTPException(
+            status_code=413,
+            detail={"code": "ai_request_too_large", "message": "Żądanie AI przekracza limit 1 MiB."},
+        )
+    key = (idempotency_key or "").strip()
+    if not key:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "code": "idempotency_key_required",
+                "message": "Nagłówek Idempotency-Key jest wymagany.",
+            },
+        )
+
+    user = resolve_user_from_payload(db, payload)
     if user is None:
-        raise HTTPException(status_code=401, detail="Nie znaleziono konta użytkownika.")
+        raise HTTPException(
+            status_code=401,
+            detail={
+                "code": "invalid_token",
+                "message": "Token jest nieprawidłowy lub wygasł.",
+            },
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     # Content AI is available on Pro. Appearance actions (design_rating + layout)
     # are gated separately via PRO_ONLY_AI_ACTIONS in entitlements.
     assert_can_use_ai_action(db, user, request.action)
 
+    # Authorize identifiers and validate storage locators before quota mutation,
+    # but do not download remote image bytes yet. ATS image materialization can
+    # be expensive and must happen only after an atomic credit reservation.
+    validate_and_resolve_image_elements(
+        db,
+        request.elements,
+        owner_id=user.id,
+        resolve_paths=False,
+    )
+
+    request_hash = hashlib.sha256(canonical_body).hexdigest()
+    reserved_credits = credits_for_cost(
+        assistant_reservation_cost_pln(request.action, len(canonical_body)),
+    )
+    claim = reserve_ai_credits(
+        db,
+        user_id=user.id,
+        action=request.action,
+        idempotency_key=key,
+        request_hash=request_hash,
+        reserved_credits=reserved_credits,
+    )
+    if claim.replay_response is not None:
+        return AssistantResponse(**claim.replay_response)
+
     log_metric_event("ai_assistant_call", db, payload, action=request.action)
 
     try:
+        resolved_images = (
+            validate_and_resolve_image_elements(
+                db,
+                request.elements,
+                owner_id=user.id,
+                resolve_paths=True,
+            )
+            if request.action == "ats_score"
+            else {}
+        )
+
+        def resolve_ats_image(src: str) -> str:
+            return resolved_images[str(src or "")]
+
         result = analyze_action(
             action=request.action,
             elements=request.elements,
@@ -187,13 +299,81 @@ async def ai_assistant(
             cv_language=cv_language,
             cv_data=request.cv_data,
             db=db,
+            image_resolver=resolve_ats_image if request.action == "ats_score" else None,
         )
-        charge_ai_credits(db, user.id, result.get("usage", {}).get("cost_pln_estimate", 0.0))
-        return AssistantResponse(**result)
-    except AIServiceError:
+    except HTTPException:
+        # A post-reservation storage/materialization failure is confirmed local
+        # work. Release immediately and preserve its stable 4xx response.
+        release_ai_reservation(
+            db,
+            user_id=user.id,
+            reservation_id=claim.reservation_id,
+        )
+        raise
+    except AIServiceError as exc:
+        # Reservation disposition follows evidence from the provider boundary:
+        # confirmed non-2xx/local failures release immediately, malformed or
+        # empty responses settle their reported usage, and only a timeout or
+        # broken connection remains pending because the response may be lost.
+        if exc.reservation_outcome == "settle_usage" and exc.usage is not None:
+            settle_failed_ai_reservation(
+                db,
+                user_id=user.id,
+                reservation_id=claim.reservation_id,
+                cost_pln=exc.usage.get("cost_pln_estimate", 0.0),
+            )
+        elif (
+            exc.reservation_outcome == "release"
+            or isinstance(exc.original, AtsReadabilityError)
+        ):
+            release_ai_reservation(
+                db,
+                user_id=user.id,
+                reservation_id=claim.reservation_id,
+            )
         # Handled by the app-level exception_handler in main.py, which logs
         # full context and returns a generic, non-leaking message.
         raise
     except Exception:
+        # Unexpected application failures are confirmed local failures, not an
+        # ambiguous provider timeout. Free the slot so they cannot drain the
+        # user's monthly allowance at lease expiry.
+        release_ai_reservation(
+            db,
+            user_id=user.id,
+            reservation_id=claim.reservation_id,
+        )
         logger.exception("Unexpected error in AI assistant route: action=%s", request.action)
-        raise HTTPException(status_code=500, detail="Wystąpił nieoczekiwany błąd. Spróbuj ponownie.")
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "code": "ai_internal_error",
+                "message": "Wystąpił nieoczekiwany błąd. Spróbuj ponownie.",
+            },
+        )
+
+    try:
+        settled = settle_ai_reservation(
+            db,
+            user_id=user.id,
+            reservation_id=claim.reservation_id,
+            cost_pln=result.get("usage", {}).get("cost_pln_estimate", 0.0),
+            response_payload=result,
+        )
+    except Exception:
+        # The provider has already returned successfully. Releasing here would
+        # make a paid request free and let an immediate retry invoke the model
+        # again. Keep the durable reservation pending so lease expiry charges
+        # its conservative ceiling if the settlement transaction cannot commit.
+        logger.exception(
+            "AI settlement failed after provider success: action=%s",
+            request.action,
+        )
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "code": "ai_settlement_pending",
+                "message": "Wynik AI wymaga bezpiecznego rozliczenia. Spróbuj ponownie później.",
+            },
+        )
+    return AssistantResponse(**settled)

@@ -7,10 +7,10 @@
  * the overflow menu. This keeps editor chrome out of the CV content without
  * introducing a separate properties panel.
  */
-import { use, useLayoutEffect, useState } from "react";
+import { useLayoutEffect, useState } from "react";
 import { FiTrash2 } from "react-icons/fi";
 import { LuArrowLeftRight, LuLayoutGrid } from "react-icons/lu";
-import { PdfContext } from "../../../store/pdfgenerator-context";
+import { useCanvasContext } from "../../../store/canvas-context";
 import { EDITOR_MODE_TEMPLATE } from "../../../utils/editorMode";
 import { useCanvasHoverToolbar } from "../../../hooks/useCanvasHoverToolbar";
 import { useCanvasDeletionUndo } from "../../../hooks/useCanvasDeletionUndo";
@@ -95,7 +95,7 @@ export default function SectionRecordAdd({
     transferSectionLane,
     pageSize,
     zoom = 1,
-  } = use(PdfContext);
+  } = useCanvasContext();
   const deleteWithUndo = useCanvasDeletionUndo();
   const heading = A4_Elements.find((element) => element.element_id === headingId);
   const nextHeading = nextHeadingId

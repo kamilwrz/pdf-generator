@@ -5,8 +5,8 @@
  * sole selection, control-point handles appear so the user can reshape the
  * curve without leaving the canvas. Move/resize still operate on the box.
  */
-import { memo, use, useRef, useState } from "react";
-import { PdfContext } from "../../../store/pdfgenerator-context";
+import { memo, useRef, useState } from "react";
+import { useCanvasContext } from "../../../store/canvas-context";
 import Resize from "../../common/Resize/Resize";
 import {
   curvesToSvgPath,
@@ -37,7 +37,7 @@ function Path({
     editElementValues,
     A4_Elements,
     resizeElement,
-  } = use(PdfContext);
+  } = useCanvasContext();
   const [isResizeable, setIsResizeable] = useState(false);
   const dragHandleRef = useRef(null);
   const selectedCount = A4_Elements.filter((element) => element.isSelected).length;

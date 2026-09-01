@@ -2,7 +2,9 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from typing import Sequence
 
+from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session
 
 from app.models.models import CvImportSnapshot, Pdf
@@ -32,12 +34,38 @@ def get_owned_snapshot(db: Session, *, owner_id: int, snapshot_id: int) -> CvImp
     ).first()
 
 
-def list_owned_snapshots(db: Session, *, owner_id: int) -> list[CvImportSnapshot]:
-    """Return the caller's newest active imports first."""
-    return db.query(CvImportSnapshot).filter(
+def list_owned_snapshots(
+    db: Session,
+    *,
+    owner_id: int,
+    limit: int,
+    cursor_created_at: datetime | None = None,
+    cursor_id: int | None = None,
+) -> list[CvImportSnapshot]:
+    """Return one stable newest-first page of the caller's active imports.
+
+    The ``created_at, id`` tuple forms a deterministic cursor. Using both
+    values prevents duplicate or skipped rows when multiple imports share the
+    same timestamp, while owner scoping remains part of the database query.
+    The caller requests one extra row to determine whether a next cursor is
+    needed without running a separate count query.
+    """
+    query = db.query(CvImportSnapshot).filter(
         CvImportSnapshot.owner_id == owner_id,
         CvImportSnapshot.deleted_at.is_(None),
-    ).order_by(CvImportSnapshot.created_at.desc()).all()
+    )
+    if cursor_created_at is not None and cursor_id is not None:
+        query = query.filter(or_(
+            CvImportSnapshot.created_at < cursor_created_at,
+            and_(
+                CvImportSnapshot.created_at == cursor_created_at,
+                CvImportSnapshot.id < cursor_id,
+            ),
+        ))
+    return query.order_by(
+        CvImportSnapshot.created_at.desc(),
+        CvImportSnapshot.id.desc(),
+    ).limit(limit + 1).all()
 
 
 def mark_snapshot_succeeded(
@@ -89,3 +117,23 @@ def linked_pdfs(db: Session, *, snapshot_id: int, owner_id: int) -> list[Pdf]:
         Pdf.source_import_id == snapshot_id,
         Pdf.owner_id == owner_id,
     ).order_by(Pdf.updated_at.desc()).all()
+
+
+def linked_pdfs_for_snapshots(
+    db: Session,
+    *,
+    snapshot_ids: Sequence[int],
+    owner_id: int,
+) -> dict[int, list[Pdf]]:
+    """Load documents for an import-history page in one owner-scoped query."""
+    if not snapshot_ids:
+        return {}
+    documents = db.query(Pdf).filter(
+        Pdf.source_import_id.in_(snapshot_ids),
+        Pdf.owner_id == owner_id,
+    ).order_by(Pdf.updated_at.desc()).all()
+    grouped: dict[int, list[Pdf]] = {snapshot_id: [] for snapshot_id in snapshot_ids}
+    for document in documents:
+        if document.source_import_id in grouped:
+            grouped[document.source_import_id].append(document)
+    return grouped

@@ -4,7 +4,9 @@
  * Cloudflare vision inference can legitimately take longer than the generic
  * API timeout, especially after a Render cold start. Automatic retries stay
  * disabled because the original provider call can continue after the browser
- * stops waiting and a duplicate request would consume extra AI capacity.
+ * stops waiting. The caller keeps one Idempotency-Key for the selected file;
+ * the backend reservation prevents any manual retry from starting a duplicate
+ * provider call while that first attempt is active.
  */
 export const CV_IMPORT_REQUEST_OPTIONS = Object.freeze({
     timeoutMs: 240_000,

@@ -3,13 +3,12 @@
  * Keeps resize chrome off the element DOM so remounts do not break pointer capture.
  */
 import { useMemo } from "react";
-import { use } from "react";
-import { PdfContext } from "../../../store/pdfgenerator-context";
+import { useCanvasContext } from "../../../store/canvas-context";
 import { getElementOutlineBounds } from "../../../utils/elementBounds";
 import classes from "./SelectionOverlay.module.css";
 
 export default function SelectionOverlay({ elements, page }) {
-    const { A4_Elements, currentPage, groupMoveDelta } = use(PdfContext);
+    const { A4_Elements, currentPage, groupMoveDelta } = useCanvasContext();
     const canvasElements = elements ?? A4_Elements;
     const displayedPage = page ?? currentPage;
 

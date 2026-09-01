@@ -56,12 +56,12 @@ test("assistant send blocks parallel requests before isLoading re-renders", asyn
     assert.match(source, /requestInFlightRef\.current = false/);
 });
 
-test("assistant chat resets when the active template changes", async () => {
+test("assistant chat resets when the document session changes", async () => {
     const source = await readFile(new URL("./AiAssistant.jsx", import.meta.url), "utf8");
 
     assert.match(source, /chatSessionRef/);
-    assert.match(source, /prevTemplateIdRef/);
-    assert.match(source, /prevTemplateIdRef\.current === activeTemplateId/);
+    assert.match(source, /sessionKey/);
+    assert.match(source, /useDocumentLifecycle/);
     assert.match(source, /chatSessionRef\.current \+= 1/);
     assert.match(source, /setMessages\(\[\]\)/);
     assert.match(source, /setLayoutMode\(false\)/);
@@ -71,7 +71,33 @@ test("assistant chat resets when the active template changes", async () => {
     assert.doesNotMatch(source, /setLayoutPreviewPatches\?\.\(null\)/);
     assert.doesNotMatch(source, /setDeletionPreviewIds\?\.\(null\)/);
     assert.match(source, /const sessionAtStart = chatSessionRef\.current/);
-    assert.match(source, /if \(chatSessionRef\.current !== sessionAtStart\) return/);
+    assert.match(source, /isDocumentScopeCurrent\(documentScope, \{ requireSameRevision: true \}\)/);
+});
+
+test("assistant retries share one idempotency key per logical send", async () => {
+    const source = await readFile(new URL("./AiAssistant.jsx", import.meta.url), "utf8");
+
+    assert.match(source, /const idempotencyKey = globalThis\.crypto\?\.randomUUID\?\.\(\) \|\| nanoid\(\)/);
+    assert.match(source, /"Idempotency-Key": idempotencyKey/);
+    assert.match(source, /const operationApi = new ApiClient/);
+    assert.match(source, /operationApi\.httpRequest\(/);
+});
+
+test("assistant messages retain the document revision that produced them", async () => {
+    const source = await readFile(new URL("./AiAssistant.jsx", import.meta.url), "utf8");
+
+    const sourceRevisionAssignments = source.match(/sourceRevision: documentScope\.revision/g) || [];
+    assert.ok(
+        sourceRevisionAssignments.length >= 3,
+        "user, success, and error messages must retain their source revision",
+    );
+    assert.match(source, /sourceSessionKey: String\(documentScope\.epoch\)/);
+});
+
+test("apply all does not replace profile data when no correction was applied", async () => {
+    const source = await readFile(new URL("./AiAssistant.jsx", import.meta.url), "utf8");
+
+    assert.match(source, /if \(acceptedIds\.length > 0 && message\?\.updatedCvData\)/);
 });
 
 test("goal-oriented quick actions replace flat feature tiles", async () => {

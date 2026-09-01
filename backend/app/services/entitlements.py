@@ -12,16 +12,29 @@ and fill `Payment` / stripe_* columns. All gates already read subscription state
 from __future__ import annotations
 
 import math
+from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
+import logging
 from typing import Any
+from uuid import uuid4
 
 from fastapi import HTTPException
 from sqlalchemy import text
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.dialects.postgresql import insert as postgresql_insert
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.orm import Session
 
-from app.models.models import Pdf, Plan, UsageCounter, User, UserSubscription
+from app.models.models import (
+    AiCreditReservation,
+    Pdf,
+    Plan,
+    UsageCounter,
+    User,
+    UserSubscription,
+)
+
+logger = logging.getLogger(__name__)
 
 # Must match frontend TEMPLATES entries with tier: "free" in
 # frontend/src/templates/index.js. Enforced by tests/test_template_registry_sync.py.
@@ -380,6 +393,7 @@ def _usage_row(db: Session, user_id: int, period_key: str | None = None) -> Usag
             "exports_count": 0,
             "cv_imports_count": 0,
             "ai_actions_count": 0,
+            "ai_credits_reserved": 0,
         }
         dialect_name = db.get_bind().dialect.name
         if dialect_name == "postgresql":
@@ -465,12 +479,16 @@ def get_entitlements(db: Session, user: User) -> dict[str, Any]:
             "exports_count": usage.exports_count,
             "cv_imports_count": usage.cv_imports_count,
             "ai_credits_used": usage.ai_actions_count,
+            "ai_credits_reserved": usage.ai_credits_reserved,
         },
         "remaining": {
             "projects": remaining(project_count, max_projects),
             "exports": remaining(usage.exports_count, max_exports),
             "cv_imports": remaining(usage.cv_imports_count, max_cv_imports),
-            "ai_credits": remaining(usage.ai_actions_count, max_ai),
+            "ai_credits": remaining(
+                int(usage.ai_actions_count or 0) + int(usage.ai_credits_reserved or 0),
+                max_ai,
+            ),
         },
         "stripe_customer_id": sub.stripe_customer_id,
         "stripe_subscription_id": sub.stripe_subscription_id,
@@ -649,12 +667,16 @@ def assert_template_allowed(
 
 
 def record_export(db: Session, user_id: int) -> UsageCounter:
-    """Atomically claim one export slot after PDF bytes are available.
+    """Atomically claim one provisional export slot before costly local work.
 
     The route may perform an early read-only gate to avoid an unnecessary
     render, but this conditional UPSERT is the authoritative quota decision.
     Concurrent requests cannot increment a finite plan beyond its limit. A
-    caller must not send the prepared bytes unless this function returns.
+    caller must not start ReportLab, storage migration, or private-object reads
+    unless this function returns. If local work then fails before bytes are
+    returned, the caller must invoke :func:`refund_export` with the returned
+    row's ``period_key``. The committed provisional increment is intentional:
+    it makes the cross-worker admission decision visible immediately.
     """
     subscription = _expire_pro_if_needed(
         db, get_or_create_subscription(db, user_id),
@@ -676,6 +698,7 @@ def record_export(db: Session, user_id: int) -> UsageCounter:
         "exports_count": 1,
         "cv_imports_count": 0,
         "ai_actions_count": 0,
+        "ai_credits_reserved": 0,
     }
     dialect_name = db.get_bind().dialect.name
     if dialect_name == "postgresql":
@@ -719,6 +742,37 @@ def record_export(db: Session, user_id: int) -> UsageCounter:
         )
     db.commit()
     return db.query(UsageCounter).filter(UsageCounter.id == claimed_id).one()
+
+
+def refund_export(db: Session, user_id: int, *, period_key: str) -> None:
+    """Atomically release one provisional export claim after a local failure.
+
+    ``period_key`` comes from the successful :func:`record_export` result, not
+    from the current clock. This matters when a render spans a UTC month
+    boundary: the refund must adjust the same counter that admitted the work.
+    Callers must compensate each successful claim at most once; the
+    ``exports_count > 0`` predicate is a final guard against a negative meter.
+    A missing/already-empty row is a no-op.
+    """
+
+    # Image authorization or storage reads may have opened a read transaction.
+    # End it before SQLite's write so concurrent refunds queue safely instead
+    # of attempting an unsupported deferred read-to-write upgrade.
+    if db.get_bind().dialect.name == "sqlite":
+        db.commit()
+    try:
+        db.query(UsageCounter).filter(
+            UsageCounter.user_id == int(user_id),
+            UsageCounter.period_key == str(period_key),
+            UsageCounter.exports_count > 0,
+        ).update(
+            {UsageCounter.exports_count: UsageCounter.exports_count - 1},
+            synchronize_session=False,
+        )
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
 
 
 def record_cv_import(
@@ -779,6 +833,644 @@ def reset_ai_credits(db: Session, user_id: int) -> UsageCounter:
     db.commit()
     db.refresh(row)
     return row
+
+
+AI_RESERVATION_TTL = timedelta(minutes=10)
+
+
+class AiReservationError(HTTPException):
+    """Stable conflict/rate-limit response for an idempotent AI operation."""
+
+    def __init__(
+        self,
+        status_code: int,
+        code: str,
+        message: str,
+        *,
+        retry_after: int | None = None,
+    ) -> None:
+        headers = {"Retry-After": str(max(1, retry_after))} if retry_after else None
+        super().__init__(
+            status_code=status_code,
+            detail={"code": code, "message": message},
+            headers=headers,
+        )
+
+
+@dataclass(frozen=True)
+class AiReservationClaim:
+    """Reservation outcome; replay_response is populated for a settled retry."""
+
+    reservation_id: str
+    reserved_credits: int
+    replay_response: dict[str, Any] | None = None
+
+
+def _begin_ai_credit_transaction(db: Session) -> str:
+    """Start a writer transaction suitable for the supported SQL dialect."""
+    # Entitlement lookups may have opened a read transaction. A clean boundary
+    # is required before SQLite can acquire its writer reservation and before
+    # Postgres takes the usage-row lock.
+    db.commit()
+    dialect_name = db.get_bind().dialect.name
+    if dialect_name == "sqlite":
+        db.execute(text("BEGIN IMMEDIATE"))
+    return dialect_name
+
+
+def _locked_ai_usage_row(
+    db: Session,
+    *,
+    user_id: int,
+    period_key: str,
+    dialect_name: str,
+) -> UsageCounter:
+    """Create and lock the monthly meter without committing the transaction."""
+    values = {
+        "user_id": user_id,
+        "period_key": period_key,
+        "exports_count": 0,
+        "cv_imports_count": 0,
+        "ai_actions_count": 0,
+        "ai_credits_reserved": 0,
+    }
+    if dialect_name == "postgresql":
+        statement = postgresql_insert(UsageCounter).values(**values)
+        db.execute(statement.on_conflict_do_nothing(
+            index_elements=["user_id", "period_key"],
+        ))
+    elif dialect_name == "sqlite":
+        statement = sqlite_insert(UsageCounter).values(**values)
+        db.execute(statement.on_conflict_do_nothing(
+            index_elements=["user_id", "period_key"],
+        ))
+    else:
+        existing = db.query(UsageCounter.id).filter(
+            UsageCounter.user_id == user_id,
+            UsageCounter.period_key == period_key,
+        ).first()
+        if existing is None:
+            db.add(UsageCounter(**values))
+            db.flush()
+
+    query = db.query(UsageCounter).filter(
+        UsageCounter.user_id == user_id,
+        UsageCounter.period_key == period_key,
+    )
+    if dialect_name == "postgresql":
+        query = query.with_for_update()
+    return query.one()
+
+
+def _expire_stale_ai_reservation(
+    db: Session,
+    *,
+    usage: UsageCounter,
+    user_id: int,
+    now: datetime,
+    dialect_name: str,
+) -> None:
+    """Conservatively settle a provider call abandoned after it started."""
+    pending = db.query(AiCreditReservation).filter(
+        AiCreditReservation.user_id == user_id,
+        AiCreditReservation.status == "pending",
+        AiCreditReservation.active_slot == 1,
+    ).first()
+    if pending is None or (_as_utc(pending.expires_at) or now) > now:
+        return
+    # The lease can cross a UTC month boundary. Release and charge against the
+    # period captured by the original reservation, never the new request's
+    # current-period row, otherwise the old reserved balance remains stranded.
+    target_usage = usage
+    if usage.period_key != pending.period_key:
+        target_usage = _locked_ai_usage_row(
+            db,
+            user_id=user_id,
+            period_key=pending.period_key,
+            dialect_name=dialect_name,
+        )
+    reserved = max(0, int(pending.reserved_credits or 0))
+    target_usage.ai_credits_reserved = max(
+        0,
+        int(target_usage.ai_credits_reserved or 0) - reserved,
+    )
+    if pending.action == "extract_cv":
+        # The provider may have completed after the worker lost its response.
+        # Consume the import slot captured by the reservation period so a
+        # retry cannot multiply extraction cost after an ambiguous crash.
+        target_usage.cv_imports_count = int(target_usage.cv_imports_count or 0) + 1
+    else:
+        target_usage.ai_actions_count = int(target_usage.ai_actions_count or 0) + reserved
+    pending.charged_credits = reserved
+    pending.status = "expired"
+    pending.active_slot = None
+    pending.settled_at = now
+    db.add_all([target_usage, pending])
+
+
+def reserve_ai_credits(
+    db: Session,
+    *,
+    user_id: int,
+    action: str,
+    idempotency_key: str,
+    request_hash: str,
+    reserved_credits: int,
+    now: datetime | None = None,
+) -> AiReservationClaim:
+    """Atomically reserve the bounded maximum cost of one AI provider call.
+
+    The operation serializes on the monthly usage row (or SQLite writer lock),
+    enforces a single active request per user, and records idempotency before
+    external I/O starts. A settled duplicate returns its stored response;
+    every other duplicate is rejected without contacting the provider.
+    """
+    moment = now or _utcnow()
+    key = (idempotency_key or "").strip()
+    if not key or len(key) > 128:
+        raise AiReservationError(
+            400,
+            "invalid_idempotency_key",
+            "Nagłówek Idempotency-Key jest nieprawidłowy.",
+        )
+    maximum = max(1, int(reserved_credits))
+    subscription = _expire_pro_if_needed(db, get_or_create_subscription(db, user_id))
+    plan = get_plan(db, subscription.plan_slug)
+    limit = plan.max_ai_actions_per_month
+    period_key = current_period_key(moment)
+    dialect_name = _begin_ai_credit_transaction(db)
+    try:
+        usage = _locked_ai_usage_row(
+            db,
+            user_id=user_id,
+            period_key=period_key,
+            dialect_name=dialect_name,
+        )
+        _expire_stale_ai_reservation(
+            db,
+            usage=usage,
+            user_id=user_id,
+            now=moment,
+            dialect_name=dialect_name,
+        )
+
+        existing = db.query(AiCreditReservation).filter(
+            AiCreditReservation.user_id == user_id,
+            AiCreditReservation.idempotency_key == key,
+        ).first()
+        if existing is not None:
+            if existing.request_hash != request_hash:
+                raise AiReservationError(
+                    409,
+                    "idempotency_payload_mismatch",
+                    "Ten Idempotency-Key został już użyty z innym żądaniem.",
+                )
+            if existing.status == "settled" and existing.response_json is not None:
+                db.commit()
+                return AiReservationClaim(
+                    reservation_id=existing.id,
+                    reserved_credits=existing.reserved_credits,
+                    replay_response=existing.response_json,
+                )
+            retry_after = max(
+                1,
+                int(((_as_utc(existing.expires_at) or moment) - moment).total_seconds()),
+            )
+            raise AiReservationError(
+                409,
+                "ai_request_in_progress" if existing.status == "pending" else "ai_request_finalized",
+                "To żądanie AI zostało już rozpoczęte lub zakończone.",
+                retry_after=retry_after if existing.status == "pending" else None,
+            )
+
+        active = db.query(AiCreditReservation).filter(
+            AiCreditReservation.user_id == user_id,
+            AiCreditReservation.status == "pending",
+            AiCreditReservation.active_slot == 1,
+        ).first()
+        if active is not None:
+            retry_after = max(
+                1,
+                int(((_as_utc(active.expires_at) or moment) - moment).total_seconds()),
+            )
+            raise AiReservationError(
+                429,
+                "ai_operation_active",
+                "Inna operacja AI dla tego konta nadal trwa.",
+                retry_after=retry_after,
+            )
+
+        consumed = int(usage.ai_actions_count or 0) + int(usage.ai_credits_reserved or 0)
+        if limit is not None and consumed + maximum > limit:
+            raise PlanLimitError(
+                "plan_limit_ai_credits",
+                "Brakuje kredytów na bezpieczne rozpoczęcie tej operacji AI.",
+                upgrade_required="pro",
+            )
+
+        reservation = AiCreditReservation(
+            id=str(uuid4()),
+            user_id=user_id,
+            period_key=period_key,
+            action=action,
+            idempotency_key=key,
+            request_hash=request_hash,
+            reserved_credits=maximum,
+            charged_credits=0,
+            status="pending",
+            active_slot=1,
+            response_json=None,
+            created_at=moment,
+            expires_at=moment + AI_RESERVATION_TTL,
+            settled_at=None,
+        )
+        usage.ai_credits_reserved = int(usage.ai_credits_reserved or 0) + maximum
+        db.add_all([usage, reservation])
+        db.commit()
+        return AiReservationClaim(reservation.id, maximum)
+    except (AiReservationError, PlanLimitError):
+        db.rollback()
+        raise
+    except IntegrityError as exc:
+        db.rollback()
+        raise AiReservationError(
+            429,
+            "ai_operation_active",
+            "Inna operacja AI dla tego konta nadal trwa.",
+            retry_after=int(AI_RESERVATION_TTL.total_seconds()),
+        ) from exc
+
+
+def reserve_cv_import(
+    db: Session,
+    *,
+    user_id: int,
+    idempotency_key: str,
+    request_hash: str,
+    now: datetime | None = None,
+) -> AiReservationClaim:
+    """Claim the user's single provider slot before CV extraction starts.
+
+    CV imports have their own monthly counter and must not consume assistant
+    credits. They nevertheless share the durable reservation ledger and active
+    slot so concurrent import/assistant calls cannot multiply provider cost.
+    A successful retry replays only a snapshot reference plus provider usage;
+    private CV data remains in the owner-scoped snapshot table.
+    """
+    moment = now or _utcnow()
+    key = (idempotency_key or "").strip()
+    if not key or len(key) > 128:
+        raise AiReservationError(
+            400,
+            "invalid_idempotency_key",
+            "Nagłówek Idempotency-Key jest nieprawidłowy.",
+        )
+    subscription = _expire_pro_if_needed(db, get_or_create_subscription(db, user_id))
+    plan = get_plan(db, subscription.plan_slug)
+    if not plan.extract_cv:
+        raise PlanLimitError(
+            "plan_feature_extract_cv",
+            "Ekstrakcja CV z PDF jest dostępna w planie Pro.",
+        )
+    limit = plan.max_cv_imports_per_month
+    period_key = current_period_key(moment)
+    dialect_name = _begin_ai_credit_transaction(db)
+    try:
+        usage = _locked_ai_usage_row(
+            db,
+            user_id=user_id,
+            period_key=period_key,
+            dialect_name=dialect_name,
+        )
+        _expire_stale_ai_reservation(
+            db,
+            usage=usage,
+            user_id=user_id,
+            now=moment,
+            dialect_name=dialect_name,
+        )
+
+        existing = db.query(AiCreditReservation).filter(
+            AiCreditReservation.user_id == user_id,
+            AiCreditReservation.idempotency_key == key,
+        ).first()
+        if existing is not None:
+            if existing.request_hash != request_hash:
+                raise AiReservationError(
+                    409,
+                    "idempotency_payload_mismatch",
+                    "Ten Idempotency-Key został już użyty z innym żądaniem.",
+                )
+            if existing.status == "settled" and existing.response_json is not None:
+                db.commit()
+                return AiReservationClaim(
+                    reservation_id=existing.id,
+                    reserved_credits=0,
+                    replay_response=existing.response_json,
+                )
+            retry_after = max(
+                1,
+                int(((_as_utc(existing.expires_at) or moment) - moment).total_seconds()),
+            )
+            raise AiReservationError(
+                409,
+                "ai_request_in_progress" if existing.status == "pending" else "ai_request_finalized",
+                "To żądanie importu zostało już rozpoczęte lub zakończone.",
+                retry_after=retry_after if existing.status == "pending" else None,
+            )
+
+        active = db.query(AiCreditReservation).filter(
+            AiCreditReservation.user_id == user_id,
+            AiCreditReservation.status == "pending",
+            AiCreditReservation.active_slot == 1,
+        ).first()
+        if active is not None:
+            retry_after = max(
+                1,
+                int(((_as_utc(active.expires_at) or moment) - moment).total_seconds()),
+            )
+            raise AiReservationError(
+                429,
+                "ai_operation_active",
+                "Inna operacja AI dla tego konta nadal trwa.",
+                retry_after=retry_after,
+            )
+        if limit is not None and int(usage.cv_imports_count or 0) >= limit:
+            raise PlanLimitError(
+                "plan_limit_cv_imports",
+                f"Wykorzystano limit {limit} importów CV w tym miesiącu. "
+                "Odblokuj Pro, aby importować bez limitu.",
+            )
+
+        reservation = AiCreditReservation(
+            id=str(uuid4()),
+            user_id=user_id,
+            period_key=period_key,
+            action="extract_cv",
+            idempotency_key=key,
+            request_hash=request_hash,
+            reserved_credits=0,
+            charged_credits=0,
+            status="pending",
+            active_slot=1,
+            response_json=None,
+            created_at=moment,
+            expires_at=moment + AI_RESERVATION_TTL,
+            settled_at=None,
+        )
+        db.add(reservation)
+        db.commit()
+        return AiReservationClaim(reservation.id, 0)
+    except (AiReservationError, PlanLimitError):
+        db.rollback()
+        raise
+    except IntegrityError as exc:
+        db.rollback()
+        raise AiReservationError(
+            429,
+            "ai_operation_active",
+            "Inna operacja AI dla tego konta nadal trwa.",
+            retry_after=int(AI_RESERVATION_TTL.total_seconds()),
+        ) from exc
+
+
+def stage_cv_import_reservation_success(
+    db: Session,
+    *,
+    user_id: int,
+    reservation_id: str,
+    snapshot_id: int,
+    usage_payload: dict[str, Any],
+) -> None:
+    """Stage import idempotency replay in the caller's success transaction.
+
+    The route has already conditionally incremented the monthly import counter
+    and staged the snapshot. Keeping this state transition in the same commit
+    prevents a replay record from pointing at an unfinished snapshot.
+    """
+    query = db.query(AiCreditReservation).filter(
+        AiCreditReservation.id == reservation_id,
+        AiCreditReservation.user_id == user_id,
+    )
+    if db.get_bind().dialect.name == "postgresql":
+        query = query.with_for_update()
+    reservation = query.one()
+    if reservation.status != "pending":
+        raise RuntimeError("CV import reservation is no longer pending.")
+    reservation.status = "settled"
+    reservation.active_slot = None
+    reservation.response_json = {
+        "snapshot_id": int(snapshot_id),
+        "usage": dict(usage_payload or {}),
+    }
+    reservation.settled_at = _utcnow()
+    db.add(reservation)
+
+
+def settle_failed_cv_import_reservation(
+    db: Session,
+    *,
+    user_id: int,
+    reservation_id: str,
+) -> None:
+    """Consume one import slot after a paid provider response is unusable.
+
+    Invalid or empty HTTP-200 model output is not safe to persist or replay,
+    but it has already consumed provider capacity. Recording a terminal failed
+    reservation prevents new idempotency keys from turning that paid boundary
+    into an unlimited retry oracle. Transport ambiguity stays pending instead
+    and is handled conservatively by lease expiry.
+    """
+
+    dialect_name = _begin_ai_credit_transaction(db)
+    try:
+        reservation_query = db.query(AiCreditReservation).filter(
+            AiCreditReservation.id == reservation_id,
+            AiCreditReservation.user_id == user_id,
+        )
+        if dialect_name == "postgresql":
+            reservation_query = reservation_query.with_for_update()
+        reservation = reservation_query.one()
+        if reservation.status != "pending":
+            db.commit()
+            return
+        if reservation.action != "extract_cv":
+            raise RuntimeError("Reservation is not a CV import.")
+        usage = _locked_ai_usage_row(
+            db,
+            user_id=user_id,
+            period_key=reservation.period_key,
+            dialect_name=dialect_name,
+        )
+        usage.cv_imports_count = int(usage.cv_imports_count or 0) + 1
+        reservation.status = "failed"
+        reservation.active_slot = None
+        reservation.response_json = None
+        reservation.settled_at = _utcnow()
+        db.add_all([usage, reservation])
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
+
+
+def settle_ai_reservation(
+    db: Session,
+    *,
+    user_id: int,
+    reservation_id: str,
+    cost_pln: float,
+    response_payload: dict[str, Any],
+) -> dict[str, Any]:
+    """Convert a pending reservation to actual usage and store replay data."""
+    dialect_name = _begin_ai_credit_transaction(db)
+    try:
+        reservation_query = db.query(AiCreditReservation).filter(
+            AiCreditReservation.id == reservation_id,
+            AiCreditReservation.user_id == user_id,
+        )
+        if dialect_name == "postgresql":
+            reservation_query = reservation_query.with_for_update()
+        reservation = reservation_query.one()
+        if reservation.status == "settled" and reservation.response_json is not None:
+            db.commit()
+            return reservation.response_json
+        if reservation.status != "pending":
+            raise RuntimeError("AI reservation is no longer pending.")
+
+        usage = _locked_ai_usage_row(
+            db,
+            user_id=user_id,
+            period_key=reservation.period_key,
+            dialect_name=dialect_name,
+        )
+        actual = credits_for_cost(cost_pln)
+        if actual > reservation.reserved_credits:
+            logger.error(
+                "AI actual credits exceeded reservation: reservation=%s reserved=%s actual=%s",
+                reservation.id,
+                reservation.reserved_credits,
+                actual,
+            )
+            actual = reservation.reserved_credits
+        usage.ai_credits_reserved = max(
+            0,
+            int(usage.ai_credits_reserved or 0) - reservation.reserved_credits,
+        )
+        usage.ai_actions_count = int(usage.ai_actions_count or 0) + actual
+
+        stored_response = dict(response_payload)
+        stored_usage = dict(stored_response.get("usage") or {})
+        stored_usage["credits_charged"] = actual
+        stored_response["usage"] = stored_usage
+        reservation.status = "settled"
+        reservation.active_slot = None
+        reservation.charged_credits = actual
+        reservation.response_json = stored_response
+        reservation.settled_at = _utcnow()
+        db.add_all([usage, reservation])
+        db.commit()
+        return stored_response
+    except Exception:
+        db.rollback()
+        raise
+
+
+def settle_failed_ai_reservation(
+    db: Session,
+    *,
+    user_id: int,
+    reservation_id: str,
+    cost_pln: float,
+) -> None:
+    """Charge reported usage when the provider response cannot be consumed.
+
+    The provider completed and supplied metering, but malformed or empty
+    content cannot be replayed as a successful assistant response. Persist a
+    terminal failed state, release the active slot, and charge only the actual
+    bounded usage instead of the full reservation ceiling.
+    """
+    dialect_name = _begin_ai_credit_transaction(db)
+    try:
+        reservation_query = db.query(AiCreditReservation).filter(
+            AiCreditReservation.id == reservation_id,
+            AiCreditReservation.user_id == user_id,
+        )
+        if dialect_name == "postgresql":
+            reservation_query = reservation_query.with_for_update()
+        reservation = reservation_query.one()
+        if reservation.status != "pending":
+            db.commit()
+            return
+        usage = _locked_ai_usage_row(
+            db,
+            user_id=user_id,
+            period_key=reservation.period_key,
+            dialect_name=dialect_name,
+        )
+        actual = credits_for_cost(cost_pln)
+        if actual > reservation.reserved_credits:
+            logger.error(
+                "AI failed-response credits exceeded reservation: reservation=%s reserved=%s actual=%s",
+                reservation.id,
+                reservation.reserved_credits,
+                actual,
+            )
+            actual = reservation.reserved_credits
+        usage.ai_credits_reserved = max(
+            0,
+            int(usage.ai_credits_reserved or 0) - reservation.reserved_credits,
+        )
+        usage.ai_actions_count = int(usage.ai_actions_count or 0) + actual
+        reservation.status = "failed"
+        reservation.active_slot = None
+        reservation.charged_credits = actual
+        reservation.response_json = None
+        reservation.settled_at = _utcnow()
+        db.add_all([usage, reservation])
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
+
+
+def release_ai_reservation(
+    db: Session,
+    *,
+    user_id: int,
+    reservation_id: str,
+) -> None:
+    """Release credits after a confirmed provider failure before a response."""
+    dialect_name = _begin_ai_credit_transaction(db)
+    try:
+        reservation_query = db.query(AiCreditReservation).filter(
+            AiCreditReservation.id == reservation_id,
+            AiCreditReservation.user_id == user_id,
+        )
+        if dialect_name == "postgresql":
+            reservation_query = reservation_query.with_for_update()
+        reservation = reservation_query.one_or_none()
+        if reservation is None or reservation.status != "pending":
+            db.commit()
+            return
+        usage = _locked_ai_usage_row(
+            db,
+            user_id=user_id,
+            period_key=reservation.period_key,
+            dialect_name=dialect_name,
+        )
+        usage.ai_credits_reserved = max(
+            0,
+            int(usage.ai_credits_reserved or 0) - reservation.reserved_credits,
+        )
+        reservation.status = "released"
+        reservation.active_slot = None
+        reservation.settled_at = _utcnow()
+        db.add_all([usage, reservation])
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
 
 
 def charge_ai_credits(db: Session, user_id: int, cost_pln: float) -> UsageCounter:

@@ -4,12 +4,12 @@
  * Hidden entirely in template (structural) mode — layout owns width/height.
  */
 import classes from "./Resize.module.css";
-import { use, useCallback, useEffect } from "react";
-import { PdfContext } from "../../../store/pdfgenerator-context";
+import { useCallback, useEffect } from "react";
+import { useCanvasContext } from "../../../store/canvas-context";
 import { canResizeElement } from "../../../utils/editorMode";
 
 export default function Resize({ selectedElement, isResizeable, handleIsResizable, resizeElement, category, elementId, elementRef, displayTop }) {
-    const { editorMode } = use(PdfContext);
+    const { editorMode } = useCanvasContext();
     const allowResize = canResizeElement(selectedElement, editorMode);
     const isTextarea = selectedElement.category === "textarea";
     // Text-aligned icons render their glyph above the stored top; the handles

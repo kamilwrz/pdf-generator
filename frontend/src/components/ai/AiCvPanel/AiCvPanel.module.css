@@ -198,6 +198,7 @@
 }
 
 .dropzone {
+    width: 100%;
     border: 1px dashed var(--chrome-border);
     border-radius: 2px;
     padding: 36px 28px;
@@ -209,10 +210,17 @@
     background: var(--chrome-control);
     transition: background .15s;
     flex-wrap: wrap;
+    color: inherit;
+    text-align: left;
 }
 
 .dropzone:hover {
     background: var(--chrome-hover);
+}
+
+.dropzone:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--chrome-accent) 70%, transparent);
+    outline-offset: 3px;
 }
 
 .dropzoneDone {

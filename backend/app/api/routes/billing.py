@@ -9,6 +9,9 @@ import.
 
 import os
 import secrets
+import hashlib
+import hmac
+import logging
 
 from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel
@@ -18,8 +21,7 @@ from sqlalchemy.orm import Session
 # `app.api.routes.billing.ALLOW_UNPAID_PLAN_SELECTION` directly — setting the
 # env var after import has no effect on this module.
 from app.core.config import ALLOW_UNPAID_PLAN_SELECTION
-from app.core.security import verify_token
-from app.crud.user import get_user_by_username
+from app.core.security import resolve_user_from_payload, verify_token
 from app.dependencies import get_db
 from app.models.models import User
 from app.services.entitlements import (
@@ -32,6 +34,7 @@ from app.services.entitlements import (
 )
 
 router = APIRouter(prefix="/billing", tags=["billing"])
+logger = logging.getLogger(__name__)
 
 
 class SelectPlanRequest(BaseModel):
@@ -46,7 +49,7 @@ async def get_plans(
     db: Session = Depends(get_db),
 ):
     """Catalog for the in-app plan picker (Stripe price IDs included when set)."""
-    user = get_user_by_username(db, username=payload.get("sub"))
+    user = resolve_user_from_payload(db, payload)
     if user is None:
         raise HTTPException(status_code=401, detail="Nie znaleziono konta użytkownika.")
     return {
@@ -68,7 +71,7 @@ async def select_plan(
     Pro, return 402 with `code=payment_required`. Later this branch creates a
     Checkout Session and returns `checkout_url` instead of activating.
     """
-    user = get_user_by_username(db, username=payload.get("sub"))
+    user = resolve_user_from_payload(db, payload)
     if user is None:
         raise HTTPException(status_code=401, detail="Nie znaleziono konta użytkownika.")
     plan_slug = normalize_plan_slug(request.plan_slug)
@@ -97,28 +100,32 @@ async def select_plan(
 class ResetAiCreditsRequest(BaseModel):
     """Ops helper: zero this month's AI usage so the plan allowance is full again."""
 
-    username: str
+    user_id: int
 
 
 def _admin_secret_ok(x_admin_secret: str | None) -> bool:
-    """Accept X-Admin-Secret for ops credit resets.
-
-    Prefer dedicated ``ADMIN_RESET_SECRET``. If it is unset, fall back to
-    ``SECRET_KEY`` so local/prod support can still reset meters without a
-    separate env var (same behaviour that previously worked in production).
-    """
+    """Accept only a dedicated high-entropy ops secret for credit resets."""
     provided = (x_admin_secret or "").strip()
-    expected = (
-        (os.getenv("ADMIN_RESET_SECRET") or "").strip()
-        or (os.getenv("SECRET_KEY") or "").strip()
-    )
-    if not provided or not expected:
+    expected = (os.getenv("ADMIN_RESET_SECRET") or "").strip()
+    if not provided or len(expected) < 32:
         return False
     return secrets.compare_digest(provided, expected)
 
 
+def _admin_audit_target_ref(user_id: int) -> str:
+    """Return a non-reversible target reference for operations audit logs."""
+
+    expected = (os.getenv("ADMIN_RESET_SECRET") or "").strip().encode("utf-8")
+    digest = hmac.new(
+        expected,
+        f"ai-credit-reset:{int(user_id)}".encode("ascii"),
+        hashlib.sha256,
+    ).hexdigest()
+    return digest[:20]
+
+
 @router.post("/admin/reset-ai-credits")
-async def admin_reset_ai_credits(
+def admin_reset_ai_credits(
     request: ResetAiCreditsRequest,
     db: Session = Depends(get_db),
     x_admin_secret: str | None = Header(default=None, alias="X-Admin-Secret"),
@@ -129,29 +136,44 @@ async def admin_reset_ai_credits(
     Used when the laptop cannot reach Render Postgres directly.
     """
     if not _admin_secret_ok(x_admin_secret):
-        raise HTTPException(status_code=403, detail="Forbidden.")
-    username = (request.username or "").strip()
-    if not username:
-        raise HTTPException(status_code=400, detail="username is required.")
-    user = (
-        db.query(User)
-        .filter(User.username.ilike(username))
-        .first()
-    )
-    if user is None:
-        # Fallback: substring match for support typos / display names.
-        user = (
-            db.query(User)
-            .filter(User.username.ilike(f"%{username}%"))
-            .order_by(User.id)
-            .first()
+        # Never log the supplied secret, target id, headers, or client address.
+        # The outcome alone is sufficient to alert on denied admin attempts.
+        logger.warning("admin_ai_credit_reset outcome=denied reason=invalid_secret")
+        raise HTTPException(
+            status_code=403,
+            detail={
+                "code": "admin_secret_invalid",
+                "message": "Brak uprawnień do tej operacji.",
+            },
         )
+    target_ref = _admin_audit_target_ref(request.user_id)
+    # Exact immutable ids avoid resetting the wrong account when usernames are
+    # visually similar or an operator pastes only part of a display name.
+    user = db.query(User).filter(User.id == request.user_id).first()
     if user is None:
-        raise HTTPException(status_code=404, detail="User not found.")
-    reset_ai_credits(db, user.id)
-    ents = get_entitlements(db, user)
+        logger.warning(
+            "admin_ai_credit_reset outcome=not_found target_ref=%s",
+            target_ref,
+        )
+        raise HTTPException(
+            status_code=404,
+            detail={"code": "user_not_found", "message": "Nie znaleziono użytkownika."},
+        )
+    try:
+        reset_ai_credits(db, user.id)
+        ents = get_entitlements(db, user)
+    except Exception as exc:
+        logger.error(
+            "admin_ai_credit_reset outcome=failed target_ref=%s error_type=%s",
+            target_ref,
+            type(exc).__name__,
+        )
+        raise
+    logger.info(
+        "admin_ai_credit_reset outcome=success target_ref=%s",
+        target_ref,
+    )
     return {
-        "username": user.username,
         "period_key": ents["usage"]["period_key"],
         "ai_credits_used": ents["usage"]["ai_credits_used"],
         "monthly_ai_credits": ents["limits"]["monthly_ai_credits"],

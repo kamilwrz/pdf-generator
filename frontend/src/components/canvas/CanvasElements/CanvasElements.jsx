@@ -22,7 +22,7 @@
  * `skillsMode` anchor is excluded from `flatSectionAnchorsById` below to
  * avoid showing both icons on the same row.
  */
-import { use, useEffect, useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import Text from '../Text/Text';
 import Image from '../Image/Image';
 import Line from '../Line/Line';
@@ -41,7 +41,8 @@ import { listMastheadBands } from '../../../utils/mastheadBands';
 import ProfilePhotoControls from '../ProfilePhotoControls/ProfilePhotoControls';
 import { profilePhotoControlAnchor } from '../../../utils/profilePhotoVisibility';
 import { useCanvasEnterIds } from '../../../hooks/useCanvasEnterIds';
-import { PdfContext } from '../../../store/pdfgenerator-context';
+import { useCanvasContext } from '../../../store/canvas-context';
+import { useSession } from '../../../store/session-context';
 import { EDITOR_MODE_TEMPLATE } from '../../../utils/editorMode';
 import {
   listDocumentSections,
@@ -163,8 +164,8 @@ export default function CanvasElements({ elements, spreadSide = null }) {
     pageSize,
     A4_Elements,
     activeTemplateId,
-    pushToast,
-  } = use(PdfContext);
+  } = useCanvasContext();
+  const { pushToast } = useSession();
   const pageHeight = pageSize?.height ?? 842;
   const documentElements = A4_Elements?.length ? A4_Elements : elements;
   const allowLaneTransfer = LANE_TRANSFER_TEMPLATE_IDS.has(activeTemplateId);

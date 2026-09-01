@@ -7,10 +7,12 @@
  * Guests persist the same profile to localStorage (`guestWizardDraft.js`).
  * Draft writes are serialised so older responses cannot overwrite newer edits.
  */
-import { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import classes from "./BioCvModal.module.css";
-import { PdfContext } from "../../../store/pdfgenerator-context";
+import { useCanvasContext } from "../../../store/canvas-context";
+import { useSession } from "../../../store/session-context";
+import { useUiSurfaces } from "../../../store/ui-surfaces-context";
 import { ApiClient, ENDPOINTS } from "../../../services/api";
 import { fillTemplate } from "../../../services/fillTemplate";
 import { TEMPLATES } from "../../../templates";
@@ -29,6 +31,7 @@ import {
     loadGuestWizardDraft,
     saveGuestWizardDraft,
 } from "../../../utils/guestWizardDraft";
+import { useDocumentLifecycle } from "../../../store/document-lifecycle-context";
 import { createSerialSaveQueue } from "../../../utils/serialSaveQueue";
 import {
     applyBioCvDraftUpdate,
@@ -151,15 +154,10 @@ function CompactCard({ title, subtitle, meta, onEdit, onRemove, onMoveUp, onMove
 }
 
 export default function BioCvModal({ variant = "full" }) {
-    const {
-        isBioCvModal,
-        showBioCvModal,
-        cancelBioCvModal,
-        loadAiElements,
-        entitlements,
-        setActiveCvData,
-        flowSpacing,
-    } = use(PdfContext);
+    const { captureDocumentScope, isDocumentScopeCurrent } = useDocumentLifecycle();
+    const { isBioCvModal, showBioCvModal, cancelBioCvModal } = useUiSurfaces();
+    const { loadAiElements, flowSpacing } = useCanvasContext();
+    const { entitlements } = useSession();
     const navigate = useNavigate();
     const isDemoConversion = variant === "demo-conversion";
     const isGuestOnboarding = variant === "guest-onboarding" || isDemoConversion;
@@ -632,15 +630,29 @@ export default function BioCvModal({ variant = "full" }) {
         setSaveError(null);
         selectedTemplateIdRef.current = template.id;
         setSelectedTemplateId(template.id);
+        const requestScope = captureDocumentScope();
         try {
             const payload = buildBioCvPayload(profile);
             await saveDraft(payload, { silent: true, stepOverride: BIO_CV_SUMMARY_STEP });
+            if (!isDocumentScopeCurrent(requestScope, { requireSameRevision: true })) {
+                setSaveError("Dokument zmienił się w trakcie generowania. Wybierz szablon ponownie.");
+                return;
+            }
             const response = await fillTemplate(payload, template.id, {
                 errorMessage: "Nie udało się utworzyć CV.",
                 spacing: flowSpacing,
             });
-            await loadAiElements(response.elements, `CV ${template.name}`, template.id);
-            setActiveCvData(payload);
+            if (!isDocumentScopeCurrent(requestScope, { requireSameRevision: true })) {
+                setSaveError("Dokument zmienił się w trakcie generowania. Wybierz szablon ponownie.");
+                return;
+            }
+            const replaced = await loadAiElements(
+                response.elements,
+                `CV ${template.name}`,
+                template.id,
+                { cvData: payload },
+            );
+            if (!replaced) return;
             showBioCvModal();
         } catch (error) {
             if (isAuthFailure(error)) {
@@ -653,7 +665,7 @@ export default function BioCvModal({ variant = "full" }) {
         } finally {
             setFillingId(null);
         }
-    }, [entitlements, flowSpacing, loadAiElements, profile, saveDraft, setActiveCvData, showBioCvModal]);
+    }, [captureDocumentScope, entitlements, flowSpacing, isDocumentScopeCurrent, loadAiElements, profile, saveDraft, showBioCvModal]);
 
     const handleWizardComplete = useCallback(async () => {
         // Revalidate every step before handoff because users can navigate back
@@ -681,13 +693,27 @@ export default function BioCvModal({ variant = "full" }) {
                 return;
             }
             setIsLoading(true);
+            const requestScope = captureDocumentScope();
             await saveDraft(payload, { silent: true, stepOverride: finalStep });
+            if (!isDocumentScopeCurrent(requestScope, { requireSameRevision: true })) {
+                setSaveError("Dokument zmienił się w trakcie generowania. Uruchom kreator ponownie.");
+                return;
+            }
             const response = await fillTemplate(payload, onboardingTemplateId, {
                 errorMessage: "Nie udało się utworzyć CV.",
                 spacing: flowSpacing,
             });
-            await loadAiElements(response.elements, "Moje CV", onboardingTemplateId);
-            setActiveCvData(payload);
+            if (!isDocumentScopeCurrent(requestScope, { requireSameRevision: true })) {
+                setSaveError("Dokument zmienił się w trakcie generowania. Uruchom kreator ponownie.");
+                return;
+            }
+            const replaced = await loadAiElements(
+                response.elements,
+                "Moje CV",
+                onboardingTemplateId,
+                { cvData: payload },
+            );
+            if (!replaced) return;
             showBioCvModal();
         } catch (error) {
             if (isAuthFailure(error)) {
@@ -705,7 +731,7 @@ export default function BioCvModal({ variant = "full" }) {
         } finally {
             setIsLoading(false);
         }
-    }, [finalStep, flowSpacing, isDemoConversion, loadAiElements, navigate, profile, saveDraft, setActiveCvData, showBioCvModal, wizardSteps]);
+    }, [captureDocumentScope, finalStep, flowSpacing, isDemoConversion, isDocumentScopeCurrent, loadAiElements, navigate, profile, saveDraft, showBioCvModal, wizardSteps]);
 
     const addCustomFromPreset = useCallback((preset) => {
         const nextIndex = profileRef.current.custom_sections.length;

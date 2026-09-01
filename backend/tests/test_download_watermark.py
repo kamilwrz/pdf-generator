@@ -21,6 +21,7 @@ from app.models.models import Base, Pdf, PdfElements, User
 from app.schemas.user_schema import UserCreateRequest
 from app.services import document_service as doc_service
 from app.services import entitlements as ent
+from app.services import pdf_storage
 from app.testing_support import ensure_test_auth_env
 
 
@@ -37,11 +38,14 @@ class DownloadWatermarkTests(unittest.TestCase):
         ent.seed_plans(self.db)
 
         user_crud.create_user(self.db, UserCreateRequest(
-            username="u1", email="u1@e.pl", password="pw"))
-        self.user = self.db.query(User).filter(User.username == "u1").one()
+            username="usr1", email="u1@e.pl", password="correct horse battery"))
+        self.user = self.db.query(User).filter(User.username == "usr1").one()
 
-        self.tmpdir = tempfile.mkdtemp()
-        self.file_path = str(Path(self.tmpdir) / "cv.pdf")
+        self.storage = tempfile.TemporaryDirectory()
+        self.storage_root = Path(self.storage.name)
+        legacy_user_dir = self.storage_root / self.user.username
+        legacy_user_dir.mkdir(parents=True)
+        self.file_path = str(legacy_user_dir / "cv.pdf")
         Path(self.file_path).write_bytes(b"%PDF-1.4 clean stub")
 
         now = datetime.now(timezone.utc)
@@ -65,7 +69,7 @@ class DownloadWatermarkTests(unittest.TestCase):
             yield self.db
 
         app.dependency_overrides[get_db] = _override_db
-        app.dependency_overrides[verify_token] = lambda: {"sub": "u1"}
+        app.dependency_overrides[verify_token] = lambda: {"sub": "usr1"}
         self.client = TestClient(app)
 
         # The self-heal re-render reads `USE_S3` from `document_service`, which
@@ -77,11 +81,15 @@ class DownloadWatermarkTests(unittest.TestCase):
         s3_patch = patch.object(doc_service, "USE_S3", False)
         s3_patch.start()
         self.addCleanup(s3_patch.stop)
+        storage_patch = patch.object(doc_service, "PDF_UPLOAD_DIR", self.storage_root)
+        storage_patch.start()
+        self.addCleanup(storage_patch.stop)
 
     def tearDown(self):
         app.dependency_overrides.clear()
         self.db.close()
         self.engine.dispose()
+        self.storage.cleanup()
 
     def _pdf_row(self) -> Pdf:
         return self.db.query(Pdf).filter(Pdf.id == self.pdf_id).one()
@@ -107,7 +115,9 @@ class DownloadWatermarkTests(unittest.TestCase):
         self.assertIn("attachment", response.headers.get("content-disposition", ""))
         self.db.refresh(self._pdf_row())
         self.assertFalse(self._pdf_row().watermarked)
-        self.assertTrue(Path(self.file_path).exists())
+        self.assertEqual(self._pdf_row().storage_backend, "local")
+        self.assertTrue(Path(self._pdf_row().file_path).exists())
+        self.assertFalse(Path(self.file_path).exists())
 
     def test_legacy_watermarked_pro_download_rerenders_clean(self):
         self._pdf_row().watermarked = True
@@ -120,6 +130,70 @@ class DownloadWatermarkTests(unittest.TestCase):
         self.assertTrue(response.content.startswith(b"%PDF"))
         self.db.refresh(self._pdf_row())
         self.assertFalse(self._pdf_row().watermarked)
+
+    def test_stale_watermark_render_never_replaces_newer_revision(self):
+        row = self._pdf_row()
+        row.watermarked = True
+        row.revision = 1
+        self.db.commit()
+        winner_key = f"pdfs/{self.user.id}/{self.pdf_id}/{'b' * 32}.pdf"
+        loser_key = f"pdfs/{self.user.id}/{self.pdf_id}/{'c' * 32}.pdf"
+        winner_path = pdf_storage.local_path_for_key(
+            winner_key,
+            root=self.storage_root,
+            owner_id=self.user.id,
+            pdf_id=self.pdf_id,
+        )
+        winner_path.parent.mkdir(parents=True, exist_ok=True)
+        winner_bytes = b"%PDF-1.4 newer revision"
+
+        def publish_concurrent_winner(*_args, **_kwargs):
+            # Simulate another request committing revision 2 after this request
+            # rendered revision 1 but before its final pointer CAS.
+            winner_path.write_bytes(winner_bytes)
+            self.db.query(Pdf).filter(Pdf.id == self.pdf_id).update({
+                Pdf.revision: 2,
+                Pdf.storage_backend: "local",
+                Pdf.storage_key: winner_key,
+                Pdf.file_path: str(winner_path),
+                Pdf.watermarked: False,
+            })
+            self.db.commit()
+            return str(
+                pdf_storage.local_path_for_key(
+                    loser_key,
+                    root=self.storage_root,
+                    owner_id=self.user.id,
+                    pdf_id=self.pdf_id,
+                )
+            )
+
+        with patch.object(
+            doc_service,
+            "make_pdf_key",
+            return_value=loser_key,
+        ), patch.object(
+            doc_service,
+            "put_pdf_bytes",
+            side_effect=publish_concurrent_winner,
+        ):
+            response = self.client.post("/pdf/download_pdf", json=self.pdf_id)
+
+        self.assertEqual(response.status_code, 200, msg=response.text)
+        self.assertEqual(response.content, winner_bytes)
+        self.db.expire_all()
+        persisted = self._pdf_row()
+        self.assertEqual(persisted.revision, 2)
+        self.assertEqual(persisted.storage_key, winner_key)
+        self.assertEqual(persisted.file_path, str(winner_path))
+        self.assertFalse(persisted.watermarked)
+        loser_path = pdf_storage.local_path_for_key(
+            loser_key,
+            root=self.storage_root,
+            owner_id=self.user.id,
+            pdf_id=self.pdf_id,
+        )
+        self.assertFalse(loser_path.exists())
 
 
 if __name__ == "__main__":

@@ -7,14 +7,16 @@
  * slot (full cover) and closes the gallery when `onApplied` is provided.
  */
 import classes from "./GalleryItem.module.css";
+import { useRef } from "react";
 import { useCanvasContext } from "../../../store/canvas-context";
 import { AiFillDelete } from "react-icons/ai";
 
-import API_BASE_URL, { ApiClient, ENDPOINTS } from "../../../services/api";
+import { ApiClient, ENDPOINTS } from "../../../services/api";
 import { EDITOR_MODE_TEMPLATE } from "../../../utils/editorMode";
 import { applyProfilePhoto, findProfilePhotoSlot } from "../../../utils/profilePhoto";
 
 export default function GalleryItem({ url, img_id, imageUsed, onApplied }) {
+    const imageRef = useRef(null);
     const {
         addImage,
         A4_Elements,
@@ -30,11 +32,14 @@ export default function GalleryItem({ url, img_id, imageUsed, onApplied }) {
             .catch((error) => console.log(error));
     }
 
-    function handleInsert(event) {
-        const img = event.currentTarget;
+    function handleInsert() {
+        const img = imageRef.current;
         const naturalWidth = img.naturalWidth || 100;
         const naturalHeight = img.naturalHeight || 100;
-        const src = `${API_BASE_URL}${ENDPOINTS.IMG.CONTENT(img_id)}`;
+        // Persist the backend-owned route, not the deployment origin or the
+        // development `/api` proxy prefix. This keeps saved documents portable
+        // and lets the server enforce the exact image-source allowlist.
+        const src = ENDPOINTS.IMG.CONTENT(img_id);
 
         if (editorMode === EDITOR_MODE_TEMPLATE) {
             if (!findProfilePhotoSlot(A4_Elements)) return;
@@ -54,19 +59,26 @@ export default function GalleryItem({ url, img_id, imageUsed, onApplied }) {
     return (
         <div className={classes.imageWrapper}>
             {url ? (
-                <img
-                    src={url}
-                    id={img_id}
-                    className={classes.image}
+                <button
+                    type="button"
+                    className={classes.insertButton}
                     onClick={handleInsert}
-                    alt="Zdjęcie profilowe"
-                />
+                    aria-label="Dodaj zdjęcie profilowe do CV"
+                >
+                    <img
+                        ref={imageRef}
+                        src={url}
+                        id={img_id}
+                        className={classes.image}
+                        alt=""
+                    />
+                </button>
             ) : (
-                <button type="button" className={classes.image} onClick={() => addImage({ img_id })}>
+                <button type="button" className={classes.insertButton} onClick={() => addImage({ img_id })}>
                     Dodaj
                 </button>
             )}
-            <button type="button" onClick={handleDeleteImage} aria-label="Usuń zdjęcie profilowe">
+            <button type="button" className={classes.deleteButton} onClick={handleDeleteImage} aria-label="Usuń zdjęcie profilowe">
                 <AiFillDelete />
             </button>
         </div>

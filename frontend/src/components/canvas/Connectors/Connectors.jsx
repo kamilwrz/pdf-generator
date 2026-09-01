@@ -1,6 +1,5 @@
 import classes from "./Connectors.module.css";
-import { use } from "react";
-import { PdfContext } from "../../../store/pdfgenerator-context";
+import { useCanvasContext } from "../../../store/canvas-context";
 import { computeConnectorPath } from "./connectorPath";
 
 // Single SVG layer over one A4 page that draws its page-local connectors.
@@ -8,7 +7,7 @@ import { computeConnectorPath } from "./connectorPath";
 // glued as they move. The layer is pointer-transparent except for each line's
 // hit area, so it never blocks dragging the elements underneath.
 export default function Connectors({ elements, page }) {
-    const { A4_Elements, currentPage, selectElement, pageSize } = use(PdfContext);
+    const { A4_Elements, currentPage, selectElement, pageSize } = useCanvasContext();
     const canvasElements = elements ?? A4_Elements;
     const A4_WIDTH = pageSize?.width ?? 595;
     const A4_HEIGHT = pageSize?.height ?? 842;

@@ -4,6 +4,7 @@
       "description": "One browser-authored visual line for a textarea export.\n\n``start`` / ``end`` address the unchanged plain ``content`` string. Soft\nbreak whitespace and explicit newline characters may sit between adjacent\nrecords. The payload is transient rendering metadata: editor state and the\npersisted document continue to store semantic text rather than hard wraps.",
       "properties": {
         "text": {
+          "maxLength": 100000,
           "title": "Text",
           "type": "string"
         },
@@ -161,6 +162,7 @@
       "type": "string"
     },
     "element_id": {
+      "maxLength": 256,
       "minLength": 1,
       "title": "Element Id",
       "type": "string"
@@ -168,6 +170,8 @@
     "page": {
       "anyOf": [
         {
+          "maximum": 20,
+          "minimum": 1,
           "type": "integer"
         },
         {
@@ -240,6 +244,7 @@
     "content": {
       "anyOf": [
         {
+          "maxLength": 100000,
           "type": "string"
         },
         {
@@ -315,6 +320,7 @@
           "items": {
             "$ref": "#/$defs/TextRun"
           },
+          "maxItems": 2000,
           "type": "array"
         },
         {
@@ -330,6 +336,7 @@
           "items": {
             "$ref": "#/$defs/ResolvedTextLine"
           },
+          "maxItems": 2000,
           "type": "array"
         },
         {
@@ -694,6 +701,7 @@
             },
             "type": "array"
           },
+          "maxItems": 128,
           "type": "array"
         },
         {
@@ -722,6 +730,7 @@
             "additionalProperties": true,
             "type": "object"
           },
+          "maxItems": 128,
           "type": "array"
         },
         {

@@ -15,6 +15,7 @@ from app.dependencies import get_db
 from app.main import app
 from app.models.models import Base, User
 from app.schemas.user_schema import UserCreateRequest
+from app.services.entitlements import seed_plans
 from app.testing_support import ensure_test_auth_env
 
 
@@ -25,8 +26,9 @@ class ImportHistoryTests(unittest.TestCase):
         Base.metadata.create_all(bind=engine)
         self.db = sessionmaker(bind=engine)()
         self.engine = engine
-        create_user(self.db, UserCreateRequest(username="owner", email="owner@example.test", password="pw"))
-        create_user(self.db, UserCreateRequest(username="other", email="other@example.test", password="pw"))
+        seed_plans(self.db)
+        create_user(self.db, UserCreateRequest(username="owner", email="owner@example.test", password="correct horse battery"))
+        create_user(self.db, UserCreateRequest(username="other", email="other@example.test", password="correct horse battery"))
         self.owner = self.db.query(User).filter_by(username="owner").one()
         self.other = self.db.query(User).filter_by(username="other").one()
         self.snapshot = create_snapshot(self.db, owner_id=self.owner.id, filename="owner-cv.pdf", size_bytes=123)
@@ -47,7 +49,10 @@ class ImportHistoryTests(unittest.TestCase):
     def test_import_ids_cannot_read_or_delete_another_users_data(self):
         self.assertEqual(self.client.get(f"/ai/imports/{self.snapshot.id}").status_code, 404)
         self.assertEqual(self.client.delete(f"/ai/imports/{self.snapshot.id}").status_code, 404)
-        self.assertEqual(self.client.get("/ai/imports").json(), {"imports": []})
+        self.assertEqual(
+            self.client.get("/ai/imports").json(),
+            {"items": [], "next_cursor": None},
+        )
 
 
 if __name__ == "__main__":

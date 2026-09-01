@@ -9,10 +9,8 @@
  * not a page). Those four stay hidden outside `editorMode: "freeform"`; page
  * navigation remains available in both modes.
  */
-import { use } from "react";
 import classes from "./PageControls.module.css";
 import { useCanvasContext } from "../../../store/canvas-context";
-import { PdfContext } from "../../../store/pdfgenerator-context";
 import { EDITOR_MODE_FREEFORM } from "../../../utils/editorMode";
 
 const Chevron = ({ dir }) => (
@@ -24,9 +22,8 @@ const Chevron = ({ dir }) => (
 export default function PageControls() {
     const {
         currentPage, pageCount, addPage, removePage, goToPage, clonePage, movePage,
-        isTwoPageView, toggleTwoPageView,
+        isTwoPageView, toggleTwoPageView, editorMode,
     } = useCanvasContext();
-    const { editorMode } = use(PdfContext);
     const isFreeform = editorMode === EDITOR_MODE_FREEFORM;
 
     return (

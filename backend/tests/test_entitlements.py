@@ -34,7 +34,7 @@ class EntitlementsTests(unittest.TestCase):
             UserCreateRequest(
                 username=username,
                 email=f"{username}@example.com",
-                password="secret123",
+                password="secret123456",
             ),
         )
         return user_crud.get_user_by_username(self.db, username)
@@ -204,8 +204,31 @@ class PlanSeedAndMigrationTests(unittest.TestCase):
         self.assertNotIn("premium", active)
 
     def test_migrate_legacy_paid_slugs_to_pro(self):
-        from app.models.models import UserSubscription
+        from app.models.models import Plan, UserSubscription
         now = datetime.now(timezone.utc)
+        self.db.add_all([
+            User(
+                id=user_id,
+                username=f"legacy-{user_id}",
+                email=f"legacy-{user_id}@example.test",
+                hashed_password="test-only",
+                created_at=now,
+                is_active=True,
+            )
+            for user_id in (1, 2)
+        ])
+        self.db.add_all([
+            Plan(
+                slug=slug,
+                name=slug.title(),
+                ai_assistant=True,
+                extract_cv=True,
+                template_tier="all",
+                is_active=True,
+            )
+            for slug in ("standard", "premium")
+        ])
+        self.db.commit()
         self.db.add(UserSubscription(
             user_id=1, plan_slug="standard", status="active",
             current_period_start=now, updated_at=now,

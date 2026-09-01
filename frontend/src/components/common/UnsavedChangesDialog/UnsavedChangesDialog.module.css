@@ -1,0 +1,109 @@
+.body {
+  display: grid;
+  grid-template-columns: 32px 1fr;
+  gap: 14px;
+  align-items: start;
+  padding: 22px 28px 24px;
+}
+
+.body p {
+  margin: 1px 0 0;
+  color: var(--chrome-muted);
+  font: 400 13px/1.55 var(--font-body);
+}
+
+.marker {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--chrome-border);
+  border-radius: var(--radius-control);
+  color: var(--chrome-accent);
+  font: 800 17px/1 var(--font-display);
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  width: 100%;
+}
+
+.cancel,
+.discard,
+.save {
+  min-height: 36px;
+  border-radius: var(--radius-control);
+  padding: 8px 14px;
+  font: 700 12px/1.2 var(--font-body);
+  cursor: pointer;
+}
+
+.cancel {
+  border: 1px solid var(--chrome-border);
+  background: var(--chrome-surface);
+  color: var(--chrome-ink);
+}
+
+.discard {
+  border: 1px solid var(--chrome-border);
+  background: var(--chrome-surface);
+  color: var(--chrome-ink);
+}
+
+.save {
+  border: 1px solid var(--chrome-ink);
+  background: var(--chrome-ink);
+  color: var(--chrome-surface);
+}
+
+.cancel:hover {
+  border-color: var(--chrome-ink);
+  background: var(--chrome-hover);
+}
+
+.discard:hover {
+  border-color: var(--chrome-ink);
+  background: var(--chrome-hover);
+}
+
+.save:hover {
+  border-color: var(--chrome-accent);
+  background: var(--chrome-accent);
+}
+
+.cancel:focus-visible,
+.discard:focus-visible,
+.save:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--chrome-accent) 70%, transparent);
+  outline-offset: 2px;
+}
+
+.cancel:disabled,
+.discard:disabled,
+.save:disabled {
+  cursor: wait;
+  opacity: .55;
+}
+
+.error {
+  grid-column: 2;
+  color: var(--color-danger) !important;
+}
+
+@media (max-width: 520px) {
+  .body {
+    padding: 20px 16px;
+  }
+
+  .actions {
+    flex-direction: column-reverse;
+  }
+
+  .cancel,
+  .discard,
+  .save {
+    width: 100%;
+  }
+}

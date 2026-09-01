@@ -4,8 +4,8 @@
  */
 import classes from "./Line.module.css";
 import { memo } from 'react';
-import { PdfContext } from "../../../store/pdfgenerator-context";
-import { use, useState } from "react";
+import { useState } from "react";
+import { useCanvasContext } from "../../../store/canvas-context";
 import Resize from "../../common/Resize/Resize";
 
 function Line({
@@ -22,7 +22,7 @@ function Line({
     fixedToPage,
 }) {
 
-    const { moveElement, selectElement, selectMoveElement, A4_Elements, resizeElement } = use(PdfContext);
+    const { moveElement, selectElement, selectMoveElement, A4_Elements, resizeElement } = useCanvasContext();
 
     const [isResizeable, setIsResizeable] = useState(false);
     const selectedCount = A4_Elements.filter((element) => element.isSelected).length;

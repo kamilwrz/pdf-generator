@@ -1,9 +1,14 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { ApiClient, ENDPOINTS, wakeBackend } from "../services/api";
 import { sanitizeElementsContent } from "../utils/sanitizeTextContent";
 import { assertCanvasElementRoot } from "../utils/canvasElementSchema";
 import { flowSpacingToPayload } from "../utils/flowSpacing";
 import { resolveBrowserTextLayouts } from "../utils/browserTextLayout";
+import {
+  localizePdfPersistenceError,
+  requirePdfRevision,
+  resolveCreateAttempt,
+} from "../utils/pdfPersistenceContract";
 
 /**
  * PDF create / update / download against the backend.
@@ -15,7 +20,8 @@ import { resolveBrowserTextLayouts } from "../utils/browserTextLayout";
  * `saveElements` persists canvas rows only (no render); it is a low-level
  * primitive and is no longer used for background autosave.
  *
- * @param {Function} handlePdfId - Stores the active document id after create.
+ * @param {Function} handlePdfId - Stores the active document id and authoritative
+ *   server revision after successful create/update/save-elements responses.
  * @param {Function} handleShowModal - Opens the save/download result UI.
  * @param {React.RefObject} titleRef - Title input; `.pdf` is appended for storage.
  * @param {Array} A4_Elements_deleted - Soft-deleted rows still sent on update.
@@ -25,6 +31,7 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
 
   const [responsePDF, setResponsePDF] = useState();
   const [isPdfLoading, setIsPdfLoading] = useState(false);
+  const createAttemptRef = useRef(null);
 
   // Keep the loading state up for at least this long so a fast request still
   // shows the spinner (otherwise it can flash by before it's ever painted).
@@ -34,7 +41,9 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
   const createPdf = useCallback((A4_Elements, titleRef, pages = 1, pageSize, meta = {}) => {
 
     setIsPdfLoading(true);
+    setResponsePDF(undefined);
     const startedAt = Date.now();
+    let didPersist = false;
 
     // Strip NULL/NBSP junk before the request so even an older backend
     // cannot bake missing-glyph boxes into the exported PDF.
@@ -45,8 +54,10 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
       assertCanvasElementRoot(sorted);
     } catch (error) {
       setResponsePDF(error);
-      setIsPdfLoading(false);
-      handleShowModal();
+      setTimeout(() => {
+        handleShowModal();
+        setIsPdfLoading(false);
+      }, MIN_SPINNER_MS);
       return;
     }
 
@@ -74,28 +85,49 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
           cv_data,
           source_import_id,
         });
+        // The serialized, browser-resolved canvas is the exact payload sent to
+        // the backend. Include the monotonic document epoch in the fingerprint
+        // so a new editor session never reuses an earlier document's key.
+        const fingerprint = `${meta.documentSessionKey ?? "unknown"}\u0000${body}`;
+        const createAttempt = resolveCreateAttempt(createAttemptRef.current, fingerprint);
+        createAttemptRef.current = createAttempt;
         return wakeBackend().then(() => api.httpRequest(
         ENDPOINTS.PDF.CREATE,
         "POST",
         body,
         "Nie udało się utworzyć PDF!",
-        { retries: 2, timeoutMs: 120_000 },
+        {
+          retries: 2,
+          timeoutMs: 120_000,
+          headers: { "Idempotency-Key": createAttempt.idempotencyKey },
+        },
         ));
       })
       .then((data) => {
-        handlePdfId(data.pdf_id);
+        const revision = requirePdfRevision(data.revision);
+        didPersist = true;
+        createAttemptRef.current = null;
+        handlePdfId(data.pdf_id, { revision });
         setResponsePDF({
           success: data.created,
           pdf_id: data.pdf_id,
+          revision,
+          replayed: data.replayed === true,
           intent: "save",
         });
       })
-      .catch((error) => setResponsePDF(error))
+      .catch((error) => {
+        // A status-bearing response proves the server handled the request; a
+        // later click is a new logical attempt. Network/timeout failures remain
+        // uncertain, so the same snapshot keeps its key for a safe replay.
+        if (error?.status) createAttemptRef.current = null;
+        setResponsePDF(localizePdfPersistenceError(error));
+      })
       .finally(() => {
         setTimeout(() => {
           handleShowModal();
           setIsPdfLoading(false);
-          setA4_Elements_deleted([]);
+          if (didPersist) setA4_Elements_deleted([]);
         }, Math.max(0, MIN_SPINNER_MS - (Date.now() - startedAt)));
       });
   }, [handlePdfId, handleShowModal, setA4_Elements_deleted]);
@@ -104,18 +136,24 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
   const updatePdf = useCallback((A4_Elements, PDF_ID, titleRef, A4_Elements_deleted, pages = 1, pageSize, meta = {}) => {
 
     setIsPdfLoading(true);
+    setResponsePDF(undefined);
     const startedAt = Date.now();
+    let didPersist = false;
 
     const sorted = sanitizeElementsContent(
       [...A4_Elements].sort((a, b) => a.zIndex - b.zIndex),
     );
     const elements = [...sorted, ...sanitizeElementsContent(A4_Elements_deleted)];
+    let expected_revision;
     try {
       assertCanvasElementRoot(elements);
+      expected_revision = requirePdfRevision(meta.expectedRevision);
     } catch (error) {
       setResponsePDF(error);
-      setIsPdfLoading(false);
-      handleShowModal();
+      setTimeout(() => {
+        handleShowModal();
+        setIsPdfLoading(false);
+      }, MIN_SPINNER_MS);
       return;
     }
 
@@ -140,6 +178,7 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
           template_id,
           spacing_px,
           cv_data,
+          expected_revision,
         });
         return wakeBackend().then(() => api.httpRequest(
         ENDPOINTS.PDF.UPDATE,
@@ -150,21 +189,25 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
         ));
       })
       .then((data) => {
+        const revision = requirePdfRevision(data.revision);
+        didPersist = true;
+        handlePdfId(data.pdf_id ?? PDF_ID, { revision });
         setResponsePDF({
           success: data.updated,
           pdf_id: data.pdf_id,
+          revision,
           intent,
         });
       })
-      .catch((error) => setResponsePDF(error))
+      .catch((error) => setResponsePDF(localizePdfPersistenceError(error)))
       .finally(() => {
         setTimeout(() => {
           handleShowModal();
           setIsPdfLoading(false);
-          setA4_Elements_deleted([]);
+          if (didPersist) setA4_Elements_deleted([]);
         }, Math.max(0, MIN_SPINNER_MS - (Date.now() - startedAt)));
       });
-  }, [handleShowModal, setA4_Elements_deleted])
+  }, [handlePdfId, handleShowModal, setA4_Elements_deleted])
 
 
   // Render-on-demand download: render the current canvas to a PDF and return a
@@ -237,7 +280,9 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
     const template_id = meta.templateId || null;
     const spacing_px = flowSpacingToPayload(meta.flowSpacing);
     const cv_data = meta.cvData || null;
-    await api.httpRequest(
+    const expected_revision = requirePdfRevision(meta.expectedRevision);
+    try {
+      const data = await api.httpRequest(
       ENDPOINTS.PDF.SAVE_ELEMENTS, "PUT",
       JSON.stringify({
         root: elements, pdf_id: PDF_ID, pdf_title: (titleRef.current?.value || "") + ".pdf",
@@ -246,9 +291,16 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
         template_id,
         spacing_px,
         cv_data,
+        expected_revision,
       }),
       "Autozapis nie powiódł się.");
-  }, []);
+      const revision = requirePdfRevision(data.revision);
+      handlePdfId(data.pdf_id ?? PDF_ID, { revision });
+      return data;
+    } catch (error) {
+      throw localizePdfPersistenceError(error);
+    }
+  }, [handlePdfId]);
 
   return {createPdf, updatePdf, downloadPdf, saveElements, responsePDF, isPdfLoading};
 }

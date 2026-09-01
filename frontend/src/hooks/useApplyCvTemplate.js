@@ -5,13 +5,15 @@
  * paths call `/ai/fill_template` with generator-default spacing and then
  * `replaceActiveElements` (keeps pdfId + title).
  */
-import { useCallback, useMemo, useState, use } from "react";
-import { PdfContext } from "../store/pdfgenerator-context";
+import { useCallback, useMemo, useState } from "react";
+import { useCanvasContext } from "../store/canvas-context";
+import { useSession } from "../store/session-context";
 import { ApiClient } from "../services/api";
 import { fillTemplate } from "../services/fillTemplate";
 import { isTemplateAllowed, planErrorMessage } from "../utils/entitlements";
 import { DEFAULT_FLOW_SPACING } from "../utils/flowSpacing";
 import { getAccessToken } from "../utils/authSession";
+import { useDocumentLifecycle } from "../store/document-lifecycle-context";
 
 /**
  * @returns {{
@@ -22,13 +24,13 @@ import { getAccessToken } from "../utils/authSession";
  * }}
  */
 export function useApplyCvTemplate() {
+  const { captureDocumentScope, isDocumentScopeCurrent } = useDocumentLifecycle();
   const {
     activeCvData,
-    entitlements,
     replaceActiveElements,
     adoptDocumentFlowSpacing,
-    pushToast,
-  } = use(PdfContext);
+  } = useCanvasContext();
+  const { entitlements, pushToast } = useSession();
 
   const [fillingId, setFillingId] = useState(null);
   const [error, setError] = useState(null);
@@ -46,6 +48,7 @@ export function useApplyCvTemplate() {
     }
     setFillingId(template.id);
     setError(null);
+    const requestScope = captureDocumentScope();
     try {
       // Sections-panel spacing belongs to the current document layout.
       // A new template must regenerate with the generator defaults — not
@@ -55,6 +58,10 @@ export function useApplyCvTemplate() {
         errorMessage: "Zmiana szablonu nie powiodła się",
         spacing: DEFAULT_FLOW_SPACING,
       });
+      if (!isDocumentScopeCurrent(requestScope, { requireSameRevision: true })) {
+        setError("Dokument zmienił się w trakcie generowania. Uruchom zmianę szablonu ponownie.");
+        return false;
+      }
       // No title argument: `replaceActiveElements` only overwrites the
       // title input when one is passed, so the project keeps whatever
       // name the user already gave it.
@@ -84,7 +91,9 @@ export function useApplyCvTemplate() {
     activeCvData,
     adoptDocumentFlowSpacing,
     api,
+    captureDocumentScope,
     entitlements,
+    isDocumentScopeCurrent,
     pushToast,
     replaceActiveElements,
   ]);

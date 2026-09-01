@@ -1,54 +1,104 @@
-1. LINIE ORIENTACYJNE
-- linie orientacyjne zaklocaja czasami przemieszczanie elementu, jesli kursor myszki "przechodzi" przez
-  nie podczas ruchu
+# Rejestr zweryfikowanych błędów CV Studio
 
-2. ROZMIAR TEXTAREA
-- rozmiar nie dopasowuje sie w kazdej sytuacji do tekstu; dopiero po wpisaniu czegos recznie dopasowuje sie
-  do wysokosci
-- AI zmienia wielkosc czcionki i jest brak dopasowania obramowania do tekstu
-FIXED (bulletlist trailing empty) - puste linie / bare „•” na końcu zawyzały wysokość w edycji i poza nią
+Stan na 2026-09-01. Każdy historyczny wpis ma jeden z trzech statusów:
 
-3. PRZEMIESZCZANIE MIEDZY STRONAMI
-- czasami nie chce przerzucic elementu na druga strone; pomaga zamkniecie panelu edytujacego
+- **NAPRAWIONY** — zachowanie jest poprawione i ma wskazany test regresyjny;
+- **ODTWORZONY** — problem jest potwierdzony i chroniony testem oczekującym na naprawę;
+- **NIEAKTUALNY** — wymaganie zostało świadomie zastąpione aktualnym kontraktem produktu.
 
-4. BRAK X-Y-GUIDELINES (FIXED)
-- linie pokazuja sie zawsze na "mousehold" / "mousedown" na lini;inne zachowanie w wypadku tekstu
+## 1. Linie orientacyjne zakłócają przeciąganie — NAPRAWIONY
 
-5. POBIERZ CV
-- pobranie bez toast'u;ma nastapic od razu po kliknieciu przyciku w topbar
+Prowadnice są nieinteraktywne (`pointer-events: none`), więc nie przejmują
+wskaźnika podczas ruchu elementu. Dowody: `frontend/src/components/canvas/Guides/Guides.module.css`
+oraz `frontend/src/utils/spacingGuides.test.js`.
 
-6. DOCS SIE RESETUJE I CZASAMI SCIAGA ZLY PLIK
-- czasami my docs sie resetuje, niewiadommo dlaczego; sciaga nie ten plik mimo klikniecia w odpowiedni
+## 2. Textarea nie dopasowuje wysokości — NAPRAWIONY
 
-7. LOGOWANIE (FIXED - P = RENDER SUBSCRIPTION, serwer nie zawsze aktywny od razu)
-- lag po kliknieciu;nie wiem dlaczego, ale czasami proces logowania nie nastepuje od razu
+Pomiar i reflow reagują także na zmianę treści/stylu przez AI; usuwane są też
+końcowe puste wiersze list. Dowody: `frontend/src/utils/textareaHeight.test.js`
+i `frontend/src/utils/textareaReflow.test.js`.
 
-8. BG-IMAGE / BG-RECT (FIXED)
-- klikniecie w bg element (image lub linia) powoduje zly UX;trzeba dodac kategorie i "zablokowac" przed tym bg / selection
-- to samo z deko prostokatami, ktore tworza margin
-- oraz sidebary (image i linia)
+## 3. Przenoszenie elementów między stronami — NAPRAWIONY
 
-9. IMAGE UPLOAD (FIXED)
-- upload paru images zle wyglada;pozycjowanie diagonalne!
-- modal jest zle polozony i przykrywa sidebar
+Przeciąganie korzysta z globalnych `pointermove`, `pointerup` i `pointercancel`
+oraz zachowuje capture niezależnie od panelu edycji. Dowody:
+`frontend/src/hooks/useElementSelectionDrag.js` i `frontend/src/hooks/useA4Elements.test.js`.
 
-10. AI CHAT (FIXED)
-- tylko pytania odnosnie CV i taski odnosnie CV maja byc wykonane, reszta ma byc odmowiona ze wzgledu na
-  nie ten scope
+## 4. Brak prowadnic X/Y i niespójny long-press — NAPRAWIONY
 
-11. 2-SITES MODAL DOWNLOAD
-- jak jest widok na 2 strony to tylko jedna jest blur i na jednej sie pokazuje modal
+Prowadnice osi oraz zachowanie przy przytrzymaniu tekstu są wspólne dla typów
+elementów. Dowody: `frontend/src/utils/textSpacingHold.test.js` oraz
+`frontend/src/utils/spacingGuides.test.js`.
 
-12. LOADING BAR IMG UPLOAD (FIXED)
-- zle dziala dla wielu img
-- wspolnie ma liczyc i pokazywac progres, przy 2 > img, ma byc komunikat w liczbie mnogiej
-- komunikat ma byc po polsku
+## 5. Pobieranie CV — NIEAKTUALNY / NAPRAWIONY
 
-13. SELECT - CZIONKI - EIDT PANEL (FIXED)
-- nowe czcionki pokazuja sie w orginalnym font
-- stare zwyklym, maja pokazywac sie w ich foncie
+Historyczny wymóg „bez toastu” został zastąpiony przez kontrakt informacji o
+powodzeniu/błędzie eksportu z `DESIGN.md`. Sam download rozpoczyna się
+bezpośrednio po kliknięciu przez `triggerBlobDownload`. Dowód end-to-end:
+`frontend/e2e/editor-smoke.spec.js`.
 
-14. SZABLONY
-- sidebarowe szablony maja byc na jedna strone;kategorie sidebar i main column;okreslic
-- w niektorych szablonach czcionka wyksztalcenie (tresc sekcji ma inny kolor)
+## 6. „Moje dokumenty” resetuje stan albo pobiera inny plik — NAPRAWIONY
 
+Sesja dokumentu ma niezależne `sessionKey`, `epoch` i rewizję; opóźniony wynik
+A → B → A nie może zatwierdzić się w innym dokumencie. Otwieranie, zapis i
+pobieranie zachowują właściwy `pdf_id`. Dowody:
+`frontend/src/utils/documentLifecycleGuards.test.js` oraz
+`frontend/e2e/editor-smoke.spec.js`.
+
+## 7. Opóźnione logowanie po uśpieniu Render — NAPRAWIONY
+
+Login budzi tani `/health`, stosuje ograniczony retry i długi timeout, a ruch DB
+jest dopuszczany dopiero po gotowości `/ready`. Dowody:
+`frontend/src/services/api.test.js` i `backend/tests/test_readiness.py`.
+
+## 8. Zaznaczanie tła, ramek i raila — NAPRAWIONY
+
+Elementy dekoracyjne `fixedToPage` są zablokowane przed selekcją i edycją.
+Dowód: `frontend/src/utils/elementInteraction.test.js`.
+
+## 9. Wiele uploadów obrazów układa się diagonalnie — NAPRAWIONY
+
+Nowe obrazy startują w stałym położeniu zamiast otrzymywać offset zależny od
+indeksu, a galeria pozostaje przytwierdzona do viewportu. Dowód:
+`frontend/src/utils/a4ElementFactories.test.js`.
+
+## 10. Chat AI odpowiada poza zakresem CV — NAPRAWIONY
+
+Backend wymaga klasyfikacji `in_scope` i odmawia realizacji poleceń niezwiązanych
+z CV. Dowód: `backend/tests/test_ai_chat_command.py`.
+
+## 11. Modal pobierania przy widoku dwóch stron — NAPRAWIONY
+
+Wspólny `DialogShell` renderuje portal do `body` i pełnoekranowy backdrop,
+niezależnie od liczby stron canvasa. Dowód:
+`frontend/src/components/common/DialogShell/DialogShell.jsx`.
+
+## 12. Pasek postępu wielu obrazów — NAPRAWIONY
+
+Upload batcha ma jeden wspólny licznik/progres i poprawną polską odmianę liczby
+plików. Dowód: `frontend/src/utils/polishUploadMessage.test.js`.
+
+## 13. Fonty w selekcie panelu edycji — NAPRAWIONY
+
+Select i każda opcja korzystają z odpowiadającego im stosu fontów. Dowód:
+`frontend/src/utils/canvasFont.test.js`.
+
+## 14. Szablony sidebarowe i kolor edukacji — NIEAKTUALNY / NAPRAWIONY
+
+Wymóg „sidebar zawsze na jednej stronie” jest nieaktualny: aktualny produkt
+obsługuje czytelne CV wielostronicowe i poprawną kontynuację raila. Klasyfikację
+sekcji sidebar/main chroni `frontend/src/templates/sidebarSections.test.js`.
+Niespójny kolor treści wykształcenia został naprawiony; regresję pokrywa
+`backend/tests/test_cv_template_layouts.py`.
+
+## 15. Usunięcie i ponowne dodanie kategorii umiejętności — NAPRAWIONY
+
+Regresja pętli aktualizacji zamknięta w commitach `5d562ea` i `a8a70d3` pozostaje
+naprawiona. Testy jednostkowe pokrywają zachowanie tombstone i zbieżność
+synchronizacji w `frontend/src/utils/syncCvDataFromCanvas.test.js`. Chromium E2E
+usuwa kategorię rzeczywistymi kontrolkami edytora, cofa operację i po kolejnym
+cyklu efektu ponownie sprawdza responsywność w
+`frontend/e2e/editor-smoke.spec.js`; izolowany harness Error Boundary pozostaje
+w `frontend/e2e/regression-harness.spec.js`.
+
+Obecnie nie ma wpisów ze statusem **ODTWORZONY** bez wdrożonej naprawy.

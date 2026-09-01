@@ -11,8 +11,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 
 import Progress from "../../common/Progress/Progress";
 
-import { use } from "react";
-import { PdfContext } from "../../../store/pdfgenerator-context";
+import { useUiSurfaces } from "../../../store/ui-surfaces-context";
 
 import { ApiClient } from "../../../services/api";
 import { ENDPOINTS } from "../../../services/api";
@@ -43,7 +42,7 @@ export default function Dropzone({
     onUploaded,
     onLibraryChange,
 }) {
-    const { valueImageUpload, setValueImageUpload, isDropzone } = use(PdfContext);
+    const { valueImageUpload, setValueImageUpload, isDropzone } = useUiSurfaces();
     const isEmbedded = variant === "embedded";
     const isActive = active ?? isDropzone;
 

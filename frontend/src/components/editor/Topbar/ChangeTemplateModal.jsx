@@ -2,28 +2,26 @@
  * "Zmień szablon" dialog — restyles the CV currently on the canvas.
  *
  * Reuses the exact cv_data captured by AiCvPanel/BioCvModal on their last
- * successful fill (`PdfContext.activeCvData`) and the same TemplateCarousel
+ * successful fill (`CanvasContext.activeCvData`) and the same TemplateCarousel
  * gallery. Applying a card calls `useApplyCvTemplate` (identical
  * `/ai/fill_template` + `replaceActiveElements` path as the topbar arrows)
  * and then closes this dialog.
  */
-import { useCallback, useMemo, use } from "react";
+import { useCallback, useMemo } from "react";
 import classes from "./ChangeTemplateModal.module.css";
 import DialogShell from "../../common/DialogShell/DialogShell";
 import TemplateCarousel from "../../ai/AiCvPanel/TemplateCarousel";
-import { PdfContext } from "../../../store/pdfgenerator-context";
+import { useCanvasContext } from "../../../store/canvas-context";
+import { useSession } from "../../../store/session-context";
+import { useUiSurfaces } from "../../../store/ui-surfaces-context";
 import { TEMPLATES } from "../../../templates";
 import { selectCvTemplates } from "../../../utils/cvTemplateSelection";
 import { useApplyCvTemplate } from "../../../hooks/useApplyCvTemplate";
 
 export default function ChangeTemplateModal() {
-    const {
-        isChangeTemplateModal,
-        showChangeTemplateModal,
-        activeCvData,
-        activeTemplateId,
-        entitlements,
-    } = use(PdfContext);
+    const { isChangeTemplateModal, showChangeTemplateModal } = useUiSurfaces();
+    const { activeCvData, activeTemplateId } = useCanvasContext();
+    const { entitlements } = useSession();
     const { applyTemplate, fillingId, error } = useApplyCvTemplate();
 
     const cvTemplates = useMemo(() => selectCvTemplates(TEMPLATES), []);

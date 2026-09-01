@@ -9,17 +9,17 @@ saves cannot accumulate stale template leftovers.
 """
 
 from sqlalchemy.orm import Session
-from app.models.models import Pdf, PdfElements
+from app.models.models import Image, Pdf, PdfElements, StorageCleanupJob
 from datetime import timezone
 import datetime
 from typing import Any, Mapping
 
-from app.crud.images import request_image_by_id
 from app.schemas.pdf_schema import PdfElement
 from app.services.cv_generator_primitives import (
     DEFAULT_FLOW_SPACING,
     normalize_spacing_px,
 )
+from app.utils.document_integrity import current_template_id
 
 
 def serialize_runs(element) -> list[dict[str, Any]] | None:
@@ -133,11 +133,26 @@ def serialize_spacing_px(raw: Mapping[str, Any] | None) -> dict[str, float] | No
     return payload
 
 
+def _valid_image_ids(db: Session, elements: list, owner_id: int | None) -> set[int]:
+    """Batch-load valid image ids, optionally constrained to one document owner."""
+    requested = {
+        int(element.img_id)
+        for element in elements
+        if getattr(element, "img_id", None) is not None
+    }
+    if not requested:
+        return set()
+    query = db.query(Image.id).filter(Image.id.in_(requested))
+    if owner_id is not None:
+        query = query.filter(Image.owner_id == int(owner_id))
+    return {int(row[0]) for row in query.all()}
+
+
 def create_new_pdf(
     db: Session,
     title: str,
     user_id: int,
-    file_path: str,
+    file_path: str | None,
     elements: list,
     pages: int = 1,
     page_width: float = 595,
@@ -148,23 +163,40 @@ def create_new_pdf(
     cv_data: Mapping[str, Any] | None = None,
     watermarked: bool = False,
     source_import_id: int | None = None,
+    storage_backend: str | None = None,
+    storage_key: str | None = None,
+    commit: bool = True,
+    origin_template_id: str | None = None,
+    create_idempotency_key: str | None = None,
+    create_request_hash: str | None = None,
+    revision: int = 1,
 ) -> int:
     """Insert a Pdf row plus one PdfElements row per canvas element.
 
-    Side effects: flush to obtain `pdf_id`, then commit. Invalid `img_id`
-    references are nulled so FK violations cannot abort the whole save.
+    Side effects: flush to obtain `pdf_id`; commits by default for legacy
+    callers. Storage V2 callers pass ``commit=False`` so publishing bytes and
+    inserting metadata share one saga boundary. Invalid or foreign ``img_id``
+    references are nulled as defense in depth; API services reject them earlier.
     Returns the new document id for the create/update response.
     """
     mode = "template" if editor_mode == "template" else "freeform"
+    active_template_id = current_template_id(mode, template_id)
+    provenance_template_id = origin_template_id or template_id
     pdf_db = Pdf(
         title=title,
         file_path=file_path,
+        storage_backend=storage_backend,
+        storage_key=storage_key,
         owner_id=user_id,
+        revision=revision,
+        create_idempotency_key=create_idempotency_key,
+        create_request_hash=create_request_hash,
         pages=pages or 1,
         page_width=page_width or 595,
         page_height=page_height or 842,
         editor_mode=mode,
-        template_id=template_id,
+        template_id=active_template_id,
+        origin_template_id=provenance_template_id,
         spacing_px=serialize_spacing_px(spacing_px),
         cv_data=dict(cv_data) if cv_data is not None else None,
         watermarked=watermarked,
@@ -175,10 +207,11 @@ def create_new_pdf(
 
     db.add(pdf_db)
     db.flush()
+    valid_image_ids = _valid_image_ids(db, elements, user_id)
 
     for element in elements:
         img_id = element.img_id
-        if element.img_id is not None and not request_image_by_id(db, element.img_id):
+        if element.img_id is not None and int(element.img_id) not in valid_image_ids:
             img_id = None
 
         pdf_elements_db = PdfElements(
@@ -254,7 +287,8 @@ def create_new_pdf(
         )
         db.add(pdf_elements_db)
 
-    db.commit()
+    if commit:
+        db.commit()
     return pdf_db.id
 
 
@@ -268,14 +302,74 @@ def request_pdfs_by_id(db: Session, user_id: int):
     return db.query(Pdf).filter(Pdf.owner_id == user_id).all()
 
 
-def delete_pdf_by_id(db: Session, pdf_id: int) -> None:
-    """Delete all elements for a document, then the Pdf row itself.
+def enqueue_storage_cleanup(
+    db: Session,
+    cleanup_target: tuple[str, str],
+    *,
+    resource_kind: str = "pdf",
+) -> StorageCleanupJob:
+    """Stage one idempotent private-object cleanup request without committing."""
+    backend, key = cleanup_target
+    cleanup_job = db.query(StorageCleanupJob).filter(
+        StorageCleanupJob.storage_backend == backend,
+        StorageCleanupJob.storage_key == key,
+    ).first()
+    if cleanup_job is None:
+        cleanup_job = StorageCleanupJob(
+            storage_backend=backend,
+            storage_key=key,
+            resource_kind=resource_kind,
+            status="pending",
+            attempts=0,
+            created_at=datetime.datetime.now(timezone.utc),
+        )
+        db.add(cleanup_job)
+        db.flush()
+    elif cleanup_job.resource_kind != resource_kind:
+        # The key namespaces are disjoint. A mismatch therefore signals corrupt
+        # outbox state rather than a second valid cleanup request.
+        raise ValueError("Storage cleanup key is registered for another resource kind.")
+    return cleanup_job
 
-    Callers are responsible for removing the filesystem/S3 object afterward.
+
+def delete_pdf_by_id(
+    db: Session,
+    pdf_id: int,
+    *,
+    owner_id: int,
+    expected_revision: int,
+    expected_storage_backend: str | None,
+    expected_storage_key: str | None,
+    expected_file_path: str | None,
+    cleanup_target: tuple[str, str] | None = None,
+    commit: bool = True,
+) -> tuple[int | None, bool]:
+    """CAS-delete one exact document snapshot and enqueue its storage object.
+
+    Element deletion occurs in the same transaction and must be rolled back by
+    the caller when the parent CAS loses. Matching revision and all storage
+    pointer fields prevents a concurrent A→B update from leaving B orphaned.
     """
     db.query(PdfElements).filter(PdfElements.pdf_id == pdf_id).delete()
-    db.query(Pdf).filter(Pdf.id == pdf_id).delete()
-    db.commit()
+    deleted = db.query(Pdf).filter(
+        Pdf.id == int(pdf_id),
+        Pdf.owner_id == int(owner_id),
+        Pdf.revision == int(expected_revision),
+        Pdf.storage_backend == expected_storage_backend,
+        Pdf.storage_key == expected_storage_key,
+        Pdf.file_path == expected_file_path,
+    ).delete(synchronize_session=False)
+    if deleted != 1:
+        if commit:
+            db.rollback()
+        return None, False
+
+    cleanup_job = None
+    if cleanup_target is not None:
+        cleanup_job = enqueue_storage_cleanup(db, cleanup_target)
+    if commit:
+        db.commit()
+    return cleanup_job.id if cleanup_job is not None else None, True
 
 
 def request_pdf_by_id_show(db: Session, pdf_id: int):
@@ -308,7 +402,14 @@ def request_pdf_elements_by_element_id(db: Session, pdf_id: int) -> dict:
     return existing_by_id
 
 
-def update_pdf_elements(db: Session, elements: list, existing_elements: dict, pdf_id: int) -> None:
+def update_pdf_elements(
+    db: Session,
+    elements: list,
+    existing_elements: dict,
+    pdf_id: int,
+    *,
+    owner_id: int | None = None,
+) -> None:
     """Sync DB elements to the live client set for one PDF.
 
     The incoming LIVE elements are the authoritative set. Anything in the DB
@@ -322,6 +423,7 @@ def update_pdf_elements(db: Session, elements: list, existing_elements: dict, pd
         el.element_id: el for el in elements
         if getattr(el, "deleted", False) != True and el.element_id is not None
     }
+    valid_image_ids = _valid_image_ids(db, list(incoming_live.values()), owner_id)
     for eid in list(existing_elements.keys()):
         if eid not in incoming_live:
             db.query(PdfElements).filter(
@@ -330,7 +432,7 @@ def update_pdf_elements(db: Session, elements: list, existing_elements: dict, pd
 
     for element in incoming_live.values():
         img_id = element.img_id
-        if element.img_id is not None and not request_image_by_id(db, element.img_id):
+        if element.img_id is not None and int(element.img_id) not in valid_image_ids:
             img_id = None
 
         if element.element_id not in existing_elements:

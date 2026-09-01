@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { TEMPLATES } from "../templates/index.js";
+import { TEST_TEMPLATES as TEMPLATES } from "../templates/testTemplatePacks.js";
 import {
   isDecorativeOrdinalChrome,
   listDocumentSections,

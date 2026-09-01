@@ -15,9 +15,9 @@
  * the add-channel dropdown. Only bands whose anchor carries a descriptor reach
  * this component (see `listContactBands`), so it always has data to act on.
  */
-import { use, useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { FiPlus, FiTrash2 } from "react-icons/fi";
-import { PdfContext } from "../../../store/pdfgenerator-context";
+import { useCanvasContext } from "../../../store/canvas-context";
 import { recordPlusLayoutSize } from "../recordPlusSize";
 import { CHANNEL_NAMES } from "../../../utils/contactChannelNames";
 import cluster from "../SectionRecordAdd/SectionRecordAdd.module.css";
@@ -26,7 +26,7 @@ import classes from "./ContactChannelControls.module.css";
 const HIDE_AFTER_LEAVE_MS = 600;
 
 export default function ContactChannelControls({ bandId, chips, inactive }) {
-  const { removeContactChannel, addContactChannel, zoom = 1 } = use(PdfContext);
+  const { removeContactChannel, addContactChannel, zoom = 1 } = useCanvasContext();
   const [hoverChannel, setHoverChannel] = useState(null);
   // Whether the pointer is anywhere in the band (any chip, or the +/menu
   // cluster itself) — gates the `+` affordance so it is not permanently

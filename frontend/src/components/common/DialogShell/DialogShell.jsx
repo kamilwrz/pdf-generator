@@ -1,7 +1,8 @@
-import { useEffect, useId, useRef } from "react";
+import { useContext, useEffect, useId, useRef } from "react";
 import { createPortal } from "react-dom";
 import classes from "./DialogShell.module.css";
 import CloseButton from "../CloseButton/CloseButton";
+import { DialogSuspensionContext } from "./DialogSuspensionContext";
 
 // Shared modal shell for Docs/Templates/Plans/AI. Owns the backdrop, semantic
 // dialog labelling, keyboard focus lifecycle, header, and Escape-to-close so
@@ -12,8 +13,10 @@ import CloseButton from "../CloseButton/CloseButton";
 // card over the editor. Other dialogs keep the default centered card.
 //
 // Portals to `document.body` so stacking context / overflow on the editor
-// chrome cannot clip the dialog. Callers must keep a single open instance —
-// auto-open flows (e.g. LongCv) guard against opening twice for the same doc.
+// chrome cannot clip the dialog. Callers must keep a single standard dialog
+// open. The editor's recovery provider may temporarily suspend that dialog
+// while the central unsaved-changes alert owns focus; the caller stays mounted
+// so an in-flight operation and its local state can resume safely afterward.
 export default function DialogShell({
     open,
     onClose,
@@ -26,8 +29,11 @@ export default function DialogShell({
     role = "dialog",
     initialFocusSelector,
     restoreFocusSelector,
+    layer = "standard",
     children,
 }) {
+    const standardDialogsSuspended = useContext(DialogSuspensionContext);
+    const renderedOpen = open && (layer === "recovery" || !standardDialogsSuspended);
     const isFullscreen = variant === "fullscreen";
     const dialogRef = useRef(null);
     const previousFocusRef = useRef(null);
@@ -43,7 +49,7 @@ export default function DialogShell({
     }, [onClose]);
 
     useEffect(() => {
-        if (!open) return undefined;
+        if (!renderedOpen) return undefined;
 
         previousFocusRef.current = document.activeElement;
         const previousBodyOverflow = document.body.style.overflow;
@@ -114,9 +120,9 @@ export default function DialogShell({
                 focusTarget.focus({ preventScroll: true });
             }
         };
-    }, [initialFocusSelector, open, restoreFocusSelector]);
+    }, [initialFocusSelector, renderedOpen, restoreFocusSelector]);
 
-    if (!open) return null;
+    if (!renderedOpen) return null;
 
     return createPortal(
         <div
@@ -140,7 +146,7 @@ export default function DialogShell({
                         <h2 id={titleId}>{title}</h2>
                         {subtitle && <p id={subtitleId}>{subtitle}</p>}
                     </div>
-                    <CloseButton ariaLabel={`Zamknij: ${title}`} clickHandler={onClose} top={18} right={28} width={32} height={32} />
+                    <CloseButton ariaLabel={`Zamknij: ${title}`} clickHandler={onClose} top={18} right={28} width={36} height={36} />
                 </div>
                 <div className={`${classes.body}${bodyClassName ? ` ${bodyClassName}` : ""}`}>
                     {children}

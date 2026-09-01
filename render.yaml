@@ -1,0 +1,104 @@
+# Preview environments are intentionally disabled for the first hardened
+# release. Staging is promoted manually after its migration and smoke gates.
+databases:
+  - name: cv-studio-db
+    # Durable production data; Render's free PostgreSQL instances expire.
+    plan: 0.1c-256mb
+    region: frankfurt
+    databaseName: cvstudio
+    user: cvstudio
+
+services:
+  - type: web
+    name: cv-studio-api
+    runtime: python
+    rootDir: backend
+    region: frankfurt
+    # Pre-deploy migrations are available only on paid compute.
+    plan: 0.5c-512mb
+    autoDeployTrigger: checksPass
+    buildCommand: pip install -r requirements.txt
+    preDeployCommand: python -m app.services.deployment_bootstrap
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /ready
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.10
+      - key: DATABASE_URL
+        fromDatabase:
+          name: cv-studio-db
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+      - key: JWT_KEY_VERSION
+        value: 2026-09-01-v2
+      - key: CORS_ORIGINS
+        sync: false
+      - key: TRUST_PROXY_HEADERS
+        # Render is the controlled edge proxy; direct/local deployments keep
+        # the secure false default documented in backend/.env.example.
+        value: "true"
+      - key: TRUSTED_PROXY_CIDRS
+        # XFF remains ignored unless the socket peer is on an operator-verified
+        # proxy network. Configure exact staging/production CIDRs in Render;
+        # broad RFC1918 trust is intentionally not committed here.
+        sync: false
+      - key: BACKEND_URL
+        sync: false
+      - key: API_GPT_KEY
+        sync: false
+      - key: CLOUDFLARE_ACCOUNT_ID
+        sync: false
+      - key: CLOUDFLARE_API_TOKEN
+        sync: false
+      - key: ADMIN_RESET_SECRET
+        generateValue: true
+      - key: S3_BUCKET_NAME
+        sync: false
+      - key: AWS_ACCESS_KEY_ID
+        sync: false
+      - key: AWS_SECRET_ACCESS_KEY
+        sync: false
+      - key: AWS_REGION
+        value: eu-north-1
+
+  - type: cron
+    name: cv-studio-storage-cleanup
+    runtime: python
+    rootDir: backend
+    region: frankfurt
+    plan: 0.5c-512mb
+    autoDeployTrigger: checksPass
+    schedule: "*/5 * * * *"
+    buildCommand: pip install -r requirements.txt
+    startCommand: python -m app.services.storage_cleanup_worker
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: cv-studio-db
+          property: connectionString
+      - key: S3_BUCKET_NAME
+        sync: false
+      - key: AWS_ACCESS_KEY_ID
+        sync: false
+      - key: AWS_SECRET_ACCESS_KEY
+        sync: false
+      - key: AWS_REGION
+        value: eu-north-1
+      - key: CORS_ORIGINS
+        sync: false
+
+  - type: web
+    name: cv-studio-web
+    runtime: static
+    rootDir: frontend
+    autoDeployTrigger: checksPass
+    buildCommand: npm ci && npm run build
+    staticPublishPath: ./dist
+    envVars:
+      - key: VITE_API_URL
+        sync: false
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html

@@ -4,8 +4,7 @@
  */
 import { useEffect, useState } from "react";
 import classes from "./Guides.module.css";
-import { use } from "react";
-import { PdfContext } from "../../../store/pdfgenerator-context";
+import { useCanvasContext } from "../../../store/canvas-context";
 import { getElementBounds, getVisualBounds } from "../../../utils/elementBounds";
 import {
     findAllHorizontalSpacingGuides,
@@ -240,7 +239,7 @@ function SpacingGuidesForElement({ focus, others, pageWidth, pageHeight, include
 }
 
 export default function Guides({ page }) {
-    const { A4_Elements, currentPage, pageSize, spacingHoldId } = use(PdfContext);
+    const { A4_Elements, currentPage, pageSize, spacingHoldId } = useCanvasContext();
     const inspectSpacing = useShiftAltHeld();
     const A4_WIDTH = pageSize?.width ?? 595;
     const A4_HEIGHT = pageSize?.height ?? 842;

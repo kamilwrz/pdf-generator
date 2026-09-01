@@ -8,9 +8,9 @@
  * centres the glyph on that line (mirrors PDF `align_with_text`).
  */
 import classes from "./Image.module.css";
-import { memo, useEffect, useState } from 'react';
-import { PdfContext } from "../../../store/pdfgenerator-context";
-import { use, useRef } from "react";
+import { memo, useEffect, useRef, useState } from 'react';
+import { useCanvasContext } from "../../../store/canvas-context";
+import { useUiSurfaces } from "../../../store/ui-surfaces-context";
 import Resize from "../../common/Resize/Resize";
 import API_BASE_URL from "../../../services/api";
 import {
@@ -51,8 +51,8 @@ function Image({
         A4_Elements,
         selectMoveElement,
         resizeElement,
-        showGallery,
-    } = use(PdfContext)
+    } = useCanvasContext();
+    const { showGallery } = useUiSurfaces();
 
     const [isResizeable, setIsResizeable] = useState(false);
     const [authDisplaySrc, setAuthDisplaySrc] = useState(null);

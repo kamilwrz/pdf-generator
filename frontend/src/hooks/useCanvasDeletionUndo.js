@@ -5,8 +5,9 @@
  * only visible elements. Restoring all three keeps the next explicit Save from
  * deleting records that the user has just brought back through the toast.
  */
-import { use, useCallback } from "react";
-import { PdfContext } from "../store/pdfgenerator-context";
+import { useCallback } from "react";
+import { useCanvasContext } from "../store/canvas-context";
+import { useSession } from "../store/session-context";
 
 /**
  * @returns {(options:{title:string,msg?:string,remove:() => void}) => void}
@@ -19,8 +20,8 @@ export function useCanvasDeletionUndo() {
     setA4_Elements,
     setA4_Elements_deleted,
     setPageCount,
-    pushToast,
-  } = use(PdfContext);
+  } = useCanvasContext();
+  const { pushToast } = useSession();
 
   return useCallback(({ title, msg, remove }) => {
     // Element updates are immutable throughout the editor, so retaining the

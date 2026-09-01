@@ -68,14 +68,14 @@ class RenderOnDemandTests(unittest.TestCase):
         ent.seed_plans(self.db)
 
         user_crud.create_user(self.db, UserCreateRequest(
-            username="u1", email="u1@e.pl", password="pw"))
-        self.user = self.db.query(User).filter(User.username == "u1").one()
+            username="usr1", email="u1@e.pl", password="correct horse battery"))
+        self.user = self.db.query(User).filter(User.username == "usr1").one()
 
         def _override_db():
             yield self.db
 
         app.dependency_overrides[get_db] = _override_db
-        app.dependency_overrides[verify_token] = lambda: {"sub": "u1"}
+        app.dependency_overrides[verify_token] = lambda: {"sub": "usr1"}
         self.client = TestClient(app)
 
     def tearDown(self):
@@ -146,7 +146,7 @@ class RenderOnDemandTests(unittest.TestCase):
             payload["root"].append({
                 "category": "image",
                 "element_id": "profile-photo",
-                "src": f"https://api.example.com/images/{image_row.id}/content",
+                "src": f"/images/{image_row.id}/content",
                 "img_id": image_row.id,
                 "page": 1,
                 "left": 433,
@@ -159,7 +159,15 @@ class RenderOnDemandTests(unittest.TestCase):
                 "alignWithText": False,
                 "zIndex": 4,
             })
-            response = self.client.post("/pdf/render_pdf", json=payload)
+            # The resolver accepts only DB locators contained by the configured
+            # private image root. This temporary directory stands in for that
+            # root without touching real uploads.
+            with patch.object(
+                doc_service,
+                "IMAGES_UPLOAD_DIR",
+                Path(tmp_dir),
+            ):
+                response = self.client.post("/pdf/render_pdf", json=payload)
 
         self.assertEqual(response.status_code, 200, msg=response.text)
         self.assertIn("application/pdf", response.headers.get("content-type", ""))

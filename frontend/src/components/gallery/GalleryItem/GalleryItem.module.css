@@ -30,15 +30,30 @@
     width: 100%;
     height: 100%;
     display: block;
+}
+
+.insertButton {
+    width: 100%;
+    height: 100%;
+    display: block;
+    border: 0;
+    padding: 0;
+    background: transparent;
+    color: var(--chrome-ink);
     cursor: pointer;
 }
 
-.imageWrapper button {
+.insertButton:focus-visible {
+    outline: 2px solid var(--chrome-accent);
+    outline-offset: -3px;
+}
+
+.deleteButton {
     position: absolute;
     top: 6px;
     right: 6px;
-    width: 22px;
-    height: 22px;
+    width: var(--control-height-compact);
+    height: var(--control-height-compact);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -47,11 +62,16 @@
     border-radius: var(--radius-control);
     color: var(--danger);
     cursor: pointer;
-    font-size: 11px;
+    font-size: 14px;
     box-shadow: var(--shadow-pop);
     transition: background .15s;
 }
 
-.imageWrapper button:hover {
+.deleteButton:hover {
     background: var(--chrome-hover);
+}
+
+.deleteButton:focus-visible {
+    outline: 2px solid var(--chrome-accent);
+    outline-offset: 2px;
 }

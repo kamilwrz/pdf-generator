@@ -12,7 +12,7 @@ import logging
 import math
 from collections.abc import Mapping
 import fitz
-from openai import APIError, OpenAI
+from openai import APIConnectionError, APIError, APITimeoutError, OpenAI
 from app.core.config import (
     CLOUDFLARE_ACCOUNT_ID,
     CLOUDFLARE_API_TOKEN,
@@ -28,6 +28,7 @@ from app.core.config import (
     CV_EXTRACT_PROVIDER,
     CV_EXTRACT_TEXT_MAX_COMPLETION_TOKENS,
     CV_EXTRACT_VISION_MAX_COMPLETION_TOKENS,
+    AI_PROVIDER_TIMEOUT_SECONDS,
     OPENAI_API_KEY,
 )
 from app.services.cloudflare_pricing import usage_from_cloudflare_attempts
@@ -71,6 +72,7 @@ class CvExtractionError(RuntimeError):
         status_code: int = 502,
         retryable: bool = False,
         provider_code: int | None = None,
+        reservation_outcome: str = "release",
     ) -> None:
         super().__init__(user_message)
         self.code = code
@@ -81,6 +83,11 @@ class CvExtractionError(RuntimeError):
         # server-side so the attempt loop can distinguish account exhaustion
         # from model-specific capacity without exposing raw provider bodies.
         self.provider_code = provider_code
+        # A timeout or broken connection may hide a provider-side success.
+        # Routes retain ``uncertain`` reservations until lease expiry. A
+        # confirmed HTTP-200 response with unusable content uses ``consume``;
+        # known pre-response failures keep the default immediate release.
+        self.reservation_outcome = reservation_outcome
 
 
 def _completion_request_options(
@@ -177,6 +184,14 @@ def _request_completion(client: OpenAI, create_kwargs: dict):
     try:
         return client.chat.completions.create(**create_kwargs)
     except APIError as exc:
+        if isinstance(exc, (APITimeoutError, APIConnectionError)):
+            raise CvExtractionError(
+                "extract_provider_timeout",
+                "Usługa importu nie odpowiedziała na czas. Spróbuj ponownie później.",
+                status_code=503,
+                retryable=True,
+                reservation_outcome="uncertain",
+            ) from exc
         provider_status = getattr(exc, "status_code", None)
         if provider_status == 429:
             provider_code = _cloudflare_internal_error_code(exc)
@@ -320,6 +335,7 @@ def _provider_settings(extraction_mode: str) -> tuple[OpenAI, str, str]:
                 api_key=CLOUDFLARE_API_TOKEN,
                 base_url=base_url,
                 max_retries=0,
+                timeout=AI_PROVIDER_TIMEOUT_SECONDS,
             ),
             model,
             provider,
@@ -332,7 +348,11 @@ def _provider_settings(extraction_mode: str) -> tuple[OpenAI, str, str]:
                 status_code=503,
             )
         return (
-            OpenAI(api_key=OPENAI_API_KEY, max_retries=0),
+            OpenAI(
+                api_key=OPENAI_API_KEY,
+                max_retries=0,
+                timeout=AI_PROVIDER_TIMEOUT_SECONDS,
+            ),
             CV_EXTRACT_OPENAI_MODEL,
             provider,
         )
@@ -576,6 +596,7 @@ def extract_cv_data(pdf_bytes: bytes) -> tuple[dict, dict]:
     response: object | None = None
     cv_data: dict | None = None
     source_grounded_fields: list[str] = []
+    provider_response_received = False
     for attempt_index, attempt_model in enumerate(model_attempts):
         has_fallback = attempt_index + 1 < len(model_attempts)
         create_kwargs = {
@@ -606,7 +627,13 @@ def extract_cv_data(pdf_bytes: bytes) -> tuple[dict, dict]:
                     model_attempts[attempt_index + 1],
                 )
                 continue
+            if provider_response_received:
+                # A prior model already returned HTTP 200, so even a confirmed
+                # failure or ambiguous timeout from the fallback cannot make
+                # the complete logical import free.
+                exc.reservation_outcome = "consume"
             raise
+        provider_response_received = True
         if provider == "cloudflare":
             cloudflare_attempts.append((attempt_model, response))
         raw_content = _visible_response_text(
@@ -629,6 +656,7 @@ def extract_cv_data(pdf_bytes: bytes) -> tuple[dict, dict]:
                 "Model nie zwrócił danych CV. Spróbuj ponownie.",
                 status_code=502,
                 retryable=True,
+                reservation_outcome="consume",
             )
 
         try:
@@ -656,6 +684,7 @@ def extract_cv_data(pdf_bytes: bytes) -> tuple[dict, dict]:
                 "extract_provider_invalid_response",
                 "Nie udało się rozpoznać danych w tym CV. Sprawdź plik i spróbuj ponownie.",
                 status_code=422,
+                reservation_outcome="consume",
             ) from exc
         model = attempt_model
         break
@@ -667,6 +696,7 @@ def extract_cv_data(pdf_bytes: bytes) -> tuple[dict, dict]:
             "extract_provider_invalid_response",
             "Nie udało się rozpoznać danych w tym CV. Sprawdź plik i spróbuj ponownie.",
             status_code=422,
+            reservation_outcome="consume" if provider_response_received else "release",
         )
 
     if provider == "cloudflare":

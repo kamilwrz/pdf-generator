@@ -3,30 +3,35 @@ FastAPI application entry point for CV Studio.
 
 Responsibilities:
 - Configure process logging so service loggers reach stdout (Render aggregation).
-- Start accepting HTTP before DB bootstrap finishes (cold-start friendly /health).
+- Keep liveness available while readiness protects database-backed routes.
 - Mount static asset directories, API routers, and optional SPA fallback from frontend/dist.
 - Translate AI assistant failures into a stable Polish 500 response for the UI.
 """
 
 import logging
 from contextlib import asynccontextmanager
-import asyncio
+from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
-from app.api.routes import auth, pdf, images, ai, events, billing
-from app.api.routes import ai_assistant
-from app.core.config import origins, IMAGES_UPLOAD_DIR, PDF_UPLOAD_DIR, TEMPLATE_ASSETS_DIR
-from app.core.security import assert_secret_key_configured
-from app.models.database import SessionLocal
-from app.models.models import init_db
-from app.services.ai_assistant_service import AIServiceError
-from app.services.legacy_document_cleanup import run_legacy_document_cleanup
+from starlette.concurrency import run_in_threadpool
 
-from pathlib import Path
-from fastapi.responses import FileResponse
+from app.api.routes import auth, pdf, images, ai, events, billing, templates
+from app.api.routes import ai_assistant
+from app.core.config import (
+    IMAGES_UPLOAD_DIR,
+    PDF_UPLOAD_DIR,
+    TEMPLATE_ASSETS_DIR,
+    assert_private_storage_configured,
+    assert_trusted_proxy_configured,
+    origins,
+)
+from app.core.security import assert_secret_key_configured
+from app.schemas.pdf_schema import MAX_PDF_REQUEST_BYTES
+from app.services.ai_assistant_service import AIServiceError
+from app.services.readiness import is_database_route, readiness_gate
 
 # Without this, logger.info()/logger.error() calls anywhere in the app
 # (ai_assistant, events, etc.) are silently dropped — the root logger has no
@@ -38,49 +43,20 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name
 
 logger = logging.getLogger("ai_assistant")
 
-
-def _run_startup_work() -> None:
-    """Create/migrate tables and remove retired document types after listen starts.
-
-    Side effects: may write schema changes and delete legacy PDF rows.
-    Failures are logged but do not crash the process — the API stays up so
-    Render health checks and the frontend wake probe can succeed even when
-    Postgres is still reconnecting.
-    """
-    try:
-        init_db()
-        db = SessionLocal()
-        try:
-            deleted = run_legacy_document_cleanup(db)
-            if deleted:
-                logger.warning("Removed %s retired deck/article documents.", deleted)
-        finally:
-            db.close()
-    except Exception:
-        logger.exception("Startup database init failed; API is up but DB may be unavailable.")
-
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Run DB bootstrap in a background thread so /health is not blocked.
+    """Validate process-only configuration without mutating the database.
 
-    Render free dynos sleep; the frontend wakes them with /health. If lifespan
-    waited on Postgres retries, that probe would hang and login would appear
-    broken even though the dyno process had already started.
+    Database migrations and seeds run in the controlled pre-deploy command.
+    A worker begins as not-ready and transitions only after a successful probe.
     """
     # Reject missing/placeholder JWT secrets before serving traffic. Unit tests
     # that start TestClient must set SECRET_KEY or ALLOW_INSECURE_SECRET=true.
     assert_secret_key_configured()
-    init_task = asyncio.create_task(asyncio.to_thread(_run_startup_work))
-    try:
-        yield
-    finally:
-        if not init_task.done():
-            init_task.cancel()
-            try:
-                await init_task
-            except asyncio.CancelledError:
-                pass
+    assert_private_storage_configured()
+    assert_trusted_proxy_configured()
+    readiness_gate.reset()
+    yield
 
 
 app = FastAPI(lifespan=lifespan)
@@ -98,10 +74,148 @@ app.add_middleware(
 )
 
 
+def _ai_request_too_large_response() -> JSONResponse:
+    """Return the stable public error shared by transport and schema limits."""
+
+    return JSONResponse(
+        status_code=413,
+        content={
+            "detail": {
+                "code": "ai_request_too_large",
+                "message": "Żądanie AI przekracza limit 1 MiB.",
+            }
+        },
+    )
+
+
+@app.middleware("http")
+async def enforce_ai_assistant_transport_limit(request: Request, call_next):
+    """Reject oversized assistant bodies before FastAPI parses nested JSON.
+
+    Field validators bound the normalized payload, but a chunked request can
+    contain arbitrarily large insignificant whitespace. Reading at most the
+    route limit plus one byte closes that transport-level gap and prevents the
+    JSON parser from receiving an oversized body.
+    """
+
+    if request.method == "POST" and request.url.path == "/ai/assistant":
+        limit = ai_assistant.MAX_ASSISTANT_REQUEST_BYTES
+        declared_length = request.headers.get("content-length")
+        if declared_length and declared_length.isdigit() and int(declared_length) > limit:
+            return _ai_request_too_large_response()
+
+        buffered = bytearray()
+        async for chunk in request.stream():
+            buffered.extend(chunk)
+            if len(buffered) > limit:
+                return _ai_request_too_large_response()
+        # Starlette's middleware request wrapper replays this cached body to
+        # the downstream JSON parser; no SQLAlchemy session crosses threads.
+        request._body = bytes(buffered)
+
+    return await call_next(request)
+
+
+def _pdf_request_too_large_response() -> JSONResponse:
+    """Return the stable public error for oversized PDF route bodies."""
+
+    return JSONResponse(
+        status_code=413,
+        content={
+            "detail": {
+                "code": "pdf_request_too_large",
+                "message": "Żądanie PDF przekracza limit 4 MiB.",
+            }
+        },
+    )
+
+
+@app.middleware("http")
+async def enforce_pdf_transport_limit(request: Request, call_next):
+    """Bound every PDF request body before JSON decoding or route work.
+
+    Most PDF bodies contain a full canvas, while the remaining by-id routes
+    carry only a scalar. Applying one limit to all body-bearing ``/pdf/*``
+    methods prevents an attacker from shifting parser exhaustion to a cheaper
+    endpoint. ``Content-Length`` is only an early rejection; streamed/chunked
+    bodies are counted independently and therefore cannot bypass the limit.
+    """
+
+    if (
+        request.url.path.startswith("/pdf/")
+        and request.method in {"POST", "PUT", "PATCH", "DELETE"}
+    ):
+        declared_length = request.headers.get("content-length")
+        if (
+            declared_length
+            and declared_length.isdigit()
+            and int(declared_length) > MAX_PDF_REQUEST_BYTES
+        ):
+            return _pdf_request_too_large_response()
+
+        buffered = bytearray()
+        async for chunk in request.stream():
+            buffered.extend(chunk)
+            if len(buffered) > MAX_PDF_REQUEST_BYTES:
+                return _pdf_request_too_large_response()
+        request._body = bytes(buffered)
+
+    return await call_next(request)
+
+
+@app.middleware("http")
+async def reject_database_traffic_until_ready(request: Request, call_next):
+    """Return a stable 503 before a DB-backed route reaches its handler.
+
+    The probe runs in Starlette's worker pool because SQLAlchemy and Alembic are
+    synchronous. Liveness, readiness, documentation, template assets, and the
+    optional SPA remain available while the database is unavailable.
+    """
+
+    if is_database_route(request.url.path):
+        # Render polls `/ready` continuously. Reuse its successful result on
+        # normal traffic; when the latest probe is false, let the next request
+        # retry once so recovery does not have to wait for the platform poll.
+        result = readiness_gate.last_result
+        if not result.ready:
+            result = await run_in_threadpool(readiness_gate.probe)
+        if not result.ready:
+            return JSONResponse(
+                status_code=503,
+                headers={"Retry-After": "5"},
+                content={
+                    "detail": {
+                        "code": "service_not_ready",
+                        "message": "Usługa chwilowo nie jest gotowa. Spróbuj ponownie.",
+                    }
+                },
+            )
+    return await call_next(request)
+
+
 @app.get("/health")
 def health():
     """Cheap liveness probe used by the frontend to wake a sleeping Render dyno."""
     return {"status": "ok"}
+
+
+@app.get("/ready")
+def ready():
+    """Report readiness only after DB, migrations, and seed checks pass."""
+
+    result = readiness_gate.probe()
+    if not result.ready:
+        return JSONResponse(
+            status_code=503,
+            headers={"Retry-After": "5"},
+            content={
+                "detail": {
+                    "code": "service_not_ready",
+                    "message": "Usługa chwilowo nie jest gotowa. Spróbuj ponownie.",
+                }
+            },
+        )
+    return {"status": "ready"}
 
 
 @app.exception_handler(AIServiceError)
@@ -113,10 +227,11 @@ async def ai_service_error_handler(request: Request, exc: AIServiceError):
     otherwise keep the generic temporarily-unavailable copy.
     """
     logger.error(
-        "AI assistant service error: action=%s elements_count=%s error_type=%s detail=%s",
-        exc.action, exc.elements_count,
+        "AI assistant service error: action=%s elements_count=%s error_type=%s outcome=%s",
+        exc.action,
+        exc.elements_count,
         type(exc.original).__name__ if exc.original else "unknown",
-        str(exc),
+        getattr(exc, "reservation_outcome", "unknown"),
     )
     detail = (
         exc.user_message
@@ -125,7 +240,12 @@ async def ai_service_error_handler(request: Request, exc: AIServiceError):
     )
     return JSONResponse(
         status_code=500,
-        content={"detail": detail},
+        content={
+            "detail": {
+                "code": "ai_provider_unavailable",
+                "message": detail,
+            }
+        },
     )
 
 # Ensure upload directories exist (e.g. on fresh deploy / Render ephemeral disk).
@@ -170,6 +290,7 @@ app.include_router(ai.router)
 app.include_router(ai_assistant.router)
 app.include_router(events.router)
 app.include_router(billing.router)
+app.include_router(templates.router)
 
 if DIST_DIR.exists():
     app.mount("/assets", StaticFiles(directory=str(DIST_DIR / "assets")), name="frontend_assets")

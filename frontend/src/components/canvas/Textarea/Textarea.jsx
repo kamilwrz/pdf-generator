@@ -7,8 +7,7 @@
  */
 import classes from "./Textarea.module.css";
 import { memo, useLayoutEffect, useRef, useState } from "react";
-import { use } from "react";
-import { PdfContext } from "../../../store/pdfgenerator-context";
+import { useCanvasContext } from "../../../store/canvas-context";
 import Resize from "../../common/Resize/Resize";
 import {
     measureNaturalScrollHeight,
@@ -192,7 +191,7 @@ function Textarea({
         setSpacingHoldId,
         editZoomSpreadTransitionRef,
         editorMode,
-    } = use(PdfContext);
+    } = useCanvasContext();
 
     const [isResizeable, setIsResizeable] = useState(false);
     const blockRef = useRef(null);

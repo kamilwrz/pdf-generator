@@ -1,18 +1,16 @@
 /**
  * Backend HTTP client and route constants for CV Studio.
  *
- * VITE_API_URL overrides the default for local/prod builds. Falls back to the
- * deployed Render backend so a fresh clone without `.env` still works.
+ * Development uses the local Vite `/api` proxy unless VITE_API_URL is set.
+ * Production builds require an explicit HTTPS backend origin.
  *
  * Auth calls should pass long timeouts and retries: free-tier dynos often need
  * 30–60s on cold start; short aborts previously made login look broken.
  */
-// VITE_API_URL overrides this for local dev (see .env.example / .env.development)
-// and for production builds (see .env.production). Falls back to the deployed
-// backend so a fresh clone with no .env file still works out of the box.
-// `import.meta.env` is injected by Vite but is absent when source-driven
-// template utilities import this module directly in Node.js.
-const API_BASE_URL = import.meta.env?.VITE_API_URL || 'https://pdf-generator-07cb.onrender.com';
+import { buildApiUrl, resolveApiBaseUrl } from "../config/appConfig.js";
+
+// `import.meta.env` is injected by Vite but absent in source-driven Node tests.
+const API_BASE_URL = resolveApiBaseUrl(import.meta.env ?? {});
 
 /** Path constants relative to API_BASE_URL (no trailing slash on base). */
 export const ENDPOINTS = {
@@ -37,7 +35,7 @@ export const ENDPOINTS = {
     AUTH: {
         LOGIN: "/auth/token",
         REGISTER: "/auth/register",
-        TOKEN: "/auth/verify-token/",
+        TOKEN: "/auth/verify-token",
         ENTITLEMENTS: "/auth/me/entitlements",
     },
     AI: {
@@ -96,7 +94,7 @@ export function isRetryableNetworkError(error) {
 export function wakeBackend() {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 90_000);
-    return fetch(`${API_BASE_URL}/health`, {
+    return fetch(buildApiUrl(API_BASE_URL, "/health"), {
         method: "GET",
         cache: "no-store",
         credentials: "omit",
@@ -120,6 +118,10 @@ export class ApiClient {
 
     /**
      * Perform an HTTP call with optional retries on transient network errors.
+     *
+     * Per-request `options.headers` are merged over the client defaults and
+     * reused unchanged for every internal retry. This is required for
+     * idempotency keys: a transport retry must remain the same logical request.
      *
      * Side effects: network I/O only. Plan-limit responses attach `status`,
      * `code`, and `upgradeRequired` on the thrown Error for UI upgrade prompts.
@@ -162,7 +164,7 @@ export class ApiClient {
 
     async _httpRequestOnce(endpoint, method, body, errorMessage, options = {}) {
         const fallbackMessage = errorMessage || "Wystąpił błąd podczas komunikacji z serwerem.";
-        const headers = { ...this.headers };
+        const headers = { ...this.headers, ...(options.headers || {}) };
         if (body instanceof FormData) delete headers['Content-Type'];
 
         // Cold start can exceed a minute; default high for auth-style calls.
@@ -173,7 +175,7 @@ export class ApiClient {
         try {
             // omit credentials — auth is Bearer JWT in localStorage, not cookies.
             // include + missing ACAO on cold-start error pages made login look broken.
-            const response = await fetch(this.baseUrl + endpoint, {
+            const response = await fetch(buildApiUrl(this.baseUrl, endpoint), {
                 method: method,
                 headers: headers,
                 body: body,
@@ -273,7 +275,7 @@ export class ApiClient {
 
     async _httpRequestBlobOnce(endpoint, method, body, errorMessage, options = {}) {
         const fallbackMessage = errorMessage || "Wystąpił błąd podczas komunikacji z serwerem.";
-        const headers = { ...this.headers };
+        const headers = { ...this.headers, ...(options.headers || {}) };
         if (body instanceof FormData) delete headers["Content-Type"];
 
         const timeoutMs = options.timeoutMs ?? 90_000;
@@ -281,7 +283,7 @@ export class ApiClient {
         const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
         try {
-            const response = await fetch(this.baseUrl + endpoint, {
+            const response = await fetch(buildApiUrl(this.baseUrl, endpoint), {
                 method,
                 headers,
                 body,

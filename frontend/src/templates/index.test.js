@@ -48,5 +48,14 @@ test("Regent stays registered for previously saved documents", () => {
 
   assert.ok(regent, "Regent must remain resolvable for legacy documents");
   assert.equal(regent.tier, "paid");
-  assert.ok(regent.elements.length > 0);
+  assert.equal(regent.serverMaterialized, true);
+  assert.equal(regent.elements, undefined);
+});
+
+test("paid authored packs are not imported by the production registry", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const source = await readFile(new URL("./index.js", import.meta.url), "utf8");
+  for (const id of ["monument", "slate", "atrium", "regent", "cadenza", "vellum"]) {
+    assert.doesNotMatch(source, new RegExp(`from ["']\\./${id}["']`));
+  }
 });

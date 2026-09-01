@@ -1,0 +1,267 @@
+import { expect } from "@playwright/test";
+
+export const SAVED_DOCUMENT = Object.freeze({
+  id: 41,
+  title: "CV Smoke.pdf",
+  created_at: "2026-09-01T08:00:00.000000",
+  updated_at: "2026-09-01T08:00:00.000000",
+  pages: 1,
+  page_width: 595,
+  page_height: 842,
+  editor_mode: "template",
+  template_id: "sterling",
+  revision: 3,
+  spacing_px: null,
+  source_import_id: null,
+  cv_data: {
+    name: "Kamil Smoke",
+    title: "Frontend Developer",
+    summary: "Local Playwright fixture.",
+    skills: [
+      { category: "Narzędzia", items: ["Figma", "Miro"] },
+      { category: "Technologie", items: ["React", "TypeScript"] },
+    ],
+    experience: [],
+    education: [],
+    labels: { skills: "UMIEJĘTNOŚCI" },
+  },
+});
+
+// A compact, real editor record graph for the skills regression. The two
+// flowGroup pairs are the same title/body structure used by generated
+// subcategory sections, so the production RecordBlockAdd toolbar and the
+// canvas-to-cv_data synchronization effect both participate in the E2E flow.
+export const SAVED_ELEMENTS = Object.freeze([
+  {
+    element_id: "skills-heading",
+    category: "text",
+    content: "UMIEJĘTNOŚCI",
+    left: 250,
+    top: 180,
+    width: 280,
+    height: 14,
+    fontSize: 10,
+    lineHeight: 12,
+    page: 1,
+    bold: true,
+    flowRole: "section-chrome",
+  },
+  {
+    element_id: "skills-rule",
+    category: "line",
+    left: 250,
+    top: 198,
+    width: 280,
+    height: 1,
+    page: 1,
+    flowRole: "section-chrome",
+  },
+  {
+    element_id: "skills-tools-title",
+    category: "textarea",
+    content: "Narzędzia",
+    left: 250,
+    top: 210,
+    width: 280,
+    height: 14,
+    fontSize: 9,
+    lineHeight: 12,
+    page: 1,
+    bold: true,
+    autoHeight: true,
+    flowRole: "content",
+    flowGroup: "skills-tools",
+    editorRecordLayout: "cc-sub",
+    editorRecordField: "title",
+  },
+  {
+    element_id: "skills-tools-body",
+    category: "textarea",
+    content: "Figma, Miro",
+    left: 250,
+    top: 226,
+    width: 280,
+    height: 14,
+    fontSize: 9,
+    lineHeight: 12,
+    page: 1,
+    autoHeight: true,
+    flowRole: "content",
+    flowGroup: "skills-tools",
+    editorRecordLayout: "cc-sub",
+    editorRecordField: "body",
+  },
+  {
+    element_id: "skills-technologies-title",
+    category: "textarea",
+    content: "Technologie",
+    left: 250,
+    top: 254,
+    width: 280,
+    height: 14,
+    fontSize: 9,
+    lineHeight: 12,
+    page: 1,
+    bold: true,
+    autoHeight: true,
+    flowRole: "content",
+    flowGroup: "skills-technologies",
+    editorRecordLayout: "cc-sub",
+    editorRecordField: "title",
+  },
+  {
+    element_id: "skills-technologies-body",
+    category: "textarea",
+    content: "React, TypeScript",
+    left: 250,
+    top: 270,
+    width: 280,
+    height: 14,
+    fontSize: 9,
+    lineHeight: 12,
+    page: 1,
+    autoHeight: true,
+    flowRole: "content",
+    flowGroup: "skills-technologies",
+    editorRecordLayout: "cc-sub",
+    editorRecordField: "body",
+  },
+]);
+
+const PRO_ENTITLEMENTS = Object.freeze({
+  plan_slug: "pro",
+  plan_name: "Pro",
+  template_tier: "all",
+  allowed_template_ids: null,
+  ai_assistant: true,
+  features: { ai_assistant: true },
+  limits: {
+    max_projects: null,
+    max_exports_per_month: null,
+    max_ai_actions_per_month: 200,
+    max_cv_imports_per_month: null,
+    monthly_ai_credits: 200,
+  },
+  usage: {
+    projects: 1,
+    exports_count: 0,
+    cv_imports_count: 0,
+    ai_credits_used: 0,
+    ai_credits_reserved: 0,
+  },
+  remaining: {
+    projects: null,
+    exports: null,
+    cv_imports: null,
+    ai_credits: 200,
+  },
+});
+
+function json(route, value, status = 200) {
+  return route.fulfill({ status, contentType: "application/json", body: JSON.stringify(value) });
+}
+
+/**
+ * Install a complete same-origin API double before the first page navigation.
+ *
+ * The fallback deliberately returns an error and records the route instead of
+ * proxying it. A missing fixture therefore fails visibly without contacting a
+ * local or production backend. Deployed Render origins are separately aborted
+ * and asserted at the end of each smoke flow.
+ */
+export async function installMockApi(page, { documents = [SAVED_DOCUMENT] } = {}) {
+  const calls = [];
+  const unexpected = [];
+  const productionRequests = [];
+  let currentRevision = SAVED_DOCUMENT.revision;
+
+  await page.route("https://**/*", async (route) => {
+    const url = route.request().url();
+    if (/onrender\.com|pdf-generator-react/i.test(url)) productionRequests.push(url);
+    await route.abort("blockedbyclient");
+  });
+
+  await page.route("**/api/**", async (route) => {
+    const request = route.request();
+    const url = new URL(request.url());
+    const path = url.pathname.replace(/^\/api/, "");
+    const method = request.method();
+    const call = {
+      method,
+      path,
+      headers: request.headers(),
+      body: request.postData(),
+    };
+    calls.push(call);
+
+    if (method === "GET" && path === "/health") return json(route, { status: "ok" });
+    if (method === "POST" && path === "/auth/token") {
+      return json(route, { access_token: "local-playwright-token", token_type: "bearer" });
+    }
+    if (method === "GET" && path === "/auth/verify-token") {
+      return json(route, { valid: true, username: "Kamil" });
+    }
+    if (method === "GET" && path === "/auth/me/entitlements") {
+      return json(route, PRO_ENTITLEMENTS);
+    }
+    if (method === "GET" && path === "/pdf/fetch_pdfs") return json(route, documents);
+    if (method === "POST" && path === "/pdf/show_pdf") {
+      return json(route, { document: SAVED_DOCUMENT, elements: SAVED_ELEMENTS });
+    }
+    if (method === "PUT" && path === "/pdf/update_pdf") {
+      currentRevision += 1;
+      return json(route, { updated: true, pdf_id: SAVED_DOCUMENT.id, revision: currentRevision });
+    }
+    if (method === "POST" && path === "/pdf/create_pdf") {
+      return json(route, { created: true, replayed: false, pdf_id: 91, revision: 1 });
+    }
+    if (method === "POST" && path === "/pdf/render_pdf") {
+      return route.fulfill({
+        status: 200,
+        contentType: "application/pdf",
+        headers: {
+          "Content-Disposition": "attachment; filename*=UTF-8''CV%20Smoke.pdf",
+        },
+        body: "%PDF-1.4\n% local Playwright fixture\n%%EOF",
+      });
+    }
+    if (method === "POST" && path === "/pdf/download_pdf") {
+      return route.fulfill({
+        status: 200,
+        contentType: "application/pdf",
+        headers: {
+          "Content-Disposition": "attachment; filename*=UTF-8''CV%20Smoke.pdf",
+        },
+        body: "%PDF-1.4\n% local Playwright fixture\n%%EOF",
+      });
+    }
+    if (method === "GET" && path === "/images/fetch_images") return json(route, []);
+    if (method === "POST" && path === "/events/log") return json(route, { logged: true });
+    if (method === "GET" && path === "/billing/plans") return json(route, { plans: [] });
+    if (method === "GET" && path === "/ai/bio_cv_draft") return json(route, { draft: null });
+
+    unexpected.push(`${method} ${path}`);
+    return json(route, {
+      detail: { code: "unmocked_e2e_route", message: "Brak lokalnej odpowiedzi testowej." },
+    }, 501);
+  });
+
+  return {
+    calls,
+    unexpected,
+    productionRequests,
+    assertHermetic() {
+      expect(unexpected, "Every API call must have an explicit local fixture").toEqual([]);
+      expect(productionRequests, "E2E must never contact the deployed API").toEqual([]);
+    },
+  };
+}
+
+export async function login(page) {
+  await page.goto("/login");
+  await page.getByLabel("Nazwa użytkownika").fill("Kamil");
+  await page.getByLabel("Hasło").fill("local-test-password");
+  await page.getByRole("button", { name: "Zaloguj się" }).click();
+  await expect(page).toHaveURL(/\/cvstudio\/Kamil/);
+  await expect(page.getByRole("heading", { name: "Jak chcesz zacząć?" })).toBeVisible();
+}

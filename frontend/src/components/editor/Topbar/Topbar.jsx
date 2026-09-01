@@ -17,9 +17,11 @@
  * flanking arrows restyle in place without opening that dialog.
  */
 import classes from "./Topbar.module.css";
-import { use, useMemo } from "react";
+import { useMemo } from "react";
 import { Link } from "react-router-dom";
-import { PdfContext } from "../../../store/pdfgenerator-context";
+import { useCanvasContext } from "../../../store/canvas-context";
+import { useSession } from "../../../store/session-context";
+import { useUiSurfaces } from "../../../store/ui-surfaces-context";
 import { RiFileTextLine, RiDownload2Line, RiShuffleLine, RiFileReduceLine, RiArrowGoBackLine, RiArrowGoForwardLine, RiArrowLeftSLine, RiArrowRightSLine } from "react-icons/ri";
 import { FiEdit3, FiSave, FiTrash2, FiZoomIn, FiZoomOut } from "react-icons/fi";
 import { TiPen } from "react-icons/ti";
@@ -28,15 +30,12 @@ import { adjacentAllowedTemplate } from "../../../utils/cvTemplateSelection";
 import { useApplyCvTemplate } from "../../../hooks/useApplyCvTemplate";
 import PageControls from "../PageControls/PageControls";
 
-export default function Topbar({ titleRef }) {
+export default function Topbar({ titleRef, title, onTitleChange }) {
+    const { showAiPanel, showBioCvModal, showChangeTemplateModal } = useUiSurfaces();
     const {
-        showAiPanel,
-        showBioCvModal,
-        showChangeTemplateModal,
         isDemoContent,
         activeCvData,
         activeTemplateId,
-        entitlements,
         createPdf,
         downloadPdf,
         clearA4,
@@ -51,7 +50,8 @@ export default function Topbar({ titleRef }) {
         canRedo,
         onePageFit,
         onFitToOnePage,
-    } = use(PdfContext);
+    } = useCanvasContext();
+    const { entitlements } = useSession();
     const { applyTemplate, fillingId } = useApplyCvTemplate();
 
     const prevTemplate = useMemo(
@@ -88,6 +88,8 @@ export default function Topbar({ titleRef }) {
                         name="title"
                         id="title"
                         ref={titleRef}
+                        value={title}
+                        onChange={(event) => onTitleChange(event.target.value)}
                         placeholder="Projekt bez tytułu"
                         aria-label="Nazwa bieżącego dokumentu"
                     />

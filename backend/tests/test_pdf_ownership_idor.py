@@ -40,11 +40,11 @@ class PdfOwnershipIdorTests(unittest.TestCase):
         ent.seed_plans(self.db)
 
         user_crud.create_user(self.db, UserCreateRequest(
-            username="u1", email="u1@e.pl", password="pw"))
+            username="usr1", email="u1@e.pl", password="correct horse battery"))
         user_crud.create_user(self.db, UserCreateRequest(
-            username="u2", email="u2@e.pl", password="pw"))
+            username="usr2", email="u2@e.pl", password="correct horse battery"))
 
-        u1 = self.db.query(User).filter(User.username == "u1").one()
+        u1 = self.db.query(User).filter(User.username == "usr1").one()
         now = datetime.now(timezone.utc)
         pdf = Pdf(
             title="u1-cv",
@@ -82,7 +82,7 @@ class PdfOwnershipIdorTests(unittest.TestCase):
 
         app.dependency_overrides[get_db] = _override_db
         # Default identity is the non-owner; ownership tests flip as needed.
-        app.dependency_overrides[verify_token] = lambda: {"sub": "u2"}
+        app.dependency_overrides[verify_token] = lambda: {"sub": "usr2"}
         self.client = TestClient(app)
 
     def tearDown(self):
@@ -99,7 +99,7 @@ class PdfOwnershipIdorTests(unittest.TestCase):
         self.assertEqual(response.status_code, 403)
 
     def test_owner_show_pdf_returns_200(self):
-        app.dependency_overrides[verify_token] = lambda: {"sub": "u1"}
+        app.dependency_overrides[verify_token] = lambda: {"sub": "usr1"}
         response = self.client.post("/pdf/show_pdf", json=self.pdf_id)
         self.assertEqual(response.status_code, 200)
         body = response.json()

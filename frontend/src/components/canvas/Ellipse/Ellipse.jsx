@@ -1,8 +1,8 @@
 /**
  * Circle/ellipse shape; filled or stroked. Used for markers and chrome.
  */
-import { memo, use, useState } from "react";
-import { PdfContext } from "../../../store/pdfgenerator-context";
+import { memo, useState } from "react";
+import { useCanvasContext } from "../../../store/canvas-context";
 import Resize from "../../common/Resize/Resize";
 
 function Ellipse({
@@ -26,7 +26,7 @@ function Ellipse({
         selectMoveElement,
         A4_Elements,
         resizeElement,
-    } = use(PdfContext);
+    } = useCanvasContext();
     const [isResizeable, setIsResizeable] = useState(false);
     const selectedCount = A4_Elements.filter((element) => element.isSelected).length;
     const selectedElement = A4_Elements.find((element) => element.element_id === elementId);

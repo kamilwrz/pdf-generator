@@ -9,8 +9,7 @@
  */
 import classes from "./Text.module.css";
 import { memo, useLayoutEffect, useRef } from "react";
-import { use } from "react";
-import { PdfContext } from "../../../store/pdfgenerator-context";
+import { useCanvasContext } from "../../../store/canvas-context";
 import {
     hasTextareaDragIntent,
     resolveTextClickIntent,
@@ -63,7 +62,7 @@ function Text({
         setSpacingHoldId,
         editZoomSpreadTransitionRef,
         editorMode,
-    } = use(PdfContext);
+    } = useCanvasContext();
 
     const nodeRef = useRef(null);
     const pointerStartRef = useRef(null);

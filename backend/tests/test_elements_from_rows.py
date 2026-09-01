@@ -15,7 +15,7 @@ from app.crud.pdfs import (
     request_pdf_by_id_show,
     request_pdf_elements_by_element_id,
 )
-from app.models.models import Base
+from app.models.models import Base, User
 from app.schemas.pdf_schema import PdfElement, TextRun
 
 
@@ -28,6 +28,15 @@ class ElementsFromRowsTests(unittest.TestCase):
         )
         Base.metadata.create_all(bind=self.engine)
         self.db = sessionmaker(bind=self.engine)()
+        self.db.add(User(
+            id=1,
+            username="elements-owner",
+            email="elements-owner@example.test",
+            hashed_password="test-only",
+            created_at=datetime.now(timezone.utc),
+            is_active=True,
+        ))
+        self.db.commit()
 
     def tearDown(self):
         self.db.close()

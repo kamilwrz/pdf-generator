@@ -219,6 +219,23 @@
     height: 100%;
 }
 
+/* Compact editor viewports cannot reserve a full outside A4 gutter. Pin the
+   application-only toolbar to the visible edge instead; the authored page and
+   exported coordinates remain untouched, while touch and keyboard users keep
+   access to every structural action. */
+@media (max-width: 720px) {
+    .portalAnchor {
+        left: auto !important;
+        right: var(--space-2, 8px);
+    }
+
+    .toolbar.right,
+    .toolbar.left {
+        left: auto;
+        right: 0;
+    }
+}
+
 @keyframes canvasToolbarIn {
     from { opacity: 0; transform: translateY(-3px); }
     to { opacity: 1; transform: translateY(0); }

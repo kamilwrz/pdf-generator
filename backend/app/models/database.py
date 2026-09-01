@@ -16,9 +16,11 @@ Render cold starts do not poison the pool.
 """
 
 import os
+import sqlite3
 from dotenv import load_dotenv
 load_dotenv()
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, event
+from sqlalchemy.engine import Engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 
@@ -57,6 +59,25 @@ def _resolve_database_url() -> str:
 
 
 DATABASE_URL = _resolve_database_url()
+
+
+@event.listens_for(Engine, "connect")
+def _enable_sqlite_foreign_keys(dbapi_connection, _connection_record) -> None:
+    """Enforce declared foreign keys on every SQLAlchemy SQLite connection.
+
+    SQLite defaults this protection off per connection. Enabling it globally
+    prevents a concurrent canvas save from committing an ``img_id`` after the
+    referenced image row has been deleted. PostgreSQL connections are left
+    unchanged because their driver connection is not ``sqlite3.Connection``.
+    """
+
+    if not isinstance(dbapi_connection, sqlite3.Connection):
+        return
+    cursor = dbapi_connection.cursor()
+    try:
+        cursor.execute("PRAGMA foreign_keys=ON")
+    finally:
+        cursor.close()
 
 if DATABASE_URL.startswith("sqlite"):
     engine = create_engine(

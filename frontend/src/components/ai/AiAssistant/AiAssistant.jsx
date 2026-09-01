@@ -1,9 +1,9 @@
 /**
  * Floating AI assistant: quick actions + freeform chat against the canvas.
  * Sends element snapshots to POST /ai/assistant; chat may return previewable
- * position/structure/deletion/clone review cards before mutating PdfContext.
+ * position/structure/deletion/clone review cards before mutating canvas state.
  */
-import { useState, useRef, useEffect, useCallback, useMemo, use } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { AnimatePresence, motion as Motion, useReducedMotion } from "framer-motion";
 import { nanoid } from "nanoid";
 import { BsStars } from "react-icons/bs";
@@ -15,7 +15,9 @@ import { RiEditLine, RiScissorsLine } from "react-icons/ri";
 import { IoClose, IoSend } from "react-icons/io5";
 import { MdCheckCircle, MdCancel } from "react-icons/md";
 import classes from "./AiAssistant.module.css";
-import { PdfContext } from "../../../store/pdfgenerator-context";
+import { useCanvasContext } from "../../../store/canvas-context";
+import { useSession } from "../../../store/session-context";
+import { useUiSurfaces } from "../../../store/ui-surfaces-context";
 import { syncCvDataFromCanvas } from "../../../utils/syncCvDataFromCanvas";
 import { ApiClient, ENDPOINTS, wakeBackend } from "../../../services/api";
 import { measureElements } from "../../../utils/elementBounds";
@@ -26,6 +28,7 @@ import {
     overallPercentFromRubric,
 } from "../../../utils/atsScore";
 import { collectPendingAiHighlights } from "../../../utils/aiCorrectionHighlights";
+import { useDocumentLifecycle } from "../../../store/document-lifecycle-context";
 
 // ── goal-oriented quick actions ───────────────────────────────────────────
 // User-facing tiles map to goals; backend still uses specialised API actions
@@ -1046,6 +1049,11 @@ function ChatMessage({
 export default function AiAssistant() {
     const reduceMotion = useReducedMotion();
     const {
+        sessionKey,
+        captureDocumentScope,
+        isDocumentScopeCurrent,
+    } = useDocumentLifecycle();
+    const {
         A4_Elements,
         activeCvData,
         activeTemplateId,
@@ -1062,11 +1070,15 @@ export default function AiAssistant() {
         setAiCorrectionHighlights,
         pageSize,
         setCurrentPage,
+    } = useCanvasContext();
+    const {
         entitlements,
         refreshEntitlements,
+    } = useSession();
+    const {
         showPlanModal,
         assistantAction,
-    } = use(PdfContext);
+    } = useUiSurfaces();
 
     const [isOpen, setIsOpen] = useState(false);
     const [layoutMode, setLayoutMode] = useState(false);
@@ -1093,22 +1105,21 @@ export default function AiAssistant() {
     // Synchronous in-flight guard: React state `isLoading` updates too late to
     // block a double-click on suggestion chips before the next render.
     const requestInFlightRef = useRef(false);
-    // Bumped when the active template changes so a late assistant response from
-    // the previous document context cannot re-populate a cleared chat.
+    // Bumped when the complete editor document changes so a late assistant
+    // response from the previous session cannot re-populate a cleared chat.
     const chatSessionRef = useRef(0);
-    const prevTemplateIdRef = useRef(activeTemplateId);
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [messages]);
 
-    // Changing template (picker / Zmień szablon / AI fill) replaces the canvas.
-    // Drop the prior conversation, review cards, and layout session so history
-    // and pending patches cannot target elements that no longer exist.
+    // A document epoch covers saved-document opens, new/imported documents,
+    // template regeneration and guest restoration. Reset every assistant-owned
+    // state so review cards can never target element ids from another epoch.
     useEffect(() => {
-        if (prevTemplateIdRef.current === activeTemplateId) return;
-        prevTemplateIdRef.current = activeTemplateId;
         chatSessionRef.current += 1;
+        requestInFlightRef.current = false;
+        setIsLoading(false);
         setMessages([]);
         setInput("");
         setJobDesc("");
@@ -1127,7 +1138,7 @@ export default function AiAssistant() {
         setDeletionPreviewIds?.([]);
         setAiCorrectionHighlights?.([]);
     }, [
-        activeTemplateId,
+        sessionKey,
         setAiCorrectionHighlights,
         setDeletionPreviewIds,
         setLayoutPreviewPatches,
@@ -1171,13 +1182,6 @@ export default function AiAssistant() {
         textarea.style.height = "auto";
         textarea.style.height = `${Math.min(textarea.scrollHeight, 136)}px`;
     }, [input]);
-
-    // Keep one client for the mounted assistant. Recreating it on every render
-    // would also recreate `send`, making the layout-session callbacks unstable.
-    const api = useMemo(
-        () => new ApiClient({ "Authorization": `Bearer ${localStorage.getItem("token")}` }),
-        [],
-    );
 
     // ── correction handlers ──────────────────────────────────────────────
 
@@ -1257,7 +1261,7 @@ export default function AiAssistant() {
         });
         setCorrectionStates(prev => ({ ...prev, ...newStates }));
         const message = messages.find((item) => item.id === msgId);
-        if (message?.updatedCvData) {
+        if (acceptedIds.length > 0 && message?.updatedCvData) {
             // Profile-aware content actions return the exact structure that
             // later template fills consume. Apply it atomically only after the
             // user accepts all review cards, preserving the reject workflow.
@@ -1439,6 +1443,15 @@ export default function AiAssistant() {
         // Capture before await: a template change mid-flight increments the
         // session and must discard both success and error bubbles for that call.
         const sessionAtStart = chatSessionRef.current;
+        const documentScope = captureDocumentScope();
+        // ApiClient performs transport retries internally. Keeping this client
+        // and key local to one `send` call guarantees every retry is deduplicated
+        // by the backend while a later user action receives a fresh key.
+        const idempotencyKey = globalThis.crypto?.randomUUID?.() || nanoid();
+        const operationApi = new ApiClient({
+            "Authorization": `Bearer ${localStorage.getItem("token")}`,
+            "Idempotency-Key": idempotencyKey,
+        });
 
         // A new layout session must reason from the current canvas rather than
         // repeat conclusions from ordinary chat or an earlier layout run.
@@ -1463,6 +1476,8 @@ export default function AiAssistant() {
             id: nanoid(),
             role: "user",
             text: userText,
+            sourceRevision: documentScope.revision,
+            sourceSessionKey: String(documentScope.epoch),
             ...(options.displayText ? { displayText: options.displayText } : {}),
         };
         setMessages(prev => [...prev, userMsg]);
@@ -1482,7 +1497,7 @@ export default function AiAssistant() {
             // detected/selected language. Empty lets the backend auto-detect.
             const cvLanguageOverride = options.cv_language || cvLanguage;
             const contentActions = ["grammar", "language", "improve", "shorten", "translate"];
-            const res = await api.httpRequest(
+            const res = await operationApi.httpRequest(
                 ENDPOINTS.AI.ASSISTANT, "POST",
                 JSON.stringify({
                     action,
@@ -1517,7 +1532,10 @@ export default function AiAssistant() {
                 },
             );
 
-            if (chatSessionRef.current !== sessionAtStart) return;
+            if (
+                chatSessionRef.current !== sessionAtStart
+                || !isDocumentScopeCurrent(documentScope, { requireSameRevision: true })
+            ) return;
 
             // Keep the selector aligned with the language the backend used.
             if (res.cv_language && res.cv_language !== cvLanguage) {
@@ -1564,6 +1582,8 @@ export default function AiAssistant() {
                 actionLabel: actionMeta?.label,
                 actionColor: actionMeta?.color,
                 updatedCvData: res.updated_cv_data ?? null,
+                sourceRevision: documentScope.revision,
+                sourceSessionKey: String(documentScope.epoch),
             };
             setMessages(prev => [...prev, assistantMsg]);
             // Refresh balance outside the main try so a entitlements blip cannot
@@ -1574,7 +1594,10 @@ export default function AiAssistant() {
                 /* ignore — credits UI can stay stale until the next refresh */
             }
         } catch (err) {
-            if (chatSessionRef.current !== sessionAtStart) return;
+            if (
+                chatSessionRef.current !== sessionAtStart
+                || !isDocumentScopeCurrent(documentScope, { requireSameRevision: true })
+            ) return;
             setMessages(prev => [...prev, {
                 id: nanoid(),
                 role: "assistant",
@@ -1582,12 +1605,14 @@ export default function AiAssistant() {
                 tips: [],
                 corrections: [],
                 web_sources: [],
+                sourceRevision: documentScope.revision,
+                sourceSessionKey: String(documentScope.epoch),
             }]);
         } finally {
             requestInFlightRef.current = false;
             setIsLoading(false);
         }
-    }, [A4_Elements, activeCvData, activeTemplateId, api, cvLanguage, isLoading, jobDesc, messages, pageSize, refreshEntitlements]);
+    }, [A4_Elements, activeCvData, activeTemplateId, captureDocumentScope, cvLanguage, isDocumentScopeCurrent, isLoading, jobDesc, messages, pageSize, refreshEntitlements]);
 
     const toggleLayoutMode = useCallback(() => {
         // Keep the client journey clear; the API remains the source of

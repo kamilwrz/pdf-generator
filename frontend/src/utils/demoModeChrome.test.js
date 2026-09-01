@@ -70,7 +70,7 @@ test("empty-state chooser replaces editor chrome and Pro-only AI actions", async
   assert.match(canvas, /!showStartChooser \? <Editor \/>/);
   assert.match(canvas, /!showStartChooser \? \(\s*<div className="right-pane">/);
   assert.match(canvas, /!showStartChooser \? <Gallery \/>/);
-  assert.match(canvas, /!showStartChooser && entitlements\?\.ai_assistant \? <AiAssistant \/>/);
+  assert.match(canvas, /!showStartChooser && entitlements\?\.ai_assistant \? \([\s\S]*<Suspense[\s\S]*<LazyAiAssistant key={documentSessionKey} \/>/);
   assert.match(
     canvas,
     /onDocuments=\{\(\) => \{\s*\/\/ Keep the chooser mounted behind the documents modal\./,
@@ -87,12 +87,12 @@ test("PdfCanvas publishes demo state through the editor context", async () => {
   assert.match(canvas, /loadGuestDocument\(\)\?\.isDemoContent/);
   assert.match(canvas, /demoGuestRestoredRef/);
   assert.match(canvas, /import \{ lindenTemplate \} from '\.\.\/templates\/linden'/);
-  assert.match(canvas, /handleLoadTemplate\(lindenTemplate, "DEMO_CV", "linden"\)/);
-  assert.match(canvas, /guestDoc\.templateId !== "linden"[\s\S]*clearGuestDocument\(\)[\s\S]*handleLoadTemplate\(lindenTemplate/);
+  assert.match(canvas, /commitDocumentSnapshot\(\{[\s\S]*materializeElementSpecs\(lindenTemplate, nanoid\)[\s\S]*title: "DEMO_CV"[\s\S]*templateId: "linden"/);
+  assert.match(canvas, /guestDoc\.templateId !== "linden"[\s\S]*clearGuestDocument\(\)[\s\S]*commitDocumentSnapshot\(\{[\s\S]*lindenTemplate/);
   assert.match(canvas, /import \{ FREE_WIZARD_TEMPLATE_ID \} from '\.\.\/utils\/onboardingTemplates'/);
   assert.match(canvas, /initialStartIntentRef\.current === "demo-conversion"[\s\S]*\? "linden"[\s\S]*: FREE_WIZARD_TEMPLATE_ID/);
   assert.match(canvas, /fillTemplate\(claim.profile, conversionTemplateId/);
-  assert.match(canvas, /handleLoadAiElements\(response.elements, "Moje CV", conversionTemplateId\);\s*\/\/ The generated CV is now an authenticated document[\s\S]*setIsDemoContent\(false\)/);
+  assert.match(canvas, /commitDocumentSnapshot\(\{[\s\S]*response\.elements[\s\S]*title: "Moje CV"[\s\S]*templateId: conversionTemplateId[\s\S]*isDemoContent: false/);
 });
 
 test("authenticated demo refresh does not offer the demo snapshot for claiming", async () => {

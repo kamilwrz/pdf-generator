@@ -77,12 +77,16 @@ test("wizard conversions use the correct Free starter while saved documents stay
     assert.match(templates, /FREE_WIZARD_TEMPLATE_ID = "meridian"/);
     assert.match(wizard, /onboardingTemplateId = isDemoConversion \? "linden" : FREE_WIZARD_TEMPLATE_ID/);
     assert.match(wizard, /fillTemplate\(payload, onboardingTemplateId/);
-    assert.match(wizard, /loadAiElements\(response\.elements, "Moje CV", onboardingTemplateId\)/);
+    assert.match(
+        wizard,
+        /loadAiElements\(\s*response\.elements,\s*"Moje CV",\s*onboardingTemplateId,\s*\{ cvData: payload \},\s*\)/,
+    );
     assert.match(wizard, /selectedTemplateId: onboardingTemplateId/);
     assert.match(wizard, /Linden zostanie wygenerowany/);
     assert.match(wizard, /Meridian zostanie wygenerowany/);
     assert.match(canvas, /: FREE_WIZARD_TEMPLATE_ID/);
-    assert.match(canvas, /templateId: guestDoc\.templateId/);
+    assert.match(canvas, /commitDocumentSnapshot\(\{\s*\.\.\.guestDoc,/);
+    assert.match(canvas, /normalizeSterlingFamilyPersistence\(guestDoc\.elements, guestDoc\.templateId\)/);
     assert.doesNotMatch(wizard, /selectedTemplateId: "regent"/);
 });
 

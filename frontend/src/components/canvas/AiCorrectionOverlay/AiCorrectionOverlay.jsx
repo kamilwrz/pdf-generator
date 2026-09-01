@@ -6,8 +6,7 @@
  * the CV text. `pointer-events: none` keeps editing unaffected.
  */
 import { useMemo } from "react";
-import { use } from "react";
-import { PdfContext } from "../../../store/pdfgenerator-context";
+import { useCanvasContext } from "../../../store/canvas-context";
 import { getElementBounds, getTextContentBounds } from "../../../utils/elementBounds";
 import { imageDisplayTop } from "../../../utils/iconAlignment";
 import classes from "./AiCorrectionOverlay.module.css";
@@ -62,7 +61,7 @@ export default function AiCorrectionOverlay({ elements, page }) {
     A4_Elements,
     currentPage,
     aiCorrectionHighlights = [],
-  } = use(PdfContext);
+  } = useCanvasContext();
 
   const canvasElements = elements ?? A4_Elements;
   const displayedPage = page ?? currentPage;

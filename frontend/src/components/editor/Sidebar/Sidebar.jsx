@@ -15,8 +15,9 @@ import { BsTextParagraph } from "react-icons/bs";
 import { LuImagePlus, LuListTree, LuLockOpen } from "react-icons/lu";
 import { AiOutlineLogout } from "react-icons/ai";
 import { FaRegFolderOpen } from "react-icons/fa";
-import { PdfContext } from "../../../store/pdfgenerator-context";
-import { use } from "react";
+import { useCanvasContext } from "../../../store/canvas-context";
+import { useSession } from "../../../store/session-context";
+import { useUiSurfaces } from "../../../store/ui-surfaces-context";
 import { Link } from "react-router-dom";
 import { EDITOR_MODE_TEMPLATE } from "../../../utils/editorMode";
 
@@ -32,23 +33,27 @@ export default function Sidebar({ children }) {
         addPolygon,
         addPath,
         addTextarea,
+        editorMode,
+        fitTooLong,
+        isDemoContent,
+    } = useCanvasContext();
+    const {
         showGallery,
         isGallery,
         showSections,
         isSectionsPanel,
         showUnlockFreeform,
         isUnlockFreeformModal,
-        editorMode,
         setIsModalPdfs,
         isModalPdfs,
+        showPlanModal,
+    } = useUiSurfaces();
+    const {
         logout,
         isGuest,
         PDFs,
         entitlements,
-        showPlanModal,
-        fitTooLong,
-        isDemoContent,
-    } = use(PdfContext);
+    } = useSession();
 
     // Demo content is intentionally locked to the template tool rail even if a
     // transient editor-mode update occurs while the starter is being replaced.

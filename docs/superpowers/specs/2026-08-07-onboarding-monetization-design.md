@@ -14,7 +14,7 @@ The product is ~90% feature-complete (14 templates, AI import, guided wizard, st
 Landing → choose intent → Register/Login → protected /pdfcanvas → first value
 ```
 
-`ProtectedRoute` ([frontend/src/ProtectedRoute.jsx](../../../frontend/src/ProtectedRoute.jsx)) redirects to `/login` whenever `localStorage.token` is absent, so nothing — not the canvas, not a template, not the wizard — can be seen before an account exists. Registration also asks the new user to pick a paid plan up front ([frontend/src/pages/Register/PlanSelector.jsx](../../../frontend/src/pages/Register/PlanSelector.jsx)), before they know what they're buying.
+The now-retired `frontend/src/ProtectedRoute.jsx` redirected to `/login` whenever `localStorage.token` was absent, so nothing — not the canvas, not a template, not the wizard — could be seen before an account existed. Registration also asked the new user to pick a paid plan through the now-retired `frontend/src/pages/Register/PlanSelector.jsx`, before they knew what they were buying.
 
 Separately, CV import (`POST /ai/extract_cv`) calls a paid OpenAI vision endpoint ([backend/app/services/ai_service.py](../../../backend/app/services/ai_service.py) `extract_cv_data`), so it cannot simply be opened to anonymous traffic without a cost-abuse risk.
 

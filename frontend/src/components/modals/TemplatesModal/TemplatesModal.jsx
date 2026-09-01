@@ -3,14 +3,18 @@
  * product metric and can warn before replacing a non-empty canvas.
  * Each template is an individual card (name + short stylistic description).
  */
-import { use, useState } from "react";
+import { useState } from "react";
 import classes from "./TemplatesModal.module.css";
-import { PdfContext } from "../../../store/pdfgenerator-context";
+import { useCanvasContext } from "../../../store/canvas-context";
+import { useSession } from "../../../store/session-context";
+import { useUiSurfaces } from "../../../store/ui-surfaces-context";
 import { TEMPLATES } from "../../../templates";
 import DialogShell from "../../common/DialogShell/DialogShell";
 import { logEvent } from "../../../services/eventLog";
 import { isTemplateAllowed } from "../../../utils/entitlements";
 import { getTemplateAtsReadability } from "../../../utils/templateLayouts";
+import { fillTemplate } from "../../../services/fillTemplate";
+import { createEmptyBioCvData } from "../../../utils/bioCvData";
 
 // Real cropped screenshot of the template's own canvas data — see
 // frontend/public/template-mockups/. Card aspect ratio matches A4 portrait.
@@ -23,22 +27,59 @@ function Preview({ id, name }) {
 }
 
 export default function TemplatesModal() {
+    const { loadTemplate, A4_Elements, loadAiElements, activeCvData, flowSpacing } = useCanvasContext();
+    const { entitlements, pushToast } = useSession();
     const {
-        isTemplates, showTemplates, loadTemplate, A4_Elements,
-        autoOpenedTemplates, markTemplatesModalSeen, entitlements, pushToast,
-    } = use(PdfContext);
+        isTemplates,
+        showTemplates,
+        autoOpenedTemplates,
+        markTemplatesModalSeen,
+    } = useUiSurfaces();
 
     const [pendingTemplate, setPendingTemplate] = useState(null);
+    const [loadingTemplateId, setLoadingTemplateId] = useState(null);
 
-    function applyTemplate(t) {
+    async function applyTemplate(t) {
+        if (!t || loadingTemplateId) return;
         const title = `CV ${t.name}`;
-        loadTemplate(t.elements, title, t.id);
-        if (autoOpenedTemplates) {
-            logEvent("template_picked", t.id);
-            markTemplatesModalSeen();
+        setLoadingTemplateId(t.id);
+        try {
+            if (Array.isArray(t.elements)) {
+                const applied = await loadTemplate(t.elements, title, t.id);
+                if (applied === false) return;
+            } else {
+                // Pro packs never enter the public JS bundle. A blank selection
+                // uses a minimal editable profile; a template change reuses the
+                // semantic CV snapshot already attached to the document.
+                const profile = activeCvData || {
+                    ...createEmptyBioCvData(),
+                    name: "Imię Nazwisko",
+                    title: "Stanowisko",
+                };
+                const response = await fillTemplate(profile, t.id, { spacing: flowSpacing });
+                const applied = await loadAiElements(
+                    response.elements,
+                    title,
+                    t.id,
+                    { cvData: profile },
+                );
+                if (applied === false) return;
+            }
+            if (autoOpenedTemplates) {
+                logEvent("template_picked", t.id);
+                markTemplatesModalSeen();
+            }
+            setPendingTemplate(null);
+            showTemplates();
+        } catch (error) {
+            pushToast?.({
+                title: "Nie udało się wczytać szablonu",
+                msg: error?.message || "Spróbuj ponownie za chwilę.",
+                variant: "error",
+            });
+        } finally {
+            setLoadingTemplateId(null);
         }
-        setPendingTemplate(null);
-        showTemplates();
     }
 
     function handlePick(t) {
@@ -76,7 +117,7 @@ export default function TemplatesModal() {
     return (
         <>
             <DialogShell
-                open={isTemplates}
+                open={isTemplates && pendingTemplate == null}
                 onClose={handleClose}
                 width={1280}
                 title="Szablony"
@@ -112,8 +153,13 @@ export default function TemplatesModal() {
                                         type="button"
                                         className={locked ? classes.lockedBtn : classes.useBtn}
                                         onClick={() => handlePick(t)}
+                                        disabled={loadingTemplateId != null}
                                     >
-                                        {locked ? "Odblokuj w Pro" : "Użyj szablonu"}
+                                        {locked
+                                            ? "Odblokuj w Pro"
+                                            : loadingTemplateId === t.id
+                                                ? "Wczytywanie…"
+                                                : "Użyj szablonu"}
                                     </button>
                                 </div>
                             );
@@ -146,8 +192,9 @@ export default function TemplatesModal() {
                                 type="button"
                                 className={classes.confirmApply}
                                 onClick={() => applyTemplate(pendingTemplate)}
+                                disabled={loadingTemplateId != null}
                             >
-                                Zastąp szablonem
+                                {loadingTemplateId ? "Wczytywanie…" : "Zastąp szablonem"}
                             </button>
                     </div>
                 )}

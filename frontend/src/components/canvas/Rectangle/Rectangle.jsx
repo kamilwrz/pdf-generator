@@ -7,8 +7,8 @@
  */
 import classes from "./Rectangle.module.css";
 import { memo, useState } from 'react';
-import { PdfContext } from "../../../store/pdfgenerator-context";
-import { use } from "react";
+import { useCanvasContext } from "../../../store/canvas-context";
+import { useUiSurfaces } from "../../../store/ui-surfaces-context";
 import Resize from "../../common/Resize/Resize";
 import { isProfilePhotoFrame } from "../../../utils/profilePhoto";
 
@@ -37,8 +37,8 @@ function Rectangle({
         selectMoveElement,
         A4_Elements,
         resizeElement,
-        showGallery,
-    } = use(PdfContext);
+    } = useCanvasContext();
+    const { showGallery } = useUiSurfaces();
 
     const [isResizeable, setIsResizeable] = useState(false);
     const selectedCount = A4_Elements.filter((element) => element.isSelected).length;

@@ -1,0 +1,83 @@
+.page {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: clamp(24px, 6vw, 72px);
+  background: var(--color-canvas);
+  color: var(--chrome-ink);
+  font-family: var(--font-body);
+}
+
+.compact {
+  min-height: min(520px, 70dvh);
+}
+
+.panel {
+  width: min(100%, 640px);
+  border-top: 4px solid var(--chrome-accent);
+  border-bottom: 1px solid var(--chrome-border);
+  padding: clamp(24px, 5vw, 52px) 0;
+}
+
+.eyebrow {
+  display: block;
+  margin-bottom: 18px;
+  color: var(--chrome-accent);
+  font: 800 11px/1 var(--font-body);
+  letter-spacing: .14em;
+}
+
+.panel h1 {
+  max-width: 12ch;
+  margin: 0;
+  font: 800 clamp(30px, 6vw, 58px)/.98 var(--font-display);
+  letter-spacing: -.04em;
+}
+
+.panel p {
+  max-width: 54ch;
+  margin: 20px 0 0;
+  color: var(--chrome-muted);
+  font: 400 14px/1.6 var(--font-body);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 28px;
+}
+
+.actions button,
+.actions a {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--chrome-ink);
+  border-radius: var(--radius-control);
+  padding: 9px 15px;
+  background: var(--chrome-ink);
+  color: var(--chrome-surface);
+  font: 700 12px/1.2 var(--font-body);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.actions a {
+  background: transparent;
+  color: var(--chrome-ink);
+}
+
+.actions button:hover,
+.actions a:hover {
+  border-color: var(--chrome-accent);
+  background: var(--chrome-accent);
+  color: var(--chrome-surface);
+}
+
+.actions button:focus-visible,
+.actions a:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--chrome-accent) 70%, transparent);
+  outline-offset: 3px;
+}

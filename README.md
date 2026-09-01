@@ -4,7 +4,7 @@
 
 CV Studio is a Polish-language A4 CV editor: a WYSIWYG canvas, nine individual templates (each with its own name and short stylistic description), PDF import via AI, a guided bio wizard, a floating AI assistant, and ReportLab PDF export that matches the canvas 1:1 (coordinates in points, top-left origin on the frontend, flipped for ReportLab).
 
-This README is the technical entry point for developers. A beginner-friendly deep guide to canvas coordinates, React interaction, deterministic Python layout, AI responsibilities, reflow, persistence, and ReportLab export lives in [`CANVA.md`](CANVA.md). Every live AI prompt (full text, variables, file/line references) is documented in [`PROMPTS.md`](PROMPTS.md). Product-oriented feature copy lives in [`docs/FEATURES.md`](docs/FEATURES.md). Marketing brief for the website „Dlaczego CV STUDIO” section (features + competitive positioning, no competitor brand names in public copy) lives in [`FEATURES_MARKETING.md`](FEATURES_MARKETING.md). Template generation (AI extract vs Python layout) is explained in [`docs/cv-template-generation.md`](docs/cv-template-generation.md). A layperson-friendly end-to-end guide covering Frontend and Backend (flows, files, classes, functions) lives in [`CV_GENERATOR.md`](CV_GENERATOR.md).
+This README is the technical entry point for developers and the complete bilingual architecture/tutorial reference. Product-oriented feature copy lives in [`docs/FEATURES.md`](docs/FEATURES.md), while template generation (AI extraction versus deterministic Python layout) is explained in [`docs/cv-template-generation.md`](docs/cv-template-generation.md).
 
 ---
 
@@ -34,9 +34,9 @@ Job seekers need CVs that look professional and export cleanly to PDF. Generic f
 
 Forcing registration before a visitor had seen the editor used to be the largest funnel loss: every new visitor had to create an account — and pick a paid plan during registration — before touching a single template. **Guest mode** removes that wall: `/cvstudio/guest` works with no JWT at all (authenticated users open `/cvstudio/{username}`), so a visitor can pick a template, run the guided wizard, or freeform-edit and see the exact document they would export, with state kept in `localStorage` instead of the backend. An account is only required at the point of real value — saving or exporting the PDF (a "save-gate" modal) — or for CV import, which stays account-gated because it sends personal CV data to a server-side AI provider and consumes an account-wide quota. See [Guest mode (editor without an account)](#guest-mode-editor-without-an-account) for the full implementation.
 
-**Implemented today:** editor (including guest mode without an account), templates, extract/fill, bio draft, AI assistant (goal-oriented actions, rating dashboard, translate, layout review cards), entitlements (Darmowy / Pro — 59 zł / 30 days), explicit save + independent render-on-demand download, guest-only localStorage autosave, local or S3 storage, JWT auth.
+**Implemented today:** editor (including guest mode without an account), templates, extract/fill, bio draft, AI assistant (goal-oriented actions, rating dashboard, translate, layout review cards), entitlements (Darmowy / Pro — 59 zł / 30 days), explicit save + independent render-on-demand download, guest-only localStorage autosave, Storage V2 (private S3 in production; local filesystem only in development/tests), JWT auth.
 
-**Optional:** AWS S3 (`S3_BUCKET_NAME`; the bucket must remain private with Block Public Access enabled), unpaid plan selection (`ALLOW_UNPAID_PLAN_SELECTION`).
+**Optional locally:** AWS S3 may replace the development filesystem. **Required on Render/production:** `S3_BUCKET_NAME`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, and `AWS_REGION`, with a private bucket and Block Public Access enabled. Unpaid plan selection (`ALLOW_UNPAID_PLAN_SELECTION`) remains a local-only option.
 
 **Not implemented as full Stripe Checkout yet:** paid plans can be activated without payment when unpaid selection is enabled; `402 payment_required` is the seam for future Checkout.
 
@@ -85,7 +85,7 @@ flowchart LR
     API --> Canvas[pdf CRUD + render-on-demand]
     API --> AI[extract / fill / assistant]
     API --> DB[(SQLite or Postgres)]
-    API --> Files[local disk or S3]
+    API --> Files[private S3 in production; local disk in dev/test]
     AI --> Cloudflare[Cloudflare Workers AI<br/>CV import]
     AI --> OpenAI[OpenAI API<br/>assistant / optional import rollback]
     Canvas --> ReportLab[ReportLab PDF]
@@ -100,14 +100,14 @@ flowchart LR
 | Layer | Entry | Role |
 |--------|--------|------|
 | Frontend | `frontend/src/main.jsx` → `App.jsx` | Router: `/`, `/login`, `/register`, `/cvstudio/:workspace` (`guest` or username — no `ProtectedRoute`); legacy `/pdfcanvas` redirects |
-| Editor page | `frontend/src/pages/PdfCanvas.jsx` (`PdfCanvas`) | Composes hooks into Canvas / UiSurfaces / Session (+ `PdfContext` facade) |
+| Editor page | `frontend/src/pages/PdfCanvas.jsx` (`PdfCanvas`) | Composes hooks into focused Canvas / UiSurfaces / Session / DocumentLifecycle providers |
 | Backend | `backend/app/main.py` | FastAPI app, CORS, `/health`, routers, optional SPA static |
 
 ### Frontend layers
 
 - **Pages** — marketing, auth, editor shell.
 - **Hooks** — `useA4Elements` is the canvas facade; undo/redo in `useDocumentHistory`; selection/drag in `useElementSelectionDrag`; factories/materialize helpers are pure utils; `usePdfExport` talks to PDF endpoints; `useEntitlements` loads plan limits.
-- **Context** — nested `CanvasContext` / `UiSurfacesContext` / `SessionContext` from `PdfCanvas`, plus temporary merged `PdfContext` facade for remaining consumers.
+- **Context** — focused `CanvasContext`, `UiSurfacesContext`, `SessionContext`, and `DocumentLifecycleContext`; the former broad `PdfContext` module has been removed and an architectural test rejects reintroduction.
 - **Services** — `ApiClient` (`services/api.js`) with long timeouts and retries for Render cold start; shared `fillTemplate` for `/ai/fill_template`; authenticated image blob helper for private library photos.
 - **Templates** — static element specs in `frontend/src/templates/`; registry in `templates/index.js`.
 
@@ -153,20 +153,26 @@ Elements with `fixedToPage: true` (backgrounds, frames, sidebars, page numbers) 
 |------------|----------------|---------|----------------|
 | React | ^19.2 | UI components and hooks | `frontend/src/` |
 | Vite | ^7.2 | Dev server and production build | `frontend/` |
-| React Router | ^7.13 | Client routes (`/cvstudio/:workspace` — `guest` or username; `ProtectedRoute` was removed) | `App.jsx`, `authSession.js` (`getEditorPath`) |
-| FastAPI | (requirements) | HTTP API | `backend/app/main.py`, routes |
+| React Router | ^7.18 | Client routes, navigation blocking for unsaved work, and route error surfaces | `App.jsx`, `useDirtyGuard.js`, `authSession.js` (`getEditorPath`) |
+| FastAPI | 0.141.1 | HTTP API and dependency injection | `backend/app/main.py`, routes |
+| Starlette | 1.6.0 | ASGI middleware, requests/responses, and worker-thread execution | FastAPI runtime |
+| python-multipart | 0.0.32 | Streaming multipart form/file parsing | auth and image/CV upload routes |
 | Uvicorn | (requirements) | ASGI server | local / Render |
 | SQLAlchemy | (requirements) | ORM | `models/`, `crud/` |
 | SQLite / PostgreSQL | via `DATABASE_URL` | Persistence | `database.py` |
 | ReportLab + fontTools | (requirements) | PDF drawing + TTF name fixes | `pdf_generator.py` |
-| PyMuPDF (fitz) | 1.26.6 | Native PDF line/span geometry, column-aware CV extraction, and scan-page rasterisation | `cv_source_layout.py`, `ai_service.py`, `ats_readability.py` |
+| PyMuPDF (fitz) | 1.28.2 | Native PDF line/span geometry, column-aware CV extraction, and scan-page rasterisation | `cv_source_layout.py`, `ai_service.py`, `ats_readability.py` |
 | OpenAI SDK | 2.14.0 | OpenAI assistant calls and OpenAI-compatible Cloudflare transport | `ai_service.py`, `ai_assistant_service.py` |
 | Cloudflare Workers AI | hosted API | Native-text CV extraction (thinking-disabled Gemma 4 with one JSON-mode Llama fallback) and scan extraction (Qwen 3.8 Vision) | `ai_service.py`, `cloudflare_pricing.py` |
-| python-jose / passlib bcrypt | (requirements) | JWT + passwords | `core/security.py` |
-| boto3 | optional | S3 uploads | `s3_storage.py` |
+| PyJWT / cryptography | 2.13.0 / 50.0.1 | Versioned JWT encode/decode and pinned cryptographic primitives; replaces python-jose/ecdsa | `core/security.py` |
+| argon2-cffi / bcrypt | 25.1.0 / 5.0.0 | Authoritative Argon2id hashes plus a temporary bcrypt rollback bridge for N-1 workers | `core/security.py` |
+| python-dotenv | 1.2.3 | Loads local backend `.env` configuration | `core/config.py` |
+| boto3 | 1.43.51; required in production | Private S3 objects behind the Storage V2 abstraction | `pdf_storage.py`, `s3_storage.py` |
 | nanoid | ^5.1 | Client element ids | canvas hooks |
 | motion | ^12 | UI motion | modals / assistant |
 | pytest + unittest | 9.1.1 + stdlib | Full backend runner plus compatible `unittest.TestCase` tests and subtests | `backend/tests/`, `backend/requirements-dev.txt` |
+| Node test runner + Vitest | Node 20+ / ^4.1 | Pure-module regressions plus jsdom React runtime and Error Boundary tests | `frontend/scripts/run-tests.mjs`, `frontend/vitest.config.js` |
+| Playwright | ^1.62 | Chromium editor smoke tests and browser-level regression harness | `frontend/playwright.config.js`, `frontend/e2e/` |
 
 Official docs: [React](https://react.dev/), [Vite](https://vite.dev/), [FastAPI](https://fastapi.tiangolo.com/), [SQLAlchemy](https://docs.sqlalchemy.org/), [ReportLab](https://www.reportlab.com/docs/reportlab-userguide.pdf), [Cloudflare Workers AI](https://developers.cloudflare.com/workers-ai/), [Workers AI OpenAI compatibility](https://developers.cloudflare.com/workers-ai/configuration/open-ai-compatibility/), and [OpenAI API](https://platform.openai.com/docs).
 
@@ -202,7 +208,7 @@ pdf-generator/
 │   │   ├── hooks/            # useA4Elements facade, useDocumentHistory, usePdfExport, …
 │   │   ├── pages/            # Hero, Login, Register, PdfCanvas
 │   │   ├── services/         # ApiClient, fillTemplate, authenticatedImage, eventLog
-│   │   ├── store/            # Canvas / UiSurfaces / Session + PdfContext facade
+│   │   ├── store/            # Focused Canvas / UiSurfaces / Session / DocumentLifecycle contexts
 │   │   ├── templates/        # per-template specs + helpers; cadenza.js is the white-paper editorial starter
 │   │   └── utils/            # geometry/reflow/sections, browser text-export layout, template appearance, guest helpers
 │   │       ├── planPresentation.js # Canonical Free/Pro UI copy merged with billing-owned prices
@@ -223,6 +229,8 @@ pdf-generator/
 │   │       ├── canvasHighlightBounds.js # Model-first bounds and post-commit ink limits
 │   │       ├── canvasHighlightBounds.test.js # Focused semantic-highlight geometry regressions
 │   │       └── canvasHighlightAllTemplates.test.js # Main/sidebar isolation contract for every built-in template
+│   ├── e2e/                 # Playwright editor smoke and regression scenarios
+│   ├── scripts/             # Recursive unit-test discovery + gzip bundle-budget gate
 │   ├── package.json
 │   └── .env.example
 ├── shared/
@@ -234,14 +242,17 @@ pdf-generator/
     │   ├── crud/
     │   ├── models/
     │   ├── schemas/          # PdfElement + JSON Schema export
-    │   ├── services/         # pdf, document_service, cv_generator (+ cv_templates/), ats_readability, entitlements
+    │   ├── services/         # document/storage lifecycle, readiness, auth limits, AI reservations, templates
     │   │   ├── ai_service.py             # text-first/vision CV extraction + deterministic fill entry
     │   │   ├── cv_source_layout.py       # column lanes, source sections, deterministic field grounding
-    │   │   └── cloudflare_pricing.py     # Workers AI token-rate telemetry
+    │   │   ├── cloudflare_pricing.py     # Workers AI token-rate telemetry
+    │   │   ├── pdf_storage.py            # Storage V2 keys, containment, dual-read, local/S3 IO and cleanup
+    │   │   ├── readiness.py              # DB/migration/catalog readiness probe and request gate
+    │   │   └── deployment_bootstrap.py   # Render pre-deploy migrations and seed bootstrap
     │   ├── utils/            # image_src_to_path, metrics_logging, upload_security
     │   ├── main.py
     │   └── dependencies.py
-    ├── alembic/              # Schema/data migrations (0005 SQLite-safe history; 0007 import counter; 0008 Free contract)
+    ├── alembic/              # Additive migrations through 0015, including N-1 write compatibility
     ├── fonts/                # Bundled TTFs for PDF
     ├── template_assets/      # Sidebar, IT and Iconic artwork/icons
     │   ├── iconic/cadenza-{porcelain,mist,sage,cobalt,burgundy,emerald}/ # Six real contact-icon palettes
@@ -254,7 +265,7 @@ pdf-generator/
     └── .env.example
 ```
 
-**Rules:** Frontend templates must stay in sync with `_GENERATORS` in `cv_templates/registry.py` (re-exported from `cv_generator.py`; 9 ids). Each `cv_templates/templates/<id>.py` holds only that template’s live generator — not a shared multi-theme engine with sibling branches. Do not put secrets in the repo. Uploads and generated PDFs are runtime data (`uploads/`, `static/generated/`), not source. Neither user images nor generated PDFs are publicly mounted: image bytes require `GET /images/{id}/content`, while stored PDFs require the authenticated and metered `POST /pdf/download_pdf` route.
+**Rules:** Frontend templates must stay in sync with `_GENERATORS` in `cv_templates/registry.py` (re-exported from `cv_generator.py`; 9 ids). Each `cv_templates/templates/<id>.py` holds only that template’s live generator — not a shared multi-theme engine with sibling branches. Do not put secrets in the repo. `uploads/` and `static/generated/` are development/test runtime data, not production persistence or source; production uses private S3. Neither user images nor generated PDFs are publicly mounted: image bytes require `GET /images/{id}/content`, while stored PDFs require the authenticated and metered `POST /pdf/download_pdf` route.
 
 ---
 
@@ -262,7 +273,7 @@ pdf-generator/
 
 Configured by `DATABASE_URL` (`backend/app/models/database.py`). Default if unset: `sqlite:///./pdfgenerator.db`. `postgres://` URLs are rewritten to `postgresql://`. Postgres uses `pool_pre_ping` for Render cold starts.
 
-Schema is created by `init_db()` during app lifespan (not at import): `Base.metadata.create_all` for missing tables, then `alembic upgrade head` for schema changes (multi-page columns live in `backend/alembic/versions/`). Billing catalog is seeded via `bootstrap_billing`. Manual CLI: `cd backend && alembic upgrade head`.
+Production schema changes run before the web process through `python -m app.services.deployment_bootstrap`: `init_db()` creates missing tables, applies `alembic upgrade head`, and seeds the exact plan catalog. It deliberately does not run historical cleanup: maintenance is an explicit, separately observed operation. The ASGI lifespan performs configuration checks but does not mutate the schema. `/ready` reports success only when `SELECT 1` works, the database and code Alembic heads match, the seeded catalog is exact, and SQLite has no residual foreign-key violations; database-backed routes return a sanitized 503 while readiness is false. Manual CLI: `cd backend && alembic upgrade head`.
 
 Revision `20260824_0005` links `pdfs.source_import_id` to the private `cv_import_snapshots` history. SQLite cannot add that foreign key with a regular `ALTER TABLE`, so `upgrade` uses Alembic `batch_alter_table`: SQLite performs a reflected move-and-copy while PostgreSQL uses normal ALTER operations. The migration inspects the table, column, relation, and index independently, which makes a retry repair the partially committed state left by an older failed SQLite run. Do not `stamp` past this revision after an error; update the code, back up the database, and rerun `upgrade head`. Implementation: `backend/alembic/versions/20260824_0005_import_history.py`, lines 19–78, function `upgrade`. Regression tests: `backend/tests/test_alembic_import_history_migration.py`, lines 18–143, class `ImportHistoryMigrationTests`.
 
@@ -270,16 +281,21 @@ Revision `20260824_0005` links `pdfs.source_import_id` to the private `cv_import
 
 | Table | Purpose |
 |-------|---------|
-| `users` | Accounts: username, email, bcrypt hash, `is_active`, timestamps |
+| `users` | Accounts: display username/email, canonical NFKC+trim+casefold keys, authoritative Argon2id hash, temporary N-1 bcrypt rollback bridge, atomic image-slot count, `is_active`, timestamps |
+| `auth_rate_limits` | Database-backed fixed-window registration/login counters keyed by an HMAC digest, never raw IP address or account identity |
 | `images` | Uploaded image metadata; `file_path` local or S3 URL; `owner_id` → users |
-| `pdfs` | CV documents: title, path, pages, page_width/height (default 595×842), owner, `editor_mode`, `template_id`, optional `spacing_px` rhythm JSON, nullable `cv_data` source snapshot, and the temporary `watermarked` storage-truth marker used to clean legacy files lazily |
+| `pdfs` | CV documents: normalized `title` + owner-unique `title_key`, immutable create idempotency key/hash, optimistic `revision`, Storage V2 backend/key plus dual-read legacy `file_path`, owner, dimensions, `editor_mode`, active `template_id`, immutable `origin_template_id`, optional rhythm/CV data, and legacy watermark marker |
+| `storage_cleanup_jobs` | Durable, deduplicated PDF/image deletion jobs with attempt count, retry time, resource type, sanitized error, and terminal dead-letter state |
 | `pdf_elements` | Canvas elements; geometry + style columns; extras in `extra_properties` JSON (`fixedToPage`, `repeatOnContinuation`, `locked`, `flowRole`, `flowGroup`, `preserveInitialLayout`, Atrium/Sterling/Linden/Monument/Slate/Meridian/Cadenza/Vellum `appearanceSettings` + reversible type baselines, bold, `runs` inline-decoration overlay, connectors, …) |
 | `bio_cv_drafts` | One private JSON draft per user |
 | `plans` | Free (Darmowy) / Pro limits and feature flags, including nullable `max_cv_imports_per_month` (legacy `standard`/`premium` rows deactivated) |
 | `user_subscriptions` | Current plan per user (Stripe columns ready, often null) |
-| `usage_counters` | Monthly exports, successful CV imports, and AI credit usage (`period_key` = `YYYY-MM` UTC) |
+| `usage_counters` | Monthly exports, successful CV imports, settled AI credits, and currently reserved AI credits (`period_key` = `YYYY-MM` UTC) |
+| `ai_credit_reservations` | Per-user assistant request reservation: idempotency key/hash, maximum and charged credits, one active slot, status, replay response, and expiry |
 | `payments` | Future payment ledger |
 | `maintenance_markers` | One-off cleanup keys |
+
+Migrations `20260901_0009`–`0015` form one additive compatibility chain. Storage V2 adds immutable locators and cleanup jobs; AI reservations add in-flight credit accounting; auth hardening adds canonical identities and persistent throttles; document integrity adds revisions, create replay metadata, title keys, and template provenance. Revision `0013` adds bounded cleanup retries and a terminal dead-letter state. Revision `0014` backfills atomic image-slot counters, enables SQLite foreign keys on every connection, and quarantines orphan image references without deleting their safe display source. Revision `0015` installs SQLite/PostgreSQL compatibility triggers so an N-1 worker that does not know `title_key` or `revision` cannot silently overwrite a current-worker snapshot. Existing documents remain readable through the validated legacy locator path, and colliding historical titles receive deterministic suffixed keys. Implementations: `backend/alembic/versions/20260901_0009_storage_v2.py`, revision `20260901_0009`; `20260901_0013_cleanup_dead_letters.py`, function `upgrade`; `20260901_0014_atomic_image_slots.py`, function `upgrade`; and `20260901_0015_n1_document_writes.py`, functions `_backfill_n1_writes`, `_install_sqlite_triggers`, and `_install_postgres_trigger`.
 
 `resolvedLines` is deliberately absent from `pdf_elements.extra_properties`: it is browser-authored render metadata attached only to create/update/download requests. Saved documents retain semantic `content` and `runs`, so reopening a CV never restores stale line breaks measured for an earlier width or font state.
 
@@ -415,7 +431,7 @@ Implementation:
 - `flowLane: "sidebar"` is persisted in `PdfElements.extra_properties` (`backend/app/crud/pdfs.py`, `pdf_schema.py`) and restored when opening Moje dokumenty (`ModalPdfs.jsx`) — without that, only `sidebar-chrome` kickers survived reload and Układ CV rail reorder left body copy stranded
 - `frontend/src/utils/sectionBuilder.js`, `SECTION_LAYOUTS`; lines 314–507, function `buildSectionElements` — layout constructors for "aa", "cc-sub", "cc-edu", and "cc-exp"; pass `lane: "sidebar"` to stamp `flowLane: "sidebar"` + `flowRole: "sidebar-chrome"` (record field-line specs in private `recordLineSpecs`; heights via private `measureGeneratorBlockHeight`; content uses `bodyLeft`; image markers keep `src` / `alignWithText`; filled-band headings keep their sampled alignment frame)
 - `frontend/src/utils/sectionIcons.js` — `listSectionIconOptions`, `applySelectedSectionIcon`, `suggestSectionIconName`, theme catalogs aligned with `scripts/generate_iconic_icons.py`
-- `frontend/src/hooks/useA4Elements.js`, function `handleAddSection` (lines 658–) — optional `afterHeadingId` / `lane`, style sampling, optional `iconName`, construction, placement, post-add selection; exposed through `PdfContext` as `addSection`
+- `frontend/src/hooks/useA4Elements.js`, function `handleAddSection` — optional `afterHeadingId` / `lane`, style sampling, construction, placement, and post-add selection; published through `CanvasContext` as `addSection`
 - `frontend/src/pages/PdfCanvas.jsx` — owns `AddSectionModal` + `openAddSectionModal` (heading id or `{ lane: "sidebar" }`) so the canvas heading **+** works even when the Sections panel is closed
 - `frontend/src/components/editor/AddSectionModal/AddSectionModal.jsx` — name + layout picker (including **Prosta treść (kategorie)** / `cc-sub`) + optional icon gallery; subtitle differs for insert-under vs append-end
 - `frontend/src/components/editor/AddSectionModal/AddSectionModal.test.js` — regression for structure-first modal labels and the removal of blueprint-specific wording
@@ -451,10 +467,10 @@ In **template mode**, hovering a detected **main or sidebar** section heading re
 Implementation:
 
 - `frontend/src/components/canvas/CanvasHoverToolbar/CanvasHoverToolbar.jsx`, lines 38–250, component `CanvasHoverToolbar`, and `CanvasHoverToolbar.module.css`, lines 1–248 — page-local semantic/element outlines plus a viewport-measured body portal for the grouped gutter surface, explicit context-over-inspector stacking, screen-stable controls, delayed tooltips, and overflow menu; `frontend/src/components/canvas/SectionRecordAdd/SectionRecordAdd.jsx`, lines 72–278, component `SectionRecordAdd`, especially lines 98–206 and 250–260 — section actions, spread-side override, geometry-keyed post-commit heading measurement, bounded ink-limit refinement, and the exact-heading outline
-- `frontend/src/hooks/useA4Elements.js`, function `handleReorderSection` (lines 937–) — exposed through `PdfContext` as `reorderSection`
+- `frontend/src/hooks/useA4Elements.js`, function `handleReorderSection` — published through `CanvasContext` as `reorderSection`
 - `frontend/src/hooks/useCanvasHoverToolbar.js`, lines 29–179, hook `useCanvasHoverToolbar`, and `frontend/src/utils/canvasHoverToolbarState.js`, lines 1–50, constants `CANVAS_TOOLBAR_HIDE_DELAY_MS` / `CANVAS_TOOLBAR_INITIAL_STATE` plus function `reduceCanvasHoverToolbarState` — exclusive hover/focus ownership, transient `hoveredTriggerId`, one-second leave delay, and menu-only pinning that clears when the menu closes
 - `frontend/src/utils/sectionStructure.js`, functions `insertSectionAfter`, `removeSection`, `reorderSection`
-- `frontend/src/components/canvas/CanvasElements/CanvasElements.jsx`, lines 90–223, 275–298, and 524–528, functions `fillSectionAnchors`, `sectionAnchorsById`, and shared `sectionToolbar` — resolves model-only visual starts for both lanes, publishes the one-click hint, mounts the same control for `text`/`textarea`, and forwards the physical spread edge; `frontend/src/utils/canvasHighlightBounds.js`, lines 1–284, functions `getStoredVisualBounds`, `clampCanvasBounds`, `sectionVisualStartOnPage`, `elementBoundsOnPage`, `resolveRenderedHighlightLimits`, and `includeRenderedBounds`, together with `frontend/src/utils/elementBounds.js`, lines 125–163, functions `getVisualBounds` and `getElementOutlineBounds`, and `frontend/src/components/canvas/SelectionOverlay/SelectionOverlay.jsx`, lines 11–109 — keeps render-time semantic bounds DOM-free and gives hover/selection one exact visual-bounds contract; `frontend/src/pages/PdfCanvas.jsx`, lines 1947–1969, two-page `visiblePages.map` — assigns outer-left / outer-right toolbar gutters while publishing deletion snapshots and structural handlers through `PdfContext`; `frontend/src/App.css`, lines 96–108, `.canvas-spread` — reserves both outside gutters inside the horizontal scroll extent
+- `frontend/src/components/canvas/CanvasElements/CanvasElements.jsx`, functions `fillSectionAnchors`, `sectionAnchorsById`, and shared `sectionToolbar` — resolves model-only visual starts for both lanes and forwards the physical spread edge; `frontend/src/utils/canvasHighlightBounds.js`, functions `getStoredVisualBounds`, `sectionVisualStartOnPage`, `resolveRenderedHighlightLimits`, and `includeRenderedBounds` — keeps semantic bounds DOM-free; `frontend/src/pages/PdfCanvas.jsx`, `visiblePages.map` — assigns outside gutters while publishing structural handlers through `CanvasContext`; `frontend/src/App.css`, `.canvas-spread` — reserves those gutters inside the horizontal scroll extent
 
 Tests:
 
@@ -511,7 +527,7 @@ Implementation:
 - `frontend/src/utils/collapseMainIntoSidebar.js`, lines 34–70 and 227–326, constants `SIDEBAR_TRANSFER_STAGING_TOP` / `SIDEBAR_TRANSFER_STAGING_GAP`, helper `stagedSectionBottom`, and function `moveMainSectionsToSidebar` — main → sidebar icon reconstruction plus non-overlapping, document-ordered staging for arbitrary single- or multi-section transfers
 - `backend/app/services/cv_templates/templates/slate.py`, function `lock_chrome` — tags the photo cluster `repeatOnContinuation: False`
 - `frontend/src/templates/slate.js` — static picker-preview starters carry the same `repeatOnContinuation: false` on their photo cluster elements
-- `frontend/src/hooks/useA4Elements.js`, function `handleTransferSectionLane` (lines 962–977) — exposed through `PdfContext` as `transferSectionLane`
+- `frontend/src/hooks/useA4Elements.js`, function `handleTransferSectionLane` — published through `CanvasContext` as `transferSectionLane`
 - `frontend/src/components/canvas/SectionRecordAdd/SectionRecordAdd.jsx`, lines 54–87 and 195–217, props `laneTransfer` / `gutterSide`
 - `frontend/src/components/canvas/CanvasElements/CanvasElements.jsx`, `LANE_TRANSFER_TEMPLATE_IDS` (lines 72–77) + `sectionAnchorsById` (lines 174–203)
 
@@ -532,7 +548,7 @@ Implementation:
 
 - `frontend/src/utils/sectionStructure.js`, function `removeSection`
 - `frontend/src/utils/sectionRecord.js`, function `removeRecordBlock`
-- `frontend/src/hooks/useA4Elements.js`, lines 716–, `handleRemoveSection`; lines 743–, `handleRemoveRecordBlock` — exposed on `PdfContext` as `removeSection` / `removeRecordBlock`
+- `frontend/src/hooks/useA4Elements.js`, functions `handleRemoveSection` and `handleRemoveRecordBlock` — published through `CanvasContext`
 - `frontend/src/hooks/useCanvasDeletionUndo.js`, lines 14–60, hook `useCanvasDeletionUndo`; `frontend/src/components/common/ToastStack/ToastStack.jsx`, lines 32–76, component `ToastStack` — recoverable deletion snapshot and callable toast action; section/record adapters define the danger menu item
 
 Tests:
@@ -551,7 +567,7 @@ Records with a right-hand metadata rail retain that authored two-dimensional sha
 Implementation:
 
 - `frontend/src/utils/sectionRecord.js`, lines 340–457, functions `inferRecordLayout`, private `overlayRecordPlaceholders`, and `placeholderContentsForRecord`; lines 490–872, functions `pickRecordTemplateGroup`, `ensureCanonicalRecordTemplate`, `buildRecordClone`, private `placeRecordClone`, and `appendRecordToSection`; lines 908–1199, functions `listUpperRecordMembers`, `findRecordDescription`, `getRecordDescriptionAction`, `listRecordBlockAddAnchors`, and `insertRecordBlockAfterRecord`; lines 1299–1571, functions `addRecordDescription`, `removeRecordDescription`, `removeRecordBlock`, and `reorderRecordBlock` — classify rows independently of right-column overlays, generate field-specific generic copy, preserve the overlay-to-row relationship and sibling/body style, open lane-scoped holes, and rhythm-pack every structural change
-- `frontend/src/hooks/useA4Elements.js`, lines 1069–1102 and 1185–1199, functions `handleAddRecordDescription` / `handleRemoveRecordDescription`, alongside `handleAddRecordBlock`, `handleRemoveRecordBlock`, and `handleReorderRecordBlock` — selects the newly added description for immediate editing, persists removed-field tombstones, and exposes the five operations through `PdfContext`
+- `frontend/src/hooks/useA4Elements.js`, functions `handleAddRecordDescription`, `handleRemoveRecordDescription`, `handleAddRecordBlock`, `handleRemoveRecordBlock`, and `handleReorderRecordBlock` — selects the new description, persists tombstones, and publishes the operations through `CanvasContext`
 - `frontend/src/hooks/useCanvasEnterIds.js` — prunes hold/fade when ids leave a page filter; re-queues cancelled enter ids so per-page `CanvasElements` cannot strand new content invisible
 - `frontend/src/hooks/useCanvasHoverToolbar.js`, lines 29–179, plus `useHoverPlusExclusive.js` — shared hover/focus lifecycle, transient exact-field id, menu-only pinning, and one active toolbar slot
 - `frontend/src/components/canvas/recordPlusSize.js`, lines 47–79, functions `structuralToolbarLayoutSize` / `resolveStructuralToolbarSide` — screen-stable 36 px targets, menu/label dimensions, and outer-gutter resolution in two-page view
@@ -578,7 +594,7 @@ Implementation:
 - `frontend/src/components/editor/FlatSectionLayoutModal/FlatSectionLayoutModal.jsx` — the live-preview two-card modal, built on the shared `DialogShell`
 - `frontend/src/components/canvas/CanvasElements/CanvasElements.jsx`, lines 237–245, 277, and 348–356, `flatSectionAnchorsById` — mounts the toggle in the `textarea` render branch, keyed by content element id
 - `frontend/src/pages/PdfCanvas.jsx` — owns `flatSectionLayoutModal` state, `openFlatSectionLayoutModal` / `closeFlatSectionLayoutModal`, and `handleApplyFlatSectionLayout` (calls `handleEditElementValues`), for the same reason `AddSectionModal` is owned here: the canvas hover icon must be able to open it regardless of which sidebar panel is open
-- `frontend/src/store/pdfgenerator-context.jsx` — `openFlatSectionLayoutModal` default no-op
+- `frontend/src/store/ui-surfaces-context.jsx`, hook `useUiSurfaces` — owns modal surfaces without document data
 
 Tests:
 
@@ -622,7 +638,7 @@ Implementation:
 - `frontend/src/utils/skillsDisplayMode.js` — `listSkillsDisplayAnchors`, `changeSkillsDisplayMode`
 - `frontend/src/utils/skillsLayout.js` — `SKILLS_LAYOUT_CHIPS` / `SKILLS_LAYOUT_MODES`, `buildSkillsChipGroups`, `restyleSkillsMembersAsMode` (`restyleSkillsMembersAsMain` is now a thin wrapper fixed to `mode="inline"`), `resolveSkillChipColors`, `detectSkillsDisplayMode`, `collectSkillGroups` / `collectSkillGroupsFromChips`
 - `frontend/src/utils/sectionStructure.js` — `continuesGrid` relaxation in `compactSectionStrip` and `placeStrip`
-- `frontend/src/hooks/useA4Elements.js`, function `handleChangeSkillsDisplayMode` — exposed through `PdfContext` as `changeSkillsDisplayMode`
+- `frontend/src/hooks/useA4Elements.js`, function `handleChangeSkillsDisplayMode` — published through `CanvasContext`
 - `frontend/src/components/editor/SkillsLayoutModal/SkillsLayoutModal.jsx` — 3-card preview modal, opened via `openSkillsLayoutModal` (state owned by `PdfCanvas`, same pattern as `FlatSectionLayoutModal`)
 - `frontend/src/components/canvas/SectionRecordAdd/SectionRecordAdd.jsx` — `skillsMode` prop renders the layout icon in the right hover cluster
 - `frontend/src/components/canvas/CanvasElements/CanvasElements.jsx` — merges `listSkillsDisplayAnchors` into `sectionAnchorsById` (main-column only; a sidebar kicker's heading id never matches)
@@ -655,7 +671,7 @@ Implementation:
 - `frontend/src/pages/PdfCanvas.jsx` — fit commit, panel-gated probe, gentle detection toast, post-AI relaxation, modal routing, and the `assistantAction` bridge
 - `frontend/src/hooks/useA4Elements.js`, `handleCollapseSpilledMainIntoSidebar` (lines 1279–1293) — after accepted AI content patches
 - `frontend/src/components/ai/AiAssistant/AiAssistant.jsx` — `assistantAction` observer effect + „Skróć CV" subaction; `acceptCorrection` / `applyAll` (lines 1158–1183) call the canvas collapse after content patches
-- `frontend/src/store/pdfgenerator-context.jsx` — `assistantAction` / `requestAssistantAction` defaults
+- `frontend/src/store/session-context.jsx`, hook `useSession` — publishes session-scoped assistant actions
 - Backend `shorten` action: `_shorten_content` (`ai_assistant_service.py`), `VALID_ACTIONS` (`ai_assistant.py`)
 
 Tests:
@@ -724,7 +740,7 @@ Implementation (Topbar / landing entry points):
 
 **How it works.** The editor lives at `/cvstudio/:workspace` (`guest` without a JWT, otherwise the account username). `frontend/src/App.jsx` does not wrap that route in a `ProtectedRoute` (that component was deleted from the repo); the route is public, and `PdfCanvas` branches on token presence wherever a call would otherwise 401. The URL slug is cosmetic for bookmarks — API authorisation still comes from the JWT. Legacy `/pdfcanvas` bookmarks redirect through `getEditorPath`.
 
-- **Token verification** — the mount effect that revalidates a JWT against `GET /auth/verify-token/{token}` is skipped entirely for guests. When a leftover JWT is expired or invalid, the token is cleared and the visitor **stays** on `/cvstudio/guest` (the old redirect to `/` belonged to the pre-guest-mode era when the editor required auth).
+- **Token verification** — the mount effect that revalidates a JWT through header-only `GET /auth/verify-token` is skipped entirely for guests. The JWT remains in `Authorization: Bearer` and is never placed in a URL. When a leftover JWT is expired or invalid, the token is cleared and the visitor **stays** on `/cvstudio/guest` (the old redirect to `/` belonged to the pre-guest-mode era when the editor required auth).
 - **Guest autosave (canvas)** — a 2-second-debounce effect persists the canvas (elements, deleted ids, title, page count, editor mode, template id, spacing, and whether the content is still the demo CV) to `localStorage` via `guestDocument.js` (`cvstudio.guest.doc`). This local draft is guest-only: there is no authenticated background autosave. Once a real `pdfId` exists the document is a saved account document, updated only by an explicit **Zapisz**; the guest localStorage effect is skipped from that point.
 - **Guest autosave (bio wizard)** — while the four-step guided wizard is open without a JWT, `BioCvModal` debounces (~650 ms) writes of `{ step, profile, selectedTemplateId, updatedAt }` to `cvstudio.guest.wizardDraft` through `guestWizardDraft.js`. Reopening the wizard offers **Kontynuuj** / **Zacznij od nowa** and hydrates the in-memory profile from that snapshot. The wizard has no template-selection step. After **register/login**, `adoptGuestWizardDraftForAccount` uploads the profile into `PUT /ai/bio_cv_draft` when the account draft is empty; `PdfCanvas` then generates Linden for `demo-conversion` and Meridian for `wizard-conversion`. Explicit reset (**Zacznij od nowa** / clear draft) still clears the guest key.
 - **Save-gate** — both `handleSaveClick` (Topbar “Zapisz”) and `handleDownloadClick` (Topbar “Pobierz PDF”) check for a token first; a guest sees `SaveGateModal` (“Mam już konto” → `/login`, “Utwórz konto” → `/register`) instead of firing `POST /pdf/create_pdf` or `POST /pdf/render_pdf`. Download requires an account because it consumes the metered export quota.
@@ -1006,8 +1022,8 @@ Structural spacing and reorder treat each title field, register mark, and center
 Implementation:
 
 - `backend/app/services/cv_templates/templates/cadenza.py`, lines 49–166 (`_cadenza_education_height`, `_cadenza_place_education`) and 167–428 (`_gen_cadenza`) — degree-first education rail, masthead/contact geometry, white Porcelain Sepia starter, adaptive heading field/label/mark roles, default appearance metadata, Meridian-compatible experience rail, page flow, and continuation chrome
-- `backend/app/services/cv_templates/registry.py`, lines 14–39 — `TEMPLATE_LAYOUTS["cadenza"]` and `_GENERATORS["cadenza"]`
-- `frontend/src/templates/cadenza.js`, lines 18–1364, exported `cadenzaTemplate` — source-generated editable white-paper starter with `appearanceTemplateId: "cadenza"`; `frontend/src/templates/index.js`, line 30 — paid picker entry, layout metadata, and Porcelain Sepia accent
+- `backend/app/services/cv_templates/registry.py`, lines 65–68 and 75–97 — Cadenza catalog metadata, `TEMPLATE_LAYOUTS["cadenza"]`, and `_GENERATORS["cadenza"]`
+- `frontend/src/templates/cadenza.js`, lines 18–1364, exported `cadenzaTemplate` — source-generated editable white-paper starter retained for source-level tests; `frontend/src/templates/index.js`, line 25 — metadata-only, server-materialized paid picker entry and Porcelain Sepia accent
 - `frontend/src/utils/cadenzaAppearance.js`, lines 21–93 (`CADENZA_PALETTES`), 281–356 (`getCadenzaAppearance`, `applyCadenzaPalette`), and 386–475 (`applyCadenzaTextSize`) — three light/three strong semantic palettes, adaptive heading contrast, legacy colour migration, white-paper enforcement, inline/hidden-title recolouring, real icon switching, persisted intent, and reversible role-aware typography
 - `frontend/src/utils/cadenzaTypographyLayout.js`, lines 22–77, functions `applyCadenzaTextSizeLayout` and `applyCadenzaRenderedHeightsLayout` — centered contact rebuild, conservative first pack, browser-height batch pack, continuation reconciliation, and exact-top metadata overlays
 - `frontend/src/components/editor/SectionsPanel/SectionsPanel.jsx`, lines 204–270 and 493–643, component `SectionsPanel`; `SectionsPanel.module.css`, lines 116–128 — strict Cadenza Appearance gate, accessible palette/type radio groups, and a faithful white-paper Cadenza miniature showing the role line, icons, adaptive band label, register mark, body, and footer
@@ -1041,8 +1057,8 @@ Vellum places Skills before Experience to echo the reference's quick capability 
 Implementation:
 
 - `backend/app/services/cv_templates/templates/vellum.py`, lines 55–171, functions `_vellum_education_height` and `_vellum_place_education`; lines 173–504, function `_gen_vellum` — white Sage Vellum starter, masthead/photo geometry, semantic field/text/ornament roles, default appearance metadata, skills-first order, exact date rail, and page chrome
-- `backend/app/services/cv_templates/registry.py`, lines 13–36, `TEMPLATE_LAYOUTS["vellum"]` and `_GENERATORS["vellum"]`; `frontend/src/templates/index.js`, lines 22–31, paid Vellum registry entry
-- `frontend/src/templates/vellum.js`, lines 18–1423, exported `vellumTemplate` — source-generated white-paper starter with `appearanceTemplateId: "vellum"`; `frontend/src/templates/index.js`, line 31 — paid registry entry and Sage Vellum accent; `frontend/public/template-mockups/vellum.png` — ReportLab/PyMuPDF A4 preview used by every template picker
+- `backend/app/services/cv_templates/registry.py`, lines 69–72 and 75–97, Vellum catalog metadata, `TEMPLATE_LAYOUTS["vellum"]`, and `_GENERATORS["vellum"]`; `frontend/src/templates/index.js`, line 26, metadata-only paid Vellum entry
+- `frontend/src/templates/vellum.js`, lines 18–1423, exported `vellumTemplate` — source-generated white-paper starter used by source-level tests; `frontend/src/templates/index.js`, line 26 — server-materialized paid registry entry and Sage Vellum accent; `frontend/public/template-mockups/vellum.png` — ReportLab/PyMuPDF A4 preview used by every template picker
 - `frontend/src/utils/vellumAppearance.js`, lines 20–131 (`VELLUM_PALETTES`), 328–425 (`getVellumAppearance`, `applyVellumPalette`), and 460–549 (`applyVellumTextSize`) — exact 3+3 semantic palettes, white-paper enforcement, adaptive field contrast, legacy-colour migration, hidden-title/inline updates, real contact/portrait icon switching, persisted intent, and reversible role-aware typography
 - `frontend/src/utils/vellumTypographyLayout.js`, lines 23–79, functions `applyVellumTextSizeLayout` and `applyVellumRenderedHeightsLayout` — centered-contact rebuild, conservative first pack, batch browser-height pack, `section-background` continuity, continuation reconciliation, and exact-top metadata overlays
 - `frontend/src/components/editor/SectionsPanel/SectionsPanel.jsx`, lines 215–292 and 367–439, component `SectionsPanel`; lines 513–674, Appearance controls; `SectionsPanel.module.css`, lines 129–144 — strict Vellum gate, accessible palette/type radio groups, and a white miniature showing the asymmetric identity, job, icons, circular portrait, adaptive résumé field, section rule, and footer
@@ -1066,20 +1082,14 @@ Further reading:
 
 ### Regent editorial masthead template
 
-Regent is a paid single-column template (`layouts: ["icons"]`) retained for legacy documents, with a warm paper field (`#F7F1E8`), terracotta accent (`#C45C26`), Playfair Display name, and Montserrat body. The masthead is taller than the earlier wrapping-contact revision: the display name sits near the left edge (`x=32`), the muted job title sits under the name, and contact channels stack **one row each** with iconic glyphs ~12 pt under that stack (`_place_stacked_icon_contacts`). The top-right portrait well contains the matching 42 pt terracotta `regent-photo-glyph` inside its empty rectangle slot (`regent-photo-well` fill + `regent-photo-frame` outline); the editor starter ships **no** profile raster. Clicking either the frame or glyph opens the gallery; choosing a photo runs `applyProfilePhoto` with `objectFit: "cover"` so the well is filled without stretching. Only the marketing mockup injects `backend/template_assets/regent-portrait.png` at render time (`scripts/render_iconic_mockups.py`). Section icons start at `icon_x=64` and bold uppercase headings at `L=84` — 16 pt further right than the legacy `48` / `68` band.
+Regent is a paid, server-materialized single-column template (`layouts: ["single", "icons"]`) with a white paper field, a Cormorant Garamond display name, and a compact Montserrat body. Its masthead places the title below the name and lays out phone, email, LinkedIn, and location in two measured icon rows before a full-width rule. The current template deliberately has no portrait slot or injected marketing-only raster; its picker preview is rendered from the same generated element graph as the editor/server result.
 
 Implementation:
 
-- `backend/app/services/cv_templates/templates/regent.py`, function `_gen_regent` — stacked masthead contacts, terracotta photo glyph/well/frame, bold section headings
-- `backend/app/services/cv_templates/shared/contact.py`, function `_place_stacked_icon_contacts` — one icon+label channel per row
-- `frontend/src/templates/regent.js`, export `regentTemplate` — regenerated starter (photo slot with portrait glyph, no user raster)
-- `frontend/src/components/canvas/Rectangle/Rectangle.jsx` — click on `photoSlot: "frame"` opens the gallery
-- `frontend/src/utils/profilePhoto.js` — `regent-photo-frame` in `PROFILE_PHOTO_FRAME_IDS`; zero inset + cover-fit apply
-- `frontend/src/components/canvas/Image/Image.jsx` — canvas honors `objectFit` / photo-slot `cover`
-- `backend/app/services/pdf_generator.py`, methods `renderImage` / `_draw_image_cover` — PDF center-crop for `cover`
-- `scripts/render_iconic_mockups.py`, `_inject_regent_mockup_photo` — demo portrait only for `regent.png`
-- `backend/template_assets/regent-portrait.png` — face crop used by the mockup only
-- `frontend/public/template-mockups/regent.png` — source-driven A4 preview with injected portrait
+- `backend/app/services/cv_templates/templates/regent.py`, lines 36–259, function `_gen_regent` — deterministic masthead, contact rows, section chrome, and content records
+- `frontend/src/templates/regent.js`, lines 17–795, export `regentTemplate` — source-generated starter matching the backend graph
+- `scripts/render_iconic_mockups.py`, lines 46–70, function `render_theme` — renders the authored graph without injecting a portrait
+- `frontend/public/template-mockups/regent.png` — source-driven A4 preview
 
 Tests:
 
@@ -1212,7 +1222,7 @@ Implementation:
 - `frontend/src/utils/structureOperation.js`, `syncLetterheadBandHeight` (resizes the letterhead band to its divider's `top`) called from `reconcileDocumentPages`
 - `backend/app/services/cv_templates/registry.py`, `_GENERATORS["sterling"]` and `TEMPLATE_LAYOUTS["sterling"]` (`frozenset({"sidebar"})`)
 - `frontend/src/templates/sterling.js` — static starter emitted directly from the generator's own demo output (icon `src` values are stored relative and get `API_BASE_URL` prepended at load time, same as Regent); exported array `sterlingTemplate`
-- `frontend/src/utils/sterlingAppearance.js`, lines 249–279, function `normalizeSterlingFamilyPersistence`; `frontend/src/components/modals/ModalPdfs/ModalPdfs.jsx`, function `showPDF`; `frontend/src/pages/PdfCanvas.jsx`, lines 1421 and 1548 — narrow load-time migration for authenticated documents and restored/claimed guest drafts created with legacy rule heights or the exact Linden Botanical band regression
+- `frontend/src/utils/sterlingAppearance.js`, lines 249–279, function `normalizeSterlingFamilyPersistence`; `frontend/src/components/modals/ModalPdfs/ModalPdfs.jsx`, function `showPDF`; `frontend/src/pages/PdfCanvas.jsx`, lines 1727 and 1866 — narrow load-time migration for authenticated documents and restored/claimed guest drafts created with legacy rule heights or the exact Linden Botanical band regression
 - `frontend/src/templates/index.js`, registry entry `sterling` (`tier: "free"`, `layouts: ["sidebar"]`, `accent: "#4A6FA5"`)
 - `frontend/scripts/dump-iconic-templates.mjs`, `frontend/public/template-mockups/sterling.png` — source-driven A4 preview
 
@@ -1226,7 +1236,7 @@ Tests:
 - `backend/tests/test_cv_template_layouts.py`, `test_sterling_balances_education_into_the_main_column` — end-to-end: a short-experience CV renders Education in the main column (`left == 245`), not the rail
 - `backend/tests/test_cv_template_layouts.py`, lines 1366–1376, `test_sterling_sidebar_section_rules_share_one_point_height` — regression guard that every generated Sterling sidebar tick uses exactly the same one-point height
 - `backend/tests/test_cv_template_layouts.py`, `test_sterling_places_overflow_sidebar_content_on_a_continuation_page_rail` — end-to-end: a multi-page CV with more sidebar-eligible content than page 1's rail can hold places at least one sidebar section kicker on a continuation page's rail, not in the main column
-- `backend/tests/test_cv_template_layouts.py`, `test_sterling_places_education_on_page_two_sidebar_when_page_one_rail_is_full`, lines 1475–1553 — end-to-end: when Experience paginates and page 1's rail is already full, Education renders as a sidebar kicker on page 2 (`left == 34`), not in the main column beside an empty rail
+- `backend/tests/test_cv_template_layouts.py`, lines 1257–1335, `test_sterling_places_education_on_page_two_sidebar_when_page_one_rail_is_full` — end-to-end: when Experience paginates and page 1's rail is already full, Education renders as a sidebar kicker on page 2 (`left == 34`), not in the main column beside an empty rail
 - `backend/tests/test_cv_template_layouts.py` and `backend/tests/test_template_registry_sync.py` iterate every registered generator, so Sterling is covered for summary-equals-body type size, page bounds, and frontend/backend id / layout-tag / tier parity without a dedicated entry
 
 ### Linden botanical editorial sidebar template
@@ -1245,12 +1255,12 @@ Implementation:
 
 - `backend/app/services/cv_templates/templates/linden.py`, lines 91–396, functions `_fit_name_typography` and `_gen_linden` — fits the complete uppercase identity into one guarded line, publishes the main-flow anchor, stamps Linden's own persisted appearance intent, removes the redundant upper body rule, then applies the original sand job band, rectangular photo slot, stacked contact descriptor, dynamic page-one rail budget, canonical one-point sidebar decorations, fixed continuation chrome, and transformation of Sterling's semantic lanes.
 - `backend/app/services/cv_templates/templates/sterling.py`, lines 94–670, constant `SIDEBAR_SECTION_RULE_HEIGHT` and function `_gen_sterling` — accepts private `anchored_main_sections`, `page1_sidebar_start`, and `sidebar_section_rule_height` parameters so Linden can reuse the proven column planner and the shared hairline contract without duplicating pagination.
-- `backend/app/services/cv_templates/registry.py`, lines 17–42 — registers `linden` with `{'sidebar', 'icons'}` layout metadata.
-- `frontend/src/templates/linden.js`, lines 1–1158, export `lindenTemplate`; `frontend/src/templates/index.js`, lines 22–31 — generated starter with `appearanceTemplateId: "linden"`, the main-flow anchor, uniform sidebar hairlines, the original sand job band, and no redundant upper body rule, plus the Free picker entry.
+- `backend/app/services/cv_templates/registry.py`, lines 61–64 and 75–85 — registers `linden` with `{'sidebar', 'icons'}` layout metadata.
+- `frontend/src/templates/linden.js`, lines 1–1158, export `lindenTemplate`; `frontend/src/templates/index.js`, line 24 — generated starter with `appearanceTemplateId: "linden"`, the main-flow anchor, uniform sidebar hairlines, the original sand job band, and no redundant upper body rule, plus the Free picker entry.
 - `frontend/src/utils/lindenAppearance.js`, lines 15–87, 293–352, and 372–450, exports `LINDEN_PALETTES`, `getLindenAppearance`, `applyLindenPalette`, and `applyLindenTextSize` — six contextual colour contracts, lane-specific text roles, preservation of the original Botanical band plus darker bands in the five new variants, real icon-theme replacement, persisted intent, manual-colour preservation, reversible role-aware typography, and conservative wrapped-height seeding.
 - `frontend/src/utils/lindenTypographyLayout.js`, lines 19–70, functions `applyLindenTextSizeLayout` and `applyLindenRenderedHeightsLayout` — contact-rail reconstruction, two-lane packing, continuation reconciliation, and one batch commit of browser-measured textarea heights.
 - `frontend/src/components/editor/SectionsPanel/SectionsPanel.jsx`, lines 190–248 and 471–558, component `SectionsPanel`; `SectionsPanel.module.css`, lines 58–73 — strict Linden Appearance gate, palette/type handlers, accessible radio controls, and a Linden-specific miniature with sidebar, portrait, palette-authored job band, headings, copy, and footer.
-- `frontend/src/utils/sterlingAppearance.js`, lines 119–169 and 249–279, helper `normalizeLindenBotanicalIdentity` and function `normalizeSterlingFamilyPersistence`; `frontend/src/components/modals/ModalPdfs/ModalPdfs.jsx`, function `showPDF`; `frontend/src/pages/PdfCanvas.jsx`, lines 1421 and 1548 — targeted compatibility upgrade for saved/guest Linden element graphs containing the former `1.4`-point ticks, `0.8`-point footer rule, or the exact green-band Botanical regression.
+- `frontend/src/utils/sterlingAppearance.js`, lines 119–169 and 249–279, helper `normalizeLindenBotanicalIdentity` and function `normalizeSterlingFamilyPersistence`; `frontend/src/components/modals/ModalPdfs/ModalPdfs.jsx`, function `showPDF`; `frontend/src/pages/PdfCanvas.jsx`, lines 1727 and 1866 — targeted compatibility upgrade for saved/guest Linden element graphs containing the former `1.4`-point ticks, `0.8`-point footer rule, or the exact green-band Botanical regression.
 - `frontend/src/utils/sectionStructure.js`, lines 1125–1204 and 2370–2432, functions `resolveFlowStart` and `packDocumentSections` — honours a generator-authored `mainFlowStart` before applying generic masthead-gap recovery, so reorder cannot pull Linden's first main section into the identity area.
 - `frontend/src/utils/profilePhotoVisibility.js`, functions `hiddenProfileContactSectionFloor`, `alignSidebarAfterProfileContacts`, `hideProfilePhoto`, and `showProfilePhoto` — consumes the authored sidebar gap and photo-hidden contact geometry while preserving exact restore coordinates.
 - `frontend/src/utils/mastheadIdentityOps.js`, lines 37–91, function `resizeContentSizedTitleDecorations`; `frontend/src/hooks/useA4Elements.js`, lines 1485–1532, function `handleEditElementValues` — distinguishes fixed semantic identity bands from opt-in content-sized title bars when a text edit is committed, preventing Linden's strip from collapsing on blur while retaining Slate resizing.
@@ -1447,7 +1457,7 @@ Implementation:
 - `backend/app/services/cv_data.py`, `skill_groups`; `_is_redundant_skill_category`; `_normalize_skills` (lines 344–398 — flatten lone/redundant categories); `_skill_items`; `is_distinct_skill_family_title`; `_expand_skill_category_lines`; `_absorb_skills_alias_sections`; `normalize_cv_data` — language recovery, skills scrub, nested skill groups
 - `backend/app/services/cv_templates/templates/monument.py` — non-empty skills body + `flowRole: "content"`
 - `backend/app/api/routes/ai.py`, `fill_template`
-- `backend/app/services/document_service.py`, lines 94–167, `create_pdf_document`; lines 169–219, `update_pdf_document`
+- `backend/app/services/document_service.py`, lines 431–527, `create_pdf_document`; lines 528–649, `update_pdf_document`
 - Docs: [`docs/cv-template-generation.md`](docs/cv-template-generation.md)
 
 Tests: `backend/tests/test_cv_template_layouts.py`, `test_education_is_structured_in_main_column_and_sidebar`, `test_education_description_uses_the_experience_body_color`, `test_single_column_emits_skills_and_languages_bodies`; `backend/tests/test_languages_grid.py` — grid geometry, run offsets, sidebar hyphen lines, and `test_sidebar_templates_use_a_3_column_languages_grid_not_4` (Sterling emits exactly 3 same-row columns for a languages list long enough to spill into the main column); `backend/tests/test_cv_data.py`, `test_empty_languages_still_recover_from_extra_sections_unless_customs_cleared`, `test_soft_hard_tools_nest_under_skills`, `test_skill_category_lines_become_nested_groups`.
@@ -1585,7 +1595,7 @@ Implementation:
 - `frontend/src/utils/syncCvDataFromCanvas.js`, lines 494–655 — `editableTextChanges`, `editedMastheadTitle`, and `syncCvDataFromCanvas`; saves the first typed value to the structured profile while deliberately treating a missing live title as hide, not semantic deletion. A fresh title id counts as `+` only when the same identity anchor survives and flips `present: false → true`; a full template replacement creates a new anchor and cannot persist generator-truncated display text over the complete `cv_data.title`. Masthead-title edits are also excluded from the generic unique-string mapper, so an identical phrase in the summary or another field cannot be overwritten after the semantic title update.
 - `frontend/src/utils/{atrium,cadenza,linden,meridian,monument,slate,sterling,vellum}Appearance.js` — recolour and resize hidden descriptor specs/decorations together with visible template elements.
 - `scripts/regenerate_template_starters.py`, `TEMPLATES` and `main` — regenerates all nine starter modules, or only validated positional template ids, after generator-contract changes.
-- `frontend/src/hooks/useA4Elements.js`, `store/pdfgenerator-context.jsx`, `pages/PdfCanvas.jsx` — `toggleNameCase` / `toggleTitle` ops on the shared history path.
+- `frontend/src/hooks/useA4Elements.js`, `store/canvas-context.jsx`, `pages/PdfCanvas.jsx` — `toggleNameCase` / `toggleTitle` operations on the shared history path.
 
 Tests:
 
@@ -1655,7 +1665,7 @@ Once a CV has been filled at least once this session (via PDF import or the bio 
 
 During restyling, the target template owns presentation, geometry, flow metadata, and decorative chrome. It is generated only from the synchronized `activeCvData`; copying text by visual canvas order is unsafe because template record and masthead layouts differ. Styles from the previous template are never copied onto the new one.
 
-It calls the same `/ai/fill_template` endpoint via `useApplyCvTemplate` with `PdfContext.activeCvData`. On an open canvas this profile starts from the successful import/wizard fill and synchronizes unambiguous direct text edits; on a saved document it is restored from `Pdf.cv_data`. The carousel receives `selectedId={activeTemplateId}`: the current template is labelled **Obecny**, named in the identity header, and becomes the first card in the browsing window so prev/next starts from that choice.
+It calls the same `/ai/fill_template` endpoint via `useApplyCvTemplate` with `CanvasContext.activeCvData`. On an open canvas this profile starts from the successful import/wizard fill and synchronizes unambiguous direct text edits; on a saved document it is restored from `Pdf.cv_data`. The carousel receives `selectedId={activeTemplateId}`: the current template is labelled **Obecny**, named in the identity header, and becomes the first card in the browsing window so prev/next starts from that choice.
 
 The important difference from the initial fill flows: this one applies the result through `replaceActiveElements` (the raw `handleLoadAiElements` from `useA4Elements`) instead of `loadAiElements`. `loadAiElements` is wrapped in `startFreshDocument`, which clears `pdfId` and starts a brand-new, unsaved project — correct for "create a CV," wrong for "restyle this one." `replaceActiveElements` swaps the canvas elements and template id but leaves `pdfId` and the project title untouched, so the next explicit Save updates the *same* saved document instead of creating a duplicate. Sections spacing knobs stay document-local: change-template fills with `DEFAULT_FLOW_SPACING` and resets knobs/baseline via `adoptDocumentFlowSpacing`, so a custom rhythm from the previous template is not reused.
 
@@ -1665,7 +1675,7 @@ Structural additions use an explicit semantic contract instead of template names
 
 Implementation:
 
-- `frontend/src/store/pdfgenerator-context.jsx` — `activeCvData`, `setActiveCvData`, `replaceActiveElements`, `isChangeTemplateModal`, `showChangeTemplateModal` defaults
+- `frontend/src/store/canvas-context.jsx` and `store/ui-surfaces-context.jsx` — active CV data/replacement actions and change-template modal state
 - `frontend/src/pages/PdfCanvas.jsx` — owns `activeCvData`, synchronizes unambiguous canvas text edits, persists the snapshot on Save, and owns the `'changeTemplate'` dialog slot; `startFreshDocument`/`discardActiveDocument` clear it; exposes `replaceActiveElements: handleLoadAiElements` (raw, no `pdfId` reset)
 - `frontend/src/hooks/useApplyCvTemplate.js`, lines 24–87, function `useApplyCvTemplate` — shared `/ai/fill_template` + `replaceActiveElements` path for the modal and the arrows
 - `frontend/src/utils/cvTemplateSelection.js`, lines 24–34, function `adjacentAllowedTemplate`
@@ -1772,7 +1782,7 @@ Implementation:
 - `frontend/src/utils/planPresentation.js`, lines 9–70, `PLAN_PRESENTATION` and `applyPlanPresentation` — one canonical frontend contract used even while the catalog request is loading or unavailable
 - `frontend/src/components/modals/PlanSelectModal/PlanSelectModal.jsx`, lines 20–172, component `PlanSelectModal` — accessible two-card picker with loading, fallback, current, pending, success, and error states
 - `frontend/src/pages/Hero/Hero.jsx`, lines 299–430, component `Hero` — pricing + FAQ for Darmowy/Pro and the landing footer
-- `frontend/src/templates/index.js`, lines 22–31, registry `TEMPLATES` — the three Free templates; Regent remains registered for existing saved documents
+- `frontend/src/templates/index.js`, lines 17–27, registry `TEMPLATES` — three shipped Free element packs and six metadata-only, server-materialized Pro entries
 - `frontend/src/hooks/useEntitlements.js`, lines 1–47, hook `useEntitlements`
 
 Tests: `backend/tests/test_entitlements.py`, `test_plan_selection.py`, `test_ai_credits.py`, `test_alembic_free_plan_contract_migration.py`, `frontend/src/templates/index.test.js`, and the plan-presentation/frontend contract tests.
@@ -1800,9 +1810,9 @@ Implementation:
 - `backend/app/api/routes/ai.py`, lines 144–206, function `extract_cv`, and `backend/app/crud/cv_import_snapshots.py`, lines 43–66, function `mark_snapshot_succeeded` — one successful-normalization transaction for the import claim and snapshot, with safe rollback/error mapping
 - `frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`, lines 72–85, 142–196, 315–347, and 387–400, component `AiCvPanel` — disables extraction at zero remaining, displays the remaining count, recovers long-running snapshots through history, and refreshes entitlements after success
 - `backend/app/crud/pdfs.py`, line 41, function `elements_from_rows` — reconstructs full `PdfElement` objects (including `runs`, connectors, `flowRole`, `borderRadius`, …) from stored rows, the inverse of this file's existing `extra_properties` packing in `create_new_pdf` / `update_pdf_elements`
-- `backend/app/main.py`, lines 139–164, `block_generated_pdf_static_access` — keeps template assets public but makes every retired generated-PDF URL return 404 before the SPA fallback
-- `backend/app/services/document_service.py`, lines 72–92 (`render_document_bytes`), 94–167 (`create_pdf_document`), 169–219 (`update_pdf_document`), and 221–267 (`render_pdf_for_download`) — always renders clean, never returns the storage locator, and rebuilds legacy marked local/S3 bytes
-- `backend/app/api/routes/pdf.py`, lines 71–94 (`_public_pdf_metadata`), 102–177 (`create_user_pdf`, `render_user_pdf`), 259–319 (`update_user_pdf`, `save_pdf_elements`), and 323–387 (`download_pdf`) — redacts private storage, enforces template access, prepares bytes first, then atomically meters before responding
+- `backend/app/main.py`, lines 215–233, `block_generated_pdf_static_access` — keeps template assets public but makes every retired generated-PDF URL return 404 before the SPA fallback
+- `backend/app/services/document_service.py`, lines 269–274 (`render_document_bytes`), 431–527 (`create_pdf_document`), 528–649 (`update_pdf_document`), and 737–782 (`render_pdf_for_download`) — always renders clean, never returns the storage locator, and rebuilds legacy marked local/S3 bytes
+- `backend/app/api/routes/pdf.py`, lines 83–113 (`_public_pdf_metadata`), 115–215 (`create_user_pdf`, `render_user_pdf`), 293–346 (`update_user_pdf`, `save_pdf_elements`), and 347–403 (`download_pdf`) — redacts private storage, enforces template access, prepares bytes first, then atomically meters before responding
 - `frontend/src/hooks/usePdfExport.js`, lines 175–223, function `downloadPdf`, and `frontend/src/pages/PdfCanvas.jsx`, lines 1165–1180, function `handleDownloadClick` — sends the saved `pdf_id` only to preserve an owned legacy template during render-on-demand
 
 Tests:
@@ -1836,7 +1846,7 @@ Implementation:
 - `backend/app/api/routes/auth.py`, `register_user` — username + email uniqueness
 - `backend/app/schemas/user_schema.py`, `UserCreateRequest` — email format validator
 - `backend/app/crud/user.py`, `get_user_by_email`
-- `backend/app/core/security.py` — bcrypt 72-byte truncate, JWT
+- `backend/app/core/security.py` — Argon2id, successful-login legacy bcrypt rehash, canonical identity, and versioned Bearer JWT
 
 ### Decorative chrome lock
 
@@ -1985,6 +1995,40 @@ Further reading:
 
 ---
 
+### Reliability, concurrency, and private-data baseline
+
+#### Storage V2 and image ownership
+
+Saved PDFs use immutable, server-generated keys in the form `pdfs/{owner_id}/{pdf_id}/{uuid}.pdf`; the 1–120 character display title is normalized and may never become a filesystem or S3 key. Local resolution rejects control characters, absolute paths, traversal, separators outside the key grammar, and any path that escapes the configured root. Reads support validated legacy `file_path` records during migration, while all new writes use `storage_backend` + `storage_key`. Create/update is a database/object-storage saga: a failed database commit deletes or queues the newly written object, a successful replacement queues the old object, and `storage_cleanup_jobs` retries failed deletions with bounded exponential backoff. The scheduled drain filters `next_attempt_at IS NULL OR next_attempt_at <= now` in SQL before applying its ordered `LIMIT`; even 500 older rows still in backoff therefore cannot starve a newer due job. Renaming a document changes metadata only and never physically renames its object. Implementation: `backend/app/services/pdf_storage.py`, lines 32–371, especially `make_pdf_key`, `validate_pdf_key`, `target_for_pdf`, and `process_cleanup_jobs`; `backend/app/services/document_service.py`, lines 277–330 and 431–800. Tests: `backend/tests/test_pdf_storage_v2.py`, including `test_scheduled_cleanup_does_not_starve_due_jobs_behind_backoff_page` at lines 245–278, and `backend/tests/test_alembic_storage_v2_migration.py`.
+
+Production fails closed unless all private-S3 settings are present; Render's ephemeral filesystem is never accepted as durable storage for personal PDFs or images. Local filesystem storage remains available only when neither `APP_ENV=production` nor Render's native marker is active. The API, pre-deploy bootstrap, and cleanup worker all enforce the same invariant. A Render cron service runs `python -m app.services.storage_cleanup_worker` every five minutes, drains at most 500 due outbox jobs, and leaves failures scheduled for their later exponential-backoff retry. Implementation: `backend/app/core/config.py`, lines 81–107, function `assert_private_storage_configured`; `backend/app/services/storage_cleanup_worker.py`, lines 1–33; `render.yaml`, lines 38–67.
+
+Every image reference is also authorized at render time, not only at upload time. Create, update, save-elements, and render/download batch-collect both `img_id` and `/images/{id}/content` references, verify that every database image belongs to the authenticated user, reject identifier/source mismatches, and allow only same-origin authenticated image URLs or contained server template assets. A foreign or missing image is returned as 404 so the API does not reveal another account's asset inventory; arbitrary HTTP(S), protocol-relative, file, and local-path locators are rejected. Implementation: `backend/app/services/document_service.py`, lines 49–239, functions `validate_and_resolve_image_elements` and `resolve_image_src_for_pdf`. Tests: `backend/tests/test_pdf_image_ownership.py`.
+
+#### Document revisions, idempotency, and template provenance
+
+`POST /pdf/create_pdf` requires `Idempotency-Key` (1–128 visible characters). The server hashes the canonical payload: the same key and payload replays the original result without a second document/object, while the same key with different data returns 409 `idempotency_payload_mismatch`. Create starts at revision 1. `PUT /pdf/update_pdf` and `PUT /pdf/save_elements` require `expected_revision`; one conditional SQL update increments the revision, and stale writers receive 409 `document_conflict` with `expected_revision` and `current_revision`. Owner-normalized `title_key` makes title collisions deterministic (`title_conflict`) without corrupting legacy suffixed keys. `editor_mode=freeform` clears the active `template_id`; `origin_template_id` preserves the first template provenance and is not client-overwritable. Implementation: `backend/app/api/routes/pdf.py`, lines 115–346; `backend/app/services/document_service.py`, lines 332–736; `backend/app/schemas/pdf_schema.py`, lines 227–310; migration `backend/alembic/versions/20260901_0012_document_integrity.py`, lines 16–146. Tests: `backend/tests/test_pdf_document_integrity.py` and `backend/tests/test_alembic_document_integrity_migration.py`.
+
+#### Atomic AI credit reservations
+
+Assistant requests require `Idempotency-Key`. Before external model I/O, the backend serializes the user's monthly counter, expires stale reservations, enforces one active slot, and reserves the action's maximum credit cost. Quota checks include settled plus reserved credits, so concurrent requests cannot both spend the same balance. A completed call settles the actual charge and stores a replay response; a confirmed pre-provider failure releases the reservation; an ambiguous provider/transport outcome remains pending for the 10-minute TTL to avoid charging a retried duplicate twice. Same-key payload mismatch is 409, an in-progress duplicate is 409, and another active request/quota exhaustion is 429. Middleware rejects transport bodies above 1 MiB before JSON parsing (including chunked whitespace abuse); schema validation additionally caps the normalized body at 500 elements, 20 history entries, a 4,000-character message, and a 20,000-character job description. Implementation: `backend/app/main.py`, lines 74–113; `backend/app/services/entitlements.py`, line 803 and lines 890–1158, functions `reserve_ai_credits`, `settle_ai_reservation`, and `release_ai_reservation`; `backend/app/api/routes/ai_assistant.py`, lines 49–53 and 151–299. Tests: `backend/tests/test_ai_credit_reservations.py` and `backend/tests/test_ai_assistant_request_limits.py`.
+
+#### Authentication hardening
+
+New passwords (12–128 characters) are hashed with Argon2id (64 MiB memory, three iterations, parallelism two); during the N-1 window registration also writes a rollback-only bcrypt bridge, but current workers always prefer Argon2id and never authenticate against stale bcrypt when the Argon2id value exists. Usernames and emails retain their display form while uniqueness and login use NFKC + trim + casefold keys. Versioned JWTs require an immutable numeric user id in `sub` and the current `ver` epoch. A no-`ver` migration token resolves only an exact stored username—never a canonical match or parsed integer—and must be invalidated by the coordinated secret rotation after cutover. Registration is limited to 5 attempts/IP/hour; login claims the 5/account and 20/IP windows atomically before expensive Argon2 work. Forwarded addresses are considered only when the immediate peer is inside an explicit, non-catch-all `TRUSTED_PROXY_CIDRS` allowlist; the chain is walked from right to left. Implementation: `backend/app/core/security.py`, function `resolve_user_from_payload`; `backend/app/core/config.py`, function `assert_trusted_proxy_configured`; `backend/app/services/auth_rate_limit.py`, functions `client_ip` and `claim_login_attempts`. Tests: `backend/tests/test_auth_hardening.py` and `backend/tests/test_admin_credit_reset_security.py`.
+
+#### Editor lifecycle, recovery, and unsaved-work guard
+
+The editor owns a monotonic document epoch and local revision. Async loads capture that scope and may commit only while it remains current, preventing a late response from an old document from overwriting the newly opened one. Dirty state comes from a stable persisted snapshot that excludes transient selection/edit/resize flags. React Router blocking and `beforeunload` protect authenticated work; guest navigation first flushes the local draft. The accessible discard dialog restores focus and supports the least-destructive default. Route-level and canvas-level Error Boundaries reset on document session changes, expose a branded recovery action, and never render raw exception text or CV content. Implementation: `frontend/src/store/document-lifecycle-context.jsx`, lines 19–70; `frontend/src/utils/persistedDocumentSnapshot.js`, lines 9–68; `frontend/src/hooks/useDirtyGuard.js`, lines 7–110; `frontend/src/components/common/ErrorBoundary/ErrorBoundary.jsx`, lines 12–88; `frontend/src/App.jsx`, lines 24–52. Tests: `frontend/src/utils/documentLifecycleGuards.test.js`, `frontend/src/utils/persistedDocumentSnapshot.test.js`, runtime Error Boundary tests, and `frontend/e2e/editor-smoke.spec.js`.
+
+#### Readiness, catalog, and paginated import history
+
+`GET /health` is process liveness. `GET /ready` checks database connectivity, exact Alembic head parity, and the exact billing catalog without mutating data; a readiness gate temporarily rejects database-backed routes with a sanitized 503. Render runs `python -m app.services.deployment_bootstrap` as `preDeployCommand` and uses `/ready` as `healthCheckPath`, so migrations/seeds finish before traffic. Implementation: `backend/app/services/readiness.py`, lines 31–154; `backend/app/services/deployment_bootstrap.py`, lines 18–38; `backend/app/main.py`, lines 116–168; `render.yaml`.
+
+`GET /templates/catalog` is public, cacheable for five minutes, and returns only allowlisted template metadata. Free template packs remain client material; Pro entries in the production registry contain metadata only and are materialized server-side after entitlement checks, so paid element graphs do not ship in the public browser bundle. Import history uses a stable `(created_at, id)` keyset cursor, owner scope, `limit + 1`, and one grouped document-count query; the frontend deduplicates appended pages and exposes **Pokaż starsze importy** while `next_cursor` exists. Implementation: `backend/app/api/routes/templates.py`, lines 14–37; `backend/app/services/cv_templates/registry.py`, lines 19–119; `backend/app/api/routes/ai.py`, lines 93–293; `frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`, lines 125–143 and 422–430. Tests: `backend/tests/test_template_catalog_api.py` and `backend/tests/test_import_pagination.py`.
+
+---
+
 ## API
 
 Base URL: `VITE_API_URL` (frontend) / deployed backend. Auth: `Authorization: Bearer <jwt>` unless noted. Polish `detail` strings are returned to the UI.
@@ -1992,16 +2036,17 @@ Base URL: `VITE_API_URL` (frontend) / deployed backend. Auth: `Authorization: Be
 | Method | Path | Auth | Purpose | Handler |
 |--------|------|------|---------|---------|
 | GET | `/health` | no | Liveness / dyno wake | `health` in `main.py` |
+| GET | `/ready` | no | Readiness: database, Alembic head, and catalog seed | `ready` in `main.py` |
 | POST | `/auth/register` | no | Create user (`plan` optional, defaults to Free; the registration comparison submits the selected Free/Pro tier) | `register_user` |
 | POST | `/auth/token` | no | OAuth2 password → JWT | `login_for_acess_token` |
-| GET | `/auth/verify-token/{token}` | token in path | Validity check | `verify_user_token` |
+| GET | `/auth/verify-token` | Bearer | Validity check without exposing a token in the URL | `verify_user_token` |
 | GET | `/auth/me/entitlements` | yes | Plan limits for UI | `me_entitlements` |
-| POST | `/pdf/create_pdf` | yes | Create doc + render PDF (first Save) | `create_user_pdf` |
+| POST | `/pdf/create_pdf` | yes + `Idempotency-Key` | Create doc + render PDF at revision 1; exact retries replay | `create_user_pdf` |
 | POST | `/pdf/render_pdf` | yes | Render current canvas + stream + meter; **no persist** (Download) | `render_user_pdf` |
 | GET | `/pdf/fetch_pdfs` | yes | List docs | `fetch_user_pdfs` |
 | POST | `/pdf/show_pdf` | yes | Load owned `{ document, elements }`, including `cv_data` (body: pdf id) | `show_user_pdf` |
-| PUT | `/pdf/update_pdf` | yes | Save existing doc + re-render (later Saves) | `update_user_pdf` |
-| PUT | `/pdf/save_elements` | yes | Elements-only persistence primitive (not used for background autosave) | `save_pdf_elements` |
+| PUT | `/pdf/update_pdf` | yes | Save existing doc + re-render using required `expected_revision` | `update_user_pdf` |
+| PUT | `/pdf/save_elements` | yes | Elements-only persistence using required `expected_revision` | `save_pdf_elements` |
 | DELETE | `/pdf/delete_pdf` | yes | Delete owned doc | `delete_user_pdf` |
 | POST | `/pdf/download_pdf` | yes | Stream a **stored** doc's bytes + meter (`Content-Disposition` filename) | `download_pdf` |
 | POST | `/images/upload_image` | yes | Multipart image | `create_upload_image` |
@@ -2009,11 +2054,15 @@ Base URL: `VITE_API_URL` (frontend) / deployed backend. Auth: `Authorization: Be
 | GET | `/images/{img_id}/content` | yes | Private image bytes (owner only) | `get_image_content` |
 | DELETE | `/images/delete_image` | yes | Delete if unused | `delete_user_image` |
 | POST | `/ai/extract_cv` | yes | Multipart `file` (PDF, ≤10 MB, ≤`CV_EXTRACT_MAX_PAGES`) → `{ import, cv_data, usage }`; 403 app quota, 422 unreadable/model JSON, 429 provider daily limit/capacity/throttling, 502 empty output, 503 provider config/outage | `extract_cv` |
+| GET | `/ai/imports?limit=20&cursor=...` | yes | Owner-scoped cursor page → `{ items, next_cursor }` | `list_imports` |
+| GET / DELETE | `/ai/imports/{snapshot_id}` | yes | Read or delete one owned import snapshot | import detail routes |
 | POST | `/ai/fill_template` | optional | cv_data + template → elements (guests: Free starter templates only) | `fill_template` |
 | GET/PUT/DELETE | `/ai/bio_cv_draft` | yes | Private draft | bio draft routes |
-| POST | `/ai/assistant` | yes | Assistant actions | `ai_assistant` |
+| POST | `/ai/assistant` | yes + `Idempotency-Key` | Size-limited assistant action with atomic credit reservation and replay | `ai_assistant` |
+| GET | `/templates/catalog` | no | Cacheable allowlisted Free/Pro template metadata | `get_template_catalog` |
 | GET | `/billing/plans` | yes | Plan catalog | `get_plans` |
 | POST | `/billing/select-plan` | yes | Activate plan | `select_plan` |
+| POST | `/billing/admin/reset-ai-credits` | `X-Admin-Secret` | Operational reset by numeric `user_id`; dedicated secret only | `admin_reset_ai_credits` |
 | POST | `/events/log` | yes | Product metrics log | `log_event` |
 
 **Ownership and private storage:** PDF/image by-id routes use IDOR checks (`_require_owned_pdf` in `pdf.py`). PDF list/show payloads expose allowlisted editor metadata without `file_path`, and `/static/generated/...` always returns 404; stored bytes leave only through authenticated `POST /pdf/download_pdf`.
@@ -2029,7 +2078,7 @@ Content-Type: application/x-www-form-urlencoded
 username=demo&password=secret
 ```
 
-Example save/elements body shape: `{ "pdf_id", "pdf_title", "root": [PdfElement...], "pages", "page_width", "page_height", "cv_data" }`. `cv_data` is optional for legacy/freeform documents and is the normalized source for a later template change. The render-on-demand download body (`POST /pdf/render_pdf`) reuses `PDFCreateRequest`, does not persist `cv_data`, and accepts optional `pdf_id`. The server uses that id only to verify that a downgraded user owns the same saved paid-template document; `/pdf/create_pdf` ignores it for entitlement continuity. For rendering create/update/download requests, a textarea may additionally carry optional `PdfElement.resolvedLines: ResolvedTextLine[]`. These records are content- and bounds-validated, consumed only by `PDF_Generator.renderTextarea`, and never stored; clients may omit them and receive the calibrated backend wrap. The elements-only `save_elements` path intentionally does not generate them. See `backend/app/schemas/pdf_schema.py`, lines 56–77 (`ResolvedTextLine`), 225–249 (`PDFCreateRequest`), and 252–265 (`PDFUpdateRequest`).
+Create body shape: `{ "pdf_title", "root": [PdfElement...], "pages", "page_width", "page_height", "editor_mode", "template_id", "cv_data" }`; update/save additionally require `{ "pdf_id", "expected_revision" }`. Successful creates return `{ created, pdf_id, revision, replayed }`; update/save return the new `revision`. Conflict bodies use `detail.code`: `idempotency_payload_mismatch`, `document_conflict` (with `expected_revision` and `current_revision`), or `title_conflict`. `cv_data` is optional for legacy/freeform documents and is the normalized source for later template changes. The render-on-demand body reuses `PDFCreateRequest`, does not persist `cv_data`, and accepts optional `pdf_id` only for paid-template entitlement continuity. A textarea may carry transient `resolvedLines`; the server validates and renders them but never stores them. See `backend/app/schemas/pdf_schema.py`, lines 56–77 and 227–301.
 
 ---
 
@@ -2040,6 +2089,7 @@ Example save/elements body shape: `{ "pdf_id", "pdf_title", "root": [PdfElement.
 - Node.js 20+ recommended (Vite 7)
 - Python 3.11+ recommended
 - Optional: PostgreSQL; otherwise SQLite file is fine
+- Production/Render: a private S3 bucket and AWS object credentials are mandatory; local disk is for development/tests only
 - Cloudflare account ID + Workers AI token for PDF CV import
 - Optional: OpenAI API key for the assistant or explicit import rollback
 
@@ -2081,10 +2131,14 @@ App: `http://localhost:5173`.
 
 | Variable | Required | Purpose | Example |
 |----------|----------|---------|---------|
-| `SECRET_KEY` | yes (prod) | JWT signing | long random string |
+| `SECRET_KEY` | yes (prod) | JWT signing; at least 32 non-placeholder characters unless explicitly overridden for throwaway local use | long random string |
 | `ALGORITHM` | yes | JWT alg | `HS256` |
+| `JWT_KEY_VERSION` | no | Token key epoch; changing it invalidates previously issued JWTs | `2026-09-01-v2` |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | no | Token lifetime (default 7 days) | `10080` |
+| `TRUST_PROXY_HEADERS` | no | Enable proxy-derived client IPs; startup fails unless the peer CIDR allowlist is explicit | `false` |
+| `TRUSTED_PROXY_CIDRS` | when proxy headers are enabled | Comma-separated exact reverse-proxy peer networks; catch-all networks are rejected | `203.0.113.16/28` |
 | `DATABASE_URL` | no | DB URL (default SQLite file) | `sqlite:///./pdfgenerator.db` |
+| `APP_ENV` | for non-Render production | Set `production` to enable fail-closed CORS/storage checks; Render is detected automatically | `production` |
 | `CORS_ORIGINS` | no | Comma-separated origins | `http://localhost:5173` |
 | `BACKEND_URL` | no | Public API base for links | `http://localhost:8000` |
 | `CV_EXTRACT_PROVIDER` | no | CV import provider: `cloudflare` (default) or explicit `openai` rollback | `cloudflare` |
@@ -2109,8 +2163,8 @@ App: `http://localhost:5173`.
 | `AI_LAYOUT_SERVICE_TIER` | no | Layout Fast mode (`fast`/`priority`) or `default` | `fast` |
 | `AI_LAYOUT_MAX_COMPLETION_TOKENS` | no | Layout completion budget incl. reasoning | `48000` |
 | `USD_TO_PLN` | no | FX used for credit metering | `4.0` |
-| `S3_BUCKET_NAME` | no | Enable S3 when set; the bucket must remain private with all four Block Public Access settings enabled | bucket name |
-| `AWS_REGION` / keys | with S3 | Region and server-side credentials with object access; never expose them to the frontend | — |
+| `S3_BUCKET_NAME` | required in production; optional dev/test | Private bucket used for all durable personal images and saved PDFs | bucket name |
+| `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` / `AWS_REGION` | required in production; with local S3 | Server-side private-object credentials and region; never expose them to the frontend | `eu-north-1` |
 | `ALLOW_UNPAID_PLAN_SELECTION` | no | Allow activating paid plans without Stripe (`false` default; set `true` locally pre-Stripe) | `true` (local) |
 | `ADMIN_RESET_SECRET` | for admin reset | Dedicated secret for `POST /billing/admin/reset-ai-credits` (does **not** fall back to `SECRET_KEY`) | long random string |
 | `ALLOW_INSECURE_SECRET` | no | Local throwaway only: skip strong `SECRET_KEY` boot check | `true` |
@@ -2134,15 +2188,18 @@ For local Cloudflare setup, copy `backend/.env.example` to `backend/.env`, paste
 | Frontend dev | `npm run dev` | Vite |
 | Frontend build | `npm run build` | Output `frontend/dist` |
 | Frontend lint | `npm run lint` | ESLint |
-| Frontend unit tests | `npm test` | From `frontend/`; Node built-in test runner |
+| Frontend module tests | `npm test` | Recursive `src/**/*.test.js` discovery with Node's built-in runner; fails on zero/duplicate discovery |
+| Frontend runtime tests | `npm run test:runtime` | Vitest + jsdom React integration and recovery tests |
+| Frontend browser tests | `npm run test:e2e` | Playwright Chromium smoke/regression suite with intercepted `/api` |
+| Frontend bundle gate | `npm run build && npm run check:bundle` | Gzip budgets: landing 200 KiB, editor sync 500 KiB, each non-entry feature chunk 300 KiB |
 | Backend tests | `python -m pytest -q` | from `backend/`; collects function-style and `unittest.TestCase` tests |
 | Export element schema | `python -m app.schemas.export_pdf_element_schema` | Writes `shared/pdf-element.schema.json` |
 | Alembic upgrade | `alembic upgrade head` | from `backend/` |
-| CI | GitHub Actions `.github/workflows/ci.yml` | Full backend pytest collection + frontend `npm test` on PR/push |
+| CI | GitHub Actions `.github/workflows/ci.yml` | Backend tests/audit, frontend module/runtime/E2E/lint/build/bundle checks, npm audit, and gitleaks |
 
 ### Troubleshooting
 
-- **Login “Failed to fetch” on Render:** free dyno cold start. Frontend uses long timeouts + retries and `wakeBackend()`; `/health` must answer while DB init runs in background (`main.py` lifespan).
+- **Login receives 503 after deploy:** `/health` proves only that the process is alive. Inspect `/ready` and the `failed_check` value, then verify database reachability, Alembic head `20260901_0015`, the pre-deploy catalog seed, and SQLite foreign-key integrity when applicable. The web process intentionally does not run migrations.
 - **SQLite reports `No support for ALTER of constraints`:** this came from the former revision `0005`. The current migration uses batch mode and can resume after the table/column were already committed. Keep the database at its reported Alembic revision, create a backup, and rerun `python -m alembic upgrade head`; do not delete the partially created table and do not use `alembic stamp` to skip the relation.
 - **Asystent AI / Układ “trwa uruchamianie” or timeout:** AI calls wake the dyno, retry network blips (not client timeouts), and use longer waits (`layout` up to 240s for `gpt-5.6-luna`). A timeout message means the client aborted — retry once; if it persists, check Render logs for OpenAI errors.
 - **CV import says it is not configured (503):** verify `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN`, and `CV_EXTRACT_PROVIDER=cloudflare`, then restart the backend. Never paste the token into the browser console or frontend `.env`.
@@ -2158,44 +2215,55 @@ For local Cloudflare setup, copy `backend/.env.example` to `backend/.env`, paste
 ## Testing
 
 - **Framework:** pytest 9.1.1 is the full-suite runner under `backend/tests/`; it also collects the existing `unittest.TestCase` classes and their subtests.
-- **Coverage focus:** image upload security (format sniffing, traversal, size/count limits, owner-only content), PDF ownership IDOR, private generated-PDF storage, export metering HTTP, the one-import Free gate with atomic snapshot/quota finalization, legacy watermark cleanup, clean and partially committed SQLite migration `0005`, the production Free-contract migration `0008`, PdfElement schema contract (`shared/pdf-element.schema.json`), per-font PDF wrapping, transient browser-line validation and advance calibration, layout analysis safety, AI chat/command sanitisation, entitlements, template registry sync (frontend `TEMPLATES` ↔ `_GENERATORS` ↔ `FREE_STARTER_TEMPLATE_IDS`), PDF element upsert/`fixedToPage`, CV data normalisation, bullet layout, and Unicode fonts. Frontend tests also verify the three-template/six-appearance Free contract, primary/run font readiness, all three rendering-request integrations, and Cadenza's stable filled-band/accent geometry across repeated spacing plus record/section reorder; real Chromium Range output is additionally checked during visual export QA, not by the Node unit runner.
+- **Backend coverage:** storage-key containment/dual-read/cleanup compensation, PDF/image IDOR and image-slot races, document compare-and-swap/idempotency/N-1 writes, PDF 4 MiB and nested-shape limits, AI reservation races/replay/request limits, Argon2/canonical identity/proxy-aware throttles/admin reset, readiness and migrations `0009`–`0015`, import keyset pagination, public catalog allowlisting, quota atomicity, schema/render/layout/Unicode contracts, and legacy compatibility.
 - **Run:** `cd backend && python -m pytest -q`.
-- **Frontend:** ESLint via `npm run lint`; unit tests via `cd frontend && npm test` (Node built-in runner).
-- **CI:** `.github/workflows/ci.yml` runs both suites on push/PR.
+- **PostgreSQL contracts:** set `POSTGRES_TEST_DATABASE_URL` to an isolated test database and run `python -m pytest -q -rs tests/test_postgres_security_contracts.py`. CI supplies PostgreSQL 16 and proves fresh bootstrap, a real N-1 (`0010`) upgrade to head, and 20 concurrent AI reservations; without the variable these three tests skip explicitly.
+- **Frontend layers:** `npm test` recursively discovers pure `*.test.js` modules; `npm run test:runtime` runs jsdom React tests with Vitest; `npm run test:e2e` runs isolated Chromium smoke tests. Lifecycle scope, dirty snapshots, category deletion, revision/idempotency headers, accessible recovery, and raw-error redaction have dedicated regressions.
+- **Security and supply chain:** CI must pass `pip check` and a blocking `pip-audit`, plus production-dependency `npm audit --omit=dev --audit-level=high` and full-history gitleaks. Actions use pinned major versions. This document treats a clean audit as a release gate; it does not claim a current zero-finding result independently of the latest CI run.
+- **Static analysis and exceptions:** `.github/workflows/codeql.yml` runs CodeQL and enforces SARIF severity. [`docs/security/dependency-exceptions.md`](docs/security/dependency-exceptions.md) is the bilingual, expiry-bound exception register; it currently contains no accepted vulnerability exceptions.
+- **Documentation gate:** `.github/scripts/check_documentation.py`, lines 30–114, functions `committed_markdown_files`, `broken_local_links`, `readme_parity_failures`, and `main`, rejects missing repository-local Markdown targets and drift in the critical EN/PL README structure before dependencies are installed.
+- **Build budgets:** CI builds production assets and runs `frontend/scripts/check-bundle-budget.mjs`, lines 1–70. It fails when the landing path exceeds 200 KiB gzip, synchronous editor assets exceed 500 KiB gzip, or a non-entry feature chunk exceeds 300 KiB gzip.
+- **Discovery guarantee:** `frontend/scripts/run-tests.mjs`, lines 1–73, sorts and deduplicates every `src/**/*.test.js`, supports `--list`, and fails rather than silently running an empty suite. Runtime and browser selection live in `frontend/vitest.config.js`, lines 1–13, and `frontend/playwright.config.js`, lines 1–44.
+- **CI:** `.github/workflows/ci.yml` runs all layers on push/PR; Playwright retains trace, screenshot, and video only on failure.
 
 ---
 
 ## Deployment
 
-Typical production split (as used with Render):
+`render.yaml` defines the production split in Render's Frankfurt region. The API and cleanup cron use paid `0.5c-512mb` compute, and PostgreSQL uses the durable paid `0.1c-256mb` plan: Render limits pre-deploy commands to paid compute and free PostgreSQL is not a production-retention tier.
 
-- **Backend service** — Uvicorn / FastAPI, Postgres, env vars above, optional S3. Add `CV_EXTRACT_PROVIDER`, `CLOUDFLARE_ACCOUNT_ID`, and `CLOUDFLARE_API_TOKEN` in Render → backend service → Environment; add the two optional model overrides only when intentionally changing defaults. Redeploy/restart after saving.
+- **Backend service** — Uvicorn / FastAPI, Postgres, and mandatory private S3. Configure the bucket, all three AWS credential/region variables, `CV_EXTRACT_PROVIDER`, `CLOUDFLARE_ACCOUNT_ID`, and `CLOUDFLARE_API_TOKEN` in Render → backend service → Environment; add model overrides only when intentionally changing defaults. Redeploy/restart after saving.
+- **Storage-cleanup cron** — the Starter cron service shares Postgres and the same private-S3 configuration, runs `python -m app.services.storage_cleanup_worker` every five minutes, and exits after one bounded batch.
 - **Frontend static** — `npm run build`, host `frontend/dist` (or co-host via `main.py` SPA fallback when `frontend/dist` exists next to the backend tree).
 
-Cold-start behaviour is intentional: DB init is deferred so `/health` stays fast.
+The backend `preDeployCommand` runs `python -m app.services.deployment_bootstrap`; a failure stops deployment. The command applies additive migrations and the billing seed only—historical cleanup is never an automatic deployment side effect. Render probes `/ready`, while `/health` remains a dependency-free liveness endpoint for process diagnosis.
 
-When S3 is enabled, keep Bucket owner enforced Object Ownership and all four S3 Block Public Access settings enabled, and do not attach a public bucket policy. The application sends no ACL with `PutObject`; the stored HTTPS value is an internal locator, while PDF bytes are returned only through the authenticated, ownership-checked, metered API route. A public bucket policy would bypass those application controls and is therefore unsupported.
+Production startup fails when S3 or any AWS credential/region value is missing. Keep Bucket owner enforced Object Ownership and all four S3 Block Public Access settings enabled, and do not attach a public bucket policy. The application sends no ACL with `PutObject`; the stored HTTPS value is an internal locator, while PDF bytes are returned only through the authenticated, ownership-checked, metered API route. A public bucket policy would bypass those controls and is unsupported. Local filesystem storage is supported only for development and tests.
 
-Migrations: `create_all` + Alembic (`backend/alembic/`) on startup. A deployment carrying this change must reach head `20260831_0008`; it updates the existing `plans.free` row, while the startup seed enforces the same values on new databases.
+Migrations: the pre-deploy bootstrap must reach head `20260901_0015`. Do not use `alembic stamp` to bypass a failed migration. Storage V2 dual-read and the `0015` database triggers preserve the N-1 rollback window; remove compatibility fields/triggers only after two verified releases and a checked backfill.
 
-CI/CD: configure in your host (Render dashboards / GitHub Actions) — no committed workflow is required by this README.
+CI/CD: `.github/workflows/ci.yml` is committed and gates backend, frontend, browser, dependency, secret, and bundle checks before deployment.
 
 ---
 
 ## Security and privacy
 
-- Passwords: bcrypt; inputs truncated to 72 bytes consistently (`security.py`).
-- Sessions: JWT Bearer; username in `sub`.
-- Authorisation: ownership checks on PDF/image mutations; plan gates on create/export/AI/templates.
+- Passwords: Argon2id is authoritative for current workers. A temporary bcrypt column remains solely for N-1 rollback compatibility; current authentication cannot fall back to it when an Argon2id hash exists. Passwords are 12–128 characters and are never silently truncated.
+- Identity and sessions: NFKC/trim/casefold canonical username/email keys; versioned JWT Bearer with immutable numeric user id in `sub`. Tokens are never accepted in URL paths.
+- Auth abuse controls: persistent atomic registration/login windows use HMAC-digested keys; `Retry-After` accompanies 429. Forwarded IPs are ignored unless explicitly trusted.
+- Authorisation: ownership checks on PDF/image mutations and every referenced image during create/update/save/render; plan gates on create/export/AI/templates. Public catalog output is allowlisted metadata only.
 - CORS: explicit origin allowlist (`CORS_ORIGINS`).
 - Uploads: profile-photo library (max 4 by default); format verified from file bytes (PNG/JPEG/WEBP/GIF; SVG rejected), stored under server-generated names (no path traversal), size-capped (`MAX_UPLOAD_BYTES`) and count-limited per user (`MAX_IMAGES_PER_USER`); images owned by user; delete blocked while referenced by a PDF element; bytes served only via ownership-checked `GET /images/{id}/content` (no public `/uploads` mount) (`upload_security.py`, `images.py`).
-- Generated PDFs: local files are not mounted publicly and API metadata omits storage locators. Stored bytes are released only by authenticated, ownership-checked `POST /pdf/download_pdf`, which also charges the export quota atomically. S3 uploads omit ACLs and require a private bucket with Block Public Access; the application cannot compensate for an operator-supplied public bucket policy (`main.py`, `pdf.py`, `s3_storage.py`).
-- Registration: duplicate username/email rejected with 400; email format-validated (`auth.py`, `user_schema.py`).
+- Generated PDFs: immutable server keys, root containment, validated legacy dual-read, private S3 production storage (local only in dev/test), API locator redaction, owner-checked download, atomic export charge, and durable cleanup compensation. S3 still requires operator-enforced Block Public Access.
+- Concurrency: document optimistic revisions prevent last-write-wins loss; create and assistant idempotency keys prevent duplicate persistence/charges; AI credits are reserved atomically before provider I/O.
+- Registration: duplicate canonical username/email rejected with stable 409 codes; email format and password bounds are schema-validated.
 - AI errors: CV-import failures are mapped to stable safe codes and 422/429/502/503 responses; assistant failures use a generic Polish 500. Raw provider details never reach the browser.
 - CV privacy: PDF bytes are validated in memory, sent server-to-server to the configured provider, and then discarded; import history stores normalized fields and metadata, never the source PDF. Cloudflare states that it does not train models on Customer Content, but CV content is still third-party processing and must be covered by the product privacy notice. See [Workers AI data usage](https://developers.cloudflare.com/workers-ai/platform/data-usage/).
+- Assistant replay privacy: the reservation row stores only a canonical request hash, not the submitted request body; a settled row stores the account-scoped assistant response JSON required for exact idempotent replay. No response is exposed through a cross-user listing endpoint.
 - Provider secrets: Cloudflare account ID/token and OpenAI key exist only in backend environment variables; no `VITE_` variable may contain them.
 - Metrics: `/events/log` logs numeric `user_id`, not raw usernames (`metrics_logging.py`).
 - Secrets: env only; never in README or git.
+- Administrative reset: dedicated `ADMIN_RESET_SECRET`, constant-time `X-Admin-Secret` comparison, immutable numeric target; there is no fallback to the JWT signing secret.
 
 This does not claim SOC2/compliance — it documents controls that exist in code.
 
@@ -2208,6 +2276,7 @@ This does not claim SOC2/compliance — it documents controls that exist in code
 - Forms use programmatic labels, described validation copy, semantic fieldsets/radiogroups, accessible names on icon-only controls, disabled states, and the shared 2 px blue `:focus-visible` indicator. Login, registration, editor controls, template pickers, upload/dropzone, AI controls, saved-document search/sort, and modal actions use the same validation/error/success language.
 - Loading, skeleton, empty, success, warning, danger, disabled, and toast states use semantic central tokens. `Spinner` uses a flat ring/progress treatment; skeletons pulse without shimmer; `ToastStack` stays outside the A4 workspace and replaces stale notifications by workflow category. All CSS animation modules include `prefers-reduced-motion`; Framer Motion panels use `useReducedMotion`. Implementation: `frontend/src/components/common/Spinner/Spinner.module.css`, lines 1–142; `frontend/src/components/common/ToastStack/ToastStack.module.css`, lines 1–136; `frontend/src/hooks/useToasts.js`, exports `toastReplaceKey`, `mergeToastQueue`, and `useToasts`.
 - Empty document/template galleries provide explicit next actions. StartChooser intentionally replaces editor chrome, moves programmatic focus to its heading, and keeps hidden editor actions out of the keyboard and accessibility trees. The chooser is covered by `frontend/src/utils/startChooser.test.js`, lines 13–68, and `frontend/src/utils/demoModeChrome.test.js`, lines 46–74.
+- Unsaved-work confirmation uses an `alertdialog`, initially focuses **Return to editing**, restores focus, and protects both Router navigation and browser unload. The AI panel moves focus into its input, restores its opener, exposes expanded state, and gives paginated history a labelled **Pokaż starsze importy** action. Error Boundaries use `role="alert"`, provide a recovery action, reset with the document session, and never display raw exception/CV text.
 - Canvas text interaction is mode-aware. In **template mode**, an ordinary single click enters the `contentEditable` surface; `handleSetTextareaEditing` simultaneously makes that text the sole selection, so the element-properties panel opens in the same action. `Ctrl`/`Cmd`-click remains additive multi-selection, a trailing click after a drag is ignored, and a click on an already editing surface preserves native caret placement. In **freeform mode**, a single click still selects the element and exposes its move/resize controls, while double click starts inline editing. `Enter` or `F2` provides the keyboard editing path in either mode. The semantic outer frame, brown exact-element hover frame, selection frame, handles, and structural toolbars are pointer-inert editor DOM only: they do not mutate authored geometry and are never sent to or painted in the exported PDF. Canvas zoom is view-only so export size stays document-true. The editor opens at **100%** by default (`ZOOM_DEFAULT` in `useA4Elements`); two-page view still forces 100% while active. Editing text from a two-page spread temporarily focuses the selected element's page, applies the same 200% edit zoom and animation, then restores both the prior zoom and spread after an intentional edit exit. Single-line `text` elements share one `<p>` for display and edit and do not render React children, so that remount re-seeds the new node from stored content (`seedTextEditNode` in `frontend/src/utils/textEditSurface.js`, used by `frontend/src/components/canvas/Text/Text.jsx` on edit enter). A detached or in-transition blur must not finalize the edit (`shouldCommitTextEditBlur`). Textarea already has a dedicated edit surface that seeds on enter, so it never hit this empty-node path. A single-page edit restores the previous zoom only after the user clicks the bare A4 surface, the canvas padding/gutter, or the element-properties panel's explicit Close action. Clicking another element, a toolbar, a sidebar, a canvas editor control, or the active text-selection surface can end text input but deliberately keeps the 200% focused view. The decision is centralized in `isCanvasInteractionTarget` and includes the regression case in which a canvas element is a descendant of the A4 page but is not the page background itself. The `data-editor-control` marker excludes section, record, flat-layout, and contact editing icons from canvas-exit detection. The editable surface owns its authoritative height measurement during input and blur, while the immediately following display render skips a duplicate background measurement so edit-zoom cannot repack unchanged sections. Implementation: `frontend/src/components/canvas/Text/Text.jsx`, lines 171–287, and `frontend/src/components/canvas/Textarea/Textarea.jsx`, lines 466–703 — mode-aware click/double-click plus `Enter`/`F2`; `frontend/src/utils/textareaEditing.js`, lines 8–42, functions `hasTextareaDragIntent` and `resolveTextClickIntent`; `frontend/src/hooks/useA4Elements.js`, lines 246–403 and 1301–1315, hook `useA4Elements` and `handleSetTextareaEditing`; `frontend/src/utils/editZoomExit.js`, lines 1–30, function `isCanvasInteractionTarget`; `frontend/src/components/editor/Editor/Editor.jsx`, lines 379–388, function `handleCloseEditor`. Tests: `frontend/src/utils/textareaEditing.test.js`, lines 1–56, and `frontend/src/utils/editZoomExit.test.js`, lines 10–59.
 
 Migration QA covered semantic snapshots, labels, keyboard-visible focus, modal Escape/focus restoration, 375/640/768/1280/1600 px layouts, 200%-zoom-equivalent compact reflow, horizontal overflow, and clean browser console output. This is not a formal WCAG conformance certification. The grouped structural toolbar is still primarily discovered through pointer hover/click on the document; the labelled **Dostosuj CV** panel remains the keyboard/touch route to the same structural operations.
@@ -2218,7 +2287,7 @@ When switching directly from one text element to another during two-page edit-zo
 
 ## Known limitations and planned work
 
-See [`BUGZ.MD`](BUGZ.MD) and [`TODOS.md`](TODOS.md).
+See the classified defect register in [`docs/BUGZ.MD`](docs/BUGZ.MD) and the dated [security/reliability remediation plan](docs/superpowers/plans/2026-09-01-security-reliability-remediation.md).
 
 The checkable product, UX, and commercialization roadmap is maintained in [`docs/CV_STUDIO_PRODUCT_UX_ROADMAP.md`](docs/CV_STUDIO_PRODUCT_UX_ROADMAP.md). It records completed work, pending recommendations, completion evidence, and deliberately superseded ideas. The detailed Final Check implementation roadmap is intentionally outside that artifact for now.
 
@@ -2229,6 +2298,10 @@ Notable product facts:
 - Layout AI proposes; `layout_analysis` owns safe coordinates. Overlaps/clips produce critical repair groups before cosmetic alignment.
 - Design rating must not punish intentional small template fonts (prompt + filters in `_rate_design`). Geometry overlaps are handled in **Układ**, not by capping the typography score.
 - A guest-mode document lives only in the visitor's browser `localStorage` until claimed by an account; clearing site data or switching devices loses any unclaimed work — see [Guest mode](#guest-mode-editor-without-an-account).
+- Idempotency replay is process/database durable, but an ambiguous assistant provider outcome remains reserved for up to 10 minutes before expiry; this intentionally favors avoiding duplicate spend over immediate credit reuse.
+- Storage cleanup is eventually consistent. The five-minute cron retries due jobs; disabling or misconfiguring that service leaves failed object deletions in `storage_cleanup_jobs` until an operator restores or manually runs the worker.
+- The public template catalog is cacheable for five minutes; revocation or metadata changes may therefore take that long to reach existing caches.
+- Settled, released, and expired AI reservation rows are not yet removed by an automated retention job. Production operations must define and execute a retention policy for stored replay responses.
 
 ---
 
@@ -2237,7 +2310,13 @@ Notable product facts:
 - [React documentation](https://react.dev/) — components, hooks, rendering.
 - [Updating arrays in React state](https://react.dev/learn/updating-arrays-in-state) — official immutability guidance used by structural element-array transformations.
 - [Node.js test runner](https://nodejs.org/api/test.html) — official reference for the frontend regression suite invoked by `npm test`.
+- [Vitest guide](https://vitest.dev/guide/) — official jsdom/runtime test configuration used by `npm run test:runtime`.
+- [Playwright Test](https://playwright.dev/docs/intro) — official browser-test runner used for the isolated Chromium smoke suite.
+- [argon2-cffi API](https://argon2-cffi.readthedocs.io/en/stable/api.html) — official `PasswordHasher` and rehash reference used by the password migration path.
+- [Render deploys and pre-deploy commands](https://render.com/docs/deploys) — official lifecycle used for migrations before Uvicorn starts.
 - [FastAPI documentation](https://fastapi.tiangolo.com/) — routes, dependencies, OpenAPI.
+- Pinned backend releases on PyPI: [FastAPI 0.141.1](https://pypi.org/project/fastapi/0.141.1/), [Starlette 1.6.0](https://pypi.org/project/starlette/1.6.0/), [python-multipart 0.0.32](https://pypi.org/project/python-multipart/0.0.32/), [PyJWT 2.13.0](https://pypi.org/project/PyJWT/2.13.0/), [cryptography 50.0.1](https://pypi.org/project/cryptography/50.0.1/), [PyMuPDF 1.28.2](https://pypi.org/project/PyMuPDF/1.28.2/), and [python-dotenv 1.2.3](https://pypi.org/project/python-dotenv/1.2.3/) — authoritative package metadata matching `backend/requirements.txt`.
+- [Render cron jobs](https://render.com/docs/cronjobs) and [Blueprint YAML](https://render.com/docs/blueprint-spec) — official scheduling and infrastructure fields used by the five-minute storage-cleanup service.
 - [SQLAlchemy 2.x documentation](https://docs.sqlalchemy.org/) — ORM sessions and models.
 - [Alembic batch migrations](https://alembic.sqlalchemy.org/en/latest/batch.html) — official move-and-copy workflow required for SQLite constraint changes.
 - [ReportLab user guide](https://www.reportlab.com/docs/reportlab-userguide.pdf) — PDF canvas drawing.
@@ -2249,7 +2328,7 @@ Notable product facts:
 - [MDN: `prefers-reduced-motion`](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/At-rules/%40media/prefers-reduced-motion) — official browser behaviour behind the motion fallback.
 - [WAI-ARIA APG: Modal dialog pattern](https://www.w3.org/WAI/ARIA/apg/patterns/dialog-modal/) — keyboard containment, initial focus, Escape, labelling, and focus restoration rules implemented by `DialogShell`.
 - [WCAG 2.2: Resize Text](https://www.w3.org/WAI/WCAG22/Understanding/resize-text.html) and [Focus Visible](https://www.w3.org/WAI/WCAG22/Understanding/focus-visible) — official rationale for 200% scaling checks and persistent keyboard focus indicators.
-- Project: [`CANVA.md`](CANVA.md), [`CV_GENERATOR.md`](CV_GENERATOR.md) (layperson CV generation guide), [`PROMPTS.md`](PROMPTS.md) (all AI prompts with line references), [`docs/cv-template-generation.md`](docs/cv-template-generation.md), [`docs/FEATURES.md`](docs/FEATURES.md), [`docs/designs/cv-only-ux-monetization.md`](docs/designs/cv-only-ux-monetization.md).
+- Project: [`docs/cv-template-generation.md`](docs/cv-template-generation.md), [`docs/FEATURES.md`](docs/FEATURES.md), [`docs/BUGZ.MD`](docs/BUGZ.MD), and [`docs/designs/cv-only-ux-monetization.md`](docs/designs/cv-only-ux-monetization.md).
 
 ---
 
@@ -2259,7 +2338,7 @@ Notable product facts:
 
 CV Studio to polski edytor CV na A4: płótno WYSIWYG, dziewięć indywidualnych szablonów (każdy z własną nazwą i krótkim opisem stylistycznym), import PDF przez AI, kreator bio, pływający asystent AI oraz eksport PDF w ReportLab zgodny z kanwą 1:1 (współrzędne w punktach, początek układu lewy-górny na froncie, odwrócenie Y w ReportLab).
 
-Ten README to wejście techniczne dla programistów. Obszerne, napisane dla początkujących wyjaśnienie współrzędnych canvasu, interakcji React, deterministycznego layoutu Python, roli AI, reflow, zapisu i eksportu ReportLab znajduje się w [`CANVA.md`](CANVA.md). Wszystkie prompty AI (treść, zmienne, numery linii): [`PROMPTS.md`](PROMPTS.md). Opis produktowy funkcji: [`docs/FEATURES.md`](docs/FEATURES.md). Brief marketingowy pod sekcję „Dlaczego CV STUDIO” na stronie (funkcje + pozycjonowanie względem rynku, bez nazw marek konkurencji w copy publicznym): [`FEATURES_MARKETING.md`](FEATURES_MARKETING.md). Generowanie szablonów (AI extract vs layout w Pythonie): [`docs/cv-template-generation.md`](docs/cv-template-generation.md). Przystępny, kompletny przewodnik Frontend + Backend (ścieżki, pliki, klasy, funkcje): [`CV_GENERATOR.md`](CV_GENERATOR.md).
+Ten README jest technicznym punktem wejścia oraz kompletnym, dwujęzycznym przewodnikiem po architekturze projektu. Produktowy opis funkcji znajduje się w [`docs/FEATURES.md`](docs/FEATURES.md), a generowanie szablonów (ekstrakcja AI kontra deterministyczny layout w Pythonie) opisuje [`docs/cv-template-generation.md`](docs/cv-template-generation.md).
 
 ---
 
@@ -2289,9 +2368,9 @@ Kandydaci potrzebują CV, które wygląda profesjonalnie i eksportuje się do PD
 
 Wymuszanie rejestracji zanim odwiedzający zobaczył edytor było dotąd największą stratą lejka: każdy nowy odwiedzający musiał założyć konto — i wybrać płatny plan już przy rejestracji — zanim dotknął jakiegokolwiek szablonu. **Tryb gościa** usuwa tę barierę: `/cvstudio/guest` działa bez JWT (zalogowani użytkownicy otwierają `/cvstudio/{username}`), więc odwiedzający może wybrać szablon, przejść kreator krok po kroku albo edytować w trybie swobodnym i zobaczyć dokładnie ten dokument, który wyeksportuje — stan trzymany jest w `localStorage` zamiast w backendzie. Konto jest potrzebne dopiero w momencie realnej wartości: przy zapisie lub eksporcie PDF (modal „save-gate”) albo przy imporcie CV, który wysyła dane osobowe do serwerowego dostawcy AI i zużywa limit przypisany do konta. Pełny opis: [Tryb gościa (edytor bez konta)](#tryb-gościa-edytor-bez-konta).
 
-**Zaimplementowane:** edytor (w tym tryb gościa bez konta), szablony, extract/fill, szkic bio, asystent AI (cele użytkownika, dashboard oceny, tłumaczenie, karty układu), entitlements (Darmowy / Pro — 59 zł / 30 dni), jawny zapis + niezależne pobieranie renderowane na żądanie, autozapis do localStorage tylko dla gości, dysk lokalny lub S3, JWT.
+**Zaimplementowane:** edytor (w tym tryb gościa bez konta), szablony, extract/fill, szkic bio, asystent AI (cele użytkownika, dashboard oceny, tłumaczenie, karty układu), entitlements (Darmowy / Pro — 59 zł / 30 dni), jawny zapis + niezależne pobieranie renderowane na żądanie, autozapis do localStorage tylko dla gości, Storage V2 (prywatne S3 w produkcji; filesystem lokalny tylko w dev/test), JWT.
 
-**Opcjonalne:** S3 (`S3_BUCKET_NAME`; bucket musi pozostać prywatny z włączonym Block Public Access), wybór planu bez płatności (`ALLOW_UNPAID_PLAN_SELECTION`).
+**Opcjonalnie lokalnie:** S3 może zastąpić filesystem deweloperski. **Wymagane na Render/produkcji:** `S3_BUCKET_NAME`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` i `AWS_REGION`, z prywatnym bucketem oraz Block Public Access. Wybór planu bez płatności (`ALLOW_UNPAID_PLAN_SELECTION`) pozostaje opcją wyłącznie lokalną.
 
 **Jeszcze nie jako pełny Stripe Checkout:** płatne plany można aktywować bez karty, gdy flaga na to pozwala; odpowiedź `402 payment_required` to miejsce pod przyszły Checkout.
 
@@ -2341,7 +2420,7 @@ flowchart LR
     API --> Canvas[CRUD PDF + render na żądanie]
     API --> AI[extract / fill / asystent]
     API --> DB[(SQLite lub Postgres)]
-    API --> Files[dysk lub S3]
+    API --> Files[prywatne S3 w produkcji; dysk lokalny w dev/test]
     AI --> Cloudflare[Cloudflare Workers AI<br/>import CV]
     AI --> OpenAI[OpenAI API<br/>asystent / opcjonalny rollback importu]
     Canvas --> ReportLab[PDF ReportLab]
@@ -2356,14 +2435,14 @@ flowchart LR
 | Warstwa | Wejście | Rola |
 |---------|---------|------|
 | Frontend | `frontend/src/main.jsx` → `App.jsx` | Routing: `/`, `/login`, `/register`, `/cvstudio/:workspace` (`guest` lub nazwa użytkownika — bez `ProtectedRoute`); legacy `/pdfcanvas` przekierowuje |
-| Edytor | `frontend/src/pages/PdfCanvas.jsx` (`PdfCanvas`) | Canvas / UiSurfaces / Session (+ fasada `PdfContext`) |
+| Edytor | `frontend/src/pages/PdfCanvas.jsx` (`PdfCanvas`) | Składa hooki w skupione providery Canvas / UiSurfaces / Session / DocumentLifecycle |
 | Backend | `backend/app/main.py` | FastAPI, CORS, `/health`, routery, opcjonalny SPA |
 
 ### Warstwy frontendu
 
 - **Pages** — marketing, auth, edytor.
 - **Hooks** — `useA4Elements` (fasada), `useDocumentHistory`, `useElementSelectionDrag`, `usePdfExport`, `useEntitlements`; fabryki / `materializeElementSpecs` / `canvasElementSchema` w utils.
-- **Context** — zagnieżdżone `CanvasContext` / `UiSurfacesContext` / `SessionContext` + tymczasowa fasada `PdfContext`.
+- **Context** — skupione `CanvasContext`, `UiSurfacesContext`, `SessionContext` i `DocumentLifecycleContext`; dawny szeroki moduł `PdfContext` został usunięty, a test architektoniczny blokuje jego powrót.
 - **Services** — `ApiClient` z długim timeoutem i retry (cold start Render); `fillTemplate`; `authenticatedImage`.
 - **Templates** — specyfikacje w `frontend/src/templates/`.
 
@@ -2409,18 +2488,24 @@ Elementy z `fixedToPage: true` — tła, ramki, sidebary, numery stron — są d
 |-------------|----------------|------|----------------|
 | React | ^19.2 | UI | `frontend/src/` |
 | Vite | ^7.2 | Build / dev | `frontend/` |
-| React Router | ^7.13 | Trasy (`/cvstudio/:workspace` — `guest` lub nazwa użytkownika; `ProtectedRoute` usunięty) | `App.jsx`, `authSession.js` (`getEditorPath`) |
-| FastAPI | requirements | API HTTP | `main.py`, routes |
+| React Router | ^7.18 | Trasy, blokowanie nawigacji przy niezapisanej pracy i ekran błędu trasy | `App.jsx`, `useDirtyGuard.js`, `authSession.js` (`getEditorPath`) |
+| FastAPI | 0.141.1 | API HTTP i dependency injection | `main.py`, routes |
+| Starlette | 1.6.0 | Middleware ASGI, request/response i pula wątków roboczych | runtime FastAPI |
+| python-multipart | 0.0.32 | Strumieniowe parsowanie formularzy i uploadów multipart | trasy auth, zdjęć i importu CV |
 | Uvicorn | requirements | Serwer ASGI | lokalnie / Render |
 | SQLAlchemy | requirements | ORM | `models/`, `crud/` |
 | SQLite / PostgreSQL | `DATABASE_URL` | Persistencja | `database.py` |
 | ReportLab + fontTools | requirements | PDF + fonty | `pdf_generator.py` |
-| PyMuPDF | 1.26.6 | Geometria linii/spanów PDF, kolumnowy odczyt CV i rasteryzacja stron skanowanych | `cv_source_layout.py`, `ai_service.py`, `ats_readability.py` |
+| PyMuPDF | 1.28.2 | Geometria linii/spanów PDF, kolumnowy odczyt CV i rasteryzacja stron skanowanych | `cv_source_layout.py`, `ai_service.py`, `ats_readability.py` |
 | OpenAI SDK | 2.14.0 | Asystent OpenAI i transport kompatybilnego API Cloudflare | serwisy AI |
 | Cloudflare Workers AI | hostowane API | Import natywnego tekstu CV (Gemma 4 z wyłączonym thinkingiem i jednorazowym fallbackiem Llama JSON Mode) oraz ekstrakcja skanów (Qwen 3.8 Vision) | `ai_service.py`, `cloudflare_pricing.py` |
-| python-jose / bcrypt | requirements | JWT + hasła | `security.py` |
-| boto3 | opcjonalnie | S3 | `s3_storage.py` |
+| PyJWT / cryptography | 2.13.0 / 50.0.1 | Wersjonowane encode/decode JWT i przypięte prymitywy kryptograficzne; zastępuje python-jose/ecdsa | `security.py` |
+| argon2-cffi / bcrypt | 25.1.0 / 5.0.0 | Hasła Argon2id i jednokierunkowa migracja legacy bcrypt | `security.py` |
+| python-dotenv | 1.2.3 | Ładowanie lokalnej konfiguracji backendu z `.env` | `core/config.py` |
+| boto3 | 1.43.51; wymagane w produkcji | Prywatne obiekty S3 za abstrakcją Storage V2 | `pdf_storage.py`, `s3_storage.py` |
 | pytest + unittest | 9.1.1 + stdlib | Pełny runner backendu oraz zgodne klasy `unittest.TestCase` i subtesty | `backend/tests/`, `backend/requirements-dev.txt` |
+| Node test runner + Vitest | Node 20+ / ^4.1 | Regresje czystych modułów oraz testy runtime React/jsdom i Error Boundary | `frontend/scripts/run-tests.mjs`, `frontend/vitest.config.js` |
+| Playwright | ^1.62 | Scenariusze smoke edytora i regresje na Chromium | `frontend/playwright.config.js`, `frontend/e2e/` |
 
 Dokumentacja oficjalna: [React](https://react.dev/), [Vite](https://vite.dev/), [FastAPI](https://fastapi.tiangolo.com/), [SQLAlchemy](https://docs.sqlalchemy.org/), [ReportLab](https://www.reportlab.com/docs/reportlab-userguide.pdf), [Cloudflare Workers AI](https://developers.cloudflare.com/workers-ai/), [zgodność z OpenAI API](https://developers.cloudflare.com/workers-ai/configuration/open-ai-compatibility/) i [OpenAI](https://platform.openai.com/docs).
 
@@ -2457,7 +2542,7 @@ pdf-generator/
 │   │   ├── hooks/            # useA4Elements, useDocumentHistory, useElementSelectionDrag, …
 │   │   ├── pages/
 │   │   ├── services/         # ApiClient, fillTemplate, authenticatedImage
-│   │   ├── store/            # Canvas / UiSurfaces / Session + fasada PdfContext
+│   │   ├── store/            # Skupione konteksty Canvas / UiSurfaces / Session / DocumentLifecycle
 │   │   ├── templates/        # specyfikacje szablonów + helpery; cadenza.js to biały starter editorialny
 │   │   └── utils/            # geometria/reflow/sekcje, przeglądarkowy layout eksportu tekstu, wygląd szablonów, helpery gościa
 │   │       ├── planPresentation.js # Kanoniczne copy Free/Pro łączone z cenami z billing API
@@ -2475,6 +2560,8 @@ pdf-generator/
 │   │       ├── canvasHighlightBounds.js # Bounds z modelu i limity tuszu po commicie
 │   │       ├── canvasHighlightBounds.test.js # Dokładne regresje geometrii obrysu semantycznego
 │   │       └── canvasHighlightAllTemplates.test.js # Kontrakt izolacji main/sidebara dla każdego wbudowanego szablonu
+│   ├── e2e/                 # Scenariusze smoke/regresyjne Playwright
+│   ├── scripts/             # Rekurencyjne wykrywanie testów i gate budżetu gzip
 │   ├── package.json
 │   └── .env.example
 ├── shared/
@@ -2486,14 +2573,17 @@ pdf-generator/
     │   ├── crud/
     │   ├── models/
     │   ├── schemas/          # PdfElement + eksport JSON Schema
-    │   ├── services/         # pdf, document_service, cv_generator (+ cv_templates/), ATS, entitlements
+    │   ├── services/         # lifecycle dokumentu/storage, readiness, limity auth, rezerwacje AI, szablony
     │   │   ├── ai_service.py             # tekst-first/vision importu CV + wejście fill
     │   │   ├── cv_source_layout.py       # kolumny, sekcje źródłowe i deterministyczne ugruntowanie
-    │   │   └── cloudflare_pricing.py     # telemetria stawek Workers AI
+    │   │   ├── cloudflare_pricing.py     # telemetria stawek Workers AI
+    │   │   ├── pdf_storage.py            # Storage V2, containment, dual-read, local/S3 i cleanup
+    │   │   ├── readiness.py              # probe DB/migracji/katalogu oraz bramka żądań
+    │   │   └── deployment_bootstrap.py   # migracje i seed przed wdrożeniem Render
     │   ├── utils/
     │   ├── main.py
     │   └── dependencies.py
-    ├── alembic/              # Migracje: 0005 SQLite-safe; 0007 licznik importów; 0008 kontrakt Free
+    ├── alembic/              # Addytywne migracje do 0015, w tym zgodność zapisów N-1
     ├── fonts/
     ├── template_assets/
     │   ├── iconic/cadenza-{porcelain,mist,sage,cobalt,burgundy,emerald}/ # Sześć rzeczywistych palet ikon kontaktowych
@@ -2505,7 +2595,7 @@ pdf-generator/
     └── .env.example
 ```
 
-**Zasady:** 9 id szablonów frontu musi odpowiadać `_GENERATORS` w `cv_templates/registry.py` (re-eksport z `cv_generator.py`). Każdy `cv_templates/templates/<id>.py` zawiera wyłącznie żywy generator tego szablonu — bez wspólnego silnika multi-theme i martwych gałęzi siblingów. Sekrety tylko w env. `uploads/` i `static/generated/` to dane runtime. Ani obrazy użytkownika, ani wygenerowane PDF-y nie są publicznie montowane: bajty obrazu wymagają `GET /images/{id}/content`, a zapisany PDF — uwierzytelnionego i naliczanego `POST /pdf/download_pdf`.
+**Zasady:** 9 id szablonów frontu musi odpowiadać `_GENERATORS` w `cv_templates/registry.py` (re-eksport z `cv_generator.py`). Każdy `cv_templates/templates/<id>.py` zawiera wyłącznie żywy generator tego szablonu — bez wspólnego silnika multi-theme i martwych gałęzi siblingów. Sekrety tylko w env. `uploads/` i `static/generated/` to dane runtime development/test, nie persistence produkcji ani source; produkcja używa prywatnego S3. Ani obrazy użytkownika, ani wygenerowane PDF-y nie są publicznie montowane: bajty obrazu wymagają `GET /images/{id}/content`, a zapisany PDF — uwierzytelnionego i naliczanego `POST /pdf/download_pdf`.
 
 ---
 
@@ -2513,22 +2603,29 @@ pdf-generator/
 
 `DATABASE_URL` (`database.py`). Domyślnie SQLite. `postgres://` → `postgresql://`. Postgres: `pool_pre_ping`.
 
-`init_db()` w lifespanie: `create_all` + `alembic upgrade head` (kolumny wielostronicowe w `backend/alembic/versions/`); seed planów przez `bootstrap_billing`. CLI: `cd backend && alembic upgrade head`.
+W produkcji zmiany schematu wykonuje przed procesem webowym `python -m app.services.deployment_bootstrap`: `init_db()` tworzy brakujące tabele, uruchamia `alembic upgrade head` i seeduje dokładny katalog planów. Celowo nie uruchamia historycznego cleanupu — maintenance jest osobną, obserwowaną operacją. Lifespan ASGI sprawdza konfigurację, ale nie modyfikuje schematu. `/ready` jest pozytywne wyłącznie po udanym `SELECT 1`, zgodności headów Alembic bazy i kodu, dokładnym seedzie katalogu oraz braku resztkowych naruszeń kluczy obcych SQLite; trasy zależne od bazy zwracają bezpieczne 503, gdy readiness jest fałszywe. CLI: `cd backend && alembic upgrade head`.
 
 Rewizja `20260824_0005` łączy `pdfs.source_import_id` z prywatną historią `cv_import_snapshots`. SQLite nie potrafi dodać takiego klucza obcego zwykłym `ALTER TABLE`, dlatego funkcja `upgrade` używa `batch_alter_table`: SQLite wykonuje odzwierciedlenie oraz „move-and-copy”, a PostgreSQL zwykłe operacje ALTER. Migracja niezależnie sprawdza tabelę, kolumnę, relację i indeks, więc ponowienie naprawia także częściowo zatwierdzony stan po błędzie starszej wersji. Po błędzie nie używaj `stamp`, aby przeskoczyć tę rewizję; zaktualizuj kod, wykonaj kopię bazy i ponów `upgrade head`. Implementacja: `backend/alembic/versions/20260824_0005_import_history.py`, linie 19–78, funkcja `upgrade`. Testy regresyjne: `backend/tests/test_alembic_import_history_migration.py`, linie 18–143, klasa `ImportHistoryMigrationTests`.
 
+### Tabele (cel biznesowy)
+
 | Tabela | Cel |
 |--------|-----|
-| `users` | Konta |
+| `users` | Konta: wyświetlane username/e-mail, kanoniczne klucze NFKC+trim+casefold, autorytatywny hash Argon2id, tymczasowy most bcrypt dla rollbacku N-1, atomowy licznik slotów obrazów, aktywność i timestampy |
+| `auth_rate_limits` | Bazodanowe liczniki okien rejestracji/logowania, indeksowane digestem HMAC zamiast surowego IP lub tożsamości |
 | `images` | Metadane obrazów użytkownika |
-| `pdfs` | Dokumenty CV (`editor_mode`, `template_id`, opcjonalne `spacing_px`, nullable `cv_data` oraz tymczasowy znacznik stanu storage `watermarked` do leniwego czyszczenia starszych plików) |
+| `pdfs` | Dokumenty CV: znormalizowany `title`, unikalny per właściciel `title_key`, klucz/hash idempotencji create, optymistyczna `revision`, Storage V2 backend/key i dual-read legacy `file_path`, wymiary, `editor_mode`, aktywny `template_id`, niezmienny `origin_template_id`, rhythm/CV data i marker watermark legacy |
+| `storage_cleanup_jobs` | Trwałe, deduplikowane zadania usunięcia PDF/obrazu z licznikiem prób, terminem retry, typem zasobu, bezpiecznym błędem i końcowym stanem dead-letter |
 | `pdf_elements` | Elementy kanwy (+ `extra_properties`, m.in. `fixedToPage`, `repeatOnContinuation`, `locked`, `flowRole`, `flowGroup`, `preserveInitialLayout`, `appearanceSettings` Atrium/Sterling/Linden/Monument/Slate/Meridian/Cadenza/Vellum i odwracalne bazowe metryki tekstu, `runs` — nakładka dekoracji inline) |
 | `bio_cv_drafts` | Jeden prywatny szkic bio / user |
 | `plans` | Limity Darmowy/Pro, w tym nullable `max_cv_imports_per_month` (legacy `standard`/`premium` dezaktywowane) |
 | `user_subscriptions` | Aktualny plan |
-| `usage_counters` | Eksporty, udane importy CV i kredyty AI / miesiąc UTC |
+| `usage_counters` | Eksporty, udane importy CV, rozliczone kredyty AI i aktualnie zarezerwowane kredyty / miesiąc UTC |
+| `ai_credit_reservations` | Rezerwacja żądania asystenta per użytkownik: klucz/hash idempotencji, maksymalne i naliczone kredyty, jeden aktywny slot, status, replay i wygaśnięcie |
 | `payments` | Ledger płatności (przyszłość) |
 | `maintenance_markers` | Jednorazowe cleanupy |
+
+Migracje `20260901_0009`–`0015` tworzą jeden addytywny łańcuch zgodności. Storage V2 dodaje niezmienne lokalizatory i cleanup jobs; rezerwacje AI — księgowanie kredytów in-flight; auth hardening — kanoniczne tożsamości i trwałe limity; document integrity — rewizje, replay create, title keys i pochodzenie szablonu. Rewizja `0013` dodaje ograniczoną liczbę prób cleanupu i końcowy stan dead-letter. Rewizja `0014` backfilluje atomowy licznik slotów obrazów, włącza klucze obce SQLite na każdym połączeniu i poddaje kwarantannie osierocone referencje obrazów bez usuwania ich bezpiecznego źródła wyświetlania. Rewizja `0015` instaluje triggery SQLite/PostgreSQL, dzięki którym worker N-1 nieznający `title_key` ani `revision` nie nadpisze po cichu snapshotu bieżącego workera. Kolidujące historyczne tytuły otrzymują deterministyczne sufiksy. Implementacje: `backend/alembic/versions/20260901_0009_storage_v2.py`, rewizja `20260901_0009`; `20260901_0013_cleanup_dead_letters.py`, funkcja `upgrade`; `20260901_0014_atomic_image_slots.py`, funkcja `upgrade`; `20260901_0015_n1_document_writes.py`, funkcje `_backfill_n1_writes`, `_install_sqlite_triggers` i `_install_postgres_trigger`.
 
 `resolvedLines` celowo nie trafia do `pdf_elements.extra_properties`: to metadane renderowania wyznaczane przez przeglądarkę i dołączane wyłącznie do żądań create/update/download. Zapisany dokument zachowuje semantyczne `content` oraz `runs`, więc ponowne otwarcie CV nie przywraca nieaktualnych podziałów zmierzonych dla wcześniejszej szerokości lub stanu fontu.
 
@@ -2656,7 +2753,7 @@ Implementacja:
 - `flowLane: "sidebar"` jest utrwalane w `PdfElements.extra_properties` (`backend/app/crud/pdfs.py`, `pdf_schema.py`) i przywracane przy otwarciu Moje dokumenty (`ModalPdfs.jsx`) — bez tego po reloadzie zostawały tylko kickery `sidebar-chrome`, a przestawianie sekcji w Układ CV zostawiało treść w miejscu
 - `frontend/src/utils/sectionBuilder.js`, `SECTION_LAYOUTS`; linie 314–507, funkcja `buildSectionElements` — konstruktory układów „aa”, „cc-sub”, „cc-edu” i „cc-exp”; `lane: "sidebar"` stempluje `flowLane: "sidebar"` + `flowRole: "sidebar-chrome"` (specyfikacje linii rekordu w prywatnym `recordLineSpecs`; wysokości przez prywatne `measureGeneratorBlockHeight`; treść na `bodyLeft`; markery obrazu zachowują `src` / `alignWithText`; nagłówki wypełnionych pasów zachowują próbkowaną ramkę wyrównania)
 - `frontend/src/utils/sectionIcons.js` — `listSectionIconOptions`, `applySelectedSectionIcon`, `suggestSectionIconName`, katalogi motywów zgodne z `scripts/generate_iconic_icons.py`
-- `frontend/src/hooks/useA4Elements.js`, funkcja `handleAddSection` (linie 658–) — opcjonalne `afterHeadingId` / `lane`, próbkowanie stylu, opcjonalne `iconName`, budowa, umieszczenie, zaznaczenie; wystawiana przez `PdfContext` jako `addSection`
+- `frontend/src/hooks/useA4Elements.js`, funkcja `handleAddSection` — opcjonalne `afterHeadingId` / `lane`, próbkowanie stylu, budowa, umieszczenie i zaznaczenie; publikowana przez `CanvasContext` jako `addSection`
 - `frontend/src/pages/PdfCanvas.jsx` — właściciel `AddSectionModal` + `openAddSectionModal` (id nagłówka albo `{ lane: "sidebar" }`), żeby **+** na canvasie działał także przy zamkniętym panelu Sekcje
 - `frontend/src/components/editor/AddSectionModal/AddSectionModal.jsx` — nazwa + wybór układu (w tym **Prosta treść (kategorie)** / `cc-sub`) + opcjonalna galeria ikon; inny podtytuł dla wstawienia pod sekcją vs doklejenia na końcu
 - `frontend/src/components/editor/AddSectionModal/AddSectionModal.test.js` — regresja nazw opisujących strukturę i usunięcia domenowych określeń blueprintów z modalu
@@ -2692,10 +2789,10 @@ W **trybie szablonu** najechanie na wykryty nagłówek sekcji **głównej lub si
 Implementacja:
 
 - `frontend/src/components/canvas/CanvasHoverToolbar/CanvasHoverToolbar.jsx`, linie 38–250, komponent `CanvasHoverToolbar`, oraz `CanvasHoverToolbar.module.css`, linie 1–248 — lokalne dla strony obrysy semantyczny/elementu oraz mierzony względem viewportu portal `body` dla pogrupowanego paska guttera, jawna warstwa kontekstu nad inspektorem, stałe ekranowo kontrolki, opóźnione tooltipy i menu; `frontend/src/components/canvas/SectionRecordAdd/SectionRecordAdd.jsx`, linie 72–278, komponent `SectionRecordAdd`, szczególnie linie 98–206 i 250–260 — akcje sekcji, override strony spreadu, pomiar nagłówków po commicie, ograniczone doprecyzowanie granicy tuszu i obrys konkretnego nagłówka
-- `frontend/src/hooks/useA4Elements.js`, funkcja `handleReorderSection` (linie 937–) — wystawiana przez `PdfContext` jako `reorderSection`
+- `frontend/src/hooks/useA4Elements.js`, funkcja `handleReorderSection` — publikowana przez `CanvasContext` jako `reorderSection`
 - `frontend/src/hooks/useCanvasHoverToolbar.js`, linie 29–179, hook `useCanvasHoverToolbar`, oraz `frontend/src/utils/canvasHoverToolbarState.js`, linie 1–50, stałe `CANVAS_TOOLBAR_HIDE_DELAY_MS` / `CANVAS_TOOLBAR_INITIAL_STATE` i funkcja `reduceCanvasHoverToolbarState` — wyłączna własność hover/focus, przejściowy `hoveredTriggerId`, sekundowe opóźnienie i przypięcie tylko przez menu, usuwane po jego zamknięciu
 - `frontend/src/utils/sectionStructure.js`, funkcje `insertSectionAfter`, `removeSection`, `reorderSection`
-- `frontend/src/components/canvas/CanvasElements/CanvasElements.jsx`, linie 90–223, 275–298 i 524–528, funkcje `fillSectionAnchors`, `sectionAnchorsById` i wspólny `sectionToolbar` — wyznacza modelowe początki wizualne w obu torach, publikuje podpowiedź pojedynczego kliku, montuje tę samą kontrolkę dla `text`/`textarea` i przekazuje fizyczną krawędź spreadu; `frontend/src/utils/canvasHighlightBounds.js`, linie 1–284, funkcje `getStoredVisualBounds`, `clampCanvasBounds`, `sectionVisualStartOnPage`, `elementBoundsOnPage`, `resolveRenderedHighlightLimits` i `includeRenderedBounds`, razem z `frontend/src/utils/elementBounds.js`, linie 125–163, funkcje `getVisualBounds` i `getElementOutlineBounds`, oraz `frontend/src/components/canvas/SelectionOverlay/SelectionOverlay.jsx`, linie 11–109 — utrzymuje semantyczne granice render-time bez DOM i zapewnia hoverowi/zaznaczeniu jeden kontrakt dokładnych granic wizualnych; `frontend/src/pages/PdfCanvas.jsx`, linie 1947–1969, mapowanie `visiblePages` widoku dwóch stron — przypisuje zewnętrzny lewy/prawy gutter i publikuje snapshoty usuwania oraz handlery strukturalne przez `PdfContext`; `frontend/src/App.css`, linie 96–108, `.canvas-spread` — rezerwuje oba zewnętrzne guttery w poziomym obszarze przewijania
+- `frontend/src/components/canvas/CanvasElements/CanvasElements.jsx`, funkcje `fillSectionAnchors`, `sectionAnchorsById` i wspólny `sectionToolbar` — wyznacza modelowe początki wizualne w obu torach i przekazuje fizyczną krawędź spreadu; `frontend/src/utils/canvasHighlightBounds.js`, funkcje `getStoredVisualBounds`, `sectionVisualStartOnPage`, `resolveRenderedHighlightLimits` i `includeRenderedBounds` — utrzymuje semantyczne granice bez DOM; `frontend/src/pages/PdfCanvas.jsx`, mapowanie `visiblePages` — przypisuje zewnętrzne guttery i publikuje handlery przez `CanvasContext`; `frontend/src/App.css`, `.canvas-spread` — rezerwuje te guttery
 
 Testy:
 
@@ -2752,7 +2849,7 @@ Implementacja:
 - `frontend/src/utils/collapseMainIntoSidebar.js`, linie 34–70 i 227–326, stałe `SIDEBAR_TRANSFER_STAGING_TOP` / `SIDEBAR_TRANSFER_STAGING_GAP`, helper `stagedSectionBottom` i funkcja `moveMainSectionsToSidebar` — odbudowa ikon dla kierunku main → sidebar oraz niepokrywający się staging w kolejności dokumentu dla dowolnego transferu pojedynczego lub zbiorczego
 - `backend/app/services/cv_templates/templates/slate.py`, funkcja `lock_chrome` — oznacza klaster zdjęcia jako `repeatOnContinuation: False`
 - `frontend/src/templates/slate.js` — statyczne startery podglądu w pickerze mają ten sam `repeatOnContinuation: false` na elementach klastra zdjęcia
-- `frontend/src/hooks/useA4Elements.js`, funkcja `handleTransferSectionLane` (linie 962–977) — wystawiana przez `PdfContext` jako `transferSectionLane`
+- `frontend/src/hooks/useA4Elements.js`, funkcja `handleTransferSectionLane` — publikowana przez `CanvasContext` jako `transferSectionLane`
 - `frontend/src/components/canvas/SectionRecordAdd/SectionRecordAdd.jsx`, linie 54–87 i 195–217, propsy `laneTransfer` / `gutterSide`
 - `frontend/src/components/canvas/CanvasElements/CanvasElements.jsx`, `LANE_TRANSFER_TEMPLATE_IDS` (linie 72–77) + `sectionAnchorsById` (linie 174–203)
 
@@ -2773,7 +2870,7 @@ Implementacja:
 
 - `frontend/src/utils/sectionStructure.js`, funkcja `removeSection`
 - `frontend/src/utils/sectionRecord.js`, funkcja `removeRecordBlock`
-- `frontend/src/hooks/useA4Elements.js`, linie 716–, `handleRemoveSection`; linie 743–, `handleRemoveRecordBlock` — wystawiane w `PdfContext` jako `removeSection` / `removeRecordBlock`
+- `frontend/src/hooks/useA4Elements.js`, funkcje `handleRemoveSection` i `handleRemoveRecordBlock` — publikowane przez `CanvasContext`
 - `frontend/src/hooks/useCanvasDeletionUndo.js`, linie 14–60, hook `useCanvasDeletionUndo`; `frontend/src/components/common/ToastStack/ToastStack.jsx`, linie 32–76, komponent `ToastStack` — snapshot odwracalnego usunięcia i wykonywalna akcja toastu; adaptery sekcji/wpisu definiują niebezpieczną pozycję menu
 
 Testy:
@@ -2792,7 +2889,7 @@ Wpisy z prawym pasem metadanych zachowują przy wstawianiu autorski, dwuwymiarow
 Implementacja:
 
 - `frontend/src/utils/sectionRecord.js`, linie 340–457, funkcje `inferRecordLayout`, prywatna `overlayRecordPlaceholders` i `placeholderContentsForRecord`; linie 490–872, funkcje `pickRecordTemplateGroup`, `ensureCanonicalRecordTemplate`, `buildRecordClone`, prywatna `placeRecordClone` i `appendRecordToSection`; linie 908–1199, funkcje `listUpperRecordMembers`, `findRecordDescription`, `getRecordDescriptionAction`, `listRecordBlockAddAnchors` i `insertRecordBlockAfterRecord`; linie 1299–1571, funkcje `addRecordDescription`, `removeRecordDescription`, `removeRecordBlock` i `reorderRecordBlock` — klasyfikuje wiersze niezależnie od prawych overlayów, tworzy generyczną treść zależną od pola, zachowuje relację overlay–wiersz oraz styl rodzeństwa/treści, otwiera lane'owe dziury i przepakowuje rytm po każdej zmianie strukturalnej
-- `frontend/src/hooks/useA4Elements.js`, linie 1069–1102 i 1185–1199, funkcje `handleAddRecordDescription` / `handleRemoveRecordDescription`, obok `handleAddRecordBlock`, `handleRemoveRecordBlock` i `handleReorderRecordBlock` — wybiera nowy opis do natychmiastowej edycji, zapisuje tombstone usuniętego pola i wystawia pięć operacji przez `PdfContext`
+- `frontend/src/hooks/useA4Elements.js`, funkcje `handleAddRecordDescription`, `handleRemoveRecordDescription`, `handleAddRecordBlock`, `handleRemoveRecordBlock` i `handleReorderRecordBlock` — wybiera nowy opis, zapisuje tombstone i publikuje operacje przez `CanvasContext`
 - `frontend/src/hooks/useCanvasEnterIds.js` — czyści hold/fade gdy id opuszcza filtr strony; wraca anulowane id do puli enter, żeby per-page `CanvasElements` nie zostawiał nowej treści niewidocznej
 - `frontend/src/hooks/useCanvasHoverToolbar.js`, linie 29–179, oraz `useHoverPlusExclusive.js` — wspólny cykl hover/focus, przejściowe id konkretnego pola, przypięcie tylko przez menu i jeden aktywny slot paska
 - `frontend/src/components/canvas/recordPlusSize.js`, linie 47–79, funkcje `structuralToolbarLayoutSize` / `resolveStructuralToolbarSide` — stałe ekranowo cele 36 px, wymiary menu/etykiety i wybór zewnętrznego guttera w widoku dwóch stron
@@ -2819,7 +2916,7 @@ Implementacja:
 - `frontend/src/components/editor/FlatSectionLayoutModal/FlatSectionLayoutModal.jsx` — modal z dwiema kartami z podglądem na żywo, zbudowany na wspólnym `DialogShell`
 - `frontend/src/components/canvas/CanvasElements/CanvasElements.jsx`, linie 237–245, 277 i 348–356, `flatSectionAnchorsById` — montuje przełącznik w gałęzi renderującej `textarea`, kluczowany id elementu treści
 - `frontend/src/pages/PdfCanvas.jsx` — trzyma stan `flatSectionLayoutModal`, `openFlatSectionLayoutModal` / `closeFlatSectionLayoutModal` oraz `handleApplyFlatSectionLayout` (woła `handleEditElementValues`) — z tego samego powodu co `AddSectionModal`: ikona hover na canvasie musi móc go otworzyć niezależnie od tego, który panel boczny jest otwarty
-- `frontend/src/store/pdfgenerator-context.jsx` — domyślny no-op `openFlatSectionLayoutModal`
+- `frontend/src/store/ui-surfaces-context.jsx`, hook `useUiSurfaces` — utrzymuje powierzchnie modali bez danych dokumentu
 
 Testy:
 
@@ -2863,7 +2960,7 @@ Implementacja:
 - `frontend/src/utils/skillsDisplayMode.js` — `listSkillsDisplayAnchors`, `changeSkillsDisplayMode`
 - `frontend/src/utils/skillsLayout.js` — `SKILLS_LAYOUT_CHIPS` / `SKILLS_LAYOUT_MODES`, `buildSkillsChipGroups`, `restyleSkillsMembersAsMode` (`restyleSkillsMembersAsMain` to teraz cienki wrapper ustawiony na `mode="inline"`), `resolveSkillChipColors`, `detectSkillsDisplayMode`, `collectSkillGroups` / `collectSkillGroupsFromChips`
 - `frontend/src/utils/sectionStructure.js` — złagodzenie `continuesGrid` w `compactSectionStrip` i `placeStrip`
-- `frontend/src/hooks/useA4Elements.js`, funkcja `handleChangeSkillsDisplayMode` — wystawiana przez `PdfContext` jako `changeSkillsDisplayMode`
+- `frontend/src/hooks/useA4Elements.js`, funkcja `handleChangeSkillsDisplayMode` — publikowana przez `CanvasContext`
 - `frontend/src/components/editor/SkillsLayoutModal/SkillsLayoutModal.jsx` — modal z podglądem 3 kart, otwierany przez `openSkillsLayoutModal` (stan trzymany w `PdfCanvas`, ten sam wzorzec co `FlatSectionLayoutModal`)
 - `frontend/src/components/canvas/SectionRecordAdd/SectionRecordAdd.jsx` — prop `skillsMode` renderuje ikonę stylu w prawym klastrze hover
 - `frontend/src/components/canvas/CanvasElements/CanvasElements.jsx` — łączy `listSkillsDisplayAnchors` do `sectionAnchorsById` (tylko kolumna główna; nagłówek kickera sidebara nigdy nie pasuje)
@@ -2895,7 +2992,7 @@ Implementacja:
 - `frontend/src/components/editor/SectionsPanel/SectionsPanel.jsx` i `frontend/src/components/editor/Sidebar/Sidebar.jsx` — podpowiedź/CTA dopasowania oraz nieblokująca plakietka
 - `frontend/src/pages/PdfCanvas.jsx` — commit dopasowania, sprawdzenie przy otwartym panelu, delikatny toast wykrywania, rozluźnienie po AI, routing modala i mostek `assistantAction`
 - `frontend/src/hooks/useA4Elements.js`, `handleCollapseSpilledMainIntoSidebar` (linie 1279–1293) — po zaakceptowanych poprawkach treści AI
-- `frontend/src/store/pdfgenerator-context.jsx` — domyślne `assistantAction` / `requestAssistantAction`
+- `frontend/src/store/session-context.jsx`, hook `useSession` — publikuje sesyjne akcje asystenta
 - `frontend/src/components/ai/AiAssistant/AiAssistant.jsx` — efekt obserwatora `assistantAction` + subakcja „Skróć CV"; `acceptCorrection` / `applyAll` (linie 1158–1183) wołają zrzut do sidebara po poprawkach treści
 - Backendowa akcja `shorten`: `_shorten_content` (`ai_assistant_service.py`), `VALID_ACTIONS` (`ai_assistant.py`)
 
@@ -2965,7 +3062,7 @@ Implementacja:
 
 **Jak to działa.** Edytor jest pod `/cvstudio/:workspace` (`guest` bez JWT, w przeciwnym razie nazwa użytkownika konta). `frontend/src/App.jsx` nie owija tej trasy w `ProtectedRoute` (ten komponent został usunięty z repozytorium); trasa jest publiczna, a `PdfCanvas` rozgałęzia się na obecność tokenu wszędzie tam, gdzie wywołanie skończyłoby się błędem 401. Slug w URL jest kosmetyczny dla zakładek — autoryzacja API nadal pochodzi z JWT. Stare zakładki `/pdfcanvas` są przekierowywane przez `getEditorPath`.
 
-- **Weryfikacja tokenu** — efekt montowania, który sprawdza JWT przez `GET /auth/verify-token/{token}`, jest całkowicie pomijany dla gości. Gdy w `localStorage` zostanie wygasły lub nieprawidłowy JWT, token jest usuwany, a odwiedzający **zostaje** na `/cvstudio/guest` (stare przekierowanie na `/` pochodziło z ery sprzed trybu gościa, gdy edytor wymagał logowania).
+- **Weryfikacja tokenu** — efekt montowania sprawdza JWT przez header-only `GET /auth/verify-token` i jest całkowicie pomijany dla gości. JWT pozostaje w `Authorization: Bearer` i nigdy nie trafia do URL. Gdy w `localStorage` zostanie wygasły lub nieprawidłowy JWT, token jest usuwany, a odwiedzający **zostaje** na `/cvstudio/guest` (stare przekierowanie na `/` pochodziło z ery sprzed trybu gościa, gdy edytor wymagał logowania).
 - **Autozapis gościa (płótno)** — efekt z debounce 2 sekund zapisuje płótno (elementy, usunięte id, tytuł, liczbę stron, tryb edytora, id szablonu, odstępy oraz informację, czy treść to nadal CV demo) do `localStorage` przez `guestDocument.js` (`cvstudio.guest.doc`). Ten lokalny szkic dotyczy tylko gości: nie ma uwierzytelnionego autozapisu w tle. Po powstaniu prawdziwego `pdfId` dokument staje się zapisanym dokumentem konta, aktualizowanym wyłącznie przez jawne **Zapisz**; efekt localStorage gościa jest od tego momentu pomijany.
 - **Autozapis gościa (kreator bio)** — gdy kreator jest otwarty bez JWT, `BioCvModal` zapisuje z debounce (~650 ms) `{ step, profile, selectedTemplateId, updatedAt }` do `cvstudio.guest.wizardDraft` przez `guestWizardDraft.js`. Ponowne otwarcie oferuje **Kontynuuj** / **Zacznij od nowa** i odtwarza profil w pamięci z tego snapshotu, żeby wyścig przy zamykaniu nie nadpisał dobrego szkicu pustą powłoką. Udane wypełnienie szablonu (**Wybierz wygląd**) zachowuje szkic (i zapisuje `selectedTemplateId`), żeby gość mógł później wygenerować kolejny wygląd. Po **rejestracji/logowaniu** (dziś Free; kolejne plany przy rejestracji później nie zmieniają tej ścieżki) `adoptGuestWizardDraftForAccount` w `claimGuestWizardDraft.js` wgrywa ten profil gościa do `PUT /ai/bio_cv_draft`, gdy szkic konta jest pusty, i czyści localStorage — dzięki temu odpowiedzi z kreatora Demo przechodzą do kreatora na koncie. Gdy konto ma już niepusty szkic, snapshot gościa jest odrzucany zamiast nadpisywać konto. Adopt uruchamia się raz przy montowaniu `PdfCanvas` z JWT oraz ponownie jako siatka bezpieczeństwa przy otwarciu `BioCvModal`. Jawny reset (**Zacznij od nowa** / wyczyść szkic) nadal czyści klucz gościa. `saveGuestWizardDraft` odmawia też podmiany sensownego zapisanego szkicu pustą powłoką kroku 0.
 - **Save-gate** — zarówno `handleSaveClick` (Topbar „Zapisz”), jak i `handleDownloadClick` (Topbar „Pobierz PDF”) najpierw sprawdzają token; gość widzi `SaveGateModal` („Mam już konto” → `/login`, „Utwórz konto” → `/register`) zamiast wywołania `POST /pdf/create_pdf` lub `POST /pdf/render_pdf`. Pobieranie wymaga konta, bo zużywa naliczany limit eksportów.
@@ -3238,8 +3335,8 @@ Strukturalna zmiana odstępów i kolejności traktuje pole tytułu, znacznik ora
 Implementacja:
 
 - `backend/app/services/cv_templates/templates/cadenza.py`, linie 49–166 (`_cadenza_education_height`, `_cadenza_place_education`) i 167–428 (`_gen_cadenza`) — układ wykształcenia kierunek-najpierw, geometria mastheadu/kontaktów, biały starter Porcelanowej Sepii, adaptacyjne role pola/etykiety/znacznika, domyślne metadane wyglądu, pas doświadczenia zgodny z Meridianem, przepływ stron i chrome kontynuacji
-- `backend/app/services/cv_templates/registry.py`, linie 14–39 — `TEMPLATE_LAYOUTS["cadenza"]` i `_GENERATORS["cadenza"]`
-- `frontend/src/templates/cadenza.js`, linie 18–1364, eksport `cadenzaTemplate` — edytowalny biały starter generowany ze źródła z `appearanceTemplateId: "cadenza"`; `frontend/src/templates/index.js`, linia 30 — płatny wpis pickera, metadane layoutu i akcent Porcelanowej Sepii
+- `backend/app/services/cv_templates/registry.py`, linie 65–68 i 75–97 — metadane Cadenzy, `TEMPLATE_LAYOUTS["cadenza"]` i `_GENERATORS["cadenza"]`
+- `frontend/src/templates/cadenza.js`, linie 18–1364, eksport `cadenzaTemplate` — edytowalny biały starter generowany ze źródła, zachowany do testów source-level; `frontend/src/templates/index.js`, linia 25 — metadata-only, server-materialized wpis płatny i akcent Porcelanowej Sepii
 - `frontend/src/utils/cadenzaAppearance.js`, linie 21–93 (`CADENZA_PALETTES`), 281–356 (`getCadenzaAppearance`, `applyCadenzaPalette`) i 386–475 (`applyCadenzaTextSize`) — trzy lekkie/trzy mocne palety semantyczne, adaptacyjny kontrast nagłówka, migracja starych kolorów, wymuszenie białego papieru, przebarwianie inline/ukrytego stanowiska, rzeczywiste zestawy ikon, zapis intencji i odwracalna typografia zależna od roli
 - `frontend/src/utils/cadenzaTypographyLayout.js`, linie 22–77, funkcje `applyCadenzaTextSizeLayout` i `applyCadenzaRenderedHeightsLayout` — przebudowa wycentrowanych kontaktów, konserwatywny pierwszy pack, zbiorczy pack wysokości przeglądarki, uzgadnianie kontynuacji i metadane na dokładnej górnej krawędzi
 - `frontend/src/components/editor/SectionsPanel/SectionsPanel.jsx`, linie 204–270 i 493–643, komponent `SectionsPanel`; `SectionsPanel.module.css`, linie 116–128 — ścisła bramka Wyglądu Cadenzy, dostępne grupy radiowe palety/typografii oraz wierna biała miniatura pokazująca stanowisko, ikony, adaptacyjną etykietę pola, znacznik, treść i stopkę
@@ -3273,8 +3370,8 @@ Vellum umieszcza Umiejętności przed Doświadczeniem, odtwarzając szybki skan 
 Implementacja:
 
 - `backend/app/services/cv_templates/templates/vellum.py`, linie 55–171, funkcje `_vellum_education_height` i `_vellum_place_education`; linie 173–504, funkcja `_gen_vellum` — biały starter Szałwiowego Welinu, geometria mastheadu/zdjęcia, semantyczne role pola/tekstu/ornamentu, domyślne metadane wyglądu, kolejność skills-first, dokładny pas dat i chrome strony
-- `backend/app/services/cv_templates/registry.py`, linie 13–36, `TEMPLATE_LAYOUTS["vellum"]` i `_GENERATORS["vellum"]`; `frontend/src/templates/index.js`, linie 22–31, płatny wpis Vellum w rejestrze
-- `frontend/src/templates/vellum.js`, linie 18–1423, eksport `vellumTemplate` — biały starter generowany ze źródła z `appearanceTemplateId: "vellum"`; `frontend/src/templates/index.js`, linia 31 — płatny wpis rejestru i akcent Szałwiowego Welinu; `frontend/public/template-mockups/vellum.png` — podgląd A4 ReportLab/PyMuPDF używany przez każdy picker szablonów
+- `backend/app/services/cv_templates/registry.py`, linie 69–72 i 75–97, metadane Vellum, `TEMPLATE_LAYOUTS["vellum"]` i `_GENERATORS["vellum"]`; `frontend/src/templates/index.js`, linia 26, metadata-only wpis płatnego Vellum
+- `frontend/src/templates/vellum.js`, linie 18–1423, eksport `vellumTemplate` — biały starter generowany ze źródła używany w testach source-level; `frontend/src/templates/index.js`, linia 26 — server-materialized wpis płatny i akcent Szałwiowego Welinu; `frontend/public/template-mockups/vellum.png` — podgląd A4 ReportLab/PyMuPDF używany przez każdy picker szablonów
 - `frontend/src/utils/vellumAppearance.js`, linie 20–131 (`VELLUM_PALETTES`), 328–425 (`getVellumAppearance`, `applyVellumPalette`) i 460–549 (`applyVellumTextSize`) — dokładny podział 3+3, wymuszenie białego papieru, adaptacyjny kontrast pola, migracja starych kolorów, aktualizacja ukrytego stanowiska/inline, prawdziwe ikony kontaktów/portretu, zapis intencji i odwracalna typografia zależna od roli
 - `frontend/src/utils/vellumTypographyLayout.js`, linie 23–79, funkcje `applyVellumTextSizeLayout` i `applyVellumRenderedHeightsLayout` — przebudowa wycentrowanych kontaktów, konserwatywny pierwszy pack, zbiorczy pack wysokości przeglądarki, ciągłość `section-background`, uzgadnianie kontynuacji i dokładne anchory metadanych
 - `frontend/src/components/editor/SectionsPanel/SectionsPanel.jsx`, linie 215–292 i 367–439, komponent `SectionsPanel`; linie 513–674, kontrolki Wyglądu; `SectionsPanel.module.css`, linie 129–144 — ścisła bramka Vellum, dostępne radiogrupy palety/typografii i biała miniatura pokazująca asymetryczną tożsamość, stanowisko, ikony, okrągły portret, adaptacyjne pole résumé, regułę sekcji i stopkę
@@ -3298,20 +3395,14 @@ Dalsza lektura:
 
 ### Szablon redakcyjny Regent
 
-Regent to płatny szablon jednokolumnowy (`layouts: ["icons"]`) zachowany dla starszych dokumentów, na ciepłym papierze (`#F7F1E8`) z akcentem terracotta (`#C45C26`), nazwiskiem w Playfair Display i treścią w Montserrat. Masthead jest wyższy niż we wcześniejszej wersji z zawijanym kontaktem: nazwisko blisko lewej krawędzi (`x=32`), stonowane stanowisko pod nazwiskiem, a kanały kontaktu w pionie — **jeden wiersz na kanał** z ikonami ~12 pt pod tym stackiem (`_place_stacked_icon_contacts`). W prawym górnym slocie portretu znajduje się dopasowana kolorystycznie, terrakotowa ikona `regent-photo-glyph` o rozmiarze 42 pt w pustym prostokącie (`regent-photo-well` + obramowanie `regent-photo-frame`); starter w edytorze **nie** zawiera rastra profilowego. Klik w ramkę albo ikonę otwiera galerię, a wybór zdjęcia woła `applyProfilePhoto` z `objectFit: "cover"`. Dopiero mockup marketingowy wstrzykuje `backend/template_assets/regent-portrait.png` przy renderze (`scripts/render_iconic_mockups.py`). Ikony sekcji na `icon_x=64`, pogrubione nagłówki versalikami na `L=84` (+16 pt względem dawnego `48` / `68`).
+Regent to płatny, materializowany na serwerze szablon jednokolumnowy (`layouts: ["single", "icons"]`) na białym papierze, z nazwiskiem w Cormorant Garamond i zwartą treścią Montserrat. Masthead umieszcza stanowisko pod nazwiskiem oraz telefon, e-mail, LinkedIn i lokalizację w dwóch mierzonych rzędach ikon przed linią pełnej szerokości. Aktualny szablon celowo nie ma slotu portretu ani rastra wstrzykiwanego tylko do marketingu; picker renderuje ten sam graf elementów co edytor i backend.
 
 Implementacja:
 
-- `backend/app/services/cv_templates/templates/regent.py`, funkcja `_gen_regent` — stackowany kontakt, terrakotowa ikona/well/frame zdjęcia, bold nagłówki
-- `backend/app/services/cv_templates/shared/contact.py`, funkcja `_place_stacked_icon_contacts`
-- `frontend/src/templates/regent.js`, eksport `regentTemplate` — starter ze slotem i ikoną portretu, bez rastra użytkownika
-- `frontend/src/components/canvas/Rectangle/Rectangle.jsx` — klik `photoSlot: "frame"` otwiera galerię
-- `frontend/src/utils/profilePhoto.js` — `regent-photo-frame` w `PROFILE_PHOTO_FRAME_IDS`; inset 0 + cover
-- `frontend/src/components/canvas/Image/Image.jsx` — kanwa honoruje `objectFit` / `cover`
-- `backend/app/services/pdf_generator.py`, metody `renderImage` / `_draw_image_cover`
-- `scripts/render_iconic_mockups.py`, `_inject_regent_mockup_photo` — portret tylko w `regent.png`
-- `backend/template_assets/regent-portrait.png` — crop twarzy wyłącznie do mockupu
-- `frontend/public/template-mockups/regent.png` — podgląd A4 z wstrzykniętym portretem
+- `backend/app/services/cv_templates/templates/regent.py`, linie 36–259, funkcja `_gen_regent` — deterministyczny masthead, rzędy kontaktów, chrome sekcji i rekordy treści
+- `frontend/src/templates/regent.js`, linie 17–795, eksport `regentTemplate` — starter wygenerowany ze źródła i zgodny z grafem backendu
+- `scripts/render_iconic_mockups.py`, linie 46–70, funkcja `render_theme` — renderuje graf bez wstrzykiwania portretu
+- `frontend/public/template-mockups/regent.png` — źródłowy podgląd A4
 
 Testy:
 
@@ -3442,7 +3533,7 @@ Implementacja:
 - `frontend/src/utils/structureOperation.js`, `syncLetterheadBandHeight` (przelicza wysokość pasa letterhead na `top` jego dividera) wywoływana z `reconcileDocumentPages`
 - `backend/app/services/cv_templates/registry.py`, `_GENERATORS["sterling"]` i `TEMPLATE_LAYOUTS["sterling"]` (`frozenset({"sidebar"})`)
 - `frontend/src/templates/sterling.js` — statyczny starter emitowany bezpośrednio z wyjścia demo generatora (wartości `src` ikon przechowywane względnie, baza API dodawana przy ładowaniu, tak jak w Regent); eksportowana tablica `sterlingTemplate`
-- `frontend/src/utils/sterlingAppearance.js`, linie 249–279, funkcja `normalizeSterlingFamilyPersistence`; `frontend/src/components/modals/ModalPdfs/ModalPdfs.jsx`, funkcja `showPDF`; `frontend/src/pages/PdfCanvas.jsx`, linie 1421 i 1548 — wąska migracja przy wczytaniu dla dokumentów konta oraz przywracanych/przejmowanych szkiców gościa utworzonych ze starymi wysokościami linii albo dokładną regresją pasa Botanicznego Linden
+- `frontend/src/utils/sterlingAppearance.js`, linie 249–279, funkcja `normalizeSterlingFamilyPersistence`; `frontend/src/components/modals/ModalPdfs/ModalPdfs.jsx`, funkcja `showPDF`; `frontend/src/pages/PdfCanvas.jsx`, linie 1727 i 1866 — wąska migracja przy wczytaniu dla dokumentów konta oraz przywracanych/przejmowanych szkiców gościa utworzonych ze starymi wysokościami linii albo dokładną regresją pasa Botanicznego Linden
 - `frontend/src/templates/index.js`, wpis rejestru `sterling` (`tier: "free"`, `layouts: ["sidebar"]`, `accent: "#4A6FA5"`)
 - `frontend/scripts/dump-iconic-templates.mjs`, `frontend/public/template-mockups/sterling.png` — podgląd A4 generowany ze źródła
 
@@ -3456,7 +3547,7 @@ Testy:
 - `backend/tests/test_cv_template_layouts.py`, `test_sterling_balances_education_into_the_main_column` — end-to-end: CV z krótkim doświadczeniem renderuje Wykształcenie w kolumnie głównej (`left == 245`), a nie w szynie
 - `backend/tests/test_cv_template_layouts.py`, linie 1366–1376, `test_sterling_sidebar_section_rules_share_one_point_height` — guard regresji potwierdzający, że każda wygenerowana kreska sekcji sidebara Sterling ma dokładnie tę samą jednopunktową wysokość
 - `backend/tests/test_cv_template_layouts.py`, `test_sterling_places_overflow_sidebar_content_on_a_continuation_page_rail` — end-to-end: CV wielostronicowe z większą ilością treści kwalifikującej się do sidebara niż mieści szyna strony 1 umieszcza co najmniej jeden kicker sekcji sidebara na szynie strony kontynuacyjnej, a nie w kolumnie głównej
-- `backend/tests/test_cv_template_layouts.py`, `test_sterling_places_education_on_page_two_sidebar_when_page_one_rail_is_full`, linie 1475–1553 — end-to-end: gdy Doświadczenie paginuje, a szyna strony 1 jest już pełna, Wykształcenie renderuje się jako kicker sidebara na stronie 2 (`left == 34`), a nie w kolumnie głównej obok pustej szyny
+- `backend/tests/test_cv_template_layouts.py`, linie 1257–1335, `test_sterling_places_education_on_page_two_sidebar_when_page_one_rail_is_full` — end-to-end: gdy Doświadczenie paginuje, a szyna strony 1 jest już pełna, Wykształcenie renderuje się jako kicker sidebara na stronie 2 (`left == 34`), a nie w kolumnie głównej obok pustej szyny
 - `backend/tests/test_cv_template_layouts.py` i `backend/tests/test_template_registry_sync.py` iterują po wszystkich zarejestrowanych generatorach, więc Sterling jest objęty pokryciem (rozmiar podsumowania=body, granice strony, parytet id/tagów/planu) bez dedykowanego wpisu
 
 ### Botaniczny szablon editorialny Linden z sidebarem
@@ -3475,12 +3566,12 @@ Implementacja:
 
 - `backend/app/services/cv_templates/templates/linden.py`, linie 91–396, funkcje `_fit_name_typography` i `_gen_linden` — mieści pełną tożsamość uppercase w jednej chronionej linii, publikuje anchor głównego flow, zapisuje własny zamiar wyglądu Linden, usuwa zbędną górną linię treści, a następnie nakłada oryginalny piaskowy pas stanowiska, prostokątny slot zdjęcia, stos kontaktów, dynamiczny budżet szyny strony 1, kanoniczne jednopunktowe dekoracje sidebara, nieruchome chrome kontynuacji i transformację semantycznych torów Sterlinga.
 - `backend/app/services/cv_templates/templates/sterling.py`, linie 94–670, stała `SIDEBAR_SECTION_RULE_HEIGHT` i funkcja `_gen_sterling` — przyjmuje prywatne parametry `anchored_main_sections`, `page1_sidebar_start` oraz `sidebar_section_rule_height`, dzięki czemu Linden reużywa sprawdzony planer kolumn i wspólny kontrakt hairline bez duplikowania paginacji.
-- `backend/app/services/cv_templates/registry.py`, linie 17–42 — rejestruje `linden` z metadanymi layoutu `{'sidebar', 'icons'}`.
-- `frontend/src/templates/linden.js`, linie 1–1158, eksport `lindenTemplate`; `frontend/src/templates/index.js`, linie 22–31 — wygenerowany starter z `appearanceTemplateId: "linden"`, anchorem głównego flow, jednolitymi hairlines sidebara, oryginalnym piaskowym pasem stanowiska i bez zbędnej górnej linii treści oraz darmowy wpis w pickerze.
+- `backend/app/services/cv_templates/registry.py`, linie 61–64 i 75–85 — rejestruje `linden` z metadanymi layoutu `{'sidebar', 'icons'}`.
+- `frontend/src/templates/linden.js`, linie 1–1158, eksport `lindenTemplate`; `frontend/src/templates/index.js`, linia 24 — wygenerowany starter z `appearanceTemplateId: "linden"`, anchorem głównego flow, jednolitymi hairlines sidebara, oryginalnym piaskowym pasem stanowiska i bez zbędnej górnej linii treści oraz darmowy wpis w pickerze.
 - `frontend/src/utils/lindenAppearance.js`, linie 15–87, 293–352 i 372–450, eksporty `LINDEN_PALETTES`, `getLindenAppearance`, `applyLindenPalette` oraz `applyLindenTextSize` — sześć kontekstowych kontraktów koloru, role tekstu zależne od toru, zachowanie oryginalnego pasa Botanicznego Papieru oraz ciemniejsze pasy w pięciu nowych wariantach, podmiana prawdziwych motywów ikon, zapis zamiaru, ochrona ręcznych kolorów, odwracalna typografia zależna od roli i konserwatywne wyznaczanie wysokości zawiniętego tekstu.
 - `frontend/src/utils/lindenTypographyLayout.js`, linie 19–70, funkcje `applyLindenTextSizeLayout` i `applyLindenRenderedHeightsLayout` — przebudowa szyny kontaktów, pakowanie dwóch torów, uzgadnianie kontynuacji oraz zbiorcze zatwierdzenie wysokości textarea zmierzonych przez przeglądarkę.
 - `frontend/src/components/editor/SectionsPanel/SectionsPanel.jsx`, linie 190–248 i 471–558, komponent `SectionsPanel`; `SectionsPanel.module.css`, linie 58–73 — ścisła bramka Wyglądu Linden, handlery palety/typografii, dostępne kontrolki radiowe i miniatura Linden z sidebarem, portretem, pasem stanowiska zgodnym z paletą, nagłówkami, treścią i stopką.
-- `frontend/src/utils/sterlingAppearance.js`, linie 119–169 i 249–279, helper `normalizeLindenBotanicalIdentity` i funkcja `normalizeSterlingFamilyPersistence`; `frontend/src/components/modals/ModalPdfs/ModalPdfs.jsx`, funkcja `showPDF`; `frontend/src/pages/PdfCanvas.jsx`, linie 1421 i 1548 — celowana warstwa zgodności dla zapisanych/gościnnych grafów elementów Linden zawierających dawne kreski `1.4` pt, linię stopki `0.8` pt albo dokładną regresję zielonego pasa Botanicznego.
+- `frontend/src/utils/sterlingAppearance.js`, linie 119–169 i 249–279, helper `normalizeLindenBotanicalIdentity` i funkcja `normalizeSterlingFamilyPersistence`; `frontend/src/components/modals/ModalPdfs/ModalPdfs.jsx`, funkcja `showPDF`; `frontend/src/pages/PdfCanvas.jsx`, linie 1727 i 1866 — celowana warstwa zgodności dla zapisanych/gościnnych grafów elementów Linden zawierających dawne kreski `1.4` pt, linię stopki `0.8` pt albo dokładną regresję zielonego pasa Botanicznego.
 - `frontend/src/utils/sectionStructure.js`, linie 1125–1204 i 2370–2432, funkcje `resolveFlowStart` i `packDocumentSections` — respektuje wygenerowany `mainFlowStart` przed ogólnym leczeniem odstępu mastheadu, więc reorder nie podciąga pierwszej głównej sekcji pod obszar tożsamości.
 - `frontend/src/utils/profilePhotoVisibility.js`, funkcje `hiddenProfileContactSectionFloor`, `alignSidebarAfterProfileContacts`, `hideProfilePhoto` i `showProfilePhoto` — konsumuje autorski odstęp sidebara oraz geometrię kontaktów po schowaniu zdjęcia, zachowując dokładne pozycje do odtworzenia.
 - `frontend/src/utils/mastheadIdentityOps.js`, linie 37–91, funkcja `resizeContentSizedTitleDecorations`; `frontend/src/hooks/useA4Elements.js`, linie 1485–1532, funkcja `handleEditElementValues` — rozróżnia stałe semantyczne pasy tożsamości od jawnie dynamicznych pasków stanowiska przy zatwierdzaniu edycji tekstu, dzięki czemu pas Linden nie zwija się po blur, a Slate nadal zmieniają szerokość.
@@ -3675,7 +3766,7 @@ Gdy klient wyśle `languages: []`, a języki nadal są tylko w legacy `extra_sec
 - `backend/app/services/cv_data.py` — `skill_groups`; `_is_redundant_skill_category`; `_normalize_skills` (linie 344–398 — spłaszczanie samotnych/redundantnych kategorii); `_skill_items`; `is_distinct_skill_family_title`; `_expand_skill_category_lines`; `_absorb_skills_alias_sections`; `normalize_cv_data` (odzyskiwanie języków, czyszczenie skills, zagnieżdżone grupy)
 - `backend/app/services/cv_templates/templates/monument.py` — niepusta treść skills + `flowRole: "content"`
 - `backend/app/api/routes/ai.py` — `fill_template`
-- `backend/app/services/document_service.py`, linie 94–167 — `create_pdf_document`; linie 169–219 — `update_pdf_document`
+- `backend/app/services/document_service.py`, linie 431–527 — `create_pdf_document`; linie 528–649 — `update_pdf_document`
 - [`docs/cv-template-generation.md`](docs/cv-template-generation.md)
 
 Testy: `backend/tests/test_cv_template_layouts.py`, `test_education_is_structured_in_main_column_and_sidebar`, `test_education_description_uses_the_experience_body_color`, `test_single_column_emits_skills_and_languages_bodies`; `backend/tests/test_languages_grid.py` — geometria siatki, offsety `runs`, linie sidebar z hyphenem, oraz `test_sidebar_templates_use_a_3_column_languages_grid_not_4` (Sterling emituje dokładnie 3 kolumny w tym samym wierszu dla listy języków wystarczająco długiej, by przelać się do kolumny głównej); `backend/tests/test_cv_data.py`, `test_empty_languages_still_recover_from_extra_sections_unless_customs_cleared`, `test_soft_hard_tools_nest_under_skills`, `test_skill_category_lines_become_nested_groups`.
@@ -3812,7 +3903,7 @@ Implementacja:
 - `frontend/src/utils/syncCvDataFromCanvas.js`, linie 494–655 — `editableTextChanges`, `editedMastheadTitle` i `syncCvDataFromCanvas`; zapisują pierwszą wpisaną wartość do profilu strukturalnego, a brak żywego stanowiska traktują celowo jako hide, nie usunięcie semantyczne. Świeże id stanowiska jest uznawane za wynik `+` tylko wtedy, gdy ten sam anchor tożsamości przetrwał i zmienił `present: false → true`; pełna zmiana szablonu tworzy nowy anchor i nie może nadpisać kompletnego `cv_data.title` skróconą treścią wyświetlaną przez generator. Edycje stanowiska są też wykluczone z ogólnego mapowania unikalnych stringów, więc identyczna fraza w podsumowaniu lub innym polu nie zostanie nadpisana po semantycznej aktualizacji tytułu.
 - `frontend/src/utils/{atrium,cadenza,linden,meridian,monument,slate,sterling,vellum}Appearance.js` — zmieniają kolor i rozmiar ukrytych specyfikacji/dekoracji razem z żywymi elementami szablonu.
 - `scripts/regenerate_template_starters.py`, `TEMPLATES` i `main` — regeneruje wszystkie dziewięć modułów starterów albo tylko zwalidowane id przekazane pozycyjnie po zmianie kontraktu generatora.
-- `frontend/src/hooks/useA4Elements.js`, `store/pdfgenerator-context.jsx`, `pages/PdfCanvas.jsx` — operacje `toggleNameCase` / `toggleTitle` na wspólnej ścieżce historii.
+- `frontend/src/hooks/useA4Elements.js`, `store/canvas-context.jsx`, `pages/PdfCanvas.jsx` — operacje `toggleNameCase` / `toggleTitle` na wspólnej ścieżce historii.
 
 Testy:
 
@@ -3881,7 +3972,7 @@ Gdy CV zostało w tej sesji przynajmniej raz wypełnione (przez import PDF albo 
 
 Podczas restylizacji szablon docelowy posiada style prezentacji, geometrię, metadane przepływu i dekoracyjny chrome. Jest generowany wyłącznie z zsynchronizowanego `activeCvData`; kopiowanie tekstu według wizualnej kolejności płótna jest niebezpieczne, ponieważ układ rekordów i mastheada różni się między szablonami. Style poprzedniego szablonu nie są kopiowane do nowego.
 
-Wywołuje ten sam endpoint `/ai/fill_template` przez `useApplyCvTemplate`, przekazując `PdfContext.activeCvData`. Na otwartym płótnie profil zaczyna się od udanego importu/kreatora i synchronizuje jednoznaczne ręczne zmiany tekstu; dla zapisanego dokumentu jest odtwarzany z `Pdf.cv_data`. Karuzela dostaje `selectedId={activeTemplateId}`: bieżący szablon ma etykietę **Obecny**, jest nazwany w nagłówku tożsamości i staje się pierwszą kartą w oknie przeglądania, więc strzałki zaczynają od tego wyboru.
+Wywołuje ten sam endpoint `/ai/fill_template` przez `useApplyCvTemplate`, przekazując `CanvasContext.activeCvData`. Na otwartym płótnie profil zaczyna się od udanego importu/kreatora i synchronizuje jednoznaczne ręczne zmiany tekstu; dla zapisanego dokumentu jest odtwarzany z `Pdf.cv_data`. Karuzela dostaje `selectedId={activeTemplateId}`: bieżący szablon ma etykietę **Obecny**, jest nazwany w nagłówku tożsamości i staje się pierwszą kartą w oknie przeglądania, więc strzałki zaczynają od tego wyboru.
 
 Kluczowa różnica względem początkowych ścieżek wypełniania: ta akcja aplikuje wynik przez `replaceActiveElements` (surowe `handleLoadAiElements` z `useA4Elements`), a nie przez `loadAiElements`. `loadAiElements` jest opakowane w `startFreshDocument`, które czyści `pdfId` i zaczyna zupełnie nowy, niezapisany projekt — poprawne dla „utwórz CV”, błędne dla „przestylizuj to CV”. `replaceActiveElements` podmienia elementy płótna i id szablonu, ale zostawia `pdfId` oraz tytuł projektu nietknięte, więc najbliższy jawny Zapis aktualizuje *ten sam* zapisany dokument zamiast tworzyć duplikat. Odstępy z panelu Sekcje są lokalne dla dokumentu: zmiana szablonu wypełnia z `DEFAULT_FLOW_SPACING` i resetuje knoby/baseline przez `adoptDocumentFlowSpacing`, więc rytm poprzedniego szablonu nie jest ponownie używany.
 
@@ -3891,7 +3982,7 @@ Dodawane struktury używają jawnego kontraktu semantycznego zamiast nazw szablo
 
 Implementacja:
 
-- `frontend/src/store/pdfgenerator-context.jsx` — wartości domyślne `activeCvData`, `setActiveCvData`, `replaceActiveElements`, `isChangeTemplateModal`, `showChangeTemplateModal`
+- `frontend/src/store/canvas-context.jsx` i `store/ui-surfaces-context.jsx` — dane aktywnego CV/akcje podmiany oraz stan modalu zmiany szablonu
 - `frontend/src/pages/PdfCanvas.jsx` — trzyma `activeCvData`, synchronizuje jednoznaczne zmiany tekstu płótna, utrwala snapshot przy Zapisz i obsługuje slot dialogu `'changeTemplate'`; `startFreshDocument`/`discardActiveDocument` je czyszczą; wystawia `replaceActiveElements: handleLoadAiElements` (surowe, bez resetu `pdfId`)
 - `frontend/src/hooks/useApplyCvTemplate.js`, linie 24–87, funkcja `useApplyCvTemplate` — wspólna ścieżka `/ai/fill_template` + `replaceActiveElements` dla modala i strzałek
 - `frontend/src/utils/cvTemplateSelection.js`, linie 24–34, funkcja `adjacentAllowedTemplate`
@@ -3996,7 +4087,7 @@ Legacy slugi `standard` i `premium` mapują się na `pro`. Po wygaśnięciu Pro 
 - `frontend/src/utils/planPresentation.js`, linie 9–70, `PLAN_PRESENTATION` i `applyPlanPresentation` — jeden kanoniczny kontrakt frontendu używany także podczas ładowania lub awarii katalogu
 - `frontend/src/components/modals/PlanSelectModal/PlanSelectModal.jsx`, linie 20–172, komponent `PlanSelectModal` — dostępny modal dwóch planów ze stanami ładowania, fallbacku, planu bieżącego, operacji, sukcesu i błędu
 - `frontend/src/pages/Hero/Hero.jsx`, linie 299–430, komponent `Hero` — cennik i FAQ planów Darmowy/Pro oraz stopka landingu
-- `frontend/src/templates/index.js`, linie 22–31, rejestr `TEMPLATES` — trzy szablony Free; Regent pozostaje w rejestrze dla istniejących zapisanych dokumentów
+- `frontend/src/templates/index.js`, linie 17–27, rejestr `TEMPLATES` — trzy wysyłane pakiety elementów Free i sześć metadata-only, server-materialized wpisów Pro
 - `frontend/src/hooks/useEntitlements.js`, linie 1–47, hook `useEntitlements`
 
 Testy: `backend/tests/test_entitlements.py`, `test_plan_selection.py`, `test_ai_credits.py`, `test_alembic_free_plan_contract_migration.py`, `frontend/src/templates/index.test.js` oraz testy kontraktu prezentacji planów.
@@ -4024,9 +4115,9 @@ Implementacja:
 - `backend/app/api/routes/ai.py`, linie 144–206, funkcja `extract_cv`, oraz `backend/app/crud/cv_import_snapshots.py`, linie 43–66, funkcja `mark_snapshot_succeeded` — jedna transakcja sukcesu dla claimu importu i snapshotu, z bezpiecznym rollbackiem/mapowaniem błędów
 - `frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`, linie 72–85, 142–196, 315–347 i 387–400, komponent `AiCvPanel` — blokuje przy zerze, pokazuje pozostałą liczbę, odzyskuje długo działający snapshot przez historię i odświeża entitlements po sukcesie
 - `backend/app/crud/pdfs.py`, linia 41, funkcja `elements_from_rows` — rekonstruuje pełne obiekty `PdfElement` (w tym `runs`, konektory, `flowRole`, `borderRadius`, …) z zapisanych wierszy, odwrotność istniejącego pakowania `extra_properties` w `create_new_pdf` / `update_pdf_elements`
-- `backend/app/main.py`, linie 139–164, `block_generated_pdf_static_access` — pozostawia zasoby szablonów publiczne, ale każdy wycofany URL wygenerowanego PDF-a zatrzymuje 404 przed fallbackiem SPA
-- `backend/app/services/document_service.py`, linie 72–92 (`render_document_bytes`), 94–167 (`create_pdf_document`), 169–219 (`update_pdf_document`) i 221–267 (`render_pdf_for_download`) — zawsze renderuje czysto, nie zwraca lokatora storage i przebudowuje starsze oznaczone bajty lokalne/S3
-- `backend/app/api/routes/pdf.py`, linie 71–94 (`_public_pdf_metadata`), 102–177 (`create_user_pdf`, `render_user_pdf`), 259–319 (`update_user_pdf`, `save_pdf_elements`) i 323–387 (`download_pdf`) — redaguje prywatny storage, kontroluje szablon, przygotowuje bajty, a potem atomowo nalicza przed odpowiedzią
+- `backend/app/main.py`, linie 215–233, `block_generated_pdf_static_access` — pozostawia zasoby szablonów publiczne, ale każdy wycofany URL wygenerowanego PDF-a zatrzymuje 404 przed fallbackiem SPA
+- `backend/app/services/document_service.py`, linie 269–274 (`render_document_bytes`), 431–527 (`create_pdf_document`), 528–649 (`update_pdf_document`) i 737–782 (`render_pdf_for_download`) — zawsze renderuje czysto, nie zwraca lokatora storage i przebudowuje starsze oznaczone bajty lokalne/S3
+- `backend/app/api/routes/pdf.py`, linie 83–113 (`_public_pdf_metadata`), 115–215 (`create_user_pdf`, `render_user_pdf`), 293–346 (`update_user_pdf`, `save_pdf_elements`) i 347–403 (`download_pdf`) — redaguje prywatny storage, kontroluje szablon, przygotowuje bajty, a potem atomowo nalicza przed odpowiedzią
 - `frontend/src/hooks/usePdfExport.js`, linie 175–223, funkcja `downloadPdf`, oraz `frontend/src/pages/PdfCanvas.jsx`, linie 1165–1180, funkcja `handleDownloadClick` — przekazuje `pdf_id` zapisanego dokumentu tylko dla zachowania własnego starszego szablonu przy render-on-demand
 
 Testy:
@@ -4058,7 +4149,7 @@ przycinany przed zapisem.
 - `backend/app/api/routes/auth.py` — `register_user`, unikalność nazwy i e-maila
 - `backend/app/schemas/user_schema.py` — `UserCreateRequest`, walidator formatu e-maila
 - `backend/app/crud/user.py` — `get_user_by_email`
-- `backend/app/core/security.py` — bcrypt (72 bajty), JWT
+- `backend/app/core/security.py` — Argon2id, rehash legacy bcrypt po udanym logowaniu, kanoniczna tożsamość i wersjonowany JWT Bearer
 
 ### Blokada dekoracji
 
@@ -4208,6 +4299,40 @@ Dalsza lektura:
 
 ---
 
+### Warstwa niezawodności, współbieżności i prywatnych danych
+
+#### Storage V2 i własność obrazów
+
+Zapisane PDF-y używają niezmiennych kluczy serwerowych `pdfs/{owner_id}/{pdf_id}/{uuid}.pdf`; znormalizowany tytuł wyświetlany o długości 1–120 znaków nigdy nie staje się ścieżką pliku ani kluczem S3. Resolver lokalny odrzuca znaki kontrolne, ścieżki absolutne, traversal, separatory poza gramatyką klucza i każdy wynik wychodzący poza skonfigurowany root. Odczyt obsługuje walidowane legacy `file_path` na czas migracji, a nowe zapisy używają `storage_backend` + `storage_key`. Create/update działa jako saga bazy i object storage: błąd commitu usuwa lub kolejkuje nowy obiekt, udana podmiana kolejkuje stary, a `storage_cleanup_jobs` ponawia usunięcia z ograniczonym wykładniczym backoffem. Zaplanowany drain filtruje w SQL `next_attempt_at IS NULL OR next_attempt_at <= now` przed zastosowaniem uporządkowanego `LIMIT`; nawet 500 starszych wierszy pozostających w backoffie nie może więc zagłodzić nowszego gotowego zadania. Zmiana tytułu aktualizuje tylko metadane i nie zmienia fizycznej nazwy obiektu. Implementacja: `backend/app/services/pdf_storage.py`, linie 32–371, szczególnie `make_pdf_key`, `validate_pdf_key`, `target_for_pdf` i `process_cleanup_jobs`; `backend/app/services/document_service.py`, linie 277–330 i 431–800. Testy: `backend/tests/test_pdf_storage_v2.py`, w tym `test_scheduled_cleanup_does_not_starve_due_jobs_behind_backoff_page` w liniach 245–278, oraz `backend/tests/test_alembic_storage_v2_migration.py`.
+
+Produkcja odmawia startu bez kompletu ustawień prywatnego S3; ephemeral filesystem Render nigdy nie jest akceptowany jako trwały storage osobistych PDF-ów ani obrazów. Filesystem lokalny pozostaje dostępny tylko wtedy, gdy nie działa `APP_ENV=production` ani natywny marker Render. API, bootstrap pre-deploy i worker cleanup egzekwują ten sam warunek. Usługa cron Render uruchamia `python -m app.services.storage_cleanup_worker` co pięć minut, pobiera najwyżej 500 gotowych zadań outbox i pozostawia błędy do późniejszego retry według exponential backoff. Implementacja: `backend/app/core/config.py`, linie 81–107, funkcja `assert_private_storage_configured`; `backend/app/services/storage_cleanup_worker.py`, linie 1–33; `render.yaml`, linie 38–67.
+
+Każde odwołanie do obrazu jest autoryzowane również w czasie renderowania, nie tylko uploadu. Create, update, save-elements i render/download zbiorczo analizują `img_id` oraz `/images/{id}/content`, sprawdzają własność każdego obrazu w bazie, odrzucają rozbieżność identyfikatora ze źródłem i dopuszczają tylko adres obrazu tego samego originu albo contained assets szablonu. Obcy lub brakujący obraz daje 404, aby API nie ujawniało inventory innego konta; arbitrary HTTP(S), protocol-relative, file i lokalne ścieżki są odrzucane. Implementacja: `backend/app/services/document_service.py`, linie 49–239, funkcje `validate_and_resolve_image_elements` oraz `resolve_image_src_for_pdf`. Testy: `backend/tests/test_pdf_image_ownership.py`.
+
+#### Rewizje dokumentów, idempotencja i pochodzenie szablonu
+
+`POST /pdf/create_pdf` wymaga `Idempotency-Key` (1–128 widocznych znaków). Serwer hashuje kanoniczny payload: ten sam klucz i dane odtwarzają pierwotny wynik bez drugiego dokumentu/obiektu, a ten sam klucz z innymi danymi zwraca 409 `idempotency_payload_mismatch`. Create zaczyna od revision 1. `PUT /pdf/update_pdf` i `PUT /pdf/save_elements` wymagają `expected_revision`; pojedynczy warunkowy SQL update zwiększa rewizję, a stale writer dostaje 409 `document_conflict` z `expected_revision` i `current_revision`. Znormalizowany per właściciel `title_key` daje deterministyczny `title_conflict` bez niszczenia sufiksów legacy. `editor_mode=freeform` czyści aktywny `template_id`; `origin_template_id` zachowuje pierwsze pochodzenie i nie może być nadpisany przez klienta. Implementacja: `backend/app/api/routes/pdf.py`, linie 115–346; `backend/app/services/document_service.py`, linie 332–736; `backend/app/schemas/pdf_schema.py`, linie 227–310; migracja `backend/alembic/versions/20260901_0012_document_integrity.py`, linie 16–146. Testy: `backend/tests/test_pdf_document_integrity.py` i `backend/tests/test_alembic_document_integrity_migration.py`.
+
+#### Atomowe rezerwacje kredytów AI
+
+Żądania asystenta wymagają `Idempotency-Key`. Przed zewnętrznym I/O modelu backend serializuje miesięczny licznik użytkownika, wygasza stare rezerwacje, pilnuje jednego aktywnego slotu i rezerwuje maksymalny koszt akcji. Quota uwzględnia kredyty rozliczone i zarezerwowane, więc równoległe żądania nie wydadzą dwa razy tego samego salda. Ukończone wywołanie rozlicza koszt rzeczywisty i zapisuje replay; potwierdzony błąd przed providerem zwalnia rezerwację; niejednoznaczny błąd providera/transportu zostawia ją pending na TTL 10 minut, aby retry nie naliczył kosztu podwójnie. Mismatch payloadu dla tego samego klucza to 409, duplikat in-progress to 409, a inna aktywna prośba lub brak quota to 429. Middleware odrzuca transport body powyżej 1 MiB przed parserem JSON (także chunked whitespace abuse); schema dodatkowo ogranicza znormalizowane ciało do 500 elementów, 20 wpisów historii, wiadomości 4 000 znaków i opisu stanowiska 20 000 znaków. Implementacja: `backend/app/main.py`, linie 74–113; `backend/app/services/entitlements.py`, linia 803 i linie 890–1158, funkcje `reserve_ai_credits`, `settle_ai_reservation`, `release_ai_reservation`; `backend/app/api/routes/ai_assistant.py`, linie 49–53 i 151–299. Testy: `backend/tests/test_ai_credit_reservations.py` i `backend/tests/test_ai_assistant_request_limits.py`.
+
+#### Wzmocnienie uwierzytelniania
+
+Nowe hasła (12–128 znaków) korzystają z Argon2id (64 MiB pamięci, trzy iteracje, równoległość dwa); w oknie zgodności N-1 rejestracja zapisuje też bcrypt wyłącznie jako most rollbacku, lecz bieżący worker zawsze wybiera Argon2id i nie uwierzytelnia przez nieaktualny bcrypt, gdy istnieje hash Argon2id. Username i e-mail zachowują formę wyświetlaną, a unikalność i logowanie używają kluczy NFKC + trim + casefold. Wersjonowany JWT wymaga numerycznego user id w `sub` i bieżącego `ver`. Token migracyjny bez `ver` rozwiązuje wyłącznie dokładny zapisany username — nigdy dopasowanie kanoniczne ani liczbę — i po cutoverze musi zostać unieważniony skoordynowaną rotacją sekretu. Logowanie atomowo zajmuje limity 5/konto i 20/IP przed kosztownym Argon2. Adres forwarded jest używany tylko wtedy, gdy bezpośredni peer należy do jawnej, nieuniwersalnej allowlisty `TRUSTED_PROXY_CIDRS`; łańcuch jest analizowany od prawej do lewej. Implementacja: `backend/app/core/security.py`, funkcja `resolve_user_from_payload`; `backend/app/core/config.py`, funkcja `assert_trusted_proxy_configured`; `backend/app/services/auth_rate_limit.py`, funkcje `client_ip` i `claim_login_attempts`. Testy: `backend/tests/test_auth_hardening.py` i `backend/tests/test_admin_credit_reset_security.py`.
+
+#### Lifecycle edytora, odzyskiwanie i ochrona niezapisanej pracy
+
+Edytor utrzymuje monotoniczną epokę dokumentu i lokalną rewizję. Operacje async przechwytują scope i mogą zatwierdzić wynik tylko, gdy nadal jest aktualny, więc spóźniona odpowiedź starego dokumentu nie nadpisze nowo otwartego. Dirty state powstaje ze stabilnego persisted snapshot, który pomija tymczasowe flagi selection/edit/resize. Blokada React Router i `beforeunload` chronią pracę zalogowaną; nawigacja gościa najpierw flushuje lokalny draft. Dostępny dialog odrzucenia przywraca fokus i domyślnie wybiera najmniej destrukcyjną akcję. Error Boundary trasy i canvasu resetują się po zmianie sesji dokumentu, pokazują markową akcję recovery i nigdy nie renderują surowego wyjątku ani treści CV. Implementacja: `frontend/src/store/document-lifecycle-context.jsx`, linie 19–70; `frontend/src/utils/persistedDocumentSnapshot.js`, linie 9–68; `frontend/src/hooks/useDirtyGuard.js`, linie 7–110; `frontend/src/components/common/ErrorBoundary/ErrorBoundary.jsx`, linie 12–88; `frontend/src/App.jsx`, linie 24–52. Testy: `frontend/src/utils/documentLifecycleGuards.test.js`, `frontend/src/utils/persistedDocumentSnapshot.test.js`, runtime testy Error Boundary i `frontend/e2e/editor-smoke.spec.js`.
+
+#### Readiness, katalog i stronicowana historia importów
+
+`GET /health` oznacza liveness procesu. `GET /ready` sprawdza połączenie z bazą, dokładną zgodność headów Alembic oraz katalog billing bez mutacji danych; readiness gate czasowo odrzuca trasy bazodanowe bezpiecznym 503. Render uruchamia `python -m app.services.deployment_bootstrap` jako `preDeployCommand` i używa `/ready` jako `healthCheckPath`, więc migracje/seedy kończą się przed ruchem. Implementacja: `backend/app/services/readiness.py`, linie 31–154; `backend/app/services/deployment_bootstrap.py`, linie 18–38; `backend/app/main.py`, linie 116–168; `render.yaml`.
+
+`GET /templates/catalog` jest publiczny, cache'owany przez pięć minut i zwraca wyłącznie allowlisted metadata. Pakiety Free pozostają po stronie klienta; wpisy Pro w rejestrze produkcyjnym zawierają tylko metadane i są materializowane na serwerze po sprawdzeniu entitlements, więc płatne grafy elementów nie trafiają do publicznego bundle przeglądarki. Historia importów używa stabilnego kursora keyset `(created_at, id)`, owner scope, `limit + 1` i jednego grupowanego zapytania o liczbę dokumentów; frontend deduplikuje dołączane strony i pokazuje **Pokaż starsze importy**, dopóki istnieje `next_cursor`. Implementacja: `backend/app/api/routes/templates.py`, linie 14–37; `backend/app/services/cv_templates/registry.py`, linie 19–119; `backend/app/api/routes/ai.py`, linie 93–293; `frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`, linie 125–143 i 422–430. Testy: `backend/tests/test_template_catalog_api.py` i `backend/tests/test_import_pagination.py`.
+
+---
+
 ## API
 
 URL bazowy: `VITE_API_URL`. Auth: `Authorization: Bearer <jwt>` (chyba że zaznaczono inaczej). Komunikaty błędów po polsku w `detail`.
@@ -4215,16 +4340,17 @@ URL bazowy: `VITE_API_URL`. Auth: `Authorization: Bearer <jwt>` (chyba że zazna
 | Metoda | Ścieżka | Auth | Cel | Handler |
 |--------|---------|------|-----|---------|
 | GET | `/health` | nie | Liveness / budzenie dyno | `health` |
+| GET | `/ready` | nie | Readiness bazy, headu Alembic i seedu katalogu | `ready` |
 | POST | `/auth/register` | nie | Rejestracja (`plan` opcjonalny, domyślnie Free; UI rejestracji nie oferuje już wyboru) | `register_user` |
 | POST | `/auth/token` | nie | JWT | `login_for_acess_token` |
-| GET | `/auth/verify-token/{token}` | token w ścieżce | Walidacja | `verify_user_token` |
+| GET | `/auth/verify-token` | Bearer | Walidacja bez ujawniania tokenu w URL | `verify_user_token` |
 | GET | `/auth/me/entitlements` | tak | Limity planu | `me_entitlements` |
-| POST | `/pdf/create_pdf` | tak | Utwórz + render (pierwszy Zapis) | `create_user_pdf` |
+| POST | `/pdf/create_pdf` | tak + `Idempotency-Key` | Utwórz + render na revision 1; identyczne retry robi replay | `create_user_pdf` |
 | POST | `/pdf/render_pdf` | tak | Render bieżącego płótna + strumień + licznik; **bez utrwalania** (Pobierz) | `render_user_pdf` |
 | GET | `/pdf/fetch_pdfs` | tak | Lista | `fetch_user_pdfs` |
 | POST | `/pdf/show_pdf` | tak | Wczytaj należące do użytkownika `{ document, elements }`, w tym `cv_data` | `show_user_pdf` |
-| PUT | `/pdf/update_pdf` | tak | Zapisz istniejący + render (kolejne Zapisy) | `update_user_pdf` |
-| PUT | `/pdf/save_elements` | tak | Prymityw utrwalania samych elementów (nie używany do autozapisu w tle) | `save_pdf_elements` |
+| PUT | `/pdf/update_pdf` | tak | Zapisz istniejący + render z wymaganym `expected_revision` | `update_user_pdf` |
+| PUT | `/pdf/save_elements` | tak | Utrwal elementy z wymaganym `expected_revision` | `save_pdf_elements` |
 | DELETE | `/pdf/delete_pdf` | tak | Usuń | `delete_user_pdf` |
 | POST | `/pdf/download_pdf` | tak | Strumień bajtów **zapisanego** dokumentu + licznik (`Content-Disposition`) | `download_pdf` |
 | POST | `/images/upload_image` | tak | Multipart obraz | `create_upload_image` |
@@ -4232,17 +4358,22 @@ URL bazowy: `VITE_API_URL`. Auth: `Authorization: Bearer <jwt>` (chyba że zazna
 | GET | `/images/{img_id}/content` | tak | Bajty obrazu (tylko właściciel) | `get_image_content` |
 | DELETE | `/images/delete_image` | tak | Usuń nieużywany | `delete_user_image` |
 | POST | `/ai/extract_cv` | tak | Multipart `file` (PDF ≤10 MB, ≤`CV_EXTRACT_MAX_PAGES`) → `{ import, cv_data, usage }`; 403 limit aplikacji, 422 plik/JSON, 429 dzienny limit/capacity/throttling dostawcy, 502 pusta odpowiedź, 503 konfiguracja/awaria | `extract_cv` |
+| GET | `/ai/imports?limit=20&cursor=...` | tak | Strona historii właściciela → `{ items, next_cursor }` | `list_imports` |
+| GET / DELETE | `/ai/imports/{snapshot_id}` | tak | Odczyt lub usunięcie własnego snapshotu importu | trasy szczegółów importu |
 | POST | `/ai/fill_template` | opcjonalnie | Fill (goście: tylko szablony Free starter) | `fill_template` |
 | GET/PUT/DELETE | `/ai/bio_cv_draft` | tak | Szkic bio | routes/ai |
-| POST | `/ai/assistant` | tak | Asystent | `ai_assistant` |
-| GET/POST | `/billing/*` | tak | Plany | billing |
+| POST | `/ai/assistant` | tak + `Idempotency-Key` | Ograniczona rozmiarem akcja z atomową rezerwacją i replay | `ai_assistant` |
+| GET | `/templates/catalog` | nie | Cache'owane allowlisted metadata szablonów Free/Pro | `get_template_catalog` |
+| GET | `/billing/plans` | tak | Katalog planów | `get_plans` |
+| POST | `/billing/select-plan` | tak | Aktywacja planu | `select_plan` |
+| POST | `/billing/admin/reset-ai-credits` | `X-Admin-Secret` | Operacyjny reset po numerycznym `user_id`; wyłącznie osobny sekret | `admin_reset_ai_credits` |
 | POST | `/events/log` | tak | Metryki produktu | `log_event` |
 
 **Własność i prywatny storage:** trasy PDF/obrazu po id wykonują kontrolę IDOR (`_require_owned_pdf` w `pdf.py`). Payload list/show PDF-a udostępnia allowlistę metadanych edytora bez `file_path`, a `/static/generated/...` zawsze zwraca 404; zapisane bajty wychodzą wyłącznie przez uwierzytelnione `POST /pdf/download_pdf`.
 
 `POST /events/log` przyjmuje ustalony słownik `event_type` (`EventLogRequest.event_type` w `backend/app/api/routes/events.py`): pierwotne `template_picked` / `template_dismissed`; zdarzenia lejka gościa `landing_cta_clicked`, `guest_editor_opened`, `guest_demo_loaded`, `guest_first_edit`, `save_gate_shown`, `register_completed`, `guest_doc_claimed`; oraz zdarzenia CTA landingu z konkretnym źródłem dodane wraz z przebudową landingu — `hero_wizard`, `hero_import`, `hero_demo`, `before_after_import`, `templates_wizard`, `pricing_free`, `pricing_pro`, `final_wizard`, `final_import`. Endpoint nadal wymaga JWT; zdarzenia landingu/lejka gościa buforują się po stronie klienta, gdy użytkownik jest anonimowy (`frontend/src/utils/guestEvents.js`), i są wysyłane przez ten sam uwierzytelniony endpoint, gdy tylko pojawi się token (zob. [Tryb gościa](#tryb-gościa-edytor-bez-konta)).
 
-Schemat elementów: `backend/app/schemas/pdf_schema.py`. Ciało zapisu/`save_elements`: `{ "pdf_id", "pdf_title", "root": [PdfElement...], "pages", "page_width", "page_height", "cv_data" }`. `cv_data` jest opcjonalne dla starszych dokumentów i projektów własnych oraz stanowi znormalizowane źródło późniejszej zmiany szablonu. Ciało pobierania na żądanie (`POST /pdf/render_pdf`) ponownie używa `PDFCreateRequest`, nie utrwala `cv_data` i przyjmuje opcjonalne `pdf_id`. Serwer używa go wyłącznie do potwierdzenia, że użytkownik po downgrade jest właścicielem tego samego zapisanego dokumentu płatnego szablonu; `/pdf/create_pdf` ignoruje je przy ocenie ciągłości uprawnień. W renderujących żądaniach create/update/download textarea może dodatkowo nieść opcjonalne `PdfElement.resolvedLines: ResolvedTextLine[]`. Rekordy są walidowane względem treści i granic, zużywane wyłącznie przez `PDF_Generator.renderTextarea` i nigdy nie są zapisywane; klient może je pominąć i otrzymać skalibrowane zawijanie backendu. Ścieżka element-only `save_elements` celowo ich nie generuje. Zob. `backend/app/schemas/pdf_schema.py`, linie 56–77 (`ResolvedTextLine`), 225–249 (`PDFCreateRequest`) i 252–265 (`PDFUpdateRequest`).
+Create przyjmuje `{ "pdf_title", "root": [PdfElement...], "pages", "page_width", "page_height", "editor_mode", "template_id", "cv_data" }`; update/save wymagają dodatkowo `{ "pdf_id", "expected_revision" }`. Udany create zwraca `{ created, pdf_id, revision, replayed }`, a update/save nową `revision`. Konflikty mają `detail.code`: `idempotency_payload_mismatch`, `document_conflict` (z `expected_revision` i `current_revision`) albo `title_conflict`. `cv_data` jest opcjonalne dla legacy/freeform i stanowi źródło późniejszej zmiany szablonu. Render-on-demand ponownie używa `PDFCreateRequest`, nie utrwala `cv_data` i przyjmuje opcjonalne `pdf_id` wyłącznie dla ciągłości entitlement płatnego szablonu. Textarea może nieść tymczasowe `resolvedLines`; serwer je waliduje i renderuje, ale nie zapisuje. Zob. `backend/app/schemas/pdf_schema.py`, linie 56–77 i 227–301.
 
 ---
 
@@ -4254,6 +4385,7 @@ Schemat elementów: `backend/app/schemas/pdf_schema.py`. Ciało zapisu/`save_ele
 - Python 3.11+ (zalecane)
 - Account ID Cloudflare i token Workers AI do importu CV
 - Opcjonalnie PostgreSQL oraz klucz OpenAI dla asystenta lub jawnego rollbacku importu
+- Produkcja/Render: prywatny bucket S3 i credentials obiektów AWS są obowiązkowe; dysk lokalny służy wyłącznie development/testom
 
 ### Backend
 
@@ -4284,12 +4416,18 @@ Aplikacja: `http://localhost:5173`.
 
 ### Zmienne środowiskowe
 
-Backend (`backend/.env.example` i `app/core/config.py`):
+#### Backend (`backend/.env.example` i `app/core/config.py`)
 
 | Zmienna | Wymagana | Cel | Przykład |
 |---------|----------|-----|----------|
-| `SECRET_KEY` | tak w prod | Podpis JWT; min. 16 znaków, bez placeholdera | długi losowy tekst |
+| `SECRET_KEY` | tak w prod | Podpis JWT; min. 32 znaki i bez placeholdera poza jawnym lokalnym override | długi losowy tekst |
+| `ALGORITHM` | tak | Algorytm JWT | `HS256` |
+| `JWT_KEY_VERSION` | nie | Epoch klucza tokenu; zmiana unieważnia wydane wcześniej JWT | `2026-09-01-v2` |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | nie | Czas życia tokenu; domyślnie 7 dni | `10080` |
+| `TRUST_PROXY_HEADERS` | nie | Włącz adres klienta z proxy; start odmawia działania bez jawnej allowlisty CIDR peerów | `false` |
+| `TRUSTED_PROXY_CIDRS` | gdy proxy headers są włączone | Rozdzielone przecinkami dokładne sieci reverse proxy; sieci catch-all są odrzucane | `203.0.113.16/28` |
 | `DATABASE_URL` | nie | Baza; domyślnie SQLite | `sqlite:///./pdfgenerator.db` |
+| `APP_ENV` | dla produkcji poza Render | Ustaw `production`, aby włączyć fail-closed checks CORS/storage; Render jest wykrywany automatycznie | `production` |
 | `CORS_ORIGINS` | nie | Lista originów frontendu | `http://localhost:5173` |
 | `CV_EXTRACT_PROVIDER` | nie | `cloudflare` (domyślnie) lub jawny rollback `openai` | `cloudflare` |
 | `CLOUDFLARE_ACCOUNT_ID` | dla Cloudflare | Identyfikator konta Workers AI, tylko backend | `replace-with-account-id` |
@@ -4310,12 +4448,16 @@ Backend (`backend/.env.example` i `app/core/config.py`):
 | `AI_ASSISTANT_MODEL` | nie | Model asystenta poza Układem | `gpt-5.4-mini` |
 | `AI_LAYOUT_MODEL` | nie | Model akcji Układ | `gpt-5.6-luna` |
 | `USD_TO_PLN` | nie | Kurs do telemetrii/kredytów | `4.0` |
-| `S3_BUCKET_NAME` / `AWS_*` | dla S3 | Opcjonalny prywatny storage; wszystkie cztery ustawienia Block Public Access muszą pozostać włączone, a klucze wyłącznie w backendzie | — |
+| `S3_BUCKET_NAME` | wymagane w produkcji; opcjonalne dev/test | Prywatny bucket dla wszystkich trwałych zdjęć użytkownika i zapisanych PDF-ów | nazwa bucketu |
+| `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` / `AWS_REGION` | wymagane w produkcji; z lokalnym S3 | Serwerowe credentials prywatnych obiektów i region; nigdy we frontendzie | `eu-north-1` |
 | `ALLOW_UNPAID_PLAN_SELECTION` | nie | Tymczasowa aktywacja Pro bez Stripe | `true` lokalnie |
-| `ADMIN_RESET_SECRET` | dla admin reset | Osobny sekret operacyjny | długi losowy tekst |
+| `ADMIN_RESET_SECRET` | dla admin reset | Osobny sekret `X-Admin-Secret`; bez fallbacku do `SECRET_KEY` | długi losowy tekst |
+| `ALLOW_INSECURE_SECRET` | nie | Wyłącznie throwaway local: pomiń kontrolę silnego `SECRET_KEY` | `true` |
 | `MAX_UPLOAD_BYTES` / `MAX_IMAGES_PER_USER` | nie | Limity zdjęć: 8 MB / 4 | `8388608` / `4` |
 
-Frontend: `VITE_API_URL`.
+#### Frontend
+
+`VITE_API_URL` wskazuje publiczny HTTPS backendu w buildzie produkcyjnym; development domyślnie korzysta z proxy `/api` do lokalnego serwera.
 
 Lokalnie skopiuj `backend/.env.example` do `backend/.env`, wstaw Account ID i token do dwóch zmiennych serwerowych, zostaw `CV_EXTRACT_PROVIDER=cloudflare`, a następnie zrestartuj Uvicorn. Nigdy nie dodawaj prefiksu `VITE_` do tokenu — taki sekret zostałby wbudowany w JavaScript przeglądarki.
 
@@ -4323,15 +4465,19 @@ Lokalnie skopiuj `backend/.env.example` do `backend/.env`, wstaw Account ID i to
 
 | Obszar | Komenda |
 |--------|---------|
-| Frontend | `npm run dev` / `build` / `lint` / `test` |
+| Frontend dev/build/lint | `npm run dev` / `npm run build` / `npm run lint` |
+| Testy modułowe frontendu | `npm test` — rekurencyjne wykrywanie `src/**/*.test.js`; błąd dla pustej/zdublowanej kolekcji |
+| Testy runtime frontendu | `npm run test:runtime` — Vitest + jsdom |
+| Testy przeglądarkowe | `npm run test:e2e` — Playwright Chromium z przechwyconym `/api` |
+| Gate bundle | `npm run build && npm run check:bundle` — landing 200 KiB, editor sync 500 KiB, feature chunk 300 KiB gzip |
 | Backend testy | `python -m pytest -q` (z katalogu `backend/`; zbiera funkcje i klasy `unittest.TestCase`) |
 | Eksport schematu elementów | `python -m app.schemas.export_pdf_element_schema` → `shared/pdf-element.schema.json` |
 | Alembic | `alembic upgrade head` (z `backend/`) |
-| CI | GitHub Actions `.github/workflows/ci.yml` |
+| CI | `.github/workflows/ci.yml`: testy/audyty backendu, modułowe/runtime/E2E/lint/build/bundle frontendu, npm audit i gitleaks |
 
 ### Rozwiązywanie problemów
 
-- Cold start Render: długie timeouty + `wakeBackend()`; `/health` bez blokady na DB.
+- 503 po wdrożeniu: `/health` potwierdza tylko działanie procesu. Sprawdź `/ready` i `failed_check`, połączenie z bazą, head Alembic `20260901_0015`, seed katalogu oraz — dla SQLite — integralność kluczy obcych; proces webowy celowo nie uruchamia migracji.
 - SQLite zgłasza `No support for ALTER of constraints`: błąd pochodził ze starszej wersji rewizji `0005`. Aktualna migracja używa batch mode i potrafi kontynuować, gdy tabela lub kolumna zostały już zatwierdzone. Pozostaw wersję Alembic bez zmian, zrób kopię bazy i ponów `python -m alembic upgrade head`; nie usuwaj częściowo utworzonej tabeli i nie omijaj relacji przez `alembic stamp`.
 - Asystent / Układ: `wakeBackend` + retry sieci (bez ponawiania AbortError); `layout` ma timeout do 240 s pod `gpt-5.6-luna`.
 - Import CV 503 „nie skonfigurowany”: sprawdź `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN`, `CV_EXTRACT_PROVIDER=cloudflare` i zrestartuj backend.
@@ -4347,40 +4493,55 @@ Lokalnie skopiuj `backend/.env.example` do `backend/.env`, wstaw Account ID i to
 ## Testy
 
 - **Framework:** pytest 9.1.1 jest pełnym runnerem `backend/tests/` i zbiera także istniejące klasy `unittest.TestCase` wraz z subtestami.
-- **Zakres:** bezpieczeństwo uploadu (w tym content tylko dla właściciela), IDOR PDF, prywatny storage wygenerowanych PDF-ów, metering eksportów HTTP, bramka jednego importu Free z atomowym zakończeniem snapshot/licznik, czyszczenie starszych watermarków, czysta i częściowo zatwierdzona migracja SQLite `0005`, produkcyjna migracja kontraktu Free `0008`, kontrakt schematu `PdfElement` (`shared/pdf-element.schema.json`), zawijanie PDF per font, walidacja tymczasowych linii przeglądarki i kalibracja advance, analiza układu, sanityzacja AI, entitlements, synchronizacja rejestru szablonów, upsert elementów PDF, normalizacja `cv_data`, listy punktów i fonty Unicode. Testy frontendowe sprawdzają też kontrakt trzech szablonów z sześcioma wersjami, gotowość bazowych/runowych fontów, podłączenie wszystkich trzech żądań renderu oraz stabilną geometrię pasa/akcentu Cadenzy przy powtarzanych zmianach odstępów i zmianie kolejności rekordów/sekcji; realny wynik Chromium Range jest dodatkowo sprawdzany podczas wizualnego QA eksportu, a nie przez runner jednostkowy Node.
+- **Zakres backendu:** containment kluczy/dual-read/kompensacja Storage V2, IDOR PDF/obrazu i wyścigi slotów obrazów, compare-and-swap dokumentów/idempotencja/zapisy N-1, limit PDF 4 MiB i limity zagnieżdżonej struktury, wyścigi/replay/limity AI, Argon2/kanoniczna tożsamość/proxy-aware throttling/admin reset, readiness i migracje `0009`–`0015`, paginacja keyset importów, allowlista katalogu, atomowość quota oraz zgodność legacy.
 - **Uruchomienie:** `cd backend && python -m pytest -q`.
-- **Frontend:** `npm run lint` oraz `npm test`.
-- **CI:** `.github/workflows/ci.yml` uruchamia obie suity przy push/PR.
+- **Kontrakty PostgreSQL:** ustaw `POSTGRES_TEST_DATABASE_URL` na izolowaną bazę testową i uruchom `python -m pytest -q -rs tests/test_postgres_security_contracts.py`. CI dostarcza PostgreSQL 16 i sprawdza świeży bootstrap, rzeczywisty upgrade N-1 (`0010`) do head oraz 20 równoległych rezerwacji AI; bez zmiennej te trzy testy są jawnie pomijane.
+- **Warstwy frontendu:** `npm test` rekurencyjnie wykrywa czyste moduły `*.test.js`; `npm run test:runtime` uruchamia testy React/jsdom w Vitest; `npm run test:e2e` — izolowane smoke testy Chromium. Dedykowane regresje obejmują lifecycle scope, dirty snapshot, kasowanie kategorii, nagłówki revision/idempotency, dostępne odzyskiwanie i ukrywanie surowego błędu.
+- **Bezpieczeństwo i supply chain:** CI musi przejść `pip check` i blokujący `pip-audit`, a także `npm audit --omit=dev --audit-level=high` dla zależności produkcyjnych oraz gitleaks po pełnej historii. Actions używają przypiętych wersji głównych. Dokument traktuje czysty audyt jako gate wydania; nie deklaruje bieżącego wyniku zero findings niezależnie od najnowszego CI.
+- **Analiza statyczna i wyjątki:** `.github/workflows/codeql.yml` uruchamia CodeQL i egzekwuje próg SARIF. [`docs/security/dependency-exceptions.md`](docs/security/dependency-exceptions.md) jest dwujęzycznym rejestrem wyjątków z terminem ważności; obecnie nie zawiera zaakceptowanych wyjątków podatności.
+- **Gate dokumentacji:** `.github/scripts/check_documentation.py`, linie 30–114, funkcje `committed_markdown_files`, `broken_local_links`, `readme_parity_failures` i `main`, odrzuca brakujące lokalne cele linków Markdown oraz rozjazd kluczowej struktury EN/PL README jeszcze przed instalacją zależności.
+- **Budżety builda:** po produkcyjnym buildzie CI uruchamia `frontend/scripts/check-bundle-budget.mjs`, linie 1–70. Gate odrzuca landing powyżej 200 KiB gzip, synchroniczne assets edytora powyżej 500 KiB gzip oraz każdy nie-entry feature chunk powyżej 300 KiB gzip.
+- **Gwarancja discovery:** `frontend/scripts/run-tests.mjs`, linie 1–73, sortuje i deduplikuje wszystkie `src/**/*.test.js`, obsługuje `--list` i odrzuca pustą suitę. Runtime i browser selection są w `frontend/vitest.config.js`, linie 1–13, oraz `frontend/playwright.config.js`, linie 1–44.
+- **CI:** `.github/workflows/ci.yml` uruchamia wszystkie warstwy dla push/PR; Playwright zachowuje trace, screenshot i video tylko po błędzie.
 
 ---
 
 ## Wdrożenie
 
-Typowy podział (Render):
+`render.yaml` definiuje podział produkcyjny w regionie Frankfurt platformy Render. API i cron cleanup korzystają z płatnego compute `0.5c-512mb`, a PostgreSQL z trwałego płatnego planu `0.1c-256mb`: Render udostępnia pre-deploy commands tylko dla płatnego compute, a darmowy PostgreSQL nie jest warstwą retencji produkcyjnej.
 
-- Backend: Uvicorn/FastAPI + Postgres + env (+ opcjonalnie S3). W Render → usługa backendu → Environment ustaw `CV_EXTRACT_PROVIDER`, `CLOUDFLARE_ACCOUNT_ID` i `CLOUDFLARE_API_TOKEN`; override modeli dodawaj tylko świadomie. Po zapisie wykonaj restart/redeploy.
+- Backend: Uvicorn/FastAPI + Postgres + obowiązkowe prywatne S3. W Render → backend → Environment ustaw bucket, trzy zmienne AWS credentials/region, `CV_EXTRACT_PROVIDER`, `CLOUDFLARE_ACCOUNT_ID` i `CLOUDFLARE_API_TOKEN`; override modeli dodawaj tylko świadomie. Po zapisie wykonaj restart/redeploy.
+- Cron storage cleanup: usługa Starter współdzieli Postgres i tę samą konfigurację prywatnego S3, co pięć minut uruchamia `python -m app.services.storage_cleanup_worker` i kończy się po jednej ograniczonej partii.
 - Frontend: `npm run build` → hosting `dist` (albo SPA z `main.py`, gdy `frontend/dist` jest dostępny).
 
-Przy S3 zachowaj Object Ownership jako Bucket owner enforced, włącz wszystkie cztery ustawienia Block Public Access i nie dodawaj publicznej polityki bucketu. Aplikacja nie wysyła ACL przy `PutObject`; zapisany adres HTTPS jest tylko wewnętrznym lokalizatorem, a bajty PDF zwraca wyłącznie uwierzytelniony endpoint z kontrolą właściciela i naliczeniem limitu. Publiczna polityka bucketu omijałaby te zabezpieczenia i nie jest wspierana.
+Backendowy `preDeployCommand` uruchamia `python -m app.services.deployment_bootstrap`; błąd zatrzymuje wdrożenie. Komenda wykonuje wyłącznie addytywne migracje i seed billing — historyczny cleanup nigdy nie jest automatycznym skutkiem deployu. Render sprawdza `/ready`, a `/health` pozostaje liveness bez zależności do diagnozy procesu.
 
-Migracje: `create_all` + Alembic (`backend/alembic/`) przy starcie. Wdrożenie z tą zmianą musi dojść do head `20260831_0008`; migracja aktualizuje istniejący rekord `plans.free`, a seed przy starcie wymusza te same wartości w nowych bazach.
+Produkcja odmawia startu bez S3 albo któregokolwiek AWS credential/region. Zachowaj Object Ownership jako Bucket owner enforced, wszystkie cztery ustawienia Block Public Access i brak publicznej polityki bucketu. Aplikacja nie wysyła ACL przy `PutObject`; zapisany HTTPS locator jest wewnętrzny, a bajty PDF zwraca tylko uwierzytelniony endpoint z kontrolą właściciela i naliczeniem limitu. Publiczna polityka omijałaby te zabezpieczenia i nie jest wspierana. Filesystem lokalny jest obsługiwany wyłącznie w development i testach.
+
+Migracje: pre-deploy musi osiągnąć head `20260901_0015`. Nie używaj `alembic stamp`, aby ominąć błąd. Dual-read Storage V2 i triggery `0015` utrzymują okno rollbacku N-1; pola i triggery zgodności można usunąć dopiero po dwóch zweryfikowanych wydaniach i sprawdzonym backfillu.
+
+CI/CD: `.github/workflows/ci.yml` jest częścią repozytorium i przed wdrożeniem bramkuje backend, frontend, przeglądarkę, zależności, sekrety i budżet bundle.
 
 ---
 
 ## Bezpieczeństwo i prywatność
 
-- Bcrypt + spójne obcięcie hasła do 72 bajtów.
-- JWT Bearer; `sub` = username.
-- IDOR: właściciel PDF/obrazu; bramki planu na create/export/AI/szablony.
+- Hasła: Argon2id jest autorytatywny dla bieżących workerów. Tymczasowa kolumna bcrypt służy wyłącznie rollbackowi N-1; bieżące uwierzytelnianie nie może do niej wrócić, gdy istnieje Argon2id. Hasło ma 12–128 znaków i nie jest po cichu obcinane.
+- Tożsamość i sesje: kanoniczne klucze username/e-mail NFKC/trim/casefold; wersjonowany JWT Bearer z niezmiennym numerycznym user id w `sub`. Token nie jest akceptowany w ścieżce URL.
+- Ochrona auth: trwałe, atomowe okna rejestracji/logowania używają kluczy po HMAC; 429 zawiera `Retry-After`. Forwarded IP jest ignorowany bez jawnego zaufania.
+- Autoryzacja: własność PDF/obrazu przy mutacji i każdego referencjonowanego obrazu na create/update/save/render; bramki planu na create/export/AI/szablony. Publiczny katalog zwraca wyłącznie allowlisted metadata.
 - CORS z allowlistą.
 - Upload: biblioteka zdjęć profilowych (domyślnie maks. 4); format weryfikowany z bajtów pliku (PNG/JPEG/WEBP/GIF; SVG odrzucany), nazwy generowane po stronie serwera (brak path traversal), limit rozmiaru (`MAX_UPLOAD_BYTES`) i liczby zdjęć na użytkownika (`MAX_IMAGES_PER_USER`); usuwanie blokowane, gdy obraz jest używany przez element PDF; bajty tylko przez `GET /images/{id}/content` z kontrolą właściciela (bez publicznego `/uploads`) (`upload_security.py`, `images.py`).
-- Wygenerowane PDF-y: pliki lokalne nie są montowane publicznie, a metadane API nie ujawniają lokalizatora storage. Zapisane bajty wydaje wyłącznie uwierzytelnione `POST /pdf/download_pdf` z kontrolą właściciela i atomowym naliczeniem limitu eksportów. Upload S3 nie ustawia ACL i wymaga prywatnego bucketu z Block Public Access; aplikacja nie może naprawić publicznej polityki dodanej przez operatora (`main.py`, `pdf.py`, `s3_storage.py`).
-- Rejestracja: zajęta nazwa/e-mail odrzucane z 400; e-mail walidowany formatem (`auth.py`, `user_schema.py`).
+- Wygenerowane PDF-y: niezmienne klucze serwera, containment root, walidowany dual-read legacy, prywatne S3 w produkcji (local tylko dev/test), ukrywanie lokalizatora API, owner-checked download, atomowe naliczenie eksportu i trwała kompensacja cleanup. S3 nadal wymaga Block Public Access po stronie operatora.
+- Współbieżność: optymistyczne rewizje zapobiegają nadpisaniu nowszego zapisu; idempotencja create i asystenta zapobiega duplikatom persistence/naliczeń; kredyty AI są rezerwowane atomowo przed I/O providera.
+- Rejestracja: duplikat kanonicznego username/e-mail daje stabilny 409; format e-mail i granice hasła waliduje schema.
 - Błędy importu CV mają stabilne kody i bezpieczne 422/429/502/503; asystent zwraca ogólne 500. Surowe szczegóły dostawcy nie trafiają do klienta.
 - Prywatność CV: bajty PDF są walidowane w pamięci, wysyłane server-to-server do skonfigurowanego dostawcy i odrzucane; historia zapisuje znormalizowane pola i metadane, nigdy źródłowy PDF. Cloudflare deklaruje, że nie trenuje modeli na Customer Content, ale nadal jest to przetwarzanie przez stronę trzecią i musi być opisane w polityce prywatności produktu. Zob. [Workers AI data usage](https://developers.cloudflare.com/workers-ai/platform/data-usage/).
+- Prywatność replay asystenta: rekord rezerwacji zapisuje wyłącznie kanoniczny hash żądania, nie przesłane body; rekord rozliczony przechowuje przypisany do konta JSON odpowiedzi potrzebny do dokładnego replay idempotency. Żaden cross-user listing endpoint go nie ujawnia.
 - Sekrety dostawców: Account ID/token Cloudflare i klucz OpenAI tylko w env backendu; żadna zmienna `VITE_` nie może ich zawierać.
 - Metryki z `user_id`, nie raw username.
 - Sekrety tylko w env.
+- Reset administracyjny: osobny `ADMIN_RESET_SECRET`, stałoczasowe porównanie `X-Admin-Secret`, niezmienny numeryczny cel; brak fallbacku do sekretu JWT.
 
 ---
 
@@ -4391,6 +4552,7 @@ Migracje: `create_all` + Alembic (`backend/alembic/`) przy starcie. Wdrożenie z
 - Formularze mają programatyczne etykiety, opisane błędy walidacji, semantyczne fieldsety/radiogroups, dostępne nazwy kontrolek ikonowych, stany disabled i wspólny niebieski wskaźnik `:focus-visible` 2 px. Logowanie, rejestracja, kontrolki edytora, wybór szablonu, upload/dropzone, AI, wyszukiwanie/sortowanie dokumentów i akcje modalne używają jednego języka walidacji/error/success.
 - Loading, skeleton, empty, success, warning, danger, disabled i toasty korzystają z centralnych tokenów semantycznych. `Spinner` ma płaski ring/progress; skeleton pulsuje bez shimmery; `ToastStack` pozostaje poza A4 i zastępuje stare komunikaty według kategorii przepływu. Każdy moduł CSS z animacją zawiera `prefers-reduced-motion`, a panele Framer Motion używają `useReducedMotion`. Implementacja: `frontend/src/components/common/Spinner/Spinner.module.css`, linie 1–142; `frontend/src/components/common/ToastStack/ToastStack.module.css`, linie 1–136; `frontend/src/hooks/useToasts.js`, eksporty `toastReplaceKey`, `mergeToastQueue` i `useToasts`.
 - Puste galerie dokumentów/szablonów pokazują jawny następny krok. StartChooser celowo zastępuje chrome edytora, przenosi fokus programowy na swój nagłówek i usuwa ukryte akcje edytora z kolejności klawiatury oraz drzewa dostępności. Zachowanie wyboru obejmują `frontend/src/utils/startChooser.test.js`, linie 13–68, oraz `frontend/src/utils/demoModeChrome.test.js`, linie 46–74.
+- Potwierdzenie niezapisanej pracy używa `alertdialog`, początkowo skupia **Wróć do edycji**, przywraca fokus i chroni zarówno nawigację Routera, jak i browser unload. Panel AI przenosi fokus do inputu, przywraca opener, wystawia expanded state i daje historii opisaną akcję **Pokaż starsze importy**. Error Boundary używa `role="alert"`, oferuje recovery, resetuje się z sesją dokumentu i nigdy nie pokazuje surowego wyjątku/treści CV.
 - Interakcja z tekstem na canvasie zależy od trybu. W **trybie szablonu** zwykły pojedynczy klik otwiera powierzchnię `contentEditable`; `handleSetTextareaEditing` jednocześnie ustawia ten tekst jako jedyne zaznaczenie, więc w tej samej akcji otwiera się panel właściwości elementu. `Ctrl`/`Cmd`-klik nadal dodaje do multiselekcji, klik końcowy po przeciąganiu jest ignorowany, a klik na już edytowanej powierzchni zachowuje natywne ustawianie kursora. W **trybie freeform** pojedynczy klik nadal zaznacza element i odsłania kontrolki przesuwania/rozmiaru, a dwuklik rozpoczyna edycję inline. `Enter` lub `F2` zapewnia klawiaturową ścieżkę edycji w obu trybach. Semantyczna ramka zewnętrzna, brązowa ramka konkretnego elementu na hoverze, ramka zaznaczenia, uchwyty i paski strukturalne są wyłącznie nieprzechwytującym pointera DOM-em edytora: nie modyfikują autorskiej geometrii i nigdy nie trafiają do eksportowanego PDF. Zoom pozostaje tylko wizualny — eksport zostaje w rozmiarze dokumentu. Edytor otwiera się domyślnie na **100%** (`ZOOM_DEFAULT` w `useA4Elements`); widok dwóch stron nadal wymusza 100% na czas trwania. Rozpoczęcie edycji tekstu w rozkładówce dwóch stron tymczasowo skupia stronę z wybranym elementem, uruchamia ten sam zoom 200% z animacją, a po świadomym wyjściu z edycji przywraca poprzedni zoom i rozkładówkę. Jednowierszowe elementy `text` dzielą jeden `<p>` na wyświetlanie i edycję i nie renderują dzieci Reacta, więc ten remount ponownie wstawia treść z zapisanego stanu (`seedTextEditNode` w `frontend/src/utils/textEditSurface.js`, używane przez `frontend/src/components/canvas/Text/Text.jsx` przy wejściu w edycję). Odłączony albo przejściowy blur nie może finalizować edycji (`shouldCommitTextEditBlur`). Textarea ma osobną powierzchnię edycji, która i tak seeduje treść przy wejściu, więc ta pusta ścieżka jej nie dotyczyła. Edycja na jednej stronie przywraca poprzedni zoom wyłącznie po kliknięciu pustej powierzchni A4, paddingu/rynny canvasu albo jawnej akcji „Zamknij” w panelu właściwości elementu. Kliknięcie innego elementu, toolbara, sidebara, kontrolki edytorskiej na canvasie lub aktywnej powierzchni zaznaczania tekstu może zakończyć wpisywanie, ale świadomie pozostawia skupiony widok 200%. Decyzja jest scentralizowana w `isCanvasInteractionTarget` i obejmuje przypadek regresji, w którym element canvasu jest potomkiem strony A4, lecz nie jest samym tłem strony. Atrybut `data-editor-control` oznacza kontrolki sekcji, rekordów, układu list i kontaktu, aby ich kliknięcia nie kończyły edit-zoom. Powierzchnia edytowalna wyznacza autorytatywną wysokość podczas wpisywania i blur, a pierwszy render wyświetlania po niej pomija zduplikowany pomiar w tle, dzięki czemu edit-zoom nie przepakowuje niezmienionych sekcji. Implementacja: `frontend/src/components/canvas/Text/Text.jsx`, linie 171–287, oraz `frontend/src/components/canvas/Textarea/Textarea.jsx`, linie 466–703 — zależne od trybu click/double-click i `Enter`/`F2`; `frontend/src/utils/textareaEditing.js`, linie 8–42, funkcje `hasTextareaDragIntent` i `resolveTextClickIntent`; `frontend/src/hooks/useA4Elements.js`, linie 246–403 i 1301–1315, hook `useA4Elements` oraz `handleSetTextareaEditing`; `frontend/src/utils/editZoomExit.js`, linie 1–30, funkcja `isCanvasInteractionTarget`; `frontend/src/components/editor/Editor/Editor.jsx`, linie 379–388, funkcja `handleCloseEditor`. Testy: `frontend/src/utils/textareaEditing.test.js`, linie 1–56, oraz `frontend/src/utils/editZoomExit.test.js`, linie 10–59.
 - QA migracji objęło snapshoty semantyczne, etykiety, widoczny focus klawiatury, Escape i przywracanie fokusu modali, układy 375/640/768/1280/1600 px, kompaktowy reflow odpowiadający zoomowi 200%, poziomy overflow i czystą konsolę przeglądarki. Nie jest to formalna certyfikacja zgodności WCAG. Grupowany toolbar strukturalny nadal odkrywa się głównie przez hover/klik na dokumencie; opisana kontrolka **Dostosuj CV** pozostaje klawiaturową/dotykową drogą do tych samych operacji strukturalnych.
 
@@ -4400,7 +4562,7 @@ Przy bezpośrednim przejściu z jednego elementu tekstowego do drugiego podczas 
 
 ## Ograniczenia i plany
 
-Zobacz [`BUGZ.MD`](BUGZ.MD) i [`TODOS.md`](TODOS.md).
+Zobacz sklasyfikowany rejestr błędów [`docs/BUGZ.MD`](docs/BUGZ.MD) oraz datowany [plan napraw bezpieczeństwa i niezawodności](docs/superpowers/plans/2026-09-01-security-reliability-remediation.md).
 
 Odhaczana roadmapa produktu, UX i komercjalizacji jest utrzymywana w [`docs/CV_STUDIO_PRODUCT_UX_ROADMAP.md`](docs/CV_STUDIO_PRODUCT_UX_ROADMAP.md). Dokument zapisuje ukończone zmiany, oczekujące rekomendacje, dowody weryfikacji i świadomie zastąpione pomysły. Szczegółowa roadmapa implementacji Final Check pozostaje na razie poza tym artefaktem.
 
@@ -4409,6 +4571,10 @@ Odhaczana roadmapa produktu, UX i komercjalizacji jest utrzymywana w [`docs/CV_S
 - Layout AI proponuje; współrzędne zatwierdza `layout_analysis`. Kolizje/ucięcia dają grupy krytyczne przed kosmetycznym wyrównaniem.
 - Ocena „Projekt” nie powinna karać celowo małych czcionek szablonu. Nachodzenia / geometria należą do **Układu**, a nie do limitu oceny typografii.
 - Dokument w trybie gościa istnieje wyłącznie w `localStorage` przeglądarki odwiedzającego, dopóki nie zostanie przejęty przez konto; wyczyszczenie danych strony albo zmiana urządzenia powoduje utratę nieprzejętej pracy — zob. [Tryb gościa](#tryb-gościa-edytor-bez-konta).
+- Replay idempotency jest trwały w bazie, ale niejednoznaczny wynik providera asystenta pozostaje zarezerwowany do 10 minut; świadomie priorytetyzuje to brak podwójnego kosztu nad natychmiastowym zwolnieniem kredytów.
+- Cleanup storage jest ostatecznie spójny. Cron co pięć minut ponawia gotowe zadania; wyłączenie lub błędna konfiguracja tej usługi pozostawia nieudane usunięcia w `storage_cleanup_jobs`, dopóki operator nie przywróci albo ręcznie nie uruchomi workera.
+- Publiczny katalog szablonów jest cache'owany przez pięć minut, więc revocation lub zmiana metadanych może tyle czasu docierać do istniejących cache'y.
+- Rozliczone, zwolnione i wygasłe rekordy rezerwacji AI nie mają jeszcze automatycznego joba retencji. Operacje produkcyjne muszą ustalić i wykonywać politykę usuwania zapisanych odpowiedzi replay.
 
 ---
 
@@ -4417,7 +4583,13 @@ Odhaczana roadmapa produktu, UX i komercjalizacji jest utrzymywana w [`docs/CV_S
 - [React](https://react.dev/) — oficjalna dokumentacja komponentów, hooków i renderowania.
 - [Aktualizowanie tablic w stanie React](https://react.dev/learn/updating-arrays-in-state) — oficjalne zasady niemutowalnych transformacji używane przez operacje na tablicy elementów dokumentu.
 - [Runner testów Node.js](https://nodejs.org/api/test.html) — oficjalna dokumentacja frontowej suity regresyjnej uruchamianej przez `npm test`.
+- [Przewodnik Vitest](https://vitest.dev/guide/) — oficjalna konfiguracja testów jsdom/runtime używana przez `npm run test:runtime`.
+- [Playwright Test](https://playwright.dev/docs/intro) — oficjalny runner testów przeglądarkowych dla izolowanej suity smoke Chromium.
+- [API argon2-cffi](https://argon2-cffi.readthedocs.io/en/stable/api.html) — oficjalny opis `PasswordHasher` i rehashu używanego w migracji haseł.
+- [Wdrożenia i pre-deploy w Render](https://render.com/docs/deploys) — oficjalny lifecycle migracji wykonywanych przed startem Uvicorn.
 - [FastAPI](https://fastapi.tiangolo.com/)
+- Przypięte wydania backendu w PyPI: [FastAPI 0.141.1](https://pypi.org/project/fastapi/0.141.1/), [Starlette 1.6.0](https://pypi.org/project/starlette/1.6.0/), [python-multipart 0.0.32](https://pypi.org/project/python-multipart/0.0.32/), [PyJWT 2.13.0](https://pypi.org/project/PyJWT/2.13.0/), [cryptography 50.0.1](https://pypi.org/project/cryptography/50.0.1/), [PyMuPDF 1.28.2](https://pypi.org/project/PyMuPDF/1.28.2/) i [python-dotenv 1.2.3](https://pypi.org/project/python-dotenv/1.2.3/) — oficjalne metadane pakietów zgodne z `backend/requirements.txt`.
+- [Cron jobs Render](https://render.com/docs/cronjobs) i [Blueprint YAML](https://render.com/docs/blueprint-spec) — oficjalne pola harmonogramu i infrastruktury używane przez usługę storage cleanup co pięć minut.
 - [SQLAlchemy](https://docs.sqlalchemy.org/)
 - [Alembic: migracje batch](https://alembic.sqlalchemy.org/en/latest/batch.html) — oficjalny mechanizm move-and-copy dla zmian ograniczeń w SQLite.
 - [ReportLab](https://www.reportlab.com/docs/reportlab-userguide.pdf)
@@ -4429,4 +4601,4 @@ Odhaczana roadmapa produktu, UX i komercjalizacji jest utrzymywana w [`docs/CV_S
 - [MDN: `prefers-reduced-motion`](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/At-rules/%40media/prefers-reduced-motion) — oficjalny opis mechanizmu przeglądarki użytego do ograniczenia animacji.
 - [WAI-ARIA APG: wzorzec okna modalnego](https://www.w3.org/WAI/ARIA/apg/patterns/dialog-modal/) — zasady pułapki klawiatury, fokusu początkowego, Escape, etykietowania i przywracania fokusu wdrożone w `DialogShell`.
 - [WCAG 2.2: powiększanie tekstu](https://www.w3.org/WAI/WCAG22/Understanding/resize-text.html) oraz [widoczny focus](https://www.w3.org/WAI/WCAG22/Understanding/focus-visible) — oficjalne uzasadnienie kontroli skalowania do 200% i trwałych wskaźników klawiatury.
-- Projekt: [`CANVA.md`](CANVA.md), [`CV_GENERATOR.md`](CV_GENERATOR.md) (przewodnik generowania CV dla laików), [`PROMPTS.md`](PROMPTS.md) (wszystkie prompty AI z referencjami linii), [`docs/cv-template-generation.md`](docs/cv-template-generation.md), [`docs/FEATURES.md`](docs/FEATURES.md), [`docs/designs/cv-only-ux-monetization.md`](docs/designs/cv-only-ux-monetization.md)
+- Projekt: [`docs/cv-template-generation.md`](docs/cv-template-generation.md), [`docs/FEATURES.md`](docs/FEATURES.md), [`docs/BUGZ.MD`](docs/BUGZ.MD) oraz [`docs/designs/cv-only-ux-monetization.md`](docs/designs/cv-only-ux-monetization.md)

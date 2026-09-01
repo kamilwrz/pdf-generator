@@ -72,7 +72,7 @@ import {
 import { canvasFontFamily } from '../utils/canvasFont';
 import { isCanvasInteractionTarget, shouldDeferEditZoomRestore } from '../utils/editZoomExit';
 import { useElementSelectionDrag } from './useElementSelectionDrag';
-import API_BASE_URL, { ENDPOINTS } from '../services/api';
+import { ENDPOINTS } from '../services/api';
 
 /**
  * Core canvas state hook for the A4 CV editor.
@@ -852,7 +852,7 @@ export function useA4Elements(titleRef) {
     const naturalHeight = payload?.naturalHeight ?? payload?.target?.naturalHeight ?? 100;
     let src = payload?.src || "";
     if (!src && imgId != null && imgId !== "") {
-      src = `${API_BASE_URL}${ENDPOINTS.IMG.CONTENT(imgId)}`;
+      src = ENDPOINTS.IMG.CONTENT(imgId);
     } else if (!src) {
       src = payload?.target?.src || "";
     }
