@@ -191,8 +191,8 @@ export default function Hero() {
                             <span>Bez wysiłku...</span>
                         </h2>
                         <p className={classes.offerLead}>
-                            Wgraj obecne CV albo zacznij od zera. Dopasuj treść do ogłoszenia,
-                            zmień wygląd i pobierz gotowy PDF.
+                            Wgraj obecne CV albo zacznij od zera. Dopracuj treść, zapisuj kolejne
+                            wersje i pobieraj gotowe dokumenty PDF.
                         </p>
                     </div>
                     {/*
@@ -204,22 +204,22 @@ export default function Hero() {
                         <li>
                             <span className={classes.offerStepIndex} aria-hidden="true">01</span>
                             <div>
-                                <h3>Dopasuj treść do oferty</h3>
-                                <p>Wklej ogłoszenie i popraw tylko te fragmenty, które mają znaczenie.</p>
+                                <h3>Zacznij od tego, co już masz</h3>
+                                <p>Wgraj obecne CV albo przejdź przez kreator krok po kroku. Twoje dane trafią do edytowalnego dokumentu, bez przepisywania wszystkiego od początku.</p>
                             </div>
                         </li>
                         <li>
                             <span className={classes.offerStepIndex} aria-hidden="true">02</span>
                             <div>
-                                <h3>Edytuj bezpośrednio na stronie A4</h3>
-                                <p>Zmieniaj tekst, sekcje i układ dokładnie tam, gdzie je widzisz.</p>
+                                <h3>Dopracuj treść szybciej</h3>
+                                <p>Poprawiaj opisy, wzmacniaj osiągnięcia, usuwaj błędy, skracaj zbyt długie fragmenty i tłumacz CV. Możesz pracować samodzielnie lub skorzystać z pomocy AI w planie Pro.</p>
                             </div>
                         </li>
                         <li>
                             <span className={classes.offerStepIndex} aria-hidden="true">03</span>
                             <div>
-                                <h3>Zmień szablon bez przepisywania</h3>
-                                <p>Ta sama treść, inny wygląd. Gotowy dokument pobierasz jako PDF.</p>
+                                <h3>Twórz kolejne wersje bez przepisywania</h3>
+                                <p>Korzystaj z tej samej treści w różnych szablonach, zapisuj osobne dokumenty i pobieraj gotowe pliki PDF bez znaku wodnego.</p>
                             </div>
                         </li>
                     </ul>

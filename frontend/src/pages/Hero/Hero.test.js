@@ -62,9 +62,9 @@ describe("landing product positioning", () => {
 
   it("presents section 02 as three concrete capabilities before the template gallery", () => {
     const capabilities = [
-      "Dopasuj treść do oferty",
-      "Edytuj bezpośrednio na stronie A4",
-      "Zmień szablon bez przepisywania",
+      "Zacznij od tego, co już masz",
+      "Dopracuj treść szybciej",
+      "Twórz kolejne wersje bez przepisywania",
     ];
     const offerStart = source.indexOf('<ul className={classes.offerSteps}');
     const offerEnd = source.indexOf("</ul>", offerStart);
@@ -78,6 +78,7 @@ describe("landing product positioning", () => {
     assert.ok(galleryStart > offerEnd);
     assert.equal((offerMarkup.match(/<li>/g) || []).length, 3);
     assert.match(offerMarkup, /Najważniejsze funkcje CV Studio/);
+    assert.doesNotMatch(offerMarkup, /dopasuj treść do oferty|układ/i);
     for (let index = 1; index < capabilities.length; index += 1) {
       assert.ok(
         offerMarkup.indexOf(capabilities[index - 1]) < offerMarkup.indexOf(capabilities[index]),
@@ -97,7 +98,7 @@ describe("landing product positioning", () => {
 
   it("keeps the retained template, privacy, pricing, and FAQ caveats", () => {
     assert.match(source, /Twoje dokumenty nie są publiczne/);
-    assert.match(source, /Zmień szablon bez przepisywania/);
+    assert.match(source, /Twórz kolejne wersje bez przepisywania/);
     assert.match(source, /Nie jest to gwarancja identycznego wyniku w każdym systemie rekrutacyjnym/);
   });
 
