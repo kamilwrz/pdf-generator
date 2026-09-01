@@ -251,7 +251,10 @@
 
 .guidedLink {
     align-self: flex-start;
-    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    min-height: 36px;
+    padding: 0 8px;
     border: 0;
     background: transparent;
     color: var(--chrome-accent);
@@ -283,6 +286,11 @@
     padding: 16px 18px;
     border: 1px solid var(--chrome-border);
     background: var(--chrome-control);
+}
+
+.historyItem > div:first-child {
+    flex: 1;
+    min-width: 0;
 }
 
 .historyItem strong,
@@ -349,7 +357,8 @@
 
 .deleteImport {
     border: 0;
-    padding: 0;
+    min-height: 36px;
+    padding: 0 8px;
     background: transparent;
     color: var(--danger, var(--color-danger));
     font: 600 12px var(--font-body);
@@ -405,13 +414,15 @@
 }
 
 .reExtract {
+    display: inline-flex;
+    align-items: center;
     align-self: flex-start;
-    margin-top: 4px;
+    min-height: 36px;
     font: 600 14px var(--font-body);
     color: var(--chrome-accent);
     background: transparent;
     border: none;
-    padding: 0;
+    padding: 0 8px;
     cursor: pointer;
     flex-shrink: 0;
 }
@@ -444,6 +455,39 @@
     border-radius: 2px;
     border: 1px solid color-mix(in srgb, var(--color-danger) 35%, transparent);
     flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+    .stepPane {
+        padding: 18px 16px;
+    }
+
+    .historyHeader,
+    .historyItem {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .historyHeaderActions,
+    .historyActions,
+    .deleteConfirmation {
+        width: 100%;
+        flex-wrap: wrap;
+    }
+
+    .historyHeaderActions {
+        justify-content: space-between;
+    }
+
+    .historyItem {
+        gap: 10px;
+        padding: 14px;
+    }
+
+    .historyActions,
+    .deleteConfirmation {
+        justify-content: flex-end;
+    }
 }
 
 @media (prefers-reduced-motion: reduce) {
