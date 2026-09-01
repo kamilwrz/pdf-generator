@@ -8,7 +8,9 @@ Responsibilities:
 - Translate AI assistant failures into a stable Polish 500 response for the UI.
 """
 
+import asyncio
 import logging
+import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -31,6 +33,7 @@ from app.core.config import (
 from app.core.security import assert_secret_key_configured
 from app.schemas.pdf_schema import MAX_PDF_REQUEST_BYTES
 from app.services.ai_assistant_service import AIServiceError
+from app.services.deployment_bootstrap import run_predeploy
 from app.services.readiness import is_database_route, readiness_gate
 
 # Without this, logger.info()/logger.error() calls anywhere in the app
@@ -43,12 +46,42 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name
 
 logger = logging.getLogger("ai_assistant")
 
+
+def _recover_render_database_bootstrap() -> None:
+    """Repair a legacy Render service that skipped the pre-deploy command.
+
+    Blueprint-managed services normally finish migrations and deterministic
+    catalog seeding before a worker starts. Older dashboard-managed services
+    do not automatically inherit ``render.yaml`` settings, so a code deploy can
+    otherwise leave every database-backed route behind the readiness gate.
+
+    The initial read-only probe keeps the normal path mutation-free. Bootstrap
+    runs only when the deployed schema or seed catalog is stale, and failures
+    remain visible in logs while liveness stays available for diagnosis.
+    """
+
+    if readiness_gate.probe().ready:
+        return
+
+    logger.warning(
+        "Render readiness failed at worker start; running idempotent deployment bootstrap."
+    )
+    try:
+        run_predeploy()
+    except Exception:
+        logger.exception(
+            "Render startup bootstrap failed; database-backed routes remain unavailable."
+        )
+    finally:
+        readiness_gate.probe()
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Validate process-only configuration without mutating the database.
+    """Validate configuration and recover skipped Render pre-deploy work.
 
-    Database migrations and seeds run in the controlled pre-deploy command.
-    A worker begins as not-ready and transitions only after a successful probe.
+    Blueprint deployments migrate and seed through the controlled pre-deploy
+    command. A legacy Render service gets the same idempotent bootstrap in a
+    background thread only when its initial readiness probe fails.
     """
     # Reject missing/placeholder JWT secrets before serving traffic. Unit tests
     # that start TestClient must set SECRET_KEY or ALLOW_INSECURE_SECRET=true.
@@ -56,7 +89,21 @@ async def lifespan(app: FastAPI):
     assert_private_storage_configured()
     assert_trusted_proxy_configured()
     readiness_gate.reset()
-    yield
+
+    # Render dashboard-managed services do not automatically adopt commands
+    # added later to render.yaml. Recover those legacy services without making
+    # local/test startup mutate a developer database. The work stays in a
+    # thread so /health can answer while a cold database is being migrated.
+    bootstrap_task = None
+    if os.getenv("RENDER", "").strip().lower() in {"1", "true", "yes"}:
+        bootstrap_task = asyncio.create_task(
+            asyncio.to_thread(_recover_render_database_bootstrap)
+        )
+    try:
+        yield
+    finally:
+        if bootstrap_task is not None:
+            await bootstrap_task
 
 
 app = FastAPI(lifespan=lifespan)

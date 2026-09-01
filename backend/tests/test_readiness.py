@@ -8,7 +8,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from alembic.config import Config
 from alembic.script import ScriptDirectory
@@ -157,6 +157,34 @@ class ReadinessHttpTests(unittest.TestCase):
 
 
 class DeploymentBootstrapTests(unittest.TestCase):
+    def test_render_startup_recovers_when_predeploy_was_not_configured(self):
+        gate = ReadinessGate(
+            Mock(
+                side_effect=(
+                    ReadinessResult(False, "migrations"),
+                    ReadinessResult(True),
+                )
+            )
+        )
+        with (
+            patch.object(main, "readiness_gate", gate),
+            patch.object(main, "run_predeploy") as bootstrap,
+        ):
+            main._recover_render_database_bootstrap()
+
+        bootstrap.assert_called_once_with()
+        self.assertEqual(gate.last_result, ReadinessResult(True))
+
+    def test_render_startup_skips_bootstrap_when_predeploy_already_succeeded(self):
+        gate = ReadinessGate(lambda: ReadinessResult(True))
+        with (
+            patch.object(main, "readiness_gate", gate),
+            patch.object(main, "run_predeploy") as bootstrap,
+        ):
+            main._recover_render_database_bootstrap()
+
+        bootstrap.assert_not_called()
+
     def test_fresh_database_bootstrap_is_idempotent_and_n1_compatible(self):
         """Exercise the real create_all -> Alembic path on an empty database."""
         with tempfile.TemporaryDirectory() as temporary_directory:
