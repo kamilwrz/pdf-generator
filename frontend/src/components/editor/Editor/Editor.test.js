@@ -22,11 +22,13 @@ test("Editor renders selection formatting as its own panel, independent of the w
   // Layer (zIndex) is freeform-only — structural mode has nothing useful to stack.
   assert.match(source, /canEditElementLayer/);
   assert.match(source, /showLayerField && \(/);
-  // The inspector uses live workspace anchors and preserves a 15px A4 gap.
+  // The inspector uses live workspace anchors, keeps its compact width through
+  // 200%, and only narrows against the 15px A4 gap above that threshold.
   assert.match(source, /data-anchor="editor-sidebar"/);
   assert.match(source, /data-anchor="editor-topbar"/);
   assert.match(source, /sidebar-documents-divider/);
   assert.match(source, /PANEL_A4_GAP_PX = 15/);
+  assert.match(source, /resolveEditorInspectorWidth/);
 });
 
 test("Editor panel uses the editor-affordance layer above sticky chrome", async () => {

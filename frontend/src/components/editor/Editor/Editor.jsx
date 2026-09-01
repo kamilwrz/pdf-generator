@@ -2,10 +2,11 @@
  * Element-properties panel (CV STUDIO chrome). Text vs TextArea keep different
  * field sets. The inspector occupies the quiet top-left workspace between the
  * tool rail and the A4 sheet: its top follows the live topbar, its bottom
- * follows the divider above “Moje dokumenty”, and its right edge keeps a 15px
- * breathing space before the visible page. It mounts/unmounts with a short
- * directional transition and becomes an overlay drawer when that exact dock
- * is too narrow for usable controls.
+ * follows the divider above “Moje dokumenty”, and its width stays at the
+ * compact 308px footprint for canvas zoom up to 200%. Above 200% it may narrow
+ * to keep a 15px breathing space before the enlarged page. It mounts/unmounts
+ * with a short directional transition and becomes an overlay drawer when the
+ * viewport is too narrow for usable controls.
  *
  * While a text/textarea is contentEditable and the caret range is non-empty,
  * a second, fully independent floating bar ("Zaznaczenie") appears anchored
@@ -57,6 +58,7 @@ import {
 } from "../../../utils/floatingPanelPosition";
 import { CANVAS_FONT_STACKS } from "../../../utils/canvasFont";
 import { pathCurvesForKind } from "../../../utils/freeformShapes";
+import { resolveEditorInspectorWidth } from "../../../utils/editorInspectorWidth";
 import {
   bulletRunsToEditableHtml,
   getSelectionOffsets,
@@ -530,8 +532,10 @@ export default function Editor() {
 
   // The inspector is part of the workspace grid, not a tooltip. Read live DOM
   // geometry because text editing animates the page to 200% and recentres its
-  // scroll position. ResizeObserver plus transition/scroll listeners keep the
-  // 15px page gap exact after both layout and transform changes.
+  // scroll position. At 200% and below the inspector deliberately keeps the
+  // compact width shown in the reference UI; only a larger zoom may narrow it
+  // against the A4 edge. Resize/transition/scroll listeners still keep that
+  // high-zoom collision boundary current.
   useLayoutEffect(() => {
     if (!someElementSelected) return undefined;
 
@@ -553,10 +557,12 @@ export default function Editor() {
       const top = Math.round(topbarRect.bottom);
       const exactDockWidth = Math.floor(pageRect.left - PANEL_A4_GAP_PX - left);
       const availableWidth = Math.max(0, Math.floor(canvasRect.right - left - PANEL_VIEWPORT_GUTTER_PX));
-      const width = Math.min(
-        Math.max(PANEL_MIN_WIDTH_PX, exactDockWidth),
+      const width = resolveEditorInspectorWidth({
+        zoom,
+        exactDockWidth,
         availableWidth,
-      );
+        minimumWidth: PANEL_MIN_WIDTH_PX,
+      });
       const exactDockHeight = Math.floor(dividerRect.top - top);
       // Template/demo rails contain far fewer tools, so their documents rule
       // can sit directly under the topbar. In that state the freeform-sized
