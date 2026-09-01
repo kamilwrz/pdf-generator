@@ -6,6 +6,7 @@ import {
   convertFlatListContent,
   flatSectionLayoutStyle,
   formatFlatListContent,
+  insertInlineSkillSeparator,
   parseFlatListItems,
 } from "./flatSectionLayout.js";
 
@@ -75,5 +76,39 @@ describe("flatSectionLayoutStyle", () => {
     assert.equal(flatSectionLayoutStyle({ bulletList: false }), FLAT_SECTION_LAYOUT_INLINE);
     assert.equal(flatSectionLayoutStyle({}), FLAT_SECTION_LAYOUT_INLINE);
     assert.equal(flatSectionLayoutStyle(null), FLAT_SECTION_LAYOUT_INLINE);
+  });
+});
+
+describe("insertInlineSkillSeparator", () => {
+  it("adds the canonical mid-dot after the skill at the caret", () => {
+    const result = insertInlineSkillSeparator("React", [], 5);
+    assert.deepEqual(result, {
+      content: "React  ·  ",
+      runs: [],
+      caret: 10,
+      changed: true,
+    });
+  });
+
+  it("replaces uneven caret whitespace and preserves formatting on both skills", () => {
+    const result = insertInlineSkillSeparator(
+      "React   TypeScript",
+      [
+        { start: 0, end: 5, bold: true },
+        { start: 8, end: 18, italic: true },
+      ],
+      6,
+    );
+    assert.equal(result.content, "React  ·  TypeScript");
+    assert.equal(result.caret, 10);
+    assert.deepEqual(result.runs, [
+      { start: 0, end: 5, bold: true },
+      { start: 10, end: 20, italic: true },
+    ]);
+  });
+
+  it("does not create a leading or duplicate separator", () => {
+    assert.equal(insertInlineSkillSeparator("React", [], 0).changed, false);
+    assert.equal(insertInlineSkillSeparator("React  ·  ", [], 10).changed, false);
   });
 });

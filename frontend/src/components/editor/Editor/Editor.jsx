@@ -59,6 +59,8 @@ import {
 import { CANVAS_FONT_STACKS } from "../../../utils/canvasFont";
 import { pathCurvesForKind } from "../../../utils/freeformShapes";
 import { resolveEditorInspectorWidth } from "../../../utils/editorInspectorWidth";
+import { insertInlineSkillSeparator } from "../../../utils/flatSectionLayout";
+import { isInlineSkillsContentElement } from "../../../utils/skillsDisplayMode";
 import {
   bulletRunsToEditableHtml,
   getSelectionOffsets,
@@ -69,10 +71,8 @@ import {
 import {
   applyMark,
   hasRuns,
-  normalizeRuns,
   rangeColor,
   rangeHasMark,
-  runsToPerChar,
 } from "../../../utils/textRuns";
 
 const FONT_PREVIEW = CANVAS_FONT_STACKS;
@@ -167,6 +167,10 @@ export default function Editor() {
   const selectedElement = selectedElements[0];
   const someElementSelected = selectedElements.length > 0;
   const isMultiSelection = selectedElements.length > 1;
+  const isSelectedInlineSkillsField = !isMultiSelection && isInlineSkillsContentElement(
+    A4_Elements,
+    selectedElement?.element_id,
+  );
   // Hide no-op geometry / structure actions instead of showing disabled chrome.
   const showPositionFields = Boolean(
     selectedElement && canEditElementPosition(selectedElement, editorMode),
@@ -299,56 +303,27 @@ export default function Editor() {
     groupMoveOffsetRef.current = { ...groupMoveOffsetRef.current, [axis]: nextOffset };
   }
 
-  function insertBulletAtCurrentLine() {
+  function insertSkillSeparatorAtCaret() {
     const el = document.getElementById(selectedElement.element_id);
     if (!el?.isContentEditable) return;
 
     // Read from the live edit surface — while editing, the DOM is authoritative
     // and React will not re-seed children from store updates.
     const serialized = serializeEditable(el);
-    const content = serialized.content;
     const selection = getSelectionOffsets(el);
-    const caret = selection?.start ?? content.length;
-    const lineStart = content.lastIndexOf("\n", caret - 1) + 1;
-    const lineEndIdx = content.indexOf("\n", caret);
-    const lineEnd = lineEndIdx === -1 ? content.length : lineEndIdx;
-    const line = content.slice(lineStart, lineEnd);
-    if (line.trimStart().startsWith("•")) return;
+    const edit = insertInlineSkillSeparator(
+      serialized.content,
+      serialized.runs,
+      selection?.end ?? serialized.content.length,
+    );
+    if (!edit.changed) return;
 
-    // Locate the body start after any existing bullet prefix / leading spaces
-    // so inline runs stay aligned when "• " is prepended.
-    const withoutBullet = line.replace(BULLET_PREFIX_PATTERN, "");
-    const leadWs = (withoutBullet.match(/^\s*/) || [""])[0].length;
-    const bodyStart = lineStart + (line.length - withoutBullet.length) + leadWs;
-    const newLine = canonicalBulletLine(line);
-    const newContent = content.slice(0, lineStart) + newLine + content.slice(lineEnd);
-
-    // Rebuild runs: bullet marker is unstyled; body keeps its previous marks.
-    const perChar = runsToPerChar(content, serialized.runs);
-    const nextPerChar = [
-      ...perChar.slice(0, lineStart),
-      null,
-      null,
-      ...perChar.slice(bodyStart, lineEnd),
-      ...perChar.slice(lineEnd),
-    ];
-    const rawRuns = [];
-    for (let i = 0; i < nextPerChar.length; i += 1) {
-      const marks = nextPerChar[i];
-      if (!marks) continue;
-      rawRuns.push({ start: i, end: i + 1, ...marks });
-    }
-    const nextRuns = normalizeRuns(newContent, rawRuns);
-
-    if (selectedElement.bulletList) {
-      el.innerHTML = bulletRunsToEditableHtml(newContent, nextRuns);
-    } else if (hasRuns(nextRuns)) {
-      el.innerHTML = runsToHtml(newContent, nextRuns);
+    if (hasRuns(edit.runs)) {
+      el.innerHTML = runsToHtml(edit.content, edit.runs);
     } else {
-      el.textContent = newContent;
+      el.textContent = edit.content;
     }
-    const cursorPos = lineStart + 2 + Math.max(0, caret - bodyStart);
-    setSelectionOffsets(el, cursorPos, cursorPos);
+    setSelectionOffsets(el, edit.caret, edit.caret);
     // Let Textarea.commitEditable persist content/runs + remeasure height.
     el.dispatchEvent(new Event("input", { bubbles: true }));
   }
@@ -744,14 +719,17 @@ export default function Editor() {
                           >
                             <MdFormatListBulleted />
                           </IconBtn>
-                          <IconBtn
-                            label="Wstaw punktor w bieżącej linii"
-                            disabled={!selectedElement?.isEditing}
-                            onMouseDown={(e) => e.preventDefault()}
-                            onClick={insertBulletAtCurrentLine}
-                          >
-                            <span className={classes.insertBullet}>＋•</span>
-                          </IconBtn>
+                          {isSelectedInlineSkillsField && (
+                            <IconBtn
+                              label="Wstaw kropkę między umiejętnościami"
+                              disabled={!selectedElement?.isEditing}
+                              attention={!!selectedElement?.isEditing}
+                              onMouseDown={(e) => e.preventDefault()}
+                              onClick={insertSkillSeparatorAtCaret}
+                            >
+                              <span className={classes.skillSeparatorGlyph} aria-hidden="true">·</span>
+                            </IconBtn>
+                          )}
                         </Group>
                         <Sep />
                         <Group label="Odstępy i rozmiar">
@@ -1127,12 +1105,12 @@ function Sep() {
 }
 
 function IconBtn({
-  label, children, onClick, active, disabled, danger, onMouseDown,
+  label, children, onClick, active, attention, disabled, danger, onMouseDown,
 }) {
   return (
     <button
       type="button"
-      className={`${classes.iconBtn} ${active ? classes.iconBtnActive : ""} ${danger ? classes.iconBtnDanger : ""}`}
+      className={`${classes.iconBtn} ${active ? classes.iconBtnActive : ""} ${attention ? classes.iconBtnAttention : ""} ${danger ? classes.iconBtnDanger : ""}`}
       title={label}
       aria-label={label}
       aria-pressed={active ? true : undefined}

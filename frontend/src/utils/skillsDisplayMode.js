@@ -68,6 +68,42 @@ export function listSkillsDisplayAnchors(elements, pageHeight = 842) {
 }
 
 /**
+ * Report whether `elementId` is an editable textarea inside a main-column
+ * Skills section that currently uses the inline mid-dot presentation.
+ *
+ * Section membership is used instead of translated labels or element-id
+ * conventions, so user-added Skills sections and every template follow the
+ * same editor contract. Heading textareas and bullet/chip variants are
+ * deliberately excluded, as are bold category labels: a mid-dot action would
+ * be misleading in those states.
+ *
+ * @param {object[]} elements
+ * @param {string|null|undefined} elementId
+ * @param {number} [pageHeight=842]
+ * @returns {boolean}
+ */
+export function isInlineSkillsContentElement(elements, elementId, pageHeight = 842) {
+  if (!elementId) return false;
+  const list = elements || [];
+  const target = list.find((element) => element.element_id === elementId);
+  if (
+    target?.category !== "textarea"
+    || target.bulletList
+    || target.bold
+    || target.flowRole === "section-chrome"
+    || target.flowRole === "sidebar-chrome"
+  ) {
+    return false;
+  }
+
+  return listSkillsDisplayAnchors(list, pageHeight).some((anchor) => (
+    anchor.mode === "inline"
+    && anchor.headingId !== elementId
+    && sectionElementIds(list, anchor.headingId, pageHeight).has(elementId)
+  ));
+}
+
+/**
  * Switch one main-column Skills section into `mode`, in place (does not move
  * or reorder the section), then re-pack the document under the live flow
  * spacing so every other section's chrome/gaps stay consistent

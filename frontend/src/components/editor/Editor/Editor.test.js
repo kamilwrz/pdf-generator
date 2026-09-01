@@ -75,6 +75,21 @@ test("Editor exposes plain-language labels, multi-select help, and stepper butto
   assert.match(source, /<FiPlus/);
 });
 
+test("Editor offers an attention-highlighted mid-dot only for inline Skills editing", async () => {
+  const source = await readFile(new URL("./Editor.jsx", import.meta.url), "utf8");
+  const editorCss = await readFile(new URL("./Editor.module.css", import.meta.url), "utf8");
+
+  assert.match(source, /isInlineSkillsContentElement/);
+  assert.match(source, /insertInlineSkillSeparator/);
+  assert.match(source, /Wstaw kropkę między umiejętnościami/);
+  assert.match(source, /attention=\{!!selectedElement\?\.isEditing\}/);
+  assert.doesNotMatch(source, /Wstaw punktor w bieżącej linii/);
+  assert.match(editorCss, /\.iconBtnAttention:not\(:disabled\)/);
+  assert.match(editorCss, /background:\s*var\(--color-accent-soft\)/);
+  assert.match(editorCss, /border-color:\s*var\(--color-accent\)/);
+  assert.doesNotMatch(editorCss, /@keyframes\s+skillSeparator/);
+});
+
 test("bulk B/I/U toggles stay visible for a multi-selection even when an element never serialized `underline`", async () => {
   // Regression: the backend's `_text()` primitive only ever sets `bold` /
   // `italic`, never `underline` (it stays implicitly false). A strict

@@ -167,6 +167,16 @@
 .iconBtn:active:not(:disabled) { transform: translateY(1px); }
 .iconBtn:disabled { opacity: .38; cursor: not-allowed; }
 .iconBtnActive { background: var(--chrome-ink) !important; color: var(--chrome-surface) !important; border-color: var(--chrome-ink) !important; }
+.iconBtnAttention:not(:disabled) {
+    background: var(--color-accent-soft);
+    border-color: var(--color-accent);
+    color: var(--chrome-ink);
+    box-shadow: 0 0 0 2px var(--color-accent-soft), inset 0 -3px 0 var(--color-accent);
+}
+.iconBtnAttention:hover:not(:disabled) {
+    background: var(--chrome-hover);
+    border-color: var(--chrome-ink);
+}
 .iconBtnDanger:hover:not(:disabled) { background: var(--danger-soft); border-color: var(--danger); color: var(--danger); }
 
 .numField {
@@ -253,7 +263,11 @@
 .glyphBold { font: 800 13px/1 var(--font-body); }
 .glyphItalic { font: italic 700 13px/1 var(--font-body); }
 .glyphUnderline { font: 700 13px/1 var(--font-body); text-decoration: underline; text-underline-offset: 2px; }
-.insertBullet { font: 750 11px/1 var(--font-body); letter-spacing: -1px; }
+.skillSeparatorGlyph {
+    display: inline-block;
+    transform: translateY(-2px);
+    font: 800 24px/1 var(--font-body);
+}
 
 .bulkBadge {
     min-width: 32px;

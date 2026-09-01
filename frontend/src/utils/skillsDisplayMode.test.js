@@ -1,6 +1,10 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { changeSkillsDisplayMode, listSkillsDisplayAnchors } from "./skillsDisplayMode.js";
+import {
+  changeSkillsDisplayMode,
+  isInlineSkillsContentElement,
+  listSkillsDisplayAnchors,
+} from "./skillsDisplayMode.js";
 import {
   SKILL_CHIP_VARIANT_PILL_FILLED,
   SKILL_CHIP_VARIANT_PILL_OUTLINE,
@@ -121,6 +125,37 @@ describe("listSkillsDisplayAnchors", () => {
       !String(element.element_id).startsWith("sk-")
     ));
     assert.deepEqual(listSkillsDisplayAnchors(elements, PAGE_HEIGHT), []);
+  });
+});
+
+describe("isInlineSkillsContentElement", () => {
+  it("recognises editable inline Skills bodies, including categorized groups", () => {
+    const elements = groupedSkillsFixture();
+    assert.equal(isInlineSkillsContentElement(elements, "sk-body1", PAGE_HEIGHT), true);
+    assert.equal(isInlineSkillsContentElement(elements, "sk-body2", PAGE_HEIGHT), true);
+  });
+
+  it("rejects the heading, unrelated textareas, and non-inline Skills modes", () => {
+    const inline = groupedSkillsFixture();
+    assert.equal(isInlineSkillsContentElement(inline, "sk-head", PAGE_HEIGHT), false);
+    assert.equal(isInlineSkillsContentElement(inline, "sk-cat1", PAGE_HEIGHT), false);
+    assert.equal(isInlineSkillsContentElement(inline, "m-exp-body", PAGE_HEIGHT), false);
+
+    const bullet = changeSkillsDisplayMode(
+      inline,
+      "sk-head",
+      "bullet",
+      PAGE_HEIGHT,
+      SPACING,
+    );
+    const bulletBody = bullet.find((element) => (
+      element.category === "textarea" && element.bulletList
+    ));
+    assert.ok(bulletBody);
+    assert.equal(
+      isInlineSkillsContentElement(bullet, bulletBody.element_id, PAGE_HEIGHT),
+      false,
+    );
   });
 });
 
