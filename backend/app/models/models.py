@@ -413,10 +413,11 @@ class UsageCounter(Base):
 class AiCreditReservation(Base):
     """Idempotent, durable claim for one external AI assistant operation.
 
-    ``active_slot`` is 1 only while a provider call may still be running and
-    becomes NULL when it settles or is released. The unique user/slot key
-    therefore permits any number of historical rows but only one active call
-    per user across all application workers.
+    Assistant calls reserve their maximum credit cost atomically and therefore
+    do not use ``active_slot``. CV imports use ``active_slot=1`` until their
+    provider call settles or is released because the separate monthly import
+    allowance has no reserved-counter column. The unique user/slot key permits
+    historical rows while allowing only one active CV import per user.
     """
 
     __tablename__ = "ai_credit_reservations"
@@ -445,6 +446,8 @@ class AiCreditReservation(Base):
     charged_credits = Column(Integer, nullable=False, default=0)
     # pending | settled | failed | released | expired
     status = Column(String(16), nullable=False)
+    # Legacy column name retained for migration compatibility. Value 1 is an
+    # active CV-import lease; assistant reservations always store NULL.
     active_slot = Column(Integer, nullable=True)
     response_json = Column(JSON, nullable=True)
     created_at = Column(DateTime, nullable=False)

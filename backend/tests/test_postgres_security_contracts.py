@@ -584,7 +584,7 @@ def test_n1_postgres_schema_runs_real_auth_and_document_migrations():
 
 
 def test_twenty_parallel_ai_reservations_preserve_postgres_invariants(postgres_engine):
-    """Twenty workers cannot over-reserve quota or create two active calls."""
+    """Twenty workers may share quota but can never reserve beyond its limit."""
     from app.crud.user import create_user
     from app.models.models import AiCreditReservation, UsageCounter, User
     from app.schemas.user_schema import UserCreateRequest
@@ -635,18 +635,17 @@ def test_twenty_parallel_ai_reservations_preserve_postgres_invariants(postgres_e
 
     with Session() as db:
         usage = db.query(UsageCounter).filter_by(user_id=user_id).one()
-        active_count = db.query(AiCreditReservation).filter_by(
+        pending_count = db.query(AiCreditReservation).filter_by(
             user_id=user_id,
             status="pending",
-            active_slot=1,
         ).count()
 
     assert len(outcomes) == 20
-    assert outcomes.count("reserved") == 1
-    assert outcomes.count("ai_operation_active") == 19
-    assert active_count == 1
+    assert outcomes.count("reserved") == 10
+    assert outcomes.count("plan_limit_ai_credits") == 10
+    assert pending_count == 10
     assert int(usage.ai_actions_count) == 0
-    assert int(usage.ai_credits_reserved) == 20
+    assert int(usage.ai_credits_reserved) == 200
     assert int(usage.ai_actions_count) + int(usage.ai_credits_reserved) <= 200
 
 

@@ -49,7 +49,7 @@ CV STUDIO has two provider-backed AI pipelines and several adjacent deterministi
 | Free-form canvas commands | Hybrid | Convert a natural-language instruction into a constrained operation | [`ai_assistant_service._chat`](../backend/app/services/ai_assistant_service.py#L2134), lines 2134–2423 |
 | Template fill | No | Turn canonical `cv_data` into canvas elements with Python generators | [`ai.fill_template`](../backend/app/api/routes/ai.py#L491), lines 491–563 |
 | Bio wizard | No | Collect structured CV data and persist a draft | [`BioCvModal`](../frontend/src/components/ai/BioCvModal/BioCvModal.jsx#L1), lines 1–1303 |
-| Credit and quota settlement | No | Reserve, settle, replay, release, or expire a provider operation | [`entitlements.reserve_ai_credits`](../backend/app/services/entitlements.py#L971), lines 971–1102 |
+| Credit and quota settlement | No | Reserve, settle, replay, release, or expire a provider operation | [`entitlements.reserve_ai_credits`](../backend/app/services/entitlements.py#L1001), lines 1001–1123 |
 
 The assistant accepts **11 actions**:
 
@@ -685,10 +685,11 @@ The route reserves a conservative ceiling before calling the provider, then sett
 Key functions:
 
 - [`assistant_reservation_cost_pln`](../backend/app/services/ai_assistant_service.py#L130), lines 130–145.
-- [`reserve_ai_credits`](../backend/app/services/entitlements.py#L971), lines 971–1102.
-- [`settle_ai_reservation`](../backend/app/services/entitlements.py#L1317), lines 1317–1377.
-- [`settle_failed_ai_reservation`](../backend/app/services/entitlements.py#L1379), lines 1379–1435.
-- [`release_ai_reservation`](../backend/app/services/entitlements.py#L1437), lines 1437–1478.
+- [`_reconcile_pending_ai_reservations`](../backend/app/services/entitlements.py#L925), lines 925–999.
+- [`reserve_ai_credits`](../backend/app/services/entitlements.py#L1001), lines 1001–1123.
+- [`settle_ai_reservation`](../backend/app/services/entitlements.py#L1338), lines 1338–1398.
+- [`settle_failed_ai_reservation`](../backend/app/services/entitlements.py#L1400), lines 1400–1456.
+- [`release_ai_reservation`](../backend/app/services/entitlements.py#L1458), lines 1458–1495.
 
 ### Idempotency semantics
 
@@ -696,10 +697,12 @@ Key functions:
 - Reusing a key with a different canonical payload returns a conflict.
 - A settled assistant request replays its stored response without another provider call or charge.
 - An in-progress duplicate is rejected with retry metadata.
-- Only one active provider operation is allowed per user across imports and assistant actions.
+- Distinct assistant requests may coexist only while their combined settled and atomically reserved credits fit the plan balance.
+- The unique `active_slot=1` is reserved for CV imports; imports and assistant requests do not block one another.
+- A legacy pending assistant row carrying `active_slot=1` is converted to the new slot-free assistant representation on the next reservation without losing its cost claim.
 - The reservation lease is 10 minutes.
 
-The database constraints are defined by [`AiCreditReservation`](../backend/app/models/models.py#L413), lines 413–454.
+The database constraints are defined by [`AiCreditReservation`](../backend/app/models/models.py#L413), lines 413–457.
 
 ## Security and privacy
 
@@ -825,15 +828,15 @@ Model: [`UsageCounter`](../backend/app/models/models.py#L396), lines 396–411.
 
 ### `ai_credit_reservations`
 
-Business purpose: durable idempotency, one-active-operation enforcement, conservative cost reservation, settlement, and response replay.
+Business purpose: durable idempotency, atomic assistant-cost reservation, one-active-import enforcement, conservative settlement, and response replay.
 
 Important constraints:
 
 - Unique `(user_id, idempotency_key)`.
-- Unique `(user_id, active_slot)` while `active_slot = 1`.
+- Unique `(user_id, active_slot)` while `active_slot = 1`; only pending CV imports use that value, while assistant rows store `NULL`.
 - Indexed owner/status and lease expiration.
 
-Model: [`AiCreditReservation`](../backend/app/models/models.py#L413), lines 413–454.
+Model: [`AiCreditReservation`](../backend/app/models/models.py#L413), lines 413–457.
 
 Migration: [`20260901_0010_ai_credit_reservations.py`](../backend/alembic/versions/20260901_0010_ai_credit_reservations.py).
 
@@ -987,7 +990,7 @@ Update this file, [`PROMPTS.md`](PROMPTS.md) when prompt inventory changes, the 
 4. Follow [`analyze_action`](../backend/app/services/ai_assistant_service.py#L2529). With `cv_data`, grammar uses the profile-aware rewrite path; without it, it uses `_fix_grammar`.
 5. Follow [`_gpt`](../backend/app/services/ai_assistant_service.py#L941). The provider must return a JSON object; usage is calculated immediately.
 6. Follow [`_safe_result`](../backend/app/services/ai_assistant_service.py#L1163). Unknown fields and empty destructive corrections disappear.
-7. Return to the route and inspect [`settle_ai_reservation`](../backend/app/services/entitlements.py#L1317). Reserved credits become actual credits and the response becomes replayable.
+7. Return to the route and inspect [`settle_ai_reservation`](../backend/app/services/entitlements.py#L1338). Reserved credits become actual credits and the response becomes replayable.
 8. Return to `AiAssistant`. The response becomes cards; the canvas changes only after an explicit accept action.
 
 What you learned: the prompt is one small part of the feature. The production behavior is the complete chain of request capture, validation, provider work, sanitization, settlement, review, and state synchronization.
@@ -996,7 +999,7 @@ What you learned: the prompt is one small part of the feature. The production be
 
 1. [`AiCvPanel.handleExtract`](../frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx#L189) sends a multipart body and stable logical idempotency key.
 2. [`_read_and_validate_pdf`](../backend/app/api/routes/ai.py#L145), lines 145–169, checks the bounded input.
-3. [`reserve_cv_import`](../backend/app/services/entitlements.py#L1104), lines 1104–1235, claims the monthly/provider slot.
+3. [`reserve_cv_import`](../backend/app/services/entitlements.py#L1124), lines 1124–1256, claims the monthly/provider slot.
 4. [`_pdf_text_pages`](../backend/app/services/ai_service.py#L272) classifies pages. A low-text page marks the entire request as vision.
 5. [`_pdf_pages_to_b64_images`](../backend/app/services/ai_service.py#L288) rasterizes only marked pages.
 6. [`extract_cv_data`](../backend/app/services/ai_service.py#L419) calls Qwen, parses the object, grounds source-sensitive fields, and normalizes it.

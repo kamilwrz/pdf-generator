@@ -922,7 +922,7 @@ def _locked_ai_usage_row(
     return query.one()
 
 
-def _expire_stale_ai_reservation(
+def _reconcile_pending_ai_reservations(
     db: Session,
     *,
     usage: UsageCounter,
@@ -930,42 +930,72 @@ def _expire_stale_ai_reservation(
     now: datetime,
     dialect_name: str,
 ) -> None:
-    """Conservatively settle a provider call abandoned after it started."""
-    pending = db.query(AiCreditReservation).filter(
+    """Expire stale claims and release legacy assistant-wide active slots.
+
+    Assistant requests are independently bounded by their atomically reserved
+    credits, so a pending request must not block a distinct assistant action.
+    ``active_slot=1`` is retained only for CV imports, whose monthly allowance
+    is not represented by ``ai_credits_reserved``. Existing pending assistant
+    rows created before this rule are converted in place without discarding
+    their reservation or changing their conservative expiry settlement.
+    """
+    query = db.query(AiCreditReservation).filter(
         AiCreditReservation.user_id == user_id,
         AiCreditReservation.status == "pending",
-        AiCreditReservation.active_slot == 1,
-    ).first()
-    if pending is None or (_as_utc(pending.expires_at) or now) > now:
-        return
-    # The lease can cross a UTC month boundary. Release and charge against the
-    # period captured by the original reservation, never the new request's
-    # current-period row, otherwise the old reserved balance remains stranded.
-    target_usage = usage
-    if usage.period_key != pending.period_key:
-        target_usage = _locked_ai_usage_row(
-            db,
-            user_id=user_id,
-            period_key=pending.period_key,
-            dialect_name=dialect_name,
-        )
-    reserved = max(0, int(pending.reserved_credits or 0))
-    target_usage.ai_credits_reserved = max(
-        0,
-        int(target_usage.ai_credits_reserved or 0) - reserved,
+    ).order_by(
+        AiCreditReservation.period_key,
+        AiCreditReservation.created_at,
+        AiCreditReservation.id,
     )
-    if pending.action == "extract_cv":
-        # The provider may have completed after the worker lost its response.
-        # Consume the import slot captured by the reservation period so a
-        # retry cannot multiply extraction cost after an ambiguous crash.
-        target_usage.cv_imports_count = int(target_usage.cv_imports_count or 0) + 1
-    else:
-        target_usage.ai_actions_count = int(target_usage.ai_actions_count or 0) + reserved
-    pending.charged_credits = reserved
-    pending.status = "expired"
-    pending.active_slot = None
-    pending.settled_at = now
-    db.add_all([target_usage, pending])
+    pending_rows = query.all()
+    usage_by_period = {usage.period_key: usage}
+
+    for pending in pending_rows:
+        # Older deployments used this unique slot for both assistants and CV
+        # imports. Clear it immediately for assistant rows so a stale request
+        # cannot produce a false "another operation" error after deployment.
+        if pending.action != "extract_cv" and pending.active_slot is not None:
+            pending.active_slot = None
+            db.add(pending)
+
+        if (_as_utc(pending.expires_at) or now) > now:
+            continue
+
+        # The lease can cross a UTC month boundary. Release and charge against
+        # the period captured by the original reservation, never the new
+        # request's current-period row, or the old balance remains stranded.
+        target_usage = usage_by_period.get(pending.period_key)
+        if target_usage is None:
+            target_usage = _locked_ai_usage_row(
+                db,
+                user_id=user_id,
+                period_key=pending.period_key,
+                dialect_name=dialect_name,
+            )
+            usage_by_period[pending.period_key] = target_usage
+        reserved = max(0, int(pending.reserved_credits or 0))
+        target_usage.ai_credits_reserved = max(
+            0,
+            int(target_usage.ai_credits_reserved or 0) - reserved,
+        )
+        if pending.action == "extract_cv":
+            # The provider may have completed after the worker lost its
+            # response. Consume the original period's import slot so a retry
+            # cannot multiply extraction cost after an ambiguous crash.
+            target_usage.cv_imports_count = int(target_usage.cv_imports_count or 0) + 1
+        else:
+            target_usage.ai_actions_count = (
+                int(target_usage.ai_actions_count or 0) + reserved
+            )
+        pending.charged_credits = reserved
+        pending.status = "expired"
+        pending.active_slot = None
+        pending.settled_at = now
+        db.add_all([target_usage, pending])
+
+    # Apply legacy slot releases before a CV-import reservation attempts to
+    # claim the same unique `(user_id, active_slot)` value in this transaction.
+    db.flush()
 
 
 def reserve_ai_credits(
@@ -981,9 +1011,9 @@ def reserve_ai_credits(
     """Atomically reserve the bounded maximum cost of one AI provider call.
 
     The operation serializes on the monthly usage row (or SQLite writer lock),
-    enforces a single active request per user, and records idempotency before
+    reserves quota for every distinct request and records idempotency before
     external I/O starts. A settled duplicate returns its stored response;
-    every other duplicate is rejected without contacting the provider.
+    every other same-key duplicate is rejected without contacting the provider.
     """
     moment = now or _utcnow()
     key = (idempotency_key or "").strip()
@@ -1006,7 +1036,7 @@ def reserve_ai_credits(
             period_key=period_key,
             dialect_name=dialect_name,
         )
-        _expire_stale_ai_reservation(
+        _reconcile_pending_ai_reservations(
             db,
             usage=usage,
             user_id=user_id,
@@ -1043,23 +1073,6 @@ def reserve_ai_credits(
                 retry_after=retry_after if existing.status == "pending" else None,
             )
 
-        active = db.query(AiCreditReservation).filter(
-            AiCreditReservation.user_id == user_id,
-            AiCreditReservation.status == "pending",
-            AiCreditReservation.active_slot == 1,
-        ).first()
-        if active is not None:
-            retry_after = max(
-                1,
-                int(((_as_utc(active.expires_at) or moment) - moment).total_seconds()),
-            )
-            raise AiReservationError(
-                429,
-                "ai_operation_active",
-                "Inna operacja AI dla tego konta nadal trwa.",
-                retry_after=retry_after,
-            )
-
         consumed = int(usage.ai_actions_count or 0) + int(usage.ai_credits_reserved or 0)
         if limit is not None and consumed + maximum > limit:
             raise PlanLimitError(
@@ -1078,7 +1091,9 @@ def reserve_ai_credits(
             reserved_credits=maximum,
             charged_credits=0,
             status="pending",
-            active_slot=1,
+            # Assistant concurrency is bounded by the atomically reserved
+            # credit balance. The unique active slot is only for CV imports.
+            active_slot=None,
             response_json=None,
             created_at=moment,
             expires_at=moment + AI_RESERVATION_TTL,
@@ -1093,11 +1108,16 @@ def reserve_ai_credits(
         raise
     except IntegrityError as exc:
         db.rollback()
+        logger.exception(
+            "Unexpected AI reservation integrity conflict: user=%s action=%s",
+            user_id,
+            action,
+        )
         raise AiReservationError(
-            429,
-            "ai_operation_active",
-            "Inna operacja AI dla tego konta nadal trwa.",
-            retry_after=int(AI_RESERVATION_TTL.total_seconds()),
+            409,
+            "ai_reservation_conflict",
+            "Nie udało się zapisać operacji AI. Spróbuj ponownie.",
+            retry_after=1,
         ) from exc
 
 
@@ -1142,7 +1162,7 @@ def reserve_cv_import(
             period_key=period_key,
             dialect_name=dialect_name,
         )
-        _expire_stale_ai_reservation(
+        _reconcile_pending_ai_reservations(
             db,
             usage=usage,
             user_id=user_id,
@@ -1181,6 +1201,7 @@ def reserve_cv_import(
 
         active = db.query(AiCreditReservation).filter(
             AiCreditReservation.user_id == user_id,
+            AiCreditReservation.action == "extract_cv",
             AiCreditReservation.status == "pending",
             AiCreditReservation.active_slot == 1,
         ).first()
@@ -1192,7 +1213,7 @@ def reserve_cv_import(
             raise AiReservationError(
                 429,
                 "ai_operation_active",
-                "Inna operacja AI dla tego konta nadal trwa.",
+                "Inny import CV dla tego konta nadal trwa.",
                 retry_after=retry_after,
             )
         if limit is not None and int(usage.cv_imports_count or 0) >= limit:
@@ -1229,7 +1250,7 @@ def reserve_cv_import(
         raise AiReservationError(
             429,
             "ai_operation_active",
-            "Inna operacja AI dla tego konta nadal trwa.",
+            "Inny import CV dla tego konta nadal trwa.",
             retry_after=int(AI_RESERVATION_TTL.total_seconds()),
         ) from exc
 

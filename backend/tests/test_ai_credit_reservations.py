@@ -137,6 +137,117 @@ class AiCreditReservationTests(unittest.TestCase):
         self.assertEqual(usage.ai_credits_reserved, 0)
         self.assertEqual(reservation.status, "released")
 
+    def test_distinct_pending_assistant_requests_do_not_block_each_other(self):
+        with self.Session() as db:
+            first = reserve_ai_credits(
+                db,
+                user_id=self.user_id,
+                action="rating",
+                idempotency_key="first-independent-assistant",
+                request_hash="8" * 64,
+                reserved_credits=20,
+            )
+            second = reserve_ai_credits(
+                db,
+                user_id=self.user_id,
+                action="grammar",
+                idempotency_key="second-independent-assistant",
+                request_hash="9" * 64,
+                reserved_credits=20,
+            )
+            usage = db.query(UsageCounter).filter_by(user_id=self.user_id).one()
+            reservations = db.query(AiCreditReservation).filter(
+                AiCreditReservation.id.in_([first.reservation_id, second.reservation_id]),
+            ).all()
+
+        self.assertEqual(len(reservations), 2)
+        self.assertTrue(all(item.status == "pending" for item in reservations))
+        self.assertTrue(all(item.active_slot is None for item in reservations))
+        self.assertEqual(usage.ai_credits_reserved, 40)
+
+    def test_legacy_pending_assistant_slot_is_released_on_next_reservation(self):
+        with self.Session() as db:
+            legacy = reserve_ai_credits(
+                db,
+                user_id=self.user_id,
+                action="rating",
+                idempotency_key="legacy-active-assistant",
+                request_hash="a" * 64,
+                reserved_credits=20,
+            )
+            legacy_row = db.query(AiCreditReservation).filter_by(
+                id=legacy.reservation_id,
+            ).one()
+            legacy_row.active_slot = 1
+            db.commit()
+
+            reserve_ai_credits(
+                db,
+                user_id=self.user_id,
+                action="grammar",
+                idempotency_key="after-legacy-active-assistant",
+                request_hash="b" * 64,
+                reserved_credits=20,
+            )
+            db.refresh(legacy_row)
+            usage = db.query(UsageCounter).filter_by(user_id=self.user_id).one()
+
+        self.assertEqual(legacy_row.status, "pending")
+        self.assertIsNone(legacy_row.active_slot)
+        self.assertEqual(usage.ai_credits_reserved, 40)
+
+    def test_pending_cv_import_does_not_block_an_assistant_reservation(self):
+        with self.Session() as db:
+            import_claim = reserve_cv_import(
+                db,
+                user_id=self.user_id,
+                idempotency_key="pending-import-before-assistant",
+                request_hash="c" * 64,
+            )
+            assistant_claim = reserve_ai_credits(
+                db,
+                user_id=self.user_id,
+                action="rating",
+                idempotency_key="assistant-during-import",
+                request_hash="d" * 64,
+                reserved_credits=20,
+            )
+            imported = db.query(AiCreditReservation).filter_by(
+                id=import_claim.reservation_id,
+            ).one()
+            assistant = db.query(AiCreditReservation).filter_by(
+                id=assistant_claim.reservation_id,
+            ).one()
+
+        self.assertEqual(imported.active_slot, 1)
+        self.assertIsNone(assistant.active_slot)
+
+    def test_pending_assistant_does_not_block_a_cv_import_reservation(self):
+        with self.Session() as db:
+            assistant_claim = reserve_ai_credits(
+                db,
+                user_id=self.user_id,
+                action="rating",
+                idempotency_key="pending-assistant-before-import",
+                request_hash="e" * 64,
+                reserved_credits=20,
+            )
+            import_claim = reserve_cv_import(
+                db,
+                user_id=self.user_id,
+                idempotency_key="import-during-assistant",
+                request_hash="f" * 64,
+            )
+            assistant = db.query(AiCreditReservation).filter_by(
+                id=assistant_claim.reservation_id,
+            ).one()
+            imported = db.query(AiCreditReservation).filter_by(
+                id=import_claim.reservation_id,
+            ).one()
+
+        self.assertIsNone(assistant.active_slot)
+        self.assertEqual(imported.active_slot, 1)
+
     def test_expired_uncertain_call_is_charged_at_reserved_ceiling(self):
         started = datetime(2026, 9, 1, 10, 0, tzinfo=timezone.utc)
         with self.Session() as db:
@@ -262,7 +373,7 @@ class AiCreditReservationTests(unittest.TestCase):
         self.assertEqual(reservation.charged_credits, 2)
         self.assertIsNone(reservation.response_json)
 
-    def test_twenty_concurrent_requests_never_exceed_quota_or_active_slot(self):
+    def test_twenty_concurrent_requests_reserve_only_available_quota(self):
         def attempt(index: int) -> str:
             with self.Session() as db:
                 try:
@@ -283,12 +394,13 @@ class AiCreditReservationTests(unittest.TestCase):
 
         with self.Session() as db:
             usage = db.query(UsageCounter).filter_by(user_id=self.user_id).one()
-            active_count = db.query(AiCreditReservation).filter_by(
+            pending_count = db.query(AiCreditReservation).filter_by(
                 user_id=self.user_id,
                 status="pending",
             ).count()
-        self.assertEqual(outcomes.count("reserved"), 1)
-        self.assertEqual(active_count, 1)
+        self.assertEqual(outcomes.count("reserved"), 10)
+        self.assertEqual(pending_count, 10)
+        self.assertEqual(usage.ai_credits_reserved, 200)
         self.assertLessEqual(usage.ai_actions_count + usage.ai_credits_reserved, 200)
 
 
