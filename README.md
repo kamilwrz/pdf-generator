@@ -201,7 +201,7 @@ pdf-generator/
 │   │   │   ├── canvas/FlatSectionLayoutToggle/ # Hover icon on flat-list sections (Skills, Languages) to open the layout modal
 │   │   │   ├── editor/AddSectionModal/   # "+ Dodaj sekcję" modal (name + aa/cc-sub/cc-edu/cc-exp layout picker)
 │   │   │   ├── editor/FlatSectionLayoutModal/  # Inline row ↔ bullet list picker with a live content preview
-│   │   │   ├── editor/LongCvModal/        # "CV too long" assistant: compact spacing → AI shortening
+│   │   │   ├── editor/LongCvModal/        # AI fallback after spacing + typography S cannot hit the page target
 │   │   │   ├── editor/SaveGateModal/     # "Create an account to save" modal shown to guests
 │   │   │   ├── editor/DemoBanner/        # Persistent banner while the guest-mode demo CV is on canvas
 │   │   │   └── editor/StartChooser/      # Empty-state onboarding: wizard vs import chooser on a fresh document
@@ -212,6 +212,7 @@ pdf-generator/
 │   │   ├── templates/        # per-template specs + helpers; aurelia.js is the framed one-column editorial starter
 │   │   └── utils/            # geometry/reflow/sections, browser text-export layout, template appearance, guest helpers
 │   │       ├── planPresentation.js # Canonical Free/Pro UI copy merged with billing-owned prices
+│   │       ├── templatePageFit(.test).js # Current typography → S page-fit orchestration before AI
 │   │       ├── atriumAppearance(.test).js # Original, white, dark, and three strong semantic palettes with real icons
 │   │       ├── atriumTypographyLayout(.test).js # Atrium contact/single-lane repack for S–XL and browser heights
 │   │       ├── regentAppearance(.test).js # Four classic and two creative semantic Regent editions with real icons
@@ -655,22 +656,23 @@ Tests:
 
 ### Progressive page-fit and AI shortening
 
-In template mode, a document that exceeds its target page count shows a small badge on the **Dostosuj CV** tile, a one-page-fit action in the Topbar only when the safe spacing ladder can reach one page, and one gentle toast per document; it never opens a blocking modal automatically. The panel target is always one page fewer than the current document, never below one, for both sidebar and single-column layouts. A three-page CV therefore first targets two pages; after that reduction, the user may separately try two → one. Sidebar layouts still surface the long-CV nudge at two pages because their profile rail is authored on page 1, but they no longer promise an unrealistic multi-page jump. The panel button calls the fit handler without forwarding React's click event, and the handler independently accepts only finite numeric target overrides; this prevents an event object from falling through to the engine's one-page default. The Topbar action appears reactively only when the safe probe can genuinely reach one page, uses the tooltip **“Zmieść CV na 1 stronę…”**, and delegates to the same progressive fit handler as the panel. Emergency or impossible fits stay in the panel because they require an explicit decision or AI shortening. Opening **Dostosuj CV** runs the progressive page-fit probe only while the panel is visible and displays an honest hint with a **Zmieść na …** action.
+In template mode, a document that exceeds its target page count shows a small badge on the **Dostosuj CV** tile, a one-page-fit action in the Topbar when deterministic spacing or spacing plus typography preset **S** can reach one page, and one gentle toast per document; it never opens a blocking modal automatically. The panel target is always one page fewer than the current document, never below one, for both sidebar and single-column layouts. A three-page CV therefore first targets two pages; after that reduction, the user may separately try two → one. Sidebar layouts still surface the long-CV nudge at two pages because their profile rail is authored on page 1, but they no longer promise an unrealistic multi-page jump. The panel button calls the fit handler without forwarding React's click event, and the handler independently accepts only finite numeric target overrides; this prevents an event object from falling through to the engine's one-page default. The Topbar action appears reactively only when the full deterministic probe can genuinely reach one page, uses the tooltip **“Zmieść CV na 1 stronę…”**, and delegates to the same progressive fit handler as the panel. Opening **Dostosuj CV** runs that probe only while the panel is visible and states whether the result needs spacing alone, spacing plus **S**, or content shortening.
 
-`fitToPages.js` searches from the document's baseline rhythm toward the hidden hard floor `MIN_FLOW_SPACING = {stack:2, record:2, section:10, after_rule:2}`. Each candidate is packed through `applyFlowSpacing` and `collapseSpilledMainIntoSidebar`; the engine returns the first, therefore loosest, rhythm that meets the target. It classifies the result as `clean`, `tight`, `emergency`, or `impossible`. Clean and tight fits apply immediately as one undoable layout change. An emergency fit opens `LongCvModal`, offering **Maksymalnie zacieśnij** or AI shortening; an impossible fit offers AI shortening only.
+`fitToPages.js` searches from the document's baseline rhythm toward the hidden hard floor `MIN_FLOW_SPACING = {stack:2, record:2, section:10, after_rule:2}`. Each candidate is packed through `applyFlowSpacing` and `collapseSpilledMainIntoSidebar`; the engine returns the first, therefore loosest, rhythm that meets the target. `templatePageFit.js` orchestrates typography around that pure spacing engine. It first keeps the current type and accepts a `clean` or `tight` fit. If the result is `emergency` or `impossible`, it applies the active template's actual **S** transaction—the same contact relayout, text metrics, flow packing, and page-chrome reconciliation used by the Appearance panel—and searches the spacing ladder again. A successful **S** candidate is applied atomically with its loosest fitting rhythm, reports that AI was not used, and remains one undoable document change. A hard-floor result is also deterministic and commits before AI. Only failure of both typography candidates opens `LongCvModal`; the removed emergency choice can no longer recommend AI while local formatting is sufficient.
 
-The AI `shorten` action remains Pro-gated. After accepted AI changes reduce the page count, the editor silently reruns the same loosest-fit search from baseline down to `COMPACT_FLOW_SPACING`, recovering whitespace without adding a separate visible history action. `layoutDensity.js`, its **Kompaktowa** preset, and **Dopasuj automatycznie** remain separate density/balance tools; they are not page-targeting replacements.
+The AI `shorten` action remains Pro-gated and is offered only after spacing plus **S** fails. After accepted AI changes reduce the page count, the editor silently reruns the same loosest-fit search from baseline down to `COMPACT_FLOW_SPACING`, recovering whitespace without adding a separate visible history action. `layoutDensity.js`, its **Kompaktowa** preset, and **Dopasuj automatycznie** remain separate density/balance tools; they are not page-targeting replacements.
 
 AI content corrections cannot clear an existing CV element. The backend drops empty `content` replacements, and the editor repeats that guard before applying an already received response; record deletion remains an explicit reviewed operation.
 
-`LongCvModal` is a pure presenter over `DialogShell`: `PdfCanvas` owns fitting, page reconciliation, toasts, and the assistant-action bridge.
+`LongCvModal` is a pure AI-fallback presenter over `DialogShell`: its copy confirms that spacing and **S** were already tested, while `PdfCanvas` owns fitting, page reconciliation, toasts, and the assistant-action bridge.
 
 Implementation:
 
 - `frontend/src/utils/documentLength.js` — long-document thresholds and `getNextPageFitTarget`, the shared incremental target rule
 - `frontend/src/utils/fitToPages.js` — pure ladder, tier, pack, target-fit, action-routing, and Polish target-label engine
+- `frontend/src/utils/templatePageFit.js` — registered template typography map and current-type → S deterministic fit orchestration
 - `frontend/src/utils/flowSpacing.js` — `COMPACT_FLOW_SPACING`, `MIN_FLOW_SPACING`, and spacing normalization
-- `frontend/src/components/editor/LongCvModal/LongCvModal.jsx` + `.module.css` — emergency/impossible decision modal
+- `frontend/src/components/editor/LongCvModal/LongCvModal.jsx` + `.module.css` — AI-only fallback after both deterministic candidates fail
 - `frontend/src/components/editor/SectionsPanel/SectionsPanel.jsx` and `frontend/src/components/editor/Sidebar/Sidebar.jsx` — fit hint/CTA and the non-blocking attention badge
 - `frontend/src/pages/PdfCanvas.jsx` — fit commit, panel-gated probe, gentle detection toast, post-AI relaxation, modal routing, and the `assistantAction` bridge
 - `frontend/src/hooks/useA4Elements.js`, `handleCollapseSpilledMainIntoSidebar` (lines 1279–1293) — after accepted AI content patches
@@ -681,9 +683,10 @@ Implementation:
 Tests:
 
 - `frontend/src/utils/documentLength.test.js` — long-document thresholds and realistic 3 → 2 → 1 target regressions for every layout
-- `frontend/src/utils/fitToPages.test.js` — hard-floor search, loosest-fitting candidate, tiers, action routing, and target labels
+- `frontend/src/utils/fitToPages.test.js` — hard-floor search, loosest-fitting candidate, tiers, deterministic action routing, and target labels
+- `frontend/src/utils/templatePageFit.test.js` — current-type preference, S fallback, emergency-rhythm avoidance, and AI gating after both candidates fail
 - `frontend/src/utils/flowSpacing.test.js` — `MIN_FLOW_SPACING` invariants
-- `frontend/src/components/editor/LongCvModal/LongCvModal.test.js` and `frontend/src/pages/PdfCanvas.test.js` — modal variants and progressive-fit orchestration guards
+- `frontend/src/components/editor/LongCvModal/LongCvModal.test.js` and `frontend/src/pages/PdfCanvas.test.js` — post-deterministic modal copy and spacing → S → AI orchestration guards
 - `frontend/src/utils/collapseMainIntoSidebar.test.js` — Education rails and drops a page; Experience never moves; leftovers stay in main when the extra page is held by Experience; last two leftovers move together when only both drop a page
 - `backend/tests/test_ai_assistant_schema.py`, `test_shorten_dispatches_and_returns_content_corrections` — the `shorten` prompt leads with shortening intent, forbids inventing facts, and returns content-only corrections
 
@@ -716,7 +719,7 @@ Implementation:
 - `frontend/src/components/editor/StartChooser/StartChooser.jsx`, lines 93–215, component `StartChooser` — CV Studio brand mark plus two primary onboarding cards, programmatic heading focus, and context-aware recent-document, freeform, and logout actions; props `onWizard` / `onImport` / `onDocuments` / `onBlank` / `onLogout`
 - `frontend/src/components/editor/StartChooser/StartChooser.module.css`, lines 8–433 — Swiss/grid styling with an application-shell overlay, visible CV Studio brand, rectilinear axis rules, a two-card primary grid, secondary action row, safe scroll alignment, mobile collapse, and responsive logout control
 - `frontend/src/utils/startChooser.js`, lines 30–46, function `shouldShowStartChooser` — pure visibility gate for an empty unsaved workspace (not demo/loading/conversion/dismissed)
-- `frontend/src/pages/PdfCanvas.jsx`, lines 1844–2030, component `PdfCanvas` — computes `showStartChooser`, passes `PDFs`/`pdfsLoaded`, and renders `<StartChooser>` wired to wizard/import/documents/freeform/logout handlers while omitting all editor chrome and the Pro AI action; opening the three modals leaves the chooser active so closing them returns to this screen
+- `frontend/src/pages/PdfCanvas.jsx`, lines 2225–2432, component `EditorController` — computes `showStartChooser`, passes `PDFs`/`pdfsLoaded`, and renders `<StartChooser>` wired to wizard/import/documents/freeform/logout handlers while omitting all editor chrome and the Pro AI action; opening the three modals leaves the chooser active so closing them returns to this screen
 - `frontend/src/components/ai/BioCvModal/BioCvModal.jsx` and `frontend/src/pages/PdfCanvas.jsx` — guest wizard data is adopted only during the explicit registration-conversion URL flow; an existing account login or a later wizard opening never claims a browser-local draft
 - `frontend/src/App.css`, lines 14–20, `.main-container` — dynamic-height application viewport and positioned containing block for the full-shell onboarding surface
 
@@ -732,7 +735,7 @@ Implementation (Topbar / landing entry points):
 - `frontend/src/pages/Hero/Hero.test.js`, lines 8–142, suite `landing product positioning` — guards the action-led positioning, shared slogan type scale, centred taupe/ink fields without a lower rule, wide horizontal and compact wrapping geometry, white offer surface, exactly three capabilities before the gallery, undecorated non-overlapping Section 02 heading blocks, responsive collapse, section indices, footer, template count, surviving anchors, directed-start builders, and retained CTA analytics events
 - `frontend/src/utils/authSession.js`, function `getEditorPath` — builds `/cvstudio/guest` or `/cvstudio/{username}` (plus optional `?start=`)
 - `frontend/src/pages/Register/Register.jsx` / `Login/Login.jsx` — preserve `templates|import|wizard|blank` through the auth round trip; login stores `username` and navigates via `getEditorPath`
-- `frontend/src/pages/PdfCanvas.jsx`, lines 117–146 (workspace slug sync and `initialStartIntentRef`, including `demo`) and 824–838 — the auto-open picker skips directed intents, while the demo path loads canonical `lindenTemplate` with `templateId: "linden"` and sets `isDemoContent`
+- `frontend/src/pages/PdfCanvas.jsx`, lines 188–229 (workspace slug sync and `initialStartIntentRef`, including `demo`) and 1077–1108 — the auto-open picker skips directed intents, while the demo path loads canonical `lindenTemplate` with `templateId: "linden"` and sets `isDemoContent`
 - `frontend/src/components/editor/Topbar/Topbar.jsx`, lines 30–291, component `Topbar`; `Topbar.module.css`, lines 39–54, 164–172, 301–307, and 490–511 — existing commands grouped by scope, visible ambiguous-action labels, separated destructive action, processing states, and responsive label collapse
 - `frontend/src/components/editor/Sidebar/Sidebar.jsx`, lines 24–209, component `Sidebar`; `frontend/src/components/common/SidebarControls/SidebarControls.jsx`, lines 12–40, component `SidebarControls`; `SidebarControls.module.css`, lines 1–111 — contextual rail labels, active panel state, and immediate accessible tooltips without changing panel handlers
 - `frontend/src/components/editor/PageControls/PageControls.jsx`, lines 24–142, component `PageControls` — state-aware two-page action name and existing pressed state
@@ -760,22 +763,22 @@ Implementation:
 
 - `frontend/src/App.jsx`, lines 1–41 — `/cvstudio/:workspace` route with no `ProtectedRoute` wrapper; legacy `/pdfcanvas` → `getEditorPath` redirect
 - `frontend/src/utils/authSession.js`, lines 111–120, function `getEditorPath` — personalised editor URLs; `clearAccessToken` also clears cached `username`
-- `frontend/src/pages/PdfCanvas.jsx`, lines 117–146 — keep `:workspace` aligned with guest vs username and preserve directed start intents
-- `frontend/src/pages/PdfCanvas.jsx`, lines 594–613 — guest-skipped token verification; expired JWT cleared and URL rewritten to `/cvstudio/guest`
-- `frontend/src/pages/PdfCanvas.jsx`, lines 679–747 — guest autosave effect (`guestFirstEditLoggedRef`, `guestEditorOpenedLoggedRef`); opening the wizard leaves the demo visible, while `startFreshDocument` and the authenticated conversion handoff clear `isDemoContent`
+- `frontend/src/pages/PdfCanvas.jsx`, lines 188–229 — keep `:workspace` aligned with guest vs username and preserve directed start intents
+- `frontend/src/pages/PdfCanvas.jsx`, lines 903–937 — guest-skipped token verification; expired JWT cleared and URL rewritten to `/cvstudio/guest`
+- `frontend/src/pages/PdfCanvas.jsx`, lines 547–575, function `flushGuestDraft`, and lines 1596–1671, function `startFreshDocument` and its adapters — guest autosave attribution and fresh-document replacement; authenticated conversion explicitly clears `isDemoContent`
 - `frontend/src/pages/PdfCanvas.jsx`, conversion handoff effect — selects Linden for `demo-conversion` and `FREE_WIZARD_TEMPLATE_ID` (Meridian) for `wizard-conversion`, then clears `isDemoContent` to restore the full Topbar and Sidebar
 - `frontend/src/pages/PdfCanvas.jsx`, `isConversionLoading` — suppresses the empty-state chooser and displays the existing canvas loader until the adopted profile has produced its destination layout
-- `frontend/src/pages/PdfCanvas.jsx`, lines 1395–1441, demo snapshot restore — restores current Linden snapshots before the chooser and replaces persisted Regent demo samples with canonical Linden
+- `frontend/src/pages/PdfCanvas.jsx`, lines 1761–1816, demo snapshot restore — restores current Linden snapshots before the chooser and replaces persisted Regent demo samples with canonical Linden
 - `frontend/src/pages/PdfCanvas.jsx`, conversion detection — an authenticated meaningful guest wizard draft also starts the handoff when an older session lost its auxiliary intent marker
 - `frontend/src/pages/Register/Register.jsx` and `frontend/src/pages/Login/Login.jsx` — consume plain `start=wizard` after authentication so the entry wizard cannot reopen; completed `wizard-conversion` and `demo-conversion` intents remain preserved
 - `frontend/src/components/ai/BioCvModal/BioCvModal.jsx` — the final wizard action reads the real access token: guests see the registration handoff, while authenticated users see only **Utwórz moje CV**
-- `frontend/src/pages/PdfCanvas.jsx`, lines 1213–1228, function `handleSaveClick` — save-gate branch
+- `frontend/src/pages/PdfCanvas.jsx`, lines 1539–1551, function `handleSaveClick` — save-gate branch
 - `frontend/src/pages/PdfCanvas.jsx`, function `handleCancelBioCvModal` (`wizardEntryNavigatedRef`) — redirects to `/` on the first empty-canvas cancel of a `?start=wizard` entry; kept separate from the plain `handleShowBioCvModal` toggle that `BioCvModal.handleFill` also uses to close on success
 - `frontend/src/components/ai/BioCvModal/BioCvModal.jsx`, function `handleClose` — calls `cancelBioCvModal` (not `showBioCvModal`) so only a genuine user cancel can trigger the landing redirect
-- `frontend/src/pages/PdfCanvas.jsx`, lines 1443–1460 and 1521–1602 — claim-offer effect (`claimOfferedRef`, `pendingGuestDocRef`) plus `handleClaimGuestDocumentConfirm` (canvas hydrate only) / `handleClaimGuestDocumentDecline`; the effect only detects a buffered document and opens the confirmation dialog, it never claims on its own
+- `frontend/src/pages/PdfCanvas.jsx`, lines 1818–1840 and 1926–2000 — claim-offer effect (`claimOfferedRef`, `pendingGuestDocRef`) plus `handleClaimGuestDocumentConfirm` (canvas hydrate only) / `handleClaimGuestDocumentDecline`; the effect only detects a buffered document and opens the confirmation dialog, it never claims on its own
 - `frontend/src/pages/PdfCanvas.jsx`, claim-offer effect — persisted demo snapshots (`isDemoContent`) are discarded after authentication and are never presented as a user's guest draft
-- `frontend/src/pages/PdfCanvas.jsx`, line 1197 — `isGuest` (`!localStorage.getItem("token")`), threaded through `SessionContext` for guest-conditional UI such as the Sidebar logout button
-- `frontend/src/pages/PdfCanvas.jsx`, lines 824–838 — demo path effect loads `lindenTemplate`
+- `frontend/src/pages/PdfCanvas.jsx`, line 188 — `isGuest` (derived from `getAccessToken()`), threaded through `SessionContext` for guest-conditional UI such as the Sidebar logout button
+- `frontend/src/pages/PdfCanvas.jsx`, lines 1077–1108 — demo path effect loads `lindenTemplate`
 - `frontend/src/templates/linden.js`, lines 1–1158, export `lindenTemplate` — canonical Julia Bernat guest demo document and source for the Linden picker mockup
 - `frontend/src/utils/guestDocument.js` — `saveGuestDocument`, `loadGuestDocument`, `clearGuestDocument`, `hasGuestDocument`; storage key `cvstudio.guest.doc` (optional `cvData` for “Zmień szablon” after login)
 - `frontend/src/utils/resolveActiveCvData.js` — `resolveActiveCvData` / `normalizeActiveCvData`; rebuilds Topbar restyle profile after claim
@@ -792,7 +795,7 @@ Implementation:
 - `frontend/src/pages/Hero/Hero.jsx`, `buildStartUrl` / `CtaLink` — guest-first CTA routing
 - `frontend/src/components/modals/ModalPdfs/ModalPdfs.jsx`, guarded PDF-list `useEffect` — guest guard on the “Moje dokumenty” fetch
 - `frontend/src/components/ai/BioCvModal/BioCvModal.jsx`, function `BioCvModal` — `saveDraft` (lines 230–316), mount/resume/adopt effects (lines 318–441), `handleClose` (lines 559–585), `clearDraft` (lines 587–618), `handleFill` (lines 620–656), and `handleWizardComplete` (lines 658–708); guest localStorage drafts kept after fill; Demo→account adopt via `adoptGuestWizardDraftForAccount`; auth `/ai/bio_cv_draft` + stale-JWT recovery; fill uses the live `fillTemplate` client
-- `frontend/src/pages/PdfCanvas.jsx`, lines 1462–1519 — silent guest-wizard adopt and Meridian/Linden conversion on authenticated mount
+- `frontend/src/pages/PdfCanvas.jsx`, lines 1844–1914 — silent guest-wizard adopt and Meridian/Linden conversion on authenticated mount
 - `frontend/src/services/fillTemplate.js`, lines 21–46, function `fillTemplate` — omits Bearer header when no JWT
 - `frontend/src/components/gallery/Gallery/Gallery.jsx`, lines 74–88 — guest guard on the profile-photo library fetch
 - `frontend/src/components/gallery/Dropzone/Dropzone.jsx`, lines 93–101 — guest guard on profile-photo upload
@@ -865,7 +868,7 @@ Implementation:
 - `frontend/src/components/common/DialogShell/DialogShell.jsx`, lines 17–153, component `DialogShell`; `DialogShell.module.css`, lines 1–117 — shared modal/alertdialog semantics, focus containment/restoration, nested-dialog ordering, body scroll lock, mobile fullscreen layout, and reduced motion
 - `frontend/src/components/common/PanelShell/PanelShell.jsx`, lines 12–47, component `PanelShell`; `PanelShell.module.css`, lines 1–38 — common docked-panel primitive with labelled headings, Escape handling, and reduced Framer Motion
 - `frontend/src/components/editor/StartChooser/StartChooser.module.css`, lines 8–433; `frontend/src/components/editor/SectionsPanel/SectionsPanel.module.css`, lines 3–161; `frontend/src/components/gallery/Gallery/Gallery.module.css`, lines 1–142; `frontend/src/components/ai/AiAssistant/AiAssistant.module.css`, lines 2–1319 — compact desktop chrome and mobile drawers/sheets
-- `frontend/src/hooks/usePdfExport.js`, lines 24–254, hook `usePdfExport`; `frontend/src/pages/PdfCanvas.jsx`, lines 1921–2030, component `PdfCanvas` — document-only serialization and separation of editor overlays from export data
+- `frontend/src/hooks/usePdfExport.js`, lines 24–254, hook `usePdfExport`; `frontend/src/pages/PdfCanvas.jsx`, lines 2225–2432, component `EditorController` — document-only serialization and separation of editor overlays from export data
 
 Limits:
 
@@ -1259,7 +1262,7 @@ Implementation:
 - `frontend/src/utils/structureOperation.js`, `syncLetterheadBandHeight` (resizes the letterhead band to its divider's `top`) called from `reconcileDocumentPages`
 - `backend/app/services/cv_templates/registry.py`, `_GENERATORS["sterling"]` and `TEMPLATE_LAYOUTS["sterling"]` (`frozenset({"sidebar"})`)
 - `frontend/src/templates/sterling.js` — static starter emitted directly from the generator's own demo output (icon `src` values are stored relative and get `API_BASE_URL` prepended at load time, same as Regent); exported array `sterlingTemplate`
-- `frontend/src/utils/sterlingAppearance.js`, lines 249–279, function `normalizeSterlingFamilyPersistence`; `frontend/src/components/modals/ModalPdfs/ModalPdfs.jsx`, function `showPDF`; `frontend/src/pages/PdfCanvas.jsx`, lines 1727 and 1866 — narrow load-time migration for authenticated documents and restored/claimed guest drafts created with legacy rule heights or the exact Linden Botanical band regression
+- `frontend/src/utils/sterlingAppearance.js`, lines 249–279, function `normalizeSterlingFamilyPersistence`; `frontend/src/components/modals/ModalPdfs/ModalPdfs.jsx`, function `showPDF`; `frontend/src/pages/PdfCanvas.jsx`, lines 1802 and 1941 — narrow load-time migration for authenticated documents and restored/claimed guest drafts created with legacy rule heights or the exact Linden Botanical band regression
 - `frontend/src/templates/index.js`, registry entry `sterling` (`tier: "free"`, `layouts: ["sidebar"]`, `accent: "#4A6FA5"`)
 - `frontend/scripts/dump-iconic-templates.mjs`, `frontend/public/template-mockups/sterling.png` — source-driven A4 preview
 
@@ -1297,7 +1300,7 @@ Implementation:
 - `frontend/src/utils/lindenAppearance.js`, lines 15–87, 293–352, and 372–450, exports `LINDEN_PALETTES`, `getLindenAppearance`, `applyLindenPalette`, and `applyLindenTextSize` — six contextual colour contracts, lane-specific text roles, preservation of the original Botanical band plus darker bands in the five new variants, real icon-theme replacement, persisted intent, manual-colour preservation, reversible role-aware typography, and conservative wrapped-height seeding.
 - `frontend/src/utils/lindenTypographyLayout.js`, lines 19–70, functions `applyLindenTextSizeLayout` and `applyLindenRenderedHeightsLayout` — contact-rail reconstruction, two-lane packing, continuation reconciliation, and one batch commit of browser-measured textarea heights.
 - `frontend/src/components/editor/SectionsPanel/SectionsPanel.jsx`, lines 190–248 and 471–558, component `SectionsPanel`; `SectionsPanel.module.css`, lines 58–73 — strict Linden Appearance gate, palette/type handlers, accessible radio controls, and a Linden-specific miniature with sidebar, portrait, palette-authored job band, headings, copy, and footer.
-- `frontend/src/utils/sterlingAppearance.js`, lines 119–169 and 249–279, helper `normalizeLindenBotanicalIdentity` and function `normalizeSterlingFamilyPersistence`; `frontend/src/components/modals/ModalPdfs/ModalPdfs.jsx`, function `showPDF`; `frontend/src/pages/PdfCanvas.jsx`, lines 1727 and 1866 — targeted compatibility upgrade for saved/guest Linden element graphs containing the former `1.4`-point ticks, `0.8`-point footer rule, or the exact green-band Botanical regression.
+- `frontend/src/utils/sterlingAppearance.js`, lines 119–169 and 249–279, helper `normalizeLindenBotanicalIdentity` and function `normalizeSterlingFamilyPersistence`; `frontend/src/components/modals/ModalPdfs/ModalPdfs.jsx`, function `showPDF`; `frontend/src/pages/PdfCanvas.jsx`, lines 1802 and 1941 — targeted compatibility upgrade for saved/guest Linden element graphs containing the former `1.4`-point ticks, `0.8`-point footer rule, or the exact green-band Botanical regression.
 - `frontend/src/utils/sectionStructure.js`, lines 1125–1204 and 2370–2432, functions `resolveFlowStart` and `packDocumentSections` — honours a generator-authored `mainFlowStart` before applying generic masthead-gap recovery, so reorder cannot pull Linden's first main section into the identity area.
 - `frontend/src/utils/profilePhotoVisibility.js`, functions `hiddenProfileContactSectionFloor`, `alignSidebarAfterProfileContacts`, `hideProfilePhoto`, and `showProfilePhoto` — consumes the authored sidebar gap and photo-hidden contact geometry while preserving exact restore coordinates.
 - `frontend/src/utils/mastheadIdentityOps.js`, lines 37–91, function `resizeContentSizedTitleDecorations`; `frontend/src/hooks/useA4Elements.js`, lines 1485–1532, function `handleEditElementValues` — distinguishes fixed semantic identity bands from opt-in content-sized title bars when a text edit is committed, preventing Linden's strip from collapsing on blur while retaining Slate resizing.
@@ -1850,7 +1853,7 @@ Implementation:
 - `backend/app/main.py`, lines 215–233, `block_generated_pdf_static_access` — keeps template assets public but makes every retired generated-PDF URL return 404 before the SPA fallback
 - `backend/app/services/document_service.py`, lines 269–274 (`render_document_bytes`), 431–527 (`create_pdf_document`), 528–649 (`update_pdf_document`), and 737–782 (`render_pdf_for_download`) — always renders clean, never returns the storage locator, and rebuilds legacy marked local/S3 bytes
 - `backend/app/api/routes/pdf.py`, lines 83–113 (`_public_pdf_metadata`), 115–215 (`create_user_pdf`, `render_user_pdf`), 293–346 (`update_user_pdf`, `save_pdf_elements`), and 347–403 (`download_pdf`) — redacts private storage, enforces template access, prepares bytes first, then atomically meters before responding
-- `frontend/src/hooks/usePdfExport.js`, lines 175–223, function `downloadPdf`, and `frontend/src/pages/PdfCanvas.jsx`, lines 1165–1180, function `handleDownloadClick` — sends the saved `pdf_id` only to preserve an owned legacy template during render-on-demand
+- `frontend/src/hooks/usePdfExport.js`, lines 175–223, function `downloadPdf`, and `frontend/src/pages/PdfCanvas.jsx`, lines 1487–1534, function `handleDownloadClick` — sends the saved `pdf_id` only to preserve an owned legacy template during render-on-demand
 
 Tests:
 
@@ -2576,7 +2579,7 @@ pdf-generator/
 │   │   │   ├── canvas/FlatSectionLayoutToggle/ # ikona hover na płaskich sekcjach (Umiejętności, Języki) otwierająca modal układu
 │   │   │   ├── editor/AddSectionModal/   # modal „+ Dodaj sekcję” (nazwa + wybór układu aa/cc-sub/cc-edu/cc-exp)
 │   │   │   ├── editor/FlatSectionLayoutModal/  # wybór w linii ↔ lista z podglądem treści na żywo
-│   │   │   ├── editor/LongCvModal/        # asystent „CV za długie": kompaktowe odstępy → skracanie AI
+│   │   │   ├── editor/LongCvModal/        # fallback AI, gdy odstępy + typografia S nie osiągają celu stron
 │   │   │   ├── editor/SaveGateModal/     # modal „załóż konto, aby zapisać” pokazywany gościom
 │   │   │   ├── editor/DemoBanner/        # baner widoczny, gdy na płótnie jest przykładowe CV gościa
 │   │   │   └── editor/StartChooser/      # onboarding pustego stanu: wybór kreator vs import na świeżym dokumencie
@@ -2587,6 +2590,7 @@ pdf-generator/
 │   │   ├── templates/        # specyfikacje szablonów + helpery; aurelia.js to ramowy starter jednokolumnowy
 │   │   └── utils/            # geometria/reflow/sekcje, przeglądarkowy layout eksportu tekstu, wygląd szablonów, helpery gościa
 │   │       ├── planPresentation.js # Kanoniczne copy Free/Pro łączone z cenami z billing API
+│   │       ├── templatePageFit(.test).js # Orkiestracja bieżąca typografia → S przed AI
 │   │       ├── atriumAppearance(.test).js # Oryginał, biel, dark mode i trzy mocne palety semantyczne z prawdziwymi ikonami
 │   │       ├── atriumTypographyLayout(.test).js # Pack kontaktów i pojedynczego toru Atrium dla S–XL oraz wysokości przeglądarki
 │   │       ├── regentAppearance(.test).js # Cztery klasyczne i dwie kreatywne edycje Regenta z prawdziwymi ikonami
@@ -3018,22 +3022,23 @@ Testy:
 
 ### Progresywne dopasowanie stron i skracanie AI
 
-W trybie szablonu dokument przekraczający docelową liczbę stron pokazuje małą plakietkę przy kafelku **Dostosuj CV**, akcję dopasowania do jednej strony w Topbarze tylko wtedy, gdy bezpieczna drabina odstępów potrafi osiągnąć jedną stronę, oraz jeden delikatny toast na dokument; blokujący modal nie otwiera się automatycznie. Cel panelu to zawsze o jedną stronę mniej niż bieżący dokument, nigdy mniej niż jedna, zarówno dla układów z sidebarem, jak i jednokolumnowych. Trzystronicowe CV najpierw celuje więc w dwie strony; dopiero po tej redukcji użytkownik może osobno spróbować przejścia 2 → 1. Układy z sidebarem nadal pokazują podpowiedź o długim CV już przy dwóch stronach, ponieważ ich szyna profilu jest projektowana na stronie 1, ale nie obiecują już nierealnego skoku o kilka stron. Przycisk panelu wywołuje handler bez przekazywania zdarzenia kliknięcia Reacta, a sam handler niezależnie akceptuje tylko skończone wartości liczbowe jako nadpisanie celu; obiekt zdarzenia nie może więc uruchomić awaryjnego celu jednej strony w silniku. Akcja w Topbarze pojawia się reaktywnie tylko wtedy, gdy bezpieczny test naprawdę potrafi osiągnąć jedną stronę, ma tooltip **„Zmieść CV na 1 stronę…”** i korzysta z tego samego progresywnego handlera dopasowania co panel. Wyniki emergency lub impossible pozostają w panelu, ponieważ wymagają decyzji użytkownika albo skracania AI. Po otwarciu **Dostosuj CV** uruchamiane jest progowe sprawdzenie dopasowania tylko wtedy, gdy panel jest widoczny; pokazuje ono uczciwą podpowiedź z akcją **Zmieść na …**.
+W trybie szablonu dokument przekraczający docelową liczbę stron pokazuje małą plakietkę przy kafelku **Dostosuj CV**, akcję dopasowania do jednej strony w Topbarze, gdy deterministyczne odstępy albo odstępy razem z presetem typografii **S** potrafią osiągnąć jedną stronę, oraz jeden delikatny toast na dokument; blokujący modal nie otwiera się automatycznie. Cel panelu to zawsze o jedną stronę mniej niż bieżący dokument, nigdy mniej niż jedna, zarówno dla układów z sidebarem, jak i jednokolumnowych. Trzystronicowe CV najpierw celuje więc w dwie strony; dopiero po tej redukcji użytkownik może osobno spróbować przejścia 2 → 1. Układy z sidebarem nadal pokazują podpowiedź o długim CV już przy dwóch stronach, ponieważ ich szyna profilu jest projektowana na stronie 1, ale nie obiecują już nierealnego skoku o kilka stron. Przycisk panelu wywołuje handler bez przekazywania zdarzenia kliknięcia Reacta, a sam handler niezależnie akceptuje tylko skończone wartości liczbowe jako nadpisanie celu; obiekt zdarzenia nie może więc uruchomić awaryjnego celu jednej strony w silniku. Akcja w Topbarze pojawia się reaktywnie tylko wtedy, gdy pełny test deterministyczny naprawdę potrafi osiągnąć jedną stronę, ma tooltip **„Zmieść CV na 1 stronę…”** i korzysta z tego samego progresywnego handlera dopasowania co panel. Po otwarciu **Dostosuj CV** test działa tylko wtedy, gdy panel jest widoczny, i wskazuje, czy wystarczą same odstępy, odstępy razem z **S**, czy potrzebne jest skrócenie treści.
 
-`fitToPages.js` przeszukuje odstępy od rytmu bazowego dokumentu do ukrytej twardej granicy `MIN_FLOW_SPACING = {stack:2, record:2, section:10, after_rule:2}`. Każdy kandydat jest pakowany przez `applyFlowSpacing` i `collapseSpilledMainIntoSidebar`; silnik zwraca pierwszy, a więc najluźniejszy, rytm spełniający cel. Wynik jest klasyfikowany jako `clean`, `tight`, `emergency` albo `impossible`. Dopasowania clean i tight są stosowane od razu jako jedna operacja obsługiwana przez undo. Dopasowanie emergency otwiera `LongCvModal` z wyborem **Maksymalnie zacieśnij** albo skracania AI; wynik impossible oferuje wyłącznie skracanie AI.
+`fitToPages.js` przeszukuje odstępy od rytmu bazowego dokumentu do ukrytej twardej granicy `MIN_FLOW_SPACING = {stack:2, record:2, section:10, after_rule:2}`. Każdy kandydat jest pakowany przez `applyFlowSpacing` i `collapseSpilledMainIntoSidebar`; silnik zwraca pierwszy, a więc najluźniejszy, rytm spełniający cel. `templatePageFit.js` otacza ten czysty silnik logiką typografii. Najpierw zachowuje bieżący rozmiar i akceptuje wynik `clean` lub `tight`. Jeśli wynik to `emergency` albo `impossible`, stosuje prawdziwą transakcję **S** aktywnego szablonu — tę samą zmianę metryk tekstu, kontaktów, packa przepływu i rekonsyliacji chrome stron, której używa panel Wygląd — po czym ponownie przeszukuje drabinę odstępów. Udany kandydat **S** jest stosowany atomowo z najluźniejszym pasującym rytmem, zgłasza brak użycia AI i pozostaje jedną zmianą dokumentu obsługiwaną przez undo. Wynik na twardej granicy także jest deterministyczny i zostaje zastosowany przed AI. Dopiero porażka obu wariantów typografii otwiera `LongCvModal`; usunięty wybór emergency nie może już sugerować AI, gdy wystarcza lokalne formatowanie.
 
-Akcja AI `shorten` nadal wymaga Pro. Gdy zaakceptowane zmiany AI zmniejszą liczbę stron, edytor po cichu uruchamia ponownie ten sam algorytm najluźniejszego dopasowania od baseline do `COMPACT_FLOW_SPACING`, odzyskując wolną przestrzeń bez dodawania oddzielnej widocznej operacji historii. `layoutDensity.js`, preset **Kompaktowa** i **Dopasuj automatycznie** pozostają niezależnymi narzędziami gęstości/balansu — nie zastępują dopasowywania do liczby stron.
+Akcja AI `shorten` nadal wymaga Pro i jest oferowana dopiero po porażce odstępów razem z **S**. Gdy zaakceptowane zmiany AI zmniejszą liczbę stron, edytor po cichu uruchamia ponownie ten sam algorytm najluźniejszego dopasowania od baseline do `COMPACT_FLOW_SPACING`, odzyskując wolną przestrzeń bez dodawania oddzielnej widocznej operacji historii. `layoutDensity.js`, preset **Kompaktowa** i **Dopasuj automatycznie** pozostają niezależnymi narzędziami gęstości/balansu — nie zastępują dopasowywania do liczby stron.
 
 Poprawki treści z AI nie mogą wyczyścić istniejącego elementu CV. Backend odrzuca puste zamienniki `content`, a edytor powtarza tę ochronę przed zastosowaniem już odebranej odpowiedzi; usunięcie rekordu pozostaje osobną, jawną operacją z podglądem.
 
-`LongCvModal` jest czystym prezenterem nad `DialogShell`: `PdfCanvas` zarządza dopasowaniem, rekonsyliacją stron, toastami i mostkiem akcji asystenta.
+`LongCvModal` jest czystym prezenterem fallbacku AI nad `DialogShell`: jego treść potwierdza wcześniejsze sprawdzenie odstępów i **S**, a `PdfCanvas` zarządza dopasowaniem, rekonsyliacją stron, toastami i mostkiem akcji asystenta.
 
 Implementacja:
 
 - `frontend/src/utils/documentLength.js` — progi długiego dokumentu i `getNextPageFitTarget`, wspólna reguła stopniowego celu
 - `frontend/src/utils/fitToPages.js` — czysty silnik drabiny, tierów, pakowania, dopasowania do celu, routingu akcji i polskich etykiet celu
+- `frontend/src/utils/templatePageFit.js` — mapa typografii zarejestrowanych szablonów i deterministyczna orkiestracja bieżący rozmiar → S
 - `frontend/src/utils/flowSpacing.js` — `COMPACT_FLOW_SPACING`, `MIN_FLOW_SPACING` oraz normalizacja odstępów
-- `frontend/src/components/editor/LongCvModal/LongCvModal.jsx` + `.module.css` — modal decyzyjny emergency/impossible
+- `frontend/src/components/editor/LongCvModal/LongCvModal.jsx` + `.module.css` — fallback wyłącznie AI po porażce obu kandydatów deterministycznych
 - `frontend/src/components/editor/SectionsPanel/SectionsPanel.jsx` i `frontend/src/components/editor/Sidebar/Sidebar.jsx` — podpowiedź/CTA dopasowania oraz nieblokująca plakietka
 - `frontend/src/pages/PdfCanvas.jsx` — commit dopasowania, sprawdzenie przy otwartym panelu, delikatny toast wykrywania, rozluźnienie po AI, routing modala i mostek `assistantAction`
 - `frontend/src/hooks/useA4Elements.js`, `handleCollapseSpilledMainIntoSidebar` (linie 1279–1293) — po zaakceptowanych poprawkach treści AI
@@ -3044,9 +3049,10 @@ Implementacja:
 Testy:
 
 - `frontend/src/utils/documentLength.test.js` — progi długiego dokumentu i regresje realistycznego celu 3 → 2 → 1 dla każdego układu
-- `frontend/src/utils/fitToPages.test.js` — wyszukiwanie do twardej granicy, najluźniejszy pasujący kandydat, tiery, routing akcji i etykiety celu
+- `frontend/src/utils/fitToPages.test.js` — wyszukiwanie do twardej granicy, najluźniejszy pasujący kandydat, tiery, routing deterministyczny i etykiety celu
+- `frontend/src/utils/templatePageFit.test.js` — preferencja bieżącego rozmiaru, fallback S, unikanie rytmu emergency oraz bramka AI po porażce obu kandydatów
 - `frontend/src/utils/flowSpacing.test.js` — inwarianty `MIN_FLOW_SPACING`
-- `frontend/src/components/editor/LongCvModal/LongCvModal.test.js` i `frontend/src/pages/PdfCanvas.test.js` — warianty modala i osłony orkiestracji progresywnego dopasowania
+- `frontend/src/components/editor/LongCvModal/LongCvModal.test.js` i `frontend/src/pages/PdfCanvas.test.js` — treść modala po próbach deterministycznych oraz osłony orkiestracji odstępy → S → AI
 - `frontend/src/utils/collapseMainIntoSidebar.test.js` — Wykształcenie wchodzi do szyny i zdejmuje stronę; Doświadczenie nigdy nie przechodzi; leftover zostaje w głównej, gdy dodatkową stronę trzyma Doświadczenie; dwa ostatnie leftover’y idą razem, gdy dopiero oba zdejmują stronę
 - `backend/tests/test_ai_assistant_schema.py`, `test_shorten_dispatches_and_returns_content_corrections` — prompt `shorten` prowadzi ze skracaniem, zakazuje wymyślania faktów i zwraca poprawki tylko treści
 
@@ -3079,7 +3085,7 @@ Implementacja:
 - `frontend/src/components/editor/StartChooser/StartChooser.jsx`, linie 93–215, komponent `StartChooser` — znak marki CV Studio, dwie główne karty onboardingu, programowy fokus nagłówka oraz kontekstowe akcje ostatniego dokumentu, freeform i wylogowania; propsy `onWizard` / `onImport` / `onDocuments` / `onBlank` / `onLogout`
 - `frontend/src/components/editor/StartChooser/StartChooser.module.css`, linie 8–433 — styl Swiss/grid z overlayem całej powłoki aplikacji, znakiem CV Studio, prostokreślnymi osiami, gridem dwóch głównych kart, wierszem akcji drugorzędnych, bezpiecznym wyrównaniem przewijania, układem mobilnym i responsywną kontrolką wylogowania
 - `frontend/src/utils/startChooser.js`, linie 30–46, funkcja `shouldShowStartChooser` — czysta bramka widoczności pustego niezapisanego workspace (nie demo/ładowanie/konwersja/odrzucony)
-- `frontend/src/pages/PdfCanvas.jsx`, linie 1844–2030, komponent `PdfCanvas` — liczy `showStartChooser`, przekazuje `PDFs`/`pdfsLoaded` i renderuje `<StartChooser>` podpięty do handlerów kreatora/importu/dokumentów/freeform/wylogowania, pomijając całe chrome edytora i akcję AI planu Pro; otwarcie dowolnego z trzech modali pozostawia ekran aktywny, więc zamknięcie modalu wraca do tego ekranu
+- `frontend/src/pages/PdfCanvas.jsx`, linie 2225–2432, komponent `EditorController` — liczy `showStartChooser`, przekazuje `PDFs`/`pdfsLoaded` i renderuje `<StartChooser>` podpięty do handlerów kreatora/importu/dokumentów/freeform/wylogowania, pomijając całe chrome edytora i akcję AI planu Pro; otwarcie dowolnego z trzech modali pozostawia ekran aktywny, więc zamknięcie modalu wraca do tego ekranu
 - `frontend/src/components/ai/BioCvModal/BioCvModal.jsx` i `frontend/src/pages/PdfCanvas.jsx` — dane gościa są przenoszone wyłącznie w jawnej ścieżce rejestracji z parametrem konwersji; zwykłe logowanie istniejącego konta ani późniejsze otwarcie kreatora nie przejmuje lokalnego draftu z przeglądarki
 - `frontend/src/App.css`, linie 14–20, `.main-container` — viewport aplikacji o dynamicznej wysokości i pozycjonowany blok odniesienia dla onboardingu całej powłoki
 
@@ -3095,7 +3101,7 @@ Implementacja:
 - `frontend/src/pages/Hero/Hero.test.js`, linie 8–142, suite `landing product positioning` — chroni pozycjonowanie oparte na działaniu, wspólną skalę typografii sloganu, wyśrodkowane pola taupe/ink bez dolnej linii, poziomą geometrię na szerokich ekranach i bezpieczne zawijanie na kompaktowych, białe tło oferty, dokładnie trzy funkcje przed galerią, niedekorowane i nienachodzące bloki nagłówka sekcji 02, składanie responsywne, indeksy sekcji, stopkę, liczbę szablonów, anchory, buildery startów i zachowane zdarzenia analityczne CTA
 - `frontend/src/utils/authSession.js`, funkcja `getEditorPath` — buduje `/cvstudio/guest` albo `/cvstudio/{username}` (plus opcjonalne `?start=`)
 - `frontend/src/pages/Register/Register.jsx` / `Login/Login.jsx` — zachowują `templates|import|wizard|blank` przez cały przepływ logowania; login zapisuje `username` i nawiguje przez `getEditorPath`
-- `frontend/src/pages/PdfCanvas.jsx`, linie 117–146 (synchronizacja sluga workspace i `initialStartIntentRef`, obejmujący `demo`) oraz 824–838 — auto-otwarcie pickera pomija skierowane intencje, a ścieżka demo wczytuje kanoniczny `lindenTemplate` z `templateId: "linden"` i ustawia `isDemoContent`
+- `frontend/src/pages/PdfCanvas.jsx`, linie 188–229 (synchronizacja sluga workspace i `initialStartIntentRef`, obejmujący `demo`) oraz 1077–1108 — auto-otwarcie pickera pomija skierowane intencje, a ścieżka demo wczytuje kanoniczny `lindenTemplate` z `templateId: "linden"` i ustawia `isDemoContent`
 - `frontend/src/components/editor/Topbar/Topbar.jsx`, linie 30–291, komponent `Topbar`; `Topbar.module.css`, linie 39–54, 164–172, 301–307 oraz 490–511 — istniejące polecenia pogrupowane według zakresu, widoczne etykiety niejednoznacznych akcji, oddzielona akcja destrukcyjna, stany przetwarzania i responsywne chowanie etykiet
 - `frontend/src/components/editor/Sidebar/Sidebar.jsx`, linie 24–209, komponent `Sidebar`; `frontend/src/components/common/SidebarControls/SidebarControls.jsx`, linie 12–40, komponent `SidebarControls`; `SidebarControls.module.css`, linie 1–111 — kontekstowe etykiety szyny, stan aktywnego panelu oraz natychmiastowe dostępne tooltipy bez zmiany handlerów paneli
 - `frontend/src/components/editor/PageControls/PageControls.jsx`, linie 24–142, komponent `PageControls` — nazwa akcji dwóch stron zależna od stanu i dotychczasowy stan wciśnięcia
@@ -3123,16 +3129,16 @@ Implementacja:
 
 - `frontend/src/App.jsx`, linie 1–41 — trasa `/cvstudio/:workspace` bez owijki `ProtectedRoute`; legacy `/pdfcanvas` → przekierowanie `getEditorPath`
 - `frontend/src/utils/authSession.js`, linie 111–120, funkcja `getEditorPath` — spersonalizowane URL edytora; `clearAccessToken` czyści też cache `username`
-- `frontend/src/pages/PdfCanvas.jsx`, linie 117–146 — utrzymanie `:workspace` zgodnego z guest vs username i zachowanie skierowanych intencji startu
-- `frontend/src/pages/PdfCanvas.jsx`, linie 594–613 — pominięta dla gości weryfikacja tokenu; wygasły JWT czyszczony i URL przepisywany na `/cvstudio/guest`
-- `frontend/src/pages/PdfCanvas.jsx`, linie 679–747 — efekt autozapisu gościa (`guestFirstEditLoggedRef`, `guestEditorOpenedLoggedRef`); flaga demo (`isDemoContent`) jest zapisywana razem ze szkicem i czyszczona po udanej konwersji
-- `frontend/src/pages/PdfCanvas.jsx`, linie 1213–1228, funkcja `handleSaveClick` — gałąź save-gate
+- `frontend/src/pages/PdfCanvas.jsx`, linie 188–229 — utrzymanie `:workspace` zgodnego z guest vs username i zachowanie skierowanych intencji startu
+- `frontend/src/pages/PdfCanvas.jsx`, linie 903–937 — pominięta dla gości weryfikacja tokenu; wygasły JWT czyszczony i URL przepisywany na `/cvstudio/guest`
+- `frontend/src/pages/PdfCanvas.jsx`, linie 547–575, funkcja `flushGuestDraft`, oraz linie 1596–1671, funkcja `startFreshDocument` i jej adaptery — atrybucja autozapisu gościa oraz wymiana dokumentu; uwierzytelniona konwersja jawnie czyści `isDemoContent`
+- `frontend/src/pages/PdfCanvas.jsx`, linie 1539–1551, funkcja `handleSaveClick` — gałąź save-gate
 - `frontend/src/pages/PdfCanvas.jsx`, funkcja `handleCancelBioCvModal` (`wizardEntryNavigatedRef`) — przekierowanie na `/` przy pierwszym anulowaniu pustego płótna z wejścia `?start=wizard`; celowo osobna od zwykłego przełącznika `handleShowBioCvModal`, którego `BioCvModal.handleFill` też używa do zamknięcia po sukcesie
 - `frontend/src/components/ai/BioCvModal/BioCvModal.jsx`, funkcja `handleClose` — wywołuje `cancelBioCvModal` (nie `showBioCvModal`), więc przekierowanie może wywołać tylko prawdziwe anulowanie przez użytkownika
-- `frontend/src/pages/PdfCanvas.jsx`, linie 1443–1460 i 1521–1602 — efekt oferujący przejęcie (`claimOfferedRef`, `pendingGuestDocRef`) oraz `handleClaimGuestDocumentConfirm` (tylko hydrate płótna) / `handleClaimGuestDocumentDecline`; sam efekt tylko wykrywa zbuforowany dokument i otwiera dialog potwierdzenia, nigdy nie przejmuje samodzielnie
+- `frontend/src/pages/PdfCanvas.jsx`, linie 1818–1840 i 1926–2000 — efekt oferujący przejęcie (`claimOfferedRef`, `pendingGuestDocRef`) oraz `handleClaimGuestDocumentConfirm` (tylko hydrate płótna) / `handleClaimGuestDocumentDecline`; sam efekt tylko wykrywa zbuforowany dokument i otwiera dialog potwierdzenia, nigdy nie przejmuje samodzielnie
 - `frontend/src/pages/PdfCanvas.jsx`, efekt oferty przejęcia — zapisane snapshoty demo (`isDemoContent`) są usuwane po uwierzytelnieniu i nigdy nie są pokazywane jako draft użytkownika gościa
-- `frontend/src/pages/PdfCanvas.jsx`, linia 1197 — `isGuest` (`!localStorage.getItem("token")`), przekazywane przez `SessionContext` do elementów UI warunkowanych trybem gościa, np. przycisku wylogowania w Sidebarze
-- `frontend/src/pages/PdfCanvas.jsx`, linie 824–838 — efekt ścieżki demo wczytujący `lindenTemplate`
+- `frontend/src/pages/PdfCanvas.jsx`, linia 188 — `isGuest` (wyznaczane z `getAccessToken()`), przekazywane przez `SessionContext` do elementów UI warunkowanych trybem gościa, np. przycisku wylogowania w Sidebarze
+- `frontend/src/pages/PdfCanvas.jsx`, linie 1077–1108 — efekt ścieżki demo wczytujący `lindenTemplate`
 - `frontend/src/utils/guestDocument.js` — `saveGuestDocument`, `loadGuestDocument`, `clearGuestDocument`, `hasGuestDocument`; klucz `cvstudio.guest.doc` (opcjonalne `cvData` dla „Zmień szablon” po logowaniu)
 - `frontend/src/utils/resolveActiveCvData.js` — `resolveActiveCvData` / `normalizeActiveCvData`; odtwarza profil restylu Topbara po claim
 - `frontend/src/utils/guestWizardDraft.js` — `saveGuestWizardDraft`, `loadGuestWizardDraft`, `clearGuestWizardDraft`, `hasGuestWizardDraft`, `guestWizardProfileHasContent`, `clampWizardStep`; klucz `cvstudio.guest.wizardDraft`
@@ -3148,7 +3154,7 @@ Implementacja:
 - `frontend/src/pages/Hero/Hero.jsx`, `buildStartUrl` / `CtaLink` — routing CTA priorytetowo do trybu gościa
 - `frontend/src/components/modals/ModalPdfs/ModalPdfs.jsx`, chroniony `useEffect` listy PDF — zabezpieczenie fetcha „Moje dokumenty” dla gości
 - `frontend/src/components/ai/BioCvModal/BioCvModal.jsx`, funkcja `BioCvModal` — `saveDraft` (linie 230–316), efekty montowania/wznawiania/adoptu (linie 318–441), `handleClose` (linie 559–585), `clearDraft` (linie 587–618), `handleFill` (linie 620–656) i `handleWizardComplete` (linie 658–708); szkice gościa w localStorage zachowane po fill; adopt Demo→konto przez `adoptGuestWizardDraftForAccount`; auth `/ai/bio_cv_draft` + odzyskiwanie po wygasłym JWT; fill przez żywy klient `fillTemplate`
-- `frontend/src/pages/PdfCanvas.jsx`, linie 1462–1519 — cichy adopt szkicu kreatora i konwersja Meridian/Linden przy montowaniu z JWT
+- `frontend/src/pages/PdfCanvas.jsx`, linie 1844–1914 — cichy adopt szkicu kreatora i konwersja Meridian/Linden przy montowaniu z JWT
 - `frontend/src/services/fillTemplate.js`, linie 21–46, funkcja `fillTemplate` — pomija nagłówek Bearer, gdy brak JWT
 - `frontend/src/components/gallery/Gallery/Gallery.jsx`, linie 74–88 — zabezpieczenie fetcha biblioteki zdjęć profilowych dla gości
 - `frontend/src/components/gallery/Dropzone/Dropzone.jsx`, linie 93–101 — zabezpieczenie uploadu zdjęć profilowych dla gości
@@ -3221,7 +3227,7 @@ Implementacja:
 - `frontend/src/components/common/DialogShell/DialogShell.jsx`, linie 17–153, komponent `DialogShell`; `DialogShell.module.css`, linie 1–117 — wspólna semantyka modal/alertdialog, pułapka i przywracanie fokusu, kolejność zagnieżdżonych dialogów, blokada scrolla, mobilny fullscreen i reduced motion
 - `frontend/src/components/common/PanelShell/PanelShell.jsx`, linie 12–47, komponent `PanelShell`; `PanelShell.module.css`, linie 1–38 — wspólny prymityw panelu z opisanym nagłówkiem, Escape i ograniczeniem ruchu Framer Motion
 - `frontend/src/components/editor/StartChooser/StartChooser.module.css`, linie 8–433; `frontend/src/components/editor/SectionsPanel/SectionsPanel.module.css`, linie 3–161; `frontend/src/components/gallery/Gallery/Gallery.module.css`, linie 1–142; `frontend/src/components/ai/AiAssistant/AiAssistant.module.css`, linie 2–1319 — zwarte chrome desktopowe i mobilne drawery/sheets
-- `frontend/src/hooks/usePdfExport.js`, linie 24–254, hook `usePdfExport`; `frontend/src/pages/PdfCanvas.jsx`, linie 1921–2030, komponent `PdfCanvas` — serializacja wyłącznie dokumentu oraz separacja overlayów edytora od danych eksportu
+- `frontend/src/hooks/usePdfExport.js`, linie 24–254, hook `usePdfExport`; `frontend/src/pages/PdfCanvas.jsx`, linie 2225–2432, komponent `EditorController` — serializacja wyłącznie dokumentu oraz separacja overlayów edytora od danych eksportu
 
 Ograniczenia:
 
@@ -3611,7 +3617,7 @@ Implementacja:
 - `frontend/src/utils/structureOperation.js`, `syncLetterheadBandHeight` (przelicza wysokość pasa letterhead na `top` jego dividera) wywoływana z `reconcileDocumentPages`
 - `backend/app/services/cv_templates/registry.py`, `_GENERATORS["sterling"]` i `TEMPLATE_LAYOUTS["sterling"]` (`frozenset({"sidebar"})`)
 - `frontend/src/templates/sterling.js` — statyczny starter emitowany bezpośrednio z wyjścia demo generatora (wartości `src` ikon przechowywane względnie, baza API dodawana przy ładowaniu, tak jak w Regent); eksportowana tablica `sterlingTemplate`
-- `frontend/src/utils/sterlingAppearance.js`, linie 249–279, funkcja `normalizeSterlingFamilyPersistence`; `frontend/src/components/modals/ModalPdfs/ModalPdfs.jsx`, funkcja `showPDF`; `frontend/src/pages/PdfCanvas.jsx`, linie 1727 i 1866 — wąska migracja przy wczytaniu dla dokumentów konta oraz przywracanych/przejmowanych szkiców gościa utworzonych ze starymi wysokościami linii albo dokładną regresją pasa Botanicznego Linden
+- `frontend/src/utils/sterlingAppearance.js`, linie 249–279, funkcja `normalizeSterlingFamilyPersistence`; `frontend/src/components/modals/ModalPdfs/ModalPdfs.jsx`, funkcja `showPDF`; `frontend/src/pages/PdfCanvas.jsx`, linie 1802 i 1941 — wąska migracja przy wczytaniu dla dokumentów konta oraz przywracanych/przejmowanych szkiców gościa utworzonych ze starymi wysokościami linii albo dokładną regresją pasa Botanicznego Linden
 - `frontend/src/templates/index.js`, wpis rejestru `sterling` (`tier: "free"`, `layouts: ["sidebar"]`, `accent: "#4A6FA5"`)
 - `frontend/scripts/dump-iconic-templates.mjs`, `frontend/public/template-mockups/sterling.png` — podgląd A4 generowany ze źródła
 
@@ -3649,7 +3655,7 @@ Implementacja:
 - `frontend/src/utils/lindenAppearance.js`, linie 15–87, 293–352 i 372–450, eksporty `LINDEN_PALETTES`, `getLindenAppearance`, `applyLindenPalette` oraz `applyLindenTextSize` — sześć kontekstowych kontraktów koloru, role tekstu zależne od toru, zachowanie oryginalnego pasa Botanicznego Papieru oraz ciemniejsze pasy w pięciu nowych wariantach, podmiana prawdziwych motywów ikon, zapis zamiaru, ochrona ręcznych kolorów, odwracalna typografia zależna od roli i konserwatywne wyznaczanie wysokości zawiniętego tekstu.
 - `frontend/src/utils/lindenTypographyLayout.js`, linie 19–70, funkcje `applyLindenTextSizeLayout` i `applyLindenRenderedHeightsLayout` — przebudowa szyny kontaktów, pakowanie dwóch torów, uzgadnianie kontynuacji oraz zbiorcze zatwierdzenie wysokości textarea zmierzonych przez przeglądarkę.
 - `frontend/src/components/editor/SectionsPanel/SectionsPanel.jsx`, linie 190–248 i 471–558, komponent `SectionsPanel`; `SectionsPanel.module.css`, linie 58–73 — ścisła bramka Wyglądu Linden, handlery palety/typografii, dostępne kontrolki radiowe i miniatura Linden z sidebarem, portretem, pasem stanowiska zgodnym z paletą, nagłówkami, treścią i stopką.
-- `frontend/src/utils/sterlingAppearance.js`, linie 119–169 i 249–279, helper `normalizeLindenBotanicalIdentity` i funkcja `normalizeSterlingFamilyPersistence`; `frontend/src/components/modals/ModalPdfs/ModalPdfs.jsx`, funkcja `showPDF`; `frontend/src/pages/PdfCanvas.jsx`, linie 1727 i 1866 — celowana warstwa zgodności dla zapisanych/gościnnych grafów elementów Linden zawierających dawne kreski `1.4` pt, linię stopki `0.8` pt albo dokładną regresję zielonego pasa Botanicznego.
+- `frontend/src/utils/sterlingAppearance.js`, linie 119–169 i 249–279, helper `normalizeLindenBotanicalIdentity` i funkcja `normalizeSterlingFamilyPersistence`; `frontend/src/components/modals/ModalPdfs/ModalPdfs.jsx`, funkcja `showPDF`; `frontend/src/pages/PdfCanvas.jsx`, linie 1802 i 1941 — celowana warstwa zgodności dla zapisanych/gościnnych grafów elementów Linden zawierających dawne kreski `1.4` pt, linię stopki `0.8` pt albo dokładną regresję zielonego pasa Botanicznego.
 - `frontend/src/utils/sectionStructure.js`, linie 1125–1204 i 2370–2432, funkcje `resolveFlowStart` i `packDocumentSections` — respektuje wygenerowany `mainFlowStart` przed ogólnym leczeniem odstępu mastheadu, więc reorder nie podciąga pierwszej głównej sekcji pod obszar tożsamości.
 - `frontend/src/utils/profilePhotoVisibility.js`, funkcje `hiddenProfileContactSectionFloor`, `alignSidebarAfterProfileContacts`, `hideProfilePhoto` i `showProfilePhoto` — konsumuje autorski odstęp sidebara oraz geometrię kontaktów po schowaniu zdjęcia, zachowując dokładne pozycje do odtworzenia.
 - `frontend/src/utils/mastheadIdentityOps.js`, linie 37–91, funkcja `resizeContentSizedTitleDecorations`; `frontend/src/hooks/useA4Elements.js`, linie 1485–1532, funkcja `handleEditElementValues` — rozróżnia stałe semantyczne pasy tożsamości od jawnie dynamicznych pasków stanowiska przy zatwierdzaniu edycji tekstu, dzięki czemu pas Linden nie zwija się po blur, a Slate nadal zmieniają szerokość.
@@ -4196,7 +4202,7 @@ Implementacja:
 - `backend/app/main.py`, linie 215–233, `block_generated_pdf_static_access` — pozostawia zasoby szablonów publiczne, ale każdy wycofany URL wygenerowanego PDF-a zatrzymuje 404 przed fallbackiem SPA
 - `backend/app/services/document_service.py`, linie 269–274 (`render_document_bytes`), 431–527 (`create_pdf_document`), 528–649 (`update_pdf_document`) i 737–782 (`render_pdf_for_download`) — zawsze renderuje czysto, nie zwraca lokatora storage i przebudowuje starsze oznaczone bajty lokalne/S3
 - `backend/app/api/routes/pdf.py`, linie 83–113 (`_public_pdf_metadata`), 115–215 (`create_user_pdf`, `render_user_pdf`), 293–346 (`update_user_pdf`, `save_pdf_elements`) i 347–403 (`download_pdf`) — redaguje prywatny storage, kontroluje szablon, przygotowuje bajty, a potem atomowo nalicza przed odpowiedzią
-- `frontend/src/hooks/usePdfExport.js`, linie 175–223, funkcja `downloadPdf`, oraz `frontend/src/pages/PdfCanvas.jsx`, linie 1165–1180, funkcja `handleDownloadClick` — przekazuje `pdf_id` zapisanego dokumentu tylko dla zachowania własnego starszego szablonu przy render-on-demand
+- `frontend/src/hooks/usePdfExport.js`, linie 175–223, funkcja `downloadPdf`, oraz `frontend/src/pages/PdfCanvas.jsx`, linie 1487–1534, funkcja `handleDownloadClick` — przekazuje `pdf_id` zapisanego dokumentu tylko dla zachowania własnego starszego szablonu przy render-on-demand
 
 Testy:
 

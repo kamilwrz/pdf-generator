@@ -178,11 +178,17 @@ function displaySectionTitle(title) {
  * `impossible`.
  * @param {"clean"|"tight"|"emergency"|"impossible"} tier
  * @param {string} targetLabel  e.g. "1 stronie"
+ * @param {string|null} typographyPreset Deterministic typography chosen by the probe.
  * @returns {string}
  */
-function fitHintText(tier, targetLabel) {
-  if (tier === "emergency") return `zmieścisz na ${targetLabel} po skróceniu treści`;
+function fitHintText(tier, targetLabel, typographyPreset) {
   if (tier === "impossible") return `aby zmieścić na ${targetLabel}, skróć treść`;
+  if (typographyPreset === "S") {
+    return `można zmieścić na ${targetLabel}, zmniejszając odstępy i tekst do S`;
+  }
+  if (tier === "emergency") {
+    return `można zmieścić na ${targetLabel} po maksymalnym zmniejszeniu odstępów`;
+  }
   return `można zmieścić na ${targetLabel}`;
 }
 
@@ -791,7 +797,11 @@ export default function SectionsPanel({ onClose }) {
             <div className={classes.documentCard}>
               <strong className={classes.pageStatus} aria-live="polite">{pageStatus}</strong>
               {fitStatus?.reducible ? (
-                <p>CV {fitHintText(fitStatus.tier, fitStatus.targetLabel)} bez zmiany faktów.</p>
+                <p>CV {fitHintText(
+                  fitStatus.tier,
+                  fitStatus.targetLabel,
+                  fitStatus.typographyPreset,
+                )} bez zmiany faktów.</p>
               ) : (
                 <p><span aria-hidden="true">✓</span> Układ wygląda dobrze · standardowe odstępy.</p>
               )}

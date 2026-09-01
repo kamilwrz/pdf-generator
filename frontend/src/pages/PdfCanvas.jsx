@@ -86,6 +86,8 @@ import {
   resolveFitAction,
   formatFitTargetLabel,
 } from '../utils/fitToPages';
+import { findTemplateFitForTarget } from '../utils/templatePageFit';
+import { createCanvasTextWidthMeasurer } from '../utils/textareaHeight';
 import { listSectionIconOptions } from '../utils/sectionIcons';
 import { convertFlatListContent } from '../utils/flatSectionLayout';
 import {
@@ -332,15 +334,18 @@ export function EditorController() {
   const closeSkillsLayoutModal = useCallback(() => {
     setSkillsLayoutModal({ open: false, headingId: null });
   }, []);
-  // "CV too long" assistant: auto-detects 3+ page documents once per document
-  // and offers a free compact-spacing pass, then (if needed) AI shortening.
-  const [longCvModal, setLongCvModal] = useState({ open: false, variant: null, fit: null });
-  // Mirror of longCvModal.open for the auto-open effect — reading state from
+  // "CV too long" assistant: deterministic spacing + typography S runs first;
+  // this modal opens only when those local changes still cannot hit the target.
+  const [longCvModalOpen, setLongCvModalOpen] = useState(false);
+  // Reuse one browser canvas so visible probes and the committed typography
+  // transaction measure the same glyph widths and wrapping assumptions.
+  const [fitTextWidthMeasurer] = useState(() => createCanvasTextWidthMeasurer());
+  // Mirror of longCvModalOpen for the auto-open effect — reading state from
   // the effect deps re-ran detection on every open and raced the identity reset.
   const longCvOpenRef = useRef(false);
   const closeLongCvModal = useCallback(() => {
     longCvOpenRef.current = false;
-    setLongCvModal({ open: false, variant: null, fit: null });
+    setLongCvModalOpen(false);
   }, []);
   // Once-per logical document+template: stores the identity we already offered
   // for. Cleared only on a real document/template change (see shouldResetLongCvOffer).
@@ -1187,7 +1192,13 @@ export function EditorController() {
       reconcileDocumentPages(fit.elements, nanoid, { collapseEmpty: true }).elements,
     );
     if (!silent) {
-      pushToast({ title: 'Układ dopasowany.', variant: 'success' });
+      pushToast({
+        title: 'Układ dopasowany.',
+        msg: fit.typographyPreset === 'S'
+          ? 'Zmniejszyliśmy odstępy i ustawiliśmy rozmiar tekstu S — bez użycia AI.'
+          : undefined,
+        variant: 'success',
+      });
     }
   }, [setFlowSpacing, setA4_Elements, pushToast]);
 
@@ -1225,7 +1236,14 @@ export function EditorController() {
     [pageCount],
   );
 
-  // Flagship action: find the loosest rhythm that fits the target, then route.
+  const fitLoosestSpacing = useMemo(
+    () => normalizeFlowSpacing(baselineFlowSpacing ?? DEFAULT_FLOW_SPACING),
+    [baselineFlowSpacing],
+  );
+
+  // Flagship action: preserve the current typography when spacing fits cleanly;
+  // otherwise retry with the selected template's real S typography transaction.
+  // Only a failure of both deterministic paths may route to AI shortening.
   const onFitToPages = useCallback((requestedTargetPages = fitTargetPages) => {
     // React click handlers receive a SyntheticEvent as their first argument.
     // Treat only a finite numeric override as an intentional target; otherwise
@@ -1236,56 +1254,50 @@ export function EditorController() {
       ? numericTarget
       : fitTargetPages;
     const pageHeight = pageSize?.height ?? 842;
-    const fit = findFitForTarget({
+    const fit = findTemplateFitForTarget({
       elements: A4_Elements,
-      loosest: baselineFlowSpacing,
+      templateId: activeTemplateId,
+      loosest: fitLoosestSpacing,
       tightest: MIN_FLOW_SPACING,
       targetPages,
       pageHeight,
+      createId: nanoid,
+      measureTextWidth: fitTextWidthMeasurer,
     });
     const { action } = resolveFitAction(fit);
     if (action === "commit") {
       commitFit(fit);
-    } else if (action === "emergency") {
-      longCvOpenRef.current = true;
-      setLongCvModal({ open: true, variant: "emergency", fit });
     } else {
       longCvOpenRef.current = true;
-      setLongCvModal({ open: true, variant: "impossible", fit: null });
+      setLongCvModalOpen(true);
     }
-  }, [A4_Elements, baselineFlowSpacing, fitTargetPages, pageSize, commitFit]);
+  }, [A4_Elements, activeTemplateId, fitLoosestSpacing, fitTargetPages, fitTextWidthMeasurer, pageSize, commitFit]);
 
-  // The Topbar offers a one-page shortcut only when the normal spacing ladder
-  // can reach one page. Emergency and impossible results require a separate
-  // user decision or AI shortening and must not be presented as an automatic
-  // action.
+  // The Topbar offers a one-page shortcut when spacing alone or spacing plus S
+  // can reach one page. The probe is pure and uses deterministic temporary IDs;
+  // the click handler repeats it with browser text metrics and commit-safe IDs.
   const onePageFit = useMemo(() => {
     if (editorMode !== EDITOR_MODE_TEMPLATE || (pageCount ?? 1) <= 1) return null;
-    const fit = findFitForTarget({
+    const fit = findTemplateFitForTarget({
       elements: A4_Elements,
-      loosest: baselineFlowSpacing,
+      templateId: activeTemplateId,
+      loosest: fitLoosestSpacing,
       tightest: MIN_FLOW_SPACING,
       targetPages: 1,
       pageHeight: pageSize?.height ?? 842,
+      measureTextWidth: fitTextWidthMeasurer,
     });
     const { action } = resolveFitAction(fit);
     return action === "commit" ? fit : null;
-  }, [A4_Elements, baselineFlowSpacing, editorMode, pageCount, pageSize]);
+  }, [A4_Elements, activeTemplateId, editorMode, fitLoosestSpacing, fitTextWidthMeasurer, pageCount, pageSize]);
 
   const onFitToOnePage = useCallback(() => {
     if (onePageFit) onFitToPages(1);
   }, [onePageFit, onFitToPages]);
 
-  // Emergency modal's "Maksymalnie zacieśnij": apply the hard-floor fit.
-  const onForceTighten = useCallback(() => {
-    const fit = longCvModal.fit;
-    closeLongCvModal();
-    commitFit(fit);
-  }, [longCvModal.fit, closeLongCvModal, commitFit]);
-
   // `fitTooLong` is a cheap badge flag (no packing) driving the sidebar/section
-  // panel indicator; `fitStatus` runs the ~10-candidate packing probe, but only
-  // while the "Sekcje" (sections) panel is open, so we never pack on every edit.
+  // panel indicator; `fitStatus` runs spacing and, when needed, S typography,
+  // but only while the panel is open so edits do not continuously repack.
   const fitTooLong = useMemo(
     () => editorMode === EDITOR_MODE_TEMPLATE && (pageCount ?? 1) > fitTargetPages,
     [editorMode, pageCount, fitTargetPages],
@@ -1294,19 +1306,22 @@ export function EditorController() {
   const fitStatus = useMemo(() => {
     if (!isSectionsPanel || !fitTooLong) return null;
     const pageHeight = pageSize?.height ?? 842;
-    const fit = findFitForTarget({
+    const fit = findTemplateFitForTarget({
       elements: A4_Elements,
-      loosest: baselineFlowSpacing,
+      templateId: activeTemplateId,
+      loosest: fitLoosestSpacing,
       tightest: MIN_FLOW_SPACING,
       targetPages: fitTargetPages,
       pageHeight,
+      measureTextWidth: fitTextWidthMeasurer,
     });
     return {
       reducible: true,
       tier: fit.tier,
       targetLabel: formatFitTargetLabel(fitTargetPages),
+      typographyPreset: fit.typographyPreset,
     };
-  }, [isSectionsPanel, fitTooLong, A4_Elements, baselineFlowSpacing, fitTargetPages, pageSize]);
+  }, [isSectionsPanel, fitTooLong, A4_Elements, activeTemplateId, fitLoosestSpacing, fitTargetPages, fitTextWidthMeasurer, pageSize]);
 
   // Auto-detect a too-long CV once per logical document+template. Identity
   // reset and detection share one effect so a trailing reset cannot clear the
@@ -1320,7 +1335,7 @@ export function EditorController() {
       shortenBaselinePagesRef.current = null;
       if (longCvOpenRef.current) {
         longCvOpenRef.current = false;
-        setLongCvModal({ open: false, variant: null, fit: null });
+        setLongCvModalOpen(false);
       }
     }
     longCvIdentityRef.current = identity;
@@ -2294,11 +2309,9 @@ export function EditorController() {
                 onApply={handleApplySkillsLayout}
               />
               <LongCvModal
-                open={longCvModal.open}
-                variant={longCvModal.variant}
+                open={longCvModalOpen}
                 targetPages={fitTargetPages}
                 canUseAi={canUseAiAssistant}
-                onForceTighten={onForceTighten}
                 onRequestAiShorten={handleRequestAiShorten}
                 onClose={closeLongCvModal}
               />

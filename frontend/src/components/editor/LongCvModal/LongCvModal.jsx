@@ -1,16 +1,9 @@
 /**
- * Page-fit decision modal. Reached only when spacing alone cannot cleanly fit
- * the CV on its target page count — the SectionsPanel + fit engine handle the
- * clean/tight cases silently. Two variants:
+ * AI fallback for a deterministic page-fit failure.
  *
- *   emergency  — the hard floor DOES fit, but the result is cramped. Offer AI
- *                shortening (recommended) or "Maksymalnie zacieśnij" (apply the
- *                floor anyway).
- *   impossible — spacing alone cannot reach the target. AI shortening only.
- *
- * Pure presenter over DialogShell; the parent (PdfCanvas) owns the document and
- * the fit result. "Skróć z AI" closes the modal and opens the assistant via
- * the parent's onRequestAiShorten.
+ * PdfCanvas opens this modal only after both the spacing ladder and the real
+ * template typography preset `S` fail to reach the target. The presenter never
+ * offers AI while a local layout-only solution remains available.
  */
 import DialogShell from "../../common/DialogShell/DialogShell";
 import { formatFitTargetLabel } from "../../../utils/fitToPages.js";
@@ -19,61 +12,29 @@ import classes from "./LongCvModal.module.css";
 /**
  * @param {{
  *   open: boolean,
- *   variant: "emergency"|"impossible",
  *   targetPages: number,
  *   canUseAi: boolean,
- *   onForceTighten: () => void,   // emergency only: apply the hard-floor fit
  *   onRequestAiShorten: () => void,
  *   onClose: () => void,
  * }} props
  */
 export default function LongCvModal({
   open,
-  variant,
   targetPages,
   canUseAi,
-  onForceTighten,
   onRequestAiShorten,
   onClose,
 }) {
-  if (!open || !variant) return null;
+  if (!open) return null;
 
   const targetLabel = formatFitTargetLabel(targetPages ?? 1);
   const aiLabel = canUseAi ? "Skróć treść z AI" : "Odblokuj skracanie AI w Pro";
-
-  let title;
-  let body;
-  if (variant === "emergency") {
-    title = `Zmieścimy na ${targetLabel}`;
-    body = (
-      <p className={classes.lead}>
-        Żeby zmieścić CV na {targetLabel}, możemy mocno zmniejszyć odstępy albo
-        skrócić treść. Skrócenie treści wygląda lepiej
-        {canUseAi ? "." : " i jest dostępne w planie Pro."}
-      </p>
-    );
-  } else {
-    title = "Trzeba skrócić treść";
-    body = (
-      <p className={classes.lead}>
-        Samo zmniejszenie odstępów nie zmieści CV na {targetLabel} — jest za dużo
-        treści. {canUseAi
-          ? "Możemy wskazać fragmenty do skrócenia, bez zmiany faktów."
-          : "Możesz skrócić ją ręcznie albo odblokować skracanie AI w planie Pro."}
-      </p>
-    );
-  }
 
   const actions = (
     <>
       <button type="button" className={classes.ghost} onClick={onClose}>
         Nie teraz
       </button>
-      {variant === "emergency" ? (
-        <button type="button" className={classes.ghost} onClick={onForceTighten}>
-          Maksymalnie zacieśnij
-        </button>
-      ) : null}
       <button type="button" className={classes.primary} onClick={onRequestAiShorten}>
         {aiLabel}
       </button>
@@ -85,10 +46,17 @@ export default function LongCvModal({
       open={open}
       onClose={onClose}
       width={520}
-      title={title}
+      title="Trzeba skrócić treść"
       footer={<div className={classes.actions}>{actions}</div>}
     >
-      <div className={classes.body}>{body}</div>
+      <div className={classes.body}>
+        <p className={classes.lead}>
+          Automatyczne dopasowanie sprawdziło mniejsze odstępy i rozmiar tekstu S,
+          ale CV nadal nie mieści się na {targetLabel}. {canUseAi
+            ? "Możemy wskazać fragmenty do skrócenia, bez zmiany faktów."
+            : "Możesz skrócić je ręcznie albo odblokować skracanie AI w planie Pro."}
+        </p>
+      </div>
     </DialogShell>
   );
 }

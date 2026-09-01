@@ -7,6 +7,7 @@ const url = new URL("./PdfCanvas.jsx", import.meta.url);
 test("uses the page-fit engine instead of a single fixed compact pass", async () => {
   const source = await readFile(url, "utf8");
   assert.match(source, /findFitForTarget/);
+  assert.match(source, /findTemplateFitForTarget/);
   assert.match(source, /resolveFitAction/);
   assert.match(source, /MIN_FLOW_SPACING/);
   // The old single-preset entry point is gone.
@@ -19,11 +20,11 @@ test("shrink searches baseline->floor; post-AI relax searches baseline->COMPACT"
   assert.match(source, /tightest:\s*COMPACT_FLOW_SPACING/);
 });
 
-test("routes tiers via resolveFitAction to commit / emergency / impossible", async () => {
+test("commits deterministic fits and opens AI fallback only after failure", async () => {
   const source = await readFile(url, "utf8");
   assert.match(source, /"commit"/);
-  assert.match(source, /variant:\s*"emergency"/);
-  assert.match(source, /variant:\s*"impossible"/);
+  assert.match(source, /setLongCvModalOpen\(true\)/);
+  assert.doesNotMatch(source, /variant:\s*"emergency"|onForceTighten/);
 });
 
 test("commit is a single undoable entry (setFlowSpacing + reconciled setA4_Elements)", async () => {
@@ -47,11 +48,20 @@ test("all layouts use the same realistic one-page reduction target", async () =>
   assert.doesNotMatch(source, /isSidebarTemplate\s*\?\s*1\s*:/);
 });
 
-test("LongCvModal receives the two-variant props (no onApplyCompact)", async () => {
+test("LongCvModal receives only the post-deterministic AI fallback props", async () => {
   const source = await readFile(url, "utf8");
-  assert.match(source, /variant={longCvModal\.variant}/);
-  assert.match(source, /onForceTighten=/);
-  assert.doesNotMatch(source, /onApplyCompact=/);
+  assert.match(source, /open={longCvModalOpen}/);
+  assert.match(source, /onRequestAiShorten=/);
+  assert.doesNotMatch(source, /variant={longCvModal|onForceTighten=|onApplyCompact=/);
+});
+
+test("one-page fitting probes and commits template typography S before AI", async () => {
+  const source = await readFile(url, "utf8");
+  assert.ok((source.match(/findTemplateFitForTarget\(/g) || []).length >= 3);
+  assert.match(source, /templateId:\s*activeTemplateId/);
+  assert.match(source, /useState\(\(\) => createCanvasTextWidthMeasurer\(\)\)/);
+  assert.match(source, /measureTextWidth:\s*fitTextWidthMeasurer/);
+  assert.match(source, /fit\.typographyPreset === 'S'/);
 });
 
 test("guest restore and claim run the hidden-photo persistence migration", async () => {

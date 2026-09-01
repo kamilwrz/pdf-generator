@@ -142,16 +142,18 @@ export function findFitForTarget({
 }
 
 /**
- * Map an engine result to a UI action. Pure — keeps the routing decision out
- * of the effectful orchestrator so it can be unit-tested.
+ * Map an engine result to a UI action. Every deterministic fit, including a
+ * hard-floor result, is committed before AI is considered. The template-aware
+ * orchestrator normally retries emergency spacing with typography `S` first.
  *
  * @param {{ tier: string }} result
- * @returns {{ action: "commit"|"emergency"|"impossible" }}
+ * @returns {{ action: "commit"|"impossible" }}
  */
 export function resolveFitAction(result) {
   const tier = result?.tier;
-  if (tier === "clean" || tier === "tight") return { action: "commit" };
-  if (tier === "emergency") return { action: "emergency" };
+  if (tier === "clean" || tier === "tight" || tier === "emergency") {
+    return { action: "commit" };
+  }
   return { action: "impossible" };
 }
 

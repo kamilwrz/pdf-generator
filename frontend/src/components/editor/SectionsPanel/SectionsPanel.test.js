@@ -119,7 +119,8 @@ test("document card keeps tier-honest fit status and CTA", async () => {
   assert.match(source, /onClick=\{\(\) => onFitToPages\(\)\}/);
   assert.match(source, /Zmieść na /);
   assert.match(source, /Układ wygląda dobrze/);
-  assert.match(source, /po skróceniu treści/);
+  assert.match(source, /zmniejszając odstępy i tekst do S/);
+  assert.match(source, /tier === "impossible"/);
 });
 
 test("structure groups show counts, contextual add actions, and reorder controls", async () => {

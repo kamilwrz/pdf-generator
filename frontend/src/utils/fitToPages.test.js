@@ -149,8 +149,8 @@ describe("resolveFitAction", () => {
     assert.deepEqual(resolveFitAction({ tier: "clean" }), { action: "commit" });
     assert.deepEqual(resolveFitAction({ tier: "tight" }), { action: "commit" });
   });
-  it("opens the emergency modal for a floor-only fit", () => {
-    assert.deepEqual(resolveFitAction({ tier: "emergency" }), { action: "emergency" });
+  it("commits a floor-only deterministic fit before considering AI", () => {
+    assert.deepEqual(resolveFitAction({ tier: "emergency" }), { action: "commit" });
   });
   it("routes impossible straight to the AI modal", () => {
     assert.deepEqual(resolveFitAction({ tier: "impossible" }), { action: "impossible" });
