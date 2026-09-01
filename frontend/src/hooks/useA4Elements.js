@@ -38,9 +38,11 @@ import { buildSectionElements } from '../utils/sectionBuilder';
 import {
   addRecordDescription,
   appendRecordToSection,
+  findRecordTemplateForLayout,
   insertRecordBlockAfterRecord,
   removeRecordDescription,
   removeRecordBlock,
+  replaceBuiltSectionRecord,
   reorderRecordBlock,
 } from '../utils/sectionRecord';
 import { applySelectedSectionIcon } from '../utils/sectionIcons';
@@ -937,7 +939,13 @@ export function useA4Elements(titleRef) {
       const sectionOrdinal = afterIndex >= 0
         ? afterIndex + 2
         : sections.length + 1;
-      const { elements, firstBodyId } = buildSectionElements({
+      const recordTemplate = findRecordTemplateForLayout(
+        prev,
+        layout,
+        pageHeight,
+        { lane: intoSidebar ? "sidebar" : "main" },
+      );
+      let builtSection = buildSectionElements({
         name,
         layout,
         style,
@@ -946,6 +954,21 @@ export function useA4Elements(titleRef) {
         idFactory: nanoid,
         lane: intoSidebar ? "sidebar" : "main",
       });
+      // A new section has no sibling record to clone. Borrow the matching
+      // Education/Experience record from the active template so the modal uses
+      // the same exact field arrangement as the in-section "+" action,
+      // including right-column period/location overlays.
+      builtSection = replaceBuiltSectionRecord(
+        builtSection,
+        recordTemplate,
+        layout,
+        {
+          idFactory: nanoid,
+          pageHeight,
+          lane: intoSidebar ? "sidebar" : "main",
+        },
+      );
+      const { elements, firstBodyId } = builtSection;
       const packOpts = {
         spacing,
         lane: intoSidebar ? "sidebar" : null,

@@ -27,12 +27,14 @@ const LAYOUT_OPTIONS = [
   {
     value: SECTION_LAYOUTS.RECORD_EDUCATION,
     title: "Wpis z dodatkowymi szczegółami",
-    description: "Nazwa, organizacja lub miejsce, okres albo lokalizacja oraz opis.",
+    description:
+      "Nazwa, organizacja lub miejsce, okres, lokalizacja i opis. Pola przejmą strukturę Wykształcenia z obecnego szablonu.",
   },
   {
     value: SECTION_LAYOUTS.RECORD_EXPERIENCE,
     title: "Wpis z opisem",
-    description: "Nazwa, organizacja lub okres oraz opis.",
+    description:
+      "Nazwa, organizacja, okres, lokalizacja i opis. Pola przejmą strukturę Doświadczenia z obecnego szablonu.",
   },
 ];
 

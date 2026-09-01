@@ -718,6 +718,256 @@ export function buildRecordClone(
 }
 
 /**
+ * Find the strongest existing education/experience record that can serve as
+ * the structural template for a brand-new section.
+ *
+ * Add-record already clones a sibling from the same section. Add-section has
+ * no sibling yet, so it must deliberately borrow the matching record kind from
+ * another section in the same lane. Preferring overlay-rich groups preserves
+ * the authored right-hand period/location rail used by Cadenza, Meridian,
+ * Aurelia, and Vellum instead of falling back to generic vertically stacked
+ * metadata.
+ *
+ * @param {object[]} elements
+ * @param {"cc-edu"|"cc-exp"} layout
+ * @param {number} [pageHeight=842]
+ * @param {{ lane?: "main"|"sidebar"|null }} [options]
+ * @returns {{ members: object[], groups: object[][], sectionTitle: string }|null}
+ */
+export function findRecordTemplateForLayout(
+  elements,
+  layout,
+  pageHeight = 842,
+  options = {},
+) {
+  if (
+    layout !== SECTION_LAYOUTS.RECORD_EDUCATION
+    && layout !== SECTION_LAYOUTS.RECORD_EXPERIENCE
+  ) {
+    return null;
+  }
+
+  const wantsSidebar = options.lane === "sidebar";
+  const candidates = [];
+  const recordGroups = [];
+  for (const section of listEditableSections(elements, pageHeight)) {
+    const heading = (elements || []).find((element) => element.element_id === section.headingId);
+    if (Boolean(heading && isSidebarSectionHeading(heading)) !== wantsSidebar) continue;
+
+    const body = listSectionContentElements(elements, section.headingId, pageHeight);
+    const groups = partitionSectionRecords(body);
+    for (const members of groups) {
+      const inferred = inferRecordLayout(members, { sectionTitle: section.title });
+      recordGroups.push({ members, inferred, sectionTitle: section.title });
+      if (inferred !== layout) continue;
+      const overlays = members.filter((element) => (
+        isRecordOverlay(element, members, pageHeight)
+      )).length;
+      const hasDescription = members.some((element) => Boolean(element?.bulletList));
+      const hasBoldTitle = members.some((element) => Boolean(element?.bold));
+      candidates.push({
+        members,
+        groups,
+        sectionTitle: section.title,
+        // Exact-anchor metadata is the most important signal. A complete
+        // description and bold title then beat short imported records.
+        score: overlays * 1000 + Number(hasDescription) * 100 + Number(hasBoldTitle) * 10 + members.length,
+      });
+    }
+  }
+
+  candidates.sort((left, right) => right.score - left.score);
+  if (candidates.length === 0) return null;
+  const { members, groups, sectionTitle } = candidates[0];
+
+  // Imported/generated records omit fields whose value is empty. A source
+  // record may therefore carry only a period overlay even though the template
+  // supports the complete period + location rail. Add-section is a data-entry
+  // surface, so it must expose both fields consistently. Recreate a missing
+  // overlay from the same document's rail style and pin it to the appropriate
+  // title/organisation row; this is the same optional-field geometry the
+  // backend generator would produce once the user supplied that value.
+  const completed = [...members];
+
+  if (!completed.some((element) => Boolean(element?.bulletList))) {
+    let donorDescription = null;
+    let donorDescriptionGroup = null;
+    for (const candidate of recordGroups) {
+      const found = candidate.members.find((element) => Boolean(element?.bulletList));
+      if (found) {
+        donorDescription = found;
+        donorDescriptionGroup = candidate.members;
+        break;
+      }
+    }
+    const targetReal = completed.filter((element) => (
+      !isRecordOverlay(element, completed, pageHeight)
+    ));
+    const targetPrevious = targetReal[targetReal.length - 1] || null;
+    if (donorDescription && targetPrevious) {
+      const donorReal = donorDescriptionGroup.filter((element) => (
+        !isRecordOverlay(element, donorDescriptionGroup, pageHeight)
+        && absoluteTop(element, pageHeight) < absoluteTop(donorDescription, pageHeight)
+      ));
+      const donorPrevious = donorReal[donorReal.length - 1] || null;
+      const rowDelta = donorPrevious
+        ? absoluteTop(donorDescription, pageHeight) - absoluteTop(donorPrevious, pageHeight)
+        : elementHeight(targetPrevious) + 4;
+      const targetAbs = absoluteTop(targetPrevious, pageHeight) + Math.max(1, rowDelta);
+      const targetPage = Math.max(1, Math.floor(targetAbs / pageHeight) + 1);
+      completed.push({
+        ...donorDescription,
+        element_id: `${donorDescription.element_id || "record-description"}-sample`,
+        content: "Opis…",
+        top: targetAbs - (targetPage - 1) * pageHeight,
+        page: targetPage,
+        flowRole: "content",
+        flowGroup: targetPrevious.flowGroup || donorDescription.flowGroup,
+        bulletList: true,
+        autoHeight: true,
+        preserveInitialLayout: true,
+      });
+    }
+  }
+
+  const realLines = completed.filter((element) => (
+    !isRecordOverlay(element, completed, pageHeight)
+  ));
+  const targetAnchors = {
+    period: realLines.find((element) => Boolean(element?.bold)) || realLines[0] || null,
+    city: realLines.find((element) => !element?.bold && !element?.bulletList) || null,
+  };
+  const overlayRole = (group, overlay, index = 0) => {
+    const anchor = findGroupOverlayAnchor(group, overlay, pageHeight);
+    if (anchor) return anchor.bold ? "period" : "city";
+    return index === 0 ? "period" : "city";
+  };
+  const presentRoles = new Set(completed
+    .filter((element) => isRecordOverlay(element, completed, pageHeight))
+    .map((overlay, index) => overlayRole(completed, overlay, index)));
+
+  for (const role of ["period", "city"]) {
+    const targetAnchor = targetAnchors[role];
+    if (presentRoles.has(role) || !targetAnchor) continue;
+
+    let donor = null;
+    let donorGroup = null;
+    for (const candidate of recordGroups) {
+      const overlays = candidate.members.filter((element) => (
+        isRecordOverlay(element, candidate.members, pageHeight)
+      ));
+      const matching = overlays.find((overlay, index) => (
+        overlayRole(candidate.members, overlay, index) === role
+      ));
+      if (matching) {
+        donor = matching;
+        donorGroup = candidate.members;
+        break;
+      }
+      if (!donor && overlays[0]) {
+        donor = overlays[0];
+        donorGroup = candidate.members;
+      }
+    }
+    if (!donor) continue;
+
+    const donorAnchor = findGroupOverlayAnchor(donorGroup, donor, pageHeight);
+    const baselineDelta = donorAnchor
+      ? absoluteTop(donor, pageHeight) - absoluteTop(donorAnchor, pageHeight)
+      : 0;
+    const targetAbs = absoluteTop(targetAnchor, pageHeight) + baselineDelta;
+    const targetPage = Math.max(1, Math.floor(targetAbs / pageHeight) + 1);
+    completed.push({
+      ...donor,
+      // This is a transient structural sample. `buildRecordClone` assigns a
+      // fresh persisted id before the field reaches canvas state.
+      element_id: `${donor.element_id || "record-overlay"}-${role}-sample`,
+      content: role === "period" ? "Okres" : "Lokalizacja",
+      top: targetAbs - (targetPage - 1) * pageHeight,
+      page: targetPage,
+      flowRole: "record-overlay",
+      flowGroup: targetAnchor.flowGroup || donor.flowGroup,
+      autoHeight: false,
+      preserveInitialLayout: true,
+    });
+    presentRoles.add(role);
+  }
+
+  return { members: completed, groups, sectionTitle };
+}
+
+/**
+ * Replace a generic record produced by `buildSectionElements` with a clone of
+ * a real template-authored record.
+ *
+ * The section builder remains responsible for its heading and decorative
+ * chrome. This function changes only the provisional body, translating the
+ * cloned record so its first flowing line starts at the builder's body anchor.
+ * Every cloned field is tagged as part of the new custom section, allowing the
+ * profile synchronizer to preserve it across later template changes.
+ *
+ * @param {{ elements: object[], headingId: string, firstBodyId: string }} built
+ * @param {{ members: object[], groups: object[][], sectionTitle: string }|null} template
+ * @param {"cc-edu"|"cc-exp"} layout
+ * @param {{ idFactory?: () => string, pageHeight?: number, lane?: "main"|"sidebar"|null }} [options]
+ * @returns {{ elements: object[], headingId: string, firstBodyId: string }}
+ */
+export function replaceBuiltSectionRecord(
+  built,
+  template,
+  layout,
+  options = {},
+) {
+  if (!template?.members?.length || !built?.headingId || !built?.firstBodyId) return built;
+
+  const idFactory = options.idFactory || nanoid;
+  const pageHeight = Number(options.pageHeight) || 842;
+  const anchor = (built.elements || []).find((element) => (
+    element.element_id === built.firstBodyId
+  ));
+  if (!anchor) return built;
+
+  const clones = buildRecordClone(
+    template.members,
+    idFactory,
+    template.groups,
+    { sectionTitle: template.sectionTitle, pageHeight },
+  );
+  if (clones.length === 0) return built;
+
+  const intoSidebar = options.lane === "sidebar";
+  const bodyTop = Number(anchor.top) || 0;
+  const prepared = clones.map((element) => ({
+    ...element,
+    top: bodyTop + (Number(element.top) || 0),
+    page: 1,
+    ...(intoSidebar ? { flowLane: "sidebar" } : {}),
+    editorAddedSection: true,
+    editorSectionId: built.headingId,
+    editorRecordLayout: layout,
+  }));
+  const generatedBodyIds = new Set((built.elements || [])
+    .filter((element) => (
+      element.element_id !== built.headingId
+      && element.editorAddedSection
+      && element.editorSectionId === built.headingId
+    ))
+    .map((element) => element.element_id));
+  const firstBody = prepared.find((element) => (
+    !isRecordOverlay(element, prepared, pageHeight)
+  )) || prepared[0];
+
+  return {
+    ...built,
+    elements: [
+      ...(built.elements || []).filter((element) => !generatedBodyIds.has(element.element_id)),
+      ...prepared,
+    ],
+    firstBodyId: firstBody.element_id,
+  };
+}
+
+/**
  * Translate a cloned record to a flow position without counting overlays as
  * vertical rows. Overlay fields are pinned to the same cloned row as in the
  * source record, preserving any small authored baseline correction.
