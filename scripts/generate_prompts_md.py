@@ -213,24 +213,24 @@ patrz `GOAL_ACTIONS` w `AiAssistant.jsx`.
         "**Po co (prosto):** Buduje ważoną macierz wymagań oferty, ocenia dowody "
         "w CV i proponuje wyłącznie potwierdzone poprawki do akceptacji.\n\n"
         f"**Plik:** `{a}`  \n"
-        "**Linie:** system **1473–1484**, user **1485–1517**, handler `_tailor_cv_to_position` **1450–1542**\n"
+        "**Linie:** system **1484–1496**, user **1497–1534**, handler `_tailor_cv_to_position` **1451–1558**\n"
         "**Akcja API:** `position_rating` (cel UI: Dopasuj do oferty)\n\n"
         "### Zmienne\n\n"
         "| Zmienna | Skąd | Linie |\n"
         "|---------|------|-------|\n"
-        "| `{job_description[:20_000]}` | bezpiecznie pobrana lub wklejona oferta | route + 1491 |\n"
-        "| `{structured}` | pełne elementy kanwy z `element_id` | 1462, 1497 |\n"
-        "| `{profile}` | znormalizowane kanoniczne `cv_data` | 1463, 1500 |\n"
-        "| `{candidate_notes[:5_000]}` | opcjonalne fakty kandydata | 1503 |\n"
-        "| `{offer_metadata}` | tytuł/firma/lokalizacja/źródło bez treści strony | 1464–1467, 1488 |\n\n"
+        "| `{job_description[:20_000]}` | bezpiecznie pobrana lub wklejona oferta | route + 1503 |\n"
+        "| `{structured}` | pełne elementy kanwy z `element_id` i stabilnym `evidence_id` | 1468–1473, 1508–1509 |\n"
+        "| `{profile}` | znormalizowane kanoniczne `cv_data` | 1479, 1511–1512 |\n"
+        "| `{note_evidence}` | opcjonalne fakty kandydata podzielone na źródła `note:*` | 1474–1478, 1514–1515 |\n"
+        "| `{offer_metadata}` | tytuł/firma/lokalizacja/źródło bez treści strony | 1480–1483, 1499–1500 |\n\n"
         "Odpowiedź jest ograniczona przez `JOB_TAILORING_RESPONSE_SCHEMA` w "
         "`backend/app/services/job_tailoring.py`; po odpowiedzi serwer ponownie "
-        "liczy wynik i waliduje dowody.\n\n"
+        "liczy wynik i waliduje identyfikatory dowodów względem rzeczywistych elementów CV/notatek.\n\n"
         "### System\n\n"
     )
-    parts.append(code(sl(a, 1473, 1484)))
+    parts.append(code(sl(a, 1484, 1496)))
     parts.append("\n### User\n\n")
-    parts.append(code(sl(a, 1485, 1517)))
+    parts.append(code(sl(a, 1497, 1534)))
 
     # 5 grammar
     parts.append("\n---\n\n## 5. Gramatyka\n\n")
@@ -479,7 +479,7 @@ patrz `GOAL_ACTIONS` w `AiAssistant.jsx`.
 | import PDF `/ai` | `extract_cv_data` | — | `ai_service.py` 48–118 |
 | `rating` / Sprawdź CV | `_rate_cv` | 1248–1255 | 1256–1328 |
 | `design_rating` / Sprawdź wygląd | `_rate_design` | 1345–1359 | 1360–1429 |
-| `position_rating` / Dopasuj do oferty | `_tailor_cv_to_position` | 1473–1484 | 1485–1517 |
+| `position_rating` / Dopasuj do oferty | `_tailor_cv_to_position` | 1484–1496 | 1497–1534 |
 | `grammar` / Popraw treść | `_fix_grammar` | 1552–1558 | 1559–1580 |
 | `language` / Popraw treść | `_check_style` | 1605–1614 | 1615–1665 |
 | `improve` / Popraw treść | `_improve_content` | 1687–1694 | 1695–1741 |

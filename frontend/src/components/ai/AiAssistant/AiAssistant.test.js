@@ -169,6 +169,7 @@ test("job tailoring sends URL, fallback, notes and the canonical profile", async
     assert.match(source, /candidate_notes: action === "position_rating" \? candidateNotes : ""/);
     assert.match(source, /jobRequirements: res\.job_requirements \?\? \[\]/);
     assert.match(source, /evidenceGaps: res\.evidence_gaps \?\? \[\]/);
+    assert.match(source, /Dowód z CV:/);
     assert.match(source, /Sprawdź czytelność ATS/);
 });
 

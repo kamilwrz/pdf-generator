@@ -439,7 +439,11 @@ function RatingDashboard({
                                 </span>
                                 <div>
                                     <strong>{item.text}</strong>
-                                    {item.evidence ? <span>{item.evidence}</span> : null}
+                                    {item.evidence ? (
+                                        <span className={classes.requirementEvidence}>
+                                            <b>Dowód z CV:</b> {item.evidence}
+                                        </span>
+                                    ) : null}
                                 </div>
                             </li>
                         ))}

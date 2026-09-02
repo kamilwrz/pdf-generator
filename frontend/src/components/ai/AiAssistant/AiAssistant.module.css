@@ -1175,6 +1175,15 @@
 .requirementList li > div > span,
 .evidenceGapList span { font: 500 10.5px/1.4 var(--font-body); color: var(--chrome-muted); }
 
+.requirementEvidence {
+    overflow-wrap: anywhere;
+}
+
+.requirementEvidence b {
+    color: var(--chrome-ink);
+    font-weight: 700;
+}
+
 .requirementStatus {
     padding: 3px 5px;
     border: 1px solid currentColor;

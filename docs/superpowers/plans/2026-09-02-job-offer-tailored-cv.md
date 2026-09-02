@@ -171,7 +171,7 @@ Reguły obliczeń:
 
 - `strong = 1`, `partial = 0.5`, `missing = 0` pomnożone przez wagę wymagania;
 - wymagania obowiązkowe mają wyższą wagę niż preferowane i odpowiedzialności opisowe;
-- każda ocena `strong` lub `partial` musi wskazać prawdziwy fragment CV przez `evidence_refs`;
+- każda ocena `strong` lub `partial` musi wskazać prawdziwy element CV/notatkę przez stabilne `evidence_refs` (`canvas:*` / `note:*`), które serwer rozwiązuje do rzeczywistego fragmentu;
 - brak dowodu automatycznie obniża dopasowanie — model nie może „domyślić się” umiejętności;
 - `rating` 1–10 jest zgodną wstecznie, zaokrągloną prezentacją sumy, a frontend nadal liczy procent z `categories`.
 

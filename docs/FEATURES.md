@@ -111,7 +111,7 @@ Menu asystenta jest ułożone wokół celów użytkownika, nie wokół endpoint�
 
 1. **Sprawdź CV** — audyt treści z dashboardem (% + kategorie); ATS odpala się leniwie z CTA  
 2. **Popraw treść** — submenu: Wzmocnij treść · Popraw język · Sprawdź błędy  
-3. **Dopasuj do oferty** — wklej publiczny link HTTPS lub treść ogłoszenia; zobacz ważoną macierz wymagań, luki w dowodach i bezpieczne poprawki CV do akceptacji
+3. **Dopasuj do oferty** — wklej publiczny link HTTPS lub treść ogłoszenia; zobacz ważoną macierz wymagań z rzeczywistymi fragmentami „Dowód z CV”, prawdziwe luki oraz bezpieczne poprawki CV do akceptacji
 4. **Sprawdź wygląd** (Pro) — typografia oraz tryb **Układ** (geometria A4)  
 5. **Przetłumacz CV** — PL / EN / DE / FR / ES / UA / IT / NL; poprawki do akceptacji  
 

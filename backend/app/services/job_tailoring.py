@@ -35,14 +35,18 @@ JOB_TAILORING_RESPONSE_SCHEMA = {
                 "items": {
                     "type": "object",
                     "additionalProperties": False,
-                    "required": ["id", "text", "kind", "weight", "match_status", "evidence"],
+                    "required": ["id", "text", "kind", "weight", "match_status", "evidence_refs"],
                     "properties": {
                         "id": {"type": "string"},
                         "text": {"type": "string"},
                         "kind": {"type": "string", "enum": ["required", "preferred", "responsibility"]},
                         "weight": {"type": "integer", "minimum": 1, "maximum": 3},
                         "match_status": {"type": "string", "enum": ["matched", "partial", "missing"]},
-                        "evidence": {"type": "string"},
+                        "evidence_refs": {
+                            "type": "array",
+                            "maxItems": 5,
+                            "items": {"type": "string"},
+                        },
                     },
                 },
             },
@@ -145,14 +149,49 @@ def _source_text(profile: dict | None, elements: list[dict], candidate_notes: st
     )
 
 
+def build_evidence_catalog(elements: list[dict], candidate_notes: str = "") -> dict[str, str]:
+    """Map stable evidence identifiers to exact candidate-provided source text.
+
+    Model-generated paraphrases are unsuitable as identifiers because a valid
+    bilingual match rarely repeats the complete Polish CV sentence verbatim.
+    Canvas IDs and numbered note fragments let the model express semantic
+    relevance while the server still verifies that every cited source exists.
+    """
+    catalog: dict[str, str] = {}
+    for item in elements:
+        if not isinstance(item, dict) or item.get("element_id") is None:
+            continue
+        content = _compact(item.get("content"))
+        if content:
+            catalog[f"canvas:{item['element_id']}"] = content
+
+    note_fragments = re.split(r"(?:\r?\n)+|(?<=[.!?])\s+", str(candidate_notes or ""))
+    for index, fragment in enumerate(note_fragments, start=1):
+        content = _compact(fragment)
+        if content:
+            catalog[f"note:{index}"] = content
+    return catalog
+
+
 def _numbers(value: str) -> set[str]:
     return {re.sub(r"\s+", "", match.group(0)).replace(",", ".") for match in _NUMBER_RE.finditer(value)}
 
 
-def _has_grounded_refs(refs: object, source_folded: str) -> bool:
+def _valid_evidence_refs(refs: object, evidence_catalog: dict[str, str]) -> list[str]:
     if not isinstance(refs, list) or not refs:
-        return False
-    return all(_compact(ref).casefold() in source_folded for ref in refs if _compact(ref)) and any(_compact(ref) for ref in refs)
+        return []
+    normalized = [_compact(ref) for ref in refs if _compact(ref)]
+    if not normalized or any(ref not in evidence_catalog for ref in normalized):
+        return []
+    return list(dict.fromkeys(normalized))
+
+
+def _evidence_excerpt(refs: list[str], evidence_catalog: dict[str, str]) -> str:
+    excerpts = []
+    for ref in refs[:2]:
+        value = evidence_catalog[ref]
+        excerpts.append(value if len(value) <= 220 else f"{value[:217].rstrip()}…")
+    return " · ".join(excerpts)
 
 
 def _unsupported_missing_terms(after: str, source: str, requirements: list[dict]) -> set[str]:
@@ -178,6 +217,7 @@ def _is_grounded_rewrite(
     refs: object,
     source: str,
     requirements: list[dict],
+    evidence_catalog: dict[str, str],
 ) -> bool:
     value = _compact(after)
     if not value or _PLACEHOLDER_RE.search(value):
@@ -186,10 +226,10 @@ def _is_grounded_rewrite(
         return False
     if _unsupported_missing_terms(value, source, requirements):
         return False
-    return _has_grounded_refs(refs, source.casefold())
+    return bool(_valid_evidence_refs(refs, evidence_catalog))
 
 
-def _normalise_requirements(value: object, source: str) -> list[dict]:
+def _normalise_requirements(value: object, evidence_catalog: dict[str, str]) -> list[dict]:
     if not isinstance(value, list):
         return []
     requirements: list[dict] = []
@@ -207,13 +247,15 @@ def _normalise_requirements(value: object, source: str) -> list[dict]:
         status = str(item.get("match_status") or "missing")
         if status not in {"matched", "partial", "missing"}:
             status = "missing"
-        evidence = _compact(item.get("evidence"))
+        evidence_refs = _valid_evidence_refs(item.get("evidence_refs"), evidence_catalog)
         # Structured output constrains the label but cannot prove the claim.
-        # A positive match therefore counts only when the cited source fragment
-        # is present verbatim in the CV or candidate-provided notes.
-        if status != "missing" and (not evidence or evidence.casefold() not in source.casefold()):
+        # Positive matches therefore count only when they reference a real CV
+        # element or candidate note. Semantic interpretation remains with the
+        # model, while source existence is deterministic and server-enforced.
+        if status != "missing" and not evidence_refs:
             status = "missing"
-            evidence = ""
+        if status == "missing":
+            evidence_refs = []
         default_weight = {"required": 3, "preferred": 2, "responsibility": 1}[kind]
         try:
             weight = max(1, min(3, int(item.get("weight", default_weight))))
@@ -225,7 +267,8 @@ def _normalise_requirements(value: object, source: str) -> list[dict]:
             "kind": kind,
             "weight": weight,
             "match_status": status,
-            "evidence": evidence,
+            "evidence": _evidence_excerpt(evidence_refs, evidence_catalog),
+            "evidence_refs": evidence_refs,
         })
     return requirements
 
@@ -282,7 +325,8 @@ def build_job_tailoring_result(
     """Create a deterministic score and discard every ungrounded change."""
     profile = normalize_cv_data(cv_data) if isinstance(cv_data, dict) else None
     source = _source_text(profile, elements, candidate_notes)
-    requirements = _normalise_requirements(raw.get("requirements"), source)
+    evidence_catalog = build_evidence_catalog(elements, candidate_notes)
+    requirements = _normalise_requirements(raw.get("requirements"), evidence_catalog)
     element_content = {
         str(item.get("element_id")): str(item.get("content") or "")
         for item in elements
@@ -300,7 +344,7 @@ def build_job_tailoring_result(
         before = str(item.get("before") or "")
         after = _compact(item.get("content"))
         if current is None or before != current or after == current or not _is_grounded_rewrite(
-            after, item.get("evidence_refs"), source, requirements
+            after, item.get("evidence_refs"), source, requirements, evidence_catalog
         ):
             rejected += 1
             continue
@@ -322,7 +366,13 @@ def build_job_tailoring_result(
                 or current is None
                 or before != current
                 or after == current
-                or not _is_grounded_rewrite(after, item.get("evidence_refs"), source, requirements)
+                or not _is_grounded_rewrite(
+                    after,
+                    item.get("evidence_refs"),
+                    source,
+                    requirements,
+                    evidence_catalog,
+                )
             ):
                 continue
             if _write_profile_path(updated_profile, path, after):
@@ -343,14 +393,18 @@ def build_job_tailoring_result(
     rating = max(1, min(10, round(sum(item["score"] for item in categories))))
 
     evidence_gaps: list[dict] = []
+    requirement_statuses = {item["id"]: item["match_status"] for item in requirements}
     raw_gaps = raw.get("evidence_gaps") if isinstance(raw.get("evidence_gaps"), list) else []
     for item in raw_gaps[:10]:
         if not isinstance(item, dict):
             continue
         title = _compact(item.get("title"))
-        if title:
+        requirement_id = _compact(item.get("requirement_id"))
+        # A model may produce a provisional gap and later cite valid evidence
+        # for the same requirement. Do not show those contradictory states.
+        if title and requirement_statuses.get(requirement_id) != "matched":
             evidence_gaps.append({
-                "requirement_id": _compact(item.get("requirement_id")),
+                "requirement_id": requirement_id,
                 "title": title,
                 "description": _compact(item.get("description")),
             })
