@@ -1,6 +1,9 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { syncCvDataFromCanvas } from "./syncCvDataFromCanvas.js";
+import {
+  syncCvDataFromCanvas,
+  syncGeneratedLanguagesForTemplateSwitch,
+} from "./syncCvDataFromCanvas.js";
 
 const profile = {
   name: "Anna Kowalska",
@@ -749,8 +752,8 @@ describe("syncCvDataFromCanvas", () => {
       autoHeight: true,
     });
     const polish = cell("language-pl", "Polski — C2", 60);
-    const english = cell("language-en", "Angielski — C1", 168);
-    const german = cell("language-de", "Niemiecki — B2", 276);
+    const german = cell("language-de", "Niemiecki — B2", 168);
+    const english = cell("language-en", "Angielski — C1", 276);
     const source = {
       ...profile,
       languages: [
@@ -779,6 +782,48 @@ describe("syncCvDataFromCanvas", () => {
     assert.deepEqual(removed.languages, [
       { name: "Polski", level: "C2" },
       { name: "Angielski", level: "C1" },
+    ]);
+  });
+
+  it("snapshots exact Languages cell count and reading order for a template switch", () => {
+    const heading = sectionHeading("languages-heading", "KOMPETENCJE GLOBALNE", {
+      gridKind: "languages",
+    });
+    const cell = (element_id, content, left, top) => ({
+      ...text(element_id, content),
+      flowRole: "grid-member",
+      flowGroup: top === 130 ? "languages-row-1" : "languages-row-2",
+      gridKind: "languages",
+      top,
+      left,
+      width: 92,
+      page: 1,
+      autoHeight: true,
+    });
+    const polish = cell("language-pl", "Polski — C2", 60, 130);
+    const placeholderOne = cell("placeholder-1", "Język — poziom", 160, 130);
+    const placeholderTwo = cell("placeholder-2", "Język — poziom", 260, 130);
+    const activelyEdited = {
+      ...cell("active-language", "Hiszpański — A2", 60, 150),
+      isEditing: true,
+    };
+    const source = {
+      ...profile,
+      languages: [{ name: "Polski", level: "C2" }],
+    };
+
+    // Deliberately scramble array order: the refill snapshot must follow the
+    // visual grid (row, then column), not incidental element storage order.
+    const updated = syncGeneratedLanguagesForTemplateSwitch(
+      source,
+      [heading, placeholderTwo, activelyEdited, polish, placeholderOne],
+    );
+
+    assert.deepEqual(updated.languages, [
+      { name: "Polski", level: "C2" },
+      { name: "Język", level: "poziom" },
+      { name: "Język", level: "poziom" },
+      { name: "Hiszpański", level: "A2" },
     ]);
   });
 

@@ -141,6 +141,49 @@ class LanguagesGridTests(unittest.TestCase):
             with self.subTest(template=template_id):
                 self.assertEqual(self._languages_grid_row_width(template_id, cv), 3)
 
+    def test_structured_placeholder_duplicates_survive_template_refill_in_order(self):
+        languages = [
+            {"name": "Polski", "level": "C2"},
+            {"name": "Język", "level": "poziom"},
+            {"name": "Język", "level": "poziom"},
+            {"name": "Hiszpański", "level": "A2"},
+        ]
+        profile = normalize_cv_data({
+            "name": "Anna Nowak",
+            "languages": languages,
+        })
+
+        # A template switch normalizes the already normalized profile once in
+        # the route and again at the generator registry boundary.
+        refilled = normalize_cv_data(profile, require_name=True)
+        elements = generate_resume("regent", refilled)
+        cells = [
+            element for element in elements
+            if element.get("gridKind") == "languages"
+            and element.get("flowRole") == "grid-member"
+        ]
+
+        self.assertEqual(profile["languages"], languages)
+        self.assertEqual(refilled["languages"], languages)
+        self.assertEqual(
+            [cell.get("content") for cell in cells],
+            [
+                "Polski — C2",
+                "Język — poziom",
+                "Język — poziom",
+                "Hiszpański — A2",
+            ],
+        )
+
+        legacy = normalize_cv_data({
+            "name": "Anna Nowak",
+            "languages": ["English — C1", "English — C1"],
+        })
+        self.assertEqual(
+            legacy["languages"],
+            [{"name": "English", "level": "C1"}],
+        )
+
     def test_custom_entry_grid_survives_template_generation_with_editor_metadata(self):
         profile = normalize_cv_data({
             "name": "Anna Nowak",

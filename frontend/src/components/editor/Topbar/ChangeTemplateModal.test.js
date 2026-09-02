@@ -23,6 +23,16 @@ describe("ChangeTemplateModal spacing", () => {
   it("resets document knobs after a successful template swap", () => {
     assert.match(hookSource, /adoptDocumentFlowSpacing\?\.\(DEFAULT_FLOW_SPACING\)/);
   });
+
+  it("refills from the live Languages grid and keeps that profile after replacement", () => {
+    assert.match(hookSource, /syncGeneratedLanguagesForTemplateSwitch\(/);
+    assert.match(hookSource, /activeCvData,[\s\S]*A4_Elements/);
+    assert.match(hookSource, /fillTemplate\(profileForFill, template\.id/);
+    assert.match(
+      hookSource,
+      /replaceActiveElements\([\s\S]*\{ cvData: profileForFill \}[\s\S]*\)/,
+    );
+  });
 });
 
 describe("Topbar template switcher", () => {

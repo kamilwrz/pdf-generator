@@ -10,7 +10,6 @@ import { useEffect } from "react";
 import { FiPlus, FiTrash2 } from "react-icons/fi";
 import { useCanvasContext } from "../../../store/canvas-context";
 import { EDITOR_MODE_TEMPLATE } from "../../../utils/editorMode";
-import { getElementOutlineBounds } from "../../../utils/elementBounds";
 import { useCanvasDeletionUndo } from "../../../hooks/useCanvasDeletionUndo";
 import { useCanvasHoverToolbar } from "../../../hooks/useCanvasHoverToolbar";
 import {
@@ -70,6 +69,7 @@ export default function GridEntryActions({
   const {
     visible,
     pinned,
+    hoveredTriggerId,
     toolbarPointerProps,
     hide,
     openMenu,
@@ -134,7 +134,17 @@ export default function GridEntryActions({
     : ((Number(left) || 0) < (pageSize?.width ?? 595) / 2 ? "left" : "right");
   const side = resolveStructuralToolbarSide(preferredSide, spreadSide);
   const entryLabel = String(entry?.content || "").trim();
-  const elementHighlight = visible ? getElementOutlineBounds(entry) : null;
+  // A grid cell is both the structural target and the exact edited element, so
+  // the section/record pattern of painting two nested hover frames would draw
+  // the same boundary twice. SelectionOverlay and the editable textarea own
+  // selected/editing states; keyboard focus keeps the global focus-visible
+  // ring. Paint this one context frame only for pointer hover (or while the
+  // keyboard-opened toolbar is pinned) when no persistent state frame exists.
+  const hasPersistentStateFrame = Boolean(entry?.isSelected || entry?.isEditing);
+  const hoverHighlight = !hasPersistentStateFrame
+    && (hoveredTriggerId === elementId || pinned)
+    ? resolvedHighlight
+    : null;
   const directActions = [
     {
       key: "add",
@@ -181,9 +191,7 @@ export default function GridEntryActions({
       side={side}
       top={toolbarTop}
       pageWidth={pageSize?.width ?? 595}
-      highlight={resolvedHighlight}
-      elementHighlight={elementHighlight}
-      elementHighlightSelected={Boolean(entry?.isSelected)}
+      highlight={hoverHighlight}
       layout={layout}
       directActions={directActions}
       toolbarPointerProps={directToolbarPointerProps}

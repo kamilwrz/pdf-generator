@@ -429,12 +429,46 @@ function generatedLanguageGridEntries(elements) {
     .filter((element) => (
       element?.flowRole === "grid-member"
       && ["text", "textarea"].includes(element?.category)
-    ));
+    ))
+    .sort((left, right) => {
+      const leftTop = ((Number(left?.page) || 1) - 1) * 842 + (Number(left?.top) || 0);
+      const rightTop = ((Number(right?.page) || 1) - 1) * 842 + (Number(right?.top) || 0);
+      if (Math.abs(leftTop - rightTop) > 0.01) return leftTop - rightTop;
+      return (Number(left?.left) || 0) - (Number(right?.left) || 0);
+    });
   if (cells.length === 0) return null;
 
-  return cells.flatMap((cell) => contentLines(cell))
-    .map(parseLanguageLine)
-    .filter((entry) => entry.name);
+  // One grid cell is one semantic language entry. Empty cells are represented
+  // by the same visible placeholder used by the add action, so switching a
+  // template cannot silently reduce the number of cells while one is being
+  // edited or has just been cleared.
+  return cells.map((cell) => {
+    const entry = parseLanguageLine(profileTextForElement(cell));
+    return entry.name ? entry : { name: "Język", level: "poziom" };
+  });
+}
+
+/**
+ * Snapshot the current generated Languages grid immediately before a template
+ * refill, without waiting for React's canvas-to-profile synchronization effect.
+ *
+ * Textarea commits every contentEditable `input` event into `A4_Elements`, so
+ * an entry that is still in edit mode is already represented by this snapshot;
+ * no focus-dependent DOM read is needed after a template button takes focus.
+ *
+ * @param {object|null} cvData
+ * @param {object[]} elements
+ * @returns {object|null}
+ */
+export function syncGeneratedLanguagesForTemplateSwitch(cvData, elements) {
+  if (!cvData || !Array.isArray(elements)) return cvData || null;
+  const languages = generatedLanguageGridEntries(elements);
+  if (!languages || JSON.stringify(languages) === JSON.stringify(cvData.languages || [])) {
+    return cvData;
+  }
+  const draft = cloneProfile(cvData);
+  draft.languages = languages;
+  return draft;
 }
 
 /**

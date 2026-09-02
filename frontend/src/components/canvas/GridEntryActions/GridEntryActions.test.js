@@ -42,3 +42,15 @@ test("grid actions stay in the section gutter and protect the final entry", () =
   assert.match(source, /disabled: !canDelete \|\| typeof removeGridSectionEntry !== "function"/);
   assert.match(source, /<CanvasHoverToolbar/);
 });
+
+test("grid entry hover never stacks toolbar frames over selection, editing, or focus", () => {
+  assert.match(source, /hoveredTriggerId,/);
+  assert.match(
+    source,
+    /const hasPersistentStateFrame = Boolean\(entry\?\.isSelected \|\| entry\?\.isEditing\)/,
+  );
+  assert.match(source, /hoveredTriggerId === elementId \|\| pinned/);
+  assert.match(source, /highlight=\{hoverHighlight\}/);
+  assert.doesNotMatch(source, /elementHighlight=/);
+  assert.doesNotMatch(source, /elementHighlightSelected=/);
+});

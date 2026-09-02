@@ -844,11 +844,18 @@ def _split_language_rows(value: Any) -> list[str]:
 
 
 def _normalize_languages(value: Any) -> list[dict[str, str]]:
-    """Normalize current mappings and legacy strings into editable languages."""
+    """Normalize current mappings and legacy strings into editable languages.
+
+    Structured mappings are editor-owned rows, so their order and multiplicity
+    are semantic. In particular, several newly added cells may temporarily
+    contain the same ``Język — poziom`` placeholder. Legacy free-text imports
+    still deduplicate repeated rows because those duplicates commonly come from
+    extraction noise rather than explicit editor entries.
+    """
     if not isinstance(value, list):
         return []
 
-    entries: list[tuple[str, str]] = []
+    entries: list[tuple[str, str, bool]] = []
     for item in value:
         if isinstance(item, Mapping):
             name = _text(item.get("name") or item.get("language"))
@@ -857,7 +864,7 @@ def _normalize_languages(value: Any) -> list[dict[str, str]]:
             # punctuation inside the level (for example ``C1; certyfikat
             # CAE``) instead of re-parsing it as another language row.
             if name:
-                entries.append((name, level))
+                entries.append((name, level, True))
             continue
 
         for raw in _split_language_rows(_text(item)):
@@ -889,13 +896,13 @@ def _normalize_languages(value: Any) -> list[dict[str, str]]:
             else:
                 name, level = raw.strip(), ""
             if name:
-                entries.append((name, level))
+                entries.append((name, level, False))
 
     result: list[dict[str, str]] = []
     seen: set[tuple[str, str]] = set()
-    for name, level in entries:
+    for name, level, preserve_duplicate in entries:
         key = (name.casefold(), level.casefold())
-        if name and key not in seen:
+        if name and (preserve_duplicate or key not in seen):
             result.append({"name": name, "level": level})
             seen.add(key)
     return result

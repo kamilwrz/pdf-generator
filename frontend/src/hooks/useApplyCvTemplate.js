@@ -14,6 +14,7 @@ import { isTemplateAllowed, planErrorMessage } from "../utils/entitlements";
 import { DEFAULT_FLOW_SPACING } from "../utils/flowSpacing";
 import { getAccessToken } from "../utils/authSession";
 import { useDocumentLifecycle } from "../store/document-lifecycle-context";
+import { syncGeneratedLanguagesForTemplateSwitch } from "../utils/syncCvDataFromCanvas";
 
 /**
  * @returns {{
@@ -26,6 +27,7 @@ import { useDocumentLifecycle } from "../store/document-lifecycle-context";
 export function useApplyCvTemplate() {
   const { captureDocumentScope, isDocumentScopeCurrent } = useDocumentLifecycle();
   const {
+    A4_Elements,
     activeCvData,
     replaceActiveElements,
     adoptDocumentFlowSpacing,
@@ -46,6 +48,14 @@ export function useApplyCvTemplate() {
       setError("Ten szablon jest dostępny w planie Pro.");
       return false;
     }
+    // The canvas may be one React effect ahead of `activeCvData` immediately
+    // after + inserts a Languages cell. Read the grid directly before sending
+    // the refill. Textarea stores each input in A4_Elements even while the cell
+    // remains in edit mode, so this does not depend on focus after the click.
+    const profileForFill = syncGeneratedLanguagesForTemplateSwitch(
+      activeCvData,
+      A4_Elements,
+    );
     setFillingId(template.id);
     setError(null);
     const requestScope = captureDocumentScope();
@@ -53,7 +63,7 @@ export function useApplyCvTemplate() {
       // Sections-panel spacing belongs to the current document layout.
       // A new template must regenerate with the generator defaults — not
       // the previous template's custom rhythm knobs.
-      const res = await fillTemplate(activeCvData, template.id, {
+      const res = await fillTemplate(profileForFill, template.id, {
         api,
         errorMessage: "Zmiana szablonu nie powiodła się",
         spacing: DEFAULT_FLOW_SPACING,
@@ -68,7 +78,12 @@ export function useApplyCvTemplate() {
       // The generator receives the synchronized profile and owns the whole
       // target canvas. Cross-template element order is not stable, so copying
       // source canvas text here can place a record into an unrelated slot.
-      replaceActiveElements(res.elements, undefined, template.id);
+      replaceActiveElements(
+        res.elements,
+        undefined,
+        template.id,
+        { cvData: profileForFill },
+      );
       // Keep knobs / Reset baseline / next autosave `spacing_px` aligned
       // with the freshly generated layout (after pinFlowSpacingBaseline).
       adoptDocumentFlowSpacing?.(DEFAULT_FLOW_SPACING);
@@ -88,6 +103,7 @@ export function useApplyCvTemplate() {
       setFillingId(null);
     }
   }, [
+    A4_Elements,
     activeCvData,
     adoptDocumentFlowSpacing,
     api,
