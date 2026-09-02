@@ -346,6 +346,120 @@ class LanguageConsistencyTests(unittest.TestCase):
         ]
         self.assertIsNone(ai_assistant_service._detect_language_mix(elements))
 
+    def test_detect_language_mix_ignores_english_role_titles_in_polish_cv(self):
+        elements = [
+            {
+                "element_id": "h1",
+                "category": "text",
+                "content": "DOŚWIADCZENIE ZAWODOWE",
+                "page": 1,
+                "top": 10,
+                "left": 0,
+            },
+            {
+                "element_id": "role-1",
+                "category": "text",
+                "content": "Senior Software Engineer",
+                "page": 1,
+                "top": 30,
+                "left": 0,
+            },
+            {
+                "element_id": "body-1",
+                "category": "textarea",
+                "content": (
+                    "Projektowałem oraz rozwijałem platformę danych dla międzynarodowego "
+                    "zespołu i skróciłem czas wdrożenia o 30 procent."
+                ),
+                "page": 1,
+                "top": 50,
+                "left": 0,
+            },
+            {
+                "element_id": "role-2",
+                "category": "text",
+                "content": "Customer Service Specialist with German",
+                "page": 1,
+                "top": 90,
+                "left": 0,
+            },
+            {
+                "element_id": "body-2",
+                "category": "textarea",
+                "content": (
+                    "Prowadziłem obsługę klientów oraz usprawniłem analizę zgłoszeń "
+                    "w firmie działającej na kilku rynkach."
+                ),
+                "page": 1,
+                "top": 110,
+                "left": 0,
+            },
+        ]
+
+        self.assertTrue(ai_assistant_service._is_international_role_title("Web Developer"))
+        self.assertTrue(ai_assistant_service._is_international_role_title("Data Analyst"))
+        self.assertIsNone(ai_assistant_service._detect_language_mix(elements))
+
+    def test_rate_cv_prompt_exempts_international_role_titles_from_language_score(self):
+        elements = [
+            {
+                "element_id": "h1",
+                "category": "text",
+                "content": "DOŚWIADCZENIE ZAWODOWE",
+                "page": 1,
+                "top": 10,
+                "left": 0,
+            },
+            {
+                "element_id": "role",
+                "category": "text",
+                "content": "Web Developer",
+                "page": 1,
+                "top": 30,
+                "left": 0,
+            },
+            {
+                "element_id": "body",
+                "category": "textarea",
+                "content": (
+                    "Tworzyłem aplikacje internetowe oraz prowadziłem projekt dla "
+                    "międzynarodowego zespołu w firmie technologicznej."
+                ),
+                "page": 1,
+                "top": 50,
+                "left": 0,
+            },
+        ]
+        captured = {}
+
+        def fake_gpt_result(system, user, **kwargs):
+            captured["system"] = system
+            captured["user"] = user
+            return {
+                "message": "Angielska nazwa roli jest poprawnym terminem branżowym.",
+                "rating": 8,
+                "tips": [],
+                "categories": [
+                    {"id": "language", "label": "Język", "score": 2, "max": 2},
+                ],
+                "strengths": [],
+                "priorities": [],
+                "corrections": [],
+                "web_sources": [],
+            }
+
+        with patch.object(ai_assistant_service, "_gpt_result", side_effect=fake_gpt_result):
+            result = ai_assistant_service._rate_cv(
+                ai_assistant_service._extract_text(elements),
+                elements,
+            )
+
+        self.assertIn("nie wolno za nie odejmować punktów", captured["system"])
+        self.assertIn("Web Developer, Data Analyst", captured["user"])
+        self.assertNotIn("FAKT Z WARSTWY DETERMINISTYCZNEJ", captured["user"])
+        language = next(c for c in result["categories"] if c["id"] == "language")
+        self.assertEqual(language["score"], 2)
+
     def test_rate_cv_injects_language_mix_priority_when_model_only_mentions_typos(self):
         elements = self._mixed_pl_headers_en_body()
         captured = {}

@@ -221,6 +221,8 @@ _SECTION_HEADER_RE = re.compile(
 # Polish vs English signals for mixed-language CV detection. Templates often
 # ship Polish section chrome while imported / edited body copy stays English;
 # that mismatch looks unprofessional and must surface in rating feedback.
+# International job titles and industry terminology are intentionally exempt:
+# they are names, not prose, and are normal in otherwise Polish CVs.
 _PL_DIACRITIC_RE = re.compile(r"[ąćęłńóśźżĄĆĘŁŃÓŚŹŻ]")
 _PL_LEXICAL_RE = re.compile(
     r"\b(?:oraz|przez|jestem|byłem|byłam|pracowałem|pracowałam|prowadziłem|"
@@ -254,6 +256,22 @@ _LANGUAGE_MIX_FEEDBACK_RE = re.compile(
     r"(polsk\w*\s+nag[lł][oó]wk|angielsk\w*\s+tre[sś])|"
     r"ujednoli[cć]\s+j[eę]zyk|"
     r"jeden\s+j[eę]zyk",
+    re.IGNORECASE,
+)
+
+# A role label is excluded from dominant-language scoring only when it contains
+# a recognisable profession noun. This narrow vocabulary avoids treating short
+# prose as a title while covering common international names such as "Web
+# Developer", "Data Analyst", "Head of Data", and "Customer Service
+# Specialist with German". The title remains visible to GPT and may receive an
+# optional localisation recommendation; it simply cannot become evidence that
+# the CV prose mixes languages.
+_INTERNATIONAL_ROLE_TITLE_RE = re.compile(
+    r"\b(?:developer|analyst|engineer|manager|consultant|specialist|designer|"
+    r"architect|director|officer|coordinator|administrator|scientist|"
+    r"researcher|recruiter|accountant|controller|auditor|technician|intern|"
+    r"(?:team|tech|technical|engineering|product|design|data|marketing|sales|project)\s+lead|"
+    r"head\s+of\s+[a-z][a-z& /-]+)\b",
     re.IGNORECASE,
 )
 
@@ -316,6 +334,30 @@ def _header_language_vote(text: str) -> str | None:
     return None
 
 
+def _is_international_role_title(content: str) -> bool:
+    """Return whether one short line is a conventional international role name.
+
+    Role names are proper professional labels rather than sentences. Keeping
+    them out of language-signal counts prevents a Polish CV containing several
+    English corporate titles from being classified as English body copy.
+    Terminal sentence punctuation, multiline text, and long descriptions are
+    rejected so genuine foreign-language prose still triggers the consistency
+    check.
+
+    @param content - Visible text from one canvas element.
+    @returns ``True`` only for a short title containing a known profession noun.
+    """
+    raw = str(content or "").replace("\\n", "\n").strip()
+    if not raw or "\n" in raw:
+        return False
+    flat = " ".join(raw.split())
+    if len(flat) > 80 or len(flat.split()) > 10:
+        return False
+    if re.search(r"[.!?;:]$", flat):
+        return False
+    return bool(_INTERNATIONAL_ROLE_TITLE_RE.search(flat))
+
+
 # Supported CV languages for auto-detection and content corrections. Mirrors the
 # translate action's language set so detection, correction, and translation all
 # speak the same vocabulary. Order is irrelevant; membership is what matters.
@@ -359,8 +401,8 @@ def _split_headers_and_body(elements: list[dict]) -> tuple[list[str], list[str]]
     Shared by language detection and the language-mix rating check so the two
     never diverge on what counts as a header vs. scoreable body text. Applies
     the same exclusions both need: employment-period lines, contact lines
-    (emails/URLs), and very short tokens (names, cities) that do not encode
-    document language.
+    (emails/URLs), international role titles, and very short tokens (names,
+    cities) that do not encode document language.
     """
     headers: list[str] = []
     body_chunks: list[str] = []
@@ -375,6 +417,8 @@ def _split_headers_and_body(elements: list[dict]) -> tuple[list[str], list[str]]
             headers.append(flat)
             continue
         if _is_employment_period_line(flat):
+            continue
+        if _is_international_role_title(flat):
             continue
         if "@" in flat or flat.startswith("http"):
             continue
@@ -480,6 +524,8 @@ def _detect_language_mix(elements: list[dict]) -> dict | None:
     score only grammar/clichés, so the UI could show Język=0% for typos while
     never naming the more damaging bilingual layout. This heuristic feeds an
     explicit fact into rating/style prompts and guarantees a top priority.
+    Conventional English role names are excluded because they are valid proper
+    labels in Polish CVs, especially for work in international organisations.
 
     @returns A descriptor with prompt/feedback copy, or ``None`` when consistent.
     """
@@ -562,7 +608,7 @@ def _detect_language_mix(elements: list[dict]) -> dict | None:
 
 
 def _language_mix_prompt_block(mix: dict | None, *, for_rating: bool = False) -> str:
-    """Format a hard fact block for GPT when bilingual chrome/body is detected."""
+    """Format a hard fact block for GPT when bilingual chrome/prose is detected."""
     if not mix:
         return ""
     rating_rules = ""
@@ -576,6 +622,7 @@ def _language_mix_prompt_block(mix: dict | None, *, for_rating: bool = False) ->
         "\n════════════════════════════════════════\n"
         "FAKT Z WARSTWY DETERMINISTYCZNEJ (OBOWIĄZKOWY — nie ignoruj):\n"
         f"{mix['fact']}\n"
+        "Detektor wykluczył z tej oceny nazwy stanowisk i terminy branżowe. "
         "To jest krytyczny błąd profesjonalizmu. "
         "W `message` wymień spójność językową jako główny problem (przed literówkami i stylistyką). "
         f"{rating_rules}"
@@ -1249,8 +1296,11 @@ def _rate_cv(text: str, elements: list[dict]) -> dict:
     system = (
         "Jesteś starszym rekruterem i coachem CV z ponad 15-letnim doświadczeniem w branży "
         "technologicznej, finansowej i konsultingowej. Udzielasz rygorystycznych, szczerych i konkretnych opinii. "
-        "Spójność językowa CV (jeden język w nagłówkach i treści) jest krytycznym sygnałem profesjonalizmu — "
-        "mieszanka polski/angielski jest poważniejsza niż pojedyncze literówki. "
+        "Spójność językowa pełnych zdań, nagłówków sekcji i etykiet meta jest ważnym sygnałem profesjonalizmu. "
+        "Angielskie nazwy stanowisk, technologie, nazwy produktów, certyfikatów i firm są poprawnymi nazwami "
+        "własnymi lub terminami branżowymi w polskim CV: nie są mieszanką języków i nie wolno za nie odejmować punktów. "
+        "Ich polski odpowiednik możesz zasugerować wyłącznie jako opcjonalne dopasowanie do oferty, bez wpływu na ocenę. "
+        "Rzeczywista mieszanka polskich i angielskich zdań jest poważniejsza niż pojedyncze literówki. "
         "Nie wpisuj liczby oceny w `message` (ani jako X/10, ani jako procent) — interfejs pokazuje ją osobno. "
         "Zwracaj WYŁĄCZNIE prawidłowy JSON. Wszystkie tekstowe wartości odpowiedzi zwracaj po polsku."
     )
@@ -1277,16 +1327,22 @@ RUBRYKA OCENY — przeanalizuj wyraźnie każdy etap przed zapisaniem końcowego
    1 pkt, jeśli role pokazują rozwój lub związek z docelową branżą.
 
 ③ JĘZYK I PROFESJONALIZM (0–2 pkt)
-   Najpierw sprawdź SPÓJNOŚĆ JĘZYKOWĄ całego dokumentu:
+   Najpierw sprawdź SPÓJNOŚĆ JĘZYKOWĄ zdań, nagłówków sekcji i etykiet meta:
    - Czy nagłówki sekcji (np. PODSUMOWANIE ZAWODOWE / DOŚWIADCZENIE / WYKSZTAŁCENIE vs
      Summary / Experience / Education) są w tym samym języku co treść pod nimi?
    - Czy etykiety meta (np. „Obecnie” vs „CURRENTLY”) nie psują jednolitego języka?
-   - Mieszanka PL/EN (polskie nagłówki + angielska treść lub odwrotnie) = 0 pkt w tej kategorii
+   - Mieszanka PL/EN (polskie nagłówki + angielskie zdania opisowe lub odwrotnie) = 0 pkt w tej kategorii
      i MUSI być pierwszym priorytetem w `message` / `priorities` / `tips`, przed literówkami.
+   - NIE traktuj jako mieszanki języków angielskich nazw stanowisk (np. Web Developer, Data Analyst,
+     Senior Software Engineer), technologii, produktów, firm ani certyfikatów. Są normalne w polskim CV,
+     zwłaszcza przy pracy w międzynarodowej organizacji, i nie obniżają kategorii Język.
+   - Jeśli polski odpowiednik stanowiska mógłby lepiej pasować do konkretnej oferty, możesz dodać łagodną,
+     opcjonalną rekomendację, ale nigdy priorytet ani powód wyniku 0 pkt.
    Dopiero potem sprawdź: stronę bierną, frazesy, ogólniki oraz błędy gramatyczne i ortograficzne.
-   2 pkt = jeden spójny język i brak istotnych problemów.
-   1 pkt = jeden język, ale drobne problemy stylistyczne/ortograficzne.
-   0 pkt = niespójność językowa albo istotne błędy językowe.
+   2 pkt = spójne zdania/nagłówki i brak istotnych problemów.
+   1 pkt = spójne zdania/nagłówki, ale drobne problemy stylistyczne/ortograficzne.
+   0 pkt = rzeczywista niespójność języka zdań/nagłówków albo istotne błędy językowe;
+   same obcojęzyczne nazwy stanowisk i terminy branżowe nigdy nie uzasadniają 0 pkt.
 
 ④ FORMAT I HIERARCHIA (0–2 pkt)
    Na podstawie liczby elementów i różnorodności treści: czy istnieje wyraźna hierarchia wizualna
@@ -1306,7 +1362,7 @@ Nie dodawaj wskazówki zaczynającej się od „Rozkład oceny”.
 W `message` NIE podawaj oceny liczbowej (zakazane: „8/10”, „80%”, „ocena 8”).
 Interfejs wyświetla ocenę osobno jako procent.
 {{
-  "message": "<3–4 zdania: wskaż 1–2 konkretne mocne strony oraz 1–2 konkretne słabe strony. Jeśli jest niespójność językowa nagłówków i treści — nazwij ją jako główny problem. Bądź bezpośredni. Odnoś się do konkretnych treści z CV. Bez liczby oceny.>",
+  "message": "<3–4 zdania: wskaż 1–2 konkretne mocne strony oraz 1–2 konkretne słabe strony. Jeśli jest niespójność językowa nagłówków i zdań opisowych — nazwij ją jako główny problem. Nie uznawaj nazw stanowisk ani terminów branżowych za niespójność. Bądź bezpośredni. Odnoś się do konkretnych treści z CV. Bez liczby oceny.>",
   "rating": <obliczona suma 1-10>,
   "categories": [
     {{"id": "completeness", "label": "Kompletność", "score": <0-2>, "max": 2}},
