@@ -225,6 +225,17 @@ test("job requirement statuses preview referenced CV evidence without quoting it
         overlayStyles,
         /\.kind_evidence_matched,[\s\S]*?\.kind_evidence_partial\s*\{[\s\S]*?animation:\s*none;/,
     );
+    assert.match(
+        overlayStyles,
+        /\.kind_evidence_matched,[\s\S]*?\.kind_evidence_partial\s*\{[\s\S]*?background:\s*transparent;/,
+    );
+    const evidenceStylesStart = overlayStyles.indexOf("/* Job-match evidence");
+    assert.notEqual(evidenceStylesStart, -1);
+    const evidenceStyles = overlayStyles.slice(evidenceStylesStart);
+    assert.doesNotMatch(
+        evidenceStyles,
+        /background:\s*var\(--color-(?:success|warning)-soft\)/,
+    );
 });
 
 test("assistant tracks the detected cv_language from responses", async () => {

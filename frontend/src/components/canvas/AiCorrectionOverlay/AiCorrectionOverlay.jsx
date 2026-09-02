@@ -1,9 +1,10 @@
 /**
  * Marks A4 elements with a pending AI suggestion or active job-match evidence.
  *
- * Drawn above canvas content and below the selection chrome. Marks use an
- * Pending suggestions use an opacity pulse; transient evidence remains steady
- * so the relationship to the hovered or focused status is immediate.
+ * Drawn above canvas content and below the selection chrome. Pending suggestions
+ * use an opacity pulse; transient evidence remains steady so the relationship
+ * to the hovered or focused status is immediate. Evidence marks keep a
+ * transparent interior because this layer must never cover the referenced CV.
  * `pointer-events: none` keeps editing unaffected.
  */
 import { useMemo } from "react";
