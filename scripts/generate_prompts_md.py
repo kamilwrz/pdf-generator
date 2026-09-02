@@ -126,7 +126,6 @@ patrz `GOAL_ACTIONS` w `AiAssistant.jsx`.
 | `_extract_positional` | `ai_assistant_service.py` | 749–804 | Jak wyżej + left/top/width/height/page + dekoracje |
 | `_extract_typography` | `ai_assistant_service.py` | 837–868 | Styl, krótki `preview`, flaga `primary_identity` |
 | `_normalize_chat_history` | `ai_assistant_service.py` | 1902–1917 | Do 12 ostatnich wiadomości (max 1500 znaków) |
-| `_ddg_search` | `ai_assistant_service.py` | 978–982 | Skróty wyników DuckDuckGo (stanowisko) |
 | `_safe_result` | `ai_assistant_service.py` | 1063–1107 | Normalizacja + `categories` / `strengths` / `priorities` |
 | `_detect_cv_language` | `ai_assistant_service.py` | 383–413 | Wykryty język CV: `code`/`confidence`/`body_lang`/`header_lang`/`is_mixed` |
 | `_content_language_directive` | `ai_assistant_service.py` | 1705–1723 | Dyrektywa systemowa: `content` w języku CV, rady zawsze po polsku |
@@ -173,7 +172,7 @@ patrz `GOAL_ACTIONS` w `AiAssistant.jsx`.
         "`priorities` (UI pokazuje %). Zwykle **nie** edytuje tekstu na kanwie i "
         "zawsze odpowiada po polsku (ocena nie zależy od `cv_language`).\n\n"
         f"**Plik:** `{a}`  \n"
-        "**Linie:** system **1119–1126**, user **1127–1200**, handler `_rate_cv` **1112–1202**  \n"
+        "**Linie:** system **1248–1255**, user **1256–1328**, handler `_rate_cv` **1241–1333**\n"
         "**Akcja API:** `rating` (cel UI: Sprawdź CV)\n\n"
         "### Zmienne\n\n"
         "| Zmienna w prompcie | Skąd | Linie |\n"
@@ -183,9 +182,9 @@ patrz `GOAL_ACTIONS` w `AiAssistant.jsx`.
         "| `{mix_block}` | `_language_mix_prompt_block(_detect_language_mix(elements))` | 1116–1117 |\n\n"
         "### System\n\n"
     )
-    parts.append(code(sl(a, 1119, 1126)))
+    parts.append(code(sl(a, 1248, 1255)))
     parts.append("\n### User\n\n")
-    parts.append(code(sl(a, 1127, 1200)))
+    parts.append(code(sl(a, 1256, 1328)))
 
     # 3 design
     parts.append("\n---\n\n## 3. Ocena projektu (typografia)\n\n")
@@ -194,7 +193,7 @@ patrz `GOAL_ACTIONS` w `AiAssistant.jsx`.
         "wyrównanie), a **nie** pozycje klocków na stronie. Małe czcionki szablonu "
         "i duże imię to celowy design — model nie ma ich „naprawiać”.\n\n"
         f"**Plik:** `{a}`  \n"
-        "**Linie:** system **1216–1230**, user **1231–1301**, handler `_rate_design` **1205–1318**  \n"
+        "**Linie:** system **1345–1359**, user **1360–1429**, handler `_rate_design` **1334–1449**\n"
         "**Akcja API:** `design_rating` (cel UI: Sprawdź wygląd → typografia)\n\n"
         "### Zmienne\n\n"
         "| Zmienna | Skąd | Linie |\n"
@@ -204,30 +203,34 @@ patrz `GOAL_ACTIONS` w `AiAssistant.jsx`.
         "obniżają już wyniku (to domena Układu).\n\n"
         "### System\n\n"
     )
-    parts.append(code(sl(a, 1216, 1230)))
+    parts.append(code(sl(a, 1345, 1359)))
     parts.append("\n### User\n\n")
-    parts.append(code(sl(a, 1231, 1301)))
+    parts.append(code(sl(a, 1360, 1429)))
 
     # 4 position
     parts.append("\n---\n\n## 4. Dopasowanie do stanowiska\n\n")
     parts.append(
-        "**Po co (prosto):** Porównuje Twoje CV z opisem oferty pracy i mówi, "
-        "na ile pasujesz (umiejętności, seniority, branża, słowa kluczowe).\n\n"
+        "**Po co (prosto):** Buduje ważoną macierz wymagań oferty, ocenia dowody "
+        "w CV i proponuje wyłącznie potwierdzone poprawki do akceptacji.\n\n"
         f"**Plik:** `{a}`  \n"
-        "**Linie:** system **1331–1336**, user **1337–1398**, handler `_rate_position` **1321–1402**  \n"
+        "**Linie:** system **1473–1484**, user **1485–1517**, handler `_tailor_cv_to_position` **1450–1542**\n"
         "**Akcja API:** `position_rating` (cel UI: Dopasuj do oferty)\n\n"
         "### Zmienne\n\n"
         "| Zmienna | Skąd | Linie |\n"
         "|---------|------|-------|\n"
-        "| `{job_description[:2000]}` | pole `job_description` z requestu / UI | 2315, 1340 |\n"
-        "| `{text}` | `_extract_text` | 2336, 1343 |\n"
-        "| `{web_ctx}` | wyniki `_ddg_search` | 1324–1328, 1345–1346 |\n"
-        "| `{json.dumps(web_urls[:3])}` | linki z tego samego wyszukiwania | 1329, 1397 |\n\n"
+        "| `{job_description[:20_000]}` | bezpiecznie pobrana lub wklejona oferta | route + 1491 |\n"
+        "| `{structured}` | pełne elementy kanwy z `element_id` | 1462, 1497 |\n"
+        "| `{profile}` | znormalizowane kanoniczne `cv_data` | 1463, 1500 |\n"
+        "| `{candidate_notes[:5_000]}` | opcjonalne fakty kandydata | 1503 |\n"
+        "| `{offer_metadata}` | tytuł/firma/lokalizacja/źródło bez treści strony | 1464–1467, 1488 |\n\n"
+        "Odpowiedź jest ograniczona przez `JOB_TAILORING_RESPONSE_SCHEMA` w "
+        "`backend/app/services/job_tailoring.py`; po odpowiedzi serwer ponownie "
+        "liczy wynik i waliduje dowody.\n\n"
         "### System\n\n"
     )
-    parts.append(code(sl(a, 1331, 1336)))
+    parts.append(code(sl(a, 1473, 1484)))
     parts.append("\n### User\n\n")
-    parts.append(code(sl(a, 1337, 1398)))
+    parts.append(code(sl(a, 1485, 1517)))
 
     # 5 grammar
     parts.append("\n---\n\n## 5. Gramatyka\n\n")
@@ -236,7 +239,7 @@ patrz `GOAL_ACTIONS` w `AiAssistant.jsx`.
         "CV. Nie zmienia sensu ani „ładniejszego” stylu, i nie tłumaczy treść na inny "
         "język.\n\n"
         f"**Plik:** `{a}`  \n"
-        "**Linie:** system **1414–1420**, user **1421–1442**, handler `_fix_grammar` **1405–1443**  \n"
+        "**Linie:** system **1552–1558**, user **1559–1580**, handler `_fix_grammar` **1543–1595**\n"
         "**Akcja API:** `grammar` (submenu Popraw treść → Sprawdź błędy)\n\n"
         "### Zmienne\n\n"
         "| Zmienna | Skąd | Linie |\n"
@@ -245,9 +248,9 @@ patrz `GOAL_ACTIONS` w `AiAssistant.jsx`.
         "| dyrektywa językowa w system | `_content_language_directive(language_code)` | 1419, funkcja **1705–1723** |\n\n"
         "### System\n\n"
     )
-    parts.append(code(sl(a, 1414, 1420)))
+    parts.append(code(sl(a, 1552, 1558)))
     parts.append("\n### User\n\n")
-    parts.append(code(sl(a, 1421, 1442)))
+    parts.append(code(sl(a, 1559, 1580)))
 
     # 6 language
     parts.append("\n---\n\n## 6. Styl językowy\n\n")
@@ -256,7 +259,7 @@ patrz `GOAL_ACTIONS` w `AiAssistant.jsx`.
         "i ogólników, potem proponuje mocniejsze brzmienie — w języku CV, z zachowaniem "
         "czasu gramatycznego obowiązków.\n\n"
         f"**Plik:** `{a}`  \n"
-        "**Linie:** system **1467–1476**, user **1477–1528**, handler `_check_style` **1458–1536**  \n"
+        "**Linie:** system **1605–1614**, user **1615–1665**, handler `_check_style` **1596–1676**\n"
         "**Akcja API:** `language` (submenu Popraw treść → Popraw język)\n\n"
         "### Zmienne\n\n"
         "| Zmienna | Skąd | Linie |\n"
@@ -268,9 +271,9 @@ patrz `GOAL_ACTIONS` w `AiAssistant.jsx`.
         "| `{_tense_rules_for(language_code)}` | reguły czasu wg języka CV | 1486, funkcja **1696–1702** |\n\n"
         "### System\n\n"
     )
-    parts.append(code(sl(a, 1467, 1476)))
+    parts.append(code(sl(a, 1605, 1614)))
     parts.append("\n### User\n\n")
-    parts.append(code(sl(a, 1477, 1528)))
+    parts.append(code(sl(a, 1615, 1665)))
 
     # 7 improve
     parts.append("\n---\n\n## 7. Ulepsz treść\n\n")
@@ -279,7 +282,7 @@ patrz `GOAL_ACTIONS` w `AiAssistant.jsx`.
         "z czasownikiem na początku i miejscem na liczby (metryki), zachowując język "
         "i czas gramatyczny oryginału.\n\n"
         f"**Plik:** `{a}`  \n"
-        "**Linie:** system **1549–1556**, user **1557–1603**, handler `_improve_content` **1539–1604**  \n"
+        "**Linie:** system **1687–1694**, user **1695–1741**, handler `_improve_content` **1677–1744**\n"
         "**Akcja API:** `improve` (submenu Popraw treść → Wzmocnij treść)\n\n"
         "### Zmienne\n\n"
         "| Zmienna | Skąd | Linie |\n"
@@ -291,9 +294,9 @@ patrz `GOAL_ACTIONS` w `AiAssistant.jsx`.
         "| `{_tense_rules_for(language_code)}` | reguły czasu wg języka CV | 1566, funkcja **1696–1702** |\n\n"
         "### System\n\n"
     )
-    parts.append(code(sl(a, 1549, 1556)))
+    parts.append(code(sl(a, 1687, 1694)))
     parts.append("\n### User\n\n")
-    parts.append(code(sl(a, 1557, 1603)))
+    parts.append(code(sl(a, 1695, 1741)))
 
     # 7b shorten
     parts.append("\n---\n\n## 7b. Skróć treść\n\n")
@@ -304,7 +307,7 @@ patrz `GOAL_ACTIONS` w `AiAssistant.jsx`.
         "kondensuje istniejącą treść. Zwraca ten sam kształt `corrections`, więc "
         "frontend renderuje te same karty Przed/Po co przy gramatyce.\n\n"
         f"**Plik:** `{a}`  \n"
-        "**Linie:** system **1622–1628**, user **1629–1667**, handler `_shorten_content` **1607–1668**  \n"
+        "**Linie:** system **1760–1766**, user **1767–1805**, handler `_shorten_content` **1745–1833**\n"
         "**Akcja API:** `shorten` (submenu Popraw treść → Skróć CV)\n\n"
         "### Zmienne\n\n"
         "| Zmienna | Skąd | Linie |\n"
@@ -314,9 +317,9 @@ patrz `GOAL_ACTIONS` w `AiAssistant.jsx`.
         "| dyrektywa językowa w system | `_content_language_directive(language_code)` | 1627, funkcja **1705–1723** |\n\n"
         "### System\n\n"
     )
-    parts.append(code(sl(a, 1622, 1628)))
+    parts.append(code(sl(a, 1760, 1766)))
     parts.append("\n### User\n\n")
-    parts.append(code(sl(a, 1629, 1667)))
+    parts.append(code(sl(a, 1767, 1805)))
 
     # 8 ats
     parts.append("\n---\n\n## 8. Czytelność dla ATS\n\n")
@@ -326,7 +329,7 @@ patrz `GOAL_ACTIONS` w `AiAssistant.jsx`.
         "LLM ocenia tylko nagłówki i słowa kluczowe — bez kary za dekoracje (linie, 01/02). "
         "Overall liczy kod z wag. W UI: CTA po **Sprawdź CV**.\n\n"
         f"**Plik:** `{a}` (+ `backend/app/services/ats_readability.py`)  \n"
-        "**Linie:** system **1835–1844**, user **1845–1888**, handler `_ats_score` **1797–1895**  \n"
+        "**Linie:** system **2069–2078**, user **2079–2122**, handler `_ats_score` **2031–2135**\n"
         "**Akcja API:** `ats_score`\n\n"
         "### Zmienne\n\n"
         "| Zmienna | Skąd | Linie |\n"
@@ -336,9 +339,9 @@ patrz `GOAL_ACTIONS` w `AiAssistant.jsx`.
         "| `{template_note}` | opcjonalny `template_id` | 1833, 1852 |\n\n"
         "### System\n\n"
     )
-    parts.append(code(sl(a, 1835, 1844)))
+    parts.append(code(sl(a, 2069, 2078)))
     parts.append("\n### User\n\n")
-    parts.append(code(sl(a, 1845, 1888)))
+    parts.append(code(sl(a, 2079, 2122)))
 
     # 8b translate
     parts.append("\n---\n\n## 8b. Tłumaczenie CV\n\n")
@@ -348,7 +351,7 @@ patrz `GOAL_ACTIONS` w `AiAssistant.jsx`.
         "akcja od auto-detekcji języka CV: tu użytkownik zawsze wybiera język docelowy "
         "jawnie (nie ma trybu auto).\n\n"
         f"**Plik:** `{a}`  \n"
-        "**Linie:** system **1759–1766**, user **1767–1792**, handler `_translate_cv` **1726–1794**  \n"
+        "**Linie:** system **1967–1987**, user **1988–2015**, handler `_translate_cv` **1930–2030**\n"
         "**Akcja API:** `translate` (wymaga `target_language`: pl/en/de/fr/es/uk/it/nl)\n\n"
         "### Zmienne\n\n"
         "| Zmienna | Skąd | Linie |\n"
@@ -357,9 +360,9 @@ patrz `GOAL_ACTIONS` w `AiAssistant.jsx`.
         "| `{json.dumps(structured)}` | `_extract_structured` bez chrome/locked | 1749–1757, 1770 |\n\n"
         "### System\n\n"
     )
-    parts.append(code(sl(a, 1759, 1766)))
+    parts.append(code(sl(a, 1967, 1987)))
     parts.append("\n### User\n\n")
-    parts.append(code(sl(a, 1767, 1792)))
+    parts.append(code(sl(a, 1988, 2015)))
 
     # 9 chat
     parts.append("\n---\n\n## 9. Czat (wolny asystent)\n\n")
@@ -369,7 +372,7 @@ patrz `GOAL_ACTIONS` w `AiAssistant.jsx`.
         "Najpierw model decyduje, czy temat w ogóle dotyczy CV (`in_scope`). "
         "Czat nie uczestniczy w auto-detekcji języka CV — zawsze odpowiada po polsku.\n\n"
         f"**Plik:** `{a}`  \n"
-        "**Linie:** system **1929–2080**, user **2086–2107**, handler `_chat` **1920–2203**  \n"
+        "**Linie:** system **2163–2319**, user **2320–2341**, handler `_chat` **2154–2443**\n"
         "**Akcja API:** `chat`\n\n"
         "### Zmienne\n\n"
         "| Zmienna | Skąd | Linie |\n"
@@ -379,9 +382,9 @@ patrz `GOAL_ACTIONS` w `AiAssistant.jsx`.
         "| `{message}` | aktualna wiadomość z czatu | argument `_chat`, 2093 |\n\n"
         "### System (fragment początkowy)\n\n"
     )
-    parts.append(code(sl(a, 1929, 1954)))
+    parts.append(code(sl(a, 2163, 2319)))
     parts.append("\n### User (pełna treść)\n\n")
-    parts.append(code(sl(a, 2086, 2107)))
+    parts.append(code(sl(a, 2320, 2341)))
 
     # 10 layout system
     parts.append("\n---\n\n## 10. Układ — system i pytanie domyślne\n\n")
@@ -474,16 +477,16 @@ patrz `GOAL_ACTIONS` w `AiAssistant.jsx`.
 | Akcja API / cel UI | Handler | System (linie) | User (linie) |
 |--------------------|---------|----------------|--------------|
 | import PDF `/ai` | `extract_cv_data` | — | `ai_service.py` 48–118 |
-| `rating` / Sprawdź CV | `_rate_cv` | 1119–1126 | 1127–1200 |
-| `design_rating` / Sprawdź wygląd | `_rate_design` | 1216–1230 | 1231–1301 |
-| `position_rating` / Dopasuj do oferty | `_rate_position` | 1331–1336 | 1337–1398 |
-| `grammar` / Popraw treść | `_fix_grammar` | 1414–1420 | 1421–1442 |
-| `language` / Popraw treść | `_check_style` | 1467–1476 | 1477–1528 |
-| `improve` / Popraw treść | `_improve_content` | 1549–1556 | 1557–1603 |
-| `shorten` / Popraw treść | `_shorten_content` | 1622–1628 | 1629–1667 |
-| `ats_score` / CTA z Sprawdź CV | `_ats_score` + `ats_readability` | 1835–1844 | 1845–1888 |
-| `translate` / Przetłumacz CV | `_translate_cv` | 1759–1766 | 1767–1792 |
-| `chat` | `_chat` | 1929–2080 | 2086–2107 |
+| `rating` / Sprawdź CV | `_rate_cv` | 1248–1255 | 1256–1328 |
+| `design_rating` / Sprawdź wygląd | `_rate_design` | 1345–1359 | 1360–1429 |
+| `position_rating` / Dopasuj do oferty | `_tailor_cv_to_position` | 1473–1484 | 1485–1517 |
+| `grammar` / Popraw treść | `_fix_grammar` | 1552–1558 | 1559–1580 |
+| `language` / Popraw treść | `_check_style` | 1605–1614 | 1615–1665 |
+| `improve` / Popraw treść | `_improve_content` | 1687–1694 | 1695–1741 |
+| `shorten` / Popraw treść | `_shorten_content` | 1760–1766 | 1767–1805 |
+| `ats_score` / CTA z Sprawdź CV | `_ats_score` + `ats_readability` | 2069–2078 | 2079–2122 |
+| `translate` / Przetłumacz CV | `_translate_cv` | 1967–1987 | 1988–2015 |
+| `chat` | `_chat` | 2163–2319 | 2320–2341 |
 | `layout` / Sprawdź wygląd → Układ | `_layout_session` + `layout_gpt` | 177–213 | 476–649 (+ pytanie / chip) |
 
 Handlerzy bez osobnego promptu modelu (tylko komunikaty UI / odmowy):

@@ -14,5 +14,4 @@ boto3==1.43.51
 psycopg2-binary==2.9.12
 openai==2.14.0
 pymupdf==1.28.2
-duckduckgo-search==8.1.1
 python-dotenv==1.2.3

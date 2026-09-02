@@ -44,9 +44,9 @@ CV STUDIO has two provider-backed AI pipelines and several adjacent deterministi
 |---|---:|---|---|
 | PDF CV extraction | Yes | Convert an uploaded CV into normalized `cv_data` | [`ai_service.extract_cv_data`](../backend/app/services/ai_service.py#L419), lines 419–722 |
 | Canvas assistant | Yes | Rate, correct, rewrite, translate, discuss, and propose document operations | [`ai_assistant_service.analyze_action`](../backend/app/services/ai_assistant_service.py#L2529), lines 2529–2645 |
-| ATS readability | Hybrid | Combine deterministic PDF parsing with an LLM content review | [`ai_assistant_service._ats_score`](../backend/app/services/ai_assistant_service.py#L2011), lines 2011–2115 |
+| ATS readability | Hybrid | Combine deterministic PDF parsing with an LLM content review | [`ai_assistant_service._ats_score`](../backend/app/services/ai_assistant_service.py#L2031), lines 2031–2135 |
 | Layout review | Hybrid | Let a model identify geometry problems, then validate every patch in Python | [`layout_gpt.compile_layout_gpt_response`](../backend/app/services/layout_gpt.py#L1226), lines 1226–1543 |
-| Free-form canvas commands | Hybrid | Convert a natural-language instruction into a constrained operation | [`ai_assistant_service._chat`](../backend/app/services/ai_assistant_service.py#L2134), lines 2134–2423 |
+| Free-form canvas commands | Hybrid | Convert a natural-language instruction into a constrained operation | [`ai_assistant_service._chat`](../backend/app/services/ai_assistant_service.py#L2154), lines 2154–2443 |
 | Template fill | No | Turn canonical `cv_data` into canvas elements with Python generators | [`ai.fill_template`](../backend/app/api/routes/ai.py#L491), lines 491–563 |
 | Bio wizard | No | Collect structured CV data and persist a draft | [`BioCvModal`](../frontend/src/components/ai/BioCvModal/BioCvModal.jsx#L1), lines 1–1303 |
 | Credit and quota settlement | No | Reserve, settle, replay, release, or expire a provider operation | [`entitlements.reserve_ai_credits`](../backend/app/services/entitlements.py#L1001), lines 1001–1123 |
@@ -205,7 +205,7 @@ Tests:
 
 Rates completeness, experience quality, language/professionalism, structure, and differentiation. The response includes a 1–10 internal rating that the UI displays as a percentage, structured categories, strengths, priorities, and tips.
 
-Implementation: [`_rate_cv`](../backend/app/services/ai_assistant_service.py#L1230), lines 1230–1322.
+Implementation: [`_rate_cv`](../backend/app/services/ai_assistant_service.py#L1241), lines 1241–1333.
 
 The backend independently detects likely mixed-language CVs and injects feedback if the model misses that problem. Language detection and mix analysis span [`_detect_cv_language`](../backend/app/services/ai_assistant_service.py#L421) through [`_ensure_language_mix_feedback`](../backend/app/services/ai_assistant_service.py#L596), lines 421–643.
 
@@ -215,7 +215,7 @@ The backend independently detects likely mixed-language CVs and injects feedback
 
 Rates hierarchy, emphasis, color consistency, and alignment. It intentionally excludes geometry and protects template chrome and the primary identity element from inappropriate rewrites.
 
-Implementation: [`_rate_design`](../backend/app/services/ai_assistant_service.py#L1323), lines 1323–1438.
+Implementation: [`_rate_design`](../backend/app/services/ai_assistant_service.py#L1334), lines 1334–1449.
 
 Only style fields may survive normalization: `fontSize`, `fontFamily`, `color`, `bold`, `italic`, and `align`.
 
@@ -223,11 +223,13 @@ Only style fields may survive normalization: `fontSize`, `fontFamily`, `color`, 
 
 **Action:** `position_rating`
 
-Compares the CV with a required job description. It can add DuckDuckGo search context for industry expectations and returns source URLs when available.
+Accepts a public HTTPS `job_offer_url` or a bounded manual `job_description`, with optional `candidate_notes`. The route resolves Greenhouse, Lever, JobPosting JSON-LD, or visible generic HTML. URL validation rejects credentials, custom ports and every non-public DNS answer; TLS connects to the validated IP, every redirect is rechecked, and the body is limited to 1 MiB. A pasted description becomes an explicit fallback if remote extraction fails.
 
-Implementation: [`_rate_position`](../backend/app/services/ai_assistant_service.py#L1439), lines 1439–1522, and [`_ddg_search`](../backend/app/services/ai_assistant_service.py#L1078), lines 1078–1084.
+Implementation: [`resolve_job_offer`](../backend/app/services/job_offer_service.py#L378), lines 378–451; [`_tailor_cv_to_position`](../backend/app/services/ai_assistant_service.py#L1450), lines 1450–1542; and [`build_job_tailoring_result`](../backend/app/services/job_tailoring.py#L275), lines 275–380.
 
-The job description is required and bounded to 20,000 request characters. The prompt uses the first 2,000 characters, while the web query uses a short preview.
+The offer is delimited as untrusted prompt data. The OpenAI call uses strict Structured Outputs for requirements, score dimensions, evidence gaps, canvas corrections, and allowlisted profile updates. The server then recomputes the weighted requirement score and rejects stale `before` values, unknown element IDs, placeholders, unsupported numbers, missing-offer technologies, ungrounded evidence quotes, and protected profile paths. Only `/summary` and existing `/experience/{i}/bullets/{j}` values can update canonical profile data. The response exposes `job_offer`, `job_requirements`, and `evidence_gaps`; the frontend renders these above the existing correction cards and offers a separate ATS readability check.
+
+Tests: [`test_job_offer_service.py`](../backend/tests/test_job_offer_service.py), lines 1–88; [`test_job_tailoring.py`](../backend/tests/test_job_tailoring.py), lines 1–168; and [`jobTailoring.runtime.test.jsx`](../frontend/src/utils/jobTailoring.runtime.test.jsx), lines 1–21.
 
 ### 5. Grammar correction
 
@@ -235,7 +237,7 @@ The job description is required and bounded to 20,000 request characters. The pr
 
 Corrects grammar, spelling, and punctuation without intentionally changing meaning, tone, grammatical tense, or person.
 
-Implementation: [`_fix_grammar`](../backend/app/services/ai_assistant_service.py#L1523), lines 1523–1575.
+Implementation: [`_fix_grammar`](../backend/app/services/ai_assistant_service.py#L1543), lines 1543–1595.
 
 ### 6. Language and style review
 
@@ -243,7 +245,7 @@ Implementation: [`_fix_grammar`](../backend/app/services/ai_assistant_service.py
 
 Improves clarity, professional tone, active voice, evidence, and language consistency. Employment-period annotations tell the model whether a role is current or finished so it does not rewrite every responsibility into one tense.
 
-Implementation: [`_check_style`](../backend/app/services/ai_assistant_service.py#L1576), lines 1576–1656, and [`_annotate_employment_tense`](../backend/app/services/ai_assistant_service.py#L663), lines 663–700.
+Implementation: [`_check_style`](../backend/app/services/ai_assistant_service.py#L1596), lines 1596–1676, and [`_annotate_employment_tense`](../backend/app/services/ai_assistant_service.py#L663), lines 663–700.
 
 ### 7. Content improvement
 
@@ -251,7 +253,7 @@ Implementation: [`_check_style`](../backend/app/services/ai_assistant_service.py
 
 Strengthens wording and impact while preserving the CV language. The current profile-aware path explicitly tells the model not to invent facts or metrics. The older canvas-only fallback prompt may use visible placeholders such as `[X%]`, which the user must replace with verified values.
 
-Implementation: [`_improve_content`](../backend/app/services/ai_assistant_service.py#L1657), lines 1657–1724, and profile-aware [`_rewrite_profile_content`](../backend/app/services/ai_assistant_service.py#L1844), lines 1844–1909.
+Implementation: [`_improve_content`](../backend/app/services/ai_assistant_service.py#L1677), lines 1677–1744, and profile-aware [`_rewrite_profile_content`](../backend/app/services/ai_assistant_service.py#L1864), lines 1864–1929.
 
 ### 8. Shortening
 
@@ -259,7 +261,7 @@ Implementation: [`_improve_content`](../backend/app/services/ai_assistant_servic
 
 Condenses summaries, merges repeated bullets, and trims low-value lists to help reduce page count. The frontend is the only correction flow that may intentionally accept an empty replacement, and only for this action.
 
-Implementation: [`_shorten_content`](../backend/app/services/ai_assistant_service.py#L1725), lines 1725–1813, and [`withoutEmptyContentReplacement`](../frontend/src/components/ai/AiAssistant/AiAssistant.jsx#L53), lines 53–64.
+Implementation: [`_shorten_content`](../backend/app/services/ai_assistant_service.py#L1745), lines 1745–1833, and [`withoutEmptyContentReplacement`](../frontend/src/components/ai/AiAssistant/AiAssistant.jsx#L59), lines 59–70.
 
 ### 9. Translation
 
@@ -267,7 +269,7 @@ Implementation: [`_shorten_content`](../backend/app/services/ai_assistant_servic
 
 Supports `pl`, `en`, `de`, `fr`, `es`, `uk`, `it`, and `nl`. It preserves proper names, company names, email addresses, phone numbers, URLs, and protected template chrome. When canonical profile data is available, the response includes a normalized translated profile for later template fills.
 
-Implementation: [`_translate_cv`](../backend/app/services/ai_assistant_service.py#L1910), lines 1910–2010, plus the profile-aware path in [`_rewrite_profile_content`](../backend/app/services/ai_assistant_service.py#L1844), lines 1844–1909.
+Implementation: [`_translate_cv`](../backend/app/services/ai_assistant_service.py#L1930), lines 1930–2030, plus the profile-aware path in [`_rewrite_profile_content`](../backend/app/services/ai_assistant_service.py#L1864), lines 1864–1929.
 
 Tests: [`test_translate_profile.py`](../backend/tests/test_translate_profile.py), lines 14–163.
 
@@ -285,7 +287,7 @@ ATS scoring is intentionally hybrid:
 
 Implementation:
 
-- Orchestration: [`_ats_score`](../backend/app/services/ai_assistant_service.py#L2011), lines 2011–2115.
+- Orchestration: [`_ats_score`](../backend/app/services/ai_assistant_service.py#L2031), lines 2031–2135.
 - Deterministic analysis: [`ats_readability.py`](../backend/app/services/ats_readability.py#L82), lines 82–445.
 - Image ownership/path resolution before render: [`ai_assistant`](../backend/app/api/routes/ai_assistant.py#L153), lines 153–379.
 
@@ -305,7 +307,7 @@ In-scope commands can produce:
 - Explicit deletion operations.
 - Clone operations relative to an existing element.
 
-Implementation: [`_chat`](../backend/app/services/ai_assistant_service.py#L2134), lines 2134–2423.
+Implementation: [`_chat`](../backend/app/services/ai_assistant_service.py#L2154), lines 2154–2443.
 
 Python resolvers:
 
@@ -987,7 +989,7 @@ Update this file, [`PROMPTS.md`](PROMPTS.md) when prompt inventory changes, the 
 1. Start at [`handleContentSubaction`](../frontend/src/components/ai/AiAssistant/AiAssistant.jsx#L1681), which calls `send("grammar", ...)`.
 2. Follow [`send`](../frontend/src/components/ai/AiAssistant/AiAssistant.jsx#L1437). Notice the document-scope capture, new idempotency key, measured elements, canonical profile, and retry policy.
 3. Continue to [`ai_assistant`](../backend/app/api/routes/ai_assistant.py#L153). Observe that authorization, image validation, request hashing, and credit reservation happen before the provider call.
-4. Follow [`analyze_action`](../backend/app/services/ai_assistant_service.py#L2529). With `cv_data`, grammar uses the profile-aware rewrite path; without it, it uses `_fix_grammar`.
+4. Follow [`analyze_action`](../backend/app/services/ai_assistant_service.py#L2549). With `cv_data`, grammar uses the profile-aware rewrite path; without it, it uses `_fix_grammar`.
 5. Follow [`_gpt`](../backend/app/services/ai_assistant_service.py#L941). The provider must return a JSON object; usage is calculated immediately.
 6. Follow [`_safe_result`](../backend/app/services/ai_assistant_service.py#L1163). Unknown fields and empty destructive corrections disappear.
 7. Return to the route and inspect [`settle_ai_reservation`](../backend/app/services/entitlements.py#L1338). Reserved credits become actual credits and the response becomes replayable.
@@ -1022,9 +1024,9 @@ Requesting a JSON object reduces parsing failures. It does not prove semantic co
 
 Even with “do not invent” rules, a model can rewrite a fact incorrectly. The review-card workflow is a product safety control, not decorative UI. Users should verify employers, dates, metrics, qualifications, and translations before export.
 
-### Search context is best-effort
+### The submitted offer is the only role-requirement source
 
-Position-fit analysis silently continues when DuckDuckGo search fails. Search results are contextual hints, not authoritative job requirements.
+Position-fit analysis no longer performs a broad web search for inferred industry expectations. It uses the securely resolved offer supplied by the user, with a pasted-description fallback. This keeps scoring tied to the actual vacancy and avoids adding unrelated requirements from search snippets.
 
 ### The assistant is intentionally account-serialized
 

@@ -94,10 +94,10 @@ test("assistant messages retain the document revision that produced them", async
     assert.match(source, /sourceSessionKey: String\(documentScope\.epoch\)/);
 });
 
-test("apply all does not replace profile data when no correction was applied", async () => {
+test("apply all preserves rejected job-tailoring profile changes", async () => {
     const source = await readFile(new URL("./AiAssistant.jsx", import.meta.url), "utf8");
 
-    assert.match(source, /if \(acceptedIds\.length > 0 && message\?\.updatedCvData\)/);
+    assert.match(source, /acceptedIds\.length > 0[\s\S]*message\?\.updatedCvData[\s\S]*message\.actionId !== "position_rating"/);
 });
 
 test("goal-oriented quick actions replace flat feature tiles", async () => {
@@ -155,10 +155,21 @@ test("translation sends the canonical profile and receives the replacement profi
     // element-only path, which recreates Polish profile text on template swap.
     assert.match(
         source,
-        /const contentActions = \["grammar", "language", "improve", "shorten", "translate"\]/,
+        /const contentActions = \["grammar", "language", "improve", "shorten", "translate", "position_rating"\]/,
     );
     assert.match(source, /\.\.\.\(contentActions\.includes\(action\) && activeCvData/);
     assert.match(source, /updatedCvData: res\.updated_cv_data \?\? null/);
+});
+
+test("job tailoring sends URL, fallback, notes and the canonical profile", async () => {
+    const source = await readFile(new URL("./AiAssistant.jsx", import.meta.url), "utf8");
+
+    assert.match(source, /job_offer_url: action === "position_rating" \? jobOfferUrl : ""/);
+    assert.match(source, /job_description: action === "position_rating" \? jobDesc : ""/);
+    assert.match(source, /candidate_notes: action === "position_rating" \? candidateNotes : ""/);
+    assert.match(source, /jobRequirements: res\.job_requirements \?\? \[\]/);
+    assert.match(source, /evidenceGaps: res\.evidence_gaps \?\? \[\]/);
+    assert.match(source, /Sprawdź czytelność ATS/);
 });
 
 test("assistant tracks the detected cv_language from responses", async () => {

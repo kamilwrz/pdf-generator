@@ -29,6 +29,7 @@ import {
 } from "../../../utils/atsScore";
 import { collectPendingAiHighlights } from "../../../utils/aiCorrectionHighlights";
 import { useDocumentLifecycle } from "../../../store/document-lifecycle-context";
+import { requirementStatusLabel, validateJobOfferInput } from "../../../utils/jobTailoring";
 
 // ── goal-oriented quick actions ───────────────────────────────────────────
 // User-facing tiles map to goals; backend still uses specialised API actions
@@ -88,7 +89,7 @@ const GOAL_ACTIONS = [
         label: "Dopasuj do oferty",
         icon: FaBriefcase,
         color: CHROME_ACCENT,
-        description: "Oceń dopasowanie CV do opisu stanowiska",
+        description: "Wklej link — oceń dopasowanie i przygotuj bezpieczne poprawki",
         panel: "match_job",
     },
     {
@@ -353,6 +354,8 @@ function RatingDashboard({
     const categories = Array.isArray(msg.categories) ? msg.categories : [];
     const strengths = Array.isArray(msg.strengths) ? msg.strengths : [];
     const priorities = Array.isArray(msg.priorities) ? msg.priorities : [];
+    const jobRequirements = Array.isArray(msg.jobRequirements) ? msg.jobRequirements : [];
+    const evidenceGaps = Array.isArray(msg.evidenceGaps) ? msg.evidenceGaps : [];
     const actionId = msg.actionId;
     const isAts = actionId === "ats_score";
     // Prefer category math over `rating × 10`:
@@ -373,13 +376,14 @@ function RatingDashboard({
         return p != null && p < WEAK_CATEGORY_RATIO * 100 && APPEARANCE_CATEGORY_IDS.has(cat.id);
     });
 
-    const showAtsCta = actionId === "rating";
+    const showAtsCta = actionId === "rating" || actionId === "position_rating";
     const showMatchCta = actionId === "ats_score";
     const showContentCta = actionId === "rating" && weakContent;
     const showAppearanceCta = actionId === "rating" && weakAppearance;
 
     const hasBody = percent != null || categories.length > 0
         || strengths.length > 0 || priorities.length > 0
+        || jobRequirements.length > 0 || evidenceGaps.length > 0
         || showAtsCta || showMatchCta || showContentCta || showAppearanceCta;
     if (!hasBody) return null;
 
@@ -406,6 +410,63 @@ function RatingDashboard({
                     Ocena sprawdza strukturę i czytelność dokumentu. Różne systemy ATS mogą
                     interpretować CV inaczej.
                 </p>
+            )}
+
+            {actionId === "position_rating" && msg.jobOffer && (
+                <div className={classes.jobOfferSummary}>
+                    <span className={classes.dashboardBlockLabel}>Analizowana oferta</span>
+                    <strong>{msg.jobOffer.title || "Oferta z podanego źródła"}</strong>
+                    {(msg.jobOffer.company || msg.jobOffer.location) && (
+                        <span>{[msg.jobOffer.company, msg.jobOffer.location].filter(Boolean).join(" · ")}</span>
+                    )}
+                    {msg.jobOffer.source && (
+                        <span>Źródło: {msg.jobOffer.source === "manual_fallback" ? "wklejony opis (fallback)" : msg.jobOffer.source}</span>
+                    )}
+                    {msg.jobOffer.fetch_warning && (
+                        <span className={classes.jobOfferWarning}>{msg.jobOffer.fetch_warning}</span>
+                    )}
+                </div>
+            )}
+
+            {jobRequirements.length > 0 && (
+                <div className={classes.dashboardBlock}>
+                    <span className={classes.dashboardBlockLabel}>Wymagania oferty</span>
+                    <ul className={classes.requirementList}>
+                        {jobRequirements.map((item) => (
+                            <li key={item.id}>
+                                <span className={`${classes.requirementStatus} ${classes[`requirement_${item.match_status}`]}`}>
+                                    {requirementStatusLabel(item.match_status)}
+                                </span>
+                                <div>
+                                    <strong>{item.text}</strong>
+                                    {item.evidence ? <span>{item.evidence}</span> : null}
+                                </div>
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            )}
+
+            {evidenceGaps.length > 0 && (
+                <div className={classes.dashboardBlock}>
+                    <span className={classes.dashboardBlockLabel}>Luki w dowodach</span>
+                    <ul className={classes.evidenceGapList}>
+                        {evidenceGaps.map((item, index) => (
+                            <li key={`${item.requirement_id || "gap"}-${index}`}>
+                                <strong>{item.title}</strong>
+                                {item.description ? <span>{item.description}</span> : null}
+                            </li>
+                        ))}
+                    </ul>
+                    <button
+                        type="button"
+                        className={classes.dashboardCta}
+                        disabled={ctaDisabled}
+                        onClick={() => onOpenMatchJob?.()}
+                    >
+                        Uzupełnij fakty i przeanalizuj ponownie
+                    </button>
+                </div>
             )}
 
             {categories.length > 0 && (
@@ -464,7 +525,7 @@ function RatingDashboard({
                             disabled={ctaDisabled}
                             onClick={() => onRunAts?.()}
                         >
-                            Sprawdź ATS
+                            {actionId === "position_rating" ? "Sprawdź czytelność ATS" : "Sprawdź ATS"}
                         </button>
                     )}
                     {showContentCta && (
@@ -1085,6 +1146,9 @@ export default function AiAssistant() {
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState("");
     const [jobDesc, setJobDesc] = useState("");
+    const [jobOfferUrl, setJobOfferUrl] = useState("");
+    const [candidateNotes, setCandidateNotes] = useState("");
+    const [jobUrlError, setJobUrlError] = useState("");
     // Goal submenu: improve_content | check_appearance | translate | match_job | null
     const [activePanel, setActivePanel] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
@@ -1123,6 +1187,9 @@ export default function AiAssistant() {
         setMessages([]);
         setInput("");
         setJobDesc("");
+        setJobOfferUrl("");
+        setCandidateNotes("");
+        setJobUrlError("");
         setActivePanel(null);
         setLayoutMode(false);
         setCorrectionStates({});
@@ -1261,10 +1328,17 @@ export default function AiAssistant() {
         });
         setCorrectionStates(prev => ({ ...prev, ...newStates }));
         const message = messages.find((item) => item.id === msgId);
-        if (acceptedIds.length > 0 && message?.updatedCvData) {
+        if (
+            acceptedIds.length > 0
+            && message?.updatedCvData
+            && message.actionId !== "position_rating"
+        ) {
             // Profile-aware content actions return the exact structure that
             // later template fills consume. Apply it atomically only after the
             // user accepts all review cards, preserving the reject workflow.
+            // Job tailoring is excluded because its profile payload may also
+            // contain a card the user rejected; accepted job cards are synced
+            // individually from the canvas above.
             setActiveCvData(message.updatedCvData);
         }
         collapseSpilledMainIntoSidebar?.();
@@ -1496,7 +1570,7 @@ export default function AiAssistant() {
             // An explicit language option wins; otherwise reuse the last
             // detected/selected language. Empty lets the backend auto-detect.
             const cvLanguageOverride = options.cv_language || cvLanguage;
-            const contentActions = ["grammar", "language", "improve", "shorten", "translate"];
+            const contentActions = ["grammar", "language", "improve", "shorten", "translate", "position_rating"];
             const res = await operationApi.httpRequest(
                 ENDPOINTS.AI.ASSISTANT, "POST",
                 JSON.stringify({
@@ -1504,6 +1578,8 @@ export default function AiAssistant() {
                     elements: measureElements(A4_Elements),
                     message: usesMessage ? userText : "",
                     job_description: action === "position_rating" ? jobDesc : "",
+                    job_offer_url: action === "position_rating" ? jobOfferUrl : "",
+                    candidate_notes: action === "position_rating" ? candidateNotes : "",
                     page_size: pageSize,
                     history: usesMessage ? history : [],
                     // Layout AI uses the slug for layout_contract hints; other
@@ -1568,6 +1644,9 @@ export default function AiAssistant() {
                 categories: res.categories ?? [],
                 strengths: res.strengths ?? [],
                 priorities: res.priorities ?? [],
+                jobOffer: res.job_offer ?? null,
+                jobRequirements: res.job_requirements ?? [],
+                evidenceGaps: res.evidence_gaps ?? [],
                 layout_groups: res.layout_groups ?? [],
                 layout_issues: res.layout_issues ?? [],
                 structure_groups: res.structure_groups ?? [],
@@ -1612,7 +1691,7 @@ export default function AiAssistant() {
             requestInFlightRef.current = false;
             setIsLoading(false);
         }
-    }, [A4_Elements, activeCvData, activeTemplateId, captureDocumentScope, cvLanguage, isDocumentScopeCurrent, isLoading, jobDesc, messages, pageSize, refreshEntitlements]);
+    }, [A4_Elements, activeCvData, activeTemplateId, candidateNotes, captureDocumentScope, cvLanguage, isDocumentScopeCurrent, isLoading, jobDesc, jobOfferUrl, messages, pageSize, refreshEntitlements]);
 
     const toggleLayoutMode = useCallback(() => {
         // Keep the client journey clear; the API remains the source of
@@ -1750,19 +1829,32 @@ export default function AiAssistant() {
         send("layout", suggestion.prompt, { displayText: suggestion.label });
     }, [isLoading, layoutMode, send]);
 
+    const submitJobTailoring = useCallback(() => {
+        const url = jobOfferUrl.trim();
+        const description = jobDesc.trim();
+        const validationError = validateJobOfferInput(url, description);
+        if (validationError) {
+            setJobUrlError(validationError);
+            return;
+        }
+        setJobUrlError("");
+        setActivePanel(null);
+        send("position_rating", "Dopasuj moje CV do tej oferty", {
+            displayText: url ? "Dopasuj CV do oferty z linku" : "Dopasuj CV do wklejonej oferty",
+        });
+    }, [jobDesc, jobOfferUrl, send]);
+
     const handleSend = useCallback(() => {
         const text = input.trim();
         if (!text || isLoading) return;
         if (activePanel === "match_job") {
-            // confirm position_rating with job description from the panel
-            setActivePanel(null);
-            send("position_rating", `Przeanalizuj moje CV pod kątem tego stanowiska:\n${jobDesc.slice(0, 200)}…`);
+            submitJobTailoring();
             setInput("");
             return;
         }
         send(layoutMode ? "layout" : "chat", text);
         setInput("");
-    }, [input, isLoading, activePanel, jobDesc, layoutMode, send]);
+    }, [input, isLoading, activePanel, layoutMode, send, submitJobTailoring]);
 
     const handleKey = (e) => {
         if (e.key === "Enter" && !e.shiftKey) {
@@ -2025,30 +2117,73 @@ export default function AiAssistant() {
                                     exit={{ height: 0, opacity: 0 }}
                                     transition={{ duration: 0.2 }}
                                 >
-                                    <label className={classes.jobDescLabel}>
-                                        Wklej opis stanowiska, aby ocenić dopasowanie CV:
+                                    <div className={classes.jobPanelHeader}>
+                                        <strong>Dopasuj CV do konkretnej oferty</strong>
+                                        <span>Najpierw przeanalizujemy wymagania, potem pokażemy poprawki do akceptacji.</span>
+                                    </div>
+                                    <label className={classes.jobDescLabel} htmlFor="ai-job-offer-url">
+                                        Link do oferty
+                                    </label>
+                                    <input
+                                        id="ai-job-offer-url"
+                                        className={classes.jobDescInput}
+                                        type="url"
+                                        inputMode="url"
+                                        value={jobOfferUrl}
+                                        onChange={(event) => {
+                                            setJobOfferUrl(event.target.value);
+                                            setJobUrlError("");
+                                        }}
+                                        placeholder="https://firma.pl/oferty/stanowisko"
+                                        aria-describedby="ai-job-offer-help ai-job-offer-error"
+                                        aria-invalid={Boolean(jobUrlError)}
+                                    />
+                                    <span id="ai-job-offer-help" className={classes.jobFieldHelp}>
+                                        Obsługiwane są publiczne strony HTTPS, w tym Greenhouse i Lever.
+                                    </span>
+                                    {jobUrlError && (
+                                        <span id="ai-job-offer-error" className={classes.jobFieldError} role="alert">
+                                            {jobUrlError}
+                                        </span>
+                                    )}
+                                    <label className={classes.jobDescLabel} htmlFor="ai-job-description">
+                                        Opis awaryjny <span>(opcjonalnie)</span>
                                     </label>
                                     <textarea
+                                        id="ai-job-description"
                                         className={classes.jobDescInput}
                                         value={jobDesc}
                                         onChange={e => setJobDesc(e.target.value)}
-                                        placeholder="Starszy programista frontend w Acme Inc…"
+                                        placeholder="Wklej treść ogłoszenia, jeśli strona wymaga logowania lub blokuje pobieranie."
                                         rows={4}
                                     />
+                                    <label className={classes.jobDescLabel} htmlFor="ai-candidate-notes">
+                                        Dodatkowe fakty o Tobie <span>(opcjonalnie)</span>
+                                    </label>
+                                    <textarea
+                                        id="ai-candidate-notes"
+                                        className={classes.jobDescInput}
+                                        value={candidateNotes}
+                                        onChange={(event) => setCandidateNotes(event.target.value)}
+                                        placeholder="Np. wdrożyłem tę technologię komercyjnie, ale nie ma jej jeszcze w CV. Nie wpisuj danych, których nie możesz potwierdzić."
+                                        rows={3}
+                                    />
+                                    <p className={classes.jobSafetyNote}>
+                                        CV Studio nie dopisze niepotwierdzonych liczb, umiejętności ani doświadczeń. Braki pokaże jako luki w dowodach.
+                                    </p>
                                     <div className={classes.jobDescRow}>
                                         <button
+                                            type="button"
                                             className={classes.jobDescCancel}
                                             onClick={() => setActivePanel(null)}
                                         >Anuluj</button>
                                         <button
+                                            type="button"
                                             className={classes.jobDescAnalyse}
-                                            disabled={!jobDesc.trim() || isLoading}
-                                            onClick={() => {
-                                                setActivePanel(null);
-                                                send("position_rating", `Przeanalizuj moje CV pod kątem tego stanowiska:\n${jobDesc.slice(0, 200)}…`);
-                                            }}
+                                            disabled={(!jobOfferUrl.trim() && !jobDesc.trim()) || isLoading}
+                                            onClick={submitJobTailoring}
                                         >
-                                            Analizuj
+                                            Analizuj i przygotuj poprawki
                                         </button>
                                     </div>
                                 </Motion.div>
@@ -2102,7 +2237,8 @@ export default function AiAssistant() {
                                 />
                             ))}
                             {isLoading && (
-                                <div className={classes.typing}>
+                                <div className={classes.typing} role="status" aria-live="polite">
+                                    <span className={classes.srOnly}>Asystent analizuje dokument. To może potrwać chwilę.</span>
                                     <div className={classes.typingDot} />
                                     <div className={classes.typingDot} />
                                     <div className={classes.typingDot} />

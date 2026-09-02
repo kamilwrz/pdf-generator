@@ -24,6 +24,7 @@ from app.services.ai_assistant_service import (
 )
 from app.services.ats_readability import AtsReadabilityError
 from app.services.document_service import validate_and_resolve_image_elements
+from app.services.job_offer_service import JobOfferError, resolve_job_offer
 from app.services.entitlements import (
     assert_can_use_ai_action,
     credits_for_cost,
@@ -53,6 +54,8 @@ MAX_ASSISTANT_ELEMENTS = 500
 MAX_ASSISTANT_HISTORY = 20
 MAX_ASSISTANT_MESSAGE_CHARS = 4_000
 MAX_JOB_DESCRIPTION_CHARS = 20_000
+MAX_JOB_OFFER_URL_CHARS = 2_048
+MAX_CANDIDATE_NOTES_CHARS = 5_000
 
 
 class AssistantRequest(BaseModel):
@@ -67,6 +70,8 @@ class AssistantRequest(BaseModel):
     elements: list[dict] = Field(default_factory=list, max_length=MAX_ASSISTANT_ELEMENTS)
     message: str = Field(default="", max_length=MAX_ASSISTANT_MESSAGE_CHARS)
     job_description: str = Field(default="", max_length=MAX_JOB_DESCRIPTION_CHARS)
+    job_offer_url: str = Field(default="", max_length=MAX_JOB_OFFER_URL_CHARS)
+    candidate_notes: str = Field(default="", max_length=MAX_CANDIDATE_NOTES_CHARS)
     page_size: dict = Field(default_factory=dict)
     # Prior turns from the open editor session (role + content). Chat / layout.
     history: list[dict] = Field(default_factory=list, max_length=MAX_ASSISTANT_HISTORY)
@@ -133,6 +138,9 @@ class AssistantResponse(BaseModel):
     categories: list[dict] = []
     strengths: list[str] = []
     priorities: list[dict] = []
+    job_offer: dict | None = None
+    job_requirements: list[dict] = []
+    evidence_gaps: list[dict] = []
     layout_groups: list[dict] = []
     layout_issues: list[dict] = []
     structure_groups: list[dict] = []
@@ -171,12 +179,16 @@ def ai_assistant(
             detail={"code": "invalid_ai_action", "message": "Wybrana akcja AI jest nieprawidłowa."},
         )
 
-    if request.action == "position_rating" and not request.job_description.strip():
+    if (
+        request.action == "position_rating"
+        and not request.job_offer_url.strip()
+        and not request.job_description.strip()
+    ):
         raise HTTPException(
             status_code=400,
             detail={
-                "code": "job_description_required",
-                "message": "Opis stanowiska jest wymagany dla oceny dopasowania.",
+                "code": "job_offer_required",
+                "message": "Wklej link do oferty lub jej opis.",
             },
         )
 
@@ -273,6 +285,14 @@ def ai_assistant(
     log_metric_event("ai_assistant_call", db, payload, action=request.action)
 
     try:
+        resolved_job_offer = (
+            resolve_job_offer(
+                request.job_offer_url,
+                request.job_description,
+            )
+            if request.action == "position_rating"
+            else None
+        )
         resolved_images = (
             validate_and_resolve_image_elements(
                 db,
@@ -291,16 +311,32 @@ def ai_assistant(
             action=request.action,
             elements=request.elements,
             message=request.message,
-            job_description=request.job_description,
+            job_description=(
+                resolved_job_offer["description"]
+                if resolved_job_offer
+                else request.job_description
+            ),
             page_size=request.page_size,
             history=request.history,
             template_id=request.template_id,
             target_language=target_language,
             cv_language=cv_language,
             cv_data=request.cv_data,
+            candidate_notes=request.candidate_notes,
+            job_offer=resolved_job_offer,
             db=db,
             image_resolver=resolve_ats_image if request.action == "ats_score" else None,
         )
+    except JobOfferError as exc:
+        release_ai_reservation(
+            db,
+            user_id=user.id,
+            reservation_id=claim.reservation_id,
+        )
+        raise HTTPException(
+            status_code=400,
+            detail={"code": exc.code, "message": exc.user_message},
+        ) from exc
     except HTTPException:
         # A post-reservation storage/materialization failure is confirmed local
         # work. Release immediately and preserve its stable 4xx response.
