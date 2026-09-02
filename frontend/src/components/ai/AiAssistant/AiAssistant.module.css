@@ -358,13 +358,16 @@
     flex: 1 1 auto;
     min-height: 0;
     overflow-y: auto;
+    overflow-anchor: none;
     overscroll-behavior: contain;
     scrollbar-gutter: stable;
     padding: 12px 14px;
     display: flex;
     flex-direction: column;
     gap: 12px;
-    scroll-behavior: smooth;
+    /* Message height changes several times per request; an animated CSSOM
+       scroll can retain a stale target and expose a blank conversation frame. */
+    scroll-behavior: auto;
 }
 
 .emptyState {
@@ -1137,10 +1140,6 @@
 .corrBadge { font: 600 9.5px var(--font-body); align-self: flex-end; }
 
 @media (prefers-reduced-motion: reduce) {
-    .messages {
-        scroll-behavior: auto;
-    }
-
     .corrCard,
     .diffCompare,
     .diffBlock,

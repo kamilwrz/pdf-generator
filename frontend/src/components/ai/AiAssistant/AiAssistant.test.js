@@ -74,7 +74,7 @@ test("assistant chat resets when the document session changes", async () => {
     assert.match(source, /isDocumentScopeCurrent\(documentScope, \{ requireSameRevision: true \}\)/);
 });
 
-test("assistant auto-scroll stays inside the message list after job tailoring", async () => {
+test("assistant auto-scroll commits the latest message before paint", async () => {
     const source = await readFile(new URL("./AiAssistant.jsx", import.meta.url), "utf8");
     const styles = await readFile(new URL("./AiAssistant.module.css", import.meta.url), "utf8");
 
@@ -82,14 +82,15 @@ test("assistant auto-scroll stays inside the message list after job tailoring", 
     assert.match(source, /const messageList = messagesRef\.current/);
     assert.match(
         source,
-        /messageList\.scrollTo\(\{[\s\S]*top: messageList\.scrollHeight,[\s\S]*behavior: reduceMotion \? "auto" : "smooth"/,
+        /useLayoutEffect\(\(\) => \{[\s\S]*messageList\.scrollTop = Math\.max\([\s\S]*messageList\.scrollHeight - messageList\.clientHeight/,
     );
-    assert.match(source, /<div ref=\{messagesRef\} className=\{classes\.messages\}>/);
+    assert.match(source, /ref=\{messagesRef\}[\s\S]*className=\{classes\.messages\}[\s\S]*role="log"[\s\S]*aria-label="Rozmowa z asystentem AI"/);
     assert.doesNotMatch(source, /messagesEndRef/);
+    assert.doesNotMatch(source, /messageList\.scrollTo\(/);
 
     assert.match(styles, /\.panel\s*\{[\s\S]*?overflow:\s*hidden;[\s\S]*?overflow:\s*clip;[\s\S]*?\}/);
     assert.match(styles, /\.jobDescArea\s*\{[\s\S]*?min-height:\s*0;[\s\S]*?flex:\s*0 1 auto;[\s\S]*?\}/);
-    assert.match(styles, /\.messages\s*\{[\s\S]*?flex:\s*1 1 auto;[\s\S]*?min-height:\s*0;[\s\S]*?overflow-y:\s*auto;[\s\S]*?\}/);
+    assert.match(styles, /\.messages\s*\{[\s\S]*?flex:\s*1 1 auto;[\s\S]*?min-height:\s*0;[\s\S]*?overflow-y:\s*auto;[\s\S]*?overflow-anchor:\s*none;[\s\S]*?scroll-behavior:\s*auto;[\s\S]*?\}/);
 });
 
 test("assistant retries share one idempotency key per logical send", async () => {

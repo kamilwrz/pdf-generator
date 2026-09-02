@@ -192,13 +192,14 @@ function json(route, value, status = 200) {
  */
 export async function installMockApi(
   page,
-  { documents = [SAVED_DOCUMENT], imports = IMPORT_HISTORY } = {},
+  { documents = [SAVED_DOCUMENT], imports = IMPORT_HISTORY, assistantResponses = [] } = {},
 ) {
   const calls = [];
   const unexpected = [];
   const productionRequests = [];
   let currentRevision = SAVED_DOCUMENT.revision;
   let currentImports = imports.map((item) => ({ ...item }));
+  let assistantResponseIndex = 0;
 
   await page.route("https://**/*", async (route) => {
     const url = route.request().url();
@@ -266,6 +267,17 @@ export async function installMockApi(
     if (method === "GET" && path === "/ai/bio_cv_draft") return json(route, { draft: null });
     if (method === "GET" && path === "/ai/imports") {
       return json(route, { items: currentImports, next_cursor: null });
+    }
+    if (method === "POST" && path === "/ai/assistant") {
+      const response = assistantResponses[
+        Math.min(assistantResponseIndex, Math.max(0, assistantResponses.length - 1))
+      ];
+      assistantResponseIndex += 1;
+      return json(route, response || {
+        message: "Lokalna odpowiedź asystenta.",
+        tips: [],
+        corrections: [],
+      });
     }
     if (method === "DELETE" && /^\/ai\/imports\/\d+$/.test(path)) {
       const snapshotId = Number(path.split("/").at(-1));

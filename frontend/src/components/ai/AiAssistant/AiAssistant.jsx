@@ -3,7 +3,7 @@
  * Sends element snapshots to POST /ai/assistant; chat may return previewable
  * position/structure/deletion/clone review cards before mutating canvas state.
  */
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useLayoutEffect, useCallback } from "react";
 import { AnimatePresence, motion as Motion, useReducedMotion } from "framer-motion";
 import { nanoid } from "nanoid";
 import { BsStars } from "react-icons/bs";
@@ -1270,22 +1270,21 @@ export default function AiAssistant() {
 
     const activeJobEvidencePreview = pointerJobEvidencePreview ?? focusJobEvidencePreview;
 
-    useEffect(() => {
+    useLayoutEffect(() => {
         const messageList = messagesRef.current;
-        if (!isOpen || !messageList) return undefined;
+        if (!isOpen || !messageList) return;
 
-        // Scroll only the conversation viewport. `Element.scrollIntoView()`
-        // also scrolls every eligible ancestor; once the job-offer form made
-        // the fixed panel taller than its viewport, that behavior moved the
-        // header, quick actions, and composer out of place.
-        const frame = window.requestAnimationFrame(() => {
-            messageList.scrollTo({
-                top: messageList.scrollHeight,
-                behavior: reduceMotion ? "auto" : "smooth",
-            });
-        });
-        return () => window.cancelAnimationFrame(frame);
-    }, [isLoading, isOpen, messages, reduceMotion]);
+        // React can append a user bubble, mount the typing indicator, append
+        // the reply, and remove the indicator in quick succession. A smooth
+        // scroll scheduled for the next frame can then target geometry that no
+        // longer exists and leave the conversation painted above a blank area.
+        // Commit the bounded list's final position before paint instead. This
+        // never scrolls the fixed panel, page, header, actions, or composer.
+        messageList.scrollTop = Math.max(
+            0,
+            messageList.scrollHeight - messageList.clientHeight,
+        );
+    }, [isLoading, isOpen, messages]);
 
     // A document epoch covers saved-document opens, new/imported documents,
     // template regeneration and guest restoration. Reset every assistant-owned
@@ -2320,7 +2319,13 @@ export default function AiAssistant() {
                         </AnimatePresence>
 
                         {/* chat messages */}
-                        <div ref={messagesRef} className={classes.messages}>
+                        <div
+                            ref={messagesRef}
+                            className={classes.messages}
+                            role="log"
+                            aria-label="Rozmowa z asystentem AI"
+                            aria-live="polite"
+                        >
                             {messages.length === 0 && (
                                 <div className={classes.emptyState}>
                                     <BsStars className={classes.emptyIcon} />
