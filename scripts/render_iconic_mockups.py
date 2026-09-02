@@ -116,9 +116,11 @@ def rasterize_first_page(pdf_bytes: bytes) -> bytes:
 def main():
     data = json.loads(ELEMENTS_JSON.read_text(encoding="utf-8"))
     requested = sys.argv[1:]
+    # A targeted render follows the requested starter file even when the
+    # catalog dump still contains an older copy. This is the normal workflow
+    # after changing one template and prevents its checked-in picker image
+    # from silently lagging behind the editor canvas.
     for theme in requested:
-        if theme in data:
-            continue
         generated = load_generated_starter(theme)
         if generated is not None:
             data[theme] = generated

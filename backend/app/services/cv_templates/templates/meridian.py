@@ -7,12 +7,13 @@ of Regent's monochrome ink, a noticeably more compact body type scale, and a
 short accent-blue tick under every section rule that gives the page its own
 identity instead of reading as a Regent recolor.
 
-Experience and education records use a two-column layout: the left column
-flows normally (title/degree, company/school, bullets — one textarea per
-line, exactly like the shared `_place_experience_record` helper other
-single-column templates use), while dates and location are pinned to a
-separate right-hand rail, stacked one above the other (never sharing a line
-with the left column). The rail elements carry `flowRole: "record-overlay"`
+Experience and education records use one shared two-column structure: the
+left column flows normally (primary title, organisation, bullets — one
+textarea per line), while the period and location are pinned to a separate
+right-hand rail, stacked one above the other (never sharing a line with the
+left column). Education adapts degree/school data to that same record
+contract instead of maintaining a second school-first variant. The rail
+elements carry `flowRole: "record-overlay"`
 and `autoHeight: False` — the same technique Axis's date gutter already uses
 in production (see `templates/axis.py`, `_place_gutter`) — so they ride along
 with the record on reflow/pagination without being mistaken for the next
@@ -58,7 +59,11 @@ from app.services.cv_templates.shared.contact import (
 )
 from app.services.cv_templates.shared.extras import _extra_sections
 from app.services.cv_templates.shared.masthead import tag_masthead_identity
-from app.services.cv_templates.shared.records import _education_bullets, _education_school
+from app.services.cv_templates.shared.records import (
+    _education_bullet_items,
+    _education_bullets,
+    _education_school,
+)
 from app.services.cv_templates.shared.text import _bullets, _compact_text, _labels, _place_skills_section
 
 # Meridian's own masthead rhythm. Kept as local literals (not routed through
@@ -189,15 +194,32 @@ def _meridian_place_experience(
         b.gap(after_gap)
 
 
+def _meridian_education_as_experience(education: dict) -> dict:
+    """Adapt education data to Meridian's single structured-record contract.
+
+    Meridian deliberately renders education and experience with the same
+    hierarchy. Mapping the semantic fields here lets both categories use the
+    exact same measurement and placement functions while the normalized CV
+    data remains correctly named for persistence and template switching.
+    """
+    return {
+        "title": str(education.get("degree") or "").strip(),
+        "company": _education_school(education),
+        "period": str(education.get("period") or "").strip(),
+        "city": str(education.get("city") or "").strip(),
+        "bullets": _education_bullet_items(education),
+    }
+
+
 def _meridian_education_height(
     b: "Builder", edu: dict, width: float, font: str, *,
     degree_fs: float, degree_lh: float, meta_fs: float, meta_lh: float,
     body_fs: float, body_lh: float,
 ) -> float:
-    """Measured height of one education record's left content column.
+    """Measure the legacy school-first education variant reused by Aurelia.
 
-    The right-hand city/period rail is a fixed-height overlay that does not
-    contribute to this measurement (mirrors Axis's date gutter).
+    Meridian itself maps education into its shared Experience structure above;
+    this compatibility helper remains for Aurelia's distinct authored layout.
     """
     content_w = width - _RECORD_RIGHT_W - _RECORD_GAP
     school = _education_school(edu)
@@ -226,16 +248,14 @@ def _meridian_place_education(
     degree_fs: float, degree_lh: float, meta_fs: float, meta_lh: float,
     body_fs: float, body_lh: float, after_gap: float | None = None,
 ) -> None:
-    """Render school → degree (bold) → bullets in the left column; city above period on the right rail.
+    """Render Aurelia's legacy school-first record on the shared overlay rail.
 
-    Row order matches the common letterhead convention (school first, then
-    the bold diploma title) rather than the shared helper's degree-first
-    order — Meridian's defining structural difference from Regent. `city` is
-    pinned to the school line's exact top; `period` is pinned to whichever
-    line actually follows it (degree, or bullets when degree is absent) so
-    both rail lines stay correctly anchored for reflow. If neither a degree
-    nor a bullet line follows the school, `period` is dropped rather than
-    pinned to a guessed offset with no real anchor (see module docstring).
+    Meridian no longer calls this compatibility helper. Aurelia still uses
+    school → bold degree → bullets, with `city` pinned to the school's exact
+    top and `period` pinned to the following degree or bullet line. Both rail
+    fields therefore retain genuine anchors during frontend reflow. If the
+    record has no second content line, `period` is omitted instead of being
+    pinned to a guessed offset with no matching textarea.
     """
     content_w = width - _RECORD_RIGHT_W - _RECORD_GAP
     rail_x = left + content_w + _RECORD_GAP
@@ -451,18 +471,20 @@ def _gen_meridian(cv: dict) -> list[dict]:
 
     if cv.get("education"):
         education_entries = cv["education"]
+        first_education_record = _meridian_education_as_experience(education_entries[0])
         b.need_section(
             section_chrome_h,
-            _meridian_education_height(
-                b, education_entries[0], W, SANS, degree_fs=9.8, degree_lh=12.5,
+            _meridian_experience_height(
+                b, first_education_record, W, SANS, title_fs=10.3, title_lh=13.0,
                 meta_fs=7.9, meta_lh=10.8, body_fs=body_fs, body_lh=body_lh,
             ),
         )
         section(labels["education"])
         for index, education in enumerate(education_entries):
-            _meridian_place_education(
-                b, education, L, W, ink=C["ink"], muted=C["muted"], body=C["body"], font=SANS,
-                degree_fs=9.8, degree_lh=12.5, meta_fs=7.9, meta_lh=10.8,
+            _meridian_place_experience(
+                b, _meridian_education_as_experience(education), L, W,
+                ink=C["ink"], muted=C["muted"], body=C["body"], font=SANS,
+                title_fs=10.3, title_lh=13.0, meta_fs=7.9, meta_lh=10.8,
                 body_fs=body_fs, body_lh=body_lh,
                 after_gap=get_spacing().record if index < len(education_entries) - 1 else None,
             )

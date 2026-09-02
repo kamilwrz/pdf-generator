@@ -142,9 +142,12 @@ class MeridianTemplateTests(unittest.TestCase):
         # Rail sits to the right of the left content column.
         self.assertGreater(period["left"], title["left"] + title["width"])
 
-    def test_meridian_education_lists_school_before_the_bold_degree(self) -> None:
-        """Row order matches the screenshot convention: school/city, then degree/period,
-        with city/period pinned to a non-flowing rail like the experience record."""
+    def test_meridian_education_uses_the_experience_record_structure(self) -> None:
+        """Education maps degree/school to the same rows as role/company.
+
+        The period and city must therefore use the same right-rail order and
+        exact anchors as Experience, leaving only the field semantics different.
+        """
         elements = generate_resume(
             "meridian",
             {
@@ -168,9 +171,18 @@ class MeridianTemplateTests(unittest.TestCase):
         city = next(e for e in elements if e.get("content") == "Frankfurt(Oder)")
         period = next(e for e in elements if e.get("content") == "07/2015 - 10/2026")
 
-        self.assertFalse(school["bold"])
         self.assertTrue(degree["bold"])
-        self.assertLess(school["top"], degree["top"])
+        self.assertFalse(school["bold"])
+        self.assertLess(degree["top"], school["top"])
+
+        # The left-column hierarchy and typography are exactly the same as
+        # Experience's title/company rows.
+        self.assertEqual(degree["fontSize"], 10.3)
+        self.assertEqual(degree["lineHeight"], 13.0)
+        self.assertEqual(degree["color"], "#1B2A41")
+        self.assertEqual(school["fontSize"], 7.9)
+        self.assertEqual(school["lineHeight"], 10.8)
+        self.assertEqual(school["color"], "#657287")
 
         self.assertEqual(city["flowRole"], "record-overlay")
         self.assertEqual(period["flowRole"], "record-overlay")
@@ -178,9 +190,9 @@ class MeridianTemplateTests(unittest.TestCase):
         self.assertFalse(period["autoHeight"])
         self.assertEqual(city["align"], "right")
         self.assertEqual(period["align"], "right")
-        self.assertEqual(city["top"], school["top"])
         self.assertEqual(period["top"], degree["top"])
-        self.assertLess(city["top"], period["top"])
+        self.assertEqual(city["top"], school["top"])
+        self.assertLess(period["top"], city["top"])
 
     def test_meridian_rail_anchors_to_bullets_when_company_is_missing(self) -> None:
         """If company is absent, city falls back to bullets' exact top rather than a
