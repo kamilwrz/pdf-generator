@@ -1,9 +1,9 @@
 /**
  * Shared structural toolbar rendered in the editing gutter beside an A4 page.
  *
- * The toolbar never participates in document layout or export. Its highlight
- * is pointer-inert, while actions live outside the authored content column so
- * they cannot cover text or be mistaken for PDF content.
+ * The toolbar never participates in document layout or export. Its pointer-
+ * inert highlight may render independently, while actions stay outside the
+ * authored content column and can never be mistaken for PDF content.
  */
 import { useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -14,6 +14,7 @@ import classes from "./CanvasHoverToolbar.module.css";
  * @param {{
  *   toolbarKey:string,
  *   visible:boolean,
+ *   highlightVisible?:boolean,
  *   pinned:boolean,
  *   side?:"left"|"right",
  *   top:number,
@@ -40,6 +41,7 @@ import classes from "./CanvasHoverToolbar.module.css";
 export default function CanvasHoverToolbar({
   toolbarKey,
   visible,
+  highlightVisible = visible,
   pinned,
   side = "right",
   top,
@@ -139,7 +141,7 @@ export default function CanvasHoverToolbar({
     };
   }, [visible, side, top, pageWidth, layout]);
 
-  if (!visible) return null;
+  if (!visible && !highlightVisible) return null;
 
   const originStyle = { left: side === "left" ? 0 : pageWidth, top };
   const screenValue = (value) => `${value * (portalGeometry?.scale ?? 1)}px`;
@@ -165,7 +167,7 @@ export default function CanvasHoverToolbar({
 
   return (
     <>
-      {highlight ? (
+      {highlightVisible && highlight ? (
         <div
           className={`${classes.highlight}${pinned ? ` ${classes.highlightPinned}` : ""}`}
           style={{
@@ -195,9 +197,11 @@ export default function CanvasHoverToolbar({
         />
       ) : null}
 
-      <span ref={originRef} className={classes.origin} style={originStyle} aria-hidden="true" />
+      {visible ? (
+        <span ref={originRef} className={classes.origin} style={originStyle} aria-hidden="true" />
+      ) : null}
 
-      {portalStyle && typeof document !== "undefined" ? createPortal(
+      {visible && portalStyle && typeof document !== "undefined" ? createPortal(
         <div
           className={classes.portalAnchor}
           style={portalStyle}

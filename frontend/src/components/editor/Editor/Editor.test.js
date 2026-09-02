@@ -22,11 +22,13 @@ test("Editor renders selection formatting as its own panel, independent of the w
   // Layer (zIndex) is freeform-only — structural mode has nothing useful to stack.
   assert.match(source, /canEditElementLayer/);
   assert.match(source, /showLayerField && \(/);
-  // The inspector uses live workspace anchors, prefers the compact footprint
-  // from the 220% reference, and always respects the 15px A4 gap.
+  // The inspector uses live workspace anchors, prefers the requested desktop
+  // footprint, and always respects the 15px A4 gap.
   assert.match(source, /data-anchor="editor-sidebar"/);
   assert.match(source, /data-anchor="editor-topbar"/);
-  assert.match(source, /sidebar-documents-divider/);
+  assert.match(source, /PANEL_MAX_HEIGHT_PX = 480/);
+  assert.match(source, /maxHeight = Math\.min\(PANEL_MAX_HEIGHT_PX, availableHeight\)/);
+  assert.doesNotMatch(source, /height: PANEL_MAX_HEIGHT_PX/);
   assert.match(source, /PANEL_A4_GAP_PX = 15/);
   assert.match(source, /resolveEditorInspectorWidth/);
 });
@@ -57,7 +59,7 @@ test("Editor follows the AI Assistant surface, control, active, and focus langua
   assert.doesNotMatch(editorCss, /border-left:\s*3px solid var\(--chrome-ink/);
 });
 
-test("Editor keeps 36px targets and gives fields the full 248px-panel card width", async () => {
+test("Editor keeps 36px targets and gives fields the full narrowed-panel card width", async () => {
   const editorCss = await readFile(new URL("./Editor.module.css", import.meta.url), "utf8");
 
   assert.match(editorCss, /\.iconBtn\s*\{[^}]*width:\s*36px;[^}]*height:\s*36px/s);

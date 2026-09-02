@@ -35,3 +35,12 @@ test("direct actions replace the labelled structural toolbar with accessible ico
   assert.match(css, /\.directActionDanger/);
   assert.match(css, /\.control\[data-tooltip\]:focus-visible::after/);
 });
+
+test("semantic highlight can remain visible without opening the action toolbar", async () => {
+  const source = await readFile(new URL("./CanvasHoverToolbar.jsx", import.meta.url), "utf8");
+
+  assert.match(source, /highlightVisible = visible/);
+  assert.match(source, /if \(!visible && !highlightVisible\) return null/);
+  assert.match(source, /highlightVisible && highlight/);
+  assert.match(source, /visible && portalStyle/);
+});

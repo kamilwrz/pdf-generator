@@ -6,9 +6,9 @@ import {
   resolveEditorInspectorWidth,
 } from "./editorInspectorWidth.js";
 
-test("inspector keeps its preferred 220% footprint when the live dock fits", () => {
-  assert.equal(EDITOR_INSPECTOR_FIXED_WIDTH_PX, 248);
-  for (const exactDockWidth of [248, 320, 640]) {
+test("inspector keeps its preferred 304px footprint when the live dock fits", () => {
+  assert.equal(EDITOR_INSPECTOR_FIXED_WIDTH_PX, 304);
+  for (const exactDockWidth of [304, 320, 640]) {
     assert.equal(resolveEditorInspectorWidth({
       exactDockWidth,
       availableWidth: 900,

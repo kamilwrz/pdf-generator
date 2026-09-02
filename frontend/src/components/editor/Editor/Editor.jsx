@@ -1,12 +1,12 @@
 /**
  * Element-properties panel (CV STUDIO chrome). Text vs TextArea keep different
  * field sets. The inspector occupies the quiet top-left workspace between the
- * tool rail and the A4 sheet: its top follows the live topbar, its bottom
- * follows the divider above “Moje dokumenty”, and its width stays at the
- * compact 248px footprint produced by the reference 220% A4 view. The live A4
- * edge remains a hard limit, so it may narrow to keep a 15px breathing space
- * before the page. It mounts/unmounts with a short directional transition and
- * becomes an overlay drawer when the viewport is too narrow for usable controls.
+ * tool rail and the A4 sheet: its top follows the live topbar, its preferred
+ * width is 304px, and its content determines its height up to a 480px cap. The
+ * live A4 edge remains a hard limit, so the panel may narrow to keep a 15px
+ * breathing space before the page. It mounts/unmounts with a short directional
+ * transition and becomes an overlay drawer when the viewport is too narrow for
+ * usable controls.
  *
  * While a text/textarea is contentEditable and the caret range is non-empty,
  * a second, fully independent floating bar ("Zaznaczenie") appears anchored
@@ -58,7 +58,10 @@ import {
 } from "../../../utils/floatingPanelPosition";
 import { CANVAS_FONT_STACKS } from "../../../utils/canvasFont";
 import { pathCurvesForKind } from "../../../utils/freeformShapes";
-import { resolveEditorInspectorWidth } from "../../../utils/editorInspectorWidth";
+import {
+  EDITOR_INSPECTOR_FIXED_WIDTH_PX,
+  resolveEditorInspectorWidth,
+} from "../../../utils/editorInspectorWidth";
 import { insertInlineSkillSeparator } from "../../../utils/flatSectionLayout";
 import { isInlineSkillsContentElement } from "../../../utils/skillsDisplayMode";
 import {
@@ -95,6 +98,7 @@ const HEX_COLOR_PATTERN = /^#[0-9A-Fa-f]{6}$/;
 const PANEL_A4_GAP_PX = 15;
 const PANEL_MIN_WIDTH_PX = 120;
 const PANEL_VIEWPORT_GUTTER_PX = 8;
+const PANEL_MAX_HEIGHT_PX = 480;
 
 const CATEGORY_LABELS = {
   text: "tekst",
@@ -197,8 +201,8 @@ export default function Editor() {
   const [panelPosition, setPanelPosition] = useState({
     top: 0,
     left: 0,
-    width: PANEL_MIN_WIDTH_PX,
-    height: 320,
+    width: EDITOR_INSPECTOR_FIXED_WIDTH_PX,
+    maxHeight: PANEL_MAX_HEIGHT_PX,
   });
   // Non-collapsed caret range inside the editing text node. Selection marks
   // (B/I/U/colour) render in their own floating panel, anchored to the
@@ -507,25 +511,23 @@ export default function Editor() {
 
   // The inspector is part of the workspace grid, not a tooltip. Read live DOM
   // geometry because text editing animates the page to 200% and recentres its
-  // scroll position. The inspector prefers the compact width shown by the
-  // reference 220% view, while the live A4 edge remains a collision boundary
-  // at every zoom. Resize/transition/scroll listeners keep that boundary
-  // current without allowing zoom-out to enlarge the panel.
+  // scroll position. The inspector prefers its 304 px desktop width, while the
+  // live A4 edge remains a collision boundary at every zoom. Its height stays
+  // intrinsic for short forms and is capped at 480 px (or the available
+  // viewport height), after which only the form body scrolls.
   useLayoutEffect(() => {
     if (!someElementSelected) return undefined;
 
     function updatePosition() {
       const sidebar = document.querySelector('[data-anchor="editor-sidebar"]');
       const topbar = document.querySelector('[data-anchor="editor-topbar"]');
-      const documentsDivider = document.querySelector('[data-anchor="sidebar-documents-divider"]');
       const canvasArea = document.querySelector(".canvas-area");
       const visiblePage = document.querySelector(`[data-page-canvas="${currentPage}"]`)
         || document.querySelector("[data-page-canvas]");
-      if (!sidebar || !topbar || !documentsDivider || !canvasArea || !visiblePage) return;
+      if (!sidebar || !topbar || !canvasArea || !visiblePage) return;
 
       const sidebarRect = sidebar.getBoundingClientRect();
       const topbarRect = topbar.getBoundingClientRect();
-      const dividerRect = documentsDivider.getBoundingClientRect();
       const canvasRect = canvasArea.getBoundingClientRect();
       const pageRect = visiblePage.getBoundingClientRect();
       const left = Math.round(sidebarRect.right);
@@ -537,22 +539,17 @@ export default function Editor() {
         availableWidth,
         minimumWidth: PANEL_MIN_WIDTH_PX,
       });
-      const exactDockHeight = Math.floor(dividerRect.top - top);
-      // Template/demo rails contain far fewer tools, so their documents rule
-      // can sit directly under the topbar. In that state the freeform-sized
-      // dock does not exist; use a viewport-contained drawer instead of
-      // crushing the form to a few pixels. A full freeform rail keeps the
-      // exact divider height requested by the workspace grid.
-      const height = exactDockHeight >= 280
-        ? exactDockHeight
-        : Math.min(460, Math.max(320, window.innerHeight - top - 16));
+      const availableHeight = Math.max(0, Math.floor(
+        window.innerHeight - top - PANEL_VIEWPORT_GUTTER_PX,
+      ));
+      const maxHeight = Math.min(PANEL_MAX_HEIGHT_PX, availableHeight);
       setPanelPosition((previous) => (
         previous.top === top
           && previous.left === left
           && previous.width === width
-          && previous.height === height
+          && previous.maxHeight === maxHeight
           ? previous
-          : { top, left, width, height }
+          : { top, left, width, maxHeight }
       ));
     }
 
@@ -560,7 +557,6 @@ export default function Editor() {
     const observedNodes = [
       document.querySelector('[data-anchor="editor-sidebar"]'),
       document.querySelector('[data-anchor="editor-topbar"]'),
-      document.querySelector('[data-anchor="sidebar-documents-divider"]'),
       document.querySelector(".canvas-area"),
       document.querySelector(`[data-page-canvas="${currentPage}"]`) || document.querySelector("[data-page-canvas]"),
     ].filter(Boolean);

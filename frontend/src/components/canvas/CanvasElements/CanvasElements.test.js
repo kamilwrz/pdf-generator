@@ -49,3 +49,18 @@ test("repeatable grid cells mount their dedicated two-action gutter control", as
   assert.match(source, /gutterSide=\{gridEntryAnchor\.gutterSide\}/);
   assert.match(source, /canDelete=\{gridEntryAnchor\.canDelete\}/);
 });
+
+test("plain section content reveals the complete section outline without stealing nested controls", async () => {
+  const source = await readFile(new URL("./CanvasElements.jsx", import.meta.url), "utf8");
+  const sectionSource = await readFile(
+    new URL("../SectionRecordAdd/SectionRecordAdd.jsx", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(source, /const nestedStructuralHoverIds = useMemo/);
+  assert.match(source, /!nestedStructuralHoverIds\.has\(element\.element_id\)/);
+  assert.match(source, /contentHoverIds=\{sectionAnchor\.contentHoverIds\}/);
+  assert.match(sectionSource, /const sectionContextVisible = visible \|\| contentHoverActive/);
+  assert.match(sectionSource, /highlightVisible=\{sectionContextVisible\}/);
+  assert.match(sectionSource, /addEventListener\("pointerenter", showContext\)/);
+});

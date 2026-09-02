@@ -1,13 +1,13 @@
 /**
  * Contextual structural toolbar for a template-mode section heading.
  *
- * Hover or keyboard focus reveals one grouped toolbar in the A4 gutter and an
- * inner frame around the exact heading. Directly visible controls are
- * add/reorder, while layout, column-transfer, and destructive actions live in
- * the overflow menu. This keeps editor chrome out of the CV content without
- * introducing a separate properties panel.
+ * Heading hover or keyboard focus reveals a grouped toolbar in the A4 gutter
+ * and an inner frame around the exact heading. Plain body hover/focus keeps the
+ * complete section frame visible without opening controls. Add/reorder remain
+ * direct; layout, transfer, and destructive actions live in the overflow menu,
+ * keeping editor chrome out of the CV content and exported document.
  */
-import { useLayoutEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 import { FiTrash2 } from "react-icons/fi";
 import { LuArrowLeftRight, LuLayoutGrid } from "react-icons/lu";
 import { useCanvasContext } from "../../../store/canvas-context";
@@ -61,6 +61,7 @@ function measurementKeyPart(element) {
  *   fontSize?:number,
  *   highlight?:{left:number,top:number,width:number,height:number}|null,
  *   highlightLimits?:{minTop?:number|null,maxBottom?:number|null},
+ *   contentHoverIds?:string[],
  *   gutterSide?:"left"|"right",
  *   spreadSide?:"left"|"right"|null,
  *   canMoveUp?:boolean,
@@ -78,6 +79,7 @@ export default function SectionRecordAdd({
   fontSize = 10,
   highlight = null,
   highlightLimits = {},
+  contentHoverIds = [],
   gutterSide = "right",
   spreadSide = null,
   canMoveUp = false,
@@ -126,6 +128,42 @@ export default function SectionRecordAdd({
     triggerIds: [headingId],
     triggerRevision,
   });
+  const contentHoverKey = [...new Set(contentHoverIds)].join("|");
+  const contentHoverRevision = contentHoverIds.map((elementId) => {
+    const element = A4_Elements.find((candidate) => candidate.element_id === elementId);
+    return `${elementId}:${Boolean(element?.isSelected)}:${Boolean(element?.isEditing)}`;
+  }).join("|");
+  const [contentHoverActive, setContentHoverActive] = useState(false);
+
+  useEffect(() => {
+    if (!eligible || !contentHoverKey) return undefined;
+    const nodes = contentHoverKey.split("|")
+      .map((elementId) => document.getElementById(elementId))
+      .filter(Boolean);
+    if (nodes.length === 0) return undefined;
+
+    // This listener owns only the semantic section frame. More specific
+    // record/grid controls retain the exclusive toolbar slot and are excluded
+    // by CanvasElements before these ids arrive here.
+    const showContext = () => setContentHoverActive(true);
+    const hideContext = () => setContentHoverActive(false);
+    nodes.forEach((node) => {
+      node.addEventListener("pointerenter", showContext);
+      node.addEventListener("pointerleave", hideContext);
+      node.addEventListener("focusin", showContext);
+      node.addEventListener("focusout", hideContext);
+    });
+    return () => {
+      nodes.forEach((node) => {
+        node.removeEventListener("pointerenter", showContext);
+        node.removeEventListener("pointerleave", hideContext);
+        node.removeEventListener("focusin", showContext);
+        node.removeEventListener("focusout", hideContext);
+      });
+    };
+  }, [contentHoverKey, contentHoverRevision, eligible]);
+
+  const sectionContextVisible = visible || contentHoverActive;
 
   // A section can move while an open overflow menu keeps this toolbar pinned.
   // Key the post-commit measurement to the exact model geometry so a Range
@@ -138,7 +176,7 @@ export default function SectionRecordAdd({
   const [renderedHeadingMeasurement, setRenderedHeadingMeasurement] = useState(null);
 
   useLayoutEffect(() => {
-    if (!visible || !heading) return;
+    if (!sectionContextVisible || !heading) return;
     // React has committed Text/Textarea coordinates by this point. Measuring
     // inside render would still see the previous reorder/transfer position and
     // is the root cause of neighbouring section outlines being merged.
@@ -160,7 +198,7 @@ export default function SectionRecordAdd({
           nextHeadingBounds,
         }
     ));
-  }, [heading, headingMeasurementKey, nextHeading, visible]);
+  }, [heading, headingMeasurementKey, nextHeading, sectionContextVisible]);
 
   if (!eligible) return null;
 
@@ -195,7 +233,7 @@ export default function SectionRecordAdd({
   // Merge only a measurement associated with the current committed geometry.
   // Reapply both lane-local limits after the union; the live heading may extend
   // the top slightly for line-height:1 ink, but it cannot absorb a neighbour.
-  const resolvedHighlight = visible
+  const resolvedHighlight = sectionContextVisible
     ? includeRenderedBounds(
       storedHighlight,
       currentMeasurement?.headingBounds,
@@ -258,6 +296,7 @@ export default function SectionRecordAdd({
     <CanvasHoverToolbar
       toolbarKey={exclusiveKey}
       visible={visible}
+      highlightVisible={sectionContextVisible}
       pinned={pinned}
       side={side}
       top={toolbarTop}

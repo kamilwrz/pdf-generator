@@ -318,10 +318,10 @@
     .panelHeader h2 { font-size: 14px; }
 }
 
-/* The 248 px desktop footprint matches the former 220% A4 state. Fields use
-   the full card width there so labels and steppers stay legible without
-   reducing the design-system 36 px interaction targets. The independent
-   selection toolbar disables container queries and keeps its compact row. */
+/* When the live A4 boundary narrows the 304 px desktop panel, fields use the
+   full card width so labels and steppers stay legible without reducing the
+   design-system 36 px interaction targets. The independent selection toolbar
+   disables container queries and keeps its compact row. */
 @container (max-width: 280px) {
     .field {
         flex: 1 1 100%;
@@ -335,6 +335,7 @@
         right: 0;
         width: auto !important;
         max-width: none;
+        max-height: none !important;
         height: calc(100dvh - var(--topbar-h)) !important;
     }
 }

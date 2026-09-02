@@ -6,9 +6,9 @@
  *
  * Template-mode section headings and record title bands reveal one shared,
  * grouped toolbar in an A4 gutter. A single page uses the nearest lane edge;
- * a two-page spread sends each toolbar to its page's outside edge. Hover
- * reveals it and the matching semantic block; hovering an exact trigger adds
- * a second, accent-coloured element frame without selecting it. Direct
+ * a two-page spread sends each toolbar to its page's outside edge. Plain body
+ * hover keeps the complete heading-and-content section boundary visible,
+ * while exact record/grid triggers retain their narrower controls. Direct
  * controls add/reorder; layout, lane transfer, and deletion live in the
  * overflow menu. Flat-list section
  * bodies (Languages, flat custom sections —
@@ -100,6 +100,7 @@ function fillSectionAnchors(
   allowLaneTransfer,
   resolveMemberIds,
   gutterSide,
+  nestedStructuralHoverIds,
 ) {
   // Resolve every lane-local start before building rectangles so the current
   // section can stop at the next section's true visual chrome edge. All values
@@ -140,6 +141,20 @@ function fillSectionAnchors(
     // polluted membership from pulling a moved section into its predecessor.
     const maxBottom = next?.page === page ? next.minTop : pageHeight;
     const highlightLimits = { minTop, maxBottom };
+    // Plain section copy (Summary, About, flat Skills/Languages, and custom
+    // prose) should reveal the same complete heading+body boundary as the
+    // heading itself. Record fields and repeatable grid cells keep their more
+    // specific record/cell affordances, so exclude their trigger ids here
+    // instead of stacking three competing structural frames on one pointer.
+    const contentHoverIds = documentElements
+      .filter((element) => (
+        memberIds.has(element.element_id)
+        && element.element_id !== section.headingId
+        && Math.max(1, Math.trunc(Number(element.page) || 1)) === page
+        && (element.category === "text" || element.category === "textarea") && element.flowRole !== "section-chrome" && element.flowRole !== "sidebar-chrome"
+        && !nestedStructuralHoverIds.has(element.element_id)
+      ))
+      .map((element) => element.element_id);
     map.set(section.headingId, {
       canMoveUp: index > 0,
       canMoveDown: index < sections.length - 1,
@@ -151,6 +166,7 @@ function fillSectionAnchors(
         highlightLimits,
       ),
       highlightLimits,
+      contentHoverIds,
       nextHeadingId: next?.page === page ? next.section.headingId : null,
       laneTransfer: allowLaneTransfer
         ? resolveSectionLaneTransfer(documentElements, section.headingId, pageHeight)
@@ -174,50 +190,6 @@ export default function CanvasElements({ elements, spreadSide = null }) {
   const documentElements = A4_Elements?.length ? A4_Elements : elements;
   const allowLaneTransfer = LANE_TRANSFER_TEMPLATE_IDS.has(activeTemplateId);
 
-  // Heading id → reorder / lane-transfer flags for the section hover affordance.
-  const sectionAnchorsById = useMemo(() => {
-    const map = new Map();
-    if (editorMode !== EDITOR_MODE_TEMPLATE) return map;
-    fillSectionAnchors(
-      map,
-      listDocumentSections(documentElements, pageHeight),
-      documentElements,
-      pageHeight,
-      allowLaneTransfer,
-      sectionElementIds,
-      "right",
-    );
-    fillSectionAnchors(
-      map,
-      listSidebarSections(documentElements, pageHeight),
-      documentElements,
-      pageHeight,
-      allowLaneTransfer,
-      sidebarSectionElementIds,
-      "left",
-    );
-    // Skills layout picker (chips / list / text) is main-column only — a
-    // sidebar kicker's headingId never matches, so this only ever augments
-    // an entry `fillSectionAnchors` already created above.
-    for (const anchor of listSkillsDisplayAnchors(documentElements, pageHeight)) {
-      const existing = map.get(anchor.headingId);
-      if (existing) existing.skillsMode = anchor.mode;
-    }
-    return map;
-  }, [editorMode, documentElements, pageHeight, allowLaneTransfer]);
-
-  useEffect(() => {
-    if (editorMode !== EDITOR_MODE_TEMPLATE || sectionAnchorsById.size === 0) return;
-    if (localStorage.getItem(STRUCTURAL_TOOLBAR_HINT_KEY)) return;
-    localStorage.setItem(STRUCTURAL_TOOLBAR_HINT_KEY, "1");
-    pushToast?.({
-      title: "Edytuj bezpośrednio na CV",
-      msg: "Najedź na sekcję lub wpis, aby zobaczyć kontrolki. Kliknij tekst raz, aby go edytować.",
-      variant: "success",
-      replaceKey: "canvas-structural-toolbar-hint",
-    });
-  }, [editorMode, pushToast, sectionAnchorsById]);
-
   const recordBlockAnchorsById = useMemo(() => {
     const map = new Map();
     if (editorMode !== EDITOR_MODE_TEMPLATE) return map;
@@ -238,6 +210,66 @@ export default function CanvasElements({ elements, spreadSide = null }) {
     }
     return map;
   }, [editorMode, documentElements, pageHeight]);
+
+  const nestedStructuralHoverIds = useMemo(() => {
+    const ids = new Set(gridEntryAnchorsById.keys());
+    for (const anchor of recordBlockAnchorsById.values()) {
+      for (const id of anchor.hoverIds || [anchor.elementId]) ids.add(id);
+    }
+    return ids;
+  }, [gridEntryAnchorsById, recordBlockAnchorsById]);
+
+  // Heading id → reorder / lane-transfer flags for the section hover affordance.
+  const sectionAnchorsById = useMemo(() => {
+    const map = new Map();
+    if (editorMode !== EDITOR_MODE_TEMPLATE) return map;
+    fillSectionAnchors(
+      map,
+      listDocumentSections(documentElements, pageHeight),
+      documentElements,
+      pageHeight,
+      allowLaneTransfer,
+      sectionElementIds,
+      "right",
+      nestedStructuralHoverIds,
+    );
+    fillSectionAnchors(
+      map,
+      listSidebarSections(documentElements, pageHeight),
+      documentElements,
+      pageHeight,
+      allowLaneTransfer,
+      sidebarSectionElementIds,
+      "left",
+      nestedStructuralHoverIds,
+    );
+    // Skills layout picker (chips / list / text) is main-column only — a
+    // sidebar kicker's headingId never matches, so this only ever augments
+    // an entry `fillSectionAnchors` already created above.
+    for (const anchor of listSkillsDisplayAnchors(documentElements, pageHeight)) {
+      const existing = map.get(anchor.headingId);
+      if (existing) existing.skillsMode = anchor.mode;
+    }
+    return map;
+  }, [
+    editorMode,
+    documentElements,
+    pageHeight,
+    allowLaneTransfer,
+    nestedStructuralHoverIds,
+  ]);
+
+  useEffect(() => {
+    if (editorMode !== EDITOR_MODE_TEMPLATE || sectionAnchorsById.size === 0) return;
+    if (localStorage.getItem(STRUCTURAL_TOOLBAR_HINT_KEY)) return;
+    localStorage.setItem(STRUCTURAL_TOOLBAR_HINT_KEY, "1");
+    pushToast?.({
+      title: "Edytuj bezpośrednio na CV",
+      msg: "Najedź na sekcję lub wpis, aby zobaczyć kontrolki. Kliknij tekst raz, aby go edytować.",
+      variant: "success",
+      replaceKey: "canvas-structural-toolbar-hint",
+    });
+  }, [editorMode, pushToast, sectionAnchorsById]);
 
   // Content-element id → flat-list layout-toggle anchor (Languages, flat
   // custom sections). A section can only be either record-shaped
@@ -311,6 +343,7 @@ export default function CanvasElements({ elements, spreadSide = null }) {
         gutterSide={sectionAnchor.gutterSide}
         highlight={sectionAnchor.highlight}
         highlightLimits={sectionAnchor.highlightLimits}
+        contentHoverIds={sectionAnchor.contentHoverIds}
         spreadSide={spreadSide}
       />
     ) : null;
