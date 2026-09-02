@@ -6,6 +6,32 @@ const LONG_REPLY = Array.from(
   (_, index) => `Punkt ${index + 1}: szczegółowa rekomendacja do dokumentu.`,
 ).join("\n");
 
+const JOB_MATCH_REQUIREMENTS = Array.from({ length: 18 }, (_, index) => ({
+  id: `requirement-${index + 1}`,
+  text: `Wymaganie oferty ${index + 1}`,
+  importance: index < 12 ? "required" : "preferred",
+  match_status: index % 3 === 0 ? "matched" : index % 3 === 1 ? "partial" : "missing",
+  evidence_refs: [],
+}));
+
+async function stableElementHeight(locator) {
+  let previousHeight = -1;
+  let stableHeight = 0;
+
+  await expect.poll(async () => {
+    const box = await locator.boundingBox();
+    const currentHeight = Math.round(box?.height ?? 0);
+    const settledHeight = currentHeight > 0 && currentHeight === previousHeight
+      ? currentHeight
+      : 0;
+    previousHeight = currentHeight;
+    stableHeight = settledHeight || stableHeight;
+    return settledHeight;
+  }, { timeout: 2_000, intervals: [50, 50, 100, 150] }).toBeGreaterThan(0);
+
+  return stableHeight;
+}
+
 test("AI assistant keeps the conversation visible after a follow-up question", async ({ page }) => {
   const api = await installMockApi(page, {
     assistantResponses: [
@@ -45,5 +71,56 @@ test("AI assistant keeps the conversation visible after a follow-up question", a
   expect(scrollState.lastMessageBottom).toBeLessThanOrEqual(scrollState.viewportBottom + 1);
   await expect(page.getByText("Pierwsze pytanie", { exact: true })).toHaveCount(1);
   await expect(page.getByText("Drugie pytanie", { exact: true })).toHaveCount(1);
+  api.assertHermetic();
+});
+
+test("job-offer form restores its height after a long tailoring result", async ({ page }) => {
+  const api = await installMockApi(page, {
+    assistantResponses: [{
+      message: "Analiza dopasowania została zakończona.",
+      tips: [],
+      corrections: [],
+      job_offer: {
+        title: "Analityk KYC",
+        company: "Firma testowa",
+        location: "Warszawa",
+        source: "manual",
+      },
+      job_requirements: JOB_MATCH_REQUIREMENTS,
+      evidence_gaps: [],
+    }],
+  });
+  await login(page);
+
+  await page.getByText("Kontynuuj ostatnie CV", { exact: true }).click();
+  await page.getByRole("button", { name: "Otwórz na płótnie" }).click();
+  await page.getByRole("button", { name: "Otwórz asystenta AI" }).click();
+
+  const matchJobButton = page.getByRole("button", { name: "Dopasuj do oferty", exact: true });
+  await matchJobButton.click();
+
+  const jobOfferUrl = page.getByLabel("Link do oferty", { exact: true });
+  const jobForm = jobOfferUrl.locator("..");
+  const analyseButton = page.getByRole("button", { name: "Analizuj i przygotuj poprawki" });
+  await jobOfferUrl.fill("https://example.com/oferty/analityk-kyc");
+  const firstOpenHeight = await stableElementHeight(jobForm);
+
+  await analyseButton.scrollIntoViewIfNeeded();
+  await analyseButton.click();
+  await expect(page.getByText("Wymaganie oferty 18", { exact: true })).toHaveCount(1);
+
+  await matchJobButton.click();
+  await expect(jobOfferUrl).toHaveValue("https://example.com/oferty/analityk-kyc");
+  const secondOpenHeight = await stableElementHeight(jobForm);
+  const formScrollState = await jobForm.evaluate((element) => ({
+    clientHeight: element.clientHeight,
+    scrollHeight: element.scrollHeight,
+  }));
+
+  expect(Math.abs(secondOpenHeight - firstOpenHeight)).toBeLessThanOrEqual(1);
+  expect(formScrollState.clientHeight).toBeGreaterThan(0);
+  expect(formScrollState.scrollHeight).toBeGreaterThanOrEqual(formScrollState.clientHeight);
+  await analyseButton.scrollIntoViewIfNeeded();
+  await expect(analyseButton).toBeVisible();
   api.assertHermetic();
 });
