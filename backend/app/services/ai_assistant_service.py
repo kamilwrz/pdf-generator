@@ -1518,19 +1518,24 @@ ZASADY ANALIZY:
 1. Wyodrębnij 5–15 atomowych wymagań. Oznacz required/preferred/responsibility i wagę 3/2/1.
 2. Dla każdego wymagania przypisz matched/partial/missing. Dla matched lub partial podaj w evidence_refs
    1–3 evidence_id z kanwy/notatek. Dla missing zwróć pustą listę. Uwzględniaj synonimy, skróty,
-   polsko-angielskie odpowiedniki i kontekst branżowy, np. AML, Transaction Monitoring, bankowość.
+   tłumaczenia oraz kontekst branżowy. Nie traktuj jako osobnych braków pojęcia nadrzędnego i jego typowych
+   czynności, technologii i jej standardowego zastosowania ani skrótu i rozwinięcia tej samej nazwy.
 3. requirements służą do deterministycznego wyniku 0–4; podaj osobno seniority 0–2, domain 0–2,
    keywords 0–1 i differentiators 0–1. Serwer ponownie obliczy ocenę końcową.
-4. Najpierw popraw summary i kolejność informacji, potem punkty doświadczenia i słowa kluczowe.
+4. Każdy priorities.requirement_id musi wskazywać wymaganie partial albo missing. Nigdy nie twórz priorytetu
+   dla matched: potwierdzone wymaganie jest mocną stroną, nawet jeśli CV używa synonimu lub innego języka.
+5. Najpierw popraw summary i kolejność informacji, potem punkty doświadczenia i słowa kluczowe.
    Nie optymalizuj przez mechaniczne upychanie fraz.
-5. correction.before musi być identyczny z pełną bieżącą treścią elementu. correction.content także jest pełną treścią.
-6. profile_updates wolno kierować tylko do /summary albo /experience/{{i}}/bullets/{{j}};
+   Nie twórz tautologii przez wymienianie obok siebie pojęcia, jego tłumaczenia, synonimu albo definicji
+   jako rzekomo osobnych kompetencji. Zmieniaj tekst wyłącznie wtedy, gdy poprawiasz hierarchię lub precyzję.
+6. correction.before musi być identyczny z pełną bieżącą treścią elementu. correction.content także jest pełną treścią.
+7. profile_updates wolno kierować tylko do /summary albo /experience/{{i}}/bullets/{{j}};
    before musi być identyczne z bieżącą wartością. Nie twórz brakujących rekordów.
-7. Jeśli oferta wymaga faktu, którego kandydat nie potwierdził, dodaj evidence_gap zamiast wpisywać go do CV.
-8. Jeśli CV zawiera potwierdzone doświadczenie istotne dla oferty, przygotuj konkretne corrections: co najmniej
+8. Jeśli oferta wymaga faktu, którego kandydat nie potwierdził, dodaj evidence_gap zamiast wpisywać go do CV.
+9. Jeśli CV zawiera potwierdzone doświadczenie istotne dla oferty, przygotuj konkretne corrections: co najmniej
    poprawę podsumowania i jednego właściwego punktu doświadczenia, o ile takie edytowalne elementy istnieją.
    Eksponuj istniejące dowody i terminologię oferty; nie dopisuj nowych kompetencji ani rezultatów.
-9. Pisz konkretnie, zwięźle i bez placeholderów typu [X%].
+10. Pisz konkretnie, zwięźle i bez placeholderów typu [X%].
 """
     raw, usage = _gpt(
         system,

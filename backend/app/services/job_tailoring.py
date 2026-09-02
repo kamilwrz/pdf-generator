@@ -68,8 +68,12 @@ JOB_TAILORING_RESPONSE_SCHEMA = {
                 "items": {
                     "type": "object",
                     "additionalProperties": False,
-                    "required": ["title", "description"],
-                    "properties": {"title": {"type": "string"}, "description": {"type": "string"}},
+                    "required": ["requirement_id", "title", "description"],
+                    "properties": {
+                        "requirement_id": {"type": "string"},
+                        "title": {"type": "string"},
+                        "description": {"type": "string"},
+                    },
                 },
             },
             "tips": {"type": "array", "maxItems": 8, "items": {"type": "string"}},
@@ -394,6 +398,22 @@ def build_job_tailoring_result(
 
     evidence_gaps: list[dict] = []
     requirement_statuses = {item["id"]: item["match_status"] for item in requirements}
+    priorities: list[dict] = []
+    raw_priorities = raw.get("priorities") if isinstance(raw.get("priorities"), list) else []
+    for item in raw_priorities[:5]:
+        if not isinstance(item, dict):
+            continue
+        requirement_id = _compact(item.get("requirement_id"))
+        title = _compact(item.get("title"))
+        # Tailoring priorities describe only real gaps. A matched requirement
+        # is already a strength; recommending that the user add or connect its
+        # synonyms creates the contradictory guidance reported in production.
+        if title and requirement_statuses.get(requirement_id) in {"partial", "missing"}:
+            priorities.append({
+                "requirement_id": requirement_id,
+                "title": title,
+                "description": _compact(item.get("description")),
+            })
     raw_gaps = raw.get("evidence_gaps") if isinstance(raw.get("evidence_gaps"), list) else []
     for item in raw_gaps[:10]:
         if not isinstance(item, dict):
@@ -422,11 +442,7 @@ def build_job_tailoring_result(
         "corrections": corrections,
         "categories": categories,
         "strengths": [_compact(item) for item in (raw.get("strengths") or []) if _compact(item)][:5],
-        "priorities": [
-            {"title": _compact(item.get("title")), "description": _compact(item.get("description"))}
-            for item in (raw.get("priorities") or [])[:5]
-            if isinstance(item, dict) and _compact(item.get("title"))
-        ],
+        "priorities": priorities,
         "web_sources": [],
         "job_requirements": requirements,
         "evidence_gaps": evidence_gaps[:10],

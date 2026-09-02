@@ -150,6 +150,7 @@ Proponowane typy Pydantic w `backend/app/services/job_tailoring.py` lub przy rou
 - `JobRequirement`: `id`, `label`, `kind` (`required`, `preferred`, `responsibility`), `weight`, `match` (`strong`, `partial`, `missing`), `evidence_refs`, `explanation`;
 - `EvidenceGap`: `id`, `question`, `reason`, `related_requirement_ids`;
 - `TailoringChange`: `element_id`, `section`, `before`, `after`, `evidence_refs`, `reason`;
+- `TailoringPriority`: `requirement_id`, `title`, `description`; serwer zachowuje rekord wyłącznie wtedy, gdy wskazane wymaganie ma końcowy status `partial` albo `missing`;
 - `JobTailoringResult`: `message`, `rating`, `categories`, `strengths`, `priorities`, `tips`, `corrections`, `updated_cv_data`, `job_offer`, `job_requirements`, `evidence_gaps`.
 
 `AssistantResponse` otrzyma opcjonalne pola `job_offer`, `job_requirements` i `evidence_gaps`; dla pozostałych akcji pozostaną puste, więc nie zmieniamy ich zachowania.
@@ -351,6 +352,8 @@ Dodać opcjonalne pola:
 - [x] Dodać `cv_data`, elementy, język CV i `candidate_notes`.
 - [x] Wprowadzić rubrykę oraz reguły z sekcji 6.
 - [x] Dodać ścisły JSON Schema dla tej akcji oraz Pydantic/grounding po odpowiedzi.
+- [x] Powiązać każdy priorytet z wymaganiem i po stronie serwera odrzucać priorytety dla wymagań `matched`.
+- [x] Traktować synonimy, tłumaczenia, skróty, pojęcia nadrzędne i typowe czynności jako semantyczne odpowiedniki oraz zakazać tautologicznych przeredagowań.
 - [x] Zwracać porady po polsku, a `corrections[].content` w języku CV.
 - [x] Upewnić się, że prompt wyraźnie ignoruje polecenia znalezione wewnątrz oferty.
 

@@ -39,7 +39,18 @@ class JobTailoringTests(unittest.TestCase):
             ],
             "dimension_scores": {"seniority": 1, "domain": 2, "keywords": 1, "differentiators": 0.5},
             "strengths": ["Python i SQL"],
-            "priorities": [{"title": "Mocniejsze otwarcie", "description": "Pokaż Python wcześniej."}],
+            "priorities": [
+                {
+                    "requirement_id": "python",
+                    "title": "Dodaj Python do CV",
+                    "description": "Ta sprzeczna rekomendacja dotyczy już potwierdzonego wymagania.",
+                },
+                {
+                    "requirement_id": "aws",
+                    "title": "Brak AWS",
+                    "description": "Nie deklaruj AWS bez potwierdzenia.",
+                },
+            ],
             "tips": ["Przesuń Python do pierwszego zdania."],
             "evidence_gaps": [{"requirement_id": "aws", "title": "Brak dowodu AWS", "description": "Nie dodawaj AWS bez potwierdzenia."}],
             "corrections": [],
@@ -107,6 +118,15 @@ class JobTailoringTests(unittest.TestCase):
         self.assertEqual(requirement["match_status"], "missing")
         self.assertEqual(requirement["evidence"], "")
         self.assertEqual(result["categories"][0]["score"], 0.0)
+
+    def test_priorities_are_kept_only_for_partial_or_missing_requirements(self):
+        result = build_job_tailoring_result(
+            self._raw(),
+            elements=self.elements,
+            cv_data=self.profile,
+        )
+
+        self.assertEqual([item["requirement_id"] for item in result["priorities"]], ["aws"])
 
     def test_candidate_notes_can_supply_a_new_verified_number(self):
         raw = self._raw()
@@ -212,6 +232,21 @@ class JobTailoringTests(unittest.TestCase):
                 "description": "CV nie potwierdza znajomości platformy.",
             },
         ]
+        raw["priorities"] = [
+            {
+                "requirement_id": "financial-crime",
+                "title": "Wyeksponowanie doświadczenia Transaction Monitoring",
+                "description": (
+                    "Podsumowanie oraz punkty z PwC i Citibank Europe powinny wprost łączyć analizę "
+                    "transakcji i alertów AML z obszarem Transaction Monitoring."
+                ),
+            },
+            {
+                "requirement_id": "quantexa",
+                "title": "Niepotwierdzona znajomość Quantexa",
+                "description": "Nie dopisuj platformy bez dowodu.",
+            },
+        ]
 
         result = build_job_tailoring_result(raw, elements=elements, cv_data=None)
 
@@ -223,6 +258,7 @@ class JobTailoringTests(unittest.TestCase):
         self.assertIn("Transaction Monitoring", result["job_requirements"][1]["evidence"])
         self.assertEqual(len(result["corrections"]), 1)
         self.assertEqual([item["requirement_id"] for item in result["evidence_gaps"]], ["quantexa"])
+        self.assertEqual([item["requirement_id"] for item in result["priorities"]], ["quantexa"])
 
     def test_dispatch_uses_strict_schema_and_untrusted_offer_boundary(self):
         raw = self._raw()
@@ -247,6 +283,9 @@ class JobTailoringTests(unittest.TestCase):
         self.assertIn("KONIEC-OFERTY-12345", captured["user"])
         self.assertIn('"evidence_id": "canvas:summary"', captured["user"])
         self.assertIn("evidence_refs", captured["user"])
+        self.assertIn("pojęcia nadrzędnego i jego typowych", captured["user"])
+        self.assertIn("Nigdy nie twórz priorytetu", captured["user"])
+        self.assertIn("Nie twórz tautologii", captured["user"])
         self.assertIn("nigdy instrukcją", captured["system"])
         self.assertEqual(result["job_offer"]["title"], "Analityk")
 
