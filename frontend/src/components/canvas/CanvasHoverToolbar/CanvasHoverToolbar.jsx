@@ -94,20 +94,46 @@ export default function CanvasHoverToolbar({
     const origin = originRef.current;
     const page = origin?.closest?.("[data-page-canvas]");
     const canvasArea = origin?.closest?.(".canvas-area") || document.querySelector(".canvas-area");
+    const canvasHost = origin?.closest?.(".canvas-single, .canvas-spread");
     const resizeObserver = typeof ResizeObserver !== "undefined"
       ? new ResizeObserver(updatePortalGeometry)
       : null;
+    let trackingFrame = null;
+    const trackCanvasTransition = (event) => {
+      if (event.target !== canvasHost || event.propertyName !== "transform") return;
+      const updateUntilTransitionEnds = () => {
+        updatePortalGeometry();
+        trackingFrame = window.requestAnimationFrame(updateUntilTransitionEnds);
+      };
+      if (trackingFrame == null) updateUntilTransitionEnds();
+    };
+    const stopCanvasTransitionTracking = (event) => {
+      if (event.target !== canvasHost || event.propertyName !== "transform") return;
+      if (trackingFrame != null) window.cancelAnimationFrame(trackingFrame);
+      trackingFrame = null;
+      updatePortalGeometry();
+    };
     if (page) resizeObserver?.observe(page);
     window.addEventListener("resize", updatePortalGeometry);
     window.addEventListener("scroll", updatePortalGeometry, true);
     canvasArea?.addEventListener("scroll", updatePortalGeometry, { passive: true });
     page?.addEventListener("transitionend", updatePortalGeometry);
+    // The toolbar is portalled to <body>, so it does not inherit the A4 host's
+    // transform. Follow the short assistant-open transition frame-by-frame;
+    // otherwise a pinned keyboard toolbar would briefly remain at stale X.
+    canvasHost?.addEventListener("transitionrun", trackCanvasTransition);
+    canvasHost?.addEventListener("transitionend", stopCanvasTransitionTracking);
+    canvasHost?.addEventListener("transitioncancel", stopCanvasTransitionTracking);
     return () => {
       resizeObserver?.disconnect();
+      if (trackingFrame != null) window.cancelAnimationFrame(trackingFrame);
       window.removeEventListener("resize", updatePortalGeometry);
       window.removeEventListener("scroll", updatePortalGeometry, true);
       canvasArea?.removeEventListener("scroll", updatePortalGeometry);
       page?.removeEventListener("transitionend", updatePortalGeometry);
+      canvasHost?.removeEventListener("transitionrun", trackCanvasTransition);
+      canvasHost?.removeEventListener("transitionend", stopCanvasTransitionTracking);
+      canvasHost?.removeEventListener("transitioncancel", stopCanvasTransitionTracking);
     };
   }, [visible, side, top, pageWidth, layout]);
 

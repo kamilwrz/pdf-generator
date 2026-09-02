@@ -44,7 +44,7 @@
     position: fixed;
     right: 0;
     top: var(--topbar-h);
-    width: min(520px, 100vw);
+    width: min(600px, 100vw);
     height: calc(100vh - var(--topbar-h));
     height: calc(100dvh - var(--topbar-h));
     z-index: var(--z-popover);

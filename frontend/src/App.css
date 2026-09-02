@@ -121,6 +121,17 @@
     display: flex;
     justify-content: center;
     min-width: 100%;
+    transform: translateX(0);
+    transition: transform var(--motion-standard) var(--motion-ease);
+}
+
+/* The AI assistant remains a fixed overlay, but a single A4 page uses any
+   genuinely free canvas gutter before accepting overlap. AiAssistant measures
+   the live zoomed page and caps this offset so a 232px contextual toolbar can
+   still sit between the document and the application sidebar. */
+.main-container[data-ai-assistant-open="true"] .canvas-single {
+    transform: translateX(calc(-1 * var(--ai-assistant-canvas-shift, 0px)));
+    will-change: transform;
 }
 
 .canvas-spread {
@@ -169,6 +180,17 @@
    .canvas-spread {
       --canvas-spread-outer-gutter: 72px;
       gap: 8px;
+   }
+
+   .main-container[data-ai-assistant-open="true"] .canvas-single {
+      transform: none;
+      will-change: auto;
+   }
+}
+
+@media (prefers-reduced-motion: reduce) {
+   .canvas-single {
+      transition: none;
    }
 }
 

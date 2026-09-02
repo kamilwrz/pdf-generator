@@ -93,6 +93,32 @@ test("assistant auto-scroll commits the latest message before paint", async () =
     assert.match(styles, /\.messages\s*\{[\s\S]*?flex:\s*1 1 0%;[\s\S]*?min-height:\s*0;[\s\S]*?overflow-y:\s*auto;[\s\S]*?overflow-anchor:\s*none;[\s\S]*?scroll-behavior:\s*auto;[\s\S]*?\}/);
 });
 
+test("assistant width and canvas offset preserve contextual toolbar clearance", async () => {
+    const source = await readFile(new URL("./AiAssistant.jsx", import.meta.url), "utf8");
+    const styles = await readFile(new URL("./AiAssistant.module.css", import.meta.url), "utf8");
+    const appStyles = await readFile(new URL("../../../App.css", import.meta.url), "utf8");
+    const toolbarSource = await readFile(
+        new URL("../../canvas/CanvasHoverToolbar/CanvasHoverToolbar.jsx", import.meta.url),
+        "utf8",
+    );
+
+    assert.match(styles, /\.panel\s*\{[\s\S]*?width:\s*min\(600px, 100vw\)/);
+    assert.match(source, /const CANVAS_CONTEXT_CLEARANCE_PX = 232/);
+    assert.match(source, /setAttribute\("data-ai-assistant-open", "true"\)/);
+    assert.match(source, /const desiredShift = Math\.max\(/);
+    assert.match(source, /const maximumShift = Math\.max\(/);
+    assert.match(source, /const nextShift = Math\.min\(desiredShift, maximumShift\)/);
+    assert.match(source, /new ResizeObserver\(updateCanvasShift\)/);
+    assert.match(
+        appStyles,
+        /\[data-ai-assistant-open="true"\] \.canvas-single\s*\{[\s\S]*?translateX\(calc\(-1 \* var\(--ai-assistant-canvas-shift/,
+    );
+    assert.match(appStyles, /@media \(max-width: 720px\)[\s\S]*?\[data-ai-assistant-open="true"\] \.canvas-single\s*\{[\s\S]*?transform:\s*none/);
+    assert.match(appStyles, /@media \(prefers-reduced-motion: reduce\)[\s\S]*?\.canvas-single\s*\{[\s\S]*?transition:\s*none/);
+    assert.match(toolbarSource, /requestAnimationFrame\(updateUntilTransitionEnds\)/);
+    assert.match(toolbarSource, /addEventListener\("transitionrun", trackCanvasTransition\)/);
+});
+
 test("assistant retries share one idempotency key per logical send", async () => {
     const source = await readFile(new URL("./AiAssistant.jsx", import.meta.url), "utf8");
 

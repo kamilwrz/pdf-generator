@@ -32,6 +32,46 @@ async function stableElementHeight(locator) {
   return stableHeight;
 }
 
+test("AI assistant uses the wider panel and shifts a single A4 only when space allows", async ({ page }) => {
+  const api = await installMockApi(page);
+  await login(page);
+
+  await page.getByText("Kontynuuj ostatnie CV", { exact: true }).click();
+  await page.getByRole("button", { name: "Otwórz na płótnie" }).click();
+
+  const a4 = page.locator("[data-page-canvas]").first();
+  const before = await a4.boundingBox();
+  expect(before).not.toBeNull();
+
+  await page.getByRole("button", { name: "Otwórz asystenta AI" }).click();
+  const assistant = page.getByRole("complementary", { name: "Asystent AI" });
+  await expect(assistant).toBeVisible();
+
+  const viewportWidth = page.viewportSize()?.width ?? 0;
+  const panelBox = await assistant.boundingBox();
+  expect(panelBox).not.toBeNull();
+  if (viewportWidth > 720) {
+    expect(Math.round(panelBox.width)).toBe(600);
+    await expect.poll(async () => {
+      const box = await a4.boundingBox();
+      return Math.round((before?.x ?? 0) - (box?.x ?? 0));
+    }).toBeGreaterThan(0);
+    await expect(page.locator(".main-container")).toHaveAttribute("data-ai-assistant-open", "true");
+  } else {
+    expect(Math.round(panelBox.width)).toBe(viewportWidth - 56);
+    const after = await a4.boundingBox();
+    expect(Math.abs((after?.x ?? 0) - (before?.x ?? 0))).toBeLessThanOrEqual(1);
+  }
+
+  await page.getByRole("button", { name: "Zamknij asystenta AI" }).last().click();
+  await expect(assistant).toBeHidden();
+  await expect.poll(async () => {
+    const box = await a4.boundingBox();
+    return Math.abs((box?.x ?? 0) - (before?.x ?? 0));
+  }).toBeLessThanOrEqual(1);
+  api.assertHermetic();
+});
+
 test("AI assistant keeps the conversation visible after a follow-up question", async ({ page }) => {
   const api = await installMockApi(page, {
     assistantResponses: [

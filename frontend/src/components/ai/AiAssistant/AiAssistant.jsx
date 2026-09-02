@@ -35,6 +35,12 @@ import {
     validateJobOfferInput,
 } from "../../../utils/jobTailoring";
 
+// A structural canvas toolbar occupies 203px at 100% zoom. The additional
+// 29px keeps its 10px page offset plus a clearly visible Swiss-grid gutter.
+// Reserve the same space on either side so opening chat never solves a right
+// collision by hiding a left-lane toolbar behind the application sidebar.
+const CANVAS_CONTEXT_CLEARANCE_PX = 232;
+
 // ── goal-oriented quick actions ───────────────────────────────────────────
 // User-facing tiles map to goals; backend still uses specialised API actions
 // (rating, grammar, layout, …). Do not expose every endpoint as its own tile.
@@ -1285,6 +1291,78 @@ export default function AiAssistant() {
             messageList.scrollHeight - messageList.clientHeight,
         );
     }, [isLoading, isOpen, messages]);
+
+    useLayoutEffect(() => {
+        const editorShell = document.querySelector(".main-container");
+        const canvasArea = editorShell?.querySelector(".canvas-area");
+        if (!editorShell || !canvasArea) return undefined;
+
+        // The assistant remains an overlay: only a single A4 page is shifted,
+        // and only while enough background exists to keep contextual controls
+        // clear of both the chat and the full-height application sidebar.
+        // On compact layouts and two-page spreads CSS deliberately ignores the
+        // offset so the current document task keeps the full scrollable canvas.
+        if (!isOpen) {
+            editorShell.removeAttribute("data-ai-assistant-open");
+            canvasArea.style.removeProperty("--ai-assistant-canvas-shift");
+            return undefined;
+        }
+
+        editorShell.setAttribute("data-ai-assistant-open", "true");
+        const panel = document.getElementById("ai-assistant-panel");
+        const singlePageHost = canvasArea.querySelector(".canvas-single");
+        const page = singlePageHost?.querySelector("[data-page-canvas]");
+        const pageWrapper = page?.parentElement;
+
+        const updateCanvasShift = () => {
+            if (!panel || !singlePageHost || !page) {
+                canvasArea.style.setProperty("--ai-assistant-canvas-shift", "0px");
+                return;
+            }
+
+            const canvasRect = canvasArea.getBoundingClientRect();
+            const hostRect = singlePageHost.getBoundingClientRect();
+            const pageRect = page.getBoundingClientRect();
+            const panelWidth = panel.getBoundingClientRect().width;
+            // Page-to-host distance is invariant while the host translates.
+            // Rebuild the unshifted position from scrollLeft instead of the
+            // animated visual X; an observer callback during the transition
+            // therefore cannot feed a partial transform into the next offset.
+            const unshiftedHostLeft = canvasRect.left - canvasArea.scrollLeft;
+            const basePageLeft = unshiftedHostLeft + (pageRect.left - hostRect.left);
+            const basePageRight = basePageLeft + pageRect.width;
+            const finalPanelLeft = canvasRect.right - panelWidth;
+            const desiredShift = Math.max(
+                0,
+                basePageRight + CANVAS_CONTEXT_CLEARANCE_PX - finalPanelLeft,
+            );
+            const maximumShift = Math.max(
+                0,
+                basePageLeft - canvasRect.left - CANVAS_CONTEXT_CLEARANCE_PX,
+            );
+            const nextShift = Math.min(desiredShift, maximumShift);
+            canvasArea.style.setProperty(
+                "--ai-assistant-canvas-shift",
+                `${Math.round(nextShift * 100) / 100}px`,
+            );
+        };
+
+        updateCanvasShift();
+        const resizeObserver = typeof ResizeObserver !== "undefined"
+            ? new ResizeObserver(updateCanvasShift)
+            : null;
+        resizeObserver?.observe(canvasArea);
+        if (panel) resizeObserver?.observe(panel);
+        if (pageWrapper) resizeObserver?.observe(pageWrapper);
+        window.addEventListener("resize", updateCanvasShift);
+
+        return () => {
+            resizeObserver?.disconnect();
+            window.removeEventListener("resize", updateCanvasShift);
+            editorShell.removeAttribute("data-ai-assistant-open");
+            canvasArea.style.removeProperty("--ai-assistant-canvas-shift");
+        };
+    }, [isOpen]);
 
     // A document epoch covers saved-document opens, new/imported documents,
     // template regeneration and guest restoration. Reset every assistant-owned
