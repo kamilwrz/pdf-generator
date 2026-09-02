@@ -50,6 +50,9 @@ class ElementsFromRowsTests(unittest.TestCase):
                 content="Hello world", bold=True, italic=False, underline=True,
                 runs=[TextRun(start=0, end=5, bold=False, color="#ff0000")],
                 fixedToPage=True, locked=True, flowRole="section-chrome",
+                editorAddedSection=True, editorSectionId="e1",
+                editorSectionLayout="grid", editorGridColumns=4,
+                editorGridRecordWidth=400, editorGridBodyLeft=84,
                 zIndex=5, isSelected=True, isMove=True,
             ),
             PdfElement(
@@ -80,6 +83,14 @@ class ElementsFromRowsTests(unittest.TestCase):
                     },
                 ],
             ),
+            PdfElement(
+                category="textarea", element_id="e6", page=1, left=84, top=120,
+                width=92, height=19, content="Nowy wpis", flowRole="grid-member",
+                flowGroup="grid-row-1", editorAddedSection=True,
+                editorSectionId="e1", editorGridEntry=True,
+                editorAddedGridEntry=True, gridSectionId="e1", gridColumns=4,
+                gridGutter=8, gridWidth=400, gridLeft=84, gridKind="entries",
+            ),
         ]
         pdf_id = create_new_pdf(
             self.db, "t", 1, "/tmp/t.pdf", elements,
@@ -95,6 +106,12 @@ class ElementsFromRowsTests(unittest.TestCase):
         self.assertTrue(text_el.fixedToPage)
         self.assertTrue(text_el.locked)
         self.assertEqual(text_el.flowRole, "section-chrome")
+        self.assertTrue(text_el.editorAddedSection)
+        self.assertEqual(text_el.editorSectionId, "e1")
+        self.assertEqual(text_el.editorSectionLayout, "grid")
+        self.assertEqual(text_el.editorGridColumns, 4)
+        self.assertEqual(text_el.editorGridRecordWidth, 400)
+        self.assertEqual(text_el.editorGridBodyLeft, 84)
         self.assertEqual(len(text_el.runs), 1)
         self.assertEqual(text_el.runs[0].color, "#ff0000")
         # zIndex/isSelected/isMove are packed into extra_properties alongside the
@@ -122,6 +139,16 @@ class ElementsFromRowsTests(unittest.TestCase):
         self.assertEqual(path_el.pathKind, "wave")
         self.assertEqual(path_el.curves[0]["type"], "M")
         self.assertEqual(path_el.curves[1]["type"], "C")
+
+        grid_el = rebuilt["e6"]
+        self.assertTrue(grid_el.editorGridEntry)
+        self.assertTrue(grid_el.editorAddedGridEntry)
+        self.assertEqual(grid_el.gridSectionId, "e1")
+        self.assertEqual(grid_el.gridColumns, 4)
+        self.assertEqual(grid_el.gridGutter, 8)
+        self.assertEqual(grid_el.gridWidth, 400)
+        self.assertEqual(grid_el.gridLeft, 84)
+        self.assertEqual(grid_el.gridKind, "entries")
 
     def test_preserves_original_paint_order_not_alphabetical_or_reversed(self):
         # `render_elements` (see `pdf_generator.py`) draws strictly in list order

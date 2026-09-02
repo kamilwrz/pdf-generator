@@ -1,9 +1,10 @@
 /**
  * Modal for adding a new template-mode section: a section name plus a layout
  * choice — a single textarea, category heading+body groups, an education-style
- * record, or an experience-style record. When the active template uses iconic
- * section decorations, a small gallery lists every available glyph so the new
- * heading gets an icon at the same offset as its siblings.
+ * record, an experience-style record, or compact equal-width grid entries.
+ * When the active template uses iconic section decorations, a small gallery
+ * lists every available glyph so the new heading gets an icon at the same
+ * offset as its siblings.
  */
 import { useState } from "react";
 import DialogShell from "../../common/DialogShell/DialogShell";
@@ -23,6 +24,13 @@ const LAYOUT_OPTIONS = [
     description:
       "Nagłówek sekcji oraz powtarzalne bloki „nazwa kategorii + treść” — jak podkategorie w Umiejętnościach. "
       + "Każdą kategorię możesz później dodać przyciskiem + przy bloku.",
+  },
+  {
+    value: SECTION_LAYOUTS.GRID,
+    title: "Krótkie wpisy w kolumnach",
+    description:
+      "Równe kolumny na krótkie wpisy, np. JĘZYKI. Przycisk + przy wpisie dodaje następną kolumnę; "
+      + "po zapełnieniu wiersza kolejne wpisy przechodzą do nowej linii. Kosz usuwa wpis, a pozostałe kolumny automatycznie się zsuwają.",
   },
   {
     value: SECTION_LAYOUTS.RECORD_EDUCATION,
@@ -143,7 +151,7 @@ export default function AddSectionModal({
             className={classes.input}
             type="text"
             value={name}
-            placeholder="np. Certyfikaty"
+            placeholder={layout === SECTION_LAYOUTS.GRID ? "np. Języki" : "np. Certyfikaty"}
             onChange={handleNameChange}
             autoFocus
           />

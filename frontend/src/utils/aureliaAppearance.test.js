@@ -48,6 +48,7 @@ test("Aurelia keeps every text role readable on the fixed white paper", () => {
 
 test("Aurelia palette recolors frame, rules, hidden title, and real icons", () => {
   const changed = applyAureliaPalette(aureliaTemplate, "burgundy");
+  const palette = AURELIA_PALETTES.find(({ id }) => id === "burgundy");
   const frame = changed.find((element) => element.id === "aurelia-masthead-frame");
   const sectionRule = changed.find((element) => (
     element.category === "line" && element.flowRole === "section-chrome"
@@ -55,6 +56,7 @@ test("Aurelia palette recolors frame, rules, hidden title, and real icons", () =
   const icon = changed.find((element) => element.category === "image");
   const identity = changed.find((element) => element.mastheadIdentity)?.mastheadIdentity;
   const background = changed.find((element) => element.appearanceTemplateId === "aurelia");
+  const languages = changed.filter((element) => element.flowRole === "grid-member");
 
   assert.equal(frame?.backgroundColor, "#7E4050");
   assert.equal(sectionRule?.backgroundColor, "#7E4050");
@@ -62,6 +64,13 @@ test("Aurelia palette recolors frame, rules, hidden title, and real icons", () =
   assert.equal(identity?.title?.spec?.colorHex, "#4A2D36");
   assert.equal(background?.backgroundColor, "#FFFFFF");
   assert.deepEqual(background?.appearanceSettings, { palette: "burgundy", textSize: "M" });
+  assert.ok(languages.length > 0);
+  assert.ok(languages.every((element) => (
+    element.color === palette.colors.body
+    && element.italic === false
+    && element.runs == null
+    && element.gridKind === "languages"
+  )));
 });
 
 test("Aurelia typography presets return exactly to the authored M metrics", () => {

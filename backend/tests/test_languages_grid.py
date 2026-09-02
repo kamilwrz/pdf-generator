@@ -3,13 +3,13 @@ from __future__ import annotations
 
 import unittest
 
+from app.services.cv_data import normalize_cv_data
 from app.services.cv_generator_primitives import Builder
 from app.services.cv_templates.registry import generate_resume
 from app.services.cv_templates.shared.text import (
     LANGUAGE_SEP_SIDEBAR,
     LANGUAGE_SEP_SINGLE,
     _language_entries,
-    _language_level_runs,
     _language_line,
     _place_languages_grid,
     _sidebar_language_content,
@@ -27,15 +27,6 @@ class LanguagesGridTests(unittest.TestCase):
             "Polski - C2",
         )
         self.assertEqual(_language_line("Polski", "", sep=LANGUAGE_SEP_SINGLE), "Polski")
-
-    def test_level_runs_cover_only_the_cefr_suffix(self):
-        content = _language_line("Niemiecki", "C1")
-        runs = _language_level_runs(content, "Niemiecki", "C1", color="#9E2532")
-        self.assertEqual(len(runs), 1)
-        self.assertEqual(runs[0]["start"], len("Niemiecki — "))
-        self.assertEqual(runs[0]["end"], len(content))
-        self.assertTrue(runs[0]["italic"])
-        self.assertEqual(runs[0]["color"], "#9E2532")
 
     def test_place_languages_grid_emits_equal_columns_and_skips_empty_slots(self):
         entries = _language_entries({
@@ -56,7 +47,6 @@ class LanguagesGridTests(unittest.TestCase):
             fs=10,
             lh=14,
             body_color="#222222",
-            level_color="#9E2532",
             gutter=8.0,
         )
         cells = [
@@ -71,9 +61,11 @@ class LanguagesGridTests(unittest.TestCase):
         self.assertAlmostEqual(cells[0]["width"], cell_w)
         self.assertAlmostEqual(cells[1]["width"], cell_w)
         self.assertEqual(cells[0]["flowRole"], "grid-member")
+        self.assertTrue(all(cell["gridKind"] == "languages" for cell in cells))
         self.assertEqual(cells[0]["content"], "Polski — C2")
-        self.assertEqual(cells[0]["runs"][0]["start"], len("Polski — "))
-        self.assertEqual(cells[0]["runs"][0]["color"], "#9E2532")
+        self.assertEqual(cells[0]["color"], "#222222")
+        self.assertNotIn("runs", cells[0])
+        self.assertNotIn("runs", cells[1])
 
     def test_sidebar_language_content_uses_hyphen_and_no_bullets(self):
         content = _sidebar_language_content({
@@ -148,6 +140,39 @@ class LanguagesGridTests(unittest.TestCase):
         for template_id in ("sterling",):
             with self.subTest(template=template_id):
                 self.assertEqual(self._languages_grid_row_width(template_id, cv), 3)
+
+    def test_custom_entry_grid_survives_template_generation_with_editor_metadata(self):
+        profile = normalize_cv_data({
+            "name": "Anna Nowak",
+            "custom_sections": [{
+                "title": "Języki",
+                "kind": "other",
+                "placement": "after_skills",
+                "layout": "grid",
+                "items": ["Polski — C2", "Angielski — B2", "Niemiecki — A2"],
+            }],
+        })
+
+        elements = generate_resume("regent", profile)
+        heading = next(
+            element for element in elements
+            if element.get("content") == "JĘZYKI"
+            and element.get("editorSectionLayout") == "grid"
+        )
+        cells = [
+            element for element in elements
+            if element.get("gridKind") == "entries"
+            and element.get("flowRole") == "grid-member"
+        ]
+
+        self.assertEqual(
+            [cell.get("content") for cell in cells],
+            ["Polski — C2", "Angielski — B2", "Niemiecki — A2"],
+        )
+        self.assertEqual(heading.get("editorGridColumns"), 4)
+        self.assertTrue(all(cell.get("editorGridEntry") is True for cell in cells))
+        self.assertTrue(all(cell.get("gridSectionId") == heading.get("element_id") for cell in cells))
+        self.assertTrue(all(cell.get("runs") in (None, []) for cell in cells))
 
 
 if __name__ == "__main__":

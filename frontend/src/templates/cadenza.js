@@ -1251,15 +1251,8 @@ const CADENZA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "runs": [
-      {
-        "start": 9,
-        "end": 17,
-        "italic": true,
-        "color": "#855C46"
-      }
-    ],
     "flowRole": "grid-member",
+    "gridKind": "languages",
     "flowGroup": "record-89d7732145b9"
   },
   {
@@ -1282,15 +1275,8 @@ const CADENZA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "runs": [
-      {
-        "start": 12,
-        "end": 14,
-        "italic": true,
-        "color": "#855C46"
-      }
-    ],
     "flowRole": "grid-member",
+    "gridKind": "languages",
     "flowGroup": "record-89d7732145b9"
   },
   {
@@ -1313,15 +1299,8 @@ const CADENZA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "runs": [
-      {
-        "start": 12,
-        "end": 14,
-        "italic": true,
-        "color": "#855C46"
-      }
-    ],
     "flowRole": "grid-member",
+    "gridKind": "languages",
     "flowGroup": "record-89d7732145b9"
   },
   {
@@ -1344,15 +1323,8 @@ const CADENZA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "runs": [
-      {
-        "start": 12,
-        "end": 14,
-        "italic": true,
-        "color": "#855C46"
-      }
-    ],
     "flowRole": "grid-member",
+    "gridKind": "languages",
     "flowGroup": "record-89d7732145b9"
   }
 ];

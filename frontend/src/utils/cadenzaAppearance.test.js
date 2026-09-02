@@ -55,8 +55,9 @@ test("Cadenza text and adaptive section headings meet normal-text contrast", () 
   }
 });
 
-test("palette updates white paper, adaptive bands, job line, marks, runs, and icons", () => {
+test("palette updates white paper, adaptive bands, job line, marks, language entries, and icons", () => {
   const changed = applyCadenzaPalette(cadenzaTemplate, "burgundy");
+  const palette = CADENZA_PALETTES.find(({ id }) => id === "burgundy");
   const page = changed.find((element) => (
     element.fixedToPage && Number(element.width) === 595 && Number(element.height) === 842
   ));
@@ -74,6 +75,7 @@ test("palette updates white paper, adaptive bands, job line, marks, runs, and ic
   const job = changed.find((element) => element.mastheadRole === "title");
   const contactAnchor = changed.find((element) => element.contactBand?.id === "cadenza-contact");
   const identityAnchor = changed.find((element) => element.mastheadIdentity);
+  const languages = changed.filter((element) => element.flowRole === "grid-member");
 
   assert.equal(page.backgroundColor, "#FFFFFF");
   assert.equal(band.backgroundColor, "#6C2A3E");
@@ -86,8 +88,12 @@ test("palette updates white paper, adaptive bands, job line, marks, runs, and ic
   assert.equal(contactAnchor.contactBand.text.colorHex, "#685A60");
   assert.equal(contactAnchor.contactBand.icon.theme, "cadenza-burgundy");
   assert.equal(identityAnchor.mastheadIdentity.title.spec.colorHex, "#85364F");
-  assert.ok(changed.some((element) => (
-    Array.isArray(element.runs) && element.runs.some((run) => run.color === "#85364F")
+  assert.ok(languages.length > 0);
+  assert.ok(languages.every((element) => (
+    element.color === palette.colors.body
+    && element.italic === false
+    && element.runs == null
+    && element.gridKind === "languages"
   )));
   assert.deepEqual(getCadenzaAppearance(changed), { palette: "burgundy", textSize: "M" });
 });

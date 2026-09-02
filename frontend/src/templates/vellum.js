@@ -1310,15 +1310,8 @@ const VELLUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "runs": [
-      {
-        "start": 9,
-        "end": 17,
-        "italic": true,
-        "color": "#8A5E47"
-      }
-    ],
     "flowRole": "grid-member",
+    "gridKind": "languages",
     "flowGroup": "record-605a9c05b0ba"
   },
   {
@@ -1341,15 +1334,8 @@ const VELLUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "runs": [
-      {
-        "start": 12,
-        "end": 14,
-        "italic": true,
-        "color": "#8A5E47"
-      }
-    ],
     "flowRole": "grid-member",
+    "gridKind": "languages",
     "flowGroup": "record-605a9c05b0ba"
   },
   {
@@ -1372,15 +1358,8 @@ const VELLUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "runs": [
-      {
-        "start": 12,
-        "end": 14,
-        "italic": true,
-        "color": "#8A5E47"
-      }
-    ],
     "flowRole": "grid-member",
+    "gridKind": "languages",
     "flowGroup": "record-605a9c05b0ba"
   },
   {
@@ -1403,15 +1382,8 @@ const VELLUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "runs": [
-      {
-        "start": 12,
-        "end": 14,
-        "italic": true,
-        "color": "#8A5E47"
-      }
-    ],
     "flowRole": "grid-member",
+    "gridKind": "languages",
     "flowGroup": "record-605a9c05b0ba"
   }
 ];

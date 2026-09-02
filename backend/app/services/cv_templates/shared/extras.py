@@ -17,7 +17,6 @@ from app.services.cv_templates.shared.text import (
     _bullet_list_content,
     _extra_section_kind,
     _language_entries,
-    _language_level_color,
     _measure_languages_grid_height,
     _place_languages_grid,
     _sidebar_language_content,
@@ -159,6 +158,56 @@ def _render_record_section_body(
             b.gap(get_spacing().record)
 
 
+def _mark_generated_entry_grid(
+    heading_elements: list[dict],
+    cells: list[dict],
+    *,
+    left: float,
+    width: float,
+    columns: int,
+    kind: str,
+    gutter: float = 8.0,
+) -> None:
+    """Attach the editor contract needed to restore grid entry actions.
+
+    Template replacement creates fresh element ids, so persisted database ids
+    cannot identify a custom grid. The heading layout plus each cell's semantic
+    kind lets the frontend distinguish canonical Languages from a custom grid,
+    recover the fixed column count even with one item, and sync later edits back
+    into the correct normalized profile collection.
+    """
+    heading = next((
+        element for element in heading_elements
+        if element.get("flowRole") == "section-chrome"
+        and element.get("category") in {"text", "textarea"}
+        and str(element.get("content") or "").strip()
+    ), None)
+    heading_id = heading.get("element_id") if heading else None
+    if heading:
+        heading.update({
+            "editorSectionLayout": "grid",
+            "editorGridColumns": columns,
+            "editorGridRecordWidth": width,
+            "editorGridBodyLeft": left,
+            "gridColumns": columns,
+            "gridGutter": gutter,
+            "gridWidth": width,
+            "gridLeft": left,
+            "gridKind": kind,
+        })
+    for cell in cells:
+        cell.update({
+            "editorGridEntry": True,
+            "gridColumns": columns,
+            "gridGutter": gutter,
+            "gridWidth": width,
+            "gridLeft": left,
+            "gridKind": kind,
+        })
+        if heading_id:
+            cell["gridSectionId"] = heading_id
+
+
 def _extra_sections(b: Builder, cv: dict, placement: str,
                     section_fn, C: dict, L: int, W: int,
                     font_b: str, fs: float = 10, lh: float = 15,
@@ -205,6 +254,39 @@ def _extra_sections(b: Builder, cv: dict, placement: str,
         if not title or not raw_items:
             continue
 
+        # `layout: grid` is an explicit editor-authored contract, not a title
+        # heuristic. Render it before record/language inference so a custom grid
+        # named JĘZYKI, PROJEKTY, or NARZĘDZIA keeps its independent cells.
+        if str(sec.get("layout") or "").strip().casefold() == "grid":
+            items = _flatten_extra_items(raw_items)
+            if not items:
+                continue
+            entries = [(item, "") for item in items]
+            body_color = C.get("body", "#2B2B2B")
+            body_height = _measure_languages_grid_height(
+                b, entries, W, columns=languages_columns, font=font_b, fs=fs, lh=lh,
+            )
+            b.need_section(chrome_h, body_height or lh)
+            heading_start = len(b.els)
+            section_fn(title)
+            body_start = len(b.els)
+            _place_languages_grid(
+                b, entries, L, W,
+                columns=languages_columns,
+                font=font_b, fs=fs, lh=lh,
+                body_color=body_color,
+            )
+            _mark_generated_entry_grid(
+                b.els[heading_start:body_start],
+                b.els[body_start:],
+                left=L,
+                width=W,
+                columns=languages_columns,
+                kind="entries",
+            )
+            b.gap(get_spacing().section)
+            continue
+
         use_records = is_record_section(sec.get("kind"), title) and any(
             isinstance(item, dict) for item in raw_items
         )
@@ -241,25 +323,35 @@ def _extra_sections(b: Builder, cv: dict, placement: str,
             continue
 
         kind = _extra_section_kind(sec)
-        # Equal-column textarea grid with accent CEFR runs — not one bulleted
-        # "Name — Level" block. Column count is caller-supplied (see
+        # Equal-column textarea grid — not one bulleted "Name — Level" block.
+        # Every cell uses one body style; inline emphasis remains an explicit
+        # editor action. Column count is caller-supplied (see
         # `languages_columns`'s docstring above).
         if kind == "languages":
             entries = _language_entries(cv, items)
             if not entries:
                 continue
             body_color = C.get("body", "#2B2B2B")
-            level_color = _language_level_color(C)
             body_height = _measure_languages_grid_height(
                 b, entries, W, columns=languages_columns, font=font_b, fs=fs, lh=lh,
             )
             b.need_section(chrome_h, body_height or lh)
+            heading_start = len(b.els)
             section_fn(title)
+            body_start = len(b.els)
             _place_languages_grid(
                 b, entries, L, W,
                 columns=languages_columns,
                 font=font_b, fs=fs, lh=lh,
-                body_color=body_color, level_color=level_color,
+                body_color=body_color,
+            )
+            _mark_generated_entry_grid(
+                b.els[heading_start:body_start],
+                b.els[body_start:],
+                left=L,
+                width=W,
+                columns=languages_columns,
+                kind="languages",
             )
             b.gap(get_spacing().section)
             continue

@@ -95,33 +95,6 @@ def _language_line(name: str, level: str, *, sep: str = LANGUAGE_SEP_SINGLE) -> 
     return name or level
 
 
-def _language_level_runs(
-    content: str,
-    name: str,
-    level: str,
-    *,
-    color: str,
-    sep: str = LANGUAGE_SEP_SINGLE,
-) -> list[dict[str, Any]]:
-    """Build textarea ``runs`` so only the level span is italic + accent-coloured."""
-    level = str(level or "").strip()
-    name = str(name or "").strip()
-    if not content or not level or not name:
-        return []
-    suffix = f"{sep}{level}"
-    if not content.endswith(suffix):
-        return []
-    start = len(content) - len(level)
-    if start < 0:
-        return []
-    return [{
-        "start": start,
-        "end": len(content),
-        "italic": True,
-        "color": color,
-    }]
-
-
 def _measure_languages_grid_height(
     b: Builder,
     entries: list[tuple[str, str]],
@@ -160,15 +133,16 @@ def _place_languages_grid(
     fs: float,
     lh: float,
     body_color: str,
-    level_color: str,
     gutter: float = 8.0,
 ) -> None:
     """Emit one textarea per language in equal-width columns (default 4).
 
-    Empty trailing slots are not emitted. Level text uses ``runs`` (italic +
-    ``level_color``, typically the template accent used for skill chips).
-    Cells are tagged ``flowRole: grid-member`` so the structural packer keeps
-    the row geometry instead of stacking them as a linear record.
+    Empty trailing slots are not emitted. The language name, separator, and
+    level intentionally share the cell's base typography and ``body_color``;
+    users may apply inline formatting later through the editor. Cells are
+    tagged ``flowRole: grid-member`` and ``gridKind: languages`` so the
+    structural packer keeps row geometry and editor actions/profile sync remain
+    language-aware after the user renames the section heading.
     """
     if not entries:
         return
@@ -178,20 +152,17 @@ def _place_languages_grid(
 
     for row_start in range(0, len(entries), cols):
         row = entries[row_start:row_start + cols]
-        payloads: list[tuple[str, list[dict[str, Any]], float]] = []
+        payloads: list[tuple[str, float]] = []
         row_h = 0.0
         for name, level in row:
             content = _language_line(name, level, sep=LANGUAGE_SEP_SINGLE)
-            runs = _language_level_runs(
-                content, name, level, color=level_color, sep=LANGUAGE_SEP_SINGLE,
-            )
             height = b.measure_block(content, cell_w, fs, lh, font)
-            payloads.append((content, runs, height))
+            payloads.append((content, height))
             row_h = max(row_h, height)
         with b.keep_together(row_h):
             row_top = b.y
             page = b.pg
-            for col_index, (content, runs, height) in enumerate(payloads):
+            for col_index, (content, height) in enumerate(payloads):
                 element = _block(
                     content,
                     left + col_index * col_w,
@@ -204,25 +175,11 @@ def _place_languages_grid(
                     font,
                     zIndex=2,
                     page=page,
-                    runs=runs or None,
                 )
                 element["flowRole"] = "grid-member"
+                element["gridKind"] = "languages"
                 b.els.append(element)
             b.y = row_top + row_h
-
-
-def _language_level_color(palette: dict | None) -> str:
-    """Accent used for CEFR levels — same token skill chips / headings use."""
-    colors = palette or {}
-    # Prefer explicit accent keys; ``teal`` is Axis chip ink; ``accent_deep``
-    # holds a template's deeper heading tone when one is defined. Fall back to
-    # body ink last.
-    for key in ("accent", "accent_deep", "teal", "orange", "marker", "ink", "body"):
-        value = colors.get(key)
-        if value:
-            return str(value)
-    return "#2B2B2B"
-
 
 def _sidebar_language_content(cv: dict | None, items: list | tuple | None = None) -> str:
     """Plain sidebar body: one ``Name - Level`` line per language (no bullets)."""

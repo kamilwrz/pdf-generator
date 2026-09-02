@@ -951,15 +951,8 @@ const ATRIUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "runs": [
-      {
-        "start": 9,
-        "end": 17,
-        "italic": true,
-        "color": "#556158"
-      }
-    ],
     "flowRole": "grid-member",
+    "gridKind": "languages",
     "flowGroup": "record-334aa5ecb6ed"
   },
   {
@@ -982,15 +975,8 @@ const ATRIUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "runs": [
-      {
-        "start": 12,
-        "end": 14,
-        "italic": true,
-        "color": "#556158"
-      }
-    ],
     "flowRole": "grid-member",
+    "gridKind": "languages",
     "flowGroup": "record-334aa5ecb6ed"
   },
   {
@@ -1013,15 +999,8 @@ const ATRIUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "runs": [
-      {
-        "start": 12,
-        "end": 14,
-        "italic": true,
-        "color": "#556158"
-      }
-    ],
     "flowRole": "grid-member",
+    "gridKind": "languages",
     "flowGroup": "record-334aa5ecb6ed"
   }
 ];

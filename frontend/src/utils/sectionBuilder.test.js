@@ -186,6 +186,31 @@ describe("buildSectionElements", () => {
     ]);
   });
 
+  it("grid: creates one compact editable cell and records the wrapping contract", () => {
+    const { elements, headingId, firstBodyId } = buildSectionElements({
+      name: "Języki",
+      layout: SECTION_LAYOUTS.GRID,
+      style,
+      idFactory: makeIdFactory(),
+    });
+    const heading = elements.find((element) => element.element_id === headingId);
+    const cell = elements.find((element) => element.element_id === firstBodyId);
+
+    assert.equal(heading.editorSectionLayout, SECTION_LAYOUTS.GRID);
+    assert.equal(heading.editorGridColumns, 4);
+    assert.equal(heading.editorGridRecordWidth, style.recordWidth);
+    assert.equal(heading.editorGridBodyLeft, style.bodyLeft);
+    assert.equal(heading.gridKind, "entries");
+    assert.equal(cell.flowRole, "grid-member");
+    assert.equal(cell.editorGridEntry, true);
+    assert.equal(cell.gridKind, "entries");
+    assert.equal(cell.editorSectionId, headingId);
+    assert.equal(cell.content, "Nazwa — wartość");
+    assert.equal(cell.width, style.recordWidth / 4 - 8);
+    assert.equal(cell.color, style.body.color);
+    assert.equal(cell.runs, undefined);
+  });
+
   it("round-trips (cc-edu): built section is detectable and its body is collected", () => {
     const { elements, headingId } = buildSectionElements({
       name: "Umiejętności", layout: SECTION_LAYOUTS.RECORD_EDUCATION, style, idFactory: makeIdFactory(),

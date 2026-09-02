@@ -89,6 +89,11 @@
   box-shadow: inset 0 0 0 1px var(--chrome-accent);
 }
 
+.option:has(.radioInput:focus-visible) {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
 .radioInput {
   position: absolute;
   width: 1px;
@@ -180,7 +185,7 @@
 }
 
 .selectedIconLabel span {
-  color: var(--amber);
+  color: var(--color-ink);
   font-weight: 700;
 }
 
@@ -217,13 +222,13 @@
 .primary {
   padding: 0 22px;
   border: none;
-  background: var(--accent-grad);
-  color: var(--on-accent);
+  background: var(--color-ink);
+  color: var(--color-paper);
   font-weight: 700;
 }
 
 .primary:hover {
-  filter: brightness(1.07);
+  background: color-mix(in srgb, var(--color-ink) 88%, var(--color-paper));
 }
 
 @media only screen and (max-width: 760px) {

@@ -402,7 +402,7 @@ describe("transferSectionLane", () => {
     assert.equal(syncedProfile.skills.filter(({ category }) => category === "C++").length, 1);
   });
 
-  it("expands sidebar languages into a main-column accent grid", () => {
+  it("expands sidebar languages into a uniformly styled main-column grid", () => {
     const source = [
       ...sterlingLikeFixture(),
       { element_id: "sb-lang-head", category: "text", content: "JĘZYKI",
@@ -428,7 +428,7 @@ describe("transferSectionLane", () => {
     assert.equal(cells.length, 3);
     assert.ok(cells.every((cell) => !cell.flowLane));
     assert.ok(cells.every((cell) => cell.preserveInitialLayout === false));
-    assert.ok(cells[0].runs?.some((run) => run.color === "#4A6FA5" && run.italic));
+    assert.ok(cells.every((cell) => cell.runs == null));
     assert.ok((Number(cells[0].width) || 0) < 120);
     assert.ok(cells[1].left > cells[0].left);
     const langHead = next.find((element) => element.element_id === "sb-lang-head");

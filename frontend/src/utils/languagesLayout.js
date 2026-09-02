@@ -2,20 +2,38 @@
  * Languages section layout helpers for main ↔ sidebar transfers.
  *
  * Main-column templates place languages as an equal-width grid of
- * `flowRole: "grid-member"` cells with italic accent CEFR runs (same shape as
- * `_place_languages_grid` in the backend). Sidebar rails keep a single
- * hyphenated textarea. Transfer must convert between those shapes so a moved
- * Języki section matches Experience rhythm and the template palette.
+ * `flowRole: "grid-member"` cells (same shape as `_place_languages_grid` in
+ * the backend). Language names and levels deliberately share one plain text
+ * style; users may format the complete field with the normal text inspector.
+ * Sidebar rails keep a single hyphenated textarea. Transfer must convert
+ * between those shapes so a moved Języki section matches Experience rhythm.
  */
 import { measureTextareaHeight } from "./textareaHeight.js";
-import { sectionChromeRuleRelTop } from "./sectionStructure.js";
+import {
+  listDocumentSections,
+  listSidebarSections,
+  sectionChromeRuleRelTop,
+  sectionElementIds,
+  sidebarSectionElementIds,
+} from "./sectionStructure.js";
 
 const LANGUAGE_SEP_MAIN = " — ";
 const LANGUAGE_SEP_SIDEBAR = " - ";
 /** Matches backend `_LANGUAGE_SEP` / bullet stripping. */
 const LANGUAGE_SEP_RE = /\s+[—–-]\s+/;
 const LEADING_BULLET_RE = /^\s*[-•–*—∙·]\s*/;
-const LANGUAGES_TITLE_RE = /język|jezyk|language/i;
+const LEGACY_LANGUAGE_TITLE_TOKENS = [
+  "jezyk",
+  "language",
+  "sprache",
+  "lingua",
+  // Italian section headings normally use the plural `Lingue`, which is not
+  // a substring of the backend-compatible singular token `lingua`.
+  "lingue",
+];
+
+/** Stable semantic marker persisted with every generated language-grid cell. */
+export const LANGUAGES_GRID_KIND = "languages";
 
 /**
  * Allocate an id for the aggregate sidebar language body.
@@ -58,7 +76,51 @@ const NARROW_MAIN_COLUMN_LANGUAGES_COLUMNS = 3;
  * @returns {boolean}
  */
 export function isLanguagesSectionTitle(title) {
-  return LANGUAGES_TITLE_RE.test(String(title || ""));
+  const folded = String(title || "")
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+  return LEGACY_LANGUAGE_TITLE_TOKENS.some((token) => folded.includes(token));
+}
+
+/**
+ * Return whether a text cell carries the persisted Languages identity.
+ *
+ * Title matching remains a migration fallback only. Generated documents use
+ * this marker so renaming a heading cannot disable actions or profile sync.
+ *
+ * @param {object|null|undefined} element
+ * @returns {boolean}
+ */
+export function isLanguagesGridCell(element) {
+  return Boolean(
+    element
+    && element.flowRole === "grid-member"
+    && (element.category === "text" || element.category === "textarea")
+    && element.gridKind === LANGUAGES_GRID_KIND
+  );
+}
+
+/**
+ * Resolve a grid section's semantic identity before consulting its title.
+ *
+ * An explicit non-Languages marker (currently `entries`) wins over a heading
+ * such as JĘZYKI. This prevents a user-created grid with that title from
+ * mutating canonical `cv_data.languages` or losing manual inline styles. The
+ * localized title dictionary is used only for documents saved before semantic
+ * grid metadata existed.
+ *
+ * @param {object[]} elements Heading and/or grid cells from one section.
+ * @param {string|null|undefined} title
+ * @returns {boolean}
+ */
+export function isLanguagesGridSection(elements, title) {
+  const declaredKinds = (elements || [])
+    .map((element) => String(element?.gridKind || "").trim().toLowerCase())
+    .filter(Boolean);
+  if (declaredKinds.some((kind) => kind !== LANGUAGES_GRID_KIND)) return false;
+  if (declaredKinds.includes(LANGUAGES_GRID_KIND)) return true;
+  return isLanguagesSectionTitle(title);
 }
 
 /**
@@ -88,25 +150,78 @@ export function formatLanguageLine(name, level, sep = LANGUAGE_SEP_MAIN) {
   return n || l;
 }
 
+function isLegacyGeneratedLevelRun(run, levelStart, contentLength) {
+  if (!run || typeof run !== "object") return false;
+  const keys = Object.keys(run).filter((key) => run[key] !== undefined);
+  return Number(run.start) === levelStart
+    && Number(run.end) === contentLength
+    && run.italic === true
+    && typeof run.color === "string"
+    && run.color.trim().length > 0
+    && keys.every((key) => ["start", "end", "italic", "color"].includes(key));
+}
+
 /**
- * Italic accent run covering only the CEFR / level suffix.
+ * Remove the obsolete generator-owned colour/italic run from saved Languages
+ * grids while preserving every other inline edit. Recognized legacy grids are
+ * also backfilled with `gridKind`, making their identity survive later heading
+ * edits and the next save/reopen cycle.
  *
- * @param {string} content
- * @param {string} name
- * @param {string} level
- * @param {string} color
- * @param {string} [sep]
+ * Older documents stored one exact run over the trailing language level. The
+ * strict signature check avoids deleting a user's bold, underline, full-field
+ * italic, or unrelated custom-grid formatting during hydration.
+ *
+ * @param {object[]} elements
+ * @param {number} [pageHeight=842]
  * @returns {object[]}
  */
-export function languageLevelRuns(content, name, level, color, sep = LANGUAGE_SEP_MAIN) {
-  const n = String(name || "").trim();
-  const l = String(level || "").trim();
-  if (!content || !n || !l || !color) return [];
-  const suffix = `${sep}${l}`;
-  if (!content.endsWith(suffix)) return [];
-  const start = content.length - l.length;
-  if (start < 0) return [];
-  return [{ start, end: content.length, italic: true, color }];
+export function removeLegacyLanguageLevelStyling(elements, pageHeight = 842) {
+  const list = Array.isArray(elements) ? elements : [];
+  const languageCellIds = new Set();
+  const sections = [
+    ...listDocumentSections(list, pageHeight).map((section) => ({ ...section, sidebar: false })),
+    ...listSidebarSections(list, pageHeight).map((section) => ({ ...section, sidebar: true })),
+  ];
+
+  for (const section of sections) {
+    const heading = list.find((element) => element?.element_id === section.headingId);
+    const memberIds = section.sidebar
+      ? sidebarSectionElementIds(list, section.headingId, pageHeight)
+      : sectionElementIds(list, section.headingId, pageHeight);
+    const cells = list.filter((element) => (
+      memberIds.has(element?.element_id)
+      && element?.flowRole === "grid-member"
+      && (element?.category === "text" || element?.category === "textarea")
+    ));
+    if (!isLanguagesGridSection([heading, ...cells], section.title)) continue;
+    for (const element of cells) {
+      languageCellIds.add(element.element_id);
+    }
+  }
+
+  if (languageCellIds.size === 0) return list;
+  let changed = false;
+  const normalized = list.map((element) => {
+    if (!languageCellIds.has(element?.element_id)) {
+      return element;
+    }
+    const withGridKind = element.gridKind === LANGUAGES_GRID_KIND
+      ? element
+      : { ...element, gridKind: LANGUAGES_GRID_KIND };
+    if (withGridKind !== element) changed = true;
+    if (!Array.isArray(withGridKind.runs)) return withGridKind;
+    const content = String(withGridKind.content || "");
+    const { level } = parseLanguageLine(content);
+    if (!level || !content.endsWith(level)) return withGridKind;
+    const levelStart = content.length - level.length;
+    const runs = withGridKind.runs.filter((run) => (
+      !isLegacyGeneratedLevelRun(run, levelStart, content.length)
+    ));
+    if (runs.length === withGridKind.runs.length) return withGridKind;
+    changed = true;
+    return { ...withGridKind, runs: runs.length > 0 ? runs : null };
+  });
+  return changed ? normalized : list;
 }
 
 /**
@@ -146,15 +261,14 @@ export function collectLanguageEntries(members, headingId) {
 /**
  * Build main-column language grid cells for the given entries.
  *
- * Shared `flowGroup` keeps the row geometry in `placeStrip`. Level text uses
- * italic accent runs from the template palette (rule / heading colour).
+ * Shared `flowGroup` keeps the row geometry in `placeStrip`. Each complete
+ * `Name — Level` entry uses the body's single colour and text style.
  *
  * @param {{ name: string, level: string }[]} entries
  * @param {{
  *   bodyLeft: number,
  *   recordWidth: number,
  *   body: object,
- *   levelColor: string,
  *   appendTop: number,
  *   idFactory: () => string,
  *   columns?: number,
@@ -174,7 +288,6 @@ export function buildLanguagesMainGrid(entries, options) {
   const fontSize = Number(body.fontSize) || 9;
   const lineHeight = Number(body.lineHeight) || fontSize * 1.4;
   const bodyColor = body.color || "#26313F";
-  const levelColor = options.levelColor || bodyColor;
   const fontFamily = body.fontFamily || "Montserrat";
   const appendTop = Number(options.appendTop) || 0;
   const idFactory = options.idFactory || (() => `lang-${Math.random().toString(36).slice(2, 9)}`);
@@ -195,13 +308,6 @@ export function buildLanguagesMainGrid(entries, options) {
       return { entry, content, height };
     });
     payloads.forEach((payload, colIndex) => {
-      const runs = languageLevelRuns(
-        payload.content,
-        payload.entry.name,
-        payload.entry.level,
-        levelColor,
-        LANGUAGE_SEP_MAIN,
-      );
       cells.push({
         element_id: idFactory(),
         category: "textarea",
@@ -224,9 +330,9 @@ export function buildLanguagesMainGrid(entries, options) {
         preserveInitialLayout: false,
         flowRole: "grid-member",
         flowGroup,
+        gridKind: LANGUAGES_GRID_KIND,
         page: 1,
         zIndex: 3,
-        ...(runs.length ? { runs } : {}),
       });
     });
   }
@@ -278,21 +384,6 @@ export function buildLanguagesSidebarBody(entries, options) {
     page: 1,
     zIndex: 3,
   };
-}
-
-/**
- * Accent colour for CEFR levels — prefer the section rule (Sterling accent
- * underline), then heading colour, then body ink.
- *
- * @param {object} style
- * @returns {string}
- */
-export function resolveLanguageLevelColor(style) {
-  const ruleColor = style?.rule?.backgroundColor;
-  if (ruleColor) return String(ruleColor);
-  if (style?.heading?.color) return String(style.heading.color);
-  if (style?.mutedColor) return String(style.mutedColor);
-  return String(style?.body?.color || "#4A6FA5");
 }
 
 /**

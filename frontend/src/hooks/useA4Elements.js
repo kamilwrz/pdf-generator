@@ -45,6 +45,10 @@ import {
   replaceBuiltSectionRecord,
   reorderRecordBlock,
 } from '../utils/sectionRecord';
+import {
+  insertGridSectionEntry,
+  removeGridSectionEntry,
+} from '../utils/gridSection';
 import { applySelectedSectionIcon } from '../utils/sectionIcons';
 import {
   createCircleElement,
@@ -1040,6 +1044,43 @@ export function useA4Elements(titleRef) {
   }, [finalizeDocumentPages]);
 
   /**
+   * Insert one compact cell after the hovered grid entry and rebuild the
+   * section's fixed-column geometry. The shared section packer then moves
+   * following content and handles a wrapped row or page transition.
+   *
+   * @param {string} elementId
+   */
+  const handleAddGridSectionEntry = useCallback((elementId) => {
+    if (!elementId) return;
+    if (editorModeRef.current !== EDITOR_MODE_TEMPLATE) return;
+
+    let jumpToPage = null;
+    setA4_Elements((prev) => {
+      const pageHeight = pageSizeRef.current?.height ?? 842;
+      const result = insertGridSectionEntry(prev, elementId, pageHeight, {
+        spacing: flowSpacingRef.current,
+        idFactory: nanoid,
+      });
+      if (!result) return prev;
+
+      const selected = result.elements.map((element) => {
+        if (element.element_id === result.entryId) {
+          jumpToPage = Math.max(1, Math.trunc(Number(element.page) || 1));
+          return { ...element, isSelected: true, isEditing: true };
+        }
+        if (element.isSelected || element.isEditing) {
+          return { ...element, isSelected: false, isEditing: false };
+        }
+        return element;
+      });
+      return finalizeDocumentPages(selected, { collapseEmpty: true });
+    });
+    if (jumpToPage != null && jumpToPage !== currentPageRef.current) {
+      setCurrentPage(jumpToPage);
+    }
+  }, [finalizeDocumentPages]);
+
+  /**
    * Insert a full placeholder record (edu/exp shape with generic copy) below
    * the record that owns `afterElementId`. Used by the upper-line hover "+".
    *
@@ -1195,6 +1236,30 @@ export function useA4Elements(titleRef) {
       if (!result) return prev;
 
       rememberDeletedElements(prev, result.removedIds, true);
+      return finalizeDocumentPages(result.elements, { collapseEmpty: true });
+    });
+  }, [rememberDeletedElements, finalizeDocumentPages]);
+
+  /**
+   * Remove one compact grid cell and close the horizontal/vertical gap by
+   * rebuilding every remaining cell in reading order. The last cell is kept
+   * so the section never loses its only per-entry add affordance.
+   *
+   * @param {string} elementId
+   */
+  const handleRemoveGridSectionEntry = useCallback((elementId) => {
+    if (!elementId) return;
+    if (editorModeRef.current !== EDITOR_MODE_TEMPLATE) return;
+
+    setA4_Elements((prev) => {
+      const pageHeight = pageSizeRef.current?.height ?? 842;
+      const result = removeGridSectionEntry(prev, elementId, pageHeight, {
+        spacing: flowSpacingRef.current,
+        idFactory: nanoid,
+      });
+      if (!result) return prev;
+
+      rememberDeletedElements(prev, result.removedIds);
       return finalizeDocumentPages(result.elements, { collapseEmpty: true });
     });
   }, [rememberDeletedElements, finalizeDocumentPages]);
@@ -2504,10 +2569,12 @@ export function useA4Elements(titleRef) {
     handleAddTextarea,
     handleAddSection,
     handleAddSectionRecord,
+    handleAddGridSectionEntry,
     handleAddRecordBlock,
     handleAddRecordDescription,
     handleRemoveSection,
     handleRemoveRecordBlock,
+    handleRemoveGridSectionEntry,
     handleRemoveRecordDescription,
     handleReorderRecordBlock,
     handleReorderSection,

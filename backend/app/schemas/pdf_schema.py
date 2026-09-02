@@ -149,6 +149,32 @@ class PdfElement(BaseModel):
     # Keep-together id for a multi-element record (title/meta/body). Reflow
     # moves the whole group across page breaks instead of splitting it.
     flowGroup: Optional[str] = None
+    # Structural-editor identity for user-created sections. These fields have
+    # no visual effect in ReportLab; they let the reopened browser reconstruct
+    # the section type and keep its add/remove controls available.
+    editorAddedSection: Optional[bool] = False
+    editorSectionId: Optional[str] = Field(
+        None,
+        max_length=MAX_ELEMENT_ID_CHARS,
+    )
+    editorSectionLayout: Optional[str] = None
+    # Fixed-column grid geometry belongs to the section heading, while the
+    # entry/link fields belong to its cells. Persisting both sides avoids
+    # inferring a one-cell grid as a one-column layout after save/reopen.
+    editorGridColumns: Optional[int] = Field(None, ge=1, le=12)
+    editorGridRecordWidth: Optional[float] = None
+    editorGridBodyLeft: Optional[float] = None
+    editorGridEntry: Optional[bool] = False
+    editorAddedGridEntry: Optional[bool] = False
+    gridSectionId: Optional[str] = Field(
+        None,
+        max_length=MAX_ELEMENT_ID_CHARS,
+    )
+    gridColumns: Optional[int] = Field(None, ge=1, le=12)
+    gridGutter: Optional[float] = None
+    gridWidth: Optional[float] = None
+    gridLeft: Optional[float] = None
+    gridKind: Optional[str] = None
     # Monument-style ordinal badge ("01", "02", …): chrome text that must not
     # be listed as its own section title by the structural editor.
     isDecorativeChromeText: Optional[bool] = False

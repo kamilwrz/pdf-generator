@@ -23,3 +23,15 @@ test("selected elements keep selection and receive a separate hover ring", async
   assert.match(css, /\.elementHighlightSelected\s*\{[^}]*outline-offset:\s*4px/s);
   assert.match(css, /\.elementHighlightSelected\s*\{[^}]*border-color:\s*transparent/s);
 });
+
+test("direct actions replace the labelled structural toolbar with accessible icon buttons", async () => {
+  const source = await readFile(new URL("./CanvasHoverToolbar.jsx", import.meta.url), "utf8");
+  const css = await readFile(new URL("./CanvasHoverToolbar.module.css", import.meta.url), "utf8");
+
+  assert.match(source, /directActions\.length > 0/);
+  assert.match(source, /aria-label=\{item\.label\}/);
+  assert.match(source, /disabled=\{item\.disabled\}/);
+  assert.match(source, /item\.danger/);
+  assert.match(css, /\.directActionDanger/);
+  assert.match(css, /\.control\[data-tooltip\]:focus-visible::after/);
+});

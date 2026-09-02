@@ -22,6 +22,10 @@ import {
   listDocumentSections,
   listSidebarSections,
 } from "./sectionStructure.js";
+import {
+  isLanguagesGridSection,
+  parseLanguageLine,
+} from "./languagesLayout.js";
 
 function cloneProfile(cvData) {
   return JSON.parse(JSON.stringify(cvData));
@@ -212,6 +216,18 @@ function sectionForGroup(elements, groupId) {
 }
 
 function customSectionItems(body, layout) {
+  if (layout === SECTION_LAYOUTS.GRID) {
+    // One grid cell is one semantic item, even when the user inserts a line
+    // break inside that cell. Splitting on newlines here would create extra
+    // columns after the next template fill.
+    return (body || [])
+      .filter((element) => (
+        ["text", "textarea"].includes(element?.category)
+        && element?.flowRole === "grid-member"
+      ))
+      .map(profileTextForElement)
+      .filter(Boolean);
+  }
   const groups = partitionSectionRecords(body || []);
   if (
     layout === SECTION_LAYOUTS.RECORD_EDUCATION
@@ -308,6 +324,7 @@ function syncEditorStructures(cvData, elements) {
         || layout === SECTION_LAYOUTS.RECORD_EXPERIENCE
       ) ? "projects" : "other",
       placement: placementForSection(section, elements, layout),
+      ...(layout === SECTION_LAYOUTS.GRID ? { layout: SECTION_LAYOUTS.GRID } : {}),
       __canvasHeadingId: heading.element_id,
     };
     draft.custom_sections = upsertByCanvasId(
@@ -380,6 +397,134 @@ function syncEditorStructures(cvData, elements) {
   }
 
   return JSON.stringify(draft) === JSON.stringify(cvData) ? cvData : draft;
+}
+
+/**
+ * Read canonical language entries from a generated Languages grid.
+ *
+ * Editor-created grid sections are intentionally excluded: their marked
+ * heading is persisted through `custom_sections` by `syncEditorStructures`.
+ * This bridge is for a template's canonical `cv_data.languages` array, whose
+ * generated cells do not otherwise carry editor semantic ids.
+ *
+ * @param {object[]} elements
+ * @returns {{ name: string, level: string }[]|null}
+ */
+function generatedLanguageGridEntries(elements) {
+  const list = elements || [];
+  const section = canvasSections(list).find((candidate) => {
+    const heading = list.find((element) => element?.element_id === candidate.headingId);
+    const cells = listSectionContentElements(list, candidate.headingId)
+      .filter((element) => (
+        element?.flowRole === "grid-member"
+        && ["text", "textarea"].includes(element?.category)
+      ));
+    return heading
+      && !heading.editorAddedSection
+      && isLanguagesGridSection([heading, ...cells], candidate.title);
+  });
+  if (!section) return null;
+
+  const cells = listSectionContentElements(list, section.headingId)
+    .filter((element) => (
+      element?.flowRole === "grid-member"
+      && ["text", "textarea"].includes(element?.category)
+    ));
+  if (cells.length === 0) return null;
+
+  return cells.flatMap((cell) => contentLines(cell))
+    .map(parseLanguageLine)
+    .filter((entry) => entry.name);
+}
+
+/**
+ * Persist add/remove/reorder/text edits performed directly on a generated
+ * Languages grid. Geometry-only repacks remain reference-equal no-ops.
+ *
+ * @param {object} cvData
+ * @param {object[]} previousElements
+ * @param {object[]} nextElements
+ * @returns {object}
+ */
+function syncGeneratedLanguageGrid(cvData, previousElements, nextElements) {
+  const previous = generatedLanguageGridEntries(previousElements);
+  const next = generatedLanguageGridEntries(nextElements);
+  if (!previous || !next || JSON.stringify(previous) === JSON.stringify(next)) {
+    return cvData;
+  }
+  const draft = cloneProfile(cvData);
+  draft.languages = next;
+  return draft;
+}
+
+/**
+ * Read generator-restored custom grids and keep their semantic items current.
+ *
+ * A template replacement necessarily creates fresh canvas ids, so restored
+ * custom grids are matched to `custom_sections` by their current (or previous)
+ * heading. The explicit `gridKind: "entries"` marker prevents a user-created
+ * section named JĘZYKI from being confused with canonical language data.
+ */
+function generatedCustomGridSections(elements) {
+  const list = elements || [];
+  return canvasSections(list).flatMap((section) => {
+    const heading = list.find((element) => element?.element_id === section.headingId);
+    if (!heading || heading.editorAddedSection) return [];
+    const cells = listSectionContentElements(list, section.headingId)
+      .filter((element) => (
+        ["text", "textarea"].includes(element?.category)
+        && element?.flowRole === "grid-member"
+        && element?.gridKind === "entries"
+      ));
+    if (cells.length === 0) return [];
+    return [{
+      headingId: section.headingId,
+      title: profileTextForElement(heading),
+      items: cells.map(profileTextForElement).filter(Boolean),
+    }];
+  });
+}
+
+function syncGeneratedCustomGrids(cvData, previousElements, nextElements) {
+  const nextGrids = generatedCustomGridSections(nextElements);
+  const sections = Array.isArray(cvData?.custom_sections) ? cvData.custom_sections : [];
+  if (nextGrids.length === 0 || sections.length === 0) return cvData;
+
+  const previousByHeading = new Map(
+    generatedCustomGridSections(previousElements)
+      .map((section) => [section.headingId, section]),
+  );
+  let draft = cvData;
+  for (const grid of nextGrids) {
+    const previousTitle = previousByHeading.get(grid.headingId)?.title;
+    const matchingIndices = sections
+      .map((section, index) => ({ section, index }))
+      .filter(({ section }) => section?.layout === SECTION_LAYOUTS.GRID);
+    let match = matchingIndices.find(({ section }) => (
+      foldLabel(section?.title) === foldLabel(grid.title)
+    ));
+    if (!match && previousTitle) {
+      match = matchingIndices.find(({ section }) => (
+        foldLabel(section?.title) === foldLabel(previousTitle)
+      ));
+    }
+    if (!match && matchingIndices.length === 1 && nextGrids.length === 1) {
+      [match] = matchingIndices;
+    }
+    if (!match) continue;
+
+    const current = (draft === cvData ? sections : draft.custom_sections)[match.index];
+    const updated = {
+      ...current,
+      title: grid.title,
+      items: grid.items,
+      layout: SECTION_LAYOUTS.GRID,
+    };
+    if (JSON.stringify(current) === JSON.stringify(updated)) continue;
+    if (draft === cvData) draft = cloneProfile(cvData);
+    draft.custom_sections[match.index] = updated;
+  }
+  return draft;
 }
 
 /**
@@ -680,6 +825,16 @@ export function syncCvDataFromCanvas(
     nextProfile = pruneDeletedRecords(nextProfile, deletedTexts, liveStructureIds);
   }
   nextProfile = syncEditorStructures(nextProfile, nextElements);
+  nextProfile = syncGeneratedLanguageGrid(
+    nextProfile,
+    previousElements,
+    nextElements,
+  );
+  nextProfile = syncGeneratedCustomGrids(
+    nextProfile,
+    previousElements,
+    nextElements,
+  );
   const titleEdit = editedMastheadTitle(previousElements, nextElements);
   if (
     titleEdit

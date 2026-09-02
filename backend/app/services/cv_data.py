@@ -928,11 +928,13 @@ def _normalize_custom_sections(value: Any) -> list[dict[str, Any]]:
         title = _text(section.get("title"))
         kind = _text(section.get("kind")).casefold() or "other"
         placement = _text(section.get("placement")) or "after_skills"
+        layout = _text(section.get("layout")).casefold()
+        layout = "grid" if layout == "grid" else ""
         if kind not in ALLOWED_SECTION_KINDS:
             kind = "other"
         # Extractors often tag projects/references as generic "other". Upgrade
         # from the heading so layout and regroup heuristics still apply.
-        if kind == "other" and is_record_section("other", title):
+        if kind == "other" and not layout and is_record_section("other", title):
             kind = _infer_record_kind_from_title(title)
         if placement not in ALLOWED_PLACEMENTS:
             # Record-style sections read better after experience.
@@ -947,12 +949,15 @@ def _normalize_custom_sections(value: Any) -> list[dict[str, Any]]:
             title=title,
         )
         if title and items:
-            result.append({
+            normalized_section = {
                 "title": title.upper(),
                 "kind": kind,
                 "placement": placement,
                 "items": items,
-            })
+            }
+            if layout:
+                normalized_section["layout"] = layout
+            result.append(normalized_section)
     return result
 
 
@@ -968,13 +973,15 @@ def _derive_manual_sections(extra_sections: Any) -> tuple[list[dict[str, str]], 
         kind = _text(section.get("kind")).casefold() or "other"
         title = _text(section.get("title"))
         placement = _text(section.get("placement")) or "after_skills"
+        layout = _text(section.get("layout")).casefold()
+        layout = "grid" if layout == "grid" else ""
         if kind == "languages":
             items = _section_items(section.get("items"))
             languages.extend(_normalize_languages(items))
             continue
         if kind not in ALLOWED_SECTION_KINDS:
             kind = "other"
-        if kind == "other" and is_record_section("other", title):
+        if kind == "other" and not layout and is_record_section("other", title):
             kind = _infer_record_kind_from_title(title)
         if placement not in ALLOWED_PLACEMENTS:
             placement = (
@@ -988,12 +995,15 @@ def _derive_manual_sections(extra_sections: Any) -> tuple[list[dict[str, str]], 
             title=title,
         )
         if title and items:
-            custom_sections.append({
+            normalized_section = {
                 "title": title,
                 "kind": kind,
                 "placement": placement,
                 "items": items,
-            })
+            }
+            if layout:
+                normalized_section["layout"] = layout
+            custom_sections.append(normalized_section)
     return languages, custom_sections
 
 
@@ -1046,6 +1056,13 @@ def _absorb_skills_alias_sections(
     absorbed_flat: list[str] = []
 
     for section in sections:
+        # Explicit entry grids are authored as independent sections. Their
+        # headings may intentionally use a skills-like word such as NARZĘDZIA;
+        # absorbing them into the canonical Skills slot would destroy the
+        # fixed-column contract after a template refill.
+        if section.get("layout") == "grid":
+            kept.append(section)
+            continue
         if not is_skills_like_section(section):
             kept.append(section)
             continue

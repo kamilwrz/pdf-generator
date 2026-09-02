@@ -65,6 +65,9 @@ test("Monument exposes six uniquely named editorial palettes", () => {
 
 test("palette update recolors every Monument semantic and swaps contact and portrait icons", () => {
   const changed = applyMonumentPalette(sample(), "olive");
+  const palette = MONUMENT_PALETTES.find(({ id }) => id === "olive");
+  const languages = applyMonumentPalette(monumentTemplate, "olive")
+    .filter((element) => element.flowRole === "grid-member");
   assert.equal(changed[0].backgroundColor, "#F8F8F3");
   assert.equal(changed[1].color, "#30372C");
   assert.equal(changed[2].color, "#485044");
@@ -80,6 +83,13 @@ test("palette update recolors every Monument semantic and swaps contact and port
     changed[10].mastheadIdentity.title.decorations[0].backgroundColor,
     "#C9CEC0",
   );
+  assert.ok(languages.length > 0);
+  assert.ok(languages.every((element) => (
+    element.color === palette.colors.body
+    && element.italic === false
+    && element.runs == null
+    && element.gridKind === "languages"
+  )));
   assert.deepEqual(getMonumentAppearance(changed), { palette: "olive", textSize: "M" });
 });
 

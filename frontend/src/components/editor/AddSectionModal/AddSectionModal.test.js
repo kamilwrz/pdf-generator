@@ -11,3 +11,11 @@ test("describes record layouts by structure rather than blueprint domain", () =>
   assert.match(source, /strukturę Doświadczenia z obecnego szablonu/);
   assert.doesNotMatch(source, /Jak wykształcenie|Jak doświadczenie/);
 });
+
+test("offers a compact wrapping grid category with a Languages example", () => {
+  assert.match(source, /value: SECTION_LAYOUTS\.GRID/);
+  assert.match(source, /title: "Krótkie wpisy w kolumnach"/);
+  assert.match(source, /np\. JĘZYKI/);
+  assert.match(source, /następną kolumnę/);
+  assert.match(source, /nowej linii/);
+});

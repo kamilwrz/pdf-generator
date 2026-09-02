@@ -596,6 +596,29 @@ class CvDataNormalizationTests(unittest.TestCase):
             [{"title": "Lookbook", "bullets": ["Kierunek artystyczny", "Produkcja"], "subtitle": "2024"}],
         )
 
+    def test_custom_entry_grid_layout_survives_normalization(self):
+        profile = normalize_cv_data({
+            "name": "Ewa Nowak",
+            "custom_sections": [{
+                "title": "Narzędzia",
+                "kind": "other",
+                "placement": "after_skills",
+                "layout": "grid",
+                "items": ["Figma", "Miro", "Notion"],
+            }],
+        })
+
+        expected = {
+            "title": "NARZĘDZIA",
+            "kind": "other",
+            "placement": "after_skills",
+            "layout": "grid",
+            "items": ["Figma", "Miro", "Notion"],
+        }
+        self.assertEqual(profile["custom_sections"], [expected])
+        self.assertEqual(profile["extra_sections"], [expected])
+        self.assertEqual(profile["skills"], [])
+
     def test_explicit_empty_custom_sections_do_not_restore_stale_extra_sections(self):
         profile = normalize_cv_data({
             "name": "Jan Nowak",

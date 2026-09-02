@@ -7,7 +7,7 @@
  * between records via the normal packer — Experience never moves onto the rail.
  *
  * Languages are a special case: the rail keeps one hyphenated textarea, while
- * the main column uses the equal-width accent grid every template generator
+ * the main column uses the equal-width, uniformly styled grid every template generator
  * emits (`_place_languages_grid`). Skills with subcategories are the other:
  * the rail keeps `_skills_sidebar_content` (category + bullets), while main
  * expands to bold category labels + chip bodies (`_place_skills_section`).
@@ -30,7 +30,6 @@ import {
   buildLanguagesMainGrid,
   collectLanguageEntries,
   isLanguagesSectionTitle,
-  resolveLanguageLevelColor,
 } from "./languagesLayout.js";
 import {
   isSkillsSectionHeading,
@@ -208,7 +207,7 @@ function restyleMemberAsMain(element, headingId, style, appendTop) {
 }
 
 /**
- * Convert a languages rail strip into main-column chrome + accent grid cells.
+ * Convert a languages rail strip into main-column chrome + plain grid cells.
  * Body members are replaced wholesale so a single hyphenated textarea becomes
  * the equal-width grid used by every main-column generator.
  *
@@ -250,16 +249,10 @@ function restyleLanguagesMembersAsMain(members, headingId, style, parkTop) {
   }
 
   const bodyTop = ruleTop + 6;
-  // Prefer the languages section's own accent underline (Sterling sidebar
-  // kickers use #4A6FA5) over the main-column Experience rule, which is often
-  // a muted grey hairline unsuitable for CEFR runs.
-  const levelColor = (rule && rule.backgroundColor)
-    || resolveLanguageLevelColor(style);
   const cells = buildLanguagesMainGrid(entries, {
     bodyLeft: Number.isFinite(Number(style.bodyLeft)) ? Number(style.bodyLeft) : Number(style.left) || 245,
     recordWidth: Number(style.recordWidth) || 300,
     body: style.body || {},
-    levelColor,
     appendTop: bodyTop,
     idFactory: makeIdFactory(`${headingId}-lang`),
   });
@@ -408,7 +401,7 @@ export function resolveSectionLaneTransfer(elements, headingId, pageHeight = 842
  *
  * The strip is restyled for the destination lane, parked last, then packed.
  * Oversized content may continue onto page 2 between records — same keep-
- * together rules as add/reorder. Languages expand to the main accent grid
+ * together rules as add/reorder. Languages expand to the main uniform grid
  * (or collapse back to a sidebar hyphen list). Skills with subcategories
  * expand to bold category + body records (or collapse to one rail textarea).
  *

@@ -75,6 +75,22 @@ test("builds a clean manual CV payload with structured entries", () => {
     assert.deepEqual(result.custom_sections[0].items, ["PSM I"]);
 });
 
+test("preserves an editor-authored custom grid through profile normalization", () => {
+    const result = buildBioCvPayload({
+        ...createEmptyBioCvData(),
+        name: "Anna Kowalska",
+        custom_sections: [{
+            title: "Linki",
+            items: ["Portfolio", "GitHub"],
+            kind: "other",
+            placement: "after_skills",
+            layout: "GRID",
+        }],
+    });
+
+    assert.equal(result.custom_sections[0].layout, "grid");
+});
+
 test("validates only completed repeater cards and email syntax", () => {
     const incompleteExperience = normalizeBioCvData({
         name: "Anna",

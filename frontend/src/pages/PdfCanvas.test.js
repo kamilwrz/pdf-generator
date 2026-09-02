@@ -79,3 +79,12 @@ test("guest restore and claim run the hidden-photo persistence migration", async
     2,
   );
 });
+
+test("canvas context exposes repeatable-grid entry mutations", async () => {
+  const source = await readFile(url, "utf8");
+
+  assert.match(source, /addGridSectionEntry:\s*handleAddGridSectionEntry/);
+  assert.match(source, /removeGridSectionEntry:\s*handleRemoveGridSectionEntry/);
+  assert.match(source, /handleAddGridSectionEntry/);
+  assert.match(source, /handleRemoveGridSectionEntry/);
+});

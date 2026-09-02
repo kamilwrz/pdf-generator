@@ -69,6 +69,7 @@ test("a strong Vellum palette updates semantic decoration, title, fields, and re
     element.category === "image" && element.contactBandId === "vellum-contact"
   ));
   const contactAnchor = next.find((element) => element.contactBand?.id === "vellum-contact");
+  const languages = next.filter((element) => element.flowRole === "grid-member");
 
   assert.equal(page.backgroundColor, "#FFFFFF");
   assert.deepEqual(page.appearanceSettings, { palette: "burgundy", textSize: "M" });
@@ -83,6 +84,13 @@ test("a strong Vellum palette updates semantic decoration, title, fields, and re
   assert.match(contactIcon.src, /\/vellum-burgundy\//);
   assert.equal(contactAnchor.contactBand.icon.theme, "vellum-burgundy");
   assert.equal(contactAnchor.contactBand.text.colorHex, palette.colors.muted);
+  assert.ok(languages.length > 0);
+  assert.ok(languages.every((element) => (
+    element.color === palette.colors.body
+    && element.italic === false
+    && element.runs == null
+    && element.gridKind === "languages"
+  )));
 });
 
 test("Vellum palette switching preserves unknown manual colours", () => {

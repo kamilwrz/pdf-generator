@@ -38,3 +38,14 @@ test("selected and editing structural fields remain eligible hover targets", asy
   assert.match(sectionSource, /elementHighlightSelected=\{Boolean\(hoveredHeading\?\.isSelected\)\}/);
   assert.match(sectionSource, /triggerRevision/);
 });
+
+test("repeatable grid cells mount their dedicated two-action gutter control", async () => {
+  const source = await readFile(new URL("./CanvasElements.jsx", import.meta.url), "utf8");
+
+  assert.match(source, /import GridEntryActions from '\.\.\/GridEntryActions\/GridEntryActions'/);
+  assert.match(source, /listGridSectionEntryAnchors\(documentElements, pageHeight\)/);
+  assert.match(source, /gridEntryAnchorsById\.get\(element\.element_id\)/);
+  assert.match(source, /<GridEntryActions/);
+  assert.match(source, /gutterSide=\{gridEntryAnchor\.gutterSide\}/);
+  assert.match(source, /canDelete=\{gridEntryAnchor\.canDelete\}/);
+});

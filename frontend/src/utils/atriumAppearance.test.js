@@ -116,7 +116,7 @@ test("a strong Atrium palette recolours every semantic while preserving geometry
     element.category === "image" && element.contactBandId === "contact-main"
   ));
   const portrait = changed.find((element) => element.id === "atrium-photo-glyph");
-  const language = changed.find((element) => Array.isArray(element.runs));
+  const languages = changed.filter((element) => element.flowRole === "grid-member");
 
   assert.deepEqual(geometry(changed), geometry(source));
   assert.ok(changed.filter((element) => (
@@ -138,7 +138,13 @@ test("a strong Atrium palette recolours every semantic while preserving geometry
   assert.match(portrait.src, /\/atrium-burgundy\/portrait\.png$/);
   assert.equal(contactAnchor.contactBand.icon.theme, "atrium-burgundy");
   assert.equal(contactAnchor.contactBand.text.colorHex, palette.colors.muted);
-  assert.ok(language.runs.every((run) => !run.color || run.color === palette.colors.accent));
+  assert.ok(languages.length > 0);
+  assert.ok(languages.every((element) => (
+    element.color === palette.colors.body
+    && element.italic === false
+    && element.runs == null
+    && element.gridKind === "languages"
+  )));
   assert.deepEqual(getAtriumAppearance(changed), { palette: "burgundy", textSize: "M" });
 });
 

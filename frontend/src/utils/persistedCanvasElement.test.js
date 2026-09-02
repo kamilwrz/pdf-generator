@@ -4,6 +4,11 @@ import { slateTemplate } from "../templates/slate.js";
 import { applyChannelRelayout } from "./contactBandOps.js";
 import { hydratePersistedCanvasElement } from "./persistedCanvasElement.js";
 import {
+  insertGridSectionEntry,
+  listGridSectionEntryAnchors,
+  removeGridSectionEntry,
+} from "./gridSection.js";
+import {
   alignSidebarAfterProfileContacts,
   hideProfilePhoto,
   isProfilePhotoHidden,
@@ -27,6 +32,10 @@ const EXTRA_KEYS = [
   "appearanceBaseFontSize", "appearanceBaseLineHeight", "lineHeight", "letterSpacing",
   "bold", "italic", "underline", "runs", "align", "bulletList", "autoHeight",
   "flowRole", "flowLane", "flowGroup", "isDecorativeChromeText",
+  "editorAddedSection", "editorSectionId", "editorSectionLayout",
+  "editorGridColumns", "editorGridRecordWidth", "editorGridBodyLeft",
+  "editorGridEntry", "editorAddedGridEntry", "gridSectionId", "gridColumns",
+  "gridGutter", "gridWidth", "gridLeft", "gridKind",
   "preserveInitialLayout", "alignWithText", "id", "photoSlot", "photoSlotHidden",
   "photoPlaceholder", "profilePhotoMainContactBand", "profilePhotoMainMastheadIdentity",
   "photoLayoutHome", "photoShape", "objectFit", "fixedToPage", "repeatOnContinuation",
@@ -93,6 +102,84 @@ test("hydration resets volatile editor state and applies legacy text defaults", 
   assert.equal(hydrated.align, "left");
   assert.equal(hydrated.width, 120.5);
   assert.equal(hydrated.height, 16);
+});
+
+test("saved custom grid keeps add/delete semantics and fixed geometry after reopening", () => {
+  const source = [
+    {
+      element_id: "grid-heading",
+      category: "text",
+      content: "JĘZYKI OBCE",
+      page: 1,
+      left: 84,
+      top: 100,
+      width: 400,
+      height: 14,
+      fontSize: 10,
+      flowRole: "section-chrome",
+      editorAddedSection: true,
+      editorSectionId: "grid-heading",
+      editorSectionLayout: "grid",
+      editorGridColumns: 4,
+      editorGridRecordWidth: 400,
+      editorGridBodyLeft: 84,
+    },
+    {
+      element_id: "grid-rule",
+      category: "line",
+      page: 1,
+      left: 84,
+      top: 116,
+      width: 400,
+      height: 1,
+      flowRole: "section-chrome",
+    },
+    {
+      element_id: "grid-cell",
+      category: "textarea",
+      content: "Polski — C2",
+      page: 1,
+      left: 84,
+      top: 128,
+      width: 92,
+      height: 19,
+      fontSize: 9,
+      lineHeight: 13,
+      color: "#242424",
+      autoHeight: true,
+      flowRole: "grid-member",
+      flowGroup: "grid-row-1",
+      editorAddedSection: true,
+      editorSectionId: "grid-heading",
+      editorGridEntry: true,
+      gridSectionId: "grid-heading",
+    },
+  ];
+  const reopened = source
+    .map(persistedRow)
+    .map(hydratePersistedCanvasElement);
+
+  const [anchor] = listGridSectionEntryAnchors(reopened);
+  assert.equal(anchor.elementId, "grid-cell");
+  assert.equal(anchor.columns, 4);
+  assert.equal(anchor.canDelete, false);
+
+  const inserted = insertGridSectionEntry(reopened, "grid-cell", 842, {
+    idFactory: () => "grid-cell-2",
+  });
+  assert.ok(inserted);
+  assert.equal(inserted.elements.find((element) => element.element_id === "grid-cell-2").left, 184);
+
+  const removableAnchor = listGridSectionEntryAnchors(inserted.elements)
+    .find((entry) => entry.elementId === "grid-cell-2");
+  assert.equal(removableAnchor.canDelete, true);
+  const removed = removeGridSectionEntry(inserted.elements, "grid-cell");
+  assert.ok(removed);
+  assert.equal(removed.elements.some((element) => element.element_id === "grid-cell"), false);
+  assert.equal(
+    removed.elements.find((element) => element.element_id === "grid-cell-2").left,
+    84,
+  );
 });
 
 test("saved hidden Slate hydrates every semantic field and restores exact geometry", () => {

@@ -382,7 +382,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
             ]
             self.assertEqual(len(language_cells), 1, template_id)
             self.assertFalse(language_cells[0].get("bulletList"), template_id)
-            self.assertTrue(language_cells[0].get("runs"), template_id)
+            self.assertFalse(language_cells[0].get("runs"), template_id)
             skills_body = next(
                 element for element in elements
                 if element.get("category") == "textarea"

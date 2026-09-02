@@ -38,6 +38,45 @@ def serialize_runs(element) -> list[dict[str, Any]] | None:
     return [run.model_dump(exclude_none=True) for run in runs]
 
 
+_GRID_SECTION_EXTRA_FIELDS = (
+    "editorAddedSection",
+    "editorSectionId",
+    "editorSectionLayout",
+    "editorGridColumns",
+    "editorGridRecordWidth",
+    "editorGridBodyLeft",
+    "editorGridEntry",
+    "editorAddedGridEntry",
+    "gridSectionId",
+    "gridColumns",
+    "gridGutter",
+    "gridWidth",
+    "gridLeft",
+    "gridKind",
+)
+
+
+def _serialize_grid_section_metadata(element) -> dict[str, Any]:
+    """Pack editor-only grid identity and geometry into ``extra_properties``.
+
+    The keys intentionally remain flat because browser hydration merges
+    ``extra_properties`` back into the canvas element shape. Keeping this list
+    centralized prevents create, insert-on-update, and update-in-place writes
+    from drifting apart when the structural editor gains metadata.
+    """
+    metadata = {}
+    for field in _GRID_SECTION_EXTRA_FIELDS:
+        value = getattr(element, field, None)
+        # Missing/false markers mean "not a grid member" and are reconstructed
+        # from schema defaults. Eliding them keeps ordinary canvas rows as
+        # compact as they were before grid sections were introduced. Numeric
+        # zero remains valid geometry and is therefore retained.
+        if value is None or value is False:
+            continue
+        metadata[field] = value
+    return metadata
+
+
 def elements_from_rows(rows) -> list[PdfElement]:
     """Reconstruct full `PdfElement` objects from stored `PdfElements` rows.
 
@@ -78,6 +117,20 @@ def elements_from_rows(rows) -> list[PdfElement]:
             flowRole=extra.get("flowRole"),
             flowLane=extra.get("flowLane"),
             flowGroup=extra.get("flowGroup"),
+            editorAddedSection=extra.get("editorAddedSection", False),
+            editorSectionId=extra.get("editorSectionId"),
+            editorSectionLayout=extra.get("editorSectionLayout"),
+            editorGridColumns=extra.get("editorGridColumns"),
+            editorGridRecordWidth=extra.get("editorGridRecordWidth"),
+            editorGridBodyLeft=extra.get("editorGridBodyLeft"),
+            editorGridEntry=extra.get("editorGridEntry", False),
+            editorAddedGridEntry=extra.get("editorAddedGridEntry", False),
+            gridSectionId=extra.get("gridSectionId"),
+            gridColumns=extra.get("gridColumns"),
+            gridGutter=extra.get("gridGutter"),
+            gridWidth=extra.get("gridWidth"),
+            gridLeft=extra.get("gridLeft"),
+            gridKind=extra.get("gridKind"),
             isDecorativeChromeText=extra.get("isDecorativeChromeText", False),
             preserveInitialLayout=extra.get("preserveInitialLayout", False),
             alignWithText=extra.get("alignWithText"),
@@ -258,6 +311,7 @@ def create_new_pdf(
                 "flowRole": getattr(element, "flowRole", None),
                 "flowLane": getattr(element, "flowLane", None),
                 "flowGroup": getattr(element, "flowGroup", None),
+                **_serialize_grid_section_metadata(element),
                 "isDecorativeChromeText": getattr(element, "isDecorativeChromeText", False),
                 "preserveInitialLayout": getattr(element, "preserveInitialLayout", False),
                 "alignWithText": getattr(element, "alignWithText", None),
@@ -480,6 +534,7 @@ def update_pdf_elements(
                     "flowRole": getattr(element, "flowRole", None),
                     "flowLane": getattr(element, "flowLane", None),
                     "flowGroup": getattr(element, "flowGroup", None),
+                    **_serialize_grid_section_metadata(element),
                     "isDecorativeChromeText": getattr(element, "isDecorativeChromeText", False),
                     "preserveInitialLayout": getattr(element, "preserveInitialLayout", False),
                     "alignWithText": getattr(element, "alignWithText", None),
@@ -550,6 +605,7 @@ def update_pdf_elements(
                 "flowRole": getattr(element, "flowRole", None),
                 "flowLane": getattr(element, "flowLane", None),
                 "flowGroup": getattr(element, "flowGroup", None),
+                **_serialize_grid_section_metadata(element),
                 "isDecorativeChromeText": getattr(element, "isDecorativeChromeText", False),
                 "preserveInitialLayout": getattr(element, "preserveInitialLayout", False),
                 "alignWithText": getattr(element, "alignWithText", None),

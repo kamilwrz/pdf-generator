@@ -1103,15 +1103,8 @@ const MONUMENT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "runs": [
-      {
-        "start": 9,
-        "end": 17,
-        "italic": true,
-        "color": "#111111"
-      }
-    ],
     "flowRole": "grid-member",
+    "gridKind": "languages",
     "flowGroup": "record-234eea6b7a97"
   },
   {
@@ -1134,15 +1127,8 @@ const MONUMENT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "runs": [
-      {
-        "start": 12,
-        "end": 14,
-        "italic": true,
-        "color": "#111111"
-      }
-    ],
     "flowRole": "grid-member",
+    "gridKind": "languages",
     "flowGroup": "record-234eea6b7a97"
   },
   {
@@ -1165,15 +1151,8 @@ const MONUMENT_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "runs": [
-      {
-        "start": 12,
-        "end": 14,
-        "italic": true,
-        "color": "#111111"
-      }
-    ],
     "flowRole": "grid-member",
+    "gridKind": "languages",
     "flowGroup": "record-234eea6b7a97"
   }
 ];

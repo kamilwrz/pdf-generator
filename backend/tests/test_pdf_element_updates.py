@@ -35,6 +35,20 @@ def element(element_id, *, deleted=False):
         autoHeight=True,
         flowRole="section-chrome",
         flowGroup="record-test",
+        editorAddedSection=True,
+        editorSectionId="grid-heading",
+        editorSectionLayout="grid",
+        editorGridColumns=4,
+        editorGridRecordWidth=400,
+        editorGridBodyLeft=84,
+        editorGridEntry=True,
+        editorAddedGridEntry=True,
+        gridSectionId="grid-heading",
+        gridColumns=4,
+        gridGutter=8,
+        gridWidth=400,
+        gridLeft=84,
+        gridKind="entries",
         isDecorativeChromeText=True,
         preserveInitialLayout=True,
         fixedToPage=True,
@@ -78,6 +92,20 @@ class PdfElementUpdateTests(unittest.TestCase):
         self.assertTrue(keep_row.extra_properties["autoHeight"])
         self.assertEqual(keep_row.extra_properties["flowRole"], "section-chrome")
         self.assertEqual(keep_row.extra_properties["flowGroup"], "record-test")
+        self.assertTrue(keep_row.extra_properties["editorAddedSection"])
+        self.assertEqual(keep_row.extra_properties["editorSectionId"], "grid-heading")
+        self.assertEqual(keep_row.extra_properties["editorSectionLayout"], "grid")
+        self.assertEqual(keep_row.extra_properties["editorGridColumns"], 4)
+        self.assertEqual(keep_row.extra_properties["editorGridRecordWidth"], 400)
+        self.assertEqual(keep_row.extra_properties["editorGridBodyLeft"], 84)
+        self.assertTrue(keep_row.extra_properties["editorGridEntry"])
+        self.assertTrue(keep_row.extra_properties["editorAddedGridEntry"])
+        self.assertEqual(keep_row.extra_properties["gridSectionId"], "grid-heading")
+        self.assertEqual(keep_row.extra_properties["gridColumns"], 4)
+        self.assertEqual(keep_row.extra_properties["gridGutter"], 8)
+        self.assertEqual(keep_row.extra_properties["gridWidth"], 400)
+        self.assertEqual(keep_row.extra_properties["gridLeft"], 84)
+        self.assertEqual(keep_row.extra_properties["gridKind"], "entries")
         self.assertTrue(keep_row.extra_properties["isDecorativeChromeText"])
         self.assertTrue(keep_row.extra_properties["preserveInitialLayout"])
         self.assertTrue(keep_row.extra_properties["fixedToPage"])

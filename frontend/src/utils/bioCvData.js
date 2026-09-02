@@ -280,6 +280,9 @@ export function normalizeBioCvData(value) {
                 placement: section.placement === "after_experience"
                     ? "after_experience"
                     : "after_skills",
+                ...(String(section.layout || "").toLowerCase() === "grid"
+                    ? { layout: "grid" }
+                    : {}),
             })),
         language: clean(source.language) || "Polish",
         labels: { ...DEFAULT_LABELS, ...(source.labels || {}) },

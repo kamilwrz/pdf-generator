@@ -613,6 +613,175 @@ describe("syncCvDataFromCanvas", () => {
     }]);
   });
 
+  it("persists a user-added grid as one semantic item per cell", () => {
+    const heading = sectionHeading("grid-heading", "LINKI", {
+      editorAddedSection: true,
+      editorSectionId: "grid-heading",
+      editorSectionLayout: "grid",
+    });
+    const cell = (element_id, content, left) => ({
+      ...text(element_id, content),
+      flowRole: "grid-member",
+      flowGroup: "grid-row",
+      top: 130,
+      left,
+      width: 120,
+      page: 1,
+      editorAddedSection: true,
+      editorSectionId: "grid-heading",
+      editorGridEntry: true,
+      gridKind: "entries",
+    });
+    const source = { ...profile, custom_sections: [] };
+
+    const updated = syncCvDataFromCanvas(source, [], [
+      heading,
+      cell("portfolio", "Portfolio\nproduktowe", 60),
+      cell("github", "GitHub", 188),
+    ]);
+
+    assert.deepEqual(updated.custom_sections, [{
+      title: "LINKI",
+      items: ["Portfolio\nproduktowe", "GitHub"],
+      kind: "other",
+      placement: "after_skills",
+      layout: "grid",
+      __canvasHeadingId: "grid-heading",
+    }]);
+  });
+
+  it("keeps a restored custom grid compacted in cv_data after a template fill", () => {
+    const heading = sectionHeading("generated-grid-heading", "LINKI", {
+      editorSectionLayout: "grid",
+      editorGridColumns: 4,
+    });
+    const cell = (element_id, content, left) => ({
+      ...text(element_id, content),
+      flowRole: "grid-member",
+      flowGroup: "generated-grid-row",
+      gridKind: "entries",
+      top: 130,
+      left,
+      width: 100,
+      page: 1,
+    });
+    const portfolio = cell("portfolio", "Portfolio", 60);
+    const website = cell("website", "WWW", 168);
+    const source = {
+      ...profile,
+      custom_sections: [{
+        title: "LINKI",
+        items: ["Portfolio", "WWW"],
+        kind: "other",
+        placement: "after_skills",
+        layout: "grid",
+      }],
+    };
+    const github = cell("github", "GitHub", 168);
+    const compactedWebsite = { ...website, left: 276 };
+
+    const inserted = syncCvDataFromCanvas(
+      source,
+      [heading, portfolio, website],
+      [heading, portfolio, github, compactedWebsite],
+    );
+    assert.deepEqual(inserted.custom_sections[0].items, ["Portfolio", "GitHub", "WWW"]);
+
+    const removed = syncCvDataFromCanvas(
+      inserted,
+      [heading, portfolio, github, compactedWebsite],
+      [heading, portfolio, { ...compactedWebsite, left: 168 }],
+    );
+    assert.deepEqual(removed.custom_sections[0].items, ["Portfolio", "WWW"]);
+    assert.equal(removed.custom_sections[0].layout, "grid");
+  });
+
+  it("does not let a restored custom JĘZYKI entries grid overwrite canonical languages", () => {
+    const heading = sectionHeading("custom-languages-heading", "JĘZYKI", {
+      editorSectionLayout: "grid",
+      gridKind: "entries",
+    });
+    const cell = (element_id, content, left) => ({
+      ...text(element_id, content),
+      flowRole: "grid-member",
+      flowGroup: "custom-languages-row",
+      gridKind: "entries",
+      top: 130,
+      left,
+      width: 100,
+      page: 1,
+    });
+    const portfolio = cell("portfolio", "Portfolio", 60);
+    const github = cell("github", "GitHub", 168);
+    const source = {
+      ...profile,
+      languages: [{ name: "Polski", level: "C2" }],
+      custom_sections: [{
+        title: "JĘZYKI",
+        items: ["Portfolio"],
+        kind: "other",
+        placement: "after_skills",
+        layout: "grid",
+      }],
+    };
+
+    const updated = syncCvDataFromCanvas(
+      source,
+      [heading, portfolio],
+      [heading, portfolio, github],
+    );
+
+    assert.deepEqual(updated.languages, [{ name: "Polski", level: "C2" }]);
+    assert.deepEqual(updated.custom_sections[0].items, ["Portfolio", "GitHub"]);
+  });
+
+  it("persists insertion and compaction in a generated Languages grid after its heading is renamed", () => {
+    const heading = sectionHeading("languages-heading", "KOMPETENCJE GLOBALNE");
+    const cell = (element_id, content, left) => ({
+      ...text(element_id, content),
+      flowRole: "grid-member",
+      flowGroup: "languages-grid",
+      gridKind: "languages",
+      top: 130,
+      left,
+      width: 100,
+      page: 1,
+      autoHeight: true,
+    });
+    const polish = cell("language-pl", "Polski — C2", 60);
+    const english = cell("language-en", "Angielski — C1", 168);
+    const german = cell("language-de", "Niemiecki — B2", 276);
+    const source = {
+      ...profile,
+      languages: [
+        { name: "Polski", level: "C2" },
+        { name: "Angielski", level: "C1" },
+      ],
+    };
+
+    const inserted = syncCvDataFromCanvas(
+      source,
+      [heading, polish, english],
+      [heading, polish, german, english],
+    );
+    assert.deepEqual(inserted.languages, [
+      { name: "Polski", level: "C2" },
+      { name: "Niemiecki", level: "B2" },
+      { name: "Angielski", level: "C1" },
+    ]);
+
+    const compactedEnglish = { ...english, left: 168 };
+    const removed = syncCvDataFromCanvas(
+      inserted,
+      [heading, polish, german, english],
+      [heading, polish, compactedEnglish],
+    );
+    assert.deepEqual(removed.languages, [
+      { name: "Polski", level: "C2" },
+      { name: "Angielski", level: "C1" },
+    ]);
+  });
+
   it("does not duplicate profile records when a template replacement has fresh unmarked ids", () => {
     const source = {
       ...profile,

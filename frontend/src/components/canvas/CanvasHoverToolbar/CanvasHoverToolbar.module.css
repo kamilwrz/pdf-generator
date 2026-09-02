@@ -161,11 +161,22 @@
         visibility 0ms linear 500ms;
 }
 
-.control[data-tooltip]:hover::after {
+.control[data-tooltip]:hover::after,
+.control[data-tooltip]:focus-visible::after {
     opacity: 1;
     visibility: visible;
     transform: translate(-50%, 0);
     transition-delay: 380ms;
+}
+
+.directActionDanger {
+    color: var(--color-danger);
+}
+
+.directActionDanger:hover:not(:disabled),
+.directActionDanger:focus-visible {
+    color: var(--color-danger);
+    background: var(--color-danger-soft);
 }
 
 .menu {

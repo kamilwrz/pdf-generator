@@ -10,6 +10,8 @@
  *
  * Layouts:
  *  - "aa": heading + chrome + one auto-height content textarea.
+ *  - "grid": heading + chrome + one compact grid cell. Per-cell editor
+ *    controls add or remove cells and reflow them across equal-width columns.
  *  - "cc-edu": heading + chrome + one education-style record — degree/diploma
  *    title, school subtitle, city·period meta, bullet description (4 lines).
  *    Mirrors the backend generator's `_place_education_record`
@@ -69,6 +71,8 @@ function measureGeneratorBlockHeight(content, width, fontSize, lineHeight) {
 
 export const SECTION_LAYOUTS = Object.freeze({
   TEXTAREA: "aa",
+  /** Compact equal-width cells, such as `Język — poziom`. */
+  GRID: "grid",
   RECORD_EDUCATION: "cc-edu",
   RECORD_EXPERIENCE: "cc-exp",
   /** Bold heading + body (skills subcategories under UMIEJĘTNOŚCI). */
@@ -79,6 +83,7 @@ export const SECTION_LAYOUTS = Object.freeze({
 const PLACEHOLDER = Object.freeze({
   heading: "Nowa sekcja",
   textarea: "Treść sekcji…",
+  grid: "Nazwa — wartość",
   education: Object.freeze({
     title: "Nazwa wpisu",
     subtitle: "Organizacja",
@@ -138,15 +143,17 @@ function contentTextarea({
   elementId, content, left, top, width,
   fontSize, fontFamily, lineHeight, color,
   bold = false, bulletList = false, flowGroup = null,
+  flowRole = "content",
   flowLane = null, editorSectionId = null,
   editorRecordLayout = null, editorRecordField = null,
+  editorGridEntry = false, gridKind = null,
 }) {
   const lh = lineHeight || Math.round(fontSize * 1.4);
   const element = {
     element_id: elementId,
     category: "textarea",
     content,
-    flowRole: "content",
+    flowRole,
     autoHeight: true,
     // Match fill_template textareas: shrink-only on first mount so browser
     // metrics cannot inflate the generator-matched stack before the user edits.
@@ -183,7 +190,41 @@ function contentTextarea({
   }
   if (editorRecordLayout) element.editorRecordLayout = editorRecordLayout;
   if (editorRecordField) element.editorRecordField = editorRecordField;
+  if (editorGridEntry) element.editorGridEntry = true;
+  if (gridKind) element.gridKind = gridKind;
   return element;
+}
+
+/** Horizontal gutter between compact grid tracks, in canvas points. */
+export const GRID_SECTION_GUTTER = 8;
+
+/**
+ * Resolve a readable track count from the actual content width.
+ *
+ * Wide single-column templates use four columns, narrow main columns use
+ * three, and sidebars use two. Basing the decision on geometry keeps custom
+ * templates and lane transfers usable without a template-id allow-list.
+ *
+ * @param {number} recordWidth
+ * @returns {number}
+ */
+export function resolveGridSectionColumns(recordWidth) {
+  const width = Number(recordWidth) || 0;
+  if (width >= 400) return 4;
+  if (width >= 240) return 3;
+  return 2;
+}
+
+/**
+ * Width of one compact grid cell for a section width and track count.
+ *
+ * @param {number} recordWidth
+ * @param {number} columns
+ * @returns {number}
+ */
+export function gridSectionCellWidth(recordWidth, columns) {
+  const safeColumns = Math.max(1, Math.trunc(Number(columns) || 1));
+  return Math.max((Number(recordWidth) || 0) / safeColumns - GRID_SECTION_GUTTER, 12);
 }
 
 /**
@@ -297,7 +338,7 @@ function badgeNumberElement({
 /**
  * Build a new section's elements for the chosen layout.
  *
- * @param {{ name: string, layout: "aa"|"cc-edu"|"cc-exp"|"cc-sub", style: object, spacing?: object, sectionOrdinal?: number, idFactory: () => string, lane?: "main"|"sidebar" }} args
+ * @param {{ name: string, layout: "aa"|"grid"|"cc-edu"|"cc-exp"|"cc-sub", style: object, spacing?: object, sectionOrdinal?: number, idFactory: () => string, lane?: "main"|"sidebar" }} args
  * @returns {{ elements: object[], headingId: string, firstBodyId: string }}
  *
  * Decorative markers (including iconic section images) come from `style.markers`.
@@ -376,6 +417,19 @@ export function buildSectionElements({
     editorSectionId: headingId,
     editorSectionLayout: layout,
   };
+  if (layout === SECTION_LAYOUTS.GRID) {
+    const columns = resolveGridSectionColumns(width);
+    // Persist layout intent on the heading because a one-cell grid does not
+    // contain enough geometry to infer whether its next item belongs on the
+    // current row. These tags affect editor chrome only and never PDF output.
+    headingElement.editorGridColumns = columns;
+    headingElement.editorGridRecordWidth = width;
+    headingElement.editorGridBodyLeft = bodyLeft;
+    // A custom section may intentionally be titled JĘZYKI. Persist the
+    // explicit generic kind so title-based migration fallbacks never rewrite
+    // it into canonical `cv_data.languages` or strip its manual inline runs.
+    headingElement.gridKind = "entries";
+  }
   if (Number.isFinite(Number(style.heading.frameWidth)) && Number(style.heading.frameWidth) > 0) {
     headingElement.width = Number(style.heading.frameWidth);
   }
@@ -449,7 +503,27 @@ export function buildSectionElements({
   const isRecordLayout = layout === SECTION_LAYOUTS.RECORD_EDUCATION
     || layout === SECTION_LAYOUTS.RECORD_EXPERIENCE
     || layout === SECTION_LAYOUTS.RECORD_SUBCATEGORY;
-  if (isRecordLayout) {
+  if (layout === SECTION_LAYOUTS.GRID) {
+    firstBodyId = idFactory();
+    const columns = resolveGridSectionColumns(width);
+    elements.push(contentTextarea({
+      elementId: firstBodyId,
+      content: PLACEHOLDER.grid,
+      left: bodyLeft,
+      top: bodyTop,
+      width: gridSectionCellWidth(width, columns),
+      fontSize: style.body.fontSize,
+      fontFamily: style.body.fontFamily,
+      lineHeight: style.body.lineHeight,
+      color: style.body.color,
+      flowGroup: `section-${headingId}-grid`,
+      flowRole: "grid-member",
+      flowLane,
+      editorSectionId: headingId,
+      editorGridEntry: true,
+      gridKind: "entries",
+    }));
+  } else if (isRecordLayout) {
     const group = `section-${headingId}-rec1`;
     const lines = recordLineSpecs(layout, style);
     let top = bodyTop;

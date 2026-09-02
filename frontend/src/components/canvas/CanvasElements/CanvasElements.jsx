@@ -20,7 +20,9 @@
  * switch between inline / bullet / chip pills — a strict superset of
  * `FlatSectionLayoutToggle`'s two modes, so any heading carrying a
  * `skillsMode` anchor is excluded from `flatSectionAnchorsById` below to
- * avoid showing both icons on the same row.
+ * avoid showing both icons on the same row. Language and editor-created grid
+ * cells mount `GridEntryActions`: exactly `+` and trash are portalled into the
+ * appropriate A4 gutter, so the controls never enter authored PDF content.
  */
 import { useEffect, useMemo } from 'react';
 import Text from '../Text/Text';
@@ -33,6 +35,7 @@ import Polygon from '../Polygon/Polygon';
 import Path from '../Path/Path';
 import SectionRecordAdd from '../SectionRecordAdd/SectionRecordAdd';
 import RecordBlockAdd from '../RecordBlockAdd/RecordBlockAdd';
+import GridEntryActions from '../GridEntryActions/GridEntryActions';
 import FlatSectionLayoutToggle from '../FlatSectionLayoutToggle/FlatSectionLayoutToggle';
 import ContactChannelControls from '../ContactChannelControls/ContactChannelControls';
 import { listContactBands } from '../../../utils/contactBands';
@@ -52,6 +55,7 @@ import {
   sidebarSectionElementIds,
 } from '../../../utils/sectionStructure';
 import { listRecordBlockAddAnchors } from '../../../utils/sectionRecord';
+import { listGridSectionEntryAnchors } from '../../../utils/gridSection';
 import { resolveSectionLaneTransfer } from '../../../utils/transferSectionLane';
 import { listSkillsDisplayAnchors } from '../../../utils/skillsDisplayMode';
 import {
@@ -223,6 +227,18 @@ export default function CanvasElements({ elements, spreadSide = null }) {
     return map;
   }, [editorMode, documentElements, pageHeight]);
 
+  // One anchor per repeatable short entry. The utility deliberately excludes
+  // Skills chips even though they share `flowRole: "grid-member"`, preserving
+  // their dedicated section-level display controls.
+  const gridEntryAnchorsById = useMemo(() => {
+    const map = new Map();
+    if (editorMode !== EDITOR_MODE_TEMPLATE) return map;
+    for (const anchor of listGridSectionEntryAnchors(documentElements, pageHeight)) {
+      map.set(anchor.elementId, anchor);
+    }
+    return map;
+  }, [editorMode, documentElements, pageHeight]);
+
   // Content-element id → flat-list layout-toggle anchor (Languages, flat
   // custom sections). A section can only be either record-shaped
   // (recordBlockAnchorsById) or flat (exactly one body textarea), so the two
@@ -274,6 +290,7 @@ export default function CanvasElements({ elements, spreadSide = null }) {
     const enterClass = enterClassName(element.element_id, heldIds, fadingIds);
     let node = null;
     const blockAnchor = recordBlockAnchorsById.get(element.element_id);
+    const gridEntryAnchor = gridEntryAnchorsById.get(element.element_id);
     const flatAnchor = flatSectionAnchorsById.get(element.element_id);
     const sectionAnchor = sectionAnchorsById.get(element.element_id);
     // Section detection accepts both text primitives. Mount the same structural
@@ -353,6 +370,20 @@ export default function CanvasElements({ elements, spreadSide = null }) {
               top={Number(element.top) || 0}
               height={Number(element.height) || 0}
               fontSize={Number(element.fontSize) || 10}
+            />
+          ) : null}
+          {gridEntryAnchor ? (
+            <GridEntryActions
+              elementId={gridEntryAnchor.elementId}
+              left={gridEntryAnchor.left}
+              top={gridEntryAnchor.top}
+              width={gridEntryAnchor.width}
+              height={gridEntryAnchor.height}
+              fontSize={gridEntryAnchor.fontSize}
+              highlight={gridEntryAnchor.highlight}
+              canDelete={gridEntryAnchor.canDelete}
+              gutterSide={gridEntryAnchor.gutterSide}
+              spreadSide={spreadSide}
             />
           ) : null}
         </>

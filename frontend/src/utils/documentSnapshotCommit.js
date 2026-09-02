@@ -1,4 +1,5 @@
 import { inferEditorMode, normalizeEditorMode } from "./editorMode.js";
+import { removeLegacyLanguageLevelStyling } from "./languagesLayout.js";
 
 function positiveInteger(value) {
   const parsed = Number(value);
@@ -30,7 +31,9 @@ function positiveInteger(value) {
  * }} Canonical snapshot ready for one synchronous React commit.
  */
 export function normalizeCommittedDocumentSnapshot(input = {}) {
-  const elements = Array.isArray(input.elements) ? input.elements : [];
+  const elements = removeLegacyLanguageLevelStyling(
+    Array.isArray(input.elements) ? input.elements : [],
+  );
   const deletedElements = Array.isArray(input.deletedElements)
     ? input.deletedElements
     : (Array.isArray(input.deletedIds) ? input.deletedIds : []);

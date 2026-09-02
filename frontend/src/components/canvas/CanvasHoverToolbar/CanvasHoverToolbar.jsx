@@ -22,17 +22,18 @@ import classes from "./CanvasHoverToolbar.module.css";
  *   elementHighlight?:{left:number,top:number,width:number,height:number}|null,
  *   elementHighlightSelected?:boolean,
  *   layout:{buttonSize:number,iconSize:number,gap:number,labelWidth:number,fontSize:number,menuWidth:number,offset:number,borderWidth:number},
- *   addLabel:string,
- *   addTooltip:string,
- *   onAdd:() => void,
+ *   addLabel?:string,
+ *   addTooltip?:string,
+ *   onAdd?:() => void,
  *   canMoveUp?:boolean,
  *   canMoveDown?:boolean,
  *   onMoveUp?:() => void,
  *   onMoveDown?:() => void,
- *   menuOpen:boolean,
- *   onOpenMenu:() => void,
- *   onCloseMenu:() => void,
+ *   menuOpen?:boolean,
+ *   onOpenMenu?:() => void,
+ *   onCloseMenu?:() => void,
  *   menuItems?:{key:string,label:string,icon?:import("react").ReactNode,danger?:boolean,disabled?:boolean,onSelect:() => void}[],
+ *   directActions?:{key:string,label:string,icon:import("react").ReactNode,danger?:boolean,disabled?:boolean,onSelect:() => void}[],
  *   toolbarPointerProps?:object,
  * }} props
  */
@@ -47,17 +48,18 @@ export default function CanvasHoverToolbar({
   elementHighlight = null,
   elementHighlightSelected = false,
   layout,
-  addLabel,
-  addTooltip,
+  addLabel = "",
+  addTooltip = "",
   onAdd,
   canMoveUp = false,
   canMoveDown = false,
   onMoveUp,
   onMoveDown,
-  menuOpen,
+  menuOpen = false,
   onOpenMenu,
   onCloseMenu,
   menuItems = [],
+  directActions = [],
   toolbarPointerProps = {},
 }) {
   const originRef = useRef(null);
@@ -159,6 +161,7 @@ export default function CanvasHoverToolbar({
     event.preventDefault();
     action?.();
   };
+  const hasDirectActions = directActions.length > 0;
 
   return (
     <>
@@ -203,74 +206,91 @@ export default function CanvasHoverToolbar({
           {...toolbarPointerProps}
         >
           <div className={`${classes.toolbar} ${side === "left" ? classes.left : classes.right}`}>
-            <button
-              type="button"
-              className={`${classes.control} ${classes.addControl}`}
-              data-tooltip={addTooltip}
-              aria-label={addTooltip}
-              onPointerDown={(event) => event.stopPropagation()}
-              onClick={(event) => runAction(event, onAdd)}
-            >
-              <FiPlus aria-hidden="true" />
-              <span>{addLabel}</span>
-            </button>
+            {hasDirectActions ? directActions.map((item) => (
+              <button
+                key={item.key}
+                type="button"
+                className={`${classes.control}${item.danger ? ` ${classes.directActionDanger}` : ""}`}
+                data-tooltip={item.label}
+                aria-label={item.label}
+                disabled={item.disabled}
+                onPointerDown={(event) => event.stopPropagation()}
+                onClick={(event) => runAction(event, item.onSelect)}
+              >
+                {item.icon}
+              </button>
+            )) : (
+              <>
+                <button
+                  type="button"
+                  className={`${classes.control} ${classes.addControl}`}
+                  data-tooltip={addTooltip}
+                  aria-label={addTooltip}
+                  onPointerDown={(event) => event.stopPropagation()}
+                  onClick={(event) => runAction(event, onAdd)}
+                >
+                  <FiPlus aria-hidden="true" />
+                  <span>{addLabel}</span>
+                </button>
 
-            <span className={classes.separator} aria-hidden="true" />
+                <span className={classes.separator} aria-hidden="true" />
 
-            <button
-              type="button"
-              className={classes.control}
-              data-tooltip="Przenieś wyżej"
-              aria-label="Przenieś wyżej"
-              disabled={!canMoveUp}
-              onPointerDown={(event) => event.stopPropagation()}
-              onClick={(event) => runAction(event, onMoveUp)}
-            >
-              <FiChevronUp aria-hidden="true" />
-            </button>
-            <button
-              type="button"
-              className={classes.control}
-              data-tooltip="Przenieś niżej"
-              aria-label="Przenieś niżej"
-              disabled={!canMoveDown}
-              onPointerDown={(event) => event.stopPropagation()}
-              onClick={(event) => runAction(event, onMoveDown)}
-            >
-              <FiChevronDown aria-hidden="true" />
-            </button>
+                <button
+                  type="button"
+                  className={classes.control}
+                  data-tooltip="Przenieś wyżej"
+                  aria-label="Przenieś wyżej"
+                  disabled={!canMoveUp}
+                  onPointerDown={(event) => event.stopPropagation()}
+                  onClick={(event) => runAction(event, onMoveUp)}
+                >
+                  <FiChevronUp aria-hidden="true" />
+                </button>
+                <button
+                  type="button"
+                  className={classes.control}
+                  data-tooltip="Przenieś niżej"
+                  aria-label="Przenieś niżej"
+                  disabled={!canMoveDown}
+                  onPointerDown={(event) => event.stopPropagation()}
+                  onClick={(event) => runAction(event, onMoveDown)}
+                >
+                  <FiChevronDown aria-hidden="true" />
+                </button>
 
-            <button
-              type="button"
-              className={`${classes.control}${menuOpen ? ` ${classes.controlActive}` : ""}`}
-              data-tooltip="Więcej działań"
-              aria-label="Więcej działań"
-              aria-expanded={menuOpen}
-              aria-haspopup="menu"
-              onPointerDown={(event) => event.stopPropagation()}
-              onClick={(event) => runAction(event, menuOpen ? onCloseMenu : onOpenMenu)}
-            >
-              <FiMoreHorizontal aria-hidden="true" />
-            </button>
+                <button
+                  type="button"
+                  className={`${classes.control}${menuOpen ? ` ${classes.controlActive}` : ""}`}
+                  data-tooltip="Więcej działań"
+                  aria-label="Więcej działań"
+                  aria-expanded={menuOpen}
+                  aria-haspopup="menu"
+                  onPointerDown={(event) => event.stopPropagation()}
+                  onClick={(event) => runAction(event, menuOpen ? onCloseMenu : onOpenMenu)}
+                >
+                  <FiMoreHorizontal aria-hidden="true" />
+                </button>
 
-            {menuOpen ? (
-              <div className={classes.menu} role="menu">
-                {menuItems.map((item) => (
-                  <button
-                    key={item.key}
-                    type="button"
-                    role="menuitem"
-                    className={`${classes.menuItem}${item.danger ? ` ${classes.menuItemDanger}` : ""}`}
-                    disabled={item.disabled}
-                    onPointerDown={(event) => event.stopPropagation()}
-                    onClick={(event) => runAction(event, item.onSelect)}
-                  >
-                    {item.icon ? <span className={classes.menuIcon}>{item.icon}</span> : null}
-                    <span>{item.label}</span>
-                  </button>
-                ))}
-              </div>
-            ) : null}
+                {menuOpen ? (
+                  <div className={classes.menu} role="menu">
+                    {menuItems.map((item) => (
+                      <button
+                        key={item.key}
+                        type="button"
+                        role="menuitem"
+                        className={`${classes.menuItem}${item.danger ? ` ${classes.menuItemDanger}` : ""}`}
+                        disabled={item.disabled}
+                        onPointerDown={(event) => event.stopPropagation()}
+                        onClick={(event) => runAction(event, item.onSelect)}
+                      >
+                        {item.icon ? <span className={classes.menuIcon}>{item.icon}</span> : null}
+                        <span>{item.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+              </>
+            )}
           </div>
         </div>,
         document.body,

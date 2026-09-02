@@ -8,7 +8,7 @@
  * geometry of the authored 479 pt heading band.
  *
  * Palette changes target recognised semantic colours, Cadenza section chrome,
- * the latent masthead title, inline accent runs, and real PNG contact assets.
+ * the latent masthead title, user-authored inline runs, and real PNG contact assets.
  * Unrecognised user colours remain untouched. Typography presets scale from
  * immutable authored metrics so returning to M restores the exact baseline.
  */

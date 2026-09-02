@@ -1214,15 +1214,8 @@ const AURELIA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "runs": [
-      {
-        "start": 9,
-        "end": 17,
-        "italic": true,
-        "color": "#98884D"
-      }
-    ],
     "flowRole": "grid-member",
+    "gridKind": "languages",
     "flowGroup": "record-9f042356524e"
   },
   {
@@ -1245,15 +1238,8 @@ const AURELIA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "runs": [
-      {
-        "start": 12,
-        "end": 14,
-        "italic": true,
-        "color": "#98884D"
-      }
-    ],
     "flowRole": "grid-member",
+    "gridKind": "languages",
     "flowGroup": "record-9f042356524e"
   },
   {
@@ -1276,15 +1262,8 @@ const AURELIA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "runs": [
-      {
-        "start": 12,
-        "end": 14,
-        "italic": true,
-        "color": "#98884D"
-      }
-    ],
     "flowRole": "grid-member",
+    "gridKind": "languages",
     "flowGroup": "record-9f042356524e"
   },
   {
@@ -1307,15 +1286,8 @@ const AURELIA_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "runs": [
-      {
-        "start": 12,
-        "end": 14,
-        "italic": true,
-        "color": "#98884D"
-      }
-    ],
     "flowRole": "grid-member",
+    "gridKind": "languages",
     "flowGroup": "record-9f042356524e"
   }
 ];

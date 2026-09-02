@@ -3,21 +3,35 @@ import assert from "node:assert/strict";
 import {
   buildLanguagesMainGrid,
   collectLanguageEntries,
+  isLanguagesGridSection,
   isLanguagesSectionTitle,
   parseLanguageLine,
-  resolveLanguageLevelColor,
   restyleLanguagesMembersAsSidebar,
 } from "./languagesLayout.js";
 
 describe("isLanguagesSectionTitle", () => {
-  it("matches Polish and English titles", () => {
+  it("matches generated and legacy Polish, English, German, and Italian titles", () => {
     assert.equal(isLanguagesSectionTitle("JĘZYKI"), true);
     assert.equal(isLanguagesSectionTitle("Języki obce"), true);
     assert.equal(isLanguagesSectionTitle("Languages"), true);
+    assert.equal(isLanguagesSectionTitle("SPRACHEN"), true);
+    assert.equal(isLanguagesSectionTitle("Lingua"), true);
+    assert.equal(isLanguagesSectionTitle("LINGUE"), true);
     assert.equal(isLanguagesSectionTitle("Umiejętności"), false);
   });
-});
 
+  it("uses explicit grid identity before the editable heading fallback", () => {
+    assert.equal(
+      isLanguagesGridSection([{ gridKind: "entries" }], "JĘZYKI"),
+      false,
+    );
+    assert.equal(
+      isLanguagesGridSection([{ gridKind: "languages" }], "KOMPETENCJE GLOBALNE"),
+      true,
+    );
+    assert.equal(isLanguagesGridSection([], "SPRACHEN"), true);
+  });
+});
 describe("parseLanguageLine", () => {
   it("splits hyphen and em-dash forms", () => {
     assert.deepEqual(parseLanguageLine("Polski - A2"), { name: "Polski", level: "A2" });
@@ -25,9 +39,8 @@ describe("parseLanguageLine", () => {
     assert.deepEqual(parseLanguageLine("Niemiecki"), { name: "Niemiecki", level: "" });
   });
 });
-
 describe("buildLanguagesMainGrid", () => {
-  it("emits grid-member cells with accent level runs", () => {
+  it("emits grid-member cells with one uniform text style", () => {
     const cells = buildLanguagesMainGrid(
       [
         { name: "Polski", level: "A2" },
@@ -38,7 +51,6 @@ describe("buildLanguagesMainGrid", () => {
         bodyLeft: 245,
         recordWidth: 300,
         body: { fontSize: 9, lineHeight: 13, color: "#26313F", fontFamily: "Montserrat" },
-        levelColor: "#4A6FA5",
         appendTop: 500,
         idFactory: (() => {
           let n = 0;
@@ -49,12 +61,15 @@ describe("buildLanguagesMainGrid", () => {
     );
     assert.equal(cells.length, 3);
     assert.ok(cells.every((cell) => cell.flowRole === "grid-member"));
+    assert.ok(cells.every((cell) => cell.gridKind === "languages"));
     assert.ok(cells.every((cell) => cell.flowGroup));
     assert.equal(cells[0].left, 245);
     assert.ok(cells[1].left > cells[0].left);
     assert.equal(cells[0].top, cells[1].top);
     assert.ok(cells[0].content.includes(" — "));
-    assert.ok(cells[0].runs?.some((run) => run.italic && run.color === "#4A6FA5"));
+    assert.equal(cells[0].color, "#26313F");
+    assert.equal(cells[0].italic, false);
+    assert.equal(cells[0].runs, undefined);
     assert.ok((Number(cells[0].width) || 0) < 100);
   });
 
@@ -129,18 +144,5 @@ describe("collectLanguageEntries + restyleLanguagesMembersAsSidebar", () => {
     assert.ok(body.content.includes("Polski - A2"));
     assert.ok(body.content.includes("Niemiecki - C1"));
     assert.ok(!body.content.includes("—"));
-  });
-});
-
-describe("resolveLanguageLevelColor", () => {
-  it("prefers the section rule accent", () => {
-    assert.equal(
-      resolveLanguageLevelColor({
-        rule: { backgroundColor: "#4A6FA5" },
-        heading: { color: "#33517A" },
-        body: { color: "#26313F" },
-      }),
-      "#4A6FA5",
-    );
   });
 });
