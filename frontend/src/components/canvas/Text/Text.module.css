@@ -22,6 +22,35 @@
     outline-offset: 2px;
 }
 
+/* Template identity and contact fields advertise direct editing without
+   changing their box model. Canvas paragraphs intentionally inherit a zero
+   line-height for PDF parity, so an outline on the <p> itself would collapse
+   to a horizontal rule. This pointer-inert pseudo-box follows the font size
+   and authored width instead. Selection/edit chrome owns the persistent state,
+   and keyboard focus keeps the stronger blue accessibility ring. */
+.editorHoverOutline::after {
+    content: "";
+    position: absolute;
+    left: -2px;
+    top: calc(-0.67em - 2px);
+    box-sizing: border-box;
+    width: calc(100% + 4px);
+    height: calc(1.2em + 4px);
+    border: 1px solid transparent;
+    pointer-events: none;
+    transition: border-color var(--motion-fast, 120ms) var(--motion-easing, ease-out);
+}
+
+.editorHoverOutline:not(.selectedElement):not(.editing):not(:focus-visible):hover::after {
+    border-color: var(--color-accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .editorHoverOutline::after {
+        transition: none;
+    }
+}
+
 .selectedElement {
     /* Selection chrome is drawn by SelectionOverlay — keep text unstyled. */
 }

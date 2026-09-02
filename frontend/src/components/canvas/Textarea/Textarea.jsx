@@ -177,6 +177,7 @@ function Textarea({
     textTransform,
     mastheadRole,
     placeholder,
+    editorHoverOutline,
 }) {
     const {
         moveElement,
@@ -578,6 +579,7 @@ function Textarea({
                     suppressContentEditableWarning
                     spellCheck={false}
                     data-placeholder={editorPlaceholder || "Wpisz swój tekst…"}
+                    data-editor-hover-outline={editorHoverOutline ? "true" : undefined}
                     onInput={(e) => commitEditable(e.currentTarget)}
                     onBlur={() => {
                         // The 2-page → focused-page edit zoom unmounts this
@@ -663,11 +665,15 @@ function Textarea({
             id={elementId}
             ref={blockRef}
             data-placeholder={editorPlaceholder}
+            // Semantic masthead/contact metadata opts this field into a hover
+            // outline. The attribute is editor chrome only and never enters
+            // the serialized document or exported PDF.
+            data-editor-hover-outline={editorHoverOutline ? "true" : undefined}
             data-empty-hint={editorMode === EDITOR_MODE_TEMPLATE
                 ? "Kliknij, aby edytować"
                 : "Kliknij dwukrotnie, aby edytować"}
             tabIndex={0}
-            className={`${classes.block} ${isSelected ? classes.selected : ""}`}
+            className={`${classes.block} ${editorHoverOutline ? classes.editorHoverOutline : ""} ${isSelected ? classes.selected : ""}`}
             style={{ ...boxStyle, ...textStyle }}
             onClick={(e) => {
                 const intent = resolveTextClickIntent({

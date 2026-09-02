@@ -64,3 +64,26 @@ test("plain section content reveals the complete section outline without stealin
   assert.match(sectionSource, /highlightVisible=\{sectionContextVisible\}/);
   assert.match(sectionSource, /addEventListener\("pointerenter", showContext\)/);
 });
+
+test("semantic contact and identity fields receive editor-only hover outlines", async () => {
+  const [canvasSource, textSource, textCss, textareaSource, textareaCss] = await Promise.all([
+    readFile(new URL("./CanvasElements.jsx", import.meta.url), "utf8"),
+    readFile(new URL("../Text/Text.jsx", import.meta.url), "utf8"),
+    readFile(new URL("../Text/Text.module.css", import.meta.url), "utf8"),
+    readFile(new URL("../Textarea/Textarea.jsx", import.meta.url), "utf8"),
+    readFile(new URL("../Textarea/Textarea.module.css", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(canvasSource, /editorMode === EDITOR_MODE_TEMPLATE/);
+  assert.match(canvasSource, /element\.contactChannel/);
+  assert.match(canvasSource, /element\.mastheadRole === "name"/);
+  assert.match(canvasSource, /element\.mastheadRole === "title"/);
+  assert.match(textSource, /data-editor-hover-outline=/);
+  assert.match(textareaSource, /data-editor-hover-outline=/);
+  assert.match(textCss, /\.editorHoverOutline[^}]*:hover::after[\s\S]*border-color: var\(--color-accent\)/);
+  assert.match(textCss, /height: calc\(1\.2em \+ 4px\)/);
+  assert.match(textCss, /pointer-events: none/);
+  assert.match(textareaCss, /\.editorHoverOutline[^}]*:hover[\s\S]*outline: 1px solid var\(--color-accent\)/);
+  assert.match(textCss, /:not\(:focus-visible\)/);
+  assert.match(textareaCss, /:not\(:focus-visible\)/);
+});

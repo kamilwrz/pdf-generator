@@ -325,6 +325,16 @@ export default function CanvasElements({ elements, spreadSide = null }) {
     const gridEntryAnchor = gridEntryAnchorsById.get(element.element_id);
     const flatAnchor = flatSectionAnchorsById.get(element.element_id);
     const sectionAnchor = sectionAnchorsById.get(element.element_id);
+    // Identity and contact fields are the most important direct-edit targets
+    // in a generated CV, but their document typography can otherwise make
+    // them look like static output. Mark only the semantic template fields;
+    // Text/Textarea use the flag to paint application-only hover chrome that
+    // never becomes part of the authored element geometry or PDF payload.
+    const editorHoverOutline = editorMode === EDITOR_MODE_TEMPLATE && Boolean(
+      element.contactChannel
+      || element.mastheadRole === "name"
+      || element.mastheadRole === "title",
+    );
     // Section detection accepts both text primitives. Mount the same structural
     // toolbar outside the category branches so legacy/custom textarea headings
     // do not silently lose section controls while ordinary text headings work.
@@ -379,6 +389,7 @@ export default function CanvasElements({ elements, spreadSide = null }) {
             textTransform={element.textTransform}
             mastheadRole={element.mastheadRole}
             placeholder={element.placeholder}
+            editorHoverOutline={editorHoverOutline}
           />
           {blockAnchor ? (
             <RecordBlockAdd
@@ -450,6 +461,7 @@ export default function CanvasElements({ elements, spreadSide = null }) {
             selectAllOnEdit={element.selectAllOnEdit}
             textTransform={element.textTransform}
             mastheadRole={element.mastheadRole}
+            editorHoverOutline={editorHoverOutline}
           />
           {blockAnchor ? (
             <RecordBlockAdd

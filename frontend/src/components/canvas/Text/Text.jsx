@@ -51,6 +51,7 @@ function Text({
     selectAllOnEdit,
     textTransform,
     mastheadRole,
+    editorHoverOutline,
 }) {
     const {
         moveElement,
@@ -203,11 +204,15 @@ function Text({
             // hint via CSS (see Text.module.css). The attribute is omitted when
             // there is no placeholder so every other text element is unaffected.
             data-placeholder={editorPlaceholder}
+            // This attribute activates editor-only CSS chrome for semantic
+            // identity/contact fields. It carries no authored content and is
+            // therefore absent from persistence and ReportLab export.
+            data-editor-hover-outline={editorHoverOutline ? "true" : undefined}
             contentEditable={isEditing && !fixedToPage}
             suppressContentEditableWarning
             spellCheck={false}
             tabIndex={fixedToPage ? -1 : 0}
-            className={`${classes.textElement} ${isEditing ? classes.editing : ""} ${isSelected && !isMove ? classes.selectedElement : ""} ${isMove ? classes.movingElement : ""}`}
+            className={`${classes.textElement} ${editorHoverOutline ? classes.editorHoverOutline : ""} ${isEditing ? classes.editing : ""} ${isSelected && !isMove ? classes.selectedElement : ""} ${isMove ? classes.movingElement : ""}`}
             style={style}
             onClick={(e) => {
                 const intent = resolveTextClickIntent({

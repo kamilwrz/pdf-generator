@@ -19,6 +19,14 @@
     cursor: move;
 }
 
+/* `outline` is deliberately outside the authored box: it makes semantic
+   identity/contact fields discoverable on pointer hover without affecting
+   wrapping, measured A4 geometry, reflow, or PDF output. */
+.editorHoverOutline:not(.selected):not(:focus-visible):hover {
+    outline: 1px solid var(--color-accent);
+    outline-offset: 2px;
+}
+
 /* Display and edit mode intentionally share one marker/body grid. ReportLab
    reserves the same rendered `• ` prefix width for continuation lines. */
 .bulletLine,
