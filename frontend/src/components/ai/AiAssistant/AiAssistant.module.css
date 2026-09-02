@@ -1177,7 +1177,7 @@
 
 .requirementList li {
     display: grid;
-    grid-template-columns: 74px minmax(0, 1fr);
+    grid-template-columns: max-content minmax(0, 1fr);
     gap: 8px;
     align-items: start;
 }
@@ -1186,29 +1186,49 @@
 .evidenceGapList li { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .requirementList strong,
 .evidenceGapList strong { font: 700 11.5px/1.4 var(--font-body); color: var(--chrome-ink); }
-.requirementList li > div > span,
 .evidenceGapList span { font: 500 10.5px/1.4 var(--font-body); color: var(--chrome-muted); }
 
-.requirementEvidence {
-    overflow-wrap: anywhere;
-}
-
-.requirementEvidence b {
-    color: var(--chrome-ink);
-    font-weight: 700;
-}
-
 .requirementStatus {
-    padding: 3px 5px;
+    box-sizing: border-box;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 36px;
+    padding: 4px 8px;
     border: 1px solid currentColor;
-    font: 700 8.5px/1.2 var(--font-body);
+    background: transparent;
+    color: inherit;
+    font: 700 12px/1.2 var(--font-body);
     text-align: center;
     text-transform: uppercase;
     letter-spacing: .03em;
+    white-space: nowrap;
 }
 .requirement_matched { color: var(--color-success); }
 .requirement_partial { color: var(--color-warning); }
 .requirement_missing { color: var(--color-danger); }
+
+.requirementStatusInteractive {
+    appearance: none;
+    cursor: pointer;
+}
+
+.requirementStatusInteractive.requirement_matched:hover {
+    background: var(--color-success-soft);
+}
+
+.requirementStatusInteractive.requirement_partial:hover {
+    background: var(--color-warning-soft);
+}
+
+.requirementStatusInteractive:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+}
+
+.requirementStatusInteractive:active {
+    transform: translateY(1px);
+}
 
 .evidenceGapList li {
     padding: 7px 8px;
@@ -1225,6 +1245,16 @@
     .fab {
         right: 12px;
         bottom: 12px;
+    }
+}
+
+@media (max-width: 420px) {
+    .requirementList li {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .requirementStatus {
+        justify-self: start;
     }
 }
 

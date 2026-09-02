@@ -1,9 +1,10 @@
 /**
- * Soft, animated marks on A4 elements that still have a pending AI suggestion.
+ * Marks A4 elements with a pending AI suggestion or active job-match evidence.
  *
  * Drawn above canvas content and below the selection chrome. Marks use an
- * opacity pulse so the eye finds them without opaque colour blocks covering
- * the CV text. `pointer-events: none` keeps editing unaffected.
+ * Pending suggestions use an opacity pulse; transient evidence remains steady
+ * so the relationship to the hovered or focused status is immediate.
+ * `pointer-events: none` keeps editing unaffected.
  */
 import { useMemo } from "react";
 import { useCanvasContext } from "../../../store/canvas-context";
@@ -71,16 +72,17 @@ export default function AiCorrectionOverlay({ elements, page }) {
       return [];
     }
     const byId = new Map(
-      canvasElements.map((el) => [el.element_id, el]),
+      canvasElements.map((el) => [String(el.element_id), el]),
     );
     const out = [];
     for (const item of aiCorrectionHighlights) {
-      const element = byId.get(item.elementId);
+      const elementId = String(item.elementId);
+      const element = byId.get(elementId);
       if (!element) continue;
       if (element.category === "connector") continue;
       if ((element.page ?? 1) !== displayedPage) continue;
       out.push({
-        id: item.elementId,
+        id: elementId,
         kind: item.kind || "content",
         ...paddedFrame(frameForElement(element)),
       });

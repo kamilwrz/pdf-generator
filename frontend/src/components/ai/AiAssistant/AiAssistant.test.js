@@ -187,8 +187,43 @@ test("job tailoring sends URL, fallback, notes and the canonical profile", async
     assert.match(source, /candidate_notes: action === "position_rating" \? candidateNotes : ""/);
     assert.match(source, /jobRequirements: res\.job_requirements \?\? \[\]/);
     assert.match(source, /evidenceGaps: res\.evidence_gaps \?\? \[\]/);
-    assert.match(source, /Dowód z CV:/);
+    assert.doesNotMatch(source, /Dowód z CV:/);
     assert.match(source, /Sprawdź czytelność ATS/);
+});
+
+test("job requirement statuses preview referenced CV evidence without quoting it", async () => {
+    const source = await readFile(new URL("./AiAssistant.jsx", import.meta.url), "utf8");
+    const styles = await readFile(new URL("./AiAssistant.module.css", import.meta.url), "utf8");
+    const overlayStyles = await readFile(
+        new URL("../../canvas/AiCorrectionOverlay/AiCorrectionOverlay.module.css", import.meta.url),
+        "utf8",
+    );
+
+    assert.match(source, /canvasEvidenceElementIds\(item\)/);
+    assert.match(source, /onPointerEnter=\{\(\) => onShowEvidence/);
+    assert.match(source, /onPointerLeave=\{\(\) => onHideEvidence/);
+    assert.match(source, /onPointerCancel=\{\(\) => onHideEvidence/);
+    assert.match(source, /onFocus=\{\(\) => onShowEvidence/);
+    assert.match(source, /onBlur=\{\(\) => onHideEvidence/);
+    assert.match(source, /setPointerJobEvidencePreview\(null\)/);
+    assert.match(source, /setFocusJobEvidencePreview\(null\)/);
+    assert.match(
+        source,
+        /const activeJobEvidencePreview = pointerJobEvidencePreview \?\? focusJobEvidencePreview/,
+    );
+    assert.match(source, /activeJobEvidencePreview\.highlights\s*:\s*pendingHighlights/);
+
+    assert.match(styles, /grid-template-columns:\s*max-content minmax\(0, 1fr\)/);
+    assert.match(styles, /\.requirementStatus\s*\{[\s\S]*?min-height:\s*36px;[\s\S]*?white-space:\s*nowrap;/);
+    assert.match(styles, /\.requirementStatusInteractive:focus-visible/);
+    assert.doesNotMatch(styles, /\.requirementEvidence/);
+
+    assert.match(overlayStyles, /\.kind_evidence_matched/);
+    assert.match(overlayStyles, /\.kind_evidence_partial/);
+    assert.match(
+        overlayStyles,
+        /\.kind_evidence_matched,[\s\S]*?\.kind_evidence_partial\s*\{[\s\S]*?animation:\s*none;/,
+    );
 });
 
 test("assistant tracks the detected cv_language from responses", async () => {

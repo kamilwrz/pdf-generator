@@ -61,6 +61,27 @@
     background: var(--color-success-soft);
 }
 
+/* Job-match evidence stays steady while its status has hover or focus. */
+.kind_evidence_matched,
+.kind_evidence_partial {
+    border-width: 2px;
+    animation: none;
+    opacity: 1;
+    will-change: auto;
+}
+
+.kind_evidence_matched {
+    color: var(--color-success);
+    border-color: color-mix(in srgb, var(--color-success) 82%, transparent);
+    background: var(--color-success-soft);
+}
+
+.kind_evidence_partial {
+    color: var(--color-warning);
+    border-color: color-mix(in srgb, var(--color-warning) 82%, transparent);
+    background: var(--color-warning-soft);
+}
+
 @keyframes aiMarkPulse {
     0%,
     100% {

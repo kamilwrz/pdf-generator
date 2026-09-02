@@ -29,7 +29,11 @@ import {
 } from "../../../utils/atsScore";
 import { collectPendingAiHighlights } from "../../../utils/aiCorrectionHighlights";
 import { useDocumentLifecycle } from "../../../store/document-lifecycle-context";
-import { requirementStatusLabel, validateJobOfferInput } from "../../../utils/jobTailoring";
+import {
+    canvasEvidenceElementIds,
+    requirementStatusLabel,
+    validateJobOfferInput,
+} from "../../../utils/jobTailoring";
 
 // ── goal-oriented quick actions ───────────────────────────────────────────
 // User-facing tiles map to goals; backend still uses specialised API actions
@@ -345,6 +349,9 @@ function RatingBadge({ value, percent: percentProp }) {
  */
 function RatingDashboard({
     msg,
+    A4_Elements,
+    onShowEvidence,
+    onHideEvidence,
     onOpenContentPanel,
     onOpenAppearancePanel,
     onRunAts,
@@ -356,6 +363,12 @@ function RatingDashboard({
     const priorities = Array.isArray(msg.priorities) ? msg.priorities : [];
     const jobRequirements = Array.isArray(msg.jobRequirements) ? msg.jobRequirements : [];
     const evidenceGaps = Array.isArray(msg.evidenceGaps) ? msg.evidenceGaps : [];
+    const currentCanvasElementIds = new Set(
+        (Array.isArray(A4_Elements) ? A4_Elements : [])
+            .map((element) => element?.element_id)
+            .filter((elementId) => elementId != null && elementId !== "")
+            .map(String),
+    );
     const actionId = msg.actionId;
     const isAts = actionId === "ats_score";
     // Prefer category math over `rating × 10`:
@@ -432,21 +445,49 @@ function RatingDashboard({
                 <div className={classes.dashboardBlock}>
                     <span className={classes.dashboardBlockLabel}>Wymagania oferty</span>
                     <ul className={classes.requirementList}>
-                        {jobRequirements.map((item) => (
-                            <li key={item.id}>
-                                <span className={`${classes.requirementStatus} ${classes[`requirement_${item.match_status}`]}`}>
-                                    {requirementStatusLabel(item.match_status)}
-                                </span>
-                                <div>
-                                    <strong>{item.text}</strong>
-                                    {item.evidence ? (
-                                        <span className={classes.requirementEvidence}>
-                                            <b>Dowód z CV:</b> {item.evidence}
-                                        </span>
-                                    ) : null}
-                                </div>
-                            </li>
-                        ))}
+                        {jobRequirements.map((item, index) => {
+                            const statusLabel = requirementStatusLabel(item.match_status);
+                            const evidenceElementIds = canvasEvidenceElementIds(item)
+                                .filter((elementId) => currentCanvasElementIds.has(elementId));
+                            const canHighlightEvidence = evidenceElementIds.length > 0;
+                            const previewKey = `${msg.id || "job-match"}:${item.id || index}`;
+                            const statusClassName = `${classes.requirementStatus} ${classes[`requirement_${item.match_status}`]}`;
+
+                            return (
+                                <li key={item.id || `${item.text}-${index}`}>
+                                    {canHighlightEvidence ? (
+                                        <button
+                                            type="button"
+                                            className={`${statusClassName} ${classes.requirementStatusInteractive}`}
+                                            aria-label={`${statusLabel}. Pokaż dowody w CV dla wymagania: ${item.text}`}
+                                            onPointerEnter={() => onShowEvidence?.(
+                                                "pointer",
+                                                previewKey,
+                                                evidenceElementIds,
+                                                item.match_status,
+                                            )}
+                                            onPointerLeave={() => onHideEvidence?.("pointer", previewKey)}
+                                            onPointerCancel={() => onHideEvidence?.("pointer", previewKey)}
+                                            onFocus={() => onShowEvidence?.(
+                                                "focus",
+                                                previewKey,
+                                                evidenceElementIds,
+                                                item.match_status,
+                                            )}
+                                            onClick={(event) => event.currentTarget.focus({ preventScroll: true })}
+                                            onBlur={() => onHideEvidence?.("focus", previewKey)}
+                                        >
+                                            {statusLabel}
+                                        </button>
+                                    ) : (
+                                        <span className={statusClassName}>{statusLabel}</span>
+                                    )}
+                                    <div>
+                                        <strong>{item.text}</strong>
+                                    </div>
+                                </li>
+                            );
+                        })}
                     </ul>
                 </div>
             )}
@@ -865,6 +906,8 @@ function ChatMessage({
     onOpenAppearancePanel,
     onRunAts,
     onOpenMatchJob,
+    onShowEvidence,
+    onHideEvidence,
     ctaDisabled,
     A4_Elements,
 }) {
@@ -881,8 +924,11 @@ function ChatMessage({
         || (msg.categories?.length > 0)
         || (msg.strengths?.length > 0)
         || (msg.priorities?.length > 0)
+        || (msg.jobRequirements?.length > 0)
+        || (msg.evidenceGaps?.length > 0)
         || msg.actionId === "rating"
         || msg.actionId === "ats_score"
+        || msg.actionId === "position_rating"
     );
 
     return (
@@ -908,6 +954,9 @@ function ChatMessage({
                 {hasDashboard && (
                     <RatingDashboard
                         msg={msg}
+                        A4_Elements={A4_Elements}
+                        onShowEvidence={onShowEvidence}
+                        onHideEvidence={onHideEvidence}
                         onOpenContentPanel={onOpenContentPanel}
                         onOpenAppearancePanel={onOpenAppearancePanel}
                         onRunAts={onRunAts}
@@ -1161,6 +1210,10 @@ export default function AiAssistant() {
     const [structureStates, setStructureStates] = useState({});
     const [deletionStates, setDeletionStates] = useState({});
     const [cloneStates, setCloneStates] = useState({});
+    // Pointer and keyboard previews are independent. Pointer hover temporarily
+    // wins, then a still-focused status resumes without requiring another Tab.
+    const [pointerJobEvidencePreview, setPointerJobEvidencePreview] = useState(null);
+    const [focusJobEvidencePreview, setFocusJobEvidencePreview] = useState(null);
     // Detected (or user-overridden) CV language. Empty until the first backend
     // response reports one; the selector then reflects it. Sent with content
     // actions so corrections come back in the CV language, not always Polish.
@@ -1176,6 +1229,46 @@ export default function AiAssistant() {
     // Bumped when the complete editor document changes so a late assistant
     // response from the previous session cannot re-populate a cleared chat.
     const chatSessionRef = useRef(0);
+
+    /**
+     * Show only evidence that still belongs to the currently open CV.
+     *
+     * A result can remain in chat while the user edits the document. Filtering
+     * again here prevents a stale API reference from targeting another session,
+     * and the source key prevents an older badge from clearing a newer preview.
+     */
+    const showJobEvidence = useCallback((channel, sourceKey, elementIds, matchStatus) => {
+        const currentElementIds = new Set(
+            (Array.isArray(A4_Elements) ? A4_Elements : [])
+                .map((element) => element?.element_id)
+                .filter((elementId) => elementId != null && elementId !== "")
+                .map(String),
+        );
+        const kind = matchStatus === "matched" ? "evidence_matched" : "evidence_partial";
+        const highlights = [...new Set((elementIds || []).map(String))]
+            .filter((elementId) => currentElementIds.has(elementId))
+            .map((elementId) => ({ elementId, kind }));
+
+        const preview = highlights.length > 0 ? { sourceKey, highlights } : null;
+        if (channel === "focus") {
+            setFocusJobEvidencePreview(preview);
+        } else {
+            setPointerJobEvidencePreview(preview);
+        }
+    }, [A4_Elements]);
+
+    const hideJobEvidence = useCallback((channel, sourceKey) => {
+        const clearMatchingPreview = (current) => (
+            current?.sourceKey === sourceKey ? null : current
+        );
+        if (channel === "focus") {
+            setFocusJobEvidencePreview(clearMatchingPreview);
+        } else {
+            setPointerJobEvidencePreview(clearMatchingPreview);
+        }
+    }, []);
+
+    const activeJobEvidencePreview = pointerJobEvidencePreview ?? focusJobEvidencePreview;
 
     useEffect(() => {
         const messageList = messagesRef.current;
@@ -1214,6 +1307,8 @@ export default function AiAssistant() {
         setStructureStates({});
         setDeletionStates({});
         setCloneStates({});
+        setPointerJobEvidencePreview(null);
+        setFocusJobEvidencePreview(null);
         layoutHistoryStartRef.current = null;
         // Patches / deletion ids are arrays in PdfCanvas state — never null
         // (preview useMemo reads `.length` without a null guard).
@@ -1229,21 +1324,28 @@ export default function AiAssistant() {
         setStructurePreviewGroup,
     ]);
 
-    // Keep A4 marks in sync with every pending review category (content, style,
-    // layout, structure, deletion, clone). Clear when the panel closes / unmounts.
+    // Keep A4 marks in sync with every pending review category. A temporary job
+    // evidence preview intentionally replaces those marks so the hovered/focused
+    // requirement has one unambiguous visual answer. Pending marks return as soon
+    // as the evidence control loses both hover and focus.
     useEffect(() => {
         if (!isOpen) {
             setAiCorrectionHighlights?.([]);
             return;
         }
-        setAiCorrectionHighlights?.(collectPendingAiHighlights({
+        const pendingHighlights = collectPendingAiHighlights({
             messages,
             correctionStates,
             layoutStates,
             structureStates,
             deletionStates,
             cloneStates,
-        }));
+        });
+        setAiCorrectionHighlights?.(
+            activeJobEvidencePreview?.highlights?.length > 0
+                ? activeJobEvidencePreview.highlights
+                : pendingHighlights,
+        );
     }, [
         isOpen,
         messages,
@@ -1252,8 +1354,16 @@ export default function AiAssistant() {
         structureStates,
         deletionStates,
         cloneStates,
+        activeJobEvidencePreview,
         setAiCorrectionHighlights,
     ]);
+
+    useEffect(() => {
+        if (!isOpen) {
+            setPointerJobEvidencePreview(null);
+            setFocusJobEvidencePreview(null);
+        }
+    }, [isOpen]);
 
     useEffect(() => () => setAiCorrectionHighlights?.([]), [setAiCorrectionHighlights]);
 
@@ -1530,6 +1640,8 @@ export default function AiAssistant() {
         // frame cannot start a parallel request that fails after the first
         // succeeds and leaves a confusing success+error pair in the chat.
         if (requestInFlightRef.current || isLoading) return;
+        setPointerJobEvidencePreview(null);
+        setFocusJobEvidencePreview(null);
         requestInFlightRef.current = true;
         // Capture before await: a template change mid-flight increments the
         // session and must discard both success and error bubbles for that call.
@@ -2249,6 +2361,8 @@ export default function AiAssistant() {
                                     onOpenAppearancePanel={openAppearancePanel}
                                     onRunAts={runAtsScore}
                                     onOpenMatchJob={openMatchJobPanel}
+                                    onShowEvidence={showJobEvidence}
+                                    onHideEvidence={hideJobEvidence}
                                     ctaDisabled={isLoading}
                                     A4_Elements={A4_Elements}
                                 />
