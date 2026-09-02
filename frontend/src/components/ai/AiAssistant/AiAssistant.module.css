@@ -55,7 +55,10 @@
     flex-direction: column;
     font-family: var(--font-body);
     color: var(--chrome-ink);
+    /* Keep the fixed shell out of the browser's scroll-container chain.
+       Only the bounded form and message list may own scroll position. */
     overflow: hidden;
+    overflow: clip;
 }
 
 /* ── Header ─────────────────────────────────────────────────────── */
@@ -253,10 +256,14 @@
 .jobDescArea {
     overflow-y: auto;
     max-height: min(560px, 68vh);
+    max-height: min(560px, 68dvh);
+    min-height: 0;
     padding: 12px;
     border-bottom: 1px solid var(--chrome-border);
     background: var(--chrome-control);
-    flex-shrink: 0;
+    flex: 0 1 auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
 }
 
 .jobPanelHeader {
@@ -348,8 +355,11 @@
 
 /* ── Chat Messages ───────────────────────────────────────────────── */
 .messages {
-    flex: 1;
+    flex: 1 1 auto;
+    min-height: 0;
     overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
     padding: 12px 14px;
     display: flex;
     flex-direction: column;
@@ -1127,6 +1137,10 @@
 .corrBadge { font: 600 9.5px var(--font-body); align-self: flex-end; }
 
 @media (prefers-reduced-motion: reduce) {
+    .messages {
+        scroll-behavior: auto;
+    }
+
     .corrCard,
     .diffCompare,
     .diffBlock,

@@ -1166,7 +1166,7 @@ export default function AiAssistant() {
     // actions so corrections come back in the CV language, not always Polish.
     const [cvLanguage, setCvLanguage] = useState("");
 
-    const messagesEndRef = useRef(null);
+    const messagesRef = useRef(null);
     const inputRef = useRef(null);
     const fabRef = useRef(null);
     const layoutHistoryStartRef = useRef(null);
@@ -1178,8 +1178,21 @@ export default function AiAssistant() {
     const chatSessionRef = useRef(0);
 
     useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, [messages]);
+        const messageList = messagesRef.current;
+        if (!isOpen || !messageList) return undefined;
+
+        // Scroll only the conversation viewport. `Element.scrollIntoView()`
+        // also scrolls every eligible ancestor; once the job-offer form made
+        // the fixed panel taller than its viewport, that behavior moved the
+        // header, quick actions, and composer out of place.
+        const frame = window.requestAnimationFrame(() => {
+            messageList.scrollTo({
+                top: messageList.scrollHeight,
+                behavior: reduceMotion ? "auto" : "smooth",
+            });
+        });
+        return () => window.cancelAnimationFrame(frame);
+    }, [isLoading, isOpen, messages, reduceMotion]);
 
     // A document epoch covers saved-document opens, new/imported documents,
     // template regeneration and guest restoration. Reset every assistant-owned
@@ -2195,7 +2208,7 @@ export default function AiAssistant() {
                         </AnimatePresence>
 
                         {/* chat messages */}
-                        <div className={classes.messages}>
+                        <div ref={messagesRef} className={classes.messages}>
                             {messages.length === 0 && (
                                 <div className={classes.emptyState}>
                                     <BsStars className={classes.emptyIcon} />
@@ -2248,7 +2261,6 @@ export default function AiAssistant() {
                                     <div className={classes.typingDot} />
                                 </div>
                             )}
-                            <div ref={messagesEndRef} />
                         </div>
 
                         {/* chat input */}
