@@ -3,10 +3,10 @@
  * field sets. The inspector occupies the quiet top-left workspace between the
  * tool rail and the A4 sheet: its top follows the live topbar, its bottom
  * follows the divider above “Moje dokumenty”, and its width stays at the
- * compact 308px footprint for canvas zoom up to 200%. Above 200% it may narrow
- * to keep a 15px breathing space before the enlarged page. It mounts/unmounts
- * with a short directional transition and becomes an overlay drawer when the
- * viewport is too narrow for usable controls.
+ * compact 248px footprint produced by the reference 220% A4 view. The live A4
+ * edge remains a hard limit, so it may narrow to keep a 15px breathing space
+ * before the page. It mounts/unmounts with a short directional transition and
+ * becomes an overlay drawer when the viewport is too narrow for usable controls.
  *
  * While a text/textarea is contentEditable and the caret range is non-empty,
  * a second, fully independent floating bar ("Zaznaczenie") appears anchored
@@ -507,10 +507,10 @@ export default function Editor() {
 
   // The inspector is part of the workspace grid, not a tooltip. Read live DOM
   // geometry because text editing animates the page to 200% and recentres its
-  // scroll position. At 200% and below the inspector deliberately keeps the
-  // compact width shown in the reference UI; only a larger zoom may narrow it
-  // against the A4 edge. Resize/transition/scroll listeners still keep that
-  // high-zoom collision boundary current.
+  // scroll position. The inspector prefers the compact width shown by the
+  // reference 220% view, while the live A4 edge remains a collision boundary
+  // at every zoom. Resize/transition/scroll listeners keep that boundary
+  // current without allowing zoom-out to enlarge the panel.
   useLayoutEffect(() => {
     if (!someElementSelected) return undefined;
 
@@ -533,7 +533,6 @@ export default function Editor() {
       const exactDockWidth = Math.floor(pageRect.left - PANEL_A4_GAP_PX - left);
       const availableWidth = Math.max(0, Math.floor(canvasRect.right - left - PANEL_VIEWPORT_GUTTER_PX));
       const width = resolveEditorInspectorWidth({
-        zoom,
         exactDockWidth,
         availableWidth,
         minimumWidth: PANEL_MIN_WIDTH_PX,

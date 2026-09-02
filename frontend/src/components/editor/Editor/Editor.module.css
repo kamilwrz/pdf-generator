@@ -10,7 +10,6 @@
     background: var(--chrome-surface, var(--color-paper));
     color: var(--chrome-ink, var(--color-ink));
     border: 1px solid var(--chrome-border, var(--color-border));
-    border-left: 3px solid var(--chrome-ink, var(--color-ink));
     border-radius: var(--radius-panel);
     box-shadow: var(--shadow-pop);
     font-family: var(--font-body);
@@ -20,36 +19,36 @@
 }
 
 .panelHeader {
-    min-height: 68px;
-    padding: 13px 12px 11px 14px;
+    min-height: 56px;
+    padding: var(--space-2) var(--space-3);
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     justify-content: space-between;
-    gap: 12px;
-    background: var(--chrome-control);
+    gap: var(--space-2);
+    background: var(--chrome-surface);
     color: var(--chrome-ink);
     border-bottom: 1px solid var(--chrome-border);
     flex-shrink: 0;
 }
 
 .panelHeader h2 {
-    margin: 3px 0 0;
+    margin: 2px 0 0;
     color: inherit;
-    font: 700 17px/1.08 var(--font-body);
-    letter-spacing: -0.02em;
+    font: 700 14px/1.2 var(--font-display);
+    letter-spacing: -0.01em;
 }
 
 .panelHeader .iconBtn {
-    width: 32px;
-    height: 32px;
-    color: var(--chrome-ink);
+    width: var(--control-height-compact);
+    height: var(--control-height-compact);
+    color: var(--chrome-muted);
     border-color: var(--chrome-border);
-    background: transparent;
+    background: var(--chrome-control);
 }
 
 .panelHeader .iconBtn:hover:not(:disabled) {
-    background: var(--chrome-ink);
-    color: var(--chrome-surface);
+    background: var(--chrome-hover);
+    color: var(--chrome-ink);
 }
 
 .eyebrow {
@@ -57,18 +56,18 @@
     font: 700 9px/1 var(--font-body);
     letter-spacing: .12em;
     text-transform: uppercase;
-    opacity: .72;
+    color: var(--chrome-muted);
 }
 
 .selectionTip {
     display: grid;
     grid-template-columns: max-content 1fr;
-    gap: 8px;
+    gap: var(--space-2);
     align-items: center;
-    min-height: 44px;
-    padding: 8px 14px;
+    min-height: 40px;
+    padding: var(--space-2) var(--space-3);
     background: var(--chrome-surface);
-    border-bottom: 4px solid var(--chrome-control);
+    border-bottom: 1px solid var(--chrome-border);
     color: var(--chrome-muted);
     font: 500 11px/1.25 var(--font-body);
     flex-shrink: 0;
@@ -78,10 +77,10 @@
     color: var(--chrome-ink);
     font: 700 9.5px/1 var(--font-mono);
     letter-spacing: -.02em;
-    padding: 6px 7px;
-    background: var(--chrome-surface);
+    padding: 6px var(--space-2);
+    background: var(--chrome-control);
     border: 1px solid var(--chrome-border);
-    border-bottom-color: var(--chrome-muted);
+    border-radius: var(--radius-control);
     overflow-wrap: anywhere;
 }
 
@@ -91,8 +90,8 @@
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     align-content: start;
-    gap: 10px;
-    padding: 12px;
+    gap: var(--space-2);
+    padding: var(--space-2);
     margin: 0;
     scrollbar-width: thin;
     scrollbar-color: var(--chrome-ink) var(--chrome-control);
@@ -102,13 +101,11 @@
     min-width: 0;
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    padding: 10px;
-    background: var(--chrome-surface);
-    border-right: 1px solid var(--chrome-border);
-    border-bottom: 1px solid var(--chrome-border);
-    border-left: 4px solid var(--chrome-control);
-    border-top: 2px solid var(--chrome-ink);
+    gap: var(--space-2);
+    padding: var(--space-2);
+    background: var(--chrome-control);
+    border: 1px solid var(--chrome-border);
+    border-radius: var(--radius-control);
 }
 
 .groupLabel {
@@ -123,7 +120,7 @@
     display: flex;
     flex-wrap: wrap;
     align-items: flex-end;
-    gap: 8px;
+    gap: var(--space-2);
 }
 
 .sep { display: none; }
@@ -166,7 +163,12 @@
 .iconBtn:hover:not(:disabled) { background: var(--chrome-hover); border-color: var(--chrome-ink); color: var(--chrome-ink); }
 .iconBtn:active:not(:disabled) { transform: translateY(1px); }
 .iconBtn:disabled { opacity: .38; cursor: not-allowed; }
-.iconBtnActive { background: var(--chrome-ink) !important; color: var(--chrome-surface) !important; border-color: var(--chrome-ink) !important; }
+.iconBtnActive {
+    background: var(--accent-soft) !important;
+    color: var(--chrome-ink) !important;
+    border-color: var(--chrome-accent) !important;
+    box-shadow: inset 0 0 0 1px var(--chrome-accent);
+}
 .iconBtnAttention:not(:disabled) {
     background: var(--color-accent-soft);
     border-color: var(--color-accent);
@@ -182,18 +184,21 @@
 .numField {
     height: 36px;
     display: grid;
-    grid-template-columns: 32px minmax(42px, 1fr) 32px;
+    grid-template-columns: 36px minmax(42px, 1fr) 36px;
     overflow: hidden;
     background: var(--chrome-surface);
-    border: 1px solid var(--chrome-border);
+    border: 0;
     border-radius: var(--radius-control);
+    box-shadow: inset 0 0 0 1px var(--chrome-border);
 }
 
-.numField:focus-within { border-color: var(--color-focus); box-shadow: 0 0 0 1px var(--color-focus); }
+.numField:focus-within {
+    box-shadow: 0 0 0 2px var(--color-focus-soft), inset 0 0 0 1px var(--color-focus);
+}
 
 .numField button {
-    min-width: 32px;
-    height: 34px;
+    min-width: 36px;
+    height: 36px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -213,7 +218,7 @@
 .numField input {
     width: 100% !important;
     min-width: 0;
-    height: 34px;
+    height: 36px;
     padding: 0 4px;
     border: 0;
     outline: 0;
@@ -258,7 +263,7 @@
     cursor: pointer;
 }
 
-.fontSelect:focus { border-color: var(--color-focus); box-shadow: 0 0 0 1px var(--color-focus); }
+.fontSelect:focus { border-color: var(--color-focus); box-shadow: 0 0 0 2px var(--color-focus-soft); }
 .axis { font: 800 9px/1 var(--font-mono); }
 .glyphBold { font: 800 13px/1 var(--font-body); }
 .glyphItalic { font: italic 700 13px/1 var(--font-body); }
@@ -310,7 +315,18 @@
 @container (max-width: 380px) {
     .bar { grid-template-columns: 1fr; }
     .selectionTip { grid-template-columns: 1fr; gap: 4px; }
-    .panelHeader h2 { font-size: 15px; }
+    .panelHeader h2 { font-size: 14px; }
+}
+
+/* The 248 px desktop footprint matches the former 220% A4 state. Fields use
+   the full card width there so labels and steppers stay legible without
+   reducing the design-system 36 px interaction targets. The independent
+   selection toolbar disables container queries and keeps its compact row. */
+@container (max-width: 280px) {
+    .field {
+        flex: 1 1 100%;
+        min-width: 100%;
+    }
 }
 
 @media (max-width: 720px) {

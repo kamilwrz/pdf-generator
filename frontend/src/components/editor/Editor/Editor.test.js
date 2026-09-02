@@ -22,8 +22,8 @@ test("Editor renders selection formatting as its own panel, independent of the w
   // Layer (zIndex) is freeform-only — structural mode has nothing useful to stack.
   assert.match(source, /canEditElementLayer/);
   assert.match(source, /showLayerField && \(/);
-  // The inspector uses live workspace anchors, keeps its compact width through
-  // 200%, and only narrows against the 15px A4 gap above that threshold.
+  // The inspector uses live workspace anchors, prefers the compact footprint
+  // from the 220% reference, and always respects the 15px A4 gap.
   assert.match(source, /data-anchor="editor-sidebar"/);
   assert.match(source, /data-anchor="editor-topbar"/);
   assert.match(source, /sidebar-documents-divider/);
@@ -39,17 +39,31 @@ test("Editor panel uses the editor-affordance layer above sticky chrome", async 
   assert.doesNotMatch(editorCss, /:has\(/);
 });
 
-test("Editor uses light system surfaces and keeps dark fills compact", async () => {
+test("Editor follows the AI Assistant surface, control, active, and focus language", async () => {
   const editorCss = await readFile(new URL("./Editor.module.css", import.meta.url), "utf8");
 
-  assert.match(editorCss, /\.panelHeader\s*\{[^}]*background:\s*var\(--chrome-control\)/s);
+  assert.match(editorCss, /\.panelHeader\s*\{[^}]*background:\s*var\(--chrome-surface\)/s);
   assert.match(editorCss, /\.panelHeader\s*\{[^}]*color:\s*var\(--chrome-ink\)/s);
-  assert.match(editorCss, /\.panelHeader \.iconBtn:hover:not\(:disabled\)\s*\{[^}]*background:\s*var\(--chrome-ink\)/s);
+  assert.match(editorCss, /\.panelHeader \.iconBtn\s*\{[^}]*background:\s*var\(--chrome-control\)/s);
+  assert.match(editorCss, /\.panelHeader \.iconBtn:hover:not\(:disabled\)\s*\{[^}]*background:\s*var\(--chrome-hover\)/s);
   assert.match(editorCss, /\.selectionTip\s*\{[^}]*background:\s*var\(--chrome-surface\)/s);
-  assert.match(editorCss, /\.group\s*\{[^}]*background:\s*var\(--chrome-surface\)/s);
-  assert.match(editorCss, /\.group\s*\{[^}]*border-left:\s*4px solid var\(--chrome-control\)/s);
+  assert.match(editorCss, /\.selectionTip\s*\{[^}]*border-bottom:\s*1px solid var\(--chrome-border\)/s);
+  assert.match(editorCss, /\.group\s*\{[^}]*background:\s*var\(--chrome-control\)/s);
+  assert.match(editorCss, /\.group\s*\{[^}]*border:\s*1px solid var\(--chrome-border\)/s);
+  assert.match(editorCss, /\.group\s*\{[^}]*border-radius:\s*var\(--radius-control\)/s);
   assert.match(editorCss, /\.numField button\s*\{[^}]*background:\s*var\(--chrome-surface\)/s);
-  assert.doesNotMatch(editorCss, /\.group\s*\{[^}]*background:\s*color-mix/s);
+  assert.match(editorCss, /\.iconBtnActive\s*\{[^}]*background:\s*var\(--accent-soft\)/s);
+  assert.match(editorCss, /\.numField:focus-within\s*\{[^}]*var\(--color-focus-soft\)/s);
+  assert.doesNotMatch(editorCss, /border-left:\s*3px solid var\(--chrome-ink/);
+});
+
+test("Editor keeps 36px targets and gives fields the full 248px-panel card width", async () => {
+  const editorCss = await readFile(new URL("./Editor.module.css", import.meta.url), "utf8");
+
+  assert.match(editorCss, /\.iconBtn\s*\{[^}]*width:\s*36px;[^}]*height:\s*36px/s);
+  assert.match(editorCss, /\.numField\s*\{[^}]*grid-template-columns:\s*36px minmax\(42px, 1fr\) 36px/s);
+  assert.match(editorCss, /\.numField button\s*\{[^}]*min-width:\s*36px;[^}]*height:\s*36px/s);
+  assert.match(editorCss, /@container \(max-width: 280px\)[\s\S]*\.field\s*\{[^}]*flex:\s*1 1 100%;[^}]*min-width:\s*100%/s);
 });
 
 test("inline selection updates after pointer and keyboard range changes", async () => {
