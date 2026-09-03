@@ -46,11 +46,13 @@ test("section, entry, and element context use neutral shadow depth without tinte
   assert.match(css, /\.elementHighlight\s*\{[^}]*--shadow-editor-element/s);
 });
 
-test("selection and editing reuse the same depth tokens while keyboard focus stays visible", async () => {
-  const [tokens, pageSource, selectionCss, textareaCss] = await Promise.all([
+test("selection and editing use screen-stable hairlines while shadows remain hover-only", async () => {
+  const [tokens, pageSource, selectionSource, selectionCss, textCss, textareaCss] = await Promise.all([
     readFile(new URL("../../../index.css", import.meta.url), "utf8"),
     readFile(new URL("../A4/A4.jsx", import.meta.url), "utf8"),
+    readFile(new URL("../SelectionOverlay/SelectionOverlay.jsx", import.meta.url), "utf8"),
     readFile(new URL("../SelectionOverlay/SelectionOverlay.module.css", import.meta.url), "utf8"),
+    readFile(new URL("../Text/Text.module.css", import.meta.url), "utf8"),
     readFile(new URL("../Textarea/Textarea.module.css", import.meta.url), "utf8"),
   ]);
 
@@ -62,10 +64,13 @@ test("selection and editing reuse the same depth tokens while keyboard focus sta
   assert.match(pageSource, /"--canvas-shadow-editor-entry"/);
   assert.match(pageSource, /"--canvas-shadow-editor-element"/);
   assert.match(pageSource, /"--canvas-editor-lift"/);
-  assert.match(selectionCss, /\.frame\s*\{[^}]*border:\s*0[^}]*--shadow-editor-element/s);
-  assert.match(selectionCss, /\.groupFrame\s*\{[^}]*border:\s*0[^}]*--shadow-editor-entry/s);
-  assert.match(textareaCss, /\.editing\s*\{[^}]*box-shadow:[^;]*--shadow-editor-element/s);
-  assert.match(textareaCss, /\.editing:focus-visible\s*\{[^}]*outline:\s*2px solid var\(--color-focus\)/s);
+  assert.match(pageSource, /"--canvas-editor-hairline":\s*px\(1\)/);
+  assert.match(selectionSource, /!\(element\.isEditing && \["text", "textarea"\]\.includes\(element\.category\)\)/);
+  assert.match(selectionCss, /\.frame\s*\{[^}]*border:[^;]*--canvas-editor-hairline[^}]*box-shadow:\s*none/s);
+  assert.match(selectionCss, /\.groupFrame\s*\{[^}]*border:[^;]*--canvas-editor-hairline[^}]*box-shadow:\s*none/s);
+  assert.match(textCss, /\.editing:focus::after\s*\{[^}]*outline:[^;]*--canvas-editor-hairline[^;]*--color-focus[^}]*box-shadow:\s*none/s);
+  assert.match(textareaCss, /\.editing\s*\{[^}]*box-shadow:\s*none/s);
+  assert.match(textareaCss, /\.editing:focus\s*\{[^}]*outline:[^;]*--canvas-editor-hairline[^;]*--color-focus/s);
 });
 
 test("direct actions replace the labelled structural toolbar with accessible icon buttons", async () => {

@@ -7,9 +7,10 @@ import classes from "./A4.module.css";
 import { forwardRef } from "react";
 
 /**
- * Keeps editor-only elevation constant in screen space while the A4 page is
- * transformed. The values reference global colour tokens, so no document
- * palette or persisted element style can leak into selection feedback.
+ * Keeps editor-only hover elevation and interaction hairlines constant in
+ * screen space while the A4 page is transformed. The values reference global
+ * colour tokens, so no document palette or persisted element style can leak
+ * into selection or edit feedback.
  *
  * @param {number} zoom - Visual scale applied to the A4 page.
  * @returns {Record<string, string>} CSS custom properties inherited by canvas chrome.
@@ -26,6 +27,8 @@ function editorDepthStyle(zoom) {
         "--canvas-shadow-editor-element": `0 ${px(2)} ${px(7)} var(--shadow-editor-element-color)`,
         "--canvas-shadow-editor-active": `0 ${px(4)} ${px(12)} var(--shadow-editor-active-color)`,
         "--canvas-editor-lift": `-${px(1)}`,
+        "--canvas-editor-hairline": px(1),
+        "--canvas-editor-hairline-offset": px(1),
     };
 }
 

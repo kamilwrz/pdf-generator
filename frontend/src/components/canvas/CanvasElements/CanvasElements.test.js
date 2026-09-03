@@ -82,9 +82,10 @@ test("plain section content reveals the complete section depth without stealing 
   assert.match(source, /const nestedStructuralHoverIds = useMemo/);
   assert.match(source, /!nestedStructuralHoverIds\.has\(element\.element_id\)/);
   assert.match(source, /contentHoverIds=\{sectionAnchor\.contentHoverIds\}/);
-  assert.match(sectionSource, /const sectionContextVisible = visible \|\| contentHoverActive/);
-  assert.match(sectionSource, /highlightVisible=\{sectionContextVisible\}/);
+  assert.match(sectionSource, /const sectionHoverVisible = hoveredTriggerId === headingId \|\| contentHoverActive/);
+  assert.match(sectionSource, /highlightVisible=\{sectionHoverVisible\}/);
   assert.match(sectionSource, /addEventListener\("pointerenter", showContext\)/);
+  assert.doesNotMatch(sectionSource, /node\.addEventListener\("focusin", showContext\)/);
 });
 
 test("semantic contact and identity fields receive editor-only hover depth", async () => {
@@ -106,6 +107,7 @@ test("semantic contact and identity fields receive editor-only hover depth", asy
   assert.match(textCss, /height: calc\(1\.2em \+ 4px\)/);
   assert.match(textCss, /pointer-events: none/);
   assert.match(textareaCss, /\.editorHoverOutline[^}]*:hover[\s\S]*box-shadow:[^;]*--shadow-editor-element/);
-  assert.match(textCss, /:not\(:focus-visible\)/);
-  assert.match(textareaCss, /:not\(:focus-visible\)/);
+  assert.match(textCss, /\.editorHoverOutline:not\(\.editing\):hover::after/);
+  assert.match(textareaCss, /\.editorHoverOutline:hover/);
+  assert.match(textCss, /\.textElement\[data-placeholder\]:empty\s*\{[^}]*min-height:\s*1\.2em[^}]*margin-top:\s*-\.67em[^}]*padding-top:\s*\.67em/s);
 });

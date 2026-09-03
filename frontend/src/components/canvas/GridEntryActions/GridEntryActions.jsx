@@ -68,7 +68,6 @@ export default function GridEntryActions({
   ].join(":");
   const {
     visible,
-    pinned,
     hoveredTriggerId,
     toolbarPointerProps,
     hide,
@@ -137,12 +136,11 @@ export default function GridEntryActions({
   // A grid cell is both the structural target and the exact edited element, so
   // the section/record pattern of painting two nested depth cues would draw
   // the same boundary twice. SelectionOverlay and the editable textarea own
-  // selected/editing states; keyboard focus keeps the global focus-visible
-  // ring. Paint this one context shadow only for pointer hover (or while the
-  // keyboard-opened toolbar is pinned) when no persistent depth state exists.
+  // selected/editing states; keyboard focus keeps the thin edit outline. Paint
+  // this one context shadow only while the pointer is over the entry.
   const hasPersistentStateFrame = Boolean(entry?.isSelected || entry?.isEditing);
   const hoverHighlight = !hasPersistentStateFrame
-    && (hoveredTriggerId === elementId || pinned)
+    && hoveredTriggerId === elementId
     ? resolvedHighlight
     : null;
   const directActions = [

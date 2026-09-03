@@ -1,5 +1,5 @@
 /**
- * Selection depth layers drawn above elements (tight glyph bounds for single-line text).
+ * Selection hairlines drawn above elements (tight glyph bounds for single-line text).
  * Keeps resize chrome off the element DOM so remounts do not break pointer capture.
  */
 import { useMemo } from "react";
@@ -15,9 +15,10 @@ export default function SelectionOverlay({ elements, page }) {
     const selected = useMemo(
         () => canvasElements.filter((element) => (
             element.isSelected
-            // Keep the glyph frame while inline text is contentEditable; only
-            // textarea swaps to its own matching depth shadow during edit.
-            && !(element.isEditing && element.category === "textarea")
+            // Inline text and textarea edit surfaces own their thin focus
+            // outline. Hiding the selection frame avoids a doubled border and
+            // ensures an active edit never retains selection-only chrome.
+            && !(element.isEditing && ["text", "textarea"].includes(element.category))
             && element.category !== "connector"
             && (element.page ?? 1) === displayedPage
         )),

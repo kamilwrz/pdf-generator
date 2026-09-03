@@ -50,7 +50,7 @@ test.describe("CV Studio editor smoke", () => {
     api.assertHermetic();
   });
 
-  test("configures a new A4 CV, edits the required name, and saves the editor graph", async ({ page }) => {
+  test("configures a new A4 CV, edits name and an empty contact, and saves the editor graph", async ({ page }) => {
     const api = await installMockApi(page);
     await login(page);
 
@@ -94,6 +94,17 @@ test.describe("CV Studio editor smoke", () => {
       }));
     });
     await expect(name).toHaveText("Kamil Nowak");
+    // On compact viewports the properties inspector is a sheet over the A4.
+    // Close it before choosing the next field, matching the accessible user path.
+    await page.getByRole("button", { name: "Zamknij panel edycji" }).click();
+
+    const email = page.locator('[data-placeholder="imie.nazwisko@email.com"]');
+    await email.click();
+    await expect(email).toHaveAttribute("contenteditable", "true");
+    await expect(email).toBeFocused();
+    await page.keyboard.type("kamil.nowak@example.com");
+    await expect(email).toHaveText("kamil.nowak@example.com");
+
     const title = page.getByRole("textbox", { name: "Nazwa bieżącego dokumentu" });
     await title.fill("Nowe CV smoke");
 

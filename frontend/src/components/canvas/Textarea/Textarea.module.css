@@ -1,7 +1,7 @@
 /* The editing textarea and the display block MUST share the same box model
    (no padding/border affecting content width) so the wrapped text is byte-for
-   -byte identical between modes — and matches the PDF renderer. Selection is
-   drawn with an external shadow, which does not consume layout width. */
+   -byte identical between modes — and matches the PDF renderer. Editor chrome
+   is external, so it does not consume layout width. */
 .block,
 .editing {
     margin: 0;
@@ -22,7 +22,7 @@
 /* `box-shadow` is deliberately outside the authored box: it makes semantic
    identity/contact fields discoverable on pointer hover without affecting
    wrapping, measured A4 geometry, reflow, or PDF output. */
-.editorHoverOutline:not(.selected):not(:focus-visible):hover {
+.editorHoverOutline:hover {
     outline: none;
     box-shadow: var(--canvas-shadow-editor-element, var(--shadow-editor-element));
 }
@@ -70,7 +70,7 @@
     resize: none;
     cursor: text;
     outline: none;
-    box-shadow: var(--canvas-shadow-editor-element, var(--shadow-editor-element));
+    box-shadow: none;
     -webkit-user-select: text;
     user-select: text;
 }
@@ -85,9 +85,9 @@
     color: var(--color-muted);
 }
 
-.editing:focus-visible {
-    outline: 2px solid var(--color-focus);
-    outline-offset: 2px;
+.editing:focus {
+    outline: var(--canvas-editor-hairline, 1px) solid var(--color-focus);
+    outline-offset: var(--canvas-editor-hairline-offset, 1px);
 }
 
 /* The edit surface is now a contentEditable div (to host inline decoration),

@@ -36,7 +36,7 @@
     animation: canvasElementHighlightIn 110ms ease-out both;
 }
 
-/* A selected field already owns a persistent tight lift. Raise the transient
+/* A selected field already owns a structural hairline. Raise the transient
    pointer-hover shadow by one pixel so both states remain legible without
    introducing a second outline or a coloured surface. */
 .elementHighlightSelected {

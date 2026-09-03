@@ -1,5 +1,5 @@
 /* Single DOM node for display + edit (contentEditable). No <input> swap, so
-   the baseline never jumps and the selection depth keeps hugging the glyphs. */
+   the baseline never jumps and editor chrome keeps hugging the glyphs. */
 .textElement {
     display: inline-block;
     box-sizing: border-box;
@@ -26,9 +26,10 @@
    changing their box model. Canvas paragraphs intentionally inherit a zero
    line-height for PDF parity, so a hover effect on the <p> itself would use a
    collapsed box. This pointer-inert pseudo-box follows the font size
-   and authored width instead. Selection/edit chrome owns the persistent depth,
-   and keyboard focus keeps the stronger blue accessibility ring. */
-.editorHoverOutline::after {
+   and authored width instead. The pseudo-box is shared with the edit-focus
+   hairline, but its shadow is enabled only by pointer hover. */
+.editorHoverOutline::after,
+.editing::after {
     content: "";
     position: absolute;
     left: -2px;
@@ -43,8 +44,14 @@
     transition: box-shadow var(--motion-fast, 120ms) var(--motion-easing, ease-out);
 }
 
-.editorHoverOutline:not(.selectedElement):not(.editing):not(:focus-visible):hover::after {
+.editorHoverOutline:not(.editing):hover::after {
     box-shadow: var(--canvas-shadow-editor-element, var(--shadow-editor-element));
+}
+
+.editing:focus::after {
+    outline: var(--canvas-editor-hairline, 1px) solid var(--color-focus);
+    outline-offset: var(--canvas-editor-hairline-offset, 1px);
+    box-shadow: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -78,6 +85,16 @@
    node is empty, so a filled label keeps hugging its glyphs exactly. */
 .textElement[data-placeholder]:empty {
     min-width: 4ch;
+    /* The global PDF-parity paragraph rule has a zero line box. Move a padded
+       hit area around the unchanged baseline so an empty CSS placeholder is a
+       real pointer target instead of visible, unclickable pseudo-content. */
+    min-height: 1.2em;
+    margin-top: -.67em;
+    padding-top: .67em;
+}
+
+.textElement[data-placeholder]:empty::after {
+    top: -2px;
 }
 
 .textElement[data-placeholder]:empty::before {

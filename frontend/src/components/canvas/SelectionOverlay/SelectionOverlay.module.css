@@ -5,36 +5,36 @@
     z-index: var(--z-editor-affordance);
 }
 
-/* Selection is editor-only depth, not authored document decoration. The tight
-   neutral shadow matches Textarea's edit surface without changing geometry or
-   borrowing a colour from the active CV template. */
+/* Selection is editor-only structure, not authored document decoration. A
+   zoom-compensated hairline stays legible without the persistent depth that is
+   reserved for pointer hover. */
 .frame {
     position: absolute;
     box-sizing: border-box;
-    border: 0;
+    border: var(--canvas-editor-hairline, 1px) solid var(--color-accent);
     border-radius: 0;
     background: transparent;
-    box-shadow: var(--canvas-shadow-editor-element, var(--shadow-editor-element));
+    box-shadow: none;
     animation: selectIn 160ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .frameMulti {
-    box-shadow: var(--canvas-shadow-editor-element, var(--shadow-editor-element));
+    box-shadow: none;
 }
 
 .frameMoving {
-    border: 0;
+    border-color: var(--color-focus);
     background: transparent;
-    box-shadow: var(--canvas-shadow-editor-active, var(--shadow-editor-active));
+    box-shadow: none;
 }
 
 .groupFrame {
     position: absolute;
     box-sizing: border-box;
-    border: 0;
+    border: var(--canvas-editor-hairline, 1px) dashed var(--color-focus);
     border-radius: 0;
     background: transparent;
-    box-shadow: var(--canvas-shadow-editor-entry, var(--shadow-editor-entry));
+    box-shadow: none;
 }
 
 .badge {

@@ -1,9 +1,9 @@
 /**
  * Contextual structural toolbar for a template-mode section heading.
  *
- * Heading hover or keyboard focus reveals a grouped toolbar in the A4 gutter
- * and a tighter depth cue around the exact heading. Plain body hover/focus keeps
- * the complete section lift visible without opening controls. Add/reorder remain
+ * Heading hover or keyboard focus reveals a grouped toolbar in the A4 gutter;
+ * pointer hover also adds a tighter depth cue around the exact heading. Plain
+ * body hover keeps the complete section lift visible without opening controls. Add/reorder remain
  * direct; layout, transfer, and destructive actions live in the overflow menu,
  * keeping editor chrome out of the CV content and exported document.
  */
@@ -99,9 +99,9 @@ export default function SectionRecordAdd({
   const nextHeading = nextHeadingId
     ? A4_Elements.find((element) => element.element_id === nextHeadingId)
     : null;
-  // A selected heading remains a structural hover target while it is edited.
-  // Selection owns its persistent depth; this component adds only transient
-  // section and exact-heading hover context around it.
+  // A selected heading remains a structural action target while it is edited.
+  // Focus keeps the toolbar keyboard-accessible, while pointer state alone
+  // controls the transient section and exact-heading depth shadows.
   const eligible = editorMode === EDITOR_MODE_TEMPLATE;
   const exclusiveKey = `heading:${headingId}`;
   const triggerRevision = [
@@ -145,20 +145,17 @@ export default function SectionRecordAdd({
     nodes.forEach((node) => {
       node.addEventListener("pointerenter", showContext);
       node.addEventListener("pointerleave", hideContext);
-      node.addEventListener("focusin", showContext);
-      node.addEventListener("focusout", hideContext);
     });
     return () => {
       nodes.forEach((node) => {
         node.removeEventListener("pointerenter", showContext);
         node.removeEventListener("pointerleave", hideContext);
-        node.removeEventListener("focusin", showContext);
-        node.removeEventListener("focusout", hideContext);
       });
     };
   }, [contentHoverKey, contentHoverRevision, eligible]);
 
-  const sectionContextVisible = visible || contentHoverActive;
+  const sectionHoverVisible = hoveredTriggerId === headingId || contentHoverActive;
+  const sectionMeasurementVisible = visible || contentHoverActive;
 
   // A section can move while an open overflow menu keeps this toolbar pinned.
   // Key the post-commit measurement to the exact model geometry so a Range
@@ -171,7 +168,7 @@ export default function SectionRecordAdd({
   const [renderedHeadingMeasurement, setRenderedHeadingMeasurement] = useState(null);
 
   useLayoutEffect(() => {
-    if (!sectionContextVisible || !heading) return;
+    if (!sectionMeasurementVisible || !heading) return;
     // React has committed Text/Textarea coordinates by this point. Measuring
     // inside render would still see the previous reorder/transfer position and
     // is the root cause of neighbouring section highlights being merged.
@@ -193,7 +190,7 @@ export default function SectionRecordAdd({
           nextHeadingBounds,
         }
     ));
-  }, [heading, headingMeasurementKey, nextHeading, sectionContextVisible]);
+  }, [heading, headingMeasurementKey, nextHeading, sectionMeasurementVisible]);
 
   if (!eligible) return null;
 
@@ -228,7 +225,7 @@ export default function SectionRecordAdd({
   // Merge only a measurement associated with the current committed geometry.
   // Reapply both lane-local limits after the union; the live heading may extend
   // the top slightly for line-height:1 ink, but it cannot absorb a neighbour.
-  const resolvedHighlight = sectionContextVisible
+  const resolvedHighlight = sectionMeasurementVisible
     ? includeRenderedBounds(
       storedHighlight,
       currentMeasurement?.headingBounds,
@@ -300,7 +297,7 @@ export default function SectionRecordAdd({
     <CanvasHoverToolbar
       toolbarKey={exclusiveKey}
       visible={visible}
-      highlightVisible={sectionContextVisible}
+      highlightVisible={sectionHoverVisible}
       side="right"
       anchorX={toolbarAnchorX}
       top={toolbarTop}

@@ -74,9 +74,9 @@ export default function RecordBlockAdd({
   const triggerElements = triggerIds
     .map((triggerId) => A4_Elements.find((element) => element.element_id === triggerId))
     .filter(Boolean);
-  // Selection and inline editing are independent from structural hover. In
+  // Selection and inline editing are independent from structural discovery. In
   // template mode one click starts editing, so excluding an editing field here
-  // would remove the complete record depth cue exactly when the user selects it.
+  // would also make its keyboard-accessible record actions disappear.
   const eligible = editorMode === EDITOR_MODE_TEMPLATE
     && elementSupportsRecordBlockAdd(A4_Elements, elementId, pageHeight);
   const exclusiveKey = `record:${elementId}`;
@@ -204,6 +204,9 @@ export default function RecordBlockAdd({
     <CanvasHoverToolbar
       toolbarKey={exclusiveKey}
       visible={visible}
+      // Keyboard focus keeps actions reachable, but only a pointer hover may
+      // cast the record/element depth shadows around authored content.
+      highlightVisible={Boolean(hoveredTriggerId)}
       side="left"
       anchorX={toolbarAnchorX}
       top={toolbarTop}
