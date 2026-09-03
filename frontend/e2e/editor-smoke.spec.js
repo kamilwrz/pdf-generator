@@ -180,6 +180,8 @@ test.describe("CV Studio editor smoke", () => {
     // The keyed anchor is intentionally zero-sized; the toolbar itself is
     // portalled outside the scaled A4 page and is the visible contract.
     await expect(moreActions).toBeVisible();
+    const recordControlBox = await moreActions.boundingBox();
+    expect(Math.abs(recordControlBox.height - 28.8)).toBeLessThan(0.2);
     await moreActions.evaluate((button) => button.click());
     await recordToolbar.getByRole("menuitem", { name: "Usuń wpis" }).click();
 
@@ -261,7 +263,10 @@ test.describe("CV Studio editor smoke", () => {
     // canvas toolbar so this regression remains about modal chip geometry.
     await page.locator("#skills-heading").dispatchEvent("pointerenter");
     const sectionToolbar = page.locator('[data-canvas-toolbar-key="heading:skills-heading"]');
-    await sectionToolbar.getByRole("button", { name: "Więcej działań" }).click();
+    const sectionMoreActions = sectionToolbar.getByRole("button", { name: "Więcej działań" });
+    const sectionControlBox = await sectionMoreActions.boundingBox();
+    expect(Math.abs(sectionControlBox.height - 28.8)).toBeLessThan(0.2);
+    await sectionMoreActions.click();
     await sectionToolbar.getByRole("menuitem", { name: "Styl umiejętności: w linii" }).click();
     const modal = page.getByRole("dialog", { name: "Styl umiejętności" });
     await modal.getByRole("button", { name: /^Chipsy/ }).click();
@@ -308,11 +313,11 @@ test.describe("CV Studio editor smoke", () => {
       '[data-canvas-toolbar-key^="skills-entry:skills-heading:"]',
     ).getByRole("button", { name: "Dodaj umiejętność" });
     await expect(chipAddButton).toBeVisible();
-    const chipToolbarGap = await chipAddButton.evaluate((button, shapeBottom) => {
-      const toolbar = button.parentElement;
-      return toolbar.getBoundingClientRect().top - shapeBottom;
+    const chipToolbarEdgeDelta = await chipAddButton.evaluate((button, shapeBottom) => {
+      const buttonRect = button.getBoundingClientRect();
+      return buttonRect.top + buttonRect.height / 2 - shapeBottom;
     }, chipGeometry.shapeBottom);
-    expect(Math.abs(chipToolbarGap - 8)).toBeLessThan(1);
+    expect(Math.abs(chipToolbarEdgeDelta)).toBeLessThan(1);
 
     await emptyChip.focus();
     const emptyGroupToolbar = page.locator(

@@ -10,22 +10,22 @@ import {
 
 test("keeps the compact structural toolbar screen-stable across canvas zoom", () => {
   assert.deepEqual(structuralToolbarLayoutSize(1), {
-    buttonSize: 36,
-    iconSize: 15,
-    gap: 3,
-    labelWidth: 76,
-    fontSize: 10.5,
-    menuWidth: 176,
+    buttonSize: 28.8,
+    iconSize: 12,
+    gap: 2.4,
+    labelWidth: 60.8,
+    fontSize: 8.4,
+    menuWidth: 140.8,
     offset: 10,
     borderWidth: 1,
   });
   assert.deepEqual(structuralToolbarLayoutSize(2), {
-    buttonSize: 18,
-    iconSize: 7.5,
-    gap: 1.5,
-    labelWidth: 38,
-    fontSize: 5.25,
-    menuWidth: 88,
+    buttonSize: 14.4,
+    iconSize: 6,
+    gap: 1.2,
+    labelWidth: 30.4,
+    fontSize: 4.2,
+    menuWidth: 70.4,
     offset: 5,
     borderWidth: 0.5,
   });
@@ -35,8 +35,8 @@ test("shares the language-sized compact inline toolbar with Skills", () => {
   assert.deepEqual(compactInlineToolbarLayoutSize(1), {
     buttonSize: 28.8,
     iconSize: 12,
-    gap: 2.4000000000000004,
-    labelWidth: 60.800000000000004,
+    gap: 2.4,
+    labelWidth: 60.8,
     fontSize: 8.4,
     menuWidth: 140.8,
     offset: 8,

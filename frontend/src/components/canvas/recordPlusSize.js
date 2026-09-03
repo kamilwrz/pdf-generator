@@ -17,6 +17,13 @@ const TARGET_ICON_SCREEN_PX = 14;
 /** Desired on-screen gap between clustered controls in CSS pixels. */
 const TARGET_GAP_SCREEN_PX = 6;
 
+/** Visual scale requested for grouped section and record toolbars. */
+export const STRUCTURAL_TOOLBAR_VISUAL_SCALE = 0.8;
+
+function scaledStructuralValue(value, zoom) {
+  return Number((value * STRUCTURAL_TOOLBAR_VISUAL_SCALE).toFixed(4)) / zoom;
+}
+
 /** Screen-space gap between a section toolbar and its heading anchor. */
 export const SECTION_TOOLBAR_OFFSET_SCREEN_PX = 34;
 
@@ -59,12 +66,12 @@ export function structuralToolbarLayoutSize(zoom = 1, offsetScreenPx = 10) {
     ? Number(offsetScreenPx)
     : 10;
   return {
-    buttonSize: 36 / safeZoom,
-    iconSize: 15 / safeZoom,
-    gap: 3 / safeZoom,
-    labelWidth: 76 / safeZoom,
-    fontSize: 10.5 / safeZoom,
-    menuWidth: 176 / safeZoom,
+    buttonSize: scaledStructuralValue(36, safeZoom),
+    iconSize: scaledStructuralValue(15, safeZoom),
+    gap: scaledStructuralValue(3, safeZoom),
+    labelWidth: scaledStructuralValue(76, safeZoom),
+    fontSize: scaledStructuralValue(10.5, safeZoom),
+    menuWidth: scaledStructuralValue(176, safeZoom),
     // The page transform scales this layout value back into an exact visual
     // gap, so section and record toolbars keep their own rhythm at every zoom.
     offset: safeOffset / safeZoom,
@@ -83,9 +90,22 @@ export function structuralToolbarLayoutSize(zoom = 1, offsetScreenPx = 10) {
  * @returns {{buttonSize:number,iconSize:number,gap:number,labelWidth:number,fontSize:number,menuWidth:number,offset:number,borderWidth:number}}
  */
 export function compactInlineToolbarLayoutSize(zoom = 1) {
-  return Object.fromEntries(
-    Object.entries(structuralToolbarLayoutSize(zoom)).map(([key, value]) => [key, value * 0.8]),
-  );
+  const safeZoom = Number.isFinite(Number(zoom)) && Number(zoom) > 0.05
+    ? Number(zoom)
+    : 1;
+  // Languages and Skills already use the requested 80% visual treatment.
+  // Keep that established geometry independent from future changes to the
+  // grouped section/record toolbar so inline controls do not shrink twice.
+  return {
+    buttonSize: 28.8 / safeZoom,
+    iconSize: 12 / safeZoom,
+    gap: 2.4 / safeZoom,
+    labelWidth: 60.8 / safeZoom,
+    fontSize: 8.4 / safeZoom,
+    menuWidth: 140.8 / safeZoom,
+    offset: 8 / safeZoom,
+    borderWidth: 0.8 / safeZoom,
+  };
 }
 
 /**

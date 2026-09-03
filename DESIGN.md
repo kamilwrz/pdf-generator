@@ -184,6 +184,7 @@ Use a 4px base unit and the scale `4, 8, 12, 16, 24, 32, 48, 64, 96`. Prefer the
 
 - Minimum pointer target: 44×44px when space allows; never below 36×36px for dense editor controls.
 - Standard control height: 44px. Compact editor control height: 36px.
+- Contextual section and record toolbars on the A4 canvas are the narrow exception: their complete visual geometry is 80% of the 36px compact editor control (28.8px on screen), while keyboard access and persistent panel alternatives remain available.
 - Page gutters: 16px compact, 24px tablet, 32–48px wide screens.
 - Section gaps: 48–96px on narrative pages; 16–32px inside working surfaces.
 - Borders: normally 1px. Use 2px for strong selected states or focus visibility, not decoration.

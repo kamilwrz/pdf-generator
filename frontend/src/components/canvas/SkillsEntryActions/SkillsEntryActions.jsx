@@ -19,7 +19,6 @@ import classes from "./SkillsEntryActions.module.css";
  * @param {{
  *   headingId:string,
  *   groupId:string,
- *   mode:"inline"|"bullet"|"chips",
  *   categoryLabel?:string,
  *   triggerIds:string[],
  *   left:number,
@@ -31,7 +30,6 @@ import classes from "./SkillsEntryActions.module.css";
 export default function SkillsEntryActions({
   headingId,
   groupId,
-  mode,
   categoryLabel = "",
   triggerIds,
   left,
@@ -162,7 +160,6 @@ export default function SkillsEntryActions({
   const layout = compactInlineToolbarLayoutSize(safeZoom);
   const toolbarTop = resolveSkillsEntryToolbarTop({
     bottom,
-    mode,
     formOpen,
     zoom: safeZoom,
     layout,

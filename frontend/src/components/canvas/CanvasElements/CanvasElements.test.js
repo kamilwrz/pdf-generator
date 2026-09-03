@@ -79,7 +79,7 @@ test("main-column Skills groups mount their dedicated add form anchors", async (
   assert.match(source, /listSkillsEntryAnchors\(documentElements, pageHeight\)/);
   assert.match(source, /skillsEntryAnchorsById\.get\(element\.element_id\)/);
   assert.match(source, /<SkillsEntryActions/);
-  assert.match(source, /mode=\{skillsEntryAnchor\.mode\}/);
+  assert.doesNotMatch(source, /mode=\{skillsEntryAnchor\.mode\}/);
   assert.match(source, /groupId=\{skillsEntryAnchor\.groupId\}/);
   assert.match(source, /triggerIds=\{skillsEntryAnchor\.triggerIds\}/);
   assert.doesNotMatch(source, /addOnly=\{blockAnchor\.addOnly\}/);

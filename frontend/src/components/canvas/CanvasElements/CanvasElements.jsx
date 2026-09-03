@@ -483,7 +483,6 @@ export default function CanvasElements({ elements, spreadSide = null }) {
             <SkillsEntryActions
               headingId={skillsEntryAnchor.headingId}
               groupId={skillsEntryAnchor.groupId}
-              mode={skillsEntryAnchor.mode}
               categoryLabel={skillsEntryAnchor.categoryLabel}
               triggerIds={skillsEntryAnchor.triggerIds}
               left={skillsEntryAnchor.left}
@@ -550,7 +549,6 @@ export default function CanvasElements({ elements, spreadSide = null }) {
             <SkillsEntryActions
               headingId={skillsEntryAnchor.headingId}
               groupId={skillsEntryAnchor.groupId}
-              mode={skillsEntryAnchor.mode}
               categoryLabel={skillsEntryAnchor.categoryLabel}
               triggerIds={skillsEntryAnchor.triggerIds}
               left={skillsEntryAnchor.left}
