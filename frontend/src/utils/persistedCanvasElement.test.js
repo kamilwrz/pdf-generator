@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { lindenTemplate } from "../templates/linden.js";
 import { slateTemplate } from "../templates/slate.js";
 import { applyChannelRelayout } from "./contactBandOps.js";
 import { hydratePersistedCanvasElement } from "./persistedCanvasElement.js";
@@ -16,6 +17,7 @@ import {
   showProfilePhoto,
 } from "./profilePhotoVisibility.js";
 import { applySlatePalette } from "./slateAppearance.js";
+import { listDocumentSections, listSidebarSections } from "./sectionStructure.js";
 
 const COLUMN_KEYS = [
   "element_id", "category", "page", "left", "top", "width", "height",
@@ -180,6 +182,69 @@ test("saved custom grid keeps add/delete semantics and fixed geometry after reop
     removed.elements.find((element) => element.element_id === "grid-cell-2").left,
     84,
   );
+});
+
+test("saved Linden keeps Languages in the sidebar structure after reopening", () => {
+  const reopened = withIds(lindenTemplate)
+    .map(persistedRow)
+    .map(hydratePersistedCanvasElement);
+  const sidebarTitles = listSidebarSections(reopened).map((section) => section.title);
+  const mainTitles = listDocumentSections(reopened).map((section) => section.title);
+
+  assert.ok(sidebarTitles.includes("JĘZYKI"));
+  assert.equal(mainTitles.includes("JĘZYKI"), false);
+  const languageHeading = reopened.find((element) => element.content === "JĘZYKI");
+  assert.equal(languageHeading.flowLane, "sidebar");
+  assert.equal(languageHeading.flowRole, "sidebar-chrome");
+});
+
+test("saved hidden Linden restores sidebar sections added before reopening", () => {
+  const source = withIds(lindenTemplate);
+  const hiddenResult = hideProfilePhoto(source, "linden");
+  const relaid = applyChannelRelayout(
+    hiddenResult.elements,
+    hiddenResult.contactBandId,
+    (value) => String(value || "").length * 5,
+    (part) => `persisted-linden-${part}`,
+  ).elements;
+  const hidden = alignSidebarAfterProfileContacts(
+    relaid,
+    hiddenResult.contactBandId,
+    "linden",
+  );
+  const anchor = hidden.find((element) => (
+    element.flowRole === "masthead-anchor"
+    && element.contactBandId === hiddenResult.contactBandId
+  ));
+  const sidebarShift = Number(anchor.photoLayoutHome?.sidebarShift);
+  assert.ok(Number.isFinite(sidebarShift) && Math.abs(sidebarShift) > 0);
+
+  const addedTop = 730;
+  const saved = [
+    ...hidden,
+    {
+      element_id: "saved-hidden-linden-section",
+      category: "text",
+      content: "CERTYFIKATY",
+      page: 1,
+      left: 34,
+      top: addedTop,
+      width: 120,
+      height: 12,
+      flowRole: "sidebar-chrome",
+      flowLane: "sidebar",
+    },
+  ]
+    .map(persistedRow)
+    .map(hydratePersistedCanvasElement);
+
+  const shown = showProfilePhoto(saved, "linden").elements;
+  const restored = shown.find((element) => (
+    element.element_id === "saved-hidden-linden-section"
+  ));
+  assert.equal(restored.top, addedTop - sidebarShift);
+  assert.equal(restored.photoLayoutHome, undefined);
+  assert.ok(listSidebarSections(shown).some((section) => section.title === "JĘZYKI"));
 });
 
 test("saved hidden Slate hydrates every semantic field and restores exact geometry", () => {

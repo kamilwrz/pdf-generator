@@ -229,6 +229,141 @@ describe("profile photo visibility", () => {
     );
   });
 
+  it("keeps Linden's latest visible-contact layout across a later hide/show cycle", () => {
+    const source = withIds(lindenTemplate).filter((element) => (
+      !["github", "website"].includes(element.contactChannel)
+    ));
+    const relaidVisible = applyChannelRelayout(
+      source,
+      "linden-contact",
+      (text) => String(text).length * 5,
+      () => "unused-id",
+    ).elements;
+    const visible = alignSidebarAfterProfileContacts(
+      relaidVisible,
+      "linden-contact",
+      "linden",
+    );
+    const visibleSidebarGeometry = visible
+      .filter((element) => (
+        (element.flowLane === "sidebar" || element.flowRole === "sidebar-chrome")
+        && !element.fixedToPage
+        && !element.contactChannel
+      ))
+      .map((element) => [element.element_id, element.top]);
+
+    const hiddenResult = hideProfilePhoto(visible, "linden");
+    const hiddenRelaid = applyChannelRelayout(
+      hiddenResult.elements,
+      hiddenResult.contactBandId,
+      (text) => String(text).length * 5,
+      () => "unused-id",
+    ).elements;
+    const hidden = alignSidebarAfterProfileContacts(
+      hiddenRelaid,
+      hiddenResult.contactBandId,
+      "linden",
+    );
+    const shownResult = showProfilePhoto(hidden, "linden");
+    const shownRelaid = applyChannelRelayout(
+      shownResult.elements,
+      shownResult.contactBandId,
+      (text) => String(text).length * 5,
+      () => "unused-id",
+    ).elements;
+    const shown = alignSidebarAfterProfileContacts(
+      shownRelaid,
+      shownResult.contactBandId,
+      "linden",
+    );
+    const shownSidebarGeometry = shown
+      .filter((element) => (
+        (element.flowLane === "sidebar" || element.flowRole === "sidebar-chrome")
+        && !element.fixedToPage
+        && !element.contactChannel
+      ))
+      .map((element) => [element.element_id, element.top]);
+
+    assert.deepEqual(shownSidebarGeometry, visibleSidebarGeometry);
+  });
+
+  for (const [templateId, template] of [["slate", slateTemplate], ["linden", lindenTemplate]]) {
+    it(`restores ${templateId}'s complete live sidebar after a section is added while the photo is hidden`, () => {
+      const source = withIds(template);
+      const hiddenResult = hideProfilePhoto(source, templateId);
+      const relaid = applyChannelRelayout(
+        hiddenResult.elements,
+        hiddenResult.contactBandId,
+        (text) => String(text).length * 5,
+        () => "unused-id",
+      ).elements;
+      const hidden = alignSidebarAfterProfileContacts(
+        relaid,
+        hiddenResult.contactBandId,
+        templateId,
+      );
+      const hiddenAnchor = hidden.find((element) => element.contactBandId === hiddenResult.contactBandId
+        && element.flowRole === "masthead-anchor");
+      const shift = Number(hiddenAnchor.photoLayoutHome?.sidebarShift);
+      assert.ok(Number.isFinite(shift) && Math.abs(shift) > 0);
+
+      const currentSidebarBottom = Math.max(...hidden
+        .filter((element) => (
+          (element.flowLane === "sidebar" || element.flowRole === "sidebar-chrome")
+          && !element.fixedToPage
+          && !element.contactChannel
+          && (Number(element.page) || 1) === 1
+        ))
+        .map((element) => Number(element.top) + (Number(element.height) || 0)));
+      const added = [
+        ...hidden,
+        {
+          element_id: `${templateId}-added-heading`,
+          category: "text",
+          content: "NOWA SEKCJA",
+          flowRole: "sidebar-chrome",
+          flowLane: "sidebar",
+          page: 1,
+          left: 34,
+          top: currentSidebarBottom + 24,
+          fontSize: 9,
+        },
+        {
+          element_id: `${templateId}-added-body`,
+          category: "textarea",
+          content: "Nowy wpis",
+          flowRole: "content",
+          flowLane: "sidebar",
+          page: 1,
+          left: 34,
+          top: currentSidebarBottom + 44,
+          width: 120,
+          height: 14,
+          fontSize: 8,
+        },
+      ];
+      const hiddenGeometry = new Map(added
+        .filter((element) => (
+          (element.flowLane === "sidebar" || element.flowRole === "sidebar-chrome")
+          && !element.fixedToPage
+          && !element.contactChannel
+          && (Number(element.page) || 1) === 1
+        ))
+        .map((element) => [element.element_id, Number(element.top)]));
+
+      const shown = showProfilePhoto(added, templateId).elements;
+      for (const [elementId, hiddenTop] of hiddenGeometry) {
+        const restored = shown.find((element) => element.element_id === elementId);
+        assert.equal(restored.top, hiddenTop - shift);
+        assert.equal(restored.photoLayoutHome, undefined);
+      }
+      assert.ok(
+        shown.find((element) => element.element_id === `${templateId}-added-heading`).top
+        < shown.find((element) => element.element_id === `${templateId}-added-body`).top,
+      );
+    });
+  }
+
   it("hides legacy Slate photo chrome that predates ornament tags", () => {
     const legacy = withIds(slateTemplate).map((element) => {
       if (element.photoSlot !== "ornament") return element;

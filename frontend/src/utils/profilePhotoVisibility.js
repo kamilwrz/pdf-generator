@@ -2,8 +2,9 @@
  * Reversible profile-photo visibility operations for templates whose masthead
  * geometry has an explicit product contract.
  *
- * Slot elements stay in document state while hidden. This preserves the exact
- * authored geometry and makes show/hide lossless across undo, save, and reload.
+ * Slot elements stay in document state while hidden. This preserves the
+ * authored layout and makes show/hide lossless across undo, save, reload, and
+ * structural edits performed while the slot is hidden.
  * Slate and Tessera store the original contact-band descriptor on its
  * zero-size anchor, then switch the band to a one-row-per-channel sidebar
  * layout. Slate additionally materializes a palette-aware contact heading in
@@ -78,6 +79,44 @@ function contactAnchor(elements) {
     && element.contactBandId
     && element.contactBand
   )) || null;
+}
+
+/**
+ * Identify page-one rail content owned by the structural sidebar packer.
+ *
+ * Contact rows and fixed template chrome have independent layout contracts.
+ * Only ordinary sidebar sections participate in the uniform photo transition.
+ */
+function isPageOneSidebarFlowElement(element) {
+  return Boolean(
+    (Number(element?.page) || 1) === 1
+    && !element?.fixedToPage
+    && !element?.contactChannel
+    && (element?.flowLane === "sidebar" || element?.flowRole === "sidebar-chrome")
+    && Number.isFinite(Number(element?.top)),
+  );
+}
+
+/**
+ * Read the accumulated rail translation recorded on the contact anchor.
+ *
+ * Older hidden documents predate the anchor-level value, so their first
+ * shifted section still provides a compatible fallback through its existing
+ * `photoLayoutHome.top` snapshot.
+ */
+function profilePhotoSidebarShift(elements, anchor) {
+  const recordedValue = anchor?.photoLayoutHome?.sidebarShift;
+  const recorded = recordedValue == null ? Number.NaN : Number(recordedValue);
+  if (Number.isFinite(recorded)) return recorded;
+
+  const legacyMember = (elements || [])
+    .filter((element) => (
+      isPageOneSidebarFlowElement(element)
+      && Number.isFinite(Number(element.photoLayoutHome?.top))
+    ))
+    .sort((left, right) => Number(left.top) - Number(right.top))[0];
+  if (!legacyMember) return null;
+  return Number(legacyMember.top) - Number(legacyMember.photoLayoutHome.top);
 }
 
 function isSlateContactHeader(element) {
@@ -404,7 +443,28 @@ export function alignSidebarAfterProfileContacts(elements, bandId, templateId) {
   const shift = sectionFloor - sidebarStart;
   if (Math.abs(shift) < 0.01) return list;
 
+  // Record one accumulated translation on the stable contact anchor. Sidebar
+  // sections can be added, removed, reordered, or remeasured while the photo
+  // is hidden; restoring per-element snapshots would then mix old coordinates
+  // with new hidden-state coordinates. Reversing this single translation for
+  // every current rail member preserves the live relative layout instead.
+  const recordsPhotoTransition = isProfilePhotoHidden(list);
+  const previousShiftValue = anchor?.photoLayoutHome?.sidebarShift;
+  const previousShift = previousShiftValue == null
+    ? Number.NaN
+    : Number(previousShiftValue);
+  const accumulatedShift = (Number.isFinite(previousShift) ? previousShift : 0) + shift;
+
   return list.map((element) => {
+    if (recordsPhotoTransition && element.element_id === anchor?.element_id) {
+      return {
+        ...element,
+        photoLayoutHome: {
+          ...(element.photoLayoutHome || {}),
+          sidebarShift: accumulatedShift,
+        },
+      };
+    }
     const top = Number(element.top);
     if (
       (Number(element.page) || 1) !== 1
@@ -506,14 +566,26 @@ export function showProfilePhoto(elements, templateId) {
   const source = id === "slate"
     ? (elements || []).filter((element) => !isSlateContactHeader(element))
     : (elements || []);
+  const sourceAnchor = contactAnchor(source);
+  const sidebarShift = profilePhotoSidebarShift(source, sourceAnchor);
   const next = source.map((element) => {
     let updated = isSlotMember(element, id)
       ? { ...element, photoSlotHidden: false }
       : element;
 
     if (updated.photoLayoutHome) {
+      const home = updated.photoLayoutHome;
       const { photoLayoutHome: _home, ...rest } = updated;
-      updated = { ...rest, top: updated.photoLayoutHome.top };
+      updated = Number.isFinite(sidebarShift) && isPageOneSidebarFlowElement(updated)
+        ? { ...rest, top: Number(updated.top) - sidebarShift }
+        : Number.isFinite(Number(home.top))
+          ? { ...rest, top: Number(home.top) }
+          : rest;
+    } else if (Number.isFinite(sidebarShift) && isPageOneSidebarFlowElement(updated)) {
+      // New sections created while the slot was hidden have no individual
+      // home snapshot. They still belong to the same rail translation and
+      // must return with their neighbours when the photo is shown again.
+      updated = { ...updated, top: Number(updated.top) - sidebarShift };
     }
     if (updated.profilePhotoMainContactBand) {
       const descriptor = clone(updated.profilePhotoMainContactBand);
