@@ -2088,3 +2088,114 @@ test("a languages grid row measured cell-by-cell never splits across a page brea
   assert.equal(pages.size, 1, "the whole row shares one page after the mount cascade");
   assert.equal(byId["lang-0"].top, byId["lang-2"].top, "row stays aligned after the cascade");
 });
+
+test("a languages grid row keeps the following section strip intact while cells settle", () => {
+  const group = "languages-row";
+  const base = () => ([
+    { element_id: "languages-heading", category: "text", flowRole: "section-chrome", content: "JĘZYKI", left: 84, top: 100, fontSize: 9, height: 14, page: 1 },
+    { element_id: "languages-rule", category: "line", flowRole: "section-chrome", left: 84, top: 118, width: 466, height: 1, page: 1 },
+    // IDs deliberately do not follow column order. Same-top elements are sorted
+    // lexically during reflow, so geometry must not depend on generated IDs.
+    { element_id: "z-language-left", category: "textarea", flowRole: "grid-member", flowGroup: group, gridKind: "languages", content: "Polski · C2", left: 84, top: 127, width: 108, height: 19, fontSize: 9, lineHeight: 13, autoHeight: true, page: 1 },
+    { element_id: "a-language-middle", category: "textarea", flowRole: "grid-member", flowGroup: group, gridKind: "languages", content: "Niemiecki · C1", left: 200.5, top: 127, width: 108, height: 19, fontSize: 9, lineHeight: 13, autoHeight: true, page: 1 },
+    { element_id: "m-language-right", category: "textarea", flowRole: "grid-member", flowGroup: group, gridKind: "languages", content: "Angielski · B2", left: 317, top: 127, width: 108, height: 19, fontSize: 9, lineHeight: 13, autoHeight: true, page: 1 },
+    // Backend-generated section headings may omit width. Reflow must still use
+    // the whole grid-row lane instead of only the measured cell's narrow lane.
+    { element_id: "skills-heading", category: "text", flowRole: "section-chrome", content: "UMIEJĘTNOŚCI (KATEGORIE)", left: 84, top: 167, fontSize: 9, height: 14, page: 1 },
+    { element_id: "skills-accent", category: "line", flowRole: "section-chrome", left: 84, top: 185, width: 18, height: 1, page: 1 },
+    { element_id: "skills-rule", category: "line", flowRole: "section-chrome", left: 84, top: 185, width: 466, height: 1, page: 1 },
+    { element_id: "skills-body", category: "textarea", flowRole: "content", content: "Kategoria umiejętności", left: 84, top: 194, width: 466, height: 19, autoHeight: true, page: 1 },
+  ]);
+  const downstreamGeometry = (elements) => Object.fromEntries(
+    ["skills-heading", "skills-accent", "skills-rule", "skills-body"].map((id) => {
+      const element = elements.find((candidate) => candidate.element_id === id);
+      return [id, { page: element.page, top: element.top }];
+    }),
+  );
+
+  // Another 19px-tall cell still owns the row bottom, so settling the rightmost
+  // cell must not move any fragment of the following section.
+  const first = reflowTextareaHeight(base(), "m-language-right", 13, 842, {
+    pageTop: 66,
+    bottomMargin: 72,
+  });
+  assert.deepEqual(downstreamGeometry(first.elements), downstreamGeometry(base()));
+
+  // Browser layout effects can settle the cells in either order. The last
+  // tallest cell shrinks the row exactly once and every downstream fragment
+  // receives the same translation, preserving heading/rule/body rhythm.
+  for (const order of [
+    ["z-language-left", "a-language-middle", "m-language-right"],
+    ["m-language-right", "a-language-middle", "z-language-left"],
+  ]) {
+    let elements = base();
+    for (const id of order) {
+      elements = reflowTextareaHeight(elements, id, 13, 842, {
+        pageTop: 66,
+        bottomMargin: 72,
+      }).elements;
+    }
+
+    assert.deepEqual(downstreamGeometry(elements), {
+      "skills-heading": { page: 1, top: 161 },
+      "skills-accent": { page: 1, top: 179 },
+      "skills-rule": { page: 1, top: 179 },
+      "skills-body": { page: 1, top: 188 },
+    });
+  }
+});
+
+test("legacy grid rows with equal page-local tops remain separate across pages", () => {
+  const group = "legacy-multi-page-grid";
+  const result = reflowTextareaHeight([
+    { element_id: "target-row", category: "textarea", flowRole: "grid-member", flowGroup: group, content: "Polski · C2", left: 80, top: 66, width: 100, height: 19, page: 2, autoHeight: true },
+    { element_id: "continuation-row", category: "textarea", flowRole: "grid-member", flowGroup: group, content: "Niemiecki · C1", left: 80, top: 66, width: 100, height: 19, page: 3, autoHeight: true },
+    { element_id: "next-heading", category: "text", flowRole: "section-chrome", content: "UMIEJĘTNOŚCI", left: 80, top: 110, width: 400, height: 14, page: 3 },
+  ], "target-row", 13, 842, {
+    pageTop: 66,
+    bottomMargin: 72,
+    allowReclaim: false,
+  });
+  const byId = Object.fromEntries(result.elements.map((element) => [element.element_id, element]));
+
+  assert.deepEqual(
+    { page: byId["target-row"].page, top: byId["target-row"].top, height: byId["target-row"].height },
+    { page: 2, top: 66, height: 13 },
+  );
+  assert.deepEqual(
+    { page: byId["continuation-row"].page, top: byId["continuation-row"].top },
+    { page: 3, top: 66 },
+  );
+  assert.deepEqual(
+    { page: byId["next-heading"].page, top: byId["next-heading"].top },
+    { page: 3, top: 110 },
+  );
+});
+
+test("an atomically moved legacy grid advances from its tallest final-row cell", () => {
+  const group = "legacy-multi-row-grid";
+  const result = reflowTextareaHeight([
+    { element_id: "target", category: "textarea", flowRole: "grid-member", flowGroup: group, content: "a", left: 80, top: 740, width: 100, height: 10, page: 1, autoHeight: true },
+    { element_id: "row-1-peer", category: "textarea", flowRole: "grid-member", flowGroup: group, content: "b", left: 190, top: 740, width: 100, height: 10, page: 1, autoHeight: true },
+    { element_id: "a-row-2-tall", category: "textarea", flowRole: "grid-member", flowGroup: group, content: "c", left: 80, top: 755, width: 100, height: 30, page: 1, autoHeight: true },
+    { element_id: "z-row-2-short", category: "textarea", flowRole: "grid-member", flowGroup: group, content: "d", left: 190, top: 755, width: 100, height: 10, page: 1, autoHeight: true },
+    { element_id: "next-heading", category: "text", flowRole: "section-chrome", content: "NEXT", left: 80, top: 100, width: 400, height: 14, page: 2 },
+  ], "target", 20, 842, {
+    pageTop: 66,
+    bottomMargin: 72,
+    allowReclaim: false,
+    spacing: { stack: 4, record: 10, section: 21, after_rule: 8 },
+  });
+  const byId = Object.fromEntries(result.elements.map((element) => [element.element_id, element]));
+
+  assert.equal(byId.target.page, 2);
+  assert.equal(byId["row-1-peer"].top, 66);
+  assert.equal(byId["a-row-2-tall"].top, 81);
+  assert.equal(byId["z-row-2-short"].top, 81);
+  assert.equal(byId["next-heading"].top, 132);
+  assert.equal(
+    byId["next-heading"].top
+      - (byId["a-row-2-tall"].top + byId["a-row-2-tall"].height),
+    21,
+  );
+});

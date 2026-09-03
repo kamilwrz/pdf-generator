@@ -5,6 +5,8 @@ import {
   listGridSectionEntryAnchors,
   removeGridSectionEntry,
 } from "./gridSection.js";
+import { applyFlowSpacing } from "./sectionStructure.js";
+import { reflowTextareaHeight } from "./textareaReflow.js";
 
 const SPACING = { stack: 4, record: 10, section: 21, after_rule: 8 };
 
@@ -296,5 +298,80 @@ describe("removeGridSectionEntry", () => {
     ]);
     assert.equal(byId(result.elements, result.entryId).content, "Nowy wpis");
     assert.equal(byId(result.elements, result.entryId).gridKind, "entries");
+  });
+
+  it("restores downstream section geometry after a same-row language add and delete", () => {
+    const authored = [
+      heading("languages-heading", "JĘZYKI", 100, {
+        width: undefined,
+        gridColumns: 3,
+      }),
+      rule("languages-rule", 118, 466),
+      cell("lang-1", "Polski · C2", 84, 127, {
+        height: 13,
+        gridKind: "languages",
+        gridColumns: 3,
+        gridLeft: 84,
+        gridWidth: 466,
+      }),
+      cell("lang-2", "Niemiecki · C1", 239.3, 127, {
+        height: 13,
+        gridKind: "languages",
+        gridColumns: 3,
+        gridLeft: 84,
+        gridWidth: 466,
+      }),
+      heading("next-heading", "UMIEJĘTNOŚCI (KATEGORIE)", 161, { width: undefined }),
+      { ...rule("next-accent", 179, 18), left: 84 },
+      rule("next-rule", 179, 466),
+      {
+        element_id: "next-body",
+        category: "textarea",
+        content: "Kategoria umiejętności",
+        left: 84,
+        top: 188,
+        width: 466,
+        height: 13,
+        fontSize: 9,
+        lineHeight: 13,
+        page: 1,
+        autoHeight: true,
+        flowRole: "content",
+      },
+    ];
+    const initial = applyFlowSpacing(authored, SPACING, 842);
+    const stripGeometry = (elements) => Object.fromEntries(
+      ["next-heading", "next-accent", "next-rule", "next-body"].map((id) => {
+        const element = byId(elements, id);
+        return [id, { page: element.page, top: element.top }];
+      }),
+    );
+    const baseline = stripGeometry(initial);
+    const settle = (elements, ids) => ids.reduce((current, id) => (
+      reflowTextareaHeight(current, id, 13, 842, {
+        pageTop: 66,
+        bottomMargin: 72,
+        spacing: SPACING,
+      }).elements
+    ), elements);
+
+    const inserted = insertGridSectionEntry(initial, "lang-2", 842, {
+      spacing: SPACING,
+      idFactory: idFactory("round-trip"),
+    });
+    assert.ok(inserted);
+    const afterAdd = settle(
+      inserted.elements,
+      [inserted.entryId, "lang-2", "lang-1"],
+    );
+    assert.deepEqual(stripGeometry(afterAdd), baseline);
+
+    const removed = removeGridSectionEntry(afterAdd, inserted.entryId, 842, {
+      spacing: SPACING,
+      idFactory: idFactory("round-trip-remove"),
+    });
+    assert.ok(removed);
+    const afterDelete = settle(removed.elements, ["lang-1", "lang-2"]);
+    assert.deepEqual(stripGeometry(afterDelete), baseline);
   });
 });

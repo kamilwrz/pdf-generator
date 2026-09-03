@@ -80,6 +80,64 @@ function isGridMember(element) {
 }
 
 /**
+ * Resolve the horizontal lane and vertical envelope owned by the target's grid
+ * row. Auto-height cells are measured independently, but a row participates in
+ * document flow as one box: only a change to the row's tallest edge may move
+ * later content, and every fragment of the following section must use the
+ * row's complete horizontal span for lane membership.
+ *
+ * Legacy grids may share one `flowGroup` across several rows and pages. The
+ * whole group therefore supplies the horizontal lane, while row-height math
+ * uses an absolute-top match so equal page-local tops on different pages never
+ * become one page-spanning row.
+ */
+function gridRowFlowContext(elements, target, pageHeight) {
+  if (!isGridMember(target)) return null;
+  const group = flowGroupOf(target);
+  if (!group) return null;
+
+  const groupMembers = elements.filter((element) => (
+    isGridMember(element)
+    && flowGroupOf(element) === group
+  ));
+  const targetTop = absoluteTop(target, pageHeight);
+  const members = groupMembers.filter((element) => (
+    Math.abs(absoluteTop(element, pageHeight) - targetTop) <= 0.5
+  ));
+  if (members.length === 0) return null;
+
+  let left = Math.min(...groupMembers.map((member) => number(member.left)));
+  let right = Math.max(...groupMembers.map((member) => (
+    number(member.left) + elementWidth(member)
+  )));
+
+  // Structural grid operations persist the full frame on every cell. Prefer
+  // it when available so a partially filled row still owns the same lane as a
+  // full row; legacy generated documents fall back to the member union above.
+  for (const member of groupMembers) {
+    const gridLeft = Number(member.gridLeft);
+    const gridWidth = Number(member.gridWidth);
+    if (Number.isFinite(gridLeft) && Number.isFinite(gridWidth) && gridWidth > 0) {
+      left = Math.min(left, gridLeft);
+      right = Math.max(right, gridLeft + gridWidth);
+    }
+  }
+
+  const oldBottom = targetTop + Math.max(...members.map(elementHeight));
+
+  return {
+    laneTarget: {
+      ...target,
+      left,
+      width: Math.max(1, right - left),
+    },
+    members,
+    memberIds: new Set(members.map((member) => member.element_id)),
+    oldBottom,
+  };
+}
+
+/**
  * Whether `element` is a non-flowing decoration pinned to real content: either
  * a horizontal date/location rail or a section background that paints behind
  * a textarea without becoming a stacked content row of its own.
@@ -737,6 +795,8 @@ export function reflowTextareaHeight(
   const oldTargetTop = absoluteTop(target, safePageHeight);
   const oldTargetBottom = oldTargetTop + oldHeight;
   const originalTargetPage = pageOf(target);
+  const gridRow = gridRowFlowContext(elements, target, safePageHeight);
+  const flowLaneTarget = gridRow?.laneTarget || target;
 
   const precedingMates = precedingRecordMates(elements, target, safePageHeight);
   const followingMates = followingRecordMates(elements, target, safePageHeight);
@@ -780,9 +840,16 @@ export function reflowTextareaHeight(
   // + SPACE_RECORD let a grown "Nowa sekcja" snap back into the page-1 footer
   // even though heading+rule+body no longer fit.
   const recordGroup = flowGroupOf(target);
+  const chromeLaneTarget = gridRow
+    ? {
+      ...flowLaneTarget,
+      page: pageOf(recordAnchor),
+      top: number(recordAnchor.top),
+    }
+    : recordAnchor;
   const chromeBesideRecord = precedingChromeCluster(
     elements,
-    recordAnchor,
+    chromeLaneTarget,
     safePageHeight,
   );
   const chromeSpan = chromeBesideRecord.length > 0
@@ -798,7 +865,7 @@ export function reflowTextareaHeight(
     const prevPage = originalAnchorPage - 1;
     const prevBottomAbs = previousLaneContentBottom(
       elements,
-      target,
+      flowLaneTarget,
       safePageHeight,
       prevPage,
       recordGroup,
@@ -817,7 +884,7 @@ export function reflowTextareaHeight(
       ]);
       const blockedByIntervening = hasInterveningLaneContent(
         elements,
-        target,
+        flowLaneTarget,
         safePageHeight,
         prevBottomAbs,
         oldRecordTop,
@@ -915,8 +982,33 @@ export function reflowTextareaHeight(
   const placedTarget = placed.get(elementId);
   const newTargetTop = (pageOf(placedTarget) - 1) * safePageHeight + number(placedTarget.top);
   const newTargetBottom = newTargetTop + nextHeight;
+  // Same-page settling advances from the changed row. If the record crossed a
+  // page, every group mate was placed atomically and the cursor must instead
+  // use the complete record envelope; a shorter lexically-last cell must never
+  // collapse the gap below the tallest cell in its final row.
+  const gridCursorMembers = gridRow
+    ? (movedToDifferentPage ? placeCluster : gridRow.members)
+    : [];
+  const gridCursorMemberIds = new Set(
+    gridCursorMembers.map((member) => member.element_id),
+  );
+  const oldFlowBottom = gridRow
+    ? Math.max(
+      gridRow.oldBottom,
+      ...gridCursorMembers.map((member) => (
+        absoluteTop(member, safePageHeight) + elementHeight(member)
+      )),
+    )
+    : oldTargetBottom;
+  const newFlowBottom = gridRow
+    ? Math.max(...gridCursorMembers.map((member) => {
+      const nextMember = placed.get(member.element_id) || member;
+      return absoluteTop(nextMember, safePageHeight)
+        + heightFor(nextMember, elementId, nextHeight);
+    }))
+    : newTargetBottom;
   const oldClusterBottom = Math.max(
-    oldTargetBottom,
+    oldFlowBottom,
     ...placeCluster.map((mate) => absoluteTop(mate, safePageHeight) + elementHeight(mate)),
   );
 
@@ -930,7 +1022,7 @@ export function reflowTextareaHeight(
         placed.has(element.element_id)
         || (
           absoluteTop(element, safePageHeight) >= oldClusterBottom - 0.01
-          && belongsToFlowLane(target, element)
+          && belongsToFlowLane(flowLaneTarget, element)
         )
       )
     ))
@@ -949,18 +1041,22 @@ export function reflowTextareaHeight(
   // were already placed atomically.
   let previousOriginal = target;
   let previousPlacedTop = newTargetTop;
-  let previousPlacedBottom = newTargetBottom;
+  let previousPlacedBottom = newFlowBottom;
   let maxPage = targetPage;
   let activeGroupPage = null;
   // Content-only cursor for flowGroup continuity. Decorative chrome can sort
   // between record mates by `top` (Nimbus chip on the degree line); comparing
   // only against `previousOriginal` would treat the next mate as a new record.
   let lastContentGroup = isChromeLike(target) ? null : flowGroupOf(target);
-  let lastContentPlacedBottom = isChromeLike(target) ? null : newTargetBottom;
+  let lastContentPlacedBottom = isChromeLike(target) ? null : newFlowBottom;
 
   for (let index = targetIndex + 1; index < lane.length; index += 1) {
     const current = lane[index];
     if (placed.has(current.element_id)) {
+      // Same-row cells are already placed atomically. They must not become
+      // sequential cursor anchors: doing so made the result depend on random
+      // element-id sort order and applied one cell's delta to later sections.
+      if (gridCursorMemberIds.has(current.element_id)) continue;
       const already = placed.get(current.element_id);
       previousOriginal = current;
       previousPlacedTop = (pageOf(already) - 1) * safePageHeight + number(already.top);
@@ -1000,8 +1096,24 @@ export function reflowTextareaHeight(
       )
     );
 
+    // Older generated documents can tag every row of a grid with one shared
+    // flowGroup, including rows that deliberately continue at the top of a
+    // later page. When that complete group is taller than one page, shrinking
+    // an earlier row must not translate the authored continuation seam. Modern
+    // editor grids use one flowGroup per row and never enter this branch.
+    const preservesLegacyGridPageBreak = Boolean(
+      gridRow
+      && recordHeight > pageCapacity
+      && crossedPage
+      && isGridMember(current)
+      && group === recordGroup
+      && !gridRow.memberIds.has(current.element_id),
+    );
+
     let nextAbsolute;
-    if (crossedPage && !isGridMember(current)) {
+    if (preservesLegacyGridPageBreak) {
+      nextAbsolute = currentOriginalTop;
+    } else if (crossedPage && !isGridMember(current)) {
       // `page` fields can go briefly out of sync across independent reflow
       // passes (each auto-height textarea measures and settles on its own).
       // Before treating this as a genuine page-break seam, check whether the
@@ -1024,7 +1136,7 @@ export function reflowTextareaHeight(
           : packGapAfterPageBreak(current, pageTop, sectionPackGap, defaultPackGap)
       );
     } else if (previousOriginal.element_id === elementId) {
-      nextAbsolute = newTargetBottom + Math.max(0, currentOriginalTop - oldTargetBottom);
+      nextAbsolute = newFlowBottom + Math.max(0, currentOriginalTop - oldFlowBottom);
     } else {
       // Once the directly following element has moved by the target's height
       // delta, keep every later element's authored top-to-top rhythm. Mixing
