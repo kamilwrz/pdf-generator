@@ -3,7 +3,11 @@
  * produces a compact render-only copy. The editable element array is never
  * mutated or stripped, so empty guidance survives saving and reopening.
  */
-import { hideProfilePhoto } from "./profilePhotoVisibility.js";
+import { applyChannelRelayout } from "./contactBandOps.js";
+import {
+  alignSidebarAfterProfileContacts,
+  hideProfilePhoto,
+} from "./profilePhotoVisibility.js";
 import {
   listDocumentSections,
   listSidebarSections,
@@ -14,6 +18,36 @@ import {
   sidebarSectionElementIds,
 } from "./sectionStructure.js";
 import { finalizeStarterElements } from "./cvStarter.js";
+
+function contactBandIds(elements) {
+  return [...new Set((elements || [])
+    .filter((element) => (
+      element.flowRole === "masthead-anchor"
+      && element.contactBandId
+      && element.contactBand
+    ))
+    .map((element) => element.contactBandId))];
+}
+
+/**
+ * Rebuild every generated contact row from the current visible values.
+ *
+ * Backend generation initially lays out technical starter sentinels. Once the
+ * sentinels become empty editor fields, the same contact-band engine used by
+ * live typing must run again so centered/wrapping rows use placeholder widths.
+ * The sidebar alignment pass keeps Slate and Linden sections below their final
+ * contact stack after a photo-state transition.
+ */
+function reflowStarterContacts(source, templateId) {
+  let elements = source || [];
+  let generatedId = 0;
+  const createId = () => `starter-contact-reflow-${generatedId += 1}`;
+  for (const bandId of contactBandIds(elements)) {
+    elements = applyChannelRelayout(elements, bandId, null, createId).elements;
+    elements = alignSidebarAfterProfileContacts(elements, bandId, templateId);
+  }
+  return elements;
+}
 
 function fold(value) {
   return String(value || "")
@@ -103,7 +137,11 @@ export function applyStarterElementStructure(rawElements, cvData, templateId, pa
   }
 
   if (!structure.includePhoto) {
-    elements = hideProfilePhoto(elements, templateId).elements;
+    elements = hideProfilePhoto(
+      elements,
+      templateId,
+      (part) => `starter-photo-${part}`,
+    ).elements;
   } else {
     elements = elements.map((element) => (
       element.photoSlot
@@ -117,7 +155,7 @@ export function applyStarterElementStructure(rawElements, cvData, templateId, pa
         : element
     ));
   }
-  return elements;
+  return reflowStarterContacts(elements, templateId);
 }
 
 function hasRealStarterContent(element) {
@@ -131,7 +169,7 @@ function hasRealStarterContent(element) {
  * empty sections. `removeSection` repacks each lane using the same structural
  * rules as the editor, closing gaps while leaving the source array unchanged.
  */
-export function prepareStarterElementsForRender(source, pageHeight = 842) {
+export function prepareStarterElementsForRender(source, pageHeight = 842, templateId = null) {
   let elements = (source || []).map((element) => ({ ...element }));
   const emptySectionKeys = new Set();
   const sectionKeys = new Set(elements.map((element) => element.starterSectionKey).filter(Boolean));
@@ -163,6 +201,11 @@ export function prepareStarterElementsForRender(source, pageHeight = 842) {
     }
   }
 
+  // Removing empty channels is a render-only transformation. Reflow the
+  // remaining members afterwards so an optional gap never survives in the PDF.
+  elements = elements.filter((element) => !emptyChannels.has(element.contactChannel));
+  elements = reflowStarterContacts(elements, templateId);
+
   const hasRealPhoto = elements.some((element) => (
     element.photoSlot === "image"
     && element.category === "image"
@@ -170,7 +213,6 @@ export function prepareStarterElementsForRender(source, pageHeight = 842) {
     && !element.starterPlaceholder
   ));
   return elements.filter((element) => {
-    if (emptyChannels.has(element.contactChannel)) return false;
     if (element.starterSectionKey === "photo" && !hasRealPhoto) return false;
     if (
       ["text", "textarea"].includes(element.category)

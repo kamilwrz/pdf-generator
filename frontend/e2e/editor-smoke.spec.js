@@ -78,7 +78,10 @@ test.describe("CV Studio editor smoke", () => {
     ));
     await setup.getByRole("button", { name: "Utwórz A4" }).click();
     const fill = await fillRequest;
-    expect(fill.postDataJSON()).toMatchObject({ template_id: "meridian" });
+    expect(fill.postDataJSON()).toMatchObject({
+      template_id: "meridian",
+      cv_data: { email: "cvstart-email@example.invalid" },
+    });
 
     const name = page.locator('[contenteditable="true"][data-placeholder="Imię i nazwisko"]');
     await expect(name).toBeFocused();

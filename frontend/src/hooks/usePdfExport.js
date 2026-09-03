@@ -74,7 +74,11 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
     // visible on the canvas instead of estimating them with another shaper.
     Promise.all([
       resolveBrowserTextLayouts(sorted),
-      resolveBrowserTextLayouts(prepareStarterElementsForRender(sorted, pageSize?.height ?? 842)),
+      resolveBrowserTextLayouts(prepareStarterElementsForRender(
+        sorted,
+        pageSize?.height ?? 842,
+        template_id,
+      )),
     ])
       .then(([persistedRoot, renderRoot]) => {
         const body = JSON.stringify({
@@ -172,7 +176,11 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
     const intent = meta.intent === "save" ? "save" : "download";
     Promise.all([
       resolveBrowserTextLayouts(sorted),
-      resolveBrowserTextLayouts(prepareStarterElementsForRender(sorted, pageSize?.height ?? 842)),
+      resolveBrowserTextLayouts(prepareStarterElementsForRender(
+        sorted,
+        pageSize?.height ?? 842,
+        template_id,
+      )),
     ])
       .then(([persistedRoot, renderRoot]) => {
         const body = JSON.stringify({
@@ -236,7 +244,11 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
       assertCanvasElementRoot(sorted);
 
       const renderRoot = await resolveBrowserTextLayouts(
-        prepareStarterElementsForRender(sorted, pageSize?.height ?? 842),
+        prepareStarterElementsForRender(
+          sorted,
+          pageSize?.height ?? 842,
+          meta.templateId || null,
+        ),
       );
       const api = new ApiClient({ "Authorization": `Bearer ${localStorage.getItem("token")}` });
       const editor_mode = meta.editorMode === "template" ? "template" : "freeform";

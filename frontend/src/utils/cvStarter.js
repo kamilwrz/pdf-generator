@@ -32,7 +32,13 @@ export const STARTER_SECTIONS = Object.freeze([
 export const PHOTO_TEMPLATE_IDS = new Set(["monument", "slate", "atrium", "linden", "vellum"]);
 
 const MARKER_PREFIX = "CVSTART";
-const marker = (id) => `__${MARKER_PREFIX}_${id.toUpperCase()}__`;
+const MARKER_VALUES = Object.freeze({
+  // The fill endpoint validates non-empty e-mail values before the template
+  // generator runs. Keep this sentinel syntactically valid while retaining a
+  // reserved `.invalid` domain that can never point at a real mailbox.
+  email: "cvstart-email@example.invalid",
+});
+const marker = (id) => MARKER_VALUES[id] ?? `__${MARKER_PREFIX}_${id.toUpperCase()}__`;
 
 const FIELD_DEFINITIONS = Object.freeze({
   name: { path: ["name"], placeholder: "Imię i nazwisko" },

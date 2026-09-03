@@ -117,6 +117,20 @@ test("relayout re-spaces following chips after the edited label grows", () => {
   assert.equal(emailIcon.left, phoneLabel.left - 16 + phoneAdvance);
 });
 
+test("starter relayout measures visible placeholders instead of empty content", () => {
+  const starter = doc().map((element) => {
+    if (element.element_id === "ph-l") {
+      return { ...element, content: "", placeholder: "+48 000 000 000", starterPlaceholder: true };
+    }
+    return element;
+  });
+  const { elements } = applyChannelRelayout(starter, "b1", measure, () => "id");
+  const phoneIcon = elements.find((element) => element.element_id === "ph-i");
+  const emailIcon = elements.find((element) => element.element_id === "em-i");
+  const expectedAdvance = 16 + measure("+48 000 000 000") + 14;
+  assert.equal(emailIcon.left, phoneIcon.left + expectedAdvance);
+});
+
 test("empty added label reserves display-name width so the next chip does not overlap", () => {
   const base = [
     { element_id: "anchor", category: "text", content: "", flowRole: "masthead-anchor",

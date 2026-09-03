@@ -1,9 +1,9 @@
 """Guest (anonymous) access to POST /ai/fill_template.
 
-Guest mode lets visitors finish the bio wizard without an account. The fill
+Guest mode lets visitors configure an A4 starter without an account. The fill
 endpoint is deterministic Python layout (no OpenAI cost), so anonymous callers
-are allowed for Free starter templates and rejected for Pro-tier ones —
-the same allowlist as the Free (Darmowy) plan.
+are allowed for Free starter templates and rejected for Pro-tier ones — the
+same allowlist as the Free (Darmowy) plan.
 """
 from __future__ import annotations
 
@@ -60,6 +60,22 @@ class FillTemplateGuestTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["elements"][0]["content"], "Anna Kowalska")
         mocked.assert_called_once()
+
+    def test_guest_starter_sentinel_passes_email_validation(self):
+        """The empty-field sentinel must reach layout without becoming user data."""
+        with patch("app.api.routes.ai.generate_resume", side_effect=_fake_elements) as mocked:
+            response = self.client.post(
+                "/ai/fill_template",
+                json={
+                    "cv_data": {
+                        "name": "__CVSTART_NAME__",
+                        "email": "cvstart-email@example.invalid",
+                    },
+                    "template_id": "sterling",
+                },
+            )
+        self.assertEqual(response.status_code, 200, msg=response.text)
+        self.assertEqual(mocked.call_args.args[1]["email"], "cvstart-email@example.invalid")
 
     def test_guest_cannot_fill_pro_template(self):
         with patch("app.api.routes.ai.generate_resume", side_effect=_fake_elements) as mocked:

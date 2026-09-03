@@ -48,22 +48,25 @@ export function activeChannels(elements, bandId) {
   return CHANNEL_ORDER.filter((channel) => present.has(channel));
 }
 
-// channel -> current label text, read from the label (text) element of each pair.
+// Channel -> text used for horizontal placement. Untouched starter fields keep
+// their visible guidance in `placeholder`, not `content`; measuring that exact
+// guidance prevents the next icon from overlapping it and avoids retaining the
+// much wider positions originally calculated for generator sentinels.
 function channelLabels(elements, bandId) {
   const labels = {};
   for (const el of elements) {
     if (el.contactBandId === bandId && el.contactChannel && el.category === "text") {
-      labels[el.contactChannel] = el.content ?? "";
+      labels[el.contactChannel] = String(el.content || el.placeholder || "");
     }
   }
   return labels;
 }
 
 // Build the ordered items the layout engine measures. `itemsFor` is used for
-// PLACEMENT MATH ONLY — it never sets element content. An empty label reserves
-// the width of its display name (the same text the placeholder ::before shows in
-// Text.jsx), so the following chip does not overlap a just-added, still-empty
-// channel. Once the user types, the real content is measured instead.
+// PLACEMENT MATH ONLY — it never sets element content. A label without content
+// reserves its editor placeholder width (or the channel name as a final
+// fallback), so the following chip never overlaps visible guidance. Once the
+// user types, the real content is measured instead.
 function itemsFor(channels, labels) {
   return channels.map((channel) => ({
     channel,

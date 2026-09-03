@@ -18,6 +18,22 @@ describe("CV starter adapter", () => {
     ]);
     assert.equal(cvData.name, "");
     assert.match(fillProfile.name, /CVSTART_NAME/);
+    assert.equal(fillProfile.email, "cvstart-email@example.invalid");
+    assert.match(fillProfile.email, /^[^@\s]+@[^@\s]+\.[^@\s]+$/);
+  });
+
+  it("uses a validator-safe e-mail sentinel and removes it from the canvas", () => {
+    const { fillProfile } = buildStarterDocument(createDefaultStarterConfig());
+    const [email] = finalizeStarterElements([{
+      category: "text",
+      content: fillProfile.email,
+    }]);
+    assert.equal(email.content, "");
+    assert.equal(email.placeholder, "imie.nazwisko@email.com");
+    assert.deepEqual(email.cvDataBindings, [{
+      path: ["email"],
+      placeholder: "imie.nazwisko@email.com",
+    }]);
   });
 
   it("removes markers and persists composite bindings", () => {
