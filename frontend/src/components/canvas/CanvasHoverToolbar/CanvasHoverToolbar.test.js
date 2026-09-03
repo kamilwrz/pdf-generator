@@ -67,7 +67,7 @@ test("section, entry, and element context use neutral shadow depth without tinte
   assert.match(css, /\.elementHighlight\s*\{[^}]*--shadow-editor-element/s);
 });
 
-test("selection and editing use screen-stable hairlines while shadows remain hover-only", async () => {
+test("selection and editing use screen-stable hairlines with active textarea depth", async () => {
   const [tokens, pageSource, selectionSource, selectionCss, textCss, textareaCss] = await Promise.all([
     readFile(new URL("../../../index.css", import.meta.url), "utf8"),
     readFile(new URL("../A4/A4.jsx", import.meta.url), "utf8"),
@@ -93,7 +93,8 @@ test("selection and editing use screen-stable hairlines while shadows remain hov
   assert.match(selectionCss, /\.frame\s*\{[^}]*border:[^;]*--canvas-editor-hairline[^}]*box-shadow:\s*none/s);
   assert.match(selectionCss, /\.groupFrame\s*\{[^}]*border:[^;]*--canvas-editor-hairline[^}]*box-shadow:\s*none/s);
   assert.match(textCss, /\.editing:focus::after\s*\{[^}]*outline:[^;]*--canvas-editor-hairline[^;]*--color-focus[^}]*box-shadow:\s*none/s);
-  assert.match(textareaCss, /\.editing\s*\{[^}]*box-shadow:\s*none/s);
+  assert.match(textareaCss, /\.selected\s*\{[^}]*box-shadow:[^;]*--canvas-shadow-editor-active/s);
+  assert.match(textareaCss, /\.editing:focus\s*\{[^}]*outline:[^;]*--canvas-editor-hairline[^}]*box-shadow:[^;]*--canvas-shadow-editor-active/s);
   assert.match(textareaCss, /\.editing:focus\s*\{[^}]*outline:[^;]*--canvas-editor-hairline[^;]*--color-focus/s);
 });
 

@@ -73,6 +73,22 @@ export function structuralToolbarLayoutSize(zoom = 1, offsetScreenPx = 10) {
 }
 
 /**
+ * Return the compact geometry used by inline add controls.
+ *
+ * Languages established this 80% treatment for controls placed directly
+ * under short document content. Skills uses the same helper so the two plus
+ * actions cannot drift in size when the shared structural toolbar changes.
+ *
+ * @param {number} [zoom=1]
+ * @returns {{buttonSize:number,iconSize:number,gap:number,labelWidth:number,fontSize:number,menuWidth:number,offset:number,borderWidth:number}}
+ */
+export function compactInlineToolbarLayoutSize(zoom = 1) {
+  return Object.fromEntries(
+    Object.entries(structuralToolbarLayoutSize(zoom)).map(([key, value]) => [key, value * 0.8]),
+  );
+}
+
+/**
  * Resolve the page-edge gutter used by a structural toolbar.
  *
  * A single page follows the template lane: sidebar controls use the left

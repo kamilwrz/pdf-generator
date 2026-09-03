@@ -241,19 +241,40 @@ function anchorForGroup(group, pageHeight) {
     !isSectionChrome(element) && element?.category !== "connector"
   ));
   if (visualMembers.length === 0) return null;
-  const bottomAbs = Math.max(...visualMembers.map((element) => absoluteBottom(element, pageHeight)));
+  // Chip labels use an optical cap-centre `top` and intentionally have no
+  // authored height. Their generic fallback box extends below the actual
+  // pill, so anchor chip controls to the paired shapes' true lower edge.
+  const verticalMembers = group.mode === SKILLS_LAYOUT_CHIPS && group.shapes.length > 0
+    ? group.shapes
+    : visualMembers;
+  const bottomAbs = Math.max(...verticalMembers.map((element) => absoluteBottom(element, pageHeight)));
   const page = Math.max(1, Math.floor(Math.max(0, bottomAbs - 0.01) / pageHeight) + 1);
   const onPage = visualMembers.filter((element) => (
     Math.max(1, Math.trunc(finiteNumber(element.page, 1))) === page
   ));
   const horizontalMembers = onPage.length > 0 ? onPage : visualMembers;
-  const left = Math.min(...horizontalMembers.map((element) => finiteNumber(element.left)));
-  const right = Math.max(...horizontalMembers.map((element) => (
-    finiteNumber(element.left) + Math.max(
-      1,
-      finiteNumber(element.width, finiteNumber(element.fontSize, 10) * normalizedSkill(element.content).length * 0.56),
-    )
-  )));
+  // Centre the plus on the authored textarea width, not on the current text or
+  // chip-row extent. Chip conversion removes a category-free body, so its
+  // full-width section rule/heading is the stable fallback for the original
+  // textarea axis.
+  const fullWidthFallback = group.members
+    .filter((element) => (
+      Math.max(1, Math.trunc(finiteNumber(element.page, 1))) === page
+      && finiteNumber(element.width) > 0
+    ))
+    .sort((left, right) => finiteNumber(right.width) - finiteNumber(left.width))[0];
+  const horizontalReference = group.body || group.category || fullWidthFallback;
+  const left = horizontalReference
+    ? finiteNumber(horizontalReference.left)
+    : Math.min(...horizontalMembers.map((element) => finiteNumber(element.left)));
+  const right = horizontalReference
+    ? left + Math.max(1, finiteNumber(horizontalReference.width))
+    : Math.max(...horizontalMembers.map((element) => (
+      finiteNumber(element.left) + Math.max(
+        1,
+        finiteNumber(element.width, finiteNumber(element.fontSize, 10) * normalizedSkill(element.content).length * 0.56),
+      )
+    )));
   // Grouped Skills reserve the category label for the existing structural
   // record toolbar. The body (or chip cells) owns the entry action, so pointer
   // and keyboard discovery never races two exclusive toolbars on one node.

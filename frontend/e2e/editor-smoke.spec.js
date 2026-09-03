@@ -281,10 +281,25 @@ test.describe("CV Studio editor smoke", () => {
         labelRight: labelRect.right,
         shapeRight: shapeRect?.right ?? 0,
         shapeWidth: shapeRect?.width ?? 0,
+        shapeBottom: shapeRect?.bottom ?? 0,
       };
     });
     expect(chipGeometry.shapeWidth).toBeGreaterThan(40);
     expect(chipGeometry.shapeRight).toBeGreaterThan(chipGeometry.labelRight);
+    // Chip text uses optical cap-centre positioning and can expose a zero DOM
+    // height in headless Chromium. Keyboard focus exercises the production
+    // focus-in trigger without relying on Playwright's pointer actionability
+    // heuristics, keeping this assertion focused on toolbar geometry.
+    await reactLabel.focus();
+    const chipAddButton = page.locator(
+      '[data-canvas-toolbar-key^="skills-entry:skills-heading:"]',
+    ).getByRole("button", { name: "Dodaj umiejętność" });
+    await expect(chipAddButton).toBeVisible();
+    const chipToolbarGap = await chipAddButton.evaluate((button, shapeBottom) => {
+      const toolbar = button.parentElement;
+      return toolbar.getBoundingClientRect().top - shapeBottom;
+    }, chipGeometry.shapeBottom);
+    expect(Math.abs(chipToolbarGap - 8)).toBeLessThan(1);
     api.assertHermetic();
   });
 
@@ -303,6 +318,19 @@ test.describe("CV Studio editor smoke", () => {
     const addButton = groupedToolbar.getByRole("button", {
       name: "Dodaj umiejętność do kategorii Narzędzia",
     });
+    await expect(addButton).toBeVisible();
+    const inlineGeometry = await Promise.all([
+      toolsBody.boundingBox(),
+      addButton.boundingBox(),
+    ]);
+    expect(Math.abs(
+      inlineGeometry[0].x + inlineGeometry[0].width / 2
+      - (inlineGeometry[1].x + inlineGeometry[1].width / 2),
+    )).toBeLessThan(1);
+    expect(Math.abs(
+      inlineGeometry[0].y + inlineGeometry[0].height
+      - (inlineGeometry[1].y + inlineGeometry[1].height / 2),
+    )).toBeLessThan(1);
     await addButton.click();
     const groupedInput = groupedToolbar.getByRole("textbox", { name: "Nowa umiejętność" });
     await expect(groupedInput).toBeFocused();

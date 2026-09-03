@@ -34,3 +34,11 @@ test("Skills add form uses Swiss editor tokens and compact accessible sizing", (
   assert.match(css, /font-size:\s*16px/);
   assert.match(css, /prefers-reduced-motion/);
 });
+
+test("Skills plus matches Languages and uses mode-aware vertical geometry", () => {
+  assert.match(source, /compactInlineToolbarLayoutSize\(safeZoom\)/);
+  assert.match(source, /resolveSkillsEntryToolbarTop\(\{/);
+  assert.match(source, /mode,/);
+  assert.match(source, /anchorX=\{toolbarAnchorX\}/);
+  assert.match(source, /placement="below"/);
+});

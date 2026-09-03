@@ -58,6 +58,9 @@ describe("listSkillsEntryAnchors", () => {
     assert.equal(anchors[0].groupId, "flat:sk-body");
     assert.equal(anchors[0].categoryLabel, "");
     assert.equal(anchors[0].mountElementId, "sk-body");
+    assert.equal(anchors[0].mode, "inline");
+    assert.equal(anchors[0].left, 60);
+    assert.equal(anchors[0].width, 460);
   });
 
   it("returns one stable anchor under each named category", () => {
@@ -120,6 +123,16 @@ describe("insertSkillItem", () => {
       SPACING,
     );
     const anchor = listSkillsEntryAnchors(chips)[0];
+    assert.equal(anchor.mode, "chips");
+    assert.equal(anchor.left, 60);
+    assert.equal(anchor.width, 460);
+    const chipShapes = chips.filter((element) => (
+      element.flowRole === "grid-member"
+      && (element.category === "rectangle" || element.category === "line")
+    ));
+    assert.equal(anchor.bottom, Math.max(...chipShapes.map((element) => (
+      element.top + element.height
+    ))));
     let sequence = 0;
     const result = insertSkillItem(
       chips,

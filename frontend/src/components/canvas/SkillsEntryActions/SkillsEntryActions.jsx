@@ -10,16 +10,16 @@ import { FiCheck, FiPlus, FiX } from "react-icons/fi";
 import { useCanvasContext } from "../../../store/canvas-context";
 import { useCanvasHoverToolbar } from "../../../hooks/useCanvasHoverToolbar";
 import { EDITOR_MODE_TEMPLATE } from "../../../utils/editorMode";
-import { structuralToolbarLayoutSize } from "../recordPlusSize";
+import { resolveSkillsEntryToolbarTop } from "../../../utils/skillsEntryToolbarGeometry";
+import { compactInlineToolbarLayoutSize } from "../recordPlusSize";
 import CanvasHoverToolbar from "../CanvasHoverToolbar/CanvasHoverToolbar";
 import classes from "./SkillsEntryActions.module.css";
-
-const SKILL_ACTION_OFFSET_SCREEN_PX = 18;
 
 /**
  * @param {{
  *   headingId:string,
  *   groupId:string,
+ *   mode:"inline"|"bullet"|"chips",
  *   categoryLabel?:string,
  *   triggerIds:string[],
  *   left:number,
@@ -30,6 +30,7 @@ const SKILL_ACTION_OFFSET_SCREEN_PX = 18;
 export default function SkillsEntryActions({
   headingId,
   groupId,
+  mode,
   categoryLabel = "",
   triggerIds,
   left,
@@ -156,8 +157,14 @@ export default function SkillsEntryActions({
   const safeZoom = Number.isFinite(Number(zoom)) && Number(zoom) > 0.05
     ? Number(zoom)
     : 1;
-  const layout = structuralToolbarLayoutSize(safeZoom);
-  const toolbarTop = Number(bottom) + SKILL_ACTION_OFFSET_SCREEN_PX / safeZoom;
+  const layout = compactInlineToolbarLayoutSize(safeZoom);
+  const toolbarTop = resolveSkillsEntryToolbarTop({
+    bottom,
+    mode,
+    formOpen,
+    zoom: safeZoom,
+    layout,
+  });
   const toolbarAnchorX = Number(left) + Number(width) / 2;
   const addLabel = categoryLabel
     ? `Dodaj umiejętność do kategorii ${categoryLabel}`

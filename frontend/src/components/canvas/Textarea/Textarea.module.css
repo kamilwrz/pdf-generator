@@ -63,7 +63,10 @@
 }
 
 .selected {
-    /* Visual selection chrome is drawn by SelectionOverlay. */
+    /* Textareas retain a screen-stable active depth cue in addition to the
+       SelectionOverlay hairline, so selection remains visible on dense CV
+       content without changing the authored box model. */
+    box-shadow: var(--canvas-shadow-editor-active, var(--shadow-editor-active));
 }
 
 .editing {
@@ -88,6 +91,7 @@
 .editing:focus {
     outline: var(--canvas-editor-hairline, 1px) solid var(--color-focus);
     outline-offset: var(--canvas-editor-hairline-offset, 1px);
+    box-shadow: var(--canvas-shadow-editor-active, var(--shadow-editor-active));
 }
 
 /* The edit surface is now a contentEditable div (to host inline decoration),

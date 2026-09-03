@@ -13,6 +13,7 @@ import { EDITOR_MODE_TEMPLATE } from "../../../utils/editorMode";
 import { useCanvasDeletionUndo } from "../../../hooks/useCanvasDeletionUndo";
 import { useCanvasHoverToolbar } from "../../../hooks/useCanvasHoverToolbar";
 import {
+  compactInlineToolbarLayoutSize,
   resolveStructuralToolbarSide,
   structuralToolbarLayoutSize,
 } from "../recordPlusSize";
@@ -114,13 +115,12 @@ export default function GridEntryActions({
   if (!eligible) return null;
 
   const isLanguageEntry = gridKind === "languages";
-  const baseLayout = structuralToolbarLayoutSize(zoom);
   // Language actions sit close to short inline content, so their complete
   // control geometry is intentionally 20% smaller than the shared structural
   // toolbar while preserving the same proportions and accessible names.
   const layout = isLanguageEntry
-    ? Object.fromEntries(Object.entries(baseLayout).map(([key, value]) => [key, value * 0.8]))
-    : baseLayout;
+    ? compactInlineToolbarLayoutSize(zoom)
+    : structuralToolbarLayoutSize(zoom);
   const boxWidth = Number.isFinite(Number(width)) && Number(width) > 0
     ? Number(width)
     : 120;

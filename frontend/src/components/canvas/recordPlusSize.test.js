@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  compactInlineToolbarLayoutSize,
   RECORD_TOOLBAR_OFFSET_SCREEN_PX,
   resolveStructuralToolbarSide,
   SECTION_TOOLBAR_OFFSET_SCREEN_PX,
@@ -27,6 +28,19 @@ test("keeps the compact structural toolbar screen-stable across canvas zoom", ()
     menuWidth: 88,
     offset: 5,
     borderWidth: 0.5,
+  });
+});
+
+test("shares the language-sized compact inline toolbar with Skills", () => {
+  assert.deepEqual(compactInlineToolbarLayoutSize(1), {
+    buttonSize: 28.8,
+    iconSize: 12,
+    gap: 2.4000000000000004,
+    labelWidth: 60.800000000000004,
+    fontSize: 8.4,
+    menuWidth: 140.8,
+    offset: 8,
+    borderWidth: 0.8,
   });
 });
 
