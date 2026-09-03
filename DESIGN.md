@@ -15,6 +15,7 @@ scope:
   - responsive-layouts
 colors:
   ink: "#161616"
+  editorInk: "#674E3E"
   paper: "#FFFFFF"
   canvas: "#F5F1E8"
   editorCanvasBase: "#DDE0E3"
@@ -130,6 +131,7 @@ Tokens are the only source of shared visual values. Reusable colors, spacing, ty
 | Token | Value | Purpose |
 | --- | --- | --- |
 | `ink` | `#161616` | Primary text, dark actions, dark application surfaces |
+| `editorInk` | `#674E3E` | Dark editor-route tone derived from the brown accent for text, actions, and application chrome; never document pixels |
 | `paper` | `#FFFFFF` | Primary light surface, inputs, dialogs |
 | `canvas` | `#F5F1E8` | Application background and warm neutral field |
 | `editorCanvasBase` | `#DDE0E3` | Cool grey base behind the A4 document only |
@@ -146,6 +148,7 @@ Tokens are the only source of shared visual values. Reusable colors, spacing, ty
 Rules:
 
 - Use `ink`, not pure `#000000`, for large dark surfaces and primary text.
+- On the editor route only, substitute `editorInk` for `ink` across application chrome, including portalled dialogs and tools. Landing, authentication, and user-authored A4 document pixels continue to use their own tokens and persisted colours.
 - Compose the editor workspace behind A4 from `editorCanvasBase` and `editorCanvasOverlay`; keep `paper` on the document itself so application chrome cannot alter PDF output.
 - Body text must meet WCAG AA contrast at minimum. Target AAA for ordinary body copy where the palette permits it.
 - Never communicate status by color alone; pair it with text and, where useful, an icon or shape.
@@ -289,7 +292,9 @@ The editor and other task-heavy screens may be denser, but must remain grid-base
 ### 5.7 Editor and PDF canvas
 
 - The document remains the dominant object; chrome must support it rather than compete with it.
+- Editor chrome uses the warm dark-brown `editorInk` token instead of near-black `ink`. The route scope includes topbar, sidebar, controls, AI surfaces, feedback, dialogs, and all interaction states, but excludes the authored A4 document and its PDF output.
 - The field behind the A4 document uses the cool-grey `editorCanvasBase` with the translucent white `editorCanvasOverlay`. This treatment belongs only to the editor workspace; onboarding and document pixels retain their own surface tokens.
+- Selecting or directly editing a canvas element must mount the element-parameter inspector in a compact collapsed state. Opening advanced parameters is an explicit user action; changing the selection resets the disclosure to collapsed. The expanded desktop panel remains narrow and collision-aware, while compact viewports use a bounded bottom sheet that leaves the current A4 task visible. Collapsing the inspector must not clear selection or discard edits.
 - Selection affordances, resize handles, alignment guides, insertion controls, and AI correction highlights must use a coherent interaction language and remain distinguishable from document content.
 - Pointer-hover section, entry, and element context is shown with the shared neutral editor elevation hierarchy, without colored overlay surfaces or decorative borders. Selection and inline-edit focus use the screen-stable hairline borders defined above instead of persistent shadows. All of this chrome must stay outside layout, persistence, and PDF output.
 - Canvas zoom, page boundaries, page numbers, and active selection must be readable at every supported scale.

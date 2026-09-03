@@ -94,12 +94,38 @@ test.describe("CV Studio editor smoke", () => {
       }));
     });
     await expect(name).toHaveText("Kamil Nowak");
-    // On compact viewports the properties inspector is a sheet over the A4.
-    // Close it before choosing the next field, matching the accessible user path.
-    await page.getByRole("button", { name: "Zamknij panel edycji" }).click();
+    const closedInspector = page.locator('[data-editor-inspector-state="closed"]');
+    await expect(closedInspector).toBeVisible();
+    await expect(page.locator('[data-editor-inspector-state="open"]')).toHaveCount(0);
+    const closedInspectorBox = await closedInspector.boundingBox();
+    expect(closedInspectorBox?.width).toBeLessThanOrEqual(194);
+    expect(closedInspectorBox?.height).toBeLessThanOrEqual(54);
+
+    // Advanced parameters are opt-in on desktop and mobile. Escape collapses
+    // the panel without clearing the selected canvas element.
+    await page.getByRole("button", { name: /Otwórz parametry elementu:/ }).click();
+    const openInspector = page.locator('[data-editor-inspector-state="open"]');
+    await expect(openInspector).toBeVisible();
+    const openInspectorBox = await openInspector.boundingBox();
+    const viewport = page.viewportSize();
+    if (viewport && viewport.width <= 720) {
+      expect(openInspectorBox?.height).toBeLessThanOrEqual(Math.floor(viewport.height * 0.46) + 2);
+    } else {
+      expect(openInspectorBox?.width).toBeLessThanOrEqual(274);
+      expect(openInspectorBox?.height).toBeLessThanOrEqual(422);
+    }
+    await page.keyboard.press("Escape");
+    await expect(closedInspector).toBeVisible();
+    const reopenInspector = page.getByRole("button", {
+      name: /Otwórz parametry elementu:/,
+    });
+    await expect(reopenInspector).toBeFocused();
+    await reopenInspector.click();
+    await expect(openInspector).toBeVisible();
 
     const email = page.locator('[data-placeholder="imie.nazwisko@email.com"]');
     await email.click();
+    await expect(closedInspector).toBeVisible();
     await expect(email).toHaveAttribute("contenteditable", "true");
     await expect(email).toBeFocused();
     await page.keyboard.type("kamil.nowak@example.com");

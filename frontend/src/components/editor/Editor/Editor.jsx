@@ -1,12 +1,11 @@
 /**
  * Element-properties panel (CV STUDIO chrome). Text vs TextArea keep different
- * field sets. The inspector occupies the quiet top-left workspace between the
- * tool rail and the A4 sheet: its top follows the live topbar, its preferred
- * width is 304px, and its content determines its height up to a 480px cap. The
- * live A4 edge remains a hard limit, so the panel may narrow to keep a 15px
- * breathing space before the page. It mounts/unmounts with a short directional
- * transition and becomes an overlay drawer when the viewport is too narrow for
- * usable controls.
+ * field sets. Selecting an element mounts a compact, closed disclosure tab in
+ * the quiet top-left workspace; editing on A4 therefore stays primary. The user
+ * explicitly opens the inspector when advanced parameters are needed. A new
+ * selection remounts the disclosure closed, while the expanded desktop panel
+ * remains collision-aware and compact. On narrow viewports it becomes a short
+ * bottom sheet that leaves the current document task visible.
  *
  * While a text/textarea is contentEditable and the caret range is non-empty,
  * a second, fully independent floating bar ("Zaznaczenie") appears anchored
@@ -36,6 +35,7 @@ import {
   MdClose,
   MdFormatLineSpacing,
   MdFormatSize,
+  MdTune,
 } from "react-icons/md";
 import { RxLetterSpacing, RxWidth, RxHeight, RxLayers } from "react-icons/rx";
 import { TbArrowBigRightLines } from "react-icons/tb";
@@ -98,7 +98,7 @@ const HEX_COLOR_PATTERN = /^#[0-9A-Fa-f]{6}$/;
 const PANEL_A4_GAP_PX = 15;
 const PANEL_MIN_WIDTH_PX = 120;
 const PANEL_VIEWPORT_GUTTER_PX = 8;
-const PANEL_MAX_HEIGHT_PX = 480;
+const PANEL_MAX_HEIGHT_PX = 420;
 
 const CATEGORY_LABELS = {
   text: "tekst",
@@ -111,6 +111,19 @@ const CATEGORY_LABELS = {
   polygon: "kształt",
   path: "ozdobną linię",
   connector: "łącznik",
+};
+
+const CATEGORY_PARAMETER_LABELS = {
+  text: "Tekst",
+  textarea: "Pole tekstowe",
+  image: "Zdjęcie",
+  line: "Linia",
+  rectangle: "Prostokąt",
+  circle: "Koło",
+  ellipse: "Elipsa",
+  polygon: "Kształt",
+  path: "Ozdobna linia",
+  connector: "Łącznik",
 };
 
 function polishElementCount(count) {
@@ -147,6 +160,96 @@ function readSelectionAnchorRect(selectionKey) {
   return unionRects(rects);
 }
 
+/**
+ * Keeps advanced element parameters opt-in for each distinct canvas selection.
+ *
+ * The component is keyed by `selectionKey`, so selecting a different element
+ * creates a fresh closed disclosure without coupling presentation state to the
+ * persisted canvas model. The same header button opens and collapses the panel,
+ * preserving a stable keyboard target. Escape collapses from any child control
+ * and returns focus to that button.
+ */
+function InspectorDisclosure({
+  visible,
+  selectionKey,
+  panelPosition,
+  panelTitle,
+  panelSubject,
+  reduceMotion,
+  children,
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const toggleRef = useRef(null);
+  const contentId = `element-inspector-content-${selectionKey.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
+
+  function collapseInspector() {
+    toggleRef.current?.focus();
+    setIsOpen(false);
+  }
+
+  function handleKeyDown(event) {
+    if (event.key !== "Escape" || !isOpen) return;
+    event.preventDefault();
+    event.stopPropagation();
+    collapseInspector();
+  }
+
+  if (!visible) return null;
+
+  return (
+    <Motion.aside
+      className={`${classes.editor} ${isOpen ? classes.editorOpen : classes.editorClosed}`}
+      aria-label="Parametry wybranego elementu"
+      data-editor-inspector-state={isOpen ? "open" : "closed"}
+      style={isOpen
+        ? panelPosition
+        : { top: panelPosition.top, left: panelPosition.left }}
+      initial={reduceMotion ? false : { opacity: 0, x: -18 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={reduceMotion ? { opacity: 0 } : { opacity: 0, x: -18 }}
+      transition={{ duration: reduceMotion ? 0 : 0.22, ease: [0.2, 0, 0, 1] }}
+      onKeyDown={handleKeyDown}
+      onPointerDown={(event) => event.stopPropagation()}
+      onMouseDown={(event) => event.stopPropagation()}
+    >
+      <button
+        ref={toggleRef}
+        type="button"
+        className={classes.inspectorToggle}
+        aria-expanded={isOpen}
+        aria-controls={contentId}
+        aria-label={`${isOpen ? "Zwiń" : "Otwórz"} parametry elementu: ${panelSubject}`}
+        onClick={() => setIsOpen((current) => !current)}
+      >
+        <span className={classes.inspectorMark} aria-hidden="true">PX</span>
+        <span className={classes.inspectorToggleCopy}>
+          <span className={classes.eyebrow}>{isOpen ? "Parametry elementu" : "Wybrany element"}</span>
+          <span className={classes.panelTitle}>{isOpen ? panelTitle : `Parametry · ${panelSubject}`}</span>
+          {isOpen ? <span className={classes.selectionHint}>Ctrl + klik: zaznacz wiele</span> : null}
+        </span>
+        <span className={classes.inspectorToggleIcon} aria-hidden="true">
+          {isOpen ? <MdClose /> : <MdTune />}
+        </span>
+      </button>
+
+      <AnimatePresence initial={false}>
+        {isOpen ? (
+          <Motion.div
+            id={contentId}
+            className={classes.inspectorContent}
+            initial={reduceMotion ? false : { opacity: 0, x: -8 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={reduceMotion ? { opacity: 0 } : { opacity: 0, x: -8 }}
+            transition={{ duration: reduceMotion ? 0 : 0.18, ease: [0.2, 0, 0, 1] }}
+          >
+            {children}
+          </Motion.div>
+        ) : null}
+      </AnimatePresence>
+    </Motion.aside>
+  );
+}
+
 export default function Editor() {
   const reduceMotion = useReducedMotion();
   const {
@@ -158,8 +261,6 @@ export default function Editor() {
     duplicateElement,
     deleteSelectedElements,
     duplicateSelectedElements,
-    setA4_Elements,
-    requestEditZoomRestore,
     moveSelectedElements,
     editorMode,
     zoom,
@@ -197,7 +298,6 @@ export default function Editor() {
   const [elementValues, setElementValues] = useState({});
   const [groupMoveValues, setGroupMoveValues] = useState({ x: "0", y: "0" });
   const groupMoveOffsetRef = useRef({ x: 0, y: 0 });
-  const panelRef = useRef(null);
   const [panelPosition, setPanelPosition] = useState({
     top: 0,
     left: 0,
@@ -357,17 +457,6 @@ export default function Editor() {
     editElementValues({ align: value }, selectedElement.element_id);
   }
 
-  function handleCloseEditor() {
-    // Closing the properties panel is an explicit end-edit action. Unlike a
-    // toolbar interaction, it should return the temporary 200% text-edit zoom.
-    requestEditZoomRestore();
-    setA4_Elements((prevState) => prevState.map((element) => (
-      element.isSelected
-        ? { ...element, isSelected: false, isEditing: false }
-        : element
-    )));
-  }
-
   useEffect(() => {
     // The toolbar fields are editable drafts. Replacing the canvas selection
     // must synchronously reset the complete draft so values from the previous
@@ -511,10 +600,10 @@ export default function Editor() {
 
   // The inspector is part of the workspace grid, not a tooltip. Read live DOM
   // geometry because text editing animates the page to 200% and recentres its
-  // scroll position. The inspector prefers its 304 px desktop width, while the
-  // live A4 edge remains a collision boundary at every zoom. Its height stays
-  // intrinsic for short forms and is capped at 480 px (or the available
-  // viewport height), after which only the form body scrolls.
+  // scroll position. The closed disclosure and its explicitly opened panel use
+  // the same top-left anchor. The open panel prefers a compact desktop width,
+  // while the live A4 edge remains a collision boundary at every zoom. Its
+  // intrinsic height is capped, after which only the form body scrolls.
   useLayoutEffect(() => {
     if (!someElementSelected) return undefined;
 
@@ -629,35 +718,22 @@ export default function Editor() {
   const panelTitle = isMultiSelection
     ? `Edytujesz ${polishElementCount(selectedElements.length)}`
     : `Edytujesz ${CATEGORY_LABELS[cat] || "element"}`;
+  const panelSubject = isMultiSelection
+    ? polishElementCount(selectedElements.length)
+    : (CATEGORY_PARAMETER_LABELS[cat] || "Element");
 
   const panel = (
     <AnimatePresence>
       {someElementSelected && (
-        <Motion.aside
-          ref={panelRef}
-          className={classes.editor}
-          aria-labelledby="element-inspector-title"
-          style={panelPosition}
-          initial={reduceMotion ? false : { opacity: 0, x: -18 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={reduceMotion ? { opacity: 0 } : { opacity: 0, x: -18 }}
-          transition={{ duration: reduceMotion ? 0 : 0.24, ease: [0.2, 0, 0, 1] }}
-          onPointerDown={(event) => event.stopPropagation()}
-          onMouseDown={(event) => event.stopPropagation()}
+        <InspectorDisclosure
+          key={selectionKey}
+          visible={someElementSelected}
+          selectionKey={selectionKey}
+          panelPosition={panelPosition}
+          panelTitle={panelTitle}
+          panelSubject={panelSubject}
+          reduceMotion={reduceMotion}
         >
-          <div className={classes.panelHeader}>
-            <div>
-              <span className={classes.eyebrow}>Ustawienia elementu</span>
-              <h2 id="element-inspector-title">{panelTitle}</h2>
-            </div>
-            <IconBtn label="Zamknij panel edycji" onClick={handleCloseEditor}>
-              <MdClose />
-            </IconBtn>
-          </div>
-          <div className={classes.selectionTip}>
-            <span className={classes.tipKeys}>Ctrl + lewy przycisk myszy</span>
-            <span>zaznacza wiele elementów</span>
-          </div>
           <form className={classes.bar} onSubmit={(event) => event.preventDefault()}>
             {isMultiSelection ? (
               <BulkToolbar
@@ -1016,7 +1092,7 @@ export default function Editor() {
               </>
             )}
           </form>
-        </Motion.aside>
+        </InspectorDisclosure>
       )}
     </AnimatePresence>
   );

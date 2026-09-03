@@ -1,12 +1,12 @@
 /**
  * Width contract for the element-properties inspector.
  *
- * The inspector prefers a 304 px desktop footprint. The live A4 edge and
+ * The explicitly opened inspector prefers a compact 272 px desktop footprint. The live A4 edge and
  * viewport are hard safety limits at every zoom, so a narrower workspace
  * shrinks the panel instead of allowing it to cover the document. The compact
  * mobile drawer is handled separately in CSS.
  */
-export const EDITOR_INSPECTOR_FIXED_WIDTH_PX = 304;
+export const EDITOR_INSPECTOR_FIXED_WIDTH_PX = 272;
 
 /**
  * Resolve the inspector width without letting zoom-out enlarge the panel.

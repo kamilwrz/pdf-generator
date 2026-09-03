@@ -1,5 +1,6 @@
-/* The primary inspector is a measured workspace panel. The small inline-text
-   toolbar reuses the same surface token but opts into its compact layout. */
+/* The primary inspector enters as a compact disclosure tab. The full parameter
+   surface is opt-in, keeping the document visually dominant during direct edit.
+   The small inline-text toolbar reuses the surface token independently. */
 .editor {
     position: fixed;
     z-index: var(--z-editor-affordance);
@@ -18,37 +19,101 @@
     container-type: inline-size;
 }
 
-.panelHeader {
-    min-height: 56px;
-    padding: var(--space-2) var(--space-3);
-    display: flex;
+.editorClosed {
+    width: min(192px, calc(100vw - 72px));
+    max-height: 52px;
+}
+
+.editorOpen {
+    min-width: min(220px, calc(100vw - 64px));
+}
+
+.inspectorToggle {
+    width: 100%;
+    min-height: 50px;
+    display: grid;
+    grid-template-columns: 28px minmax(0, 1fr) 28px;
     align-items: center;
-    justify-content: space-between;
     gap: var(--space-2);
+    padding: 7px var(--space-2);
+    border: 0;
+    border-left: 2px solid var(--chrome-ink);
+    border-radius: 0;
     background: var(--chrome-surface);
     color: var(--chrome-ink);
-    border-bottom: 1px solid var(--chrome-border);
+    text-align: left;
+    cursor: pointer;
     flex-shrink: 0;
+    transition: background var(--motion-fast), color var(--motion-fast);
 }
 
-.panelHeader h2 {
-    margin: 2px 0 0;
-    color: inherit;
-    font: 700 14px/1.2 var(--font-display);
-    letter-spacing: -0.01em;
-}
-
-.panelHeader .iconBtn {
-    width: var(--control-height-compact);
-    height: var(--control-height-compact);
-    color: var(--chrome-muted);
-    border-color: var(--chrome-border);
-    background: var(--chrome-control);
-}
-
-.panelHeader .iconBtn:hover:not(:disabled) {
+.inspectorToggle:hover {
     background: var(--chrome-hover);
-    color: var(--chrome-ink);
+}
+
+.inspectorToggle:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: -3px;
+}
+
+.editorOpen .inspectorToggle {
+    min-height: 60px;
+    border-bottom: 1px solid var(--chrome-border);
+}
+
+.inspectorMark {
+    width: 28px;
+    height: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--chrome-ink);
+    color: var(--chrome-surface);
+    font: 700 9px/1 var(--font-mono);
+    letter-spacing: .08em;
+}
+
+.inspectorToggleCopy {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.panelTitle {
+    overflow: hidden;
+    color: inherit;
+    font: 700 12px/1.15 var(--font-display);
+    letter-spacing: -.01em;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.selectionHint {
+    color: var(--chrome-muted);
+    font: 600 9px/1.1 var(--font-mono);
+}
+
+.inspectorToggleIcon {
+    width: 28px;
+    height: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--chrome-muted);
+    border-left: 1px solid var(--chrome-border);
+}
+
+.inspectorToggleIcon svg {
+    width: 16px;
+    height: 16px;
+}
+
+.inspectorContent {
+    min-height: 0;
+    display: flex;
+    flex: 1 1 auto;
+    overflow: hidden;
 }
 
 .eyebrow {
@@ -57,31 +122,6 @@
     letter-spacing: .12em;
     text-transform: uppercase;
     color: var(--chrome-muted);
-}
-
-.selectionTip {
-    display: grid;
-    grid-template-columns: max-content 1fr;
-    gap: var(--space-2);
-    align-items: center;
-    min-height: 40px;
-    padding: var(--space-2) var(--space-3);
-    background: var(--chrome-surface);
-    border-bottom: 1px solid var(--chrome-border);
-    color: var(--chrome-muted);
-    font: 500 11px/1.25 var(--font-body);
-    flex-shrink: 0;
-}
-
-.tipKeys {
-    color: var(--chrome-ink);
-    font: 700 9.5px/1 var(--font-mono);
-    letter-spacing: -.02em;
-    padding: 6px var(--space-2);
-    background: var(--chrome-control);
-    border: 1px solid var(--chrome-border);
-    border-radius: var(--radius-control);
-    overflow-wrap: anywhere;
 }
 
 .bar {
@@ -309,16 +349,13 @@
 
 @media (max-width: 900px) {
     .bar { grid-template-columns: 1fr; }
-    .selectionTip { grid-template-columns: 1fr; gap: 4px; }
 }
 
 @container (max-width: 380px) {
     .bar { grid-template-columns: 1fr; }
-    .selectionTip { grid-template-columns: 1fr; gap: 4px; }
-    .panelHeader h2 { font-size: 14px; }
 }
 
-/* When the live A4 boundary narrows the 304 px desktop panel, fields use the
+/* When the live A4 boundary narrows the 272 px desktop panel, fields use the
    full card width so labels and steppers stay legible without reducing the
    design-system 36 px interaction targets. The independent selection toolbar
    disables container queries and keeps its compact row. */
@@ -330,17 +367,25 @@
 }
 
 @media (max-width: 720px) {
-    .editor:not(.selectionEditor) {
-        left: 56px !important;
-        right: 0;
+    .editorClosed:not(.selectionEditor) {
+        max-width: calc(100vw - 64px);
+    }
+
+    .editorOpen:not(.selectionEditor) {
+        top: auto !important;
+        left: 64px !important;
+        right: 8px;
+        bottom: 8px;
         width: auto !important;
         max-width: none;
-        max-height: none !important;
-        height: calc(100dvh - var(--topbar-h)) !important;
+        min-width: 0;
+        height: auto !important;
+        max-height: min(420px, 46dvh) !important;
     }
 }
 
 @media (prefers-reduced-motion: reduce) {
+    .inspectorToggle,
     .iconBtn,
     .numField button { transition: none; }
 }
