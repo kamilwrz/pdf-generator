@@ -17,10 +17,10 @@ const TARGET_ICON_SCREEN_PX = 14;
 /** Desired on-screen gap between clustered controls in CSS pixels. */
 const TARGET_GAP_SCREEN_PX = 6;
 
-/** Screen-space gap between a section toolbar and its resolved A4 edge. */
+/** Screen-space gap between a section toolbar and its heading anchor. */
 export const SECTION_TOOLBAR_OFFSET_SCREEN_PX = 34;
 
-/** Screen-space gap between a record toolbar and its resolved A4 edge. */
+/** Screen-space gap between a record toolbar and its first-element anchor. */
 export const RECORD_TOOLBAR_OFFSET_SCREEN_PX = 16;
 
 /**
@@ -48,7 +48,7 @@ export function recordPlusLayoutSize(zoom = 1, fontSize = 10) {
  * the intended on-screen dimensions.
  *
  * @param {number} [zoom=1]
- * @param {number} [offsetScreenPx=10] desired page-edge gap in screen pixels
+ * @param {number} [offsetScreenPx=10] desired anchor gap in screen pixels
  * @returns {{buttonSize:number,iconSize:number,gap:number,labelWidth:number,fontSize:number,menuWidth:number,offset:number,borderWidth:number}}
  */
 export function structuralToolbarLayoutSize(zoom = 1, offsetScreenPx = 10) {

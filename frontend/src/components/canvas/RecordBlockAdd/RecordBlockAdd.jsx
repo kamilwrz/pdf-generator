@@ -6,19 +6,27 @@
  * description field. A single click edits text, while description/record
  * removals remain recoverable through the global toast.
  */
+import { useLayoutEffect, useState } from "react";
 import { FiFileMinus, FiFilePlus, FiTrash2 } from "react-icons/fi";
 import { useCanvasContext } from "../../../store/canvas-context";
 import { EDITOR_MODE_TEMPLATE } from "../../../utils/editorMode";
 import { elementSupportsRecordBlockAdd } from "../../../utils/sectionRecord";
-import { getElementOutlineBounds } from "../../../utils/elementBounds";
+import { getElementOutlineBounds, getVisualBounds } from "../../../utils/elementBounds";
 import { useCanvasHoverToolbar } from "../../../hooks/useCanvasHoverToolbar";
 import { useCanvasDeletionUndo } from "../../../hooks/useCanvasDeletionUndo";
 import {
   RECORD_TOOLBAR_OFFSET_SCREEN_PX,
-  resolveStructuralToolbarSide,
   structuralToolbarLayoutSize,
 } from "../recordPlusSize";
 import CanvasHoverToolbar from "../CanvasHoverToolbar/CanvasHoverToolbar";
+
+function sameBounds(left, right) {
+  if (!left || !right) return left === right;
+  return left.left === right.left
+    && left.top === right.top
+    && left.width === right.width
+    && left.height === right.height;
+}
 
 /**
  * @param {{
@@ -30,7 +38,6 @@ import CanvasHoverToolbar from "../CanvasHoverToolbar/CanvasHoverToolbar";
  *   width?:number,
  *   fontSize?:number,
  *   highlight?:{left:number,top:number,width:number,height:number}|null,
- *   spreadSide?:"left"|"right"|null,
  *   canMoveUp?:boolean,
  *   canMoveDown?:boolean,
  *   descriptionAction?:"add"|"remove"|null,
@@ -45,7 +52,6 @@ export default function RecordBlockAdd({
   width = 0,
   fontSize = 10,
   highlight = null,
-  spreadSide = null,
   canMoveUp = false,
   canMoveDown = false,
   descriptionAction = null,
@@ -92,6 +98,32 @@ export default function RecordBlockAdd({
     triggerIds,
     triggerRevision,
   });
+  const anchorMeasurementKey = JSON.stringify([
+    anchorElement?.element_id,
+    anchorElement?.left,
+    anchorElement?.top,
+    anchorElement?.width,
+    anchorElement?.height,
+    anchorElement?.fontSize,
+    anchorElement?.fontFamily,
+    anchorElement?.content,
+    zoom,
+  ]);
+  const [renderedAnchorMeasurement, setRenderedAnchorMeasurement] = useState(null);
+
+  useLayoutEffect(() => {
+    if (!visible || !anchorElement) return;
+    // Measure after React commits record movement or reflow. The title's live
+    // glyph box is the requested anchor, so stale model height must not shift
+    // the toolbar away from that element's actual vertical centre.
+    const bounds = getVisualBounds(anchorElement);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setRenderedAnchorMeasurement((current) => (
+      current?.key === anchorMeasurementKey && sameBounds(current.bounds, bounds)
+        ? current
+        : { key: anchorMeasurementKey, bounds }
+    ));
+  }, [anchorElement, anchorMeasurementKey, visible]);
 
   if (!eligible) return null;
 
@@ -109,13 +141,20 @@ export default function RecordBlockAdd({
     height: Math.max(boxHeight, Number(fontSize) || 10),
   };
   // Structural actions belong to the record, but their visual anchor is the
-  // first (title) element. Using that element's own box avoids drifting toward
+  // first (title) element. Using that element's live box avoids drifting toward
   // the centre as descriptions add more lines to the record outline.
-  const toolbarTop = (Number(top) || 0) + boxHeight / 2 - layout.buttonSize / 2;
-  const preferredSide = (Number(left) || 0) < (pageSize?.width ?? 595) * 0.38
-    ? "left"
-    : "right";
-  const side = resolveStructuralToolbarSide(preferredSide, spreadSide);
+  const toolbarAnchorBounds = renderedAnchorMeasurement?.key === anchorMeasurementKey
+    ? renderedAnchorMeasurement.bounds
+    : {
+      left: Number(left) || 0,
+      top: Number(top) || 0,
+      width: boxWidth,
+      height: boxHeight,
+    };
+  const toolbarTop = toolbarAnchorBounds.top
+    + toolbarAnchorBounds.height / 2
+    - layout.buttonSize / 2;
+  const toolbarAnchorX = toolbarAnchorBounds.left;
   const recordLabel = String(anchorElement?.content || "").trim();
   const hoveredElement = triggerElements.find((element) => (
     element.element_id === hoveredTriggerId
@@ -167,7 +206,8 @@ export default function RecordBlockAdd({
       toolbarKey={exclusiveKey}
       visible={visible}
       pinned={pinned}
-      side={side}
+      side="left"
+      anchorX={toolbarAnchorX}
       top={toolbarTop}
       pageWidth={pageSize?.width ?? 595}
       highlight={resolvedHighlight}

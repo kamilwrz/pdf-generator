@@ -30,7 +30,7 @@ test("keeps the compact structural toolbar screen-stable across canvas zoom", ()
   });
 });
 
-test("keeps section and record gutter gaps exact in screen space", () => {
+test("keeps section and record element-relative gaps exact in screen space", () => {
   assert.equal(
     structuralToolbarLayoutSize(1, SECTION_TOOLBAR_OFFSET_SCREEN_PX).offset,
     34,

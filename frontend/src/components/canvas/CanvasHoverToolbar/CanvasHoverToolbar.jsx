@@ -17,6 +17,7 @@ import classes from "./CanvasHoverToolbar.module.css";
  *   highlightVisible?:boolean,
  *   pinned:boolean,
  *   side?:"left"|"right",
+ *   anchorX?:number|null,
  *   top:number,
  *   pageWidth:number,
  *   highlight?:{left:number,top:number,width:number,height:number}|null,
@@ -44,6 +45,7 @@ export default function CanvasHoverToolbar({
   highlightVisible = visible,
   pinned,
   side = "right",
+  anchorX = null,
   top,
   pageWidth,
   highlight = null,
@@ -139,11 +141,16 @@ export default function CanvasHoverToolbar({
       canvasHost?.removeEventListener("transitionend", stopCanvasTransitionTracking);
       canvasHost?.removeEventListener("transitioncancel", stopCanvasTransitionTracking);
     };
-  }, [visible, side, top, pageWidth, layout]);
+  }, [visible, side, anchorX, top, pageWidth, layout]);
 
   if (!visible && !highlightVisible) return null;
 
-  const originStyle = { left: side === "left" ? 0 : pageWidth, top };
+  // Explicit page-local anchors let a structural toolbar follow its semantic
+  // element. Callers without one retain the original A4-edge positioning.
+  const resolvedAnchorX = anchorX != null && Number.isFinite(Number(anchorX))
+    ? Number(anchorX)
+    : (side === "left" ? 0 : pageWidth);
+  const originStyle = { left: resolvedAnchorX, top };
   const screenValue = (value) => `${value * (portalGeometry?.scale ?? 1)}px`;
   const portalStyle = portalGeometry ? {
     left: portalGeometry.left,

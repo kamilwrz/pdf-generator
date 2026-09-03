@@ -15,7 +15,6 @@ import { EDITOR_MODE_TEMPLATE } from "../../../utils/editorMode";
 import { useCanvasHoverToolbar } from "../../../hooks/useCanvasHoverToolbar";
 import { useCanvasDeletionUndo } from "../../../hooks/useCanvasDeletionUndo";
 import {
-  resolveStructuralToolbarSide,
   SECTION_TOOLBAR_OFFSET_SCREEN_PX,
   structuralToolbarLayoutSize,
 } from "../recordPlusSize";
@@ -63,8 +62,6 @@ function measurementKeyPart(element) {
  *   highlight?:{left:number,top:number,width:number,height:number}|null,
  *   highlightLimits?:{minTop?:number|null,maxBottom?:number|null},
  *   contentHoverIds?:string[],
- *   gutterSide?:"left"|"right",
- *   spreadSide?:"left"|"right"|null,
  *   canMoveUp?:boolean,
  *   canMoveDown?:boolean,
  *   laneTransfer?:"to-sidebar"|"to-main"|null,
@@ -81,8 +78,6 @@ export default function SectionRecordAdd({
   highlight = null,
   highlightLimits = {},
   contentHoverIds = [],
-  gutterSide = "right",
-  spreadSide = null,
   canMoveUp = false,
   canMoveDown = false,
   laneTransfer = null,
@@ -241,16 +236,16 @@ export default function SectionRecordAdd({
       resolvedHighlightLimits,
     )
     : storedHighlight;
-  // A single page follows its content lane. A spread instead uses the outer
-  // edge of each sheet because the centre gap is narrower than the toolbar.
-  const side = resolveStructuralToolbarSide(gutterSide, spreadSide);
-  // Align the control row to the rendered heading rather than to the full
-  // semantic section outline. This remains accurate for fonts whose glyph ink
-  // is offset inside the stored line box and after a zoom/reorder commit.
+  // Anchor both axes to the rendered heading rather than to the A4 page or the
+  // full semantic section outline. This remains accurate for fonts whose glyph
+  // ink is offset inside the stored line box and after a zoom/reorder commit.
   const toolbarHeadingBounds = currentMeasurement?.headingBounds || {
+    left: Number(left) || 0,
     top: Number(top) || 0,
+    width: headingWidth,
     height: Math.max(Number(heading?.height) || 0, headingHeight),
   };
+  const toolbarAnchorX = toolbarHeadingBounds.left + toolbarHeadingBounds.width;
   const toolbarTop = toolbarHeadingBounds.top
     + toolbarHeadingBounds.height / 2
     - layout.buttonSize / 2;
@@ -308,7 +303,8 @@ export default function SectionRecordAdd({
       visible={visible}
       highlightVisible={sectionContextVisible}
       pinned={pinned}
-      side={side}
+      side="right"
+      anchorX={toolbarAnchorX}
       top={toolbarTop}
       pageWidth={pageSize?.width ?? 595}
       highlight={resolvedHighlight}
