@@ -41,6 +41,11 @@ import {
     onCanvasEnterReflowResume,
 } from "../../../utils/canvasEnter";
 import { MASTHEAD_TITLE_PLACEHOLDER } from "../../../utils/mastheadBands";
+import { experienceMetadataParts, METADATA_SEPARATOR } from "../../../utils/experienceMetadata.js";
+import {
+    focusExperienceSlot, guardExperienceMetadataInput, readExperienceMetadata,
+    refreshExperienceMetadata, replaceExperienceSelection, seedExperienceMetadata,
+} from "../../../utils/experienceMetadataEditable.js";
 
 // Normalize a bullet's whitespace and render the marker in a dedicated grid
 // column. The column's width is the actual rendered "• " width for the active
@@ -100,7 +105,7 @@ function renderTextareaBody(content, runs, bulletList) {
 // text, deterministic marker/body paragraphs for bullets) yields the same height
 // as the display <div>. The mirror is cloned from the live node so it inherits
 // the identical box width and typography, then sizes itself to the content.
-function measureEditableContentHeight(node, content, runs, { bulletList = false } = {}) {
+function measureEditableContentHeight(node, content, runs, { bulletList = false, metadataHints } = {}) {
     if (!node?.cloneNode || typeof document === "undefined") {
         return measureNaturalScrollHeight(node);
     }
@@ -117,6 +122,7 @@ function measureEditableContentHeight(node, content, runs, { bulletList = false 
     mirror.innerHTML = bulletList
         ? bulletRunsToEditableHtml(content, runs)
         : runsToHtml(content, runs);
+    if (metadataHints) seedExperienceMetadata(mirror, content, runs, metadataHints);
     // Append inside the same parent so inherited styles and the containing block
     // width match the live edit box exactly.
     (node.parentNode ?? document.body).appendChild(mirror);
@@ -178,6 +184,7 @@ function Textarea({
     mastheadRole,
     placeholder,
     starterPlaceholder,
+    metadataHints,
     editorHoverOutline,
     skillsField = false,
 }) {
@@ -199,6 +206,9 @@ function Textarea({
     const [isResizeable, setIsResizeable] = useState(false);
     const blockRef = useRef(null);
     const editingRef = useRef(null);
+    const metadataSlotRef = useRef(null);
+    const commitRef = useRef(null);
+    const metadataHistoryRef = useRef({ entries: [], index: -1 });
     const pointerStartRef = useRef(null);
     const spacingHoldTimerRef = useRef(null);
     // Tracks whether the current pointer sequence turned into a drag, so the
@@ -376,7 +386,12 @@ function Textarea({
             { bulletList: !!bulletList },
         );
         const seeded = seededPayload.content;
-        if (bulletList) {
+        if (metadataHints) {
+            seedExperienceMetadata(node, seeded, seededPayload.runs, metadataHints);
+            metadataHistoryRef.current = {
+                entries: [{ ...readExperienceMetadata(node), selection: { start: 0, end: 0 } }], index: 0,
+            };
+        } else if (bulletList) {
             node.innerHTML = bulletRunsToEditableHtml(seeded, seededPayload.runs);
         } else if (hasRuns(seededPayload.runs)) {
             node.innerHTML = runsToHtml(seeded, seededPayload.runs);
@@ -409,7 +424,7 @@ function Textarea({
                 target,
                 current.content,
                 current.runs,
-                { bulletList: !!bulletList },
+                { bulletList: !!bulletList, metadataHints },
             );
             if (!Number.isFinite(measuredHeight) || measuredHeight <= 0) return;
             if (
@@ -441,6 +456,10 @@ function Textarea({
             range.collapse(false); // caret at end, matching the old textarea
             selection.removeAllRanges();
             selection.addRange(range);
+            if (metadataHints) {
+                focusExperienceSlot(target, metadataSlotRef.current ?? 0);
+                metadataSlotRef.current = null;
+            }
             // The replacement edit node now owns the seeded content. Only now
             // release the guard that blocks the old spread node's unmount blur.
             if (editZoomSpreadTransitionRef?.current === elementId) {
@@ -457,6 +476,41 @@ function Textarea({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isEditing]);
 
+    // Native beforeinput includes mobile deletion/history events that React's
+    // synthetic before-input compatibility layer does not consistently expose.
+    useLayoutEffect(() => {
+        const node = editingRef.current;
+        if (!isEditing || !metadataHints || !node) return undefined;
+        const beforeInput = (event) => {
+            const history = metadataHistoryRef.current;
+            if (history.entries[history.index]) {
+                history.entries[history.index].selection = getSelectionOffsets(node);
+            }
+            if (event.inputType === "historyUndo" || event.inputType === "historyRedo") {
+                event.preventDefault();
+                restoreMetadataHistory(event.inputType === "historyUndo" ? -1 : 1);
+            } else if (guardExperienceMetadataInput(event, node, metadataHints)) {
+                commitRef.current?.(node);
+            }
+        };
+        node.addEventListener("beforeinput", beforeInput);
+        return () => node.removeEventListener("beforeinput", beforeInput);
+        // The native listener belongs to one edit session. Its commit ref reads
+        // current props without replacing the listener after each keystroke.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isEditing, Boolean(metadataHints)]);
+
+    function restoreMetadataHistory(direction) {
+        const history = metadataHistoryRef.current;
+        const index = history.index + direction;
+        if (!history.entries[index] || !editingRef.current) return;
+        history.index = index;
+        const entry = history.entries[index];
+        seedExperienceMetadata(editingRef.current, entry.content, entry.runs, metadataHints);
+        if (entry.selection) setSelectionOffsets(editingRef.current, entry.selection.start, entry.selection.end);
+        commitRef.current?.(editingRef.current, { recordHistory: false });
+    }
+
     useLayoutEffect(() => () => {
         endTextSpacingHold({
             timerRef: spacingHoldTimerRef,
@@ -468,6 +522,8 @@ function Textarea({
     function startEditing(event) {
         event?.preventDefault();
         event?.stopPropagation();
+        const slot = event?.target?.closest?.("[data-metadata-slot]");
+        if (slot) metadataSlotRef.current = Number(slot.dataset.metadataSlot);
         endTextSpacingHold({
             timerRef: spacingHoldTimerRef,
             elementId,
@@ -515,8 +571,9 @@ function Textarea({
         // While typing, keep every newline so Enter can open a blank paragraph.
         // On blur, plain textarea newlines remain authored spacing; bullet-list
         // placeholders alone are removed so section rhythm follows real copy.
-        const commitEditable = (node, { finalize = false } = {}) => {
-            const serialized = serializeEditable(node);
+        const commitEditable = (node, { finalize = false, recordHistory = true } = {}) => {
+            if (metadataHints) refreshExperienceMetadata(node, metadataHints);
+            const serialized = metadataHints ? readExperienceMetadata(node) : serializeEditable(node);
             const { content: nextContent, runs: nextRuns } = finalize
                 ? trimTrailingEmptyTextareaPayload(
                     serialized.content,
@@ -530,7 +587,7 @@ function Textarea({
             // enter this branch. During bullet editing, rebuild only after a
             // structural change such as Enter/paste; ordinary typing keeps the
             // live DOM intact so the browser owns caret and undo behaviour.
-            if (finalize && nextContent !== serialized.content) {
+            if (!metadataHints && finalize && nextContent !== serialized.content) {
                 if (bulletList) {
                     node.innerHTML = bulletRunsToEditableHtml(nextContent, nextRuns);
                 } else if (hasRuns(nextRuns)) {
@@ -548,9 +605,21 @@ function Textarea({
                 node,
                 nextContent,
                 nextRuns,
-                { bulletList: !!bulletList },
+                { bulletList: !!bulletList, metadataHints },
             );
             node.style.height = `${measuredHeight}px`;
+            if (metadataHints && recordHistory) {
+                // Structural replacements cannot participate in the browser's
+                // native history. One per-field history covers both native
+                // typing and protected-dot edits, including redo after deletion.
+                const history = metadataHistoryRef.current;
+                const previous = history.entries[history.index];
+                if (previous?.content !== nextContent || JSON.stringify(previous?.runs) !== JSON.stringify(nextRuns)) {
+                    history.entries.splice(history.index + 1);
+                    history.entries.push({ content: nextContent, runs: nextRuns, selection: getSelectionOffsets(node) });
+                    history.index = history.entries.length - 1;
+                }
+            }
             if (autoHeight) {
                 editElementValues({
                     content: nextContent,
@@ -569,6 +638,7 @@ function Textarea({
                 }, elementId);
             }
         };
+        commitRef.current = commitEditable;
         return (
                 <div
                     // Distinct key from the display block below. The edit surface
@@ -589,10 +659,29 @@ function Textarea({
                     contentEditable
                     suppressContentEditableWarning
                     spellCheck={false}
+                    role="textbox"
+                    aria-label={metadataHints ? "Doświadczenie: firma, lokalizacja i okres" : (editorPlaceholder || "Treść")}
+                    aria-multiline="true"
                     data-placeholder={editorPlaceholder || "Wpisz swój tekst…"}
                     data-editor-hover-outline={editorHoverOutline ? "true" : undefined}
                     data-skills-field={skillsField ? "true" : undefined}
-                    onInput={(e) => commitEditable(e.currentTarget)}
+                    onInput={(e) => {
+                        if (metadataHints && e.nativeEvent.isComposing) {
+                            // Reveal composition text immediately, but do not
+                            // rebuild the IME's live DOM until composition ends.
+                            e.currentTarget.querySelectorAll("[data-metadata-slot]").forEach((slot) => {
+                                slot.dataset.empty = String(!slot.textContent);
+                            });
+                        } else commitEditable(e.currentTarget);
+                    }}
+                    onCompositionEnd={(e) => { if (metadataHints) commitEditable(e.currentTarget); }}
+                    onClick={(e) => {
+                        const slot = e.target.closest?.('[data-metadata-slot][data-empty="true"]');
+                        if (metadataHints && slot) {
+                            e.preventDefault();
+                            focusExperienceSlot(e.currentTarget, Number(slot.dataset.metadataSlot));
+                        }
+                    }}
                     onBlur={() => {
                         // The 2-page → focused-page edit zoom unmounts this
                         // surface. Ignore that synthetic blur so its transient
@@ -604,6 +693,28 @@ function Textarea({
                         setTextareaEditing(elementId, false);
                     }}
                     onKeyDown={(e) => {
+                        if (metadataHints) {
+                            if ((e.ctrlKey || e.metaKey) && ["z", "y"].includes(e.key.toLowerCase())) {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                restoreMetadataHistory(e.shiftKey || e.key.toLowerCase() === "y" ? 1 : -1);
+                                return;
+                            }
+                            if (e.key === "Tab") {
+                                const anchor = window.getSelection()?.anchorNode;
+                                const slot = (anchor?.nodeType === 1 ? anchor : anchor?.parentElement)?.closest?.("[data-metadata-slot]");
+                                const next = Number(slot?.dataset.metadataSlot ?? 0) + (e.shiftKey ? -1 : 1);
+                                if (next >= 0 && next <= 2) {
+                                    e.preventDefault();
+                                    focusExperienceSlot(e.currentTarget, next);
+                                }
+                                return;
+                            }
+                            if (e.key === "Enter") {
+                                e.preventDefault();
+                                return;
+                            }
+                        }
                         if (e.key === "Escape") {
                             e.preventDefault();
                             e.currentTarget.blur();
@@ -662,7 +773,19 @@ function Textarea({
                         // also carry foreign inline styles into the content).
                         e.preventDefault();
                         const text = e.clipboardData?.getData("text/plain") ?? "";
+                        if (metadataHints) {
+                            replaceExperienceSelection(e.currentTarget, text, metadataHints);
+                            commitEditable(e.currentTarget);
+                            return;
+                        }
                         document.execCommand("insertText", false, text);
+                    }}
+                    onCut={(e) => {
+                        if (!metadataHints) return;
+                        e.preventDefault();
+                        e.clipboardData.setData("text/plain", window.getSelection()?.toString() || "");
+                        replaceExperienceSelection(e.currentTarget, "", metadataHints);
+                        commitEditable(e.currentTarget);
                     }}
                 />
         );
@@ -721,6 +844,8 @@ function Textarea({
             }}
             onPointerDown={(e) => {
                 if (e.ctrlKey || e.metaKey) return;
+                const slot = e.target.closest?.("[data-metadata-slot]");
+                metadataSlotRef.current = slot ? Number(slot.dataset.metadataSlot) : null;
                 e.currentTarget.setPointerCapture(e.pointerId);
                 didDragRef.current = false;
                 pointerStartRef.current = {
@@ -777,7 +902,14 @@ function Textarea({
                 moveElement(e, elementId);
             }}
         >
-            {renderTextareaBody(cleanContent, cleanRuns, bulletList)}
+            {metadataHints ? experienceMetadataParts(cleanContent).map((part, index) => (
+                <span key={index}>
+                    {index > 0 ? METADATA_SEPARATOR : null}
+                    <span data-metadata-slot={index} data-hint={metadataHints[index]} data-empty={!part.text ? "true" : "false"}>
+                        {renderStyledText(part.text, sliceRuns(cleanRuns, part.start, part.start + part.text.length))}
+                    </span>
+                </span>
+            )) : renderTextareaBody(cleanContent, cleanRuns, bulletList)}
         </div>
     );
 

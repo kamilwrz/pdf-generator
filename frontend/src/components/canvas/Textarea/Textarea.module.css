@@ -118,3 +118,18 @@
     pointer-events: none;
     text-transform: none;
 }
+
+/* Inline pseudo-content takes part in wrapping but never in persisted text,
+   clipboard selection, or PDF output. The same font keeps hints and dots on
+   the document baseline at every canvas zoom. */
+.block [data-metadata-slot],
+.editing [data-metadata-slot] {
+    cursor: text;
+}
+
+.block [data-metadata-slot][data-empty="true"]::before,
+.editing [data-metadata-slot][data-empty="true"]::before {
+    content: attr(data-hint);
+    color: var(--color-muted);
+    text-transform: none;
+}

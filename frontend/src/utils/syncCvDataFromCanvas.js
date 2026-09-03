@@ -14,6 +14,7 @@
  */
 
 import { SECTION_LAYOUTS } from "./sectionBuilder.js";
+import { experienceMetadataHints } from "./experienceMetadata.js";
 import {
   listSectionContentElements,
   partitionSectionRecords,
@@ -91,11 +92,11 @@ function contentLines(element) {
     .filter(Boolean);
 }
 
-function splitMeta(value, expectedParts) {
+function splitMeta(value, expectedParts, preserveEmpty = false) {
   const parts = String(value || "")
     .split(/\s*[·|]\s*/)
     .map((part) => part.trim())
-    .filter(Boolean);
+    .filter((part) => preserveEmpty || Boolean(part));
   if (parts.length === 0) return Array(expectedParts).fill("");
   if (parts.length >= expectedParts) {
     return [
@@ -155,7 +156,13 @@ function profileRecordFromCanvas(members, kind) {
   let company = roleValue(members, "organization");
   let city = roleValue(members, "city");
   let period = roleValue(members, "period");
-  const [metaCompany, metaCity, metaPeriod] = splitMeta(roleValue(members, "meta"), 3);
+  const metaElement = members.find((element) => (
+    element.editorRecordField === "meta" || (element.editorRecordField === "organization" && experienceMetadataHints(element))
+  ));
+  const [metaCompany, metaCity, metaPeriod] = splitMeta(
+    metaElement ? profileTextForElement(metaElement) : "", 3, Boolean(experienceMetadataHints(metaElement)),
+  );
+  if (experienceMetadataHints(metaElement)) company = "";
   company ||= metaCompany;
   city ||= metaCity;
   period ||= metaPeriod;
@@ -906,7 +913,7 @@ function syncStarterBindings(cvData, previousElements, nextElements) {
     const content = profileTextForElement(next);
     const values = bindings.length === 1
       ? [content]
-      : splitMeta(content, bindings.length);
+      : splitMeta(content, bindings.length, Boolean(experienceMetadataHints(next)));
     if (draft === cvData) draft = cloneProfile(cvData);
     bindings.forEach((binding, index) => {
       setProfilePath(draft, binding?.path, values[index] || "");

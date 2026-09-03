@@ -306,6 +306,7 @@ The editor and other task-heavy screens may be denser, but must remain grid-base
 - The Add Section dialog exposes concrete CV section types rather than implementation layouts. Every choice previews its real information hierarchy, uses the shared empty-CV field guidance, and remains a keyboard-operable radio card at desktop, tablet, mobile, and 200% zoom.
 - Dragging must provide visible origin, current target, and invalid-drop feedback.
 - UI styling must not change printed dimensions or leak into PDF export.
+- Combined Experience metadata uses one inline edit surface with three independent hints (company, location, period) and two structural middle dots. A hint remains visible on focus and disappears only when its own slot has text. Clicking a hint places the caret in that slot; Tab and Shift+Tab move between slots, then leave the field. Empty slots remain available on the canvas and are omitted together with unused separators in the render-only PDF copy. This contract excludes rail layouts such as Meridian, separate metadata fields, and other sections. Hints are editor-only pseudo-content; the field retains a persistent accessible name.
 
 ### 5.8 AI workflows
 

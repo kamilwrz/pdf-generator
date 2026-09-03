@@ -18,6 +18,7 @@ import {
   sidebarSectionElementIds,
 } from "./sectionStructure.js";
 import { finalizeStarterElements } from "./cvStarter.js";
+import { compactExperienceMetadata } from "./experienceMetadata.js";
 
 function contactBandIds(elements) {
   return [...new Set((elements || [])
@@ -170,7 +171,7 @@ function hasRealStarterContent(element) {
  * rules as the editor, closing gaps while leaving the source array unchanged.
  */
 export function prepareStarterElementsForRender(source, pageHeight = 842, templateId = null) {
-  let elements = (source || []).map((element) => ({ ...element }));
+  let elements = (source || []).map((element) => compactExperienceMetadata({ ...element }));
   const emptySectionKeys = new Set();
   const sectionKeys = new Set(elements.map((element) => element.starterSectionKey).filter(Boolean));
   for (const key of sectionKeys) {
