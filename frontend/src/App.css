@@ -429,3 +429,22 @@
     src: url("/fonts/JetBrainsMono-BoldItalic.ttf");
  }
 
+/* The editor deliberately replaces near-black application chrome with the
+   Swiss palette's warm brown. `:has()` scopes the override to `/cvstudio/*`
+   without changing landing or authentication routes. Defining it on `body`
+   also reaches dialogs and canvas controls portalled beside `.main-container`.
+   Authored A4 elements keep their persisted colours and export data. */
+body:has(.main-container) {
+   --color-ink: var(--color-editor-ink);
+   --color-ink-soft: color-mix(in srgb, var(--color-editor-ink) 72%, var(--color-paper));
+   --color-overlay: color-mix(in srgb, var(--color-editor-ink) 74%, transparent);
+   --chrome-ink: var(--color-editor-ink);
+   --chrome-accent: var(--color-editor-ink);
+   --chrome-accent-strong: var(--color-editor-ink);
+   --accent-strong: var(--color-editor-ink);
+   --accent-grad: var(--color-editor-ink);
+   --primary-btn: var(--color-editor-ink);
+   --primary-font: var(--color-editor-ink);
+   --ink-2: var(--color-editor-ink);
+}
+
