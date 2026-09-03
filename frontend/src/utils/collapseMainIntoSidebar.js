@@ -273,7 +273,7 @@ export function moveMainSectionsToSidebar(elements, headingIds, pageHeight, spac
       restyledElements = restyleLanguagesMembersAsSidebar(
         members, headingId, style, stagingTop,
       );
-    } else if (heading && isSkillsSectionHeading(heading.content)) {
+    } else if (heading && isSkillsSectionHeading(heading)) {
       // Main-column skill subcategories collapse to one
       // `_skills_sidebar_content` textarea (category lines + bullets).
       restyledElements = restyleSkillsMembersAsSidebar(

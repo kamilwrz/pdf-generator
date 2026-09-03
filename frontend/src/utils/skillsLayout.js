@@ -15,10 +15,10 @@ import {
   formatFlatListContent,
   parseFlatListItems,
 } from "./flatSectionLayout.js";
-import { isSkillsSectionTitle } from "./sectionRecord.js";
+import { isSkillsSectionElement, isSkillsSectionTitle } from "./sectionRecord.js";
 import { sectionChromeRuleRelTop } from "./sectionStructure.js";
 
-export { isSkillsSectionTitle };
+export { isSkillsSectionElement, isSkillsSectionTitle };
 
 /** Third main-column skills layout, alongside `FLAT_SECTION_LAYOUT_INLINE` / `_BULLET`. */
 export const SKILLS_LAYOUT_CHIPS = "chips";
@@ -101,11 +101,13 @@ function compositeSidebarBodyId(members, headingId) {
 }
 
 /**
- * @param {string|null|undefined} title
+ * @param {string|object|null|undefined} heading
  * @returns {boolean}
  */
-export function isSkillsSectionHeading(title) {
-  return isSkillsSectionTitle(title);
+export function isSkillsSectionHeading(heading) {
+  return heading && typeof heading === "object"
+    ? isSkillsSectionElement(heading)
+    : isSkillsSectionTitle(heading);
 }
 
 /**

@@ -17,6 +17,10 @@ describe("isSkillsSectionHeading", () => {
     assert.equal(isSkillsSectionHeading("UMIEJĘTNOŚCI"), true);
     assert.equal(isSkillsSectionHeading("Skills"), true);
     assert.equal(isSkillsSectionHeading("JĘZYKI"), false);
+    assert.equal(isSkillsSectionHeading({
+      content: "PROJEKTY",
+      editorSectionType: "skills-categories",
+    }), true);
   });
 });
 

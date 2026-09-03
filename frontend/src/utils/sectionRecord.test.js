@@ -118,6 +118,31 @@ describe("sectionSupportsRecordAdd", () => {
     assert.equal(anchors[1].canMoveDown, false);
     assert.equal(elementSupportsRecordBlockAdd(elements, "sk-cat"), true);
   });
+
+  it("keeps chip category actions when the semantic Skills heading is renamed", () => {
+    const headingId = "renamed-skills-head";
+    const elements = [
+      { element_id: headingId, category: "text", content: "PROJEKTY",
+        editorSectionType: "skills-categories", flowRole: "section-chrome",
+        left: 66, top: 100, width: 460, height: 16, page: 1, bold: true },
+      { element_id: "renamed-skills-rule", category: "line", flowRole: "section-chrome",
+        left: 66, top: 121, width: 460, height: 1, page: 1 },
+      { element_id: "renamed-skills-category", category: "textarea", content: "Frontend",
+        flowRole: "content", flowGroup: "renamed-skills-group", left: 66, top: 136,
+        width: 460, height: 14, fontSize: 10, page: 1, bold: true },
+      { element_id: "renamed-skills-shape", category: "rectangle", flowRole: "grid-member",
+        flowGroup: "renamed-skills-group", left: 66, top: 154, width: 60, height: 20, page: 1 },
+      { element_id: "renamed-skills-label", category: "text", content: "React",
+        flowRole: "grid-member", flowGroup: "renamed-skills-group", left: 76, top: 164,
+        fontSize: 9.3, page: 1 },
+    ];
+
+    assert.equal(sectionSupportsRecordAdd(elements, headingId), true);
+    const anchors = listRecordBlockAddAnchors(elements);
+    assert.equal(anchors.length, 1);
+    assert.equal(anchors[0].skillsCategory, true);
+    assert.equal(anchors[0].descriptionAction, null);
+  });
 });
 
 describe("placeholderContentsForRecord / inferRecordLayout", () => {

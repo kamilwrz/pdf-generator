@@ -257,6 +257,18 @@ test.describe("CV Studio editor smoke", () => {
     await page.getByText("Kontynuuj ostatnie CV", { exact: true }).click();
     await page.getByRole("button", { name: "Otwórz na płótnie" }).click();
 
+    // Legacy generated headings have no semantic section type. Renaming must
+    // stamp it before the visible label stops matching "Umiejętności", so all
+    // Skills controls continue to work under a user-defined section name.
+    const skillsHeading = page.locator("#skills-heading");
+    await skillsHeading.focus();
+    await page.keyboard.press("Enter");
+    await expect(skillsHeading).toHaveAttribute("contenteditable", "true");
+    await page.keyboard.press("Control+A");
+    await page.keyboard.type("PROJEKTY");
+    await page.keyboard.press("Escape");
+    await expect(skillsHeading).toHaveText("PROJEKTY");
+
     // The authored heading uses cap-height alignment whose DOM box can be
     // reported as zero-height by headless Chromium even though the glyphs are
     // visible. Dispatch the same pointer-enter event observed by the shared

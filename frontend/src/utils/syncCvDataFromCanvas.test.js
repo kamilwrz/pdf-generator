@@ -969,6 +969,28 @@ describe("generated Skills synchronization", () => {
     }]);
   });
 
+  it("synchronizes generated Skills after its semantic heading is renamed", () => {
+    const renameHeading = (elements) => elements.map((element) => (
+      element.element_id === "skills-heading"
+        ? { ...element, content: "PROJEKTY", editorSectionType: "skills-categories" }
+        : element
+    ));
+    const source = {
+      ...profile,
+      skills: [{ category: "Narzędzia", items: ["Figma"] }],
+    };
+    const updated = syncCvDataFromCanvas(
+      source,
+      renameHeading(groupedSkills()),
+      renameHeading(groupedSkills(["Miro"])),
+    );
+
+    assert.deepEqual(updated.skills, [{
+      category: "Narzędzia",
+      items: ["Figma", "Miro"],
+    }]);
+  });
+
   it("captures a just-added skill before immediate template replacement", () => {
     const source = { ...profile, skills: ["Figma", "React"] };
     const updated = syncGeneratedSkillsForTemplateSwitch(

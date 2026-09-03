@@ -321,7 +321,7 @@ export function moveSidebarSectionsToMain(elements, headingIds, pageHeight, spac
     // Grouped skills: expand the single rail textarea into bold category +
     // body records so the packer keep-together rules match Experience and
     // type/width match the main column (not the orphaned-heading failure).
-    if (heading && isSkillsSectionHeading(heading.content)) {
+    if (heading && isSkillsSectionHeading(heading)) {
       const restyled = restyleSkillsMembersAsMain(
         members, headingId, style, parkBase, spacing,
       );

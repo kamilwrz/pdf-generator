@@ -164,6 +164,25 @@ describe("listSkillsDisplayAnchors", () => {
     ));
     assert.deepEqual(listSkillsDisplayAnchors(elements, PAGE_HEIGHT), []);
   });
+
+  it("uses semantic section type after the visible Skills heading is renamed", () => {
+    const elements = groupedSkillsFixture().map((element) => (
+      element.element_id === "sk-head"
+        ? { ...element, content: "PROJEKTY", editorSectionType: "skills-categories" }
+        : element
+    ));
+    assert.deepEqual(
+      listSkillsDisplayAnchors(elements, PAGE_HEIGHT),
+      [{ headingId: "sk-head", mode: "inline" }],
+    );
+    assert.ok(changeSkillsDisplayMode(
+      elements,
+      "sk-head",
+      "chips",
+      PAGE_HEIGHT,
+      SPACING,
+    ));
+  });
 });
 
 describe("isInlineSkillsContentElement", () => {

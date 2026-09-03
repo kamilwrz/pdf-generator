@@ -23,7 +23,7 @@ import {
   listSidebarSections,
   sectionElementIds,
 } from "./sectionStructure.js";
-import { collectSkillGroups, isSkillsSectionTitle } from "./skillsLayout.js";
+import { collectSkillGroups, isSkillsSectionElement } from "./skillsLayout.js";
 import {
   isLanguagesGridSection,
   parseLanguageLine,
@@ -502,7 +502,7 @@ function generatedSkillsSection(elements) {
   const list = elements || [];
   return listDocumentSections(list).find((candidate) => {
     const heading = list.find((element) => element?.element_id === candidate.headingId);
-    return heading && !heading.editorAddedSection && isSkillsSectionTitle(candidate.title);
+    return heading && !heading.editorAddedSection && isSkillsSectionElement(heading);
   });
 }
 

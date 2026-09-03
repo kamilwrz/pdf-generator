@@ -39,13 +39,15 @@ import {
   normalizeFilledBandSectionHeading,
   removeSection,
   reorderSection,
+  sectionElementIds,
 } from '../utils/sectionStructure';
-import { buildSectionElements, SECTION_LAYOUTS } from '../utils/sectionBuilder';
+import { buildSectionElements, SECTION_LAYOUTS, SECTION_TYPES } from '../utils/sectionBuilder';
 import {
   addRecordDescription,
   appendRecordToSection,
   findRecordTemplateForLayout,
   insertRecordBlockAfterRecord,
+  isSkillsSectionTitle,
   removeRecordDescription,
   removeRecordBlock,
   replaceBuiltSectionRecord,
@@ -1749,6 +1751,32 @@ export function useA4Elements(titleRef) {
           const next = { ...element, ...dataObject };
           if ("content" in dataObject) {
             next.content = sanitizeTextContent(dataObject.content);
+            if (
+              element.flowRole === "section-chrome"
+              && !element.editorSectionType
+              && !element.extra_properties?.editorSectionType
+              && isSkillsSectionTitle(element.content)
+            ) {
+              // Older generated headings predate semantic section metadata.
+              // Capture their meaning before the first typed character changes
+              // the visible label, otherwise Skills-only controls would vanish
+              // midway through renaming. Bold flowing members distinguish the
+              // categorised variant from the category-free Skills section.
+              const memberIds = sectionElementIds(
+                prevState,
+                element.element_id,
+                pageSizeRef.current.height,
+              );
+              const hasCategories = prevState.some((candidate) => (
+                memberIds.has(candidate.element_id)
+                && candidate.flowRole !== "section-chrome"
+                && candidate.flowRole !== "sidebar-chrome"
+                && Boolean(candidate.bold)
+              ));
+              next.editorSectionType = hasCategories
+                ? SECTION_TYPES.SKILLS_CATEGORIES
+                : SECTION_TYPES.SKILLS;
+            }
             // Inline `runs` are addressed by character offset, so any content
             // change that does not carry its own runs (AI correction, bullet
             // toggle, properties-panel edit) would leave stale offsets. Clear

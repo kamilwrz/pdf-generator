@@ -23,7 +23,7 @@ import {
   buildSkillsChipGroups,
   detectSkillChipVariant,
   detectSkillsDisplayMode,
-  isSkillsSectionTitle,
+  isSkillsSectionElement,
   layoutSkillChips,
 } from "./skillsLayout.js";
 
@@ -231,11 +231,12 @@ function groupDescriptorsForSection(elements, section, pageHeight) {
 
 function skillGroupDescriptors(elements, pageHeight) {
   const list = elements || [];
-  return listDocumentSections(list, pageHeight).flatMap((section) => (
-    isSkillsSectionTitle(section.title)
+  return listDocumentSections(list, pageHeight).flatMap((section) => {
+    const heading = list.find((element) => element.element_id === section.headingId);
+    return isSkillsSectionElement(heading)
       ? groupDescriptorsForSection(list, section, pageHeight)
-      : []
-  ));
+      : [];
+  });
 }
 
 function anchorForGroup(group, pageHeight) {

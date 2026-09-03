@@ -22,7 +22,7 @@ import {
   SKILLS_LAYOUT_CHIPS,
   detectSkillChipVariant,
   detectSkillsDisplayMode,
-  isSkillsSectionTitle,
+  isSkillsSectionElement,
   normalizeSkillChipVariant,
   resolveSkillChipColors,
   restyleSkillsMembersAsMode,
@@ -58,7 +58,8 @@ export function listSkillsDisplayAnchors(elements, pageHeight = 842) {
   const sections = listDocumentSections(list, pageHeight);
   const anchors = [];
   for (const section of sections) {
-    if (!isSkillsSectionTitle(section.title)) continue;
+    const heading = list.find((element) => element.element_id === section.headingId);
+    if (!isSkillsSectionElement(heading)) continue;
     const memberIds = sectionElementIds(list, section.headingId, pageHeight);
     if (memberIds.size === 0) continue;
     const members = list.filter((element) => memberIds.has(element.element_id));
@@ -131,7 +132,8 @@ export function changeSkillsDisplayMode(
   const list = elements || [];
   const section = listDocumentSections(list, pageHeight)
     .find((candidate) => candidate.headingId === headingId);
-  if (!section || !isSkillsSectionTitle(section.title)) return null;
+  const heading = list.find((element) => element.element_id === headingId);
+  if (!section || !isSkillsSectionElement(heading)) return null;
 
   const memberIds = sectionElementIds(list, headingId, pageHeight);
   if (memberIds.size === 0) return null;

@@ -95,6 +95,16 @@ describe("listSkillsEntryAnchors", () => {
     ]);
     assert.ok(anchors.every((anchor) => anchor.highlight?.width > 0));
   });
+
+  it("keeps category anchors after a semantic Skills heading is renamed", () => {
+    const elements = groupedFixture().map((element) => (
+      element.element_id === "sk-head"
+        ? { ...element, content: "PROJEKTY", editorSectionType: "skills-categories" }
+        : element
+    ));
+    const anchors = listSkillsEntryAnchors(elements);
+    assert.deepEqual(anchors.map((anchor) => anchor.groupId), ["tools", "soft"]);
+  });
 });
 
 describe("insertSkillItem", () => {

@@ -109,6 +109,23 @@ export function isSkillsSectionTitle(title) {
 }
 
 /**
+ * Identify a Skills heading without coupling editor behaviour to its visible
+ * label. Editor-created (and once-edited legacy) sections carry a stable
+ * `editorSectionType`; generated legacy documents fall back to the recognised
+ * heading text until that semantic type is stamped during the first rename.
+ *
+ * @param {object|null|undefined} heading
+ * @returns {boolean}
+ */
+export function isSkillsSectionElement(heading) {
+  const explicitType = heading?.editorSectionType
+    ?? heading?.extra_properties?.editorSectionType;
+  return explicitType === SECTION_TYPES.SKILLS
+    || explicitType === SECTION_TYPES.SKILLS_CATEGORIES
+    || isSkillsSectionTitle(heading?.content);
+}
+
+/**
  * @param {string|null|undefined} title
  * @returns {boolean}
  */
@@ -337,7 +354,7 @@ export function sectionSupportsRecordAdd(elements, headingId, pageHeight = 842) 
   if (body.length < 2) return false;
   if (body.some((element) => element.flowRole === "grid-member")) {
     const heading = (elements || []).find((element) => element.element_id === headingId);
-    return isSkillsSectionTitle(heading?.content)
+    return isSkillsSectionElement(heading)
       && body.some((element) => element.flowRole !== "grid-member" && Boolean(element.bold));
   }
   const groups = partitionSectionRecords(body);
@@ -1324,11 +1341,16 @@ export function findRecordDescription(group) {
  * @param {object[]} group
  * @param {object[][]} groups
  * @param {string|null|undefined} sectionTitle
+ * @param {string|null|undefined} sectionType
  * @returns {"add"|"remove"|null}
  */
-function descriptionActionForGroup(group, groups, sectionTitle) {
+function descriptionActionForGroup(group, groups, sectionTitle, sectionType = null) {
   if (findRecordDescription(group)) return "remove";
-  if (isSkillsSectionTitle(sectionTitle)) return null;
+  if (
+    sectionType === SECTION_TYPES.SKILLS
+    || sectionType === SECTION_TYPES.SKILLS_CATEGORIES
+    || isSkillsSectionTitle(sectionTitle)
+  ) return null;
 
   const siblingHasDescription = (groups || []).some((candidate) => (
     candidate !== group && Boolean(findRecordDescription(candidate))
@@ -1362,7 +1384,12 @@ export function getRecordDescriptionAction(elements, elementId, pageHeight = 842
 
   const groups = partitionSectionRecords(anchor.body);
   const heading = (elements || []).find((element) => element.element_id === anchor.headingId);
-  return descriptionActionForGroup(anchor.group, groups, heading?.content);
+  return descriptionActionForGroup(
+    anchor.group,
+    groups,
+    heading?.content,
+    heading?.editorSectionType,
+  );
 }
 
 /**
@@ -1437,7 +1464,7 @@ export function listRecordBlockAddAnchors(elements, pageHeight = 842) {
             ? explicitHeight
             : fallbackHeight);
       }));
-      const skillsCategory = isSkillsSectionTitle(heading?.content) && Boolean(title.bold);
+      const skillsCategory = isSkillsSectionElement(heading) && Boolean(title.bold);
       anchors.push({
         elementId: title.element_id,
         hoverIds: pageMembers.map((element) => element.element_id),
@@ -1455,7 +1482,12 @@ export function listRecordBlockAddAnchors(elements, pageHeight = 842) {
         skillsCategory,
         canMoveUp: groupIndex > 0,
         canMoveDown: groupIndex < groups.length - 1,
-        descriptionAction: descriptionActionForGroup(group, groups, heading?.content),
+        descriptionAction: descriptionActionForGroup(
+          group,
+          groups,
+          heading?.content,
+          heading?.editorSectionType,
+        ),
       });
     });
   }
@@ -1713,7 +1745,12 @@ export function addRecordDescription(
 
   const groups = partitionSectionRecords(anchor.body);
   const heading = (elements || []).find((element) => element.element_id === anchor.headingId);
-  if (descriptionActionForGroup(anchor.group, groups, heading?.content) !== "add") {
+  if (descriptionActionForGroup(
+    anchor.group,
+    groups,
+    heading?.content,
+    heading?.editorSectionType,
+  ) !== "add") {
     return null;
   }
 
