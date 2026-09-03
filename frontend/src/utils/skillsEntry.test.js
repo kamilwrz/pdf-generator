@@ -80,6 +80,7 @@ describe("listSkillsEntryAnchors", () => {
     assert.equal(anchors[0].mode, "inline");
     assert.equal(anchors[0].left, 60);
     assert.equal(anchors[0].width, 460);
+    assert.deepEqual(anchors[0].highlight, { left: 60, top: 136, width: 460, height: 14 });
   });
 
   it("returns one stable anchor under each named category", () => {
@@ -90,6 +91,7 @@ describe("listSkillsEntryAnchors", () => {
       { groupId: "tools", categoryLabel: "Narzędzia", mountElementId: "cat-tools" },
       { groupId: "soft", categoryLabel: "Miękkie", mountElementId: "cat-soft" },
     ]);
+    assert.ok(anchors.every((anchor) => anchor.highlight?.width > 0));
   });
 });
 

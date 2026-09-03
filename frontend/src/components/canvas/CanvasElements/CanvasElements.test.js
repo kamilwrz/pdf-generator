@@ -85,6 +85,23 @@ test("main-column Skills groups mount their dedicated add form anchors", async (
   assert.match(source, /addOnly=\{blockAnchor\.addOnly\}/);
 });
 
+test("Skills category and body textareas receive dedicated editor chrome", async () => {
+  const [canvasSource, textareaSource, textareaCss] = await Promise.all([
+    readFile(new URL("./CanvasElements.jsx", import.meta.url), "utf8"),
+    readFile(new URL("../Textarea/Textarea.jsx", import.meta.url), "utf8"),
+    readFile(new URL("../Textarea/Textarea.module.css", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(canvasSource, /const skillsFieldIds = useMemo/);
+  assert.match(canvasSource, /sectionElementIds\(documentElements, anchor\.headingId, pageHeight\)/);
+  assert.match(canvasSource, /skillsField=\{skillsField\}/);
+  assert.match(canvasSource, /highlight=\{skillsEntryAnchor\.highlight\}/);
+  assert.match(canvasSource, /skillsCategory=\{blockAnchor\.skillsCategory\}/);
+  assert.match(textareaSource, /data-skills-field=\{skillsField \? "true" : undefined\}/);
+  assert.match(textareaSource, /skillsField \? classes\.skillsField/);
+  assert.match(textareaCss, /\.skillsField\.selected,[\s\S]*--canvas-shadow-editor-skills-active/);
+});
+
 test("chip Skills categories expose a safe add-only structural action", async () => {
   const [canvasSource, recordSource] = await Promise.all([
     readFile(new URL("./CanvasElements.jsx", import.meta.url), "utf8"),

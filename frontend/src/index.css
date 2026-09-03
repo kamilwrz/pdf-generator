@@ -74,6 +74,8 @@
     --shadow-editor-entry: 0 5px 14px var(--shadow-editor-entry-color);
     --shadow-editor-element: 0 2px 7px var(--shadow-editor-element-color);
     --shadow-editor-active: 0 4px 12px var(--shadow-editor-active-color);
+    --shadow-editor-skills: 0 0 8px 1px var(--shadow-editor-element-color);
+    --shadow-editor-skills-active: 0 0 10px 1px var(--shadow-editor-active-color);
 
     /* Motion and stacking contracts. */
     --motion-fast: 120ms;

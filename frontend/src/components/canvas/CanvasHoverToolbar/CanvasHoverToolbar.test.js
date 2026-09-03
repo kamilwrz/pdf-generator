@@ -61,9 +61,12 @@ test("section, entry, and element context use neutral shadow depth without tinte
   assert.match(source, /highlightLevel = "entry"/);
   assert.match(source, /classes\.highlightSection/);
   assert.match(source, /classes\.highlightElement/);
+  assert.match(source, /classes\.highlightSkills/);
+  assert.match(source, /data-canvas-highlight-level=\{highlightLevel\}/);
   assert.match(css, /\.highlight\s*\{[^}]*background:\s*transparent[^}]*border-style:\s*none/s);
   assert.match(css, /\.highlightSection\s*\{[^}]*--shadow-editor-section/s);
   assert.match(css, /\.highlightEntry\s*\{[^}]*--shadow-editor-entry/s);
+  assert.match(css, /\.highlightSkills\s*\{[^}]*--shadow-editor-skills/s);
   assert.match(css, /\.elementHighlight\s*\{[^}]*--shadow-editor-element/s);
 });
 
@@ -81,6 +84,8 @@ test("selection and editing use screen-stable hairlines with active textarea dep
   assert.match(tokens, /--shadow-editor-section:/);
   assert.match(tokens, /--shadow-editor-entry:/);
   assert.match(tokens, /--shadow-editor-element:/);
+  assert.match(tokens, /--shadow-editor-skills:/);
+  assert.match(tokens, /--shadow-editor-skills-active:/);
   assert.match(tokens, /--shadow-editor-section-color:\s*rgba\(22, 22, 22, \.18\)/);
   assert.match(tokens, /--shadow-editor-entry-color:\s*rgba\(22, 22, 22, \.17\)/);
   assert.match(tokens, /--shadow-editor-element-color:\s*rgba\(22, 22, 22, \.22\)/);
@@ -88,6 +93,8 @@ test("selection and editing use screen-stable hairlines with active textarea dep
   assert.match(pageSource, /"--canvas-shadow-editor-section"/);
   assert.match(pageSource, /"--canvas-shadow-editor-entry"/);
   assert.match(pageSource, /"--canvas-shadow-editor-element"/);
+  assert.match(pageSource, /"--canvas-shadow-editor-skills"/);
+  assert.match(pageSource, /"--canvas-shadow-editor-skills-active"/);
   assert.match(pageSource, /"--canvas-editor-lift"/);
   assert.match(pageSource, /"--canvas-editor-hairline":\s*px\(1\)/);
   assert.match(selectionSource, /!\(element\.isEditing && \["text", "textarea"\]\.includes\(element\.category\)\)/);
@@ -96,7 +103,7 @@ test("selection and editing use screen-stable hairlines with active textarea dep
   assert.match(textCss, /\.editing:focus::after\s*\{[^}]*outline:[^;]*--canvas-editor-hairline[^;]*--color-focus[^}]*box-shadow:\s*none/s);
   assert.match(textareaCss, /\.selected\s*\{[^}]*box-shadow:[^;]*--canvas-shadow-editor-active/s);
   assert.match(textareaCss, /\.editing:focus\s*\{[^}]*outline:[^;]*--canvas-editor-hairline[^}]*box-shadow:[^;]*--canvas-shadow-editor-active/s);
-  assert.match(textareaSource, /className=\{`\$\{classes\.editing\} \$\{isSelected \? classes\.selected : ""\}`\}/);
+  assert.match(textareaSource, /className=\{`\$\{classes\.editing\} \$\{skillsField \? classes\.skillsField : ""\} \$\{isSelected \? classes\.selected : ""\}`\}/);
   assert.match(textareaCss, /\.editing\.selected\s*\{[^}]*outline:[^;]*--canvas-editor-hairline[^}]*box-shadow:[^;]*--canvas-shadow-editor-active/s);
   assert.match(textareaCss, /\.editing:focus\s*\{[^}]*outline:[^;]*--canvas-editor-hairline[^;]*--color-focus/s);
 });

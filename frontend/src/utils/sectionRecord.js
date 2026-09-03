@@ -1440,6 +1440,7 @@ export function listRecordBlockAddAnchors(elements, pageHeight = 842) {
       }));
       const chipSkillsGroup = isSkillsSectionTitle(heading?.content)
         && group.some((element) => element.flowRole === "grid-member");
+      const skillsCategory = isSkillsSectionTitle(heading?.content) && Boolean(title.bold);
       anchors.push({
         elementId: title.element_id,
         hoverIds: pageMembers.map((element) => element.element_id),
@@ -1458,6 +1459,7 @@ export function listRecordBlockAddAnchors(elements, pageHeight = 842) {
         // and deletion do not own the paired shapes. Expose the safe add action
         // alone until those operations have an equivalent chip transaction.
         addOnly: chipSkillsGroup,
+        skillsCategory,
         canMoveUp: !chipSkillsGroup && groupIndex > 0,
         canMoveDown: !chipSkillsGroup && groupIndex < groups.length - 1,
         descriptionAction: descriptionActionForGroup(group, groups, heading?.content),

@@ -25,6 +25,7 @@ import classes from "./SkillsEntryActions.module.css";
  *   left:number,
  *   width:number,
  *   bottom:number,
+ *   highlight?:{left:number,top:number,width:number,height:number}|null,
  * }} props
  */
 export default function SkillsEntryActions({
@@ -36,6 +37,7 @@ export default function SkillsEntryActions({
   left,
   width,
   bottom,
+  highlight = null,
 }) {
   const {
     A4_Elements,
@@ -226,6 +228,8 @@ export default function SkillsEntryActions({
         toolbarKey={exclusiveKey}
         visible={visible}
         placement="below"
+        highlight={highlight}
+        highlightLevel="skills"
         anchorX={toolbarAnchorX}
         top={toolbarTop}
         pageWidth={pageSize?.width ?? 595}

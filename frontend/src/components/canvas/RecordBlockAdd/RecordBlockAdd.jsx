@@ -41,6 +41,7 @@ function sameBounds(left, right) {
  *   canMoveUp?:boolean,
  *   canMoveDown?:boolean,
  *   addOnly?:boolean,
+ *   skillsCategory?:boolean,
  *   descriptionAction?:"add"|"remove"|null,
  * }} props
  */
@@ -56,6 +57,7 @@ export default function RecordBlockAdd({
   canMoveUp = false,
   canMoveDown = false,
   addOnly = false,
+  skillsCategory = false,
   descriptionAction = null,
 }) {
   const {
@@ -217,9 +219,9 @@ export default function RecordBlockAdd({
       anchorX={toolbarAnchorX}
       top={toolbarTop}
       pageWidth={pageSize?.width ?? 595}
-      highlight={resolvedHighlight}
-      highlightLevel="entry"
-      elementHighlight={elementHighlight}
+      highlight={skillsCategory && elementHighlight ? elementHighlight : resolvedHighlight}
+      highlightLevel={skillsCategory ? "skills" : "entry"}
+      elementHighlight={skillsCategory ? null : elementHighlight}
       elementHighlightSelected={Boolean(hoveredElement?.isSelected)}
       layout={layout}
       addLabel="Wpis"

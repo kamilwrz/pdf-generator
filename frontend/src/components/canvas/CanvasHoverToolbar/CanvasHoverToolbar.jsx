@@ -21,7 +21,7 @@ import classes from "./CanvasHoverToolbar.module.css";
  *   top:number,
  *   pageWidth:number,
  *   highlight?:{left:number,top:number,width:number,height:number}|null,
- *   highlightLevel?:"section"|"entry"|"element",
+ *   highlightLevel?:"section"|"entry"|"element"|"skills",
  *   elementHighlight?:{left:number,top:number,width:number,height:number}|null,
  *   elementHighlightSelected?:boolean,
  *   layout:{buttonSize:number,iconSize:number,gap:number,labelWidth:number,fontSize:number,menuWidth:number,offset:number,borderWidth:number},
@@ -205,6 +205,8 @@ export default function CanvasHoverToolbar({
   const hasDirectActions = directActions.length > 0;
   const highlightLevelClass = highlightLevel === "section"
     ? classes.highlightSection
+    : highlightLevel === "skills"
+      ? classes.highlightSkills
     : highlightLevel === "element"
       ? classes.highlightElement
       : classes.highlightEntry;
@@ -214,6 +216,7 @@ export default function CanvasHoverToolbar({
       {highlightVisible && highlight ? (
         <div
           className={`${classes.highlight} ${highlightLevelClass}`}
+          data-canvas-highlight-level={highlightLevel}
           style={{
             left: highlight.left,
             top: highlight.top,

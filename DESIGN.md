@@ -81,6 +81,8 @@ elevation:
   editorSection: "0 8px 20px rgba(22, 22, 22, 0.18)"
   editorEntry: "0 5px 14px rgba(22, 22, 22, 0.17)"
   editorElement: "0 2px 7px rgba(22, 22, 22, 0.22)"
+  editorSkills: "0 0 8px 1px rgba(22, 22, 22, 0.22)"
+  editorSkillsActive: "0 0 10px 1px rgba(21, 94, 239, 0.22)"
 ---
 
 # CV Studio Swiss Design System
@@ -192,7 +194,7 @@ Use a 4px base unit and the scale `4, 8, 12, 16, 24, 32, 48, 64, 96`. Prefer the
 - Pills are reserved for tags, status badges, and compact filters whose shape communicates containment.
 - Prefer borders, contrasting surfaces, and spacing over shadows in ordinary application chrome.
 - If separation cannot be expressed otherwise, use one restrained shadow per rendered layer; do not stack multiple shadows on the same layer.
-- Canvas context is the narrow exception: pointer hover may use the neutral `editorSection`, `editorEntry`, and `editorElement` elevation tokens to communicate containment without borrowing colors from a CV template. Shadows must disappear when the pointer leaves, except that a selected or focused inline `textarea` retains the screen-stable `editorActive` shadow so its multi-line bounds remain legible on dense document content. Selection uses a one-screen-pixel structural border, while a focused inline `text` or `textarea` edit surface uses a one-screen-pixel blue `focus` outline. The A4 surface inverse-scales hover elevation, active textarea elevation, and hairlines so their screen-space size remains stable at every canvas zoom.
+- Canvas context is the narrow exception: pointer hover may use the neutral `editorSection`, `editorEntry`, and `editorElement` elevation tokens to communicate containment without borrowing colors from a CV template. Shadows must disappear when the pointer leaves, except that a selected or focused inline `textarea` retains the screen-stable `editorActive` shadow so its multi-line bounds remain legible on dense document content. Skills category names and Skills body textareas use dedicated centred `editorSkills` / `editorSkillsActive` shadows because their wide, shallow geometry requires an equally visible boundary on all four edges. Selection uses a one-screen-pixel structural border, while a focused inline `text` or `textarea` edit surface uses a one-screen-pixel blue `focus` outline. The A4 surface inverse-scales hover elevation, active textarea elevation, Skills-field elevation, and hairlines so their screen-space size remains stable at every canvas zoom.
 - Never use floating cards as the default page structure.
 
 Z-index contract:

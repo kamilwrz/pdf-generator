@@ -21,6 +21,13 @@
     box-shadow: var(--canvas-shadow-editor-element, var(--shadow-editor-element));
 }
 
+/* Wide Skills fields need an even boundary on every edge. This highlight is
+   owned by the toolbar layer, so it remains present when the centred plus
+   covers the pointer and the authored textarea loses CSS :hover. */
+.highlightSkills {
+    box-shadow: var(--canvas-shadow-editor-skills, var(--shadow-editor-skills));
+}
+
 /* A semantic section/record shadow provides the outer context. This tighter,
    pointer-inert lift identifies the exact authored element under the pointer
    without selecting it or changing the document model. */

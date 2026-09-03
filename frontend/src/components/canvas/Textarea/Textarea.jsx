@@ -179,6 +179,7 @@ function Textarea({
     placeholder,
     starterPlaceholder,
     editorHoverOutline,
+    skillsField = false,
 }) {
     const {
         moveElement,
@@ -583,13 +584,14 @@ function Textarea({
                     key="textarea-edit"
                     id={elementId}
                     ref={editingRef}
-                    className={`${classes.editing} ${isSelected ? classes.selected : ""}`}
+                    className={`${classes.editing} ${skillsField ? classes.skillsField : ""} ${isSelected ? classes.selected : ""}`}
                     style={{ ...boxStyle, ...textStyle }}
                     contentEditable
                     suppressContentEditableWarning
                     spellCheck={false}
                     data-placeholder={editorPlaceholder || "Wpisz swój tekst…"}
                     data-editor-hover-outline={editorHoverOutline ? "true" : undefined}
+                    data-skills-field={skillsField ? "true" : undefined}
                     onInput={(e) => commitEditable(e.currentTarget)}
                     onBlur={() => {
                         // The 2-page → focused-page edit zoom unmounts this
@@ -683,7 +685,8 @@ function Textarea({
                 ? "Kliknij, aby edytować"
                 : "Kliknij dwukrotnie, aby edytować"}
             tabIndex={0}
-            className={`${classes.block} ${editorHoverOutline ? classes.editorHoverOutline : ""} ${isSelected ? classes.selected : ""}`}
+            className={`${classes.block} ${editorHoverOutline ? classes.editorHoverOutline : ""} ${skillsField ? classes.skillsField : ""} ${isSelected ? classes.selected : ""}`}
+            data-skills-field={skillsField ? "true" : undefined}
             style={{ ...boxStyle, ...textStyle }}
             onClick={(e) => {
                 const intent = resolveTextClickIntent({

@@ -325,6 +325,7 @@ test.describe("CV Studio editor smoke", () => {
     await expect(page.getByText("TypeScript", { exact: true })).toHaveCount(1);
 
     const firstCategory = page.locator('[data-placeholder="Kategoria umiejętności"]').first();
+    await expect(firstCategory).toHaveAttribute("data-skills-field", "true");
     await firstCategory.click();
     await expect(firstCategory).toBeFocused();
     const activeChrome = await firstCategory.evaluate((element) => {
@@ -332,6 +333,7 @@ test.describe("CV Studio editor smoke", () => {
       return { boxShadow: style.boxShadow, outlineStyle: style.outlineStyle };
     });
     expect(activeChrome.boxShadow).not.toBe("none");
+    expect(activeChrome.boxShadow).toContain("rgba(21, 94, 239, 0.22)");
     expect(activeChrome.outlineStyle).not.toBe("none");
     await page.keyboard.press("Escape");
     await firstCategory.hover();
@@ -351,6 +353,16 @@ test.describe("CV Studio editor smoke", () => {
     await page.getByRole("button", { name: "Otwórz na płótnie" }).click();
 
     const toolsBody = page.locator("#skills-tools-body");
+    const toolsCategory = page.locator("#skills-tools-title");
+    await expect(toolsBody).toHaveAttribute("data-skills-field", "true");
+    await expect(toolsCategory).toHaveAttribute("data-skills-field", "true");
+    await toolsBody.hover();
+    const skillsHighlight = page.locator('[data-canvas-highlight-level="skills"]');
+    await expect(skillsHighlight).toBeVisible();
+    const skillsHoverShadow = await skillsHighlight.evaluate((element) => (
+      getComputedStyle(element).boxShadow
+    ));
+    expect(skillsHoverShadow).toContain("rgba(22, 22, 22, 0.22)");
     await expect(toolsBody).toHaveAttribute("aria-keyshortcuts", "Shift+F10");
     await toolsBody.hover();
     const groupedToolbar = page.locator(

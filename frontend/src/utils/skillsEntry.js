@@ -294,6 +294,27 @@ function anchorForGroup(group, pageHeight) {
     || group.body
     || [...group.groupMembers].filter(isTextElement).sort(byReadingOrder(pageHeight))[0];
   if (!mounted || triggerIds.length === 0) return null;
+  const highlightMembers = (group.mode === SKILLS_LAYOUT_CHIPS ? group.shapes : [group.body])
+    .filter(Boolean)
+    .filter((element) => (
+      Math.max(1, Math.trunc(finiteNumber(element.page, 1))) === page
+    ));
+  const highlightLeft = highlightMembers.length > 0
+    ? Math.min(...highlightMembers.map((element) => finiteNumber(element.left)))
+    : 0;
+  const highlightTop = highlightMembers.length > 0
+    ? Math.min(...highlightMembers.map((element) => finiteNumber(element.top)))
+    : 0;
+  const highlight = highlightMembers.length > 0 ? {
+    left: highlightLeft,
+    top: highlightTop,
+    width: Math.max(...highlightMembers.map((element) => (
+      finiteNumber(element.left) + Math.max(1, finiteNumber(element.width))
+    ))) - highlightLeft,
+    height: Math.max(...highlightMembers.map((element) => (
+      finiteNumber(element.top) + elementHeight(element)
+    ))) - highlightTop,
+  } : null;
 
   return {
     headingId: group.headingId,
@@ -306,6 +327,7 @@ function anchorForGroup(group, pageHeight) {
     left,
     width: Math.max(1, right - left),
     bottom: bottomAbs - (page - 1) * pageHeight,
+    highlight,
     items: group.items,
   };
 }

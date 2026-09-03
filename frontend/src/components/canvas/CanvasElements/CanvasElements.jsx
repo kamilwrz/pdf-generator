@@ -213,6 +213,28 @@ export default function CanvasElements({ elements, spreadSide = null }) {
     return map;
   }, [editorMode, documentElements, pageHeight]);
 
+  const skillsFieldIds = useMemo(() => {
+    const ids = new Set();
+    if (editorMode !== EDITOR_MODE_TEMPLATE) return ids;
+    // Give every editable Skills textarea—flat body, category title, and
+    // category body—the same explicit field boundary. Section membership is
+    // semantic and survives generated ids, user-added categories, and mode
+    // round-trips; the section heading and decorative chrome stay excluded.
+    for (const anchor of listSkillsDisplayAnchors(documentElements, pageHeight)) {
+      const memberIds = sectionElementIds(documentElements, anchor.headingId, pageHeight);
+      for (const element of documentElements) {
+        if (
+          memberIds.has(element.element_id)
+          && element.element_id !== anchor.headingId
+          && element.category === "textarea"
+          && element.flowRole !== "section-chrome"
+          && element.flowRole !== "sidebar-chrome"
+        ) ids.add(element.element_id);
+      }
+    }
+    return ids;
+  }, [editorMode, documentElements, pageHeight]);
+
   const recordBlockAnchorsById = useMemo(() => {
     const map = new Map();
     if (editorMode !== EDITOR_MODE_TEMPLATE) return map;
@@ -347,6 +369,7 @@ export default function CanvasElements({ elements, spreadSide = null }) {
     const skillsEntryAnchor = skillsEntryAnchorsById.get(element.element_id);
     const flatAnchor = flatSectionAnchorsById.get(element.element_id);
     const sectionAnchor = sectionAnchorsById.get(element.element_id);
+    const skillsField = skillsFieldIds.has(element.element_id);
     // Identity and contact fields are the most important direct-edit targets
     // in a generated CV, but their document typography can otherwise make
     // them look like static output. Mark only the semantic template fields;
@@ -413,6 +436,7 @@ export default function CanvasElements({ elements, spreadSide = null }) {
             placeholder={element.placeholder}
             starterPlaceholder={element.starterPlaceholder}
             editorHoverOutline={editorHoverOutline}
+            skillsField={skillsField}
           />
           {blockAnchor ? (
             <RecordBlockAdd
@@ -426,6 +450,7 @@ export default function CanvasElements({ elements, spreadSide = null }) {
               canMoveUp={blockAnchor.canMoveUp}
               canMoveDown={blockAnchor.canMoveDown}
               addOnly={blockAnchor.addOnly}
+              skillsCategory={blockAnchor.skillsCategory}
               descriptionAction={blockAnchor.descriptionAction}
               highlight={blockAnchor.highlight}
               spreadSide={spreadSide}
@@ -465,6 +490,7 @@ export default function CanvasElements({ elements, spreadSide = null }) {
               left={skillsEntryAnchor.left}
               width={skillsEntryAnchor.width}
               bottom={skillsEntryAnchor.bottom}
+              highlight={skillsEntryAnchor.highlight}
             />
           ) : null}
         </>
@@ -516,6 +542,7 @@ export default function CanvasElements({ elements, spreadSide = null }) {
               canMoveUp={blockAnchor.canMoveUp}
               canMoveDown={blockAnchor.canMoveDown}
               addOnly={blockAnchor.addOnly}
+              skillsCategory={blockAnchor.skillsCategory}
               descriptionAction={blockAnchor.descriptionAction}
               highlight={blockAnchor.highlight}
               spreadSide={spreadSide}
@@ -531,6 +558,7 @@ export default function CanvasElements({ elements, spreadSide = null }) {
               left={skillsEntryAnchor.left}
               width={skillsEntryAnchor.width}
               bottom={skillsEntryAnchor.bottom}
+              highlight={skillsEntryAnchor.highlight}
             />
           ) : null}
         </>

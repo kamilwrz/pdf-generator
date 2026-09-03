@@ -105,6 +105,7 @@ describe("sectionSupportsRecordAdd", () => {
     assert.equal(anchors.length, 1);
     assert.equal(anchors[0].elementId, "sk-cat");
     assert.equal(anchors[0].addOnly, true);
+    assert.equal(anchors[0].skillsCategory, true);
     assert.equal(elementSupportsRecordBlockAdd(elements, "sk-cat"), true);
   });
 });
