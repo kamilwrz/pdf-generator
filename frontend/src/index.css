@@ -60,14 +60,15 @@
 
     /* Restrained elevation language. Editor context shadows are a deliberate
        hierarchy: a section has the broadest lift, a record a medium lift, and
-       the exact authored element the tightest lift. Every layer uses one
-       neutral shadow so the document palette never becomes application state. */
+       the exact authored element the tightest lift. Their raised neutral
+       contrast keeps nested boundaries legible without turning document
+       colours into application state. Every layer still uses one shadow. */
     --shadow-pop: 0 12px 32px rgba(22, 22, 22, .16);
     --shadow-card: none;
     --shadow-accent: none;
-    --shadow-editor-section-color: rgba(22, 22, 22, .14);
-    --shadow-editor-entry-color: rgba(22, 22, 22, .13);
-    --shadow-editor-element-color: rgba(22, 22, 22, .18);
+    --shadow-editor-section-color: rgba(22, 22, 22, .18);
+    --shadow-editor-entry-color: rgba(22, 22, 22, .17);
+    --shadow-editor-element-color: rgba(22, 22, 22, .22);
     --shadow-editor-active-color: rgba(21, 94, 239, .22);
     --shadow-editor-section: 0 8px 20px var(--shadow-editor-section-color);
     --shadow-editor-entry: 0 5px 14px var(--shadow-editor-entry-color);

@@ -71,6 +71,9 @@ test("selection and editing use screen-stable hairlines while shadows remain hov
   assert.match(tokens, /--shadow-editor-section:/);
   assert.match(tokens, /--shadow-editor-entry:/);
   assert.match(tokens, /--shadow-editor-element:/);
+  assert.match(tokens, /--shadow-editor-section-color:\s*rgba\(22, 22, 22, \.18\)/);
+  assert.match(tokens, /--shadow-editor-entry-color:\s*rgba\(22, 22, 22, \.17\)/);
+  assert.match(tokens, /--shadow-editor-element-color:\s*rgba\(22, 22, 22, \.22\)/);
   assert.match(pageSource, /const px = \(screenPixels\) => `\$\{screenPixels \/ safeZoom\}px`/);
   assert.match(pageSource, /"--canvas-shadow-editor-section"/);
   assert.match(pageSource, /"--canvas-shadow-editor-entry"/);

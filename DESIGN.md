@@ -78,9 +78,9 @@ motion:
   easing: "cubic-bezier(0.2, 0, 0, 1)"
 elevation:
   popover: "0 12px 32px rgba(22, 22, 22, 0.16)"
-  editorSection: "0 8px 20px rgba(22, 22, 22, 0.14)"
-  editorEntry: "0 5px 14px rgba(22, 22, 22, 0.13)"
-  editorElement: "0 2px 7px rgba(22, 22, 22, 0.18)"
+  editorSection: "0 8px 20px rgba(22, 22, 22, 0.18)"
+  editorEntry: "0 5px 14px rgba(22, 22, 22, 0.17)"
+  editorElement: "0 2px 7px rgba(22, 22, 22, 0.22)"
 ---
 
 # CV Studio Swiss Design System
