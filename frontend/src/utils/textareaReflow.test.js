@@ -1966,6 +1966,88 @@ test("a wrapped chip grid's reserved height is its 2D extent, not the sum of eve
   assert.ok(byId["rect4"].top > byId["rect0"].top, "row 2 sits below row 1");
 });
 
+test("remeasuring an Experience description keeps a category-led chip grid on page 1", () => {
+  // Categorised Skills records begin with a textarea label and continue with
+  // rectangle/text grid members in the same flowGroup. Clicking an earlier
+  // Experience description remeasures that textarea; the subsequent page-fit
+  // walk must reserve the category plus the grid's 2D extent, not sum each
+  // horizontal pill as another row.
+  const group = "skills-category-with-chips";
+  const elements = [
+    {
+      element_id: "experience-description",
+      category: "textarea",
+      autoHeight: true,
+      flowRole: "content",
+      flowGroup: "experience-record",
+      content: "Opis najważniejszego osiągnięcia lub odpowiedzialności.",
+      left: 72,
+      top: 420,
+      width: 473,
+      height: 18,
+      page: 1,
+    },
+    { element_id: "skills-heading", category: "text", flowRole: "section-chrome", content: "UMIEJĘTNOŚCI (KATEGORIE)", left: 72, top: 600, width: 473, height: 14, page: 1 },
+    { element_id: "skills-rule", category: "line", flowRole: "section-chrome", left: 72, top: 616, width: 473, height: 1, page: 1 },
+    {
+      element_id: "skills-category",
+      category: "textarea",
+      autoHeight: true,
+      flowRole: "content",
+      flowGroup: group,
+      content: "Kategoria umiejętności",
+      left: 72,
+      top: 632,
+      width: 473,
+      height: 14,
+      page: 1,
+    },
+  ];
+
+  for (let index = 0; index < 11; index += 1) {
+    const left = 72 + index * 38;
+    elements.push({
+      element_id: `skill-shape-${index}`,
+      category: "rectangle",
+      flowRole: "grid-member",
+      flowGroup: group,
+      left,
+      top: 652,
+      width: 30,
+      height: 18,
+      page: 1,
+    });
+    elements.push({
+      element_id: `skill-label-${index}`,
+      category: "text",
+      flowRole: "grid-member",
+      flowGroup: group,
+      content: String(index + 1),
+      left: left + 8,
+      top: 656,
+      width: 14,
+      height: 10,
+      page: 1,
+    });
+  }
+
+  const result = reflowTextareaHeight(elements, "experience-description", 22, 842, {
+    pageTop: 66,
+    bottomMargin: 72,
+  });
+  const skills = result.elements.filter((element) => (
+    element.element_id.startsWith("skills-")
+    || element.flowGroup === group
+  ));
+
+  assert.ok(skills.length > 0);
+  assert.ok(skills.every((element) => element.page === 1));
+  const category = skills.find((element) => element.element_id === "skills-category");
+  const firstShape = skills.find((element) => element.element_id === "skill-shape-0");
+  assert.ok(firstShape.top >= category.top + category.height);
+  assert.ok(firstShape.top + firstShape.height <= 770);
+});
+
 test("a languages grid row measured cell-by-cell never splits across a page break", () => {
   // Sterling's main-column languages grid is a row of textarea cells sharing one
   // flowGroup, sitting side by side in ADJACENT (non-overlapping) columns. Each

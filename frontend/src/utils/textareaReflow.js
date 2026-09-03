@@ -302,27 +302,32 @@ function remainingRecordHeight(lane, index, pageHeight, targetId, nextHeight) {
 
   const group = flowGroupOf(start);
 
-  // Grid records (wrapped skill-chip pills) share one flowGroup across many
-  // cells laid out in 2D rows/columns, NOT a single vertical stack. Their
-  // real height is the vertical extent (deepest bottom minus highest top),
-  // not the sum of every cell's height. Summing (the stacked-record path
-  // below) over-estimates a chip block by an order of magnitude — 16 chips
-  // ≈ 500px instead of the true ~84px of three rows — which then makes the
-  // reclaim / page-fit checks believe the block cannot fit in free space it
-  // easily fits into, stranding the whole skills section on a near-empty
-  // next page.
-  if (isGridMember(start)) {
-    let top = absoluteTop(start, pageHeight);
-    let bottom = top + heightFor(start, targetId, nextHeight);
-    for (let i = index + 1; i < lane.length; i += 1) {
+  // Wrapped chip records can begin with a linear category textarea and then
+  // continue as a 2D grid of shape/label pairs in the same flowGroup. Detect
+  // the grid anywhere in that record, not only at `start`: otherwise the
+  // category-led path below sums every pill as a separate vertical row. A
+  // harmless remeasure of an earlier Experience description would then
+  // reserve hundreds of pixels for one horizontal chip row and move the whole
+  // Skills section to page 2. The record's real reservation is its bounding
+  // vertical extent, including the category label above the grid.
+  if (group) {
+    const recordMembers = [];
+    for (let i = index; i < lane.length; i += 1) {
       const candidate = lane[i];
       if (isChromeLike(candidate)) continue;
       if (flowGroupOf(candidate) !== group) break;
-      const candidateTop = absoluteTop(candidate, pageHeight);
-      top = Math.min(top, candidateTop);
-      bottom = Math.max(bottom, candidateTop + heightFor(candidate, targetId, nextHeight));
+      recordMembers.push(candidate);
     }
-    return Math.max(bottom - top, 1);
+    if (recordMembers.some(isGridMember)) {
+      let top = Number.POSITIVE_INFINITY;
+      let bottom = Number.NEGATIVE_INFINITY;
+      for (const member of recordMembers) {
+        const memberTop = absoluteTop(member, pageHeight);
+        top = Math.min(top, memberTop);
+        bottom = Math.max(bottom, memberTop + heightFor(member, targetId, nextHeight));
+      }
+      return Math.max(bottom - top, 1);
+    }
   }
 
   let total = heightFor(start, targetId, nextHeight);
