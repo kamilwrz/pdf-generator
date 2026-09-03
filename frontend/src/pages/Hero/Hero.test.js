@@ -62,9 +62,9 @@ describe("landing product positioning", () => {
 
   it("presents section 02 as three concrete capabilities before the template gallery", () => {
     const capabilities = [
-      "Zacznij od tego, co już masz",
-      "Dopracuj treść szybciej",
-      "Twórz kolejne wersje bez przepisywania",
+      "Nie zaczynasz od początku!",
+      "Sprawnie i szybko dopracuj treść",
+      "Bez żmudnego przepisywania CV",
     ];
     const offerStart = source.indexOf('<ul className={classes.offerSteps}');
     const offerEnd = source.indexOf("</ul>", offerStart);
@@ -86,7 +86,7 @@ describe("landing product positioning", () => {
     }
     assert.doesNotMatch(statementMarkup, /<em>|<u>/);
 
-    assert.match(source, /<h3 id="template-gallery-title">Ta sama treść\. Inny charakter\.<\/h3>/);
+    assert.match(source, /<p id="template-gallery-title" className=\{classes.templateGalleryLabel\}>Szablony CV<\/p>/);
     assert.doesNotMatch(source, /Klasyczny, nowoczesny, techniczny albo editorial\./);
     assert.match(source, /Stwórz CV w wybranym szablonie/);
     assert.match(styles, /\.templatesSection\s*\{[^}]*background:\s*var\(--paper\);/s);
@@ -98,7 +98,7 @@ describe("landing product positioning", () => {
 
   it("keeps the retained template, privacy, pricing, and FAQ caveats", () => {
     assert.match(source, /Twoje dokumenty nie są publiczne/);
-    assert.match(source, /Twórz kolejne wersje bez przepisywania/);
+    assert.match(source, /Bez żmudnego przepisywania CV/);
     assert.match(source, /Nie jest to gwarancja identycznego wyniku w każdym systemie rekrutacyjnym/);
   });
 

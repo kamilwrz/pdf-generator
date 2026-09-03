@@ -204,21 +204,21 @@ export default function Hero() {
                         <li>
                             <span className={classes.offerStepIndex} aria-hidden="true">01</span>
                             <div>
-                                <h3>Zacznij od tego, co już masz</h3>
+                                <h3>Nie zaczynasz od początku!</h3>
                                 <p>Wgraj obecne CV albo wybierz szablon i potrzebne sekcje. W obu przypadkach treść edytujesz bezpośrednio na stronie A4.</p>
                             </div>
                         </li>
                         <li>
                             <span className={classes.offerStepIndex} aria-hidden="true">02</span>
                             <div>
-                                <h3>Dopracuj treść szybciej</h3>
+                                <h3>Sprawnie i szybko dopracuj treść</h3>
                                 <p>Poprawiaj opisy, wzmacniaj osiągnięcia, usuwaj błędy, skracaj zbyt długie fragmenty i tłumacz CV. Możesz pracować samodzielnie lub skorzystać z pomocy AI w planie Pro.</p>
                             </div>
                         </li>
                         <li>
                             <span className={classes.offerStepIndex} aria-hidden="true">03</span>
                             <div>
-                                <h3>Twórz kolejne wersje bez przepisywania</h3>
+                                <h3>Bez żmudnego przepisywania CV</h3>
                                 <p>Korzystaj z tej samej treści w różnych szablonach, zapisuj osobne dokumenty i pobieraj gotowe pliki PDF bez znaku wodnego.</p>
                             </div>
                         </li>
@@ -226,8 +226,7 @@ export default function Hero() {
                 </div>
 
                 <div className={classes.templateGalleryHeader}>
-                    <p className={classes.templateGalleryLabel}>Szablony CV</p>
-                    <h3 id="template-gallery-title">Ta sama treść. Inny charakter.</h3>
+                    <p id="template-gallery-title" className={classes.templateGalleryLabel}>Szablony CV</p>
                 </div>
                 {/*
                   Endless right→left marquee of every template mockup. The track
