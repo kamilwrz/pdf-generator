@@ -332,7 +332,7 @@ class AiAssistantExceptionHandlingTests(unittest.TestCase):
         self.release_mock.assert_not_called()
         self.settle_failed_mock.assert_not_called()
 
-    def test_gpt_empty_layout_length_exposes_actionable_user_message(self):
+    def test_gpt_empty_length_exposes_actionable_user_message(self):
         fake_response = unittest.mock.Mock()
         fake_response.choices = [
             unittest.mock.Mock(
@@ -345,67 +345,35 @@ class AiAssistantExceptionHandlingTests(unittest.TestCase):
             ai_assistant_service._client.chat.completions, "create", return_value=fake_response
         ):
             with self.assertRaises(AIServiceError) as raised:
-                ai_assistant_service._gpt("system", "user", action="layout")
+                ai_assistant_service._gpt("system", "user", action="chat")
 
         self.assertIn("empty content", str(raised.exception))
-        self.assertIn("układu", raised.exception.user_message.lower())
+        self.assertIn("uprość polecenie", raised.exception.user_message.lower())
 
     def test_ai_service_error_user_message_reaches_client(self):
         def raise_budget_error(**kwargs):
             raise AIServiceError(
                 "Model returned empty content (finish_reason=length)",
-                action="layout",
-                user_message=ai_assistant_service._EMPTY_REASONING_BUDGET_MESSAGE,
+                action="chat",
+                user_message="Model wyczerpał limit odpowiedzi. Uprość polecenie.",
             )
 
         with patch.object(ai_assistant_route, "analyze_action", side_effect=raise_budget_error):
             response = self.client.post(
                 "/ai/assistant",
-                json={"action": "layout", "elements": [], "message": "test"},
-                headers={"Idempotency-Key": "layout-budget-test-key"},
+                json={"action": "chat", "elements": [], "message": "test"},
+                headers={"Idempotency-Key": "chat-budget-test-key"},
             )
 
         self.assertEqual(response.status_code, 500)
         detail = response.json()["detail"]
         self.assertEqual(detail["code"], "ai_provider_unavailable")
-        self.assertIn("węższego zlecenia", detail["message"])
+        self.assertIn("Uprość polecenie", detail["message"])
         self.assertNotIn("finish_reason", detail["message"])
 
-    def test_assistant_defaults_to_terra_high_with_layout_fast(self):
+    def test_assistant_defaults_to_terra_with_high_reasoning(self):
         self.assertEqual(ai_assistant_service._model_for_action("chat"), "gpt-5.6-terra")
-        self.assertEqual(ai_assistant_service._model_for_action("layout"), "gpt-5.6-terra")
         self.assertEqual(ai_assistant_service._reasoning_effort_for_action("chat"), "high")
-        self.assertEqual(ai_assistant_service._reasoning_effort_for_action("layout"), "high")
-        self.assertEqual(ai_assistant_service._service_tier_for_action("layout"), "fast")
-        self.assertIsNone(ai_assistant_service._service_tier_for_action("chat"))
-
-    def test_gpt_layout_passes_fast_tier_and_high_effort(self):
-        captured = {}
-
-        def fake_create(**kwargs):
-            captured.update(kwargs)
-            return SimpleNamespace(
-                service_tier="priority",
-                choices=[
-                    SimpleNamespace(
-                        message=SimpleNamespace(content='{"status":"no_changes","summary":"ok"}'),
-                        finish_reason="stop",
-                    )
-                ],
-                usage=SimpleNamespace(prompt_tokens=100, completion_tokens=20, total_tokens=120),
-            )
-
-        with patch.object(
-            ai_assistant_service._client.chat.completions, "create", side_effect=fake_create
-        ):
-            payload, usage = ai_assistant_service._gpt("system", "user", action="layout")
-
-        self.assertEqual(captured.get("reasoning_effort"), "high")
-        self.assertEqual(captured.get("model"), "gpt-5.6-terra")
-        self.assertEqual(captured.get("service_tier"), "fast")
-        self.assertEqual(payload.get("status"), "no_changes")
-        self.assertEqual(usage["service_tier"], "priority")
-        self.assertEqual(usage["rates_usd_per_1m"], {"input": 4.00, "output": 24.00})
 
 
 if __name__ == "__main__":

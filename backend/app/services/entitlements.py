@@ -84,13 +84,6 @@ LEGACY_PLAN_ALIASES: dict[str, str] = {
 
 CREDIT_PLN = 0.05  # 1 AI credit = 5 groszy
 
-# Layout is included in Pro (no separate Premium tier). Kept as an empty set so
-# action-level gates stay structured if a future exclusive action appears.
-# Appearance goal in the AI assistant: typography review + full-canvas layout.
-# Content actions (rating, grammar, translate, …) stay on the general AI plan.
-PRO_ONLY_AI_ACTIONS: frozenset[str] = frozenset({"design_rating", "layout"})
-
-
 def normalize_plan_slug(plan_slug: str | None) -> str:
     """Map legacy Standard/Premium labels onto the live Free/Pro catalog."""
     slug = (plan_slug or "free").strip().lower() or "free"
@@ -584,9 +577,9 @@ def assert_can_use_ai_assistant(db: Session, user: User) -> None:
 def assert_can_use_ai_action(db: Session, user: User, action: str) -> None:
     """Require the plan entitlement for one requested AI-assistant action.
 
-    Pro includes content AI (ratings, role fit, grammar, style, ATS, chat) and
-    the full-canvas Layout session. Free has no conversational AI assistant;
-    its separately metered CV imports are handled by `assert_can_extract_cv`.
+    Pro includes ratings, role fit, grammar, style, translation, ATS, and chat.
+    Free has no conversational AI assistant; its separately metered CV imports
+    are handled by `assert_can_extract_cv`.
 
     @param db - Active database session used to resolve the subscription.
     @param user - Authenticated user requesting the action.
@@ -594,13 +587,7 @@ def assert_can_use_ai_action(db: Session, user: User, action: str) -> None:
     @raises PlanLimitError - When the selected plan cannot use the action or
         has no remaining AI credits.
     """
-    entitlements = get_entitlements(db, user)
-    if action in PRO_ONLY_AI_ACTIONS and entitlements["plan_slug"] != "pro":
-        raise PlanLimitError(
-            "plan_feature_ai_appearance",
-            "Sprawdź wygląd jest dostępny w planie Pro.",
-            upgrade_required="pro",
-        )
+    _ = action
     assert_can_use_ai_assistant(db, user)
 
 

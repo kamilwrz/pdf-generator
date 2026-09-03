@@ -12,41 +12,6 @@ test("AI correction handlers allow empty content only for shortening", async () 
     assert.match(source, /if \(Object\.keys\(safeFields\)\.length === 0\)/);
 });
 
-test("layout mode waits for the user's message before sending a request", async () => {
-    const source = await readFile(new URL("./AiAssistant.jsx", import.meta.url), "utf8");
-
-    assert.match(source, /setMessages\(prev => \[\.\.\.prev, \{\s*id: nanoid\(\),\s*role: "assistant",\s*text: LAYOUT_MODE_GREETING/s);
-    assert.match(source, /layoutSuggestions:\s*PRIMARY_LAYOUT_SUGGESTIONS/);
-    assert.match(source, /layoutSuggestionsMore:\s*SECONDARY_LAYOUT_SUGGESTIONS/);
-    assert.match(source, /send\(layoutMode \? "layout" : "chat", text\)/);
-
-    // Enabling the toggle must stay local. Suggestion chips may call send later.
-    const toggleFn = source.match(/const toggleLayoutMode = useCallback\(\(\) => \{([\s\S]*?)\}, \[entitlements/);
-    assert.ok(toggleFn, "expected a local layout toggle callback");
-    assert.doesNotMatch(toggleFn[1], /\bsend\s*\(/);
-});
-
-test("layout suggestions expose short labels and fuller GPT prompts", async () => {
-    const source = await readFile(new URL("./AiAssistant.jsx", import.meta.url), "utf8");
-
-    assert.match(source, /const LAYOUT_SUGGESTIONS = \[/);
-    assert.match(source, /handleLayoutSuggestion/);
-    assert.match(source, /send\("layout", suggestion\.prompt, \{ displayText: suggestion\.label \}\)/);
-    assert.match(source, /displayText: options\.displayText/);
-    assert.match(source, /const visibleText = msg\.displayText \|\| msg\.text/);
-
-    const block = source.match(/const LAYOUT_SUGGESTIONS = \[([\s\S]*?)\];/)?.[1] || "";
-    const ids = [...block.matchAll(/id:\s*"([^"]+)"/g)].map((match) => match[1]);
-    assert.equal(ids.length, 10);
-    assert.ok(ids.includes("header-gaps"));
-    assert.ok(ids.includes("full-rhythm"));
-    assert.match(block, /layout_contract/);
-    assert.match(block, /real_gap/);
-
-    const primaryCount = [...block.matchAll(/primary:\s*true/g)].length;
-    assert.equal(primaryCount, 4);
-});
-
 test("assistant send blocks parallel requests before isLoading re-renders", async () => {
     const source = await readFile(new URL("./AiAssistant.jsx", import.meta.url), "utf8");
 
@@ -64,7 +29,6 @@ test("assistant chat resets when the document session changes", async () => {
     assert.match(source, /useDocumentLifecycle/);
     assert.match(source, /chatSessionRef\.current \+= 1/);
     assert.match(source, /setMessages\(\[\]\)/);
-    assert.match(source, /setLayoutMode\(false\)/);
     // PdfCanvas preview useMemo reads `.length` — clear with [] not null.
     assert.match(source, /setLayoutPreviewPatches\?\.\(\[\]\)/);
     assert.match(source, /setDeletionPreviewIds\?\.\(\[\]\)/);
@@ -145,22 +109,28 @@ test("apply all preserves rejected job-tailoring profile changes", async () => {
     assert.match(source, /acceptedIds\.length > 0[\s\S]*message\?\.updatedCvData[\s\S]*message\.actionId !== "position_rating"/);
 });
 
-test("goal-oriented quick actions replace flat feature tiles", async () => {
+test("translation replaces the removed appearance goal in the quick actions", async () => {
     const source = await readFile(new URL("./AiAssistant.jsx", import.meta.url), "utf8");
 
     assert.match(source, /const GOAL_ACTIONS = \[/);
     assert.match(source, /id: "check_cv"/);
     assert.match(source, /id: "improve_content"/);
     assert.match(source, /id: "match_job"/);
-    assert.match(source, /id: "check_appearance"/);
     assert.match(source, /id: "translate"/);
     assert.match(source, /CONTENT_SUBACTIONS/);
-    assert.match(source, /APPEARANCE_SUBACTIONS/);
     assert.match(source, /TRANSLATE_LANGUAGES/);
     assert.match(source, /function RatingDashboard/);
     assert.match(source, /target_language/);
     assert.match(source, /send\("rating"/);
     assert.match(source, /send\("ats_score"/);
+    assert.doesNotMatch(source, /Sprawdź wygląd/);
+    assert.doesNotMatch(source, /check_appearance/);
+    assert.doesNotMatch(source, /design_rating/);
+    assert.doesNotMatch(source, /send\("layout"/);
+
+    const goals = source.match(/const GOAL_ACTIONS = \[([\s\S]*?)\];/)?.[1] || "";
+    const goalIds = [...goals.matchAll(/id:\s*"([^"]+)"/g)].map((match) => match[1]);
+    assert.deepEqual(goalIds, ["check_cv", "improve_content", "match_job", "translate"]);
 
     // Flat feature-centric tiles should no longer be the primary menu.
     assert.doesNotMatch(source, /label: "Oceń CV"/);

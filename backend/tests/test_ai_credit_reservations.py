@@ -254,7 +254,7 @@ class AiCreditReservationTests(unittest.TestCase):
             first = reserve_ai_credits(
                 db,
                 user_id=self.user_id,
-                action="layout",
+                action="translate",
                 idempotency_key="uncertain-call",
                 request_hash="d" * 64,
                 reserved_credits=12,
@@ -286,7 +286,7 @@ class AiCreditReservationTests(unittest.TestCase):
             first = reserve_ai_credits(
                 db,
                 user_id=self.user_id,
-                action="layout",
+                action="chat",
                 idempotency_key="august-uncertain",
                 request_hash="f" * 64,
                 reserved_credits=12,

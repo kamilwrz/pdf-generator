@@ -112,15 +112,14 @@ Menu asystenta jest ułożone wokół celów użytkownika, nie wokół endpoint�
 1. **Sprawdź CV** — audyt treści z dashboardem (% + kategorie); ATS odpala się leniwie z CTA  
 2. **Popraw treść** — submenu: Wzmocnij treść · Popraw język · Sprawdź błędy  
 3. **Dopasuj do oferty** — wklej publiczny link HTTPS lub treść ogłoszenia; zobacz ważoną macierz wymagań z rzeczywistymi fragmentami „Dowód z CV”, semantycznym rozpoznawaniem synonimów/tłumaczeń/skrótów, priorytetami wyłącznie dla częściowych lub brakujących wymagań oraz bezpiecznymi poprawkami CV do akceptacji
-4. **Sprawdź wygląd** (Pro) — typografia oraz tryb **Układ** (geometria A4)  
-5. **Przetłumacz CV** — PL / EN / DE / FR / ES / UA / IT / NL; poprawki do akceptacji  
+4. **Przetłumacz CV** — PL / EN / DE / FR / ES / UA / IT / NL; poprawki do akceptacji
 
-Backend nadal woła wyspecjalizowane akcje (`rating`, `grammar`, `layout`, `translate`, …). Plan Free nie udostępnia żadnej funkcji asystenta AI. Jego 1 udany import CV miesięcznie jest osobnym, limitowanym przepływem odczytu dokumentu. Wszystkie akcje asystenta, w tym **Sprawdź wygląd**, wymagają Pro.
+Backend nadal woła wyspecjalizowane akcje (`rating`, `grammar`, `translate`, …). Plan Free nie udostępnia żadnej funkcji asystenta AI. Jego 1 udany import CV miesięcznie jest osobnym, limitowanym przepływem odczytu dokumentu. Wszystkie akcje asystenta wymagają Pro.
 
 Przy dopasowaniu do oferty CV Studio pobiera tylko publiczne strony HTTPS, bezpiecznie obsługuje przekierowania i ma ręczny fallback. Treść oferty jest niezaufana. Model korzysta ze ścisłego schematu, a backend ponownie liczy wynik i odrzuca poprawki zawierające niepotwierdzone liczby, technologie, placeholdery lub zmiany danych chronionych. Dodatkowe notatki kandydata mogą dostarczyć brakujący dowód; niepotwierdzone wymaganie pozostaje luką, a nie dopisanym faktem.
 
 ### Edycja w rozmowie
-Pisz naturalnym językiem. W trybie Układ dopytuj o odstępy i wyrównania. Akceptuj lub odrzucaj poprawki per element, podglądaj grupy przesunięć, przebudowuj strukturę albo usuwaj słabe bloki — z oznaczeniem istotności, żebyś Ty miał kontrolę.
+Pisz naturalnym językiem. Akceptuj lub odrzucaj poprawki per element, podglądaj grupy przesunięć zwrócone przez zwykły czat, przebudowuj strukturę albo usuwaj słabe bloki — z oznaczeniem istotności, żebyś Ty miał kontrolę.
 
 ---
 

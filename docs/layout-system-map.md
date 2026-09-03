@@ -100,15 +100,14 @@ The source of truth for constants like `1.35` (font-size → line-height ratio) 
 Powers the in-editor AI assistant's positioning features.
 
 - [`layout_analysis.py`](../backend/app/services/layout_analysis.py) — canvas-side geometry ops: `resolve_shift`, `resolve_align`, `resolve_distribute`, `resolve_restructure_section`, etc. Has its own structure/lane helpers analogous to `sectionStructure.js`.
-- [`layout_gpt.py`](../backend/app/services/layout_gpt.py) — builds the LLM prompt/contract for AI layout edits and parses the response into element patches.
 - [`cv_data.py`](../backend/app/services/cv_data.py) — normalizes raw CV data into the record/section shapes (`experience`, `education`, `skill_groups`, custom sections) all layout code consumes. **Relevant when defining a new record shape** — validation starts here.
 
 ### AI-fill glue
 
 - [`ai_service.py`](../backend/app/services/ai_service.py) — extracts CV data from an uploaded PDF, re-generates elements via the template registry; includes a post-generation height/reflow fix-up pass (`_fix_heights_and_reflow`).
-- [`ai_assistant_service.py`](../backend/app/services/ai_assistant_service.py) — backend for the in-editor AI assistant (rate/fix-grammar/shorten/translate/layout actions); `_layout_session` invokes `layout_analysis.py`'s resolvers.
+- [`ai_assistant_service.py`](../backend/app/services/ai_assistant_service.py) — backend for the in-editor AI assistant (rate/fix-grammar/shorten/translate/chat actions); free-form chat invokes `layout_analysis.py` resolvers for reviewable geometry commands.
 - [`routes/ai.py`](../backend/app/api/routes/ai.py) — HTTP route for AI CV fill/template application.
-- [`routes/ai_assistant.py`](../backend/app/api/routes/ai_assistant.py) — HTTP route exposing AI assistant actions (including layout ops) to the frontend.
+- [`routes/ai_assistant.py`](../backend/app/api/routes/ai_assistant.py) — HTTP route exposing the supported AI assistant actions to the frontend.
 - [`fillTemplate.js`](../frontend/src/services/fillTemplate.js) — frontend orchestration for applying an AI-filled/template dataset onto canvas elements.
 
 ## `record-overlay` / `flowRole` / `flowGroup` awareness

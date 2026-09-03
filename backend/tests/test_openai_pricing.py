@@ -64,26 +64,6 @@ class OpenAIPricingTests(unittest.TestCase):
         self.assertEqual(usage["credit_pln"], 0.05)
         self.assertEqual(usage["credits_charged"], credits_for_cost(usage["cost_pln_estimate"]))
 
-    def test_layout_terra_fast_usage_uses_fast_rates_for_credit_metering(self):
-        # Layout defaults to Fast mode on Terra; credits must use the 2× sheet.
-        resp = SimpleNamespace(
-            service_tier="priority",  # API still echoes priority for GPT-5.6 Fast
-            usage=SimpleNamespace(prompt_tokens=50_000, completion_tokens=4_000, total_tokens=54_000),
-        )
-        terra = usage_from_response(
-            resp,
-            model="gpt-5.6-terra",
-            action="layout",
-            service_tier="fast",
-        )
-        self.assertEqual(terra["action"], "layout")
-        self.assertEqual(terra["service_tier"], "priority")
-        self.assertEqual(terra["rates_usd_per_1m"], {"input": 4.00, "output": 24.00})
-        # 50000/1e6 * 4.00 + 4000/1e6 * 24.00 = 0.20 + 0.096
-        self.assertAlmostEqual(terra["cost_usd"], 0.296, places=6)
-        self.assertAlmostEqual(terra["cost_pln_estimate"], 1.184, places=4)
-        self.assertEqual(terra["credits_charged"], 24)
-
     def test_usage_cost_is_logged_without_request_content(self):
         resp = SimpleNamespace(
             usage=SimpleNamespace(prompt_tokens=100, completion_tokens=20, total_tokens=120)

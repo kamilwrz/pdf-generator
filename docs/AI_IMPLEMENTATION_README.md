@@ -43,30 +43,28 @@ CV STUDIO has two provider-backed AI pipelines and several adjacent deterministi
 | Area | Provider-backed? | Purpose | Primary implementation |
 |---|---:|---|---|
 | PDF CV extraction | Yes | Convert an uploaded CV into normalized `cv_data` | [`ai_service.extract_cv_data`](../backend/app/services/ai_service.py#L419), lines 419–722 |
-| Canvas assistant | Yes | Rate, correct, rewrite, translate, discuss, and propose document operations | [`ai_assistant_service.analyze_action`](../backend/app/services/ai_assistant_service.py#L2529), lines 2529–2645 |
-| ATS readability | Hybrid | Combine deterministic PDF parsing with an LLM content review | [`ai_assistant_service._ats_score`](../backend/app/services/ai_assistant_service.py#L2031), lines 2031–2135 |
-| Layout review | Hybrid | Let a model identify geometry problems, then validate every patch in Python | [`layout_gpt.compile_layout_gpt_response`](../backend/app/services/layout_gpt.py#L1226), lines 1226–1543 |
-| Free-form canvas commands | Hybrid | Convert a natural-language instruction into a constrained operation | [`ai_assistant_service._chat`](../backend/app/services/ai_assistant_service.py#L2154), lines 2154–2443 |
+| Canvas assistant | Yes | Rate, correct, rewrite, translate, discuss, and propose document operations | [`ai_assistant_service.analyze_action`](../backend/app/services/ai_assistant_service.py#L2308), lines 2308–2430 |
+| ATS readability | Hybrid | Combine deterministic PDF parsing with an LLM content review | [`ai_assistant_service._ats_score`](../backend/app/services/ai_assistant_service.py#L1893), lines 1893–1997 |
+| Free-form canvas commands | Hybrid | Convert a natural-language instruction into a constrained operation | [`ai_assistant_service._chat`](../backend/app/services/ai_assistant_service.py#L2016), lines 2016–2307 |
 | Template fill | No | Turn canonical `cv_data` into canvas elements with Python generators | [`ai.fill_template`](../backend/app/api/routes/ai.py#L491), lines 491–563 |
 | Bio wizard | No | Collect structured CV data and persist a draft | [`BioCvModal`](../frontend/src/components/ai/BioCvModal/BioCvModal.jsx#L1), lines 1–1303 |
 | Credit and quota settlement | No | Reserve, settle, replay, release, or expire a provider operation | [`entitlements.reserve_ai_credits`](../backend/app/services/entitlements.py#L1001), lines 1001–1123 |
 
-The assistant accepts **11 actions**:
+The assistant accepts **9 actions**:
 
-`rating`, `design_rating`, `position_rating`, `grammar`, `language`, `improve`, `shorten`, `ats_score`, `layout`, `chat`, and `translate`.
+`rating`, `position_rating`, `grammar`, `language`, `improve`, `shorten`, `ats_score`, `chat`, and `translate`.
 
-The authoritative action allowlist is [`VALID_ACTIONS`](../backend/app/api/routes/ai_assistant.py#L41), lines 41–45. The dispatcher is [`analyze_action`](../backend/app/services/ai_assistant_service.py#L2529), lines 2529–2645.
+The authoritative action allowlist is [`VALID_ACTIONS`](../backend/app/api/routes/ai_assistant.py#L42), lines 42–46. The dispatcher is [`analyze_action`](../backend/app/services/ai_assistant_service.py#L2308), lines 2308–2430.
 
 ## What is and is not AI
 
 ### Model-backed behavior
 
 - Reading semantic facts from native PDF text or scanned page images.
-- Rating CV content, typography, role fit, and ATS content quality.
+- Rating CV content, role fit, and ATS content quality.
 - Proposing grammar, style, improvement, shortening, and translation patches.
 - Answering CV-scoped questions using the current canvas and short session history.
 - Interpreting user intent for position, structure, deletion, and clone operations.
-- Identifying possible layout inconsistencies from a full multi-page canvas snapshot.
 
 ### Deterministic behavior next to AI
 
@@ -85,7 +83,7 @@ The authoritative action allowlist is [`VALID_ACTIONS`](../backend/app/api/route
 
 Calling deterministic code “AI” can hide where correctness really comes from. For example, `POST /ai/fill_template` is under the `/ai` route prefix because it belongs to the import/wizard flow, but it does not call a model. It normalizes `cv_data` and invokes the Python template generator. This is documented in [`generate_resume`](../backend/app/services/ai_service.py#L786), lines 786–798.
 
-The same principle applies to layout. The model can suggest a movement, but Python owns the legal identifiers, final coordinates, page bounds, protected-element rules, and review-card payload.
+The same principle applies to chat geometry commands. The model can suggest an abstract movement, but Python owns the legal identifiers, final coordinates, page bounds, protected-element rules, and review-card payload.
 
 ## Architecture
 
@@ -120,7 +118,7 @@ flowchart LR
 
 ### Architectural layers
 
-1. **React surfaces** collect a file, action, job description, target language, chat instruction, or layout request.
+1. **React surfaces** collect a file, action, job description, target language, or chat instruction.
 2. **FastAPI routes** validate the request, resolve the authenticated owner, enforce plan access, and create a durable idempotent reservation before external I/O.
 3. **Provider services** build narrow prompts, call the configured model, and parse a JSON object.
 4. **Deterministic validators** normalize CV fields or convert abstract operations into bounded, previewable patches.
@@ -159,12 +157,11 @@ The lack of an automatic cross-provider fallback is intentional. A Cloudflare ou
 
 | Assistant work | Default model | Reasoning | Service tier | Completion budget |
 |---|---|---|---|---:|
-| All non-layout actions | `gpt-5.6-terra` | `high` | Standard | 16,000 |
-| Layout | `gpt-5.6-terra` | `high` | Fast | 48,000 |
+| All assistant actions | `gpt-5.6-terra` | `high` | Standard | 16,000 |
 
-The routing helpers are [`_model_for_action`](../backend/app/services/ai_assistant_service.py#L90), [`_reasoning_effort_for_action`](../backend/app/services/ai_assistant_service.py#L104), and [`_service_tier_for_action`](../backend/app/services/ai_assistant_service.py#L117), lines 90–127.
+The routing helpers are [`_model_for_action`](../backend/app/services/ai_assistant_service.py#L61) and [`_reasoning_effort_for_action`](../backend/app/services/ai_assistant_service.py#L73), lines 61–82.
 
-The local pricing sheet is code, not a live billing API. It must be reviewed when providers change prices. Terra uses the Standard sheet for non-layout actions and the 2× Fast sheet for Layout. The USD→PLN conversion remains configurable through `USD_TO_PLN` and defaults to `4.0`. See [`openai_pricing.py`](../backend/app/services/openai_pricing.py#L1) and [`cloudflare_pricing.py`](../backend/app/services/cloudflare_pricing.py#L1).
+The local pricing sheet is code, not a live billing API. It must be reviewed when providers change prices. Terra uses the Standard sheet for assistant actions. The USD→PLN conversion remains configurable through `USD_TO_PLN` and defaults to `4.0`. See [`openai_pricing.py`](../backend/app/services/openai_pricing.py#L1) and [`cloudflare_pricing.py`](../backend/app/services/cloudflare_pricing.py#L1).
 
 ## Feature catalogue
 
@@ -205,75 +202,65 @@ Tests:
 
 Rates completeness, experience quality, language/professionalism, structure, and differentiation. The response includes a 1–10 internal rating that the UI displays as a percentage, structured categories, strengths, priorities, and tips.
 
-Implementation: [`_rate_cv`](../backend/app/services/ai_assistant_service.py#L1241), lines 1241–1333.
+Implementation: [`_rate_cv`](../backend/app/services/ai_assistant_service.py#L1188), lines 1188–1289.
 
-The backend independently detects likely mixed-language CVs and injects feedback if the model misses that problem. Language detection and mix analysis span [`_detect_cv_language`](../backend/app/services/ai_assistant_service.py#L421) through [`_ensure_language_mix_feedback`](../backend/app/services/ai_assistant_service.py#L596), lines 421–643.
+The backend independently detects likely mixed-language CVs and injects feedback if the model misses that problem. Language detection and mix analysis span [`_detect_cv_language`](../backend/app/services/ai_assistant_service.py#L417) through [`_ensure_language_mix_feedback`](../backend/app/services/ai_assistant_service.py#L595), lines 417–643.
 
-### 3. Typography and appearance rating
-
-**Action:** `design_rating`
-
-Rates hierarchy, emphasis, color consistency, and alignment. It intentionally excludes geometry and protects template chrome and the primary identity element from inappropriate rewrites.
-
-Implementation: [`_rate_design`](../backend/app/services/ai_assistant_service.py#L1334), lines 1334–1449.
-
-Only style fields may survive normalization: `fontSize`, `fontFamily`, `color`, `bold`, `italic`, and `align`.
-
-### 4. Job-position fit
+### 3. Job-position fit
 
 **Action:** `position_rating`
 
 Accepts a public HTTPS `job_offer_url` or a bounded manual `job_description`, with optional `candidate_notes`. The route resolves Greenhouse, Lever, JobPosting JSON-LD, or visible generic HTML. URL validation rejects credentials, custom ports and every non-public DNS answer; TLS connects to the validated IP, every redirect is rechecked, and the body is limited to 1 MiB. A pasted description becomes an explicit fallback if remote extraction fails.
 
-Implementation: [`resolve_job_offer`](../backend/app/services/job_offer_service.py#L378), lines 378–451; [`_tailor_cv_to_position`](../backend/app/services/ai_assistant_service.py#L1451), lines 1451–1563; and [`build_job_tailoring_result`](../backend/app/services/job_tailoring.py#L322), lines 322–450.
+Implementation: [`resolve_job_offer`](../backend/app/services/job_offer_service.py#L378), lines 378–451; [`_tailor_cv_to_position`](../backend/app/services/ai_assistant_service.py#L1290), lines 1290–1404; and [`build_job_tailoring_result`](../backend/app/services/job_tailoring.py#L322), lines 322–450.
 
 The offer is delimited as untrusted prompt data. The OpenAI call uses strict Structured Outputs for requirements, score dimensions, evidence gaps, canvas corrections, and allowlisted profile updates. Every editable canvas item and candidate-note fragment receives a stable evidence ID (`canvas:*` or `note:*`). Positive matches and rewrites cite those IDs, allowing semantic matches across synonyms, translations, acronyms, umbrella concepts and their typical activities, or technologies and their standard uses without requiring a model paraphrase to equal a CV sentence verbatim. Every priority must reference a requirement ID. The server resolves IDs back to real candidate text, recomputes the weighted score, removes gaps that contradict a confirmed match, and retains priorities only for `partial` or `missing` requirements. A `matched` requirement remains a strength and cannot produce a contradictory priority; the prompt also forbids tautological rewrites that merely repeat a concept through its synonym, translation, acronym expansion, or definition. The server still rejects stale `before` values, unknown IDs, placeholders, unsupported numbers, missing-offer technologies, and protected profile paths. Only `/summary` and existing `/experience/{i}/bullets/{j}` values can update canonical profile data. The response exposes `job_offer`, `job_requirements`, and `evidence_gaps`; the frontend shows the actual **Dowód z CV** above the existing correction cards and offers a separate ATS readability check.
 
 Tests: [`test_job_offer_service.py`](../backend/tests/test_job_offer_service.py), lines 1–88; [`test_job_tailoring.py`](../backend/tests/test_job_tailoring.py), lines 1–294; and [`jobTailoring.runtime.test.jsx`](../frontend/src/utils/jobTailoring.runtime.test.jsx), lines 1–21.
 
-### 5. Grammar correction
+### 4. Grammar correction
 
 **Action:** `grammar`
 
 Corrects grammar, spelling, and punctuation without intentionally changing meaning, tone, grammatical tense, or person.
 
-Implementation: [`_fix_grammar`](../backend/app/services/ai_assistant_service.py#L1543), lines 1543–1595.
+Implementation: [`_fix_grammar`](../backend/app/services/ai_assistant_service.py#L1405), lines 1405–1457.
 
-### 6. Language and style review
+### 5. Language and style review
 
 **Action:** `language`
 
 Improves clarity, professional tone, active voice, evidence, and language consistency. Employment-period annotations tell the model whether a role is current or finished so it does not rewrite every responsibility into one tense.
 
-Implementation: [`_check_style`](../backend/app/services/ai_assistant_service.py#L1596), lines 1596–1676, and [`_annotate_employment_tense`](../backend/app/services/ai_assistant_service.py#L663), lines 663–700.
+Implementation: [`_check_style`](../backend/app/services/ai_assistant_service.py#L1458), lines 1458–1538, and [`_annotate_employment_tense`](../backend/app/services/ai_assistant_service.py#L662), lines 662–699.
 
-### 7. Content improvement
+### 6. Content improvement
 
 **Action:** `improve`
 
 Strengthens wording and impact while preserving the CV language. The current profile-aware path explicitly tells the model not to invent facts or metrics. The older canvas-only fallback prompt may use visible placeholders such as `[X%]`, which the user must replace with verified values.
 
-Implementation: [`_improve_content`](../backend/app/services/ai_assistant_service.py#L1677), lines 1677–1744, and profile-aware [`_rewrite_profile_content`](../backend/app/services/ai_assistant_service.py#L1864), lines 1864–1929.
+Implementation: [`_improve_content`](../backend/app/services/ai_assistant_service.py#L1539), lines 1539–1606, and profile-aware [`_rewrite_profile_content`](../backend/app/services/ai_assistant_service.py#L1726), lines 1726–1791.
 
-### 8. Shortening
+### 7. Shortening
 
 **Action:** `shorten`
 
 Condenses summaries, merges repeated bullets, and trims low-value lists to help reduce page count. The frontend is the only correction flow that may intentionally accept an empty replacement, and only for this action.
 
-Implementation: [`_shorten_content`](../backend/app/services/ai_assistant_service.py#L1745), lines 1745–1833, and [`withoutEmptyContentReplacement`](../frontend/src/components/ai/AiAssistant/AiAssistant.jsx#L59), lines 59–70.
+Implementation: [`_shorten_content`](../backend/app/services/ai_assistant_service.py#L1607), lines 1607–1695, and [`withoutEmptyContentReplacement`](../frontend/src/components/ai/AiAssistant/AiAssistant.jsx#L66), lines 66–75.
 
-### 9. Translation
+### 8. Translation
 
 **Action:** `translate`
 
 Supports `pl`, `en`, `de`, `fr`, `es`, `uk`, `it`, and `nl`. It preserves proper names, company names, email addresses, phone numbers, URLs, and protected template chrome. When canonical profile data is available, the response includes a normalized translated profile for later template fills.
 
-Implementation: [`_translate_cv`](../backend/app/services/ai_assistant_service.py#L1930), lines 1930–2030, plus the profile-aware path in [`_rewrite_profile_content`](../backend/app/services/ai_assistant_service.py#L1864), lines 1864–1929.
+Implementation: [`_translate_cv`](../backend/app/services/ai_assistant_service.py#L1792), lines 1792–1892, plus the profile-aware path in [`_rewrite_profile_content`](../backend/app/services/ai_assistant_service.py#L1726), lines 1726–1791.
 
 Tests: [`test_translate_profile.py`](../backend/tests/test_translate_profile.py), lines 14–163.
 
-### 10. ATS readability
+### 9. ATS readability
 
 **Action:** `ats_score`
 
@@ -287,13 +274,13 @@ ATS scoring is intentionally hybrid:
 
 Implementation:
 
-- Orchestration: [`_ats_score`](../backend/app/services/ai_assistant_service.py#L2031), lines 2031–2135.
+- Orchestration: [`_ats_score`](../backend/app/services/ai_assistant_service.py#L1893), lines 1893–1997.
 - Deterministic analysis: [`ats_readability.py`](../backend/app/services/ats_readability.py#L82), lines 82–445.
 - Image ownership/path resolution before render: [`ai_assistant`](../backend/app/api/routes/ai_assistant.py#L153), lines 153–379.
 
 This prevents the model from claiming that a visually attractive PDF is ATS-readable when its text layer is actually broken.
 
-### 11. CV-scoped chat and commands
+### 10. CV-scoped chat and commands
 
 **Action:** `chat`
 
@@ -307,7 +294,7 @@ In-scope commands can produce:
 - Explicit deletion operations.
 - Clone operations relative to an existing element.
 
-Implementation: [`_chat`](../backend/app/services/ai_assistant_service.py#L2154), lines 2154–2443.
+Implementation: [`_chat`](../backend/app/services/ai_assistant_service.py#L2016), lines 2016–2307.
 
 Python resolvers:
 
@@ -315,30 +302,6 @@ Python resolvers:
 - Restructure: [`resolve_restructure_section`](../backend/app/services/layout_analysis.py#L1924), lines 1924–2178.
 - Clone: [`resolve_clone_operation`](../backend/app/services/layout_analysis.py#L2226), lines 2226–2375.
 - Delete: [`resolve_delete_operation`](../backend/app/services/layout_analysis.py#L2376), lines 2376–2433.
-
-### 12. Full-canvas layout review
-
-**Action:** `layout`
-
-The layout session sends a compact-ref, multi-page snapshot containing measured geometry, text previews, row membership, flow roles, and canonical spacing values. The model proposes findings and moves. Python then:
-
-- Resolves compact references back to real element IDs.
-- Rejects unknown references.
-- Checks the text/textarea inventory.
-- Prevents partial logical-block movement.
-- Freezes locked and fixed elements.
-- Limits one movement to 80 px, at most 40 moves and 12 findings.
-- Keeps patches on-page.
-- Rejects changes that collapse required section-header spacing.
-- Produces plain-language review cards rather than exposing internal geometry jargon.
-
-Snapshot construction: [`build_layout_snapshot`](../backend/app/services/layout_gpt.py#L429), lines 429–441.
-
-Prompt contract: [`build_layout_user_prompt`](../backend/app/services/layout_gpt.py#L443), lines 443–650.
-
-Validation and compilation: [`compile_layout_gpt_response`](../backend/app/services/layout_gpt.py#L1226), lines 1226–1543.
-
-The frontend does not send a provider request merely by enabling Layout mode. It waits for an explicit user instruction. See [`toggleLayoutMode`](../frontend/src/components/ai/AiAssistant/AiAssistant.jsx#L1619), lines 1619–1655.
 
 ## End-to-end flows
 
@@ -398,9 +361,9 @@ Frontend references: [`handleExtract`](../frontend/src/components/ai/AiCvPanel/A
 
 Frontend request implementation: [`send`](../frontend/src/components/ai/AiAssistant/AiAssistant.jsx#L1437), lines 1437–1615.
 
-Backend provider boundary: [`_gpt`](../backend/app/services/ai_assistant_service.py#L941), lines 941–1036.
+Backend provider boundary: [`_gpt`](../backend/app/services/ai_assistant_service.py#L906), lines 906–1002.
 
-Response sanitizer: [`_safe_result`](../backend/app/services/ai_assistant_service.py#L1163), lines 1163–1229.
+Response sanitizer: [`_safe_result`](../backend/app/services/ai_assistant_service.py#L1121), lines 1121–1187.
 
 ### Flow C: request a geometry change
 
@@ -439,9 +402,7 @@ Both route modules use synchronous `def` handlers. FastAPI runs them in its work
 
 [`ai_service.py`](../backend/app/services/ai_service.py) owns provider-backed PDF extraction and delegates final layout generation to deterministic Python.
 
-[`ai_assistant_service.py`](../backend/app/services/ai_assistant_service.py) owns prompts, model routing, response normalization, action dispatch, language detection, and hybrid ATS/layout orchestration.
-
-[`layout_gpt.py`](../backend/app/services/layout_gpt.py) is the boundary between a model’s layout proposal and safe review groups.
+[`ai_assistant_service.py`](../backend/app/services/ai_assistant_service.py) owns prompts, model routing, response normalization, action dispatch, language detection, hybrid ATS orchestration, and constrained chat commands.
 
 [`layout_analysis.py`](../backend/app/services/layout_analysis.py) resolves abstract operations into actual canvas geometry.
 
@@ -469,12 +430,11 @@ Its history list contains metadata only. The full owner-scoped `cv_data` is fetc
 [`AiAssistant.jsx`](../frontend/src/components/ai/AiAssistant/AiAssistant.jsx) contains:
 
 - Goal-oriented action menus and action metadata, lines 39–176.
-- Layout prompt suggestions, lines 180–319.
-- Correction, layout, structure, clone, and deletion cards, lines 596–1040.
+- Correction, position, structure, clone, and deletion cards.
 - Document-session reset and stale-response guards, lines 1048–1175.
 - Accept/reject/apply handlers, lines 1184–1433.
 - The backend send pipeline, lines 1437–1615.
-- Goal, language, layout, and chat event handlers, lines 1619–1771.
+- Goal, language, and chat event handlers.
 
 ### Canvas integration
 
@@ -628,13 +588,13 @@ italic
 align
 ```
 
-Geometry fields such as `left`, `top`, `width`, `height`, `page`, and `zIndex` are excluded from ordinary corrections. See [`_ALLOWED_FIELDS`](../backend/app/services/ai_assistant_service.py#L183), lines 178–183.
+Geometry fields such as `left`, `top`, `width`, `height`, `page`, and `zIndex` are excluded from ordinary corrections. See [`_ALLOWED_FIELDS`](../backend/app/services/ai_assistant_service.py#L135), lines 133–135.
 
 Empty content replacements are removed by the backend sanitizer. The shortening UI has a narrowly scoped exception because removing low-value content is part of that explicit action.
 
 ### Geometry operation contract
 
-Free-form chat does not directly mutate the canvas. It returns one abstract directive that Python resolves. Layout mode is different: it can return move proposals, but `compile_layout_gpt_response` resolves references, clamps movement, checks logical blocks, and creates review groups.
+Free-form chat does not directly mutate the canvas. It returns one abstract directive that `layout_analysis.py` resolves into a bounded review group before the frontend can apply it.
 
 Every accepted review group is still validated again by the frontend before state mutation.
 
@@ -686,7 +646,7 @@ The route reserves a conservative ceiling before calling the provider, then sett
 
 Key functions:
 
-- [`assistant_reservation_cost_pln`](../backend/app/services/ai_assistant_service.py#L130), lines 130–145.
+- [`assistant_reservation_cost_pln`](../backend/app/services/ai_assistant_service.py#L83), lines 83–99.
 - [`_reconcile_pending_ai_reservations`](../backend/app/services/entitlements.py#L925), lines 925–999.
 - [`reserve_ai_credits`](../backend/app/services/entitlements.py#L1001), lines 1001–1123.
 - [`settle_ai_reservation`](../backend/app/services/entitlements.py#L1338), lines 1338–1398.
@@ -729,7 +689,6 @@ This reduces risk but does not mathematically prove that a model cannot be influ
 | PDF text extraction | Extracted native text, source-section inventory, and no page images when text is sufficient |
 | PDF vision extraction | Native text markers plus base64 PNG images for scan-like pages |
 | Content actions | Canvas text and selected metadata; canonical `cv_data` when available |
-| Layout | Text previews (bounded per element), geometry, page data, roles, and spacing contract |
 | ATS | Extracted final-PDF text or cleaned canvas text; not the rendered PDF bytes themselves |
 | Position fit | CV text, bounded job description, and search-result snippets |
 
@@ -765,7 +724,7 @@ Provider content handling is an external policy dependency, not an application g
 | Cloudflare code `3036` | Daily account limit, no fallback | Confirmed failure policy |
 | Cloudflare code `3040` on primary text model | One Llama same-provider fallback | Same logical import |
 
-The provider error classification is implemented in [`CvExtractionError`](../backend/app/services/ai_service.py#L60), lines 60–91, and [`AIServiceError`](../backend/app/services/ai_assistant_service.py#L148), lines 148–176.
+The provider error classification is implemented in [`CvExtractionError`](../backend/app/services/ai_service.py#L60), lines 60–91, and [`AIServiceError`](../backend/app/services/ai_assistant_service.py#L100), lines 100–128.
 
 ## Configuration
 
@@ -789,15 +748,11 @@ All credentials are backend-only. Never expose them through Vite variables or br
 | `CV_EXTRACT_TEXT_MAX_COMPLETION_TOKENS` | No | `32000` | Native-text final-output headroom |
 | `CV_EXTRACT_JSON_MAX_COMPLETION_TOKENS` | No | `8000` | JSON fallback budget |
 | `CV_EXTRACT_VISION_MAX_COMPLETION_TOKENS` | No | `8000` | Vision budget |
-| `AI_ASSISTANT_MODEL` | No | `gpt-5.6-terra` | Non-layout assistant model |
-| `AI_ASSISTANT_REASONING_EFFORT` | No | `high` | Non-layout assistant reasoning effort |
-| `AI_LAYOUT_MODEL` | No | `gpt-5.6-terra` | Layout model |
-| `AI_LAYOUT_REASONING_EFFORT` | No | `high` | Layout reasoning effort |
-| `AI_LAYOUT_SERVICE_TIER` | No | `fast` | Fast/priority or Standard processing |
-| `AI_LAYOUT_MAX_COMPLETION_TOKENS` | No | `48000` | Layout output + reasoning budget |
+| `AI_ASSISTANT_MODEL` | No | `gpt-5.6-terra` | Assistant model |
+| `AI_ASSISTANT_REASONING_EFFORT` | No | `high` | Assistant reasoning effort |
 | `USD_TO_PLN` | No | `4.0` | Local cost-to-credit conversion |
 
-Core configuration source: [`backend/app/core/config.py`](../backend/app/core/config.py#L104), lines 104–210, plus assistant-specific model overrides in [`ai_assistant_service.py`](../backend/app/services/ai_assistant_service.py#L52), lines 52–79.
+Core configuration source: [`backend/app/core/config.py`](../backend/app/core/config.py#L104), lines 104–210, plus assistant-specific model overrides in [`ai_assistant_service.py`](../backend/app/services/ai_assistant_service.py#L54), lines 54–59.
 
 ## Database structure
 
@@ -857,7 +812,7 @@ From the repository root:
 ```powershell
 backend\.venv\Scripts\python.exe -m pytest backend/tests/test_ai_assistant_schema.py backend/tests/test_ai_assistant_request_limits.py backend/tests/test_ai_assistant_exception_handling.py
 backend\.venv\Scripts\python.exe -m pytest backend/tests/test_ai_credit_reservations.py backend/tests/test_extract_cv_reservations.py
-backend\.venv\Scripts\python.exe -m pytest backend/tests/test_cloudflare_cv_extraction.py backend/tests/test_layout_gpt.py backend/tests/test_layout_analysis.py backend/tests/test_ats_readability.py
+backend\.venv\Scripts\python.exe -m pytest backend/tests/test_cloudflare_cv_extraction.py backend/tests/test_layout_analysis.py backend/tests/test_ats_readability.py
 ```
 
 If the backend virtual environment is already active, `python` can replace the
@@ -887,7 +842,6 @@ arguments; they do not replace the discovered suite.
 | Reservation replay, concurrency, and expiry | [`test_ai_credit_reservations.py`](../backend/tests/test_ai_credit_reservations.py) |
 | Import rejection and reservation behavior | [`test_extract_cv_rejection.py`](../backend/tests/test_extract_cv_rejection.py), [`test_extract_cv_reservations.py`](../backend/tests/test_extract_cv_reservations.py) |
 | Cloudflare text/vision/fallback/grounding | [`test_cloudflare_cv_extraction.py`](../backend/tests/test_cloudflare_cv_extraction.py) |
-| Layout snapshot and response validation | [`test_layout_gpt.py`](../backend/tests/test_layout_gpt.py) |
 | Deterministic operation resolution | [`test_layout_analysis.py`](../backend/tests/test_layout_analysis.py) |
 | ATS PDF measurement | [`test_ats_readability.py`](../backend/tests/test_ats_readability.py) |
 | Profile-aware translation/template reuse | [`test_translate_profile.py`](../backend/tests/test_translate_profile.py) |
@@ -1032,10 +986,6 @@ Position-fit analysis no longer performs a broad web search for inferred industr
 
 Only one provider operation per user can be active. This reduces duplicate billing and cross-worker races but prevents parallel AI requests from the same account.
 
-### Layout uses bounded text previews
-
-Layout snapshots truncate each element’s content to a configured maximum. This controls payload size, but an unusually long element may lose semantic detail beyond the preview.
-
 ### Import history retains personal data
 
 Discarding source PDFs reduces retention, but normalized `cv_data` is still personal data. Product privacy and retention rules must cover snapshots, saved documents, drafts, and replay payloads.
@@ -1064,7 +1014,6 @@ backend/
 │       ├── cv_source_layout.py      # source geometry and grounding
 │       ├── entitlements.py          # plans, quota, credits, reservations
 │       ├── layout_analysis.py       # deterministic operation resolvers
-│       ├── layout_gpt.py            # layout snapshot and response compiler
 │       └── openai_pricing.py        # assistant cost estimation
 ├── alembic/versions/
 │   └── 20260901_0010_ai_credit_reservations.py
@@ -1097,7 +1046,6 @@ docs/
 ## Further reading
 
 - [OpenAI model guide](https://developers.openai.com/api/docs/models) — official model identifiers, capabilities, context/output limits, and current token prices. Compare it with the repository’s local pricing tables before changing metering.
-- [OpenAI Fast mode / `service_tier`](https://developers.openai.com/api/reference/cli/resources/responses/methods/create) — official request and response semantics for Fast/priority processing used by layout.
 - [OpenAI API data controls](https://platform.openai.com/docs/models/default-usage-policies-by-endpoint) — official training and retention behavior for API content; use it when maintaining privacy disclosures.
 - [Cloudflare OpenAI-compatible endpoints](https://developers.cloudflare.com/workers-ai/configuration/open-ai-compatibility/) — explains why the existing OpenAI SDK can call Workers AI with a different base URL.
 - [Cloudflare Workers AI REST setup](https://developers.cloudflare.com/workers-ai/get-started/rest-api/) — account ID, token permissions, and server-to-server invocation.
@@ -1110,7 +1058,7 @@ docs/
 ## Related project documentation
 
 - [`README.md`](../README.md) — complete bilingual project architecture and setup.
-- [`PROMPTS.md`](PROMPTS.md) — inventory of live model prompts and UI layout chips.
+- [`PROMPTS.md`](PROMPTS.md) — generated inventory of live assistant model prompts.
 - [`cv-template-generation.md`](cv-template-generation.md) — focused explanation of AI extraction versus deterministic Python template generation.
 - [`FEATURES.md`](FEATURES.md) — product-facing feature description.
 - [`DESIGN.md`](../DESIGN.md) — mandatory application-wide UI and interaction system.

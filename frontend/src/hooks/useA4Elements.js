@@ -146,8 +146,9 @@ export function useA4Elements(titleRef) {
 
   const [A4_Elements, setA4_Elements] = useState([]);
   const [A4_Elements_deleted, setA4_Elements_deleted] = useState([]);
-  // Last loaded template slug (e.g. "monument"). Used by Layout AI for layout_contract
-  // hints; cleared for blank canvases and unknown freestyle loads.
+  // Last loaded template slug (e.g. "monument"). Template-aware editor
+  // operations use it to preserve the active document contract; blank canvases
+  // and unknown freestyle loads clear the value.
   const [activeTemplateId, setActiveTemplateId] = useState(null);
   // Lets stable callbacks (e.g. the skills layout picker) read the current
   // template without being recreated on every template change.

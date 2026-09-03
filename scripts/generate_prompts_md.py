@@ -1,508 +1,99 @@
-"""Generate PROMPTS.md from live source line ranges.
+"""Generate ``docs/PROMPTS.md`` from current assistant handler functions.
 
-Usage (from repo root):
+The generator resolves function boundaries and line numbers at runtime so
+removing or moving an action cannot leave the prompt reference silently stale.
+
+Usage from the repository root:
     python scripts/generate_prompts_md.py
 """
 from __future__ import annotations
 
+import re
+from dataclasses import dataclass
 from pathlib import Path
 
+
 ROOT = Path(__file__).resolve().parents[1]
-# NOTE: the tracked reference file lives at `docs/PROMPTS.md` (it was moved
-# there from the repo root in an earlier commit; see `git log --follow`).
-# Keep this constant in sync with `git ls-files | grep -i prompts` — writing
-# to the old root path would silently create an untracked duplicate.
+SERVICE = ROOT / "backend" / "app" / "services" / "ai_assistant_service.py"
 OUT = ROOT / "docs" / "PROMPTS.md"
 
 
-def sl(rel: str, start: int, end: int) -> str:
-    lines = (ROOT / rel).read_text(encoding="utf-8").splitlines()
-    return "\n".join(lines[start - 1 : end])
+@dataclass(frozen=True)
+class ActionPrompt:
+    action: str
+    label: str
+    function_name: str
+    purpose: str
 
 
-def code(body: str, lang: str = "text") -> str:
-    return f"```{lang}\n{body.rstrip()}\n```\n"
+ACTIONS = (
+    ActionPrompt("rating", "Sprawdź CV", "_rate_cv", "ocenia jakość i kompletność treści CV"),
+    ActionPrompt("position_rating", "Dopasuj do oferty", "_tailor_cv_to_position", "porównuje CV z ofertą i proponuje potwierdzone poprawki"),
+    ActionPrompt("grammar", "Sprawdź błędy", "_fix_grammar", "poprawia gramatykę, ortografię i interpunkcję"),
+    ActionPrompt("language", "Popraw język", "_check_style", "ulepsza styl w języku bieżącego CV"),
+    ActionPrompt("improve", "Wzmocnij treść", "_improve_content", "wzmacnia opisy bez wymyślania faktów"),
+    ActionPrompt("shorten", "Skróć CV", "_shorten_content", "kondensuje treść bez zmiany znaczenia"),
+    ActionPrompt("ats_score", "Sprawdź ATS", "_ats_score", "łączy deterministyczny odczyt PDF z oceną struktury"),
+    ActionPrompt("translate", "Przetłumacz CV", "_translate_cv", "tłumaczy pełną treść i profil na wybrany język"),
+    ActionPrompt("chat", "Czat", "_chat", "odpowiada na pytania o CV i przygotowuje bezpieczne operacje do akceptacji"),
+)
+
+
+def function_block(source: str, function_name: str) -> tuple[int, int, str]:
+    """Return one top-level Python function with verified current line numbers."""
+    pattern = re.compile(rf"^def {re.escape(function_name)}\(", re.MULTILINE)
+    match = pattern.search(source)
+    if match is None:
+        raise RuntimeError(f"Missing function: {function_name}")
+    next_function = re.search(r"^def [A-Za-z_]\w*\(", source[match.end():], re.MULTILINE)
+    end_offset = match.end() + next_function.start() if next_function else len(source)
+    start_line = source.count("\n", 0, match.start()) + 1
+    end_line = source.count("\n", 0, end_offset)
+    return start_line, end_line, source[match.start():end_offset].rstrip()
 
 
 def main() -> None:
-    a = "backend/app/services/ai_assistant_service.py"
-    g = "backend/app/services/layout_gpt.py"
-    e = "backend/app/services/ai_service.py"
-    f = "frontend/src/components/ai/AiAssistant/AiAssistant.jsx"
-    # Spacing constants used to live in `cv_generator.py` directly; that module
-    # is now a re-export facade and the real definitions live in
-    # `cv_generator_primitives.py`. Point the doc at the actual definition site.
-    cg = "backend/app/services/cv_generator_primitives.py"
-
-    parts: list[str] = []
+    """Write the current action inventory and live handler prompt sources."""
+    source = SERVICE.read_text(encoding="utf-8")
+    parts = [
+        "# PROMPTS.md — prompty AI w CV Studio\n\n",
+        "Ten plik jest generowany z aktualnego kodu. Asystent udostępnia cztery cele główne: ",
+        "**Sprawdź CV**, **Popraw treść**, **Dopasuj do oferty** i **Przetłumacz CV**. ",
+        "Usunięte akcje `design_rating` oraz `layout` nie są częścią interfejsu ani API.\n\n",
+        "Po zmianie promptów uruchom:\n\n",
+        "```bash\npython scripts/generate_prompts_md.py\n```\n\n",
+        "## Mapa akcji\n\n",
+        "| Akcja API | Cel UI | Handler | Odpowiedzialność |\n",
+        "| --- | --- | --- | --- |\n",
+    ]
+    blocks: list[tuple[ActionPrompt, int, int, str]] = []
+    for item in ACTIONS:
+        start, end, block = function_block(source, item.function_name)
+        blocks.append((item, start, end, block))
+        parts.append(
+            f"| `{item.action}` | {item.label} | `{item.function_name}` "
+            f"(linie {start}–{end}) | {item.purpose} |\n"
+        )
 
     parts.append(
-        """# PROMPTS.md — wszystkie prompty AI w CV Studio
-
-Ten plik zbiera **żywe** prompty wysyłane do modeli OpenAI oraz chipy UI trybu **Układ**
-(tekst chipa staje się wiadomością użytkownika). Wyjaśnienia są po polsku, prostym językiem.
-
-Numery linii odpowiadają stanowi repozytorium w momencie generowania. Po zmianie promptów
-uruchom ponownie:
-
-```bash
-python scripts/generate_prompts_md.py
-```
-
-## Jak to działa (jednym zdaniem)
-
-Większość przycisków Asystenta AI buduje dwie wiadomości: **system** („kim jesteś”)
-oraz **user** („oto CV i polecenie”). Tryb **Układ** ma osobny system z `layout_gpt.py`.
-Import PDF to jedna wiadomość użytkownika: instrukcja + zdjęcia stron. Cztery akcje treści
-(gramatyka, styl, ulepszenie, skracanie) dodatkowo wykrywają język CV i wymuszają go w
-`content` poprawek — patrz sekcja o wielojęzycznych korektach poniżej.
-
-## Wielojęzyczne korekty treści (gramatyka / styl / ulepsz / skróć)
-
-Cztery akcje edytujące treść (`grammar`, `language`, `improve`, `shorten`) nie zwracają już
-poprawek zawsze po polsku. Dyspozytor `analyze_action` (**2311–2401**) najpierw ustala
-`resolved_language`:
-
-1. Jeśli request niesie `cv_language` z listy `_SUPPORTED_LANGS` (**279**:
-   `pl/en/de/fr/es/uk/it/nl`), używa go wprost (jawny override z selektora UI).
-2. W przeciwnym razie wykrywa język automatycznie funkcją `_detect_cv_language`
-   (**383–413**), która dzieli elementy na nagłówki i treść (`_split_headers_and_body`,
-   **313–341**) i liczy sygnały językowe osobno dla obu grup. Gdy nagłówki i treść są w
-   różnych językach (dokument dwujęzyczny), **wygrywa język treści** — to on trafia do
-   `code`, bo to właśnie treść przepisują te akcje; `is_mixed` tylko informuje ocenę CV
-   o niespójności nagłówków.
-3. Wybrany kod trafia do każdego handlera jako `language_code` i jest echowany w
-   odpowiedzi jako `cv_language`, żeby selektor w UI pokazywał to, co faktycznie użyto.
-
-Sam prompt system dostaje dyrektywę z `_content_language_directive` (**1705–1723**): pole
-`content` w poprawkach ma być w języku CV, natomiast `message`/`tips`/`priorities` **zawsze**
-zostają po polsku (aplikacja obsługuje polski rynek, więc rady muszą być zrozumiałe niezależnie
-od języka samego CV). Reguły czasu gramatycznego dla obowiązków (`employment_tense`) wybiera
-`_tense_rules_for` (**1696–1702**): dla polskiego zwraca wariant z przykładowymi czasownikami
-(`_TENSE_RULES_PL`), dla pozostałych języków — neutralny wariant bez polskich czasowników
-(`_TENSE_RULES_NEUTRAL`), żeby model nie „ześlizgiwał się” w polski przy przepisywaniu CV
-w innym języku.
-
-Na poziomie API opcjonalny override żyje jako `cv_language` w `AssistantRequest` i jest
-echowany w `AssistantResponse` (`backend/app/api/routes/ai_assistant.py`, pola **59–61** i
-**110–111**); nieobsługiwana wartość kończy się błędem 400 (**151–159**). Frontend ma osobny
-selektor „Język CV” (domyślnie „Auto”) w podpanelu Popraw treść
-(`AiAssistant.jsx`, **1767–1779**), który wysyła `cv_language` tylko dla akcji treści
-(**1397–1422**) i synchronizuje się z tym, co faktycznie odpowie backend (**1438–1440**).
-
-## Spis treści
-
-- [Skąd biorą się zmienne](#skąd-biorą-się-zmienne)
-- [1. Import PDF — ekstrakcja CV](#1-import-pdf--ekstrakcja-cv)
-- [2. Ocena CV (treść)](#2-ocena-cv-treść)
-- [3. Ocena projektu (typografia)](#3-ocena-projektu-typografia)
-- [4. Dopasowanie do stanowiska](#4-dopasowanie-do-stanowiska)
-- [5. Gramatyka](#5-gramatyka)
-- [6. Styl językowy](#6-styl-językowy)
-- [7. Ulepsz treść](#7-ulepsz-treść)
-- [7b. Skróć treść](#7b-skróć-treść)
-- [8. ATS](#8-ats)
-- [8b. Tłumaczenie CV](#8b-tłumaczenie-cv)
-- [9. Czat (wolny asystent)](#9-czat-wolny-asystent)
-- [10. Układ — system i pytanie domyślne](#10-układ--system-i-pytanie-domyślne)
-- [11. Układ — wskazówki szablonu](#11-układ--wskazówki-szablonu)
-- [12. Układ — prompt użytkownika](#12-układ--prompt-użytkownika)
-- [13. Frontend — powitanie i chipy Układu](#13-frontend--powitanie-i-chipy-układu)
-- [Mapa akcja → plik](#mapa-akcja--plik)
-
-## Skąd biorą się zmienne
-
-Dispatcher: `backend/app/services/ai_assistant_service.py`, funkcja `analyze_action`,
-linie **2311–2401**. Na starcie liczy `text = _extract_text(elements)` (funkcja: **663–668**),
-potem ustala `resolved_language` (patrz sekcja o wielojęzycznych korektach powyżej).
-
-UI asystenta mapuje **cele** (Sprawdź CV, Popraw treść, …) na te akcje API —
-patrz `GOAL_ACTIONS` w `AiAssistant.jsx`.
-
-| Helper / stała | Plik | Linie | Co wstawia do promptu |
-|----------------|------|-------|------------------------|
-| `_extract_text` | `ai_assistant_service.py` | 663–668 | Złączony tekst wszystkich pól `text`/`textarea` |
-| `_extract_structured` | `ai_assistant_service.py` | 716–746 | Lista: id, treść, styl, inline `runs`, `employment_tense` (bez pozycji) |
-| `_extract_positional` | `ai_assistant_service.py` | 749–804 | Jak wyżej + left/top/width/height/page + dekoracje |
-| `_extract_typography` | `ai_assistant_service.py` | 837–868 | Styl, krótki `preview`, flaga `primary_identity` |
-| `_normalize_chat_history` | `ai_assistant_service.py` | 1902–1917 | Do 12 ostatnich wiadomości (max 1500 znaków) |
-| `_safe_result` | `ai_assistant_service.py` | 1063–1107 | Normalizacja + `categories` / `strengths` / `priorities` |
-| `_detect_cv_language` | `ai_assistant_service.py` | 383–413 | Wykryty język CV: `code`/`confidence`/`body_lang`/`header_lang`/`is_mixed` |
-| `_content_language_directive` | `ai_assistant_service.py` | 1705–1723 | Dyrektywa systemowa: `content` w języku CV, rady zawsze po polsku |
-| `_tense_rules_for` | `ai_assistant_service.py` | 1696–1702 | Reguły czasu obowiązków (polski z czasownikami vs neutralny) |
-| `build_layout_snapshot` | `layout_gpt.py` | ~429–440 | Pełny JSON geometrii A4 |
-| `_build_layout_contract` | `layout_gpt.py` | 251–276 | Rytm `SPACE_*` + pas pod nagłówkiem |
-| `SPACE_STACK/RECORD/SECTION/AFTER_RULE` | `cv_generator_primitives.py` | 43–46 | 4 / 10 / 21 / 8 px |
-| `SECTION_HEADER_GAP_*` | `layout_gpt.py` | 39–43 | min/target/max/tolerancja pod nagłówkiem |
-| `MAX_LAYOUT_MOVE_PX` / `MOVES` / `FINDINGS` | `layout_gpt.py` | 32–34 | Limity ruchów (±80 px, 40 ruchów, 12 grup) |
-| `template_id` | request API + frontend `activeTemplateId` | — | Wybór wskazówki Monument / generycznej |
-| `job_description` | body requestu / pole w UI | — | Opis oferty do dopasowania |
-| `message` | body requestu / czat / chip | — | Pytanie użytkownika |
-| `cv_language` | opcjonalne pole requestu / selektor „Język CV” w UI | — | Override auto-detekcji dla akcji treści; echo w odpowiedzi |
-
----
-"""
+        "\n`grammar`, `language`, `improve` i `shorten` używają wykrytego lub jawnie "
+        "wybranego `cv_language`. Akcja `translate` wymaga `target_language`; rady UI "
+        "pozostają po polsku, a proponowana treść jest zwracana w języku docelowym.\n\n"
     )
 
-    # 1 extract
-    parts.append("## 1. Import PDF — ekstrakcja CV\n\n")
-    parts.append(
-        "**Po co (prosto):** Model patrzy na strony PDF jak na zdjęcia i wypisuje "
-        "uporządkowane dane CV (imię, praca, szkoła, umiejętności…), żeby aplikacja "
-        "mogła wstawić je do szablonu.\n\n"
-        f"**Plik:** `{e}`  \n"
-        "**Linie:** 48–118 (instrukcja), 121–124 (obrazy), 126–135 (wywołanie API)  \n"
-        "**Symbol:** `extract_cv_data` (inline content)  \n"
-        "**Rodzaj:** jedna wiadomość `user` (tekst + obrazy), bez osobnego system\n\n"
-        "### Zmienne\n\n"
-        "- W tekście instrukcji **nie ma** placeholderów — schemat JSON jest stały.\n"
-        "- Obrazy: `_pdf_to_b64_images` w tym samym pliku, linie **24–34**; "
-        "doklejane w pętli **121–124**.\n"
-        "- Model: `_EXTRACT_MODEL` = `gpt-4o`, linia **19**.\n\n"
-        "### Pełna treść (fragment tekstowy wiadomości)\n\n"
-    )
-    parts.append(code(sl(e, 48, 118), "python"))
+    for item, start, end, block in blocks:
+        parts.extend(
+            [
+                f"## `{item.action}` — {item.label}\n\n",
+                f"Handler `{item.function_name}` w `backend/app/services/ai_assistant_service.py`, "
+                f"linie {start}–{end}. Funkcja {item.purpose}.\n\n",
+                "```python\n",
+                block,
+                "\n```\n\n",
+            ]
+        )
 
-    # 2 rating
-    parts.append("\n---\n\n## 2. Ocena CV (treść)\n\n")
-    parts.append(
-        "**Po co (prosto):** Sztuczny „rekruter” ocenia treść CV w skali 1–10 "
-        "(czy są sekcje, czy doświadczenie ma liczby i mocne czasowniki, czy język "
-        "jest profesjonalny). Zwraca strukturalne `categories` / `strengths` / "
-        "`priorities` (UI pokazuje %). Zwykle **nie** edytuje tekstu na kanwie i "
-        "zawsze odpowiada po polsku (ocena nie zależy od `cv_language`).\n\n"
-        f"**Plik:** `{a}`  \n"
-        "**Linie:** system **1249–1256**, user **1257–1330**, handler `_rate_cv` **1242–1332**\n"
-        "**Akcja API:** `rating` (cel UI: Sprawdź CV)\n\n"
-        "### Zmienne\n\n"
-        "| Zmienna w prompcie | Skąd | Linie |\n"
-        "|--------------------|------|-------|\n"
-        "| `{text}` | `_extract_text(elements)` przez `analyze_action` | 2336, 663–668 |\n"
-        "| `{element_count}` | `len(_extract_structured(elements))` | 1114–1115, 716–746 |\n"
-        "| `{mix_block}` | `_language_mix_prompt_block(_detect_language_mix(elements))` | 1116–1117 |\n\n"
-        "### System\n\n"
-    )
-    parts.append(code(sl(a, 1249, 1256)))
-    parts.append("\n### User\n\n")
-    parts.append(code(sl(a, 1257, 1330)))
-
-    # 3 design
-    parts.append("\n---\n\n## 3. Ocena projektu (typografia)\n\n")
-    parts.append(
-        "**Po co (prosto):** Sprawdza wygląd tekstu (hierarchia, bold, kolory, "
-        "wyrównanie), a **nie** pozycje klocków na stronie. Małe czcionki szablonu "
-        "i duże imię to celowy design — model nie ma ich „naprawiać”.\n\n"
-        f"**Plik:** `{a}`  \n"
-        "**Linie:** system **1346–1360**, user **1361–1431**, handler `_rate_design` **1335–1448**\n"
-        "**Akcja API:** `design_rating` (cel UI: Sprawdź wygląd → typografia)\n\n"
-        "### Zmienne\n\n"
-        "| Zmienna | Skąd | Linie |\n"
-        "|---------|------|-------|\n"
-        "| `{typo}` | `json.dumps(_extract_typography(elements))` | 1213, 837–868 |\n\n"
-        "**Uwaga:** ocena Projekt dotyczy tylko typografii — nachodzenia / geometria nie "
-        "obniżają już wyniku (to domena Układu).\n\n"
-        "### System\n\n"
-    )
-    parts.append(code(sl(a, 1346, 1360)))
-    parts.append("\n### User\n\n")
-    parts.append(code(sl(a, 1361, 1431)))
-
-    # 4 position
-    parts.append("\n---\n\n## 4. Dopasowanie do stanowiska\n\n")
-    parts.append(
-        "**Po co (prosto):** Buduje ważoną macierz wymagań oferty, ocenia dowody "
-        "w CV i proponuje wyłącznie potwierdzone poprawki do akceptacji.\n\n"
-        f"**Plik:** `{a}`  \n"
-        "**Linie:** system **1484–1496**, user **1497–1539**, handler `_tailor_cv_to_position` **1451–1563**\n"
-        "**Akcja API:** `position_rating` (cel UI: Dopasuj do oferty)\n\n"
-        "### Zmienne\n\n"
-        "| Zmienna | Skąd | Linie |\n"
-        "|---------|------|-------|\n"
-        "| `{job_description[:20_000]}` | bezpiecznie pobrana lub wklejona oferta | route + 1503 |\n"
-        "| `{structured}` | pełne elementy kanwy z `element_id` i stabilnym `evidence_id` | 1468–1473, 1508–1509 |\n"
-        "| `{profile}` | znormalizowane kanoniczne `cv_data` | 1479, 1511–1512 |\n"
-        "| `{note_evidence}` | opcjonalne fakty kandydata podzielone na źródła `note:*` | 1474–1478, 1514–1515 |\n"
-        "| `{offer_metadata}` | tytuł/firma/lokalizacja/źródło bez treści strony | 1480–1483, 1499–1500 |\n\n"
-        "Odpowiedź jest ograniczona przez `JOB_TAILORING_RESPONSE_SCHEMA` w "
-        "`backend/app/services/job_tailoring.py`; po odpowiedzi serwer ponownie "
-        "liczy wynik i waliduje identyfikatory dowodów względem rzeczywistych elementów CV/notatek.\n\n"
-        "### System\n\n"
-    )
-    parts.append(code(sl(a, 1484, 1496)))
-    parts.append("\n### User\n\n")
-    parts.append(code(sl(a, 1497, 1539)))
-
-    # 5 grammar
-    parts.append("\n---\n\n## 5. Gramatyka\n\n")
-    parts.append(
-        "**Po co (prosto):** Poprawia tylko literówki, gramatykę i przecinki w języku "
-        "CV. Nie zmienia sensu ani „ładniejszego” stylu, i nie tłumaczy treść na inny "
-        "język.\n\n"
-        f"**Plik:** `{a}`  \n"
-        "**Linie:** system **1575–1581**, user **1582–1603**, handler `_fix_grammar` **1566–1604**\n"
-        "**Akcja API:** `grammar` (submenu Popraw treść → Sprawdź błędy)\n\n"
-        "### Zmienne\n\n"
-        "| Zmienna | Skąd | Linie |\n"
-        "|---------|------|-------|\n"
-        "| `{json.dumps(structured)}` | `_extract_structured(elements)` | 1573, 1585 |\n"
-        "| dyrektywa językowa w system | `_content_language_directive(language_code)` | 1580, funkcja **1866–1884** |\n\n"
-        "### System\n\n"
-    )
-    parts.append(code(sl(a, 1575, 1581)))
-    parts.append("\n### User\n\n")
-    parts.append(code(sl(a, 1582, 1603)))
-
-    # 6 language
-    parts.append("\n---\n\n## 6. Styl językowy\n\n")
-    parts.append(
-        "**Po co (prosto):** Szuka strony biernej, frazesów („gracz zespołowy”) "
-        "i ogólników, potem proponuje mocniejsze brzmienie — w języku CV, z zachowaniem "
-        "czasu gramatycznego obowiązków.\n\n"
-        f"**Plik:** `{a}`  \n"
-        "**Linie:** system **1628–1637**, user **1638–1689**, handler `_check_style` **1619–1697**\n"
-        "**Akcja API:** `language` (submenu Popraw treść → Popraw język)\n\n"
-        "### Zmienne\n\n"
-        "| Zmienna | Skąd | Linie |\n"
-        "|---------|------|-------|\n"
-        "| `{text}` | argument handlera | 1619, 1641 |\n"
-        "| `{json.dumps(structured[:40])}` | pierwsze 40 elementów ze `_extract_structured` | 1624, 1644 |\n"
-        "| `{mix_block}` | `_language_mix_prompt_block(_detect_language_mix(elements))` | 1625–1626, 1645 |\n"
-        "| dyrektywa językowa w system | `_content_language_directive(language_code)` | 1636, funkcja **1866–1884** |\n"
-        "| `{_tense_rules_for(language_code)}` | reguły czasu wg języka CV | 1647, funkcja **1857–1863** |\n\n"
-        "### System\n\n"
-    )
-    parts.append(code(sl(a, 1628, 1637)))
-    parts.append("\n### User\n\n")
-    parts.append(code(sl(a, 1638, 1689)))
-
-    # 7 improve
-    parts.append("\n---\n\n## 7. Ulepsz treść\n\n")
-    parts.append(
-        "**Po co (prosto):** Przerabia punkty doświadczenia na mocniejsze zdania "
-        "z czasownikiem na początku i miejscem na liczby (metryki), zachowując język "
-        "i czas gramatyczny oryginału.\n\n"
-        f"**Plik:** `{a}`  \n"
-        "**Linie:** system **1710–1717**, user **1718–1764**, handler `_improve_content` **1700–1765**\n"
-        "**Akcja API:** `improve` (submenu Popraw treść → Wzmocnij treść)\n\n"
-        "### Zmienne\n\n"
-        "| Zmienna | Skąd | Linie |\n"
-        "|---------|------|-------|\n"
-        "| `{json.dumps(structured[:40])}` | `_extract_structured` (max 40) | 1705, 1724 |\n"
-        "| `{full_text}` | `_extract_text` | 1706, 1721 |\n"
-        "| `{mix_block}` | `_language_mix_prompt_block` | 1707–1708, 1725 |\n"
-        "| dyrektywa językowa w system | `_content_language_directive(language_code)` | 1716, funkcja **1866–1884** |\n"
-        "| `{_tense_rules_for(language_code)}` | reguły czasu wg języka CV | 1727, funkcja **1857–1863** |\n\n"
-        "### System\n\n"
-    )
-    parts.append(code(sl(a, 1710, 1717)))
-    parts.append("\n### User\n\n")
-    parts.append(code(sl(a, 1718, 1764)))
-
-    # 7b shorten
-    parts.append("\n---\n\n## 7b. Skróć treść\n\n")
-    parts.append(
-        "**Po co (prosto):** Gdy CV jest zbyt długie, skraca, łączy lub usuwa najmniej "
-        "istotne fragmenty — bez wymyślania nowych faktów i bez zmiany geometrii. "
-        "W przeciwieństwie do „Ulepsz treść” nie dodaje zastępczych metryk, tylko "
-        "kondensuje istniejącą treść. Zwraca ten sam kształt `corrections`, więc "
-        "frontend renderuje te same karty Przed/Po co przy gramatyce.\n\n"
-        f"**Plik:** `{a}`  \n"
-        "**Linie:** system **1783–1789**, user **1790–1828**, handler `_shorten_content` **1768–1829**\n"
-        "**Akcja API:** `shorten` (submenu Popraw treść → Skróć CV)\n\n"
-        "### Zmienne\n\n"
-        "| Zmienna | Skąd | Linie |\n"
-        "|---------|------|-------|\n"
-        "| `{json.dumps(structured[:40])}` | `_extract_structured` (max 40) | 1780, 1797 |\n"
-        "| `{full_text}` | `_extract_text` | 1781, 1794 |\n"
-        "| dyrektywa językowa w system | `_content_language_directive(language_code)` | 1788, funkcja **1866–1884** |\n\n"
-        "### System\n\n"
-    )
-    parts.append(code(sl(a, 1783, 1789)))
-    parts.append("\n### User\n\n")
-    parts.append(code(sl(a, 1790, 1828)))
-
-    # 8 ats
-    parts.append("\n---\n\n## 8. Czytelność dla ATS\n\n")
-    parts.append(
-        "**Po co (prosto):** Backend najpierw generuje finalny PDF i PyMuPDF sprawdza "
-        "odczyt tekstu, kontakt, kolejność oraz długość (`ats_readability.py`). "
-        "LLM ocenia tylko nagłówki i słowa kluczowe — bez kary za dekoracje (linie, 01/02). "
-        "Overall liczy kod z wag. W UI: CTA po **Sprawdź CV**.\n\n"
-        f"**Plik:** `{a}` (+ `backend/app/services/ats_readability.py`)  \n"
-        "**Linie:** system **2092–2101**, user **2102–2145**, handler `_ats_score` **2054–2152**\n"
-        "**Akcja API:** `ats_score`\n\n"
-        "### Zmienne\n\n"
-        "| Zmienna | Skąd | Linie |\n"
-        "|---------|------|-------|\n"
-        "| `{review_text}` | tekst z PDF lub oczyszczony canvas | 2078–2080, 2104 |\n"
-        "| `{parsing_note}` | score'y deterministyczne | 2081–2086, 2107 |\n"
-        "| `{template_note}` | opcjonalny `template_id` | 2087, 2108 |\n\n"
-        "### System\n\n"
-    )
-    parts.append(code(sl(a, 2092, 2101)))
-    parts.append("\n### User\n\n")
-    parts.append(code(sl(a, 2102, 2145)))
-
-    # 8b translate
-    parts.append("\n---\n\n## 8b. Tłumaczenie CV\n\n")
-    parts.append(
-        "**Po co (prosto):** Tłumaczy treść edytowalnych elementów na wybrany język "
-        "i zwraca `corrections[]` (jak gramatyka) do akceptacji na kanwie. To osobna "
-        "akcja od auto-detekcji języka CV: tu użytkownik zawsze wybiera język docelowy "
-        "jawnie (nie ma trybu auto).\n\n"
-        f"**Plik:** `{a}`  \n"
-        "**Linie:** system **1990–1997**, user **2011–2038**, handler `_translate_cv` **1953–2051**\n"
-        "**Akcja API:** `translate` (wymaga `target_language`: pl/en/de/fr/es/uk/it/nl)\n\n"
-        "### Zmienne\n\n"
-        "| Zmienna | Skąd | Linie |\n"
-        "|---------|------|-------|\n"
-        "| `{lang_name}` / `{lang}` | `target_language` z requestu | 1953–1965, 2011 |\n"
-        "| `{json.dumps(structured)}` | `_extract_structured` bez chrome/locked | 1977–1988, 2014 |\n\n"
-        "### System\n\n"
-    )
-    parts.append(code(sl(a, 1990, 1997)))
-    parts.append("\n### User\n\n")
-    parts.append(code(sl(a, 2011, 2038)))
-
-    # 9 chat
-    parts.append("\n---\n\n## 9. Czat (wolny asystent)\n\n")
-    parts.append(
-        "**Po co (prosto):** Rozmowa o CV: pytania, poprawki treści/stylu, "
-        "przesuwanie elementów, przebudowa sekcji, usuwanie, klonowanie. "
-        "Najpierw model decyduje, czy temat w ogóle dotyczy CV (`in_scope`). "
-        "Czat nie uczestniczy w auto-detekcji języka CV — zawsze odpowiada po polsku.\n\n"
-        f"**Plik:** `{a}`  \n"
-        "**Linie:** system **2186–2337**, user **2343–2364**, handler `_chat` **2177–2464**\n"
-        "**Akcja API:** `chat`\n\n"
-        "### Zmienne\n\n"
-        "| Zmienna | Skąd | Linie |\n"
-        "|---------|------|-------|\n"
-        "| `{json.dumps(structured)}` | `_extract_positional(elements)` | 2183, 2344 |\n"
-        "| `{history_block}` | `_normalize_chat_history(history)` | 2184, 2338–2341, 2347 |\n"
-        "| `{message}` | aktualna wiadomość z czatu | argument `_chat`, 2350 |\n\n"
-        "### System (fragment początkowy)\n\n"
-    )
-    parts.append(code(sl(a, 2186, 2337)))
-    parts.append("\n### User (pełna treść)\n\n")
-    parts.append(code(sl(a, 2343, 2364)))
-
-    # 10 layout system
-    parts.append("\n---\n\n## 10. Układ — system i pytanie domyślne\n\n")
-    parts.append(
-        "**Po co (prosto):** Tryb **Układ** nie poprawia tekstu CV — tylko "
-        "geometrię: odstępy, wyrównania, nachodzenia. System mówi modelowi, kim jest "
-        "i czego nie wolno ruszać.\n\n"
-        f"**Plik:** `{g}`  \n"
-        f"**Składanie sesji:** `_layout_session` w `{a}`, linie **2467–2567** "
-        "(snapshot **2475** + pytanie **2492** + historia **2493–2498** → `build_layout_user_prompt` **2500**).\n\n"
-        "### `DEFAULT_LAYOUT_QUESTION` — linie **170–175**\n\n"
-        "Używane, gdy użytkownik włączy Układ i wyśle pustą wiadomość "
-        "(`_layout_session`, linia **2492**).\n\n"
-    )
-    parts.append(code(sl(g, 170, 175)))
-    parts.append(
-        "\n### `LAYOUT_CORRECTOR_SYSTEM` — linie **177–213**\n\n"
-        "**Zmienne:** brak (nawiasy `SPACE_*` to nazwy pojęć w tekście, nie f-string).\n\n"
-    )
-    parts.append(code(sl(g, 177, 213)))
-
-    # 11 template hints
-    parts.append("\n---\n\n## 11. Układ — wskazówki szablonu\n\n")
-    parts.append(
-        "**Po co (prosto):** Krótka podpowiedź „jaki to szablon”, żeby model "
-        "nie rozrywał nagłówków (np. numer + ramka w Monument). Trafia do "
-        "`layout_contract.hint` i do zmiennej `{contract_hint}` w prompcie użytkownika.\n\n"
-        f"**Plik:** `{g}`, funkcja `_layout_hint_for_template`, linie **229–248**  \n"
-        f"**Budowa kontraktu:** `_build_layout_contract`, linie **251–276**  \n"
-        f"**Wartości odstępów z:** `{cg}`, linie **43–46**\n\n"
-        "### Zmienne\n\n"
-        "| Zmienna | Skąd |\n"
-        "|---------|------|\n"
-        "| `template_id` | opcjonalne pole requestu; frontend `activeTemplateId` |\n"
-        "| `{template_id}` w hintcie generycznym | ten sam slug, gdy nie Monument |\n\n"
-        "### Treść wskazówek\n\n"
-    )
-    parts.append(code(sl(g, 229, 248), "python"))
-
-    # 12 layout user prompt
-    parts.append("\n---\n\n## 12. Układ — prompt użytkownika\n\n")
-    parts.append(
-        "**Po co (prosto):** To główne „zlecenie roboty” dla Luny: pełny JSON strony A4, "
-        "pytanie użytkownika (albo chip), reguły jak liczyć odstępy (`real_gap`) "
-        "oraz format odpowiedzi JSON z `section_inventory` i `changes`.\n\n"
-        f"**Plik:** `{g}`, funkcja `build_layout_user_prompt`, linie **443–649** "
-        "(ciało f-stringa **476–649**)\n\n"
-        "### Zmienne (wszystkie z linii **449–474**)\n\n"
-        "| Placeholder w f-stringu | Skąd | Referencja |\n"
-        "|-------------------------|------|------------|\n"
-        "| `{history}` | `history_block` z `_layout_session` | `ai_assistant_service.py` **2233–2237** |\n"
-        "| `{json.dumps(snapshot)}` | snapshot z `build_layout_snapshot` | `layout_gpt.py` + sesja **2214** |\n"
-        "| `{q}` | `question` albo `DEFAULT_LAYOUT_QUESTION` | **2231**, **170–175**, **473/480** |\n"
-        "| `{space_stack:g}` itd. | `layout_contract.spacing_px` ← `SPACE_*` | **468–471**, `cv_generator_primitives.py` **43–46** |\n"
-        "| `{gap_target/min/max/tolerance:g}` | `section_header_gap_px` | **461–467**, stałe **39–43** |\n"
-        "| `{contract_hint}` | `layout_contract.hint` | **472**, hinty **229–248** |\n"
-        "| `{max_delta:g}`, `{max_moves}`, `{max_findings}` | constraints snapshotu / stałe | **452–454**, **32–34** |\n\n"
-        "### Pełna treść szablonu (f-string)\n\n"
-    )
-    parts.append(code(sl(g, 476, 649)))
-
-    # 13 frontend
-    parts.append("\n---\n\n## 13. Frontend — powitanie i chipy Układu\n\n")
-    parts.append(
-        "**Po co (prosto):** Po włączeniu Układu (cel **Sprawdź wygląd**) użytkownik "
-        "widzi powitanie i przyciski. Kliknięcie chipa **nie** jest osobnym typem "
-        "promptu systemowego — wysyła `action=layout` z pełnym tekstem `prompt` jako `message`. "
-        "Cztery chipy `primary` są widoczne od razu; reszta pod „Więcej opcji”.\n\n"
-        f"**Plik:** `{f}`\n\n"
-        "### `LAYOUT_MODE_GREETING` — linie **152–155**\n\n"
-        "Tylko UI (bąbelek asystenta). **Nie** jest osobną wiadomością systemową do GPT.\n\n"
-    )
-    parts.append(code(sl(f, 152, 155), "javascript"))
-    parts.append(
-        "\n### `LAYOUT_SUGGESTIONS` — linie **168–277**\n\n"
-        "- `label` — krótki napis na chipie / w bąbelku (`displayText`).\n"
-        "- `prompt` — pełne zlecenie geometrii wysyłane do backendu.\n"
-        "- `primary: true` — chip w pierwszym rzędzie (max 4).\n"
-        "- **Zmienne w chipach:** brak (stałe stringi). Kontekst A4 dokłada backend.\n\n"
-    )
-    parts.append(code(sl(f, 168, 277), "javascript"))
-
-    # map
-    parts.append(
-        """
----
-
-## Mapa akcja → plik
-
-| Akcja API / cel UI | Handler | System (linie) | User (linie) |
-|--------------------|---------|----------------|--------------|
-| import PDF `/ai` | `extract_cv_data` | — | `ai_service.py` 48–118 |
-| `rating` / Sprawdź CV | `_rate_cv` | 1249–1256 | 1257–1330 |
-| `design_rating` / Sprawdź wygląd | `_rate_design` | 1346–1360 | 1361–1431 |
-| `position_rating` / Dopasuj do oferty | `_tailor_cv_to_position` | 1484–1496 | 1497–1539 |
-| `grammar` / Popraw treść | `_fix_grammar` | 1575–1581 | 1582–1603 |
-| `language` / Popraw treść | `_check_style` | 1628–1637 | 1638–1689 |
-| `improve` / Popraw treść | `_improve_content` | 1710–1717 | 1718–1764 |
-| `shorten` / Popraw treść | `_shorten_content` | 1783–1789 | 1790–1828 |
-| `ats_score` / CTA z Sprawdź CV | `_ats_score` + `ats_readability` | 2092–2101 | 2102–2145 |
-| `translate` / Przetłumacz CV | `_translate_cv` | 1990–1997 | 2011–2038 |
-| `chat` | `_chat` | 2186–2337 | 2343–2364 |
-| `layout` / Sprawdź wygląd → Układ | `_layout_session` + `layout_gpt` | 177–213 | 476–649 (+ pytanie / chip) |
-
-Handlerzy bez osobnego promptu modelu (tylko komunikaty UI / odmowy):
-puste płótno w Układzie, odmowa zakresu czatu, nieobsługiwany `target_language` w tłumaczeniu.
-
-Cztery akcje treści (`grammar`, `language`, `improve`, `shorten`) dodatkowo przyjmują
-`language_code` (auto-detekcja albo `cv_language` override) — patrz sekcja
-[Wielojęzyczne korekty treści](#wielojęzyczne-korekty-treści-gramatyka--styl--ulepsz--skróć)
-na górze pliku.
-
----
-
-*Wygenerowano przez `scripts/generate_prompts_md.py`.*
-"""
-    )
-
+    parts.append("*Wygenerowano przez `scripts/generate_prompts_md.py`.*\n")
     OUT.write_text("".join(parts), encoding="utf-8")
     print(f"Wrote {OUT} ({OUT.stat().st_size} bytes)")
 

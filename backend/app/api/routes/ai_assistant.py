@@ -40,8 +40,8 @@ logger = logging.getLogger("ai_assistant")
 router = APIRouter(prefix="/ai", tags=["ai_assistant"])
 
 VALID_ACTIONS = {
-    "rating", "design_rating", "position_rating",
-    "grammar", "language", "improve", "shorten", "ats_score", "layout", "chat",
+    "rating", "position_rating", "grammar", "language", "improve", "shorten",
+    "ats_score", "chat",
     "translate",
 }
 
@@ -73,10 +73,9 @@ class AssistantRequest(BaseModel):
     job_offer_url: str = Field(default="", max_length=MAX_JOB_OFFER_URL_CHARS)
     candidate_notes: str = Field(default="", max_length=MAX_CANDIDATE_NOTES_CHARS)
     page_size: dict = Field(default_factory=dict)
-    # Prior turns from the open editor session (role + content). Chat / layout.
+    # Prior turns from the open editor chat session (role + content).
     history: list[dict] = Field(default_factory=list, max_length=MAX_ASSISTANT_HISTORY)
-    # Optional template slug (e.g. "monument", "slate") for layout_contract hints.
-    # Freestyle / saved documents may omit this; the layout session still works.
+    # Optional template slug (e.g. "monument", "slate") for ATS rendering.
     template_id: str | None = None
     # Target language code for the translate action (ignored by other actions).
     target_language: str = ""
@@ -123,7 +122,7 @@ class TokenUsage(BaseModel):
 
 
 class AssistantResponse(BaseModel):
-    """Union response covering rating tips, style corrections, and layout groups.
+    """Union response covering rating tips, corrections, and chat review groups.
 
     Unused group lists stay empty depending on the action so the frontend can
     render one message shape for all assistant buttons. Scored actions may also
@@ -253,8 +252,7 @@ def ai_assistant(
             },
             headers={"WWW-Authenticate": "Bearer"},
         )
-    # Content AI is available on Pro. Appearance actions (design_rating + layout)
-    # are gated separately via PRO_ONLY_AI_ACTIONS in entitlements.
+    # All assistant actions share the same plan entitlement and credit meter.
     assert_can_use_ai_action(db, user, request.action)
 
     # Authorize identifiers and validate storage locators before quota mutation,

@@ -641,6 +641,16 @@ class TranslateRouteValidationTests(unittest.TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json()["detail"]["code"], "unsupported_target_language")
 
+    def test_removed_appearance_actions_are_rejected(self):
+        for action in ("design_rating", "layout"):
+            response = self.client.post(
+                "/ai/assistant",
+                json={"action": action, "elements": []},
+                headers={"Idempotency-Key": f"removed-{action}"},
+            )
+            self.assertEqual(response.status_code, 400)
+            self.assertEqual(response.json()["detail"]["code"], "invalid_ai_action")
+
 
 class SupportedLanguagesTests(unittest.TestCase):
     def test_supported_languages_matches_translate_set(self):

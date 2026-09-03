@@ -1,232 +1,52 @@
-# PROMPTS.md — wszystkie prompty AI w CV Studio
+# PROMPTS.md — prompty AI w CV Studio
 
-Ten plik zbiera **żywe** prompty wysyłane do modeli OpenAI oraz chipy UI trybu **Układ**
-(tekst chipa staje się wiadomością użytkownika). Wyjaśnienia są po polsku, prostym językiem.
+Ten plik jest generowany z aktualnego kodu. Asystent udostępnia cztery cele główne: **Sprawdź CV**, **Popraw treść**, **Dopasuj do oferty** i **Przetłumacz CV**. Usunięte akcje `design_rating` oraz `layout` nie są częścią interfejsu ani API.
 
-Numery linii odpowiadają stanowi repozytorium w momencie generowania. Po zmianie promptów
-uruchom ponownie:
+Po zmianie promptów uruchom:
 
 ```bash
 python scripts/generate_prompts_md.py
 ```
 
-## Jak to działa (jednym zdaniem)
+## Mapa akcji
 
-Większość przycisków Asystenta AI buduje dwie wiadomości: **system** („kim jesteś”)
-oraz **user** („oto CV i polecenie”). Tryb **Układ** ma osobny system z `layout_gpt.py`.
-Import PDF to jedna wiadomość użytkownika: instrukcja + zdjęcia stron. Cztery akcje treści
-(gramatyka, styl, ulepszenie, skracanie) dodatkowo wykrywają język CV i wymuszają go w
-`content` poprawek — patrz sekcja o wielojęzycznych korektach poniżej.
+| Akcja API | Cel UI | Handler | Odpowiedzialność |
+| --- | --- | --- | --- |
+| `rating` | Sprawdź CV | `_rate_cv` (linie 1188–1289) | ocenia jakość i kompletność treści CV |
+| `position_rating` | Dopasuj do oferty | `_tailor_cv_to_position` (linie 1290–1404) | porównuje CV z ofertą i proponuje potwierdzone poprawki |
+| `grammar` | Sprawdź błędy | `_fix_grammar` (linie 1405–1457) | poprawia gramatykę, ortografię i interpunkcję |
+| `language` | Popraw język | `_check_style` (linie 1458–1538) | ulepsza styl w języku bieżącego CV |
+| `improve` | Wzmocnij treść | `_improve_content` (linie 1539–1606) | wzmacnia opisy bez wymyślania faktów |
+| `shorten` | Skróć CV | `_shorten_content` (linie 1607–1695) | kondensuje treść bez zmiany znaczenia |
+| `ats_score` | Sprawdź ATS | `_ats_score` (linie 1893–1997) | łączy deterministyczny odczyt PDF z oceną struktury |
+| `translate` | Przetłumacz CV | `_translate_cv` (linie 1792–1892) | tłumaczy pełną treść i profil na wybrany język |
+| `chat` | Czat | `_chat` (linie 2016–2307) | odpowiada na pytania o CV i przygotowuje bezpieczne operacje do akceptacji |
 
-## Wielojęzyczne korekty treści (gramatyka / styl / ulepsz / skróć)
+`grammar`, `language`, `improve` i `shorten` używają wykrytego lub jawnie wybranego `cv_language`. Akcja `translate` wymaga `target_language`; rady UI pozostają po polsku, a proponowana treść jest zwracana w języku docelowym.
 
-Cztery akcje edytujące treść (`grammar`, `language`, `improve`, `shorten`) nie zwracają już
-poprawek zawsze po polsku. Dyspozytor `analyze_action` (**2311–2401**) najpierw ustala
-`resolved_language`:
+## `rating` — Sprawdź CV
 
-1. Jeśli request niesie `cv_language` z listy `_SUPPORTED_LANGS` (**279**:
-   `pl/en/de/fr/es/uk/it/nl`), używa go wprost (jawny override z selektora UI).
-2. W przeciwnym razie wykrywa język automatycznie funkcją `_detect_cv_language`
-   (**383–413**), która dzieli elementy na nagłówki i treść (`_split_headers_and_body`,
-   **313–341**) i liczy sygnały językowe osobno dla obu grup. Gdy nagłówki i treść są w
-   różnych językach (dokument dwujęzyczny), **wygrywa język treści** — to on trafia do
-   `code`, bo to właśnie treść przepisują te akcje; `is_mixed` tylko informuje ocenę CV
-   o niespójności nagłówków.
-3. Wybrany kod trafia do każdego handlera jako `language_code` i jest echowany w
-   odpowiedzi jako `cv_language`, żeby selektor w UI pokazywał to, co faktycznie użyto.
-
-Sam prompt system dostaje dyrektywę z `_content_language_directive` (**1705–1723**): pole
-`content` w poprawkach ma być w języku CV, natomiast `message`/`tips`/`priorities` **zawsze**
-zostają po polsku (aplikacja obsługuje polski rynek, więc rady muszą być zrozumiałe niezależnie
-od języka samego CV). Reguły czasu gramatycznego dla obowiązków (`employment_tense`) wybiera
-`_tense_rules_for` (**1696–1702**): dla polskiego zwraca wariant z przykładowymi czasownikami
-(`_TENSE_RULES_PL`), dla pozostałych języków — neutralny wariant bez polskich czasowników
-(`_TENSE_RULES_NEUTRAL`), żeby model nie „ześlizgiwał się” w polski przy przepisywaniu CV
-w innym języku.
-
-Na poziomie API opcjonalny override żyje jako `cv_language` w `AssistantRequest` i jest
-echowany w `AssistantResponse` (`backend/app/api/routes/ai_assistant.py`, pola **59–61** i
-**110–111**); nieobsługiwana wartość kończy się błędem 400 (**151–159**). Frontend ma osobny
-selektor „Język CV” (domyślnie „Auto”) w podpanelu Popraw treść
-(`AiAssistant.jsx`, **1767–1779**), który wysyła `cv_language` tylko dla akcji treści
-(**1397–1422**) i synchronizuje się z tym, co faktycznie odpowie backend (**1438–1440**).
-
-## Spis treści
-
-- [Skąd biorą się zmienne](#skąd-biorą-się-zmienne)
-- [1. Import PDF — ekstrakcja CV](#1-import-pdf--ekstrakcja-cv)
-- [2. Ocena CV (treść)](#2-ocena-cv-treść)
-- [3. Ocena projektu (typografia)](#3-ocena-projektu-typografia)
-- [4. Dopasowanie do stanowiska](#4-dopasowanie-do-stanowiska)
-- [5. Gramatyka](#5-gramatyka)
-- [6. Styl językowy](#6-styl-językowy)
-- [7. Ulepsz treść](#7-ulepsz-treść)
-- [7b. Skróć treść](#7b-skróć-treść)
-- [8. ATS](#8-ats)
-- [8b. Tłumaczenie CV](#8b-tłumaczenie-cv)
-- [9. Czat (wolny asystent)](#9-czat-wolny-asystent)
-- [10. Układ — system i pytanie domyślne](#10-układ--system-i-pytanie-domyślne)
-- [11. Układ — wskazówki szablonu](#11-układ--wskazówki-szablonu)
-- [12. Układ — prompt użytkownika](#12-układ--prompt-użytkownika)
-- [13. Frontend — powitanie i chipy Układu](#13-frontend--powitanie-i-chipy-układu)
-- [Mapa akcja → plik](#mapa-akcja--plik)
-
-## Skąd biorą się zmienne
-
-Dispatcher: `backend/app/services/ai_assistant_service.py`, funkcja `analyze_action`,
-linie **2311–2401**. Na starcie liczy `text = _extract_text(elements)` (funkcja: **663–668**),
-potem ustala `resolved_language` (patrz sekcja o wielojęzycznych korektach powyżej).
-
-UI asystenta mapuje **cele** (Sprawdź CV, Popraw treść, …) na te akcje API —
-patrz `GOAL_ACTIONS` w `AiAssistant.jsx`.
-
-| Helper / stała | Plik | Linie | Co wstawia do promptu |
-|----------------|------|-------|------------------------|
-| `_extract_text` | `ai_assistant_service.py` | 663–668 | Złączony tekst wszystkich pól `text`/`textarea` |
-| `_extract_structured` | `ai_assistant_service.py` | 716–746 | Lista: id, treść, styl, inline `runs`, `employment_tense` (bez pozycji) |
-| `_extract_positional` | `ai_assistant_service.py` | 749–804 | Jak wyżej + left/top/width/height/page + dekoracje |
-| `_extract_typography` | `ai_assistant_service.py` | 837–868 | Styl, krótki `preview`, flaga `primary_identity` |
-| `_normalize_chat_history` | `ai_assistant_service.py` | 1902–1917 | Do 12 ostatnich wiadomości (max 1500 znaków) |
-| `_safe_result` | `ai_assistant_service.py` | 1063–1107 | Normalizacja + `categories` / `strengths` / `priorities` |
-| `_detect_cv_language` | `ai_assistant_service.py` | 383–413 | Wykryty język CV: `code`/`confidence`/`body_lang`/`header_lang`/`is_mixed` |
-| `_content_language_directive` | `ai_assistant_service.py` | 1705–1723 | Dyrektywa systemowa: `content` w języku CV, rady zawsze po polsku |
-| `_tense_rules_for` | `ai_assistant_service.py` | 1696–1702 | Reguły czasu obowiązków (polski z czasownikami vs neutralny) |
-| `build_layout_snapshot` | `layout_gpt.py` | ~429–440 | Pełny JSON geometrii A4 |
-| `_build_layout_contract` | `layout_gpt.py` | 251–276 | Rytm `SPACE_*` + pas pod nagłówkiem |
-| `SPACE_STACK/RECORD/SECTION/AFTER_RULE` | `cv_generator_primitives.py` | 43–46 | 4 / 10 / 21 / 8 px |
-| `SECTION_HEADER_GAP_*` | `layout_gpt.py` | 39–43 | min/target/max/tolerancja pod nagłówkiem |
-| `MAX_LAYOUT_MOVE_PX` / `MOVES` / `FINDINGS` | `layout_gpt.py` | 32–34 | Limity ruchów (±80 px, 40 ruchów, 12 grup) |
-| `template_id` | request API + frontend `activeTemplateId` | — | Wybór wskazówki Monument / generycznej |
-| `job_description` | body requestu / pole w UI | — | Opis oferty do dopasowania |
-| `message` | body requestu / czat / chip | — | Pytanie użytkownika |
-| `cv_language` | opcjonalne pole requestu / selektor „Język CV” w UI | — | Override auto-detekcji dla akcji treści; echo w odpowiedzi |
-
----
-## 1. Import PDF — ekstrakcja CV
-
-**Po co (prosto):** Model patrzy na strony PDF jak na zdjęcia i wypisuje uporządkowane dane CV (imię, praca, szkoła, umiejętności…), żeby aplikacja mogła wstawić je do szablonu.
-
-**Plik:** `backend/app/services/ai_service.py`  
-**Linie:** 48–118 (instrukcja), 121–124 (obrazy), 126–135 (wywołanie API)  
-**Symbol:** `extract_cv_data` (inline content)  
-**Rodzaj:** jedna wiadomość `user` (tekst + obrazy), bez osobnego system
-
-### Zmienne
-
-- W tekście instrukcji **nie ma** placeholderów — schemat JSON jest stały.
-- Obrazy: `_pdf_to_b64_images` w tym samym pliku, linie **24–34**; doklejane w pętli **121–124**.
-- Model: `_EXTRACT_MODEL` = `gpt-4o`, linia **19**.
-
-### Pełna treść (fragment tekstowy wiadomości)
+Handler `_rate_cv` w `backend/app/services/ai_assistant_service.py`, linie 1188–1289. Funkcja ocenia jakość i kompletność treści CV.
 
 ```python
-# documented JSON-mode path. Gemma is the default text extractor; Qwen remains
-# the scan fallback.
-_CLOUDFLARE_JSON_MODE_MODELS = frozenset({
-    "@cf/meta/llama-3.1-8b-instruct-fast",
-})
-_CLOUDFLARE_GEMMA_MODEL = "@cf/google/gemma-4-26b-a4b-it"
-_CLOUDFLARE_REASONING_MODELS = frozenset({
-    _CLOUDFLARE_GEMMA_MODEL,
-    "@cf/qwen/qwen3.8-27b",
-})
+def _rate_cv(text: str, elements: list[dict]) -> dict:
+    """Overall CV quality rating (content-focused) with tips and optional patches."""
+    structured = _extract_structured(elements)
+    element_count = len(structured)
+    language_mix = _detect_language_mix(elements)
+    mix_block = _language_mix_prompt_block(language_mix, for_rating=True)
 
-
-class CvExtractionError(RuntimeError):
-    """Safe, user-facing failure raised by the external extraction boundary.
-
-    Provider messages can contain request metadata and must not be returned to
-    the browser. Routes should persist ``code`` and expose only ``user_message``.
-    """
-
-    def __init__(
-        self,
-        code: str,
-        user_message: str,
-        *,
-        status_code: int = 502,
-        retryable: bool = False,
-        provider_code: int | None = None,
-        reservation_outcome: str = "release",
-    ) -> None:
-        super().__init__(user_message)
-        self.code = code
-        self.user_message = user_message
-        self.status_code = status_code
-        self.retryable = retryable
-        # Cloudflare's numeric code is safe operational metadata. It is kept
-        # server-side so the attempt loop can distinguish account exhaustion
-        # from model-specific capacity without exposing raw provider bodies.
-        self.provider_code = provider_code
-        # A timeout or broken connection may hide a provider-side success.
-        # Routes retain ``uncertain`` reservations until lease expiry. A
-        # confirmed HTTP-200 response with unusable content uses ``consume``;
-        # known pre-response failures keep the default immediate release.
-        self.reservation_outcome = reservation_outcome
-
-
-def _completion_request_options(
-    provider: str,
-    model: str,
-    extraction_mode: str,
-) -> dict:
-    """Return only completion parameters supported by the selected model.
-
-    Cloudflare's reasoning models count hidden reasoning inside
-    ``max_completion_tokens``. Native-text Gemma disables thinking by default
-    through Cloudflare's documented chat-template flag, so the large budget is
-    available to the final JSON instead of a long hidden chain. Its JSON-mode
-    Llama uses the older ``max_tokens`` parameter and must not receive
-    ``reasoning_effort``.
-
-    @param provider - Configured provider slug (``cloudflare`` or ``openai``).
-    @param model - Exact provider model identifier.
-    @param extraction_mode - ``text`` for native PDF text or ``vision`` for scans.
-    @returns Keyword arguments for ``chat.completions.create``.
-    """
-    completion_budget = (
-        CV_EXTRACT_TEXT_MAX_COMPLETION_TOKENS
-        if extraction_mode == "text"
-        else CV_EXTRACT_VISION_MAX_COMPLETION_TOKENS
-    )
-    if provider == "cloudflare":
-        if model in _CLOUDFLARE_JSON_MODE_MODELS:
-```
-
----
-
-## 2. Ocena CV (treść)
-
-**Po co (prosto):** Sztuczny „rekruter” ocenia treść CV w skali 1–10 (czy są sekcje, czy doświadczenie ma liczby i mocne czasowniki, czy język jest profesjonalny). Zwraca strukturalne `categories` / `strengths` / `priorities` (UI pokazuje %). Zwykle **nie** edytuje tekstu na kanwie i zawsze odpowiada po polsku (ocena nie zależy od `cv_language`).
-
-**Plik:** `backend/app/services/ai_assistant_service.py`  
-**Linie:** system **1249–1256**, user **1257–1330**, handler `_rate_cv` **1242–1332**
-**Akcja API:** `rating` (cel UI: Sprawdź CV)
-
-### Zmienne
-
-| Zmienna w prompcie | Skąd | Linie |
-|--------------------|------|-------|
-| `{text}` | `_extract_text(elements)` przez `analyze_action` | 2336, 663–668 |
-| `{element_count}` | `len(_extract_structured(elements))` | 1114–1115, 716–746 |
-| `{mix_block}` | `_language_mix_prompt_block(_detect_language_mix(elements))` | 1116–1117 |
-
-### System
-
-```text
     system = (
         "Jesteś starszym rekruterem i coachem CV z ponad 15-letnim doświadczeniem w branży "
         "technologicznej, finansowej i konsultingowej. Udzielasz rygorystycznych, szczerych i konkretnych opinii. "
-        "Spójność językowa CV (jeden język w nagłówkach i treści) jest krytycznym sygnałem profesjonalizmu — "
-        "mieszanka polski/angielski jest poważniejsza niż pojedyncze literówki. "
+        "Spójność językowa pełnych zdań, nagłówków sekcji i etykiet meta jest ważnym sygnałem profesjonalizmu. "
+        "Angielskie nazwy stanowisk, technologie, nazwy produktów, certyfikatów i firm są poprawnymi nazwami "
+        "własnymi lub terminami branżowymi w polskim CV: nie są mieszanką języków i nie wolno za nie odejmować punktów. "
+        "Ich polski odpowiednik możesz zasugerować wyłącznie jako opcjonalne dopasowanie do oferty, bez wpływu na ocenę. "
+        "Rzeczywista mieszanka polskich i angielskich zdań jest poważniejsza niż pojedyncze literówki. "
         "Nie wpisuj liczby oceny w `message` (ani jako X/10, ani jako procent) — interfejs pokazuje ją osobno. "
         "Zwracaj WYŁĄCZNIE prawidłowy JSON. Wszystkie tekstowe wartości odpowiedzi zwracaj po polsku."
     )
-```
-
-### User
-
-```text
     user = f"""Przeprowadź ustrukturyzowaną analizę poniższego CV według rubryki i oblicz dokładną ocenę.
 
 TEKST CV (połączone wszystkie elementy tekstowe):
@@ -250,16 +70,22 @@ RUBRYKA OCENY — przeanalizuj wyraźnie każdy etap przed zapisaniem końcowego
    1 pkt, jeśli role pokazują rozwój lub związek z docelową branżą.
 
 ③ JĘZYK I PROFESJONALIZM (0–2 pkt)
-   Najpierw sprawdź SPÓJNOŚĆ JĘZYKOWĄ całego dokumentu:
+   Najpierw sprawdź SPÓJNOŚĆ JĘZYKOWĄ zdań, nagłówków sekcji i etykiet meta:
    - Czy nagłówki sekcji (np. PODSUMOWANIE ZAWODOWE / DOŚWIADCZENIE / WYKSZTAŁCENIE vs
      Summary / Experience / Education) są w tym samym języku co treść pod nimi?
    - Czy etykiety meta (np. „Obecnie” vs „CURRENTLY”) nie psują jednolitego języka?
-   - Mieszanka PL/EN (polskie nagłówki + angielska treść lub odwrotnie) = 0 pkt w tej kategorii
+   - Mieszanka PL/EN (polskie nagłówki + angielskie zdania opisowe lub odwrotnie) = 0 pkt w tej kategorii
      i MUSI być pierwszym priorytetem w `message` / `priorities` / `tips`, przed literówkami.
+   - NIE traktuj jako mieszanki języków angielskich nazw stanowisk (np. Web Developer, Data Analyst,
+     Senior Software Engineer), technologii, produktów, firm ani certyfikatów. Są normalne w polskim CV,
+     zwłaszcza przy pracy w międzynarodowej organizacji, i nie obniżają kategorii Język.
+   - Jeśli polski odpowiednik stanowiska mógłby lepiej pasować do konkretnej oferty, możesz dodać łagodną,
+     opcjonalną rekomendację, ale nigdy priorytet ani powód wyniku 0 pkt.
    Dopiero potem sprawdź: stronę bierną, frazesy, ogólniki oraz błędy gramatyczne i ortograficzne.
-   2 pkt = jeden spójny język i brak istotnych problemów.
-   1 pkt = jeden język, ale drobne problemy stylistyczne/ortograficzne.
-   0 pkt = niespójność językowa albo istotne błędy językowe.
+   2 pkt = spójne zdania/nagłówki i brak istotnych problemów.
+   1 pkt = spójne zdania/nagłówki, ale drobne problemy stylistyczne/ortograficzne.
+   0 pkt = rzeczywista niespójność języka zdań/nagłówków albo istotne błędy językowe;
+   same obcojęzyczne nazwy stanowisk i terminy branżowe nigdy nie uzasadniają 0 pkt.
 
 ④ FORMAT I HIERARCHIA (0–2 pkt)
    Na podstawie liczby elementów i różnorodności treści: czy istnieje wyraźna hierarchia wizualna
@@ -279,7 +105,7 @@ Nie dodawaj wskazówki zaczynającej się od „Rozkład oceny”.
 W `message` NIE podawaj oceny liczbowej (zakazane: „8/10”, „80%”, „ocena 8”).
 Interfejs wyświetla ocenę osobno jako procent.
 {{
-  "message": "<3–4 zdania: wskaż 1–2 konkretne mocne strony oraz 1–2 konkretne słabe strony. Jeśli jest niespójność językowa nagłówków i treści — nazwij ją jako główny problem. Bądź bezpośredni. Odnoś się do konkretnych treści z CV. Bez liczby oceny.>",
+  "message": "<3–4 zdania: wskaż 1–2 konkretne mocne strony oraz 1–2 konkretne słabe strony. Jeśli jest niespójność językowa nagłówków i zdań opisowych — nazwij ją jako główny problem. Nie uznawaj nazw stanowisk ani terminów branżowych za niespójność. Bądź bezpośredni. Odnoś się do konkretnych treści z CV. Bez liczby oceny.>",
   "rating": <obliczona suma 1-10>,
   "categories": [
     {{"id": "completeness", "label": "Kompletność", "score": <0-2>, "max": 2}},
@@ -301,147 +127,48 @@ Interfejs wyświetla ocenę osobno jako procent.
   "corrections": [],
   "web_sources": []
 }}"""
+    result = _gpt_result(system, user, action="rating")
+    return _ensure_language_mix_feedback(result, language_mix)
 ```
 
----
+## `position_rating` — Dopasuj do oferty
 
-## 3. Ocena projektu (typografia)
+Handler `_tailor_cv_to_position` w `backend/app/services/ai_assistant_service.py`, linie 1290–1404. Funkcja porównuje CV z ofertą i proponuje potwierdzone poprawki.
 
-**Po co (prosto):** Sprawdza wygląd tekstu (hierarchia, bold, kolory, wyrównanie), a **nie** pozycje klocków na stronie. Małe czcionki szablonu i duże imię to celowy design — model nie ma ich „naprawiać”.
+```python
+def _tailor_cv_to_position(
+    text: str,
+    elements: list[dict],
+    job_description: str,
+    *,
+    cv_data: dict | None = None,
+    candidate_notes: str = "",
+    job_offer: dict | None = None,
+    language_code: str = "pl",
+) -> dict:
+    """Score job fit and propose evidence-grounded, reviewable CV rewrites.
 
-**Plik:** `backend/app/services/ai_assistant_service.py`  
-**Linie:** system **1346–1360**, user **1361–1431**, handler `_rate_design` **1335–1448**
-**Akcja API:** `design_rating` (cel UI: Sprawdź wygląd → typografia)
-
-### Zmienne
-
-| Zmienna | Skąd | Linie |
-|---------|------|-------|
-| `{typo}` | `json.dumps(_extract_typography(elements))` | 1213, 837–868 |
-
-**Uwaga:** ocena Projekt dotyczy tylko typografii — nachodzenia / geometria nie obniżają już wyniku (to domena Układu).
-
-### System
-
-```text
-    system = (
-        "Jesteś ekspertem od typografii i projektowania wizualnego CV. "
-        "CV jest zbudowane na gotowym szablonie produktowym — jego rozmiary czcionek, "
-        "etykiety 8–9 px, metadane i numery stron są świadomym wyborem projektowym. "
-        "Kontrast kroju pomiędzy głównym imieniem i nazwiskiem a tekstem CV jest również "
-        "świadomym elementem szablonu, a nie niespójnością. "
-        "Sugerujesz WYŁĄCZNIE zmiany rozmiaru i kroju czcionki, koloru, pogrubienia, kursywy oraz wyrównania tekstu. "
-        "NIGDY nie zmieniasz pozycji elementów (left, top, width, height) — są ustalone przez szablon. "
-        "NIGDY nie krytykuj absolutnych rozmiarów czcionek szablonu ani nie proponuj ich powiększania "
-        "tylko dlatego, że są mniejsze niż w klasycznych CV. "
-        "NIGDY nie proponuj corrections dla elementów z fixedToPage=true ani locked=true. "
-        "Oceniaj wyłącznie typografię i spójność wizualną, bez opisywania geometrii dokumentu. "
-        "Nie wpisuj liczby oceny w `message`, ponieważ interfejs wyświetla ją osobno. "
-        "Zwracaj WYŁĄCZNIE prawidłowy JSON. Wszystkie tekstowe wartości odpowiedzi zwracaj po polsku."
-    )
-```
-
-### User
-
-```text
-    user = f"""Przeanalizuj typografię i styl tekstu na tej kanwie CV.
-
-DANE TYPOGRAFICZNE (bez pozycji — nie sugeruj zmian left/top/width/height):
-{typo}
-
-════════════════════════════════════════
-KONTEKST PRODUKTOWY (OBOWIĄZKOWY):
-- To ocena CV w edytorze szablonów. Typografia startowa pochodzi z szablonu, nie z błędu użytkownika.
-- Małe czcionki (np. 8–9 px etykiet sidebara, kontaktu, „OBSZARY”, numerów stron) są normalne i poprawne.
-- Nie obniżaj oceny za „zbyt małą czcionkę”, jeśli rozmiary są spójne w ramach systemu szablonu.
-- Krytykuj wyłącznie niespójność: złamaną hierarchię, mieszane wyrównanie, odstające kolory, przypadkowe bold.
-- Elementy z fixedToPage=true / locked=true to chrome szablonu — pomiń je w message, tips i corrections.
-- Element z templateRole="primary_identity" jest największym napisem tożsamościowym, zwykle imieniem i nazwiskiem.
-  Jego inny fontFamily, większy rozmiar i pogrubienie są celowym kontrastem szablonu: nie krytykuj ich, nie
-  proponuj dla niego corrections i nie obniżaj za nie oceny.
-- Ocena 8–10 oznacza spójny szablon bez jednoznacznej, możliwej do wskazania poprawki. Ocena 6–7 wymaga co
-  najmniej jednej konkretnej niespójności. Ocena 1–5 jest zarezerwowana dla wielu wyraźnych błędów typografii,
-  niezależnych od celowej różnicy kroju w nagłówku tożsamościowym.
-
-ETAPY ANALIZY:
-
-① HIERARCHIA (względem siebie, nie względem uniwersalnych px)
-   Czy widać względną progresję: imię/nazwisko > nagłówki sekcji > tekst główny > etykiety meta?
-   Nie wymagaj konkretnych zakresów px. Wskaż tylko elementy, które ŁAMIĄ istniejącą hierarchię szablonu.
-
-② POGRUBIENIE I WYRÓŻNIENIE
-   Czy nagłówki są konsekwentnie pogrubione? Czy pogrubienie jest nadużywane (jeśli wszystko jest pogrubione, nic się nie wyróżnia)?
-
-③ SPÓJNOŚĆ KOLORÓW
-   Czy kolory tekstu są używane konsekwentnie? Sprawdź zarówno `color` elementu, jak i opcjonalne
-   `runs[]` (kolor/bold/italic na fragmencie `text`). Pojedyncze słowo w odstającym kolorze
-   (np. niebieski run w grafitowym akapicie) to niespójność — wskaż je w tipach/priorytetach.
-
-④ WYRÓWNANIE
-   Czy tekst główny jest konsekwentnie wyrównany do lewej? Czy nagłówki są wyrównane konsekwentnie?
-   Mieszane wyrównanie w jednej sekcji wygląda nieprofesjonalnie.
-
-⑤ OCENA OGÓLNA
-   Na podstawie punktów ①–④ przyznaj ocenę projektu w skali 1–10.
-════════════════════════════════════════
-
-Zwracaj poprawki WYŁĄCZNIE dla jednoznacznych niespójności względem reszty szablonu.
-Każda poprawka może zawierać WYŁĄCZNIE pola: fontSize, fontFamily, color, bold, italic, align.
-Nie proponuj zwiększania fontSize „dla czytelności”, jeśli element pasuje do peera w szablonie.
-Nie uwzględniaj wartości element_id z danych powyżej, jeśli nie masz pewności, że wymagają zmiany.
-
-Zwróć JSON. Wyniki cząstkowe umieść TYLKO w `categories` (nie w tipach).
-Nie dodawaj wskazówki zaczynającej się od „Rozkład oceny”.
-{{
-  "message": "<2–3 zdania o hierarchii, wyróżnieniach, kolorach i wyrównaniu. Nie podawaj liczby oceny ani geometrii dokumentu.>",
-  "rating": <1-10>,
-  "categories": [
-    {{"id": "hierarchy", "label": "Hierarchia", "score": <0-3>, "max": 3}},
-    {{"id": "emphasis", "label": "Wyróżnienie", "score": <0-2>, "max": 2}},
-    {{"id": "color", "label": "Kolor", "score": <0-2>, "max": 2}},
-    {{"id": "alignment", "label": "Wyrównanie", "score": <0-2>, "max": 2}}
-  ],
-  "strengths": ["<mocna strona typografii>"],
-  "priorities": [
-    {{"title": "<krótki tytuł poprawki>", "description": "<konkretna niespójność>"}}
-  ],
-  "tips": [
-    "<konkretna poprawka typografii z podglądem elementu>",
-    "<druga konkretna poprawka>"
-  ],
-  "corrections": [
-    {{"element_id": "<id>", "bold": true}},
-    {{"element_id": "<id>", "align": "left"}}
-  ],
-  "web_sources": []
-}}"""
-```
-
----
-
-## 4. Dopasowanie do stanowiska
-
-**Po co (prosto):** Buduje ważoną macierz wymagań oferty, ocenia dowody w CV i proponuje wyłącznie potwierdzone poprawki do akceptacji.
-
-**Plik:** `backend/app/services/ai_assistant_service.py`  
-**Linie:** system **1484–1496**, user **1497–1539**, handler `_tailor_cv_to_position` **1451–1563**
-**Akcja API:** `position_rating` (cel UI: Dopasuj do oferty)
-
-### Zmienne
-
-| Zmienna | Skąd | Linie |
-|---------|------|-------|
-| `{job_description[:20_000]}` | bezpiecznie pobrana lub wklejona oferta | route + 1503 |
-| `{structured}` | pełne elementy kanwy z `element_id` i stabilnym `evidence_id` | 1468–1473, 1508–1509 |
-| `{profile}` | znormalizowane kanoniczne `cv_data` | 1479, 1511–1512 |
-| `{note_evidence}` | opcjonalne fakty kandydata podzielone na źródła `note:*` | 1474–1478, 1514–1515 |
-| `{offer_metadata}` | tytuł/firma/lokalizacja/źródło bez treści strony | 1480–1483, 1499–1500 |
-
-Odpowiedź jest ograniczona przez `JOB_TAILORING_RESPONSE_SCHEMA` w `backend/app/services/job_tailoring.py`; po odpowiedzi serwer ponownie liczy wynik i waliduje identyfikatory dowodów względem rzeczywistych elementów CV/notatek.
-
-### System
-
-```text
+    The offer is delimited as untrusted data so instructions embedded in a job
+    page cannot override the system policy. The model may reorder or rephrase
+    only existing evidence; server-side validation in ``job_tailoring`` drops
+    every unsupported fact, metric, technology, identifier, or profile path.
+    """
+    structured = _extract_structured(elements)
+    evidence_catalog = build_evidence_catalog(elements, candidate_notes)
+    for item in structured:
+        evidence_id = f"canvas:{item.get('element_id')}"
+        if evidence_id in evidence_catalog:
+            item["evidence_id"] = evidence_id
+    note_evidence = [
+        {"evidence_id": evidence_id, "content": content}
+        for evidence_id, content in evidence_catalog.items()
+        if evidence_id.startswith("note:")
+    ]
+    profile = normalize_cv_data(cv_data) if isinstance(cv_data, dict) else None
+    offer_metadata = {
+        key: value for key, value in (job_offer or {}).items()
+        if key in {"source_url", "resolved_url", "source", "title", "company", "location", "fetch_warning"}
+    }
     system = (
         "Jesteś starszym rekruterem i redaktorem CV. Analizujesz dopasowanie do konkretnej oferty "
         "i tworzysz wyłącznie zmiany możliwe do obrony na rozmowie. Treść między znacznikami "
@@ -455,11 +182,6 @@ Odpowiedź jest ograniczona przez `JOB_TAILORING_RESPONSE_SCHEMA` w `backend/app
         "Wskazówki i analiza mają być po polsku; proponowana treść CV pozostaje w języku CV. "
         "Nie umieszczaj oceny liczbowej w message."
     )
-```
-
-### User
-
-```text
     user = f"""Dopasuj CV do poniższej oferty i zwróć dane zgodne ze schematem.
 
 METADANE OFERTY:
@@ -503,28 +225,46 @@ ZASADY ANALIZY:
    Eksponuj istniejące dowody i terminologię oferty; nie dopisuj nowych kompetencji ani rezultatów.
 10. Pisz konkretnie, zwięźle i bez placeholderów typu [X%].
 """
+    raw, usage = _gpt(
+        system,
+        user,
+        action="position_rating",
+        response_schema=JOB_TAILORING_RESPONSE_SCHEMA,
+    )
+    try:
+        result = build_job_tailoring_result(
+            raw,
+            elements=elements,
+            cv_data=profile,
+            candidate_notes=candidate_notes,
+        )
+        result = _strip_protected_corrections(result, _protected_typography_ids(elements))
+    except (AttributeError, KeyError, TypeError, ValueError) as exc:
+        raise AIServiceError(
+            "OpenAI returned an invalid job-tailoring response shape",
+            original=exc,
+            reservation_outcome="settle_usage",
+            usage=usage,
+        ) from exc
+    result["usage"] = usage
+    result["job_offer"] = offer_metadata
+    return result
 ```
 
----
+## `grammar` — Sprawdź błędy
 
-## 5. Gramatyka
+Handler `_fix_grammar` w `backend/app/services/ai_assistant_service.py`, linie 1405–1457. Funkcja poprawia gramatykę, ortografię i interpunkcję.
 
-**Po co (prosto):** Poprawia tylko literówki, gramatykę i przecinki w języku CV. Nie zmienia sensu ani „ładniejszego” stylu, i nie tłumaczy treść na inny język.
+```python
+def _fix_grammar(elements: list[dict], language_code: str = "pl") -> dict:
+    """Propose content-only grammar/spelling corrections per text element.
 
-**Plik:** `backend/app/services/ai_assistant_service.py`  
-**Linie:** system **1575–1581**, user **1582–1603**, handler `_fix_grammar` **1566–1604**
-**Akcja API:** `grammar` (submenu Popraw treść → Sprawdź błędy)
+    ``language_code`` fixes the language of the corrected `content` so an
+    English or German CV is not silently rewritten into Polish. Advice fields
+    remain Polish (see `_content_language_directive`).
+    """
+    structured = _extract_structured(elements)
 
-### Zmienne
-
-| Zmienna | Skąd | Linie |
-|---------|------|-------|
-| `{json.dumps(structured)}` | `_extract_structured(elements)` | 1573, 1585 |
-| dyrektywa językowa w system | `_content_language_directive(language_code)` | 1580, funkcja **1866–1884** |
-
-### System
-
-```text
     system = (
         "Jesteś profesjonalnym korektorem specjalizującym się w dokumentach biznesowych i CV. "
         "Poprawiaj WYŁĄCZNIE gramatykę, ortografię i interpunkcję. Nie zmieniaj znaczenia, tonu, "
@@ -532,11 +272,6 @@ ZASADY ANALIZY:
         "Zwracaj WYŁĄCZNIE prawidłowy JSON. "
         + _content_language_directive(language_code)
     )
-```
-
-### User
-
-```text
     user = f"""Sprawdź korektę każdego poniższego elementu tekstowego. Popraw wszystkie błędy gramatyczne, ortograficzne i interpunkcyjne.
 
 ELEMENTY:
@@ -559,31 +294,35 @@ Zwróć JSON:
   ],
   "web_sources": []
 }}"""
+    return _gpt_result(system, user, action="grammar", allowed_fields=_CONTENT_FIELDS)
+
+
+_TENSE_RULES_PL = """\
+CZAS GRAMATYCZNY STANOWISK (OBOWIĄZKOWE — naruszenie = błąd):
+- Pole `employment_tense` przy elemencie: `present` = aktualna rola, `past` = zakończona.
+- `present` / data końcowa „Obecnie”/„Present”/„Now”: czas TERAŹNIEJSZY (Tworzę, Prowadzę, Weryfikuję).
+- `past` / konkretna data końcowa (np. 05/2023, 12/2022): czas PRZESZŁY (Tworzyłem, Prowadziłem, Weryfikowałem).
+- NIGDY nie zamieniaj czasu przeszłego zakończonej roli na teraźniejszy.
+- NIGDY nie zamieniaj czasu teraźniejszego aktualnej roli na przeszły.
+- Gdy brak `employment_tense`: zachowaj oryginalny czas i osobę z treści elementu.
+- Zachowaj osobę gramatyczną oryginału (1. os. lub bezosobowa), chyba że poprawiasz jawny błąd.
+"""
 ```
 
----
+## `language` — Popraw język
 
-## 6. Styl językowy
+Handler `_check_style` w `backend/app/services/ai_assistant_service.py`, linie 1458–1538. Funkcja ulepsza styl w języku bieżącego CV.
 
-**Po co (prosto):** Szuka strony biernej, frazesów („gracz zespołowy”) i ogólników, potem proponuje mocniejsze brzmienie — w języku CV, z zachowaniem czasu gramatycznego obowiązków.
+```python
+def _check_style(text: str, elements: list[dict], language_code: str = "pl") -> dict:
+    """Language/style review with content patches where safe.
 
-**Plik:** `backend/app/services/ai_assistant_service.py`  
-**Linie:** system **1628–1637**, user **1638–1689**, handler `_check_style` **1619–1697**
-**Akcja API:** `language` (submenu Popraw treść → Popraw język)
+    ``language_code`` keeps rewrites in the CV language; advice stays Polish.
+    """
+    structured = _extract_structured(elements)
+    language_mix = _detect_language_mix(elements)
+    mix_block = _language_mix_prompt_block(language_mix)
 
-### Zmienne
-
-| Zmienna | Skąd | Linie |
-|---------|------|-------|
-| `{text}` | argument handlera | 1619, 1641 |
-| `{json.dumps(structured[:40])}` | pierwsze 40 elementów ze `_extract_structured` | 1624, 1644 |
-| `{mix_block}` | `_language_mix_prompt_block(_detect_language_mix(elements))` | 1625–1626, 1645 |
-| dyrektywa językowa w system | `_content_language_directive(language_code)` | 1636, funkcja **1866–1884** |
-| `{_tense_rules_for(language_code)}` | reguły czasu wg języka CV | 1647, funkcja **1857–1863** |
-
-### System
-
-```text
     system = (
         "Jesteś profesjonalnym autorem CV specjalizującym się w poprawianiu tonu, jasności "
         "i profesjonalizmu języka w CV. "
@@ -594,11 +333,6 @@ Zwróć JSON:
         "Zwracaj WYŁĄCZNIE prawidłowy JSON. "
         + _content_language_directive(language_code)
     )
-```
-
-### User
-
-```text
     user = f"""Przeanalizuj styl językowy tego CV i przeredaguj słabe elementy.
 
 PEŁNY TEKST CV:
@@ -651,31 +385,31 @@ Zwróć JSON:
   ],
   "web_sources": []
 }}"""
+    result = _gpt_result(system, user, action="language", allowed_fields=_CONTENT_FIELDS)
+    if language_mix and not _feedback_mentions_language_mix(result):
+        tips = [language_mix["tip"], *(result.get("tips") or [])]
+        result["tips"] = tips[:8]
+        message = str(result.get("message") or "").strip()
+        lead = language_mix["message_sentence"]
+        result["message"] = f"{lead} {message}".strip() if message else lead
+    return result
 ```
 
----
+## `improve` — Wzmocnij treść
 
-## 7. Ulepsz treść
+Handler `_improve_content` w `backend/app/services/ai_assistant_service.py`, linie 1539–1606. Funkcja wzmacnia opisy bez wymyślania faktów.
 
-**Po co (prosto):** Przerabia punkty doświadczenia na mocniejsze zdania z czasownikiem na początku i miejscem na liczby (metryki), zachowując język i czas gramatyczny oryginału.
+```python
+def _improve_content(elements: list[dict], language_code: str = "pl") -> dict:
+    """Suggest stronger CV wording without changing layout geometry.
 
-**Plik:** `backend/app/services/ai_assistant_service.py`  
-**Linie:** system **1710–1717**, user **1718–1764**, handler `_improve_content` **1700–1765**
-**Akcja API:** `improve` (submenu Popraw treść → Wzmocnij treść)
+    ``language_code`` keeps rewrites in the CV language; advice stays Polish.
+    """
+    structured = _extract_structured(elements)
+    full_text = _extract_text(elements)
+    language_mix = _detect_language_mix(elements)
+    mix_block = _language_mix_prompt_block(language_mix)
 
-### Zmienne
-
-| Zmienna | Skąd | Linie |
-|---------|------|-------|
-| `{json.dumps(structured[:40])}` | `_extract_structured` (max 40) | 1705, 1724 |
-| `{full_text}` | `_extract_text` | 1706, 1721 |
-| `{mix_block}` | `_language_mix_prompt_block` | 1707–1708, 1725 |
-| dyrektywa językowa w system | `_content_language_directive(language_code)` | 1716, funkcja **1866–1884** |
-| `{_tense_rules_for(language_code)}` | reguły czasu wg języka CV | 1727, funkcja **1857–1863** |
-
-### System
-
-```text
     system = (
         "Jesteś wysokiej klasy autorem CV. Specjalizujesz się w przekształcaniu zwykłych opisów obowiązków "
         "w przekonujące, oparte na metrykach punkty, które przechodzą przez ATS i robią wrażenie na rekruterach. "
@@ -684,11 +418,6 @@ Zwróć JSON:
         "Zwracaj WYŁĄCZNIE prawidłowy JSON. "
         + _content_language_directive(language_code)
     )
-```
-
-### User
-
-```text
     user = f"""Przeredaguj poniższą treść CV, aby maksymalizować jej siłę oddziaływania.
 
 PEŁNY TEKST CV (kontekst dat stanowisk):
@@ -736,29 +465,29 @@ Zwróć JSON:
   ],
   "web_sources": []
 }}"""
+    return _gpt_result(system, user, action="improve", allowed_fields=_CONTENT_FIELDS)
 ```
 
----
+## `shorten` — Skróć CV
 
-## 7b. Skróć treść
+Handler `_shorten_content` w `backend/app/services/ai_assistant_service.py`, linie 1607–1695. Funkcja kondensuje treść bez zmiany znaczenia.
 
-**Po co (prosto):** Gdy CV jest zbyt długie, skraca, łączy lub usuwa najmniej istotne fragmenty — bez wymyślania nowych faktów i bez zmiany geometrii. W przeciwieństwie do „Ulepsz treść” nie dodaje zastępczych metryk, tylko kondensuje istniejącą treść. Zwraca ten sam kształt `corrections`, więc frontend renderuje te same karty Przed/Po co przy gramatyce.
+```python
+def _shorten_content(elements: list[dict], language_code: str = "pl") -> dict:
+    """Suggest content-only cuts so an over-long CV fits on fewer pages.
 
-**Plik:** `backend/app/services/ai_assistant_service.py`  
-**Linie:** system **1783–1789**, user **1790–1828**, handler `_shorten_content` **1768–1829**
-**Akcja API:** `shorten` (submenu Popraw treść → Skróć CV)
+    Unlike ``_improve_content`` (which strengthens wording and may add
+    placeholder metrics), this action only shortens: it condenses, merges, or
+    removes the least important fragments without inventing new facts. It
+    returns the same ``corrections`` shape so the frontend renders the familiar
+    Przed/Po review cards, and it never touches geometry, headings, names,
+    contact data, or dates (those stay in ``_CONTENT_FIELDS`` scope only).
 
-### Zmienne
+    ``language_code`` keeps the shortened `content` in the CV language.
+    """
+    structured = _extract_structured(elements)
+    full_text = _extract_text(elements)
 
-| Zmienna | Skąd | Linie |
-|---------|------|-------|
-| `{json.dumps(structured[:40])}` | `_extract_structured` (max 40) | 1780, 1797 |
-| `{full_text}` | `_extract_text` | 1781, 1794 |
-| dyrektywa językowa w system | `_content_language_directive(language_code)` | 1788, funkcja **1866–1884** |
-
-### System
-
-```text
     system = (
         "Jesteś redaktorem CV specjalizującym się w zwięzłości. Skracasz zbyt długie CV, "
         "aby zmieściło się na mniejszej liczbie stron, nie tracąc ważnych informacji zawodowych. "
@@ -766,11 +495,6 @@ Zwróć JSON:
         "Zwracaj WYŁĄCZNIE prawidłowy JSON. "
         + _content_language_directive(language_code)
     )
-```
-
-### User
-
-```text
     user = f"""CV jest zbyt długie. Znajdź fragmenty, które można skrócić, połączyć lub usunąć bez utraty ważnych informacji zawodowych.
 Priorytetem jest zejście o jedną stronę.
 
@@ -810,29 +534,77 @@ Zwróć JSON:
   ],
   "web_sources": []
 }}"""
+    return _gpt_result(system, user, action="shorten", allowed_fields=_CONTENT_FIELDS)
+
+
+_TRANSLATE_LANGUAGE_NAMES = {
+    "pl": "polski",
+    "en": "angielski",
+    "de": "niemiecki",
+    "fr": "francuski",
+    "es": "hiszpański",
+    "uk": "ukraiński",
+    "it": "włoski",
+    "nl": "niderlandzki",
+}
+
+
+# Language-neutral tense rule for non-Polish CVs. It states the finished-vs-
+# current rule WITHOUT Polish verb samples, so the model does not drift the
+# rewrite toward Polish while still respecting employment tense.
+_TENSE_RULES_NEUTRAL = """\
+VERB TENSE FOR ROLES (MANDATORY — a violation is an error):
+- Field `employment_tense` on an element: `present` = current role, `past` = ended.
+- `present` / end date "Obecnie"/"Present"/"Now": use PRESENT tense.
+- `past` / a concrete end date (e.g. 05/2023, 12/2022): use PAST tense.
+- NEVER switch an ended role's past tense to present, or a current role's present to past.
+- When `employment_tense` is absent: keep the element's original tense and grammatical person.
+"""
 ```
 
----
+## `ats_score` — Sprawdź ATS
 
-## 8. Czytelność dla ATS
+Handler `_ats_score` w `backend/app/services/ai_assistant_service.py`, linie 1893–1997. Funkcja łączy deterministyczny odczyt PDF z oceną struktury.
 
-**Po co (prosto):** Backend najpierw generuje finalny PDF i PyMuPDF sprawdza odczyt tekstu, kontakt, kolejność oraz długość (`ats_readability.py`). LLM ocenia tylko nagłówki i słowa kluczowe — bez kary za dekoracje (linie, 01/02). Overall liczy kod z wag. W UI: CTA po **Sprawdź CV**.
+```python
+def _ats_score(
+    elements: list[dict],
+    page_size: dict | None = None,
+    template_id: str | None = None,
+    *,
+    image_resolver=None,
+) -> dict:
+    """Score ATS readability from a rendered PDF plus content-only LLM review.
 
-**Plik:** `backend/app/services/ai_assistant_service.py` (+ `backend/app/services/ats_readability.py`)  
-**Linie:** system **2092–2101**, user **2102–2145**, handler `_ats_score` **2054–2152**
-**Akcja API:** `ats_score`
+    Deterministic layer (ReportLab → PyMuPDF): text extractability, contact
+    fields, content order, and length. LLM layer: standard headings and
+    keywords only — never decorative lines, ordinals, or visual chrome.
 
-### Zmienne
+    Overall ``rating`` is recomputed from weighted categories in code so the
+    dashboard cannot show 100% while subscores average ~92%.
 
-| Zmienna | Skąd | Linie |
-|---------|------|-------|
-| `{review_text}` | tekst z PDF lub oczyszczony canvas | 2078–2080, 2104 |
-| `{parsing_note}` | score'y deterministyczne | 2081–2086, 2107 |
-| `{template_note}` | opcjonalny `template_id` | 2087, 2108 |
+    @raises AtsReadabilityError
+        When PDF render or text extraction fails (caller must not charge credits).
+    """
+    resolver = image_resolver or image_src_to_local_path
+    try:
+        det = analyze_pdf_readability(elements, page_size, resolver)
+    except AtsReadabilityError:
+        raise
 
-### System
+    # Prefer extracted PDF text for the content review; fall back to canvas text
+    # with decorative chrome already stripped by expected_plain_text.
+    pdf_text = (det.get("pdf_text") or "").strip()
+    canvas_text = expected_plain_text(elements)
+    review_text = pdf_text if len(pdf_text) >= 40 else canvas_text
+    parsing_note = (
+        f"Odczyt tekstu z PDF: {next((c['score'] for c in det['categories'] if c['id'] == 'text_extract'), 0)}/100. "
+        f"Kontakt: {next((c['score'] for c in det['categories'] if c['id'] == 'contact'), 0)}/100. "
+        f"Kolejność: {next((c['score'] for c in det['categories'] if c['id'] == 'section_order'), 0)}/100. "
+        f"Długość (słowa w PDF): {next((c['score'] for c in det['categories'] if c['id'] == 'length'), 0)}/100."
+    )
+    template_note = f"Szablon: {template_id}." if template_id else ""
 
-```text
     system = (
         "Jesteś ekspertem od ATS (systemów śledzenia kandydatów). "
         "Wiesz, jak Workday, Greenhouse, Lever i Taleo analizują CV. "
@@ -843,11 +615,6 @@ Zwróć JSON:
         "Pole `rating` ustaw na 0 (backend nadpisze wynik). "
         "Zwracaj WYŁĄCZNIE prawidłowy JSON. Wszystkie tekstowe wartości odpowiedzi zwracaj po polsku."
     )
-```
-
-### User
-
-```text
     user = f"""Przeanalizuj treść CV pod kątem nagłówków i słów kluczowych istotnych dla ATS.
 
 TEKST CV (z finalnego PDF lub oczyszczonego canvasu):
@@ -892,28 +659,61 @@ Zwróć JSON:
   "corrections": [],
   "web_sources": []
 }}"""
+    llm = _gpt_result(system, user, action="ats_score")
+    merged = merge_ats_categories(det["categories"], llm.get("categories") or [])
+    overall_pct = weighted_overall_percent(merged)
+    llm["categories"] = merged
+    llm["rating"] = percent_to_rating(overall_pct)
+    # Keep prose free of invented overall scores; dashboard owns the number.
+    return llm
+
+
+_MAX_CHAT_HISTORY = 12
+_MAX_HISTORY_CHARS = 1500
 ```
 
----
+## `translate` — Przetłumacz CV
 
-## 8b. Tłumaczenie CV
+Handler `_translate_cv` w `backend/app/services/ai_assistant_service.py`, linie 1792–1892. Funkcja tłumaczy pełną treść i profil na wybrany język.
 
-**Po co (prosto):** Tłumaczy treść edytowalnych elementów na wybrany język i zwraca `corrections[]` (jak gramatyka) do akceptacji na kanwie. To osobna akcja od auto-detekcji języka CV: tu użytkownik zawsze wybiera język docelowy jawnie (nie ma trybu auto).
+```python
+def _translate_cv(
+    elements: list[dict],
+    target_language: str,
+    cv_data: dict | None = None,
+) -> dict:
+    """Translate editable CV text into ``target_language`` via content patches.
 
-**Plik:** `backend/app/services/ai_assistant_service.py`  
-**Linie:** system **1990–1997**, user **2011–2038**, handler `_translate_cv` **1953–2051**
-**Akcja API:** `translate` (wymaga `target_language`: pl/en/de/fr/es/uk/it/nl)
+    Geometry and template chrome stay untouched. Proper names, emails, phones,
+    and URLs must be preserved so the user can accept patches like grammar.
+    """
+    lang = (target_language or "").strip().lower()
+    lang_name = _TRANSLATE_LANGUAGE_NAMES.get(lang)
+    if not lang_name:
+        return {
+            "message": "Nieobsługiwany język tłumaczenia.",
+            "rating": None,
+            "tips": [],
+            "corrections": [],
+            "categories": [],
+            "strengths": [],
+            "priorities": [],
+            "web_sources": [],
+        }
 
-### Zmienne
+    # Skip locked / fixed chrome so translation never rewrites template furniture.
+    # `_extract_structured` omits chrome flags, so resolve protection from the
+    # original canvas elements (id or element_id, depending on the client).
+    protected_ids = {
+        str(el.get("element_id") or el.get("id"))
+        for el in elements
+        if el.get("fixedToPage") or el.get("locked")
+    }
+    structured = [
+        el for el in _extract_structured(elements)
+        if str(el.get("element_id")) not in protected_ids
+    ]
 
-| Zmienna | Skąd | Linie |
-|---------|------|-------|
-| `{lang_name}` / `{lang}` | `target_language` z requestu | 1953–1965, 2011 |
-| `{json.dumps(structured)}` | `_extract_structured` bez chrome/locked | 1977–1988, 2014 |
-
-### System
-
-```text
     system = (
         "Jesteś profesjonalnym tłumaczem CV i dokumentów rekrutacyjnych. "
         "Tłumaczysz treść elementów tekstowych na język docelowy, zachowując znaczenie, "
@@ -922,11 +722,19 @@ Zwróć JSON:
         "Pola message i tips zwracaj po polsku; pole content w corrections musi być "
         "w języku docelowym."
     )
-```
+    structured_profile = normalize_cv_data(cv_data) if isinstance(cv_data, dict) else None
+    profile_instruction = ""
+    if structured_profile is not None:
+        profile_instruction = f"""
 
-### User
+KANONICZNY PROFIL CV:
+{json.dumps(structured_profile, ensure_ascii=False)}
 
-```text
+Zwróć `translated_cv_data` zawierające kompletną kopię tego profilu. Zachowaj
+identyczne klucze, tablice, kolejność rekordów i wartości nietekstowe. Tłumacz
+wyłącznie wartości tekstowe istotne dla CV; nie tłumacz imion, nazw firm,
+adresów e-mail, telefonów, URL-i ani kodów poziomów językowych."""
+
     user = f"""Przetłumacz treść CV na język: {lang_name} (kod: {lang}).
 
 ELEMENTY DO TŁUMACZENIA:
@@ -955,29 +763,35 @@ Zwróć JSON:
   "translated_cv_data": {{"<pełny przetłumaczony profil albo null>"}},
   "web_sources": []
 }}"""
+    raw, usage = _gpt(system, user, action="translate")
+    result = _safe_result_with_usage(
+        raw,
+        usage,
+        allowed_fields=_CONTENT_FIELDS,
+    )
+    result["usage"] = usage
+    translated = raw.get("translated_cv_data")
+    if isinstance(translated, dict):
+        # Normalize the model output before persisting it, preserving the same
+        # contract that `/ai/fill_template` consumes on every template.
+        result["translated_cv_data"] = normalize_cv_data(translated)
+    return _strip_protected_corrections(result, protected_ids)
 ```
 
----
+## `chat` — Czat
 
-## 9. Czat (wolny asystent)
+Handler `_chat` w `backend/app/services/ai_assistant_service.py`, linie 2016–2307. Funkcja odpowiada na pytania o CV i przygotowuje bezpieczne operacje do akceptacji.
 
-**Po co (prosto):** Rozmowa o CV: pytania, poprawki treści/stylu, przesuwanie elementów, przebudowa sekcji, usuwanie, klonowanie. Najpierw model decyduje, czy temat w ogóle dotyczy CV (`in_scope`). Czat nie uczestniczy w auto-detekcji języka CV — zawsze odpowiada po polsku.
+```python
+def _chat(
+    message: str,
+    elements: list[dict],
+    page_size: dict | None,
+    history: list | None = None,
+) -> dict:
+    structured = _extract_positional(elements)
+    session_history = _normalize_chat_history(history)
 
-**Plik:** `backend/app/services/ai_assistant_service.py`  
-**Linie:** system **2186–2337**, user **2343–2364**, handler `_chat` **2177–2464**
-**Akcja API:** `chat`
-
-### Zmienne
-
-| Zmienna | Skąd | Linie |
-|---------|------|-------|
-| `{json.dumps(structured)}` | `_extract_positional(elements)` | 2183, 2344 |
-| `{history_block}` | `_normalize_chat_history(history)` | 2184, 2338–2341, 2347 |
-| `{message}` | aktualna wiadomość z czatu | argument `_chat`, 2350 |
-
-### System (fragment początkowy)
-
-```text
     system = (
         "Jesteś ekspertem i coachem CV w aplikacji CV STUDIO. Masz pełną treść, styl i pozycję (px, 1:1 z PDF) "
         "każdego elementu CV użytkownika jako kontekst oraz historię bieżącej sesji czatu. "
@@ -1130,11 +944,11 @@ Zwróć JSON:
         "doprecyzowujące, zostaw corrections puste i position_operation jako null.\n"
         "Zwracaj WYŁĄCZNIE prawidłowy JSON. Wszystkie tekstowe wartości odpowiedzi zwracaj po polsku."
     )
-```
-
-### User (pełna treść)
-
-```text
+    history_block = (
+        json.dumps(session_history, ensure_ascii=False)
+        if session_history
+        else "[]"
+    )
     user = f"""ELEMENTY CV (id, typ, treść, styl, pozycja i rozmiar w px):
 {json.dumps(structured, ensure_ascii=False)}
 
@@ -1157,481 +971,109 @@ Zwróć JSON:
   "clone_operation": null,
   "web_sources": []
 }}"""
-```
-
----
-
-## 10. Układ — system i pytanie domyślne
-
-**Po co (prosto):** Tryb **Układ** nie poprawia tekstu CV — tylko geometrię: odstępy, wyrównania, nachodzenia. System mówi modelowi, kim jest i czego nie wolno ruszać.
-
-**Plik:** `backend/app/services/layout_gpt.py`  
-**Składanie sesji:** `_layout_session` w `backend/app/services/ai_assistant_service.py`, linie **2467–2567** (snapshot **2475** + pytanie **2492** + historia **2493–2498** → `build_layout_user_prompt` **2500**).
-
-### `DEFAULT_LAYOUT_QUESTION` — linie **170–175**
-
-Używane, gdy użytkownik włączy Układ i wyśle pustą wiadomość (`_layout_session`, linia **2492**).
-
-```text
-DEFAULT_LAYOUT_QUESTION = (
-    "Przeprowadź pełną korektę układu CV: rytm pionowych odstępów, odstępy między "
-    "sekcjami i wpisami doświadczenia/wykształcenia, wyrównanie nagłówków, dat "
-    "względem stanowisk, ikon/linii przy nagłówkach, spójność lewych marginesów "
-    "i kolumn oraz nachodzenia. Zwróć grupy zmian tylko tam, gdzie trzeba."
-)
-```
-
-### `LAYOUT_CORRECTOR_SYSTEM` — linie **177–213**
-
-**Zmienne:** brak (nawiasy `SPACE_*` to nazwy pojęć w tekście, nie f-string).
-
-```text
-LAYOUT_CORRECTOR_SYSTEM = """\
-Jesteś korektorem układu freestyle CV na wielu stronach A4.
-Analizujesz JSON elementów (text, textarea, image, line, kształty) ze współrzędnymi
-left/top/width/height oraz page.
-
-WAŻNE: zarówno `text`, jak i `textarea` są elementami tekstowymi. Wygenerowane
-wpisy doświadczenia i wykształcenia (stanowiska, daty, firmy, opisy i punkty)
-często mają category=`textarea`; nie wolno ich pomijać ani traktować jak pustych pól.
-
-Snapshot zawiera `layout_contract` — kanoniczne wartości rytmu generatora CV
-(`SPACE_STACK`, `SPACE_RECORD`, `SPACE_SECTION`, `SPACE_AFTER_RULE`) oraz
-docelowy odstęp pod nagłówkami sekcji. Preferuj te wartości zamiast wymyślać
-własny rytm, o ile peery na płótnie nie narzucają innego, wyraźnie spójnego wzorca.
-Gdy element ma `flowRole`, używaj go jako wskazówki roli w przepływie sekcji.
-
-Twoim zadaniem jest wykrywanie i poprawianie WYŁĄCZNIE problemów geometrii:
-- rytm pionowych odstępów,
-- odstępy między sekcjami,
-- odstępy między wpisami w doświadczeniu i wykształceniu,
-- wyrównanie nagłówków,
-- wyrównanie dat względem stanowisk lub tytułów,
-- wyrównanie ikon, linii i tekstów należących do jednego nagłówka,
-- spójność marginesów lewych,
-- spójność odstępów pomiędzy kolumnami,
-- nachodzenie elementów,
-- zbyt małe lub zbyt duże przerwy.
-
-NIE poprawiasz treści CV, pisowni, nazw stanowisk/firm, dat jako tekstu, fontów,
-kolorów ani rozmiarów tekstu — chyba że użytkownik wyraźnie o to poprosi.
-
-Zachowujesz wizję użytkownika (freestyle). Preferujesz najmniejszą zmianę, która
-przywraca spójność względem dominującego rytmu peerów.
-Samodzielnie grupujesz surowe elementy i liczysz geometrię z ich współrzędnych.
-Nie wolno zakładać, że width/height są idealne: porównuj także pozycje top peerów,
-fontSize, content i kolejność elementów, a wynik sprawdzaj wizualną logiką CV.
-Zwracasz WYŁĄCZNIE prawidłowy JSON (bez tekstu przed/po).
-"""
-```
-
----
-
-## 11. Układ — wskazówki szablonu
-
-**Po co (prosto):** Krótka podpowiedź „jaki to szablon”, żeby model nie rozrywał nagłówków (np. numer + ramka w Monument). Trafia do `layout_contract.hint` i do zmiennej `{contract_hint}` w prompcie użytkownika.
-
-**Plik:** `backend/app/services/layout_gpt.py`, funkcja `_layout_hint_for_template`, linie **229–248**  
-**Budowa kontraktu:** `_build_layout_contract`, linie **251–276**  
-**Wartości odstępów z:** `backend/app/services/cv_generator_primitives.py`, linie **43–46**
-
-### Zmienne
-
-| Zmienna | Skąd |
-|---------|------|
-| `template_id` | opcjonalne pole requestu; frontend `activeTemplateId` |
-| `{template_id}` w hintcie generycznym | ten sam slug, gdy nie Monument |
-
-### Treść wskazówek
-
-```python
-def _layout_hint_for_template(template_id: str | None) -> str:
-    """Short template-aware guidance for the model; never overrides peer rhythm."""
-    if not template_id:
-        return (
-            "Szablon nieznany lub dokument freestyle. Preferuj zmierzony rytm peerów "
-            "oraz wartości z layout_contract zamiast wymyślać nowe odstępy."
+    raw, usage = _gpt(system, user, action="chat")
+    # Out-of-scope replies still bill tokens (usage below), but must never mutate the canvas.
+    in_scope = raw.get("in_scope")
+    if in_scope is False or (isinstance(in_scope, str) and in_scope.strip().lower() in {"false", "0", "no"}):
+        refuse = str(raw.get("message") or "").strip() or (
+            "Nie mogę wypowiadać się na ten temat — wykracza poza zakres CV STUDIO "
+            "(CV, edycja dokumentu i aplikowanie o pracę). Zadaj proszę pytanie lub zadanie "
+            "związane z Twoim CV."
         )
-    hints = {
-        "monument": (
-            "Szablon Monument: numerowane sekcje w ramkach. Trzymaj chrome nagłówka "
-            "(numer, ramka, etykieta, linia) razem z pierwszą treścią sekcji."
-        ),
-    }
-    return hints.get(
-        template_id,
-        (
-            f"Szablon `{template_id}`. Preferuj layout_contract (SPACE_* oraz "
-            "section_header_gap_px) zamiast inventowania nowego rytmu."
-        ),
+        return {
+            "message": refuse,
+            "rating": None,
+            "tips": [],
+            "corrections": [],
+            "web_sources": [],
+            "layout_groups": [],
+            "layout_issues": [],
+            "structure_groups": [],
+            "structure_issues": [],
+            "deletion_groups": [],
+            "deletion_issues": [],
+            "clone_groups": [],
+            "clone_issues": [],
+            "usage": usage,
+        }
+
+    result = _safe_result_with_usage(
+        raw,
+        usage,
+        allowed_fields=_ALLOWED_FIELDS,
     )
+    result["usage"] = usage
+
+    directive = raw.get("position_operation")
+    if isinstance(directive, dict):
+        resolved = resolve_directed_operation(elements, directive, page_size)
+        result["layout_groups"] = resolved["layout_groups"]
+        result["layout_issues"] = resolved["layout_issues"]
+    else:
+        result["layout_groups"] = []
+        result["layout_issues"] = []
+
+    structure_directive = raw.get("structure_operation")
+    if isinstance(structure_directive, dict):
+        structure_group = resolve_restructure_section(elements, structure_directive, page_size)
+        if structure_group is None:
+            result["structure_groups"] = []
+            result["structure_issues"] = [{
+                "severity": "warning",
+                "message": (
+                    "Nie można bezpiecznie przebudować tej sekcji — treść nie pokrywa się "
+                    "ze źródłem, koliduje z zablokowanym elementem albo nie mieści się na stronie."
+                ),
+            }]
+        else:
+            result["structure_groups"] = [structure_group]
+            result["structure_issues"] = []
+    else:
+        result["structure_groups"] = []
+        result["structure_issues"] = []
+
+    delete_directive = raw.get("delete_operation")
+    if isinstance(delete_directive, dict):
+        delete_group = resolve_delete_operation(elements, delete_directive)
+        if delete_group is None:
+            result["deletion_groups"] = []
+            result["deletion_issues"] = [{
+                "severity": "warning",
+                "message": (
+                    "Nie można bezpiecznie przygotować usunięcia — wskazano nieznany, "
+                    "zablokowany lub chroniony element."
+                ),
+            }]
+        else:
+            result["deletion_groups"] = [delete_group]
+            result["deletion_issues"] = []
+    else:
+        result["deletion_groups"] = []
+        result["deletion_issues"] = []
+
+    clone_directive = raw.get("clone_operation")
+    if isinstance(clone_directive, dict):
+        clone_group = resolve_clone_operation(elements, clone_directive, page_size)
+        if clone_group is None:
+            result["clone_groups"] = []
+            result["clone_issues"] = [{
+                "severity": "warning",
+                "message": (
+                    "Nie można bezpiecznie sklonować wskazanych elementów — brak źródła, "
+                    "blokada, chronione tło albo pozycja wychodzi poza stronę."
+                ),
+            }]
+        else:
+            result["clone_groups"] = [clone_group]
+            result["clone_issues"] = []
+    else:
+        result["clone_groups"] = []
+        result["clone_issues"] = []
+
+    return result
+
+
+# ── public dispatcher ──────────────────────────────────────────────────────
 ```
-
----
-
-## 12. Układ — prompt użytkownika
-
-**Po co (prosto):** To główne „zlecenie roboty” dla Luny: pełny JSON strony A4, pytanie użytkownika (albo chip), reguły jak liczyć odstępy (`real_gap`) oraz format odpowiedzi JSON z `section_inventory` i `changes`.
-
-**Plik:** `backend/app/services/layout_gpt.py`, funkcja `build_layout_user_prompt`, linie **443–649** (ciało f-stringa **476–649**)
-
-### Zmienne (wszystkie z linii **449–474**)
-
-| Placeholder w f-stringu | Skąd | Referencja |
-|-------------------------|------|------------|
-| `{history}` | `history_block` z `_layout_session` | `ai_assistant_service.py` **2233–2237** |
-| `{json.dumps(snapshot)}` | snapshot z `build_layout_snapshot` | `layout_gpt.py` + sesja **2214** |
-| `{q}` | `question` albo `DEFAULT_LAYOUT_QUESTION` | **2231**, **170–175**, **473/480** |
-| `{space_stack:g}` itd. | `layout_contract.spacing_px` ← `SPACE_*` | **468–471**, `cv_generator_primitives.py` **43–46** |
-| `{gap_target/min/max/tolerance:g}` | `section_header_gap_px` | **461–467**, stałe **39–43** |
-| `{contract_hint}` | `layout_contract.hint` | **472**, hinty **229–248** |
-| `{max_delta:g}`, `{max_moves}`, `{max_findings}` | constraints snapshotu / stałe | **452–454**, **32–34** |
-
-### Pełna treść szablonu (f-string)
-
-```text
-    return f"""{history}STAN PŁÓTNA (wszystkie strony, px, origin = lewy górny róg strony):
-{json.dumps(snapshot, ensure_ascii=False)}
-
-POLECENIE / PYTANIE UŻYTKOWNIKA:
-{q}
-
-## Zasady analizy
-0. `layout_contract` jest kanonicznym rytmem generatora CV. Preferuj:
-   stack={space_stack:g} px (tytuł→meta→opis w wpisie),
-   record={space_record:g} px (między wpisami),
-   section={space_section:g} px (po sekcji przed następnym nagłówkiem),
-   after_rule={space_after_rule:g} px (linia nagłówka→pierwsza treść),
-   oraz section_header_gap ≈ {gap_target:g} px.
-   Nie wymyślaj własnych „ładnych” odstępów, jeśli te wartości pasują do peerów.
-   Gdy element ma `flowRole`, używaj go przy grupowaniu chrome vs treść.
-   Wskazówka szablonu: {contract_hint or "brak"}.
-1. Traktuj KAŻDY element category=`text` lub category=`textarea` jako element
-   tekstowy. Najpierw rozlicz dokładnie `text_element_count` i wszystkie krótkie
-   referencje z `text_element_refs`; żadnej referencji nie wolno pominąć.
-2. Zanim zaproponujesz zmiany, zbuduj `section_inventory`. Każda referencja z
-   `text_element_refs` ma wystąpić DOKŁADNIE RAZ jako `ref` w `members` jednego logicznego
-   bloku. Dotyczy to także kontaktu, nazw stanowisk, dat, firm, opisów, punktów,
-   placeholderów, numerów stron, stopki i tekstów locked/fixedToPage. Element
-   niepasujący do sekcji umieść w sekcji `INNE / NIEPRZYPISANE`
-   (block_id=`unassigned`); nadal nie wolno go pominąć. Przed wysłaniem JSON
-   policz długość `text_element_refs` i liczbę `members.ref` — muszą być równe.
-   Pominięcie tekstu, który jednocześnie pojawia się w `changes`, unieważnia
-   całą odpowiedź.
-   W polach technicznych JSON (`keep_element_refs`, `section_inventory.members`
-   i `changes.elements`) używaj WYŁĄCZNIE `ref` (`e1`, `e2`, …). Nie twórz i nie
-   zwracaj własnych `element_id`; Python bezpiecznie zamieni krótkie referencje
-   na ID płótna. Nigdy nie umieszczaj `e1`, `e2` ani innych referencji w polach
-   widocznych dla użytkownika: `summary`, `group` i `reason`.
-3. Rozpoznaj wszystkie sekcje i ich peery bez dodatkowych metryk z Pythona.
-   Dla każdej sekcji znajdź tekst nagłówka, ikonę, linię dekoracyjną i pierwszy
-   element treści. Element z width≈0–3 może być prawidłowym tytułem — nie odrzucaj
-   go tylko z powodu szerokości.
-   `text_rows` jest autorytatywną mapą elementów leżących obok siebie. Referencje
-   w tym samym `row_ref` tworzą JEDEN poziomy wiersz, np. stanowisko po lewej i
-   data po prawej. Nie wolno traktować prawego `<p>` jako kolejnego elementu w pionie.
-   Dla takiego wiersza używaj `row_top`/`row_bottom`; `effectiveLineHeight` jest
-   rzeczywistą wysokością linii także wtedy, gdy surowe `lineHeight` jest null lub 0.
-4. Na pytanie o odstęp pod nagłówkiem policz DWA jawne wymiary:
-   a) top-to-top = first_body_row.top − header_row.top (tylko diagnostycznie),
-   b) real_gap = first_body_row.top − max(header_row.bottom, line.bottom), jeśli
-      linia jest częścią tego samego nagłówka. `header_row` obejmuje wszystkie
-      sąsiadujące teksty nagłówka, np. osobny `<p>` ikony i osobny `<p>` tytułu.
-   Pola `right` i `bottom` są już wyliczone przez Python. Dla `text` wysokość
-   ma minimum `fontSize`, zgodnie z renderowanym `<p>` i CSS `line-height: 1`;
-   `measuredHeight` pokazuje surowy pomiar diagnostyczny. Używaj `bottom` wprost;
-   NIE licz ponownie left+width ani top+height i nie używaj `measuredHeight`
-   do obliczania odstępu.
-   Odpowiedź i korektę opieraj na real_gap. Porównaj wszystkie sekcje, nie tylko
-   pytaną. Docelowy rytm pod nagłówkami sekcji: około {gap_target:g} px
-   (dopuszczalnie {gap_min:g}–{gap_max:g} px). real_gap ≈ 0 px oznacza, że treść
-   siedzi na dolnej krawędzi nagłówka — to za ciasno, nie jest „bezpieczne”.
-   Jeśli peery różnią się o więcej niż {gap_tolerance:g} px (np. 0 vs 5 vs 8),
-   ujednolić je do wspólnej wartości ≥ {gap_min:g} px. Preferuj dominującą
-   dodatnią wartość peerów albo {gap_target:g} px; NIGDY nie celuj w 0 px i
-   NIGDY nie twórz ujemnego real_gap. Gdy treść jest za blisko, przesuń ją w dół;
-   gdy odstęp jest za duży względem rytmu, możesz lekko podciągnąć, ale zostaw
-   co najmniej {gap_min:g} px.
-5. Linia sekcji zwykle leży w tym samym wierszu co tekst nagłówka i zaczyna się
-   po jego prawej stronie; nie musi nachodzić poziomo na tekst nagłówka.
-6. Grupuj elementy logicznie (wpis doświadczenia: stanowisko + data + firma + opis).
-   W `section_inventory` nadaj takim wpisom stabilne w obrębie odpowiedzi
-   `block_id`, np. `experience-entry-1` albo `education-entry-2`.
-   W `members` umieszczaj tylko `text`/`textarea`. Linie, ikony, obrazy i kształty
-   możesz wskazać osobno w opcjonalnym `related_refs`; nie licz ich jako tekstu.
-7. Porównuj peery: nagłówki, wpisy, daty, opisy, ikony/linie z nagłówkami.
-8. Gap pionowy między peerami:
-   gap = next_row.top − prev_row.bottom
-   Dla całego wpisu bierz dolną krawędź bloku (max `row_bottom` jego wierszy).
-9. Nie przesuwaj bez potrzeby. Preferuj najmniejszą zmianę.
-10. Relacje w bloku: jeśli zmiana przesuwa cały wpis/sekcję, ustaw
-    `move_scope="blocks"`, wskaż jego `affected_blocks` i umieść w `elements`
-    WSZYSTKIE tekstowe referencje tych bloków z identycznym delta. Python odrzuci
-    niekompletny ruch. Dla lokalnego wyrównania pojedynczej daty/ikony ustaw
-    `move_scope="elements"` i nie deklaruj całego bloku.
-    Każda zmiana musi mieć `change_type`. Dla odstępu pod nagłówkiem użyj
-    `change_type="section_header_gap"` oraz podaj `real_gap_before` i
-    `real_gap_after`. Python odrzuci zmianę, która kończy się real_gap poniżej
-    {gap_min:g} px (np. zwijanie 8→0).
-11. Preferuj tylko top/left. width/height tylko gdy konieczne (clipped textarea).
-12. Nie dopuszczaj nachodzenia. Nie zmieniaj content, page, category, fontów, kolorów.
-13. Pomiń movable=false / locked / fixedToPage. Nie ruszaj imienia i roli pod zdjęciem
-    (`keep_element_refs`). Max ±{max_delta:g} px na element; max {max_moves} ruchów;
-    max {max_findings} grup.
-14. Na czyste pytanie bez potrzeby patchy: status \"no_changes\", changes=[],
-    pełny `section_inventory`, summary po polsku.
-    Jeśli real_gap peerów różni się o więcej niż {gap_tolerance:g} px albo któryś
-    jest poniżej {gap_min:g} px, to NIE jest no_changes — zaproponuj
-    `section_header_gap` do wspólnego rytmu. Skarga użytkownika, że nagłówki
-    mają różne dolne odstępy, jest jawnym poleceniem standaryzacji.
-
-## Język dla użytkownika
-Pola `summary`, `group` i `reason` są wyświetlane osobie nietechnicznej.
-- Pisz wyłącznie prostą polszczyzną, krótko i konkretnie.
-- `summary`: maksymalnie 3 krótkie zdania: co poprawisz i jaki będzie efekt.
-- `group`: opisowa nazwa, np. „DOŚWIADCZENIE — pierwszy wpis” albo
-  „PROJEKTY — wyrównanie ikony”.
-- `reason`: maksymalnie 2 zdania. Nazwij widoczny problem i efekt korekty, np.
-  „Opis drugiego projektu jest za daleko od jego tytułu. Zbliżę go, aby oba
-  projekty wyglądały spójnie.”
-- Nigdy nie pokazuj referencji (`e12`), identyfikatorów, współrzędnych, nazw
-  pól JSON, obliczeń, wartości `top`, `left`, `bottom`, `real_gap`,
-  „top-to-top”, ani angielskich nazw technicznych. Te dane zostają wyłącznie
-  w polach technicznych JSON.
-
-## Preferowane reguły (wskazówki, nie sztywne wartości)
-- Preferuj `layout_contract.spacing_px` przed inventowaniem rytmu: stack≈{space_stack:g},
-  record≈{space_record:g}, section≈{space_section:g}, after_rule≈{space_after_rule:g}.
-- Nagłówki tego samego poziomu: zbliżony left.
-- Ikona nagłówka wyrównana pionowo z tekstem nagłówka (osobna sprawa od rytmu pod sekcją).
-- Linia dekoracyjna na osi wizualnej nagłówka, bez przechodzenia przez tekst.
-- Realne odstępy pod nagłówkami ujednolicone do ~{gap_target:g} px; nie celuj w 0 px.
-- Daty doświadczenia w jednej prawej kolumnie; wysokość zbliżona do stanowiska.
-- Odstępy tytuł→firma, firma→opis ≈ stack; koniec wpisu→następny wpis ≈ record.
-- Odstęp nad nową sekcją ≈ section — większy niż odstępy wewnątrz wpisu.
-- Kolumny: spójne left i przerwy.
-
-## Format odpowiedzi (WYŁĄCZNIE JSON)
-NIE zwracaj pełnej tablicy corrected_elements (oszczędność tokenów).
-Python zbuduje karty Podgląd/Zastosuj z `changes`.
-
-{{
-  "status": "corrected",
-  "summary": "<odpowiedź po polsku: co znalazłeś / co proponujesz>",
-  "keep_element_refs": ["e1"],
-  "section_inventory": [
-    {{
-      "section": "DOŚWIADCZENIE ZAWODOWE",
-      "blocks": [
-        {{
-          "block_id": "experience-entry-1",
-          "members": [
-            {{"ref": "e17", "role": "entry_title"}},
-            {{"ref": "e18", "role": "entry_date"}},
-            {{"ref": "e19", "role": "entry_meta"}},
-            {{"ref": "e20", "role": "entry_body"}}
-          ]
-        }}
-      ]
-    }}
-  ],
-  "changes": [
-    {{
-      "group": "DOŚWIADCZENIE — odstęp Citibank",
-      "reason": "Odstęp przed wpisem Citibank jest większy niż między pozostałymi wpisami. Wyrównam go, aby sekcja wyglądała spójnie.",
-      "severity": "high",
-      "change_type": "block_spacing",
-      "move_scope": "blocks",
-      "affected_blocks": [
-        {{"section": "DOŚWIADCZENIE ZAWODOWE", "block_id": "experience-entry-2"}}
-      ],
-      "delta": {{"top": -5, "left": 0}},
-      "elements": [
-        {{
-          "ref": "e24",
-          "before": {{"top": 462, "left": 50}},
-          "after": {{"top": 457, "left": 50}}
-        }}
-      ]
-    }}
-  ]
-}}
-
-Gdy układ jest spójny lub pytanie nie wymaga ruchów:
-zwróć ten sam PEŁNY `section_inventory`, ale ustaw `status="no_changes"` i `changes=[]`.
-
-W polach technicznych zachowaj dokładne dane potrzebne do ruchów, ale tekstów
-widocznych dla użytkownika nie uzasadniaj współrzędnymi ani nazwami technicznymi.
-Liczby jako number, nie string. Kopiuj `ref` dokładnie ze snapshotu.
-"""
-```
-
----
-
-## 13. Frontend — powitanie i chipy Układu
-
-**Po co (prosto):** Po włączeniu Układu (cel **Sprawdź wygląd**) użytkownik widzi powitanie i przyciski. Kliknięcie chipa **nie** jest osobnym typem promptu systemowego — wysyła `action=layout` z pełnym tekstem `prompt` jako `message`. Cztery chipy `primary` są widoczne od razu; reszta pod „Więcej opcji”.
-
-**Plik:** `frontend/src/components/ai/AiAssistant/AiAssistant.jsx`
-
-### `LAYOUT_MODE_GREETING` — linie **152–155**
-
-Tylko UI (bąbelek asystenta). **Nie** jest osobną wiadomością systemową do GPT.
-
-```javascript
-        description: "Odstępy, wyrównania, kolumny i puste miejsca",
-        icon: FaArrowsAltH,
-        kind: "layout_toggle",
-    },
-```
-
-### `LAYOUT_SUGGESTIONS` — linie **168–277**
-
-- `label` — krótki napis na chipie / w bąbelku (`displayText`).
-- `prompt` — pełne zlecenie geometrii wysyłane do backendu.
-- `primary: true` — chip w pierwszym rzędzie (max 4).
-- **Zmienne w chipach:** brak (stałe stringi). Kontekst A4 dokłada backend.
-
-```javascript
-];
-
-const LAYOUT_MODE_GREETING = (
-    "Cześć! Tryb Układ jest aktywny. Opisz zmianę geometrii albo wybierz jedną "
-    + "z propozycji poniżej. Analiza ruszy dopiero po wysłaniu zlecenia."
-);
-
-/** Category ids that should offer a "Popraw treść" CTA when the score is weak. */
-const CONTENT_CATEGORY_IDS = new Set(["completeness", "experience", "language"]);
-/** Category ids that should offer a "Sprawdź wygląd" CTA when the score is weak. */
-const APPEARANCE_CATEGORY_IDS = new Set(["structure", "hierarchy", "emphasis", "color", "alignment"]);
-const WEAK_CATEGORY_RATIO = 0.7;
-
-/**
- * Short labels for the chat UI; fuller `prompt` text is what GPT receives.
- * Keep prompts concrete and tied to layout_contract / real_gap vocabulary.
- * `primary: true` chips appear first; the rest sit under "Więcej opcji".
- */
-const LAYOUT_SUGGESTIONS = [
-    {
-        id: "full-rhythm",
-        label: "Dopasuj automatycznie",
-        primary: true,
-        prompt: (
-            "Przeprowadź pełną korektę geometrii według layout_contract: odstępy pod "
-            + "nagłówkami (~6 px), stack (~4), record (~14), section (~18), wyrównanie "
-            + "nagłówków i dat, spójność kolumn oraz nachodzenia. Zwróć maksymalnie "
-            + "6 najważniejszych grup — tylko tam, gdzie rytm peerów jest wyraźnie "
-            + "niespójny. Preferuj najmniejszą zmianę. Jeśli układ już trzyma kontrakt, "
-            + "status=no_changes i krótki summary; nie wymyślaj nowego rytmu."
-        ),
-    },
-    {
-        id: "record-gaps",
-        label: "Wyrównaj odstępy",
-        primary: true,
-        prompt: (
-            "Porównaj odstępy między kolejnymi wpisami doświadczenia i wykształcenia "
-            + "(oraz podobnymi listami, np. projektami). Ujednolić je do "
-            + "layout_contract.spacing_px.record (ok. 10 px). Przesuwaj całe bloki "
-            + "wpisów (move_scope=blocks), nie pojedyncze tytuły bez daty/opisu."
-        ),
-    },
-    {
-        id: "overlaps",
-        label: "Napraw nachodzenia",
-        primary: true,
-        prompt: (
-            "Wykryj nachodzenia tekstu na tekst, tekstu na linie/kształty oraz "
-            + "elementy wychodzące poza stronę. Zaproponuj najmniejsze bezpieczne "
-            + "przesunięcia (priorytet: critical/high). Nie zmieniaj fontów, kolorów "
-            + "ani treści. Pomiń locked/fixedToPage, chyba że blokują czytelność "
-            + "ruchomego tekstu — wtedy przesuń tekst."
-        ),
-    },
-    {
-        id: "columns",
-        label: "Wyrównaj kolumny",
-        primary: true,
-        prompt: (
-            "Sprawdź spójność kolumn: wspólne left dla lewej kolumny treści oraz "
-            + "stabilne przerwy między kolumnami (np. treść vs daty lub sidebar). "
-            + "Wyrównaj tylko elementy, które wyraźnie wypadają z siatki peerów. "
-            + "Nie zlewaj osobnych kolumn w jedną."
-        ),
-    },
-    {
-        id: "header-gaps",
-        label: "Ujednolić odstępy pod nagłówkami",
-        prompt: (
-            "Sprawdź real_gap pod każdym nagłówkiem sekcji (treść względem dolnej "
-            + "krawędzi nagłówka/linii). Ujednolić je do rytmu z layout_contract "
-            + "(ok. 6 px, zakres 6–10). Nie celuj w 0 px. Zaproponuj tylko grupy "
-            + "section_header_gap tam, gdzie peery różnią się wyraźnie."
-        ),
-    },
-    {
-        id: "section-gaps",
-        label: "Sprawdź odstępy między sekcjami",
-        prompt: (
-            "Sprawdź odstępy między końcem jednej sekcji a następnym nagłówkiem. "
-            + "Preferuj layout_contract.spacing_px.section (ok. 21 px). Odstęp między "
-            + "sekcjami ma być wyraźnie większy niż wewnątrz wpisu. Zaproponuj "
-            + "najmniejsze ruchy, które ujednolicą rytm."
-        ),
-    },
-    {
-        id: "stack-rhythm",
-        label: "Popraw rytm wewnątrz wpisów",
-        prompt: (
-            "We wpisach doświadczenia/wykształcenia sprawdź odstępy tytuł → meta/firma "
-            + "→ opis/punkty. Preferuj layout_contract.spacing_px.stack (ok. 4 px). "
-            + "Nie ruszaj całych sekcji — tylko niespójne elementy wewnątrz wpisów, "
-            + "zachowując wyrównanie dat względem tytułów."
-        ),
-    },
-    {
-        id: "date-column",
-        label: "Ustaw daty w jednej kolumnie",
-        prompt: (
-            "Wyrównaj daty doświadczenia i wykształcenia do jednej prawej kolumny "
-            + "(wspólne left/right peerów). Daty mają pozostać w tym samym wierszu "
-            + "co odpowiadający tytuł (text_rows). Nie zmieniaj treści ani kolejności "
-            + "wpisów — tylko geometrię."
-        ),
-    },
-    {
-        id: "left-margins",
-        label: "Wyrównaj lewe marginesy",
-        prompt: (
-```
-
----
-
-## Mapa akcja → plik
-
-| Akcja API / cel UI | Handler | System (linie) | User (linie) |
-|--------------------|---------|----------------|--------------|
-| import PDF `/ai` | `extract_cv_data` | — | `ai_service.py` 48–118 |
-| `rating` / Sprawdź CV | `_rate_cv` | 1249–1256 | 1257–1330 |
-| `design_rating` / Sprawdź wygląd | `_rate_design` | 1346–1360 | 1361–1431 |
-| `position_rating` / Dopasuj do oferty | `_tailor_cv_to_position` | 1484–1496 | 1497–1539 |
-| `grammar` / Popraw treść | `_fix_grammar` | 1575–1581 | 1582–1603 |
-| `language` / Popraw treść | `_check_style` | 1628–1637 | 1638–1689 |
-| `improve` / Popraw treść | `_improve_content` | 1710–1717 | 1718–1764 |
-| `shorten` / Popraw treść | `_shorten_content` | 1783–1789 | 1790–1828 |
-| `ats_score` / CTA z Sprawdź CV | `_ats_score` + `ats_readability` | 2092–2101 | 2102–2145 |
-| `translate` / Przetłumacz CV | `_translate_cv` | 1990–1997 | 2011–2038 |
-| `chat` | `_chat` | 2186–2337 | 2343–2364 |
-| `layout` / Sprawdź wygląd → Układ | `_layout_session` + `layout_gpt` | 177–213 | 476–649 (+ pytanie / chip) |
-
-Handlerzy bez osobnego promptu modelu (tylko komunikaty UI / odmowy):
-puste płótno w Układzie, odmowa zakresu czatu, nieobsługiwany `target_language` w tłumaczeniu.
-
-Cztery akcje treści (`grammar`, `language`, `improve`, `shorten`) dodatkowo przyjmują
-`language_code` (auto-detekcja albo `cv_language` override) — patrz sekcja
-[Wielojęzyczne korekty treści](#wielojęzyczne-korekty-treści-gramatyka--styl--ulepsz--skróć)
-na górze pliku.
-
----
 
 *Wygenerowano przez `scripts/generate_prompts_md.py`.*

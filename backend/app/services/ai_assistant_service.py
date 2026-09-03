@@ -8,8 +8,8 @@ calls GPT, and returns a structured response the frontend can render
 Safety invariants:
 - Style/content corrections may only patch `_ALLOWED_FIELDS` (never left/top/
   width/height/page). Positional edits go through layout_analysis review cards.
-- Template chrome (`fixedToPage` / `locked`) must not be rewritten by design
-  rating or destructive AI operations.
+- Template chrome (`fixedToPage` / `locked`) must not be rewritten by content
+  corrections or destructive AI operations.
 - Provider failures raise `AIServiceError` for the app-level handler.
 """
 import json
@@ -24,16 +24,7 @@ from app.services.layout_analysis import (
     resolve_directed_operation,
     resolve_restructure_section,
 )
-from app.services.layout_gpt import (
-    DEFAULT_LAYOUT_QUESTION,
-    LAYOUT_CORRECTOR_SYSTEM,
-    MAX_LAYOUT_MOVE_PX,
-    build_layout_snapshot,
-    build_layout_user_prompt,
-    compile_layout_gpt_response,
-)
 from app.services.openai_pricing import (
-    empty_usage,
     estimate_cost_pln,
     estimate_cost_usd,
     usage_from_response,
@@ -55,81 +46,38 @@ from app.services.ats_readability import (
 from app.services.document_service import make_image_resolver
 from app.utils.image_src_to_path import image_src_to_local_path
 
-# Terra is the shared default so conversational and layout actions use the
-# same quality tier while retaining their separate latency and token budgets.
+# Terra is the shared default for assistant actions.
 _MODEL = os.getenv("AI_ASSISTANT_MODEL", "gpt-5.6-terra")
-_LAYOUT_MODEL = os.getenv("AI_LAYOUT_MODEL", "gpt-5.6-terra")
 _ASSISTANT_REASONING_EFFORT = (
     os.getenv("AI_ASSISTANT_REASONING_EFFORT", "high").strip().lower() or "high"
 )
-# Pair high-effort layout reasoning with AI_LAYOUT_MAX_COMPLETION_TOKENS
-# (default 48k) so hidden reasoning does not exhaust the visible JSON budget
-# on full A4 snapshots.
-_LAYOUT_REASONING_EFFORT = (
-    os.getenv("AI_LAYOUT_REASONING_EFFORT", "high").strip().lower() or "high"
-)
-# Fast mode (service_tier fast/priority) ~2× Terra token price for lower latency.
-# Set AI_LAYOUT_SERVICE_TIER=default (or empty) to bill/run Standard processing.
-_LAYOUT_SERVICE_TIER_RAW = os.getenv("AI_LAYOUT_SERVICE_TIER", "fast").strip().lower()
-# Reasoning models spend completion budget on hidden thinking before any JSON
-# appears. OpenAI recommends ~25k+ headroom for reasoning + visible output;
-# full-canvas layout with effort=high regularly exhausted the old 16k cap and
-# returned empty content that the UI showed as "assistant unavailable".
 _DEFAULT_MAX_COMPLETION_TOKENS = 16_000
-_LAYOUT_MAX_COMPLETION_TOKENS = int(
-    os.getenv("AI_LAYOUT_MAX_COMPLETION_TOKENS", "48000")
-)
 _client = OpenAI(
     api_key=OPENAI_API_KEY,
     max_retries=0,
     timeout=AI_PROVIDER_TIMEOUT_SECONDS,
 )
 
-_EMPTY_REASONING_BUDGET_MESSAGE = (
-    "Analiza układu wyczerpała limit odpowiedzi modelu (zbyt dużo „myślenia” "
-    "przy pełnym JSON A4). Spróbuj węższego zlecenia — np. tylko odstępy pod "
-    "nagłówkami albo między wpisami — albo uruchom pełną korektę ponownie."
-)
-
-
 def _model_for_action(action: str) -> str:
     """Pick the OpenAI model id for this assistant action."""
-    if action == "layout":
-        return _LAYOUT_MODEL
+    _ = action
     return _MODEL
 
 
 def _max_completion_tokens_for_action(action: str) -> int:
     """Completion budget including reasoning tokens for this action."""
-    if action == "layout":
-        return max(_LAYOUT_MAX_COMPLETION_TOKENS, _DEFAULT_MAX_COMPLETION_TOKENS)
+    _ = action
     return _DEFAULT_MAX_COMPLETION_TOKENS
 
 
 def _reasoning_effort_for_action(action: str) -> str:
     """Pick a validated effort; Terra defaults to high for every action."""
-    requested = (
-        _LAYOUT_REASONING_EFFORT
-        if action == "layout"
-        else _ASSISTANT_REASONING_EFFORT
-    )
+    _ = action
+    requested = _ASSISTANT_REASONING_EFFORT
     allowed = {"none", "minimal", "low", "medium", "high", "xhigh", "max"}
     if requested in allowed:
         return requested
     return "high"
-
-
-def _service_tier_for_action(action: str) -> str | None:
-    """Optional Fast mode tier for layout; None means Standard (omit param)."""
-    if action != "layout":
-        return None
-    raw = _LAYOUT_SERVICE_TIER_RAW
-    if raw in {"", "auto", "default", "standard", "none", "off"}:
-        return None
-    if raw in {"fast", "priority"}:
-        return raw
-    # Unknown override — keep Fast as the product default for Układ.
-    return "fast"
 
 
 def assistant_reservation_cost_pln(action: str, request_bytes: int) -> float:
@@ -145,7 +93,6 @@ def assistant_reservation_cost_pln(action: str, request_bytes: int) -> float:
         _model_for_action(action),
         prompt_token_ceiling,
         _max_completion_tokens_for_action(action),
-        service_tier=_service_tier_for_action(action),
     )
     return estimate_cost_pln(cost_usd)
 
@@ -932,40 +879,6 @@ def _primary_identity_id(elements: list[dict]) -> str | None:
     return max(candidates, default=(0.0, ""))[1] or None
 
 
-def _extract_typography(elements: list[dict]) -> list[dict]:
-    """Build a style-only view with the intentional primary identity marked."""
-    primary_identity_id = _primary_identity_id(elements)
-    items = []
-    for el in elements:
-        if el.get("category") not in ("text", "textarea") or not el.get("content"):
-            continue
-        content = el.get("content") or ""
-        item = {
-            "element_id": el.get("element_id"),
-            "category": el.get("category"),
-            "fontSize": el.get("fontSize"),
-            "fontFamily": el.get("fontFamily"),
-            "color": el.get("color"),
-            "bold": el.get("bold"),
-            "italic": el.get("italic"),
-            "align": el.get("align"),
-            "preview": content[:60],
-        }
-        inline_runs = _compact_inline_runs(content, el.get("runs"))
-        if inline_runs:
-            # Per-span colour/bold overrides — required to catch accidental
-            # painted words that still share the element's base `color`.
-            item["runs"] = inline_runs
-        if el.get("fixedToPage"):
-            item["fixedToPage"] = True
-        if el.get("locked"):
-            item["locked"] = True
-        if el.get("element_id") == primary_identity_id:
-            item["templateRole"] = "primary_identity"
-        items.append(item)
-    return items
-
-
 def _protected_typography_ids(elements: list[dict]) -> set[str]:
     """Return template chrome, locked text, and the primary identity element."""
     protected_ids = {
@@ -1006,7 +919,6 @@ def _gpt(
     model = _model_for_action(action)
     reasoning_effort = _reasoning_effort_for_action(action)
     max_completion_tokens = _max_completion_tokens_for_action(action)
-    service_tier = _service_tier_for_action(action)
     create_kwargs: dict = {
         "model": model,
         "messages": [
@@ -1021,10 +933,6 @@ def _gpt(
         "reasoning_effort": reasoning_effort,
         "max_completion_tokens": max_completion_tokens,
     }
-    # Fast mode: lower latency at ~2× Terra token rates. Metering uses the same
-    # tier so credits stay aligned with OpenAI Fast mode pricing.
-    if service_tier:
-        create_kwargs["service_tier"] = service_tier
     try:
         resp = _client.chat.completions.create(**create_kwargs)
     except APIError as exc:
@@ -1046,29 +954,20 @@ def _gpt(
         resp,
         model=model,
         action=action,
-        service_tier=service_tier,
     )
     choice = resp.choices[0]
     content = choice.message.content or ""
     finish_reason = getattr(choice, "finish_reason", None)
     if not content.strip():
-        # High-effort layout often burns the whole completion budget on hidden
-        # reasoning tokens and finishes with length + empty visible JSON.
-        # Surface a recoverable tip instead of the generic "unavailable" copy.
-        if finish_reason == "length" or action == "layout":
-            user_message = (
-                _EMPTY_REASONING_BUDGET_MESSAGE
-                if action == "layout"
-                else (
-                    "Model wyczerpał limit odpowiedzi. Spróbuj ponownie albo "
-                    "uprość polecenie."
-                )
-            )
+        if finish_reason == "length":
             raise AIServiceError(
                 f"Model returned empty content (finish_reason={finish_reason}, "
                 f"max_completion_tokens={max_completion_tokens})",
                 action=action,
-                user_message=user_message,
+                user_message=(
+                    "Model wyczerpał limit odpowiedzi. Spróbuj ponownie albo "
+                    "uprość polecenie."
+                ),
                 reservation_outcome="settle_usage",
                 usage=usage,
             )
@@ -1386,122 +1285,6 @@ Interfejs wyświetla ocenę osobno jako procent.
 }}"""
     result = _gpt_result(system, user, action="rating")
     return _ensure_language_mix_feedback(result, language_mix)
-
-
-def _rate_design(elements: list[dict], page_size: dict | None = None) -> dict:
-    """Rate typography and visual consistency only — no private geometry cap.
-
-    Overlaps / clipped boxes / out-of-bounds are handled by **Układ**, not by
-    silently capping this score at 5/10. ``page_size`` is accepted for API
-    compatibility with other rating actions.
-    """
-    _ = page_size  # kept for analyze_action signature parity; unused here
-    typo = json.dumps(_extract_typography(elements), ensure_ascii=False)
-    protected_ids = _protected_typography_ids(elements)
-
-    system = (
-        "Jesteś ekspertem od typografii i projektowania wizualnego CV. "
-        "CV jest zbudowane na gotowym szablonie produktowym — jego rozmiary czcionek, "
-        "etykiety 8–9 px, metadane i numery stron są świadomym wyborem projektowym. "
-        "Kontrast kroju pomiędzy głównym imieniem i nazwiskiem a tekstem CV jest również "
-        "świadomym elementem szablonu, a nie niespójnością. "
-        "Sugerujesz WYŁĄCZNIE zmiany rozmiaru i kroju czcionki, koloru, pogrubienia, kursywy oraz wyrównania tekstu. "
-        "NIGDY nie zmieniasz pozycji elementów (left, top, width, height) — są ustalone przez szablon. "
-        "NIGDY nie krytykuj absolutnych rozmiarów czcionek szablonu ani nie proponuj ich powiększania "
-        "tylko dlatego, że są mniejsze niż w klasycznych CV. "
-        "NIGDY nie proponuj corrections dla elementów z fixedToPage=true ani locked=true. "
-        "Oceniaj wyłącznie typografię i spójność wizualną, bez opisywania geometrii dokumentu. "
-        "Nie wpisuj liczby oceny w `message`, ponieważ interfejs wyświetla ją osobno. "
-        "Zwracaj WYŁĄCZNIE prawidłowy JSON. Wszystkie tekstowe wartości odpowiedzi zwracaj po polsku."
-    )
-    user = f"""Przeanalizuj typografię i styl tekstu na tej kanwie CV.
-
-DANE TYPOGRAFICZNE (bez pozycji — nie sugeruj zmian left/top/width/height):
-{typo}
-
-════════════════════════════════════════
-KONTEKST PRODUKTOWY (OBOWIĄZKOWY):
-- To ocena CV w edytorze szablonów. Typografia startowa pochodzi z szablonu, nie z błędu użytkownika.
-- Małe czcionki (np. 8–9 px etykiet sidebara, kontaktu, „OBSZARY”, numerów stron) są normalne i poprawne.
-- Nie obniżaj oceny za „zbyt małą czcionkę”, jeśli rozmiary są spójne w ramach systemu szablonu.
-- Krytykuj wyłącznie niespójność: złamaną hierarchię, mieszane wyrównanie, odstające kolory, przypadkowe bold.
-- Elementy z fixedToPage=true / locked=true to chrome szablonu — pomiń je w message, tips i corrections.
-- Element z templateRole="primary_identity" jest największym napisem tożsamościowym, zwykle imieniem i nazwiskiem.
-  Jego inny fontFamily, większy rozmiar i pogrubienie są celowym kontrastem szablonu: nie krytykuj ich, nie
-  proponuj dla niego corrections i nie obniżaj za nie oceny.
-- Ocena 8–10 oznacza spójny szablon bez jednoznacznej, możliwej do wskazania poprawki. Ocena 6–7 wymaga co
-  najmniej jednej konkretnej niespójności. Ocena 1–5 jest zarezerwowana dla wielu wyraźnych błędów typografii,
-  niezależnych od celowej różnicy kroju w nagłówku tożsamościowym.
-
-ETAPY ANALIZY:
-
-① HIERARCHIA (względem siebie, nie względem uniwersalnych px)
-   Czy widać względną progresję: imię/nazwisko > nagłówki sekcji > tekst główny > etykiety meta?
-   Nie wymagaj konkretnych zakresów px. Wskaż tylko elementy, które ŁAMIĄ istniejącą hierarchię szablonu.
-
-② POGRUBIENIE I WYRÓŻNIENIE
-   Czy nagłówki są konsekwentnie pogrubione? Czy pogrubienie jest nadużywane (jeśli wszystko jest pogrubione, nic się nie wyróżnia)?
-
-③ SPÓJNOŚĆ KOLORÓW
-   Czy kolory tekstu są używane konsekwentnie? Sprawdź zarówno `color` elementu, jak i opcjonalne
-   `runs[]` (kolor/bold/italic na fragmencie `text`). Pojedyncze słowo w odstającym kolorze
-   (np. niebieski run w grafitowym akapicie) to niespójność — wskaż je w tipach/priorytetach.
-
-④ WYRÓWNANIE
-   Czy tekst główny jest konsekwentnie wyrównany do lewej? Czy nagłówki są wyrównane konsekwentnie?
-   Mieszane wyrównanie w jednej sekcji wygląda nieprofesjonalnie.
-
-⑤ OCENA OGÓLNA
-   Na podstawie punktów ①–④ przyznaj ocenę projektu w skali 1–10.
-════════════════════════════════════════
-
-Zwracaj poprawki WYŁĄCZNIE dla jednoznacznych niespójności względem reszty szablonu.
-Każda poprawka może zawierać WYŁĄCZNIE pola: fontSize, fontFamily, color, bold, italic, align.
-Nie proponuj zwiększania fontSize „dla czytelności”, jeśli element pasuje do peera w szablonie.
-Nie uwzględniaj wartości element_id z danych powyżej, jeśli nie masz pewności, że wymagają zmiany.
-
-Zwróć JSON. Wyniki cząstkowe umieść TYLKO w `categories` (nie w tipach).
-Nie dodawaj wskazówki zaczynającej się od „Rozkład oceny”.
-{{
-  "message": "<2–3 zdania o hierarchii, wyróżnieniach, kolorach i wyrównaniu. Nie podawaj liczby oceny ani geometrii dokumentu.>",
-  "rating": <1-10>,
-  "categories": [
-    {{"id": "hierarchy", "label": "Hierarchia", "score": <0-3>, "max": 3}},
-    {{"id": "emphasis", "label": "Wyróżnienie", "score": <0-2>, "max": 2}},
-    {{"id": "color", "label": "Kolor", "score": <0-2>, "max": 2}},
-    {{"id": "alignment", "label": "Wyrównanie", "score": <0-2>, "max": 2}}
-  ],
-  "strengths": ["<mocna strona typografii>"],
-  "priorities": [
-    {{"title": "<krótki tytuł poprawki>", "description": "<konkretna niespójność>"}}
-  ],
-  "tips": [
-    "<konkretna poprawka typografii z podglądem elementu>",
-    "<druga konkretna poprawka>"
-  ],
-  "corrections": [
-    {{"element_id": "<id>", "bold": true}},
-    {{"element_id": "<id>", "align": "left"}}
-  ],
-  "web_sources": []
-}}"""
-    result = _gpt_result(system, user, action="design_rating", allowed_fields=_STYLE_FIELDS)
-    result = _strip_protected_corrections(result, protected_ids)
-
-    # Drop a redundant "Ocena ogólna" category if the model still emits one —
-    # the dashboard badge already shows the overall percent.
-    result["categories"] = [
-        cat for cat in (result.get("categories") or [])
-        if str(cat.get("id") or "").lower() not in {"overall", "ocena_ogolna"}
-    ]
-
-    # A low visual score must be supported by a concrete, editable discrepancy.
-    # Once template chrome and the intentional primary identity are excluded,
-    # an empty correction list means the model found no actionable inconsistency.
-    # Keep the baseline at 8 instead of returning an unsubstantiated low score.
-    if not result.get("corrections") and isinstance(result.get("rating"), int):
-        result["rating"] = max(result["rating"], 8)
-    return result
 
 
 def _tailor_cv_to_position(
@@ -2520,109 +2303,6 @@ Zwróć JSON:
     return result
 
 
-def _layout_session(
-    message: str,
-    elements: list[dict],
-    page_size: dict | None,
-    history: list | None = None,
-    template_id: str | None = None,
-) -> dict:
-    """GPT layout corrector: full A4 JSON in, changes → canvas review cards out."""
-    snapshot = build_layout_snapshot(elements, page_size, template_id=template_id)
-    if snapshot.get("movable_count", 0) < 1:
-        return {
-            "message": "Brak mierzalnych elementów na płótnie do analizy układu.",
-            "rating": None,
-            "tips": [],
-            "corrections": [],
-            "layout_groups": [],
-            "layout_issues": [],
-            "web_sources": [],
-            "usage": empty_usage(
-                model=_LAYOUT_MODEL,
-                action="layout",
-                service_tier=_service_tier_for_action("layout"),
-            ),
-        }
-
-    question = (message or "").strip() or DEFAULT_LAYOUT_QUESTION
-    session_history = _normalize_chat_history(history)
-    history_block = ""
-    if session_history:
-        history_block = "HISTORIA SESJI UKŁADU:\n" + json.dumps(
-            session_history, ensure_ascii=False
-        ) + "\n\n"
-
-    user = build_layout_user_prompt(snapshot, question, history_block)
-    raw, usage = _gpt(LAYOUT_CORRECTOR_SYSTEM, user, action="layout")
-    usage_payload = usage if isinstance(usage, dict) else {}
-    groups, issues, summary, error = compile_layout_gpt_response(elements, raw, page_size)
-
-    if error == "empty_response":
-        return {
-            "message": "Model nie zwrócił użytecznej analizy układu. Spróbuj ponownie lub doprecyzuj pytanie.",
-            "rating": None,
-            "tips": [
-                "Tryb Układ: korektor geometrii dostaje pełny JSON A4 przy każdym pytaniu.",
-            ],
-            "corrections": [],
-            "layout_groups": [],
-            "layout_issues": [{"severity": "warning", "message": error}],
-            "web_sources": [],
-            "usage": usage_payload,
-        }
-
-    if error in {"incomplete_text_inventory", "unknown_element_ref"}:
-        retry_reason = (
-            "każdy element text i textarea"
-            if error == "incomplete_text_inventory"
-            else "wyłącznie referencje e1…eN przekazane w bieżącym snapshotcie"
-        )
-        return {
-            "message": summary,
-            "rating": None,
-            "tips": [
-                "Dla bezpieczeństwa odrzucono całą odpowiedź zamiast udostępniać częściowy ruch sekcji.",
-                f"Uruchom Układ ponownie — model musi rozliczyć {retry_reason}.",
-            ],
-            "corrections": [],
-            "layout_groups": [],
-            "layout_issues": issues,
-            "web_sources": [],
-            "usage": usage_payload,
-        }
-
-    message_out = summary or (
-        "Przygotowałem propozycje korekt układu. Każdą zmianę możesz obejrzeć "
-        "przed zastosowaniem."
-        if groups
-        else "Układ CV wygląda spójnie — nie proponuję zmian."
-    )
-    inventory = raw.get("section_inventory")
-    inventory_sections = len(inventory) if isinstance(inventory, list) else 0
-    tips = [
-        "Możesz dopytać o dowolną sekcję lub obejrzeć podgląd przed zastosowaniem zmiany.",
-    ]
-    if inventory_sections:
-        tips.append(
-            "Sprawdzono układ treści we wszystkich rozpoznanych sekcjach CV."
-        )
-    tips.extend([
-        "Karty poniżej pozwalają sprawdzić każdą zmianę przed jej zastosowaniem.",
-        "Treść, dane osobowe i zablokowane elementy pozostają bez zmian.",
-    ])
-    return {
-        "message": message_out,
-        "rating": None,
-        "tips": tips,
-        "corrections": [],
-        "layout_groups": groups,
-        "layout_issues": issues,
-        "web_sources": [],
-        "usage": usage_payload,
-    }
-
-
 # ── public dispatcher ──────────────────────────────────────────────────────
 
 def analyze_action(
@@ -2678,7 +2358,6 @@ def analyze_action(
 
     dispatchers = {
         "rating":          lambda: _rate_cv(text, elements),
-        "design_rating":   lambda: _rate_design(elements, page_size),
         "position_rating": lambda: _tailor_cv_to_position(
             text,
             elements,
@@ -2711,9 +2390,6 @@ def analyze_action(
             target_language=target_language,
         ) if profile_content_action else _translate_cv(elements, target_language, cv_data),
         "chat":            lambda: _chat(message, elements, page_size, history),
-        "layout":          lambda: _layout_session(
-            message, elements, page_size, history, template_id=template_id
-        ),
     }
 
     fn = dispatchers.get(action)

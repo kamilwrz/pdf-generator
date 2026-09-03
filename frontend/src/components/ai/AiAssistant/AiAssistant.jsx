@@ -8,8 +8,7 @@ import { AnimatePresence, motion as Motion, useReducedMotion } from "framer-moti
 import { nanoid } from "nanoid";
 import { BsStars } from "react-icons/bs";
 import {
-    FaArrowsAltH, FaPalette, FaBriefcase, FaFont, FaMagic,
-    FaLanguage, FaSearch,
+    FaBriefcase, FaFont, FaMagic, FaLanguage, FaSearch,
 } from "react-icons/fa";
 import { RiEditLine, RiScissorsLine } from "react-icons/ri";
 import { IoClose, IoSend } from "react-icons/io5";
@@ -43,20 +42,18 @@ const CANVAS_CONTEXT_CLEARANCE_PX = 232;
 
 // ── goal-oriented quick actions ───────────────────────────────────────────
 // User-facing tiles map to goals; backend still uses specialised API actions
-// (rating, grammar, layout, …). Do not expose every endpoint as its own tile.
+// (rating, grammar, translate, …). Do not expose every endpoint as its own tile.
 const CHROME_ACCENT = "var(--color-ink)";
 
 /** Labels for API actions shown on assistant message chips. */
 const ACTION_META = {
     rating:          { label: "Sprawdź CV",           color: CHROME_ACCENT },
-    design_rating:   { label: "Wygląd i typografia",  color: CHROME_ACCENT },
     position_rating: { label: "Dopasuj do oferty",    color: CHROME_ACCENT },
     grammar:         { label: "Sprawdź błędy",        color: CHROME_ACCENT },
     language:        { label: "Popraw język",         color: CHROME_ACCENT },
     improve:         { label: "Wzmocnij treść",       color: CHROME_ACCENT },
     shorten:         { label: "Skróć CV",             color: CHROME_ACCENT },
     ats_score:       { label: "Czytelność dla ATS",   color: CHROME_ACCENT },
-    layout:          { label: "Układ strony",         color: CHROME_ACCENT },
     translate:       { label: "Przetłumacz CV",       color: CHROME_ACCENT },
     chat:            { label: "Czat",                 color: CHROME_ACCENT },
 };
@@ -75,8 +72,8 @@ function withoutEmptyContentReplacement(fields, allowEmptyContent = false) {
 }
 
 /**
- * Top-level goals. Submenus open for improve_content / check_appearance /
- * translate; check_cv and match_job start their flows immediately.
+ * Top-level goals. Submenus open for improve_content / translate / match_job;
+ * check_cv starts its flow immediately.
  */
 const GOAL_ACTIONS = [
     {
@@ -101,15 +98,6 @@ const GOAL_ACTIONS = [
         color: CHROME_ACCENT,
         description: "Wklej link — oceń dopasowanie i przygotuj bezpieczne poprawki",
         panel: "match_job",
-    },
-    {
-        id: "check_appearance",
-        label: "Sprawdź wygląd",
-        icon: FaPalette,
-        color: CHROME_ACCENT,
-        description: "Typografia i układ strony",
-        panel: "check_appearance",
-        proOnly: true,
     },
     {
         id: "translate",
@@ -148,23 +136,6 @@ const CONTENT_SUBACTIONS = [
     },
 ];
 
-const APPEARANCE_SUBACTIONS = [
-    {
-        id: "design_rating",
-        label: "Wygląd i typografia",
-        description: "Hierarchia, kolory, wyróżnienia i spójność",
-        icon: FaPalette,
-        kind: "api",
-    },
-    {
-        id: "layout",
-        label: "Układ strony",
-        description: "Odstępy, wyrównania, kolumny i puste miejsca",
-        icon: FaArrowsAltH,
-        kind: "layout_toggle",
-    },
-];
-
 /** Codes match backend TRANSLATE_LANGUAGES (UA → uk). */
 const TRANSLATE_LANGUAGES = [
     { code: "pl", label: "Polski" },
@@ -177,135 +148,9 @@ const TRANSLATE_LANGUAGES = [
     { code: "nl", label: "Niderlandzki" },
 ];
 
-const LAYOUT_MODE_GREETING = (
-    "Cześć! Tryb Układ jest aktywny. Opisz zmianę geometrii albo wybierz jedną "
-    + "z propozycji poniżej. Analiza ruszy dopiero po wysłaniu zlecenia."
-);
-
 /** Category ids that should offer a "Popraw treść" CTA when the score is weak. */
 const CONTENT_CATEGORY_IDS = new Set(["completeness", "experience", "language"]);
-/** Category ids that should offer a "Sprawdź wygląd" CTA when the score is weak. */
-const APPEARANCE_CATEGORY_IDS = new Set(["structure", "hierarchy", "emphasis", "color", "alignment"]);
 const WEAK_CATEGORY_RATIO = 0.7;
-
-/**
- * Short labels for the chat UI; fuller `prompt` text is what GPT receives.
- * Keep prompts concrete and tied to layout_contract / real_gap vocabulary.
- * `primary: true` chips appear first; the rest sit under "Więcej opcji".
- */
-const LAYOUT_SUGGESTIONS = [
-    {
-        id: "full-rhythm",
-        label: "Dopasuj automatycznie",
-        primary: true,
-        prompt: (
-            "Przeprowadź pełną korektę geometrii według layout_contract: odstępy pod "
-            + "nagłówkami (~6 px), stack (~4), record (~14), section (~18), wyrównanie "
-            + "nagłówków i dat, spójność kolumn oraz nachodzenia. Zwróć maksymalnie "
-            + "6 najważniejszych grup — tylko tam, gdzie rytm peerów jest wyraźnie "
-            + "niespójny. Preferuj najmniejszą zmianę. Jeśli układ już trzyma kontrakt, "
-            + "status=no_changes i krótki summary; nie wymyślaj nowego rytmu."
-        ),
-    },
-    {
-        id: "record-gaps",
-        label: "Wyrównaj odstępy",
-        primary: true,
-        prompt: (
-            "Porównaj odstępy między kolejnymi wpisami doświadczenia i wykształcenia "
-            + "(oraz podobnymi listami, np. projektami). Ujednolić je do "
-            + "layout_contract.spacing_px.record (ok. 10 px). Przesuwaj całe bloki "
-            + "wpisów (move_scope=blocks), nie pojedyncze tytuły bez daty/opisu."
-        ),
-    },
-    {
-        id: "overlaps",
-        label: "Napraw nachodzenia",
-        primary: true,
-        prompt: (
-            "Wykryj nachodzenia tekstu na tekst, tekstu na linie/kształty oraz "
-            + "elementy wychodzące poza stronę. Zaproponuj najmniejsze bezpieczne "
-            + "przesunięcia (priorytet: critical/high). Nie zmieniaj fontów, kolorów "
-            + "ani treści. Pomiń locked/fixedToPage, chyba że blokują czytelność "
-            + "ruchomego tekstu — wtedy przesuń tekst."
-        ),
-    },
-    {
-        id: "columns",
-        label: "Wyrównaj kolumny",
-        primary: true,
-        prompt: (
-            "Sprawdź spójność kolumn: wspólne left dla lewej kolumny treści oraz "
-            + "stabilne przerwy między kolumnami (np. treść vs daty lub sidebar). "
-            + "Wyrównaj tylko elementy, które wyraźnie wypadają z siatki peerów. "
-            + "Nie zlewaj osobnych kolumn w jedną."
-        ),
-    },
-    {
-        id: "header-gaps",
-        label: "Ujednolić odstępy pod nagłówkami",
-        prompt: (
-            "Sprawdź real_gap pod każdym nagłówkiem sekcji (treść względem dolnej "
-            + "krawędzi nagłówka/linii). Ujednolić je do rytmu z layout_contract "
-            + "(ok. 6 px, zakres 6–10). Nie celuj w 0 px. Zaproponuj tylko grupy "
-            + "section_header_gap tam, gdzie peery różnią się wyraźnie."
-        ),
-    },
-    {
-        id: "section-gaps",
-        label: "Sprawdź odstępy między sekcjami",
-        prompt: (
-            "Sprawdź odstępy między końcem jednej sekcji a następnym nagłówkiem. "
-            + "Preferuj layout_contract.spacing_px.section (ok. 21 px). Odstęp między "
-            + "sekcjami ma być wyraźnie większy niż wewnątrz wpisu. Zaproponuj "
-            + "najmniejsze ruchy, które ujednolicą rytm."
-        ),
-    },
-    {
-        id: "stack-rhythm",
-        label: "Popraw rytm wewnątrz wpisów",
-        prompt: (
-            "We wpisach doświadczenia/wykształcenia sprawdź odstępy tytuł → meta/firma "
-            + "→ opis/punkty. Preferuj layout_contract.spacing_px.stack (ok. 4 px). "
-            + "Nie ruszaj całych sekcji — tylko niespójne elementy wewnątrz wpisów, "
-            + "zachowując wyrównanie dat względem tytułów."
-        ),
-    },
-    {
-        id: "date-column",
-        label: "Ustaw daty w jednej kolumnie",
-        prompt: (
-            "Wyrównaj daty doświadczenia i wykształcenia do jednej prawej kolumny "
-            + "(wspólne left/right peerów). Daty mają pozostać w tym samym wierszu "
-            + "co odpowiadający tytuł (text_rows). Nie zmieniaj treści ani kolejności "
-            + "wpisów — tylko geometrię."
-        ),
-    },
-    {
-        id: "left-margins",
-        label: "Wyrównaj lewe marginesy",
-        prompt: (
-            "Znajdź teksty tej samej roli (nagłówki sekcji, tytuły wpisów, opisy), "
-            + "które odstają leftem od dominującej kolumny. Ujednolić lewe krawędzie "
-            + "w ramach tej samej kolumny/sekcji najmniejszym ruchem. Nie ruszaj "
-            + "celowo dwukolumnowych układów ani chrome fixedToPage."
-        ),
-    },
-    {
-        id: "header-chrome",
-        label: "Dopasuj ikony i linie do nagłówków",
-        prompt: (
-            "Dla każdego nagłówka sekcji sprawdź ikonę/marker, tekst tytułu i linię "
-            + "dekoracyjną. Wyrównaj je wizualnie w jednym wierszu nagłówka; linia "
-            + "nie może przechodzić przez tekst. Gdy jest flowRole, użyj go do "
-            + "rozpoznania chrome. Preferuj after_rule z layout_contract przed "
-            + "pierwszą treścią sekcji."
-        ),
-    },
-];
-
-const PRIMARY_LAYOUT_SUGGESTIONS = LAYOUT_SUGGESTIONS.filter((s) => s.primary);
-const SECONDARY_LAYOUT_SUGGESTIONS = LAYOUT_SUGGESTIONS.filter((s) => !s.primary);
 
 function ratingToPercent(rating) {
     if (typeof rating !== "number" || Number.isNaN(rating)) return null;
@@ -350,7 +195,7 @@ function RatingBadge({ value, percent: percentProp }) {
 }
 
 /**
- * Structured score dashboard for rating / ATS / position / design results.
+ * Structured score dashboard for rating, ATS, and position results.
  * CTAs are computed on the client so the model does not invent navigation.
  */
 function RatingDashboard({
@@ -359,7 +204,6 @@ function RatingDashboard({
     onShowEvidence,
     onHideEvidence,
     onOpenContentPanel,
-    onOpenAppearancePanel,
     onRunAts,
     onOpenMatchJob,
     ctaDisabled,
@@ -379,7 +223,7 @@ function RatingDashboard({
     const isAts = actionId === "ats_score";
     // Prefer category math over `rating × 10`:
     // - ATS uses fixed weights (avoids 96% → false 100%).
-    // - design / rating / position use rubric maxes (avoids 100% bars + 90% badge
+    // - rating / position use rubric maxes (avoids 100% bars + 90% badge
     //   when the model returns rating=9 with every category at full score).
     const percent = isAts
         ? (overallPercentFromCategories(categories, ATS_CATEGORY_WEIGHTS)
@@ -390,20 +234,14 @@ function RatingDashboard({
         const p = categoryPercent(cat);
         return p != null && p < WEAK_CATEGORY_RATIO * 100 && CONTENT_CATEGORY_IDS.has(cat.id);
     });
-    const weakAppearance = categories.some((cat) => {
-        const p = categoryPercent(cat);
-        return p != null && p < WEAK_CATEGORY_RATIO * 100 && APPEARANCE_CATEGORY_IDS.has(cat.id);
-    });
-
     const showAtsCta = actionId === "rating" || actionId === "position_rating";
     const showMatchCta = actionId === "ats_score";
     const showContentCta = actionId === "rating" && weakContent;
-    const showAppearanceCta = actionId === "rating" && weakAppearance;
 
     const hasBody = percent != null || categories.length > 0
         || strengths.length > 0 || priorities.length > 0
         || jobRequirements.length > 0 || evidenceGaps.length > 0
-        || showAtsCta || showMatchCta || showContentCta || showAppearanceCta;
+        || showAtsCta || showMatchCta || showContentCta;
     if (!hasBody) return null;
 
     const atsBand = isAts ? atsReadabilityBand(percent) : null;
@@ -567,7 +405,7 @@ function RatingDashboard({
                 </div>
             )}
 
-            {(showAtsCta || showContentCta || showAppearanceCta || showMatchCta) && (
+            {(showAtsCta || showContentCta || showMatchCta) && (
                 <div className={classes.dashboardCtas}>
                     {showAtsCta && (
                         <button
@@ -587,16 +425,6 @@ function RatingDashboard({
                             onClick={() => onOpenContentPanel?.()}
                         >
                             Popraw treść
-                        </button>
-                    )}
-                    {showAppearanceCta && (
-                        <button
-                            type="button"
-                            className={classes.dashboardCta}
-                            disabled={ctaDisabled}
-                            onClick={() => onOpenAppearancePanel?.()}
-                        >
-                            Sprawdź wygląd
                         </button>
                     )}
                     {showMatchCta && (
@@ -906,10 +734,7 @@ function ChatMessage({
     onClearClonePreview,
     onAcceptClone,
     onRejectClone,
-    onPickLayoutSuggestion,
-    suggestionsDisabled,
     onOpenContentPanel,
-    onOpenAppearancePanel,
     onRunAts,
     onOpenMatchJob,
     onShowEvidence,
@@ -918,12 +743,11 @@ function ChatMessage({
     A4_Elements,
 }) {
     const isUser = msg.role === "user";
-    const [showMoreLayout, setShowMoreLayout] = useState(false);
     const pendingCount = (msg.corrections || []).filter(
         c => (correctionStates[`${msg.id}_${c.element_id}`] || "pending") === "pending"
     ).length;
-    // Suggestion chips may send a longer GPT prompt while the bubble shows a
-    // short label via displayText, so the user still sees what they commissioned.
+    // Structured flows may send fuller context while the bubble keeps a concise
+    // label via displayText, so the user still sees what they commissioned.
     const visibleText = msg.displayText || msg.text;
     const hasDashboard = !isUser && (
         typeof msg.rating === "number"
@@ -964,7 +788,6 @@ function ChatMessage({
                         onShowEvidence={onShowEvidence}
                         onHideEvidence={onHideEvidence}
                         onOpenContentPanel={onOpenContentPanel}
-                        onOpenAppearancePanel={onOpenAppearancePanel}
                         onRunAts={onRunAts}
                         onOpenMatchJob={onOpenMatchJob}
                         ctaDisabled={ctaDisabled}
@@ -978,51 +801,6 @@ function ChatMessage({
                         <ul className={classes.tips}>
                             {msg.tips.map((tip, i) => <li key={i}>{tip}</li>)}
                         </ul>
-                    </div>
-                )}
-
-                {msg.layoutSuggestions?.length > 0 && (
-                    <div className={classes.layoutSuggestions}>
-                        <span className={classes.layoutSuggestionsLabel}>Propozycje</span>
-                        <div className={classes.layoutSuggestionList} role="group" aria-label="Propozycje układu">
-                            {msg.layoutSuggestions.map((suggestion) => (
-                                <button
-                                    key={suggestion.id}
-                                    type="button"
-                                    className={classes.layoutSuggestion}
-                                    disabled={suggestionsDisabled}
-                                    onClick={() => onPickLayoutSuggestion?.(suggestion)}
-                                >
-                                    {suggestion.label}
-                                </button>
-                            ))}
-                        </div>
-                        {msg.layoutSuggestionsMore?.length > 0 && (
-                            <>
-                                <button
-                                    type="button"
-                                    className={classes.layoutMoreToggle}
-                                    onClick={() => setShowMoreLayout((v) => !v)}
-                                >
-                                    {showMoreLayout ? "Mniej opcji" : "Więcej opcji"}
-                                </button>
-                                {showMoreLayout && (
-                                    <div className={classes.layoutSuggestionList} role="group" aria-label="Więcej propozycji układu">
-                                        {msg.layoutSuggestionsMore.map((suggestion) => (
-                                            <button
-                                                key={suggestion.id}
-                                                type="button"
-                                                className={classes.layoutSuggestion}
-                                                disabled={suggestionsDisabled}
-                                                onClick={() => onPickLayoutSuggestion?.(suggestion)}
-                                            >
-                                                {suggestion.label}
-                                            </button>
-                                        ))}
-                                    </div>
-                                )}
-                            </>
-                        )}
                     </div>
                 )}
 
@@ -1176,7 +954,6 @@ export default function AiAssistant() {
     const {
         A4_Elements,
         activeCvData,
-        activeTemplateId,
         editElementValues,
         setActiveCvData,
         collapseSpilledMainIntoSidebar,
@@ -1196,19 +973,17 @@ export default function AiAssistant() {
         refreshEntitlements,
     } = useSession();
     const {
-        showPlanModal,
         assistantAction,
     } = useUiSurfaces();
 
     const [isOpen, setIsOpen] = useState(false);
-    const [layoutMode, setLayoutMode] = useState(false);
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState("");
     const [jobDesc, setJobDesc] = useState("");
     const [jobOfferUrl, setJobOfferUrl] = useState("");
     const [candidateNotes, setCandidateNotes] = useState("");
     const [jobUrlError, setJobUrlError] = useState("");
-    // Goal submenu: improve_content | check_appearance | translate | match_job | null
+    // Goal submenu: improve_content | translate | match_job | null
     const [activePanel, setActivePanel] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
     const [correctionStates, setCorrectionStates] = useState({});
@@ -1228,7 +1003,6 @@ export default function AiAssistant() {
     const messagesRef = useRef(null);
     const inputRef = useRef(null);
     const fabRef = useRef(null);
-    const layoutHistoryStartRef = useRef(null);
     // Synchronous in-flight guard: React state `isLoading` updates too late to
     // block a double-click on suggestion chips before the next render.
     const requestInFlightRef = useRef(false);
@@ -1378,7 +1152,6 @@ export default function AiAssistant() {
         setCandidateNotes("");
         setJobUrlError("");
         setActivePanel(null);
-        setLayoutMode(false);
         setCorrectionStates({});
         setLayoutStates({});
         setStructureStates({});
@@ -1386,7 +1159,6 @@ export default function AiAssistant() {
         setCloneStates({});
         setPointerJobEvidencePreview(null);
         setFocusJobEvidencePreview(null);
-        layoutHistoryStartRef.current = null;
         // Patches / deletion ids are arrays in PdfCanvas state — never null
         // (preview useMemo reads `.length` without a null guard).
         setLayoutPreviewPatches?.([]);
@@ -1733,15 +1505,7 @@ export default function AiAssistant() {
             "Idempotency-Key": idempotencyKey,
         });
 
-        // A new layout session must reason from the current canvas rather than
-        // repeat conclusions from ordinary chat or an earlier layout run.
-        // Follow-up questions inside the active session still receive their
-        // own prior turns, which preserves conversational geometry analysis.
-        const historyStart = action === "layout" && Number.isInteger(layoutHistoryStartRef.current)
-            ? layoutHistoryStartRef.current
-            : 0;
         const history = messages
-            .slice(historyStart)
             .filter((m) => (m.role === "user" || m.role === "assistant") && m.text)
             .slice(-12)
             .map((m) => ({
@@ -1749,9 +1513,7 @@ export default function AiAssistant() {
                 content: String(m.text).slice(0, 1500),
             }));
 
-        const usesMessage = action === "chat" || action === "layout";
-        // Keep the full prompt in `text` for session history / GPT follow-ups.
-        // `displayText` is only for the bubble when the user picked a short label.
+        const usesMessage = action === "chat";
         const userMsg = {
             id: nanoid(),
             role: "user",
@@ -1764,11 +1526,10 @@ export default function AiAssistant() {
         setIsLoading(true);
 
         try {
-            // Warm the Render dyno before a long GPT call, especially a full-canvas layout analysis.
+            // Warm the Render dyno before the provider call.
             wakeBackend();
             const actionMeta = ACTION_META[action] || { label: action, color: CHROME_ACCENT };
-            // Full-canvas layout analysis can exceed the default 90s auth timeout.
-            const timeoutMs = action === "layout" ? 240_000 : 120_000;
+            const timeoutMs = 120_000;
             const targetLanguage = options.target_language || "";
             // Every action that rewrites CV content, including translation,
             // must carry the canonical profile. The backend then returns the
@@ -1788,11 +1549,6 @@ export default function AiAssistant() {
                     candidate_notes: action === "position_rating" ? candidateNotes : "",
                     page_size: pageSize,
                     history: usesMessage ? history : [],
-                    // Layout AI uses the slug for layout_contract hints; other
-                    // actions ignore it. Freestyle / reopened docs may omit it.
-                    ...(action === "layout" && activeTemplateId
-                        ? { template_id: activeTemplateId }
-                        : {}),
                     ...(action === "translate" && targetLanguage
                         ? { target_language: targetLanguage }
                         : {}),
@@ -1806,8 +1562,7 @@ export default function AiAssistant() {
                 "Asystent AI nie odpowiedział",
                 {
                     timeoutMs,
-                    // Retry cold-start / proxy blips only — not client AbortError timeouts
-                    // (layout can already take minutes and must not be re-billed blindly).
+                    // Retry cold-start / proxy blips only, not client AbortError timeouts.
                     retries: 3,
                     retryDelayMs: 2_500,
                     retryOnTimeout: false,
@@ -1897,56 +1652,11 @@ export default function AiAssistant() {
             requestInFlightRef.current = false;
             setIsLoading(false);
         }
-    }, [A4_Elements, activeCvData, activeTemplateId, candidateNotes, captureDocumentScope, cvLanguage, isDocumentScopeCurrent, isLoading, jobDesc, jobOfferUrl, messages, pageSize, refreshEntitlements]);
-
-    const toggleLayoutMode = useCallback(() => {
-        // Keep the client journey clear; the API remains the source of
-        // truth for the Pro appearance entitlement.
-        if (entitlements && entitlements.plan_slug !== "pro") {
-            showPlanModal?.();
-            return;
-        }
-        setIsOpen(true);
-        setActivePanel(null);
-        if (layoutMode) {
-            setLayoutMode(false);
-            layoutHistoryStartRef.current = null;
-            setMessages(prev => [...prev, {
-                id: nanoid(),
-                role: "assistant",
-                text: "Tryb Układ wyłączony. Wracasz do zwykłego czatu.",
-                tips: [],
-                corrections: [],
-                layout_groups: [],
-                layout_issues: [],
-            }]);
-            return;
-        }
-        // Enabling layout mode is intentionally local: it must not consume
-        // credits or upload the canvas before the user submits a request.
-        layoutHistoryStartRef.current = messages.length + 1;
-        setLayoutMode(true);
-        setMessages(prev => [...prev, {
-            id: nanoid(),
-            role: "assistant",
-            text: LAYOUT_MODE_GREETING,
-            tips: [],
-            layoutSuggestions: PRIMARY_LAYOUT_SUGGESTIONS,
-            layoutSuggestionsMore: SECONDARY_LAYOUT_SUGGESTIONS,
-            corrections: [],
-            layout_groups: [],
-            layout_issues: [],
-        }]);
-    }, [entitlements, layoutMode, messages.length, showPlanModal]);
+    }, [A4_Elements, activeCvData, candidateNotes, captureDocumentScope, cvLanguage, isDocumentScopeCurrent, isLoading, jobDesc, jobOfferUrl, messages, pageSize, refreshEntitlements]);
 
     const handleGoalAction = useCallback((goalId) => {
         const goal = GOAL_ACTIONS.find((g) => g.id === goalId);
         if (!goal) return;
-
-        if (goal.proOnly && entitlements && entitlements.plan_slug !== "pro") {
-            showPlanModal?.();
-            return;
-        }
 
         if (goalId === "check_cv") {
             setActivePanel(null);
@@ -1961,22 +1671,13 @@ export default function AiAssistant() {
         }
 
         send(goalId, goal.label);
-    }, [entitlements, send, showPlanModal]);
+    }, [send]);
 
     const handleContentSubaction = useCallback((actionId) => {
         const meta = CONTENT_SUBACTIONS.find((a) => a.id === actionId);
         setActivePanel(null);
         send(actionId, meta?.label || actionId);
     }, [send]);
-
-    const handleAppearanceSubaction = useCallback((sub) => {
-        if (sub.kind === "layout_toggle") {
-            toggleLayoutMode();
-            return;
-        }
-        setActivePanel(null);
-        send(sub.id, sub.label);
-    }, [send, toggleLayoutMode]);
 
     const handleTranslateLanguage = useCallback((lang) => {
         setActivePanel(null);
@@ -1995,15 +1696,6 @@ export default function AiAssistant() {
         setIsOpen(true);
         setActivePanel("improve_content");
     }, []);
-
-    const openAppearancePanel = useCallback(() => {
-        if (entitlements && entitlements.plan_slug !== "pro") {
-            showPlanModal?.();
-            return;
-        }
-        setIsOpen(true);
-        setActivePanel("check_appearance");
-    }, [entitlements, showPlanModal]);
 
     const openMatchJobPanel = useCallback(() => {
         setIsOpen(true);
@@ -2030,11 +1722,6 @@ export default function AiAssistant() {
         send(action, meta?.label || action);
     }, [assistantAction, send]);
 
-    const handleLayoutSuggestion = useCallback((suggestion) => {
-        if (!suggestion?.prompt || requestInFlightRef.current || isLoading || !layoutMode) return;
-        send("layout", suggestion.prompt, { displayText: suggestion.label });
-    }, [isLoading, layoutMode, send]);
-
     const submitJobTailoring = useCallback(() => {
         const url = jobOfferUrl.trim();
         const description = jobDesc.trim();
@@ -2058,9 +1745,9 @@ export default function AiAssistant() {
             setInput("");
             return;
         }
-        send(layoutMode ? "layout" : "chat", text);
+        send("chat", text);
         setInput("");
-    }, [input, isLoading, activePanel, layoutMode, send, submitJobTailoring]);
+    }, [input, isLoading, activePanel, send, submitJobTailoring]);
 
     const handleKey = (e) => {
         if (e.key === "Enter" && !e.shiftKey) {
@@ -2138,7 +1825,7 @@ export default function AiAssistant() {
                                 <div>
                                     <div className={classes.headerTitle}>Asystent AI</div>
                                     <div className={classes.headerSub}>
-                                        {layoutMode ? "Tryb Układ aktywny — pytaj o geometrię CV" : "Analizuj, poprawiaj i ulepszaj"}
+                                        Analizuj, poprawiaj i ulepszaj
                                     </div>
                                 </div>
                             </div>
@@ -2170,34 +1857,20 @@ export default function AiAssistant() {
                             {GOAL_ACTIONS.map((action) => (
                                 <button
                                     key={action.id}
-                                    className={`${classes.actionBtn} ${
-                                        (action.panel && activePanel === action.panel)
-                                        || (action.id === "check_appearance" && layoutMode)
-                                            ? classes.actionBtnActive
-                                            : ""
-                                    }`}
+                                    className={`${classes.actionBtn} ${action.panel && activePanel === action.panel
+                                        ? classes.actionBtnActive
+                                        : ""}`}
                                     style={{ "--action-color": action.color }}
                                     onClick={() => handleGoalAction(action.id)}
-                                    disabled={isLoading && !(action.id === "check_appearance" && layoutMode)}
-                                    title={action.proOnly && entitlements?.plan_slug !== "pro"
-                                        ? `${action.description}. Dostępne w planie Pro.`
-                                        : action.description}
+                                    disabled={isLoading}
+                                    title={action.description}
                                     aria-pressed={action.panel ? activePanel === action.panel : undefined}
                                 >
                                     <action.icon className={classes.actionIcon} />
-                                    <span>
-                                        {action.proOnly && entitlements?.plan_slug !== "pro"
-                                            ? `${action.label} · Pro`
-                                            : action.label}
-                                    </span>
+                                    <span>{action.label}</span>
                                 </button>
                             ))}
                         </div>
-                        {layoutMode && (
-                            <div className={classes.layoutModeBanner}>
-                                Układ włączony — każde pytanie dostaje pełny JSON A4. Otwórz „Sprawdź wygląd” → Układ, aby wyjść.
-                            </div>
-                        )}
 
                         {/* goal subpanels */}
                         <AnimatePresence>
@@ -2237,46 +1910,6 @@ export default function AiAssistant() {
                                                 <sub.icon className={classes.subPanelIcon} />
                                                 <span>
                                                     <strong>{sub.label}</strong>
-                                                    <em>{sub.description}</em>
-                                                </span>
-                                            </button>
-                                        ))}
-                                    </div>
-                                    <button type="button" className={classes.jobDescCancel} onClick={() => setActivePanel(null)}>
-                                        Anuluj
-                                    </button>
-                                </Motion.div>
-                            )}
-                            {activePanel === "check_appearance" && (
-                                <Motion.div
-                                    className={classes.subPanel}
-                                    initial={{ height: 0, opacity: 0 }}
-                                    animate={{ height: "auto", opacity: 1 }}
-                                    exit={{ height: 0, opacity: 0 }}
-                                    transition={{ duration: 0.2 }}
-                                >
-                                    <div className={classes.subPanelTitle}>Sprawdź wygląd</div>
-                                    <div className={classes.subPanelList}>
-                                        {APPEARANCE_SUBACTIONS.map((sub) => (
-                                            <button
-                                                key={sub.id}
-                                                type="button"
-                                                className={`${classes.subPanelBtn} ${
-                                                    sub.kind === "layout_toggle" && layoutMode
-                                                        ? classes.actionBtnActive
-                                                        : ""
-                                                }`}
-                                                disabled={isLoading && !(sub.kind === "layout_toggle")}
-                                                onClick={() => handleAppearanceSubaction(sub)}
-                                                aria-pressed={sub.kind === "layout_toggle" ? layoutMode : undefined}
-                                            >
-                                                <sub.icon className={classes.subPanelIcon} />
-                                                <span>
-                                                    <strong>
-                                                        {sub.kind === "layout_toggle" && layoutMode
-                                                            ? "Układ strony · wyłącz"
-                                                            : sub.label}
-                                                    </strong>
                                                     <em>{sub.description}</em>
                                                 </span>
                                             </button>
@@ -2407,7 +2040,7 @@ export default function AiAssistant() {
                             {messages.length === 0 && (
                                 <div className={classes.emptyState}>
                                     <BsStars className={classes.emptyIcon} />
-                                    <p>Wybierz cel powyżej — sprawdź CV, popraw treść, dopasuj do oferty, wygląd lub przetłumacz — albo wpisz własne pytanie.</p>
+                                    <p>Wybierz cel powyżej — sprawdź CV, popraw treść, dopasuj do oferty lub przetłumacz — albo wpisz własne pytanie.</p>
                                 </div>
                             )}
                             {messages.map(msg => (
@@ -2438,10 +2071,7 @@ export default function AiAssistant() {
                                     onClearClonePreview={clearClonePreview}
                                     onAcceptClone={acceptCloneGroup}
                                     onRejectClone={rejectCloneGroup}
-                                    onPickLayoutSuggestion={handleLayoutSuggestion}
-                                    suggestionsDisabled={isLoading || !layoutMode}
                                     onOpenContentPanel={openContentPanel}
-                                    onOpenAppearancePanel={openAppearancePanel}
                                     onRunAts={runAtsScore}
                                     onOpenMatchJob={openMatchJobPanel}
                                     onShowEvidence={showJobEvidence}
@@ -2468,9 +2098,7 @@ export default function AiAssistant() {
                                 value={input}
                                 onChange={e => setInput(e.target.value)}
                                 onKeyDown={handleKey}
-                                placeholder={layoutMode
-                                    ? "np. Który nagłówek odstaje? Czy wpis Citibank jest za nisko?"
-                                    : "Zadaj pytanie lub wydaj polecenie…"}
+                                placeholder="Zadaj pytanie lub wydaj polecenie…"
                                 rows={2}
                                 disabled={isLoading || activePanel === "match_job"}
                             />
