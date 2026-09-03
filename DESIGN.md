@@ -73,6 +73,11 @@ motion:
   standard: "200ms"
   slow: "320ms"
   easing: "cubic-bezier(0.2, 0, 0, 1)"
+elevation:
+  popover: "0 12px 32px rgba(22, 22, 22, 0.16)"
+  editorSection: "0 8px 20px rgba(22, 22, 22, 0.14)"
+  editorEntry: "0 5px 14px rgba(22, 22, 22, 0.13)"
+  editorElement: "0 2px 7px rgba(22, 22, 22, 0.18)"
 ---
 
 # CV Studio Swiss Design System
@@ -93,7 +98,7 @@ The contract applies to:
 - desktop, tablet, and mobile layouts;
 - all new UI introduced after this document is adopted.
 
-The generated CV templates may keep their own template-specific typography and visual identity because they are user-authored document output. The application chrome around those templates, including selection outlines, handles, guides, toolbars, controls, and dialogs, must follow this design system. A template must never leak its styles into the application UI.
+The generated CV templates may keep their own template-specific typography and visual identity because they are user-authored document output. The application chrome around those templates, including selection affordances, handles, guides, toolbars, controls, and dialogs, must follow this design system. A template must never leak its styles into the application UI.
 
 ## 2. Design principles
 
@@ -177,8 +182,9 @@ Use a 4px base unit and the scale `4, 8, 12, 16, 24, 32, 48, 64, 96`. Prefer the
 - Default panels and cards are square: `0px` radius.
 - Interactive controls may use up to `2px` radius.
 - Pills are reserved for tags, status badges, and compact filters whose shape communicates containment.
-- Prefer borders, contrasting surfaces, and spacing over shadows.
-- If separation cannot be expressed otherwise, use one restrained shadow token; do not stack shadows.
+- Prefer borders, contrasting surfaces, and spacing over shadows in ordinary application chrome.
+- If separation cannot be expressed otherwise, use one restrained shadow per rendered layer; do not stack multiple shadows on the same layer.
+- Canvas context is the narrow exception: section, entry, and exact-element editor overlays use the neutral `editorSection`, `editorEntry`, and `editorElement` elevation tokens instead of borders or tinted fills. Their decreasing reach communicates containment and slight physical depth without borrowing colors from a CV template. The A4 surface inverse-scales these tokens so their screen-space size remains stable at every canvas zoom. Keyboard focus remains a separate blue `focus` outline.
 - Never use floating cards as the default page structure.
 
 Z-index contract:
@@ -278,7 +284,8 @@ The editor and other task-heavy screens may be denser, but must remain grid-base
 ### 5.7 Editor and PDF canvas
 
 - The document remains the dominant object; chrome must support it rather than compete with it.
-- Selection outlines, resize handles, alignment guides, insertion controls, and AI correction highlights must use a coherent interaction palette and remain distinguishable from document content.
+- Selection affordances, resize handles, alignment guides, insertion controls, and AI correction highlights must use a coherent interaction language and remain distinguishable from document content.
+- Structural section, entry, and element context is shown with the shared neutral editor elevation hierarchy, without colored overlay surfaces or decorative borders. These shadows belong only to application chrome and must not enter layout, persistence, or PDF output.
 - Canvas zoom, page boundaries, page numbers, and active selection must be readable at every supported scale.
 - Hover-only tools must also be reachable by keyboard or through a persistent control path.
 - Dragging must provide visible origin, current target, and invalid-drop feedback.

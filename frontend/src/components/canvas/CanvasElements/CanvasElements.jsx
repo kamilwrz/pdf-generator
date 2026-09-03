@@ -135,7 +135,7 @@ function fillSectionAnchors(
       minTop,
     } = anchor;
     const next = anchors[index + 1];
-    // A section outline is page-local. Its lower edge stops at the next visual
+    // A section shadow is page-local. Its lower edge stops at the next visual
     // chrome start in the same lane/page, or at the physical page edge when the
     // lane continues on another page. The upper limit prevents stale or
     // polluted membership from pulling a moved section into its predecessor.
@@ -145,7 +145,7 @@ function fillSectionAnchors(
     // prose) should reveal the same complete heading+body boundary as the
     // heading itself. Record fields and repeatable grid cells keep their more
     // specific record/cell affordances, so exclude their trigger ids here
-    // instead of stacking three competing structural frames on one pointer.
+    // instead of stacking three competing depth layers on one pointer.
     const contentHoverIds = documentElements
       .filter((element) => (
         memberIds.has(element.element_id)

@@ -5,37 +5,36 @@
     z-index: var(--z-editor-affordance);
 }
 
-/* One selection colour everywhere — matches Textarea's own edit-mode accent
-   outline (Textarea.module.css `.editing`), so a selected-but-not-editing
-   text/textarea element and an actively-editing one read as the same single
-   frame instead of two different colours (slate blue vs. accent black). */
+/* Selection is editor-only depth, not authored document decoration. The tight
+   neutral shadow matches Textarea's edit surface without changing geometry or
+   borrowing a colour from the active CV template. */
 .frame {
     position: absolute;
     box-sizing: border-box;
-    border: 1px solid var(--accent, var(--color-ink));
+    border: 0;
     border-radius: 0;
-    box-shadow: none;
+    background: transparent;
+    box-shadow: var(--canvas-shadow-editor-element, var(--shadow-editor-element));
     animation: selectIn 160ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .frameMulti {
-    box-shadow: none;
+    box-shadow: var(--canvas-shadow-editor-element, var(--shadow-editor-element));
 }
 
 .frameMoving {
-    border-color: var(--color-focus);
-    border-width: 1px;
+    border: 0;
     background: transparent;
-    box-shadow: none;
+    box-shadow: var(--canvas-shadow-editor-active, var(--shadow-editor-active));
 }
 
 .groupFrame {
     position: absolute;
     box-sizing: border-box;
-    border: 1px dashed var(--color-focus);
+    border: 0;
     border-radius: 0;
     background: transparent;
-    box-shadow: none;
+    box-shadow: var(--canvas-shadow-editor-entry, var(--shadow-editor-entry));
 }
 
 .badge {

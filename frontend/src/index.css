@@ -55,10 +55,21 @@
     --control-height-compact: 36px;
     --topbar-h: 48px;
 
-    /* One restrained elevation language; borders remain the primary divider. */
+    /* Restrained elevation language. Editor context shadows are a deliberate
+       hierarchy: a section has the broadest lift, a record a medium lift, and
+       the exact authored element the tightest lift. Every layer uses one
+       neutral shadow so the document palette never becomes application state. */
     --shadow-pop: 0 12px 32px rgba(22, 22, 22, .16);
     --shadow-card: none;
     --shadow-accent: none;
+    --shadow-editor-section-color: rgba(22, 22, 22, .14);
+    --shadow-editor-entry-color: rgba(22, 22, 22, .13);
+    --shadow-editor-element-color: rgba(22, 22, 22, .18);
+    --shadow-editor-active-color: rgba(21, 94, 239, .22);
+    --shadow-editor-section: 0 8px 20px var(--shadow-editor-section-color);
+    --shadow-editor-entry: 0 5px 14px var(--shadow-editor-entry-color);
+    --shadow-editor-element: 0 2px 7px var(--shadow-editor-element-color);
+    --shadow-editor-active: 0 4px 12px var(--shadow-editor-active-color);
 
     /* Motion and stacking contracts. */
     --motion-fast: 120ms;

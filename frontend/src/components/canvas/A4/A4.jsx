@@ -6,6 +6,29 @@
 import classes from "./A4.module.css";
 import { forwardRef } from "react";
 
+/**
+ * Keeps editor-only elevation constant in screen space while the A4 page is
+ * transformed. The values reference global colour tokens, so no document
+ * palette or persisted element style can leak into selection feedback.
+ *
+ * @param {number} zoom - Visual scale applied to the A4 page.
+ * @returns {Record<string, string>} CSS custom properties inherited by canvas chrome.
+ */
+function editorDepthStyle(zoom) {
+    const safeZoom = Number.isFinite(Number(zoom)) && Number(zoom) > 0.05
+        ? Number(zoom)
+        : 1;
+    const px = (screenPixels) => `${screenPixels / safeZoom}px`;
+
+    return {
+        "--canvas-shadow-editor-section": `0 ${px(8)} ${px(20)} var(--shadow-editor-section-color)`,
+        "--canvas-shadow-editor-entry": `0 ${px(5)} ${px(14)} var(--shadow-editor-entry-color)`,
+        "--canvas-shadow-editor-element": `0 ${px(2)} ${px(7)} var(--shadow-editor-element-color)`,
+        "--canvas-shadow-editor-active": `0 ${px(4)} ${px(12)} var(--shadow-editor-active-color)`,
+        "--canvas-editor-lift": `-${px(1)}`,
+    };
+}
+
 
 export default forwardRef(function A4({
     width, height, zoom = 1, page, isSpread = false, children, onPointerDownCapture,
@@ -24,7 +47,13 @@ export default forwardRef(function A4({
                 ref={ref}
                 data-page-canvas={page}
                 className={`${classes.A4} page-canvas`}
-                style={{ width, height, transform: `scale(${zoom})`, transformOrigin: "top left" }}
+                style={{
+                    width,
+                    height,
+                    transform: `scale(${zoom})`,
+                    transformOrigin: "top left",
+                    ...editorDepthStyle(zoom),
+                }}
                 onPointerDownCapture={onPointerDownCapture}
             >
                 {children}

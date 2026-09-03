@@ -1,5 +1,5 @@
 /* Single DOM node for display + edit (contentEditable). No <input> swap, so
-   the baseline never jumps and the selection frame keeps hugging the glyphs. */
+   the baseline never jumps and the selection depth keeps hugging the glyphs. */
 .textElement {
     display: inline-block;
     box-sizing: border-box;
@@ -24,9 +24,9 @@
 
 /* Template identity and contact fields advertise direct editing without
    changing their box model. Canvas paragraphs intentionally inherit a zero
-   line-height for PDF parity, so an outline on the <p> itself would collapse
-   to a horizontal rule. This pointer-inert pseudo-box follows the font size
-   and authored width instead. Selection/edit chrome owns the persistent state,
+   line-height for PDF parity, so a hover effect on the <p> itself would use a
+   collapsed box. This pointer-inert pseudo-box follows the font size
+   and authored width instead. Selection/edit chrome owns the persistent depth,
    and keyboard focus keeps the stronger blue accessibility ring. */
 .editorHoverOutline::after {
     content: "";
@@ -36,13 +36,15 @@
     box-sizing: border-box;
     width: calc(100% + 4px);
     height: calc(1.2em + 4px);
-    border: 1px solid transparent;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
     pointer-events: none;
-    transition: border-color var(--motion-fast, 120ms) var(--motion-easing, ease-out);
+    transition: box-shadow var(--motion-fast, 120ms) var(--motion-easing, ease-out);
 }
 
 .editorHoverOutline:not(.selectedElement):not(.editing):not(:focus-visible):hover::after {
-    border-color: var(--color-accent);
+    box-shadow: var(--canvas-shadow-editor-element, var(--shadow-editor-element));
 }
 
 @media (prefers-reduced-motion: reduce) {

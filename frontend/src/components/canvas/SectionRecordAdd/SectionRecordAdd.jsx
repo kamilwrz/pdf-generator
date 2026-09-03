@@ -2,8 +2,8 @@
  * Contextual structural toolbar for a template-mode section heading.
  *
  * Heading hover or keyboard focus reveals a grouped toolbar in the A4 gutter
- * and an inner frame around the exact heading. Plain body hover/focus keeps the
- * complete section frame visible without opening controls. Add/reorder remain
+ * and a tighter depth cue around the exact heading. Plain body hover/focus keeps
+ * the complete section lift visible without opening controls. Add/reorder remain
  * direct; layout, transfer, and destructive actions live in the overflow menu,
  * keeping editor chrome out of the CV content and exported document.
  */
@@ -100,7 +100,7 @@ export default function SectionRecordAdd({
     ? A4_Elements.find((element) => element.element_id === nextHeadingId)
     : null;
   // A selected heading remains a structural hover target while it is edited.
-  // Selection owns its persistent frame; this component adds only transient
+  // Selection owns its persistent depth; this component adds only transient
   // section and exact-heading hover context around it.
   const eligible = editorMode === EDITOR_MODE_TEMPLATE;
   const exclusiveKey = `heading:${headingId}`;
@@ -111,7 +111,6 @@ export default function SectionRecordAdd({
   ].join(":");
   const {
     visible,
-    pinned,
     menuOpen,
     hoveredTriggerId,
     toolbarPointerProps,
@@ -138,7 +137,7 @@ export default function SectionRecordAdd({
       .filter(Boolean);
     if (nodes.length === 0) return undefined;
 
-    // This listener owns only the semantic section frame. More specific
+    // This listener owns only the semantic section depth. More specific
     // record/grid controls retain the exclusive toolbar slot and are excluded
     // by CanvasElements before these ids arrive here.
     const showContext = () => setContentHoverActive(true);
@@ -175,13 +174,13 @@ export default function SectionRecordAdd({
     if (!sectionContextVisible || !heading) return;
     // React has committed Text/Textarea coordinates by this point. Measuring
     // inside render would still see the previous reorder/transfer position and
-    // is the root cause of neighbouring section outlines being merged.
+    // is the root cause of neighbouring section highlights being merged.
     const headingBounds = getVisualBounds(heading);
     const nextHeadingBounds = nextHeading ? getVisualBounds(nextHeading) : null;
     // The synchronous layout-state update is intentional: React performs the
     // follow-up render before paint, so users never see the model-only fallback
     // cut through line-height:1 glyph ink. Moving this to a passive effect would
-    // produce a one-frame border jump on every first hover.
+    // produce a one-frame shadow jump on every first hover.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setRenderedHeadingMeasurement((current) => (
       current?.key === headingMeasurementKey
@@ -237,7 +236,7 @@ export default function SectionRecordAdd({
     )
     : storedHighlight;
   // Anchor both axes to the rendered heading rather than to the A4 page or the
-  // full semantic section outline. This remains accurate for fonts whose glyph
+  // full semantic section bounds. This remains accurate for fonts whose glyph
   // ink is offset inside the stored line box and after a zoom/reorder commit.
   const toolbarHeadingBounds = currentMeasurement?.headingBounds || {
     left: Number(left) || 0,
@@ -302,12 +301,12 @@ export default function SectionRecordAdd({
       toolbarKey={exclusiveKey}
       visible={visible}
       highlightVisible={sectionContextVisible}
-      pinned={pinned}
       side="right"
       anchorX={toolbarAnchorX}
       top={toolbarTop}
       pageWidth={pageSize?.width ?? 595}
       highlight={resolvedHighlight}
+      highlightLevel="section"
       elementHighlight={elementHighlight}
       elementHighlightSelected={Boolean(hoveredHeading?.isSelected)}
       layout={layout}

@@ -24,13 +24,48 @@ test("structural toolbar accepts an element anchor while preserving the page-edg
   assert.match(source, /left: resolvedAnchorX/);
 });
 
-test("selected elements keep selection and receive a separate hover ring", async () => {
+test("selected elements keep selection and receive a separate depth cue", async () => {
   const source = await readFile(new URL("./CanvasHoverToolbar.jsx", import.meta.url), "utf8");
   const css = await readFile(new URL("./CanvasHoverToolbar.module.css", import.meta.url), "utf8");
 
   assert.match(source, /elementHighlightSelected/);
-  assert.match(css, /\.elementHighlightSelected\s*\{[^}]*outline-offset:\s*4px/s);
-  assert.match(css, /\.elementHighlightSelected\s*\{[^}]*border-color:\s*transparent/s);
+  assert.match(css, /\.elementHighlightSelected\s*\{[^}]*box-shadow:[^;]*--shadow-editor-entry/s);
+  assert.match(css, /\.elementHighlightSelected\s*\{[^}]*transform:\s*translateY\(var\(--canvas-editor-lift, -1px\)\)/s);
+});
+
+test("section, entry, and element context use neutral shadow depth without tinted surfaces", async () => {
+  const source = await readFile(new URL("./CanvasHoverToolbar.jsx", import.meta.url), "utf8");
+  const css = await readFile(new URL("./CanvasHoverToolbar.module.css", import.meta.url), "utf8");
+
+  assert.match(source, /highlightLevel = "entry"/);
+  assert.match(source, /classes\.highlightSection/);
+  assert.match(source, /classes\.highlightElement/);
+  assert.match(css, /\.highlight\s*\{[^}]*background:\s*transparent[^}]*border-style:\s*none/s);
+  assert.match(css, /\.highlightSection\s*\{[^}]*--shadow-editor-section/s);
+  assert.match(css, /\.highlightEntry\s*\{[^}]*--shadow-editor-entry/s);
+  assert.match(css, /\.elementHighlight\s*\{[^}]*--shadow-editor-element/s);
+});
+
+test("selection and editing reuse the same depth tokens while keyboard focus stays visible", async () => {
+  const [tokens, pageSource, selectionCss, textareaCss] = await Promise.all([
+    readFile(new URL("../../../index.css", import.meta.url), "utf8"),
+    readFile(new URL("../A4/A4.jsx", import.meta.url), "utf8"),
+    readFile(new URL("../SelectionOverlay/SelectionOverlay.module.css", import.meta.url), "utf8"),
+    readFile(new URL("../Textarea/Textarea.module.css", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(tokens, /--shadow-editor-section:/);
+  assert.match(tokens, /--shadow-editor-entry:/);
+  assert.match(tokens, /--shadow-editor-element:/);
+  assert.match(pageSource, /const px = \(screenPixels\) => `\$\{screenPixels \/ safeZoom\}px`/);
+  assert.match(pageSource, /"--canvas-shadow-editor-section"/);
+  assert.match(pageSource, /"--canvas-shadow-editor-entry"/);
+  assert.match(pageSource, /"--canvas-shadow-editor-element"/);
+  assert.match(pageSource, /"--canvas-editor-lift"/);
+  assert.match(selectionCss, /\.frame\s*\{[^}]*border:\s*0[^}]*--shadow-editor-element/s);
+  assert.match(selectionCss, /\.groupFrame\s*\{[^}]*border:\s*0[^}]*--shadow-editor-entry/s);
+  assert.match(textareaCss, /\.editing\s*\{[^}]*box-shadow:[^;]*--shadow-editor-element/s);
+  assert.match(textareaCss, /\.editing:focus-visible\s*\{[^}]*outline:\s*2px solid var\(--color-focus\)/s);
 });
 
 test("direct actions replace the labelled structural toolbar with accessible icon buttons", async () => {

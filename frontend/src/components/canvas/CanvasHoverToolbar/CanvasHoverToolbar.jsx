@@ -15,12 +15,12 @@ import classes from "./CanvasHoverToolbar.module.css";
  *   toolbarKey:string,
  *   visible:boolean,
  *   highlightVisible?:boolean,
- *   pinned:boolean,
  *   side?:"left"|"right",
  *   anchorX?:number|null,
  *   top:number,
  *   pageWidth:number,
  *   highlight?:{left:number,top:number,width:number,height:number}|null,
+ *   highlightLevel?:"section"|"entry"|"element",
  *   elementHighlight?:{left:number,top:number,width:number,height:number}|null,
  *   elementHighlightSelected?:boolean,
  *   layout:{buttonSize:number,iconSize:number,gap:number,labelWidth:number,fontSize:number,menuWidth:number,offset:number,borderWidth:number},
@@ -43,12 +43,12 @@ export default function CanvasHoverToolbar({
   toolbarKey,
   visible,
   highlightVisible = visible,
-  pinned,
   side = "right",
   anchorX = null,
   top,
   pageWidth,
   highlight = null,
+  highlightLevel = "entry",
   elementHighlight = null,
   elementHighlightSelected = false,
   layout,
@@ -171,18 +171,22 @@ export default function CanvasHoverToolbar({
     action?.();
   };
   const hasDirectActions = directActions.length > 0;
+  const highlightLevelClass = highlightLevel === "section"
+    ? classes.highlightSection
+    : highlightLevel === "element"
+      ? classes.highlightElement
+      : classes.highlightEntry;
 
   return (
     <>
       {highlightVisible && highlight ? (
         <div
-          className={`${classes.highlight}${pinned ? ` ${classes.highlightPinned}` : ""}`}
+          className={`${classes.highlight} ${highlightLevelClass}`}
           style={{
             left: highlight.left,
             top: highlight.top,
             width: highlight.width,
             height: highlight.height,
-            borderWidth: layout.borderWidth,
           }}
           aria-hidden="true"
         />
@@ -198,7 +202,6 @@ export default function CanvasHoverToolbar({
             top: elementHighlight.top,
             width: elementHighlight.width,
             height: elementHighlight.height,
-            borderWidth: layout.borderWidth,
           }}
           aria-hidden="true"
         />

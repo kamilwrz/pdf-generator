@@ -72,7 +72,7 @@ test("repeatable grid cells mount their dedicated two-action gutter control", as
   assert.match(source, /canDelete=\{gridEntryAnchor\.canDelete\}/);
 });
 
-test("plain section content reveals the complete section outline without stealing nested controls", async () => {
+test("plain section content reveals the complete section depth without stealing nested controls", async () => {
   const source = await readFile(new URL("./CanvasElements.jsx", import.meta.url), "utf8");
   const sectionSource = await readFile(
     new URL("../SectionRecordAdd/SectionRecordAdd.jsx", import.meta.url),
@@ -87,7 +87,7 @@ test("plain section content reveals the complete section outline without stealin
   assert.match(sectionSource, /addEventListener\("pointerenter", showContext\)/);
 });
 
-test("semantic contact and identity fields receive editor-only hover outlines", async () => {
+test("semantic contact and identity fields receive editor-only hover depth", async () => {
   const [canvasSource, textSource, textCss, textareaSource, textareaCss] = await Promise.all([
     readFile(new URL("./CanvasElements.jsx", import.meta.url), "utf8"),
     readFile(new URL("../Text/Text.jsx", import.meta.url), "utf8"),
@@ -102,10 +102,10 @@ test("semantic contact and identity fields receive editor-only hover outlines", 
   assert.match(canvasSource, /element\.mastheadRole === "title"/);
   assert.match(textSource, /data-editor-hover-outline=/);
   assert.match(textareaSource, /data-editor-hover-outline=/);
-  assert.match(textCss, /\.editorHoverOutline[^}]*:hover::after[\s\S]*border-color: var\(--color-accent\)/);
+  assert.match(textCss, /\.editorHoverOutline[^}]*:hover::after[\s\S]*box-shadow:[^;]*--shadow-editor-element/);
   assert.match(textCss, /height: calc\(1\.2em \+ 4px\)/);
   assert.match(textCss, /pointer-events: none/);
-  assert.match(textareaCss, /\.editorHoverOutline[^}]*:hover[\s\S]*outline: 1px solid var\(--color-accent\)/);
+  assert.match(textareaCss, /\.editorHoverOutline[^}]*:hover[\s\S]*box-shadow:[^;]*--shadow-editor-element/);
   assert.match(textCss, /:not\(:focus-visible\)/);
   assert.match(textareaCss, /:not\(:focus-visible\)/);
 });

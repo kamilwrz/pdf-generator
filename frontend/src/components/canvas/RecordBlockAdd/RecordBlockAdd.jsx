@@ -2,7 +2,7 @@
  * Contextual structural toolbar for one template-mode record.
  *
  * Hovering any current-page record field reveals a grouped toolbar in the
- * nearest A4 gutter plus an inner frame around the exact title, metadata, or
+ * nearest A4 gutter plus a tighter depth cue around the exact title, metadata, or
  * description field. A single click edits text, while description/record
  * removals remain recoverable through the global toast.
  */
@@ -76,7 +76,7 @@ export default function RecordBlockAdd({
     .filter(Boolean);
   // Selection and inline editing are independent from structural hover. In
   // template mode one click starts editing, so excluding an editing field here
-  // would remove the complete record outline exactly when the user selects it.
+  // would remove the complete record depth cue exactly when the user selects it.
   const eligible = editorMode === EDITOR_MODE_TEMPLATE
     && elementSupportsRecordBlockAdd(A4_Elements, elementId, pageHeight);
   const exclusiveKey = `record:${elementId}`;
@@ -85,7 +85,6 @@ export default function RecordBlockAdd({
   )).join("|");
   const {
     visible,
-    pinned,
     menuOpen,
     hoveredTriggerId,
     toolbarPointerProps,
@@ -142,7 +141,7 @@ export default function RecordBlockAdd({
   };
   // Structural actions belong to the record, but their visual anchor is the
   // first (title) element. Using that element's live box avoids drifting toward
-  // the centre as descriptions add more lines to the record outline.
+  // the centre as descriptions add more lines to the record bounds.
   const toolbarAnchorBounds = renderedAnchorMeasurement?.key === anchorMeasurementKey
     ? renderedAnchorMeasurement.bounds
     : {
@@ -205,12 +204,12 @@ export default function RecordBlockAdd({
     <CanvasHoverToolbar
       toolbarKey={exclusiveKey}
       visible={visible}
-      pinned={pinned}
       side="left"
       anchorX={toolbarAnchorX}
       top={toolbarTop}
       pageWidth={pageSize?.width ?? 595}
       highlight={resolvedHighlight}
+      highlightLevel="entry"
       elementHighlight={elementHighlight}
       elementHighlightSelected={Boolean(hoveredElement?.isSelected)}
       layout={layout}

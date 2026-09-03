@@ -134,8 +134,8 @@ export function useCanvasHoverToolbar({
         scheduleHide();
       };
       // Keyboard focus reveals the structural context too. The focused node's
-      // native focus-visible outline remains blue, so the brown pointer-hover
-      // frame is intentionally not duplicated for keyboard users.
+      // Native focus-visible outline remains blue, so the pointer-hover depth
+      // cue is intentionally not duplicated for keyboard users.
       const onFocusIn = () => show();
       const onFocusOut = () => scheduleHide();
       node.addEventListener("pointerenter", onPointerEnter);

@@ -3,20 +3,26 @@
     z-index: 34;
     box-sizing: border-box;
     pointer-events: none;
-    background: color-mix(in srgb, var(--color-ink) 2.5%, transparent);
-    border-style: solid;
-    border-color: color-mix(in srgb, var(--color-ink) 28%, transparent);
+    background: transparent;
+    border-style: none;
     border-radius: 0;
     animation: canvasHighlightIn 160ms ease-out both;
 }
 
-.highlightPinned {
-    background: color-mix(in srgb, var(--color-ink) 4.5%, transparent);
-    border-color: color-mix(in srgb, var(--color-ink) 62%, transparent);
+.highlightSection {
+    box-shadow: var(--canvas-shadow-editor-section, var(--shadow-editor-section));
 }
 
-/* A semantic section/record frame provides the outer context. This second,
-   pointer-inert frame identifies the exact authored element under the pointer
+.highlightEntry {
+    box-shadow: var(--canvas-shadow-editor-entry, var(--shadow-editor-entry));
+}
+
+.highlightElement {
+    box-shadow: var(--canvas-shadow-editor-element, var(--shadow-editor-element));
+}
+
+/* A semantic section/record shadow provides the outer context. This tighter,
+   pointer-inert lift identifies the exact authored element under the pointer
    without selecting it or changing the document model. */
 .elementHighlight {
     position: absolute;
@@ -24,20 +30,18 @@
     box-sizing: border-box;
     pointer-events: none;
     background: transparent;
-    border-style: solid;
-    border-color: var(--color-accent, var(--accent));
+    border-style: none;
     border-radius: 0;
+    box-shadow: var(--canvas-shadow-editor-element, var(--shadow-editor-element));
     animation: canvasElementHighlightIn 110ms ease-out both;
 }
 
-/* A selected field keeps its persistent accent frame. Move the transient
-   pointer-hover frame outside it instead of painting over the same pixels, so
-   both states stay legible while editing and while crossing record siblings. */
+/* A selected field already owns a persistent tight lift. Raise the transient
+   pointer-hover shadow by one pixel so both states remain legible without
+   introducing a second outline or a coloured surface. */
 .elementHighlightSelected {
-    outline: var(--canvas-control-border, 1px) solid
-        color-mix(in srgb, var(--color-ink) 72%, transparent);
-    outline-offset: 4px;
-    border-color: transparent;
+    box-shadow: var(--canvas-shadow-editor-entry, var(--shadow-editor-entry));
+    transform: translateY(var(--canvas-editor-lift, -1px));
 }
 
 .origin {

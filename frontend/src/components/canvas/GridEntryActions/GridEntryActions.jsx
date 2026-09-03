@@ -135,11 +135,11 @@ export default function GridEntryActions({
   const side = resolveStructuralToolbarSide(preferredSide, spreadSide);
   const entryLabel = String(entry?.content || "").trim();
   // A grid cell is both the structural target and the exact edited element, so
-  // the section/record pattern of painting two nested hover frames would draw
+  // the section/record pattern of painting two nested depth cues would draw
   // the same boundary twice. SelectionOverlay and the editable textarea own
   // selected/editing states; keyboard focus keeps the global focus-visible
-  // ring. Paint this one context frame only for pointer hover (or while the
-  // keyboard-opened toolbar is pinned) when no persistent state frame exists.
+  // ring. Paint this one context shadow only for pointer hover (or while the
+  // keyboard-opened toolbar is pinned) when no persistent depth state exists.
   const hasPersistentStateFrame = Boolean(entry?.isSelected || entry?.isEditing);
   const hoverHighlight = !hasPersistentStateFrame
     && (hoveredTriggerId === elementId || pinned)
@@ -187,11 +187,11 @@ export default function GridEntryActions({
     <CanvasHoverToolbar
       toolbarKey={exclusiveKey}
       visible={visible}
-      pinned={pinned}
       side={side}
       top={toolbarTop}
       pageWidth={pageSize?.width ?? 595}
       highlight={hoverHighlight}
+      highlightLevel="entry"
       layout={layout}
       directActions={directActions}
       toolbarPointerProps={directToolbarPointerProps}
