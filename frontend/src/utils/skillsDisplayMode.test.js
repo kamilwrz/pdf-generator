@@ -49,6 +49,30 @@ function groupedSkillsFixture() {
   ];
 }
 
+/** Reproduces newly inserted categories whose visible names are placeholders. */
+function placeholderCategorySkillsFixture() {
+  return [
+    { element_id: "sk-head", category: "text", content: "UMIEJĘTNOŚCI (KATEGORIE)",
+      flowRole: "section-chrome", left: 66, top: 100, fontSize: 12, height: 16, page: 1, bold: true },
+    { element_id: "sk-rule", category: "line", flowRole: "section-chrome",
+      left: 66, top: 120.7, width: 460, height: 1, page: 1 },
+    { element_id: "sk-cat1", category: "textarea", content: "",
+      placeholder: "Kategoria umiejętności", starterPlaceholder: true,
+      flowRole: "content", flowGroup: "sk-g1", left: 66, top: 136, width: 460,
+      height: 14, fontSize: 10, page: 1, bold: true },
+    { element_id: "sk-body1", category: "textarea", content: "React",
+      flowRole: "content", flowGroup: "sk-g1", left: 66, top: 154, width: 460,
+      height: 14, fontSize: 9.5, page: 1, bulletList: false },
+    { element_id: "sk-cat2", category: "textarea", content: "",
+      placeholder: "Kategoria umiejętności", starterPlaceholder: true,
+      flowRole: "content", flowGroup: "sk-g2", left: 66, top: 178, width: 460,
+      height: 14, fontSize: 10, page: 1, bold: true },
+    { element_id: "sk-body2", category: "textarea", content: "Kamil  ·  JSS",
+      flowRole: "content", flowGroup: "sk-g2", left: 66, top: 196, width: 460,
+      height: 14, fontSize: 9.5, page: 1, bulletList: false },
+  ];
+}
+
 function flatSkillsFixture() {
   return [
     { element_id: "sk-head", category: "text", content: "UMIEJĘTNOŚCI",
@@ -199,6 +223,45 @@ describe("changeSkillsDisplayMode", () => {
     assert.equal(detectSkillsDisplayModeFor(next, "sk-head"), "chips");
     assert.deepEqual(groupsFor(next, "sk-head"), [
       { category: "", items: ["AML", "KYC", "SQL", "Python"] },
+    ]);
+  });
+
+  it("preserves empty category placeholders through chip and inline conversions", () => {
+    const chips = changeSkillsDisplayMode(
+      placeholderCategorySkillsFixture(),
+      "sk-head",
+      "chips",
+      PAGE_HEIGHT,
+      SPACING,
+    );
+    assert.ok(chips);
+    assert.deepEqual(groupsFor(chips, "sk-head"), [
+      { category: "", categoryPlaceholder: "Kategoria umiejętności", items: ["React"] },
+      { category: "", categoryPlaceholder: "Kategoria umiejętności", items: ["Kamil", "JSS"] },
+    ]);
+
+    const chipCategoryLabels = chips.filter((element) => (
+      element.category === "textarea"
+      && element.bold
+      && element.placeholder === "Kategoria umiejętności"
+    ));
+    assert.equal(chipCategoryLabels.length, 2);
+    assert.ok(chipCategoryLabels.every((element) => (
+      element.content === "" && element.starterPlaceholder === true
+    )));
+    assert.notEqual(chipCategoryLabels[0].flowGroup, chipCategoryLabels[1].flowGroup);
+
+    const inline = changeSkillsDisplayMode(
+      chips,
+      "sk-head",
+      "inline",
+      PAGE_HEIGHT,
+      SPACING,
+    );
+    assert.ok(inline);
+    assert.deepEqual(groupsFor(inline, "sk-head"), [
+      { category: "", categoryPlaceholder: "Kategoria umiejętności", items: ["React"] },
+      { category: "", categoryPlaceholder: "Kategoria umiejętności", items: ["Kamil", "JSS"] },
     ]);
   });
 

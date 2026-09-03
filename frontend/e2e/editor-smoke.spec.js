@@ -3,6 +3,7 @@ import {
   installMockApi,
   login,
   SAVED_DOCUMENT,
+  SAVED_ELEMENTS,
 } from "./support/mockApi.js";
 
 test.describe("CV Studio editor smoke", () => {
@@ -203,7 +204,43 @@ test.describe("CV Studio editor smoke", () => {
   });
 
   test("creates correctly sized skill chips through the layout modal", async ({ page }) => {
-    const api = await installMockApi(page);
+    const placeholderDocument = {
+      ...SAVED_DOCUMENT,
+      cv_data: {
+        ...SAVED_DOCUMENT.cv_data,
+        skills: [
+          { category: "", items: ["React"] },
+          { category: "", items: ["Kamil", "JSS"] },
+        ],
+      },
+    };
+    const placeholderElements = SAVED_ELEMENTS.map((element) => {
+      if (["skills-tools-title", "skills-technologies-title"].includes(element.element_id)) {
+        return {
+          ...element,
+          content: "",
+          placeholder: "Kategoria umiejętności",
+          starterPlaceholder: true,
+          extra_properties: {
+            ...element.extra_properties,
+            placeholder: "Kategoria umiejętności",
+            starterPlaceholder: true,
+          },
+        };
+      }
+      if (element.element_id === "skills-tools-body") {
+        return { ...element, content: "React" };
+      }
+      if (element.element_id === "skills-technologies-body") {
+        return { ...element, content: "Kamil  ·  JSS" };
+      }
+      return element;
+    });
+    const api = await installMockApi(page, {
+      documents: [placeholderDocument],
+      savedDocument: placeholderDocument,
+      savedElements: placeholderElements,
+    });
     await login(page);
     await page.getByText("Kontynuuj ostatnie CV", { exact: true }).click();
     await page.getByRole("button", { name: "Otwórz na płótnie" }).click();
@@ -219,6 +256,7 @@ test.describe("CV Studio editor smoke", () => {
     const modal = page.getByRole("dialog", { name: "Styl umiejętności" });
     await modal.getByRole("button", { name: /^Chipsy/ }).click();
 
+    await expect(page.locator('[data-placeholder="Kategoria umiejętności"]')).toHaveCount(2);
     const reactLabel = page.getByText("React", { exact: true });
     await expect(reactLabel).toHaveCount(1);
     const chipGeometry = await reactLabel.evaluate((label) => {

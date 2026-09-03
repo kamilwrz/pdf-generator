@@ -194,6 +194,24 @@ function byReadingOrder(a, b) {
 }
 
 /**
+ * Return authored category text and editor-only starter guidance separately.
+ *
+ * Fresh categorized Skills sections keep category content empty and display a
+ * placeholder. Layout conversions must preserve that placeholder without
+ * turning it into authored content that could reach `cv_data.skills` or PDF.
+ */
+function skillCategoryDescriptor(element) {
+  const category = String(element?.content || "").trim();
+  const categoryPlaceholder = category
+    ? ""
+    : String(element?.placeholder || "").trim();
+  return {
+    category,
+    ...(categoryPlaceholder ? { categoryPlaceholder } : {}),
+  };
+}
+
+/**
  * Collect skill groups from a chip-mode section: `buildSkillsChipGroups`
  * stamps one `flowGroup` per category (bold label + every one of its chip
  * rect/text pairs, matching the backend's `keep_together` per group), so each
@@ -202,7 +220,7 @@ function byReadingOrder(a, b) {
  * item among many sharing that flowGroup's items list.
  *
  * @param {object[]} members
- * @returns {{ category: string, items: string[] }[]}
+ * @returns {{ category: string, categoryPlaceholder?: string, items: string[] }[]}
  */
 function collectSkillGroupsFromChips(members) {
   const categoryByGroup = new Map();
@@ -222,7 +240,7 @@ function collectSkillGroupsFromChips(members) {
       && Boolean(element.bold)
       && (element.category === "textarea" || element.category === "text")
     ) {
-      categoryByGroup.set(element.flowGroup, String(element.content || "").trim());
+      categoryByGroup.set(element.flowGroup, skillCategoryDescriptor(element));
     }
   }
 
@@ -242,8 +260,11 @@ function collectSkillGroupsFromChips(members) {
   }
 
   return order
-    .map((group) => ({ category: categoryByGroup.get(group) || "", items: itemsByGroup.get(group) }))
-    .filter((group) => group.category || group.items.length > 0);
+    .map((group) => ({
+      ...(categoryByGroup.get(group) || { category: "" }),
+      items: itemsByGroup.get(group),
+    }))
+    .filter((group) => group.category || group.categoryPlaceholder || group.items.length > 0);
 }
 
 /**
@@ -252,7 +273,7 @@ function collectSkillGroupsFromChips(members) {
  *
  * @param {object[]} members
  * @param {string} headingId
- * @returns {{ category: string, items: string[] }[]}
+ * @returns {{ category: string, categoryPlaceholder?: string, items: string[] }[]}
  */
 export function collectSkillGroups(members, headingId) {
   const pool = (members || []).filter((element) => element && element.element_id !== headingId);
@@ -279,28 +300,34 @@ export function collectSkillGroups(members, headingId) {
   // Main-column shape: bold category label + following body, optionally
   // sharing a flowGroup. Untagged stacks still pair bold-then-body by order.
   const groups = [];
-  let pendingCategory = "";
+  let pendingCategory = null;
   for (const element of bodies) {
+    const categoryDescriptor = skillCategoryDescriptor(element);
+    const displayedCategory = categoryDescriptor.category
+      || categoryDescriptor.categoryPlaceholder
+      || "";
     const isCategory = Boolean(element.bold)
       && !element.bulletList
-      && String(element.content || "").trim()
-      && !String(element.content || "").includes("\n")
-      && !LEADING_BULLET_RE.test(String(element.content || "").trim());
+      && displayedCategory
+      && !displayedCategory.includes("\n")
+      && !LEADING_BULLET_RE.test(displayedCategory);
     if (isCategory) {
       if (pendingCategory) {
-        groups.push({ category: pendingCategory, items: [] });
+        groups.push({ ...pendingCategory, items: [] });
       }
-      pendingCategory = String(element.content || "").trim();
+      pendingCategory = categoryDescriptor;
       continue;
     }
     const items = parseFlatListItems(element.content, Boolean(element.bulletList));
-    groups.push({ category: pendingCategory, items });
-    pendingCategory = "";
+    groups.push({ ...(pendingCategory || { category: "" }), items });
+    pendingCategory = null;
   }
   if (pendingCategory) {
-    groups.push({ category: pendingCategory, items: [] });
+    groups.push({ ...pendingCategory, items: [] });
   }
-  return groups.filter((group) => group.category || group.items.length > 0);
+  return groups.filter((group) => (
+    group.category || group.categoryPlaceholder || group.items.length > 0
+  ));
 }
 
 /**
@@ -341,7 +368,9 @@ export function formatSkillsSidebarContent(groups) {
  */
 export function buildSkillsMainGroups(groups, options) {
   const list = (groups || []).filter((group) => (
-    String(group?.category || "").trim() || (group?.items || []).length > 0
+    String(group?.category || "").trim()
+    || String(group?.categoryPlaceholder || "").trim()
+    || (group?.items || []).length > 0
   ));
   if (list.length === 0) return [];
 
@@ -366,16 +395,24 @@ export function buildSkillsMainGroups(groups, options) {
 
   list.forEach((group, index) => {
     const category = String(group.category || "").trim();
+    const categoryPlaceholder = category
+      ? ""
+      : String(group.categoryPlaceholder || "").trim();
+    const displayedCategory = category || categoryPlaceholder;
     const formatted = formatFlatListContent(group.items || [], layoutStyle);
     const flowGroup = `skill-group-${idFactory()}`;
     const hasBody = Boolean(formatted.content);
 
-    if (category) {
-      const catH = measureTextareaHeight(category, recordWidth, catFs, catLh);
+    if (displayedCategory) {
+      const catH = measureTextareaHeight(displayedCategory, recordWidth, catFs, catLh);
       elements.push({
         element_id: idFactory(),
         category: "textarea",
         content: category,
+        ...(categoryPlaceholder ? {
+          placeholder: categoryPlaceholder,
+          starterPlaceholder: true,
+        } : {}),
         left: bodyLeft,
         top: cursor,
         width: recordWidth,
@@ -535,7 +572,9 @@ export function layoutSkillChips(items, width, fontSize, options = {}) {
  */
 export function buildSkillsChipGroups(groups, options) {
   const list = (groups || []).filter((group) => (
-    String(group?.category || "").trim() || (group?.items || []).length > 0
+    String(group?.category || "").trim()
+    || String(group?.categoryPlaceholder || "").trim()
+    || (group?.items || []).length > 0
   ));
   if (list.length === 0) return [];
 
@@ -559,16 +598,24 @@ export function buildSkillsChipGroups(groups, options) {
 
   list.forEach((group, index) => {
     const category = String(group.category || "").trim();
+    const categoryPlaceholder = category
+      ? ""
+      : String(group.categoryPlaceholder || "").trim();
+    const displayedCategory = category || categoryPlaceholder;
     const items = (group.items || []).filter((item) => String(item || "").trim());
     const flowGroup = `skill-group-${idFactory()}`;
     const hasBody = items.length > 0;
 
-    if (category) {
-      const catH = measureTextareaHeight(category, recordWidth, catFs, catLh);
+    if (displayedCategory) {
+      const catH = measureTextareaHeight(displayedCategory, recordWidth, catFs, catLh);
       elements.push({
         element_id: idFactory(),
         category: "textarea",
         content: category,
+        ...(categoryPlaceholder ? {
+          placeholder: categoryPlaceholder,
+          starterPlaceholder: true,
+        } : {}),
         left: bodyLeft,
         top: cursor,
         width: recordWidth,
