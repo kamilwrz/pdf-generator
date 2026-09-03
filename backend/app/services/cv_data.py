@@ -927,7 +927,7 @@ def _infer_record_kind_from_title(title: str) -> str:
 def _normalize_category_records(value: Any) -> list[dict[str, Any]]:
     """Keep editor-authored category/body pairs without title-based inference.
 
-    Empty individual fields and repeated records are intentional. Legacy flat
+    Empty structured records and repeated records are intentional. Legacy flat
     values remain bodies; guessing a colon boundary could corrupt user text.
     """
     if not isinstance(value, list):
@@ -941,7 +941,9 @@ def _normalize_category_records(value: Any) -> list[dict[str, Any]]:
         } if isinstance(item, Mapping) else {
             "title": "", "body": _text(item), "bulletList": False,
         }
-        if record["title"] or record["body"]:
+        # An explicit pair survives save/refill even before the user types.
+        # Empty legacy strings carry no record structure and can still be dropped.
+        if record["title"] or record["body"] or isinstance(item, Mapping):
             records.append(record)
     return records
 

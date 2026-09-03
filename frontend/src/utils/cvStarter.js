@@ -307,6 +307,9 @@ export function prepareStarterProfileForTemplate(cvData) {
   });
 
   (draft.custom_sections || []).forEach((section, index) => {
+    // The category renderer owns empty title/body fields. A generic starter
+    // string would flatten a structured record and invent an item after deletion.
+    if (section.layout === "cc-sub") return;
     const items = Array.isArray(section.items) ? section.items : [];
     section.items = (items.length > 0 ? items : [""]).map((item, itemIndex) => (
       typeof item === "string" && !item.trim()

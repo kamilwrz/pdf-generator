@@ -249,12 +249,13 @@ function customSectionItems(body, layout) {
   }
   if (layout === SECTION_LAYOUTS.RECORD_SUBCATEGORY) {
     // Category and body are independent editable fields, not a colon-delimited
-    // project title. Preserve line breaks, duplicate records and list mode.
+    // project title. Preserve empty records as well: their fields are editable
+    // structure, and deleting text is not the same as deleting the record.
     return groups.map((group) => ({
       title: roleValue(group, "title"),
       body: roleValue(group, "body"),
       bulletList: Boolean(group.find((element) => element.editorRecordField === "body")?.bulletList),
-    })).filter((record) => record.title || record.body);
+    }));
   }
   return (body || [])
     .filter((element) => ["text", "textarea"].includes(element?.category))

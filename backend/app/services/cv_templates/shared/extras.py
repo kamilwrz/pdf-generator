@@ -218,15 +218,17 @@ def _category_sections(b: Builder, section: dict, section_fn, C: dict,
     paginate without flattening the fields or stranding their category title.
     """
     records = section["items"]
+    placeholders = {"title": "Kategoria umiejętności", "body": "Umiejętność"}
 
     def fields(record):
         return [("title", record.get("title", ""), True, False),
                 ("body", record.get("body", ""), False, bool(record.get("bulletList")))]
 
     def height(record):
-        visible = [field for field in fields(record) if field[1]]
-        return sum(b.measure_block(text, W, fs, lh, font, bold=bold, bulletList=bullets)
-                   for _, text, bold, bullets in visible) + max(0, len(visible) - 1) * get_spacing().stack
+        # Reserve both editable fields, including placeholder-only records.
+        return sum(b.measure_block(text or placeholders[field], W, fs, lh, font,
+                                   bold=bold, bulletList=bullets)
+                   for field, text, bold, bullets in fields(record)) + get_spacing().stack
 
     b.need_section(chrome_h, height(records[0]))
     start = len(b.els)
@@ -238,13 +240,16 @@ def _category_sections(b: Builder, section: dict, section_fn, C: dict,
         with b.keep_together(height(record)):
             emitted = False
             for field, content, bold, bullets in fields(record):
-                if not content:
-                    continue
                 if emitted:
                     b.gap(get_spacing().stack)
-                b.block(content, L, W, fs, lh, C.get("body", "#2B2B2B"), font,
+                b.block(content or placeholders[field], L, W, fs, lh, C.get("body", "#2B2B2B"), font,
                         bold=bold, bulletList=bullets)
                 b.els[-1].update({"editorRecordLayout": "cc-sub", "editorRecordField": field})
+                if not content:
+                    # Builder skips empty text. Measure the guidance, then clear
+                    # it immediately so it never becomes profile or PDF content.
+                    b.els[-1].update({"content": "", "placeholder": placeholders[field],
+                                      "starterPlaceholder": True})
                 emitted = True
         if index < len(records) - 1:
             b.gap(get_spacing().record)

@@ -98,6 +98,8 @@ test("preserves category records through repeated guest/profile normalization", 
             { title: "Projekt 1", body: "SKILLS\nReact, Node", bulletList: false },
             { title: "Projekt 1", body: "SKILLS\nReact, Node", bulletList: true },
             { title: "", body: "Body only", bulletList: false },
+            { title: "", body: "", bulletList: false },
+            { title: "", body: "", bulletList: true },
         ],
     };
     const payload = buildBioCvPayload({ name: "Anna", custom_sections: [section] });

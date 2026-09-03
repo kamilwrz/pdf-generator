@@ -707,6 +707,36 @@ describe("syncCvDataFromCanvas", () => {
       [{ ...expected, body: "Nowa treść", bulletList: true }]);
   });
 
+  it("keeps empty category records across refill, editing, clearing and deletion", () => {
+    const heading = sectionHeading("empty-categories", "Umiejętności (Kategorie)", {
+      editorAddedSection: true, editorSectionId: "empty-categories", editorSectionLayout: "cc-sub",
+    });
+    const fields = ["title", "body", "title", "body"].map((role, index) => ({
+      ...text(`empty-${index}`, ""), top: 130 + index * 24, left: 60, page: 1,
+      flowRole: "content", flowGroup: `pair-${Math.floor(index / 2)}`,
+      editorRecordLayout: "cc-sub", editorRecordField: role,
+      editorAddedSection: true, editorSectionId: heading.element_id,
+      bold: role === "title", placeholder: role === "title" ? "Kategoria umiejętności" : "Umiejętność",
+    }));
+    const blank = { title: "", body: "", bulletList: false };
+    const source = { ...profile, custom_sections: [] };
+    const created = syncCustomSectionsForTemplateSwitch(source, [heading, ...fields]);
+    assert.deepEqual(created.custom_sections[0].items, [blank, blank]);
+    assert.deepEqual(created.skills, profile.skills);
+    const restored = [heading, ...fields].map((element) => ({
+      ...element, element_id: `restored-${element.element_id}`,
+      editorAddedSection: undefined, editorSectionId: undefined,
+    }));
+    const edited = restored.map((element, index) => index === 4
+      ? { ...element, content: "React\nNode", bulletList: true } : element);
+    const updated = syncCvDataFromCanvas(created, restored, edited);
+    assert.deepEqual(updated.custom_sections[0].items, [blank, { ...blank, body: "React\nNode", bulletList: true }]);
+    const cleared = syncCvDataFromCanvas(updated, edited, restored);
+    assert.deepEqual(cleared.custom_sections[0].items, [blank, blank]);
+    const deleted = syncCustomSectionsForTemplateSwitch(cleared, restored.slice(0, 3));
+    assert.deepEqual(deleted.custom_sections[0].items, [blank]);
+  });
+
   it("persists a user-added grid as one semantic item per cell", () => {
     const heading = sectionHeading("grid-heading", "LINKI", {
       editorAddedSection: true,

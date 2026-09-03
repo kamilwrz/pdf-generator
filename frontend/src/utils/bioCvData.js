@@ -262,13 +262,13 @@ export function normalizeBioCvData(value) {
             .map((section) => ({
                 title: clean(section.title),
                 // Canvas category records must also survive guest restoration;
-                // only legacy wizard sections use the flat-line representation.
+                // empty pairs are editable records, not missing content.
                 items: String(section.layout || "").toLowerCase() === "cc-sub"
                     ? (Array.isArray(section.items) ? section.items : []).map((item) => ({
                         title: clean(item?.title),
                         body: clean(typeof item === "string" ? item : item?.body),
                         bulletList: item?.bulletList === true,
-                    })).filter((item) => item.title || item.body)
+                    }))
                     : parseSectionItems(section.items || section.data),
                 kind: [
                     "languages",

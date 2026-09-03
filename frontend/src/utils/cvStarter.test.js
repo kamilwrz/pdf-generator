@@ -8,6 +8,15 @@ import {
 } from "./cvStarter.js";
 
 describe("CV starter adapter", () => {
+  it("does not flatten empty custom categories or recreate deleted records during refill", () => {
+    const { cvData } = buildStarterDocument(createDefaultStarterConfig());
+    cvData.custom_sections = [{
+      title: "Umiejętności (Kategorie)", layout: "cc-sub", kind: "other",
+      items: [{ title: "", body: "", bulletList: false }, { title: "Frontend", body: "", bulletList: true }],
+    }, { title: "Usunięte wpisy", layout: "cc-sub", items: [] }];
+    assert.deepEqual(prepareStarterProfileForTemplate(cvData).custom_sections, cvData.custom_sections);
+  });
+
   it("creates the agreed default setup with an empty persisted profile", () => {
     const config = createDefaultStarterConfig();
     const { cvData, fillProfile } = buildStarterDocument(config);
