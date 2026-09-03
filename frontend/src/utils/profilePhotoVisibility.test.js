@@ -287,6 +287,68 @@ describe("profile photo visibility", () => {
     assert.deepEqual(shownSidebarGeometry, visibleSidebarGeometry);
   });
 
+  it("does not move a main-column Languages heading with a stale sidebar marker when Linden's photo returns", () => {
+    const source = withIds(lindenTemplate);
+    const hiddenResult = hideProfilePhoto(source, "linden");
+    const relaid = applyChannelRelayout(
+      hiddenResult.elements,
+      hiddenResult.contactBandId,
+      (text) => String(text).length * 5,
+      () => "unused-id",
+    ).elements;
+    const hidden = alignSidebarAfterProfileContacts(
+      relaid,
+      hiddenResult.contactBandId,
+      "linden",
+    );
+    const mainLanguages = [
+      {
+        element_id: "main-languages-heading",
+        category: "text",
+        content: "JĘZYKI",
+        flowRole: "section-chrome",
+        // Older transferred sections can retain this stale lane marker even
+        // though their rendered geometry already belongs to the main column.
+        flowLane: "sidebar",
+        page: 1,
+        left: 245,
+        top: 610,
+        fontSize: 10.2,
+      },
+      {
+        element_id: "main-languages-rule",
+        category: "line",
+        flowRole: "section-chrome",
+        page: 1,
+        left: 245,
+        top: 628.6,
+        width: 300,
+        height: 1,
+      },
+      {
+        element_id: "main-languages-entry",
+        category: "textarea",
+        content: "Język — poziom",
+        flowRole: "grid-member",
+        page: 1,
+        left: 245,
+        top: 637,
+        width: 142,
+        height: 12,
+      },
+    ];
+
+    const shown = showProfilePhoto([...hidden, ...mainLanguages], "linden").elements;
+    for (const expected of mainLanguages) {
+      const actual = shown.find((element) => element.element_id === expected.element_id);
+      assert.equal(actual.top, expected.top);
+    }
+    assert.equal(
+      shown.find((element) => element.element_id === "main-languages-heading").content,
+      "JĘZYKI",
+    );
+  });
+
   for (const [templateId, template] of [["slate", slateTemplate], ["linden", lindenTemplate]]) {
     it(`restores ${templateId}'s complete live sidebar after a section is added while the photo is hidden`, () => {
       const source = withIds(template);

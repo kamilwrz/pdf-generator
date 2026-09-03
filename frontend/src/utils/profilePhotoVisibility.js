@@ -30,6 +30,11 @@ const SUPPORTED_TEMPLATE_IDS = new Set([
 
 const SIDEBAR_CONTACT_TEMPLATE_IDS = new Set(["slate", "linden"]);
 export const SIDEBAR_CONTACT_SECTION_GAP = 40;
+// Linden owns the widest rail among the two templates whose photo transition
+// reflows sidebar content (210 pt; Slate ends at 180 pt). Persisted documents
+// can retain an obsolete `flowLane: "sidebar"` marker after a section moves to
+// the main column, so metadata alone is not sufficient to decide what moves.
+const SIDEBAR_FLOW_RIGHT_EDGE = 210;
 const SLATE_HIDDEN_CONTACT_ANCHOR = Object.freeze({
   startX: 33,
   startY: 84,
@@ -93,6 +98,7 @@ function isPageOneSidebarFlowElement(element) {
     && !element?.fixedToPage
     && !element?.contactChannel
     && (element?.flowLane === "sidebar" || element?.flowRole === "sidebar-chrome")
+    && Number(element?.left) < SIDEBAR_FLOW_RIGHT_EDGE
     && Number.isFinite(Number(element?.top)),
   );
 }
@@ -431,13 +437,7 @@ export function alignSidebarAfterProfileContacts(elements, bandId, templateId) {
 
   const sectionFloor = hiddenProfileContactSectionFloor(list);
   if (sectionFloor == null) return list;
-  const sidebarMembers = list.filter((element) => (
-    (Number(element.page) || 1) === 1
-    && !element.fixedToPage
-    && !element.contactChannel
-    && (element.flowLane === "sidebar" || element.flowRole === "sidebar-chrome")
-    && Number.isFinite(Number(element.top))
-  ));
+  const sidebarMembers = list.filter(isPageOneSidebarFlowElement);
   if (!sidebarMembers.length) return list;
   const sidebarStart = Math.min(...sidebarMembers.map((element) => Number(element.top)));
   const shift = sectionFloor - sidebarStart;
@@ -467,10 +467,7 @@ export function alignSidebarAfterProfileContacts(elements, bandId, templateId) {
     }
     const top = Number(element.top);
     if (
-      (Number(element.page) || 1) !== 1
-      || element.fixedToPage
-      || element.contactChannel
-      || (element.flowLane !== "sidebar" && element.flowRole !== "sidebar-chrome")
+      !isPageOneSidebarFlowElement(element)
       || !Number.isFinite(top)
       || top < sidebarStart
     ) {
