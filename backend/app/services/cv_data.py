@@ -924,6 +924,28 @@ def _infer_record_kind_from_title(title: str) -> str:
     return "other"
 
 
+def _normalize_category_records(value: Any) -> list[dict[str, Any]]:
+    """Keep editor-authored category/body pairs without title-based inference.
+
+    Empty individual fields and repeated records are intentional. Legacy flat
+    values remain bodies; guessing a colon boundary could corrupt user text.
+    """
+    if not isinstance(value, list):
+        return []
+    records = []
+    for item in value:
+        record = {
+            "title": _text(item.get("title")),
+            "body": _text(item.get("body")),
+            "bulletList": item.get("bulletList") is True,
+        } if isinstance(item, Mapping) else {
+            "title": "", "body": _text(item), "bulletList": False,
+        }
+        if record["title"] or record["body"]:
+            records.append(record)
+    return records
+
+
 def _normalize_custom_sections(value: Any) -> list[dict[str, Any]]:
     if not isinstance(value, list):
         return []
@@ -936,7 +958,7 @@ def _normalize_custom_sections(value: Any) -> list[dict[str, Any]]:
         kind = _text(section.get("kind")).casefold() or "other"
         placement = _text(section.get("placement")) or "after_skills"
         layout = _text(section.get("layout")).casefold()
-        layout = "grid" if layout == "grid" else ""
+        layout = layout if layout in {"grid", "cc-sub"} else ""
         if kind not in ALLOWED_SECTION_KINDS:
             kind = "other"
         # Extractors often tag projects/references as generic "other". Upgrade
@@ -950,10 +972,10 @@ def _normalize_custom_sections(value: Any) -> list[dict[str, Any]]:
                 if is_record_section(kind, title)
                 else "after_skills"
             )
-        items = _normalize_section_items(
-            section.get("items") or section.get("data"),
-            kind=kind,
-            title=title,
+        raw_items = section.get("items") or section.get("data")
+        items = (
+            _normalize_category_records(raw_items) if layout == "cc-sub"
+            else _normalize_section_items(raw_items, kind=kind, title=title)
         )
         if title and items:
             normalized_section = {
@@ -981,8 +1003,8 @@ def _derive_manual_sections(extra_sections: Any) -> tuple[list[dict[str, str]], 
         title = _text(section.get("title"))
         placement = _text(section.get("placement")) or "after_skills"
         layout = _text(section.get("layout")).casefold()
-        layout = "grid" if layout == "grid" else ""
-        if kind == "languages":
+        layout = layout if layout in {"grid", "cc-sub"} else ""
+        if kind == "languages" and not layout:
             items = _section_items(section.get("items"))
             languages.extend(_normalize_languages(items))
             continue
@@ -996,10 +1018,9 @@ def _derive_manual_sections(extra_sections: Any) -> tuple[list[dict[str, str]], 
                 if is_record_section(kind, title)
                 else "after_skills"
             )
-        items = _normalize_section_items(
-            section.get("items"),
-            kind=kind,
-            title=title,
+        items = (
+            _normalize_category_records(section.get("items")) if layout == "cc-sub"
+            else _normalize_section_items(section.get("items"), kind=kind, title=title)
         )
         if title and items:
             normalized_section = {
@@ -1063,11 +1084,11 @@ def _absorb_skills_alias_sections(
     absorbed_flat: list[str] = []
 
     for section in sections:
-        # Explicit entry grids are authored as independent sections. Their
+        # Explicit grids and category records are independent sections. Their
         # headings may intentionally use a skills-like word such as NARZĘDZIA;
         # absorbing them into the canonical Skills slot would destroy the
-        # fixed-column contract after a template refill.
-        if section.get("layout") == "grid":
+        # field/column contract after a template refill.
+        if section.get("layout") in {"grid", "cc-sub"}:
             kept.append(section)
             continue
         if not is_skills_like_section(section):

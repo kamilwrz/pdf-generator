@@ -146,6 +146,23 @@ describe("sectionSupportsRecordAdd", () => {
 });
 
 describe("placeholderContentsForRecord / inferRecordLayout", () => {
+  it("clones an explicitly categorized Projects record without inventing metadata", () => {
+    const fields = [
+      { element_id: "title", category: "textarea", content: "Projekt 1", bold: true,
+        editorRecordLayout: "cc-sub", editorRecordField: "title", top: 100, left: 60, width: 300 },
+      { element_id: "body", category: "textarea", content: "SKILLS", bulletList: true,
+        editorRecordLayout: "cc-sub", editorRecordField: "body", top: 120, left: 60, width: 300 },
+    ];
+    let id = 0;
+    for (const sectionTitle of ["PROJEKTY", "WYKSZTAŁCENIE", "JĘZYKI"]) {
+      const clone = buildRecordClone(fields, () => `new-${id++}`, null, { sectionTitle });
+      assert.equal(clone.length, 2);
+      assert.deepEqual(clone.map((element) => element.editorRecordField), ["title", "body"]);
+      assert.ok(clone.every((element) => element.editorRecordLayout === "cc-sub"));
+      assert.equal(clone[1].bulletList, true);
+    }
+  });
+
   it("maps 4-line records to generic detailed-entry placeholders", () => {
     assert.equal(inferRecordLayout([{}, {}, {}, {}]), SECTION_LAYOUTS.RECORD_EDUCATION);
     assert.deepEqual(placeholderContentsForRecord([{}, {}, {}, {}]), [

@@ -24,9 +24,10 @@ describe("ChangeTemplateModal spacing", () => {
     assert.match(hookSource, /adoptDocumentFlowSpacing\?\.\(DEFAULT_FLOW_SPACING\)/);
   });
 
-  it("refills from live Languages and Skills before replacement", () => {
+  it("refills from live Languages, Skills and custom sections before replacement", () => {
     assert.match(hookSource, /syncGeneratedLanguagesForTemplateSwitch\(/);
     assert.match(hookSource, /syncGeneratedSkillsForTemplateSwitch\(/);
+    assert.match(hookSource, /syncCustomSectionsForTemplateSwitch\(/);
     assert.match(hookSource, /activeCvData,[\s\S]*A4_Elements/);
     assert.match(hookSource, /fillTemplate\(profileForFill, template\.id/);
     assert.match(

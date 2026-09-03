@@ -323,6 +323,25 @@ Models: `backend/app/models/models.py` (`User`, `Pdf`, `PdfElements`, …).
 
 Product narrative: [`docs/FEATURES.md`](docs/FEATURES.md).
 
+### Custom category sections survive template changes
+
+A section created using **skills with categories** keeps its category/body structure even after being renamed **PROJEKTY** and switched from Meridian to Linden or another template. `Projekt 1` remains a separate bold category; `SKILLS` remains a separate normal-weight body. The destination template supplies fonts, colours, widths and spacing, not a replacement semantic structure.
+
+1. Canvas synchronization writes `custom_sections[].layout: "cc-sub"` and ordered `items: [{ title: "Projekt 1", body: "SKILLS", bulletList: false }]`. Multiline bodies, duplicate categories and list mode are preserved instead of concatenating `title: body`.
+2. `useApplyCvTemplate` snapshots live custom sections immediately before `/ai/fill_template`, including edits not yet processed by the React synchronization effect. Original marked canvas sections can repair older flattened profile data while the separate fields still exist.
+3. Backend normalization respects the explicit layout before guessing a section type from its heading. The shared renderer emits independently editable category/body fields, groups each pair for pagination, and uses the main column on sidebar templates so compact sidebar text cannot flatten them.
+4. Generated field/layout tags let subsequent edits, record insertion/removal, profile restoration and another template switch preserve the same structure. Record cloning respects `cc-sub` even under headings such as Projects or Education.
+
+Implementation and tests:
+
+- `frontend/src/utils/syncCvDataFromCanvas.js`, lines 220–255 (`customSectionItems`), 294–418 (`syncEditorStructures`), and 613–694 (`generatedCustomLayoutSections`, `syncGeneratedCustomLayouts`, `syncCustomSectionsForTemplateSwitch`).
+- `frontend/src/hooks/useApplyCvTemplate.js`, lines 58–75 — live pre-refill snapshot; `frontend/src/utils/bioCvData.js`, lines 260–296 — category records in guest/profile normalization.
+- `frontend/src/utils/sectionRecord.js`, lines 378–413 (`inferRecordLayout`) and 710–810 (`buildRecordClone`) — preserve category field roles when cloning, including a bulleted body.
+- `backend/app/services/cv_data.py`, lines 927–990 — `_normalize_category_records` and `_normalize_custom_sections`; `backend/app/services/cv_templates/shared/extras.py`, lines 211–251 — `_category_sections`.
+- `frontend/src/utils/syncCvDataFromCanvas.test.js`, category round-trip test starting at line 663; `frontend/src/utils/bioCvData.test.js`, lines 94–107; `frontend/src/utils/sectionRecord.test.js`, lines 149–165; `backend/tests/test_custom_category_sections.py`, lines 9–43 — all ten templates, independent headings, duplicate categories, multiline bodies and field grouping. The new backend test belongs with the generator regression tests under `backend/tests/`.
+
+Run `npm --prefix frontend test`; from `backend`, run `python -m pytest -q tests/test_custom_category_sections.py tests/test_cv_data.py tests/test_cv_template_layouts.py tests/test_languages_grid.py`. No database migration, dependency or endpoint change is required: the extra structure is stored in existing CV JSON. Already flattened documents without the original category/body fields cannot be reconstructed reliably from punctuation alone; restore the original canvas or recreate those fields. Application chrome, keyboard controls and PDF dimensions are unchanged. [Python JSON documentation](https://docs.python.org/3/library/json.html) explains the object/array serialization used for this structural contract.
+
 ### A4 canvas editor (template vs freeform)
 
 Interactive multi-page **A4 portrait** canvas with two persisted editor modes on each `Pdf` row (`editor_mode`, `template_id`, optional `spacing_px`). The workspace behind the document is a cool light-grey base softened by a translucent white overlay (`--color-editor-canvas-base` and `--color-editor-canvas-overlay` in `frontend/src/index.css`, lines 16–17, composed by `.right-pane` and `.canvas-area` in `frontend/src/App.css`, lines 61–101). The A4 surface remains independently white (`.A4` in `frontend/src/components/canvas/A4/A4.module.css`, lines 19–25), so the workspace treatment cannot enter document pixels or PDF export. Vertical wheel over `.canvas-area` pans overflow first; at the top/bottom edge (or when the page fits without overflow) it calls `goToPage` so **PageControls** (`Strona N / M`) updates with the new page. Single-page view transitions with a short slide+fade (`CanvasPageStage`, ~320 ms; reduced-motion → opacity only) and eases `scrollTop` to 0 instead of a hard jump. Horizontal-dominant gestures, Ctrl/Meta wheel, and editable fields are left alone (`frontend/src/utils/canvasPageWheel.js`, `frontend/src/hooks/useCanvasPageWheel.js`, tests in `canvasPageWheel.test.js`). The canvas scroll rail uses the same overlay plus neutral border/ink tokens (Firefox via `scrollbar-color`).
@@ -2708,6 +2727,25 @@ Modele: `backend/app/models/models.py`.
 ---
 
 ## Funkcje (mapa implementacji)
+
+### Własne sekcje z kategoriami zachowują strukturę po zmianie szablonu
+
+Sekcja utworzona jako **umiejętności z kategoriami** zachowuje podział na kategorię i treść również po zmianie nazwy na **PROJEKTY** oraz przełączeniu z Meridian na Linden lub inny szablon. `Projekt 1` pozostaje osobną pogrubioną kategorią, a `SKILLS` osobną treścią zwykłą czcionką. Szablon docelowy nadaje krój, kolory, szerokości i odstępy, ale nie zastępuje struktury semantycznej.
+
+1. Synchronizacja kanwy zapisuje `custom_sections[].layout: "cc-sub"` oraz uporządkowane `items: [{ title: "Projekt 1", body: "SKILLS", bulletList: false }]`. Zachowuje wielowierszową treść, powtórzone kategorie i tryb listy zamiast sklejać `tytuł: treść`.
+2. `useApplyCvTemplate` wykonuje snapshot aktualnych sekcji własnych bezpośrednio przed `/ai/fill_template`, włącznie z edycjami jeszcze nieobsłużonymi przez efekt synchronizacji React. Oryginalne oznaczone sekcje kanwy mogą naprawić starsze spłaszczone dane profilu, dopóki osobne pola nadal istnieją.
+3. Normalizacja backendu respektuje jawny układ przed zgadywaniem typu na podstawie nagłówka. Wspólny renderer emituje osobno edytowalne pola kategorii i treści, grupuje każdą parę przy paginacji oraz korzysta z kolumny głównej w szablonach z sidebarem, aby zwarty tekst boczny nie spłaszczał struktury.
+4. Wygenerowane znaczniki pól i układu pozwalają zachować strukturę przy kolejnych edycjach, dodawaniu/usuwaniu rekordów, odtwarzaniu profilu i następnej zmianie szablonu. Klonowanie rekordu respektuje `cc-sub` nawet pod nagłówkiem Projekty lub Wykształcenie.
+
+Implementacja i testy:
+
+- `frontend/src/utils/syncCvDataFromCanvas.js`, linie 220–255 (`customSectionItems`), 294–418 (`syncEditorStructures`) i 613–694 (`generatedCustomLayoutSections`, `syncGeneratedCustomLayouts`, `syncCustomSectionsForTemplateSwitch`).
+- `frontend/src/hooks/useApplyCvTemplate.js`, linie 58–75 — aktualny snapshot przed zmianą; `frontend/src/utils/bioCvData.js`, linie 260–296 — rekordy kategorii w normalizacji profilu/gościa.
+- `frontend/src/utils/sectionRecord.js`, linie 378–413 (`inferRecordLayout`) i 710–810 (`buildRecordClone`) — zachowanie ról pól kategorii przy klonowaniu, także dla wypunktowanej treści.
+- `backend/app/services/cv_data.py`, linie 927–990 — `_normalize_category_records` i `_normalize_custom_sections`; `backend/app/services/cv_templates/shared/extras.py`, linie 211–251 — `_category_sections`.
+- `frontend/src/utils/syncCvDataFromCanvas.test.js`, test pełnego obiegu kategorii od linii 663; `frontend/src/utils/bioCvData.test.js`, linie 94–107; `frontend/src/utils/sectionRecord.test.js`, linie 149–165; `backend/tests/test_custom_category_sections.py`, linie 9–43 — wszystkie dziesięć szablonów, niezależne nagłówki, powtórzone kategorie, wielowierszowa treść i grupowanie pól. Nowy test backendu należy do testów regresji generatorów w `backend/tests/`.
+
+Uruchom `npm --prefix frontend test`; w katalogu `backend` uruchom `python -m pytest -q tests/test_custom_category_sections.py tests/test_cv_data.py tests/test_cv_template_layouts.py tests/test_languages_grid.py`. Nie potrzeba migracji bazy, zmiany zależności ani endpointu: dodatkowa struktura trafia do istniejącego JSON CV. Już spłaszczonego dokumentu bez pierwotnych pól kategorii i treści nie można wiarygodnie odtworzyć wyłącznie na podstawie interpunkcji; należy przywrócić oryginalną kanwę lub odtworzyć te pola. Interfejs aplikacji, obsługa klawiatury i wymiary PDF pozostają niezmienione. [Dokumentacja JSON w Pythonie](https://docs.python.org/3/library/json.html) wyjaśnia serializację obiektów i tablic używaną do zapisu tej struktury.
 
 Opis produktowy: [`docs/FEATURES.md`](docs/FEATURES.md).
 

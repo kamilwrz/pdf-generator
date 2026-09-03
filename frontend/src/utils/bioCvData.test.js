@@ -91,6 +91,20 @@ test("preserves an editor-authored custom grid through profile normalization", (
     assert.equal(result.custom_sections[0].layout, "grid");
 });
 
+test("preserves category records through repeated guest/profile normalization", () => {
+    const section = {
+        title: "Projekty", kind: "other", placement: "after_skills", layout: "cc-sub",
+        items: [
+            { title: "Projekt 1", body: "SKILLS\nReact, Node", bulletList: false },
+            { title: "Projekt 1", body: "SKILLS\nReact, Node", bulletList: true },
+            { title: "", body: "Body only", bulletList: false },
+        ],
+    };
+    const payload = buildBioCvPayload({ name: "Anna", custom_sections: [section] });
+    assert.deepEqual(payload.custom_sections, [section]);
+    assert.deepEqual(buildBioCvPayload(payload).custom_sections, [section]);
+});
+
 test("validates only completed repeater cards and email syntax", () => {
     const incompleteExperience = normalizeBioCvData({
         name: "Anna",

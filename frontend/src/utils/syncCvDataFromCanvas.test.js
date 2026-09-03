@@ -4,6 +4,7 @@ import {
   syncCvDataFromCanvas,
   syncGeneratedLanguagesForTemplateSwitch,
   syncGeneratedSkillsForTemplateSwitch,
+  syncCustomSectionsForTemplateSwitch,
 } from "./syncCvDataFromCanvas.js";
 
 const profile = {
@@ -657,6 +658,53 @@ describe("syncCvDataFromCanvas", () => {
       placement: "after_skills",
       __canvasHeadingId: "custom-heading",
     }]);
+  });
+
+  it("preserves custom category fields through creation, refill, editing and record removal", () => {
+    const heading = sectionHeading("categories", "PROJEKTY", {
+      editorAddedSection: true, editorSectionId: "categories", editorSectionLayout: "cc-sub",
+    });
+    const field = (id, content, role, top, group = "pair") => ({
+      ...text(id, content), top, left: 60, page: 1, flowRole: "content",
+      flowGroup: group, editorRecordLayout: "cc-sub", editorRecordField: role,
+      editorAddedSection: true, editorSectionId: "categories",
+    });
+    const title = field("title", "Projekt 1", "title", 130);
+    const body = field("body", "SKILLS\nReact, Node", "body", 150);
+    const created = syncCvDataFromCanvas({ ...profile, custom_sections: [] }, [], [heading, title, body]);
+    const expected = { title: "Projekt 1", body: "SKILLS\nReact, Node", bulletList: false };
+    assert.deepEqual(created.custom_sections[0].items, [expected]);
+    assert.equal(created.custom_sections[0].layout, "cc-sub");
+    const legacy = { ...created, custom_sections: [{
+      ...created.custom_sections[0], layout: undefined, items: ["Projekt 1: SKILLS"],
+    }] };
+    assert.deepEqual(syncCustomSectionsForTemplateSwitch(legacy, [heading, title, body]).custom_sections[0].items, [expected]);
+    const restoredLegacy = { ...legacy, custom_sections: [{ ...legacy.custom_sections[0], __canvasHeadingId: undefined }] };
+    const repaired = syncCustomSectionsForTemplateSwitch(restoredLegacy, [heading, title, body]);
+    assert.equal(repaired.custom_sections.length, 1);
+    assert.deepEqual(repaired.custom_sections[0].items, [expected]);
+
+    // A generator assigns fresh ids and retains only semantic layout/field tags.
+    const restored = [heading, title, body].map((element) => ({
+      ...element, element_id: `new-${element.element_id}`,
+      editorAddedSection: undefined, editorSectionId: undefined,
+    }));
+    const inserted = [
+      ...restored,
+      { ...restored[1], element_id: "copy-title", flowGroup: "copy", top: 200, editorAddedRecord: true },
+      { ...restored[2], element_id: "copy-body", flowGroup: "copy", top: 220, editorAddedRecord: true },
+    ];
+    const normalized = { ...created, custom_sections: [{ ...created.custom_sections[0], __canvasHeadingId: undefined }] };
+    const added = syncCvDataFromCanvas(normalized, restored, inserted);
+    assert.equal(added.custom_sections.length, 1);
+    assert.deepEqual(added.custom_sections[0].items, [expected, expected]);
+    const edited = restored.map((element, index) => index === 2
+      ? { ...element, content: "Nowa treść", bulletList: true } : element);
+    const updated = syncCvDataFromCanvas(added, inserted, edited);
+    assert.deepEqual(updated.custom_sections[0].items, [{ ...expected, body: "Nowa treść", bulletList: true }]);
+    assert.deepEqual(updated.skills, profile.skills);
+    assert.deepEqual(syncCustomSectionsForTemplateSwitch(normalized, edited).custom_sections[0].items,
+      [{ ...expected, body: "Nowa treść", bulletList: true }]);
   });
 
   it("persists a user-added grid as one semantic item per cell", () => {

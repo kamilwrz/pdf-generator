@@ -377,6 +377,11 @@ export function sectionSupportsRecordAdd(elements, headingId, pageHeight = 842) 
  */
 export function inferRecordLayout(members, options = {}) {
   const list = members || [];
+  // An authored category/body layout wins over title heuristics: a section
+  // renamed PROJEKTY must not acquire education metadata when adding a record.
+  if (list.some((element) => element?.editorRecordLayout === SECTION_LAYOUTS.RECORD_SUBCATEGORY)) {
+    return SECTION_LAYOUTS.RECORD_SUBCATEGORY;
+  }
   // Right-column dates and locations are fields in the record, but they are
   // not extra rows in its vertical layout. Classify from the flowing column
   // so a three-row experience record remains experience when it also owns one
@@ -526,6 +531,11 @@ export function placeholderContentsForRecord(members, options = {}) {
     return [...PLACEHOLDER.experience].map(remapStarterCopy);
   }
   if (layout === SECTION_LAYOUTS.RECORD_SUBCATEGORY) {
+    if ((members || []).every((element) => element.editorRecordField)) {
+      return members.map((element) => remapStarterCopy(
+        PLACEHOLDER.subcategory[element.editorRecordField === "title" ? 0 : 1],
+      ));
+    }
     return [...PLACEHOLDER.subcategory].map(remapStarterCopy);
   }
   return (members || []).map((element, index) => {
@@ -773,6 +783,9 @@ export function buildRecordClone(
       editorRecordField: (() => {
         const placeholder = String(placeholderCopy || "").trim().toLocaleLowerCase();
         const linearIndex = realSource.indexOf(element);
+        if (layout === SECTION_LAYOUTS.RECORD_SUBCATEGORY && element.editorRecordField) {
+          return element.editorRecordField;
+        }
         if (isRecordOverlay(element, source, pageHeight)) {
           const anchor = findGroupOverlayAnchor(source, element, pageHeight);
           return anchor?.bold ? "period" : "city";

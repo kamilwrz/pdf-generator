@@ -241,13 +241,13 @@ function customSectionItems(body, layout) {
     }));
   }
   if (layout === SECTION_LAYOUTS.RECORD_SUBCATEGORY) {
-    return groups.flatMap((group) => {
-      const record = profileRecordFromCanvas(group, "skills");
-      if (record.category && record.items.length) {
-        return [`${record.category}: ${record.items.join(", ")}`];
-      }
-      return [record.category, ...record.items].filter(Boolean);
-    });
+    // Category and body are independent editable fields, not a colon-delimited
+    // project title. Preserve line breaks, duplicate records and list mode.
+    return groups.map((group) => ({
+      title: roleValue(group, "title"),
+      body: roleValue(group, "body"),
+      bulletList: Boolean(group.find((element) => element.editorRecordField === "body")?.bulletList),
+    })).filter((record) => record.title || record.body);
   }
   return (body || [])
     .filter((element) => ["text", "textarea"].includes(element?.category))
@@ -326,9 +326,22 @@ function syncEditorStructures(cvData, elements) {
         || layout === SECTION_LAYOUTS.RECORD_EXPERIENCE
       ) ? "projects" : "other",
       placement: placementForSection(section, elements, layout),
-      ...(layout === SECTION_LAYOUTS.GRID ? { layout: SECTION_LAYOUTS.GRID } : {}),
+      ...([SECTION_LAYOUTS.GRID, SECTION_LAYOUTS.RECORD_SUBCATEGORY].includes(layout) ? { layout } : {}),
       __canvasHeadingId: heading.element_id,
     };
+    // Guest/profile normalization can remove canvas ids while retaining the
+    // original marked canvas. Reattach only an unambiguous category section;
+    // otherwise the first refill after reload would append a duplicate.
+    if (layout === SECTION_LAYOUTS.RECORD_SUBCATEGORY) {
+      const matches = draft.custom_sections.filter((candidate) => (
+        !candidate.__canvasHeadingId && foldLabel(candidate.title) === foldLabel(custom.title)
+      ));
+      if (matches.length === 1 && markedHeadings.filter((candidate) => (
+        foldLabel(profileTextForElement(candidate)) === foldLabel(custom.title)
+      )).length === 1) {
+        matches[0].__canvasHeadingId = heading.element_id;
+      }
+    }
     draft.custom_sections = upsertByCanvasId(
       draft.custom_sections,
       "__canvasHeadingId",
@@ -339,6 +352,10 @@ function syncEditorStructures(cvData, elements) {
   for (const [groupId, members] of markedGroups) {
     const section = sectionForGroup(elements, groupId);
     if (!section) continue;
+    // Explicit custom category sections are synchronized as a whole below,
+    // including newly cloned records; heading words must not route them to skills.
+    const heading = elements.find((element) => element.element_id === section.headingId);
+    if (heading?.editorSectionLayout === SECTION_LAYOUTS.RECORD_SUBCATEGORY) continue;
     const kind = sectionKind(draft, section.title);
     const marker = { __canvasGroup: groupId };
     const visualIndex = partitionSectionRecords(section.body).findIndex((group) => (
@@ -502,7 +519,9 @@ function generatedSkillsSection(elements) {
   const list = elements || [];
   return listDocumentSections(list).find((candidate) => {
     const heading = list.find((element) => element?.element_id === candidate.headingId);
-    return heading && !heading.editorAddedSection && isSkillsSectionElement(heading);
+    return heading && !heading.editorAddedSection
+      && heading.editorSectionLayout !== SECTION_LAYOUTS.RECORD_SUBCATEGORY
+      && isSkillsSectionElement(heading);
   });
 }
 
@@ -584,18 +603,26 @@ function generatedSkillsContentIds(elements) {
 }
 
 /**
- * Read generator-restored custom grids and keep their semantic items current.
+ * Read generator-restored custom layouts and keep their semantic items current.
  *
  * A template replacement necessarily creates fresh canvas ids, so restored
- * custom grids are matched to `custom_sections` by their current (or previous)
+ * custom sections are matched to `custom_sections` by their current (or previous)
  * heading. The explicit `gridKind: "entries"` marker prevents a user-created
  * section named JĘZYKI from being confused with canonical language data.
  */
-function generatedCustomGridSections(elements) {
+function generatedCustomLayoutSections(elements) {
   const list = elements || [];
   return canvasSections(list).flatMap((section) => {
     const heading = list.find((element) => element?.element_id === section.headingId);
     if (!heading || heading.editorAddedSection) return [];
+    if (heading.editorSectionLayout === SECTION_LAYOUTS.RECORD_SUBCATEGORY) {
+      return [{
+        headingId: section.headingId,
+        title: profileTextForElement(heading),
+        layout: SECTION_LAYOUTS.RECORD_SUBCATEGORY,
+        items: customSectionItems(listSectionContentElements(list, section.headingId), SECTION_LAYOUTS.RECORD_SUBCATEGORY),
+      }];
+    }
     const cells = listSectionContentElements(list, section.headingId)
       .filter((element) => (
         ["text", "textarea"].includes(element?.category)
@@ -606,18 +633,19 @@ function generatedCustomGridSections(elements) {
     return [{
       headingId: section.headingId,
       title: profileTextForElement(heading),
+      layout: SECTION_LAYOUTS.GRID,
       items: cells.map(profileTextForElement).filter(Boolean),
     }];
   });
 }
 
-function syncGeneratedCustomGrids(cvData, previousElements, nextElements) {
-  const nextGrids = generatedCustomGridSections(nextElements);
+function syncGeneratedCustomLayouts(cvData, previousElements, nextElements) {
+  const nextGrids = generatedCustomLayoutSections(nextElements);
   const sections = Array.isArray(cvData?.custom_sections) ? cvData.custom_sections : [];
   if (nextGrids.length === 0 || sections.length === 0) return cvData;
 
   const previousByHeading = new Map(
-    generatedCustomGridSections(previousElements)
+    generatedCustomLayoutSections(previousElements)
       .map((section) => [section.headingId, section]),
   );
   let draft = cvData;
@@ -625,7 +653,7 @@ function syncGeneratedCustomGrids(cvData, previousElements, nextElements) {
     const previousTitle = previousByHeading.get(grid.headingId)?.title;
     const matchingIndices = sections
       .map((section, index) => ({ section, index }))
-      .filter(({ section }) => section?.layout === SECTION_LAYOUTS.GRID);
+      .filter(({ section }) => section?.layout === grid.layout);
     let match = matchingIndices.find(({ section }) => (
       foldLabel(section?.title) === foldLabel(grid.title)
     ));
@@ -644,13 +672,24 @@ function syncGeneratedCustomGrids(cvData, previousElements, nextElements) {
       ...current,
       title: grid.title,
       items: grid.items,
-      layout: SECTION_LAYOUTS.GRID,
+      layout: grid.layout,
     };
     if (JSON.stringify(current) === JSON.stringify(updated)) continue;
     if (draft === cvData) draft = cloneProfile(cvData);
     draft.custom_sections[match.index] = updated;
   }
   return draft;
+}
+
+/**
+ * Snapshot custom layouts before refill, even if the canvas synchronization
+ * effect has not run yet. Existing editor-stamped category sections are also
+ * upgraded from the old flattened profile while their field structure survives.
+ * No geometry or unrelated profile fields are changed.
+ */
+export function syncCustomSectionsForTemplateSwitch(cvData, elements) {
+  if (!cvData || !Array.isArray(elements)) return cvData || null;
+  return syncGeneratedCustomLayouts(syncEditorStructures(cvData, elements), elements, elements);
 }
 
 /**
@@ -1002,7 +1041,7 @@ export function syncCvDataFromCanvas(
     previousElements,
     nextElements,
   );
-  nextProfile = syncGeneratedCustomGrids(
+  nextProfile = syncGeneratedCustomLayouts(
     nextProfile,
     previousElements,
     nextElements,
@@ -1026,6 +1065,11 @@ export function syncCvDataFromCanvas(
   ]);
   for (const { elementId, from, to } of editableTextChanges(previousElements, nextElements)) {
     if (generatedSkillIds.has(elementId)) continue;
+    // Category fields were already synchronized by their section identity.
+    // A matching old string elsewhere is unrelated, even if now unique.
+    if (nextElements.some((element) => element.element_id === elementId
+      && (element.editorRecordLayout === SECTION_LAYOUTS.RECORD_SUBCATEGORY
+        || element.editorSectionLayout === SECTION_LAYOUTS.RECORD_SUBCATEGORY))) continue;
     if (countStringLeaves(nextProfile, from) !== 1) continue;
     if (nextProfile === cvData) nextProfile = cloneProfile(cvData);
     nextProfile = replaceUniqueString(nextProfile, from, to);

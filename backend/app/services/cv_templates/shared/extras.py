@@ -208,6 +208,49 @@ def _mark_generated_entry_grid(
             cell["gridSectionId"] = heading_id
 
 
+def _category_sections(b: Builder, section: dict, section_fn, C: dict,
+                       L: int, W: int, font: str, fs: float, lh: float,
+                       chrome_h: float) -> None:
+    """Render explicit category/body records using the destination body style.
+
+    The semantic stamps restore record editing after each template replacement.
+    Reserve each pair together, not the whole section, so later records can
+    paginate without flattening the fields or stranding their category title.
+    """
+    records = section["items"]
+
+    def fields(record):
+        return [("title", record.get("title", ""), True, False),
+                ("body", record.get("body", ""), False, bool(record.get("bulletList")))]
+
+    def height(record):
+        visible = [field for field in fields(record) if field[1]]
+        return sum(b.measure_block(text, W, fs, lh, font, bold=bold, bulletList=bullets)
+                   for _, text, bold, bullets in visible) + max(0, len(visible) - 1) * get_spacing().stack
+
+    b.need_section(chrome_h, height(records[0]))
+    start = len(b.els)
+    section_fn(section["title"].upper())
+    for element in b.els[start:]:
+        if element.get("category") in {"text", "textarea"} and element.get("content") == section["title"].upper():
+            element["editorSectionLayout"] = "cc-sub"
+    for index, record in enumerate(records):
+        with b.keep_together(height(record)):
+            emitted = False
+            for field, content, bold, bullets in fields(record):
+                if not content:
+                    continue
+                if emitted:
+                    b.gap(get_spacing().stack)
+                b.block(content, L, W, fs, lh, C.get("body", "#2B2B2B"), font,
+                        bold=bold, bulletList=bullets)
+                b.els[-1].update({"editorRecordLayout": "cc-sub", "editorRecordField": field})
+                emitted = True
+        if index < len(records) - 1:
+            b.gap(get_spacing().record)
+    b.gap(get_spacing().section)
+
+
 def _extra_sections(b: Builder, cv: dict, placement: str,
                     section_fn, C: dict, L: int, W: int,
                     font_b: str, fs: float = 10, lh: float = 15,
@@ -252,6 +295,12 @@ def _extra_sections(b: Builder, cv: dict, placement: str,
         title = (sec.get("title") or "").strip().upper()
         raw_items = list(sec.get("items") or [])
         if not title or not raw_items:
+            continue
+
+        # An editor-authored layout takes precedence over headings such as
+        # PROJEKTY or JĘZYKI, which otherwise select incompatible renderers.
+        if sec.get("layout") == "cc-sub":
+            _category_sections(b, sec, section_fn, C, L, W, font_b, fs, lh, chrome_h)
             continue
 
         # `layout: grid` is an explicit editor-authored contract, not a title
@@ -420,6 +469,10 @@ def _sidebar_candidates(cv: dict, labels: dict) -> list[dict]:
         })
 
     for index, section in enumerate(cv.get("extra_sections") or []):
+        # Compact sidebar strings cannot represent separate category fields.
+        # Keep these sections in the main flow on sidebar templates as well.
+        if section.get("layout") == "cc-sub":
+            continue
         kind = _extra_section_kind(section)
         if kind not in _SIDEBAR_SECTION_ORDER:
             continue

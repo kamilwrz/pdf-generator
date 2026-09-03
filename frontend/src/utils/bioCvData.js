@@ -261,9 +261,15 @@ export function normalizeBioCvData(value) {
             .filter((section) => section && typeof section === "object")
             .map((section) => ({
                 title: clean(section.title),
-                // Wizard UI edits a flat line list; structured extract records
-                // are expanded to title + bullet lines and regrouped on generate.
-                items: parseSectionItems(section.items || section.data),
+                // Canvas category records must also survive guest restoration;
+                // only legacy wizard sections use the flat-line representation.
+                items: String(section.layout || "").toLowerCase() === "cc-sub"
+                    ? (Array.isArray(section.items) ? section.items : []).map((item) => ({
+                        title: clean(item?.title),
+                        body: clean(typeof item === "string" ? item : item?.body),
+                        bulletList: item?.bulletList === true,
+                    })).filter((item) => item.title || item.body)
+                    : parseSectionItems(section.items || section.data),
                 kind: [
                     "languages",
                     "certifications",
@@ -280,8 +286,8 @@ export function normalizeBioCvData(value) {
                 placement: section.placement === "after_experience"
                     ? "after_experience"
                     : "after_skills",
-                ...(String(section.layout || "").toLowerCase() === "grid"
-                    ? { layout: "grid" }
+                ...(["grid", "cc-sub"].includes(String(section.layout || "").toLowerCase())
+                    ? { layout: String(section.layout).toLowerCase() }
                     : {}),
             })),
         language: clean(source.language) || "Polish",

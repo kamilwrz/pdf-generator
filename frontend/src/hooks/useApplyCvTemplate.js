@@ -17,6 +17,7 @@ import { useDocumentLifecycle } from "../store/document-lifecycle-context";
 import {
   syncGeneratedLanguagesForTemplateSwitch,
   syncGeneratedSkillsForTemplateSwitch,
+  syncCustomSectionsForTemplateSwitch,
 } from "../utils/syncCvDataFromCanvas";
 import { prepareStarterProfileForTemplate } from "../utils/cvStarter.js";
 
@@ -53,7 +54,7 @@ export function useApplyCvTemplate() {
       return false;
     }
     // The canvas may be one React effect ahead of `activeCvData` immediately
-    // after a local + inserts a Language or Skill. Read both semantic sections
+    // after a local + inserts a Language, Skill or custom record. Read sections
     // directly before sending the refill. Textarea stores each input in
     // A4_Elements even while it remains in edit mode, so this snapshot does not
     // depend on a blur or another render completing first.
@@ -61,10 +62,11 @@ export function useApplyCvTemplate() {
       activeCvData,
       A4_Elements,
     );
-    const synchronizedProfile = syncGeneratedSkillsForTemplateSwitch(
+    const synchronizedSkills = syncGeneratedSkillsForTemplateSwitch(
       synchronizedLanguages,
       A4_Elements,
     );
+    const synchronizedProfile = syncCustomSectionsForTemplateSwitch(synchronizedSkills, A4_Elements);
     const profileForFill = prepareStarterProfileForTemplate(synchronizedProfile);
     setFillingId(template.id);
     setError(null);
