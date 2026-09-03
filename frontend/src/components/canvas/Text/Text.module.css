@@ -105,3 +105,10 @@
        uppercased by the inherited transform. */
     text-transform: none;
 }
+
+/* A chip placeholder inherits the active variant foreground. Muted UI text is
+   correct for bare fields, but can lose contrast on a filled template pill. */
+.skillChipPlaceholder[data-placeholder]:empty::before {
+    color: currentColor;
+    opacity: .72;
+}

@@ -82,6 +82,19 @@ test("main-column Skills groups mount their dedicated add form anchors", async (
   assert.match(source, /mode=\{skillsEntryAnchor\.mode\}/);
   assert.match(source, /groupId=\{skillsEntryAnchor\.groupId\}/);
   assert.match(source, /triggerIds=\{skillsEntryAnchor\.triggerIds\}/);
+  assert.match(source, /addOnly=\{blockAnchor\.addOnly\}/);
+});
+
+test("chip Skills categories expose a safe add-only structural action", async () => {
+  const [canvasSource, recordSource] = await Promise.all([
+    readFile(new URL("./CanvasElements.jsx", import.meta.url), "utf8"),
+    readFile(new URL("../RecordBlockAdd/RecordBlockAdd.jsx", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(canvasSource, /addOnly=\{blockAnchor\.addOnly\}/);
+  assert.match(recordSource, /addOnly \? "Dodaj kategorię poniżej"/);
+  assert.match(recordSource, /directActions=\{addOnly \? \[\{/);
+  assert.match(recordSource, /key: "add-category"/);
 });
 
 test("plain section content reveals the complete section depth without stealing nested controls", async () => {

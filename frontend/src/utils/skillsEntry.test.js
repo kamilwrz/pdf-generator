@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { changeSkillsDisplayMode } from "./skillsDisplayMode.js";
-import { insertSkillItem, listSkillsEntryAnchors } from "./skillsEntry.js";
+import {
+  insertSkillItem,
+  insertSkillsChipCategoryAfter,
+  listSkillsEntryAnchors,
+} from "./skillsEntry.js";
 import { detectSkillChipVariant } from "./skillsLayout.js";
 
 const PAGE_HEIGHT = 842;
@@ -48,6 +52,21 @@ function flatFixture({ bullet = false } = {}) {
       flowRole: "content", left: 60, top: 136, width: 460, height: bullet ? 28 : 14,
       fontSize: 9.5, lineHeight: 13, page: 1, bulletList: bullet },
   ];
+}
+
+function emptyGroupedFixture() {
+  return groupedFixture().map((element) => {
+    if (element.element_id === "body-tools" || element.element_id === "body-soft") {
+      return {
+        ...element,
+        content: "",
+        runs: null,
+        placeholder: "Umiejętność",
+        starterPlaceholder: true,
+      };
+    }
+    return element;
+  });
 }
 
 describe("listSkillsEntryAnchors", () => {
@@ -201,5 +220,88 @@ describe("insertSkillItem", () => {
       assert.equal(addedShape.borderWidth, previousShape.borderWidth);
       assert.equal(addedShape.backgroundColor, previousShape.backgroundColor);
     }
+  });
+
+  it("materializes an empty placeholder chip instead of appending beside it", () => {
+    const chips = changeSkillsDisplayMode(
+      emptyGroupedFixture(),
+      "sk-head",
+      "chips",
+      PAGE_HEIGHT,
+      SPACING,
+    );
+    const anchor = listSkillsEntryAnchors(chips).find((item) => item.groupId.includes("sk-"));
+    assert.ok(anchor);
+    const beforeLabels = chips.filter((element) => (
+      element.flowGroup === anchor.groupId && element.category === "text"
+    ));
+    assert.equal(beforeLabels.length, 1);
+    assert.equal(beforeLabels[0].content, "");
+    assert.equal(beforeLabels[0].placeholder, "Umiejętność");
+
+    const result = insertSkillItem(
+      chips,
+      "sk-head",
+      anchor.groupId,
+      "TypeScript",
+      PAGE_HEIGHT,
+      {
+        spacing: SPACING,
+        measureTextWidth: (text) => String(text).length * 6,
+      },
+    );
+    assert.equal(result.error, undefined);
+    const afterLabels = result.elements.filter((element) => (
+      element.flowGroup === anchor.groupId && element.category === "text"
+    ));
+    assert.equal(afterLabels.length, 1);
+    assert.equal(afterLabels[0].content, "TypeScript");
+    assert.equal(afterLabels[0].placeholder, undefined);
+    assert.equal(afterLabels[0].starterPlaceholder, false);
+    const shape = result.elements.find((element) => (
+      element.flowGroup === anchor.groupId && element.category === "rectangle"
+    ));
+    assert.equal(shape.starterPlaceholder, false);
+    assert.equal(shape.width, "TypeScript".length * 6 + 20);
+  });
+
+  it("adds a placeholder category in chip mode without rebuilding existing ids", () => {
+    const chips = changeSkillsDisplayMode(
+      groupedFixture(),
+      "sk-head",
+      "chips",
+      PAGE_HEIGHT,
+      SPACING,
+    );
+    const existingIds = new Set(chips.map((element) => element.element_id));
+    const firstCategory = chips.find((element) => (
+      element.flowRole === "content" && element.bold
+    ));
+    let sequence = 0;
+    const inserted = insertSkillsChipCategoryAfter(
+      chips,
+      firstCategory.element_id,
+      PAGE_HEIGHT,
+      {
+        spacing: SPACING,
+        idFactory: () => `category-${++sequence}`,
+        measureTextWidth: (text) => String(text).length * 5,
+      },
+    );
+    assert.ok(inserted);
+    assert.ok([...existingIds].every((id) => (
+      inserted.elements.some((element) => element.element_id === id)
+    )));
+    const newCategory = inserted.elements.find((element) => (
+      element.element_id === inserted.firstBodyId
+    ));
+    assert.equal(newCategory.content, "");
+    assert.equal(newCategory.placeholder, "Kategoria umiejętności");
+    const newPlaceholder = inserted.elements.find((element) => (
+      element.flowGroup === newCategory.flowGroup
+      && element.category === "text"
+      && element.starterPlaceholder
+    ));
+    assert.equal(newPlaceholder.placeholder, "Umiejętność");
   });
 });

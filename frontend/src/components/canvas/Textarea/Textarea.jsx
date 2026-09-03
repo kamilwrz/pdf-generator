@@ -583,7 +583,7 @@ function Textarea({
                     key="textarea-edit"
                     id={elementId}
                     ref={editingRef}
-                    className={classes.editing}
+                    className={`${classes.editing} ${isSelected ? classes.selected : ""}`}
                     style={{ ...boxStyle, ...textStyle }}
                     contentEditable
                     suppressContentEditableWarning

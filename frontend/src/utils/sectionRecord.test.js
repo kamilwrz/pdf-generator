@@ -80,14 +80,7 @@ describe("sectionSupportsRecordAdd", () => {
     assert.equal(sectionSupportsRecordAdd(elements, headingId), true);
   });
 
-  it("rejects a chips-mode Skills section (wrapped grid-member chip pills)", () => {
-    // Regression: a chip category is [bold label, rectangle pill background,
-    // text label] x N, tagged `flowRole: "grid-member"`. The generic clone
-    // model (`buildRecordClone`) drops the rectangle pill as decorative
-    // chrome and stacks each chip's bare text label as a full-width line at
-    // its own x-offset inside the wrapped row — producing scattered,
-    // unstyled placeholder text instead of a new pill. See
-    // `appendRecordToSection` reproduction below.
+  it("exposes category actions for chip Skills without using the generic section append", () => {
     const headingId = "sk-head";
     const elements = [
       { element_id: headingId, category: "text", content: "UMIEJĘTNOŚCI",
@@ -106,8 +99,13 @@ describe("sectionSupportsRecordAdd", () => {
         content: "Python", left: 144, top: 168, fontSize: 9.3, page: 1 },
     ];
 
-    assert.equal(sectionSupportsRecordAdd(elements, headingId), false);
+    assert.equal(sectionSupportsRecordAdd(elements, headingId), true);
     assert.equal(appendRecordToSection(elements, headingId), null);
+    const anchors = listRecordBlockAddAnchors(elements);
+    assert.equal(anchors.length, 1);
+    assert.equal(anchors[0].elementId, "sk-cat");
+    assert.equal(anchors[0].addOnly, true);
+    assert.equal(elementSupportsRecordBlockAdd(elements, "sk-cat"), true);
   });
 });
 

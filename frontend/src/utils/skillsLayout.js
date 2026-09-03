@@ -211,6 +211,13 @@ function skillCategoryDescriptor(element) {
   };
 }
 
+/** Return editor-only guidance for an empty Skills body or placeholder chip. */
+function skillItemPlaceholder(element) {
+  return String(element?.content || "").trim()
+    ? ""
+    : String(element?.placeholder || "").trim();
+}
+
 /**
  * Collect skill groups from a chip-mode section: `buildSkillsChipGroups`
  * stamps one `flowGroup` per category (bold label + every one of its chip
@@ -220,7 +227,7 @@ function skillCategoryDescriptor(element) {
  * item among many sharing that flowGroup's items list.
  *
  * @param {object[]} members
- * @returns {{ category: string, categoryPlaceholder?: string, items: string[] }[]}
+ * @returns {{ category: string, categoryPlaceholder?: string, itemPlaceholder?: string, items: string[] }[]}
  */
 function collectSkillGroupsFromChips(members) {
   const categoryByGroup = new Map();
@@ -260,11 +267,21 @@ function collectSkillGroupsFromChips(members) {
   }
 
   return order
-    .map((group) => ({
-      ...(categoryByGroup.get(group) || { category: "" }),
-      items: itemsByGroup.get(group),
-    }))
-    .filter((group) => group.category || group.categoryPlaceholder || group.items.length > 0);
+    .map((group) => {
+      const firstLabel = chipLabels.find((label) => (label.flowGroup || "") === group);
+      const itemPlaceholder = skillItemPlaceholder(firstLabel);
+      return {
+        ...(categoryByGroup.get(group) || { category: "" }),
+        items: itemsByGroup.get(group),
+        ...(itemPlaceholder ? { itemPlaceholder } : {}),
+      };
+    })
+    .filter((group) => (
+      group.category
+      || group.categoryPlaceholder
+      || group.itemPlaceholder
+      || group.items.length > 0
+    ));
 }
 
 /**
@@ -273,7 +290,7 @@ function collectSkillGroupsFromChips(members) {
  *
  * @param {object[]} members
  * @param {string} headingId
- * @returns {{ category: string, categoryPlaceholder?: string, items: string[] }[]}
+ * @returns {{ category: string, categoryPlaceholder?: string, itemPlaceholder?: string, items: string[] }[]}
  */
 export function collectSkillGroups(members, headingId) {
   const pool = (members || []).filter((element) => element && element.element_id !== headingId);
@@ -294,7 +311,11 @@ export function collectSkillGroups(members, headingId) {
 
   // Single body → sidebar / flat shape.
   if (bodies.length === 1) {
-    return parseSkillsSidebarContent(bodies[0].content, Boolean(bodies[0].bulletList));
+    const parsed = parseSkillsSidebarContent(bodies[0].content, Boolean(bodies[0].bulletList));
+    const itemPlaceholder = skillItemPlaceholder(bodies[0]);
+    return parsed.length > 0 || !itemPlaceholder
+      ? parsed
+      : [{ category: "", items: [], itemPlaceholder }];
   }
 
   // Main-column shape: bold category label + following body, optionally
@@ -319,14 +340,19 @@ export function collectSkillGroups(members, headingId) {
       continue;
     }
     const items = parseFlatListItems(element.content, Boolean(element.bulletList));
-    groups.push({ ...(pendingCategory || { category: "" }), items });
+    const itemPlaceholder = skillItemPlaceholder(element);
+    groups.push({
+      ...(pendingCategory || { category: "" }),
+      items,
+      ...(itemPlaceholder ? { itemPlaceholder } : {}),
+    });
     pendingCategory = null;
   }
   if (pendingCategory) {
     groups.push({ ...pendingCategory, items: [] });
   }
   return groups.filter((group) => (
-    group.category || group.categoryPlaceholder || group.items.length > 0
+    group.category || group.categoryPlaceholder || group.itemPlaceholder || group.items.length > 0
   ));
 }
 
@@ -370,6 +396,7 @@ export function buildSkillsMainGroups(groups, options) {
   const list = (groups || []).filter((group) => (
     String(group?.category || "").trim()
     || String(group?.categoryPlaceholder || "").trim()
+    || String(group?.itemPlaceholder || "").trim()
     || (group?.items || []).length > 0
   ));
   if (list.length === 0) return [];
@@ -400,8 +427,11 @@ export function buildSkillsMainGroups(groups, options) {
       : String(group.categoryPlaceholder || "").trim();
     const displayedCategory = category || categoryPlaceholder;
     const formatted = formatFlatListContent(group.items || [], layoutStyle);
+    const itemPlaceholder = formatted.content
+      ? ""
+      : String(group.itemPlaceholder || "").trim();
     const flowGroup = `skill-group-${idFactory()}`;
-    const hasBody = Boolean(formatted.content);
+    const hasBody = Boolean(formatted.content || itemPlaceholder);
 
     if (displayedCategory) {
       const catH = measureTextareaHeight(displayedCategory, recordWidth, catFs, catLh);
@@ -444,6 +474,10 @@ export function buildSkillsMainGroups(groups, options) {
         element_id: idFactory(),
         category: "textarea",
         content: formatted.content,
+        ...(itemPlaceholder ? {
+          placeholder: itemPlaceholder,
+          starterPlaceholder: true,
+        } : {}),
         left: bodyLeft,
         top: cursor,
         width: recordWidth,
@@ -574,6 +608,7 @@ export function buildSkillsChipGroups(groups, options) {
   const list = (groups || []).filter((group) => (
     String(group?.category || "").trim()
     || String(group?.categoryPlaceholder || "").trim()
+    || String(group?.itemPlaceholder || "").trim()
     || (group?.items || []).length > 0
   ));
   if (list.length === 0) return [];
@@ -603,8 +638,15 @@ export function buildSkillsChipGroups(groups, options) {
       : String(group.categoryPlaceholder || "").trim();
     const displayedCategory = category || categoryPlaceholder;
     const items = (group.items || []).filter((item) => String(item || "").trim());
+    const itemPlaceholder = items.length > 0
+      ? ""
+      : String(group.itemPlaceholder || "").trim();
+    // Empty groups retain one editor-only chip shell. Its label stays empty
+    // so synchronization/PDF text never treats the hint as authored content;
+    // the first confirmed skill reuses this pair and clears the sentinel.
+    const displayedItems = items.length > 0 ? items : (itemPlaceholder ? [itemPlaceholder] : []);
     const flowGroup = `skill-group-${idFactory()}`;
-    const hasBody = items.length > 0;
+    const hasBody = displayedItems.length > 0;
 
     if (displayedCategory) {
       const catH = measureTextareaHeight(displayedCategory, recordWidth, catFs, catLh);
@@ -641,7 +683,7 @@ export function buildSkillsChipGroups(groups, options) {
 
     if (hasBody) {
       const { placements, height: rowHeight } = layoutSkillChips(
-        items,
+        displayedItems,
         recordWidth,
         bodyFs,
         {
@@ -657,6 +699,7 @@ export function buildSkillsChipGroups(groups, options) {
       );
       const chipH = bodyFs + 2 * SKILL_CHIP_PAD_Y;
       for (const { skill, dx, dy, width: chipW } of placements) {
+        const isPlaceholderChip = Boolean(itemPlaceholder) && items.length === 0;
         // The underline treatment uses the existing line primitive. Every
         // other treatment uses the rectangle primitive whose `filled`,
         // `borderWidth`, and `borderRadius` fields already persist and export.
@@ -672,6 +715,7 @@ export function buildSkillsChipGroups(groups, options) {
           width: chipW,
           height: 1,
           backgroundColor: chipBg,
+          ...(isPlaceholderChip ? { starterPlaceholder: true } : {}),
           page: 1,
           zIndex: 2,
         } : {
@@ -687,6 +731,7 @@ export function buildSkillsChipGroups(groups, options) {
           borderWidth: variantGeometry.filled ? 0 : 1,
           borderRadius: variantGeometry.borderRadius,
           backgroundColor: chipBg,
+          ...(isPlaceholderChip ? { starterPlaceholder: true } : {}),
           page: 1,
           zIndex: 2,
         });
@@ -695,7 +740,11 @@ export function buildSkillsChipGroups(groups, options) {
           category: "text",
           flowRole: "grid-member",
           flowGroup,
-          content: skill,
+          content: isPlaceholderChip ? "" : skill,
+          ...(isPlaceholderChip ? {
+            placeholder: itemPlaceholder,
+            starterPlaceholder: true,
+          } : {}),
           left: bodyLeft + dx + SKILL_CHIP_PAD_X,
           // Visible cap centre sits on the pill midline — see `_chip_label_top`
           // / `healSkillChipLabelBaselines`.

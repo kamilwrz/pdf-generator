@@ -214,6 +214,15 @@ export function prepareStarterElementsForRender(source, pageHeight = 842, templa
   ));
   return elements.filter((element) => {
     if (element.starterSectionKey === "photo" && !hasRealPhoto) return false;
+    // Empty Skills groups keep a real chip shell on the editor canvas so the
+    // placeholder has the same visual affordance as a future skill. The shape
+    // is guidance, not authored document content, and must leave together with
+    // its empty label in every PDF/render-only copy.
+    if (
+      element.starterPlaceholder
+      && element.flowRole === "grid-member"
+      && (element.category === "rectangle" || element.category === "line")
+    ) return false;
     if (
       ["text", "textarea"].includes(element.category)
       && element.starterPlaceholder

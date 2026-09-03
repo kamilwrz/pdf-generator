@@ -49,6 +49,7 @@ function Text({
     fixedToPage,
     placeholder,
     starterPlaceholder,
+    skillChipPlaceholder = false,
     selectAllOnEdit,
     textTransform,
     mastheadRole,
@@ -217,7 +218,7 @@ function Text({
             suppressContentEditableWarning
             spellCheck={false}
             tabIndex={fixedToPage ? -1 : 0}
-            className={`${classes.textElement} ${editorHoverOutline ? classes.editorHoverOutline : ""} ${isEditing ? classes.editing : ""} ${isSelected && !isMove ? classes.selectedElement : ""} ${isMove ? classes.movingElement : ""}`}
+            className={`${classes.textElement} ${skillChipPlaceholder ? classes.skillChipPlaceholder : ""} ${editorHoverOutline ? classes.editorHoverOutline : ""} ${isEditing ? classes.editing : ""} ${isSelected && !isMove ? classes.selectedElement : ""} ${isMove ? classes.movingElement : ""}`}
             style={style}
             onClick={(e) => {
                 const intent = resolveTextClickIntent({

@@ -322,21 +322,10 @@ export function partitionSectionRecords(bodySorted) {
  * True when the body is more than a lone textarea — i.e. at least one record
  * group with two or more lines (education / experience / custom cc structure).
  *
- * Excludes sections in a wrapped chip grid (Skills/Languages "chips" mode,
- * `flowRole: "grid-member"`): the generic clone model stacks one full-width
- * line per source element and copies each element's own `left`, which for a
- * chip is its x-offset *inside* the wrapped row, not a line-start margin.
- * `listSectionContentElements` also drops the chip's rectangle background as
- * decorative chrome, so a clone comes out as bare, unstyled placeholder text
- * scattered across the row's x-offsets instead of a new pill — and, being far
- * taller than a real chip row, can push past the next section's heading and
- * get attributed to the wrong section by `listDocumentSections`. Growing a
- * chips section safely requires the wrap-aware layout in
- * `skillsLayout.buildSkillsChipGroups`, not this generic per-line clone;
- * until "+" is chip-aware, switch the section to bullet/inline mode (where
- * body lines are plain `flowRole: "content"` and the generic add works),
- * edit there, then switch back via the display-mode picker, which rebuilds
- * chip geometry from scratch.
+ * Wrapped Skills chips are the deliberate exception: their category labels
+ * still expose an add-category action, while insertion is delegated to the
+ * chip-aware builder instead of the generic stacked-record clone. Other grids
+ * remain excluded because they do not represent record categories.
  *
  * @param {object[]} elements
  * @param {string} headingId
@@ -346,7 +335,11 @@ export function partitionSectionRecords(bodySorted) {
 export function sectionSupportsRecordAdd(elements, headingId, pageHeight = 842) {
   const body = listSectionContentElements(elements, headingId, pageHeight);
   if (body.length < 2) return false;
-  if (body.some((element) => element.flowRole === "grid-member")) return false;
+  if (body.some((element) => element.flowRole === "grid-member")) {
+    const heading = (elements || []).find((element) => element.element_id === headingId);
+    return isSkillsSectionTitle(heading?.content)
+      && body.some((element) => element.flowRole !== "grid-member" && Boolean(element.bold));
+  }
   const groups = partitionSectionRecords(body);
   return groups.some((group) => group.length >= 2);
 }
@@ -1194,6 +1187,10 @@ export function appendRecordToSection(
   }
 
   const body = listSectionContentElements(elements, headingId, pageHeight);
+  // The section-level append path has no category anchor from which to inherit
+  // a chip treatment. Chip categories are inserted through the category's own
+  // record toolbar and `insertSkillsChipCategoryAfter` below.
+  if (body.some((element) => element.flowRole === "grid-member")) return null;
   const groups = partitionSectionRecords(body);
   const templateGroup = pickRecordTemplateGroup(groups);
   if (!templateGroup) return null;
@@ -1403,6 +1400,7 @@ export function elementSupportsRecordBlockAdd(elements, elementId, pageHeight = 
  *   highlight: {left:number,top:number,width:number,height:number},
  *   canMoveUp: boolean,
  *   canMoveDown: boolean,
+ *   addOnly?: boolean,
  *   descriptionAction: "add"|"remove"|null,
  * }[]}
  */
@@ -1440,6 +1438,8 @@ export function listRecordBlockAddAnchors(elements, pageHeight = 842) {
             ? explicitHeight
             : fallbackHeight);
       }));
+      const chipSkillsGroup = isSkillsSectionTitle(heading?.content)
+        && group.some((element) => element.flowRole === "grid-member");
       anchors.push({
         elementId: title.element_id,
         hoverIds: pageMembers.map((element) => element.element_id),
@@ -1454,8 +1454,12 @@ export function listRecordBlockAddAnchors(elements, pageHeight = 842) {
           width: Math.max(1, right - left),
           height: Math.max(1, bottom - top),
         },
-        canMoveUp: groupIndex > 0,
-        canMoveDown: groupIndex < groups.length - 1,
+        // Chip category insertion is wrap-aware, but generic record reorder
+        // and deletion do not own the paired shapes. Expose the safe add action
+        // alone until those operations have an equivalent chip transaction.
+        addOnly: chipSkillsGroup,
+        canMoveUp: !chipSkillsGroup && groupIndex > 0,
+        canMoveDown: !chipSkillsGroup && groupIndex < groups.length - 1,
         descriptionAction: descriptionActionForGroup(group, groups, heading?.content),
       });
     });

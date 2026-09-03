@@ -20,6 +20,8 @@ import {
   SKILL_CHIP_PAD_X,
   SKILL_CHIP_PAD_Y,
   SKILLS_LAYOUT_CHIPS,
+  buildSkillsChipGroups,
+  detectSkillChipVariant,
   detectSkillsDisplayMode,
   isSkillsSectionTitle,
   layoutSkillChips,
@@ -482,6 +484,49 @@ function addChipModeSkill(elements, group, value, pageHeight, options) {
     },
   );
   const updates = new Map();
+  const placeholderLabel = labels.length === 1
+    && group.items.length === 0
+    && labels[0].starterPlaceholder
+    && !normalizedSkill(labels[0].content)
+    ? labels[0]
+    : null;
+
+  // An empty chip group owns one editor-only placeholder pair. The first
+  // confirmed skill materializes that pair in place so there is no duplicate
+  // pill, no transient geometry jump, and the stable label id can receive the
+  // success focus/announcement contract used by the form.
+  if (placeholderLabel && shapes.length === 1) {
+    const placement = placements[0];
+    const placeholderShape = shapes[0];
+    const shapeTop = startAbs
+      + (placeholderShape.category === "line" ? chipHeight - 1 : 0);
+    const materializedShape = atAbsoluteTop({
+      ...placeholderShape,
+      left: bodyLeft + placement.dx,
+      width: placement.width,
+      starterPlaceholder: false,
+      preserveInitialLayout: false,
+    }, shapeTop, pageHeight);
+    const materializedLabel = atAbsoluteTop({
+      ...placeholderLabel,
+      content: value,
+      placeholder: undefined,
+      starterPlaceholder: false,
+      runs: null,
+      left: bodyLeft + placement.dx + SKILL_CHIP_PAD_X,
+      ...(Number.isFinite(Number(placeholderLabel.width))
+        ? { width: Math.max(1, placement.width - 2 * SKILL_CHIP_PAD_X) }
+        : {}),
+      preserveInitialLayout: false,
+    }, startAbs + chipHeight / 2, pageHeight);
+    let next = elements.map((element) => {
+      if (element.element_id === placeholderShape.element_id) return materializedShape;
+      if (element.element_id === placeholderLabel.element_id) return materializedLabel;
+      return element;
+    });
+    next = applyFlowSpacing(next, options.spacing, pageHeight);
+    return { elements: next, elementId: placeholderLabel.element_id };
+  }
 
   labels.forEach((label, index) => {
     const placement = placements[index];
@@ -543,6 +588,94 @@ function addChipModeSkill(elements, group, value, pageHeight, options) {
   );
   next = applyFlowSpacing(next, options.spacing, pageHeight);
   return { elements: next, elementId: labelId };
+}
+
+/**
+ * Insert an empty Skills category after an existing chip-mode category.
+ *
+ * The new group is built with the active chip treatment and two editor-only
+ * placeholders. It is inserted without rebuilding existing groups, so their
+ * ids, formatting, and measured chip geometry remain stable.
+ *
+ * @param {object[]} elements
+ * @param {string} afterElementId category label used as the record toolbar anchor
+ * @param {number} [pageHeight=842]
+ * @param {{spacing?:object,idFactory?:()=>string,measureTextWidth?:Function|null}} [options]
+ * @returns {{elements:object[],firstBodyId:string}|null}
+ */
+export function insertSkillsChipCategoryAfter(
+  elements,
+  afterElementId,
+  pageHeight = 842,
+  options = {},
+) {
+  const group = skillGroupDescriptors(elements, pageHeight).find((candidate) => (
+    candidate.mode === SKILLS_LAYOUT_CHIPS
+    && candidate.category?.element_id === afterElementId
+  ));
+  if (!group || group.shapes.length === 0 || group.labels.length === 0) return null;
+
+  const spacing = options.spacing || {};
+  const idFactory = options.idFactory || nanoid;
+  const style = deriveSectionStyle(elements, pageHeight, group.headingId, { lane: "main" });
+  const baseLabel = group.labels[0];
+  const baseShape = group.shapes[0];
+  const bodyFont = {
+    ...(style?.body || {}),
+    fontSize: finiteNumber(baseLabel.fontSize, finiteNumber(style?.body?.fontSize, 9.5)),
+    fontFamily: baseLabel.fontFamily || style?.body?.fontFamily,
+    color: baseShape.filled ? baseLabel.color : (style?.body?.color || baseLabel.color),
+    letterSpacing: finiteNumber(baseLabel.letterSpacing),
+  };
+  const recordWidth = Math.max(
+    1,
+    finiteNumber(group.category.width, finiteNumber(style?.recordWidth, 300)),
+  );
+  const built = buildSkillsChipGroups([{
+    category: "",
+    categoryPlaceholder: "Kategoria umiejętności",
+    items: [],
+    itemPlaceholder: "Umiejętność",
+  }], {
+    bodyLeft: finiteNumber(group.category.left, finiteNumber(style?.bodyLeft)),
+    recordWidth,
+    body: bodyFont,
+    chipBg: baseShape.backgroundColor,
+    chipFg: baseLabel.color,
+    chipVariant: detectSkillChipVariant(group.groupMembers),
+    appendTop: 0,
+    idFactory,
+    measureTextWidth: options.measureTextWidth,
+    stackGap: finiteNumber(spacing.stack, 4),
+    recordGap: finiteNumber(spacing.record, 10),
+  });
+  const category = built.find((element) => (
+    element.flowRole === "content" && Boolean(element.bold)
+  ));
+  if (!category) return null;
+
+  const oldBottomAbs = Math.max(...group.groupMembers.map((element) => (
+    absoluteBottom(element, pageHeight)
+  )));
+  const recordGap = finiteNumber(spacing.record, 10);
+  const builtTop = Math.min(...built.map((element) => absoluteTop(element, pageHeight)));
+  const builtBottom = Math.max(...built.map((element) => absoluteBottom(element, pageHeight)));
+  const builtHeight = builtBottom - builtTop;
+  const insertionTop = oldBottomAbs + recordGap;
+  const additions = built.map((element) => (
+    atAbsoluteTop(element, insertionTop + absoluteTop(element, pageHeight) - builtTop, pageHeight)
+  ));
+  const groupIds = new Set(group.groupMembers.map((element) => element.element_id));
+  let next = shiftFollowingMainContent(
+    elements,
+    groupIds,
+    oldBottomAbs,
+    builtHeight + recordGap,
+    pageHeight,
+  );
+  next = insertElementsAfterGroup(next, groupIds, additions);
+  next = applyFlowSpacing(next, spacing, pageHeight);
+  return { elements: next, firstBodyId: category.element_id };
 }
 
 /**

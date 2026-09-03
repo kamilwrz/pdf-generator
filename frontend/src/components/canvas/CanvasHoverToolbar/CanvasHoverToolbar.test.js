@@ -68,12 +68,13 @@ test("section, entry, and element context use neutral shadow depth without tinte
 });
 
 test("selection and editing use screen-stable hairlines with active textarea depth", async () => {
-  const [tokens, pageSource, selectionSource, selectionCss, textCss, textareaCss] = await Promise.all([
+  const [tokens, pageSource, selectionSource, selectionCss, textCss, textareaSource, textareaCss] = await Promise.all([
     readFile(new URL("../../../index.css", import.meta.url), "utf8"),
     readFile(new URL("../A4/A4.jsx", import.meta.url), "utf8"),
     readFile(new URL("../SelectionOverlay/SelectionOverlay.jsx", import.meta.url), "utf8"),
     readFile(new URL("../SelectionOverlay/SelectionOverlay.module.css", import.meta.url), "utf8"),
     readFile(new URL("../Text/Text.module.css", import.meta.url), "utf8"),
+    readFile(new URL("../Textarea/Textarea.jsx", import.meta.url), "utf8"),
     readFile(new URL("../Textarea/Textarea.module.css", import.meta.url), "utf8"),
   ]);
 
@@ -95,6 +96,8 @@ test("selection and editing use screen-stable hairlines with active textarea dep
   assert.match(textCss, /\.editing:focus::after\s*\{[^}]*outline:[^;]*--canvas-editor-hairline[^;]*--color-focus[^}]*box-shadow:\s*none/s);
   assert.match(textareaCss, /\.selected\s*\{[^}]*box-shadow:[^;]*--canvas-shadow-editor-active/s);
   assert.match(textareaCss, /\.editing:focus\s*\{[^}]*outline:[^;]*--canvas-editor-hairline[^}]*box-shadow:[^;]*--canvas-shadow-editor-active/s);
+  assert.match(textareaSource, /className=\{`\$\{classes\.editing\} \$\{isSelected \? classes\.selected : ""\}`\}/);
+  assert.match(textareaCss, /\.editing\.selected\s*\{[^}]*outline:[^;]*--canvas-editor-hairline[^}]*box-shadow:[^;]*--canvas-shadow-editor-active/s);
   assert.match(textareaCss, /\.editing:focus\s*\{[^}]*outline:[^;]*--canvas-editor-hairline[^;]*--color-focus/s);
 });
 

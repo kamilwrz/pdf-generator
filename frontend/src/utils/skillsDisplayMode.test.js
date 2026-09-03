@@ -73,6 +73,20 @@ function placeholderCategorySkillsFixture() {
   ];
 }
 
+function emptyPlaceholderSkillsFixture() {
+  return placeholderCategorySkillsFixture().map((element) => {
+    if (element.element_id === "sk-body1" || element.element_id === "sk-body2") {
+      return {
+        ...element,
+        content: "",
+        placeholder: "Umiejętność",
+        starterPlaceholder: true,
+      };
+    }
+    return element;
+  });
+}
+
 function flatSkillsFixture() {
   return [
     { element_id: "sk-head", category: "text", content: "UMIEJĘTNOŚCI",
@@ -263,6 +277,46 @@ describe("changeSkillsDisplayMode", () => {
       { category: "", categoryPlaceholder: "Kategoria umiejętności", items: ["React"] },
       { category: "", categoryPlaceholder: "Kategoria umiejętności", items: ["Kamil", "JSS"] },
     ]);
+  });
+
+  it("preserves empty skill placeholders as editor-only chip pairs", () => {
+    const chips = changeSkillsDisplayMode(
+      emptyPlaceholderSkillsFixture(),
+      "sk-head",
+      "chips",
+      PAGE_HEIGHT,
+      SPACING,
+    );
+    assert.ok(chips);
+    assert.deepEqual(groupsFor(chips, "sk-head"), [
+      {
+        category: "",
+        categoryPlaceholder: "Kategoria umiejętności",
+        items: [],
+        itemPlaceholder: "Umiejętność",
+      },
+      {
+        category: "",
+        categoryPlaceholder: "Kategoria umiejętności",
+        items: [],
+        itemPlaceholder: "Umiejętność",
+      },
+    ]);
+    const placeholderLabels = chips.filter((element) => (
+      element.flowRole === "grid-member"
+      && element.category === "text"
+      && element.placeholder === "Umiejętność"
+    ));
+    const placeholderShapes = chips.filter((element) => (
+      element.flowRole === "grid-member"
+      && ["rectangle", "line"].includes(element.category)
+      && element.starterPlaceholder
+    ));
+    assert.equal(placeholderLabels.length, 2);
+    assert.equal(placeholderShapes.length, 2);
+    assert.ok(placeholderLabels.every((element) => (
+      element.content === "" && element.starterPlaceholder === true
+    )));
   });
 
   it("sizes modal-created chips with the active browser font measurer", () => {

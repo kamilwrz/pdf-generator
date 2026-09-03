@@ -21,7 +21,7 @@ import { DEFAULT_FLOW_SPACING, normalizeFlowSpacing } from '../utils/flowSpacing
 import { collapseSpilledMainIntoSidebar } from '../utils/collapseMainIntoSidebar';
 import { transferSectionLane } from '../utils/transferSectionLane';
 import { changeSkillsDisplayMode } from '../utils/skillsDisplayMode';
-import { insertSkillItem } from '../utils/skillsEntry';
+import { insertSkillItem, insertSkillsChipCategoryAfter } from '../utils/skillsEntry';
 import {
   deriveSectionStyle,
   appendSectionAtEnd,
@@ -1166,7 +1166,14 @@ export function useA4Elements(titleRef) {
     setA4_Elements((prev) => {
       const pageHeight = pageSizeRef.current?.height ?? 842;
       const spacing = flowSpacingRef.current;
-      const result = insertRecordBlockAfterRecord(
+      // Chip categories need a wrap-aware transaction that owns both shape
+      // and label placeholders. Other record layouts retain the generic clone.
+      const result = insertSkillsChipCategoryAfter(
+        prev,
+        afterElementId,
+        pageHeight,
+        { spacing, idFactory: nanoid, measureTextWidth: measureSkillTextWidth },
+      ) || insertRecordBlockAfterRecord(
         prev,
         afterElementId,
         pageHeight,
@@ -1195,7 +1202,7 @@ export function useA4Elements(titleRef) {
       return finalizeDocumentPages(selected, { collapseEmpty: true });
     });
     if (jumpToPage != null) setCurrentPage(jumpToPage);
-  }, [finalizeDocumentPages]);
+  }, [finalizeDocumentPages, measureSkillTextWidth]);
 
   /**
    * Add the optional bullet description to one template-mode record and enter

@@ -94,6 +94,14 @@
     box-shadow: var(--canvas-shadow-editor-active, var(--shadow-editor-active));
 }
 
+/* A structural toolbar can take focus while the textarea remains the active
+   selection. Keep the same outline and depth cue until selection changes. */
+.editing.selected {
+    outline: var(--canvas-editor-hairline, 1px) solid var(--color-focus);
+    outline-offset: var(--canvas-editor-hairline-offset, 1px);
+    box-shadow: var(--canvas-shadow-editor-active, var(--shadow-editor-active));
+}
+
 /* The edit surface is now a contentEditable div (to host inline decoration),
    which has no native placeholder. Show the authored hint via data-placeholder
    only while the box is empty. */

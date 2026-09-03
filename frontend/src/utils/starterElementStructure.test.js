@@ -139,6 +139,36 @@ describe("starter render copy", () => {
     assert.equal(rendered.length, 1);
   });
 
+  it("removes an empty Skills placeholder chip pair from render copies", () => {
+    const source = [
+      {
+        element_id: "skill-placeholder-shape",
+        category: "rectangle",
+        flowRole: "grid-member",
+        flowGroup: "skills-empty",
+        starterPlaceholder: true,
+      },
+      {
+        element_id: "skill-placeholder-label",
+        category: "text",
+        flowRole: "grid-member",
+        flowGroup: "skills-empty",
+        content: "",
+        placeholder: "Umiejętność",
+        starterPlaceholder: true,
+      },
+      {
+        element_id: "real-skill-shape",
+        category: "rectangle",
+        flowRole: "grid-member",
+        flowGroup: "skills-real",
+        starterPlaceholder: false,
+      },
+    ];
+    const rendered = prepareStarterElementsForRender(source);
+    assert.deepEqual(rendered.map((element) => element.element_id), ["real-skill-shape"]);
+  });
+
   it("closes the horizontal gap after omitting an empty contact from render", () => {
     const source = [
       {

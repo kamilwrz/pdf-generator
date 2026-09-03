@@ -210,7 +210,7 @@ test.describe("CV Studio editor smoke", () => {
         ...SAVED_DOCUMENT.cv_data,
         skills: [
           { category: "", items: ["React"] },
-          { category: "", items: ["Kamil", "JSS"] },
+          { category: "", items: [] },
         ],
       },
     };
@@ -232,7 +232,17 @@ test.describe("CV Studio editor smoke", () => {
         return { ...element, content: "React" };
       }
       if (element.element_id === "skills-technologies-body") {
-        return { ...element, content: "Kamil  ·  JSS" };
+        return {
+          ...element,
+          content: "",
+          placeholder: "Umiejętność",
+          starterPlaceholder: true,
+          extra_properties: {
+            ...element.extra_properties,
+            placeholder: "Umiejętność",
+            starterPlaceholder: true,
+          },
+        };
       }
       return element;
     });
@@ -257,6 +267,9 @@ test.describe("CV Studio editor smoke", () => {
     await modal.getByRole("button", { name: /^Chipsy/ }).click();
 
     await expect(page.locator('[data-placeholder="Kategoria umiejętności"]')).toHaveCount(2);
+    const emptyChip = page.locator('[data-placeholder="Umiejętność"]');
+    await expect(emptyChip).toHaveCount(1);
+    await expect(emptyChip).toBeVisible();
     const reactLabel = page.getByText("React", { exact: true });
     await expect(reactLabel).toHaveCount(1);
     const chipGeometry = await reactLabel.evaluate((label) => {
@@ -300,6 +313,34 @@ test.describe("CV Studio editor smoke", () => {
       return toolbar.getBoundingClientRect().top - shapeBottom;
     }, chipGeometry.shapeBottom);
     expect(Math.abs(chipToolbarGap - 8)).toBeLessThan(1);
+
+    await emptyChip.focus();
+    const emptyGroupToolbar = page.locator(
+      '[data-canvas-toolbar-key^="skills-entry:skills-heading:"]',
+    ).filter({ has: page.getByRole("button", { name: "Dodaj umiejętność", exact: true }) }).last();
+    await emptyGroupToolbar.getByRole("button", { name: "Dodaj umiejętność", exact: true }).click();
+    await emptyGroupToolbar.getByRole("textbox", { name: "Nowa umiejętność" }).fill("TypeScript");
+    await page.keyboard.press("Enter");
+    await expect(page.locator('[data-placeholder="Umiejętność"]')).toHaveCount(0);
+    await expect(page.getByText("TypeScript", { exact: true })).toHaveCount(1);
+
+    const firstCategory = page.locator('[data-placeholder="Kategoria umiejętności"]').first();
+    await firstCategory.click();
+    await expect(firstCategory).toBeFocused();
+    const activeChrome = await firstCategory.evaluate((element) => {
+      const style = getComputedStyle(element);
+      return { boxShadow: style.boxShadow, outlineStyle: style.outlineStyle };
+    });
+    expect(activeChrome.boxShadow).not.toBe("none");
+    expect(activeChrome.outlineStyle).not.toBe("none");
+    await page.keyboard.press("Escape");
+    await firstCategory.hover();
+    const categoryToolbar = page.locator(
+      `[data-canvas-toolbar-key="record:${await firstCategory.getAttribute("id")}"]`,
+    );
+    await categoryToolbar.getByRole("button", { name: "Dodaj kategorię poniżej" }).click();
+    await expect(page.locator('[data-placeholder="Kategoria umiejętności"]')).toHaveCount(3);
+    await expect(page.locator('[data-placeholder="Umiejętność"]')).toHaveCount(1);
     api.assertHermetic();
   });
 

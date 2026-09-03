@@ -425,6 +425,7 @@ export default function CanvasElements({ elements, spreadSide = null }) {
               fontSize={blockAnchor.fontSize}
               canMoveUp={blockAnchor.canMoveUp}
               canMoveDown={blockAnchor.canMoveDown}
+              addOnly={blockAnchor.addOnly}
               descriptionAction={blockAnchor.descriptionAction}
               highlight={blockAnchor.highlight}
               spreadSide={spreadSide}
@@ -495,6 +496,9 @@ export default function CanvasElements({ elements, spreadSide = null }) {
             fixedToPage={element.fixedToPage}
             placeholder={element.placeholder}
             starterPlaceholder={element.starterPlaceholder}
+            skillChipPlaceholder={Boolean(
+              element.starterPlaceholder && element.flowRole === "grid-member"
+            )}
             selectAllOnEdit={element.selectAllOnEdit}
             textTransform={element.textTransform}
             mastheadRole={element.mastheadRole}
@@ -511,6 +515,7 @@ export default function CanvasElements({ elements, spreadSide = null }) {
               fontSize={blockAnchor.fontSize}
               canMoveUp={blockAnchor.canMoveUp}
               canMoveDown={blockAnchor.canMoveDown}
+              addOnly={blockAnchor.addOnly}
               descriptionAction={blockAnchor.descriptionAction}
               highlight={blockAnchor.highlight}
               spreadSide={spreadSide}
