@@ -39,6 +39,23 @@ test("selected and editing structural fields remain eligible hover targets", asy
   assert.match(sectionSource, /triggerRevision/);
 });
 
+test("section and record toolbars use distinct edge gaps and title-centred anchors", async () => {
+  const recordSource = await readFile(
+    new URL("../RecordBlockAdd/RecordBlockAdd.jsx", import.meta.url),
+    "utf8",
+  );
+  const sectionSource = await readFile(
+    new URL("../SectionRecordAdd/SectionRecordAdd.jsx", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(recordSource, /structuralToolbarLayoutSize\(zoom, RECORD_TOOLBAR_OFFSET_SCREEN_PX\)/);
+  assert.match(recordSource, /\(Number\(top\) \|\| 0\) \+ boxHeight \/ 2 - layout\.buttonSize \/ 2/);
+  assert.match(sectionSource, /structuralToolbarLayoutSize\(zoom, SECTION_TOOLBAR_OFFSET_SCREEN_PX\)/);
+  assert.match(sectionSource, /const toolbarHeadingBounds = currentMeasurement\?\.headingBounds/);
+  assert.match(sectionSource, /toolbarHeadingBounds\.top[\s\S]*toolbarHeadingBounds\.height \/ 2/);
+});
+
 test("repeatable grid cells mount their dedicated two-action gutter control", async () => {
   const source = await readFile(new URL("./CanvasElements.jsx", import.meta.url), "utf8");
 

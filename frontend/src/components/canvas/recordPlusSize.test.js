@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  RECORD_TOOLBAR_OFFSET_SCREEN_PX,
   resolveStructuralToolbarSide,
+  SECTION_TOOLBAR_OFFSET_SCREEN_PX,
   structuralToolbarLayoutSize,
 } from "./recordPlusSize.js";
 
@@ -26,6 +28,25 @@ test("keeps the compact structural toolbar screen-stable across canvas zoom", ()
     offset: 5,
     borderWidth: 0.5,
   });
+});
+
+test("keeps section and record gutter gaps exact in screen space", () => {
+  assert.equal(
+    structuralToolbarLayoutSize(1, SECTION_TOOLBAR_OFFSET_SCREEN_PX).offset,
+    34,
+  );
+  assert.equal(
+    structuralToolbarLayoutSize(1.6, SECTION_TOOLBAR_OFFSET_SCREEN_PX).offset,
+    21.25,
+  );
+  assert.equal(
+    structuralToolbarLayoutSize(1, RECORD_TOOLBAR_OFFSET_SCREEN_PX).offset,
+    16,
+  );
+  assert.equal(
+    structuralToolbarLayoutSize(2, RECORD_TOOLBAR_OFFSET_SCREEN_PX).offset,
+    8,
+  );
 });
 
 test("uses outside gutters in a two-page spread", () => {

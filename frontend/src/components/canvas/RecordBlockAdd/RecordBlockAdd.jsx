@@ -14,6 +14,7 @@ import { getElementOutlineBounds } from "../../../utils/elementBounds";
 import { useCanvasHoverToolbar } from "../../../hooks/useCanvasHoverToolbar";
 import { useCanvasDeletionUndo } from "../../../hooks/useCanvasDeletionUndo";
 import {
+  RECORD_TOOLBAR_OFFSET_SCREEN_PX,
   resolveStructuralToolbarSide,
   structuralToolbarLayoutSize,
 } from "../recordPlusSize";
@@ -94,7 +95,7 @@ export default function RecordBlockAdd({
 
   if (!eligible) return null;
 
-  const layout = structuralToolbarLayoutSize(zoom);
+  const layout = structuralToolbarLayoutSize(zoom, RECORD_TOOLBAR_OFFSET_SCREEN_PX);
   const boxHeight = Number.isFinite(Number(height)) && Number(height) > 0
     ? Number(height)
     : (Number(fontSize) || 10);
@@ -107,6 +108,9 @@ export default function RecordBlockAdd({
     width: boxWidth,
     height: Math.max(boxHeight, Number(fontSize) || 10),
   };
+  // Structural actions belong to the record, but their visual anchor is the
+  // first (title) element. Using that element's own box avoids drifting toward
+  // the centre as descriptions add more lines to the record outline.
   const toolbarTop = (Number(top) || 0) + boxHeight / 2 - layout.buttonSize / 2;
   const preferredSide = (Number(left) || 0) < (pageSize?.width ?? 595) * 0.38
     ? "left"

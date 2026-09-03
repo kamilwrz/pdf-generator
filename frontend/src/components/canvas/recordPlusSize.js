@@ -17,6 +17,12 @@ const TARGET_ICON_SCREEN_PX = 14;
 /** Desired on-screen gap between clustered controls in CSS pixels. */
 const TARGET_GAP_SCREEN_PX = 6;
 
+/** Screen-space gap between a section toolbar and its resolved A4 edge. */
+export const SECTION_TOOLBAR_OFFSET_SCREEN_PX = 34;
+
+/** Screen-space gap between a record toolbar and its resolved A4 edge. */
+export const RECORD_TOOLBAR_OFFSET_SCREEN_PX = 16;
+
 /**
  * @param {number} [zoom=1]
  * @param {number} [fontSize=10] unused reserved for future per-line tuning
@@ -42,12 +48,16 @@ export function recordPlusLayoutSize(zoom = 1, fontSize = 10) {
  * the intended on-screen dimensions.
  *
  * @param {number} [zoom=1]
+ * @param {number} [offsetScreenPx=10] desired page-edge gap in screen pixels
  * @returns {{buttonSize:number,iconSize:number,gap:number,labelWidth:number,fontSize:number,menuWidth:number,offset:number,borderWidth:number}}
  */
-export function structuralToolbarLayoutSize(zoom = 1) {
+export function structuralToolbarLayoutSize(zoom = 1, offsetScreenPx = 10) {
   const safeZoom = Number.isFinite(Number(zoom)) && Number(zoom) > 0.05
     ? Number(zoom)
     : 1;
+  const safeOffset = Number.isFinite(Number(offsetScreenPx)) && Number(offsetScreenPx) >= 0
+    ? Number(offsetScreenPx)
+    : 10;
   return {
     buttonSize: 36 / safeZoom,
     iconSize: 15 / safeZoom,
@@ -55,7 +65,9 @@ export function structuralToolbarLayoutSize(zoom = 1) {
     labelWidth: 76 / safeZoom,
     fontSize: 10.5 / safeZoom,
     menuWidth: 176 / safeZoom,
-    offset: 10 / safeZoom,
+    // The page transform scales this layout value back into an exact visual
+    // gap, so section and record toolbars keep their own rhythm at every zoom.
+    offset: safeOffset / safeZoom,
     borderWidth: 1 / safeZoom,
   };
 }

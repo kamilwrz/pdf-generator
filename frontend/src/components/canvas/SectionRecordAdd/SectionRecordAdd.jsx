@@ -16,6 +16,7 @@ import { useCanvasHoverToolbar } from "../../../hooks/useCanvasHoverToolbar";
 import { useCanvasDeletionUndo } from "../../../hooks/useCanvasDeletionUndo";
 import {
   resolveStructuralToolbarSide,
+  SECTION_TOOLBAR_OFFSET_SCREEN_PX,
   structuralToolbarLayoutSize,
 } from "../recordPlusSize";
 import {
@@ -202,7 +203,7 @@ export default function SectionRecordAdd({
 
   if (!eligible) return null;
 
-  const layout = structuralToolbarLayoutSize(zoom);
+  const layout = structuralToolbarLayoutSize(zoom, SECTION_TOOLBAR_OFFSET_SCREEN_PX);
   const headingHeight = Number(fontSize) || 10;
   const headingWidth = Number.isFinite(Number(width)) && Number(width) > 0
     ? Number(width)
@@ -243,7 +244,16 @@ export default function SectionRecordAdd({
   // A single page follows its content lane. A spread instead uses the outer
   // edge of each sheet because the centre gap is narrower than the toolbar.
   const side = resolveStructuralToolbarSide(gutterSide, spreadSide);
-  const toolbarTop = (Number(top) || 0) + headingHeight / 2 - layout.buttonSize / 2;
+  // Align the control row to the rendered heading rather than to the full
+  // semantic section outline. This remains accurate for fonts whose glyph ink
+  // is offset inside the stored line box and after a zoom/reorder commit.
+  const toolbarHeadingBounds = currentMeasurement?.headingBounds || {
+    top: Number(top) || 0,
+    height: Math.max(Number(heading?.height) || 0, headingHeight),
+  };
+  const toolbarTop = toolbarHeadingBounds.top
+    + toolbarHeadingBounds.height / 2
+    - layout.buttonSize / 2;
   const sectionLabel = String(heading?.content || "").trim();
   const hoveredHeading = hoveredTriggerId === headingId ? heading : null;
   const elementHighlight = hoveredHeading
