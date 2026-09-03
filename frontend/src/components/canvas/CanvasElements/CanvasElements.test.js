@@ -82,7 +82,7 @@ test("main-column Skills groups mount their dedicated add form anchors", async (
   assert.match(source, /mode=\{skillsEntryAnchor\.mode\}/);
   assert.match(source, /groupId=\{skillsEntryAnchor\.groupId\}/);
   assert.match(source, /triggerIds=\{skillsEntryAnchor\.triggerIds\}/);
-  assert.match(source, /addOnly=\{blockAnchor\.addOnly\}/);
+  assert.doesNotMatch(source, /addOnly=\{blockAnchor\.addOnly\}/);
 });
 
 test("Skills category and body textareas receive dedicated editor chrome", async () => {
@@ -102,16 +102,19 @@ test("Skills category and body textareas receive dedicated editor chrome", async
   assert.match(textareaCss, /\.skillsField\.selected,[\s\S]*--canvas-shadow-editor-skills-active/);
 });
 
-test("chip Skills categories expose a safe add-only structural action", async () => {
+test("chip Skills categories use the standard record toolbar", async () => {
   const [canvasSource, recordSource] = await Promise.all([
     readFile(new URL("./CanvasElements.jsx", import.meta.url), "utf8"),
     readFile(new URL("../RecordBlockAdd/RecordBlockAdd.jsx", import.meta.url), "utf8"),
   ]);
 
-  assert.match(canvasSource, /addOnly=\{blockAnchor\.addOnly\}/);
-  assert.match(recordSource, /addOnly \? "Dodaj kategorię poniżej"/);
-  assert.match(recordSource, /directActions=\{addOnly \? \[\{/);
-  assert.match(recordSource, /key: "add-category"/);
+  assert.doesNotMatch(canvasSource, /addOnly=\{blockAnchor\.addOnly\}/);
+  assert.doesNotMatch(recordSource, /addOnly/);
+  assert.match(recordSource, /addLabel="Wpis"/);
+  assert.match(recordSource, /addTooltip="Dodaj wpis poniżej"/);
+  assert.match(recordSource, /canMoveUp=\{canMoveUp\}/);
+  assert.match(recordSource, /canMoveDown=\{canMoveDown\}/);
+  assert.match(recordSource, /menuItems=\{menuItems\}/);
 });
 
 test("plain section content reveals the complete section depth without stealing nested controls", async () => {

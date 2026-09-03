@@ -1400,7 +1400,6 @@ export function elementSupportsRecordBlockAdd(elements, elementId, pageHeight = 
  *   highlight: {left:number,top:number,width:number,height:number},
  *   canMoveUp: boolean,
  *   canMoveDown: boolean,
- *   addOnly?: boolean,
  *   descriptionAction: "add"|"remove"|null,
  * }[]}
  */
@@ -1438,8 +1437,6 @@ export function listRecordBlockAddAnchors(elements, pageHeight = 842) {
             ? explicitHeight
             : fallbackHeight);
       }));
-      const chipSkillsGroup = isSkillsSectionTitle(heading?.content)
-        && group.some((element) => element.flowRole === "grid-member");
       const skillsCategory = isSkillsSectionTitle(heading?.content) && Boolean(title.bold);
       anchors.push({
         elementId: title.element_id,
@@ -1455,13 +1452,9 @@ export function listRecordBlockAddAnchors(elements, pageHeight = 842) {
           width: Math.max(1, right - left),
           height: Math.max(1, bottom - top),
         },
-        // Chip category insertion is wrap-aware, but generic record reorder
-        // and deletion do not own the paired shapes. Expose the safe add action
-        // alone until those operations have an equivalent chip transaction.
-        addOnly: chipSkillsGroup,
         skillsCategory,
-        canMoveUp: !chipSkillsGroup && groupIndex > 0,
-        canMoveDown: !chipSkillsGroup && groupIndex < groups.length - 1,
+        canMoveUp: groupIndex > 0,
+        canMoveDown: groupIndex < groups.length - 1,
         descriptionAction: descriptionActionForGroup(group, groups, heading?.content),
       });
     });

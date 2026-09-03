@@ -340,7 +340,11 @@ test.describe("CV Studio editor smoke", () => {
     const categoryToolbar = page.locator(
       `[data-canvas-toolbar-key="record:${await firstCategory.getAttribute("id")}"]`,
     );
-    await categoryToolbar.getByRole("button", { name: "Dodaj kategorię poniżej" }).click();
+    await expect(categoryToolbar.getByRole("button", { name: "Dodaj wpis poniżej" })).toBeVisible();
+    await expect(categoryToolbar.getByRole("button", { name: "Przenieś wyżej" })).toBeDisabled();
+    await expect(categoryToolbar.getByRole("button", { name: "Przenieś niżej" })).toBeEnabled();
+    await expect(categoryToolbar.getByRole("button", { name: "Więcej działań" })).toBeVisible();
+    await categoryToolbar.getByRole("button", { name: "Dodaj wpis poniżej" }).click();
     await expect(page.locator('[data-placeholder="Kategoria umiejętności"]')).toHaveCount(3);
     await expect(page.locator('[data-placeholder="Umiejętność"]')).toHaveCount(1);
     api.assertHermetic();

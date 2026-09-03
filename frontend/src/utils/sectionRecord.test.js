@@ -97,15 +97,25 @@ describe("sectionSupportsRecordAdd", () => {
         left: 134, top: 158, width: 70, height: 20, page: 1 },
       { element_id: "sk-pill-2-text", category: "text", flowRole: "grid-member", flowGroup: "sk-g1",
         content: "Python", left: 144, top: 168, fontSize: 9.3, page: 1 },
+      { element_id: "sk-cat-2", category: "textarea", content: "Miękkie",
+        flowRole: "content", flowGroup: "sk-g2", left: 66, top: 190, width: 460, height: 14, fontSize: 10, page: 1, bold: true },
+      { element_id: "sk-pill-3-bg", category: "rectangle", flowRole: "grid-member", flowGroup: "sk-g2",
+        left: 66, top: 208, width: 90, height: 20, page: 1 },
+      { element_id: "sk-pill-3-text", category: "text", flowRole: "grid-member", flowGroup: "sk-g2",
+        content: "Komunikacja", left: 76, top: 218, fontSize: 9.3, page: 1 },
     ];
 
     assert.equal(sectionSupportsRecordAdd(elements, headingId), true);
     assert.equal(appendRecordToSection(elements, headingId), null);
     const anchors = listRecordBlockAddAnchors(elements);
-    assert.equal(anchors.length, 1);
+    assert.equal(anchors.length, 2);
     assert.equal(anchors[0].elementId, "sk-cat");
-    assert.equal(anchors[0].addOnly, true);
+    assert.equal(anchors[0].addOnly, undefined);
     assert.equal(anchors[0].skillsCategory, true);
+    assert.equal(anchors[0].canMoveUp, false);
+    assert.equal(anchors[0].canMoveDown, true);
+    assert.equal(anchors[1].canMoveUp, true);
+    assert.equal(anchors[1].canMoveDown, false);
     assert.equal(elementSupportsRecordBlockAdd(elements, "sk-cat"), true);
   });
 });

@@ -701,6 +701,110 @@ export function insertSkillsChipCategoryAfter(
 }
 
 /**
+ * Remove one complete category from a categorised chip Skills section.
+ *
+ * A chip category is one semantic record whose `flowGroup` contains the
+ * category label plus every shape/label pair. Removing only the label would
+ * orphan visual pills and corrupt the later `cv_data.skills` snapshot, so the
+ * operation always deletes the full group and lets the shared packer close the
+ * resulting document-space gap.
+ *
+ * @param {object[]} elements
+ * @param {string} categoryElementId category label used by the record toolbar
+ * @param {number} [pageHeight=842]
+ * @param {{spacing?:object}} [options]
+ * @returns {{elements:object[],removedIds:Set<string>}|null}
+ */
+export function removeSkillsChipCategory(
+  elements,
+  categoryElementId,
+  pageHeight = 842,
+  options = {},
+) {
+  const group = skillGroupDescriptors(elements, pageHeight).find((candidate) => (
+    candidate.mode === SKILLS_LAYOUT_CHIPS
+    && candidate.category?.element_id === categoryElementId
+  ));
+  if (!group) return null;
+
+  const removedIds = new Set(group.groupMembers.map((element) => element.element_id));
+  if (removedIds.size === 0) return null;
+  const remaining = (elements || []).filter((element) => !removedIds.has(element.element_id));
+  return {
+    elements: applyFlowSpacing(remaining, options.spacing, pageHeight),
+    removedIds,
+  };
+}
+
+/**
+ * Move a complete chip Skills category before or after its adjacent category.
+ *
+ * The canvas represents pills as separate shape and text elements. The swap
+ * therefore translates every member of both `flowGroup`s by the same absolute
+ * delta, preserving chip widths, wrapping, styling, IDs, and internal offsets.
+ * The total occupied band remains unchanged; the shared packer then reconciles
+ * section rhythm and any cross-page coordinates.
+ *
+ * @param {object[]} elements
+ * @param {string} categoryElementId category label used by the record toolbar
+ * @param {"up"|"down"} direction
+ * @param {number} [pageHeight=842]
+ * @param {{spacing?:object}} [options]
+ * @returns {{elements:object[]}|null}
+ */
+export function reorderSkillsChipCategory(
+  elements,
+  categoryElementId,
+  direction,
+  pageHeight = 842,
+  options = {},
+) {
+  if (direction !== "up" && direction !== "down") return null;
+  const groups = skillGroupDescriptors(elements, pageHeight)
+    .filter((candidate) => (
+      candidate.mode === SKILLS_LAYOUT_CHIPS && Boolean(candidate.category)
+    ));
+  const index = groups.findIndex((candidate) => (
+    candidate.category?.element_id === categoryElementId
+  ));
+  if (index < 0) return null;
+
+  const current = groups[index];
+  const sectionGroups = groups.filter((candidate) => candidate.headingId === current.headingId);
+  const sectionIndex = sectionGroups.findIndex((candidate) => (
+    candidate.category?.element_id === categoryElementId
+  ));
+  const targetIndex = direction === "up" ? sectionIndex - 1 : sectionIndex + 1;
+  if (targetIndex < 0 || targetIndex >= sectionGroups.length) return null;
+
+  const target = sectionGroups[targetIndex];
+  const earlier = direction === "up" ? target : current;
+  const later = direction === "up" ? current : target;
+  const earlierTop = Math.min(...earlier.groupMembers.map((element) => absoluteTop(element, pageHeight)));
+  const earlierBottom = Math.max(...earlier.groupMembers.map((element) => absoluteBottom(element, pageHeight)));
+  const laterTop = Math.min(...later.groupMembers.map((element) => absoluteTop(element, pageHeight)));
+  const laterBottom = Math.max(...later.groupMembers.map((element) => absoluteBottom(element, pageHeight)));
+  const gap = Math.max(0, laterTop - earlierBottom);
+  const earlierHeight = earlierBottom - earlierTop;
+  const laterHeight = laterBottom - laterTop;
+  const earlierIds = new Set(earlier.groupMembers.map((element) => element.element_id));
+  const laterIds = new Set(later.groupMembers.map((element) => element.element_id));
+  const earlierDelta = laterHeight + gap;
+  const laterDelta = -(earlierHeight + gap);
+
+  const relocated = (elements || []).map((element) => {
+    if (earlierIds.has(element.element_id)) {
+      return atAbsoluteTop(element, absoluteTop(element, pageHeight) + earlierDelta, pageHeight);
+    }
+    if (laterIds.has(element.element_id)) {
+      return atAbsoluteTop(element, absoluteTop(element, pageHeight) + laterDelta, pageHeight);
+    }
+    return element;
+  });
+  return { elements: applyFlowSpacing(relocated, options.spacing, pageHeight) };
+}
+
+/**
  * Add one skill to a main-column category without changing its display mode.
  *
  * @param {object[]} elements

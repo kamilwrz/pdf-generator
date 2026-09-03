@@ -7,7 +7,7 @@
  * removals remain recoverable through the global toast.
  */
 import { useLayoutEffect, useState } from "react";
-import { FiFileMinus, FiFilePlus, FiPlus, FiTrash2 } from "react-icons/fi";
+import { FiFileMinus, FiFilePlus, FiTrash2 } from "react-icons/fi";
 import { useCanvasContext } from "../../../store/canvas-context";
 import { EDITOR_MODE_TEMPLATE } from "../../../utils/editorMode";
 import { elementSupportsRecordBlockAdd } from "../../../utils/sectionRecord";
@@ -40,7 +40,6 @@ function sameBounds(left, right) {
  *   highlight?:{left:number,top:number,width:number,height:number}|null,
  *   canMoveUp?:boolean,
  *   canMoveDown?:boolean,
- *   addOnly?:boolean,
  *   skillsCategory?:boolean,
  *   descriptionAction?:"add"|"remove"|null,
  * }} props
@@ -56,7 +55,6 @@ export default function RecordBlockAdd({
   highlight = null,
   canMoveUp = false,
   canMoveDown = false,
-  addOnly = false,
   skillsCategory = false,
   descriptionAction = null,
 }) {
@@ -225,14 +223,8 @@ export default function RecordBlockAdd({
       elementHighlightSelected={Boolean(hoveredElement?.isSelected)}
       layout={layout}
       addLabel="Wpis"
-      addTooltip={addOnly ? "Dodaj kategorię poniżej" : "Dodaj wpis poniżej"}
+      addTooltip="Dodaj wpis poniżej"
       onAdd={addRecord}
-      directActions={addOnly ? [{
-        key: "add-category",
-        label: "Dodaj kategorię poniżej",
-        icon: <FiPlus aria-hidden="true" />,
-        onSelect: addRecord,
-      }] : []}
       canMoveUp={canMoveUp}
       canMoveDown={canMoveDown}
       onMoveUp={() => reorderRecordBlock?.(elementId, "up")}

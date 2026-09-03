@@ -5,6 +5,8 @@ import {
   insertSkillItem,
   insertSkillsChipCategoryAfter,
   listSkillsEntryAnchors,
+  removeSkillsChipCategory,
+  reorderSkillsChipCategory,
 } from "./skillsEntry.js";
 import { detectSkillChipVariant } from "./skillsLayout.js";
 
@@ -305,5 +307,67 @@ describe("insertSkillItem", () => {
       && element.starterPlaceholder
     ));
     assert.equal(newPlaceholder.placeholder, "Umiejętność");
+  });
+
+  it("reorders whole chip categories while preserving every shape and label id", () => {
+    const chips = changeSkillsDisplayMode(
+      groupedFixture(),
+      "sk-head",
+      "chips",
+      PAGE_HEIGHT,
+      SPACING,
+    );
+    const toolsCategory = chips.find((element) => element.content === "Narzędzia");
+    const softCategory = chips.find((element) => element.content === "Miękkie");
+    const originalIds = new Set(chips.map((element) => element.element_id));
+    const toolsGroup = toolsCategory.flowGroup;
+    const softGroup = softCategory.flowGroup;
+
+    const result = reorderSkillsChipCategory(
+      chips,
+      softCategory.element_id,
+      "up",
+      PAGE_HEIGHT,
+      { spacing: SPACING },
+    );
+    assert.ok(result);
+    assert.deepEqual(new Set(result.elements.map((element) => element.element_id)), originalIds);
+    const minTop = (flowGroup) => Math.min(...result.elements
+      .filter((element) => element.flowGroup === flowGroup)
+      .map((element) => (element.page - 1) * PAGE_HEIGHT + element.top));
+    assert.ok(minTop(softGroup) < minTop(toolsGroup));
+    assert.equal(
+      result.elements.filter((element) => (
+        element.flowGroup === toolsGroup && element.flowRole === "grid-member"
+      )).length,
+      chips.filter((element) => (
+        element.flowGroup === toolsGroup && element.flowRole === "grid-member"
+      )).length,
+    );
+  });
+
+  it("removes a chip category as one shape/label transaction", () => {
+    const chips = changeSkillsDisplayMode(
+      groupedFixture(),
+      "sk-head",
+      "chips",
+      PAGE_HEIGHT,
+      SPACING,
+    );
+    const toolsCategory = chips.find((element) => element.content === "Narzędzia");
+    const toolsGroup = toolsCategory.flowGroup;
+    const removedGroupIds = chips
+      .filter((element) => element.flowGroup === toolsGroup)
+      .map((element) => element.element_id);
+    const result = removeSkillsChipCategory(
+      chips,
+      toolsCategory.element_id,
+      PAGE_HEIGHT,
+      { spacing: SPACING },
+    );
+    assert.ok(result);
+    assert.ok(removedGroupIds.every((id) => result.removedIds.has(id)));
+    assert.equal(result.elements.some((element) => element.flowGroup === toolsGroup), false);
+    assert.ok(result.elements.some((element) => element.content === "Miękkie"));
   });
 });

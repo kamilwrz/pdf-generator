@@ -114,8 +114,9 @@ Swiss design is treated as infrastructure rather than decoration.
 3. **Function is visible.** Controls must look actionable, state changes must be unambiguous, and labels must be specific.
 4. **Asymmetry is deliberate.** Prefer balanced asymmetric compositions over repetitive equal-width card grids.
 5. **Consistency across workflows.** The landing page, authentication, editor, and dialogs must feel like one product.
-6. **Density follows the task.** Marketing surfaces may be spacious; editor surfaces may be compact. Both must use the same tokens and hierarchy.
-7. **Accessibility is part of the system.** Contrast, keyboard access, focus, semantics, target sizes, reduced motion, and zoom support are release requirements.
+6. **Consistency across equivalent display modes.** The same semantic canvas record uses the same structural toolbar, labels, action order, and keyboard behavior in every visual representation. Mode-specific geometry is handled behind those shared actions rather than exposed as a separate control variant.
+7. **Density follows the task.** Marketing surfaces may be spacious; editor surfaces may be compact. Both must use the same tokens and hierarchy.
+8. **Accessibility is part of the system.** Contrast, keyboard access, focus, semantics, target sizes, reduced motion, and zoom support are release requirements.
 
 Target character:
 

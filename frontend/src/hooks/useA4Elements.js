@@ -21,7 +21,12 @@ import { DEFAULT_FLOW_SPACING, normalizeFlowSpacing } from '../utils/flowSpacing
 import { collapseSpilledMainIntoSidebar } from '../utils/collapseMainIntoSidebar';
 import { transferSectionLane } from '../utils/transferSectionLane';
 import { changeSkillsDisplayMode } from '../utils/skillsDisplayMode';
-import { insertSkillItem, insertSkillsChipCategoryAfter } from '../utils/skillsEntry';
+import {
+  insertSkillItem,
+  insertSkillsChipCategoryAfter,
+  removeSkillsChipCategory,
+  reorderSkillsChipCategory,
+} from '../utils/skillsEntry';
 import {
   deriveSectionStyle,
   appendSectionAtEnd,
@@ -1309,7 +1314,12 @@ export function useA4Elements(titleRef) {
 
     setA4_Elements((prev) => {
       const pageHeight = pageSizeRef.current?.height ?? 842;
-      const result = removeRecordBlock(prev, elementId, pageHeight, {
+      // Chip categories share the standard record toolbar, but their visual
+      // record includes paired shape/text primitives. Resolve that transaction
+      // before falling back to the generic multi-line record operation.
+      const result = removeSkillsChipCategory(prev, elementId, pageHeight, {
+        spacing: flowSpacingRef.current,
+      }) || removeRecordBlock(prev, elementId, pageHeight, {
         spacing: flowSpacingRef.current,
       });
       if (!result) return prev;
@@ -1379,7 +1389,13 @@ export function useA4Elements(titleRef) {
 
     setA4_Elements((prev) => {
       const pageHeight = pageSizeRef.current?.height ?? 842;
-      const result = reorderRecordBlock(
+      const result = reorderSkillsChipCategory(
+        prev,
+        elementId,
+        direction,
+        pageHeight,
+        { spacing: flowSpacingRef.current },
+      ) || reorderRecordBlock(
         prev,
         elementId,
         direction,
