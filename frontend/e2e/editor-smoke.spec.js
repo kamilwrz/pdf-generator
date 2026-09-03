@@ -202,6 +202,54 @@ test.describe("CV Studio editor smoke", () => {
     api.assertHermetic();
   });
 
+  test("creates correctly sized skill chips through the layout modal", async ({ page }) => {
+    const api = await installMockApi(page);
+    await login(page);
+    await page.getByText("Kontynuuj ostatnie CV", { exact: true }).click();
+    await page.getByRole("button", { name: "Otwórz na płótnie" }).click();
+
+    // The authored heading uses cap-height alignment whose DOM box can be
+    // reported as zero-height by headless Chromium even though the glyphs are
+    // visible. Dispatch the same pointer-enter event observed by the shared
+    // canvas toolbar so this regression remains about modal chip geometry.
+    await page.locator("#skills-heading").dispatchEvent("pointerenter");
+    const sectionToolbar = page.locator('[data-canvas-toolbar-key="heading:skills-heading"]');
+    await sectionToolbar.getByRole("button", { name: "Więcej działań" }).click();
+    await sectionToolbar.getByRole("menuitem", { name: "Styl umiejętności: w linii" }).click();
+    const modal = page.getByRole("dialog", { name: "Styl umiejętności" });
+    await modal.getByRole("button", { name: /^Chipsy/ }).click();
+
+    const reactLabel = page.getByText("React", { exact: true });
+    await expect(reactLabel).toHaveCount(1);
+    const chipGeometry = await reactLabel.evaluate((label) => {
+      const labelRect = label.getBoundingClientRect();
+      // Chip labels intentionally use cap-centre positioning and can expose a
+      // zero-height DOM box. Locate the visual shape by the invariant 10px
+      // authored left inset and the shared vertical centre, independent of
+      // generated IDs or portalled toolbar siblings.
+      const shapeRect = [...document.querySelectorAll("div[id]")]
+        .map((candidate) => candidate.getBoundingClientRect())
+        .filter((rect) => (
+          rect.width > 0
+          && labelRect.left - rect.left > 2
+          && labelRect.left - rect.left < 30
+          && rect.top <= labelRect.top + 1
+          && rect.bottom >= labelRect.top - 1
+        ))
+        .sort((a, b) => (
+          Math.abs(labelRect.left - a.left) - Math.abs(labelRect.left - b.left)
+        ))[0];
+      return {
+        labelRight: labelRect.right,
+        shapeRight: shapeRect?.right ?? 0,
+        shapeWidth: shapeRect?.width ?? 0,
+      };
+    });
+    expect(chipGeometry.shapeWidth).toBeGreaterThan(40);
+    expect(chipGeometry.shapeRight).toBeGreaterThan(chipGeometry.labelRight);
+    api.assertHermetic();
+  });
+
   test("adds a skill through a grouped canvas form", async ({ page }) => {
     const api = await installMockApi(page);
     await login(page);

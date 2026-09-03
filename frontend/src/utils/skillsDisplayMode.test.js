@@ -202,6 +202,40 @@ describe("changeSkillsDisplayMode", () => {
     ]);
   });
 
+  it("sizes modal-created chips with the active browser font measurer", () => {
+    const measuredWidths = { AML: 31, KYC: 33, SQL: 27, Python: 48 };
+    const next = changeSkillsDisplayMode(
+      flatSkillsFixture(),
+      "sk-head",
+      "chips",
+      PAGE_HEIGHT,
+      SPACING,
+      SKILL_CHIP_VARIANT_PILL_FILLED,
+      (text, style) => {
+        assert.equal(style.fontSize, 9.5);
+        return measuredWidths[text];
+      },
+    );
+    assert.ok(next);
+
+    const memberIds = sectionElementIds(next, "sk-head", PAGE_HEIGHT);
+    const members = next.filter((element) => memberIds.has(element.element_id));
+    const labels = members.filter((element) => (
+      element.flowRole === "grid-member" && element.category === "text"
+    ));
+    const shapes = members.filter((element) => (
+      element.flowRole === "grid-member" && element.category === "rectangle"
+    ));
+    for (const label of labels) {
+      const shape = shapes.find((candidate) => (
+        candidate.flowGroup === label.flowGroup
+        && Math.abs(candidate.left + 10 - label.left) < 0.001
+      ));
+      assert.ok(shape, `expected a shape paired with ${label.content}`);
+      assert.equal(shape.width, measuredWidths[label.content] + 20);
+    }
+  });
+
   it("is a no-op when the section is already in the requested mode", () => {
     const source = groupedSkillsFixture();
     const next = changeSkillsDisplayMode(source, "sk-head", "inline", PAGE_HEIGHT, SPACING);

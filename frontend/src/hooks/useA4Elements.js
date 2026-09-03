@@ -1455,11 +1455,12 @@ export function useA4Elements(titleRef) {
         pageHeight,
         flowSpacingRef.current,
         chipVariant,
+        measureSkillTextWidth,
       );
       if (!next) return prev;
       return finalizeDocumentPages(next, { collapseEmpty: true });
     });
-  }, [finalizeDocumentPages]);
+  }, [finalizeDocumentPages, measureSkillTextWidth]);
 
   const handleSetTextareaEditing = useCallback((elementId, editing) => {
     if (editing && pendingTextEditIdRef.current === elementId) {

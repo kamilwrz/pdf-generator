@@ -5,6 +5,7 @@ import {
   collectSkillGroups,
   formatSkillsSidebarContent,
   isSkillsSectionHeading,
+  layoutSkillChips,
   parseSkillsSidebarContent,
   restyleSkillsMembersAsMain,
   restyleSkillsMembersAsSidebar,
@@ -42,6 +43,18 @@ describe("parseSkillsSidebarContent", () => {
     assert.deepEqual(groups, [
       { category: "", items: ["SQL", "Python", "Git"] },
     ]);
+  });
+});
+
+describe("layoutSkillChips", () => {
+  it("uses the deterministic text estimate when no canvas measurer is available", () => {
+    const { placements } = layoutSkillChips(["React"], 300, 10);
+
+    assert.equal(placements.length, 1);
+    assert.ok(
+      placements[0].width > 40,
+      "the chip must include estimated label width in addition to its 20px padding",
+    );
   });
 });
 

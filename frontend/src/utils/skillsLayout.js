@@ -485,8 +485,11 @@ export function layoutSkillChips(items, width, fontSize, options = {}) {
         fontSize,
       })
       : null;
+    const hasMeasuredWidth = measuredWidth !== null
+      && measuredWidth !== undefined
+      && Number.isFinite(Number(measuredWidth));
     const chipW = (
-      Number.isFinite(Number(measuredWidth))
+      hasMeasuredWidth
         ? Math.max(1, Number(measuredWidth))
         : estimateTextWidth(skill, fontSize)
     ) + 2 * SKILL_CHIP_PAD_X;
@@ -524,6 +527,7 @@ export function layoutSkillChips(items, width, fontSize, options = {}) {
  *   chipVariant?: string,
  *   appendTop: number,
  *   idFactory: () => string,
+ *   measureTextWidth?: Function|null,
  *   stackGap?: number,
  *   recordGap?: number,
  * }} options
@@ -589,7 +593,21 @@ export function buildSkillsChipGroups(groups, options) {
     }
 
     if (hasBody) {
-      const { placements, height: rowHeight } = layoutSkillChips(items, recordWidth, bodyFs);
+      const { placements, height: rowHeight } = layoutSkillChips(
+        items,
+        recordWidth,
+        bodyFs,
+        {
+          measureTextWidth: options.measureTextWidth,
+          textStyle: {
+            fontFamily,
+            fontSize: bodyFs,
+            bold: false,
+            italic: false,
+            letterSpacing: Number(body.letterSpacing) || 0,
+          },
+        },
+      );
       const chipH = bodyFs + 2 * SKILL_CHIP_PAD_Y;
       for (const { skill, dx, dy, width: chipW } of placements) {
         // The underline treatment uses the existing line primitive. Every
@@ -725,10 +743,17 @@ export function resolveSkillChipColors(sectionMembers, allElements, style, optio
  * @param {number} parkTop
  * @param {{ stack?: number, record?: number, after_rule?: number }} [spacing]
  * @param {"inline"|"bullet"|"chips"} [mode]
+ * @param {{measureTextWidth?:Function|null}} [layoutOptions]
  * @returns {object[]|null}
  */
 export function restyleSkillsMembersAsMode(
-  members, headingId, style, parkTop, spacing = {}, mode = FLAT_SECTION_LAYOUT_INLINE,
+  members,
+  headingId,
+  style,
+  parkTop,
+  spacing = {},
+  mode = FLAT_SECTION_LAYOUT_INLINE,
+  layoutOptions = {},
 ) {
   const heading = members.find((element) => element.element_id === headingId);
   if (!heading) return null;
@@ -844,6 +869,7 @@ export function restyleSkillsMembersAsMode(
       chipBg: style.chipBg,
       chipFg: style.chipFg,
       chipVariant: style.chipVariant,
+      measureTextWidth: layoutOptions.measureTextWidth,
     })
     : buildSkillsMainGroups(groups, { ...bodyOptions, mode });
   if (bodies.length === 0) return null;

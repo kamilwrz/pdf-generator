@@ -115,6 +115,7 @@ export function isInlineSkillsContentElement(elements, elementId, pageHeight = 8
  * @param {number} [pageHeight=842]
  * @param {object} [spacing]
  * @param {string} [chipVariant="pill-filled"]
+ * @param {Function|null} [measureTextWidth]
  * @returns {object[]|null} null when the section cannot be found/converted or already has the requested mode and chip variant
  */
 export function changeSkillsDisplayMode(
@@ -124,6 +125,7 @@ export function changeSkillsDisplayMode(
   pageHeight = 842,
   spacing,
   chipVariant = SKILL_CHIP_VARIANT_PILL_FILLED,
+  measureTextWidth = null,
 ) {
   if (!SKILLS_LAYOUT_MODES.includes(mode)) return null;
   const list = elements || [];
@@ -159,6 +161,7 @@ export function changeSkillsDisplayMode(
     parkTop,
     spacing,
     mode,
+    { measureTextWidth },
   );
   if (!restyled) return null;
 
