@@ -261,6 +261,9 @@ export function moveMainSectionsToSidebar(elements, headingIds, pageHeight, spac
 
   for (const { headingId, members } of sourceSections) {
     const heading = members.find((element) => element.element_id === headingId);
+    // Explicit category/body records retain their editable fields even when
+    // their label or original section type resembles Skills or Languages.
+    const isCustomCategory = heading?.editorSectionLayout === "cc-sub";
     const minAbs = Math.min(...members.map((element) => (
       (Math.max(1, Math.trunc(element.page || 1)) - 1) * pageHeight
       + (Number(element.top) || 0)
@@ -269,11 +272,11 @@ export function moveMainSectionsToSidebar(elements, headingIds, pageHeight, spac
 
     // Main-column languages grids collapse to one hyphenated sidebar textarea
     // (the rail never keeps per-cell grid-member geometry).
-    if (heading && isLanguagesSectionTitle(heading.content)) {
+    if (heading && !isCustomCategory && isLanguagesSectionTitle(heading.content)) {
       restyledElements = restyleLanguagesMembersAsSidebar(
         members, headingId, style, stagingTop,
       );
-    } else if (heading && isSkillsSectionHeading(heading)) {
+    } else if (heading && !isCustomCategory && isSkillsSectionHeading(heading)) {
       // Main-column skill subcategories collapse to one
       // `_skills_sidebar_content` textarea (category lines + bullets).
       restyledElements = restyleSkillsMembersAsSidebar(

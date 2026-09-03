@@ -575,7 +575,12 @@ export function showProfilePhoto(elements, templateId) {
       const { photoLayoutHome: _home, ...rest } = updated;
       updated = Number.isFinite(sidebarShift) && isPageOneSidebarFlowElement(updated)
         ? { ...rest, top: Number(updated.top) - sidebarShift }
+        // Legacy transfers may already carry a rail snapshot into main.
+        // Only explicit photo-dependent elements can restore an individual
+        // position outside the current sidebar flow; ordinary main sections
+        // keep the geometry produced by the section packer.
         : Number.isFinite(Number(home.top))
+          && Number.isFinite(Number(updated.profilePhotoHiddenTop))
           ? { ...rest, top: Number(home.top) }
           : rest;
     } else if (Number.isFinite(sidebarShift) && isPageOneSidebarFlowElement(updated)) {

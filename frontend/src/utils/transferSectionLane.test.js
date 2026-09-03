@@ -12,9 +12,39 @@ import {
   sidebarSectionElementIds,
 } from "./sectionStructure.js";
 import { syncCvDataFromCanvas } from "./syncCvDataFromCanvas.js";
+import { buildSectionElements } from "./sectionBuilder.js";
+import { appendSectionAtEnd, deriveSectionStyle } from "./sectionStructure.js";
 
 const PAGE_HEIGHT = 842;
 const SPACING = { stack: 4, record: 10, section: 21, after_rule: 8 };
+
+for (const name of ["Projekty", "Umiejętności", "Języki"]) {
+  it(`preserves custom category fields through both lane transfers: ${name}`, () => {
+    const source = sterlingLikeFixture();
+    let sequence = 0;
+    const built = buildSectionElements({
+      name, sectionType: "skills-categories", layout: "cc-sub",
+      style: deriveSectionStyle(source), idFactory: () => `project-${++sequence}`,
+    });
+    const populated = built.elements.map((element) => ({
+      ...element,
+      ...(element.editorRecordField === "title" ? { content: "Projekt 1" } : {}),
+      ...(element.editorRecordField === "body" ? { content: "React\nNode", bulletList: false } : {}),
+    }));
+    const initial = appendSectionAtEnd(source, populated, SPACING);
+    const fields = (elements) => elements.filter((element) => element.editorRecordLayout === "cc-sub")
+      .map(({ element_id, content, bold, bulletList, editorRecordField, flowGroup }) =>
+        ({ element_id, content, bold, bulletList, editorRecordField, flowGroup }));
+    const expected = fields(initial);
+    assert.equal(expected.length, 2);
+    const sidebar = transferSectionLane(initial, built.headingId, PAGE_HEIGHT, SPACING);
+    assert.ok(sidebar);
+    assert.deepEqual(fields(sidebar), expected);
+    const main = transferSectionLane(sidebar, built.headingId, PAGE_HEIGHT, SPACING);
+    assert.ok(main);
+    assert.deepEqual(fields(main), expected);
+  });
+}
 
 /**
  * Compact Sterling-like two-column fixture: Summary + Skills on the rail,

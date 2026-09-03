@@ -7,6 +7,8 @@ import { slateTemplate } from "../templates/slate.js";
 import { lindenTemplate } from "../templates/linden.js";
 import { vellumTemplate } from "../templates/vellum.js";
 import { applyChannelRelayout } from "./contactBandOps.js";
+import { transferSectionLane } from "./transferSectionLane.js";
+import { listSidebarSections } from "./sectionStructure.js";
 import {
   alignSidebarAfterProfileContacts,
   hideProfilePhoto,
@@ -25,6 +27,37 @@ function withIds(elements) {
 }
 
 describe("profile photo visibility", () => {
+  it("keeps a section transferred out of hidden Slate contacts intact across photo toggles", () => {
+    const source = withIds(slateTemplate);
+    const hiddenResult = hideProfilePhoto(source, "slate");
+    const relayout = (elements) => alignSidebarAfterProfileContacts(
+      applyChannelRelayout(elements, hiddenResult.contactBandId,
+        (text) => String(text).length * 5, () => "unused-id").elements,
+      hiddenResult.contactBandId, "slate",
+    );
+    const hidden = relayout(hiddenResult.elements);
+    const skills = listSidebarSections(hidden).find((section) => /UMIEJ/.test(section.title));
+    assert.ok(skills);
+    assert.ok(hidden.find((element) => element.element_id === skills.headingId).photoLayoutHome);
+    const moved = transferSectionLane(hidden, skills.headingId);
+    assert.ok(moved);
+    const mainGeometry = (elements) => elements
+      .filter((element) => !element.fixedToPage && !element.contactBandId && Number(element.left) >= 210)
+      .map((element) => [element.element_id, element.top, element.page]);
+    const expected = mainGeometry(moved);
+    assert.equal(moved.find((element) => element.element_id === skills.headingId).photoLayoutHome, undefined);
+    const shown = showProfilePhoto(moved, "slate").elements;
+    assert.deepEqual(mainGeometry(shown), expected);
+    const hiddenAgain = relayout(hideProfilePhoto(shown, "slate").elements);
+    assert.deepEqual(mainGeometry(hiddenAgain), expected);
+
+    // Already-saved transfers can retain the old snapshot. Restoring a photo
+    // must discard it without overwriting the current main-column position.
+    const legacy = moved.map((element) => element.element_id === skills.headingId
+      ? { ...element, photoLayoutHome: { top: 700 } } : element);
+    assert.deepEqual(mainGeometry(showProfilePhoto(legacy, "slate").elements), expected);
+  });
+
   it("hides Atrium without moving non-slot content and restores it", () => {
     const source = withIds(atriumTemplate);
     const hidden = hideProfilePhoto(source, "atrium").elements;

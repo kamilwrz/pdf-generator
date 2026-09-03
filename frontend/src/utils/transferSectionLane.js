@@ -301,12 +301,20 @@ export function moveSidebarSectionsToMain(elements, headingIds, pageHeight, spac
   for (const headingId of [...ids].reverse()) {
     const memberIds = sidebarSectionElementIds(next, headingId, pageHeight);
     if (memberIds.size === 0) return null;
-    const members = next.filter((element) => memberIds.has(element.element_id));
+    // Photo/contact snapshots describe positions in the source rail. All
+    // transfer branches must discard them before rebuilding main-column
+    // geometry, otherwise showing the photo restores only surviving old nodes
+    // (usually the heading and rule) into their former sidebar positions.
+    const members = next.filter((element) => memberIds.has(element.element_id)).map((element) => {
+      const { photoLayoutHome: _home, ...rest } = element;
+      return rest;
+    });
     const heading = members.find((element) => element.element_id === headingId);
+    const isCustomCategory = heading?.editorSectionLayout === "cc-sub";
     const minAbs = Math.min(...members.map((element) => absoluteTop(element, pageHeight)));
     const parkBase = APPEND_PARK_TOP;
 
-    if (heading && isLanguagesSectionTitle(heading.content)) {
+    if (heading && !isCustomCategory && isLanguagesSectionTitle(heading.content)) {
       const restyled = restyleLanguagesMembersAsMain(members, headingId, style, parkBase);
       if (!restyled) return null;
       next = [
@@ -321,7 +329,7 @@ export function moveSidebarSectionsToMain(elements, headingIds, pageHeight, spac
     // Grouped skills: expand the single rail textarea into bold category +
     // body records so the packer keep-together rules match Experience and
     // type/width match the main column (not the orphaned-heading failure).
-    if (heading && isSkillsSectionHeading(heading)) {
+    if (heading && !isCustomCategory && isSkillsSectionHeading(heading)) {
       const restyled = restyleSkillsMembersAsMain(
         members, headingId, style, parkBase, spacing,
       );
