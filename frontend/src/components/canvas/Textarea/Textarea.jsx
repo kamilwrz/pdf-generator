@@ -41,11 +41,11 @@ import {
     onCanvasEnterReflowResume,
 } from "../../../utils/canvasEnter";
 import { MASTHEAD_TITLE_PLACEHOLDER } from "../../../utils/mastheadBands";
-import { experienceMetadataParts, METADATA_SEPARATOR } from "../../../utils/experienceMetadata.js";
+import { compositeMetadataParts, METADATA_SEPARATOR } from "../../../utils/compositeMetadata.js";
 import {
-    focusExperienceSlot, guardExperienceMetadataInput, readExperienceMetadata,
-    refreshExperienceMetadata, replaceExperienceSelection, seedExperienceMetadata,
-} from "../../../utils/experienceMetadataEditable.js";
+    focusMetadataSlot, guardCompositeMetadataInput, readCompositeMetadata,
+    refreshCompositeMetadata, replaceMetadataSelection, seedCompositeMetadata,
+} from "../../../utils/compositeMetadataEditable.js";
 
 // Normalize a bullet's whitespace and render the marker in a dedicated grid
 // column. The column's width is the actual rendered "• " width for the active
@@ -122,7 +122,7 @@ function measureEditableContentHeight(node, content, runs, { bulletList = false,
     mirror.innerHTML = bulletList
         ? bulletRunsToEditableHtml(content, runs)
         : runsToHtml(content, runs);
-    if (metadataHints) seedExperienceMetadata(mirror, content, runs, metadataHints);
+    if (metadataHints) seedCompositeMetadata(mirror, content, runs, metadataHints);
     // Append inside the same parent so inherited styles and the containing block
     // width match the live edit box exactly.
     (node.parentNode ?? document.body).appendChild(mirror);
@@ -387,9 +387,9 @@ function Textarea({
         );
         const seeded = seededPayload.content;
         if (metadataHints) {
-            seedExperienceMetadata(node, seeded, seededPayload.runs, metadataHints);
+            seedCompositeMetadata(node, seeded, seededPayload.runs, metadataHints);
             metadataHistoryRef.current = {
-                entries: [{ ...readExperienceMetadata(node), selection: { start: 0, end: 0 } }], index: 0,
+                entries: [{ ...readCompositeMetadata(node), selection: { start: 0, end: 0 } }], index: 0,
             };
         } else if (bulletList) {
             node.innerHTML = bulletRunsToEditableHtml(seeded, seededPayload.runs);
@@ -457,7 +457,7 @@ function Textarea({
             selection.removeAllRanges();
             selection.addRange(range);
             if (metadataHints) {
-                focusExperienceSlot(target, metadataSlotRef.current ?? 0);
+                focusMetadataSlot(target, metadataSlotRef.current ?? 0);
                 metadataSlotRef.current = null;
             }
             // The replacement edit node now owns the seeded content. Only now
@@ -489,7 +489,7 @@ function Textarea({
             if (event.inputType === "historyUndo" || event.inputType === "historyRedo") {
                 event.preventDefault();
                 restoreMetadataHistory(event.inputType === "historyUndo" ? -1 : 1);
-            } else if (guardExperienceMetadataInput(event, node, metadataHints)) {
+            } else if (guardCompositeMetadataInput(event, node, metadataHints)) {
                 commitRef.current?.(node);
             }
         };
@@ -506,7 +506,7 @@ function Textarea({
         if (!history.entries[index] || !editingRef.current) return;
         history.index = index;
         const entry = history.entries[index];
-        seedExperienceMetadata(editingRef.current, entry.content, entry.runs, metadataHints);
+        seedCompositeMetadata(editingRef.current, entry.content, entry.runs, metadataHints);
         if (entry.selection) setSelectionOffsets(editingRef.current, entry.selection.start, entry.selection.end);
         commitRef.current?.(editingRef.current, { recordHistory: false });
     }
@@ -572,8 +572,8 @@ function Textarea({
         // On blur, plain textarea newlines remain authored spacing; bullet-list
         // placeholders alone are removed so section rhythm follows real copy.
         const commitEditable = (node, { finalize = false, recordHistory = true } = {}) => {
-            if (metadataHints) refreshExperienceMetadata(node, metadataHints);
-            const serialized = metadataHints ? readExperienceMetadata(node) : serializeEditable(node);
+            if (metadataHints) refreshCompositeMetadata(node, metadataHints);
+            const serialized = metadataHints ? readCompositeMetadata(node) : serializeEditable(node);
             const { content: nextContent, runs: nextRuns } = finalize
                 ? trimTrailingEmptyTextareaPayload(
                     serialized.content,
@@ -660,7 +660,9 @@ function Textarea({
                     suppressContentEditableWarning
                     spellCheck={false}
                     role="textbox"
-                    aria-label={metadataHints ? "Doświadczenie: firma, lokalizacja i okres" : (editorPlaceholder || "Treść")}
+                    aria-label={metadataHints
+                        ? (metadataHints.length === 2 ? "Wykształcenie: miasto i okres" : "Doświadczenie: firma, lokalizacja i okres")
+                        : (editorPlaceholder || "Treść")}
                     aria-multiline="true"
                     data-placeholder={editorPlaceholder || "Wpisz swój tekst…"}
                     data-editor-hover-outline={editorHoverOutline ? "true" : undefined}
@@ -679,7 +681,7 @@ function Textarea({
                         const slot = e.target.closest?.('[data-metadata-slot][data-empty="true"]');
                         if (metadataHints && slot) {
                             e.preventDefault();
-                            focusExperienceSlot(e.currentTarget, Number(slot.dataset.metadataSlot));
+                            focusMetadataSlot(e.currentTarget, Number(slot.dataset.metadataSlot));
                         }
                     }}
                     onBlur={() => {
@@ -704,9 +706,9 @@ function Textarea({
                                 const anchor = window.getSelection()?.anchorNode;
                                 const slot = (anchor?.nodeType === 1 ? anchor : anchor?.parentElement)?.closest?.("[data-metadata-slot]");
                                 const next = Number(slot?.dataset.metadataSlot ?? 0) + (e.shiftKey ? -1 : 1);
-                                if (next >= 0 && next <= 2) {
+                                if (next >= 0 && next < metadataHints.length) {
                                     e.preventDefault();
-                                    focusExperienceSlot(e.currentTarget, next);
+                                    focusMetadataSlot(e.currentTarget, next);
                                 }
                                 return;
                             }
@@ -774,7 +776,7 @@ function Textarea({
                         e.preventDefault();
                         const text = e.clipboardData?.getData("text/plain") ?? "";
                         if (metadataHints) {
-                            replaceExperienceSelection(e.currentTarget, text, metadataHints);
+                            replaceMetadataSelection(e.currentTarget, text, metadataHints);
                             commitEditable(e.currentTarget);
                             return;
                         }
@@ -784,7 +786,7 @@ function Textarea({
                         if (!metadataHints) return;
                         e.preventDefault();
                         e.clipboardData.setData("text/plain", window.getSelection()?.toString() || "");
-                        replaceExperienceSelection(e.currentTarget, "", metadataHints);
+                        replaceMetadataSelection(e.currentTarget, "", metadataHints);
                         commitEditable(e.currentTarget);
                     }}
                 />
@@ -902,7 +904,7 @@ function Textarea({
                 moveElement(e, elementId);
             }}
         >
-            {metadataHints ? experienceMetadataParts(cleanContent).map((part, index) => (
+            {metadataHints ? compositeMetadataParts(cleanContent, metadataHints.length).map((part, index) => (
                 <span key={index}>
                     {index > 0 ? METADATA_SEPARATOR : null}
                     <span data-metadata-slot={index} data-hint={metadataHints[index]} data-empty={!part.text ? "true" : "false"}>

@@ -1,14 +1,14 @@
 /** DOM adapter for the single contentEditable surface owned by Textarea. */
 import { getSelectionOffsets, runsToHtml, serializeEditable, setSelectionOffsets } from "./editableSerialize.js";
-import { experienceMetadataParts, METADATA_SEPARATOR } from "./experienceMetadata.js";
+import { compositeMetadataParts, METADATA_SEPARATOR } from "./compositeMetadata.js";
 import { sliceRuns } from "./textRuns.js";
 
 const slots = (node) => [...node.querySelectorAll(":scope > [data-metadata-slot]")];
 
 /** Seed only on edit entry or structural edits; normal typing keeps native DOM/IME. */
-export function seedExperienceMetadata(node, content, runs, hints) {
+export function seedCompositeMetadata(node, content, runs, hints) {
   node.replaceChildren();
-  experienceMetadataParts(content).forEach((part, index) => {
+  compositeMetadataParts(content, hints.length).forEach((part, index) => {
     if (index) {
       const separator = node.ownerDocument.createElement("span");
       separator.dataset.metadataSeparator = "true";
@@ -26,7 +26,7 @@ export function seedExperienceMetadata(node, content, runs, hints) {
 }
 
 /** Focus an empty hint at its actual insertion point, retaining all other slots. */
-export function focusExperienceSlot(node, index, end = false) {
+export function focusMetadataSlot(node, index, end = false) {
   const slot = slots(node)[index];
   if (!slot) return;
   node.focus({ preventScroll: true });
@@ -35,24 +35,24 @@ export function focusExperienceSlot(node, index, end = false) {
 }
 
 /** Read authored text and inline marks; CSS hints never enter serialization. */
-export function readExperienceMetadata(node) {
+export function readCompositeMetadata(node) {
   const payload = serializeEditable(node);
   const values = slots(node).map((slot) => serializeEditable(slot).content);
-  return values.length === 3 && values.every((value) => !value.trim())
+  return values.length > 0 && values.every((value) => !value.trim())
     ? { content: "", runs: [] }
     : payload;
 }
 
 /** Restore hints after deletion without rebuilding a composing or styled slot. */
-export function refreshExperienceMetadata(node, hints) {
+export function refreshCompositeMetadata(node, hints) {
   const payload = serializeEditable(node);
   const children = slots(node);
   const expected = children.map((slot) => serializeEditable(slot).content).join(METADATA_SEPARATOR);
-  if (children.length !== 3 || payload.content !== expected) {
+  if (children.length !== hints.length || payload.content !== expected) {
     // Browsers may insert at the root boundary of an empty inline span. Move
     // that real text into its slot and restore the same serialized caret.
     const selection = getSelectionOffsets(node);
-    seedExperienceMetadata(node, payload.content, payload.runs, hints);
+    seedCompositeMetadata(node, payload.content, payload.runs, hints);
     if (selection) setSelectionOffsets(node, selection.start, selection.end);
   }
   slots(node).forEach((slot) => {
@@ -68,14 +68,15 @@ export function refreshExperienceMetadata(node, hints) {
   });
 }
 
-/** Replace a selection across slots without removing either structural dot. */
-export function replaceExperienceSelection(node, text, hints) {
+/** Replace a selection across slots without removing structural separators. */
+export function replaceMetadataSelection(node, text, hints) {
   const selection = getSelectionOffsets(node);
   if (!selection) return;
   const children = slots(node);
   const parts = children.map((slot) => serializeEditable(slot));
   let offset = 0;
-  let insertionSlot = 2;
+  const lastSlot = hints.length - 1;
+  let insertionSlot = lastSlot;
   let insertionOffset = 0;
   let found = false;
   const updated = parts.map((part, index) => {
@@ -100,15 +101,15 @@ export function replaceExperienceSelection(node, text, hints) {
     };
   });
   // Pasting a full metadata row can populate subsequent slots. Extra dots in
-  // the final slot become plain spacing so the stored row always has two dots.
+  // the final slot become plain spacing so the declared slot count stays fixed.
   const inserts = String(text).replace(/[\r\n]+/g, " ").split(/\s*·\s*/);
   let caretSlot = insertionSlot;
   let caretOffset = insertionOffset;
   inserts.forEach((insert, index) => {
-    const slotIndex = Math.min(insertionSlot + index, 2);
+    const slotIndex = Math.min(insertionSlot + index, lastSlot);
     const part = updated[slotIndex];
     const position = index === 0 ? insertionOffset : part.content.length;
-    const value = index > 2 - insertionSlot ? ` ${insert}` : insert;
+    const value = index > lastSlot - insertionSlot ? ` ${insert}` : insert;
     part.runs = part.runs.map((run) => ({
       ...run,
       start: run.start >= position ? run.start + value.length : run.start,
@@ -124,13 +125,13 @@ export function replaceExperienceSelection(node, text, hints) {
     length += part.content.length + METADATA_SEPARATOR.length;
     return shifted;
   });
-  seedExperienceMetadata(node, updated.map((part) => part.content).join(METADATA_SEPARATOR), runs, hints);
+  seedCompositeMetadata(node, updated.map((part) => part.content).join(METADATA_SEPARATOR), runs, hints);
   const target = slots(node)[caretSlot];
   setSelectionOffsets(target, caretOffset, caretOffset);
 }
 
 /** Protect dot boundaries, including mobile deletion and multi-slot selection. */
-export function guardExperienceMetadataInput(event, node, hints) {
+export function guardCompositeMetadataInput(event, node, hints) {
   if (event.isComposing) return false;
   if (!event.inputType?.startsWith("insert") && !event.inputType?.startsWith("delete")) return false;
   const selection = getSelectionOffsets(node);
@@ -150,12 +151,12 @@ export function guardExperienceMetadataInput(event, node, hints) {
     && (backward ? selection.start === ranges[within].start : selection.end === ranges[within].end);
   if (atBoundary) {
     event.preventDefault();
-    focusExperienceSlot(node, Math.max(0, Math.min(2, within + (backward ? -1 : 1))), backward);
+    focusMetadataSlot(node, Math.max(0, Math.min(hints.length - 1, within + (backward ? -1 : 1))), backward);
     return true;
   }
   if (crosses || String(event.data || "").includes("·") || event.inputType === "insertParagraph") {
     event.preventDefault();
-    replaceExperienceSelection(node, deleting ? "" : (event.data ?? event.dataTransfer?.getData("text/plain") ?? ""), hints);
+    replaceMetadataSelection(node, deleting ? "" : (event.data ?? event.dataTransfer?.getData("text/plain") ?? ""), hints);
     return true;
   }
   return false;

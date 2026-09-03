@@ -14,7 +14,7 @@
  */
 
 import { SECTION_LAYOUTS } from "./sectionBuilder.js";
-import { experienceMetadataHints } from "./experienceMetadata.js";
+import { compositeMetadataHints } from "./compositeMetadata.js";
 import {
   listSectionContentElements,
   partitionSectionRecords,
@@ -133,7 +133,12 @@ function profileRecordFromCanvas(members, kind) {
   if (kind === "education" || layout === SECTION_LAYOUTS.RECORD_EDUCATION) {
     let city = roleValue(members, "city");
     let period = roleValue(members, "period");
-    const [metaCity, metaPeriod] = splitMeta(roleValue(members, "meta"), 2);
+    // A date-only Education row must preserve the empty city slot. Separate
+    // rail fields continue to use their explicit roles and the legacy parser.
+    const metaElement = members.find((element) => element.editorRecordField === "meta");
+    const [metaCity, metaPeriod] = splitMeta(
+      roleValue(members, "meta"), 2, Boolean(compositeMetadataHints(metaElement)),
+    );
     city ||= metaCity;
     period ||= metaPeriod;
     return {
@@ -157,12 +162,12 @@ function profileRecordFromCanvas(members, kind) {
   let city = roleValue(members, "city");
   let period = roleValue(members, "period");
   const metaElement = members.find((element) => (
-    element.editorRecordField === "meta" || (element.editorRecordField === "organization" && experienceMetadataHints(element))
+    element.editorRecordField === "meta" || (element.editorRecordField === "organization" && compositeMetadataHints(element))
   ));
   const [metaCompany, metaCity, metaPeriod] = splitMeta(
-    metaElement ? profileTextForElement(metaElement) : "", 3, Boolean(experienceMetadataHints(metaElement)),
+    metaElement ? profileTextForElement(metaElement) : "", 3, Boolean(compositeMetadataHints(metaElement)),
   );
-  if (experienceMetadataHints(metaElement)) company = "";
+  if (compositeMetadataHints(metaElement)) company = "";
   company ||= metaCompany;
   city ||= metaCity;
   period ||= metaPeriod;
@@ -914,7 +919,7 @@ function syncStarterBindings(cvData, previousElements, nextElements) {
     const content = profileTextForElement(next);
     const values = bindings.length === 1
       ? [content]
-      : splitMeta(content, bindings.length, Boolean(experienceMetadataHints(next)));
+      : splitMeta(content, bindings.length, Boolean(compositeMetadataHints(next)));
     if (draft === cvData) draft = cloneProfile(cvData);
     bindings.forEach((binding, index) => {
       setProfilePath(draft, binding?.path, values[index] || "");

@@ -30,7 +30,7 @@ import Image from '../Image/Image';
 import Line from '../Line/Line';
 import Rectangle from '../Rectangle/Rectangle';
 import Textarea from '../Textarea/Textarea';
-import { experienceMetadataHints } from '../../../utils/experienceMetadata.js';
+import { compositeMetadataHints } from '../../../utils/compositeMetadata.js';
 import Ellipse from '../Ellipse/Ellipse';
 import Polygon from '../Polygon/Polygon';
 import Path from '../Path/Path';
@@ -436,7 +436,7 @@ export default function CanvasElements({ elements, spreadSide = null }) {
             mastheadRole={element.mastheadRole}
             placeholder={element.placeholder}
             starterPlaceholder={element.starterPlaceholder}
-            metadataHints={experienceMetadataHints(element)}
+            metadataHints={compositeMetadataHints(element)}
             editorHoverOutline={editorHoverOutline}
             skillsField={skillsField}
           />
