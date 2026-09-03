@@ -5,6 +5,37 @@ import { sliceRuns } from "./textRuns.js";
 
 const slots = (node) => [...node.querySelectorAll(":scope > [data-metadata-slot]")];
 
+/**
+ * Mark the empty insertion slot for its visual caret, without adding characters.
+ * Chromium paints a native caret after generated placeholder content (or hides
+ * it on subsequent clicks). Only that empty caret is replaced; authored text
+ * retains native selection, caret movement, and composition behavior.
+ */
+export function syncMetadataCaret(node) {
+  const selection = node.ownerDocument.getSelection();
+  const children = slots(node);
+  const boundary = getSelectionOffsets(node);
+  let offset = 0;
+  let active = null;
+  if (node.ownerDocument.activeElement === node && selection?.isCollapsed && boundary) {
+    const anchor = selection.anchorNode;
+    active = children.find((slot) => slot === anchor || slot.contains(anchor));
+    // History restoration and arrow keys can anchor at a root/separator
+    // boundary. Resolve an empty slot by its serialized offset in that case.
+    if (!active) active = children.find((slot) => {
+      const length = serializeEditable(slot).content.length;
+      const matches = !length && boundary.start === offset;
+      offset += length + METADATA_SEPARATOR.length;
+      return matches;
+    });
+  }
+  const empty = active && !serializeEditable(active).content;
+  children.forEach((slot) => {
+    slot.toggleAttribute("data-metadata-caret", Boolean(empty && slot === active));
+  });
+  node.toggleAttribute("data-metadata-empty-caret", Boolean(empty));
+}
+
 /** Seed only on edit entry or structural edits; normal typing keeps native DOM/IME. */
 export function seedCompositeMetadata(node, content, runs, hints) {
   node.replaceChildren();
@@ -32,6 +63,11 @@ export function focusMetadataSlot(node, index, end = false) {
   node.focus({ preventScroll: true });
   const offset = end ? serializeEditable(slot).content.length : 0;
   setSelectionOffsets(slot, offset, offset);
+  syncMetadataCaret(node);
+  // At the editor's 200% edit zoom, another slot may be outside the compact
+  // canvas viewport. Reveal the visual hint because the browser cannot scroll
+  // to a zero-length native range on its own.
+  slot.scrollIntoView({ block: "nearest", inline: "nearest" });
 }
 
 /** Read authored text and inline marks; CSS hints never enter serialization. */
@@ -66,6 +102,7 @@ export function refreshCompositeMetadata(node, hints) {
       if (selected) setSelectionOffsets(slot, 0, 0);
     }
   });
+  syncMetadataCaret(node);
 }
 
 /** Replace a selection across slots without removing structural separators. */
@@ -128,6 +165,7 @@ export function replaceMetadataSelection(node, text, hints) {
   seedCompositeMetadata(node, updated.map((part) => part.content).join(METADATA_SEPARATOR), runs, hints);
   const target = slots(node)[caretSlot];
   setSelectionOffsets(target, caretOffset, caretOffset);
+  syncMetadataCaret(node);
 }
 
 /** Protect dot boundaries, including mobile deletion and multi-slot selection. */

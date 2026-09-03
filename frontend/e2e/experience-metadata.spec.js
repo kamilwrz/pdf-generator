@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { installMockApi, login, SAVED_DOCUMENT, SAVED_ELEMENTS } from "./support/mockApi.js";
+import { expectMetadataCaret } from "./support/metadataCaret.js";
 
 /** Exercise real Chromium editing rather than synthesizing contentEditable input. */
 for (const width of [390, 820, 1366, 1920]) {
@@ -29,7 +30,11 @@ test(`edits three independent Experience hints at ${width}px and preserves save/
   await expect(field).toHaveAttribute("contenteditable", "true");
   await expect(field).toBeFocused();
   await expect(field.locator('[data-empty="true"]')).toHaveCount(3);
-  await page.screenshot({ path: testInfo.outputPath("metadata-hints.png") });
+  await expectMetadataCaret(page, field, 2);
+  await field.locator('[data-metadata-slot="2"]').click();
+  await expectMetadataCaret(page, field, 2);
+  await expect.poll(() => field.locator('[data-metadata-slot="0"]').evaluate((node) => getComputedStyle(node, "::after").animationName)).toBe("none");
+  await page.screenshot({ path: testInfo.outputPath("metadata-hints.png"), caret: "initial" });
   await page.keyboard.type("2020-2024");
   await expect(field.locator('[data-metadata-slot="2"]')).toHaveText("2020-2024");
   await expect(field.locator('[data-metadata-slot="0"]')).toHaveAttribute("data-empty", "true");
@@ -37,7 +42,21 @@ test(`edits three independent Experience hints at ${width}px and preserves save/
   await page.screenshot({ path: testInfo.outputPath("metadata-partial.png") });
 
   await field.locator('[data-metadata-slot="0"]').click();
+  await expectMetadataCaret(page, field, 0);
   await page.keyboard.type("Firma");
+  await expectMetadataCaret(page, field, 0, { empty: false });
+  const company = field.locator('[data-metadata-slot="0"]');
+  const companyBox = await company.boundingBox();
+  await company.click({ position: { x: companyBox.width - 0.1, y: companyBox.height / 2 } });
+  await expectMetadataCaret(page, field, 0, { empty: false });
+  await page.screenshot({ path: testInfo.outputPath("metadata-company-caret.png"), caret: "initial" });
+  if (width === 1366) {
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+    const hint = field.locator('[data-metadata-slot="1"]');
+    await expect.poll(() => hint.evaluate((node) => getComputedStyle(node, "::after").animationIterationCount)).toBe("2");
+    await expect.poll(() => hint.evaluate((node) => node.getAnimations({ subtree: true }).every((animation) => animation.playState === "finished"))).toBe(true);
+    await page.emulateMedia({ reducedMotion: "reduce" });
+  }
   await page.keyboard.press("Tab");
   await page.keyboard.type("Wroclaw");
   await expect(field).toHaveText("Firma · Wroclaw · 2020-2024");

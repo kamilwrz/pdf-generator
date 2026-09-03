@@ -44,7 +44,7 @@ import { MASTHEAD_TITLE_PLACEHOLDER } from "../../../utils/mastheadBands";
 import { compositeMetadataParts, METADATA_SEPARATOR } from "../../../utils/compositeMetadata.js";
 import {
     focusMetadataSlot, guardCompositeMetadataInput, readCompositeMetadata,
-    refreshCompositeMetadata, replaceMetadataSelection, seedCompositeMetadata,
+    refreshCompositeMetadata, replaceMetadataSelection, seedCompositeMetadata, syncMetadataCaret,
 } from "../../../utils/compositeMetadataEditable.js";
 
 // Normalize a bullet's whitespace and render the marker in a dedicated grid
@@ -494,7 +494,20 @@ function Textarea({
             }
         };
         node.addEventListener("beforeinput", beforeInput);
-        return () => node.removeEventListener("beforeinput", beforeInput);
+        // Selection changes cover pointer clicks, arrows, history restoration,
+        // and focus leaving the field. No sentinel text enters the saved CV.
+        const syncCaret = () => syncMetadataCaret(node);
+        node.ownerDocument.addEventListener("selectionchange", syncCaret);
+        node.addEventListener("input", syncCaret);
+        node.addEventListener("focus", syncCaret);
+        node.addEventListener("blur", syncCaret);
+        return () => {
+            node.removeEventListener("beforeinput", beforeInput);
+            node.ownerDocument.removeEventListener("selectionchange", syncCaret);
+            node.removeEventListener("input", syncCaret);
+            node.removeEventListener("focus", syncCaret);
+            node.removeEventListener("blur", syncCaret);
+        };
         // The native listener belongs to one edit session. Its commit ref reads
         // current props without replacing the listener after each keystroke.
         // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -125,11 +125,52 @@
 .block [data-metadata-slot],
 .editing [data-metadata-slot] {
     cursor: text;
+    position: relative;
 }
 
-.block [data-metadata-slot][data-empty="true"]::before,
-.editing [data-metadata-slot][data-empty="true"]::before {
+.block [data-metadata-slot][data-empty="true"]::after,
+.editing [data-metadata-slot][data-empty="true"]::after {
     content: attr(data-hint);
     color: var(--color-muted);
     text-transform: none;
+    text-decoration: underline dotted;
+    text-decoration-thickness: var(--canvas-editor-hairline, 1px);
+}
+
+.editing:has([data-metadata-slot]) {
+    caret-color: var(--color-focus);
+}
+
+/* The native caret cannot be placed before inline generated content reliably.
+   Replace only an empty slot's caret with an out-of-flow, steady hairline at
+   the start of its first line fragment. Filled slots keep the native caret. */
+.editing[data-metadata-empty-caret] {
+    caret-color: transparent;
+}
+
+.editing:focus [data-metadata-slot][data-empty="true"][data-metadata-caret]::before {
+    content: "";
+    position: absolute;
+    inset-inline-start: 0;
+    top: 0;
+    height: 1em;
+    border-inline-start: var(--canvas-editor-hairline, 1px) solid var(--color-focus);
+    pointer-events: none;
+}
+
+.editing:focus [data-metadata-slot][data-empty="true"]::after {
+    animation: metadataHintPulse calc(var(--motion-slow) * 2) var(--motion-ease) 2;
+}
+
+/* A brief entry cue identifies writable hints without hiding their text or
+   moving the document. It stops after two cycles and never reaches the PDF. */
+@keyframes metadataHintPulse {
+    0%, 100% { background-color: transparent; }
+    50% { background-color: var(--color-focus-soft); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .editing:focus [data-metadata-slot][data-empty="true"]::after {
+        animation: none;
+    }
 }

@@ -1,6 +1,8 @@
 .stage {
     display: flex;
-    justify-content: center;
+    /* A page wider than its viewport must start inside the scrollable area.
+       Unsafe centering puts its first caret at an unreachable negative x. */
+    justify-content: safe center;
     width: 100%;
     min-width: 100%;
     will-change: transform, opacity;

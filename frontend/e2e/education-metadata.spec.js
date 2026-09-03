@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { installMockApi, login, SAVED_DOCUMENT, SAVED_ELEMENTS } from "./support/mockApi.js";
+import { expectMetadataCaret } from "./support/metadataCaret.js";
 
 for (const width of [390, 820, 1366, 1920]) {
   test(`edits two Education hints at ${width}px without changing separate fields`, async ({ page }, testInfo) => {
@@ -35,13 +36,18 @@ for (const width of [390, 820, 1366, 1920]) {
     await field.locator('[data-metadata-slot="1"]').click();
     await expect(field).toHaveAccessibleName("Wykształcenie: miasto i okres");
     await expect(field.locator('[data-empty="true"]')).toHaveCount(2);
-    await page.screenshot({ path: testInfo.outputPath("education-hints.png") });
+    await expectMetadataCaret(page, field, 1);
+    await field.locator('[data-metadata-slot="1"]').click();
+    await expectMetadataCaret(page, field, 1);
+    await page.screenshot({ path: testInfo.outputPath("education-hints.png"), caret: "initial" });
     await page.keyboard.type("2019-2022");
     await expect(field.locator('[data-metadata-slot="1"]')).toHaveText("2019-2022");
     await expect(field.locator('[data-metadata-slot="0"]')).toHaveAttribute("data-empty", "true");
     await page.screenshot({ path: testInfo.outputPath("education-period-only.png") });
     await page.keyboard.press("Shift+Tab");
+    await expectMetadataCaret(page, field, 0);
     await page.keyboard.type("Wroclaw");
+    await expectMetadataCaret(page, field, 0, { empty: false });
     await expect(field).toHaveText("Wroclaw · 2019-2022");
     await page.keyboard.press("Tab");
     await page.keyboard.press("Backspace");
