@@ -17,6 +17,8 @@ colors:
   ink: "#161616"
   paper: "#FFFFFF"
   canvas: "#F5F1E8"
+  editorCanvasBase: "#DDE0E3"
+  editorCanvasOverlay: "rgba(255, 255, 255, 0.58)"
   surface: "#ECE8DF"
   muted: "#686868"
   border: "#C9C5BC"
@@ -130,6 +132,8 @@ Tokens are the only source of shared visual values. Reusable colors, spacing, ty
 | `ink` | `#161616` | Primary text, dark actions, dark application surfaces |
 | `paper` | `#FFFFFF` | Primary light surface, inputs, dialogs |
 | `canvas` | `#F5F1E8` | Application background and warm neutral field |
+| `editorCanvasBase` | `#DDE0E3` | Cool grey base behind the A4 document only |
+| `editorCanvasOverlay` | `rgba(255, 255, 255, 0.58)` | Translucent white layer that softens the editor canvas base |
 | `surface` | `#ECE8DF` | Secondary panels, selected or grouped regions |
 | `muted` | `#686868` | Secondary text that still meets contrast requirements |
 | `border` | `#C9C5BC` | Dividers, input borders, structural rules |
@@ -142,6 +146,7 @@ Tokens are the only source of shared visual values. Reusable colors, spacing, ty
 Rules:
 
 - Use `ink`, not pure `#000000`, for large dark surfaces and primary text.
+- Compose the editor workspace behind A4 from `editorCanvasBase` and `editorCanvasOverlay`; keep `paper` on the document itself so application chrome cannot alter PDF output.
 - Body text must meet WCAG AA contrast at minimum. Target AAA for ordinary body copy where the palette permits it.
 - Never communicate status by color alone; pair it with text and, where useful, an icon or shape.
 - Semantic colors keep their meaning everywhere. Do not use danger red as decoration or focus blue as a brand accent.
@@ -184,7 +189,7 @@ Use a 4px base unit and the scale `4, 8, 12, 16, 24, 32, 48, 64, 96`. Prefer the
 - Pills are reserved for tags, status badges, and compact filters whose shape communicates containment.
 - Prefer borders, contrasting surfaces, and spacing over shadows in ordinary application chrome.
 - If separation cannot be expressed otherwise, use one restrained shadow per rendered layer; do not stack multiple shadows on the same layer.
-- Canvas context is the narrow exception: section, entry, and exact-element editor overlays use the neutral `editorSection`, `editorEntry`, and `editorElement` elevation tokens instead of borders or tinted fills. Their decreasing reach communicates containment and slight physical depth without borrowing colors from a CV template. The A4 surface inverse-scales these tokens so their screen-space size remains stable at every canvas zoom. Keyboard focus remains a separate blue `focus` outline.
+- Canvas context is the narrow exception: pointer hover may use the neutral `editorSection`, `editorEntry`, and `editorElement` elevation tokens to communicate containment without borrowing colors from a CV template. Shadows must disappear when the pointer leaves; selection uses a one-screen-pixel structural border, while a focused inline `text` or `textarea` edit surface uses a one-screen-pixel blue `focus` outline. The A4 surface inverse-scales both hover elevation and hairlines so their screen-space size remains stable at every canvas zoom.
 - Never use floating cards as the default page structure.
 
 Z-index contract:
@@ -284,8 +289,9 @@ The editor and other task-heavy screens may be denser, but must remain grid-base
 ### 5.7 Editor and PDF canvas
 
 - The document remains the dominant object; chrome must support it rather than compete with it.
+- The field behind the A4 document uses the cool-grey `editorCanvasBase` with the translucent white `editorCanvasOverlay`. This treatment belongs only to the editor workspace; onboarding and document pixels retain their own surface tokens.
 - Selection affordances, resize handles, alignment guides, insertion controls, and AI correction highlights must use a coherent interaction language and remain distinguishable from document content.
-- Structural section, entry, and element context is shown with the shared neutral editor elevation hierarchy, without colored overlay surfaces or decorative borders. These shadows belong only to application chrome and must not enter layout, persistence, or PDF output.
+- Pointer-hover section, entry, and element context is shown with the shared neutral editor elevation hierarchy, without colored overlay surfaces or decorative borders. Selection and inline-edit focus use the screen-stable hairline borders defined above instead of persistent shadows. All of this chrome must stay outside layout, persistence, and PDF output.
 - Canvas zoom, page boundaries, page numbers, and active selection must be readable at every supported scale.
 - Hover-only tools must also be reachable by keyboard or through a persistent control path.
 - Dragging must provide visible origin, current target, and invalid-drop feedback.

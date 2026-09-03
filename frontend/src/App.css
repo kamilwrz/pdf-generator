@@ -65,6 +65,9 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    /* The translucent canvas layer below needs a stable grey backing. Topbar
+       and banners remain opaque, so this base is visible only around the A4. */
+    background: var(--color-editor-canvas-base);
  }
 
  /* The A4 lives here and scrolls inside this area when taller than the
@@ -79,9 +82,12 @@
     position: relative;
     overflow: auto;
     padding: 8px 0;
+    /* A white overlay softens the cool-grey workspace without changing the
+       independent paper surface rendered by the A4 component. */
+    background: var(--color-editor-canvas-overlay);
     scrollbar-gutter: stable;
     scrollbar-width: thin;
-    scrollbar-color: var(--color-ink) var(--color-surface);
+    scrollbar-color: var(--color-ink) var(--color-editor-canvas-overlay);
  }
 
  .canvas-area::-webkit-scrollbar {
@@ -91,7 +97,7 @@
 
  .canvas-area::-webkit-scrollbar-track {
     margin: 10px 0;
-    background: var(--color-surface);
+    background: var(--color-editor-canvas-overlay);
     border-left: 1px solid var(--color-border);
  }
 

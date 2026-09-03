@@ -12,6 +12,8 @@
     --color-ink: #161616;
     --color-paper: #FFFFFF;
     --color-canvas: #F5F1E8;
+    --color-editor-canvas-base: #DDE0E3;
+    --color-editor-canvas-overlay: rgba(255, 255, 255, .58);
     --color-surface: #ECE8DF;
     --color-muted: #686868;
     --color-border: #C9C5BC;
