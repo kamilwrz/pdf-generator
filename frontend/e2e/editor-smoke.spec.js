@@ -135,9 +135,18 @@ test.describe("CV Studio editor smoke", () => {
     await expect(email).toBeFocused();
     await page.keyboard.type("kamil.nowak@example.com");
     await expect(email).toHaveText("kamil.nowak@example.com");
+    const focusColor = "rgb(21, 94, 239)";
+    await expect.poll(() => email.evaluate((node) => (
+      getComputedStyle(node, "::after").outlineColor
+    ))).toBe(focusColor);
 
     const title = page.getByRole("textbox", { name: "Nazwa bieżącego dokumentu" });
     await title.fill("Nowe CV smoke");
+    // Leaving inline editing keeps the field selected. Its overlay must stay
+    // blue instead of falling back to the editor's brown brand accent.
+    const selectionFrame = page.locator('[aria-hidden="true"] > [class*="_frame_"]').first();
+    await expect(selectionFrame).toBeVisible();
+    await expect(selectionFrame).toHaveCSS("border-top-color", focusColor);
 
     const createRequest = page.waitForRequest((request) => (
       request.method() === "POST" && new URL(request.url()).pathname === "/api/pdf/create_pdf"

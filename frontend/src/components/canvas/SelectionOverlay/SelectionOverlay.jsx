@@ -33,7 +33,6 @@ export default function SelectionOverlay({ elements, page }) {
         [canvasElements, displayedPage]
     );
     const displayed = selected.length > 0 ? selected : moving;
-    const isMoving = displayed.some((element) => element.isMove);
     const framed = displayed;
     const isMulti = displayed.length > 1;
     if (displayed.length === 0) return null;
@@ -63,7 +62,7 @@ export default function SelectionOverlay({ elements, page }) {
             {frames.map((frame) => (
                 <div
                     key={frame.id}
-                        className={`${classes.frame} ${isMulti ? classes.frameMulti : ""} ${isMoving ? classes.frameMoving : ""}`}
+                    className={`${classes.frame} ${isMulti ? classes.frameMulti : ""}`}
                     style={{
                         left: frame.left,
                         top: frame.top,

@@ -98,8 +98,8 @@ test("selection and editing use screen-stable hairlines with active textarea dep
   assert.match(pageSource, /"--canvas-editor-lift"/);
   assert.match(pageSource, /"--canvas-editor-hairline":\s*px\(1\)/);
   assert.match(selectionSource, /!\(element\.isEditing && \["text", "textarea"\]\.includes\(element\.category\)\)/);
-  assert.match(selectionCss, /\.frame\s*\{[^}]*border:[^;]*--canvas-editor-hairline[^}]*box-shadow:\s*none/s);
-  assert.match(selectionCss, /\.groupFrame\s*\{[^}]*border:[^;]*--canvas-editor-hairline[^}]*box-shadow:\s*none/s);
+  assert.match(selectionCss, /\.frame\s*\{[^}]*border:[^;]*--canvas-editor-hairline[^;]*--color-focus[^}]*box-shadow:\s*none/s);
+  assert.match(selectionCss, /\.groupFrame\s*\{[^}]*border:[^;]*--canvas-editor-hairline[^;]*--color-focus[^}]*box-shadow:\s*none/s);
   assert.match(textCss, /\.editing:focus::after\s*\{[^}]*outline:[^;]*--canvas-editor-hairline[^;]*--color-focus[^}]*box-shadow:\s*none/s);
   assert.match(textareaCss, /\.selected\s*\{[^}]*box-shadow:[^;]*--canvas-shadow-editor-active/s);
   assert.match(textareaCss, /\.editing:focus\s*\{[^}]*outline:[^;]*--canvas-editor-hairline[^}]*box-shadow:[^;]*--canvas-shadow-editor-active/s);

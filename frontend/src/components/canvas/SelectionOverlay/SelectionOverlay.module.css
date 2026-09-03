@@ -5,13 +5,13 @@
     z-index: var(--z-editor-affordance);
 }
 
-/* Selection is editor-only structure, not authored document decoration. A
-   zoom-compensated hairline stays legible without the persistent depth that is
-   reserved for pointer hover. */
+/* Selection uses the same blue as inline editing so blurring a text field
+   never changes its frame to the brown brand accent. The zoom-compensated
+   hairline is editor-only and does not affect authored document geometry. */
 .frame {
     position: absolute;
     box-sizing: border-box;
-    border: var(--canvas-editor-hairline, 1px) solid var(--color-accent);
+    border: var(--canvas-editor-hairline, 1px) solid var(--color-focus);
     border-radius: 0;
     background: transparent;
     box-shadow: none;
@@ -19,12 +19,6 @@
 }
 
 .frameMulti {
-    box-shadow: none;
-}
-
-.frameMoving {
-    border-color: var(--color-focus);
-    background: transparent;
     box-shadow: none;
 }
 
