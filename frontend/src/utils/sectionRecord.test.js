@@ -145,7 +145,7 @@ describe("placeholderContentsForRecord / inferRecordLayout", () => {
 });
 
 describe("appendRecordToSection", () => {
-  it("appends a second education record with a new flowGroup and placeholders", () => {
+  it("appends a second education record with empty starter placeholders", () => {
     const pageHeight = 842;
     const { elements: built, headingId } = buildSectionElements({
       name: "Wykształcenie",
@@ -169,10 +169,14 @@ describe("appendRecordToSection", () => {
     assert.equal(groups.length, 2);
     assert.equal(groups[0][0].flowGroup, firstGroup);
     assert.notEqual(groups[1][0].flowGroup, firstGroup);
-    assert.equal(groups[1][0].content, "Nazwa wpisu");
-    assert.equal(groups[1][1].content, "Organizacja");
-    assert.equal(groups[1][2].content, "Lokalizacja · okres");
-    assert.equal(groups[1][3].content, "Opis…");
+    assert.deepEqual(groups[1].map((element) => element.content), ["", "", "", ""]);
+    assert.deepEqual(groups[1].map((element) => element.placeholder), [
+      "Kierunek lub dyplom",
+      "Nazwa uczelni lub szkoły",
+      "Miasto · RRRR – RRRR",
+      "Specjalizacja, wyróżnienia lub istotne zajęcia.",
+    ]);
+    assert.ok(groups[1].every((element) => element.starterPlaceholder === true));
     assert.equal(groups[1][3].bulletList, true);
     assert.equal(result.firstBodyId, groups[1][0].element_id);
   });
@@ -226,10 +230,10 @@ describe("appendRecordToSection", () => {
     const added = records[1];
     assert.equal(added.length, 4, "the clone keeps the authored two-row/two-overlay shape");
 
-    const degree = added.find((element) => element.content === "Nazwa wpisu");
-    const school = added.find((element) => element.content === "Organizacja");
-    const period = added.find((element) => element.content === "Okres");
-    const location = added.find((element) => element.content === "Lokalizacja");
+    const degree = added.find((element) => element.editorRecordField === "degree");
+    const school = added.find((element) => element.editorRecordField === "school");
+    const period = added.find((element) => element.editorRecordField === "period");
+    const location = added.find((element) => element.editorRecordField === "city");
     assert.ok(degree);
     assert.ok(school);
     assert.ok(period);
@@ -244,6 +248,11 @@ describe("appendRecordToSection", () => {
     assert.equal(location.autoHeight, false);
     assert.equal(period.top, degree.top, "period stays level with the degree/title row");
     assert.equal(location.top, school.top, "location stays level with the school row");
+    assert.ok(added.every((element) => element.content === ""));
+    assert.equal(degree.placeholder, "Kierunek lub dyplom");
+    assert.equal(school.placeholder, "Nazwa uczelni lub szkoły");
+    assert.equal(period.placeholder, "RRRR – RRRR");
+    assert.equal(location.placeholder, "Miasto");
   });
 
   it("keeps an experience period on the title row without inventing a vertical period field", () => {
@@ -284,15 +293,20 @@ describe("appendRecordToSection", () => {
     const added = partitionSectionRecords(
       listSectionContentElements(result.elements, heading.element_id, pageHeight),
     )[1];
-    const title = added.find((element) => element.content === "Nazwa wpisu");
-    const period = added.find((element) => element.content === "Okres");
+    const title = added.find((element) => element.editorRecordField === "title");
+    const period = added.find((element) => element.editorRecordField === "period");
     assert.equal(added.length, 4);
     assert.ok(title);
     assert.ok(period);
     assert.equal(period.left, 403);
     assert.equal(period.top, title.top);
-    assert.ok(added.some((element) => element.content === "Organizacja · lokalizacja"));
-    assert.ok(added.some((element) => element.content === "Opis…"));
+    assert.ok(added.every((element) => element.content === ""));
+    assert.equal(title.placeholder, "Stanowisko");
+    assert.equal(period.placeholder, "MM RRRR – obecnie");
+    assert.ok(added.some((element) => element.placeholder === "Nazwa firmy · Miasto"));
+    assert.ok(added.some((element) => (
+      element.placeholder === "Opisz najważniejsze osiągnięcie lub odpowiedzialność."
+    )));
   });
 
   it("appends a skills subcategory as heading + body, not an education record", () => {
@@ -387,9 +401,11 @@ describe("appendRecordToSection", () => {
     const groups = partitionSectionRecords(after);
     assert.equal(groups.length, 2);
     assert.equal(groups[1].length, 2, "must stay heading+body, not expand to education");
-    assert.equal(groups[1][0].content, "Nazwa kategorii");
+    assert.equal(groups[1][0].content, "");
+    assert.equal(groups[1][0].placeholder, "Kategoria umiejętności");
     assert.equal(groups[1][0].bold, true);
-    assert.equal(groups[1][1].content, "Treść…");
+    assert.equal(groups[1][1].content, "");
+    assert.equal(groups[1][1].placeholder, "Umiejętność");
     assert.equal(groups[1][1].bold, false);
     assert.equal(groups[1][1].bulletList, false);
   });
@@ -419,9 +435,12 @@ describe("appendRecordToSection", () => {
     assert.ok(result);
     const body = listSectionContentElements(result.elements, headingId, pageHeight);
     assert.equal(body.length, 6);
-    assert.equal(body[3].content, "Nazwa wpisu");
-    assert.equal(body[4].content, "Organizacja · lokalizacja · okres");
-    assert.equal(body[5].content, "Opis…");
+    assert.deepEqual(body.slice(3).map((element) => element.content), ["", "", ""]);
+    assert.deepEqual(body.slice(3).map((element) => element.placeholder), [
+      "Stanowisko",
+      "Nazwa firmy · Miasto · MM RRRR – obecnie",
+      "Opisz najważniejsze osiągnięcie lub odpowiedzialność.",
+    ]);
   });
 
   it("returns null for aa sections", () => {
@@ -589,10 +608,13 @@ describe("listUpperRecordMembers / insertRecordBlockAfterRecord", () => {
     assert.equal(after.length, 8);
     const groups = partitionSectionRecords(after);
     assert.equal(groups.length, 2);
-    assert.equal(groups[1][0].content, "Nazwa wpisu");
-    assert.equal(groups[1][1].content, "Organizacja");
-    assert.equal(groups[1][2].content, "Lokalizacja · okres");
-    assert.equal(groups[1][3].content, "Opis…");
+    assert.deepEqual(groups[1].map((element) => element.content), ["", "", "", ""]);
+    assert.deepEqual(groups[1].map((element) => element.placeholder), [
+      "Kierunek lub dyplom",
+      "Nazwa uczelni lub szkoły",
+      "Miasto · RRRR – RRRR",
+      "Specjalizacja, wyróżnienia lub istotne zajęcia.",
+    ]);
     assert.equal(groups[1][3].bulletList, true);
     assert.notEqual(groups[1][0].flowGroup, before[0].flowGroup);
     assert.equal(result.firstBodyId, groups[1][0].element_id);
@@ -628,9 +650,12 @@ describe("listUpperRecordMembers / insertRecordBlockAfterRecord", () => {
     assert.equal(groups[0][0].flowGroup, firstGroupId);
     assert.notEqual(groups[1][0].flowGroup, firstGroupId);
     assert.notEqual(groups[1][0].flowGroup, secondGroupId);
-    assert.equal(groups[1][0].content, "Nazwa wpisu");
-    assert.equal(groups[1][1].content, "Organizacja · lokalizacja · okres");
-    assert.equal(groups[1][2].content, "Opis…");
+    assert.deepEqual(groups[1].map((element) => element.content), ["", "", ""]);
+    assert.deepEqual(groups[1].map((element) => element.placeholder), [
+      "Stanowisko",
+      "Nazwa firmy · Miasto · MM RRRR – obecnie",
+      "Opisz najważniejsze osiągnięcie lub odpowiedzialność.",
+    ]);
     assert.equal(groups[2][0].flowGroup, secondGroupId);
   });
 
@@ -736,8 +761,13 @@ describe("listUpperRecordMembers / insertRecordBlockAfterRecord", () => {
     assert.ok(groups.length >= 3);
     // Inserted block is full education (4 lines), not degree+school only.
     assert.equal(groups[1].length, 4);
-    assert.equal(groups[1][0].content, "Nazwa wpisu");
-    assert.equal(groups[1][3].content, "Opis…");
+    assert.equal(groups[1][0].content, "");
+    assert.equal(groups[1][0].placeholder, "Kierunek lub dyplom");
+    assert.equal(groups[1][3].content, "");
+    assert.equal(
+      groups[1][3].placeholder,
+      "Specjalizacja, wyróżnienia lub istotne zajęcia.",
+    );
 
     const lastInserted = groups[1][groups[1].length - 1];
     const nextTitle = groups[2][0];
@@ -842,7 +872,12 @@ describe("optional record descriptions", () => {
     const description = restoredGroups[0].find((element) => element.bulletList);
     assert.ok(description);
     assert.equal(description.element_id, restored.descriptionId);
-    assert.equal(description.content, "Opis…");
+    assert.equal(description.content, "");
+    assert.equal(
+      description.placeholder,
+      "Specjalizacja, wyróżnienia lub istotne zajęcia.",
+    );
+    assert.equal(description.starterPlaceholder, true);
     assert.equal(description.flowGroup, firstGroupId);
     assert.equal(restoredGroups[0].length, 4);
     assert.equal(restoredGroups[1].length, 4);
@@ -871,7 +906,12 @@ describe("optional record descriptions", () => {
     assert.ok(restored);
     const restoredBody = listSectionContentElements(restored.elements, headingId);
     assert.equal(restoredBody.length, 3);
-    assert.equal(restoredBody[2].content, "Opis…");
+    assert.equal(restoredBody[2].content, "");
+    assert.equal(
+      restoredBody[2].placeholder,
+      "Opisz najważniejsze osiągnięcie lub odpowiedzialność.",
+    );
+    assert.equal(restoredBody[2].starterPlaceholder, true);
     assert.equal(restoredBody[2].bulletList, true);
   });
 

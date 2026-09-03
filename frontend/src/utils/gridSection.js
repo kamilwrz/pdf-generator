@@ -297,7 +297,12 @@ function resolveGridGeometry(descriptor, options = {}) {
 }
 
 function buildInsertedCell(anchor, descriptor, idFactory, options) {
-  const usesStarterGuidance = descriptor.heading?.editorSectionType === "languages";
+  // Generated Languages headings do not carry `editorSectionType`, but the
+  // structural detector has already proved that this is a Languages grid.
+  // Treat both generated and editor-created grids as the same data-entry
+  // surface so the hint remains editor-only instead of becoming PDF content.
+  const usesStarterGuidance = descriptor.languageSection
+    || descriptor.heading?.editorSectionType === "languages";
   const placeholder = String(
     options.placeholder
     ?? (usesStarterGuidance

@@ -43,6 +43,15 @@ test("grid actions stay in the section gutter and protect the final entry", () =
   assert.match(source, /<CanvasHoverToolbar/);
 });
 
+test("language actions are centred 18px below the hovered language and scaled down by 20%", () => {
+  assert.match(source, /const isLanguageEntry = gridKind === "languages"/);
+  assert.match(source, /value \* 0\.8/);
+  assert.match(source, /boxHeight \+ 18 \/ safeZoom/);
+  assert.match(source, /\(Number\(left\) \|\| 0\) \+ boxWidth \/ 2/);
+  assert.match(source, /placement=\{isLanguageEntry \? "below" : "gutter"\}/);
+  assert.match(source, /anchorX=\{toolbarAnchorX\}/);
+});
+
 test("grid entry hover never stacks toolbar frames over selection, editing, or focus", () => {
   assert.match(source, /hoveredTriggerId,/);
   assert.match(

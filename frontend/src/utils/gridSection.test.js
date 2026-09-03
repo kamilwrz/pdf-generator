@@ -178,7 +178,10 @@ describe("insertGridSectionEntry", () => {
     const third = byId(result.elements, "lang-3");
     const nextHeading = byId(result.elements, "next-heading");
 
-    assert.equal(inserted.content, "Język — poziom");
+    assert.equal(inserted.content, "");
+    assert.equal(inserted.placeholder, "Język · Poziom");
+    assert.equal(inserted.starterPlaceholder, true);
+    assert.equal(inserted.editorSectionType, "languages");
     assert.deepEqual(
       result.elements
         .filter((element) => ["lang-1", result.entryId, "lang-2", "lang-3"].includes(element.element_id))
@@ -225,6 +228,9 @@ describe("insertGridSectionEntry", () => {
     assert.equal(original.gridColumns, 3);
     assert.equal(inserted.gridColumns, 3);
     assert.equal(inserted.gridKind, "languages");
+    assert.equal(inserted.content, "");
+    assert.equal(inserted.placeholder, "Język · Poziom");
+    assert.equal(inserted.starterPlaceholder, true);
   });
 });
 

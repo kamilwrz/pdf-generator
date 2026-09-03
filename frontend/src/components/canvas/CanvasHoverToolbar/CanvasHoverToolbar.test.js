@@ -24,6 +24,18 @@ test("structural toolbar accepts an element anchor while preserving the page-edg
   assert.match(source, /left: resolvedAnchorX/);
 });
 
+test("an element-centred toolbar can render directly below its anchor", async () => {
+  const source = await readFile(new URL("./CanvasHoverToolbar.jsx", import.meta.url), "utf8");
+  const css = await readFile(new URL("./CanvasHoverToolbar.module.css", import.meta.url), "utf8");
+
+  assert.match(source, /placement = "gutter"/);
+  assert.match(source, /placement === "below"/);
+  assert.match(source, /classes\.portalAnchorCentered/);
+  assert.match(source, /classes\.below/);
+  assert.match(css, /\.portalAnchorCentered\s*\{[^}]*transform:\s*translateX\(-50%\)/s);
+  assert.match(css, /\.below\s*\{[^}]*left:\s*0/s);
+});
+
 test("selected elements keep selection and receive a separate depth cue", async () => {
   const source = await readFile(new URL("./CanvasHoverToolbar.jsx", import.meta.url), "utf8");
   const css = await readFile(new URL("./CanvasHoverToolbar.module.css", import.meta.url), "utf8");

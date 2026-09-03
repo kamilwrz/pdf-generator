@@ -29,6 +29,7 @@ import CanvasHoverToolbar from "../CanvasHoverToolbar/CanvasHoverToolbar";
  *   highlight?:{left:number,top:number,width:number,height:number}|null,
  *   gutterSide?:"left"|"right"|null,
  *   spreadSide?:"left"|"right"|null,
+ *   gridKind?:string|null,
  *   canDelete?:boolean,
  * }} props
  */
@@ -42,6 +43,7 @@ export default function GridEntryActions({
   highlight = null,
   gutterSide = null,
   spreadSide = null,
+  gridKind = null,
   canDelete = true,
 }) {
   const {
@@ -111,7 +113,14 @@ export default function GridEntryActions({
 
   if (!eligible) return null;
 
-  const layout = structuralToolbarLayoutSize(zoom);
+  const isLanguageEntry = gridKind === "languages";
+  const baseLayout = structuralToolbarLayoutSize(zoom);
+  // Language actions sit close to short inline content, so their complete
+  // control geometry is intentionally 20% smaller than the shared structural
+  // toolbar while preserving the same proportions and accessible names.
+  const layout = isLanguageEntry
+    ? Object.fromEntries(Object.entries(baseLayout).map(([key, value]) => [key, value * 0.8]))
+    : baseLayout;
   const boxWidth = Number.isFinite(Number(width)) && Number(width) > 0
     ? Number(width)
     : 120;
@@ -124,7 +133,18 @@ export default function GridEntryActions({
     width: boxWidth,
     height: boxHeight,
   };
-  const toolbarTop = (Number(top) || 0) + boxHeight / 2 - layout.buttonSize / 2;
+  // The language toolbar follows the exact hovered cell: its horizontal centre
+  // matches the cell centre and its top edge stays 18 screen pixels below the
+  // cell. Dividing by zoom preserves that requested gap at every canvas scale.
+  const safeZoom = Number.isFinite(Number(zoom)) && Number(zoom) > 0.05
+    ? Number(zoom)
+    : 1;
+  const toolbarTop = isLanguageEntry
+    ? (Number(top) || 0) + boxHeight + 18 / safeZoom
+    : (Number(top) || 0) + boxHeight / 2 - layout.buttonSize / 2;
+  const toolbarAnchorX = isLanguageEntry
+    ? (Number(left) || 0) + boxWidth / 2
+    : null;
   // Keep every cell in one section on its lane's outer edge. Choosing by the
   // individual cell midpoint would make the toolbar jump from left to right
   // while the pointer crosses columns in the same grid.
@@ -186,6 +206,8 @@ export default function GridEntryActions({
       toolbarKey={exclusiveKey}
       visible={visible}
       side={side}
+      placement={isLanguageEntry ? "below" : "gutter"}
+      anchorX={toolbarAnchorX}
       top={toolbarTop}
       pageWidth={pageSize?.width ?? 595}
       highlight={hoverHighlight}

@@ -16,6 +16,7 @@ import classes from "./CanvasHoverToolbar.module.css";
  *   visible:boolean,
  *   highlightVisible?:boolean,
  *   side?:"left"|"right",
+ *   placement?:"gutter"|"below",
  *   anchorX?:number|null,
  *   top:number,
  *   pageWidth:number,
@@ -44,6 +45,7 @@ export default function CanvasHoverToolbar({
   visible,
   highlightVisible = visible,
   side = "right",
+  placement = "gutter",
   anchorX = null,
   top,
   pageWidth,
@@ -141,7 +143,7 @@ export default function CanvasHoverToolbar({
       canvasHost?.removeEventListener("transitionend", stopCanvasTransitionTracking);
       canvasHost?.removeEventListener("transitioncancel", stopCanvasTransitionTracking);
     };
-  }, [visible, side, anchorX, top, pageWidth, layout]);
+  }, [visible, side, placement, anchorX, top, pageWidth, layout]);
 
   if (!visible && !highlightVisible) return null;
 
@@ -213,13 +215,17 @@ export default function CanvasHoverToolbar({
 
       {visible && portalStyle && typeof document !== "undefined" ? createPortal(
         <div
-          className={classes.portalAnchor}
+          className={`${classes.portalAnchor}${placement === "below" ? ` ${classes.portalAnchorCentered}` : ""}`}
           style={portalStyle}
           data-editor-control="true"
           data-canvas-toolbar-key={toolbarKey}
           {...toolbarPointerProps}
         >
-          <div className={`${classes.toolbar} ${side === "left" ? classes.left : classes.right}`}>
+          <div className={`${classes.toolbar} ${placement === "below"
+            ? classes.below
+            : side === "left"
+              ? classes.left
+              : classes.right}`}>
             {hasDirectActions ? directActions.map((item) => (
               <button
                 key={item.key}

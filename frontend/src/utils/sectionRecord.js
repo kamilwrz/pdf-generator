@@ -125,6 +125,33 @@ export function isDescriptionRecordSectionTitle(title) {
 }
 
 /**
+ * Recover the domain meaning of a generated record section.
+ *
+ * Sections created in the editor persist `editorSectionType`, but records from
+ * the template generator predate that metadata and expose only their heading.
+ * Add-entry must still use the current starter guidance for those sections, so
+ * recognised Education, Experience, and grouped-Skills headings are mapped to
+ * the same semantic types as sections created through the picker.
+ *
+ * @param {string|null|undefined} sectionTitle
+ * @param {"cc-edu"|"cc-exp"|"cc-sub"|null} layout
+ * @param {string|null|undefined} explicitType
+ * @returns {string|null}
+ */
+function resolveRecordSectionType(sectionTitle, layout, explicitType) {
+  if (explicitType) return explicitType;
+  if (isEducationSectionTitle(sectionTitle)) return SECTION_TYPES.EDUCATION;
+  if (isDescriptionRecordSectionTitle(sectionTitle)) return SECTION_TYPES.EXPERIENCE;
+  if (
+    layout === SECTION_LAYOUTS.RECORD_SUBCATEGORY
+    && isSkillsSectionTitle(sectionTitle)
+  ) {
+    return SECTION_TYPES.SKILLS_CATEGORIES;
+  }
+  return null;
+}
+
+/**
  * True when a 2-line bold+body record should stay a subcategory (heading +
  * content) instead of expanding to education. Skills titles always qualify;
  * other titles qualify unless they look like education. Missing title keeps
@@ -667,14 +694,14 @@ export function buildRecordClone(
   options = {},
 ) {
   const sectionTitle = options.sectionTitle ?? null;
-  const sectionType = options.sectionType ?? null;
   const pageHeight = Number(options.pageHeight) || 842;
   const source = ensureCanonicalRecordTemplate(members, sectionGroups, {
     sectionTitle,
   });
   if (source.length === 0) return [];
-  const placeholders = placeholderContentsForRecord(source, { sectionTitle, sectionType });
   const layout = inferRecordLayout(source, { sectionTitle });
+  const sectionType = options.sectionType ?? null;
+  const placeholders = placeholderContentsForRecord(source, { sectionTitle, sectionType });
   const group = `record-${idFactory()}`;
   const realSource = source.filter((element) => !isRecordOverlay(element, source, pageHeight));
   const originAbs = realSource.length > 0
@@ -1173,9 +1200,14 @@ export function appendRecordToSection(
 
   const heading = (elements || []).find((element) => element.element_id === headingId);
   const sectionTitle = heading?.content ?? null;
+  const recordLayout = inferRecordLayout(templateGroup, { sectionTitle });
   const clones = buildRecordClone(templateGroup, idFactory, groups, {
     sectionTitle,
-    sectionType: heading?.editorSectionType || null,
+    sectionType: resolveRecordSectionType(
+      sectionTitle,
+      recordLayout,
+      heading?.editorSectionType,
+    ),
     pageHeight,
   });
   if (clones.length === 0) return null;
@@ -1476,9 +1508,14 @@ export function insertRecordBlockAfterRecord(
 
   const heading = (elements || []).find((element) => element.element_id === headingId);
   const sectionTitle = heading?.content ?? null;
+  const recordLayout = inferRecordLayout(templateGroup, { sectionTitle });
   const clones = buildRecordClone(templateGroup, idFactory, groups, {
     sectionTitle,
-    sectionType: heading?.editorSectionType || null,
+    sectionType: resolveRecordSectionType(
+      sectionTitle,
+      recordLayout,
+      heading?.editorSectionType,
+    ),
     pageHeight,
   });
   if (clones.length === 0) return null;
@@ -1565,6 +1602,7 @@ export function insertRecordBlockAfterRecord(
  * @param {object} fallbackLine
  * @param {object[]} targetGroup
  * @param {() => string} idFactory
+ * @param {{ sectionType?: string|null }} [options]
  * @returns {object}
  */
 function buildRecordDescription(
@@ -1572,12 +1610,19 @@ function buildRecordDescription(
   fallbackLine,
   targetGroup,
   idFactory,
+  options = {},
 ) {
   const source = templateDescription || fallbackLine;
   const fontSize = Number(source?.fontSize) || 9.3;
   const lineHeight = Number(source?.lineHeight) || Math.round(fontSize * 1.4);
   const width = Number(source?.width) || Number(fallbackLine?.width) || 466;
-  const content = PLACEHOLDER.education[3];
+  const sectionType = options.sectionType ?? null;
+  const placeholder = sectionType === SECTION_TYPES.EXPERIENCE
+    ? STARTER_FIELD_PLACEHOLDERS.experience_bullet
+    : sectionType === SECTION_TYPES.EDUCATION
+      ? STARTER_FIELD_PLACEHOLDERS.education_description
+      : PLACEHOLDER.education[3];
+  const content = sectionType ? "" : placeholder;
   const targetFlowGroup = (targetGroup || []).find((element) => (
     typeof element?.flowGroup === "string" && element.flowGroup
   ))?.flowGroup;
@@ -1599,7 +1644,7 @@ function buildRecordDescription(
     left: Number(source?.left) || Number(fallbackLine?.left) || 66,
     top: 0,
     width,
-    height: measurePlaceholderHeight(content, width, fontSize, lineHeight),
+    height: measurePlaceholderHeight(placeholder, width, fontSize, lineHeight),
     fontSize,
     fontFamily: source?.fontFamily || fallbackLine?.fontFamily || "Inter",
     lineHeight,
@@ -1617,6 +1662,11 @@ function buildRecordDescription(
     zIndex: Number.isFinite(Number(source?.zIndex)) ? Number(source.zIndex) : 4,
     page: 1,
   };
+  if (sectionType) {
+    description.placeholder = placeholder;
+    description.starterPlaceholder = true;
+    description.editorSectionType = sectionType;
+  }
   // Do not invent a flowGroup for legacy untagged records: one tagged line in
   // an otherwise untagged section would make every other line partition as a
   // separate solo record. Existing groups and sidebar lanes are safe to copy.
@@ -1686,6 +1736,14 @@ export function addRecordDescription(
     lastReal,
     anchor.group,
     idFactory,
+    {
+      sectionType: resolveRecordSectionType(
+        heading?.content,
+        inferRecordLayout(anchor.group, { sectionTitle: heading?.content }),
+        heading?.editorSectionType
+          || anchor.group.find((element) => element?.editorSectionType)?.editorSectionType,
+      ),
+    },
   );
 
   const rhythm = normalizeFlowSpacing(spacing || DEFAULT_FLOW_SPACING);

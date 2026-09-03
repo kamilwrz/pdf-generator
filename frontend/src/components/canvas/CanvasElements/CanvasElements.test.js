@@ -61,7 +61,7 @@ test("section and record toolbars use distinct element-relative gaps and centred
   assert.match(sectionSource, /toolbarHeadingBounds\.top[\s\S]*toolbarHeadingBounds\.height \/ 2/);
 });
 
-test("repeatable grid cells mount their dedicated two-action gutter control", async () => {
+test("repeatable grid cells mount their dedicated two-action control", async () => {
   const source = await readFile(new URL("./CanvasElements.jsx", import.meta.url), "utf8");
 
   assert.match(source, /import GridEntryActions from '\.\.\/GridEntryActions\/GridEntryActions'/);

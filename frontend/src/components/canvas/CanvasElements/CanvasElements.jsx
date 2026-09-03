@@ -427,6 +427,7 @@ export default function CanvasElements({ elements, spreadSide = null }) {
               fontSize={gridEntryAnchor.fontSize}
               highlight={gridEntryAnchor.highlight}
               canDelete={gridEntryAnchor.canDelete}
+              gridKind={gridEntryAnchor.gridKind}
               gutterSide={gridEntryAnchor.gutterSide}
               spreadSide={spreadSide}
             />
