@@ -14,7 +14,8 @@
 
 import { nanoid } from "nanoid";
 import { DEFAULT_FLOW_SPACING, normalizeFlowSpacing } from "./flowSpacing.js";
-import { SECTION_LAYOUTS } from "./sectionBuilder.js";
+import { SECTION_LAYOUTS, SECTION_TYPES } from "./sectionBuilder.js";
+import { STARTER_FIELD_PLACEHOLDERS } from "./cvStarter.js";
 import {
   applyFlowSpacing,
   isDecorativeOrdinalChrome,
@@ -439,15 +440,56 @@ function overlayRecordPlaceholders(members, layout) {
 export function placeholderContentsForRecord(members, options = {}) {
   const layout = inferRecordLayout(members, options);
   const overlayPlaceholders = overlayRecordPlaceholders(members, layout);
-  if (overlayPlaceholders) return overlayPlaceholders;
+  const sectionType = options.sectionType ?? null;
+  const remapStarterCopy = (value) => {
+    if (sectionType === SECTION_TYPES.EXPERIENCE) {
+      const replacements = {
+        "Nazwa wpisu": STARTER_FIELD_PLACEHOLDERS.experience_title,
+        Organizacja: STARTER_FIELD_PLACEHOLDERS.experience_company,
+        "Organizacja · lokalizacja": [
+          STARTER_FIELD_PLACEHOLDERS.experience_company,
+          STARTER_FIELD_PLACEHOLDERS.experience_city,
+        ].join(" · "),
+        "Organizacja · lokalizacja · okres": [
+          STARTER_FIELD_PLACEHOLDERS.experience_company,
+          STARTER_FIELD_PLACEHOLDERS.experience_city,
+          STARTER_FIELD_PLACEHOLDERS.experience_period,
+        ].join(" · "),
+        Okres: STARTER_FIELD_PLACEHOLDERS.experience_period,
+        Lokalizacja: STARTER_FIELD_PLACEHOLDERS.experience_city,
+        "Opis…": STARTER_FIELD_PLACEHOLDERS.experience_bullet,
+      };
+      return replacements[value] || value;
+    }
+    if (sectionType === SECTION_TYPES.EDUCATION) {
+      const replacements = {
+        "Nazwa wpisu": STARTER_FIELD_PLACEHOLDERS.education_degree,
+        Organizacja: STARTER_FIELD_PLACEHOLDERS.education_school,
+        "Lokalizacja · okres": [
+          STARTER_FIELD_PLACEHOLDERS.education_city,
+          STARTER_FIELD_PLACEHOLDERS.education_period,
+        ].join(" · "),
+        Okres: STARTER_FIELD_PLACEHOLDERS.education_period,
+        Lokalizacja: STARTER_FIELD_PLACEHOLDERS.education_city,
+        "Opis…": STARTER_FIELD_PLACEHOLDERS.education_description,
+      };
+      return replacements[value] || value;
+    }
+    if (sectionType === SECTION_TYPES.SKILLS_CATEGORIES) {
+      if (value === "Nazwa kategorii") return "Kategoria umiejętności";
+      if (value === "Treść…") return STARTER_FIELD_PLACEHOLDERS.skill;
+    }
+    return value;
+  };
+  if (overlayPlaceholders) return overlayPlaceholders.map(remapStarterCopy);
   if (layout === SECTION_LAYOUTS.RECORD_EDUCATION) {
-    return [...PLACEHOLDER.education];
+    return [...PLACEHOLDER.education].map(remapStarterCopy);
   }
   if (layout === SECTION_LAYOUTS.RECORD_EXPERIENCE) {
-    return [...PLACEHOLDER.experience];
+    return [...PLACEHOLDER.experience].map(remapStarterCopy);
   }
   if (layout === SECTION_LAYOUTS.RECORD_SUBCATEGORY) {
-    return [...PLACEHOLDER.subcategory];
+    return [...PLACEHOLDER.subcategory].map(remapStarterCopy);
   }
   return (members || []).map((element, index) => {
     if (element?.bulletList) return PLACEHOLDER.education[3];
@@ -615,7 +657,7 @@ export function ensureCanonicalRecordTemplate(
  * @param {object[]} members last record members in reading order
  * @param {() => string} [idFactory]
  * @param {object[][]|null} [sectionGroups]
- * @param {{ sectionTitle?: string|null, pageHeight?: number }} [options]
+ * @param {{ sectionTitle?: string|null, sectionType?: string|null, pageHeight?: number }} [options]
  * @returns {object[]} Cloned canvas fields tagged for cv_data synchronization.
  */
 export function buildRecordClone(
@@ -625,12 +667,13 @@ export function buildRecordClone(
   options = {},
 ) {
   const sectionTitle = options.sectionTitle ?? null;
+  const sectionType = options.sectionType ?? null;
   const pageHeight = Number(options.pageHeight) || 842;
   const source = ensureCanonicalRecordTemplate(members, sectionGroups, {
     sectionTitle,
   });
   if (source.length === 0) return [];
-  const placeholders = placeholderContentsForRecord(source, { sectionTitle });
+  const placeholders = placeholderContentsForRecord(source, { sectionTitle, sectionType });
   const layout = inferRecordLayout(source, { sectionTitle });
   const group = `record-${idFactory()}`;
   const realSource = source.filter((element) => !isRecordOverlay(element, source, pageHeight));
@@ -641,8 +684,9 @@ export function buildRecordClone(
     const fontSize = Number(element.fontSize) || 9.3;
     const lineHeight = Number(element.lineHeight) || Math.round(fontSize * 1.4);
     const width = Number(element.width) || 466;
-    const content = placeholders[index] ?? PLACEHOLDER.generic;
-    const measured = measurePlaceholderHeight(content, width, fontSize, lineHeight);
+    const placeholderCopy = placeholders[index] ?? PLACEHOLDER.generic;
+    const content = sectionType ? "" : placeholderCopy;
+    const measured = measurePlaceholderHeight(placeholderCopy, width, fontSize, lineHeight);
     // Keep at least the template's single-line box so pack `record` gaps do not
     // collapse before the browser remeasures; never inherit a tall bullet box.
     const sourceH = elementHeight(element);
@@ -690,7 +734,11 @@ export function buildRecordClone(
       editorAddedRecord: true,
       editorRecordLayout: layout,
       editorRecordField: (() => {
-        const placeholder = String(content || "").trim().toLocaleLowerCase();
+        const placeholder = String(placeholderCopy || "").trim().toLocaleLowerCase();
+        if (isRecordOverlay(element, source, pageHeight)) {
+          const anchor = findGroupOverlayAnchor(source, element, pageHeight);
+          return anchor?.bold ? "period" : "city";
+        }
         if (placeholder === "okres") return "period";
         if (placeholder === "lokalizacja") return "city";
         if (element?.bulletList) return "description";
@@ -707,6 +755,11 @@ export function buildRecordClone(
         return "meta";
       })(),
     };
+    if (sectionType) {
+      next.placeholder = placeholderCopy;
+      next.starterPlaceholder = true;
+      next.editorSectionType = sectionType;
+    }
     if (element.editorAddedSection && element.editorSectionId) {
       next.editorAddedSection = true;
       next.editorSectionId = element.editorSectionId;
@@ -927,11 +980,18 @@ export function replaceBuiltSectionRecord(
   ));
   if (!anchor) return built;
 
+  const heading = (built.elements || []).find((element) => (
+    element.element_id === built.headingId
+  ));
   const clones = buildRecordClone(
     template.members,
     idFactory,
     template.groups,
-    { sectionTitle: template.sectionTitle, pageHeight },
+    {
+      sectionTitle: template.sectionTitle,
+      sectionType: heading?.editorSectionType || null,
+      pageHeight,
+    },
   );
   if (clones.length === 0) return built;
 
@@ -1075,6 +1135,7 @@ export function appendRecordToSection(
   const sectionTitle = heading?.content ?? null;
   const clones = buildRecordClone(templateGroup, idFactory, groups, {
     sectionTitle,
+    sectionType: heading?.editorSectionType || null,
     pageHeight,
   });
   if (clones.length === 0) return null;
@@ -1377,6 +1438,7 @@ export function insertRecordBlockAfterRecord(
   const sectionTitle = heading?.content ?? null;
   const clones = buildRecordClone(templateGroup, idFactory, groups, {
     sectionTitle,
+    sectionType: heading?.editorSectionType || null,
     pageHeight,
   });
   if (clones.length === 0) return null;

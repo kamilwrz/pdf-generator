@@ -727,10 +727,11 @@ export function EditorController() {
     });
   }
 
-  const handleConfirmAddSection = useCallback(({ name, layout, iconName }) => {
+  const handleConfirmAddSection = useCallback(({ name, layout, sectionType, iconName }) => {
     handleAddSection({
       name,
       layout,
+      sectionType,
       iconName,
       afterHeadingId: addSectionModal.afterHeadingId,
       lane: addSectionModal.lane,

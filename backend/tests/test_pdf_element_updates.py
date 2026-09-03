@@ -38,9 +38,12 @@ def element(element_id, *, deleted=False):
         editorAddedSection=True,
         editorSectionId="grid-heading",
         editorSectionLayout="grid",
+        editorSectionType="languages",
         editorGridColumns=4,
         editorGridRecordWidth=400,
         editorGridBodyLeft=84,
+        placeholder="Język · Poziom",
+        starterPlaceholder=True,
         editorGridEntry=True,
         editorAddedGridEntry=True,
         gridSectionId="grid-heading",
@@ -95,9 +98,12 @@ class PdfElementUpdateTests(unittest.TestCase):
         self.assertTrue(keep_row.extra_properties["editorAddedSection"])
         self.assertEqual(keep_row.extra_properties["editorSectionId"], "grid-heading")
         self.assertEqual(keep_row.extra_properties["editorSectionLayout"], "grid")
+        self.assertEqual(keep_row.extra_properties["editorSectionType"], "languages")
         self.assertEqual(keep_row.extra_properties["editorGridColumns"], 4)
         self.assertEqual(keep_row.extra_properties["editorGridRecordWidth"], 400)
         self.assertEqual(keep_row.extra_properties["editorGridBodyLeft"], 84)
+        self.assertEqual(keep_row.extra_properties["placeholder"], "Język · Poziom")
+        self.assertTrue(keep_row.extra_properties["starterPlaceholder"])
         self.assertTrue(keep_row.extra_properties["editorGridEntry"])
         self.assertTrue(keep_row.extra_properties["editorAddedGridEntry"])
         self.assertEqual(keep_row.extra_properties["gridSectionId"], "grid-heading")

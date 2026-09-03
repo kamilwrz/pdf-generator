@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { buildSectionElements, SECTION_LAYOUTS } from "./sectionBuilder.js";
+import { buildSectionElements, SECTION_LAYOUTS, SECTION_TYPES } from "./sectionBuilder.js";
 import {
   appendSectionAtEnd,
   deriveSectionStyle,
@@ -902,6 +902,26 @@ describe("optional record descriptions", () => {
     assert.equal(getRecordDescriptionAction(elements, descriptionId), null);
     assert.equal(addRecordDescription(elements, descriptionId), null);
     assert.equal(removeRecordDescription(elements, descriptionId), null);
+  });
+
+  it("maps named Experience fields to the starter guidance contract", () => {
+    const exp = [{ bold: true }, {}, { bulletList: true }];
+    assert.deepEqual(placeholderContentsForRecord(exp, {
+      sectionType: SECTION_TYPES.EXPERIENCE,
+    }), [
+      "Stanowisko",
+      "Nazwa firmy · Miasto · MM RRRR – obecnie",
+      "Opisz najważniejsze osiągnięcie lub odpowiedzialność.",
+    ]);
+    const clones = buildRecordClone(
+      exp,
+      makeIdFactory("starter-exp"),
+      null,
+      { sectionType: SECTION_TYPES.EXPERIENCE },
+    );
+    assert.ok(clones.every((element) => element.content === ""));
+    assert.ok(clones.every((element) => element.starterPlaceholder === true));
+    assert.equal(clones[0].placeholder, "Stanowisko");
   });
 });
 

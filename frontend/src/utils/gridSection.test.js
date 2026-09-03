@@ -128,6 +128,33 @@ describe("listGridSectionEntryAnchors", () => {
 });
 
 describe("insertGridSectionEntry", () => {
+  it("keeps starter guidance as placeholder metadata in an added Języki section", () => {
+    const elements = [
+      heading("added-languages-heading", "JĘZYKI", 100, {
+        editorSectionLayout: "grid",
+        editorSectionType: "languages",
+        gridKind: "entries",
+      }),
+      rule("added-languages-rule", 116),
+      cell("added-language", "", 84, 128, {
+        placeholder: "Język · Poziom",
+        starterPlaceholder: true,
+        editorGridEntry: true,
+        gridKind: "entries",
+      }),
+    ];
+    const result = insertGridSectionEntry(elements, "added-language", 842, {
+      idFactory: idFactory("added-language"),
+    });
+
+    assert.ok(result);
+    const inserted = byId(result.elements, result.entryId);
+    assert.equal(inserted.content, "");
+    assert.equal(inserted.placeholder, "Język · Poziom");
+    assert.equal(inserted.starterPlaceholder, true);
+    assert.equal(inserted.editorSectionType, "languages");
+  });
+
   it("inserts after the hovered cell, wraps at the fixed column count, and repacks later sections", () => {
     const elements = languageDocument([
       cell("lang-1", "Polski — C2", 84, 128, {

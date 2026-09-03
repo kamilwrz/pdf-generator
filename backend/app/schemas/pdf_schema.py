@@ -158,6 +158,9 @@ class PdfElement(BaseModel):
         max_length=MAX_ELEMENT_ID_CHARS,
     )
     editorSectionLayout: Optional[str] = None
+    # Domain preset selected in Add Section. Layout remains the geometry
+    # contract; this value restores field-specific guidance for later inserts.
+    editorSectionType: Optional[str] = Field(None, max_length=64)
     # Fixed-column grid geometry belongs to the section heading, while the
     # entry/link fields belong to its cells. Persisting both sides avoids
     # inferring a one-cell grid as a one-column layout after save/reopen.

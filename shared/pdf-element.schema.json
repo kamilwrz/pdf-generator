@@ -455,6 +455,19 @@
       "default": null,
       "title": "Editorsectionlayout"
     },
+    "editorSectionType": {
+      "anyOf": [
+        {
+          "maxLength": 64,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Editorsectiontype"
+    },
     "editorGridColumns": {
       "anyOf": [
         {

@@ -31,10 +31,11 @@ const EXTRA_KEYS = [
   "zIndex", "isSelected", "isMove", "contactChannel", "contactBandId", "contactBand",
   "textTransform", "mastheadRole", "mastheadBandId", "mastheadIdentity",
   "appearanceTemplateId", "appearanceSettings", "appearanceTypographyRole",
-  "appearanceBaseFontSize", "appearanceBaseLineHeight", "lineHeight", "letterSpacing",
+  "appearanceBaseFontSize", "appearanceBaseLineHeight", "placeholder", "starterPlaceholder",
+  "starterSectionKey", "cvDataBindings", "lineHeight", "letterSpacing",
   "bold", "italic", "underline", "runs", "align", "bulletList", "autoHeight",
   "flowRole", "flowLane", "flowGroup", "isDecorativeChromeText",
-  "editorAddedSection", "editorSectionId", "editorSectionLayout",
+  "editorAddedSection", "editorSectionId", "editorSectionLayout", "editorSectionType",
   "editorGridColumns", "editorGridRecordWidth", "editorGridBodyLeft",
   "editorGridEntry", "editorAddedGridEntry", "gridSectionId", "gridColumns",
   "gridGutter", "gridWidth", "gridLeft", "gridKind",
@@ -122,6 +123,7 @@ test("saved custom grid keeps add/delete semantics and fixed geometry after reop
       editorAddedSection: true,
       editorSectionId: "grid-heading",
       editorSectionLayout: "grid",
+      editorSectionType: "languages",
       editorGridColumns: 4,
       editorGridRecordWidth: 400,
       editorGridBodyLeft: 84,
@@ -140,6 +142,8 @@ test("saved custom grid keeps add/delete semantics and fixed geometry after reop
       element_id: "grid-cell",
       category: "textarea",
       content: "Polski — C2",
+      placeholder: "Język · Poziom",
+      starterPlaceholder: true,
       page: 1,
       left: 84,
       top: 128,
@@ -160,6 +164,10 @@ test("saved custom grid keeps add/delete semantics and fixed geometry after reop
   const reopened = source
     .map(persistedRow)
     .map(hydratePersistedCanvasElement);
+
+  assert.equal(reopened[0].editorSectionType, "languages");
+  assert.equal(reopened[2].placeholder, "Język · Poziom");
+  assert.equal(reopened[2].starterPlaceholder, true);
 
   const [anchor] = listGridSectionEntryAnchors(reopened);
   assert.equal(anchor.elementId, "grid-cell");

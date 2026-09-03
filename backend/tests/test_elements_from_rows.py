@@ -51,8 +51,10 @@ class ElementsFromRowsTests(unittest.TestCase):
                 runs=[TextRun(start=0, end=5, bold=False, color="#ff0000")],
                 fixedToPage=True, locked=True, flowRole="section-chrome",
                 editorAddedSection=True, editorSectionId="e1",
-                editorSectionLayout="grid", editorGridColumns=4,
+                editorSectionLayout="grid", editorSectionType="languages",
+                editorGridColumns=4,
                 editorGridRecordWidth=400, editorGridBodyLeft=84,
+                placeholder="Język · Poziom", starterPlaceholder=True,
                 zIndex=5, isSelected=True, isMove=True,
             ),
             PdfElement(
@@ -109,9 +111,12 @@ class ElementsFromRowsTests(unittest.TestCase):
         self.assertTrue(text_el.editorAddedSection)
         self.assertEqual(text_el.editorSectionId, "e1")
         self.assertEqual(text_el.editorSectionLayout, "grid")
+        self.assertEqual(text_el.editorSectionType, "languages")
         self.assertEqual(text_el.editorGridColumns, 4)
         self.assertEqual(text_el.editorGridRecordWidth, 400)
         self.assertEqual(text_el.editorGridBodyLeft, 84)
+        self.assertEqual(text_el.placeholder, "Język · Poziom")
+        self.assertTrue(text_el.starterPlaceholder)
         self.assertEqual(len(text_el.runs), 1)
         self.assertEqual(text_el.runs[0].color, "#ff0000")
         # zIndex/isSelected/isMove are packed into extra_properties alongside the

@@ -901,6 +901,7 @@ export function useA4Elements(titleRef) {
    * @param {{
    *   name: string,
    *   layout: "aa"|"cc-edu"|"cc-exp"|"cc-sub",
+   *   sectionType?: string|null,
    *   iconName?: string|null,
    *   afterHeadingId?: string|null,
    *   lane?: "main"|"sidebar"|null,
@@ -909,6 +910,7 @@ export function useA4Elements(titleRef) {
   const handleAddSection = useCallback(({
     name,
     layout,
+    sectionType = null,
     iconName = null,
     afterHeadingId = null,
     lane = null,
@@ -953,6 +955,7 @@ export function useA4Elements(titleRef) {
       let builtSection = buildSectionElements({
         name,
         layout,
+        sectionType,
         style,
         spacing,
         sectionOrdinal,

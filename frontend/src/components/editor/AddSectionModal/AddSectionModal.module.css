@@ -1,95 +1,60 @@
-/*
- * "Dodaj sekcję" now shares the same enlarged (1280px), near-zero-radius
- * DialogShell as the other unified modals (Templates/Plans/Import). When the
- * active template offers an icon gallery, the body splits into the name +
- * layout-picker column and the icon gallery column side by side; templates
- * without icon theming fall back to a single narrower column instead of
- * stretching one form across the full 1280px shell.
- */
-
-.bodyTwoCol {
-  padding: 24px 28px;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px 36px;
-}
-
-.bodyOneCol {
-  padding: 24px 28px;
+.body {
+  padding: 22px 28px 26px;
   display: flex;
   flex-direction: column;
+  gap: 24px;
 }
 
-.leftCol,
-.rightCol {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
+.fieldset {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
 }
 
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-}
-
-.label {
-  font: 700 10.5px var(--font-body);
-  letter-spacing: .06em;
+.legend,
+.iconTitle {
+  margin: 0 0 10px;
+  font: 700 10.5px/1.2 var(--font-body);
+  letter-spacing: .08em;
   text-transform: uppercase;
   color: var(--chrome-muted);
 }
 
-.input {
-  box-sizing: border-box;
-  width: 100%;
-  height: 40px;
-  padding: 0 13px;
-  border: 1px solid var(--chrome-border);
-  border-radius: 2px;
-  background: var(--primary-bg);
-  color: var(--chrome-ink);
-  font: 500 14px var(--font-body);
-  outline: none;
-  transition: border-color .15s, box-shadow .15s;
+.presetGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
 }
 
-.input:focus {
-  border-color: var(--color-focus);
-  box-shadow: 0 0 0 2px var(--color-focus-soft);
-}
-
-.fieldset {
-  border: 0;
-  margin: 0;
-  padding: 0;
+.presetCard {
+  position: relative;
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-}
-
-.option {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 13px 14px;
   border: 1px solid var(--chrome-border);
-  border-radius: 2px;
-  cursor: pointer;
+  border-radius: var(--radius-control);
   background: var(--chrome-control);
-  transition: border-color .15s, background .15s;
+  color: var(--chrome-ink);
+  cursor: pointer;
+  overflow: hidden;
+  transition: border-color var(--motion-fast) var(--motion-ease),
+    background var(--motion-fast) var(--motion-ease),
+    box-shadow var(--motion-fast) var(--motion-ease);
 }
 
-.option:hover {
+.presetCard:hover {
+  border-color: color-mix(in srgb, var(--chrome-accent) 58%, var(--chrome-border));
   background: var(--chrome-hover);
 }
 
-.optionActive {
+.presetCardActive {
   border-color: var(--chrome-accent);
   box-shadow: inset 0 0 0 1px var(--chrome-accent);
+  background: var(--chrome-surface);
 }
 
-.option:has(.radioInput:focus-visible) {
+.presetCard:has(.radioInput:focus-visible) {
   outline: 2px solid var(--color-focus);
   outline-offset: 2px;
 }
@@ -103,95 +68,231 @@
   white-space: nowrap;
 }
 
-.dot {
-  width: 16px;
-  height: 16px;
-  margin-top: 1px;
-  flex-shrink: 0;
-  border-radius: 50%;
-  border: 1.5px solid var(--label-font);
-  background: transparent;
-  transition: border .15s;
-}
-
-.dotActive {
-  border: 5px solid var(--chrome-accent);
-  background: var(--chrome-surface);
-}
-
-.optionText {
+.preview {
+  box-sizing: border-box;
+  height: 128px;
+  padding: 14px 15px 12px;
   display: flex;
   flex-direction: column;
-  gap: 3px;
-}
-
-.optionTitle {
-  font: 700 13.5px var(--font-body);
+  gap: 6px;
+  border-bottom: 1px solid var(--chrome-border);
+  background: var(--primary-bg);
   color: var(--chrome-ink);
 }
 
-.optionDesc {
-  font: 500 11.5px/1.4 var(--font-body);
+.previewHeading {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: 800 8px/1.1 var(--font-body);
+  letter-spacing: .09em;
+  text-transform: uppercase;
+}
+
+.previewRule {
+  width: 100%;
+  height: 1px;
+  flex: 0 0 1px;
+  background: var(--chrome-accent);
+}
+
+.previewLine {
+  min-width: 0;
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: 500 7.5px/1.3 var(--font-body);
+  color: var(--chrome-ink);
+}
+
+.previewLineStrong {
+  font-weight: 800;
+}
+
+.previewLineMuted {
   color: var(--chrome-muted);
 }
 
-.iconHint {
-  margin: 0 0 4px;
-  font: 500 11.5px/1.4 var(--font-body);
-  color: var(--chrome-muted);
+.previewLineRight {
+  text-align: right;
 }
 
-.iconGallery {
+.summaryPreview,
+.recordPreview,
+.categoryPreview {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.summaryPreview .previewLine {
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.textMeasure {
+  width: 58%;
+  height: 1px;
+  background: var(--chrome-border);
+}
+
+.recordRow {
+  min-width: 0;
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr) minmax(72px, .7fr);
   gap: 8px;
 }
 
+.languageGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.languageEntry {
+  min-width: 0;
+  padding-bottom: 5px;
+  border-bottom: 1px solid var(--chrome-border);
+}
+
+.skillsRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px 8px;
+}
+
+.skillItem {
+  padding-bottom: 2px;
+  border-bottom: 1px solid var(--chrome-border);
+  font: 600 7.5px/1.2 var(--font-body);
+  color: var(--chrome-ink);
+}
+
+.cardCopy {
+  min-height: 72px;
+  padding: 12px 14px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.cardTitleRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.cardTitle {
+  font: 750 13px/1.25 var(--font-body);
+  color: var(--chrome-ink);
+}
+
+.selectionMark {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--chrome-border);
+  border-radius: 50%;
+  color: var(--color-paper);
+  background: transparent;
+  font: 800 11px/1 var(--font-body);
+}
+
+.presetCardActive .selectionMark {
+  border-color: var(--chrome-accent);
+  background: var(--chrome-accent);
+}
+
+.cardDescription {
+  font: 500 11px/1.4 var(--font-body);
+  color: var(--chrome-muted);
+}
+
+.iconSection {
+  padding-top: 20px;
+  border-top: 1px solid var(--chrome-border);
+}
+
+.iconHeadingRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.iconTitle {
+  margin-bottom: 4px;
+}
+
+.iconHint,
+.selectedIconLabel {
+  margin: 0;
+  font: 500 11.5px/1.4 var(--font-body);
+  color: var(--chrome-muted);
+}
+
+.selectedIconLabel strong {
+  color: var(--chrome-ink);
+}
+
+.iconGallery {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: repeat(12, minmax(40px, 1fr));
+  gap: 7px;
+}
+
 .iconTile {
-  aspect-ratio: 1;
+  min-width: 40px;
+  min-height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 6px;
+  padding: 7px;
   border: 1px solid var(--chrome-border);
-  border-radius: 2px;
+  border-radius: var(--radius-control);
   background: var(--chrome-control);
   cursor: pointer;
-  transition: border-color .12s, background .12s, box-shadow .12s;
 }
 
 .iconTile:hover {
   border-color: var(--chrome-accent);
+  background: var(--chrome-hover);
+}
+
+.iconTile:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
 }
 
 .iconTileActive {
   border-color: var(--chrome-accent);
   box-shadow: inset 0 0 0 1px var(--chrome-accent);
-  background: color-mix(in srgb, var(--color-ink) 8%, transparent);
+  background: var(--chrome-surface);
 }
 
 .iconThumb {
-  width: 22px;
-  height: 22px;
-  object-fit: contain;
+  width: 21px;
+  height: 21px;
   display: block;
+  object-fit: contain;
   pointer-events: none;
 }
 
-.selectedIconLabel {
-  margin: 6px 0 0;
-  font: 500 11.5px var(--font-body);
-  color: var(--label-font);
-}
-
-.selectedIconLabel span {
-  color: var(--color-ink);
-  font-weight: 700;
-}
-
 .footerHint {
-  font: 500 12px var(--font-body);
-  color: var(--label-font);
+  font: 500 12px/1.35 var(--font-body);
+  color: var(--chrome-muted);
+}
+
+.footerHint strong {
+  color: var(--chrome-ink);
 }
 
 .actions {
@@ -201,38 +302,87 @@
 
 .ghost,
 .primary {
-  height: 38px;
-  border-radius: 2px;
-  font: 600 13px var(--font-body);
+  min-height: 38px;
+  padding: 0 18px;
+  border-radius: var(--radius-control);
+  font: 650 13px var(--font-body);
   cursor: pointer;
 }
 
 .ghost {
-  padding: 0 18px;
   border: 1px solid var(--chrome-border);
   background: transparent;
   color: var(--chrome-ink);
 }
 
 .ghost:hover {
+  border-color: var(--chrome-accent);
   background: var(--chrome-hover);
-  color: var(--chrome-accent);
 }
 
 .primary {
-  padding: 0 22px;
-  border: none;
-  background: var(--color-ink);
+  border: 1px solid var(--chrome-accent);
+  background: var(--chrome-accent);
   color: var(--color-paper);
-  font-weight: 700;
+  font-weight: 750;
 }
 
 .primary:hover {
-  background: color-mix(in srgb, var(--color-ink) 88%, var(--color-paper));
+  background: color-mix(in srgb, var(--chrome-accent) 88%, var(--chrome-ink));
 }
 
-@media only screen and (max-width: 760px) {
-  .bodyTwoCol {
+@media (max-width: 860px) {
+  .presetGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .iconGallery {
+    grid-template-columns: repeat(8, minmax(40px, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .body {
+    padding: 18px 16px 22px;
+  }
+
+  .presetGrid {
     grid-template-columns: 1fr;
+  }
+
+  .preview {
+    height: 118px;
+  }
+
+  .iconHeadingRow {
+    display: block;
+  }
+
+  .selectedIconLabel {
+    margin-top: 7px;
+  }
+
+  .iconGallery {
+    grid-template-columns: repeat(5, minmax(40px, 1fr));
+  }
+
+  .footerHint {
+    width: 100%;
+  }
+
+  .actions {
+    width: 100%;
+  }
+
+  .ghost,
+  .primary {
+    min-height: 44px;
+    flex: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .presetCard {
+    transition: none;
   }
 }

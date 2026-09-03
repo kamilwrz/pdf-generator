@@ -1,56 +1,122 @@
 /**
- * Modal for adding a new template-mode section: a section name plus a layout
- * choice — a single textarea, category heading+body groups, an education-style
- * record, an experience-style record, or compact equal-width grid entries.
- * When the active template uses iconic section decorations, a small gallery
- * lists every available glyph so the new heading gets an icon at the same
- * offset as its siblings.
+ * Domain-specific section picker for the template-mode editor.
+ *
+ * Each choice previews the information hierarchy that will be inserted on the
+ * A4 canvas. The cards use the same Polish field guidance as “Utwórz nowe CV”;
+ * those strings become placeholder metadata rather than saved document text.
+ * Icon-aware templates keep their heading-glyph gallery below the section grid.
  */
 import { useState } from "react";
 import DialogShell from "../../common/DialogShell/DialogShell";
-import { SECTION_LAYOUTS } from "../../../utils/sectionBuilder";
+import {
+  getSectionPreset,
+  SECTION_PRESETS,
+  SECTION_TYPES,
+} from "../../../utils/sectionBuilder";
+import { STARTER_FIELD_PLACEHOLDERS } from "../../../utils/cvStarter";
 import { suggestSectionIconName } from "../../../utils/sectionIcons";
 import classes from "./AddSectionModal.module.css";
 
-const LAYOUT_OPTIONS = [
-  {
-    value: SECTION_LAYOUTS.TEXTAREA,
-    title: "Prosta treść",
-    description: "Tytuł sekcji i jedno pole na dłuższy tekst — np. podsumowanie.",
-  },
-  {
-    value: SECTION_LAYOUTS.RECORD_SUBCATEGORY,
-    title: "Prosta treść (kategorie)",
-    description:
-      "Nagłówek sekcji oraz powtarzalne bloki „nazwa kategorii + treść” — jak podkategorie w Umiejętnościach. "
-      + "Każdą kategorię możesz później dodać przyciskiem + przy bloku.",
-  },
-  {
-    value: SECTION_LAYOUTS.GRID,
-    title: "Krótkie wpisy w kolumnach",
-    description:
-      "Równe kolumny na krótkie wpisy, np. JĘZYKI. Przycisk + przy wpisie dodaje następną kolumnę; "
-      + "po zapełnieniu wiersza kolejne wpisy przechodzą do nowej linii. Kosz usuwa wpis, a pozostałe kolumny automatycznie się zsuwają.",
-  },
-  {
-    value: SECTION_LAYOUTS.RECORD_EDUCATION,
-    title: "Wpis z dodatkowymi szczegółami",
-    description:
-      "Nazwa, organizacja lub miejsce, okres, lokalizacja i opis. Pola przejmą strukturę Wykształcenia z obecnego szablonu.",
-  },
-  {
-    value: SECTION_LAYOUTS.RECORD_EXPERIENCE,
-    title: "Wpis z opisem",
-    description:
-      "Nazwa, organizacja, okres, lokalizacja i opis. Pola przejmą strukturę Doświadczenia z obecnego szablonu.",
-  },
-];
+function PreviewRule() {
+  return <span className={classes.previewRule} aria-hidden="true" />;
+}
+
+function PreviewLine({ children, strong = false, muted = false, align = "left" }) {
+  const className = [
+    classes.previewLine,
+    strong ? classes.previewLineStrong : "",
+    muted ? classes.previewLineMuted : "",
+    align === "right" ? classes.previewLineRight : "",
+  ].filter(Boolean).join(" ");
+  return <span className={className}>{children}</span>;
+}
+
+/** Render a compact, non-interactive A4 section miniature for one preset. */
+function SectionStructurePreview({ preset }) {
+  const p = STARTER_FIELD_PLACEHOLDERS;
+  let body = null;
+
+  if (preset.type === SECTION_TYPES.SUMMARY) {
+    body = (
+      <div className={classes.summaryPreview}>
+        <PreviewLine>{p.summary}</PreviewLine>
+        <span className={classes.textMeasure} />
+      </div>
+    );
+  } else if (preset.type === SECTION_TYPES.EXPERIENCE) {
+    body = (
+      <div className={classes.recordPreview}>
+        <div className={classes.recordRow}>
+          <PreviewLine strong>{p.experience_title}</PreviewLine>
+          <PreviewLine muted align="right">{p.experience_period}</PreviewLine>
+        </div>
+        <div className={classes.recordRow}>
+          <PreviewLine>{p.experience_company}</PreviewLine>
+          <PreviewLine muted align="right">{p.experience_city}</PreviewLine>
+        </div>
+        <PreviewLine>• {p.experience_bullet}</PreviewLine>
+      </div>
+    );
+  } else if (preset.type === SECTION_TYPES.EDUCATION) {
+    body = (
+      <div className={classes.recordPreview}>
+        <div className={classes.recordRow}>
+          <PreviewLine strong>{p.education_degree}</PreviewLine>
+          <PreviewLine muted align="right">{p.education_period}</PreviewLine>
+        </div>
+        <div className={classes.recordRow}>
+          <PreviewLine>{p.education_school}</PreviewLine>
+          <PreviewLine muted align="right">{p.education_city}</PreviewLine>
+        </div>
+        <PreviewLine>{p.education_description}</PreviewLine>
+      </div>
+    );
+  } else if (preset.type === SECTION_TYPES.LANGUAGES) {
+    body = (
+      <div className={classes.languageGrid}>
+        {[0, 1].map((index) => (
+          <div className={classes.languageEntry} key={index}>
+            <PreviewLine strong>{p.language_name}</PreviewLine>
+            <PreviewLine muted>{p.language_level}</PreviewLine>
+          </div>
+        ))}
+      </div>
+    );
+  } else if (preset.type === SECTION_TYPES.SKILLS) {
+    body = (
+      <div className={classes.skillsRow}>
+        {[0, 1, 2].map((index) => (
+          <span className={classes.skillItem} key={index}>{p.skill}</span>
+        ))}
+      </div>
+    );
+  } else {
+    body = (
+      <div className={classes.categoryPreview}>
+        <PreviewLine strong>Kategoria umiejętności</PreviewLine>
+        <div className={classes.skillsRow}>
+          {[0, 1].map((index) => (
+            <span className={classes.skillItem} key={index}>{p.skill}</span>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className={classes.preview} aria-hidden="true">
+      <span className={classes.previewHeading}>{preset.title}</span>
+      <PreviewRule />
+      {body}
+    </div>
+  );
+}
 
 /**
  * @param {{
  *   open: boolean,
  *   onCancel: () => void,
- *   onConfirm: (payload: { name: string, layout: string, iconName: string|null }) => void,
+ *   onConfirm: (payload: { name: string, layout: string, sectionType: string, iconName: string|null }) => void,
  *   iconOptions?: { name: string, src: string, label: string }[],
  *   insertAfterHeading?: boolean,
  * }} props
@@ -62,42 +128,34 @@ export default function AddSectionModal({
   iconOptions = [],
   insertAfterHeading = false,
 }) {
-  const [name, setName] = useState("");
-  const [layout, setLayout] = useState(SECTION_LAYOUTS.TEXTAREA);
+  const [sectionType, setSectionType] = useState(SECTION_TYPES.SUMMARY);
   const [iconName, setIconName] = useState(null);
-  // Tracks the `open` value seen on the previous render so the block below can
-  // detect a closed-to-open transition. State (not a ref) is required here:
-  // the React Compiler's exhaustive lint rules forbid reading `ref.current`
-  // during render, and React's own guidance for "adjusting state when a prop
-  // changes" uses state for exactly this "previous value" bookkeeping.
   const [wasOpen, setWasOpen] = useState(open);
 
   const hasIcons = Array.isArray(iconOptions) && iconOptions.length > 0;
   const availableNames = hasIcons ? iconOptions.map((option) => option.name) : [];
+  const selectedPreset = getSectionPreset(sectionType);
 
-  // Reset the form when the modal transitions from closed to open.
+  // Reset the picker on every closed-to-open transition. State-based previous
+  // value tracking remains compatible with the React Compiler lint contract.
   if (open && !wasOpen) {
-    setName("");
-    setLayout(SECTION_LAYOUTS.TEXTAREA);
+    const defaultPreset = SECTION_PRESETS[0];
+    setSectionType(defaultPreset.type);
     setIconName(
       hasIcons
-        ? (suggestSectionIconName("", availableNames) || iconOptions[0].name)
+        ? (suggestSectionIconName(defaultPreset.title, availableNames) || iconOptions[0].name)
         : null,
     );
   }
-  if (wasOpen !== open) {
-    setWasOpen(open);
-  }
+  if (wasOpen !== open) setWasOpen(open);
 
-  function handleNameChange(event) {
-    const nextName = event.target.value;
-    setName(nextName);
-    // Keep the gallery selection in sync with the title while the user types,
-    // but only when the current pick is still the auto-suggestion for the
-    // previous title (or empty) — never override a deliberate manual choice.
+  function selectSection(nextType) {
+    const previousPreset = getSectionPreset(sectionType);
+    const nextPreset = getSectionPreset(nextType);
+    setSectionType(nextType);
     if (!hasIcons) return;
-    const previousSuggestion = suggestSectionIconName(name, availableNames);
-    const nextSuggestion = suggestSectionIconName(nextName, availableNames);
+    const previousSuggestion = suggestSectionIconName(previousPreset.title, availableNames);
+    const nextSuggestion = suggestSectionIconName(nextPreset.title, availableNames);
     if (
       nextSuggestion
       && (iconName == null || iconName === previousSuggestion || iconName === "other")
@@ -107,10 +165,10 @@ export default function AddSectionModal({
   }
 
   function handleConfirm() {
-    const trimmed = name.trim();
     onConfirm({
-      name: trimmed || "Nowa sekcja",
-      layout,
+      name: selectedPreset.title,
+      layout: selectedPreset.layout,
+      sectionType: selectedPreset.type,
       iconName: hasIcons ? (iconName || iconOptions[0]?.name || null) : null,
     });
   }
@@ -123,16 +181,19 @@ export default function AddSectionModal({
     <DialogShell
       open={open}
       onClose={onCancel}
-      width={hasIcons ? 1280 : 560}
+      width={1060}
       title="Dodaj sekcję"
+      initialFocusSelector='input[name="section-type"]:checked'
       restoreFocusSelector='button[aria-label="Dostosuj CV"]'
       subtitle={insertAfterHeading
-        ? "Nowa sekcja pojawi się bezpośrednio pod wybraną sekcją, w stylu obecnego szablonu."
-        : "Nowa sekcja pojawi się na końcu CV, w stylu obecnego szablonu."}
-      bodyClassName={hasIcons ? classes.bodyTwoCol : classes.bodyOneCol}
+        ? "Wybierz strukturę. Sekcja pojawi się bezpośrednio pod wskazanym miejscem."
+        : "Wybierz strukturę. Sekcja pojawi się na końcu CV w stylu obecnego szablonu."}
+      bodyClassName={classes.body}
       footer={(
         <>
-          <span className={classes.footerHint}>Sekcję możesz później zmienić lub usunąć w panelu sekcji.</span>
+          <span className={classes.footerHint}>
+            Wybrano: <strong>{selectedPreset.title}</strong>
+          </span>
           <div className={classes.actions}>
             <button type="button" className={classes.ghost} onClick={onCancel}>
               Anuluj
@@ -144,53 +205,47 @@ export default function AddSectionModal({
         </>
       )}
     >
-      <div className={classes.leftCol}>
-        <label className={classes.field}>
-          <span className={classes.label}>Nazwa sekcji</span>
-          <input
-            className={classes.input}
-            type="text"
-            value={name}
-            placeholder={layout === SECTION_LAYOUTS.GRID ? "np. Języki" : "np. Certyfikaty"}
-            onChange={handleNameChange}
-            autoFocus
-          />
-        </label>
-
-        <fieldset className={classes.fieldset}>
-          <legend className={classes.label}>Rodzaj sekcji</legend>
-          {LAYOUT_OPTIONS.map((option) => {
-            const active = layout === option.value;
+      <fieldset className={classes.fieldset}>
+        <legend className={classes.legend}>Rodzaj i struktura sekcji</legend>
+        <div className={classes.presetGrid}>
+          {SECTION_PRESETS.map((preset) => {
+            const active = sectionType === preset.type;
             return (
               <label
-                key={option.value}
-                className={`${classes.option}${active ? ` ${classes.optionActive}` : ""}`}
+                key={preset.type}
+                className={`${classes.presetCard}${active ? ` ${classes.presetCardActive}` : ""}`}
               >
                 <input
                   className={classes.radioInput}
                   type="radio"
-                  name="section-layout"
-                  value={option.value}
+                  name="section-type"
+                  value={preset.type}
                   checked={active}
-                  onChange={() => setLayout(option.value)}
+                  onChange={() => selectSection(preset.type)}
                 />
-                <span className={`${classes.dot}${active ? ` ${classes.dotActive}` : ""}`} aria-hidden="true" />
-                <span className={classes.optionText}>
-                  <span className={classes.optionTitle}>{option.title}</span>
-                  <span className={classes.optionDesc}>{option.description}</span>
+                <SectionStructurePreview preset={preset} />
+                <span className={classes.cardCopy}>
+                  <span className={classes.cardTitleRow}>
+                    <span className={classes.cardTitle}>{preset.title}</span>
+                    <span className={classes.selectionMark} aria-hidden="true">{active ? "✓" : ""}</span>
+                  </span>
+                  <span className={classes.cardDescription}>{preset.description}</span>
                 </span>
               </label>
             );
           })}
-        </fieldset>
-      </div>
+        </div>
+      </fieldset>
 
       {hasIcons ? (
-        <div className={classes.rightCol}>
-          <span className={classes.label}>Ikona nagłówka</span>
-          <p className={classes.iconHint}>
-            Wybierz ikonę — pojawi się obok tytułu, tak jak w innych sekcjach tego szablonu.
-          </p>
+        <section className={classes.iconSection} aria-labelledby="section-icon-title">
+          <div className={classes.iconHeadingRow}>
+            <div>
+              <h3 id="section-icon-title" className={classes.iconTitle}>Ikona nagłówka</h3>
+              <p className={classes.iconHint}>Dopasuj znak używany obok tytułów w tym szablonie.</p>
+            </div>
+            <p className={classes.selectedIconLabel}>Wybrana: <strong>{selectedIconLabel}</strong></p>
+          </div>
           <div className={classes.iconGallery} role="listbox" aria-label="Ikony sekcji">
             {iconOptions.map((option) => {
               const selected = iconName === option.name;
@@ -210,10 +265,7 @@ export default function AddSectionModal({
               );
             })}
           </div>
-          <p className={classes.selectedIconLabel}>
-            Wybrana ikona: <span>{selectedIconLabel}</span>
-          </p>
-        </div>
+        </section>
       ) : null}
     </DialogShell>
   );

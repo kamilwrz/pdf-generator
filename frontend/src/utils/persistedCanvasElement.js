@@ -61,6 +61,7 @@ export function hydratePersistedCanvasElement(element = {}) {
     editorAddedSection: extra.editorAddedSection ?? false,
     editorSectionId: extra.editorSectionId,
     editorSectionLayout: extra.editorSectionLayout,
+    editorSectionType: extra.editorSectionType,
     editorGridColumns: extra.editorGridColumns,
     editorGridRecordWidth: extra.editorGridRecordWidth,
     editorGridBodyLeft: extra.editorGridBodyLeft,

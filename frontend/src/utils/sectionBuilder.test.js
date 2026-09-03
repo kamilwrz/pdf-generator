@@ -1,6 +1,11 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { buildSectionElements, SECTION_LAYOUTS } from "./sectionBuilder.js";
+import {
+  buildSectionElements,
+  SECTION_LAYOUTS,
+  SECTION_PRESETS,
+  SECTION_TYPES,
+} from "./sectionBuilder.js";
 import {
   appendSectionAtEnd,
   deriveSectionStyle,
@@ -356,6 +361,56 @@ describe("buildSectionElements", () => {
     const ids = sectionElementIds(elements, headingId);
     // heading + rule + marker + 1 body block all belong to the section.
     assert.equal(ids.size, elements.length);
+  });
+});
+
+describe("domain-specific section presets", () => {
+  it("exposes exactly the six section choices in product order", () => {
+    assert.deepEqual(SECTION_PRESETS.map((preset) => preset.title), [
+      "Podsumowanie",
+      "Doświadczenie",
+      "Wykształcenie",
+      "Języki",
+      "Umiejętności",
+      "Umiejętności (Kategorie)",
+    ]);
+  });
+
+  it("builds empty fields with the same visible guidance as the starter CV", () => {
+    const expected = new Map([
+      [SECTION_TYPES.SUMMARY, ["Napisz 2–3 zdania o swoim doświadczeniu i celu zawodowym."]],
+      [SECTION_TYPES.EXPERIENCE, [
+        "Stanowisko",
+        "Nazwa firmy · Miasto · MM RRRR – obecnie",
+        "Opisz najważniejsze osiągnięcie lub odpowiedzialność.",
+      ]],
+      [SECTION_TYPES.EDUCATION, [
+        "Kierunek lub dyplom",
+        "Nazwa uczelni lub szkoły",
+        "Miasto · RRRR – RRRR",
+        "Specjalizacja, wyróżnienia lub istotne zajęcia.",
+      ]],
+      [SECTION_TYPES.LANGUAGES, ["Język · Poziom"]],
+      [SECTION_TYPES.SKILLS, ["Umiejętność"]],
+      [SECTION_TYPES.SKILLS_CATEGORIES, ["Kategoria umiejętności", "Umiejętność"]],
+    ]);
+
+    for (const preset of SECTION_PRESETS) {
+      const { elements, headingId } = buildSectionElements({
+        sectionType: preset.type,
+        style,
+        idFactory: makeIdFactory(),
+      });
+      const heading = elements.find((element) => element.element_id === headingId);
+      const body = elements.filter((element) => (
+        element.flowRole === "content" || element.flowRole === "grid-member"
+      ));
+      assert.equal(heading.content, preset.title);
+      assert.equal(heading.editorSectionType, preset.type);
+      assert.deepEqual(body.map((element) => element.content), body.map(() => ""));
+      assert.deepEqual(body.map((element) => element.placeholder), expected.get(preset.type));
+      assert.ok(body.every((element) => element.starterPlaceholder === true));
+    }
   });
 });
 

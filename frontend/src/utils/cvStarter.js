@@ -65,6 +65,22 @@ const FIELD_DEFINITIONS = Object.freeze({
   language_level: { path: ["languages", 0, "level"], placeholder: "Poziom" },
 });
 
+/**
+ * Canonical field guidance shared by the empty-CV wizard and structural editor.
+ *
+ * Consumers must render these strings as placeholder metadata, never as saved
+ * CV content. Keeping one exported source prevents newly inserted sections from
+ * drifting away from the guidance shown by “Utwórz nowe CV”.
+ */
+export const STARTER_FIELD_PLACEHOLDERS = Object.freeze(
+  Object.fromEntries(
+    Object.entries(FIELD_DEFINITIONS).map(([key, definition]) => [
+      key,
+      definition.placeholder,
+    ]),
+  ),
+);
+
 function selectedKeys(items) {
   return (items || []).filter((item) => item?.selected !== false).map((item) => item.key);
 }

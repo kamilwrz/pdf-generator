@@ -33,6 +33,7 @@
  * is the Add-record bug fixed in `sectionRecord.ensureCanonicalRecordTemplate`.
  */
 import { DEFAULT_FLOW_SPACING, normalizeFlowSpacing } from "./flowSpacing.js";
+import { STARTER_FIELD_PLACEHOLDERS } from "./cvStarter.js";
 
 /**
  * Backend `Builder.text()` (cv_generator_primitives.py) advances its cursor
@@ -79,7 +80,67 @@ export const SECTION_LAYOUTS = Object.freeze({
   RECORD_SUBCATEGORY: "cc-sub",
 });
 
-/** Field-naming placeholder copy (Polish UI). */
+export const SECTION_TYPES = Object.freeze({
+  SUMMARY: "summary",
+  EXPERIENCE: "experience",
+  EDUCATION: "education",
+  LANGUAGES: "languages",
+  SKILLS: "skills",
+  SKILLS_CATEGORIES: "skills-categories",
+});
+
+/**
+ * Six product-level section choices exposed by the structural editor.
+ *
+ * `layout` remains the low-level canvas contract, while `type` carries the
+ * domain meaning required to select the right starter placeholders and render
+ * the matching structure miniature in the modal.
+ */
+export const SECTION_PRESETS = Object.freeze([
+  Object.freeze({
+    type: SECTION_TYPES.SUMMARY,
+    title: "Podsumowanie",
+    layout: SECTION_LAYOUTS.TEXTAREA,
+    description: "Krótki profil zawodowy w jednym, szerszym polu tekstowym.",
+  }),
+  Object.freeze({
+    type: SECTION_TYPES.EXPERIENCE,
+    title: "Doświadczenie",
+    layout: SECTION_LAYOUTS.RECORD_EXPERIENCE,
+    description: "Stanowisko, firma, miejsce, okres i opis osiągnięć.",
+  }),
+  Object.freeze({
+    type: SECTION_TYPES.EDUCATION,
+    title: "Wykształcenie",
+    layout: SECTION_LAYOUTS.RECORD_EDUCATION,
+    description: "Kierunek, szkoła, miejsce, lata oraz najważniejsze informacje.",
+  }),
+  Object.freeze({
+    type: SECTION_TYPES.LANGUAGES,
+    title: "Języki",
+    layout: SECTION_LAYOUTS.GRID,
+    description: "Krótkie wpisy język i poziom układane w równej siatce.",
+  }),
+  Object.freeze({
+    type: SECTION_TYPES.SKILLS,
+    title: "Umiejętności",
+    layout: SECTION_LAYOUTS.TEXTAREA,
+    description: "Płaska lista kompetencji gotowa do szybkiego uzupełnienia.",
+  }),
+  Object.freeze({
+    type: SECTION_TYPES.SKILLS_CATEGORIES,
+    title: "Umiejętności (Kategorie)",
+    layout: SECTION_LAYOUTS.RECORD_SUBCATEGORY,
+    description: "Powtarzalne grupy z nazwą kategorii i listą kompetencji.",
+  }),
+]);
+
+export function getSectionPreset(sectionType) {
+  return SECTION_PRESETS.find((preset) => preset.type === sectionType)
+    || SECTION_PRESETS[0];
+}
+
+/** Field-naming fallback copy retained for non-preset callers and old tests. */
 const PLACEHOLDER = Object.freeze({
   heading: "Nowa sekcja",
   textarea: "Treść sekcji…",
@@ -101,6 +162,49 @@ const PLACEHOLDER = Object.freeze({
   }),
 });
 
+function presetPlaceholderCopy(sectionType) {
+  if (sectionType === SECTION_TYPES.SUMMARY) {
+    return { textarea: STARTER_FIELD_PLACEHOLDERS.summary };
+  }
+  if (sectionType === SECTION_TYPES.SKILLS) {
+    return { textarea: STARTER_FIELD_PLACEHOLDERS.skill };
+  }
+  if (sectionType === SECTION_TYPES.LANGUAGES) {
+    return {
+      grid: `${STARTER_FIELD_PLACEHOLDERS.language_name} · ${STARTER_FIELD_PLACEHOLDERS.language_level}`,
+    };
+  }
+  if (sectionType === SECTION_TYPES.EXPERIENCE) {
+    return {
+      title: STARTER_FIELD_PLACEHOLDERS.experience_title,
+      meta: [
+        STARTER_FIELD_PLACEHOLDERS.experience_company,
+        STARTER_FIELD_PLACEHOLDERS.experience_city,
+        STARTER_FIELD_PLACEHOLDERS.experience_period,
+      ].join(" · "),
+      description: STARTER_FIELD_PLACEHOLDERS.experience_bullet,
+    };
+  }
+  if (sectionType === SECTION_TYPES.EDUCATION) {
+    return {
+      title: STARTER_FIELD_PLACEHOLDERS.education_degree,
+      subtitle: STARTER_FIELD_PLACEHOLDERS.education_school,
+      meta: [
+        STARTER_FIELD_PLACEHOLDERS.education_city,
+        STARTER_FIELD_PLACEHOLDERS.education_period,
+      ].join(" · "),
+      description: STARTER_FIELD_PLACEHOLDERS.education_description,
+    };
+  }
+  if (sectionType === SECTION_TYPES.SKILLS_CATEGORIES) {
+    return {
+      title: "Kategoria umiejętności",
+      body: STARTER_FIELD_PLACEHOLDERS.skill,
+    };
+  }
+  return null;
+}
+
 /**
  * Field-naming placeholder lines for a record layout, styled from the sampled
  * body/muted colors. Education, Experience, and Subcategory have different
@@ -110,9 +214,9 @@ const PLACEHOLDER = Object.freeze({
  * @param {object} style
  * @returns {{ content: string, color: string, bold: boolean, bulletList?: boolean }[]}
  */
-function recordLineSpecs(layout, style) {
+function recordLineSpecs(layout, style, sectionType = null) {
   if (layout === SECTION_LAYOUTS.RECORD_EDUCATION) {
-    const copy = PLACEHOLDER.education;
+    const copy = presetPlaceholderCopy(sectionType) || PLACEHOLDER.education;
     return [
       { content: copy.title, color: style.body.color, bold: true },
       { content: copy.subtitle, color: style.body.color, bold: false },
@@ -121,13 +225,13 @@ function recordLineSpecs(layout, style) {
     ];
   }
   if (layout === SECTION_LAYOUTS.RECORD_SUBCATEGORY) {
-    const copy = PLACEHOLDER.subcategory;
+    const copy = presetPlaceholderCopy(sectionType) || PLACEHOLDER.subcategory;
     return [
       { content: copy.title, color: style.body.color, bold: true },
       { content: copy.body, color: style.body.color, bold: false },
     ];
   }
-  const copy = PLACEHOLDER.experience;
+  const copy = presetPlaceholderCopy(sectionType) || PLACEHOLDER.experience;
   return [
     { content: copy.title, color: style.body.color, bold: true },
     { content: copy.meta, color: style.mutedColor, bold: false },
@@ -141,6 +245,7 @@ function recordLineSpecs(layout, style) {
  */
 function contentTextarea({
   elementId, content, left, top, width,
+  placeholder = null,
   fontSize, fontFamily, lineHeight, color,
   bold = false, bulletList = false, flowGroup = null,
   flowRole = "content",
@@ -149,6 +254,7 @@ function contentTextarea({
   editorGridEntry = false, gridKind = null,
 }) {
   const lh = lineHeight || Math.round(fontSize * 1.4);
+  const visibleCopy = content || placeholder || "";
   const element = {
     element_id: elementId,
     category: "textarea",
@@ -161,7 +267,9 @@ function contentTextarea({
     left,
     top,
     width,
-    height: measureGeneratorBlockHeight(content, width, fontSize, lh),
+    // Empty preset fields reserve enough room for their visible guidance while
+    // keeping that guidance out of persisted content and exported PDFs.
+    height: measureGeneratorBlockHeight(visibleCopy, width, fontSize, lh),
     fontSize,
     fontFamily,
     lineHeight: lh,
@@ -179,6 +287,10 @@ function contentTextarea({
     zIndex: 4,
     page: 1,
   };
+  if (placeholder) {
+    element.placeholder = placeholder;
+    element.starterPlaceholder = true;
+  }
   if (flowGroup) element.flowGroup = flowGroup;
   if (flowLane) element.flowLane = flowLane;
   if (editorSectionId) {
@@ -338,7 +450,7 @@ function badgeNumberElement({
 /**
  * Build a new section's elements for the chosen layout.
  *
- * @param {{ name: string, layout: "aa"|"grid"|"cc-edu"|"cc-exp"|"cc-sub", style: object, spacing?: object, sectionOrdinal?: number, idFactory: () => string, lane?: "main"|"sidebar" }} args
+ * @param {{ name?: string, layout?: "aa"|"grid"|"cc-edu"|"cc-exp"|"cc-sub", sectionType?: string|null, style: object, spacing?: object, sectionOrdinal?: number, idFactory: () => string, lane?: "main"|"sidebar" }} args
  * @returns {{ elements: object[], headingId: string, firstBodyId: string }}
  *
  * Decorative markers (including iconic section images) come from `style.markers`.
@@ -353,15 +465,17 @@ function badgeNumberElement({
  * the section in cv_data before a later template regeneration.
  */
 export function buildSectionElements({
-  name, layout, style, spacing, sectionOrdinal, idFactory, lane = "main",
+  name, layout, sectionType = null, style, spacing, sectionOrdinal, idFactory, lane = "main",
 }) {
   const rhythm = normalizeFlowSpacing(spacing || DEFAULT_FLOW_SPACING);
+  const preset = sectionType ? getSectionPreset(sectionType) : null;
+  const resolvedLayout = preset?.layout || layout || SECTION_LAYOUTS.TEXTAREA;
   // `PLACEHOLDER.heading` ("Nowa sekcja") is the authoritative default for a
   // blank section name. Callers such as AddSectionModal.handleConfirm also
   // default defensively before invoking this builder — that duplication is
   // intentional (this util must not trust its caller), but if either default
   // string changes, update both so they do not silently diverge.
-  const label = String(name || "").trim() || PLACEHOLDER.heading;
+  const label = String(name || preset?.title || "").trim() || PLACEHOLDER.heading;
   // Heading / chrome column (Monument title at 118) vs content column
   // (Monument body at 102). Mixing them parks new record fields under the
   // title instead of in the wizard's content gutter.
@@ -415,9 +529,10 @@ export function buildSectionElements({
     page: 1,
     editorAddedSection: true,
     editorSectionId: headingId,
-    editorSectionLayout: layout,
+    editorSectionLayout: resolvedLayout,
   };
-  if (layout === SECTION_LAYOUTS.GRID) {
+  if (sectionType) headingElement.editorSectionType = sectionType;
+  if (resolvedLayout === SECTION_LAYOUTS.GRID) {
     const columns = resolveGridSectionColumns(width);
     // Persist layout intent on the heading because a one-cell grid does not
     // contain enough geometry to infer whether its next item belongs on the
@@ -500,15 +615,17 @@ export function buildSectionElements({
   const bodyTop = chromeBottom + rhythm.after_rule;
   let firstBodyId = null;
 
-  const isRecordLayout = layout === SECTION_LAYOUTS.RECORD_EDUCATION
-    || layout === SECTION_LAYOUTS.RECORD_EXPERIENCE
-    || layout === SECTION_LAYOUTS.RECORD_SUBCATEGORY;
-  if (layout === SECTION_LAYOUTS.GRID) {
+  const isRecordLayout = resolvedLayout === SECTION_LAYOUTS.RECORD_EDUCATION
+    || resolvedLayout === SECTION_LAYOUTS.RECORD_EXPERIENCE
+    || resolvedLayout === SECTION_LAYOUTS.RECORD_SUBCATEGORY;
+  const presetCopy = presetPlaceholderCopy(sectionType);
+  if (resolvedLayout === SECTION_LAYOUTS.GRID) {
     firstBodyId = idFactory();
     const columns = resolveGridSectionColumns(width);
     elements.push(contentTextarea({
       elementId: firstBodyId,
-      content: PLACEHOLDER.grid,
+      content: presetCopy ? "" : PLACEHOLDER.grid,
+      placeholder: presetCopy?.grid || null,
       left: bodyLeft,
       top: bodyTop,
       width: gridSectionCellWidth(width, columns),
@@ -525,7 +642,7 @@ export function buildSectionElements({
     }));
   } else if (isRecordLayout) {
     const group = `section-${headingId}-rec1`;
-    const lines = recordLineSpecs(layout, style);
+    const lines = recordLineSpecs(resolvedLayout, style, sectionType);
     let top = bodyTop;
     lines.forEach((line, index) => {
       const elementId = idFactory();
@@ -536,7 +653,8 @@ export function buildSectionElements({
       );
       elements.push(contentTextarea({
         elementId,
-        content: line.content,
+        content: sectionType ? "" : line.content,
+        placeholder: sectionType ? line.content : null,
         left: bodyLeft,
         top,
         width,
@@ -549,10 +667,10 @@ export function buildSectionElements({
         flowGroup: group,
         flowLane,
         editorSectionId: headingId,
-        editorRecordLayout: layout,
-        editorRecordField: layout === SECTION_LAYOUTS.RECORD_EDUCATION
+        editorRecordLayout: resolvedLayout,
+        editorRecordField: resolvedLayout === SECTION_LAYOUTS.RECORD_EDUCATION
           ? ["degree", "school", "meta", "description"][index]
-          : layout === SECTION_LAYOUTS.RECORD_SUBCATEGORY
+          : resolvedLayout === SECTION_LAYOUTS.RECORD_SUBCATEGORY
             ? ["title", "body"][index]
             : ["title", "meta", "description"][index],
       }));
@@ -564,7 +682,8 @@ export function buildSectionElements({
     firstBodyId = idFactory();
     elements.push(contentTextarea({
       elementId: firstBodyId,
-      content: PLACEHOLDER.textarea,
+      content: presetCopy ? "" : PLACEHOLDER.textarea,
+      placeholder: presetCopy?.textarea || null,
       left: bodyLeft,
       top: bodyTop,
       width,

@@ -27,6 +27,7 @@ import {
   sidebarSectionElementIds,
 } from "./sectionStructure.js";
 import { measureTextareaHeight } from "./textareaHeight.js";
+import { STARTER_FIELD_PLACEHOLDERS } from "./cvStarter.js";
 
 const GRID_FLOW_ROLE = "grid-member";
 const GRID_LAYOUT = "grid";
@@ -296,14 +297,17 @@ function resolveGridGeometry(descriptor, options = {}) {
 }
 
 function buildInsertedCell(anchor, descriptor, idFactory, options) {
+  const usesStarterGuidance = descriptor.heading?.editorSectionType === "languages";
   const placeholder = String(
     options.placeholder
-    ?? (descriptor.languageSection ? "Język — poziom" : "Nowy wpis"),
+    ?? (usesStarterGuidance
+      ? `${STARTER_FIELD_PLACEHOLDERS.language_name} · ${STARTER_FIELD_PLACEHOLDERS.language_level}`
+      : descriptor.languageSection ? "Język — poziom" : "Nowy wpis"),
   );
   const inserted = {
     ...anchor,
     element_id: idFactory(),
-    content: placeholder,
+    content: usesStarterGuidance ? "" : placeholder,
     // Language levels receive no automatic colour, weight, or italic run.
     // The complete field remains available to the ordinary text inspector.
     runs: descriptor.languageSection ? null : anchor.runs,
@@ -316,6 +320,11 @@ function buildInsertedCell(anchor, descriptor, idFactory, options) {
     editorAddedGridEntry: true,
     gridSectionId: descriptor.headingId,
   };
+  if (usesStarterGuidance) {
+    inserted.placeholder = placeholder;
+    inserted.starterPlaceholder = true;
+    inserted.editorSectionType = "languages";
+  }
   // A cloned persisted row must be inserted as a new row on save rather than
   // updating the database identity of the source cell.
   delete inserted.pdf_id;
@@ -327,7 +336,7 @@ function measureCellHeight(cell, width, options) {
   const fontSize = Math.max(1, finiteNumber(cell.fontSize, 9));
   const lineHeight = Math.max(1, finiteNumber(cell.lineHeight, fontSize * 1.4));
   return measureTextareaHeight(
-    cell.content,
+    cell.content || cell.placeholder || "",
     width,
     fontSize,
     lineHeight,

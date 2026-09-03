@@ -299,6 +299,7 @@ The editor and other task-heavy screens may be denser, but must remain grid-base
 - Pointer-hover section, entry, and element context is shown with the shared neutral editor elevation hierarchy, without colored overlay surfaces or decorative borders. Selection and inline-edit focus use the screen-stable hairline borders defined above instead of persistent shadows. All of this chrome must stay outside layout, persistence, and PDF output.
 - Canvas zoom, page boundaries, page numbers, and active selection must be readable at every supported scale.
 - Hover-only tools must also be reachable by keyboard or through a persistent control path.
+- The Add Section dialog exposes concrete CV section types rather than implementation layouts. Every choice previews its real information hierarchy, uses the shared empty-CV field guidance, and remains a keyboard-operable radio card at desktop, tablet, mobile, and 200% zoom.
 - Dragging must provide visible origin, current target, and invalid-drop feedback.
 - UI styling must not change printed dimensions or leak into PDF export.
 
