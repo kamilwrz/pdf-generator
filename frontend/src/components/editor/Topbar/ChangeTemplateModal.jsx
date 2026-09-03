@@ -1,7 +1,7 @@
 /**
  * "Zmień szablon" dialog — restyles the CV currently on the canvas.
  *
- * Reuses the exact cv_data captured by AiCvPanel/BioCvModal on their last
+ * Reuses the exact cv_data captured by import or the A4 starter on the last
  * successful fill (`CanvasContext.activeCvData`) and the same TemplateCarousel
  * gallery. Applying a card calls `useApplyCvTemplate` (identical
  * `/ai/fill_template` + `replaceActiveElements` path as the topbar arrows)

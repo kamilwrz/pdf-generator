@@ -47,7 +47,7 @@ describe("landing product positioning", () => {
 
     assert.ok(heroStart >= 0 && heroEnd > heroStart);
     assert.match(heroMarkup, /CV GOTOWE NA REKRUTACJE/);
-    assert.match(heroMarkup, /event="hero_wizard">Kreator CV<\/CtaLink>/);
+    assert.match(heroMarkup, /event="hero_new_cv">Utwórz nowe CV<\/CtaLink>/);
     assert.match(heroMarkup, /event="hero_import" variant="secondary">\s*Import CV/s);
     assert.match(heroMarkup, /aria-label="Zobacz przykładowe CV — demo"/);
     assert.match(heroMarkup, />\s*DEMO <ArrowIcon \/>/s);
@@ -129,16 +129,16 @@ describe("landing product positioning", () => {
 
   it("preserves retained directed starts, analytics events, anchors, and dynamic template count", () => {
     for (const event of [
-      "hero_wizard",
+      "hero_new_cv",
       "hero_import",
-      "templates_wizard",
+      "templates_new_cv",
       "pricing_free",
       "pricing_pro",
     ]) {
       assert.match(source, new RegExp(`event=\\"${event}\\"|queueGuestEvent\\(\\"${event}\\"\\)`));
     }
 
-    assert.match(source, /buildStartUrl\("wizard", "free"\)/);
+    assert.match(source, /buildStartUrl\("new", "free"\)/);
     assert.match(source, /buildStartUrl\("import", "free"\)/);
     assert.match(source, /\{TEMPLATE_COUNT\}/);
     assert.match(source, /id="szablony"/);

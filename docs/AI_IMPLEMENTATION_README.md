@@ -47,7 +47,7 @@ CV STUDIO has two provider-backed AI pipelines and several adjacent deterministi
 | ATS readability | Hybrid | Combine deterministic PDF parsing with an LLM content review | [`ai_assistant_service._ats_score`](../backend/app/services/ai_assistant_service.py#L1893), lines 1893–1997 |
 | Free-form canvas commands | Hybrid | Convert a natural-language instruction into a constrained operation | [`ai_assistant_service._chat`](../backend/app/services/ai_assistant_service.py#L2016), lines 2016–2307 |
 | Template fill | No | Turn canonical `cv_data` into canvas elements with Python generators | [`ai.fill_template`](../backend/app/api/routes/ai.py#L491), lines 491–563 |
-| Bio wizard | No | Collect structured CV data and persist a draft | [`BioCvModal`](../frontend/src/components/ai/BioCvModal/BioCvModal.jsx#L1), lines 1–1303 |
+| New A4 setup | No | Convert selected fields into an editable starter through deterministic template fill | [`NewCvSetupModal`](../frontend/src/components/editor/NewCvSetupModal/NewCvSetupModal.jsx#L21), lines 21–264 |
 | Credit and quota settlement | No | Reserve, settle, replay, release, or expire a provider operation | [`entitlements.reserve_ai_credits`](../backend/app/services/entitlements.py#L1001), lines 1001–1123 |
 
 The assistant accepts **9 actions**:
@@ -1026,10 +1026,11 @@ backend/
     └── test_translate_profile.py
 
 frontend/src/
-├── components/ai/
-│   ├── AiAssistant/AiAssistant.jsx  # assistant UI and review workflow
-│   ├── AiCvPanel/AiCvPanel.jsx      # PDF import and history
-│   └── BioCvModal/BioCvModal.jsx    # structured, non-AI profile wizard
+├── components/
+│   ├── ai/
+│   │   ├── AiAssistant/AiAssistant.jsx  # assistant UI and review workflow
+│   │   └── AiCvPanel/AiCvPanel.jsx      # PDF import and history
+│   └── editor/NewCvSetupModal/NewCvSetupModal.jsx # deterministic A4 starter setup
 ├── hooks/useA4Elements.js           # guarded operation application
 ├── pages/PdfCanvas.jsx              # preview state and assistant mount
 ├── services/

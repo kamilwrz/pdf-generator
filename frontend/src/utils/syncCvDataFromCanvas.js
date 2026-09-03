@@ -743,6 +743,47 @@ function editableTextChanges(previousElements, nextElements) {
   });
 }
 
+function setProfilePath(profile, path, value) {
+  if (!Array.isArray(path) || path.length === 0) return profile;
+  let cursor = profile;
+  for (let index = 0; index < path.length - 1; index += 1) {
+    const key = path[index];
+    if (cursor[key] == null || typeof cursor[key] !== "object") {
+      cursor[key] = typeof path[index + 1] === "number" ? [] : {};
+    }
+    cursor = cursor[key];
+  }
+  cursor[path[path.length - 1]] = value;
+  return profile;
+}
+
+/**
+ * Apply starter bindings before the legacy text matcher. Empty starter fields
+ * have no previous cv_data string to match, while composite metadata rows map
+ * one visible value to several paths in a deterministic left-to-right order.
+ */
+function syncStarterBindings(cvData, previousElements, nextElements) {
+  const previousById = new Map(
+    previousElements.filter((element) => element?.element_id)
+      .map((element) => [element.element_id, element]),
+  );
+  let draft = cvData;
+  for (const next of nextElements) {
+    const bindings = Array.isArray(next?.cvDataBindings) ? next.cvDataBindings : [];
+    const previous = previousById.get(next?.element_id);
+    if (!previous || bindings.length === 0 || previous.content === next.content) continue;
+    const content = profileTextForElement(next);
+    const values = bindings.length === 1
+      ? [content]
+      : splitMeta(content, bindings.length);
+    if (draft === cvData) draft = cloneProfile(cvData);
+    bindings.forEach((binding, index) => {
+      setProfilePath(draft, binding?.path, values[index] || "");
+    });
+  }
+  return draft;
+}
+
 /**
  * Read an explicit semantic edit of the professional title.
  *
@@ -869,6 +910,7 @@ export function syncCvDataFromCanvas(
     previousElements,
     nextElements,
   );
+  nextProfile = syncStarterBindings(nextProfile, previousElements, nextElements);
   const titleEdit = editedMastheadTitle(previousElements, nextElements);
   if (
     titleEdit

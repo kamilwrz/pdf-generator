@@ -26,6 +26,27 @@ class PdfElementSchemaTests(unittest.TestCase):
                 pdf_title="t.pdf",
             )
 
+    def test_create_request_accepts_separate_render_copy(self):
+        request = PDFCreateRequest(
+            root=[{
+                "category": "text",
+                "element_id": "empty-email",
+                "content": "",
+                "placeholder": "name@example.com",
+                "starterPlaceholder": True,
+                "cvDataBindings": [{"path": ["email"]}],
+            }],
+            render_root=[{
+                "category": "text",
+                "element_id": "name",
+                "content": "Ada Lovelace",
+            }],
+            pdf_title="cv.pdf",
+        )
+        self.assertEqual(request.root[0].placeholder, "name@example.com")
+        self.assertTrue(request.root[0].starterPlaceholder)
+        self.assertEqual(request.render_root[0].content, "Ada Lovelace")
+
     def test_exported_schema_matches_pydantic(self):
         export_schema()
         self.assertTrue(OUT_PATH.is_file())

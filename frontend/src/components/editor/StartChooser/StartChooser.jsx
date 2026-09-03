@@ -1,11 +1,9 @@
 /**
  * Post-login empty-state onboarding surface.
  *
- * Replaces the blank canvas with two primary entry choices and two quieter
- * secondary actions: the guided wizard (`BioCvModal`), importing an existing
- * CV PDF (`AiCvPanel`), opening saved projects (`ModalPdfs`), or entering
- * freeform editing. The component owns no flow logic; callbacks are supplied
- * by `PdfCanvas`.
+ * Replaces the blank canvas with the two supported creation paths: configuring
+ * a new A4 CV or importing an existing PDF. Saved documents and legacy draft
+ * recovery remain deliberately quieter secondary actions.
  *
  * Visibility is decided by `shouldShowStartChooser` (utils/startChooser.js);
  * this component assumes the caller only mounts it when that returns true.
@@ -24,7 +22,7 @@ import classes from "./StartChooser.module.css";
  * Pen / step-by-step glyph for the wizard path (Lucide "square-pen" shape).
  * `aria-hidden` because the card's heading already names the action.
  */
-function WizardIcon() {
+function NewCvIcon() {
   return (
     <svg
       className={classes.icon}
@@ -83,20 +81,22 @@ function DocumentsIcon() {
 
 /**
  * @param {object} props
- * @param {() => void} props.onWizard - open the step-by-step wizard (BioCvModal)
+ * @param {() => void} props.onNew - open the one-screen A4 setup
  * @param {() => void} props.onImport - open the CV import dialog (AiCvPanel)
  * @param {Array<{title?: string, created_at?: string}>} [props.documents] - saved projects
  * @param {boolean} [props.documentsLoaded] - whether the saved-project list finished loading
- * @param {() => void} props.onBlank - dismiss into a blank freeform canvas
+ * @param {boolean} [props.legacyDraftNeedsOwnershipConfirmation] - label browser-local recovery as an explicit ownership confirmation
  * @param {() => void} props.onLogout - sign out the current session
  */
 export default function StartChooser({
-  onWizard,
+  onNew,
   onImport,
   onDocuments,
   documents = [],
   documentsLoaded = false,
-  onBlank,
+  legacyDraftAvailable = false,
+  legacyDraftNeedsOwnershipConfirmation = false,
+  onRecoverLegacyDraft,
   onLogout,
 }) {
   const titleRef = useRef(null);
@@ -135,24 +135,24 @@ export default function StartChooser({
             Jak chcesz zacząć?
           </h1>
           <p className={classes.subtitle}>
-            Zacznij od kreatora lub importu — resztą zajmiemy się my.
+            Zaimportuj gotowe CV albo wybierz pola i od razu edytuj je na stronie A4.
           </p>
         </header>
 
         <div className={classes.cards}>
-          {/* Recommended path first: the guided wizard needs no existing CV. */}
+          {/* Recommended path first: configure the document structure, then edit A4. */}
           <button
             type="button"
             className={`${classes.card} ${classes.cardPrimary}`}
-            onClick={onWizard}
+            onClick={onNew}
           >
             <span className={classes.iconWrap} aria-hidden="true">
-              <WizardIcon />
+              <NewCvIcon />
             </span>
-            <span className={classes.cardTitle}>Stwórz CV w kreatorze</span>
+            <span className={classes.cardTitle}>Utwórz nowe CV</span>
             <span className={classes.cardText}>
-              Odpowiadasz na kilka pytań krok po kroku, a my składamy z nich
-              gotowe CV w wybranym szablonie.
+              Wybierz szablon, kontakty i sekcje. Otrzymasz gotową strukturę
+              z podpowiedziami do uzupełnienia bezpośrednio na A4.
             </span>
             <span className={classes.cta}>Zacznij</span>
           </button>
@@ -196,9 +196,13 @@ export default function StartChooser({
               </span>
             </p>
           )}
-          <button type="button" className={classes.blankLink} onClick={onBlank}>
-            Chcesz zacząć od pustego dokumentu? Otwórz pusty canvas →
-          </button>
+          {legacyDraftAvailable ? (
+            <button type="button" className={classes.blankLink} onClick={onRecoverLegacyDraft}>
+              {legacyDraftNeedsOwnershipConfirmation
+                ? "To mój szkic — przenieś na A4 →"
+                : "Przenieś stary szkic kreatora na A4 →"}
+            </button>
+          ) : null}
         </div>
       </div>
       <button

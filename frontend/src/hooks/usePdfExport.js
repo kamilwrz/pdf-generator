@@ -4,6 +4,7 @@ import { sanitizeElementsContent } from "../utils/sanitizeTextContent";
 import { assertCanvasElementRoot } from "../utils/canvasElementSchema";
 import { flowSpacingToPayload } from "../utils/flowSpacing";
 import { resolveBrowserTextLayouts } from "../utils/browserTextLayout";
+import { prepareStarterElementsForRender } from "../utils/starterElementStructure.js";
 import {
   localizePdfPersistenceError,
   requirePdfRevision,
@@ -71,10 +72,14 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
     // "Failed to fetch" blips that otherwise surface as a cold-start toast.
     // Chromium resolves soft wraps first so ReportLab draws the exact lines
     // visible on the canvas instead of estimating them with another shaper.
-    resolveBrowserTextLayouts(sorted)
-      .then((renderRoot) => {
+    Promise.all([
+      resolveBrowserTextLayouts(sorted),
+      resolveBrowserTextLayouts(prepareStarterElementsForRender(sorted, pageSize?.height ?? 842)),
+    ])
+      .then(([persistedRoot, renderRoot]) => {
         const body = JSON.stringify({
-          root: renderRoot,
+          root: persistedRoot,
+          render_root: renderRoot,
           pdf_title: titleRef.current.value + ".pdf",
           pages,
           page_width: pageSize?.width ?? 595,
@@ -165,10 +170,14 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
     // Topbar "Pobierz" uses update; optional meta.intent lets save-style updates
     // skip the auto-download branch in PdfCanvas.
     const intent = meta.intent === "save" ? "save" : "download";
-    resolveBrowserTextLayouts(sorted)
-      .then((renderRoot) => {
+    Promise.all([
+      resolveBrowserTextLayouts(sorted),
+      resolveBrowserTextLayouts(prepareStarterElementsForRender(sorted, pageSize?.height ?? 842)),
+    ])
+      .then(([persistedRoot, renderRoot]) => {
         const body = JSON.stringify({
-          root: [...renderRoot, ...sanitizeElementsContent(A4_Elements_deleted)],
+          root: [...persistedRoot, ...sanitizeElementsContent(A4_Elements_deleted)],
+          render_root: renderRoot,
           pdf_id: PDF_ID,
           pdf_title: titleRef.current.value +".pdf",
           pages,
@@ -226,7 +235,9 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
       // fails fast with a readable error instead of a 422 from the server.
       assertCanvasElementRoot(sorted);
 
-      const renderRoot = await resolveBrowserTextLayouts(sorted);
+      const renderRoot = await resolveBrowserTextLayouts(
+        prepareStarterElementsForRender(sorted, pageSize?.height ?? 842),
+      );
       const api = new ApiClient({ "Authorization": `Bearer ${localStorage.getItem("token")}` });
       const editor_mode = meta.editorMode === "template" ? "template" : "freeform";
       const template_id = meta.templateId || null;
@@ -234,7 +245,8 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
       const spacing_px = flowSpacingToPayload(meta.flowSpacing);
       const baseTitle = titleRef.current?.value || "cv";
       const body = JSON.stringify({
-        root: renderRoot,
+        root: sorted,
+        render_root: renderRoot,
         pdf_title: baseTitle + ".pdf",
         pages,
         page_width: pageSize?.width ?? 595,

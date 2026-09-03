@@ -35,7 +35,7 @@ test("demo mode keeps its product-focused banner copy", async () => {
 
   assert.match(banner, /Wypróbuj CV Studio/);
   assert.match(banner, /Edytuj przykładowe CV w Linden/);
-  assert.match(banner, /Stwórz moje CV/);
+  assert.match(banner, /Utwórz moje CV na A4/);
   assert.doesNotMatch(banner, /Zacznij od zera/);
 });
 
@@ -54,7 +54,8 @@ test("empty-state chooser replaces editor chrome and Pro-only AI actions", async
 
   assert.match(chooser, /Moje dokumenty/);
   assert.match(chooser, /onDocuments/);
-  assert.match(chooser, /onBlank/);
+  assert.match(chooser, /onNew/);
+  assert.match(chooser, /legacyDraftAvailable/);
   assert.match(chooser, /onLogout/);
   assert.match(chooser, /CV STUDIO/);
   assert.match(chooser, /cv-studio-mark\.svg/);
@@ -83,16 +84,14 @@ test("PdfCanvas publishes demo state through the editor context", async () => {
   assert.match(canvas, /isDemoContent,\s*groupMoveDelta/);
   assert.match(canvas, /A4_Elements, isDemoContent, groupMoveDelta/);
   assert.match(canvas, /<DemoBanner onUseOwnData=/);
-  assert.match(canvas, /demo-conversion/);
+  assert.match(canvas, /setDialog\('newCv'\)/);
   assert.match(canvas, /loadGuestDocument\(\)\?\.isDemoContent/);
   assert.match(canvas, /demoGuestRestoredRef/);
   assert.match(canvas, /import \{ lindenTemplate \} from '\.\.\/templates\/linden'/);
   assert.match(canvas, /commitDocumentSnapshot\(\{[\s\S]*materializeElementSpecs\(lindenTemplate, nanoid\)[\s\S]*title: "DEMO_CV"[\s\S]*templateId: "linden"/);
   assert.match(canvas, /guestDoc\.templateId !== "linden"[\s\S]*clearGuestDocument\(\)[\s\S]*commitDocumentSnapshot\(\{[\s\S]*lindenTemplate/);
-  assert.match(canvas, /import \{ FREE_WIZARD_TEMPLATE_ID \} from '\.\.\/utils\/onboardingTemplates'/);
-  assert.match(canvas, /initialStartIntentRef\.current === "demo-conversion"[\s\S]*\? "linden"[\s\S]*: FREE_WIZARD_TEMPLATE_ID/);
-  assert.match(canvas, /fillTemplate\(claim.profile, conversionTemplateId/);
-  assert.match(canvas, /commitDocumentSnapshot\(\{[\s\S]*response\.elements[\s\S]*title: "Moje CV"[\s\S]*templateId: conversionTemplateId[\s\S]*isDemoContent: false/);
+  assert.match(canvas, /handleDemoUseOwnData[\s\S]*setDialog\('newCv'\)/);
+  assert.match(canvas, /handleCreateStarterCv/);
 });
 
 test("authenticated demo refresh does not offer the demo snapshot for claiming", async () => {
@@ -102,38 +101,26 @@ test("authenticated demo refresh does not offer the demo snapshot for claiming",
   assert.match(canvas, /if \(guestDoc\.isDemoContent\) \{[\s\S]*clearGuestDocument\(\);[\s\S]*return;/);
 });
 
-test("guest onboarding uses four steps while authenticated wizard keeps templates", async () => {
-  const data = await source("utils/bioCvData.js");
-  const wizard = await source("components/ai/BioCvModal/BioCvModal.jsx");
+test("new CV onboarding uses one setup dialog for guests and accounts", async () => {
+  const setup = await source("components/editor/NewCvSetupModal/NewCvSetupModal.jsx");
+  const starter = await source("utils/cvStarter.js");
 
-  assert.match(data, /BIO_CV_ONBOARDING_STEPS = BIO_CV_STEPS\.slice\(0, 4\)/);
-  assert.match(wizard, /variant = "full"/);
-  assert.match(wizard, /BIO_CV_ONBOARDING_STEPS/);
-  assert.match(wizard, /wizard-conversion/);
-  assert.match(wizard, /TemplateCarousel/);
-  assert.match(wizard, /visibleCount=\{5\}/);
-  assert.match(wizard, /isGuestOnboarding = variant === "guest-onboarding" \|\| isDemoConversion/);
-  assert.match(wizard, /hasAuthenticatedSession = Boolean\(getAccessToken\(\)\)/);
-  assert.match(wizard, /"Utwórz konto i moje CV"/);
-  assert.match(wizard, /"Utwórz moje CV"/);
-  assert.match(wizard, /FREE_WIZARD_TEMPLATE_ID/);
-  assert.match(wizard, /onboardingTemplateId = isDemoConversion \? "linden" : FREE_WIZARD_TEMPLATE_ID/);
-  assert.doesNotMatch(wizard, /fillTemplate\(payload, "regent"/);
+  assert.match(setup, /<DialogShell/);
+  assert.match(setup, /Skonfiguruj nowe CV/);
+  assert.match(setup, /Utwórz A4/);
+  assert.match(setup, /draggable/);
+  assert.match(starter, /STARTER_TEMPLATE_ID = "meridian"/);
+  assert.doesNotMatch(setup, /stepper|wizardStep/);
 });
 
-test("registration and login preserve the demo conversion intent", async () => {
+test("registration and login accept the new intent and retire conversion intents", async () => {
   const register = await source("pages/Register/Register.jsx");
   const login = await source("pages/Login/Login.jsx");
 
-  assert.match(register, /"demo-conversion"/);
-  assert.match(register, /"wizard-conversion"/);
-  assert.match(register, /przeniesiemy dane z kreatora/);
-  assert.match(register, /utworzymy Twoje CV w Linden/);
-  assert.match(register, /utworzymy Twoje CV w Meridianie/);
-  assert.match(register, /startIntent === "wizard" \? null : startIntent/);
-  assert.match(login, /"demo-conversion"/);
-  assert.match(login, /"wizard-conversion"/);
-  assert.match(login, /utworzymy Twoje CV w Linden/);
-  assert.match(login, /utworzymy Twoje CV w Meridianie/);
-  assert.match(login, /startIntent === "wizard" \? null : startIntent/);
+  assert.match(register, /"new"/);
+  assert.match(login, /"new"/);
+  assert.match(register, /requestedStart === "wizard" \? "new"/);
+  assert.match(login, /requestedStart === "wizard" \? "new"/);
+  assert.doesNotMatch(register, /demo-conversion|wizard-conversion/);
+  assert.doesNotMatch(login, /demo-conversion|wizard-conversion/);
 });

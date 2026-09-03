@@ -40,8 +40,9 @@ export default function Register() {
     const navigate = useNavigate();
 
     const [searchParams, setSearchParams] = useSearchParams();
-    const startIntent = ["import", "wizard", "templates", "blank", "demo-conversion", "wizard-conversion"].includes(searchParams.get("start"))
-        ? searchParams.get("start")
+    const requestedStart = searchParams.get("start");
+    const startIntent = ["import", "new", "wizard", "templates"].includes(requestedStart)
+        ? (requestedStart === "wizard" ? "new" : requestedStart)
         : null;
     // Landing CTAs may pass ?plan=pro (legacy standard/premium remap on backend).
     const requestedPlan = ["free", "pro", "standard", "premium"].includes(searchParams.get("plan"))
@@ -130,12 +131,7 @@ export default function Register() {
             );
             if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
             queueGuestEvent("register_completed");
-            // `wizard-conversion` represents a completed guest wizard and must
-            // survive authentication. Plain `wizard` only opens the entry
-            // wizard, so carrying it through auth would reopen the same form
-            // after login instead of showing the authenticated editor.
-            const authIntent = startIntent === "wizard" ? null : startIntent;
-            const loginPath = authIntent ? `/login?start=${authIntent}` : "/login";
+            const loginPath = startIntent ? `/login?start=${startIntent}` : "/login";
             navigate(loginPath, { replace: true });
         } catch (err) {
             if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
@@ -147,17 +143,11 @@ export default function Register() {
 
     const startNotice = startIntent === "import"
         ? "Po utworzeniu konta otworzymy import PDF. Plan Darmowy obejmuje 1 udany import CV w miesiącu."
-        : startIntent === "wizard"
-            ? "Po utworzeniu konta otworzymy kreator CV krok po kroku."
+        : startIntent === "new"
+            ? "Po utworzeniu konta otworzymy konfigurator nowego CV na A4."
             : startIntent === "templates"
                 ? "Po utworzeniu konta otworzymy wybór szablonów."
-        : startIntent === "demo-conversion"
-            ? "Po utworzeniu konta przeniesiemy dane z kreatora i utworzymy Twoje CV w Linden."
-        : startIntent === "wizard-conversion"
-            ? "Po utworzeniu konta przeniesiemy dane z kreatora i utworzymy Twoje CV w Meridianie."
-            : startIntent === "blank"
-                    ? "Po utworzeniu konta otworzymy pusty projekt własny ze swobodną edycją."
-                    : selectedPlanSlug === "pro"
+            : selectedPlanSlug === "pro"
                         ? "Konto z dostępem Pro (gdy aktywacja bez płatności jest włączona) — wszystkie szablony, więcej projektów i narzędzia AI."
                         : "Utwórz darmowe konto i zacznij od szablonu, importu PDF albo projektu własnego.";
 
@@ -311,7 +301,7 @@ export default function Register() {
                         </button>
                     </form>
                     <p className={classes.linkWrapper}>
-                        Masz już konto? <Link to={startIntent === "demo-conversion" || startIntent === "wizard-conversion" || startIntent === "wizard" ? "/login" : (startIntent ? `/login?start=${startIntent}` : "/login")}>Zaloguj się</Link>
+                        Masz już konto? <Link to={startIntent ? `/login?start=${startIntent}` : "/login"}>Zaloguj się</Link>
                     </p>
                 </div>
             </section>

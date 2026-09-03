@@ -96,3 +96,26 @@ def test_sterling_appearance_state_unpacks_from_extra_properties():
     assert element.appearanceTypographyRole == "body"
     assert element.appearanceBaseFontSize == 9.5
     assert element.appearanceBaseLineHeight == 13.8
+
+
+def test_starter_guidance_and_cv_bindings_unpack_from_extra_properties():
+    """Empty editor guidance survives storage without becoming PDF content."""
+    bindings = [
+        {"path": ["experience", 0, "company"], "placeholder": "Nazwa firmy"},
+        {"path": ["experience", 0, "city"], "placeholder": "Miasto"},
+    ]
+    row = _Row(
+        element_id="starter-meta", category="text", page=1, left=80, top=250,
+        content="", fontFamily="Inter", fontSize=9, color="#111111",
+        extra_properties={
+            "placeholder": "Nazwa firmy · Miasto",
+            "starterPlaceholder": True,
+            "starterSectionKey": "experience",
+            "cvDataBindings": bindings,
+        },
+    )
+    [element] = elements_from_rows([row])
+    assert element.placeholder == "Nazwa firmy · Miasto"
+    assert element.starterPlaceholder is True
+    assert element.starterSectionKey == "experience"
+    assert element.cvDataBindings == bindings

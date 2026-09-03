@@ -48,6 +48,7 @@ function Text({
     zIndex,
     fixedToPage,
     placeholder,
+    starterPlaceholder,
     selectAllOnEdit,
     textTransform,
     mastheadRole,
@@ -191,7 +192,11 @@ function Text({
         if (node) {
             // Serialize captures both the text and any inline decoration spans.
             const { content: next, runs: nextRuns } = serializeEditable(node);
-            editElementValues({ content: next, runs: nextRuns }, elementId);
+            editElementValues({
+                content: next,
+                runs: nextRuns,
+                ...(starterPlaceholder && next.trim() ? { starterPlaceholder: false } : {}),
+            }, elementId);
         }
         setTextareaEditing(elementId, false);
     }
@@ -262,7 +267,11 @@ function Text({
             onInput={(e) => {
                 if (fixedToPage) return;
                 const { content: next, runs: nextRuns } = serializeEditable(e.currentTarget);
-                editElementValues({ content: next, runs: nextRuns }, elementId);
+                editElementValues({
+                    content: next,
+                    runs: nextRuns,
+                    ...(starterPlaceholder && next.trim() ? { starterPlaceholder: false } : {}),
+                }, elementId);
             }}
             onBlur={() => {
                 // The two-page edit zoom unmounts the old contentEditable

@@ -22,6 +22,12 @@ import {
  */
 export function normalizeActiveCvData(candidate) {
     if (!candidate || typeof candidate !== "object") return null;
+    // Starter profiles are intentionally empty until the author edits A4. Keep
+    // their structure verbatim; legacy wizard validation would otherwise drop
+    // the profile during a guest-document claim or page refresh.
+    if (candidate.starter_structure?.version === 1) {
+        return JSON.parse(JSON.stringify(candidate));
+    }
     const profile = normalizeBioCvData(candidate);
     if (!guestWizardProfileHasContent(profile)) return null;
     return buildBioCvPayload(profile);

@@ -48,6 +48,48 @@ function addedRecordField(element_id, content, field, extra = {}) {
 }
 
 describe("syncCvDataFromCanvas", () => {
+  it("writes the first starter value to an explicitly bound empty profile field", () => {
+    const source = { ...profile, name: "", starter_structure: { version: 1 } };
+    const before = [{
+      ...text("name", ""),
+      mastheadRole: "name",
+      starterPlaceholder: true,
+      cvDataBindings: [{ path: ["name"], placeholder: "Imię i nazwisko" }],
+    }];
+    const after = [{ ...before[0], content: "Ada Lovelace", starterPlaceholder: false }];
+
+    const updated = syncCvDataFromCanvas(source, before, after);
+    assert.equal(updated.name, "Ada Lovelace");
+    assert.equal(source.name, "");
+  });
+
+  it("splits a composite starter row across its cv_data bindings", () => {
+    const source = {
+      ...profile,
+      experience: [{ company: "", city: "", period: "", title: "", bullets: [] }],
+      starter_structure: { version: 1 },
+    };
+    const before = [{
+      ...text("experience-meta", ""),
+      starterPlaceholder: true,
+      cvDataBindings: [
+        { path: ["experience", 0, "company"] },
+        { path: ["experience", 0, "city"] },
+        { path: ["experience", 0, "period"] },
+      ],
+    }];
+    const after = [{ ...before[0], content: "Analytical Engines · Londyn · 1842–1843" }];
+
+    const updated = syncCvDataFromCanvas(source, before, after);
+    assert.deepEqual(updated.experience[0], {
+      company: "Analytical Engines",
+      city: "Londyn",
+      period: "1842–1843",
+      title: "",
+      bullets: [],
+    });
+  });
+
   it("preserves a uniquely mapped manual text edit for later template fills", () => {
     const updated = syncCvDataFromCanvas(
       profile,

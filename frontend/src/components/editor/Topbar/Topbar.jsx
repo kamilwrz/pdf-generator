@@ -23,7 +23,7 @@ import { useCanvasContext } from "../../../store/canvas-context";
 import { useSession } from "../../../store/session-context";
 import { useUiSurfaces } from "../../../store/ui-surfaces-context";
 import { RiFileTextLine, RiDownload2Line, RiShuffleLine, RiFileReduceLine, RiArrowGoBackLine, RiArrowGoForwardLine, RiArrowLeftSLine, RiArrowRightSLine } from "react-icons/ri";
-import { FiEdit3, FiSave, FiTrash2, FiZoomIn, FiZoomOut } from "react-icons/fi";
+import { FiPlus, FiSave, FiTrash2, FiZoomIn, FiZoomOut } from "react-icons/fi";
 import { TiPen } from "react-icons/ti";
 import { TEMPLATES } from "../../../templates";
 import { adjacentAllowedTemplate } from "../../../utils/cvTemplateSelection";
@@ -31,7 +31,7 @@ import { useApplyCvTemplate } from "../../../hooks/useApplyCvTemplate";
 import PageControls from "../PageControls/PageControls";
 
 export default function Topbar({ titleRef, title, onTitleChange }) {
-    const { showAiPanel, showBioCvModal, showChangeTemplateModal } = useUiSurfaces();
+    const { showAiPanel, showNewCvSetup, showChangeTemplateModal } = useUiSurfaces();
     const {
         isDemoContent,
         activeCvData,
@@ -66,7 +66,7 @@ export default function Topbar({ titleRef, title, onTitleChange }) {
     const canRestyle = Boolean(activeCvData) && !fillingId && !isPdfLoading;
     const templatesHint = activeCvData
         ? "Zmień szablon"
-        : "Najpierw wypełnij CV z PDF albo kreatorem krok po kroku";
+        : "Najpierw utwórz nowe CV albo zaimportuj PDF";
 
     return (
         <header className={classes.topbar} data-anchor="editor-topbar">
@@ -118,12 +118,12 @@ export default function Topbar({ titleRef, title, onTitleChange }) {
                     <button
                         type="button"
                         className={`${classes.feature} ${classes.labeled}`}
-                        onClick={showBioCvModal}
-                        aria-label="Kreator CV"
-                        title="Kreator CV krok po kroku"
+                        onClick={showNewCvSetup}
+                        aria-label="Nowe CV"
+                        title="Utwórz nowe CV"
                     >
-                        <FiEdit3 />
-                        <span className={`${classes.actionLabel} ${classes.toolLabel}`}>Kreator CV</span>
+                        <FiPlus />
+                        <span className={`${classes.actionLabel} ${classes.toolLabel}`}>Nowe CV</span>
                     </button>
                     <div className={classes.templateCluster} role="group" aria-label="Szablon CV">
                     {/* Hovering/focusing an arrow reveals a small live mockup of the

@@ -58,7 +58,10 @@ describe("findProfilePhotoSlot", () => {
 
 describe("applyProfilePhoto", () => {
   it("fits a photo inside the slate frame under the outline", () => {
-    const elements = materializeElementSpecs(slateTemplate, () => `id-${Math.random()}`);
+    const elements = materializeElementSpecs(slateTemplate, () => `id-${Math.random()}`)
+      .map((element) => (
+        element.photoSlot === "glyph" ? { ...element, starterPlaceholder: true } : element
+      ));
     const next = applyProfilePhoto(elements, PHOTO, () => "new-photo");
     const photo = next.find((el) => el.photoSlot === "image");
     const frame = next.find((el) => el.id === "slate-photo-frame");
@@ -69,6 +72,7 @@ describe("applyProfilePhoto", () => {
     assert.equal(photo.id, PROFILE_PHOTO_ID);
     assert.equal(photo.locked, true);
     assert.equal(photo.fixedToPage, true);
+    assert.equal(photo.starterPlaceholder, false);
     // Inset 3pt inside 33,40,112×126 → 36,43,106×120
     assert.equal(photo.left, 36);
     assert.equal(photo.top, 43);

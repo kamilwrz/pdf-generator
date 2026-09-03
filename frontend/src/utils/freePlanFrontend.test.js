@@ -67,27 +67,20 @@ test("registration, import, and account gates communicate the real Free limits",
     assert.match(sidebar, /monthly_ai_credits > 0/);
 });
 
-test("wizard conversions use the correct Free starter while saved documents stay template-owned", async () => {
-    const [templates, wizard, canvas] = await Promise.all([
-        source("utils/onboardingTemplates.js"),
-        source("components/ai/BioCvModal/BioCvModal.jsx"),
+test("new CV setup uses Meridian while saved documents stay template-owned", async () => {
+    const [starter, setup, canvas] = await Promise.all([
+        source("utils/cvStarter.js"),
+        source("components/editor/NewCvSetupModal/NewCvSetupModal.jsx"),
         source("pages/PdfCanvas.jsx"),
     ]);
 
-    assert.match(templates, /FREE_WIZARD_TEMPLATE_ID = "meridian"/);
-    assert.match(wizard, /onboardingTemplateId = isDemoConversion \? "linden" : FREE_WIZARD_TEMPLATE_ID/);
-    assert.match(wizard, /fillTemplate\(payload, onboardingTemplateId/);
-    assert.match(
-        wizard,
-        /loadAiElements\(\s*response\.elements,\s*"Moje CV",\s*onboardingTemplateId,\s*\{ cvData: payload \},\s*\)/,
-    );
-    assert.match(wizard, /selectedTemplateId: onboardingTemplateId/);
-    assert.match(wizard, /Linden zostanie wygenerowany/);
-    assert.match(wizard, /Meridian zostanie wygenerowany/);
-    assert.match(canvas, /: FREE_WIZARD_TEMPLATE_ID/);
+    assert.match(starter, /STARTER_TEMPLATE_ID = "meridian"/);
+    assert.match(setup, /createDefaultStarterConfig/);
+    assert.match(canvas, /fillTemplate\(fillProfile, template\.id/);
+    assert.match(canvas, /loadAiElementsFresh\(response\.elements, "Moje CV", template\.id/);
     assert.match(canvas, /commitDocumentSnapshot\(\{\s*\.\.\.guestDoc,/);
     assert.match(canvas, /normalizeSterlingFamilyPersistence\(guestDoc\.elements, guestDoc\.templateId\)/);
-    assert.doesNotMatch(wizard, /selectedTemplateId: "regent"/);
+    assert.match(setup, /isTemplateAllowed\(template, entitlements\)/);
 });
 
 test("render-on-demand proves legacy paid-template ownership with the saved PDF id", async () => {

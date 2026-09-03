@@ -123,7 +123,7 @@ export default function Hero() {
     // Free includes one successful monthly import; Pro removes that quota and
     // adds scale, every template, and AI workflows without changing PDF quality.
     const importUrl = buildStartUrl("import", "free");
-    const wizardUrl = buildStartUrl("wizard", "free");
+    const newCvUrl = buildStartUrl("new", "free");
     const demoUrl = getEditorPath({ start: "demo" });
     const proRegisterUrl = "/register?plan=pro";
 
@@ -139,8 +139,8 @@ export default function Hero() {
                     <Link to="/login">Zaloguj się</Link>
                     <Link
                         className={classes.navStart}
-                        to={wizardUrl}
-                        onClick={() => queueGuestEvent("hero_wizard")}
+                        to={newCvUrl}
+                        onClick={() => queueGuestEvent("hero_new_cv")}
                     >
                         Stwórz CV
                     </Link>
@@ -158,7 +158,7 @@ export default function Hero() {
                         <p className={classes.heroSubheading}>Zwiększ swoje szanse</p>
                     </div>
                     <div className={classes.heroActions}>
-                        <CtaLink to={wizardUrl} event="hero_wizard">Kreator CV</CtaLink>
+                        <CtaLink to={newCvUrl} event="hero_new_cv">Utwórz nowe CV</CtaLink>
                         <CtaLink to={importUrl} event="hero_import" variant="secondary">
                             Import CV
                         </CtaLink>
@@ -205,7 +205,7 @@ export default function Hero() {
                             <span className={classes.offerStepIndex} aria-hidden="true">01</span>
                             <div>
                                 <h3>Zacznij od tego, co już masz</h3>
-                                <p>Wgraj obecne CV albo przejdź przez kreator krok po kroku. Twoje dane trafią do edytowalnego dokumentu, bez przepisywania wszystkiego od początku.</p>
+                                <p>Wgraj obecne CV albo wybierz szablon i potrzebne sekcje. W obu przypadkach treść edytujesz bezpośrednio na stronie A4.</p>
                             </div>
                         </li>
                         <li>
@@ -254,10 +254,10 @@ export default function Hero() {
                                 {TEMPLATE_PREVIEWS.map((template) => (
                                     <Link
                                         key={`${copy}-${template.id}`}
-                                        to={wizardUrl}
+                                        to={newCvUrl}
                                         className={classes.templateCard}
                                         tabIndex={copy === 1 ? -1 : undefined}
-                                        onClick={() => queueGuestEvent("templates_wizard")}
+                                        onClick={() => queueGuestEvent("templates_new_cv")}
                                     >
                                         <img
                                             src={template.image}
@@ -274,7 +274,7 @@ export default function Hero() {
                         ))}
                     </div>
                 </div>
-                <CtaLink to={wizardUrl} event="templates_wizard" variant="link">
+                <CtaLink to={newCvUrl} event="templates_new_cv" variant="link">
                     Stwórz CV w wybranym szablonie
                 </CtaLink>
             </section>
@@ -317,7 +317,7 @@ export default function Hero() {
                                 <li key={feature}><CheckIcon />{feature}</li>
                             ))}
                         </ul>
-                        <CtaLink to={wizardUrl} event="pricing_free" variant="secondary">
+                        <CtaLink to={newCvUrl} event="pricing_free" variant="secondary">
                             Zacznij za darmo
                         </CtaLink>
                         <p className={classes.planFootnote}>Bez karty · Bez limitu czasu</p>
@@ -413,7 +413,7 @@ export default function Hero() {
                         <div className={classes.footerCol}>
                             <p className={classes.footerColTitle}>Konto</p>
                             <Link to="/login">Zaloguj się</Link>
-                            <Link to={wizardUrl}>Stwórz CV</Link>
+                            <Link to={newCvUrl}>Stwórz CV</Link>
                         </div>
                         <div className={classes.footerCol}>
                             <p className={classes.footerColTitle}>Informacje</p>
@@ -426,7 +426,7 @@ export default function Hero() {
                 <div className={classes.footerBottom}>
                     <small>© 2026 CV Studio</small>
                     <small className={classes.footerSeo}>
-                        Kreator CV · Szablony CV · Edytor CV online · Eksport PDF
+                        CV na A4 · Szablony CV · Edytor CV online · Eksport PDF
                     </small>
                 </div>
             </footer>

@@ -44,20 +44,16 @@ test("document lifecycle context exposes the operation commit contract", async (
 });
 
 test("all asynchronous template fills reject stale document revisions", async () => {
-  const [applyHook, importPanel, bioWizard] = await Promise.all([
+  const [applyHook, importPanel, canvas] = await Promise.all([
     read("../hooks/useApplyCvTemplate.js"),
     read("../components/ai/AiCvPanel/AiCvPanel.jsx"),
-    read("../components/ai/BioCvModal/BioCvModal.jsx"),
+    read("../pages/PdfCanvas.jsx"),
   ]);
 
-  for (const source of [applyHook, importPanel, bioWizard]) {
+  for (const source of [applyHook, importPanel, canvas]) {
     assert.match(source, /const requestScope = captureDocumentScope\(\)/);
     assert.match(source, /isDocumentScopeCurrent\(requestScope, \{ requireSameRevision: true \}\)/);
   }
-  assert.ok(
-    (bioWizard.match(/isDocumentScopeCurrent\(requestScope, \{ requireSameRevision: true \}\)/g) || []).length >= 4,
-    "both wizard generation paths must check before and after template generation",
-  );
 });
 
 test("saved-document open checks scope before replacing the canvas", async () => {
@@ -91,11 +87,11 @@ test("document management uses one dialog state and recovery suspends standard d
 });
 
 test("complete replacements share one atomic snapshot commit", async () => {
-  const [canvas, documents, imports, bio, templates] = await Promise.all([
+  const [canvas, documents, imports, setup, templates] = await Promise.all([
     read("../pages/PdfCanvas.jsx"),
     read("../components/modals/ModalPdfs/ModalPdfs.jsx"),
     read("../components/ai/AiCvPanel/AiCvPanel.jsx"),
-    read("../components/ai/BioCvModal/BioCvModal.jsx"),
+    read("../components/editor/NewCvSetupModal/NewCvSetupModal.jsx"),
     read("../components/modals/TemplatesModal/TemplatesModal.jsx"),
   ]);
   const commit = canvas.match(
@@ -111,7 +107,8 @@ test("complete replacements share one atomic snapshot commit", async () => {
   }
   assert.match(documents, /commitDocumentSnapshot\(\{[\s\S]*pdfId: id[\s\S]*serverRevision:/);
   assert.match(imports, /loadAiElements\([\s\S]*\{[\s\S]*cvData,[\s\S]*sourceImportId: importId/);
-  assert.match(bio, /loadAiElements\([\s\S]*\{ cvData: payload \}/);
+  assert.match(setup, /await onCreate\(config, \{[\s\S]*replacementConfirmed: hasActiveDocument/);
+  assert.match(canvas, /loadAiElementsFresh\(response\.elements[\s\S]*\{[\s\S]*cvData,/);
   assert.match(templates, /loadAiElements\([\s\S]*\{ cvData: profile \}/);
 });
 
@@ -121,12 +118,12 @@ test("controller/view and AI lazy boundaries are explicit", async () => {
   assert.match(canvas, /export function EditorView\(/);
   assert.match(canvas, /export function EditorController\(/);
   assert.match(canvas, /<EditorView[\s\S]*documentLifecycle=\{documentLifecycle\}/);
-  for (const component of ["AiAssistant", "AiCvPanel", "BioCvModal"]) {
+  for (const component of ["AiAssistant", "AiCvPanel"]) {
     assert.match(canvas, new RegExp(`lazy\\(\\(\\) => import\\('[^']*${component}`));
     assert.doesNotMatch(canvas, new RegExp(`^import ${component} from`, "m"));
   }
   assert.match(canvas, /\{isAiPanel \? \([\s\S]*<Suspense[\s\S]*<LazyAiCvPanel/);
-  assert.match(canvas, /\{isBioCvModal \? \([\s\S]*<Suspense[\s\S]*<LazyBioCvModal/);
+  assert.match(canvas, /\{isNewCvSetupModal \? \([\s\S]*<NewCvSetupModal/);
 });
 
 test("dirty guard saves before continuing and retains failures", async () => {

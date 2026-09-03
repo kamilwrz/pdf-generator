@@ -15,6 +15,7 @@ import { DEFAULT_FLOW_SPACING } from "../utils/flowSpacing";
 import { getAccessToken } from "../utils/authSession";
 import { useDocumentLifecycle } from "../store/document-lifecycle-context";
 import { syncGeneratedLanguagesForTemplateSwitch } from "../utils/syncCvDataFromCanvas";
+import { prepareStarterProfileForTemplate } from "../utils/cvStarter.js";
 
 /**
  * @returns {{
@@ -52,10 +53,11 @@ export function useApplyCvTemplate() {
     // after + inserts a Languages cell. Read the grid directly before sending
     // the refill. Textarea stores each input in A4_Elements even while the cell
     // remains in edit mode, so this does not depend on focus after the click.
-    const profileForFill = syncGeneratedLanguagesForTemplateSwitch(
+    const synchronizedProfile = syncGeneratedLanguagesForTemplateSwitch(
       activeCvData,
       A4_Elements,
     );
+    const profileForFill = prepareStarterProfileForTemplate(synchronizedProfile);
     setFillingId(template.id);
     setError(null);
     const requestScope = captureDocumentScope();
@@ -82,7 +84,7 @@ export function useApplyCvTemplate() {
         res.elements,
         undefined,
         template.id,
-        { cvData: profileForFill },
+        { cvData: synchronizedProfile },
       );
       // Keep knobs / Reset baseline / next autosave `spacing_px` aligned
       // with the freshly generated layout (after pinFlowSpacingBaseline).

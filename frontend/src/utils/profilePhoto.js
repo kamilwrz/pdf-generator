@@ -302,6 +302,7 @@ export function applyProfilePhoto(elements, photo, createId = nanoid) {
           src,
           img_id: imgId,
           photoSlot: "image",
+          starterPlaceholder: false,
           id: element.id || PROFILE_PHOTO_ID,
           alignWithText: false,
         }
@@ -361,6 +362,10 @@ export function applyProfilePhoto(elements, photo, createId = nanoid) {
     page: photoBox.page,
     zIndex: photoZ,
     photoSlot: "image",
+    // A user-selected raster replaces the starter glyph with real output.
+    // Clear the sentinel flag inherited through `...element` so render-copy
+    // compaction keeps both the photo and its authored frame.
+    starterPlaceholder: false,
     // Fill the slot without stretching — canvas + PDF both honor cover.
     objectFit: "cover",
     id: PROFILE_PHOTO_ID,

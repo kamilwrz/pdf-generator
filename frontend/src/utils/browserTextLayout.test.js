@@ -103,6 +103,7 @@ test("every PDF-rendering request resolves browser lines before serialization", 
   );
 
   assert.match(source, /resolveBrowserTextLayouts\(sorted\)/);
-  assert.match(source, /root: renderRoot/g);
-  assert.equal((source.match(/resolveBrowserTextLayouts\(sorted\)/g) || []).length, 3);
+  assert.match(source, /render_root: renderRoot/g);
+  assert.equal((source.match(/resolveBrowserTextLayouts\(sorted\)/g) || []).length, 2);
+  assert.match(source, /prepareStarterElementsForRender\(sorted/);
 });

@@ -37,10 +37,12 @@ class EventLogRequest(BaseModel):
         # the click (hero vs before/after vs templates vs pricing vs final CTA)
         # without adding a free-form field that would weaken the fixed
         # vocabulary this endpoint deliberately enforces.
+        "hero_new_cv",
         "hero_wizard",
         "hero_import",
         "hero_demo",
         "before_after_import",
+        "templates_new_cv",
         "templates_wizard",
         "pricing_free",
         "pricing_pro",
@@ -52,6 +54,7 @@ class EventLogRequest(BaseModel):
         "save_gate_shown",
         "register_completed",
         "guest_doc_claimed",
+        "new_cv_created",
     ]
     template_id: str | None = None
 

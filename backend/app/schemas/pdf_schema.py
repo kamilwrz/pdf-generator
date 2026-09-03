@@ -269,6 +269,12 @@ class PdfElement(BaseModel):
     appearanceTypographyRole: Optional[str] = None
     appearanceBaseFontSize: Optional[float] = None
     appearanceBaseLineHeight: Optional[float] = None
+    # Empty starter fields keep guidance in editor metadata instead of visible
+    # content. Bindings provide exact cv_data paths, including composite rows.
+    placeholder: Optional[str] = Field(None, max_length=MAX_ELEMENT_TEXT_CHARS)
+    starterPlaceholder: Optional[bool] = False
+    starterSectionKey: Optional[str] = Field(None, max_length=120)
+    cvDataBindings: Optional[list[dict[str, Any]]] = Field(None, max_length=12)
 
 
 EditorMode = Literal["template", "freeform"]
@@ -296,6 +302,9 @@ class PDFCreateRequest(BaseModel):
     # never uses it as an entitlement exception.
     pdf_id: Optional[int] = None
     root: list[PdfElement] = Field(..., max_length=MAX_PDF_ELEMENTS)
+    # Optional compact render-only copy. `root` remains the authoritative
+    # editable document persisted to the database.
+    render_root: Optional[list[PdfElement]] = Field(None, max_length=MAX_PDF_ELEMENTS)
     pdf_title: str = Field(..., min_length=1, max_length=120)
     pages: int = Field(1, ge=1, le=MAX_PDF_PAGES)
     # Page size in pt; A4 portrait is the product default.
@@ -336,6 +345,7 @@ class PDFUpdateRequest(BaseModel):
     expected_revision: int = Field(..., ge=1)
     pdf_title: str = Field(..., min_length=1, max_length=120)
     root: list[PdfElement] = Field(..., max_length=MAX_PDF_ELEMENTS)
+    render_root: Optional[list[PdfElement]] = Field(None, max_length=MAX_PDF_ELEMENTS)
     pages: int = Field(1, ge=1, le=MAX_PDF_PAGES)
     page_width: float = Field(595, gt=0, le=5_000)
     page_height: float = Field(842, gt=0, le=5_000)

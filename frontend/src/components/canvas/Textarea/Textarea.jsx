@@ -177,6 +177,7 @@ function Textarea({
     textTransform,
     mastheadRole,
     placeholder,
+    starterPlaceholder,
     editorHoverOutline,
 }) {
     const {
@@ -550,12 +551,21 @@ function Textarea({
             );
             node.style.height = `${measuredHeight}px`;
             if (autoHeight) {
-                editElementValues({ content: nextContent, runs: nextRuns }, elementId);
+                editElementValues({
+                    content: nextContent,
+                    runs: nextRuns,
+                    ...(starterPlaceholder && nextContent.trim() ? { starterPlaceholder: false } : {}),
+                }, elementId);
                 // This is a user edit, not a background settle: keep it as a real
                 // undo step (quiet: false) so the content change can be undone.
                 fitTextareaToContent(elementId, measuredHeight, { quiet: false });
             } else {
-                editElementValues({ content: nextContent, runs: nextRuns, height: measuredHeight }, elementId);
+                editElementValues({
+                    content: nextContent,
+                    runs: nextRuns,
+                    height: measuredHeight,
+                    ...(starterPlaceholder && nextContent.trim() ? { starterPlaceholder: false } : {}),
+                }, elementId);
             }
         };
         return (

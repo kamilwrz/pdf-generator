@@ -3,6 +3,7 @@ import Sidebar from '../components/editor/Sidebar/Sidebar';
 import Topbar from '../components/editor/Topbar/Topbar';
 import DemoBanner from '../components/editor/DemoBanner/DemoBanner';
 import StartChooser from '../components/editor/StartChooser/StartChooser';
+import NewCvSetupModal from '../components/editor/NewCvSetupModal/NewCvSetupModal';
 import A4 from "../components/canvas/A4/A4";
 import CanvasPageStage from "../components/canvas/CanvasPageStage/CanvasPageStage";
 import Editor from '../components/editor/Editor/Editor';
@@ -50,15 +51,18 @@ import LongCvModal from '../components/editor/LongCvModal/LongCvModal';
 import { logEvent } from '../services/eventLog';
 import { saveGuestDocument, loadGuestDocument, clearGuestDocument } from '../utils/guestDocument';
 import { queueGuestEvent, loadGuestEvents, clearGuestEvents } from '../utils/guestEvents';
-import { hasGuestWizardDraft } from '../utils/guestWizardDraft';
-import { adoptGuestWizardDraftForAccount } from '../utils/claimGuestWizardDraft';
 import { resolveActiveCvData } from '../utils/resolveActiveCvData';
+import {
+  clearGuestWizardDraft,
+  guestWizardProfileHasContent,
+  loadGuestWizardDraft,
+} from '../utils/guestWizardDraft';
 import { syncCvDataFromCanvas } from '../utils/syncCvDataFromCanvas';
 import { fillTemplate } from '../services/fillTemplate';
 import { shouldShowStartChooser } from '../utils/startChooser';
 import { previewStructureOperation, reconcileDocumentPages } from '../utils/structureOperation';
 import { visiblePageNumbers } from '../utils/pageSpread';
-import { planErrorMessage } from '../utils/entitlements';
+import { isTemplateAllowed, planErrorMessage } from '../utils/entitlements';
 import { triggerBlobDownload } from '../utils/download';
 import { useCanvasPageWheel } from '../hooks/useCanvasPageWheel';
 import { useDirtyGuard } from '../hooks/useDirtyGuard';
@@ -101,7 +105,9 @@ import { TEMPLATES } from '../templates';
 import { templateHasLayout } from '../utils/templateLayouts';
 import { normalizeSterlingFamilyPersistence } from '../utils/sterlingAppearance';
 import { normalizeProfilePhotoVisibilityPersistence } from '../utils/profilePhotoVisibility';
-import { FREE_WIZARD_TEMPLATE_ID } from '../utils/onboardingTemplates';
+import { buildStarterDocument } from '../utils/cvStarter';
+import { applyStarterElementStructure } from '../utils/starterElementStructure';
+import { findRequiredCvNameElement, hasRequiredCvName } from '../utils/requiredCvName';
 import { nanoid } from 'nanoid';
 import { materializeElementSpecs } from '../utils/materializeElementSpecs';
 import { markContentElementsEnter } from '../utils/canvasEnter';
@@ -121,7 +127,6 @@ import { normalizeCommittedDocumentSnapshot } from '../utils/documentSnapshotCom
 const TEMPLATES_MODAL_SEEN_KEY = "cv-studio:templatesModalSeen";
 const LazyAiAssistant = lazy(() => import('../components/ai/AiAssistant/AiAssistant'));
 const LazyAiCvPanel = lazy(() => import('../components/ai/AiCvPanel/AiCvPanel'));
-const LazyBioCvModal = lazy(() => import('../components/ai/BioCvModal/BioCvModal'));
 
 function LazyAiFallback({ modal = false }) {
   return (
@@ -213,20 +218,14 @@ export function EditorController() {
   // default template picker before the requested flow is visible.
   const initialStartIntentRef = useRef(
     startIntent === "import"
+      || startIntent === "new"
       || startIntent === "wizard"
       || startIntent === "templates"
       || startIntent === "blank"
       || startIntent === "demo"
-      || startIntent === "demo-conversion"
-      || startIntent === "wizard-conversion"
       ? startIntent
       : null,
   );
-  // The URL intent is deliberately the only handoff signal. A draft in
-  // localStorage is browser-scoped and must never trigger adoption for a
-  // different user who later logs in on the same device.
-  const conversionPending = initialStartIntentRef.current === "demo-conversion"
-    || initialStartIntentRef.current === "wizard-conversion";
 
   // Toggle this signal after a period of pointer activity so the session check
   // below can detect an expired JWT without issuing a request for every move.
@@ -238,23 +237,22 @@ export function EditorController() {
   // all (e.g. Moje dokumenty + Szablony + Gallery could all be open together).
   const [dialog, setDialog] = useState(() => {
     if (initialStartIntentRef.current === "import") return "ai";
-    if (initialStartIntentRef.current === "wizard") return "bioCv";
+    if (["new", "wizard"].includes(initialStartIntentRef.current)) return "newCv";
     if (initialStartIntentRef.current === "templates") return "templates";
     return null;
-  }); // 'docs' | 'templates' | 'ai' | 'bioCv' | 'plan' | 'changeTemplate' | 'unlockFreeform' | null
+  }); // 'docs' | 'templates' | 'ai' | 'newCv' | 'plan' | 'changeTemplate' | 'unlockFreeform' | null
   const [panel, setPanel] = useState(null);   // 'upload' | 'gallery' | 'sections' | null
   const isModalPdfs = dialog === 'docs' && Boolean(localStorage.getItem("token"));
   const isTemplates = dialog === 'templates';
   const isAiPanel = dialog === 'ai';
-  const isBioCvModal = dialog === 'bioCv';
+  const isNewCvSetupModal = dialog === 'newCv';
   const isPlanModal = dialog === 'plan';
   const isChangeTemplateModal = dialog === 'changeTemplate';
   const isUnlockFreeformModal = dialog === 'unlockFreeform';
   const isSaveGateModal = dialog === 'saveGate';
   const isClaimGuestModal = dialog === 'claimGuest';
-  // Structured cv_data behind the CV currently on the canvas. Set by
-  // AiCvPanel/BioCvModal when a fill succeeds and restored from an owned
-  // document's persisted snapshot when it is reopened.
+  // Structured cv_data behind the CV currently on the canvas. It is created
+  // by import or the A4 starter and restored from an owned document snapshot.
   const [activeCvData, setActiveCvData] = useState(null);
   // Set only when a canvas was materialized from an owned import snapshot.
   const [activeImportId, setActiveImportId] = useState(null);
@@ -263,7 +261,6 @@ export function EditorController() {
     if (getAccessToken() || initialStartIntentRef.current) return false;
     return Boolean(loadGuestDocument()?.isDemoContent);
   });
-  const [isConversionLoading, setIsConversionLoading] = useState(false);
   const isDemoContentRef = useRef(isDemoContent);
   isDemoContentRef.current = isDemoContent;
   // Keep the explicitly chosen freeform path hidden for this empty workspace.
@@ -407,6 +404,32 @@ export function EditorController() {
 
   const { toasts, pushToast, dismissToast } = useToasts();
   const { entitlements, refresh: refreshEntitlements } = useEntitlements(true);
+  const [legacyDraft, setLegacyDraft] = useState(() => {
+    const localDraft = loadGuestWizardDraft();
+    return guestWizardProfileHasContent(localDraft?.profile)
+      ? { ...localDraft, source: "browser" }
+      : null;
+  });
+
+  useEffect(() => {
+    const token = getAccessToken();
+    if (!token || legacyDraft?.source === "browser") return undefined;
+    let cancelled = false;
+    new ApiClient({ Authorization: `Bearer ${token}` }).httpRequest(
+      ENDPOINTS.AI.BIO_CV_DRAFT,
+      "GET",
+      null,
+      "Nie udało się sprawdzić starego szkicu.",
+    ).then((response) => {
+      if (cancelled || !guestWizardProfileHasContent(response?.cv_data)) return;
+      setLegacyDraft({
+        profile: response.cv_data,
+        selectedTemplateId: response.selected_template_id || null,
+        source: "account",
+      });
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [legacyDraft?.source]);
 
   // Layout suggestions are rendered here before acceptance, so previewing a
   // correction never mutates the saved document state.
@@ -1040,12 +1063,11 @@ export function EditorController() {
     // obscure it with the default template picker before the intent is handled.
     if (
       startIntent === "import"
+      || startIntent === "new"
       || startIntent === "wizard"
       || startIntent === "templates"
       || startIntent === "blank"
       || startIntent === "demo"
-      || startIntent === "demo-conversion"
-      || startIntent === "wizard-conversion"
     ) {
       return;
     }
@@ -1108,48 +1130,11 @@ export function EditorController() {
     if (next) setPanel(null);
   }, [dialog])
 
-  // Plain open/close toggle — used to OPEN the wizard (Topbar, AiCvPanel) and
-  // to CLOSE it after a successful fill (BioCvModal.handleFill). The success
-  // path must never redirect to landing, so the wizard-entry redirect below
-  // deliberately lives in a separate function that only the user's own
-  // Cancel/X action calls — see `handleCancelBioCvModal`.
-  const handleShowBioCvModal = useCallback(() => {
-    const next = dialog !== 'bioCv';
-    setDialog(next ? 'bioCv' : null);
+  const handleShowNewCvSetup = useCallback(() => {
+    const next = dialog !== 'newCv';
+    setDialog(next ? 'newCv' : null);
     if (next) setPanel(null);
   }, [dialog])
-
-  // A guest who arrives via the landing page's "Stwórz CV od początku"
-  // (`?start=wizard`) never sees the editor first — the wizard is the very
-  // first thing that opens. Cancelling it without filling anything used to
-  // just clear the dialog, stranding them on an empty freeform canvas with no
-  // explanation of what happened or how to get back.
-  //
-  // This is a dedicated action (not folded into `handleShowBioCvModal` above)
-  // because that toggle is also how `BioCvModal.handleFill` closes the dialog
-  // on a SUCCESSFUL fill — and `handleFill`'s closure over `showBioCvModal`
-  // is captured at wizard-open time, before any canvas content exists, so an
-  // `A4_Elements`-based check inside the shared toggle cannot tell a
-  // just-succeeded fill apart from a genuine cancel: it always sees the
-  // stale, still-empty snapshot from when the wizard opened. Routing only the
-  // real Cancel/X button (`BioCvModal.handleClose`) through this separate,
-  // synchronously-invoked handler avoids that stale-closure trap entirely.
-  // Only the very first cancel of this specific entry wizard redirects;
-  // reopening the wizard later from the Topbar, or cancelling after content
-  // already exists, just closes the dialog as it always has.
-  const wizardEntryNavigatedRef = useRef(false);
-  const handleCancelBioCvModal = useCallback(() => {
-    if (
-      initialStartIntentRef.current === 'wizard'
-      && !wizardEntryNavigatedRef.current
-      && A4_Elements.length === 0
-    ) {
-      wizardEntryNavigatedRef.current = true;
-      navigate('/');
-      return;
-    }
-    setDialog(null);
-  }, [A4_Elements, navigate])
 
   useEffect(() => {
     if (!initialStartIntentRef.current || !searchParams.has("start")) return;
@@ -1415,6 +1400,23 @@ export function EditorController() {
     });
   }, [A4_Elements, A4_Elements_deleted, activeCvData, activeImportId, activeTemplateId, captureDocumentScope, createPdf, documentSessionKey, editorMode, flowSpacing, postSaveDocumentSignature, titleRef, pageCount, pageSize]);
 
+  const requireNameBeforeOutput = useCallback(() => {
+    if (hasRequiredCvName(A4_Elements)) return true;
+    const nameElement = findRequiredCvNameElement(A4_Elements);
+    pushToast({
+      title: "Uzupełnij imię i nazwisko",
+      msg: "To jedyne pole wymagane przed zapisem lub eksportem CV.",
+      variant: "error",
+    });
+    if (nameElement?.element_id) {
+      goToPage(nameElement.page || 1);
+      handleSelectElement(nameElement.element_id, false);
+      requestTextEdit(nameElement.element_id);
+      handleSetTextareaEditing(nameElement.element_id, true);
+    }
+    return false;
+  }, [A4_Elements, goToPage, handleSelectElement, handleSetTextareaEditing, pushToast, requestTextEdit]);
+
   // Update the already-saved document in place. `intent: "save"` marks this as a
   // persistence write (not a download), so the post-spinner effect shows the
   // "Zapisano" toast rather than any download handling.
@@ -1459,6 +1461,9 @@ export function EditorController() {
    * leave the guard promise pending so navigation or replacement cannot run.
    */
   const saveCurrentDocumentAndWait = useCallback(() => {
+    if (!requireNameBeforeOutput()) {
+      return Promise.reject(new Error("Uzupełnij imię i nazwisko."));
+    }
     if (!localStorage.getItem("token")) {
       return Promise.reject(new Error("Zaloguj się, aby zapisać dokument."));
     }
@@ -1476,7 +1481,7 @@ export function EditorController() {
         reject(error);
       }
     });
-  }, [createPdfWithElements, isPdfLoading, pdfId, updatePdfWithElements]);
+  }, [createPdfWithElements, isPdfLoading, pdfId, requireNameBeforeOutput, updatePdfWithElements]);
 
   const handleSaveAndContinue = useCallback(() => (
     dirtyGuard.confirmDialogSave(saveCurrentDocumentAndWait)
@@ -1487,6 +1492,7 @@ export function EditorController() {
   // on demand without persisting. Guests cannot export (no account for the
   // metered quota), so they see the same save-gate as "Zapisz".
   const handleDownloadClick = useCallback(async () => {
+    if (!requireNameBeforeOutput()) return;
     if (!localStorage.getItem("token")) {
       queueGuestEvent("save_gate_shown");
       setDialog('saveGate');
@@ -1531,6 +1537,7 @@ export function EditorController() {
     pdfId,
     pushToast,
     refreshEntitlements,
+    requireNameBeforeOutput,
     titleRef,
   ]);
 
@@ -1539,6 +1546,7 @@ export function EditorController() {
   // document in place instead of spawning a new copy. Guests have no backend
   // document yet, so they see the save-gate instead of a 401.
   const handleSaveClick = useCallback(() => {
+    if (!requireNameBeforeOutput()) return;
     if (!localStorage.getItem("token")) {
       queueGuestEvent("save_gate_shown");
       setDialog('saveGate');
@@ -1549,7 +1557,7 @@ export function EditorController() {
     } else {
       updatePdfWithElements();
     }
-  }, [createPdfWithElements, updatePdfWithElements, pdfId]);
+  }, [createPdfWithElements, requireNameBeforeOutput, updatePdfWithElements, pdfId]);
 
   const previewedElements = useMemo(() => {
     const structurallyPreviewed = structurePreviewGroup
@@ -1596,7 +1604,10 @@ export function EditorController() {
   // The dirty guard runs before the one complete snapshot commit; no caller is
   // allowed to partially mutate document fields before confirmation succeeds.
   const startFreshDocument = useCallback(async (snapshot, options = {}) => {
-    if (!(await confirmDiscardActiveEdits())) return false;
+    // NewCvSetupModal owns the replacement confirmation for its complete flow.
+    // Skipping the generic dirty guard here prevents two consecutive prompts,
+    // while every other fresh-document entry point still uses the shared guard.
+    if (!options.replacementConfirmed && !(await confirmDiscardActiveEdits())) return false;
     commitDocumentSnapshot({
       ...snapshot,
       pdfId: null,
@@ -1617,7 +1628,10 @@ export function EditorController() {
       flowSpacing: metadata.flowSpacing ?? flowSpacing,
       cvData: metadata.cvData ?? null,
       sourceImportId: metadata.sourceImportId ?? null,
-    }, { animateContent: true }),
+    }, {
+      animateContent: true,
+      replacementConfirmed: metadata.replacementConfirmed === true,
+    }),
     [flowSpacing, startFreshDocument],
   );
   const loadTemplateWithFillFresh = useCallback(
@@ -1647,7 +1661,16 @@ export function EditorController() {
   const loadAiElementsFresh = useCallback(
     (specs, title, templateId = null, metadata = {}) => startFreshDocument({
       ...metadata,
-      elements: materializeElementSpecs(specs, nanoid),
+      elements: applyStarterElementStructure(
+        materializeElementSpecs(specs, nanoid),
+        metadata.cvData,
+        templateId,
+        pageSize?.height ?? 842,
+      ).map((element) => (
+        metadata.selectName && element.mastheadRole === "name"
+          ? { ...element, isSelected: true, isEditing: true }
+          : element
+      )),
       deletedElements: [],
       title: title || "",
       templateId,
@@ -1655,8 +1678,11 @@ export function EditorController() {
       flowSpacing: metadata.flowSpacing ?? flowSpacing,
       cvData: metadata.cvData ?? null,
       sourceImportId: metadata.sourceImportId ?? null,
-    }, { animateContent: true }),
-    [flowSpacing, startFreshDocument],
+    }, {
+      animateContent: true,
+      replacementConfirmed: metadata.replacementConfirmed === true,
+    }),
+    [flowSpacing, pageSize?.height, startFreshDocument],
   );
   const clearA4Fresh = useCallback(
     () => startFreshDocument({
@@ -1674,14 +1700,20 @@ export function EditorController() {
   );
 
   const replaceActiveElements = useCallback((specs, title, templateId = null, metadata = {}) => {
+    const nextCvData = Object.hasOwn(metadata, "cvData") ? metadata.cvData : activeCvData;
     commitDocumentSnapshot({
-      elements: materializeElementSpecs(specs, nanoid),
+      elements: applyStarterElementStructure(
+        materializeElementSpecs(specs, nanoid),
+        nextCvData,
+        templateId,
+        pageSize?.height ?? 842,
+      ),
       deletedElements: [],
       title: title ?? documentTitle,
       templateId,
       editorMode: EDITOR_MODE_TEMPLATE,
       flowSpacing: metadata.flowSpacing ?? flowSpacing,
-      cvData: Object.hasOwn(metadata, "cvData") ? metadata.cvData : activeCvData,
+      cvData: nextCvData,
       sourceImportId: Object.hasOwn(metadata, "sourceImportId")
         ? metadata.sourceImportId
         : activeImportId,
@@ -1696,8 +1728,76 @@ export function EditorController() {
     documentTitle,
     flowSpacing,
     pdfId,
+    pageSize?.height,
     serverRevision,
   ]);
+
+  const handleCreateStarterCv = useCallback(async (config, options = {}) => {
+    const template = TEMPLATES.find((candidate) => candidate.id === config.templateId);
+    if (!template) throw new Error("Nie znaleziono wybranego szablonu.");
+    const { cvData, fillProfile } = buildStarterDocument(config);
+    const requestScope = captureDocumentScope();
+    const response = await fillTemplate(fillProfile, template.id, {
+      errorMessage: "Nie udało się utworzyć nowego CV.",
+      spacing: DEFAULT_FLOW_SPACING,
+    });
+    if (!isDocumentScopeCurrent(requestScope, { requireSameRevision: true })) {
+      throw new Error("Dokument zmienił się podczas tworzenia. Otwórz konfigurator ponownie.");
+    }
+    const created = await loadAiElementsFresh(response.elements, "Moje CV", template.id, {
+      cvData,
+      flowSpacing: DEFAULT_FLOW_SPACING,
+      selectName: true,
+      replacementConfirmed: options.replacementConfirmed === true,
+    });
+    if (created) {
+      queueGuestEvent("new_cv_created");
+      setStartChooserDismissed(true);
+    }
+    return created;
+  }, [captureDocumentScope, isDocumentScopeCurrent, loadAiElementsFresh]);
+
+  const handleRecoverLegacyDraft = useCallback(async () => {
+    if (!legacyDraft?.profile) return;
+    const requested = TEMPLATES.find((template) => template.id === legacyDraft.selectedTemplateId);
+    const template = requested && isTemplateAllowed(requested, entitlements)
+      ? requested
+      : TEMPLATES.find((candidate) => candidate.id === "meridian");
+    try {
+      const response = await fillTemplate(legacyDraft.profile, template.id, {
+        errorMessage: "Nie udało się przenieść starego szkicu na A4.",
+        spacing: DEFAULT_FLOW_SPACING,
+      });
+      const created = await loadAiElementsFresh(response.elements, "Moje CV", template.id, {
+        cvData: legacyDraft.profile,
+        flowSpacing: DEFAULT_FLOW_SPACING,
+      });
+      if (!created) return;
+      if (legacyDraft.source === "browser") {
+        clearGuestWizardDraft();
+      } else if (getAccessToken()) {
+        await new ApiClient({ Authorization: `Bearer ${getAccessToken()}` }).httpRequest(
+          ENDPOINTS.AI.BIO_CV_DRAFT,
+          "DELETE",
+          null,
+          "CV utworzono, ale nie udało się usunąć starego szkicu.",
+        );
+      }
+      setLegacyDraft(null);
+      setStartChooserDismissed(true);
+      pushToast?.({
+        title: "Szkic przeniesiony",
+        msg: "Dane ze starego kreatora są teraz edytowalne bezpośrednio na A4.",
+        variant: "success",
+      });
+    } catch (error) {
+      pushToast?.({
+        title: "Nie udało się przenieść szkicu",
+        msg: planErrorMessage(error, "Spróbuj ponownie — stary szkic nie został usunięty."),
+        variant: "error",
+      });
+    }
+  }, [entitlements, legacyDraft, loadAiElementsFresh, pushToast]);
 
   // Unlocking freeform CLONES the current canvas into a new, unsaved freeform
   // copy (fresh element ids, cleared pdfId). No edits are discarded — the
@@ -1762,7 +1862,6 @@ export function EditorController() {
   // authenticated wizard conversion without allowing duplicate adoption.
   const claimOfferedRef = useRef(false);
   const pendingGuestDocRef = useRef(null);
-  const wizardDraftAdoptedRef = useRef(false);
   const demoGuestRestoredRef = useRef(false);
 
   // The demo and the legacy guest editor share `/cvstudio/guest`. The URL alone
@@ -1839,82 +1938,6 @@ export function EditorController() {
     pendingGuestDocRef.current = guestDoc;
     setDialog('claimGuest');
   }, []);
-
-  // Promote Demo/guest wizard answers into `/ai/bio_cv_draft` as soon as a
-  // JWT exists — independent of which plan the account is on (Free today;
-  // additional plans at registration later). Runs once per mount; BioCvModal
-  // also adopts on open as a safety net if this effect has not finished yet.
-  useEffect(() => {
-    if (wizardDraftAdoptedRef.current) return;
-    const token = localStorage.getItem("token");
-    if (!token || !conversionPending || !hasGuestWizardDraft()) return;
-    wizardDraftAdoptedRef.current = true;
-    const requestScope = captureDocumentScope();
-    // Keep the empty canvas from flashing while the authenticated profile is
-    // adopted and its destination layout is generated.
-    setIsConversionLoading(true);
-    let cancelled = false;
-    (async () => {
-      try {
-        const claim = await adoptGuestWizardDraftForAccount(
-          new ApiClient({ Authorization: `Bearer ${token}` }),
-        );
-        if (
-          !cancelled
-          && conversionPending
-          && claim.profile
-          && isDocumentScopeCurrent(requestScope, { requireSameRevision: true })
-        ) {
-          // Delay layout generation until authentication succeeds so the demo
-          // never flashes an empty or partially filled authenticated canvas.
-          const conversionTemplateId = initialStartIntentRef.current === "demo-conversion"
-            ? "linden"
-            : FREE_WIZARD_TEMPLATE_ID;
-          const response = await fillTemplate(claim.profile, conversionTemplateId, {
-            errorMessage: "Nie udało się utworzyć Twojego CV.",
-            spacing: flowSpacing,
-          });
-          if (
-            cancelled
-            || !isDocumentScopeCurrent(requestScope, { requireSameRevision: true })
-          ) return;
-          commitDocumentSnapshot({
-            elements: materializeElementSpecs(response.elements, nanoid),
-            title: "Moje CV",
-            templateId: conversionTemplateId,
-            editorMode: EDITOR_MODE_TEMPLATE,
-            flowSpacing,
-            cvData: claim.profile,
-            sourceImportId: null,
-            pdfId: null,
-            revision: null,
-            isDemoContent: false,
-          }, { animateContent: true });
-          queueGuestEvent(initialStartIntentRef.current === "wizard-conversion"
-            ? "wizard_conversion_completed"
-            : "demo_conversion_completed");
-        }
-      } catch (error) {
-        if (!cancelled) {
-          // Allow BioCvModal to retry on open; do not clear the guest draft
-          // here on transport/auth failure.
-          wizardDraftAdoptedRef.current = false;
-          console.warn("Nie udało się przenieść szkicu kreatora gościa na konto.", error);
-        }
-      } finally {
-        if (!cancelled) setIsConversionLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [
-    captureDocumentScope,
-    commitDocumentSnapshot,
-    conversionPending,
-    flowSpacing,
-    isDocumentScopeCurrent,
-  ]);
 
   // Load the browser-buffered guest JSON onto the A4 canvas only.
   // Do not call `createPdf` / `POST /pdf/create_pdf` here — that would render and
@@ -2015,11 +2038,8 @@ export function EditorController() {
     }, { markClean: true });
   }, [commitDocumentSnapshot]);
 
-  // Keep the demo canvas visible while the visitor enters their data. The
-  // conversion flow saves the profile locally and asks for authentication
-  // only after the visitor has completed the four data steps.
   const handleDemoUseOwnData = useCallback(() => {
-    setDialog('bioCv');
+    setDialog('newCv');
   }, []);
 
   const canvasValue = useMemo(() => ({
@@ -2177,9 +2197,8 @@ export function EditorController() {
     markTemplatesModalSeen,
     isAiPanel,
     showAiPanel: handleShowAiPanel,
-    isBioCvModal,
-    showBioCvModal: handleShowBioCvModal,
-    cancelBioCvModal: handleCancelBioCvModal,
+    isNewCvSetupModal,
+    showNewCvSetup: handleShowNewCvSetup,
     isPlanModal,
     showPlanModal: handleShowPlanModal,
     isChangeTemplateModal,
@@ -2202,7 +2221,7 @@ export function EditorController() {
     requestAssistantAction,
   }), [
     isTemplates, handleShowTemplates, autoOpenedTemplates, markTemplatesModalSeen,
-    isAiPanel, handleShowAiPanel, isBioCvModal, handleShowBioCvModal, handleCancelBioCvModal,
+    isAiPanel, handleShowAiPanel, isNewCvSetupModal, handleShowNewCvSetup,
     isPlanModal, handleShowPlanModal, isChangeTemplateModal, handleShowChangeTemplateModal,
     handleShowUnlockFreeform, isUnlockFreeformModal,
     isGallery, handleShowGallery, isSectionsPanel, handleShowSections,
@@ -2233,7 +2252,6 @@ export function EditorController() {
   const showStartChooser = shouldShowStartChooser({
     elementsCount: A4_Elements.length,
     isDemoContent,
-    conversionPending,
     isPdfLoading,
     pdfId,
     dismissed: startChooserDismissed,
@@ -2266,14 +2284,14 @@ export function EditorController() {
                   <LazyAiCvPanel />
                 </Suspense>
               ) : null}
-              {isBioCvModal ? (
-                <Suspense fallback={<LazyAiFallback modal />}>
-                  <LazyBioCvModal
-                    variant={isDemoContent
-                      ? "demo-conversion"
-                      : (isGuest ? "guest-onboarding" : "full")}
-                  />
-                </Suspense>
+              {isNewCvSetupModal ? (
+                <NewCvSetupModal
+                  open
+                  onClose={() => setDialog(null)}
+                  onCreate={handleCreateStarterCv}
+                  entitlements={entitlements}
+                  hasActiveDocument={A4_Elements.length > 0}
+                />
               ) : null}
               <ChangeTemplateModal />
               <UnlockFreeformModal
@@ -2343,8 +2361,8 @@ export function EditorController() {
                   />
                   {/* Portal loader: card sits 100px under the live A4 top edge
                       (viewport px via A4ref), independent of canvas zoom. */}
-                  {isPdfLoading || isConversionLoading ? (
-                    <Spinner loading={isPdfLoading || isConversionLoading} anchorRef={A4ref} />
+                  {isPdfLoading ? (
+                    <Spinner loading={isPdfLoading} anchorRef={A4ref} />
                   ) : null}
                   <div className="canvas-area" ref={canvasAreaRef} onClick={handleCanvasBackgroundClick}>
                     <div className={isTwoPageView ? "canvas-spread" : "canvas-single"}>
@@ -2406,11 +2424,8 @@ export function EditorController() {
               ) : null}
               {showStartChooser ? (
                 <StartChooser
-                  onWizard={() => {
-                    // Keep the chooser behind the modal so cancelling the
-                    // wizard returns to the start screen. A successful fill
-                    // adds canvas elements and restores the editor shell.
-                    handleShowBioCvModal();
+                  onNew={() => {
+                    handleShowNewCvSetup();
                   }}
                   onImport={() => {
                     // Import follows the same return path as the wizard:
@@ -2427,7 +2442,9 @@ export function EditorController() {
                   }}
                   documents={PDFs}
                   documentsLoaded={pdfsLoaded}
-                  onBlank={() => setStartChooserDismissed(true)}
+                  legacyDraftAvailable={Boolean(legacyDraft)}
+                  legacyDraftNeedsOwnershipConfirmation={!isGuest && legacyDraft?.source === "browser"}
+                  onRecoverLegacyDraft={handleRecoverLegacyDraft}
                   onLogout={handleLogout}
                 />
               ) : null}

@@ -50,13 +50,49 @@ test.describe("CV Studio editor smoke", () => {
     api.assertHermetic();
   });
 
-  test("creates a blank document with a request-scoped idempotency key", async ({ page }) => {
+  test("configures a new A4 CV, edits the required name, and saves the editor graph", async ({ page }) => {
     const api = await installMockApi(page);
     await login(page);
 
-    await page.getByRole("button", { name: /Otwórz pusty canvas/ }).click();
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.getByRole("button", { name: /Utwórz nowe CV/ }).click();
+    const setup = page.getByRole("dialog", { name: "Skonfiguruj nowe CV" });
+    await expect(setup).toBeVisible();
+    await expect(setup.getByRole("radio", { name: /Meridian/ })).toBeChecked();
+
+    // Exercise both accessible reorder paths. The buttons remain the reliable
+    // keyboard/touch fallback for native pointer drag-and-drop.
+    await setup.getByRole("button", { name: "Przenieś Doświadczenie niżej" }).click();
+    await expect(setup.getByText(/Doświadczenie: pozycja 3/)).toBeVisible();
+    const projects = setup.locator("li").filter({ hasText: "Projekty" });
+    const summary = setup.locator("li").filter({ hasText: "Podsumowanie" });
+    await projects.dragTo(summary);
+
+    await setup.getByRole("radio", { name: /Slate/ }).click();
+    await setup.getByRole("checkbox", { name: /Zdjęcie/ }).check();
+    await setup.getByRole("radio", { name: /Meridian/ }).click();
+    await expect(setup.getByText(/nie obsługuje zdjęcia/)).toBeVisible();
+
+    const fillRequest = page.waitForRequest((request) => (
+      request.method() === "POST" && new URL(request.url()).pathname === "/api/ai/fill_template"
+    ));
+    await setup.getByRole("button", { name: "Utwórz A4" }).click();
+    const fill = await fillRequest;
+    expect(fill.postDataJSON()).toMatchObject({ template_id: "meridian" });
+
+    const name = page.locator('[contenteditable="true"][data-placeholder="Imię i nazwisko"]');
+    await expect(name).toBeFocused();
+    await name.evaluate((node) => {
+      node.textContent = "Kamil Nowak";
+      node.dispatchEvent(new InputEvent("input", {
+        bubbles: true,
+        inputType: "insertText",
+        data: "Kamil Nowak",
+      }));
+    });
+    await expect(name).toHaveText("Kamil Nowak");
     const title = page.getByRole("textbox", { name: "Nazwa bieżącego dokumentu" });
-    await title.fill("Nowy dokument smoke");
+    await title.fill("Nowe CV smoke");
 
     const createRequest = page.waitForRequest((request) => (
       request.method() === "POST" && new URL(request.url()).pathname === "/api/pdf/create_pdf"
@@ -67,10 +103,15 @@ test.describe("CV Studio editor smoke", () => {
     expect(idempotencyKey).toBeTruthy();
     expect(idempotencyKey.length).toBeLessThanOrEqual(128);
     expect(create.postDataJSON()).toMatchObject({
-      pdf_title: "Nowy dokument smoke.pdf",
-      editor_mode: "freeform",
-      template_id: null,
+      pdf_title: "Nowe CV smoke.pdf",
+      editor_mode: "template",
+      template_id: "meridian",
     });
+    expect(create.postDataJSON().root[0]).toMatchObject({
+      content: "Kamil Nowak",
+      starterPlaceholder: false,
+    });
+    expect(create.postDataJSON()).toHaveProperty("render_root");
     await expect(page.getByText("Zapisano w Moich dokumentach", { exact: true })).toBeVisible();
     api.assertHermetic();
   });
@@ -96,7 +137,7 @@ test.describe("CV Studio editor smoke", () => {
     // The keyed anchor is intentionally zero-sized; the toolbar itself is
     // portalled outside the scaled A4 page and is the visible contract.
     await expect(moreActions).toBeVisible();
-    await moreActions.click();
+    await moreActions.evaluate((button) => button.click());
     await recordToolbar.getByRole("menuitem", { name: "Usuń wpis" }).click();
 
     await expect(toolsTitle).toHaveCount(0);

@@ -1,5 +1,5 @@
 /**
- * Shared POST /ai/fill_template client used by import, bio wizard, and
+ * Shared POST /ai/fill_template client used by import, the A4 starter, and
  * change-template flows. Callers keep their own loading UI and apply path
  * (loadAiElements vs replaceActiveElements).
  */

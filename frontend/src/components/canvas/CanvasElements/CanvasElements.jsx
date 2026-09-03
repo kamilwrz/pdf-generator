@@ -389,6 +389,7 @@ export default function CanvasElements({ elements, spreadSide = null }) {
             textTransform={element.textTransform}
             mastheadRole={element.mastheadRole}
             placeholder={element.placeholder}
+            starterPlaceholder={element.starterPlaceholder}
             editorHoverOutline={editorHoverOutline}
           />
           {blockAnchor ? (
@@ -458,6 +459,7 @@ export default function CanvasElements({ elements, spreadSide = null }) {
             zIndex={element.zIndex}
             fixedToPage={element.fixedToPage}
             placeholder={element.placeholder}
+            starterPlaceholder={element.starterPlaceholder}
             selectAllOnEdit={element.selectAllOnEdit}
             textTransform={element.textTransform}
             mastheadRole={element.mastheadRole}

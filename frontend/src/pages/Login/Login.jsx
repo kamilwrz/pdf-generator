@@ -24,8 +24,9 @@ export default function Login() {
 
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
-    const startIntent = ["import", "wizard", "templates", "blank", "demo-conversion", "wizard-conversion"].includes(searchParams.get("start"))
-        ? searchParams.get("start")
+    const requestedStart = searchParams.get("start");
+    const startIntent = ["import", "new", "wizard", "templates"].includes(requestedStart)
+        ? (requestedStart === "wizard" ? "new" : requestedStart)
         : null;
 
     const [password, setPassword] = useState("");
@@ -86,10 +87,7 @@ export default function Login() {
             // Persist the handle used for `/cvstudio/{username}` so deep links
             // match the account without waiting for a JWT decode on remount.
             setSessionUsername(sessionUsername);
-            // A completed wizard uses `wizard-conversion`; plain `wizard` is
-            // only an entry intent and must not reopen the form after auth.
-            const editorIntent = startIntent === "wizard" ? null : startIntent;
-            navigate(getEditorPath({ start: editorIntent }), { replace: true });
+            navigate(getEditorPath({ start: startIntent }), { replace: true });
         } catch (err) {
             if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
             setError(err.message || "Logowanie nie powiodło się");
@@ -108,17 +106,11 @@ export default function Login() {
 
     const selectedStartLabel = startIntent === "import"
         ? "Po zalogowaniu otworzymy import Twojego CV."
-        : startIntent === "wizard"
-            ? "Po zalogowaniu otworzymy kreator CV krok po kroku."
+        : startIntent === "new"
+            ? "Po zalogowaniu otworzymy konfigurator nowego CV na A4."
             : startIntent === "templates"
                 ? "Po zalogowaniu otworzymy wybór szablonów."
-            : startIntent === "demo-conversion"
-                ? "Po zalogowaniu przeniesiemy dane z kreatora i utworzymy Twoje CV w Linden."
-            : startIntent === "wizard-conversion"
-                ? "Po zalogowaniu przeniesiemy dane z kreatora i utworzymy Twoje CV w Meridianie."
-                : startIntent === "blank"
-                    ? "Po zalogowaniu otworzymy pusty projekt własny."
-                    : "Wróć do swoich dokumentów i kontynuuj od miejsca, w którym skończyłeś.";
+                : "Wróć do swoich dokumentów i kontynuuj od miejsca, w którym skończyłeś.";
 
     return (
         <div className={classes.container}>
@@ -199,7 +191,7 @@ export default function Login() {
                         </button>
                     </form>
                     <p className={classes.linkWrapper}>
-                        Nowy użytkownik? <Link to={startIntent && startIntent !== "wizard" ? `/register?start=${startIntent}` : "/register"}>Utwórz konto</Link>
+                        Nowy użytkownik? <Link to={startIntent ? `/register?start=${startIntent}` : "/register"}>Utwórz konto</Link>
                     </p>
                 </div>
             </section>

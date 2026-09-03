@@ -30,7 +30,7 @@ describe("ChangeTemplateModal spacing", () => {
     assert.match(hookSource, /fillTemplate\(profileForFill, template\.id/);
     assert.match(
       hookSource,
-      /replaceActiveElements\([\s\S]*\{ cvData: profileForFill \}[\s\S]*\)/,
+      /replaceActiveElements\([\s\S]*\{ cvData: synchronizedProfile \}[\s\S]*\)/,
     );
   });
 });

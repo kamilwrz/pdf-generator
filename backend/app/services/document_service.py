@@ -331,9 +331,35 @@ def _render_bytes(db: Session, *, user, pdf_data, elements: list) -> bytes:
         return build_pdf_to_buffer(pdf_data, elements, resolver, watermark=False)
 
 
+def _require_starter_name(elements: list) -> None:
+    """Reject output for a starter document whose semantic name is untouched.
+
+    Legacy/imported documents have no starter binding and remain compatible.
+    The server check backs up the accessible client focus flow so a handcrafted
+    request cannot persist or export a nameless starter.
+    """
+    name_fields = [
+        element for element in elements
+        if any(
+            binding.get("path") == ["name"]
+            for binding in (getattr(element, "cvDataBindings", None) or [])
+            if isinstance(binding, dict)
+        )
+    ]
+    if name_fields and not any(str(element.content or "").strip() for element in name_fields):
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "code": "starter_name_required",
+                "message": "Uzupełnij imię i nazwisko przed zapisem lub eksportem CV.",
+            },
+        )
+
+
 def render_document_bytes(db: Session, *, user, pdf_data) -> bytes:
     """Render the authenticated caller's live canvas without persisting it."""
-    elements = pdf_data.root
+    _require_starter_name(pdf_data.root)
+    elements = getattr(pdf_data, "render_root", None) or pdf_data.root
     if not elements:
         raise HTTPException(status_code=400, detail="Brakuje części danych.")
     return _render_bytes(db, user=user, pdf_data=pdf_data, elements=elements)
@@ -634,6 +660,7 @@ def create_pdf_document(
     title = pdf_data.pdf_title
     if not elements:
         raise HTTPException(status_code=400, detail="Brakuje części danych.")
+    _require_starter_name(elements)
 
     replay = resolve_create_replay(
         db,
@@ -653,7 +680,8 @@ def create_pdf_document(
     if _has_title_conflict(db, owner_id=user.id, title_key=title_key):
         raise _title_conflict()
 
-    pdf_bytes = _render_bytes(db, user=user, pdf_data=pdf_data, elements=elements)
+    render_elements = getattr(pdf_data, "render_root", None) or elements
+    pdf_bytes = _render_bytes(db, user=user, pdf_data=pdf_data, elements=render_elements)
     backend = configured_backend(USE_S3)
     key: str | None = None
     try:
@@ -728,6 +756,7 @@ def update_pdf_document(db: Session, *, pdf_row, user, username: str, pdf_data) 
     elements = pdf_data.root
     if not elements:
         raise HTTPException(status_code=400, detail="Brakuje części danych.")
+    _require_starter_name(elements)
     pdf_id = int(pdf_row.id)
     owner_id = int(user.id)
     expected_revision = int(pdf_data.expected_revision)
@@ -758,7 +787,8 @@ def update_pdf_document(db: Session, *, pdf_row, user, username: str, pdf_data) 
             title_key=title_key,
         )
 
-    pdf_bytes = _render_bytes(db, user=user, pdf_data=pdf_data, elements=elements)
+    render_elements = getattr(pdf_data, "render_root", None) or elements
+    pdf_bytes = _render_bytes(db, user=user, pdf_data=pdf_data, elements=render_elements)
     old_target = _safe_old_target(pdf_row, username=username)
     backend = configured_backend(USE_S3)
     key = make_pdf_key(owner_id, pdf_id)

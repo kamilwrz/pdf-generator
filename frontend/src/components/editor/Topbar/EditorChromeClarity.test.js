@@ -13,8 +13,8 @@ test("topbar labels ambiguous actions without changing their existing handlers",
 
   assert.match(source, />Importuj PDF<\/span>/);
   assert.match(source, /onClick={showAiPanel}/);
-  assert.match(source, />Kreator CV<\/span>/);
-  assert.match(source, /onClick={showBioCvModal}/);
+  assert.match(source, />Nowe CV<\/span>/);
+  assert.match(source, /onClick={showNewCvSetup}/);
   assert.match(source, />Zmień szablon<\/span>/);
   assert.match(source, /onClick={showChangeTemplateModal}/);
   assert.match(source, />Pobierz PDF<\/span>/);

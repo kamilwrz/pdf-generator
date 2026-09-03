@@ -53,7 +53,7 @@ const ChevronRight = () => (
 
 export default function AiCvPanel() {
     const { captureDocumentScope, isDocumentScopeCurrent } = useDocumentLifecycle();
-    const { isAiPanel, showAiPanel, showBioCvModal } = useUiSurfaces();
+    const { isAiPanel, showAiPanel, showNewCvSetup } = useUiSurfaces();
     const { loadAiElements, flowSpacing } = useCanvasContext();
     const { entitlements, refreshEntitlements } = useSession();
 
@@ -556,13 +556,13 @@ export default function AiCvPanel() {
                                 </button>
                             </div>
                         )}
-                        <button type="button" className={classes.guidedLink} onClick={showBioCvModal}>
-                            Nie masz gotowego PDF? Utwórz CV krok po kroku
+                        <button type="button" className={classes.guidedLink} onClick={showNewCvSetup}>
+                            Nie masz gotowego PDF? Utwórz nowe CV na A4
                         </button>
                         {importLimitReached && (
                             <p className={classes.hint}>
                                 Plan Darmowy obejmuje 1 udany import CV miesięcznie. Limit został wykorzystany,
-                                ale kreator krok po kroku nadal działa bez ograniczeń czasowych.
+                                ale nowe CV nadal utworzysz bez importu.
                             </p>
                         )}
                         {canExtract && isFreePlan && remainingImports != null && (

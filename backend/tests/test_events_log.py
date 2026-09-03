@@ -127,15 +127,18 @@ class EventsLogTests(unittest.TestCase):
         app.dependency_overrides[get_db] = _fake_get_db
 
         for event_type in (
+            "hero_new_cv",
             "hero_wizard",
             "hero_import",
             "hero_demo",
             "before_after_import",
+            "templates_new_cv",
             "templates_wizard",
             "pricing_free",
             "pricing_pro",
             "final_wizard",
             "final_import",
+            "new_cv_created",
         ):
             with self.subTest(event_type=event_type):
                 response = self.client.post(

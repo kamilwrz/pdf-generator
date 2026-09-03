@@ -17,7 +17,7 @@ export default function DemoBanner({ onUseOwnData }) {
       </div>
       <div className={classes.actions}>
         <button type="button" className={classes.primary} onClick={onUseOwnData}>
-          Stwórz moje CV
+          Utwórz moje CV na A4
         </button>
       </div>
     </div>

@@ -33,6 +33,20 @@ export const SAVED_DOCUMENT = Object.freeze({
 // canvas-to-cv_data synchronization effect both participate in the E2E flow.
 export const SAVED_ELEMENTS = Object.freeze([
   {
+    element_id: "saved-name",
+    category: "text",
+    content: "Kamil Smoke",
+    mastheadRole: "name",
+    left: 250,
+    top: 90,
+    width: 280,
+    height: 28,
+    fontSize: 22,
+    lineHeight: 26,
+    page: 1,
+    extra_properties: { mastheadRole: "name" },
+  },
+  {
     element_id: "skills-heading",
     category: "text",
     content: "UMIEJĘTNOŚCI",
@@ -265,6 +279,38 @@ export async function installMockApi(
     if (method === "POST" && path === "/events/log") return json(route, { logged: true });
     if (method === "GET" && path === "/billing/plans") return json(route, { plans: [] });
     if (method === "GET" && path === "/ai/bio_cv_draft") return json(route, { draft: null });
+    if (method === "POST" && path === "/ai/fill_template") {
+      const payload = request.postDataJSON();
+      return json(route, {
+        elements: [
+          {
+            id: "starter-name",
+            category: "text",
+            content: payload.cv_data.name,
+            mastheadRole: "name",
+            left: 72,
+            top: 72,
+            width: 320,
+            height: 34,
+            fontSize: 24,
+            lineHeight: 30,
+            page: 1,
+          },
+          {
+            id: "starter-summary",
+            category: "textarea",
+            content: payload.cv_data.summary,
+            left: 72,
+            top: 160,
+            width: 450,
+            height: 40,
+            fontSize: 9,
+            lineHeight: 13,
+            page: 1,
+          },
+        ],
+      });
+    }
     if (method === "GET" && path === "/ai/imports") {
       return json(route, { items: currentImports, next_cursor: null });
     }
