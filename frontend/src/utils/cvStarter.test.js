@@ -55,6 +55,94 @@ describe("CV starter adapter", () => {
     assert.match(fillProfile.summary, /CVSTART_SUMMARY/);
   });
 
+  it("restores and rebinds blank fields in every repeated record", () => {
+    const { cvData } = buildStarterDocument(createDefaultStarterConfig());
+    cvData.experience = [
+      { title: "1", company: "", city: "", period: "", bullets: [""] },
+      { title: "2", company: "", city: "", period: "", bullets: [""] },
+    ];
+    cvData.education = [
+      { degree: "1", school: "", city: "", period: "", description: "" },
+      { degree: "2", school: "", city: "", period: "", description: "" },
+    ];
+    cvData.skills = ["", "React"];
+    cvData.languages = [{ name: "", level: "" }];
+    cvData.custom_sections = [{
+      title: "Kursy",
+      items: ["", "TypeScript"],
+      kind: "other",
+      placement: "after_skills",
+    }];
+
+    const fillProfile = prepareStarterProfileForTemplate(cvData);
+    assert.equal(cvData.experience[1].company, "", "the persisted profile must stay marker-free");
+    assert.match(fillProfile.experience[1].company, /DYNAMIC_EXPERIENCE_1_COMPANY/);
+    assert.match(fillProfile.experience[1].bullets[0], /DYNAMIC_EXPERIENCE_1_BULLETS_0/);
+    assert.match(fillProfile.education[1].school, /DYNAMIC_EDUCATION_1_SCHOOL/);
+    assert.match(fillProfile.skills[0], /DYNAMIC_SKILLS_0_VALUE/);
+    assert.match(fillProfile.languages[0].level, /DYNAMIC_LANGUAGES_0_LEVEL/);
+    assert.match(fillProfile.custom_sections[0].items[0], /DYNAMIC_CUSTOM_0_ITEMS_0/);
+
+    const [
+      experienceMeta,
+      experienceBullet,
+      educationMeta,
+      skill,
+      language,
+      customItem,
+    ] = finalizeStarterElements([
+      {
+        category: "text",
+        content: [
+          fillProfile.experience[1].company,
+          fillProfile.experience[1].city,
+          fillProfile.experience[1].period,
+        ].join(" · "),
+      },
+      {
+        category: "textarea",
+        bulletList: true,
+        content: `• ${fillProfile.experience[1].bullets[0]}`,
+      },
+      {
+        category: "text",
+        content: [
+          fillProfile.education[1].city,
+          fillProfile.education[1].period,
+        ].join(" · "),
+      },
+      { category: "text", content: fillProfile.skills[0] },
+      {
+        category: "text",
+        content: [
+          fillProfile.languages[0].name,
+          fillProfile.languages[0].level,
+        ].join(" — "),
+      },
+      { category: "textarea", content: fillProfile.custom_sections[0].items[0] },
+    ]);
+
+    assert.equal(experienceMeta.content, "");
+    assert.deepEqual(experienceMeta.cvDataBindings.map((binding) => binding.path), [
+      ["experience", 1, "company"],
+      ["experience", 1, "city"],
+      ["experience", 1, "period"],
+    ]);
+    assert.equal(experienceBullet.content, "");
+    assert.equal(experienceBullet.starterPlaceholder, true);
+    assert.deepEqual(experienceBullet.cvDataBindings[0].path, ["experience", 1, "bullets", 0]);
+    assert.deepEqual(educationMeta.cvDataBindings.map((binding) => binding.path), [
+      ["education", 1, "city"],
+      ["education", 1, "period"],
+    ]);
+    assert.deepEqual(skill.cvDataBindings[0].path, ["skills", 0]);
+    assert.deepEqual(language.cvDataBindings.map((binding) => binding.path), [
+      ["languages", 0, "name"],
+      ["languages", 0, "level"],
+    ]);
+    assert.deepEqual(customItem.cvDataBindings[0].path, ["custom_sections", 0, "items", 0]);
+  });
+
   it("builds the same semantic starter contract for all ten template ids", () => {
     const templateIds = [
       "monument", "slate", "atrium", "sterling", "regent",

@@ -65,6 +65,29 @@ const FIELD_DEFINITIONS = Object.freeze({
   language_level: { path: ["languages", 0, "level"], placeholder: "Poziom" },
 });
 
+// A template switch must address every repeated record by its exact array
+// index. The original fixed starter markers describe only index 0; reusing
+// them for later records would make typing into record 2 update record 1.
+const REPEATED_FIELD_DEFINITIONS = Object.freeze({
+  experience: Object.freeze({
+    title: FIELD_DEFINITIONS.experience_title.placeholder,
+    company: FIELD_DEFINITIONS.experience_company.placeholder,
+    city: FIELD_DEFINITIONS.experience_city.placeholder,
+    period: FIELD_DEFINITIONS.experience_period.placeholder,
+  }),
+  education: Object.freeze({
+    degree: FIELD_DEFINITIONS.education_degree.placeholder,
+    school: FIELD_DEFINITIONS.education_school.placeholder,
+    city: FIELD_DEFINITIONS.education_city.placeholder,
+    period: FIELD_DEFINITIONS.education_period.placeholder,
+    description: FIELD_DEFINITIONS.education_description.placeholder,
+  }),
+  languages: Object.freeze({
+    name: FIELD_DEFINITIONS.language_name.placeholder,
+    level: FIELD_DEFINITIONS.language_level.placeholder,
+  }),
+});
+
 /**
  * Canonical field guidance shared by the empty-CV wizard and structural editor.
  *
@@ -112,6 +135,11 @@ function customSectionMarker(key, index) {
     kind: "other",
     placement: "after_skills",
   };
+}
+
+function indexedMarker(collection, index, field, nestedIndex = null) {
+  const suffix = nestedIndex == null ? "" : `_${nestedIndex}`;
+  return `__${MARKER_PREFIX}_DYNAMIC_${collection.toUpperCase()}_${index}_${field.toUpperCase()}${suffix}__`;
 }
 
 /**
@@ -213,11 +241,22 @@ export function buildStarterDocument(config) {
   return { cvData: emptyProfile, fillProfile };
 }
 
-/** Restore marker values for still-empty starter fields before changing template. */
+/**
+ * Restore generator-only markers for every still-empty starter field.
+ *
+ * Root fields keep their original stable markers. Repeated records use indexed
+ * markers so a template can materialize all blank rows and the resulting
+ * `cvDataBindings` still point to the correct Experience, Education, Skills,
+ * Languages, or custom-section item after the target layout is generated.
+ *
+ * @param {object|null} cvData - Empty-starter profile synchronized from the canvas.
+ * @returns {object|null} A cloned fill profile, or the original non-starter profile.
+ */
 export function prepareStarterProfileForTemplate(cvData) {
   if (!cvData?.starter_structure) return cvData;
   const draft = JSON.parse(JSON.stringify(cvData));
   for (const [id, definition] of Object.entries(FIELD_DEFINITIONS)) {
+    if (definition.path.some((part) => typeof part === "number")) continue;
     let cursor = draft;
     const path = definition.path;
     for (let index = 0; index < path.length - 1; index += 1) {
@@ -230,10 +269,50 @@ export function prepareStarterProfileForTemplate(cvData) {
     const last = path[path.length - 1];
     if (cursor && String(cursor[last] ?? "").trim() === "") cursor[last] = marker(id);
   }
-  (draft.custom_sections || []).forEach((section, index) => {
-    if (!Array.isArray(section.items) || section.items.every((item) => !String(item || "").trim())) {
-      section.items = [marker(`custom_${index}`)];
+
+  for (const [collection, definitions] of Object.entries(REPEATED_FIELD_DEFINITIONS)) {
+    (draft[collection] || []).forEach((record, recordIndex) => {
+      if (!record || typeof record !== "object" || Array.isArray(record)) return;
+      for (const field of Object.keys(definitions)) {
+        if (String(record[field] ?? "").trim() === "") {
+          record[field] = indexedMarker(collection, recordIndex, field);
+        }
+      }
+      if (collection === "experience") {
+        const bullets = Array.isArray(record.bullets) ? record.bullets : [];
+        record.bullets = (bullets.length > 0 ? bullets : [""]).map((item, bulletIndex) => (
+          String(item ?? "").trim()
+            ? item
+            : indexedMarker(collection, recordIndex, "bullets", bulletIndex)
+        ));
+      }
+    });
+  }
+
+  (draft.skills || []).forEach((skill, skillIndex) => {
+    if (typeof skill === "string") {
+      if (!skill.trim()) draft.skills[skillIndex] = indexedMarker("skills", skillIndex, "value");
+      return;
     }
+    if (!skill || typeof skill !== "object") return;
+    if (String(skill.category ?? "").trim() === "") {
+      skill.category = indexedMarker("skills", skillIndex, "category");
+    }
+    const items = Array.isArray(skill.items) ? skill.items : [];
+    skill.items = (items.length > 0 ? items : [""]).map((item, itemIndex) => (
+      String(item ?? "").trim()
+        ? item
+        : indexedMarker("skills", skillIndex, "items", itemIndex)
+    ));
+  });
+
+  (draft.custom_sections || []).forEach((section, index) => {
+    const items = Array.isArray(section.items) ? section.items : [];
+    section.items = (items.length > 0 ? items : [""]).map((item, itemIndex) => (
+      typeof item === "string" && !item.trim()
+        ? indexedMarker("custom", index, "items", itemIndex)
+        : item
+    ));
   });
   return draft;
 }
@@ -241,14 +320,50 @@ export function prepareStarterProfileForTemplate(cvData) {
 function markerBindings(content) {
   const bindings = [];
   for (const [id, definition] of Object.entries(FIELD_DEFINITIONS)) {
-    if (content.includes(marker(id))) bindings.push({ ...definition, marker: marker(id) });
+    const token = marker(id);
+    const position = content.indexOf(token);
+    if (position >= 0) bindings.push({ ...definition, marker: token, position });
   }
   const customPattern = new RegExp(`__${MARKER_PREFIX}_CUSTOM_(\\d+)__`, "g");
   for (const match of content.matchAll(customPattern)) {
     const index = Number.parseInt(match[1], 10);
-    bindings.push({ path: ["custom_sections", index, "items", 0], placeholder: "Dodaj treść", marker: match[0] });
+    bindings.push({
+      path: ["custom_sections", index, "items", 0],
+      placeholder: "Dodaj treść",
+      marker: match[0],
+      position: match.index,
+    });
   }
-  return bindings;
+
+  const dynamicPattern = new RegExp(
+    `__${MARKER_PREFIX}_DYNAMIC_(EXPERIENCE|EDUCATION|LANGUAGES|SKILLS|CUSTOM)_(\\d+)_(TITLE|COMPANY|CITY|PERIOD|DEGREE|SCHOOL|DESCRIPTION|NAME|LEVEL|VALUE|CATEGORY|ITEMS|BULLETS)(?:_(\\d+))?__`,
+    "g",
+  );
+  for (const match of content.matchAll(dynamicPattern)) {
+    const collection = match[1].toLocaleLowerCase();
+    const index = Number.parseInt(match[2], 10);
+    const field = match[3].toLocaleLowerCase();
+    const nestedIndex = match[4] == null ? null : Number.parseInt(match[4], 10);
+    let path;
+    let placeholder;
+    if (collection === "custom") {
+      path = ["custom_sections", index, "items", nestedIndex ?? 0];
+      placeholder = "Dodaj treść";
+    } else if (collection === "skills") {
+      path = field === "value"
+        ? ["skills", index]
+        : ["skills", index, field, ...(nestedIndex == null ? [] : [nestedIndex])];
+      placeholder = field === "category" ? "Kategoria umiejętności" : FIELD_DEFINITIONS.skill.placeholder;
+    } else {
+      path = [collection, index, field, ...(nestedIndex == null ? [] : [nestedIndex])];
+      placeholder = field === "bullets"
+        ? FIELD_DEFINITIONS.experience_bullet.placeholder
+        : REPEATED_FIELD_DEFINITIONS[collection]?.[field];
+    }
+    if (!placeholder) continue;
+    bindings.push({ path, placeholder, marker: match[0], position: match.index });
+  }
+  return bindings.sort((left, right) => left.position - right.position);
 }
 
 /** Remove generator markers and attach persistent editor binding metadata. */
@@ -260,7 +375,7 @@ export function finalizeStarterElements(elements) {
     if (bindings.length === 0) return { ...element };
     let cleaned = content;
     bindings.forEach((binding) => { cleaned = cleaned.replaceAll(binding.marker, ""); });
-    cleaned = cleaned.replace(/^\s*[·|–—,-]+\s*|\s*[·|–—,-]+\s*$/g, "").trim();
+    cleaned = cleaned.replace(/^\s*[•·|–—,-]+\s*|\s*[•·|–—,-]+\s*$/g, "").trim();
     const placeholder = bindings.map((binding) => binding.placeholder).join(" · ");
     return {
       ...element,
