@@ -34,7 +34,7 @@ import {
   removeSection,
   reorderSection,
 } from '../utils/sectionStructure';
-import { buildSectionElements } from '../utils/sectionBuilder';
+import { buildSectionElements, SECTION_LAYOUTS } from '../utils/sectionBuilder';
 import {
   addRecordDescription,
   appendRecordToSection,
@@ -79,6 +79,7 @@ import { canvasFontFamily } from '../utils/canvasFont';
 import { isCanvasInteractionTarget, shouldDeferEditZoomRestore } from '../utils/editZoomExit';
 import { useElementSelectionDrag } from './useElementSelectionDrag';
 import { ENDPOINTS } from '../services/api';
+import { TEMPLATES } from '../templates';
 
 /**
  * Core canvas state hook for the A4 CV editor.
@@ -946,11 +947,25 @@ export function useA4Elements(titleRef) {
       const sectionOrdinal = afterIndex >= 0
         ? afterIndex + 2
         : sections.length + 1;
+      const needsRecordTemplate = layout === SECTION_LAYOUTS.RECORD_EDUCATION
+        || layout === SECTION_LAYOUTS.RECORD_EXPERIENCE;
+      const authoredTemplateSpecs = needsRecordTemplate
+        ? TEMPLATES.find((template) => template.id === activeTemplateId)?.elements
+        : null;
+      // A new-CV setup may deliberately omit every Education/Experience row.
+      // Materialize the registered template only as a transient geometry donor
+      // so the first later insertion still uses the authored record structure.
+      const authoredTemplateElements = authoredTemplateSpecs
+        ? materializeElementSpecs(authoredTemplateSpecs, nanoid)
+        : null;
       const recordTemplate = findRecordTemplateForLayout(
         prev,
         layout,
         pageHeight,
-        { lane: intoSidebar ? "sidebar" : "main" },
+        {
+          lane: intoSidebar ? "sidebar" : "main",
+          fallbackElements: authoredTemplateElements,
+        },
       );
       let builtSection = buildSectionElements({
         name,

@@ -735,6 +735,7 @@ export function buildRecordClone(
       editorRecordLayout: layout,
       editorRecordField: (() => {
         const placeholder = String(placeholderCopy || "").trim().toLocaleLowerCase();
+        const linearIndex = realSource.indexOf(element);
         if (isRecordOverlay(element, source, pageHeight)) {
           const anchor = findGroupOverlayAnchor(source, element, pageHeight);
           return anchor?.bold ? "period" : "city";
@@ -745,6 +746,10 @@ export function buildRecordClone(
         if (layout === SECTION_LAYOUTS.RECORD_EDUCATION) {
           if (element?.bold) return "degree";
           if (placeholder === "organizacja") return "school";
+          // Overlay fields may appear between the left-column rows in reading
+          // order. Use the row's position in the flowing column so a borrowed
+          // Experience rail still maps its organisation row to `school`.
+          if (sectionType && linearIndex === 1) return "school";
           return index === 1 ? "school" : "meta";
         }
         if (layout === SECTION_LAYOUTS.RECORD_SUBCATEGORY) {
@@ -752,6 +757,7 @@ export function buildRecordClone(
         }
         if (element?.bold || index === 0) return "title";
         if (placeholder === "organizacja") return "organization";
+        if (sectionType && linearIndex === 1) return "organization";
         return "meta";
       })(),
     };
@@ -784,7 +790,7 @@ export function buildRecordClone(
  * @param {object[]} elements
  * @param {"cc-edu"|"cc-exp"} layout
  * @param {number} [pageHeight=842]
- * @param {{ lane?: "main"|"sidebar"|null }} [options]
+ * @param {{ lane?: "main"|"sidebar"|null, fallbackElements?: object[]|null }} [options]
  * @returns {{ members: object[], groups: object[][], sectionTitle: string }|null}
  */
 export function findRecordTemplateForLayout(
@@ -801,6 +807,9 @@ export function findRecordTemplateForLayout(
   }
 
   const wantsSidebar = options.lane === "sidebar";
+  const targetSectionTitle = layout === SECTION_LAYOUTS.RECORD_EDUCATION
+    ? "Wykształcenie"
+    : "Doświadczenie";
   const candidates = [];
   const recordGroups = [];
   for (const section of listEditableSections(elements, pageHeight)) {
@@ -812,25 +821,56 @@ export function findRecordTemplateForLayout(
     for (const members of groups) {
       const inferred = inferRecordLayout(members, { sectionTitle: section.title });
       recordGroups.push({ members, inferred, sectionTitle: section.title });
-      if (inferred !== layout) continue;
       const overlays = members.filter((element) => (
         isRecordOverlay(element, members, pageHeight)
       )).length;
+      const exactLayout = inferred === layout;
+      const compatibleOverlayLayout = overlays > 0 && (
+        inferred === SECTION_LAYOUTS.RECORD_EDUCATION
+        || inferred === SECTION_LAYOUTS.RECORD_EXPERIENCE
+      );
+      // Education and Experience share the same native title/organisation/
+      // description rows and right-hand metadata rail in the editorial
+      // templates. When the requested section is absent, reuse that live
+      // structural sibling instead of generating a vertical generic record.
+      if (!exactLayout && !compatibleOverlayLayout) continue;
       const hasDescription = members.some((element) => Boolean(element?.bulletList));
       const hasBoldTitle = members.some((element) => Boolean(element?.bold));
+      const flowingRows = members.length - overlays;
       candidates.push({
         members,
         groups,
-        sectionTitle: section.title,
+        // Classifying a compatible sibling under the requested title lets the
+        // clone assign Education/Experience semantic field roles correctly.
+        sectionTitle: exactLayout ? section.title : targetSectionTitle,
         // Exact-anchor metadata is the most important signal. A complete
-        // description and bold title then beat short imported records.
-        score: overlays * 1000 + Number(hasDescription) * 100 + Number(hasBoldTitle) * 10 + members.length,
+        // description and bold title then beat short imported records. Exact
+        // meaning wins only when geometry is otherwise equally strong.
+        score: overlays * 1000
+          + Number(hasDescription) * 100
+          + Number(flowingRows === 3) * 50
+          + Number(hasBoldTitle) * 10
+          + Number(exactLayout) * 5
+          + members.length,
       });
     }
   }
 
   candidates.sort((left, right) => right.score - left.score);
-  if (candidates.length === 0) return null;
+  if (candidates.length === 0) {
+    const fallbackElements = options.fallbackElements;
+    if (Array.isArray(fallbackElements) && fallbackElements.length > 0) {
+      // A freshly created CV may omit both record sections. The registered
+      // authored template is then the only reliable source of its geometry.
+      return findRecordTemplateForLayout(
+        fallbackElements,
+        layout,
+        pageHeight,
+        { lane: options.lane, fallbackElements: null },
+      );
+    }
+    return null;
+  }
   const { members, groups, sectionTitle } = candidates[0];
 
   // Imported/generated records omit fields whose value is empty. A source
