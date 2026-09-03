@@ -133,8 +133,12 @@
     content: attr(data-hint);
     color: var(--color-muted);
     text-transform: none;
-    text-decoration: underline dotted;
-    text-decoration-thickness: var(--canvas-editor-hairline, 1px);
+}
+
+/* Fade only the active hint, keeping its caret, pulse background, separators,
+   and authored text at their normal strength. Selection owns this state. */
+.editing:focus [data-metadata-slot][data-empty="true"][data-metadata-caret]::after {
+    color: var(--color-placeholder-active);
 }
 
 .editing:has([data-metadata-slot]) {

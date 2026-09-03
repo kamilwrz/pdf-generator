@@ -17,6 +17,7 @@
     --color-editor-canvas-overlay: rgba(255, 255, 255, .58);
     --color-surface: #ECE8DF;
     --color-muted: #686868;
+    --color-placeholder-active: color-mix(in srgb, var(--color-muted) 40%, transparent);
     --color-border: #C9C5BC;
     --color-accent: #8A664F;
     --color-focus: #155EEF;

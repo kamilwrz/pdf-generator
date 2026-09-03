@@ -14,7 +14,7 @@ export async function expectMetadataCaret(page, field, index, { empty = true } =
   expect(position).not.toBeNull();
   expect(position.height).toBeGreaterThan(4);
   // Native carets blink. Poll screenshots with caret enabled, sampling the
-  // middle of the text line so outlines and dotted underlines cannot pass.
+  // middle of the text line so outlines cannot pass as caret pixels.
   await expect.poll(async () => {
     const shot = await page.screenshot({ caret: "initial", scale: "css" });
     return page.evaluate(async ({ src, position }) => {
