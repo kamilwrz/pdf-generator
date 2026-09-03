@@ -3,8 +3,9 @@
  *
  * Keeping the transition rules pure makes the interaction predictable across
  * section and record controls: hover or keyboard focus reveals a toolbar,
- * opening its menu pins it, and an outside click or completed action clears
- * it. Trigger clicks remain available for direct element editing.
+ * opening its menu or an inline form pins it, and an outside click or
+ * completed action clears it. Trigger clicks remain available for direct
+ * element editing.
  */
 export const CANVAS_TOOLBAR_INITIAL_STATE = Object.freeze({
   visible: false,
@@ -34,6 +35,12 @@ export function reduceCanvasHoverToolbarState(state, event) {
       return state.visible ? state : { ...state, visible: true };
     case "OPEN_MENU":
       return { visible: true, pinned: true, menuOpen: true };
+    case "PIN":
+      return { visible: true, pinned: true, menuOpen: false };
+    case "UNPIN":
+      return state.pinned
+        ? { visible: true, pinned: false, menuOpen: false }
+        : state;
     case "CLOSE_MENU":
       return state.menuOpen
         ? { visible: true, pinned: false, menuOpen: false }

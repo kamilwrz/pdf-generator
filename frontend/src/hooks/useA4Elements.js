@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { nanoid } from 'nanoid';
-import { measureTextareaHeight } from '../utils/textareaHeight';
+import { createCanvasTextWidthMeasurer, measureTextareaHeight } from '../utils/textareaHeight';
 import { reflowTextareaHeight } from '../utils/textareaReflow';
 import { reconcileDocumentPages } from '../utils/structureOperation';
 import { findPageCanvasAtPoint } from '../utils/pageSpread';
@@ -21,6 +21,7 @@ import { DEFAULT_FLOW_SPACING, normalizeFlowSpacing } from '../utils/flowSpacing
 import { collapseSpilledMainIntoSidebar } from '../utils/collapseMainIntoSidebar';
 import { transferSectionLane } from '../utils/transferSectionLane';
 import { changeSkillsDisplayMode } from '../utils/skillsDisplayMode';
+import { insertSkillItem } from '../utils/skillsEntry';
 import {
   deriveSectionStyle,
   appendSectionAtEnd,
@@ -224,6 +225,7 @@ export function useA4Elements(titleRef) {
   // without being recreated on every page change.
   const currentPageRef = useRef(1);
   const elementsRef = useRef([]);
+  const skillTextWidthMeasurerRef = useRef(undefined);
   const pageSizeRef = useRef(A4_PAGE_SIZE);
   const pageCountRef = useRef(1);
   const pageCanvasRefs = useRef(new Map());
@@ -252,6 +254,13 @@ export function useA4Elements(titleRef) {
     A4ref.current = pageCanvasRefs.current.get(currentPage) ?? null;
   }, [currentPage]);
   useEffect(() => { elementsRef.current = A4_Elements; }, [A4_Elements]);
+
+  const measureSkillTextWidth = useCallback((text, style) => {
+    if (skillTextWidthMeasurerRef.current === undefined) {
+      skillTextWidthMeasurerRef.current = createCanvasTextWidthMeasurer();
+    }
+    return skillTextWidthMeasurerRef.current?.(text, style) ?? null;
+  }, []);
 
   // ---- Auto-zoom while editing text ----
   // Entering edit mode on a text/textarea element zooms the canvas to
@@ -1098,6 +1107,50 @@ export function useA4Elements(titleRef) {
       setCurrentPage(jumpToPage);
     }
   }, [finalizeDocumentPages]);
+
+  /**
+   * Add one confirmed skill to a main-column Skills group. The pure layout
+   * operation validates duplicates and preserves the group's current inline,
+   * bullet, or chip representation before document pagination is finalized.
+   *
+   * @param {string} headingId
+   * @param {string} groupId
+   * @param {string} value
+   * @returns {{ok:boolean,error?:string,elementId?:string}}
+   */
+  const handleAddSkillItem = useCallback((headingId, groupId, value) => {
+    if (!headingId || !groupId || editorModeRef.current !== EDITOR_MODE_TEMPLATE) {
+      return { ok: false, error: "not-found" };
+    }
+    const pageHeight = pageSizeRef.current?.height ?? 842;
+    const result = insertSkillItem(
+      elementsRef.current,
+      headingId,
+      groupId,
+      value,
+      pageHeight,
+      {
+        spacing: flowSpacingRef.current,
+        idFactory: nanoid,
+        measureTextWidth: measureSkillTextWidth,
+      },
+    );
+    if (result.error || !result.elements) {
+      return { ok: false, error: result.error || "not-found" };
+    }
+
+    const finalized = finalizeDocumentPages(result.elements, { collapseEmpty: true });
+    // Keep the command ref current before React's effect runs so a rapid second
+    // confirmation cannot append to the pre-insert snapshot.
+    elementsRef.current = finalized;
+    setA4_Elements(finalized);
+    const added = finalized.find((element) => element.element_id === result.elementId);
+    if (added) {
+      const addedPage = Math.max(1, Math.trunc(Number(added.page) || 1));
+      if (addedPage !== currentPageRef.current) setCurrentPage(addedPage);
+    }
+    return { ok: true, elementId: result.elementId };
+  }, [finalizeDocumentPages, measureSkillTextWidth]);
 
   /**
    * Insert a full placeholder record (edu/exp shape with generic copy) below
@@ -2589,6 +2642,7 @@ export function useA4Elements(titleRef) {
     handleAddSection,
     handleAddSectionRecord,
     handleAddGridSectionEntry,
+    handleAddSkillItem,
     handleAddRecordBlock,
     handleAddRecordDescription,
     handleRemoveSection,

@@ -62,12 +62,6 @@
     pointer-events: none;
 }
 
-/* Entry actions may opt into an element-centred anchor. Translating the
-   zero-width portal marker keeps toolbar animation independent from placement. */
-.portalAnchorCentered {
-    transform: translateX(-50%);
-}
-
 .toolbar {
     position: absolute;
     top: 0;
@@ -94,6 +88,11 @@
 
 .below {
     left: 0;
+}
+
+.panelToolbar {
+    display: block;
+    padding: 0;
 }
 
 .control {
@@ -259,7 +258,7 @@
    exported coordinates remain untouched, while touch and keyboard users keep
    access to every structural action. */
 @media (max-width: 720px) {
-    .portalAnchor:not(.portalAnchorCentered) {
+    .portalAnchor:not(.portalAnchorBelow) {
         left: auto !important;
         right: var(--space-2, 8px);
     }

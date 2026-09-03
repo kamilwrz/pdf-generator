@@ -30,10 +30,19 @@ test("an element-centred toolbar can render directly below its anchor", async ()
 
   assert.match(source, /placement = "gutter"/);
   assert.match(source, /placement === "below"/);
-  assert.match(source, /classes\.portalAnchorCentered/);
+  assert.match(source, /portalLeft -= toolbarWidth \/ 2/);
   assert.match(source, /classes\.below/);
-  assert.match(css, /\.portalAnchorCentered\s*\{[^}]*transform:\s*translateX\(-50%\)/s);
   assert.match(css, /\.below\s*\{[^}]*left:\s*0/s);
+});
+
+test("inline toolbar panels can stay inside the viewport and flip above their anchor", async () => {
+  const source = await readFile(new URL("./CanvasHoverToolbar.jsx", import.meta.url), "utf8");
+
+  assert.match(source, /panelContent/);
+  assert.match(source, /collisionAware/);
+  assert.match(source, /window\.innerWidth - toolbarWidth/);
+  assert.match(source, /window\.innerHeight/);
+  assert.match(source, /requestAnimationFrame\(updatePortalGeometry\)/);
 });
 
 test("selected elements keep selection and receive a separate depth cue", async () => {

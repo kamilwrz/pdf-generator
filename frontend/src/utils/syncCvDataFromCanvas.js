@@ -21,7 +21,9 @@ import {
 import {
   listDocumentSections,
   listSidebarSections,
+  sectionElementIds,
 } from "./sectionStructure.js";
+import { collectSkillGroups, isSkillsSectionTitle } from "./skillsLayout.js";
 import {
   isLanguagesGridSection,
   parseLanguageLine,
@@ -492,6 +494,96 @@ function syncGeneratedLanguageGrid(cvData, previousElements, nextElements) {
 }
 
 /**
+ * Read semantic Skills groups from the generated main-column section.
+ * Layout mode is irrelevant: collectSkillGroups understands inline, bullet,
+ * and chip element graphs and returns the same category/item representation.
+ */
+function generatedSkillsSection(elements) {
+  const list = elements || [];
+  return listDocumentSections(list).find((candidate) => {
+    const heading = list.find((element) => element?.element_id === candidate.headingId);
+    return heading && !heading.editorAddedSection && isSkillsSectionTitle(candidate.title);
+  });
+}
+
+function generatedSkillsEntries(elements, currentSkills = []) {
+  const list = elements || [];
+  const section = generatedSkillsSection(list);
+  if (!section) return null;
+  const memberIds = sectionElementIds(list, section.headingId);
+  const members = list.filter((element) => memberIds.has(element.element_id));
+  // A section containing editor-stamped records is owned by
+  // `syncEditorStructures`. Mixing that exact semantic mapping with heuristic
+  // generated-group parsing could flatten a partially restored category while
+  // its old deletion tombstone is still waiting for the autosave pass.
+  if (members.some((element) => element?.editorAddedRecord)) return null;
+  const groups = collectSkillGroups(members, section.headingId)
+    .map((group) => ({
+      category: String(group?.category || "").trim(),
+      items: (group?.items || []).map((item) => String(item || "").trim()).filter(Boolean),
+    }))
+    .filter((group) => group.category || group.items.length > 0);
+  if (groups.length === 0) return [];
+
+  if (groups.every((group) => !group.category)) {
+    return [...new Set(groups.flatMap((group) => group.items))];
+  }
+  const currentGroups = (Array.isArray(currentSkills) ? currentSkills : [])
+    .filter((item) => item && typeof item === "object" && !Array.isArray(item));
+  return groups.map((group) => {
+    const existing = currentGroups.find((candidate) => (
+      String(candidate?.category || candidate?.title || "").trim().toLocaleLowerCase("pl-PL")
+      === group.category.toLocaleLowerCase("pl-PL")
+    ));
+    return { ...(existing || {}), category: group.category, items: group.items };
+  });
+}
+
+/**
+ * Snapshot generated Skills immediately before a template refill. This closes
+ * the same one-effect timing gap handled for Languages, so a just-confirmed
+ * skill cannot disappear when the user changes the template immediately.
+ */
+export function syncGeneratedSkillsForTemplateSwitch(cvData, elements) {
+  if (!cvData || !Array.isArray(elements)) return cvData || null;
+  const skills = generatedSkillsEntries(elements, cvData.skills);
+  if (!skills || JSON.stringify(skills) === JSON.stringify(cvData.skills || [])) {
+    return cvData;
+  }
+  const draft = cloneProfile(cvData);
+  draft.skills = skills;
+  return draft;
+}
+
+function syncGeneratedSkillsSection(cvData, previousElements, nextElements) {
+  const previous = generatedSkillsEntries(previousElements, cvData.skills);
+  const next = generatedSkillsEntries(nextElements, cvData.skills);
+  if (!previous || !next || JSON.stringify(previous) === JSON.stringify(next)) {
+    return cvData;
+  }
+  const draft = cloneProfile(cvData);
+  draft.skills = next;
+  return draft;
+}
+
+function generatedSkillsContentIds(elements) {
+  const list = elements || [];
+  const section = generatedSkillsSection(list);
+  if (!section) return new Set();
+  const memberIds = sectionElementIds(list, section.headingId);
+  return new Set(
+    list
+      .filter((element) => (
+        element?.element_id !== section.headingId
+        && memberIds.has(element?.element_id)
+        && ["text", "textarea"].includes(element?.category)
+        && element?.flowRole !== "section-chrome"
+      ))
+      .map((element) => element.element_id),
+  );
+}
+
+/**
  * Read generator-restored custom grids and keep their semantic items current.
  *
  * A template replacement necessarily creates fresh canvas ids, so restored
@@ -739,7 +831,7 @@ function editableTextChanges(previousElements, nextElements) {
     // An accepted AI shortening can intentionally clear a field. Ignoring an
     // empty `to` value would make the old profile text return on the next
     // template fill, even though the canvas correctly shows it removed.
-    return from && from !== to ? [{ from, to }] : [];
+    return from && from !== to ? [{ elementId: next.element_id, from, to }] : [];
   });
 }
 
@@ -905,6 +997,11 @@ export function syncCvDataFromCanvas(
     previousElements,
     nextElements,
   );
+  nextProfile = syncGeneratedSkillsSection(
+    nextProfile,
+    previousElements,
+    nextElements,
+  );
   nextProfile = syncGeneratedCustomGrids(
     nextProfile,
     previousElements,
@@ -919,7 +1016,16 @@ export function syncCvDataFromCanvas(
     if (nextProfile === cvData) nextProfile = cloneProfile(cvData);
     nextProfile.title = titleEdit.content;
   }
-  for (const { from, to } of editableTextChanges(previousElements, nextElements)) {
+  // Skills are synchronized as a complete semantic section above. Excluding
+  // those same canvas fields from the generic string mapper prevents an
+  // appended inline value (for example `Figma · Miro`) from replacing the
+  // original `Figma` leaf that was just preserved as the first list item.
+  const generatedSkillIds = new Set([
+    ...generatedSkillsContentIds(previousElements),
+    ...generatedSkillsContentIds(nextElements),
+  ]);
+  for (const { elementId, from, to } of editableTextChanges(previousElements, nextElements)) {
+    if (generatedSkillIds.has(elementId)) continue;
     if (countStringLeaves(nextProfile, from) !== 1) continue;
     if (nextProfile === cvData) nextProfile = cloneProfile(cvData);
     nextProfile = replaceUniqueString(nextProfile, from, to);

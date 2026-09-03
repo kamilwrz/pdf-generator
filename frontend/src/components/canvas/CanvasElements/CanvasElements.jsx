@@ -36,6 +36,7 @@ import Path from '../Path/Path';
 import SectionRecordAdd from '../SectionRecordAdd/SectionRecordAdd';
 import RecordBlockAdd from '../RecordBlockAdd/RecordBlockAdd';
 import GridEntryActions from '../GridEntryActions/GridEntryActions';
+import SkillsEntryActions from '../SkillsEntryActions/SkillsEntryActions';
 import FlatSectionLayoutToggle from '../FlatSectionLayoutToggle/FlatSectionLayoutToggle';
 import ContactChannelControls from '../ContactChannelControls/ContactChannelControls';
 import { listContactBands } from '../../../utils/contactBands';
@@ -58,6 +59,7 @@ import { listRecordBlockAddAnchors } from '../../../utils/sectionRecord';
 import { listGridSectionEntryAnchors } from '../../../utils/gridSection';
 import { resolveSectionLaneTransfer } from '../../../utils/transferSectionLane';
 import { listSkillsDisplayAnchors } from '../../../utils/skillsDisplayMode';
+import { listSkillsEntryAnchors } from '../../../utils/skillsEntry';
 import {
   elementBoundsOnPage,
   sectionVisualStartOnPage,
@@ -190,15 +192,6 @@ export default function CanvasElements({ elements, spreadSide = null }) {
   const documentElements = A4_Elements?.length ? A4_Elements : elements;
   const allowLaneTransfer = LANE_TRANSFER_TEMPLATE_IDS.has(activeTemplateId);
 
-  const recordBlockAnchorsById = useMemo(() => {
-    const map = new Map();
-    if (editorMode !== EDITOR_MODE_TEMPLATE) return map;
-    for (const anchor of listRecordBlockAddAnchors(documentElements, pageHeight)) {
-      map.set(anchor.elementId, anchor);
-    }
-    return map;
-  }, [editorMode, documentElements, pageHeight]);
-
   // One anchor per repeatable short entry. The utility deliberately excludes
   // Skills chips even though they share `flowRole: "grid-member"`, preserving
   // their dedicated section-level display controls.
@@ -211,13 +204,41 @@ export default function CanvasElements({ elements, spreadSide = null }) {
     return map;
   }, [editorMode, documentElements, pageHeight]);
 
+  const skillsEntryAnchorsById = useMemo(() => {
+    const map = new Map();
+    if (editorMode !== EDITOR_MODE_TEMPLATE) return map;
+    for (const anchor of listSkillsEntryAnchors(documentElements, pageHeight)) {
+      map.set(anchor.mountElementId, anchor);
+    }
+    return map;
+  }, [editorMode, documentElements, pageHeight]);
+
+  const recordBlockAnchorsById = useMemo(() => {
+    const map = new Map();
+    if (editorMode !== EDITOR_MODE_TEMPLATE) return map;
+    const skillEntryTriggerIds = new Set(
+      [...skillsEntryAnchorsById.values()].flatMap((anchor) => anchor.triggerIds),
+    );
+    for (const anchor of listRecordBlockAddAnchors(documentElements, pageHeight)) {
+      // A Skills body/chip reveals the centred entry form; its category label
+      // keeps the record menu. Splitting the trigger surfaces preserves both
+      // operations and the one-toolbar-at-a-time canvas contract.
+      const hoverIds = anchor.hoverIds.filter((id) => !skillEntryTriggerIds.has(id));
+      map.set(anchor.elementId, { ...anchor, hoverIds });
+    }
+    return map;
+  }, [editorMode, documentElements, pageHeight, skillsEntryAnchorsById]);
+
   const nestedStructuralHoverIds = useMemo(() => {
     const ids = new Set(gridEntryAnchorsById.keys());
+    for (const anchor of skillsEntryAnchorsById.values()) {
+      for (const id of anchor.triggerIds) ids.add(id);
+    }
     for (const anchor of recordBlockAnchorsById.values()) {
       for (const id of anchor.hoverIds || [anchor.elementId]) ids.add(id);
     }
     return ids;
-  }, [gridEntryAnchorsById, recordBlockAnchorsById]);
+  }, [gridEntryAnchorsById, recordBlockAnchorsById, skillsEntryAnchorsById]);
 
   // Heading id → reorder / lane-transfer flags for the section hover affordance.
   const sectionAnchorsById = useMemo(() => {
@@ -323,6 +344,7 @@ export default function CanvasElements({ elements, spreadSide = null }) {
     let node = null;
     const blockAnchor = recordBlockAnchorsById.get(element.element_id);
     const gridEntryAnchor = gridEntryAnchorsById.get(element.element_id);
+    const skillsEntryAnchor = skillsEntryAnchorsById.get(element.element_id);
     const flatAnchor = flatSectionAnchorsById.get(element.element_id);
     const sectionAnchor = sectionAnchorsById.get(element.element_id);
     // Identity and contact fields are the most important direct-edit targets
@@ -432,6 +454,17 @@ export default function CanvasElements({ elements, spreadSide = null }) {
               spreadSide={spreadSide}
             />
           ) : null}
+          {skillsEntryAnchor ? (
+            <SkillsEntryActions
+              headingId={skillsEntryAnchor.headingId}
+              groupId={skillsEntryAnchor.groupId}
+              categoryLabel={skillsEntryAnchor.categoryLabel}
+              triggerIds={skillsEntryAnchor.triggerIds}
+              left={skillsEntryAnchor.left}
+              width={skillsEntryAnchor.width}
+              bottom={skillsEntryAnchor.bottom}
+            />
+          ) : null}
         </>
       );
     } else if (element.category === "text") {
@@ -480,6 +513,17 @@ export default function CanvasElements({ elements, spreadSide = null }) {
               descriptionAction={blockAnchor.descriptionAction}
               highlight={blockAnchor.highlight}
               spreadSide={spreadSide}
+            />
+          ) : null}
+          {skillsEntryAnchor ? (
+            <SkillsEntryActions
+              headingId={skillsEntryAnchor.headingId}
+              groupId={skillsEntryAnchor.groupId}
+              categoryLabel={skillsEntryAnchor.categoryLabel}
+              triggerIds={skillsEntryAnchor.triggerIds}
+              left={skillsEntryAnchor.left}
+              width={skillsEntryAnchor.width}
+              bottom={skillsEntryAnchor.bottom}
             />
           ) : null}
         </>

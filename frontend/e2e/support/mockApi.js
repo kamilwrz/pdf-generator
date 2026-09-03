@@ -59,6 +59,11 @@ export const SAVED_ELEMENTS = Object.freeze([
     page: 1,
     bold: true,
     flowRole: "section-chrome",
+    extra_properties: {
+      bold: true,
+      lineHeight: 12,
+      flowRole: "section-chrome",
+    },
   },
   {
     element_id: "skills-rule",
@@ -69,6 +74,7 @@ export const SAVED_ELEMENTS = Object.freeze([
     height: 1,
     page: 1,
     flowRole: "section-chrome",
+    extra_properties: { flowRole: "section-chrome" },
   },
   {
     element_id: "skills-tools-title",
@@ -87,11 +93,20 @@ export const SAVED_ELEMENTS = Object.freeze([
     flowGroup: "skills-tools",
     editorRecordLayout: "cc-sub",
     editorRecordField: "title",
+    extra_properties: {
+      bold: true,
+      autoHeight: true,
+      lineHeight: 12,
+      flowRole: "content",
+      flowGroup: "skills-tools",
+      editorRecordLayout: "cc-sub",
+      editorRecordField: "title",
+    },
   },
   {
     element_id: "skills-tools-body",
     category: "textarea",
-    content: "Figma, Miro",
+    content: "Figma  ·  Miro",
     left: 250,
     top: 226,
     width: 280,
@@ -104,6 +119,14 @@ export const SAVED_ELEMENTS = Object.freeze([
     flowGroup: "skills-tools",
     editorRecordLayout: "cc-sub",
     editorRecordField: "body",
+    extra_properties: {
+      autoHeight: true,
+      lineHeight: 12,
+      flowRole: "content",
+      flowGroup: "skills-tools",
+      editorRecordLayout: "cc-sub",
+      editorRecordField: "body",
+    },
   },
   {
     element_id: "skills-technologies-title",
@@ -122,11 +145,20 @@ export const SAVED_ELEMENTS = Object.freeze([
     flowGroup: "skills-technologies",
     editorRecordLayout: "cc-sub",
     editorRecordField: "title",
+    extra_properties: {
+      bold: true,
+      autoHeight: true,
+      lineHeight: 12,
+      flowRole: "content",
+      flowGroup: "skills-technologies",
+      editorRecordLayout: "cc-sub",
+      editorRecordField: "title",
+    },
   },
   {
     element_id: "skills-technologies-body",
     category: "textarea",
-    content: "React, TypeScript",
+    content: "React  ·  TypeScript",
     left: 250,
     top: 270,
     width: 280,
@@ -139,6 +171,14 @@ export const SAVED_ELEMENTS = Object.freeze([
     flowGroup: "skills-technologies",
     editorRecordLayout: "cc-sub",
     editorRecordField: "body",
+    extra_properties: {
+      autoHeight: true,
+      lineHeight: 12,
+      flowRole: "content",
+      flowGroup: "skills-technologies",
+      editorRecordLayout: "cc-sub",
+      editorRecordField: "body",
+    },
   },
 ]);
 
@@ -206,12 +246,18 @@ function json(route, value, status = 200) {
  */
 export async function installMockApi(
   page,
-  { documents = [SAVED_DOCUMENT], imports = IMPORT_HISTORY, assistantResponses = [] } = {},
+  {
+    documents = [SAVED_DOCUMENT],
+    savedDocument = SAVED_DOCUMENT,
+    savedElements = SAVED_ELEMENTS,
+    imports = IMPORT_HISTORY,
+    assistantResponses = [],
+  } = {},
 ) {
   const calls = [];
   const unexpected = [];
   const productionRequests = [];
-  let currentRevision = SAVED_DOCUMENT.revision;
+  let currentRevision = savedDocument.revision;
   let currentImports = imports.map((item) => ({ ...item }));
   let assistantResponseIndex = 0;
 
@@ -246,11 +292,11 @@ export async function installMockApi(
     }
     if (method === "GET" && path === "/pdf/fetch_pdfs") return json(route, documents);
     if (method === "POST" && path === "/pdf/show_pdf") {
-      return json(route, { document: SAVED_DOCUMENT, elements: SAVED_ELEMENTS });
+      return json(route, { document: savedDocument, elements: savedElements });
     }
     if (method === "PUT" && path === "/pdf/update_pdf") {
       currentRevision += 1;
-      return json(route, { updated: true, pdf_id: SAVED_DOCUMENT.id, revision: currentRevision });
+      return json(route, { updated: true, pdf_id: savedDocument.id, revision: currentRevision });
     }
     if (method === "POST" && path === "/pdf/create_pdf") {
       return json(route, { created: true, replayed: false, pdf_id: 91, revision: 1 });

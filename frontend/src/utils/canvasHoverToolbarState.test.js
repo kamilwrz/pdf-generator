@@ -48,3 +48,19 @@ test("reset clears the complete menu interaction", () => {
     CANVAS_TOOLBAR_INITIAL_STATE,
   );
 });
+
+test("an inline form can pin and unpin the toolbar without opening a menu", () => {
+  const pinned = reduceCanvasHoverToolbarState(
+    CANVAS_TOOLBAR_INITIAL_STATE,
+    { type: "PIN" },
+  );
+  assert.deepEqual(pinned, { visible: true, pinned: true, menuOpen: false });
+  assert.deepEqual(
+    reduceCanvasHoverToolbarState(pinned, { type: "HIDE_IF_TRANSIENT" }),
+    pinned,
+  );
+  assert.deepEqual(
+    reduceCanvasHoverToolbarState(pinned, { type: "UNPIN" }),
+    { visible: true, pinned: false, menuOpen: false },
+  );
+});

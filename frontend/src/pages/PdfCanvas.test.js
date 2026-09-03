@@ -88,3 +88,10 @@ test("canvas context exposes repeatable-grid entry mutations", async () => {
   assert.match(source, /handleAddGridSectionEntry/);
   assert.match(source, /handleRemoveGridSectionEntry/);
 });
+
+test("canvas context exposes the mode-aware Skills entry mutation", async () => {
+  const source = await readFile(url, "utf8");
+
+  assert.match(source, /addSkillItem:\s*handleAddSkillItem/);
+  assert.match(source, /handleAddSkillItem/);
+});

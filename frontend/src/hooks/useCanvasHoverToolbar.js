@@ -27,6 +27,9 @@ import {
  *   hoveredTriggerId:string|null,
  *   toolbarPointerProps:object,
  *   hide:() => void,
+ *   show:() => void,
+ *   pin:() => void,
+ *   unpin:() => void,
  *   openMenu:() => void,
  *   closeMenu:() => void,
  * }}
@@ -96,6 +99,17 @@ export function useCanvasHoverToolbar({
     claimExclusive();
     dispatch({ type: "OPEN_MENU" });
   }, [claimExclusive, clearHideTimer, eligible]);
+
+  const pin = useCallback(() => {
+    if (!eligible) return;
+    clearHideTimer();
+    claimExclusive();
+    dispatch({ type: "PIN" });
+  }, [claimExclusive, clearHideTimer, eligible]);
+
+  const unpin = useCallback(() => {
+    dispatch({ type: "UNPIN" });
+  }, []);
 
   const closeMenu = useCallback(() => {
     dispatch({ type: "CLOSE_MENU" });
@@ -186,7 +200,10 @@ export function useCanvasHoverToolbar({
       onFocusCapture: show,
       onBlurCapture: scheduleHide,
     },
+    show,
     hide,
+    pin,
+    unpin,
     openMenu,
     closeMenu,
   };

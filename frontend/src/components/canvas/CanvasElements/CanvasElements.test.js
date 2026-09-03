@@ -72,6 +72,17 @@ test("repeatable grid cells mount their dedicated two-action control", async () 
   assert.match(source, /canDelete=\{gridEntryAnchor\.canDelete\}/);
 });
 
+test("main-column Skills groups mount their dedicated add form anchors", async () => {
+  const source = await readFile(new URL("./CanvasElements.jsx", import.meta.url), "utf8");
+
+  assert.match(source, /import SkillsEntryActions from '\.\.\/SkillsEntryActions\/SkillsEntryActions'/);
+  assert.match(source, /listSkillsEntryAnchors\(documentElements, pageHeight\)/);
+  assert.match(source, /skillsEntryAnchorsById\.get\(element\.element_id\)/);
+  assert.match(source, /<SkillsEntryActions/);
+  assert.match(source, /groupId=\{skillsEntryAnchor\.groupId\}/);
+  assert.match(source, /triggerIds=\{skillsEntryAnchor\.triggerIds\}/);
+});
+
 test("plain section content reveals the complete section depth without stealing nested controls", async () => {
   const source = await readFile(new URL("./CanvasElements.jsx", import.meta.url), "utf8");
   const sectionSource = await readFile(

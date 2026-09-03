@@ -450,10 +450,10 @@ function estimateTextWidth(text, fontSize) {
 }
 
 /** Horizontal/vertical pill padding and gaps, px — mirrors backend `CHIP_PAD_*`/`CHIP_GAP_*`. */
-const CHIP_PAD_X = 10;
-const CHIP_PAD_Y = 5;
-const CHIP_GAP_X = 8;
-const CHIP_GAP_Y = 8;
+export const SKILL_CHIP_PAD_X = 10;
+export const SKILL_CHIP_PAD_Y = 5;
+export const SKILL_CHIP_GAP_X = 8;
+export const SKILL_CHIP_GAP_Y = 8;
 
 /**
  * Wrap one category's skill chips into rows, mirroring the backend's
@@ -463,26 +463,40 @@ const CHIP_GAP_Y = 8;
  * @param {string[]} items
  * @param {number} width
  * @param {number} fontSize
+ * @param {{measureTextWidth?:Function|null,textStyle?:object}} [options]
  * @returns {{ placements: { skill: string, dx: number, dy: number, width: number }[], height: number }}
  */
-function layoutSkillChips(items, width, fontSize) {
+export function layoutSkillChips(items, width, fontSize, options = {}) {
   const cleaned = (items || []).map((item) => String(item || "").trim()).filter(Boolean);
   if (cleaned.length === 0) return { placements: [], height: 0 };
-  const chipH = fontSize + 2 * CHIP_PAD_Y;
-  const rowStep = chipH + CHIP_GAP_Y;
+  const chipH = fontSize + 2 * SKILL_CHIP_PAD_Y;
+  const rowStep = chipH + SKILL_CHIP_GAP_Y;
   const placements = [];
   let cx = 0;
   let cy = 0;
   let rowStarted = false;
   for (const skill of cleaned) {
-    const chipW = estimateTextWidth(skill, fontSize) + 2 * CHIP_PAD_X;
+    // Interactive additions run in the browser and can use the exact active
+    // font metrics. Pure generator/layout tests keep the deterministic
+    // approximation, preserving the existing server-compatible fallback.
+    const measuredWidth = typeof options.measureTextWidth === "function"
+      ? options.measureTextWidth(skill, {
+        ...(options.textStyle || {}),
+        fontSize,
+      })
+      : null;
+    const chipW = (
+      Number.isFinite(Number(measuredWidth))
+        ? Math.max(1, Number(measuredWidth))
+        : estimateTextWidth(skill, fontSize)
+    ) + 2 * SKILL_CHIP_PAD_X;
     if (rowStarted && cx + chipW > width) {
       cx = 0;
       cy += rowStep;
       rowStarted = false;
     }
     placements.push({ skill, dx: cx, dy: cy, width: chipW });
-    cx += chipW + CHIP_GAP_X;
+    cx += chipW + SKILL_CHIP_GAP_X;
     rowStarted = true;
   }
   return { placements, height: cy + chipH };
@@ -530,7 +544,7 @@ export function buildSkillsChipGroups(groups, options) {
   const bodyColor = body.color || "#26313F";
   const fontFamily = body.fontFamily || "Montserrat";
   const chipVariant = normalizeSkillChipVariant(options.chipVariant);
-  const variantGeometry = chipVariantGeometry(chipVariant, bodyFs + 2 * CHIP_PAD_Y);
+  const variantGeometry = chipVariantGeometry(chipVariant, bodyFs + 2 * SKILL_CHIP_PAD_Y);
   const chipBg = options.chipBg || "#2B2B2B";
   const chipFg = options.chipFg || (variantGeometry.filled ? "#FFFFFF" : bodyColor);
   const stackGap = Number.isFinite(Number(options.stackGap)) ? Number(options.stackGap) : 4;
@@ -576,7 +590,7 @@ export function buildSkillsChipGroups(groups, options) {
 
     if (hasBody) {
       const { placements, height: rowHeight } = layoutSkillChips(items, recordWidth, bodyFs);
-      const chipH = bodyFs + 2 * CHIP_PAD_Y;
+      const chipH = bodyFs + 2 * SKILL_CHIP_PAD_Y;
       for (const { skill, dx, dy, width: chipW } of placements) {
         // The underline treatment uses the existing line primitive. Every
         // other treatment uses the rectangle primitive whose `filled`,
@@ -617,7 +631,7 @@ export function buildSkillsChipGroups(groups, options) {
           flowRole: "grid-member",
           flowGroup,
           content: skill,
-          left: bodyLeft + dx + CHIP_PAD_X,
+          left: bodyLeft + dx + SKILL_CHIP_PAD_X,
           // Visible cap centre sits on the pill midline — see `_chip_label_top`
           // / `healSkillChipLabelBaselines`.
           top: cursor + dy + chipH / 2,

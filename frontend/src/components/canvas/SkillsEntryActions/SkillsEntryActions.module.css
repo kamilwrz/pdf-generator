@@ -1,0 +1,128 @@
+.form {
+    box-sizing: border-box;
+    width: min(296px, calc(100vw - 16px));
+    display: grid;
+    gap: var(--space-2);
+    padding: var(--space-3);
+    background: var(--color-paper);
+    color: var(--color-editor-ink);
+}
+
+.label {
+    color: var(--color-editor-ink);
+    font: 600 12px/1.25 var(--font-body);
+    letter-spacing: .01em;
+}
+
+.row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 36px 36px;
+    gap: var(--space-1);
+    align-items: center;
+}
+
+.input {
+    box-sizing: border-box;
+    min-width: 0;
+    height: var(--control-height-compact);
+    padding: 0 var(--space-2);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-control);
+    outline: 0;
+    background: var(--color-paper);
+    color: var(--color-editor-ink);
+    font: 400 14px/1.4 var(--font-body);
+}
+
+.input::placeholder {
+    color: var(--color-muted);
+}
+
+.input:focus-visible {
+    border-color: var(--color-focus);
+    box-shadow: 0 0 0 2px var(--color-focus-soft);
+}
+
+.input[aria-invalid="true"] {
+    border-color: var(--color-danger);
+}
+
+.confirm,
+.cancel {
+    box-sizing: border-box;
+    width: 36px;
+    height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border-radius: var(--radius-control);
+    cursor: pointer;
+    transition: background-color var(--motion-fast) var(--motion-ease),
+        color var(--motion-fast) var(--motion-ease),
+        border-color var(--motion-fast) var(--motion-ease);
+}
+
+.confirm {
+    border: 1px solid var(--color-editor-ink);
+    background: var(--color-editor-ink);
+    color: var(--color-paper);
+}
+
+.cancel {
+    border: 1px solid var(--color-border);
+    background: var(--color-paper);
+    color: var(--color-muted);
+}
+
+.confirm:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--color-editor-ink) 88%, var(--color-paper));
+}
+
+.cancel:hover {
+    border-color: var(--color-editor-ink);
+    background: var(--color-surface);
+    color: var(--color-editor-ink);
+}
+
+.confirm:disabled {
+    opacity: .36;
+    cursor: default;
+}
+
+.confirm svg,
+.cancel svg {
+    width: 16px;
+    height: 16px;
+}
+
+.error {
+    margin: 0;
+    color: var(--color-danger);
+    font: 600 12px/1.35 var(--font-body);
+}
+
+.srOnly {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    border: 0;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+    .input {
+        font-size: 16px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .confirm,
+    .cancel {
+        transition: none;
+    }
+}

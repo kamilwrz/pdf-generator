@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   syncCvDataFromCanvas,
   syncGeneratedLanguagesForTemplateSwitch,
+  syncGeneratedSkillsForTemplateSwitch,
 } from "./syncCvDataFromCanvas.js";
 
 const profile = {
@@ -914,5 +915,67 @@ describe("syncCvDataFromCanvas", () => {
     assert.equal(updated.experience[0].__canvasGroup, "record-second");
     assert.equal(repeated, updated);
     assert.equal(repeated.experience[0].__canvasGroup, "record-second");
+  });
+});
+
+describe("generated Skills synchronization", () => {
+  function flatSkills(items) {
+    return [
+      { element_id: "skills-heading", category: "text", content: "UMIEJĘTNOŚCI",
+        flowRole: "section-chrome", left: 60, top: 100, width: 460, height: 16, page: 1 },
+      { element_id: "skills-rule", category: "line", flowRole: "section-chrome",
+        left: 60, top: 121, width: 460, height: 1, page: 1 },
+      { element_id: "skills-body", category: "textarea", content: items.join("  ·  "),
+        flowRole: "content", left: 60, top: 136, width: 460, height: 14,
+        fontSize: 9.5, lineHeight: 13, page: 1, bulletList: false },
+    ];
+  }
+
+  function groupedSkills(extra = []) {
+    return [
+      { element_id: "skills-heading", category: "text", content: "UMIEJĘTNOŚCI",
+        flowRole: "section-chrome", left: 60, top: 100, width: 460, height: 16, page: 1 },
+      { element_id: "skills-rule", category: "line", flowRole: "section-chrome",
+        left: 60, top: 121, width: 460, height: 1, page: 1 },
+      { element_id: "skills-category", category: "textarea", content: "Narzędzia",
+        flowRole: "content", flowGroup: "tools", left: 60, top: 136, width: 460,
+        height: 14, fontSize: 10, page: 1, bold: true },
+      { element_id: "skills-body", category: "textarea", content: ["Figma", ...extra].join("  ·  "),
+        flowRole: "content", flowGroup: "tools", left: 60, top: 154, width: 460,
+        height: 14, fontSize: 9.5, page: 1, bulletList: false },
+    ];
+  }
+
+  it("keeps category-free skills as a flat string array", () => {
+    const source = { ...profile, skills: ["Figma", "React"] };
+    const previous = flatSkills(["Figma", "React"]);
+    const next = flatSkills(["Figma", "React", "Accessibility"]);
+    const updated = syncCvDataFromCanvas(source, previous, next);
+
+    assert.deepEqual(updated.skills, ["Figma", "React", "Accessibility"]);
+  });
+
+  it("keeps categorized skills structured and preserves existing metadata", () => {
+    const source = {
+      ...profile,
+      skills: [{ category: "Narzędzia", items: ["Figma"], source: "import" }],
+    };
+    const updated = syncCvDataFromCanvas(source, groupedSkills(), groupedSkills(["Miro"]));
+
+    assert.deepEqual(updated.skills, [{
+      category: "Narzędzia",
+      items: ["Figma", "Miro"],
+      source: "import",
+    }]);
+  });
+
+  it("captures a just-added skill before immediate template replacement", () => {
+    const source = { ...profile, skills: ["Figma", "React"] };
+    const updated = syncGeneratedSkillsForTemplateSwitch(
+      source,
+      flatSkills(["Figma", "React", "TypeScript"]),
+    );
+
+    assert.deepEqual(updated.skills, ["Figma", "React", "TypeScript"]);
   });
 });

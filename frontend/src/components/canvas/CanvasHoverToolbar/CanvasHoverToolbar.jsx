@@ -37,6 +37,8 @@ import classes from "./CanvasHoverToolbar.module.css";
  *   onCloseMenu?:() => void,
  *   menuItems?:{key:string,label:string,icon?:import("react").ReactNode,danger?:boolean,disabled?:boolean,onSelect:() => void}[],
  *   directActions?:{key:string,label:string,icon:import("react").ReactNode,danger?:boolean,disabled?:boolean,onSelect:() => void}[],
+ *   panelContent?:import("react").ReactNode,
+ *   collisionAware?:boolean,
  *   toolbarPointerProps?:object,
  * }} props
  */
@@ -66,9 +68,12 @@ export default function CanvasHoverToolbar({
   onCloseMenu,
   menuItems = [],
   directActions = [],
+  panelContent = null,
+  collisionAware = false,
   toolbarPointerProps = {},
 }) {
   const originRef = useRef(null);
+  const toolbarRef = useRef(null);
   const [portalGeometry, setPortalGeometry] = useState(null);
 
   // The highlight belongs to the scaled A4 page, but the actionable toolbar
@@ -87,7 +92,28 @@ export default function CanvasHoverToolbar({
       const pageRect = page.getBoundingClientRect();
       const pageWidthInLayout = page.offsetWidth || pageRect.width;
       const scale = pageWidthInLayout > 0 ? pageRect.width / pageWidthInLayout : 1;
-      const next = { left: originRect.left, top: originRect.top, scale };
+      const toolbarRect = toolbarRef.current?.getBoundingClientRect?.();
+      const toolbarWidth = toolbarRect?.width || 0;
+      const toolbarHeight = toolbarRect?.height || 0;
+      let portalLeft = originRect.left;
+      let portalTop = originRect.top;
+      if (placement === "below" && toolbarWidth > 0) {
+        portalLeft -= toolbarWidth / 2;
+        if (collisionAware) {
+          const viewportInset = 8;
+          portalLeft = Math.max(
+            viewportInset,
+            Math.min(portalLeft, window.innerWidth - toolbarWidth - viewportInset),
+          );
+          if (
+            portalTop + toolbarHeight + viewportInset > window.innerHeight
+            && originRect.top - toolbarHeight - 36 >= viewportInset
+          ) {
+            portalTop = originRect.top - toolbarHeight - 36;
+          }
+        }
+      }
+      const next = { left: portalLeft, top: portalTop, scale };
       setPortalGeometry((previous) => (
         previous
           && previous.left === next.left
@@ -99,6 +125,9 @@ export default function CanvasHoverToolbar({
     }
 
     updatePortalGeometry();
+    // The first pass runs before the portal mounts. The next animation frame
+    // can use the panel's real dimensions for exact centring and collision.
+    const measurementFrame = window.requestAnimationFrame(updatePortalGeometry);
     const origin = originRef.current;
     const page = origin?.closest?.("[data-page-canvas]");
     const canvasArea = origin?.closest?.(".canvas-area") || document.querySelector(".canvas-area");
@@ -134,6 +163,7 @@ export default function CanvasHoverToolbar({
     canvasHost?.addEventListener("transitioncancel", stopCanvasTransitionTracking);
     return () => {
       resizeObserver?.disconnect();
+      window.cancelAnimationFrame(measurementFrame);
       if (trackingFrame != null) window.cancelAnimationFrame(trackingFrame);
       window.removeEventListener("resize", updatePortalGeometry);
       window.removeEventListener("scroll", updatePortalGeometry, true);
@@ -143,7 +173,7 @@ export default function CanvasHoverToolbar({
       canvasHost?.removeEventListener("transitionend", stopCanvasTransitionTracking);
       canvasHost?.removeEventListener("transitioncancel", stopCanvasTransitionTracking);
     };
-  }, [visible, side, placement, anchorX, top, pageWidth, layout]);
+  }, [visible, side, placement, anchorX, top, pageWidth, layout, collisionAware]);
 
   if (!visible && !highlightVisible) return null;
 
@@ -215,18 +245,18 @@ export default function CanvasHoverToolbar({
 
       {visible && portalStyle && typeof document !== "undefined" ? createPortal(
         <div
-          className={`${classes.portalAnchor}${placement === "below" ? ` ${classes.portalAnchorCentered}` : ""}`}
+          className={`${classes.portalAnchor}${placement === "below" ? ` ${classes.portalAnchorBelow}` : ""}`}
           style={portalStyle}
           data-editor-control="true"
           data-canvas-toolbar-key={toolbarKey}
           {...toolbarPointerProps}
         >
-          <div className={`${classes.toolbar} ${placement === "below"
+          <div ref={toolbarRef} className={`${classes.toolbar}${panelContent ? ` ${classes.panelToolbar}` : ""} ${placement === "below"
             ? classes.below
             : side === "left"
               ? classes.left
               : classes.right}`}>
-            {hasDirectActions ? directActions.map((item) => (
+            {panelContent || (hasDirectActions ? directActions.map((item) => (
               <button
                 key={item.key}
                 type="button"
@@ -310,7 +340,7 @@ export default function CanvasHoverToolbar({
                   </div>
                 ) : null}
               </>
-            )}
+            ))}
           </div>
         </div>,
         document.body,

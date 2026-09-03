@@ -14,7 +14,10 @@ import { isTemplateAllowed, planErrorMessage } from "../utils/entitlements";
 import { DEFAULT_FLOW_SPACING } from "../utils/flowSpacing";
 import { getAccessToken } from "../utils/authSession";
 import { useDocumentLifecycle } from "../store/document-lifecycle-context";
-import { syncGeneratedLanguagesForTemplateSwitch } from "../utils/syncCvDataFromCanvas";
+import {
+  syncGeneratedLanguagesForTemplateSwitch,
+  syncGeneratedSkillsForTemplateSwitch,
+} from "../utils/syncCvDataFromCanvas";
 import { prepareStarterProfileForTemplate } from "../utils/cvStarter.js";
 
 /**
@@ -50,11 +53,16 @@ export function useApplyCvTemplate() {
       return false;
     }
     // The canvas may be one React effect ahead of `activeCvData` immediately
-    // after + inserts a Languages cell. Read the grid directly before sending
-    // the refill. Textarea stores each input in A4_Elements even while the cell
-    // remains in edit mode, so this does not depend on focus after the click.
-    const synchronizedProfile = syncGeneratedLanguagesForTemplateSwitch(
+    // after a local + inserts a Language or Skill. Read both semantic sections
+    // directly before sending the refill. Textarea stores each input in
+    // A4_Elements even while it remains in edit mode, so this snapshot does not
+    // depend on a blur or another render completing first.
+    const synchronizedLanguages = syncGeneratedLanguagesForTemplateSwitch(
       activeCvData,
+      A4_Elements,
+    );
+    const synchronizedProfile = syncGeneratedSkillsForTemplateSwitch(
+      synchronizedLanguages,
       A4_Elements,
     );
     const profileForFill = prepareStarterProfileForTemplate(synchronizedProfile);
