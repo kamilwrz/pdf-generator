@@ -2335,6 +2335,7 @@ export function EditorController() {
                 title={pendingGuestDocRef.current?.title || null}
                 onConfirm={handleClaimGuestDocumentConfirm}
                 onDecline={handleClaimGuestDocumentDecline}
+                onDismiss={() => setDialog(null)}
               />
               <AddSectionModal
                 open={addSectionModal.open}

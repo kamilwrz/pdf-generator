@@ -968,7 +968,7 @@ Guest mode lets a visitor configure and edit a real A4 CV before creating an acc
 - **New CV** — `start=new`, StartChooser, the normal Topbar, and the demo CTA all open the same `NewCvSetupModal`. Anonymous `POST /ai/fill_template` is allowed only for Free templates and uses deterministic Python layout. The generated canvas remains unsaved with `pdfId: null`.
 - **Guest canvas autosave** — `guestDocument.js` stores the current document in `cvstudio.guest.doc` after a debounce. Authenticated documents are never background-saved; **Zapisz** remains the only persistence action.
 - **Save and export gate** — guests can edit, reorder, change templates, and use history, but **Zapisz** and **Pobierz PDF** open the editorial `SaveGateModal`. It states that the local browser draft remains available, separates the Free limits into **1 CV** and **3 PDF files per month**, and leads with **Utwórz darmowe konto** while retaining login and editor-return paths. Import and account-scoped AI also require authentication.
-- **Safe claim after authentication** — `ClaimGuestDocumentModal` asks whether browser-local work belongs to the newly authenticated person. Confirmation hydrates it as an unsaved canvas; declining removes it. A JWT alone never silently attaches local personal data to an account.
+- **Safe claim after authentication** — `ClaimGuestDocumentModal` names the browser-local document and asks whether it belongs to the newly authenticated person. Its decision layout contrasts the exact outcomes: recovery opens an unsaved canvas that still requires **Zapisz**, while explicit deletion permanently removes the browser copy. **Wczytaj mój szkic** receives initial focus. Close, backdrop click, Escape, and **Pomiń na razie** preserve the draft; only **Usuń ten szkic** invokes the destructive decline handler. A JWT alone never silently attaches local personal data to an account.
 - **Demo** — `start=demo` loads the canonical Linden sample. `DemoBanner` opens the same A4 setup, without the retired conversion intent.
 - **Legacy bio drafts** — `guestWizardDraft.js` and `GET /ai/bio_cv_draft` are read only to offer explicit recovery in StartChooser. The draft is deleted only after a successful conversion; no new A4 setup writes it.
 - **Analytics** — anonymous funnel events are capped and buffered by `guestEvents.js`, then flushed through authenticated `POST /events/log`.
@@ -976,17 +976,18 @@ Guest mode lets a visitor configure and edit a real A4 CV before creating an acc
 Implementation:
 
 - `frontend/src/App.jsx` — public editor route and legacy redirect
-- `frontend/src/pages/PdfCanvas.jsx`, components `EditorController` and `EditorView` — token-aware surfaces, local restoration, safe claim, demo, legacy recovery, and A4 setup
+- `frontend/src/pages/PdfCanvas.jsx`, lines 1948–2041 and 2333–2339, components `EditorController` and `EditorView` — browser-draft detection, explicit load/delete handlers, non-destructive dismissal wiring, local restoration, demo, legacy recovery, and A4 setup
 - `frontend/src/components/editor/StartChooser/StartChooser.jsx` — new/import primary actions, saved documents and legacy recovery as secondary actions
 - `frontend/src/components/editor/NewCvSetupModal/NewCvSetupModal.jsx` — common guest/authenticated A4 configuration
 - `frontend/src/utils/guestDocument.js`, `resolveActiveCvData.js`, `guestWizardDraft.js`, and `guestEvents.js`
-- `frontend/src/components/editor/SaveGateModal/SaveGateModal.jsx` and `ClaimGuestDocumentModal/ClaimGuestDocumentModal.jsx`
+- `frontend/src/components/editor/SaveGateModal/SaveGateModal.jsx`; `ClaimGuestDocumentModal/ClaimGuestDocumentModal.jsx`, lines 22–86, and `ClaimGuestDocumentModal.module.css`, lines 1–223 — the ownership prompt uses the shared `DialogShell` decision variant, names the draft, compares consequences, and keeps dismissal separate from deletion
 - `frontend/src/services/fillTemplate.js` — omits the bearer header when there is no token
 - `backend/app/core/security.py`, `verify_token_optional`; `backend/app/api/routes/ai.py`, `fill_template` — Free-template anonymous fill boundary
 
 Tests:
 
-- `frontend/src/utils/guestDocument.test.js`, `resolveActiveCvData.test.js`, `guestWizardDraft.test.js`, `guestEvents.test.js`, `demoModeChrome.test.js`, and `documentLifecycleGuards.test.js`
+- `frontend/src/utils/guestDocument.test.js`, `resolveActiveCvData.test.js`, `guestWizardDraft.test.js`, `guestEvents.test.js`, `demoModeChrome.test.js`, and `documentLifecycleGuards.test.js`; `ClaimGuestDocumentModal.runtime.test.jsx`, lines 9–61, covers copy, fallback title, initial focus, safe dismissal, Escape, and explicit deletion
+- `frontend/e2e/guest-entry.spec.js`, lines 90–126, covers the complete guest-draft → login → ownership decision at compact, tablet, laptop, and wide widths, including preservation after Escape and deletion only after the danger action
 - `backend/tests/test_fill_template_guest.py`
 
 Limitations: browser-local work is lost when site data is cleared or another device is used. Import remains account-gated for consent, ownership, abuse control, and quota metering. An authenticated user must still click **Zapisz** after claiming a guest canvas.
@@ -3526,7 +3527,7 @@ Tryb gościa pozwala skonfigurować i edytować prawdziwe CV A4 przed założeni
 - **Nowe CV** — `start=new`, StartChooser, zwykły Topbar i CTA demo otwierają ten sam `NewCvSetupModal`. Anonimowe `POST /ai/fill_template` jest dozwolone wyłącznie dla szablonów Free i używa deterministycznego układu Python. Wygenerowane płótno pozostaje niezapisane z `pdfId: null`.
 - **Autozapis płótna gościa** — `guestDocument.js` po debounce zapisuje dokument w `cvstudio.guest.doc`. Dokumenty zalogowane nie są zapisywane w tle; **Zapisz** pozostaje jedyną akcją utrwalenia.
 - **Bramka zapisu i eksportu** — gość może edytować, zmieniać kolejność i szablony oraz używać historii, lecz **Zapisz** i **Pobierz PDF** otwierają redakcyjny `SaveGateModal`. Dialog mówi, że lokalny szkic w przeglądarce pozostaje dostępny, rozdziela limity Free na **1 CV** i **3 pliki PDF miesięcznie** oraz prowadzi akcją **Utwórz darmowe konto**, zachowując ścieżkę logowania i powrotu do edytora. Import i AI przypisane do konta również wymagają logowania.
-- **Bezpieczne przejęcie po logowaniu** — `ClaimGuestDocumentModal` pyta, czy praca lokalna przeglądarki należy do świeżo zalogowanej osoby. Potwierdzenie hydratuje ją jako niezapisane płótno, a odmowa usuwa. Samo pojawienie się JWT nigdy nie przypisuje po cichu lokalnych danych osobowych do konta.
+- **Bezpieczne przejęcie po logowaniu** — `ClaimGuestDocumentModal` podaje nazwę lokalnego dokumentu i pyta, czy należy on do świeżo zalogowanej osoby. Układ decyzyjny porównuje dokładne skutki: odzyskanie otwiera niezapisane płótno, które nadal wymaga kliknięcia **Zapisz**, natomiast jawne usunięcie trwale kasuje kopię z przeglądarki. **Wczytaj mój szkic** otrzymuje fokus początkowy. Krzyżyk, kliknięcie tła, Escape i **Pomiń na razie** zachowują szkic; tylko **Usuń ten szkic** wywołuje destrukcyjny handler odmowy. Samo pojawienie się JWT nigdy nie przypisuje po cichu lokalnych danych osobowych do konta.
 - **Demo** — `start=demo` ładuje kanoniczny przykład Linden. `DemoBanner` otwiera ten sam konfigurator A4, bez wycofanej intencji konwersji.
 - **Starsze szkice bio** — `guestWizardDraft.js` i `GET /ai/bio_cv_draft` są tylko odczytywane, aby zaproponować jawną akcję odzyskania w StartChooser. Szkic jest usuwany dopiero po udanej konwersji; nowy konfigurator go nie zapisuje.
 - **Analityka** — anonimowe zdarzenia lejka są ograniczane i buforowane przez `guestEvents.js`, a następnie wysyłane przez uwierzytelnione `POST /events/log`.
@@ -3534,17 +3535,18 @@ Tryb gościa pozwala skonfigurować i edytować prawdziwe CV A4 przed założeni
 Implementacja:
 
 - `frontend/src/App.jsx` — publiczna trasa edytora i przekierowanie legacy
-- `frontend/src/pages/PdfCanvas.jsx`, komponenty `EditorController` i `EditorView` — powierzchnie zależne od tokenu, lokalne odtwarzanie, bezpieczny claim, demo, recovery legacy i konfigurator A4
+- `frontend/src/pages/PdfCanvas.jsx`, linie 1948–2041 i 2333–2339, komponenty `EditorController` i `EditorView` — wykrywanie szkicu przeglądarkowego, jawne handlery wczytania/usunięcia, niedestrukcyjne zamknięcie, lokalne odtwarzanie, demo, recovery legacy i konfigurator A4
 - `frontend/src/components/editor/StartChooser/StartChooser.jsx` — nowe/import jako akcje główne, zapisane dokumenty i recovery legacy jako akcje drugorzędne
 - `frontend/src/components/editor/NewCvSetupModal/NewCvSetupModal.jsx` — wspólna konfiguracja A4 dla gościa i konta
 - `frontend/src/utils/guestDocument.js`, `resolveActiveCvData.js`, `guestWizardDraft.js` i `guestEvents.js`
-- `frontend/src/components/editor/SaveGateModal/SaveGateModal.jsx` i `ClaimGuestDocumentModal/ClaimGuestDocumentModal.jsx`
+- `frontend/src/components/editor/SaveGateModal/SaveGateModal.jsx`; `ClaimGuestDocumentModal/ClaimGuestDocumentModal.jsx`, linie 22–86, oraz `ClaimGuestDocumentModal.module.css`, linie 1–223 — dialog własności używa wspólnego wariantu decyzyjnego `DialogShell`, podaje nazwę szkicu, porównuje skutki i oddziela zamknięcie od usunięcia
 - `frontend/src/services/fillTemplate.js` — pomija nagłówek bearer bez tokenu
 - `backend/app/core/security.py`, `verify_token_optional`; `backend/app/api/routes/ai.py`, `fill_template` — granica anonimowego fill tylko dla Free
 
 Testy:
 
-- `frontend/src/utils/guestDocument.test.js`, `resolveActiveCvData.test.js`, `guestWizardDraft.test.js`, `guestEvents.test.js`, `demoModeChrome.test.js` i `documentLifecycleGuards.test.js`
+- `frontend/src/utils/guestDocument.test.js`, `resolveActiveCvData.test.js`, `guestWizardDraft.test.js`, `guestEvents.test.js`, `demoModeChrome.test.js` i `documentLifecycleGuards.test.js`; `ClaimGuestDocumentModal.runtime.test.jsx`, linie 9–61, sprawdza treść, tytuł zastępczy, fokus początkowy, bezpieczne zamknięcie, Escape i jawne usunięcie
+- `frontend/e2e/guest-entry.spec.js`, linie 90–126, pokrywa pełny przepływ szkic gościa → logowanie → decyzja o własności na szerokościach kompaktowej, tabletowej, laptopowej i szerokiej, w tym zachowanie po Escape oraz usunięcie wyłącznie po akcji destrukcyjnej
 - `backend/tests/test_fill_template_guest.py`
 
 Ograniczenia: lokalna praca znika po wyczyszczeniu danych witryny lub zmianie urządzenia. Import pozostaje za kontem ze względu na zgodę, własność, ochronę przed nadużyciami i limity. Po przejęciu płótna gościa zalogowany użytkownik nadal musi kliknąć **Zapisz**.
