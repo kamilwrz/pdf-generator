@@ -6,13 +6,14 @@
     --topbar-control: var(--chrome-control);
     --topbar-hover: var(--chrome-hover);
     --topbar-accent: var(--chrome-accent);
-    height: var(--topbar-h);
+    min-height: var(--space-12);
     flex-shrink: 0;
-    display: flex;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
     align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    padding: 0 10px;
+    gap: var(--space-4);
+    padding: var(--space-1) var(--space-3);
+    padding-right: calc(var(--space-3) + var(--canvas-scrollbar-gutter, 0px));
     background: var(--topbar-surface);
     border-bottom: 1px solid var(--topbar-border);
     font-family: var(--font-body);
@@ -20,10 +21,22 @@
     z-index: var(--z-sticky);
 }
 
+.demoTopbar {
+    grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.documentGroup {
+    justify-self: start;
+}
+
+.outputGroup {
+    justify-self: end;
+}
+
 .group {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--space-2);
     flex-shrink: 0;
 }
 
@@ -44,14 +57,30 @@
 }
 
 .workflowCluster {
-    gap: 3px;
+    gap: var(--space-1);
 }
 
 .templateCluster {
-    gap: 1px;
-    margin-left: 3px;
-    padding-left: 4px;
-    border-left: 1px solid var(--topbar-border);
+    justify-self: center;
+    gap: var(--space-2);
+}
+
+/* Symmetric arrows and gaps keep the labelled action on the document axis. */
+.templateCluster .iconBtn,
+.templateCluster .feature {
+    min-width: var(--control-height-compact, 36px);
+    height: var(--control-height-compact, 36px);
+}
+
+.templateCluster .feature.labeled {
+    width: auto;
+    gap: var(--space-2);
+    padding-inline: var(--space-3);
+    font-size: 12px;
+}
+
+.templateCluster .toolLabel {
+    display: inline;
 }
 
 /* ---- "current project" field, left-aligned in the left action group ---- */
@@ -486,21 +515,30 @@
     }
 }
 
-@media (max-width: 760px) {
-    .topbar {
-        justify-content: flex-start;
-        gap: 4px;
-        padding-inline: 6px;
-        overflow-x: auto;
-        overflow-y: hidden;
-        overscroll-behavior-x: contain;
-        scrollbar-width: thin;
+/* Keep each group in DOM/focus order when all three no longer fit side by
+   side. Wrapping actions avoids clipping previews or horizontal page scroll. */
+@media (max-width: 1200px) {
+    .topbar,
+    .demoTopbar {
+        grid-template-columns: minmax(0, 1fr);
+        gap: var(--space-1);
     }
 
     .group {
-        gap: 3px;
+        min-width: 0;
+        max-width: 100%;
+        flex-wrap: wrap;
+        justify-content: center;
+        justify-self: center;
+        gap: var(--space-1);
     }
 
+    .templateCluster {
+        padding-block: var(--space-1);
+    }
+}
+
+@media (max-width: 760px) {
     .projectIcon,
     .rename {
         display: none;
@@ -508,35 +546,23 @@
 
     .projectField {
         width: 96px;
-        padding: 0 4px;
+        padding: 0 var(--space-1);
     }
 
-    /* A horizontally scrollable toolbar cannot expose an out-of-flow preview
-       without clipping it. Accessible names and native titles remain on the
-       arrow buttons, so mobile and zoomed layouts lose no information. */
-    .templatePreview {
-        display: none;
+    .projectField input {
+        font-size: 16px;
     }
 }
 
 /* Preserve the same controls at laptop widths; only their redundant visible
    labels collapse because every button retains its tooltip and accessible name. */
 @media (max-width: 1450px) {
-    .toolLabel {
-        display: none;
-    }
-
-    .feature.labeled {
-        width: 34px;
-        padding: 0;
-    }
-}
-
-@media (max-width: 1120px) {
+    .toolLabel,
     .outputLabel {
         display: none;
     }
 
+    .feature.labeled,
     .secondary.labeled,
     .primary.labeled {
         width: 34px;
@@ -545,6 +571,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+    .topbar *,
     .fitOne {
         animation: none;
         transition: none;

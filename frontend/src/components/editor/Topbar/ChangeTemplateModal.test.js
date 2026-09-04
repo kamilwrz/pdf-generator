@@ -44,7 +44,7 @@ describe("Topbar template switcher", () => {
     assert.match(topbarSource, /adjacentAllowedTemplate/);
   });
 
-  it("lives in the left action group, not anchored to the A4 page edge", () => {
+  it("exposes its own semantic template navigation group", () => {
     assert.match(topbarSource, /aria-label="Szablon CV"/);
     assert.doesNotMatch(topbarSource, /querySelector\("\.page-canvas"\)/);
   });

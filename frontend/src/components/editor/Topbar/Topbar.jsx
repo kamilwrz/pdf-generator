@@ -9,15 +9,12 @@
  * renders the current canvas on demand without saving. Both are
  * entitlement-gated upstream.
  *
- * The project name and CV workflow controls live in the left action group
- * (rather than centered over the canvas or anchored to the A4 page edge).
- * This leaves the middle of the topbar free so the element-properties panel
- * (`Editor.jsx`, docked left of `[data-anchor="topbar-zoom"]`) never overlaps
- * them. The labelled template button opens the change-template modal;
- * flanking arrows restyle in place without opening that dialog.
+ * Template navigation occupies its own middle column above the A4 workspace.
+ * Equal outer columns keep its position independent of the document title and
+ * output actions. Compact layouts stack the groups in their keyboard order.
  */
 import classes from "./Topbar.module.css";
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { Link } from "react-router-dom";
 import { useCanvasContext } from "../../../store/canvas-context";
 import { useSession } from "../../../store/session-context";
@@ -31,6 +28,34 @@ import { useApplyCvTemplate } from "../../../hooks/useApplyCvTemplate";
 import PageControls from "../PageControls/PageControls";
 
 export default function Topbar({ titleRef, title, onTitleChange }) {
+    const topbarRef = useRef(null);
+
+    useEffect(() => {
+        const topbar = topbarRef.current;
+        const canvas = topbar?.parentElement.querySelector(".canvas-area");
+        if (!canvas) return;
+        // The canvas reserves a platform-dependent scrollbar gutter. Mirror
+        // that inset in the header so both content areas share the same axis.
+        // ResizeObserver also covers viewport zoom and scrollbar changes.
+        const shell = topbar.closest(".main-container");
+        const syncGutter = () => {
+            topbar.style.setProperty(
+                "--canvas-scrollbar-gutter",
+                `${canvas.offsetWidth - canvas.clientWidth}px`,
+            );
+            // Sidebar flyouts use this shared height to clear wrapped rows.
+            shell?.style.setProperty("--topbar-h", `${topbar.offsetHeight}px`);
+        };
+        syncGutter();
+        const observer = new ResizeObserver(syncGutter);
+        observer.observe(canvas);
+        observer.observe(topbar);
+        return () => {
+            observer.disconnect();
+            shell?.style.removeProperty("--topbar-h");
+        };
+    }, []);
+
     const { showAiPanel, showNewCvSetup, showChangeTemplateModal } = useUiSurfaces();
     const {
         isDemoContent,
@@ -69,11 +94,11 @@ export default function Topbar({ titleRef, title, onTitleChange }) {
         : "Najpierw utwórz nowe CV albo zaimportuj PDF";
 
     return (
-        <header className={classes.topbar} data-anchor="editor-topbar">
-            {/* Left: document identity, creation/appearance workflow, then edit
+        <header ref={topbarRef} className={`${classes.topbar} ${isDemoContent ? classes.demoTopbar : ""}`} data-anchor="editor-topbar">
+            {/* Left: document identity, creation workflow, then edit
                 history. The ordering keeps document-wide actions together and
                 reserves icon-only controls for conventions users already know. */}
-            <div className={classes.group}>
+            <div className={`${classes.group} ${classes.documentGroup}`}>
                 {isDemoContent ? (
                     <div className={classes.demoIdentity} aria-label="CV Studio Demo">
                         <span>CV STUDIO</span>
@@ -104,7 +129,7 @@ export default function Topbar({ titleRef, title, onTitleChange }) {
                     </button>
                 </div>}
                 {!isDemoContent && <span className={classes.divider} aria-hidden="true" />}
-                {!isDemoContent && <div className={classes.workflowCluster} role="group" aria-label="Tworzenie i wygląd CV">
+                {!isDemoContent && <div className={classes.workflowCluster} role="group" aria-label="Tworzenie CV">
                     <button
                         type="button"
                         className={`${classes.feature} ${classes.labeled}`}
@@ -125,59 +150,6 @@ export default function Topbar({ titleRef, title, onTitleChange }) {
                         <FiPlus />
                         <span className={`${classes.actionLabel} ${classes.toolLabel}`}>Nowe CV</span>
                     </button>
-                    <div className={classes.templateCluster} role="group" aria-label="Szablon CV">
-                    {/* Hovering/focusing an arrow reveals a small live mockup of the
-                        template it would switch to, instead of a plain text tooltip —
-                        `title` is only set for the disabled edge case (no adjacent
-                        template) so the native tooltip never fights the preview card. */}
-                    <div className={classes.templateNavAnchor}>
-                        <button
-                            type="button"
-                            className={classes.iconBtn}
-                            onClick={() => prevTemplate && applyTemplate(prevTemplate)}
-                            disabled={!canRestyle || !prevTemplate}
-                            aria-label={prevTemplate ? `Poprzedni szablon: ${prevTemplate.name}` : "Poprzedni szablon"}
-                            title={prevTemplate ? `Poprzedni szablon: ${prevTemplate.name}` : templatesHint}
-                        >
-                            <RiArrowLeftSLine />
-                        </button>
-                        {prevTemplate && (
-                            <div className={`${classes.templatePreview} ${classes.templatePreviewLeft}`} role="presentation">
-                                <img src={`/template-mockups/${prevTemplate.id}.png`} alt="" loading="lazy" />
-                                <span className={classes.templatePreviewLabel}>{prevTemplate.name}</span>
-                            </div>
-                        )}
-                    </div>
-                    <button
-                        type="button"
-                        className={`${classes.feature} ${classes.labeled}`}
-                        onClick={showChangeTemplateModal}
-                        disabled={!activeCvData}
-                        aria-label="Zmień szablon"
-                        title={templatesHint}
-                    >
-                        <RiShuffleLine />
-                        <span className={`${classes.actionLabel} ${classes.toolLabel}`}>Zmień szablon</span>
-                    </button>
-                    <div className={classes.templateNavAnchor}>
-                        <button
-                            type="button"
-                            className={classes.iconBtn}
-                            onClick={() => nextTemplate && applyTemplate(nextTemplate)}
-                            disabled={!canRestyle || !nextTemplate}
-                            aria-label={nextTemplate ? `Następny szablon: ${nextTemplate.name}` : "Następny szablon"}
-                            title={nextTemplate ? `Następny szablon: ${nextTemplate.name}` : templatesHint}
-                        >
-                            <RiArrowRightSLine />
-                        </button>
-                        {nextTemplate && (
-                            <div className={`${classes.templatePreview} ${classes.templatePreviewRight}`} role="presentation">
-                                <img src={`/template-mockups/${nextTemplate.id}.png`} alt="" loading="lazy" />
-                                <span className={classes.templatePreviewLabel}>{nextTemplate.name}</span>
-                            </div>
-                        )}
-                    </div>
-                    </div>
                 </div>}
                 <span className={classes.divider} aria-hidden="true" />
                 <div className={classes.cluster} role="group" aria-label="Historia zmian">
@@ -202,13 +174,62 @@ export default function Topbar({ titleRef, title, onTitleChange }) {
                 ) : null}
             </div>
 
+            {!isDemoContent && <div className={classes.templateCluster} role="group" aria-label="Szablon CV">
+                {/* Adjacent template previews appear on hover and keyboard focus;
+                native titles also name the action when a preview is unavailable. */}
+                <div className={classes.templateNavAnchor}>
+                    <button
+                        type="button"
+                        className={classes.iconBtn}
+                        onClick={() => prevTemplate && applyTemplate(prevTemplate)}
+                        disabled={!canRestyle || !prevTemplate}
+                        aria-label={prevTemplate ? `Poprzedni szablon: ${prevTemplate.name}` : "Poprzedni szablon"}
+                        title={prevTemplate ? `Poprzedni szablon: ${prevTemplate.name}` : templatesHint}
+                    >
+                        <RiArrowLeftSLine />
+                    </button>
+                    {prevTemplate && (
+                        <div className={`${classes.templatePreview} ${classes.templatePreviewLeft}`} role="presentation">
+                            <img src={`/template-mockups/${prevTemplate.id}.png`} alt="" loading="lazy" />
+                            <span className={classes.templatePreviewLabel}>{prevTemplate.name}</span>
+                        </div>
+                    )}
+                </div>
+                <button
+                    type="button"
+                    className={`${classes.feature} ${classes.labeled}`}
+                    onClick={showChangeTemplateModal}
+                    disabled={!activeCvData}
+                    aria-label="Zmień szablon"
+                    title={templatesHint}
+                >
+                    <RiShuffleLine />
+                    <span className={`${classes.actionLabel} ${classes.toolLabel}`}>Zmień szablon</span>
+                </button>
+                <div className={classes.templateNavAnchor}>
+                    <button
+                        type="button"
+                        className={classes.iconBtn}
+                        onClick={() => nextTemplate && applyTemplate(nextTemplate)}
+                        disabled={!canRestyle || !nextTemplate}
+                        aria-label={nextTemplate ? `Następny szablon: ${nextTemplate.name}` : "Następny szablon"}
+                        title={nextTemplate ? `Następny szablon: ${nextTemplate.name}` : templatesHint}
+                    >
+                        <RiArrowRightSLine />
+                    </button>
+                    {nextTemplate && (
+                        <div className={`${classes.templatePreview} ${classes.templatePreviewRight}`} role="presentation">
+                            <img src={`/template-mockups/${nextTemplate.id}.png`} alt="" loading="lazy" />
+                            <span className={classes.templatePreviewLabel}>{nextTemplate.name}</span>
+                        </div>
+                    )}
+                </div>
+            </div>}
+
             {/* Right: view controls (zoom + pages), then document output. */}
-            <div className={classes.group}>
+            <div className={`${classes.group} ${classes.outputGroup}`}>
                 <div className={classes.cluster} role="group" aria-label="Widok dokumentu">
-                    {/* Anchor for Editor.jsx's element-properties panel — it docks
-                        50px to the left of this cluster, not near the canvas
-                        selection. `data-*` (not the CSS-module class) so the
-                        selector survives module class hashing across files. */}
+                    {/* Stable view-controls anchor for editor chrome consumers. */}
                     <div className={classes.zoomCluster} data-anchor="topbar-zoom">
                         <button
                             type="button"

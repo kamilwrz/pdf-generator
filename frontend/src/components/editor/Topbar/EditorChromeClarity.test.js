@@ -26,7 +26,7 @@ test("topbar labels ambiguous actions without changing their existing handlers",
 test("topbar exposes stable semantic groups and a precise destructive label", async () => {
   const source = await readFile(topbarUrl, "utf8");
 
-  assert.match(source, /aria-label="Tworzenie i wygląd CV"/);
+  assert.match(source, /aria-label="Tworzenie CV"/);
   assert.match(source, /aria-label="Historia zmian"/);
   assert.match(source, /aria-label="Widok dokumentu"/);
   assert.match(source, /aria-label="Operacje dokumentu"/);
@@ -38,8 +38,7 @@ test("responsive topbar keeps every command and collapses only visible labels", 
   const css = await readFile(topbarCssUrl, "utf8");
 
   assert.match(css, /@media \(max-width: 1450px\)/);
-  assert.match(css, /\.toolLabel\s*{[^}]*display: none/s);
-  assert.match(css, /@media \(max-width: 1120px\)/);
+  assert.match(css, /\.toolLabel,\s*\.outputLabel\s*{[^}]*display: none/s);
   assert.match(css, /\.outputLabel\s*{[^}]*display: none/s);
 });
 
