@@ -2315,7 +2315,8 @@ export function EditorController() {
                   onClose={() => setDialog(null)}
                   onCreate={handleCreateStarterCv}
                   entitlements={entitlements}
-                  hasActiveDocument={A4_Elements.length > 0}
+                  hasActiveDocument={A4_Elements.length > 0 && !isDemoContent}
+                  allowUnconfirmedReplacement={isDemoContent}
                 />
               ) : null}
               <ChangeTemplateModal />

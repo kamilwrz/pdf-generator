@@ -1697,7 +1697,7 @@ Tests:
 
 The former multi-step bio wizard has been replaced by a single focused setup dialog. The landing page and editor Topbar expose **Utwórz nowe CV / Nowe CV** (`start=new`), while **Importuj CV** remains the alternative start. A fresh editor no longer exposes a blank-canvas choice. Saved documents remain available as a secondary action.
 
-`NewCvSetupModal` uses the shared `DialogShell` and keeps template, contact, photo, and section choices in one view. Meridian is selected initially. Free/Pro availability stays visible, unsupported photo choices are disabled with an explicit status message, and section order can be changed by native drag-and-drop or labelled up/down buttons. The default structure contains phone, e-mail, location, summary, experience, education, and skills; optional social links and any number of custom sections can be enabled. Opening **Nowe CV** over an active document first shows an in-dialog replacement confirmation. The accepted result is committed atomically as a new unsaved document (`pdfId: null`) and never overwrites the previous saved project.
+`NewCvSetupModal` uses the shared `DialogShell` and keeps template, contact, photo, and section choices in one view. Meridian is selected initially. Free/Pro availability stays visible, unsupported photo choices are disabled with an explicit status message, and section order can be changed by native drag-and-drop or labelled up/down buttons. The default structure contains phone, e-mail, location, summary, experience, education, and skills; optional social links and any number of custom sections can be enabled. Opening **Nowe CV** over a user-authored active document first shows an in-dialog replacement confirmation. The built-in Linden demo is product-owned sample content, so **Utwórz moje CV na A4** opens setup directly and explicitly authorizes replacing only that sample without an additional unsaved-work prompt. The accepted result is committed atomically as a new unsaved document (`pdfId: null`) and never overwrites the previous saved project.
 
 The setup and replacement confirmation use `DialogShell surface="paper"`: the template column, form fields, footer, and close/reorder controls are white. Beige is limited to the selected template and hover feedback; brown remains on headings, checked controls, and primary actions. Locked templates keep readable muted labels and dashed borders, with only their preview dimmed. The existing backdrop is unchanged. The shared variant scopes `--chrome-control` to the dialog and gives its wrapping subtitle clearance from the close button; the setup grid uses shrinkable tracks on compact screens. See [W3C CSS custom properties](https://www.w3.org/TR/css-variables-1/) for the inheritance mechanism that keeps these tokens inside the dialog. Styles: `frontend/src/components/editor/NewCvSetupModal/NewCvSetupModal.module.css`, lines 1–69; `frontend/src/components/common/DialogShell/DialogShell.module.css`, lines 46–59, selectors `paperSurface`, `footer`, and `header`.
 
@@ -1709,10 +1709,10 @@ Legacy browser/server bio drafts are read only for an explicit one-time **Przeni
 
 Implementation:
 
-- `frontend/src/components/editor/NewCvSetupModal/NewCvSetupModal.jsx`, lines 21–265, component `NewCvSetupModal` — one-screen configuration, replacement confirmation, Pro/photo states, drag and keyboard ordering, custom sections, focus and error retention
+- `frontend/src/components/editor/NewCvSetupModal/NewCvSetupModal.jsx`, lines 28–273, component `NewCvSetupModal` — one-screen configuration, replacement confirmation for user-authored documents, direct demo replacement, Pro/photo states, drag and keyboard ordering, custom sections, focus and error retention
 - `frontend/src/utils/cvStarter.js`, lines 35–394, constants/functions `MARKER_VALUES`, `REPEATED_FIELD_DEFINITIONS`, `createDefaultStarterConfig`, `buildStarterDocument`, `prepareStarterProfileForTemplate`, and `finalizeStarterElements`
 - `frontend/src/utils/starterElementStructure.js`, lines 1–234, functions `reflowStarterContacts`, `applyStarterElementStructure`, and `prepareStarterElementsForRender`; `frontend/src/utils/contactBandOps.js`, lines 55–172, functions `channelLabels` and `applyChannelRelayout` — placeholder-aware editor and render-copy contact reflow
-- `frontend/src/pages/PdfCanvas.jsx`, lines 1617–1771, `startFreshDocument`, `loadAiElementsFresh`, and `handleCreateStarterCv`
+- `frontend/src/pages/PdfCanvas.jsx`, lines 1628–1780 and 2313–2320, `startFreshDocument`, `loadAiElementsFresh`, `handleCreateStarterCv`, and the demo-aware modal wiring
 - `frontend/src/utils/syncCvDataFromCanvas.js`, lines 1–1096, `syncStarterBindings` and `syncCvDataFromCanvas`
 - `frontend/src/hooks/usePdfExport.js`, lines 31–330, hook `usePdfExport` — persists `root` and sends the template-aware compact `render_root`
 - `backend/app/schemas/pdf_schema.py`, lines 274–348, `PdfElement`, `PDFCreateRequest`, and `PDFUpdateRequest`; `backend/app/crud/pdfs.py`, lines 175–609 — starter metadata round trip through `extra_properties`
@@ -1720,7 +1720,8 @@ Implementation:
 
 Tests:
 
-- `frontend/src/components/editor/NewCvSetupModal/NewCvSetupModal.test.js`
+- `frontend/src/components/editor/NewCvSetupModal/NewCvSetupModal.test.js` and `NewCvSetupModal.runtime.test.jsx` — structural contract plus direct-demo and protected-user-document interaction paths
+- `frontend/src/utils/demoNewCvFlow.test.js` — locks the demo-aware integration between `PdfCanvas` and the setup modal
 - `frontend/src/utils/cvStarter.test.js`, lines 10–180, suite `CV starter adapter`, including `restores and rebinds blank fields in every repeated record`
 - `frontend/src/utils/starterElementStructure.test.js`
 - `frontend/src/utils/requiredCvName.test.js`
@@ -4247,7 +4248,7 @@ Testy:
 
 Dawny wieloetapowy kreator bio został zastąpiony jednym skupionym dialogiem konfiguracji. Landing i Topbar edytora udostępniają **Utwórz nowe CV / Nowe CV** (`start=new`), a **Importuj CV** pozostaje alternatywnym początkiem. Świeży edytor nie oferuje już pustego płótna. Zapisane dokumenty pozostają akcją drugorzędną.
 
-`NewCvSetupModal` korzysta ze wspólnego `DialogShell` i mieści wybór szablonu, kontaktów, zdjęcia oraz sekcji w jednym widoku. Meridian jest wybrany początkowo. Dostępność Free/Pro jest stale widoczna, nieobsługiwane zdjęcie wyłącza się z jednoznacznym komunikatem, a kolejność sekcji można zmieniać natywnym drag-and-drop lub podpisanymi przyciskami góra/dół. Domyślna struktura zawiera telefon, e-mail, lokalizację, podsumowanie, doświadczenie, wykształcenie i umiejętności; można włączyć linki społecznościowe oraz dowolną liczbę sekcji własnych. Otwarcie **Nowe CV** nad aktywnym dokumentem najpierw pokazuje potwierdzenie w tym samym dialogu. Zaakceptowany wynik jest zatwierdzany atomowo jako nowy niezapisany dokument (`pdfId: null`) i nigdy nie nadpisuje poprzedniego zapisanego projektu.
+`NewCvSetupModal` korzysta ze wspólnego `DialogShell` i mieści wybór szablonu, kontaktów, zdjęcia oraz sekcji w jednym widoku. Meridian jest wybrany początkowo. Dostępność Free/Pro jest stale widoczna, nieobsługiwane zdjęcie wyłącza się z jednoznacznym komunikatem, a kolejność sekcji można zmieniać natywnym drag-and-drop lub podpisanymi przyciskami góra/dół. Domyślna struktura zawiera telefon, e-mail, lokalizację, podsumowanie, doświadczenie, wykształcenie i umiejętności; można włączyć linki społecznościowe oraz dowolną liczbę sekcji własnych. Otwarcie **Nowe CV** nad aktywnym dokumentem utworzonym przez użytkownika najpierw pokazuje potwierdzenie w tym samym dialogu. Wbudowane demo Linden jest treścią demonstracyjną produktu, dlatego **Utwórz moje CV na A4** otwiera konfigurację bezpośrednio i jawnie zezwala na zastąpienie wyłącznie tej próbki bez dodatkowego ostrzeżenia o niezapisanej pracy. Zaakceptowany wynik jest zatwierdzany atomowo jako nowy niezapisany dokument (`pdfId: null`) i nigdy nie nadpisuje poprzedniego zapisanego projektu.
 
 Konfiguracja i potwierdzenie zastąpienia używają `DialogShell surface="paper"`: kolumna szablonów, pola formularza, stopka oraz kontrolki zamykania i kolejności są białe. Beż pojawia się tylko przy wybranym szablonie i najechaniu; brąz pozostaje w nagłówkach, zaznaczonych kontrolkach i akcjach głównych. Zablokowane szablony mają czytelne przygaszone etykiety oraz przerywane obramowania, a przyciemniona jest wyłącznie miniatura. Dotychczasowe tło za modalem pozostaje bez zmian. Wspólny wariant ogranicza `--chrome-control` do dialogu i zostawia zawijanemu opisowi miejsce obok przycisku zamknięcia; siatka konfiguratora może zwężać kolumny na małych ekranach. [Specyfikacja zmiennych CSS W3C](https://www.w3.org/TR/css-variables-1/) wyjaśnia dziedziczenie ograniczające te tokeny do dialogu. Style: `frontend/src/components/editor/NewCvSetupModal/NewCvSetupModal.module.css`, linie 1–69; `frontend/src/components/common/DialogShell/DialogShell.module.css`, linie 46–59, selektory `paperSurface`, `footer` i `header`.
 
@@ -4259,10 +4260,10 @@ Starsze szkice bio w przeglądarce lub na serwerze są odczytywane wyłącznie p
 
 Implementacja:
 
-- `frontend/src/components/editor/NewCvSetupModal/NewCvSetupModal.jsx`, linie 21–265, komponent `NewCvSetupModal` — konfiguracja w jednym oknie, potwierdzenie zastąpienia, stany Pro/zdjęcia, kolejność drag i klawiaturowa, sekcje własne, fokus i zachowanie błędu
+- `frontend/src/components/editor/NewCvSetupModal/NewCvSetupModal.jsx`, linie 28–273, komponent `NewCvSetupModal` — konfiguracja w jednym oknie, potwierdzenie zastąpienia dokumentów użytkownika, bezpośrednie zastąpienie demo, stany Pro/zdjęcia, kolejność drag i klawiaturowa, sekcje własne, fokus i zachowanie błędu
 - `frontend/src/utils/cvStarter.js`, linie 35–394, stałe/funkcje `MARKER_VALUES`, `REPEATED_FIELD_DEFINITIONS`, `createDefaultStarterConfig`, `buildStarterDocument`, `prepareStarterProfileForTemplate` i `finalizeStarterElements`
 - `frontend/src/utils/starterElementStructure.js`, linie 1–234, funkcje `reflowStarterContacts`, `applyStarterElementStructure` i `prepareStarterElementsForRender`; `frontend/src/utils/contactBandOps.js`, linie 55–172, funkcje `channelLabels` i `applyChannelRelayout` — reflow kontaktów świadomy placeholderów w edytorze i kopii renderowanej
-- `frontend/src/pages/PdfCanvas.jsx`, linie 1617–1771, `startFreshDocument`, `loadAiElementsFresh` i `handleCreateStarterCv`
+- `frontend/src/pages/PdfCanvas.jsx`, linie 1628–1780 i 2313–2320, `startFreshDocument`, `loadAiElementsFresh`, `handleCreateStarterCv` oraz podpięcie modalu świadome demo
 - `frontend/src/utils/syncCvDataFromCanvas.js`, linie 1–1096, `syncStarterBindings` i `syncCvDataFromCanvas`
 - `frontend/src/hooks/usePdfExport.js`, linie 31–330, hook `usePdfExport` — utrwala `root` i wysyła zwartą kopię `render_root` świadomą szablonu
 - `backend/app/schemas/pdf_schema.py`, linie 274–348, `PdfElement`, `PDFCreateRequest` i `PDFUpdateRequest`; `backend/app/crud/pdfs.py`, linie 175–609 — round trip metadanych startera przez `extra_properties`
@@ -4270,7 +4271,8 @@ Implementacja:
 
 Testy:
 
-- `frontend/src/components/editor/NewCvSetupModal/NewCvSetupModal.test.js`
+- `frontend/src/components/editor/NewCvSetupModal/NewCvSetupModal.test.js` i `NewCvSetupModal.runtime.test.jsx` — kontrakt strukturalny oraz interakcje bezpośredniego przejścia z demo i chronionego dokumentu użytkownika
+- `frontend/src/utils/demoNewCvFlow.test.js` — utrwala integrację `PdfCanvas` z konfiguratorem świadomą trybu demo
 - `frontend/src/utils/cvStarter.test.js`, linie 10–180, suite `CV starter adapter`, w tym `restores and rebinds blank fields in every repeated record`
 - `frontend/src/utils/starterElementStructure.test.js`
 - `frontend/src/utils/requiredCvName.test.js`
@@ -4429,7 +4431,7 @@ Implementacja:
 - `frontend/src/utils/templateLayouts.js` — kolejność rejestru, helpery `layouts`, `startIndexForSelectedTemplate`, `getTemplateAtsReadability`
 - `frontend/src/components/modals/TemplatesModal/TemplatesModal.jsx` — płaska siatka nazwa/opis z plakietkami ATS
 - `frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx` — osobne panele kroków (bez scrolla całego dialogu; krok 1 i lista historii mają własny ograniczony overflow), strzałki w stopce między etykietą kroku a Anuluj, karuzela kroku 2 + `handleFill`; `resetImportFlow` czyści sesję importu po wypełnieniu lub zamknięciu, więc Topbar **Importuj PDF** zawsze otwiera dropzone, a zmianę szablonu obsługuje wyłącznie **Zmień szablon**
-- `frontend/src/components/editor/NewCvSetupModal/NewCvSetupModal.jsx`, linie 169–202 — siatka wyboru szablonu w konfiguratorze A4
+- `frontend/src/components/editor/NewCvSetupModal/NewCvSetupModal.jsx`, linie 184–217 — siatka wyboru szablonu w konfiguratorze A4
 - `frontend/src/components/editor/Topbar/ChangeTemplateModal.jsx` — restyl przez `replaceActiveElements`
 - Pliki: `frontend/public/template-mockups/{id}.png`
 

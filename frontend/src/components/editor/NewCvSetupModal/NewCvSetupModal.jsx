@@ -1,4 +1,11 @@
-/** One-screen configuration for a new editable A4 CV document. */
+/**
+ * Configures a new editable A4 CV and protects user-authored work from
+ * accidental replacement.
+ *
+ * Product-owned sample content may opt into replacement without confirmation.
+ * This keeps the demo-to-editor transition direct while preserving the guard
+ * for saved and unsaved documents that belong to the user.
+ */
 import { useId, useMemo, useRef, useState } from "react";
 import DialogShell from "../../common/DialogShell/DialogShell";
 import { TEMPLATES } from "../../../templates";
@@ -24,6 +31,7 @@ export default function NewCvSetupModal({
   onCreate,
   entitlements,
   hasActiveDocument = false,
+  allowUnconfirmedReplacement = false,
 }) {
   const [config, setConfig] = useState(createDefaultStarterConfig);
   const [confirmReplacement, setConfirmReplacement] = useState(hasActiveDocument);
@@ -125,7 +133,7 @@ export default function NewCvSetupModal({
     setError("");
     try {
       const created = await onCreate(config, {
-        replacementConfirmed: hasActiveDocument,
+        replacementConfirmed: hasActiveDocument || allowUnconfirmedReplacement,
       });
       if (created !== false) onClose();
     } catch (creationError) {
