@@ -5,6 +5,7 @@
  * pressing Shift+F10 reveals two application-only controls below each language
  * or in the A4 gutter for other grids: insert and remove a cell. The shared
  * toolbar portal keeps those controls out of document layout and PDF export.
+ * AI actions belong to the section toolbar rather than individual grid cells.
  */
 import { useEffect } from "react";
 import { FiPlus, FiTrash2 } from "react-icons/fi";
@@ -77,8 +78,6 @@ export default function GridEntryActions({
     toolbarPointerProps,
     hide,
     openMenu,
-    closeMenu,
-    menuOpen,
   } = useCanvasHoverToolbar({
     exclusiveKey,
     eligible,
@@ -209,10 +208,6 @@ export default function GridEntryActions({
 
   return (
     <CanvasHoverToolbar
-      aiTarget={{ kind: "entry", elementId }}
-      menuOpen={menuOpen}
-      onOpenMenu={openMenu}
-      onCloseMenu={closeMenu}
       toolbarKey={exclusiveKey}
       visible={visible}
       side={side}

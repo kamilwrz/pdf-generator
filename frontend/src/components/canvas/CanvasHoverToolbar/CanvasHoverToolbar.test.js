@@ -2,6 +2,17 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
+test("AI is attached only to section and record toolbars, not inline add controls", async () => {
+  for (const component of ["GridEntryActions", "SkillsEntryActions"]) {
+    const source = await readFile(new URL(`../${component}/${component}.jsx`, import.meta.url), "utf8");
+    assert.doesNotMatch(source, /aiTarget=/);
+  }
+  for (const component of ["SectionRecordAdd", "RecordBlockAdd"]) {
+    const source = await readFile(new URL(`../${component}/${component}.jsx`, import.meta.url), "utf8");
+    assert.match(source, /aiTarget=/);
+  }
+});
+
 test("structural toolbar escapes the scaled page and stacks above the inspector", async () => {
   const source = await readFile(new URL("./CanvasHoverToolbar.jsx", import.meta.url), "utf8");
   const css = await readFile(new URL("./CanvasHoverToolbar.module.css", import.meta.url), "utf8");

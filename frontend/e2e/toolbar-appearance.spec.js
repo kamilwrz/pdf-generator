@@ -53,14 +53,17 @@ for (const width of [390, 834, 1280, 1920]) {
     // Dispatch its normal hover event; measure/click the actual toolbar DOM.
     await page.locator("#skills-heading").dispatchEvent("pointerenter");
     await checkControl(page.locator('[data-canvas-toolbar-key="heading:skills-heading"] button').first(), 28.8);
+    await expect(page.locator('[data-canvas-toolbar-key="heading:skills-heading"]').getByRole("button", { name: "AI dla wybranego zakresu" })).toBeVisible();
     await page.locator("#skills-tools-title").hover();
     await checkControl(page.locator('[data-canvas-toolbar-key="record:skills-tools-title"] button').first(), 28.8);
+    await expect(page.locator('[data-canvas-toolbar-key="record:skills-tools-title"]').getByRole("button", { name: "AI dla wybranego zakresu" })).toBeVisible();
     await page.locator("#contact-email").dispatchEvent("pointerenter");
     await checkControl(page.getByRole("button", { name: "Dodaj kontakt", exact: true }), 24);
     await page.locator("#contact-email").dispatchEvent("pointerenter");
     await checkControl(page.getByRole("button", { name: /Usuń kontakt:/ }), 24, true);
     await page.locator("#language-item").hover();
     await checkControl(page.locator('[data-canvas-toolbar-key="grid-entry:language-item"] button').first(), 24);
+    await expect(page.locator('[data-canvas-toolbar-key="grid-entry:language-item"] button')).toHaveCount(2);
 
     const body = page.locator("#skills-tools-body");
     await body.focus();
@@ -68,6 +71,7 @@ for (const width of [390, 834, 1280, 1920]) {
     const toolbar = page.locator('[data-canvas-toolbar-key="skills-entry:skills-heading:skills-tools"]');
     const add = toolbar.getByRole("button", { name: /Dodaj umiejętność do kategorii/ });
     await expect(add).toBeFocused();
+    await expect(toolbar.getByRole("button")).toHaveCount(1);
     await checkControl(add, 24);
     await add.press("Enter");
     const input = toolbar.getByRole("textbox", { name: "Dodaj umiejętność" });

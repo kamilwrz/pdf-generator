@@ -4,6 +4,7 @@
  * The control is application chrome: it is portalled outside the transformed
  * A4 page, never enters document geometry, and therefore cannot be exported.
  * A category-free section uses the same component with an empty label.
+ * AI belongs to the section or category record toolbar, never this add control.
  */
 import { useCallback, useEffect, useId, useState } from "react";
 import { FiPlus, FiX } from "react-icons/fi";
@@ -57,9 +58,6 @@ export default function SkillsEntryActions({
     show,
     pin,
     unpin,
-    menuOpen,
-    openMenu,
-    closeMenu,
   } = useCanvasHoverToolbar({
     exclusiveKey,
     eligible,
@@ -228,10 +226,6 @@ export default function SkillsEntryActions({
   return (
     <>
       <CanvasHoverToolbar
-        aiTarget={{ kind: "entry", headingId, groupId, memberIds: triggerIds }}
-        menuOpen={menuOpen}
-        onOpenMenu={openMenu}
-        onCloseMenu={closeMenu}
         toolbarKey={exclusiveKey}
         visible={visible}
         placement="below"
