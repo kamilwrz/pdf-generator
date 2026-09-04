@@ -23,6 +23,7 @@ from app.services.ai_assistant_service import (
     analyze_action,
 )
 from app.services.ats_readability import AtsReadabilityError
+from app.services.scoped_ai import ScopedContent, review_scoped_content
 from app.services.document_service import validate_and_resolve_image_elements
 from app.services.job_offer_service import JobOfferError, resolve_job_offer
 from app.services.entitlements import (
@@ -86,6 +87,22 @@ class AssistantRequest(BaseModel):
     # translated profile for future template fills instead of relying on
     # renderer-specific canvas strings.
     cv_data: dict | None = None
+    scoped_content: ScopedContent | None = None
+
+    @model_validator(mode="after")
+    def validate_scoped_payload(self):
+        """A scoped review cannot accidentally send the global assistant snapshot."""
+        if self.scoped_content is not None:
+            if self.action not in {"shorten", "language", "improve"}:
+                raise ValueError("Nieprawidłowa akcja dla wybranego zakresu.")
+            forbidden = {
+                "elements", "cv_data", "history", "message", "job_description",
+                "job_offer_url", "candidate_notes", "page_size", "template_id",
+                "target_language", "cv_language",
+            }
+            if self.model_fields_set & forbidden:
+                raise ValueError("Zakres AI nie może zawierać pełnego CV ani dodatkowego kontekstu.")
+        return self
 
     @model_validator(mode="after")
     def validate_history_messages(self):
@@ -155,6 +172,8 @@ class AssistantResponse(BaseModel):
     # Present for profile-aware content actions: the complete normalized profile
     # after the proposed corrections, applied by the client on "Apply all".
     updated_cv_data: dict | None = None
+    scoped_corrections: list[dict] = []
+    achievement_templates: list[dict] = []
 
 
 @router.post("/assistant", response_model=AssistantResponse, status_code=200)
@@ -305,7 +324,7 @@ def ai_assistant(
         def resolve_ats_image(src: str) -> str:
             return resolved_images[str(src or "")]
 
-        result = analyze_action(
+        result = review_scoped_content(request.action, request.scoped_content) if request.scoped_content is not None else analyze_action(
             action=request.action,
             elements=request.elements,
             message=request.message,

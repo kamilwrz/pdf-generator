@@ -157,6 +157,9 @@
     z-index: 3;
     box-sizing: border-box;
     width: var(--canvas-control-menu-width);
+    max-width: calc(100vw - var(--space-4));
+    max-height: calc(100dvh - var(--space-4));
+    overflow-y: auto;
     display: grid;
 }
 
@@ -164,7 +167,7 @@
     composes: button from "../CanvasControls.module.css";
     width: 100%;
     height: auto;
-    min-height: var(--canvas-control-size);
+    min-height: max(var(--canvas-control-size), var(--control-height-compact));
     display: flex;
     align-items: center;
     gap: calc(var(--canvas-control-gap) * 1.25);
@@ -173,7 +176,7 @@
     border-radius: 0;
     background: transparent;
     color: var(--color-editor-ink);
-    font: 600 var(--canvas-control-font)/1.25 var(--font-body, sans-serif);
+    font: 600 max(12px, var(--canvas-control-font))/1.25 var(--font-body, sans-serif);
     text-align: left;
     cursor: pointer;
 }

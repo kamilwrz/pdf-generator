@@ -77,6 +77,8 @@ export default function GridEntryActions({
     toolbarPointerProps,
     hide,
     openMenu,
+    closeMenu,
+    menuOpen,
   } = useCanvasHoverToolbar({
     exclusiveKey,
     eligible,
@@ -207,6 +209,10 @@ export default function GridEntryActions({
 
   return (
     <CanvasHoverToolbar
+      aiTarget={{ kind: "entry", elementId }}
+      menuOpen={menuOpen}
+      onOpenMenu={openMenu}
+      onCloseMenu={closeMenu}
       toolbarKey={exclusiveKey}
       visible={visible}
       side={side}

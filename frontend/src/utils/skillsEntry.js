@@ -347,6 +347,46 @@ export function listSkillsEntryAnchors(elements, pageHeight = 842) {
     .filter(Boolean);
 }
 
+/**
+ * Resize existing chip pairs after text-only edits without regenerating ids or
+ * changing their visual variant. Resolve membership before growth so expanded
+ * rows cannot steal a following section's elements during structural packing.
+ */
+export function reflowEditedSkillChips(before, after, changedIds, pageHeight, options = {}) {
+  let next = after;
+  for (const group of skillGroupDescriptors(before, pageHeight)) {
+    if (group.mode !== SKILLS_LAYOUT_CHIPS || !group.labels.some((label) => changedIds.has(label.element_id))) continue;
+    const labels = [...group.labels].sort(byReadingOrder(pageHeight));
+    const shapes = [...group.shapes].sort(byReadingOrder(pageHeight));
+    if (labels.length !== shapes.length || !labels.length) continue;
+    const currentById = new Map(next.map((element) => [element.element_id, element]));
+    const style = deriveSectionStyle(before, pageHeight, group.headingId, { lane: "main" });
+    const fontSize = labels[0].fontSize || 10;
+    const chipHeight = shapes[0].category === "rectangle" ? shapes[0].height : fontSize + 2 * SKILL_CHIP_PAD_Y;
+    const startAbs = Math.min(...labels.map((label) => absoluteTop(currentById.get(label.element_id), pageHeight) - chipHeight / 2));
+    const left = Math.min(...shapes.map((shape) => finiteNumber(shape.left)));
+    const { placements, height } = layoutSkillChips(labels.map((label) => currentById.get(label.element_id).content),
+      style?.recordWidth || 300, fontSize, { measureTextWidth: options.measureTextWidth, textStyle: labels[0] });
+    const oldBottom = Math.max(...shapes.map((shape) => absoluteBottom(currentById.get(shape.element_id), pageHeight)));
+    const updates = new Map();
+    labels.forEach((label, index) => {
+      const placement = placements[index];
+      const shape = shapes[index];
+      updates.set(label.element_id, atAbsoluteTop({ ...currentById.get(label.element_id),
+        left: left + placement.dx + SKILL_CHIP_PAD_X,
+        ...(label.width != null ? { width: Math.max(1, placement.width - 2 * SKILL_CHIP_PAD_X) } : {}),
+      }, startAbs + placement.dy + chipHeight / 2, pageHeight));
+      updates.set(shape.element_id, atAbsoluteTop({ ...currentById.get(shape.element_id),
+        left: left + placement.dx, width: placement.width,
+      }, startAbs + placement.dy + (shape.category === "line" ? chipHeight - 1 : 0), pageHeight));
+    });
+    next = next.map((element) => updates.get(element.element_id) || element);
+    next = shiftFollowingMainContent(next, new Set(group.groupMembers.map((element) => element.element_id)),
+      oldBottom, Math.max(0, startAbs + height - oldBottom), pageHeight);
+  }
+  return next === after ? after : applyFlowSpacing(next, options.spacing, pageHeight);
+}
+
 function shiftFollowingMainContent(elements, excludedIds, thresholdAbs, delta, pageHeight) {
   if (!(delta > 0)) return elements;
   return elements.map((element) => {

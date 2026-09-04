@@ -42,6 +42,7 @@ import { TbArrowBigRightLines } from "react-icons/tb";
 import { FiMinus, FiPlus } from "react-icons/fi";
 
 import { useCanvasContext } from "../../../store/canvas-context";
+import { useScopedAi } from "../../../store/scoped-ai-context";
 import { motion as Motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import {
   canCloneOrDeleteElements,
@@ -251,6 +252,7 @@ function InspectorDisclosure({
 }
 
 export default function Editor() {
+  const scopedAi = useScopedAi();
   const reduceMotion = useReducedMotion();
   const {
     A4_Elements,
@@ -1152,7 +1154,7 @@ export default function Editor() {
     </AnimatePresence>
   );
 
-  if (typeof document === "undefined") return null;
+  if (typeof document === "undefined" || scopedAi?.isOpen) return null;
   return createPortal(
     <>
       {panel}

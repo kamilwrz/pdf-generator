@@ -58,6 +58,7 @@ import {
   loadGuestWizardDraft,
 } from '../utils/guestWizardDraft';
 import { syncCvDataFromCanvas } from '../utils/syncCvDataFromCanvas';
+import ScopedAiProvider from '../components/ai/ScopedAi/ScopedAiProvider';
 import { fillTemplate } from '../services/fillTemplate';
 import { shouldShowStartChooser } from '../utils/startChooser';
 import { previewStructureOperation, reconcileDocumentPages } from '../utils/structureOperation';
@@ -493,6 +494,7 @@ export function EditorController() {
     handleDuplicateSelectedElements,
     handleAlignElements,
     handleEditElementValues,
+    applyScopedTextPatches,
     handleCollapseSpilledMainIntoSidebar,
     handleEditSelectedElementValues,
     fitTextareaToContent: handleFitTextareaToContent,
@@ -2088,6 +2090,7 @@ export function EditorController() {
     spacingHoldId,
     setSpacingHoldId,
     editElementValues: handleEditElementValues,
+    applyScopedTextPatches,
     collapseSpilledMainIntoSidebar: handleCollapseSpilledMainIntoSidebar,
     editSelectedElementValues: handleEditSelectedElementValues,
     fitTextareaToContent: handleFitTextareaToContent,
@@ -2178,7 +2181,7 @@ export function EditorController() {
     handleSaveClick, applyStructureOperation, applyCloneOperation, applyDeleteOperation,
     removeContactChannel, addContactChannel, toggleNameCase, toggleTitle,
     hideProfilePhoto, showProfilePhoto, removeProfilePhoto,
-    handleEditElementValues, handleEditSelectedElementValues, handleFitTextareaToContent, applyLayoutPatches,
+    handleEditElementValues, applyScopedTextPatches, handleEditSelectedElementValues, handleFitTextareaToContent, applyLayoutPatches,
     handleAlignElements, handleDeleteElement, handleDeleteSelectedElements, handleDuplicateSelectedElements,
     setA4_Elements, handleResizeElement, handleDownloadClick,
     handleCollapseSpilledMainIntoSidebar,
@@ -2271,6 +2274,7 @@ export function EditorController() {
       uiValue={uiValue}
       sessionValue={sessionValue}
     >
+              <ScopedAiProvider key={documentSessionKey} enabled={!showStartChooser}>
               <ModalPdfs />
               <UnsavedChangesDialog
                 open={dirtyGuard.dialogOpen}
@@ -2458,6 +2462,7 @@ export function EditorController() {
                 </Suspense>
               ) : null}
               <ToastStack toasts={toasts} onDismiss={dismissToast} />
+              </ScopedAiProvider>
     </EditorView>
   )
 }

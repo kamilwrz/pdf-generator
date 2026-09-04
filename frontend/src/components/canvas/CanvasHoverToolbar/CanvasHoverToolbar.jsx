@@ -5,9 +5,11 @@
  * inert highlight may render independently, while actions stay outside the
  * authored content column and can never be mistaken for PDF content.
  */
-import { useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { FiChevronDown, FiChevronUp, FiMoreHorizontal, FiPlus } from "react-icons/fi";
+import { FiChevronDown, FiChevronUp, FiMoreHorizontal, FiPlus, FiCpu } from "react-icons/fi";
+import { useScopedAi } from "../../../store/scoped-ai-context";
+import { SCOPED_AI_ACTIONS } from "../../../utils/scopedAi";
 import classes from "./CanvasHoverToolbar.module.css";
 
 /**
@@ -40,12 +42,13 @@ import classes from "./CanvasHoverToolbar.module.css";
  *   panelContent?:import("react").ReactNode,
  *   collisionAware?:boolean,
  *   toolbarPointerProps?:object,
+ *   aiTarget?:{kind:"section"|"entry",headingId?:string,elementId?:string,groupId?:string,memberIds?:string[]},
  * }} props
  */
 export default function CanvasHoverToolbar({
   toolbarKey,
-  visible,
-  highlightVisible = visible,
+  visible: requestedVisible,
+  highlightVisible: requestedHighlightVisible = requestedVisible,
   side = "right",
   placement = "gutter",
   anchorX = null,
@@ -71,10 +74,44 @@ export default function CanvasHoverToolbar({
   panelContent = null,
   collisionAware = false,
   toolbarPointerProps = {},
+  aiTarget = null,
 }) {
   const originRef = useRef(null);
   const toolbarRef = useRef(null);
   const [portalGeometry, setPortalGeometry] = useState(null);
+  const scopedAi = useScopedAi();
+  const visible = requestedVisible && !scopedAi?.isOpen;
+  const highlightVisible = requestedHighlightVisible && !scopedAi?.isOpen;
+  const [menuKind, setMenuKind] = useState("more");
+  const aiTriggerRef = useRef(null);
+  const moreTriggerRef = useRef(null);
+  const menuRef = useRef(null);
+  const activeTriggerRef = menuKind === "ai" ? aiTriggerRef : moreTriggerRef;
+
+  useEffect(() => {
+    if (!menuOpen || !visible) return undefined;
+    const frame = requestAnimationFrame(() => menuRef.current?.querySelector("button:not(:disabled)")?.focus());
+    const outside = (event) => {
+      if (!toolbarRef.current?.contains(event.target) && !menuRef.current?.contains(event.target)) onCloseMenu?.();
+    };
+    document.addEventListener("pointerdown", outside);
+    return () => { cancelAnimationFrame(frame); document.removeEventListener("pointerdown", outside); };
+  }, [menuOpen, visible, menuKind, onCloseMenu]);
+
+  // Both action menus use screen coordinates in the portal. Clamp against the
+  // viewport independently from the gutter anchor, including at 200% zoom.
+  useLayoutEffect(() => {
+    const menu = menuRef.current;
+    const trigger = activeTriggerRef.current;
+    if (!menuOpen || !menu || !trigger) return;
+    const anchor = trigger.getBoundingClientRect();
+    const box = menu.getBoundingClientRect();
+    menu.style.position = "fixed";
+    menu.style.right = "auto";
+    menu.style.left = `${Math.max(8, Math.min(anchor.right - box.width, window.innerWidth - box.width - 8))}px`;
+    menu.style.top = `${Math.max(8, anchor.bottom + box.height + 8 <= window.innerHeight
+      ? anchor.bottom + 4 : anchor.top - box.height - 4)}px`;
+  }, [menuOpen, menuKind, portalGeometry, activeTriggerRef]);
 
   // The highlight belongs to the scaled A4 page, but the actionable toolbar
   // must escape that page's transform stacking context. Measure a zero-size
@@ -206,6 +243,44 @@ export default function CanvasHoverToolbar({
     action?.();
   };
   const hasDirectActions = directActions.length > 0;
+  const aiButton = aiTarget && scopedAi ? (
+    <button ref={aiTriggerRef} type="button" className={classes.control}
+      aria-label="AI dla wybranego zakresu" data-tooltip="AI dla wybranego zakresu"
+      aria-expanded={menuOpen && menuKind === "ai"} aria-haspopup="menu"
+      onPointerDown={(event) => event.stopPropagation()}
+      onClick={(event) => runAction(event, () => {
+        if (menuOpen && menuKind === "ai") onCloseMenu?.();
+        else { setMenuKind("ai"); onOpenMenu?.(); }
+      })}><FiCpu aria-hidden="true" /></button>
+  ) : null;
+  const activeMenuItems = menuKind === "ai" ? SCOPED_AI_ACTIONS.map((action) => ({
+    key: action.id, label: action.label, onSelect: () => {
+      onCloseMenu?.();
+      scopedAi?.open(aiTarget, action.id, aiTriggerRef.current);
+    },
+  })) : menuItems;
+  const actionMenu = menuOpen && activeMenuItems.length > 0 ? (
+    <div ref={menuRef} className={classes.menu} role="menu" aria-label={menuKind === "ai" ? "Operacje AI" : "Więcej działań"}
+      onKeyDown={(event) => {
+        if (event.key === "Escape") {
+          event.preventDefault(); event.stopPropagation(); onCloseMenu?.(); activeTriggerRef.current?.focus();
+        } else if (["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) {
+          event.preventDefault(); event.stopPropagation();
+          const items = [...event.currentTarget.querySelectorAll("button:not(:disabled)")];
+          const current = items.indexOf(document.activeElement);
+          const next = event.key === "Home" ? 0 : event.key === "End" ? items.length - 1
+            : (current + (event.key === "ArrowDown" ? 1 : -1) + items.length) % items.length;
+          items[next]?.focus();
+        } else if (event.key === "Tab") onCloseMenu?.();
+      }}>
+      {activeMenuItems.map((item) => <button key={item.key} type="button" role="menuitem"
+        className={`${classes.menuItem}${item.danger ? ` ${classes.menuItemDanger}` : ""}`}
+        disabled={item.disabled} onPointerDown={(event) => event.stopPropagation()}
+        onClick={(event) => runAction(event, item.onSelect)}>
+        {item.icon ? <span className={classes.menuIcon}>{item.icon}</span> : null}<span>{item.label}</span>
+      </button>)}
+    </div>
+  ) : null;
   const highlightLevelClass = highlightLevel === "section"
     ? classes.highlightSection
     : highlightLevel === "skills"
@@ -262,7 +337,7 @@ export default function CanvasHoverToolbar({
             : side === "left"
               ? classes.left
               : classes.right}`}>
-            {panelContent || (hasDirectActions ? directActions.map((item) => (
+            {panelContent || (hasDirectActions ? <>{directActions.map((item) => (
               <button
                 key={item.key}
                 type="button"
@@ -275,7 +350,7 @@ export default function CanvasHoverToolbar({
               >
                 {item.icon}
               </button>
-            )) : (
+            ))}{aiButton}</> : (
               <>
                 <button
                   type="button"
@@ -314,40 +389,28 @@ export default function CanvasHoverToolbar({
                   <FiChevronDown aria-hidden="true" />
                 </button>
 
+                {aiButton}
                 <button
+                  ref={moreTriggerRef}
                   type="button"
                   className={classes.control}
                   data-tooltip="Więcej działań"
                   aria-label="Więcej działań"
-                  aria-expanded={menuOpen}
+                  aria-expanded={menuOpen && menuKind === "more"}
                   aria-haspopup="menu"
                   onPointerDown={(event) => event.stopPropagation()}
-                  onClick={(event) => runAction(event, menuOpen ? onCloseMenu : onOpenMenu)}
+                  onClick={(event) => runAction(event, () => {
+                    if (menuOpen && menuKind === "more") onCloseMenu?.();
+                    else { setMenuKind("more"); onOpenMenu?.(); }
+                  })}
                 >
                   <FiMoreHorizontal aria-hidden="true" />
                 </button>
 
-                {menuOpen ? (
-                  <div className={classes.menu} role="menu">
-                    {menuItems.map((item) => (
-                      <button
-                        key={item.key}
-                        type="button"
-                        role="menuitem"
-                        className={`${classes.menuItem}${item.danger ? ` ${classes.menuItemDanger}` : ""}`}
-                        disabled={item.disabled}
-                        onPointerDown={(event) => event.stopPropagation()}
-                        onClick={(event) => runAction(event, item.onSelect)}
-                      >
-                        {item.icon ? <span className={classes.menuIcon}>{item.icon}</span> : null}
-                        <span>{item.label}</span>
-                      </button>
-                    ))}
-                  </div>
-                ) : null}
               </>
             ))}
           </div>
+          {actionMenu}
         </div>,
         document.body,
       ) : null}

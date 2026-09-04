@@ -7,8 +7,22 @@ import {
   listSkillsEntryAnchors,
   removeSkillsChipCategory,
   reorderSkillsChipCategory,
+  reflowEditedSkillChips,
 } from "./skillsEntry.js";
 import { detectSkillChipVariant } from "./skillsLayout.js";
+
+it("AI text changes resize chip pairs without replacing ids or losing the next section", () => {
+  const before = changeSkillsDisplayMode(groupedFixture(), "sk-head", "chips", 842, SPACING);
+  const label = before.find((element) => element.category === "text" && element.flowRole === "grid-member");
+  const after = before.map((element) => element === label ? { ...element, content: "Bardzo szczegółowy opis umiejętności pracy z narzędziem" } : element);
+  const next = reflowEditedSkillChips(before, after, new Set([label.element_id]), 842, { spacing: SPACING });
+  assert.deepEqual(next.map((element) => element.element_id).sort(), before.map((element) => element.element_id).sort());
+  assert.equal(next.find((element) => element.element_id === label.element_id).content, after.find((element) => element.element_id === label.element_id).content);
+  assert.equal(next.find((element) => element.element_id === "next-body").content, "Polski — C2");
+  const oldWidths = before.filter((element) => element.flowRole === "grid-member" && element.category === "rectangle").map((element) => element.width);
+  const newWidths = next.filter((element) => element.flowRole === "grid-member" && element.category === "rectangle").map((element) => element.width);
+  assert.ok(Math.max(...newWidths) > Math.max(...oldWidths));
+});
 
 const PAGE_HEIGHT = 842;
 const SPACING = { stack: 4, record: 10, section: 21, after_rule: 8 };

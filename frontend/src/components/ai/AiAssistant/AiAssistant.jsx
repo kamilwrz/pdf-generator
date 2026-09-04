@@ -17,6 +17,7 @@ import classes from "./AiAssistant.module.css";
 import { useCanvasContext } from "../../../store/canvas-context";
 import { useSession } from "../../../store/session-context";
 import { useUiSurfaces } from "../../../store/ui-surfaces-context";
+import { useScopedAi } from "../../../store/scoped-ai-context";
 import { syncCvDataFromCanvas } from "../../../utils/syncCvDataFromCanvas";
 import { ApiClient, ENDPOINTS, wakeBackend } from "../../../services/api";
 import { measureElements } from "../../../utils/elementBounds";
@@ -976,7 +977,9 @@ export default function AiAssistant() {
         assistantAction,
     } = useUiSurfaces();
 
-    const [isOpen, setIsOpen] = useState(false);
+    const scopedAi = useScopedAi();
+    const [assistantIsOpen, setIsOpen] = useState(false);
+    const isOpen = assistantIsOpen && !scopedAi?.isOpen;
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState("");
     const [jobDesc, setJobDesc] = useState("");
@@ -1794,7 +1797,10 @@ export default function AiAssistant() {
                 ref={fabRef}
                 type="button"
                 className={`${classes.fab} ${isLoading ? classes.fabLoading : ""}`}
-                onClick={() => setIsOpen(o => !o)}
+                onClick={() => {
+                    if (scopedAi?.isOpen) { scopedAi.close(); setIsOpen(true); }
+                    else setIsOpen(o => !o);
+                }}
                 title="Asystent AI"
                 aria-label={isOpen ? "Zamknij asystenta AI" : "Otwórz asystenta AI"}
                 aria-expanded={isOpen}

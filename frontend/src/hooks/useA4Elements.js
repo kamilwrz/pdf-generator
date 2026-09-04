@@ -23,6 +23,7 @@ import { transferSectionLane } from '../utils/transferSectionLane';
 import { changeSkillsDisplayMode } from '../utils/skillsDisplayMode';
 import {
   insertSkillItem,
+  reflowEditedSkillChips,
   insertSkillsChipCategoryAfter,
   removeSkillsChipCategory,
   reorderSkillsChipCategory,
@@ -520,6 +521,7 @@ export function useA4Elements(titleRef) {
     redo,
     resetHistory,
     markHistoryQuiet,
+    commitElements,
   } = useDocumentHistory({
     elements: A4_Elements,
     pageCount,
@@ -1738,6 +1740,42 @@ export function useA4Elements(titleRef) {
     return ctx.measureText(String(text)).width;
   }, []);
 
+  /** Apply a validated AI batch as one history step, including off-page reflow. */
+  const applyScopedTextPatches = useCallback((patches) => {
+    const before = elementsRef.current;
+    if (!patches.length) return false;
+    const byId = new Map(patches.map((patch) => [patch.element_id, patch]));
+    if (byId.size !== patches.length || patches.some((patch) => {
+      const element = before.find((item) => item.element_id === patch.element_id);
+      return !element || element.locked || element.fixedToPage || element.content !== patch.before
+        || typeof patch.content !== "string" || !patch.content.trim();
+    })) return false;
+    let next = before.map((element) => {
+      const patch = byId.get(element.element_id);
+      if (!patch) return element;
+      return { ...element, content: sanitizeTextContent(patch.content), runs: patch.runs || null,
+        preserveInitialLayout: false, isEditing: false, resolvedLines: undefined };
+    });
+    const pageHeight = pageSizeRef.current.height;
+    next = reflowEditedSkillChips(before, next, new Set(byId.keys()), pageHeight,
+      { spacing: flowSpacingRef.current, measureTextWidth: measureSkillTextWidth });
+    for (const patch of patches) {
+      const element = next.find((item) => item.element_id === patch.element_id);
+      if (element.category !== "textarea") continue;
+      const height = measureTextareaHeight(element.content, element.width || 300, element.fontSize || 10,
+        element.lineHeight || (element.fontSize || 10) * 1.4, { bulletList: element.bulletList,
+          measureTextWidth: measureSkillTextWidth, textStyle: element });
+      next = reflowTextareaHeight(next, element.element_id, height, pageHeight, {
+        pageTop: 66, bottomMargin: 72, allowReclaim: editorModeRef.current === EDITOR_MODE_TEMPLATE,
+        spacing: flowSpacingRef.current,
+      }).elements;
+    }
+    next = finalizeDocumentPages(next, { collapseEmpty: true });
+    const count = Math.max(1, ...next.map((element) => Number(element.page) || 1));
+    commitElements(next, count);
+    return { before, after: next };
+  }, [commitElements, finalizeDocumentPages, measureSkillTextWidth]);
+
   const handleEditElementValues = useCallback((dataObject, id) => {
     setA4_Elements(prevState => {
       const newState = prevState.map((element) => {
@@ -2723,6 +2761,7 @@ export function useA4Elements(titleRef) {
     handleDuplicateElement,
     handleDuplicateSelectedElements,
     handleEditElementValues,
+    applyScopedTextPatches,
     handleCollapseSpilledMainIntoSidebar,
     handleEditSelectedElementValues,
     fitTextareaToContent: handleFitTextareaToContent,

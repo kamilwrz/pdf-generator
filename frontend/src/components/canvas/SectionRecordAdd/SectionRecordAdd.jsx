@@ -295,6 +295,7 @@ export default function SectionRecordAdd({
 
   return (
     <CanvasHoverToolbar
+      aiTarget={{ kind: "section", headingId }}
       toolbarKey={exclusiveKey}
       visible={visible}
       highlightVisible={sectionHoverVisible}

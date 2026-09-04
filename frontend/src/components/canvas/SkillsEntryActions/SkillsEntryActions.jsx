@@ -57,6 +57,9 @@ export default function SkillsEntryActions({
     show,
     pin,
     unpin,
+    menuOpen,
+    openMenu,
+    closeMenu,
   } = useCanvasHoverToolbar({
     exclusiveKey,
     eligible,
@@ -225,6 +228,10 @@ export default function SkillsEntryActions({
   return (
     <>
       <CanvasHoverToolbar
+        aiTarget={{ kind: "entry", headingId, groupId, memberIds: triggerIds }}
+        menuOpen={menuOpen}
+        onOpenMenu={openMenu}
+        onCloseMenu={closeMenu}
         toolbarKey={exclusiveKey}
         visible={visible}
         placement="below"

@@ -208,6 +208,7 @@ export default function RecordBlockAdd({
 
   return (
     <CanvasHoverToolbar
+      aiTarget={{ kind: "entry", elementId }}
       toolbarKey={exclusiveKey}
       visible={visible}
       // Keyboard focus keeps actions reachable, but only a pointer hover may

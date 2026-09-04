@@ -112,6 +112,33 @@ export function useDocumentHistory({
     setCurrentPage((cp) => Math.min(cp, snap.pageCount));
   }, [markHistoryQuiet, setCurrentPage, setElements, setPageCount]);
 
+  /**
+   * Record a complete content transaction immediately. Flush pending typing
+   * first so a quick AI acceptance cannot swallow the user's preceding edit.
+   * Subsequent measurement settles into this step rather than creating another.
+   */
+  const commitElements = useCallback((nextElements, nextPageCount) => {
+    clearTimeout(historyTimerRef.current);
+    const before = buildSnapshot();
+    const after = { elements: nextElements.map((element) => {
+      const next = { ...element };
+      delete next.isSelected;
+      delete next.isMove;
+      delete next.isEditing;
+      return next;
+    }), pageCount: nextPageCount };
+    let history = recordSnapshotState(historyRef.current, before, { limit: HISTORY_LIMIT });
+    history = recordSnapshotState(history, after, { limit: HISTORY_LIMIT });
+    historyRef.current = history;
+    elementsRef.current = nextElements;
+    pageCountRef.current = nextPageCount;
+    setElements(nextElements);
+    setPageCount(nextPageCount);
+    setCurrentPage((page) => Math.min(page, nextPageCount));
+    markHistoryQuiet();
+    syncHistoryFlags();
+  }, [buildSnapshot, elementsRef, pageCountRef, setElements, setPageCount, setCurrentPage, markHistoryQuiet, syncHistoryFlags]);
+
   const undo = useCallback(() => {
     const h = historyRef.current;
     if (h.index <= 0) return;
@@ -135,5 +162,6 @@ export function useDocumentHistory({
     redo,
     resetHistory,
     markHistoryQuiet,
+    commitElements,
   };
 }
