@@ -29,6 +29,7 @@ import {
     createTextareaEnterEdit,
     getSelectionOffsets,
     runsToHtml,
+    seedBulletEditableHtml,
     serializeEditable,
     setSelectionOffsets,
 } from "../../../utils/editableSerialize";
@@ -398,7 +399,10 @@ function Textarea({
                 entries: [{ ...readCompositeMetadata(node), selection: { start: 0, end: 0 } }], index: 0,
             };
         } else if (bulletList) {
-            node.innerHTML = bulletRunsToEditableHtml(seeded, seededPayload.runs);
+            // An empty persisted list deliberately has no marker-only content.
+            // Seed one editor-only marker so the first typed character starts
+            // a real bullet item; blur cleanup removes it when left untouched.
+            node.innerHTML = seedBulletEditableHtml(seeded, seededPayload.runs);
         } else if (hasRuns(seededPayload.runs)) {
             node.innerHTML = runsToHtml(seeded, seededPayload.runs);
         } else {
@@ -457,11 +461,19 @@ function Textarea({
             target.focus({ preventScroll: true });
             const selection = window.getSelection();
             if (!selection) return;
-            const range = document.createRange();
-            range.selectNodeContents(target);
-            range.collapse(false); // caret at end, matching the old textarea
-            selection.removeAllRanges();
-            selection.addRange(range);
+            if (bulletList && seeded === "") {
+                // The temporary marker is followed by an empty body span. Use
+                // the stored-text offset after `• ` so the first keystroke is
+                // guaranteed to land inside that body rather than beside the
+                // paragraph at the contentEditable root.
+                setSelectionOffsets(target, 2, 2);
+            } else {
+                const range = document.createRange();
+                range.selectNodeContents(target);
+                range.collapse(false); // caret at end, matching the old textarea
+                selection.removeAllRanges();
+                selection.addRange(range);
+            }
             if (metadataHints) {
                 focusMetadataSlot(target, metadataSlotRef.current ?? 0);
                 metadataSlotRef.current = null;

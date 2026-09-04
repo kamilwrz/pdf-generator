@@ -114,6 +114,25 @@ export function bulletRunsToEditableHtml(content, runs) {
   }).join("");
 }
 
+/**
+ * Seed a bullet-list edit session without persisting an empty marker.
+ *
+ * An empty stored list has no authored content, but its first editable row must
+ * still expose a marker so the first typed character becomes a list item. The
+ * temporary `• ` exists only in the contentEditable DOM: leaving the field
+ * untouched still serializes through the normal trailing-placeholder cleanup.
+ * Existing content, including an intentional plain paragraph after exiting a
+ * list, is passed through unchanged.
+ *
+ * @param {string} content - Sanitized textarea content.
+ * @param {Array} runs - Inline style runs indexed against `content`.
+ * @returns {string} Deterministic HTML for the start of an edit session.
+ */
+export function seedBulletEditableHtml(content, runs) {
+  const text = typeof content === "string" ? content : String(content ?? "");
+  return bulletRunsToEditableHtml(text === "" ? "• " : text, runs);
+}
+
 // Replace one stored-text range and move every inline run with its character.
 // Inserted paragraph separators and bullet markers intentionally start without
 // marks; text on either side keeps the exact decoration it had before Enter.

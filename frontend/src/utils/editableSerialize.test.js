@@ -6,6 +6,7 @@ import {
   bulletRunsToEditableHtml,
   createTextareaBackspaceEdit,
   createTextareaEnterEdit,
+  seedBulletEditableHtml,
   serializeEditable,
   runsToHtml,
   setSelectionOffsets,
@@ -136,6 +137,21 @@ test("bullet edit HTML keeps plain rows full-width and slices inline runs per pa
   assert.equal((html.match(/data-editable-paragraph="plain"/g) || []).length, 2);
   assert.equal((html.match(/data-editable-paragraph="bullet"/g) || []).length, 1);
   assert.match(html, /data-bold="true"[^>]*>KYC<\/span>/);
+});
+
+test("an empty bullet-list edit session starts with an editor-only marker", () => {
+  const html = seedBulletEditableHtml("", []);
+
+  assert.match(html, /data-editable-paragraph="bullet"/);
+  assert.match(html, /data-editable-bullet-marker="true">• <\/span>/);
+  assert.match(html, /data-editable-bullet-body="true"><\/span>/);
+});
+
+test("bullet edit seeding preserves an intentional plain paragraph", () => {
+  const html = seedBulletEditableHtml("• First\n", []);
+
+  assert.equal((html.match(/data-editable-paragraph="bullet"/g) || []).length, 1);
+  assert.equal((html.match(/data-editable-paragraph="plain"/g) || []).length, 1);
 });
 
 test("Enter after a filled bullet creates a new editable bullet", () => {
@@ -311,7 +327,8 @@ test("Textarea wires bullet edit paragraphs to the same CSS grid as display mode
     readFile(new URL("../components/canvas/Textarea/Textarea.module.css", import.meta.url), "utf8"),
   ]);
 
-  assert.match(source, /node\.innerHTML = bulletRunsToEditableHtml\(seeded,/);
+  assert.match(source, /node\.innerHTML = seedBulletEditableHtml\(seeded,/);
+  assert.match(source, /bulletList && seeded === ""[\s\S]*setSelectionOffsets\(target, 2, 2\)/);
   assert.match(source, /createTextareaEnterEdit\(\{/);
   assert.match(source, /createTextareaBackspaceEdit\(\{/);
   assert.match(source, /measureEditableContentHeight\([\s\S]*\{ bulletList: !!bulletList \}/);
