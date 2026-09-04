@@ -28,6 +28,7 @@ from app.services.document_service import validate_and_resolve_image_elements
 from app.services.job_offer_service import JobOfferError, resolve_job_offer
 from app.services.entitlements import (
     assert_can_use_ai_action,
+    assert_can_use_scoped_ai,
     credits_for_cost,
     release_ai_reservation,
     reserve_ai_credits,
@@ -271,7 +272,11 @@ def ai_assistant(
             },
             headers={"WWW-Authenticate": "Bearer"},
         )
-    # All assistant actions share the same plan entitlement and credit meter.
+    # Scoped editing requires active Pro even when a different plan has the
+    # generic assistant flag. Check before reservations and cached replays.
+    if request.scoped_content is not None:
+        assert_can_use_scoped_ai(db, user)
+    # All assistant actions share the same credit meter.
     assert_can_use_ai_action(db, user, request.action)
 
     # Authorize identifiers and validate storage locators before quota mutation,

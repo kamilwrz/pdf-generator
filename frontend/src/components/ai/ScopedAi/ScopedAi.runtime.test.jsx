@@ -15,7 +15,7 @@ vi.mock("../../../store/canvas-context", async () => {
   const CanvasTestContext = createContext(null);
   return { CanvasTestContext, useCanvasContext: () => useContext(CanvasTestContext) };
 });
-vi.mock("../../../store/session-context", () => ({ useSession: () => ({ entitlements: { ai_assistant: mocks.enabled } }) }));
+vi.mock("../../../store/session-context", () => ({ useSession: () => ({ entitlements: { ai_assistant: true, scoped_ai: mocks.enabled } }) }));
 vi.mock("../../../store/document-lifecycle-context", () => ({ useDocumentLifecycle: () => ({
   captureDocumentScope: () => ({ epoch: mocks.epoch }),
   isDocumentScopeCurrent: (scope) => scope.epoch === mocks.epoch,
@@ -100,11 +100,11 @@ describe("scoped review lifecycle", () => {
     expect(screen.getByTestId("body")).toHaveTextContent(before);
   });
 
-  it("explains unavailable AI without making a request", async () => {
+  it("blocks scoped AI without Premium even with the generic assistant flag", async () => {
     mocks.enabled = false;
     render(<Harness />);
     fireEvent.click(screen.getByText("Uruchom"));
-    await screen.findByText(/AI wymaga planu/);
+    expect(screen.queryByRole("button", { name: "Zamknij propozycje AI" })).not.toBeInTheDocument();
     expect(mocks.request).not.toHaveBeenCalled();
   });
 });

@@ -128,7 +128,7 @@ def test_route_reuses_credit_reservation_and_replay_for_scoped_responses():
     http = Request({"type": "http", "headers": []})
     prefix = "app.api.routes.ai_assistant."
     with ExitStack() as stack:
-        for name in ["assert_can_use_ai_action", "validate_and_resolve_image_elements", "log_metric_event"]:
+        for name in ["assert_can_use_ai_action", "assert_can_use_scoped_ai", "validate_and_resolve_image_elements", "log_metric_event"]:
             stack.enter_context(patch(prefix + name))
         stack.enter_context(patch(prefix + "resolve_user_from_payload", return_value=SimpleNamespace(id=1)))
         reserve = stack.enter_context(patch(prefix + "reserve_ai_credits", side_effect=[
@@ -149,7 +149,7 @@ def test_route_reuses_credit_reservation_and_replay_for_scoped_responses():
 def test_route_denies_entitlement_before_reserving_scoped_credits():
     from app.api.routes.ai_assistant import ai_assistant
     with patch("app.api.routes.ai_assistant.resolve_user_from_payload", return_value=SimpleNamespace(id=1)), \
-         patch("app.api.routes.ai_assistant.assert_can_use_ai_action", side_effect=HTTPException(403)), \
+         patch("app.api.routes.ai_assistant.assert_can_use_scoped_ai", side_effect=HTTPException(403)), \
          patch("app.api.routes.ai_assistant.reserve_ai_credits") as reserve, pytest.raises(HTTPException):
         ai_assistant(AssistantRequest(action="shorten", scoped_content=scope_payload()),
                      Request({"type": "http", "headers": []}), "key", {}, None)

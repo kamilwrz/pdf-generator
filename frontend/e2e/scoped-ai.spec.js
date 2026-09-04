@@ -13,6 +13,7 @@ const summary = [
 
 async function openDocument(page, options = {}) {
   const api = await installMockApi(page, {
+    ...(options.entitlements ? { entitlements: options.entitlements } : {}),
     savedElements: [...SAVED_ELEMENTS, ...summary],
     savedDocument: { ...SAVED_DOCUMENT, cv_data: { ...SAVED_DOCUMENT.cv_data, summary: before } },
     assistantResponses: [{ message: "Skrócono opis bez zmiany liczb i technologii.",
@@ -34,6 +35,20 @@ async function openMenu(page, headingId = "summary-heading") {
   await expect(page.getByRole("menu", { name: "Operacje AI" })).toBeVisible();
   return toolbar;
 }
+
+test("Free hides scoped AI while keeping section and entry actions usable", async ({ page }) => {
+  const api = await openDocument(page, { entitlements: { plan_slug: "free", ai_assistant: true,
+    scoped_ai: false, template_tier: "all", allowed_template_ids: null } });
+  for (const id of ["summary-heading", "skills-tools-title"]) {
+    await page.locator(`#${id}`).scrollIntoViewIfNeeded();
+    await page.locator(`#${id}`).dispatchEvent("pointerenter");
+    const toolbar = page.locator(`[data-canvas-toolbar-key="${id === "summary-heading" ? "heading" : "record"}:${id}"]`);
+    await expect(toolbar.getByRole("button").first()).toBeVisible();
+    await expect(toolbar.getByRole("button", { name: "AI dla wybranego zakresu" })).toHaveCount(0);
+    await expect(toolbar.getByRole("button").first()).toBeEnabled();
+  }
+  expect(api.calls.filter((call) => call.path === "/ai/assistant")).toHaveLength(0);
+});
 
 for (const width of [390, 834, 1280, 1920]) {
   test(`scoped AI preview, minimal request and undo at ${width}px`, async ({ page }, testInfo) => {

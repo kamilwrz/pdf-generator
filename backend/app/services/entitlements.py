@@ -452,6 +452,9 @@ def get_entitlements(db: Session, user: User) -> dict[str, Any]:
         "plan_name": plan.name,
         "status": sub.status,
         "ai_assistant": bool(plan.ai_assistant),
+        # Premium is the legacy name for Pro. A generic AI flag alone must
+        # never unlock scoped editing on a free or custom subscription.
+        "scoped_ai": plan.slug == "pro" and sub.status == "active" and bool(plan.ai_assistant),
         "extract_cv": bool(plan.extract_cv),
         "free_import_used": bool(sub.free_import_used),
         "template_tier": plan.template_tier,
@@ -572,6 +575,20 @@ def assert_can_use_ai_assistant(db: Session, user: User) -> None:
             "Asystent AI jest dostępny w planie Pro.",
         )
     assert_has_ai_credits(db, user)
+
+
+def assert_can_use_scoped_ai(db: Session, user: User) -> None:
+    """Require active Pro (formerly Premium) before scoped reservation or replay.
+
+    Resolve subscription expiry server-side; the UI capability is only a hint.
+    The route also runs the shared assistant credit gate before provider work.
+    """
+    if not get_entitlements(db, user)["scoped_ai"]:
+        raise PlanLimitError(
+            "plan_feature_scoped_ai",
+            "AI dla sekcji i wpisów jest dostępne wyłącznie w aktywnym planie Pro (Premium).",
+            upgrade_required="pro",
+        )
 
 
 def assert_can_use_ai_action(db: Session, user: User, action: str) -> None:

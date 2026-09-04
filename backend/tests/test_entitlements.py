@@ -108,6 +108,30 @@ class EntitlementsTests(unittest.TestCase):
             ent.assert_can_use_ai_assistant(self.db, user)
         self.assertEqual(ctx.exception.detail["code"], "plan_feature_ai_assistant")
 
+    def test_scoped_ai_requires_active_pro_even_with_generic_ai_enabled(self):
+        user = self._make_user()
+        free = self.db.query(ent.Plan).filter_by(slug="free").one()
+        free.ai_assistant = True
+        self.db.commit()
+        self.assertFalse(ent.get_entitlements(self.db, user)["scoped_ai"])
+        with self.assertRaises(ent.PlanLimitError) as denied:
+            ent.assert_can_use_scoped_ai(self.db, user)
+        self.assertEqual(denied.exception.detail["code"], "plan_feature_scoped_ai")
+
+        sub = ent.set_user_plan(self.db, user.id, "premium")
+        self.assertTrue(ent.get_entitlements(self.db, user)["scoped_ai"])
+        ent.assert_can_use_scoped_ai(self.db, user)
+        sub.status = "canceled"
+        self.db.commit()
+        with self.assertRaises(ent.PlanLimitError):
+            ent.assert_can_use_scoped_ai(self.db, user)
+        sub.status = "active"
+        sub.current_period_end = datetime.now(timezone.utc) - timedelta(seconds=1)
+        self.db.commit()
+        with self.assertRaises(ent.PlanLimitError):
+            ent.assert_can_use_scoped_ai(self.db, user)
+        self.assertEqual(ent.get_entitlements(self.db, user)["plan_slug"], "free")
+
     def test_free_allows_one_monthly_import_then_blocks(self):
         user = self._make_user()
         ent.assert_can_extract_cv(self.db, user)

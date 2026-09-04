@@ -243,7 +243,7 @@ export default function CanvasHoverToolbar({
     action?.();
   };
   const hasDirectActions = directActions.length > 0;
-  const aiButton = aiTarget && scopedAi ? (
+  const aiButton = aiTarget && scopedAi?.isAvailable ? (
     <button ref={aiTriggerRef} type="button" className={classes.control}
       aria-label="AI dla wybranego zakresu" data-tooltip="AI dla wybranego zakresu"
       aria-expanded={menuOpen && menuKind === "ai"} aria-haspopup="menu"
@@ -259,7 +259,7 @@ export default function CanvasHoverToolbar({
       scopedAi?.open(aiTarget, action.id, aiTriggerRef.current);
     },
   })) : menuItems;
-  const actionMenu = menuOpen && activeMenuItems.length > 0 ? (
+  const actionMenu = menuOpen && activeMenuItems.length > 0 && (menuKind !== "ai" || scopedAi?.isAvailable) ? (
     <div ref={menuRef} className={classes.menu} role="menu" aria-label={menuKind === "ai" ? "Operacje AI" : "Więcej działań"}
       onKeyDown={(event) => {
         if (event.key === "Escape") {

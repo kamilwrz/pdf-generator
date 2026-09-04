@@ -188,6 +188,7 @@ const PRO_ENTITLEMENTS = Object.freeze({
   template_tier: "all",
   allowed_template_ids: null,
   ai_assistant: true,
+  scoped_ai: true,
   features: { ai_assistant: true },
   limits: {
     max_projects: null,
@@ -252,6 +253,7 @@ export async function installMockApi(
     savedElements = SAVED_ELEMENTS,
     imports = IMPORT_HISTORY,
     assistantResponses = [],
+    entitlements = PRO_ENTITLEMENTS,
   } = {},
 ) {
   const calls = [];
@@ -288,7 +290,7 @@ export async function installMockApi(
       return json(route, { valid: true, username: "Kamil" });
     }
     if (method === "GET" && path === "/auth/me/entitlements") {
-      return json(route, PRO_ENTITLEMENTS);
+      return json(route, { ...PRO_ENTITLEMENTS, ...entitlements });
     }
     if (method === "GET" && path === "/pdf/fetch_pdfs") return json(route, documents);
     if (method === "POST" && path === "/pdf/show_pdf") {

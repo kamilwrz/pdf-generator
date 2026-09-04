@@ -20,6 +20,8 @@ import classes from "./ScopedAiProvider.module.css";
 export default function ScopedAiProvider({ enabled = true, children }) {
   const canvas = useCanvasContext();
   const { entitlements, refreshEntitlements } = useSession();
+  // Fail closed until the server resolves an active Pro/Premium subscription.
+  const isAvailable = Boolean(entitlements?.scoped_ai);
   const { captureDocumentScope, isDocumentScopeCurrent } = useDocumentLifecycle();
   const [review, setReview] = useState(null);
   const [isOpen, setIsOpen] = useState(false);
@@ -53,7 +55,7 @@ export default function ScopedAiProvider({ enabled = true, children }) {
   }, []);
 
   const send = useCallback(async (operation) => {
-    if (flight.current) return;
+    if (!isAvailable || flight.current) return;
     flight.current = true;
     setReview({ ...operation, status: "loading", error: "" });
     setNotice("");
@@ -79,10 +81,10 @@ export default function ScopedAiProvider({ enabled = true, children }) {
       flight.current = false;
       if (mounted.current) Promise.resolve(refreshEntitlements?.()).catch(() => {});
     }
-  }, [isDocumentScopeCurrent, refreshEntitlements]);
+  }, [isAvailable, isDocumentScopeCurrent, refreshEntitlements]);
 
   const open = useCallback((target, action, trigger) => {
-    if (!enabled) return;
+    if (!enabled || !isAvailable) return;
     triggerRef.current = trigger;
     restoreTargetRef.current = { elementId: target.elementId || target.headingId,
       toolbarKey: trigger?.closest?.("[data-canvas-toolbar-key]")?.getAttribute("data-canvas-toolbar-key") };
@@ -98,12 +100,11 @@ export default function ScopedAiProvider({ enabled = true, children }) {
       const snapshot = buildScopedAiSnapshot(current.A4_Elements, target, current.pageSize?.height);
       const operation = { action, snapshot, elements: current.A4_Elements,
         key: globalThis.crypto?.randomUUID?.() || nanoid(), documentScope: captureDocumentScope() };
-      const error = !entitlements?.ai_assistant ? "AI wymaga planu z dostępem do asystenta. Sprawdź swój plan."
-        : snapshot.error;
+      const error = snapshot.error;
       if (error) setReview({ ...operation, status: "unavailable", error });
       else send(operation);
     });
-  }, [captureDocumentScope, enabled, entitlements, send]);
+  }, [captureDocumentScope, enabled, isAvailable, send]);
 
   const currentSnapshot = review ? buildScopedAiSnapshot(canvas.A4_Elements, review.snapshot.target, canvas.pageSize?.height) : null;
   const stale = Boolean(review && (currentSnapshot.signature !== review.snapshot.signature
@@ -112,7 +113,7 @@ export default function ScopedAiProvider({ enabled = true, children }) {
     !review.accepted?.includes(correction.fragment_id) && !review.rejected?.includes(correction.fragment_id));
 
   const apply = (corrections) => {
-    if (stale || !corrections.length) return;
+    if (!isAvailable || stale || !corrections.length) return;
     try {
       const patches = scopedCorrectionsToPatches(canvas.A4_Elements, review.snapshot, corrections);
       const result = canvas.applyScopedTextPatches(patches);
@@ -124,11 +125,12 @@ export default function ScopedAiProvider({ enabled = true, children }) {
     } catch (error) { setNotice(error.message); }
   };
 
-  const value = useMemo(() => ({ open, close, isOpen: enabled && isOpen }), [open, close, enabled, isOpen]);
+  const value = useMemo(() => ({ open, close, isAvailable: enabled && isAvailable,
+    isOpen: enabled && isAvailable && isOpen }), [open, close, enabled, isAvailable, isOpen]);
   const actionLabel = SCOPED_AI_ACTIONS.find((action) => action.id === review?.action)?.label || "AI";
   return <ScopedAiContext.Provider value={value}>
     {children}
-    {enabled && isOpen && review ? createPortal(
+    {enabled && isAvailable && isOpen && review ? createPortal(
       <ReviewPanel title={`${actionLabel} z AI`} subtitle={review.snapshot.title} onClose={close}
         footer={<>
           {pending.length > 0 ? <button className={classes.primary} disabled={stale} onClick={() => apply(pending)}>Zastosuj wszystkie</button> : null}
