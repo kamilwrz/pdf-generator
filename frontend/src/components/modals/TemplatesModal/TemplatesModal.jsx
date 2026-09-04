@@ -41,7 +41,8 @@ export default function TemplatesModal() {
 
     async function applyTemplate(t) {
         if (!t || loadingTemplateId) return;
-        const title = `CV ${t.name}`;
+        // Template identity belongs to the layout, not the user's document name.
+        const title = "";
         setLoadingTemplateId(t.id);
         try {
             if (Array.isArray(t.elements)) {

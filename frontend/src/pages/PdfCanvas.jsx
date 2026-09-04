@@ -1648,7 +1648,7 @@ export function EditorController() {
     [flowSpacing, startFreshDocument],
   );
   const loadTemplateWithFillFresh = useCallback(
-    (templateElements, templateName, fills, templateId = null, metadata = {}) => {
+    (templateElements, title, fills, templateId = null, metadata = {}) => {
       const fillMap = Object.fromEntries((fills || []).map((fill) => [fill.id, fill.content]));
       const filled = templateElements.map((element, index) => {
         const content = fillMap[String(index)];
@@ -1661,7 +1661,7 @@ export function EditorController() {
         ...metadata,
         elements: materializeElementSpecs(filled, nanoid),
         deletedElements: [],
-        title: templateName ? `${templateName} CV` : "",
+        title: title || "",
         templateId,
         editorMode: EDITOR_MODE_TEMPLATE,
         flowSpacing: metadata.flowSpacing ?? flowSpacing,

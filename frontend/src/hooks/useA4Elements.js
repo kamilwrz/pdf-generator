@@ -2585,12 +2585,12 @@ export function useA4Elements(titleRef) {
     pinFlowSpacingBaseline();
     setPageCount(maxPage);
     setCurrentPage(1);
-    if (titleRef?.current && title) {
+    if (titleRef?.current && typeof title === "string") {
       titleRef.current.value = title;
     }
   }, [pinFlowSpacingBaseline, resetHistory, setEditorMode, titleRef])
 
-  const handleLoadTemplateWithFill = useCallback((templateElements, templateName, fills, templateId = null) => {
+  const handleLoadTemplateWithFill = useCallback((templateElements, title, fills, templateId = null) => {
     resetHistory();
     // fills use array index as id (String) — match by position, not by element_id
     const fillMap = Object.fromEntries((fills || []).map(f => [f.id, f.content]));
@@ -2610,8 +2610,9 @@ export function useA4Elements(titleRef) {
     pinFlowSpacingBaseline();
     setPageCount(maxPage);
     setCurrentPage(1);
-    if (titleRef?.current && templateName) {
-      titleRef.current.value = `${templateName} CV`;
+    // Only an explicit document title may replace the name; an empty one clears it.
+    if (titleRef?.current && typeof title === "string") {
+      titleRef.current.value = title;
     }
   }, [pinFlowSpacingBaseline, resetHistory, setEditorMode, titleRef])
 
@@ -2627,7 +2628,7 @@ export function useA4Elements(titleRef) {
     pinFlowSpacingBaseline();
     setPageCount(maxPage);
     setCurrentPage(1);
-    if (titleRef?.current && title) {
+    if (titleRef?.current && typeof title === "string") {
       titleRef.current.value = title;
     }
   }, [pinFlowSpacingBaseline, resetHistory, setEditorMode, titleRef])

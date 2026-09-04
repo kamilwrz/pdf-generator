@@ -1036,6 +1036,12 @@ Limits:
 
 ### Template load
 
+New documents opened from the template gallery or generated from an imported CV start with an empty document title. The topbar displays the placeholder **Projekt bez tytułu** until the user enters a name. Editing CV content or switching templates does not automatically name the project; template changes preserve an explicitly entered title. Saved documents retain their existing names. The document title is separate from both the template name and the job-position field inside the CV.
+
+Title flow: `TemplatesModal.applyTemplate` (`frontend/src/components/modals/TemplatesModal/TemplatesModal.jsx`, lines 42–74) and `AiCvPanel.handleFill` (`frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`, lines 254–288) pass an empty title to the fresh-document snapshot. `loadTemplateWithFillFresh` (`frontend/src/pages/PdfCanvas.jsx`, lines 1650–1673) and `handleLoadTemplateWithFill` (`frontend/src/hooks/useA4Elements.js`, lines 2593–2618) accept an explicit document title without adding a template name or a CV suffix. The existing controlled topbar input owns manual renaming; [React input documentation](https://react.dev/reference/react-dom/components/input) explains the `value` / `onChange` contract and why a placeholder is separate from the stored value.
+
+Regression tests: `frontend/src/components/modals/TemplatesModal/TemplatesModal.runtime.test.jsx`, lines 1–45, covers static and generated gallery templates; `frontend/e2e/document-title.spec.js`, lines 1–40, covers import, empty titles, keyboard renaming, and template switching at compact, tablet, laptop, and wide widths. No storage schema or API changes are required.
+
 Loads static specs; assigns `element_id`, interaction flags, locks chrome. The public registry contains exactly ten starters: Atrium, Aurelia, Cadenza, Linden, Meridian, Monument, Regent, Slate, Sterling, and Vellum. Sterling, Linden, and Meridian are the three Free choices and each exposes six appearance palettes plus S–XL typography presets. Regent stays registered as paid so previously saved Regent documents can still resolve, render, and be edited. All ten are generator-owned snapshots rather than hand-maintained approximations; `scripts/regenerate_template_starters.py` regenerates one module for every identifier in its `TEMPLATES` list.
 
 Implementation:
@@ -3577,6 +3583,12 @@ Ograniczenia:
 - Sekcja prywatności opisuje ogólnie zaimplementowane użycie danych i nie deklaruje niezaimplementowanych certyfikatów ani anonimizacji.
 
 ### Ładowanie szablonu
+
+Nowe dokumenty otwarte z galerii szablonów lub wygenerowane z zaimportowanego CV zaczynają z pustym tytułem dokumentu. Górny pasek wyświetla podpowiedź **Projekt bez tytułu**, dopóki użytkownik nie wpisze nazwy. Edycja treści CV ani przełączanie szablonów nie nadają projektowi nazwy automatycznie; zmiana szablonu zachowuje tytuł wpisany przez użytkownika. Zapisane dokumenty zachowują dotychczasowe nazwy. Tytuł dokumentu jest niezależny od nazwy szablonu i pola stanowiska wewnątrz CV.
+
+Przepływ tytułu: `TemplatesModal.applyTemplate` (`frontend/src/components/modals/TemplatesModal/TemplatesModal.jsx`, linie 42–74) i `AiCvPanel.handleFill` (`frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`, linie 254–288) przekazują pusty tytuł do migawki nowego dokumentu. `loadTemplateWithFillFresh` (`frontend/src/pages/PdfCanvas.jsx`, linie 1650–1673) i `handleLoadTemplateWithFill` (`frontend/src/hooks/useA4Elements.js`, linie 2593–2618) przyjmują jawny tytuł dokumentu bez dopisywania nazwy szablonu ani przyrostka CV. Istniejące kontrolowane pole górnego paska obsługuje ręczną zmianę nazwy; [dokumentacja pola input w React](https://react.dev/reference/react-dom/components/input) wyjaśnia kontrakt `value` / `onChange` i rozdzielenie podpowiedzi od zapisanej wartości.
+
+Testy regresji: `frontend/src/components/modals/TemplatesModal/TemplatesModal.runtime.test.jsx`, linie 1–45, obejmuje statyczne i generowane szablony galerii; `frontend/e2e/document-title.spec.js`, linie 1–40, obejmuje import, puste tytuły, zmianę nazwy klawiaturą oraz przełączanie szablonów przy szerokościach telefonu, tabletu, laptopa i szerokiego ekranu. Zmiana nie wymaga modyfikacji schematu danych ani API.
 
 Publiczny rejestr zawiera dokładnie dziesięć starterów: Atrium, Aurelia, Cadenza, Linden, Meridian, Monument, Regent, Slate, Sterling i Vellum. Sterling, Linden i Meridian to trzy wybory Free; każdy ma sześć palet wyglądu oraz presety typografii S–XL. Regent pozostaje zarejestrowany jako płatny, dzięki czemu wcześniej zapisane dokumenty Regent nadal można rozpoznać, wyrenderować i edytować. Wszystkie dziesięć to snapshoty generowane ze źródłowych generatorów, a nie ręcznie utrzymywane przybliżenia; `scripts/regenerate_template_starters.py` odtwarza po jednym module dla każdego identyfikatora z listy `TEMPLATES`.
 

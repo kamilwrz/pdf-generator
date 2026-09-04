@@ -272,7 +272,7 @@ export default function AiCvPanel() {
             }
             const replaced = await loadAiElements(
                 res.elements,
-                `CV ${template.name}`,
+                "", // Keep the new document untitled until the user names it.
                 template.id,
                 { cvData, sourceImportId: importId },
             );
