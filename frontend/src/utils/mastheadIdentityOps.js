@@ -5,12 +5,12 @@
  * `setA4_Elements` + history path as the contact-band ops:
  *
  *   - applyNameCaseToggle: flip the name element's `textTransform` between
- *     "uppercase" and "none". Reversible and position-preserving — the name
- *     box IS width-constrained (a wrapping textarea), so uppercasing can
- *     change its wrap point and therefore its rendered height. This op only
- *     flips the flag; `Textarea.jsx`'s auto-height effect (keyed on
- *     `textTransform`) re-measures the box against the browser's real glyph
- *     metrics and grows/shrinks it to fit, the same way a content edit does.
+ *     "uppercase" and "none". When an imported name is already stored in all
+ *     caps, disabling the transform also restores ordinary word casing once;
+ *     otherwise removing the CSS transform would produce no visible change.
+ *     Mixed-case names remain byte-for-byte unchanged. The name box can be a
+ *     width-constrained textarea, so `Textarea.jsx` re-measures it when either
+ *     the transform or normalized content changes.
  *   - applyTitleToggle: hide the title (remove it, shift everything at/below its
  *     top up by `reclaimPt ?? blockPt`, nudge the coupled contact band's startY,
  *     mark absent)
@@ -91,14 +91,56 @@ export function resizeContentSizedTitleDecorations(
   });
 }
 
-/** Flip the name element's case flag; positions untouched. No reflow. */
+/**
+ * Restore readable word casing only for imported names whose stored content
+ * is itself entirely uppercase.
+ *
+ * The editor normally keeps mixed-case source text and applies uppercase only
+ * at render time. PDF extraction can instead return an already-uppercased
+ * string such as `ANTON TSEITLIN`; merely removing `text-transform` then looks
+ * broken. There is no reliable way to reconstruct special casing from an
+ * all-caps source, so capitalize each Unicode word while leaving any existing
+ * mixed-case spelling (for example `McDonald` or `de la Cruz`) untouched.
+ *
+ * @param {unknown} value - Persisted masthead name content.
+ * @returns {unknown} Normalized string, or the original non-string value.
+ */
+function restoreOrdinaryNameCase(value) {
+  if (typeof value !== "string" || value.length === 0) return value;
+  const uppercase = value.toUpperCase();
+  const lowercase = value.toLowerCase();
+  const hasCasedLetters = uppercase !== lowercase;
+  if (!hasCasedLetters || value !== uppercase) return value;
+
+  return lowercase.replace(
+    /(^|[^\p{L}\p{M}])(\p{L})/gu,
+    (_match, boundary, initial) => `${boundary}${initial.toUpperCase()}`,
+  );
+}
+
+/**
+ * Toggle display casing for the managed masthead name.
+ *
+ * Positions and all unrelated elements remain untouched. Disabling uppercase
+ * also repairs all-caps import text so the action always has a visible result.
+ *
+ * @param {Array<object>} elements - Current canvas elements.
+ * @param {string} bandId - Managed masthead identity id.
+ * @returns {{elements: Array<object>}} Updated elements, or the original array
+ * when the masthead is unmanaged or has no name.
+ */
 export function applyNameCaseToggle(elements, bandId) {
   if (!identityDescriptor(elements, bandId)) return { elements };
   let changed = false;
   const next = elements.map((el) => {
     if (el.mastheadBandId === bandId && el.mastheadRole === "name") {
       changed = true;
-      return { ...el, textTransform: el.textTransform === "uppercase" ? "none" : "uppercase" };
+      const disablingUppercase = el.textTransform === "uppercase";
+      return {
+        ...el,
+        textTransform: disablingUppercase ? "none" : "uppercase",
+        ...(disablingUppercase ? { content: restoreOrdinaryNameCase(el.content) } : {}),
+      };
     }
     return el;
   });

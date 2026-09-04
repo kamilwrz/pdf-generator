@@ -50,6 +50,36 @@ test("name case toggle flips the flag reversibly and touches nothing else", () =
   assert.equal(on.find((e) => e.element_id === "name").top, 44);
 });
 
+test("disabling uppercase repairs names imported as all-caps text", () => {
+  const source = doc();
+  const name = source.find((element) => element.element_id === "name");
+  name.content = "ANTON TSEITLIN";
+  const { elements } = applyNameCaseToggle(source, "masthead-main");
+  assert.equal(elements.find((element) => element.element_id === "name").content, "Anton Tseitlin");
+});
+
+test("all-caps import repair handles Polish letters and compound names", () => {
+  const source = doc();
+  const name = source.find((element) => element.element_id === "name");
+  name.content = "ŁUKASZ ŻÓŁĆ-KOWALSKI O'NEILL";
+  const { elements } = applyNameCaseToggle(source, "masthead-main");
+  assert.equal(
+    elements.find((element) => element.element_id === "name").content,
+    "Łukasz Żółć-Kowalski O'Neill",
+  );
+});
+
+test("disabling uppercase preserves intentional mixed-case spelling", () => {
+  const source = doc();
+  const name = source.find((element) => element.element_id === "name");
+  name.content = "Anna McDonald de la Cruz";
+  const { elements } = applyNameCaseToggle(source, "masthead-main");
+  assert.equal(
+    elements.find((element) => element.element_id === "name").content,
+    "Anna McDonald de la Cruz",
+  );
+});
+
 test("title hide removes it, shifts below up by blockPt, updates band startY, keeps footer", () => {
   const { elements } = applyTitleToggle(doc(), "masthead-main", () => "id");
   assert.equal(elements.find((e) => e.element_id === "title"), undefined);

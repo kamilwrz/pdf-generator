@@ -91,6 +91,10 @@ for (const width of [390, 834, 1366, 1920]) {
     const template = TEST_TEMPLATES.find((item) => item.id === "slate");
     const elements = materializeElementSpecs(template.elements, () => `placement-${++nextId}`);
     const name = elements.find((item) => item.mastheadRole === "name");
+    // Reproduce PDF extraction that stores the source name itself in capitals.
+    // The first case-toggle click must visibly restore ordinary casing instead
+    // of only removing a CSS transform from already-uppercased content.
+    name.content = "ANTON TSEITLIN";
     const title = elements.find((item) => item.mastheadRole === "title");
     const titleArea = elements.find((item) => item.mastheadRole === "title-decoration");
     const photo = elements.find((item) => item.photoSlot === "frame");
@@ -156,6 +160,7 @@ for (const width of [390, 834, 1366, 1920]) {
       await toggle.focus();
       await toggle.press("Enter");
       await expect(field).toHaveCSS("text-transform", "none");
+      await expect(field).toHaveText("Anton Tseitlin");
       await toggle.press("Enter");
       await expect(field).toHaveCSS("text-transform", "uppercase");
       if (zoom === 160) await page.screenshot({ path: test.info().outputPath("identity-controls.png") });

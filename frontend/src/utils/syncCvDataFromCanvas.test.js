@@ -6,6 +6,7 @@ import {
   syncGeneratedSkillsForTemplateSwitch,
   syncCustomSectionsForTemplateSwitch,
 } from "./syncCvDataFromCanvas.js";
+import { applyNameCaseToggle } from "./mastheadIdentityOps.js";
 
 const profile = {
   name: "Anna Kowalska",
@@ -63,6 +64,34 @@ describe("syncCvDataFromCanvas", () => {
     const updated = syncCvDataFromCanvas(source, before, after);
     assert.equal(updated.name, "Ada Lovelace");
     assert.equal(source.name, "");
+  });
+
+  it("persists repaired casing from an all-caps imported masthead name", () => {
+    const source = { ...profile, name: "ANTON TSEITLIN" };
+    const before = [
+      {
+        element_id: "identity",
+        category: "text",
+        content: "",
+        flowRole: "masthead-anchor",
+        mastheadBandId: "masthead-main",
+        mastheadIdentity: { id: "masthead-main", name: { defaultUppercase: true } },
+      },
+      {
+        element_id: "name",
+        category: "text",
+        content: "ANTON TSEITLIN",
+        mastheadRole: "name",
+        mastheadBandId: "masthead-main",
+        textTransform: "uppercase",
+      },
+    ];
+    const after = applyNameCaseToggle(before, "masthead-main").elements;
+
+    const updated = syncCvDataFromCanvas(source, before, after);
+
+    assert.equal(updated.name, "Anton Tseitlin");
+    assert.equal(source.name, "ANTON TSEITLIN");
   });
 
   it("splits a composite starter row across its cv_data bindings", () => {
