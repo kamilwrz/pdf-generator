@@ -1,14 +1,15 @@
 /* The wrapper is sized to the scaled canvas and centers it (margin auto)
    when it fits, or left-aligns + scrolls when wider than .canvas-area —
    mirroring what .A4's own margin:auto did before zoom existed. Width/height
-   are transitioned too so the auto-zoom-while-editing effect (useA4Elements)
-   reserves layout space smoothly instead of snapping the scroll extent. */
+   are transitioned too so the coordinated edit zoom (useA4Elements) can track
+   the growing page and its scroll extent on one shared motion timeline. */
 .zoomWrapper {
     /* Preserve the scaled scroll extent; shrinking this flex item hides the
        left edge of editable fields outside a compact canvas viewport. */
     flex-shrink: 0;
     margin: 0 auto;
-    transition: width 240ms ease-out, height 240ms ease-out;
+    transition: width var(--motion-standard) var(--motion-ease),
+        height var(--motion-standard) var(--motion-ease);
 }
 
 .spreadPage {
@@ -25,7 +26,7 @@
     border: 0;
     border-radius: var(--radius-panel);
     box-shadow: var(--shadow-pop);
-    transition: transform 240ms ease-out;
+    transition: transform var(--motion-standard) var(--motion-ease);
 }
 
 @media (prefers-reduced-motion: reduce) {

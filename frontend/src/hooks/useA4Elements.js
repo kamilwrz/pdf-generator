@@ -86,6 +86,11 @@ import {
 } from '../utils/profilePhotoVisibility';
 import { canvasFontFamily } from '../utils/canvasFont';
 import { isCanvasInteractionTarget, shouldDeferEditZoomRestore } from '../utils/editZoomExit';
+import {
+  coordinateEditZoomMotion,
+  EDIT_ZOOM_MOTION_MS,
+  revealEditedElementImmediately,
+} from '../utils/editZoomMotion';
 import { useElementSelectionDrag } from './useElementSelectionDrag';
 import { ENDPOINTS } from '../services/api';
 import { TEMPLATES } from '../templates';
@@ -128,11 +133,6 @@ const stepZoom = (z, dir) => clampZoom(Math.round((z + dir * ZOOM_STEP) * 10) / 
 // editingElementId effect below). Editing from a two-page spread temporarily
 // focuses the selected element's page before applying this same zoom.
 const EDIT_ZOOM = 2;
-// Matches the CSS transition on `.A4` / `.zoomWrapper` (A4.module.css) plus a
-// small buffer. `scrollIntoView` called mid-transition targets an
-// interpolated (not final) position, so the post-zoom scroll waits for the
-// transition to settle before measuring the edited element for real.
-const EDIT_ZOOM_TRANSITION_MS = 260;
 
 function prefersReducedMotion() {
   if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
@@ -223,8 +223,10 @@ export function useA4Elements(titleRef) {
   const pageSize = A4_PAGE_SIZE;
   // View-only zoom (not persisted, not in undo/redo — lives outside A4_Elements).
   const [zoom, setZoomState] = useState(ZOOM_DEFAULT);
+  const zoomRef = useRef(ZOOM_DEFAULT);
   const zoomIn = useCallback(() => setZoomState(z => stepZoom(z, 1)), []);
   const zoomOut = useCallback(() => setZoomState(z => stepZoom(z, -1)), []);
+  useEffect(() => { zoomRef.current = zoom; }, [zoom]);
   const toggleTwoPageView = useCallback(() => {
     setIsTwoPageView((visible) => (pageCountRef.current > 1 ? !visible : false));
   }, []);
@@ -404,29 +406,36 @@ export function useA4Elements(titleRef) {
     // Starting or switching a text edit claims the focused view. Reset any
     // background-exit signal that preceded this edit-state transition.
     editZoomExitRequestedRef.current = false;
+    const editedElement = document.getElementById(editingElementId);
+    const canvasArea = canvasAreaRef.current;
+    const reduceMotion = prefersReducedMotion();
+    const currentZoom = zoomRef.current;
+    const cancelCoordinatedMotion = !reduceMotion && editedElement && canvasArea
+      ? coordinateEditZoomMotion({
+        container: canvasArea,
+        element: editedElement,
+        zoomRatio: EDIT_ZOOM / currentZoom,
+        duration: EDIT_ZOOM_MOTION_MS,
+      })
+      : null;
+
     setZoomState((current) => {
       if (editZoomPreviousRef.current == null) editZoomPreviousRef.current = current;
       return EDIT_ZOOM;
     });
 
-    // `scrollIntoView` on the edited node itself (native, so it accounts for
-    // the real post-zoom layout instead of a manually derived position) —
-    // but only once the zoom transition has actually settled; called earlier
-    // it would center on the element's still-animating, not-yet-final spot.
-    const reduceMotion = prefersReducedMotion();
-    const scrollToEditedElement = () => {
-      document.getElementById(editingElementId)?.scrollIntoView({
-        behavior: reduceMotion ? "auto" : "smooth",
-        block: "center",
-        inline: "nearest",
-      });
-    };
+    // Reduced motion still waits for the zoom render to commit, then reveals
+    // the field in one immediate scroll update rather than animating it.
     if (reduceMotion) {
-      scrollToEditedElement();
-      return undefined;
+      const frame = window.requestAnimationFrame(() => {
+        revealEditedElementImmediately(
+          canvasAreaRef.current,
+          document.getElementById(editingElementId),
+        );
+      });
+      return () => window.cancelAnimationFrame(frame);
     }
-    const timer = window.setTimeout(scrollToEditedElement, EDIT_ZOOM_TRANSITION_MS);
-    return () => window.clearTimeout(timer);
+    return cancelCoordinatedMotion ?? undefined;
   }, [editingElementId, editingElementPage, isTwoPageView, restoreEditZoom]);
 
   // Strip NULL/NBSP junk and trailing bullet placeholders already sitting in
