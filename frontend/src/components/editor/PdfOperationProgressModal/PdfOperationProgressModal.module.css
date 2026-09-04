@@ -1,9 +1,7 @@
 /*
- * Save-specific progress modal.
- *
- * Its editorial split, numbered process and explicit destination distinguish
- * persistence from the separate PDF-render spinner. The surface uses only the
- * shared Swiss tokens, and remains outside the A4/PDF render tree.
+ * Shared save/download progress surface. The asymmetric rail makes the
+ * operation immediately recognizable while the numbered rows communicate
+ * real system boundaries without suggesting a fake percentage estimate.
  */
 .overlay {
     position: fixed;
@@ -14,7 +12,7 @@
     padding: var(--space-4);
     overflow: hidden;
     background: var(--color-overlay);
-    animation: saveOverlayIn var(--motion-fast) var(--motion-ease) both;
+    animation: operationOverlayIn var(--motion-fast) var(--motion-ease) both;
 }
 
 .modal {
@@ -27,7 +25,7 @@
     box-shadow: var(--shadow-pop);
     color: var(--color-ink);
     overscroll-behavior: contain;
-    animation: saveModalIn var(--motion-standard) var(--motion-ease) both;
+    animation: operationModalIn var(--motion-standard) var(--motion-ease) both;
 }
 
 .header {
@@ -131,9 +129,7 @@
     color: var(--color-muted);
 }
 
-.step:first-child {
-    border-top: 0;
-}
+.step:first-child { border-top: 0; }
 
 .stepIndex {
     display: grid;
@@ -178,9 +174,7 @@
     text-transform: uppercase;
 }
 
-.active {
-    color: var(--color-ink);
-}
+.active { color: var(--color-ink); }
 
 .active::before {
     position: absolute;
@@ -196,12 +190,10 @@
     border-color: var(--color-ink);
     background: var(--color-ink);
     color: var(--color-paper);
-    animation: saveStepPulse 1.4s var(--motion-ease) infinite;
+    animation: operationStepPulse 1.4s var(--motion-ease) infinite;
 }
 
-.complete {
-    color: var(--color-muted);
-}
+.complete { color: var(--color-muted); }
 
 .complete .stepIndex {
     border-color: var(--color-success);
@@ -209,9 +201,7 @@
     color: var(--color-success);
 }
 
-.complete .stepStatus {
-    color: var(--color-success);
-}
+.complete .stepStatus { color: var(--color-success); }
 
 .footer {
     display: flex;
@@ -246,17 +236,17 @@
     border: 0;
 }
 
-@keyframes saveOverlayIn {
+@keyframes operationOverlayIn {
     from { opacity: 0; }
     to { opacity: 1; }
 }
 
-@keyframes saveModalIn {
+@keyframes operationModalIn {
     from { opacity: 0; transform: translateY(-8px); }
     to { opacity: 1; transform: translateY(0); }
 }
 
-@keyframes saveStepPulse {
+@keyframes operationStepPulse {
     0%, 100% { outline: 0 solid color-mix(in srgb, var(--color-ink) 16%, transparent); }
     50% { outline: 5px solid color-mix(in srgb, var(--color-ink) 0%, transparent); }
 }
@@ -267,30 +257,18 @@
         min-height: 176px;
     }
 
-    .mark {
-        padding-inline: var(--space-3);
-    }
+    .mark { padding-inline: var(--space-3); }
 
     .intro,
-    .body {
-        padding: var(--space-6);
-    }
+    .body { padding: var(--space-6); }
 
-    .intro h2 {
-        font-size: 24px;
-    }
+    .intro h2 { font-size: 24px; }
 
-    .active::before {
-        left: calc(var(--space-6) * -1);
-    }
+    .active::before { left: calc(var(--space-6) * -1); }
 
-    .step {
-        grid-template-columns: 36px minmax(0, 1fr);
-    }
+    .step { grid-template-columns: 36px minmax(0, 1fr); }
 
-    .stepStatus {
-        display: none;
-    }
+    .stepStatus { display: none; }
 
     .footer {
         align-items: flex-start;
@@ -301,23 +279,15 @@
 }
 
 @media (max-height: 560px) {
-    .header {
-        min-height: 152px;
-    }
+    .header { min-height: 152px; }
 
     .intro,
-    .body {
-        padding-block: var(--space-4);
-    }
+    .body { padding-block: var(--space-4); }
 
     .eyebrow,
-    .progressTrack {
-        margin-bottom: var(--space-4);
-    }
+    .progressTrack { margin-bottom: var(--space-4); }
 
-    .step {
-        min-height: 60px;
-    }
+    .step { min-height: 60px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -11,9 +11,9 @@ import {
   resolveCreateAttempt,
 } from "../utils/pdfPersistenceContract";
 import {
-  nextSaveProgressStageAt,
-  saveProgressDismissAt,
-} from "../utils/saveProgressTiming";
+  nextOperationProgressStageAt,
+  operationProgressDismissAt,
+} from "../utils/operationProgressTiming";
 
 /**
  * PDF create / update / download against the backend.
@@ -43,9 +43,9 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
   const createAttemptRef = useRef(null);
   const operationSequenceRef = useRef(0);
 
-  // Keep the loading state up for at least this long so a fast request still
-  // shows the spinner (otherwise it can flash by before it's ever painted).
-  const MIN_SPINNER_MS = 650;
+  // Give fast failures enough time to paint the blocking state once without
+  // applying the longer successful-stage cadence to actionable error feedback.
+  const MIN_FAILURE_FEEDBACK_MS = 650;
 
   const scheduleOperationPhase = useCallback((operationSequence, phase, visibleAt) => {
     window.setTimeout(() => {
@@ -90,7 +90,7 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
       setTimeout(() => {
         if (!clearOperation(operationSequence)) return;
         handleShowModal();
-      }, MIN_SPINNER_MS);
+      }, MIN_FAILURE_FEEDBACK_MS);
       return;
     }
 
@@ -116,7 +116,7 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
         // Layout resolution is complete. The remaining work is the actual
         // authenticated persistence/render transaction on the backend. Keep
         // the preparation step readable before exposing this real boundary.
-        persistVisibleAt = nextSaveProgressStageAt(startedAt, Date.now());
+        persistVisibleAt = nextOperationProgressStageAt(startedAt, Date.now());
         scheduleOperationPhase(operationSequence, "persist", persistVisibleAt);
         const body = JSON.stringify({
           root: persistedRoot,
@@ -154,7 +154,7 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
         didPersist = true;
         // Confirmation becomes visible only after the server response and a
         // readable persistence stage; neither condition can overtake the other.
-        confirmVisibleAt = nextSaveProgressStageAt(persistVisibleAt, Date.now());
+        confirmVisibleAt = nextOperationProgressStageAt(persistVisibleAt, Date.now());
         scheduleOperationPhase(operationSequence, "confirm", confirmVisibleAt);
         createAttemptRef.current = null;
         handlePdfId(data.pdf_id, { revision });
@@ -175,8 +175,8 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
       })
       .finally(() => {
         const finishAt = didPersist && confirmVisibleAt != null
-          ? saveProgressDismissAt(confirmVisibleAt)
-          : Math.max(Date.now(), startedAt + MIN_SPINNER_MS);
+          ? operationProgressDismissAt(confirmVisibleAt)
+          : Math.max(Date.now(), startedAt + MIN_FAILURE_FEEDBACK_MS);
         setTimeout(() => {
           if (!clearOperation(operationSequence)) return;
           handleShowModal();
@@ -211,7 +211,7 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
       setTimeout(() => {
         if (!clearOperation(operationSequence)) return;
         handleShowModal();
-      }, MIN_SPINNER_MS);
+      }, MIN_FAILURE_FEEDBACK_MS);
       return;
     }
 
@@ -232,7 +232,7 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
       )),
     ])
       .then(([persistedRoot, renderRoot]) => {
-        persistVisibleAt = nextSaveProgressStageAt(startedAt, Date.now());
+        persistVisibleAt = nextOperationProgressStageAt(startedAt, Date.now());
         scheduleOperationPhase(operationSequence, "persist", persistVisibleAt);
         const body = JSON.stringify({
           root: [...persistedRoot, ...sanitizeElementsContent(A4_Elements_deleted)],
@@ -259,7 +259,7 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
       .then((data) => {
         const revision = requirePdfRevision(data.revision);
         didPersist = true;
-        confirmVisibleAt = nextSaveProgressStageAt(persistVisibleAt, Date.now());
+        confirmVisibleAt = nextOperationProgressStageAt(persistVisibleAt, Date.now());
         scheduleOperationPhase(operationSequence, "confirm", confirmVisibleAt);
         handlePdfId(data.pdf_id ?? PDF_ID, { revision });
         setResponsePDF({
@@ -272,8 +272,8 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
       .catch((error) => setResponsePDF(localizePdfPersistenceError(error)))
       .finally(() => {
         const finishAt = didPersist && confirmVisibleAt != null
-          ? saveProgressDismissAt(confirmVisibleAt)
-          : Math.max(Date.now(), startedAt + MIN_SPINNER_MS);
+          ? operationProgressDismissAt(confirmVisibleAt)
+          : Math.max(Date.now(), startedAt + MIN_FAILURE_FEEDBACK_MS);
         setTimeout(() => {
           if (!clearOperation(operationSequence)) return;
           handleShowModal();
@@ -292,8 +292,9 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
     const operationSequence = ++operationSequenceRef.current;
     setIsPdfLoading(true);
     setPdfOperation("download");
-    setPdfOperationPhase("render");
+    setPdfOperationPhase("prepare");
     const startedAt = Date.now();
+    let renderVisibleAt = startedAt;
     try {
       const sorted = sanitizeElementsContent(
         [...A4_Elements].sort((a, b) => a.zIndex - b.zIndex),
@@ -309,6 +310,10 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
           meta.templateId || null,
         ),
       );
+      // Browser layout is now resolved. Start the backend immediately while
+      // retaining the preparation copy long enough to be read on fast paths.
+      renderVisibleAt = nextOperationProgressStageAt(startedAt, Date.now());
+      scheduleOperationPhase(operationSequence, "render", renderVisibleAt);
       const api = new ApiClient({ "Authorization": `Bearer ${localStorage.getItem("token")}` });
       const editor_mode = meta.editorMode === "template" ? "template" : "freeform";
       const template_id = meta.templateId || null;
@@ -340,15 +345,42 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
       const urlBlob = URL.createObjectURL(blob);
       // Keep the object URL alive long enough for the toast "Pobierz PDF" action.
       window.setTimeout(() => URL.revokeObjectURL(urlBlob), 60_000);
-      return { blob: urlBlob, title: filename || `${baseTitle}.pdf` };
-    } finally {
-      // Honour the minimum spinner window so a fast render still paints once.
-      const remaining = Math.max(0, MIN_SPINNER_MS - (Date.now() - startedAt));
+
+      let presentationSettled = false;
+      const finishPresentation = (downloadStarted = true) => {
+        if (presentationSettled) return;
+        presentationSettled = true;
+        if (!downloadStarted) {
+          clearOperation(operationSequence);
+          return;
+        }
+
+        // The caller invokes this only after the browser download click has
+        // fired. The final phase is therefore truthful even when its visual
+        // reveal waits for the render phase's minimum reading interval.
+        const downloadVisibleAt = nextOperationProgressStageAt(renderVisibleAt, Date.now());
+        scheduleOperationPhase(operationSequence, "download", downloadVisibleAt);
+        const finishAt = operationProgressDismissAt(downloadVisibleAt);
+        window.setTimeout(() => {
+          clearOperation(operationSequence);
+        }, Math.max(0, finishAt - Date.now()));
+      };
+
+      return {
+        blob: urlBlob,
+        title: filename || `${baseTitle}.pdf`,
+        finishPresentation,
+      };
+    } catch (error) {
+      // Failures remain prompt: the extended reading interval applies only to
+      // successful phases and must not postpone actionable error feedback.
+      const remaining = Math.max(0, MIN_FAILURE_FEEDBACK_MS - (Date.now() - startedAt));
       window.setTimeout(() => {
         clearOperation(operationSequence);
       }, remaining);
+      throw error;
     }
-  }, [clearOperation]);
+  }, [clearOperation, scheduleOperationPhase]);
 
 
   // Lightweight elements-only persistence (no PDF render, no S3). Retained as a

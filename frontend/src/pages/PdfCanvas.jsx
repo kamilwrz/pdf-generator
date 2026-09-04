@@ -31,8 +31,8 @@ import {
 import ModalPdfs from '../components/modals/ModalPdfs/ModalPdfs';
 import { ApiClient } from '../services/api';
 import { ENDPOINTS } from '../services/api';
-import Spinner from '../components/common/Spinner/Spinner';
 import SaveProgressModal from '../components/editor/SaveProgressModal/SaveProgressModal';
+import DownloadProgressModal from '../components/editor/DownloadProgressModal/DownloadProgressModal';
 import ToastStack from '../components/common/ToastStack/ToastStack';
 import { useToasts } from '../hooks/useToasts';
 import { useEntitlements } from '../hooks/useEntitlements';
@@ -784,7 +784,7 @@ export function EditorController() {
     setSkillsLayoutModal({ open: false, headingId: null });
   }, [skillsLayoutModal.headingId, handleChangeSkillsDisplayMode]);
 
-  // usePdfExport's callback param only ever signals "the min-spinner delay
+  // usePdfExport's callback param only ever signals "the progress-modal delay
   // has elapsed, react now" — the actual toast trigger lives in the
   // isPdfLoading-transition effect below instead, since reading responsePDF
   // synchronously inside this callback would close over a stale value (this
@@ -854,14 +854,14 @@ export function EditorController() {
   } = usePdfExport(handlePdfId, noopShowModal, titleRef, A4_Elements_deleted, clearSavedDeletedElements);
   const wasPdfLoadingRef = useRef(false);
 
-  // Stable callback ref for the post-spinner effect so a `pushToast` identity
+  // Stable callback ref for the post-progress effect so a `pushToast` identity
   // change does not re-run the effect for an already-handled response.
   const pushToastRef = useRef(pushToast);
   pushToastRef.current = pushToast;
   const refreshEntitlementsRef = useRef(refreshEntitlements);
   refreshEntitlementsRef.current = refreshEntitlements;
 
-  // Fires exactly when the create/update spinner finishes. Save (create or
+  // Fires exactly when the create/update progress modal finishes. Save (create or
   // update) is the only path through here now — Download renders on demand via
   // `handleDownloadClick` and never touches `responsePDF`. On success the
   // document is committed to "Moje dokumenty", so the in-memory state is clean.
@@ -1440,7 +1440,7 @@ export function EditorController() {
   }, [A4_Elements, goToPage, handleSelectElement, handleSetTextareaEditing, pushToast, requestTextEdit]);
 
   // Update the already-saved document in place. `intent: "save"` marks this as a
-  // persistence write (not a download), so the post-spinner effect shows the
+  // persistence write (not a download), so the post-progress effect shows the
   // "Zapisano" toast rather than any download handling.
   const updatePdfWithElements = useCallback(() => {
     saveRequestPendingRef.current = true;
@@ -1477,7 +1477,7 @@ export function EditorController() {
   /**
    * Save the snapshot currently guarded by the unsaved-changes dialog.
    *
-   * Resolution is owned by the post-spinner response effect above, after a
+   * Resolution is owned by the post-progress response effect above, after a
    * successful response has updated the authoritative pdf id/revision and the
    * exact submitted signature has been marked clean. Rejections intentionally
    * leave the guard promise pending so navigation or replacement cannot run.
@@ -1521,7 +1521,7 @@ export function EditorController() {
       return;
     }
     try {
-      const { blob, title } = await downloadPdf(A4_Elements, titleRef, pageCount, pageSize, {
+      const { blob, title, finishPresentation } = await downloadPdf(A4_Elements, titleRef, pageCount, pageSize, {
         editorMode,
         templateId: activeTemplateId,
         // A saved paid-template document may remain editable after Pro expires.
@@ -1530,7 +1530,15 @@ export function EditorController() {
         pdfId,
         flowSpacing,
       });
-      triggerBlobDownload(blob, title);
+      try {
+        triggerBlobDownload(blob, title);
+        finishPresentation(true);
+      } catch (error) {
+        // Do not leave the blocking progress surface mounted if the browser
+        // rejects the synthetic download click before a file is handed off.
+        finishPresentation(false);
+        throw error;
+      }
       pushToast({
         title: "CV gotowe do pobrania",
         msg: `Pobrano plik ${title}.`,
@@ -2387,9 +2395,9 @@ export function EditorController() {
                     title={documentTitle}
                     onTitleChange={setDocumentTitle}
                   />
-                  {/* Saving and downloading are deliberately separate UX
-                      contracts: persistence gets account-oriented steps,
-                      while export keeps the canvas-anchored render status. */}
+                  {/* Save and download share one progress grammar, while their
+                      copy and stages keep persistence and local file delivery
+                      unambiguous. Both overlays remain outside the A4 tree. */}
                   {isPdfLoading && pdfOperation === 'save' ? (
                     <SaveProgressModal
                       phase={pdfOperationPhase}
@@ -2397,7 +2405,10 @@ export function EditorController() {
                     />
                   ) : null}
                   {isPdfLoading && pdfOperation === 'download' ? (
-                    <Spinner loading={isPdfLoading} anchorRef={A4ref} />
+                    <DownloadProgressModal
+                      phase={pdfOperationPhase}
+                      title={documentTitle}
+                    />
                   ) : null}
                   <div className="canvas-area" ref={canvasAreaRef} onClick={handleCanvasBackgroundClick}>
                     <div className={isTwoPageView ? "canvas-spread" : "canvas-single"}>
