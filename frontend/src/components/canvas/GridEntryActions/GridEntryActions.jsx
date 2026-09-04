@@ -217,7 +217,7 @@ export default function GridEntryActions({
       pageWidth={pageSize?.width ?? 595}
       highlight={hoverHighlight}
       highlightLevel="entry"
-      layout={layout}
+      layout={isLanguageEntry ? compactInlineToolbarLayoutSize() : structuralToolbarLayoutSize()}
       directActions={directActions}
       toolbarPointerProps={directToolbarPointerProps}
     />

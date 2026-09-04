@@ -307,7 +307,7 @@ export default function SectionRecordAdd({
       highlightLevel="section"
       elementHighlight={elementHighlight}
       elementHighlightSelected={Boolean(hoveredHeading?.isSelected)}
-      layout={layout}
+      layout={structuralToolbarLayoutSize(1, SECTION_TOOLBAR_OFFSET_SCREEN_PX)}
       addLabel="Sekcja"
       addTooltip="Dodaj sekcję poniżej"
       onAdd={() => {

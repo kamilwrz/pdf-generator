@@ -1,7 +1,7 @@
 /**
  * Shared structural toolbar rendered in the editing gutter beside an A4 page.
  *
- * The toolbar never participates in document layout or export. Its pointer-
+ * Layout metrics are screen pixels. The toolbar never enters export. Its pointer-
  * inert highlight may render independently, while actions stay outside the
  * authored content column and can never be mistaken for PDF content.
  */
@@ -126,9 +126,6 @@ export default function CanvasHoverToolbar({
       const page = origin?.closest?.("[data-page-canvas]");
       if (!origin || !page) return;
       const originRect = origin.getBoundingClientRect();
-      const pageRect = page.getBoundingClientRect();
-      const pageWidthInLayout = page.offsetWidth || pageRect.width;
-      const scale = pageWidthInLayout > 0 ? pageRect.width / pageWidthInLayout : 1;
       const toolbarRect = toolbarRef.current?.getBoundingClientRect?.();
       const toolbarWidth = toolbarRect?.width || 0;
       const toolbarHeight = toolbarRect?.height || 0;
@@ -150,12 +147,11 @@ export default function CanvasHoverToolbar({
           }
         }
       }
-      const next = { left: portalLeft, top: portalTop, scale };
+      const next = { left: portalLeft, top: portalTop };
       setPortalGeometry((previous) => (
         previous
           && previous.left === next.left
           && previous.top === next.top
-          && previous.scale === next.scale
           ? previous
           : next
       ));
@@ -174,7 +170,7 @@ export default function CanvasHoverToolbar({
       : null;
     let trackingFrame = null;
     const trackCanvasTransition = (event) => {
-      if (event.target !== canvasHost || event.propertyName !== "transform") return;
+      if (![canvasHost, page].includes(event.target) || event.propertyName !== "transform") return;
       const updateUntilTransitionEnds = () => {
         updatePortalGeometry();
         trackingFrame = window.requestAnimationFrame(updateUntilTransitionEnds);
@@ -182,7 +178,7 @@ export default function CanvasHoverToolbar({
       if (trackingFrame == null) updateUntilTransitionEnds();
     };
     const stopCanvasTransitionTracking = (event) => {
-      if (event.target !== canvasHost || event.propertyName !== "transform") return;
+      if (![canvasHost, page].includes(event.target) || event.propertyName !== "transform") return;
       if (trackingFrame != null) window.cancelAnimationFrame(trackingFrame);
       trackingFrame = null;
       updatePortalGeometry();
@@ -194,10 +190,12 @@ export default function CanvasHoverToolbar({
     window.addEventListener("resize", updatePortalGeometry);
     window.addEventListener("scroll", updatePortalGeometry, true);
     canvasArea?.addEventListener("scroll", updatePortalGeometry, { passive: true });
-    page?.addEventListener("transitionend", updatePortalGeometry);
+    page?.addEventListener("transitionrun", trackCanvasTransition);
+    page?.addEventListener("transitionend", stopCanvasTransitionTracking);
+    page?.addEventListener("transitioncancel", stopCanvasTransitionTracking);
     // The toolbar is portalled to <body>, so it does not inherit the A4 host's
-    // transform. Follow the short assistant-open transition frame-by-frame;
-    // otherwise a pinned keyboard toolbar would briefly remain at stale X.
+    // transform. Follow page zoom and assistant-open transitions frame by frame
+    // so a pinned keyboard toolbar stays attached while retaining its size.
     canvasHost?.addEventListener("transitionrun", trackCanvasTransition);
     canvasHost?.addEventListener("transitionend", stopCanvasTransitionTracking);
     canvasHost?.addEventListener("transitioncancel", stopCanvasTransitionTracking);
@@ -208,7 +206,9 @@ export default function CanvasHoverToolbar({
       window.removeEventListener("resize", updatePortalGeometry);
       window.removeEventListener("scroll", updatePortalGeometry, true);
       canvasArea?.removeEventListener("scroll", updatePortalGeometry);
-      page?.removeEventListener("transitionend", updatePortalGeometry);
+      page?.removeEventListener("transitionrun", trackCanvasTransition);
+      page?.removeEventListener("transitionend", stopCanvasTransitionTracking);
+      page?.removeEventListener("transitioncancel", stopCanvasTransitionTracking);
       canvasHost?.removeEventListener("transitionrun", trackCanvasTransition);
       canvasHost?.removeEventListener("transitionend", stopCanvasTransitionTracking);
       canvasHost?.removeEventListener("transitioncancel", stopCanvasTransitionTracking);
@@ -223,7 +223,10 @@ export default function CanvasHoverToolbar({
     ? Number(anchorX)
     : (side === "left" ? 0 : pageWidth);
   const originStyle = { left: resolvedAnchorX, top };
-  const screenValue = (value) => `${value * (portalGeometry?.scale ?? 1)}px`;
+  // Only the anchor follows A4. Multiplying inverse-zoom dimensions by a live
+  // transform scale made controls shrink/grow during edit-zoom transitions.
+  // Portals consume the shared metrics at zoom=1, including text and menus.
+  const screenValue = (value) => `${value}px`;
   const portalStyle = portalGeometry ? {
     left: portalGeometry.left,
     top: portalGeometry.top,

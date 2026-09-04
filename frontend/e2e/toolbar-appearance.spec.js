@@ -101,3 +101,77 @@ for (const width of [390, 834, 1280, 1920]) {
     api.assertHermetic();
   });
 }
+
+test("toolbar geometry and menu text stay constant through animated canvas zoom", async ({ page }, testInfo) => {
+  await page.setViewportSize({ width: 1280, height: 1000 });
+  const api = await installMockApi(page, { savedElements: [...SAVED_ELEMENTS, ...extraElements] });
+  await login(page);
+  await page.getByText("Kontynuuj ostatnie CV", { exact: true }).click();
+  await page.getByRole("button", { name: "Otwórz na płótnie" }).click();
+  await page.locator("#skills-heading").dispatchEvent("pointerenter");
+  const toolbar = page.locator('[data-canvas-toolbar-key="heading:skills-heading"]');
+  const more = toolbar.getByRole("button", { name: "Więcej działań" });
+  await more.click();
+  await expect(toolbar.getByRole("menu")).toBeVisible();
+
+  for (const targetZoom of [100, 50, 200, 300, 160]) {
+    // Native clicks avoid pointer movement away from the pinned toolbar. Sample
+    // every animation frame: final-state checks miss transient rescaling.
+    const samples = await page.evaluate(async (target) => {
+      const canvas = document.querySelector("[data-page-canvas]");
+      const current = Math.round(Number(canvas.style.transform.match(/scale\(([^)]+)\)/)[1]) * 100);
+      const button = document.querySelector(`[aria-label="${target > current ? "Powiększ" : "Pomniejsz"}"]`);
+      for (let step = 0; step < Math.abs(target - current) / 10; step += 1) button.click();
+      const values = [];
+      const started = performance.now();
+      while (performance.now() - started < 400) {
+        await new Promise(requestAnimationFrame);
+        const root = document.querySelector('[data-canvas-toolbar-key="heading:skills-heading"]');
+        const control = root?.querySelector("button");
+        if (!control) throw new Error("The pinned toolbar disappeared during zoom");
+        const icon = control.querySelector("svg");
+        const menu = root.querySelector('[role="menuitem"]');
+        values.push({
+          height: control.getBoundingClientRect().height,
+          width: control.getBoundingClientRect().width,
+          icon: icon.getBoundingClientRect().width,
+          font: getComputedStyle(control).fontSize,
+          menuFont: getComputedStyle(menu).fontSize,
+          menuWeight: getComputedStyle(menu).fontWeight,
+        });
+      }
+      return values;
+    }, targetZoom);
+    expect(samples.length).toBeGreaterThan(2);
+    for (const sample of samples) {
+      expect(sample.height).toBeCloseTo(28.8, 1);
+      expect(sample.width).toBeCloseTo(60.8, 1);
+      expect(sample.icon).toBeCloseTo(12, 1);
+      expect(sample.font).toBe("12px");
+      expect(sample.menuFont).toBe("12px");
+      expect(sample.menuWeight).toBe("400");
+    }
+  }
+
+  for (const trigger of [more, toolbar.getByRole("button", { name: "AI dla wybranego zakresu" })]) {
+    await toolbar.getByRole("menuitem").first().press("Escape");
+    await expect(more).toBeFocused();
+    await trigger.press("Enter");
+    const items = toolbar.getByRole("menuitem");
+    await expect(items.first()).toBeFocused();
+    await items.first().press("End");
+    await expect(items.last()).toBeFocused();
+    for (const item of await items.all()) {
+      expect(await item.evaluate((el) => getComputedStyle(el).fontSize)).toBe("12px");
+      expect((await item.boundingBox()).height).toBeGreaterThanOrEqual(36);
+    }
+    const box = await toolbar.getByRole("menu").boundingBox();
+    expect(box.x).toBeGreaterThanOrEqual(0);
+    expect(box.x + box.width).toBeLessThanOrEqual(1280);
+    expect(box.y + box.height).toBeLessThanOrEqual(1000);
+  }
+  await page.screenshot({ path: testInfo.outputPath("toolbar-ai-menu.png") });
+  await toolbar.getByRole("menuitem").first().press("Escape");
+  await expect(toolbar.getByRole("button", { name: "AI dla wybranego zakresu" })).toBeFocused();
+  api.assertHermetic();
+});

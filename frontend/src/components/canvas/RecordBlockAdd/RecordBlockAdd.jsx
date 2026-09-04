@@ -222,7 +222,7 @@ export default function RecordBlockAdd({
       highlightLevel={skillsCategory ? "skills" : "entry"}
       elementHighlight={skillsCategory ? null : elementHighlight}
       elementHighlightSelected={Boolean(hoveredElement?.isSelected)}
-      layout={layout}
+      layout={structuralToolbarLayoutSize(1, RECORD_TOOLBAR_OFFSET_SCREEN_PX)}
       addLabel="Wpis"
       addTooltip="Dodaj wpis poniżej"
       onAdd={addRecord}

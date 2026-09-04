@@ -149,6 +149,12 @@
     composes: danger from "../CanvasControls.module.css";
 }
 
+/* Open menu labels replace trigger hints; hints must not cover menu rows. */
+.portalAnchor:has(.menu) .control[data-tooltip]::after {
+    visibility: hidden;
+    opacity: 0;
+}
+
 .menu {
     composes: surface from "../CanvasControls.module.css";
     position: absolute;
@@ -170,13 +176,14 @@
     min-height: max(var(--canvas-control-size), var(--control-height-compact));
     display: flex;
     align-items: center;
+    justify-content: flex-start;
     gap: calc(var(--canvas-control-gap) * 1.25);
     padding: 0 calc(var(--canvas-control-gap) * 1.5);
     border: 0;
     border-radius: 0;
     background: transparent;
     color: var(--color-editor-ink);
-    font: 600 max(12px, var(--canvas-control-font))/1.25 var(--font-body, sans-serif);
+    font: 400 var(--canvas-control-font)/1.25 var(--font-ui);
     text-align: left;
     cursor: pointer;
 }

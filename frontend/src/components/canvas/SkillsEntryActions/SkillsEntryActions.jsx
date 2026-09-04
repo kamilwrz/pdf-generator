@@ -234,7 +234,7 @@ export default function SkillsEntryActions({
         anchorX={toolbarAnchorX}
         top={toolbarTop}
         pageWidth={pageSize?.width ?? 595}
-        layout={layout}
+        layout={compactInlineToolbarLayoutSize()}
         directActions={formOpen ? [] : [{
           key: "add-skill",
           label: addLabel,

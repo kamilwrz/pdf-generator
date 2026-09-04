@@ -4,8 +4,8 @@
  *
  * The page uses `transform: scale(zoom)`, so a layout pixel appears as
  * `layout * zoom` screen pixels. We target a compact on-screen size and divide
- * by zoom so the control stays proportional to the canvas view percentage
- * without looking oversized at 100%.
+ * by zoom so controls retain one screen size. Body portals use zoom=1 because
+ * they are already outside the transformed page; only their anchors scale.
  *
  * The controls use a shared white toolbar surface so they remain usable
  * without competing with the CV content.
@@ -60,7 +60,8 @@ export function structuralToolbarLayoutSize(zoom = 1, offsetScreenPx = 10) {
     iconSize: scaledStructuralValue(15, safeZoom),
     gap: scaledStructuralValue(3, safeZoom),
     labelWidth: scaledStructuralValue(76, safeZoom),
-    fontSize: scaledStructuralValue(10.5, safeZoom),
+    // Text keeps the accessible 12px minimum instead of shrinking with icons.
+    fontSize: 12 / safeZoom,
     menuWidth: scaledStructuralValue(176, safeZoom),
     // The page transform scales this layout value back into an exact visual
     // gap, so section and record toolbars keep their own rhythm at every zoom.
