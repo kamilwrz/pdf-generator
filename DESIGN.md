@@ -217,6 +217,8 @@ Use CSS Grid for page structure and Flexbox for one-dimensional alignment. Wide 
 
 Landing, onboarding, and explanatory pages may use generous whitespace and asymmetric editorial compositions. Prefer split layouts, staggered content, and strong typographic anchors. Avoid generic three-card feature rows.
 
+Account onboarding is shown only to authenticated users. Guests enter A4 setup/editor directly; refresh restores their browser draft. Guest import keeps its Topbar trigger but opens the shared account gate with explicit registration/login copy and a preserved import intent, without mounting the upload UI. Cancel/Escape restores focus and preserves the document.
+
 A full-screen onboarding decision surface replaces the complete editor shell until the user chooses a path. Editor navigation, tool rails, canvas controls, and persistent AI actions must not remain visible or keyboard-reachable behind it. Dialogs launched from onboarding may appear above the surface and must restore focus to their onboarding trigger when closed.
 
 ### Working surfaces

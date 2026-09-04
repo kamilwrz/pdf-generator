@@ -51,7 +51,7 @@ export default function Topbar({ titleRef, title, onTitleChange }) {
         onePageFit,
         onFitToOnePage,
     } = useCanvasContext();
-    const { entitlements } = useSession();
+    const { entitlements, isGuest } = useSession();
     const { applyTemplate, fillingId } = useApplyCvTemplate();
 
     const prevTemplate = useMemo(
@@ -110,7 +110,7 @@ export default function Topbar({ titleRef, title, onTitleChange }) {
                         className={`${classes.feature} ${classes.labeled}`}
                         onClick={showAiPanel}
                         aria-label="Importuj PDF"
-                        title="Importuj PDF"
+                        title={isGuest ? "Importuj PDF — wymagane konto" : "Importuj PDF"}
                     >
                         <RiFileTextLine />
                         <span className={`${classes.actionLabel} ${classes.toolLabel}`}>Importuj PDF</span>

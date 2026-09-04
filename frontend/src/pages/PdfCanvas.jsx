@@ -237,11 +237,11 @@ export function EditorController() {
   // Replaces 5 independent booleans that previously had no exclusivity at
   // all (e.g. Moje dokumenty + Szablony + Gallery could all be open together).
   const [dialog, setDialog] = useState(() => {
-    if (initialStartIntentRef.current === "import") return "ai";
+    if (initialStartIntentRef.current === "import") return getAccessToken() ? "ai" : "importGate";
     if (["new", "wizard"].includes(initialStartIntentRef.current)) return "newCv";
     if (initialStartIntentRef.current === "templates") return "templates";
     return null;
-  }); // 'docs' | 'templates' | 'ai' | 'newCv' | 'plan' | 'changeTemplate' | 'unlockFreeform' | null
+  }); // 'docs' | 'templates' | 'ai' | 'importGate' | 'saveGate' | 'newCv' | 'plan' | 'changeTemplate' | 'unlockFreeform' | null
   const [panel, setPanel] = useState(null);   // 'upload' | 'gallery' | 'sections' | null
   const isModalPdfs = dialog === 'docs' && Boolean(localStorage.getItem("token"));
   const isTemplates = dialog === 'templates';
@@ -251,6 +251,7 @@ export function EditorController() {
   const isChangeTemplateModal = dialog === 'changeTemplate';
   const isUnlockFreeformModal = dialog === 'unlockFreeform';
   const isSaveGateModal = dialog === 'saveGate';
+  const isImportGateModal = dialog === 'importGate' || (dialog === 'ai' && isGuest);
   const isClaimGuestModal = dialog === 'claimGuest';
   // Structured cv_data behind the CV currently on the canvas. It is created
   // by import or the A4 starter and restored from an owned document snapshot.
@@ -1062,6 +1063,7 @@ export function EditorController() {
   // hijacks a manual action or an intent-aware landing flow. Fires at most
   // once per browser session — see markTemplatesModalSeen.
   useEffect(() => {
+    if (isGuest) return;
     if (!pdfsLoaded || PDFs.length !== 0) return;
     // A landing-page CTA has already chosen a concrete first action. Do not
     // obscure it with the default template picker before the intent is handled.
@@ -1080,7 +1082,7 @@ export function EditorController() {
     setAutoOpenedTemplates(true);
     setDialog('templates');
     setPanel(null);
-  }, [pdfsLoaded, PDFs.length, autoOpenedTemplates, dialog, setAutoOpenedTemplates, startIntent])
+  }, [isGuest, pdfsLoaded, PDFs.length, autoOpenedTemplates, dialog, setAutoOpenedTemplates, startIntent])
 
   // Blank freeform path: clear canvas once and skip the template picker.
   const blankStartAppliedRef = useRef(false);
@@ -1129,6 +1131,13 @@ export function EditorController() {
   }, [commitDocumentSnapshot, flowSpacing, markTemplatesModalSeen, zoomIn]);
 
   const handleShowAiPanel = useCallback(() => {
+    // Import belongs to an account. Gate every entry point before mounting
+    // the upload UI, including direct start links and a stale session.
+    if (!getAccessToken()) {
+      setDialog('importGate');
+      setPanel(null);
+      return;
+    }
     const next = dialog !== 'ai';
     setDialog(next ? 'ai' : null);
     if (next) setPanel(null);
@@ -1866,26 +1875,24 @@ export function EditorController() {
   // authenticated wizard conversion without allowing duplicate adoption.
   const claimOfferedRef = useRef(false);
   const pendingGuestDocRef = useRef(null);
-  const demoGuestRestoredRef = useRef(false);
+  const guestDocumentRestoredRef = useRef(false);
 
-  // The demo and the legacy guest editor share `/cvstudio/guest`. The URL alone
-  // cannot identify which surface was active, so restore the persisted demo
-  // snapshot before the empty-state chooser can classify the page as legacy
-  // guest onboarding. A direct `?start=demo` intentionally skips this restore
-  // and loads a fresh Linden starter instead.
+  // Both authored guest drafts and the demo survive refresh on the same URL.
+  // Explicit creation intents start their own flow; an import gate can safely
+  // keep the existing draft visible behind it without sending its data.
   useEffect(() => {
-    if (demoGuestRestoredRef.current || getAccessToken() || initialStartIntentRef.current) return;
+    if (guestDocumentRestoredRef.current || getAccessToken()
+      || (initialStartIntentRef.current && initialStartIntentRef.current !== "import")) return;
     const guestDoc = loadGuestDocument();
     if (
-      !guestDoc?.isDemoContent
-      || !Array.isArray(guestDoc.elements)
+      !Array.isArray(guestDoc?.elements)
       || guestDoc.elements.length === 0
     ) return;
     // Regent powered the previous demo. Replace that persisted product sample
     // instead of restoring stale demo content after the canonical starter was
     // moved to Linden; user-authored guest documents never enter this branch.
-    if (guestDoc.templateId !== "linden") {
-      demoGuestRestoredRef.current = true;
+    if (guestDoc.isDemoContent && guestDoc.templateId !== "linden") {
+      guestDocumentRestoredRef.current = true;
       clearGuestDocument();
       commitDocumentSnapshot({
         elements: materializeElementSpecs(lindenTemplate, nanoid),
@@ -1907,17 +1914,18 @@ export function EditorController() {
       normalizeSterlingFamilyPersistence(guestDoc.elements, guestDoc.templateId),
       guestDoc.templateId,
     );
-    demoGuestRestoredRef.current = true;
+    guestDocumentRestoredRef.current = true;
     commitDocumentSnapshot({
       ...guestDoc,
       elements: restoredElements,
       deletedElements: Array.isArray(guestDoc.deletedIds) ? guestDoc.deletedIds : [],
       title: guestDoc.title || "",
+      flowSpacing: guestDoc.spacingPx ?? DEFAULT_FLOW_SPACING,
       cvData: guestDoc.cvData ?? null,
       sourceImportId: null,
       pdfId: null,
       revision: null,
-      isDemoContent: true,
+      isDemoContent: Boolean(guestDoc.isDemoContent),
     }, { markClean: true });
   }, [
     commitDocumentSnapshot,
@@ -2252,10 +2260,11 @@ export function EditorController() {
     PDFs, setPDFs, pdfsLoaded, setPdfsLoaded,
   ]);
 
-  // Empty-state onboarding replaces the complete editor shell a fresh user
+  // Account onboarding replaces the complete editor shell a signed-in user
   // lands on with the two guided paths (wizard / import). Gating lives in the
   // pure `shouldShowStartChooser` helper so it can be unit-tested without a DOM.
   const showStartChooser = shouldShowStartChooser({
+    isGuest,
     elementsCount: A4_Elements.length,
     isDemoContent,
     isPdfLoading,
@@ -2286,7 +2295,7 @@ export function EditorController() {
               />
               <TemplatesModal />
               <PlanSelectModal />
-              {isAiPanel ? (
+              {isAiPanel && !isGuest ? (
                 <Suspense fallback={<LazyAiFallback modal />}>
                   <LazyAiCvPanel />
                 </Suspense>
@@ -2307,7 +2316,8 @@ export function EditorController() {
                 onConfirm={confirmUnlockFreeform}
               />
               <SaveGateModal
-                open={isSaveGateModal}
+                open={isSaveGateModal || isImportGateModal}
+                purpose={isImportGateModal ? "import" : "save"}
                 onCancel={() => setDialog(null)}
               />
               <ClaimGuestDocumentModal

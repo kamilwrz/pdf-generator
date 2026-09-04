@@ -11,13 +11,14 @@
 /**
  * Whether to show the start chooser for the current canvas state.
  *
- * Shown only for a genuinely fresh, unsaved, empty document. It deliberately
+ * Shown only for an authenticated user's fresh, unsaved, empty document. It deliberately
  * does NOT reappear when a
  * user empties an already-saved CV mid-session (`pdfId` is set once the
  * document has been persisted), during a setup-to-editor handoff, over the
  * guest demo, or mid-load.
  *
  * @param {object} state
+ * @param {boolean} state.isGuest - guests never enter account onboarding
  * @param {number} state.elementsCount - number of elements on the canvas
  * @param {boolean} state.isDemoContent - true while the guest demo CV is loaded
  * @param {boolean} state.isPdfLoading - true while a document is loading/saving
@@ -26,12 +27,14 @@
  * @returns {boolean}
  */
 export function shouldShowStartChooser({
+  isGuest = true,
   elementsCount,
   isDemoContent,
   isPdfLoading,
   pdfId,
   dismissed,
 } = {}) {
+  if (isGuest) return false;
   if (dismissed) return false;
   if (isDemoContent) return false;
   if (isPdfLoading) return false;

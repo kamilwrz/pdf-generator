@@ -86,7 +86,7 @@ test("PdfCanvas publishes demo state through the editor context", async () => {
   assert.match(canvas, /<DemoBanner onUseOwnData=/);
   assert.match(canvas, /setDialog\('newCv'\)/);
   assert.match(canvas, /loadGuestDocument\(\)\?\.isDemoContent/);
-  assert.match(canvas, /demoGuestRestoredRef/);
+  assert.match(canvas, /guestDocumentRestoredRef/);
   assert.match(canvas, /import \{ lindenTemplate \} from '\.\.\/templates\/linden'/);
   assert.match(canvas, /commitDocumentSnapshot\(\{[\s\S]*materializeElementSpecs\(lindenTemplate, nanoid\)[\s\S]*title: "DEMO_CV"[\s\S]*templateId: "linden"/);
   assert.match(canvas, /guestDoc\.templateId !== "linden"[\s\S]*clearGuestDocument\(\)[\s\S]*commitDocumentSnapshot\(\{[\s\S]*lindenTemplate/);

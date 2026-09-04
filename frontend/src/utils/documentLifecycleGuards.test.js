@@ -122,7 +122,7 @@ test("controller/view and AI lazy boundaries are explicit", async () => {
     assert.match(canvas, new RegExp(`lazy\\(\\(\\) => import\\('[^']*${component}`));
     assert.doesNotMatch(canvas, new RegExp(`^import ${component} from`, "m"));
   }
-  assert.match(canvas, /\{isAiPanel \? \([\s\S]*<Suspense[\s\S]*<LazyAiCvPanel/);
+  assert.match(canvas, /\{isAiPanel && !isGuest \? \([\s\S]*<Suspense[\s\S]*<LazyAiCvPanel/);
   assert.match(canvas, /\{isNewCvSetupModal \? \([\s\S]*<NewCvSetupModal/);
 });
 

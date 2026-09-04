@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { shouldShowStartChooser } from "./startChooser.js";
 
 const freshEmptyDoc = {
+  isGuest: false,
   elementsCount: 0,
   isDemoContent: false,
   isPdfLoading: false,
@@ -11,6 +12,11 @@ const freshEmptyDoc = {
 };
 
 describe("shouldShowStartChooser", () => {
+  it("never shows account onboarding for a guest or unresolved identity", () => {
+    assert.equal(shouldShowStartChooser({ ...freshEmptyDoc, isGuest: true }), false);
+    assert.equal(shouldShowStartChooser({ ...freshEmptyDoc, isGuest: undefined }), false);
+    assert.equal(shouldShowStartChooser(), false);
+  });
   it("shows for a fresh, empty, unsaved document (post-login landing)", () => {
     assert.equal(shouldShowStartChooser(freshEmptyDoc), true);
   });

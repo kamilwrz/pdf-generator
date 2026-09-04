@@ -1,23 +1,25 @@
 /**
- * Shown when a guest (no account) clicks "Zapisz PDF". Explains that their
- * work is already on the canvas and offers to create an account or sign in
- * — after which PdfCanvas's claim effect saves the document automatically
- * and re-enables "Pobierz PDF" without the visitor re-entering anything.
+ * Account gate for guest persistence and CV import. Import links retain the
+ * start intent through registration/login; the upload UI never mounts here.
+ * Existing browser drafts can be claimed after login and explicitly saved.
  */
 import { useNavigate } from "react-router-dom";
 import DialogShell from "../../common/DialogShell/DialogShell";
 import classes from "./SaveGateModal.module.css";
 
-export default function SaveGateModal({ open, onCancel }) {
+export default function SaveGateModal({ open, onCancel, purpose = "save" }) {
   const navigate = useNavigate();
+  const importing = purpose === "import";
+  const authQuery = importing ? "?start=import" : "";
 
   return (
     <DialogShell
       open={open}
       onClose={onCancel}
       width={440}
-      title="Nie zgub swojej pracy"
-      subtitle="Utwórz darmowe konto, aby zapisać 1 CV i pobrać do 3 czystych PDF-ów miesięcznie"
+      title={importing ? "Import CV wymaga konta" : "Nie zgub swojej pracy"}
+      subtitle={importing ? "Utwórz darmowe konto lub zaloguj się, aby wgrać CV w PDF."
+        : "Utwórz darmowe konto, aby zapisać 1 CV i pobrać do 3 czystych PDF-ów miesięcznie"}
       footer={(
         <div className={classes.actions}>
           <button type="button" className={classes.ghost} onClick={onCancel}>
@@ -26,14 +28,14 @@ export default function SaveGateModal({ open, onCancel }) {
           <button
             type="button"
             className={classes.ghost}
-            onClick={() => navigate("/login")}
+            onClick={() => navigate(`/login${authQuery}`)}
           >
             Mam już konto
           </button>
           <button
             type="button"
             className={classes.primary}
-            onClick={() => navigate("/register")}
+            onClick={() => navigate(`/register${authQuery}`)}
           >
             Utwórz konto
           </button>
@@ -41,8 +43,8 @@ export default function SaveGateModal({ open, onCancel }) {
       )}
     >
       <p className={classes.copy}>
-        Twoje CV jest już na płótnie. Po utworzeniu konta zapiszemy je
-        automatycznie i wrócisz dokładnie do tego samego dokumentu.
+        {importing ? "Darmowe konto pozwala zaimportować jedno CV miesięcznie. Obecny dokument pozostaje bez zmian."
+          : "Twoje CV jest już na płótnie. Po zalogowaniu możesz wczytać ten szkic i zapisać go na koncie."}
       </p>
     </DialogShell>
   );
