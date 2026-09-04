@@ -60,6 +60,38 @@
     cursor: default;
 }
 
+/* Tooltips are editor chrome, not browser title bubbles. The delay keeps them
+   out of the way while the pointer merely crosses the compact toolbar. */
+.button[data-tooltip]::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    left: 50%;
+    top: calc(100% + var(--canvas-control-gap));
+    z-index: 4;
+    transform: translate(-50%, calc(-2 * var(--canvas-control-border, 1px)));
+    width: max-content;
+    max-width: calc(var(--canvas-control-menu-width) * 1.15);
+    padding: calc(var(--canvas-control-gap) * .85) var(--canvas-control-gap);
+    background: var(--color-editor-ink);
+    color: var(--color-paper);
+    font: 600 var(--canvas-control-font)/1.2 var(--font-body, sans-serif);
+    letter-spacing: .01em;
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 120ms ease-out 380ms, transform 120ms ease-out 380ms,
+        visibility 0ms linear 500ms;
+}
+
+.button[data-tooltip]:hover::after,
+.button[data-tooltip]:focus-visible::after {
+    opacity: 1;
+    visibility: visible;
+    transform: translate(-50%, 0);
+    transition-delay: 380ms;
+}
+
 /* Destructive meaning stays in the icon; every action shares the same base
    hover surface, so a toolbar does not switch palettes between controls. */
 .danger {
@@ -67,5 +99,5 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .button { transition: none; }
+    .button, .button[data-tooltip]::after { transition: none; }
 }

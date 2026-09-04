@@ -31,6 +31,9 @@ for (const width of [390, 834, 1280, 1920]) {
     const checkControl = async (control, size, danger = false) => {
       await expect(control).toBeVisible();
       await control.hover();
+      await expect(control).not.toHaveAttribute("title");
+      expect(await control.evaluate((el) => getComputedStyle(el, "::after").backgroundColor)).toBe("rgb(103, 78, 62)");
+      expect(await control.evaluate((el) => getComputedStyle(el, "::after").color)).toBe("rgb(255, 255, 255)");
       const appearance = await control.evaluate((el) => {
         const style = getComputedStyle(el);
         const shell = getComputedStyle(el.parentElement);

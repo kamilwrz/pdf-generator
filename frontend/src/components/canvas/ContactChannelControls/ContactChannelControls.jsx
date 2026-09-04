@@ -105,7 +105,7 @@ export default function ContactChannelControls({ bandId, chips, inactive }) {
               className={cluster.trash}
               style={buttonStyle}
               aria-label={`Usuń kontakt: ${CHANNEL_NAMES[hoveredChip.channel] || hoveredChip.channel}`}
-              title="Usuń kontakt"
+              data-tooltip="Usuń kontakt"
               onPointerDown={(event) => event.stopPropagation()}
               onClick={(event) => {
                 event.stopPropagation();
@@ -137,7 +137,7 @@ export default function ContactChannelControls({ bandId, chips, inactive }) {
               className={cluster.plus}
               style={buttonStyle}
               aria-label="Dodaj kontakt"
-              title="Dodaj kontakt"
+              data-tooltip={menuOpen ? undefined : "Dodaj kontakt"}
               onPointerDown={(event) => event.stopPropagation()}
               onClick={(event) => {
                 event.stopPropagation();

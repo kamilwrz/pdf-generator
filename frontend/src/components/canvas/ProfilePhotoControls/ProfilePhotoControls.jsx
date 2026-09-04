@@ -79,7 +79,7 @@ export default function ProfilePhotoControls({ anchor }) {
             className={classes.restore}
             style={buttonStyle}
             aria-label="Pokaż slot zdjęcia profilowego"
-            title="Pokaż zdjęcie profilowe"
+            data-tooltip="Pokaż zdjęcie profilowe"
             onPointerDown={stop}
             onClick={(event) => { stop(event); showProfilePhoto(); setHover(null); }}
           >
@@ -106,7 +106,7 @@ export default function ProfilePhotoControls({ anchor }) {
             className={cluster.trash}
             style={buttonStyle}
             aria-label="Usuń zdjęcie ze slotu"
-            title="Usuń zdjęcie"
+            data-tooltip="Usuń zdjęcie"
             onPointerDown={stop}
             onClick={(event) => { stop(event); removeProfilePhoto(); setHover(null); }}
           >
@@ -118,7 +118,7 @@ export default function ProfilePhotoControls({ anchor }) {
           className={classes.hide}
           style={buttonStyle}
           aria-label="Ukryj slot zdjęcia profilowego"
-          title="Ukryj zdjęcie profilowe"
+          data-tooltip="Ukryj zdjęcie profilowe"
           onPointerDown={stop}
           onClick={(event) => { stop(event); hideProfilePhoto(); setHover(null); }}
         >

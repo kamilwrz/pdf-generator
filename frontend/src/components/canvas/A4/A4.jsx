@@ -27,6 +27,8 @@ function editorDepthStyle(zoom) {
         "--canvas-control-size": `${controls.buttonSize}px`,
         "--canvas-control-icon": `${controls.iconSize}px`,
         "--canvas-control-gap": `${controls.gap}px`,
+        "--canvas-control-font": `${controls.fontSize}px`,
+        "--canvas-control-menu-width": `${controls.menuWidth}px`,
         "--canvas-control-border": `${controls.borderWidth}px`,
         "--canvas-shadow-editor-section": `0 ${px(8)} ${px(20)} var(--shadow-editor-section-color)`,
         "--canvas-shadow-editor-entry": `0 ${px(5)} ${px(14)} var(--shadow-editor-entry-color)`,

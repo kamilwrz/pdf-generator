@@ -127,7 +127,7 @@ test("direct actions replace the labelled structural toolbar with accessible ico
   assert.match(source, /disabled=\{item\.disabled\}/);
   assert.match(source, /item\.danger/);
   assert.match(css, /\.directActionDanger/);
-  assert.match(css, /\.control\[data-tooltip\]:focus-visible::after/);
+  assert.match(await readFile(new URL("../CanvasControls.module.css", import.meta.url), "utf8"), /\.button\[data-tooltip\]:focus-visible::after/);
 });
 
 test("semantic highlight can remain visible without opening the action toolbar", async () => {

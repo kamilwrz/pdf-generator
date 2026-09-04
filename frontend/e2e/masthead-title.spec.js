@@ -4,6 +4,26 @@ import { materializeElementSpecs } from "../src/utils/materializeElementSpecs.js
 import { installMockApi, login, SAVED_DOCUMENT } from "./support/mockApi.js";
 import { readFile } from "node:fs/promises";
 
+// Browser-native title bubbles cannot share app colours or keyboard styling.
+// Check the actual pseudo-element after its delay and account for A4 scaling.
+async function expectCanvasTooltip(control, keyboard = false) {
+  if (keyboard) { await control.press("Tab"); await control.focus(); }
+  else await control.hover();
+  await expect(control).not.toHaveAttribute("title");
+  await expect.poll(() => control.evaluate((node) => getComputedStyle(node, "::after").visibility)).toBe("visible");
+  const tooltip = await control.evaluate((node) => {
+    const style = getComputedStyle(node, "::after");
+    const canvas = node.closest("[data-page-canvas]");
+    const scale = canvas ? canvas.getBoundingClientRect().width / canvas.offsetWidth : 1;
+    return { background: style.backgroundColor, color: style.color,
+      fontSize: Number.parseFloat(style.fontSize) * scale, content: style.content };
+  });
+  expect(tooltip.background).toBe("rgb(103, 78, 62)");
+  expect(tooltip.color).toBe("rgb(255, 255, 255)");
+  expect(tooltip.fontSize).toBeCloseTo(12, 1);
+  expect(tooltip.content).toBe(JSON.stringify(await control.getAttribute("data-tooltip")));
+}
+
 for (const template of TEST_TEMPLATES) {
   test(`${template.id}: title hide/show restores contact rows`, async ({ page }) => {
     let nextId = 0;
@@ -89,8 +109,10 @@ for (const width of [390, 834, 1366, 1920]) {
     await page.getByText("Kontynuuj ostatnie CV", { exact: true }).click();
     await page.getByRole("button", { name: "Otwórz na płótnie" }).click();
     await page.locator(`[id="${title.element_id}"]`).dispatchEvent("pointerenter");
+    await expectCanvasTooltip(page.getByRole("button", { name: "Ukryj stanowisko", exact: true }));
     await page.getByRole("button", { name: "Ukryj stanowisko", exact: true }).click();
     await page.locator(`[id="${photo.element_id}"]`).dispatchEvent("pointerenter");
+    await expectCanvasTooltip(page.getByRole("button", { name: "Ukryj slot zdjęcia profilowego" }));
     await page.getByRole("button", { name: "Ukryj slot zdjęcia profilowego" }).click();
     const add = page.getByRole("button", { name: "Dodaj stanowisko", exact: true });
     const restore = page.getByRole("button", { name: "Pokaż slot zdjęcia profilowego" });
@@ -102,6 +124,8 @@ for (const width of [390, 834, 1366, 1920]) {
         await page.getByRole("button", { name: current > zoom ? "Pomniejsz" : "Powiększ", exact: true }).click();
       }
       await expect(page.getByText(`${zoom}%`, { exact: true })).toBeVisible();
+      await expectCanvasTooltip(add);
+      await expectCanvasTooltip(restore);
       const canvas = await field.evaluate((node) => {
         const canvas = node.closest("[data-page-canvas]");
         const rect = canvas.getBoundingClientRect();
@@ -119,6 +143,7 @@ for (const width of [390, 834, 1366, 1920]) {
       await field.dispatchEvent("pointerenter");
       const toggle = page.getByRole("button", { name: /^(Włącz|Wyłącz) wielkie litery$/ });
       await expect(toggle).toBeVisible();
+      await expectCanvasTooltip(toggle, true);
       const separation = await toggle.evaluate((node, nameId) => {
         const range = document.createRange();
         range.selectNodeContents(document.getElementById(nameId));

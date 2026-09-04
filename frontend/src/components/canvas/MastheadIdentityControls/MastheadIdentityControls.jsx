@@ -116,7 +116,7 @@ export default function MastheadIdentityControls({ band }) {
                onPointerLeave={scheduleHide} onFocus={clearHide} onBlur={scheduleHide}>
             <button type="button" className={classes.caseToggle} style={buttonStyle}
                     aria-label={band.name.uppercase ? "Wyłącz wielkie litery" : "Włącz wielkie litery"}
-                    title={band.name.uppercase ? "Zwykłe litery" : "WIELKIE LITERY"}
+                    data-tooltip={band.name.uppercase ? "Zwykłe litery" : "WIELKIE LITERY"}
                     onPointerDown={stop}
                     onClick={(e) => { stop(e); toggleNameCase(band.bandId); }}>
               {band.name.uppercase ? "Aa" : "AA"}
@@ -133,7 +133,7 @@ export default function MastheadIdentityControls({ band }) {
                onPointerEnter={() => { clearHide(); setHover("title"); }}
                onPointerLeave={scheduleHide} onFocus={clearHide} onBlur={scheduleHide}>
             <button type="button" className={cluster.trash} style={buttonStyle}
-                    aria-label="Ukryj stanowisko" title="Ukryj stanowisko"
+                    aria-label="Ukryj stanowisko" data-tooltip="Ukryj stanowisko"
                     onPointerDown={stop}
                     onClick={(e) => { stop(e); toggleTitle(band.bandId); setHover(null); }}>
               <FiEyeOff style={iconStyle} />
@@ -147,7 +147,7 @@ export default function MastheadIdentityControls({ band }) {
         <div className={cluster.anchor} data-editor-control="true" style={titleCenter}>
           <div className={cluster.cluster} style={{ gap, transform: "translate(-50%, -50%)" }}>
             <button type="button" className={cluster.plus} style={buttonStyle}
-                    aria-label="Dodaj stanowisko" title="Dodaj stanowisko"
+                    aria-label="Dodaj stanowisko" data-tooltip="Dodaj stanowisko"
                     onPointerDown={stop}
                     onClick={(e) => { stop(e); toggleTitle(band.bandId); }}>
               <FiPlus style={iconStyle} />
