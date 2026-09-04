@@ -10,6 +10,10 @@ import {
   requirePdfRevision,
   resolveCreateAttempt,
 } from "../utils/pdfPersistenceContract";
+import {
+  nextSaveProgressStageAt,
+  saveProgressDismissAt,
+} from "../utils/saveProgressTiming";
 
 /**
  * PDF create / update / download against the backend.
@@ -37,20 +41,42 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
   const [pdfOperation, setPdfOperation] = useState(null);
   const [pdfOperationPhase, setPdfOperationPhase] = useState(null);
   const createAttemptRef = useRef(null);
+  const operationSequenceRef = useRef(0);
 
   // Keep the loading state up for at least this long so a fast request still
   // shows the spinner (otherwise it can flash by before it's ever painted).
   const MIN_SPINNER_MS = 650;
 
+  const scheduleOperationPhase = useCallback((operationSequence, phase, visibleAt) => {
+    window.setTimeout(() => {
+      // A completed or superseded request must never advance the next
+      // operation's presentation with one of its stale timers.
+      if (operationSequenceRef.current !== operationSequence) return;
+      setPdfOperationPhase(phase);
+    }, Math.max(0, visibleAt - Date.now()));
+  }, []);
+
+  const clearOperation = useCallback((operationSequence) => {
+    if (operationSequenceRef.current !== operationSequence) return false;
+    operationSequenceRef.current += 1;
+    setIsPdfLoading(false);
+    setPdfOperation(null);
+    setPdfOperationPhase(null);
+    return true;
+  }, []);
+
 
   const createPdf = useCallback((A4_Elements, titleRef, pages = 1, pageSize, meta = {}) => {
 
+    const operationSequence = ++operationSequenceRef.current;
     setIsPdfLoading(true);
     setPdfOperation("save");
     setPdfOperationPhase("prepare");
     setResponsePDF(undefined);
     const startedAt = Date.now();
     let didPersist = false;
+    let persistVisibleAt = startedAt;
+    let confirmVisibleAt = null;
 
     // Strip NULL/NBSP junk before the request so even an older backend
     // cannot bake missing-glyph boxes into the exported PDF.
@@ -62,10 +88,8 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
     } catch (error) {
       setResponsePDF(error);
       setTimeout(() => {
+        if (!clearOperation(operationSequence)) return;
         handleShowModal();
-        setIsPdfLoading(false);
-        setPdfOperation(null);
-        setPdfOperationPhase(null);
       }, MIN_SPINNER_MS);
       return;
     }
@@ -90,8 +114,10 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
     ])
       .then(([persistedRoot, renderRoot]) => {
         // Layout resolution is complete. The remaining work is the actual
-        // authenticated persistence/render transaction on the backend.
-        setPdfOperationPhase("persist");
+        // authenticated persistence/render transaction on the backend. Keep
+        // the preparation step readable before exposing this real boundary.
+        persistVisibleAt = nextSaveProgressStageAt(startedAt, Date.now());
+        scheduleOperationPhase(operationSequence, "persist", persistVisibleAt);
         const body = JSON.stringify({
           root: persistedRoot,
           render_root: renderRoot,
@@ -126,7 +152,10 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
       .then((data) => {
         const revision = requirePdfRevision(data.revision);
         didPersist = true;
-        setPdfOperationPhase("confirm");
+        // Confirmation becomes visible only after the server response and a
+        // readable persistence stage; neither condition can overtake the other.
+        confirmVisibleAt = nextSaveProgressStageAt(persistVisibleAt, Date.now());
+        scheduleOperationPhase(operationSequence, "confirm", confirmVisibleAt);
         createAttemptRef.current = null;
         handlePdfId(data.pdf_id, { revision });
         setResponsePDF({
@@ -145,25 +174,29 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
         setResponsePDF(localizePdfPersistenceError(error));
       })
       .finally(() => {
+        const finishAt = didPersist && confirmVisibleAt != null
+          ? saveProgressDismissAt(confirmVisibleAt)
+          : Math.max(Date.now(), startedAt + MIN_SPINNER_MS);
         setTimeout(() => {
+          if (!clearOperation(operationSequence)) return;
           handleShowModal();
-          setIsPdfLoading(false);
-          setPdfOperation(null);
-          setPdfOperationPhase(null);
           if (didPersist) setA4_Elements_deleted([]);
-        }, Math.max(0, MIN_SPINNER_MS - (Date.now() - startedAt)));
+        }, Math.max(0, finishAt - Date.now()));
       });
-  }, [handlePdfId, handleShowModal, setA4_Elements_deleted]);
+  }, [clearOperation, handlePdfId, handleShowModal, scheduleOperationPhase, setA4_Elements_deleted]);
 
   
   const updatePdf = useCallback((A4_Elements, PDF_ID, titleRef, A4_Elements_deleted, pages = 1, pageSize, meta = {}) => {
 
+    const operationSequence = ++operationSequenceRef.current;
     setIsPdfLoading(true);
     setPdfOperation("save");
     setPdfOperationPhase("prepare");
     setResponsePDF(undefined);
     const startedAt = Date.now();
     let didPersist = false;
+    let persistVisibleAt = startedAt;
+    let confirmVisibleAt = null;
 
     const sorted = sanitizeElementsContent(
       [...A4_Elements].sort((a, b) => a.zIndex - b.zIndex),
@@ -176,10 +209,8 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
     } catch (error) {
       setResponsePDF(error);
       setTimeout(() => {
+        if (!clearOperation(operationSequence)) return;
         handleShowModal();
-        setIsPdfLoading(false);
-        setPdfOperation(null);
-        setPdfOperationPhase(null);
       }, MIN_SPINNER_MS);
       return;
     }
@@ -201,7 +232,8 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
       )),
     ])
       .then(([persistedRoot, renderRoot]) => {
-        setPdfOperationPhase("persist");
+        persistVisibleAt = nextSaveProgressStageAt(startedAt, Date.now());
+        scheduleOperationPhase(operationSequence, "persist", persistVisibleAt);
         const body = JSON.stringify({
           root: [...persistedRoot, ...sanitizeElementsContent(A4_Elements_deleted)],
           render_root: renderRoot,
@@ -227,7 +259,8 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
       .then((data) => {
         const revision = requirePdfRevision(data.revision);
         didPersist = true;
-        setPdfOperationPhase("confirm");
+        confirmVisibleAt = nextSaveProgressStageAt(persistVisibleAt, Date.now());
+        scheduleOperationPhase(operationSequence, "confirm", confirmVisibleAt);
         handlePdfId(data.pdf_id ?? PDF_ID, { revision });
         setResponsePDF({
           success: data.updated,
@@ -238,15 +271,16 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
       })
       .catch((error) => setResponsePDF(localizePdfPersistenceError(error)))
       .finally(() => {
+        const finishAt = didPersist && confirmVisibleAt != null
+          ? saveProgressDismissAt(confirmVisibleAt)
+          : Math.max(Date.now(), startedAt + MIN_SPINNER_MS);
         setTimeout(() => {
+          if (!clearOperation(operationSequence)) return;
           handleShowModal();
-          setIsPdfLoading(false);
-          setPdfOperation(null);
-          setPdfOperationPhase(null);
           if (didPersist) setA4_Elements_deleted([]);
-        }, Math.max(0, MIN_SPINNER_MS - (Date.now() - startedAt)));
+        }, Math.max(0, finishAt - Date.now()));
       });
-  }, [handlePdfId, handleShowModal, setA4_Elements_deleted])
+  }, [clearOperation, handlePdfId, handleShowModal, scheduleOperationPhase, setA4_Elements_deleted])
 
 
   // Render-on-demand download: render the current canvas to a PDF and return a
@@ -255,6 +289,7 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
   // can still be exported. The backend still meters every export, so a blocked
   // free-plan quota rejects here exactly like a stored-file download.
   const downloadPdf = useCallback(async (A4_Elements, titleRef, pages = 1, pageSize, meta = {}) => {
+    const operationSequence = ++operationSequenceRef.current;
     setIsPdfLoading(true);
     setPdfOperation("download");
     setPdfOperationPhase("render");
@@ -310,12 +345,10 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
       // Honour the minimum spinner window so a fast render still paints once.
       const remaining = Math.max(0, MIN_SPINNER_MS - (Date.now() - startedAt));
       window.setTimeout(() => {
-        setIsPdfLoading(false);
-        setPdfOperation(null);
-        setPdfOperationPhase(null);
+        clearOperation(operationSequence);
       }, remaining);
     }
-  }, []);
+  }, [clearOperation]);
 
 
   // Lightweight elements-only persistence (no PDF render, no S3). Retained as a

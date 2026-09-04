@@ -32,6 +32,7 @@ for (const width of [390, 1366]) {
     await expect(modal).toBeVisible();
     await expect(modal).toBeFocused();
     await expect(page.getByText("Plik PDF nie zostanie teraz pobrany.", { exact: false })).toBeVisible();
+    await expect(page.getByRole("progressbar", { name: "Postęp zapisu CV" })).toHaveAttribute("aria-valuenow", "33");
     await expect(page.getByRole("progressbar", { name: "Postęp zapisu CV" })).toHaveAttribute("aria-valuenow", "67");
     await page.keyboard.press("Tab");
     await expect(modal).toBeFocused();
@@ -47,6 +48,7 @@ for (const width of [390, 1366]) {
     await page.screenshot({ path: `test-results/save-progress-${width}.png` });
 
     releaseSave();
+    await expect(page.getByRole("status")).toContainText("Aktualny etap: Potwierdzenie wersji");
     await expect(modal).toBeHidden();
     await expect(saveButton).toBeFocused();
     await expect(page.getByText("Zapisano w Moich dokumentach", { exact: true })).toBeVisible();

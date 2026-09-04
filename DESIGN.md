@@ -296,6 +296,7 @@ The editor and other task-heavy screens may be denser, but must remain grid-base
 - Error states explain impact, preserve recoverable work, and provide retry or escape paths.
 - Toasts confirm background or non-blocking outcomes; they do not contain critical information required to continue.
 - Saving and export workflows must expose `idle`, `working`, `success`, and `failure` states without layout shift.
+- The save progress modal is a narrow, user-requested timing exception: after a successful request, each of its three truthful stages remains visible for at least 800ms. A presentation timer may advance only after the corresponding real layout, persistence, or confirmation boundary; it never delays the network operation, announces confirmation early, extends failures, or changes download timing.
 
 ### 5.7 Editor and PDF canvas
 
@@ -338,7 +339,7 @@ Motion explains causality and state; it is never ambient decoration.
 - Animate only `transform` and `opacity` where practical.
 - Avoid parallax, looping decoration, bouncy spring motion, and long staggered entrances in working UI.
 - Respect `prefers-reduced-motion: reduce` by removing non-essential movement and making state changes immediate or nearly immediate.
-- Never delay input, navigation, saving, or modal dismissal to finish an animation.
+- Never delay input, navigation, saving, or modal dismissal to finish an animation. The successful save-stage reading interval defined in section 5.6 is the sole feedback-timing exception and does not delay the underlying persistence request.
 
 ## 7. Content and iconography
 
