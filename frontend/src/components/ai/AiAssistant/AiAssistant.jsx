@@ -17,6 +17,7 @@ import classes from "./AiAssistant.module.css";
 import { useCanvasContext } from "../../../store/canvas-context";
 import { useSession } from "../../../store/session-context";
 import { useUiSurfaces } from "../../../store/ui-surfaces-context";
+import ScopedAiReview from "../ScopedAi/ScopedAiReview";
 import { useScopedAi } from "../../../store/scoped-ai-context";
 import { syncCvDataFromCanvas } from "../../../utils/syncCvDataFromCanvas";
 import { ApiClient, ENDPOINTS, wakeBackend } from "../../../services/api";
@@ -979,7 +980,12 @@ export default function AiAssistant() {
 
     const scopedAi = useScopedAi();
     const [assistantIsOpen, setIsOpen] = useState(false);
-    const isOpen = assistantIsOpen && !scopedAi?.isOpen;
+    const isOpen = assistantIsOpen || Boolean(scopedAi?.isOpen);
+    const closeScopedAi = scopedAi?.close;
+    const closeAssistant = useCallback(() => {
+        setIsOpen(false);
+        closeScopedAi?.();
+    }, [closeScopedAi]);
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState("");
     const [jobDesc, setJobDesc] = useState("");
@@ -988,6 +994,9 @@ export default function AiAssistant() {
     const [jobUrlError, setJobUrlError] = useState("");
     // Goal submenu: improve_content | translate | match_job | null
     const [activePanel, setActivePanel] = useState(null);
+    useEffect(() => {
+        if (scopedAi?.isOpen) setActivePanel(null);
+    }, [scopedAi?.isOpen, scopedAi?.reviews.length]);
     const [isLoading, setIsLoading] = useState(false);
     const [correctionStates, setCorrectionStates] = useState({});
     const [layoutStates, setLayoutStates] = useState({});
@@ -1067,7 +1076,7 @@ export default function AiAssistant() {
             0,
             messageList.scrollHeight - messageList.clientHeight,
         );
-    }, [isLoading, isOpen, messages]);
+    }, [isLoading, isOpen, messages, scopedAi?.reviews]);
 
     useLayoutEffect(() => {
         const editorShell = document.querySelector(".main-container");
@@ -1141,25 +1150,14 @@ export default function AiAssistant() {
         };
     }, [isOpen]);
 
-    // A document epoch covers saved-document opens, new/imported documents,
-    // template regeneration and guest restoration. Reset every assistant-owned
-    // state so review cards can never target element ids from another epoch.
+    // Template changes keep the conversation mounted. Invalidate asynchronous
+    // work and canvas previews, while historical cards remain readable. A new
+    // document changes the provider conversation key and resets all chat state.
     useEffect(() => {
         chatSessionRef.current += 1;
         requestInFlightRef.current = false;
         setIsLoading(false);
-        setMessages([]);
-        setInput("");
-        setJobDesc("");
-        setJobOfferUrl("");
-        setCandidateNotes("");
-        setJobUrlError("");
         setActivePanel(null);
-        setCorrectionStates({});
-        setLayoutStates({});
-        setStructureStates({});
-        setDeletionStates({});
-        setCloneStates({});
         setPointerJobEvidencePreview(null);
         setFocusJobEvidencePreview(null);
         // Patches / deletion ids are arrays in PdfCanvas state — never null
@@ -1186,7 +1184,7 @@ export default function AiAssistant() {
             return;
         }
         const pendingHighlights = collectPendingAiHighlights({
-            messages,
+            messages: messages.filter((message) => message.sourceSessionKey === sessionKey),
             correctionStates,
             layoutStates,
             structureStates,
@@ -1200,6 +1198,7 @@ export default function AiAssistant() {
         );
     }, [
         isOpen,
+        sessionKey,
         messages,
         correctionStates,
         layoutStates,
@@ -1231,7 +1230,13 @@ export default function AiAssistant() {
 
     // ── correction handlers ──────────────────────────────────────────────
 
+    const isCurrentMessage = useCallback((msgId) => {
+        const message = messages.find((item) => item.id === msgId);
+        return message?.sourceSessionKey === String(captureDocumentScope().epoch);
+    }, [messages, captureDocumentScope]);
+
     const acceptCorrection = useCallback((msgId, patch) => {
+        if (!isCurrentMessage(msgId)) return;
         const { element_id, ...fields } = patch;
         const previousElement = A4_Elements.find((element) => element.element_id === element_id);
         const targetExists = Boolean(previousElement);
@@ -1264,13 +1269,14 @@ export default function AiAssistant() {
         }
         setCorrectionStates(prev => ({ ...prev, [`${msgId}_${element_id}`]: "accepted" }));
         collapseSpilledMainIntoSidebar?.();
-    }, [A4_Elements, collapseSpilledMainIntoSidebar, editElementValues, messages, setActiveCvData]);
+    }, [isCurrentMessage, A4_Elements, collapseSpilledMainIntoSidebar, editElementValues, messages, setActiveCvData]);
 
     const rejectCorrection = useCallback((msgId, element_id) => {
         setCorrectionStates(prev => ({ ...prev, [`${msgId}_${element_id}`]: "rejected" }));
     }, []);
 
     const applyAll = useCallback((msgId, corrections) => {
+        if (!isCurrentMessage(msgId)) return;
         const acceptedIds = [];
         corrections.forEach(patch => {
             const key = `${msgId}_${patch.element_id}`;
@@ -1321,9 +1327,10 @@ export default function AiAssistant() {
             setActiveCvData(message.updatedCvData);
         }
         collapseSpilledMainIntoSidebar?.();
-    }, [A4_Elements, collapseSpilledMainIntoSidebar, correctionStates, editElementValues, messages, setActiveCvData]);
+    }, [isCurrentMessage, A4_Elements, collapseSpilledMainIntoSidebar, correctionStates, editElementValues, messages, setActiveCvData]);
 
     const previewLayoutGroup = useCallback((msgId, group) => {
+        if (!isCurrentMessage(msgId)) return;
         setStructurePreviewGroup(null);
         setDeletionPreviewIds([]);
         setStructureStates((previous) => Object.fromEntries(
@@ -1341,7 +1348,7 @@ export default function AiAssistant() {
             next[`${msgId}_${group.id}`] = "preview";
             return next;
         });
-    }, [setCurrentPage, setDeletionPreviewIds, setLayoutPreviewPatches, setStructurePreviewGroup]);
+    }, [isCurrentMessage, setCurrentPage, setDeletionPreviewIds, setLayoutPreviewPatches, setStructurePreviewGroup]);
 
     const clearLayoutPreview = useCallback((msgId, groupId) => {
         setLayoutPreviewPatches([]);
@@ -1352,10 +1359,11 @@ export default function AiAssistant() {
     }, [setLayoutPreviewPatches]);
 
     const acceptLayoutGroup = useCallback((msgId, group) => {
+        if (!isCurrentMessage(msgId)) return;
         applyLayoutPatches(group.patches || []);
         setLayoutPreviewPatches([]);
         setLayoutStates(prev => ({ ...prev, [`${msgId}_${group.id}`]: "accepted" }));
-    }, [applyLayoutPatches, setLayoutPreviewPatches]);
+    }, [isCurrentMessage, applyLayoutPatches, setLayoutPreviewPatches]);
 
     const rejectLayoutGroup = useCallback((msgId, group) => {
         const key = `${msgId}_${group.id}`;
@@ -1364,6 +1372,7 @@ export default function AiAssistant() {
     }, [layoutStates, setLayoutPreviewPatches]);
 
     const previewStructureGroup = useCallback((msgId, group) => {
+        if (!isCurrentMessage(msgId)) return;
         setLayoutPreviewPatches([]);
         setDeletionPreviewIds([]);
         setCloneStates((previous) => Object.fromEntries(
@@ -1382,7 +1391,7 @@ export default function AiAssistant() {
             next[`${msgId}_${group.id}`] = "preview";
             return next;
         });
-    }, [setCurrentPage, setDeletionPreviewIds, setLayoutPreviewPatches, setStructurePreviewGroup]);
+    }, [isCurrentMessage, setCurrentPage, setDeletionPreviewIds, setLayoutPreviewPatches, setStructurePreviewGroup]);
 
     const clearStructurePreview = useCallback((msgId, groupId) => {
         setStructurePreviewGroup(null);
@@ -1393,10 +1402,11 @@ export default function AiAssistant() {
     }, [setStructurePreviewGroup]);
 
     const acceptStructureGroup = useCallback((msgId, group) => {
+        if (!isCurrentMessage(msgId)) return;
         applyStructureOperation(group);
         setStructurePreviewGroup(null);
         setStructureStates((previous) => ({ ...previous, [`${msgId}_${group.id}`]: "accepted" }));
-    }, [applyStructureOperation, setStructurePreviewGroup]);
+    }, [isCurrentMessage, applyStructureOperation, setStructurePreviewGroup]);
 
     const rejectStructureGroup = useCallback((msgId, group) => {
         const key = `${msgId}_${group.id}`;
@@ -1405,6 +1415,7 @@ export default function AiAssistant() {
     }, [setStructurePreviewGroup, structureStates]);
 
     const previewDeletionGroup = useCallback((msgId, group) => {
+        if (!isCurrentMessage(msgId)) return;
         setLayoutPreviewPatches([]);
         setStructurePreviewGroup(null);
         setCloneStates((previous) => Object.fromEntries(
@@ -1420,7 +1431,7 @@ export default function AiAssistant() {
             next[`${msgId}_${group.id}`] = "preview";
             return next;
         });
-    }, [setCurrentPage, setDeletionPreviewIds, setLayoutPreviewPatches, setStructurePreviewGroup]);
+    }, [isCurrentMessage, setCurrentPage, setDeletionPreviewIds, setLayoutPreviewPatches, setStructurePreviewGroup]);
 
     const clearDeletionPreview = useCallback((msgId, groupId) => {
         setDeletionPreviewIds([]);
@@ -1431,10 +1442,11 @@ export default function AiAssistant() {
     }, [setDeletionPreviewIds]);
 
     const acceptDeletionGroup = useCallback((msgId, group) => {
+        if (!isCurrentMessage(msgId)) return;
         applyDeleteOperation(group);
         setDeletionPreviewIds([]);
         setDeletionStates((previous) => ({ ...previous, [`${msgId}_${group.id}`]: "accepted" }));
-    }, [applyDeleteOperation, setDeletionPreviewIds]);
+    }, [isCurrentMessage, applyDeleteOperation, setDeletionPreviewIds]);
 
     const rejectDeletionGroup = useCallback((msgId, group) => {
         const key = `${msgId}_${group.id}`;
@@ -1444,6 +1456,7 @@ export default function AiAssistant() {
 
     // Clone preview reuses structurePreviewGroup (add_elements only, empty removes).
     const previewCloneGroup = useCallback((msgId, group) => {
+        if (!isCurrentMessage(msgId)) return;
         setLayoutPreviewPatches([]);
         setDeletionPreviewIds([]);
         setStructureStates((previous) => Object.fromEntries(
@@ -1463,7 +1476,7 @@ export default function AiAssistant() {
             next[`${msgId}_${group.id}`] = "preview";
             return next;
         });
-    }, [setCurrentPage, setDeletionPreviewIds, setLayoutPreviewPatches, setStructurePreviewGroup]);
+    }, [isCurrentMessage, setCurrentPage, setDeletionPreviewIds, setLayoutPreviewPatches, setStructurePreviewGroup]);
 
     const clearClonePreview = useCallback((msgId, groupId) => {
         setStructurePreviewGroup(null);
@@ -1474,10 +1487,11 @@ export default function AiAssistant() {
     }, [setStructurePreviewGroup]);
 
     const acceptCloneGroup = useCallback((msgId, group) => {
+        if (!isCurrentMessage(msgId)) return;
         applyCloneOperation(group);
         setStructurePreviewGroup(null);
         setCloneStates((previous) => ({ ...previous, [`${msgId}_${group.id}`]: "accepted" }));
-    }, [applyCloneOperation, setStructurePreviewGroup]);
+    }, [isCurrentMessage, applyCloneOperation, setStructurePreviewGroup]);
 
     const rejectCloneGroup = useCallback((msgId, group) => {
         const key = `${msgId}_${group.id}`;
@@ -1520,6 +1534,7 @@ export default function AiAssistant() {
         const userMsg = {
             id: nanoid(),
             role: "user",
+            createdAt: Date.now(),
             text: userText,
             sourceRevision: documentScope.revision,
             sourceSessionKey: String(documentScope.epoch),
@@ -1601,6 +1616,7 @@ export default function AiAssistant() {
             const assistantMsg = {
                 id: nanoid(),
                 role: "assistant",
+                createdAt: Date.now(),
                 text: res.message,
                 rating: res.rating ?? null,
                 tips: res.tips ?? [],
@@ -1644,6 +1660,7 @@ export default function AiAssistant() {
             setMessages(prev => [...prev, {
                 id: nanoid(),
                 role: "assistant",
+                createdAt: Date.now(),
                 text: `Błąd: ${err.message}`,
                 tips: [],
                 corrections: [],
@@ -1652,8 +1669,11 @@ export default function AiAssistant() {
                 sourceSessionKey: String(documentScope.epoch),
             }]);
         } finally {
-            requestInFlightRef.current = false;
-            setIsLoading(false);
+            // An older request must not release a newer epoch's in-flight guard.
+            if (chatSessionRef.current === sessionAtStart) {
+                requestInFlightRef.current = false;
+                setIsLoading(false);
+            }
         }
     }, [A4_Elements, activeCvData, candidateNotes, captureDocumentScope, cvLanguage, isDocumentScopeCurrent, isLoading, jobDesc, jobOfferUrl, messages, pageSize, refreshEntitlements]);
 
@@ -1772,7 +1792,7 @@ export default function AiAssistant() {
             setLayoutPreviewPatches([]);
             setStructurePreviewGroup(null);
             setDeletionPreviewIds([]);
-            setIsOpen(false);
+            closeAssistant();
         };
 
         window.addEventListener("keydown", onKeyDown);
@@ -1785,6 +1805,7 @@ export default function AiAssistant() {
         };
     }, [
         isOpen,
+        closeAssistant,
         setDeletionPreviewIds,
         setLayoutPreviewPatches,
         setStructurePreviewGroup,
@@ -1798,8 +1819,8 @@ export default function AiAssistant() {
                 type="button"
                 className={`${classes.fab} ${isLoading ? classes.fabLoading : ""}`}
                 onClick={() => {
-                    if (scopedAi?.isOpen) { scopedAi.close(); setIsOpen(true); }
-                    else setIsOpen(o => !o);
+                    if (isOpen) closeAssistant();
+                    else setIsOpen(true);
                 }}
                 title="Asystent AI"
                 aria-label={isOpen ? "Zamknij asystenta AI" : "Otwórz asystenta AI"}
@@ -1851,7 +1872,7 @@ export default function AiAssistant() {
                                     setLayoutPreviewPatches([]);
                                     setStructurePreviewGroup(null);
                                     setDeletionPreviewIds([]);
-                                    setIsOpen(false);
+                                    closeAssistant();
                                 }}>
                                     <IoClose aria-hidden="true" />
                                 </button>
@@ -2043,15 +2064,28 @@ export default function AiAssistant() {
                             aria-label="Rozmowa z asystentem AI"
                             aria-live="polite"
                         >
-                            {messages.length === 0 && (
+                            {messages.length === 0 && !scopedAi?.reviews.length && (
                                 <div className={classes.emptyState}>
                                     <BsStars className={classes.emptyIcon} />
                                     <p>Wybierz cel powyżej — sprawdź CV, popraw treść, dopasuj do oferty lub przetłumacz — albo wpisz własne pytanie.</p>
                                 </div>
                             )}
-                            {messages.map(msg => (
+                            {[...messages, ...(scopedAi?.isAvailable ? scopedAi.reviews : []).map((review) => ({
+                                id: review.key, createdAt: review.createdAt, scopedReview: review,
+                            }))].sort((a, b) => a.createdAt - b.createdAt).map(msg => msg.scopedReview ? (
+                                <Motion.div key={msg.id}
+                                    initial={reduceMotion ? false : { x: 24, opacity: 0 }}
+                                    animate={{ x: 0, opacity: 1 }}
+                                    transition={{ duration: reduceMotion ? 0 : 0.2, ease: [0.2, 0, 0, 1] }}>
+                                    <ScopedAiReview review={msg.scopedReview} />
+                                </Motion.div>
+                            ) : (
+                                <fieldset key={msg.id} className={classes.historyMessage}
+                                    disabled={msg.sourceSessionKey !== sessionKey}>
+                                {msg.sourceSessionKey !== sessionKey && msg.role !== "user" && (
+                                    <p className={classes.historyNotice}>Wynik z poprzedniego szablonu — tylko do odczytu.</p>
+                                )}
                                 <ChatMessage
-                                    key={msg.id}
                                     msg={msg}
                                     correctionStates={correctionStates}
                                     layoutStates={layoutStates}
@@ -2080,11 +2114,12 @@ export default function AiAssistant() {
                                     onOpenContentPanel={openContentPanel}
                                     onRunAts={runAtsScore}
                                     onOpenMatchJob={openMatchJobPanel}
-                                    onShowEvidence={showJobEvidence}
+                                    onShowEvidence={msg.sourceSessionKey === sessionKey ? showJobEvidence : () => {}}
                                     onHideEvidence={hideJobEvidence}
                                     ctaDisabled={isLoading}
-                                    A4_Elements={A4_Elements}
+                                    A4_Elements={msg.sourceSessionKey === sessionKey ? A4_Elements : []}
                                 />
+                                </fieldset>
                             ))}
                             {isLoading && (
                                 <div className={classes.typing} role="status" aria-live="polite">
@@ -2104,6 +2139,7 @@ export default function AiAssistant() {
                                 value={input}
                                 onChange={e => setInput(e.target.value)}
                                 onKeyDown={handleKey}
+                                aria-label="Wiadomość do asystenta AI"
                                 placeholder="Zadaj pytanie lub wydaj polecenie…"
                                 rows={2}
                                 disabled={isLoading || activePanel === "match_job"}

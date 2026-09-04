@@ -21,14 +21,15 @@ test("assistant send blocks parallel requests before isLoading re-renders", asyn
     assert.match(source, /requestInFlightRef\.current = false/);
 });
 
-test("assistant chat resets when the document session changes", async () => {
+test("assistant invalidates canvas work without clearing template conversation history", async () => {
     const source = await readFile(new URL("./AiAssistant.jsx", import.meta.url), "utf8");
 
     assert.match(source, /chatSessionRef/);
     assert.match(source, /sessionKey/);
     assert.match(source, /useDocumentLifecycle/);
     assert.match(source, /chatSessionRef\.current \+= 1/);
-    assert.match(source, /setMessages\(\[\]\)/);
+    assert.doesNotMatch(source, /setMessages\(\[\]\)/);
+    assert.match(source, /if \(!isCurrentMessage\(msgId\)\) return/);
     // PdfCanvas preview useMemo reads `.length` — clear with [] not null.
     assert.match(source, /setLayoutPreviewPatches\?\.\(\[\]\)/);
     assert.match(source, /setDeletionPreviewIds\?\.\(\[\]\)/);

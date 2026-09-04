@@ -1394,3 +1394,7 @@
 }
 .sendBtn:hover:not(:disabled) { transform: translateY(-1px); }
 .sendBtn:disabled { opacity: .45; cursor: not-allowed; }
+
+/* Historical cards remain readable without exposing obsolete canvas actions. */
+.historyMessage { border: 0; padding: 0; margin: 0; min-width: 0; }
+.historyNotice { color: var(--color-muted); font: 400 .75rem/1.4 var(--font-ui); }

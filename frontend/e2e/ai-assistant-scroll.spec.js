@@ -33,6 +33,9 @@ async function stableElementHeight(locator) {
 }
 
 test("AI assistant uses the wider panel and shifts a single A4 only when space allows", async ({ page }) => {
+  // The desktop assertion requires room for A4 plus both 232px toolbar gutters.
+  // At the default 1280px viewport, the geometry correctly caps the shift at zero.
+  if (page.viewportSize().width > 720) await page.setViewportSize({ width: 1920, height: 1080 });
   const api = await installMockApi(page);
   await login(page);
 

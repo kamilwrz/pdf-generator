@@ -67,7 +67,7 @@ for (const width of [390, 834, 1280, 1920]) {
     await expect(toolbar.getByRole("button", { name: "AI dla wybranego zakresu" })).toBeFocused();
     await toolbar.getByRole("button", { name: "AI dla wybranego zakresu" }).click();
     await page.getByRole("menuitem", { name: "Skróć", exact: true }).click();
-    const panel = page.locator("[data-scoped-ai-panel]");
+    const panel = page.locator("#ai-assistant-panel");
     await expect(panel.getByRole("button", { name: "Zastosuj wszystkie" })).toBeEnabled();
     await expect(page.locator("[data-canvas-toolbar-key]")).toHaveCount(0);
     await expect(page.locator("#summary-body")).toContainText(before);
@@ -77,6 +77,8 @@ for (const width of [390, 834, 1280, 1920]) {
     expect(payload.scoped_content.fragments).toHaveLength(1);
     expect(JSON.stringify(payload)).not.toMatch(/Kamil Smoke|Figma|fontSize|cv_data|left/);
     expect(request.headers["idempotency-key"]).toBeTruthy();
+    await expect(page.locator('[data-scoped-ai-panel]')).toHaveCount(0);
+    await expect(panel.getByRole('log')).toContainText(before);
     const bounds = await panel.boundingBox();
     expect(bounds.x).toBeGreaterThanOrEqual(0);
     expect(bounds.x + bounds.width).toBeLessThanOrEqual(width + 1);
@@ -84,7 +86,7 @@ for (const width of [390, 834, 1280, 1920]) {
     await page.screenshot({ path: testInfo.outputPath(`scoped-ai-${width}.png`) });
     await panel.getByRole("button", { name: "Zastosuj wszystkie" }).click();
     await expect(page.locator("#summary-body")).toContainText(after);
-    await panel.getByRole("button", { name: "Zamknij", exact: true }).click();
+    await panel.getByRole("button", { name: "Zamknij asystenta AI", exact: true }).click();
     await page.keyboard.press("Control+z");
     await expect(page.locator("#summary-body")).toContainText(before);
     await page.keyboard.press("Control+Shift+z");
@@ -122,10 +124,40 @@ test("achievement templates stay separate and AI menus fit at 200% canvas zoom",
   for (let count = 0; count < 4; count += 1) await zoom.click();
   await openMenu(page);
   await page.getByRole("menuitem", { name: "Polepsz", exact: true }).click();
-  const panel = page.locator("[data-scoped-ai-panel]");
+  const panel = page.locator("#ai-assistant-panel");
   await expect(panel.getByText("Wzór do uzupełnienia")).toBeVisible();
   await panel.getByRole("button", { name: "Zastosuj wszystkie" }).click();
   await expect(page.locator("#summary-body")).toContainText(after);
   await expect(page.locator("#summary-body")).not.toContainText("[potwierdzony rezultat]");
   await page.screenshot({ path: testInfo.outputPath("scoped-ai-200-percent.png") });
+});
+
+
+test("toolbar results join chat and survive template changes as read-only history", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  const api = await openDocument(page);
+  await page.getByRole("button", { name: "Otwórz asystenta AI" }).click();
+  const panel = page.locator("#ai-assistant-panel");
+  await panel.getByRole("textbox", { name: "Wiadomość do asystenta AI" }).fill("Zapamiętaj tę rozmowę");
+  await panel.getByRole("button", { name: "Wyślij" }).click();
+  await expect(panel.getByText("Skrócono opis bez zmiany liczb i technologii.")).toBeVisible();
+  await panel.getByRole("button", { name: "Zamknij asystenta AI" }).click();
+  await openMenu(page);
+  await page.getByRole("menuitem", { name: "Skróć", exact: true }).click();
+  await expect(panel.getByRole("button", { name: "Zastosuj wszystkie", exact: true })).toBeEnabled();
+  await expect(panel.getByRole("log")).toContainText("Zapamiętaj tę rozmowę");
+  await expect(page.locator("[data-scoped-ai-panel]")).toHaveCount(0);
+  await page.keyboard.press("Escape");
+  await expect(panel).toBeHidden();
+  await expect(page.getByRole("button", { name: "AI dla wybranego zakresu" })).toBeFocused();
+  await page.getByRole("button", { name: "Otwórz asystenta AI" }).click();
+  await expect(panel.getByRole("button", { name: "Zastosuj wszystkie", exact: true })).toBeEnabled();
+  await page.getByRole("button", { name: /^Następny szablon:/ }).click();
+  await expect(page.getByRole("button", { name: /^Następny szablon:/ })).toBeEnabled();
+  await expect(panel).toBeVisible();
+  await expect(panel.getByRole("log")).toContainText("Zapamiętaj tę rozmowę");
+  await expect(panel.getByRole("button", { name: "Zastosuj wszystkie", exact: true })).toBeDisabled();
+  await expect(panel.getByText("Wynik z poprzedniego szablonu — tylko do odczytu.")).toBeVisible();
+  await expect(panel.getByRole("textbox", { name: "Wiadomość do asystenta AI" })).toBeEnabled();
+  api.assertHermetic();
 });

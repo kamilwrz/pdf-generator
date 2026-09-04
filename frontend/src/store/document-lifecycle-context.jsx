@@ -23,6 +23,7 @@ export function useDocumentLifecycleController() {
   }
   const [epoch, setEpoch] = useState(0);
   const [revision, setRevision] = useState(0);
+  const [conversationKey, setConversationKey] = useState(0);
 
   const observeDocumentSignature = useCallback((signature) => {
     if (!trackerRef.current.observeSignature(signature)) return;
@@ -41,8 +42,11 @@ export function useDocumentLifecycleController() {
   const beginOperation = captureDocumentScope;
   const canCommit = isDocumentScopeCurrent;
 
-  const advanceDocumentSession = useCallback(() => {
+  const advanceDocumentSession = useCallback(({ preserveConversation = false } = {}) => {
     const scope = trackerRef.current.advance();
+    // Template replacement invalidates element references while retaining the
+    // conversation. Opening or creating another document starts a fresh chat.
+    if (!preserveConversation) setConversationKey((key) => key + 1);
     setEpoch(scope.epoch);
     setRevision(scope.revision);
     return scope;
@@ -52,6 +56,7 @@ export function useDocumentLifecycleController() {
     epoch,
     revision,
     sessionKey: String(epoch),
+    conversationKey: String(conversationKey),
     beginOperation,
     canCommit,
     observeDocumentSignature,
@@ -63,6 +68,7 @@ export function useDocumentLifecycleController() {
     beginOperation,
     canCommit,
     captureDocumentScope,
+    conversationKey,
     epoch,
     isDocumentScopeCurrent,
     observeDocumentSignature,

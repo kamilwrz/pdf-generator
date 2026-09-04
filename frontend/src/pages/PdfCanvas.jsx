@@ -625,7 +625,7 @@ export function EditorController() {
     const committedFlowSpacing = normalizeFlowSpacing(
       snapshot.flowSpacing ?? DEFAULT_FLOW_SPACING,
     );
-    const scope = advanceDocumentSession();
+    const scope = advanceDocumentSession({ preserveConversation: options.preserveConversation });
 
     resetHistory();
     if (options.animateContent) markContentElementsEnter(snapshot.elements);
@@ -1733,7 +1733,7 @@ export function EditorController() {
       pdfId,
       revision: serverRevision,
       currentPage: 1,
-    }, { animateContent: true });
+    }, { animateContent: true, preserveConversation: true });
   }, [
     activeCvData,
     activeImportId,
@@ -2283,7 +2283,7 @@ export function EditorController() {
       uiValue={uiValue}
       sessionValue={sessionValue}
     >
-              <ScopedAiProvider key={documentSessionKey} enabled={!showStartChooser}>
+              <ScopedAiProvider key={lifecycleController.conversationKey} enabled={!showStartChooser}>
               <ModalPdfs />
               <UnsavedChangesDialog
                 open={dirtyGuard.dialogOpen}
@@ -2468,7 +2468,7 @@ export function EditorController() {
               {!showStartChooser ? <Gallery /> : null}
               {!showStartChooser && entitlements?.ai_assistant ? (
                 <Suspense fallback={<LazyAiFallback />}>
-                  <LazyAiAssistant key={documentSessionKey} />
+                  <LazyAiAssistant />
                 </Suspense>
               ) : null}
               <ToastStack toasts={toasts} onDismiss={dismissToast} />

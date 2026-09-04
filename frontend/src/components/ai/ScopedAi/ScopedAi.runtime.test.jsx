@@ -2,6 +2,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-libra
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useState } from "react";
 import ScopedAiProvider from "./ScopedAiProvider";
+import ScopedAiReview from "./ScopedAiReview";
 import { useScopedAi } from "../../../store/scoped-ai-context";
 import { CanvasTestContext } from "../../../store/canvas-context";
 
@@ -30,7 +31,8 @@ const fixture = [
 const response = () => ({ message: "Propozycja", scoped_corrections: [{ fragment_id: "body:0", before, content: after }], achievement_templates: [] });
 function Trigger() {
   const ai = useScopedAi();
-  return <button onClick={(event) => ai.open({ kind: "section", headingId: "head" }, "shorten", event.currentTarget)}>Uruchom</button>;
+  return <><button onClick={(event) => ai.open({ kind: "section", headingId: "head" }, "shorten", event.currentTarget)}>Uruchom</button>
+    {ai.isAvailable && ai.reviews.map((review) => <ScopedAiReview key={review.key} review={review} />)}</>;
 }
 function Harness() {
   const [elements, setElements] = useState(fixture);
@@ -53,6 +55,17 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("scoped review lifecycle", () => {
+  it("keeps earlier results when another toolbar action runs", async () => {
+    mocks.request.mockResolvedValue(response());
+    render(<Harness />);
+    fireEvent.click(screen.getByText("Uruchom"));
+    await screen.findByText("Zastosuj wszystkie");
+    fireEvent.click(screen.getByText("Uruchom"));
+    await waitFor(() => expect(screen.getAllByText("Zastosuj wszystkie")).toHaveLength(2));
+    expect(mocks.request).toHaveBeenCalledTimes(2);
+    expect(mocks.request.mock.calls[0][4].headers).not.toEqual(mocks.request.mock.calls[1][4].headers);
+  });
+
   it("previews without mutation and applies only after acceptance", async () => {
     mocks.request.mockResolvedValue(response());
     render(<Harness />);
