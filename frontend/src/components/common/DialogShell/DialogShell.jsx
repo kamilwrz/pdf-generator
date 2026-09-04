@@ -10,7 +10,8 @@ import { DialogSuspensionContext } from "./DialogSuspensionContext";
 //
 // `variant="fullscreen"` is used by the bio/CV wizard: edge-to-edge overlay
 // with a single scroll surface (body), sticky header/footer, and no floating
-// card over the editor. Other dialogs keep the default centered card.
+// card over the editor. `variant="decision"` gives short account and product
+// gates a stronger editorial hierarchy without duplicating the shell.
 // `surface="paper"` keeps large form surfaces and close controls white while
 // retaining the caller's accent tokens and the unchanged backdrop treatment.
 //
@@ -25,6 +26,7 @@ export default function DialogShell({
     width = 560,
     title,
     subtitle,
+    eyebrow,
     footer,
     bodyClassName,
     variant = "modal",
@@ -38,6 +40,7 @@ export default function DialogShell({
     const standardDialogsSuspended = useContext(DialogSuspensionContext);
     const renderedOpen = open && (layer === "recovery" || !standardDialogsSuspended);
     const isFullscreen = variant === "fullscreen";
+    const isDecision = variant === "decision";
     const dialogRef = useRef(null);
     const previousFocusRef = useRef(null);
     const onCloseRef = useRef(onClose);
@@ -129,13 +132,13 @@ export default function DialogShell({
 
     return createPortal(
         <div
-            className={`${classes.backdrop}${isFullscreen ? ` ${classes.backdropFullscreen}` : ""}`}
+            className={`${classes.backdrop}${isFullscreen ? ` ${classes.backdropFullscreen}` : ""}${isDecision ? ` ${classes.backdropDecision}` : ""}`}
             onClick={onClose}
         >
             <div
                 ref={dialogRef}
                 data-dialog-shell=""
-                className={`${classes.dialog}${isFullscreen ? ` ${classes.dialogFullscreen}` : ""}${surface === "paper" ? ` ${classes.paperSurface}` : ""}`}
+                className={`${classes.dialog}${isFullscreen ? ` ${classes.dialogFullscreen}` : ""}${isDecision ? ` ${classes.dialogDecision}` : ""}${surface === "paper" ? ` ${classes.paperSurface}` : ""}`}
                 style={isFullscreen ? undefined : { width }}
                 role={role}
                 aria-modal="true"
@@ -146,10 +149,18 @@ export default function DialogShell({
             >
                 <div className={classes.header}>
                     <div>
+                        {eyebrow && <span className={classes.eyebrow}>{eyebrow}</span>}
                         <h2 id={titleId}>{title}</h2>
                         {subtitle && <p id={subtitleId}>{subtitle}</p>}
                     </div>
-                    <CloseButton ariaLabel={`Zamknij: ${title}`} clickHandler={onClose} top={18} right={28} width={36} height={36} />
+                    <CloseButton
+                        ariaLabel={`Zamknij: ${title}`}
+                        clickHandler={onClose}
+                        top={isDecision ? 24 : 18}
+                        right={isDecision ? 32 : 28}
+                        width={isDecision ? 44 : 36}
+                        height={isDecision ? 44 : 36}
+                    />
                 </div>
                 <div className={`${classes.body}${bodyClassName ? ` ${bodyClassName}` : ""}`}>
                     {children}

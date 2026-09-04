@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 import { installMockApi, login } from "./support/mockApi.js";
 
 const accountChooser = (page) => page.getByRole("heading", { name: "Jak chcesz zacząć?" });
-const importGate = (page) => page.getByRole("dialog", { name: "Import CV wymaga konta" });
+const importGate = (page) => page.getByRole("dialog", { name: "Kontynuuj import na swoim koncie" });
 
 for (const width of [390, 834, 1280, 1920]) {
   test(`guest new CV and import account gate at ${width}px`, async ({ page }) => {
@@ -19,15 +19,17 @@ for (const width of [390, 834, 1280, 1920]) {
     await trigger.click();
     const gate = importGate(page);
     await expect(gate).toBeVisible();
-    await expect(gate.getByText(/Utwórz darmowe konto lub zaloguj się/)).toBeVisible();
+    await expect(gate.getByText("Na tym etapie nie wybieramy pliku i nie zmieniamy obecnego dokumentu.")).toBeVisible();
+    await expect(gate.getByText("1 import")).toBeVisible();
     await expect(page.locator('input[type="file"]')).toHaveCount(0);
+    await expect(gate.getByRole("button", { name: "Utwórz darmowe konto" })).toBeFocused();
     const box = await gate.boundingBox();
     expect(box.x).toBeGreaterThanOrEqual(0);
     expect(box.x + box.width).toBeLessThanOrEqual(width);
     await page.keyboard.press("Escape");
     await expect(trigger).toBeFocused();
     await trigger.click();
-    await gate.getByRole("button", { name: "Utwórz konto", exact: true }).click();
+    await gate.getByRole("button", { name: "Utwórz darmowe konto", exact: true }).click();
     await expect(page).toHaveURL(/\/register\?start=import$/);
     expect(api.calls.filter((call) => /extract_cv|import-history/.test(call.path))).toEqual([]);
     api.assertHermetic();
@@ -62,7 +64,7 @@ for (const path of ["/cvstudio/guest?start=import", "/cvstudio/OtherUser?start=i
     await expect(importGate(page)).toBeVisible();
     await expect(page).toHaveURL(/\/cvstudio\/guest$/);
     await expect(accountChooser(page)).toHaveCount(0);
-    await importGate(page).getByRole("button", { name: "Mam już konto" }).click();
+    await importGate(page).getByRole("button", { name: "Zaloguj się", exact: true }).click();
     await expect(page).toHaveURL(/\/login\?start=import$/);
     await page.getByLabel("Nazwa użytkownika").fill("Kamil");
     await page.getByLabel("Hasło").fill("local-test-password");

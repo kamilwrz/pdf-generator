@@ -83,7 +83,8 @@ test("document management uses one dialog state and recovery suspends standard d
   assert.match(shell, /layer === "recovery"/);
   assert.match(unsaved, /layer="recovery"/);
   assert.match(canvas, /dialogsSuspended=\{dirtyGuard\.dialogOpen\}/);
-  assert.match(shell, /width=\{36\} height=\{36\}/);
+  assert.match(shell, /width=\{isDecision \? 44 : 36\}/);
+  assert.match(shell, /height=\{isDecision \? 44 : 36\}/);
 });
 
 test("complete replacements share one atomic snapshot commit", async () => {

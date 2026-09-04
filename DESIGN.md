@@ -283,6 +283,7 @@ The editor and other task-heavy screens may be denser, but must remain grid-base
 - Reuse a shared dialog shell and shared panel primitives.
 - New CV setup and its replacement confirmation use predominantly white paper surfaces. Keep beige to selected-template and hover accents, with brown headings, selections, and primary actions. This surface treatment must not change the backdrop.
 - The built-in demo is product-owned sample content, not an active user document. Starting a personal CV from the demo opens setup directly without replacement or unsaved-work confirmation; user-authored active documents retain that protection.
+- Short account-required choices use the shared `decision` dialog variant: an uppercase task label, action-led title, concise consequence, and no more than two structured facts before the footer. The primary account action receives initial focus; login remains secondary and returning to the editor remains a visually tertiary escape. On compact screens the facts and actions stack in DOM order, retain 44px targets, and keep the complete decision inside `100dvh`.
 - Dialogs require a visible title, an accessible description when useful, predictable close behavior, focus trapping, Escape handling, and focus restoration.
 - Primary and secondary actions stay in a consistent footer location.
 - Destructive confirmation dialogs name the object and consequence.

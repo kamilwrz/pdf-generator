@@ -60,7 +60,10 @@ test("registration, import, and account gates communicate the real Free limits",
     assert.match(importPanel, /1 udany import CV miesięcznie/);
     assert.match(importPanel, /odczytamy dane i wypełnimy nimi wybrany szablon/);
     assert.doesNotMatch(importPanel, /AI wypełni dowolny szablon/);
-    assert.match(saveGate, /zapisać 1 CV i pobrać do 3 czystych PDF-ów miesięcznie/);
+    assert.match(saveGate, /value: "1 CV"/);
+    assert.match(saveGate, /value: "3 pliki PDF"/);
+    assert.match(saveGate, /bez znaku wodnego/);
+    assert.match(saveGate, /value: "1 import"/);
     assert.match(sidebar, /Pobrania PDF:/);
     assert.match(sidebar, /Projekty CV:/);
     assert.match(sidebar, /Importy CV:/);

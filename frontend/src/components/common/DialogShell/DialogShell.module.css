@@ -18,6 +18,11 @@
     backdrop-filter: none;
 }
 
+.backdropDecision {
+    align-items: center;
+    padding-block: var(--space-4);
+}
+
 .dialog {
     max-width: 100%;
     max-height: calc(100dvh - 96px);
@@ -43,6 +48,30 @@
     animation: fadeIn var(--motion-fast) var(--motion-ease) both;
 }
 
+.dialogDecision {
+    max-height: calc(100dvh - var(--space-8));
+}
+
+.dialogDecision .header {
+    padding: var(--space-8) 88px var(--space-6) var(--space-8);
+}
+
+.dialogDecision .header h2 {
+    max-width: 18ch;
+    font: 700 clamp(1.75rem, 4vw, 2.25rem)/1.05 var(--font-display);
+    letter-spacing: -0.035em;
+}
+
+.dialogDecision .header p {
+    max-width: 54ch;
+    margin-top: var(--space-3);
+    font: 400 0.9375rem/1.55 var(--font-body);
+}
+
+.dialogDecision .footer {
+    padding: var(--space-6) var(--space-8);
+}
+
 /* Form-heavy dialogs can opt into white surfaces without changing other
    dialogs or the backdrop, which sits outside this token scope. */
 .paperSurface {
@@ -56,6 +85,10 @@
 /* Reserve the close button's full width when a form subtitle wraps. */
 .paperSurface .header {
     padding-inline-end: calc(var(--space-16) + var(--space-4));
+}
+
+.dialogDecision.paperSurface .header {
+    padding-inline-end: 88px;
 }
 
 .header {
@@ -81,6 +114,15 @@
     font: 400 12.5px/1.45 var(--font-body);
 }
 
+.eyebrow {
+    display: block;
+    margin-bottom: var(--space-3);
+    color: var(--chrome-accent);
+    font: 600 0.75rem/1.25 var(--font-mono);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
 @media (max-width: 640px) {
     .backdrop {
         align-items: stretch;
@@ -92,6 +134,30 @@
         max-height: 100dvh;
         border-top: 0;
         border-bottom: 0;
+    }
+
+    .dialogDecision {
+        height: auto;
+        max-height: 100dvh;
+        margin-block: auto;
+        border-top: 1px solid var(--chrome-border);
+        border-bottom: 1px solid var(--chrome-border);
+    }
+
+    .dialogDecision .header {
+        padding: var(--space-6) 76px var(--space-6) var(--space-4);
+    }
+
+    .dialogDecision.paperSurface .header {
+        padding-inline-end: 76px;
+    }
+
+    .dialogDecision .header h2 {
+        font-size: 1.75rem;
+    }
+
+    .dialogDecision .footer {
+        padding: var(--space-4);
     }
 
     .header {
