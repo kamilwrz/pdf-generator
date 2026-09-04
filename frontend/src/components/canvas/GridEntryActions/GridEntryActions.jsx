@@ -120,9 +120,8 @@ export default function GridEntryActions({
   // section type for placement too, without changing canonical profile data or
   // treating an arbitrary custom grid renamed to "Języki" as a language grid.
   const isLanguageEntry = gridKind === "languages" || sectionType === "languages";
-  // Language actions sit close to short inline content, so their complete
-  // control geometry is intentionally 20% smaller than the shared structural
-  // toolbar while preserving the same proportions and accessible names.
+  // Language actions sit close to short inline content and use the same
+  // smaller targets as Skills, contacts, and masthead controls.
   const layout = isLanguageEntry
     ? compactInlineToolbarLayoutSize(zoom)
     : structuralToolbarLayoutSize(zoom);

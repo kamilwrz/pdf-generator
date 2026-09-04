@@ -116,7 +116,7 @@ export function applyNameCaseToggle(elements, bandId) {
 // would be shifted as if it sat below the masthead — crushing/overlapping
 // continuation-page content. The masthead lives on one page; hiding/showing its
 // title only reflows that page. Cross-page repagination is not this op's job.
-function shiftBelow(el, boundaryTop, delta, contactBandId, boundaryPage) {
+function shiftBelow(el, boundaryTop, delta, contactBandId, boundaryPage, restoredIds = null) {
   if (el.flowRole === "masthead-anchor" && el.contactBand && el.contactBandId === contactBandId) {
     const anchor = { ...el.contactBand.anchor };
     if (typeof anchor.startY === "number") anchor.startY += delta;
@@ -124,7 +124,8 @@ function shiftBelow(el, boundaryTop, delta, contactBandId, boundaryPage) {
   }
   if (el.fixedToPage) return el;
   const page = Math.max(1, Math.trunc(Number(el.page) || 1));
-  if (page === boundaryPage && typeof el.top === "number" && el.top >= boundaryTop) {
+  if (page === boundaryPage && typeof el.top === "number"
+    && (el.top >= boundaryTop || restoredIds?.has(el.element_id))) {
     return { ...el, top: el.top + delta };
   }
   return el;
@@ -191,6 +192,11 @@ function captureVisibleTitle(elements, bandId, title) {
     appearanceBaseFontSize: title.appearanceBaseFontSize,
     appearanceBaseLineHeight: title.appearanceBaseLineHeight,
     appearanceBaseHeight: title.appearanceBaseHeight,
+    placeholder: title.placeholder,
+    starterPlaceholder: title.starterPlaceholder,
+    cvDataBindings: title.cvDataBindings?.map((binding) => ({
+      ...binding, path: [...binding.path],
+    })),
   };
   if (Array.isArray(title.runs)) {
     // Inline toolbar formatting belongs to the title just as much as its box
@@ -234,7 +240,18 @@ function hideTitle(elements, bandId, descriptor, blockPt, createId) {
     && !(el.mastheadBandId === bandId && el.mastheadRole === "title-decoration")
   ));
   const shifted = withoutTitle.map((el) => shiftBelow(el, boundaryTop, -blockPt, contactBandId, boundaryPage));
-  const marked = setTitlePresence(shifted, bandId, false);
+  // A compacted contact row can cross above the old title boundary. Remember
+  // the actual moved elements so showing the title reverses that move even
+  // after save/reload, without also moving upstream names or sidebar content.
+  const shiftedElementIds = shifted.filter((element, index) => (
+    element.top !== withoutTitle[index].top
+  )).map((element) => element.element_id);
+  const marked = setTitlePresence(shifted, bandId, false).map((element) => (
+    element.mastheadIdentity && element.mastheadBandId === bandId
+      ? { ...element, mastheadIdentity: { ...element.mastheadIdentity,
+        title: { ...element.mastheadIdentity.title, shiftedElementIds } } }
+      : element
+  ));
   const reconciled = reconcileDocumentPages(marked, createId, { collapseEmpty: true });
   return { elements: reconciled.elements, pageCount: reconciled.pageCount };
 }
@@ -306,7 +323,13 @@ function buildTitleElement(spec, bandId, createId, page, nameEl) {
   }
   // If the title was empty at generation, give the re-added element a hint + hit
   // area so the user can click it and type (same mechanism as added contacts).
-  if (!spec.content) el.placeholder = MASTHEAD_TITLE_PLACEHOLDER;
+  if (!spec.content) el.placeholder = spec.placeholder || MASTHEAD_TITLE_PLACEHOLDER;
+  if (spec.starterPlaceholder) el.starterPlaceholder = true;
+  if (spec.cvDataBindings) {
+    el.cvDataBindings = spec.cvDataBindings.map((binding) => ({
+      ...binding, path: [...binding.path],
+    }));
+  }
   return el;
 }
 
@@ -333,7 +356,17 @@ function showTitle(elements, bandId, descriptor, blockPt, createId) {
   // title's top because the title was hidden). Continuation pages are untouched.
   const nameEl = nameElement(elements, bandId);
   const boundaryPage = Math.max(1, Math.trunc(Number(nameEl?.page) || 1));
-  const shifted = elements.map((el) => shiftBelow(el, boundaryTop, +blockPt, contactBandId, boundaryPage));
+  const restoredIds = new Set(descriptor.title?.shiftedElementIds || []);
+  // Contact editing while the title is hidden can create new icons/labels.
+  // Include the coupled band's members by their semantic identity, including
+  // legacy hidden documents that predate the saved list of shifted IDs.
+  const contactStart = elements.find((el) => el.contactBandId === contactBandId
+    && el.contactBand)?.contactBand.anchor?.startY;
+  if (typeof contactStart === "number" && contactStart >= boundaryTop - blockPt - 0.001) {
+    elements.filter((el) => el.contactBandId === contactBandId && el.contactChannel)
+      .forEach((el) => restoredIds.add(el.element_id));
+  }
+  const shifted = elements.map((el) => shiftBelow(el, boundaryTop, +blockPt, contactBandId, boundaryPage, restoredIds));
   const titleEl = buildTitleElement(spec, bandId, createId, boundaryPage, nameEl);
   const decorations = buildTitleDecorations(
     descriptor.title?.decorations,

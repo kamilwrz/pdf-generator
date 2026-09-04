@@ -1,6 +1,6 @@
 # CV Studio — roadmap produktu, UX i komercjalizacji
 
-Stan bazowy: 2026-08-30
+Stan bazowy: 2026-08-30  
 Zakres: rekomendacje dotyczące całej aplikacji zebrane przed szczegółową roadmapą Final Check.
 
 ## Jak używać tego dokumentu
@@ -372,3 +372,5 @@ Te punkty nie są zadaniami:
 - [ ] Wczytywanie linkow (np. LinkedIn - link ukryty)
 - [ ] Zmodyfikowac rodzaj chipsow w szablonach
 - [ ] Przestal dzialac scroll-page-change
+- [ ] Slate - Dana Kontaktowe - po schowaniu zdjecia
+- [ ] 

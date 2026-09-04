@@ -6,7 +6,7 @@
  * A category-free section uses the same component with an empty label.
  */
 import { useCallback, useEffect, useId, useState } from "react";
-import { FiCheck, FiPlus, FiX } from "react-icons/fi";
+import { FiPlus, FiX } from "react-icons/fi";
 import { useCanvasContext } from "../../../store/canvas-context";
 import { useCanvasHoverToolbar } from "../../../hooks/useCanvasHoverToolbar";
 import { EDITOR_MODE_TEMPLATE } from "../../../utils/editorMode";
@@ -180,14 +180,25 @@ export default function SkillsEntryActions({
       }}
       noValidate
     >
-      <label className={classes.label} htmlFor={fieldId}>Nowa umiejętność</label>
+      <div className={classes.header}>
+        <label className={classes.label} htmlFor={fieldId}>Dodaj umiejętność</label>
+        <button
+          className={classes.cancel}
+          type="button"
+          aria-label="Anuluj dodawanie umiejętności"
+          onClick={() => closeForm()}
+        >
+          <FiX aria-hidden="true" />
+        </button>
+      </div>
+      {categoryLabel ? <p className={classes.context}>Kategoria: {categoryLabel}</p> : null}
       <div className={classes.row}>
         <input
           id={fieldId}
           className={classes.input}
           type="text"
           value={value}
-          placeholder="Np. React"
+          placeholder="Np. analiza danych"
           autoComplete="off"
           aria-invalid={Boolean(error)}
           aria-describedby={error ? errorId : undefined}
@@ -200,22 +211,14 @@ export default function SkillsEntryActions({
           className={classes.confirm}
           type="submit"
           aria-label="Dodaj umiejętność"
-          data-tooltip="Dodaj"
           disabled={!value.trim()}
         >
-          <FiCheck aria-hidden="true" />
-        </button>
-        <button
-          className={classes.cancel}
-          type="button"
-          aria-label="Anuluj dodawanie umiejętności"
-          data-tooltip="Anuluj"
-          onClick={() => closeForm()}
-        >
-          <FiX aria-hidden="true" />
+          <FiPlus aria-hidden="true" />
+          <span>Dodaj</span>
         </button>
       </div>
       {error ? <p id={errorId} className={classes.error} role="alert">{error}</p> : null}
+      <p className={classes.hint}><kbd>Enter</kbd> dodaj <span aria-hidden="true">·</span> <kbd>Esc</kbd> zamknij</p>
     </form>
   );
 

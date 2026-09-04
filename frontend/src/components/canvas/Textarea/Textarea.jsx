@@ -122,6 +122,12 @@ function measureEditableContentHeight(node, content, runs, { bulletList = false,
     mirror.innerHTML = bulletList
         ? bulletRunsToEditableHtml(content, runs)
         : runsToHtml(content, runs);
+    // Empty bullet paragraphs otherwise suppress :empty and measure one line
+    // instead of the full returning advice. Keep this cleanup in the mirror
+    // so native editing, blank paragraphs, and undo remain browser-owned.
+    if (!metadataHints && node.dataset.placeholder && !content.trim()) {
+        mirror.textContent = "";
+    }
     if (metadataHints) seedCompositeMetadata(mirror, content, runs, metadataHints);
     // Append inside the same parent so inherited styles and the containing block
     // width match the live edit box exactly.
@@ -924,7 +930,9 @@ function Textarea({
                         {renderStyledText(part.text, sliceRuns(cleanRuns, part.start, part.start + part.text.length))}
                     </span>
                 </span>
-            )) : renderTextareaBody(cleanContent, cleanRuns, bulletList)}
+            )) : editorPlaceholder && !cleanContent.trim()
+                ? null
+                : renderTextareaBody(cleanContent, cleanRuns, bulletList)}
         </div>
     );
 

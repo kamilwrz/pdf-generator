@@ -26,6 +26,12 @@ import { runsToHtml } from "./editableSerialize.js";
 export function seedTextEditNode(node, content, runs) {
   if (!node) return;
   const next = sanitizeTextContent(content) ?? "";
+  // Backspace can leave a <br> or empty formatting spans whose textContent
+  // already equals "". Remove those children so CSS :empty guidance returns.
+  if (!next) {
+    node.textContent = "";
+    return;
+  }
   if (hasRuns(runs)) {
     const html = runsToHtml(next, runs);
     if (node.innerHTML !== html) {

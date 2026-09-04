@@ -345,7 +345,7 @@ test.describe("CV Studio editor smoke", () => {
       '[data-canvas-toolbar-key^="skills-entry:skills-heading:"]',
     ).filter({ has: page.getByRole("button", { name: "Dodaj umiejętność", exact: true }) }).last();
     await emptyGroupToolbar.getByRole("button", { name: "Dodaj umiejętność", exact: true }).click();
-    await emptyGroupToolbar.getByRole("textbox", { name: "Nowa umiejętność" }).fill("TypeScript");
+    await emptyGroupToolbar.getByRole("textbox", { name: "Dodaj umiejętność" }).fill("TypeScript");
     await page.keyboard.press("Enter");
     await expect(page.locator('[data-placeholder="Umiejętność"]')).toHaveCount(0);
     await expect(page.getByText("TypeScript", { exact: true })).toHaveCount(1);
@@ -415,7 +415,7 @@ test.describe("CV Studio editor smoke", () => {
       - (inlineGeometry[1].y + inlineGeometry[1].height / 2),
     )).toBeLessThan(1);
     await addButton.click();
-    const groupedInput = groupedToolbar.getByRole("textbox", { name: "Nowa umiejętność" });
+    const groupedInput = groupedToolbar.getByRole("textbox", { name: "Dodaj umiejętność" });
     await expect(groupedInput).toBeFocused();
     await expect(groupedToolbar.getByRole("button", { name: "Dodaj umiejętność", exact: true }))
       .toBeDisabled();
@@ -425,14 +425,14 @@ test.describe("CV Studio editor smoke", () => {
     await expect(addButton).toBeFocused();
 
     await addButton.click();
-    await groupedToolbar.getByRole("textbox", { name: "Nowa umiejętność" })
+    await groupedToolbar.getByRole("textbox", { name: "Dodaj umiejętność" })
       .fill("Poza formularzem");
     await page.getByRole("textbox", { name: "Nazwa bieżącego dokumentu" }).click();
     await expect(groupedToolbar).toHaveCount(0);
 
     await toolsBody.hover();
     await addButton.click();
-    const activeInput = groupedToolbar.getByRole("textbox", { name: "Nowa umiejętność" });
+    const activeInput = groupedToolbar.getByRole("textbox", { name: "Dodaj umiejętność" });
     await activeInput.fill("figma");
     await page.keyboard.press("Enter");
     await expect(groupedToolbar.getByRole("alert")).toHaveText(
@@ -541,7 +541,7 @@ test.describe("CV Studio editor smoke", () => {
       '[data-canvas-toolbar-key="skills-entry:flat-skills-heading:flat:flat-skills-body"]',
     );
     await toolbar.getByRole("button", { name: "Dodaj umiejętność", exact: true }).click();
-    await toolbar.getByRole("textbox", { name: "Nowa umiejętność" }).fill("Node.js");
+    await toolbar.getByRole("textbox", { name: "Dodaj umiejętność" }).fill("Node.js");
     await page.keyboard.press("Enter");
     await expect(body).toHaveText("React  ·  TypeScript  ·  Node.js");
     api.assertHermetic();

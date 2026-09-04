@@ -7,15 +7,9 @@
  * by zoom so the control stays proportional to the canvas view percentage
  * without looking oversized at 100%.
  *
- * The controls use a small, low-contrast surface chip so they remain usable
+ * The controls use a shared white toolbar surface so they remain usable
  * without competing with the CV content.
  */
-
-/** Desired on-screen icon edge length in CSS pixels at any zoom. */
-const TARGET_ICON_SCREEN_PX = 14;
-
-/** Desired on-screen gap between clustered controls in CSS pixels. */
-const TARGET_GAP_SCREEN_PX = 6;
 
 /** Visual scale requested for grouped section and record toolbars. */
 export const STRUCTURAL_TOOLBAR_VISUAL_SCALE = 0.8;
@@ -36,14 +30,10 @@ export const RECORD_TOOLBAR_OFFSET_SCREEN_PX = 16;
  * @returns {{ buttonSize: number, iconSize: number, gap: number }}
  */
 export function recordPlusLayoutSize(zoom = 1, fontSize = 10) {
-  const safeZoom = Number.isFinite(Number(zoom)) && Number(zoom) > 0.05
-    ? Number(zoom)
-    : 1;
-  // Keep a small floor so the hit target stays usable at very high zoom.
-  const iconSize = Math.max(10, TARGET_ICON_SCREEN_PX / safeZoom);
-  const gap = Math.max(4, TARGET_GAP_SCREEN_PX / safeZoom);
+  // No zoom-dependent floor: it made inline icons grow at high canvas zoom.
+  const { buttonSize, iconSize, gap } = compactInlineToolbarLayoutSize(zoom);
   void fontSize;
-  return { buttonSize: iconSize, iconSize, gap };
+  return { buttonSize, iconSize, gap };
 }
 
 /**
@@ -82,9 +72,9 @@ export function structuralToolbarLayoutSize(zoom = 1, offsetScreenPx = 10) {
 /**
  * Return the compact geometry used by inline add controls.
  *
- * Languages established this 80% treatment for controls placed directly
- * under short document content. Skills uses the same helper so the two plus
- * actions cannot drift in size when the shared structural toolbar changes.
+ * Inline controls use a 24px target with the same 12px icon, padding, and
+ * hairline as section/record toolbars. The latter keep their 28.8px targets.
+ * This narrow canvas exception keeps advice and document text unobstructed.
  *
  * @param {number} [zoom=1]
  * @returns {{buttonSize:number,iconSize:number,gap:number,labelWidth:number,fontSize:number,menuWidth:number,offset:number,borderWidth:number}}
@@ -93,18 +83,9 @@ export function compactInlineToolbarLayoutSize(zoom = 1) {
   const safeZoom = Number.isFinite(Number(zoom)) && Number(zoom) > 0.05
     ? Number(zoom)
     : 1;
-  // Languages and Skills already use the requested 80% visual treatment.
-  // Keep that established geometry independent from future changes to the
-  // grouped section/record toolbar so inline controls do not shrink twice.
   return {
-    buttonSize: 28.8 / safeZoom,
-    iconSize: 12 / safeZoom,
-    gap: 2.4 / safeZoom,
-    labelWidth: 60.8 / safeZoom,
-    fontSize: 8.4 / safeZoom,
-    menuWidth: 140.8 / safeZoom,
-    offset: 8 / safeZoom,
-    borderWidth: 0.8 / safeZoom,
+    ...structuralToolbarLayoutSize(safeZoom, 8),
+    buttonSize: 24 / safeZoom,
   };
 }
 

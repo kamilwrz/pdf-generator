@@ -33,14 +33,14 @@ test("keeps the compact structural toolbar screen-stable across canvas zoom", ()
 
 test("shares the language-sized compact inline toolbar with Skills", () => {
   assert.deepEqual(compactInlineToolbarLayoutSize(1), {
-    buttonSize: 28.8,
+    buttonSize: 24,
     iconSize: 12,
     gap: 2.4,
     labelWidth: 60.8,
     fontSize: 8.4,
     menuWidth: 140.8,
     offset: 8,
-    borderWidth: 0.8,
+    borderWidth: 1,
   });
 });
 

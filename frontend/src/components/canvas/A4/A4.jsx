@@ -5,6 +5,7 @@
  */
 import classes from "./A4.module.css";
 import { forwardRef } from "react";
+import { compactInlineToolbarLayoutSize } from "../recordPlusSize";
 
 /**
  * Keeps editor-only hover elevation and interaction hairlines constant in
@@ -20,8 +21,13 @@ function editorDepthStyle(zoom) {
         ? Number(zoom)
         : 1;
     const px = (screenPixels) => `${screenPixels / safeZoom}px`;
+    const controls = compactInlineToolbarLayoutSize(safeZoom);
 
     return {
+        "--canvas-control-size": `${controls.buttonSize}px`,
+        "--canvas-control-icon": `${controls.iconSize}px`,
+        "--canvas-control-gap": `${controls.gap}px`,
+        "--canvas-control-border": `${controls.borderWidth}px`,
         "--canvas-shadow-editor-section": `0 ${px(8)} ${px(20)} var(--shadow-editor-section-color)`,
         "--canvas-shadow-editor-entry": `0 ${px(5)} ${px(14)} var(--shadow-editor-entry-color)`,
         "--canvas-shadow-editor-element": `0 ${px(2)} ${px(7)} var(--shadow-editor-element-color)`,

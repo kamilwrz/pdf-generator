@@ -39,6 +39,18 @@ test("seeds decorated content as styled spans", () => {
   assert.equal(node.textContent, "Ada Kowalska");
 });
 
+test("restores an empty hint after deletion leaves browser markup", () => {
+  for (const html of ["<br>", "<span data-bold=\"true\"></span>", "<div><br></div>"]) {
+    const node = makeNode();
+    node.innerHTML = html;
+    assert.equal(node.textContent, "");
+    seedTextEditNode(node, "", []);
+    assert.equal(node.innerHTML, "");
+    seedTextEditNode(node, "Nowa treść", []);
+    assert.equal(node.textContent, "Nowa treść");
+  }
+});
+
 test("does not commit blur from a detached remounted node", () => {
   assert.equal(shouldCommitTextEditBlur({
     node: { isConnected: false },

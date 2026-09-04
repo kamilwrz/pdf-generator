@@ -1,0 +1,71 @@
+/* One appearance contract for portalled toolbars and controls inside A4.
+   Canvas-local metrics are inverse-scaled by A4; portal metrics are screen
+   pixels. Neither these surfaces nor their shadows enter document output. */
+/* Low-specificity defaults let each composed layout override dimensions and
+   padding regardless of stylesheet injection order in development or build. */
+:where(.surface) {
+    box-sizing: border-box;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--canvas-control-gap, 2.4px);
+    padding: var(--canvas-control-gap, 2.4px);
+    background: var(--color-paper);
+    color: var(--color-editor-ink);
+    border: var(--canvas-control-border, 1px) solid var(--color-border);
+    border-radius: var(--radius-panel);
+    box-shadow: var(--canvas-shadow-editor-entry, var(--shadow-editor-entry));
+    font-family: var(--font-ui);
+    pointer-events: auto;
+}
+
+:where(.button) {
+    position: relative;
+    box-sizing: border-box;
+    width: var(--canvas-control-size, 24px);
+    height: var(--canvas-control-size, 24px);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius-panel);
+    background: transparent;
+    color: var(--color-editor-ink);
+    font-family: var(--font-ui);
+    cursor: pointer;
+    pointer-events: auto;
+    transition: background-color var(--motion-fast) var(--motion-ease);
+}
+
+:where(.button) svg {
+    width: var(--canvas-control-icon, 12px);
+    height: var(--canvas-control-icon, 12px);
+    flex-shrink: 0;
+}
+
+.button:hover:not(:disabled),
+.button:active:not(:disabled),
+.button[aria-expanded="true"] {
+    background: var(--color-surface);
+}
+
+.button:focus-visible {
+    outline: calc(2 * var(--canvas-control-border, 1px)) solid var(--color-focus);
+    outline-offset: var(--canvas-control-border, 1px);
+}
+
+.button:disabled {
+    opacity: .35;
+    cursor: default;
+}
+
+/* Destructive meaning stays in the icon; every action shares the same base
+   hover surface, so a toolbar does not switch palettes between controls. */
+.danger {
+    color: var(--color-danger);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .button { transition: none; }
+}

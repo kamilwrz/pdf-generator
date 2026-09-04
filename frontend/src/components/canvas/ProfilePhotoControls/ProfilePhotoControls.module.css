@@ -3,21 +3,12 @@
   z-index: calc(var(--z-editor-affordance) + 4);
 }
 
-.hide,
-.restore {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: var(--color-ink);
-  cursor: pointer;
+.hide {
+  composes: button from "../CanvasControls.module.css";
 }
 
 .restore {
-  color: var(--chrome-accent, var(--color-accent));
+  composes: button from "../CanvasControls.module.css";
 }
 
 .eyeBadge {
@@ -28,10 +19,4 @@
   height: 8px;
   padding: 1px;
   background: var(--color-paper);
-}
-
-.hide:focus-visible,
-.restore:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--chrome-accent, var(--color-accent)) 70%, transparent);
-  outline-offset: 1px;
 }

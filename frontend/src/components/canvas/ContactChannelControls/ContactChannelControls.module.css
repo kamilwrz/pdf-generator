@@ -2,6 +2,7 @@
    the dropdown surface is defined here. Swiss card tokens (DESIGN.md): white
    surface, 1px hairline grey stroke, subtle sharp shadow, 0px radius. */
 .menu {
+    composes: surface from "../CanvasControls.module.css";
     position: absolute;
     top: calc(100% + 4px);
     left: 0;
@@ -10,19 +11,18 @@
     flex-direction: column;
     min-width: 128px;
     padding: 4px;
-    background: var(--color-paper);
-    border: 1px solid color-mix(in srgb, var(--color-muted) 28%, transparent);
-    box-shadow: var(--shadow-pop);
     pointer-events: auto;
 }
 
 .menuItem {
+    composes: button from "../CanvasControls.module.css";
+    height: auto;
     display: block;
     width: 100%;
     padding: 6px 10px;
     border: none;
     background: transparent;
-    color: var(--color-ink);
+    color: var(--color-editor-ink);
     font-size: 12px;
     text-align: left;
     cursor: pointer;
@@ -30,5 +30,5 @@
 }
 
 .menuItem:hover {
-    background: var(--color-canvas);
+    background: var(--color-surface);
 }

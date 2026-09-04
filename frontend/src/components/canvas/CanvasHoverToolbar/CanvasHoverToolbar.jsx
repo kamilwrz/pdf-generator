@@ -151,6 +151,9 @@ export default function CanvasHoverToolbar({
       updatePortalGeometry();
     };
     if (page) resizeObserver?.observe(page);
+    // Validation can grow an open form without changing its anchor. Recheck
+    // its bounds so the submit action and error stay inside the viewport.
+    if (toolbarRef.current) resizeObserver?.observe(toolbarRef.current);
     window.addEventListener("resize", updatePortalGeometry);
     window.addEventListener("scroll", updatePortalGeometry, true);
     canvasArea?.addEventListener("scroll", updatePortalGeometry, { passive: true });
@@ -313,7 +316,7 @@ export default function CanvasHoverToolbar({
 
                 <button
                   type="button"
-                  className={`${classes.control}${menuOpen ? ` ${classes.controlActive}` : ""}`}
+                  className={classes.control}
                   data-tooltip="Więcej działań"
                   aria-label="Więcej działań"
                   aria-expanded={menuOpen}

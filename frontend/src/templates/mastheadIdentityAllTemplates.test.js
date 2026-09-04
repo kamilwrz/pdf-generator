@@ -74,6 +74,34 @@ describe("all template starters expose a reversible masthead title", () => {
   });
 
   for (const template of TEMPLATES) {
+    it(`${template.id} restores every downstream coordinate through repeated title toggles`, () => {
+      let nextId = 0;
+      const createId = () => `roundtrip-${nextId += 1}`;
+      const source = materializeElementSpecs(template.elements, createId);
+      const bandId = listMastheadBands(source)[0].bandId;
+      const title = source.find((element) => element.mastheadRole === "title");
+      const contacts = source.filter((element) => element.contactChannel && element.top > title.top);
+      const firstRow = Math.min(...contacts.map((element) => element.top));
+      const contraction = Math.min(6, Math.max(0, firstRow - title.top - 1));
+      contacts.forEach((element) => { element.top -= contraction; });
+      let current = source;
+      for (let cycle = 0; cycle < 3; cycle += 1) {
+        current = applyTitleToggle(current, bandId, createId).elements;
+        // Reopening a hidden title must not depend on transient object identity.
+        current = JSON.parse(JSON.stringify(current));
+        current = applyTitleToggle(current, bandId, createId).elements;
+        for (const original of source) {
+          if (["title", "title-decoration"].includes(original.mastheadRole)) continue;
+          const restored = current.find((element) => element.element_id === original.element_id);
+          assert.ok(restored, `${template.id}: missing ${original.element_id}`);
+          assert.ok(Math.abs(restored.top - original.top) < 0.000001,
+            `${template.id}: ${original.contactChannel || original.flowRole || original.category} moved from ${original.top} to ${restored.top}`);
+          assert.equal(restored.page, original.page);
+          assert.deepEqual(restored.contactBand, original.contactBand);
+        }
+      }
+    });
+
     it(`${template.id} hides and restores its job-position field`, () => {
       let nextId = 0;
       const createId = (prefix = "element") => `${prefix}-${nextId += 1}`;

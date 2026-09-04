@@ -15,10 +15,8 @@ import {
     resolveTextClickIntent,
 } from "../../../utils/textareaEditing";
 import { EDITOR_MODE_TEMPLATE } from "../../../utils/editorMode";
-import { sanitizeTextContent } from "../../../utils/sanitizeTextContent";
 import { canvasFontFamily } from "../../../utils/canvasFont";
-import { hasRuns } from "../../../utils/textRuns";
-import { runsToHtml, serializeEditable } from "../../../utils/editableSerialize";
+import { serializeEditable } from "../../../utils/editableSerialize";
 import {
     clearTextSpacingHoldTimer,
     endTextSpacingHold,
@@ -123,16 +121,10 @@ function Text({
     useLayoutEffect(() => {
         const node = nodeRef.current;
         if (!node || isEditing) return;
-        const next = sanitizeTextContent(content) ?? "";
-        if (hasRuns(runs)) {
-            const html = runsToHtml(next, runs);
-            if (node.innerHTML !== html) {
-                node.innerHTML = html;
-            }
-        } else if (node.textContent !== next) {
-            node.textContent = next;
-        }
-    }, [content, runs, isEditing]);
+        // Whitespace-only guided fields show their advice without changing the
+        // stored value. Populated text keeps all authored spacing and runs.
+        seedTextEditNode(node, editorPlaceholder && !String(content ?? "").trim() ? "" : content, runs);
+    }, [content, runs, isEditing, editorPlaceholder]);
 
     useLayoutEffect(() => {
         const node = nodeRef.current;

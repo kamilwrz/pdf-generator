@@ -1,106 +1,110 @@
 .form {
     box-sizing: border-box;
-    width: min(296px, calc(100vw - 16px));
+    width: min(336px, calc(100vw - 16px));
     display: grid;
-    gap: var(--space-2);
-    padding: var(--space-3);
+    gap: var(--space-3);
+    padding: var(--space-4);
     background: var(--color-paper);
     color: var(--color-editor-ink);
+    font: 400 14px/1.4 var(--font-ui);
+}
+
+.header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
 }
 
 .label {
-    color: var(--color-editor-ink);
-    font: 600 12px/1.25 var(--font-body);
-    letter-spacing: .01em;
+    font: 600 14px/1.4 var(--font-ui);
+}
+
+.context {
+    margin: calc(-1 * var(--space-2)) 0 0;
+    color: var(--color-muted);
+    font-size: 12px;
+    overflow-wrap: anywhere;
 }
 
 .row {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 36px 36px;
-    gap: var(--space-1);
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: var(--space-2);
     align-items: center;
 }
 
 .input {
     box-sizing: border-box;
+    width: 100%;
     min-width: 0;
-    height: var(--control-height-compact);
-    padding: 0 var(--space-2);
+    height: var(--control-height);
+    padding: 0 var(--space-3);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-control);
-    outline: 0;
     background: var(--color-paper);
     color: var(--color-editor-ink);
-    font: 400 14px/1.4 var(--font-body);
+    font: 400 16px/1.4 var(--font-ui);
 }
 
-.input::placeholder {
-    color: var(--color-muted);
-}
-
+.input::placeholder { color: var(--color-muted); }
+.input:hover { border-color: var(--color-editor-ink); }
 .input:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
     border-color: var(--color-focus);
-    box-shadow: 0 0 0 2px var(--color-focus-soft);
 }
+.input[aria-invalid="true"] { border-color: var(--color-danger); }
 
-.input[aria-invalid="true"] {
-    border-color: var(--color-danger);
-}
-
-.confirm,
-.cancel {
+.confirm {
     box-sizing: border-box;
-    width: 36px;
-    height: 36px;
+    height: var(--control-height);
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    padding: 0;
-    border-radius: var(--radius-control);
-    cursor: pointer;
-    transition: background-color var(--motion-fast) var(--motion-ease),
-        color var(--motion-fast) var(--motion-ease),
-        border-color var(--motion-fast) var(--motion-ease);
-}
-
-.confirm {
+    gap: var(--space-1);
+    padding: 0 var(--space-3);
     border: 1px solid var(--color-editor-ink);
+    border-radius: var(--radius-control);
     background: var(--color-editor-ink);
     color: var(--color-paper);
+    font: 600 14px/1 var(--font-ui);
+    cursor: pointer;
+    transition: background-color var(--motion-fast) var(--motion-ease);
 }
-
-.cancel {
-    border: 1px solid var(--color-border);
-    background: var(--color-paper);
-    color: var(--color-muted);
-}
-
-.confirm:hover:not(:disabled) {
-    background: color-mix(in srgb, var(--color-editor-ink) 88%, var(--color-paper));
-}
-
-.cancel:hover {
-    border-color: var(--color-editor-ink);
-    background: var(--color-surface);
-    color: var(--color-editor-ink);
-}
-
+.confirm:hover:not(:disabled) { background: var(--color-accent); }
+.confirm:active:not(:disabled) { background: var(--color-editor-ink); }
 .confirm:disabled {
-    opacity: .36;
+    border-color: var(--color-border);
+    background: var(--color-surface);
+    color: var(--color-muted);
     cursor: default;
 }
+.confirm svg { width: 16px; height: 16px; }
 
-.confirm svg,
-.cancel svg {
-    width: 16px;
-    height: 16px;
+.cancel {
+    composes: button from "../CanvasControls.module.css";
+    width: var(--control-height-compact);
+    height: var(--control-height-compact);
+    margin: calc(-1 * var(--space-2)) calc(-1 * var(--space-2)) calc(-1 * var(--space-2)) 0;
 }
+.cancel svg { width: 16px; height: 16px; }
 
 .error {
     margin: 0;
     color: var(--color-danger);
-    font: 600 12px/1.35 var(--font-body);
+    font: 600 12px/1.4 var(--font-ui);
 }
+
+.hint {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-1);
+    margin: 0;
+    color: var(--color-muted);
+    font-size: 12px;
+}
+.hint kbd { font: 400 12px/1.4 var(--font-mono); }
 
 .srOnly {
     position: absolute;
@@ -114,15 +118,6 @@
     white-space: nowrap;
 }
 
-@media (max-width: 768px) {
-    .input {
-        font-size: 16px;
-    }
-}
-
 @media (prefers-reduced-motion: reduce) {
-    .confirm,
-    .cancel {
-        transition: none;
-    }
+    .confirm { transition: none; }
 }

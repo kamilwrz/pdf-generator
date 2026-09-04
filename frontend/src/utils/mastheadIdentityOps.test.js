@@ -75,6 +75,39 @@ test("title show reconstructs the title from spec and reverses the shift", () =>
   assert.equal(elements.find((e) => e.element_id === "mid").mastheadIdentity.title.present, true);
 });
 
+test("title restoration recovers contacts that compact above the title boundary", () => {
+  const source = doc();
+  source.find((element) => element.element_id === "chip").top = 98;
+  const hidden = applyTitleToggle(source, "masthead-main", () => "hidden").elements;
+  assert.equal(hidden.find((element) => element.element_id === "chip").top, 74);
+  const restored = applyTitleToggle(JSON.parse(JSON.stringify(hidden)), "masthead-main", () => "restored").elements;
+  assert.equal(restored.find((element) => element.element_id === "chip").top, 98);
+  assert.equal(restored.find((element) => element.element_id === "name").top, 44);
+});
+
+test("legacy hidden documents restore their entire coupled contact band", () => {
+  const source = doc();
+  source.find((element) => element.element_id === "chip").top = 98;
+  const hidden = applyTitleToggle(source, "masthead-main", () => "hidden").elements;
+  delete hidden.find((element) => element.mastheadIdentity).mastheadIdentity.title.shiftedElementIds;
+  const restored = applyTitleToggle(hidden, "masthead-main", () => "restored").elements;
+  assert.equal(restored.find((element) => element.element_id === "chip").top, 98);
+});
+
+test("an empty starter title retains its guidance and CV data binding", () => {
+  const source = doc();
+  const title = source.find((element) => element.mastheadRole === "title");
+  Object.assign(title, { content: "", placeholder: "Tytuł zawodowy", starterPlaceholder: true,
+    cvDataBindings: [{ path: ["title"], placeholder: "Tytuł zawodowy" }] });
+  const hidden = applyTitleToggle(source, "masthead-main", () => "hidden").elements;
+  const restored = applyTitleToggle(hidden, "masthead-main", () => "restored").elements;
+  const restoredTitle = restored.find((element) => element.mastheadRole === "title");
+  assert.equal(restoredTitle.placeholder, title.placeholder);
+  assert.equal(restoredTitle.starterPlaceholder, true);
+  assert.deepEqual(restoredTitle.cvDataBindings, title.cvDataBindings);
+  assert.notEqual(restoredTitle.cvDataBindings[0].path, title.cvDataBindings[0].path);
+});
+
 test("title show creates an editable placeholder when the profile title was empty", () => {
   const source = doc().filter((element) => (
     element.mastheadRole !== "title" && element.mastheadRole !== "title-decoration"
