@@ -278,6 +278,7 @@ The editor and other task-heavy screens may be denser, but must remain grid-base
 ### 5.5 Dialogs, drawers, menus, and popovers
 
 - Reuse a shared dialog shell and shared panel primitives.
+- New CV setup and its replacement confirmation use predominantly white paper surfaces. Keep beige to selected-template and hover accents, with brown headings, selections, and primary actions. This surface treatment must not change the backdrop.
 - Dialogs require a visible title, an accessible description when useful, predictable close behavior, focus trapping, Escape handling, and focus restoration.
 - Primary and secondary actions stay in a consistent footer location.
 - Destructive confirmation dialogs name the object and consequence.

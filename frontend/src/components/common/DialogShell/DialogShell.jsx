@@ -11,6 +11,8 @@ import { DialogSuspensionContext } from "./DialogSuspensionContext";
 // `variant="fullscreen"` is used by the bio/CV wizard: edge-to-edge overlay
 // with a single scroll surface (body), sticky header/footer, and no floating
 // card over the editor. Other dialogs keep the default centered card.
+// `surface="paper"` keeps large form surfaces and close controls white while
+// retaining the caller's accent tokens and the unchanged backdrop treatment.
 //
 // Portals to `document.body` so stacking context / overflow on the editor
 // chrome cannot clip the dialog. Callers must keep a single standard dialog
@@ -26,6 +28,7 @@ export default function DialogShell({
     footer,
     bodyClassName,
     variant = "modal",
+    surface = "standard",
     role = "dialog",
     initialFocusSelector,
     restoreFocusSelector,
@@ -132,7 +135,7 @@ export default function DialogShell({
             <div
                 ref={dialogRef}
                 data-dialog-shell=""
-                className={`${classes.dialog}${isFullscreen ? ` ${classes.dialogFullscreen}` : ""}`}
+                className={`${classes.dialog}${isFullscreen ? ` ${classes.dialogFullscreen}` : ""}${surface === "paper" ? ` ${classes.paperSurface}` : ""}`}
                 style={isFullscreen ? undefined : { width }}
                 role={role}
                 aria-modal="true"

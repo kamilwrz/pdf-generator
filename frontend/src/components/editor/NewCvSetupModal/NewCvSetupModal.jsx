@@ -159,6 +159,7 @@ export default function NewCvSetupModal({
       open={open}
       onClose={submitting ? () => {} : onClose}
       width={1240}
+      surface="paper"
       title={confirmReplacement ? "Utworzyć nowe CV?" : "Skonfiguruj nowe CV"}
       subtitle={confirmReplacement
         ? "Obecny dokument pozostanie zapisany bez zmian. Nowe CV rozpocznie się jako niezapisany projekt."

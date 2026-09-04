@@ -9,6 +9,7 @@ describe("NewCvSetupModal contract", () => {
   it("uses one DialogShell with visible template, contact, section and custom controls", async () => {
     const source = await readFile(componentUrl, "utf8");
     assert.equal((source.match(/<DialogShell/g) || []).length, 1);
+    assert.match(source, /surface="paper"/);
     assert.match(source, /Meridian jest wybrany na start/);
     assert.match(source, /STARTER_CONTACTS\.map/);
     assert.match(source, /Imię i nazwisko/);
@@ -30,7 +31,7 @@ describe("NewCvSetupModal contract", () => {
   it("stacks on tablet/mobile and respects reduced motion", async () => {
     const styles = await readFile(stylesUrl, "utf8");
     assert.match(styles, /@media \(max-width: 900px\)/);
-    assert.match(styles, /\.layout \{ grid-template-columns: 1fr; \}/);
+    assert.match(styles, /\.layout \{ grid-template-columns: minmax\(0, 1fr\); \}/);
     assert.match(styles, /@media \(max-width: 640px\)/);
     assert.match(styles, /overflow-x: auto/);
     assert.match(styles, /@media \(prefers-reduced-motion: reduce\)/);

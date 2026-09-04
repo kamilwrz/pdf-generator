@@ -43,6 +43,21 @@
     animation: fadeIn var(--motion-fast) var(--motion-ease) both;
 }
 
+/* Form-heavy dialogs can opt into white surfaces without changing other
+   dialogs or the backdrop, which sits outside this token scope. */
+.paperSurface {
+    --chrome-control: var(--color-paper);
+}
+
+.paperSurface .footer {
+    background: var(--color-paper);
+}
+
+/* Reserve the close button's full width when a form subtitle wraps. */
+.paperSurface .header {
+    padding-inline-end: calc(var(--space-16) + var(--space-4));
+}
+
 .header {
     position: relative;
     display: flex;
