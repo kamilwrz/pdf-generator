@@ -1,5 +1,4 @@
-.slotAnchor,
-.nameAnchor {
+.slotAnchor {
   z-index: calc(var(--z-editor-affordance) + 4);
 }
 

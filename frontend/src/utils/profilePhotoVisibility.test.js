@@ -583,12 +583,12 @@ describe("profile photo visibility", () => {
     assert.equal(slot.width, 60);
   });
 
-  it("finds a name-hover restore anchor in Monument without identity tags", () => {
+  it("retains the photo restore location in Monument without identity tags", () => {
     const source = withIds(monumentTemplate);
     const hidden = hideProfilePhoto(source, "monument").elements;
     const anchor = profilePhotoControlAnchor(hidden, "monument");
     assert.equal(anchor.hidden, true);
-    assert.ok(anchor.name?.elementId);
+    assert.deepEqual(anchor.box, profilePhotoControlAnchor(source, "monument").box);
     assert.ok(anchor.slotElementIds.length >= 2);
   });
 });
@@ -604,5 +604,5 @@ it("exposes accessible hover actions for hide, restore, and raster removal", asy
   assert.match(source, /Usuń zdjęcie ze slotu/);
   assert.match(source, /FiEyeOff/);
   assert.match(source, /FiTrash2/);
-  assert.match(source, /anchor\.name\.elementId/);
+  assert.doesNotMatch(source, /anchor\.name/);
 });

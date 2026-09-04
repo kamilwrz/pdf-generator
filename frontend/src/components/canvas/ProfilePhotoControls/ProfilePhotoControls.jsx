@@ -2,14 +2,14 @@
  * Hover affordance for the template profile-photo slot.
  *
  * Visible slots expose hide and, when occupied, remove-photo actions. A hidden
- * slot exposes one restore action only while the user hovers the masthead name.
- * The controls bind to existing canvas element ids, so they add no pointer
- * surface outside the authored slot/name geometry.
+ * slot exposes a persistent restore action above the saved photo location.
+ * Only the controls intercept pointers; the former slot remains available for
+ * contact content in templates that reclaim it when the photo is hidden.
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import { FiEye, FiEyeOff, FiImage, FiTrash2 } from "react-icons/fi";
 import { useCanvasContext } from "../../../store/canvas-context";
-import { recordPlusLayoutSize } from "../recordPlusSize";
+import { compactInlineToolbarLayoutSize } from "../recordPlusSize";
 import cluster from "../SectionRecordAdd/SectionRecordAdd.module.css";
 import classes from "./ProfilePhotoControls.module.css";
 
@@ -38,14 +38,16 @@ export default function ProfilePhotoControls({ anchor }) {
       const enter = () => { clearHide(); setHover(key); };
       node.addEventListener("pointerenter", enter);
       node.addEventListener("pointerleave", scheduleHide);
+      node.addEventListener("focusin", enter);
+      node.addEventListener("focusout", scheduleHide);
       cleanups.push(() => {
         node.removeEventListener("pointerenter", enter);
         node.removeEventListener("pointerleave", scheduleHide);
+        node.removeEventListener("focusin", enter);
+        node.removeEventListener("focusout", scheduleHide);
       });
     };
-    if (anchor.hidden) {
-      if (anchor.name?.elementId) bind(anchor.name.elementId, "name");
-    } else {
+    if (!anchor.hidden) {
       anchor.slotElementIds.forEach((elementId) => bind(elementId, "slot"));
     }
     return () => { clearHide(); cleanups.forEach((cleanup) => cleanup()); };
@@ -53,24 +55,25 @@ export default function ProfilePhotoControls({ anchor }) {
 
   useEffect(() => () => clearHide(), [clearHide]);
 
-  const fontSize = anchor.hidden ? anchor.name?.fontSize : Math.min(anchor.box.width, anchor.box.height) / 4;
-  const { buttonSize, iconSize, gap } = recordPlusLayoutSize(zoom, fontSize || 12);
+  const { buttonSize, iconSize, gap, offset, borderWidth } = compactInlineToolbarLayoutSize(zoom);
   const buttonStyle = { width: buttonSize, height: buttonSize };
   const iconStyle = { width: iconSize, height: iconSize };
   const stop = (event) => { event.preventDefault(); event.stopPropagation(); };
 
   if (anchor.hidden) {
-    if (hover !== "name" || !anchor.name) return null;
+    // Keep the full surface on the page at low zoom. Above-slot placement also
+    // clears contacts that move into the former photo area (Slate/Linden).
+    const surfaceSize = buttonSize + 2 * (gap + borderWidth);
     return (
       <div
-        className={`${cluster.anchor} ${classes.nameAnchor}`}
+        className={`${cluster.anchor} ${classes.slotAnchor}`}
         data-editor-control="true"
         style={{
-          left: anchor.name.left + anchor.name.width + gap,
-          top: anchor.name.top - 1,
+          left: anchor.box.left + anchor.box.width / 2,
+          top: Math.max(surfaceSize + offset, anchor.box.top - offset),
         }}
       >
-        <div className={cluster.cluster} style={{ gap }} onPointerEnter={clearHide} onPointerLeave={scheduleHide}>
+        <div className={cluster.cluster} style={{ gap, transform: "translate(-50%, -100%)" }}>
           <button
             type="button"
             className={classes.restore}
@@ -95,7 +98,8 @@ export default function ProfilePhotoControls({ anchor }) {
       data-editor-control="true"
       style={{ left: anchor.box.left + anchor.box.width - buttonSize, top: anchor.box.top + gap }}
     >
-      <div className={cluster.cluster} style={{ gap }} onPointerEnter={clearHide} onPointerLeave={scheduleHide}>
+      <div className={cluster.cluster} style={{ gap }} onPointerEnter={clearHide} onPointerLeave={scheduleHide}
+           onFocus={clearHide} onBlur={scheduleHide}>
         {anchor.hasPhoto ? (
           <button
             type="button"

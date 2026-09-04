@@ -371,8 +371,9 @@ export function normalizeProfilePhotoVisibilityPersistence(
 }
 
 /**
- * Resolve geometry used by the canvas hover affordance. The name fallback is
- * intentionally conservative: largest non-contact masthead text on page one.
+ * Resolve saved slot geometry for visible-photo and hidden-photo controls.
+ * Slot elements retain their coordinates while hidden, so restoration needs
+ * no name lookup or template-specific guessed location.
  */
 export function profilePhotoControlAnchor(elements, templateId) {
   if (!supportsProfilePhotoVisibility(templateId)) return null;
@@ -383,19 +384,6 @@ export function profilePhotoControlAnchor(elements, templateId) {
     || slots.find((element) => element.photoSlot === "image")
     || slots.find((element) => element.photoSlot === "glyph")
     || slots[0];
-  const explicitName = list.find((element) => element.mastheadRole === "name");
-  const fallbackNames = list.filter((element) => (
-    (element.category === "text" || element.category === "textarea")
-    && (Number(element.page) || 1) === 1
-    && !element.contactChannel
-    && element.flowRole !== "section-chrome"
-    && element.flowRole !== "sidebar-chrome"
-    && (element.flowRole === "masthead" || (Number(element.top) || 0) < 190)
-    && String(element.content || "").trim()
-  ));
-  const name = explicitName || fallbackNames.sort(
-    (a, b) => (Number(b.fontSize) || 0) - (Number(a.fontSize) || 0),
-  )[0] || null;
   return {
     hidden: isProfilePhotoHidden(list),
     hasPhoto: slots.some((element) => element.photoSlot === "image"),
@@ -406,14 +394,6 @@ export function profilePhotoControlAnchor(elements, templateId) {
       width: Number(visibleBox.width) || 0,
       height: Number(visibleBox.height) || 0,
     },
-    name: name ? {
-      elementId: name.element_id,
-      left: Number(name.left) || 0,
-      top: Number(name.top) || 0,
-      width: Number(name.width)
-        || String(name.content || "").length * (Number(name.fontSize) || 12) * 0.62,
-      fontSize: Number(name.fontSize) || 12,
-    } : null,
   };
 }
 

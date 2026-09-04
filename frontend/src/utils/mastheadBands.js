@@ -31,6 +31,7 @@ export function listMastheadBands(elements) {
         elementId: el.element_id,
         left: Number(el.left) || 0, top: Number(el.top) || 0,
         fontSize: Number(el.fontSize) || 18,
+        width: Number(el.width) || 0,
         uppercase: el.textTransform === "uppercase",
       };
     } else if (el.mastheadRole === "title") {
