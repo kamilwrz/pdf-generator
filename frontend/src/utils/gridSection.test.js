@@ -155,6 +155,15 @@ describe("insertGridSectionEntry", () => {
     assert.equal(inserted.placeholder, "Język · Poziom");
     assert.equal(inserted.starterPlaceholder, true);
     assert.equal(inserted.editorSectionType, "languages");
+    // Both the existing cell and a newly inserted sibling must retain the
+    // preset's toolbar identity even after its heading is renamed.
+    const renamed = result.elements.map((element) => element.element_id === "added-languages-heading"
+      ? { ...element, content: "Komunikacja" }
+      : element);
+    const anchors = listGridSectionEntryAnchors(renamed);
+    assert.equal(anchors.length, 2);
+    assert.ok(anchors.every((anchor) => anchor.sectionType === "languages"));
+    assert.ok(anchors.every((anchor) => anchor.gridKind === "entries"));
   });
 
   it("inserts after the hovered cell, wraps at the fixed column count, and repacks later sections", () => {

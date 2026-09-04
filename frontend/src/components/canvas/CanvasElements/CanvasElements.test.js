@@ -70,6 +70,7 @@ test("repeatable grid cells mount their dedicated two-action control", async () 
   assert.match(source, /<GridEntryActions/);
   assert.match(source, /gutterSide=\{gridEntryAnchor\.gutterSide\}/);
   assert.match(source, /canDelete=\{gridEntryAnchor\.canDelete\}/);
+  assert.match(source, /sectionType=\{gridEntryAnchor\.sectionType\}/);
 });
 
 test("main-column Skills groups mount their dedicated add form anchors", async () => {

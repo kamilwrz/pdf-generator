@@ -260,21 +260,21 @@
     letter-spacing: -.045em;
 }
 
-/* The promise is deliberately subordinate to the h1. Canvas beige on the ink
-   field connects the landing page to the editor surface while preserving high
-   contrast over the photographic hero at every viewport width. */
+/* The longer product description uses the design system's body scale and
+   reading measure. Canvas beige on ink preserves contrast over the photo
+   without competing with the main heading at compact viewport widths. */
 .heroSubheading {
     width: fit-content;
-    max-width: min(100%, 28ch);
+    max-width: min(100%, 72ch);
     margin: 0;
     padding: var(--space-2) var(--space-4) var(--space-3);
     background: var(--ink);
     color: var(--beige);
     font-family: var(--display);
-    font-size: clamp(1.5rem, 2.5vw, 2.25rem);
-    font-weight: 700;
-    line-height: 1.1;
-    letter-spacing: -.025em;
+    font-size: 1rem;
+    font-weight: 400;
+    line-height: 1.55;
+    letter-spacing: normal;
     text-wrap: balance;
 }
 
@@ -283,9 +283,9 @@
     flex-wrap: wrap;
     justify-content: center;
     gap: 14px;
-    /* The actions now follow the welcome heading directly. One system-scale
-       gap keeps the shorter composition spacious without leaving a hole where
-       the removed supporting paragraph used to sit. */
+    /* One system-scale gap separates the complete heading and description
+       from the start actions, even when the copy wraps onto more lines
+       at compact widths or increased browser text zoom. */
     margin-top: var(--space-12);
 }
 

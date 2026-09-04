@@ -2,8 +2,8 @@
  * Direct structural actions for one editable cell in a repeatable grid section.
  *
  * The cell itself remains authored CV content. Hovering it, focusing it, or
- * pressing Shift+F10 reveals exactly two application-only controls in the A4
- * gutter: insert a sibling after this cell and remove this cell. The shared
+ * pressing Shift+F10 reveals two application-only controls below each language
+ * or in the A4 gutter for other grids: insert and remove a cell. The shared
  * toolbar portal keeps those controls out of document layout and PDF export.
  */
 import { useEffect } from "react";
@@ -31,6 +31,7 @@ import CanvasHoverToolbar from "../CanvasHoverToolbar/CanvasHoverToolbar";
  *   gutterSide?:"left"|"right"|null,
  *   spreadSide?:"left"|"right"|null,
  *   gridKind?:string|null,
+ *   sectionType?:string|null,
  *   canDelete?:boolean,
  * }} props
  */
@@ -45,6 +46,7 @@ export default function GridEntryActions({
   gutterSide = null,
   spreadSide = null,
   gridKind = null,
+  sectionType = null,
   canDelete = true,
 }) {
   const {
@@ -114,7 +116,10 @@ export default function GridEntryActions({
 
   if (!eligible) return null;
 
-  const isLanguageEntry = gridKind === "languages";
+  // The Languages preset persists as a custom grid (`entries`). Use its stable
+  // section type for placement too, without changing canonical profile data or
+  // treating an arbitrary custom grid renamed to "Języki" as a language grid.
+  const isLanguageEntry = gridKind === "languages" || sectionType === "languages";
   // Language actions sit close to short inline content, so their complete
   // control geometry is intentionally 20% smaller than the shared structural
   // toolbar while preserving the same proportions and accessible names.

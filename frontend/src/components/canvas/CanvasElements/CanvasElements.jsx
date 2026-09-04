@@ -21,8 +21,8 @@
  * `FlatSectionLayoutToggle`'s two modes, so any heading carrying a
  * `skillsMode` anchor is excluded from `flatSectionAnchorsById` below to
  * avoid showing both icons on the same row. Language and editor-created grid
- * cells mount `GridEntryActions`: exactly `+` and trash are portalled into the
- * appropriate A4 gutter, so the controls never enter authored PDF content.
+ * cells mount `GridEntryActions`: `+` and trash sit below each language or in
+ * the gutter for other grids, outside authored layout and PDF content.
  */
 import { useEffect, useMemo } from 'react';
 import Text from '../Text/Text';
@@ -477,6 +477,7 @@ export default function CanvasElements({ elements, spreadSide = null }) {
               highlight={gridEntryAnchor.highlight}
               canDelete={gridEntryAnchor.canDelete}
               gridKind={gridEntryAnchor.gridKind}
+              sectionType={gridEntryAnchor.sectionType}
               gutterSide={gridEntryAnchor.gutterSide}
               spreadSide={spreadSide}
             />

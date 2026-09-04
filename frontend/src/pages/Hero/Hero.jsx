@@ -154,8 +154,8 @@ export default function Hero() {
                 <div className={classes.heroCopy}>
                     <p className={classes.kicker} data-section-index="01">CV GOTOWE NA REKRUTACJE</p>
                     <div className={classes.heroHeading}>
-                        <h1>Stwórz CV</h1>
-                        <p className={classes.heroSubheading}>Zwiększ swoje szanse</p>
+                        <h1>Stwórz CV gotowe do wysłania w kilka minut.</h1>
+                        <p className={classes.heroSubheading}>Narzędzie do tworzenia CV, które pomaga profesjonalnie zaprezentować Twoje doświadczenie. Dzięki AI i optymalizacji pod systemy ATS stworzysz CV, które zwiększy Twoje szanse na rozmowę kwalifikacyjną.</p>
                     </div>
                     <div className={classes.heroActions}>
                         <CtaLink to={newCvUrl} event="hero_new_cv">Utwórz nowe CV</CtaLink>
@@ -191,7 +191,7 @@ export default function Hero() {
                             <span>Bez wysiłku...</span>
                         </h2>
                         <p className={classes.offerLead}>
-                            Wgraj obecne CV albo zacznij od zera. Dopracuj treść, zapisuj kolejne
+                            Wgraj obecne CV albo zacznij odrazu od edytora. Wybierz design, zapisuj kolejne
                             wersje i pobieraj gotowe dokumenty PDF.
                         </p>
                     </div>

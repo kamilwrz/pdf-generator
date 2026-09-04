@@ -489,6 +489,7 @@ export function listGridSectionEntryAnchors(elements, pageHeight = 842) {
         canDelete: descriptor.cells.length > 1,
         columns: geometry.columns,
         gridKind: descriptor.languageSection ? "languages" : "entries",
+        sectionType: descriptor.heading.editorSectionType || null,
         gutterSide: descriptor.sidebar ? "left" : "right",
       });
     }

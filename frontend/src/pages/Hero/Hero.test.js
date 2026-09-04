@@ -7,8 +7,8 @@ const styles = readFileSync(new URL("./Hero.module.css", import.meta.url), "utf8
 
 describe("landing product positioning", () => {
   it("welcomes the user with one main heading and a supporting subheading", () => {
-    assert.match(source, /<h1>Stwórz CV<\/h1>/);
-    assert.match(source, /<p className=\{classes\.heroSubheading\}>Zwiększ swoje szanse<\/p>/);
+    assert.match(source, /<h1>Stwórz CV gotowe do wysłania w kilka minut\.<\/h1>/);
+    assert.match(source, /<p className=\{classes\.heroSubheading\}>Narzędzie do tworzenia CV, które pomaga profesjonalnie zaprezentować Twoje doświadczenie\. Dzięki AI i optymalizacji pod systemy ATS stworzysz CV, które zwiększy Twoje szanse na rozmowę kwalifikacyjną\.<\/p>/);
     assert.doesNotMatch(source, /Stwórz CV\.|Zwiększ swoje szanse\./);
     assert.doesNotMatch(source, /Stwórz CV,|które prowadzi|do rozmowy\./);
     assert.doesNotMatch(source, /Wgraj stare CV lub zacznij od zera/);
@@ -27,11 +27,11 @@ describe("landing product positioning", () => {
   it("uses a centred two-level heading with the requested brand colours", () => {
     assert.match(
       source,
-      /<div className=\{classes\.heroHeading\}>\s*<h1>Stwórz CV<\/h1>\s*<p className=\{classes\.heroSubheading\}>Zwiększ swoje szanse<\/p>\s*<\/div>/s,
+      /<div className=\{classes\.heroHeading\}>\s*<h1>Stwórz CV gotowe do wysłania w kilka minut\.<\/h1>\s*<p className=\{classes\.heroSubheading\}>Narzędzie do tworzenia CV, które pomaga profesjonalnie zaprezentować Twoje doświadczenie\. Dzięki AI i optymalizacji pod systemy ATS stworzysz CV, które zwiększy Twoje szanse na rozmowę kwalifikacyjną\.<\/p>\s*<\/div>/s,
     );
     assert.match(styles, /\.heroHeading\s*\{[^}]*display:\s*grid;[^}]*justify-items:\s*center;[^}]*gap:\s*var\(--space-3\);[^}]*width:\s*fit-content;[^}]*max-width:\s*100%;[^}]*text-align:\s*center;/s);
     assert.match(styles, /\.hero h1\s*\{[^}]*color:\s*var\(--taupe\);[^}]*font-size:\s*clamp\(2\.5rem,\s*6vw,\s*5\.5rem\);[^}]*line-height:\s*\.94;/s);
-    assert.match(styles, /\.heroSubheading\s*\{[^}]*max-width:\s*min\(100%,\s*28ch\);[^}]*background:\s*var\(--ink\);[^}]*color:\s*var\(--beige\);[^}]*font-size:\s*clamp\(1\.5rem,\s*2\.5vw,\s*2\.25rem\);[^}]*line-height:\s*1\.1;/s);
+    assert.match(styles, /\.heroSubheading\s*\{[^}]*max-width:\s*min\(100%,\s*72ch\);[^}]*background:\s*var\(--ink\);[^}]*color:\s*var\(--beige\);[^}]*font-size:\s*1rem;[^}]*line-height:\s*1\.55;/s);
     assert.match(styles, /\.pricingHeading h2 em\s*\{[^}]*box-shadow:\s*inset 0 -\.16em 0 var\(--taupe\);/s);
     assert.match(styles, /@media \(max-width: 620px\)[\s\S]*?\.hero h1\s*\{[^}]*font-size:\s*clamp\(2\.5rem,\s*14vw,\s*4rem\);/s);
     assert.match(styles, /@media \(max-width: 620px\)[\s\S]*?\.heroSubheading\s*\{[^}]*width:\s*100%;/s);

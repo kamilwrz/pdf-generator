@@ -44,7 +44,7 @@ test("grid actions stay in the section gutter and protect the final entry", () =
 });
 
 test("language actions are centred 18px below the hovered language and scaled down by 20%", () => {
-  assert.match(source, /const isLanguageEntry = gridKind === "languages"/);
+  assert.match(source, /const isLanguageEntry = gridKind === "languages" \|\| sectionType === "languages"/);
   assert.match(source, /compactInlineToolbarLayoutSize\(zoom\)/);
   assert.match(source, /boxHeight \+ 18 \/ safeZoom/);
   assert.match(source, /\(Number\(left\) \|\| 0\) \+ boxWidth \/ 2/);
