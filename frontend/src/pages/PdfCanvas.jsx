@@ -32,6 +32,7 @@ import ModalPdfs from '../components/modals/ModalPdfs/ModalPdfs';
 import { ApiClient } from '../services/api';
 import { ENDPOINTS } from '../services/api';
 import Spinner from '../components/common/Spinner/Spinner';
+import SaveProgressModal from '../components/editor/SaveProgressModal/SaveProgressModal';
 import ToastStack from '../components/common/ToastStack/ToastStack';
 import { useToasts } from '../hooks/useToasts';
 import { useEntitlements } from '../hooks/useEntitlements';
@@ -842,7 +843,15 @@ export function EditorController() {
     setA4_Elements_deleted(nextValue);
   }, [isDocumentScopeCurrent, setA4_Elements_deleted]);
 
-  const { createPdf, updatePdf, downloadPdf, responsePDF, isPdfLoading } = usePdfExport(handlePdfId, noopShowModal, titleRef, A4_Elements_deleted, clearSavedDeletedElements);
+  const {
+    createPdf,
+    updatePdf,
+    downloadPdf,
+    responsePDF,
+    isPdfLoading,
+    pdfOperation,
+    pdfOperationPhase,
+  } = usePdfExport(handlePdfId, noopShowModal, titleRef, A4_Elements_deleted, clearSavedDeletedElements);
   const wasPdfLoadingRef = useRef(false);
 
   // Stable callback ref for the post-spinner effect so a `pushToast` identity
@@ -2376,9 +2385,16 @@ export function EditorController() {
                     title={documentTitle}
                     onTitleChange={setDocumentTitle}
                   />
-                  {/* Portal loader: card sits 100px under the live A4 top edge
-                      (viewport px via A4ref), independent of canvas zoom. */}
-                  {isPdfLoading ? (
+                  {/* Saving and downloading are deliberately separate UX
+                      contracts: persistence gets account-oriented steps,
+                      while export keeps the canvas-anchored render status. */}
+                  {isPdfLoading && pdfOperation === 'save' ? (
+                    <SaveProgressModal
+                      phase={pdfOperationPhase}
+                      title={documentTitle}
+                    />
+                  ) : null}
+                  {isPdfLoading && pdfOperation === 'download' ? (
                     <Spinner loading={isPdfLoading} anchorRef={A4ref} />
                   ) : null}
                   <div className="canvas-area" ref={canvasAreaRef} onClick={handleCanvasBackgroundClick}>

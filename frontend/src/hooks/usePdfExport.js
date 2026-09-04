@@ -27,11 +27,15 @@ import {
  * @param {React.RefObject} titleRef - Title input; `.pdf` is appended for storage.
  * @param {Array} A4_Elements_deleted - Soft-deleted rows still sent on update.
  * @param {Function} setA4_Elements_deleted - Cleared after a successful write.
+ * @returns {object} Save/download commands, the latest response, loading state,
+ *   operation kind, and real save phase used by operation-specific feedback.
  */
 export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements_deleted, setA4_Elements_deleted) {
 
   const [responsePDF, setResponsePDF] = useState();
   const [isPdfLoading, setIsPdfLoading] = useState(false);
+  const [pdfOperation, setPdfOperation] = useState(null);
+  const [pdfOperationPhase, setPdfOperationPhase] = useState(null);
   const createAttemptRef = useRef(null);
 
   // Keep the loading state up for at least this long so a fast request still
@@ -42,6 +46,8 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
   const createPdf = useCallback((A4_Elements, titleRef, pages = 1, pageSize, meta = {}) => {
 
     setIsPdfLoading(true);
+    setPdfOperation("save");
+    setPdfOperationPhase("prepare");
     setResponsePDF(undefined);
     const startedAt = Date.now();
     let didPersist = false;
@@ -58,6 +64,8 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
       setTimeout(() => {
         handleShowModal();
         setIsPdfLoading(false);
+        setPdfOperation(null);
+        setPdfOperationPhase(null);
       }, MIN_SPINNER_MS);
       return;
     }
@@ -81,6 +89,9 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
       )),
     ])
       .then(([persistedRoot, renderRoot]) => {
+        // Layout resolution is complete. The remaining work is the actual
+        // authenticated persistence/render transaction on the backend.
+        setPdfOperationPhase("persist");
         const body = JSON.stringify({
           root: persistedRoot,
           render_root: renderRoot,
@@ -115,6 +126,7 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
       .then((data) => {
         const revision = requirePdfRevision(data.revision);
         didPersist = true;
+        setPdfOperationPhase("confirm");
         createAttemptRef.current = null;
         handlePdfId(data.pdf_id, { revision });
         setResponsePDF({
@@ -136,6 +148,8 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
         setTimeout(() => {
           handleShowModal();
           setIsPdfLoading(false);
+          setPdfOperation(null);
+          setPdfOperationPhase(null);
           if (didPersist) setA4_Elements_deleted([]);
         }, Math.max(0, MIN_SPINNER_MS - (Date.now() - startedAt)));
       });
@@ -145,6 +159,8 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
   const updatePdf = useCallback((A4_Elements, PDF_ID, titleRef, A4_Elements_deleted, pages = 1, pageSize, meta = {}) => {
 
     setIsPdfLoading(true);
+    setPdfOperation("save");
+    setPdfOperationPhase("prepare");
     setResponsePDF(undefined);
     const startedAt = Date.now();
     let didPersist = false;
@@ -162,6 +178,8 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
       setTimeout(() => {
         handleShowModal();
         setIsPdfLoading(false);
+        setPdfOperation(null);
+        setPdfOperationPhase(null);
       }, MIN_SPINNER_MS);
       return;
     }
@@ -183,6 +201,7 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
       )),
     ])
       .then(([persistedRoot, renderRoot]) => {
+        setPdfOperationPhase("persist");
         const body = JSON.stringify({
           root: [...persistedRoot, ...sanitizeElementsContent(A4_Elements_deleted)],
           render_root: renderRoot,
@@ -208,6 +227,7 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
       .then((data) => {
         const revision = requirePdfRevision(data.revision);
         didPersist = true;
+        setPdfOperationPhase("confirm");
         handlePdfId(data.pdf_id ?? PDF_ID, { revision });
         setResponsePDF({
           success: data.updated,
@@ -221,6 +241,8 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
         setTimeout(() => {
           handleShowModal();
           setIsPdfLoading(false);
+          setPdfOperation(null);
+          setPdfOperationPhase(null);
           if (didPersist) setA4_Elements_deleted([]);
         }, Math.max(0, MIN_SPINNER_MS - (Date.now() - startedAt)));
       });
@@ -234,6 +256,8 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
   // free-plan quota rejects here exactly like a stored-file download.
   const downloadPdf = useCallback(async (A4_Elements, titleRef, pages = 1, pageSize, meta = {}) => {
     setIsPdfLoading(true);
+    setPdfOperation("download");
+    setPdfOperationPhase("render");
     const startedAt = Date.now();
     try {
       const sorted = sanitizeElementsContent(
@@ -285,7 +309,11 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
     } finally {
       // Honour the minimum spinner window so a fast render still paints once.
       const remaining = Math.max(0, MIN_SPINNER_MS - (Date.now() - startedAt));
-      window.setTimeout(() => setIsPdfLoading(false), remaining);
+      window.setTimeout(() => {
+        setIsPdfLoading(false);
+        setPdfOperation(null);
+        setPdfOperationPhase(null);
+      }, remaining);
     }
   }, []);
 
@@ -326,5 +354,14 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
     }
   }, [handlePdfId]);
 
-  return {createPdf, updatePdf, downloadPdf, saveElements, responsePDF, isPdfLoading};
+  return {
+    createPdf,
+    updatePdf,
+    downloadPdf,
+    saveElements,
+    responsePDF,
+    isPdfLoading,
+    pdfOperation,
+    pdfOperationPhase,
+  };
 }
