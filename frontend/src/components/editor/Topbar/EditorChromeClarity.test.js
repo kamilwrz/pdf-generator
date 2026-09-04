@@ -37,7 +37,7 @@ test("topbar exposes stable semantic groups and a precise destructive label", as
 test("responsive topbar keeps every command and collapses only visible labels", async () => {
   const css = await readFile(topbarCssUrl, "utf8");
 
-  assert.match(css, /@media \(max-width: 1450px\)/);
+  assert.match(css, /@media \(max-width: 1600px\)/);
   assert.match(css, /\.toolLabel,\s*\.outputLabel\s*{[^}]*display: none/s);
   assert.match(css, /\.outputLabel\s*{[^}]*display: none/s);
 });

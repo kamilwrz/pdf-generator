@@ -1,7 +1,7 @@
 /**
- * Multi-page navigation and two-page spread toggle. Rendered inline inside the
- * editor Topbar (right cluster), so it stays compact and icon-only to match the
- * topbar's other action buttons. Reads page state from the canvas context.
+ * Page navigation and structural page actions in the Topbar's left group.
+ * The separately exported spread toggle sits next to zoom on the fixed A4 rail.
+ * Both components read the same page state from the canvas context.
  *
  * Reorder/clone/add/delete are structural, page-destroying operations that
  * make sense on a freeform DTP canvas but not on a template-mode CV, where
@@ -22,7 +22,7 @@ const Chevron = ({ dir }) => (
 export default function PageControls() {
     const {
         currentPage, pageCount, addPage, removePage, goToPage, clonePage, movePage,
-        isTwoPageView, toggleTwoPageView, editorMode,
+        editorMode,
     } = useCanvasContext();
     const isFreeform = editorMode === EDITOR_MODE_FREEFORM;
 
@@ -52,23 +52,6 @@ export default function PageControls() {
                 title={currentPage >= pageCount ? "Utwórz następną stronę" : "Następna strona"}
             >
                 <Chevron dir="right" />
-            </button>
-
-            <span className={classes.divider} />
-
-            <button
-                type="button"
-                className={`${classes.navBtn} ${isTwoPageView ? classes.spreadActive : ""}`}
-                onClick={toggleTwoPageView}
-                disabled={pageCount < 2}
-                aria-label={isTwoPageView ? "Wyłącz widok dwóch stron" : "Włącz widok dwóch stron"}
-                aria-pressed={isTwoPageView}
-                title={isTwoPageView ? "Wyłącz widok dwóch stron" : "Włącz widok dwóch stron"}
-            >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round">
-                    <rect x="3" y="4" width="7" height="16" rx="1.2" />
-                    <rect x="14" y="4" width="7" height="16" rx="1.2" />
-                </svg>
             </button>
 
             {isFreeform ? (
@@ -135,5 +118,26 @@ export default function PageControls() {
                 </>
             ) : null}
         </div>
+    );
+}
+
+/** Toggles the shared two-page view without moving the fixed topbar rail. */
+export function TwoPageViewToggle() {
+    const { isTwoPageView, toggleTwoPageView, pageCount } = useCanvasContext();
+    return (
+        <button
+            type="button"
+            className={`${classes.navBtn} ${isTwoPageView ? classes.spreadActive : ""}`}
+            onClick={toggleTwoPageView}
+            disabled={pageCount < 2}
+            aria-label={isTwoPageView ? "Wyłącz widok dwóch stron" : "Włącz widok dwóch stron"}
+            aria-pressed={isTwoPageView}
+            title={isTwoPageView ? "Wyłącz widok dwóch stron" : "Włącz widok dwóch stron"}
+        >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round">
+                <rect x="3" y="4" width="7" height="16" rx="1.2" />
+                <rect x="14" y="4" width="7" height="16" rx="1.2" />
+            </svg>
+        </button>
     );
 }

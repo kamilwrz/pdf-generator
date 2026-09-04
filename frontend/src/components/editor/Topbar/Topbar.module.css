@@ -9,7 +9,7 @@
     min-height: var(--space-12);
     flex-shrink: 0;
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) var(--topbar-page-width) minmax(0, 1fr);
     align-items: center;
     gap: var(--space-4);
     padding: var(--space-1) var(--space-3);
@@ -21,16 +21,46 @@
     z-index: var(--z-sticky);
 }
 
-.demoTopbar {
-    grid-template-columns: minmax(0, 1fr) auto;
-}
-
 .documentGroup {
     justify-self: start;
+    flex-wrap: wrap;
+    min-width: 0;
+    max-width: 100%;
 }
 
 .outputGroup {
     justify-self: end;
+    min-width: 0;
+    max-width: 100%;
+}
+
+/* Unscaled page geometry is the only input to this rail, never live zoom or
+   page bounds. Resizing the viewport reflows the header; zooming A4 does not. */
+.canvasGroup {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items: center;
+    gap: var(--space-2);
+    width: var(--topbar-page-width);
+    max-width: 100%;
+    justify-self: center;
+}
+
+.viewGroup,
+.outputActions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+}
+
+.viewGroup {
+    justify-self: end;
+}
+
+.outputActions {
+    min-width: 0;
+    max-width: 100%;
+    flex-wrap: wrap;
 }
 
 .group {
@@ -45,7 +75,7 @@
 .cluster {
     display: inline-flex;
     align-items: center;
-    gap: 2px;
+    gap: var(--space-1);
     flex-shrink: 0;
 }
 
@@ -83,19 +113,18 @@
     display: inline;
 }
 
-/* ---- "current project" field, left-aligned in the left action group ---- */
+/* Document name stays next to Save, outside the fixed canvas-control rail. */
 .projectField {
     display: inline-flex;
     align-items: center;
-    gap: 5px;
-    width: 190px;
+    gap: var(--space-1);
+    width: calc(var(--space-24) * 2);
     flex-shrink: 0;
-    height: 32px;
-    padding: 0 4px 0 9px;
+    height: var(--control-height-compact);
+    padding: 0 var(--space-1);
     background: transparent;
     border: 1px solid transparent;
-    /* rounded.sm from DESIGN.md's token scale (2/4/8px). */
-    border-radius: 2px;
+    border-radius: var(--radius-control);
     transition: border-color .15s, box-shadow .15s, background .15s;
 }
 
@@ -114,7 +143,7 @@
     padding: 0 10px;
     border-left: 2px solid var(--topbar-accent);
     color: var(--topbar-ink);
-    font: 600 11px var(--font-body);
+    font: 600 12px var(--font-body);
     letter-spacing: .08em;
 }
 
@@ -126,12 +155,6 @@
 .demoIdentity strong {
     font-weight: 700;
     color: var(--topbar-ink);
-}
-
-.projectIcon {
-    display: flex;
-    color: var(--topbar-muted);
-    flex-shrink: 0;
 }
 
 .projectField input {
@@ -154,8 +177,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 26px;
-    height: 26px;
+    width: var(--control-height-compact);
+    height: var(--control-height-compact);
     flex-shrink: 0;
     border: none;
     border-radius: var(--radius-control);
@@ -180,8 +203,8 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 34px;
-    height: 34px;
+    width: var(--control-height-compact);
+    height: var(--control-height-compact);
     padding: 0;
     border-radius: var(--radius-control);
     border: 1px solid transparent;
@@ -192,9 +215,9 @@
 
 .labeled {
     width: auto;
-    gap: 7px;
-    padding: 0 10px;
-    font: 600 11px var(--font-body);
+    gap: var(--space-2);
+    padding: 0 var(--space-2);
+    font: 600 12px var(--font-body);
     white-space: nowrap;
 }
 
@@ -267,7 +290,7 @@
 }
 
 .fitOne:focus-visible {
-    outline: 2px solid var(--topbar-accent);
+    outline: 2px solid var(--color-focus);
     outline-offset: 2px;
 }
 .feature:disabled {
@@ -313,7 +336,7 @@
     border-radius: 2px;
     background: transparent;
     color: var(--topbar-ink);
-    font: 600 11px var(--font-body);
+    font: 600 12px var(--font-body);
     cursor: pointer;
     text-decoration: none;
     transition: background .2s, border-color .2s, color .2s;
@@ -340,14 +363,6 @@
     outline-offset: 2px;
 }
 
-.actionDivider {
-    width: 1px;
-    height: 18px;
-    margin: 0 3px;
-    background: var(--topbar-border);
-    flex-shrink: 0;
-}
-
 .divider {
     width: 1px;
     height: 20px;
@@ -360,8 +375,8 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 34px;
-    height: 34px;
+    width: var(--control-height-compact);
+    height: var(--control-height-compact);
     flex-shrink: 0;
     border: 1px solid transparent;
     border-radius: var(--radius-control);
@@ -455,7 +470,7 @@
 }
 
 .templatePreviewLabel {
-    font: 600 11px var(--font-body);
+    font: 600 12px var(--font-body);
     color: var(--topbar-ink);
     letter-spacing: .1px;
     white-space: nowrap;
@@ -465,8 +480,8 @@
     display: inline-flex;
     align-items: center;
     gap: 1px;
-    height: 32px;
-    padding: 0 2px;
+    height: var(--control-height-compact);
+    padding: 0;
     background: var(--topbar-control);
     border-radius: var(--radius-control);
     flex-shrink: 0;
@@ -476,8 +491,8 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 28px;
-    height: 28px;
+    width: var(--control-height-compact);
+    height: var(--control-height-compact);
     border: 0;
     border-radius: var(--radius-control);
     background: transparent;
@@ -497,9 +512,10 @@
 }
 
 .zoomValue {
-    min-width: 38px;
+    width: var(--space-12);
+    font-variant-numeric: tabular-nums;
     text-align: center;
-    font: 600 11px var(--font-body);
+    font: 600 12px var(--font-body);
     color: var(--topbar-muted);
     user-select: none;
 }
@@ -515,48 +531,8 @@
     }
 }
 
-/* Keep each group in DOM/focus order when all three no longer fit side by
-   side. Wrapping actions avoids clipping previews or horizontal page scroll. */
-@media (max-width: 1200px) {
-    .topbar,
-    .demoTopbar {
-        grid-template-columns: minmax(0, 1fr);
-        gap: var(--space-1);
-    }
-
-    .group {
-        min-width: 0;
-        max-width: 100%;
-        flex-wrap: wrap;
-        justify-content: center;
-        justify-self: center;
-        gap: var(--space-1);
-    }
-
-    .templateCluster {
-        padding-block: var(--space-1);
-    }
-}
-
-@media (max-width: 760px) {
-    .projectIcon,
-    .rename {
-        display: none;
-    }
-
-    .projectField {
-        width: 96px;
-        padding: 0 var(--space-1);
-    }
-
-    .projectField input {
-        font-size: 16px;
-    }
-}
-
-/* Preserve the same controls at laptop widths; only their redundant visible
-   labels collapse because every button retains its tooltip and accessible name. */
-@media (max-width: 1450px) {
+/* Collapse outer labels before they can collide with the fixed A4 rail. */
+@media (max-width: 1600px) {
     .toolLabel,
     .outputLabel {
         display: none;
@@ -565,8 +541,58 @@
     .feature.labeled,
     .secondary.labeled,
     .primary.labeled {
-        width: 34px;
+        width: var(--control-height-compact);
         padding: 0;
+    }
+
+    .projectField {
+        width: calc(var(--space-16) * 2);
+    }
+}
+
+/* At tablet/browser-zoom widths, retain each group's DOM/focus order while
+   keeping the central rail aligned to the reference A4 wherever it fits. */
+@media (max-width: 1200px) {
+    .topbar {
+        grid-template-columns: minmax(0, 1fr);
+        gap: var(--space-2);
+    }
+
+    .documentGroup {
+        justify-self: start;
+    }
+
+    .outputGroup {
+        justify-self: end;
+    }
+}
+
+@media (max-width: 720px) {
+    .canvasGroup {
+        grid-template-columns: minmax(0, 1fr);
+        gap: var(--space-1);
+    }
+
+    .canvasGroup > .cluster {
+        justify-self: start;
+    }
+
+    .templateCluster {
+        justify-self: center;
+    }
+
+    .outputGroup,
+    .outputActions {
+        width: 100%;
+    }
+
+    .projectField {
+        flex: 1;
+        min-width: 96px;
+    }
+
+    .projectField input {
+        font-size: 16px;
     }
 }
 

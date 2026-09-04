@@ -1,16 +1,19 @@
-/* Inline pagination cluster embedded in the editor Topbar. Compact, icon-only,
-   and sized to sit inside the 48px topbar next to the save/download actions. */
+/* Page navigation sits with creation actions; the spread toggle reuses the
+   same control contract beside zoom in the unscaled A4 rail. */
 .bar {
     display: inline-flex;
     align-items: center;
-    gap: 1px;
-    flex-shrink: 0;
+    gap: var(--space-1);
+    flex-wrap: wrap;
+    min-width: 0;
+    max-width: 100%;
     font-family: var(--font-body);
 }
 
 .navBtn {
-    width: 28px;
-    height: 28px;
+    width: var(--control-height-compact);
+    height: var(--control-height-compact);
+    flex-shrink: 0;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -43,7 +46,7 @@
 }
 
 .label {
-    font: 600 11px var(--font-body);
+    font: 600 12px var(--font-body);
     color: var(--chrome-muted);
     padding: 0 4px;
     white-space: nowrap;
@@ -69,8 +72,9 @@
 }
 
 .addBtn {
-    width: 28px;
-    height: 28px;
+    width: var(--control-height-compact);
+    height: var(--control-height-compact);
+    flex-shrink: 0;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -87,8 +91,9 @@
 }
 
 .removeBtn {
-    width: 28px;
-    height: 28px;
+    width: var(--control-height-compact);
+    height: var(--control-height-compact);
+    flex-shrink: 0;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -114,5 +119,20 @@
 @media (max-width: 1100px) {
     .advanced {
         display: none;
+    }
+}
+
+.navBtn:focus-visible,
+.addBtn:focus-visible,
+.removeBtn:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .navBtn,
+    .addBtn,
+    .removeBtn {
+        transition: none;
     }
 }
