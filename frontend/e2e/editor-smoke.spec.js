@@ -531,6 +531,8 @@ test.describe("CV Studio editor smoke", () => {
     await page.getByRole("button", { name: "Powiększ" }).click();
     await page.getByRole("button", { name: "Powiększ" }).click();
     await page.getByRole("button", { name: "Powiększ" }).click();
+    await page.getByRole("button", { name: "Powiększ" }).click();
+    await page.getByRole("button", { name: "Powiększ" }).click();
     await expect(page.getByText("200%", { exact: true })).toBeVisible();
 
     const body = page.locator("#flat-skills-body");

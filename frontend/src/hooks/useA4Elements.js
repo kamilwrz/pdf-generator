@@ -122,9 +122,9 @@ export const A4_PAGE_SIZE = Object.freeze({ width: 595, height: 842 });
 const ZOOM_MIN = 0.25;
 const ZOOM_MAX = 3;
 const ZOOM_STEP = 0.1;
-// Opening the editor always starts at 160%. Zoom remains view-only (not
+// Opening the editor always starts at 140%. Zoom remains view-only (not
 // persisted or exported).
-const ZOOM_DEFAULT = 1.6;
+const ZOOM_DEFAULT = 1.4;
 const clampZoom = (z) => Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Math.round(z * 100) / 100));
 const stepZoom = (z, dir) => clampZoom(Math.round((z + dir * ZOOM_STEP) * 10) / 10);
 
@@ -132,7 +132,7 @@ const stepZoom = (z, dir) => clampZoom(Math.round((z + dir * ZOOM_STEP) * 10) / 
 // readable while typing, then restores the pre-edit zoom on exit (see the
 // editingElementId effect below). Editing from a two-page spread temporarily
 // focuses the selected element's page before applying this same zoom.
-const EDIT_ZOOM = 2;
+const EDIT_ZOOM = 2.8;
 
 function prefersReducedMotion() {
   if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
@@ -294,7 +294,7 @@ export function useA4Elements(titleRef) {
   }, [A4_Elements, editingElementId]);
   // Zoom level to restore when edit mode ends; null while not auto-zoomed.
   const editZoomPreviousRef = useRef(null);
-  // A two-page spread cannot keep both A4 sheets legible at 200%. Remember
+  // A two-page spread cannot keep both A4 sheets legible at 280%. Remember
   // that it was active so an edit started there can focus its own page, then
   // return the reader to the previous spread after an intentional edit exit.
   const editZoomPreviousSpreadRef = useRef(null);
@@ -305,7 +305,7 @@ export function useA4Elements(titleRef) {
   // A blur can be caused by another canvas element or any control outside the
   // canvas. Restore the temporary edit zoom only after an intentional
   // background click, not when selection moves to an element, sidebar, or
-  // toolbar while the focused 200% view should remain in place.
+  // toolbar while the focused 280% view should remain in place.
   const editZoomExitRequestedRef = useRef(false);
   // Switching directly from one text element to another can briefly clear the
   // previous `editingElementId` during React reconciliation. Delay restoration
@@ -336,7 +336,7 @@ export function useA4Elements(titleRef) {
   }, []);
   useEffect(() => {
     const markCanvasEditExit = (event) => {
-      if (!isCanvasInteractionTarget(event.target)) return;
+      if (!isCanvasInteractionTarget(event.target, event, canvasAreaRef.current)) return;
       // A replacement text edit may already be registered while a deferred
       // restoration is pending. Preserve that handoff instead of returning to
       // the pre-edit zoom between the old and new edit surfaces.
@@ -394,7 +394,7 @@ export function useA4Elements(titleRef) {
         editZoomPreviousSpreadRef.current = true;
       }
       // A spread may currently be anchored to its neighbouring page. Make the
-      // selected page the single-page target before its 200% transform begins.
+      // selected page the single-page target before its 280% transform begins.
       if (Number.isInteger(editingElementPage) && editingElementPage > 0) {
         setCurrentPage(editingElementPage);
       }
@@ -559,9 +559,9 @@ export function useA4Elements(titleRef) {
     setDeletedElements: setA4_Elements_deleted,
   });
 
-  // Clicking bare canvas background — the scroll container's own padding/
-  // gutters, or a page's blank surface, as opposed to any specific element —
-  // exits whatever is currently selected or being edited. `event.target` is
+  // Clicking the bare A4 paper, as opposed to a workspace gutter, scrollbar,
+  // editor control, or specific document element, exits whatever is currently
+  // selected or being edited. `event.target` is
   // checked against the nearest `[data-page-canvas]` ancestor rather than
   // relying on individual elements calling stopPropagation: a click lands
   // exactly on the page node only when it did not hit any actual rendered
@@ -570,9 +570,7 @@ export function useA4Elements(titleRef) {
   // Blurring first lets the focused element's own finalize logic (content
   // commit) run via its existing onBlur handler before the selection clears.
   const handleCanvasBackgroundClick = useCallback((event) => {
-    const pageNode = event.target?.closest?.("[data-page-canvas]");
-    const isBackground = !pageNode || pageNode === event.target;
-    if (!isBackground) return;
+    if (!isCanvasInteractionTarget(event.target, event, canvasAreaRef.current)) return;
     if (typeof document !== "undefined" && document.activeElement?.isContentEditable) {
       document.activeElement.blur();
     }

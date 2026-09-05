@@ -36,7 +36,7 @@ function editorDepthStyle(zoom) {
         "--canvas-shadow-editor-active": `0 ${px(4)} ${px(12)} var(--shadow-editor-active-color)`,
         // Skills fields are long, low rectangles. A centred spread remains
         // visible on every edge where the generic downward shadow can blend
-        // into the white page, especially at 200% editor zoom.
+        // into the white page, especially at 280% editor zoom.
         "--canvas-shadow-editor-skills": `0 0 ${px(8)} ${px(1)} var(--shadow-editor-element-color)`,
         "--canvas-shadow-editor-skills-active": `0 0 ${px(10)} ${px(1)} var(--shadow-editor-active-color)`,
         "--canvas-editor-lift": `-${px(1)}`,

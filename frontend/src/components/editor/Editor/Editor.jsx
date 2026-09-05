@@ -601,7 +601,7 @@ export default function Editor() {
   }
 
   // The inspector is part of the workspace grid, not a tooltip. Read live DOM
-  // geometry because text editing animates the page to 200% and recentres its
+  // geometry because text editing animates the page to 280% and recentres its
   // scroll position. The closed disclosure and its explicitly opened panel use
   // the same top-left anchor. The open panel prefers a compact desktop width,
   // while the live A4 edge remains a collision boundary at every zoom. Its

@@ -64,7 +64,7 @@ export function focusMetadataSlot(node, index, end = false) {
   const offset = end ? serializeEditable(slot).content.length : 0;
   setSelectionOffsets(slot, offset, offset);
   syncMetadataCaret(node);
-  // At the editor's 200% edit zoom, another slot may be outside the compact
+  // At the editor's 280% edit zoom, another slot may be outside the compact
   // canvas viewport. Reveal the visual hint because the browser cannot scroll
   // to a zero-length native range on its own.
   slot.scrollIntoView({ block: "nearest", inline: "nearest" });

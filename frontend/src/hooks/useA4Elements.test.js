@@ -3,10 +3,11 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { moveElementsToPage } from "../utils/pageDrag.js";
 
-test("opens the single-page editor at 160% zoom", async () => {
+test("uses 140% for the standard view and 280% while editing text", async () => {
   const source = await readFile(new URL("./useA4Elements.js", import.meta.url), "utf8");
 
-  assert.match(source, /const ZOOM_DEFAULT = 1\.6;/);
+  assert.match(source, /const ZOOM_DEFAULT = 1\.4;/);
+  assert.match(source, /const EDIT_ZOOM = 2\.8;/);
   assert.match(source, /useState\(ZOOM_DEFAULT\)/);
 });
 

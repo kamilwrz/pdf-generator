@@ -75,6 +75,73 @@ test("AI assistant uses the wider panel and shifts a single A4 only when space a
   api.assertHermetic();
 });
 
+test("edit zoom survives assistant focus and canvas scrolling until the bare A4 is clicked", async ({ page }) => {
+  const api = await installMockApi(page);
+  await login(page);
+
+  await page.getByText("Kontynuuj ostatnie CV", { exact: true }).click();
+  await page.getByRole("button", { name: "Otwórz na płótnie" }).click();
+
+  const name = page.locator("#saved-name");
+  const canvas = page.locator(".canvas-area");
+  const zoomLabel = page.getByText("280%", { exact: true });
+  // This fixture's single-line field keeps a zero-height PDF baseline box;
+  // dispatch the semantic click directly instead of asking Playwright to aim
+  // at its editor-only pseudo hit area.
+  await name.dispatchEvent("click");
+  await expect(name).toHaveAttribute("contenteditable", "true");
+  await expect(zoomLabel).toBeVisible();
+
+  const canvasGutter = canvas.locator(".canvas-single");
+  // A scrollbar/gutter interaction starts on canvas chrome. It must not leave
+  // a pending exit request that a later assistant-focus blur can consume.
+  await canvasGutter.dispatchEvent("pointerdown");
+  await page.getByRole("button", { name: "Otwórz asystenta AI" }).click();
+  await expect(page.getByRole("complementary", { name: "Asystent AI" })).toBeVisible();
+  await expect(zoomLabel).toBeVisible();
+  await page.getByRole("button", { name: "Zamknij asystenta AI" }).last().click();
+
+  await canvas.hover();
+  await page.mouse.wheel(0, 240);
+  await expect(zoomLabel).toBeVisible();
+
+  // Exercise the browser-owned vertical scrollbar itself. DOM-dispatched
+  // pointer events do not cover this path because Chromium handles the thumb
+  // drag before page event listeners receive it.
+  const scrollbar = await canvas.evaluate((element) => {
+    const bounds = element.getBoundingClientRect();
+    const trackInset = 10;
+    const trackHeight = element.clientHeight - trackInset * 2;
+    const thumbHeight = Math.max(48, trackHeight * element.clientHeight / element.scrollHeight);
+    const availableTravel = Math.max(0, trackHeight - thumbHeight);
+    const scrollRange = Math.max(1, element.scrollHeight - element.clientHeight);
+    const thumbTop = bounds.top + trackInset + availableTravel * element.scrollTop / scrollRange;
+    return {
+      x: bounds.right - 6,
+      y: thumbTop + thumbHeight / 2,
+      before: element.scrollTop,
+    };
+  });
+  await page.mouse.move(scrollbar.x, scrollbar.y);
+  await page.mouse.down();
+  await page.mouse.move(scrollbar.x, scrollbar.y + 80, { steps: 4 });
+  await page.mouse.up();
+  await expect.poll(() => canvas.evaluate((element) => element.scrollTop)).toBeGreaterThan(scrollbar.before);
+  await expect(zoomLabel).toBeVisible();
+
+  await canvasGutter.dispatchEvent("pointerdown");
+  await canvasGutter.dispatchEvent("click");
+  await expect(zoomLabel).toBeVisible();
+
+  // Dispatch directly on the page node to model a bare A4 location without an
+  // authored element or editor overlay becoming the event target.
+  const bareA4 = page.locator("[data-page-canvas]").first();
+  await bareA4.dispatchEvent("pointerdown");
+  await bareA4.dispatchEvent("click");
+  await expect(zoomLabel).toBeHidden();
+  api.assertHermetic();
+});
+
 test("AI assistant keeps the conversation visible after a follow-up question", async ({ page }) => {
   const api = await installMockApi(page, {
     assistantResponses: [

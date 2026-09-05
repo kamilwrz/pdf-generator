@@ -3,10 +3,58 @@
  *
  * Toolbar, sidebar, browser-chrome, and element clicks can blur a
  * contentEditable node, but they are not requests to leave the focused canvas
- * view. Only the bare A4 surface or the surrounding canvas area should restore
- * the user's pre-edit zoom.
+ * view. Only the bare A4 paper surface should restore the user's pre-edit
+ * zoom; workspace gutters and scrollbars are navigation, not exit actions.
  */
-export function isCanvasInteractionTarget(target) {
+/**
+ * Detect a pointer event inside the browser-owned scrollbar gutter.
+ *
+ * Chromium can report the A4 page below a custom scrollbar as `event.target`.
+ * The pointer coordinates are therefore compared with the scroll container's
+ * client box before the DOM target is classified. The client box excludes
+ * classic scrollbar gutters while `getBoundingClientRect()` includes them.
+ *
+ * @param {PointerEvent|MouseEvent|object|null|undefined} event
+ * @param {HTMLElement|object|null|undefined} scrollContainer
+ * @returns {boolean}
+ */
+export function isScrollbarInteraction(event, scrollContainer) {
+  if (
+    !event
+    || !scrollContainer
+    || typeof scrollContainer.getBoundingClientRect !== "function"
+    || !Number.isFinite(event.clientX)
+    || !Number.isFinite(event.clientY)
+  ) return false;
+
+  const bounds = scrollContainer.getBoundingClientRect();
+  const clientLeft = Number(scrollContainer.clientLeft) || 0;
+  const clientTop = Number(scrollContainer.clientTop) || 0;
+  const clientRight = bounds.left + clientLeft + (Number(scrollContainer.clientWidth) || 0);
+  const clientBottom = bounds.top + clientTop + (Number(scrollContainer.clientHeight) || 0);
+  const insideBounds = event.clientX >= bounds.left
+    && event.clientX <= bounds.right
+    && event.clientY >= bounds.top
+    && event.clientY <= bounds.bottom;
+
+  return insideBounds && (
+    event.clientX >= clientRight
+    || event.clientY >= clientBottom
+  );
+}
+
+/**
+ * Decide whether a pointer interaction explicitly requests leaving edit zoom.
+ *
+ * @param {EventTarget|object|null|undefined} target
+ * @param {PointerEvent|MouseEvent|object|null|undefined} event
+ * @param {HTMLElement|object|null|undefined} canvasArea
+ * @returns {boolean}
+ */
+export function isCanvasInteractionTarget(target, event = null, canvasArea = null) {
+  // Native scrollbar hit-testing is browser-owned. Check geometry before the
+  // DOM target because Chromium may expose the page below the painted thumb.
+  if (isScrollbarInteraction(event, canvasArea)) return false;
   // Dragging across an active edit surface is text selection, not navigation
   // to another canvas element. The native selection gesture starts with a
   // pointerdown and ends later, so deciding from the eventual mouseup would
@@ -23,10 +71,11 @@ export function isCanvasInteractionTarget(target) {
   const page = target?.closest?.("[data-page-canvas]");
   if (page) return page === target;
 
-  // The scroll container's padding and gutters are also intentional canvas
-  // background. Descendants outside an A4 page (for example a zoom wrapper's
-  // unused area) follow the same exit behaviour as the bare page surface.
-  return Boolean(target?.closest?.(".canvas-area"));
+  // Workspace padding, zoom wrappers, scrollbars, sidebars, and floating tools
+  // deliberately do not opt into exit. This strict fallback also prevents a
+  // later blur (for example when the AI assistant takes focus) from consuming
+  // a stale exit request created by ordinary canvas navigation.
+  return false;
 }
 
 /**
