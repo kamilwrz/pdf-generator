@@ -1,4 +1,4 @@
-"""Security contract for the operations-only AI credit reset."""
+"""Security contracts for operations-only billing mutations."""
 from __future__ import annotations
 
 import os
@@ -13,7 +13,7 @@ from sqlalchemy.pool import StaticPool
 from app.crud.user import create_user
 from app.dependencies import get_db
 from app.main import app
-from app.models.models import Base, User
+from app.models.models import Base, User, UserSubscription
 from app.schemas.user_schema import UserCreateRequest
 from app.services.entitlements import seed_plans
 from app.testing_support import ensure_test_auth_env
@@ -106,6 +106,57 @@ class AdminCreditResetSecurityTests(unittest.TestCase):
         self.assertIn("outcome=denied", audit_output)
         self.assertNotIn(supplied_secret, audit_output)
         self.assertNotIn(str(target_id), audit_output)
+
+    def test_admin_plan_change_requires_exact_username_and_never_returns_identity(self):
+        secret = "p" * 32
+        with self.assertLogs("app.api.routes.billing", level="INFO") as captured:
+            with patch.dict(os.environ, {"ADMIN_RESET_SECRET": secret}, clear=True):
+                wrong_case = self.client.post(
+                    "/billing/admin/set-user-plan",
+                    json={"username": "Exact-User", "plan_slug": "pro"},
+                    headers={"X-Admin-Secret": secret},
+                )
+                success = self.client.post(
+                    "/billing/admin/set-user-plan",
+                    json={"username": "exact-user", "plan_slug": "pro"},
+                    headers={"X-Admin-Secret": secret},
+                )
+
+        self.assertEqual(wrong_case.status_code, 404)
+        self.assertEqual(wrong_case.json()["detail"]["code"], "user_not_found")
+        self.assertEqual(success.status_code, 200)
+        body = success.json()
+        self.assertEqual(body["plan_slug"], "pro")
+        self.assertEqual(body["status"], "active")
+        self.assertEqual(body["entitlements"]["plan_slug"], "pro")
+        self.assertNotIn("username", body)
+        self.assertNotIn("email", body)
+        subscription = self.db.query(UserSubscription).filter_by(
+            user_id=self.user.id,
+        ).one()
+        self.assertEqual(subscription.plan_slug, "pro")
+        audit_output = "\n".join(captured.output)
+        self.assertIn("outcome=not_found", audit_output)
+        self.assertIn("outcome=success", audit_output)
+        self.assertNotIn("exact-user", audit_output)
+        self.assertNotIn("exact@example.test", audit_output)
+        self.assertNotIn(secret, audit_output)
+
+    def test_admin_plan_change_rejects_unknown_plan_without_mutation(self):
+        secret = "q" * 32
+        with patch.dict(os.environ, {"ADMIN_RESET_SECRET": secret}, clear=True):
+            response = self.client.post(
+                "/billing/admin/set-user-plan",
+                json={"username": "exact-user", "plan_slug": "enterprise"},
+                headers={"X-Admin-Secret": secret},
+            )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()["detail"]["code"], "unknown_plan")
+        subscription = self.db.query(UserSubscription).filter_by(
+            user_id=self.user.id,
+        ).one()
+        self.assertEqual(subscription.plan_slug, "free")
 
 
 if __name__ == "__main__":

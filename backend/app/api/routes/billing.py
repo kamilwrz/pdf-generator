@@ -103,6 +103,13 @@ class ResetAiCreditsRequest(BaseModel):
     user_id: int
 
 
+class AdminSetUserPlanRequest(BaseModel):
+    """Exact account identity and plan requested by an authorized operator."""
+
+    username: str
+    plan_slug: str
+
+
 def _admin_secret_ok(x_admin_secret: str | None) -> bool:
     """Accept only a dedicated high-entropy ops secret for credit resets."""
     provided = (x_admin_secret or "").strip()
@@ -122,6 +129,89 @@ def _admin_audit_target_ref(user_id: int) -> str:
         hashlib.sha256,
     ).hexdigest()
     return digest[:20]
+
+
+def _admin_plan_audit_target_ref(username: str) -> str:
+    """Return a non-reversible reference without logging account identity."""
+
+    expected = (os.getenv("ADMIN_RESET_SECRET") or "").strip().encode("utf-8")
+    digest = hmac.new(
+        expected,
+        f"plan-change:{username}".encode("utf-8"),
+        hashlib.sha256,
+    ).hexdigest()
+    return digest[:20]
+
+
+@router.post("/admin/set-user-plan")
+def admin_set_user_plan(
+    request: AdminSetUserPlanRequest,
+    db: Session = Depends(get_db),
+    x_admin_secret: str | None = Header(default=None, alias="X-Admin-Secret"),
+):
+    """Assign an active plan to one exact username through the ops channel.
+
+    The dedicated admin secret is mandatory and account matching is deliberately
+    case-sensitive. This prevents a support operation from selecting a visually
+    similar account while still allowing plan changes when Render PostgreSQL is
+    unreachable from an operator workstation.
+    """
+    if not _admin_secret_ok(x_admin_secret):
+        logger.warning("admin_plan_change outcome=denied reason=invalid_secret")
+        raise HTTPException(
+            status_code=403,
+            detail={
+                "code": "admin_secret_invalid",
+                "message": "Brak uprawnień do tej operacji.",
+            },
+        )
+
+    target_ref = _admin_plan_audit_target_ref(request.username)
+    plan_slug = normalize_plan_slug(request.plan_slug)
+    if plan_slug not in SELECTABLE_PLANS:
+        logger.warning(
+            "admin_plan_change outcome=invalid_plan target_ref=%s",
+            target_ref,
+        )
+        raise HTTPException(
+            status_code=400,
+            detail={"code": "unknown_plan", "message": "Nieznany plan."},
+        )
+
+    user = db.query(User).filter(User.username == request.username).one_or_none()
+    if user is None:
+        logger.warning(
+            "admin_plan_change outcome=not_found target_ref=%s",
+            target_ref,
+        )
+        raise HTTPException(
+            status_code=404,
+            detail={"code": "user_not_found", "message": "Nie znaleziono użytkownika."},
+        )
+
+    try:
+        subscription = set_user_plan(db, user.id, plan_slug)
+        entitlements = get_entitlements(db, user)
+    except Exception as exc:
+        logger.error(
+            "admin_plan_change outcome=failed target_ref=%s error_type=%s",
+            target_ref,
+            type(exc).__name__,
+        )
+        raise
+
+    logger.info(
+        "admin_plan_change outcome=success target_ref=%s plan_slug=%s",
+        target_ref,
+        subscription.plan_slug,
+    )
+    return {
+        "plan_slug": subscription.plan_slug,
+        "status": subscription.status,
+        "current_period_start": subscription.current_period_start,
+        "current_period_end": subscription.current_period_end,
+        "entitlements": entitlements,
+    }
 
 
 @router.post("/admin/reset-ai-credits")

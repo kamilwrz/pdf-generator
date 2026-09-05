@@ -2006,18 +2006,20 @@ Two-tier catalog only:
 
 Legacy slugs `standard` and `premium` remap to `pro` at registration and `POST /billing/select-plan`. Expired Pro (`current_period_end`) falls back to Free without deleting documents. Free is deliberately a complete, sendable CV rather than a degraded trial: no card, no time limit, and no watermark. Pro is positioned around multiple role-specific versions, all templates, unlimited throughput, and assisted content/ATS/layout work.
 
+Production support can assign `free` or `pro` through `POST /billing/admin/set-user-plan` when a workstation cannot reach Render PostgreSQL directly. The route requires the dedicated `X-Admin-Secret`, matches the supplied username exactly and case-sensitively, returns no username or email, and writes only through the same `set_user_plan` service used by the product flow. Selecting Pro therefore starts a fresh 30-day pass and resets the current AI-credit meter.
+
 Implementation:
 
 - `backend/app/services/entitlements.py`, lines 37–70 (`PLAN_SEEDS`), 422–477 (`get_entitlements`), 480–523 (`assert_can_create_project`), 589–603 (`assert_can_extract_cv`), 620–648 (`assert_template_allowed`), 651–721 (`record_export`), and 724–771 (`record_cv_import`); assistant credits remain in `charge_ai_credits`
 - `backend/alembic/versions/20260831_0008_free_plan_contract.py`, lines 1–97, migration `20260831_0008` — updates existing production Free rows without changing legacy file markers
-- `backend/app/api/routes/billing.py`, `get_plans`, `select_plan`
+- `backend/app/api/routes/billing.py`, lines 47–104 (`get_plans`, `select_plan`) and 147–214 (`admin_set_user_plan`) — product plan selection plus the exact-account, secret-protected support path
 - `frontend/src/utils/planPresentation.js`, lines 9–70, `PLAN_PRESENTATION` and `applyPlanPresentation` — one canonical frontend contract used even while the catalog request is loading or unavailable
 - `frontend/src/components/modals/PlanSelectModal/PlanSelectModal.jsx`, lines 20–172, component `PlanSelectModal` — accessible two-card picker with loading, fallback, current, pending, success, and error states
 - `frontend/src/pages/Hero/Hero.jsx`, lines 297–431, component `Hero` — pricing + FAQ for Darmowy/Pro and the landing footer
 - `frontend/src/templates/index.js`, lines 17–27, registry `TEMPLATES` — three shipped Free element packs and six metadata-only, server-materialized Pro entries
 - `frontend/src/hooks/useEntitlements.js`, lines 1–47, hook `useEntitlements`
 
-Tests: `backend/tests/test_entitlements.py`, `test_plan_selection.py`, `test_ai_credits.py`, `test_alembic_free_plan_contract_migration.py`, `frontend/src/templates/index.test.js`, and the plan-presentation/frontend contract tests.
+Tests: `backend/tests/test_entitlements.py`, `test_plan_selection.py`, `test_ai_credits.py`, `test_alembic_free_plan_contract_migration.py`, `backend/tests/test_admin_credit_reset_security.py`, lines 110–160 (exact username matching, redacted response/audit and unknown-plan rejection), `frontend/src/templates/index.test.js`, and the plan-presentation/frontend contract tests.
 
 ### Clean Free exports and monthly CV-import quota
 
@@ -2298,12 +2300,15 @@ Base URL: `VITE_API_URL` (frontend) / deployed backend. Auth: `Authorization: Be
 | GET | `/templates/catalog` | no | Cacheable allowlisted Free/Pro template metadata | `get_template_catalog` |
 | GET | `/billing/plans` | yes | Plan catalog | `get_plans` |
 | POST | `/billing/select-plan` | yes | Activate plan | `select_plan` |
+| POST | `/billing/admin/set-user-plan` | `X-Admin-Secret` | Assign Free/Pro to one exact, case-sensitive username; response and audit omit account identity | `admin_set_user_plan` |
 | POST | `/billing/admin/reset-ai-credits` | `X-Admin-Secret` | Operational reset by numeric `user_id`; dedicated secret only | `admin_reset_ai_credits` |
 | POST | `/events/log` | yes | Product metrics log | `log_event` |
 
 **Ownership and private storage:** PDF/image by-id routes use IDOR checks (`_require_owned_pdf` in `pdf.py`). PDF list/show payloads expose allowlisted editor metadata without `file_path`, and `/static/generated/...` always returns 404; stored bytes leave only through authenticated `POST /pdf/download_pdf`.
 
 `POST /events/log` accepts a fixed event vocabulary, including guest-funnel signals and current CTA sources such as `hero_new_cv`, `hero_import`, `hero_demo`, and `templates_new_cv`. Anonymous events queue in `guestEvents.js` and flush after authentication.
+
+The administrative plan body is `{ "username": "exact-case-sensitive-name", "plan_slug": "free|pro" }`. It is intended for controlled support operations only: a missing account returns `404 user_not_found`, an unsupported plan returns `400 unknown_plan`, and an absent, short, or incorrect dedicated secret returns `403 admin_secret_invalid`.
 
 Example login (form body):
 
@@ -2399,7 +2404,7 @@ App: `http://localhost:5173`.
 | `S3_BUCKET_NAME` | required in production; optional dev/test | Private bucket used for all durable personal images and saved PDFs | bucket name |
 | `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` / `AWS_REGION` | required in production; with local S3 | Server-side private-object credentials and region; never expose them to the frontend | `eu-north-1` |
 | `ALLOW_UNPAID_PLAN_SELECTION` | no | Allow activating paid plans without Stripe (`false` default; set `true` locally pre-Stripe) | `true` (local) |
-| `ADMIN_RESET_SECRET` | for admin reset | Dedicated secret for `POST /billing/admin/reset-ai-credits` (does **not** fall back to `SECRET_KEY`) | long random string |
+| `ADMIN_RESET_SECRET` | for billing administration | Dedicated secret for plan assignment and AI-credit reset endpoints (does **not** fall back to `SECRET_KEY`) | long random string |
 | `ALLOW_INSECURE_SECRET` | no | Local throwaway only: skip strong `SECRET_KEY` boot check | `true` |
 | `MAX_UPLOAD_BYTES` | no | Max image upload size in bytes (default 8 MB) | `8388608` |
 | `MAX_IMAGES_PER_USER` | no | Max profile photos per user (default 4) | `4` |
@@ -2498,7 +2503,7 @@ CI/CD: `.github/workflows/ci.yml` is committed and gates backend, frontend, brow
 - Provider secrets: Cloudflare account ID/token and OpenAI key exist only in backend environment variables; no `VITE_` variable may contain them.
 - Metrics: `/events/log` logs numeric `user_id`, not raw usernames (`metrics_logging.py`).
 - Secrets: env only; never in README or git.
-- Administrative reset: dedicated `ADMIN_RESET_SECRET`, constant-time `X-Admin-Secret` comparison, immutable numeric target; there is no fallback to the JWT signing secret.
+- Billing administration: dedicated `ADMIN_RESET_SECRET`, constant-time `X-Admin-Secret` comparison, exact case-sensitive username for plan assignment, immutable numeric target for credit reset, redacted audit references, and no fallback to the JWT signing secret.
 
 This does not claim SOC2/compliance — it documents controls that exist in code.
 
@@ -4558,16 +4563,18 @@ Katalog ma tylko dwa pakiety:
 
 Legacy slugi `standard` i `premium` mapują się na `pro`. Po wygaśnięciu Pro dokumenty zostają — konto wraca do Darmowego. Darmowy jest celowo kompletnym CV gotowym do wysłania, a nie zdegradowanym trialem: bez karty, limitu czasu i znaku wodnego. Pro sprzedaje wiele wersji pod role, wszystkie szablony, brak limitów przepustowości oraz wsparcie treści/ATS/Układu.
 
+Support produkcyjny może przypisać `free` lub `pro` przez `POST /billing/admin/set-user-plan`, gdy komputer operatora nie może połączyć się bezpośrednio z PostgreSQL Rendera. Trasa wymaga osobnego `X-Admin-Secret`, dopasowuje nazwę użytkownika dokładnie i z uwzględnieniem wielkości liter, nie zwraca nazwy ani e-maila i zapisuje zmianę przez ten sam serwis `set_user_plan`, którego używa zwykły flow produktu. Wybór Pro rozpoczyna więc świeży 30-dniowy pass i zeruje bieżący licznik kredytów AI.
+
 - `backend/app/services/entitlements.py`, linie 37–70 (`PLAN_SEEDS`), 422–477 (`get_entitlements`), 480–523 (`assert_can_create_project`), 589–603 (`assert_can_extract_cv`), 620–648 (`assert_template_allowed`), 651–721 (`record_export`) i 724–771 (`record_cv_import`); kredyty asystenta pozostają w `charge_ai_credits`
 - `backend/alembic/versions/20260831_0008_free_plan_contract.py`, linie 1–97, migracja `20260831_0008` — aktualizuje istniejące produkcyjne rekordy Darmowego bez zmiany znaczników starszych plików
-- `backend/app/api/routes/billing.py`
+- `backend/app/api/routes/billing.py`, linie 47–104 (`get_plans`, `select_plan`) i 147–214 (`admin_set_user_plan`) — wybór planu w produkcie oraz chroniona sekretem ścieżka supportu dla dokładnego konta
 - `frontend/src/utils/planPresentation.js`, linie 9–70, `PLAN_PRESENTATION` i `applyPlanPresentation` — jeden kanoniczny kontrakt frontendu używany także podczas ładowania lub awarii katalogu
 - `frontend/src/components/modals/PlanSelectModal/PlanSelectModal.jsx`, linie 20–172, komponent `PlanSelectModal` — dostępny modal dwóch planów ze stanami ładowania, fallbacku, planu bieżącego, operacji, sukcesu i błędu
 - `frontend/src/pages/Hero/Hero.jsx`, linie 297–431, komponent `Hero` — cennik i FAQ planów Darmowy/Pro oraz stopka landingu
 - `frontend/src/templates/index.js`, linie 17–27, rejestr `TEMPLATES` — trzy wysyłane pakiety elementów Free i sześć metadata-only, server-materialized wpisów Pro
 - `frontend/src/hooks/useEntitlements.js`, linie 1–47, hook `useEntitlements`
 
-Testy: `backend/tests/test_entitlements.py`, `test_plan_selection.py`, `test_ai_credits.py`, `test_alembic_free_plan_contract_migration.py`, `frontend/src/templates/index.test.js` oraz testy kontraktu prezentacji planów.
+Testy: `backend/tests/test_entitlements.py`, `test_plan_selection.py`, `test_ai_credits.py`, `test_alembic_free_plan_contract_migration.py`, `backend/tests/test_admin_credit_reset_security.py`, linie 110–160 (dokładne dopasowanie nazwy, redagowanie odpowiedzi/audytu i odrzucenie nieznanego planu), `frontend/src/templates/index.test.js` oraz testy kontraktu prezentacji planów.
 
 ### Czyste eksporty Free i miesięczny limit importów CV
 
@@ -4848,12 +4855,15 @@ URL bazowy: `VITE_API_URL`. Auth: `Authorization: Bearer <jwt>` (chyba że zazna
 | GET | `/templates/catalog` | nie | Cache'owane allowlisted metadata szablonów Free/Pro | `get_template_catalog` |
 | GET | `/billing/plans` | tak | Katalog planów | `get_plans` |
 | POST | `/billing/select-plan` | tak | Aktywacja planu | `select_plan` |
+| POST | `/billing/admin/set-user-plan` | `X-Admin-Secret` | Przypisanie Free/Pro jednej dokładnej nazwie z uwzględnieniem wielkości liter; odpowiedź i audit bez tożsamości konta | `admin_set_user_plan` |
 | POST | `/billing/admin/reset-ai-credits` | `X-Admin-Secret` | Operacyjny reset po numerycznym `user_id`; wyłącznie osobny sekret | `admin_reset_ai_credits` |
 | POST | `/events/log` | tak | Metryki produktu | `log_event` |
 
 **Własność i prywatny storage:** trasy PDF/obrazu po id wykonują kontrolę IDOR (`_require_owned_pdf` w `pdf.py`). Payload list/show PDF-a udostępnia allowlistę metadanych edytora bez `file_path`, a `/static/generated/...` zawsze zwraca 404; zapisane bajty wychodzą wyłącznie przez uwierzytelnione `POST /pdf/download_pdf`.
 
 `POST /events/log` przyjmuje ustalony słownik zdarzeń, w tym sygnały lejka gościa oraz bieżące źródła CTA: `hero_new_cv`, `hero_import`, `hero_demo` i `templates_new_cv`. Zdarzenia anonimowe są buforowane w `guestEvents.js` i wysyłane po uwierzytelnieniu.
+
+Body administracyjnej zmiany planu ma postać `{ "username": "dokładna-nazwa-z-wielkością-liter", "plan_slug": "free|pro" }`. To wyłącznie kontrolowana operacja supportu: brak konta zwraca `404 user_not_found`, nieobsługiwany plan `400 unknown_plan`, a brak, zbyt krótki lub błędny osobny sekret `403 admin_secret_invalid`.
 
 Create przyjmuje `{ "pdf_title", "root": [PdfElement...], "render_root": [PdfElement...] | null, "pages", "page_width", "page_height", "editor_mode", "template_id", "cv_data" }`; update/save dodatkowo wymagają `{ "pdf_id", "expected_revision" }`. `root` jest utrwalanym grafem edytora. Opcjonalny `render_root` to zwarta sklonowana kopia używana wyłącznie do bieżącego renderu PDF, więc podpowiedzi startera można odtworzyć, ale nie trafiają do wydruku. `PdfElement` przechowuje `placeholder`, `starterPlaceholder`, `starterSectionKey` i `cvDataBindings` przez `extra_properties`. Create/update/render startera odrzuca puste powiązane imię z `detail.code = "starter_name_required"`. Udany create zwraca `{ created, pdf_id, revision, replayed }`, a update/save nową rewizję.
 
@@ -4933,7 +4943,7 @@ Aplikacja: `http://localhost:5173`.
 | `S3_BUCKET_NAME` | wymagane w produkcji; opcjonalne dev/test | Prywatny bucket dla wszystkich trwałych zdjęć użytkownika i zapisanych PDF-ów | nazwa bucketu |
 | `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` / `AWS_REGION` | wymagane w produkcji; z lokalnym S3 | Serwerowe credentials prywatnych obiektów i region; nigdy we frontendzie | `eu-north-1` |
 | `ALLOW_UNPAID_PLAN_SELECTION` | nie | Tymczasowa aktywacja Pro bez Stripe | `true` lokalnie |
-| `ADMIN_RESET_SECRET` | dla admin reset | Osobny sekret `X-Admin-Secret`; bez fallbacku do `SECRET_KEY` | długi losowy tekst |
+| `ADMIN_RESET_SECRET` | dla administracji billingiem | Osobny sekret `X-Admin-Secret` dla przypisania planu i resetu kredytów; bez fallbacku do `SECRET_KEY` | długi losowy tekst |
 | `ALLOW_INSECURE_SECRET` | nie | Wyłącznie throwaway local: pomiń kontrolę silnego `SECRET_KEY` | `true` |
 | `MAX_UPLOAD_BYTES` / `MAX_IMAGES_PER_USER` | nie | Limity zdjęć: 8 MB / 4 | `8388608` / `4` |
 
@@ -5025,7 +5035,7 @@ CI/CD: `.github/workflows/ci.yml` jest częścią repozytorium i przed wdrożeni
 - Sekrety dostawców: Account ID/token Cloudflare i klucz OpenAI tylko w env backendu; żadna zmienna `VITE_` nie może ich zawierać.
 - Metryki z `user_id`, nie raw username.
 - Sekrety tylko w env.
-- Reset administracyjny: osobny `ADMIN_RESET_SECRET`, stałoczasowe porównanie `X-Admin-Secret`, niezmienny numeryczny cel; brak fallbacku do sekretu JWT.
+- Administracja billingiem: osobny `ADMIN_RESET_SECRET`, stałoczasowe porównanie `X-Admin-Secret`, dokładna nazwa z wielkością liter dla zmiany planu, niezmienny numeryczny cel dla resetu kredytów, zredagowane referencje audytu i brak fallbacku do sekretu JWT.
 
 ---
 
