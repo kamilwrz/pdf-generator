@@ -437,7 +437,6 @@
 body:has(.main-container) {
    --color-ink: var(--color-editor-ink);
    --color-ink-soft: color-mix(in srgb, var(--color-editor-ink) 72%, var(--color-paper));
-   --color-overlay: color-mix(in srgb, var(--color-editor-ink) 74%, transparent);
    --chrome-ink: var(--color-editor-ink);
    --chrome-accent: var(--color-editor-ink);
    --chrome-accent-strong: var(--color-editor-ink);

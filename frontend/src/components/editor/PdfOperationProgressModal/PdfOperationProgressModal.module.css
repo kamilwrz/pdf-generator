@@ -11,7 +11,7 @@
     place-items: center;
     padding: var(--space-4);
     overflow: hidden;
-    background: var(--color-overlay);
+    background: var(--color-modal-backdrop);
     animation: operationOverlayIn var(--motion-fast) var(--motion-ease) both;
 }
 

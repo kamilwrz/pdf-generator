@@ -28,6 +28,7 @@ colors:
   success: "#18794E"
   warning: "#9A6700"
   danger: "#B42318"
+  modalBackdrop: "rgba(255, 255, 255, 0.84)"
 typography:
   ui: "Helvetica Neue, Helvetica, Arial, sans-serif"
   mono: "JetBrains Mono, Consolas, monospace"
@@ -147,6 +148,7 @@ Tokens are the only source of shared visual values. Reusable colors, spacing, ty
 | `success` | `#18794E` | Confirmed success only |
 | `warning` | `#9A6700` | Recoverable risk or attention only |
 | `danger` | `#B42318` | Destructive actions and errors only |
+| `modalBackdrop` | `rgba(255, 255, 255, 0.84)` | White wash behind every modal dialog |
 
 Rules:
 
@@ -156,6 +158,7 @@ Rules:
 - Body text must meet WCAG AA contrast at minimum. Target AAA for ordinary body copy where the palette permits it.
 - Never communicate status by color alone; pair it with text and, where useful, an icon or shape.
 - Semantic colors keep their meaning everywhere. Do not use danger red as decoration or focus blue as a brand accent.
+- Every modal backdrop uses `modalBackdrop`. The editor ink scope must not recolor it; modal context is subdued with a consistent translucent white wash on every route.
 - Gradients, glassmorphism, neon glow, and oversaturated accents are not part of this system.
 - Dark mode, if present, must use semantic token aliases and preserve hierarchy and contrast. Do not invert colors mechanically.
 
@@ -281,6 +284,7 @@ The editor and other task-heavy screens may be denser, but must remain grid-base
 ### 5.5 Dialogs, drawers, menus, and popovers
 
 - Reuse a shared dialog shell and shared panel primitives.
+- Standard, decision, progress, loading, error, and confirmation modals use the shared translucent white backdrop token. Fullscreen workflows cover the viewport with their own paper surface and must not introduce a tinted backdrop.
 - New CV setup and its replacement confirmation use predominantly white paper surfaces. Keep beige to selected-template and hover accents, with brown headings, selections, and primary actions. This surface treatment must not change the backdrop.
 - The built-in demo is product-owned sample content, not an active user document. Starting a personal CV from the demo opens setup directly without replacement or unsaved-work confirmation; user-authored active documents retain that protection.
 - Short account-required choices use the shared `decision` dialog variant: an uppercase task label, action-led title, concise consequence, and no more than two structured facts before the footer. The primary account action receives initial focus; login remains secondary and returning to the editor remains a visually tertiary escape. On compact screens the facts and actions stack in DOM order, retain 44px targets, and keep the complete decision inside `100dvh`.

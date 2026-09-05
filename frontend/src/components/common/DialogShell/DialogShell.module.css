@@ -6,7 +6,7 @@
     align-items: flex-start;
     justify-content: center;
     padding: 8vh 1rem 1rem;
-    background: var(--color-overlay);
+    background: var(--color-modal-backdrop);
     animation: fadeIn var(--motion-fast) var(--motion-ease) both;
 }
 

@@ -24,6 +24,7 @@
     --color-success: #18794E;
     --color-warning: #9A6700;
     --color-danger: #B42318;
+    --color-modal-backdrop: rgba(255, 255, 255, .84);
 
     --color-ink-soft: color-mix(in srgb, var(--color-ink) 72%, var(--color-paper));
     --color-border-soft: color-mix(in srgb, var(--color-border) 56%, var(--color-paper));
@@ -32,7 +33,6 @@
     --color-success-soft: color-mix(in srgb, var(--color-success) 12%, var(--color-paper));
     --color-warning-soft: color-mix(in srgb, var(--color-warning) 12%, var(--color-paper));
     --color-danger-soft: color-mix(in srgb, var(--color-danger) 10%, var(--color-paper));
-    --color-overlay: color-mix(in srgb, var(--color-ink) 74%, transparent);
 
     /* Typography. Document fonts remain isolated inside the A4 canvas. */
     --font-ui: "Helvetica Neue", Helvetica, Arial, sans-serif;

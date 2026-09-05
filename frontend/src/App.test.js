@@ -5,6 +5,14 @@ import test from "node:test";
 const sourceUrl = new URL("./App.jsx", import.meta.url);
 const appStylesUrl = new URL("./App.css", import.meta.url);
 const globalStylesUrl = new URL("./index.css", import.meta.url);
+const dialogStylesUrl = new URL(
+  "./components/common/DialogShell/DialogShell.module.css",
+  import.meta.url,
+);
+const operationProgressStylesUrl = new URL(
+  "./components/editor/PdfOperationProgressModal/PdfOperationProgressModal.module.css",
+  import.meta.url,
+);
 
 test("top-level routes are lazy and share a branded error element", async () => {
   const source = await readFile(sourceUrl, "utf8");
@@ -40,4 +48,21 @@ test("the editor route replaces near-black chrome with the Swiss brown token", a
   assert.match(appStyles, /body:has\(\.main-container\)\s*\{[\s\S]*?--color-ink:\s*var\(--color-editor-ink\);/);
   assert.match(appStyles, /body:has\(\.main-container\)\s*\{[\s\S]*?--primary-btn:\s*var\(--color-editor-ink\);/);
   assert.doesNotMatch(appStyles, /body(?::not\([^)]*\))?\s*\{[^}]*--color-editor-ink:/);
+});
+
+test("every modal uses the shared translucent white backdrop", async () => {
+  const [appStyles, globalStyles, dialogStyles, operationProgressStyles] = await Promise.all([
+    readFile(appStylesUrl, "utf8"),
+    readFile(globalStylesUrl, "utf8"),
+    readFile(dialogStylesUrl, "utf8"),
+    readFile(operationProgressStylesUrl, "utf8"),
+  ]);
+
+  assert.match(
+    globalStyles,
+    /--color-modal-backdrop:\s*rgba\(255, 255, 255, \.84\);/,
+  );
+  assert.match(dialogStyles, /\.backdrop\s*\{[\s\S]*?background:\s*var\(--color-modal-backdrop\);/);
+  assert.match(operationProgressStyles, /\.overlay\s*\{[\s\S]*?background:\s*var\(--color-modal-backdrop\);/);
+  assert.doesNotMatch(appStyles, /--color-modal-backdrop:/);
 });
