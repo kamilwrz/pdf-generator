@@ -1,6 +1,5 @@
-/* The primary inspector enters as a compact disclosure tab. The full parameter
-   surface is opt-in, keeping the document visually dominant during direct edit.
-   The small inline-text toolbar reuses the surface token independently. */
+/* Editor-only settings use screen pixels in a body portal. The independent
+   inline formatting bar keeps its own surface and sizing contract. */
 .editor {
     position: fixed;
     z-index: var(--z-editor-affordance);
@@ -19,95 +18,56 @@
     container-type: inline-size;
 }
 
-.editorClosed {
-    width: min(192px, calc(100vw - 72px));
-    max-height: 52px;
-}
-
-.editorOpen {
-    min-width: min(220px, calc(100vw - 64px));
-}
+.editorOpen { min-width: 0; z-index: var(--z-editor-selection); }
+.editorOpen:focus { outline: none; }
+.editorOpen:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
 
 .inspectorToggle {
-    width: 100%;
-    min-height: 50px;
-    display: grid;
-    grid-template-columns: 28px minmax(0, 1fr) 28px;
-    align-items: center;
-    gap: var(--space-2);
-    padding: 7px var(--space-2);
-    border: 0;
-    border-left: 2px solid var(--chrome-ink);
-    border-radius: 0;
-    background: var(--chrome-surface);
-    color: var(--chrome-ink);
-    text-align: left;
-    cursor: pointer;
-    flex-shrink: 0;
-    transition: background var(--motion-fast), color var(--motion-fast);
+    --canvas-control-size: 36px;
+    --canvas-control-icon: 16px;
+    --canvas-control-gap: 8px;
+    --canvas-control-font: 12px;
+    --canvas-control-menu-width: 192px;
+    position: fixed;
+    z-index: var(--z-editor-affordance);
+    padding: 0;
+    background: var(--color-paper);
+    border: 1px solid var(--color-border);
 }
 
-.inspectorToggle:hover {
-    background: var(--chrome-hover);
+.inspectorToggle[data-tooltip]::after {
+    left: 0;
+    transform: none;
 }
 
-.inspectorToggle:focus-visible {
-    outline: 2px solid var(--color-focus);
-    outline-offset: -3px;
-}
+.inspectorToggle[data-tooltip]:hover::after,
+.inspectorToggle[data-tooltip]:focus-visible::after { transform: none; }
 
-.editorOpen .inspectorToggle {
-    min-height: 60px;
-    border-bottom: 1px solid var(--chrome-border);
-}
-
-.inspectorMark {
-    width: 28px;
-    height: 28px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    background: var(--chrome-ink);
-    color: var(--chrome-surface);
-    font: 700 9px/1 var(--font-mono);
-    letter-spacing: .08em;
-}
-
-.inspectorToggleCopy {
-    min-width: 0;
+.inspectorHeader {
     display: flex;
-    flex-direction: column;
-    gap: 3px;
-}
-
-.panelTitle {
-    overflow: hidden;
-    color: inherit;
-    font: 700 12px/1.15 var(--font-display);
-    letter-spacing: -.01em;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.selectionHint {
-    color: var(--chrome-muted);
-    font: 600 9px/1.1 var(--font-mono);
-}
-
-.inspectorToggleIcon {
-    width: 28px;
-    height: 28px;
-    display: inline-flex;
     align-items: center;
-    justify-content: center;
-    color: var(--chrome-muted);
-    border-left: 1px solid var(--chrome-border);
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: var(--space-3);
+    border-bottom: 1px solid var(--chrome-border);
+    flex-shrink: 0;
 }
 
-.inspectorToggleIcon svg {
-    width: 16px;
-    height: 16px;
+.inspectorToggleCopy { min-width: 0; display: grid; gap: var(--space-1); }
+.panelTitle { margin: 0; font: 600 16px/1.25 var(--font-ui); color: var(--chrome-ink); }
+.inspectorFooter {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: var(--space-1) var(--space-2);
+    padding: var(--space-2) var(--space-3);
+    border-top: 1px solid var(--chrome-border);
+    color: var(--chrome-muted);
+    font: 400 12px/1.4 var(--font-ui);
+    flex-shrink: 0;
 }
+.selectionHint { min-width: 0; }
+.fieldHelp { margin: 0; color: var(--chrome-muted); font: 400 12px/1.5 var(--font-ui); }
 
 .inspectorContent {
     min-height: 0;
@@ -118,7 +78,7 @@
 
 .eyebrow {
     display: block;
-    font: 700 9px/1 var(--font-body);
+    font: 600 10px/1.2 var(--font-body);
     letter-spacing: .12em;
     text-transform: uppercase;
     color: var(--chrome-muted);
@@ -128,7 +88,9 @@
     min-height: 0;
     overflow: auto;
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1fr);
+    width: 100%;
+    overscroll-behavior: contain;
     align-content: start;
     gap: var(--space-2);
     padding: var(--space-2);
@@ -142,15 +104,16 @@
     display: flex;
     flex-direction: column;
     gap: var(--space-2);
-    padding: var(--space-2);
-    background: var(--chrome-control);
-    border: 1px solid var(--chrome-border);
-    border-radius: var(--radius-control);
+    padding: var(--space-3) var(--space-1);
+    background: var(--chrome-surface);
+    border: 0;
+    border-bottom: 1px solid var(--chrome-border);
+    border-radius: 0;
 }
 
 .groupLabel {
     color: var(--chrome-muted);
-    font: 700 9px/1.2 var(--font-body);
+    font: 600 12px/1.2 var(--font-body);
     letter-spacing: .09em;
     text-transform: uppercase;
 }
@@ -179,7 +142,7 @@
     display: inline-flex;
     align-items: center;
     gap: 5px;
-    font: 600 10px/1.25 var(--font-body);
+    font: 500 12px/1.4 var(--font-body);
     color: var(--chrome-ink);
 }
 
@@ -265,7 +228,7 @@
     background: transparent;
     color: var(--chrome-ink);
     text-align: center;
-    font: 700 11px/1 var(--font-mono);
+    font: 500 12px/1 var(--font-mono);
     -moz-appearance: textfield;
 }
 
@@ -288,7 +251,7 @@
 }
 
 .colorField input { width: 46px; height: 42px; margin: -3px; padding: 0; border: 0; background: transparent; cursor: pointer; }
-.colorField > span { padding-left: 9px; border-left: 1px solid var(--chrome-border); color: var(--chrome-muted); font: 600 10px/1 var(--font-mono); text-transform: uppercase; }
+.colorField > span { padding-left: 9px; border-left: 1px solid var(--chrome-border); color: var(--chrome-muted); font: 500 12px/1 var(--font-mono); text-transform: uppercase; }
 
 .fontSelect {
     width: 100%;
@@ -299,7 +262,7 @@
     outline: 0;
     background: var(--chrome-surface);
     color: var(--chrome-ink);
-    font-size: 11px;
+    font-size: 12px;
     cursor: pointer;
 }
 
@@ -347,18 +310,7 @@
 .selectionEditor .group { padding: 4px; border-top-width: 1px; }
 .selectionEditor .groupLabel { display: none; }
 
-@media (max-width: 900px) {
-    .bar { grid-template-columns: 1fr; }
-}
-
-@container (max-width: 380px) {
-    .bar { grid-template-columns: 1fr; }
-}
-
-/* When the live A4 boundary narrows the 272 px desktop panel, fields use the
-   full card width so labels and steppers stay legible without reducing the
-   design-system 36 px interaction targets. The independent selection toolbar
-   disables container queries and keeps its compact row. */
+/* Narrow sheets stack fields without shrinking their 36 px targets. */
 @container (max-width: 280px) {
     .field {
         flex: 1 1 100%;
@@ -367,10 +319,6 @@
 }
 
 @media (max-width: 720px) {
-    .editorClosed:not(.selectionEditor) {
-        max-width: calc(100vw - 64px);
-    }
-
     .editorOpen:not(.selectionEditor) {
         top: auto !important;
         left: 64px !important;
@@ -388,4 +336,9 @@
     .inspectorToggle,
     .iconBtn,
     .numField button { transition: none; }
+}
+
+.group:last-child { border-bottom: 0; }
+@media print {
+    .editor, .inspectorToggle { display: none !important; }
 }

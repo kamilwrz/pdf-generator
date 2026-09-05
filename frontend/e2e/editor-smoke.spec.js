@@ -116,8 +116,8 @@ test.describe("CV Studio editor smoke", () => {
     if (viewport && viewport.width <= 720) {
       expect(openInspectorBox?.height).toBeLessThanOrEqual(Math.floor(viewport.height * 0.46) + 2);
     } else {
-      expect(openInspectorBox?.width).toBeLessThanOrEqual(274);
-      expect(openInspectorBox?.height).toBeLessThanOrEqual(422);
+      expect(openInspectorBox?.width).toBeLessThanOrEqual(344);
+      expect(openInspectorBox?.height).toBeLessThanOrEqual(480);
     }
     await page.keyboard.press("Escape");
     await expect(closedInspector).toBeVisible();

@@ -1,11 +1,9 @@
 /**
  * Element-properties panel (CV STUDIO chrome). Text vs TextArea keep different
- * field sets. Selecting an element mounts a compact, closed disclosure tab in
- * the quiet top-left workspace; editing on A4 therefore stays primary. The user
- * explicitly opens the inspector when advanced parameters are needed. A new
- * selection remounts the disclosure closed, while the expanded desktop panel
- * remains collision-aware and compact. On narrow viewports it becomes a short
- * bottom sheet that leaves the current document task visible.
+ * field sets. A screen-stable settings cog appears to the left of the selection.
+ * The user explicitly opens a contextual form; compact screens use a bounded
+ * bottom sheet. Changing selection resets the form closed. All chrome is
+ * portalled outside the document and never changes PDF geometry.
  *
  * While a text/textarea is contentEditable and the caret range is non-empty,
  * a second, fully independent floating bar ("Zaznaczenie") appears anchored
@@ -21,7 +19,8 @@
  * suppressed in template mode.
  */
 import classes from "./Editor.module.css";
-import { useEffect, useLayoutEffect, useState, useRef } from "react";
+import canvasControls from "../../canvas/CanvasControls.module.css";
+import { useEffect, useLayoutEffect, useState, useRef, useId } from "react";
 import { createPortal } from "react-dom";
 import { RiDeleteBin2Line, RiFileCopyLine } from "react-icons/ri";
 import { CiTextAlignLeft, CiTextAlignCenter, CiTextAlignRight, CiTextAlignJustify } from "react-icons/ci";
@@ -35,7 +34,7 @@ import {
   MdClose,
   MdFormatLineSpacing,
   MdFormatSize,
-  MdTune,
+  MdSettings,
 } from "react-icons/md";
 import { RxLetterSpacing, RxWidth, RxHeight, RxLayers } from "react-icons/rx";
 import { TbArrowBigRightLines } from "react-icons/tb";
@@ -59,10 +58,7 @@ import {
 } from "../../../utils/floatingPanelPosition";
 import { CANVAS_FONT_STACKS } from "../../../utils/canvasFont";
 import { pathCurvesForKind } from "../../../utils/freeformShapes";
-import {
-  EDITOR_INSPECTOR_FIXED_WIDTH_PX,
-  resolveEditorInspectorWidth,
-} from "../../../utils/editorInspectorWidth";
+import { elementToolbarPosition } from "../../../utils/elementToolbarPosition";
 import { insertInlineSkillSeparator } from "../../../utils/flatSectionLayout";
 import { isInlineSkillsContentElement } from "../../../utils/skillsDisplayMode";
 import {
@@ -96,10 +92,6 @@ const FONT_OPTIONS = [
 
 const BULLET_PREFIX_PATTERN = /^\s*•[ \t]*/;
 const HEX_COLOR_PATTERN = /^#[0-9A-Fa-f]{6}$/;
-const PANEL_A4_GAP_PX = 15;
-const PANEL_MIN_WIDTH_PX = 120;
-const PANEL_VIEWPORT_GUTTER_PX = 8;
-const PANEL_MAX_HEIGHT_PX = 420;
 
 const CATEGORY_LABELS = {
   text: "tekst",
@@ -149,105 +141,119 @@ function toColorInputValue(value, fallback = "#000000") {
 /** Return the live union rectangle for the selected canvas element IDs. */
 function readSelectionAnchorRect(selectionKey) {
   const ids = selectionKey ? selectionKey.split("|").filter(Boolean) : [];
-  const rects = ids
-    .map((id) => document.getElementById(id)?.getBoundingClientRect())
-    .filter(Boolean)
-    .map((rect) => ({
-      left: rect.left,
-      top: rect.top,
-      width: rect.width,
-      height: rect.height,
-    }));
+  const rects = ids.map((id) => {
+    const node = document.getElementById(id);
+    if (!node) return null;
+    let rect = node.getBoundingClientRect();
+    // PDF baseline text has a zero-height box. Anchor to its rendered glyphs.
+    if (rect.height === 0 && node.textContent) {
+      const range = document.createRange();
+      range.selectNodeContents(node);
+      rect = range.getBoundingClientRect();
+    }
+    return { left: rect.left, top: rect.top, width: rect.width, height: Math.max(1, rect.height) };
+  }).filter(Boolean);
   return unionRects(rects);
 }
 
 /**
- * Keeps advanced element parameters opt-in for each distinct canvas selection.
- *
- * The component is keyed by `selectionKey`, so selecting a different element
- * creates a fresh closed disclosure without coupling presentation state to the
- * persisted canvas model. The same header button opens and collapses the panel,
- * preserving a stable keyboard target. Escape collapses from any child control
- * and returns focus to that button.
+ * Owns only presentation, keyed by selection to reset advanced controls closed.
+ * The event boundary protects selection and edit zoom. Opening focuses the
+ * nonmodal dialog; Escape/Close returns to the cog without trapping navigation.
  */
-function InspectorDisclosure({
-  visible,
-  selectionKey,
-  panelPosition,
-  panelTitle,
-  panelSubject,
-  reduceMotion,
-  children,
-}) {
+function InspectorDisclosure({ visible, selectionKey, panelPosition, panelTitle, panelSubject, reduceMotion, children }) {
   const [isOpen, setIsOpen] = useState(false);
   const toggleRef = useRef(null);
+  const dialogRef = useRef(null);
+  const focusOnOpenRef = useRef(false);
   const contentId = `element-inspector-content-${selectionKey.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
-
+  useEffect(() => {
+    if (!isOpen) return undefined;
+    // Pointer opening leaves focus in the canvas. Intercept Escape there before
+    // the editable node handles it; inside the dialog, nested controls retain
+    // their normal event order and the local handler closes the settings.
+    function closeFromCanvas(event) {
+      if (event.key !== "Escape" || dialogRef.current?.contains(event.target)) return;
+      event.preventDefault();
+      event.stopPropagation();
+      toggleRef.current?.focus({ preventScroll: true });
+      setIsOpen(false);
+    }
+    document.addEventListener("keydown", closeFromCanvas, true);
+    return () => document.removeEventListener("keydown", closeFromCanvas, true);
+  }, [isOpen]);
+  useLayoutEffect(() => {
+    // Pointer opening preserves the live text caret (including Skills actions).
+    // Keyboard opening enters the dialog in normal Tab order.
+    if (isOpen && focusOnOpenRef.current) dialogRef.current?.focus({ preventScroll: true });
+    // A compact sheet must not cover the field being configured. Reveal it
+    // above the sheet using viewport scroll only, never model coordinates.
+    if (isOpen && window.innerWidth <= 720) {
+      const anchor = readSelectionAnchorRect(selectionKey);
+      const canvas = document.querySelector(".canvas-area");
+      const sheetTop = window.innerHeight - 8 - (dialogRef.current?.offsetHeight || 0);
+      if (anchor && canvas && anchor.top + anchor.height > sheetTop - 16) {
+        canvas.scrollTop += anchor.top + anchor.height - sheetTop + 16;
+      }
+    }
+  }, [isOpen, selectionKey]);
   function collapseInspector() {
-    toggleRef.current?.focus();
+    toggleRef.current?.focus({ preventScroll: true });
     setIsOpen(false);
   }
-
   function handleKeyDown(event) {
     if (event.key !== "Escape" || !isOpen) return;
     event.preventDefault();
     event.stopPropagation();
     collapseInspector();
   }
-
-  if (!visible) return null;
-
+  if (!visible || !panelPosition) return null;
   return (
-    <Motion.aside
-      className={`${classes.editor} ${isOpen ? classes.editorOpen : classes.editorClosed}`}
-      aria-label="Parametry wybranego elementu"
-      data-editor-inspector-state={isOpen ? "open" : "closed"}
-      style={isOpen
-        ? panelPosition
-        : { top: panelPosition.top, left: panelPosition.left }}
-      initial={reduceMotion ? false : { opacity: 0, x: -18 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={reduceMotion ? { opacity: 0 } : { opacity: 0, x: -18 }}
-      transition={{ duration: reduceMotion ? 0 : 0.22, ease: [0.2, 0, 0, 1] }}
-      onKeyDown={handleKeyDown}
+    <div data-editor-control="element-settings" onKeyDown={handleKeyDown}
       onPointerDown={(event) => event.stopPropagation()}
-      onMouseDown={(event) => event.stopPropagation()}
-    >
-      <button
-        ref={toggleRef}
-        type="button"
-        className={classes.inspectorToggle}
-        aria-expanded={isOpen}
-        aria-controls={contentId}
+      onMouseDown={(event) => event.stopPropagation()}>
+      <button ref={toggleRef} type="button" className={`${canvasControls.surface} ${canvasControls.button} ${classes.inspectorToggle}`}
+        style={{ ...panelPosition.trigger, visibility: panelPosition.visible || isOpen ? "visible" : "hidden" }}
+        data-editor-inspector-state={isOpen ? undefined : "closed"}
+        aria-expanded={isOpen} aria-controls={isOpen ? contentId : undefined} aria-haspopup="dialog"
         aria-label={`${isOpen ? "Zwiń" : "Otwórz"} parametry elementu: ${panelSubject}`}
-        onClick={() => setIsOpen((current) => !current)}
-      >
-        <span className={classes.inspectorMark} aria-hidden="true">PX</span>
-        <span className={classes.inspectorToggleCopy}>
-          <span className={classes.eyebrow}>{isOpen ? "Parametry elementu" : "Wybrany element"}</span>
-          <span className={classes.panelTitle}>{isOpen ? panelTitle : `Parametry · ${panelSubject}`}</span>
-          {isOpen ? <span className={classes.selectionHint}>Ctrl + klik: zaznacz wiele</span> : null}
-        </span>
-        <span className={classes.inspectorToggleIcon} aria-hidden="true">
-          {isOpen ? <MdClose /> : <MdTune />}
-        </span>
+        data-tooltip={isOpen ? undefined : "Ustawienia"}
+        onMouseDown={(event) => event.preventDefault()}
+        onClick={(event) => {
+          focusOnOpenRef.current = event.detail === 0;
+          if (isOpen) collapseInspector();
+          else setIsOpen(true);
+        }}>
+        <MdSettings aria-hidden="true" />
       </button>
-
       <AnimatePresence initial={false}>
-        {isOpen ? (
-          <Motion.div
-            id={contentId}
-            className={classes.inspectorContent}
-            initial={reduceMotion ? false : { opacity: 0, x: -8 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={reduceMotion ? { opacity: 0 } : { opacity: 0, x: -8 }}
-            transition={{ duration: reduceMotion ? 0 : 0.18, ease: [0.2, 0, 0, 1] }}
-          >
-            {children}
-          </Motion.div>
-        ) : null}
+        {isOpen && (
+          <Motion.aside ref={dialogRef} id={contentId} tabIndex={-1}
+            role="dialog" aria-modal="false" aria-label={`Ustawienia · ${panelSubject}`}
+            className={`${classes.editor} ${classes.editorOpen}`}
+            data-editor-inspector-state="open" style={panelPosition.panel}
+            initial={reduceMotion ? false : { opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+            transition={{ duration: reduceMotion ? 0 : 0.2 }}>
+            <header className={classes.inspectorHeader}>
+              <div className={classes.inspectorToggleCopy}>
+                <span className={classes.eyebrow}>Ustawienia elementu</span>
+                <h2 className={classes.panelTitle}>{panelSubject}</h2>
+              </div>
+              <button type="button" className={classes.iconBtn}
+                aria-label="Zamknij ustawienia elementu" onClick={collapseInspector}>
+                <MdClose aria-hidden="true" />
+              </button>
+            </header>
+            <div className={classes.inspectorContent}>{children}</div>
+            <footer className={classes.inspectorFooter}>
+              <span className={classes.selectionHint} title={panelTitle}>Ctrl + klik: zaznacz wiele</span>
+              <span>Esc · zamknij</span>
+            </footer>
+          </Motion.aside>
+        )}
       </AnimatePresence>
-    </Motion.aside>
+    </div>
   );
 }
 
@@ -300,20 +306,15 @@ export default function Editor() {
   const [elementValues, setElementValues] = useState({});
   const [groupMoveValues, setGroupMoveValues] = useState({ x: "0", y: "0" });
   const groupMoveOffsetRef = useRef({ x: 0, y: 0 });
-  const [panelPosition, setPanelPosition] = useState({
-    top: 0,
-    left: 0,
-    width: EDITOR_INSPECTOR_FIXED_WIDTH_PX,
-    maxHeight: PANEL_MAX_HEIGHT_PX,
-  });
+  const [panelPosition, setPanelPosition] = useState(null);
   // Non-collapsed caret range inside the editing text node. Selection marks
   // (B/I/U/colour) render in their own floating panel, anchored to the
-  // selected element on canvas — independent of the topbar-docked panel
+  // selected element on canvas — independent of the element-settings panel
   // above, with its own mount/unmount animation.
   const [inlineSelection, setInlineSelection] = useState(null);
   const selectionPanelRef = useRef(null);
   const [selectionPanelPosition, setSelectionPanelPosition] = useState({ top: 0, left: 0 });
-  const selectionKey = selectedElements.map((element) => element.element_id).join("|");
+  const selectionKey = selectedElements.map((element) => element.element_id).sort().join("|");
   const selectionGeometryKey = selectedElements
     .map((element) => [
       element.element_id,
@@ -600,77 +601,38 @@ export default function Editor() {
     });
   }
 
-  // The inspector is part of the workspace grid, not a tooltip. Read live DOM
-  // geometry because text editing animates the page to 280% and recentres its
-  // scroll position. The closed disclosure and its explicitly opened panel use
-  // the same top-left anchor. The open panel prefers a compact desktop width,
-  // while the live A4 edge remains a collision boundary at every zoom. Its
-  // intrinsic height is capped, after which only the form body scrolls.
+  // CSS edit-zoom and scroll recentering can move glyphs without resizing them.
+  // One RAF owner measures the live selection, skips hidden tabs, and publishes
+  // only changed positions. Cleanup cancels measurement for detached selections.
   useLayoutEffect(() => {
     if (!someElementSelected) return undefined;
-
+    let frame;
     function updatePosition() {
-      const sidebar = document.querySelector('[data-anchor="editor-sidebar"]');
-      const topbar = document.querySelector('[data-anchor="editor-topbar"]');
-      const canvasArea = document.querySelector(".canvas-area");
-      const visiblePage = document.querySelector(`[data-page-canvas="${currentPage}"]`)
-        || document.querySelector("[data-page-canvas]");
-      if (!sidebar || !topbar || !canvasArea || !visiblePage) return;
-
-      const sidebarRect = sidebar.getBoundingClientRect();
-      const topbarRect = topbar.getBoundingClientRect();
-      const canvasRect = canvasArea.getBoundingClientRect();
-      const pageRect = visiblePage.getBoundingClientRect();
-      const left = Math.round(sidebarRect.right);
-      const top = Math.round(topbarRect.bottom);
-      const exactDockWidth = Math.floor(pageRect.left - PANEL_A4_GAP_PX - left);
-      const availableWidth = Math.max(0, Math.floor(canvasRect.right - left - PANEL_VIEWPORT_GUTTER_PX));
-      const width = resolveEditorInspectorWidth({
-        exactDockWidth,
-        availableWidth,
-        minimumWidth: PANEL_MIN_WIDTH_PX,
-      });
-      const availableHeight = Math.max(0, Math.floor(
-        window.innerHeight - top - PANEL_VIEWPORT_GUTTER_PX,
-      ));
-      const maxHeight = Math.min(PANEL_MAX_HEIGHT_PX, availableHeight);
-      setPanelPosition((previous) => (
-        previous.top === top
-          && previous.left === left
-          && previous.width === width
-          && previous.maxHeight === maxHeight
-          ? previous
-          : { top, left, width, maxHeight }
-      ));
+      if (!document.hidden) {
+        const anchor = readSelectionAnchorRect(selectionKey);
+        const canvas = document.querySelector(".canvas-area");
+        if (anchor && canvas) {
+          const rect = canvas.getBoundingClientRect();
+          const sidebar = document.querySelector('[data-anchor="editor-sidebar"]')?.getBoundingClientRect();
+          const topbar = document.querySelector('[data-anchor="editor-topbar"]')?.getBoundingClientRect();
+          const next = elementToolbarPosition(anchor, {
+            left: Math.max(0, rect.left, sidebar?.right || 0),
+            top: Math.max(0, rect.top, topbar?.bottom || 0),
+            right: Math.min(window.innerWidth, rect.left + canvas.clientWidth),
+            bottom: Math.min(window.innerHeight, rect.top + canvas.clientHeight),
+          });
+          setPanelPosition((previous) => JSON.stringify(previous) === JSON.stringify(next) ? previous : next);
+        }
+      }
+      frame = requestAnimationFrame(updatePosition);
     }
-
     updatePosition();
-    const observedNodes = [
-      document.querySelector('[data-anchor="editor-sidebar"]'),
-      document.querySelector('[data-anchor="editor-topbar"]'),
-      document.querySelector(".canvas-area"),
-      document.querySelector(`[data-page-canvas="${currentPage}"]`) || document.querySelector("[data-page-canvas]"),
-    ].filter(Boolean);
-    const resizeObserver = typeof ResizeObserver !== "undefined"
-      ? new ResizeObserver(updatePosition)
-      : null;
-    observedNodes.forEach((node) => resizeObserver?.observe(node));
-    const canvasArea = document.querySelector(".canvas-area");
-    const page = document.querySelector(`[data-page-canvas="${currentPage}"]`) || document.querySelector("[data-page-canvas]");
-    window.addEventListener("resize", updatePosition);
-    canvasArea?.addEventListener("scroll", updatePosition, { passive: true });
-    page?.addEventListener("transitionend", updatePosition);
-    return () => {
-      resizeObserver?.disconnect();
-      window.removeEventListener("resize", updatePosition);
-      canvasArea?.removeEventListener("scroll", updatePosition);
-      page?.removeEventListener("transitionend", updatePosition);
-    };
-  }, [someElementSelected, selectionKey, zoom, currentPage, isTwoPageView]);
+    return () => cancelAnimationFrame(frame);
+  }, [someElementSelected, selectionKey]);
 
   // Selection-formatting remains a separate, content-sized surface anchored
   // to the selected canvas text. It must not inherit or alter the measured
-  // geometry of the top-left workspace inspector.
+  // geometry of the element-settings panel.
   useLayoutEffect(() => {
     if (!inlineSelection) return undefined;
 
@@ -985,9 +947,13 @@ export default function Editor() {
                   </Group>
                 )}
 
-                {cat === "image" && canEditElementSizeField(selectedElement, "width", editorMode) && (
+                {cat === "image" && (
                   <Group label="Obraz">
-                    <NumField label="Szerokość" icon={<RxWidth />} value={elementValues.width} onChange={(e) => handleChangeValues(e, "width")} width={36} />
+                    {canEditElementSizeField(selectedElement, "width", editorMode) ? (
+                      <NumField label="Szerokość" icon={<RxWidth />} value={elementValues.width} onChange={(e) => handleChangeValues(e, "width")} width={36} />
+                    ) : (
+                      <p className={classes.fieldHelp}>Rozmiar tego obrazu określa układ szablonu.</p>
+                    )}
                   </Group>
                 )}
 
@@ -1186,7 +1152,7 @@ function IconBtn({
       className={`${classes.iconBtn} ${active ? classes.iconBtnActive : ""} ${attention ? classes.iconBtnAttention : ""} ${danger ? classes.iconBtnDanger : ""}`}
       title={label}
       aria-label={label}
-      aria-pressed={active ? true : undefined}
+      aria-pressed={typeof active === "boolean" ? active : undefined}
       disabled={disabled}
       onClick={onClick}
       onMouseDown={onMouseDown}
@@ -1200,6 +1166,7 @@ function NumField({
   label, icon, value, onChange, width = 40, disabled, step,
 }) {
   const amount = Number(step) || 1;
+  const inputId = useId();
 
   function nudge(direction) {
     const current = Number(value);
@@ -1210,7 +1177,7 @@ function NumField({
 
   return (
     <div className={classes.field}>
-      <label className={classes.fieldLabel}>
+      <label className={classes.fieldLabel} htmlFor={inputId}>
         {icon ? <span className={classes.numIcon} aria-hidden="true">{icon}</span> : null}
         <span>{label}</span>
       </label>
@@ -1219,6 +1186,7 @@ function NumField({
           <FiMinus />
         </button>
         <input
+          id={inputId}
           type="number"
           aria-label={label}
           value={value ?? ""}
@@ -1451,9 +1419,8 @@ function BulkToolbar({
           </Group>
         </>
       )}
-      <Sep />
-      <Group label="Akcje zaznaczenia">
-        {allowCloneOrDelete && (
+      {allowCloneOrDelete && (
+        <Group label="Akcje zaznaczenia">
           <>
             <IconBtn label={`Duplikuj zaznaczone (${count})`} onClick={onDuplicateSelected}>
               <RiFileCopyLine />
@@ -1462,8 +1429,8 @@ function BulkToolbar({
               <RiDeleteBin2Line />
             </IconBtn>
           </>
-        )}
-      </Group>
+        </Group>
+      )}
     </>
   );
 }

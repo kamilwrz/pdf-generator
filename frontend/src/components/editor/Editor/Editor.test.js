@@ -22,19 +22,15 @@ test("Editor renders selection formatting as its own panel, independent of the w
   // Layer (zIndex) is freeform-only — structural mode has nothing useful to stack.
   assert.match(source, /canEditElementLayer/);
   assert.match(source, /showLayerField && \(/);
-  // The inspector uses live workspace anchors, stays closed for each new
-  // selection, and respects the 15px A4 gap when explicitly expanded.
-  assert.match(source, /data-anchor="editor-sidebar"/);
-  assert.match(source, /data-anchor="editor-topbar"/);
-  assert.match(source, /PANEL_MAX_HEIGHT_PX = 420/);
-  assert.match(source, /maxHeight = Math\.min\(PANEL_MAX_HEIGHT_PX, availableHeight\)/);
-  assert.doesNotMatch(source, /height: PANEL_MAX_HEIGHT_PX/);
-  assert.match(source, /PANEL_A4_GAP_PX = 15/);
-  assert.match(source, /resolveEditorInspectorWidth/);
+  assert.match(source, /elementToolbarPosition/);
+  assert.match(source, /requestAnimationFrame\(updatePosition\)/);
+  assert.match(source, /cancelAnimationFrame/);
+  assert.match(source, /range.getBoundingClientRect/);
+  assert.match(source, /data-editor-control="element-settings"/);
   assert.match(source, /function InspectorDisclosure/);
   assert.match(source, /const \[isOpen, setIsOpen\] = useState\(false\)/);
   assert.match(source, /key=\{selectionKey\}/);
-  assert.match(source, /data-editor-inspector-state=\{isOpen \? "open" : "closed"\}/);
+  assert.match(source, /data-editor-inspector-state="open"/);
   assert.match(source, /aria-expanded=\{isOpen\}/);
   assert.match(source, /event\.key !== "Escape" \|\| !isOpen/);
 });
@@ -47,33 +43,20 @@ test("Editor panel uses the editor-affordance layer above sticky chrome", async 
   assert.doesNotMatch(editorCss, /:has\(/);
 });
 
-test("Editor follows the AI Assistant surface, control, active, and focus language", async () => {
-  const editorCss = await readFile(new URL("./Editor.module.css", import.meta.url), "utf8");
-
-  assert.match(editorCss, /\.inspectorToggle\s*\{[^}]*background:\s*var\(--chrome-surface\)/s);
-  assert.match(editorCss, /\.inspectorToggle\s*\{[^}]*color:\s*var\(--chrome-ink\)/s);
-  assert.match(editorCss, /\.inspectorToggle:hover\s*\{[^}]*background:\s*var\(--chrome-hover\)/s);
-  assert.match(editorCss, /\.inspectorToggle:focus-visible\s*\{[^}]*var\(--color-focus\)/s);
-  assert.match(editorCss, /\.inspectorMark\s*\{[^}]*background:\s*var\(--chrome-ink\)/s);
-  assert.match(editorCss, /\.group\s*\{[^}]*background:\s*var\(--chrome-control\)/s);
-  assert.match(editorCss, /\.group\s*\{[^}]*border:\s*1px solid var\(--chrome-border\)/s);
-  assert.match(editorCss, /\.group\s*\{[^}]*border-radius:\s*var\(--radius-control\)/s);
-  assert.match(editorCss, /\.numField button\s*\{[^}]*background:\s*var\(--chrome-surface\)/s);
-  assert.match(editorCss, /\.iconBtnActive\s*\{[^}]*background:\s*var\(--accent-soft\)/s);
-  assert.match(editorCss, /\.numField:focus-within\s*\{[^}]*var\(--color-focus-soft\)/s);
-  assert.doesNotMatch(editorCss, /border-left:\s*3px solid var\(--chrome-ink/);
-});
-
-test("Editor keeps 36px targets and gives fields the full narrowed-panel card width", async () => {
-  const editorCss = await readFile(new URL("./Editor.module.css", import.meta.url), "utf8");
-
-  assert.match(editorCss, /\.iconBtn\s*\{[^}]*width:\s*36px;[^}]*height:\s*36px/s);
-  assert.match(editorCss, /\.numField\s*\{[^}]*grid-template-columns:\s*36px minmax\(42px, 1fr\) 36px/s);
-  assert.match(editorCss, /\.numField button\s*\{[^}]*min-width:\s*36px;[^}]*height:\s*36px/s);
-  assert.match(editorCss, /@container \(max-width: 280px\)[\s\S]*\.field\s*\{[^}]*flex:\s*1 1 100%;[^}]*min-width:\s*100%/s);
-  assert.match(editorCss, /\.editorClosed\s*\{[^}]*width:\s*min\(192px,/s);
-  assert.match(editorCss, /\.editorOpen\s*\{[^}]*min-width:\s*min\(220px,/s);
-  assert.match(editorCss, /\.editorOpen:not\(\.selectionEditor\)[^}]*max-height:\s*min\(420px, 46dvh\)/s);
+test("Settings use shared canvas chrome, readable groups, and compact-sheet overflow", async () => {
+  const source = await readFile(new URL("./Editor.jsx", import.meta.url), "utf8");
+  const css = await readFile(new URL("./Editor.module.css", import.meta.url), "utf8");
+  assert.match(source, /canvasControls.surface/);
+  assert.match(source, /canvasControls.button/);
+  assert.match(source, /<MdSettings/);
+  assert.match(source, /aria-haspopup="dialog"/);
+  assert.match(source, /role="dialog" aria-modal="false"/);
+  assert.match(source, /focusOnOpenRef/);
+  assert.match(css, /--canvas-control-size: 36px/);
+  assert.match(css, /overscroll-behavior: contain/);
+  assert.match(css, /max-height: min\(420px, 46dvh\)/);
+  assert.match(css, /@media print/);
+  assert.doesNotMatch(css, /editorClosed|inspectorMark/);
 });
 
 test("inline selection updates after pointer and keyboard range changes", async () => {
