@@ -65,3 +65,58 @@ export function shouldCommitTextEditBlur({ node, elementId, spreadTransitionId }
   }
   return true;
 }
+
+/**
+ * Track the visible text rectangle for the active Text edit-focus pseudo-box.
+ *
+ * A text node may span a whole column to support alignment. Range measures its
+ * actual content, including inline styles, without changing that layout frame
+ * or the native caret. Only DOM-only CSS properties are written; no document
+ * geometry or export data changes. Empty/unmeasurable text uses the CSS fallback.
+ *
+ * @param {HTMLElement} node - Mounted single-line contentEditable surface.
+ * @returns {() => void} Cancel tracking and remove the temporary properties.
+ */
+export function trackTextEditOutline(node) {
+  const view = node.ownerDocument.defaultView;
+  const range = node.ownerDocument.createRange();
+  const properties = ["left", "top", "width", "height"].map((key) => `--text-edit-${key}`);
+  let frame;
+  let previous = "";
+
+  function measure() {
+    if (!node.isConnected) return;
+    const canvas = node.closest("[data-page-canvas]");
+    const canvasRect = canvas?.getBoundingClientRect();
+    const scaleX = canvasRect?.width / canvas?.clientWidth;
+    const scaleY = canvasRect?.height / canvas?.clientHeight;
+    range.selectNodeContents(node);
+    const ink = range.getBoundingClientRect();
+    const box = node.getBoundingClientRect();
+    const measurable = node.textContent && ink.width > 0 && ink.height > 0
+      && scaleX > 0 && scaleY > 0 && Number.isFinite(scaleX) && Number.isFinite(scaleY);
+    const values = measurable ? [
+      (ink.left - box.left) / scaleX,
+      (ink.top - box.top) / scaleY,
+      ink.width / scaleX,
+      ink.height / scaleY,
+    ].map((value) => `${value.toFixed(3)}px`) : [];
+    const signature = values.join(";");
+    if (signature !== previous) {
+      properties.forEach((property, index) => {
+        if (values[index]) node.style.setProperty(property, values[index]);
+        else node.style.removeProperty(property);
+      });
+      previous = signature;
+    }
+    // Track only the active edit. Native input, font loading and animated page
+    // transforms can move glyphs without resizing the fixed-width paragraph.
+    // Use the live page scale and avoid redundant style writes on idle frames.
+    frame = view.requestAnimationFrame(measure);
+  }
+  measure();
+  return () => {
+    view.cancelAnimationFrame(frame);
+    properties.forEach((property) => node.style.removeProperty(property));
+  };
+}

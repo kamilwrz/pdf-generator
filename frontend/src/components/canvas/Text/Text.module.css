@@ -48,13 +48,14 @@
     border-radius: var(--canvas-hover-radius, 2px);
 }
 
-/* Edit focus intentionally keeps the square two-pixel geometry. Rounded,
-   padded chrome is the sole pointer-hover exception, not a selection style. */
+/* Populated text uses live glyph bounds, not the column-wide alignment frame.
+   Keep padding screen-stable during zoom. Empty fields retain their baseline
+   fallback and placeholder hit area without inserting document content. */
 .editing::after {
-    left: -2px;
-    top: calc(-0.67em - 2px);
-    width: calc(100% + 4px);
-    height: calc(1.2em + 4px);
+    left: calc(var(--text-edit-left, 0px) - 2 * var(--canvas-editor-hairline, 1px));
+    top: calc(var(--text-edit-top, -0.67em) - 2 * var(--canvas-editor-hairline, 1px));
+    width: calc(var(--text-edit-width, 100%) + 4 * var(--canvas-editor-hairline, 1px));
+    height: calc(var(--text-edit-height, 1.2em) + 4 * var(--canvas-editor-hairline, 1px));
     border-radius: 0;
 }
 
@@ -112,7 +113,7 @@
 }
 
 .textElement[data-placeholder]:empty.editing::after {
-    top: -2px;
+    top: calc(-2 * var(--canvas-editor-hairline, 1px));
 }
 
 .textElement[data-placeholder]:empty::before {

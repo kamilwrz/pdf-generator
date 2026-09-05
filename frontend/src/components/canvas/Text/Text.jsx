@@ -22,7 +22,7 @@ import {
     endTextSpacingHold,
     startTextSpacingHold,
 } from "../../../utils/textSpacingHold";
-import { seedTextEditNode, shouldCommitTextEditBlur } from "../../../utils/textEditSurface";
+import { seedTextEditNode, shouldCommitTextEditBlur, trackTextEditOutline } from "../../../utils/textEditSurface";
 import { MASTHEAD_TITLE_PLACEHOLDER } from "../../../utils/mastheadBands";
 
 function Text({
@@ -161,6 +161,14 @@ function Text({
         // caret.
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [editZoomSpreadTransitionRef, elementId, isEditing, selectAllOnEdit]);
+
+    useLayoutEffect(() => {
+        // Start after seeding the edit node. The tracker reads live DOM content
+        // and font metrics, so typing does not restart it or disturb the caret.
+        // Cleanup also covers the two-page edit-zoom remount.
+        if (!isEditing || !nodeRef.current) return;
+        return trackTextEditOutline(nodeRef.current);
+    }, [isEditing]);
 
     function startEditing(event) {
         event?.preventDefault();
