@@ -125,11 +125,12 @@ export default function MastheadIdentityControls({ band }) {
         </div>
       ) : null}
 
-      {/* Title hide: sits just left of the title line. */}
+      {/* Keep the complete surface, including its padding and border, outside
+          the authored title rather than allowing the shell to cover glyphs. */}
       {hover === "title" && band.title ? (
         <div className={cluster.anchor} data-editor-control="true"
-             style={{ left: band.title.left - buttonSize - gap, top: band.title.top - 1 }}>
-          <div className={cluster.cluster} style={{ gap }}
+             style={{ left: band.title.left - offset, top: band.title.top }}>
+          <div className={cluster.cluster} style={{ gap, transform: "translateX(-100%)" }}
                onPointerEnter={() => { clearHide(); setHover("title"); }}
                onPointerLeave={scheduleHide} onFocus={clearHide} onBlur={scheduleHide}>
             <button type="button" className={cluster.trash} style={buttonStyle}

@@ -1,9 +1,9 @@
 /**
- * Shared structural toolbar rendered in the editing gutter beside an A4 page.
+ * Shared structural toolbar rendered outside authored layout around an A4 page.
  *
  * Layout metrics are screen pixels. The toolbar never enters export. Its pointer-
- * inert highlight may render independently, while actions stay outside the
- * authored content column and can never be mistaken for PDF content.
+ * inert highlight may render independently, while actions float clear of the
+ * authored text and can never be mistaken for PDF content.
  */
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -18,7 +18,7 @@ import classes from "./CanvasHoverToolbar.module.css";
  *   visible:boolean,
  *   highlightVisible?:boolean,
  *   side?:"left"|"right",
- *   placement?:"gutter"|"below",
+ *   placement?:"gutter"|"above"|"below",
  *   anchorX?:number|null,
  *   top:number,
  *   pageWidth:number,
@@ -329,7 +329,9 @@ export default function CanvasHoverToolbar({
 
       {visible && portalStyle && typeof document !== "undefined" ? createPortal(
         <div
-          className={`${classes.portalAnchor}${placement === "below" ? ` ${classes.portalAnchorBelow}` : ""}`}
+          className={`${classes.portalAnchor}${placement === "gutter"
+            ? ` ${classes.portalAnchorGutter}`
+            : ""}`}
           style={portalStyle}
           data-editor-control="true"
           data-canvas-toolbar-key={toolbarKey}
@@ -337,9 +339,11 @@ export default function CanvasHoverToolbar({
         >
           <div ref={toolbarRef} className={`${classes.toolbar}${panelContent ? ` ${classes.panelToolbar}` : ""} ${placement === "below"
             ? classes.below
-            : side === "left"
-              ? classes.left
-              : classes.right}`}>
+            : placement === "above"
+              ? classes.above
+              : side === "left"
+                ? classes.left
+                : classes.right}`}>
             {panelContent || (hasDirectActions ? <>{directActions.map((item) => (
               <button
                 key={item.key}

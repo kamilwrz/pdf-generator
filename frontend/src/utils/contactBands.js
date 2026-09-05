@@ -13,7 +13,7 @@ import { CHANNEL_ORDER } from "./contactChannelNames.js";
 
 /**
  * @param {object[]} elements - Canvas elements (typically page-filtered).
- * @returns {Array<{bandId:string, descriptor:object, chips:Array<{channel:string,elementId:string,left:number,top:number,fontSize:number}>, inactive:string[]}>}
+ * @returns {Array<{bandId:string, descriptor:object, chips:Array<{channel:string,elementId:string,left:number,top:number,width:number,height:number,fontSize:number}>, inactive:string[]}>}
  */
 export function listContactBands(elements) {
   const byBand = new Map();
@@ -33,6 +33,8 @@ export function listContactBands(elements) {
         elementId: el.element_id,
         left: Number(el.left) || 0,
         top: Number(el.top) || 0,
+        width: Number(el.width) || 0,
+        height: Number(el.height) || 0,
         fontSize: Number(el.fontSize) || 8,
       });
     }

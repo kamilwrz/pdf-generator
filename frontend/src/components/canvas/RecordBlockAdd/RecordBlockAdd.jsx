@@ -2,8 +2,9 @@
  * Contextual structural toolbar for one template-mode record.
  *
  * Hovering any current-page record field reveals a grouped toolbar in the
- * nearest A4 gutter plus a tighter depth cue around the exact title, metadata, or
- * description field. A single click edits text, while description/record
+ * 24 screen pixels above its first text field plus a tighter depth cue around
+ * the exact title, metadata, or description field. A single click edits text,
+ * while description/record
  * removals remain recoverable through the global toast.
  */
 import { useLayoutEffect, useState } from "react";
@@ -15,7 +16,7 @@ import { getElementOutlineBounds, getVisualBounds } from "../../../utils/element
 import { useCanvasHoverToolbar } from "../../../hooks/useCanvasHoverToolbar";
 import { useCanvasDeletionUndo } from "../../../hooks/useCanvasDeletionUndo";
 import {
-  RECORD_TOOLBAR_OFFSET_SCREEN_PX,
+  STRUCTURAL_TOOLBAR_VERTICAL_GAP_SCREEN_PX,
   structuralToolbarLayoutSize,
 } from "../recordPlusSize";
 import CanvasHoverToolbar from "../CanvasHoverToolbar/CanvasHoverToolbar";
@@ -128,7 +129,6 @@ export default function RecordBlockAdd({
 
   if (!eligible) return null;
 
-  const layout = structuralToolbarLayoutSize(zoom, RECORD_TOOLBAR_OFFSET_SCREEN_PX);
   const boxHeight = Number.isFinite(Number(height)) && Number(height) > 0
     ? Number(height)
     : (Number(fontSize) || 10);
@@ -152,9 +152,7 @@ export default function RecordBlockAdd({
       width: boxWidth,
       height: boxHeight,
     };
-  const toolbarTop = toolbarAnchorBounds.top
-    + toolbarAnchorBounds.height / 2
-    - layout.buttonSize / 2;
+  const toolbarTop = toolbarAnchorBounds.top;
   const toolbarAnchorX = toolbarAnchorBounds.left;
   const recordLabel = String(anchorElement?.content || "").trim();
   const hoveredElement = triggerElements.find((element) => (
@@ -214,7 +212,7 @@ export default function RecordBlockAdd({
       // Keyboard focus keeps actions reachable, but only a pointer hover may
       // cast the record/element depth shadows around authored content.
       highlightVisible={Boolean(hoveredTriggerId)}
-      side="left"
+      placement="above"
       anchorX={toolbarAnchorX}
       top={toolbarTop}
       pageWidth={pageSize?.width ?? 595}
@@ -222,7 +220,7 @@ export default function RecordBlockAdd({
       highlightLevel={skillsCategory ? "skills" : "entry"}
       elementHighlight={skillsCategory ? null : elementHighlight}
       elementHighlightSelected={Boolean(hoveredElement?.isSelected)}
-      layout={structuralToolbarLayoutSize(1, RECORD_TOOLBAR_OFFSET_SCREEN_PX)}
+      layout={structuralToolbarLayoutSize(1, STRUCTURAL_TOOLBAR_VERTICAL_GAP_SCREEN_PX)}
       addLabel="Wpis"
       addTooltip="Dodaj wpis poniżej"
       onAdd={addRecord}

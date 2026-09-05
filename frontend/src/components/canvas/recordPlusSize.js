@@ -18,22 +18,19 @@ function scaledStructuralValue(value, zoom) {
   return Number((value * STRUCTURAL_TOOLBAR_VISUAL_SCALE).toFixed(4)) / zoom;
 }
 
-/** Screen-space gap between a section toolbar and its heading anchor. */
-export const SECTION_TOOLBAR_OFFSET_SCREEN_PX = 34;
-
-/** Screen-space gap between a record toolbar and its first-element anchor. */
-export const RECORD_TOOLBAR_OFFSET_SCREEN_PX = 16;
+/** Screen-space gap above the text anchor used by section and record toolbars. */
+export const STRUCTURAL_TOOLBAR_VERTICAL_GAP_SCREEN_PX = 24;
 
 /**
  * @param {number} [zoom=1]
  * @param {number} [fontSize=10] unused reserved for future per-line tuning
- * @returns {{ buttonSize: number, iconSize: number, gap: number }}
+ * @returns {{ buttonSize: number, iconSize: number, gap: number, offset: number }}
  */
 export function recordPlusLayoutSize(zoom = 1, fontSize = 10) {
   // No zoom-dependent floor: it made inline icons grow at high canvas zoom.
-  const { buttonSize, iconSize, gap } = compactInlineToolbarLayoutSize(zoom);
+  const { buttonSize, iconSize, gap, offset } = compactInlineToolbarLayoutSize(zoom);
   void fontSize;
-  return { buttonSize, iconSize, gap };
+  return { buttonSize, iconSize, gap, offset };
 }
 
 /**
@@ -64,7 +61,7 @@ export function structuralToolbarLayoutSize(zoom = 1, offsetScreenPx = 10) {
     fontSize: 12 / safeZoom,
     menuWidth: scaledStructuralValue(176, safeZoom),
     // The page transform scales this layout value back into an exact visual
-    // gap, so section and record toolbars keep their own rhythm at every zoom.
+    // gap, so structural toolbars keep their requested rhythm at every zoom.
     offset: safeOffset / safeZoom,
     borderWidth: 1 / safeZoom,
   };

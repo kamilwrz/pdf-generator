@@ -58,7 +58,13 @@ for (const template of TEST_TEMPLATES) {
     const before = await positions();
     expect(before.every(Number.isFinite)).toBe(true);
     await field.hover();
-    await page.getByRole("button", { name: "Ukryj stanowisko", exact: true }).click();
+    const hideTitle = page.getByRole("button", { name: "Ukryj stanowisko", exact: true });
+    const [fieldBox, hideSurfaceBox] = await Promise.all([
+      field.boundingBox(),
+      hideTitle.locator("..").boundingBox(),
+    ]);
+    expect(fieldBox.x - hideSurfaceBox.x - hideSurfaceBox.width).toBeCloseTo(8, 0);
+    await hideTitle.click();
     await page.getByRole("button", { name: "Dodaj stanowisko", exact: true }).click();
     await expect.poll(positions).toEqual(before);
     await expect(page.locator('[data-placeholder="Tytuł zawodowy"]')).toHaveCount(1);

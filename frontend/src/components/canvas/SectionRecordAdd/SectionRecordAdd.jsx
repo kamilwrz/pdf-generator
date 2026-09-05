@@ -1,7 +1,7 @@
 /**
  * Contextual structural toolbar for a template-mode section heading.
  *
- * Heading hover or keyboard focus reveals a grouped toolbar in the A4 gutter;
+ * Heading hover or keyboard focus reveals a grouped toolbar above the text;
  * pointer hover also adds a tighter depth cue around the exact heading. Plain
  * body hover keeps the complete section lift visible without opening controls. Add/reorder remain
  * direct; layout, transfer, and destructive actions live in the overflow menu,
@@ -15,7 +15,7 @@ import { EDITOR_MODE_TEMPLATE } from "../../../utils/editorMode";
 import { useCanvasHoverToolbar } from "../../../hooks/useCanvasHoverToolbar";
 import { useCanvasDeletionUndo } from "../../../hooks/useCanvasDeletionUndo";
 import {
-  SECTION_TOOLBAR_OFFSET_SCREEN_PX,
+  STRUCTURAL_TOOLBAR_VERTICAL_GAP_SCREEN_PX,
   structuralToolbarLayoutSize,
 } from "../recordPlusSize";
 import {
@@ -194,7 +194,6 @@ export default function SectionRecordAdd({
 
   if (!eligible) return null;
 
-  const layout = structuralToolbarLayoutSize(zoom, SECTION_TOOLBAR_OFFSET_SCREEN_PX);
   const headingHeight = Number(fontSize) || 10;
   const headingWidth = Number.isFinite(Number(width)) && Number(width) > 0
     ? Number(width)
@@ -232,19 +231,18 @@ export default function SectionRecordAdd({
       resolvedHighlightLimits,
     )
     : storedHighlight;
-  // Anchor both axes to the rendered heading rather than to the A4 page or the
-  // full semantic section bounds. This remains accurate for fonts whose glyph
-  // ink is offset inside the stored line box and after a zoom/reorder commit.
+  // Anchor the toolbar's upper-layout edge to the rendered heading rather than
+  // to the A4 page or complete semantic section. The portal renders the toolbar
+  // 24 screen pixels above this point and aligns both left edges, which keeps
+  // actions clear of the authored text at every zoom and after reflow.
   const toolbarHeadingBounds = currentMeasurement?.headingBounds || {
     left: Number(left) || 0,
     top: Number(top) || 0,
     width: headingWidth,
     height: Math.max(Number(heading?.height) || 0, headingHeight),
   };
-  const toolbarAnchorX = toolbarHeadingBounds.left + toolbarHeadingBounds.width;
-  const toolbarTop = toolbarHeadingBounds.top
-    + toolbarHeadingBounds.height / 2
-    - layout.buttonSize / 2;
+  const toolbarAnchorX = toolbarHeadingBounds.left;
+  const toolbarTop = toolbarHeadingBounds.top;
   const sectionLabel = String(heading?.content || "").trim();
   const hoveredHeading = hoveredTriggerId === headingId ? heading : null;
   const elementHighlight = hoveredHeading
@@ -299,7 +297,7 @@ export default function SectionRecordAdd({
       toolbarKey={exclusiveKey}
       visible={visible}
       highlightVisible={sectionHoverVisible}
-      side="right"
+      placement="above"
       anchorX={toolbarAnchorX}
       top={toolbarTop}
       pageWidth={pageSize?.width ?? 595}
@@ -307,7 +305,7 @@ export default function SectionRecordAdd({
       highlightLevel="section"
       elementHighlight={elementHighlight}
       elementHighlightSelected={Boolean(hoveredHeading?.isSelected)}
-      layout={structuralToolbarLayoutSize(1, SECTION_TOOLBAR_OFFSET_SCREEN_PX)}
+      layout={structuralToolbarLayoutSize(1, STRUCTURAL_TOOLBAR_VERTICAL_GAP_SCREEN_PX)}
       addLabel="Sekcja"
       addTooltip="Dodaj sekcję poniżej"
       onAdd={() => {

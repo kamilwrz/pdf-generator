@@ -108,6 +108,15 @@
     left: 0;
 }
 
+/* Section and record actions follow the exact text origin. The toolbar's
+   bottom edge stays 24 screen pixels above the glyph bounds because the portal
+   consumes an unscaled layout offset. */
+.above {
+    top: auto;
+    left: 0;
+    bottom: var(--canvas-control-offset);
+}
+
 .panelToolbar {
     display: block;
     padding: 0;
@@ -212,7 +221,7 @@
    exported coordinates remain untouched, while touch and keyboard users keep
    access to every structural action. */
 @media (max-width: 720px) {
-    .portalAnchor:not(.portalAnchorBelow) {
+    .portalAnchorGutter {
         left: auto !important;
         right: var(--space-2, 8px);
     }

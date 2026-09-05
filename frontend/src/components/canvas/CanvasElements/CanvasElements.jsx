@@ -5,8 +5,8 @@
  * `markContentElementsEnter`; decorative chrome is never animated.
  *
  * Template-mode section headings and record title bands reveal one shared,
- * grouped toolbar in an A4 gutter. A single page uses the nearest lane edge;
- * a two-page spread sends each toolbar to its page's outside edge. Plain body
+ * grouped toolbar 24 screen pixels above the text and aligned to its left edge.
+ * Plain body
  * hover keeps the complete heading-and-content section boundary visible,
  * while exact record/grid triggers retain their narrower controls. Direct
  * controls add/reorder; layout, lane transfer, and deletion live in the
@@ -102,7 +102,6 @@ function fillSectionAnchors(
   pageHeight,
   allowLaneTransfer,
   resolveMemberIds,
-  gutterSide,
   nestedStructuralHoverIds,
 ) {
   // Resolve every lane-local start before building rectangles so the current
@@ -161,7 +160,6 @@ function fillSectionAnchors(
     map.set(section.headingId, {
       canMoveUp: index > 0,
       canMoveDown: index < sections.length - 1,
-      gutterSide,
       highlight: elementBoundsOnPage(
         documentElements,
         memberIds,
@@ -274,7 +272,6 @@ export default function CanvasElements({ elements, spreadSide = null }) {
       pageHeight,
       allowLaneTransfer,
       sectionElementIds,
-      "right",
       nestedStructuralHoverIds,
     );
     fillSectionAnchors(
@@ -284,7 +281,6 @@ export default function CanvasElements({ elements, spreadSide = null }) {
       pageHeight,
       allowLaneTransfer,
       sidebarSectionElementIds,
-      "left",
       nestedStructuralHoverIds,
     );
     // Skills layout picker (chips / list / text) is main-column only — a
@@ -396,11 +392,9 @@ export default function CanvasElements({ elements, spreadSide = null }) {
         canMoveDown={sectionAnchor.canMoveDown}
         laneTransfer={sectionAnchor.laneTransfer}
         skillsMode={sectionAnchor.skillsMode ?? null}
-        gutterSide={sectionAnchor.gutterSide}
         highlight={sectionAnchor.highlight}
         highlightLimits={sectionAnchor.highlightLimits}
         contentHoverIds={sectionAnchor.contentHoverIds}
-        spreadSide={spreadSide}
       />
     ) : null;
 
@@ -454,7 +448,6 @@ export default function CanvasElements({ elements, spreadSide = null }) {
               skillsCategory={blockAnchor.skillsCategory}
               descriptionAction={blockAnchor.descriptionAction}
               highlight={blockAnchor.highlight}
-              spreadSide={spreadSide}
             />
           ) : null}
           {flatAnchor ? (
@@ -545,7 +538,6 @@ export default function CanvasElements({ elements, spreadSide = null }) {
               skillsCategory={blockAnchor.skillsCategory}
               descriptionAction={blockAnchor.descriptionAction}
               highlight={blockAnchor.highlight}
-              spreadSide={spreadSide}
             />
           ) : null}
           {skillsEntryAnchor ? (

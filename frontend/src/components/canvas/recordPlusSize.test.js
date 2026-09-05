@@ -2,9 +2,9 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   compactInlineToolbarLayoutSize,
-  RECORD_TOOLBAR_OFFSET_SCREEN_PX,
+  recordPlusLayoutSize,
   resolveStructuralToolbarSide,
-  SECTION_TOOLBAR_OFFSET_SCREEN_PX,
+  STRUCTURAL_TOOLBAR_VERTICAL_GAP_SCREEN_PX,
   structuralToolbarLayoutSize,
 } from "./recordPlusSize.js";
 
@@ -42,24 +42,22 @@ test("shares the language-sized compact inline toolbar with Skills", () => {
     offset: 8,
     borderWidth: 1,
   });
+  assert.deepEqual(recordPlusLayoutSize(2), {
+    buttonSize: 12,
+    iconSize: 6,
+    gap: 1.2,
+    offset: 4,
+  });
 });
 
-test("keeps section and record element-relative gaps exact in screen space", () => {
+test("keeps the shared structural toolbar gap exact in screen space", () => {
   assert.equal(
-    structuralToolbarLayoutSize(1, SECTION_TOOLBAR_OFFSET_SCREEN_PX).offset,
-    34,
+    structuralToolbarLayoutSize(1, STRUCTURAL_TOOLBAR_VERTICAL_GAP_SCREEN_PX).offset,
+    24,
   );
   assert.equal(
-    structuralToolbarLayoutSize(1.6, SECTION_TOOLBAR_OFFSET_SCREEN_PX).offset,
-    21.25,
-  );
-  assert.equal(
-    structuralToolbarLayoutSize(1, RECORD_TOOLBAR_OFFSET_SCREEN_PX).offset,
-    16,
-  );
-  assert.equal(
-    structuralToolbarLayoutSize(2, RECORD_TOOLBAR_OFFSET_SCREEN_PX).offset,
-    8,
+    structuralToolbarLayoutSize(2, STRUCTURAL_TOOLBAR_VERTICAL_GAP_SCREEN_PX).offset,
+    12,
   );
 });
 

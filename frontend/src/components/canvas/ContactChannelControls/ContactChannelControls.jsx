@@ -18,8 +18,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { FiPlus, FiTrash2 } from "react-icons/fi";
 import { useCanvasContext } from "../../../store/canvas-context";
+import { useHoverPlusExclusive } from "../../../hooks/useHoverPlusExclusive";
 import { recordPlusLayoutSize } from "../recordPlusSize";
 import { CHANNEL_NAMES } from "../../../utils/contactChannelNames";
+import { getTextContentBounds } from "../../../utils/elementBounds";
 import cluster from "../SectionRecordAdd/SectionRecordAdd.module.css";
 import classes from "./ContactChannelControls.module.css";
 
@@ -28,6 +30,7 @@ const HIDE_AFTER_LEAVE_MS = 600;
 export default function ContactChannelControls({ bandId, chips, inactive }) {
   const { removeContactChannel, addContactChannel, zoom = 1 } = useCanvasContext();
   const [hoverChannel, setHoverChannel] = useState(null);
+  const [hoverBounds, setHoverBounds] = useState(null);
   // Whether the pointer is anywhere in the band (any chip, or the +/menu
   // cluster itself) — gates the `+` affordance so it is not permanently
   // visible whenever inactive channels exist. Kept separate from
@@ -35,6 +38,10 @@ export default function ContactChannelControls({ bandId, chips, inactive }) {
   const [bandHover, setBandHover] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const hideTimerRef = useRef(null);
+  const exclusiveKey = `contact-band:${bandId}`;
+  const { isExclusiveActive, claimExclusive, releaseExclusive } = useHoverPlusExclusive(
+    exclusiveKey,
+  );
 
   const clearHide = useCallback(() => {
     if (hideTimerRef.current != null) {
@@ -46,10 +53,12 @@ export default function ContactChannelControls({ bandId, chips, inactive }) {
     clearHide();
     hideTimerRef.current = window.setTimeout(() => {
       setHoverChannel(null);
+      setHoverBounds(null);
       setBandHover(false);
       setMenuOpen(false);
+      releaseExclusive();
     }, HIDE_AFTER_LEAVE_MS);
-  }, [clearHide]);
+  }, [clearHide, releaseExclusive]);
 
   // Attach hover listeners to each chip's label node so the trash appears over
   // the chip the pointer is on, and the `+` becomes visible while any chip in
@@ -60,7 +69,23 @@ export default function ContactChannelControls({ bandId, chips, inactive }) {
     for (const chip of chips) {
       const node = document.getElementById(chip.elementId);
       if (!node) continue;
-      const onEnter = () => { clearHide(); setHoverChannel(chip.channel); setBandHover(true); };
+      // Contacts share the single canvas-toolbar slot with structural actions.
+      // Claiming it before painting the delete control prevents a nearby record
+      // toolbar from covering the requested below-contact placement.
+      const onEnter = () => {
+        clearHide();
+        claimExclusive();
+        setHoverBounds({
+          channel: chip.channel,
+          ...getTextContentBounds({
+            ...chip,
+            element_id: chip.elementId,
+            category: "text",
+          }),
+        });
+        setHoverChannel(chip.channel);
+        setBandHover(true);
+      };
       const onLeave = () => scheduleHide();
       node.addEventListener("pointerenter", onEnter);
       node.addEventListener("pointerleave", onLeave);
@@ -73,31 +98,46 @@ export default function ContactChannelControls({ bandId, chips, inactive }) {
       clearHide();
       cleanups.forEach((fn) => fn());
     };
-  }, [chips, clearHide, scheduleHide]);
+  }, [chips, claimExclusive, clearHide, scheduleHide]);
 
   useEffect(() => () => clearHide(), [clearHide]);
 
-  const { buttonSize, iconSize, gap } = recordPlusLayoutSize(zoom, chips[0]?.fontSize ?? 8);
+  const { buttonSize, iconSize, gap, offset } = recordPlusLayoutSize(
+    zoom,
+    chips[0]?.fontSize ?? 8,
+  );
   const buttonStyle = { width: buttonSize, height: buttonSize };
   const iconStyle = { width: iconSize, height: iconSize };
   const hoveredChip = chips.find((chip) => chip.channel === hoverChannel) || null;
+  const hoveredVisualBounds = hoverBounds?.channel === hoverChannel
+    ? hoverBounds
+    : hoveredChip;
   // The `+` sits just past the last chip in reading order (usually the
-  // right-most on its line). Exact chip width is unknown on the client, so a
-  // small fixed offset places it clear of the label without measuring.
+  // right-most on its line). Its authored width can be zero or stale, so a
+  // small fixed offset keeps the add action clear of the visible label.
   const lastChip = chips[chips.length - 1] || null;
 
   return (
     <>
-      {hoveredChip ? (
+      {hoveredChip && isExclusiveActive ? (
         <div
           className={cluster.anchor}
           data-editor-control="true"
-          style={{ left: hoveredChip.left - buttonSize - gap, top: hoveredChip.top - 1 }}
+          style={{
+            left: hoveredVisualBounds.left,
+            top: hoveredVisualBounds.top
+              + Math.max(hoveredVisualBounds.height, hoveredChip.fontSize)
+              + offset,
+          }}
         >
           <div
             className={cluster.cluster}
             style={{ gap }}
-            onPointerEnter={() => { clearHide(); setHoverChannel(hoveredChip.channel); }}
+            onPointerEnter={() => {
+              clearHide();
+              claimExclusive();
+              setHoverChannel(hoveredChip.channel);
+            }}
             onPointerLeave={scheduleHide}
           >
             <button
@@ -112,6 +152,8 @@ export default function ContactChannelControls({ bandId, chips, inactive }) {
                 event.preventDefault();
                 removeContactChannel(bandId, hoveredChip.channel);
                 setHoverChannel(null);
+                setHoverBounds(null);
+                releaseExclusive();
               }}
             >
               <FiTrash2 style={iconStyle} />
@@ -120,7 +162,7 @@ export default function ContactChannelControls({ bandId, chips, inactive }) {
         </div>
       ) : null}
 
-      {lastChip && inactive.length > 0 && bandHover ? (
+      {lastChip && inactive.length > 0 && bandHover && isExclusiveActive ? (
         <div
           className={cluster.anchor}
           data-editor-control="true"
@@ -129,7 +171,7 @@ export default function ContactChannelControls({ bandId, chips, inactive }) {
           <div
             className={cluster.cluster}
             style={{ gap }}
-            onPointerEnter={() => { clearHide(); setBandHover(true); }}
+            onPointerEnter={() => { clearHide(); claimExclusive(); setBandHover(true); }}
             onPointerLeave={scheduleHide}
           >
             <button

@@ -17,6 +17,40 @@ const extraElements = [
     editorGridEntry: true, editorSectionId: "languages-heading" },
 ].map((element) => ({ ...element, page: 1, extra_properties: { ...element } }));
 
+async function visibleTextBox(locator) {
+  return locator.evaluate((node) => {
+    if (node.tagName === "TEXTAREA" || node.tagName === "INPUT") {
+      const rect = node.getBoundingClientRect();
+      return { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
+    }
+    const range = document.createRange();
+    range.selectNodeContents(node);
+    const rect = range.getBoundingClientRect();
+    return { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
+  });
+}
+
+async function hoverVisibleText(page, locator) {
+  await locator.evaluate((node) => node.scrollIntoView({ block: "center", inline: "nearest" }));
+  const box = await visibleTextBox(locator);
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+}
+
+async function expectToolbarAboveText(toolbar, text) {
+  await expect.poll(async () => {
+    const [toolbarBox, textBox, viewportWidth] = await Promise.all([
+      toolbar.locator(":scope > div").first().boundingBox(),
+      visibleTextBox(text),
+      text.evaluate(() => window.innerWidth),
+    ]);
+    return {
+      alignedLeft: Math.abs(toolbarBox.x - textBox.x) < 0.5,
+      fitsViewport: toolbarBox.x + toolbarBox.width <= viewportWidth,
+      verticalGap: Math.round(textBox.y - toolbarBox.y - toolbarBox.height),
+    };
+  }).toEqual({ alignedLeft: true, fitsViewport: true, verticalGap: 24 });
+}
+
 // Compare computed appearance across both toolbar implementations. Screenshots
 // capture the actual open form, including its canvas context and viewport fit.
 for (const width of [390, 834, 1280, 1920]) {
@@ -54,6 +88,7 @@ for (const width of [390, 834, 1280, 1920]) {
 
     // Authored single-line text has a zero-height baseline box for PDF parity.
     // Dispatch its normal hover event; measure/click the actual toolbar DOM.
+    await page.locator("#skills-heading").scrollIntoViewIfNeeded();
     await page.locator("#skills-heading").dispatchEvent("pointerenter");
     const sectionHoverPlate = page.locator('[data-canvas-highlight-level="section"]');
     await expect(sectionHoverPlate).toBeVisible();
@@ -72,15 +107,25 @@ for (const width of [390, 834, 1280, 1920]) {
     expect(hoverAppearance.screenRadius).toBeCloseTo(2, 1);
     expect(hoverAppearance.background).toBe("rgba(0, 0, 0, 0)");
     expect(hoverAppearance.pointerEvents).toBe("none");
-    await checkControl(page.locator('[data-canvas-toolbar-key="heading:skills-heading"] button').first(), 28.8);
-    await expect(page.locator('[data-canvas-toolbar-key="heading:skills-heading"]').getByRole("button", { name: "AI dla wybranego zakresu" })).toBeVisible();
+    const sectionToolbar = page.locator('[data-canvas-toolbar-key="heading:skills-heading"]');
+    await checkControl(sectionToolbar.getByRole("button").first(), 28.8);
+    await expectToolbarAboveText(sectionToolbar, page.locator("#skills-heading"));
+    await expect(sectionToolbar.getByRole("button", { name: "AI dla wybranego zakresu" })).toBeVisible();
     await page.locator("#skills-tools-title").hover();
-    await checkControl(page.locator('[data-canvas-toolbar-key="record:skills-tools-title"] button').first(), 28.8);
-    await expect(page.locator('[data-canvas-toolbar-key="record:skills-tools-title"]').getByRole("button", { name: "AI dla wybranego zakresu" })).toBeVisible();
-    await page.locator("#contact-email").dispatchEvent("pointerenter");
+    const recordToolbar = page.locator('[data-canvas-toolbar-key="record:skills-tools-title"]');
+    await checkControl(recordToolbar.getByRole("button").first(), 28.8);
+    await expectToolbarAboveText(recordToolbar, page.locator("#skills-tools-title"));
+    await expect(recordToolbar.getByRole("button", { name: "AI dla wybranego zakresu" })).toBeVisible();
+    await hoverVisibleText(page, page.locator("#contact-email"));
+    const deleteContact = page.getByRole("button", { name: /Usuń kontakt:/ });
+    await checkControl(deleteContact, 24, true);
+    const [contactBox, deleteSurfaceBox] = await Promise.all([
+      visibleTextBox(page.locator("#contact-email")),
+      deleteContact.locator("..").boundingBox(),
+    ]);
+    expect(deleteSurfaceBox.y - contactBox.y - contactBox.height).toBeCloseTo(8, 0);
+    await hoverVisibleText(page, page.locator("#contact-email"));
     await checkControl(page.getByRole("button", { name: "Dodaj kontakt", exact: true }), 24);
-    await page.locator("#contact-email").dispatchEvent("pointerenter");
-    await checkControl(page.getByRole("button", { name: /Usuń kontakt:/ }), 24, true);
     await page.locator("#language-item").hover();
     await checkControl(page.locator('[data-canvas-toolbar-key="grid-entry:language-item"] button').first(), 24);
     await expect(page.locator('[data-canvas-toolbar-key="grid-entry:language-item"] button')).toHaveCount(2);
@@ -133,6 +178,10 @@ test("toolbar geometry and menu text stay constant through animated canvas zoom"
   const more = toolbar.getByRole("button", { name: "Więcej działań" });
   await more.click();
   await expect(toolbar.getByRole("menu")).toBeVisible();
+  // The synthetic zoom buttons below do not move a real pointer. Park the
+  // pointer over application chrome so an animated page cannot slide another
+  // authored hover target underneath it and legitimately claim the toolbar.
+  await page.mouse.move(1, 1);
 
   for (const targetZoom of [100, 50, 200, 300, 160]) {
     // Native clicks avoid pointer movement away from the pinned toolbar. Sample

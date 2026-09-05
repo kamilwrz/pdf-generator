@@ -39,7 +39,7 @@ test("selected and editing structural fields remain eligible hover targets", asy
   assert.match(sectionSource, /triggerRevision/);
 });
 
-test("section and record toolbars use distinct element-relative gaps and centred anchors", async () => {
+test("section and record toolbars align above their text anchors with a shared gap", async () => {
   const recordSource = await readFile(
     new URL("../RecordBlockAdd/RecordBlockAdd.jsx", import.meta.url),
     "utf8",
@@ -49,16 +49,16 @@ test("section and record toolbars use distinct element-relative gaps and centred
     "utf8",
   );
 
-  assert.match(recordSource, /structuralToolbarLayoutSize\(zoom, RECORD_TOOLBAR_OFFSET_SCREEN_PX\)/);
   assert.match(recordSource, /const toolbarAnchorBounds = renderedAnchorMeasurement\?\.key/);
   assert.match(recordSource, /const toolbarAnchorX = toolbarAnchorBounds\.left/);
-  assert.match(recordSource, /side="left"[\s\S]*anchorX=\{toolbarAnchorX\}/);
-  assert.match(recordSource, /toolbarAnchorBounds\.top[\s\S]*toolbarAnchorBounds\.height \/ 2/);
-  assert.match(sectionSource, /structuralToolbarLayoutSize\(zoom, SECTION_TOOLBAR_OFFSET_SCREEN_PX\)/);
+  assert.match(recordSource, /const toolbarTop = toolbarAnchorBounds\.top/);
+  assert.match(recordSource, /placement="above"[\s\S]*anchorX=\{toolbarAnchorX\}/);
   assert.match(sectionSource, /const toolbarHeadingBounds = currentMeasurement\?\.headingBounds/);
-  assert.match(sectionSource, /toolbarHeadingBounds\.left \+ toolbarHeadingBounds\.width/);
-  assert.match(sectionSource, /side="right"[\s\S]*anchorX=\{toolbarAnchorX\}/);
-  assert.match(sectionSource, /toolbarHeadingBounds\.top[\s\S]*toolbarHeadingBounds\.height \/ 2/);
+  assert.match(sectionSource, /const toolbarAnchorX = toolbarHeadingBounds\.left/);
+  assert.match(sectionSource, /const toolbarTop = toolbarHeadingBounds\.top/);
+  assert.match(sectionSource, /placement="above"[\s\S]*anchorX=\{toolbarAnchorX\}/);
+  assert.match(recordSource, /STRUCTURAL_TOOLBAR_VERTICAL_GAP_SCREEN_PX/);
+  assert.match(sectionSource, /STRUCTURAL_TOOLBAR_VERTICAL_GAP_SCREEN_PX/);
 });
 
 test("repeatable grid cells mount their dedicated two-action control", async () => {
