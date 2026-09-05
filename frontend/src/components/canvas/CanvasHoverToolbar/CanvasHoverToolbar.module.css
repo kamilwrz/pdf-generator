@@ -9,22 +9,35 @@
     animation: canvasHighlightIn 160ms ease-out both;
 }
 
-.highlightSection {
+.highlight::before,
+.elementHighlight::before {
+    content: "";
+    position: absolute;
+    inset: calc(-1 * var(--canvas-hover-padding, 4px));
+    box-sizing: border-box;
+    border: 0;
+    border-radius: var(--canvas-hover-radius, 2px);
+    background: transparent;
+    box-shadow: none;
+    pointer-events: none;
+}
+
+.highlightSection::before {
     box-shadow: var(--canvas-shadow-editor-section, var(--shadow-editor-section));
 }
 
-.highlightEntry {
+.highlightEntry::before {
     box-shadow: var(--canvas-shadow-editor-entry, var(--shadow-editor-entry));
 }
 
-.highlightElement {
+.highlightElement::before {
     box-shadow: var(--canvas-shadow-editor-element, var(--shadow-editor-element));
 }
 
 /* Wide Skills fields need an even boundary on every edge. This highlight is
    owned by the toolbar layer, so it remains present when the centred plus
    covers the pointer and the authored textarea loses CSS :hover. */
-.highlightSkills {
+.highlightSkills::before {
     box-shadow: var(--canvas-shadow-editor-skills, var(--shadow-editor-skills));
 }
 
@@ -39,15 +52,21 @@
     background: transparent;
     border-style: none;
     border-radius: 0;
-    box-shadow: var(--canvas-shadow-editor-element, var(--shadow-editor-element));
     animation: canvasElementHighlightIn 110ms ease-out both;
+}
+
+.elementHighlight::before {
+    box-shadow: var(--canvas-shadow-editor-element, var(--shadow-editor-element));
 }
 
 /* A selected field already owns a structural hairline. Raise the transient
    pointer-hover shadow by one pixel so both states remain legible without
    introducing a second outline or a coloured surface. */
-.elementHighlightSelected {
+.elementHighlightSelected::before {
     box-shadow: var(--canvas-shadow-editor-entry, var(--shadow-editor-entry));
+}
+
+.elementHighlightSelected {
     transform: translateY(var(--canvas-editor-lift, -1px));
 }
 

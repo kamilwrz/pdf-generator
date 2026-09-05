@@ -32,16 +32,30 @@
 .editing::after {
     content: "";
     position: absolute;
-    left: -2px;
-    top: calc(-0.67em - 2px);
     box-sizing: border-box;
-    width: calc(100% + 4px);
-    height: calc(1.2em + 4px);
     border: 0;
     background: transparent;
     box-shadow: none;
     pointer-events: none;
     transition: box-shadow var(--motion-fast, 120ms) var(--motion-easing, ease-out);
+}
+
+.editorHoverOutline::after {
+    left: calc(-1 * var(--canvas-hover-padding, 4px));
+    top: calc(-0.67em - var(--canvas-hover-padding, 4px));
+    width: calc(100% + var(--canvas-hover-padding, 4px) + var(--canvas-hover-padding, 4px));
+    height: calc(1.2em + var(--canvas-hover-padding, 4px) + var(--canvas-hover-padding, 4px));
+    border-radius: var(--canvas-hover-radius, 2px);
+}
+
+/* Edit focus intentionally keeps the square two-pixel geometry. Rounded,
+   padded chrome is the sole pointer-hover exception, not a selection style. */
+.editing::after {
+    left: -2px;
+    top: calc(-0.67em - 2px);
+    width: calc(100% + 4px);
+    height: calc(1.2em + 4px);
+    border-radius: 0;
 }
 
 .editorHoverOutline:not(.editing):hover::after {
@@ -93,7 +107,11 @@
     padding-top: .67em;
 }
 
-.textElement[data-placeholder]:empty::after {
+.textElement[data-placeholder]:empty.editorHoverOutline:not(.editing)::after {
+    top: calc(-1 * var(--canvas-hover-padding, 4px));
+}
+
+.textElement[data-placeholder]:empty.editing::after {
     top: -2px;
 }
 

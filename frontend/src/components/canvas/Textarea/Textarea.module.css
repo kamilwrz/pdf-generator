@@ -19,11 +19,27 @@
     cursor: move;
 }
 
-/* `box-shadow` is deliberately outside the authored box: it makes semantic
-   identity/contact fields discoverable on pointer hover without affecting
-   wrapping, measured A4 geometry, reflow, or PDF output. */
-.editorHoverOutline:hover {
-    outline: none;
+/* The padded hover plate is an out-of-flow, pointer-inert editor layer. Only
+   semantic one-line template fields opt into visible overflow, so the plate
+   can clear their authored bounds without changing wrapping or measurement. */
+.block.editorHoverOutline {
+    overflow: visible;
+}
+
+.editorHoverOutline::after {
+    content: "";
+    position: absolute;
+    inset: calc(-1 * var(--canvas-hover-padding, 4px));
+    box-sizing: border-box;
+    border: 0;
+    border-radius: var(--canvas-hover-radius, 2px);
+    background: transparent;
+    box-shadow: none;
+    pointer-events: none;
+    transition: box-shadow var(--motion-fast, 120ms) var(--motion-easing, ease-out);
+}
+
+.editorHoverOutline:not(.editing):hover::after {
     box-shadow: var(--canvas-shadow-editor-element, var(--shadow-editor-element));
 }
 
@@ -174,7 +190,9 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+    .editorHoverOutline::after,
     .editing:focus [data-metadata-slot][data-empty="true"]::after {
+        transition: none;
         animation: none;
     }
 }

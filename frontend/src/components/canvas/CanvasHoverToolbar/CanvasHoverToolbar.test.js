@@ -60,7 +60,7 @@ test("selected elements keep selection and receive a separate depth cue", async 
   const css = await readFile(new URL("./CanvasHoverToolbar.module.css", import.meta.url), "utf8");
 
   assert.match(source, /elementHighlightSelected/);
-  assert.match(css, /\.elementHighlightSelected\s*\{[^}]*box-shadow:[^;]*--shadow-editor-entry/s);
+  assert.match(css, /\.elementHighlightSelected::before\s*\{[^}]*box-shadow:[^;]*--shadow-editor-entry/s);
   assert.match(css, /\.elementHighlightSelected\s*\{[^}]*transform:\s*translateY\(var\(--canvas-editor-lift, -1px\)\)/s);
 });
 
@@ -74,10 +74,11 @@ test("section, entry, and element context use neutral shadow depth without tinte
   assert.match(source, /classes\.highlightSkills/);
   assert.match(source, /data-canvas-highlight-level=\{highlightLevel\}/);
   assert.match(css, /\.highlight\s*\{[^}]*background:\s*transparent[^}]*border-style:\s*none/s);
-  assert.match(css, /\.highlightSection\s*\{[^}]*--shadow-editor-section/s);
-  assert.match(css, /\.highlightEntry\s*\{[^}]*--shadow-editor-entry/s);
-  assert.match(css, /\.highlightSkills\s*\{[^}]*--shadow-editor-skills/s);
-  assert.match(css, /\.elementHighlight\s*\{[^}]*--shadow-editor-element/s);
+  assert.match(css, /\.highlight::before,[\s\S]*\.elementHighlight::before\s*\{[^}]*--canvas-hover-padding[^}]*--canvas-hover-radius/s);
+  assert.match(css, /\.highlightSection::before\s*\{[^}]*--shadow-editor-section/s);
+  assert.match(css, /\.highlightEntry::before\s*\{[^}]*--shadow-editor-entry/s);
+  assert.match(css, /\.highlightSkills::before\s*\{[^}]*--shadow-editor-skills/s);
+  assert.match(css, /\.elementHighlight::before\s*\{[^}]*--shadow-editor-element/s);
 });
 
 test("selection and editing use screen-stable hairlines with active textarea depth", async () => {
@@ -105,6 +106,8 @@ test("selection and editing use screen-stable hairlines with active textarea dep
   assert.match(pageSource, /"--canvas-shadow-editor-element"/);
   assert.match(pageSource, /"--canvas-shadow-editor-skills"/);
   assert.match(pageSource, /"--canvas-shadow-editor-skills-active"/);
+  assert.match(pageSource, /"--canvas-hover-padding":\s*px\(4\)/);
+  assert.match(pageSource, /"--canvas-hover-radius":\s*px\(2\)/);
   assert.match(pageSource, /"--canvas-editor-lift"/);
   assert.match(pageSource, /"--canvas-editor-hairline":\s*px\(1\)/);
   assert.match(selectionSource, /!\(element\.isEditing && \["text", "textarea"\]\.includes\(element\.category\)\)/);

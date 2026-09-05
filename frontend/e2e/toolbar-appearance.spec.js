@@ -55,6 +55,23 @@ for (const width of [390, 834, 1280, 1920]) {
     // Authored single-line text has a zero-height baseline box for PDF parity.
     // Dispatch its normal hover event; measure/click the actual toolbar DOM.
     await page.locator("#skills-heading").dispatchEvent("pointerenter");
+    const sectionHoverPlate = page.locator('[data-canvas-highlight-level="section"]');
+    await expect(sectionHoverPlate).toBeVisible();
+    const hoverAppearance = await sectionHoverPlate.evaluate((element) => {
+      const plate = getComputedStyle(element, "::before");
+      const pageCanvas = element.closest("[data-page-canvas]");
+      const transform = new DOMMatrixReadOnly(getComputedStyle(pageCanvas).transform);
+      return {
+        screenPadding: Math.abs(parseFloat(plate.top)) * transform.a,
+        screenRadius: parseFloat(plate.borderTopLeftRadius) * transform.a,
+        background: plate.backgroundColor,
+        pointerEvents: plate.pointerEvents,
+      };
+    });
+    expect(hoverAppearance.screenPadding).toBeCloseTo(4, 1);
+    expect(hoverAppearance.screenRadius).toBeCloseTo(2, 1);
+    expect(hoverAppearance.background).toBe("rgba(0, 0, 0, 0)");
+    expect(hoverAppearance.pointerEvents).toBe("none");
     await checkControl(page.locator('[data-canvas-toolbar-key="heading:skills-heading"] button').first(), 28.8);
     await expect(page.locator('[data-canvas-toolbar-key="heading:skills-heading"]').getByRole("button", { name: "AI dla wybranego zakresu" })).toBeVisible();
     await page.locator("#skills-tools-title").hover();

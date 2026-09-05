@@ -39,6 +39,11 @@ function editorDepthStyle(zoom) {
         // into the white page, especially at 280% editor zoom.
         "--canvas-shadow-editor-skills": `0 0 ${px(8)} ${px(1)} var(--shadow-editor-element-color)`,
         "--canvas-shadow-editor-skills-active": `0 0 ${px(10)} ${px(1)} var(--shadow-editor-active-color)`,
+        // Hover depth sits outside authored bounds. Keep its small breathing
+        // room and sole rounded-corner exception constant in screen pixels so
+        // neither canvas zoom nor PDF geometry can change the result.
+        "--canvas-hover-padding": px(4),
+        "--canvas-hover-radius": px(2),
         "--canvas-editor-lift": `-${px(1)}`,
         "--canvas-editor-hairline": px(1),
         "--canvas-editor-hairline-offset": px(1),

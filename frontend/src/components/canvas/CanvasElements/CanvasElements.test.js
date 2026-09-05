@@ -150,10 +150,11 @@ test("semantic contact and identity fields receive editor-only hover depth", asy
   assert.match(textSource, /data-editor-hover-outline=/);
   assert.match(textareaSource, /data-editor-hover-outline=/);
   assert.match(textCss, /\.editorHoverOutline[^}]*:hover::after[\s\S]*box-shadow:[^;]*--shadow-editor-element/);
-  assert.match(textCss, /height: calc\(1\.2em \+ 4px\)/);
+  assert.match(textCss, /\.editorHoverOutline::after\s*\{[^}]*--canvas-hover-padding[^}]*--canvas-hover-radius/s);
   assert.match(textCss, /pointer-events: none/);
-  assert.match(textareaCss, /\.editorHoverOutline[^}]*:hover[\s\S]*box-shadow:[^;]*--shadow-editor-element/);
+  assert.match(textareaCss, /\.editorHoverOutline::after\s*\{[^}]*--canvas-hover-padding[^}]*--canvas-hover-radius[^}]*pointer-events:\s*none/s);
+  assert.match(textareaCss, /\.editorHoverOutline:not\(\.editing\):hover::after\s*\{[^}]*box-shadow:[^;]*--shadow-editor-element/s);
   assert.match(textCss, /\.editorHoverOutline:not\(\.editing\):hover::after/);
-  assert.match(textareaCss, /\.editorHoverOutline:hover/);
+  assert.match(textareaCss, /\.block\.editorHoverOutline\s*\{[^}]*overflow:\s*visible/s);
   assert.match(textCss, /\.textElement\[data-placeholder\]:empty\s*\{[^}]*min-height:\s*1\.2em[^}]*margin-top:\s*-\.67em[^}]*padding-top:\s*\.67em/s);
 });
