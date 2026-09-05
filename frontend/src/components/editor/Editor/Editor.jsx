@@ -185,18 +185,23 @@ function InspectorDisclosure({ visible, selectionKey, panelPosition, panelTitle,
   useLayoutEffect(() => {
     // Pointer opening preserves the live text caret (including Skills actions).
     // Keyboard opening enters the dialog in normal Tab order.
-    if (isOpen && focusOnOpenRef.current) dialogRef.current?.focus({ preventScroll: true });
+    if (isOpen && focusOnOpenRef.current) {
+      dialogRef.current?.focus({ preventScroll: true });
+      focusOnOpenRef.current = false;
+    }
     // A compact sheet must not cover the field being configured. Reveal it
     // above the sheet using viewport scroll only, never model coordinates.
-    if (isOpen && window.innerWidth <= 720) {
+    if (isOpen && (window.innerWidth <= 720 || panelPosition?.needsReveal)) {
       const anchor = readSelectionAnchorRect(selectionKey);
       const canvas = document.querySelector(".canvas-area");
-      const sheetTop = window.innerHeight - 8 - (dialogRef.current?.offsetHeight || 0);
+      const sheetTop = window.innerWidth <= 720
+        ? window.innerHeight - 8 - (dialogRef.current?.offsetHeight || 0)
+        : panelPosition.panel.top;
       if (anchor && canvas && anchor.top + anchor.height > sheetTop - 16) {
         canvas.scrollTop += anchor.top + anchor.height - sheetTop + 16;
       }
     }
-  }, [isOpen, selectionKey]);
+  }, [isOpen, selectionKey, panelPosition?.needsReveal, panelPosition?.panel.top]);
   function collapseInspector() {
     toggleRef.current?.focus({ preventScroll: true });
     setIsOpen(false);
@@ -232,8 +237,8 @@ function InspectorDisclosure({ visible, selectionKey, panelPosition, panelTitle,
             role="dialog" aria-modal="false" aria-label={`Ustawienia · ${panelSubject}`}
             className={`${classes.editor} ${classes.editorOpen}`}
             data-editor-inspector-state="open" style={panelPosition.panel}
-            initial={reduceMotion ? false : { opacity: 0, y: -8 }}
-            animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+            initial={reduceMotion ? false : { opacity: 0 }}
+            animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             transition={{ duration: reduceMotion ? 0 : 0.2 }}>
             <header className={classes.inspectorHeader}>
               <div className={classes.inspectorToggleCopy}>
@@ -607,6 +612,7 @@ export default function Editor() {
   useLayoutEffect(() => {
     if (!someElementSelected) return undefined;
     let frame;
+    let triggerOffsetY = 0;
     function updatePosition() {
       if (!document.hidden) {
         const anchor = readSelectionAnchorRect(selectionKey);
@@ -615,12 +621,18 @@ export default function Editor() {
           const rect = canvas.getBoundingClientRect();
           const sidebar = document.querySelector('[data-anchor="editor-sidebar"]')?.getBoundingClientRect();
           const topbar = document.querySelector('[data-anchor="editor-topbar"]')?.getBoundingClientRect();
+          // Some toolbar anchors have zero-size boxes; their actual buttons
+          // provide the occupied screen bounds, including portalled record tools.
+          const obstacles = [...document.querySelectorAll('[data-editor-control="true"] button')]
+            .filter((button) => button.getClientRects().length > 0)
+            .map((button) => button.getBoundingClientRect());
           const next = elementToolbarPosition(anchor, {
             left: Math.max(0, rect.left, sidebar?.right || 0),
             top: Math.max(0, rect.top, topbar?.bottom || 0),
             right: Math.min(window.innerWidth, rect.left + canvas.clientWidth),
             bottom: Math.min(window.innerHeight, rect.top + canvas.clientHeight),
-          });
+          }, { obstacles, triggerOffsetY });
+          triggerOffsetY = next.triggerOffsetY;
           setPanelPosition((previous) => JSON.stringify(previous) === JSON.stringify(next) ? previous : next);
         }
       }

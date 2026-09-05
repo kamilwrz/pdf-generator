@@ -1,8 +1,56 @@
 import { expect, test } from "@playwright/test";
-import { installMockApi, login, SAVED_DOCUMENT } from "./support/mockApi.js";
+import { installMockApi, login, SAVED_DOCUMENT, SAVED_ELEMENTS } from "./support/mockApi.js";
 
 // Screenshots cover this visual contract without recording redundant videos.
 test.use({ video: "off", trace: "off" });
+
+test("record actions and settings never overlap the cog or edited field at 280%", async ({ page }, testInfo) => {
+  await page.setViewportSize({ width: 1366, height: 864 });
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  const api = await installMockApi(page, {
+    // A left-aligned single-column record reproduces the user's screenshot:
+    // insufficient room for the old fixed-width inspector on the left.
+    savedElements: SAVED_ELEMENTS.map((element) => ({ ...element, left: 80 })),
+  });
+  await login(page);
+  await page.getByText("Kontynuuj ostatnie CV", { exact: true }).click();
+  await page.getByRole("button", { name: "Otwórz na płótnie" }).click();
+  const field = page.locator("#skills-tools-title");
+  await field.click();
+  await field.dispatchEvent("pointerenter");
+  const record = page.locator('[data-canvas-toolbar-key="record:skills-tools-title"]');
+  await expect(record.getByRole("button").first()).toBeVisible();
+  const cog = page.getByRole("button", { name: /Otwórz parametry elementu:/ });
+  // Portal anchors are intentionally zero-size. Compare actual button boxes,
+  // not elementFromPoint after the hover toolbar has already disappeared.
+  await expect.poll(async () => {
+    const cogBox = await cog.boundingBox();
+    const buttons = await record.getByRole("button").all();
+    for (const button of buttons) {
+      const box = await button.boundingBox();
+      if (box && cogBox && box.x < cogBox.x + cogBox.width && box.x + box.width > cogBox.x
+        && box.y < cogBox.y + cogBox.height && box.y + box.height > cogBox.y) return false;
+    }
+    return true;
+  }).toBe(true);
+  await cog.click();
+  const panel = page.getByRole("dialog", { name: "Ustawienia · Pole tekstowe" });
+  await expect(panel).toBeVisible();
+  const isClear = async () => {
+    const a = await field.boundingBox();
+    const b = await panel.boundingBox();
+    return a && b && (a.x + a.width <= b.x || b.x + b.width <= a.x
+      || a.y + a.height <= b.y || b.y + b.height <= a.y);
+  };
+  await expect.poll(isClear).toBe(true);
+  await page.screenshot({ path: testInfo.outputPath("record-settings-clear.png") });
+  await field.hover();
+  await page.mouse.wheel(0, 160);
+  await expect.poll(isClear).toBe(true);
+  await expect(field).toHaveAttribute("contenteditable", "true");
+  await panel.getByRole("button", { name: "Zamknij ustawienia elementu" }).click();
+  api.assertHermetic();
+});
 
 for (const width of [390, 834, 1280, 1920]) {
   test(`element settings follow selection and preserve editing at ${width}px`, async ({ page }, testInfo) => {
