@@ -1,37 +1,56 @@
 /**
- * Account gate for guest persistence and CV import. Import links retain the
- * start intent through registration/login; the upload UI never mounts here.
- * Existing browser drafts can be claimed after login and explicitly saved.
+ * Account gate for guest save, download, and CV-import intents.
+ *
+ * Each intent explains its actual side effect: saving persists the project,
+ * downloading only hands a rendered PDF to the browser, and importing returns
+ * to the protected upload flow. Existing browser drafts remain local until the
+ * user explicitly claims and saves them after authentication.
  */
 import { useNavigate } from "react-router-dom";
 import DialogShell from "../../common/DialogShell/DialogShell";
 import classes from "./SaveGateModal.module.css";
 
+const CONTENT_BY_PURPOSE = {
+  import: {
+    eyebrow: "Import CV",
+    title: "Kontynuuj import na swoim koncie",
+    subtitle: "Po zalogowaniu lub rejestracji od razu wrócisz do importu i wybierzesz plik PDF.",
+    lead: "Na tym etapie nie wybieramy pliku i nie zmieniamy obecnego dokumentu.",
+    facts: [
+      { value: "1 import", label: "pliku PDF miesięcznie" },
+      { value: "Bez zmian", label: "w obecnym szkicu" },
+    ],
+    reassurance: "Zachowamy zamiar importu, więc po autoryzacji nie trzeba zaczynać od początku.",
+  },
+  download: {
+    eyebrow: "Pobieranie PDF",
+    title: "Pobierz CV jako plik PDF",
+    subtitle: "Po zalogowaniu lub rejestracji możesz wygenerować PDF z bieżącego szkicu i pobrać go na to urządzenie.",
+    lead: "Pobranie nie zapisuje CV w „Moich dokumentach” ani nie zmienia szkicu w edytorze.",
+    facts: [
+      { value: "3 pliki PDF", label: "do pobrania miesięcznie" },
+      { value: "Bez znaku wodnego", label: "w każdym pobranym pliku" },
+    ],
+    reassurance: "Szkic pozostaje zapisany lokalnie w tej przeglądarce.",
+  },
+  save: {
+    eyebrow: "Zapis CV",
+    title: "Zapisz szkic na swoim koncie",
+    subtitle: "Bieżąca praca pozostanie dostępna, gdy przejdziesz do logowania lub rejestracji.",
+    lead: "Darmowe konto pozwala zachować postęp i pobierać gotowe dokumenty bez znaku wodnego.",
+    facts: [
+      { value: "1 CV", label: "zapisane na koncie" },
+      { value: "3 pliki PDF", label: "do pobrania miesięcznie" },
+    ],
+    reassurance: "Szkic jest również zapisany lokalnie w tej przeglądarce.",
+  },
+};
+
 export default function SaveGateModal({ open, onCancel, purpose = "save" }) {
   const navigate = useNavigate();
   const importing = purpose === "import";
   const authQuery = importing ? "?start=import" : "";
-  const content = importing
-    ? {
-      eyebrow: "Import CV",
-      title: "Kontynuuj import na swoim koncie",
-      subtitle: "Po zalogowaniu lub rejestracji od razu wrócisz do importu i wybierzesz plik PDF.",
-      lead: "Na tym etapie nie wybieramy pliku i nie zmieniamy obecnego dokumentu.",
-      facts: [
-        { value: "1 import", label: "pliku PDF miesięcznie" },
-        { value: "Bez zmian", label: "w obecnym szkicu" },
-      ],
-    }
-    : {
-      eyebrow: "Zapis CV",
-      title: "Zapisz szkic na swoim koncie",
-      subtitle: "Bieżąca praca pozostanie dostępna, gdy przejdziesz do logowania lub rejestracji.",
-      lead: "Darmowe konto pozwala zachować postęp i pobierać gotowe dokumenty bez znaku wodnego.",
-      facts: [
-        { value: "1 CV", label: "zapisane na koncie" },
-        { value: "3 pliki PDF", label: "do pobrania miesięcznie" },
-      ],
-    };
+  const content = CONTENT_BY_PURPOSE[purpose] ?? CONTENT_BY_PURPOSE.save;
 
   return (
     <DialogShell
@@ -82,11 +101,7 @@ export default function SaveGateModal({ open, onCancel, purpose = "save" }) {
             </div>
           ))}
         </dl>
-        <p className={classes.reassurance}>
-          {importing
-            ? "Zachowamy zamiar importu, więc po autoryzacji nie trzeba zaczynać od początku."
-            : "Szkic jest również zapisany lokalnie w tej przeglądarce."}
-        </p>
+        <p className={classes.reassurance}>{content.reassurance}</p>
       </div>
     </DialogShell>
   );

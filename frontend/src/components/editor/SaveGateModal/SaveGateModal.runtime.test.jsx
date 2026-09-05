@@ -34,6 +34,20 @@ describe("SaveGateModal account decisions", () => {
     await waitFor(() => expect(screen.getByRole("button", { name: "Utwórz darmowe konto" })).toHaveFocus());
   });
 
+  it("describes a download without promising to save the project", () => {
+    render(
+      <MemoryRouter initialEntries={["/cvstudio/guest"]}>
+        <SaveGateModal open onCancel={vi.fn()} purpose="download" />
+      </MemoryRouter>,
+    );
+
+    const dialog = screen.getByRole("dialog", { name: "Pobierz CV jako plik PDF" });
+    expect(dialog).toHaveTextContent("3 pliki PDF");
+    expect(dialog).toHaveTextContent("Bez znaku wodnego");
+    expect(dialog).toHaveTextContent("Pobranie nie zapisuje CV w „Moich dokumentach”");
+    expect(dialog).not.toHaveTextContent("Zapisz szkic na swoim koncie");
+  });
+
   it("preserves import intent for login without mounting a file input", () => {
     render(
       <MemoryRouter initialEntries={["/cvstudio/guest"]}>

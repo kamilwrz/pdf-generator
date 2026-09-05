@@ -36,6 +36,31 @@ for (const width of [390, 834, 1280, 1920]) {
   });
 }
 
+for (const width of [390, 834, 1280, 1920]) {
+  test(`guest download opens download-specific account copy at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 950 });
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    const api = await installMockApi(page);
+    await page.goto("/cvstudio/guest?start=new");
+    await page.getByRole("button", { name: "Utwórz A4", exact: true }).click();
+    await page.locator('[contenteditable="true"][data-placeholder="Imię i nazwisko"]').fill("Anna Gość");
+    await page.getByRole("textbox", { name: "Nazwa bieżącego dokumentu" }).fill("CV do pobrania");
+
+    await page.getByRole("button", { name: "Pobierz PDF", exact: true }).click();
+
+    const gate = page.getByRole("dialog", { name: "Pobierz CV jako plik PDF" });
+    await expect(gate).toBeVisible();
+    await expect(gate.getByText("Pobranie nie zapisuje CV w „Moich dokumentach” ani nie zmienia szkicu w edytorze.")).toBeVisible();
+    await expect(gate.getByText("Bez znaku wodnego")).toBeVisible();
+    await expect(page.getByRole("dialog", { name: "Zapisz szkic na swoim koncie" })).toHaveCount(0);
+    const box = await gate.boundingBox();
+    expect(box.x).toBeGreaterThanOrEqual(0);
+    expect(box.x + box.width).toBeLessThanOrEqual(width);
+    expect(api.calls.filter((call) => /render_pdf|create_pdf|update_pdf/.test(call.path))).toEqual([]);
+    api.assertHermetic();
+  });
+}
+
 test("guest authored A4 survives refresh without account onboarding", async ({ page }) => {
   const api = await installMockApi(page);
   await page.goto("/cvstudio/guest?start=new");

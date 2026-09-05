@@ -242,7 +242,7 @@ export function EditorController() {
     if (["new", "wizard"].includes(initialStartIntentRef.current)) return "newCv";
     if (initialStartIntentRef.current === "templates") return "templates";
     return null;
-  }); // 'docs' | 'templates' | 'ai' | 'importGate' | 'saveGate' | 'newCv' | 'plan' | 'changeTemplate' | 'unlockFreeform' | null
+  }); // 'docs' | 'templates' | 'ai' | 'importGate' | 'saveGate' | 'downloadGate' | 'newCv' | 'plan' | 'changeTemplate' | 'unlockFreeform' | null
   const [panel, setPanel] = useState(null);   // 'upload' | 'gallery' | 'sections' | null
   const isModalPdfs = dialog === 'docs' && Boolean(localStorage.getItem("token"));
   const isTemplates = dialog === 'templates';
@@ -251,7 +251,7 @@ export function EditorController() {
   const isPlanModal = dialog === 'plan';
   const isChangeTemplateModal = dialog === 'changeTemplate';
   const isUnlockFreeformModal = dialog === 'unlockFreeform';
-  const isSaveGateModal = dialog === 'saveGate';
+  const isSaveGateModal = dialog === 'saveGate' || dialog === 'downloadGate';
   const isImportGateModal = dialog === 'importGate' || (dialog === 'ai' && isGuest);
   const isClaimGuestModal = dialog === 'claimGuest';
   // Structured cv_data behind the CV currently on the canvas. It is created
@@ -1512,12 +1512,12 @@ export function EditorController() {
   // Render the current canvas to a PDF and download it — independent of
   // "Zapisz". Works even for a never-saved document because the backend renders
   // on demand without persisting. Guests cannot export (no account for the
-  // metered quota), so they see the same save-gate as "Zapisz".
+  // metered quota), so they see an account gate specific to downloading.
   const handleDownloadClick = useCallback(async () => {
     if (!requireNameBeforeOutput()) return;
     if (!localStorage.getItem("token")) {
       queueGuestEvent("save_gate_shown");
-      setDialog('saveGate');
+      setDialog('downloadGate');
       return;
     }
     try {
@@ -2335,7 +2335,7 @@ export function EditorController() {
               />
               <SaveGateModal
                 open={isSaveGateModal || isImportGateModal}
-                purpose={isImportGateModal ? "import" : "save"}
+                purpose={isImportGateModal ? "import" : dialog === "downloadGate" ? "download" : "save"}
                 onCancel={() => setDialog(null)}
               />
               <ClaimGuestDocumentModal
