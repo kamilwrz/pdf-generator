@@ -10,7 +10,7 @@ for (const width of [390, 834, 1280, 1920]) {
     await page.emulateMedia({ reducedMotion: "reduce" });
     const api = await installMockApi(page);
     await page.goto("/");
-    await page.getByRole("link", { name: "Utwórz nowe CV", exact: true }).click();
+    await page.locator('#top').getByRole("link", { name: "Stwórz CV za darmo", exact: true }).click();
     const setup = page.getByRole("dialog", { name: "Skonfiguruj nowe CV" });
     await expect(setup).toBeVisible();
     await expect(accountChooser(page)).toHaveCount(0);

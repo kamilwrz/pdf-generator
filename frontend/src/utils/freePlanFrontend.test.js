@@ -18,12 +18,10 @@ test("landing labels, pricing, and FAQ keep the Free limits explicit", async () 
     assert.ok(pricingStart >= 0 && faqStart > pricingStart && faqEnd > faqStart);
     assert.match(planMarkup, /FREE_PLAN_HIGHLIGHTS\.map/);
     assert.match(planMarkup, /PRO_PLAN_HIGHLIGHTS\.map/);
-    assert.match(planMarkup, /Gotowe CV za 0 zł/);
+    assert.match(planMarkup, /Zacznij za 0 zł/);
     assert.doesNotMatch(planMarkup, /POMOC AI/);
-    assert.match(planMarkup, /1 udany import CV w każdym miesiącu/);
-    assert.match(planMarkup, /3 profesjonalnych szablonów z 6 wersjami wyglądu każdy/);
-    assert.match(planMarkup, /nie wygasa i nie obejmuje funkcji AI/);
-    assert.match(planMarkup, /Tak, w planie Pro/);
+    assert.match(planMarkup, /Limity znajdziesz w <a href="#cennik">cenniku/);
+    assert.match(planMarkup, /Funkcje AI są dostępne w Pro/);
     assert.doesNotMatch(planMarkup, /znak wodny|oznaczeni(?:e|a) CV Studio|3 importy CV/i);
 });
 

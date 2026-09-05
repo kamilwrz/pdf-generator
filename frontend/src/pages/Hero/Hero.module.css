@@ -5,7 +5,7 @@
  * contrast, a strict grid expressed through 1px hairline rules, sans-serif
  * grotesque typography, and a single warm accent (taupe) used only as a
  * structural / decorative signal — never as the sole carrier of text meaning,
- * so every text/background pair keeps WCAG AAA contrast.
+ * with readable foregrounds on each light or dark surface.
  *
  * Page aliases resolve to the application-wide tokens in index.css, so the
  * narrative surface shares its visual language with authentication and the
@@ -46,6 +46,19 @@
 
 .page * {
     box-sizing: border-box;
+}
+
+.page :is(a, summary):focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: var(--space-1);
+}
+
+.navigation a,
+.heroTertiary a,
+.footerCol a {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--control-height);
 }
 
 /* ---- Header / navigation ------------------------------------------------ */
@@ -134,11 +147,9 @@
     gap: 12px;
     margin: 0 0 24px;
     color: var(--ink);
-    font: 500 11px/1 var(--mono);
+    font: 500 12px/1.25 var(--mono);
     letter-spacing: .2em;
     text-transform: uppercase;
-    /* Surviving landing sections retain their original poster index after the
-       intentionally omitted sections are removed from the document flow. */
 }
 
 /* Figure index: a solid ink chip carrying the zero-padded section number. It
@@ -158,6 +169,7 @@
 .offerStatement h2,
 .trustHeading h2,
 .pricingHeading h2,
+.finalCta h2,
 .faqSection h2 {
     margin: 0;
     font-family: var(--display);
@@ -254,22 +266,23 @@
 }
 
 .hero h1 {
+    max-width: 100%;
+    overflow-wrap: anywhere;
     color: var(--taupe);
     font-size: clamp(2.5rem, 6vw, 5.5rem);
     line-height: .94;
     letter-spacing: -.045em;
 }
 
-/* The longer product description uses the design system's body scale and
-   reading measure. Canvas beige on ink preserves contrast over the photo
-   without competing with the main heading at compact viewport widths. */
+/* The short supporting copy stays readable over the subdued photo without
+   adding another heavy headline surface. */
 .heroSubheading {
     width: fit-content;
     max-width: min(100%, 72ch);
     margin: 0;
     padding: var(--space-2) var(--space-4) var(--space-3);
-    background: var(--ink);
-    color: var(--beige);
+    background: transparent;
+    color: var(--ink);
     font-family: var(--display);
     font-size: 1rem;
     font-weight: 400;
@@ -289,6 +302,43 @@
     margin-top: var(--space-12);
 }
 
+.accountNote {
+    max-width: 56ch;
+    margin: var(--space-4) auto 0;
+    color: var(--ink);
+    font-size: 0.875rem;
+    line-height: 1.55;
+}
+
+/* A static, labelled example explains the paid feature without a request,
+   loading state, credit charge, or fabricated live AI interaction. */
+.copyExample {
+    margin: var(--space-4) 0 0;
+    padding-left: var(--space-4);
+    border-left: 1px solid var(--color-border);
+    font-size: 0.875rem;
+    line-height: 1.55;
+}
+
+.copyExample > div + div { margin-top: var(--space-3); }
+.copyExample dt { color: var(--muted); font-size: 0.75rem; }
+.copyExample dd { margin: 0; color: var(--ink); }
+
+.finalCta {
+    padding: var(--space-16) clamp(24px, 7vw, 112px);
+    background: var(--paper);
+    text-align: center;
+}
+
+.finalCta h2 {
+    font-size: clamp(2rem, 4vw, 3.5rem);
+    line-height: 1.1;
+    margin-bottom: var(--space-8);
+}
+
+.finalCta a { max-width: 100%; }
+.faqList a { color: inherit; text-underline-offset: 4px; }
+
 /* ---- Buttons ------------------------------------------------------------ */
 
 .buttonPrimary,
@@ -303,7 +353,7 @@
     border-radius: 0;
     font: 600 12px/1.2 var(--body);
     letter-spacing: .07em;
-    text-transform: uppercase;
+    text-transform: none;
     text-align: center;
     text-decoration: none;
     cursor: pointer;
@@ -390,7 +440,7 @@
     align-items: center;
     gap: 8px;
     color: var(--ink);
-    font: 600 11px/1.4 var(--body);
+    font: 600 12px/1.4 var(--body);
     letter-spacing: .01em;
     text-decoration: none;
 }
@@ -416,7 +466,7 @@
     padding: 12px 0 0;
     border-top: 1px solid var(--line-strong);
     color: var(--muted);
-    font: 500 9.5px/1.45 var(--mono);
+    font: 500 12px/1.45 var(--mono);
     letter-spacing: .045em;
     list-style: none;
     text-transform: uppercase;
@@ -505,7 +555,7 @@
 .offerStepIndex {
     padding-top: 3px;
     color: var(--muted);
-    font: 600 10px/1.2 var(--mono);
+    font: 600 12px/1.2 var(--mono);
     letter-spacing: .1em;
 }
 
@@ -532,7 +582,7 @@
 .templateGalleryLabel {
     margin: 0 0 5px;
     color: var(--muted);
-    font: 600 10px/1.3 var(--mono);
+    font: 600 12px/1.3 var(--mono);
     letter-spacing: .14em;
     text-transform: uppercase;
 }
@@ -630,23 +680,13 @@
 .templateCard > span {
     display: grid;
     gap: 5px;
-    min-height: 62px;
+    min-height: 44px;
     padding: 13px;
 }
 
 .templateCard b {
     font: 700 15px/1.1 var(--display);
     letter-spacing: -.02em;
-}
-
-.templateCard small {
-    overflow: hidden;
-    color: var(--muted);
-    font: 500 9px/1.3 var(--mono);
-    letter-spacing: .06em;
-    text-overflow: ellipsis;
-    text-transform: uppercase;
-    white-space: nowrap;
 }
 
 .templatesSection .textCta {
@@ -682,13 +722,6 @@
     line-height: 1.06;
 }
 
-.trustHeading > p:last-child {
-    max-width: 420px;
-    margin: 14px 0 0;
-    color: var(--ink-body);
-    font: 400 13px/1.65 var(--body);
-}
-
 .trustPoints {
     display: grid;
     gap: 0;
@@ -702,10 +735,6 @@
     font-size: 12px;
 }
 
-.trustPoints a {
-    color: inherit;
-    text-underline-offset: 4px;
-}
 
 /* ---- Pricing (light section, black card highlights the Pro tier) -------- */
 
@@ -781,9 +810,9 @@
     top: 0;
     right: 0;
     padding: 7px 11px;
-    background: var(--taupe);
+    background: var(--beige);
     color: var(--ink);
-    font: 700 8px/1.2 var(--mono);
+    font: 700 12px/1.2 var(--mono);
     letter-spacing: .1em;
     text-transform: uppercase;
 }
@@ -791,7 +820,7 @@
 .planName {
     margin: 0;
     color: var(--taupe);
-    font: 500 10px/1.2 var(--mono);
+    font: 500 12px/1.2 var(--mono);
     letter-spacing: .16em;
     text-transform: uppercase;
 }
@@ -807,9 +836,11 @@
     color: var(--paper);
 }
 
+.priceFeatured .planName { color: var(--paper); }
+
 .planPrice small {
     color: var(--muted);
-    font: 500 11px/1.2 var(--mono);
+    font: 500 12px/1.2 var(--mono);
     letter-spacing: 0;
 }
 
@@ -827,7 +858,7 @@
 .planPeriod {
     margin: 8px 0 0;
     color: var(--muted);
-    font: 600 10px/1.4 var(--mono);
+    font: 600 12px/1.4 var(--mono);
     letter-spacing: .06em;
     text-transform: uppercase;
 }
@@ -989,7 +1020,7 @@
     border-top: 1px solid var(--line-dark);
 }
 
-/* Upper zone: brand identity + tagline + social on the left, three link
+/* Upper zone: brand identity and tagline on the left, three link
    columns on the right — a conventional Swiss footer grid held together by the
    same hairline rules used across the page. */
 .footerTop {
@@ -1014,34 +1045,6 @@
     font: 400 13px/1.6 var(--body);
 }
 
-.footerSocial {
-    display: flex;
-    gap: 12px;
-}
-
-/* Sharp-edged icon buttons that invert to paper on hover, matching the primary
-   button's black-to-paper contrast logic. */
-.footerSocial a {
-    display: grid;
-    place-items: center;
-    width: 38px;
-    height: 38px;
-    border: 1px solid var(--line-dark);
-    color: color-mix(in srgb, var(--color-paper) 72%, transparent);
-    transition: color 200ms ease, background 200ms ease, border-color 200ms ease;
-}
-
-.footerSocial a:hover,
-.footerSocial a:focus-visible {
-    color: var(--ink);
-    background: var(--paper);
-    border-color: var(--paper);
-}
-
-.footerSocial svg {
-    width: 17px;
-    height: 17px;
-}
 
 .footerNav {
     display: grid;
@@ -1058,7 +1061,7 @@
 .footerColTitle {
     margin: 0 0 4px;
     color: var(--taupe);
-    font: 500 10px/1 var(--mono);
+    font: 500 12px/1 var(--mono);
     letter-spacing: .16em;
     text-transform: uppercase;
 }
@@ -1077,7 +1080,7 @@
     color: var(--paper);
 }
 
-/* Lower zone: copyright on the left, an SEO keyword rail on the right. */
+/* Lower zone: copyright follows the useful navigation. */
 .footerBottom {
     display: flex;
     flex-wrap: wrap;
@@ -1089,14 +1092,10 @@
 
 .footerBottom small {
     color: color-mix(in srgb, var(--color-paper) 50%, transparent);
-    font: 500 10px/1.4 var(--mono);
+    font: 500 12px/1.4 var(--mono);
     letter-spacing: .08em;
 }
 
-.footerSeo {
-    text-transform: uppercase;
-    letter-spacing: .1em;
-}
 
 /* ---- One-shot page-load reveal ----------------------------------------- */
 
@@ -1189,7 +1188,7 @@
 
     .navigation .navStart {
         padding: 10px 13px;
-        font-size: 10px;
+        font-size: 12px;
     }
 
     .hero {
@@ -1205,7 +1204,7 @@
     }
 
     .hero h1 {
-        font-size: clamp(2.5rem, 14vw, 4rem);
+        font-size: clamp(2rem, 9vw, 3.5rem);
     }
 
     .heroSubheading {
@@ -1257,7 +1256,7 @@
     }
 
     .templateCard > span {
-        min-height: 54px;
+        min-height: 44px;
         padding: 10px;
     }
 
