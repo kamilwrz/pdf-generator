@@ -340,6 +340,11 @@ function syncEditorStructures(cvData, elements) {
       ) ? "projects" : "other",
       placement: placementForSection(section, elements, layout),
       ...([SECTION_LAYOUTS.GRID, SECTION_LAYOUTS.RECORD_SUBCATEGORY].includes(layout) ? { layout } : {}),
+      ...(heading.editorSectionType
+        ? { section_type: heading.editorSectionType }
+        : layout === SECTION_LAYOUTS.RECORD_SUBCATEGORY
+          ? { section_type: "skills-categories" }
+          : {}),
       __canvasHeadingId: heading.element_id,
     };
     // Guest/profile normalization can remove canvas ids while retaining the
@@ -633,6 +638,9 @@ function generatedCustomLayoutSections(elements) {
         headingId: section.headingId,
         title: profileTextForElement(heading),
         layout: SECTION_LAYOUTS.RECORD_SUBCATEGORY,
+        sectionType: heading.editorSectionType
+          || heading.extra_properties?.editorSectionType
+          || "skills-categories",
         items: customSectionItems(listSectionContentElements(list, section.headingId), SECTION_LAYOUTS.RECORD_SUBCATEGORY),
       }];
     }
@@ -686,6 +694,7 @@ function syncGeneratedCustomLayouts(cvData, previousElements, nextElements) {
       title: grid.title,
       items: grid.items,
       layout: grid.layout,
+      ...(grid.sectionType ? { section_type: grid.sectionType } : {}),
     };
     if (JSON.stringify(current) === JSON.stringify(updated)) continue;
     if (draft === cvData) draft = cloneProfile(cvData);

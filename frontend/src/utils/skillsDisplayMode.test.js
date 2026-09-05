@@ -183,6 +183,31 @@ describe("listSkillsDisplayAnchors", () => {
       SPACING,
     ));
   });
+
+  it("recovers chips actions from the category layout after a renamed section changes template", () => {
+    const elements = groupedSkillsFixture().map((element) => (
+      element.element_id === "sk-head"
+        ? {
+            ...element,
+            content: "PROJEKTY",
+            editorSectionLayout: "cc-sub",
+            editorSectionType: undefined,
+          }
+        : element
+    ));
+
+    assert.deepEqual(
+      listSkillsDisplayAnchors(elements, PAGE_HEIGHT),
+      [{ headingId: "sk-head", mode: "inline" }],
+    );
+    assert.ok(changeSkillsDisplayMode(
+      elements,
+      "sk-head",
+      "chips",
+      PAGE_HEIGHT,
+      SPACING,
+    ));
+  });
 });
 
 describe("isInlineSkillsContentElement", () => {

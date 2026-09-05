@@ -289,6 +289,12 @@ export function normalizeBioCvData(value) {
                 ...(["grid", "cc-sub"].includes(String(section.layout || "").toLowerCase())
                     ? { layout: String(section.layout).toLowerCase() }
                     : {}),
+                ...(["summary", "experience", "education", "languages", "skills", "skills-categories"]
+                    .includes(String(section.section_type || "").toLowerCase())
+                    ? { section_type: String(section.section_type).toLowerCase() }
+                    : String(section.layout || "").toLowerCase() === "cc-sub"
+                        ? { section_type: "skills-categories" }
+                        : {}),
             })),
         language: clean(source.language) || "Polish",
         labels: { ...DEFAULT_LABELS, ...(source.labels || {}) },

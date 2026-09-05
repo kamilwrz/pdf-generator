@@ -48,6 +48,14 @@ ALLOWED_SECTION_KINDS = {
     "other",
 }
 ALLOWED_PLACEMENTS = {"after_experience", "after_skills"}
+ALLOWED_EDITOR_SECTION_TYPES = {
+    "summary",
+    "experience",
+    "education",
+    "languages",
+    "skills",
+    "skills-categories",
+}
 
 # Sections whose items are title + nested bullets (like experience records),
 # not a flat chip/list of equal-weight lines.
@@ -961,6 +969,12 @@ def _normalize_custom_sections(value: Any) -> list[dict[str, Any]]:
         placement = _text(section.get("placement")) or "after_skills"
         layout = _text(section.get("layout")).casefold()
         layout = layout if layout in {"grid", "cc-sub"} else ""
+        section_type = _text(section.get("section_type")).casefold()
+        if section_type not in ALLOWED_EDITOR_SECTION_TYPES:
+            # `cc-sub` is the product's Skills (Categories) layout. Profiles
+            # saved before section_type existed still need the same semantic
+            # canvas actions after a template regeneration.
+            section_type = "skills-categories" if layout == "cc-sub" else ""
         if kind not in ALLOWED_SECTION_KINDS:
             kind = "other"
         # Extractors often tag projects/references as generic "other". Upgrade
@@ -988,6 +1002,8 @@ def _normalize_custom_sections(value: Any) -> list[dict[str, Any]]:
             }
             if layout:
                 normalized_section["layout"] = layout
+            if section_type:
+                normalized_section["section_type"] = section_type
             result.append(normalized_section)
     return result
 
@@ -1006,6 +1022,9 @@ def _derive_manual_sections(extra_sections: Any) -> tuple[list[dict[str, str]], 
         placement = _text(section.get("placement")) or "after_skills"
         layout = _text(section.get("layout")).casefold()
         layout = layout if layout in {"grid", "cc-sub"} else ""
+        section_type = _text(section.get("section_type")).casefold()
+        if section_type not in ALLOWED_EDITOR_SECTION_TYPES:
+            section_type = "skills-categories" if layout == "cc-sub" else ""
         if kind == "languages" and not layout:
             items = _section_items(section.get("items"))
             languages.extend(_normalize_languages(items))
@@ -1033,6 +1052,8 @@ def _derive_manual_sections(extra_sections: Any) -> tuple[list[dict[str, str]], 
             }
             if layout:
                 normalized_section["layout"] = layout
+            if section_type:
+                normalized_section["section_type"] = section_type
             custom_sections.append(normalized_section)
     return languages, custom_sections
 

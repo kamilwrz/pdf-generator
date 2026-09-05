@@ -102,9 +102,10 @@ test("preserves category records through repeated guest/profile normalization", 
             { title: "", body: "", bulletList: true },
         ],
     };
+    const normalizedSection = { ...section, section_type: "skills-categories" };
     const payload = buildBioCvPayload({ name: "Anna", custom_sections: [section] });
-    assert.deepEqual(payload.custom_sections, [section]);
-    assert.deepEqual(buildBioCvPayload(payload).custom_sections, [section]);
+    assert.deepEqual(payload.custom_sections, [normalizedSection]);
+    assert.deepEqual(buildBioCvPayload(payload).custom_sections, [normalizedSection]);
 });
 
 test("validates only completed repeater cards and email syntax", () => {

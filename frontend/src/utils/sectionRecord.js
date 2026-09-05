@@ -122,6 +122,13 @@ export function isSkillsSectionElement(heading) {
     ?? heading?.extra_properties?.editorSectionType;
   return explicitType === SECTION_TYPES.SKILLS
     || explicitType === SECTION_TYPES.SKILLS_CATEGORIES
+    // `cc-sub` is the persisted two-field Skills-category contract. Older
+    // template refills kept this structural marker but dropped the explicit
+    // semantic type, so relying only on the renamed heading made the chips,
+    // per-category add, and record actions disappear from otherwise intact
+    // sections. Treat the durable layout as the migration fallback as well.
+    || heading?.editorSectionLayout === SECTION_LAYOUTS.RECORD_SUBCATEGORY
+    || heading?.extra_properties?.editorSectionLayout === SECTION_LAYOUTS.RECORD_SUBCATEGORY
     || isSkillsSectionTitle(heading?.content);
 }
 

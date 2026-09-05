@@ -20,6 +20,7 @@ class CustomCategorySectionsTests(unittest.TestCase):
                 "name": "Anna Nowak", "skills": ["Python"],
                 "custom_sections": [{
                     "title": title, "kind": "other", "layout": "cc-sub",
+                    "section_type": "skills-categories",
                     "placement": "after_skills", "items": records,
                 }],
             })
@@ -32,6 +33,7 @@ class CustomCategorySectionsTests(unittest.TestCase):
                     headings = [e for e in elements if e.get("editorSectionLayout") == "cc-sub"]
                     self.assertEqual(len(headings), 1)
                     self.assertEqual(headings[0]["content"], title.upper())
+                    self.assertEqual(headings[0]["editorSectionType"], "skills-categories")
                     fields = [e for e in elements if e.get("editorRecordLayout") == "cc-sub"]
                     self.assertEqual([e["content"] for e in fields], [
                         "Projekt 1", "SKILLS\nReact, Node", "Projekt 1",
@@ -64,6 +66,8 @@ class CustomCategorySectionsTests(unittest.TestCase):
                 self.assertEqual(profile["custom_sections"][0]["items"], section["items"])
                 self.assertEqual(profile["skills"], [])
                 elements = generate_resume(template.id, profile)
+                heading = next(e for e in elements if e.get("editorSectionLayout") == "cc-sub")
+                self.assertEqual(heading["editorSectionType"], "skills-categories")
                 fields = [e for e in elements if e.get("editorRecordLayout") == "cc-sub"]
                 self.assertEqual([e["content"] for e in fields], ["", ""])
                 self.assertEqual(len({e["flowGroup"] for e in fields}), 1)

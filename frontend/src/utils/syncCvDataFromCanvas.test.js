@@ -692,6 +692,7 @@ describe("syncCvDataFromCanvas", () => {
   it("preserves custom category fields through creation, refill, editing and record removal", () => {
     const heading = sectionHeading("categories", "PROJEKTY", {
       editorAddedSection: true, editorSectionId: "categories", editorSectionLayout: "cc-sub",
+      editorSectionType: "skills-categories",
     });
     const field = (id, content, role, top, group = "pair") => ({
       ...text(id, content), top, left: 60, page: 1, flowRole: "content",
@@ -704,6 +705,7 @@ describe("syncCvDataFromCanvas", () => {
     const expected = { title: "Projekt 1", body: "SKILLS\nReact, Node", bulletList: false };
     assert.deepEqual(created.custom_sections[0].items, [expected]);
     assert.equal(created.custom_sections[0].layout, "cc-sub");
+    assert.equal(created.custom_sections[0].section_type, "skills-categories");
     const legacy = { ...created, custom_sections: [{
       ...created.custom_sections[0], layout: undefined, items: ["Projekt 1: SKILLS"],
     }] };
@@ -712,6 +714,7 @@ describe("syncCvDataFromCanvas", () => {
     const repaired = syncCustomSectionsForTemplateSwitch(restoredLegacy, [heading, title, body]);
     assert.equal(repaired.custom_sections.length, 1);
     assert.deepEqual(repaired.custom_sections[0].items, [expected]);
+    assert.equal(repaired.custom_sections[0].section_type, "skills-categories");
 
     // A generator assigns fresh ids and retains only semantic layout/field tags.
     const restored = [heading, title, body].map((element) => ({

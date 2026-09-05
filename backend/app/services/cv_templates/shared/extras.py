@@ -236,6 +236,7 @@ def _category_sections(b: Builder, section: dict, section_fn, C: dict,
     for element in b.els[start:]:
         if element.get("category") in {"text", "textarea"} and element.get("content") == section["title"].upper():
             element["editorSectionLayout"] = "cc-sub"
+            element["editorSectionType"] = section.get("section_type") or "skills-categories"
     for index, record in enumerate(records):
         with b.keep_together(height(record)):
             emitted = False
