@@ -108,6 +108,15 @@ export function getTextContentBounds(element) {
     } else {
       const rangeRect = getTextRangeRect(node);
       if (rangeRect) return toCanvas(rangeRect);
+      // Starter advice is CSS ::before content, so an empty DOM Range cannot
+      // see it. Text.module.css lifts the real hit box above the PDF baseline
+      // with a negative margin. Use that box's position AND size together;
+      // combining its height with the saved baseline makes selection drop
+      // through the advice when an inspector control receives focus.
+      if (node.matches?.("[data-placeholder]:empty")) {
+        const rect = node.getBoundingClientRect();
+        if (rect.width > 0 && rect.height > 0) return toCanvas(rect);
+      }
     }
   }
 
@@ -163,9 +172,9 @@ export function getElementOutlineBounds(element) {
  * the active single-line text surface.
  *
  * Selection replaces edit focus when a canvas control receives focus. Keeping
- * both rectangles two screen pixels outside populated glyphs prevents the
- * blue boundary from appearing to drop onto the text. Other element types and
- * empty text retain their existing box geometry.
+ * both rectangles two screen pixels outside glyphs or the empty guidance box
+ * prevents the blue boundary from appearing to drop onto the text. Other
+ * element types and empty text without guidance retain their box geometry.
  *
  * @param {object} element - A mounted or model-only canvas element.
  * @param {number} zoom - Current visual A4 scale.
@@ -173,7 +182,11 @@ export function getElementOutlineBounds(element) {
  */
 export function getElementSelectionBounds(element, zoom = 1) {
   const bounds = getElementOutlineBounds(element);
-  if (element?.category !== "text" || !String(element?.content ?? "").trim()) {
+  const node = typeof document !== "undefined"
+    ? document.getElementById(element?.element_id)
+    : null;
+  const hasGuidance = node?.matches?.("[data-placeholder]:empty");
+  if (element?.category !== "text" || (!String(element?.content ?? "").trim() && !hasGuidance)) {
     return bounds;
   }
 
@@ -181,7 +194,10 @@ export function getElementSelectionBounds(element, zoom = 1) {
   const safeZoom = Number.isFinite(numericZoom) && numericZoom > 0.05
     ? numericZoom
     : 1;
-  const padding = 2 / safeZoom;
+  // During an animated zoom the rendered scale can lag behind the target
+  // context value. Match the edit outline using the live canvas scale.
+  const scale = node ? getCanvasMeasurement(node).scaleX : safeZoom;
+  const padding = 2 / scale;
   return {
     left: bounds.left - padding,
     top: bounds.top - padding,

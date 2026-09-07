@@ -58,6 +58,63 @@ async function selectionFrameError(locator) {
   });
 }
 
+// Starter contacts display CSS-generated advice while their saved content is
+// empty. A DOM Range cannot measure that advice; compare the live guidance box
+// with the selection frame after the inspector returns focus to its cog.
+for (const width of [390, 768, 1280, 1920]) {
+  test(`empty contact frame survives settings close at ${width}px`, async ({ page }, testInfo) => {
+    await page.setViewportSize({ width, height: 1000 });
+    await page.emulateMedia({ reducedMotion: width === 768 ? "reduce" : "no-preference" });
+    const api = await installMockApi(page, {
+      savedElements: [SAVED_ELEMENTS[0], ...contactElements.map((element) => (
+        element.contactChannel ? {
+          ...element, content: "", placeholder: element.content,
+          extra_properties: { ...element.extra_properties, content: "", placeholder: element.content, starterPlaceholder: true },
+        } : element
+      ))],
+      savedDocument: { ...SAVED_DOCUMENT, template_id: "meridian", cv_data: null },
+    });
+    await login(page);
+    await page.getByText("Kontynuuj ostatnie CV", { exact: true }).click();
+    await page.getByRole("button", { name: "Otwórz na płótnie" }).click();
+    const email = page.locator("#outline-email");
+    for (const clearText of [false, true]) {
+      await email.click();
+      await expect(email).toHaveAttribute("contenteditable", "true");
+      if (clearText) {
+        await email.pressSequentially("ada@example.com");
+        await email.press("ControlOrMeta+a");
+        await email.press("Backspace");
+      }
+      const cog = page.getByRole("button", { name: /Otwórz parametry elementu:/ });
+      await cog.click();
+      const panel = page.getByRole("dialog", { name: "Ustawienia · Tekst", exact: true });
+      await expect(panel).toBeVisible();
+      await panel.getByRole("button", { name: "Zamknij ustawienia elementu" }).click();
+      await expect(panel).toHaveCount(0);
+      await expect(cog).toBeFocused();
+      await expect(email).not.toHaveAttribute("contenteditable", "true");
+      await expect(email).toHaveText("");
+      // The empty-field hit box is lifted above the saved PDF baseline. The
+      // selection must enclose that live box, not start at the saved top.
+      await expect.poll(() => email.evaluate((el) => {
+        const box = el.getBoundingClientRect();
+        const frame = el.closest("[data-page-canvas]").querySelector('[data-selection-element="outline-email"]');
+        if (!frame) return Infinity;
+        const rect = frame.getBoundingClientRect();
+        return Math.max(
+          Math.abs(rect.left - (box.left - 2)),
+          Math.abs(rect.top - (box.top - 2)),
+          Math.abs(rect.width - (box.width + 4)),
+          Math.abs(rect.height - (box.height + 4)),
+        );
+      })).toBeLessThan(1);
+    }
+    await page.screenshot({ path: testInfo.outputPath("empty-contact-after-settings.png") });
+    api.assertHermetic();
+  });
+}
+
 // Exercise actual Range geometry in Chromium; jsdom cannot reproduce alignment,
 // zero-height PDF baselines, web-font metrics or transformed canvas coordinates.
 for (const width of [390, 768, 1280, 1920]) {

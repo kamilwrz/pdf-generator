@@ -2,7 +2,7 @@
  * Selection hairlines drawn above elements (tight glyph bounds for single-line text).
  * Keeps resize chrome off the element DOM so remounts do not break pointer capture.
  */
-import { useMemo } from "react";
+import { useLayoutEffect, useMemo, useRef } from "react";
 import { useCanvasContext } from "../../../store/canvas-context";
 import { getElementSelectionBounds } from "../../../utils/elementBounds";
 import classes from "./SelectionOverlay.module.css";
@@ -11,6 +11,7 @@ export default function SelectionOverlay({ elements, page }) {
     const { A4_Elements, currentPage, groupMoveDelta, zoom = 1 } = useCanvasContext();
     const canvasElements = elements ?? A4_Elements;
     const displayedPage = page ?? currentPage;
+    const layerRef = useRef(null);
 
     const selected = useMemo(
         () => canvasElements.filter((element) => (
@@ -33,42 +34,55 @@ export default function SelectionOverlay({ elements, page }) {
         [canvasElements, displayedPage]
     );
     const displayed = selected.length > 0 ? selected : moving;
-    const framed = displayed;
+    useLayoutEffect(() => {
+        const layer = layerRef.current;
+        if (!layer || displayed.length === 0) return;
+        let frameId;
+        let previous = "";
+        const view = layer.ownerDocument.defaultView;
+        function measure() {
+            // Blur can remove browser <br> children and restore CSS guidance in
+            // Text's layout effect. Render-time DOM reads still see the old
+            // edit node. Measure after commit and follow font/zoom changes so
+            // the selected frame always uses the currently painted surface.
+            const bounds = displayed.map((element) => getElementSelectionBounds(element, zoom));
+            const signature = JSON.stringify(bounds);
+            if (signature !== previous) {
+                const nodes = layer.querySelectorAll("[data-selection-element]");
+                bounds.forEach((box, index) => {
+                    const style = nodes[index]?.style;
+                    if (!style) return;
+                    for (const key of ["left", "top", "width", "height"]) style[key] = `${box[key]}px`;
+                });
+                const left = Math.min(...bounds.map((box) => box.left));
+                const top = Math.min(...bounds.map((box) => box.top));
+                const right = Math.max(...bounds.map((box) => box.left + box.width));
+                const bottom = Math.max(...bounds.map((box) => box.top + box.height));
+                const group = layer.querySelector("[data-selection-group]");
+                if (group) Object.assign(group.style, {
+                    left: `${left}px`, top: `${top}px`, width: `${right - left}px`, height: `${bottom - top}px`,
+                });
+                const badge = layer.querySelector("[data-selection-badge]");
+                if (badge) Object.assign(badge.style, { left: `${left}px`, top: `${top}px` });
+                const delta = layer.querySelector("[data-selection-delta]");
+                if (delta) Object.assign(delta.style, { left: `${left}px`, top: `${bottom}px` });
+                previous = signature;
+            }
+            frameId = view.requestAnimationFrame(measure);
+        }
+        measure();
+        return () => view.cancelAnimationFrame(frameId);
+    }, [displayed, zoom, groupMoveDelta]);
     const isMulti = displayed.length > 1;
     if (displayed.length === 0) return null;
-    const frames = framed.map((element) => ({
-        id: element.element_id,
-        ...getElementSelectionBounds(element, zoom),
-    }));
-    const groupFrames = displayed.map((element) => ({
-        id: element.element_id,
-        ...getElementSelectionBounds(element, zoom),
-    }));
-
-    const groupBox = groupFrames.reduce((box, frame) => ({
-        left: Math.min(box.left, frame.left),
-        top: Math.min(box.top, frame.top),
-        right: Math.max(box.right, frame.left + frame.width),
-        bottom: Math.max(box.bottom, frame.top + frame.height),
-    }), {
-        left: groupFrames[0].left,
-        top: groupFrames[0].top,
-        right: groupFrames[0].left + groupFrames[0].width,
-        bottom: groupFrames[0].top + groupFrames[0].height,
-    });
 
     return (
-        <div className={classes.layer} aria-hidden="true">
-            {frames.map((frame) => (
+        <div ref={layerRef} className={classes.layer} aria-hidden="true">
+            {displayed.map((element) => (
                 <div
-                    key={frame.id}
+                    key={element.element_id}
+                    data-selection-element={element.element_id}
                     className={`${classes.frame} ${isMulti ? classes.frameMulti : ""}`}
-                    style={{
-                        left: frame.left,
-                        top: frame.top,
-                        width: frame.width,
-                        height: frame.height,
-                    }}
                 >
                 </div>
             ))}
@@ -77,16 +91,11 @@ export default function SelectionOverlay({ elements, page }) {
                 <>
                     <div
                         className={classes.groupFrame}
-                        style={{
-                            left: groupBox.left,
-                            top: groupBox.top,
-                            width: groupBox.right - groupBox.left,
-                            height: groupBox.bottom - groupBox.top,
-                        }}
+                        data-selection-group="true"
                     />
                     <div
                         className={classes.badge}
-                        style={{ left: groupBox.left, top: groupBox.top }}
+                        data-selection-badge="true"
                     >
                         <span className={classes.badgeDot} />
                         {`${displayed.length} zaznaczone`}
@@ -96,7 +105,7 @@ export default function SelectionOverlay({ elements, page }) {
             {groupMoveDelta && groupMoveDelta.page === displayedPage && (
                 <div
                     className={classes.deltaBadge}
-                    style={{ left: groupBox.left, top: groupBox.bottom }}
+                    data-selection-delta="true"
                 >
                     ΔX {groupMoveDelta.x >= 0 ? "+" : ""}{groupMoveDelta.x}px
                     <span>·</span>

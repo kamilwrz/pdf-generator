@@ -71,3 +71,36 @@ test("populated text selection keeps two screen pixels around glyph bounds", () 
     { left: 100, top: 40, width: 24, height: 10 },
   );
 });
+
+test("empty CSS guidance uses its live lifted box and rendered zoom instead of the saved baseline", () => {
+  const previousDocument = globalThis.document;
+  const emptyRect = { left: 0, top: 0, width: 0, height: 0 };
+  const node = {
+    tagName: "P",
+    matches: (selector) => selector === "[data-placeholder]:empty",
+    closest: () => ({
+      clientWidth: 600, clientHeight: 800,
+      getBoundingClientRect: () => ({ left: 20, top: 30, width: 1500, height: 2000 }),
+    }),
+    getBoundingClientRect: () => ({ left: 270, top: 280, width: 300, height: 25 }),
+    ownerDocument: {
+      createRange: () => ({
+        selectNodeContents() {},
+        getClientRects: () => [],
+        getBoundingClientRect: () => emptyRect,
+      }),
+    },
+  };
+  globalThis.document = { getElementById: () => node };
+  try {
+    const element = { element_id: "empty-email", category: "text", content: "", left: 100, top: 117 };
+    assert.deepEqual(getElementOutlineBounds(element), { left: 100, top: 100, width: 120, height: 10 });
+    // The target zoom has advanced to 280%, but the painted canvas is at 250%.
+    assert.deepEqual(getElementSelectionBounds(element, 2.8), {
+      left: 99.2, top: 99.2, width: 121.6, height: 11.6,
+    });
+  } finally {
+    if (previousDocument === undefined) delete globalThis.document;
+    else globalThis.document = previousDocument;
+  }
+});
