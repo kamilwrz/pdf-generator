@@ -6,7 +6,10 @@ import {
   applyChannelAddition,
   applyChannelRelayout,
 } from "./contactBandOps.js";
-import { channelName } from "./contactChannelNames.js";
+import {
+  CONTACT_CHANNEL_PLACEHOLDERS,
+  contactChannelPlaceholder,
+} from "./contactChannelNames.js";
 
 const measure = (t) => t.length * 5;
 
@@ -77,7 +80,8 @@ test("addition accepts a channel the CV never generated (github / website)", () 
   const icon = added.find((e) => e.category === "image");
   const label = added.find((e) => e.category === "text");
   assert.ok(icon && String(icon.src).includes("/harbor/github.png"));
-  assert.equal(label.content, channelName("github"));
+  assert.equal(label.content, "");
+  assert.equal(label.placeholder, CONTACT_CHANNEL_PLACEHOLDERS.github);
 });
 
 test("addition inserts a channel into its canonical slot, not at the end", () => {
@@ -91,16 +95,42 @@ test("addition inserts a channel into its canonical slot, not at the end", () =>
   assert.ok(github.left > email.left, "github placed after email");
 });
 
-test("addition without a provided label seeds the channel display name for editing", () => {
+test("addition without authored text exposes channel-specific editor guidance", () => {
   const removed = applyChannelRemoval(doc(), "b1", "location", measure, () => "id").elements;
   let n = 0;
   const { elements } = applyChannelAddition(removed, "b1", "location", undefined, measure, () => `new-${n++}`);
   const label = elements.find((e) => e.contactChannel === "location" && e.category === "text");
-  // Seeded with real content (not empty) so it has clickable glyphs and edits
-  // like any other label. Not auto-edited — the user clicks it to edit.
-  assert.equal(label.content, channelName("location"));
-  assert.equal(label.placeholder, channelName("location"));
+  assert.equal(label.content, "");
+  assert.equal(label.placeholder, CONTACT_CHANNEL_PLACEHOLDERS.location);
+  assert.equal(label.starterPlaceholder, true);
+  assert.deepEqual(label.cvDataBindings, [{
+    path: ["location"],
+    placeholder: CONTACT_CHANNEL_PLACEHOLDERS.location,
+  }]);
   assert.ok(!label.isEditing);
+});
+
+test("every addable contact channel has format-specific guidance", () => {
+  for (const channel of Object.keys(CONTACT_CHANNEL_PLACEHOLDERS)) {
+    let n = 0;
+    const base = activeChannels(doc(), "b1").includes(channel)
+      ? applyChannelRemoval(doc(), "b1", channel, measure, () => `${channel}-removed`).elements
+      : doc();
+    const { elements } = applyChannelAddition(
+      base,
+      "b1",
+      channel,
+      undefined,
+      measure,
+      () => `${channel}-${n++}`,
+    );
+    const label = elements.find((element) => (
+      element.contactChannel === channel && element.category === "text"
+    ));
+    assert.ok(label, `${channel}: label exists`);
+    assert.equal(label.content, "", `${channel}: guidance is not authored content`);
+    assert.equal(label.placeholder, contactChannelPlaceholder(channel));
+  }
 });
 
 test("relayout re-spaces following chips after the edited label grows", () => {
@@ -150,17 +180,17 @@ test("empty added label reserves display-name width so the next chip does not ov
   const locIcon = elements.find((e) => e.element_id === "lo-i");
   // location sits a full email advance (iconGap + display-name width + itemPad)
   // right of the email icon — the empty label still reserves placeholder width.
-  const emailAdvance = 16 + measure(channelName("email")) + 14;
+  const emailAdvance = 16 + measure(CONTACT_CHANNEL_PLACEHOLDERS.email) + 14;
   assert.equal(locIcon.left, emailIcon.left + emailAdvance);
 });
 
-test("addition creates a plain filled label (no auto-edit) with a placeholder", () => {
+test("addition creates an empty guided label without forcing edit mode", () => {
   const removed = applyChannelRemoval(doc(), "b1", "email", measure, () => "id").elements;
   let n = 0;
   const { elements } = applyChannelAddition(removed, "b1", "email", "", measure, () => `new-${n++}`);
   const label = elements.find((e) => e.contactChannel === "email" && e.category === "text");
-  assert.equal(label.content, channelName("email"));
-  assert.equal(label.placeholder, channelName("email"));
+  assert.equal(label.content, "");
+  assert.equal(label.placeholder, CONTACT_CHANNEL_PLACEHOLDERS.email);
   // Not auto-edited: mounting an element already isEditing is an unreliable
   // focus path; the user edits through the shared template single-click flow.
   assert.ok(!label.isEditing);

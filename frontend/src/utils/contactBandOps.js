@@ -14,7 +14,11 @@
  */
 import { layoutContactBand } from "./contactBandLayout.js";
 import { reconcileDocumentPages } from "./structureOperation.js";
-import { channelName, CHANNEL_ORDER } from "./contactChannelNames.js";
+import {
+  channelName,
+  contactChannelPlaceholder,
+  CHANNEL_ORDER,
+} from "./contactChannelNames.js";
 
 function bandDescriptor(elements, bandId) {
   const anchor = elements.find(
@@ -194,8 +198,8 @@ export function applyChannelRemoval(elements, bandId, channel, measure, createId
 
 /**
  * Add an inactive channel and re-lay only the contact-band members.
- * `label` is the seed text; when omitted the label starts empty for the user
- * to type.
+ * `label` is optional authored text. When it is absent, the label stays empty
+ * and exposes channel-specific editor guidance that is omitted from PDF output.
  */
 export function applyChannelAddition(elements, bandId, channel, label, measure, createId) {
   const descriptor = bandDescriptor(elements, bandId);
@@ -207,19 +211,19 @@ export function applyChannelAddition(elements, bandId, channel, label, measure, 
   if (oldChannels.includes(channel)) return { elements };
 
   const labels = channelLabels(elements, bandId);
-  // Seed the label with real content: the caller's value, or the channel display
-  // name when none is given. A non-empty label behaves like any other editable
-  // text (an empty contentEditable is unreliable to focus/click into), and the
-  // `selectAllOnEdit` flag below makes the first keystroke replace the seed.
   const provided = (label ?? "").toString();
-  const seed = provided || channelName(channel);
+  const placeholder = contactChannelPlaceholder(channel);
+  // The placeholder CSS supplies both visible guidance and a stable hit area
+  // for an empty line-height:0 text node. Keeping it out of `content` prevents
+  // an untouched “LinkedIn”/“GitHub” label from becoming authored CV data.
+  const seed = provided.trim() ? provided : "";
   // Build the new channel sequence in canonical order so the added channel lands
   // in its natural slot (e.g. github between linkedin and location), regardless
   // of the descriptor's generation-time order.
   const nextChannels = CHANNEL_ORDER.filter(
     (c) => oldChannels.includes(c) || c === channel,
   );
-  const nextLabels = { ...labels, [channel]: seed };
+  const nextLabels = { ...labels, [channel]: seed || placeholder };
 
   // Compute the new placement for the added channel so the created elements
   // start in the right spot (the subsequent relayout confirms every position).
@@ -247,13 +251,9 @@ export function applyChannelAddition(elements, bandId, channel, label, measure, 
     color: descriptor.text.colorHex,
     zIndex: 3, page, flowRole: "masthead",
     contactChannel: channel, contactBandId: bandId,
-    // Seed with the channel display name so the label has real, clickable glyphs
-    // (canvas text uses line-height:0, so an EMPTY single-line label collapses to
-    // zero height and cannot be clicked into). The user clicks it to edit via the
-    // same proven path as every other text element; `placeholder` still supplies a
-    // hint + hit area if the value is later cleared. Deliberately NOT auto-edited:
-    // mounting an element already `isEditing:true` is an unreliable focus path.
-    placeholder: channelName(channel),
+    placeholder,
+    starterPlaceholder: !seed.trim(),
+    cvDataBindings: [{ path: [channel], placeholder }],
   };
   // Chip channels are a triple: a background pill (rectangle) behind the
   // icon + label. Create it too so the new channel matches the drawn shape; the

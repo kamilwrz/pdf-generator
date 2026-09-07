@@ -4,15 +4,17 @@
  * editor fields; they are removed before the elements reach the canvas.
  */
 
+import { CONTACT_CHANNEL_PLACEHOLDERS } from "./contactChannelNames.js";
+
 export const STARTER_TEMPLATE_ID = "meridian";
 
 export const STARTER_CONTACTS = Object.freeze([
-  { key: "phone", label: "Telefon", defaultSelected: true, placeholder: "+48 000 000 000" },
-  { key: "email", label: "E-mail", defaultSelected: true, placeholder: "imie.nazwisko@email.com" },
-  { key: "location", label: "Lokalizacja", defaultSelected: true, placeholder: "Miasto, kraj" },
-  { key: "linkedin", label: "LinkedIn", defaultSelected: false, placeholder: "linkedin.com/in/profil" },
-  { key: "github", label: "GitHub", defaultSelected: false, placeholder: "github.com/profil" },
-  { key: "website", label: "Strona WWW", defaultSelected: false, placeholder: "twojastrona.pl" },
+  { key: "phone", label: "Telefon", defaultSelected: true, placeholder: CONTACT_CHANNEL_PLACEHOLDERS.phone },
+  { key: "email", label: "E-mail", defaultSelected: true, placeholder: CONTACT_CHANNEL_PLACEHOLDERS.email },
+  { key: "location", label: "Lokalizacja", defaultSelected: true, placeholder: CONTACT_CHANNEL_PLACEHOLDERS.location },
+  { key: "linkedin", label: "LinkedIn", defaultSelected: false, placeholder: CONTACT_CHANNEL_PLACEHOLDERS.linkedin },
+  { key: "github", label: "GitHub", defaultSelected: false, placeholder: CONTACT_CHANNEL_PLACEHOLDERS.github },
+  { key: "website", label: "Strona WWW", defaultSelected: false, placeholder: CONTACT_CHANNEL_PLACEHOLDERS.website },
 ]);
 
 export const STARTER_SECTIONS = Object.freeze([
@@ -43,12 +45,12 @@ const marker = (id) => MARKER_VALUES[id] ?? `__${MARKER_PREFIX}_${id.toUpperCase
 const FIELD_DEFINITIONS = Object.freeze({
   name: { path: ["name"], placeholder: "Imię i nazwisko" },
   title: { path: ["title"], placeholder: "Tytuł zawodowy" },
-  phone: { path: ["phone"], placeholder: "+48 000 000 000" },
-  email: { path: ["email"], placeholder: "imie.nazwisko@email.com" },
-  location: { path: ["location"], placeholder: "Miasto, kraj" },
-  linkedin: { path: ["linkedin"], placeholder: "linkedin.com/in/profil" },
-  github: { path: ["github"], placeholder: "github.com/profil" },
-  website: { path: ["website"], placeholder: "twojastrona.pl" },
+  phone: { path: ["phone"], placeholder: CONTACT_CHANNEL_PLACEHOLDERS.phone },
+  email: { path: ["email"], placeholder: CONTACT_CHANNEL_PLACEHOLDERS.email },
+  location: { path: ["location"], placeholder: CONTACT_CHANNEL_PLACEHOLDERS.location },
+  linkedin: { path: ["linkedin"], placeholder: CONTACT_CHANNEL_PLACEHOLDERS.linkedin },
+  github: { path: ["github"], placeholder: CONTACT_CHANNEL_PLACEHOLDERS.github },
+  website: { path: ["website"], placeholder: CONTACT_CHANNEL_PLACEHOLDERS.website },
   summary: { path: ["summary"], placeholder: "Napisz 2–3 zdania o swoim doświadczeniu i celu zawodowym." },
   experience_title: { path: ["experience", 0, "title"], placeholder: "Stanowisko" },
   experience_company: { path: ["experience", 0, "company"], placeholder: "Nazwa firmy" },

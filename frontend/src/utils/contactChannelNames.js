@@ -15,6 +15,22 @@ export const CHANNEL_NAMES = {
 };
 
 /**
+ * Editor-only guidance for every supported contact channel.
+ *
+ * These examples are never stored as CV content or emitted to PDF. The empty
+ * CV setup and the inline add-contact action share this map so a contact added
+ * later has the same useful hint as one selected during setup.
+ */
+export const CONTACT_CHANNEL_PLACEHOLDERS = Object.freeze({
+  phone: "+48 000 000 000",
+  email: "imie.nazwisko@email.com",
+  linkedin: "linkedin.com/in/profil",
+  github: "github.com/profil",
+  website: "twojastrona.pl",
+  location: "Miasto, kraj",
+});
+
+/**
  * Canonical channel order. This is the full set of channels the intake wizard
  * supports, in the same sequence the generators place them (phone, email, then
  * socials linkedin/github/website, then location — see `_contact_channel_items`
@@ -37,4 +53,9 @@ export const CHANNEL_ORDER = ["phone", "email", "linkedin", "github", "website",
 /** Display name for a channel, falling back to the raw key when unknown. */
 export function channelName(channel) {
   return CHANNEL_NAMES[channel] || channel;
+}
+
+/** Return the channel-specific editor hint, falling back to its display name. */
+export function contactChannelPlaceholder(channel) {
+  return CONTACT_CHANNEL_PLACEHOLDERS[channel] || channelName(channel);
 }
