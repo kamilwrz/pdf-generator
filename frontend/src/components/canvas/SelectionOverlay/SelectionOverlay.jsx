@@ -4,11 +4,11 @@
  */
 import { useMemo } from "react";
 import { useCanvasContext } from "../../../store/canvas-context";
-import { getElementOutlineBounds } from "../../../utils/elementBounds";
+import { getElementSelectionBounds } from "../../../utils/elementBounds";
 import classes from "./SelectionOverlay.module.css";
 
 export default function SelectionOverlay({ elements, page }) {
-    const { A4_Elements, currentPage, groupMoveDelta } = useCanvasContext();
+    const { A4_Elements, currentPage, groupMoveDelta, zoom = 1 } = useCanvasContext();
     const canvasElements = elements ?? A4_Elements;
     const displayedPage = page ?? currentPage;
 
@@ -38,11 +38,11 @@ export default function SelectionOverlay({ elements, page }) {
     if (displayed.length === 0) return null;
     const frames = framed.map((element) => ({
         id: element.element_id,
-        ...getElementOutlineBounds(element),
+        ...getElementSelectionBounds(element, zoom),
     }));
     const groupFrames = displayed.map((element) => ({
         id: element.element_id,
-        ...getElementOutlineBounds(element),
+        ...getElementSelectionBounds(element, zoom),
     }));
 
     const groupBox = groupFrames.reduce((box, frame) => ({

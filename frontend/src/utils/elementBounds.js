@@ -158,6 +158,38 @@ export function getElementOutlineBounds(element) {
   };
 }
 
+/**
+ * Return the editor selection rectangle with the same breathing room used by
+ * the active single-line text surface.
+ *
+ * Selection replaces edit focus when a canvas control receives focus. Keeping
+ * both rectangles two screen pixels outside populated glyphs prevents the
+ * blue boundary from appearing to drop onto the text. Other element types and
+ * empty text retain their existing box geometry.
+ *
+ * @param {object} element - A mounted or model-only canvas element.
+ * @param {number} zoom - Current visual A4 scale.
+ * @returns {{left:number,top:number,width:number,height:number}}
+ */
+export function getElementSelectionBounds(element, zoom = 1) {
+  const bounds = getElementOutlineBounds(element);
+  if (element?.category !== "text" || !String(element?.content ?? "").trim()) {
+    return bounds;
+  }
+
+  const numericZoom = Number(zoom);
+  const safeZoom = Number.isFinite(numericZoom) && numericZoom > 0.05
+    ? numericZoom
+    : 1;
+  const padding = 2 / safeZoom;
+  return {
+    left: bounds.left - padding,
+    top: bounds.top - padding,
+    width: bounds.width + padding * 2,
+    height: bounds.height + padding * 2,
+  };
+}
+
 // Attaches a real, DOM-measured layout_bounds to every element that's
 // currently mounted on screen (i.e. on the page currently being viewed).
 // Elements with no live DOM node are marked bounds_estimated so the backend

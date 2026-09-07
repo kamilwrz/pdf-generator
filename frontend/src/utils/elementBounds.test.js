@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { getElementOutlineBounds } from "./elementBounds.js";
+import { getElementOutlineBounds, getElementSelectionBounds } from "./elementBounds.js";
 
 test("element outline bounds use model geometry when no canvas node is mounted", () => {
   assert.deepEqual(
@@ -41,5 +41,33 @@ test("element outline bounds preserve icon optical alignment and a visible minim
       height: 0,
     }),
     { left: 12, top: 16, width: 1, height: 1 },
+  );
+});
+
+test("populated text selection keeps two screen pixels around glyph bounds", () => {
+  assert.deepEqual(
+    getElementSelectionBounds({
+      element_id: "contact-label",
+      category: "text",
+      content: "email@example.com",
+      left: 100,
+      top: 40,
+      width: 120,
+      height: 10,
+    }, 2.5),
+    { left: 99.2, top: 39.2, width: 121.6, height: 11.6 },
+  );
+
+  assert.deepEqual(
+    getElementSelectionBounds({
+      element_id: "empty-contact-label",
+      category: "text",
+      content: "",
+      left: 100,
+      top: 40,
+      width: 24,
+      height: 10,
+    }, 2.5),
+    { left: 100, top: 40, width: 24, height: 10 },
   );
 });
