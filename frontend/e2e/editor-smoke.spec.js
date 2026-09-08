@@ -65,6 +65,7 @@ test.describe("CV Studio editor smoke", () => {
     await expect(setup).toBeVisible();
     await expect(setup.getByRole("radio", { name: /Meridian/ })).toBeChecked();
 
+    await setup.getByRole("button", { name: /03 Sekcje i kolejność/ }).click();
     // Exercise both accessible reorder paths. The buttons remain the reliable
     // keyboard/touch fallback for native pointer drag-and-drop.
     await setup.getByRole("button", { name: "Przenieś Doświadczenie niżej" }).click();
@@ -73,14 +74,18 @@ test.describe("CV Studio editor smoke", () => {
     const summary = setup.locator("li").filter({ hasText: "Podsumowanie" });
     await projects.dragTo(summary);
 
+    await setup.getByRole("button", { name: /01 Szablon/ }).click();
     await setup.getByRole("radio", { name: /Slate/ }).click();
+    await setup.getByRole("button", { name: "Dalej: kontakt" }).click();
     await setup.getByRole("checkbox", { name: /Zdjęcie/ }).check();
+    await setup.getByRole("button", { name: "Wstecz" }).click();
     await setup.getByRole("radio", { name: /Meridian/ }).click();
     await expect(setup.getByText(/nie obsługuje zdjęcia/)).toBeVisible();
 
     const fillRequest = page.waitForRequest((request) => (
       request.method() === "POST" && new URL(request.url()).pathname === "/api/ai/fill_template"
     ));
+    await setup.getByRole("button", { name: /03 Sekcje i kolejność/ }).click();
     await setup.getByRole("button", { name: "Utwórz A4" }).click();
     const fill = await fillRequest;
     expect(fill.postDataJSON()).toMatchObject({

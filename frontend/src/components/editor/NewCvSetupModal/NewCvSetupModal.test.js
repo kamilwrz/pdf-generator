@@ -33,7 +33,7 @@ describe("NewCvSetupModal contract", () => {
     assert.match(styles, /@media \(max-width: 900px\)/);
     assert.match(styles, /\.layout \{ grid-template-columns: minmax\(0, 1fr\); \}/);
     assert.match(styles, /@media \(max-width: 640px\)/);
-    assert.match(styles, /overflow-x: auto/);
+    assert.doesNotMatch(styles, /overflow-[xy]: auto/);
     assert.match(styles, /@media \(prefers-reduced-motion: reduce\)/);
   });
 });

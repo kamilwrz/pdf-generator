@@ -7,6 +7,8 @@ for (const width of [390, 834, 960, 1280, 1366, 1920]) {
     await page.emulateMedia({ reducedMotion: "reduce" });
     const api = await installMockApi(page);
     await page.goto("/cvstudio/guest?start=new");
+    await page.getByRole("button", { name: "Dalej: kontakt" }).click();
+    await page.getByRole("button", { name: "Dalej: sekcje" }).click();
     await page.getByRole("button", { name: "Utwórz A4", exact: true }).click();
     const group = page.getByRole("group", { name: "Szablon CV", exact: true });
     const change = group.getByRole("button", { name: "Zmień szablon", exact: true });

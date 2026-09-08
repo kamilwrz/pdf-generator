@@ -76,6 +76,18 @@
    dialogs or the backdrop, which sits outside this token scope. */
 .paperSurface {
     --chrome-control: var(--color-paper);
+    background: var(--color-paper);
+}
+
+/* Fullscreen forms retain a compact header so the active task has the space.
+   The opaque paper surface covers editor chrome without a floating card. */
+.dialogFullscreen.paperSurface .header {
+    padding-block: var(--space-6);
+    padding-inline-start: max(var(--space-8), calc((100% - 1440px) / 2 + var(--space-8)));
+}
+
+.dialogFullscreen.paperSurface .header h2 {
+    font-size: 1.5rem;
 }
 
 .paperSurface .footer {
@@ -195,4 +207,14 @@
     .backdropFullscreen {
         animation: none;
     }
+}
+
+@media (max-width: 640px) {
+    .dialogFullscreen.paperSurface .header { min-height: calc(var(--control-height) + var(--space-8)); padding: var(--space-4) 80px var(--space-4) var(--space-4); }
+    .dialogFullscreen.paperSurface .header h2 { font-size: 1.125rem; }
+    .dialogFullscreen.paperSurface .header p { display: none; }
+}
+
+@media print {
+    .backdrop { display: none; }
 }

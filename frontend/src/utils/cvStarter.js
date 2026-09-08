@@ -1,5 +1,5 @@
 /**
- * Pure adapter between the one-screen CV setup and the existing deterministic
+ * Pure adapter between fullscreen CV setup and the existing deterministic
  * template generator. Marker values force the generator to materialize empty
  * editor fields; they are removed before the elements reach the canvas.
  */

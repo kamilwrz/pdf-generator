@@ -8,7 +8,7 @@ import { DialogSuspensionContext } from "./DialogSuspensionContext";
 // dialog labelling, keyboard focus lifecycle, header, and Escape-to-close so
 // every modal gets identical interaction behavior.
 //
-// `variant="fullscreen"` is used by the bio/CV wizard: edge-to-edge overlay
+// `variant="fullscreen"` is used by CV setup and the bio/CV wizard: edge-to-edge overlay
 // with a single scroll surface (body), sticky header/footer, and no floating
 // card over the editor. `variant="decision"` gives short account and product
 // gates a stronger editorial hierarchy without duplicating the shell.
@@ -70,13 +70,6 @@ export default function DialogShell({
             "[tabindex]:not([tabindex='-1'])",
         ].join(",");
 
-        const focusInitialControl = window.requestAnimationFrame(() => {
-            const firstControl = initialFocusSelector
-                ? dialogRef.current?.querySelector(initialFocusSelector)
-                : dialogRef.current?.querySelector(focusableSelector);
-            (firstControl || dialogRef.current)?.focus({ preventScroll: true });
-        });
-
         const onKeyDown = (event) => {
             const openDialogs = document.querySelectorAll("[data-dialog-shell]");
             if (openDialogs[openDialogs.length - 1] !== dialogRef.current) return;
@@ -114,7 +107,6 @@ export default function DialogShell({
 
         window.addEventListener("keydown", onKeyDown);
         return () => {
-            window.cancelAnimationFrame(focusInitialControl);
             window.removeEventListener("keydown", onKeyDown);
             document.body.style.overflow = previousBodyOverflow;
             const focusTarget = previousFocusRef.current?.isConnected
@@ -126,7 +118,19 @@ export default function DialogShell({
                 focusTarget.focus({ preventScroll: true });
             }
         };
-    }, [initialFocusSelector, renderedOpen, restoreFocusSelector]);
+    }, [renderedOpen, restoreFocusSelector]);
+
+    // A confirmation can become a fullscreen form without closing the shell.
+    // Move initial focus for that new state without replacing the original
+    // opener or briefly unlocking body scrolling during the transition.
+    useEffect(() => {
+        if (!renderedOpen) return undefined;
+        const frame = window.requestAnimationFrame(() => {
+            const selector = initialFocusSelector || "button:not([disabled]), input:not([disabled]), [href], [tabindex='0']";
+            (dialogRef.current?.querySelector(selector) || dialogRef.current)?.focus({ preventScroll: true });
+        });
+        return () => window.cancelAnimationFrame(frame);
+    }, [initialFocusSelector, renderedOpen]);
 
     if (!renderedOpen) return null;
 
@@ -158,8 +162,8 @@ export default function DialogShell({
                         clickHandler={onClose}
                         top={isDecision ? 24 : 18}
                         right={isDecision ? 32 : 28}
-                        width={isDecision ? 44 : 36}
-                        height={isDecision ? 44 : 36}
+                        width={isDecision || isFullscreen ? 44 : 36}
+                        height={isDecision || isFullscreen ? 44 : 36}
                     />
                 </div>
                 <div className={`${classes.body}${bodyClassName ? ` ${bodyClassName}` : ""}`}>
