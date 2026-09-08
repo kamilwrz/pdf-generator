@@ -188,17 +188,27 @@ function Text({
         setTextareaEditing(elementId, true);
     }
 
-    function finishEditing() {
-        const node = nodeRef.current;
-        if (node) {
-            // Serialize captures both the text and any inline decoration spans.
-            const { content: next, runs: nextRuns } = serializeEditable(node);
-            editElementValues({
-                content: next,
-                runs: nextRuns,
-                ...(starterPlaceholder && next.trim() ? { starterPlaceholder: false } : {}),
-            }, elementId);
+    function commitEditing(node, isComposing = false) {
+        const value = serializeEditable(node);
+        // Backspace/Delete can leave an empty <br> or formatting wrapper. It
+        // hides CSS :empty guidance and serializes to a newline. Remove only
+        // markup without text, outside IME composition, so the hint and its
+        // contact-band footprint return together before blur. Real spaces,
+        // populated runs and the caret inside authored text remain untouched.
+        if (editorPlaceholder && !isComposing && !node.textContent && !value.content.trim()) {
+            seedTextEditNode(node, "", []);
+            value.content = "";
+            value.runs = [];
         }
+        editElementValues({
+            content: value.content,
+            runs: value.runs,
+            ...(starterPlaceholder && value.content.trim() ? { starterPlaceholder: false } : {}),
+        }, elementId);
+    }
+
+    function finishEditing() {
+        if (nodeRef.current) commitEditing(nodeRef.current);
         setTextareaEditing(elementId, false);
     }
 
@@ -267,12 +277,7 @@ function Text({
             }}
             onInput={(e) => {
                 if (fixedToPage) return;
-                const { content: next, runs: nextRuns } = serializeEditable(e.currentTarget);
-                editElementValues({
-                    content: next,
-                    runs: nextRuns,
-                    ...(starterPlaceholder && next.trim() ? { starterPlaceholder: false } : {}),
-                }, elementId);
+                commitEditing(e.currentTarget, e.nativeEvent.isComposing);
             }}
             onBlur={() => {
                 // The two-page edit zoom unmounts the old contentEditable

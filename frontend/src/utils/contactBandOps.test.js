@@ -306,3 +306,30 @@ test("chip addition creates a rect + icon + label triple for the channel", () =>
   assert.equal(rect.filled, false);
   assert.equal(icon.alignWithText, true);
 });
+
+for (const mode of ["wrapping", "centered"]) {
+  test(`${mode} contacts recover placeholder spacing after a populated field is cleared`, () => {
+    const base = doc().map((element) => {
+      if (element.contactBand) return { ...element, contactBand: {
+        ...descriptor, mode,
+        anchor: mode === "centered" ? { centerX: 297.5, startY: 104, maxWidth: 507 } : descriptor.anchor,
+      } };
+      return element.category === "text" && element.contactChannel
+        ? { ...element, content: "", placeholder: contactChannelPlaceholder(element.contactChannel), starterPlaceholder: false }
+        : element;
+    });
+    const expected = applyChannelRelayout(base, "b1", measure, () => "id").elements;
+    const typed = applyChannelRelayout(base.map((element) => element.element_id === "ph-l"
+      ? { ...element, content: "123" } : element), "b1", measure, () => "id").elements;
+    // Chromium's empty <br> serializes as a newline; older drafts can also
+    // retain spaces/NBSP. Layout must agree with the placeholder shown on blur.
+    for (const content of ["", "\n", " \t\n", "\u00a0"]) {
+      const cleared = typed.map((element) => element.element_id === "ph-l" ? { ...element, content } : element);
+      const actual = applyChannelRelayout(cleared, "b1", measure, () => "id").elements;
+      assert.deepEqual(actual.map(({ element_id, left, top }) => ({ element_id, left, top })),
+        expected.map(({ element_id, left, top }) => ({ element_id, left, top })), JSON.stringify(content));
+      assert.equal(actual.find((element) => element.element_id === "ph-l").content, content,
+        "layout must not rewrite authored content or persist the hint");
+    }
+  });
+}

@@ -52,15 +52,17 @@ export function activeChannels(elements, bandId) {
   return CHANNEL_ORDER.filter((channel) => present.has(channel));
 }
 
-// Channel -> text used for horizontal placement. Untouched starter fields keep
-// their visible guidance in `placeholder`, not `content`; measuring that exact
-// guidance prevents the next icon from overlapping it and avoids retaining the
-// much wider positions originally calculated for generator sentinels.
+// Channel -> text used for horizontal placement. Empty guided fields include
+// whitespace-only values: Chromium can leave a <br> after deletion, serialized
+// as "\n", and older drafts can retain spaces. Text displays the placeholder
+// for these values on blur, so layout must reserve the same guidance width.
+// Only the emptiness check trims; authored spacing and stored content stay intact.
 function channelLabels(elements, bandId) {
   const labels = {};
   for (const el of elements) {
     if (el.contactBandId === bandId && el.contactChannel && el.category === "text") {
-      labels[el.contactChannel] = String(el.content || el.placeholder || "");
+      const content = String(el.content ?? "");
+      labels[el.contactChannel] = content.trim() ? content : String(el.placeholder || "");
     }
   }
   return labels;
