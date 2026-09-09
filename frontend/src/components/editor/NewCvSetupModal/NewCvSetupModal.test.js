@@ -24,7 +24,7 @@ describe("NewCvSetupModal contract", () => {
     assert.match(source, /isTemplateAllowed\(template, entitlements\)/);
     assert.match(source, /PHOTO_TEMPLATE_IDS\.has/);
     assert.match(source, /Opcja została wyłączona/);
-    assert.match(source, /Obecny dokument pozostanie zapisany bez zmian/);
+    assert.match(source, /Rozpoczęcie edycji nowego CV zastąpi obecny szkic/);
     assert.match(source, /data-confirm-new-cv/);
   });
 

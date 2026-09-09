@@ -1948,6 +1948,10 @@ export function EditorController() {
   useEffect(() => {
     if (guestDocumentRestoredRef.current || getAccessToken()
       || (initialStartIntentRef.current && !["import", "new", "wizard"].includes(initialStartIntentRef.current))) return;
+    // Restoration belongs to entry, including when storage was initially empty.
+    // Otherwise a later template commit can rerun this effect and overwrite the
+    // new canvas with the old draft that the autosave debounce has not replaced.
+    guestDocumentRestoredRef.current = true;
     const guestDoc = loadGuestDocument();
     if (
       !Array.isArray(guestDoc?.elements)
@@ -2426,9 +2430,9 @@ export function EditorController() {
                   onClose={(reason) => {
                     setStartTemplateId(null);
                     setHasInitialGuestDraft(false);
-                    // Keep setup mounted until navigation completes. The dirty
-                    // guard preserves any existing guest draft before leaving.
-                    if (isGuest && reason !== "created") {
+                    // Cancel returns to the restored/in-memory document. Only
+                    // an empty guest session needs the landing as its fallback.
+                    if (isGuest && reason !== "created" && A4_Elements.length === 0 && !hasInitialGuestDraft) {
                       navigate("/", { replace: true });
                       return;
                     }
@@ -2437,6 +2441,8 @@ export function EditorController() {
                   onCreate={handleCreateStarterCv}
                   entitlements={entitlements}
                   hasActiveDocument={(A4_Elements.length > 0 && !isDemoContent) || hasInitialGuestDraft}
+                  isGuest={isGuest}
+                  hasSavedDocument={pdfId != null}
                   allowUnconfirmedReplacement={isDemoContent}
                 />
               ) : null}
@@ -2498,7 +2504,7 @@ export function EditorController() {
                 </Sidebar>
               ) : null}
               {/* Floating property inspector (portal); not docked to the tool rail. */}
-              {!showStartChooser ? <Editor /> : null}
+              {!showStartChooser && !isNewCvSetupModal ? <Editor /> : null}
               {!showStartChooser ? (
                 <div className="right-pane">
                   {isDemoContent ? (

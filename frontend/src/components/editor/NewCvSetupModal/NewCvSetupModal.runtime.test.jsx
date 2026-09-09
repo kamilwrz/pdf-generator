@@ -58,7 +58,7 @@ describe("NewCvSetupModal optional configuration", () => {
     opener.focus();
     const onClose = vi.fn();
     const view = render(<NewCvSetupModal open onClose={onClose} onCreate={vi.fn()} hasActiveDocument />);
-    await waitFor(() => expect(screen.getByRole("button", { name: "Utwórz nowe CV" })).toHaveFocus());
+    await waitFor(() => expect(screen.getByRole("button", { name: "Wróć do obecnego CV" })).toHaveFocus());
     fireEvent.click(screen.getByRole("button", { name: "Utwórz nowe CV" }));
     await waitFor(() => expect(screen.getByRole("radio", { name: /Meridian/ })).toHaveFocus());
     customize();
@@ -157,6 +157,20 @@ describe("NewCvSetupModal optional configuration", () => {
     expect(screen.getByRole("dialog", { name: "Utworzyć nowe CV?" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Utwórz nowe CV" }));
     expect(screen.getByRole("button", { name: "Rozpocznij edycję" })).toBeInTheDocument();
+  });
+
+  it.each([
+    [{ isGuest: true }, "W tej przeglądarce masz jeden szkic CV."],
+    [{ hasSavedDocument: true }, "Ostatnia zapisana wersja pozostanie w Moich dokumentach."],
+    [{}, "Obecne CV nie jest zapisane na koncie."],
+  ])("explains replacement for the actual persistence context: %j", (props, copy) => {
+    const onCreate = vi.fn();
+    const onClose = vi.fn();
+    render(<NewCvSetupModal open hasActiveDocument {...props} onCreate={onCreate} onClose={onClose} />);
+    expect(screen.getByRole("dialog")).toHaveAccessibleDescription(expect.stringContaining(copy));
+    fireEvent.click(screen.getByRole("button", { name: "Wróć do obecnego CV" }));
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(onCreate).not.toHaveBeenCalled();
   });
 });
 

@@ -23,6 +23,7 @@ import { SiteHeader, SiteFooter } from "../../components/common/SiteLayout/SiteL
 import { wakeBackend } from "../../services/api";
 import { queueGuestEvent } from "../../utils/guestEvents";
 import { getAccessToken, getEditorPath } from "../../utils/authSession";
+import { hasGuestDocument, loadGuestDocument } from "../../utils/guestDocument";
 import {
     FREE_PLAN_HIGHLIGHTS,
     PRO_PLAN_HIGHLIGHTS,
@@ -104,6 +105,7 @@ export default function Hero() {
     const newCvUrl = buildStartUrl("new", "free");
     const selectedTemplateUrl = getEditorPath({ start: "new", template: selectedTemplateId });
     const demoUrl = getEditorPath({ start: "demo" });
+    const canResumeGuestDraft = !getAccessToken() && hasGuestDocument() && !loadGuestDocument()?.isDemoContent;
     const proRegisterUrl = "/register?plan=pro";
 
     return (
@@ -119,9 +121,9 @@ export default function Hero() {
                     </div>
                     <div className={classes.heroActions}>
                         <CtaLink to={selectedTemplateUrl} event="hero_new_cv">Stwórz CV z tym szablonem</CtaLink>
-                        <CtaLink to={demoUrl} event="hero_demo" variant="secondary">
+                        {canResumeGuestDraft ? <Link to={getEditorPath()} className={classes.buttonSecondary}>Wróć do szkicu CV <ArrowIcon /></Link> : <CtaLink to={demoUrl} event="hero_demo" variant="secondary">
                             Wypróbuj edytor
-                        </CtaLink>
+                        </CtaLink>}
                     </div>
                     <p className={classes.accountNote}>Zacznij bez rejestracji. Do zapisu i pobrania CV potrzebujesz darmowego konta.</p>
                     <ul className={classes.heroTrust} aria-label="Korzyści na start">

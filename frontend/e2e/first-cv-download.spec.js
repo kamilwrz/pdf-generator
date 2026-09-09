@@ -108,8 +108,8 @@ test("a returning guest must confirm replacement and cancellation retains the dr
   const confirmation = page.getByRole("dialog", { name: "Utworzyć nowe CV?" });
   await expect(confirmation).toBeVisible();
   expect(api.calls.filter((call) => call.path === "/ai/fill_template")).toHaveLength(1);
-  await confirmation.getByRole("button", { name: "Anuluj", exact: true }).click();
-  await expect(page).toHaveURL("/");
+  await confirmation.getByRole("button", { name: "Wróć do obecnego CV", exact: true }).click();
+  await expect(page).toHaveURL(/\/cvstudio\/guest$/);
   expect(await page.evaluate(() => localStorage.getItem("cvstudio.guest.doc"))).toContain("Anna Nowak");
   api.assertHermetic();
 });

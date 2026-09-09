@@ -110,7 +110,7 @@ test("guest direct setup dismissal has a landing fallback", async ({ page }) => 
   api.assertHermetic();
 });
 
-test("cancelling replacement preserves the guest document on landing", async ({ page }) => {
+test("cancelling replacement returns to the guest document in the editor", async ({ page }) => {
   const api = await installMockApi(page);
   await page.goto("/cvstudio/guest?start=new");
   await page.getByRole("button", { name: "Rozpocznij edycję", exact: true }).click();
@@ -119,10 +119,9 @@ test("cancelling replacement preserves the guest document on landing", async ({ 
   await title.fill("Zachowany szkic");
   await page.getByRole("button", { name: "Nowe CV", exact: true }).click();
   await page.getByRole("dialog", { name: "Utworzyć nowe CV?" })
-    .getByRole("button", { name: "Anuluj", exact: true }).click();
-  await expect(page).toHaveURL("/");
-  expect(await page.evaluate(() => JSON.parse(localStorage.getItem("cvstudio.guest.doc"))?.title)).toBe("Zachowany szkic");
-  await page.goto("/cvstudio/guest");
+    .getByRole("button", { name: "Wróć do obecnego CV", exact: true }).click();
+  await expect(page).toHaveURL(/\/cvstudio\/guest$/);
+  await expect(page.getByRole("button", { name: "Nowe CV", exact: true })).toBeFocused();
   await expect(title).toHaveValue("Zachowany szkic");
   api.assertHermetic();
 });

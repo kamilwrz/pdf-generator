@@ -55,6 +55,8 @@ export default function NewCvSetupModal({
   onCreate,
   entitlements,
   hasActiveDocument = false,
+  isGuest = false,
+  hasSavedDocument = false,
   allowUnconfirmedReplacement = false,
   initialTemplateId = null,
   autoStart = false,
@@ -67,6 +69,13 @@ export default function NewCvSetupModal({
     ...(initialTemplate ? { templateId: initialTemplate.id } : {}),
   }));
   const [confirmReplacement, setConfirmReplacement] = useState(hasActiveDocument);
+  // A browser draft has one storage slot. Account documents keep only their
+  // last server-saved version; neither mode can promise to retain unsaved edits.
+  const replacementDescription = isGuest
+    ? "W tej przeglądarce masz jeden szkic CV. Rozpoczęcie edycji nowego CV zastąpi obecny szkic."
+    : hasSavedDocument
+      ? "Ostatnia zapisana wersja pozostanie w Moich dokumentach. Niezapisane zmiany zostaną utracone."
+      : "Obecne CV nie jest zapisane na koncie. Rozpoczęcie nowego CV spowoduje utratę jego treści.";
   const [templatesOpen, setTemplatesOpen] = useState(!initialTemplate);
   const [moreTemplates, setMoreTemplates] = useState(false);
   const [customizationOpen, setCustomizationOpen] = useState(false);
@@ -237,10 +246,10 @@ export default function NewCvSetupModal({
 
   const footer = confirmReplacement ? (
     <div className={classes.footerActions}>
-      <button type="button" className={classes.secondaryButton} onClick={onClose}>Anuluj</button>
-      <button data-confirm-new-cv type="button" className={classes.primaryButton} onClick={() => setConfirmReplacement(false)}>
+      <button data-confirm-new-cv type="button" className={classes.secondaryButton} onClick={() => setConfirmReplacement(false)}>
         Utwórz nowe CV
       </button>
+      <button data-resume-cv type="button" className={classes.primaryButton} onClick={onClose}>Wróć do obecnego CV</button>
     </div>
   ) : (
     <div className={classes.footerBar}>
@@ -259,18 +268,18 @@ export default function NewCvSetupModal({
       open={open}
       onClose={submitting ? () => {} : onClose}
       width={560}
-      variant={confirmReplacement ? "modal" : "fullscreen"}
+      variant={confirmReplacement ? "decision" : "fullscreen"}
       surface="paper"
       title={confirmReplacement ? "Utworzyć nowe CV?" : "Utwórz CV"}
       subtitle={confirmReplacement
-        ? "Obecny dokument pozostanie zapisany bez zmian. Nowe CV rozpocznie się jako niezapisany projekt."
+        ? replacementDescription
         : "Wybierz szablon i uzupełnij swoje dane w edytorze."}
       footer={footer}
-      initialFocusSelector={confirmReplacement ? "[data-confirm-new-cv]" : initialTemplate ? "#new-cv-template-heading" : "[data-template-selected='true']"}
+      initialFocusSelector={confirmReplacement ? "[data-resume-cv]" : initialTemplate ? "#new-cv-template-heading" : "[data-template-selected='true']"}
     >
       {confirmReplacement ? (
         <div className={classes.confirmation}>
-          <p>Wybierz szablon i rozpocznij nowe CV. Poprzedni zapisany projekt nie zostanie nadpisany.</p>
+          <p>Możesz wrócić do obecnego CV i kontynuować edycję. Wybór szablonu nie zmieni jego treści — zastąpisz ją dopiero przyciskiem „Rozpocznij edycję”.</p>
         </div>
       ) : (
         <div className={classes.workspace}>
