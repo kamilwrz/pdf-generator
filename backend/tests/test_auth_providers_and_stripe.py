@@ -106,7 +106,7 @@ class AuthProviderAndBillingTests(unittest.TestCase):
         )
         with (
             patch.object(email_service, "RESEND_API_KEY", "re_test"),
-            patch.object(email_service, "urlopen", side_effect=error),
+            patch.object(email_service, "urlopen", side_effect=error) as request_mock,
             self.assertLogs(email_service.logger, level="ERROR") as captured,
         ):
             sent = email_service.send_verification_email(
@@ -121,6 +121,12 @@ class AuthProviderAndBillingTests(unittest.TestCase):
         self.assertIn("provider_code=validation_error", logged)
         self.assertNotIn("alice@example.test", logged)
         self.assertNotIn("secret-proof", logged)
+        request = request_mock.call_args.args[0]
+        self.assertEqual(request.get_header("Accept"), "application/json")
+        self.assertEqual(
+            request.get_header("User-agent"),
+            "CVStudio/1.0 (+https://cvstudio.com.pl)",
+        )
 
     def test_google_creates_passwordless_free_account_and_reuses_subject(self):
         claims = {"sub": "google-sub-1", "email": "person@gmail.com", "email_verified": True}

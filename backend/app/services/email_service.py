@@ -70,8 +70,12 @@ def send_verification_email(to: str, verification_url: str, *, idempotency_key: 
         method="POST",
         headers={
             "Authorization": f"Bearer {RESEND_API_KEY}",
+            "Accept": "application/json",
             "Content-Type": "application/json",
             "Idempotency-Key": idempotency_key,
+            # A stable application identity prevents edge security layers from
+            # treating Python's default urllib signature as anonymous bot traffic.
+            "User-Agent": "CVStudio/1.0 (+https://cvstudio.com.pl)",
         },
     )
     try:

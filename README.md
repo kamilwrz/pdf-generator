@@ -2200,6 +2200,9 @@ Rejected Resend requests log the HTTP status, provider error code, and a bounded
 provider message; email addresses and URLs are redacted before the message is
 written so production failures remain diagnosable without exposing user data or
 verification proofs.
+The outbound request identifies CV Studio with a stable `User-Agent` and asks
+for JSON explicitly so provider edge controls do not classify the standard
+Python transport as anonymous bot traffic.
 
 Google Identity Services renders its own browser button. The backend validates
 the ID token signature, issuer, audience, expiry and `email_verified`, then uses
@@ -2223,7 +2226,7 @@ Implementation:
 
 - `backend/app/api/routes/auth.py`, lines 84–361 — `register_user`, `verify_email`, `resend_verification`, `google_login`, `link_google_account`
 - `backend/app/services/email_verification.py`, lines 29–68 — `issue_email_verification_token`, `consume_email_verification_token`
-- `backend/app/services/email_service.py`, lines 19–94 — `_safe_provider_error`, `send_verification_email`
+- `backend/app/services/email_service.py`, lines 19–98 — `_safe_provider_error`, `send_verification_email`
 - `backend/app/services/google_auth_service.py`, lines 7–18 — `verify_google_credential`
 - `backend/app/api/routes/billing.py`, lines 66–134 and 262–331 — `select_plan`, `stripe_webhook`, `checkout_session_status`
 - `backend/app/services/stripe_service.py`, lines 16–35, and `billing_service.py`, lines 18–68 — hosted checkout boundary and `fulfill_pro_payment`
@@ -4971,6 +4974,9 @@ Odrzucone żądanie Resend zapisuje status HTTP, kod dostawcy i ograniczony
 komunikat dostawcy; przed zapisem adresy e-mail i URL-e są maskowane, dzięki
 czemu błąd produkcyjny pozostaje możliwy do rozpoznania bez ujawniania danych
 użytkownika ani tokenu weryfikacyjnego.
+Żądanie wychodzące identyfikuje CV Studio stałym nagłówkiem `User-Agent` i jawnie
+żąda JSON-u, aby zabezpieczenia brzegowe dostawcy nie klasyfikowały standardowego
+transportu Pythona jako anonimowego ruchu botowego.
 
 Przycisk Google renderuje Google Identity Services. Backend sprawdza podpis,
 wystawcę, audience, czas ważności i `email_verified`, a wiązanie zapisuje pod
@@ -4991,7 +4997,7 @@ Implementacja:
 
 - `backend/app/api/routes/auth.py`, linie 84–361 — `register_user`, `verify_email`, `resend_verification`, `google_login`, `link_google_account`
 - `backend/app/services/email_verification.py`, linie 29–68 — `issue_email_verification_token`, `consume_email_verification_token`
-- `backend/app/services/email_service.py`, linie 19–94 — `_safe_provider_error`, `send_verification_email`
+- `backend/app/services/email_service.py`, linie 19–98 — `_safe_provider_error`, `send_verification_email`
 - `backend/app/services/google_auth_service.py`, linie 7–18 — `verify_google_credential`
 - `backend/app/api/routes/billing.py`, linie 66–134 i 262–331 — `select_plan`, `stripe_webhook`, `checkout_session_status`
 - `backend/app/services/stripe_service.py`, linie 16–35, i `billing_service.py`, linie 18–68 — granica hostowanego Checkout oraz `fulfill_pro_payment`
