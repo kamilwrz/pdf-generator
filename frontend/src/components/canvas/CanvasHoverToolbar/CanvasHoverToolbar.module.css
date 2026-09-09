@@ -109,8 +109,8 @@
 }
 
 /* Section and record actions follow the exact text origin. The toolbar's
-   bottom edge stays 24 screen pixels above the glyph bounds because the portal
-   consumes an unscaled layout offset. */
+   bottom edge touches the glyph bounds with no pointer gap because the portal
+   consumes the shared zero screen-space offset. */
 .above {
     top: auto;
     left: 0;

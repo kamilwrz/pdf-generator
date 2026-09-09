@@ -53,11 +53,11 @@ test("shares the language-sized compact inline toolbar with Skills", () => {
 test("keeps the shared structural toolbar gap exact in screen space", () => {
   assert.equal(
     structuralToolbarLayoutSize(1, STRUCTURAL_TOOLBAR_VERTICAL_GAP_SCREEN_PX).offset,
-    24,
+    0,
   );
   assert.equal(
     structuralToolbarLayoutSize(2, STRUCTURAL_TOOLBAR_VERTICAL_GAP_SCREEN_PX).offset,
-    12,
+    0,
   );
 });
 

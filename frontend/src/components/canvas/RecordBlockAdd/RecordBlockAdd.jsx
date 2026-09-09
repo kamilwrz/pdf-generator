@@ -1,8 +1,8 @@
 /**
  * Contextual structural toolbar for one template-mode record.
  *
- * Hovering any current-page record field reveals a grouped toolbar in the
- * 24 screen pixels above its first text field plus a tighter depth cue around
+ * Hovering any current-page record field reveals a grouped toolbar immediately
+ * above its first text field, without a gap, plus a tighter depth cue around
  * the exact title, metadata, or description field. A single click edits text,
  * while description/record
  * removals remain recoverable through the global toast.

@@ -48,7 +48,7 @@ async function expectToolbarAboveText(toolbar, text) {
       fitsViewport: toolbarBox.x + toolbarBox.width <= viewportWidth,
       verticalGap: Math.round(textBox.y - toolbarBox.y - toolbarBox.height),
     };
-  }).toEqual({ alignedLeft: true, fitsViewport: true, verticalGap: 24 });
+  }).toEqual({ alignedLeft: true, fitsViewport: true, verticalGap: 0 });
 }
 
 // Compare computed appearance across both toolbar implementations. Screenshots
@@ -120,6 +120,8 @@ for (const width of [390, 834, 1280, 1920]) {
     await checkControl(recordToolbar.getByRole("button").first(), 28.8);
     await expectToolbarAboveText(recordToolbar, page.locator("#skills-tools-title"));
     await expect(recordToolbar.getByRole("button", { name: "AI dla wybranego zakresu" })).toBeVisible();
+    await reachToolbarFromText(page, "skills-technologies-title", "record:skills-technologies-title");
+    await reachToolbarFromText(page, "skills-heading", "heading:skills-heading");
     await hoverVisibleText(page, page.locator("#contact-email"));
     const deleteContact = page.getByRole("button", { name: /Usuń kontakt:/ });
     await checkControl(deleteContact, 24, true);
@@ -247,3 +249,28 @@ test("toolbar geometry and menu text stay constant through animated canvas zoom"
   await expect(toolbar.getByRole("button", { name: "AI dla wybranego zakresu" })).toBeFocused();
   api.assertHermetic();
 });
+
+/** Exercise a real pointer path, so neighbouring records can expose hover theft. */
+async function reachToolbarFromText(page, elementId, toolbarKey) {
+  const text = page.locator(`[id="${elementId}"]`);
+  await text.evaluate((node) => node.scrollIntoView({ block: "center", inline: "start" }));
+  const textBox = await visibleTextBox(text);
+  const pointerX = textBox.x + Math.min(12, textBox.width / 2);
+  await page.mouse.move(pointerX, textBox.y + textBox.height / 2);
+  const toolbar = page.locator(`[data-canvas-toolbar-key="${toolbarKey}"]`);
+  await expect(toolbar.getByRole("button").first()).toBeVisible();
+  await expectToolbarAboveText(toolbar, text);
+  const surface = await toolbar.locator(":scope > div").first().boundingBox();
+  // Travel upwards through the text edge before moving across the toolbar.
+  // A detached surface forces this path through the preceding record's body.
+  await page.mouse.move(pointerX, surface.y + surface.height - 2, { steps: 20 });
+  await expect(toolbar.getByRole("button").first()).toBeVisible();
+  const more = toolbar.getByRole("button", { name: "Więcej działań" });
+  const button = await more.boundingBox();
+  await page.mouse.move(button.x + button.width / 2, button.y + button.height / 2, { steps: 20 });
+  await page.mouse.down();
+  await page.mouse.up();
+  await expect(toolbar.getByRole("menu")).toBeVisible();
+  await toolbar.getByRole("menuitem").first().press("Escape");
+  await expect(more).toBeFocused();
+}

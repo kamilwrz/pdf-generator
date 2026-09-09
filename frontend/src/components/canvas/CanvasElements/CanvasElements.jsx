@@ -5,7 +5,7 @@
  * `markContentElementsEnter`; decorative chrome is never animated.
  *
  * Template-mode section headings and record title bands reveal one shared,
- * grouped toolbar 24 screen pixels above the text and aligned to its left edge.
+ * grouped toolbar flush above the text and aligned to its left edge.
  * Plain body
  * hover keeps the complete heading-and-content section boundary visible,
  * while exact record/grid triggers retain their narrower controls. Direct

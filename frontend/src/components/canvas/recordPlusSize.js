@@ -18,8 +18,8 @@ function scaledStructuralValue(value, zoom) {
   return Number((value * STRUCTURAL_TOOLBAR_VISUAL_SCALE).toFixed(4)) / zoom;
 }
 
-/** Screen-space gap above the text anchor used by section and record toolbars. */
-export const STRUCTURAL_TOOLBAR_VERTICAL_GAP_SCREEN_PX = 24;
+/** Flush placement prevents adjacent entries from stealing hover on the way to actions. */
+export const STRUCTURAL_TOOLBAR_VERTICAL_GAP_SCREEN_PX = 0;
 
 /**
  * @param {number} [zoom=1]

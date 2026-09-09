@@ -188,7 +188,7 @@ Use a 4px base unit and the scale `4, 8, 12, 16, 24, 32, 48, 64, 96`. Prefer the
 - Minimum pointer target: 44×44px when space allows; never below 36×36px for dense editor controls.
 - Standard control height: 44px. Compact editor control height: 36px.
 - Contextual section and record toolbars on the A4 canvas are the narrow exception: their buttons are 80% of the 36px compact editor control (28.8px on screen), with independently sized 12px text, while keyboard access and persistent panel alternatives remain available.
-- Section and record toolbars align their left edge with the live rendered left edge of the text they control. Their complete surface sits exactly 24 screen pixels above those glyph or field bounds at every canvas zoom; the offset and toolbar never enter authored layout or PDF output.
+- Section and record toolbars align their left edge with the live rendered left edge of the text they control. Their bottom edge touches the top of those glyph or field bounds with a 0px gap at every canvas zoom, so moving the pointer to actions does not cross an adjacent entry. The toolbar never enters authored layout or PDF output.
 - Inline language, Skills, contact, masthead, photo, and list-layout actions use 24px screen-space buttons with the same 12px icons, 2.4px surface padding, 1px border, and square corners. This user-requested canvas exception keeps these actions smaller than section/record controls; it does not apply to form inputs or submit buttons.
 - Page gutters: 16px compact, 24px tablet, 32–48px wide screens.
 - Section gaps: 48–96px on narrative pages; 16–32px inside working surfaces.

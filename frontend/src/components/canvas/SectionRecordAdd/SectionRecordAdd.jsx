@@ -233,7 +233,7 @@ export default function SectionRecordAdd({
     : storedHighlight;
   // Anchor the toolbar's upper-layout edge to the rendered heading rather than
   // to the A4 page or complete semantic section. The portal renders the toolbar
-  // 24 screen pixels above this point and aligns both left edges, which keeps
+  // directly above this point with no gap and aligns both left edges, which keeps
   // actions clear of the authored text at every zoom and after reflow.
   const toolbarHeadingBounds = currentMeasurement?.headingBounds || {
     left: Number(left) || 0,
