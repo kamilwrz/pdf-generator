@@ -1,3 +1,4 @@
+import { StrictMode } from "react";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import NewCvSetupModal from "./NewCvSetupModal";
@@ -157,4 +158,24 @@ describe("NewCvSetupModal optional configuration", () => {
     fireEvent.click(screen.getByRole("button", { name: "Utwórz nowe CV" }));
     expect(screen.getByRole("button", { name: "Rozpocznij edycję" })).toBeInTheDocument();
   });
+});
+
+it("starts a first guest selection once under StrictMode and keeps retry after failure", async () => {
+  const onCreate = vi.fn().mockRejectedValueOnce(new Error("Brak połączenia")).mockResolvedValue(true);
+  const onClose = vi.fn();
+  render(<StrictMode><NewCvSetupModal open autoStart initialTemplateId="linden" onCreate={onCreate} onClose={onClose} /></StrictMode>);
+  await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("Brak połączenia"));
+  expect(onCreate).toHaveBeenCalledTimes(1);
+  fireEvent.click(screen.getByRole("button", { name: "Spróbuj ponownie" }));
+  await waitFor(() => expect(onClose).toHaveBeenCalledWith("created"));
+  expect(onCreate).toHaveBeenCalledTimes(2);
+  cleanup();
+});
+
+it("never auto-starts over an existing document", () => {
+  const onCreate = vi.fn();
+  render(<NewCvSetupModal open autoStart initialTemplateId="linden" hasActiveDocument onCreate={onCreate} onClose={vi.fn()} />);
+  expect(screen.getByRole("dialog", { name: "Utworzyć nowe CV?" })).toBeInTheDocument();
+  expect(onCreate).not.toHaveBeenCalled();
+  cleanup();
 });

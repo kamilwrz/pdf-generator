@@ -20,8 +20,8 @@ test("landing labels, pricing, and FAQ keep the Free limits explicit", async () 
     assert.match(planMarkup, /PRO_PLAN_HIGHLIGHTS\.map/);
     assert.match(planMarkup, /Zacznij za 0 zł/);
     assert.doesNotMatch(planMarkup, /POMOC AI/);
-    assert.match(planMarkup, /Limity znajdziesz w <a href="#cennik">cenniku/);
-    assert.match(planMarkup, /Funkcje AI są dostępne w Pro/);
+    assert.match(planMarkup, /[Ll]imity znajdziesz w <a href="#cennik">cenniku/);
+    assert.match(planMarkup, /pomoc AI jest dostępna w Pro/);
     assert.doesNotMatch(planMarkup, /znak wodny|oznaczeni(?:e|a) CV Studio|3 importy CV/i);
 });
 
@@ -54,7 +54,7 @@ test("registration, import, and account gates communicate the real Free limits",
     assert.match(register, /selectedPlan\.highlights\.map/);
     assert.match(register, /ArrowRight/);
     assert.match(register, /ArrowLeft/);
-    assert.match(register, /JSON\.stringify\(\{ username, email, password, plan: selectedPlanSlug \}\)/);
+    assert.match(register, /JSON\.stringify\(\{ username: username\.trim\(\), email, password, plan: selectedPlanSlug \}\)/);
     assert.match(importPanel, /1 udany import CV miesięcznie/);
     assert.match(importPanel, /odczytamy dane i wypełnimy nimi wybrany szablon/);
     assert.doesNotMatch(importPanel, /AI wypełni dowolny szablon/);

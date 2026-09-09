@@ -283,6 +283,7 @@ export async function installMockApi(
     calls.push(call);
 
     if (method === "GET" && path === "/health") return json(route, { status: "ok" });
+    if (method === "POST" && path === "/auth/register") return json(route, { id: 77, username: "Kamil" });
     if (method === "POST" && path === "/auth/token") {
       return json(route, { access_token: "local-playwright-token", token_type: "bearer" });
     }

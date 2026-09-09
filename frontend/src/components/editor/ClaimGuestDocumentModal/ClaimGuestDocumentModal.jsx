@@ -10,8 +10,8 @@
  * prevents that cross-account leak while still supporting the legitimate
  * case: the same visitor who edited as a guest and later signed in.
  *
- * Confirm only hydrates the editor canvas. It does not call
- * `POST /pdf/create_pdf`; the user saves later via the Topbar.
+ * Confirm hydrates the editor canvas. For an explicit download return it also
+ * requests PDF export; it never saves a server document implicitly.
  * Dismissal is intentionally separate from decline: close, Escape, and the
  * backdrop keep the browser draft so an uncertain user never deletes work by
  * dismissing a prompt.
@@ -19,7 +19,7 @@
 import DialogShell from "../../common/DialogShell/DialogShell";
 import classes from "./ClaimGuestDocumentModal.module.css";
 
-export default function ClaimGuestDocumentModal({ open, title, onConfirm, onDecline, onDismiss }) {
+export default function ClaimGuestDocumentModal({ open, title, onConfirm, onDecline, onDismiss, download = false }) {
   const documentTitle = typeof title === "string" && title.trim()
     ? title.trim()
     : "Szkic CV bez nazwy";
@@ -31,7 +31,7 @@ export default function ClaimGuestDocumentModal({ open, title, onConfirm, onDecl
       width={620}
       variant="decision"
       surface="paper"
-      eyebrow="Odzyskiwanie szkicu"
+      eyebrow={download ? "Ostatni krok: pobranie PDF" : "Odzyskiwanie szkicu"}
       title="Czy ten szkic należy do Ciebie?"
       subtitle="Znaleźliśmy CV zapisane wcześniej w tej przeglądarce, przed zalogowaniem."
       initialFocusSelector="[data-primary-action]"
@@ -50,7 +50,7 @@ export default function ClaimGuestDocumentModal({ open, title, onConfirm, onDecl
               data-primary-action=""
               onClick={onConfirm}
             >
-              Wczytaj mój szkic
+              {download ? "To moje CV — pobierz PDF" : "Wczytaj mój szkic"}
             </button>
           </div>
         </div>
@@ -68,7 +68,7 @@ export default function ClaimGuestDocumentModal({ open, title, onConfirm, onDecl
         <dl className={classes.consequences} aria-label="Skutki wyboru">
           <div className={classes.consequence}>
             <dt><span aria-hidden="true">01</span> Po wczytaniu</dt>
-            <dd>Szkic otworzy się w edytorze. Na koncie zapiszesz go dopiero po kliknięciu „Zapisz”.</dd>
+            <dd>{download ? "Wczytamy Twoje CV i przygotujemy PDF do pobrania. Pobranie wykorzystuje limit Twojego planu; nie zapisuje projektu na koncie." : "Szkic otworzy się w edytorze. Na koncie zapiszesz go dopiero po kliknięciu „Zapisz”."}</dd>
           </div>
           <div className={`${classes.consequence} ${classes.destructiveConsequence}`}>
             <dt><span aria-hidden="true">02</span> Po usunięciu</dt>

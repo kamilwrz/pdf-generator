@@ -31,7 +31,7 @@ const CONTENT_BY_PURPOSE = {
       { value: "3 pliki PDF", label: "do pobrania miesięcznie" },
       { value: "Bez znaku wodnego", label: "w każdym pobranym pliku" },
     ],
-    reassurance: "Szkic pozostaje zapisany lokalnie w tej przeglądarce.",
+    reassurance: "Po zalogowaniu potwierdzisz, że to Twoje CV, i od razu pobierzesz PDF.",
   },
   save: {
     eyebrow: "Zapis CV",
@@ -48,8 +48,7 @@ const CONTENT_BY_PURPOSE = {
 
 export default function SaveGateModal({ open, onCancel, purpose = "save" }) {
   const navigate = useNavigate();
-  const importing = purpose === "import";
-  const authQuery = importing ? "?start=import" : "";
+  const authQuery = ["import", "download"].includes(purpose) ? `?start=${purpose}` : "";
   const content = CONTENT_BY_PURPOSE[purpose] ?? CONTENT_BY_PURPOSE.save;
 
   return (

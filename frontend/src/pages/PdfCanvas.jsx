@@ -51,7 +51,7 @@ import FlatSectionLayoutModal from '../components/editor/FlatSectionLayoutModal/
 import SkillsLayoutModal from '../components/editor/SkillsLayoutModal/SkillsLayoutModal';
 import LongCvModal from '../components/editor/LongCvModal/LongCvModal';
 import { logEvent } from '../services/eventLog';
-import { saveGuestDocument, loadGuestDocument, clearGuestDocument } from '../utils/guestDocument';
+import { saveGuestDocument, loadGuestDocument, clearGuestDocument, hasGuestDocument } from '../utils/guestDocument';
 import { queueGuestEvent, loadGuestEvents, clearGuestEvents } from '../utils/guestEvents';
 import { resolveActiveCvData } from '../utils/resolveActiveCvData';
 import {
@@ -207,6 +207,11 @@ export function EditorController() {
       : null
   ));
 
+  const [hasInitialGuestDraft, setHasInitialGuestDraft] = useState(() => !getAccessToken() && hasGuestDocument() && !loadGuestDocument()?.isDemoContent);
+  const [quickStart] = useState(() => Boolean(startTemplateId && !getAccessToken() && !hasGuestDocument()));
+  const pendingClaimDownloadRef = useRef(null);
+  const [downloadReturn] = useState(() => startIntent === "download");
+
   // Keep the path slug aligned with auth: guests → /cvstudio/guest,
   // authenticated users → /cvstudio/{username}. The slug is cosmetic; JWT
   // ownership still decides which documents the API returns.
@@ -235,6 +240,7 @@ export function EditorController() {
       || startIntent === "templates"
       || startIntent === "blank"
       || startIntent === "demo"
+      || startIntent === "download"
       ? startIntent
       : null,
   );
@@ -1083,7 +1089,7 @@ export function EditorController() {
   // once per browser session — see markTemplatesModalSeen.
   useEffect(() => {
     if (isGuest) return;
-    if (!pdfsLoaded || PDFs.length !== 0) return;
+    if (!pdfsLoaded || PDFs.length !== 0 || A4_Elements.length > 0) return;
     // A landing-page CTA has already chosen a concrete first action. Do not
     // obscure it with the default template picker before the intent is handled.
     if (
@@ -1096,12 +1102,13 @@ export function EditorController() {
     ) {
       return;
     }
+    if (initialStartIntentRef.current === "download") return;
     if (autoOpenedTemplates || dialog !== null) return;
     if (sessionStorage.getItem(TEMPLATES_MODAL_SEEN_KEY) === "1") return;
     setAutoOpenedTemplates(true);
     setDialog('templates');
     setPanel(null);
-  }, [isGuest, pdfsLoaded, PDFs.length, autoOpenedTemplates, dialog, setAutoOpenedTemplates, startIntent])
+  }, [isGuest, pdfsLoaded, PDFs.length, A4_Elements.length, autoOpenedTemplates, dialog, setAutoOpenedTemplates, startIntent])
 
   // Blank freeform path: clear canvas once and skip the template picker.
   const blankStartAppliedRef = useRef(false);
@@ -1531,6 +1538,7 @@ export function EditorController() {
     if (!requireNameBeforeOutput()) return;
     if (!localStorage.getItem("token")) {
       queueGuestEvent("save_gate_shown");
+      flushGuestDraft();
       setDialog('downloadGate');
       return;
     }
@@ -1574,6 +1582,7 @@ export function EditorController() {
     A4_Elements,
     activeTemplateId,
     downloadPdf,
+    flushGuestDraft,
     editorMode,
     flowSpacing,
     pageCount,
@@ -1908,12 +1917,12 @@ export function EditorController() {
   const pendingGuestDocRef = useRef(null);
   const guestDocumentRestoredRef = useRef(false);
 
-  // Both authored guest drafts and the demo survive refresh on the same URL.
-  // Explicit creation intents start their own flow; an import gate can safely
-  // keep the existing draft visible behind it without sending its data.
+  // Drafts and the demo survive refresh. New-CV entry restores an existing
+  // draft behind replacement consent so cancel cannot lose it. The import
+  // gate likewise keeps the draft local without sending its data.
   useEffect(() => {
     if (guestDocumentRestoredRef.current || getAccessToken()
-      || (initialStartIntentRef.current && initialStartIntentRef.current !== "import")) return;
+      || (initialStartIntentRef.current && !["import", "new", "wizard"].includes(initialStartIntentRef.current))) return;
     const guestDoc = loadGuestDocument();
     if (
       !Array.isArray(guestDoc?.elements)
@@ -1986,7 +1995,7 @@ export function EditorController() {
   // Do not call `createPdf` / `POST /pdf/create_pdf` here — that would render and
   // persist a server document before the user asked to save. Saving does not
   // consume an export; the separate authenticated download does. They keep an unsaved
-  // canvas (`pdfId` null) and use “Zapisz PDF” when ready.
+  // canvas (`pdfId` null); only explicit ownership-and-download confirmation resumes export.
   //
   // Raw guest elements already have stable ids. They go directly through the
   // snapshot commit instead of materialization, which would mint new ids and
@@ -1996,6 +2005,7 @@ export function EditorController() {
     pendingGuestDocRef.current = null;
     setDialog(null);
     if (!guestDoc) return;
+    markTemplatesModalSeen();
 
     // Flush anything queued while anonymous — including this claim, queued
     // just below — through the normal authenticated event log.
@@ -2016,6 +2026,7 @@ export function EditorController() {
       elements: restoredElements,
       deletedElements: [],
       currentPage: 1,
+      flowSpacing: guestDoc.spacingPx ?? DEFAULT_FLOW_SPACING,
       cvData: guestDoc.cvData ?? null,
       sourceImportId: null,
       pdfId: null,
@@ -2023,6 +2034,9 @@ export function EditorController() {
       isDemoContent: Boolean(guestDoc.isDemoContent),
     });
     clearGuestDocument();
+    if (initialStartIntentRef.current === "download") {
+      pendingClaimDownloadRef.current = claimedScope;
+    }
 
     // Re-enable Topbar "Zmień szablon": fill set `activeCvData` in the guest
     // session, but register/login remounts PdfCanvas and drops that state.
@@ -2039,6 +2053,7 @@ export function EditorController() {
       if (isDocumentScopeCurrent(claimedScope)) setActiveCvData(null);
     });
 
+    if (initialStartIntentRef.current === "download") return;
     pushToast({
       title: "Szkic wczytany",
       msg: "Dokument jest na płótnie. Zapisz go, gdy będziesz gotowy.",
@@ -2049,7 +2064,18 @@ export function EditorController() {
     isDocumentScopeCurrent,
     pushToast,
     setActiveCvData,
+    markTemplatesModalSeen,
   ]);
+
+  // Export only after the explicit ownership-and-download action has committed
+  // the restored snapshot. Consume the request before async work, so rerenders,
+  // retries, or StrictMode cannot spend another export. A replacement cancels it.
+  useEffect(() => {
+    const scope = pendingClaimDownloadRef.current;
+    if (!scope) return;
+    pendingClaimDownloadRef.current = null;
+    if (isDocumentScopeCurrent(scope)) void handleDownloadClick();
+  }, [A4_Elements, handleDownloadClick, isDocumentScopeCurrent]);
 
   // Declining discards the buffered draft outright rather than leaving it to
   // be re-offered to the next person who logs in on this browser — the same
@@ -2335,8 +2361,10 @@ export function EditorController() {
                 <NewCvSetupModal
                   open
                   initialTemplateId={startTemplateId}
+                  autoStart={quickStart}
                   onClose={(reason) => {
                     setStartTemplateId(null);
+                    setHasInitialGuestDraft(false);
                     // Keep setup mounted until navigation completes. The dirty
                     // guard preserves any existing guest draft before leaving.
                     if (isGuest && reason !== "created") {
@@ -2347,7 +2375,7 @@ export function EditorController() {
                   }}
                   onCreate={handleCreateStarterCv}
                   entitlements={entitlements}
-                  hasActiveDocument={A4_Elements.length > 0 && !isDemoContent}
+                  hasActiveDocument={(A4_Elements.length > 0 && !isDemoContent) || hasInitialGuestDraft}
                   allowUnconfirmedReplacement={isDemoContent}
                 />
               ) : null}
@@ -2364,6 +2392,7 @@ export function EditorController() {
               />
               <ClaimGuestDocumentModal
                 open={isClaimGuestModal}
+                download={downloadReturn}
                 title={pendingGuestDocRef.current?.title || null}
                 onConfirm={handleClaimGuestDocumentConfirm}
                 onDecline={handleClaimGuestDocumentDecline}

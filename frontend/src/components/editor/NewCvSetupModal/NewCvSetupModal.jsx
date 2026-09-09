@@ -7,7 +7,7 @@
  * This keeps the demo-to-editor transition direct while preserving the guard
  * for saved and unsaved documents that belong to the user.
  */
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useId, useMemo, useRef, useState } from "react";
 import { FiArrowDown, FiArrowUp, FiCheck, FiChevronDown, FiMenu } from "react-icons/fi";
 import DialogShell from "../../common/DialogShell/DialogShell";
 import { TEMPLATES } from "../../../templates";
@@ -55,6 +55,7 @@ export default function NewCvSetupModal({
   hasActiveDocument = false,
   allowUnconfirmedReplacement = false,
   initialTemplateId = null,
+  autoStart = false,
 }) {
   // Read the landing hint once per setup session. Late account updates and
   // rerenders must never overwrite choices made inside the configuration.
@@ -83,6 +84,7 @@ export default function NewCvSetupModal({
   const templateGridRef = useRef(null);
   const previousTemplatesOpenRef = useRef(templatesOpen);
   const submittingRef = useRef(false);
+  const autoStartedRef = useRef(false);
 
   // Only an explicit gallery expansion moves focus. Changing the selection or
   // receiving account entitlements must not steal focus from the active control.
@@ -216,6 +218,16 @@ export default function NewCvSetupModal({
       setSubmitting(false);
     }
   }
+
+  // A first-time guest has already chosen a Free template on the landing.
+  // Reuse the normal submission and its recoverable settings/error UI. The
+  // ref prevents duplicate creation under StrictMode or changing callbacks.
+  const startSelectedTemplate = useEffectEvent(() => { void submit(); });
+  useEffect(() => {
+    if (!open || !autoStart || !initialTemplate || hasActiveDocument || autoStartedRef.current) return;
+    autoStartedRef.current = true;
+    startSelectedTemplate();
+  }, [open, autoStart, initialTemplate, hasActiveDocument]);
 
   const footer = confirmReplacement ? (
     <div className={classes.footerActions}>

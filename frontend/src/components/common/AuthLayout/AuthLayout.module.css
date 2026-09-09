@@ -1,0 +1,72 @@
+/* Shared authentication layout: the form precedes optional guidance in both
+   DOM and visual order. These tokens never enter the CV document render tree. */
+.container {
+  display: grid;
+  grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+  min-height: 100dvh;
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font: 400 1rem/1.55 var(--font-ui);
+}
+.container * { box-sizing: border-box; }
+.container a, .container button { touch-action: manipulation; }
+.container :is(a, button, input):focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: var(--space-1);
+}
+.authColumn, .storyPanel { min-width: 0; padding: var(--space-12); }
+.authColumn { display: grid; align-content: center; justify-items: center; }
+.loginCard { width: min(100%, 480px); }
+.logoBadge { display: inline-flex; width: 168px; min-height: var(--control-height); margin-bottom: var(--space-8); }
+.logoBadge img { width: 100%; }
+.storyPanel { display: flex; flex-direction: column; background: var(--color-canvas); border-left: 1px solid var(--color-border); }
+.backLink { display: inline-flex; align-items: center; gap: var(--space-2); min-height: var(--control-height); color: var(--color-ink); }
+.storyCopy, .planComparison { margin: auto 0; padding-block: var(--space-8); }
+.storyEyebrow, .cardEyebrow { margin: 0; color: var(--color-muted); font-size: .75rem; font-weight: 600; letter-spacing: .06em; }
+.mainHeading, .storyCopy h2, .planComparison h2 { margin: var(--space-4) 0; font-size: clamp(2rem, 4vw, 3.5rem); line-height: 1.1; letter-spacing: -.02em; }
+.subHeading, .storyCopy p, .planLead p { margin: var(--space-4) 0; }
+.subHeading, .planPeriod { color: var(--color-muted); }
+.intentNotice, .status, .error { padding: var(--space-4); margin: 0 0 var(--space-6); border-left: 2px solid var(--color-border); font-size: .875rem; }
+.intentNotice, .status { background: var(--color-surface); color: var(--color-ink); }
+.error { color: var(--color-danger); background: var(--color-danger-soft); border-color: var(--color-danger); }
+.form, .control { display: flex; flex-direction: column; }
+.form { gap: var(--space-4); }
+.control { gap: var(--space-2); }
+.control label { font-size: .75rem; font-weight: 600; }
+.field { display: flex; align-items: center; gap: var(--space-3); min-height: var(--control-height); padding: var(--space-3); border: 1px solid var(--color-border); background: var(--color-paper); }
+.field svg { flex-shrink: 0; color: var(--color-muted); }
+.field input { width: 100%; min-width: 0; border: 0; background: transparent; color: var(--color-ink); font: inherit; }
+.field input:focus-visible { outline: none; }
+.field:focus-within { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+.field:has(input:disabled) { background: var(--color-surface); }
+.fieldError { border-color: var(--color-danger); }
+.strength { display: flex; gap: var(--space-1); }
+.strength span { flex: 1; height: var(--space-1); background: var(--color-border); }
+.strength .strengthOn { background: var(--color-ink); }
+.authBtn { min-height: var(--control-height); width: 100%; padding: var(--space-3) var(--space-4); border: 1px solid var(--color-ink); border-radius: var(--radius-control); background: var(--color-ink); color: var(--color-paper); font: 600 .875rem/1.4 var(--font-ui); cursor: pointer; transition: background var(--motion-fast) var(--motion-ease); }
+.authBtn:hover:not(:disabled) { background: var(--color-ink-soft); }
+.authBtn:active:not(:disabled) { background: var(--color-accent); }
+.authBtn:disabled { opacity: .55; cursor: wait; }
+.linkWrapper { margin: var(--space-6) 0 0; font-size: .875rem; }
+.linkWrapper a { display: inline-flex; align-items: center; min-height: var(--control-height); color: var(--color-ink); text-underline-offset: var(--space-1); }
+.container a:hover { text-decoration-thickness: 2px; }
+.planTabs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); margin-block: var(--space-6); border-bottom: 1px solid var(--color-border); }
+.planTab { display: grid; gap: var(--space-2); padding: var(--space-4); min-height: var(--control-height); border: 0; border-bottom: 2px solid transparent; background: transparent; color: var(--color-ink); text-align: left; font: inherit; cursor: pointer; }
+.planTab:hover { background: var(--color-surface); }
+.planTabActive { border-bottom-color: var(--color-ink); background: var(--color-surface); font-weight: 600; }
+.planFeatures { list-style: none; padding: 0; margin: var(--space-6) 0; border-top: 1px solid var(--color-border); }
+.planFeatures li { display: grid; grid-template-columns: var(--space-8) minmax(0, 1fr); gap: var(--space-3); padding: var(--space-4) 0; border-bottom: 1px solid var(--color-border); }
+.planFeatures p { margin: 0; }
+.planFeatures span { font: 600 .75rem/1.55 var(--font-mono); color: var(--color-muted); }
+.planFeatures [aria-current="step"] { font-weight: 600; }
+.planLead span, .planPeriod { font-size: .875rem; }
+.storyPath { display: grid; gap: var(--space-3); padding-top: var(--space-6); border-top: 1px solid var(--color-border); }
+@media (max-width: 900px) {
+  .container { grid-template-columns: minmax(0, 1fr); }
+  .authColumn, .storyPanel { padding: var(--space-8) var(--space-6); }
+  .storyPanel { border-left: 0; border-top: 1px solid var(--color-border); }
+}
+@media (max-width: 480px) {
+  .authColumn, .storyPanel { padding: var(--space-6) var(--space-4); }
+}
+@media (prefers-reduced-motion: reduce) { .authBtn { transition: none; } }

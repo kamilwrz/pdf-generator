@@ -2,10 +2,11 @@
  * Login form. Does not gate on /health — cold starts use a long token timeout
  * plus retries; wakeBackend runs in the background to warm the dyno.
  */
-import classes from "./Login.module.css";
+import classes from "../../components/common/AuthLayout/AuthLayout.module.css";
 
-import { ApiClient, ENDPOINTS, wakeBackend } from "../../services/api";
-import { getEditorPath, setSessionUsername } from "../../utils/authSession";
+import { wakeBackend } from "../../services/api";
+import { getEditorPath } from "../../utils/authSession";
+import { signIn } from "../../services/signIn";
 
 import { useNavigate, useSearchParams, Link } from "react-router-dom"
 import { useEffect, useRef, useState } from "react";
@@ -25,7 +26,7 @@ export default function Login() {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const requestedStart = searchParams.get("start");
-    const startIntent = ["import", "new", "wizard", "templates"].includes(requestedStart)
+    const startIntent = ["import", "new", "wizard", "templates", "download"].includes(requestedStart)
         ? (requestedStart === "wizard" ? "new" : requestedStart)
         : null;
 
@@ -61,32 +62,10 @@ export default function Login() {
         wakeBackend();
 
         try {
-            const formDetails = new URLSearchParams();
-            formDetails.append("username", username.trim());
-            formDetails.append("password", password);
-
-            const api = new ApiClient({ "Content-Type": "application/x-www-form-urlencoded" });
-            const data = await api.httpRequest(
-                ENDPOINTS.AUTH.LOGIN,
-                "POST",
-                formDetails,
-                "Logowanie nie powiodło się",
-                {
-                    // One attempt can wait out a full Render cold start.
-                    timeoutMs: 90_000,
-                    retries: 4,
-                    retryDelayMs: 3_000,
-                    onRetry: (attempt) => {
-                        setStatusMessage(`Ponawianie logowania (${attempt}/4)… serwer właśnie wstaje.`);
-                    },
-                },
-            );
+            await signIn(username, password, {
+                onRetry: (attempt) => setStatusMessage(`Ponawianie logowania (${attempt}/4)… serwer właśnie wstaje.`),
+            });
             if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
-            const sessionUsername = username.trim();
-            localStorage.setItem("token", data.access_token);
-            // Persist the handle used for `/cvstudio/{username}` so deep links
-            // match the account without waiting for a JWT decode on remount.
-            setSessionUsername(sessionUsername);
             navigate(getEditorPath({ start: startIntent }), { replace: true });
         } catch (err) {
             if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
@@ -104,7 +83,9 @@ export default function Login() {
         setPassword(e.target.value)
     }
 
-    const selectedStartLabel = startIntent === "import"
+    const selectedStartLabel = startIntent === "download"
+        ? "Po zalogowaniu potwierdzisz swój szkic i pobierzesz PDF."
+        : startIntent === "import"
         ? "Po zalogowaniu otworzymy import Twojego CV."
         : startIntent === "new"
             ? "Po zalogowaniu otworzymy konfigurator nowego CV na A4."
@@ -114,32 +95,18 @@ export default function Login() {
 
     return (
         <div className={classes.container}>
-            <aside className={classes.storyPanel}>
-                <Link className={classes.backLink} to="/">
-                    <span aria-hidden="true">←</span>
-                    CV STUDIO
-                </Link>
-                <div className={classes.storyCopy}>
-                    <p className={classes.storyEyebrow}>Twoje CV. Twój następny krok.</p>
-                    <h2>Wróć do dokumentu, który nadal jest Twój.</h2>
-                    <p>Edytuj treść, sprawdzaj układ i pobieraj PDF dokładnie wtedy, gdy jest gotowy do wysłania.</p>
-                </div>
-                <div className={classes.storyPath}>
-                    <span>Kontynuacja pracy</span>
-                    <b>{selectedStartLabel}</b>
-                    <div><i /> Dokument → poprawki → PDF</div>
-                </div>
-            </aside>
+
 
             <section className={classes.authColumn} aria-labelledby="login-title">
                 <div className={classes.loginCard}>
-                    <div className={classes.logoBadge}>
-                        <img src="/cv-studio-logo.svg" alt="CV Studio" />
-                    </div>
+                    <Link to="/" className={classes.logoBadge} aria-label="CV Studio — strona główna">
+                        <img src="/cv-studio-logo.svg" alt="" />
+                    </Link>
                     <p className={classes.cardEyebrow}>Dostęp do Twoich dokumentów</p>
                     <h1 id="login-title" className={classes.mainHeading}>Witaj ponownie</h1>
-                    <p className={classes.subHeading}>Zaloguj się, aby kontynuować projektowanie.</p>
-                    <form onSubmit={handleSubmit} className={classes.form}>
+                    <p className={classes.subHeading}>{startIntent === "download" ? selectedStartLabel : "Zaloguj się, aby kontynuować projektowanie."}</p>
+                    {searchParams.get("registered") === "1" && <p className={classes.status} role="status">Konto zostało utworzone. Automatyczne logowanie nie powiodło się — zaloguj się, aby kontynuować.</p>}
+                    <form onSubmit={handleSubmit} className={classes.form} aria-describedby={error ? "login-error" : undefined}>
                         <div className={classes.control}>
                             <label htmlFor="username">Nazwa użytkownika</label>
                             <div className={`${classes.field} ${error ? classes.fieldError : ""}`}>
@@ -173,7 +140,7 @@ export default function Login() {
                             </div>
                         </div>
                         {error && (
-                            <p className={classes.error} role="alert">
+                            <p id="login-error" className={classes.error} role="alert">
                                 {error}
                             </p>
                         )}
@@ -195,6 +162,22 @@ export default function Login() {
                     </p>
                 </div>
             </section>
+            <aside className={classes.storyPanel}>
+                <Link className={classes.backLink} to="/">
+                    <span aria-hidden="true">←</span>
+                    CV STUDIO
+                </Link>
+                <div className={classes.storyCopy}>
+                    <p className={classes.storyEyebrow}>Twoje CV. Twój następny krok.</p>
+                    <h2>Wróć do dokumentu, który nadal jest Twój.</h2>
+                    <p>Edytuj treść, sprawdzaj układ i pobieraj PDF dokładnie wtedy, gdy jest gotowy do wysłania.</p>
+                </div>
+                <div className={classes.storyPath}>
+                    <span>Kontynuacja pracy</span>
+                    <b>{selectedStartLabel}</b>
+                    <div><i /> Dokument → poprawki → PDF</div>
+                </div>
+            </aside>
         </div>
     )
 }

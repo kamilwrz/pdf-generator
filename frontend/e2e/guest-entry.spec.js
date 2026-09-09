@@ -12,9 +12,9 @@ for (const width of [390, 834, 1280, 1920]) {
     await page.goto("/");
     await page.locator('#top').getByRole("link", { name: "Stwórz CV z tym szablonem", exact: true }).click();
     const setup = page.getByRole("dialog", { name: "Utwórz CV" });
-    await expect(setup).toBeVisible();
+    await expect(page.locator('[contenteditable="true"][data-placeholder="Imię i nazwisko"]')).toBeFocused();
+    await expect(setup).toHaveCount(0);
     await expect(accountChooser(page)).toHaveCount(0);
-    await setup.getByRole("button", { name: "Rozpocznij edycję" }).click();
     const trigger = page.getByRole("button", { name: "Importuj PDF", exact: true });
     await trigger.click();
     const gate = importGate(page);

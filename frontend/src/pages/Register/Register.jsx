@@ -3,13 +3,15 @@
  * is explicitly present in the URL; the backend validates the final choice.
  * Wakes the backend in the background like Login to survive Render cold start.
  */
-import classes from "./Register.module.css";
+import classes from "../../components/common/AuthLayout/AuthLayout.module.css";
 
 import { ApiClient, ENDPOINTS, wakeBackend } from "../../services/api";
 
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
 import { queueGuestEvent } from "../../utils/guestEvents";
+import { getEditorPath } from "../../utils/authSession";
+import { signIn } from "../../services/signIn";
 import { PLAN_PRESENTATION } from "../../utils/planPresentation";
 
 const REGISTER_PLANS = [PLAN_PRESENTATION.free, PLAN_PRESENTATION.pro];
@@ -41,11 +43,12 @@ export default function Register() {
 
     const [searchParams, setSearchParams] = useSearchParams();
     const requestedStart = searchParams.get("start");
-    const startIntent = ["import", "new", "wizard", "templates"].includes(requestedStart)
+    const startIntent = ["import", "new", "wizard", "templates", "download"].includes(requestedStart)
         ? (requestedStart === "wizard" ? "new" : requestedStart)
         : null;
     // Landing CTAs may pass ?plan=pro (legacy standard/premium remap on backend).
-    const requestedPlan = ["free", "pro", "standard", "premium"].includes(searchParams.get("plan"))
+    const downloading = startIntent === "download";
+    const requestedPlan = !downloading && ["free", "pro", "standard", "premium"].includes(searchParams.get("plan"))
         ? searchParams.get("plan")
         : "free";
     const selectedPlanSlug = requestedPlan === "standard" || requestedPlan === "premium"
@@ -118,7 +121,7 @@ export default function Register() {
             await api.httpRequest(
                 ENDPOINTS.AUTH.REGISTER,
                 "POST",
-                JSON.stringify({ username, email, password, plan: selectedPlanSlug }),
+                JSON.stringify({ username: username.trim(), email, password, plan: selectedPlanSlug }),
                 "Rejestracja nie powiodła się",
                 {
                     timeoutMs: 90_000,
@@ -131,8 +134,19 @@ export default function Register() {
             );
             if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
             queueGuestEvent("register_completed");
-            const loginPath = startIntent ? `/login?start=${startIntent}` : "/login";
-            navigate(loginPath, { replace: true });
+            // Registration has succeeded. A separate failure boundary prevents
+            // retrying account creation when only the token request fails.
+            setStatusMessage("Konto utworzone. Logowanie…");
+            try {
+                await signIn(username, password, { retries: 0 });
+                setPassword("");
+                navigate(getEditorPath({ start: startIntent }), { replace: true });
+            } catch {
+                setPassword("");
+                const params = new URLSearchParams({ registered: "1" });
+                if (startIntent) params.set("start", startIntent);
+                navigate(`/login?${params}`, { replace: true });
+            }
         } catch (err) {
             if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
             setError(err.message || "Rejestracja nie powiodła się");
@@ -141,7 +155,9 @@ export default function Register() {
         }
     }
 
-    const startNotice = startIntent === "import"
+    const startNotice = downloading
+        ? "Po utworzeniu konta zalogujemy Cię automatycznie. Potwierdzisz, że szkic należy do Ciebie, i pobierzesz PDF."
+        : startIntent === "import"
         ? "Po utworzeniu konta otworzymy import PDF. Plan Darmowy obejmuje 1 udany import CV w miesiącu."
         : startIntent === "new"
             ? "Po utworzeniu konta otworzymy konfigurator nowego CV na A4."
@@ -153,75 +169,22 @@ export default function Register() {
 
     return (
         <div className={classes.container}>
-            <aside className={classes.storyPanel}>
-                <Link className={classes.backLink} to="/">
-                    <span aria-hidden="true">←</span>
-                    CV STUDIO
-                </Link>
-                <div className={classes.planComparison}>
-                    <p className={classes.storyEyebrow}>Wybierz zakres pracy</p>
-                    <h2>Co dostajesz w CV Studio.</h2>
 
-                    <div className={classes.planTabs} role="tablist" aria-label="Wybierz plan konta">
-                        {REGISTER_PLANS.map((plan) => {
-                            const isSelected = selectedPlanSlug === plan.slug;
-                            return (
-                                <button
-                                    key={plan.slug}
-                                    id={`register-plan-tab-${plan.slug}`}
-                                    type="button"
-                                    role="tab"
-                                    aria-selected={isSelected}
-                                    aria-controls="register-plan-panel"
-                                    tabIndex={isSelected ? 0 : -1}
-                                    className={`${classes.planTab} ${isSelected ? classes.planTabActive : ""}`}
-                                    onClick={() => selectPlan(plan.slug)}
-                                    onKeyDown={handlePlanTabKeyDown}
-                                >
-                                    <span>{plan.name}</span>
-                                    <strong>{plan.price_label}</strong>
-                                </button>
-                            );
-                        })}
-                    </div>
-
-                    <section
-                        id="register-plan-panel"
-                        className={classes.planDetails}
-                        role="tabpanel"
-                        aria-labelledby={`register-plan-tab-${selectedPlanSlug}`}
-                    >
-                        <div className={classes.planLead}>
-                            <p>{selectedPlan.blurb}</p>
-                            {selectedPlan.badge && <span>{selectedPlan.badge}</span>}
-                        </div>
-                        <ol className={classes.planFeatures}>
-                            {selectedPlan.highlights.map((feature, index) => (
-                                <li key={feature}>
-                                    <span aria-hidden="true">{String(index + 1).padStart(2, "0")}</span>
-                                    <p>{feature}</p>
-                                </li>
-                            ))}
-                        </ol>
-                        <p className={classes.planPeriod}>{selectedPlan.period_note}</p>
-                    </section>
-                </div>
-            </aside>
 
             <section className={classes.authColumn} aria-labelledby="register-title">
                 <div className={classes.loginCard}>
-                    <div className={classes.logoBadge}>
-                        <img src="/cv-studio-logo.svg" alt="CV Studio" />
-                    </div>
+                    <Link to="/" className={classes.logoBadge} aria-label="CV Studio — strona główna">
+                        <img src="/cv-studio-logo.svg" alt="" />
+                    </Link>
                     <p className={classes.cardEyebrow}>Pierwsza wersja CV</p>
-                    <h1 id="register-title" className={classes.mainHeading}>Utwórz konto</h1>
+                    <h1 id="register-title" className={classes.mainHeading}>{downloading ? "Utwórz darmowe konto" : "Utwórz konto"}</h1>
                     <p className={classes.subHeading}>
                         {selectedPlanSlug === "pro"
                             ? "Pro — 59 zł / 30 dni. Jedna płatność, bez automatycznego odnawiania (Stripe wkrótce)."
                             : "Plan Darmowy: 1 CV, 3 szablony i 3 czyste PDF-y miesięcznie. Bez karty i limitu czasu."}
                     </p>
                     <p className={classes.intentNotice}>{startNotice}</p>
-                    <form onSubmit={handleSubmit} className={classes.form}>
+                    <form onSubmit={handleSubmit} className={classes.form} aria-describedby={error ? "register-error" : undefined}>
                         <div className={classes.control}>
                             <label htmlFor="username">Nazwa użytkownika</label>
                             <div className={`${classes.field} ${error ? classes.fieldError : ""}`}>
@@ -283,7 +246,7 @@ export default function Register() {
                             </div>
                         </div>
                         {error && (
-                            <p className={classes.error} role="alert">
+                            <p id="register-error" className={classes.error} role="alert">
                                 {error}
                             </p>
                         )}
@@ -297,7 +260,7 @@ export default function Register() {
                             className={classes.authBtn}
                             disabled={isLoading}
                         >
-                            {isLoading ? "Tworzenie konta…" : "Utwórz konto"}
+                            {isLoading ? "Proszę czekać…" : downloading ? "Utwórz konto i przejdź do PDF" : "Utwórz konto"}
                         </button>
                     </form>
                     <p className={classes.linkWrapper}>
@@ -305,6 +268,69 @@ export default function Register() {
                     </p>
                 </div>
             </section>
+            <aside className={classes.storyPanel}>
+                <Link className={classes.backLink} to="/">
+                    <span aria-hidden="true">←</span>
+                    CV STUDIO
+                </Link>
+                {downloading ? <div className={classes.planComparison}>
+                    <p className={classes.storyEyebrow}>Twoje pierwsze CV</p>
+                    <h2>Jeszcze krok do pliku PDF.</h2>
+                    <p className={classes.planPeriod}>Darmowe konto · Bez karty</p>
+                    <ol className={classes.planFeatures} aria-label="Droga do pobrania CV">
+                        <li><span aria-hidden="true">01</span><p>CV przygotowane w edytorze</p></li>
+                        <li aria-current="step"><span aria-hidden="true">02</span><p>Utwórz darmowe konto</p></li>
+                        <li><span aria-hidden="true">03</span><p>Potwierdź swój szkic i pobierz PDF</p></li>
+                    </ol>
+                </div> : <div className={classes.planComparison}>
+                    <p className={classes.storyEyebrow}>Wybierz zakres pracy</p>
+                    <h2>Co dostajesz w CV Studio.</h2>
+
+                    <div className={classes.planTabs} role="tablist" aria-label="Wybierz plan konta">
+                        {REGISTER_PLANS.map((plan) => {
+                            const isSelected = selectedPlanSlug === plan.slug;
+                            return (
+                                <button
+                                    key={plan.slug}
+                                    id={`register-plan-tab-${plan.slug}`}
+                                    type="button"
+                                    role="tab"
+                                    aria-selected={isSelected}
+                                    aria-controls="register-plan-panel"
+                                    tabIndex={isSelected ? 0 : -1}
+                                    className={`${classes.planTab} ${isSelected ? classes.planTabActive : ""}`}
+                                    onClick={() => selectPlan(plan.slug)}
+                                    onKeyDown={handlePlanTabKeyDown}
+                                >
+                                    <span>{plan.name}</span>
+                                    <strong>{plan.price_label}</strong>
+                                </button>
+                            );
+                        })}
+                    </div>
+
+                    <section
+                        id="register-plan-panel"
+                        className={classes.planDetails}
+                        role="tabpanel"
+                        aria-labelledby={`register-plan-tab-${selectedPlanSlug}`}
+                    >
+                        <div className={classes.planLead}>
+                            <p>{selectedPlan.blurb}</p>
+                            {selectedPlan.badge && <span>{selectedPlan.badge}</span>}
+                        </div>
+                        <ol className={classes.planFeatures}>
+                            {selectedPlan.highlights.map((feature, index) => (
+                                <li key={feature}>
+                                    <span aria-hidden="true">{String(index + 1).padStart(2, "0")}</span>
+                                    <p>{feature}</p>
+                                </li>
+                            ))}
+                        </ol>
+                        <p className={classes.planPeriod}>{selectedPlan.period_note}</p>
+                    </section>
+                </div>}
+            </aside>
         </div>
     );
 }

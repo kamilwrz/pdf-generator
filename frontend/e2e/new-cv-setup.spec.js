@@ -77,7 +77,7 @@ for (const width of [390, 834, 1280, 1920, 640]) {
       await page.emulateMedia({ reducedMotion: "reduce" });
       const api = await installMockApi(page);
       await page.goto("/");
-      await page.locator("#top").getByRole("link", { name: "Stwórz CV z tym szablonem" }).click();
+      await page.getByRole("navigation", { name: "Główna nawigacja" }).getByRole("link", { name: "Stwórz CV", exact: true }).click();
       const setup = page.getByRole("dialog", { name: "Utwórz CV" });
       await expect(setup).toBeVisible();
       if (action === "cancel") {
@@ -145,7 +145,8 @@ test("pending creation traps focus and failed creation retains settings for retr
     await failureGate;
     await route.fulfill({ status: 422, contentType: "application/json", body: JSON.stringify({ detail: "Nie udało się utworzyć CV." }) });
   }, { times: 1 });
-  await page.goto("/cvstudio/guest?start=new&template=linden");
+  await login(page);
+  await page.goto("/cvstudio/Kamil?start=new&template=linden");
   const setup = page.getByRole("dialog", { name: "Utwórz CV" });
   await setup.getByRole("button", { name: "Dostosuj zawartość" }).click();
   await setup.getByRole("checkbox", { name: "Telefon" }).uncheck();
@@ -172,7 +173,8 @@ test("compact preselection, optional preview and failed images keep the primary 
   const api = await installMockApi(page);
   await page.setViewportSize({ width: 390, height: 844 });
   await page.route("**/template-mockups/**", (route) => route.abort());
-  await page.goto("/cvstudio/guest?start=new&template=linden");
+  await login(page);
+  await page.goto("/cvstudio/Kamil?start=new&template=linden");
   const setup = page.getByRole("dialog", { name: "Utwórz CV" });
   await expect(setup.getByRole("radio")).toHaveCount(0);
   await expect(setup.getByText("Podgląd niedostępny")).not.toBeVisible();
