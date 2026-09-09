@@ -39,6 +39,7 @@ describe("NewCvSetupModal fullscreen flow", () => {
     expect(onCreate.mock.calls[0][0].sections[2].label).toBe("Doświadczenie");
     expect(onCreate.mock.calls[0][0].sections.at(-1).label).toBe("Konferencje");
     expect(onClose).toHaveBeenCalledTimes(1);
+    expect(onClose).toHaveBeenCalledWith("created");
   });
 
   it("preserves the original opener through replacement confirmation and Escape", async () => {

@@ -184,7 +184,8 @@ export default function NewCvSetupModal({
       const created = await onCreate(config, {
         replacementConfirmed: hasActiveDocument || allowUnconfirmedReplacement,
       });
-      if (created !== false) onClose();
+      // Completion must stay in the editor; guest dismissal returns to landing.
+      if (created !== false) onClose("created");
       else setError("Nie utworzono CV. Ustawienia zostały zachowane; możesz spróbować ponownie.");
     } catch (creationError) {
       setError(creationError?.message || "Nie udało się utworzyć nowego CV. Konfiguracja została zachowana.");

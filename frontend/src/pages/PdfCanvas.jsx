@@ -2335,7 +2335,16 @@ export function EditorController() {
                 <NewCvSetupModal
                   open
                   initialTemplateId={startTemplateId}
-                  onClose={() => { setStartTemplateId(null); setDialog(null); }}
+                  onClose={(reason) => {
+                    setStartTemplateId(null);
+                    // Keep setup mounted until navigation completes. The dirty
+                    // guard preserves any existing guest draft before leaving.
+                    if (isGuest && reason !== "created") {
+                      navigate("/", { replace: true });
+                      return;
+                    }
+                    setDialog(null);
+                  }}
                   onCreate={handleCreateStarterCv}
                   entitlements={entitlements}
                   hasActiveDocument={A4_Elements.length > 0 && !isDemoContent}
