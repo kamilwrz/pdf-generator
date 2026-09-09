@@ -157,9 +157,12 @@ export default function Sidebar({ children }) {
         <div className={classes.toolsContainer} data-anchor="sidebar-documents-divider">
             <div className={classes.toolsList}>
                 {!isDemoContent ? (
+                    <SidebarControls icon={<FaRegFolderOpen />} labelText="Moje dokumenty" to="/app/documents" />
+                ) : null}
+                {!isDemoContent && !isGuest ? (
                     <SidebarControls
                         icon={<FaRegFolderOpen />}
-                        labelText="Moje dokumenty"
+                        labelText="Szybko otwórz dokument"
                         sidebarEvent={showModalWithPDFs}
                         documents={PDFs.length}
                         active={isModalPdfs}
@@ -169,6 +172,7 @@ export default function Sidebar({ children }) {
         </div>
 
         <footer className={classes.sidebarFooter}>
+            {!isGuest && !isDemoContent && <SidebarControls icon={<LuListTree />} labelText="Konto i plan" to="/app/account" />}
             {!isDemoContent && entitlements?.plan_name ? (
                 <div className={classes.planBadgeWrap}>
                 <button

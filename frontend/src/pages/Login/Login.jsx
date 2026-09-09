@@ -5,7 +5,7 @@
 import classes from "../../components/common/AuthLayout/AuthLayout.module.css";
 
 import { wakeBackend } from "../../services/api";
-import { getEditorPath } from "../../utils/authSession";
+import { authLink, postAuthPath } from "../../utils/siteRoutes";
 import { signIn } from "../../services/signIn";
 
 import { useNavigate, useSearchParams, Link } from "react-router-dom"
@@ -66,7 +66,7 @@ export default function Login() {
                 onRetry: (attempt) => setStatusMessage(`Ponawianie logowania (${attempt}/4)… serwer właśnie wstaje.`),
             });
             if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
-            navigate(getEditorPath({ start: startIntent }), { replace: true });
+            navigate(postAuthPath(searchParams), { replace: true });
         } catch (err) {
             if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
             setError(err.message || "Logowanie nie powiodło się");
@@ -158,7 +158,7 @@ export default function Login() {
                         </button>
                     </form>
                     <p className={classes.linkWrapper}>
-                        Nowy użytkownik? <Link to={startIntent ? `/register?start=${startIntent}` : "/register"}>Utwórz konto</Link>
+                        Nowy użytkownik? <Link to={authLink('/register', searchParams)}>Utwórz konto</Link>
                     </p>
                 </div>
             </section>

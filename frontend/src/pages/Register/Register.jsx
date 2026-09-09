@@ -10,7 +10,7 @@ import { ApiClient, ENDPOINTS, wakeBackend } from "../../services/api";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
 import { queueGuestEvent } from "../../utils/guestEvents";
-import { getEditorPath } from "../../utils/authSession";
+import { authLink, postAuthPath } from "../../utils/siteRoutes";
 import { signIn } from "../../services/signIn";
 import { PLAN_PRESENTATION } from "../../utils/planPresentation";
 
@@ -140,10 +140,11 @@ export default function Register() {
             try {
                 await signIn(username, password, { retries: 0 });
                 setPassword("");
-                navigate(getEditorPath({ start: startIntent }), { replace: true });
+                navigate(postAuthPath(searchParams), { replace: true });
             } catch {
                 setPassword("");
-                const params = new URLSearchParams({ registered: "1" });
+                const params = new URLSearchParams(authLink('/login', searchParams).split('?')[1]);
+                params.set('registered', '1');
                 if (startIntent) params.set("start", startIntent);
                 navigate(`/login?${params}`, { replace: true });
             }
@@ -264,7 +265,7 @@ export default function Register() {
                         </button>
                     </form>
                     <p className={classes.linkWrapper}>
-                        Masz już konto? <Link to={startIntent ? `/login?start=${startIntent}` : "/login"}>Zaloguj się</Link>
+                        Masz już konto? <Link to={authLink('/login', searchParams)}>Zaloguj się</Link>
                     </p>
                 </div>
             </section>

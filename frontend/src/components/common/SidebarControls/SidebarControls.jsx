@@ -8,6 +8,7 @@
  */
 import classes from "./SidebarControls.module.css";
 import { useId } from "react";
+import { Link } from 'react-router-dom';
 
 export default function SidebarControls({
     icon,
@@ -17,15 +18,18 @@ export default function SidebarControls({
     documents,
     badge = false,
     active,
+    to,
 }) {
     const tooltipId = useId();
     const descriptiveLabel = documents != null && documents !== false
         ? `${tooltipText}: ${documents}`
         : tooltipText;
 
+    const Control = to ? Link : 'button';
     return (
-        <button
-            type="button"
+        <Control
+            type={to ? undefined : 'button'}
+            to={to}
             className={`${classes.tile} ${active ? classes.tileActive : ""}`}
             onClick={sidebarEvent}
             aria-label={labelText}
@@ -35,6 +39,6 @@ export default function SidebarControls({
             <span className={classes.iconBox}>{icon}</span>
             {badge ? <span className={classes.badge} aria-hidden="true" /> : null}
             <span id={tooltipId} className={classes.tooltip} role="tooltip">{descriptiveLabel}</span>
-        </button>
+        </Control>
     );
 }

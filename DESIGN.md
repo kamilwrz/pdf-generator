@@ -253,6 +253,12 @@ The editor and other task-heavy screens may be denser, but must remain grid-base
 
 ### 5.1 Navigation and application chrome
 
+- Public navigation shares `SiteLayout`: Templates, Pricing, Help, account access, then Create CV. Library and account pages keep document navigation in a stable position and use the same tokens with compact spacing.
+- `/app/documents` is the authenticated return destination unless an explicit start, document bookmark, or browser-draft ownership flow takes priority. Saved CVs have `/app/documents/:documentId` addresses. First save updates the address without remounting the canvas; route exits retain the unsaved-change guard.
+- The editor exposes the full document library as a navigation link and retains an explicitly labelled quick-open dialog for in-context switching. “Continue latest CV” opens that exact document; “All documents” opens the library.
+- Template cards link to their named detail pages. Invalid IDs show the route error surface; preview failure reserves the A4 footprint and never blocks navigation. Public information pages, the library, account limits, retrieval failures and retries share the same focus-visible and responsive contracts.
+- `/privacy` currently describes implemented data handling only. An approved privacy policy, administrator contact and terms are not available yet; do not present a draft or placeholder as a published legal document.
+
 - Navigation uses a clear baseline, restrained borders, and a visible current location.
 - The active item requires more than a subtle color change: use weight, an indicator rule, or a contrasting surface.
 - Logo, route navigation, document title, save state, and primary action must have a stable hierarchy.

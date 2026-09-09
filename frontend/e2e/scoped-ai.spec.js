@@ -22,7 +22,6 @@ async function openDocument(page, options = {}) {
   });
   await login(page);
   await page.getByText("Kontynuuj ostatnie CV", { exact: true }).click();
-  await page.getByRole("button", { name: "Otwórz na płótnie" }).click();
   await expect(page.locator("#summary-body")).toBeVisible();
   return api;
 }

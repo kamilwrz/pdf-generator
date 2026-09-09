@@ -41,7 +41,6 @@ for (const { templateId, width } of cases) {
     });
     await login(page);
     await page.getByText("Kontynuuj ostatnie CV", { exact: true }).click();
-    await page.getByRole("button", { name: "Otwórz na płótnie" }).click();
     const fieldFor = (contact) => page.locator(`[id="${contact.element_id}"]`);
     await expect(fieldFor(contacts[0])).toBeVisible();
     await page.evaluate(() => document.fonts.ready);

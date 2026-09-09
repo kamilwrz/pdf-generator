@@ -53,90 +53,8 @@
     outline-offset: var(--space-1);
 }
 
-.navigation a,
-.footerCol a {
-    display: inline-flex;
-    align-items: center;
-    min-height: var(--control-height);
-}
-
-/* ---- Header / navigation ------------------------------------------------ */
-
-.header {
-    position: relative;
-    z-index: 10;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    min-height: 82px;
-    padding: 16px clamp(24px, 5vw, 78px);
-    border-bottom: 1px solid var(--ink);
-    background: var(--paper);
-}
-
-.brand {
-    display: inline-flex;
-    align-items: center;
-    text-decoration: none;
-    line-height: 0;
-}
-
-.brand img {
-    display: block;
-    width: 150px;
-    height: auto;
-}
-
-.navigation {
-    display: flex;
-    align-items: center;
-    gap: clamp(14px, 2.2vw, 32px);
-}
-
-.navigation a {
-    position: relative;
-    color: var(--ink);
-    font: 500 12px/1 var(--body);
-    letter-spacing: .06em;
-    text-transform: uppercase;
-    text-decoration: none;
-    transition: color 200ms ease;
-}
-
 /* Swiss active/hover cue: a precise accent rule under the label, not a colour
    wash. Uses transform only so it stays on the compositor. */
-.navigation a:not(.navStart)::after {
-    content: "";
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: -6px;
-    height: 2px;
-    background: var(--taupe);
-    transform: scaleX(0);
-    transform-origin: left;
-    transition: transform 220ms ease;
-}
-
-.navigation a:not(.navStart):hover::after,
-.navigation a:not(.navStart):focus-visible::after {
-    transform: scaleX(1);
-}
-
-.navigation .navStart {
-    padding: 12px 18px;
-    background: var(--ink);
-    color: var(--paper);
-    letter-spacing: .08em;
-    transition: transform 200ms ease, box-shadow 200ms ease;
-}
-
-.navigation .navStart:hover,
-.navigation .navStart:focus-visible {
-    color: var(--paper);
-    transform: translateY(-2px);
-    box-shadow: inset 0 -3px 0 var(--taupe);
-}
 
 /* ---- Shared typographic scale ------------------------------------------ */
 
@@ -885,89 +803,6 @@
 
 /* ---- Footer ------------------------------------------------------------- */
 
-.footer {
-    padding: clamp(56px, 7vw, 82px) clamp(24px, 5vw, 78px) 34px;
-    background: var(--ink);
-    color: color-mix(in srgb, var(--color-paper) 62%, transparent);
-    border-top: 1px solid var(--line-dark);
-}
-
-/* Upper zone: brand identity and tagline on the left, three link
-   columns on the right — a conventional Swiss footer grid held together by the
-   same hairline rules used across the page. */
-.footerTop {
-    display: grid;
-    grid-template-columns: minmax(0, 1.05fr) minmax(0, 1.55fr);
-    gap: clamp(36px, 6vw, 96px);
-    padding-bottom: 44px;
-    border-bottom: 1px solid var(--line-dark);
-}
-
-.footer .brand img {
-    width: 138px;
-    height: auto;
-    /* The logo ships as dark ink; invert it to sit on the black footer. */
-    filter: invert(1) grayscale(1) brightness(2);
-}
-
-.footerTagline {
-    max-width: 320px;
-    margin: 20px 0 24px;
-    color: color-mix(in srgb, var(--color-paper) 60%, transparent);
-    font: 400 13px/1.6 var(--body);
-}
-
-
-.footerNav {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 28px;
-}
-
-.footerCol {
-    display: grid;
-    gap: 12px;
-    align-content: start;
-}
-
-.footerColTitle {
-    margin: 0 0 4px;
-    color: var(--taupe);
-    font: 500 12px/1 var(--mono);
-    letter-spacing: .16em;
-    text-transform: uppercase;
-}
-
-.footerCol a {
-    width: fit-content;
-    color: color-mix(in srgb, var(--color-paper) 66%, transparent);
-    font: 500 12px/1.3 var(--body);
-    letter-spacing: .02em;
-    text-decoration: none;
-    transition: color 200ms ease;
-}
-
-.footerCol a:hover,
-.footerCol a:focus-visible {
-    color: var(--paper);
-}
-
-/* Lower zone: copyright follows the useful navigation. */
-.footerBottom {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 16px 28px;
-    align-items: center;
-    justify-content: space-between;
-    padding-top: 26px;
-}
-
-.footerBottom small {
-    color: color-mix(in srgb, var(--color-paper) 50%, transparent);
-    font: 500 12px/1.4 var(--mono);
-    letter-spacing: .08em;
-}
-
 
 /* ---- Responsive --------------------------------------------------------- */
 
@@ -987,9 +822,6 @@
 }
 
 @media (max-width: 880px) {
-    .navigation > a:not(.navStart) {
-        display: none;
-    }
 
     .trustStrip,
     .faqSection {
@@ -1014,26 +846,6 @@
 }
 
 @media (max-width: 620px) {
-    .header {
-        min-height: 68px;
-    }
-
-    .brand img {
-        width: 134px;
-    }
-
-    .navigation {
-        gap: 10px;
-    }
-
-    .navigation > a:not(.navStart) {
-        display: none;
-    }
-
-    .navigation .navStart {
-        padding: 10px 13px;
-        font-size: 12px;
-    }
 
     .hero { padding: var(--space-8) var(--space-4); }
     .heroActions { display: grid; grid-template-columns: 1fr; }
@@ -1075,29 +887,12 @@
     .faqList summary {
         font-size: 17px;
     }
-
-    .footerTop {
-        grid-template-columns: 1fr;
-        gap: 40px;
-        padding-bottom: 36px;
-    }
-
-    .footerNav {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 26px;
-    }
-
-    .footerBottom {
-        justify-content: flex-start;
-    }
 }
 
 @media (prefers-reduced-motion: reduce) {
     .buttonPrimary,
     .buttonSecondary,
     .templateCard,
-    .navigation a,
-    .navigation .navStart,
     .buttonPrimary svg,
     .buttonSecondary svg,
     .textCta svg {

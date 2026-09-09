@@ -12,8 +12,6 @@ test.describe("CV Studio editor smoke", () => {
     await login(page);
 
     await page.getByText("Kontynuuj ostatnie CV", { exact: true }).click();
-    await expect(page.getByRole("dialog", { name: "Moje dokumenty" })).toBeVisible();
-    await page.getByRole("button", { name: "Otwórz na płótnie" }).click();
 
     const title = page.getByRole("textbox", { name: "Nazwa bieżącego dokumentu" });
     await expect(title).toHaveValue("CV Smoke");
@@ -45,7 +43,7 @@ test.describe("CV Studio editor smoke", () => {
     await expect(dirtyDialog).toBeVisible();
     await dirtyDialog.getByRole("button", { name: "Wróć do edycji" }).click();
     await expect(title).toHaveValue("CV Smoke zmienione");
-    await expect(page).toHaveURL(/\/cvstudio\/Kamil/);
+    await expect(page).toHaveURL(/\/app\/documents\/41$/);
 
     await page.getByRole("button", { name: "Wyloguj się" }).click();
     await page.getByRole("alertdialog", { name: "Niezapisane zmiany" })
@@ -150,6 +148,7 @@ test.describe("CV Studio editor smoke", () => {
     await expect(selectionFrame).toBeVisible();
     await expect(selectionFrame).toHaveCSS("border-top-color", focusColor);
 
+    await page.locator(".main-container").evaluate((node) => { node.dataset.routeContinuity = "original"; });
     const createRequest = page.waitForRequest((request) => (
       request.method() === "POST" && new URL(request.url()).pathname === "/api/pdf/create_pdf"
     ));
@@ -169,6 +168,13 @@ test.describe("CV Studio editor smoke", () => {
     });
     expect(create.postDataJSON()).toHaveProperty("render_root");
     await expect(page.getByText("Zapisano w Moich dokumentach", { exact: true })).toBeVisible();
+    await expect(page).toHaveURL(/\/app\/documents\/91$/);
+    await expect(title).toHaveValue("Nowe CV smoke");
+    // Inactive PDF text uses a zero-height baseline box; verify its content,
+    // not Playwright visibility of that box, after the save ends inline editing.
+    await expect(page.locator(".main-container").getByText("Kamil Nowak", { exact: true })).toHaveText("Kamil Nowak");
+    await expect(page.locator(".main-container")).toHaveAttribute("data-route-continuity", "original");
+    expect(api.calls.filter((call) => call.path === "/pdf/show_pdf")).toEqual([]);
     api.assertHermetic();
   });
 
@@ -177,7 +183,6 @@ test.describe("CV Studio editor smoke", () => {
     await login(page);
 
     await page.getByText("Kontynuuj ostatnie CV", { exact: true }).click();
-    await page.getByRole("button", { name: "Otwórz na płótnie" }).click();
 
     const toolsTitle = page.locator("#skills-tools-title");
     await expect(toolsTitle).toHaveText("Narzędzia");
@@ -266,7 +271,6 @@ test.describe("CV Studio editor smoke", () => {
     });
     await login(page);
     await page.getByText("Kontynuuj ostatnie CV", { exact: true }).click();
-    await page.getByRole("button", { name: "Otwórz na płótnie" }).click();
 
     // Legacy generated headings have no semantic section type. Renaming must
     // stamp it before the visible label stops matching "Umiejętności", so all
@@ -400,7 +404,6 @@ test.describe("CV Studio editor smoke", () => {
     const api = await installMockApi(page);
     await login(page);
     await page.getByText("Kontynuuj ostatnie CV", { exact: true }).click();
-    await page.getByRole("button", { name: "Otwórz na płótnie" }).click();
 
     const toolsBody = page.locator("#skills-tools-body");
     const toolsCategory = page.locator("#skills-tools-title");
@@ -546,7 +549,6 @@ test.describe("CV Studio editor smoke", () => {
     });
     await login(page);
     await page.getByText("Kontynuuj ostatnie CV", { exact: true }).click();
-    await page.getByRole("button", { name: "Otwórz na płótnie" }).click();
     await page.getByRole("button", { name: "Powiększ" }).click();
     await page.getByRole("button", { name: "Powiększ" }).click();
     await page.getByRole("button", { name: "Powiększ" }).click();

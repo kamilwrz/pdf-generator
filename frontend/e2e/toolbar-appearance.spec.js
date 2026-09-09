@@ -60,7 +60,6 @@ for (const width of [390, 834, 1280, 1920]) {
     const api = await installMockApi(page, { savedElements: [...SAVED_ELEMENTS, ...extraElements] });
     await login(page);
     await page.getByText("Kontynuuj ostatnie CV", { exact: true }).click();
-    await page.getByRole("button", { name: "Otwórz na płótnie" }).click();
 
     const checkControl = async (control, size, danger = false) => {
       await expect(control).toBeVisible();
@@ -177,7 +176,6 @@ test("toolbar geometry and menu text stay constant through animated canvas zoom"
   const api = await installMockApi(page, { savedElements: [...SAVED_ELEMENTS, ...extraElements] });
   await login(page);
   await page.getByText("Kontynuuj ostatnie CV", { exact: true }).click();
-  await page.getByRole("button", { name: "Otwórz na płótnie" }).click();
   await page.locator("#skills-heading").dispatchEvent("pointerenter");
   const toolbar = page.locator('[data-canvas-toolbar-key="heading:skills-heading"]');
   const more = toolbar.getByRole("button", { name: "Więcej działań" });

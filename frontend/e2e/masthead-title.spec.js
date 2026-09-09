@@ -50,7 +50,6 @@ for (const template of TEST_TEMPLATES) {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await login(page);
     await page.getByText("Kontynuuj ostatnie CV", { exact: true }).click();
-    await page.getByRole("button", { name: "Otwórz na płótnie" }).click();
     const field = page.locator(`[id="${title.element_id}"]`);
     await expect(field).toBeVisible();
     const positions = async () => Promise.all(contacts.map((element) =>
@@ -117,7 +116,6 @@ for (const width of [390, 834, 1366, 1920]) {
     });
     await login(page);
     await page.getByText("Kontynuuj ostatnie CV", { exact: true }).click();
-    await page.getByRole("button", { name: "Otwórz na płótnie" }).click();
     await page.locator(`[id="${title.element_id}"]`).dispatchEvent("pointerenter");
     await expectCanvasTooltip(page.getByRole("button", { name: "Ukryj stanowisko", exact: true }));
     await page.getByRole("button", { name: "Ukryj stanowisko", exact: true }).click();

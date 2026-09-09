@@ -82,6 +82,8 @@ function DocumentsIcon() {
 /**
  * @param {object} props
  * @param {() => void} props.onNew - open the one-screen A4 setup
+ * @param {() => void} props.onDocuments - navigate to the standalone library
+ * @param {(id: number) => void} props.onContinue - open the named saved document
  * @param {() => void} props.onImport - open the CV import dialog (AiCvPanel)
  * @param {Array<{title?: string, created_at?: string}>} [props.documents] - saved projects
  * @param {boolean} [props.documentsLoaded] - whether the saved-project list finished loading
@@ -92,6 +94,7 @@ export default function StartChooser({
   onNew,
   onImport,
   onDocuments,
+  onContinue,
   documents = [],
   documentsLoaded = false,
   legacyDraftAvailable = false,
@@ -101,13 +104,13 @@ export default function StartChooser({
 }) {
   const titleRef = useRef(null);
   const latestDocument = [...documents]
-    .sort((left, right) => new Date(right.created_at || 0) - new Date(left.created_at || 0))[0];
-  const latestDocumentDate = latestDocument?.created_at
+    .sort((left, right) => new Date(right.updated_at || right.created_at || 0) - new Date(left.updated_at || left.created_at || 0))[0];
+  const latestDocumentDate = (latestDocument?.updated_at || latestDocument?.created_at)
     ? new Intl.DateTimeFormat("pl-PL", {
       day: "numeric",
       month: "short",
       year: "numeric",
-    }).format(new Date(latestDocument.created_at))
+    }).format(new Date(latestDocument.updated_at || latestDocument.created_at))
     : null;
 
   useEffect(() => {
@@ -175,8 +178,9 @@ export default function StartChooser({
         </div>
 
         <div className={classes.secondaryActions}>
+          <button type="button" className={classes.blankLink} onClick={onDocuments}>Wszystkie dokumenty →</button>
           {documentsLoaded && latestDocument ? (
-            <button type="button" className={classes.recentDocument} onClick={onDocuments}>
+            <button type="button" className={classes.recentDocument} onClick={() => onContinue(latestDocument.id)}>
               <span className={classes.secondaryIcon} aria-hidden="true">
                 <DocumentsIcon />
               </span>

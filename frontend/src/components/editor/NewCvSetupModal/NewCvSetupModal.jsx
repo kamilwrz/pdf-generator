@@ -12,7 +12,9 @@ import { FiArrowDown, FiArrowUp, FiCheck, FiChevronDown, FiMenu } from "react-ic
 import DialogShell from "../../common/DialogShell/DialogShell";
 import { TEMPLATES } from "../../../templates";
 import { isTemplateAllowed } from "../../../utils/entitlements";
-import { resolveFreeStartTemplate } from "../../../utils/cvTemplateSelection";
+import { resolveStartTemplate } from "../../../utils/cvTemplateSelection";
+import { Link } from 'react-router-dom';
+import { getAccessToken } from '../../../utils/authSession';
 import {
   createDefaultStarterConfig,
   PHOTO_TEMPLATE_IDS,
@@ -59,7 +61,7 @@ export default function NewCvSetupModal({
 }) {
   // Read the landing hint once per setup session. Late account updates and
   // rerenders must never overwrite choices made inside the configuration.
-  const [initialTemplate] = useState(() => resolveFreeStartTemplate(TEMPLATES, initialTemplateId));
+  const [initialTemplate] = useState(() => resolveStartTemplate(TEMPLATES, initialTemplateId));
   const [config, setConfig] = useState(() => ({
     ...createDefaultStarterConfig(),
     ...(initialTemplate ? { templateId: initialTemplate.id } : {}),
@@ -195,6 +197,10 @@ export default function NewCvSetupModal({
 
   async function submit() {
     if (submittingRef.current) return;
+    if (!isTemplateAllowed(selectedTemplate, entitlements)) {
+      setError('Wybrany szablon wymaga aktywnego planu Pro. Wybierz darmowy szablon lub zmień plan.');
+      return;
+    }
     if (!config.sections.some((item) => item.selected)) {
       setSectionError("Wybierz co najmniej jedną sekcję CV.");
       setCustomizationOpen(true);
@@ -238,10 +244,10 @@ export default function NewCvSetupModal({
     </div>
   ) : (
     <div className={classes.footerBar}>
-      <div className={classes.footerFeedback}><p className={classes.footerHint}>Zaczniesz bez konta. Zapis i pobranie PDF wymagają bezpłatnego konta.</p>{error && <p className={classes.error} role="alert">{error}</p>}{submitting && <p className={classes.fieldError} role="status">Tworzenie CV…</p>}</div>
+      <div className={classes.footerFeedback}><p className={classes.footerHint}>{!isTemplateAllowed(selectedTemplate, entitlements) ? <>Szablon {selectedTemplate.name} wymaga aktywnego Pro. <Link to={getAccessToken() ? `/app/account?template=${selectedTemplate.id}` : `/register?plan=pro&start=new&template=${selectedTemplate.id}`}>Sprawdź dostęp Pro</Link> lub wybierz darmowy szablon.</> : getAccessToken() ? 'Zapisany projekt znajdziesz w Moich dokumentach.' : 'Zaczniesz bez konta. Zapis i pobranie PDF wymagają bezpłatnego konta.'}</p>{error && <p className={classes.error} role="alert">{error}</p>}{submitting && <p className={classes.fieldError} role="status">Tworzenie CV…</p>}</div>
       <div className={classes.footerActions}>
         <button type="button" className={classes.secondaryButton} onClick={onClose} disabled={submitting}>Anuluj</button>
-        <button type="button" className={classes.primaryButton} onClick={submit} disabled={submitting}>
+        <button type="button" className={classes.primaryButton} onClick={submit} disabled={submitting || !isTemplateAllowed(selectedTemplate, entitlements)}>
           {submitting ? "Tworzenie CV…" : error ? "Spróbuj ponownie" : "Rozpocznij edycję"}
         </button>
       </div>

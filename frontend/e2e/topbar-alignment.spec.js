@@ -87,7 +87,6 @@ test("renaming and saving use the relocated field; spread keeps rail positions",
   });
   await login(page);
   await page.getByText("Kontynuuj ostatnie CV", { exact: true }).click();
-  await page.getByRole("button", { name: "Otwórz na płótnie" }).click();
   const name = page.getByRole("textbox", { name: "Nazwa bieżącego dokumentu" });
   await page.getByRole("button", { name: "Zmień nazwę dokumentu" }).click();
   await expect(name).toBeFocused();

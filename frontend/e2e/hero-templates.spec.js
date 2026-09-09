@@ -46,9 +46,9 @@ test("unavailable images retain template selection and a working CTA", async ({ 
   await expect(page.locator('[contenteditable="true"][data-placeholder="Imię i nazwisko"]')).toBeFocused();
 });
 
-test("paid and unknown template links fall back to the ordinary picker", async ({ page }) => {
+test("unknown template links fall back to the ordinary picker", async ({ page }) => {
   await installMockApi(page);
-  for (const id of ["atrium", "unknown"]) {
+  for (const id of ["unknown"]) {
     await page.goto(`/cvstudio/guest?start=new&template=${id}`);
     await expect(page.getByRole("radio", { name: /Meridian/ })).toBeChecked();
     await expect(page).toHaveURL(/\/cvstudio\/guest$/);

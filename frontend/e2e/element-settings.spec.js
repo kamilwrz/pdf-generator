@@ -14,7 +14,6 @@ test("record actions and settings never overlap the cog or edited field at 280%"
   });
   await login(page);
   await page.getByText("Kontynuuj ostatnie CV", { exact: true }).click();
-  await page.getByRole("button", { name: "Otwórz na płótnie" }).click();
   const field = page.locator("#skills-tools-title");
   await field.click();
   await field.dispatchEvent("pointerenter");
@@ -59,7 +58,6 @@ for (const width of [390, 834, 1280, 1920]) {
     const api = await installMockApi(page);
     await login(page);
     await page.getByText("Kontynuuj ostatnie CV", { exact: true }).click();
-    await page.getByRole("button", { name: "Otwórz na płótnie" }).click();
     const field = page.locator("#skills-tools-body");
     await field.click();
     const cog = page.getByRole("button", { name: /Otwórz parametry elementu:/ });
@@ -130,7 +128,6 @@ test("freeform shape keeps geometry, colour, position, layer and actions", async
   });
   await login(page);
   await page.getByText("Kontynuuj ostatnie CV", { exact: true }).click();
-  await page.getByRole("button", { name: "Otwórz na płótnie" }).click();
   await page.locator("#settings-rectangle").click();
   await page.getByRole("button", { name: /Otwórz parametry elementu:/ }).click();
   const panel = page.getByRole("dialog", { name: "Ustawienia · Prostokąt" });
@@ -158,7 +155,6 @@ test("settings remain usable in a 200-percent-equivalent compact viewport", asyn
   const api = await installMockApi(page);
   await login(page);
   await page.getByText("Kontynuuj ostatnie CV", { exact: true }).click();
-  await page.getByRole("button", { name: "Otwórz na płótnie" }).click();
   await page.locator("#skills-tools-body").click();
   await page.getByRole("button", { name: /Otwórz parametry elementu:/ }).click();
   const panel = page.getByRole("dialog", { name: "Ustawienia · Pole tekstowe" });

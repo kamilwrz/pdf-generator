@@ -24,7 +24,6 @@ test(`edits three independent Experience hints at ${width}px and preserves save/
   await page.emulateMedia({ reducedMotion: "reduce" });
   await login(page);
   await page.getByText("Kontynuuj ostatnie CV", { exact: true }).click();
-  await page.getByRole("button", { name: "Otwórz na płótnie" }).click();
   const field = page.locator("#experience-meta");
   await field.locator('[data-metadata-slot="2"]').click();
   await expect(field).toHaveAttribute("contenteditable", "true");

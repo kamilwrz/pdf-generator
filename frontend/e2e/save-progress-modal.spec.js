@@ -25,7 +25,6 @@ for (const width of [390, 834, 1366, 1920]) {
 
     await login(page);
     await page.getByText("Kontynuuj ostatnie CV", { exact: true }).click();
-    await page.getByRole("button", { name: "Otwórz na płótnie" }).click();
     const saveButton = page.getByRole("button", { name: "Zapisz dokument", exact: true });
     await saveButton.click();
 
@@ -80,7 +79,6 @@ for (const width of [390, 834, 1366, 1920]) {
 
     await login(page);
     await page.getByText("Kontynuuj ostatnie CV", { exact: true }).click();
-    await page.getByRole("button", { name: "Otwórz na płótnie" }).click();
     const downloadButton = page.getByRole("button", { name: "Pobierz PDF", exact: true });
     await downloadButton.click();
 

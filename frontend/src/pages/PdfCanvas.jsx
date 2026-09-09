@@ -14,14 +14,19 @@ import {
   DocumentLifecycleContext,
   useDocumentLifecycleController,
 } from '../store/document-lifecycle-context';
-import { lazy, Suspense, useState, useEffect, useMemo, useCallback, useRef} from 'react';
+import { lazy, Suspense, useState, useEffect, useLayoutEffect, useMemo, useCallback, useRef} from 'react';
 import { useA4Elements } from "../hooks/useA4Elements";
 import { usePdfExport } from '../hooks/usePdfExport';
 import CanvasElements from "../components/canvas/CanvasElements/CanvasElements";
 import SelectionOverlay from "../components/canvas/SelectionOverlay/SelectionOverlay";
 import AiCorrectionOverlay from "../components/canvas/AiCorrectionOverlay/AiCorrectionOverlay";
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { resolveFreeStartTemplate } from '../utils/cvTemplateSelection';
+import { resolveStartTemplate, resolveFreeStartTemplate } from '../utils/cvTemplateSelection';
+import { getDocumentPath } from '../utils/siteRoutes';
+import { loadOwnedDocument } from '../services/documents';
+import SiteLayout from '../components/common/SiteLayout/SiteLayout';
+import siteClasses from '../components/common/SiteLayout/SiteLayout.module.css';
+import { Link } from 'react-router-dom';
 import {
   clearAccessToken,
   getAccessToken,
@@ -194,21 +199,23 @@ export function EditorController() {
     advanceDocumentSession,
   } = lifecycleController;
   const [isGuest, setIsGuest] = useState(() => !getAccessToken());
-  const { workspace } = useParams();
+  const { workspace, documentId } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
   const startIntent = searchParams.get("start");
   const templateIntent = searchParams.get("template");
   const location = useLocation();
+  const routePathRef = useRef(location.pathname);
+  useLayoutEffect(() => { routePathRef.current = location.pathname; }, [location.pathname]);
   // Capture the validated selection before consuming the URL. Closing setup
   // clears it so a later New CV action starts an independent configuration.
   const [startTemplateId, setStartTemplateId] = useState(() => (
     ["new", "wizard"].includes(startIntent)
-      ? resolveFreeStartTemplate(TEMPLATES, templateIntent)?.id || null
+      ? resolveStartTemplate(TEMPLATES, templateIntent)?.id || null
       : null
   ));
 
   const [hasInitialGuestDraft, setHasInitialGuestDraft] = useState(() => !getAccessToken() && hasGuestDocument() && !loadGuestDocument()?.isDemoContent);
-  const [quickStart] = useState(() => Boolean(startTemplateId && !getAccessToken() && !hasGuestDocument()));
+  const [quickStart] = useState(() => Boolean(resolveFreeStartTemplate(TEMPLATES, startTemplateId) && !getAccessToken() && !hasGuestDocument()));
   const pendingClaimDownloadRef = useRef(null);
   const [downloadReturn] = useState(() => startIntent === "download");
 
@@ -216,6 +223,7 @@ export function EditorController() {
   // authenticated users → /cvstudio/{username}. The slug is cosmetic; JWT
   // ownership still decides which documents the API returns.
   useEffect(() => {
+    if (documentId) return;
     const token = getAccessToken();
     const expectedSlug = token
       ? (getSessionUsername() || GUEST_WORKSPACE)
@@ -229,7 +237,7 @@ export function EditorController() {
     if (currentSlug === expectedSlug) return;
     const nextPath = getEditorPath({ start: startIntent, template: templateIntent });
     navigate(nextPath, { replace: true });
-  }, [workspace, startIntent, templateIntent, navigate]);
+  }, [workspace, documentId, startIntent, templateIntent, navigate]);
   // Read the landing intent only while this editor instance is created. It
   // becomes the initial dialog state, which avoids a visual flash of the
   // default template picker before the requested flow is visible.
@@ -661,6 +669,15 @@ export function EditorController() {
     setServerRevision(snapshot.serverRevision);
     setIsDemoContent(snapshot.isDemoContent);
 
+    // Snapshot replacement has already passed the caller's dirty guard. Keep
+    // its address in the same transaction; fresh CVs must lose an old saved ID.
+    const nextPath = snapshot.pdfId != null ? getDocumentPath(snapshot.pdfId)
+      : routePathRef.current.startsWith('/app/documents/') ? getEditorPath() : null;
+    if (nextPath && routePathRef.current !== nextPath) {
+      allowNextNavigation();
+      navigate(nextPath, { replace: true });
+    }
+
     // Preview state describes the previous element graph and must never cross
     // the same atomic boundary into a newly committed document.
     setLayoutPreviewPatches([]);
@@ -686,6 +703,8 @@ export function EditorController() {
 
     return { scope, snapshot: { ...snapshot, flowSpacing: committedFlowSpacing } };
   }, [
+    allowNextNavigation,
+    navigate,
     adoptDocumentFlowSpacing,
     advanceDocumentSession,
     markDocumentClean,
@@ -829,13 +848,19 @@ export function EditorController() {
       && !isDocumentScopeCurrent(saveScopeRef.current)
     ) return;
     setPdfId(nextPdfId);
+    if (nextPdfId != null && routePathRef.current.startsWith('/cvstudio/')) {
+      // First save changes the workspace address, not the document session.
+      // A delayed save must not redirect a newer saved-document navigation.
+      allowNextNavigation();
+      navigate(getDocumentPath(nextPdfId), { replace: true });
+    }
     if (nextPdfId == null || Object.hasOwn(options, "revision")) {
       const parsedRevision = Number(options.revision);
       setServerRevision(
         Number.isInteger(parsedRevision) && parsedRevision >= 1 ? parsedRevision : null,
       );
     }
-  }, [isDocumentScopeCurrent]);
+  }, [allowNextNavigation, isDocumentScopeCurrent, navigate]);
 
   // Several fresh-document flows predate `handlePdfId` and assign null
   // directly. Keep their server concurrency token in lockstep until those
@@ -1088,7 +1113,7 @@ export function EditorController() {
   // hijacks a manual action or an intent-aware landing flow. Fires at most
   // once per browser session — see markTemplatesModalSeen.
   useEffect(() => {
-    if (isGuest) return;
+    if (isGuest || documentId) return;
     if (!pdfsLoaded || PDFs.length !== 0 || A4_Elements.length > 0) return;
     // A landing-page CTA has already chosen a concrete first action. Do not
     // obscure it with the default template picker before the intent is handled.
@@ -1108,7 +1133,7 @@ export function EditorController() {
     setAutoOpenedTemplates(true);
     setDialog('templates');
     setPanel(null);
-  }, [isGuest, pdfsLoaded, PDFs.length, A4_Elements.length, autoOpenedTemplates, dialog, setAutoOpenedTemplates, startIntent])
+  }, [isGuest, documentId, pdfsLoaded, PDFs.length, A4_Elements.length, autoOpenedTemplates, dialog, setAutoOpenedTemplates, startIntent])
 
   // Blank freeform path: clear canvas once and skip the template picker.
   const blankStartAppliedRef = useRef(false);
@@ -1973,7 +1998,7 @@ export function EditorController() {
   ]);
 
   useEffect(() => {
-    if (claimOfferedRef.current) return;
+    if (claimOfferedRef.current || documentId) return;
     const token = localStorage.getItem("token");
     if (!token) return;
     const guestDoc = loadGuestDocument();
@@ -1989,7 +2014,7 @@ export function EditorController() {
     claimOfferedRef.current = true;
     pendingGuestDocRef.current = guestDoc;
     setDialog('claimGuest');
-  }, []);
+  }, [documentId]);
 
   // Load the browser-buffered guest JSON onto the A4 canvas only.
   // Do not call `createPdf` / `POST /pdf/create_pdf` here — that would render and
@@ -2320,7 +2345,7 @@ export function EditorController() {
   // Account onboarding replaces the complete editor shell a signed-in user
   // lands on with the two guided paths (wizard / import). Gating lives in the
   // pure `shouldShowStartChooser` helper so it can be unit-tested without a DOM.
-  const showStartChooser = shouldShowStartChooser({
+  const showStartChooser = !documentId && shouldShowStartChooser({
     isGuest,
     elementsCount: A4_Elements.length,
     isDemoContent,
@@ -2328,6 +2353,42 @@ export function EditorController() {
     pdfId,
     dismissed: startChooserDismissed,
   });
+
+  const [documentRouteState, setDocumentRouteState] = useState(() => ({ id: documentId, loading: Boolean(documentId), error: null }));
+  const [documentRouteRetry, setDocumentRouteRetry] = useState(0);
+  const livePdfIdRef = useRef(pdfId);
+  useLayoutEffect(() => { livePdfIdRef.current = pdfId; }, [pdfId]);
+  useEffect(() => {
+    if (!documentId || Number(documentId) === livePdfIdRef.current) return;
+    let active = true;
+    const scope = captureDocumentScope();
+    setDocumentRouteState({ id: documentId, loading: true, error: null });
+    loadOwnedDocument(documentId).then((snapshot) => {
+      if (!active) return;
+      if (!isDocumentScopeCurrent(scope, { requireSameRevision: true })) {
+        setDocumentRouteState({ id: documentId, loading: false, error: new Error('Dokument zmienił się podczas wczytywania. Spróbuj ponownie.') });
+        return;
+      }
+      commitDocumentSnapshot(snapshot, { markClean: true });
+      setDialog(null);
+      setDocumentRouteState({ id: documentId, loading: false, error: null });
+    }).catch((error) => {
+      if (active) setDocumentRouteState({ id: documentId, loading: false, error });
+    });
+    return () => { active = false; };
+  }, [documentId, documentRouteRetry, captureDocumentScope, isDocumentScopeCurrent, commitDocumentSnapshot]);
+
+  // Do not expose an empty or previous canvas while an address resolves. The
+  // library remains reachable on missing/forbidden documents and failed reads.
+  if (documentId && Number(documentId) !== pdfId) {
+    const failure = documentRouteState.id === documentId ? documentRouteState.error : null;
+    return <SiteLayout workspace title={failure ? 'Nie udało się otworzyć CV' : 'Otwieranie CV'}>
+      {failure ? <div role="alert" className={siteClasses.error}><p>{failure.status === 404 || failure.status === 403 ? 'Dokument nie istnieje lub nie masz do niego dostępu.' : failure.message}</p>
+        {failure.status === 401 ? <Link to={`/login?${new URLSearchParams({ returnTo: getDocumentPath(documentId) })}`}>Zaloguj się ponownie</Link> : <button className={siteClasses.secondary} onClick={() => setDocumentRouteRetry((value) => value + 1)}>Spróbuj ponownie</button>}
+      </div> : <div role="status"><p>Wczytywanie treści i układu dokumentu…</p><div className={siteClasses.skeleton} aria-hidden="true" /></div>}
+      <Link to="/app/documents">Wróć do dokumentów</Link>
+    </SiteLayout>;
+  }
 
   return (
     <EditorView
@@ -2533,12 +2594,9 @@ export function EditorController() {
                     handleShowAiPanel();
                   }}
                   onDocuments={() => {
-                    // Keep the chooser mounted behind the documents modal.
-                    // Closing the modal must return the user to the same
-                    // start screen instead of exposing the blank freeform
-                    // canvas.
-                    setIsModalPdfs(true);
+                    navigate('/app/documents');
                   }}
+                  onContinue={(id) => navigate(getDocumentPath(id))}
                   documents={PDFs}
                   documentsLoaded={pdfsLoaded}
                   legacyDraftAvailable={Boolean(legacyDraft)}

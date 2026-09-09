@@ -19,6 +19,7 @@ import { Link } from "react-router-dom";
 import classes from "./Hero.module.css";
 import { TEMPLATES } from "../../templates";
 import HeroTemplateShowcase from "./HeroTemplateShowcase";
+import { SiteHeader, SiteFooter } from "../../components/common/SiteLayout/SiteLayout";
 import { wakeBackend } from "../../services/api";
 import { queueGuestEvent } from "../../utils/guestEvents";
 import { getAccessToken, getEditorPath } from "../../utils/authSession";
@@ -107,23 +108,7 @@ export default function Hero() {
 
     return (
         <main className={classes.page}>
-            <header className={classes.header}>
-                <a className={classes.brand} href="#top" aria-label="CV Studio — strona główna">
-                    <img src="/cv-studio-logo.svg" alt="" />
-                </a>
-                <nav className={classes.navigation} aria-label="Główna nawigacja">
-                    <a href="#szablony">Szablony</a>
-                    <a href="#cennik">Cennik</a>
-                    <Link to="/login">Zaloguj się</Link>
-                    <Link
-                        className={classes.navStart}
-                        to={newCvUrl}
-                        onClick={() => queueGuestEvent("hero_new_cv")}
-                    >
-                        Stwórz CV
-                    </Link>
-                </nav>
-            </header>
+            <SiteHeader />
 
             <section id="top" className={classes.hero}>
                 <div className={classes.heroCopy}>
@@ -229,7 +214,7 @@ export default function Hero() {
                                 {TEMPLATE_PREVIEWS.map((template) => (
                                     <Link
                                         key={`${copy}-${template.id}`}
-                                        to={newCvUrl}
+                                        to={`/templates/${template.id}`}
                                         className={classes.templateCard}
                                         tabIndex={copy === 1 ? -1 : undefined}
                                         onClick={() => queueGuestEvent("templates_new_cv")}
@@ -248,7 +233,7 @@ export default function Hero() {
                         ))}
                     </div>
                 </div>
-                <CtaLink to={newCvUrl} event="templates_new_cv" variant="link">
+                <CtaLink to="/templates" event="templates_new_cv" variant="link">
                     Wybierz szablon i stwórz CV
                 </CtaLink>
             </section>
@@ -321,7 +306,7 @@ export default function Hero() {
                 <div className={classes.faqList}>
                     <details open>
                         <summary>Czy pobiorę CV za darmo?</summary>
-                        <p>Tak. Darmowe konto obejmuje 3 pobrania PDF miesięcznie, bez znaku wodnego. Możesz korzystać z edytora i {FREE_TEMPLATES.length} darmowych szablonów. Pozostałe limity znajdziesz w <a href="#cennik">cenniku</a>; pomoc AI jest dostępna w Pro.</p>
+                        <p>Tak. Darmowe konto obejmuje 3 pobrania PDF miesięcznie, bez znaku wodnego. Możesz korzystać z edytora i {FREE_TEMPLATES.length} darmowych szablonów. Pozostałe limity znajdziesz w <Link to="/pricing">cenniku</Link>; pomoc AI jest dostępna w Pro.</p>
                     </details>
                     <details>
                         <summary>Czy muszę założyć konto, żeby zacząć?</summary>
@@ -344,37 +329,7 @@ export default function Hero() {
                 <CtaLink to={newCvUrl} event="final_wizard">Stwórz CV za darmo</CtaLink>
             </section>
 
-            <footer className={classes.footer}>
-                <div className={classes.footerTop}>
-                    <div>
-                        <a className={classes.brand} href="#top" aria-label="CV Studio — strona główna">
-                            <img src="/cv-studio-logo.svg" alt="" />
-                        </a>
-                        <p className={classes.footerTagline}>
-                            Wybierz szablon. Dodaj doświadczenie. Pobierz CV.
-                        </p>
-                    </div>
-                    <nav className={classes.footerNav} aria-label="Stopka">
-                        <div className={classes.footerCol}>
-                            <p className={classes.footerColTitle}>Produkt</p>
-                            <a href="#szablony">Szablony</a>
-                            <a href="#cennik">Cennik</a>
-                        </div>
-                        <div className={classes.footerCol}>
-                            <p className={classes.footerColTitle}>Konto</p>
-                            <Link to="/login">Zaloguj się</Link>
-                            <Link to={newCvUrl}>Stwórz CV</Link>
-                        </div>
-                        <div className={classes.footerCol}>
-                            <p className={classes.footerColTitle}>Informacje</p>
-                            <a href="#privacy">Prywatność</a>
-                        </div>
-                    </nav>
-                </div>
-                <div className={classes.footerBottom}>
-                    <small>© 2026 CV Studio</small>
-                </div>
-            </footer>
+            <SiteFooter />
         </main>
     );
 }

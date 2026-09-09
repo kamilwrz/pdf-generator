@@ -40,7 +40,6 @@ test("AI assistant uses the wider panel and shifts a single A4 only when space a
   await login(page);
 
   await page.getByText("Kontynuuj ostatnie CV", { exact: true }).click();
-  await page.getByRole("button", { name: "Otwórz na płótnie" }).click();
 
   const a4 = page.locator("[data-page-canvas]").first();
   const before = await a4.boundingBox();
@@ -80,7 +79,6 @@ test("edit zoom survives assistant focus and canvas scrolling until the bare A4 
   await login(page);
 
   await page.getByText("Kontynuuj ostatnie CV", { exact: true }).click();
-  await page.getByRole("button", { name: "Otwórz na płótnie" }).click();
 
   const name = page.locator("#saved-name");
   const canvas = page.locator(".canvas-area");
@@ -160,7 +158,6 @@ test("AI assistant keeps the conversation visible after a follow-up question", a
   await login(page);
 
   await page.getByText("Kontynuuj ostatnie CV", { exact: true }).click();
-  await page.getByRole("button", { name: "Otwórz na płótnie" }).click();
   await page.getByRole("button", { name: "Otwórz asystenta AI" }).click();
 
   const input = page.getByPlaceholder("Zadaj pytanie lub wydaj polecenie…");
@@ -211,7 +208,6 @@ test("job-offer form restores its height after a long tailoring result", async (
   await login(page);
 
   await page.getByText("Kontynuuj ostatnie CV", { exact: true }).click();
-  await page.getByRole("button", { name: "Otwórz na płótnie" }).click();
   await page.getByRole("button", { name: "Otwórz asystenta AI" }).click();
 
   const matchJobButton = page.getByRole("button", { name: "Dopasuj do oferty", exact: true });

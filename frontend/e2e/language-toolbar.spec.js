@@ -25,7 +25,6 @@ for (const gridKind of ["languages", "entries"]) {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await login(page);
     await page.getByText("Kontynuuj ostatnie CV", { exact: true }).click();
-    await page.getByRole("button", { name: "Otwórz na płótnie" }).click();
 
     // Measure actual screen coordinates: CSS source assertions alone cannot
     // catch a Languages preset being routed into the generic gutter branch.

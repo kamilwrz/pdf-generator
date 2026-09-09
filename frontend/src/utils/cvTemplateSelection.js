@@ -17,6 +17,11 @@ export function resolveFreeStartTemplate(templates, templateId) {
   return templates.find((template) => template.id === templateId && template.tier === "free") || null;
 }
 
+/** A known Pro hint may be previewed, but creation still checks live entitlements. */
+export function resolveStartTemplate(templates, templateId) {
+  return templates.find((template) => template.id === templateId) || null;
+}
+
 /**
  * Next or previous template the current plan may apply, wrapping in registry order.
  *

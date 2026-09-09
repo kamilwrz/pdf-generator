@@ -76,7 +76,6 @@ for (const width of [390, 768, 1280, 1920]) {
     });
     await login(page);
     await page.getByText("Kontynuuj ostatnie CV", { exact: true }).click();
-    await page.getByRole("button", { name: "Otwórz na płótnie" }).click();
     const email = page.locator("#outline-email");
     for (const clearText of [false, true]) {
       await email.click();
@@ -132,7 +131,6 @@ for (const width of [390, 768, 1280, 1920]) {
     });
     await login(page);
     await page.getByText("Kontynuuj ostatnie CV", { exact: true }).click();
-    await page.getByRole("button", { name: "Otwórz na płótnie" }).click();
 
     for (const heading of headings) {
       const node = page.locator(`[id="${heading.element_id}"]`);
@@ -206,7 +204,6 @@ test("contact outline stays on the glyphs after delete and add-channel controls"
   });
   await login(page);
   await page.getByText("Kontynuuj ostatnie CV", { exact: true }).click();
-  await page.getByRole("button", { name: "Otwórz na płótnie" }).click();
 
   const phone = page.locator("#outline-phone");
   await clickVisibleText(page, phone);

@@ -442,6 +442,8 @@ export async function login(page) {
   await page.getByLabel("Nazwa użytkownika").fill("Kamil");
   await page.getByLabel("Hasło").fill("local-test-password");
   await page.getByRole("button", { name: "Zaloguj się" }).click();
-  await expect(page).toHaveURL(/\/cvstudio\/Kamil/);
+  await expect(page).toHaveURL(/\/app\/documents$/);
+  // Existing editor scenarios explicitly exercise the retained workspace entry.
+  await page.goto("/cvstudio/Kamil");
   await expect(page.getByRole("heading", { name: "Jak chcesz zacząć?" })).toBeVisible();
 }

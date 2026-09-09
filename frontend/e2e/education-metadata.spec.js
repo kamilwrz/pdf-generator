@@ -27,7 +27,6 @@ for (const width of [390, 820, 1366, 1920]) {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await login(page);
     await page.getByText("Kontynuuj ostatnie CV", { exact: true }).click();
-    await page.getByRole("button", { name: "Otwórz na płótnie" }).click();
     for (const element of separate) {
       await expect(page.locator(`#${element.element_id} [data-metadata-slot]`)).toHaveCount(0);
     }

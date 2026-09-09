@@ -20,7 +20,7 @@ test("landing labels, pricing, and FAQ keep the Free limits explicit", async () 
     assert.match(planMarkup, /PRO_PLAN_HIGHLIGHTS\.map/);
     assert.match(planMarkup, /Zacznij za 0 zł/);
     assert.doesNotMatch(planMarkup, /POMOC AI/);
-    assert.match(planMarkup, /[Ll]imity znajdziesz w <a href="#cennik">cenniku/);
+    assert.match(planMarkup, /[Ll]imity znajdziesz w <Link to="\/pricing">cenniku/);
     assert.match(planMarkup, /pomoc AI jest dostępna w Pro/);
     assert.doesNotMatch(planMarkup, /znak wodny|oznaczeni(?:e|a) CV Studio|3 importy CV/i);
 });

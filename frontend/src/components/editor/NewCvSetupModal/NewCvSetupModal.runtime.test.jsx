@@ -147,7 +147,7 @@ describe("NewCvSetupModal optional configuration", () => {
     expect(screen.getByRole("checkbox", { name: "Telefon" })).not.toBeChecked();
   });
 
-  it.each(["atrium", "missing", null])("falls back to ordinary setup for %s", (id) => {
+  it.each(["missing", null])("falls back to ordinary setup for %s", (id) => {
     render(<NewCvSetupModal open initialTemplateId={id} onClose={vi.fn()} onCreate={vi.fn()} />);
     expect(screen.getByRole("radio", { name: /Meridian/ })).toBeChecked();
   });
