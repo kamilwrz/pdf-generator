@@ -82,3 +82,14 @@ test("isAuthFailure matches status and FastAPI default copy", () => {
   assert.equal(isAuthFailure({ message: "Nie udało się pobrać szkicu." }), false);
   assert.equal(isAuthFailure(null), false);
 });
+
+
+test("getEditorPath preserves and encodes template hints only for setup", () => {
+  globalThis.localStorage = fakeLocalStorage();
+  assert.equal(getEditorPath({ start: "new", template: "linden" }), "/cvstudio/guest?start=new&template=linden");
+  assert.equal(getEditorPath({ start: "demo", template: "linden" }), "/cvstudio/guest?start=demo");
+  const encoded = getEditorPath({ start: "new", template: "linden&start=import" });
+  assert.equal(new URL(encoded, "https://example.test").searchParams.get("template"), "linden&start=import");
+  localStorage.setItem("token", fakeJwt({ sub: "anna" }));
+  assert.equal(getEditorPath({ start: "new", template: "sterling" }), "/cvstudio/anna?start=new&template=sterling");
+});

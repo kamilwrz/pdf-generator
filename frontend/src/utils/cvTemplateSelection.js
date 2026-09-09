@@ -9,6 +9,15 @@ import { isTemplateAllowed } from "./entitlements.js";
 export const selectCvTemplates = (templates) => listTemplatesInRegistryOrder(templates);
 
 /**
+ * Resolve an untrusted landing selection against the Free registry only.
+ * Returns null for missing, unknown or paid IDs; callers then use normal setup.
+ * This does not grant entitlements or materialize a document.
+ */
+export function resolveFreeStartTemplate(templates, templateId) {
+  return templates.find((template) => template.id === templateId && template.tier === "free") || null;
+}
+
+/**
  * Next or previous template the current plan may apply, wrapping in registry order.
  *
  * Locked (Pro) templates are skipped so the topbar arrows never land on a

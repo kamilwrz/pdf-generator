@@ -12,6 +12,7 @@ import { FiArrowDown, FiArrowUp, FiCheck, FiMenu } from "react-icons/fi";
 import DialogShell from "../../common/DialogShell/DialogShell";
 import { TEMPLATES } from "../../../templates";
 import { isTemplateAllowed } from "../../../utils/entitlements";
+import { resolveFreeStartTemplate } from "../../../utils/cvTemplateSelection";
 import {
   createDefaultStarterConfig,
   PHOTO_TEMPLATE_IDS,
@@ -42,10 +43,17 @@ export default function NewCvSetupModal({
   entitlements,
   hasActiveDocument = false,
   allowUnconfirmedReplacement = false,
+  initialTemplateId = null,
 }) {
-  const [config, setConfig] = useState(createDefaultStarterConfig);
+  // Read the landing hint once per setup session. Late account updates and
+  // rerenders must never overwrite choices made inside the configuration.
+  const [initialTemplate] = useState(() => resolveFreeStartTemplate(TEMPLATES, initialTemplateId));
+  const [config, setConfig] = useState(() => ({
+    ...createDefaultStarterConfig(),
+    ...(initialTemplate ? { templateId: initialTemplate.id } : {}),
+  }));
   const [confirmReplacement, setConfirmReplacement] = useState(hasActiveDocument);
-  const [step, setStep] = useState(0);
+  const [step, setStep] = useState(initialTemplate ? 1 : 0);
   const [customTitle, setCustomTitle] = useState("");
   const [customError, setCustomError] = useState("");
   const [draggedKey, setDraggedKey] = useState(null);
@@ -216,7 +224,7 @@ export default function NewCvSetupModal({
         ? "Obecny dokument pozostanie zapisany bez zmian. Nowe CV rozpocznie się jako niezapisany projekt."
         : "Najpierw układ, potem zawartość. Przygotuj punkt wyjścia dla swojego CV."}
       footer={footer}
-      initialFocusSelector={confirmReplacement ? "[data-confirm-new-cv]" : "[data-template-selected='true']"}
+      initialFocusSelector={confirmReplacement ? "[data-confirm-new-cv]" : initialTemplate ? "#new-cv-contact-heading" : "[data-template-selected='true']"}
     >
       {confirmReplacement ? (
         <div className={classes.confirmation}>
@@ -232,7 +240,7 @@ export default function NewCvSetupModal({
           <legend className={classes.liveStatus}>Opcje konfiguracji CV</legend>
           {step === 0 && <section className={classes.templates} aria-labelledby="new-cv-template-heading">
             <div className={classes.sectionHeading}>
-              <div><h3 ref={stepHeadingRef} tabIndex={-1} id="new-cv-template-heading">Wybierz swój układ.</h3><p>Meridian jest wybrany na start. Szablon możesz zmienić także w edytorze.</p></div>
+              <div><h3 ref={stepHeadingRef} tabIndex={-1} id="new-cv-template-heading">Wybierz swój układ.</h3><p>Wybrany szablon: {selectedTemplate.name}. Możesz go zmienić także w edytorze.</p></div>
             </div>
             <div className={classes.templateGrid} role="radiogroup" aria-label="Szablon CV">
               {SETUP_TEMPLATES.map((template) => {

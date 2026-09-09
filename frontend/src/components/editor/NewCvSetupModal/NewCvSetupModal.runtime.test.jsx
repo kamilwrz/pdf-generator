@@ -101,3 +101,29 @@ describe("NewCvSetupModal fullscreen flow", () => {
     expect(screen.getByRole("button", { name: "Utwórz A4" })).toBeEnabled();
   });
 });
+
+
+describe("landing Free template handoff", () => {
+  afterEach(cleanup);
+  it.each(["sterling", "meridian", "linden"])("starts %s at contact and creates that exact template", async (id) => {
+    const onCreate = vi.fn().mockResolvedValue(true);
+    render(<NewCvSetupModal open initialTemplateId={id} onClose={vi.fn()} onCreate={onCreate} />);
+    expect(screen.getByRole("heading", { name: "Zacznij od najważniejszych danych." })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Wstecz" }));
+    expect(screen.getByRole("radio", { name: new RegExp(id, "i") })).toBeChecked();
+    goToSections();
+    fireEvent.click(screen.getByRole("button", { name: "Utwórz A4" }));
+    await waitFor(() => expect(onCreate).toHaveBeenCalledTimes(1));
+    expect(onCreate.mock.calls[0][0].templateId).toBe(id);
+  });
+  it.each(["atrium", "missing", null])("falls back to ordinary setup for %s", (id) => {
+    render(<NewCvSetupModal open initialTemplateId={id} onClose={vi.fn()} onCreate={vi.fn()} />);
+    expect(screen.getByRole("radio", { name: /Meridian/ })).toBeChecked();
+  });
+  it("retains replacement confirmation before a preselected setup", () => {
+    render(<NewCvSetupModal open initialTemplateId="linden" hasActiveDocument onClose={vi.fn()} onCreate={vi.fn()} />);
+    expect(screen.getByRole("dialog", { name: "Utworzyć nowe CV?" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Skonfiguruj nowe CV" }));
+    expect(screen.getByRole("heading", { name: "Zacznij od najważniejszych danych." })).toBeInTheDocument();
+  });
+});

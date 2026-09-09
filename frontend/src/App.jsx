@@ -19,12 +19,12 @@ const Register = lazy(() => import('./pages/Register/Register'));
 const Hero = lazy(() => import('./pages/Hero/Hero'));
 
 /**
- * Preserve `?start=...` when rewriting deprecated `/pdfcanvas` bookmarks.
+ * Preserve setup intent and template selection in deprecated bookmarks.
  */
 function PdfCanvasLegacyRedirect() {
   const [searchParams] = useSearchParams();
   const start = searchParams.get("start");
-  return <Navigate to={getEditorPath({ start })} replace />;
+  return <Navigate to={getEditorPath({ start, template: searchParams.get("template") })} replace />;
 }
 
 const router = createBrowserRouter([

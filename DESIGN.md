@@ -225,6 +225,8 @@ Account onboarding is shown only to authenticated users. Guests enter A4 setup/e
 
 A full-screen onboarding decision surface replaces the complete editor shell until the user chooses a path. Editor navigation, tool rails, canvas controls, and persistent AI actions must not remain visible or keyboard-reachable behind it. Dialogs launched from onboarding may appear above the surface and must restore focus to their onboarding trigger when closed.
 
+The landing hero presents the three Free templates (Sterling, Meridian and Linden) as selectable A4 previews, with Linden selected initially. CSS perspective communicates the active selection through a short 320 ms transition; there is no ambient rotation. The copy and CTA remain semantic HTML. Native radios provide keyboard selection, horizontal touch gestures retain vertical page scrolling, and reduced motion applies selection immediately. Compact layouts repeat the primary CTA after selection. Preview loading and image errors reserve the A4 area and never disable selection or navigation. Use the shared palette, geometry and one restrained elevation token per document preview; these transforms never enter the authored document or PDF tree. A validated Free selection enters new-CV setup at contact with Back available; invalid or paid hints open the ordinary picker and never bypass replacement consent.
+
 ### Working surfaces
 
 The editor and other task-heavy screens may be denser, but must remain grid-based:

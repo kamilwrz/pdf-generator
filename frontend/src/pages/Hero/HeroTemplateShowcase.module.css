@@ -1,0 +1,36 @@
+/* Perspective belongs exclusively to marketing previews, never PDF geometry. */
+.showcase { min-width: 0; width: 100%; color: var(--color-ink); }
+.heading { display: flex; justify-content: space-between; gap: var(--space-4); border-top: 1px solid var(--color-border); padding-top: var(--space-4); font: 600 .75rem/1.4 var(--font-ui); }
+.counter { flex-shrink: 0; color: var(--color-muted); font-family: var(--font-mono); }
+.stage { position: relative; perspective: 1200px; aspect-ratio: 11 / 10; touch-action: pan-y pinch-zoom; }
+.card { position: absolute; left: 50%; top: 6%; width: 54%; aspect-ratio: 210 / 297; padding: 0; border: 1px solid var(--color-border); border-radius: var(--radius-panel); background: var(--color-paper); box-shadow: var(--shadow-pop); cursor: pointer; backface-visibility: hidden; }
+.card:focus-visible { outline: 2px solid var(--color-focus); outline-offset: var(--space-1); }
+.card img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: var(--color-paper); user-select: none; }
+.pendingImage { visibility: hidden; }
+.loadedImage { visibility: visible; }
+.imageFallback { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; gap: var(--space-4); padding: var(--space-4); font: 400 .875rem/1.4 var(--font-ui); color: var(--color-muted); }
+.imageFallback strong { color: var(--color-ink); }
+.choices { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-2); min-width: 0; margin: var(--space-4) 0 0; padding: 0; border: 0; }
+.choices legend { padding: 0; margin-bottom: var(--space-3); font-size: .75rem; color: var(--color-muted); }
+.choice { position: relative; min-width: 0; cursor: pointer; }
+.choice input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.choice > span { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; column-gap: var(--space-2); min-height: var(--control-height); border: 1px solid var(--color-border); padding: var(--space-2); font: 600 .875rem/1.4 var(--font-ui); }
+.choice small { font: 400 .75rem/1.4 var(--font-mono); color: var(--color-muted); }
+.choice:hover > span { background: var(--color-accent-soft); }
+.choice:active > span { background: var(--color-surface); }
+.choice input:checked + span { border: 2px solid var(--color-ink); padding: calc(var(--space-2) - 1px); background: var(--color-canvas); }
+.choice input:focus-visible + span { outline: 2px solid var(--color-focus); outline-offset: var(--space-1); }
+.caption { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: var(--space-2); margin: var(--space-4) 0 0; font: 400 .75rem/1.4 var(--font-ui); }
+.caption strong { font-size: .875rem; }
+.caption > span, .error { color: var(--color-muted); }
+.error { font-size: .875rem; line-height: 1.4; }
+.mobileAction { display: none; }
+@media (max-width: 767px) {
+  .mobileAction { display: grid; margin-top: var(--space-6); }
+  .showcase { max-width: 560px; justify-self: center; }
+  .stage { aspect-ratio: 1 / 1; }
+  .card { width: 60%; top: 8%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .card { transition: none; }
+}

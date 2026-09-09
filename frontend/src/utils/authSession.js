@@ -105,7 +105,9 @@ export function getSessionUsername() {
  * Authenticated: `/cvstudio/{username}`
  * Guest (or username not yet known): `/cvstudio/guest`
  *
- * @param {{ start?: string|null }} [options]
+ * A template is a setup hint only, validated against the Free registry by the
+ * editor. Other start flows cannot accidentally inherit a template selection.
+ * @param {{ start?: string|null, template?: string|null }} [options]
  * @returns {string}
  */
 export function getEditorPath(options = {}) {
@@ -114,7 +116,11 @@ export function getEditorPath(options = {}) {
   const slug = username ? encodeURIComponent(username) : GUEST_WORKSPACE;
   const base = `/cvstudio/${slug}`;
   if (start) {
-    return `${base}?start=${encodeURIComponent(String(start))}`;
+    const params = new URLSearchParams({ start: String(start) });
+    if (["new", "wizard"].includes(start) && options.template) {
+      params.set("template", String(options.template));
+    }
+    return `${base}?${params}`;
   }
   return base;
 }

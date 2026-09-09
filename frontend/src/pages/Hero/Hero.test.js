@@ -10,7 +10,8 @@ describe("landing product positioning", () => {
     const hero = source.slice(source.indexOf('<section id="top"'), source.indexOf('<section id="szablony"'));
     assert.equal((source.match(/<h1>/g) || []).length, 1);
     assert.match(hero, /Do zapisu i pobrania założysz darmowe konto/);
-    assert.match(hero, /AI w planie Pro/);
+    assert.match(hero, /FREE_TEMPLATES.length/);
+    assert.match(source, /AI w Pro/);
     assert.doesNotMatch(hero, /100% ZA DARMO|zwiększy Twoje szanse|systemy ATS/);
   });
 

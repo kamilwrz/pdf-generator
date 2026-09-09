@@ -3,8 +3,8 @@
  *
  * Page order: hero → capabilities + templates → privacy → pricing → FAQ → final CTA → footer.
  *
- * Two funnels, one primary action ("Stwórz CV za darmo" → A4 setup)
- * and one secondary ("Mam już CV — wgraj PDF" → import):
+ * The hero selects a Free template before A4 setup; demo is its secondary
+ * action. Import remains in the capabilities section:
  *   - A4 setup → guest editor → register to save or export
  *   - Import → register → extract data → pick template → editor (metered request)
  *
@@ -14,10 +14,11 @@
  * authenticated). Each CTA queues a per-source funnel event so analytics can
  * tell which surface drove the click (see queueGuestEvent + events.py).
  */
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import classes from "./Hero.module.css";
 import { TEMPLATES } from "../../templates";
+import HeroTemplateShowcase from "./HeroTemplateShowcase";
 import { wakeBackend } from "../../services/api";
 import { queueGuestEvent } from "../../utils/guestEvents";
 import { getAccessToken, getEditorPath } from "../../utils/authSession";
@@ -35,6 +36,7 @@ const TEMPLATE_PREVIEWS = TEMPLATES.map((template) => ({
 // Dynamic template count keeps the full template gallery and its accessible
 // name aligned with the actual registry.
 const TEMPLATE_COUNT = TEMPLATES.length;
+const FREE_TEMPLATES = TEMPLATES.filter((template) => template.tier === "free");
 
 function ArrowIcon() {
     return (
@@ -86,6 +88,9 @@ function CtaLink({ to, event, variant = "primary", children }) {
 }
 
 export default function Hero() {
+    const [selectedTemplateId, setSelectedTemplateId] = useState(
+        FREE_TEMPLATES.find((template) => template.id === "linden")?.id || FREE_TEMPLATES[0]?.id || null,
+    );
     useEffect(() => {
         // Warm the optional API while visitors read the landing page. Loading
         // the marketing content never depends on the backend being available.
@@ -96,6 +101,7 @@ export default function Hero() {
     // adds scale, every template, and AI workflows without changing PDF quality.
     const importUrl = buildStartUrl("import", "free");
     const newCvUrl = buildStartUrl("new", "free");
+    const selectedTemplateUrl = getEditorPath({ start: "new", template: selectedTemplateId });
     const demoUrl = getEditorPath({ start: "demo" });
     const proRegisterUrl = "/register?plan=pro";
 
@@ -120,38 +126,31 @@ export default function Hero() {
             </header>
 
             <section id="top" className={classes.hero}>
-                <div className={classes.heroMedia} aria-hidden="true">
-                    <img src="/women-job-call.png" alt="" />
-                </div>
                 <div className={classes.heroCopy}>
                     <p className={classes.kicker} data-section-index="01">Kreator CV online</p>
                     <div className={classes.heroHeading}>
-                        <h1>Twoje doświadczenie.<br />Dobrze pokazane.</h1>
-                        <p className={classes.heroSubheading}>Stwórz CV, które z dumą wyślesz.<br />Wybierz szablon, dodaj treść i pobierz PDF.</p>
+                        <h1>Twoje doświadczenie.<br /><span>Dobrze pokazane.</span></h1>
+                        <p className={classes.heroSubheading}>Wybierz swój układ. Dodaj treść.<br />Przygotuj CV, które z dumą wyślesz.</p>
                     </div>
                     <div className={classes.heroActions}>
-                        <CtaLink to={newCvUrl} event="hero_new_cv">Stwórz CV za darmo</CtaLink>
-                        <CtaLink to={importUrl} event="hero_import" variant="secondary">
-                            Mam już CV — wgraj PDF
+                        <CtaLink to={selectedTemplateUrl} event="hero_new_cv">Użyj tego szablonu</CtaLink>
+                        <CtaLink to={demoUrl} event="hero_demo" variant="secondary">
+                            Wypróbuj edytor
                         </CtaLink>
                     </div>
                     <p className={classes.accountNote}>Zaczniesz bez konta. Do zapisu i pobrania założysz darmowe konto.</p>
-                    <p className={classes.heroTertiary}>
-                        <Link
-                            to={demoUrl}
-                            aria-label="Zobacz przykładowe CV — demo"
-                            onClick={() => queueGuestEvent("hero_demo")}
-                        >
-                            Wypróbuj na przykładzie <ArrowIcon />
-                        </Link>
-                    </p>
                     <ul className={classes.heroTrust} aria-label="Korzyści na start">
                         <li>Start za 0 zł</li>
                         <li>PDF bez znaku wodnego</li>
-                        <li>AI w planie Pro</li>
+                        <li>{FREE_TEMPLATES.length} darmowe szablony</li>
                     </ul>
                 </div>
-
+                <HeroTemplateShowcase
+                    templates={FREE_TEMPLATES}
+                    selectedId={selectedTemplateId}
+                    onSelect={setSelectedTemplateId}
+                    mobileAction={<CtaLink to={selectedTemplateUrl} event="hero_new_cv">Użyj wybranego szablonu</CtaLink>}
+                />
             </section>
 
             <section id="szablony" className={classes.templatesSection}>
@@ -177,6 +176,7 @@ export default function Hero() {
                             <div>
                                 <h3>Masz CV? Wykorzystaj je.</h3>
                                 <p>Wgraj PDF. Przeniesiemy jego treść do edytowalnego szablonu.</p>
+                                <CtaLink to={importUrl} event="hero_import" variant="link">Mam już CV — wgraj PDF</CtaLink>
                             </div>
                         </li>
                         <li>

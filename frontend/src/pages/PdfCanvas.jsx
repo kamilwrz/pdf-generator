@@ -20,7 +20,8 @@ import { usePdfExport } from '../hooks/usePdfExport';
 import CanvasElements from "../components/canvas/CanvasElements/CanvasElements";
 import SelectionOverlay from "../components/canvas/SelectionOverlay/SelectionOverlay";
 import AiCorrectionOverlay from "../components/canvas/AiCorrectionOverlay/AiCorrectionOverlay";
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { resolveFreeStartTemplate } from '../utils/cvTemplateSelection';
 import {
   clearAccessToken,
   getAccessToken,
@@ -196,6 +197,15 @@ export function EditorController() {
   const { workspace } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
   const startIntent = searchParams.get("start");
+  const templateIntent = searchParams.get("template");
+  const location = useLocation();
+  // Capture the validated selection before consuming the URL. Closing setup
+  // clears it so a later New CV action starts an independent configuration.
+  const [startTemplateId, setStartTemplateId] = useState(() => (
+    ["new", "wizard"].includes(startIntent)
+      ? resolveFreeStartTemplate(TEMPLATES, templateIntent)?.id || null
+      : null
+  ));
 
   // Keep the path slug aligned with auth: guests → /cvstudio/guest,
   // authenticated users → /cvstudio/{username}. The slug is cosmetic; JWT
@@ -212,9 +222,9 @@ export function EditorController() {
       currentSlug = workspace || GUEST_WORKSPACE;
     }
     if (currentSlug === expectedSlug) return;
-    const nextPath = getEditorPath({ start: startIntent });
+    const nextPath = getEditorPath({ start: startIntent, template: templateIntent });
     navigate(nextPath, { replace: true });
-  }, [workspace, startIntent, navigate]);
+  }, [workspace, startIntent, templateIntent, navigate]);
   // Read the landing intent only while this editor instance is created. It
   // becomes the initial dialog state, which avoids a visual flash of the
   // default template picker before the requested flow is visible.
@@ -1160,12 +1170,16 @@ export function EditorController() {
 
   useEffect(() => {
     if (!initialStartIntentRef.current || !searchParams.has("start")) return;
+    // Let the workspace redirect finish first; two replace navigations in one
+    // commit would otherwise race and could discard the selected template.
+    if (location.pathname !== getEditorPath()) return;
     // The initial state already opened the requested surface. Removing the
     // parameter keeps a refresh from re-opening a dialog the user dismissed.
     const nextSearchParams = new URLSearchParams(searchParams);
     nextSearchParams.delete("start");
+    nextSearchParams.delete("template");
     setSearchParams(nextSearchParams, { replace: true });
-  }, [searchParams, setSearchParams]);
+  }, [searchParams, setSearchParams, location.pathname]);
 
   const handleShowPlanModal = useCallback(() => {
     const next = dialog !== 'plan';
@@ -2320,7 +2334,8 @@ export function EditorController() {
               {isNewCvSetupModal ? (
                 <NewCvSetupModal
                   open
-                  onClose={() => setDialog(null)}
+                  initialTemplateId={startTemplateId}
+                  onClose={() => { setStartTemplateId(null); setDialog(null); }}
                   onCreate={handleCreateStarterCv}
                   entitlements={entitlements}
                   hasActiveDocument={A4_Elements.length > 0 && !isDemoContent}
