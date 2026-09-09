@@ -109,6 +109,11 @@ for (const width of [390, 834, 1280, 1920]) {
     expect(hoverAppearance.pointerEvents).toBe("none");
     const sectionToolbar = page.locator('[data-canvas-toolbar-key="heading:skills-heading"]');
     await checkControl(sectionToolbar.getByRole("button").first(), 28.8);
+    const skillsStyle = sectionToolbar.getByRole("button", { name: "Styl umiejętności: w linii" });
+    await checkControl(skillsStyle, 28.8);
+    await expect(skillsStyle).toHaveText("");
+    await expect(skillsStyle).toHaveAttribute("data-tooltip", "Styl umiejętności: w linii");
+    await page.screenshot({ path: testInfo.outputPath("skills-style-toolbar.png") });
     await expectToolbarAboveText(sectionToolbar, page.locator("#skills-heading"));
     await expect(sectionToolbar.getByRole("button", { name: "AI dla wybranego zakresu" })).toBeVisible();
     await page.locator("#skills-tools-title").hover();

@@ -39,6 +39,7 @@ import classes from "./CanvasHoverToolbar.module.css";
  *   onCloseMenu?:() => void,
  *   menuItems?:{key:string,label:string,icon?:import("react").ReactNode,danger?:boolean,disabled?:boolean,onSelect:() => void}[],
  *   directActions?:{key:string,label:string,icon:import("react").ReactNode,danger?:boolean,disabled?:boolean,onSelect:() => void}[],
+ *   additionalActions?:{key:string,label:string,icon:import("react").ReactNode,danger?:boolean,disabled?:boolean,onSelect:() => void}[],
  *   panelContent?:import("react").ReactNode,
  *   collisionAware?:boolean,
  *   toolbarPointerProps?:object,
@@ -71,6 +72,7 @@ export default function CanvasHoverToolbar({
   onCloseMenu,
   menuItems = [],
   directActions = [],
+  additionalActions = [],
   panelContent = null,
   collisionAware = false,
   toolbarPointerProps = {},
@@ -246,6 +248,22 @@ export default function CanvasHoverToolbar({
     action?.();
   };
   const hasDirectActions = directActions.length > 0;
+  // Both toolbar variants share icon sizing, accessible names and tooltip states.
+  // Additional actions extend structural controls; direct actions replace them.
+  const renderIconAction = (item) => (
+    <button
+      key={item.key}
+      type="button"
+      className={`${classes.control}${item.danger ? ` ${classes.directActionDanger}` : ""}`}
+      data-tooltip={item.label}
+      aria-label={item.label}
+      disabled={item.disabled}
+      onPointerDown={(event) => event.stopPropagation()}
+      onClick={(event) => runAction(event, item.onSelect)}
+    >
+      {item.icon}
+    </button>
+  );
   const aiButton = aiTarget && scopedAi?.isAvailable ? (
     <button ref={aiTriggerRef} type="button" className={classes.control}
       aria-label="AI dla wybranego zakresu" data-tooltip="AI dla wybranego zakresu"
@@ -344,20 +362,7 @@ export default function CanvasHoverToolbar({
               : side === "left"
                 ? classes.left
                 : classes.right}`}>
-            {panelContent || (hasDirectActions ? <>{directActions.map((item) => (
-              <button
-                key={item.key}
-                type="button"
-                className={`${classes.control}${item.danger ? ` ${classes.directActionDanger}` : ""}`}
-                data-tooltip={item.label}
-                aria-label={item.label}
-                disabled={item.disabled}
-                onPointerDown={(event) => event.stopPropagation()}
-                onClick={(event) => runAction(event, item.onSelect)}
-              >
-                {item.icon}
-              </button>
-            ))}{aiButton}</> : (
+            {panelContent || (hasDirectActions ? <>{directActions.map(renderIconAction)}{aiButton}</> : (
               <>
                 <button
                   type="button"
@@ -396,6 +401,7 @@ export default function CanvasHoverToolbar({
                   <FiChevronDown aria-hidden="true" />
                 </button>
 
+                {additionalActions.map(renderIconAction)}
                 {aiButton}
                 <button
                   ref={moreTriggerRef}

@@ -4,7 +4,7 @@
  * Heading hover or keyboard focus reveals a grouped toolbar above the text;
  * pointer hover also adds a tighter depth cue around the exact heading. Plain
  * body hover keeps the complete section lift visible without opening controls. Add/reorder remain
- * direct; layout, transfer, and destructive actions live in the overflow menu,
+ * direct alongside Skills style; transfer and destructive actions live in overflow,
  * keeping editor chrome out of the CV content and exported document.
  */
 import { useEffect, useLayoutEffect, useState } from "react";
@@ -254,6 +254,19 @@ export default function SectionRecordAdd({
     chips: "etykiety",
   }[skillsMode] || "";
 
+  const additionalActions = skillsMode ? [{
+    key: "skills-layout",
+    label: `Styl umiejętności: ${skillsModeLabel}`,
+    icon: <LuLayoutGrid aria-hidden="true" />,
+    onSelect: () => {
+      // The transient toolbar unmounts below. Give the dialog a persistent
+      // return target before it captures focus, so Escape restores this section.
+      document.getElementById(headingId)?.focus({ preventScroll: true });
+      openSkillsLayoutModal?.(headingId);
+      hide();
+    },
+  }] : [];
+
   const menuItems = [
     ...(laneTransfer ? [{
       key: "transfer",
@@ -263,15 +276,6 @@ export default function SectionRecordAdd({
       icon: <LuArrowLeftRight aria-hidden="true" />,
       onSelect: () => {
         transferSectionLane?.(headingId);
-        hide();
-      },
-    }] : []),
-    ...(skillsMode ? [{
-      key: "skills-layout",
-      label: `Styl umiejętności: ${skillsModeLabel}`,
-      icon: <LuLayoutGrid aria-hidden="true" />,
-      onSelect: () => {
-        openSkillsLayoutModal?.(headingId);
         hide();
       },
     }] : []),
@@ -320,6 +324,7 @@ export default function SectionRecordAdd({
       onOpenMenu={openMenu}
       onCloseMenu={closeMenu}
       menuItems={menuItems}
+      additionalActions={additionalActions}
       toolbarPointerProps={toolbarPointerProps}
     />
   );

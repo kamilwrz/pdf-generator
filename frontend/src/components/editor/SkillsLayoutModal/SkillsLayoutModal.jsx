@@ -130,6 +130,7 @@ export default function SkillsLayoutModal({
     <DialogShell
       open={open}
       onClose={onCancel}
+      restoreFocusSelector={`#${CSS.escape(headingId)}`}
       width={1080}
       title="Styl umiejętności"
       subtitle="Wybierz układ. Dla chipsów najpierw ustaw wariant, potem zastosuj podgląd."

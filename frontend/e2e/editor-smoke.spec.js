@@ -290,8 +290,19 @@ test.describe("CV Studio editor smoke", () => {
     const sectionControlBox = await sectionMoreActions.boundingBox();
     expect(Math.abs(sectionControlBox.height - 28.8)).toBeLessThan(0.2);
     await sectionMoreActions.click();
-    await sectionToolbar.getByRole("menuitem", { name: "Styl umiejętności: w linii" }).click();
+    await expect(sectionToolbar.getByRole("menuitem", { name: /^Styl umiejętności/ })).toHaveCount(0);
+    await page.keyboard.press("Escape");
+    const skillsStyle = sectionToolbar.getByRole("button", { name: "Styl umiejętności: w linii" });
+    await expect(skillsStyle).toHaveAttribute("data-tooltip", "Styl umiejętności: w linii");
+    await expect(skillsStyle).toHaveText("");
+    await skillsStyle.focus();
+    await page.keyboard.press("Enter");
     const modal = page.getByRole("dialog", { name: "Styl umiejętności" });
+    await expect(modal).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(skillsHeading).toBeFocused();
+    await skillsStyle.focus();
+    await page.keyboard.press("Space");
     await modal.getByRole("button", { name: /^Chipsy/ }).click();
 
     await expect(page.locator('[data-placeholder="Kategoria umiejętności"]')).toHaveCount(2);
@@ -307,7 +318,10 @@ test.describe("CV Studio editor smoke", () => {
       // authored left inset and the shared vertical centre, independent of
       // generated IDs or portalled toolbar siblings.
       const shapeRect = [...document.querySelectorAll("div[id]")]
-        .map((candidate) => candidate.getBoundingClientRect())
+        .map((candidate) => ({
+          ...candidate.getBoundingClientRect().toJSON(),
+          id: candidate.id,
+        }))
         .filter((rect) => (
           rect.width > 0
           && labelRect.left - rect.left > 2
@@ -322,7 +336,7 @@ test.describe("CV Studio editor smoke", () => {
         labelRight: labelRect.right,
         shapeRight: shapeRect?.right ?? 0,
         shapeWidth: shapeRect?.width ?? 0,
-        shapeBottom: shapeRect?.bottom ?? 0,
+        shapeId: shapeRect?.id,
       };
     });
     expect(chipGeometry.shapeWidth).toBeGreaterThan(40);
@@ -336,11 +350,13 @@ test.describe("CV Studio editor smoke", () => {
       '[data-canvas-toolbar-key^="skills-entry:skills-heading:"]',
     ).getByRole("button", { name: "Dodaj umiejętność" });
     await expect(chipAddButton).toBeVisible();
-    const chipToolbarEdgeDelta = await chipAddButton.evaluate((button, shapeBottom) => {
+    // Focusing the chip can scroll a compact canvas after the first measure.
+    // Compare both live bounds so a viewport translation is not a layout error.
+    await expect.poll(async () => Math.abs(await chipAddButton.evaluate((button, shapeId) => {
       const buttonRect = button.getBoundingClientRect();
+      const shapeBottom = document.getElementById(shapeId).getBoundingClientRect().bottom;
       return buttonRect.top + buttonRect.height / 2 - shapeBottom;
-    }, chipGeometry.shapeBottom);
-    expect(Math.abs(chipToolbarEdgeDelta)).toBeLessThan(1);
+    }, chipGeometry.shapeId))).toBeLessThan(1);
 
     await emptyChip.focus();
     const emptyGroupToolbar = page.locator(
@@ -372,7 +388,9 @@ test.describe("CV Studio editor smoke", () => {
     await expect(categoryToolbar.getByRole("button", { name: "Przenieś wyżej" })).toBeDisabled();
     await expect(categoryToolbar.getByRole("button", { name: "Przenieś niżej" })).toBeEnabled();
     await expect(categoryToolbar.getByRole("button", { name: "Więcej działań" })).toBeVisible();
-    await categoryToolbar.getByRole("button", { name: "Dodaj wpis poniżej" }).click();
+    // Continue the keyboard path used to reveal this zero-height placeholder.
+    await categoryToolbar.getByRole("button", { name: "Dodaj wpis poniżej" }).focus();
+    await page.keyboard.press("Enter");
     await expect(page.locator('[data-placeholder="Kategoria umiejętności"]')).toHaveCount(3);
     await expect(page.locator('[data-placeholder="Umiejętność"]')).toHaveCount(1);
     api.assertHermetic();
