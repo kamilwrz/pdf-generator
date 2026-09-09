@@ -1,6 +1,15 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { authLink, getDocumentPath, parseDocumentId, postAuthPath, safeReturnTo } from './siteRoutes.js';
+import {
+  authLink,
+  clearPendingAuthIntent,
+  getDocumentPath,
+  getPendingAuthIntent,
+  parseDocumentId,
+  postAuthPath,
+  safeReturnTo,
+  savePendingAuthIntent,
+} from './siteRoutes.js';
 
 test('document addresses reject malformed and unsafe database IDs', () => {
   assert.equal(getDocumentPath(41), '/app/documents/41');
@@ -22,4 +31,23 @@ test('auth form changes retain selected templates and a valid destination', () =
   assert.equal(params.get('template'), 'monument');
   assert.equal(params.get('returnTo'), '/app/documents/41');
   assert.equal(params.has('unexpected'), false);
+});
+
+test('email verification intent survives a new tab but drops untrusted fields', () => {
+  const store = new Map();
+  globalThis.window = {
+    localStorage: {
+      getItem: (key) => store.get(key) ?? null,
+      setItem: (key, value) => store.set(key, String(value)),
+      removeItem: (key) => store.delete(key),
+    },
+  };
+  savePendingAuthIntent(new URLSearchParams('start=download&plan=pro&returnTo=/app/documents/7&token=secret'));
+  const restored = getPendingAuthIntent();
+  assert.equal(restored.get('start'), 'download');
+  assert.equal(restored.get('returnTo'), '/app/documents/7');
+  assert.equal(restored.has('token'), false);
+  clearPendingAuthIntent();
+  assert.equal(getPendingAuthIntent().size, 0);
+  delete globalThis.window;
 });

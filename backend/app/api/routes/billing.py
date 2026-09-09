@@ -1,11 +1,4 @@
-"""
-Plan catalog and pre-Stripe plan activation.
-
-Until Checkout is wired, paid plans can be activated instantly when
-`ALLOW_UNPAID_PLAN_SELECTION` is true. That flag is read at import time, so
-tests must patch this module's binding rather than changing the env var after
-import.
-"""
+"""Plan catalog, Stripe Checkout creation, and webhook fulfillment."""
 
 import os
 import secrets
@@ -13,17 +6,27 @@ import hashlib
 import hmac
 import logging
 
-from fastapi import APIRouter, Depends, Header, HTTPException
+from datetime import datetime, timezone
+
+from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from pydantic import BaseModel
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 # Read once at import time (by value), so tests/ops must patch
 # `app.api.routes.billing.ALLOW_UNPAID_PLAN_SELECTION` directly — setting the
 # env var after import has no effect on this module.
-from app.core.config import ALLOW_UNPAID_PLAN_SELECTION
+from app.core.config import (
+    ALLOW_UNPAID_PLAN_SELECTION,
+    FRONTEND_URL,
+    STRIPE_PRICE_PRO,
+    STRIPE_SECRET_KEY,
+)
 from app.core.security import resolve_user_from_payload, verify_token
 from app.dependencies import get_db
-from app.models.models import User
+from app.models.models import Payment, User
+from app.services.billing_service import fulfill_pro_payment
+from app.services.stripe_service import construct_webhook_event, create_checkout_session
 from app.services.entitlements import (
     SELECTABLE_PLANS,
     get_entitlements,
@@ -64,13 +67,9 @@ async def select_plan(
     request: SelectPlanRequest,
     payload: dict = Depends(verify_token),
     db: Session = Depends(get_db),
+    idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
 ):
-    """Activate a plan instantly (pre-Stripe) or signal that Checkout is required.
-
-    Stripe seam: when `ALLOW_UNPAID_PLAN_SELECTION` is False and the user picks
-    Pro, return 402 with `code=payment_required`. Later this branch creates a
-    Checkout Session and returns `checkout_url` instead of activating.
-    """
+    """Activate a development plan or create an idempotent Stripe Checkout Session."""
     user = resolve_user_from_payload(db, payload)
     if user is None:
         raise HTTPException(status_code=401, detail="Nie znaleziono konta użytkownika.")
@@ -78,16 +77,54 @@ async def select_plan(
     if plan_slug not in SELECTABLE_PLANS:
         raise HTTPException(status_code=400, detail="Nieznany plan.")
     if plan_slug != "free" and not ALLOW_UNPAID_PLAN_SELECTION:
-        # Stripe later: create Checkout Session here and return checkout_url.
-        raise HTTPException(
-            status_code=402,
-            detail={
-                "code": "payment_required",
-                "message": "Ten plan wymaga płatności.",
-                "plan_slug": plan_slug,
-                "checkout_url": None,
-            },
+        if not STRIPE_SECRET_KEY or not STRIPE_PRICE_PRO:
+            raise HTTPException(
+                status_code=402,
+                detail={
+                    "code": "payment_required",
+                    "message": "Płatności są chwilowo niedostępne.",
+                    "plan_slug": plan_slug,
+                    "checkout_url": None,
+                },
+            )
+        if not idempotency_key or not 8 <= len(idempotency_key) <= 255:
+            raise HTTPException(
+                status_code=400,
+                detail={"code": "idempotency_required", "message": "Rozpocznij płatność ponownie."},
+            )
+        checkout = create_checkout_session(
+            user_id=user.id,
+            email=user.email,
+            price_id=STRIPE_PRICE_PRO,
+            success_url=f"{FRONTEND_URL}/billing/success?session_id={{CHECKOUT_SESSION_ID}}",
+            cancel_url=f"{FRONTEND_URL}/billing/cancel",
+            idempotency_key=f"pro-{user.id}-{idempotency_key}",
         )
+        session_id = str(getattr(checkout, "id", "") or checkout.get("id"))
+        checkout_url = str(getattr(checkout, "url", "") or checkout.get("url"))
+        payment = db.query(Payment).filter_by(provider="stripe", provider_ref=session_id).one_or_none()
+        if payment is None:
+            try:
+                db.add(Payment(
+                    user_id=user.id,
+                    provider="stripe",
+                    provider_ref=session_id,
+                    plan_slug="pro",
+                    amount_cents=5900,
+                    currency="pln",
+                    status="pending",
+                    raw=None,
+                    created_at=datetime.now(timezone.utc),
+                ))
+                db.commit()
+            except IntegrityError:
+                db.rollback()
+        return {
+            "plan_slug": "pro",
+            "payment_required": True,
+            "checkout_url": checkout_url,
+            "checkout_session_id": session_id,
+        }
     sub = set_user_plan(db, user.id, plan_slug)
     return {
         "plan_slug": sub.plan_slug,
@@ -212,6 +249,86 @@ def admin_set_user_plan(
         "current_period_end": subscription.current_period_end,
         "entitlements": entitlements,
     }
+
+
+def _stripe_value(obj, name: str, default=None):
+    """Read either a StripeObject attribute or a test dictionary field."""
+    if isinstance(obj, dict):
+        return obj.get(name, default)
+    return getattr(obj, name, default)
+
+
+@router.post("/webhook")
+async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
+    """Verify Stripe's raw payload and fulfill a paid Checkout exactly once."""
+    payload = await request.body()
+    signature = request.headers.get("Stripe-Signature", "")
+    try:
+        event = construct_webhook_event(payload, signature)
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail="Invalid Stripe signature.") from exc
+    event_type = _stripe_value(event, "type", "")
+    event_id = str(_stripe_value(event, "id", ""))
+    if event_type not in {"checkout.session.completed", "checkout.session.async_payment_succeeded"}:
+        return {"status": "ignored"}
+    data = _stripe_value(event, "data", {})
+    session = _stripe_value(data, "object", {})
+    if _stripe_value(session, "payment_status") != "paid":
+        return {"status": "pending"}
+    session_id = str(_stripe_value(session, "id", ""))
+    payment = db.query(Payment).filter_by(provider="stripe", provider_ref=session_id).one_or_none()
+    if payment is None:
+        # A signed Stripe event proves its origin, but it does not prove that the
+        # Checkout Session was created by this application. Requiring the local
+        # pending ledger row prevents an arbitrary dashboard-created Session
+        # with forged metadata from granting access. Stripe retries non-2xx
+        # events, which covers the short race before the row is committed.
+        raise HTTPException(status_code=409, detail="Unknown checkout session.")
+    if payment.status == "succeeded":
+        return {"status": "already_processed"}
+    amount_total = _stripe_value(session, "amount_total")
+    currency = str(_stripe_value(session, "currency", "")).lower()
+    if (
+        payment.amount_cents is not None
+        and (amount_total != payment.amount_cents or currency != payment.currency.lower())
+    ):
+        # The Checkout Session is created from a server-owned Price, but the
+        # ledger remains the final business contract. A misconfigured Price
+        # must never grant Pro for a different amount or currency.
+        raise HTTPException(status_code=409, detail="Checkout amount does not match the pending payment.")
+    try:
+        activated = fulfill_pro_payment(
+            db,
+            payment=payment,
+            event_id=event_id or f"session:{session_id}",
+            amount_cents=amount_total,
+            currency=currency,
+            customer_id=_stripe_value(session, "customer"),
+        )
+    except IntegrityError:
+        db.rollback()
+        return {"status": "already_processed"}
+    return {"status": "activated" if activated else "already_processed"}
+
+
+@router.get("/checkout-session/{session_id}")
+def checkout_session_status(
+    session_id: str,
+    payload: dict = Depends(verify_token),
+    db: Session = Depends(get_db),
+):
+    """Return only the authenticated owner's local fulfillment status."""
+    user = resolve_user_from_payload(db, payload)
+    if user is None:
+        raise HTTPException(status_code=401, detail="Nie znaleziono konta użytkownika.")
+    payment = db.query(Payment).filter_by(
+        provider="stripe",
+        provider_ref=session_id,
+        user_id=user.id,
+    ).one_or_none()
+    if payment is None:
+        raise HTTPException(status_code=404, detail={"code": "checkout_not_found", "message": "Nie znaleziono płatności."})
+    return {"status": payment.status, "plan_slug": payment.plan_slug}
 
 
 @router.post("/admin/reset-ai-credits")

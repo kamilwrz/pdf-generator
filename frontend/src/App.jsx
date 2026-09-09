@@ -22,6 +22,8 @@ const TemplatePage = lazy(() => import('./pages/Site/PublicPages').then((module)
 const PricingPage = lazy(() => import('./pages/Site/PublicPages').then((module) => ({ default: module.PricingPage })));
 const HelpPage = lazy(() => import('./pages/Site/PublicPages').then((module) => ({ default: module.HelpPage })));
 const PrivacyPage = lazy(() => import('./pages/Site/PublicPages').then((module) => ({ default: module.PrivacyPage })));
+const VerifyEmail = lazy(() => import('./pages/Auth/VerifyEmail'));
+const CheckoutResult = lazy(() => import('./pages/Billing/CheckoutResult'));
 
 /** Client gate preserves the target; API ownership checks remain authoritative. */
 function RequireSession({ children }) {
@@ -68,6 +70,9 @@ const router = createBrowserRouter([
   { path: "/pdfcanvas", element: <PdfCanvasLegacyRedirect />, errorElement: <RouteErrorPage /> },
   { path: "/register", element: <Register />, errorElement: <RouteErrorPage /> },
   { path: "/login", element: <Login />, errorElement: <RouteErrorPage /> },
+  { path: "/verify-email", element: <VerifyEmail />, errorElement: <RouteErrorPage /> },
+  { path: "/billing/success", element: <RequireSession><CheckoutResult variant="success" /></RequireSession>, errorElement: <RouteErrorPage /> },
+  { path: "/billing/cancel", element: <RequireSession><CheckoutResult variant="cancel" /></RequireSession>, errorElement: <RouteErrorPage /> },
   { path: "/", element: <Hero />, errorElement: <RouteErrorPage /> },
   { path: "*", element: <NotFoundPage />, errorElement: <RouteErrorPage /> },
 ])

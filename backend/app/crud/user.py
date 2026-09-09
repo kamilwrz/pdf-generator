@@ -77,7 +77,12 @@ def get_user_by_email(db: Session, email: str):
     )
 
 
-def create_user(db: Session, user: UserCreateRequest) -> str:
+def create_user(
+    db: Session,
+    user: UserCreateRequest,
+    *,
+    email_verified: bool = True,
+) -> str:
     """Atomically insert a canonical account and its initial subscription.
 
     Side effects: users insert + subscription write. Returns a plain success
@@ -94,6 +99,7 @@ def create_user(db: Session, user: UserCreateRequest) -> str:
         # migration window. Current workers always prefer the Argon2id column.
         hashed_password=legacy_password_hash,
         argon2_password_hash=argon2_password_hash,
+        email_verified_at=datetime.now(timezone.utc) if email_verified else None,
         created_at=datetime.now(timezone.utc),
         is_active=True,
     )
@@ -122,6 +128,46 @@ def create_user(db: Session, user: UserCreateRequest) -> str:
     return "user registration complete"
 
 
+def get_user_by_google_sub(db: Session, google_sub: str):
+    """Return the account bound to Google's immutable provider subject."""
+    return db.query(User).filter(User.google_sub == google_sub).one_or_none()
+
+
+def create_google_user(db: Session, *, username: str, email: str, google_sub: str) -> User:
+    """Atomically create a passwordless, verified Google account with Free."""
+    now = datetime.now(timezone.utc)
+    user = User(
+        username=username,
+        username_canonical=canonical_identity(username),
+        email=email,
+        email_canonical=canonical_identity(email),
+        hashed_password=None,
+        argon2_password_hash=None,
+        email_verified_at=now,
+        google_sub=google_sub,
+        created_at=now,
+        is_active=True,
+    )
+    try:
+        db.add(user)
+        db.flush()
+        db.add(UserSubscription(
+            user_id=user.id,
+            plan_slug="free",
+            status="active",
+            current_period_start=now,
+            current_period_end=None,
+            updated_at=now,
+            free_import_used=False,
+        ))
+        db.commit()
+        db.refresh(user)
+        return user
+    except Exception:
+        db.rollback()
+        raise
+
+
 def authenticate_user(username: str, password: str, db: Session):
     """Return the User on valid credentials, otherwise False.
 
@@ -132,6 +178,10 @@ def authenticate_user(username: str, password: str, db: Session):
     if not user:
         return False
     preferred_hash = user.argon2_password_hash or user.hashed_password
+    if not preferred_hash:
+        # Passwordless provider accounts can only authenticate through their
+        # verified provider binding unless a password-setting flow is added.
+        return False
     valid, replacement_hash = verify_password_and_rehash(password, preferred_hash)
     if not valid:
         return False

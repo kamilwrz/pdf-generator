@@ -3,7 +3,7 @@ ORM models and database bootstrap for CV Studio.
 
 Tables cover authenticated users, canvas documents (Pdf + PdfElements),
 uploaded images, resumable bio/CV drafts, and the billing entitlement catalog
-(plans, subscriptions, monthly usage, future payments).
+(plans, subscriptions, monthly usage, and Stripe payment fulfillment).
 
 `init_db` must only run from the app lifespan (not at import time): Render
 Postgres often fails the first SSL handshake during cold start, and import-
@@ -56,6 +56,13 @@ class User(Base):
     # whenever it is present and never fall back to a stale legacy password.
     hashed_password = Column(String)
     argon2_password_hash = Column(String, nullable=True)
+    # Password registrations remain unable to authenticate until this timestamp
+    # is set. Existing accounts are backfilled by migration 0016; Google-created
+    # accounts set it at creation after the provider token is verified.
+    email_verified_at = Column(DateTime, nullable=True)
+    # Google's immutable OpenID Connect subject is the account binding. Email is
+    # deliberately not used as a federated primary key because it can change.
+    google_sub = Column(String(255), unique=True, nullable=True, index=True)
     created_at = Column(DateTime)
     is_active = Column(Boolean)
     # Counts committed images plus the upload currently reserved by this user.
@@ -119,6 +126,22 @@ class AuthRateLimit(Base):
     window_start = Column(DateTime, nullable=False)
     window_end = Column(DateTime, nullable=False)
     attempts = Column(Integer, nullable=False, default=0)
+
+
+class EmailVerificationToken(Base):
+    """Single-use, hashed proof sent to a password-registration address."""
+
+    __tablename__ = "email_verification_tokens"
+    __table_args__ = (
+        Index("ix_email_verification_tokens_user_expiry", "user_id", "expires_at"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    token_hash = Column(String(64), nullable=False, unique=True, index=True)
+    created_at = Column(DateTime, nullable=False)
+    expires_at = Column(DateTime, nullable=False)
+    consumed_at = Column(DateTime, nullable=True)
 
 
 class Image(Base):
@@ -456,14 +479,20 @@ class AiCreditReservation(Base):
 
 
 class Payment(Base):
-    """Ledger for future Stripe (and other) payment events."""
+    """Idempotent ledger for Stripe Checkout payment events."""
 
     __tablename__ = "payments"
+    __table_args__ = (
+        UniqueConstraint("provider", "provider_ref", name="uq_payments_provider_ref"),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     provider = Column(String, nullable=False, default="stripe")
+    # Checkout Session id. The provider/ref pair is the database-level
+    # concurrency guard for webhook retries and repeated checkout requests.
     provider_ref = Column(String, nullable=True, index=True)
+    provider_event_id = Column(String, nullable=True, unique=True, index=True)
     plan_slug = Column(String, nullable=True)
     amount_cents = Column(Integer, nullable=True)
     currency = Column(String, nullable=False, default="pln")
@@ -471,6 +500,7 @@ class Payment(Base):
     status = Column(String, nullable=False, default="pending")
     raw = Column(JSON, nullable=True)
     created_at = Column(DateTime, nullable=False)
+    paid_at = Column(DateTime, nullable=True)
 
 
 def _run_alembic_upgrade() -> None:

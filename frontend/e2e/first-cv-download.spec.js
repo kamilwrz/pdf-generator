@@ -23,6 +23,17 @@ async function register(page) {
   await page.getByRole("button", { name: "Utwórz konto i przejdź do PDF" }).click();
 }
 
+async function verifyAndLogin(page, expectedStart = "download") {
+  await expect(page.getByRole("status")).toContainText("Wysłaliśmy link potwierdzający");
+  await page.goto("/verify-email?token=playwright-proof");
+  await expect(page.getByRole("heading", { name: "E-mail potwierdzony" })).toBeVisible();
+  await page.getByRole("link", { name: "Przejdź do logowania" }).click();
+  await expect(page).toHaveURL(new RegExp(`/login\\?(?=.*verified=1)(?=.*start=${expectedStart})`));
+  await page.getByLabel("Nazwa użytkownika").fill("Kamil");
+  await page.getByLabel("Hasło", { exact: true }).fill("local-test-password");
+  await page.getByRole("button", { name: "Zaloguj się", exact: true }).click();
+}
+
 for (const width of [390, 834, 1280, 1920, 640]) {
   test(`first CV: landing to one confirmed download at ${width}px`, async ({ page }, testInfo) => {
     await page.setViewportSize({ width, height: width === 640 ? 480 : 950 });
@@ -38,6 +49,7 @@ for (const width of [390, 834, 1280, 1920, 640]) {
     await expect(page.getByLabel("Hasło", { exact: true })).toBeFocused();
     await page.screenshot({ path: testInfo.outputPath(`registration-${width}.png`), fullPage: true });
     await register(page);
+    await verifyAndLogin(page);
     await expect(claimDialog(page)).toBeVisible();
     const confirm = claimDialog(page).getByRole("button", { name: "To moje CV — pobierz PDF" });
     await expect(confirm).toBeFocused();
@@ -59,16 +71,19 @@ for (const width of [390, 834, 1280, 1920, 640]) {
   });
 }
 
-test("failed automatic login keeps the account and the download intent", async ({ page }) => {
+test("failed post-verification login keeps the account and download intent", async ({ page }) => {
   const api = await installMockApi(page);
   await prepareDownload(page);
   await page.route("**/api/auth/token", (route) => route.fulfill({ status: 401, contentType: "application/json", body: JSON.stringify({ detail: "Spróbuj ponownie" }) }));
   await register(page);
-  await expect(page).toHaveURL(/\/login\?registered=1&start=download$/);
-  await expect(page.getByRole("status")).toContainText("Konto zostało utworzone");
-  await page.unroute("**/api/auth/token");
+  await expect(page.getByRole("status")).toContainText("Wysłaliśmy link potwierdzający");
+  await page.goto("/verify-email?token=playwright-proof");
+  await page.getByRole("link", { name: "Przejdź do logowania" }).click();
   await page.getByLabel("Nazwa użytkownika").fill("Kamil");
   await page.getByLabel("Hasło", { exact: true }).fill("local-test-password");
+  await page.getByRole("button", { name: "Zaloguj się", exact: true }).click();
+  await expect(page.getByRole("alert")).toContainText("Spróbuj ponownie");
+  await page.unroute("**/api/auth/token");
   await page.getByRole("button", { name: "Zaloguj się", exact: true }).click();
   await expect(claimDialog(page)).toBeVisible();
   await page.keyboard.press("Escape");
@@ -83,6 +98,7 @@ test("export failure keeps the restored CV and retries only on request", async (
   const api = await installMockApi(page);
   await prepareDownload(page);
   await register(page);
+  await verifyAndLogin(page);
   let attempts = 0;
   await page.route("**/api/pdf/render_pdf", (route) => {
     attempts++;
@@ -127,7 +143,7 @@ test("registration failure preserves fields and never starts login or export", a
 });
 
 for (const start of ["new", "import"]) {
-  test(`ordinary registration auto-login preserves ${start} intent`, async ({ page }) => {
+  test(`ordinary registration verification preserves ${start} intent`, async ({ page }) => {
     const api = await installMockApi(page);
     await page.goto(`/register?start=${start}`);
     await expect(page.getByRole("tab", { name: /Darmowy/ })).toHaveAttribute("aria-selected", "true");
@@ -135,6 +151,7 @@ for (const start of ["new", "import"]) {
     await page.getByLabel("E-mail").fill("anna@example.com");
     await page.getByLabel("Hasło", { exact: true }).fill("local-test-password");
     await page.getByRole("button", { name: "Utwórz konto", exact: true }).click();
+    await verifyAndLogin(page, start);
     await expect(page).toHaveURL(/\/cvstudio\/Kamil/);
     if (start === "new") await expect(page.getByRole("dialog", { name: "Utwórz CV" })).toBeVisible();
     else await expect(page.locator('input[type="file"]')).toHaveCount(1);

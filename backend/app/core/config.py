@@ -151,6 +151,8 @@ origins = resolve_cors_origins()
 
 # Public base URL of this API (used when building absolute asset URLs).
 BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8000")
+# Browser-facing base URL used only for links that leave the API process.
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173").strip().rstrip("/")
 
 # Versioned, application-owned assets used by built-in templates. These must
 # not share the runtime uploads directory, which may be empty after a deploy.
@@ -247,14 +249,28 @@ CV_EXTRACT_VISION_MAX_COMPLETION_TOKENS = _int_env(
     CV_EXTRACT_MAX_COMPLETION_TOKENS,
 )
 
-# Pre-Stripe: allow choosing a paid plan without payment. Defaults to False so
-# production cannot self-activate Pro by accident. Local/dev
-# `.env` should set ALLOW_UNPAID_PLAN_SELECTION=true until Stripe Checkout lands.
+# Development escape hatch for local demos without contacting Stripe. It must
+# remain false in production so only a verified webhook can activate Pro.
 ALLOW_UNPAID_PLAN_SELECTION = os.getenv("ALLOW_UNPAID_PLAN_SELECTION", "false").lower() == "true"
 
 # Ops-only secret for POST /billing/admin/reset-ai-credits. Must not reuse
 # SECRET_KEY — set a dedicated random value when the admin endpoint is needed.
 ADMIN_RESET_SECRET = (os.getenv("ADMIN_RESET_SECRET") or "").strip()
+
+# Transactional account verification. An empty API key keeps registration
+# recoverable in development but reports that delivery was unavailable.
+RESEND_API_KEY = (os.getenv("RESEND_API_KEY") or "").strip()
+EMAIL_FROM = (os.getenv("EMAIL_FROM") or "CV Studio <accounts@example.invalid>").strip()
+
+# Google Identity Services uses the same public OAuth client id in the browser
+# and for the backend audience check. No client secret is needed for ID tokens.
+GOOGLE_CLIENT_ID = (os.getenv("GOOGLE_CLIENT_ID") or "").strip()
+
+# The Pro product is a one-time 30-day pass. Price and secret keys stay
+# server-owned; the browser submits only the stable `pro` plan slug.
+STRIPE_SECRET_KEY = (os.getenv("STRIPE_SECRET_KEY") or "").strip()
+STRIPE_WEBHOOK_SECRET = (os.getenv("STRIPE_WEBHOOK_SECRET") or "").strip()
+STRIPE_PRICE_PRO = (os.getenv("STRIPE_PRICE_PRO") or "").strip()
 
 # Image upload hard limits (see api/routes/images.py). The size cap bounds the
 # memory a single request can consume — the endpoint reads at most this many

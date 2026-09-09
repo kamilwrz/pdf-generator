@@ -240,7 +240,7 @@ def get_or_create_subscription(db: Session, user_id: int) -> UserSubscription:
 
 SELECTABLE_PLANS: frozenset[str] = frozenset({"free", "pro"})
 
-# Marketing prices — Stripe will own real amounts later. Pro is a 30-day pass.
+# Display prices are informational; Stripe Price configuration owns collection.
 PLAN_DISPLAY: dict[str, dict[str, Any]] = {
     "free": {
         "price_pln": 0,
@@ -312,7 +312,7 @@ def list_selectable_plans(db: Session) -> list[dict[str, Any]]:
 
 
 def set_user_plan(db: Session, user_id: int, plan_slug: str) -> UserSubscription:
-    """Activate `plan_slug` for a user (pre-Stripe, no payment). Idempotent.
+    """Activate `plan_slug` for operations or the explicit development bypass.
 
     Pro starts a fresh 30-day pass and resets the AI credit meter so the new
     window always begins with the full 200-credit allowance.

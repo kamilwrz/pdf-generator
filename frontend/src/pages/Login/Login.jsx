@@ -5,8 +5,10 @@
 import classes from "../../components/common/AuthLayout/AuthLayout.module.css";
 
 import { wakeBackend } from "../../services/api";
-import { authLink, postAuthPath } from "../../utils/siteRoutes";
+import { authLink, clearPendingAuthIntent, postAuthPath } from "../../utils/siteRoutes";
 import { signIn } from "../../services/signIn";
+import GoogleSignInButton from "../../components/common/GoogleSignInButton/GoogleSignInButton";
+import { resendVerification, signInWithGoogle } from "../../services/authApi";
 
 import { useNavigate, useSearchParams, Link } from "react-router-dom"
 import { useEffect, useRef, useState } from "react";
@@ -35,6 +37,8 @@ export default function Login() {
     const [error, setError] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [statusMessage, setStatusMessage] = useState("");
+    const [unverifiedEmail, setUnverifiedEmail] = useState("");
+    const [googleLoading, setGoogleLoading] = useState(false);
     const hintTimerRef = useRef(null);
 
     // Kick Render cold start while the user types — do not gate login on this.
@@ -66,11 +70,46 @@ export default function Login() {
                 onRetry: (attempt) => setStatusMessage(`Ponawianie logowania (${attempt}/4)… serwer właśnie wstaje.`),
             });
             if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
+            clearPendingAuthIntent();
             navigate(postAuthPath(searchParams), { replace: true });
         } catch (err) {
             if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
             setError(err.message || "Logowanie nie powiodło się");
+            if (err.code === "email_unverified") setUnverifiedEmail(err.detail?.email || "");
             setStatusMessage("");
+            setIsLoading(false);
+        }
+    }
+
+    async function handleGoogleCredential(credential) {
+        if (!credential || googleLoading) return;
+        setGoogleLoading(true);
+        setError("");
+        try {
+            await signInWithGoogle(credential);
+            clearPendingAuthIntent();
+            navigate(postAuthPath(searchParams), { replace: true });
+        } catch (err) {
+            setError(err.message || "Logowanie Google nie powiodło się.");
+            setGoogleLoading(false);
+        }
+    }
+
+    async function handleResend() {
+        if (isLoading) return;
+        if (!unverifiedEmail) {
+            setError("Aby ponowić wysyłkę, wpisz adres e-mail użyty przy rejestracji.");
+            return;
+        }
+        setIsLoading(true);
+        setError("");
+        setStatusMessage("Wysyłanie nowego linku…");
+        try {
+            const result = await resendVerification(unverifiedEmail);
+            setStatusMessage(result.message);
+        } catch (err) {
+            setError(err.message || "Nie udało się wysłać nowego linku.");
+        } finally {
             setIsLoading(false);
         }
     }
@@ -105,7 +144,10 @@ export default function Login() {
                     <p className={classes.cardEyebrow}>Dostęp do Twoich dokumentów</p>
                     <h1 id="login-title" className={classes.mainHeading}>Witaj ponownie</h1>
                     <p className={classes.subHeading}>{startIntent === "download" ? selectedStartLabel : "Zaloguj się, aby kontynuować projektowanie."}</p>
+                    {searchParams.get("verified") === "1" && <p className={classes.status} role="status">Adres e-mail został potwierdzony. Możesz się zalogować.</p>}
                     {searchParams.get("registered") === "1" && <p className={classes.status} role="status">Konto zostało utworzone. Automatyczne logowanie nie powiodło się — zaloguj się, aby kontynuować.</p>}
+                    <div className={classes.googleSlot}><GoogleSignInButton onCredential={handleGoogleCredential} disabled={googleLoading || isLoading} /></div>
+                    <div className={classes.authDivider}><span>lub użyj hasła</span></div>
                     <form onSubmit={handleSubmit} className={classes.form} aria-describedby={error ? "login-error" : undefined}>
                         <div className={classes.control}>
                             <label htmlFor="username">Nazwa użytkownika</label>
@@ -144,7 +186,8 @@ export default function Login() {
                                 {error}
                             </p>
                         )}
-                        {isLoading && statusMessage && !error && (
+                        {error && unverifiedEmail ? <button type="button" className={classes.authBtnSecondary} onClick={handleResend} disabled={isLoading}>{isLoading ? "Wysyłanie…" : "Wyślij link ponownie"}</button> : null}
+                        {statusMessage && !error && (
                             <p className={classes.status} role="status" aria-live="polite">
                                 {statusMessage}
                             </p>

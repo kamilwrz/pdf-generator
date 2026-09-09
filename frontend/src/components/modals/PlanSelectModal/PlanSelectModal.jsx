@@ -1,6 +1,6 @@
 /**
- * In-app plan picker. Activates plans via billing API when unpaid selection is
- * allowed; otherwise surfaces payment_required for future Stripe Checkout.
+ * In-app plan picker. Local development may activate plans through the
+ * explicit bypass; production Pro selection redirects to hosted Checkout.
  *
  * Catalog is Free + Pro (30-day pass). Legacy Standard/Premium slugs are
  * remapped to Pro on the backend.
@@ -16,6 +16,16 @@ import {
     applyPlanPresentation,
     FALLBACK_PLAN_CATALOG,
 } from "../../../utils/planPresentation";
+
+/** Accept only the hosted Stripe origin returned by this application's API. */
+function hostedCheckoutUrl(value) {
+    try {
+        const url = new URL(value);
+        return url.protocol === "https:" && url.hostname === "checkout.stripe.com" ? url.href : null;
+    } catch {
+        return null;
+    }
+}
 
 export default function PlanSelectModal() {
     const { isPlanModal, showPlanModal } = useUiSurfaces();
@@ -34,7 +44,11 @@ export default function PlanSelectModal() {
     useEffect(() => {
         if (!isPlanModal) return;
         let cancelled = false;
-        setCatalogState("loading");
+        // Schedule the loading transition after the effect commit. This keeps
+        // React's effect phase free of synchronous state cascades.
+        queueMicrotask(() => {
+            if (!cancelled) setCatalogState("loading");
+        });
         api.httpRequest(ENDPOINTS.BILLING.PLANS, "GET", null, "Nie udało się pobrać planów.")
             .then((data) => {
                 if (cancelled) return;
@@ -67,9 +81,18 @@ export default function PlanSelectModal() {
                 "POST",
                 JSON.stringify({ plan_slug: slug }),
                 "Nie udało się zmienić planu.",
+                {
+                    headers: {
+                        "Idempotency-Key": globalThis.crypto?.randomUUID?.() || `checkout-${Date.now()}`,
+                    },
+                },
             );
-            if (res.payment_required && res.checkout_url) {
-                window.location.assign(res.checkout_url);
+            if (res.payment_required) {
+                const checkoutUrl = hostedCheckoutUrl(res.checkout_url);
+                if (!checkoutUrl) {
+                    throw new Error("Serwer nie zwrócił bezpiecznego adresu Stripe Checkout.");
+                }
+                window.location.assign(checkoutUrl);
                 return;
             }
             if (res.entitlements) {
@@ -89,7 +112,7 @@ export default function PlanSelectModal() {
             if (error?.code === "payment_required") {
                 pushToast?.({
                     title: "Wymagana płatność",
-                    msg: planErrorMessage(error, "Ten plan wymaga płatności (Stripe wkrótce)."),
+                    msg: planErrorMessage(error, "Nie udało się rozpocząć bezpiecznej płatności."),
                     variant: "error",
                 });
             } else {

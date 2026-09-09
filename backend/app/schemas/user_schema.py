@@ -49,8 +49,42 @@ class UserCreateRequest(BaseModel):
     @field_validator("email")
     @classmethod
     def _validate_email(cls, value: str) -> str:
-        """Trim and reject clearly malformed addresses (returns the normalized value)."""
+        """Trim and reject clearly malformed addresses."""
         normalized = unicodedata.normalize("NFKC", value or "").strip()
         if not _EMAIL_PATTERN.match(normalized):
             raise ValueError("Nieprawidłowy adres e-mail.")
+        return normalized
+
+
+class VerifyEmailRequest(BaseModel):
+    """Opaque, single-use proof copied from the verification link."""
+
+    token: str
+
+
+class ResendVerificationRequest(BaseModel):
+    """Address that should receive a replacement verification message."""
+
+    email: str
+
+    @field_validator("email")
+    @classmethod
+    def _validate_email(cls, value: str) -> str:
+        normalized = unicodedata.normalize("NFKC", value or "").strip()
+        if not _EMAIL_PATTERN.match(normalized):
+            raise ValueError("Nieprawidłowy adres e-mail.")
+        return normalized
+
+
+class GoogleCredentialRequest(BaseModel):
+    """Google Identity Services ID token returned in `credential`."""
+
+    credential: str
+
+    @field_validator("credential")
+    @classmethod
+    def _validate_credential(cls, value: str) -> str:
+        normalized = (value or "").strip()
+        if not normalized or len(normalized) > 8192:
+            raise ValueError("Nieprawidłowe poświadczenie Google.")
         return normalized

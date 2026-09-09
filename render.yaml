@@ -54,6 +54,23 @@ services:
           name: cv-studio-api
           type: web
           envVarKey: RENDER_EXTERNAL_URL
+      - key: FRONTEND_URL
+        fromService:
+          name: cv-studio-web
+          type: web
+          envVarKey: RENDER_EXTERNAL_URL
+      - key: RESEND_API_KEY
+        sync: false
+      - key: EMAIL_FROM
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: STRIPE_PRICE_PRO
+        sync: false
       - key: API_GPT_KEY
         sync: false
       - key: CLOUDFLARE_ACCOUNT_ID
@@ -116,6 +133,8 @@ services:
           name: cv-studio-api
           type: web
           envVarKey: RENDER_EXTERNAL_URL
+      - key: VITE_GOOGLE_CLIENT_ID
+        sync: false
     routes:
       - type: rewrite
         source: /*

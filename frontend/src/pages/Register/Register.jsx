@@ -10,9 +10,10 @@ import { ApiClient, ENDPOINTS, wakeBackend } from "../../services/api";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
 import { queueGuestEvent } from "../../utils/guestEvents";
-import { authLink, postAuthPath } from "../../utils/siteRoutes";
-import { signIn } from "../../services/signIn";
+import { authLink, clearPendingAuthIntent, postAuthPath, savePendingAuthIntent } from "../../utils/siteRoutes";
 import { PLAN_PRESENTATION } from "../../utils/planPresentation";
+import GoogleSignInButton from "../../components/common/GoogleSignInButton/GoogleSignInButton";
+import { resendVerification, signInWithGoogle } from "../../services/authApi";
 
 const REGISTER_PLANS = [PLAN_PRESENTATION.free, PLAN_PRESENTATION.pro];
 
@@ -62,6 +63,8 @@ export default function Register() {
     const [error, setError] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [statusMessage, setStatusMessage] = useState("");
+    const [verificationPending, setVerificationPending] = useState(false);
+    const [googleLoading, setGoogleLoading] = useState(false);
     const hintTimerRef = useRef(null);
 
     useEffect(() => {
@@ -114,11 +117,14 @@ export default function Register() {
             setStatusMessage("Budzenie serwera… pierwsze uruchomienie może potrwać do minuty.");
         }, 5000);
 
+        // Persist the validated start intent before the network request so the
+        // verification link can resume it even when it opens in another tab.
+        savePendingAuthIntent(searchParams);
         wakeBackend();
 
         try {
             const api = new ApiClient();
-            await api.httpRequest(
+            const result = await api.httpRequest(
                 ENDPOINTS.AUTH.REGISTER,
                 "POST",
                 JSON.stringify({ username: username.trim(), email, password, plan: selectedPlanSlug }),
@@ -134,20 +140,10 @@ export default function Register() {
             );
             if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
             queueGuestEvent("register_completed");
-            // Registration has succeeded. A separate failure boundary prevents
-            // retrying account creation when only the token request fails.
-            setStatusMessage("Konto utworzone. Logowanie…");
-            try {
-                await signIn(username, password, { retries: 0 });
-                setPassword("");
-                navigate(postAuthPath(searchParams), { replace: true });
-            } catch {
-                setPassword("");
-                const params = new URLSearchParams(authLink('/login', searchParams).split('?')[1]);
-                params.set('registered', '1');
-                if (startIntent) params.set("start", startIntent);
-                navigate(`/login?${params}`, { replace: true });
-            }
+            setPassword("");
+            setVerificationPending(true);
+            setStatusMessage(result.message || "Sprawdź skrzynkę i potwierdź adres e-mail.");
+            setIsLoading(false);
         } catch (err) {
             if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
             setError(err.message || "Rejestracja nie powiodła się");
@@ -156,8 +152,37 @@ export default function Register() {
         }
     }
 
+    async function handleGoogleCredential(credential) {
+        if (!credential || googleLoading) return;
+        setGoogleLoading(true);
+        setError("");
+        try {
+            await signInWithGoogle(credential);
+            queueGuestEvent("register_completed");
+            clearPendingAuthIntent();
+            navigate(postAuthPath(searchParams), { replace: true });
+        } catch (err) {
+            setError(err.message || "Logowanie Google nie powiodło się.");
+            setGoogleLoading(false);
+        }
+    }
+
+    async function handleResend() {
+        if (!email || isLoading) return;
+        setIsLoading(true);
+        setError("");
+        try {
+            const result = await resendVerification(email);
+            setStatusMessage(result.message);
+        } catch (err) {
+            setError(err.message || "Nie udało się wysłać nowego linku.");
+        } finally {
+            setIsLoading(false);
+        }
+    }
+
     const startNotice = downloading
-        ? "Po utworzeniu konta zalogujemy Cię automatycznie. Potwierdzisz, że szkic należy do Ciebie, i pobierzesz PDF."
+        ? "Po utworzeniu konta potwierdź e-mail. Następnie zalogujesz się, potwierdzisz swój szkic i pobierzesz PDF."
         : startIntent === "import"
         ? "Po utworzeniu konta otworzymy import PDF. Plan Darmowy obejmuje 1 udany import CV w miesiącu."
         : startIntent === "new"
@@ -181,10 +206,20 @@ export default function Register() {
                     <h1 id="register-title" className={classes.mainHeading}>{downloading ? "Utwórz darmowe konto" : "Utwórz konto"}</h1>
                     <p className={classes.subHeading}>
                         {selectedPlanSlug === "pro"
-                            ? "Pro — 59 zł / 30 dni. Jedna płatność, bez automatycznego odnawiania (Stripe wkrótce)."
+                            ? "Pro — 59 zł / 30 dni. Jedna płatność przez Stripe, bez automatycznego odnawiania."
                             : "Plan Darmowy: 1 CV, 3 szablony i 3 czyste PDF-y miesięcznie. Bez karty i limitu czasu."}
                     </p>
                     <p className={classes.intentNotice}>{startNotice}</p>
+                    {verificationPending ? (
+                        <div className={classes.verificationActions}>
+                            <p className={classes.status} role="status" aria-live="polite">{statusMessage}</p>
+                            {error ? <p className={classes.error} role="alert">{error}</p> : null}
+                            <button type="button" className={classes.authBtnSecondary} onClick={handleResend} disabled={isLoading}>{isLoading ? "Wysyłanie…" : "Wyślij link ponownie"}</button>
+                            <Link className={classes.authLinkButton} to={authLink('/login', searchParams)}>Przejdź do logowania</Link>
+                        </div>
+                    ) : <>
+                    <div className={classes.googleSlot}><GoogleSignInButton onCredential={handleGoogleCredential} disabled={googleLoading || isLoading} label="signup_with" /></div>
+                    <div className={classes.authDivider}><span>lub użyj e-maila</span></div>
                     <form onSubmit={handleSubmit} className={classes.form} aria-describedby={error ? "register-error" : undefined}>
                         <div className={classes.control}>
                             <label htmlFor="username">Nazwa użytkownika</label>
@@ -264,6 +299,7 @@ export default function Register() {
                             {isLoading ? "Proszę czekać…" : downloading ? "Utwórz konto i przejdź do PDF" : "Utwórz konto"}
                         </button>
                     </form>
+                    </>}
                     <p className={classes.linkWrapper}>
                         Masz już konto? <Link to={authLink('/login', searchParams)}>Zaloguj się</Link>
                     </p>

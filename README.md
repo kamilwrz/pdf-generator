@@ -34,11 +34,11 @@ Job seekers need CVs that look professional and export cleanly to PDF. Generic f
 
 Forcing registration before a visitor had seen the editor used to be the largest funnel loss. **Guest mode** removes that wall: `/cvstudio/guest` works with no JWT, so a visitor can configure a new CV and edit the generated A4 immediately, with state kept in `localStorage` instead of the backend. An account is required only for saving or exporting (the save gate). CV import remains account-gated because it sends personal CV data to a server-side AI provider and consumes an account-wide quota. See [Guest mode (editor without an account)](#guest-mode-editor-without-an-account).
 
-**Implemented today:** editor (including guest mode without an account), single-screen A4 starter with optional customization, templates, extract/fill, explicit legacy bio-draft recovery, AI assistant (goal-oriented actions, rating dashboard, translation, and reviewable chat commands), entitlements (Darmowy / Pro — 59 zł / 30 days), explicit save + independent render-on-demand download, guest-only localStorage autosave, Storage V2 (private S3 in production; local filesystem only in development/tests), JWT auth.
+**Implemented today:** editor (including guest mode without an account), single-screen A4 starter with optional customization, templates, extract/fill, explicit legacy bio-draft recovery, AI assistant (goal-oriented actions, rating dashboard, translation, and reviewable chat commands), entitlements (Darmowy / Pro — 59 zł / 30 days), one-time Stripe Checkout for Pro, password accounts with transactional email verification, Google Identity Services login/linking, explicit save + independent render-on-demand download, guest-only localStorage autosave, Storage V2 (private S3 in production; local filesystem only in development/tests), and versioned JWT sessions.
 
 **Optional locally:** AWS S3 may replace the development filesystem. **Required on Render/production:** `S3_BUCKET_NAME`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, and `AWS_REGION`, with a private bucket and Block Public Access enabled. Unpaid plan selection (`ALLOW_UNPAID_PLAN_SELECTION`) remains a local-only option.
 
-**Not implemented as full Stripe Checkout yet:** paid plans can be activated without payment when unpaid selection is enabled; `402 payment_required` is the seam for future Checkout.
+**Production integrations:** Stripe, Google, and Resend are active only when their server-side configuration is present. `ALLOW_UNPAID_PLAN_SELECTION=true` bypasses Stripe for local development and must remain false in production.
 
 ---
 
@@ -71,11 +71,11 @@ Known Pro template hints now preserve the chosen preview instead of falling back
 Implementation (verified file extents; the listed exports own the complete workflows):
 
 - `frontend/src/pages/Site/DocumentsPage.jsx`, lines 1–86, `DocumentsPage`.
-- `frontend/src/pages/Site/AccountPage.jsx`, lines 1–32, `AccountPage`.
-- `frontend/src/pages/Site/PublicPages.jsx`, lines 1–67, `TemplatesPage, TemplatePage, PricingPage, HelpPage, PrivacyPage`.
+- `frontend/src/pages/Site/AccountPage.jsx`, lines 1–47, `AccountPage`.
+- `frontend/src/pages/Site/PublicPages.jsx`, lines 1–68, `TemplatesPage, TemplatePage, PricingPage, HelpPage, PrivacyPage`.
 - `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, lines 1–50, `SiteLayout, SiteHeader, SiteFooter`.
 - `frontend/src/services/documents.js`, lines 1–45, `listOwnedDocuments, loadOwnedDocument`.
-- `frontend/src/utils/siteRoutes.js`, lines 1–53, `getDocumentPath, parseDocumentId, safeReturnTo, authLink, postAuthPath`.
+- `frontend/src/utils/siteRoutes.js`, lines 1–77, `getDocumentPath, parseDocumentId, safeReturnTo, authLink, savePendingAuthIntent, getPendingAuthIntent, postAuthPath`.
 
 New directories: `pages/Site/` owns route content and library/account state; `components/common/SiteLayout/` owns shared navigation, semantic page layout and token-based styles. `services/documents.js` owns document reads and hydration, while `utils/siteRoutes.js` owns URL validation and authentication continuation. Editor state remains in the existing lifecycle/context layers. No database migration, endpoint, environment variable, or deployment change is required. The existing `render.yaml` SPA rewrite to `/index.html` supports refreshing every new address.
 
@@ -86,7 +86,7 @@ Further reading: [React Router useBlocker](https://reactrouter.com/api/hooks/use
 
 1. **Choose a landing-page start** → **Stwórz CV z tym szablonem** (`start=new&template=…`) opens the single-screen A4 setup with the selected Free template, while **Wgraj swoje CV w PDF** (`start=import`) opens the account-gated import flow. The tertiary **Wypróbuj edytor** link (`start=demo`) opens the limited Linden example. The editor Topbar exposes **Nowe CV** and **Zmień szablon**.
 2. **Create and edit as a guest** → a landing Free selection starts immediately if no browser draft exists; ordinary New CV opens optional template/contact/photo/section configuration in `NewCvSetupModal`; `POST /ai/fill_template` materializes empty bound fields directly on A4. The name field starts selected. Editing, undo/redo, zoom, and page navigation work immediately; an account is requested only on Save or Export.
-3. **Register / login only when it matters** → clicking “Zapisz” / “Pobierz PDF” as a guest opens `SaveGateModal` with operation-specific copy instead of calling the backend. The save variant explains account persistence; the download variant explains that it renders a PDF for browser download without saving the project in **My documents**. Registering or logging in preserves the selected `start` intent, and if a guest document exists, `ClaimGuestDocumentModal` asks the now-authenticated visitor to confirm it is theirs before loading that JSON onto the A4 canvas (no automatic `POST /pdf/create_pdf`) — a guest document belongs to the browser, not to any identity, so silently attaching it to whoever happens to log in next would leak one person's draft into an unrelated account.
+3. **Register / login only when it matters** → clicking “Zapisz” / “Pobierz PDF” as a guest opens `SaveGateModal` with operation-specific copy instead of calling the backend. Password registration creates an unverified Free account, sends a 24-hour single-use link through Resend, and issues no JWT until the link is consumed and the user logs in. Google can create a verified session immediately; an existing password account must link Google explicitly from the account page. The allow-listed `start`, `template`, `plan`, and `returnTo` intent survives email verification. If a guest document exists, `ClaimGuestDocumentModal` asks the now-authenticated visitor to confirm it is theirs before loading that JSON onto the A4 canvas (no automatic `POST /pdf/create_pdf`) — a guest document belongs to the browser, not to any identity, so silently attaching it to whoever happens to log in next would leak one person's draft into an unrelated account.
 4. **Pick a template** → `handleLoadTemplate` materializes specs → canvas.
 5. **Import PDF** (account required) → `POST /ai/extract_cv` → choose template → `POST /ai/fill_template` → Python layout in `cv_generator.generate_resume`.
 
@@ -126,6 +126,10 @@ flowchart LR
     API --> AI[extract / fill / assistant]
     API --> DB[(SQLite or Postgres)]
     API --> Files[private S3 in production; local disk in dev/test]
+    API --> Resend[Resend verification email]
+    API --> Stripe[Stripe Checkout + signed webhook]
+    Browser --> Google[Google Identity Services]
+    Google --> API
     AI --> Cloudflare[Cloudflare Workers AI<br/>CV import]
     AI --> OpenAI[OpenAI API<br/>assistant / optional import rollback]
     Canvas --> ReportLab[ReportLab PDF]
@@ -206,6 +210,9 @@ Elements with `fixedToPage: true` (backgrounds, frames, sidebars, page numbers) 
 | Cloudflare Workers AI | hosted API | Native-text CV extraction (thinking-disabled Gemma 4 with one JSON-mode Llama fallback) and scan extraction (Qwen 3.8 Vision) | `ai_service.py`, `cloudflare_pricing.py` |
 | PyJWT / cryptography | 2.13.0 / 50.0.1 | Versioned JWT encode/decode and pinned cryptographic primitives; replaces python-jose/ecdsa | `core/security.py` |
 | argon2-cffi / bcrypt | 25.1.0 / 5.0.0 | Authoritative Argon2id hashes plus a temporary bcrypt rollback bridge for N-1 workers | `core/security.py` |
+| Google Identity Services / google-auth | browser script / >=2.40,<3 | Provider-rendered sign-in control and server-side ID-token signature, issuer, audience, and expiry verification | `GoogleSignInButton.jsx`, `google_auth_service.py`, `auth.py` |
+| Stripe Checkout / stripe-python | hosted Checkout / >=12,<15 | One-time 30-day Pro checkout, signed webhooks, and idempotent fulfillment | `stripe_service.py`, `billing_service.py`, `billing.py` |
+| Resend | HTTPS API | Transactional delivery of 24-hour email-verification links; only token hashes are stored | `email_service.py`, `email_verification.py` |
 | python-dotenv | 1.2.3 | Loads local backend `.env` configuration | `core/config.py` |
 | boto3 | 1.43.51; required in production | Private S3 objects behind the Storage V2 abstraction | `pdf_storage.py`, `s3_storage.py` |
 | nanoid | ^5.1 | Client element ids | canvas hooks |
@@ -249,12 +256,13 @@ pdf-generator/
 │   │   │   ├── editor/FlatSectionLayoutModal/  # Inline row ↔ bullet list picker with a live content preview
 │   │   │   ├── editor/LongCvModal/        # AI fallback after spacing + typography S cannot hit the page target
 │   │   │   ├── common/AuthLayout/       # Shared login/registration layout (AuthLayout.module.css)
+│   │   │   ├── common/GoogleSignInButton/ # Provider-rendered Google Identity Services control
 │   │   │   ├── editor/SaveGateModal/     # Account gate for guest save/export and CV import
 │   │   │   ├── editor/DemoBanner/        # Persistent banner while the guest-mode demo CV is on canvas
 │   │   │   ├── editor/StartChooser/      # authenticated empty-state choice: new A4 or import
 │   │   ├── hooks/            # useA4Elements facade, useDocumentHistory, usePdfExport, …
-│   │   ├── pages/            # Hero, Login, Register, PdfCanvas, Site route pages
-│   │   ├── services/         # ApiClient, documents, fillTemplate, authenticatedImage, eventLog
+│   │   ├── pages/            # Hero, Login, Register, PdfCanvas, Site, Auth verification, Billing return pages
+│   │   ├── services/         # ApiClient, authApi, documents, fillTemplate, authenticatedImage, eventLog
 │   │   ├── store/            # Focused Canvas / UiSurfaces / Session / DocumentLifecycle contexts
 │   │   │   └── scoped-ai-context.jsx # Toolbar/review/inspector coordination
 │   │   ├── templates/        # per-template specs + helpers; aurelia.js is the framed one-column editorial starter
@@ -295,7 +303,7 @@ pdf-generator/
     │   ├── crud/
     │   ├── models/
     │   ├── schemas/          # PdfElement + JSON Schema export
-    │   ├── services/         # document/storage lifecycle, readiness, auth limits, AI reservations, templates
+    │   ├── services/         # document/storage, email verification/delivery, Google, Stripe, readiness, AI, templates
     │   │   ├── ai_service.py             # text-first/vision CV extraction + deterministic fill entry
     │   │   ├── scoped_ai.py # Strict scoped GPT request/output models and fact guards
     │   │   ├── cv_source_layout.py       # column lanes, source sections, deterministic field grounding
@@ -306,7 +314,7 @@ pdf-generator/
     │   ├── utils/            # image_src_to_path, metrics_logging, upload_security
     │   ├── main.py
     │   └── dependencies.py
-    ├── alembic/              # Additive migrations through 0015, including N-1 write compatibility
+    ├── alembic/              # Additive migrations through 0016, including identity and payment idempotency
     ├── fonts/                # Bundled TTFs for PDF
     ├── template_assets/      # Sidebar, IT and Iconic artwork/icons
     │   ├── iconic/cadenza-{porcelain,mist,sage,cobalt,burgundy,emerald}/ # Six real contact-icon palettes
@@ -336,21 +344,22 @@ Revision `20260824_0005` links `pdfs.source_import_id` to the private `cv_import
 
 | Table | Purpose |
 |-------|---------|
-| `users` | Accounts: display username/email, canonical NFKC+trim+casefold keys, authoritative Argon2id hash, temporary N-1 bcrypt rollback bridge, atomic image-slot count, `is_active`, timestamps |
-| `auth_rate_limits` | Database-backed fixed-window registration/login counters keyed by an HMAC digest, never raw IP address or account identity |
+| `users` | Accounts: display username/email, canonical NFKC+trim+casefold keys, authoritative Argon2id hash, temporary N-1 bcrypt rollback bridge, nullable Google `sub`, email verification timestamp, atomic image-slot count, `is_active`, timestamps |
+| `auth_rate_limits` | Database-backed fixed-window registration/login/resend counters keyed by an HMAC digest, never raw IP address or account identity |
+| `email_verification_tokens` | User foreign key, unique SHA-256 token digest, creation/expiry timestamps and nullable consumption timestamp; the raw token is delivered only by email |
 | `images` | Uploaded image metadata; `file_path` local or S3 URL; `owner_id` → users |
 | `pdfs` | CV documents: normalized `title` + owner-unique `title_key`, immutable create idempotency key/hash, optimistic `revision`, Storage V2 backend/key plus dual-read legacy `file_path`, owner, dimensions, `editor_mode`, active `template_id`, immutable `origin_template_id`, optional rhythm/CV data, and legacy watermark marker |
 | `storage_cleanup_jobs` | Durable, deduplicated PDF/image deletion jobs with attempt count, retry time, resource type, sanitized error, and terminal dead-letter state |
 | `pdf_elements` | Canvas elements; geometry + style columns; extras in `extra_properties` JSON (`fixedToPage`, `repeatOnContinuation`, `locked`, `flowRole`, `flowGroup`, `preserveInitialLayout`, Atrium/Sterling/Linden/Monument/Slate/Meridian/Cadenza/Vellum `appearanceSettings` + reversible type baselines, bold, `runs` inline-decoration overlay, connectors, …) |
 | `bio_cv_drafts` | Legacy private JSON draft retained only for explicit A4 recovery |
 | `plans` | Free (Darmowy) / Pro limits and feature flags, including nullable `max_cv_imports_per_month` (legacy `standard`/`premium` rows deactivated) |
-| `user_subscriptions` | Current plan per user (Stripe columns ready, often null) |
+| `user_subscriptions` | Current plan and validity period per user, plus nullable Stripe customer/subscription references |
 | `usage_counters` | Monthly exports, successful CV imports, settled AI credits, and currently reserved AI credits (`period_key` = `YYYY-MM` UTC) |
 | `ai_credit_reservations` | Per-user provider reservation: idempotency key/hash, maximum and charged credits, parallel assistant claims bounded by the atomic credit balance, one active CV-import slot, status, replay response, and expiry |
-| `payments` | Future payment ledger |
+| `payments` | Stripe Checkout ledger: unique provider/session pair and webhook event id, owner, plan, amount/currency, pending/succeeded state and paid timestamp |
 | `maintenance_markers` | One-off cleanup keys |
 
-Migrations `20260901_0009`–`0015` form one additive compatibility chain. Storage V2 adds immutable locators and cleanup jobs; AI reservations add in-flight credit accounting; auth hardening adds canonical identities and persistent throttles; document integrity adds revisions, create replay metadata, title keys, and template provenance. Revision `0013` adds bounded cleanup retries and a terminal dead-letter state. Revision `0014` backfills atomic image-slot counters, enables SQLite foreign keys on every connection, and quarantines orphan image references without deleting their safe display source. Revision `0015` installs SQLite/PostgreSQL compatibility triggers so an N-1 worker that does not know `title_key` or `revision` cannot silently overwrite a current-worker snapshot. Existing documents remain readable through the validated legacy locator path, and colliding historical titles receive deterministic suffixed keys. Implementations: `backend/alembic/versions/20260901_0009_storage_v2.py`, revision `20260901_0009`; `20260901_0013_cleanup_dead_letters.py`, function `upgrade`; `20260901_0014_atomic_image_slots.py`, function `upgrade`; and `20260901_0015_n1_document_writes.py`, functions `_backfill_n1_writes`, `_install_sqlite_triggers`, and `_install_postgres_trigger`.
+Migrations `20260901_0009`–`20260909_0016` form one additive compatibility chain. Storage V2 adds immutable locators and cleanup jobs; AI reservations add in-flight credit accounting; auth hardening adds canonical identities and persistent throttles; document integrity adds revisions, create replay metadata, title keys, and template provenance. Revision `0016` grandfathers existing users as verified, adds nullable `google_sub`, creates hashed verification proofs, and installs unique Stripe session/event constraints with `paid_at`. Revision `0014` backfills atomic image-slot counters, and revision `0015` protects N-1 document writes. Implementations: `backend/alembic/versions/20260901_0009_storage_v2.py`; `20260901_0014_atomic_image_slots.py`; `20260901_0015_n1_document_writes.py`; and `20260909_0016_auth_providers_and_payments.py`, functions `upgrade` and `downgrade`.
 
 `resolvedLines` is deliberately absent from `pdf_elements.extra_properties`: it is browser-authored render metadata attached only to create/update/download requests. Saved documents retain semantic `content` and `runs`, so reopening a CV never restores stale line breaks measured for an earlier width or font state.
 
@@ -361,7 +370,7 @@ CV-import quota fields:
 - `usage_counters.user_id`: foreign key to `users.id`; together with `period_key` it has unique constraint `uq_usage_user_period`, so one user owns at most one UTC monthly counter row.
 - Migration `20260829_0007` adds these columns idempotently. Migration `20260831_0008` updates an existing production Free catalog row to one project, three monthly exports, zero AI actions, and one monthly CV import. It deliberately leaves `pdfs.watermarked=true` on legacy rows until the corresponding stored file has actually been rebuilt without the old overlay. The legacy `user_subscriptions.free_import_used` boolean is retained but ignored.
 
-**Relationships:** One user owns many `pdfs` and `images`. Each `pdf` has many `pdf_elements`. Subscription and usage are per user.
+**Relationships:** One user owns many `pdfs`, `images`, verification proofs, and payments. Each `pdf` has many `pdf_elements`. Subscription and usage are per user. Deleting a user must account for externally delivered email/payment records; no automated account-deletion workflow is currently exposed.
 
 Models: `backend/app/models/models.py` (`User`, `Pdf`, `PdfElements`, …).
 
@@ -1073,8 +1082,8 @@ Implementation:
 - `frontend/public/cv-studio-logo.svg`, lines 1–15 — full logo and wordmark
 - `frontend/public/cv-studio-mark.svg`, lines 1–8 — compact mark
 - `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, `SiteHeader` and `SiteFooter` — shared public header/footer lockup
-- `frontend/src/pages/Login/Login.jsx`, lines 102–104; `frontend/src/components/common/AuthLayout/AuthLayout.module.css`, lines 1–72 — login lockup
-- `frontend/src/pages/Register/Register.jsx`, lines 177–179; `frontend/src/components/common/AuthLayout/AuthLayout.module.css`, lines 1–72 — registration lockup
+- `frontend/src/pages/Login/Login.jsx`, lines 137–139; `frontend/src/components/common/AuthLayout/AuthLayout.module.css`, lines 1–80 — login lockup
+- `frontend/src/pages/Register/Register.jsx`, lines 200–202; `frontend/src/components/common/AuthLayout/AuthLayout.module.css`, lines 1–80 — registration lockup
 - `frontend/src/components/editor/Sidebar/Sidebar.jsx` — compact editor mark; clicking it navigates to the landing page (`/`)
 - `frontend/index.html`, line 5 — SVG favicon
 
@@ -1084,22 +1093,22 @@ The activation goal is a user-authored CV handed to the browser as a PDF. The im
 
 1. Choose a Free template on the landing and activate its CTA. A guest without a browser draft enters the name field directly; ordinary setup remains available from New CV. Existing drafts require replacement consent, and unknown template hints open the picker and Pro hints retain their locked preview.
 2. Edit the document and choose **Pobierz PDF**. The existing name validation runs first. The editor flushes the latest guest snapshot before opening the account gate.
-3. Register for Free or log in. Registration attempts automatic login, removing the second credentials form. The original download intent survives both paths and a failed automatic login.
+3. Register for Free or log in. Password registration sends a one-time verification link and shows a resend action; after verification, login resumes the allow-listed download intent. Google authentication returns directly to the same intent.
 4. Confirm **To moje CV — pobierz PDF**. `handleClaimGuestDocumentConfirm` restores the document and its spacing, marks template onboarding as seen and queues one export against that document scope. The effect waits for the restored React state; `handleDownloadClick` uses the existing rendering, quota, progress and browser-download code. It never calls create/update-save endpoints. Dismissal retains the browser draft; a failed export leaves the restored document editable and requires an explicit retry.
 
-`NewCvSetupModal` uses a guarded Effect Event for automatic creation; the same form handles loading, manual retry and optional settings. `signIn(username, password, options)` posts the existing OAuth form to `/auth/token`, validates the token and stores only the token and route username. Passwords are never persisted in storage or URL parameters. Authentication alone never claims a draft or consumes an export. API payloads, database schema, dependencies and deployment configuration are unchanged.
+`NewCvSetupModal` uses a guarded Effect Event for automatic creation; the same form handles loading, manual retry and optional settings. `signIn(username, password, options)` posts the OAuth form to `/auth/token` after verification and stores only the returned token and route username. Passwords and verification tokens are never persisted as account credentials; only an allow-listed workflow query is kept temporarily in browser storage. Authentication alone never claims a draft or consumes an export.
 
 File inventory: `frontend/src/services/signIn.js` owns shared login; `frontend/src/components/common/AuthLayout/AuthLayout.module.css` owns both auth layouts; `frontend/e2e/first-cv-download.spec.js` covers the complete workflow; [the bilingual onboarding audit](docs/ONBOARDING.md) records findings, affected states and a proposed measurement plan. No new analytics service or event vocabulary was introduced, and conversion improvement has not been measured.
 
-Verification on 2026-09-09: 70 relevant Node tests, 21 component tests, 72 browser cases across desktop/mobile profiles, and the production build passed. Full lint still reports the same 31 pre-existing errors recorded before this change; no additional lint errors were introduced.
+Verification on 2026-09-09: all 1,112 source tests, 50 runtime component tests, the 11 focused first-PDF browser scenarios, the full backend suite (including 135 subtests), the documentation gate, and the production build passed. Every frontend file changed by this feature passes ESLint. Repository-wide lint still reports 30 pre-existing React hook/compiler errors in unrelated editor modules.
 
 Implementation/test references (current file ranges):
 
-- `frontend/src/services/signIn.js`, lines 1–20, `signIn`.
-- `frontend/src/pages/Register/Register.jsx`, lines 1–337, `Register`.
-- `frontend/src/pages/Login/Login.jsx`, lines 1–183, `Login`.
+- `frontend/src/services/signIn.js`, lines 1–25, `establishSession`, `signIn`.
+- `frontend/src/pages/Register/Register.jsx`, lines 1–373, `Register`.
+- `frontend/src/pages/Login/Login.jsx`, lines 1–226, `Login`.
 - `frontend/src/components/editor/NewCvSetupModal/NewCvSetupModal.jsx`, lines 1–398, `NewCvSetupModal`.
-- `frontend/e2e/first-cv-download.spec.js`, lines 1–143, `first-PDF browser scenarios`.
+- `frontend/e2e/first-cv-download.spec.js`, lines 1–160, `first-PDF browser scenarios`.
 
 Validation commands from `frontend/`: `npm run test:runtime -- src/components/editor/NewCvSetupModal/NewCvSetupModal.runtime.test.jsx src/components/editor/SaveGateModal/SaveGateModal.runtime.test.jsx src/components/editor/ClaimGuestDocumentModal/ClaimGuestDocumentModal.runtime.test.jsx`; `npm run test:e2e -- e2e/first-cv-download.spec.js e2e/hero-templates.spec.js e2e/guest-entry.spec.js e2e/new-cv-setup.spec.js`; `npm run lint`; `npm run build`. Browser fixtures isolate API calls, exercise 390/834/1280/1920px and a 640px viewport equivalent to 200% zoom, preserve keyboard order, and assert one export with the latest name and no save. They do not validate live production PDF pixels.
 
@@ -1109,7 +1118,7 @@ Validation commands from `frontend/`: `npm run test:runtime -- src/components/ed
 
 Login and registration share `frontend/src/components/common/AuthLayout/AuthLayout.module.css`. The form comes before supporting information in both DOM and visual order, with white paper, a warm neutral secondary panel, 16px inputs, persistent labels, visible focus, 44px controls, and no entrance animation. Below 900px the supporting panel follows the form. The two obsolete route-specific CSS Modules have been removed.
 
-Registration defaults to Free; ordinary registration retains the optional plan tabs. The download path fixes Free and replaces the plan comparison with the remaining steps. A successful registration calls `signIn` using credentials held in memory. A failed token request navigates to login with `registered=1` and the original `start`, announces that the account exists, and does not retry registration. Login, registration, account gates and the editor preserve `start=download`; download still requires explicit ownership confirmation and the existing server quota checks.
+Registration defaults to Free; ordinary registration retains the optional plan tabs. The download path fixes Free and replaces the plan comparison with the remaining steps. Password registration shows the email-delivery result and resend recovery instead of attempting an automatic login. `/verify-email` consumes the opaque one-time token, then returns to login with only the previously allow-listed workflow parameters. The Google button uses the provider-rendered control, and the account page exposes explicit linking for an existing password identity. Login, registration, account gates and the editor preserve `start=download`; download still requires explicit ownership confirmation and the existing server quota checks.
 
 Implementation: `frontend/src/pages/Login/Login.jsx` (`Login`), `frontend/src/pages/Register/Register.jsx` (`Register`), `frontend/src/services/signIn.js` (`signIn`), and the shared `AuthLayout.module.css`. See the first-PDF workflow above for tests and recovery behavior.
 
@@ -1136,7 +1145,7 @@ Implementation:
 
 Limits:
 
-- Free (Darmowy) includes one saved CV, **one successful CV import per UTC month**, three clean PDF downloads per month, and the Sterling, Linden, and Meridian templates with all six appearance variants each. The full editor, typography, spacing, and section controls remain available; user-facing AI tools do not. Pro adds all ten templates, unlimited projects/imports/exports, content AI, ATS, and Layout for **59 zł / 30 days**. Stripe Checkout is not wired yet; unpaid selection may activate Pro via `ALLOW_UNPAID_PLAN_SELECTION`.
+- Free (Darmowy) includes one saved CV, **one successful CV import per UTC month**, three clean PDF downloads per month, and the Sterling, Linden, and Meridian templates with all six appearance variants each. The full editor, typography, spacing, and section controls remain available; user-facing AI tools do not. Pro adds all ten templates, unlimited projects/imports/exports, content AI, ATS, and Layout for **59 zł / 30 days**. Production purchase uses one-time Stripe Checkout; `ALLOW_UNPAID_PLAN_SELECTION` is a local-development bypass only.
 - ATS feedback (**Czytelność dla ATS**) checks whether the final PDF text can be extracted and whether content headings/keywords look standard. It is guidance, not a promise that every recruiter ATS will parse the file the same way.
 - The privacy section describes implemented data use at a high level and does not claim unimplemented certifications or anonymisation.
 
@@ -2180,17 +2189,47 @@ Known limitations:
 
 ### Auth
 
-Register, OAuth2 password token, JWT Bearer, entitlements probe. Registration
-rejects duplicate usernames and duplicate emails with an actionable HTTP 400
-(the email pre-check avoids a raw database uniqueness 500), and the email is
-format-checked and trimmed before it reaches the database.
+Password registration validates and canonicalizes the username/email, creates
+an inactive-for-login Free identity, stores only a SHA-256 digest of a random
+verification token, and asks Resend to send its 24-hour raw counterpart. The
+201 response never contains a JWT. `/auth/verify-email` consumes the proof once;
+`/auth/resend-verification` invalidates older live proofs, returns a generic
+non-enumerating response, and is limited to 10/IP and 3/email/hour. Password
+login returns `403 email_unverified` after valid credentials until verification.
+
+Google Identity Services renders its own browser button. The backend validates
+the ID token signature, issuer, audience, expiry and `email_verified`, then uses
+the immutable Google `sub` as the binding. A new Google identity receives Free
+and a normal application JWT. An existing local account with the same email is
+not linked silently: the user must authenticate by password and use
+`POST /auth/google/link`, whose Google email must match the local canonical
+email. This prevents an email string alone from becoming an account-takeover
+credential.
+
+For Pro, `POST /billing/select-plan` requires an `Idempotency-Key` and creates a
+server-priced, `mode=payment` Stripe Checkout Session. The browser redirect and
+success URL never activate access. Only a signature-verified
+`checkout.session.completed` or `checkout.session.async_payment_succeeded`
+event with `payment_status=paid` and a matching local pending ledger row can
+extend Pro by 30 days. The payment/session pair and provider event id are unique,
+so retries return `already_processed`; `GET /billing/checkout-session/{id}`
+exposes only the authenticated owner's local fulfillment state.
 
 Implementation:
 
-- `backend/app/api/routes/auth.py`, `register_user` — username + email uniqueness
-- `backend/app/schemas/user_schema.py`, `UserCreateRequest` — email format validator
-- `backend/app/crud/user.py`, `get_user_by_email`
+- `backend/app/api/routes/auth.py`, lines 84–361 — `register_user`, `verify_email`, `resend_verification`, `google_login`, `link_google_account`
+- `backend/app/services/email_verification.py`, lines 29–68 — `issue_email_verification_token`, `consume_email_verification_token`
+- `backend/app/services/email_service.py`, lines 16–53 — `send_verification_email`
+- `backend/app/services/google_auth_service.py`, lines 7–18 — `verify_google_credential`
+- `backend/app/api/routes/billing.py`, lines 66–134 and 262–331 — `select_plan`, `stripe_webhook`, `checkout_session_status`
+- `backend/app/services/stripe_service.py`, lines 16–35, and `billing_service.py`, lines 18–68 — hosted checkout boundary and `fulfill_pro_payment`
 - `backend/app/core/security.py` — Argon2id, successful-login legacy bcrypt rehash, canonical identity, and versioned Bearer JWT
+- `frontend/src/pages/Auth/VerifyEmail.jsx`, lines 1–53; `frontend/src/components/common/GoogleSignInButton/GoogleSignInButton.jsx`, lines 1–73; `frontend/src/services/authApi.js`, lines 1–42; `frontend/src/pages/Billing/CheckoutResult.jsx`, lines 1–52; and `frontend/src/components/modals/PlanSelectModal/PlanSelectModal.jsx`, lines 20–195 — verification, federated login/linking, checkout redirect and truthful return states
+
+Tests: `backend/tests/test_auth_providers_and_stripe.py`,
+`backend/tests/test_alembic_auth_billing_migration.py`,
+`frontend/src/utils/authBillingFrontend.test.js`, and
+`frontend/src/utils/siteRoutes.test.js`.
 
 ### Decorative chrome lock
 
@@ -2385,8 +2424,12 @@ Base URL: `VITE_API_URL` (frontend) / deployed backend. Auth: `Authorization: Be
 |--------|------|------|---------|---------|
 | GET | `/health` | no | Liveness / dyno wake | `health` in `main.py` |
 | GET | `/ready` | no | Readiness: database, Alembic head, and catalog seed | `ready` in `main.py` |
-| POST | `/auth/register` | no | Create user (`plan` optional, defaults to Free; the registration comparison submits the selected Free/Pro tier) | `register_user` |
-| POST | `/auth/token` | no | OAuth2 password → JWT | `login_for_acess_token` |
+| POST | `/auth/register` | no | Create an unverified password account and send a one-time email link; returns 201 without JWT | `register_user` |
+| POST | `/auth/verify-email` | no | Consume `{ token }` once and mark the account email verified | `verify_email` |
+| POST | `/auth/resend-verification` | no | Rate-limited generic resend for `{ email }`; invalidates older live proofs | `resend_verification` |
+| POST | `/auth/google` | no | Verify `{ credential }`, create/find the Google-`sub` account, and return JWT | `google_login` |
+| POST | `/auth/google/link` | Bearer | Explicitly bind a same-email Google `sub` to the current account | `link_google_account` |
+| POST | `/auth/token` | no | OAuth2 password → JWT; verified email required | `login_for_acess_token` |
 | GET | `/auth/verify-token` | Bearer | Validity check without exposing a token in the URL | `verify_user_token` |
 | GET | `/auth/me/entitlements` | yes | Plan limits for UI | `me_entitlements` |
 | POST | `/pdf/create_pdf` | yes + `Idempotency-Key` | Create doc + render PDF at revision 1; exact retries replay | `create_user_pdf` |
@@ -2409,7 +2452,9 @@ Base URL: `VITE_API_URL` (frontend) / deployed backend. Auth: `Authorization: Be
 | POST | `/ai/assistant` | yes + `Idempotency-Key` | Size-limited assistant action with atomic credit reservation and replay | `ai_assistant` |
 | GET | `/templates/catalog` | no | Cacheable allowlisted Free/Pro template metadata | `get_template_catalog` |
 | GET | `/billing/plans` | yes | Plan catalog | `get_plans` |
-| POST | `/billing/select-plan` | yes | Activate plan | `select_plan` |
+| POST | `/billing/select-plan` | Bearer; `Idempotency-Key` for Pro | Select Free/local bypass or create a hosted Stripe Checkout Session for Pro | `select_plan` |
+| POST | `/billing/webhook` | Stripe signature | Verify raw-body signature and idempotently fulfill a paid, known Checkout Session | `stripe_webhook` |
+| GET | `/billing/checkout-session/{session_id}` | Bearer | Return the current user's local pending/succeeded fulfillment state | `checkout_session_status` |
 | POST | `/billing/admin/set-user-plan` | `X-Admin-Secret` | Assign Free/Pro to one exact, case-sensitive username; response and audit omit account identity | `admin_set_user_plan` |
 | POST | `/billing/admin/reset-ai-credits` | `X-Admin-Secret` | Operational reset by numeric `user_id`; dedicated secret only | `admin_reset_ai_credits` |
 | POST | `/events/log` | yes | Product metrics log | `log_event` |
@@ -2429,6 +2474,36 @@ Content-Type: application/x-www-form-urlencoded
 username=demo&password=secret
 ```
 
+New integration bodies and responses:
+
+```http
+POST /auth/register
+Content-Type: application/json
+
+{"username":"demo","email":"demo@example.test","password":"long-local-password","plan":"free"}
+```
+
+Success is `201 {"status":"verification_required","email_sent":true|false,"message":"..."}`.
+Duplicate canonical identity is 409; invalid shape/password is 422; the IP
+registration limit is 429. Verification and resend use
+`{"token":"opaque-value"}` and `{"email":"demo@example.test"}` respectively.
+An invalid/expired/consumed proof is 400 `verification_invalid`; resend always
+returns the same 202 shape for known and unknown addresses.
+
+Google login/link use `{"credential":"provider-ID-token"}`. Login returns the
+standard `{ access_token, token_type, username }`; invalid provider proof is
+401, missing provider configuration is 503, and a same-email local account is
+409 `google_link_required`. Linking additionally requires Bearer auth and may
+return 409 for email mismatch or an already-owned Google subject.
+
+Pro selection sends `{"plan_slug":"pro"}` plus Bearer auth and an
+`Idempotency-Key`. Success returns `{ plan_slug, payment_required: true,
+checkout_url, checkout_session_id }`; missing Stripe configuration retains the
+recoverable 402 `payment_required`, and a missing key is 400. Stripe posts the
+raw event body with `Stripe-Signature` to `/billing/webhook`; invalid signatures
+are 400 and unknown local Sessions are 409 so Stripe can retry. The owner status
+endpoint returns `{ "status":"pending|succeeded", "plan_slug":"pro" }` or 404.
+
 Create body shape: `{ "pdf_title", "root": [PdfElement...], "pages", "page_width", "page_height", "editor_mode", "template_id", "cv_data" }`; update/save additionally require `{ "pdf_id", "expected_revision" }`. Successful creates return `{ created, pdf_id, revision, replayed }`; update/save return the new `revision`. Conflict bodies use `detail.code`: `idempotency_payload_mismatch`, `document_conflict` (with `expected_revision` and `current_revision`), or `title_conflict`. `cv_data` is optional for legacy/freeform documents and is the normalized source for later template changes. The render-on-demand body reuses `PDFCreateRequest`, does not persist `cv_data`, and accepts optional `pdf_id` only for paid-template entitlement continuity. A textarea may carry transient `resolvedLines`; the server validates and renders them but never stores them. See `backend/app/schemas/pdf_schema.py`, lines 56–77 and 227–301.
 
 ---
@@ -2443,6 +2518,7 @@ Create body shape: `{ "pdf_title", "root": [PdfElement...], "pages", "page_width
 - Production/Render: a private S3 bucket and AWS object credentials are mandatory; local disk is for development/tests only
 - Cloudflare account ID + Workers AI token for PDF CV import
 - Optional: OpenAI API key for the assistant or explicit import rollback
+- For live account/payment flows: a verified Resend sender, Google OAuth Web client, Stripe account/Price, and Stripe CLI for optional local webhook forwarding
 
 ### Backend
 
@@ -2492,6 +2568,13 @@ App: `http://localhost:5173`.
 | `APP_ENV` | for non-Render production | Set `production` to enable fail-closed CORS/storage checks; Render is detected automatically | `production` |
 | `CORS_ORIGINS` | no | Comma-separated origins | `http://localhost:5173` |
 | `BACKEND_URL` | no | Public API base for links | `http://localhost:8000` |
+| `FRONTEND_URL` | for verification/Checkout | Browser origin used in email and Stripe return links; no trailing slash | `http://localhost:5173` |
+| `RESEND_API_KEY` | for password registration email | Server-side Resend secret; never prefix with `VITE_` | `re_...` |
+| `EMAIL_FROM` | with Resend | Verified sender identity used for account messages | `CV Studio <accounts@example.com>` |
+| `GOOGLE_CLIENT_ID` | for Google auth | OAuth Web client ID used as the backend ID-token audience | `000000000000-example.apps.googleusercontent.com` |
+| `STRIPE_SECRET_KEY` | for paid Pro | Server-side Stripe API key | `sk_test_...` |
+| `STRIPE_WEBHOOK_SECRET` | for paid Pro | Signing secret for the exact `/billing/webhook` endpoint | `whsec_...` |
+| `STRIPE_PRICE_PRO` | for paid Pro | Stripe Price ID for one 59 PLN, non-recurring Pro purchase | `price_...` |
 | `CV_EXTRACT_PROVIDER` | no | CV import provider: `cloudflare` (default) or explicit `openai` rollback | `cloudflare` |
 | `CLOUDFLARE_ACCOUNT_ID` | for Cloudflare import | Workers AI account identifier; server-side only | `replace-with-account-id` |
 | `CLOUDFLARE_API_TOKEN` | for Cloudflare import | Token with Workers AI Read + Edit; server-side secret | `replace-with-token` |
@@ -2513,7 +2596,7 @@ App: `http://localhost:5173`.
 | `USD_TO_PLN` | no | FX used for credit metering | `4.0` |
 | `S3_BUCKET_NAME` | required in production; optional dev/test | Private bucket used for all durable personal images and saved PDFs | bucket name |
 | `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` / `AWS_REGION` | required in production; with local S3 | Server-side private-object credentials and region; never expose them to the frontend | `eu-north-1` |
-| `ALLOW_UNPAID_PLAN_SELECTION` | no | Allow activating paid plans without Stripe (`false` default; set `true` locally pre-Stripe) | `true` (local) |
+| `ALLOW_UNPAID_PLAN_SELECTION` | no | Development-only direct plan activation; keep false/unset in production | `true` (local only) |
 | `ADMIN_RESET_SECRET` | for billing administration | Dedicated secret for plan assignment and AI-credit reset endpoints (does **not** fall back to `SECRET_KEY`) | long random string |
 | `ALLOW_INSECURE_SECRET` | no | Local throwaway only: skip strong `SECRET_KEY` boot check | `true` |
 | `MAX_UPLOAD_BYTES` | no | Max image upload size in bytes (default 8 MB) | `8388608` |
@@ -2524,8 +2607,21 @@ App: `http://localhost:5173`.
 | Variable | Required | Purpose | Example |
 |----------|----------|---------|---------|
 | `VITE_API_URL` | required for production builds; optional in development | Public HTTPS API origin with no path or trailing slash; development defaults to the local `/api` proxy | `https://api.example.test` |
+| `VITE_GOOGLE_CLIENT_ID` | for Google auth | Public OAuth Web client ID; must equal backend `GOOGLE_CLIENT_ID` | `000000000000-example.apps.googleusercontent.com` |
 
 Never commit real secrets.
+
+For authentication and billing setup: verify the sender domain in Resend and
+set `EMAIL_FROM` to that domain; create one Google OAuth **Web application**
+client with the frontend origins and copy the same client ID to backend and
+frontend; create a one-time 59 PLN Stripe Price and copy its `price_...` ID;
+then register `https://<api>/billing/webhook` for
+`checkout.session.completed` and `checkout.session.async_payment_succeeded`
+and store that endpoint's `whsec_...` secret. For local Stripe testing, forward
+events with `stripe listen --forward-to localhost:8000/billing/webhook` and use
+the temporary signing secret printed by the CLI. Restart backend and Vite after
+changing environment variables. Provider secrets stay exclusively in backend
+configuration.
 
 For local Cloudflare setup, copy `backend/.env.example` to `backend/.env`, paste the account ID and token into the two server-only variables, and leave `CV_EXTRACT_PROVIDER=cloudflare`. Restart Uvicorn after changing `.env`; configuration is loaded at process start. Do not prefix these variables with `VITE_`, because that would bundle a secret into browser JavaScript.
 
@@ -2549,7 +2645,7 @@ For local Cloudflare setup, copy `backend/.env.example` to `backend/.env`, paste
 
 - **Build fails with `VITE_API_URL is required for a production build`:** this is the intentional production configuration gate, not an npm vulnerability failure. A Blueprint-managed `cv-studio-web` automatically copies the `cv-studio-api` service's public `RENDER_EXTERNAL_URL`; synchronize the latest `render.yaml` and redeploy. If the static site was created manually—or its build command differs from the Blueprint—set `VITE_API_URL` on the **frontend static service** to the deployed backend's public HTTPS origin, with no path or trailing slash, then choose **Save, rebuild, and deploy**.
 - **API exits with `Production CORS_ORIGINS must use HTTPS`:** synchronize the latest Blueprint before redeploying. It copies the static frontend's public `RENDER_EXTERNAL_URL` into `CORS_ORIGINS` for both Python services and copies the API's generated URL into `BACKEND_URL`; this replaces stale manually entered HTTP values. For services not managed by the Blueprint, set `CORS_ORIGINS` to only the frontend's public HTTPS origin and `BACKEND_URL` to the API's public HTTPS origin.
-- **Login receives 503 after deploy:** `/health` proves only that the process is alive. Inspect `/ready` and Render logs. A Blueprint-managed service must run the configured pre-deploy command. A legacy dashboard-managed Render service automatically attempts the idempotent migration/seed bootstrap after worker start and logs either the recovery attempt or its failure; wait for `/ready` to return 200. If it remains 503, verify database reachability, Alembic head `20260901_0015`, the exact plan catalog, private-S3 configuration, and SQLite foreign-key integrity when applicable. Do not bypass a failed migration with `alembic stamp`.
+- **Login receives 503 after deploy:** `/health` proves only that the process is alive. Inspect `/ready` and Render logs. A Blueprint-managed service must run the configured pre-deploy command. A legacy dashboard-managed Render service automatically attempts the idempotent migration/seed bootstrap after worker start and logs either the recovery attempt or its failure; wait for `/ready` to return 200. If it remains 503, verify database reachability, Alembic head `20260909_0016`, the exact plan catalog, private-S3 configuration, and SQLite foreign-key integrity when applicable. Do not bypass a failed migration with `alembic stamp`.
 - **SQLite reports `No support for ALTER of constraints`:** this came from the former revision `0005`. The current migration uses batch mode and can resume after the table/column were already committed. Keep the database at its reported Alembic revision, create a backup, and rerun `python -m alembic upgrade head`; do not delete the partially created table and do not use `alembic stamp` to skip the relation.
 - **Asystent AI / Układ “trwa uruchamianie” or timeout:** AI calls wake the dyno, retry network blips (not client timeouts), and use longer waits (`layout` up to 240s for `gpt-5.6-terra`). A timeout message means the client aborted — retry once; if it persists, check Render logs for OpenAI errors.
 - **CV import says it is not configured (503):** verify `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN`, and `CV_EXTRACT_PROVIDER=cloudflare`, then restart the backend. Never paste the token into the browser console or frontend `.env`.
@@ -2565,7 +2661,7 @@ For local Cloudflare setup, copy `backend/.env.example` to `backend/.env`, paste
 ## Testing
 
 - **Framework:** pytest 9.1.1 is the full-suite runner under `backend/tests/`; it also collects the existing `unittest.TestCase` classes and their subtests.
-- **Backend coverage:** storage-key containment/dual-read/cleanup compensation, PDF/image IDOR and image-slot races, document compare-and-swap/idempotency/N-1 writes, PDF 4 MiB and nested-shape limits, AI reservation races/replay/request limits, Argon2/canonical identity/proxy-aware throttles/admin reset, readiness and migrations `0009`–`0015`, import keyset pagination, public catalog allowlisting, quota atomicity, schema/render/layout/Unicode contracts, and legacy compatibility.
+- **Backend coverage:** storage-key containment/dual-read/cleanup compensation, PDF/image IDOR and image-slot races, document compare-and-swap/idempotency/N-1 writes, PDF 4 MiB and nested-shape limits, AI reservation races/replay/request limits, Argon2/canonical identity/proxy-aware throttles/admin reset, email/Google/Stripe provider boundaries, signed and duplicate webhook fulfillment, readiness and migrations `0009`–`0016`, import keyset pagination, public catalog allowlisting, quota atomicity, schema/render/layout/Unicode contracts, and legacy compatibility.
 - **Run:** `cd backend && python -m pytest -q`.
 - **PostgreSQL contracts:** set `POSTGRES_TEST_DATABASE_URL` to an isolated test database and run `python -m pytest -q -rs tests/test_postgres_security_contracts.py`. CI supplies PostgreSQL 16 and proves fresh bootstrap, a real N-1 (`0010`) upgrade to head, and 20 concurrent AI reservations; without the variable these three tests skip explicitly.
 - **Frontend layers:** `npm test` recursively discovers pure `*.test.js` modules; `npm run test:runtime` runs jsdom React tests with Vitest; `npm run test:e2e` runs isolated Chromium smoke tests. Lifecycle scope, dirty snapshots, category deletion, revision/idempotency headers, accessible recovery, and raw-error redaction have dedicated regressions.
@@ -2582,15 +2678,15 @@ For local Cloudflare setup, copy `backend/.env.example` to `backend/.env`, paste
 
 `render.yaml` defines the production split in Render's Frankfurt region. The API and cleanup cron use paid `0.5c-512mb` compute, and PostgreSQL uses the durable paid `0.1c-256mb` plan: Render limits pre-deploy commands to paid compute and free PostgreSQL is not a production-retention tier.
 
-- **Backend service** — Uvicorn / FastAPI, Postgres, and mandatory private S3. The Blueprint derives `CORS_ORIGINS` from the frontend's public `RENDER_EXTERNAL_URL` and `BACKEND_URL` from the backend's own public URL. Configure the bucket, all three AWS credential/region variables, `CV_EXTRACT_PROVIDER`, `CLOUDFLARE_ACCOUNT_ID`, and `CLOUDFLARE_API_TOKEN` in Render → backend service → Environment; add model overrides only when intentionally changing defaults. Redeploy/restart after saving.
+- **Backend service** — Uvicorn / FastAPI, Postgres, and mandatory private S3. The Blueprint derives CORS/backend/frontend URLs from public Render services. Configure the bucket/AWS values, AI provider values, `RESEND_API_KEY`, `EMAIL_FROM`, `GOOGLE_CLIENT_ID`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, and `STRIPE_PRICE_PRO` in Render → backend service → Environment; add model overrides only when intentionally changing defaults. Keep `ALLOW_UNPAID_PLAN_SELECTION` false. Redeploy/restart after saving.
 - **Storage-cleanup cron** — the Starter cron service shares Postgres and the same private-S3 configuration, runs `python -m app.services.storage_cleanup_worker` every five minutes, and exits after one bounded batch.
-- **Frontend static** — Root Directory `frontend`, Build Command `npm ci && npm run build`, and Publish Directory `dist` (or co-host via `main.py` SPA fallback when `frontend/dist` exists next to the backend tree). The Blueprint maps `VITE_API_URL` from the backend service's public `RENDER_EXTERNAL_URL` before Vite builds the bundle. A manually created static site must instead define `VITE_API_URL=https://<actual-backend-host>.onrender.com` in its own Environment settings before rebuilding.
+- **Frontend static** — Root Directory `frontend`, Build Command `npm ci && npm run build`, and Publish Directory `dist` (or co-host via `main.py` SPA fallback when `frontend/dist` exists next to the backend tree). The Blueprint maps `VITE_API_URL`; configure public `VITE_GOOGLE_CLIENT_ID` to the same Web client ID as the backend. A manually created static site must define both values before rebuilding.
 
 The backend `preDeployCommand` runs `python -m app.services.deployment_bootstrap`; a failure stops a Blueprint-managed deployment. The command applies additive migrations and the billing seed only—historical cleanup is never an automatic deployment side effect. Because services created manually in the Render dashboard do not automatically adopt later `render.yaml` commands, the web lifespan has a Render-only compatibility recovery: it probes first and runs the same idempotent bootstrap in a background thread only while readiness is stale. Render probes `/ready`, while `/health` remains a dependency-free liveness endpoint during recovery and diagnosis.
 
 Production startup fails when S3 or any AWS credential/region value is missing. Keep Bucket owner enforced Object Ownership and all four S3 Block Public Access settings enabled, and do not attach a public bucket policy. The application sends no ACL with `PutObject`; the stored HTTPS value is an internal locator, while PDF bytes are returned only through the authenticated, ownership-checked, metered API route. A public bucket policy would bypass those controls and is unsupported. Local filesystem storage is supported only for development and tests.
 
-Migrations: the pre-deploy bootstrap must reach head `20260901_0015`. Do not use `alembic stamp` to bypass a failed migration. Storage V2 dual-read and the `0015` database triggers preserve the N-1 rollback window; remove compatibility fields/triggers only after two verified releases and a checked backfill.
+Migrations: the pre-deploy bootstrap must reach head `20260909_0016`. Do not use `alembic stamp` to bypass a failed migration. Revision `0016` grandfathers existing users as verified and adds identity/payment constraints; Storage V2 dual-read and the `0015` database triggers preserve the N-1 rollback window.
 
 CI/CD: `.github/workflows/ci.yml` is committed and gates backend, frontend, browser, dependency, secret, and bundle checks before deployment.
 
@@ -2607,10 +2703,13 @@ CI/CD: `.github/workflows/ci.yml` is committed and gates backend, frontend, brow
 - Generated PDFs: immutable server keys, root containment, validated legacy dual-read, private S3 production storage (local only in dev/test), API locator redaction, owner-checked download, atomic export charge, and durable cleanup compensation. S3 still requires operator-enforced Block Public Access.
 - Concurrency: document optimistic revisions prevent last-write-wins loss; create and assistant idempotency keys prevent duplicate persistence/charges; AI credits are reserved atomically before provider I/O.
 - Registration: duplicate canonical username/email rejected with stable 409 codes; email format and password bounds are schema-validated.
+- Email verification: raw proofs use cryptographic randomness, expire after 24 hours, are stored only as SHA-256 digests, become single-use under a row lock, and are replaced on resend. Resend responses do not enumerate accounts; delivery receives the destination email and verification URL.
+- Google identity: the server verifies ID-token signature/issuer/audience/expiry and `email_verified`, binds by immutable `sub`, and requires a same-email authenticated local session for linking; no OAuth client secret is bundled into the browser.
+- Stripe: secret keys and price IDs remain server-side; the webhook verifies the raw-body signature, accepts only paid completion types, requires a locally created pending Session, and uses database uniqueness plus row locks for exactly-once activation. Full card details stay on hosted Stripe Checkout.
 - AI errors: CV-import failures are mapped to stable safe codes and 422/429/502/503 responses; assistant failures use a generic Polish 500. Raw provider details never reach the browser.
 - CV privacy: PDF bytes are validated in memory, sent server-to-server to the configured provider, and then discarded; import history stores normalized fields and metadata, never the source PDF. Cloudflare states that it does not train models on Customer Content, but CV content is still third-party processing and must be covered by the product privacy notice. See [Workers AI data usage](https://developers.cloudflare.com/workers-ai/platform/data-usage/).
 - Assistant replay privacy: the reservation row stores only a canonical request hash, not the submitted request body; a settled row stores the account-scoped assistant response JSON required for exact idempotent replay. No response is exposed through a cross-user listing endpoint.
-- Provider secrets: Cloudflare account ID/token and OpenAI key exist only in backend environment variables; no `VITE_` variable may contain them.
+- Provider secrets: Cloudflare, OpenAI, Resend, and Stripe secrets exist only in backend environment variables. `VITE_GOOGLE_CLIENT_ID` is intentionally public; no `VITE_` variable may contain a provider secret.
 - Metrics: `/events/log` logs numeric `user_id`, not raw usernames (`metrics_logging.py`).
 - Secrets: env only; never in README or git.
 - Billing administration: dedicated `ADMIN_RESET_SECRET`, constant-time `X-Admin-Secret` comparison, exact case-sensitive username for plan assignment, immutable numeric target for credit reset, redacted audit references, and no fallback to the JWT signing secret.
@@ -2646,7 +2745,8 @@ The checkable product, UX, and commercialization roadmap is maintained in [`docs
 
 Notable product facts:
 
-- Stripe Checkout not fully wired; unpaid plan selection is a temporary gate.
+- Refunds/disputes are visible in Stripe but do not yet revoke or shorten an already activated 30-day pass automatically; operators must apply that policy manually.
+- Live delivery, Google consent-screen status, and Stripe payment acceptance depend on correctly configured provider accounts and verified domains; automated tests use provider boundaries rather than real customer transactions.
 - Render free tier sleeps — expect cold starts.
 - Ordinary assistant chat can propose geometry changes; `layout_analysis` validates safe coordinates before the UI exposes review cards. Overlaps and clips produce critical repair groups before cosmetic alignment.
 - A guest-mode document lives only in the visitor's browser `localStorage` until claimed by an account; clearing site data or switching devices loses any unclaimed work — see [Guest mode](#guest-mode-editor-without-an-account).
@@ -2665,6 +2765,9 @@ Notable product facts:
 - [Vitest guide](https://vitest.dev/guide/) — official jsdom/runtime test configuration used by `npm run test:runtime`.
 - [Playwright Test](https://playwright.dev/docs/intro) — official browser-test runner used for the isolated Chromium smoke suite.
 - [argon2-cffi API](https://argon2-cffi.readthedocs.io/en/stable/api.html) — official `PasswordHasher` and rehash reference used by the password migration path.
+- [Google ID-token verification](https://developers.google.com/identity/gsi/web/guides/verify-google-id-token) — official backend validation and immutable `sub` guidance used by Google authentication.
+- [Stripe Checkout fulfillment](https://docs.stripe.com/checkout/fulfillment) — official webhook and idempotent fulfillment guidance used by the Pro pass.
+- [Resend domain setup](https://resend.com/docs/dashboard/domains/introduction) — official sender-domain verification and DNS guidance for transactional email.
 - [Render deploys and pre-deploy commands](https://render.com/docs/deploys) — official lifecycle used for migrations before Uvicorn starts.
 - [FastAPI documentation](https://fastapi.tiangolo.com/) — routes, dependencies, OpenAPI.
 - Pinned backend releases on PyPI: [FastAPI 0.141.1](https://pypi.org/project/fastapi/0.141.1/), [Starlette 1.6.0](https://pypi.org/project/starlette/1.6.0/), [python-multipart 0.0.32](https://pypi.org/project/python-multipart/0.0.32/), [PyJWT 2.13.0](https://pypi.org/project/PyJWT/2.13.0/), [cryptography 50.0.1](https://pypi.org/project/cryptography/50.0.1/), [PyMuPDF 1.28.2](https://pypi.org/project/PyMuPDF/1.28.2/), and [python-dotenv 1.2.3](https://pypi.org/project/python-dotenv/1.2.3/) — authoritative package metadata matching `backend/requirements.txt`.
@@ -2720,11 +2823,11 @@ Kandydaci potrzebują CV, które wygląda profesjonalnie i eksportuje się do PD
 
 Wymuszanie rejestracji przed zobaczeniem edytora było największą stratą lejka. **Tryb gościa** usuwa tę barierę: `/cvstudio/guest` działa bez JWT, więc odwiedzający może skonfigurować nowe CV i od razu edytować wygenerowane A4, a stan jest trzymany w `localStorage` zamiast backendu. Konto jest wymagane dopiero przy zapisie lub eksporcie (save gate). Import CV pozostaje przypisany do konta, ponieważ wysyła dane osobowe do serwerowego dostawcy AI i zużywa miesięczny limit. Pełny opis: [Tryb gościa (edytor bez konta)](#tryb-gościa-edytor-bez-konta).
 
-**Zaimplementowane:** edytor (w tym tryb gościa bez konta), jednoekranowy starter A4 z opcjonalnymi ustawieniami, szablony, extract/fill, jawne odzyskiwanie starszych szkiców bio, asystent AI (cele użytkownika, dashboard oceny, tłumaczenie, karty układu), entitlements (Darmowy / Pro — 59 zł / 30 dni), jawny zapis + niezależne pobieranie renderowane na żądanie, autozapis do localStorage tylko dla gości, Storage V2 (prywatne S3 w produkcji; filesystem lokalny tylko w dev/test), JWT.
+**Zaimplementowane:** edytor (w tym tryb gościa bez konta), jednoekranowy starter A4 z opcjonalnymi ustawieniami, szablony, extract/fill, jawne odzyskiwanie starszych szkiców bio, asystent AI (cele użytkownika, dashboard oceny, tłumaczenie, karty układu), entitlements (Darmowy / Pro — 59 zł / 30 dni), jednorazowy Stripe Checkout dla Pro, konta hasłowe z potwierdzeniem e-maila, logowanie i łączenie Google Identity Services, jawny zapis + niezależne pobieranie renderowane na żądanie, autozapis do localStorage tylko dla gości, Storage V2 (prywatne S3 w produkcji; filesystem lokalny tylko w dev/test) oraz wersjonowane sesje JWT.
 
 **Opcjonalnie lokalnie:** S3 może zastąpić filesystem deweloperski. **Wymagane na Render/produkcji:** `S3_BUCKET_NAME`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` i `AWS_REGION`, z prywatnym bucketem oraz Block Public Access. Wybór planu bez płatności (`ALLOW_UNPAID_PLAN_SELECTION`) pozostaje opcją wyłącznie lokalną.
 
-**Jeszcze nie jako pełny Stripe Checkout:** płatne plany można aktywować bez karty, gdy flaga na to pozwala; odpowiedź `402 payment_required` to miejsce pod przyszły Checkout.
+**Integracje produkcyjne:** Stripe, Google i Resend działają po podaniu konfiguracji serwerowej. `ALLOW_UNPAID_PLAN_SELECTION=true` omija Stripe wyłącznie lokalnie i musi pozostać wyłączone w produkcji.
 
 ---
 
@@ -2757,11 +2860,11 @@ Rozpoznany parametr szablonu Pro zachowuje teraz wybrany podgląd zamiast wraca�
 Implementacja (zweryfikowane zakresy całych plików; wymienione eksporty odpowiadają za kompletne przepływy):
 
 - `frontend/src/pages/Site/DocumentsPage.jsx`, linie 1–86, `DocumentsPage`.
-- `frontend/src/pages/Site/AccountPage.jsx`, linie 1–32, `AccountPage`.
-- `frontend/src/pages/Site/PublicPages.jsx`, linie 1–67, `TemplatesPage, TemplatePage, PricingPage, HelpPage, PrivacyPage`.
+- `frontend/src/pages/Site/AccountPage.jsx`, linie 1–47, `AccountPage`.
+- `frontend/src/pages/Site/PublicPages.jsx`, linie 1–68, `TemplatesPage, TemplatePage, PricingPage, HelpPage, PrivacyPage`.
 - `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, linie 1–50, `SiteLayout, SiteHeader, SiteFooter`.
 - `frontend/src/services/documents.js`, linie 1–45, `listOwnedDocuments, loadOwnedDocument`.
-- `frontend/src/utils/siteRoutes.js`, linie 1–53, `getDocumentPath, parseDocumentId, safeReturnTo, authLink, postAuthPath`.
+- `frontend/src/utils/siteRoutes.js`, linie 1–77, `getDocumentPath, parseDocumentId, safeReturnTo, authLink, savePendingAuthIntent, getPendingAuthIntent, postAuthPath`.
 
 Nowe katalogi: `pages/Site/` zawiera treść tras i stan biblioteki/konta; `components/common/SiteLayout/` odpowiada za wspólną nawigację, semantyczny układ strony i style oparte na tokenach. `services/documents.js` odpowiada za odczyt i odtwarzanie dokumentów, a `utils/siteRoutes.js` za walidację adresów i kontynuację po uwierzytelnieniu. Stan edytora pozostaje w istniejących warstwach cyklu życia i kontekstów. Nie potrzeba migracji bazy, nowego endpointu, zmiennej środowiskowej ani zmiany wdrożenia. Istniejące przekierowanie SPA do `/index.html` w `render.yaml` obsługuje odświeżenie nowych adresów.
 
@@ -2772,7 +2875,7 @@ Materiały: [React Router useBlocker](https://reactrouter.com/api/hooks/useBlock
 
 1. **Wybór startu na stronie głównej** → **Stwórz CV z tym szablonem** (`start=new&template=…`) otwiera jednoekranowy konfigurator A4 z wybranym darmowym szablonem, a **Wgraj swoje CV w PDF** (`start=import`) uruchamia import wymagający konta. Link **Wypróbuj edytor** (`start=demo`) otwiera ograniczony przykład Linden. Topbar edytora udostępnia **Nowe CV** i **Zmień szablon**.
 2. **Tworzenie i edycja jako gość** → w `NewCvSetupModal` użytkownik wybiera szablon i opcjonalnie dostosowuje kontakty, zdjęcie i uporządkowane sekcje; `POST /ai/fill_template` materializuje puste powiązane pola bezpośrednio na A4. Pole imienia jest zaznaczone jako pierwsze. Edycja, undo/redo, zoom i nawigacja działają od razu, a konto jest wymagane dopiero przy Zapisz lub Pobierz.
-3. **Rejestracja / logowanie tylko wtedy, gdy to ma znaczenie** → kliknięcie „Zapisz” / „Pobierz PDF” jako gość otwiera `SaveGateModal` z treścią zależną od operacji zamiast wywoływać backend. Wariant zapisu opisuje utrwalenie na koncie, a wariant pobierania wyjaśnia, że renderuje PDF dla przeglądarki bez zapisywania projektu w **Moich dokumentach**. Rejestracja lub logowanie zachowuje wybrany parametr `start`, a jeśli istnieje bufor dokumentu gościa, `ClaimGuestDocumentModal` prosi świeżo zalogowaną osobę o potwierdzenie, że to jej dokument, zanim JSON trafi na płótno A4 (bez automatycznego `POST /pdf/create_pdf`) — dokument gościa należy do przeglądarki, nie do tożsamości, więc ciche przypisanie go komukolwiek, kto akurat się zaloguje, ujawniłoby czyjś szkic na niepowiązanym koncie.
+3. **Rejestracja / logowanie tylko wtedy, gdy to ma znaczenie** → kliknięcie „Zapisz” / „Pobierz PDF” jako gość otwiera `SaveGateModal` z treścią zależną od operacji zamiast wywoływać backend. Rejestracja hasłem tworzy niezweryfikowane konto Free, wysyła przez Resend jednorazowy link ważny 24 godziny i nie wydaje JWT przed wykorzystaniem linku i późniejszym logowaniem. Google może od razu utworzyć zweryfikowaną sesję; istniejące konto hasłowe wymaga jawnego połączenia Google na stronie konta. Dozwolone parametry `start`, `template`, `plan` i `returnTo` przechodzą przez weryfikację e-maila. Jeśli istnieje bufor dokumentu gościa, `ClaimGuestDocumentModal` prosi świeżo zalogowaną osobę o potwierdzenie, że to jej dokument, zanim JSON trafi na płótno A4 (bez automatycznego `POST /pdf/create_pdf`) — dokument gościa należy do przeglądarki, nie do tożsamości, więc ciche przypisanie go komukolwiek, kto akurat się zaloguje, ujawniłoby czyjś szkic na niepowiązanym koncie.
 4. **Wybór szablonu** → `handleLoadTemplate` materializuje elementy → płótno.
 5. **Import PDF** (wymaga konta) → `POST /ai/extract_cv` → szablon → `POST /ai/fill_template` → layout w `cv_generator.generate_resume`.
 
@@ -2813,6 +2916,10 @@ flowchart LR
     API --> AI[extract / fill / asystent]
     API --> DB[(SQLite lub Postgres)]
     API --> Files[prywatne S3 w produkcji; dysk lokalny w dev/test]
+    API --> Resend[Resend: e-mail weryfikacyjny]
+    API --> Stripe[Stripe Checkout + podpisany webhook]
+    Browser --> Google[Google Identity Services]
+    Google --> API
     AI --> Cloudflare[Cloudflare Workers AI<br/>import CV]
     AI --> OpenAI[OpenAI API<br/>asystent / opcjonalny rollback importu]
     Canvas --> ReportLab[PDF ReportLab]
@@ -2893,6 +3000,9 @@ Elementy z `fixedToPage: true` — tła, ramki, sidebary, numery stron — są d
 | Cloudflare Workers AI | hostowane API | Import natywnego tekstu CV (Gemma 4 z wyłączonym thinkingiem i jednorazowym fallbackiem Llama JSON Mode) oraz ekstrakcja skanów (Qwen 3.8 Vision) | `ai_service.py`, `cloudflare_pricing.py` |
 | PyJWT / cryptography | 2.13.0 / 50.0.1 | Wersjonowane encode/decode JWT i przypięte prymitywy kryptograficzne; zastępuje python-jose/ecdsa | `security.py` |
 | argon2-cffi / bcrypt | 25.1.0 / 5.0.0 | Hasła Argon2id i jednokierunkowa migracja legacy bcrypt | `security.py` |
+| Google Identity Services / google-auth | skrypt przeglądarkowy / >=2.40,<3 | Przycisk dostawcy i serwerowa walidacja podpisu, wystawcy, audience oraz ważności ID tokenu | `GoogleSignInButton.jsx`, `google_auth_service.py`, `auth.py` |
+| Stripe Checkout / stripe-python | hostowany Checkout / >=12,<15 | Jednorazowa płatność za 30 dni Pro, podpisane webhooki i idempotentna aktywacja | `stripe_service.py`, `billing_service.py`, `billing.py` |
+| Resend | API HTTPS | Transakcyjne dostarczenie linku weryfikacyjnego ważnego 24 godziny; baza przechowuje tylko hash tokenu | `email_service.py`, `email_verification.py` |
 | python-dotenv | 1.2.3 | Ładowanie lokalnej konfiguracji backendu z `.env` | `core/config.py` |
 | boto3 | 1.43.51; wymagane w produkcji | Prywatne obiekty S3 za abstrakcją Storage V2 | `pdf_storage.py`, `s3_storage.py` |
 | pytest + unittest | 9.1.1 + stdlib | Pełny runner backendu oraz zgodne klasy `unittest.TestCase` i subtesty | `backend/tests/`, `backend/requirements-dev.txt` |
@@ -2935,11 +3045,12 @@ pdf-generator/
 │   │   │   ├── editor/FlatSectionLayoutModal/  # wybór w linii ↔ lista z podglądem treści na żywo
 │   │   │   ├── editor/LongCvModal/        # fallback AI, gdy odstępy + typografia S nie osiągają celu stron
 │   │   │   ├── editor/SaveGateModal/     # bramka konta dla zapisu/eksportu gościa i importu CV
+│   │   │   ├── common/GoogleSignInButton/ # kontrolka Google Identity Services renderowana przez dostawcę
 │   │   │   ├── editor/DemoBanner/        # baner widoczny, gdy na płótnie jest przykładowe CV gościa
 │   │   │   ├── editor/StartChooser/      # pusty stan zalogowanego: nowe A4 albo import
 │   │   ├── hooks/            # useA4Elements, useDocumentHistory, useElementSelectionDrag, …
-│   │   ├── pages/            # Hero, Login, Register, PdfCanvas, strony Site
-│   │   ├── services/         # ApiClient, documents, fillTemplate, authenticatedImage
+│   │   ├── pages/            # Hero, Login, Register, PdfCanvas, Site, weryfikacja Auth i powroty Billing
+│   │   ├── services/         # ApiClient, authApi, documents, fillTemplate, authenticatedImage
 │   │   ├── store/            # Skupione konteksty Canvas / UiSurfaces / Session / DocumentLifecycle
 │   │   │   └── scoped-ai-context.jsx # Koordynacja toolbarów, przeglądu i inspektora
 │   │   ├── templates/        # specyfikacje szablonów + helpery; aurelia.js to ramowy starter jednokolumnowy
@@ -2977,7 +3088,7 @@ pdf-generator/
     │   ├── crud/
     │   ├── models/
     │   ├── schemas/          # PdfElement + eksport JSON Schema
-    │   ├── services/         # lifecycle dokumentu/storage, readiness, limity auth, rezerwacje AI, szablony
+    │   ├── services/         # dokument/storage, e-mail, Google, Stripe, readiness, limity auth, AI, szablony
     │   │   ├── ai_service.py             # tekst-first/vision importu CV + wejście fill
     │   │   ├── scoped_ai.py # Ścisłe modele wejścia/wyjścia zakresowego GPT i kontrola danych
     │   │   ├── cv_source_layout.py       # kolumny, sekcje źródłowe i deterministyczne ugruntowanie
@@ -2988,7 +3099,7 @@ pdf-generator/
     │   ├── utils/
     │   ├── main.py
     │   └── dependencies.py
-    ├── alembic/              # Addytywne migracje do 0015, w tym zgodność zapisów N-1
+    ├── alembic/              # Addytywne migracje do 0016, w tym tożsamości i idempotencja płatności
     ├── fonts/
     ├── template_assets/
     │   ├── iconic/cadenza-{porcelain,mist,sage,cobalt,burgundy,emerald}/ # Sześć rzeczywistych palet ikon kontaktowych
@@ -3017,21 +3128,22 @@ Rewizja `20260824_0005` łączy `pdfs.source_import_id` z prywatną historią `c
 
 | Tabela | Cel |
 |--------|-----|
-| `users` | Konta: wyświetlane username/e-mail, kanoniczne klucze NFKC+trim+casefold, autorytatywny hash Argon2id, tymczasowy most bcrypt dla rollbacku N-1, atomowy licznik slotów obrazów, aktywność i timestampy |
-| `auth_rate_limits` | Bazodanowe liczniki okien rejestracji/logowania, indeksowane digestem HMAC zamiast surowego IP lub tożsamości |
+| `users` | Konta: wyświetlane username/e-mail, kanoniczne klucze NFKC+trim+casefold, autorytatywny hash Argon2id, tymczasowy most bcrypt dla rollbacku N-1, opcjonalne Google `sub`, czas weryfikacji e-maila, atomowy licznik slotów obrazów, aktywność i timestampy |
+| `auth_rate_limits` | Bazodanowe liczniki okien rejestracji/logowania/ponownej wysyłki, indeksowane digestem HMAC zamiast surowego IP lub tożsamości |
+| `email_verification_tokens` | Klucz użytkownika, unikalny digest SHA-256 tokenu, czasy utworzenia/wygaśnięcia i opcjonalnego zużycia; surowy token trafia tylko do e-maila |
 | `images` | Metadane obrazów użytkownika |
 | `pdfs` | Dokumenty CV: znormalizowany `title`, unikalny per właściciel `title_key`, klucz/hash idempotencji create, optymistyczna `revision`, Storage V2 backend/key i dual-read legacy `file_path`, wymiary, `editor_mode`, aktywny `template_id`, niezmienny `origin_template_id`, rhythm/CV data i marker watermark legacy |
 | `storage_cleanup_jobs` | Trwałe, deduplikowane zadania usunięcia PDF/obrazu z licznikiem prób, terminem retry, typem zasobu, bezpiecznym błędem i końcowym stanem dead-letter |
 | `pdf_elements` | Elementy kanwy (+ `extra_properties`, m.in. `fixedToPage`, `repeatOnContinuation`, `locked`, `flowRole`, `flowGroup`, `preserveInitialLayout`, `appearanceSettings` Atrium/Sterling/Linden/Monument/Slate/Meridian/Cadenza/Vellum i odwracalne bazowe metryki tekstu, `runs` — nakładka dekoracji inline) |
 | `bio_cv_drafts` | Starszy prywatny szkic JSON zachowany tylko do jawnego recovery A4 |
 | `plans` | Limity Darmowy/Pro, w tym nullable `max_cv_imports_per_month` (legacy `standard`/`premium` dezaktywowane) |
-| `user_subscriptions` | Aktualny plan |
+| `user_subscriptions` | Aktualny plan i okres ważności oraz opcjonalne identyfikatory klienta/subskrypcji Stripe |
 | `usage_counters` | Eksporty, udane importy CV, rozliczone kredyty AI i aktualnie zarezerwowane kredyty / miesiąc UTC |
 | `ai_credit_reservations` | Rezerwacja providera per użytkownik: klucz/hash idempotencji, maksymalne i naliczone kredyty, równoległe rezerwacje asystenta ograniczone atomowym saldem, jeden aktywny slot importu CV, status, replay i wygaśnięcie |
-| `payments` | Ledger płatności (przyszłość) |
+| `payments` | Ledger Stripe Checkout: unikalna para provider/sesja i ID zdarzenia webhook, właściciel, plan, kwota/waluta, stan pending/succeeded i czas zapłaty |
 | `maintenance_markers` | Jednorazowe cleanupy |
 
-Migracje `20260901_0009`–`0015` tworzą jeden addytywny łańcuch zgodności. Storage V2 dodaje niezmienne lokalizatory i cleanup jobs; rezerwacje AI — księgowanie kredytów in-flight; auth hardening — kanoniczne tożsamości i trwałe limity; document integrity — rewizje, replay create, title keys i pochodzenie szablonu. Rewizja `0013` dodaje ograniczoną liczbę prób cleanupu i końcowy stan dead-letter. Rewizja `0014` backfilluje atomowy licznik slotów obrazów, włącza klucze obce SQLite na każdym połączeniu i poddaje kwarantannie osierocone referencje obrazów bez usuwania ich bezpiecznego źródła wyświetlania. Rewizja `0015` instaluje triggery SQLite/PostgreSQL, dzięki którym worker N-1 nieznający `title_key` ani `revision` nie nadpisze po cichu snapshotu bieżącego workera. Kolidujące historyczne tytuły otrzymują deterministyczne sufiksy. Implementacje: `backend/alembic/versions/20260901_0009_storage_v2.py`, rewizja `20260901_0009`; `20260901_0013_cleanup_dead_letters.py`, funkcja `upgrade`; `20260901_0014_atomic_image_slots.py`, funkcja `upgrade`; `20260901_0015_n1_document_writes.py`, funkcje `_backfill_n1_writes`, `_install_sqlite_triggers` i `_install_postgres_trigger`.
+Migracje `20260901_0009`–`20260909_0016` tworzą jeden addytywny łańcuch zgodności. Storage V2 dodaje niezmienne lokalizatory i cleanup jobs; rezerwacje AI — księgowanie kredytów in-flight; auth hardening — kanoniczne tożsamości i trwałe limity; document integrity — rewizje, replay create, title keys i pochodzenie szablonu. Rewizja `0016` oznacza istniejące konta jako zweryfikowane, dodaje opcjonalne `google_sub`, tworzy hashowane dowody e-mail oraz unikalne ograniczenia sesji/zdarzenia Stripe z `paid_at`. Rewizja `0014` backfilluje liczniki obrazów, a `0015` chroni zapisy workera N-1. Implementacje: `backend/alembic/versions/20260901_0009_storage_v2.py`; `20260901_0014_atomic_image_slots.py`; `20260901_0015_n1_document_writes.py`; oraz `20260909_0016_auth_providers_and_payments.py`, funkcje `upgrade` i `downgrade`.
 
 `resolvedLines` celowo nie trafia do `pdf_elements.extra_properties`: to metadane renderowania wyznaczane przez przeglądarkę i dołączane wyłącznie do żądań create/update/download. Zapisany dokument zachowuje semantyczne `content` oraz `runs`, więc ponowne otwarcie CV nie przywraca nieaktualnych podziałów zmierzonych dla wcześniejszej szerokości lub stanu fontu.
 
@@ -3747,8 +3859,8 @@ Implementacja:
 - `frontend/public/cv-studio-logo.svg`, linie 1–15 — pełne logo z wordmarkiem
 - `frontend/public/cv-studio-mark.svg`, linie 1–8 — skrócony znak
 - `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, `SiteHeader` i `SiteFooter` — wspólny nagłówek i stopka
-- `frontend/src/pages/Login/Login.jsx`, linie 102–104; `frontend/src/components/common/AuthLayout/AuthLayout.module.css`, linie 1–72 — logo logowania
-- `frontend/src/pages/Register/Register.jsx`, linie 177–179; `frontend/src/components/common/AuthLayout/AuthLayout.module.css`, linie 1–72 — logo rejestracji
+- `frontend/src/pages/Login/Login.jsx`, linie 137–139; `frontend/src/components/common/AuthLayout/AuthLayout.module.css`, linie 1–80 — logo logowania
+- `frontend/src/pages/Register/Register.jsx`, linie 200–202; `frontend/src/components/common/AuthLayout/AuthLayout.module.css`, linie 1–80 — logo rejestracji
 - `frontend/src/components/editor/Sidebar/Sidebar.jsx` — skrócony znak w edytorze; kliknięcie prowadzi na landing (`/`)
 - `frontend/index.html`, linia 5 — favicon SVG
 
@@ -3758,22 +3870,22 @@ Celem aktywacji jest CV z treścią użytkownika przekazane przeglądarce jako P
 
 1. Wybierz darmowy szablon na landingu i uruchom jego CTA. Gość bez lokalnego szkicu trafia bezpośrednio do pola imienia; zwykła konfiguracja pozostaje dostępna przez Nowe CV. Istniejący szkic wymaga zgody na zastąpienie, a nieznany lub płatny parametr szablonu nigdy nie pomija galerii.
 2. Uzupełnij dokument i wybierz **Pobierz PDF**. Najpierw działa dotychczasowa walidacja imienia. Edytor utrwala najnowszy szkic gościa przed otwarciem bramki konta.
-3. Utwórz konto Free lub zaloguj się. Rejestracja próbuje automatycznie zalogować użytkownika, usuwając drugi formularz danych logowania. Intencja pobrania przetrwa obie ścieżki i błąd automatycznego logowania.
+3. Utwórz konto Free lub zaloguj się. Rejestracja hasłem wysyła jednorazowy link i pokazuje opcję ponownej wysyłki; po weryfikacji logowanie wznawia dozwoloną intencję pobrania. Logowanie Google wraca bezpośrednio do tej samej intencji.
 4. Potwierdź **To moje CV — pobierz PDF**. `handleClaimGuestDocumentConfirm` odtwarza dokument i jego odstępy, oznacza onboarding szablonów jako wyświetlony i kolejkuje jeden eksport przypisany do tego dokumentu. Efekt czeka na odtworzony stan React; `handleDownloadClick` używa istniejącego renderowania, limitów, postępu i pobrania przeglądarkowego. Nie wywołuje endpointów tworzenia/aktualizacji zapisu. Zamknięcie zachowuje szkic przeglądarki; błąd eksportu pozostawia odtworzony dokument do edycji i wymaga jawnego ponowienia.
 
-`NewCvSetupModal` używa chronionego Effect Event do automatycznego tworzenia; ten sam formularz obsługuje oczekiwanie, ręczne ponowienie i opcjonalne ustawienia. `signIn(username, password, options)` wysyła istniejący formularz OAuth do `/auth/token`, sprawdza token i zapisuje tylko token oraz nazwę trasy użytkownika. Hasło nigdy nie trafia do storage ani parametrów URL. Samo uwierzytelnienie nie przejmuje szkicu i nie zużywa eksportu. Payloady API, schemat bazy, zależności oraz konfiguracja wdrożenia pozostają bez zmian.
+`NewCvSetupModal` używa chronionego Effect Event do automatycznego tworzenia; ten sam formularz obsługuje oczekiwanie, ręczne ponowienie i opcjonalne ustawienia. `signIn(username, password, options)` wysyła formularz OAuth do `/auth/token` po weryfikacji i zapisuje tylko zwrócony token oraz nazwę trasy użytkownika. Hasło ani token weryfikacyjny nie są utrwalane jako dane logowania; przeglądarka przechowuje tymczasowo wyłącznie dozwolone parametry przepływu. Samo uwierzytelnienie nie przejmuje szkicu i nie zużywa eksportu.
 
 Inwentarz plików: `frontend/src/services/signIn.js` odpowiada za wspólne logowanie; `frontend/src/components/common/AuthLayout/AuthLayout.module.css` za oba układy auth; `frontend/e2e/first-cv-download.spec.js` pokrywa pełny przepływ; [dwujęzyczny audyt onboardingu](docs/ONBOARDING.md) zawiera ustalenia, stany interfejsu i proponowany plan pomiaru. Nie dodano usługi analitycznej ani nowych typów zdarzeń; poprawa konwersji nie została zmierzona.
 
-Weryfikacja 2026-09-09: przeszło 70 właściwych testów Node, 21 testów komponentów, 72 przypadki przeglądarkowe w profilach desktop/mobile i build produkcyjny. Pełny lint nadal zgłasza te same 31 wcześniejszych błędów zarejestrowanych przed zmianą; nie dodano nowych błędów lint.
+Weryfikacja 2026-09-09: przeszło wszystkie 1112 testów źródłowych, 50 testów komponentów runtime, 11 ukierunkowanych scenariuszy przeglądarkowych pierwszego PDF-a, pełny zestaw backendu (w tym 135 subtestów), bramka dokumentacji i build produkcyjny. Każdy plik frontendu zmieniony przez tę funkcję przechodzi ESLint. Pełny lint repozytorium nadal zgłasza 30 wcześniejszych błędów reguł hooków/kompilatora Reacta w niezwiązanych modułach edytora.
 
 Referencje implementacji/testów (aktualne zakresy plików):
 
-- `frontend/src/services/signIn.js`, linie 1–20, `signIn`.
-- `frontend/src/pages/Register/Register.jsx`, linie 1–337, `Register`.
-- `frontend/src/pages/Login/Login.jsx`, linie 1–183, `Login`.
+- `frontend/src/services/signIn.js`, linie 1–25, `establishSession`, `signIn`.
+- `frontend/src/pages/Register/Register.jsx`, linie 1–373, `Register`.
+- `frontend/src/pages/Login/Login.jsx`, linie 1–226, `Login`.
 - `frontend/src/components/editor/NewCvSetupModal/NewCvSetupModal.jsx`, linie 1–398, `NewCvSetupModal`.
-- `frontend/e2e/first-cv-download.spec.js`, linie 1–143, `first-PDF browser scenarios`.
+- `frontend/e2e/first-cv-download.spec.js`, linie 1–160, `first-PDF browser scenarios`.
 
 Polecenia walidacji z `frontend/`: `npm run test:runtime -- src/components/editor/NewCvSetupModal/NewCvSetupModal.runtime.test.jsx src/components/editor/SaveGateModal/SaveGateModal.runtime.test.jsx src/components/editor/ClaimGuestDocumentModal/ClaimGuestDocumentModal.runtime.test.jsx`; `npm run test:e2e -- e2e/first-cv-download.spec.js e2e/hero-templates.spec.js e2e/guest-entry.spec.js e2e/new-cv-setup.spec.js`; `npm run lint`; `npm run build`. Atrapy API izolują wywołania; testy obejmują 390/834/1280/1920px oraz viewport 640px odpowiadający zoomowi 200%, kolejność klawiatury i jeden eksport z najnowszym imieniem bez zapisu. Nie weryfikują pikseli PDF z produkcji.
 
@@ -3783,7 +3895,7 @@ Polecenia walidacji z `frontend/`: `npm run test:runtime -- src/components/edito
 
 Logowanie i rejestracja współdzielą `frontend/src/components/common/AuthLayout/AuthLayout.module.css`. Formularz poprzedza informacje pomocnicze w DOM i kolejności wizualnej: biały papier, ciepły neutralny panel pomocniczy, pola 16px, stałe etykiety, widoczny fokus, kontrolki 44px i brak animacji wejścia. Poniżej 900px panel pomocniczy znajduje się za formularzem. Usunięto dwa nieużywane moduły CSS osobnych tras.
 
-Rejestracja domyślnie wybiera Free; zwykła rejestracja zachowuje opcjonalne zakładki planów. Ścieżka pobierania wybiera Free i zastępuje porównanie planów pozostałymi krokami. Po udanej rejestracji `signIn` korzysta z danych logowania przechowywanych w pamięci. Błąd pobrania tokenu prowadzi do logowania z `registered=1` i pierwotnym `start`, informuje o istnieniu konta i nie ponawia rejestracji. Logowanie, rejestracja, bramki konta i edytor zachowują `start=download`; pobranie nadal wymaga jawnego potwierdzenia własności oraz dotychczasowej kontroli limitów serwera.
+Rejestracja domyślnie wybiera Free; zwykła rejestracja zachowuje opcjonalne zakładki planów. Ścieżka pobierania wybiera Free i zastępuje porównanie planów pozostałymi krokami. Rejestracja hasłem pokazuje wynik wysyłki e-maila i odwracalne ponowienie zamiast automatycznego logowania. `/verify-email` zużywa nieprzezroczysty token jednorazowy, a następnie prowadzi do logowania wyłącznie z wcześniej dozwolonymi parametrami przepływu. Przycisk Google jest renderowany przez dostawcę, a strona konta pozwala jawnie połączyć istniejącą tożsamość hasłową. Logowanie, rejestracja, bramki konta i edytor zachowują `start=download`; pobranie nadal wymaga jawnego potwierdzenia własności oraz dotychczasowej kontroli limitów serwera.
 
 Implementacja: `frontend/src/pages/Login/Login.jsx` (`Login`), `frontend/src/pages/Register/Register.jsx` (`Register`), `frontend/src/services/signIn.js` (`signIn`) i wspólny `AuthLayout.module.css`. Testy i odzyskiwanie po błędzie opisano powyżej w przepływie pierwszego PDF.
 
@@ -3810,7 +3922,7 @@ Implementacja:
 
 Ograniczenia:
 
-- Plan Darmowy obejmuje jedno zapisane CV, **jeden udany import CV na miesiąc UTC**, trzy czyste pobrania PDF miesięcznie oraz szablony Sterling, Linden i Meridian ze wszystkimi sześcioma wersjami wyglądu. Pełny edytor, typografia, odstępy i zarządzanie sekcjami pozostają dostępne; funkcje AI są wyłączone. Pro dodaje wszystkie dziesięć szablonów, nielimitowane projekty/importy/eksporty, AI treści, ATS i Układ za **59 zł / 30 dni**. Stripe Checkout jeszcze nie jest podłączony; przy `ALLOW_UNPAID_PLAN_SELECTION` Pro można aktywować bez płatności.
+- Plan Darmowy obejmuje jedno zapisane CV, **jeden udany import CV na miesiąc UTC**, trzy czyste pobrania PDF miesięcznie oraz szablony Sterling, Linden i Meridian ze wszystkimi sześcioma wersjami wyglądu. Pełny edytor, typografia, odstępy i zarządzanie sekcjami pozostają dostępne; funkcje AI są wyłączone. Pro dodaje wszystkie dziesięć szablonów, nielimitowane projekty/importy/eksporty, AI treści, ATS i Układ za **59 zł / 30 dni**. Produkcyjny zakup korzysta z jednorazowego Stripe Checkout; `ALLOW_UNPAID_PLAN_SELECTION` służy wyłącznie lokalnemu developmentowi.
 - Wskazówki **Czytelność dla ATS** sprawdzają odczyt tekstu z finalnego PDF oraz standardowość nagłówków/słów kluczowych. To wskazówka, nie gwarancja że każdy system ATS odczyta plik tak samo.
 - Sekcja prywatności opisuje ogólnie zaimplementowane użycie danych i nie deklaruje niezaimplementowanych certyfikatów ani anonimizacji.
 
@@ -4844,15 +4956,44 @@ Znane ograniczenia:
 
 ### Auth
 
-Rejestracja odrzuca zajętą nazwę użytkownika oraz zajęty e-mail komunikatem
-HTTP 400 (kontrola e-maila przed zapisem zamienia surowy błąd unikalności bazy,
-czyli 500, na czytelny komunikat), a adres e-mail jest walidowany formatem i
-przycinany przed zapisem.
+Rejestracja hasłem waliduje i kanonizuje nazwę/e-mail, tworzy konto Free
+zablokowane dla logowania, zapisuje wyłącznie digest SHA-256 losowego tokenu i
+prosi Resend o dostarczenie surowego linku ważnego 24 godziny. Odpowiedź 201 nie
+zawiera JWT. `/auth/verify-email` zużywa dowód jeden raz, a
+`/auth/resend-verification` unieważnia starsze aktywne tokeny, nie ujawnia
+istnienia konta i ma limity 10/IP oraz 3/e-mail/godzinę. Poprawne hasło przed
+weryfikacją daje `403 email_unverified`.
 
-- `backend/app/api/routes/auth.py` — `register_user`, unikalność nazwy i e-maila
-- `backend/app/schemas/user_schema.py` — `UserCreateRequest`, walidator formatu e-maila
-- `backend/app/crud/user.py` — `get_user_by_email`
+Przycisk Google renderuje Google Identity Services. Backend sprawdza podpis,
+wystawcę, audience, czas ważności i `email_verified`, a wiązanie zapisuje pod
+niezmiennym Google `sub`. Nowe konto Google otrzymuje Free i zwykły JWT
+aplikacji. Konto hasłowe o tym samym e-mailu nie jest łączone automatycznie:
+użytkownik musi zalogować się hasłem i wywołać `POST /auth/google/link`, gdzie
+kanoniczny e-mail Google musi pasować do konta lokalnego.
+
+Dla Pro `POST /billing/select-plan` wymaga `Idempotency-Key` i tworzy wycenioną
+po stronie serwera sesję Stripe Checkout `mode=payment`. Powrót przeglądarki nie
+aktywuje dostępu. Pro o 30 dni przedłuża wyłącznie webhook z poprawnym podpisem,
+typem zakończonej płatności, `payment_status=paid` oraz odpowiadającym lokalnym
+rekordem pending. Unikalna para provider/sesja i ID zdarzenia sprawiają, że retry
+zwraca `already_processed`; `GET /billing/checkout-session/{id}` udostępnia tylko
+lokalny stan płatności jej zalogowanemu właścicielowi.
+
+Implementacja:
+
+- `backend/app/api/routes/auth.py`, linie 84–361 — `register_user`, `verify_email`, `resend_verification`, `google_login`, `link_google_account`
+- `backend/app/services/email_verification.py`, linie 29–68 — `issue_email_verification_token`, `consume_email_verification_token`
+- `backend/app/services/email_service.py`, linie 16–53 — `send_verification_email`
+- `backend/app/services/google_auth_service.py`, linie 7–18 — `verify_google_credential`
+- `backend/app/api/routes/billing.py`, linie 66–134 i 262–331 — `select_plan`, `stripe_webhook`, `checkout_session_status`
+- `backend/app/services/stripe_service.py`, linie 16–35, i `billing_service.py`, linie 18–68 — granica hostowanego Checkout oraz `fulfill_pro_payment`
 - `backend/app/core/security.py` — Argon2id, rehash legacy bcrypt po udanym logowaniu, kanoniczna tożsamość i wersjonowany JWT Bearer
+- `frontend/src/pages/Auth/VerifyEmail.jsx`, linie 1–53; `frontend/src/components/common/GoogleSignInButton/GoogleSignInButton.jsx`, linie 1–73; `frontend/src/services/authApi.js`, linie 1–42; `frontend/src/pages/Billing/CheckoutResult.jsx`, linie 1–52; i `frontend/src/components/modals/PlanSelectModal/PlanSelectModal.jsx`, linie 20–195 — weryfikacja, logowanie/łączenie, przekierowanie Checkout i prawdziwe stany powrotu
+
+Testy: `backend/tests/test_auth_providers_and_stripe.py`,
+`backend/tests/test_alembic_auth_billing_migration.py`,
+`frontend/src/utils/authBillingFrontend.test.js` oraz
+`frontend/src/utils/siteRoutes.test.js`.
 
 ### Blokada dekoracji
 
@@ -5049,8 +5190,12 @@ URL bazowy: `VITE_API_URL`. Auth: `Authorization: Bearer <jwt>` (chyba że zazna
 |--------|---------|------|-----|---------|
 | GET | `/health` | nie | Liveness / budzenie dyno | `health` |
 | GET | `/ready` | nie | Readiness bazy, headu Alembic i seedu katalogu | `ready` |
-| POST | `/auth/register` | nie | Rejestracja (`plan` opcjonalny, domyślnie Free; UI rejestracji nie oferuje już wyboru) | `register_user` |
-| POST | `/auth/token` | nie | JWT | `login_for_acess_token` |
+| POST | `/auth/register` | nie | Utwórz niezweryfikowane konto hasłowe i wyślij link; odpowiedź 201 bez JWT | `register_user` |
+| POST | `/auth/verify-email` | nie | Jednorazowo zużyj `{ token }` i potwierdź e-mail konta | `verify_email` |
+| POST | `/auth/resend-verification` | nie | Limitowane, nieujawniające istnienia konta ponowienie dla `{ email }` | `resend_verification` |
+| POST | `/auth/google` | nie | Sprawdź `{ credential }`, utwórz/odnajdź konto po Google `sub` i zwróć JWT | `google_login` |
+| POST | `/auth/google/link` | Bearer | Jawnie połącz Google `sub` o tym samym e-mailu z bieżącym kontem | `link_google_account` |
+| POST | `/auth/token` | nie | Hasło OAuth2 → JWT; wymagany potwierdzony e-mail | `login_for_acess_token` |
 | GET | `/auth/verify-token` | Bearer | Walidacja bez ujawniania tokenu w URL | `verify_user_token` |
 | GET | `/auth/me/entitlements` | tak | Limity planu | `me_entitlements` |
 | POST | `/pdf/create_pdf` | tak + `Idempotency-Key` | Utwórz + render na revision 1; identyczne retry robi replay | `create_user_pdf` |
@@ -5073,7 +5218,9 @@ URL bazowy: `VITE_API_URL`. Auth: `Authorization: Bearer <jwt>` (chyba że zazna
 | POST | `/ai/assistant` | tak + `Idempotency-Key` | Ograniczona rozmiarem akcja z atomową rezerwacją i replay | `ai_assistant` |
 | GET | `/templates/catalog` | nie | Cache'owane allowlisted metadata szablonów Free/Pro | `get_template_catalog` |
 | GET | `/billing/plans` | tak | Katalog planów | `get_plans` |
-| POST | `/billing/select-plan` | tak | Aktywacja planu | `select_plan` |
+| POST | `/billing/select-plan` | Bearer; `Idempotency-Key` dla Pro | Wybierz Free/lokalny bypass albo utwórz hostowaną sesję Stripe Checkout dla Pro | `select_plan` |
+| POST | `/billing/webhook` | podpis Stripe | Sprawdź podpis surowego body i idempotentnie rozlicz opłaconą, znaną sesję Checkout | `stripe_webhook` |
+| GET | `/billing/checkout-session/{session_id}` | Bearer | Zwróć właścicielowi lokalny stan pending/succeeded | `checkout_session_status` |
 | POST | `/billing/admin/set-user-plan` | `X-Admin-Secret` | Przypisanie Free/Pro jednej dokładnej nazwie z uwzględnieniem wielkości liter; odpowiedź i audit bez tożsamości konta | `admin_set_user_plan` |
 | POST | `/billing/admin/reset-ai-credits` | `X-Admin-Secret` | Operacyjny reset po numerycznym `user_id`; wyłącznie osobny sekret | `admin_reset_ai_credits` |
 | POST | `/events/log` | tak | Metryki produktu | `log_event` |
@@ -5083,6 +5230,29 @@ URL bazowy: `VITE_API_URL`. Auth: `Authorization: Bearer <jwt>` (chyba że zazna
 `POST /events/log` przyjmuje ustalony słownik zdarzeń, w tym sygnały lejka gościa oraz bieżące źródła CTA: `hero_new_cv`, `hero_import`, `hero_demo` i `templates_new_cv`. Zdarzenia anonimowe są buforowane w `guestEvents.js` i wysyłane po uwierzytelnieniu.
 
 Body administracyjnej zmiany planu ma postać `{ "username": "dokładna-nazwa-z-wielkością-liter", "plan_slug": "free|pro" }`. To wyłącznie kontrolowana operacja supportu: brak konta zwraca `404 user_not_found`, nieobsługiwany plan `400 unknown_plan`, a brak, zbyt krótki lub błędny osobny sekret `403 admin_secret_invalid`.
+
+Nowe kontrakty integracji: rejestracja przyjmuje
+`{"username":"demo","email":"demo@example.test","password":"long-local-password","plan":"free"}`
+i zwraca 201 `{status:"verification_required", email_sent, message}` bez JWT.
+Duplikat kanonicznej tożsamości daje 409, błędne dane 422, a limit IP 429.
+Weryfikacja i ponowienie przyjmują odpowiednio `{"token":"opaque-value"}` i
+`{"email":"demo@example.test"}`. Token błędny/wygasły/zużyty daje 400
+`verification_invalid`; resend zwraca ten sam kształt 202 dla adresu znanego i
+nieznanego.
+
+Logowanie i łączenie Google przyjmują `{"credential":"provider-ID-token"}`.
+Logowanie zwraca `{access_token, token_type, username}`; błędny dowód providera
+daje 401, brak konfiguracji 503, a istniejące konto lokalne z tym e-mailem 409
+`google_link_required`. Łączenie wymaga Bearer i może zwrócić 409 przy niezgodnym
+e-mailu albo Google `sub` należącym już do innego konta.
+
+Wybór Pro wysyła `{"plan_slug":"pro"}` z Bearer i `Idempotency-Key`, a
+odpowiedź zawiera `{plan_slug, payment_required:true, checkout_url,
+checkout_session_id}`. Brak konfiguracji Stripe zachowuje odwracalne 402
+`payment_required`, brak klucza daje 400. Stripe wysyła surowe body oraz
+`Stripe-Signature` do `/billing/webhook`; zły podpis daje 400, a obca sesja 409,
+aby Stripe mógł ponowić. Status właściciela zwraca
+`{"status":"pending|succeeded","plan_slug":"pro"}` albo 404.
 
 Create przyjmuje `{ "pdf_title", "root": [PdfElement...], "render_root": [PdfElement...] | null, "pages", "page_width", "page_height", "editor_mode", "template_id", "cv_data" }`; update/save dodatkowo wymagają `{ "pdf_id", "expected_revision" }`. `root` jest utrwalanym grafem edytora. Opcjonalny `render_root` to zwarta sklonowana kopia używana wyłącznie do bieżącego renderu PDF, więc podpowiedzi startera można odtworzyć, ale nie trafiają do wydruku. `PdfElement` przechowuje `placeholder`, `starterPlaceholder`, `starterSectionKey` i `cvDataBindings` przez `extra_properties`. Create/update/render startera odrzuca puste powiązane imię z `detail.code = "starter_name_required"`. Udany create zwraca `{ created, pdf_id, revision, replayed }`, a update/save nową rewizję.
 
@@ -5097,6 +5267,7 @@ Create przyjmuje `{ "pdf_title", "root": [PdfElement...], "render_root": [PdfEle
 - Account ID Cloudflare i token Workers AI do importu CV
 - Opcjonalnie PostgreSQL oraz klucz OpenAI dla asystenta lub jawnego rollbacku importu
 - Produkcja/Render: prywatny bucket S3 i credentials obiektów AWS są obowiązkowe; dysk lokalny służy wyłącznie development/testom
+- Dla prawdziwego auth/billingu: zweryfikowany nadawca Resend, klient Google OAuth Web, konto/cena Stripe oraz opcjonalnie Stripe CLI do lokalnego przekazywania webhooków
 
 ### Backend
 
@@ -5140,6 +5311,13 @@ Aplikacja: `http://localhost:5173`.
 | `DATABASE_URL` | nie | Baza; domyślnie SQLite | `sqlite:///./pdfgenerator.db` |
 | `APP_ENV` | dla produkcji poza Render | Ustaw `production`, aby włączyć fail-closed checks CORS/storage; Render jest wykrywany automatycznie | `production` |
 | `CORS_ORIGINS` | nie | Lista originów frontendu | `http://localhost:5173` |
+| `FRONTEND_URL` | dla weryfikacji/Checkout | Origin przeglądarki używany w linkach e-mail i powrotu Stripe, bez końcowego ukośnika | `http://localhost:5173` |
+| `RESEND_API_KEY` | dla rejestracji hasłem | Serwerowy sekret Resend; bez prefiksu `VITE_` | `re_...` |
+| `EMAIL_FROM` | z Resend | Zweryfikowany nadawca wiadomości konta | `CV Studio <accounts@example.com>` |
+| `GOOGLE_CLIENT_ID` | dla Google auth | ID klienta OAuth Web używany jako audience ID tokenu | `000000000000-example.apps.googleusercontent.com` |
+| `STRIPE_SECRET_KEY` | dla płatnego Pro | Serwerowy klucz API Stripe | `sk_test_...` |
+| `STRIPE_WEBHOOK_SECRET` | dla płatnego Pro | Sekret podpisu dokładnego endpointu `/billing/webhook` | `whsec_...` |
+| `STRIPE_PRICE_PRO` | dla płatnego Pro | ID jednorazowej ceny Stripe 59 PLN | `price_...` |
 | `CV_EXTRACT_PROVIDER` | nie | `cloudflare` (domyślnie) lub jawny rollback `openai` | `cloudflare` |
 | `CLOUDFLARE_ACCOUNT_ID` | dla Cloudflare | Identyfikator konta Workers AI, tylko backend | `replace-with-account-id` |
 | `CLOUDFLARE_API_TOKEN` | dla Cloudflare | Sekret z Workers AI Read + Edit, tylko backend | `replace-with-token` |
@@ -5161,14 +5339,25 @@ Aplikacja: `http://localhost:5173`.
 | `USD_TO_PLN` | nie | Kurs do telemetrii/kredytów | `4.0` |
 | `S3_BUCKET_NAME` | wymagane w produkcji; opcjonalne dev/test | Prywatny bucket dla wszystkich trwałych zdjęć użytkownika i zapisanych PDF-ów | nazwa bucketu |
 | `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` / `AWS_REGION` | wymagane w produkcji; z lokalnym S3 | Serwerowe credentials prywatnych obiektów i region; nigdy we frontendzie | `eu-north-1` |
-| `ALLOW_UNPAID_PLAN_SELECTION` | nie | Tymczasowa aktywacja Pro bez Stripe | `true` lokalnie |
+| `ALLOW_UNPAID_PLAN_SELECTION` | nie | Bezpośrednia aktywacja wyłącznie do developmentu; false/brak w produkcji | `true` tylko lokalnie |
 | `ADMIN_RESET_SECRET` | dla administracji billingiem | Osobny sekret `X-Admin-Secret` dla przypisania planu i resetu kredytów; bez fallbacku do `SECRET_KEY` | długi losowy tekst |
 | `ALLOW_INSECURE_SECRET` | nie | Wyłącznie throwaway local: pomiń kontrolę silnego `SECRET_KEY` | `true` |
 | `MAX_UPLOAD_BYTES` / `MAX_IMAGES_PER_USER` | nie | Limity zdjęć: 8 MB / 4 | `8388608` / `4` |
 
 #### Frontend
 
-`VITE_API_URL` jest wymagany w buildzie produkcyjnym i wskazuje publiczny origin HTTPS backendu bez ścieżki ani końcowego ukośnika; w development jest opcjonalny, ponieważ domyślnie działa proxy `/api` do lokalnego serwera. Przykład produkcyjny: `https://api.example.test`.
+`VITE_API_URL` jest wymagany w buildzie produkcyjnym i wskazuje publiczny origin HTTPS backendu bez ścieżki ani końcowego ukośnika; w development jest opcjonalny, ponieważ domyślnie działa proxy `/api` do lokalnego serwera. `VITE_GOOGLE_CLIENT_ID` jest publicznym ID klienta OAuth Web i musi być identyczny z backendowym `GOOGLE_CLIENT_ID`. Przykład produkcyjnego API: `https://api.example.test`.
+
+Konfiguracja auth i płatności: zweryfikuj domenę nadawcy w Resend i ustaw
+`EMAIL_FROM`; utwórz w Google klienta OAuth typu **Web application** z originami
+frontendu i skopiuj to samo ID na backend/frontend; utwórz jednorazową cenę
+Stripe 59 PLN i ustaw jej `price_...`; zarejestruj
+`https://<api>/billing/webhook` dla zdarzeń `checkout.session.completed` i
+`checkout.session.async_payment_succeeded`, a jego sekret `whsec_...` zapisz na
+backendzie. Lokalnie można przekazywać zdarzenia poleceniem
+`stripe listen --forward-to localhost:8000/billing/webhook` i użyć sekretu
+wyświetlonego przez CLI. Po zmianie zmiennych zrestartuj backend oraz Vite.
+Sekrety dostawców pozostają wyłącznie po stronie backendu.
 
 Lokalnie skopiuj `backend/.env.example` do `backend/.env`, wstaw Account ID i token do dwóch zmiennych serwerowych, zostaw `CV_EXTRACT_PROVIDER=cloudflare`, a następnie zrestartuj Uvicorn. Nigdy nie dodawaj prefiksu `VITE_` do tokenu — taki sekret zostałby wbudowany w JavaScript przeglądarki.
 
@@ -5190,7 +5379,7 @@ Lokalnie skopiuj `backend/.env.example` do `backend/.env`, wstaw Account ID i to
 
 - Build kończy się błędem `VITE_API_URL is required for a production build`: to zamierzona bramka konfiguracji produkcyjnej, a nie skutek ostrzeżeń npm o podatnościach. Dla `cv-studio-web` zarządzanego przez Blueprint najnowszy `render.yaml` automatycznie kopiuje publiczny `RENDER_EXTERNAL_URL` usługi `cv-studio-api`; zsynchronizuj Blueprint i ponów wdrożenie. Jeśli statyczny frontend utworzono ręcznie — albo jego build command różni się od Blueprintu — ustaw `VITE_API_URL` w Environment **statycznej usługi frontendowej** na publiczny origin HTTPS wdrożonego backendu, bez ścieżki i końcowego ukośnika, po czym wybierz **Save, rebuild, and deploy**.
 - API kończy pracę z błędem `Production CORS_ORIGINS must use HTTPS`: przed ponownym wdrożeniem zsynchronizuj najnowszy Blueprint. Kopiuje on publiczny `RENDER_EXTERNAL_URL` statycznego frontendu do `CORS_ORIGINS` obu usług Pythona oraz wygenerowany URL API do `BACKEND_URL`, zastępując przestarzałe ręcznie wpisane wartości HTTP. Dla usług niezarządzanych przez Blueprint ustaw `CORS_ORIGINS` wyłącznie na publiczny origin HTTPS frontendu, a `BACKEND_URL` na publiczny origin HTTPS API.
-- 503 po wdrożeniu: `/health` potwierdza tylko działanie procesu. Sprawdź `/ready` i logi Render. Usługa zarządzana przez Blueprint musi wykonać skonfigurowany pre-deploy. Starsza usługa zarządzana ręcznie w panelu Render automatycznie próbuje po starcie workera wykonać idempotentny bootstrap migracji i seedów oraz loguje próbę albo jej błąd; poczekaj, aż `/ready` zwróci 200. Jeśli nadal zwraca 503, sprawdź połączenie z bazą, head Alembic `20260901_0015`, dokładny katalog planów, konfigurację prywatnego S3 oraz — dla SQLite — integralność kluczy obcych. Nie omijaj nieudanej migracji przez `alembic stamp`.
+- 503 po wdrożeniu: `/health` potwierdza tylko działanie procesu. Sprawdź `/ready` i logi Render. Usługa zarządzana przez Blueprint musi wykonać skonfigurowany pre-deploy. Starsza usługa zarządzana ręcznie w panelu Render automatycznie próbuje po starcie workera wykonać idempotentny bootstrap migracji i seedów oraz loguje próbę albo jej błąd; poczekaj, aż `/ready` zwróci 200. Jeśli nadal zwraca 503, sprawdź połączenie z bazą, head Alembic `20260909_0016`, dokładny katalog planów, konfigurację prywatnego S3 oraz — dla SQLite — integralność kluczy obcych. Nie omijaj nieudanej migracji przez `alembic stamp`.
 - SQLite zgłasza `No support for ALTER of constraints`: błąd pochodził ze starszej wersji rewizji `0005`. Aktualna migracja używa batch mode i potrafi kontynuować, gdy tabela lub kolumna zostały już zatwierdzone. Pozostaw wersję Alembic bez zmian, zrób kopię bazy i ponów `python -m alembic upgrade head`; nie usuwaj częściowo utworzonej tabeli i nie omijaj relacji przez `alembic stamp`.
 - Asystent / Układ: `wakeBackend` + retry sieci (bez ponawiania AbortError); `layout` ma timeout do 240 s pod `gpt-5.6-terra`.
 - Import CV 503 „nie skonfigurowany”: sprawdź `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN`, `CV_EXTRACT_PROVIDER=cloudflare` i zrestartuj backend.
@@ -5223,15 +5412,15 @@ Lokalnie skopiuj `backend/.env.example` do `backend/.env`, wstaw Account ID i to
 
 `render.yaml` definiuje podział produkcyjny w regionie Frankfurt platformy Render. API i cron cleanup korzystają z płatnego compute `0.5c-512mb`, a PostgreSQL z trwałego płatnego planu `0.1c-256mb`: Render udostępnia pre-deploy commands tylko dla płatnego compute, a darmowy PostgreSQL nie jest warstwą retencji produkcyjnej.
 
-- Backend: Uvicorn/FastAPI + Postgres + obowiązkowe prywatne S3. Blueprint wyprowadza `CORS_ORIGINS` z publicznego `RENDER_EXTERNAL_URL` frontendu, a `BACKEND_URL` z własnego publicznego URL backendu. W Render → backend → Environment ustaw bucket, trzy zmienne AWS credentials/region, `CV_EXTRACT_PROVIDER`, `CLOUDFLARE_ACCOUNT_ID` i `CLOUDFLARE_API_TOKEN`; override modeli dodawaj tylko świadomie. Po zapisie wykonaj restart/redeploy.
+- Backend: Uvicorn/FastAPI + Postgres + obowiązkowe prywatne S3. Blueprint wyprowadza adresy CORS/backend/frontend z usług Render. W Environment ustaw AWS i AI oraz `RESEND_API_KEY`, `EMAIL_FROM`, `GOOGLE_CLIENT_ID`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` i `STRIPE_PRICE_PRO`; `ALLOW_UNPAID_PLAN_SELECTION` pozostaw false. Po zapisie wykonaj restart/redeploy.
 - Cron storage cleanup: usługa Starter współdzieli Postgres i tę samą konfigurację prywatnego S3, co pięć minut uruchamia `python -m app.services.storage_cleanup_worker` i kończy się po jednej ograniczonej partii.
-- Frontend statyczny: Root Directory `frontend`, Build Command `npm ci && npm run build`, Publish Directory `dist` (albo SPA z `main.py`, gdy `frontend/dist` jest dostępny). Blueprint przekazuje do `VITE_API_URL` publiczny `RENDER_EXTERNAL_URL` backendu przed buildem Vite. Ręcznie utworzona usługa statyczna musi zamiast tego mieć `VITE_API_URL=https://<rzeczywisty-host-backendu>.onrender.com` we własnych ustawieniach Environment przed ponownym buildem.
+- Frontend statyczny: Root Directory `frontend`, Build Command `npm ci && npm run build`, Publish Directory `dist` (albo SPA z `main.py`). Blueprint przekazuje `VITE_API_URL`; publiczne `VITE_GOOGLE_CLIENT_ID` ustaw na to samo ID klienta Web co na backendzie. Ręcznie utworzona usługa musi mieć obie wartości przed buildem.
 
 Backendowy `preDeployCommand` uruchamia `python -m app.services.deployment_bootstrap`; błąd zatrzymuje wdrożenie zarządzane przez Blueprint. Komenda wykonuje wyłącznie addytywne migracje i seed billing — historyczny cleanup nigdy nie jest automatycznym skutkiem deployu. Ponieważ usługi utworzone ręcznie w panelu Render nie przejmują automatycznie późniejszych komend z `render.yaml`, lifespan web ma zgodnościową ścieżkę odzyskiwania tylko dla Render: najpierw sprawdza readiness i uruchamia ten sam idempotentny bootstrap w tle wyłącznie wtedy, gdy stan jest nieaktualny. Render sprawdza `/ready`, a `/health` pozostaje liveness bez zależności podczas odzyskiwania i diagnozy.
 
 Produkcja odmawia startu bez S3 albo któregokolwiek AWS credential/region. Zachowaj Object Ownership jako Bucket owner enforced, wszystkie cztery ustawienia Block Public Access i brak publicznej polityki bucketu. Aplikacja nie wysyła ACL przy `PutObject`; zapisany HTTPS locator jest wewnętrzny, a bajty PDF zwraca tylko uwierzytelniony endpoint z kontrolą właściciela i naliczeniem limitu. Publiczna polityka omijałaby te zabezpieczenia i nie jest wspierana. Filesystem lokalny jest obsługiwany wyłącznie w development i testach.
 
-Migracje: pre-deploy musi osiągnąć head `20260901_0015`. Nie używaj `alembic stamp`, aby ominąć błąd. Dual-read Storage V2 i triggery `0015` utrzymują okno rollbacku N-1; pola i triggery zgodności można usunąć dopiero po dwóch zweryfikowanych wydaniach i sprawdzonym backfillu.
+Migracje: pre-deploy musi osiągnąć head `20260909_0016`. Nie używaj `alembic stamp`, aby ominąć błąd. Rewizja `0016` oznacza istniejące konta jako zweryfikowane i dodaje ograniczenia tożsamości/płatności; dual-read Storage V2 i triggery `0015` utrzymują okno rollbacku N-1.
 
 CI/CD: `.github/workflows/ci.yml` jest częścią repozytorium i przed wdrożeniem bramkuje backend, frontend, przeglądarkę, zależności, sekrety i budżet bundle.
 
@@ -5248,10 +5437,13 @@ CI/CD: `.github/workflows/ci.yml` jest częścią repozytorium i przed wdrożeni
 - Wygenerowane PDF-y: niezmienne klucze serwera, containment root, walidowany dual-read legacy, prywatne S3 w produkcji (local tylko dev/test), ukrywanie lokalizatora API, owner-checked download, atomowe naliczenie eksportu i trwała kompensacja cleanup. S3 nadal wymaga Block Public Access po stronie operatora.
 - Współbieżność: optymistyczne rewizje zapobiegają nadpisaniu nowszego zapisu; idempotencja create i asystenta zapobiega duplikatom persistence/naliczeń; kredyty AI są rezerwowane atomowo przed I/O providera.
 - Rejestracja: duplikat kanonicznego username/e-mail daje stabilny 409; format e-mail i granice hasła waliduje schema.
+- Weryfikacja e-maila: losowy token wygasa po 24 godzinach, baza zapisuje tylko digest SHA-256, zużycie jest jednorazowe pod blokadą wiersza, a resend zastępuje poprzedni dowód. Odpowiedź nie ujawnia konta; Resend otrzymuje adres i link.
+- Google: serwer sprawdza podpis/wystawcę/audience/ważność oraz `email_verified`, wiąże przez niezmienne `sub` i wymaga zalogowanej lokalnej sesji o tym samym e-mailu do połączenia. Sekret klienta nie trafia do przeglądarki.
+- Stripe: sekret i ID ceny są serwerowe; webhook sprawdza podpis surowego body, przyjmuje wyłącznie opłacone zakończenie znanej lokalnej sesji i używa ograniczeń unikalności oraz blokad wierszy. Pełne dane karty pozostają w hostowanym Checkout.
 - Błędy importu CV mają stabilne kody i bezpieczne 422/429/502/503; asystent zwraca ogólne 500. Surowe szczegóły dostawcy nie trafiają do klienta.
 - Prywatność CV: bajty PDF są walidowane w pamięci, wysyłane server-to-server do skonfigurowanego dostawcy i odrzucane; historia zapisuje znormalizowane pola i metadane, nigdy źródłowy PDF. Cloudflare deklaruje, że nie trenuje modeli na Customer Content, ale nadal jest to przetwarzanie przez stronę trzecią i musi być opisane w polityce prywatności produktu. Zob. [Workers AI data usage](https://developers.cloudflare.com/workers-ai/platform/data-usage/).
 - Prywatność replay asystenta: rekord rezerwacji zapisuje wyłącznie kanoniczny hash żądania, nie przesłane body; rekord rozliczony przechowuje przypisany do konta JSON odpowiedzi potrzebny do dokładnego replay idempotency. Żaden cross-user listing endpoint go nie ujawnia.
-- Sekrety dostawców: Account ID/token Cloudflare i klucz OpenAI tylko w env backendu; żadna zmienna `VITE_` nie może ich zawierać.
+- Sekrety Cloudflare, OpenAI, Resend i Stripe są wyłącznie w env backendu. `VITE_GOOGLE_CLIENT_ID` jest celowo publiczne; żadna zmienna `VITE_` nie może zawierać sekretu dostawcy.
 - Metryki z `user_id`, nie raw username.
 - Sekrety tylko w env.
 - Administracja billingiem: osobny `ADMIN_RESET_SECRET`, stałoczasowe porównanie `X-Admin-Secret`, dokładna nazwa z wielkością liter dla zmiany planu, niezmienny numeryczny cel dla resetu kredytów, zredagowane referencje audytu i brak fallbacku do sekretu JWT.
@@ -5283,7 +5475,8 @@ Zobacz sklasyfikowany rejestr błędów [`docs/BUGZ.MD`](docs/BUGZ.MD) oraz dato
 
 Odhaczana roadmapa produktu, UX i komercjalizacji jest utrzymywana w [`docs/CV_STUDIO_PRODUCT_UX_ROADMAP.md`](docs/CV_STUDIO_PRODUCT_UX_ROADMAP.md). Dokument zapisuje ukończone zmiany, oczekujące rekomendacje, dowody weryfikacji i świadomie zastąpione pomysły. Szczegółowa roadmapa implementacji Final Check pozostaje na razie poza tym artefaktem.
 
-- Stripe Checkout nie jest domknięty.
+- Refund lub spór widoczny w Stripe nie cofa jeszcze automatycznie aktywowanego 30-dniowego dostępu; operator musi zastosować przyjętą politykę ręcznie.
+- Dostarczanie wiadomości, stan ekranu zgody Google i przyjmowanie płatności Stripe zależą od poprawnych kont dostawców oraz zweryfikowanych domen; testy automatyczne korzystają z granic/moków zamiast prawdziwych transakcji klienta.
 - Free Render usypia dyno.
 - Zwykły czat asystenta może proponować zmiany geometrii; `layout_analysis` zatwierdza bezpieczne współrzędne, zanim UI pokaże karty do akceptacji. Kolizje i ucięcia dają grupy krytyczne przed kosmetycznym wyrównaniem.
 - Dokument w trybie gościa istnieje wyłącznie w `localStorage` przeglądarki odwiedzającego, dopóki nie zostanie przejęty przez konto; wyczyszczenie danych strony albo zmiana urządzenia powoduje utratę nieprzejętej pracy — zob. [Tryb gościa](#tryb-gościa-edytor-bez-konta).
@@ -5302,6 +5495,9 @@ Odhaczana roadmapa produktu, UX i komercjalizacji jest utrzymywana w [`docs/CV_S
 - [Przewodnik Vitest](https://vitest.dev/guide/) — oficjalna konfiguracja testów jsdom/runtime używana przez `npm run test:runtime`.
 - [Playwright Test](https://playwright.dev/docs/intro) — oficjalny runner testów przeglądarkowych dla izolowanej suity smoke Chromium.
 - [API argon2-cffi](https://argon2-cffi.readthedocs.io/en/stable/api.html) — oficjalny opis `PasswordHasher` i rehashu używanego w migracji haseł.
+- [Weryfikacja ID tokenu Google](https://developers.google.com/identity/gsi/web/guides/verify-google-id-token) — oficjalne reguły backendu i użycia niezmiennego `sub`.
+- [Fulfillment Stripe Checkout](https://docs.stripe.com/checkout/fulfillment) — oficjalne zalecenia webhooków i idempotentnej aktywacji Pro.
+- [Konfiguracja domeny Resend](https://resend.com/docs/dashboard/domains/introduction) — oficjalne wskazówki weryfikacji nadawcy i DNS.
 - [Wdrożenia i pre-deploy w Render](https://render.com/docs/deploys) — oficjalny lifecycle migracji wykonywanych przed startem Uvicorn.
 - [FastAPI](https://fastapi.tiangolo.com/)
 - Przypięte wydania backendu w PyPI: [FastAPI 0.141.1](https://pypi.org/project/fastapi/0.141.1/), [Starlette 1.6.0](https://pypi.org/project/starlette/1.6.0/), [python-multipart 0.0.32](https://pypi.org/project/python-multipart/0.0.32/), [PyJWT 2.13.0](https://pypi.org/project/PyJWT/2.13.0/), [cryptography 50.0.1](https://pypi.org/project/cryptography/50.0.1/), [PyMuPDF 1.28.2](https://pypi.org/project/PyMuPDF/1.28.2/) i [python-dotenv 1.2.3](https://pypi.org/project/python-dotenv/1.2.3/) — oficjalne metadane pakietów zgodne z `backend/requirements.txt`.

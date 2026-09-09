@@ -37,6 +37,10 @@ export const ENDPOINTS = {
         REGISTER: "/auth/register",
         TOKEN: "/auth/verify-token",
         ENTITLEMENTS: "/auth/me/entitlements",
+        VERIFY_EMAIL: "/auth/verify-email",
+        RESEND_VERIFICATION: "/auth/resend-verification",
+        GOOGLE: "/auth/google",
+        GOOGLE_LINK: "/auth/google/link",
     },
     AI: {
         EXTRACT_CV: "/ai/extract_cv",
@@ -52,6 +56,7 @@ export const ENDPOINTS = {
     BILLING: {
         PLANS: "/billing/plans",
         SELECT_PLAN: "/billing/select-plan",
+        CHECKOUT_SESSION: (sessionId) => `/billing/checkout-session/${encodeURIComponent(sessionId)}`,
     },
 }
 

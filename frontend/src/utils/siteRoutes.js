@@ -40,6 +40,29 @@ export function authLink(path, params) {
   return `${path}${next.size ? `?${next}` : ''}`;
 }
 
+const PENDING_AUTH_INTENT_KEY = 'cvstudio.pending-auth-intent';
+
+/** Persist only the allow-listed authentication intent so an email opened in a new tab can resume it. */
+export function savePendingAuthIntent(params) {
+  if (typeof window === 'undefined') return;
+  const sanitized = authLink('/login', params);
+  const query = sanitized.includes('?') ? sanitized.slice(sanitized.indexOf('?') + 1) : '';
+  window.localStorage.setItem(PENDING_AUTH_INTENT_KEY, query);
+}
+
+/** Re-validate the stored query before using it; local storage is untrusted input. */
+export function getPendingAuthIntent() {
+  if (typeof window === 'undefined') return new URLSearchParams();
+  const stored = new URLSearchParams(window.localStorage.getItem(PENDING_AUTH_INTENT_KEY) || '');
+  const sanitized = authLink('/login', stored);
+  return new URLSearchParams(sanitized.includes('?') ? sanitized.slice(sanitized.indexOf('?') + 1) : '');
+}
+
+/** Clear an intent only after authentication succeeds and navigation can continue. */
+export function clearPendingAuthIntent() {
+  if (typeof window !== 'undefined') window.localStorage.removeItem(PENDING_AUTH_INTENT_KEY);
+}
+
 /** Explicit tasks win; a browser draft retains its existing ownership-claim flow. */
 export function postAuthPath(params) {
   const destination = safeReturnTo(params.get('returnTo'));
@@ -48,6 +71,7 @@ export function postAuthPath(params) {
   if (['import', 'new', 'wizard', 'templates', 'download'].includes(start)) {
     return getEditorPath({ start, template: params.get('template') });
   }
+  if (params.get('plan') === 'pro') return '/app/account?purchase=pro';
   const draft = loadGuestDocument();
   return draft?.elements?.length && !draft.isDemoContent ? getEditorPath() : DOCUMENTS_PATH;
 }
