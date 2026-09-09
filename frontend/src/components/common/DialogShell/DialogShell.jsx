@@ -84,7 +84,13 @@ export default function DialogShell({
 
             const focusableControls = Array.from(
                 dialogRef.current.querySelectorAll(focusableSelector),
-            ).filter((element) => element.getAttribute("aria-hidden") !== "true");
+            ).filter((element) => {
+                // Disabled fieldsets disable descendants without adding their
+                // own disabled attributes. CSS-hidden responsive disclosures
+                // must also stay outside the modal's keyboard loop.
+                if (element.matches(":disabled") || element.getAttribute("aria-hidden") === "true") return false;
+                return typeof element.checkVisibility !== "function" || element.checkVisibility({ visibilityProperty: true });
+            });
 
             if (focusableControls.length === 0) {
                 event.preventDefault();

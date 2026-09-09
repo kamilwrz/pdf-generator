@@ -11,7 +11,7 @@ describe("NewCvSetupModal contract", () => {
     assert.equal((source.match(/<DialogShell/g) || []).length, 1);
     assert.match(source, /surface="paper"/);
     assert.match(source, /Wybrany szablon: \{selectedTemplate.name\}/);
-    assert.match(source, /STARTER_CONTACTS\.map/);
+    assert.match(source, /STARTER_CONTACTS\.filter/);
     assert.match(source, /Imię i nazwisko/);
     assert.match(source, /Własna sekcja/);
     assert.match(source, /draggable/);

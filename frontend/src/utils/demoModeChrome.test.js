@@ -106,8 +106,8 @@ test("new CV onboarding uses one setup dialog for guests and accounts", async ()
   const starter = await source("utils/cvStarter.js");
 
   assert.match(setup, /<DialogShell/);
-  assert.match(setup, /Skonfiguruj nowe CV/);
-  assert.match(setup, /Utwórz A4/);
+  assert.match(setup, /Utwórz CV/);
+  assert.match(setup, /Rozpocznij edycję/);
   assert.match(setup, /draggable/);
   assert.match(starter, /STARTER_TEMPLATE_ID = "meridian"/);
   assert.doesNotMatch(setup, /stepper|wizardStep/);

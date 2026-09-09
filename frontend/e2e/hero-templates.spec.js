@@ -11,15 +11,12 @@ for (const name of ["Sterling", "Meridian", "Linden"]) {
     await expect(hero.getByRole("radio", { name, exact: true })).toBeChecked();
     await expect(hero.getByRole("link", { name: "Użyj tego szablonu" })).toHaveAttribute("href", `/cvstudio/guest?start=new&template=${name.toLowerCase()}`);
     await hero.getByRole("link", { name: "Użyj tego szablonu" }).click();
-    const setup = page.getByRole("dialog", { name: "Skonfiguruj nowe CV" });
-    await expect(setup.getByRole("heading", { name: "Zacznij od najważniejszych danych." })).toBeFocused();
+    const setup = page.getByRole("dialog", { name: "Utwórz CV" });
+    await expect(setup.getByRole("heading", { name: /Wybrany szablon:/ })).toBeFocused();
     await expect(page).toHaveURL(/\/cvstudio\/guest$/);
-    await setup.getByRole("button", { name: "Wstecz" }).click();
-    await expect(setup.getByRole("radio", { name: new RegExp(name) })).toBeChecked();
-    await setup.getByRole("button", { name: "Dalej: kontakt" }).click();
-    await setup.getByRole("button", { name: "Dalej: sekcje" }).click();
+    await expect(setup.getByRole("radio")).toHaveCount(0);
     const request = page.waitForRequest((request) => request.url().endsWith("/ai/fill_template") && request.method() === "POST");
-    await setup.getByRole("button", { name: "Utwórz A4" }).click();
+    await setup.getByRole("button", { name: "Rozpocznij edycję" }).click();
     expect((await request).postDataJSON().template_id).toBe(name.toLowerCase());
     await expect(setup).toHaveCount(0);
     await expect(page.locator('[contenteditable="true"][data-placeholder="Imię i nazwisko"]')).toBeFocused();
@@ -50,7 +47,7 @@ test("unavailable images retain template selection and a working CTA", async ({ 
   const hero = page.locator("#top");
   await expect(hero.getByText("Podgląd niedostępny. Wybór szablonu i przejście do konfiguracji nadal działają.")).toBeVisible();
   await hero.getByRole("link", { name: "Użyj tego szablonu" }).click();
-  await expect(page.getByRole("heading", { name: "Zacznij od najważniejszych danych." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Wybrany szablon:/ })).toBeVisible();
 });
 
 test("paid and unknown template links fall back to the ordinary picker", async ({ page }) => {
@@ -68,8 +65,8 @@ test("workspace and legacy redirects preserve a Free selection", async ({ page }
   for (const path of ["/cvstudio/guest", "/pdfcanvas"]) {
     await page.goto(`${path}?start=new&template=sterling`);
     await expect(page).toHaveURL(/\/cvstudio\/Kamil$/);
-    await expect(page.getByRole("heading", { name: "Zacznij od najważniejszych danych." })).toBeFocused();
-    await page.getByRole("button", { name: "Wstecz" }).click();
+    await expect(page.getByRole("heading", { name: /Wybrany szablon:/ })).toBeFocused();
+    await page.getByRole("button", { name: "Zmień szablon" }).click();
     await expect(page.getByRole("radio", { name: /Sterling/ })).toBeChecked();
   }
 });
@@ -118,9 +115,9 @@ test("compact CTA keeps the selection and dismissed setup does not reopen on ref
   const hero = page.locator("#top");
   await hero.locator("label").filter({ hasText: "Meridian" }).click();
   await hero.getByRole("link", { name: "Użyj wybranego szablonu" }).click();
-  await expect(page.getByRole("heading", { name: "Zacznij od najważniejszych danych." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Wybrany szablon:/ })).toBeVisible();
   await page.keyboard.press("Escape");
   await page.reload();
-  await expect(page.getByRole("dialog", { name: "Skonfiguruj nowe CV" })).toHaveCount(0);
-  await expect(page).toHaveURL(/\/cvstudio\/guest$/);
+  await expect(page.getByRole("dialog", { name: "Utwórz CV" })).toHaveCount(0);
+  await expect(page).toHaveURL("/");
 });

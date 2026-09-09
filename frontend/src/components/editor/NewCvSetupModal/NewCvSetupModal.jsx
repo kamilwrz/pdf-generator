@@ -1,14 +1,14 @@
 /**
- * Configures a new editable A4 CV in three fullscreen steps, retaining choices
- * across navigation and failed creation. The shared shell owns modality; this
- * component owns step focus, configuration, and user-document replacement consent.
+ * Starts an editable CV from template defaults, with optional configuration.
+ * Choices survive collapsed controls and failed creation. The shared shell owns
+ * modality; this component owns disclosures and document replacement consent.
  *
  * Product-owned sample content may opt into replacement without confirmation.
  * This keeps the demo-to-editor transition direct while preserving the guard
  * for saved and unsaved documents that belong to the user.
  */
 import { useEffect, useId, useMemo, useRef, useState } from "react";
-import { FiArrowDown, FiArrowUp, FiCheck, FiMenu } from "react-icons/fi";
+import { FiArrowDown, FiArrowUp, FiCheck, FiChevronDown, FiMenu } from "react-icons/fi";
 import DialogShell from "../../common/DialogShell/DialogShell";
 import { TEMPLATES } from "../../../templates";
 import { isTemplateAllowed } from "../../../utils/entitlements";
@@ -21,12 +21,23 @@ import {
 } from "../../../utils/cvStarter.js";
 import classes from "./NewCvSetupModal.module.css";
 
-const STEPS = ["Szablon", "Nagłówek i kontakt", "Sekcje i kolejność"];
-const COMPACT_STEPS = ["Szablon", "Kontakt", "Sekcje"];
 // Put the starting choice and other Free layouts above the fold, especially
 // on phones. Keep this order stable when account entitlements arrive.
 const templatePriority = (template) => template.id === STARTER_TEMPLATE_ID ? 0 : template.tier === "free" ? 1 : 2;
 const SETUP_TEMPLATES = [...TEMPLATES].sort((left, right) => templatePriority(left) - templatePriority(right));
+
+/** Reserve A4 geometry during loading/failure without blocking template choice. */
+function TemplateImage({ template, preview = false }) {
+  const [state, setState] = useState("loading");
+  return <span className={classes.imageFrame} data-state={state}>
+    {state === "error" ? <span className={classes.imageFallback}>Podgląd niedostępny</span> : <img
+      src={`/template-mockups/${template.id}.png`}
+      alt={preview ? `Przykładowy wygląd szablonu ${template.name}` : ""}
+      onLoad={() => setState("ready")}
+      onError={() => setState("error")}
+    />}
+  </span>;
+}
 
 function moveItem(items, index, direction) {
   const nextIndex = direction === "up" ? index - 1 : index + 1;
@@ -53,28 +64,40 @@ export default function NewCvSetupModal({
     ...(initialTemplate ? { templateId: initialTemplate.id } : {}),
   }));
   const [confirmReplacement, setConfirmReplacement] = useState(hasActiveDocument);
-  const [step, setStep] = useState(initialTemplate ? 1 : 0);
+  const [templatesOpen, setTemplatesOpen] = useState(!initialTemplate);
+  const [moreTemplates, setMoreTemplates] = useState(false);
+  const [customizationOpen, setCustomizationOpen] = useState(false);
+  const [linksOpen, setLinksOpen] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
   const [customTitle, setCustomTitle] = useState("");
   const [customError, setCustomError] = useState("");
   const [draggedKey, setDraggedKey] = useState(null);
   const [dropKey, setDropKey] = useState(null);
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
+  const [sectionError, setSectionError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const customInputId = useId();
-  const stepHeadingRef = useRef(null);
+  const sectionHeadingRef = useRef(null);
   const customInputRef = useRef(null);
-  const previousStepRef = useRef(step);
+  const templateGridRef = useRef(null);
+  const previousTemplatesOpenRef = useRef(templatesOpen);
+  const submittingRef = useRef(false);
 
-  // Moving between steps preserves configuration but resets reading position.
-  // Focus the new heading only on a real step change; the shared shell owns
-  // opening focus and restoration to the original editor trigger.
+  // Only an explicit gallery expansion moves focus. Changing the selection or
+  // receiving account entitlements must not steal focus from the active control.
   useEffect(() => {
-    if (previousStepRef.current === step) return;
-    previousStepRef.current = step;
-    stepHeadingRef.current?.focus({ preventScroll: true });
-    stepHeadingRef.current?.closest(`.${classes.workspace}`)?.parentElement?.scrollTo?.(0, 0);
-  }, [step]);
+    if (templatesOpen && !previousTemplatesOpenRef.current) {
+      templateGridRef.current?.querySelector("input:checked")?.focus();
+    }
+    previousTemplatesOpenRef.current = templatesOpen;
+  }, [templatesOpen]);
+
+  // Validation can originate from the persistent action while settings are
+  // collapsed. Reveal the section choices before moving focus to their error.
+  useEffect(() => {
+    if (sectionError && customizationOpen) sectionHeadingRef.current?.focus();
+  }, [sectionError, customizationOpen]);
 
   const selectedTemplate = useMemo(
     () => TEMPLATES.find((template) => template.id === config.templateId) || TEMPLATES[0],
@@ -82,12 +105,6 @@ export default function NewCvSetupModal({
   );
   const photoSupported = PHOTO_TEMPLATE_IDS.has(selectedTemplate.id);
   const selectedSectionCount = config.sections.filter((section) => section.selected).length;
-
-  function navigateStep(nextStep) {
-    if (submitting) return;
-    setError("");
-    setStep(nextStep);
-  }
 
   // Native radio inputs provide one Tab stop and arrow-key selection, including
   // skipping unavailable Pro templates, without a second custom keyboard model.
@@ -116,6 +133,7 @@ export default function NewCvSetupModal({
 
   function toggleSection(key) {
     setError("");
+    setSectionError("");
     setConfig((current) => ({
       ...current,
       sections: current.sections.map((item) => (
@@ -168,16 +186,20 @@ export default function NewCvSetupModal({
     setCustomTitle("");
     setCustomError("");
     setError("");
+    setSectionError("");
     setStatus(`Dodano sekcję ${label}.`);
     customInputRef.current?.focus();
   }
 
   async function submit() {
-    if (submitting) return;
+    if (submittingRef.current) return;
     if (!config.sections.some((item) => item.selected)) {
-      setError("Wybierz co najmniej jedną sekcję CV.");
+      setSectionError("Wybierz co najmniej jedną sekcję CV.");
+      setCustomizationOpen(true);
       return;
     }
+    // The ref also rejects a second activation before React commits disabled UI.
+    submittingRef.current = true;
     setSubmitting(true);
     setError("");
     try {
@@ -190,6 +212,7 @@ export default function NewCvSetupModal({
     } catch (creationError) {
       setError(creationError?.message || "Nie udało się utworzyć nowego CV. Konfiguracja została zachowana.");
     } finally {
+      submittingRef.current = false;
       setSubmitting(false);
     }
   }
@@ -198,17 +221,17 @@ export default function NewCvSetupModal({
     <div className={classes.footerActions}>
       <button type="button" className={classes.secondaryButton} onClick={onClose}>Anuluj</button>
       <button data-confirm-new-cv type="button" className={classes.primaryButton} onClick={() => setConfirmReplacement(false)}>
-        Skonfiguruj nowe CV
+        Utwórz nowe CV
       </button>
     </div>
   ) : (
     <div className={classes.footerBar}>
-      <div className={classes.footerFeedback}><p className={classes.footerHint}><strong>Krok {step + 1} z 3</strong><span>Treść uzupełnisz w edytorze. Konto dopiero przy zapisie lub eksporcie.</span></p>{error && <p className={classes.error} role="alert">{error}</p>}{submitting && <p className={classes.fieldError} role="status">Przygotowujemy pola i układ Twojego CV…</p>}</div>
+      <div className={classes.footerFeedback}><p className={classes.footerHint}>Zaczniesz bez konta. Zapis i pobranie PDF wymagają bezpłatnego konta.</p>{error && <p className={classes.error} role="alert">{error}</p>}{submitting && <p className={classes.fieldError} role="status">Tworzenie CV…</p>}</div>
       <div className={classes.footerActions}>
-        <button type="button" className={classes.secondaryButton} onClick={step === 0 ? onClose : () => navigateStep(step - 1)} disabled={submitting}>{step === 0 ? "Anuluj" : "Wstecz"}</button>
-        {step < 2 ? <button type="button" className={classes.primaryButton} onClick={() => navigateStep(step + 1)}>Dalej: {step === 0 ? "kontakt" : "sekcje"}</button> : <button type="button" className={classes.primaryButton} onClick={submit} disabled={submitting}>
-          {submitting ? "Tworzenie A4…" : "Utwórz A4"}
-        </button>}
+        <button type="button" className={classes.secondaryButton} onClick={onClose} disabled={submitting}>Anuluj</button>
+        <button type="button" className={classes.primaryButton} onClick={submit} disabled={submitting}>
+          {submitting ? "Tworzenie CV…" : error ? "Spróbuj ponownie" : "Rozpocznij edycję"}
+        </button>
       </div>
     </div>
   );
@@ -220,31 +243,30 @@ export default function NewCvSetupModal({
       width={560}
       variant={confirmReplacement ? "modal" : "fullscreen"}
       surface="paper"
-      title={confirmReplacement ? "Utworzyć nowe CV?" : "Skonfiguruj nowe CV"}
+      title={confirmReplacement ? "Utworzyć nowe CV?" : "Utwórz CV"}
       subtitle={confirmReplacement
         ? "Obecny dokument pozostanie zapisany bez zmian. Nowe CV rozpocznie się jako niezapisany projekt."
-        : "Najpierw układ, potem zawartość. Przygotuj punkt wyjścia dla swojego CV."}
+        : "Wybierz szablon i uzupełnij swoje dane w edytorze."}
       footer={footer}
-      initialFocusSelector={confirmReplacement ? "[data-confirm-new-cv]" : initialTemplate ? "#new-cv-contact-heading" : "[data-template-selected='true']"}
+      initialFocusSelector={confirmReplacement ? "[data-confirm-new-cv]" : initialTemplate ? "#new-cv-template-heading" : "[data-template-selected='true']"}
     >
       {confirmReplacement ? (
         <div className={classes.confirmation}>
-          <p>Po przejściu dalej wybierzesz szablon, kontakty i kolejność sekcji. Poprzedni zapisany projekt nie zostanie nadpisany.</p>
+          <p>Wybierz szablon i rozpocznij nowe CV. Poprzedni zapisany projekt nie zostanie nadpisany.</p>
         </div>
       ) : (
         <div className={classes.workspace}>
-          <nav aria-label="Etapy konfiguracji CV" className={classes.steps}>
-            {STEPS.map((label, index) => <button key={label} type="button" aria-label={`${String(index + 1).padStart(2, "0")} ${label}`} aria-current={step === index ? "step" : undefined} onClick={() => navigateStep(index)} disabled={submitting}><span className={classes.stepNumber}>{String(index + 1).padStart(2, "0")}</span><span className={classes.stepLabel}>{label}</span><span className={classes.stepCompactLabel}>{COMPACT_STEPS[index]}</span></button>)}
-          </nav>
           <div className={classes.layout} aria-busy={submitting}>
-          <fieldset className={classes.stepContent} disabled={submitting}>
+          <fieldset className={classes.content} disabled={submitting}>
           <legend className={classes.liveStatus}>Opcje konfiguracji CV</legend>
-          {step === 0 && <section className={classes.templates} aria-labelledby="new-cv-template-heading">
+          <section className={classes.templates} aria-labelledby="new-cv-template-heading">
             <div className={classes.sectionHeading}>
-              <div><h3 ref={stepHeadingRef} tabIndex={-1} id="new-cv-template-heading">Wybierz swój układ.</h3><p>Wybrany szablon: {selectedTemplate.name}. Możesz go zmienić także w edytorze.</p></div>
+              <h3 tabIndex={-1} id="new-cv-template-heading">Wybrany szablon: {selectedTemplate.name}</h3>
+              {initialTemplate && <button type="button" className={classes.textButton} aria-expanded={templatesOpen} aria-controls={`${customInputId}-templates`} onClick={() => setTemplatesOpen((current) => !current)}>{templatesOpen ? "Zwiń wybór szablonu" : "Zmień szablon"}</button>}
             </div>
-            <div className={classes.templateGrid} role="radiogroup" aria-label="Szablon CV">
-              {SETUP_TEMPLATES.map((template) => {
+            {templatesOpen && <div id={`${customInputId}-templates`}>
+            <div ref={templateGridRef} className={classes.templateGrid} role="radiogroup" aria-label="Szablon CV">
+              {SETUP_TEMPLATES.filter((template) => moreTemplates || template.tier === "free" || template.id === config.templateId).map((template) => {
                 const selected = template.id === config.templateId;
                 const locked = !isTemplateAllowed(template, entitlements);
                 return (
@@ -253,38 +275,54 @@ export default function NewCvSetupModal({
                     className={`${classes.templateCard} ${selected ? classes.templateSelected : ""} ${locked ? classes.templateLocked : ""}`}
                   >
                     <input type="radio" name={`template-${customInputId}`} checked={selected} disabled={locked} onChange={() => selectTemplate(template)} data-template-selected={selected ? "true" : undefined} aria-label={`${template.name}, ${locked ? "wymaga Pro" : template.tier === "free" ? "Free" : "Pro"}, ${template.layouts?.includes("sidebar") ? "2 kolumny" : "1 kolumna"}`} />
-                    <span className={classes.templateImage}><img src={`/template-mockups/${template.id}.png`} alt="" /></span>
+                    <span className={classes.templateImage}><TemplateImage key={template.id} template={template} /></span>
                     <span className={classes.templateName}>{template.name}{selected && <FiCheck aria-hidden="true" />}</span>
-                    <span className={classes.templateMeta}>{locked ? "Wymaga Pro" : template.tier === "free" ? "Free" : "Pro"} · {template.layouts?.includes("sidebar") ? "2 kolumny" : "1 kolumna"}</span>
+                    <span className={classes.templateMeta}>{locked ? "Wymaga Pro" : template.tier === "free" ? "Bezpłatny" : "Pro"}{PHOTO_TEMPLATE_IDS.has(template.id) ? " · Opcjonalne zdjęcie" : " · Bez zdjęcia"}</span>
                   </label>
                 );
               })}
             </div>
-          </section>}
+            <button type="button" className={classes.textButton} aria-expanded={moreTemplates} onClick={() => setMoreTemplates((current) => !current)}>{moreTemplates ? "Pokaż mniej szablonów" : "Więcej szablonów"}</button>
+            </div>}
+          </section>
 
-            {step === 1 && <section className={classes.optionSection} aria-labelledby="new-cv-contact-heading">
+          <div className={classes.customization}>
+            <button type="button" className={classes.disclosureButton} aria-expanded={customizationOpen} aria-controls={`${customInputId}-customization`} onClick={() => setCustomizationOpen((current) => !current)}>Dostosuj zawartość <FiChevronDown aria-hidden="true" /></button>
+            {customizationOpen && <div id={`${customInputId}-customization`} className={classes.customizationBody}>
+
+            <section className={classes.optionSection} aria-labelledby="new-cv-contact-heading">
               <div className={classes.sectionHeading}>
-                <div><h3 ref={stepHeadingRef} tabIndex={-1} id="new-cv-contact-heading">Zacznij od najważniejszych danych.</h3><p>Wybierz pola, które chcesz mieć w CV. Ich treść wpiszesz później na A4. Imię i nazwisko jest wymagane przy zapisie; pozostałe pola są opcjonalne.</p></div>
+                <h3 id="new-cv-contact-heading">Nagłówek i kontakt</h3>
+                <p>Imię i nazwisko — zawsze widoczne. Pozostałe pola są opcjonalne.</p>
               </div>
               <div className={classes.checkGrid}>
-                <label className={`${classes.checkItem} ${classes.requiredItem}`}><input type="checkbox" checked disabled /><span>Imię i nazwisko</span><small>Wymagane</small></label>
                 <label className={classes.checkItem}><input type="checkbox" checked={config.includeTitle} onChange={() => setConfig((current) => ({ ...current, includeTitle: !current.includeTitle }))} /><span>Tytuł zawodowy</span></label>
-                {STARTER_CONTACTS.map((contact) => (
+                {STARTER_CONTACTS.filter((contact) => contact.defaultSelected).map((contact) => (
                   <label key={contact.key} className={classes.checkItem}>
                     <input type="checkbox" checked={config.contacts.find((item) => item.key === contact.key)?.selected || false} onChange={() => toggleContact(contact.key)} />
                     <span>{contact.label}</span>
                   </label>
                 ))}
-                <label className={`${classes.checkItem} ${!photoSupported ? classes.disabledItem : ""}`}>
-                  <input type="checkbox" checked={config.includePhoto} disabled={!photoSupported} onChange={() => setConfig((current) => ({ ...current, includePhoto: !current.includePhoto }))} />
-                  <span>Zdjęcie</span><small>{photoSupported ? "Opcjonalne" : `Niedostępne w ${selectedTemplate.name}`}</small>
-                </label>
+                {photoSupported && <label className={classes.checkItem}>
+                  <input type="checkbox" checked={config.includePhoto} onChange={() => setConfig((current) => ({ ...current, includePhoto: !current.includePhoto }))} />
+                  <span>Zdjęcie</span>
+                </label>}
               </div>
-            </section>}
+              <button type="button" className={classes.textButton} aria-expanded={linksOpen} aria-controls={`${customInputId}-links`} onClick={() => setLinksOpen((current) => !current)}>Dodaj linki</button>
+              {linksOpen && <div id={`${customInputId}-links`} className={classes.checkGrid}>
+                {STARTER_CONTACTS.filter((contact) => !contact.defaultSelected).map((contact) => <label key={contact.key} className={classes.checkItem}>
+                  <input type="checkbox" checked={config.contacts.find((item) => item.key === contact.key)?.selected || false} onChange={() => toggleContact(contact.key)} />
+                  <span>{contact.label}</span>
+                </label>)}
+              </div>}
+            </section>
 
-            {step === 2 && <section className={classes.optionSection} aria-labelledby="new-cv-sections-heading">
+            <section className={classes.optionSection} aria-labelledby="new-cv-sections-heading">
               <div className={classes.sectionHeading}>
-                <div><h3 ref={stepHeadingRef} tabIndex={-1} id="new-cv-sections-heading">Ułóż historię swojego doświadczenia.</h3><p>Zaznacz co najmniej jedną sekcję. Przeciągnij wiersze lub użyj strzałek, aby zmienić kolejność. W dwóch kolumnach kolejność działa osobno w każdej z nich.</p></div>
+                <h3 ref={sectionHeadingRef} tabIndex={-1} id="new-cv-sections-heading" aria-describedby={sectionError ? `${customInputId}-sections-error` : undefined}>Sekcje CV</h3>
+                <p>Wybierz sekcje. Ich kolejność zmienisz strzałkami lub przeciąganiem.</p>
+                {selectedTemplate.layouts?.includes("sidebar") && <p>Kolejność zmienia się osobno w każdej kolumnie.</p>}
+                {sectionError && <p id={`${customInputId}-sections-error`} className={classes.fieldError} role="alert">{sectionError}</p>}
               </div>
               <ol className={classes.sectionList}>
                 {config.sections.map((section, index) => (
@@ -312,15 +350,17 @@ export default function NewCvSetupModal({
                 <div><input ref={customInputRef} id={customInputId} value={customTitle} aria-invalid={Boolean(customError)} aria-describedby={customError ? `${customInputId}-error` : undefined} onChange={(event) => { setCustomTitle(event.target.value); setCustomError(""); }} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); addCustomSection(); } }} placeholder="np. Konferencje" /><button type="button" onClick={addCustomSection} disabled={!customTitle.trim()}>Dodaj</button></div>
                 {customError && <p id={`${customInputId}-error`} className={classes.fieldError} role="alert">{customError}</p>}
               </div>
-            </section>}
+            </section>
+            <p className={classes.configurationSummary}>Wybrane sekcje: {selectedSectionCount} · Zdjęcie: {config.includePhoto ? "tak" : "nie"}. Pola i sekcje możesz zmieniać także w edytorze.</p>
+            </div>}
+          </div>
           </fieldset>
-          <aside className={classes.preview} aria-label="Podsumowanie konfiguracji">
-            <span className={classes.eyebrow}>Twój punkt wyjścia</span>
+          <aside className={classes.preview} aria-label="Podgląd szablonu">
+            <button type="button" className={`${classes.disclosureButton} ${classes.previewToggle}`} aria-expanded={previewOpen} aria-controls={`${customInputId}-preview`} onClick={() => setPreviewOpen((current) => !current)} disabled={submitting}>Podgląd szablonu <FiChevronDown aria-hidden="true" /></button>
+            <div id={`${customInputId}-preview`} className={classes.previewBody} data-expanded={previewOpen}>
             <h3>{selectedTemplate.name}</h3>
-            <p>{selectedTemplate.description}</p>
-            <figure><img src={`/template-mockups/${selectedTemplate.id}.png`} alt={`Przykładowy wygląd szablonu ${selectedTemplate.name}`} /><figcaption>Przykład układu. Twoje CV powstanie z pustymi polami.</figcaption></figure>
-            <dl><div><dt>Układ</dt><dd>{selectedTemplate.layouts?.includes("sidebar") ? "2 kolumny" : "1 kolumna"}</dd></div><div><dt>Wybrane sekcje</dt><dd>{selectedSectionCount}</dd></div><div><dt>Zdjęcie</dt><dd>{config.includePhoto ? "Tak" : "Nie"}</dd></div></dl>
-            <p>Wskazówki do uzupełnienia zobaczysz tylko w edytorze. Nie trafią do PDF.</p>
+            <figure><TemplateImage key={selectedTemplate.id} template={selectedTemplate} preview /><figcaption>Przykładowe CV</figcaption></figure>
+            </div>
           </aside>
           </div>
           <p className={classes.liveStatus} aria-live="polite">{status}</p>

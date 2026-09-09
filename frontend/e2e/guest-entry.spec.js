@@ -11,10 +11,10 @@ for (const width of [390, 834, 1280, 1920]) {
     const api = await installMockApi(page);
     await page.goto("/");
     await page.locator('#top').getByRole("link", { name: "Użyj tego szablonu", exact: true }).click();
-    const setup = page.getByRole("dialog", { name: "Skonfiguruj nowe CV" });
+    const setup = page.getByRole("dialog", { name: "Utwórz CV" });
     await expect(setup).toBeVisible();
     await expect(accountChooser(page)).toHaveCount(0);
-    await page.keyboard.press("Escape");
+    await setup.getByRole("button", { name: "Rozpocznij edycję" }).click();
     const trigger = page.getByRole("button", { name: "Importuj PDF", exact: true });
     await trigger.click();
     const gate = importGate(page);
@@ -42,9 +42,7 @@ for (const width of [390, 834, 1280, 1920]) {
     await page.emulateMedia({ reducedMotion: "reduce" });
     const api = await installMockApi(page);
     await page.goto("/cvstudio/guest?start=new");
-    await page.getByRole("button", { name: "Dalej: kontakt" }).click();
-    await page.getByRole("button", { name: "Dalej: sekcje" }).click();
-    await page.getByRole("button", { name: "Utwórz A4", exact: true }).click();
+    await page.getByRole("button", { name: "Rozpocznij edycję", exact: true }).click();
     await page.locator('[contenteditable="true"][data-placeholder="Imię i nazwisko"]').fill("Anna Gość");
     await page.getByRole("textbox", { name: "Nazwa bieżącego dokumentu" }).fill("CV do pobrania");
 
@@ -66,9 +64,7 @@ for (const width of [390, 834, 1280, 1920]) {
 test("guest authored A4 survives refresh without account onboarding", async ({ page }) => {
   const api = await installMockApi(page);
   await page.goto("/cvstudio/guest?start=new");
-  await page.getByRole("button", { name: "Dalej: kontakt" }).click();
-    await page.getByRole("button", { name: "Dalej: sekcje" }).click();
-  await page.getByRole("button", { name: "Utwórz A4", exact: true }).click();
+  await page.getByRole("button", { name: "Rozpocznij edycję", exact: true }).click();
   const name = page.locator('[contenteditable="true"][data-placeholder="Imię i nazwisko"]');
   await expect(name).toBeFocused();
   await name.fill("Anna Gość");
@@ -122,9 +118,7 @@ for (const width of [390, 834, 1280, 1920]) {
     await page.emulateMedia({ reducedMotion: "reduce" });
     const api = await installMockApi(page);
     await page.goto("/cvstudio/guest?start=new");
-    await page.getByRole("button", { name: "Dalej: kontakt" }).click();
-    await page.getByRole("button", { name: "Dalej: sekcje" }).click();
-    await page.getByRole("button", { name: "Utwórz A4", exact: true }).click();
+    await page.getByRole("button", { name: "Rozpocznij edycję", exact: true }).click();
     await page.locator('[contenteditable="true"][data-placeholder="Imię i nazwisko"]').fill("Anna Gość");
     await page.getByRole("textbox", { name: "Nazwa bieżącego dokumentu" }).fill("Szkic Anny");
     await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("cvstudio.guest.doc") || "null")?.title)).toBe("Szkic Anny");
