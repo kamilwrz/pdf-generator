@@ -77,7 +77,7 @@ for (const width of [390, 834, 1280, 1920, 640]) {
       await page.emulateMedia({ reducedMotion: "reduce" });
       const api = await installMockApi(page);
       await page.goto("/");
-      await page.locator("#top").getByRole("link", { name: "Użyj tego szablonu" }).click();
+      await page.locator("#top").getByRole("link", { name: "Stwórz CV z tym szablonem" }).click();
       const setup = page.getByRole("dialog", { name: "Utwórz CV" });
       await expect(setup).toBeVisible();
       if (action === "cancel") {

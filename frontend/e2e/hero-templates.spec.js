@@ -9,8 +9,8 @@ for (const name of ["Sterling", "Meridian", "Linden"]) {
     await expect(hero.getByRole("radio")).toHaveCount(3);
     await hero.locator("label").filter({ hasText: name }).click();
     await expect(hero.getByRole("radio", { name, exact: true })).toBeChecked();
-    await expect(hero.getByRole("link", { name: "Użyj tego szablonu" })).toHaveAttribute("href", `/cvstudio/guest?start=new&template=${name.toLowerCase()}`);
-    await hero.getByRole("link", { name: "Użyj tego szablonu" }).click();
+    await expect(hero.getByRole("link", { name: "Stwórz CV z tym szablonem" })).toHaveAttribute("href", `/cvstudio/guest?start=new&template=${name.toLowerCase()}`);
+    await hero.getByRole("link", { name: "Stwórz CV z tym szablonem" }).click();
     const setup = page.getByRole("dialog", { name: "Utwórz CV" });
     await expect(setup.getByRole("heading", { name: /Wybrany szablon:/ })).toBeFocused();
     await expect(page).toHaveURL(/\/cvstudio\/guest$/);
@@ -45,8 +45,8 @@ test("unavailable images retain template selection and a working CTA", async ({ 
   await page.route("**/hero-templates/**", (route) => route.abort());
   await page.goto("/");
   const hero = page.locator("#top");
-  await expect(hero.getByText("Podgląd niedostępny. Wybór szablonu i przejście do konfiguracji nadal działają.")).toBeVisible();
-  await hero.getByRole("link", { name: "Użyj tego szablonu" }).click();
+  await expect(hero.getByText("Podgląd niedostępny. Wybierz szablon po nazwie i zacznij tworzyć CV.")).toBeVisible();
+  await hero.getByRole("link", { name: "Stwórz CV z tym szablonem" }).click();
   await expect(page.getByRole("heading", { name: /Wybrany szablon:/ })).toBeVisible();
 });
 
@@ -88,7 +88,7 @@ test("Free showcase fits compact, tablet, laptop, wide and 200% equivalent layou
       expect(box.x + box.width).toBeLessThanOrEqual(width);
     }
     await page.evaluate(() => window.scrollTo(0, 0));
-    await page.screenshot({ path: testInfo.outputPath(`hero-${width}.png`), fullPage: false });
+    await page.screenshot({ path: testInfo.outputPath(`hero-${width}.png`), fullPage: true });
   }
 });
 
@@ -114,7 +114,7 @@ test("compact CTA keeps the selection and dismissed setup does not reopen on ref
   await page.goto("/");
   const hero = page.locator("#top");
   await hero.locator("label").filter({ hasText: "Meridian" }).click();
-  await hero.getByRole("link", { name: "Użyj wybranego szablonu" }).click();
+  await hero.getByRole("link", { name: "Stwórz CV z wybranym szablonem" }).click();
   await expect(page.getByRole("heading", { name: /Wybrany szablon:/ })).toBeVisible();
   await page.keyboard.press("Escape");
   await page.reload();

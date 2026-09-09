@@ -30,12 +30,12 @@ export default function HeroTemplateShowcase({ templates, selectedId, onSelect, 
     onSelect(templates[next].id);
   }
 
-  if (!selected) return <p>Podglądy szablonów są chwilowo niedostępne. Możesz rozpocząć konfigurację CV.</p>;
+  if (!selected) return <p>Podglądy są chwilowo niedostępne. Nadal możesz zacząć tworzyć CV.</p>;
 
   return (
     <div className={classes.showcase}>
       <div className={classes.heading}>
-        <span>Wybierz swój punkt wyjścia</span>
+        <span>Wybierz darmowy szablon CV</span>
         <span className={classes.counter}>{String(selectedIndex + 1).padStart(2, "0")} / {String(templates.length).padStart(2, "0")}</span>
       </div>
       <div
@@ -105,7 +105,7 @@ export default function HeroTemplateShowcase({ templates, selectedId, onSelect, 
       <p className={classes.caption} role="status" aria-live="polite">
         <strong>{selected.name}</strong><span>Darmowy szablon · {selected.layouts.includes("sidebar") ? "Dwie kolumny" : "Jedna kolumna"}</span>
       </p>
-      {imageStates[selected.id] === "error" && <p className={classes.error} role="status">Podgląd niedostępny. Wybór szablonu i przejście do konfiguracji nadal działają.</p>}
+      {imageStates[selected.id] === "error" && <p className={classes.error} role="status">Podgląd niedostępny. Wybierz szablon po nazwie i zacznij tworzyć CV.</p>}
       {/* Compact layouts repeat the primary action after selection so users
           need not scroll back past the previews to continue. */}
       <div className={classes.mobileAction}>{mobileAction}</div>

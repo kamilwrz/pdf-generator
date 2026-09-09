@@ -9,7 +9,7 @@ describe("landing product positioning", () => {
   it("keeps one main heading and makes the account and paid AI boundaries explicit", () => {
     const hero = source.slice(source.indexOf('<section id="top"'), source.indexOf('<section id="szablony"'));
     assert.equal((source.match(/<h1>/g) || []).length, 1);
-    assert.match(hero, /Do zapisu i pobrania założysz darmowe konto/);
+    assert.match(hero, /Do zapisu i pobrania CV potrzebujesz darmowego konta/);
     assert.match(hero, /FREE_TEMPLATES.length/);
     assert.match(source, /AI w Pro/);
     assert.doesNotMatch(hero, /100% ZA DARMO|zwiększy Twoje szanse|systemy ATS/);
