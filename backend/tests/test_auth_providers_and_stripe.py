@@ -2,9 +2,12 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from io import BytesIO
+import json
 from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
+from urllib.error import HTTPError
 
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
@@ -23,6 +26,7 @@ from app.services.email_verification import (
     consume_email_verification_token,
     issue_email_verification_token,
 )
+from app.services import email_service
 from app.services.entitlements import seed_plans
 from app.testing_support import ensure_test_auth_env
 
@@ -84,6 +88,39 @@ class AuthProviderAndBillingTests(unittest.TestCase):
             json={"email": "missing@EXAMPLE.test"},
         )
         self.assertEqual(blocked.status_code, 429)
+
+    def test_resend_http_error_logs_sanitized_provider_reason(self):
+        response = BytesIO(json.dumps({
+            "name": "validation_error",
+            "message": (
+                "Sender alice@example.test cannot use "
+                "https://cvstudio.com.pl/verify-email?token=secret-proof"
+            ),
+        }).encode("utf-8"))
+        error = HTTPError(
+            "https://api.resend.com/emails",
+            403,
+            "Forbidden",
+            {},
+            response,
+        )
+        with (
+            patch.object(email_service, "RESEND_API_KEY", "re_test"),
+            patch.object(email_service, "urlopen", side_effect=error),
+            self.assertLogs(email_service.logger, level="ERROR") as captured,
+        ):
+            sent = email_service.send_verification_email(
+                "recipient@example.test",
+                "https://cvstudio.com.pl/verify-email?token=secret-proof",
+                idempotency_key="verify-test",
+            )
+
+        self.assertFalse(sent)
+        logged = "\n".join(captured.output)
+        self.assertIn("status=403", logged)
+        self.assertIn("provider_code=validation_error", logged)
+        self.assertNotIn("alice@example.test", logged)
+        self.assertNotIn("secret-proof", logged)
 
     def test_google_creates_passwordless_free_account_and_reuses_subject(self):
         claims = {"sub": "google-sub-1", "email": "person@gmail.com", "email_verified": True}

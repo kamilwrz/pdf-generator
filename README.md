@@ -2196,6 +2196,10 @@ verification token, and asks Resend to send its 24-hour raw counterpart. The
 `/auth/resend-verification` invalidates older live proofs, returns a generic
 non-enumerating response, and is limited to 10/IP and 3/email/hour. Password
 login returns `403 email_unverified` after valid credentials until verification.
+Rejected Resend requests log the HTTP status, provider error code, and a bounded
+provider message; email addresses and URLs are redacted before the message is
+written so production failures remain diagnosable without exposing user data or
+verification proofs.
 
 Google Identity Services renders its own browser button. The backend validates
 the ID token signature, issuer, audience, expiry and `email_verified`, then uses
@@ -2219,7 +2223,7 @@ Implementation:
 
 - `backend/app/api/routes/auth.py`, lines 84–361 — `register_user`, `verify_email`, `resend_verification`, `google_login`, `link_google_account`
 - `backend/app/services/email_verification.py`, lines 29–68 — `issue_email_verification_token`, `consume_email_verification_token`
-- `backend/app/services/email_service.py`, lines 16–53 — `send_verification_email`
+- `backend/app/services/email_service.py`, lines 19–94 — `_safe_provider_error`, `send_verification_email`
 - `backend/app/services/google_auth_service.py`, lines 7–18 — `verify_google_credential`
 - `backend/app/api/routes/billing.py`, lines 66–134 and 262–331 — `select_plan`, `stripe_webhook`, `checkout_session_status`
 - `backend/app/services/stripe_service.py`, lines 16–35, and `billing_service.py`, lines 18–68 — hosted checkout boundary and `fulfill_pro_payment`
@@ -4963,6 +4967,10 @@ zawiera JWT. `/auth/verify-email` zużywa dowód jeden raz, a
 `/auth/resend-verification` unieważnia starsze aktywne tokeny, nie ujawnia
 istnienia konta i ma limity 10/IP oraz 3/e-mail/godzinę. Poprawne hasło przed
 weryfikacją daje `403 email_unverified`.
+Odrzucone żądanie Resend zapisuje status HTTP, kod dostawcy i ograniczony
+komunikat dostawcy; przed zapisem adresy e-mail i URL-e są maskowane, dzięki
+czemu błąd produkcyjny pozostaje możliwy do rozpoznania bez ujawniania danych
+użytkownika ani tokenu weryfikacyjnego.
 
 Przycisk Google renderuje Google Identity Services. Backend sprawdza podpis,
 wystawcę, audience, czas ważności i `email_verified`, a wiązanie zapisuje pod
@@ -4983,7 +4991,7 @@ Implementacja:
 
 - `backend/app/api/routes/auth.py`, linie 84–361 — `register_user`, `verify_email`, `resend_verification`, `google_login`, `link_google_account`
 - `backend/app/services/email_verification.py`, linie 29–68 — `issue_email_verification_token`, `consume_email_verification_token`
-- `backend/app/services/email_service.py`, linie 16–53 — `send_verification_email`
+- `backend/app/services/email_service.py`, linie 19–94 — `_safe_provider_error`, `send_verification_email`
 - `backend/app/services/google_auth_service.py`, linie 7–18 — `verify_google_credential`
 - `backend/app/api/routes/billing.py`, linie 66–134 i 262–331 — `select_plan`, `stripe_webhook`, `checkout_session_status`
 - `backend/app/services/stripe_service.py`, linie 16–35, i `billing_service.py`, linie 18–68 — granica hostowanego Checkout oraz `fulfill_pro_payment`
