@@ -63,7 +63,7 @@ Implementation (verified whole-module extents):
 - `frontend/src/pages/Site/DocumentsPage.jsx`, lines 1–93, `DocumentsPage`.
 - `frontend/src/pages/Site/AccountPage.jsx`, lines 1–83, `AccountPage`.
 - `frontend/src/pages/Hero/Hero.jsx`, lines 1–331, `Hero`.
-- `frontend/src/components/editor/StartChooser/StartChooser.jsx`, lines 1–225, `StartChooser`.
+- `frontend/src/components/editor/StartChooser/StartChooser.jsx`, lines 1–252, `StartChooser`.
 - `frontend/src/pages/Site/InterviewPage.jsx`, lines 1–10, `InterviewPage`.
 - `frontend/src/components/ai/Interview/InterviewFlow.jsx`, lines 1–197, `InterviewFlow`.
 - `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, lines 1–59, `SiteLayout`.
@@ -300,7 +300,7 @@ pdf-generator/
 │   │   │   ├── common/GoogleSignInButton/ # Provider-rendered Google Identity Services control
 │   │   │   ├── editor/SaveGateModal/     # Account gate for guest save/export and CV import
 │   │   │   ├── editor/DemoBanner/        # Persistent banner while the guest-mode demo CV is on canvas
-│   │   │   ├── editor/StartChooser/      # authenticated empty-state choice: new A4 or import
+│   │   │   ├── editor/StartChooser/      # authenticated empty-state choice: new A4, import or Pro interview
 │   │   ├── hooks/            # useA4Elements facade, useDocumentHistory, usePdfExport, …
 │   │   ├── pages/Site/CareerProfilePage.jsx # CareerProfilePage
 │   │   ├── pages/Site/InterviewPage.jsx # InterviewPage
@@ -1182,12 +1182,12 @@ The component and its CSS live beside `Hero.jsx` under `frontend/src/pages/Hero/
 
 In the normal editor, labelled Topbar entry points are **Importuj PDF**, **Nowe CV**, and **Zmień szablon**. The template button opens the change-template modal, and its arrows cycle allowed templates in place. The `?start=demo` mode keeps reduced chrome and uses the same one-screen **Utwórz moje CV na A4** setup instead of a separate conversion wizard.
 
-**Empty-state onboarding (StartChooser).** A fresh authenticated editor replaces the complete shell with two primary cards: **Utwórz nowe CV** opens `NewCvSetupModal`, and **Zaimportuj istniejące CV** opens `AiCvPanel`. There is no blank-canvas escape. Saved documents and optional legacy-draft recovery are secondary actions. The pure `shouldShowStartChooser` helper requires an authenticated user and a genuinely new unsaved document, and hidden editor chrome is not mounted while it is visible. The surface follows `DESIGN.md`, restores focus through `DialogShell`, prevents horizontal overflow, and disables entrance motion under `prefers-reduced-motion`.
+**Empty-state onboarding (StartChooser).** A fresh authenticated editor replaces the complete shell with three primary cards: **Utwórz nowe CV** opens `NewCvSetupModal`, **Zaimportuj istniejące CV** opens `AiCvPanel`, and the highlighted **Wywiad** opens `/app/interview` for resolved `ai_assistant: true`. Free accounts see **Dostępny w Pro**, an explanation and **Poznaj Pro** linking to `/app/account`. Unknown or failed permission loading never grants AI access; **Sprawdź dostęp** links to the account. `EditorController` passes existing entitlements into the chooser without a second plan request. Entry navigation never starts paid generation. There is no blank-canvas escape. Saved documents and optional legacy-draft recovery are secondary actions. The pure `shouldShowStartChooser` helper requires an authenticated user and a genuinely new unsaved document, and hidden editor chrome is not mounted while it is visible. The surface follows `DESIGN.md`, restores focus through `DialogShell`, prevents horizontal overflow, and disables entrance motion under `prefers-reduced-motion`. Tests: `frontend/src/components/editor/StartChooser/StartChooser.runtime.test.jsx` covers keyboard order and Free/Pro/unresolved/revoked permissions; `frontend/e2e/start-interview.spec.js` checks plan destinations, all three choices, four viewport widths, reduced motion and 200% text reflow with mocked API calls. The inverse interview card reuses editor ink and paper tokens; controls remain outside saved documents and PDF output. No backend, schema, credit or deployment configuration changes are required.
 
 Implementation:
 
-- `frontend/src/components/editor/StartChooser/StartChooser.jsx`, component `StartChooser` — two primary cards (`onNew`, `onImport`) plus secondary saved-document and legacy-recovery actions
-- `frontend/src/components/editor/StartChooser/StartChooser.module.css`, lines 8–433 — Swiss/grid styling with an application-shell overlay, visible CV Studio brand, rectilinear axis rules, a two-card primary grid, secondary action row, safe scroll alignment, mobile collapse, and responsive logout control
+- `frontend/src/components/editor/StartChooser/StartChooser.jsx`, component `StartChooser` — three primary cards (`onNew`, `onImport`, entitlement-aware interview link) plus secondary saved-document and legacy-recovery actions
+- `frontend/src/components/editor/StartChooser/StartChooser.module.css`, lines 8–454 — Swiss/grid styling with an application-shell overlay, visible CV Studio brand, rectilinear axis rules, three columns on wide screens, two columns with a full-width third choice on tablets, and one column on compact screens, secondary action row, safe scroll alignment, mobile collapse, and responsive logout control
 - `frontend/src/utils/startChooser.js`, lines 32–45, function `shouldShowStartChooser` — pure visibility gate for an empty unsaved workspace (not demo/loading/conversion/dismissed)
 - `frontend/src/pages/PdfCanvas.jsx`, component `EditorController` — renders StartChooser for an empty unsaved canvas and wires new/import/documents/recovery actions while omitting editor chrome
 - `frontend/src/components/editor/NewCvSetupModal/NewCvSetupModal.jsx` and `frontend/src/pages/PdfCanvas.jsx` — a new A4 setup is generated directly; legacy browser drafts require the explicit recovery action
@@ -1227,7 +1227,7 @@ Implementation:
 
 - `frontend/src/App.jsx` — public editor route and legacy redirect
 - `frontend/src/pages/PdfCanvas.jsx`, lines 1–2609, components `EditorController` and `EditorView` — browser-draft detection, explicit load/delete handlers, non-destructive dismissal wiring, local restoration, demo, legacy recovery, and A4 setup
-- `frontend/src/components/editor/StartChooser/StartChooser.jsx` — new/import primary actions, saved documents and legacy recovery as secondary actions
+- `frontend/src/components/editor/StartChooser/StartChooser.jsx` — new/import/interview primary actions, saved documents and legacy recovery as secondary actions
 - `frontend/src/components/editor/NewCvSetupModal/NewCvSetupModal.jsx` — common guest/authenticated A4 configuration
 - `frontend/src/utils/guestDocument.js`, `resolveActiveCvData.js`, and `guestWizardDraft.js`
 - `frontend/src/components/editor/SaveGateModal/SaveGateModal.jsx`; `ClaimGuestDocumentModal/ClaimGuestDocumentModal.jsx`, lines 22–86, and `ClaimGuestDocumentModal.module.css`, lines 1–223 — the ownership prompt uses the shared `DialogShell` decision variant, names the draft, compares consequences, and keeps dismissal separate from deletion
@@ -1308,7 +1308,7 @@ Implementation:
 - `frontend/src/components/editor/PdfOperationProgressModal/PdfOperationProgressModal.module.css`, lines 6–15 — the standalone save/download progress overlay consumes the same white backdrop token
 - `frontend/src/App.test.js`, lines 53–68 — regression proving that the shared dialog shell and standalone operation modal both use the white token and the editor route does not override it
 - `frontend/src/components/common/PanelShell/PanelShell.jsx`, lines 12–47, component `PanelShell`; `PanelShell.module.css`, lines 1–38 — common docked-panel primitive with labelled headings, Escape handling, and reduced Framer Motion
-- `frontend/src/components/editor/StartChooser/StartChooser.module.css`, lines 8–433; `frontend/src/components/editor/SectionsPanel/SectionsPanel.module.css`, lines 3–161; `frontend/src/components/gallery/Gallery/Gallery.module.css`, lines 1–142; `frontend/src/components/ai/AiAssistant/AiAssistant.module.css`, lines 2–1474 — compact desktop chrome and mobile drawers/sheets
+- `frontend/src/components/editor/StartChooser/StartChooser.module.css`, lines 8–454; `frontend/src/components/editor/SectionsPanel/SectionsPanel.module.css`, lines 3–161; `frontend/src/components/gallery/Gallery/Gallery.module.css`, lines 1–142; `frontend/src/components/ai/AiAssistant/AiAssistant.module.css`, lines 2–1474 — compact desktop chrome and mobile drawers/sheets
 - `frontend/src/hooks/usePdfExport.js`, lines 24–254, hook `usePdfExport`; `frontend/src/pages/PdfCanvas.jsx`, lines 1–2609, component `EditorController` — document-only serialization and separation of editor overlays from export data
 
 Limits:
@@ -3047,7 +3047,7 @@ Implementacja (zweryfikowane zakresy całych modułów):
 - `frontend/src/pages/Site/DocumentsPage.jsx`, linie 1–93, `DocumentsPage`.
 - `frontend/src/pages/Site/AccountPage.jsx`, linie 1–83, `AccountPage`.
 - `frontend/src/pages/Hero/Hero.jsx`, linie 1–331, `Hero`.
-- `frontend/src/components/editor/StartChooser/StartChooser.jsx`, linie 1–225, `StartChooser`.
+- `frontend/src/components/editor/StartChooser/StartChooser.jsx`, linie 1–252, `StartChooser`.
 - `frontend/src/pages/Site/InterviewPage.jsx`, linie 1–10, `InterviewPage`.
 - `frontend/src/components/ai/Interview/InterviewFlow.jsx`, linie 1–197, `InterviewFlow`.
 - `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, linie 1–59, `SiteLayout`.
@@ -4156,12 +4156,12 @@ Komponent i CSS znajdują się obok `Hero.jsx` w `frontend/src/pages/Hero/`, a n
 
 W zwykłym edytorze podpisane wejścia w topbarze to **Importuj PDF**, **Nowe CV** oraz **Zmień szablon**. Przycisk szablonu otwiera modal zmiany, a strzałki przełączają dozwolone szablony w miejscu. Tryb `?start=demo` zachowuje ograniczone chrome i używa tego samego jednookienkowego przepływu **Utwórz moje CV na A4** zamiast osobnego kreatora konwersji.
 
-**Onboarding pustego stanu zalogowanego (StartChooser).** Świeży edytor zalogowanego użytkownika zastępuje całą powłokę dwiema kartami głównymi: **Utwórz nowe CV** otwiera `NewCvSetupModal`, a **Zaimportuj istniejące CV** otwiera `AiCvPanel`. Nie ma wyjścia do pustego płótna. Zapisane dokumenty oraz opcjonalne odzyskanie starszego szkicu są akcjami drugorzędnymi. Czysty helper `shouldShowStartChooser` wymaga zalogowanego użytkownika i naprawdę nowego, niezapisanego dokumentu; ukryte chrome edytora nie jest wtedy montowane. Powierzchnia trzyma się `DESIGN.md`, przywraca fokus przez `DialogShell`, zapobiega poziomemu overflow i wyłącza animację wejścia przy `prefers-reduced-motion`.
+**Onboarding pustego stanu zalogowanego (StartChooser).** Świeży edytor zalogowanego użytkownika zastępuje całą powłokę trzema kartami głównymi: **Utwórz nowe CV** otwiera `NewCvSetupModal`, **Zaimportuj istniejące CV** otwiera `AiCvPanel`, a wyróżniony **Wywiad** otwiera `/app/interview` przy potwierdzonym `ai_assistant: true`. Konto Free widzi **Dostępny w Pro**, wyjaśnienie i **Poznaj Pro** prowadzące do `/app/account`. Nieznane uprawnienia lub błąd ich pobrania nie przyznają dostępu do AI; **Sprawdź dostęp** prowadzi do konta. `EditorController` przekazuje istniejące uprawnienia bez kolejnego zapytania o plan. Samo przejście nie uruchamia płatnego generowania. Nie ma wyjścia do pustego płótna. Zapisane dokumenty oraz opcjonalne odzyskanie starszego szkicu są akcjami drugorzędnymi. Czysty helper `shouldShowStartChooser` wymaga zalogowanego użytkownika i naprawdę nowego, niezapisanego dokumentu; ukryte chrome edytora nie jest wtedy montowane. Powierzchnia trzyma się `DESIGN.md`, przywraca fokus przez `DialogShell`, zapobiega poziomemu overflow i wyłącza animację wejścia przy `prefers-reduced-motion`. Testy: `frontend/src/components/editor/StartChooser/StartChooser.runtime.test.jsx` obejmuje kolejność klawiatury oraz uprawnienia Free/Pro/nieznane/cofnięte; `frontend/e2e/start-interview.spec.js` sprawdza docelowe adresy planów, trzy wybory, cztery szerokości, reduced motion i powiększenie tekstu 200% z atrapami API. Kontrastowy kafel wywiadu używa tokenów tuszu edytora i papieru; kontrolki pozostają poza dokumentami i PDF. Nie ma zmian backendu, schematu, rozliczeń ani konfiguracji wdrożenia.
 
 Implementacja:
 
-- `frontend/src/components/editor/StartChooser/StartChooser.jsx`, komponent `StartChooser` — dwie główne karty (`onNew`, `onImport`) oraz drugorzędne akcje dokumentów i recovery legacy
-- `frontend/src/components/editor/StartChooser/StartChooser.module.css`, linie 8–433 — styl Swiss/grid z overlayem całej powłoki aplikacji, znakiem CV Studio, prostokreślnymi osiami, gridem dwóch głównych kart, wierszem akcji drugorzędnych, bezpiecznym wyrównaniem przewijania, układem mobilnym i responsywną kontrolką wylogowania
+- `frontend/src/components/editor/StartChooser/StartChooser.jsx`, komponent `StartChooser` — trzy główne karty (`onNew`, `onImport`, link wywiadu zależny od uprawnień) oraz drugorzędne akcje dokumentów i recovery legacy
+- `frontend/src/components/editor/StartChooser/StartChooser.module.css`, linie 8–454 — styl Swiss/grid z overlayem całej powłoki aplikacji, znakiem CV Studio, prostokreślnymi osiami, trzema kolumnami na szerokim ekranie, dwiema z trzecią kartą na całą szerokość na tablecie i jedną na małym ekranie, wierszem akcji drugorzędnych, bezpiecznym wyrównaniem przewijania, układem mobilnym i responsywną kontrolką wylogowania
 - `frontend/src/utils/startChooser.js`, linie 32–45, funkcja `shouldShowStartChooser` — czysta bramka widoczności pustego niezapisanego workspace (nie demo/ładowanie/konwersja/odrzucony)
 - `frontend/src/pages/PdfCanvas.jsx`, komponent `EditorController` — pokazuje StartChooser dla pustego niezapisanego płótna i podpina nowe/import/dokumenty/recovery bez montowania chrome edytora
 - `frontend/src/components/editor/NewCvSetupModal/NewCvSetupModal.jsx` i `frontend/src/pages/PdfCanvas.jsx` — nowe A4 jest generowane bezpośrednio; starszy szkic przeglądarki wymaga jawnej akcji recovery
@@ -4201,7 +4201,7 @@ Implementacja:
 
 - `frontend/src/App.jsx` — publiczna trasa edytora i przekierowanie legacy
 - `frontend/src/pages/PdfCanvas.jsx`, linie 1–2609, komponenty `EditorController` i `EditorView` — wykrywanie szkicu przeglądarkowego, jawne handlery wczytania/usunięcia, niedestrukcyjne zamknięcie, lokalne odtwarzanie, demo, recovery legacy i konfigurator A4
-- `frontend/src/components/editor/StartChooser/StartChooser.jsx` — nowe/import jako akcje główne, zapisane dokumenty i recovery legacy jako akcje drugorzędne
+- `frontend/src/components/editor/StartChooser/StartChooser.jsx` — nowe/import/wywiad jako akcje główne, zapisane dokumenty i recovery legacy jako akcje drugorzędne
 - `frontend/src/components/editor/NewCvSetupModal/NewCvSetupModal.jsx` — wspólna konfiguracja A4 dla gościa i konta
 - `frontend/src/utils/guestDocument.js`, `resolveActiveCvData.js` i `guestWizardDraft.js`
 - `frontend/src/components/editor/SaveGateModal/SaveGateModal.jsx`; `ClaimGuestDocumentModal/ClaimGuestDocumentModal.jsx`, linie 22–86, oraz `ClaimGuestDocumentModal.module.css`, linie 1–223 — dialog własności używa wspólnego wariantu decyzyjnego `DialogShell`, podaje nazwę szkicu, porównuje skutki i oddziela zamknięcie od usunięcia
@@ -4282,7 +4282,7 @@ Implementacja:
 - `frontend/src/components/editor/PdfOperationProgressModal/PdfOperationProgressModal.module.css`, linie 6–15 — niezależny overlay postępu zapisu/pobierania używa tego samego białego tokenu
 - `frontend/src/App.test.js`, linie 53–68 — regresja potwierdzająca, że wspólna powłoka dialogu i niezależny modal operacji używają białego tokenu, a trasa edytora go nie nadpisuje
 - `frontend/src/components/common/PanelShell/PanelShell.jsx`, linie 12–47, komponent `PanelShell`; `PanelShell.module.css`, linie 1–38 — wspólny prymityw panelu z opisanym nagłówkiem, Escape i ograniczeniem ruchu Framer Motion
-- `frontend/src/components/editor/StartChooser/StartChooser.module.css`, linie 8–433; `frontend/src/components/editor/SectionsPanel/SectionsPanel.module.css`, linie 3–161; `frontend/src/components/gallery/Gallery/Gallery.module.css`, linie 1–142; `frontend/src/components/ai/AiAssistant/AiAssistant.module.css`, linie 2–1474 — zwarte chrome desktopowe i mobilne drawery/sheets
+- `frontend/src/components/editor/StartChooser/StartChooser.module.css`, linie 8–454; `frontend/src/components/editor/SectionsPanel/SectionsPanel.module.css`, linie 3–161; `frontend/src/components/gallery/Gallery/Gallery.module.css`, linie 1–142; `frontend/src/components/ai/AiAssistant/AiAssistant.module.css`, linie 2–1474 — zwarte chrome desktopowe i mobilne drawery/sheets
 - `frontend/src/hooks/usePdfExport.js`, linie 24–254, hook `usePdfExport`; `frontend/src/pages/PdfCanvas.jsx`, linie 1–2609, komponent `EditorController` — serializacja wyłącznie dokumentu oraz separacja overlayów edytora od danych eksportu
 
 Ograniczenia:

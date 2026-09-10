@@ -2573,6 +2573,7 @@ export function EditorController() {
               ) : null}
               {showStartChooser ? (
                 <StartChooser
+                  entitlements={entitlements}
                   onNew={() => {
                     handleShowNewCvSetup();
                   }}

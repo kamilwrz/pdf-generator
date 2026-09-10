@@ -1,8 +1,9 @@
 /**
  * Post-login empty-state onboarding surface.
  *
- * Replaces the blank canvas with the two supported creation paths: configuring
- * a new A4 CV or importing an existing PDF. Saved documents and legacy draft
+ * Replaces the blank canvas with manual setup, PDF import and a Pro interview.
+ * Interview access comes from the parent's resolved server entitlement.
+ * Saved documents and legacy draft
  * recovery remain deliberately quieter secondary actions.
  *
  * Visibility is decided by `shouldShowStartChooser` (utils/startChooser.js);
@@ -17,6 +18,7 @@
 import { useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { AiOutlineLogout } from "react-icons/ai";
+import { FiMessageSquare } from "react-icons/fi";
 import classes from "./StartChooser.module.css";
 
 /**
@@ -88,6 +90,7 @@ function DocumentsIcon() {
  * @param {() => void} props.onImport - open the CV import dialog (AiCvPanel)
  * @param {Array<{title?: string, created_at?: string}>} [props.documents] - saved projects
  * @param {boolean} [props.documentsLoaded] - whether the saved-project list finished loading
+ * @param {object|null} [props.entitlements] - current server permissions; null never grants AI access
  * @param {boolean} [props.legacyDraftNeedsOwnershipConfirmation] - label browser-local recovery as an explicit ownership confirmation
  * @param {() => void} props.onLogout - sign out the current session
  */
@@ -98,12 +101,16 @@ export default function StartChooser({
   onContinue,
   documents = [],
   documentsLoaded = false,
+  entitlements = null,
   legacyDraftAvailable = false,
   legacyDraftNeedsOwnershipConfirmation = false,
   onRecoverLegacyDraft,
   onLogout,
 }) {
   const titleRef = useRef(null);
+  const canInterview = entitlements?.ai_assistant === true;
+  const accessResolved = typeof entitlements?.ai_assistant === "boolean";
+  const interviewAction = canInterview ? "Rozpocznij wywiad" : accessResolved ? "Poznaj Pro" : "Sprawdź dostęp";
   const latestDocument = [...documents]
     .sort((left, right) => new Date(right.updated_at || right.created_at || 0) - new Date(left.updated_at || left.created_at || 0))[0];
   const latestDocumentDate = (latestDocument?.updated_at || latestDocument?.created_at)
@@ -139,7 +146,7 @@ export default function StartChooser({
             Jak chcesz zacząć?
           </h1>
           <p className={classes.subtitle}>
-            Zaimportuj gotowe CV albo wybierz pola i od razu edytuj je na stronie A4.
+            Stwórz CV samodzielnie, zaimportuj dokument lub zacznij od rozmowy.
           </p>
         </header>
 
@@ -176,10 +183,30 @@ export default function StartChooser({
             </span>
             <span className={classes.ctaGhost}>Wgraj CV</span>
           </button>
+
+          <Link
+            className={`${classes.card} ${classes.cardInterview}`}
+            to={canInterview ? "/app/interview" : "/app/account"}
+            aria-labelledby="start-interview-title start-interview-action"
+            aria-describedby="start-interview-description start-interview-access"
+          >
+            <span className={classes.cardTop}>
+              <span className={classes.iconWrap} aria-hidden="true"><FiMessageSquare className={classes.icon} /></span>
+              <span className={classes.proLabel}>{canInterview ? "W Twoim Pro" : "Dostępny w Pro"}</span>
+            </span>
+            <span id="start-interview-title" className={classes.cardTitle}>Wywiad</span>
+            <span id="start-interview-description" className={classes.cardText}>
+              Opowiedz o swoim doświadczeniu. AI dopyta o szczegóły i przygotuje treść CV z informacji, które zatwierdzisz.
+            </span>
+            <span id="start-interview-access" className={classes.accessNote}>
+              {canInterview ? "Korzysta z Twoich kredytów AI." : accessResolved ? "W pakiecie Free wywiad jest dostępny po przejściu na Pro." : "Dostęp do wywiadu sprawdzisz na swoim koncie."}
+            </span>
+            <span id="start-interview-action" className={classes.ctaInterview}>{interviewAction}<span aria-hidden="true">→</span></span>
+          </Link>
         </div>
 
         <div className={classes.secondaryActions}>
-          <div><Link className={classes.blankLink} to="/app/interview">Utwórz CV z pomocą wywiadu · Pro →</Link><p className={classes.documentsEmpty}>Odpowiedz na pytania o doświadczenie, zatwierdź informacje i przygotuj treść CV. Wywiad korzysta z kredytów AI. <Link className={classes.blankLink} to="/help#wywiad">Jak działa wywiad</Link></p></div>
+          <Link className={classes.blankLink} to="/help#wywiad">Jak działa wywiad</Link>
           <button type="button" className={classes.blankLink} onClick={onDocuments}>Wszystkie dokumenty →</button>
           {documentsLoaded && latestDocument ? (
             <button type="button" className={classes.recentDocument} onClick={() => onContinue(latestDocument.id)}>
