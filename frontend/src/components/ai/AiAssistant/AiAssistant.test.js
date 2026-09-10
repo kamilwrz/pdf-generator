@@ -138,6 +138,16 @@ test("translation replaces the removed appearance goal in the quick actions", as
     assert.doesNotMatch(source, /label: "Wynik ATS"/);
 });
 
+test("interview quick action uses the shared conversation icon treatment", async () => {
+    const source = await readFile(new URL("./AiAssistant.jsx", import.meta.url), "utf8");
+
+    assert.match(source, /FaComments/);
+    assert.match(
+        source,
+        /<FaComments className=\{classes\.actionIcon\} aria-hidden="true" \/>[\s\S]*?<span>Uzupełnij CV przez wywiad<\/span>/,
+    );
+});
+
 test("ATS dashboard uses readability copy, verbal band, and disclaimer", async () => {
     const source = await readFile(new URL("./AiAssistant.jsx", import.meta.url), "utf8");
 

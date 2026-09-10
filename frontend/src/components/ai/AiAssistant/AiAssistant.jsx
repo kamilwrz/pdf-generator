@@ -9,7 +9,7 @@ import { nanoid } from "nanoid";
 import InterviewFlow from '../Interview/InterviewFlow';
 import { BsStars } from "react-icons/bs";
 import {
-    FaBriefcase, FaFont, FaMagic, FaLanguage, FaSearch,
+    FaBriefcase, FaComments, FaFont, FaMagic, FaLanguage, FaSearch,
 } from "react-icons/fa";
 import { RiEditLine, RiScissorsLine } from "react-icons/ri";
 import { IoClose, IoSend } from "react-icons/io5";
@@ -1919,7 +1919,10 @@ export default function AiAssistant() {
                         /></div> : <>
                         {/* goal-oriented quick actions */}
                         <div className={classes.actions}>
-                            <button ref={interviewTriggerRef} type="button" className={classes.actionBtn} disabled={isLoading} onClick={() => openInterview('enrich')}>Uzupełnij CV przez wywiad</button>
+                            <button ref={interviewTriggerRef} type="button" className={classes.actionBtn} disabled={isLoading} onClick={() => openInterview('enrich')}>
+                                <FaComments className={classes.actionIcon} aria-hidden="true" />
+                                <span>Uzupełnij CV przez wywiad</span>
+                            </button>
                             {GOAL_ACTIONS.map((action) => (
                                 <button
                                     key={action.id}
