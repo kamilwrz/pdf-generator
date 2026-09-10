@@ -22,7 +22,7 @@ export const CADENZA_PALETTES = Object.freeze([
   {
     id: "porcelain",
     name: "Porcelanowa Sepia",
-    tagline: "Lekka · ciepły editorial",
+    tagline: "Jasne tło i ciepłe brązy",
     tone: "light",
     iconTheme: "cadenza-porcelain",
     colors: {
@@ -34,7 +34,7 @@ export const CADENZA_PALETTES = Object.freeze([
   {
     id: "mist",
     name: "Mglisty Błękit",
-    tagline: "Lekka · chłodna precyzja",
+    tagline: "Jasne tło i chłodny błękit",
     tone: "light",
     iconTheme: "cadenza-mist",
     colors: {
@@ -46,7 +46,7 @@ export const CADENZA_PALETTES = Object.freeze([
   {
     id: "sage",
     name: "Szałwiowa Perła",
-    tagline: "Lekka · naturalny spokój",
+    tagline: "Jasne tło i zgaszona zieleń",
     tone: "light",
     iconTheme: "cadenza-sage",
     colors: {
@@ -58,7 +58,7 @@ export const CADENZA_PALETTES = Object.freeze([
   {
     id: "cobalt",
     name: "Kobaltowa Partytura",
-    tagline: "Mocna · pewna i nowoczesna",
+    tagline: "Ciemny kobalt i jasny tekst",
     tone: "strong",
     iconTheme: "cadenza-cobalt",
     colors: {
@@ -70,7 +70,7 @@ export const CADENZA_PALETTES = Object.freeze([
   {
     id: "burgundy",
     name: "Burgundowy Akord",
-    tagline: "Mocna · głęboki editorial",
+    tagline: "Ciemny burgund i jasny tekst",
     tone: "strong",
     iconTheme: "cadenza-burgundy",
     colors: {
@@ -82,7 +82,7 @@ export const CADENZA_PALETTES = Object.freeze([
   {
     id: "emerald",
     name: "Szmaragdowa Kadencja",
-    tagline: "Mocna · szlachetny kontrast",
+    tagline: "Ciemna zieleń i złoty akcent",
     tone: "strong",
     iconTheme: "cadenza-emerald",
     colors: {

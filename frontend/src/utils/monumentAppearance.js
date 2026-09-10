@@ -19,7 +19,7 @@ export const MONUMENT_PALETTES = Object.freeze([
   {
     id: "inkstone",
     name: "Kamień i Atrament",
-    tagline: "Klasyczny i typograficzny",
+    tagline: "Jasne tło, czerń i szarość",
     iconTheme: "monument",
     colors: {
       paper: "#F7F7F7", badgeText: "#FFFFFF", ink: "#111111",
@@ -29,7 +29,7 @@ export const MONUMENT_PALETTES = Object.freeze([
   {
     id: "blueprint",
     name: "Błękit Architekta",
-    tagline: "Chłodny i precyzyjny",
+    tagline: "Jasne tło i błękitne akcenty",
     iconTheme: "monument-blueprint",
     colors: {
       paper: "#F6F8F8", badgeText: "#FCFEFE", ink: "#223338",
@@ -39,7 +39,7 @@ export const MONUMENT_PALETTES = Object.freeze([
   {
     id: "olive",
     name: "Oliwne Archiwum",
-    tagline: "Naturalny i wyważony",
+    tagline: "Jasne tło i oliwkowe akcenty",
     iconTheme: "monument-olive",
     colors: {
       paper: "#F8F8F3", badgeText: "#FEFEFA", ink: "#30372C",
@@ -49,7 +49,7 @@ export const MONUMENT_PALETTES = Object.freeze([
   {
     id: "oxblood",
     name: "Bordowy Manuskrypt",
-    tagline: "Redakcyjny i szlachetny",
+    tagline: "Jasne tło i bordowe akcenty",
     iconTheme: "monument-oxblood",
     colors: {
       paper: "#FAF7F6", badgeText: "#FFFCFB", ink: "#4B3034",
@@ -59,7 +59,7 @@ export const MONUMENT_PALETTES = Object.freeze([
   {
     id: "travertine",
     name: "Ciepły Trawertyn",
-    tagline: "Miękki i dyplomatyczny",
+    tagline: "Ciepłe tło i brązowe akcenty",
     iconTheme: "monument-travertine",
     colors: {
       paper: "#FAF8F3", badgeText: "#FFFDF8", ink: "#493A2F",
@@ -69,7 +69,7 @@ export const MONUMENT_PALETTES = Object.freeze([
   {
     id: "midnight",
     name: "Nocny Granit",
-    tagline: "Głęboki i nowoczesny",
+    tagline: "Ciemne tło i jasny tekst",
     iconTheme: "monument-midnight",
     colors: {
       paper: "#F6F8FA", badgeText: "#FCFDFE", ink: "#243141",

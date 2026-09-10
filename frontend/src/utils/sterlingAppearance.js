@@ -16,7 +16,7 @@ export const STERLING_PALETTES = Object.freeze([
   {
     id: "northstar",
     name: "Błękit Północy",
-    tagline: "Precyzyjny i instytucjonalny",
+    tagline: "Jasne tło i chłodny błękit",
     iconTheme: "sterling",
     colors: {
       paper: "#F7F8FA", ink: "#26313F", accent: "#4A6FA5",
@@ -26,7 +26,7 @@ export const STERLING_PALETTES = Object.freeze([
   {
     id: "graphite",
     name: "Grafitowe Atelier",
-    tagline: "Spokojny i architektoniczny",
+    tagline: "Jasne tło i grafitowe akcenty",
     iconTheme: "sterling-graphite",
     colors: {
       paper: "#F8F8F7", ink: "#232421", accent: "#5B625E",
@@ -36,7 +36,7 @@ export const STERLING_PALETTES = Object.freeze([
   {
     id: "sage",
     name: "Szałwiowa Rezerwa",
-    tagline: "Wyważony i współczesny",
+    tagline: "Jasne tło i szałwiowe akcenty",
     iconTheme: "sterling-sage",
     colors: {
       paper: "#F7F8F4", ink: "#25322D", accent: "#557565",
@@ -46,7 +46,7 @@ export const STERLING_PALETTES = Object.freeze([
   {
     id: "burgundy",
     name: "Burgundowy List",
-    tagline: "Dojrzały i redakcyjny",
+    tagline: "Jasne tło i burgundowe akcenty",
     iconTheme: "sterling-burgundy",
     colors: {
       paper: "#FAF7F6", ink: "#35292B", accent: "#7A4650",
@@ -56,7 +56,7 @@ export const STERLING_PALETTES = Object.freeze([
   {
     id: "amber",
     name: "Bursztynowa Księga",
-    tagline: "Ciepły i dyplomatyczny",
+    tagline: "Ciepłe tło i bursztynowe akcenty",
     iconTheme: "sterling-amber",
     colors: {
       paper: "#FAF8F3", ink: "#342E27", accent: "#8A603F",
@@ -66,7 +66,7 @@ export const STERLING_PALETTES = Object.freeze([
   {
     id: "midnight",
     name: "Nocny Fiord",
-    tagline: "Głęboki i techniczny",
+    tagline: "Ciemny granat i jasny tekst",
     iconTheme: "sterling-midnight",
     colors: {
       paper: "#F5F7F8", ink: "#182734", accent: "#315A70",

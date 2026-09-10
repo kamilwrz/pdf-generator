@@ -15,7 +15,7 @@ export const AURELIA_PALETTES = Object.freeze([
   {
     id: "gilded",
     name: "Złocona Oliwka",
-    tagline: "Lekka · jak w referencji",
+    tagline: "Jasne tło i oliwkowo-złote akcenty",
     tone: "light",
     iconTheme: "aurelia-gilded",
     colors: {
@@ -26,7 +26,7 @@ export const AURELIA_PALETTES = Object.freeze([
   {
     id: "pewter",
     name: "Chłodny Pewter",
-    tagline: "Lekka · neutralna precyzja",
+    tagline: "Jasne tło i chłodne szarości",
     tone: "light",
     iconTheme: "aurelia-pewter",
     colors: {
@@ -37,7 +37,7 @@ export const AURELIA_PALETTES = Object.freeze([
   {
     id: "sage",
     name: "Szałwiowy Gabinet",
-    tagline: "Lekka · spokojna zieleń",
+    tagline: "Jasne tło i delikatna zieleń",
     tone: "light",
     iconTheme: "aurelia-sage",
     colors: {
@@ -48,7 +48,7 @@ export const AURELIA_PALETTES = Object.freeze([
   {
     id: "cobalt",
     name: "Kobaltowy Kontur",
-    tagline: "Mocna · chłodny autorytet",
+    tagline: "Jasne tło i wyraźny kobalt",
     tone: "strong",
     iconTheme: "aurelia-cobalt",
     colors: {
@@ -59,7 +59,7 @@ export const AURELIA_PALETTES = Object.freeze([
   {
     id: "burgundy",
     name: "Burgundowa Rama",
-    tagline: "Mocna · klasyczny editorial",
+    tagline: "Jasne tło i burgundowa rama",
     tone: "strong",
     iconTheme: "aurelia-burgundy",
     colors: {
@@ -70,7 +70,7 @@ export const AURELIA_PALETTES = Object.freeze([
   {
     id: "noir",
     name: "Noir i Złoto",
-    tagline: "Mocna · wysoki kontrast",
+    tagline: "Ciemne tło i złote akcenty",
     tone: "strong",
     iconTheme: "aurelia-noir",
     colors: {

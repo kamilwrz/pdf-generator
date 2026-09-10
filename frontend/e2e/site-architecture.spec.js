@@ -74,13 +74,13 @@ test('library handles search, download, delete cancellation and success', async 
 test('template selection is retained and paid creation stays gated', async ({ page }) => {
   const api = await installMockApi(page);
   await page.goto('/templates/monument');
-  await page.getByRole('link', { name: 'Stwórz CV z tym szablonem' }).click();
+  await page.getByRole('link', { name: 'Użyj szablonu Monument' }).click();
   await expect(page.getByRole('button', { name: 'Rozpocznij edycję', exact: true })).toBeDisabled();
   await expect(page.getByText(/Szablon Monument wymaga aktywnego Pro/)).toBeVisible();
   await page.getByRole('link', { name: 'Sprawdź dostęp Pro' }).click();
   await expect(page).toHaveURL(/template=monument/);
   await page.goto('/templates/linden');
-  await page.getByRole('link', { name: 'Stwórz CV z tym szablonem' }).click();
+  await page.getByRole('link', { name: 'Użyj szablonu Linden' }).click();
   await expect(page.locator('[data-template-id="linden"], .main-container').first()).toBeVisible();
   api.assertHermetic();
 });

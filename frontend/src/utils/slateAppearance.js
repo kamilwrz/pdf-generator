@@ -21,7 +21,7 @@ export const SLATE_PALETTES = Object.freeze([
   {
     id: "steelgrid",
     name: "Stalowa Siatka",
-    tagline: "Chłodna i precyzyjna",
+    tagline: "Stalowy błękit i jasne tło",
     accentIconTheme: "slate-accent",
     colors: {
       paper: "#FFFFFF", sidebar: "#F1F4F8", ink: "#1C2530",
@@ -43,7 +43,7 @@ export const SLATE_PALETTES = Object.freeze([
   {
     id: "copper",
     name: "Miedziany Warsztat",
-    tagline: "Ciepły i rzemieślniczy",
+    tagline: "Jasne tło i miedziane akcenty",
     accentIconTheme: "slate-copper-accent",
     colors: {
       paper: "#FFFDF9", sidebar: "#F6EDE3", ink: "#33251D",
@@ -54,7 +54,7 @@ export const SLATE_PALETTES = Object.freeze([
   {
     id: "forest",
     name: "Leśny Raster",
-    tagline: "Naturalny i zdecydowany",
+    tagline: "Jasne tło i leśna zieleń",
     accentIconTheme: "slate-forest-accent",
     colors: {
       paper: "#FBFDFB", sidebar: "#EAF2ED", ink: "#1D3028",
@@ -65,7 +65,7 @@ export const SLATE_PALETTES = Object.freeze([
   {
     id: "plum",
     name: "Śliwkowy Moduł",
-    tagline: "Kreatywny i redakcyjny",
+    tagline: "Jasne tło i śliwkowe akcenty",
     accentIconTheme: "slate-plum-accent",
     colors: {
       paper: "#FEFBFD", sidebar: "#F3EAF1", ink: "#352530",
@@ -76,7 +76,7 @@ export const SLATE_PALETTES = Object.freeze([
   {
     id: "teal",
     name: "Morska Matryca",
-    tagline: "Świeża i technologiczna",
+    tagline: "Jasne tło i morski turkus",
     accentIconTheme: "slate-teal-accent",
     colors: {
       paper: "#F9FDFD", sidebar: "#E5F2F1", ink: "#173134",

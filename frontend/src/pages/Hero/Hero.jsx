@@ -11,8 +11,7 @@
  * Only the "import" CTA still detours through registration/login, because it
  * calls the account-scoped `POST /ai/extract_cv` endpoint. Setup and demo go straight
  * to `/cvstudio/guest?start=...` (or `/cvstudio/{username}` when already
- * authenticated). Each CTA queues a per-source funnel event so analytics can
- * tell which surface drove the click (see queueGuestEvent + events.py).
+ * authenticated). Anonymous CTA activity is not buffered or sent as analytics.
  */
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
@@ -21,7 +20,6 @@ import { TEMPLATES } from "../../templates";
 import HeroTemplateShowcase from "./HeroTemplateShowcase";
 import { SiteHeader, SiteFooter } from "../../components/common/SiteLayout/SiteLayout";
 import { wakeBackend } from "../../services/api";
-import { queueGuestEvent } from "../../utils/guestEvents";
 import { getAccessToken, getEditorPath } from "../../utils/authSession";
 import { hasGuestDocument, loadGuestDocument } from "../../utils/guestDocument";
 import {
@@ -70,11 +68,9 @@ function buildStartUrl(start, plan) {
 }
 
 /**
- * Shared landing call-to-action. `event` is the per-source funnel event fired
- * on click (queued while anonymous, flushed after auth — see events.py for the
- * fixed vocabulary). `variant` picks the primary / secondary / link chrome.
+ * Shared landing call-to-action with primary, secondary, and link variants.
  */
-function CtaLink({ to, event, variant = "primary", children }) {
+function CtaLink({ to, variant = "primary", children }) {
     const variantClass =
         variant === "secondary"
             ? classes.buttonSecondary
@@ -82,7 +78,7 @@ function CtaLink({ to, event, variant = "primary", children }) {
             ? classes.textCta
             : classes.buttonPrimary;
     return (
-        <Link to={to} className={variantClass} onClick={() => queueGuestEvent(event)}>
+        <Link to={to} className={variantClass}>
             {children}
             <ArrowIcon />
         </Link>
@@ -117,7 +113,7 @@ export default function Hero() {
                     <p className={classes.kicker} data-section-index="01">Kreator CV online</p>
                     <div className={classes.heroHeading}>
                         <h1>Czytelne CV.<br /><span>Gotowe do wysłania.</span></h1>
-                        <p className={classes.heroSubheading}>Wybierz szablon, opisz doświadczenie i popraw tekst bezpośrednio na CV. Pobierz gotowy PDF bez znaku wodnego.</p>
+                        <p className={classes.heroSubheading}>Wybierz szablon, wpisz swoje doświadczenie i popraw tekst bezpośrednio na stronie A4. Gdy wszystko wygląda dobrze, pobierz PDF bez znaku wodnego.</p>
                     </div>
                     <div className={classes.heroActions}>
                         <CtaLink to={selectedTemplateUrl} event="hero_new_cv">Stwórz CV z tym szablonem</CtaLink>
@@ -149,7 +145,7 @@ export default function Hero() {
                             <span>Zachowaj treść.</span>
                         </h2>
                         <p className={classes.offerLead}>
-                            Wpisz doświadczenie raz. Zmieniaj układ i dopracowuj opisy, gdy przygotowujesz CV do kolejnej aplikacji.
+                            Treść wpisujesz tylko raz. Potem możesz zmieniać układ i dopracowywać opisy do kolejnych ofert pracy.
                         </p>
                     </div>
                     {/*
@@ -162,8 +158,8 @@ export default function Hero() {
                             <span className={classes.offerStepIndex} aria-hidden="true">01</span>
                             <div>
                                 <h3>Wykorzystaj treść swojego PDF</h3>
-                                <p>Wgraj obecne CV, przenieś jego treść do wybranego szablonu i popraw ją w edytorze. Po założeniu konta masz jeden udany import miesięcznie za darmo.</p>
-                                <CtaLink to={importUrl} event="hero_import" variant="link">Wgraj swoje CV w PDF</CtaLink>
+                                <p>Wgraj obecne CV, a CV Studio odczyta jego treść i umieści ją w wybranym szablonie. Po założeniu konta masz jeden udany import miesięcznie za darmo.</p>
+                                <CtaLink to={importUrl} event="hero_import" variant="link">Importuj CV z PDF</CtaLink>
                             </div>
                         </li>
                         <li>
@@ -219,7 +215,6 @@ export default function Hero() {
                                         to={`/templates/${template.id}`}
                                         className={classes.templateCard}
                                         tabIndex={copy === 1 ? -1 : undefined}
-                                        onClick={() => queueGuestEvent("templates_new_cv")}
                                     >
                                         <img
                                             src={template.image}
@@ -259,14 +254,14 @@ export default function Hero() {
                         <em>Dodaj AI, gdy potrzebujesz.</em>
                     </h2>
                     <p>
-                        W obu planach pobierzesz PDF bez znaku wodnego. Wybierz potrzebną liczbę projektów i dostęp do AI.
+                        W obu planach pobierzesz PDF bez znaku wodnego. Pro dodaje więcej projektów, nielimitowane pobrania i pomoc AI.
                     </p>
                 </div>
                 <div className={classes.pricingGrid}>
                     <article className={classes.priceCard}>
                         <p className={classes.planName}>Darmowy</p>
                         <p className={classes.planPrice}>0 <small>zł</small></p>
-                        <p className={classes.planSummary}>Przygotuj CV samodzielnie i pobierz gotowy dokument.</p>
+                        <p className={classes.planSummary}>Utwórz jedno CV, edytuj je samodzielnie i pobierz gotowy dokument.</p>
                         <ul>
                             {FREE_PLAN_HIGHLIGHTS.map((feature) => (
                                 <li key={feature}><CheckIcon />{feature}</li>
@@ -291,7 +286,6 @@ export default function Hero() {
                         <Link
                             className={classes.buttonPrimary}
                             to={proRegisterUrl}
-                            onClick={() => queueGuestEvent("pricing_pro")}
                         >
                             Wybierz Pro na 30 dni <ArrowIcon />
                         </Link>

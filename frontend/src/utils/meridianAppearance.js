@@ -20,7 +20,7 @@ export const MERIDIAN_PALETTES = Object.freeze([
   {
     id: "navy",
     name: "Granatowy Horyzont",
-    tagline: "Chłodny i strategiczny",
+    tagline: "Granat, błękit i jasne tło",
     iconTheme: "meridian",
     colors: {
       paper: "#FFFFFF", ink: "#1B2A41", body: "#33475A",
@@ -40,7 +40,7 @@ export const MERIDIAN_PALETTES = Object.freeze([
   {
     id: "burgundy",
     name: "Burgundowy Rejestr",
-    tagline: "Redakcyjny i zdecydowany",
+    tagline: "Jasne tło i burgundowe akcenty",
     iconTheme: "meridian-burgundy",
     colors: {
       paper: "#FFFFFF", ink: "#3D2028", body: "#593A43",
@@ -50,7 +50,7 @@ export const MERIDIAN_PALETTES = Object.freeze([
   {
     id: "forest",
     name: "Zielony Gabinet",
-    tagline: "Naturalny i analityczny",
+    tagline: "Jasne tło i ciemna zieleń",
     iconTheme: "meridian-forest",
     colors: {
       paper: "#FFFFFF", ink: "#1F342B", body: "#385147",
@@ -60,7 +60,7 @@ export const MERIDIAN_PALETTES = Object.freeze([
   {
     id: "copper",
     name: "Miedziany Raport",
-    tagline: "Ciepły i dojrzały",
+    tagline: "Jasne tło i miedziane akcenty",
     iconTheme: "meridian-copper",
     colors: {
       paper: "#FFFFFF", ink: "#3A281F", body: "#58443A",
@@ -70,7 +70,7 @@ export const MERIDIAN_PALETTES = Object.freeze([
   {
     id: "teal",
     name: "Turkusowy Brief",
-    tagline: "Świeży i precyzyjny",
+    tagline: "Jasne tło i turkusowe akcenty",
     iconTheme: "meridian-teal",
     colors: {
       paper: "#FFFFFF", ink: "#17343A", body: "#36545A",

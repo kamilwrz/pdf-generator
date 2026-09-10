@@ -143,7 +143,7 @@ export default function Login() {
                     </Link>
                     <p className={classes.cardEyebrow}>Dostęp do Twoich dokumentów</p>
                     <h1 id="login-title" className={classes.mainHeading}>Witaj ponownie</h1>
-                    <p className={classes.subHeading}>{startIntent === "download" ? selectedStartLabel : "Zaloguj się, aby kontynuować projektowanie."}</p>
+                    <p className={classes.subHeading}>{startIntent === "download" ? selectedStartLabel : "Zaloguj się, aby wrócić do swojego CV."}</p>
                     {searchParams.get("verified") === "1" && <p className={classes.status} role="status">Adres e-mail został potwierdzony. Możesz się zalogować.</p>}
                     {searchParams.get("registered") === "1" && <p className={classes.status} role="status">Konto zostało utworzone. Automatyczne logowanie nie powiodło się — zaloguj się, aby kontynuować.</p>}
                     <div className={classes.googleSlot}><GoogleSignInButton onCredential={handleGoogleCredential} disabled={googleLoading || isLoading} /></div>
@@ -211,9 +211,9 @@ export default function Login() {
                     CV STUDIO
                 </Link>
                 <div className={classes.storyCopy}>
-                    <p className={classes.storyEyebrow}>Twoje CV. Twój następny krok.</p>
-                    <h2>Wróć do dokumentu, który nadal jest Twój.</h2>
-                    <p>Edytuj treść, sprawdzaj układ i pobieraj PDF dokładnie wtedy, gdy jest gotowy do wysłania.</p>
+                    <p className={classes.storyEyebrow}>Twoje dokumenty</p>
+                    <h2>Wróć do swojego CV.</h2>
+                    <p>Kontynuuj edycję, sprawdź układ i pobierz PDF, gdy dokument będzie gotowy.</p>
                 </div>
                 <div className={classes.storyPath}>
                     <span>Kontynuacja pracy</span>

@@ -16,7 +16,7 @@ export const REGENT_PALETTES = Object.freeze([
   {
     id: "monochrome",
     name: "Monochromatyczny Regent",
-    tagline: "Klasyczna · czysta hierarchia",
+    tagline: "Białe tło, czerń i szarość",
     group: "classic",
     iconTheme: "regent",
     colors: {
@@ -32,7 +32,7 @@ export const REGENT_PALETTES = Object.freeze([
   {
     id: "ivory",
     name: "Gabinet Ivory",
-    tagline: "Klasyczna · ciepły papier",
+    tagline: "Ciepłe tło i ciemny tekst",
     group: "classic",
     iconTheme: "regent-ivory",
     colors: {
@@ -48,7 +48,7 @@ export const REGENT_PALETTES = Object.freeze([
   {
     id: "pearl",
     name: "Perłowa Kancelaria",
-    tagline: "Klasyczna · chłodna elegancja",
+    tagline: "Jasne tło i chłodne szarości",
     group: "classic",
     iconTheme: "regent-pearl",
     colors: {
@@ -64,7 +64,7 @@ export const REGENT_PALETTES = Object.freeze([
   {
     id: "sage",
     name: "Szałwiowe Archiwum",
-    tagline: "Klasyczna · mineralna zieleń",
+    tagline: "Jasne tło i szałwiowe akcenty",
     group: "classic",
     iconTheme: "regent-sage",
     colors: {
@@ -80,7 +80,7 @@ export const REGENT_PALETTES = Object.freeze([
   {
     id: "sapphire",
     name: "Szafirowa Noc",
-    tagline: "Kreatywna · złoto na granacie",
+    tagline: "Granatowe tło i złote akcenty",
     group: "creative",
     iconTheme: "regent-sapphire",
     colors: {
@@ -96,7 +96,7 @@ export const REGENT_PALETTES = Object.freeze([
   {
     id: "burgundy",
     name: "Burgundowy Salon",
-    tagline: "Kreatywna · ceremonialna głębia",
+    tagline: "Burgundowe tło i jasny tekst",
     group: "creative",
     iconTheme: "regent-burgundy",
     colors: {

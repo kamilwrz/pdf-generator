@@ -9,16 +9,16 @@
 export const FREE_PLAN_HIGHLIGHTS = Object.freeze([
     "1 zapisany projekt CV",
     "1 udany import CV miesięcznie",
-    "3 profesjonalne szablony · po 6 wersji wyglądu",
-    "Pełny edytor: czcionki, typografia, odstępy i sekcje",
-    "3 pobrania czystego PDF miesięcznie",
+    "3 szablony · każdy w 6 wersjach wyglądu",
+    "Edycja czcionek, wielkości tekstu, odstępów i sekcji",
+    "3 pobrania PDF miesięcznie, bez znaku wodnego",
     "Samodzielna edycja bez funkcji AI",
 ]);
 
 export const PRO_PLAN_HIGHLIGHTS = Object.freeze([
     "Wszystkie szablony i warianty wyglądu",
     "Nielimitowane projekty, importy i pobrania PDF",
-    "AI do treści, ATS i układu",
+    "AI do poprawek tekstu, analizy ATS i układu",
     "200 kredytów AI",
 ]);
 
@@ -28,7 +28,7 @@ export const PLAN_PRESENTATION = Object.freeze({
         name: "Darmowy",
         price_pln: 0,
         price_label: "0 zł",
-        blurb: "Jedno kompletne CV, gotowe do wysłania.",
+        blurb: "Jedno CV ze wszystkimi narzędziami do samodzielnej edycji.",
         highlights: FREE_PLAN_HIGHLIGHTS,
         period_note: "Bez karty · Bez limitu czasu",
         cta: "Stwórz CV za darmo",
@@ -38,10 +38,10 @@ export const PLAN_PRESENTATION = Object.freeze({
         name: "Pro",
         price_pln: 59,
         price_label: "59 zł / 30 dni",
-        blurb: "Więcej wersji CV i szybsze dopracowanie.",
+        blurb: "Więcej wersji CV, wszystkie szablony i pomoc AI.",
         highlights: PRO_PLAN_HIGHLIGHTS,
         period_note: "Jedna płatność · Bez automatycznego odnawiania",
-        badge: "Najlepszy wybór do aktywnego szukania pracy",
+        badge: "Dla wielu wersji CV i pracy z AI",
         cta: "Odblokuj Pro",
     }),
 });

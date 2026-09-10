@@ -21,7 +21,7 @@ export const VELLUM_PALETTES = Object.freeze([
   {
     id: "sage",
     name: "Szałwiowy Welin",
-    tagline: "Lekka · papierniczy spokój",
+    tagline: "Jasne tło i szałwiowe akcenty",
     tone: "light",
     iconTheme: "vellum-sage",
     colors: {
@@ -34,7 +34,7 @@ export const VELLUM_PALETTES = Object.freeze([
   {
     id: "mist",
     name: "Błękitna Kalka",
-    tagline: "Lekka · chłodna precyzja",
+    tagline: "Jasne tło i chłodny błękit",
     tone: "light",
     iconTheme: "vellum-mist",
     colors: {
@@ -47,7 +47,7 @@ export const VELLUM_PALETTES = Object.freeze([
   {
     id: "rose",
     name: "Różany Welin",
-    tagline: "Lekka · miękki editorial",
+    tagline: "Jasne tło i pudrowy róż",
     tone: "light",
     iconTheme: "vellum-rose",
     colors: {
@@ -60,7 +60,7 @@ export const VELLUM_PALETTES = Object.freeze([
   {
     id: "ink",
     name: "Atramentowy Welin",
-    tagline: "Mocna · autorytet i rytm",
+    tagline: "Ciemny granat i jasny tekst",
     tone: "strong",
     iconTheme: "vellum-ink",
     colors: {
@@ -73,7 +73,7 @@ export const VELLUM_PALETTES = Object.freeze([
   {
     id: "burgundy",
     name: "Bordowa Pieczęć",
-    tagline: "Mocna · kolekcjonerski druk",
+    tagline: "Ciemny burgund i jasny tekst",
     tone: "strong",
     iconTheme: "vellum-burgundy",
     colors: {
@@ -86,7 +86,7 @@ export const VELLUM_PALETTES = Object.freeze([
   {
     id: "emerald",
     name: "Szmaragdowy Foliał",
-    tagline: "Mocna · szlachetna głębia",
+    tagline: "Ciemna zieleń i jasny tekst",
     tone: "strong",
     iconTheme: "vellum-emerald",
     colors: {

@@ -43,6 +43,20 @@ test("every Free template exposes all six appearance palettes", () => {
   }
 });
 
+test("every template has clear public copy without design-industry jargon", () => {
+  for (const template of TEMPLATES) {
+    assert.ok(template.description.length >= 50, `${template.id} needs a useful picker description`);
+    assert.ok(template.details?.heading, `${template.id} needs a detail heading`);
+    assert.ok(template.details?.body, `${template.id} needs a detail explanation`);
+    assert.equal(template.details?.highlights?.length, 3, `${template.id} needs three concrete highlights`);
+    assert.doesNotMatch(
+      `${template.description} ${template.details.heading} ${template.details.body}`,
+      /editorial|executive|masthead|sidebar/i,
+      `${template.id} copy must use customer language`,
+    );
+  }
+});
+
 test("Regent stays registered for previously saved documents", () => {
   const regent = TEMPLATES.find((template) => template.id === "regent");
 

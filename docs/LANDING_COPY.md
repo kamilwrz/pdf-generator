@@ -10,7 +10,7 @@ Odbiorca: osoba przygotowująca lub aktualizująca CV do aplikacji o pracę. Gł
 
 **Nagłówek:** Czytelne CV. Gotowe do wysłania.
 
-**Opis:** Wybierz szablon, opisz doświadczenie i popraw tekst bezpośrednio na CV. Pobierz gotowy PDF bez znaku wodnego.
+**Opis:** Wybierz szablon, wpisz swoje doświadczenie i popraw tekst bezpośrednio na stronie A4. Gdy wszystko wygląda dobrze, pobierz PDF bez znaku wodnego.
 
 **Główny przycisk:** Stwórz CV z tym szablonem
 
@@ -32,13 +32,13 @@ Odbiorca: osoba przygotowująca lub aktualizująca CV do aplikacji o pracę. Gł
 
 **Nagłówek:** Zmień szablon. Zachowaj treść.
 
-**Wprowadzenie:** Wpisz doświadczenie raz. Zmieniaj układ i dopracowuj opisy, gdy przygotowujesz CV do kolejnej aplikacji.
+**Wprowadzenie:** Treść wpisujesz tylko raz. Potem możesz zmieniać układ i dopracowywać opisy do kolejnych ofert pracy.
 
 ### Wykorzystaj treść swojego PDF
 
-Wgraj obecne CV, przenieś jego treść do wybranego szablonu i popraw ją w edytorze. Po założeniu konta masz jeden udany import miesięcznie za darmo.
+Wgraj obecne CV, a CV Studio odczyta jego treść i umieści ją w wybranym szablonie. Po założeniu konta masz jeden udany import miesięcznie za darmo.
 
-**Przycisk:** Wgraj swoje CV w PDF
+**Przycisk:** Importuj CV z PDF
 
 ### Poprawiaj tekst prosto na CV
 
@@ -68,15 +68,15 @@ Przykład poprawy stylu z AI w Pro:
 
 **Nagłówek:** Zacznij za 0 zł. Dodaj AI, gdy potrzebujesz.
 
-**Wprowadzenie:** W obu planach pobierzesz PDF bez znaku wodnego. Wybierz potrzebną liczbę projektów i dostęp do AI.
+**Wprowadzenie:** W obu planach pobierzesz PDF bez znaku wodnego. Pro dodaje więcej projektów, nielimitowane pobrania i pomoc AI.
 
-**Darmowy — 0 zł:** Przygotuj CV samodzielnie i pobierz gotowy dokument.
+**Darmowy — 0 zł:** Utwórz jedno CV, edytuj je samodzielnie i pobierz gotowy dokument.
 
 - 1 zapisany projekt CV
 - 1 udany import CV miesięcznie
-- 3 profesjonalne szablony · po 6 wersji wyglądu
-- Pełny edytor: czcionki, typografia, odstępy i sekcje
-- 3 pobrania czystego PDF miesięcznie
+- 3 szablony · każdy w 6 wersjach wyglądu
+- Edycja czcionek, wielkości tekstu, odstępów i sekcji
+- 3 pobrania PDF miesięcznie, bez znaku wodnego
 - Samodzielna edycja bez funkcji AI
 
 Przycisk: **Stwórz CV za darmo**. Informacja: Bez karty · Bez limitu czasu.
@@ -85,7 +85,7 @@ Przycisk: **Stwórz CV za darmo**. Informacja: Bez karty · Bez limitu czasu.
 
 - Wszystkie szablony i warianty wyglądu
 - Nielimitowane projekty, importy i pobrania PDF
-- AI do treści, ATS i układu
+- AI do poprawek tekstu, analizy ATS i układu
 - 200 kredytów AI
 
 Przycisk: **Wybierz Pro na 30 dni**. Informacja: Jedna płatność · Bez automatycznego odnowienia.
@@ -120,7 +120,7 @@ Nie. Płacisz jednorazowo 59 zł za 30 dni dostępu. Po tym czasie Pro wygasa, a
 
 **Przycisk:** Stwórz CV za darmo
 
-**Stopka:** Wybierz szablon. Dodaj doświadczenie. Pobierz CV.
+**Stopka:** Wybierz szablon. Uzupełnij treść. Pobierz PDF.
 
 ## Dlaczego te teksty
 

@@ -9,7 +9,6 @@ import { ApiClient, ENDPOINTS, wakeBackend } from "../../services/api";
 
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
-import { queueGuestEvent } from "../../utils/guestEvents";
 import { authLink, clearPendingAuthIntent, postAuthPath, savePendingAuthIntent } from "../../utils/siteRoutes";
 import { PLAN_PRESENTATION } from "../../utils/planPresentation";
 import GoogleSignInButton from "../../components/common/GoogleSignInButton/GoogleSignInButton";
@@ -139,7 +138,6 @@ export default function Register() {
                 },
             );
             if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
-            queueGuestEvent("register_completed");
             setPassword("");
             setVerificationPending(true);
             setStatusMessage(result.message || "Sprawdź skrzynkę i potwierdź adres e-mail.");
@@ -158,7 +156,6 @@ export default function Register() {
         setError("");
         try {
             await signInWithGoogle(credential);
-            queueGuestEvent("register_completed");
             clearPendingAuthIntent();
             navigate(postAuthPath(searchParams), { replace: true });
         } catch (err) {
@@ -190,8 +187,8 @@ export default function Register() {
             : startIntent === "templates"
                 ? "Po utworzeniu konta otworzymy wybór szablonów."
             : selectedPlanSlug === "pro"
-                        ? "Konto z dostępem Pro (gdy aktywacja bez płatności jest włączona) — wszystkie szablony, więcej projektów i narzędzia AI."
-                        : "Utwórz darmowe konto i zacznij od szablonu, importu PDF albo projektu własnego.";
+                        ? "Utwórz konto i przejdź do Pro — zyskasz wszystkie szablony, więcej projektów i narzędzia AI."
+                        : "Utwórz darmowe konto i zacznij od szablonu albo przenieś treść z obecnego CV.";
 
     return (
         <div className={classes.container}>

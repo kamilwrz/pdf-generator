@@ -16,7 +16,7 @@ export const LINDEN_PALETTES = Object.freeze([
   {
     id: "gallery",
     name: "Galeria i Turkus",
-    tagline: "Biel, grafit i chłodny akcent",
+    tagline: "Białe tło, grafit i turkus",
     iconTheme: "linden-gallery",
     colors: {
       paper: "#FFFFFF", sidebar: "#FFFFFF", ink: "#242628", sidebarInk: "#303336",
@@ -28,7 +28,7 @@ export const LINDEN_PALETTES = Object.freeze([
   {
     id: "carmine",
     name: "Karminowy Gabinet",
-    tagline: "Szlachetny i zdecydowany",
+    tagline: "Jasne tło i karminowe akcenty",
     iconTheme: "linden-carmine",
     colors: {
       paper: "#FFFCFA", sidebar: "#F3E3E2", ink: "#2C2425", sidebarInk: "#39292B",
@@ -40,7 +40,7 @@ export const LINDEN_PALETTES = Object.freeze([
   {
     id: "botanical",
     name: "Botaniczny Papier",
-    tagline: "Naturalny i redakcyjny",
+    tagline: "Ciepłe tło i zgaszona zieleń",
     iconTheme: "linden",
     colors: {
       paper: "#FBFAF6", sidebar: "#F2EFE6", ink: "#252823", sidebarInk: "#252823",
@@ -52,7 +52,7 @@ export const LINDEN_PALETTES = Object.freeze([
   {
     id: "midnight",
     name: "Nocny Atrament",
-    tagline: "Granat, mosiądz i kość słoniowa",
+    tagline: "Granatowe tło i ciepłe akcenty",
     iconTheme: "linden-midnight",
     colors: {
       paper: "#F8FAF9", sidebar: "#18323B", ink: "#202D31", sidebarInk: "#F4F0E8",
@@ -64,7 +64,7 @@ export const LINDEN_PALETTES = Object.freeze([
   {
     id: "cobalt",
     name: "Kobaltowa Porcelana",
-    tagline: "Precyzyjny z koralowym detalem",
+    tagline: "Jasne tło, kobalt i koral",
     iconTheme: "linden-cobalt",
     colors: {
       paper: "#FFFEFB", sidebar: "#E7EEF6", ink: "#232A32", sidebarInk: "#263746",
@@ -76,7 +76,7 @@ export const LINDEN_PALETTES = Object.freeze([
   {
     id: "plum",
     name: "Śliwkowy Wieczór",
-    tagline: "Nastrojowy i wyrafinowany",
+    tagline: "Ciemna śliwka i jasny tekst",
     iconTheme: "linden-plum",
     colors: {
       paper: "#FBF7F8", sidebar: "#382D3C", ink: "#2C252C", sidebarInk: "#FBF2F5",

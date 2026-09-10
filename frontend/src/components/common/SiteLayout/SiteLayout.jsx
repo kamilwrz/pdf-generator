@@ -21,7 +21,7 @@ export function SiteHeader({ workspace = false }) {
 /** Only implemented destinations appear in the shared secondary navigation. */
 export function SiteFooter() {
   return <footer className={classes.footer}>
-    <p>CV Studio <span>Wybierz szablon. Dodaj doświadczenie. Pobierz CV.</span></p>
+    <p>CV Studio <span>Wybierz szablon. Uzupełnij treść. Pobierz PDF.</span></p>
     <nav aria-label="Stopka"><Link to="/templates">Szablony</Link><Link to="/pricing">Cennik</Link><Link to="/help">Pomoc</Link><Link to="/privacy">Prywatność</Link></nav>
   </footer>;
 }

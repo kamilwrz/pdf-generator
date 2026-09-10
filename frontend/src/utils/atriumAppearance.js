@@ -22,7 +22,7 @@ export const ATRIUM_PALETTES = Object.freeze([
   {
     id: "sage",
     name: "Szałwiowy Trawertyn",
-    tagline: "Oryginalna · spokojny editorial",
+    tagline: "Jasne tło i zgaszona zieleń",
     tone: "original",
     iconTheme: "atrium-sage",
     colors: {
@@ -34,7 +34,7 @@ export const ATRIUM_PALETTES = Object.freeze([
   {
     id: "carrara",
     name: "Białe Carrara",
-    tagline: "Jasna · galeryjna precyzja",
+    tagline: "Białe tło i chłodne szarości",
     tone: "light",
     iconTheme: "atrium-carrara",
     colors: {
@@ -46,7 +46,7 @@ export const ATRIUM_PALETTES = Object.freeze([
   {
     id: "nocturne",
     name: "Nocne Atrium",
-    tagline: "Ciemna · szampański detal",
+    tagline: "Ciemne tło i jasne akcenty",
     tone: "dark",
     iconTheme: "atrium-nocturne",
     colors: {
@@ -58,7 +58,7 @@ export const ATRIUM_PALETTES = Object.freeze([
   {
     id: "cobalt",
     name: "Kobaltowa Loggia",
-    tagline: "Mocna · modernistyczny autorytet",
+    tagline: "Ciemny kobalt i jasny tekst",
     tone: "strong",
     iconTheme: "atrium-cobalt",
     colors: {
@@ -70,7 +70,7 @@ export const ATRIUM_PALETTES = Object.freeze([
   {
     id: "burgundy",
     name: "Bordowa Arkada",
-    tagline: "Mocna · ceremonialna głębia",
+    tagline: "Ciemny burgund i jasny tekst",
     tone: "strong",
     iconTheme: "atrium-burgundy",
     colors: {
@@ -82,7 +82,7 @@ export const ATRIUM_PALETTES = Object.freeze([
   {
     id: "emerald",
     name: "Szmaragdowy Dziedziniec",
-    tagline: "Mocna · szlachetna architektura",
+    tagline: "Ciemna zieleń i jasny tekst",
     tone: "strong",
     iconTheme: "atrium-emerald",
     colors: {
