@@ -27,6 +27,7 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 834, height: 950 }
     await setup.getByRole("button", { name: "Dodaj linki" }).click();
     await setup.getByRole("checkbox", { name: "LinkedIn" }).check();
     await checkLayout();
+    await setup.getByRole("button", { name: /^Sekcje CV/ }).click();
     await setup.getByLabel(/Własna sekcja/).fill("Konferencje");
     await setup.getByRole("button", { name: "Dodaj", exact: true }).click();
     await expect(setup.getByLabel(/Własna sekcja/)).toBeFocused();
@@ -35,8 +36,10 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 834, height: 950 }
     await setup.getByRole("button", { name: "Dostosuj zawartość" }).click();
     await expect(setup.getByRole("checkbox")).toHaveCount(0);
     await setup.getByRole("button", { name: "Dostosuj zawartość" }).click();
+    await setup.getByRole("button", { name: "Nagłówek i kontakt", exact: true }).click();
     await expect(setup.getByRole("checkbox", { name: /Zdjęcie/ })).toBeChecked();
     await expect(setup.getByRole("checkbox", { name: "LinkedIn" })).toBeChecked();
+    await setup.getByRole("button", { name: /^Sekcje CV/ }).click();
     await expect(setup.getByRole("checkbox", { name: "Konferencje" })).toBeChecked();
     const create = setup.getByRole("button", { name: "Rozpocznij edycję" });
     const box = await create.boundingBox();
@@ -58,11 +61,22 @@ test("captures full-size and compact setup for visual review", async ({ page }) 
   await page.goto("/cvstudio/guest?start=new");
   const setup = page.getByRole("dialog", { name: "Utwórz CV" });
   await expect(setup).toBeVisible();
-  for (const width of [1920, 390]) {
-    await page.setViewportSize({ width, height: width === 390 ? 844 : 1080 });
-    await page.screenshot({ path: `../tmp/setup-simple-${width}-templates.png` });
+  for (const [width, height] of [[1920, 920], [1366, 768], [1280, 720], [834, 950], [390, 844]]) {
+    await page.setViewportSize({ width, height });
+    await page.screenshot({ path: `../tmp/setup-compact-${width}-templates.png` });
+    const body = setup.locator(':scope > div').nth(1);
+    const expectNoScroll = async () => expect(await body.evaluate((node) => node.scrollHeight - node.clientHeight)).toBeLessThanOrEqual(1);
+    await expectNoScroll();
+    await setup.getByRole("button", { name: "Więcej szablonów" }).click();
+    if (width >= 900) await expectNoScroll();
+    await setup.getByRole("button", { name: "Pokaż mniej szablonów" }).click();
     await setup.getByRole("button", { name: "Dostosuj zawartość" }).click();
-    await page.screenshot({ path: `../tmp/setup-simple-${width}-settings.png` });
+    await setup.getByRole("button", { name: "Nagłówek i kontakt", exact: true }).click();
+    await expectNoScroll();
+    await page.screenshot({ path: `../tmp/setup-compact-${width}-contact.png` });
+    await setup.getByRole("button", { name: /^Sekcje CV/ }).click();
+    if (width >= 900) await expectNoScroll();
+    await page.screenshot({ path: `../tmp/setup-compact-${width}-sections.png` });
     await setup.getByRole("button", { name: "Dostosuj zawartość" }).click();
     await setup.getByRole("radio", { name: /Meridian/ }).focus();
   }

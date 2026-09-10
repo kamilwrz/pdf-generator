@@ -1,14 +1,15 @@
 /**
  * Starts an editable CV from template defaults, with optional configuration.
  * Choices survive collapsed controls and failed creation. The shared shell owns
- * modality; this component owns disclosures and document replacement consent.
+ * modality; this component owns mutually exclusive setup views and replacement
+ * consent. View changes never modify the pending document configuration.
  *
  * Product-owned sample content may opt into replacement without confirmation.
  * This keeps the demo-to-editor transition direct while preserving the guard
  * for saved and unsaved documents that belong to the user.
  */
 import { useEffect, useEffectEvent, useId, useMemo, useRef, useState } from "react";
-import { FiArrowDown, FiArrowUp, FiCheck, FiChevronDown, FiMenu } from "react-icons/fi";
+import { FiArrowDown, FiArrowUp, FiArrowRight, FiCheck, FiChevronDown, FiImage, FiLock, FiSliders, FiLayout } from "react-icons/fi";
 import DialogShell from "../../common/DialogShell/DialogShell";
 import { TEMPLATES } from "../../../templates";
 import { isTemplateAllowed } from "../../../utils/entitlements";
@@ -32,7 +33,7 @@ const SETUP_TEMPLATES = [...TEMPLATES].sort((left, right) => templatePriority(le
 function TemplateImage({ template, preview = false }) {
   const [state, setState] = useState("loading");
   return <span className={classes.imageFrame} data-state={state}>
-    {state === "error" ? <span className={classes.imageFallback}>Podgląd niedostępny</span> : <img
+    {state === "error" ? <span className={classes.imageFallback}>{preview ? "Podgląd niedostępny" : <FiImage aria-hidden="true" />}</span> : <img
       src={`/template-mockups/${template.id}.png`}
       alt={preview ? `Przykładowy wygląd szablonu ${template.name}` : ""}
       onLoad={() => setState("ready")}
@@ -79,6 +80,7 @@ export default function NewCvSetupModal({
   const [templatesOpen, setTemplatesOpen] = useState(!initialTemplate);
   const [moreTemplates, setMoreTemplates] = useState(false);
   const [customizationOpen, setCustomizationOpen] = useState(false);
+  const [settingsView, setSettingsView] = useState("contact");
   const [linksOpen, setLinksOpen] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [customTitle, setCustomTitle] = useState("");
@@ -100,17 +102,18 @@ export default function NewCvSetupModal({
   // Only an explicit gallery expansion moves focus. Changing the selection or
   // receiving account entitlements must not steal focus from the active control.
   useEffect(() => {
-    if (templatesOpen && !previousTemplatesOpenRef.current) {
+    const galleryVisible = templatesOpen && !customizationOpen;
+    if (galleryVisible && !previousTemplatesOpenRef.current) {
       templateGridRef.current?.querySelector("input:checked")?.focus();
     }
-    previousTemplatesOpenRef.current = templatesOpen;
-  }, [templatesOpen]);
+    previousTemplatesOpenRef.current = galleryVisible;
+  }, [templatesOpen, customizationOpen]);
 
   // Validation can originate from the persistent action while settings are
   // collapsed. Reveal the section choices before moving focus to their error.
   useEffect(() => {
-    if (sectionError && customizationOpen) sectionHeadingRef.current?.focus();
-  }, [sectionError, customizationOpen]);
+    if (sectionError && customizationOpen && settingsView === "sections") sectionHeadingRef.current?.focus();
+  }, [sectionError, customizationOpen, settingsView]);
 
   const selectedTemplate = useMemo(
     () => TEMPLATES.find((template) => template.id === config.templateId) || TEMPLATES[0],
@@ -213,6 +216,8 @@ export default function NewCvSetupModal({
     if (!config.sections.some((item) => item.selected)) {
       setSectionError("Wybierz co najmniej jedną sekcję CV.");
       setCustomizationOpen(true);
+      setSettingsView("sections");
+      setPreviewOpen(false);
       return;
     }
     // The ref also rejects a second activation before React commits disabled UI.
@@ -257,7 +262,7 @@ export default function NewCvSetupModal({
       <div className={classes.footerActions}>
         <button type="button" className={classes.secondaryButton} onClick={onClose} disabled={submitting}>Anuluj</button>
         <button type="button" className={classes.primaryButton} onClick={submit} disabled={submitting || !isTemplateAllowed(selectedTemplate, entitlements)}>
-          {submitting ? "Tworzenie CV…" : error ? "Spróbuj ponownie" : "Rozpocznij edycję"}
+          {submitting ? "Tworzenie CV…" : error ? "Spróbuj ponownie" : "Rozpocznij edycję"}<FiArrowRight aria-hidden="true" />
         </button>
       </div>
     </div>
@@ -282,17 +287,22 @@ export default function NewCvSetupModal({
           <p>Możesz wrócić do obecnego CV i kontynuować edycję. Wybór szablonu nie zmieni jego treści — zastąpisz ją dopiero przyciskiem „Rozpocznij edycję”.</p>
         </div>
       ) : (
-        <div className={classes.workspace}>
+        <div className={classes.workspace} data-preview-open={previewOpen} data-settings={customizationOpen ? settingsView : undefined}>
           <div className={classes.layout} aria-busy={submitting}>
           <fieldset className={classes.content} disabled={submitting}>
           <legend className={classes.liveStatus}>Opcje konfiguracji CV</legend>
-          <section className={classes.templates} aria-labelledby="new-cv-template-heading">
-            <div className={classes.sectionHeading}>
-              <h3 tabIndex={-1} id="new-cv-template-heading">Wybrany szablon: {selectedTemplate.name}</h3>
-              {initialTemplate && <button type="button" className={classes.textButton} aria-expanded={templatesOpen} aria-controls={`${customInputId}-templates`} onClick={() => setTemplatesOpen((current) => !current)}>{templatesOpen ? "Zwiń wybór szablonu" : "Zmień szablon"}</button>}
+          <div className={classes.viewNavigation} aria-label="Widok konfiguracji">
+            <button type="button" aria-pressed={!customizationOpen} onClick={() => { setTemplatesOpen(true); setCustomizationOpen(false); setPreviewOpen(false); }}><FiLayout aria-hidden="true" />Szablony</button>
+            <button type="button" aria-label="Dostosuj zawartość" aria-expanded={customizationOpen} aria-controls={`${customInputId}-customization`} onClick={() => { setCustomizationOpen((current) => !current); setPreviewOpen(false); }}><FiSliders aria-hidden="true" />Dostosuj zawartość</button>
+          </div>
+          <section className={classes.templates} aria-labelledby="new-cv-template-heading" hidden={customizationOpen}>
+            <div className={`${classes.sectionHeading} ${classes.templateHeading}`}>
+              <div><span className={classes.eyebrow}>Twój szablon</span><h3 tabIndex={-1} id="new-cv-template-heading" aria-label={`Wybrany szablon: ${selectedTemplate.name}`}>{selectedTemplate.name}</h3></div>
+              {initialTemplate && !templatesOpen && <button type="button" className={classes.textButton} aria-expanded={false} aria-controls={`${customInputId}-templates`} onClick={() => setTemplatesOpen(true)}>Zmień szablon</button>}
             </div>
-            {templatesOpen && <div id={`${customInputId}-templates`}>
-            <div ref={templateGridRef} className={classes.templateGrid} role="radiogroup" aria-label="Szablon CV">
+            {!customizationOpen && !templatesOpen && <p className={classes.templateDescription}>{selectedTemplate.description}</p>}
+            {!customizationOpen && templatesOpen && <div id={`${customInputId}-templates`}>
+            <div ref={templateGridRef} className={classes.templateGrid} data-expanded={moreTemplates || selectedTemplate.tier !== "free"} role="radiogroup" aria-label="Szablon CV">
               {SETUP_TEMPLATES.filter((template) => moreTemplates || template.tier === "free" || template.id === config.templateId).map((template) => {
                 const selected = template.id === config.templateId;
                 const locked = !isTemplateAllowed(template, entitlements);
@@ -303,21 +313,27 @@ export default function NewCvSetupModal({
                   >
                     <input type="radio" name={`template-${customInputId}`} checked={selected} disabled={locked} onChange={() => selectTemplate(template)} data-template-selected={selected ? "true" : undefined} aria-label={`${template.name}, ${locked ? "wymaga Pro" : template.tier === "free" ? "Free" : "Pro"}, ${template.layouts?.includes("sidebar") ? "2 kolumny" : "1 kolumna"}`} />
                     <span className={classes.templateImage}><TemplateImage key={template.id} template={template} /></span>
-                    <span className={classes.templateName}>{template.name}{selected && <FiCheck aria-hidden="true" />}</span>
-                    <span className={classes.templateMeta}>{locked ? "Wymaga Pro" : template.tier === "free" ? "Bezpłatny" : "Pro"}{PHOTO_TEMPLATE_IDS.has(template.id) ? " · Opcjonalne zdjęcie" : " · Bez zdjęcia"}</span>
+                    <span className={classes.templateCopy}>
+                      <span className={classes.templateName}>{template.name}<span className={classes.templateTier}>{locked ? "Pro" : template.tier === "free" ? "Bezpłatny" : "Pro"}</span></span>
+                      <span className={classes.templateMeta}>{template.layouts?.includes("sidebar") ? "Dwie kolumny" : "Jedna kolumna"}{!moreTemplates && (PHOTO_TEMPLATE_IDS.has(template.id) ? " · Opcjonalne zdjęcie" : " · Bez zdjęcia")}</span>
+                    </span>
+                    <span className={classes.selectionMark}>{selected ? <FiCheck aria-hidden="true" /> : locked ? <FiLock aria-hidden="true" /> : null}</span>
                   </label>
                 );
               })}
             </div>
             <button type="button" className={classes.textButton} aria-expanded={moreTemplates} onClick={() => setMoreTemplates((current) => !current)}>{moreTemplates ? "Pokaż mniej szablonów" : "Więcej szablonów"}</button>
             </div>}
+            {!customizationOpen && !moreTemplates && <p className={classes.startHint}>Wybierz wygląd. Swoje dane wpiszesz w edytorze.<br />Szablon i zawartość możesz zmienić także później.</p>}
           </section>
 
-          <div className={classes.customization}>
-            <button type="button" className={classes.disclosureButton} aria-expanded={customizationOpen} aria-controls={`${customInputId}-customization`} onClick={() => setCustomizationOpen((current) => !current)}>Dostosuj zawartość <FiChevronDown aria-hidden="true" /></button>
-            {customizationOpen && <div id={`${customInputId}-customization`} className={classes.customizationBody}>
+            {customizationOpen && <div id={`${customInputId}-customization`}>
+            <div className={classes.settingsNavigation} aria-label="Ustawienia zawartości">
+              <button type="button" aria-pressed={settingsView === "contact"} onClick={() => setSettingsView("contact")}>Nagłówek i kontakt</button>
+              <button type="button" aria-pressed={settingsView === "sections"} onClick={() => setSettingsView("sections")}>Sekcje CV <span>{selectedSectionCount}</span></button>
+            </div>
 
-            <section className={classes.optionSection} aria-labelledby="new-cv-contact-heading">
+            {settingsView === "contact" && <section className={classes.optionSection} aria-labelledby="new-cv-contact-heading">
               <div className={classes.sectionHeading}>
                 <h3 id="new-cv-contact-heading">Nagłówek i kontakt</h3>
                 <p>Imię i nazwisko — zawsze widoczne. Pozostałe pola są opcjonalne.</p>
@@ -342,12 +358,12 @@ export default function NewCvSetupModal({
                   <span>{contact.label}</span>
                 </label>)}
               </div>}
-            </section>
+            </section>}
 
-            <section className={classes.optionSection} aria-labelledby="new-cv-sections-heading">
+            {settingsView === "sections" && <section className={classes.optionSection} aria-labelledby="new-cv-sections-heading">
               <div className={classes.sectionHeading}>
-                <h3 ref={sectionHeadingRef} tabIndex={-1} id="new-cv-sections-heading" aria-describedby={sectionError ? `${customInputId}-sections-error` : undefined}>Sekcje CV</h3>
-                <p>Wybierz sekcje. Ich kolejność zmienisz strzałkami lub przeciąganiem.</p>
+                <h3 className={sectionError ? undefined : classes.liveStatus} ref={sectionHeadingRef} tabIndex={-1} id="new-cv-sections-heading" aria-describedby={sectionError ? `${customInputId}-sections-error` : undefined}>Sekcje CV</h3>
+                <p>Zaznacz sekcje. Kolejność zmienisz strzałkami lub przeciąganiem.</p>
                 {selectedTemplate.layouts?.includes("sidebar") && <p>Kolejność zmienia się osobno w każdej kolumnie.</p>}
                 {sectionError && <p id={`${customInputId}-sections-error`} className={classes.fieldError} role="alert">{sectionError}</p>}
               </div>
@@ -363,8 +379,7 @@ export default function NewCvSetupModal({
                     onDrop={() => dropBefore(section.key)}
                     onDragEnd={() => { setDraggedKey(null); setDropKey(null); }}
                   >
-                    <FiMenu className={classes.dragHandle} aria-hidden="true" />
-                    <label><input type="checkbox" checked={section.selected} onChange={() => toggleSection(section.key)} /><span>{section.label}</span></label>
+                    <label><span className={classes.sectionNumber} aria-hidden="true">{index + 1}</span><input type="checkbox" checked={section.selected} onChange={() => toggleSection(section.key)} /><span>{section.label}</span></label>
                     <div className={classes.reorderButtons}>
                       <button type="button" onClick={() => reorder(section.key, "up")} disabled={index === 0} aria-label={`Przenieś ${section.label} wyżej`}><FiArrowUp aria-hidden="true" /></button>
                       <button type="button" onClick={() => reorder(section.key, "down")} disabled={index === config.sections.length - 1} aria-label={`Przenieś ${section.label} niżej`}><FiArrowDown aria-hidden="true" /></button>
@@ -377,16 +392,15 @@ export default function NewCvSetupModal({
                 <div><input ref={customInputRef} id={customInputId} value={customTitle} aria-invalid={Boolean(customError)} aria-describedby={customError ? `${customInputId}-error` : undefined} onChange={(event) => { setCustomTitle(event.target.value); setCustomError(""); }} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); addCustomSection(); } }} placeholder="np. Konferencje" /><button type="button" onClick={addCustomSection} disabled={!customTitle.trim()}>Dodaj</button></div>
                 {customError && <p id={`${customInputId}-error`} className={classes.fieldError} role="alert">{customError}</p>}
               </div>
-            </section>
-            <p className={classes.configurationSummary}>Wybrane sekcje: {selectedSectionCount} · Zdjęcie: {config.includePhoto ? "tak" : "nie"}. Pola i sekcje możesz zmieniać także w edytorze.</p>
+            </section>}
+            {settingsView === "contact" && <p className={classes.configurationSummary}>Wybrane sekcje: {selectedSectionCount} · Zdjęcie: {config.includePhoto ? "tak" : "nie"}. Pola i sekcje możesz zmieniać także w edytorze.</p>}
             </div>}
-          </div>
           </fieldset>
           <aside className={classes.preview} aria-label="Podgląd szablonu">
             <button type="button" className={`${classes.disclosureButton} ${classes.previewToggle}`} aria-expanded={previewOpen} aria-controls={`${customInputId}-preview`} onClick={() => setPreviewOpen((current) => !current)} disabled={submitting}>Podgląd szablonu <FiChevronDown aria-hidden="true" /></button>
             <div id={`${customInputId}-preview`} className={classes.previewBody} data-expanded={previewOpen}>
-            <h3>{selectedTemplate.name}</h3>
-            <figure><TemplateImage key={selectedTemplate.id} template={selectedTemplate} preview /><figcaption>Przykładowe CV</figcaption></figure>
+            <div className={classes.previewHeading}><span className={classes.eyebrow}>Podgląd szablonu</span><span>A4 · 210 × 297 mm</span></div>
+            <figure><TemplateImage key={selectedTemplate.id} template={selectedTemplate} preview /><figcaption>Przykładowe CV · {selectedTemplate.name}<br />To przykładowe dane, nie treść Twojego CV.</figcaption></figure>
             </div>
           </aside>
           </div>

@@ -1,6 +1,8 @@
 /** Standalone library: owned reads, local search, and explicit per-document actions. */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { FiPlus, FiUpload, FiFileText, FiFolder, FiArrowRight, FiDownload } from 'react-icons/fi';
+import { HeroNote, SiteMarker } from '../../components/common/SiteLayout/SitePrimitives';
 import SiteLayout from '../../components/common/SiteLayout/SiteLayout';
 import classes from '../../components/common/SiteLayout/SiteLayout.module.css';
 import DialogShell from '../../components/common/DialogShell/DialogShell';
@@ -70,17 +72,20 @@ export default function DocumentsPage() {
     finally { pendingRef.current = false; setPending(null); }
   }
 
-  return <SiteLayout workspace title="Moje dokumenty" eyebrow="TWOJA PRZESTRZEŃ" intro="Wróć do zapisanego CV albo przygotuj nową wersję do kolejnej aplikacji.">
-    <div className={classes.actions}><Link className={classes.primary} to="/app/new">Utwórz nowe CV</Link><Link className={classes.secondary} to="/app/import">Importuj PDF</Link></div>
-    <h2 ref={listHeading} tabIndex={-1}>Zapisane CV</h2>
+  return <SiteLayout workspace title="Moje dokumenty" eyebrow="TWOJA PRZESTRZEŃ" intro="Wróć do zapisanego CV albo przygotuj nową wersję do kolejnej aplikacji."
+    heroActions={<><Link className={classes.primary} to="/app/new"><FiPlus aria-hidden="true" />Utwórz nowe CV</Link><Link className={classes.secondary} to="/app/import"><FiUpload aria-hidden="true" />Importuj PDF</Link></>}
+    heroAside={<HeroNote icon={<FiFolder />} label="WSZYSTKO W JEDNYM MIEJSCU" title="Kolejna aplikacja? Masz punkt wyjścia."><p>Otwórz zapisany projekt, dopasuj treść do oferty i pobierz gotowe CV.</p><Link to="/help#powrot">Jak wrócić do pracy <FiArrowRight aria-hidden="true" /></Link></HeroNote>}>
+    <section className={classes.library} aria-labelledby="library-heading">
+    <div className={classes.sectionHeading}><h2 id="library-heading" ref={listHeading} tabIndex={-1}>Zapisane CV</h2>{!loading && !error && <span className={classes.count}>Liczba projektów: {documents.length}</span>}</div>
     {notice && <p role="status" className={classes.notice}>{notice}</p>}
     {error && <div role="alert" className={classes.error}><p>{error.message}</p>{error.status === 401 ? <Link to="/login?returnTo=%2Fapp%2Fdocuments">Zaloguj się ponownie</Link> : <button className={classes.secondary} onClick={() => { setLoading(true); setError(null); setRetry((value) => value + 1); }}>Spróbuj ponownie</button>}</div>}
     {loading ? <div role="status" aria-label="Ładowanie dokumentów"><p>Ładowanie dokumentów…</p>{[0, 1, 2].map((id) => <div key={id} className={classes.skeleton} aria-hidden="true" />)}</div> : <>
       {documents.length > 0 && <div className={classes.toolbar}><div className={classes.field}><label htmlFor="document-search">Szukaj dokumentów</label><input id="document-search" type="search" value={query} onChange={(event) => setQuery(event.target.value)} /></div><div className={classes.field}><label htmlFor="document-sort">Kolejność</label><select id="document-sort" value={sort} onChange={(event) => setSort(event.target.value)}><option value="recent">Ostatnio zmienione</option><option value="name">Nazwa A–Z</option></select></div></div>}
-      {!error && documents.length === 0 && <section className={classes.section}><h2>Twoje pierwsze CV zaczyna się tutaj.</h2><p>Wybierz „Utwórz nowe CV” lub zaimportuj PDF. Zapisany projekt pojawi się w tej bibliotece.</p><Link to="/templates">Obejrzyj szablony</Link></section>}
-      {documents.length > 0 && visible.length === 0 && <p role="status">Brak dokumentów pasujących do wyszukiwania. Zmień lub usuń wpisaną nazwę.</p>}
-      <ul className={classes.list}>{visible.map((document) => <li key={document.id} className={classes.row}><div><h2><Link to={getDocumentPath(document.id)}>{document.title || 'Bez nazwy'}</Link></h2><p>Ostatnia zmiana: {documentDate(document)}</p></div><div className={classes.actions}><Link className={classes.secondary} to={getDocumentPath(document.id)}>Otwórz</Link><button className={classes.secondary} disabled={pending !== null} onClick={() => download(document)}>{pending === document.id ? 'Przetwarzanie…' : 'Pobierz PDF'}</button><button className={classes.danger} disabled={pending !== null} onClick={() => { setDeleteError(''); setDeleting(document); }} aria-label={`Usuń ${document.title || 'dokument'}`}>Usuń</button></div></li>)}</ul>
+      {!error && documents.length === 0 && <section className={classes.emptyState}><SiteMarker><FiFileText /></SiteMarker><h2>Twoje pierwsze CV zaczyna się tutaj.</h2><p>Wybierz „Utwórz nowe CV” lub zaimportuj PDF. Zapisany projekt pojawi się w tej bibliotece.</p><Link className={classes.secondary} to="/templates">Obejrzyj szablony<FiArrowRight aria-hidden="true" /></Link></section>}
+      {documents.length > 0 && visible.length === 0 && <div className={classes.emptyState}><p role="status">Brak dokumentów pasujących do wyszukiwania. Zmień lub usuń wpisaną nazwę.</p><button className={classes.secondary} onClick={() => { setQuery(''); document.getElementById('document-search')?.focus(); }}>Wyczyść wyszukiwanie</button></div>}
+      <ul className={classes.list}>{visible.map((document) => <li key={document.id} className={classes.documentRow}><div className={classes.documentIdentity}><SiteMarker><FiFileText /></SiteMarker><div><h3><Link to={getDocumentPath(document.id)}>{document.title || 'Bez nazwy'}</Link></h3><p>Ostatnia zmiana: {documentDate(document)}</p></div></div><div className={classes.actions}><Link className={classes.secondary} to={getDocumentPath(document.id)}>Otwórz<FiArrowRight aria-hidden="true" /></Link><button className={classes.secondary} disabled={pending !== null} onClick={() => download(document)}><FiDownload aria-hidden="true" />{pending === document.id ? 'Przetwarzanie…' : 'Pobierz PDF'}</button><button className={classes.danger} disabled={pending !== null} onClick={() => { setDeleteError(''); setDeleting(document); }} aria-label={`Usuń ${document.title || 'dokument'}`}>Usuń</button></div></li>)}</ul>
     </>}
+    </section>
     <DialogShell open={Boolean(deleting)} onClose={() => { if (!pendingRef.current) setDeleting(null); }} title="Usunąć dokument?" subtitle={`„${deleting?.title || 'Bez nazwy'}” zostanie trwale usunięty. Tej operacji nie można cofnąć.`} role="alertdialog" initialFocusSelector="[data-cancel-delete]" footer={<div className={classes.actions}><button data-cancel-delete className={classes.secondary} disabled={pending !== null} onClick={() => setDeleting(null)}>Anuluj</button><button className={classes.danger} disabled={pending !== null} onClick={remove}>{pending !== null ? 'Usuwanie…' : 'Usuń trwale'}</button></div>}>{deleteError && <p role="alert" className={classes.error}>{deleteError}</p>}</DialogShell>
   </SiteLayout>;
 }

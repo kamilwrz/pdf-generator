@@ -5,6 +5,8 @@ import NewCvSetupModal from "./NewCvSetupModal";
 import { createDefaultStarterConfig } from "../../../utils/cvStarter.js";
 
 const customize = () => fireEvent.click(screen.getByRole("button", { name: "Dostosuj zawartość" }));
+const sectionsView = () => fireEvent.click(screen.getByRole("button", { name: /^Sekcje CV/ }));
+const contactView = () => fireEvent.click(screen.getByRole("button", { name: "Nagłówek i kontakt" }));
 const create = () => fireEvent.click(screen.getByRole("button", { name: "Rozpocznij edycję" }));
 
 describe("NewCvSetupModal optional configuration", () => {
@@ -34,12 +36,14 @@ describe("NewCvSetupModal optional configuration", () => {
     fireEvent.click(screen.getByRole("checkbox", { name: "Zdjęcie" }));
     fireEvent.click(screen.getByRole("button", { name: "Dodaj linki" }));
     fireEvent.click(screen.getByRole("checkbox", { name: "LinkedIn" }));
+    sectionsView();
     fireEvent.click(screen.getByRole("button", { name: "Przenieś Doświadczenie niżej" }));
     fireEvent.change(screen.getByLabelText(/Własna sekcja/), { target: { value: "Konferencje" } });
     fireEvent.click(screen.getByRole("button", { name: "Dodaj", exact: true }));
     customize();
     expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
     customize();
+    contactView();
     expect(screen.getByRole("checkbox", { name: "Zdjęcie" })).toBeChecked();
     expect(screen.getByRole("checkbox", { name: "LinkedIn" })).toBeChecked();
     customize();
@@ -76,11 +80,14 @@ describe("NewCvSetupModal optional configuration", () => {
     fireEvent.click(screen.getByRole("radio", { name: /Linden/ }));
     customize();
     fireEvent.click(screen.getByRole("checkbox", { name: "Zdjęcie" }));
+    fireEvent.click(screen.getByRole("button", { name: "Szablony", exact: true }));
     fireEvent.click(screen.getByRole("radio", { name: /Meridian/ }));
     expect(screen.getByText(/nie obsługuje zdjęcia/)).toBeInTheDocument();
     expect(screen.queryByRole("checkbox", { name: "Zdjęcie" })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("radio", { name: /Linden/ }));
+    customize();
     expect(screen.getByRole("checkbox", { name: "Zdjęcie" })).not.toBeChecked();
+    sectionsView();
     const input = screen.getByLabelText(/Własna sekcja/);
     fireEvent.change(input, { target: { value: "Doświadczenie" } });
     fireEvent.click(screen.getByRole("button", { name: "Dodaj", exact: true }));
@@ -95,6 +102,7 @@ describe("NewCvSetupModal optional configuration", () => {
     const onClose = vi.fn();
     render(<NewCvSetupModal open onClose={onClose} onCreate={onCreate} />);
     customize();
+    sectionsView();
     const sections = screen.getByRole("region", { name: "Sekcje CV" });
     within(sections).getAllByRole("checkbox").filter((input) => input.checked).forEach((input) => fireEvent.click(input));
     customize();
@@ -116,6 +124,19 @@ describe("NewCvSetupModal optional configuration", () => {
     fireEvent.click(screen.getByRole("button", { name: "Spróbuj ponownie" }));
     await waitFor(() => expect(onClose).toHaveBeenCalledWith("created"));
     expect(onCreate.mock.calls[1][0]).toEqual(onCreate.mock.calls[0][0]);
+  });
+
+  it("keeps a chosen Pro template available after collapsing the full gallery", async () => {
+    const onCreate = vi.fn().mockResolvedValue(true);
+    render(<NewCvSetupModal open entitlements={{ template_tier: "all" }} onCreate={onCreate} onClose={vi.fn()} />);
+    fireEvent.click(screen.getByRole("button", { name: "Więcej szablonów" }));
+    fireEvent.click(screen.getByRole("radio", { name: /Monument/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Pokaż mniej szablonów" }));
+    expect(screen.getAllByRole("radio")).toHaveLength(4);
+    expect(screen.getByRole("radio", { name: /Monument/ })).toBeChecked();
+    create();
+    await waitFor(() => expect(onCreate).toHaveBeenCalledTimes(1));
+    expect(onCreate.mock.calls[0][0].templateId).toBe("monument");
   });
 
   it("keeps creation available when sample images fail", async () => {
@@ -141,9 +162,10 @@ describe("NewCvSetupModal optional configuration", () => {
     render(<NewCvSetupModal open initialTemplateId="linden" onClose={vi.fn()} onCreate={vi.fn()} />);
     customize();
     fireEvent.click(screen.getByRole("checkbox", { name: "Telefon" }));
-    fireEvent.click(screen.getByRole("button", { name: "Zmień szablon" }));
+    fireEvent.click(screen.getByRole("button", { name: "Szablony", exact: true }));
     expect(screen.getByRole("radio", { name: /Linden/ })).toHaveFocus();
     fireEvent.click(screen.getByRole("radio", { name: /Sterling/ }));
+    customize();
     expect(screen.getByRole("checkbox", { name: "Telefon" })).not.toBeChecked();
   });
 

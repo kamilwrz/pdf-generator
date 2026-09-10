@@ -55,7 +55,9 @@ test('library handles search, download, delete cancellation and success', async 
   await page.goto('/app/documents');
   await page.getByLabel('Szukaj dokumentów').fill('nie istnieje');
   await expect(page.getByText(/Brak dokumentów pasujących/)).toBeVisible();
-  await page.getByLabel('Szukaj dokumentów').fill('');
+  await page.getByRole('button', { name: 'Wyczyść wyszukiwanie' }).click();
+  await expect(page.getByLabel('Szukaj dokumentów')).toBeFocused();
+  await expect(page.getByLabel('Szukaj dokumentów')).toHaveValue('');
   const download = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Pobierz PDF', exact: true }).click();
   await download;
@@ -75,6 +77,8 @@ test('account privacy controls export data and require exact confirmation before
   const api = await installMockApi(page);
   await authenticate(page);
   await page.goto('/app/account');
+  await expect(page.getByRole('meter', { name: /Kredyty AI: wykorzystano/ })).toBeVisible();
+  await expect(page.getByRole('meter', { name: /Projekty CV/ })).toHaveCount(0);
 
   const download = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Pobierz moje dane' }).click();
