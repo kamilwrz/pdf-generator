@@ -42,6 +42,16 @@ test("skills panel matches gallery bounds and animates opacity without sliding",
   assert.match(styles, /grid-template-columns:\s*repeat\(3, minmax\(0, 1fr\)\)/);
 });
 
+test("skills cards use white paper with brown editor typography and decoration", async () => {
+  const styles = await readFile(stylesUrl, "utf8");
+
+  assert.match(styles, /\.optionSurface\s*\{[\s\S]*?background:\s*var\(--color-paper\)/);
+  assert.match(styles, /\.optionSurface\s*\{[\s\S]*?color:\s*var\(--chrome-ink\)/);
+  assert.match(styles, /\.optionLabel\s*\{[\s\S]*?color:\s*var\(--chrome-ink\)/);
+  assert.match(styles, /\.state\s*\{[\s\S]*?color:\s*var\(--chrome-ink\)/);
+  assert.doesNotMatch(styles, /\.optionSurface\s*\{[\s\S]*?background:\s*var\(--chrome-control\)/);
+});
+
 test("the selected chip variant reaches the document conversion commit", async () => {
   const [canvasSource, hookSource] = await Promise.all([
     readFile(canvasUrl, "utf8"),
