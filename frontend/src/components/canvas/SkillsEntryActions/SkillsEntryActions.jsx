@@ -1,5 +1,5 @@
 /**
- * Contextual add control for one main-column Skills category.
+ * Contextual add and individual-delete controls for one Skills category.
  *
  * The control is application chrome: it is portalled outside the transformed
  * A4 page, never enters document geometry, and therefore cannot be exported.
@@ -7,7 +7,9 @@
  * AI belongs to the section or category record toolbar, never this add control.
  */
 import { useCallback, useEffect, useId, useState } from "react";
-import { FiPlus, FiX } from "react-icons/fi";
+import { FiPlus, FiTrash2, FiX } from "react-icons/fi";
+import { useCanvasDeletionUndo } from "../../../hooks/useCanvasDeletionUndo";
+import { measureSkillTargets } from "../../../utils/skillsItemTarget";
 import { useCanvasContext } from "../../../store/canvas-context";
 import { useCanvasHoverToolbar } from "../../../hooks/useCanvasHoverToolbar";
 import { EDITOR_MODE_TEMPLATE } from "../../../utils/editorMode";
@@ -20,6 +22,7 @@ import classes from "./SkillsEntryActions.module.css";
  * @param {{
  *   headingId:string,
  *   groupId:string,
+ *   itemTargets?:Array<{elementId:string,shapeId?:string,label:string}>,
  *   categoryLabel?:string,
  *   triggerIds:string[],
  *   left:number,
@@ -31,6 +34,7 @@ import classes from "./SkillsEntryActions.module.css";
 export default function SkillsEntryActions({
   headingId,
   groupId,
+  itemTargets = [],
   categoryLabel = "",
   triggerIds,
   left,
@@ -41,6 +45,7 @@ export default function SkillsEntryActions({
   const {
     A4_Elements,
     addSkillItem,
+    removeSkillItem,
     editorMode,
     pageSize,
     zoom = 1,
@@ -58,6 +63,7 @@ export default function SkillsEntryActions({
     show,
     pin,
     unpin,
+    hide,
   } = useCanvasHoverToolbar({
     exclusiveKey,
     eligible,
@@ -68,6 +74,9 @@ export default function SkillsEntryActions({
   const [value, setValue] = useState("");
   const [error, setError] = useState("");
   const [announcement, setAnnouncement] = useState("");
+  const [activeIndex, setActiveIndex] = useState(null);
+  const deleteWithUndo = useCanvasDeletionUndo();
+  const activeItem = itemTargets[activeIndex];
   const fieldId = useId();
   const errorId = `${fieldId}-error`;
 
@@ -124,6 +133,35 @@ export default function SkillsEntryActions({
     return () => window.cancelAnimationFrame(frame);
   }, [formOpen, visible]);
 
+  // Hit-test real glyph fragments rather than dividing the textarea equally:
+  // names can have different lengths, wrap, or carry independent text runs.
+  // Keep the last target while crossing to its portalled trash button.
+  useEffect(() => {
+    if (!eligible || formOpen) return undefined;
+    const nodes = triggerIds.map((id) => document.getElementById(id)).filter(Boolean);
+    const point = (event) => {
+      const hit = measureSkillTargets(itemTargets).find(({ rects }) => rects.some((rect) => (
+        event.clientX >= rect.left && event.clientX <= rect.right
+        && event.clientY >= rect.top && event.clientY <= rect.bottom
+      )));
+      setActiveIndex(hit?.index ?? null);
+    };
+    const focus = (event) => {
+      const index = itemTargets.findIndex((item) => item.elementId === event.currentTarget.id);
+      setActiveIndex(index < 0 ? null : index);
+    };
+    nodes.forEach((node) => {
+      node.addEventListener("pointermove", point);
+      node.addEventListener("pointerenter", point);
+      node.addEventListener("focusin", focus);
+    });
+    return () => nodes.forEach((node) => {
+      node.removeEventListener("pointermove", point);
+      node.removeEventListener("pointerenter", point);
+      node.removeEventListener("focusin", focus);
+    });
+  }, [eligible, formOpen, itemTargets, triggerIds, triggerRevision]);
+
   // The portalled toolbar is not adjacent to authored canvas nodes in DOM
   // order. Shift+F10 reveals it and moves keyboard focus to the add action,
   // matching the direct-entry contract already used by Languages.
@@ -138,6 +176,7 @@ export default function SkillsEntryActions({
         || (event.key === "F10" && event.shiftKey);
       if (!requestsActions) return;
       event.preventDefault();
+      if (!activeItem && itemTargets.length) setActiveIndex(0);
       show();
       focusToolbarButton();
     };
@@ -151,7 +190,7 @@ export default function SkillsEntryActions({
       if (previous == null) node.removeAttribute("aria-keyshortcuts");
       else node.setAttribute("aria-keyshortcuts", previous);
     });
-  }, [eligible, focusToolbarButton, show, triggerIds, triggerRevision]);
+  }, [activeItem, eligible, focusToolbarButton, itemTargets.length, show, triggerIds, triggerRevision]);
 
   if (!eligible) return null;
 
@@ -169,6 +208,48 @@ export default function SkillsEntryActions({
   const addLabel = categoryLabel
     ? `Dodaj umiejętność do kategorii ${categoryLabel}`
     : "Dodaj umiejętność";
+
+  const deleteActiveItem = () => {
+    if (!activeItem || typeof removeSkillItem !== "function") return;
+    deleteWithUndo({
+      title: `Usunięto umiejętność „${activeItem.label}”`,
+      msg: "Możesz przywrócić usuniętą umiejętność.",
+      remove: () => {
+        const focusId = removeSkillItem(headingId, groupId, activeIndex, activeItem.label);
+        window.requestAnimationFrame(() => document.getElementById(focusId || headingId)
+          ?.focus({ preventScroll: true }));
+      },
+    });
+    setActiveIndex(null);
+    hide();
+  };
+  const directActions = [{
+    key: "add-skill", label: addLabel, icon: <FiPlus aria-hidden="true" />, onSelect: openForm,
+  }, ...(activeItem ? [{
+    key: "delete-skill", label: `Usuń umiejętność: ${activeItem.label}`,
+    icon: <FiTrash2 aria-hidden="true" />, danger: true,
+    disabled: typeof removeSkillItem !== "function", onSelect: deleteActiveItem,
+  }] : [])];
+  const actionPointerProps = {
+    ...toolbarPointerProps,
+    onKeyDownCapture: (event) => {
+      if (formOpen) return;
+      if (event.key === "Escape") {
+        event.preventDefault();
+        hide();
+        document.getElementById(activeItem?.elementId || triggerIds[0])?.focus({ preventScroll: true });
+      } else if (["ArrowLeft", "ArrowRight"].includes(event.key) && itemTargets.length) {
+        event.preventDefault();
+        // A shared textarea has one tab stop. Arrow keys on its toolbar expose
+        // every skill to keyboard and touch-assistive users without editing it.
+        const index = ((activeIndex ?? 0) + (event.key === "ArrowRight" ? 1 : -1)
+          + itemTargets.length) % itemTargets.length;
+        setActiveIndex(index);
+        setAnnouncement(`Umiejętność: ${itemTargets[index].label}`);
+      }
+    },
+    "aria-description": "Strzałki w lewo i w prawo wybierają umiejętność do usunięcia.",
+  };
 
   const form = (
     <form
@@ -235,15 +316,10 @@ export default function SkillsEntryActions({
         top={toolbarTop}
         pageWidth={pageSize?.width ?? 595}
         layout={compactInlineToolbarLayoutSize()}
-        directActions={formOpen ? [] : [{
-          key: "add-skill",
-          label: addLabel,
-          icon: <FiPlus aria-hidden="true" />,
-          onSelect: openForm,
-        }]}
+        directActions={formOpen ? [] : directActions}
         panelContent={formOpen ? form : null}
         collisionAware
-        toolbarPointerProps={toolbarPointerProps}
+        toolbarPointerProps={actionPointerProps}
       />
       <span className={classes.srOnly} aria-live="polite">{announcement}</span>
     </>

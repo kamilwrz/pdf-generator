@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 import { changeSkillsDisplayMode } from "./skillsDisplayMode.js";
 import {
   insertSkillItem,
+  removeSkillItem,
   insertSkillsChipCategoryAfter,
   listSkillsEntryAnchors,
   removeSkillsChipCategory,
@@ -26,6 +27,51 @@ it("AI text changes resize chip pairs without replacing ids or losing the next s
 
 const PAGE_HEIGHT = 842;
 const SPACING = { stack: 4, record: 10, section: 21, after_rule: 8 };
+
+describe("removeSkillItem", () => {
+  for (const bullet of [false, true]) {
+    it(`removes exactly the requested occurrence and its separator (bullet=${bullet})`, () => {
+      const before = flatFixture({ bullet });
+      before.find((item) => item.element_id === "sk-body").content = bullet
+        ? "• React\n• React\n• TypeScript" : "React  ·  React  ·  TypeScript";
+      const anchor = listSkillsEntryAnchors(before)[0];
+      const result = removeSkillItem(before, anchor.headingId, anchor.groupId, 1, "React");
+      assert.equal(result.elements.find((item) => item.element_id === "sk-body").content,
+        bullet ? "• React\n• TypeScript" : "React  ·  TypeScript");
+      assert.equal(result.removedIds.size, 0);
+      assert.equal(removeSkillItem(before, anchor.headingId, anchor.groupId, 1, "stale"), null);
+    });
+  }
+  it("preserves neighbouring rich text and categories", () => {
+    const before = groupedFixture();
+    const body = before.find((item) => item.element_id === "body-tools");
+    body.runs = [{ start: 10, end: 14, italic: true }];
+    const result = removeSkillItem(before, "sk-head", "tools", 0, "Figma");
+    const after = result.elements.find((item) => item.element_id === body.element_id);
+    assert.equal(after.content, "Miro");
+    assert.deepEqual(after.runs, [{ start: 0, end: 4, italic: true }]);
+    assert.equal(result.elements.find((item) => item.element_id === "body-soft").content, "Komunikacja");
+  });
+  for (const variant of ["pill-filled", "pill-outline", "rect-filled", "rect-outline",
+    "rounded-outline", "rounded-filled", "underline"]) {
+    it(`removes/reflows paired chips and preserves an addable empty group: ${variant}`, () => {
+      const before = changeSkillsDisplayMode(flatFixture(), "sk-head", "chips", 842, SPACING, variant);
+      const anchor = listSkillsEntryAnchors(before)[0];
+      const result = removeSkillItem(before, anchor.headingId, anchor.groupId, 0, "React", 842, { spacing: SPACING });
+      assert.equal(result.removedIds.size, 2);
+      assert.deepEqual(listSkillsEntryAnchors(result.elements)[0].items, ["TypeScript"]);
+      assert.equal(detectSkillChipVariant(result.elements), variant);
+      const nextAnchor = listSkillsEntryAnchors(result.elements)[0];
+      const empty = removeSkillItem(result.elements, nextAnchor.headingId, nextAnchor.groupId, 0, "TypeScript");
+      const emptyAnchor = listSkillsEntryAnchors(empty.elements)[0];
+      assert.deepEqual(emptyAnchor.items, []);
+      assert.equal(empty.elements.filter((item) => item.starterPlaceholder).length, 2);
+      const added = insertSkillItem(empty.elements, emptyAnchor.headingId, emptyAnchor.groupId, "Nowa");
+      assert.deepEqual(listSkillsEntryAnchors(added.elements)[0].items, ["Nowa"]);
+      assert.equal(detectSkillChipVariant(added.elements), variant);
+    });
+  }
+});
 
 function groupedFixture() {
   return [

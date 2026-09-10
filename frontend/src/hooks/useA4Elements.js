@@ -23,6 +23,7 @@ import { transferSectionLane } from '../utils/transferSectionLane';
 import { changeSkillsDisplayMode } from '../utils/skillsDisplayMode';
 import {
   insertSkillItem,
+  removeSkillItem,
   reflowEditedSkillChips,
   insertSkillsChipCategoryAfter,
   removeSkillsChipCategory,
@@ -1363,6 +1364,22 @@ export function useA4Elements(titleRef) {
       return finalizeDocumentPages(result.elements, { collapseEmpty: true });
     });
   }, [rememberDeletedElements, finalizeDocumentPages]);
+
+  /** Delete one skill, tracking chip tombstones and pagination for save/undo. */
+  const handleRemoveSkillItem = useCallback((headingId, groupId, index, label) => {
+    if (editorModeRef.current !== EDITOR_MODE_TEMPLATE) return null;
+    const previous = elementsRef.current;
+    const result = removeSkillItem(previous, headingId, groupId, index, label,
+      pageSizeRef.current?.height ?? 842, {
+        spacing: flowSpacingRef.current, measureTextWidth: measureSkillTextWidth,
+      });
+    if (!result) return null;
+    rememberDeletedElements(previous, result.removedIds);
+    const next = finalizeDocumentPages(result.elements, { collapseEmpty: true });
+    elementsRef.current = next;
+    setA4_Elements(next);
+    return result.focusId;
+  }, [rememberDeletedElements, finalizeDocumentPages, measureSkillTextWidth]);
 
   /**
    * Remove only a record's optional bullet description. The title, metadata,
@@ -2741,6 +2758,7 @@ export function useA4Elements(titleRef) {
     handleAddSectionRecord,
     handleAddGridSectionEntry,
     handleAddSkillItem,
+    handleRemoveSkillItem,
     handleAddRecordBlock,
     handleAddRecordDescription,
     handleRemoveSection,

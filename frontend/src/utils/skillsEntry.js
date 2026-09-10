@@ -1,5 +1,5 @@
 /**
- * Direct, mode-aware additions to main-column Skills groups.
+ * Direct, mode-aware additions and deletions in main-column Skills groups.
  *
  * The canvas stores the same semantic list in three different shapes: one
  * textarea joined with mid-dots, one bullet textarea, or rectangle/line + text
@@ -9,6 +9,8 @@
 import { nanoid } from "nanoid";
 import { measureTextareaHeight } from "./textareaHeight.js";
 import { parseFlatListItems } from "./flatSectionLayout.js";
+import { sliceRuns } from "./textRuns.js";
+import { skillTextSegments } from "./skillsItemTarget.js";
 import {
   applyFlowSpacing,
   deriveSectionStyle,
@@ -330,6 +332,13 @@ function anchorForGroup(group, pageHeight) {
     bottom: bottomAbs - (page - 1) * pageHeight,
     highlight,
     items: group.items,
+    itemTargets: group.mode === SKILLS_LAYOUT_CHIPS
+      ? group.labels.filter((label) => normalizedSkill(label.content)).map((label) => ({
+        elementId: label.element_id,
+        shapeId: group.shapes[group.labels.indexOf(label)]?.element_id,
+        label: String(label.content).trim(),
+      }))
+      : group.items.map((label) => ({ elementId: group.body?.element_id, label })),
   };
 }
 
@@ -881,4 +890,88 @@ export function insertSkillItem(
     ? addChipModeSkill(elements, group, skill, pageHeight, resolvedOptions)
     : addTextModeSkill(elements, group, skill, pageHeight, resolvedOptions);
   return result || { error: "not-found" };
+}
+
+/**
+ * Delete exactly one skill by its group-local index and expected label. The
+ * label guards stale hover actions after an inline edit. Text deletions retain
+ * neighbouring runs; chip deletions remove both persisted IDs and repack pairs.
+ * The last item becomes empty starter guidance so add/style controls survive.
+ * Returns null for a stale/invalid target; callers record removedIds as save
+ * tombstones and finalize pagination in the same undoable document update.
+ */
+export function removeSkillItem(elements, headingId, groupId, index, expectedLabel,
+  pageHeight = 842, options = {}) {
+  const group = skillGroupDescriptors(elements, pageHeight).find((candidate) => (
+    candidate.headingId === headingId && candidate.groupId === groupId
+  ));
+  if (!group || !Number.isInteger(index) || index < 0
+    || !group.items[index] || !sameSkill(group.items[index], expectedLabel)) return null;
+  const removedIds = new Set();
+  const updates = new Map();
+  let focusId = group.body?.element_id;
+  if (group.mode !== SKILLS_LAYOUT_CHIPS) {
+    const body = group.body;
+    if (!body) return null;
+    const text = String(body.content || "");
+    const segments = skillTextSegments(text, body.bulletList);
+    const target = segments[index];
+    if (!target) return null;
+    // Remove the following separator except at the end, where the preceding
+    // separator belongs to the deletion. Unaffected text stays byte-for-byte.
+    const start = index === segments.length - 1 && index > 0
+      ? segments[index - 1].end : target.start;
+    const end = index < segments.length - 1 ? segments[index + 1].start : target.end;
+    const content = text.slice(0, start) + text.slice(end);
+    const runs = [...sliceRuns(body.runs, 0, start),
+      ...sliceRuns(body.runs, end, text.length).map((run) => ({
+        ...run, start: run.start + start, end: run.end + start,
+      }))];
+    updates.set(body.element_id, { ...body, content, runs,
+      placeholder: "Umiejętność", starterPlaceholder: !content.trim(),
+      isEditing: false, autoHeight: true, preserveInitialLayout: false,
+      height: measureTextareaHeight(content, body.width, body.fontSize, body.lineHeight, {
+        bulletList: body.bulletList, textStyle: body,
+        measureTextWidth: options.measureTextWidth,
+      }),
+    });
+  } else {
+    if (group.labels.length !== group.shapes.length) return null;
+    const label = group.labels.filter((item) => normalizedSkill(item.content))[index];
+    const pairIndex = group.labels.indexOf(label);
+    const last = group.items.length === 1;
+    const labels = last ? [label] : group.labels.filter((item) => item !== label);
+    const shapes = last ? [group.shapes[pairIndex]]
+      : group.shapes.filter((_, position) => position !== pairIndex);
+    if (!last) {
+      removedIds.add(label.element_id);
+      removedIds.add(group.shapes[pairIndex].element_id);
+    }
+    focusId = labels[Math.min(index, labels.length - 1)].element_id;
+    const style = deriveSectionStyle(elements, pageHeight, headingId, { lane: "main" });
+    const fontSize = labels[0].fontSize || 10;
+    const chipHeight = shapes[0].category === "rectangle"
+      ? shapes[0].height : fontSize + 2 * SKILL_CHIP_PAD_Y;
+    const startAbs = Math.min(...group.labels.map((item) => absoluteTop(item, pageHeight) - chipHeight / 2));
+    const left = Math.min(...group.shapes.map((shape) => finiteNumber(shape.left)));
+    const { placements } = layoutSkillChips(last ? ["Umiejętność"] : labels.map((item) => item.content),
+      style?.recordWidth || 300, fontSize, { textStyle: labels[0], measureTextWidth: options.measureTextWidth });
+    labels.forEach((item, position) => {
+      const placement = placements[position];
+      const shape = shapes[position];
+      updates.set(item.element_id, atAbsoluteTop({ ...item,
+        ...(last ? { content: "", runs: null, placeholder: "Umiejętność", starterPlaceholder: true } : {}),
+        isEditing: false, preserveInitialLayout: false,
+        left: left + placement.dx + SKILL_CHIP_PAD_X,
+        ...(item.width != null ? { width: Math.max(1, placement.width - 2 * SKILL_CHIP_PAD_X) } : {}),
+      }, startAbs + placement.dy + chipHeight / 2, pageHeight));
+      updates.set(shape.element_id, atAbsoluteTop({ ...shape,
+        ...(last ? { starterPlaceholder: true } : {}),
+        preserveInitialLayout: false, left: left + placement.dx, width: placement.width,
+      }, startAbs + placement.dy + (shape.category === "line" ? chipHeight - 1 : 0), pageHeight));
+    });
+  }
+  const next = elements.filter((element) => !removedIds.has(element.element_id))
+    .map((element) => updates.get(element.element_id) || element);
+  return { elements: applyFlowSpacing(next, options.spacing, pageHeight), removedIds, focusId };
 }
