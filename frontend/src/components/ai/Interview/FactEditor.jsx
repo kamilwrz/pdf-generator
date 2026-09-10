@@ -25,9 +25,10 @@ export default function FactEditor({ facts, onChange, disabled = false, onEditin
   const trigger = useRef(null);
   const section = careerSections.find((s) => s.id === sectionId) || careerSections.find((s) => s.id === (groups.some((g) => g.section === 'experience') ? 'experience' : groups[0]?.section)) || careerSections[0];
   const selected = groups.find((g) => g.facts.some((f) => f.id === selectedId));
-  const matching = groups.filter((g) => query.trim() ? g.facts.some((f) => `${f.text} ${f.context}`.toLocaleLowerCase('pl').includes(query.trim().toLocaleLowerCase('pl'))) : g.section === section.id);
+  const matching = groups.filter((g) => query.trim() ? g.facts.some((f) => `${f.question || ''} ${f.text} ${f.context}`.toLocaleLowerCase('pl').includes(query.trim().toLocaleLowerCase('pl'))) : g.section === section.id);
   const currentPage = Math.min(page, Math.max(0, Math.ceil(matching.length / PAGE_SIZE) - 1));
   const currentFieldPage = Math.min(fieldPage, Math.max(0, Math.ceil((selected?.fields.length || 0) / FIELD_PAGE_SIZE) - 1));
+  const selectedHasInterviewAnswer = selected?.fields.some((field) => field.question);
   const busy = disabled || Boolean(editing);
 
   useEffect(() => { onEditingChange?.(Boolean(editing)); }, [editing, onEditingChange]);
@@ -40,7 +41,9 @@ export default function FactEditor({ facts, onChange, disabled = false, onEditin
     requestAnimationFrame(() => (trigger.current?.isConnected ? trigger.current : selected ? heading.current : addRef.current)?.focus());
   }
   function openGroup(group) {
-    setSelectedId(group.facts[0].id); setFieldPage(0); setMessage('');
+    // A search result can belong to another section. Keep the visible section
+    // navigation synchronized with the record that now owns keyboard focus.
+    setSectionId(group.section); setSelectedId(group.facts[0].id); setQuery(''); setPage(0); setFieldPage(0); setMessage('');
     requestAnimationFrame(() => heading.current?.focus());
   }
   function openEditor(field, event, additions = []) {
@@ -51,7 +54,7 @@ export default function FactEditor({ facts, onChange, disabled = false, onEditin
   function applyEdit() {
     const { draft, ids, additions } = editing;
     if (!draft.text.trim()) return;
-    const clean = { id: draft.id, text: draft.text, context: draft.context || '', kind: draft.kind, path: draft.path || '', source: draft.source || 'manual' };
+    const clean = { id: draft.id, text: draft.text, context: draft.context || '', question: draft.question || '', kind: draft.kind, path: draft.path || '', source: draft.source || 'manual' };
     // Equivalent rows may carry several source IDs. Update each in place;
     // collapsing their display must never delete or replace evidence identity.
     const next = facts.map((f) => ids.includes(f.id) ? { ...f, text: clean.text, context: clean.context, kind: clean.kind, path: clean.path } : f);
@@ -84,13 +87,14 @@ export default function FactEditor({ facts, onChange, disabled = false, onEditin
       </nav>
       <div className={classes.content}>
         <header className={classes.sectionHeader}>
-          <div><span className={classes.eyebrow}>{selected ? 'Wybrany wpis' : query ? (isolated ? 'W informacjach do CV' : 'W całym profilu') : `${String(careerSections.indexOf(section) + 1).padStart(2, '0')} / ${isolated ? 'Informacje do CV' : 'Profil zawodowy'}`}</span><h3 ref={heading} tabIndex={-1}>{selected ? selected.title : query ? 'Wyniki wyszukiwania' : section.label}</h3><p>{selected ? selected.subtitle || `${selected.fields.length} informacji w jednym wpisie` : section.description}</p></div>
+          <div><span className={classes.eyebrow}>{selected ? 'Wybrany wpis' : query ? (isolated ? 'W informacjach do CV' : 'W całym profilu') : `${String(careerSections.indexOf(section) + 1).padStart(2, '0')} / ${isolated ? 'Informacje do CV' : 'Profil zawodowy'}`}</span><h3 ref={heading} tabIndex={-1}>{selected ? (selectedHasInterviewAnswer ? 'Odpowiedź z wywiadu' : selected.title) : query ? 'Wyniki wyszukiwania' : section.label}</h3><p>{selected ? (selectedHasInterviewAnswer ? 'Pytanie, odpowiedź i kontekst są pokazane razem.' : selected.subtitle || `${selected.fields.length} informacji w jednym wpisie`) : section.description}</p></div>
           {selected ? <button disabled={busy} type="button" onClick={() => { setSelectedId(null); requestAnimationFrame(() => heading.current?.focus()); }}>← Lista wpisów</button> : <button ref={addRef} type="button" disabled={busy || facts.length >= 500} onClick={addRecord}>+ Dodaj informację</button>}
         </header>
         <div className={classes.feedback} role="status">{message}{undo && <button disabled={busy || facts.length + undo.removed.length > 500} type="button" onClick={() => { const next = [...facts]; next.splice(Math.min(undo.index, next.length), 0, ...undo.removed.filter((f) => !next.some((n) => n.id === f.id))); onChange(next); setUndo(null); setMessage('Przywrócono informację.'); }}>Cofnij usunięcie</button>}</div>
         {editing ? <form className={classes.editForm} onKeyDown={(e) => { if (e.key === 'Escape' && !disabled) { e.preventDefault(); closeEditor(); } }} onSubmit={(e) => { e.preventDefault(); applyEdit(); }}>
           <h4>{editing.ids.length ? 'Edytuj informację' : 'Nowa informacja'}</h4>
-          <label htmlFor={`${id}-text`}>Treść</label><textarea ref={editInput} id={`${id}-text`} maxLength={4000} rows={4} value={editing.draft.text} onChange={(e) => setEditing({ ...editing, draft: { ...editing.draft, text: e.target.value } })} required disabled={disabled} />
+          {editing.draft.question && <div className={classes.editQuestion}><span className={classes.eyebrow}>Pytanie z wywiadu</span><p>{editing.draft.question}</p></div>}
+          <label htmlFor={`${id}-text`}>{editing.draft.question ? 'Twoja odpowiedź' : 'Treść'}</label><textarea ref={editInput} id={`${id}-text`} maxLength={4000} rows={4} value={editing.draft.text} onChange={(e) => setEditing({ ...editing, draft: { ...editing.draft, text: e.target.value } })} required disabled={disabled} />
           <details><summary>Kontekst i sposób wykorzystania</summary>
             <label>Rola lub projekt<textarea maxLength={500} rows={2} value={editing.draft.context?.startsWith('/') ? '' : editing.draft.context || ''} onChange={(e) => setEditing({ ...editing, draft: { ...editing.draft, context: e.target.value } })} disabled={disabled} /></label>
             <label>Rodzaj informacji<select value={editing.draft.kind} disabled={disabled} onChange={(e) => setEditing({ ...editing, draft: { ...editing.draft, kind: e.target.value } })}><option value="fact">Potwierdzony fakt</option><option value="gap">Nie mam tego doświadczenia</option><option value="framing">Sformułowanie do zachowania dosłownie</option></select></label>
@@ -100,9 +104,9 @@ export default function FactEditor({ facts, onChange, disabled = false, onEditin
           <div className={classes.formActions}><button className={classes.primary} disabled={disabled || !editing.draft.text.trim()} type="submit">Zastosuj zmianę</button><button disabled={disabled} type="button" onClick={closeEditor}>Anuluj edycję</button></div>
         </form> : selected ? <>
           {selected.conflicts.size > 0 && <p className={classes.warning}>Ten wpis zawiera różne warianty tego samego pola. Sprawdź oznaczone informacje przed zapisem.</p>}
-          <dl className={classes.fields}>{selected.fields.slice(currentFieldPage * FIELD_PAGE_SIZE, (currentFieldPage + 1) * FIELD_PAGE_SIZE).map((field) => <div key={field.id} className={classes.field}>
-            <dt>{field.label}{field.kind !== 'fact' && <span className={classes.badge}>{field.kind === 'gap' ? 'Brak doświadczenia' : 'Zachowaj dosłownie'}</span>}{selected.conflicts.has(field.path) && <span className={classes.badge}>Sprawdź wariant</span>}</dt>
-            <dd><p>{field.text || 'Uzupełnij'}</p>{field.ids.length > 1 && <span className={classes.muted}>Zgodna informacja w {field.ids.length} źródłach</span>}</dd>
+          <dl className={classes.fields}>{selected.fields.slice(currentFieldPage * FIELD_PAGE_SIZE, (currentFieldPage + 1) * FIELD_PAGE_SIZE).map((field) => <div key={field.id} className={`${classes.field} ${field.question ? classes.interviewAnswer : ''}`}>
+            <dt>{field.question ? <><span className={classes.eyebrow}>Pytanie z wywiadu</span><strong>{field.question}</strong></> : field.label}{field.kind !== 'fact' && <span className={classes.badge}>{field.kind === 'gap' ? 'Brak doświadczenia' : 'Zachowaj dosłownie'}</span>}{selected.conflicts.has(field.path) && <span className={classes.badge}>Sprawdź wariant</span>}</dt>
+            <dd>{field.question && <span className={classes.answerLabel}>Twoja odpowiedź</span>}<p>{field.text || 'Uzupełnij'}</p>{field.question && field.context && field.context !== field.question && <p className={classes.answerContext}><span>Kontekst</span>{field.context}</p>}{field.ids.length > 1 && <span className={classes.muted}>Zgodna informacja w {field.ids.length} źródłach</span>}</dd>
             <div className={classes.fieldActions}><button type="button" disabled={disabled} aria-label={`Edytuj: ${field.label} — ${field.text.slice(0, 55)}`} onClick={(e) => openEditor(field, e)}>Edytuj</button><button type="button" className={classes.danger} disabled={disabled} aria-label={`Usuń informację: ${field.text.slice(0, 55)}`} onClick={() => removeField(field)}>Usuń</button></div>
           </div>)}</dl>
           {selected.fields.length > FIELD_PAGE_SIZE && <Pagination current={currentFieldPage} total={Math.ceil(selected.fields.length / FIELD_PAGE_SIZE)} disabled={disabled} onChange={(n) => { setFieldPage(n); heading.current?.focus(); }} />}

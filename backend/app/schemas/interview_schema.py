@@ -9,10 +9,16 @@ class Contract(BaseModel):
 
 
 class CareerFact(Contract):
-    """A user-confirmed assertion or limitation, with its original source."""
+    """A user-confirmed assertion or limitation, with its original source.
+
+    ``question`` keeps the exact interview prompt beside answer-derived facts.
+    It is presentation metadata rather than evidence, but retaining it prevents
+    an answer from becoming ambiguous when it is reviewed outside the session.
+    """
     id: str = Field(min_length=1, max_length=100)
     text: str = Field(min_length=1, max_length=4000)
     context: str = Field(default="", max_length=500)
+    question: str = Field(default="", max_length=1000)
     kind: Literal["fact", "gap", "framing"] = "fact"
     path: str = Field(default="", max_length=200)
     source: str = Field(default="manual", max_length=150)

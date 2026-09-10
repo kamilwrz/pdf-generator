@@ -37,3 +37,11 @@ test('new records do not reuse gaps or exceed backend path bounds', () => {
   assert.ok(paths.includes('/experience/2/bullets/0'));
   assert.ok(!paths.includes('/experience/2/title'));
 });
+
+test('uses an interview question as the note title without discarding its context', () => {
+  const answer = fact('answer-q1', '', 'Zamknęłam sprawę po analizie.', { question: 'Jak podjęłaś decyzję o zamknięciu sprawy?', context: 'Analiza transakcji' });
+  const group = groupCareerFacts([answer])[0];
+  assert.equal(group.title, answer.question);
+  assert.equal(group.subtitle, answer.context);
+  assert.equal(group.fields[0].question, answer.question);
+});

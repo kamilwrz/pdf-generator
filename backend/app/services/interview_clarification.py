@@ -147,6 +147,7 @@ def answer_proposals(question, answer, status, profile, session_id):
     return [{
         'id': fact['id'], 'text': text,
         'context': fact.get('context') or question['context'] or question['text'],
+        'question': question['text'],
         'kind': 'fact' if status == 'answered' else 'gap',
         'path': fact['path'] if status == 'answered' else '',
         'source': f'interview:{session_id}',

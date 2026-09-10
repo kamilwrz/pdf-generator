@@ -474,7 +474,9 @@ On owner-authorized `GET /ai/interviews/{id}`, `repair_clarification_state` repa
 
 The career workspace presents complete records rather than one accordion per scalar. `groupCareerFacts` groups roles, education, languages, skills and custom sections by their stored paths; narrative notes stay separate and are grouped only by explicit context. A company, city, period and achievements therefore form one role. Equivalent visible rows share a display entry while retaining every fact ID; differing values remain visible as variants for review. No database records are automatically merged or deleted.
 
-`FactEditor` provides section navigation (a native selector in narrow containers), profile-wide search, six records per page and eight fields per selected record page. Only one field form opens at a time. **Zastosuj zmianę** updates the parent draft; **Anuluj edycję** or Escape discards the field draft. Profile saving/interview confirmation is disabled while that form is open. Deleting a displayed fact offers one-step undo and preserves the remaining IDs; **Zapisz profil** performs the existing versioned PUT, while interview confirmation retains its existing atomic API. New records and field additions retain the backend's 500-fact and two-digit index limits. Context, fact/gap/framing and optional field assignment remain under a secondary disclosure. Custom-section layout metadata remains stored but is not shown as career prose. The account page separates **Moje informacje** and six-at-a-time **Zapisane wywiady**; `SiteLayout compact` reduces the shared introduction, and the standalone interview has a wider workspace. There are no API, database, AI-credit or PDF-template changes. Unsaved browser field drafts are not recovered after a page reload.
+`FactEditor` provides section navigation (a native selector in narrow containers), profile-wide search, six records per page and eight fields per selected record page. Only one field form opens at a time. **Zastosuj zmianę** updates the parent draft; **Anuluj edycję** or Escape discards the field draft. Profile saving/interview confirmation is disabled while that form is open. Deleting a displayed fact offers one-step undo and preserves the remaining IDs; **Zapisz profil** performs the existing versioned PUT, while interview confirmation retains its existing atomic API. New records and field additions retain the backend's 500-fact and two-digit index limits. Context, fact/gap/framing and optional field assignment remain under a secondary disclosure. Custom-section layout metadata remains stored but is not shown as career prose. The account page separates **Moje informacje** and six-at-a-time **Zapisane wywiady**; `SiteLayout compact` reduces the shared introduction, and the standalone interview has a wider workspace.
+
+An answer-derived `CareerFact` stores the exact interview prompt in its optional `question` field. The list uses that prompt as the entry title; the detail and edit views present **Pytanie z wywiadu**, **Twoja odpowiedź**, and the secondary role/project context as one readable unit. Search covers the prompt, answer, and context, and selecting a search result synchronizes the section navigation. `profile_payload` restores missing prompts for older account facts by reading only their referenced owned sessions in one query; `session_payload` performs the equivalent in-memory restoration for isolated interview evidence. Reads do not mutate stored JSON, while the next explicit profile save retains restored metadata. The API change is additive and requires no endpoint, database migration, dependency, AI-credit, or PDF-template change. Unsaved browser field drafts are not recovered after a page reload.
 
 Validation includes `careerProfileView.test.js`, `FactEditor.runtime.test.jsx`, and `e2e/career-profile.spec.js`: grouped roles/languages, duplicate evidence identity, record bounds, search, apply/cancel/undo, keyboard focus, persistence of all source IDs and four viewport widths. Run `npm run test:e2e -- e2e/career-profile.spec.js e2e/interviews.spec.js --project=desktop-chromium`. [WAI form labels](https://www.w3.org/WAI/tutorials/forms/labels/) explains the explicit field labels; [Playwright input actions](https://playwright.dev/docs/input) documents the keyboard and form interactions used by these tests.
 
@@ -494,8 +496,8 @@ Implementation and tests (verified whole-module ranges; use the named symbols fo
 | `backend/app/services/interview_recovery.py` | 1–121; previous_rejected_result, assemble_reviewed_draft |
 | `frontend/src/components/ai/Interview/InterviewReviewNotice.jsx` | 1–24; InterviewReviewNotice |
 | `backend/tests/test_interview_recovery.py` | 1–176; test_report_chronology_and_project_technology_rejections_keep_usable_cv |
-| `backend/app/schemas/interview_schema.py` | 1–119; CareerFact, InterviewCreate, SessionWrite, SourceRefresh, Discovery, Draft, Clarification, Verification |
-| `backend/app/services/interview_service.py` | 1–382; put_profile, check_versions, source_facts, base_cv, assemble_draft, paid_model, next_question |
+| `backend/app/schemas/interview_schema.py` | 1–125; CareerFact, InterviewCreate, SessionWrite, SourceRefresh, Discovery, Draft, Clarification, Verification |
+| `backend/app/services/interview_service.py` | 1–443; profile_payload, _facts_with_answer_questions, session_payload, put_profile, check_versions, source_facts, base_cv, assemble_draft, paid_model, next_question |
 | `backend/app/api/routes/interviews.py` | 1–449; create_interview, answer_interview, confirm_interview, refresh_interview_source, preview_interview, clarify_interview, skip_clarifications, save_interview_document |
 | `frontend/src/components/ai/Interview/InterviewLoading.jsx` | 1–45; InterviewLoading |
 | `frontend/src/components/ai/Interview/InterviewLoading.module.css` | 1–24; loading, manuscript, track |
@@ -507,21 +509,21 @@ Implementation and tests (verified whole-module ranges; use the named symbols fo
 | `frontend/src/utils/interviewPreview.test.js` | 1–24; grouping, evidence, removed fields |
 | `frontend/e2e/interview-workspace.spec.js` | 1–116; bounded preview, delayed operations, failure recovery |
 | `frontend/src/components/ai/Interview/InterviewFlow.jsx` | 1–281; InterviewFlow |
-| `frontend/src/utils/careerProfileView.js` | 1–116; groupCareerFacts, careerFieldLabel, newCareerRecord, careerFieldOptions |
-| `frontend/src/utils/careerProfileView.test.js` | 1–39; grouping, identity, limits |
-| `frontend/src/components/ai/Interview/FactEditor.runtime.test.jsx` | 1–56; apply, cancel, undo, focus, search |
-| `frontend/src/components/ai/Interview/FactEditor.module.css` | 1–79; editor, workspace, mobileNav |
+| `frontend/src/utils/careerProfileView.js` | 1–118; groupCareerFacts, careerFieldLabel, newCareerRecord, careerFieldOptions |
+| `frontend/src/utils/careerProfileView.test.js` | 1–47; grouping, identity, limits, interview-question titles |
+| `frontend/src/components/ai/Interview/FactEditor.runtime.test.jsx` | 1–76; apply, cancel, undo, focus, search, question-and-answer presentation |
+| `frontend/src/components/ai/Interview/FactEditor.module.css` | 1–89; editor, workspace, interviewAnswer, mobileNav |
 | `frontend/src/pages/Site/CareerProfilePage.module.css` | 1–24; profile, views, saveBar |
-| `frontend/e2e/career-profile.spec.js` | 1–73; grouped profile, responsive editing and persistence |
+| `frontend/e2e/career-profile.spec.js` | 1–79; grouped profile, responsive question-and-answer display, editing and persistence |
 | `frontend/src/components/common/SiteLayout/SiteLayout.jsx` | 1–59; SiteLayout compact |
 | `frontend/src/components/common/SiteLayout/SiteLayout.module.css` | 1–199; compactHero |
-| `frontend/src/components/ai/Interview/FactEditor.jsx` | 1–123; FactEditor |
+| `frontend/src/components/ai/Interview/FactEditor.jsx` | 1–127; FactEditor |
 | `frontend/src/components/ai/Interview/CvContent.jsx` | 1–31; CvContent |
 | `frontend/src/services/interviews.js` | 1–34; interviewRequest, reviewFacts |
 | `frontend/src/pages/Site/CareerProfilePage.jsx` | 1–77; CareerProfilePage |
 | `frontend/src/pages/Site/InterviewPage.jsx` | 1–10; InterviewPage |
 | `frontend/src/utils/interviewPresentation.js` | 1–13; factLabel, interviewFields |
-| `backend/tests/test_interviews.py` | 1–646; state, direct answer persistence, grounding, billing, source preservation and PDF regressions |
+| `backend/tests/test_interviews.py` | 1–669; state, answer prompt persistence, legacy restoration, grounding, billing, source preservation and PDF regressions |
 | `backend/tests/test_alembic_interviews.py` | 1–26; additive migration regression |
 | `frontend/src/components/ai/Interview/Interview.runtime.test.jsx` | 1–317; clarification decisions, direct answer-save feedback, save-before-next, recovery, focus and source changes |
 | `frontend/e2e/interview-sources.spec.js` | 1–62; isolated source selection, confirmation, resumption |
@@ -3461,7 +3463,9 @@ Migracja addytywna `20260910_0017` tworzy `career_profiles` (jeden profil właś
 
 Widok kariery przedstawia pełne wpisy zamiast osobnego akordeonu dla każdego pola. `groupCareerFacts` grupuje role, edukację, języki, umiejętności i sekcje dodatkowe według zapisanych ścieżek; notatki opisowe pozostają oddzielne i są grupowane wyłącznie według jawnego kontekstu. Firma, miasto, okres i osiągnięcia tworzą więc jedną rolę. Zgodne wiersze są wyświetlane wspólnie z zachowaniem wszystkich ID faktów; różne wartości pozostają widoczne jako warianty do sprawdzenia. Rekordy w bazie nie są automatycznie łączone ani usuwane.
 
-`FactEditor` zapewnia nawigację po sekcjach (natywny selektor w wąskich kontenerach), wyszukiwanie w całym profilu, sześć wpisów na stronę i osiem pól na stronę wybranego wpisu. Otwarty jest tylko jeden formularz pola. **Zastosuj zmianę** aktualizuje szkic rodzica; **Anuluj edycję** lub Escape odrzuca szkic pola. Zapis profilu/zatwierdzenie wywiadu są zablokowane podczas otwartej edycji. Usunięcie widocznej informacji oferuje cofnięcie ostatniej operacji i zachowuje pozostałe ID; **Zapisz profil** wykonuje obecny wersjonowany PUT, a zatwierdzenie wywiadu zachowuje dotychczasowe atomowe API. Nowe wpisy i dodawane pola respektują backendowe limity 500 faktów i dwucyfrowych indeksów. Kontekst, znaczenie fact/gap/framing i opcjonalne przypisanie pola są dostępne w dodatkowym rozwinięciu. Metadane układu sekcji dodatkowych pozostają zapisane, ale nie są pokazywane jako treść kariery. Konto rozdziela **Moje informacje** i wyświetlane po sześć **Zapisane wywiady**; `SiteLayout compact` skraca wspólny nagłówek, a samodzielny wywiad ma szerszy obszar pracy. Nie zmieniono API, bazy, kredytów AI ani szablonów PDF. Niezapisany szkic pola w przeglądarce nie jest odzyskiwany po odświeżeniu strony.
+`FactEditor` zapewnia nawigację po sekcjach (natywny selektor w wąskich kontenerach), wyszukiwanie w całym profilu, sześć wpisów na stronę i osiem pól na stronę wybranego wpisu. Otwarty jest tylko jeden formularz pola. **Zastosuj zmianę** aktualizuje szkic rodzica; **Anuluj edycję** lub Escape odrzuca szkic pola. Zapis profilu/zatwierdzenie wywiadu są zablokowane podczas otwartej edycji. Usunięcie widocznej informacji oferuje cofnięcie ostatniej operacji i zachowuje pozostałe ID; **Zapisz profil** wykonuje obecny wersjonowany PUT, a zatwierdzenie wywiadu zachowuje dotychczasowe atomowe API. Nowe wpisy i dodawane pola respektują backendowe limity 500 faktów i dwucyfrowych indeksów. Kontekst, znaczenie fact/gap/framing i opcjonalne przypisanie pola są dostępne w dodatkowym rozwinięciu. Metadane układu sekcji dodatkowych pozostają zapisane, ale nie są pokazywane jako treść kariery. Konto rozdziela **Moje informacje** i wyświetlane po sześć **Zapisane wywiady**; `SiteLayout compact` skraca wspólny nagłówek, a samodzielny wywiad ma szerszy obszar pracy.
+
+Fakt `CareerFact` utworzony z odpowiedzi przechowuje dokładne pytanie wywiadu w opcjonalnym polu `question`. Lista używa pytania jako tytułu wpisu, a widok szczegółów i edycji pokazuje razem **Pytanie z wywiadu**, **Twoją odpowiedź** oraz drugorzędny kontekst roli lub projektu. Wyszukiwanie obejmuje pytanie, odpowiedź i kontekst, a otwarcie wyniku synchronizuje nawigację sekcji. `profile_payload` odtwarza brakujące pytania starszych faktów konta z należących do właściciela wskazanych sesji za pomocą jednego zapytania; `session_payload` wykonuje analogiczne odtworzenie w pamięci dla informacji odizolowanego wywiadu. Odczyt nie modyfikuje zapisanego JSON-u, a następny jawny zapis profilu utrwala odtworzone metadane. Zmiana API jest addytywna i nie wymaga nowego endpointu, migracji bazy, zależności, kredytów AI ani zmian szablonów PDF. Niezapisany szkic pola w przeglądarce nie jest odzyskiwany po odświeżeniu strony.
 
 Weryfikacja obejmuje `careerProfileView.test.js`, `FactEditor.runtime.test.jsx` i `e2e/career-profile.spec.js`: grupowanie ról/języków, tożsamość zduplikowanych źródeł, limity wpisów, wyszukiwanie, zastosowanie/anulowanie/cofanie, fokus klawiatury, zachowanie wszystkich ID przy zapisie i cztery szerokości ekranu. Uruchom `npm run test:e2e -- e2e/career-profile.spec.js e2e/interviews.spec.js --project=desktop-chromium`. [Etykiety formularzy WAI](https://www.w3.org/WAI/tutorials/forms/labels/) wyjaśniają jawne etykiety pól; [akcje wejścia Playwright](https://playwright.dev/docs/input) opisują używane w testach interakcje klawiatury i formularzy.
 
@@ -3496,8 +3500,8 @@ Przy uwierzytelnionym odczycie właściciela `GET /ai/interviews/{id}` funkcja `
 | `backend/app/services/interview_recovery.py` | 1–121; previous_rejected_result, assemble_reviewed_draft |
 | `frontend/src/components/ai/Interview/InterviewReviewNotice.jsx` | 1–24; InterviewReviewNotice |
 | `backend/tests/test_interview_recovery.py` | 1–176; test_report_chronology_and_project_technology_rejections_keep_usable_cv |
-| `backend/app/schemas/interview_schema.py` | 1–119; CareerFact, InterviewCreate, SessionWrite, SourceRefresh, Discovery, Draft, Clarification, Verification |
-| `backend/app/services/interview_service.py` | 1–382; put_profile, check_versions, source_facts, base_cv, assemble_draft, paid_model, next_question |
+| `backend/app/schemas/interview_schema.py` | 1–125; CareerFact, InterviewCreate, SessionWrite, SourceRefresh, Discovery, Draft, Clarification, Verification |
+| `backend/app/services/interview_service.py` | 1–443; profile_payload, _facts_with_answer_questions, session_payload, put_profile, check_versions, source_facts, base_cv, assemble_draft, paid_model, next_question |
 | `backend/app/api/routes/interviews.py` | 1–449; create_interview, answer_interview, confirm_interview, refresh_interview_source, preview_interview, clarify_interview, skip_clarifications, save_interview_document |
 | `frontend/src/components/ai/Interview/InterviewLoading.jsx` | 1–45; InterviewLoading |
 | `frontend/src/components/ai/Interview/InterviewLoading.module.css` | 1–24; loading, manuscript, track |
@@ -3509,21 +3513,21 @@ Przy uwierzytelnionym odczycie właściciela `GET /ai/interviews/{id}` funkcja `
 | `frontend/src/utils/interviewPreview.test.js` | 1–24; grouping, evidence, removed fields |
 | `frontend/e2e/interview-workspace.spec.js` | 1–116; bounded preview, delayed operations, failure recovery |
 | `frontend/src/components/ai/Interview/InterviewFlow.jsx` | 1–281; InterviewFlow |
-| `frontend/src/utils/careerProfileView.js` | 1–116; groupCareerFacts, careerFieldLabel, newCareerRecord, careerFieldOptions |
-| `frontend/src/utils/careerProfileView.test.js` | 1–39; grouping, identity, limits |
-| `frontend/src/components/ai/Interview/FactEditor.runtime.test.jsx` | 1–56; apply, cancel, undo, focus, search |
-| `frontend/src/components/ai/Interview/FactEditor.module.css` | 1–79; editor, workspace, mobileNav |
+| `frontend/src/utils/careerProfileView.js` | 1–118; groupCareerFacts, careerFieldLabel, newCareerRecord, careerFieldOptions |
+| `frontend/src/utils/careerProfileView.test.js` | 1–47; grupowanie, tożsamość, limity, tytuły z pytań wywiadu |
+| `frontend/src/components/ai/Interview/FactEditor.runtime.test.jsx` | 1–76; zastosowanie, anulowanie, cofanie, fokus, wyszukiwanie, prezentacja pytania z odpowiedzią |
+| `frontend/src/components/ai/Interview/FactEditor.module.css` | 1–89; editor, workspace, interviewAnswer, mobileNav |
 | `frontend/src/pages/Site/CareerProfilePage.module.css` | 1–24; profile, views, saveBar |
-| `frontend/e2e/career-profile.spec.js` | 1–73; grouped profile, responsive editing and persistence |
+| `frontend/e2e/career-profile.spec.js` | 1–79; grupowanie profilu, responsywne pytanie z odpowiedzią, edycja i zapis |
 | `frontend/src/components/common/SiteLayout/SiteLayout.jsx` | 1–59; SiteLayout compact |
 | `frontend/src/components/common/SiteLayout/SiteLayout.module.css` | 1–199; compactHero |
-| `frontend/src/components/ai/Interview/FactEditor.jsx` | 1–123; FactEditor |
+| `frontend/src/components/ai/Interview/FactEditor.jsx` | 1–127; FactEditor |
 | `frontend/src/components/ai/Interview/CvContent.jsx` | 1–31; CvContent |
 | `frontend/src/services/interviews.js` | 1–34; interviewRequest, reviewFacts |
 | `frontend/src/pages/Site/CareerProfilePage.jsx` | 1–77; CareerProfilePage |
 | `frontend/src/pages/Site/InterviewPage.jsx` | 1–10; InterviewPage |
 | `frontend/src/utils/interviewPresentation.js` | 1–13; factLabel, interviewFields |
-| `backend/tests/test_interviews.py` | 1–646; zapis odpowiedzi, zachowanie i regresje wywiadu |
+| `backend/tests/test_interviews.py` | 1–669; zapis pytania z odpowiedzią, odtwarzanie starszych danych i regresje wywiadu |
 | `backend/tests/test_alembic_interviews.py` | 1–26; testy zachowania wywiadu |
 | `frontend/src/components/ai/Interview/Interview.runtime.test.jsx` | 1–317; decyzje doprecyzowania, komunikat zapisu i zachowanie wywiadu |
 | `frontend/e2e/interview-sources.spec.js` | 1–62; wybór osobnego źródła, zatwierdzanie, wznowienie |

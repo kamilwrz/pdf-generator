@@ -59,9 +59,51 @@ def digest(value):
 
 
 def profile_payload(db, owner_id):
-    """Read the current evidence only; old session copies are not authoritative."""
+    """Read current evidence and restore prompts for legacy interview answers.
+
+    New answer facts persist their prompt directly. Older facts are enriched
+    from their owned interview in one bounded query so the profile can still
+    present an understandable question-and-answer pair without rewriting data
+    during a read. The next explicit profile save persists the restored prompt.
+    """
     row = db.get(CareerProfile, owner_id, populate_existing=True)
-    return {"revision": row.revision if row else 0, "facts": row.facts if row else [], "updated_at": row.updated_at.isoformat() if row else None}
+    facts = _facts_with_answer_questions(db, owner_id, row.facts if row else [])
+    return {"revision": row.revision if row else 0, "facts": facts, "updated_at": row.updated_at.isoformat() if row else None}
+
+
+def _facts_with_answer_questions(db, owner_id, facts):
+    """Attach saved prompt text to answer facts created before that field existed.
+
+    ``source`` is an internal ownership-safe session reference. Both ordinary
+    answers (``answer-{question_id}``) and clarification replacements
+    (``target_fact_ids``) are supported. Unrelated/manual facts are returned
+    unchanged, and no question is inferred from narrative context.
+    """
+    missing_by_session = {}
+    for fact in facts:
+        source = fact.get("source", "")
+        if not fact.get("question") and source.startswith("interview:"):
+            missing_by_session.setdefault(source.removeprefix("interview:"), set()).add(fact["id"])
+    if not missing_by_session:
+        return deepcopy(facts)
+    rows = db.query(InterviewSession).filter(
+        InterviewSession.owner_id == owner_id,
+        InterviewSession.id.in_(missing_by_session),
+    ).all()
+    prompts = {}
+    for interview in rows:
+        wanted = missing_by_session[interview.id]
+        for answer in interview.state.get("answers", []):
+            question = answer.get("question") or {}
+            text = str(question.get("text") or "").strip()
+            if not text:
+                continue
+            ids = set(question.get("target_fact_ids") or [])
+            if question.get("id"):
+                ids.add(f"answer-{question['id']}")
+            for fact_id in ids & wanted:
+                prompts[fact_id] = text
+    return [{**fact, **({"question": prompts[fact["id"]]} if fact["id"] in prompts else {})} for fact in facts]
 
 
 def validate_facts(facts):
@@ -122,10 +164,29 @@ def put_profile(db, owner_id, revision, facts, *, commit=True):
 
 
 def session_payload(row):
-    """Serialize user-visible state without storage locators or provider secrets."""
+    """Serialize user-visible state without storage locators or provider secrets.
+
+    Isolated legacy facts receive the same prompt restoration as account facts,
+    using this session's own answer history without another database query.
+    """
+    evidence_profile = deepcopy(row.state.get("session_profile")) if row.state.get("evidence_scope") == "session" else None
+    if evidence_profile:
+        questions = {}
+        for answer in row.state.get("answers", []):
+            question = answer.get("question") or {}
+            text = str(question.get("text") or "").strip()
+            ids = set(question.get("target_fact_ids") or [])
+            if question.get("id"):
+                ids.add(f"answer-{question['id']}")
+            if text:
+                questions.update({fact_id: text for fact_id in ids})
+        evidence_profile["facts"] = [
+            {**fact, **({"question": questions[fact["id"]]} if not fact.get("question") and fact["id"] in questions else {})}
+            for fact in evidence_profile.get("facts", [])
+        ]
     return {"id": row.id, "revision": row.revision, **row.state,
             "requires_source_choice": row.state.get("evidence_scope") not in {"profile", "session"},
-            "evidence_profile": deepcopy(row.state.get("session_profile")) if row.state.get("evidence_scope") == "session" else None,
+            "evidence_profile": evidence_profile,
             "updated_at": row.updated_at.isoformat()}
 
 

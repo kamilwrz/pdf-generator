@@ -52,7 +52,7 @@ export function groupCareerFacts(facts) {
     for (const fact of group.facts) {
       // Template metadata is retained in persistence but is not career prose.
       if (/^\/custom_sections\/\d+\/(kind|placement)$/.test(fact.path)) continue;
-      const key = JSON.stringify([fact.path || '', fact.text, fact.kind, fact.context || '']);
+      const key = JSON.stringify([fact.path || '', fact.text, fact.kind, fact.context || '', fact.question || '']);
       if (display.has(key)) display.get(key).ids.push(fact.id);
       else display.set(key, { ...fact, ids: [fact.id], label: careerFieldLabel(fact.path) });
     }
@@ -60,11 +60,13 @@ export function groupCareerFacts(facts) {
     const value = (suffix) => group.facts.find((f) => f.path === `${group.root}/${suffix}`)?.text;
     const section = careerSections.find((s) => s.id === group.section);
     group.title = group.section === 'identity' ? (group.key === '/summary' ? 'Podsumowanie zawodowe' : group.facts.find((f) => f.path === '/name')?.text || 'Dane osobowe i kontakt')
-      : group.section === 'notes' ? group.facts[0].context || 'Dodatkowe informacje'
+      : group.section === 'notes' ? group.facts.find((f) => f.question)?.question || group.facts[0].context || 'Dodatkowe informacje'
         : value('title') || value('degree') || value('name') || value('category') || section.label;
     const projectNames = group.facts.filter((f) => /\/items\/\d+\/title$/.test(f.path));
     if (group.section === 'custom_sections' && projectNames.length === 1) group.title = projectNames[0].text;
-    group.subtitle = [value('company'), value('school'), value('city'), value('period'), value('level')].filter(Boolean).join(' · ');
+    group.subtitle = group.section === 'notes' && group.facts.some((f) => f.question)
+      ? group.facts[0].context
+      : [value('company'), value('school'), value('city'), value('period'), value('level')].filter(Boolean).join(' · ');
     group.preview = group.fields.filter((f) => /\/bullets\/|\/items\//.test(f.path) || !f.path || f.path === '/summary' || group.key === '/skills-flat').map((f) => f.text).filter(Boolean).slice(0, 3).join(' · ');
     const paths = group.fields.map((f) => f.path).filter(Boolean);
     group.conflicts = new Set(paths.filter((path, i) => paths.indexOf(path) !== i));

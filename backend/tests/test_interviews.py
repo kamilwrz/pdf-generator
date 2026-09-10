@@ -118,11 +118,35 @@ def test_user_answers_are_saved_as_evidence_without_second_confirmation(environm
         assert profile['revision'] == 2
         assert profile['facts'][-1]['kind'] == saved_kind
         assert profile['facts'][-1]['text'] == (body['answer'] if saved_kind == 'fact' else f"Brak doświadczenia: {state['question']['text']}")
+        assert profile['facts'][-1]['question'] == state['question']['text']
         assert saved['profile_revision'] == 2
     else:
         assert profile['revision'] == 1
         assert len(profile['facts']) == 2
         assert saved['profile_revision'] == 1
+
+
+def test_profile_read_restores_question_for_legacy_answer_fact(environment):
+    client, db, user, _ = environment
+    session = confirm(client, create(client))
+    row = db.get(InterviewSession, session['id'])
+    state = deepcopy(row.state)
+    state.update(question={'id': 'legacy-question', 'topic': 'quality', 'text': 'Jak sprawdzałaś jakość danych?', 'reason': 'Metoda', 'context': 'Kontrola jakości'}, phase='question')
+    service.update_session(db, row, row.revision, state)
+    session = client.get(f"/ai/interviews/{row.id}").json()
+    response = client.post(f"/ai/interviews/{row.id}/answers", json={
+        **version(session, 1), 'question_id': 'legacy-question', 'answer': 'Porównywałam raport z danymi źródłowymi.', 'status': 'answered',
+    })
+    assert response.status_code == 200, response.text
+
+    # Reproduce an answer fact written before prompts became profile metadata.
+    profile = db.get(CareerProfile, user.id)
+    profile.facts = [{key: value for key, value in fact.items() if key != 'question'} for fact in profile.facts]
+    db.commit()
+
+    restored = client.get('/career-profile').json()['facts'][-1]
+    assert restored['question'] == 'Jak sprawdzałaś jakość danych?'
+    assert restored['context'] == 'Kontrola jakości'
 
 
 def test_profile_conflicting_fields_require_resolution(environment):

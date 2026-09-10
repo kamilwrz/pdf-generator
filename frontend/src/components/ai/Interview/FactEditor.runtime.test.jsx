@@ -54,3 +54,23 @@ it('bounds a large profile and searches hidden records without losing edits', as
   await user.click(screen.getByRole('button', { name: 'Otwórz wpis: Rola 39' }));
   expect(screen.getByRole('heading', { name: 'Rola 39' })).toBeInTheDocument();
 });
+
+it('presents an interview prompt with its answer and keeps the prompt while editing', async () => {
+  const user = userEvent.setup();
+  const answer = { ...make('answer-q1', '', 'Sprawdziłam próbę transakcji i udokumentowałam decyzję.'), question: 'Jak zweryfikowałaś ryzyko tej transakcji?', context: 'Ocena ryzyka AML' };
+  const saved = vi.fn();
+  render(<Harness initial={[answer]} saved={saved} />);
+
+  await user.click(screen.getByRole('button', { name: 'Otwórz wpis: Jak zweryfikowałaś ryzyko tej transakcji?' }));
+  expect(screen.getByText('Pytanie z wywiadu')).toBeInTheDocument();
+  expect(screen.getByText(answer.question)).toBeInTheDocument();
+  expect(screen.getByText('Twoja odpowiedź')).toBeInTheDocument();
+  expect(screen.getByText(answer.text)).toBeInTheDocument();
+  expect(screen.getByText('Ocena ryzyka AML')).toBeInTheDocument();
+
+  await user.click(screen.getByRole('button', { name: /Edytuj: Informacja/ }));
+  expect(screen.getByLabelText('Twoja odpowiedź')).toHaveValue(answer.text);
+  expect(screen.getByText(answer.question)).toBeInTheDocument();
+  await user.click(screen.getByRole('button', { name: 'Zastosuj zmianę' }));
+  expect(saved.mock.lastCall[0][0].question).toBe(answer.question);
+});

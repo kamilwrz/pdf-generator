@@ -15,7 +15,7 @@ function sampleFacts() {
   ['SQL', 'Python', 'Power BI', 'Excel', 'Analiza procesów', 'Raportowanie', 'Prezentacja danych', 'Zarządzanie projektami', 'Dokumentacja', 'Kontrola jakości', 'Komunikacja', 'Praca zespołowa'].forEach((name, i) => add(`/skills/${i}`, name));
   add('/languages/0/name', 'Angielski'); add('/languages/0/level', 'C1'); add('/languages/1/name', 'Niemiecki'); add('/languages/1/level', 'B2');
   add('/custom_sections/0/title', 'Projekty'); add('/custom_sections/0/kind', 'projects'); add('/custom_sections/0/items/0/title', 'Atlas danych'); add('/custom_sections/0/items/0/bullets/0', 'Dashboard do monitorowania jakości danych.');
-  add('', 'Przeprowadziłam warsztat z raportowania dla zespołu.', 'Dodatkowe osiągnięcia');
+  facts.push({ id: `fact-${facts.length}`, path: '', text: 'Przeprowadziłam warsztat z raportowania dla zespołu.', context: 'Dodatkowe osiągnięcia', question: 'Jak podzieliłaś się wiedzą z zespołem?', kind: 'fact', source: 'interview:saved' });
   return facts;
 }
 
@@ -66,6 +66,12 @@ for (const width of [390, 834, 1280, 1920]) {
     await expect(page.getByRole('button', { name: /Otwórz wpis:/ })).toHaveCount(1);
     await page.getByRole('button', { name: 'Otwórz wpis: Niemiecki' }).click();
     await expect(page.locator('dl').getByText('B2', { exact: true })).toBeVisible();
+    await page.getByLabel('Szukaj w profilu').fill('podzieliłaś się wiedzą');
+    await page.getByRole('button', { name: 'Otwórz wpis: Jak podzieliłaś się wiedzą z zespołem?' }).click();
+    await expect(page.getByText('Pytanie z wywiadu', { exact: true })).toBeVisible();
+    await expect(page.getByText('Twoja odpowiedź', { exact: true })).toBeVisible();
+    await expect(page.getByText('Przeprowadziłam warsztat z raportowania dla zespołu.', { exact: true })).toBeVisible();
+    await page.screenshot({ path: `../tmp/career-profile-answer-${width}.png`, fullPage: true });
     await page.getByRole('button', { name: /Zapisane wywiady/ }).click();
     await expect(page.getByRole('link', { name: 'Wznów wywiad' })).toBeVisible();
     api.base.assertHermetic();
