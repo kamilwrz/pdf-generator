@@ -62,7 +62,8 @@ describe('interview workflow', () => {
     session.question = null;
     session.phase = 'ready';
     render(<MemoryRouter><InterviewFlow sessionId="session" sourceChanged /></MemoryRouter>);
-    expect(await screen.findByRole('button', { name: 'Przygotuj CV z potwierdzonych informacji' })).toBeDisabled();
+    await userEvent.setup().click(await screen.findByRole('button', { name: '03 Przygotuj CV' }));
+    expect(screen.getByRole('button', { name: 'Przygotuj CV z potwierdzonych informacji' })).toBeDisabled();
   });
 
   it('refreshes the source after saving pending input without restarting the session', async () => {
@@ -99,6 +100,7 @@ it('hides legacy provider diagnostics while preserving recovery controls', async
   render(<MemoryRouter><InterviewFlow sessionId="session" /></MemoryRouter>);
   await screen.findByText('Twoje odpowiedzi są zapisane');
   expect(screen.queryByText(/Evidence/)).not.toBeInTheDocument();
+  await userEvent.setup().click(screen.getByRole('button', { name: '03 Przygotuj CV' }));
   expect(screen.getByRole('button', { name: 'Przygotuj CV z potwierdzonych informacji' })).toBeEnabled();
 });
 
@@ -108,6 +110,7 @@ it('lets the candidate inspect and save a recovered preview without technical pa
     review_notes: [{ path: '/experience/0/bullets/6', action: 'kept_original' }, { path: '/custom_sections/0/items/0/bullets/0', action: 'omitted_suggestion' }],
   } };
   render(<MemoryRouter><InterviewFlow sessionId="session" /></MemoryRouter>);
+  await userEvent.setup().click(await screen.findByRole('button', { name: 'Sprawdź uwagi do CV' }));
   await screen.findByText('CV jest gotowe do sprawdzenia');
   const disclosure = screen.getByText('Co zachowaliśmy lub pominęliśmy (2)');
   // Native Enter activation is covered in Chromium; jsdom only toggles on click.
