@@ -14,7 +14,7 @@ import { CiText } from "react-icons/ci";
 import { BsTextParagraph } from "react-icons/bs";
 import { LuImagePlus, LuListTree, LuLockOpen } from "react-icons/lu";
 import { AiOutlineLogout } from "react-icons/ai";
-import { FaRegFolderOpen } from "react-icons/fa";
+import { LuFileSearch, LuFolderOpen } from "react-icons/lu";
 import { useCanvasContext } from "../../../store/canvas-context";
 import { useSession } from "../../../store/session-context";
 import { useUiSurfaces } from "../../../store/ui-surfaces-context";
@@ -157,11 +157,11 @@ export default function Sidebar({ children }) {
         <div className={classes.toolsContainer} data-anchor="sidebar-documents-divider">
             <div className={classes.toolsList}>
                 {!isDemoContent ? (
-                    <SidebarControls icon={<FaRegFolderOpen />} labelText="Moje dokumenty" to="/app/documents" />
+                    <SidebarControls icon={<LuFolderOpen />} labelText="Moje dokumenty" to="/app/documents" />
                 ) : null}
                 {!isDemoContent && !isGuest ? (
                     <SidebarControls
-                        icon={<FaRegFolderOpen />}
+                        icon={<LuFileSearch />}
                         labelText="Szybko otwórz dokument"
                         sidebarEvent={showModalWithPDFs}
                         documents={PDFs.length}
