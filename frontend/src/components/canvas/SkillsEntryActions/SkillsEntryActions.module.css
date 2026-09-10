@@ -118,6 +118,41 @@
     white-space: nowrap;
 }
 
+/* Fixed screen-space chrome overlaps only the chosen skill. It has no entry
+   animation: the trash must stay still while the pointer approaches it. */
+.deleteAnchor {
+    position: fixed;
+    z-index: var(--z-editor-context);
+    --canvas-control-size: 24px;
+    --canvas-control-icon: 12px;
+    --canvas-control-gap: 2.4px;
+    --canvas-control-border: 1px;
+    --canvas-control-font: 12px;
+    --canvas-control-menu-width: 240px;
+}
+
+.deleteButton {
+    composes: button danger from "../CanvasControls.module.css";
+    background: var(--color-paper);
+    border: var(--canvas-control-border) solid var(--color-border);
+    box-shadow: var(--shadow-editor-entry);
+}
+
+/* The name remains in the accessible label; a short, edge-aligned tooltip
+   avoids covering several neighbouring skills when the target name is long. */
+.deleteButton[data-tooltip]::after,
+.deleteButton[data-tooltip]:hover::after,
+.deleteButton[data-tooltip]:focus-visible::after {
+    left: auto;
+    right: 0;
+    transform: none;
+}
+
+.deleteButton[data-tooltip-align="start"]::after {
+    left: 0;
+    right: auto;
+}
+
 @media (prefers-reduced-motion: reduce) {
     .confirm { transition: none; }
 }

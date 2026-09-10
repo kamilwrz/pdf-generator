@@ -7,7 +7,7 @@
  * AI belongs to the section or category record toolbar, never this add control.
  */
 import { useCallback, useEffect, useId, useState } from "react";
-import { FiPlus, FiTrash2, FiX } from "react-icons/fi";
+import { FiPlus, FiX } from "react-icons/fi";
 import { useCanvasDeletionUndo } from "../../../hooks/useCanvasDeletionUndo";
 import { measureSkillTargets } from "../../../utils/skillsItemTarget";
 import { useCanvasContext } from "../../../store/canvas-context";
@@ -16,6 +16,7 @@ import { EDITOR_MODE_TEMPLATE } from "../../../utils/editorMode";
 import { resolveSkillsEntryToolbarTop } from "../../../utils/skillsEntryToolbarGeometry";
 import { compactInlineToolbarLayoutSize } from "../recordPlusSize";
 import CanvasHoverToolbar from "../CanvasHoverToolbar/CanvasHoverToolbar";
+import SkillDeleteControl from "./SkillDeleteControl";
 import classes from "./SkillsEntryActions.module.css";
 
 /**
@@ -74,7 +75,9 @@ export default function SkillsEntryActions({
   const [value, setValue] = useState("");
   const [error, setError] = useState("");
   const [announcement, setAnnouncement] = useState("");
-  const [activeIndex, setActiveIndex] = useState(null);
+  const [activeTarget, setActiveTarget] = useState(null);
+  const activeIndex = activeTarget?.index;
+  const setActiveIndex = (index) => setActiveTarget(index == null ? null : { index, fragmentIndex: 0 });
   const deleteWithUndo = useCanvasDeletionUndo();
   const activeItem = itemTargets[activeIndex];
   const fieldId = useId();
@@ -83,7 +86,7 @@ export default function SkillsEntryActions({
   const focusToolbarButton = useCallback(() => {
     window.requestAnimationFrame(() => {
       document.querySelector(
-        `[data-canvas-toolbar-key="${exclusiveKey}"] button`,
+        `[data-canvas-toolbar-key="${exclusiveKey}"]:not([data-skill-delete]) button`,
       )?.focus({ preventScroll: true });
     });
   }, [exclusiveKey]);
@@ -135,20 +138,24 @@ export default function SkillsEntryActions({
 
   // Hit-test real glyph fragments rather than dividing the textarea equally:
   // names can have different lengths, wrap, or carry independent text runs.
-  // Keep the last target while crossing to its portalled trash button.
+  // Freeze the entered line fragment while crossing to its overlaid trash.
+  // Blank separators do not clear the target during that short pointer path.
   useEffect(() => {
     if (!eligible || formOpen) return undefined;
     const nodes = triggerIds.map((id) => document.getElementById(id)).filter(Boolean);
     const point = (event) => {
-      const hit = measureSkillTargets(itemTargets).find(({ rects }) => rects.some((rect) => (
-        event.clientX >= rect.left && event.clientX <= rect.right
-        && event.clientY >= rect.top && event.clientY <= rect.bottom
-      )));
-      setActiveIndex(hit?.index ?? null);
+      const hit = measureSkillTargets(itemTargets).map(({ index, rects }) => ({
+        index,
+        fragmentIndex: rects.findIndex((rect) => (
+          event.clientX >= rect.left && event.clientX <= rect.right
+          && event.clientY >= rect.top && event.clientY <= rect.bottom
+        )),
+      })).find((target) => target.fragmentIndex >= 0);
+      if (hit) setActiveTarget((previous) => previous?.index === hit.index ? previous : hit);
     };
     const focus = (event) => {
       const index = itemTargets.findIndex((item) => item.elementId === event.currentTarget.id);
-      setActiveIndex(index < 0 ? null : index);
+      setActiveTarget(index < 0 ? null : { index, fragmentIndex: 0 });
     };
     nodes.forEach((node) => {
       node.addEventListener("pointermove", point);
@@ -176,7 +183,7 @@ export default function SkillsEntryActions({
         || (event.key === "F10" && event.shiftKey);
       if (!requestsActions) return;
       event.preventDefault();
-      if (!activeItem && itemTargets.length) setActiveIndex(0);
+      if (!activeItem && itemTargets.length) setActiveTarget({ index: 0, fragmentIndex: 0 });
       show();
       focusToolbarButton();
     };
@@ -225,16 +232,21 @@ export default function SkillsEntryActions({
   };
   const directActions = [{
     key: "add-skill", label: addLabel, icon: <FiPlus aria-hidden="true" />, onSelect: openForm,
-  }, ...(activeItem ? [{
-    key: "delete-skill", label: `Usuń umiejętność: ${activeItem.label}`,
-    icon: <FiTrash2 aria-hidden="true" />, danger: true,
-    disabled: typeof removeSkillItem !== "function", onSelect: deleteActiveItem,
-  }] : [])];
+  }];
   const actionPointerProps = {
     ...toolbarPointerProps,
     onKeyDownCapture: (event) => {
       if (formOpen) return;
-      if (event.key === "Escape") {
+      const fromDelete = Boolean(event.target.closest("[data-skill-delete]"));
+      // The plus and trash now occupy separate portals. Preserve their logical
+      // Tab order explicitly instead of depending on body portal mount order.
+      if (event.key === "Tab" && activeItem && !fromDelete && !event.shiftKey) {
+        const trash = document.querySelector(`[data-canvas-toolbar-key="${exclusiveKey}"][data-skill-delete] button`);
+        if (trash) { event.preventDefault(); trash.focus({ preventScroll: true }); }
+      } else if (event.key === "Tab" && fromDelete && event.shiftKey) {
+        event.preventDefault();
+        focusToolbarButton();
+      } else if (event.key === "Escape") {
         event.preventDefault();
         hide();
         document.getElementById(activeItem?.elementId || triggerIds[0])?.focus({ preventScroll: true });
@@ -320,6 +332,16 @@ export default function SkillsEntryActions({
         panelContent={formOpen ? form : null}
         collisionAware
         toolbarPointerProps={actionPointerProps}
+      />
+      <SkillDeleteControl
+        visible={visible && !formOpen && Boolean(activeItem)}
+        itemTargets={itemTargets}
+        activeIndex={activeIndex}
+        fragmentIndex={activeTarget?.fragmentIndex || 0}
+        toolbarKey={exclusiveKey}
+        pointerProps={actionPointerProps}
+        disabled={typeof removeSkillItem !== "function"}
+        onDelete={deleteActiveItem}
       />
       <span className={classes.srOnly} aria-live="polite">{announcement}</span>
     </>

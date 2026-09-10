@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { installMockApi, login } from "./support/mockApi.js";
+import { installMockApi, login, SAVED_ELEMENTS } from "./support/mockApi.js";
 
 for (const style of ["W linii", "Lista", "Pigułka z wypełnieniem", "Pigułka bez wypełnienia",
   "Prostokąt z wypełnieniem", "Prostokąt bez wypełnienia", "Zaokrąglony bez wypełnienia",
@@ -48,6 +48,17 @@ for (const style of ["W linii", "Lista", "Pigułka z wypełnieniem", "Pigułka b
     expect(box.width).toBeCloseTo(24, 0);
     expect(box.x).toBeGreaterThanOrEqual(0);
     expect(box.x + box.width).toBeLessThanOrEqual(page.viewportSize().width);
+    const add = page.getByRole("button", { name: "Dodaj umiejętność do kategorii Narzędzia" });
+    await expect(add.locator("..").getByRole("button", { name: /^Usuń umiejętność:/ })).toHaveCount(0);
+    if (!isMobile) {
+      // Move through real intermediate pointer coordinates. The button must
+      // remain on this skill, not jump to the adjacent item during approach.
+      await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 8 });
+      await expect(trash).toBeVisible();
+      const approached = await trash.boundingBox();
+      expect(approached.x).toBeCloseTo(box.x, 1);
+      expect(approached.y).toBeCloseTo(box.y, 1);
+    }
     await trash.click();
     await expect(page.locator('[id]').filter({ hasText: /^(?:•\s*)?Figma/ }).last()).toHaveCount(0);
     const toast = page.getByRole("status").filter({ hasText: "Usunięto umiejętność „Figma”" });
@@ -126,5 +137,43 @@ test("deletes the hovered second skill while its shared field is being edited", 
   await page.getByRole("status").filter({ hasText: "Usunięto umiejętność „Druga”" })
     .getByRole("button", { name: "Cofnij" }).click();
   await expect(body).toHaveText("Pierwsza  ·  Druga");
+  api.assertHermetic();
+});
+
+test("trash stays on the entered fragment of a wrapped skill during pointer approach", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 950 });
+  const skill = "Screening (PEP, Sanctions, Adverse Media) and international transaction monitoring";
+  const content = `AML  ·  ${skill}  ·  SQL  ·  LexisNexis`;
+  const api = await installMockApi(page, { savedElements: SAVED_ELEMENTS.map((element) => (
+    element.element_id === "skills-tools-body" ? { ...element, content, width: 180 } : element
+  )) });
+  await login(page);
+  await page.getByText("Kontynuuj ostatnie CV", { exact: true }).click();
+  const body = page.locator("#skills-tools-body");
+  await body.scrollIntoViewIfNeeded();
+  const fragments = await body.evaluate((node, label) => {
+    const walker = document.createTreeWalker(node, NodeFilter.SHOW_TEXT);
+    const text = walker.nextNode();
+    const start = text.textContent.indexOf(label);
+    const range = document.createRange();
+    range.setStart(text, start);
+    range.setEnd(text, start + label.length);
+    return [...range.getClientRects()].map((rect) => rect.toJSON());
+  }, skill);
+  expect(fragments.length).toBeGreaterThan(1);
+  const fragment = fragments[1];
+  await page.mouse.move(fragment.left + 2, (fragment.top + fragment.bottom) / 2);
+  const trash = page.getByRole("button", { name: `Usuń umiejętność: ${skill}`, exact: true });
+  await expect(trash).toBeVisible();
+  const box = await trash.boundingBox();
+  expect(box.x + box.width).toBeCloseTo(fragment.right, 1);
+  expect(box.y + box.height / 2).toBeCloseTo((fragment.top + fragment.bottom) / 2, 1);
+  await page.mouse.move(box.x + 12, box.y + 12, { steps: 16 });
+  const approached = await trash.boundingBox();
+  expect(approached.x).toBeCloseTo(box.x, 1);
+  expect(approached.y).toBeCloseTo(box.y, 1);
+  await page.screenshot({ path: "../tmp/skill-trash-wrapped.png" });
+  await trash.click();
+  await expect(body).toHaveText("AML  ·  SQL  ·  LexisNexis");
   api.assertHermetic();
 });

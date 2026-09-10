@@ -44,11 +44,48 @@ export function measureSkillTargets(targets) {
       if (started && end <= next) {
         range.setEnd(text, end - offset);
         const shape = target.shapeId && document.getElementById(target.shapeId);
-        return { index, rects: [...range.getClientRects(),
-          ...(shape ? [shape.getBoundingClientRect()] : [])] };
+        const shapeRect = shape?.getBoundingClientRect();
+        // One chip is its full shape. Underline variants have a one-pixel
+        // shape, so use the glyphs to keep their delete target on the label.
+        return { index, rects: mergeSkillRects(shapeRect?.height > 2
+          ? [shapeRect] : [...range.getClientRects()]) };
       }
       offset = next;
     }
     return { index, rects: [] };
   });
+}
+
+/** Merge adjacent styled spans on the same visual line without joining wraps. */
+export function mergeSkillRects(rects) {
+  const lines = [];
+  for (const rect of rects) {
+    if (rect.width <= 0 || rect.height <= 0) continue;
+    const previous = lines.at(-1);
+    if (previous && Math.abs(previous.top - rect.top) <= 2
+      && Math.abs(previous.bottom - rect.bottom) <= 2
+      && rect.left <= previous.right + 1 && rect.right >= previous.left - 1) {
+      previous.left = Math.min(previous.left, rect.left);
+      previous.right = Math.max(previous.right, rect.right);
+      previous.top = Math.min(previous.top, rect.top);
+      previous.bottom = Math.max(previous.bottom, rect.bottom);
+    } else lines.push({ left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom });
+  }
+  return lines;
+}
+
+/**
+ * Overlay the compact trash on the right end of the entered line fragment.
+ * Keep its screen size stable across zoom and hide fully offscreen targets.
+ * The fragment index is fixed while hovering a skill, preventing the button
+ * from following the pointer as it moves toward the action.
+ */
+export function skillDeletePosition(rects, fragmentIndex, viewport, size = 24) {
+  const rect = rects[fragmentIndex] || rects[0];
+  if (!rect || rect.right <= 0 || rect.left >= viewport.width
+    || rect.bottom <= 0 || rect.top >= viewport.height) return null;
+  return {
+    left: Math.max(8, Math.min(rect.right - size, viewport.width - size - 8)),
+    top: Math.max(8, Math.min((rect.top + rect.bottom - size) / 2, viewport.height - size - 8)),
+  };
 }
