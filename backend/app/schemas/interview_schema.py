@@ -93,12 +93,23 @@ class Draft(Contract):
     remaining_gaps: list[str] = Field(max_length=20)
 
 
+class Clarification(Contract):
+    """A neutral Polish question about an unsupported proposal, never evidence."""
+    path: str = Field(max_length=200)
+    question: str = Field(min_length=1, max_length=1000)
+
+
 class Verification(Contract):
     """Independent semantic review of claims against their cited source facts."""
     unsupported_paths: list[str] = Field(max_length=250)
     reasons: list[str] = Field(max_length=250)
+    clarifications: list[Clarification] = Field(default_factory=list, max_length=250)
 
 
 def provider_schema(model):
     """Return an OpenAI strict JSON schema from a fully required output model."""
-    return {"name": model.__name__.lower(), "strict": True, "schema": model.model_json_schema()}
+    schema = model.model_json_schema()
+    # Legacy cached verification may omit clarifications, but new strict
+    # provider responses must explicitly return every top-level property.
+    schema["required"] = list(schema["properties"])
+    return {"name": model.__name__.lower(), "strict": True, "schema": schema}

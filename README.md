@@ -324,6 +324,8 @@ pdf-generator/
     │   ├── schemas/          # API validation, including account-erasure confirmation
     │   ├── services/         # document/storage, account export/erasure, email, Google, Stripe, readiness, AI, templates
     │   │   ├── interview_service.py # Evidence, versions, discovery and billing
+    │   │   ├── interview_clarification.py # Targeted questions before final preview
+    │   │   ├── interview_recovery.py # Preserve verified changes and recover paid results
     │   │   ├── ai_service.py             # text-first/vision CV extraction + deterministic fill entry
     │   │   ├── scoped_ai.py # Strict scoped GPT request/output models and fact guards
     │   │   ├── cv_source_layout.py       # column lanes, source sections, deterministic field grounding
@@ -414,7 +416,9 @@ AI operations require Pro and existing credits; preview performs both generation
 
 The additive migration `20260910_0017` creates `career_profiles` (one owner profile) and `interview_sessions` (many owned sessions). Both contain versioned JSON and UTC timestamps; owner foreign keys cascade on account erasure. Profile deletion retains its revision epoch. Portable account export and account deletion include these records. Interview logs contain operation/status/cost, not answers. There are no new dependencies or environment variables.
 
-**API:** authenticated `GET/PUT/DELETE /career-profile`; `POST/GET /ai/interviews`; `GET/DELETE /ai/interviews/{id}`; session `POST` actions `answers`, `next`, `confirm`, `extend`, `source`, `preview`, `document`. The [complete EN/PL tutorial](docs/INTERVIEWS.md#english) documents schemas, field limits, response examples, errors, transactions, retention, credits, tests and recovery. The [Swiss interaction contract](DESIGN.md#59-career-interview-contract) applies to all interview states.
+**API:** authenticated `GET/PUT/DELETE /career-profile`; `POST/GET /ai/interviews`; `GET/DELETE /ai/interviews/{id}`; session `POST` actions `answers`, `next`, `confirm`, `extend`, `source`, `preview`, `clarify`, `skip-clarifications`, `document`. The [complete EN/PL tutorial](docs/INTERVIEWS.md#english) documents schemas, field limits, response examples, errors, transactions, retention, credits, tests and recovery. The [Swiss interaction contract](DESIGN.md#59-career-interview-contract) applies to all interview states.
+
+Uncertain AI proposals now lead to clarification before the final preview. `interview_clarification.py` builds up to five targeted questions from the verification output; `clarify` starts a voluntary round and `skip-clarifications` explicitly defers it. Questions and answers reuse stored work without another AI charge. New answers remain drafts until fact confirmation; regenerating the CV then uses normal credits. The user's answers are not discarded. `interview_recovery.py` maintains a confirmed fallback for explicit skipping and can recover the immediately preceding settled legacy result for an unchanged profile/source. Resolved topics are not asked again. `InterviewReviewNotice` explains remaining unconfirmed details without raw diagnostics. Session JSON adds `pending_clarifications`, `dismissed_clarifications`, `clarification_round`, `review_notes` and `recovered_previous_attempt`; no migration is needed. Retained fields may remain in the source language when a translation is unconfirmed. Tests cover chronology, project attribution, question caps, answer statuses, explicit skipping and recovery without extra billing.
 
 Implementation and tests (verified whole-module ranges; use the named symbols for navigation):
 
@@ -422,20 +426,24 @@ Implementation and tests (verified whole-module ranges; use the named symbols fo
 | --- | --- |
 | `backend/app/models/models.py` | 1–583; CareerProfile, InterviewSession |
 | `backend/alembic/versions/20260910_0017_career_interviews.py` | 1–41; upgrade, downgrade |
-| `backend/app/schemas/interview_schema.py` | 1–104; CareerFact, InterviewCreate, SessionWrite, SourceRefresh, Discovery, Draft, Verification |
+| `backend/app/services/interview_clarification.py` | 1–77; clarification_queue, start_clarifications, finish_clarification_answer |
+| `backend/app/services/interview_recovery.py` | 1–107; previous_rejected_result, assemble_reviewed_draft |
+| `frontend/src/components/ai/Interview/InterviewReviewNotice.jsx` | 1–16; InterviewReviewNotice |
+| `backend/tests/test_interview_recovery.py` | 1–72; test_report_chronology_and_project_technology_rejections_keep_usable_cv |
+| `backend/app/schemas/interview_schema.py` | 1–115; CareerFact, InterviewCreate, SessionWrite, SourceRefresh, Discovery, Draft, Clarification, Verification |
 | `backend/app/services/interview_service.py` | 1–351; put_profile, check_versions, source_facts, base_cv, assemble_draft, paid_model, next_question |
-| `backend/app/api/routes/interviews.py` | 1–361; create_interview, answer_interview, confirm_interview, refresh_interview_source, preview_interview, save_interview_document |
-| `frontend/src/components/ai/Interview/InterviewFlow.jsx` | 1–174; InterviewFlow |
+| `backend/app/api/routes/interviews.py` | 1–403; create_interview, answer_interview, confirm_interview, refresh_interview_source, preview_interview, clarify_interview, skip_clarifications, save_interview_document |
+| `frontend/src/components/ai/Interview/InterviewFlow.jsx` | 1–181; InterviewFlow |
 | `frontend/src/components/ai/Interview/FactEditor.jsx` | 1–25; FactEditor |
 | `frontend/src/components/ai/Interview/CvContent.jsx` | 1–21; CvContent |
 | `frontend/src/services/interviews.js` | 1–24; interviewRequest, reviewFacts |
 | `frontend/src/pages/Site/CareerProfilePage.jsx` | 1–67; CareerProfilePage |
 | `frontend/src/pages/Site/InterviewPage.jsx` | 1–10; InterviewPage |
-| `frontend/src/utils/interviewPresentation.js` | 1–12; factLabel, interviewFields |
-| `backend/tests/test_interviews.py` | 1–328; state, grounding, billing, source preservation and PDF regressions |
+| `frontend/src/utils/interviewPresentation.js` | 1–13; factLabel, interviewFields |
+| `backend/tests/test_interviews.py` | 1–418; state, grounding, billing, source preservation and PDF regressions |
 | `backend/tests/test_alembic_interviews.py` | 1–26; additive migration regression |
-| `frontend/src/components/ai/Interview/Interview.runtime.test.jsx` | 1–94; save-before-next, recovery, focus and source changes |
-| `frontend/e2e/interviews.spec.js` | 1–127; create, resume, profile and assistant flows |
+| `frontend/src/components/ai/Interview/Interview.runtime.test.jsx` | 1–133; save-before-next, recovery, focus and source changes |
+| `frontend/e2e/interviews.spec.js` | 1–160; create, resume, profile and assistant flows |
 
 Folder additions: `backend/app/schemas/interview_schema.py` defines API/provider contracts, `backend/app/services/interview_service.py` owns evidence and conversation rules, and `backend/app/api/routes/interviews.py` owns HTTP orchestration. `frontend/src/components/ai/Interview/` contains the shared flow, controlled fact editor, content review, token-based styles and runtime tests. `docs/INTERVIEWS.md` is the technical tutorial; `docs/licenses/resume-agent-skills-MIT.txt` retains Vignesh Pai's MIT attribution.
 
@@ -3232,6 +3240,8 @@ pdf-generator/
     │   ├── schemas/          # PdfElement + eksport JSON Schema
     │   ├── services/         # dokument/storage, e-mail, Google, Stripe, readiness, limity auth, AI, szablony
     │   │   ├── interview_service.py # Dowody, wersje, rozmowa i rozliczenia
+    │   │   ├── interview_clarification.py # Konkretne pytania przed końcowym podglądem
+    │   │   ├── interview_recovery.py # Zachowanie sprawdzonych zmian i odzyskanie wyników
     │   │   ├── ai_service.py             # tekst-first/vision importu CV + wejście fill
     │   │   ├── scoped_ai.py # Ścisłe modele wejścia/wyjścia zakresowego GPT i kontrola danych
     │   │   ├── cv_source_layout.py       # kolumny, sekcje źródłowe i deterministyczne ugruntowanie
@@ -3321,28 +3331,35 @@ AI wymaga Pro i obecnych kredytów; podgląd obejmuje generowanie oraz płatne s
 
 Migracja addytywna `20260910_0017` tworzy `career_profiles` (jeden profil właściciela) oraz `interview_sessions` (wiele jego rozmów). Obie tabele przechowują wersjonowany JSON i czasy UTC; klucze właściciela mają kaskadę przy usunięciu konta. Usunięcie profilu zachowuje epokę rewizji. Eksport danych i usunięcie konta obejmują te rekordy. Logi wywiadu zawierają operację/status/koszt, bez odpowiedzi. Nie dodano zależności ani zmiennych środowiskowych.
 
-**API:** uwierzytelnione `GET/PUT/DELETE /career-profile`; `POST/GET /ai/interviews`; `GET/DELETE /ai/interviews/{id}`; operacje sesji `POST`: `answers`, `next`, `confirm`, `extend`, `source`, `preview`, `document`. [Pełna instrukcja EN/PL](docs/INTERVIEWS.md#polski) opisuje schematy, limity pól, przykłady odpowiedzi, błędy, transakcje, retencję, kredyty, testy i odzyskiwanie. [Kontrakt interakcji Swiss](DESIGN.md#59-career-interview-contract) obejmuje wszystkie stany wywiadu.
+**API:** uwierzytelnione `GET/PUT/DELETE /career-profile`; `POST/GET /ai/interviews`; `GET/DELETE /ai/interviews/{id}`; operacje sesji `POST`: `answers`, `next`, `confirm`, `extend`, `source`, `preview`, `clarify`, `skip-clarifications`, `document`. [Pełna instrukcja EN/PL](docs/INTERVIEWS.md#polski) opisuje schematy, limity pól, przykłady odpowiedzi, błędy, transakcje, retencję, kredyty, testy i odzyskiwanie. [Kontrakt interakcji Swiss](DESIGN.md#59-career-interview-contract) obejmuje wszystkie stany wywiadu.
 
 Implementacja i testy (zweryfikowane zakresy całych modułów; symbole ułatwiają nawigację):
+
+Niejasne propozycje AI prowadzą teraz do doprecyzowania przed końcowym podglądem. `interview_clarification.py` przygotowuje do pięciu konkretnych pytań z wyniku weryfikacji; `clarify` rozpoczyna dobrowolną rundę, a `skip-clarifications` świadomie ją pomija. Pytania i odpowiedzi wykorzystują zapisaną pracę bez dodatkowej opłaty AI. Nowe odpowiedzi pozostają szkicem do zatwierdzenia faktów; kolejne generowanie CV korzysta ze zwykłych kredytów. Odpowiedzi użytkownika nie są odrzucane. `interview_recovery.py` utrzymuje potwierdzoną wersję na wypadek świadomego pominięcia oraz może odzyskać bezpośrednio poprzedni rozliczony wynik starej sesji przy niezmienionym profilu/źródle. Rozstrzygnięte tematy nie są powtarzane. `InterviewReviewNotice` wyjaśnia pozostałe niepotwierdzone szczegóły bez surowej diagnostyki. JSON sesji otrzymuje `pending_clarifications`, `dismissed_clarifications`, `clarification_round`, `review_notes` i `recovered_previous_attempt`; migracja nie jest potrzebna. Zachowane pola mogą pozostać w języku źródła, gdy tłumaczenie nie jest potwierdzone. Testy obejmują kolejność działań, przypisanie projektu, limity pytań, statusy odpowiedzi, świadome pominięcie i odzyskanie bez dodatkowej opłaty.
+
 
 | Plik | Aktualne linie i symbole |
 | --- | --- |
 | `backend/app/models/models.py` | 1–583; CareerProfile, InterviewSession |
 | `backend/alembic/versions/20260910_0017_career_interviews.py` | 1–41; upgrade, downgrade |
-| `backend/app/schemas/interview_schema.py` | 1–104; CareerFact, InterviewCreate, SessionWrite, SourceRefresh, Discovery, Draft, Verification |
+| `backend/app/services/interview_clarification.py` | 1–77; clarification_queue, start_clarifications, finish_clarification_answer |
+| `backend/app/services/interview_recovery.py` | 1–107; previous_rejected_result, assemble_reviewed_draft |
+| `frontend/src/components/ai/Interview/InterviewReviewNotice.jsx` | 1–16; InterviewReviewNotice |
+| `backend/tests/test_interview_recovery.py` | 1–72; test_report_chronology_and_project_technology_rejections_keep_usable_cv |
+| `backend/app/schemas/interview_schema.py` | 1–115; CareerFact, InterviewCreate, SessionWrite, SourceRefresh, Discovery, Draft, Clarification, Verification |
 | `backend/app/services/interview_service.py` | 1–351; put_profile, check_versions, source_facts, base_cv, assemble_draft, paid_model, next_question |
-| `backend/app/api/routes/interviews.py` | 1–361; create_interview, answer_interview, confirm_interview, refresh_interview_source, preview_interview, save_interview_document |
-| `frontend/src/components/ai/Interview/InterviewFlow.jsx` | 1–174; InterviewFlow |
+| `backend/app/api/routes/interviews.py` | 1–403; create_interview, answer_interview, confirm_interview, refresh_interview_source, preview_interview, clarify_interview, skip_clarifications, save_interview_document |
+| `frontend/src/components/ai/Interview/InterviewFlow.jsx` | 1–181; InterviewFlow |
 | `frontend/src/components/ai/Interview/FactEditor.jsx` | 1–25; FactEditor |
 | `frontend/src/components/ai/Interview/CvContent.jsx` | 1–21; CvContent |
 | `frontend/src/services/interviews.js` | 1–24; interviewRequest, reviewFacts |
 | `frontend/src/pages/Site/CareerProfilePage.jsx` | 1–67; CareerProfilePage |
 | `frontend/src/pages/Site/InterviewPage.jsx` | 1–10; InterviewPage |
-| `frontend/src/utils/interviewPresentation.js` | 1–12; factLabel, interviewFields |
-| `backend/tests/test_interviews.py` | 1–328; testy zachowania wywiadu |
+| `frontend/src/utils/interviewPresentation.js` | 1–13; factLabel, interviewFields |
+| `backend/tests/test_interviews.py` | 1–418; testy zachowania wywiadu |
 | `backend/tests/test_alembic_interviews.py` | 1–26; testy zachowania wywiadu |
-| `frontend/src/components/ai/Interview/Interview.runtime.test.jsx` | 1–94; testy zachowania wywiadu |
-| `frontend/e2e/interviews.spec.js` | 1–127; testy zachowania wywiadu |
+| `frontend/src/components/ai/Interview/Interview.runtime.test.jsx` | 1–133; testy zachowania wywiadu |
+| `frontend/e2e/interviews.spec.js` | 1–160; testy zachowania wywiadu |
 
 Nowe pliki: `backend/app/schemas/interview_schema.py` definiuje kontrakty API/modelu, `backend/app/services/interview_service.py` zarządza dowodami i regułami rozmowy, a `backend/app/api/routes/interviews.py` koordynuje HTTP. `frontend/src/components/ai/Interview/` zawiera wspólny przepływ, kontrolowany edytor faktów, podgląd treści, style oparte na tokenach i testy runtime. `docs/INTERVIEWS.md` to instrukcja techniczna; `docs/licenses/resume-agent-skills-MIT.txt` zachowuje autorstwo Vignesha Paia i licencję MIT.
 

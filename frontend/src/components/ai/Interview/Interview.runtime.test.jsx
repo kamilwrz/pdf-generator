@@ -92,3 +92,42 @@ describe('interview workflow', () => {
     expect(screen.getByRole('button', { name: 'Dodaj informację' })).toHaveFocus();
   });
 });
+
+
+it('hides legacy provider diagnostics while preserving recovery controls', async () => {
+  session = { ...session, phase: 'review', question: null, generation_feedback: ['/experience/0/bullets/6: Evidence technical report'] };
+  render(<MemoryRouter><InterviewFlow sessionId="session" /></MemoryRouter>);
+  await screen.findByText('Twoje odpowiedzi są zapisane');
+  expect(screen.queryByText(/Evidence/)).not.toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Przygotuj CV z potwierdzonych informacji' })).toBeEnabled();
+});
+
+it('lets the candidate inspect and save a recovered preview without technical paths', async () => {
+  session = { ...session, phase: 'preview', question: null, preview: {
+    pages: 1, profile_revision: 1, cv_data: { name: 'Anna Nowak' }, changes: [], remaining_gaps: [], recovered_previous_attempt: true,
+    review_notes: [{ path: '/experience/0/bullets/6', action: 'kept_original' }, { path: '/custom_sections/0/items/0/bullets/0', action: 'omitted_suggestion' }],
+  } };
+  render(<MemoryRouter><InterviewFlow sessionId="session" /></MemoryRouter>);
+  await screen.findByText('CV jest gotowe do sprawdzenia');
+  const disclosure = screen.getByText('Co zachowaliśmy lub pominęliśmy (2)');
+  // Native Enter activation is covered in Chromium; jsdom only toggles on click.
+  await userEvent.setup().click(disclosure);
+  expect(disclosure.parentElement).toHaveAttribute('open');
+  expect(screen.getByText(/Odzyskanie nie zużyło/)).toBeInTheDocument();
+  expect(screen.queryByText(/\/experience\//)).not.toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Zapisz jako nowe CV' })).toBeEnabled();
+});
+
+
+it('offers clarification before exposing the filtered preview and supports explicit skipping', async () => {
+  session = { ...session, phase: 'clarification', question: null, pending_clarifications: [{ topic: 'project' }], preview: {
+    pages: 1, profile_revision: 1, cv_data: { name: 'Anna' }, changes: [], remaining_gaps: [],
+  } };
+  render(<MemoryRouter><InterviewFlow sessionId="session" /></MemoryRouter>);
+  await screen.findByRole('heading', { name: 'Doprecyzujmy szczegóły' });
+  expect(screen.queryByRole('button', { name: 'Zapisz jako nowe CV' })).not.toBeInTheDocument();
+  await userEvent.setup().click(screen.getByRole('button', { name: 'Doprecyzuj — do 5 pytań' }));
+  expect(interviewRequest).toHaveBeenCalledWith('/ai/interviews/session/clarify', 'POST', expect.objectContaining({ revision: 2, profile_revision: 1 }));
+  await userEvent.setup().click(screen.getByRole('button', { name: 'Pomiń doprecyzowanie i pokaż CV' }));
+  expect(interviewRequest).toHaveBeenCalledWith('/ai/interviews/session/skip-clarifications', 'POST', expect.any(Object));
+});

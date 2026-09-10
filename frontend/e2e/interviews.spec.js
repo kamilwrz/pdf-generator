@@ -4,11 +4,12 @@ import { installMockApi } from './support/mockApi.js';
 const ID = 'f1fc439c-84f1-45ad-b23c-a3e384a81d3a';
 const nameFact = { id: 'name', text: 'Anna Nowak', path: '/name', kind: 'fact', source: 'manual', context: '' };
 
-async function installInterviewApi(page) {
+async function installInterviewApi(page, recovered = false) {
   const base = await installMockApi(page);
   await page.addInitScript(() => { localStorage.setItem('token', 'local-playwright-token'); localStorage.setItem('username', 'Kamil'); });
   let profile = { revision: 0, facts: [] };
   let session = null;
+  let clarified = false;
   const calls = [];
   await page.route('**/api/career-profile*', async (route) => {
     if (route.request().method() === 'PUT') profile = { ...route.request().postDataJSON(), revision: profile.revision + 1 };
@@ -32,14 +33,22 @@ async function installInterviewApi(page) {
     } else if (path.endsWith('/next')) {
       session = { ...session, revision: session.revision + 1, phase: 'question', question: { id: 'q1', topic: 'project', text: 'Jaki projekt ukończyłaś samodzielnie?', reason: 'Pokażemy Twój wkład w osiągnięcie.', context: 'Projekt' } };
       result = session;
+    } else if (path.endsWith('/clarify')) {
+      session = { ...session, revision: session.revision + 1, phase: 'clarification', clarification_round: true, pending_clarifications: [], question: { id: 'clarify-project', topic: 'clarify-project', clarification: true, text: 'W którym projekcie używałaś Pythona?', reason: 'Potwierdźmy związek technologii z projektem.', context: 'Projekty', suggested_text: 'Portal CV w Pythonie' } };
+      result = session;
+    } else if (path.endsWith('/skip-clarifications')) {
+      session = { ...session, revision: session.revision + 1, phase: 'preview', pending_clarifications: [], question: null };
+      result = session;
     } else if (path.endsWith('/answers')) {
-      session = { ...session, revision: session.revision + 1, phase: 'review', question: null, answers: [{ ...body }], proposed_facts: body.status === 'answered' ? [{ id: 'answer', text: body.answer, context: 'Projekt', kind: 'fact', path: '', source: 'interview' }] : [] };
+      if (session.question?.clarification) clarified = true;
+      session = { ...session, revision: session.revision + 1, phase: 'review', question: null, preview: null, answers: [...session.answers, { ...body }], proposed_facts: body.status === 'answered' ? [{ id: 'answer', text: body.answer, context: 'Projekt', kind: 'fact', path: '', source: 'interview' }] : [] };
       result = session;
     } else if (path.endsWith('/source')) {
       session = { ...session, revision: session.revision + 1, phase: 'intake', confirmed: false, preview: null, source_cv_data: body.cv_data || session.source_cv_data };
       result = session;
     } else if (path.endsWith('/preview')) {
-      session = { ...session, revision: session.revision + 1, phase: 'preview', template_id: body.template_id, preview: { pages: 1, profile_revision: profile.revision, cv_data: { name: 'Anna Nowak', summary: 'Tworzę raporty.', experience: [], education: [], skills: [] }, changes: [{ path: '/summary', value: 'Tworzę raporty.', evidence_refs: ['answer'] }], remaining_gaps: [] } };
+      session = { ...session, revision: session.revision + 1, phase: 'preview', template_id: body.template_id, preview: { pages: 1, profile_revision: profile.revision, cv_data: { name: 'Anna Nowak', summary: 'Tworzę raporty.', experience: [], education: [], skills: [] }, changes: [{ path: '/summary', value: 'Tworzę raporty.', evidence_refs: ['answer'] }], remaining_gaps: [], ...(recovered ? { recovered_previous_attempt: !clarified, review_notes: [{ path: '/experience/0/bullets/6', action: 'kept_original' }, { path: '/custom_sections/0/items/0/bullets/0', action: 'omitted_suggestion' }] } : {}) } };
+      if (recovered && !clarified) session = { ...session, phase: 'clarification', pending_clarifications: [{ topic: 'clarify-project' }] };
       result = session;
     } else if (path.endsWith('/document')) result = { document_id: 41 };
     else result = session;
@@ -52,7 +61,7 @@ for (const width of [390, 834, 1280, 1920]) {
   test(`interview creates, resumes and reviews CV at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     await page.emulateMedia({ reducedMotion: 'reduce' });
-    const api = await installInterviewApi(page);
+    const api = await installInterviewApi(page, true);
     await page.goto('/app/interview');
     await page.getByLabel('Imię i nazwisko', { exact: true }).fill('Anna Nowak');
     await page.getByRole('button', { name: 'Rozpocznij wywiad', exact: true }).click();
@@ -65,7 +74,31 @@ for (const width of [390, 834, 1280, 1920]) {
     await page.getByRole('button', { name: 'Zatwierdź informacje', exact: true }).click();
     await page.getByLabel('Szablon nowego CV').selectOption('linden');
     await page.getByRole('button', { name: 'Przygotuj CV z potwierdzonych informacji' }).click();
+    await expect(page.getByRole('heading', { name: 'Doprecyzujmy szczegóły' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Zapisz jako nowe CV' })).toHaveCount(0);
+    await page.getByRole('button', { name: 'Doprecyzuj — do 5 pytań' }).click();
+    await expect(page.getByRole('heading', { name: 'W którym projekcie używałaś Pythona?' })).toBeVisible();
+    if (width === 834) await page.addStyleTag({ content: 'html { font-size: 200% !important; }' });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
+    await page.screenshot({ path: `../tmp/interview-clarification-${width}.png`, fullPage: true });
+    if (width === 834) await page.addStyleTag({ content: 'html { font-size: 100% !important; }' });
+    if (width === 834 || width === 1920) {
+      await page.getByRole('button', { name: 'Pomiń doprecyzowanie i pokaż CV' }).click();
+    } else {
+      await page.getByLabel('Twoja odpowiedź').fill('Python był używany w projekcie uczelnianym.');
+      await page.getByRole('button', { name: 'Zapisz odpowiedź', exact: true }).click();
+      await expect(page.getByRole('heading', { name: 'Sprawdź informacje o sobie' })).toBeVisible();
+      await page.getByRole('button', { name: 'Zatwierdź informacje', exact: true }).click();
+      await page.getByRole('button', { name: 'Przygotuj CV z potwierdzonych informacji' }).click();
+    }
     await expect(page.getByRole('heading', { name: 'Twoja nowa wersja CV' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'CV jest gotowe do sprawdzenia' })).toBeVisible();
+    const recoveryDetails = page.getByText('Co zachowaliśmy lub pominęliśmy (2)', { exact: true });
+    await recoveryDetails.focus();
+    await page.keyboard.press('Enter');
+    await expect(page.getByText('zachowano potwierdzoną treść', { exact: false })).toBeVisible();
+    if (width === 834 || width === 1920) await expect(page.getByText(/Odzyskanie nie zużyło/)).toBeVisible();
+    await expect(page.locator('body')).not.toContainText('/experience/0/bullets/6');
     await page.getByText('Cała treść CV', { exact: true }).click();
     await expect(page.getByRole('article', { name: 'Cała treść nowego CV' })).toContainText('Tworzę raporty.');
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);

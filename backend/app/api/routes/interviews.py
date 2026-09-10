@@ -16,6 +16,8 @@ from app.schemas.interview_schema import (
     ProfileWrite, InterviewCreate, SessionWrite, AnswerWrite, ConfirmWrite, GenerateWrite, SourceRefresh, Draft, Verification,
 )
 from app.schemas.pdf_schema import PDFCreateRequest
+from app.services.interview_clarification import clarification_queue, start_clarifications, finish_clarification_answer
+from app.services.interview_recovery import assemble_reviewed_draft, previous_rejected_result
 from app.services import interview_service as service
 from app.services.cv_data import normalize_cv_data, CvDataValidationError
 from app.services.ai_service import generate_resume
@@ -171,10 +173,44 @@ def answer_interview(session_id: str, request: AnswerWrite, user=Depends(get_cur
             "context": question["context"] or question["text"], "kind": "fact" if request.status == "answered" else "gap", "path": "", "source": f"interview:{row.id}",
         })
     state["question"] = None
-    state["preview"] = None
+    if not question.get("clarification") or request.status in {"answered", "no_experience"}:
+        state["preview"] = None
     state["phase"] = "review" if len(state["answers"]) >= state["question_limit"] else "ready"
+    if question.get("clarification"):
+        finish_clarification_answer(state)
     service.update_session(db, row, request.revision, state)
     logger.info("interview_answer status=%s", request.status)
+    return service.session_payload(service.owned_session(db, user.id, session_id))
+
+
+@router.post("/ai/interviews/{session_id}/clarify")
+def clarify_interview(session_id: str, request: SessionWrite, user=Depends(get_current_user), db=Depends(get_db)):
+    """Start saved clarification questions without a provider request or charge."""
+    row = service.owned_session(db, user.id, session_id)
+    service.check_versions(db, row, request)
+    state = deepcopy(row.state)
+    if state["phase"] == "completed":
+        service.fail("To CV zostało już zapisane.", 422)
+    start_clarifications(state)
+    service.update_session(db, row, request.revision, state)
+    return service.session_payload(service.owned_session(db, user.id, session_id))
+
+
+@router.post("/ai/interviews/{session_id}/skip-clarifications")
+def skip_clarifications(session_id: str, request: SessionWrite, user=Depends(get_current_user), db=Depends(get_db)):
+    """Explicitly defer uncertain details; never treat skipping as lack of experience."""
+    row = service.owned_session(db, user.id, session_id)
+    service.check_versions(db, row, request)
+    state = deepcopy(row.state)
+    if state["phase"] != "clarification":
+        service.fail("Doprecyzowanie nie jest aktywne.")
+    pending = state.get("pending_clarifications", [])
+    if state.get("question"):
+        pending = [state["question"], *pending]
+        state["answers"].append({"question": state["question"], "answer": "", "status": "skipped"})
+    state["dismissed_clarifications"] = list(dict.fromkeys([*state.get("dismissed_clarifications", []), *(q["topic"] for q in pending)]))
+    state.update(question=None, pending_clarifications=[], phase="review" if state["proposed_facts"] else "preview" if state.get("preview") else "ready")
+    service.update_session(db, row, request.revision, state)
     return service.session_payload(service.owned_session(db, user.id, session_id))
 
 
@@ -254,7 +290,7 @@ def refresh_interview_source(session_id: str, request: SourceRefresh, user=Depen
                  template_id=template if template in TEMPLATE_LAYOUTS else None,
                  spacing_px=request.spacing_px if request.cv_data is not None else source.spacing_px,
                  proposed_facts=retained + proposals, confirmed=False, phase="intake", question=None,
-                 preview=None, generation_feedback=[], document_title=None)
+                 preview=None, generation_feedback=[], document_title=None, pending_clarifications=[], clarification_round=False)
     service.update_session(db, row, request.revision, state)
     return service.session_payload(service.owned_session(db, user.id, session_id))
 
@@ -276,24 +312,25 @@ def preview_interview(session_id: str, request: GenerateWrite, user=Depends(get_
         normalize_cv_data(service.base_cv(profile), require_name=True)
     except CvDataValidationError as exc:
         service.fail(str(exc), 422)
-    response = service.paid_model(db, user, row, request, "preview", {
-        "task": "Przygotuj pełną treść CV jako fields: path/value/evidence_refs. Podstawą są wyłącznie potwierdzone profile facts; offer to kryteria doboru, nie dowody. Zachowaj wszystkie odrębne fakty bazowego CV, wzmacniaj podsumowanie i punkty. Możesz dodać potwierdzone projekty i umiejętności. Nie mieszaj danych różnych ról. Każda liczba musi pochodzić z przywołanych faktów. Zwróć pozostałe braki. Nie generuj geometrii. Dane kontaktowe pozostają dosłowne. Używaj języka language dla całej treści.",
-        "allowed_paths": service.PATH.pattern, "profile": profile["facts"], "base_cv": service.base_cv(profile),
-        "offer": state["offer"], "language": service.LANGUAGES[state["language"]],
-    }, Draft)
-    verification = service.paid_model(db, user, row, request, "verify", {
-        "task": "Sprawdź niezależnie każdą propozycję wyłącznie względem przywołanych evidence_refs i ograniczeń kind=gap/framing. Wskaż unsupported_paths, jeśli dopisano niepotwierdzoną technologię, wynik, certyfikat, skalę, stanowisko lub własność pracy zespołu; jeśli przeniesiono fakt do innej roli; jeśli usunięto zastrzeżenie lub odrębny fakt bazowego pola. Synonimy i wierne tłumaczenie są dozwolone. Oferta nie jest dowodem. Zwróć puste listy tylko gdy wszystkie twierdzenia są uzasadnione.",
-        "profile": profile["facts"], "base_cv": service.base_cv(profile), "draft": response["output"]["fields"],
-    }, Verification)
-    if verification["output"]["unsupported_paths"]:
-        # Consume this generation revision, otherwise a retry would replay the
-        # same rejected draft forever. Facts remain available for correction.
-        state.update(phase="review", preview=None, generation_feedback=verification["output"]["reasons"])
-        service.check_versions(db, service.owned_session(db, user.id, session_id), request)
-        service.update_session(db, row, request.revision, state)
-        return service.session_payload(service.owned_session(db, user.id, session_id))
+    # Reuse settled responses from the immediately preceding rejected attempt
+    # only after checking the current source and profile versions above.
+    recovered = previous_rejected_result(db, row, profile["revision"])
+    if recovered:
+        response, verification = recovered
+    else:
+        response = service.paid_model(db, user, row, request, "preview", {
+            "task": "Przygotuj pełną treść CV jako fields: path/value/evidence_refs. Podstawą są wyłącznie potwierdzone profile facts; offer to kryteria doboru, nie dowody. Zachowaj wszystkie odrębne fakty bazowego CV, wzmacniaj podsumowanie i punkty. Możesz dodać potwierdzone projekty i umiejętności. Nie mieszaj danych różnych ról i projektów. Ogólna znajomość technologii nie potwierdza jej użycia w konkretnym projekcie. Zachowaj dokładnie kolejność działań, kierunek przekazania raportów i granice odpowiedzialności ze źródła; nie dopisuj relacji przed/po ani odbiorców. Każda liczba musi pochodzić z przywołanych faktów. Zwróć pozostałe braki. Nie generuj geometrii. Dane kontaktowe pozostają dosłowne. Używaj języka language dla całej treści.",
+            "allowed_paths": service.PATH.pattern, "profile": profile["facts"], "base_cv": service.base_cv(profile),
+            "offer": state["offer"], "language": service.LANGUAGES[state["language"]],
+        }, Draft)
+        verification = service.paid_model(db, user, row, request, "verify", {
+            "task": "Sprawdź niezależnie każdą propozycję wyłącznie względem przywołanych evidence_refs i ograniczeń kind=gap/framing. Wskaż unsupported_paths, jeśli dopisano niepotwierdzoną technologię, wynik, certyfikat, skalę, stanowisko lub własność pracy zespołu; jeśli przeniesiono fakt do innej roli; jeśli usunięto zastrzeżenie lub odrębny fakt bazowego pola. Synonimy i wierne tłumaczenie są dozwolone. Oferta nie jest dowodem. Dla każdej niejasności zwróć też clarifications: path/question. Pytanie po polsku ma neutralnie rozstrzygnąć konkretny brak lub sprzeczność, bez sugerowania kompetencji ani prezentowania hipotezy jako faktu. Np. pytaj, w którym projekcie użyto technologii lub jaka była kolejność przekazywania raportów. Nie pytaj ponownie o potwierdzony brak doświadczenia. Zwróć puste listy tylko gdy wszystkie twierdzenia są uzasadnione.",
+            "profile": profile["facts"], "base_cv": service.base_cv(profile), "draft": response["output"]["fields"],
+        }, Verification)
     try:
-        cv_data, changes = service.assemble_draft(response["output"], profile, state["language"])
+        cv_data, changes, review_notes = assemble_reviewed_draft(
+            response["output"], verification["output"], profile, state["language"],
+        )
         with use_spacing(state["spacing_px"]):
             elements = generate_resume(request.template_id, cv_data)
         # Template generators return specifications; the normal browser fill
@@ -313,8 +350,13 @@ def preview_interview(session_id: str, request: GenerateWrite, user=Depends(get_
     state.update(phase="preview", question=None, template_id=request.template_id, profile_revision=profile["revision"], usage=response["usage"], preview={
         "cv_data": cv_data, "changes": changes, "remaining_gaps": response["output"]["remaining_gaps"],
         "elements": elements, "pages": pages, "profile_revision": profile["revision"],
+        "review_notes": review_notes, "recovered_previous_attempt": bool(recovered),
     })
     state["generation_feedback"] = []
+    pending = clarification_queue(row, response["output"], verification["output"], review_notes, profile)
+    state["pending_clarifications"] = pending
+    if pending:
+        state["phase"] = "clarification"
     service.update_session(db, row, request.revision, state)
     return service.session_payload(service.owned_session(db, user.id, session_id))
 
@@ -334,7 +376,7 @@ def save_interview_document(session_id: str, request: SessionWrite, user=Depends
     profile = service.check_versions(db, row, request)
     state = deepcopy(row.state)
     preview = state.get("preview")
-    if not preview or preview["profile_revision"] != profile["revision"]:
+    if state["phase"] != "preview" or not preview or preview["profile_revision"] != profile["revision"]:
         service.fail("Przygotuj aktualny podgląd przed zapisaniem CV.")
     assert_template_allowed(db, user, state["template_id"])
     assert_can_create_project(db, user)

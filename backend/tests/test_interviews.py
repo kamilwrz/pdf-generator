@@ -236,8 +236,9 @@ def test_semantic_rejection_is_reviewable_and_allows_new_generation(environment)
     with patch.object(service, '_gpt', side_effect=[(draft, {'cost_pln_estimate': .01}), ({'unsupported_paths': ['/summary'], 'reasons': ['Nie potwierdzono Kubernetes.']}, {'cost_pln_estimate': .01})]):
         response = client.post(f"/ai/interviews/{session['id']}/preview", json={**version(session, 1), 'template_id': 'linden'})
     assert response.status_code == 200, response.text
-    assert response.json()['preview'] is None
-    assert response.json()['phase'] == 'review'
+    assert response.json()['preview']['review_notes'] == [{'path': '/summary', 'action': 'omitted_suggestion'}]
+    assert response.json()['preview']['changes'] == []
+    assert response.json()['phase'] == 'clarification'
     assert response.json()['revision'] > session['revision']
 
 
@@ -269,7 +270,8 @@ def test_deterministic_rejection_can_be_regenerated(environment):
     with patch.object(service, '_gpt', side_effect=[(raw, {'cost_pln_estimate': .01}), ({'unsupported_paths': [], 'reasons': []}, {'cost_pln_estimate': .01})]):
         response = client.post(f"/ai/interviews/{session['id']}/preview", json={**version(session, 1), 'template_id': 'linden'})
     assert response.status_code == 200, response.text
-    assert response.json()['preview'] is None
+    assert response.json()['preview']['review_notes'] == [{'path': '/summary', 'action': 'omitted_suggestion'}]
+    assert response.json()['preview']['changes'] == []
     assert response.json()['revision'] > session['revision']
 
 
@@ -326,3 +328,91 @@ def test_source_refresh_preserves_answers_and_requires_review(environment):
     assert updated['preview'] is None and not updated['confirmed']
     assert any(f['text'] == 'Senior Developer' for f in updated['proposed_facts'])
     assert service.profile_payload(db, user.id) == original_profile
+
+
+@pytest.mark.parametrize('changed_profile', [False, True])
+def test_legacy_rejection_recovers_paid_output_only_for_unchanged_profile(environment, changed_profile):
+    from app.models.models import AiCreditReservation
+    client, db, _, _ = environment
+    session = confirm(client, create(client))
+    ref = client.get('/career-profile').json()['facts'][0]['id']
+    draft = {'fields': [{'path': '/summary', 'value': 'Wzrost o 99%', 'evidence_refs': [ref]}], 'remaining_gaps': []}
+    verifier = {'unsupported_paths': ['/summary'], 'reasons': ['Technical evidence report']}
+    with patch.object(service, '_gpt', side_effect=[(draft, {'cost_pln_estimate': .01}), (verifier, {'cost_pln_estimate': .01})]):
+        result = client.post(f"/ai/interviews/{session['id']}/preview", json={**version(session, 1), 'template_id': 'linden'})
+    assert result.status_code == 200
+    # Emulate the old release's persisted state without altering its revision:
+    # both settled responses still belong to the preceding generation attempt.
+    row = db.get(InterviewSession, session['id'])
+    row.state = {**row.state, 'phase': 'review', 'preview': None, 'generation_feedback': verifier['reasons']}
+    db.commit()
+    saved = client.get(f"/ai/interviews/{session['id']}").json()
+    profile_revision = 1
+    if changed_profile:
+        profile = client.get('/career-profile').json()
+        assert client.put('/career-profile', json={'revision': 1, 'facts': profile['facts']}).status_code == 200
+        profile_revision = 2
+    with patch.object(service, '_gpt', side_effect=[(draft, {'cost_pln_estimate': .01}), (verifier, {'cost_pln_estimate': .01})]) as provider:
+        result = client.post(f"/ai/interviews/{session['id']}/preview", json={**version(saved, profile_revision), 'template_id': 'linden'})
+    assert result.status_code == 200, result.text
+    preview = result.json()['preview']
+    assert preview['recovered_previous_attempt'] is not changed_profile
+    assert provider.call_count == (2 if changed_profile else 0)
+    assert db.query(AiCreditReservation).count() == (4 if changed_profile else 2)
+    assert preview['changes'] == [] and preview['elements']
+    assert result.json()['generation_feedback'] == []
+
+
+@pytest.mark.parametrize('status', ['answered', 'no_experience', 'unknown', 'skipped'])
+def test_clarification_precedes_preview_and_requires_confirmation(environment, status):
+    client, db, user, _ = environment
+    session = confirm(client, create(client))
+    ref = client.get('/career-profile').json()['facts'][0]['id']
+    draft = {'fields': [{'path': '/summary', 'value': 'Python w projekcie portalu CV', 'evidence_refs': [ref]}], 'remaining_gaps': []}
+    verification = {'unsupported_paths': ['/summary'], 'reasons': ['Internal diagnostic'], 'clarifications': [{'path': '/summary', 'question': 'W którym projekcie używałaś Pythona?'}]}
+    with patch.object(service, '_gpt', side_effect=[(draft, {'cost_pln_estimate': .01}), (verification, {'cost_pln_estimate': .01})]):
+        session = client.post(f"/ai/interviews/{session['id']}/preview", json={**version(session, 1), 'template_id': 'linden'}).json()
+    assert session['phase'] == 'clarification' and not session['question']
+    assert client.post(f"/ai/interviews/{session['id']}/document", json=version(session, 1)).status_code == 409
+    with patch.object(service, '_gpt') as provider:
+        result = client.post(f"/ai/interviews/{session['id']}/clarify", json=version(session, 1))
+        assert result.status_code == 200, result.text
+        asking = result.json()
+        assert asking['question']['text'] == 'W którym projekcie używałaś Pythona?'
+        saved = client.post(f"/ai/interviews/{session['id']}/answers", json={**version(asking, 1), 'question_id': asking['question']['id'], 'status': status, 'answer': 'Python był używany w projekcie uczelnianym.' if status == 'answered' else ''})
+        provider.assert_not_called()
+    assert saved.status_code == 200, saved.text
+    saved = saved.json()
+    assert len(saved['answers']) == 1
+    assert service.profile_payload(db, user.id)['revision'] == 1
+    if status in {'answered', 'no_experience'}:
+        assert saved['phase'] == 'review' and saved['preview'] is None
+        assert saved['proposed_facts'][0]['kind'] == ('fact' if status == 'answered' else 'gap')
+        assert client.post(f"/ai/interviews/{session['id']}/preview", json={**version(saved, 1), 'template_id': 'linden'}).status_code == 422
+        if status == 'answered':
+            facts = client.get('/career-profile').json()['facts'] + saved['proposed_facts']
+            confirmed = confirm(client, saved, 1, facts)
+            answer_fact = saved['proposed_facts'][0]
+            corrected = {'fields': [{'path': '/summary', 'value': answer_fact['text'], 'evidence_refs': [answer_fact['id']]}], 'remaining_gaps': []}
+            with patch.object(service, '_gpt', side_effect=[(corrected, {'cost_pln_estimate': .01}), ({'unsupported_paths': [], 'reasons': []}, {'cost_pln_estimate': .01})]):
+                final = client.post(f"/ai/interviews/{session['id']}/preview", json={**version(confirmed, 2), 'template_id': 'linden'})
+            assert final.status_code == 200, final.text
+            assert final.json()['phase'] == 'preview'
+            assert final.json()['preview']['cv_data']['summary'] == answer_fact['text']
+
+    else:
+        assert saved['phase'] == 'preview' and not saved['proposed_facts']
+
+
+def test_explicit_skip_shows_verified_preview_without_claiming_lack_of_experience(environment):
+    client, db, user, _ = environment
+    session = confirm(client, create(client))
+    row = db.get(InterviewSession, session['id'])
+    topic = 'clarify:known'
+    row.state = {**row.state, 'phase': 'clarification', 'pending_clarifications': [{'topic': topic}], 'preview': {'cv_data': {'name': 'Anna Nowak'}, 'profile_revision': 1}}
+    db.commit()
+    result = client.post(f"/ai/interviews/{session['id']}/skip-clarifications", json=version(session, 1))
+    assert result.status_code == 200, result.text
+    assert result.json()['phase'] == 'preview' and not result.json()['proposed_facts']
+    assert result.json()['dismissed_clarifications'] == [topic]
+    assert result.json()['answers'] == []

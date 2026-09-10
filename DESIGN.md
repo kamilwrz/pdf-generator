@@ -359,6 +359,12 @@ The editor and other task-heavy screens may be denser, but must remain grid-base
 
 ### 5.9 Career interview contract
 
+- Uncertain AI proposals must lead to a clarification step before final preview. Offer a voluntary round of up to five concrete questions and a clearly secondary explicit skip action. Never discard the candidate's answers or treat an unknown answer as lack of experience. Show one question at a time; label any quoted AI proposal as unconfirmed. Answers become draft facts, require user confirmation and invalidate the previous preview before regeneration.
+- Maintain a confirmed fallback internally for explicit skipping: keep the original field or omit an unsupported addition. Never expose this as the final result before offering clarification; do not repeatedly ask resolved topics. Starting saved questions and answering must not trigger paid calls. Explain that subsequent requested regeneration uses normal AI credits.
+- Explain these corrections in a neutral, collapsible notice with human-readable section names. Raw provider diagnostics, evidence jargon and JSON paths must never appear in user-facing notices, including resumed legacy sessions. Recovery notices are informational, not danger alerts; genuine transport/validation errors retain the normal error contract.
+- Local filtering and saved clarification questions must not trigger a paid retry. When the preceding settled generation can be recovered for an unchanged profile/source, state that recovery added no AI charge. Preserve keyboard disclosure activation and focus, mobile reflow and separation from PDF content.
+
+
 - Tailoring and enrichment use the existing assistant shell; standalone creation and the career profile use `SiteLayout`. Reuse the same `InterviewFlow` and fact editor, global color/spacing/type tokens, rectangular controls and visible focus rings. Manual CV creation remains a parallel entry.
 - Show one Polish question with its reason and an honest answered/maximum counter: five questions for tailoring, eight for creation/enrichment, including clarifications. An explicit additional round permits up to five more. Text, confirmed lack of experience, forgotten information and skip are separate actions.
 - Save each answer before another AI operation. Keep typed input on failure, expose a saved-state recovery action and provide a polite status region. Disable duplicate activation synchronously. Authentication/credit failures must retain the persisted session.

@@ -30,3 +30,6 @@
 .progress { border-block: 1px solid var(--color-border); padding-block: var(--space-4); }
 @media (max-width: 767px) { .flow { padding: var(--space-4); } .actions > * { flex: 1 1 auto; } }
 @media (prefers-reduced-motion: reduce) { .flow * { scroll-behavior: auto; transition: none; } }
+
+.reviewNotice { background: var(--color-surface); border-left: 2px solid var(--color-border); padding: var(--space-4); margin-block: var(--space-4); white-space: normal; }
+.reviewNotice summary { cursor: pointer; min-height: var(--control-height); font-weight: 600; }
