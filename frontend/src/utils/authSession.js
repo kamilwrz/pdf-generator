@@ -135,6 +135,27 @@ export function clearAccessToken() {
 }
 
 /**
+ * Remove session credentials and browser-only CV Studio personal data.
+ *
+ * Used after self-service account erasure. It intentionally leaves unrelated
+ * origin storage untouched while clearing drafts and pending auth state that
+ * could otherwise keep CV content on a shared device.
+ */
+export function clearLocalAccountData() {
+  if (typeof localStorage === "undefined") return;
+  const keys = [
+    TOKEN_KEY,
+    USERNAME_KEY,
+    "cvstudio.guest.doc",
+    "cvstudio.guest.wizardDraft",
+    "cvstudio.pending-auth-intent",
+    // Data created by versions released before anonymous buffering was retired.
+    "cvstudio.guest.events",
+  ];
+  keys.forEach((key) => localStorage.removeItem(key));
+}
+
+/**
  * Whether an ApiClient / fetch error represents a missing or rejected JWT.
  *
  * Matches both HTTP status and the English FastAPI default detail

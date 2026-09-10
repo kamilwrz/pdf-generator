@@ -505,6 +505,7 @@ export default function AiCvPanel() {
                     <div className={classes.stepPane}>
                         <div className={classes.sectionLabel}>Krok 1 · Prześlij swoje CV</div>
                         <button type="button" className={classes.guidedLink} onClick={() => setShowHistory(true)}>Zobacz historię importów</button>
+                        <p className={classes.hint}><strong>Nie przesyłaj danych wrażliwych.</strong> Import korzysta z usług AI. Usuń z PDF informacje o zdrowiu, pochodzeniu, poglądach, religii, seksualności oraz dane biometryczne lub genetyczne.</p>
                         <input
                             ref={fileRef}
                             type="file"

@@ -295,6 +295,19 @@ export async function installMockApi(
     if (method === "GET" && path === "/auth/me/entitlements") {
       return json(route, { ...PRO_ENTITLEMENTS, ...entitlements });
     }
+    if (method === "GET" && path === "/account/export") {
+      return route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        headers: {
+          "Content-Disposition": "attachment; filename=cv-studio-data-2026-09-10.json",
+        },
+        body: JSON.stringify({ service: "CV Studio", account: { username: "Kamil" } }),
+      });
+    }
+    if (method === "DELETE" && path === "/account") {
+      return json(route, { deleted: true });
+    }
     if (method === "GET" && path === "/pdf/fetch_pdfs") return json(route, documents);
     if (method === "POST" && path === "/pdf/show_pdf") {
       return json(route, { document: savedDocument, elements: savedElements });

@@ -20,7 +20,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.concurrency import run_in_threadpool
 
-from app.api.routes import auth, pdf, images, ai, events, billing, templates
+from app.api.routes import account, auth, pdf, images, ai, events, billing, templates
 from app.api.routes import ai_assistant
 from app.core.config import (
     IMAGES_UPLOAD_DIR,
@@ -338,6 +338,7 @@ app.include_router(ai_assistant.router)
 app.include_router(events.router)
 app.include_router(billing.router)
 app.include_router(templates.router)
+app.include_router(account.router)
 
 if DIST_DIR.exists():
     app.mount("/assets", StaticFiles(directory=str(DIST_DIR / "assets")), name="frontend_assets")

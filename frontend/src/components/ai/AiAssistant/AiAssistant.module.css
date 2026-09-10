@@ -1398,3 +1398,13 @@
 /* Historical cards remain readable without exposing obsolete canvas actions. */
 .historyMessage { border: 0; padding: 0; margin: 0; min-width: 0; }
 .historyNotice { color: var(--color-muted); font: 400 .75rem/1.4 var(--font-ui); }
+.privacyWarning {
+    margin: 0 0 var(--space-2);
+    color: var(--chrome-muted);
+    font: 500 0.6875rem/1.4 var(--font-body);
+}
+
+.privacyWarning a {
+    color: inherit;
+    text-underline-offset: 2px;
+}

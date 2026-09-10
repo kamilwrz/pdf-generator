@@ -2133,6 +2133,7 @@ export default function AiAssistant() {
 
                         {/* chat input */}
                         <div className={classes.inputArea}>
+                            <p className={classes.privacyWarning}>Nie wpisuj danych o zdrowiu ani innych danych wrażliwych. <a href="/privacy">Jak AI przetwarza CV</a></p>
                             <textarea
                                 ref={inputRef}
                                 className={classes.chatInput}

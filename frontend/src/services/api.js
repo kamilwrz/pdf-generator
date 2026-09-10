@@ -58,6 +58,10 @@ export const ENDPOINTS = {
         SELECT_PLAN: "/billing/select-plan",
         CHECKOUT_SESSION: (sessionId) => `/billing/checkout-session/${encodeURIComponent(sessionId)}`,
     },
+    ACCOUNT: {
+        ROOT: "/account",
+        EXPORT: "/account/export",
+    },
 }
 
 export default API_BASE_URL;

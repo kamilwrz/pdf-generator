@@ -57,7 +57,6 @@ import SkillsLayoutModal from '../components/editor/SkillsLayoutModal/SkillsLayo
 import LongCvModal from '../components/editor/LongCvModal/LongCvModal';
 import { logEvent } from '../services/eventLog';
 import { saveGuestDocument, loadGuestDocument, clearGuestDocument, hasGuestDocument } from '../utils/guestDocument';
-import { queueGuestEvent, loadGuestEvents, clearGuestEvents } from '../utils/guestEvents';
 import { resolveActiveCvData } from '../utils/resolveActiveCvData';
 import {
   clearGuestWizardDraft,
@@ -292,8 +291,6 @@ export function EditorController() {
   isDemoContentRef.current = isDemoContent;
   // Keep the explicitly chosen freeform path hidden for this empty workspace.
   const [startChooserDismissed, setStartChooserDismissed] = useState(false);
-  const guestFirstEditLoggedRef = useRef(false);
-  const guestEditorOpenedLoggedRef = useRef(false);
   const isGallery = panel === 'gallery';
   const isDropzone = panel === 'upload';
   const isSectionsPanel = panel === 'sections';
@@ -621,10 +618,6 @@ export function EditorController() {
       cvData: snapshot.cvData,
       updatedAt: Date.now(),
     });
-    if (!guestFirstEditLoggedRef.current) {
-      guestFirstEditLoggedRef.current = true;
-      queueGuestEvent("guest_first_edit");
-    }
     return true;
   }, [isGuest, pdfId]);
 
@@ -1059,11 +1052,6 @@ export function EditorController() {
   useEffect(() => {
     if (!isGuest || pdfId != null) return undefined;
 
-    if (!guestEditorOpenedLoggedRef.current) {
-      guestEditorOpenedLoggedRef.current = true;
-      queueGuestEvent("guest_editor_opened");
-    }
-
     if (!hasPersistedDocumentContent(persistedSnapshot)) return undefined;
     const timer = setTimeout(flushGuestDraft, 2000);
 
@@ -1177,7 +1165,6 @@ export function EditorController() {
     // The shared zoom step is 10%, so five increments land exactly on 150%
     // without introducing a separate demo-only zoom setter.
     for (let i = 0; i < 5; i += 1) zoomIn();
-    queueGuestEvent("guest_demo_loaded");
     markTemplatesModalSeen();
   }, [commitDocumentSnapshot, flowSpacing, markTemplatesModalSeen, zoomIn]);
 
@@ -1562,7 +1549,6 @@ export function EditorController() {
   const handleDownloadClick = useCallback(async () => {
     if (!requireNameBeforeOutput()) return;
     if (!localStorage.getItem("token")) {
-      queueGuestEvent("save_gate_shown");
       flushGuestDraft();
       setDialog('downloadGate');
       return;
@@ -1626,7 +1612,6 @@ export function EditorController() {
   const handleSaveClick = useCallback(() => {
     if (!requireNameBeforeOutput()) return;
     if (!localStorage.getItem("token")) {
-      queueGuestEvent("save_gate_shown");
       setDialog('saveGate');
       return;
     }
@@ -1829,7 +1814,7 @@ export function EditorController() {
       replacementConfirmed: options.replacementConfirmed === true,
     });
     if (created) {
-      queueGuestEvent("new_cv_created");
+      if (localStorage.getItem("token")) logEvent("new_cv_created");
       setStartChooserDismissed(true);
     }
     return created;
@@ -2036,12 +2021,9 @@ export function EditorController() {
     if (!guestDoc) return;
     markTemplatesModalSeen();
 
-    // Flush anything queued while anonymous — including this claim, queued
-    // just below — through the normal authenticated event log.
-    queueGuestEvent("guest_doc_claimed");
-    const buffered = loadGuestEvents();
-    buffered.forEach((event) => logEvent(event.eventType));
-    clearGuestEvents();
+    // The claim is logged only after authentication. Anonymous editor activity
+    // is never buffered or replayed into the account event stream.
+    logEvent("guest_doc_claimed");
     // Claiming a guest draft must preserve the same saved Slate hide/show
     // contract as opening an authenticated document from “Moje dokumenty”.
     const restoredElements = normalizeProfilePhotoVisibilityPersistence(
@@ -2113,7 +2095,6 @@ export function EditorController() {
   const handleClaimGuestDocumentDecline = useCallback(() => {
     pendingGuestDocRef.current = null;
     clearGuestDocument();
-    clearGuestEvents();
     setDialog(null);
   }, []);
 

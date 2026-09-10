@@ -55,7 +55,7 @@ The public site has `/templates`, `/templates/:slug`, `/pricing`, `/help`, and `
 | `/app/documents/:documentId` | A specific saved CV; positive integer ID, account required, server ownership checks |
 | `/app/new` | Named entry to the existing A4 setup; preserves the optional `template` query |
 | `/app/import` | Named entry to the existing import/account-gate workflow |
-| `/app/account` | Current plan, server usage/limits, existing plan picker, logout |
+| `/app/account` | Current plan and limits, Google connection, portable data export, confirmed permanent account deletion, logout |
 | `/cvstudio/:workspace`, `/pdfcanvas` | Supported legacy/guest entry points with existing `start` and `template` intent |
 
 To resume work, log in and open a library row. Ordinary authentication returns to the library. A recognized `returnTo` address takes precedence; otherwise explicit `start`/`template` intent and an authored browser draft retain their existing recovery flow. `safeReturnTo` accepts only known internal destinations, rejects external URLs and malformed IDs, and is not an authorization mechanism. Login/registration links preserve the same validated task parameters.
@@ -66,22 +66,23 @@ The library calls existing `GET /pdf/fetch_pdfs`, `POST /pdf/download_pdf`, and 
 
 Known Pro template hints now preserve the chosen preview instead of falling back to Meridian. The create action is disabled until current entitlements allow that template, and the server remains authoritative. Unknown hints still open ordinary setup. Registration preserves the chosen template; entering account/plan management from setup offers a return link to the same template.
 
-`/privacy` is a factual explanation of current data handling, explicitly labelled as incomplete legal information. No `/terms` route or approved privacy policy is published: administrator/contact details and approved legal text are still unavailable. The draft in `docs/POLITYKA_PRYWATNOSCI.md` is not served as a final policy.
+`/privacy` is the published Polish privacy policy. It identifies the controller and contact channel and describes data categories, purposes, legal bases, browser storage, AI/import processing, recipients, international transfers, retention, security, user rights, the 18+ rule, and policy changes. The footer links to this stable flat URL. `docs/POLITYKA_PRYWATNOSCI.md` is the synchronized operator/review copy and contains a production verification checklist. There is still no `/terms` route.
 
 Implementation (verified file extents; the listed exports own the complete workflows):
 
 - `frontend/src/pages/Site/DocumentsPage.jsx`, lines 1–86, `DocumentsPage`.
-- `frontend/src/pages/Site/AccountPage.jsx`, lines 1–47, `AccountPage`.
-- `frontend/src/pages/Site/PublicPages.jsx`, lines 1–70, `TemplatesPage, TemplatePage, PricingPage, HelpPage, PrivacyPage`.
+- `frontend/src/pages/Site/AccountPage.jsx`, component `AccountPage`.
+- `frontend/src/pages/Site/PublicPages.jsx`, exports `TemplatesPage, TemplatePage, PricingPage, HelpPage`.
+- `frontend/src/pages/Site/PrivacyPage.jsx`, component `PrivacyPage`.
 - `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, lines 1–50, `SiteLayout, SiteHeader, SiteFooter`.
 - `frontend/src/templates/index.js`, lines 1–199, `TEMPLATES` — picker summaries and detail-page copy for all ten templates.
 - `frontend/src/utils/planPresentation.js`, lines 1–70, `FREE_PLAN_HIGHLIGHTS, PRO_PLAN_HIGHLIGHTS, PLAN_PRESENTATION`.
 - `frontend/src/services/documents.js`, lines 1–45, `listOwnedDocuments, loadOwnedDocument`.
 - `frontend/src/utils/siteRoutes.js`, lines 1–77, `getDocumentPath, parseDocumentId, safeReturnTo, authLink, savePendingAuthIntent, getPendingAuthIntent, postAuthPath`.
 
-New directories: `pages/Site/` owns route content and library/account state; `components/common/SiteLayout/` owns shared navigation, semantic page layout and token-based styles. `services/documents.js` owns document reads and hydration, while `utils/siteRoutes.js` owns URL validation and authentication continuation. Editor state remains in the existing lifecycle/context layers. No database migration, endpoint, environment variable, or deployment change is required. The existing `render.yaml` SPA rewrite to `/index.html` supports refreshing every new address.
+New directories: `pages/Site/` owns route content and library/account state; `components/common/SiteLayout/` owns shared navigation, semantic page layout and token-based styles. `services/documents.js` owns document reads and hydration, `services/accountApi.js` owns privacy-control requests, and `utils/siteRoutes.js` owns URL validation and authentication continuation. Editor state remains in the existing lifecycle/context layers. The privacy controls reuse the existing tables and storage cleanup outbox, so no database migration or environment variable is required; the backend adds authenticated `/account/export` and `/account` routes. The existing `render.yaml` SPA rewrite to `/index.html` supports refreshing every new address.
 
-Verification: run `npm test`, `npm run test:runtime -- --maxWorkers=2`, `npm run test:e2e -- e2e/site-architecture.spec.js`, `npm run lint`, and `npm run build` from `frontend/`. `siteRoutes.test.js` tests unsafe/malformed destinations and intent preservation. `site-architecture.spec.js` covers library login, bookmarks/refresh/Back, retry, search, download, delete cancellation/focus, Pro selection, and public/account routes at 390, 834, 1280, 1920 and 640×400 CSS pixels (the latter represents constrained space at 200% zoom). It also uses reduced motion. Existing editor scenarios now resume a document directly rather than clicking through the old chooser modal. These tests intercept the API locally; they do not upload personal files or contact production. Visual review covers the shared public, library and account layouts; full assistive-technology certification is not implied.
+Verification: run `npm test`, `npm run test:runtime -- --maxWorkers=2`, `npm run test:e2e -- e2e/site-architecture.spec.js`, `npm run lint`, and `npm run build` from `frontend/`, plus `pytest tests/test_account_privacy.py` from `backend/`. `siteRoutes.test.js` tests unsafe/malformed destinations and intent preservation. `site-architecture.spec.js` covers library login, bookmarks/refresh/Back, retry, search, download, deletion focus, privacy export/account-erasure confirmation, Pro selection, and public/account routes at 390, 834, 1280, 1920 and 640×400 CSS pixels. Tests intercept the API locally and do not upload personal files or contact production. Visual review covers the shared public, library, policy and account layouts; full assistive-technology certification is not implied.
 
 Further reading: [React Router useBlocker](https://reactrouter.com/api/hooks/useBlocker) explains the retained in-app unsaved-work guard; [useNavigate](https://reactrouter.com/api/hooks/useNavigate) explains history replacement on first save; [W3C consistent navigation](https://www.w3.org/WAI/WCAG22/Understanding/consistent-navigation) explains the stable menu order shared by the new surfaces.
 
@@ -235,7 +236,8 @@ pdf-generator/
 ├── BUGZ.MD                   # Known issues tracker
 ├── README.md                 # This file
 ├── docs/                     # Product + design + deep-dive docs
-│   └── LANDING_COPY.md        # Current Polish landing copy and labelled alternatives
+│   ├── LANDING_COPY.md        # Current Polish landing copy and labelled alternatives
+│   └── POLITYKA_PRYWATNOSCI.md # Review copy plus production privacy checklist
 ├── frontend/
 │   ├── public/
 │   │   ├── cv-studio-logo.svg     # Full orange CV Studio logo
@@ -264,7 +266,7 @@ pdf-generator/
 │   │   │   ├── editor/StartChooser/      # authenticated empty-state choice: new A4 or import
 │   │   ├── hooks/            # useA4Elements facade, useDocumentHistory, usePdfExport, …
 │   │   ├── pages/            # Hero, Login, Register, PdfCanvas, Site, Auth verification, Billing return pages
-│   │   ├── services/         # ApiClient, authApi, documents, fillTemplate, authenticatedImage, eventLog
+│   │   ├── services/         # ApiClient, auth/account APIs, documents, fillTemplate, authenticatedImage, eventLog
 │   │   ├── store/            # Focused Canvas / UiSurfaces / Session / DocumentLifecycle contexts
 │   │   │   └── scoped-ai-context.jsx # Toolbar/review/inspector coordination
 │   │   ├── templates/        # per-template specs + helpers; aurelia.js is the framed one-column editorial starter
@@ -300,12 +302,12 @@ pdf-generator/
 │   └── pdf-element.schema.json  # Exported PdfElement + transient ResolvedTextLine contract
 └── backend/
     ├── app/
-    │   ├── api/routes/       # auth, pdf, images, ai, assistant, billing, events
+    │   ├── api/routes/       # auth, account privacy, pdf, images, ai, assistant, billing, events
     │   ├── core/             # config, security
     │   ├── crud/
     │   ├── models/
-    │   ├── schemas/          # PdfElement + JSON Schema export
-    │   ├── services/         # document/storage, email verification/delivery, Google, Stripe, readiness, AI, templates
+    │   ├── schemas/          # API validation, including account-erasure confirmation
+    │   ├── services/         # document/storage, account export/erasure, email, Google, Stripe, readiness, AI, templates
     │   │   ├── ai_service.py             # text-first/vision CV extraction + deterministic fill entry
     │   │   ├── scoped_ai.py # Strict scoped GPT request/output models and fact guards
     │   │   ├── cv_source_layout.py       # column lanes, source sections, deterministic field grounding
@@ -372,13 +374,30 @@ CV-import quota fields:
 - `usage_counters.user_id`: foreign key to `users.id`; together with `period_key` it has unique constraint `uq_usage_user_period`, so one user owns at most one UTC monthly counter row.
 - Migration `20260829_0007` adds these columns idempotently. Migration `20260831_0008` updates an existing production Free catalog row to one project, three monthly exports, zero AI actions, and one monthly CV import. It deliberately leaves `pdfs.watermarked=true` on legacy rows until the corresponding stored file has actually been rebuilt without the old overlay. The legacy `user_subscriptions.free_import_used` boolean is retained but ignored.
 
-**Relationships:** One user owns many `pdfs`, `images`, verification proofs, and payments. Each `pdf` has many `pdf_elements`. Subscription and usage are per user. Deleting a user must account for externally delivered email/payment records; no automated account-deletion workflow is currently exposed.
+**Relationships:** One user owns many `pdfs`, `images`, verification proofs, import snapshots, AI reservations, usage counters, and payments; the subscription and legacy profile draft are per user. Each `pdf` has many `pdf_elements`. Self-service account erasure deletes these rows in one transaction and commits durable cleanup jobs for private PDF/image objects. Provider-held records governed by a provider's independent legal obligations are outside that local transaction.
 
 Models: `backend/app/models/models.py` (`User`, `Pdf`, `PdfElements`, …).
 
 ---
 
 ## Features (implementation map)
+
+### Published privacy policy and self-service privacy rights
+
+The flat public `/privacy` route publishes the controller identity, contact details, data inventory, purposes and legal bases, browser-only storage, AI/import rules, all provider categories found in the implementation (Render, AWS, Cloudflare, OpenAI, Google, Resend, Stripe, home.pl and a user-selected public job site), international-transfer safeguards, actual retention limitations, security controls, GDPR rights, and the 18+ audience rule. The policy does not claim an unverified Render/AWS region or an unverified DPA status. AI upload and prompt surfaces warn users not to submit special-category data. Anonymous guest analytics buffering has been retired and legacy buffered events are removed without deleting a guest CV draft.
+
+Authenticated users can download an allowlisted JSON copy from **Konto i plan**. It includes their account, documents/elements, image metadata, profile draft, import snapshots, subscription and usage, stored AI responses, and Stripe payment records. It excludes password/token hashes, access tokens, Google `sub`, storage locators and internal idempotency/rate-limit digests. Permanent erasure requires the exact case-sensitive username, deletes every user-owned row atomically, invalidates the JWT by removing the user, clears CV Studio account/draft keys from this browser, and queues private PDF/image deletion in the durable retry outbox. Stripe/Google data retained by those providers as independent controllers is not erased by the local transaction.
+
+Implementation:
+
+- `frontend/src/pages/Site/PrivacyPage.jsx`, lines 1–58, component `PrivacyPage`.
+- `frontend/src/pages/Site/AccountPage.jsx`, lines 17–77, component `AccountPage`.
+- `frontend/src/services/accountApi.js`, lines 1–35, functions `downloadAccountData` and `deleteAccount`.
+- `frontend/src/utils/authSession.js`, lines 144–166, function `clearLocalAccountData`.
+- `backend/app/api/routes/account.py`, lines 1–57, handlers `export_account_data` and `delete_account`.
+- `backend/app/services/account_data_service.py`, lines 48–203, function `build_account_export`, and lines 206–298, function `delete_account_data`.
+
+Tests: `backend/tests/test_account_privacy.py`, lines 105–203; `frontend/src/pages/Site/PrivacyPage.test.js`, lines 1–24; `frontend/src/utils/authSession.test.js`, lines 50–70; and `frontend/e2e/site-architecture.spec.js`, lines 74–95 (the account privacy-controls scenario).
 
 ### Guest onboarding, import access, and reload
 
@@ -994,11 +1013,11 @@ The hero uses a split editorial layout with three perspective CV previews and sh
 
 **“Zmień szablon. Zachowaj treść.”** introduces three benefits. A static, labelled before/after example illustrates clearer writing with Pro AI; it sends no request and consumes no credits. The registry-driven gallery retains real template mockups. The same plain-language summaries appear in public cards and application pickers, while longer `details` copy is reserved for the named public route. Hover/focus pauses the marquee; reduced motion displays a static grid. The separate Free hero showcase changes preview selection only; it does not reformat existing user content.
 
-Implementation and copy regressions: `frontend/src/templates/index.js`, lines 18–199 (`TEMPLATES`); `frontend/src/pages/Site/PublicPages.jsx`, lines 17–70 (`TemplatesPage`, `TemplatePage`, `PricingPage`, `HelpPage`, `PrivacyPage`); `frontend/src/pages/Hero/Hero.jsx`, lines 92–337 (`Hero`); `frontend/src/utils/planPresentation.js`, lines 9–70; the ten `frontend/src/utils/*Appearance.js` palette registries, lines 14–99 (`*_PALETTES`); `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, lines 22–27 (`SiteFooter`); `frontend/src/pages/Login/Login.jsx`, lines 26–226 (`Login`); and `frontend/src/pages/Register/Register.jsx`, lines 41–373 (`Register`). `frontend/src/templates/index.test.js`, lines 46–59 rejects missing template detail copy and the removed jargon; `frontend/src/utils/appearanceCopy.test.js`, lines 1–39 applies the same rule to all 60 palette taglines. `frontend/e2e/site-architecture.spec.js`, lines 74–104 verifies the named template CTAs, Pro gating, keyboard-focus contract, and no horizontal overflow at 390, 640, 834, 1280, and 1920 CSS pixels.
+Implementation and copy regressions: `frontend/src/templates/index.js` (`TEMPLATES`); `frontend/src/pages/Site/PublicPages.jsx` (`TemplatesPage`, `TemplatePage`, `PricingPage`, `HelpPage`); `frontend/src/pages/Site/PrivacyPage.jsx` (`PrivacyPage`); `frontend/src/pages/Hero/Hero.jsx` (`Hero`); `frontend/src/utils/planPresentation.js`; the ten `frontend/src/utils/*Appearance.js` palette registries (`*_PALETTES`); `frontend/src/components/common/SiteLayout/SiteLayout.jsx` (`SiteFooter`); `frontend/src/pages/Login/Login.jsx` (`Login`); and `frontend/src/pages/Register/Register.jsx` (`Register`). `frontend/src/templates/index.test.js` rejects missing template detail copy and the removed jargon; `frontend/src/utils/appearanceCopy.test.js` applies the same rule to all 60 palette taglines. `frontend/e2e/site-architecture.spec.js` verifies named template CTAs, Pro gating, keyboard focus, privacy controls, and no horizontal overflow at 390, 640, 834, 1280, and 1920 CSS pixels.
 
-The shorter privacy strip describes account-bound documents and import history. Placeholder policy, social, terms, and contact links have been removed; the shared footer links to `/privacy`, which describes current data handling and explicitly marks the missing approved policy. Four native disclosure questions cover Free, accounts, import, and Pro renewal; Free links to the existing pricing limits. [MDN: details](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/details) explains the native disclosure behaviour used here.
+The shorter privacy strip describes account-bound documents and import history. Placeholder social, terms, and contact destinations remain absent; the shared footer links to the published `/privacy` policy. Four native disclosure questions cover Free, accounts, import, and Pro renewal; Free links to the existing pricing limits. [MDN: details](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/details) explains the native disclosure behaviour used here.
 
-Start intents remain `new`, `import`, and `demo`. `getEditorPath` resolves guest or signed-in workspaces; anonymous import goes through registration. Legacy `wizard` remains an alias for `new`. Existing CTA events are preserved; the final **“Przygotuj CV do kolejnej aplikacji.”** section reuses the supported `final_wizard` event for its `start=new` link. Account, billing, persistence, and PDF rendering contracts remain unchanged; setup accepts the validated template hint described below.
+Start intents remain `new`, `import`, and `demo`. `getEditorPath` resolves guest or signed-in workspaces; anonymous import goes through registration. Legacy `wizard` remains an alias for `new`. Public CTA clicks are no longer buffered as anonymous analytics. Account, billing, persistence, and PDF rendering contracts otherwise remain unchanged; setup accepts the validated template hint described below.
 
 
 **Free template hero: selection → setup → editor.** `HeroTemplateShowcase` receives the Free registry entries (Sterling, Meridian and Linden), the selected ID and a callback from `Hero`. Linden is selected by default. Clicking a preview or a native radio, using radio arrow keys, or swiping horizontally brings the selected document forward with a 320 ms Motion/CSS perspective transition. There is no automatic rotation. `useReducedMotion` makes selection immediate. On compact layouts the primary action is repeated below selection so visitors do not have to scroll back to continue. Labels, selected borders and focus rings remain ordinary HTML.
@@ -1057,7 +1076,7 @@ Guest mode lets a visitor configure and edit a real A4 CV before creating an acc
 - **Safe claim after authentication** — `ClaimGuestDocumentModal` names the browser-local document and asks whether it belongs to the newly authenticated person. Its decision layout contrasts the exact outcomes: recovery opens an unsaved canvas that still requires **Zapisz**, while explicit deletion permanently removes the browser copy. **Wczytaj mój szkic** receives initial focus for ordinary returns; `start=download` instead focuses **To moje CV — pobierz PDF**, which confirms ownership and requests one export after restoring the canvas. Close, backdrop click, Escape, and **Pomiń na razie** preserve the draft; only **Usuń ten szkic** invokes the destructive decline handler. A JWT alone never silently attaches local personal data to an account.
 - **Demo** — `start=demo` loads the canonical Linden sample. `DemoBanner` opens the same A4 setup, without the retired conversion intent.
 - **Legacy bio drafts** — `guestWizardDraft.js` and `GET /ai/bio_cv_draft` are read only to offer explicit recovery in StartChooser. The draft is deleted only after a successful conversion; no new A4 setup writes it.
-- **Analytics** — anonymous funnel events are capped and buffered by `guestEvents.js`, then flushed through authenticated `POST /events/log`.
+- **Analytics** — anonymous visitors neither send nor buffer product events. `POST /events/log` is reserved for authenticated product actions, and startup removes the retired event-buffer key without touching the guest document.
 
 Implementation:
 
@@ -1065,14 +1084,14 @@ Implementation:
 - `frontend/src/pages/PdfCanvas.jsx`, lines 2000–2110 and 2413–2419, components `EditorController` and `EditorView` — browser-draft detection, explicit load/delete handlers, non-destructive dismissal wiring, local restoration, demo, legacy recovery, and A4 setup
 - `frontend/src/components/editor/StartChooser/StartChooser.jsx` — new/import primary actions, saved documents and legacy recovery as secondary actions
 - `frontend/src/components/editor/NewCvSetupModal/NewCvSetupModal.jsx` — common guest/authenticated A4 configuration
-- `frontend/src/utils/guestDocument.js`, `resolveActiveCvData.js`, `guestWizardDraft.js`, and `guestEvents.js`
+- `frontend/src/utils/guestDocument.js`, `resolveActiveCvData.js`, and `guestWizardDraft.js`
 - `frontend/src/components/editor/SaveGateModal/SaveGateModal.jsx`; `ClaimGuestDocumentModal/ClaimGuestDocumentModal.jsx`, lines 22–86, and `ClaimGuestDocumentModal.module.css`, lines 1–223 — the ownership prompt uses the shared `DialogShell` decision variant, names the draft, compares consequences, and keeps dismissal separate from deletion
 - `frontend/src/services/fillTemplate.js` — omits the bearer header when there is no token
 - `backend/app/core/security.py`, `verify_token_optional`; `backend/app/api/routes/ai.py`, `fill_template` — Free-template anonymous fill boundary
 
 Tests:
 
-- `frontend/src/utils/guestDocument.test.js`, `resolveActiveCvData.test.js`, `guestWizardDraft.test.js`, `guestEvents.test.js`, `demoModeChrome.test.js`, and `documentLifecycleGuards.test.js`; `ClaimGuestDocumentModal.runtime.test.jsx`, lines 9–61, covers copy, fallback title, initial focus, safe dismissal, Escape, and explicit deletion
+- `frontend/src/utils/guestDocument.test.js`, `resolveActiveCvData.test.js`, `guestWizardDraft.test.js`, `demoModeChrome.test.js`, and `documentLifecycleGuards.test.js`; `ClaimGuestDocumentModal.runtime.test.jsx`, lines 9–61, covers copy, fallback title, initial focus, safe dismissal, Escape, and explicit deletion
 - `frontend/e2e/guest-entry.spec.js`, lines 119–151, covers the complete guest-draft → login → ownership decision at compact, tablet, laptop, and wide widths, including preservation after Escape and deletion only after the danger action
 - `backend/tests/test_fill_template_guest.py`
 
@@ -2443,6 +2462,8 @@ Base URL: `VITE_API_URL` (frontend) / deployed backend. Auth: `Authorization: Be
 | POST | `/auth/token` | no | OAuth2 password → JWT; verified email required | `login_for_acess_token` |
 | GET | `/auth/verify-token` | Bearer | Validity check without exposing a token in the URL | `verify_user_token` |
 | GET | `/auth/me/entitlements` | yes | Plan limits for UI | `me_entitlements` |
+| GET | `/account/export` | Bearer | Download an allowlisted JSON copy of the current user's stored data | `export_account_data` |
+| DELETE | `/account` | Bearer | Permanently erase the account after `{ "confirmation": "exact username" }` | `delete_account` |
 | POST | `/pdf/create_pdf` | yes + `Idempotency-Key` | Create doc + render PDF at revision 1; exact retries replay | `create_user_pdf` |
 | POST | `/pdf/render_pdf` | yes | Render current canvas + stream + meter; **no persist** (Download) | `render_user_pdf` |
 | GET | `/pdf/fetch_pdfs` | yes | List docs | `fetch_user_pdfs` |
@@ -2472,9 +2493,11 @@ Base URL: `VITE_API_URL` (frontend) / deployed backend. Auth: `Authorization: Be
 
 **Ownership and private storage:** PDF/image by-id routes use IDOR checks (`_require_owned_pdf` in `pdf.py`). PDF list/show payloads expose allowlisted editor metadata without `file_path`, and `/static/generated/...` always returns 404; stored bytes leave only through authenticated `POST /pdf/download_pdf`.
 
-`POST /events/log` accepts a fixed event vocabulary, including guest-funnel signals and current CTA sources such as `hero_new_cv`, `hero_import`, `hero_demo`, and `templates_new_cv`. Anonymous events queue in `guestEvents.js` and flush after authentication.
+`POST /events/log` accepts a fixed vocabulary and requires authentication. Anonymous visitors do not send or buffer analytics; startup removes the obsolete `cvstudio.guest.events` key created by older releases while preserving the guest document and setup draft.
 
 The administrative plan body is `{ "username": "exact-case-sensitive-name", "plan_slug": "free|pro" }`. It is intended for controlled support operations only: a missing account returns `404 user_not_found`, an unsupported plan returns `400 unknown_plan`, and an absent, short, or incorrect dedicated secret returns `403 admin_secret_invalid`.
+
+`GET /account/export` returns HTTP 200 with `Content-Disposition: attachment` and a JSON object containing `exported_at`, `service`, the account, documents with elements, image metadata, profile drafts, import snapshots, subscriptions, monthly usage, AI operations, payments, and an explicit `not_included` list. It is read-only. `DELETE /account` accepts `{ "confirmation": "ExactUsername" }`; mismatch returns 422, a concurrent missing account returns 404, and success returns 200 `{ "deleted": true }`. Both routes return 401 without a valid Bearer token. Erasure commits database deletion and durable file-cleanup requests atomically; physical object deletion may finish on a retry.
 
 Example login (form body):
 
@@ -2720,8 +2743,13 @@ CI/CD: `.github/workflows/ci.yml` is committed and gates backend, frontend, brow
 - AI errors: CV-import failures are mapped to stable safe codes and 422/429/502/503 responses; assistant failures use a generic Polish 500. Raw provider details never reach the browser.
 - CV privacy: PDF bytes are validated in memory, sent server-to-server to the configured provider, and then discarded; import history stores normalized fields and metadata, never the source PDF. Cloudflare states that it does not train models on Customer Content, but CV content is still third-party processing and must be covered by the product privacy notice. See [Workers AI data usage](https://developers.cloudflare.com/workers-ai/platform/data-usage/).
 - Assistant replay privacy: the reservation row stores only a canonical request hash, not the submitted request body; a settled row stores the account-scoped assistant response JSON required for exact idempotent replay. No response is exposed through a cross-user listing endpoint.
+- Self-service rights: `/account/export` uses explicit column allowlists and excludes password/token hashes, Google `sub`, request/idempotency hashes, and private storage locators. `/account` requires exact username confirmation, removes mapped user-owned rows atomically, and stages S3/local files in the durable cleanup outbox before commit. Once the user row is gone, previously issued JWTs fail subsequent account resolution.
+- Browser analytics: anonymous visitors neither send nor queue product events. Startup deletes only the retired event-buffer key and preserves the resumable guest CV and setup draft.
+- Special-category data: import and assistant surfaces warn users not to place health, biometric, genetic, political, religious, ethnicity, or sexuality data in AI-bound content. This is a product rule, not an automated content-classification guarantee.
+- Published notice and minimisation: `/privacy` names the controller and implemented recipients and documents the current retention limitations. AI import and prompt surfaces prohibit special-category data. Anonymous analytics buffering has been removed; authenticated product metrics contain numeric `user_id`, not raw usernames.
+- Self-service rights: `GET /account/export` returns an explicit allowlist of account content and excludes password/token hashes, Google `sub`, storage locators, and idempotency digests. `DELETE /account` requires exact username confirmation, deletes all user-linked database rows transactionally, invalidates the JWT by removing its user, and enqueues private file deletion in the durable cleanup outbox. Provider-held records subject to independent legal obligations are not represented as erased by this local operation.
 - Provider secrets: Cloudflare, OpenAI, Resend, and Stripe secrets exist only in backend environment variables. `VITE_GOOGLE_CLIENT_ID` is intentionally public; no `VITE_` variable may contain a provider secret.
-- Metrics: `/events/log` logs numeric `user_id`, not raw usernames (`metrics_logging.py`).
+- Metrics: `/events/log` requires authentication and logs numeric `user_id`, not raw usernames (`metrics_logging.py`).
 - Secrets: env only; never in README or git.
 - Billing administration: dedicated `ADMIN_RESET_SECRET`, constant-time `X-Admin-Secret` comparison, exact case-sensitive username for plan assignment, immutable numeric target for credit reset, redacted audit references, and no fallback to the JWT signing secret.
 
@@ -2778,7 +2806,14 @@ Notable product facts:
 - [argon2-cffi API](https://argon2-cffi.readthedocs.io/en/stable/api.html) — official `PasswordHasher` and rehash reference used by the password migration path.
 - [Google ID-token verification](https://developers.google.com/identity/gsi/web/guides/verify-google-id-token) — official backend validation and immutable `sub` guidance used by Google authentication.
 - [Stripe Checkout fulfillment](https://docs.stripe.com/checkout/fulfillment) — official webhook and idempotent fulfillment guidance used by the Pro pass.
+- [GDPR, Regulation (EU) 2016/679](https://eur-lex.europa.eu/eli/reg/2016/679/oj) — official source for transparency, access, erasure, portability, objection, and transfer requirements reflected by the policy.
+- [Polish DPA guidance on GDPR rights](https://uodo.gov.pl/pl/493) — official user-facing explanation of rights and complaints to the President of UODO.
+- [OpenAI Data Processing Addendum](https://openai.com/policies/data-processing-addendum/) — official processor terms and international-transfer information to verify against the production API account.
 - [Resend domain setup](https://resend.com/docs/dashboard/domains/introduction) — official sender-domain verification and DNS guidance for transactional email.
+- [EU General Data Protection Regulation](https://eur-lex.europa.eu/eli/reg/2016/679/oj) — official legal text behind the transparency, access, erasure, portability, and objection information published at `/privacy`.
+- [Polish UODO: data-subject rights](https://uodo.gov.pl/pl/493) — official Polish guidance on exercising GDPR rights and lodging a complaint.
+- [OpenAI Data Processing Addendum](https://openai.com/policies/data-processing-addendum/) — official processor terms to verify before production AI processing.
+- [Stripe Privacy Center](https://stripe.com/privacy-center/legal) — official description of Stripe's privacy roles and legal documents for Checkout data.
 - [Render deploys and pre-deploy commands](https://render.com/docs/deploys) — official lifecycle used for migrations before Uvicorn starts.
 - [FastAPI documentation](https://fastapi.tiangolo.com/) — routes, dependencies, OpenAPI.
 - Pinned backend releases on PyPI: [FastAPI 0.141.1](https://pypi.org/project/fastapi/0.141.1/), [Starlette 1.6.0](https://pypi.org/project/starlette/1.6.0/), [python-multipart 0.0.32](https://pypi.org/project/python-multipart/0.0.32/), [PyJWT 2.13.0](https://pypi.org/project/PyJWT/2.13.0/), [cryptography 50.0.1](https://pypi.org/project/cryptography/50.0.1/), [PyMuPDF 1.28.2](https://pypi.org/project/PyMuPDF/1.28.2/), and [python-dotenv 1.2.3](https://pypi.org/project/python-dotenv/1.2.3/) — authoritative package metadata matching `backend/requirements.txt`.
@@ -2855,7 +2890,7 @@ Część publiczna ma `/templates`, `/templates/:slug`, `/pricing`, `/help` i `/
 | `/app/documents/:documentId` | Konkretne zapisane CV; dodatni całkowity identyfikator, wymagane konto, serwerowa kontrola właściciela |
 | `/app/new` | Nazwany punkt wejścia do istniejącego konfiguratora A4; zachowuje opcjonalny parametr `template` |
 | `/app/import` | Nazwany punkt wejścia do istniejącego importu i bramki konta |
-| `/app/account` | Bieżący plan, wykorzystanie/limity z serwera, istniejący wybór planu, wylogowanie |
+| `/app/account` | Bieżący plan i limity, połączenie Google, przenośny eksport danych, potwierdzane trwałe usunięcie konta, wylogowanie |
 | `/cvstudio/:workspace`, `/pdfcanvas` | Zachowane starsze i gościnne punkty wejścia z parametrami `start` i `template` |
 
 Aby wznowić pracę, zaloguj się i otwórz wiersz biblioteki. Zwykłe logowanie prowadzi do biblioteki. Rozpoznany adres `returnTo` ma pierwszeństwo; w pozostałych przypadkach jawne parametry `start`/`template` i własny szkic przeglądarkowy zachowują istniejący proces odzyskiwania. `safeReturnTo` dopuszcza tylko znane wewnętrzne miejsca docelowe, odrzuca zewnętrzne URL i niepoprawne identyfikatory, ale nie zastępuje autoryzacji. Linki między logowaniem i rejestracją zachowują te same zweryfikowane parametry zadania.
@@ -2866,22 +2901,23 @@ Biblioteka korzysta z istniejących endpointów `GET /pdf/fetch_pdfs`, `POST /pd
 
 Rozpoznany parametr szablonu Pro zachowuje teraz wybrany podgląd zamiast wracać do Meridian. Utworzenie jest zablokowane do czasu potwierdzenia dostępu przez aktualne uprawnienia, a serwer pozostaje źródłem decyzji. Nieznany parametr nadal otwiera zwykłą konfigurację. Rejestracja zachowuje szablon; przejście z konfiguratora do konta/zmiany planu udostępnia powrót do tego samego szablonu.
 
-`/privacy` wyjaśnia faktyczny sposób obsługi danych i jawnie informuje o niekompletności informacji prawnych. Nie opublikowano trasy `/terms` ani zatwierdzonej polityki prywatności: brakuje danych administratora/kontaktu i zatwierdzonej treści prawnej. Szkic `docs/POLITYKA_PRYWATNOSCI.md` nie jest udostępniany jako ostateczna polityka.
+`/privacy` jest opublikowaną polską polityką prywatności. Wskazuje administratora i kanał kontaktu oraz opisuje kategorie danych, cele, podstawy prawne, pamięć przeglądarki, AI/import, odbiorców, transfery międzynarodowe, retencję, bezpieczeństwo, prawa użytkownika, granicę wieku 18+ i zmiany dokumentu. Stopka prowadzi do tego stabilnego, płaskiego URL. `docs/POLITYKA_PRYWATNOSCI.md` jest zsynchronizowaną kopią redakcyjną z checklistą produkcyjną. Nadal nie ma trasy `/terms`.
 
 Implementacja (zweryfikowane zakresy całych plików; wymienione eksporty odpowiadają za kompletne przepływy):
 
 - `frontend/src/pages/Site/DocumentsPage.jsx`, linie 1–86, `DocumentsPage`.
-- `frontend/src/pages/Site/AccountPage.jsx`, linie 1–47, `AccountPage`.
-- `frontend/src/pages/Site/PublicPages.jsx`, linie 1–70, `TemplatesPage, TemplatePage, PricingPage, HelpPage, PrivacyPage`.
+- `frontend/src/pages/Site/AccountPage.jsx`, komponent `AccountPage`.
+- `frontend/src/pages/Site/PublicPages.jsx`, eksporty `TemplatesPage, TemplatePage, PricingPage, HelpPage`.
+- `frontend/src/pages/Site/PrivacyPage.jsx`, komponent `PrivacyPage`.
 - `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, linie 1–50, `SiteLayout, SiteHeader, SiteFooter`.
 - `frontend/src/templates/index.js`, linie 1–199, `TEMPLATES` — krótkie opisy pickerów i treść stron szczegółów wszystkich dziesięciu szablonów.
 - `frontend/src/utils/planPresentation.js`, linie 1–70, `FREE_PLAN_HIGHLIGHTS, PRO_PLAN_HIGHLIGHTS, PLAN_PRESENTATION`.
 - `frontend/src/services/documents.js`, linie 1–45, `listOwnedDocuments, loadOwnedDocument`.
 - `frontend/src/utils/siteRoutes.js`, linie 1–77, `getDocumentPath, parseDocumentId, safeReturnTo, authLink, savePendingAuthIntent, getPendingAuthIntent, postAuthPath`.
 
-Nowe katalogi: `pages/Site/` zawiera treść tras i stan biblioteki/konta; `components/common/SiteLayout/` odpowiada za wspólną nawigację, semantyczny układ strony i style oparte na tokenach. `services/documents.js` odpowiada za odczyt i odtwarzanie dokumentów, a `utils/siteRoutes.js` za walidację adresów i kontynuację po uwierzytelnieniu. Stan edytora pozostaje w istniejących warstwach cyklu życia i kontekstów. Nie potrzeba migracji bazy, nowego endpointu, zmiennej środowiskowej ani zmiany wdrożenia. Istniejące przekierowanie SPA do `/index.html` w `render.yaml` obsługuje odświeżenie nowych adresów.
+Nowe katalogi: `pages/Site/` zawiera treść tras i stan biblioteki/konta; `components/common/SiteLayout/` odpowiada za wspólną nawigację, semantyczny układ strony i style oparte na tokenach. `services/documents.js` odpowiada za odczyt i odtwarzanie dokumentów, `services/accountApi.js` za żądania kontroli prywatności, a `utils/siteRoutes.js` za walidację adresów i kontynuację po uwierzytelnieniu. Stan edytora pozostaje w istniejących warstwach cyklu życia i kontekstów. Kontrole prywatności korzystają z istniejących tabel i kolejki cleanup storage, dlatego nie wymagają migracji bazy ani zmiennej środowiskowej; backend dodaje uwierzytelnione trasy `/account/export` i `/account`. Istniejące przekierowanie SPA do `/index.html` w `render.yaml` obsługuje odświeżenie nowych adresów.
 
-Weryfikacja: w `frontend/` uruchom `npm test`, `npm run test:runtime -- --maxWorkers=2`, `npm run test:e2e -- e2e/site-architecture.spec.js`, `npm run lint` i `npm run build`. `siteRoutes.test.js` sprawdza niebezpieczne/niepoprawne adresy i zachowanie zamiaru użytkownika. `site-architecture.spec.js` obejmuje logowanie do biblioteki, zakładki/odświeżenie/Wstecz, ponowienie, wyszukiwanie, pobieranie, anulowanie usunięcia/fokus, wybór Pro oraz trasy publiczne/konta przy 390, 834, 1280, 1920 i 640×400 pikselach CSS (ostatni wymiar odpowiada ograniczonemu miejscu przy powiększeniu 200%). Uwzględnia ograniczony ruch. Istniejące scenariusze edytora wznawiają teraz dokument bezpośrednio zamiast przechodzić przez dawny dialog wyboru. Testy przechwytują API lokalnie; nie przesyłają osobistych plików ani nie łączą się z produkcją. Przegląd wizualny obejmuje wspólne układy publiczne, biblioteki i konta; nie oznacza pełnej certyfikacji technologii asystujących.
+Weryfikacja: w `frontend/` uruchom `npm test`, `npm run test:runtime -- --maxWorkers=2`, `npm run test:e2e -- e2e/site-architecture.spec.js`, `npm run lint` i `npm run build`, a w `backend/` także `pytest tests/test_account_privacy.py`. `siteRoutes.test.js` sprawdza niebezpieczne/niepoprawne adresy i zachowanie zamiaru użytkownika. `site-architecture.spec.js` obejmuje logowanie do biblioteki, zakładki/odświeżenie/Wstecz, ponowienie, wyszukiwanie, pobieranie, fokus usuwania, eksport prywatności/potwierdzenie usunięcia konta, wybór Pro oraz trasy publiczne/konta przy 390, 834, 1280, 1920 i 640×400 pikselach CSS. Testy przechwytują API lokalnie i nie przesyłają osobistych plików ani nie łączą się z produkcją. Przegląd wizualny obejmuje wspólne układy publiczne, biblioteki, polityki i konta; nie oznacza pełnej certyfikacji technologii asystujących.
 
 Materiały: [React Router useBlocker](https://reactrouter.com/api/hooks/useBlocker) opisuje zachowaną ochronę niezapisanej pracy podczas nawigacji; [useNavigate](https://reactrouter.com/api/hooks/useNavigate) wyjaśnia zastąpienie wpisu historii po pierwszym zapisie; [W3C — spójna nawigacja](https://www.w3.org/WAI/WCAG22/Understanding/consistent-navigation) wyjaśnia stałą kolejność wspólnych menu.
 
@@ -3167,11 +3203,30 @@ Pola limitu importów CV:
 - `usage_counters.user_id`: klucz obcy do `users.id`; wraz z `period_key` ma unique constraint `uq_usage_user_period`, więc użytkownik ma najwyżej jeden licznik na miesiąc UTC.
 - Migracja `20260829_0007` dodaje kolumny idempotentnie. Migracja `20260831_0008` aktualizuje istniejący produkcyjny rekord Darmowego do jednego projektu, trzech miesięcznych eksportów, zera akcji AI i jednego miesięcznego importu CV. Celowo pozostawia `pdfs.watermarked=true` na starszych rekordach do chwili, gdy odpowiadający im zapisany plik rzeczywiście zostanie przebudowany bez dawnej nakładki. Legacy boolean `user_subscriptions.free_import_used` zostaje, ale jest ignorowany.
 
+**Relacje:** jeden użytkownik ma wiele `pdfs`, `images`, dowodów weryfikacji, snapshotów importu, rezerwacji AI, liczników użycia i płatności; subskrypcja oraz starszy szkic profilu są pojedyncze dla użytkownika. Każdy `pdf` ma wiele `pdf_elements`. Samoobsługowe usunięcie konta kasuje te rekordy w jednej transakcji i zatwierdza trwałe zadania usunięcia prywatnych obiektów PDF/obrazów. Rekordy przechowywane przez dostawcę na jego niezależnej podstawie prawnej nie należą do tej lokalnej transakcji.
+
 Modele: `backend/app/models/models.py`.
 
 ---
 
 ## Funkcje (mapa implementacji)
+
+### Opublikowana polityka i samoobsługowe prawa prywatności
+
+Płaska publiczna trasa `/privacy` publikuje tożsamość administratora, dane kontaktowe, inwentarz danych, cele i podstawy, pamięć przeglądarki, zasady AI/importu, wszystkie kategorie dostawców znalezione w implementacji (Render, AWS, Cloudflare, OpenAI, Google, Resend, Stripe, home.pl i wskazaną przez użytkownika publiczną stronę pracy), zabezpieczenia transferów międzynarodowych, rzeczywiste ograniczenia retencji, zabezpieczenia, prawa RODO i granicę wieku 18+. Polityka nie deklaruje niezweryfikowanego regionu Render/AWS ani niepotwierdzonego statusu DPA. Powierzchnie uploadu i poleceń AI ostrzegają przed danymi szczególnych kategorii. Anonimowy bufor analityczny gościa został wycofany, a starszy klucz jest usuwany bez kasowania szkicu CV.
+
+Zalogowany użytkownik może w sekcji **Konto i plan** pobrać allowlistowaną kopię JSON. Zawiera ona konto, dokumenty/elementy, metadane obrazów, szkic profilu, snapshoty importów, subskrypcję i użycie, operacje AI oraz płatności. Nie zawiera hashy haseł, tokenów, identyfikatora Google ani prywatnych lokalizatorów storage. Usunięcie wymaga wpisania dokładnej nazwy użytkownika, kasuje zależne rekordy w jednej transakcji i dodaje prywatne pliki do trwałej kolejki cleanup.
+
+Implementacja:
+
+- `frontend/src/pages/Site/PrivacyPage.jsx`, linie 1–58, komponent `PrivacyPage`.
+- `frontend/src/pages/Site/AccountPage.jsx`, linie 17–77, komponent `AccountPage`.
+- `frontend/src/services/accountApi.js`, linie 1–35, funkcje `downloadAccountData` i `deleteAccount`.
+- `frontend/src/utils/authSession.js`, linie 144–166, funkcja `clearLocalAccountData`.
+- `backend/app/api/routes/account.py`, linie 1–57, handlery `export_account_data` i `delete_account`.
+- `backend/app/services/account_data_service.py`, linie 48–203, funkcja `build_account_export`, oraz linie 206–298, funkcja `delete_account_data`.
+
+Testy: `backend/tests/test_account_privacy.py`, linie 105–203; `frontend/src/pages/Site/PrivacyPage.test.js`, linie 1–24; `frontend/src/utils/authSession.test.js`, linie 50–70; oraz `frontend/e2e/site-architecture.spec.js`, linie 74–95 (scenariusz kontroli prywatności konta).
 
 ### Start gościa, dostęp do importu i odświeżenie
 
@@ -3782,11 +3837,11 @@ Hero ma dzielony układ redakcyjny z trzema podglądami CV w perspektywie i wsp�
 
 **„Zmień szablon. Zachowaj treść.”** wprowadza trzy korzyści. Statyczny, podpisany przykład przed/po pokazuje poprawę stylu z AI w Pro; nie wysyła żądania ani nie zużywa kredytów. Galeria z rejestru zachowuje rzeczywiste mockupy szablonów. Te same krótkie, naturalne opisy pojawiają się na publicznych kartach i w pickerach aplikacji, a dłuższe pole `details` jest używane wyłącznie na nazwanej trasie publicznej. Hover/focus pauzuje marquee; ograniczenie ruchu pokazuje statyczną siatkę. Osobna prezentacja Free w hero zmienia wyłącznie wybór podglądu; nie przekształca istniejącej treści użytkownika.
 
-Implementacja i regresje treści: `frontend/src/templates/index.js`, linie 18–199 (`TEMPLATES`); `frontend/src/pages/Site/PublicPages.jsx`, linie 17–70 (`TemplatesPage`, `TemplatePage`, `PricingPage`, `HelpPage`, `PrivacyPage`); `frontend/src/pages/Hero/Hero.jsx`, linie 92–337 (`Hero`); `frontend/src/utils/planPresentation.js`, linie 9–70; dziesięć rejestrów palet `frontend/src/utils/*Appearance.js`, linie 14–99 (`*_PALETTES`); `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, linie 22–27 (`SiteFooter`); `frontend/src/pages/Login/Login.jsx`, linie 26–226 (`Login`); oraz `frontend/src/pages/Register/Register.jsx`, linie 41–373 (`Register`). `frontend/src/templates/index.test.js`, linie 46–59 odrzuca brak treści szczegółów szablonu i usunięty żargon; `frontend/src/utils/appearanceCopy.test.js`, linie 1–39 stosuje tę samą zasadę do wszystkich 60 opisów palet. `frontend/e2e/site-architecture.spec.js`, linie 74–104 sprawdza nazwane CTA szablonów, blokadę Pro, kontrakt fokusu klawiatury i brak poziomego overflow przy szerokościach 390, 640, 834, 1280 i 1920 pikseli CSS.
+Implementacja i regresje treści: `frontend/src/templates/index.js` (`TEMPLATES`); `frontend/src/pages/Site/PublicPages.jsx` (`TemplatesPage`, `TemplatePage`, `PricingPage`, `HelpPage`); `frontend/src/pages/Site/PrivacyPage.jsx` (`PrivacyPage`); `frontend/src/pages/Hero/Hero.jsx` (`Hero`); `frontend/src/utils/planPresentation.js`; dziesięć rejestrów palet `frontend/src/utils/*Appearance.js` (`*_PALETTES`); `frontend/src/components/common/SiteLayout/SiteLayout.jsx` (`SiteFooter`); `frontend/src/pages/Login/Login.jsx` (`Login`); oraz `frontend/src/pages/Register/Register.jsx` (`Register`). `frontend/src/templates/index.test.js` odrzuca brak treści szczegółów szablonu i usunięty żargon; `frontend/src/utils/appearanceCopy.test.js` stosuje tę samą zasadę do wszystkich 60 opisów palet. `frontend/e2e/site-architecture.spec.js` sprawdza nazwane CTA szablonów, blokadę Pro, fokus klawiatury, kontrole prywatności i brak poziomego overflow przy szerokościach 390, 640, 834, 1280 i 1920 pikseli CSS.
 
-Krótszy pasek prywatności opisuje przypisanie dokumentów do konta i historię importu. Usunięto pozorne linki do polityki, profili społecznościowych, regulaminu i kontaktu; wspólna stopka prowadzi do `/privacy`, które opisuje obsługę danych i informuje o braku zatwierdzonej polityki. Cztery natywne rozwijane pytania dotyczą planu Darmowego, konta, importu i odnawiania Pro; odpowiedź o planie Darmowym prowadzi do istniejących limitów cennika. [MDN: details](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/details) opisuje użyte tu natywne rozwijanie.
+Krótszy pasek prywatności opisuje przypisanie dokumentów do konta i historię importu. Nadal nie ma pozornych linków do profili społecznościowych, regulaminu ani formularza kontaktu; wspólna stopka prowadzi do opublikowanej polityki `/privacy`. Cztery natywne rozwijane pytania dotyczą planu Darmowego, konta, importu i odnawiania Pro; odpowiedź o planie Darmowym prowadzi do istniejących limitów cennika. [MDN: details](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/details) opisuje użyte tu natywne rozwijanie.
 
-Intencje startu pozostają `new`, `import` i `demo`. `getEditorPath` wybiera workspace gościa lub zalogowanego; import anonimowego użytkownika prowadzi przez rejestrację. Starsze `wizard` pozostaje aliasem `new`. Zachowano dotychczasowe zdarzenia CTA; końcowe **„Przygotuj CV do kolejnej aplikacji.”** używa obsługiwanego zdarzenia `final_wizard` dla linku `start=new`. Kontrakty kont, rozliczeń, utrwalania danych i renderowania PDF pozostają bez zmian; konfiguracja przyjmuje opisany poniżej zweryfikowany wybór szablonu.
+Intencje startu pozostają `new`, `import` i `demo`. `getEditorPath` wybiera workspace gościa lub zalogowanego; import anonimowego użytkownika prowadzi przez rejestrację. Starsze `wizard` pozostaje aliasem `new`. Kliknięcia publicznych CTA nie są już buforowane jako anonimowa analityka. Pozostałe kontrakty kont, rozliczeń, utrwalania danych i renderowania PDF pozostają bez zmian; konfiguracja przyjmuje opisany poniżej zweryfikowany wybór szablonu.
 
 
 **Hero szablonów Free: wybór → konfiguracja → edytor.** `HeroTemplateShowcase` otrzymuje z `Hero` wpisy Free z rejestru (Sterling, Meridian i Linden), wybrane ID oraz callback. Domyślnie wybrany jest Linden. Kliknięcie podglądu lub natywnego pola radio, użycie strzałek grupy radio albo poziome przesunięcie palcem wysuwa wybrany dokument na pierwszy plan przejściem perspektywy Motion/CSS trwającym 320 ms. Nie ma automatycznej rotacji. `useReducedMotion` zmienia wybór natychmiast. Na małych ekranach akcja główna jest powtórzona pod wyborem, aby nie trzeba było przewijać do góry. Etykiety, obramowanie zaznaczenia i fokus pozostają zwykłym HTML-em.
@@ -3845,7 +3900,7 @@ Tryb gościa pozwala skonfigurować i edytować prawdziwe CV A4 przed założeni
 - **Bezpieczne przejęcie po logowaniu** — `ClaimGuestDocumentModal` podaje nazwę lokalnego dokumentu i pyta, czy należy on do świeżo zalogowanej osoby. Układ decyzyjny porównuje dokładne skutki: odzyskanie otwiera niezapisane płótno, które nadal wymaga kliknięcia **Zapisz**, natomiast jawne usunięcie trwale kasuje kopię z przeglądarki. **Wczytaj mój szkic** otrzymuje fokus początkowy przy zwykłym powrocie; `start=download` fokusuje **To moje CV — pobierz PDF**, co potwierdza własność i uruchamia jeden eksport po odtworzeniu płótna. Krzyżyk, kliknięcie tła, Escape i **Pomiń na razie** zachowują szkic; tylko **Usuń ten szkic** wywołuje destrukcyjny handler odmowy. Samo pojawienie się JWT nigdy nie przypisuje po cichu lokalnych danych osobowych do konta.
 - **Demo** — `start=demo` ładuje kanoniczny przykład Linden. `DemoBanner` otwiera ten sam konfigurator A4, bez wycofanej intencji konwersji.
 - **Starsze szkice bio** — `guestWizardDraft.js` i `GET /ai/bio_cv_draft` są tylko odczytywane, aby zaproponować jawną akcję odzyskania w StartChooser. Szkic jest usuwany dopiero po udanej konwersji; nowy konfigurator go nie zapisuje.
-- **Analityka** — anonimowe zdarzenia lejka są ograniczane i buforowane przez `guestEvents.js`, a następnie wysyłane przez uwierzytelnione `POST /events/log`.
+- **Analityka** — anonimowi odwiedzający nie wysyłają ani nie buforują zdarzeń produktu. `POST /events/log` służy uwierzytelnionym akcjom produktu, a start usuwa wycofany klucz bufora bez naruszania dokumentu gościa.
 
 Implementacja:
 
@@ -3853,14 +3908,14 @@ Implementacja:
 - `frontend/src/pages/PdfCanvas.jsx`, linie 2000–2110 i 2413–2419, komponenty `EditorController` i `EditorView` — wykrywanie szkicu przeglądarkowego, jawne handlery wczytania/usunięcia, niedestrukcyjne zamknięcie, lokalne odtwarzanie, demo, recovery legacy i konfigurator A4
 - `frontend/src/components/editor/StartChooser/StartChooser.jsx` — nowe/import jako akcje główne, zapisane dokumenty i recovery legacy jako akcje drugorzędne
 - `frontend/src/components/editor/NewCvSetupModal/NewCvSetupModal.jsx` — wspólna konfiguracja A4 dla gościa i konta
-- `frontend/src/utils/guestDocument.js`, `resolveActiveCvData.js`, `guestWizardDraft.js` i `guestEvents.js`
+- `frontend/src/utils/guestDocument.js`, `resolveActiveCvData.js` i `guestWizardDraft.js`
 - `frontend/src/components/editor/SaveGateModal/SaveGateModal.jsx`; `ClaimGuestDocumentModal/ClaimGuestDocumentModal.jsx`, linie 22–86, oraz `ClaimGuestDocumentModal.module.css`, linie 1–223 — dialog własności używa wspólnego wariantu decyzyjnego `DialogShell`, podaje nazwę szkicu, porównuje skutki i oddziela zamknięcie od usunięcia
 - `frontend/src/services/fillTemplate.js` — pomija nagłówek bearer bez tokenu
 - `backend/app/core/security.py`, `verify_token_optional`; `backend/app/api/routes/ai.py`, `fill_template` — granica anonimowego fill tylko dla Free
 
 Testy:
 
-- `frontend/src/utils/guestDocument.test.js`, `resolveActiveCvData.test.js`, `guestWizardDraft.test.js`, `guestEvents.test.js`, `demoModeChrome.test.js` i `documentLifecycleGuards.test.js`; `ClaimGuestDocumentModal.runtime.test.jsx`, linie 9–61, sprawdza treść, tytuł zastępczy, fokus początkowy, bezpieczne zamknięcie, Escape i jawne usunięcie
+- `frontend/src/utils/guestDocument.test.js`, `resolveActiveCvData.test.js`, `guestWizardDraft.test.js`, `demoModeChrome.test.js` i `documentLifecycleGuards.test.js`; `ClaimGuestDocumentModal.runtime.test.jsx`, linie 9–61, sprawdza treść, tytuł zastępczy, fokus początkowy, bezpieczne zamknięcie, Escape i jawne usunięcie
 - `frontend/e2e/guest-entry.spec.js`, linie 119–151, pokrywa pełny przepływ szkic gościa → logowanie → decyzja o własności na szerokościach kompaktowej, tabletowej, laptopowej i szerokiej, w tym zachowanie po Escape oraz usunięcie wyłącznie po akcji destrukcyjnej
 - `backend/tests/test_fill_template_guest.py`
 
@@ -5220,6 +5275,8 @@ URL bazowy: `VITE_API_URL`. Auth: `Authorization: Bearer <jwt>` (chyba że zazna
 | POST | `/auth/token` | nie | Hasło OAuth2 → JWT; wymagany potwierdzony e-mail | `login_for_acess_token` |
 | GET | `/auth/verify-token` | Bearer | Walidacja bez ujawniania tokenu w URL | `verify_user_token` |
 | GET | `/auth/me/entitlements` | tak | Limity planu | `me_entitlements` |
+| GET | `/account/export` | Bearer | Pobierz allowlistowaną kopię JSON danych bieżącego użytkownika | `export_account_data` |
+| DELETE | `/account` | Bearer | Trwale usuń konto po `{ "confirmation": "dokładna nazwa użytkownika" }` | `delete_account` |
 | POST | `/pdf/create_pdf` | tak + `Idempotency-Key` | Utwórz + render na revision 1; identyczne retry robi replay | `create_user_pdf` |
 | POST | `/pdf/render_pdf` | tak | Render bieżącego płótna + strumień + licznik; **bez utrwalania** (Pobierz) | `render_user_pdf` |
 | GET | `/pdf/fetch_pdfs` | tak | Lista | `fetch_user_pdfs` |
@@ -5249,9 +5306,11 @@ URL bazowy: `VITE_API_URL`. Auth: `Authorization: Bearer <jwt>` (chyba że zazna
 
 **Własność i prywatny storage:** trasy PDF/obrazu po id wykonują kontrolę IDOR (`_require_owned_pdf` w `pdf.py`). Payload list/show PDF-a udostępnia allowlistę metadanych edytora bez `file_path`, a `/static/generated/...` zawsze zwraca 404; zapisane bajty wychodzą wyłącznie przez uwierzytelnione `POST /pdf/download_pdf`.
 
-`POST /events/log` przyjmuje ustalony słownik zdarzeń, w tym sygnały lejka gościa oraz bieżące źródła CTA: `hero_new_cv`, `hero_import`, `hero_demo` i `templates_new_cv`. Zdarzenia anonimowe są buforowane w `guestEvents.js` i wysyłane po uwierzytelnieniu.
+`POST /events/log` przyjmuje ustalony słownik zdarzeń i wymaga uwierzytelnienia. Anonimowi odwiedzający nie wysyłają ani nie buforują analityki; start aplikacji usuwa przestarzały klucz `cvstudio.guest.events` utworzony przez wcześniejsze wersje, zachowując dokument gościa i szkic konfiguratora.
 
 Body administracyjnej zmiany planu ma postać `{ "username": "dokładna-nazwa-z-wielkością-liter", "plan_slug": "free|pro" }`. To wyłącznie kontrolowana operacja supportu: brak konta zwraca `404 user_not_found`, nieobsługiwany plan `400 unknown_plan`, a brak, zbyt krótki lub błędny osobny sekret `403 admin_secret_invalid`.
+
+`GET /account/export` zwraca HTTP 200 z `Content-Disposition: attachment` oraz JSON zawierającym `exported_at`, `service`, konto, dokumenty z elementami, metadane obrazów, szkice profilu, snapshoty importów, subskrypcje, miesięczne użycie, operacje AI, płatności i jawną listę `not_included`. Operacja jest tylko do odczytu. `DELETE /account` przyjmuje `{ "confirmation": "DokladnaNazwa" }`; niezgodność zwraca 422, równoległy brak konta 404, a sukces 200 `{ "deleted": true }`. Obie trasy zwracają 401 bez poprawnego Bearer. Usunięcie atomowo zatwierdza kasowanie bazy i trwałe zlecenia cleanup plików; fizyczne usunięcie obiektu może zakończyć się przy ponowieniu.
 
 Nowe kontrakty integracji: rejestracja przyjmuje
 `{"username":"demo","email":"demo@example.test","password":"long-local-password","plan":"free"}`
@@ -5465,6 +5524,9 @@ CI/CD: `.github/workflows/ci.yml` jest częścią repozytorium i przed wdrożeni
 - Błędy importu CV mają stabilne kody i bezpieczne 422/429/502/503; asystent zwraca ogólne 500. Surowe szczegóły dostawcy nie trafiają do klienta.
 - Prywatność CV: bajty PDF są walidowane w pamięci, wysyłane server-to-server do skonfigurowanego dostawcy i odrzucane; historia zapisuje znormalizowane pola i metadane, nigdy źródłowy PDF. Cloudflare deklaruje, że nie trenuje modeli na Customer Content, ale nadal jest to przetwarzanie przez stronę trzecią i musi być opisane w polityce prywatności produktu. Zob. [Workers AI data usage](https://developers.cloudflare.com/workers-ai/platform/data-usage/).
 - Prywatność replay asystenta: rekord rezerwacji zapisuje wyłącznie kanoniczny hash żądania, nie przesłane body; rekord rozliczony przechowuje przypisany do konta JSON odpowiedzi potrzebny do dokładnego replay idempotency. Żaden cross-user listing endpoint go nie ujawnia.
+- Prawa samoobsługowe: `/account/export` korzysta z jawnych allowlist kolumn i pomija hashe haseł/tokenów, Google `sub`, hashe żądań/idempotencji oraz prywatne lokalizatory storage. `/account` wymaga dokładnej nazwy użytkownika, atomowo usuwa przypisane rekordy i przed zatwierdzeniem zleca pliki S3/lokalne do trwałego cleanupu. Po usunięciu użytkownika wcześniej wydany JWT nie rozwiąże już aktywnego konta.
+- Analityka przeglądarkowa: anonimowi odwiedzający nie wysyłają ani nie kolejkują zdarzeń. Start usuwa wyłącznie wycofany klucz bufora i zachowuje wznawialny szkic CV oraz konfiguratora.
+- Dane szczególnych kategorii: import i asystent ostrzegają, aby nie przekazywać do AI danych zdrowotnych, biometrycznych, genetycznych, politycznych, religijnych, dotyczących pochodzenia lub seksualności. To reguła produktu, a nie gwarancja automatycznej klasyfikacji treści.
 - Sekrety Cloudflare, OpenAI, Resend i Stripe są wyłącznie w env backendu. `VITE_GOOGLE_CLIENT_ID` jest celowo publiczne; żadna zmienna `VITE_` nie może zawierać sekretu dostawcy.
 - Metryki z `user_id`, nie raw username.
 - Sekrety tylko w env.
@@ -5520,6 +5582,10 @@ Odhaczana roadmapa produktu, UX i komercjalizacji jest utrzymywana w [`docs/CV_S
 - [Weryfikacja ID tokenu Google](https://developers.google.com/identity/gsi/web/guides/verify-google-id-token) — oficjalne reguły backendu i użycia niezmiennego `sub`.
 - [Fulfillment Stripe Checkout](https://docs.stripe.com/checkout/fulfillment) — oficjalne zalecenia webhooków i idempotentnej aktywacji Pro.
 - [Konfiguracja domeny Resend](https://resend.com/docs/dashboard/domains/introduction) — oficjalne wskazówki weryfikacji nadawcy i DNS.
+- [Ogólne rozporządzenie o ochronie danych](https://eur-lex.europa.eu/eli/reg/2016/679/oj) — oficjalny tekst prawa będący podstawą informacji o przejrzystości, dostępie, usunięciu, przenoszeniu i sprzeciwie na `/privacy`.
+- [UODO: prawa osób](https://uodo.gov.pl/pl/493) — oficjalne polskie informacje o wykonywaniu praw RODO i składaniu skargi.
+- [Umowa powierzenia OpenAI](https://openai.com/policies/data-processing-addendum/) — oficjalne warunki procesora do zweryfikowania przed produkcyjnym przetwarzaniem przez AI.
+- [Centrum prywatności Stripe](https://stripe.com/privacy-center/legal) — oficjalny opis ról prywatności i dokumentów prawnych Stripe dla danych Checkout.
 - [Wdrożenia i pre-deploy w Render](https://render.com/docs/deploys) — oficjalny lifecycle migracji wykonywanych przed startem Uvicorn.
 - [FastAPI](https://fastapi.tiangolo.com/)
 - Przypięte wydania backendu w PyPI: [FastAPI 0.141.1](https://pypi.org/project/fastapi/0.141.1/), [Starlette 1.6.0](https://pypi.org/project/starlette/1.6.0/), [python-multipart 0.0.32](https://pypi.org/project/python-multipart/0.0.32/), [PyJWT 2.13.0](https://pypi.org/project/PyJWT/2.13.0/), [cryptography 50.0.1](https://pypi.org/project/cryptography/50.0.1/), [PyMuPDF 1.28.2](https://pypi.org/project/PyMuPDF/1.28.2/) i [python-dotenv 1.2.3](https://pypi.org/project/python-dotenv/1.2.3/) — oficjalne metadane pakietów zgodne z `backend/requirements.txt`.

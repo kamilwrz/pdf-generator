@@ -5,7 +5,7 @@
  * Client route gates improve navigation; the API independently checks ownership.
  */
 import './App.css';
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { createBrowserRouter, Navigate, RouterProvider, useLocation, useParams, useSearchParams } from 'react-router-dom';
 import { getAccessToken, getEditorPath } from './utils/authSession';
 import { parseDocumentId } from './utils/siteRoutes';
@@ -21,7 +21,7 @@ const TemplatesPage = lazy(() => import('./pages/Site/PublicPages').then((module
 const TemplatePage = lazy(() => import('./pages/Site/PublicPages').then((module) => ({ default: module.TemplatePage })));
 const PricingPage = lazy(() => import('./pages/Site/PublicPages').then((module) => ({ default: module.PricingPage })));
 const HelpPage = lazy(() => import('./pages/Site/PublicPages').then((module) => ({ default: module.HelpPage })));
-const PrivacyPage = lazy(() => import('./pages/Site/PublicPages').then((module) => ({ default: module.PrivacyPage })));
+const PrivacyPage = lazy(() => import('./pages/Site/PrivacyPage'));
 const VerifyEmail = lazy(() => import('./pages/Auth/VerifyEmail'));
 const CheckoutResult = lazy(() => import('./pages/Billing/CheckoutResult'));
 
@@ -78,6 +78,11 @@ const router = createBrowserRouter([
 ])
 
 function App() {
+  useEffect(() => {
+    // Retire anonymous analytics created by older releases without touching the
+    // guest CV or wizard draft the visitor still expects to resume.
+    localStorage.removeItem('cvstudio.guest.events');
+  }, []);
   return (
     <Suspense fallback={(
       <main className="route-loading" role="status" aria-live="polite">

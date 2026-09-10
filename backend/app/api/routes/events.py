@@ -21,10 +21,10 @@ router = APIRouter(prefix="/events", tags=["events"])
 class EventLogRequest(BaseModel):
     """Allowed product-metric events only — keeps the metric vocabulary small.
 
-    Guest-funnel events (landing_cta_clicked .. guest_doc_claimed) are queued
-    client-side while anonymous (see frontend/src/utils/guestEvents.js) and
-    flushed through this same authenticated endpoint once the visitor has a
-    JWT — this endpoint itself never accepts unauthenticated requests.
+    The vocabulary retains historical guest-funnel names so authenticated
+    continuation events remain comparable. Anonymous buffering was retired:
+    callers must already have a JWT because this endpoint never accepts
+    unauthenticated requests.
     """
 
     event_type: Literal[

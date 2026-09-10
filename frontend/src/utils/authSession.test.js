@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { Buffer } from "node:buffer";
 import {
   clearAccessToken,
+  clearLocalAccountData,
   getAccessToken,
   getEditorPath,
   getSessionUsername,
@@ -48,6 +49,23 @@ test("clearAccessToken removes the JWT and cached username", () => {
   clearAccessToken();
   assert.equal(getAccessToken(), null);
   assert.equal(getSessionUsername(), null);
+});
+
+test("clearLocalAccountData removes CV Studio personal data but leaves unrelated storage", () => {
+  globalThis.localStorage = fakeLocalStorage();
+  for (const key of ["token", "username", "cvstudio.guest.doc", "cvstudio.guest.wizardDraft", "cvstudio.pending-auth-intent", "cvstudio.guest.events"]) {
+    localStorage.setItem(key, "private");
+  }
+  localStorage.setItem("unrelated.preference", "keep");
+
+  clearLocalAccountData();
+
+  assert.equal(localStorage.getItem("unrelated.preference"), "keep");
+  assert.equal(getAccessToken(), null);
+  assert.equal(localStorage.getItem("cvstudio.guest.doc"), null);
+  assert.equal(localStorage.getItem("cvstudio.guest.wizardDraft"), null);
+  assert.equal(localStorage.getItem("cvstudio.pending-auth-intent"), null);
+  assert.equal(localStorage.getItem("cvstudio.guest.events"), null);
 });
 
 test("getUsernameFromToken reads the JWT sub claim", () => {

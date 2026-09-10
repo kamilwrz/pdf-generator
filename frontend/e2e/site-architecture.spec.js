@@ -71,6 +71,29 @@ test('library handles search, download, delete cancellation and success', async 
   api.assertHermetic();
 });
 
+test('account privacy controls export data and require exact confirmation before erasure', async ({ page }) => {
+  const api = await installMockApi(page);
+  await authenticate(page);
+  await page.goto('/app/account');
+
+  const download = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Pobierz moje dane' }).click();
+  expect((await download).suggestedFilename()).toBe('cv-studio-data-2026-09-10.json');
+
+  await page.getByRole('button', { name: 'Usuń konto' }).click();
+  const confirmation = page.getByLabel('Nazwa użytkownika');
+  await expect(confirmation).toBeFocused();
+  await confirmation.fill('kamil');
+  await expect(page.getByRole('button', { name: 'Usuń konto trwale' })).toBeDisabled();
+  await confirmation.fill('Kamil');
+  await page.getByRole('button', { name: 'Usuń konto trwale' }).click();
+
+  await expect(page).toHaveURL(/\/$/);
+  expect(await page.evaluate(() => localStorage.getItem('token'))).toBeNull();
+  expect(api.calls.some((call) => call.method === 'DELETE' && call.path === '/account')).toBe(true);
+  api.assertHermetic();
+});
+
 test('template selection is retained and paid creation stays gated', async ({ page }) => {
   const api = await installMockApi(page);
   await page.goto('/templates/monument');

@@ -15,10 +15,8 @@ describe("landing product positioning", () => {
     assert.doesNotMatch(hero, /100% ZA DARMO|zwiększy Twoje szanse|systemy ATS/);
   });
 
-  it("preserves directed starts and attributes the final CTA to its supported event", () => {
-    for (const event of ["hero_new_cv", "hero_import", "hero_demo", "templates_new_cv", "pricing_free", "pricing_pro", "final_wizard"]) {
-      assert.ok(source.includes('event="' + event + '"') || source.includes('queueGuestEvent("' + event + '")'));
-    }
+  it("preserves directed starts without buffering anonymous analytics", () => {
+    assert.doesNotMatch(source, /queueGuestEvent|guestEvents/);
     assert.match(source, /buildStartUrl\("new", "free"\)/);
     assert.match(source, /buildStartUrl\("import", "free"\)/);
     assert.match(source, /getEditorPath\(\{ start: "demo" \}\)/);
