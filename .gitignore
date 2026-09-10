@@ -51,6 +51,9 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+# Local QA output and disposable work files
+/tmp/
+
 # OS and editors
 .DS_Store
 Thumbs.db

@@ -1,9 +1,0 @@
-
- RUN  v4.1.11 C:/Users/Kamil/learningCode/PROJECTS/PDF/pdf-generator/frontend
-
-
- Test Files  12 passed (12)
-      Tests  55 passed (55)
-   Start at  07:51:48
-   Duration  23.58s (transform 13.82s, setup 30.98s, import 17.28s, tests 19.35s, environment 66.81s)
-

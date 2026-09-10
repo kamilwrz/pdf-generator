@@ -1,8 +1,0 @@
-
-Running 3 tests using 1 worker
-
-  ok 1 [desktop-chromium] › e2e\guest-entry.spec.js:8:3 › guest new CV and import account gate at 390px (4.2s)
-  ok 2 [desktop-chromium] › e2e\guest-entry.spec.js:40:3 › guest download opens download-specific account copy at 390px (4.5s)
-  ok 3 [desktop-chromium] › e2e\guest-entry.spec.js:116:3 › browser draft ownership stays safe at 390px (9.5s)
-
-  3 passed (19.6s)

@@ -382,7 +382,7 @@ pdf-generator/
     └── .env.example
 ```
 
-**Rules:** Frontend templates must stay in sync with `_GENERATORS` in `cv_templates/registry.py` (re-exported from `cv_generator.py`; 10 ids). Each `cv_templates/templates/<id>.py` holds only that template’s live generator — not a shared multi-theme engine with sibling branches. Do not put secrets in the repo. `uploads/` and `static/generated/` are development/test runtime data, not production persistence or source; production uses private S3. Neither user images nor generated PDFs are publicly mounted: image bytes require `GET /images/{id}/content`, while stored PDFs require the authenticated and metered `POST /pdf/download_pdf` route.
+**Rules:** Frontend templates must stay in sync with `_GENERATORS` in `cv_templates/registry.py` (re-exported from `cv_generator.py`; 10 ids). Each `cv_templates/templates/<id>.py` holds only that template’s live generator — not a shared multi-theme engine with sibling branches. Do not put secrets in the repo. The root `tmp/` directory is ignored disposable workspace for local screenshots, browser traces, patches, helper scripts, and command output; none of its contents is a source of truth or belongs in commits. `uploads/` and `static/generated/` are development/test runtime data, not production persistence or source; production uses private S3. Neither user images nor generated PDFs are publicly mounted: image bytes require `GET /images/{id}/content`, while stored PDFs require the authenticated and metered `POST /pdf/download_pdf` route.
 
 ---
 
@@ -3383,7 +3383,7 @@ pdf-generator/
     └── .env.example
 ```
 
-**Zasady:** 10 id szablonów frontu musi odpowiadać `_GENERATORS` w `cv_templates/registry.py` (re-eksport z `cv_generator.py`). Każdy `cv_templates/templates/<id>.py` zawiera wyłącznie żywy generator tego szablonu — bez wspólnego silnika multi-theme i martwych gałęzi siblingów. Sekrety tylko w env. `uploads/` i `static/generated/` to dane runtime development/test, nie persistence produkcji ani source; produkcja używa prywatnego S3. Ani obrazy użytkownika, ani wygenerowane PDF-y nie są publicznie montowane: bajty obrazu wymagają `GET /images/{id}/content`, a zapisany PDF — uwierzytelnionego i naliczanego `POST /pdf/download_pdf`.
+**Zasady:** 10 id szablonów frontu musi odpowiadać `_GENERATORS` w `cv_templates/registry.py` (re-eksport z `cv_generator.py`). Każdy `cv_templates/templates/<id>.py` zawiera wyłącznie żywy generator tego szablonu — bez wspólnego silnika multi-theme i martwych gałęzi siblingów. Sekrety tylko w env. Główny katalog `tmp/` jest ignorowanym, jednorazowym miejscem roboczym na lokalne zrzuty ekranu, trace’y przeglądarki, patche, skrypty pomocnicze i wyniki poleceń; żadna jego zawartość nie jest źródłem prawdy ani nie powinna trafiać do commitów. `uploads/` i `static/generated/` to dane runtime development/test, nie persistence produkcji ani source; produkcja używa prywatnego S3. Ani obrazy użytkownika, ani wygenerowane PDF-y nie są publicznie montowane: bajty obrazu wymagają `GET /images/{id}/content`, a zapisany PDF — uwierzytelnionego i naliczanego `POST /pdf/download_pdf`.
 
 ---
 
