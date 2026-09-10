@@ -19,6 +19,7 @@ def _generic(text):
 
 def _keys(question):
     keys = {question.get('topic', '')} - {''}
+    keys.update('fact:' + ref for ref in question.get('target_fact_ids', []))
     if question.get('suggested_text'):
         keys.add('claim:' + question_key(question['suggested_text']))
     if not _generic(question.get('text', '')):
@@ -81,7 +82,7 @@ def clarification_queue(row, raw, verification, notes, profile):
     base, catalog = service.base_cv(profile), service.evidence(profile)
     fields = {field['path']: field for field in raw['fields']}
     questions = {item['path']: item['question'] for item in verification.get('clarifications', [])}
-    unsupported = set(verification.get('unsupported_paths', []))
+    unsupported = set(verification.get('unsupported_paths', [])) - set(verification.get('duplicate_paths', []))
     seen, result = _seen(row.state), []
     for note in notes:
         path = note['path']
@@ -97,6 +98,19 @@ def clarification_queue(row, raw, verification, notes, profile):
         if path.strip('/').split('/')[0] not in {'summary', 'experience', 'education', 'custom_sections', 'skills', 'languages'}:
             continue
         context = _context(base, path)
+        # Bind corrections to cited content, never to a guessed role or a model's
+        # reordered output index. Unbound single-answer evidence can be revised
+        # too; unrelated record metadata cannot identify a correction target.
+        targets = [catalog[ref] for ref in refs if catalog[ref].get('path') == path]
+        if targets:
+            # Equivalent aliases of one authored field must change together.
+            targets = [f for f in catalog.values() if f.get('path') == path and f.get('kind') == 'fact']
+        if not targets and len(refs) == 1 and not catalog[refs[0]].get('path'):
+            targets = [catalog[refs[0]]]
+        if targets and any(f['text'] != targets[0]['text'] for f in targets):
+            targets = []
+        if targets and question_key(value) == question_key(targets[0]['text']):
+            continue
         topic = 'clarify:' + question_key(value)[:48]
         text = questions.get(path, '')
         question = {
@@ -104,6 +118,7 @@ def clarification_queue(row, raw, verification, notes, profile):
             'text': FALLBACK if _generic(text) else text, 'context': context, 'record_label': context,
             'reason': 'Sprawdź poniższą propozycję. Popraw szczegół lub wyjaśnij, czego dotyczy.',
             'suggested_text': value, 'clarification': True,
+            'target_fact_ids': [f['id'] for f in targets],
         }
         keys = _keys(question)
         if keys & seen or len(result) >= _capacity(row.state):
@@ -111,6 +126,30 @@ def clarification_queue(row, raw, verification, notes, profile):
         result.append(question)
         seen.update(keys)
     return result
+
+
+def answer_proposals(question, answer, status, profile, session_id):
+    """Stage a full correction under existing IDs; never mutate confirmed data.
+
+    The caller has checked evidence revisions. Missing targets are not revived.
+    Ambiguous/legacy questions keep an independent note instead of overwriting
+    an unrelated field. Unknown and skipped answers never create assertions.
+    """
+    if status not in {'answered', 'no_experience'}:
+        return []
+    catalog = service.evidence(profile)
+    ids = question.get('target_fact_ids', []) if question.get('clarification') else []
+    if any(ref not in catalog for ref in ids):
+        service.fail('Informacja została usunięta. Wczytaj aktualny wywiad przed odpowiedzią.')
+    text = answer.strip() if status == 'answered' else f"Brak doświadczenia: {question.get('suggested_text') or question['text']}"
+    original = [catalog[ref] for ref in ids] or [{'id': f"answer-{question['id']}", 'path': ''}]
+    return [{
+        'id': fact['id'], 'text': text,
+        'context': fact.get('context') or question['context'] or question['text'],
+        'kind': 'fact' if status == 'answered' else 'gap',
+        'path': fact['path'] if status == 'answered' else '',
+        'source': f'interview:{session_id}',
+    } for fact in original]
 
 
 def repair_clarification_state(state):

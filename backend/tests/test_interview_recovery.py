@@ -137,3 +137,40 @@ def test_five_clarification_answers_close_budget_even_for_new_claims():
     assert clarification_queue(SimpleNamespace(id='session', state=state), raw, {'unsupported_paths': ['/summary']}, notes, profile) == []
     repair_clarification_state(state)
     assert state['phase'] == 'preview' and state['question'] is None and len(state['answers']) == 8
+
+
+
+def test_duplicate_additions_are_omitted_but_distinct_and_other_roles_survive():
+    profile = {'facts': service.source_facts(normalize_cv_data({'name': 'Anna', 'experience': [
+        {'title': 'Analyst', 'bullets': ['Research SoF i SoW.']},
+        {'title': 'Senior Analyst', 'bullets': ['Research SoF i SoW.']},
+    ]}), 'manual')}
+    ref = next(f['id'] for f in profile['facts'] if f['path'] == '/experience/0/bullets/0')
+    raw = {'fields': [
+        {'path': '/experience/0/bullets/1', 'value': 'Research SoF i SoW.', 'evidence_refs': [ref]},
+        {'path': '/experience/0/bullets/2', 'value': 'Wyjaśnianie źródeł środków i majątku.', 'evidence_refs': [ref]},
+    ]}
+    result, changes, _ = assemble_reviewed_draft(raw, {'unsupported_paths': [], 'duplicate_paths': ['/experience/0/bullets/2']}, profile, 'pl')
+    assert result['experience'][0]['bullets'] == ['Research SoF i SoW.']
+    assert result['experience'][1]['bullets'] == ['Research SoF i SoW.']
+    assert changes == []
+
+
+def test_clarification_targets_suppress_reworded_questions_and_protect_other_facts():
+    from types import SimpleNamespace
+    from app.services.interview_clarification import clarification_queue, answer_proposals
+    profile = {'facts': service.source_facts({'name': 'Anna', 'experience': [{'bullets': ['Research SoF.']}]}, 'manual')}
+    fact = next(f for f in profile['facts'] if f['path'] == '/experience/0/bullets/0')
+    row = SimpleNamespace(id='s', state={'answers': []})
+    field = {'path': fact['path'], 'value': 'Codzienny research SoF.', 'evidence_refs': [fact['id']]}
+    verification = {'unsupported_paths': [fact['path']]}
+    notes = [{'path': fact['path']}]
+    question = clarification_queue(row, {'fields': [field]}, verification, notes, profile)[0]
+    row.state['answers'] = [{'question': question, 'status': 'answered'}]
+    field['value'] = 'Research SoF wykonywany każdego dnia.'
+    assert clarification_queue(row, {'fields': [field]}, verification, notes, profile) == []
+    assert answer_proposals(question, '', 'unknown', profile, 's') == []
+    assert answer_proposals(question, '', 'skipped', profile, 's') == []
+    negative = answer_proposals(question, '', 'no_experience', profile, 's')[0]
+    assert negative['id'] == fact['id'] and negative['kind'] == 'gap' and negative['path'] == ''
+    assert service.evidence(profile)[fact['id']]['text'] == 'Research SoF.'

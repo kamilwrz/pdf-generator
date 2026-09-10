@@ -223,3 +223,23 @@ describe('candidate evidence separation', () => {
     expect(screen.getByText('Zapisana odpowiedź')).toBeVisible();
   });
 });
+
+
+describe('clarification corrections', () => {
+  it('replaces a fact by ID without mutating the confirmed profile or duplicating the entry', () => {
+    const original = { ...fact, id: 'task', text: 'Research SoF.', path: '/experience/0/bullets/0' };
+    const correction = { ...original, text: 'Research SoF i SoW.' };
+    const profile = { facts: [fact, original] };
+    expect(reviewFacts(profile, { evidence_scope: 'profile', proposed_facts: [correction] })).toEqual([fact, correction]);
+    expect(profile.facts).toEqual([fact, original]);
+    expect(reviewFacts(profile, { evidence_scope: 'profile', proposed_facts: [{ ...correction, id: 'new-task', path: '' }] })).toHaveLength(3);
+  });
+  it('confirms the visible proposal explicitly without retyping it', async () => {
+    session.phase = 'clarification';
+    session.question = { ...session.question, clarification: true, suggested_text: 'Research SoF i SoW.', target_fact_ids: ['task'] };
+    render(<MemoryRouter><InterviewFlow sessionId="session" /></MemoryRouter>);
+    expect(await screen.findByText(/zastąpi dotychczasowy wpis/)).toBeVisible();
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Opis jest poprawny' }));
+    await waitFor(() => expect(interviewRequest).toHaveBeenCalledWith('/ai/interviews/session/answers', 'POST', expect.objectContaining({ status: 'answered', answer: 'Research SoF i SoW.' })));
+  });
+});

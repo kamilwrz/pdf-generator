@@ -605,3 +605,34 @@ def test_profile_join_requires_opt_in_and_writes_account_profile(environment):
     saved = service.profile_payload(db, user.id)
     assert saved['revision'] == 2 and service.base_cv(saved)['title'] == 'Developer'
     assert service.base_cv(saved)['skills'] == ['SQL']
+
+
+@pytest.mark.parametrize('isolated', [False, True])
+def test_clarification_replaces_existing_fact_only_after_confirmation(environment, isolated):
+    client, db, user, _ = environment
+    session = confirm(client, create(client, include_profile=not isolated, cv_data={
+        'name': 'Anna', 'experience': [{'title': 'Analyst', 'company': 'Example', 'bullets': ['Research SoF i SoW.']}],
+    }))
+    profile = session['evidence_profile'] if isolated else client.get('/career-profile').json()
+    original = next(f for f in profile['facts'] if f['path'] == '/experience/0/bullets/0')
+    draft = {'fields': [{'path': original['path'], 'value': 'Codzienny research SoF i SoW.', 'evidence_refs': [original['id']]}], 'remaining_gaps': []}
+    verification = {'unsupported_paths': [original['path']], 'reasons': [], 'clarifications': [{'path': original['path'], 'question': 'Jak często wykonywałaś research?'}]}
+    with patch.object(service, '_gpt', side_effect=[(draft, {'cost_pln_estimate': .01}), (verification, {'cost_pln_estimate': .01})]):
+        result = client.post(f"/ai/interviews/{session['id']}/preview", json={**version(session, 1), 'template_id': 'linden'})
+    assert result.status_code == 200, result.text
+    asking = client.post(f"/ai/interviews/{session['id']}/clarify", json=version(result.json(), 1)).json()
+    assert asking['question']['target_fact_ids'] == [original['id']]
+    payload = {**version(asking, 1), 'question_id': asking['question']['id'], 'answer': 'Research SoF i SoW w wybranych sprawach.', 'status': 'answered'}
+    with patch.object(service, '_gpt') as provider:
+        saved = client.post(f"/ai/interviews/{session['id']}/answers", json=payload)
+        assert saved.status_code == 200, saved.text
+        assert client.post(f"/ai/interviews/{session['id']}/answers", json=payload).json() == saved.json()
+        provider.assert_not_called()
+    proposal = saved.json()['proposed_facts'][0]
+    assert proposal['id'] == original['id'] and proposal['path'] == original['path']
+    row = db.get(InterviewSession, session['id'], populate_existing=True)
+    assert service.interview_profile(db, row)['facts'] == profile['facts']
+    merged = [proposal if f['id'] == proposal['id'] else f for f in profile['facts']]
+    final = confirm(client, saved.json(), 1, merged)
+    row = db.get(InterviewSession, final['id'], populate_existing=True)
+    assert service.base_cv(service.interview_profile(db, row))['experience'][0]['bullets'] == [payload['answer']]

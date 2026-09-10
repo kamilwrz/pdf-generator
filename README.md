@@ -457,6 +457,9 @@ The additive migration `20260910_0017` creates `career_profiles` (one owner prof
 
 **API:** authenticated `GET/PUT/DELETE /career-profile`; `POST/GET /ai/interviews`; `GET/DELETE /ai/interviews/{id}`; session `POST` actions `answers`, `next`, `confirm`, `extend`, `source`, `preview`, `clarify`, `skip-clarifications`, `document`. The [complete EN/PL tutorial](docs/INTERVIEWS.md#english) documents schemas, field limits, response examples, errors, transactions, retention, credits, tests and recovery. The [Swiss interaction contract](DESIGN.md#59-career-interview-contract) applies to all interview states.
 
+
+Clarification corrections retain the cited fact IDs (`target_fact_ids`) when the source is an unambiguous existing field or one unbound answer. `answer_proposals` stages the replacement and `reviewFacts` displays it in place; only `/confirm` updates the chosen evidence store. Unknown/skip never overwrite a fact. “Opis jest poprawny” explicitly submits the visible proposal without retyping; a typed correction must contain the full replacement description. Rewording cannot reopen an already resolved target in the same session. Ambiguous and older questions without a reliable target remain independent notes; previously saved duplicates are not silently deleted. Generation instructions consolidate related details into one task. `Verification.duplicate_paths` separates redundant additions from unsupported claims; only added bullet points can be omitted on that basis, while existing authored fields and separate roles survive. Exact duplicate additions within one bullet list are also filtered locally; semantic duplication still depends on AI review. No schema migration or additional automatic AI call is required. Deploy backend and frontend together, then refresh active clients. Tests cover replacement/replay in both evidence scopes, non-answers, repeated targets, duplicate additions and explicit UI confirmation. [Pydantic field defaults](https://docs.pydantic.dev/latest/concepts/fields/) explain why older cached verification results can omit `duplicate_paths` while new provider schemas require it.
+
 Uncertain AI proposals now lead to clarification before the final preview. `interview_clarification.py` builds up to five targeted questions from the verification output; `clarify` starts a voluntary round and `skip-clarifications` explicitly defers it. Questions and answers reuse stored work without another AI charge. New answers remain drafts until fact confirmation; regenerating the CV then uses normal credits. The user's answers are not discarded. `interview_recovery.py` maintains a confirmed fallback for explicit skipping and can recover the immediately preceding settled legacy result for an unchanged profile/source. Resolved topics are not asked again. `InterviewReviewNotice` explains remaining unconfirmed details without raw diagnostics. Session JSON adds `pending_clarifications`, `dismissed_clarifications`, `clarification_round`, `review_notes` and `recovered_previous_attempt`; no migration is needed. Retained fields may remain in the source language when a translation is unconfirmed. Tests cover chronology, project attribution, question caps, answer statuses, explicit skipping and recovery without extra billing.
 
 Clarification loop protection: only a changed scalar explicitly rejected by verification and citing current profile facts can become a question. Technical errors, unknown paths, dependent record rejections and unchanged fields use the confirmed fallback without asking the user to diagnose them. The disputed proposal is always visible and labelled as unconfirmed, beside its section/role label. Clarifications have a separate position/total counter and a cumulative budget of five answered or explicitly deferred questions per session; regeneration cannot reset it. Normalized claim and question fingerprints suppress repeats across field reordering, case and punctuation changes. This is deterministic duplicate detection, not semantic equivalence detection; reworded claims may remain distinct, but the budget still bounds them. Discovery also stops repeated wording under a new topic without an automatic paid retry.
@@ -481,13 +484,13 @@ Implementation and tests (verified whole-module ranges; use the named symbols fo
 | --- | --- |
 | `backend/app/models/models.py` | 1–583; CareerProfile, InterviewSession |
 | `backend/alembic/versions/20260910_0017_career_interviews.py` | 1–41; upgrade, downgrade |
-| `backend/app/services/interview_clarification.py` | 1–173; clarification_queue, repair_clarification_state, start_clarifications, finish_clarification_answer |
-| `backend/app/services/interview_recovery.py` | 1–107; previous_rejected_result, assemble_reviewed_draft |
+| `backend/app/services/interview_clarification.py` | 1–212; clarification_queue, repair_clarification_state, start_clarifications, finish_clarification_answer |
+| `backend/app/services/interview_recovery.py` | 1–121; previous_rejected_result, assemble_reviewed_draft |
 | `frontend/src/components/ai/Interview/InterviewReviewNotice.jsx` | 1–24; InterviewReviewNotice |
-| `backend/tests/test_interview_recovery.py` | 1–139; test_report_chronology_and_project_technology_rejections_keep_usable_cv |
-| `backend/app/schemas/interview_schema.py` | 1–118; CareerFact, InterviewCreate, SessionWrite, SourceRefresh, Discovery, Draft, Clarification, Verification |
+| `backend/tests/test_interview_recovery.py` | 1–176; test_report_chronology_and_project_technology_rejections_keep_usable_cv |
+| `backend/app/schemas/interview_schema.py` | 1–119; CareerFact, InterviewCreate, SessionWrite, SourceRefresh, Discovery, Draft, Clarification, Verification |
 | `backend/app/services/interview_service.py` | 1–382; put_profile, check_versions, source_facts, base_cv, assemble_draft, paid_model, next_question |
-| `backend/app/api/routes/interviews.py` | 1–432; create_interview, answer_interview, confirm_interview, refresh_interview_source, preview_interview, clarify_interview, skip_clarifications, save_interview_document |
+| `backend/app/api/routes/interviews.py` | 1–430; create_interview, answer_interview, confirm_interview, refresh_interview_source, preview_interview, clarify_interview, skip_clarifications, save_interview_document |
 | `frontend/src/components/ai/Interview/InterviewLoading.jsx` | 1–45; InterviewLoading |
 | `frontend/src/components/ai/Interview/InterviewLoading.module.css` | 1–24; loading, manuscript, track |
 | `frontend/src/components/ai/Interview/InterviewLoading.runtime.test.jsx` | 1–26; long wait, operation boundaries |
@@ -508,15 +511,15 @@ Implementation and tests (verified whole-module ranges; use the named symbols fo
 | `frontend/src/components/common/SiteLayout/SiteLayout.module.css` | 1–199; compactHero |
 | `frontend/src/components/ai/Interview/FactEditor.jsx` | 1–123; FactEditor |
 | `frontend/src/components/ai/Interview/CvContent.jsx` | 1–31; CvContent |
-| `frontend/src/services/interviews.js` | 1–30; interviewRequest, reviewFacts |
+| `frontend/src/services/interviews.js` | 1–34; interviewRequest, reviewFacts |
 | `frontend/src/pages/Site/CareerProfilePage.jsx` | 1–77; CareerProfilePage |
 | `frontend/src/pages/Site/InterviewPage.jsx` | 1–10; InterviewPage |
 | `frontend/src/utils/interviewPresentation.js` | 1–13; factLabel, interviewFields |
-| `backend/tests/test_interviews.py` | 1–607; state, grounding, billing, source preservation and PDF regressions |
+| `backend/tests/test_interviews.py` | 1–638; state, grounding, billing, source preservation and PDF regressions |
 | `backend/tests/test_alembic_interviews.py` | 1–26; additive migration regression |
-| `frontend/src/components/ai/Interview/Interview.runtime.test.jsx` | 1–225; save-before-next, recovery, focus and source changes |
+| `frontend/src/components/ai/Interview/Interview.runtime.test.jsx` | 1–245; save-before-next, recovery, focus and source changes |
 | `frontend/e2e/interview-sources.spec.js` | 1–62; isolated source selection, confirmation, resumption |
-| `frontend/e2e/interviews.spec.js` | 1–172; create, resume, profile and assistant flows |
+| `frontend/e2e/interviews.spec.js` | 1–180; create, resume, profile and assistant flows |
 
 Folder additions: `backend/app/schemas/interview_schema.py` defines API/provider contracts, `backend/app/services/interview_service.py` owns evidence and conversation rules, and `backend/app/api/routes/interviews.py` owns HTTP orchestration. `frontend/src/components/ai/Interview/` contains the shared flow, controlled fact editor, content review, token-based styles and runtime tests. `docs/INTERVIEWS.md` is the technical tutorial; `docs/licenses/resume-agent-skills-MIT.txt` retains Vignesh Pai's MIT attribution.
 
@@ -3463,6 +3466,9 @@ Etapowy podgląd i interfejs oczekiwania zmieniają wyłącznie frontend, korzys
 
 Implementacja i testy (zweryfikowane zakresy całych modułów; symbole ułatwiają nawigację):
 
+
+Korekty doprecyzowań zachowują identyfikatory przywołanych faktów (`target_fact_ids`), gdy źródłem jest jednoznaczne istniejące pole lub jedna odpowiedź bez pola. `answer_proposals` przygotowuje zastąpienie, a `reviewFacts` pokazuje je w miejscu wpisu; dopiero `/confirm` aktualizuje wybrany zbiór informacji. „Nie pamiętam” i pominięcie nie nadpisują faktu. „Opis jest poprawny” jawnie wysyła widoczną propozycję bez przepisywania; wpisana korekta musi zawierać pełny opis zastępujący poprzedni. Zmiana brzmienia pytania nie otwiera ponownie rozstrzygniętego wpisu w tej samej sesji. Niejednoznaczne i starsze pytania bez wiarygodnego powiązania pozostają osobnymi notatkami; wcześniej zapisane duplikaty nie są automatycznie usuwane. Instrukcje generowania łączą związane szczegóły w jedną czynność. `Verification.duplicate_paths` oddziela zbędne dodatki od niepotwierdzonych twierdzeń; na tej podstawie można pominąć tylko dodawane podpunkty, zachowując istniejące pola użytkownika i osobne role. Identyczne dodatki w jednej liście punktów są też filtrowane lokalnie; wykrywanie powtórzeń znaczeniowych nadal zależy od oceny AI. Zmiana nie wymaga migracji ani dodatkowego automatycznego wywołania AI. Wdróż backend i frontend razem, następnie odśwież aktywnych klientów. Testy obejmują zastępowanie/ponowienie w obu zakresach danych, brak odpowiedzi, ponowne pytania o wpis, powtórzone dodatki i jawne potwierdzenie w UI. [Wartości domyślne pól Pydantic](https://docs.pydantic.dev/latest/concepts/fields/) wyjaśniają, dlaczego starsze zapisane wyniki weryfikacji mogą pomijać `duplicate_paths`, choć nowy schemat providera go wymaga.
+
 Niejasne propozycje AI prowadzą teraz do doprecyzowania przed końcowym podglądem. `interview_clarification.py` przygotowuje do pięciu konkretnych pytań z wyniku weryfikacji; `clarify` rozpoczyna dobrowolną rundę, a `skip-clarifications` świadomie ją pomija. Pytania i odpowiedzi wykorzystują zapisaną pracę bez dodatkowej opłaty AI. Nowe odpowiedzi pozostają szkicem do zatwierdzenia faktów; kolejne generowanie CV korzysta ze zwykłych kredytów. Odpowiedzi użytkownika nie są odrzucane. `interview_recovery.py` utrzymuje potwierdzoną wersję na wypadek świadomego pominięcia oraz może odzyskać bezpośrednio poprzedni rozliczony wynik starej sesji przy niezmienionym profilu/źródle. Rozstrzygnięte tematy nie są powtarzane. `InterviewReviewNotice` wyjaśnia pozostałe niepotwierdzone szczegóły bez surowej diagnostyki. JSON sesji otrzymuje `pending_clarifications`, `dismissed_clarifications`, `clarification_round`, `review_notes` i `recovered_previous_attempt`; migracja nie jest potrzebna. Zachowane pola mogą pozostać w języku źródła, gdy tłumaczenie nie jest potwierdzone. Testy obejmują kolejność działań, przypisanie projektu, limity pytań, statusy odpowiedzi, świadome pominięcie i odzyskanie bez dodatkowej opłaty.
 
 Ochrona przed pętlą doprecyzowań: pytaniem może zostać tylko zmienione pole tekstowe jawnie zakwestionowane przez weryfikację i odwołujące się do aktualnych faktów profilu. Błędy techniczne, nieznane ścieżki, zależne odrzucenia wpisu oraz niezmienione pola korzystają z potwierdzonej wersji bez proszenia użytkownika o ich diagnozę. Sporna propozycja jest zawsze widoczna, oznaczona jako niepotwierdzona i opisana nazwą sekcji/roli. Doprecyzowania mają osobny licznik pozycji/liczby pytań i łączny budżet pięciu pytań z odpowiedzią lub jawnym pominięciem w sesji; regeneracja go nie resetuje. Znormalizowane odciski treści i pytania blokują powtórki po zmianie kolejności pól, wielkości liter i interpunkcji. To deterministyczne wykrywanie duplikatów, nie równoważności znaczeniowej; przeformułowane twierdzenia mogą pozostać odrębne, ale nadal ogranicza je budżet. Zwykły wywiad również zatrzymuje powtórzone pytanie z nowym identyfikatorem tematu, bez automatycznej płatnej próby.
@@ -3474,13 +3480,13 @@ Przy uwierzytelnionym odczycie właściciela `GET /ai/interviews/{id}` funkcja `
 | --- | --- |
 | `backend/app/models/models.py` | 1–583; CareerProfile, InterviewSession |
 | `backend/alembic/versions/20260910_0017_career_interviews.py` | 1–41; upgrade, downgrade |
-| `backend/app/services/interview_clarification.py` | 1–173; clarification_queue, repair_clarification_state, start_clarifications, finish_clarification_answer |
-| `backend/app/services/interview_recovery.py` | 1–107; previous_rejected_result, assemble_reviewed_draft |
+| `backend/app/services/interview_clarification.py` | 1–212; clarification_queue, repair_clarification_state, start_clarifications, finish_clarification_answer |
+| `backend/app/services/interview_recovery.py` | 1–121; previous_rejected_result, assemble_reviewed_draft |
 | `frontend/src/components/ai/Interview/InterviewReviewNotice.jsx` | 1–24; InterviewReviewNotice |
-| `backend/tests/test_interview_recovery.py` | 1–139; test_report_chronology_and_project_technology_rejections_keep_usable_cv |
-| `backend/app/schemas/interview_schema.py` | 1–118; CareerFact, InterviewCreate, SessionWrite, SourceRefresh, Discovery, Draft, Clarification, Verification |
+| `backend/tests/test_interview_recovery.py` | 1–176; test_report_chronology_and_project_technology_rejections_keep_usable_cv |
+| `backend/app/schemas/interview_schema.py` | 1–119; CareerFact, InterviewCreate, SessionWrite, SourceRefresh, Discovery, Draft, Clarification, Verification |
 | `backend/app/services/interview_service.py` | 1–382; put_profile, check_versions, source_facts, base_cv, assemble_draft, paid_model, next_question |
-| `backend/app/api/routes/interviews.py` | 1–432; create_interview, answer_interview, confirm_interview, refresh_interview_source, preview_interview, clarify_interview, skip_clarifications, save_interview_document |
+| `backend/app/api/routes/interviews.py` | 1–430; create_interview, answer_interview, confirm_interview, refresh_interview_source, preview_interview, clarify_interview, skip_clarifications, save_interview_document |
 | `frontend/src/components/ai/Interview/InterviewLoading.jsx` | 1–45; InterviewLoading |
 | `frontend/src/components/ai/Interview/InterviewLoading.module.css` | 1–24; loading, manuscript, track |
 | `frontend/src/components/ai/Interview/InterviewLoading.runtime.test.jsx` | 1–26; long wait, operation boundaries |
@@ -3501,15 +3507,15 @@ Przy uwierzytelnionym odczycie właściciela `GET /ai/interviews/{id}` funkcja `
 | `frontend/src/components/common/SiteLayout/SiteLayout.module.css` | 1–199; compactHero |
 | `frontend/src/components/ai/Interview/FactEditor.jsx` | 1–123; FactEditor |
 | `frontend/src/components/ai/Interview/CvContent.jsx` | 1–31; CvContent |
-| `frontend/src/services/interviews.js` | 1–30; interviewRequest, reviewFacts |
+| `frontend/src/services/interviews.js` | 1–34; interviewRequest, reviewFacts |
 | `frontend/src/pages/Site/CareerProfilePage.jsx` | 1–77; CareerProfilePage |
 | `frontend/src/pages/Site/InterviewPage.jsx` | 1–10; InterviewPage |
 | `frontend/src/utils/interviewPresentation.js` | 1–13; factLabel, interviewFields |
-| `backend/tests/test_interviews.py` | 1–607; testy zachowania wywiadu |
+| `backend/tests/test_interviews.py` | 1–638; testy zachowania wywiadu |
 | `backend/tests/test_alembic_interviews.py` | 1–26; testy zachowania wywiadu |
-| `frontend/src/components/ai/Interview/Interview.runtime.test.jsx` | 1–225; testy zachowania wywiadu |
+| `frontend/src/components/ai/Interview/Interview.runtime.test.jsx` | 1–245; testy zachowania wywiadu |
 | `frontend/e2e/interview-sources.spec.js` | 1–62; wybór osobnego źródła, zatwierdzanie, wznowienie |
-| `frontend/e2e/interviews.spec.js` | 1–172; testy zachowania wywiadu |
+| `frontend/e2e/interviews.spec.js` | 1–180; testy zachowania wywiadu |
 
 Nowe pliki: `backend/app/schemas/interview_schema.py` definiuje kontrakty API/modelu, `backend/app/services/interview_service.py` zarządza dowodami i regułami rozmowy, a `backend/app/api/routes/interviews.py` koordynuje HTTP. `frontend/src/components/ai/Interview/` zawiera wspólny przepływ, kontrolowany edytor faktów, podgląd treści, style oparte na tokenach i testy runtime. `docs/INTERVIEWS.md` to instrukcja techniczna; `docs/licenses/resume-agent-skills-MIT.txt` zachowuje autorstwo Vignesha Paia i licencję MIT.
 

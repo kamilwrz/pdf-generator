@@ -22,7 +22,11 @@ export function interviewEvidence(profile, session) {
 export function reviewFacts(profile, session) {
   const facts = [...(interviewEvidence(profile, session)?.facts || [])];
   for (const proposed of session?.proposed_facts || []) {
-    if (!facts.some((fact) => fact.id === proposed.id || (fact.text === proposed.text && fact.path === proposed.path))) {
+    // Clarifications retain their source ID: review the replacement in place,
+    // without retaining the obsolete assertion as a second career fact.
+    const index = facts.findIndex((fact) => fact.id === proposed.id);
+    if (index >= 0) facts[index] = proposed;
+    else if (!facts.some((fact) => fact.text === proposed.text && fact.path === proposed.path && fact.kind === proposed.kind && fact.context === proposed.context)) {
       facts.push(proposed);
     }
   }

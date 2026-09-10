@@ -77,6 +77,20 @@ def assemble_reviewed_draft(raw, verification, profile, language):
     paths = [field["path"] for field in fields]
     counts = Counter(paths)
     blocked = {path for path, count in counts.items() if count > 1}
+    # Only additions may be omitted as duplicates. A model cannot use this
+    # classification to delete an existing authored field or a whole record.
+    duplicates = set(verification.get('duplicate_paths', []))
+    for index, field in enumerate(fields):
+        path = field['path']
+        if _value_at(base, path) is not None or not re.search(r'/bullets/\d+$', path):
+            continue
+        parent = path.rsplit('/', 1)[0]
+        siblings = _value_at(base, parent) or []
+        def key(text):
+            return ' '.join(str(text).casefold().split()).rstrip('.!')
+        earlier = [f['value'] for f in fields[:index] if f['path'].rsplit('/', 1)[0] == parent]
+        if path in duplicates or any(key(field['value']) == key(text) for text in [*siblings, *earlier]):
+            blocked.add(path)
     for rejected in verification["unsupported_paths"]:
         rejected = rejected.strip().rstrip('/')
         matching = [path for path in paths if rejected and (path == rejected or path.startswith(rejected + '/'))]

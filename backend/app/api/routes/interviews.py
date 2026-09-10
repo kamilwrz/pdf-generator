@@ -18,7 +18,7 @@ from app.schemas.interview_schema import (
 from app.schemas.pdf_schema import PDFCreateRequest
 from app.services.interview_clarification import (
     clarification_queue, start_clarifications, finish_clarification_answer,
-    repair_clarification_state, dismiss_clarifications,
+    repair_clarification_state, dismiss_clarifications, answer_proposals,
 )
 from app.services.interview_recovery import assemble_reviewed_draft, previous_rejected_result
 from app.services import interview_service as service
@@ -172,7 +172,7 @@ def answer_interview(session_id: str, request: AnswerWrite, user=Depends(get_cur
             if previous["answer"] != request.answer or previous["status"] != request.status:
                 service.fail("Ta odpowiedź została już zapisana. Popraw informację w podsumowaniu.")
             return service.session_payload(row)
-    service.check_versions(db, row, request, source=False)
+    profile = service.check_versions(db, row, request, source=False)
     state = deepcopy(row.state)
     question = state.get("question")
     if not question or question["id"] != request.question_id:
@@ -180,11 +180,9 @@ def answer_interview(session_id: str, request: AnswerWrite, user=Depends(get_cur
     if request.status == "answered" and not request.answer.strip():
         service.fail("Wpisz odpowiedź lub wybierz pominięcie.", 422)
     state["answers"].append({"question": question, "answer": request.answer, "status": request.status})
-    if request.status in {"answered", "no_experience"}:
-        state["proposed_facts"].append({
-            "id": f"answer-{question['id']}", "text": request.answer.strip() if request.status == "answered" else f"Brak doświadczenia: {question['text']}",
-            "context": question["context"] or question["text"], "kind": "fact" if request.status == "answered" else "gap", "path": "", "source": f"interview:{row.id}",
-        })
+    proposals = answer_proposals(question, request.answer, request.status, profile, row.id)
+    replaced = {fact['id'] for fact in proposals}
+    state['proposed_facts'] = [fact for fact in state['proposed_facts'] if fact['id'] not in replaced] + proposals
     state["question"] = None
     if not question.get("clarification") or request.status in {"answered", "no_experience"}:
         state["preview"] = None
@@ -348,12 +346,12 @@ def preview_interview(session_id: str, request: GenerateWrite, user=Depends(get_
         response, verification = recovered
     else:
         response = service.paid_model(db, user, row, request, "preview", {
-            "task": "Przygotuj pełną treść CV jako fields: path/value/evidence_refs. Podstawą są wyłącznie potwierdzone profile facts; offer to kryteria doboru, nie dowody. Zachowaj wszystkie odrębne fakty bazowego CV, wzmacniaj podsumowanie i punkty. Możesz dodać potwierdzone projekty i umiejętności. Nie mieszaj danych różnych ról i projektów. Ogólna znajomość technologii nie potwierdza jej użycia w konkretnym projekcie. Zachowaj dokładnie kolejność działań, kierunek przekazania raportów i granice odpowiedzialności ze źródła; nie dopisuj relacji przed/po ani odbiorców. Każda liczba musi pochodzić z przywołanych faktów. Zwróć pozostałe braki. Nie generuj geometrii. Dane kontaktowe pozostają dosłowne. Używaj języka language dla całej treści.",
+            "task": "Przygotuj pełną treść CV jako fields: path/value/evidence_refs. Podstawą są wyłącznie potwierdzone profile facts; offer to kryteria doboru, nie dowody. Zachowaj wszystkie odrębne fakty bazowego CV, wzmacniaj podsumowanie i punkty. Możesz dodać potwierdzone projekty i umiejętności. Doprecyzowanie istniejącej czynności włącz do jej punktu, nie dopisuj drugiego punktu o tym samym zadaniu. Każdy odrębny fakt opisz raz w obrębie danej roli lub projektu. Nie mieszaj danych różnych ról i projektów. Ogólna znajomość technologii nie potwierdza jej użycia w konkretnym projekcie. Zachowaj dokładnie kolejność działań, kierunek przekazania raportów i granice odpowiedzialności ze źródła; nie dopisuj relacji przed/po ani odbiorców. Każda liczba musi pochodzić z przywołanych faktów. Zwróć pozostałe braki. Nie generuj geometrii. Dane kontaktowe pozostają dosłowne. Używaj języka language dla całej treści.",
             "allowed_paths": service.PATH.pattern, "profile": profile["facts"], "base_cv": service.base_cv(profile),
             "offer": state["offer"], "language": service.LANGUAGES[state["language"]],
         }, Draft)
         verification = service.paid_model(db, user, row, request, "verify", {
-            "task": "Sprawdź niezależnie każdą propozycję wyłącznie względem przywołanych evidence_refs i ograniczeń kind=gap/framing. Wskaż unsupported_paths, jeśli dopisano niepotwierdzoną technologię, wynik, certyfikat, skalę, stanowisko lub własność pracy zespołu; jeśli przeniesiono fakt do innej roli; jeśli usunięto zastrzeżenie lub odrębny fakt bazowego pola. Synonimy i wierne tłumaczenie są dozwolone. Oferta nie jest dowodem. Dla każdej niejasności zwróć też clarifications: path/question. Pytanie po polsku ma neutralnie rozstrzygnąć konkretny brak lub sprzeczność, bez sugerowania kompetencji ani prezentowania hipotezy jako faktu. Np. pytaj, w którym projekcie użyto technologii lub jaka była kolejność przekazywania raportów. Nie pytaj ponownie o potwierdzony brak doświadczenia. Zwróć puste listy tylko gdy wszystkie twierdzenia są uzasadnione.",
+            "task": "Sprawdź niezależnie każdą propozycję wyłącznie względem przywołanych evidence_refs i ograniczeń kind=gap/framing. Wskaż unsupported_paths, jeśli dopisano niepotwierdzoną technologię, wynik, certyfikat, skalę, stanowisko lub własność pracy zespołu; jeśli przeniesiono fakt do innej roli; jeśli usunięto zastrzeżenie lub odrębny fakt bazowego pola. Synonimy, parafrazy i wierne tłumaczenie są dozwolone. Nie wymagaj potwierdzania częstotliwości ani tego, czy zadanie było jednorazowe, jeśli opis nie deklaruje częstotliwości. Kontekst roli zapisany przy przywołanym fakcie jest potwierdzonym źródłem; nie pytaj ponownie o tę rolę. Dopytuj tylko o konkretną zmianę znaczenia lub sprzeczność. Powtórzenie tej samej czynności w tej samej roli oznacz w duplicate_paths (późniejszy zbędny punkt), nie w unsupported_paths i nie zadawaj o nie pytania. Oferta nie jest dowodem. Dla każdej niejasności zwróć też clarifications: path/question. Pytanie po polsku ma neutralnie rozstrzygnąć konkretny brak lub sprzeczność, bez sugerowania kompetencji ani prezentowania hipotezy jako faktu. Np. pytaj, w którym projekcie użyto technologii lub jaka była kolejność przekazywania raportów. Nie pytaj ponownie o potwierdzony brak doświadczenia. Zwróć puste listy tylko gdy wszystkie twierdzenia są uzasadnione.",
             "profile": profile["facts"], "base_cv": service.base_cv(profile), "draft": response["output"]["fields"],
         }, Verification)
     try:

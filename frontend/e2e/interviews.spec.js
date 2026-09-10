@@ -84,6 +84,8 @@ for (const width of [390, 834, 1280, 1920]) {
     await expect(page.getByText(/Doprecyzowanie 1 z 1/)).toBeVisible();
     await page.getByLabel('Twoja odpowiedź').focus();
     await page.keyboard.press('Tab');
+    await expect(page.getByRole('button', { name: 'Opis jest poprawny', exact: true })).toBeFocused();
+    await page.keyboard.press('Tab');
     await expect(page.getByRole('button', { name: 'Nie mam takiego doświadczenia', exact: true })).toBeFocused();
     if (width === 834) await page.addStyleTag({ content: 'html { font-size: 200% !important; }' });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
@@ -92,8 +94,14 @@ for (const width of [390, 834, 1280, 1920]) {
     if (width === 834 || width === 1920) {
       await page.getByRole('button', { name: 'Pomiń doprecyzowanie i pokaż CV' }).click();
     } else {
-      await page.getByLabel('Twoja odpowiedź').fill('Python był używany w projekcie uczelnianym.');
-      await page.getByRole('button', { name: 'Zapisz odpowiedź', exact: true }).click();
+      if (width === 390) {
+        await page.getByRole('button', { name: 'Opis jest poprawny', exact: true }).focus();
+        await page.keyboard.press('Enter');
+      } else {
+        await page.getByLabel('Twoja odpowiedź').fill('Python był używany w projekcie uczelnianym.');
+        await expect(page.getByRole('button', { name: 'Opis jest poprawny', exact: true })).toBeDisabled();
+        await page.getByRole('button', { name: 'Zapisz odpowiedź', exact: true }).click();
+      }
       await expect(page.getByRole('heading', { name: 'Sprawdź informacje do CV' })).toBeVisible();
       await page.getByRole('button', { name: 'Zatwierdź informacje', exact: true }).click();
       await page.getByRole('button', { name: '03 Przygotuj CV', exact: true }).click();

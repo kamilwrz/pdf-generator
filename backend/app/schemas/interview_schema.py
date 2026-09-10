@@ -104,6 +104,7 @@ class Clarification(Contract):
 
 class Verification(Contract):
     """Independent semantic review of claims against their cited source facts."""
+    duplicate_paths: list[str] = Field(default_factory=list, max_length=250)
     unsupported_paths: list[str] = Field(max_length=250)
     reasons: list[str] = Field(max_length=250)
     clarifications: list[Clarification] = Field(default_factory=list, max_length=250)
