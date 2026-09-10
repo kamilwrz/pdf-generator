@@ -44,7 +44,7 @@ async function expectToolbarAboveText(toolbar, text) {
       text.evaluate(() => window.innerWidth),
     ]);
     return {
-      alignedLeft: Math.abs(toolbarBox.x - textBox.x) < 0.5,
+      alignedLeft: Math.abs(toolbarBox.x - Math.max(8, Math.min(textBox.x, viewportWidth - toolbarBox.width - 8))) < 0.5,
       fitsViewport: toolbarBox.x + toolbarBox.width <= viewportWidth,
       verticalGap: Math.round(textBox.y - toolbarBox.y - toolbarBox.height),
     };
@@ -107,9 +107,9 @@ for (const width of [390, 834, 1280, 1920]) {
     expect(hoverAppearance.background).toBe("rgba(0, 0, 0, 0)");
     expect(hoverAppearance.pointerEvents).toBe("none");
     const sectionToolbar = page.locator('[data-canvas-toolbar-key="heading:skills-heading"]');
-    await checkControl(sectionToolbar.getByRole("button").first(), 28.8);
+    await checkControl(sectionToolbar.getByRole("button").first(), 36);
     const skillsStyle = sectionToolbar.getByRole("button", { name: "Styl umiejętności: w linii" });
-    await checkControl(skillsStyle, 28.8);
+    await checkControl(skillsStyle, 36);
     await expect(skillsStyle).toHaveText("");
     await expect(skillsStyle).toHaveAttribute("data-tooltip", "Styl umiejętności: w linii");
     await page.screenshot({ path: testInfo.outputPath("skills-style-toolbar.png") });
@@ -117,7 +117,7 @@ for (const width of [390, 834, 1280, 1920]) {
     await expect(sectionToolbar.getByRole("button", { name: "AI dla wybranego zakresu" })).toBeVisible();
     await page.locator("#skills-tools-title").hover();
     const recordToolbar = page.locator('[data-canvas-toolbar-key="record:skills-tools-title"]');
-    await checkControl(recordToolbar.getByRole("button").first(), 28.8);
+    await checkControl(recordToolbar.getByRole("button").first(), 36);
     await expectToolbarAboveText(recordToolbar, page.locator("#skills-tools-title"));
     await expect(recordToolbar.getByRole("button", { name: "AI dla wybranego zakresu" })).toBeVisible();
     await reachToolbarFromText(page, "skills-technologies-title", "record:skills-technologies-title");
@@ -173,7 +173,9 @@ for (const width of [390, 834, 1280, 1920]) {
   });
 }
 
-test("toolbar geometry and menu text stay constant through animated canvas zoom", async ({ page }, testInfo) => {
+test("toolbar geometry and menu text grow monotonically through animated canvas zoom", async ({ page }, testInfo) => {
+  test.setTimeout(60_000);
+  await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.setViewportSize({ width: 1280, height: 1000 });
   const api = await installMockApi(page, { savedElements: [...SAVED_ELEMENTS, ...extraElements] });
   await login(page);
@@ -188,7 +190,8 @@ test("toolbar geometry and menu text stay constant through animated canvas zoom"
   // authored hover target underneath it and legitimately claim the toolbar.
   await page.mouse.move(1, 1);
 
-  for (const targetZoom of [100, 50, 200, 300, 160]) {
+  let previousHeight = 36;
+  for (const targetZoom of [280, 140, 100, 50, 200, 300, 160]) {
     // Native clicks avoid pointer movement away from the pinned toolbar. Sample
     // every animation frame: final-state checks miss transient rescaling.
     const samples = await page.evaluate(async (target) => {
@@ -218,12 +221,19 @@ test("toolbar geometry and menu text stay constant through animated canvas zoom"
     }, targetZoom);
     expect(samples.length).toBeGreaterThan(2);
     for (const sample of samples) {
-      expect(sample.height).toBeCloseTo(28.8, 1);
-      expect(sample.width).toBeCloseTo(60.8, 1);
-      expect(sample.icon).toBeCloseTo(12, 1);
-      expect(sample.font).toBe("12px");
-      expect(sample.menuFont).toBe("12px");
+      const finalHeight = 36 * (2 + targetZoom / 140) / 3;
+      expect(sample.height).toBeGreaterThanOrEqual(Math.min(previousHeight, finalHeight) - 0.1);
+      expect(sample.height).toBeLessThanOrEqual(Math.max(previousHeight, finalHeight) + 0.1);
+      expect(sample.width / sample.height).toBeCloseTo(76 / 36, 1);
+      expect(sample.icon / sample.height).toBeCloseTo(16 / 36, 1);
+      expect(parseFloat(sample.font)).toBeGreaterThanOrEqual(12);
+      expect(sample.menuFont).toBe(sample.font);
       expect(sample.menuWeight).toBe("400");
+      previousHeight = sample.height;
+    }
+    expect(samples.at(-1).height).toBeCloseTo(36 * (2 + targetZoom / 140) / 3, 1);
+    if ([140, 280].includes(targetZoom)) {
+      await page.screenshot({ path: testInfo.outputPath(`toolbar-${targetZoom}.png`) });
     }
   }
 
@@ -236,7 +246,7 @@ test("toolbar geometry and menu text stay constant through animated canvas zoom"
     await items.first().press("End");
     await expect(items.last()).toBeFocused();
     for (const item of await items.all()) {
-      expect(await item.evaluate((el) => getComputedStyle(el).fontSize)).toBe("12px");
+      expect(parseFloat(await item.evaluate((el) => getComputedStyle(el).fontSize))).toBeGreaterThanOrEqual(14);
       expect((await item.boundingBox()).height).toBeGreaterThanOrEqual(36);
     }
     const box = await toolbar.getByRole("menu").boundingBox();
@@ -273,4 +283,41 @@ async function reachToolbarFromText(page, elementId, toolbarKey) {
   await expect(toolbar.getByRole("menu")).toBeVisible();
   await toolbar.getByRole("menuitem").first().press("Escape");
   await expect(more).toBeFocused();
+}
+
+// 640px also covers the CSS viewport available to a 1280px display at 200%
+// browser zoom. Reduced motion must apply the final dimensions immediately.
+for (const width of [390, 640]) {
+  test(`enlarged record toolbar stays usable at ${width}px and 280%`, async ({ page }, testInfo) => {
+    await page.setViewportSize({ width, height: 1000 });
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    const api = await installMockApi(page);
+    await login(page);
+    await page.getByText("Kontynuuj ostatnie CV", { exact: true }).click();
+    await expect(page.getByRole("button", { name: "Powiększ", exact: true })).toBeVisible();
+    await page.evaluate(() => {
+      const zoomIn = document.querySelector('[aria-label="Powiększ"]');
+      for (let step = 0; step < 14; step += 1) zoomIn.click();
+    });
+    await page.locator("#skills-tools-title").evaluate((node) => node.scrollIntoView({ block: "center" }));
+    await page.locator("#skills-tools-title").dispatchEvent("pointerenter");
+    const toolbar = page.locator('[data-canvas-toolbar-key="record:skills-tools-title"]');
+    const more = toolbar.getByRole("button", { name: "Więcej działań" });
+    await expect(more).toBeVisible();
+    await expect.poll(async () => (await more.boundingBox()).height).toBeCloseTo(48, 1);
+    for (const button of await toolbar.getByRole("button").all()) {
+      const box = await button.boundingBox();
+      expect(box.x).toBeGreaterThanOrEqual(8);
+      expect(box.x + box.width).toBeLessThanOrEqual(width - 8);
+    }
+    await more.focus();
+    await more.press("Enter");
+    const menu = toolbar.getByRole("menu");
+    await expect(menu).toBeVisible();
+    await expect(toolbar.getByRole("menuitem").first()).toBeFocused();
+    await toolbar.getByRole("menuitem").first().press("Escape");
+    await expect(more).toBeFocused();
+    await page.screenshot({ path: testInfo.outputPath("record-280.png") });
+    api.assertHermetic();
+  });
 }

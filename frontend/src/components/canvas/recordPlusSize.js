@@ -4,19 +4,12 @@
  *
  * The page uses `transform: scale(zoom)`, so a layout pixel appears as
  * `layout * zoom` screen pixels. We target a compact on-screen size and divide
- * by zoom so controls retain one screen size. Body portals use zoom=1 because
- * they are already outside the transformed page; only their anchors scale.
+ * by zoom so inline controls retain one screen size. Structural body portals
+ * use structuralToolbarScreenLayoutSize with the live page zoom instead.
  *
  * The controls use a shared white toolbar surface so they remain usable
  * without competing with the CV content.
  */
-
-/** Visual scale requested for grouped section and record toolbars. */
-export const STRUCTURAL_TOOLBAR_VISUAL_SCALE = 0.8;
-
-function scaledStructuralValue(value, zoom) {
-  return Number((value * STRUCTURAL_TOOLBAR_VISUAL_SCALE).toFixed(4)) / zoom;
-}
 
 /** Flush placement prevents adjacent entries from stealing hover on the way to actions. */
 export const STRUCTURAL_TOOLBAR_VERTICAL_GAP_SCREEN_PX = 0;
@@ -34,12 +27,13 @@ export function recordPlusLayoutSize(zoom = 1, fontSize = 10) {
 }
 
 /**
- * Screen-stable dimensions for the grouped section/record toolbar.
+ * Page-local dimensions for the grouped section/record toolbar.
  *
  * Unlike small single-purpose canvas icons, structural actions need enough
  * room for reliable pointer targeting and a short text label. Every value is
  * divided by the A4 zoom because the parent page transform scales it back to
- * the intended on-screen dimensions.
+ * the intended on-screen dimensions. The marker tells the body portal to
+ * resolve fresh screen metrics while the page animates, without scaling twice.
  *
  * @param {number} [zoom=1]
  * @param {number} [offsetScreenPx=10] desired anchor gap in screen pixels
@@ -53,25 +47,43 @@ export function structuralToolbarLayoutSize(zoom = 1, offsetScreenPx = 10) {
     ? Number(offsetScreenPx)
     : 10;
   return {
-    buttonSize: scaledStructuralValue(36, safeZoom),
-    iconSize: scaledStructuralValue(15, safeZoom),
-    gap: scaledStructuralValue(3, safeZoom),
-    labelWidth: scaledStructuralValue(76, safeZoom),
-    // Text keeps the accessible 12px minimum instead of shrinking with icons.
-    fontSize: 12 / safeZoom,
-    menuWidth: scaledStructuralValue(176, safeZoom),
-    // The page transform scales this layout value back into an exact visual
-    // gap, so structural toolbars keep their requested rhythm at every zoom.
-    offset: safeOffset / safeZoom,
-    borderWidth: 1 / safeZoom,
+    ...Object.fromEntries(Object.entries(structuralToolbarScreenLayoutSize(safeZoom, safeOffset))
+      .map(([key, value]) => [key, value / safeZoom])),
+    scaleWithCanvas: true,
+  };
+}
+
+/**
+ * Resolve structural portal metrics in CSS screen pixels, without side effects.
+ * Growth is deliberately gentler than document zoom: 36px buttons at 140%,
+ * 48px at 280%. Labels, icons and menu rows grow together; text never falls
+ * below 12px. Invalid zoom falls back to 100%. Borders and anchor gaps stay
+ * screen-stable, keeping the toolbar flush with text and outside PDF layout.
+ * @param {number} zoom - Live A4 transform scale, including animation frames.
+ * @param {number} [offsetScreenPx=10] Non-negative gap from the text anchor.
+ * @returns {object} Screen-space button, icon, label, menu and surface metrics.
+ */
+export function structuralToolbarScreenLayoutSize(zoom, offsetScreenPx = 10) {
+  const safeZoom = Number.isFinite(Number(zoom)) && Number(zoom) > 0.05 ? Number(zoom) : 1;
+  const scale = (2 + safeZoom / 1.4) / 3;
+  return {
+    buttonSize: 36 * scale,
+    iconSize: 16 * scale,
+    gap: 3 * scale,
+    labelWidth: 76 * scale,
+    fontSize: Math.max(12, 14 * scale),
+    menuWidth: 176 * scale,
+    offset: Number.isFinite(Number(offsetScreenPx)) && Number(offsetScreenPx) >= 0
+      ? Number(offsetScreenPx) : 10,
+    borderWidth: 1,
   };
 }
 
 /**
  * Return the compact geometry used by inline add controls.
  *
- * Inline controls use a 24px target with the same 12px icon, padding, and
- * hairline as section/record toolbars. The latter keep their 28.8px targets.
+ * Inline controls keep their independent 24px target and 12px icon. They do
+ * not inherit structural toolbar growth or change the size of open forms.
  * This narrow canvas exception keeps advice and document text unobstructed.
  *
  * @param {number} [zoom=1]
@@ -82,8 +94,14 @@ export function compactInlineToolbarLayoutSize(zoom = 1) {
     ? Number(zoom)
     : 1;
   return {
-    ...structuralToolbarLayoutSize(safeZoom, 8),
     buttonSize: 24 / safeZoom,
+    iconSize: 12 / safeZoom,
+    gap: 2.4 / safeZoom,
+    labelWidth: 60.8 / safeZoom,
+    fontSize: 12 / safeZoom,
+    menuWidth: 140.8 / safeZoom,
+    offset: 8 / safeZoom,
+    borderWidth: 1 / safeZoom,
   };
 }
 

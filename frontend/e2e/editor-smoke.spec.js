@@ -197,7 +197,7 @@ test.describe("CV Studio editor smoke", () => {
     // portalled outside the scaled A4 page and is the visible contract.
     await expect(moreActions).toBeVisible();
     const recordControlBox = await moreActions.boundingBox();
-    expect(Math.abs(recordControlBox.height - 28.8)).toBeLessThan(0.2);
+    expect(Math.abs(recordControlBox.height - 36)).toBeLessThan(0.2);
     await moreActions.evaluate((button) => button.click());
     await recordToolbar.getByRole("menuitem", { name: "Usuń wpis" }).click();
 
@@ -292,7 +292,7 @@ test.describe("CV Studio editor smoke", () => {
     const sectionToolbar = page.locator('[data-canvas-toolbar-key="heading:skills-heading"]');
     const sectionMoreActions = sectionToolbar.getByRole("button", { name: "Więcej działań" });
     const sectionControlBox = await sectionMoreActions.boundingBox();
-    expect(Math.abs(sectionControlBox.height - 28.8)).toBeLessThan(0.2);
+    expect(Math.abs(sectionControlBox.height - 48)).toBeLessThan(0.2);
     await sectionMoreActions.click();
     await expect(sectionToolbar.getByRole("menuitem", { name: /^Styl umiejętności/ })).toHaveCount(0);
     await page.keyboard.press("Escape");

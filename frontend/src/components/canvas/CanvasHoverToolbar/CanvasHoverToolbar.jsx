@@ -11,6 +11,7 @@ import { FiChevronDown, FiChevronUp, FiMoreHorizontal, FiPlus, FiCpu } from "rea
 import { useScopedAi } from "../../../store/scoped-ai-context";
 import { SCOPED_AI_ACTIONS } from "../../../utils/scopedAi";
 import classes from "./CanvasHoverToolbar.module.css";
+import { structuralToolbarScreenLayoutSize } from "../recordPlusSize";
 
 /**
  * @param {{
@@ -128,11 +129,21 @@ export default function CanvasHoverToolbar({
       const page = origin?.closest?.("[data-page-canvas]");
       if (!origin || !page) return;
       const originRect = origin.getBoundingClientRect();
+      // Read the page's own animated transform, excluding fit-to-viewport or
+      // assistant transforms on its ancestors. Portals have no A4 transform.
+      const transform = new DOMMatrixReadOnly(getComputedStyle(page).transform);
+      const zoom = Math.hypot(transform.a, transform.b);
       const toolbarRect = toolbarRef.current?.getBoundingClientRect?.();
       const toolbarWidth = toolbarRect?.width || 0;
       const toolbarHeight = toolbarRect?.height || 0;
       let portalLeft = originRect.left;
       let portalTop = originRect.top;
+      if (placement === "above" && toolbarWidth > 0) {
+        // Keep the text edge as the preferred anchor; only shift at viewport
+        // boundaries. CSS wraps oversized rows without shrinking their targets.
+        portalLeft = Math.max(8, Math.min(portalLeft, window.innerWidth - toolbarWidth - 8));
+        portalTop = Math.max(portalTop, toolbarHeight + 8);
+      }
       if (placement === "below" && toolbarWidth > 0) {
         portalLeft -= toolbarWidth / 2;
         if (collisionAware) {
@@ -149,11 +160,12 @@ export default function CanvasHoverToolbar({
           }
         }
       }
-      const next = { left: portalLeft, top: portalTop };
+      const next = { left: portalLeft, top: portalTop, zoom };
       setPortalGeometry((previous) => (
         previous
           && previous.left === next.left
           && previous.top === next.top
+          && previous.zoom === next.zoom
           ? previous
           : next
       ));
@@ -197,7 +209,7 @@ export default function CanvasHoverToolbar({
     page?.addEventListener("transitioncancel", stopCanvasTransitionTracking);
     // The toolbar is portalled to <body>, so it does not inherit the A4 host's
     // transform. Follow page zoom and assistant-open transitions frame by frame
-    // so a pinned keyboard toolbar stays attached while retaining its size.
+    // so a pinned keyboard toolbar stays attached and grows with canvas zoom.
     canvasHost?.addEventListener("transitionrun", trackCanvasTransition);
     canvasHost?.addEventListener("transitionend", stopCanvasTransitionTracking);
     canvasHost?.addEventListener("transitioncancel", stopCanvasTransitionTracking);
@@ -225,21 +237,23 @@ export default function CanvasHoverToolbar({
     ? Number(anchorX)
     : (side === "left" ? 0 : pageWidth);
   const originStyle = { left: resolvedAnchorX, top };
-  // Only the anchor follows A4. Multiplying inverse-zoom dimensions by a live
-  // transform scale made controls shrink/grow during edit-zoom transitions.
-  // Portals consume the shared metrics at zoom=1, including text and menus.
+  // Structural actions grow from the live transform in screen coordinates.
+  // Inline actions and forms retain their independent fixed-screen contract.
+  const screenLayout = layout.scaleWithCanvas
+    ? structuralToolbarScreenLayoutSize(portalGeometry?.zoom, layout.offset)
+    : layout;
   const screenValue = (value) => `${value}px`;
   const portalStyle = portalGeometry ? {
     left: portalGeometry.left,
     top: portalGeometry.top,
-    "--canvas-control-size": screenValue(layout.buttonSize),
-    "--canvas-control-icon": screenValue(layout.iconSize),
-    "--canvas-control-gap": screenValue(layout.gap),
-    "--canvas-control-label-width": screenValue(layout.labelWidth),
-    "--canvas-control-font": screenValue(layout.fontSize),
-    "--canvas-control-menu-width": screenValue(layout.menuWidth),
-    "--canvas-control-offset": screenValue(layout.offset),
-    "--canvas-control-border": screenValue(layout.borderWidth),
+    "--canvas-control-size": screenValue(screenLayout.buttonSize),
+    "--canvas-control-icon": screenValue(screenLayout.iconSize),
+    "--canvas-control-gap": screenValue(screenLayout.gap),
+    "--canvas-control-label-width": screenValue(screenLayout.labelWidth),
+    "--canvas-control-font": screenValue(screenLayout.fontSize),
+    "--canvas-control-menu-width": screenValue(screenLayout.menuWidth),
+    "--canvas-control-offset": screenValue(screenLayout.offset),
+    "--canvas-control-border": screenValue(screenLayout.borderWidth),
   } : null;
 
   const runAction = (event, action) => {

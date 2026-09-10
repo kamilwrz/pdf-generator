@@ -93,6 +93,8 @@
     position: absolute;
     top: 0;
     width: max-content;
+    max-width: calc(100vw - var(--space-4));
+    flex-wrap: wrap;
     animation: canvasToolbarIn 170ms cubic-bezier(.16, 1, .3, 1) both;
 }
 
@@ -124,6 +126,14 @@
 
 .control {
     composes: button from "../CanvasControls.module.css";
+}
+
+/* The overflow action sits at the viewport edge after collision clamping.
+   Align its enlarged hint to that edge instead of centring it offscreen. */
+.toolbar:has(.addControl) > .control:last-child[data-tooltip]::after {
+    left: auto;
+    right: 0;
+    transform: none;
 }
 
 .addControl {

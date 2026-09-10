@@ -6,29 +6,38 @@ import {
   resolveStructuralToolbarSide,
   STRUCTURAL_TOOLBAR_VERTICAL_GAP_SCREEN_PX,
   structuralToolbarLayoutSize,
+  structuralToolbarScreenLayoutSize,
 } from "./recordPlusSize.js";
 
-test("keeps the compact structural toolbar screen-stable across canvas zoom", () => {
-  assert.deepEqual(structuralToolbarLayoutSize(1), {
-    buttonSize: 28.8,
-    iconSize: 12,
-    gap: 2.4,
-    labelWidth: 60.8,
-    fontSize: 12,
-    menuWidth: 140.8,
-    offset: 10,
-    borderWidth: 1,
-  });
-  assert.deepEqual(structuralToolbarLayoutSize(2), {
-    buttonSize: 14.4,
-    iconSize: 6,
-    gap: 1.2,
-    labelWidth: 30.4,
-    fontSize: 6,
-    menuWidth: 70.4,
-    offset: 5,
-    borderWidth: 0.5,
-  });
+test("structural targets, text and icons grow with zoom without double scaling", () => {
+  let previous;
+  for (const zoom of [0.5, 1, 1.4, 2, 2.8, 3]) {
+    const screen = structuralToolbarScreenLayoutSize(zoom, 0);
+    const local = structuralToolbarLayoutSize(zoom, 0);
+    assert.equal(local.scaleWithCanvas, true);
+    for (const [key, value] of Object.entries(screen)) {
+      assert.ok(Math.abs(local[key] * zoom - value) < 0.00001, key);
+    }
+    assert.ok(screen.fontSize >= 12);
+    assert.ok(screen.buttonSize >= 24);
+    assert.equal(screen.offset, 0);
+    assert.equal(screen.borderWidth, 1);
+    if (previous) {
+      for (const key of ["buttonSize", "iconSize", "labelWidth", "menuWidth"]) {
+        assert.ok(screen[key] > previous[key], key);
+      }
+    }
+    previous = screen;
+  }
+  assert.equal(structuralToolbarScreenLayoutSize(1.4).buttonSize, 36);
+  assert.equal(structuralToolbarScreenLayoutSize(2.8).buttonSize, 48);
+  assert.equal(structuralToolbarScreenLayoutSize(1.4).fontSize, 14);
+});
+
+test("invalid structural zoom and offsets fall back to usable geometry", () => {
+  for (const zoom of [undefined, NaN, Infinity, 0, -1]) {
+    assert.deepEqual(structuralToolbarScreenLayoutSize(zoom, -1), structuralToolbarScreenLayoutSize(1));
+  }
 });
 
 test("shares the language-sized compact inline toolbar with Skills", () => {
