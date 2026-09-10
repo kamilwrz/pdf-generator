@@ -221,7 +221,7 @@ test.describe("CV Studio editor smoke", () => {
     api.assertHermetic();
   });
 
-  test("creates correctly sized skill chips through the layout modal", async ({ page }) => {
+  test("creates correctly sized skill chips through the layout panel", async ({ page }) => {
     const placeholderDocument = {
       ...SAVED_DOCUMENT,
       cv_data: {
@@ -287,7 +287,7 @@ test.describe("CV Studio editor smoke", () => {
     // The authored heading uses cap-height alignment whose DOM box can be
     // reported as zero-height by headless Chromium even though the glyphs are
     // visible. Dispatch the same pointer-enter event observed by the shared
-    // canvas toolbar so this regression remains about modal chip geometry.
+    // canvas toolbar so this regression remains about panel chip geometry.
     await page.locator("#skills-heading").dispatchEvent("pointerenter");
     const sectionToolbar = page.locator('[data-canvas-toolbar-key="heading:skills-heading"]');
     const sectionMoreActions = sectionToolbar.getByRole("button", { name: "Więcej działań" });
@@ -301,13 +301,17 @@ test.describe("CV Studio editor smoke", () => {
     await expect(skillsStyle).toHaveText("");
     await skillsStyle.focus();
     await page.keyboard.press("Enter");
-    const modal = page.getByRole("dialog", { name: "Styl umiejętności" });
-    await expect(modal).toBeVisible();
+    const stylePanel = page.getByRole("region", { name: "Styl umiejętności" });
+    await expect(stylePanel).toBeVisible();
+    await expect(stylePanel.getByRole("radio")).toHaveCount(9);
     await page.keyboard.press("Escape");
     await expect(skillsHeading).toBeFocused();
     await skillsStyle.focus();
     await page.keyboard.press("Space");
-    await modal.getByRole("button", { name: /^Chipsy/ }).click();
+    await stylePanel.getByText("Pigułka z wypełnieniem", { exact: true }).click();
+    await expect(stylePanel.getByRole("radio", { name: /Pigułka z wypełnieniem/ })).toBeChecked();
+    await expect(stylePanel).toBeVisible();
+    await page.keyboard.press("Escape");
 
     await expect(page.locator('[data-placeholder="Kategoria umiejętności"]')).toHaveCount(2);
     const emptyChip = page.locator('[data-placeholder="Umiejętność"]');

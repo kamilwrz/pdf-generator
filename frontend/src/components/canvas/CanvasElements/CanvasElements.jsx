@@ -16,7 +16,7 @@
  * their left, centered on the block's height, instead — opening a modal to
  * switch between an inline mid-dot row and a bullet list. A main-column
  * Skills heading additionally carries `skillsMode` on its `SectionRecordAdd`
- * anchor, which renders one more hover icon opening `SkillsLayoutModal` to
+ * anchor, which renders one more hover icon opening `SkillsLayoutPanel` to
  * switch between inline / bullet / chip pills — a strict superset of
  * `FlatSectionLayoutToggle`'s two modes, so any heading carrying a
  * `skillsMode` anchor is excluded from `flatSectionAnchorsById` below to
@@ -318,7 +318,7 @@ export default function CanvasElements({ elements, spreadSide = null }) {
   //
   // A main-column Skills heading is excluded here even though it also
   // satisfies "exactly one body textarea": `sectionAnchorsById` already
-  // carries a `skillsMode` anchor for it (`SkillsLayoutModal`, inline/bullet/
+  // carries a `skillsMode` anchor for it (`SkillsLayoutPanel`, inline/bullet/
   // chips), and that picker's inline/bullet options are a strict superset of
   // this toggle's. Keeping both produced two overlapping hover icons on the
   // same row offering the same two modes twice.

@@ -53,7 +53,7 @@ import ClaimGuestDocumentModal from '../components/editor/ClaimGuestDocumentModa
 import SectionsPanel from '../components/editor/SectionsPanel/SectionsPanel';
 import AddSectionModal from '../components/editor/AddSectionModal/AddSectionModal';
 import FlatSectionLayoutModal from '../components/editor/FlatSectionLayoutModal/FlatSectionLayoutModal';
-import SkillsLayoutModal from '../components/editor/SkillsLayoutModal/SkillsLayoutModal';
+import SkillsLayoutPanel from '../components/editor/SkillsLayoutPanel/SkillsLayoutPanel';
 import LongCvModal from '../components/editor/LongCvModal/LongCvModal';
 import { logEvent } from '../services/eventLog';
 import { saveGuestDocument, loadGuestDocument, clearGuestDocument, hasGuestDocument } from '../utils/guestDocument';
@@ -266,7 +266,7 @@ export function EditorController() {
     if (initialStartIntentRef.current === "templates") return "templates";
     return null;
   }); // 'docs' | 'templates' | 'ai' | 'importGate' | 'saveGate' | 'downloadGate' | 'newCv' | 'plan' | 'changeTemplate' | 'unlockFreeform' | null
-  const [panel, setPanel] = useState(null);   // 'upload' | 'gallery' | 'sections' | null
+  const [panel, setPanel] = useState(null);   // 'upload' | 'gallery' | 'sections' | 'skills-layout' | null
   const isModalPdfs = dialog === 'docs' && Boolean(localStorage.getItem("token"));
   const isTemplates = dialog === 'templates';
   const isAiPanel = dialog === 'ai';
@@ -294,6 +294,7 @@ export function EditorController() {
   const isGallery = panel === 'gallery';
   const isDropzone = panel === 'upload';
   const isSectionsPanel = panel === 'sections';
+  const isSkillsLayoutPanel = panel === 'skills-layout';
   // "Dodaj sekcję" lives on PdfCanvas so the canvas heading "+" can open it
   // even when the Sections panel is closed. `afterHeadingId` inserts under
   // that section; null appends at the end (panel button).
@@ -341,19 +342,18 @@ export function EditorController() {
   const closeFlatSectionLayoutModal = useCallback(() => {
     setFlatSectionLayoutModal({ open: false, elementId: null });
   }, []);
-  // Layout picker (mid-dot row / bullet list / chip pills) for main-column
-  // Skills sections — same "owned by PdfCanvas" reasoning as the flat-list
-  // toggle above (the canvas hover icon must open it regardless of which
-  // sidebar panel is open; the "Uklad CV" panel opens it too).
-  const [skillsLayoutModal, setSkillsLayoutModal] = useState({
-    open: false,
-    headingId: null,
-  });
-  const openSkillsLayoutModal = useCallback((headingId) => {
-    setSkillsLayoutModal({ open: true, headingId });
+  // This picker is a mutually exclusive editor panel rather than a modal, so
+  // the document stays visible and each of the nine radio choices can be
+  // compared through an immediate canvas commit.
+  const [skillsLayoutHeadingId, setSkillsLayoutHeadingId] = useState(null);
+  const openSkillsLayoutPanel = useCallback((headingId) => {
+    setSkillsLayoutHeadingId(headingId);
+    setPanel('skills-layout');
+    setDialog(null);
   }, []);
-  const closeSkillsLayoutModal = useCallback(() => {
-    setSkillsLayoutModal({ open: false, headingId: null });
+  const closeSkillsLayoutPanel = useCallback(() => {
+    setPanel((current) => current === 'skills-layout' ? null : current);
+    setSkillsLayoutHeadingId(null);
   }, []);
   // "CV too long" assistant: deterministic spacing + typography S runs first;
   // this modal opens only when those local changes still cannot hit the target.
@@ -803,15 +803,13 @@ export function EditorController() {
     setFlatSectionLayoutModal({ open: false, elementId: null });
   }, [flatSectionLayoutElement, handleEditElementValues]);
 
-  const handleApplySkillsLayout = useCallback((mode, chipVariant) => {
-    const headingId = skillsLayoutModal.headingId;
+  const handleChangeSkillsLayout = useCallback((mode, chipVariant) => {
+    const headingId = skillsLayoutHeadingId;
     if (!headingId) return;
-    // Same commit path as reorder/transfer — full structural re-pack, not a
-    // single-element edit, so undo/redo and autosave apply with no extra
-    // plumbing (see `handleChangeSkillsDisplayMode` in `useA4Elements`).
+    // Every radio change uses the same structural commit as reorder/transfer,
+    // preserving undo/redo, autosave and repacking while the panel stays open.
     handleChangeSkillsDisplayMode(headingId, mode, chipVariant);
-    setSkillsLayoutModal({ open: false, headingId: null });
-  }, [skillsLayoutModal.headingId, handleChangeSkillsDisplayMode]);
+  }, [skillsLayoutHeadingId, handleChangeSkillsDisplayMode]);
 
   // usePdfExport's callback param only ever signals "the progress-modal delay
   // has elapsed, react now" — the actual toast trigger lives in the
@@ -2140,7 +2138,7 @@ export function EditorController() {
     addSection: handleAddSection,
     openAddSectionModal,
     openFlatSectionLayoutModal,
-    openSkillsLayoutModal,
+    openSkillsLayoutPanel,
     addSectionRecord: handleAddSectionRecord,
     addGridSectionEntry: handleAddGridSectionEntry,
     addSkillItem: handleAddSkillItem,
@@ -2267,7 +2265,7 @@ export function EditorController() {
     editorMode, setEditorMode, flowSpacing, setFlowSpacing, baselineFlowSpacing, adoptDocumentFlowSpacing, fitTooLong, fitStatus, onFitToPages, onePageFit, onFitToOnePage, handleShowUnlockFreeform,
     activeCvData, setActiveCvData, activeImportId, setActiveImportId,
     pageCount, currentPage, addPage, removePage, goToPage, clonePage, movePage, setPageCount, setCurrentPage,
-    isTwoPageView, toggleTwoPageView, handleAddTextarea, handleAddSection, openAddSectionModal, openFlatSectionLayoutModal, openSkillsLayoutModal, handleAddSectionRecord, handleAddGridSectionEntry, handleAddSkillItem, handleRemoveSkillItem, handleAddRecordBlock, handleAddRecordDescription, handleRemoveSection, handleRemoveGridSectionEntry, handleRemoveRecordBlock, handleRemoveRecordDescription, handleReorderRecordBlock, handleReorderSection, handleTransferSectionLane, handleChangeSkillsDisplayMode, markSelected, handleSetTextareaEditing, requestTextEdit, requestEditZoomRestore, editZoomSpreadTransitionRef,
+    isTwoPageView, toggleTwoPageView, handleAddTextarea, handleAddSection, openAddSectionModal, openFlatSectionLayoutModal, openSkillsLayoutPanel, handleAddSectionRecord, handleAddGridSectionEntry, handleAddSkillItem, handleRemoveSkillItem, handleAddRecordBlock, handleAddRecordDescription, handleRemoveSection, handleRemoveGridSectionEntry, handleRemoveRecordBlock, handleRemoveRecordDescription, handleReorderRecordBlock, handleReorderSection, handleTransferSectionLane, handleChangeSkillsDisplayMode, markSelected, handleSetTextareaEditing, requestTextEdit, requestEditZoomRestore, editZoomSpreadTransitionRef,
     handleDuplicateElement, pageSize, zoom, zoomIn, zoomOut, undo, redo, canUndo, canRedo, resetHistory,
     deletionPreviewIds, layoutPreviewPatches, structurePreviewGroup, spacingHoldId,
     aiCorrectionHighlights,
@@ -2461,13 +2459,13 @@ export function EditorController() {
                 element={flatSectionLayoutElement}
                 onApply={handleApplyFlatSectionLayout}
               />
-              <SkillsLayoutModal
-                open={skillsLayoutModal.open}
-                onCancel={closeSkillsLayoutModal}
+              <SkillsLayoutPanel
+                open={isSkillsLayoutPanel}
+                onClose={closeSkillsLayoutPanel}
                 elements={A4_Elements}
-                headingId={skillsLayoutModal.headingId}
+                headingId={skillsLayoutHeadingId}
                 pageHeight={pageSize?.height ?? 842}
-                onApply={handleApplySkillsLayout}
+                onChange={handleChangeSkillsLayout}
               />
               <LongCvModal
                 open={longCvModalOpen}

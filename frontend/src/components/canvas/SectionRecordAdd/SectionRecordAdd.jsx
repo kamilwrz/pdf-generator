@@ -87,7 +87,7 @@ export default function SectionRecordAdd({
     A4_Elements,
     editorMode,
     openAddSectionModal,
-    openSkillsLayoutModal,
+    openSkillsLayoutPanel,
     removeSection,
     reorderSection,
     transferSectionLane,
@@ -262,7 +262,7 @@ export default function SectionRecordAdd({
       // The transient toolbar unmounts below. Give the dialog a persistent
       // return target before it captures focus, so Escape restores this section.
       document.getElementById(headingId)?.focus({ preventScroll: true });
-      openSkillsLayoutModal?.(headingId);
+      openSkillsLayoutPanel?.(headingId);
       hide();
     },
   }] : [];

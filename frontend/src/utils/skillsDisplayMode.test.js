@@ -381,7 +381,7 @@ describe("changeSkillsDisplayMode", () => {
     )));
   });
 
-  it("sizes modal-created chips with the active browser font measurer", () => {
+  it("sizes panel-created chips with the active browser font measurer", () => {
     const measuredWidths = { AML: 31, KYC: 33, SQL: 27, Python: 48 };
     const next = changeSkillsDisplayMode(
       flatSkillsFixture(),

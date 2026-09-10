@@ -1,0 +1,216 @@
+.panel {
+  position: fixed;
+  top: 15%;
+  right: 150px;
+  z-index: var(--z-popover);
+  display: flex;
+  width: min(460px, calc(100vw - 88px));
+  height: 70vh;
+  max-height: 70dvh;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--chrome-border);
+  background: var(--chrome-surface);
+  box-shadow: var(--shadow-pop);
+  color: var(--chrome-ink);
+  font-family: var(--font-body);
+}
+
+.fieldset {
+  min-width: 0;
+  margin: 0;
+  padding: var(--space-4);
+  border: 0;
+}
+
+.legend {
+  width: 100%;
+  margin: 0 0 var(--space-3);
+  padding: 0;
+  color: var(--chrome-muted);
+  font: 600 12px/1.25 var(--font-body);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.options {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+
+.option {
+  min-width: 0;
+  cursor: pointer;
+}
+
+.radio {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.optionSurface {
+  display: grid;
+  min-height: 136px;
+  grid-template-rows: auto 1fr auto;
+  border: 1px solid var(--chrome-border);
+  border-radius: var(--radius-control);
+  background: var(--chrome-control);
+  transition:
+    border-color var(--motion-fast) var(--motion-ease),
+    background var(--motion-fast) var(--motion-ease);
+}
+
+.option:hover .optionSurface {
+  background: var(--chrome-hover);
+}
+
+.option:active .optionSurface {
+  background: var(--primary-bg);
+}
+
+.radio:focus-visible + .optionSurface {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.radio:checked + .optionSurface {
+  border-color: var(--chrome-accent);
+  box-shadow: inset 0 0 0 1px var(--chrome-accent);
+}
+
+.optionIndex {
+  justify-self: end;
+  padding: var(--space-2) var(--space-2) 0;
+  color: var(--chrome-muted);
+  font: 600 10px/1 var(--font-mono);
+}
+
+.preview {
+  display: flex;
+  min-width: 0;
+  min-height: 56px;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-2);
+  color: var(--chrome-ink);
+}
+
+.inlinePreview {
+  max-width: 100%;
+  overflow: hidden;
+  font: 600 11px/1.4 var(--font-body);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.listPreview {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  font: 600 11px/1.2 var(--font-body);
+}
+
+.chip {
+  display: inline-flex;
+  min-height: 24px;
+  align-items: center;
+  padding: var(--space-1) 10px;
+  border: 1px solid transparent;
+  border-radius: 0;
+  color: var(--chrome-ink);
+  font: 600 11px/1 var(--font-body);
+  white-space: nowrap;
+}
+
+.chipFilled {
+  background: var(--chrome-accent);
+  color: var(--on-accent, var(--color-paper));
+}
+
+.chipOutline {
+  border-color: var(--chrome-accent);
+  background: transparent;
+}
+
+.chipPill {
+  border-radius: var(--radius-pill);
+}
+
+.chipRounded {
+  border-radius: var(--radius-control);
+}
+
+.chipUnderline {
+  min-height: 0;
+  padding: var(--space-1) var(--space-1) 5px;
+  border-bottom: 2px solid var(--chrome-accent);
+}
+
+.optionFooter {
+  display: flex;
+  min-width: 0;
+  min-height: 48px;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: var(--space-1);
+  padding: var(--space-2);
+  border-top: 1px solid var(--chrome-border);
+}
+
+.optionLabel {
+  color: var(--chrome-ink);
+  font: 600 11px/1.25 var(--font-body);
+}
+
+.state {
+  color: var(--chrome-muted);
+  font: 700 9.5px/1.2 var(--font-body);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.radio:checked + .optionSurface .state {
+  color: var(--chrome-accent);
+}
+
+.note {
+  margin: 0;
+  padding: var(--space-3) var(--space-4) var(--space-4);
+  border-top: 1px solid var(--chrome-border);
+  color: var(--chrome-muted);
+  font: 500 11px/1.4 var(--font-body);
+}
+
+@media (max-width: 720px) {
+  .panel {
+    top: var(--topbar-h);
+    right: 0;
+    width: calc(100vw - 56px);
+    height: calc(100dvh - var(--topbar-h));
+    max-height: calc(100dvh - var(--topbar-h));
+    border-right: 0;
+    border-bottom: 0;
+  }
+
+  .fieldset {
+    padding-inline: var(--space-3);
+  }
+}
+
+@media (max-width: 390px) {
+  .options {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .optionSurface {
+    transition: none;
+  }
+}

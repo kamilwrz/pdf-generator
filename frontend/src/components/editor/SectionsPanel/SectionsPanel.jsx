@@ -4,7 +4,7 @@
  * tools for Atrium, Regent, Sterling, Linden, Monument, Slate, Meridian,
  * Cadenza, Vellum, and Aurelia. A
  * main-column Skills section's list row also gets a layout icon opening
- * `SkillsLayoutModal` (same modal the canvas heading hover control opens —
+ * `SkillsLayoutPanel` (same panel the canvas heading hover control opens —
  * see `SectionRecordAdd`), so the mode picker is reachable without hunting
  * for the heading on the page.
  *
@@ -203,7 +203,7 @@ export default function SectionsPanel({ onClose }) {
     setFlowSpacing,
     baselineFlowSpacing,
     openAddSectionModal,
-    openSkillsLayoutModal,
+    openSkillsLayoutPanel,
     fitStatus,
     onFitToPages,
   } = useCanvasContext();
@@ -834,7 +834,7 @@ export default function SectionsPanel({ onClose }) {
                         <span className={classes.title} title={section.title}>{label}</span>
                         <div className={classes.actions}>
                           {isSkillsSectionTitle(section.title) ? (
-                            <button type="button" onClick={() => openSkillsLayoutModal?.(section.headingId)} aria-label={`Zmień styl umiejętności: ${label}`} title="Styl umiejętności">
+                            <button type="button" onClick={() => openSkillsLayoutPanel?.(section.headingId)} aria-label={`Zmień styl umiejętności: ${label}`} title="Styl umiejętności">
                               <LuLayoutGrid />
                             </button>
                           ) : null}

@@ -11,13 +11,9 @@ for (const style of ["W linii", "Lista", "Pigułka z wypełnieniem", "Pigułka b
     if (style !== "W linii") {
       await page.locator("#skills-heading").dispatchEvent("pointerenter");
       await page.getByRole("button", { name: /^Styl umiejętności:/ }).click();
-      const dialog = page.getByRole("dialog", { name: "Styl umiejętności" });
-      if (style === "Lista") await dialog.getByRole("button", { name: /^Lista/ }).click();
-      else {
-        await dialog.getByRole("group", { name: "Wariant chipsów" })
-          .getByRole("button", { name: new RegExp(style) }).click();
-        await dialog.getByRole("button", { name: /^Chipsy/ }).click();
-      }
+      const panel = page.getByRole("region", { name: "Styl umiejętności" });
+      await panel.getByText(style, { exact: true }).click();
+      await page.keyboard.press("Escape");
     }
     // Find a real glyph range so pointer targeting also exercises split styled
     // spans, bullet rows and the zero-height text node used by chip labels.
