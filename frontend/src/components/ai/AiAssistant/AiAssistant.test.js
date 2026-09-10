@@ -148,6 +148,20 @@ test("interview quick action uses the shared conversation icon treatment", async
     );
 });
 
+test("assistant accepts predefined quick actions without a free-form composer", async () => {
+    const source = await readFile(new URL("./AiAssistant.jsx", import.meta.url), "utf8");
+    const styles = await readFile(new URL("./AiAssistant.module.css", import.meta.url), "utf8");
+
+    assert.match(source, /message: ""/);
+    assert.match(source, /history: \[\]/);
+    assert.match(source, /interviewTriggerRef\.current\?\.focus/);
+    assert.doesNotMatch(source, /send\("chat"/);
+    assert.doesNotMatch(source, /Wiadomość do asystenta AI/);
+    assert.doesNotMatch(source, /Zadaj pytanie lub wydaj polecenie/);
+    assert.doesNotMatch(source, /Nie wpisuj danych o zdrowiu/);
+    assert.doesNotMatch(styles, /\.chatInput\b|\.sendBtn\b|\.inputArea\b|\.privacyWarning\b/);
+});
+
 test("ATS dashboard uses readability copy, verbal band, and disclaimer", async () => {
     const source = await readFile(new URL("./AiAssistant.jsx", import.meta.url), "utf8");
 

@@ -148,7 +148,7 @@ test("edit zoom survives assistant focus and canvas scrolling until the bare A4 
   api.assertHermetic();
 });
 
-test("AI assistant keeps the conversation visible after a follow-up question", async ({ page }) => {
+test("AI assistant keeps consecutive quick-action results visible without a free-form composer", async ({ page }) => {
   const api = await installMockApi(page, {
     assistantResponses: [
       { message: LONG_REPLY, tips: [], corrections: [] },
@@ -160,15 +160,16 @@ test("AI assistant keeps the conversation visible after a follow-up question", a
   await page.getByText("Kontynuuj ostatnie CV", { exact: true }).click();
   await page.getByRole("button", { name: "Otwórz asystenta AI" }).click();
 
-  const input = page.getByPlaceholder("Zadaj pytanie lub wydaj polecenie…");
-  await input.fill("Pierwsze pytanie");
-  await page.getByRole("button", { name: "Wyślij" }).click();
+  await expect(page.getByRole("button", { name: "Uzupełnij CV przez wywiad" })).toBeFocused();
+  const checkCv = page.getByRole("button", { name: "Sprawdź CV", exact: true });
+  await expect(page.getByRole("textbox", { name: "Wiadomość do asystenta AI" })).toHaveCount(0);
+  await expect(page.getByText("Nie wpisuj danych o zdrowiu ani innych danych wrażliwych.")).toHaveCount(0);
+  await checkCv.click();
   await expect(page.getByText("Punkt 24: szczegółowa rekomendacja do dokumentu.")).toBeVisible();
 
-  await input.fill("Drugie pytanie");
-  await page.getByRole("button", { name: "Wyślij" }).click();
+  await checkCv.click();
   await expect(page.getByText("Druga odpowiedź pozostaje widoczna.")).toBeVisible();
-  await expect(input).toBeEnabled();
+  await expect(checkCv).toBeEnabled();
 
   const conversation = page.getByRole("log", { name: "Rozmowa z asystentem AI" });
   const scrollState = await conversation.evaluate((element) => ({
@@ -184,8 +185,12 @@ test("AI assistant keeps the conversation visible after a follow-up question", a
     scrollState.scrollTop - (scrollState.scrollHeight - scrollState.clientHeight),
   )).toBeLessThanOrEqual(1);
   expect(scrollState.lastMessageBottom).toBeLessThanOrEqual(scrollState.viewportBottom + 1);
-  await expect(page.getByText("Pierwsze pytanie", { exact: true })).toHaveCount(1);
-  await expect(page.getByText("Drugie pytanie", { exact: true })).toHaveCount(1);
+  await expect(conversation).toContainText("Sprawdź CV");
+  const assistantPayloads = api.calls
+    .filter((call) => call.path === "/ai/assistant")
+    .map((call) => JSON.parse(call.body));
+  expect(assistantPayloads).toHaveLength(2);
+  expect(assistantPayloads.every((payload) => payload.message === "" && payload.history.length === 0)).toBe(true);
   api.assertHermetic();
 });
 

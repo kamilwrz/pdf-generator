@@ -12,7 +12,7 @@ import {
     FaBriefcase, FaComments, FaFont, FaMagic, FaLanguage, FaSearch,
 } from "react-icons/fa";
 import { RiEditLine, RiScissorsLine } from "react-icons/ri";
-import { IoClose, IoSend } from "react-icons/io5";
+import { IoClose } from "react-icons/io5";
 import { MdCheckCircle, MdCancel } from "react-icons/md";
 import classes from "./AiAssistant.module.css";
 import { useCanvasContext } from "../../../store/canvas-context";
@@ -58,7 +58,6 @@ const ACTION_META = {
     shorten:         { label: "Skróć CV",             color: CHROME_ACCENT },
     ats_score:       { label: "Czytelność dla ATS",   color: CHROME_ACCENT },
     translate:       { label: "Przetłumacz CV",       color: CHROME_ACCENT },
-    chat:            { label: "Czat",                 color: CHROME_ACCENT },
 };
 
 /**
@@ -454,7 +453,8 @@ function correctionFieldLabel(field) {
 /**
  * Review card for grammar/style/improve patches.
  * Collapsed by default; pointer or keyboard focus expands the full Przed/Po
- * comparison in the chat's scroll context, so the composer cannot cover it.
+ * comparison in the assistant log's scroll context, so persistent panel chrome
+ * cannot cover it.
  * Native `title` tooltips are intentionally omitted — long CV text must not
  * spawn a browser hover bubble over the strikethrough “Przed” line.
  */
@@ -991,7 +991,6 @@ export default function AiAssistant() {
         closeScopedAi?.();
     }, [closeScopedAi]);
     const [messages, setMessages] = useState([]);
-    const [input, setInput] = useState("");
     const [jobDesc, setJobDesc] = useState("");
     const [jobOfferUrl, setJobOfferUrl] = useState("");
     const [candidateNotes, setCandidateNotes] = useState("");
@@ -1036,7 +1035,6 @@ export default function AiAssistant() {
     const activeInterview = interview?.documentKey === sessionKey ? interview : null;
 
     const messagesRef = useRef(null);
-    const inputRef = useRef(null);
     const fabRef = useRef(null);
     // Synchronous in-flight guard: React state `isLoading` updates too late to
     // block a double-click on suggestion chips before the next render.
@@ -1094,7 +1092,7 @@ export default function AiAssistant() {
         // scroll scheduled for the next frame can then target geometry that no
         // longer exists and leave the conversation painted above a blank area.
         // Commit the bounded list's final position before paint instead. This
-        // never scrolls the fixed panel, page, header, actions, or composer.
+        // never scrolls the fixed panel, page, header, or quick actions.
         messageList.scrollTop = Math.max(
             0,
             messageList.scrollHeight - messageList.clientHeight,
@@ -1240,16 +1238,6 @@ export default function AiAssistant() {
     }, [isOpen]);
 
     useEffect(() => () => setAiCorrectionHighlights?.([]), [setAiCorrectionHighlights]);
-
-    useEffect(() => {
-        const textarea = inputRef.current;
-        if (!textarea) return;
-
-        // Keep short prompts comfortably two lines high and grow longer prompts
-        // only until the composer reaches its scrolling limit.
-        textarea.style.height = "auto";
-        textarea.style.height = `${Math.min(textarea.scrollHeight, 136)}px`;
-    }, [input]);
 
     // ── correction handlers ──────────────────────────────────────────────
 
@@ -1522,9 +1510,9 @@ export default function AiAssistant() {
         setCloneStates((previous) => ({ ...previous, [key]: "rejected" }));
     }, [cloneStates, setStructurePreviewGroup]);
 
-    // ── send message to backend ──────────────────────────────────────────
+    // ── run a predefined assistant action ────────────────────────────────
 
-    const send = useCallback(async (action, userText, options = {}) => {
+    const send = useCallback(async (action, actionLabelText, options = {}) => {
         // Prefer the ref over `isLoading` so a second chip click in the same
         // frame cannot start a parallel request that fails after the first
         // succeeds and leaves a confusing success+error pair in the chat.
@@ -1545,20 +1533,14 @@ export default function AiAssistant() {
             "Idempotency-Key": idempotencyKey,
         });
 
-        const history = messages
-            .filter((m) => (m.role === "user" || m.role === "assistant") && m.text)
-            .slice(-12)
-            .map((m) => ({
-                role: m.role,
-                content: String(m.text).slice(0, 1500),
-            }));
-
-        const usesMessage = action === "chat";
+        // The editor assistant is intentionally action-only. Quick actions may
+        // add a readable label to the local log, but they never forward that
+        // label as a custom prompt or conversational history to the provider.
         const userMsg = {
             id: nanoid(),
             role: "user",
             createdAt: Date.now(),
-            text: userText,
+            text: actionLabelText,
             sourceRevision: documentScope.revision,
             sourceSessionKey: String(documentScope.epoch),
             ...(options.displayText ? { displayText: options.displayText } : {}),
@@ -1584,12 +1566,12 @@ export default function AiAssistant() {
                 JSON.stringify({
                     action,
                     elements: measureElements(A4_Elements),
-                    message: usesMessage ? userText : "",
+                    message: "",
                     job_description: action === "position_rating" ? jobDesc : "",
                     job_offer_url: action === "position_rating" ? jobOfferUrl : "",
                     candidate_notes: action === "position_rating" ? candidateNotes : "",
                     page_size: pageSize,
-                    history: usesMessage ? history : [],
+                    history: [],
                     ...(action === "translate" && targetLanguage
                         ? { target_language: targetLanguage }
                         : {}),
@@ -1698,7 +1680,7 @@ export default function AiAssistant() {
                 setIsLoading(false);
             }
         }
-    }, [A4_Elements, activeCvData, candidateNotes, captureDocumentScope, cvLanguage, isDocumentScopeCurrent, isLoading, jobDesc, jobOfferUrl, messages, pageSize, refreshEntitlements]);
+    }, [A4_Elements, activeCvData, candidateNotes, captureDocumentScope, cvLanguage, isDocumentScopeCurrent, isLoading, jobDesc, jobOfferUrl, pageSize, refreshEntitlements]);
 
     const handleGoalAction = useCallback((goalId) => {
         const goal = GOAL_ACTIONS.find((g) => g.id === goalId);
@@ -1784,30 +1766,11 @@ export default function AiAssistant() {
         });
     }, [jobDesc, jobOfferUrl, send]);
 
-    const handleSend = useCallback(() => {
-        const text = input.trim();
-        if (!text || isLoading) return;
-        if (activePanel === "match_job") {
-            submitJobTailoring();
-            setInput("");
-            return;
-        }
-        send("chat", text);
-        setInput("");
-    }, [input, isLoading, activePanel, send, submitJobTailoring]);
-
-    const handleKey = (e) => {
-        if (e.key === "Enter" && !e.shiftKey) {
-            e.preventDefault();
-            handleSend();
-        }
-    };
-
     useEffect(() => {
         if (!isOpen) return undefined;
 
         const focusRequest = window.requestAnimationFrame(() => {
-            inputRef.current?.focus({ preventScroll: true });
+            interviewTriggerRef.current?.focus({ preventScroll: true });
         });
         const opener = fabRef.current;
         const onKeyDown = (event) => {
@@ -2110,7 +2073,7 @@ export default function AiAssistant() {
                             {messages.length === 0 && !scopedAi?.reviews.length && (
                                 <div className={classes.emptyState}>
                                     <BsStars className={classes.emptyIcon} />
-                                    <p>Wybierz cel powyżej — sprawdź CV, popraw treść, dopasuj do oferty lub przetłumacz — albo wpisz własne pytanie.</p>
+                                    <p>Wybierz działanie powyżej — sprawdź CV, popraw treść, dopasuj do oferty lub przetłumacz dokument.</p>
                                 </div>
                             )}
                             {[...messages, ...(scopedAi?.isAvailable ? scopedAi.reviews : []).map((review) => ({
@@ -2174,29 +2137,6 @@ export default function AiAssistant() {
                             )}
                         </div>
 
-                        {/* chat input */}
-                        <div className={classes.inputArea}>
-                            <p className={classes.privacyWarning}>Nie wpisuj danych o zdrowiu ani innych danych wrażliwych. <a href="/privacy">Jak AI przetwarza CV</a></p>
-                            <textarea
-                                ref={inputRef}
-                                className={classes.chatInput}
-                                value={input}
-                                onChange={e => setInput(e.target.value)}
-                                onKeyDown={handleKey}
-                                aria-label="Wiadomość do asystenta AI"
-                                placeholder="Zadaj pytanie lub wydaj polecenie…"
-                                rows={2}
-                                disabled={isLoading || activePanel === "match_job"}
-                            />
-                            <button
-                                className={classes.sendBtn}
-                                onClick={handleSend}
-                                disabled={!input.trim() || isLoading || activePanel === "match_job"}
-                                aria-label="Wyślij"
-                            >
-                                <IoSend />
-                            </button>
-                        </div>
                         </>}
                     </Motion.aside>
                 )}

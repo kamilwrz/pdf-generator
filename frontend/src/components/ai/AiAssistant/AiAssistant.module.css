@@ -890,7 +890,7 @@
 /*
  * The expanded card stays in the message flow and inside `.messages`, which
  * preserves its scroll container. Switching an ancestor to `overflow: visible`
- * during hover makes the pointer target jump and lets the composer cover text.
+ * during hover makes the pointer target jump and lets panel chrome cover text.
  */
 .corrCardExpanded {
     z-index: 50;
@@ -1346,65 +1346,6 @@
 .typingDot:nth-child(2) { animation-delay: .18s; }
 .typingDot:nth-child(3) { animation-delay: .36s; }
 
-/* ── Chat Input ──────────────────────────────────────────────────── */
-.inputArea {
-    display: flex;
-    align-items: flex-end;
-    gap: 8px;
-    padding: 10px 12px;
-    border-top: 1px solid var(--chrome-border);
-    background: var(--chrome-surface);
-    flex-shrink: 0;
-}
-
-.chatInput {
-    flex: 1;
-    box-sizing: border-box;
-    padding: 9px 11px;
-    border: 1px solid var(--chrome-border);
-    border-radius: var(--radius-control);
-    background: var(--chrome-control);
-    font: 500 13px/1.5 var(--font-body);
-    color: var(--chrome-ink);
-    resize: none;
-    outline: none;
-    min-height: 52px;
-    max-height: 136px;
-    overflow-y: auto;
-    transition: border-color .15s, box-shadow .15s;
-}
-.chatInput:focus { border-color: var(--color-focus); box-shadow: 0 0 0 2px var(--color-focus-soft); }
-.chatInput::placeholder { color: var(--label-font); }
-
-.sendBtn {
-    width: 42px;
-    height: 42px;
-    border-radius: var(--radius-control);
-    border: none;
-    background: var(--accent-grad);
-    color: var(--on-accent);
-    font-size: 15px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    box-shadow: none;
-    transition: transform .15s, opacity .2s;
-    flex-shrink: 0;
-}
-.sendBtn:hover:not(:disabled) { transform: translateY(-1px); }
-.sendBtn:disabled { opacity: .45; cursor: not-allowed; }
-
 /* Historical cards remain readable without exposing obsolete canvas actions. */
 .historyMessage { border: 0; padding: 0; margin: 0; min-width: 0; }
 .historyNotice { color: var(--color-muted); font: 400 .75rem/1.4 var(--font-ui); }
-.privacyWarning {
-    margin: 0 0 var(--space-2);
-    color: var(--chrome-muted);
-    font: 500 0.6875rem/1.4 var(--font-body);
-}
-
-.privacyWarning a {
-    color: inherit;
-    text-underline-offset: 2px;
-}

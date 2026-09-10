@@ -132,19 +132,18 @@ test("achievement templates stay separate and AI menus fit at 200% canvas zoom",
 });
 
 
-test("toolbar results join chat and survive template changes as read-only history", async ({ page }) => {
+test("toolbar results join quick-action history and survive template changes as read-only history", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 1000 });
   const api = await openDocument(page);
   await page.getByRole("button", { name: "Otwórz asystenta AI" }).click();
   const panel = page.locator("#ai-assistant-panel");
-  await panel.getByRole("textbox", { name: "Wiadomość do asystenta AI" }).fill("Zapamiętaj tę rozmowę");
-  await panel.getByRole("button", { name: "Wyślij" }).click();
+  await panel.getByRole("button", { name: "Sprawdź CV", exact: true }).click();
   await expect(panel.getByText("Skrócono opis bez zmiany liczb i technologii.")).toBeVisible();
   await panel.getByRole("button", { name: "Zamknij asystenta AI" }).click();
   await openMenu(page);
   await page.getByRole("menuitem", { name: "Skróć", exact: true }).click();
   await expect(panel.getByRole("button", { name: "Zastosuj wszystkie", exact: true })).toBeEnabled();
-  await expect(panel.getByRole("log")).toContainText("Zapamiętaj tę rozmowę");
+  await expect(panel.getByRole("log")).toContainText("Sprawdź CV");
   await expect(page.locator("[data-scoped-ai-panel]")).toHaveCount(0);
   await page.keyboard.press("Escape");
   await expect(panel).toBeHidden();
@@ -154,9 +153,10 @@ test("toolbar results join chat and survive template changes as read-only histor
   await page.getByRole("button", { name: /^Następny szablon:/ }).click();
   await expect(page.getByRole("button", { name: /^Następny szablon:/ })).toBeEnabled();
   await expect(panel).toBeVisible();
-  await expect(panel.getByRole("log")).toContainText("Zapamiętaj tę rozmowę");
+  await expect(panel.getByRole("log")).toContainText("Sprawdź CV");
   await expect(panel.getByRole("button", { name: "Zastosuj wszystkie", exact: true })).toBeDisabled();
   await expect(panel.getByText("Wynik z poprzedniego szablonu — tylko do odczytu.")).toBeVisible();
-  await expect(panel.getByRole("textbox", { name: "Wiadomość do asystenta AI" })).toBeEnabled();
+  await expect(panel.getByRole("textbox", { name: "Wiadomość do asystenta AI" })).toHaveCount(0);
+  await expect(panel.getByRole("button", { name: "Sprawdź CV", exact: true })).toBeEnabled();
   api.assertHermetic();
 });
