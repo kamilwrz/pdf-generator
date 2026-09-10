@@ -50,7 +50,7 @@ for (const width of [390, 834, 1280, 1920]) {
     await expect(page.locator('body')).not.toContainText('Kamil Owner');
     await expect(page.getByRole('heading', { name: 'Informacje do tego CV', exact: true })).toBeVisible();
     await page.screenshot({ path: `../tmp/interview-source-review-${width}.png`, fullPage: true });
-    await page.getByRole('button', { name: 'Zatwierdź informacje' }).click();
+    await page.getByRole('button', { name: 'Przejdź do rozmowy' }).click();
     await expect(page.getByText('Informacje zapisane tylko w tym wywiadzie. Profil konta pozostaje bez zmian.', { exact: true })).toBeVisible();
     expect(writes).toHaveLength(2);
     const beforeResume = profileReads;

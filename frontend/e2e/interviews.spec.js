@@ -66,13 +66,13 @@ for (const width of [390, 834, 1280, 1920]) {
     await page.goto('/app/interview');
     await page.getByLabel('Imię i nazwisko', { exact: true }).fill('Anna Nowak');
     await page.getByRole('button', { name: 'Rozpocznij wywiad', exact: true }).click();
-    await page.getByRole('button', { name: 'Zatwierdź informacje', exact: true }).click();
+    await page.getByRole('button', { name: /Przejdź do (rozmowy|przygotowania CV)/ }).click();
     await page.getByRole('button', { name: 'Następne pytanie', exact: true }).click();
     await page.getByLabel('Twoja odpowiedź').fill('Tworzę raporty.');
     await page.getByRole('button', { name: 'Zapisz odpowiedź', exact: true }).click();
     await page.goto(`/app/interview/${ID}`);
     await page.getByRole('button', { name: /Sprawdź informacje/ }).click();
-    await page.getByRole('button', { name: 'Zatwierdź informacje', exact: true }).click();
+    await page.getByRole('button', { name: /Przejdź do (rozmowy|przygotowania CV)/ }).click();
     await page.getByRole('button', { name: '03 Przygotuj CV', exact: true }).click();
     await page.getByLabel('Szablon nowego CV').selectOption('linden');
     await page.getByRole('button', { name: 'Przygotuj CV z potwierdzonych informacji' }).click();
@@ -102,8 +102,8 @@ for (const width of [390, 834, 1280, 1920]) {
         await expect(page.getByRole('button', { name: 'Opis jest poprawny', exact: true })).toBeDisabled();
         await page.getByRole('button', { name: 'Zapisz odpowiedź', exact: true }).click();
       }
-      await expect(page.getByRole('heading', { name: 'Sprawdź informacje do CV' })).toBeVisible();
-      await page.getByRole('button', { name: 'Zatwierdź informacje', exact: true }).click();
+      await expect(page.getByRole('button', { name: 'Przejdź do przygotowania CV', exact: true })).toBeVisible();
+      await page.getByRole('button', { name: /Przejdź do (rozmowy|przygotowania CV)/ }).click();
       await page.getByRole('button', { name: '03 Przygotuj CV', exact: true }).click();
       await page.getByRole('button', { name: 'Przygotuj CV z potwierdzonych informacji' }).click();
     }
@@ -158,12 +158,12 @@ for (const width of [390, 1280]) {
     const flow = page.getByRole('region', { name: 'Wywiad zawodowy' });
     await expect(flow).toBeVisible();
     await flow.getByRole('button', { name: 'Rozpocznij wywiad', exact: true }).click();
-    await flow.getByRole('button', { name: 'Zatwierdź informacje', exact: true }).click();
+    await flow.getByRole('button', { name: /Przejdź do (rozmowy|przygotowania CV)/ }).click();
     await flow.getByRole('button', { name: '03 Przygotuj CV', exact: true }).click();
     await expect(flow.getByLabel('Szablon nowego CV')).toHaveValue('sterling');
     await expect(flow.getByLabel('Szablon nowego CV')).toBeDisabled();
     await flow.getByRole('button', { name: 'Wczytaj aktualne CV do wywiadu' }).click();
-    await flow.getByRole('button', { name: 'Zatwierdź informacje', exact: true }).click();
+    await flow.getByRole('button', { name: /Przejdź do (rozmowy|przygotowania CV)/ }).click();
     await flow.getByRole('button', { name: '03 Przygotuj CV', exact: true }).click();
     await flow.getByRole('button', { name: 'Przygotuj CV z potwierdzonych informacji' }).click();
     await expect(flow.getByRole('heading', { name: 'Twoja nowa wersja CV' })).toBeVisible();

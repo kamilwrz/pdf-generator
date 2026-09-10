@@ -106,9 +106,20 @@ export default function InterviewFlow({ sessionId, initialSource = null, current
     if (alive.current) adopt(result.session || result, currentProfile);
   }
 
-  const confirm = () => run(async () => {
-    await operation('confirm', { facts }); setReviewOpen(false); setNotice(session.evidence_scope === 'session' ? 'Informacje zapisane tylko w tym wywiadzie. Profil konta pozostaje bez zmian.' : 'Informacje zostały zapisane w profilu zawodowym.');
-  });
+  // Navigation is the save boundary: one explicit next action persists changed
+  // facts before leaving. Failed saves retain the editor and its local draft.
+  function goTo(key) {
+    if (busy || factEditing || (key !== 'facts' && facts.some((fact) => !fact.text.trim()))) return;
+    const show = () => { setReviewOpen(key === 'facts'); setPanel(key); };
+    if (key === 'facts' || !needsFactSave) { show(); return; }
+    return run(async () => {
+      await operation('confirm', { facts });
+      if (alive.current) {
+        show();
+        setNotice(session.evidence_scope === 'session' ? 'Informacje zapisane tylko w tym wywiadzie. Profil konta pozostaje bez zmian.' : 'Informacje zostały zapisane w profilu zawodowym.');
+      }
+    }, 'confirm');
+  }
 
   const start = () => run(async () => {
     const [kind, id] = source.split(':');
@@ -130,7 +141,9 @@ export default function InterviewFlow({ sessionId, initialSource = null, current
   const legacy = Boolean(session && (session.requires_source_choice || !session.evidence_scope));
   const isolated = session ? session.evidence_scope === 'session' : Boolean(initialSource || source) && !includeProfile;
   const hasPending = Boolean(session?.proposed_facts?.length);
-  const reviewing = session?.phase === 'intake' || reviewOpen || (session?.phase === 'review' && session?.clarification_round && hasPending);
+  const needsFactSave = Boolean(session && (!session.confirmed || hasPending || JSON.stringify(facts) !== JSON.stringify(profile?.facts || [])));
+  const reviewDestination = session?.question || !session?.answers.length ? 'conversation' : 'prepare';
+  const reviewing = session?.phase === 'intake' || reviewOpen;
   const activePanel = reviewing ? 'facts' : session?.phase === 'clarification' ? 'conversation' : panel;
   const waiting = busy || initialLoading;
   // Clarifications have their own bounded queue; discovery answers must not
@@ -144,7 +157,7 @@ export default function InterviewFlow({ sessionId, initialSource = null, current
     <p role="status" aria-live="polite">{!waiting ? notice : ''}</p>
     {waiting && <InterviewLoading operation={initialLoading ? 'load' : pendingOperation} facts={session || !isolated ? profile?.facts.length : undefined} answers={session?.answers.length} language={languageLabels[session?.language || language]} template={TEMPLATES.find((item) => item.id === template)?.name} />}
     <div hidden={waiting} aria-busy={waiting}>
-    {session && !legacy && <nav className={classes.stages} aria-label="Etapy wywiadu">{[['facts', 'Twoje informacje'], ['conversation', 'Rozmowa'], ['prepare', 'Przygotuj CV'], ['preview', 'Wynik']].map(([key, label], index) => <button type="button" key={key} aria-current={activePanel === key ? 'step' : undefined} disabled={busy || factEditing || (Boolean(session.question) && key !== 'conversation') || (session.phase === 'intake' && key !== 'facts') || (session.phase === 'clarification' && key !== 'conversation') || (key === 'preview' && !session.preview) || (session.phase === 'completed' && key !== 'preview')} onClick={() => { setReviewOpen(key === 'facts'); setPanel(key); }}><span>{String(index + 1).padStart(2, '0')}</span>{' '}{label}</button>)}</nav>}
+    {session && !legacy && <nav className={classes.stages} aria-label="Etapy wywiadu">{[['facts', 'Twoje informacje'], ['conversation', 'Rozmowa'], ['prepare', 'Przygotuj CV'], ['preview', 'Wynik']].map(([key, label], index) => <button type="button" key={key} aria-current={activePanel === key ? 'step' : undefined} disabled={busy || factEditing || (Boolean(session.question) && key !== 'conversation') || (session.phase === 'clarification' && key !== 'conversation') || (key === 'preview' && (!session.preview || needsFactSave)) || (session.phase === 'completed' && key !== 'preview')} onClick={() => goTo(key)}><span>{String(index + 1).padStart(2, '0')}</span>{' '}{label}</button>)}</nav>}
     {!canAi && entitlements && <p>Wywiad AI wymaga Pro. Możesz nadal przeglądać i poprawiać zapisane informacje. <Link to="/app/account">Konto i plan</Link></p>}
     {sourceChanged && <p className={classes.error}>CV w edytorze zmieniło się od rozpoczęcia rozmowy. Zapisz odpowiedź, a następnie wczytaj aktualne źródło. Zachowamy dotychczasowe odpowiedzi.</p>}
     {session && !legacy && (sourceChanged || session.source_document_id) && <button disabled={busy || session.phase === 'completed' || Boolean(answer.trim())} type="button" onClick={() => run(async () => { await operation('source', currentSource || {}); onSourceRefreshed?.(); setReviewOpen(true); })}>Wczytaj aktualne CV do wywiadu</button>}
@@ -165,7 +178,7 @@ export default function InterviewFlow({ sessionId, initialSource = null, current
         {(!source || source === 'new') && <><label>Imię i nazwisko<input autoComplete="name" maxLength={200} value={name} onChange={(e) => setName(e.target.value)} placeholder="Jeśli nie ma go jeszcze w profilu" /></label><label>Stanowisko docelowe<input maxLength={200} value={title} onChange={(e) => setTitle(e.target.value)} /></label></>}
       </>}
       {(initialSource || source) && <label className={classes.scopeChoice}><input type="checkbox" checked={includeProfile} onChange={(event) => setIncludeProfile(event.target.checked)} />To moje CV — dołącz mój profil zawodowy</label>}
-      <p className={classes.hint}>{isolated ? 'Tylko wybrane CV i informacje z tej rozmowy. Zatwierdzenie nie zmieni profilu konta.' : 'Wykorzystamy profil konta. Zatwierdzone informacje zostaną w nim zapisane.'}</p>
+      <p className={classes.hint}>{isolated ? 'Tylko wybrane CV i informacje z tej rozmowy. Zapis nie zmieni profilu konta.' : 'Wykorzystamy profil konta. Informacje zapiszemy w nim przy przejściu dalej.'}</p>
       <label>{mode === 'tailor' ? 'Dodatkowe fakty dotyczące tego CV' : 'Historia zawodowa, projekty i edukacja'}<textarea rows={5} maxLength={5000} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Opisz role, firmy, okresy pracy i osiągnięcia. Możesz zacząć od projektu, praktyk lub studiów." /></label>
       <label>Język nowego CV<select value={language} onChange={(e) => setLanguage(e.target.value)}>{Object.entries(languageLabels).map(([code, label]) => <option key={code} value={code}>{label}</option>)}</select></label>
       <button className={classes.primary} disabled={!canAi} type="button" onClick={start}>Rozpocznij wywiad</button>
@@ -181,7 +194,7 @@ export default function InterviewFlow({ sessionId, initialSource = null, current
       <p className={classes.step}>{session.phase === 'clarification' ? session.question ? `Doprecyzowanie ${clarified + 1} z ${clarificationTotal}` : `Doprecyzowania: ${session.pending_clarifications?.length || 0} do sprawdzenia` : `Zapisane odpowiedzi: ${session.answers.length}`} · Język CV: {languageLabels[session.language]} · {isolated ? 'Tylko to CV — profil konta wyłączony' : 'Profil konta'}</p>
       {session.generation_feedback?.length > 0 && !session.preview && <InterviewReviewNotice legacy />}
       {activePanel === 'conversation' && session.requirements.length > 0 && <details><summary>Wymagania oferty</summary><ul className={classes.requirements}>{session.requirements.map((req, index) => <li key={index}><strong>{statuses[req.status]}</strong> — {req.text}</li>)}</ul></details>}
-      {reviewing ? <><FactEditor isolated={isolated} facts={facts} onChange={setFacts} disabled={busy} onEditingChange={setFactEditing} /><div className={classes.actions}><button className={classes.primary} disabled={busy || factEditing || facts.some((f) => !f.text.trim())} onClick={confirm}>Zatwierdź informacje</button>{session.phase !== 'intake' && <button disabled={busy || factEditing} onClick={() => { setReviewOpen(false); setPanel('conversation'); }}>Wróć do rozmowy</button>}</div></> : <>
+      {reviewing ? <><FactEditor isolated={isolated} facts={facts} onChange={setFacts} disabled={busy} onEditingChange={setFactEditing} /><p className={classes.hint}>{needsFactSave ? (isolated ? 'Przejście dalej zapisze informacje w tym wywiadzie.' : 'Przejście dalej zapisze informacje w Twoim profilu zawodowym.') : 'Wszystkie informacje są zapisane.'}</p><div className={classes.actions}><button className={classes.primary} disabled={busy || factEditing || facts.some((f) => !f.text.trim())} onClick={() => goTo(reviewDestination)}>{reviewDestination === 'conversation' ? 'Przejdź do rozmowy' : 'Przejdź do przygotowania CV'}</button>{reviewDestination !== 'conversation' && <button disabled={busy || factEditing || facts.some((f) => !f.text.trim())} onClick={() => goTo('conversation')}>Wróć do rozmowy</button>}</div></> : <>
         {activePanel === 'conversation' && <>
         {session.phase === 'clarification' && <div className={classes.progress}>
           <p>Sprawdźmy szczegóły w proponowanej treści. Możesz je poprawić albo pominąć i przejść do CV opartego na potwierdzonych informacjach.</p>
@@ -191,10 +204,10 @@ export default function InterviewFlow({ sessionId, initialSource = null, current
         {session.question && <div className={classes.question}><h3>{session.question.text}</h3><p className={classes.hint}>{session.question.reason}</p>{session.question.clarification && <><figure className={classes.proposal}><figcaption>{session.question.record_label || "Propozycja do sprawdzenia"}<span>Propozycja AI · wymaga Twojego potwierdzenia</span></figcaption><blockquote>{session.question.suggested_text}</blockquote></figure><p>{session.question.target_fact_ids?.length ? 'Podaj pełny poprawiony opis — po zatwierdzeniu zastąpi dotychczasowy wpis.' : 'Popraw opis lub potwierdź, że jest zgodny z Twoim doświadczeniem.'}</p></>}<label>Twoja odpowiedź<textarea rows={5} maxLength={4000} value={answer} onChange={(event) => setAnswer(event.target.value)} disabled={busy} /></label><div className={classes.actions}>{session.question.clarification && <button disabled={busy || Boolean(answer.trim())} onClick={() => saveAnswer('answered', session.question.suggested_text)}>Opis jest poprawny</button>}<button className={classes.primary} disabled={busy || !answer.trim()} onClick={() => saveAnswer('answered')}>Zapisz odpowiedź</button><button disabled={busy} onClick={() => saveAnswer('no_experience')}>Nie mam takiego doświadczenia</button><button disabled={busy} onClick={() => saveAnswer('unknown')}>Nie pamiętam</button><button disabled={busy} onClick={() => saveAnswer('skipped')}>Pomiń</button></div></div>}
         {session.phase !== 'completed' && <div className={classes.actions}>
           {!session.question && session.phase !== 'clarification' && session.answers.length < session.question_limit && <button disabled={busy || !canAi || sourceChanged} onClick={() => run(() => operation('next'))}>Następne pytanie</button>}
-          <button disabled={busy} onClick={() => setReviewOpen(true)}>Sprawdź informacje{hasPending ? ` (${session.proposed_facts.length} nowych)` : ''}</button>
+          <button disabled={busy} onClick={() => setReviewOpen(true)}>Sprawdź informacje{hasPending ? ` (${session.proposed_facts.length} do zapisania)` : ''}</button>
           {(session.phase === 'review' || session.phase === 'preview') && <button disabled={busy || !canAi || sourceChanged} onClick={() => run(() => operation('extend'))}>Pogłęb wywiad — do 5 pytań</button>}
         </div>}
-        {!session.question && session.phase !== 'clarification' && session.phase !== 'completed' && <div className={classes.nextStep}><div><h3>{hasPending ? 'Sprawdź zapisane odpowiedzi' : 'Gotowe do przygotowania CV?'}</h3><p>{hasPending ? 'Sprawdź nowe informacje, zanim wykorzystamy je w treści.' : 'Możesz przejść dalej albo odpowiedzieć na kolejne pytania.'}</p></div><button className={classes.primary} type="button" onClick={() => hasPending ? setReviewOpen(true) : setPanel('prepare')}>{hasPending ? 'Przejrzyj nowe informacje' : 'Przejdź do przygotowania CV'}</button></div>}
+        {!session.question && session.phase !== 'clarification' && session.phase !== 'completed' && <div className={classes.nextStep}><div><h3>Gotowe do przygotowania CV?</h3><p>{hasPending ? 'Przejście dalej zapisze Twoje odpowiedzi. Możesz je też poprawić w Twoich informacjach.' : 'Możesz przejść dalej albo odpowiedzieć na kolejne pytania.'}</p></div><button className={classes.primary} type="button" onClick={() => goTo('prepare')}>Przejdź do przygotowania CV</button></div>}
         </>}
         {activePanel === 'prepare' && session.phase !== 'completed' && session.phase !== 'clarification' && <fieldset disabled={busy} className={classes.preparation}>
           <legend>Przygotuj CV</legend>

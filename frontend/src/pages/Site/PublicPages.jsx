@@ -74,7 +74,7 @@ export function HelpPage() {
       <ol>
         <li>Otwórz „CV z pomocą wywiadu”. Zacznij od podstawowych danych albo wskaż własne CV lub wcześniejszy import. Znane informacje możesz poprawić przed rozmową.</li>
         <li>Odpowiadaj po polsku, po jednym pytaniu. Przy tworzeniu lub uzupełnianiu CV pierwsza runda obejmuje do 8 pytań, łącznie z doprecyzowaniami. Możesz ją zakończyć wcześniej lub dobrowolnie pogłębić o maksymalnie 5 kolejnych pytań.</li>
-        <li>Przejrzyj i zatwierdź zebrane informacje. W trybie „Mój profil zawodowy” zapiszą się w profilu konta. Dla osobnego CV pozostaną tylko w tym wywiadzie.</li>
+        <li>W razie potrzeby popraw zebrane informacje, a następnie przejdź do rozmowy lub przygotowania CV. Przejście dalej zapisuje zmiany — bez osobnego zatwierdzania. W trybie „Mój profil zawodowy” zapiszą się w profilu konta. Dla osobnego CV pozostaną tylko w tym wywiadzie.</li>
         <li>Wybierz język treści CV i szablon, sprawdź podgląd, a następnie użyj „Zapisz jako nowe CV”. Dokument otworzy się w edytorze, skąd pobierzesz PDF.</li>
       </ol>
       <div className={classes.guideFaq}>
@@ -89,7 +89,7 @@ export function HelpPage() {
     <section id="dopasowanie" tabIndex={-1} className={classes.guideStep}>
       <div className={classes.stepHeading}><SiteMarker><FiFileText /></SiteMarker><span className={classes.eyebrow}>TEMAT 03 · PRO</span></div>
       <h2>Dopasuj CV do konkretnej oferty</h2>
-      <ol><li>Otwórz swoje CV i asystenta AI. Wybierz „Dopasuj do oferty”, dodaj ogłoszenie, a następnie „Dopasuj z wywiadem — nowe CV”.</li><li>AI zestawi wymagania oferty z wybranym CV i zatwierdzonymi informacjami tej rozmowy. Profil konta dołączysz wyłącznie przez „To moje CV — dołącz mój profil zawodowy”. Krótka runda do 5 pytań, łącznie z doprecyzowaniami, pomoże uzupełnić istotne informacje. Możesz też wpisać dodatkowe fakty ręcznie lub przejść do generowania bez tej rundy.</li><li>Zatwierdź informacje i sprawdź treść, proponowane zmiany oraz wymagania, których nadal nie udało się potwierdzić. W razie niejasności możesz odpowiedzieć na pytania doprecyzowujące.</li><li>Zapisz wynik jako nowe CV. Źródłowy dokument zachowa swoją treść; nową wersję dopracujesz w edytorze.</li></ol>
+      <ol><li>Otwórz swoje CV i asystenta AI. Wybierz „Dopasuj do oferty”, dodaj ogłoszenie, a następnie „Dopasuj z wywiadem — nowe CV”.</li><li>AI zestawi wymagania oferty z wybranym CV i zatwierdzonymi informacjami tej rozmowy. Profil konta dołączysz wyłącznie przez „To moje CV — dołącz mój profil zawodowy”. Krótka runda do 5 pytań, łącznie z doprecyzowaniami, pomoże uzupełnić istotne informacje. Możesz też wpisać dodatkowe fakty ręcznie lub przejść do generowania bez tej rundy.</li><li>Przejdź do przygotowania CV, aby zapisać odpowiedzi. Sprawdź treść, proponowane zmiany oraz wymagania, których nadal nie udało się potwierdzić. W razie niejasności możesz odpowiedzieć na pytania doprecyzowujące.</li><li>Zapisz wynik jako nowe CV. Źródłowy dokument zachowa swoją treść; nową wersję dopracujesz w edytorze.</li></ol>
       <p>Oferta pomaga wybrać, co warto pokazać. Nie potwierdza Twoich umiejętności. Sprawdź proponowane opisy przed wysłaniem CV — dopasowanie nie gwarantuje zaproszenia na rozmowę.</p>
       <Link className={classes.secondary} to="/app/documents">Wybierz CV do dopasowania <FiArrowRight aria-hidden="true" /></Link>
     </section>

@@ -180,7 +180,7 @@ describe('candidate evidence separation', () => {
     await screen.findByRole('button', { name: 'Otwórz wpis: Anna Candidate' });
     expect(screen.queryByText('Kamil Owner')).toBeNull();
     expect(interviewRequest).toHaveBeenCalledWith('/ai/interviews', 'POST', expect.objectContaining({ source_document_id: 30, include_profile: false, cv_data: {} }), expect.any(String));
-    await user.click(screen.getByRole('button', { name: 'Zatwierdź informacje' }));
+    await user.click(screen.getByRole('button', { name: 'Przejdź do rozmowy' }));
     expect(interviewRequest).toHaveBeenCalledWith('/ai/interviews/session/confirm', 'POST', expect.objectContaining({ evidence_scope: 'session', profile_revision: 0, facts: [candidate] }));
     await screen.findByText('Informacje zapisane tylko w tym wywiadzie. Profil konta pozostaje bez zmian.');
   });
@@ -241,5 +241,54 @@ describe('clarification corrections', () => {
     expect(await screen.findByText(/zastąpi dotychczasowy wpis/)).toBeVisible();
     await userEvent.setup().click(screen.getByRole('button', { name: 'Opis jest poprawny' }));
     await waitFor(() => expect(interviewRequest).toHaveBeenCalledWith('/ai/interviews/session/answers', 'POST', expect.objectContaining({ status: 'answered', answer: 'Research SoF i SoW.' })));
+  });
+});
+
+
+describe('save on interview navigation', () => {
+  it('leaves unchanged facts without another confirmation request or invalidating the preview', async () => {
+    session = { ...session, phase: 'ready', question: null };
+    render(<MemoryRouter><InterviewFlow sessionId="session" /></MemoryRouter>);
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('button', { name: '01 Twoje informacje' }));
+    expect(screen.getByText('Wszystkie informacje są zapisane.')).toBeVisible();
+    expect(screen.queryByRole('button', { name: 'Zatwierdź informacje' })).toBeNull();
+    await user.click(screen.getByRole('button', { name: 'Przejdź do rozmowy' }));
+    await user.click(screen.getByRole('button', { name: '03 Przygotuj CV' }));
+    expect(interviewRequest.mock.calls.some(([path]) => path.endsWith('/confirm'))).toBe(false);
+  });
+
+  it('persists pending answers once when moving directly to preparation', async () => {
+    const pending = { ...fact, id: 'answer', path: '', text: 'Zbudowałam raportowanie.' };
+    session = { ...session, phase: 'review', question: null, clarification_round: true, answers: [{}], proposed_facts: [pending] };
+    let resolveSave;
+    const saved = new Promise((resolve) => { resolveSave = resolve; });
+    interviewRequest.mockImplementation(async (path) => {
+      if (path === '/career-profile') return { revision: 1, facts: [fact] };
+      if (path.endsWith('/confirm')) return saved;
+      return session;
+    });
+    render(<MemoryRouter><InterviewFlow sessionId="session" /></MemoryRouter>);
+    const button = await screen.findByRole('button', { name: 'Przejdź do przygotowania CV' });
+    fireEvent.click(button); fireEvent.click(button);
+    expect(interviewRequest.mock.calls.filter(([path]) => path.endsWith('/confirm'))).toHaveLength(1);
+    expect(interviewRequest).toHaveBeenCalledWith('/ai/interviews/session/confirm', 'POST', expect.objectContaining({ facts: [fact, pending] }));
+    resolveSave({ session: { ...session, proposed_facts: [], revision: 3 }, profile: { revision: 2, facts: [fact, pending] } });
+    await screen.findByRole('heading', { name: 'Przygotuj swoją wersję CV' });
+    expect(interviewRequest.mock.calls.some(([path]) => path.endsWith('/preview') || path.endsWith('/next'))).toBe(false);
+  });
+
+  it('retains edited facts and the current step on save failure', async () => {
+    session = { ...session, phase: 'intake', question: null, confirmed: false, proposed_facts: [fact] };
+    interviewRequest.mockImplementation(async (path) => {
+      if (path === '/career-profile') return { revision: 0, facts: [] };
+      if (path.endsWith('/confirm')) throw new Error('Zapis niedostępny');
+      return session;
+    });
+    render(<MemoryRouter><InterviewFlow sessionId="session" /></MemoryRouter>);
+    await userEvent.setup().click(await screen.findByRole('button', { name: 'Przejdź do rozmowy' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Zapis niedostępny');
+    expect(screen.getByRole('button', { name: 'Otwórz wpis: Anna Nowak' })).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Przejdź do rozmowy' })).toBeEnabled();
   });
 });

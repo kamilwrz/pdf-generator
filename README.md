@@ -65,7 +65,7 @@ Implementation (verified whole-module extents):
 - `frontend/src/pages/Hero/Hero.jsx`, lines 1–331, `Hero`.
 - `frontend/src/components/editor/StartChooser/StartChooser.jsx`, lines 1–252, `StartChooser`.
 - `frontend/src/pages/Site/InterviewPage.jsx`, lines 1–10, `InterviewPage`.
-- `frontend/src/components/ai/Interview/InterviewFlow.jsx`, lines 1–219, `InterviewFlow`.
+- `frontend/src/components/ai/Interview/InterviewFlow.jsx`, lines 1–232, `InterviewFlow`.
 - `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, lines 1–59, `SiteLayout`.
 - `frontend/src/components/common/SiteLayout/SiteLayout.module.css`, lines 1–199, `guideFaq`.
 - `frontend/e2e/interview-discovery.spec.js`, lines 1–100, `Playwright`.
@@ -460,6 +460,11 @@ The additive migration `20260910_0017` creates `career_profiles` (one owner prof
 
 Clarification corrections retain the cited fact IDs (`target_fact_ids`) when the source is an unambiguous existing field or one unbound answer. `answer_proposals` stages the replacement and `reviewFacts` displays it in place; only `/confirm` updates the chosen evidence store. Unknown/skip never overwrite a fact. “Opis jest poprawny” explicitly submits the visible proposal without retyping; a typed correction must contain the full replacement description. Rewording cannot reopen an already resolved target in the same session. Ambiguous and older questions without a reliable target remain independent notes; previously saved duplicates are not silently deleted. Generation instructions consolidate related details into one task. `Verification.duplicate_paths` separates redundant additions from unsupported claims; only added bullet points can be omitted on that basis, while existing authored fields and separate roles survive. Exact duplicate additions within one bullet list are also filtered locally; semantic duplication still depends on AI review. No schema migration or additional automatic AI call is required. Deploy backend and frontend together, then refresh active clients. Tests cover replacement/replay in both evidence scopes, non-answers, repeated targets, duplicate additions and explicit UI confirmation. [Pydantic field defaults](https://docs.pydantic.dev/latest/concepts/fields/) explain why older cached verification results can omit `duplicate_paths` while new provider schemas require it.
 
+
+### Save facts when continuing the interview
+
+`InterviewFlow.goTo` replaces the repeated confirmation button with **Przejdź do rozmowy** / **Przejdź do przygotowania CV**. Stage navigation uses the same boundary: it calls the existing `/confirm` only for initial, pending or edited facts, then enters the requested stage. Unchanged facts cause no request, revision increment or preview invalidation. The screen names the chosen destination store before saving. Finishing a clarification round no longer forces a full-profile review; the optional **Twoje informacje** stage still allows corrections. No navigation action starts paid AI. Open field drafts disable stage transitions; a failed save preserves the current stage and parent draft, and the synchronous lock prevents double submissions. A page reload can still discard unsent local edits. Server validation, candidate isolation, credits and PDF output remain unchanged. Runtime tests cover unchanged navigation, single save before preparation and failure recovery; E2E covers both candidate scopes and responsive keyboard flows. [React event handlers](https://react.dev/learn/separating-events-from-effects) explain why this save belongs to the user navigation action, rather than an effect triggered by rendering.
+
 Uncertain AI proposals now lead to clarification before the final preview. `interview_clarification.py` builds up to five targeted questions from the verification output; `clarify` starts a voluntary round and `skip-clarifications` explicitly defers it. Questions and answers reuse stored work without another AI charge. New answers remain drafts until fact confirmation; regenerating the CV then uses normal credits. The user's answers are not discarded. `interview_recovery.py` maintains a confirmed fallback for explicit skipping and can recover the immediately preceding settled legacy result for an unchanged profile/source. Resolved topics are not asked again. `InterviewReviewNotice` explains remaining unconfirmed details without raw diagnostics. Session JSON adds `pending_clarifications`, `dismissed_clarifications`, `clarification_round`, `review_notes` and `recovered_previous_attempt`; no migration is needed. Retained fields may remain in the source language when a translation is unconfirmed. Tests cover chronology, project attribution, question caps, answer statuses, explicit skipping and recovery without extra billing.
 
 Clarification loop protection: only a changed scalar explicitly rejected by verification and citing current profile facts can become a question. Technical errors, unknown paths, dependent record rejections and unchanged fields use the confirmed fallback without asking the user to diagnose them. The disputed proposal is always visible and labelled as unconfirmed, beside its section/role label. Clarifications have a separate position/total counter and a cumulative budget of five answered or explicitly deferred questions per session; regeneration cannot reset it. Normalized claim and question fingerprints suppress repeats across field reordering, case and punctuation changes. This is deterministic duplicate detection, not semantic equivalence detection; reworded claims may remain distinct, but the budget still bounds them. Discovery also stops repeated wording under a new topic without an automatic paid retry.
@@ -500,7 +505,7 @@ Implementation and tests (verified whole-module ranges; use the named symbols fo
 | `frontend/src/utils/interviewPreview.js` | 1–27; previewRecords, recordContent |
 | `frontend/src/utils/interviewPreview.test.js` | 1–24; grouping, evidence, removed fields |
 | `frontend/e2e/interview-workspace.spec.js` | 1–116; bounded preview, delayed operations, failure recovery |
-| `frontend/src/components/ai/Interview/InterviewFlow.jsx` | 1–219; InterviewFlow |
+| `frontend/src/components/ai/Interview/InterviewFlow.jsx` | 1–232; InterviewFlow |
 | `frontend/src/utils/careerProfileView.js` | 1–116; groupCareerFacts, careerFieldLabel, newCareerRecord, careerFieldOptions |
 | `frontend/src/utils/careerProfileView.test.js` | 1–39; grouping, identity, limits |
 | `frontend/src/components/ai/Interview/FactEditor.runtime.test.jsx` | 1–56; apply, cancel, undo, focus, search |
@@ -517,7 +522,7 @@ Implementation and tests (verified whole-module ranges; use the named symbols fo
 | `frontend/src/utils/interviewPresentation.js` | 1–13; factLabel, interviewFields |
 | `backend/tests/test_interviews.py` | 1–638; state, grounding, billing, source preservation and PDF regressions |
 | `backend/tests/test_alembic_interviews.py` | 1–26; additive migration regression |
-| `frontend/src/components/ai/Interview/Interview.runtime.test.jsx` | 1–245; save-before-next, recovery, focus and source changes |
+| `frontend/src/components/ai/Interview/Interview.runtime.test.jsx` | 1–294; save-before-next, recovery, focus and source changes |
 | `frontend/e2e/interview-sources.spec.js` | 1–62; isolated source selection, confirmation, resumption |
 | `frontend/e2e/interviews.spec.js` | 1–180; create, resume, profile and assistant flows |
 
@@ -3066,7 +3071,7 @@ Implementacja (zweryfikowane zakresy całych modułów):
 - `frontend/src/pages/Hero/Hero.jsx`, linie 1–331, `Hero`.
 - `frontend/src/components/editor/StartChooser/StartChooser.jsx`, linie 1–252, `StartChooser`.
 - `frontend/src/pages/Site/InterviewPage.jsx`, linie 1–10, `InterviewPage`.
-- `frontend/src/components/ai/Interview/InterviewFlow.jsx`, linie 1–219, `InterviewFlow`.
+- `frontend/src/components/ai/Interview/InterviewFlow.jsx`, linie 1–232, `InterviewFlow`.
 - `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, linie 1–59, `SiteLayout`.
 - `frontend/src/components/common/SiteLayout/SiteLayout.module.css`, linie 1–199, `guideFaq`.
 - `frontend/e2e/interview-discovery.spec.js`, linie 1–100, `Playwright`.
@@ -3469,6 +3474,11 @@ Implementacja i testy (zweryfikowane zakresy całych modułów; symbole ułatwia
 
 Korekty doprecyzowań zachowują identyfikatory przywołanych faktów (`target_fact_ids`), gdy źródłem jest jednoznaczne istniejące pole lub jedna odpowiedź bez pola. `answer_proposals` przygotowuje zastąpienie, a `reviewFacts` pokazuje je w miejscu wpisu; dopiero `/confirm` aktualizuje wybrany zbiór informacji. „Nie pamiętam” i pominięcie nie nadpisują faktu. „Opis jest poprawny” jawnie wysyła widoczną propozycję bez przepisywania; wpisana korekta musi zawierać pełny opis zastępujący poprzedni. Zmiana brzmienia pytania nie otwiera ponownie rozstrzygniętego wpisu w tej samej sesji. Niejednoznaczne i starsze pytania bez wiarygodnego powiązania pozostają osobnymi notatkami; wcześniej zapisane duplikaty nie są automatycznie usuwane. Instrukcje generowania łączą związane szczegóły w jedną czynność. `Verification.duplicate_paths` oddziela zbędne dodatki od niepotwierdzonych twierdzeń; na tej podstawie można pominąć tylko dodawane podpunkty, zachowując istniejące pola użytkownika i osobne role. Identyczne dodatki w jednej liście punktów są też filtrowane lokalnie; wykrywanie powtórzeń znaczeniowych nadal zależy od oceny AI. Zmiana nie wymaga migracji ani dodatkowego automatycznego wywołania AI. Wdróż backend i frontend razem, następnie odśwież aktywnych klientów. Testy obejmują zastępowanie/ponowienie w obu zakresach danych, brak odpowiedzi, ponowne pytania o wpis, powtórzone dodatki i jawne potwierdzenie w UI. [Wartości domyślne pól Pydantic](https://docs.pydantic.dev/latest/concepts/fields/) wyjaśniają, dlaczego starsze zapisane wyniki weryfikacji mogą pomijać `duplicate_paths`, choć nowy schemat providera go wymaga.
 
+
+### Zapis informacji przy przejściu dalej w wywiadzie
+
+`InterviewFlow.goTo` zastępuje powtarzany przycisk zatwierdzania akcjami **Przejdź do rozmowy** / **Przejdź do przygotowania CV**. Nawigacja etapów korzysta z tej samej granicy zapisu: wywołuje istniejące `/confirm` tylko dla początkowych, oczekujących lub zmienionych faktów, a następnie otwiera wybrany etap. Niezmienione informacje nie powodują żądania, zwiększenia rewizji ani unieważnienia podglądu. Ekran przed zapisem wskazuje wybrany zbiór danych. Koniec rundy doprecyzowań nie wymusza już przeglądu całego profilu; opcjonalny etap **Twoje informacje** nadal pozwala poprawiać treść. Nawigacja nie uruchamia płatnego AI. Otwarty szkic pola blokuje zmianę etapu; nieudany zapis zachowuje bieżący etap i poprawki, a synchroniczna blokada zapobiega podwójnym żądaniom. Odświeżenie strony nadal może usunąć niewysłane lokalne zmiany. Walidacja serwera, rozdzielenie osób, kredyty i PDF pozostają bez zmian. Testy runtime obejmują nawigację bez zmian, pojedynczy zapis przed przygotowaniem i odzyskiwanie po błędzie; E2E sprawdza oba zakresy danych oraz responsywną obsługę klawiaturą. [Obsługa zdarzeń React](https://react.dev/learn/separating-events-from-effects) wyjaśnia, dlaczego ten zapis należy do akcji nawigacji użytkownika, a nie efektu uruchamianego przez renderowanie.
+
 Niejasne propozycje AI prowadzą teraz do doprecyzowania przed końcowym podglądem. `interview_clarification.py` przygotowuje do pięciu konkretnych pytań z wyniku weryfikacji; `clarify` rozpoczyna dobrowolną rundę, a `skip-clarifications` świadomie ją pomija. Pytania i odpowiedzi wykorzystują zapisaną pracę bez dodatkowej opłaty AI. Nowe odpowiedzi pozostają szkicem do zatwierdzenia faktów; kolejne generowanie CV korzysta ze zwykłych kredytów. Odpowiedzi użytkownika nie są odrzucane. `interview_recovery.py` utrzymuje potwierdzoną wersję na wypadek świadomego pominięcia oraz może odzyskać bezpośrednio poprzedni rozliczony wynik starej sesji przy niezmienionym profilu/źródle. Rozstrzygnięte tematy nie są powtarzane. `InterviewReviewNotice` wyjaśnia pozostałe niepotwierdzone szczegóły bez surowej diagnostyki. JSON sesji otrzymuje `pending_clarifications`, `dismissed_clarifications`, `clarification_round`, `review_notes` i `recovered_previous_attempt`; migracja nie jest potrzebna. Zachowane pola mogą pozostać w języku źródła, gdy tłumaczenie nie jest potwierdzone. Testy obejmują kolejność działań, przypisanie projektu, limity pytań, statusy odpowiedzi, świadome pominięcie i odzyskanie bez dodatkowej opłaty.
 
 Ochrona przed pętlą doprecyzowań: pytaniem może zostać tylko zmienione pole tekstowe jawnie zakwestionowane przez weryfikację i odwołujące się do aktualnych faktów profilu. Błędy techniczne, nieznane ścieżki, zależne odrzucenia wpisu oraz niezmienione pola korzystają z potwierdzonej wersji bez proszenia użytkownika o ich diagnozę. Sporna propozycja jest zawsze widoczna, oznaczona jako niepotwierdzona i opisana nazwą sekcji/roli. Doprecyzowania mają osobny licznik pozycji/liczby pytań i łączny budżet pięciu pytań z odpowiedzią lub jawnym pominięciem w sesji; regeneracja go nie resetuje. Znormalizowane odciski treści i pytania blokują powtórki po zmianie kolejności pól, wielkości liter i interpunkcji. To deterministyczne wykrywanie duplikatów, nie równoważności znaczeniowej; przeformułowane twierdzenia mogą pozostać odrębne, ale nadal ogranicza je budżet. Zwykły wywiad również zatrzymuje powtórzone pytanie z nowym identyfikatorem tematu, bez automatycznej płatnej próby.
@@ -3496,7 +3506,7 @@ Przy uwierzytelnionym odczycie właściciela `GET /ai/interviews/{id}` funkcja `
 | `frontend/src/utils/interviewPreview.js` | 1–27; previewRecords, recordContent |
 | `frontend/src/utils/interviewPreview.test.js` | 1–24; grouping, evidence, removed fields |
 | `frontend/e2e/interview-workspace.spec.js` | 1–116; bounded preview, delayed operations, failure recovery |
-| `frontend/src/components/ai/Interview/InterviewFlow.jsx` | 1–219; InterviewFlow |
+| `frontend/src/components/ai/Interview/InterviewFlow.jsx` | 1–232; InterviewFlow |
 | `frontend/src/utils/careerProfileView.js` | 1–116; groupCareerFacts, careerFieldLabel, newCareerRecord, careerFieldOptions |
 | `frontend/src/utils/careerProfileView.test.js` | 1–39; grouping, identity, limits |
 | `frontend/src/components/ai/Interview/FactEditor.runtime.test.jsx` | 1–56; apply, cancel, undo, focus, search |
@@ -3513,7 +3523,7 @@ Przy uwierzytelnionym odczycie właściciela `GET /ai/interviews/{id}` funkcja `
 | `frontend/src/utils/interviewPresentation.js` | 1–13; factLabel, interviewFields |
 | `backend/tests/test_interviews.py` | 1–638; testy zachowania wywiadu |
 | `backend/tests/test_alembic_interviews.py` | 1–26; testy zachowania wywiadu |
-| `frontend/src/components/ai/Interview/Interview.runtime.test.jsx` | 1–245; testy zachowania wywiadu |
+| `frontend/src/components/ai/Interview/Interview.runtime.test.jsx` | 1–294; testy zachowania wywiadu |
 | `frontend/e2e/interview-sources.spec.js` | 1–62; wybór osobnego źródła, zatwierdzanie, wznowienie |
 | `frontend/e2e/interviews.spec.js` | 1–180; testy zachowania wywiadu |
 
