@@ -156,6 +156,8 @@ export default function InterviewFlow({ sessionId, initialSource = null, current
   // make the first clarification appear as question nine of a new interview.
   const clarified = session?.answers.filter((item) => item.question?.clarification).length || 0;
   const clarificationTotal = clarified + (session?.question ? 1 : 0) + (session?.pending_clarifications?.length || 0);
+  const clarificationQuestion = session?.question?.clarification ? session.question : null;
+  const hasAnswerDraft = Boolean(answer.trim());
   return <section className={`${classes.flow} ${classes.interview}`} aria-label="Wywiad zawodowy">
     <div className={classes.utility}><Link aria-disabled={waiting} onClick={(event) => { if (waiting) event.preventDefault(); }} className={classes.link} to="/app/career-profile">Profil i zapisane wywiady</Link><Link className={classes.link} to="/help#wywiad" target="_blank" rel="noopener noreferrer">Pomoc do wywiadu (nowa karta)</Link>{onClose && <button type="button" disabled={waiting} onClick={onClose}>Wróć do asystenta</button>}</div>
     <h2 ref={heading} tabIndex={-1} className={classes.taskTitle}>{activePanel === 'prepare' ? 'Przygotuj swoją wersję CV' : reviewing ? 'Sprawdź informacje do CV' : session?.phase === 'clarification' ? 'Doprecyzujmy szczegóły' : session?.phase === 'preview' ? 'Twoja nowa wersja CV' : mode === 'tailor' || session?.mode === 'tailor' ? 'Wywiad pod ofertę' : 'Wywiad zawodowy'}</h2>
@@ -202,12 +204,53 @@ export default function InterviewFlow({ sessionId, initialSource = null, current
       {activePanel === 'conversation' && session.requirements.length > 0 && <details><summary>Wymagania oferty</summary><ul className={classes.requirements}>{session.requirements.map((req, index) => <li key={index}><strong>{statuses[req.status]}</strong> — {req.text}</li>)}</ul></details>}
       {reviewing ? <><FactEditor isolated={isolated} facts={facts} onChange={setFacts} disabled={busy} onEditingChange={setFactEditing} /><p className={classes.hint}>{needsFactSave ? (isolated ? 'Przejście dalej zapisze informacje w tym wywiadzie.' : 'Przejście dalej zapisze informacje w Twoim profilu zawodowym.') : 'Wszystkie informacje są zapisane.'}</p><div className={classes.actions}><button className={classes.primary} disabled={busy || factEditing || facts.some((f) => !f.text.trim())} onClick={() => goTo(reviewDestination)}>{reviewDestination === 'conversation' ? 'Przejdź do rozmowy' : 'Przejdź do przygotowania CV'}</button>{reviewDestination !== 'conversation' && <button disabled={busy || factEditing || facts.some((f) => !f.text.trim())} onClick={() => goTo('conversation')}>Wróć do rozmowy</button>}</div></> : <>
         {activePanel === 'conversation' && <>
-        {session.phase === 'clarification' && <div className={classes.progress}>
+        {session.phase === 'clarification' && !session.question && <div className={classes.progress}>
           <p>Sprawdźmy szczegóły w proponowanej treści. Możesz je poprawić albo pominąć i przejść do CV opartego na potwierdzonych informacjach.</p>
-          {!session.question && <><p>Krótka runda obejmie do {Math.min(5, session.pending_clarifications?.length || 0)} pytań. Jej uruchomienie i zapis odpowiedzi nie zużywają kredytów. Ponowne wygenerowanie CV po odpowiedziach korzysta z kredytów AI.</p><button className={classes.primary} disabled={busy || sourceChanged} onClick={() => run(() => operation('clarify'))}>Doprecyzuj — do 5 pytań</button></>}
+          <p>Krótka runda obejmie do {Math.min(5, session.pending_clarifications?.length || 0)} pytań. Jej uruchomienie i zapis odpowiedzi nie zużywają kredytów. Ponowne wygenerowanie CV po odpowiedziach korzysta z kredytów AI.</p><button className={classes.primary} disabled={busy || sourceChanged} onClick={() => run(() => operation('clarify'))}>Doprecyzuj — do 5 pytań</button>
           <button disabled={busy || sourceChanged} onClick={() => run(() => operation('skip-clarifications'))}>{hasPending ? 'Zakończ doprecyzowanie i sprawdź odpowiedzi' : 'Pomiń doprecyzowanie i pokaż CV'}</button>
         </div>}
-        {session.question && <div className={classes.question}><h3>{session.question.text}</h3><p className={classes.hint}>{session.question.reason}</p>{session.question.clarification && <><figure className={classes.proposal}><figcaption>{session.question.record_label || "Propozycja do sprawdzenia"}<span>Propozycja AI · wymaga Twojego potwierdzenia</span></figcaption><blockquote>{session.question.suggested_text}</blockquote></figure><p>{session.question.target_fact_ids?.length ? 'Podaj pełny poprawiony opis — po zapisaniu zastąpi dotychczasowy wpis.' : 'Popraw opis lub potwierdź, że jest zgodny z Twoim doświadczeniem.'}</p></>}<label>Twoja odpowiedź<textarea rows={5} maxLength={4000} value={answer} onChange={(event) => setAnswer(event.target.value)} disabled={busy} /></label><div className={classes.actions}>{session.question.clarification && <button disabled={busy || Boolean(answer.trim())} onClick={() => saveAnswer('answered', session.question.suggested_text)}>Opis jest poprawny</button>}<button className={classes.primary} disabled={busy || !answer.trim()} onClick={() => saveAnswer('answered')}>Zapisz odpowiedź</button><button disabled={busy} onClick={() => saveAnswer('no_experience')}>Nie mam takiego doświadczenia</button><button disabled={busy} onClick={() => saveAnswer('unknown')}>Nie pamiętam</button><button disabled={busy} onClick={() => saveAnswer('skipped')}>Pomiń</button></div></div>}
+        {clarificationQuestion && <div className={`${classes.question} ${classes.clarificationQuestion}`}>
+          <header>
+            <p className={classes.decisionLabel}>Decyzja o treści CV</p>
+            <h3>Czy proponowany opis jest w pełni zgodny z Twoim doświadczeniem?</h3>
+            <p className={classes.hint}>Porównaj wątpliwość AI z całym proponowanym opisem, a następnie wybierz jedną odpowiedź.</p>
+          </header>
+          <div className={classes.clarificationPrompt}>
+            <span>Co wymaga sprawdzenia</span>
+            <p>{clarificationQuestion.text}</p>
+          </div>
+          <figure className={classes.proposal}>
+            <figcaption>{clarificationQuestion.record_label || 'Propozycja do sprawdzenia'}<span>Pełny opis zaproponowany przez AI · jeszcze niepotwierdzony</span></figcaption>
+            <blockquote>{clarificationQuestion.suggested_text}</blockquote>
+          </figure>
+          <fieldset className={classes.clarificationDecision}>
+            <legend>Wybierz jedną odpowiedź</legend>
+            <div className={classes.decisionOptions}>
+              <section className={classes.decisionOption} aria-labelledby={`confirm-proposal-${clarificationQuestion.id}`}>
+                <h4 id={`confirm-proposal-${clarificationQuestion.id}`}>Tak, cały opis jest poprawny</h4>
+                <p id={`confirm-proposal-help-${clarificationQuestion.id}`}>Wybierz tę opcję tylko wtedy, gdy opis oraz wskazany szczegół są zgodne z faktami.</p>
+                <button className={!hasAnswerDraft ? classes.primary : undefined} disabled={busy || hasAnswerDraft} aria-describedby={`confirm-proposal-help-${clarificationQuestion.id}`} onClick={() => saveAnswer('answered', clarificationQuestion.suggested_text)}>Tak — zatwierdź ten opis</button>
+              </section>
+              <section className={classes.decisionOption} aria-labelledby={`correct-proposal-${clarificationQuestion.id}`}>
+                <h4 id={`correct-proposal-${clarificationQuestion.id}`}>Nie, opis wymaga poprawy</h4>
+                <p id={`correction-help-${clarificationQuestion.id}`}>Wpisz pełny opis, który zastąpi propozycję — nie tylko odpowiedź na pytanie powyżej.</p>
+                <label>Pełny poprawiony opis<textarea rows={5} maxLength={4000} value={answer} onChange={(event) => setAnswer(event.target.value)} disabled={busy} aria-describedby={`correction-help-${clarificationQuestion.id}`} placeholder="Wpisz cały opis, który ma znaleźć się w CV." /></label>
+                <button className={hasAnswerDraft ? classes.primary : undefined} disabled={busy || !hasAnswerDraft} onClick={() => saveAnswer('answered')}>Zapisz pełny poprawiony opis</button>
+              </section>
+            </div>
+          </fieldset>
+          <div className={classes.alternativeAnswers}>
+            <h4>Jeśli żadna z tych odpowiedzi nie pasuje</h4>
+            <p>Brak doświadczenia zapisze tę informację wprost. „Nie pamiętam” zapisze brak pewności. Zakończenie doprecyzowania nie zapisze żadnej niepotwierdzonej propozycji.</p>
+            {hasAnswerDraft && <p role="status">Usuń wpisany poprawiony opis, aby wybrać jedną z poniższych opcji.</p>}
+            <div className={classes.actions}>
+              <button disabled={busy || hasAnswerDraft} onClick={() => saveAnswer('no_experience')}>To doświadczenie nie miało miejsca</button>
+              <button disabled={busy || hasAnswerDraft} onClick={() => saveAnswer('unknown')}>Nie pamiętam — nie mogę potwierdzić</button>
+              <button disabled={busy || sourceChanged || hasAnswerDraft} onClick={() => run(() => operation('skip-clarifications'))}>Zakończ doprecyzowanie bez zapisywania propozycji</button>
+            </div>
+          </div>
+        </div>}
+        {session.question && !clarificationQuestion && <div className={classes.question}><h3>{session.question.text}</h3><p className={classes.hint}>{session.question.reason}</p><label>Twoja odpowiedź<textarea rows={5} maxLength={4000} value={answer} onChange={(event) => setAnswer(event.target.value)} disabled={busy} /></label><div className={classes.actions}><button className={classes.primary} disabled={busy || !answer.trim()} onClick={() => saveAnswer('answered')}>Zapisz odpowiedź</button><button disabled={busy} onClick={() => saveAnswer('no_experience')}>Nie mam takiego doświadczenia</button><button disabled={busy} onClick={() => saveAnswer('unknown')}>Nie pamiętam</button><button disabled={busy} onClick={() => saveAnswer('skipped')}>Pomiń</button></div></div>}
         {session.phase !== 'completed' && <div className={classes.actions}>
           {!session.question && session.phase !== 'clarification' && session.answers.length < session.question_limit && <button disabled={busy || !canAi || sourceChanged} onClick={() => run(() => operation('next'))}>Następne pytanie</button>}
           <button disabled={busy} onClick={() => setReviewOpen(true)}>Sprawdź informacje{hasPending ? ` (${session.proposed_facts.length} do zapisania)` : ''}</button>

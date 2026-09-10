@@ -87,28 +87,27 @@ for (const width of [390, 834, 1280, 1920]) {
     await expect(page.getByRole('heading', { name: 'Doprecyzujmy szczegóły' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Zapisz jako nowe CV' })).toHaveCount(0);
     await page.getByRole('button', { name: 'Doprecyzuj — do 5 pytań' }).click();
-    await expect(page.getByRole('heading', { name: 'W którym projekcie używałaś Pythona?' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Czy proponowany opis jest w pełni zgodny z Twoim doświadczeniem?' })).toBeVisible();
+    await expect(page.getByText('W którym projekcie używałaś Pythona?', { exact: true })).toBeVisible();
     await expect(page.getByText('Portal CV w Pythonie', { exact: true })).toBeVisible();
     await expect(page.getByText(/Doprecyzowanie 1 z 1/)).toBeVisible();
-    await page.getByLabel('Twoja odpowiedź').focus();
+    await page.getByRole('button', { name: 'Tak — zatwierdź ten opis', exact: true }).focus();
     await page.keyboard.press('Tab');
-    await expect(page.getByRole('button', { name: 'Opis jest poprawny', exact: true })).toBeFocused();
-    await page.keyboard.press('Tab');
-    await expect(page.getByRole('button', { name: 'Nie mam takiego doświadczenia', exact: true })).toBeFocused();
+    await expect(page.getByLabel('Pełny poprawiony opis', { exact: true })).toBeFocused();
     if (width === 834) await page.addStyleTag({ content: 'html { font-size: 200% !important; }' });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
     await page.screenshot({ path: `../tmp/interview-clarification-${width}.png`, fullPage: true });
     if (width === 834) await page.addStyleTag({ content: 'html { font-size: 100% !important; }' });
     if (width === 834 || width === 1920) {
-      await page.getByRole('button', { name: 'Pomiń doprecyzowanie i pokaż CV' }).click();
+      await page.getByRole('button', { name: 'Zakończ doprecyzowanie bez zapisywania propozycji' }).click();
     } else {
       if (width === 390) {
-        await page.getByRole('button', { name: 'Opis jest poprawny', exact: true }).focus();
+        await page.getByRole('button', { name: 'Tak — zatwierdź ten opis', exact: true }).focus();
         await page.keyboard.press('Enter');
       } else {
-        await page.getByLabel('Twoja odpowiedź').fill('Python był używany w projekcie uczelnianym.');
-        await expect(page.getByRole('button', { name: 'Opis jest poprawny', exact: true })).toBeDisabled();
-        await page.getByRole('button', { name: 'Zapisz odpowiedź', exact: true }).click();
+        await page.getByLabel('Pełny poprawiony opis').fill('Python był używany w projekcie uczelnianym.');
+        await expect(page.getByRole('button', { name: 'Tak — zatwierdź ten opis', exact: true })).toBeDisabled();
+        await page.getByRole('button', { name: 'Zapisz pełny poprawiony opis', exact: true }).click();
       }
       await expect(page.getByRole('button', { name: 'Przejdź do przygotowania CV', exact: true })).toBeVisible();
       await page.getByRole('button', { name: /Przejdź do (rozmowy|przygotowania CV)/ }).click();

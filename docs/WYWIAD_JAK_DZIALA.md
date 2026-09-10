@@ -157,7 +157,7 @@ Jeżeli weryfikacja zakwestionuje konkretną zmianę znaczenia, sesja przechodzi
 - wybrać **Nie pamiętam** albo **Pomiń**;
 - pominąć całą rundę i zobaczyć bezpieczną wersję opartą na potwierdzonych faktach.
 
-Wpisana korekta od razu zastępuje powiązany fakt albo tworzy nowy. Przycisk **Opis jest poprawny** jest nadal potrzebny, ponieważ dotyczy tekstu zaproponowanego przez AI, a nie wpisanego przez użytkownika. Samo rozpoczęcie doprecyzowań, zapis odpowiedzi i pominięcie nie używają AI ani kredytów. Ponowne wygenerowanie CV po odpowiedzi ponownie uruchamia płatne generowanie i weryfikację.
+Wpisana korekta od razu zastępuje powiązany fakt albo tworzy nowy. Ekran oddziela pytanie **Czy proponowany opis jest w pełni zgodny z Twoim doświadczeniem?** od oznaczonej wątpliwości AI. **Tak — zatwierdź ten opis** zapisuje cały widoczny tekst AI, natomiast pole **Pełny poprawiony opis** przyjmuje kompletną wersję zastępującą, a nie krótką odpowiedź na samą wątpliwość. Samo rozpoczęcie doprecyzowań, zapis odpowiedzi i pominięcie nie używają AI ani kredytów. Ponowne wygenerowanie CV po odpowiedzi ponownie uruchamia płatne generowanie i weryfikację.
 
 Budżet doprecyzowań wynosi łącznie pięć pytań na sesję. Regeneracja go nie resetuje.
 
@@ -523,7 +523,7 @@ Pełne typy pól, ograniczenia długości i formaty odpowiedzi znajdują się w 
 
 ### Frontend
 
-- `frontend/src/components/ai/Interview/InterviewFlow.jsx`, linie 23–238, komponent `InterviewFlow` — wspólny kontroler wszystkich form, etapy, źródła, odpowiedzi, generowanie i zapis.
+- `frontend/src/components/ai/Interview/InterviewFlow.jsx`, linie 23–281, komponent `InterviewFlow` — wspólny kontroler wszystkich form, etapy, źródła, odpowiedzi, generowanie i zapis.
 - `frontend/src/components/ai/AiAssistant/AiAssistant.jsx`, linie 1022–1036 oraz 1906–1923 — uruchomienie `enrich` i osadzenie WYWIADU dla aktywnego CV.
 - `frontend/src/components/ai/AiAssistant/AiAssistant.jsx`, linie 2040–2094 — oferta, opis awaryjny i uruchomienie `tailor`.
 - `frontend/src/pages/Site/InterviewPage.jsx`, linie 1–10 — samodzielna trasa tworzenia i wznawiania.

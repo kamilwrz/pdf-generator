@@ -150,7 +150,10 @@ it('offers clarification before exposing the filtered preview and supports expli
     expect(proposal.closest('details')).toBeNull();
     expect(screen.getByText(/Doprecyzowanie 1 z 2/)).toBeVisible();
     expect(screen.queryByText(/Odpowiedzi: 8/)).not.toBeInTheDocument();
-    expect(screen.getByText('Propozycja AI · wymaga Twojego potwierdzenia')).toBeVisible();
+    expect(screen.getByRole('heading', { name: 'Czy proponowany opis jest w pełni zgodny z Twoim doświadczeniem?' })).toBeVisible();
+    expect(screen.getByText('Co wymaga sprawdzenia')).toBeVisible();
+    expect(screen.getByText('Pełny opis zaproponowany przez AI · jeszcze niepotwierdzony')).toBeVisible();
+    expect(screen.getByLabelText('Pełny poprawiony opis')).toHaveAccessibleDescription(/nie tylko odpowiedź na pytanie/);
   });
 
 
@@ -239,9 +242,28 @@ describe('clarification corrections', () => {
     session.phase = 'clarification';
     session.question = { ...session.question, clarification: true, suggested_text: 'Research SoF i SoW.', target_fact_ids: ['task'] };
     render(<MemoryRouter><InterviewFlow sessionId="session" /></MemoryRouter>);
-    expect(await screen.findByText(/zastąpi dotychczasowy wpis/)).toBeVisible();
-    await userEvent.setup().click(screen.getByRole('button', { name: 'Opis jest poprawny' }));
+    expect(await screen.findByText(/cały opis jest poprawny/)).toBeVisible();
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Tak — zatwierdź ten opis' }));
     await waitFor(() => expect(interviewRequest).toHaveBeenCalledWith('/ai/interviews/session/answers', 'POST', expect.objectContaining({ status: 'answered', answer: 'Research SoF i SoW.' })));
+  });
+
+  it('makes a typed correction an explicit full-description replacement', async () => {
+    const user = userEvent.setup();
+    session.phase = 'clarification';
+    session.question = { ...session.question, clarification: true, suggested_text: 'Research SoF i SoW.', target_fact_ids: ['task'] };
+    render(<MemoryRouter><InterviewFlow sessionId="session" /></MemoryRouter>);
+    const correction = await screen.findByLabelText('Pełny poprawiony opis');
+    const confirmation = screen.getByRole('button', { name: 'Tak — zatwierdź ten opis' });
+    const save = screen.getByRole('button', { name: 'Zapisz pełny poprawiony opis' });
+    expect(confirmation).toBeEnabled();
+    expect(save).toBeDisabled();
+    await user.type(correction, 'Research SoF w czterech scenariuszach testowych.');
+    expect(confirmation).toBeDisabled();
+    expect(save).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Zakończ doprecyzowanie bez zapisywania propozycji' })).toBeDisabled();
+    expect(screen.getByText(/Usuń wpisany poprawiony opis/)).toBeVisible();
+    await user.click(save);
+    await waitFor(() => expect(interviewRequest).toHaveBeenCalledWith('/ai/interviews/session/answers', 'POST', expect.objectContaining({ status: 'answered', answer: 'Research SoF w czterech scenariuszach testowych.' })));
   });
 });
 
