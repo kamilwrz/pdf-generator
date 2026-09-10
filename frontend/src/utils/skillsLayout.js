@@ -886,11 +886,26 @@ export function restyleSkillsMembersAsMode(
   }];
   delete chrome[0].flowLane;
 
-  const rule = members.find((element) => (
-    element.element_id !== headingId
-    && element.category === "line"
-    && (Number(element.height) || 0) <= 4
-  ));
+  // A section can own more than one thin line. Atrium, for example, places a
+  // short accent tick beside a long neutral divider. Treating the first line
+  // as the structural rule rebuilt that accent with the divider's width and
+  // colour, so it appeared to disappear after changing the Skills layout.
+  // `deriveSectionStyle` identifies the widest thin line as the main-column
+  // rule; mirror that contract here and leave every shorter line in the
+  // decorative-chrome loop below. Limiting candidates to chrome also keeps
+  // underline-style skill chips from becoming a heading rule on conversion.
+  const rule = style.rule
+    ? members
+      .filter((element) => (
+        element.element_id !== headingId
+        && element.category === "line"
+        && ["section-chrome", "sidebar-chrome"].includes(element.flowRole)
+        && (Number(element.height) || 0) <= 4
+      ))
+      .sort((left, right) => (
+        (Number(right.width) || 0) - (Number(left.width) || 0)
+      ))[0] || null
+    : null;
   const afterRule = Number.isFinite(Number(spacing.after_rule))
     ? Number(spacing.after_rule)
     : 8;

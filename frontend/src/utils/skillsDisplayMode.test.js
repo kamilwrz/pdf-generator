@@ -111,6 +111,24 @@ function skillsWithMarkerFixture() {
   ];
 }
 
+/** Atrium-style chrome: a short accent tick followed by the structural rule. */
+function skillsWithAccentAndRuleFixture() {
+  return [
+    { element_id: "sk-head", category: "text", content: "UMIEJĘTNOŚCI",
+      flowRole: "section-chrome", left: 82, top: 100, fontSize: 9.2, height: 12.42,
+      color: "#556158", page: 1, bold: true },
+    { element_id: "sk-accent", category: "line", flowRole: "section-chrome",
+      left: 82, top: 114.2, width: 18, height: 1.2,
+      backgroundColor: "#556158", page: 1 },
+    { element_id: "sk-rule", category: "line", flowRole: "section-chrome",
+      left: 108, top: 114.2, width: 405, height: 1,
+      backgroundColor: "#E5E3DB", page: 1 },
+    { element_id: "sk-body", category: "textarea", content: "AML  ·  KYC  ·  SQL  ·  Python",
+      flowRole: "content", left: 82, top: 123.4, width: 431, height: 15,
+      fontSize: 9.6, lineHeight: 14.1, color: "#2C2C29", page: 1, bulletList: false },
+  ];
+}
+
 /**
  * Reproduces the live regression: a long flat skills list sitting close above
  * a Languages grid section. Converting Skills to chips makes its body taller
@@ -531,6 +549,37 @@ describe("changeSkillsDisplayMode", () => {
         }
       }
     }
+  });
+
+  it("preserves a short decorative accent beside the structural rule when converting to chips", () => {
+    const source = skillsWithAccentAndRuleFixture();
+    const next = changeSkillsDisplayMode(
+      source,
+      "sk-head",
+      "chips",
+      PAGE_HEIGHT,
+      SPACING,
+      SKILL_CHIP_VARIANT_PILL_OUTLINE,
+    );
+    assert.ok(next);
+
+    const memberIds = sectionElementIds(next, "sk-head", PAGE_HEIGHT);
+    const members = next.filter((element) => memberIds.has(element.element_id));
+    const heading = members.find((element) => element.element_id === "sk-head");
+    const accent = members.find((element) => element.element_id === "sk-accent");
+    const rule = members.find((element) => element.element_id === "sk-rule");
+
+    assert.ok(accent, "the decorative accent must not be consumed as the structural rule");
+    assert.ok(rule, "the structural rule must remain present");
+    assert.equal(accent.width, 18);
+    assert.equal(accent.height, 1.2);
+    assert.equal(accent.backgroundColor, "#556158");
+    assert.equal(rule.width, 405);
+    assert.equal(rule.backgroundColor, "#E5E3DB");
+    assert.equal(accent.left - heading.left, 0);
+    assert.equal(rule.left - heading.left, 26);
+    assert.ok(Math.abs((accent.top - heading.top) - 14.2) < 0.001);
+    assert.ok(Math.abs((rule.top - heading.top) - 14.2) < 0.001);
   });
 
   it("changes the chip treatment while remaining in chip mode", () => {
