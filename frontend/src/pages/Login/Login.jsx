@@ -59,7 +59,7 @@ export default function Login() {
 
         if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
         hintTimerRef.current = setTimeout(() => {
-            setStatusMessage("Budzenie serwera… pierwsze logowanie po przerwie może potrwać do minuty.");
+            setStatusMessage("Uruchamiamy serwer. Pierwsze logowanie po przerwie może potrwać do minuty.");
         }, 5000);
 
         // Another wake in parallel with the login attempt itself.
@@ -67,7 +67,7 @@ export default function Login() {
 
         try {
             await signIn(username, password, {
-                onRetry: (attempt) => setStatusMessage(`Ponawianie logowania (${attempt}/4)… serwer właśnie wstaje.`),
+                onRetry: (attempt) => setStatusMessage(`Próbujemy ponownie (${attempt}/4). Serwer właśnie się uruchamia.`),
             });
             if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
             clearPendingAuthIntent();
@@ -123,14 +123,14 @@ export default function Login() {
     }
 
     const selectedStartLabel = startIntent === "download"
-        ? "Po zalogowaniu potwierdzisz swój szkic i pobierzesz PDF."
+        ? "Po zalogowaniu potwierdzisz, że szkic jest Twój, i pobierzesz PDF."
         : startIntent === "import"
-        ? "Po zalogowaniu otworzymy import Twojego CV."
+        ? "Po zalogowaniu przejdziesz do importu CV."
         : startIntent === "new"
-            ? "Po zalogowaniu otworzymy konfigurator nowego CV na A4."
+            ? "Po zalogowaniu przejdziesz do konfiguracji nowego CV."
             : startIntent === "templates"
-                ? "Po zalogowaniu otworzymy wybór szablonów."
-                : "Wróć do swoich dokumentów i kontynuuj od miejsca, w którym skończyłeś.";
+                ? "Po zalogowaniu przejdziesz do wyboru szablonu."
+                : "Otwórz zapisane CV i wróć do edycji.";
 
     return (
         <div className={classes.container}>
@@ -141,11 +141,11 @@ export default function Login() {
                     <Link to="/" className={classes.logoBadge} aria-label="CV Studio — strona główna">
                         <img src="/cv-studio-logo.svg" alt="" />
                     </Link>
-                    <p className={classes.cardEyebrow}>Dostęp do Twoich dokumentów</p>
-                    <h1 id="login-title" className={classes.mainHeading}>Witaj ponownie</h1>
-                    <p className={classes.subHeading}>{startIntent === "download" ? selectedStartLabel : "Zaloguj się, aby wrócić do swojego CV."}</p>
+                    <p className={classes.cardEyebrow}>Twoje konto</p>
+                    <h1 id="login-title" className={classes.mainHeading}>Zaloguj się do CV Studio</h1>
+                    <p className={classes.subHeading}>{startIntent === "download" ? selectedStartLabel : "Otwórz zapisane dokumenty i kontynuuj pracę."}</p>
                     {searchParams.get("verified") === "1" && <p className={classes.status} role="status">Adres e-mail został potwierdzony. Możesz się zalogować.</p>}
-                    {searchParams.get("registered") === "1" && <p className={classes.status} role="status">Konto zostało utworzone. Automatyczne logowanie nie powiodło się — zaloguj się, aby kontynuować.</p>}
+                    {searchParams.get("registered") === "1" && <p className={classes.status} role="status">Konto jest gotowe. Zaloguj się, aby kontynuować.</p>}
                     <div className={classes.googleSlot}><GoogleSignInButton onCredential={handleGoogleCredential} disabled={googleLoading || isLoading} /></div>
                     <div className={classes.authDivider}><span>lub użyj hasła</span></div>
                     <form onSubmit={handleSubmit} className={classes.form} aria-describedby={error ? "login-error" : undefined}>
@@ -201,7 +201,7 @@ export default function Login() {
                         </button>
                     </form>
                     <p className={classes.linkWrapper}>
-                        Nowy użytkownik? <Link to={authLink('/register', searchParams)}>Utwórz konto</Link>
+                        Nie masz konta? <Link to={authLink('/register', searchParams)}>Utwórz konto</Link>
                     </p>
                 </div>
             </section>
@@ -211,9 +211,9 @@ export default function Login() {
                     CV STUDIO
                 </Link>
                 <div className={classes.storyCopy}>
-                    <p className={classes.storyEyebrow}>Twoje dokumenty</p>
-                    <h2>Wróć do swojego CV.</h2>
-                    <p>Kontynuuj edycję, sprawdź układ i pobierz PDF, gdy dokument będzie gotowy.</p>
+                    <p className={classes.storyEyebrow}>Po zalogowaniu</p>
+                    <h2>Wróć do zapisanych CV.</h2>
+                    <p>Otwórz dokument, nanieś poprawki i pobierz PDF, kiedy skończysz.</p>
                 </div>
                 <div className={classes.storyPath}>
                     <span>Kontynuacja pracy</span>

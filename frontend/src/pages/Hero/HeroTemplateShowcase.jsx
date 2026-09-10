@@ -30,7 +30,7 @@ export default function HeroTemplateShowcase({ templates, selectedId, onSelect, 
     onSelect(templates[next].id);
   }
 
-  if (!selected) return <p>Podglądy są chwilowo niedostępne. Nadal możesz zacząć tworzyć CV.</p>;
+  if (!selected) return <p>Nie udało się wczytać podglądów. Możesz mimo to zacząć tworzyć CV.</p>;
 
   return (
     <div className={classes.showcase}>
@@ -72,7 +72,7 @@ export default function HeroTemplateShowcase({ templates, selectedId, onSelect, 
             >
               <span className={classes.imageFallback} aria-hidden="true">
                 <strong>{template.name}</strong>
-                <span>{imageState === "error" ? "Podgląd niedostępny. Szablon nadal możesz wybrać." : "Ładowanie podglądu…"}</span>
+                <span>{imageState === "error" ? "Nie udało się wczytać podglądu. Szablon nadal możesz wybrać." : "Wczytujemy podgląd…"}</span>
               </span>
               {imageState !== "error" && <img
                 src={`/hero-templates/${template.id}-595.webp`}
@@ -105,7 +105,7 @@ export default function HeroTemplateShowcase({ templates, selectedId, onSelect, 
       <p className={classes.caption} role="status" aria-live="polite">
         <strong>{selected.name}</strong><span>Darmowy szablon · {selected.layouts.includes("sidebar") ? "Dwie kolumny" : "Jedna kolumna"}</span>
       </p>
-      {imageStates[selected.id] === "error" && <p className={classes.error} role="status">Podgląd niedostępny. Wybierz szablon po nazwie i zacznij tworzyć CV.</p>}
+      {imageStates[selected.id] === "error" && <p className={classes.error} role="status">Nie udało się wczytać podglądu. Wybierz szablon po nazwie i przejdź do edytora.</p>}
       {/* Compact layouts repeat the primary action after selection so users
           need not scroll back past the previews to continue. */}
       <div className={classes.mobileAction}>{mobileAction}</div>

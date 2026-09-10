@@ -37,10 +37,10 @@ export default function CheckoutResult({ variant }) {
 
   const copy = {
     cancel: ["Płatność anulowana", "Nie pobrano opłaty. Możesz wrócić do konta i spróbować ponownie."],
-    checking: ["Sprawdzamy płatność", "Stripe zakończył płatność. Czekamy na bezpieczne potwierdzenie serwera."],
-    success: ["Pro jest aktywne", "Dostęp został potwierdzony. Możesz wrócić do dokumentu."],
-    pending: ["Potwierdzenie jest w drodze", "Płatność może wymagać jeszcze chwili. Odśwież stronę lub sprawdź konto za moment."],
-    error: ["Nie udało się sprawdzić płatności", "Twoja płatność nie została odrzucona. Sprawdź stan na stronie konta."],
+    checking: ["Sprawdzamy płatność", "Stripe zakończył obsługę płatności. Czekamy na potwierdzenie z serwera."],
+    success: ["Pro jest aktywne", "Płatność została potwierdzona. Możesz wrócić do dokumentu."],
+    pending: ["Czekamy na potwierdzenie", "Potrzebujemy jeszcze chwili. Odśwież stronę lub sprawdź konto za moment."],
+    error: ["Nie znamy jeszcze wyniku płatności", "Nie możemy teraz potwierdzić jej statusu. Sprawdź go na stronie konta."],
   }[state];
 
   return <SiteLayout title={copy[0]} intro={copy[1]}>

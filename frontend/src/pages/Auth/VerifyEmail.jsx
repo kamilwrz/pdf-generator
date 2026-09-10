@@ -38,7 +38,7 @@ export default function VerifyEmail() {
       <section className={classes.authColumn} aria-labelledby="verify-title">
         <div className={classes.loginCard}>
           <Link to="/" className={classes.logoBadge} aria-label="CV Studio — strona główna"><img src="/cv-studio-logo.svg" alt="" /></Link>
-          <p className={classes.cardEyebrow}>Bezpieczne konto</p>
+          <p className={classes.cardEyebrow}>Potwierdzenie e-maila</p>
           <h1 id="verify-title" className={classes.mainHeading}>{state === "success" ? "E-mail potwierdzony" : state === "loading" ? "Sprawdzamy link" : "Nie udało się potwierdzić"}</h1>
           <p className={state === "error" ? classes.error : classes.status} role={state === "error" ? "alert" : "status"}>{message}</p>
           {state === "success" ? <Link className={classes.authLinkButton} to={verifiedLogin}>Przejdź do logowania</Link> : null}
@@ -46,7 +46,7 @@ export default function VerifyEmail() {
         </div>
       </section>
       <aside className={classes.storyPanel} aria-label="Co dalej">
-        <div className={classes.storyCopy}><p className={classes.storyEyebrow}>01 / 02</p><h2>Potwierdzenie chroni Twoje dokumenty.</h2><p>Po weryfikacji zalogujesz się i wrócisz do szkicu zapisanego w tej przeglądarce.</p></div>
+        <div className={classes.storyCopy}><p className={classes.storyEyebrow}>01 / 02</p><h2>Po potwierdzeniu wrócisz do swojego szkicu.</h2><p>Zaloguj się tym samym kontem, aby kontynuować pracę w tej przeglądarce.</p></div>
       </aside>
     </main>
   );

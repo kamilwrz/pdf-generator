@@ -18,7 +18,7 @@ test("landing labels, pricing, and FAQ keep the Free limits explicit", async () 
     assert.ok(pricingStart >= 0 && faqStart > pricingStart && faqEnd > faqStart);
     assert.match(planMarkup, /FREE_PLAN_HIGHLIGHTS\.map/);
     assert.match(planMarkup, /PRO_PLAN_HIGHLIGHTS\.map/);
-    assert.match(planMarkup, /Zacznij za 0 zł/);
+    assert.match(planMarkup, /Zacznij bez opłat/);
     assert.doesNotMatch(planMarkup, /POMOC AI/);
     assert.match(planMarkup, /[Ll]imity znajdziesz w <Link to="\/pricing">cenniku/);
     assert.match(planMarkup, /pomoc AI jest dostępna w Pro/);
@@ -45,8 +45,8 @@ test("registration, import, and account gates communicate the real Free limits",
         source("components/editor/Sidebar/Sidebar.jsx"),
     ]);
 
-    assert.match(register, /1 CV, 3 szablony i 3 czyste PDF-y miesięcznie/);
-    assert.match(register, /Bez karty i limitu czasu/);
+    assert.match(register, /1 CV, 3 szablony i 3 pliki PDF miesięcznie/);
+    assert.match(register, /Nie potrzebujesz karty/);
     assert.match(register, /PLAN_PRESENTATION/);
     assert.match(register, /role="tablist" aria-label="Wybierz plan konta"/);
     assert.match(register, /role="tab"/);

@@ -110,20 +110,20 @@ export default function Hero() {
 
             <section id="top" className={classes.hero}>
                 <div className={classes.heroCopy}>
-                    <p className={classes.kicker} data-section-index="01">Kreator CV online</p>
+                    <p className={classes.kicker} data-section-index="01">CV Studio online</p>
                     <div className={classes.heroHeading}>
-                        <h1>Czytelne CV.<br /><span>Gotowe do wysłania.</span></h1>
-                        <p className={classes.heroSubheading}>Wybierz szablon, wpisz swoje doświadczenie i popraw tekst bezpośrednio na stronie A4. Gdy wszystko wygląda dobrze, pobierz PDF bez znaku wodnego.</p>
+                        <h1>Twoje CV.<br /><span>Gotowe do wysłania.</span></h1>
+                        <p className={classes.heroSubheading}>Wybierz szablon i wpisuj treść od razu na stronie A4. Kiedy skończysz, pobierzesz PDF bez znaku wodnego.</p>
                     </div>
                     <div className={classes.heroActions}>
                         <CtaLink to={selectedTemplateUrl} event="hero_new_cv">Stwórz CV z tym szablonem</CtaLink>
                         {canResumeGuestDraft ? <Link to={getEditorPath()} className={classes.buttonSecondary}>Wróć do szkicu CV <ArrowIcon /></Link> : <CtaLink to={demoUrl} event="hero_demo" variant="secondary">
-                            Wypróbuj edytor
+                            Zobacz edytor
                         </CtaLink>}
                     </div>
-                    <p className={classes.accountNote}>Zacznij bez rejestracji. Do zapisu i pobrania CV potrzebujesz darmowego konta.</p>
+                    <p className={classes.accountNote}>Możesz zacząć bez konta. Darmowa rejestracja jest potrzebna dopiero przy zapisie lub pobieraniu PDF.</p>
                     <ul className={classes.heroTrust} aria-label="Korzyści na start">
-                        <li>Edycja za 0 zł</li>
+                        <li>Edytor za 0 zł</li>
                         <li>PDF bez znaku wodnego</li>
                         <li>{FREE_TEMPLATES.length} darmowe szablony</li>
                     </ul>
@@ -139,13 +139,13 @@ export default function Hero() {
             <section id="szablony" className={classes.templatesSection}>
                 <div className={classes.offerIntro}>
                     <div className={classes.offerStatement}>
-                        <p className={classes.kicker} data-section-index="02">Od treści do gotowego CV</p>
+                        <p className={classes.kicker} data-section-index="02">Pracuj po swojemu</p>
                         <h2>
-                            <span>Zmień szablon.</span>
-                            <span>Zachowaj treść.</span>
+                            <span>Wpisz treść raz.</span>
+                            <span>Układ zmienisz później.</span>
                         </h2>
                         <p className={classes.offerLead}>
-                            Treść wpisujesz tylko raz. Potem możesz zmieniać układ i dopracowywać opisy do kolejnych ofert pracy.
+                            Zmieniaj szablony i dopracowuj opisy do kolejnych ofert bez przepisywania całego CV.
                         </p>
                     </div>
                     {/*
@@ -157,23 +157,23 @@ export default function Hero() {
                         <li>
                             <span className={classes.offerStepIndex} aria-hidden="true">01</span>
                             <div>
-                                <h3>Wykorzystaj treść swojego PDF</h3>
-                                <p>Wgraj obecne CV, a CV Studio odczyta jego treść i umieści ją w wybranym szablonie. Po założeniu konta masz jeden udany import miesięcznie za darmo.</p>
+                                <h3>Masz już CV? Zaimportuj PDF</h3>
+                                <p>CV Studio odczyta treść dokumentu i ułoży ją w wybranym szablonie. Darmowe konto obejmuje jeden udany import miesięcznie.</p>
                                 <CtaLink to={importUrl} event="hero_import" variant="link">Importuj CV z PDF</CtaLink>
                             </div>
                         </li>
                         <li>
                             <span className={classes.offerStepIndex} aria-hidden="true">02</span>
                             <div>
-                                <h3>Poprawiaj tekst prosto na CV</h3>
-                                <p>Kliknij opis, aby go zmienić. Ustaw czcionki, odstępy i kolejność sekcji — efekt widzisz na dokumencie podczas edycji.</p>
+                                <h3>Edytuj bezpośrednio na stronie A4</h3>
+                                <p>Kliknij dowolny opis i zacznij pisać. Zmiany czcionek, odstępów i kolejności sekcji od razu widać na dokumencie.</p>
                             </div>
                         </li>
                         <li>
                             <span className={classes.offerStepIndex} aria-hidden="true">03</span>
                             <div>
-                                <h3>Wywiad w Pro: wydobądź więcej ze swojego doświadczenia</h3>
-                                <p>Odpowiedz na pytania o swoją pracę, projekty i rezultaty. Wywiad AI pomoże uzupełnić CV lub przygotować nową wersję pod ofertę. Ty zatwierdzasz informacje. Rozmowa i generowanie korzystają z kredytów Pro.</p><CtaLink to="/help#wywiad" variant="link">Zobacz, jak działa wywiad</CtaLink><p>W edytorze AI pomoże też skrócić opis lub poprawić jego styl:</p>
+                                <h3>Pro może dopytać o Twoje doświadczenie</h3>
+                                <p>Opowiedz o swojej pracy, projektach i wynikach. Wywiad AI pomoże uzupełnić CV albo przygotować wersję pod konkretną ofertę. Każdą informację sprawdzasz przed zapisem. Rozmowa i generowanie zużywają kredyty Pro.</p><CtaLink to="/help#wywiad" variant="link">Sprawdź, jak działa wywiad</CtaLink><p>AI w Pro może też skrócić opis lub poprawić jego styl:</p>
                                 {/* Static sample explains the paid feature without running AI or promising a live result. */}
                                 <dl className={classes.copyExample} aria-label="Przykład poprawy stylu z AI w Pro">
                                     <div><dt>Przed</dt><dd>Byłem odpowiedzialny za przygotowywanie raportów sprzedażowych.</dd></div>
@@ -250,18 +250,18 @@ export default function Hero() {
                 <div className={classes.pricingHeading}>
                     <p className={classes.kicker} data-section-index="04">Cennik</p>
                     <h2>
-                        <span>Zacznij za 0 zł.</span>
-                        <em>Dodaj AI, gdy potrzebujesz.</em>
+                        <span>Zacznij bez opłat.</span>
+                        <em>Po Pro sięgnij, gdy przyda Ci się AI.</em>
                     </h2>
                     <p>
-                        W obu planach pobierzesz PDF bez znaku wodnego. Pro dodaje więcej projektów, nielimitowane pobrania i pomoc AI.
+                        Każdy plan pozwala pobierać PDF bez znaku wodnego. Pro przydaje się, gdy tworzysz kilka wersji CV lub chcesz pracować z AI.
                     </p>
                 </div>
                 <div className={classes.pricingGrid}>
                     <article className={classes.priceCard}>
                         <p className={classes.planName}>Darmowy</p>
                         <p className={classes.planPrice}>0 <small>zł</small></p>
-                        <p className={classes.planSummary}>Utwórz jedno CV, edytuj je samodzielnie i pobierz gotowy dokument.</p>
+                        <p className={classes.planSummary}>Jedno zapisane CV, pełna samodzielna edycja i trzy pliki PDF miesięcznie.</p>
                         <ul>
                             {FREE_PLAN_HIGHLIGHTS.map((feature) => (
                                 <li key={feature}><CheckIcon />{feature}</li>
@@ -270,13 +270,13 @@ export default function Hero() {
                         <CtaLink to={newCvUrl} event="pricing_free" variant="secondary">
                             Stwórz CV za darmo
                         </CtaLink>
-                        <p className={classes.planFootnote}>Bez karty · Bez limitu czasu</p>
+                        <p className={classes.planFootnote}>Nie potrzebujesz karty, plan nie ma limitu czasu.</p>
                     </article>
                     <article className={`${classes.priceCard} ${classes.priceFeatured}`}>
                         <span className={classes.popularTag}>Z pomocą AI</span>
                         <p className={classes.planName}>Pro</p>
                         <p className={classes.planPrice}>59 <small>zł</small></p>
-                        <p className={classes.planSummary}>Dopracuj treść z AI i twórz osobne wersje CV do różnych ofert.</p>
+                        <p className={classes.planSummary}>Pracuj nad tekstem z AI i zapisuj osobne wersje CV pod różne oferty.</p>
                         <p className={classes.planPeriod}>30 dni pełnego dostępu</p>
                         <ul>
                             {PRO_PLAN_HIGHLIGHTS.map((feature) => (
@@ -289,7 +289,7 @@ export default function Hero() {
                         >
                             Wybierz Pro na 30 dni <ArrowIcon />
                         </Link>
-                        <p className={classes.planFootnote}>Jedna płatność · Bez automatycznego odnowienia</p>
+                        <p className={classes.planFootnote}>Płatność jednorazowa, bez automatycznego odnowienia.</p>
                     </article>
                 </div>
             </section>
@@ -310,7 +310,7 @@ export default function Hero() {
                     </details>
                     <details>
                         <summary>Co stanie się z moim CV po imporcie PDF?</summary>
-                        <p>Odczytamy treść i ułożymy ją w wybranym szablonie, aby można było ją edytować. Sprawdź odczytane dane — wygląd oryginału nie jest kopiowany. Import wymaga konta; w planie Darmowym masz jeden udany import miesięcznie.</p>
+                        <p>Odczytamy treść i ułożymy ją w wybranym szablonie, aby można było ją edytować. Sprawdź odczytane dane. Import nie kopiuje wyglądu oryginału, wymaga konta i w planie Darmowym jest dostępny raz w miesiącu.</p>
                     </details>
                     <details>
                         <summary>Czy Pro odnawia się automatycznie?</summary>

@@ -9,7 +9,7 @@ describe("landing product positioning", () => {
   it("keeps one main heading and makes the account and paid AI boundaries explicit", () => {
     const hero = source.slice(source.indexOf('<section id="top"'), source.indexOf('<section id="szablony"'));
     assert.equal((source.match(/<h1>/g) || []).length, 1);
-    assert.match(hero, /Do zapisu i pobrania CV potrzebujesz darmowego konta/);
+    assert.match(hero, /Darmowa rejestracja jest potrzebna dopiero przy zapisie lub pobieraniu PDF/);
     assert.match(hero, /FREE_TEMPLATES.length/);
     assert.match(source, /AI w Pro/);
     assert.doesNotMatch(hero, /100% ZA DARMO|zwiększy Twoje szanse|systemy ATS/);
@@ -28,7 +28,7 @@ describe("landing product positioning", () => {
     assert.match(source, /FREE_PLAN_HIGHLIGHTS\.map/);
     assert.match(source, /PRO_PLAN_HIGHLIGHTS\.map/);
     assert.match(source, /aria-label="Przykład poprawy stylu z AI w Pro"/);
-    assert.match(source, /wygląd oryginału nie jest kopiowany/);
+    assert.match(source, /Import nie kopiuje wyglądu oryginału/);
     assert.doesNotMatch(source, /href="#"/);
   });
 

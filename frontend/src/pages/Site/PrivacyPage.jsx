@@ -4,7 +4,7 @@ import SiteLayout from '../../components/common/SiteLayout/SiteLayout';
 import classes from '../../components/common/SiteLayout/SiteLayout.module.css';
 
 export default function PrivacyPage() {
-  return <SiteLayout title="Polityka prywatności" intro="Obowiązuje od 10 września 2026 r. Wyjaśnia, jakie dane CV Studio przetwarza, po co, jak długo i jakie prawa przysługują użytkownikowi.">
+  return <SiteLayout title="Polityka prywatności" intro="Obowiązuje od 10 września 2026 r. Znajdziesz tu informacje o przetwarzanych danych, celu i czasie ich przechowywania oraz swoich prawach.">
     <aside className={classes.notice} aria-labelledby="privacy-summary"><h2 id="privacy-summary">Najważniejsze informacje</h2><p>Administratorem jest Kamil Wrzochalski. CV Studio nie korzysta z reklamowych plików cookie ani z zewnętrznych narzędzi analitycznych. Treść CV jest prywatna, ale wybrane funkcje przekazują potrzebne dane dostawcom hostingu, płatności, poczty i modeli AI opisanym poniżej.</p><p>Nie wpisuj do CV ani poleceń AI danych szczególnych kategorii, w szczególności danych o zdrowiu, pochodzeniu rasowym lub etnicznym, poglądach politycznych, religii, seksualności, danych genetycznych ani biometrycznych.</p></aside>
 
     <nav className={classes.privacyToc} aria-label="Spis treści polityki"><a href="#administrator">Administrator</a><a href="#dane">Dane i cele</a><a href="#ai">AI i import</a><a href="#odbiorcy">Odbiorcy</a><a href="#retencja">Retencja</a><a href="#prawa">Twoje prawa</a></nav>

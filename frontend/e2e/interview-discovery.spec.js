@@ -14,7 +14,7 @@ for (const width of [390, 834, 1280, 1920]) {
     await page.setViewportSize({ width, height: 900 });
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto('/pricing');
-    await expect(page.getByText('Wywiad AI: opisz doświadczenie i przygotuj CV pod ofertę', { exact: true })).toBeVisible();
+    await expect(page.getByText('Wywiad AI do zebrania doświadczenia i przygotowania CV pod ofertę', { exact: true })).toBeVisible();
     await page.screenshot({ path: `../tmp/interview-discovery-pricing-${width}.png`, fullPage: true });
     await page.getByRole('link', { name: 'Jak działa wywiad i rozliczanie kredytów' }).click();
     await expect(page).toHaveURL(/\/help#wywiad$/);
@@ -50,7 +50,7 @@ test('Pro users get direct entry points and canonical interview benefits in the 
   await page.goto('/app/account');
   await expect(page.getByText('WYWIAD · W TWOIM PRO')).toBeVisible();
   await page.getByRole('button', { name: 'Zmień plan' }).click();
-  await expect(page.getByRole('dialog').getByText('Wywiad AI: opisz doświadczenie i przygotuj CV pod ofertę', { exact: true })).toBeVisible();
+  await expect(page.getByRole('dialog').getByText('Wywiad AI do zebrania doświadczenia i przygotowania CV pod ofertę', { exact: true })).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(page.getByRole('button', { name: 'Zmień plan' })).toBeFocused();
   expect(api.calls.some((call) => call.method === 'POST')).toBe(false);
@@ -79,10 +79,10 @@ for (const width of [390, 1280]) {
     await page.setViewportSize({ width, height: 900 });
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto('/');
-    await page.getByRole('link', { name: 'Zobacz, jak działa wywiad' }).click();
+    await page.getByRole('link', { name: 'Sprawdź, jak działa wywiad' }).click();
     await expect(page.locator('#wywiad')).toBeFocused();
     await page.goto('/register?plan=pro');
-    await expect(page.getByText('Wywiad AI: opisz doświadczenie i przygotuj CV pod ofertę', { exact: true })).toBeVisible();
+    await expect(page.getByText('Wywiad AI do zebrania doświadczenia i przygotowania CV pod ofertę', { exact: true })).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
     await page.screenshot({ path: `../tmp/interview-discovery-register-${width}.png`, fullPage: true });
     await signIn(page);

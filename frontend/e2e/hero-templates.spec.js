@@ -41,7 +41,7 @@ test("unavailable images retain template selection and a working CTA", async ({ 
   await page.route("**/hero-templates/**", (route) => route.abort());
   await page.goto("/");
   const hero = page.locator("#top");
-  await expect(hero.getByText("Podgląd niedostępny. Wybierz szablon po nazwie i zacznij tworzyć CV.")).toBeVisible();
+  await expect(hero.getByText("Nie udało się wczytać podglądu. Wybierz szablon po nazwie i przejdź do edytora.")).toBeVisible();
   await hero.getByRole("link", { name: "Stwórz CV z tym szablonem" }).click();
   await expect(page.locator('[contenteditable="true"][data-placeholder="Imię i nazwisko"]')).toBeFocused();
 });

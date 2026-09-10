@@ -109,11 +109,11 @@ export default function Register() {
         if (isLoading) return;
         setError("");
         setIsLoading(true);
-        setStatusMessage("Tworzenie konta…");
+        setStatusMessage("Tworzymy konto…");
 
         if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
         hintTimerRef.current = setTimeout(() => {
-            setStatusMessage("Budzenie serwera… pierwsze uruchomienie może potrwać do minuty.");
+            setStatusMessage("Uruchamiamy serwer. Pierwsza rejestracja po przerwie może potrwać do minuty.");
         }, 5000);
 
         // Persist the validated start intent before the network request so the
@@ -133,7 +133,7 @@ export default function Register() {
                     retries: 4,
                     retryDelayMs: 3_000,
                     onRetry: (attempt) => {
-                        setStatusMessage(`Ponawianie rejestracji (${attempt}/4)… serwer właśnie wstaje.`);
+                        setStatusMessage(`Próbujemy ponownie (${attempt}/4). Serwer właśnie się uruchamia.`);
                     },
                 },
             );
@@ -179,16 +179,16 @@ export default function Register() {
     }
 
     const startNotice = downloading
-        ? "Po utworzeniu konta potwierdź e-mail. Następnie zalogujesz się, potwierdzisz swój szkic i pobierzesz PDF."
+        ? "Załóż konto i potwierdź e-mail. Po zalogowaniu wrócisz do szkicu i pobierzesz PDF."
         : startIntent === "import"
-        ? "Po utworzeniu konta otworzymy import PDF. Plan Darmowy obejmuje 1 udany import CV w miesiącu."
+        ? "Po rejestracji przejdziesz do importu PDF. Plan Darmowy obejmuje jeden udany import PDF w miesiącu."
         : startIntent === "new"
-            ? "Po utworzeniu konta otworzymy konfigurator nowego CV na A4."
+            ? "Po rejestracji wrócisz do konfiguracji nowego CV."
             : startIntent === "templates"
-                ? "Po utworzeniu konta otworzymy wybór szablonów."
+                ? "Po rejestracji przejdziesz do wyboru szablonu."
             : selectedPlanSlug === "pro"
-                        ? "Utwórz konto i przejdź do Pro — zyskasz wszystkie szablony, więcej projektów i narzędzia AI."
-                        : "Utwórz darmowe konto i zacznij od szablonu albo przenieś treść z obecnego CV.";
+                        ? "Załóż konto, a potem wybierz Pro. Otrzymasz wszystkie szablony, więcej projektów i narzędzia AI."
+                        : "Darmowe konto wystarczy, żeby zacząć od szablonu lub przenieść treść z obecnego CV.";
 
     return (
         <div className={classes.container}>
@@ -199,12 +199,12 @@ export default function Register() {
                     <Link to="/" className={classes.logoBadge} aria-label="CV Studio — strona główna">
                         <img src="/cv-studio-logo.svg" alt="" />
                     </Link>
-                    <p className={classes.cardEyebrow}>Pierwsza wersja CV</p>
+                    <p className={classes.cardEyebrow}>Załóż konto</p>
                     <h1 id="register-title" className={classes.mainHeading}>{downloading ? "Utwórz darmowe konto" : "Utwórz konto"}</h1>
                     <p className={classes.subHeading}>
                         {selectedPlanSlug === "pro"
-                            ? "Pro — 59 zł / 30 dni. Jedna płatność przez Stripe, bez automatycznego odnawiania."
-                            : "Plan Darmowy: 1 CV, 3 szablony i 3 czyste PDF-y miesięcznie. Bez karty i limitu czasu."}
+                            ? "Pro kosztuje 59 zł za 30 dni. Płacisz raz przez Stripe, bez automatycznego odnowienia."
+                            : "Plan Darmowy obejmuje 1 CV, 3 szablony i 3 pliki PDF miesięcznie. Nie potrzebujesz karty."}
                     </p>
                     <p className={classes.intentNotice}>{startNotice}</p>
                     {verificationPending ? (
@@ -293,7 +293,7 @@ export default function Register() {
                             className={classes.authBtn}
                             disabled={isLoading}
                         >
-                            {isLoading ? "Proszę czekać…" : downloading ? "Utwórz konto i przejdź do PDF" : "Utwórz konto"}
+                            {isLoading ? "Tworzymy konto…" : downloading ? "Utwórz konto i przejdź do PDF" : "Utwórz konto"}
                         </button>
                     </form>
                     </>}
@@ -309,16 +309,16 @@ export default function Register() {
                 </Link>
                 {downloading ? <div className={classes.planComparison}>
                     <p className={classes.storyEyebrow}>Twoje pierwsze CV</p>
-                    <h2>Jeszcze krok do pliku PDF.</h2>
-                    <p className={classes.planPeriod}>Darmowe konto · Bez karty</p>
+                    <h2>CV jest gotowe do pobrania.</h2>
+                    <p className={classes.planPeriod}>Darmowe konto, bez karty</p>
                     <ol className={classes.planFeatures} aria-label="Droga do pobrania CV">
                         <li><span aria-hidden="true">01</span><p>CV przygotowane w edytorze</p></li>
                         <li aria-current="step"><span aria-hidden="true">02</span><p>Utwórz darmowe konto</p></li>
                         <li><span aria-hidden="true">03</span><p>Potwierdź swój szkic i pobierz PDF</p></li>
                     </ol>
                 </div> : <div className={classes.planComparison}>
-                    <p className={classes.storyEyebrow}>Wybierz zakres pracy</p>
-                    <h2>Co dostajesz w CV Studio.</h2>
+                    <p className={classes.storyEyebrow}>Porównaj plany</p>
+                    <h2>Jak chcesz pracować nad CV?</h2>
 
                     <div className={classes.planTabs} role="tablist" aria-label="Wybierz plan konta">
                         {REGISTER_PLANS.map((plan) => {

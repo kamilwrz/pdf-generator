@@ -8,19 +8,19 @@
 
 export const FREE_PLAN_HIGHLIGHTS = Object.freeze([
     "1 zapisany projekt CV",
-    "1 udany import CV miesięcznie",
-    "3 szablony · każdy w 6 wersjach wyglądu",
-    "Edycja czcionek, wielkości tekstu, odstępów i sekcji",
+    "1 udany import PDF miesięcznie",
+    "3 szablony, każdy w 6 wersjach wyglądu",
+    "Samodzielna zmiana czcionek, odstępów i sekcji",
     "3 pobrania PDF miesięcznie, bez znaku wodnego",
-    "Samodzielna edycja bez funkcji AI",
+    "Edycja bez funkcji AI",
 ]);
 
 export const PRO_PLAN_HIGHLIGHTS = Object.freeze([
-    "Wywiad AI: opisz doświadczenie i przygotuj CV pod ofertę",
-    "Profil zawodowy z informacjami do kolejnych CV",
+    "Wywiad AI do zebrania doświadczenia i przygotowania CV pod ofertę",
+    "Profil zawodowy do wykorzystania w kolejnych CV",
     "Wszystkie szablony i warianty wyglądu",
     "Nielimitowane projekty, importy i pobrania PDF",
-    "AI do poprawek tekstu, analizy ATS i układu",
+    "AI do poprawiania tekstu, analizy ATS i układu",
     "200 kredytów na wywiad i pozostałe funkcje AI",
 ]);
 
@@ -30,9 +30,9 @@ export const PLAN_PRESENTATION = Object.freeze({
         name: "Darmowy",
         price_pln: 0,
         price_label: "0 zł",
-        blurb: "Jedno CV ze wszystkimi narzędziami do samodzielnej edycji.",
+        blurb: "Jedno CV i wszystkie opcje samodzielnej edycji.",
         highlights: FREE_PLAN_HIGHLIGHTS,
-        period_note: "Bez karty · Bez limitu czasu",
+        period_note: "Nie potrzebujesz karty, plan nie ma limitu czasu.",
         cta: "Stwórz CV za darmo",
     }),
     pro: Object.freeze({
@@ -40,11 +40,11 @@ export const PLAN_PRESENTATION = Object.freeze({
         name: "Pro",
         price_pln: 59,
         price_label: "59 zł / 30 dni",
-        blurb: "Od rozmowy o doświadczeniu do CV pod ofertę.",
+        blurb: "Wywiad o Twoim doświadczeniu i osobne CV pod konkretne oferty.",
         highlights: PRO_PLAN_HIGHLIGHTS,
-        period_note: "Jedna płatność · Bez automatycznego odnawiania",
-        badge: "Dla wielu wersji CV i pracy z AI",
-        cta: "Odblokuj Pro",
+        period_note: "Płatność jednorazowa, bez automatycznego odnowienia.",
+        badge: "Dla kilku wersji CV i pracy z AI",
+        cta: "Wybierz Pro",
     }),
 });
 
