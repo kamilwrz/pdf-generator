@@ -16,7 +16,10 @@ from app.schemas.interview_schema import (
     ProfileWrite, InterviewCreate, SessionWrite, AnswerWrite, ConfirmWrite, GenerateWrite, SourceRefresh, Draft, Verification,
 )
 from app.schemas.pdf_schema import PDFCreateRequest
-from app.services.interview_clarification import clarification_queue, start_clarifications, finish_clarification_answer
+from app.services.interview_clarification import (
+    clarification_queue, start_clarifications, finish_clarification_answer,
+    repair_clarification_state, dismiss_clarifications,
+)
 from app.services.interview_recovery import assemble_reviewed_draft, previous_rejected_result
 from app.services import interview_service as service
 from app.services.cv_data import normalize_cv_data, CvDataValidationError
@@ -138,7 +141,15 @@ def list_interviews(offset: int = Query(default=0, ge=0), user=Depends(get_curre
 @router.get("/ai/interviews/{session_id}")
 def get_interview(session_id: str, user=Depends(get_current_user), db=Depends(get_db)):
     """Resume without spending credits, including after Pro expires."""
-    return service.session_payload(service.owned_session(db, user.id, session_id))
+    row = service.owned_session(db, user.id, session_id)
+    state = deepcopy(row.state)
+    repair_clarification_state(state)
+    # Upgrade only the owner's affected legacy queue, once. Concurrent answers
+    # win through the existing revision guard; no profile or answer is rewritten.
+    if state != row.state:
+        service.update_session(db, row, row.revision, state)
+        row = service.owned_session(db, user.id, session_id)
+    return service.session_payload(row)
 
 
 @router.delete("/ai/interviews/{session_id}")
@@ -209,6 +220,7 @@ def skip_clarifications(session_id: str, request: SessionWrite, user=Depends(get
         pending = [state["question"], *pending]
         state["answers"].append({"question": state["question"], "answer": "", "status": "skipped"})
     state["dismissed_clarifications"] = list(dict.fromkeys([*state.get("dismissed_clarifications", []), *(q["topic"] for q in pending)]))
+    dismiss_clarifications(state, pending)
     state.update(question=None, pending_clarifications=[], phase="review" if state["proposed_facts"] else "preview" if state.get("preview") else "ready")
     service.update_session(db, row, request.revision, state)
     return service.session_payload(service.owned_session(db, user.id, session_id))
@@ -303,6 +315,8 @@ def preview_interview(session_id: str, request: GenerateWrite, user=Depends(get_
     state = deepcopy(row.state)
     if not state["confirmed"] or state["proposed_facts"]:
         service.fail("Zatwierdź lub usuń nowe informacje przed generowaniem.", 422)
+    if state.get("question") or state["phase"] == "clarification":
+        service.fail("Odpowiedz na aktywne pytanie lub pomiń doprecyzowanie przed generowaniem.", 422)
     if request.template_id not in TEMPLATE_LAYOUTS:
         service.fail("Wybierz dostępny szablon CV.", 422)
     if state["mode"] == "tailor" and state["template_id"] and request.template_id != state["template_id"]:

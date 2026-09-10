@@ -1,76 +1,172 @@
-"""Turn uncertain model claims into opt-in questions before showing a final CV."""
+"""Turn specific uncertain claims into bounded, resumable clarification questions."""
+import re
 from uuid import NAMESPACE_URL, uuid5
 
 from app.services import interview_service as service
 
 
-def clarification_queue(row, raw, verification, notes, profile):
-    """Build up to five unresolved questions from review output, without AI calls.
+FALLBACK = 'Jak powinien brzmieć poniższy opis, aby zgadzał się z Twoim doświadczeniem?'
 
-    Questions are proposals, never profile evidence. Cached legacy output uses
-    a neutral fallback. A stable field/record topic prevents repeatedly asking
-    answered, unknown or explicitly dismissed questions in later generations.
+
+def question_key(text):
+    """Compare wording independently of case, punctuation and whitespace."""
+    return service.digest(' '.join(re.findall(r'\w+', str(text).casefold())))
+
+
+def _generic(text):
+    return not text or text == FALLBACK or 'Treść CV' in text or text.startswith('Jak należy poprawnie opisać ten fragment')
+
+
+def _keys(question):
+    keys = {question.get('topic', '')} - {''}
+    if question.get('suggested_text'):
+        keys.add('claim:' + question_key(question['suggested_text']))
+    if not _generic(question.get('text', '')):
+        keys.add('question:' + question_key(question['text']))
+    return keys
+
+
+def _seen(state):
+    keys = set(state.get('dismissed_clarifications', []))
+    keys.update(state.get('dismissed_clarification_keys', []))
+    for answer in state['answers']:
+        keys.update(_keys(answer.get('question', {})))
+    return keys
+
+
+def _capacity(state):
+    # Regeneration cannot restart the clarification budget. Skipped and unknown
+    # answers and explicitly deferred queued questions count too. Do not count
+    # the active skipped question twice when it is in both histories.
+    answers = [a.get('question', {}) for a in state['answers'] if a.get('question', {}).get('clarification')]
+    dismissed = set(state.get('dismissed_clarifications', [])) - {q.get('topic') for q in answers}
+    return max(0, min(5 - len(answers) - len(dismissed), 50 - len(state['answers'])))
+
+
+def _at(data, path):
+    for part in path.strip('/').split('/'):
+        if isinstance(data, dict):
+            data = data.get(part)
+        elif isinstance(data, list) and part.isdigit() and int(part) < len(data):
+            data = data[int(part)]
+        else:
+            return None
+    return data
+
+
+def _context(base, path):
+    parts = path.strip('/').split('/')
+    labels = {'summary': 'Podsumowanie zawodowe', 'experience': 'Doświadczenie zawodowe',
+              'education': 'Edukacja', 'custom_sections': 'Projekt lub sekcja dodatkowa',
+              'skills': 'Umiejętności', 'languages': 'Języki'}
+    label = labels.get(parts[0], 'Proponowany opis')
+    record = _at(base, '/'.join(parts[:2])) if len(parts) > 1 else None
+    if isinstance(record, dict):
+        identity = ' · '.join(str(record[k]) for k in ('title', 'company', 'degree', 'school', 'period') if record.get(k))
+        label = identity or label
+        if parts[0] == 'custom_sections' and len(parts) > 3:
+            item = _at(base, '/'.join(parts[:4]))
+            if isinstance(item, dict) and item.get('title'):
+                label += ' · ' + item['title']
+    return label[:500]
+
+
+def clarification_queue(row, raw, verification, notes, profile):
+    """Ask only about changed, specifically rejected claims with current sources.
+
+    Technical failures and collateral record rejections keep the safe preview;
+    they cannot become questions for the user. Claim and question fingerprints
+    survive field reordering. Suppression never approves a rejected claim.
     """
-    base = service.base_cv(profile)
+    base, catalog = service.base_cv(profile), service.evidence(profile)
     fields = {field['path']: field for field in raw['fields']}
-    catalog = service.evidence(profile)
     questions = {item['path']: item['question'] for item in verification.get('clarifications', [])}
-    seen = {answer['question']['topic'] for answer in row.state['answers']}
-    seen.update(row.state.get('dismissed_clarifications', []))
-    result = []
+    unsupported = set(verification.get('unsupported_paths', []))
+    seen, result = _seen(row.state), []
     for note in notes:
         path = note['path']
-        if not path or path not in fields:
+        # Broad or unknown paths cannot identify a specific disputed fact.
+        if path not in fields or path not in unsupported or not service.PATH.fullmatch(path):
             continue
-        # A previously confirmed absence or locked wording is already resolved.
-        if any(catalog.get(ref, {}).get('kind') in {'gap', 'framing'} for ref in fields[path]['evidence_refs']):
+        field = fields[path]
+        value, refs = field['value'], field['evidence_refs']
+        if not value.strip() or value == _at(base, path) or not refs:
             continue
-        parts = path.strip('/').split('/')
-        record = base.get(parts[0], [])
-        if len(parts) > 1 and isinstance(record, list):
-            record = record[int(parts[1])] if int(parts[1]) < len(record) else {}
-        context = 'Treść CV'
-        if isinstance(record, dict):
-            context = ' · '.join(str(record[key]) for key in ('title', 'company', 'school') if record.get(key)) or context
-        if parts[0] == 'custom_sections' and len(parts) > 3 and isinstance(record, dict):
-            items = record.get('items', [])
-            item = items[int(parts[3])] if int(parts[3]) < len(items) else {}
-            if isinstance(item, dict) and item.get('title'):
-                context += ' · ' + item['title']
-        topic = 'clarify:' + service.digest([path, context])[:48]
-        if topic in seen:
+        if any(ref not in catalog or catalog[ref].get('kind') in {'gap', 'framing'} for ref in refs):
             continue
-        value = fields[path]['value']
-        question = questions.get(path) or (
-            f'Jak należy poprawnie opisać ten fragment dotyczący: {context}? '
-            'Doprecyzuj fakty, zakres Twojego udziału oraz związek z rolą lub projektem.'
-        )
-        result.append({
+        if path.strip('/').split('/')[0] not in {'summary', 'experience', 'education', 'custom_sections', 'skills', 'languages'}:
+            continue
+        context = _context(base, path)
+        topic = 'clarify:' + question_key(value)[:48]
+        text = questions.get(path, '')
+        question = {
             'id': str(uuid5(NAMESPACE_URL, f'{row.id}:{topic}')), 'topic': topic,
-            'text': question, 'context': f'{context}: {question}'[:500],
-            'reason': 'Brakuje potwierdzenia szczegółu w propozycji AI. Twoja odpowiedź pozwoli przygotować wierny opis.',
+            'text': FALLBACK if _generic(text) else text, 'context': context, 'record_label': context,
+            'reason': 'Sprawdź poniższą propozycję. Popraw szczegół lub wyjaśnij, czego dotyczy.',
             'suggested_text': value, 'clarification': True,
-        })
-        if len(result) == 5:
-            break
+        }
+        keys = _keys(question)
+        if keys & seen or len(result) >= _capacity(row.state):
+            continue
+        result.append(question)
+        seen.update(keys)
     return result
 
 
+def repair_clarification_state(state):
+    """Repair saved queues in place without AI calls or changes to user answers.
+
+    Callers persist changes using revision compare-and-swap. Retained question
+    IDs remain stable, so their open answer drafts can still be submitted.
+    Empty legacy prompts are retired; concrete proposals remain visible.
+    """
+    if state.get('phase') != 'clarification':
+        return
+    active = state.get('question')
+    candidates = ([active] if active else []) + state.get('pending_clarifications', [])
+    seen, retained = _seen(state), []
+    for original in candidates:
+        question = dict(original)
+        keys = _keys(question)
+        if not question.get('id') or not str(question.get('suggested_text', '')).strip() or keys & seen or len(retained) >= _capacity(state):
+            continue
+        if _generic(question.get('text', '')):
+            question['text'] = FALLBACK
+        question.setdefault('record_label', 'Propozycja do sprawdzenia')
+        retained.append(question)
+        seen.update(keys)
+    state['question'] = retained[0] if active and retained else None
+    state['pending_clarifications'] = retained[1:] if active else retained
+    if not retained:
+        state['phase'] = 'review' if state['proposed_facts'] else 'preview' if state.get('preview') else 'ready'
+
+
+def dismiss_clarifications(state, questions):
+    """Remember skipped claims across regeneration without storing extra prose."""
+    keys = set(state.get('dismissed_clarification_keys', []))
+    for question in questions:
+        keys.update(_keys(question))
+    state['dismissed_clarification_keys'] = sorted(keys)
+
+
 def start_clarifications(state):
-    """Accept a voluntary round, counting every question against the session cap."""
+    """Accept a voluntary round within the independent clarification budget."""
+    repair_clarification_state(state)
     if state.get('question'):
         return
-    pending = state.get('pending_clarifications', [])
-    capacity = min(5, 50 - len(state['answers']))
-    if not pending or capacity <= 0:
+    pending = state.get('pending_clarifications', [])[:_capacity(state)]
+    if not pending:
         service.fail('Nie ma kolejnych pytań. Możesz przejrzeć informacje i zapisać potwierdzoną treść.', 422)
-    pending = pending[:capacity]
     state['question_limit'] = max(state['question_limit'], len(state['answers']) + len(pending))
     state.update(question=pending[0], pending_clarifications=pending[1:], phase='clarification', clarification_round=True)
 
 
 def finish_clarification_answer(state):
     """Advance saved questions locally; answered facts still require confirmation."""
+    # The answer handler has already cleared the active question. Normalize the
+    # remaining queue against that saved answer before promoting another item.
+    state['phase'] = 'clarification'
+    repair_clarification_state(state)
     pending = state.get('pending_clarifications', [])
     state['question'] = pending[0] if pending else None
     state['pending_clarifications'] = pending[1:]

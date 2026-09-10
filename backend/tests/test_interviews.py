@@ -416,3 +416,62 @@ def test_explicit_skip_shows_verified_preview_without_claiming_lack_of_experienc
     assert result.json()['phase'] == 'preview' and not result.json()['proposed_facts']
     assert result.json()['dismissed_clarifications'] == [topic]
     assert result.json()['answers'] == []
+
+
+def test_resume_repairs_legacy_loop_once_without_profile_changes_or_ai(environment):
+    client, db, user, other = environment
+    session = confirm(client, create(client))
+    row = db.get(InterviewSession, session['id'])
+    state = deepcopy(row.state)
+    questions = [{'id': f'legacy-{i}', 'topic': f'path-{i}', 'text': 'Jak należy poprawnie opisać ten fragment dotyczący: Treść CV?',
+                  'context': 'Treść CV', 'suggested_text': 'Python w portalu CV', 'clarification': True} for i in range(8)]
+    state.update(phase='clarification', question=questions[0], pending_clarifications=questions[1:], preview={'cv_data': {'name': 'Anna'}})
+    service.update_session(db, row, row.revision, state)
+    original_revision = row.revision
+    original_profile = client.get('/career-profile').json()
+    with patch.object(service, 'paid_model', side_effect=AssertionError('Repair must be free')):
+        app.dependency_overrides[get_current_user] = lambda: other
+        assert client.get(f"/ai/interviews/{session['id']}").status_code == 404
+        app.dependency_overrides[get_current_user] = lambda: user
+        resumed = client.get(f"/ai/interviews/{session['id']}").json()
+        assert resumed['revision'] == original_revision + 1
+        assert resumed['question']['id'] == 'legacy-0' and resumed['pending_clarifications'] == []
+        assert client.get(f"/ai/interviews/{session['id']}").json() == resumed
+        assert client.get('/career-profile').json() == original_profile
+        payload = {**version(resumed, 1), 'question_id': 'legacy-0', 'answer': '', 'status': 'unknown'}
+        saved = client.post(f"/ai/interviews/{session['id']}/answers", json=payload).json()
+        assert saved['phase'] == 'preview' and len(saved['answers']) == 1
+        assert client.post(f"/ai/interviews/{session['id']}/answers", json=payload).json() == saved
+
+
+def test_discovery_stops_repeated_wording_with_changed_topic_without_retry(environment):
+    client, db, _, _ = environment
+    session = confirm(client, create(client))
+    row = db.get(InterviewSession, session['id'])
+    state = deepcopy(row.state)
+    state['answers'] = [{'question': {'id': 'old', 'topic': 'old-topic', 'text': 'Jakie narzędzia znasz?'}, 'answer': '', 'status': 'unknown'}]
+    service.update_session(db, row, row.revision, state)
+    session = client.get(f'/ai/interviews/{row.id}').json()
+    output = {'output': {'questions': [{'topic': 'new-topic', 'text': 'JAKIE narzędzia   znasz!', 'context': '', 'reason': ''}], 'requirements': []}, 'usage': {}}
+    with patch.object(service, 'paid_model', return_value=output) as model:
+        response = client.post(f'/ai/interviews/{row.id}/next', json=version(session, 1))
+    assert response.status_code == 200
+    assert response.json()['phase'] == 'review' and response.json().get('question') is None
+    assert model.call_count == 1
+
+
+def test_active_clarification_cannot_restart_paid_generation(environment):
+    client, db, _, _ = environment
+    session = confirm(client, create(client))
+    row = db.get(InterviewSession, session['id'])
+    state = deepcopy(row.state)
+    state.update(phase='clarification', question=None, pending_clarifications=[{
+        'id': 'one', 'topic': 'one', 'text': 'Który projekt?', 'context': 'Projekt',
+        'suggested_text': 'Python w portalu CV', 'clarification': True, 'record_label': 'Projekt',
+    }])
+    service.update_session(db, row, row.revision, state)
+    session = client.get(f'/ai/interviews/{row.id}').json()
+    with patch.object(service, 'paid_model', side_effect=AssertionError('Cannot restart paid work')):
+        for action in ('next', 'preview'):
+            body = {**version(session, 1), **({'template_id': 'linden'} if action == 'preview' else {})}
+            assert client.post(f'/ai/interviews/{row.id}/{action}', json=body).status_code == 422

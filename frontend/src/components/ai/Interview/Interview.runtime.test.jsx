@@ -134,3 +134,19 @@ it('offers clarification before exposing the filtered preview and supports expli
   await userEvent.setup().click(screen.getByRole('button', { name: 'Pomiń doprecyzowanie i pokaż CV' }));
   expect(interviewRequest).toHaveBeenCalledWith('/ai/interviews/session/skip-clarifications', 'POST', expect.any(Object));
 });
+
+  it('shows the disputed proposal immediately and counts clarifications separately', async () => {
+    session.phase = 'clarification';
+    session.answers = Array.from({ length: 8 }, () => ({ question: { clarification: false } }));
+    session.question = { id: 'clarification', topic: 'project', text: 'W którym projekcie używałaś Pythona?',
+      reason: 'Sprawdź przypisanie technologii.', context: 'Projekt', record_label: 'Portal CV',
+      suggested_text: 'Budowa portalu CV w Pythonie.', clarification: true };
+    session.pending_clarifications = [{ id: 'another' }];
+    render(<MemoryRouter><InterviewFlow sessionId="session" /></MemoryRouter>);
+    const proposal = await screen.findByText('Budowa portalu CV w Pythonie.');
+    expect(proposal).toBeVisible();
+    expect(proposal.closest('details')).toBeNull();
+    expect(screen.getByText(/Doprecyzowanie 1 z 2/)).toBeVisible();
+    expect(screen.queryByText(/Odpowiedzi: 8/)).not.toBeInTheDocument();
+    expect(screen.getByText('Propozycja AI · wymaga Twojego potwierdzenia')).toBeVisible();
+  });

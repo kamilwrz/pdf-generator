@@ -312,12 +312,15 @@ def paid_model(db, user, row, request, operation, context, model):
 
 def next_question(db, user, row, request):
     """Ask one adaptive question after a durable answer, within the chosen cap."""
+    from app.services.interview_clarification import question_key
     profile = check_versions(db, row, request)
     state = deepcopy(row.state)
     if not state.get("confirmed"):
         fail("Najpierw zatwierdź informacje początkowe.", 422)
     if state.get("question"):
         return session_payload(row)
+    if state["phase"] == "clarification":
+        fail("Rozpocznij lub pomiń zapisane doprecyzowania.", 422)
     state["preview"] = None
     if len(state["answers"]) >= state["question_limit"]:
         state["phase"] = "review"
@@ -340,7 +343,10 @@ def next_question(db, user, row, request):
         state["requirements"] = requirements
         questions = raw["questions"]
         seen = {answer["question"]["topic"].casefold() for answer in state["answers"]}
-        if questions and questions[0]["topic"].casefold() not in seen:
+        # A model can repeat the same wording under a new topic identifier.
+        # Finish discovery instead of charging for automatic retry attempts.
+        seen_text = {question_key(answer["question"]["text"]) for answer in state["answers"]}
+        if questions and questions[0]["topic"].casefold() not in seen and question_key(questions[0]["text"]) not in seen_text:
             state["question"] = {"id": str(uuid4()), **questions[0]}
             state["phase"] = "question"
         else:

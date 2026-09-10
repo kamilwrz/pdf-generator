@@ -53,15 +53,16 @@ def test_clarification_round_respects_caps_and_does_not_repeat_answered_topics()
     from app.schemas.interview_schema import Verification, provider_schema
     profile = {'facts': service.source_facts(normalize_cv_data({'name': 'Anna'}), 'manual')}
     row = SimpleNamespace(id='session', state={'answers': [], 'dismissed_clarifications': []})
-    fields = [{'path': f'/experience/0/bullets/{index}', 'value': 'Propozycja', 'evidence_refs': ['x']} for index in range(8)]
+    fields = [{'path': f'/experience/0/bullets/{index}', 'value': f'Propozycja {index}', 'evidence_refs': [profile['facts'][0]['id']]} for index in range(8)]
     notes = [{'path': field['path'], 'action': 'omitted_suggestion'} for field in fields]
-    queue = clarification_queue(row, {'fields': fields}, {}, notes, profile)
+    verification = {'unsupported_paths': [f['path'] for f in fields]}
+    queue = clarification_queue(row, {'fields': fields}, verification, notes, profile)
     assert len(queue) == 5
     row.state['answers'] = [{'question': queue[0], 'status': 'unknown'}]
-    again = clarification_queue(row, {'fields': fields}, {}, notes, profile)
+    again = clarification_queue(row, {'fields': fields}, verification, notes, profile)
     assert queue[0]['topic'] not in [q['topic'] for q in again]
     row.state['dismissed_clarifications'] = [q['topic'] for q in again]
-    assert len(clarification_queue(row, {'fields': fields[:6]}, {}, notes[:6], profile)) == 0
+    assert len(clarification_queue(row, {'fields': fields[:5]}, verification, notes[:5], profile)) == 0
     state = {'question_limit': 8, 'answers': [{}] * 8, 'pending_clarifications': queue}
     start_clarifications(state)
     assert state['question_limit'] == 13 and len(state['pending_clarifications']) == 4
@@ -70,3 +71,69 @@ def test_clarification_round_respects_caps_and_does_not_repeat_answered_topics()
     assert state['question_limit'] == 50 and state['pending_clarifications'] == []
     schema = provider_schema(Verification)['schema']
     assert set(schema['required']) == set(schema['properties'])
+
+
+def test_clarifications_ignore_technical_errors_and_record_cascade():
+    from types import SimpleNamespace
+    from app.services.interview_clarification import clarification_queue
+    profile = {'facts': service.source_facts(normalize_cv_data({'name': 'Anna'}), 'manual')}
+    ref = profile['facts'][0]['id']
+    row = SimpleNamespace(id='session', state={'answers': []})
+    fields = [{'path': '/summary', 'value': 'Python', 'evidence_refs': [ref]}]
+    notes = [{'path': '/summary', 'action': 'omitted_suggestion'}]
+    for unsupported in ([], ['summary?'], ['/experience/0/title']):
+        assert clarification_queue(row, {'fields': fields}, {'unsupported_paths': unsupported}, notes, profile) == []
+    fields[0]['evidence_refs'] = ['deleted-fact']
+    assert clarification_queue(row, {'fields': fields}, {'unsupported_paths': ['/summary']}, notes, profile) == []
+
+
+def test_duplicate_claims_survive_reordering_and_skipping_without_reappearing():
+    from types import SimpleNamespace
+    from app.services.interview_clarification import clarification_queue, dismiss_clarifications
+    profile = {'facts': service.source_facts(normalize_cv_data({'name': 'Anna'}), 'manual')}
+    row = SimpleNamespace(id='session', state={'answers': []})
+    fields = [{'path': f'/experience/{i}/bullets/0', 'value': 'Python w portalu CV.', 'evidence_refs': [profile['facts'][0]['id']]} for i in range(8)]
+    notes = [{'path': f['path'], 'action': 'omitted_suggestion'} for f in fields]
+    verification = {'unsupported_paths': [f['path'] for f in fields]}
+    queue = clarification_queue(row, {'fields': fields}, verification, notes, profile)
+    assert len(queue) == 1
+    assert queue[0]['suggested_text'] == 'Python w portalu CV.'
+    assert 'Treść CV' not in queue[0]['text']
+    dismiss_clarifications(row.state, queue)
+    fields[0]['value'] = 'PYTHON   w portalu CV!'
+    assert clarification_queue(row, {'fields': fields}, verification, notes, profile) == []
+
+
+def test_legacy_queue_repair_is_idempotent_and_preserves_answers():
+    from copy import deepcopy
+    from app.services.interview_clarification import repair_clarification_state, finish_clarification_answer
+    questions = [{'id': str(i), 'topic': f'old-path-{i}', 'text': 'Jak należy poprawnie opisać ten fragment dotyczący: Treść CV?',
+                  'suggested_text': 'Python w portalu CV', 'clarification': True, 'context': 'Treść CV'} for i in range(8)]
+    state = {'phase': 'clarification', 'question': questions[0], 'pending_clarifications': questions[1:],
+             'answers': [], 'proposed_facts': [], 'preview': {'cv_data': {'name': 'Anna'}}}
+    repair_clarification_state(state)
+    assert state['question']['id'] == '0' and not state['pending_clarifications']
+    assert 'Treść CV' not in state['question']['text']
+    repaired = deepcopy(state)
+    repair_clarification_state(state)
+    assert state == repaired
+    state['answers'].append({'question': state['question'], 'answer': '', 'status': 'unknown'})
+    state['question'] = None
+    state['pending_clarifications'] = questions[1:]
+    finish_clarification_answer(state)
+    assert state['phase'] == 'preview' and len(state['answers']) == 1
+
+
+def test_five_clarification_answers_close_budget_even_for_new_claims():
+    from types import SimpleNamespace
+    from app.services.interview_clarification import clarification_queue, repair_clarification_state
+    profile = {'facts': service.source_facts(normalize_cv_data({'name': 'Anna'}), 'manual')}
+    state = {'answers': [{'question': {'clarification': True}, 'status': 'skipped'} for _ in range(8)],
+             'phase': 'clarification', 'proposed_facts': [], 'preview': {'cv_data': {'name': 'Anna'}},
+             'question': {'id': 'new', 'topic': 'new', 'text': 'Projekt?', 'suggested_text': 'SQL', 'clarification': True},
+             'pending_clarifications': []}
+    raw = {'fields': [{'path': '/summary', 'value': 'SQL', 'evidence_refs': [profile['facts'][0]['id']]}]}
+    notes = [{'path': '/summary', 'action': 'omitted_suggestion'}]
+    assert clarification_queue(SimpleNamespace(id='session', state=state), raw, {'unsupported_paths': ['/summary']}, notes, profile) == []
+    repair_clarification_state(state)
+    assert state['phase'] == 'preview' and state['question'] is None and len(state['answers']) == 8

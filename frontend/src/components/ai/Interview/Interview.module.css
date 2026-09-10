@@ -44,6 +44,10 @@
 .stages button[aria-current] { border-bottom: 2px solid var(--color-accent); background: var(--color-canvas); }
 .interview .question { padding: var(--space-6); background: var(--color-canvas); border: 1px solid var(--color-border); }
 .interview .question h3 { font-size: 1.5rem; line-height: 1.25; max-width: 56ch; }
+.proposal { margin: var(--space-4) 0; padding: var(--space-4); background: var(--color-paper); border-left: 2px solid var(--color-accent); max-width: 72ch; }
+.proposal figcaption { font-weight: 600; }
+.proposal figcaption span { display: block; margin-top: var(--space-1); color: var(--color-muted); font-size: .875rem; font-weight: 400; }
+.proposal blockquote { margin: var(--space-3) 0 0; white-space: pre-wrap; }
 .nextStep { padding: var(--space-6); margin-top: var(--space-6); background: var(--color-canvas); border-left: 2px solid var(--color-accent); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--space-4); }
 .nextStep p { color: var(--color-muted); margin: 0; }
 .interview .preparation { max-width: 72ch; padding: var(--space-6); background: var(--color-canvas); border: 1px solid var(--color-border); margin-inline: auto; }
