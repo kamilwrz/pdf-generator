@@ -6,6 +6,7 @@
 import { useState, useRef, useEffect, useLayoutEffect, useCallback } from "react";
 import { AnimatePresence, motion as Motion, useReducedMotion } from "framer-motion";
 import { nanoid } from "nanoid";
+import InterviewFlow from '../Interview/InterviewFlow';
 import { BsStars } from "react-icons/bs";
 import {
     FaBriefcase, FaFont, FaMagic, FaLanguage, FaSearch,
@@ -956,6 +957,9 @@ export default function AiAssistant() {
     const {
         A4_Elements,
         activeCvData,
+        activePdfId,
+        activeTemplateId,
+        flowSpacing,
         editElementValues,
         setActiveCvData,
         collapseSpilledMainIntoSidebar,
@@ -991,6 +995,9 @@ export default function AiAssistant() {
     const [jobDesc, setJobDesc] = useState("");
     const [jobOfferUrl, setJobOfferUrl] = useState("");
     const [candidateNotes, setCandidateNotes] = useState("");
+    const [interview, setInterview] = useState(null);
+    const interviewTriggerRef = useRef(null);
+    const tailorInterviewTriggerRef = useRef(null);
     const [jobUrlError, setJobUrlError] = useState("");
     // Goal submenu: improve_content | translate | match_job | null
     const [activePanel, setActivePanel] = useState(null);
@@ -1011,6 +1018,22 @@ export default function AiAssistant() {
     // response reports one; the selector then reflects it. Sent with content
     // actions so corrections come back in the CV language, not always Polish.
     const [cvLanguage, setCvLanguage] = useState("");
+
+    const openInterview = useCallback((mode = 'enrich') => {
+        const source = {
+            cv_data: activeCvData || {},
+            source_document_id: activePdfId || null,
+            template_id: activeTemplateId || null,
+            spacing_px: flowSpacing,
+            language: cvLanguage || 'pl',
+            candidate_notes: candidateNotes,
+            ...(mode === 'tailor' ? { job_offer_url: jobOfferUrl, job_description: jobDesc } : {}),
+        };
+        setInterview({ source, mode, documentKey: sessionKey, signature: JSON.stringify(activeCvData) });
+        setIsOpen(true);
+        setActivePanel(null);
+    }, [activeCvData, activePdfId, activeTemplateId, flowSpacing, cvLanguage, candidateNotes, jobOfferUrl, jobDesc, sessionKey]);
+    const activeInterview = interview?.documentKey === sessionKey ? interview : null;
 
     const messagesRef = useRef(null);
     const inputRef = useRef(null);
@@ -1741,9 +1764,10 @@ export default function AiAssistant() {
         lastAssistantNonceRef.current = nonce;
         setIsOpen(true);
         setActivePanel(null);
+        if (action === 'interview') { openInterview('enrich'); return; }
         const meta = ACTION_META[action];
         send(action, meta?.label || action);
-    }, [assistantAction, send]);
+    }, [assistantAction, send, openInterview]);
 
     const submitJobTailoring = useCallback(() => {
         const url = jobOfferUrl.trim();
@@ -1879,8 +1903,23 @@ export default function AiAssistant() {
                             </div>
                         </div>
 
+                        {activeInterview ? <div className={classes.messages}><InterviewFlow
+                            key={`${activeInterview.documentKey}-${activeInterview.mode}`}
+                            mode={activeInterview.mode}
+                            initialSource={activeInterview.source}
+                            currentSource={{ cv_data: activeCvData || {}, template_id: activeTemplateId || null, spacing_px: flowSpacing }}
+                            sourceChanged={activeInterview.signature !== JSON.stringify(activeCvData)}
+                            onSourceRefreshed={() => setInterview((current) => current ? { ...current, signature: JSON.stringify(activeCvData) } : current)}
+                            onClose={() => {
+                                const tailoring = activeInterview.mode === 'tailor';
+                                setInterview(null);
+                                if (tailoring) setActivePanel('match_job');
+                                requestAnimationFrame(() => (tailoring ? tailorInterviewTriggerRef : interviewTriggerRef).current?.focus());
+                            }}
+                        /></div> : <>
                         {/* goal-oriented quick actions */}
                         <div className={classes.actions}>
+                            <button ref={interviewTriggerRef} type="button" className={classes.actionBtn} disabled={isLoading} onClick={() => openInterview('enrich')}>Uzupełnij CV przez wywiad</button>
                             {GOAL_ACTIONS.map((action) => (
                                 <button
                                     key={action.id}
@@ -2038,6 +2077,7 @@ export default function AiAssistant() {
                                         CV Studio nie dopisze niepotwierdzonych liczb, umiejętności ani doświadczeń. Braki pokaże jako luki w dowodach.
                                     </p>
                                     <div className={classes.jobDescRow}>
+                                        <button ref={tailorInterviewTriggerRef} type="button" className={classes.jobDescAnalyse} disabled={(!jobOfferUrl.trim() && !jobDesc.trim()) || isLoading} onClick={() => openInterview('tailor')}>Dopasuj z wywiadem — nowe CV</button>
                                         <button
                                             type="button"
                                             className={classes.jobDescCancel}
@@ -2154,6 +2194,7 @@ export default function AiAssistant() {
                                 <IoSend />
                             </button>
                         </div>
+                        </>}
                     </Motion.aside>
                 )}
             </AnimatePresence>

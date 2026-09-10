@@ -21,7 +21,7 @@ from fastapi.staticfiles import StaticFiles
 from starlette.concurrency import run_in_threadpool
 
 from app.api.routes import account, auth, pdf, images, ai, events, billing, templates
-from app.api.routes import ai_assistant
+from app.api.routes import ai_assistant, interviews
 from app.core.config import (
     IMAGES_UPLOAD_DIR,
     PDF_UPLOAD_DIR,
@@ -145,7 +145,12 @@ async def enforce_ai_assistant_transport_limit(request: Request, call_next):
     JSON parser from receiving an oversized body.
     """
 
-    if request.method == "POST" and request.url.path == "/ai/assistant":
+    if request.method in {"POST", "PUT"} and (
+        request.url.path == "/ai/assistant"
+        or request.url.path == "/career-profile"
+        or request.url.path == "/ai/interviews"
+        or request.url.path.startswith("/ai/interviews/")
+    ):
         limit = ai_assistant.MAX_ASSISTANT_REQUEST_BYTES
         declared_length = request.headers.get("content-length")
         if declared_length and declared_length.isdigit() and int(declared_length) > limit:
@@ -339,6 +344,7 @@ app.include_router(events.router)
 app.include_router(billing.router)
 app.include_router(templates.router)
 app.include_router(account.router)
+app.include_router(interviews.router)
 
 if DIST_DIR.exists():
     app.mount("/assets", StaticFiles(directory=str(DIST_DIR / "assets")), name="frontend_assets")

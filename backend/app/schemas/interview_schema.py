@@ -1,0 +1,104 @@
+"""Bounded public interview contracts and strict provider output schemas."""
+from typing import Literal
+from pydantic import BaseModel, ConfigDict, Field
+
+
+class Contract(BaseModel):
+    """Reject unexpected fields rather than accepting hidden client instructions."""
+    model_config = ConfigDict(extra="forbid")
+
+
+class CareerFact(Contract):
+    """A user-confirmed assertion or limitation, with its original source."""
+    id: str = Field(min_length=1, max_length=100)
+    text: str = Field(min_length=1, max_length=4000)
+    context: str = Field(default="", max_length=500)
+    kind: Literal["fact", "gap", "framing"] = "fact"
+    path: str = Field(default="", max_length=200)
+    source: str = Field(default="manual", max_length=150)
+
+
+class ProfileWrite(Contract):
+    revision: int = Field(ge=0)
+    facts: list[CareerFact] = Field(max_length=500)
+
+
+class InterviewCreate(Contract):
+    mode: Literal["create", "enrich", "tailor"]
+    source_document_id: int | None = Field(default=None, ge=1)
+    source_import_id: int | None = Field(default=None, ge=1)
+    cv_data: dict = Field(default_factory=dict)
+    template_id: str | None = Field(default=None, max_length=100)
+    spacing_px: dict | None = None
+    job_offer_url: str = Field(default="", max_length=2048)
+    job_description: str = Field(default="", max_length=20000)
+    candidate_notes: str = Field(default="", max_length=5000)
+    language: Literal["pl", "en", "de", "fr", "es", "uk", "it", "nl"] = "pl"
+
+
+class SessionWrite(Contract):
+    revision: int = Field(ge=1)
+    profile_revision: int = Field(ge=0)
+
+
+class AnswerWrite(SessionWrite):
+    question_id: str = Field(max_length=100)
+    answer: str = Field(default="", max_length=4000)
+    status: Literal["answered", "no_experience", "unknown", "skipped"]
+
+
+class ConfirmWrite(SessionWrite):
+    facts: list[CareerFact] = Field(max_length=500)
+
+
+class GenerateWrite(SessionWrite):
+    template_id: str = Field(min_length=1, max_length=100)
+
+
+class SourceRefresh(SessionWrite):
+    """Optional live editor snapshot; absent data reloads the owned saved CV."""
+    cv_data: dict | None = None
+    template_id: str | None = Field(default=None, max_length=100)
+    spacing_px: dict | None = None
+
+
+class Question(Contract):
+    topic: str = Field(max_length=150)
+    text: str = Field(max_length=1000)
+    reason: str = Field(max_length=1000)
+    context: str = Field(max_length=500)
+
+
+class Requirement(Contract):
+    text: str = Field(max_length=1000)
+    status: Literal["matched", "partial", "unknown", "gap"]
+    evidence_refs: list[str] = Field(max_length=10)
+
+
+class Discovery(Contract):
+    """Only one next question is generated; an empty list ends discovery."""
+    questions: list[Question] = Field(max_length=1)
+    requirements: list[Requirement] = Field(max_length=20)
+
+
+class DraftField(Contract):
+    path: str = Field(max_length=200)
+    value: str = Field(max_length=4000)
+    evidence_refs: list[str] = Field(min_length=1, max_length=20)
+
+
+class Draft(Contract):
+    """Each generated scalar cites evidence; the server owns document layout."""
+    fields: list[DraftField] = Field(max_length=250)
+    remaining_gaps: list[str] = Field(max_length=20)
+
+
+class Verification(Contract):
+    """Independent semantic review of claims against their cited source facts."""
+    unsupported_paths: list[str] = Field(max_length=250)
+    reasons: list[str] = Field(max_length=250)
+
+
+def provider_schema(model):
+    """Return an OpenAI strict JSON schema from a fully required output model."""
+    return {"name": model.__name__.lower(), "strict": True, "schema": model.model_json_schema()}

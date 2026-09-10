@@ -15,6 +15,7 @@
  * a fade + translate-Y entry that respects `prefers-reduced-motion`.
  */
 import { useEffect, useRef } from "react";
+import { Link } from "react-router-dom";
 import { AiOutlineLogout } from "react-icons/ai";
 import classes from "./StartChooser.module.css";
 
@@ -178,6 +179,7 @@ export default function StartChooser({
         </div>
 
         <div className={classes.secondaryActions}>
+          <Link className={classes.blankLink} to="/app/interview">Utwórz CV z pomocą wywiadu →</Link>
           <button type="button" className={classes.blankLink} onClick={onDocuments}>Wszystkie dokumenty →</button>
           {documentsLoaded && latestDocument ? (
             <button type="button" className={classes.recentDocument} onClick={() => onContinue(latestDocument.id)}>

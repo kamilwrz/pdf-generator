@@ -158,5 +158,5 @@ def is_database_route(path: str) -> bool:
 
     return any(
         path == prefix or path.startswith(f"{prefix}/")
-        for prefix in ("/auth", "/pdf", "/images", "/ai", "/events", "/billing")
+        for prefix in ("/auth", "/pdf", "/images", "/ai", "/events", "/billing", "/account", "/career-profile")
     )

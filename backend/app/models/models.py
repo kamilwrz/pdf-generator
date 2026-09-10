@@ -13,6 +13,7 @@ time create_all used to crash uvicorn before it could listen for /health.
 import logging
 import time
 import unicodedata
+from datetime import datetime
 
 from sqlalchemy import (
     VARCHAR,
@@ -330,6 +331,32 @@ class MaintenanceMarker(Base):
     id = Column(Integer, primary_key=True, index=True)
     key = Column(String, unique=True, nullable=False, index=True)
     completed_at = Column(DateTime, nullable=False)
+
+
+class CareerProfile(Base):
+    """Versioned, owner-confirmed career evidence, independent of any CV output.
+
+    Deletion clears facts and increments revision instead of removing the row:
+    older interview snapshots must never become current after a profile reset.
+    """
+
+    __tablename__ = "career_profiles"
+    owner_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    revision = Column(Integer, nullable=False, default=1)
+    facts = Column(JSON, nullable=False, default=list)
+    updated_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+
+
+class InterviewSession(Base):
+    """Resumable interview state; generated documents remain ordinary Pdf rows."""
+
+    __tablename__ = "interview_sessions"
+    id = Column(String(36), primary_key=True)
+    owner_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    revision = Column(Integer, nullable=False, default=1)
+    state = Column(JSON, nullable=False, default=dict)
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = Column(DateTime, nullable=False, default=datetime.utcnow)
 
 
 class BioCvDraft(Base):

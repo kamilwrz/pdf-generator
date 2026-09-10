@@ -17,6 +17,8 @@ const Register = lazy(() => import('./pages/Register/Register'));
 const Hero = lazy(() => import('./pages/Hero/Hero'));
 const DocumentsPage = lazy(() => import('./pages/Site/DocumentsPage'));
 const AccountPage = lazy(() => import('./pages/Site/AccountPage'));
+const CareerProfilePage = lazy(() => import('./pages/Site/CareerProfilePage'));
+const InterviewPage = lazy(() => import('./pages/Site/InterviewPage'));
 const TemplatesPage = lazy(() => import('./pages/Site/PublicPages').then((module) => ({ default: module.TemplatesPage })));
 const TemplatePage = lazy(() => import('./pages/Site/PublicPages').then((module) => ({ default: module.TemplatePage })));
 const PricingPage = lazy(() => import('./pages/Site/PublicPages').then((module) => ({ default: module.PricingPage })));
@@ -60,6 +62,9 @@ const router = createBrowserRouter([
   { path: "/app/documents", element: <RequireSession><DocumentsPage /></RequireSession>, errorElement: <RouteErrorPage /> },
   { path: "/app/documents/:documentId", element: <EditorRoute />, errorElement: <RouteErrorPage /> },
   { path: "/app/account", element: <RequireSession><AccountPage /></RequireSession>, errorElement: <RouteErrorPage /> },
+  { path: "/app/career-profile", element: <RequireSession><CareerProfilePage /></RequireSession>, errorElement: <RouteErrorPage /> },
+  { path: "/app/interview", element: <RequireSession><InterviewPage /></RequireSession>, errorElement: <RouteErrorPage /> },
+  { path: "/app/interview/:sessionId", element: <RequireSession><InterviewPage /></RequireSession>, errorElement: <RouteErrorPage /> },
   { path: "/app/new", element: <StartRoute start="new" />, errorElement: <RouteErrorPage /> },
   { path: "/app/import", element: <StartRoute start="import" />, errorElement: <RouteErrorPage /> },
   { path: "/templates", element: <TemplatesPage />, errorElement: <RouteErrorPage /> },

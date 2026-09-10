@@ -84,7 +84,7 @@ Implementation (verified file extents; the listed exports own the complete workf
 - `frontend/src/templates/index.js`, lines 1–199, `TEMPLATES` — picker summaries and detail-page copy for all ten templates.
 - `frontend/src/utils/planPresentation.js`, lines 1–70, `FREE_PLAN_HIGHLIGHTS, PRO_PLAN_HIGHLIGHTS, PLAN_PRESENTATION`.
 - `frontend/src/services/documents.js`, lines 1–45, `listOwnedDocuments, loadOwnedDocument`.
-- `frontend/src/utils/siteRoutes.js`, lines 1–77, `getDocumentPath, parseDocumentId, safeReturnTo, authLink, savePendingAuthIntent, getPendingAuthIntent, postAuthPath`.
+- `frontend/src/utils/siteRoutes.js`, lines 1–78, `getDocumentPath, parseDocumentId, safeReturnTo, authLink, savePendingAuthIntent, getPendingAuthIntent, postAuthPath`.
 
 New directories: `pages/Site/` owns route content and library/account state; `components/common/SiteLayout/` owns shared navigation, semantic page layout and token-based styles. `services/documents.js` owns document reads and hydration, `services/accountApi.js` owns privacy-control requests, and `utils/siteRoutes.js` owns URL validation and authentication continuation. Editor state remains in the existing lifecycle/context layers. The privacy controls reuse the existing tables and storage cleanup outbox, so no database migration or environment variable is required; the backend adds authenticated `/account/export` and `/account` routes. The existing `render.yaml` SPA rewrite to `/index.html` supports refreshing every new address.
 
@@ -242,6 +242,8 @@ pdf-generator/
 ├── BUGZ.MD                   # Known issues tracker
 ├── README.md                 # This file
 ├── docs/                     # Product + design + deep-dive docs
+│   ├── INTERVIEWS.md         # Complete EN/PL interview, API, data and deployment tutorial
+│   ├── licenses/resume-agent-skills-MIT.txt # MIT: Vignesh Pai
 │   ├── LANDING_COPY.md        # Current Polish landing copy and labelled alternatives
 │   └── POLITYKA_PRYWATNOSCI.md # Review copy plus production privacy checklist
 ├── frontend/
@@ -255,6 +257,7 @@ pdf-generator/
 │   │   │   ├── canvas/CanvasPageStage/   # Smooth slide+fade when changing A4 page (single-page view)
 │   │   │   ├── canvas/CanvasControls.module.css # Shared canvas toolbar surfaces and interaction states
 │   │   │   ├── canvas/CanvasHoverToolbar/ # Shared text-anchored toolbar, delayed tooltips, hierarchical depth highlight, direct actions/overflow menu
+│   │   │   ├── ai/Interview/ # Shared interview, fact editing, content review and runtime tests
 │   │   │   ├── ai/ScopedAi/ # Scoped request history, inline assistant reviews, and runtime tests
 │   │   │   ├── canvas/GridEntryActions/ # Per-cell + / trash controls for repeatable short-entry grids
 │   │   │   ├── canvas/SkillsEntryActions/ # Centred + and inline add form for flat or categorised Skills groups
@@ -271,6 +274,10 @@ pdf-generator/
 │   │   │   ├── editor/DemoBanner/        # Persistent banner while the guest-mode demo CV is on canvas
 │   │   │   ├── editor/StartChooser/      # authenticated empty-state choice: new A4 or import
 │   │   ├── hooks/            # useA4Elements facade, useDocumentHistory, usePdfExport, …
+│   │   ├── pages/Site/CareerProfilePage.jsx # CareerProfilePage
+│   │   ├── pages/Site/InterviewPage.jsx # InterviewPage
+│   │   ├── services/interviews.js # interviewRequest / reviewFacts
+│   │   ├── utils/interviewPresentation.js # Human-readable field labels
 │   │   ├── pages/            # Hero, Login, Register, PdfCanvas, Site, Auth verification, Billing return pages
 │   │   ├── services/         # ApiClient, auth/account APIs, documents, fillTemplate, authenticatedImage, eventLog
 │   │   ├── store/            # Focused Canvas / UiSurfaces / Session / DocumentLifecycle contexts
@@ -308,12 +315,15 @@ pdf-generator/
 │   └── pdf-element.schema.json  # Exported PdfElement + transient ResolvedTextLine contract
 └── backend/
     ├── app/
+    │   ├── api/routes/interviews.py # Authenticated profile and session operations
     │   ├── api/routes/       # auth, account privacy, pdf, images, ai, assistant, billing, events
     │   ├── core/             # config, security
     │   ├── crud/
     │   ├── models/
+    │   ├── schemas/interview_schema.py # Public contracts and provider output
     │   ├── schemas/          # API validation, including account-erasure confirmation
     │   ├── services/         # document/storage, account export/erasure, email, Google, Stripe, readiness, AI, templates
+    │   │   ├── interview_service.py # Evidence, versions, discovery and billing
     │   │   ├── ai_service.py             # text-first/vision CV extraction + deterministic fill entry
     │   │   ├── scoped_ai.py # Strict scoped GPT request/output models and fact guards
     │   │   ├── cv_source_layout.py       # column lanes, source sections, deterministic field grounding
@@ -324,7 +334,7 @@ pdf-generator/
     │   ├── utils/            # image_src_to_path, metrics_logging, upload_security
     │   ├── main.py
     │   └── dependencies.py
-    ├── alembic/              # Additive migrations through 0016, including identity and payment idempotency
+    ├── alembic/              # Additive migrations through 0017, including identity and payment idempotency
     ├── fonts/                # Bundled TTFs for PDF
     ├── template_assets/      # Sidebar, IT and Iconic artwork/icons
     │   ├── iconic/cadenza-{porcelain,mist,sage,cobalt,burgundy,emerald}/ # Six real contact-icon palettes
@@ -344,6 +354,8 @@ pdf-generator/
 
 ## Database
 
+Migration `20260910_0017` adds profiles and interviews after `20260909_0016`. The [complete field schema, constraints, retention and relationships](docs/INTERVIEWS.md#database) supplement the existing tables below.
+
 Configured by `DATABASE_URL` (`backend/app/models/database.py`). Default if unset: `sqlite:///./pdfgenerator.db`. `postgres://` URLs are rewritten to `postgresql://`. Postgres uses `pool_pre_ping` for Render cold starts.
 
 Production schema changes run before the web process through `python -m app.services.deployment_bootstrap`: `init_db()` creates missing tables, applies `alembic upgrade head`, and seeds the exact plan catalog. It deliberately does not run historical cleanup: maintenance is an explicit, separately observed operation. The ASGI lifespan performs configuration checks but does not mutate the schema. `/ready` reports success only when `SELECT 1` works, the database and code Alembic heads match, the seeded catalog is exact, and SQLite has no residual foreign-key violations; database-backed routes return a sanitized 503 while readiness is false. Manual CLI: `cd backend && alembic upgrade head`.
@@ -361,6 +373,8 @@ Revision `20260824_0005` links `pdfs.source_import_id` to the private `cv_import
 | `pdfs` | CV documents: normalized `title` + owner-unique `title_key`, immutable create idempotency key/hash, optimistic `revision`, Storage V2 backend/key plus dual-read legacy `file_path`, owner, dimensions, `editor_mode`, active `template_id`, immutable `origin_template_id`, optional rhythm/CV data, and legacy watermark marker |
 | `storage_cleanup_jobs` | Durable, deduplicated PDF/image deletion jobs with attempt count, retry time, resource type, sanitized error, and terminal dead-letter state |
 | `pdf_elements` | Canvas elements; geometry + style columns; extras in `extra_properties` JSON (`fixedToPage`, `repeatOnContinuation`, `locked`, `flowRole`, `flowGroup`, `preserveInitialLayout`, Atrium/Sterling/Linden/Monument/Slate/Meridian/Cadenza/Vellum `appearanceSettings` + reversible type baselines, bold, `runs` inline-decoration overlay, connectors, …) |
+| `career_profiles` | One owner profile: revision, confirmed JSON facts and UTC write time |
+| `interview_sessions` | Private sessions: mode, snapshots, questions, answers, proposals, result and revision |
 | `bio_cv_drafts` | Legacy private JSON draft retained only for explicit A4 recovery |
 | `plans` | Free (Darmowy) / Pro limits and feature flags, including nullable `max_cv_imports_per_month` (legacy `standard`/`premium` rows deactivated) |
 | `user_subscriptions` | Current plan and validity period per user, plus nullable Stripe customer/subscription references |
@@ -388,6 +402,45 @@ Models: `backend/app/models/models.py` (`User`, `Pdf`, `PdfElements`, …).
 
 ## Features (implementation map)
 
+### Career profile, interview and a separate tailored CV
+
+**Implemented:** `/app/interview` creates a CV through a short Polish interview; `/app/career-profile` manages confirmed facts and saved conversations. The editor assistant embeds the same flow for **Uzupełnij CV przez wywiad** and **Dopasuj do oferty → Dopasuj z wywiadem — nowe CV**. Import can open enrichment after filling a CV. Manual creation remains available.
+
+Start with the account profile, one selected CV/import, or new identity and career history. Review imported facts, answer up to five tailoring questions or eight creation/enrichment questions (including clarifications), then confirm new facts. Further rounds add up to five questions. Beginners can use education, projects and volunteering. Text, no experience, forgotten information and skip have different meanings. Generation may be requested immediately after fact confirmation.
+
+The generated content uses the chosen CV language, current confirmed facts and cited evidence. The offer defines priorities and is never evidence of competence. A separate semantic check supplements reference, number, role and identity validation; final user review remains necessary. Review full content, changes and page count, then save a **new document** using the source template or an explicitly selected template. Source CVs remain unchanged. Supported spacing survives, manual geometry is regenerated, and no content is cut automatically to fit a page target.
+
+AI operations require Pro and existing credits; preview performs both generation and a paid verification call. Profile editing/deletion, saved-state access, answer persistence and confirmation remain credit-free after Pro expires. Optimistic profile/session revisions reject stale writes. Creation keys, answer IDs, provider reservation keys and the existing document-create saga prevent duplicate work/charges/documents on retries. Removed facts cannot silently return from old snapshots. A changed saved source can be refreshed in the same interview, preserving saved answers and requiring fact review; unsubmitted browser text is not recovered after closing the page.
+
+The additive migration `20260910_0017` creates `career_profiles` (one owner profile) and `interview_sessions` (many owned sessions). Both contain versioned JSON and UTC timestamps; owner foreign keys cascade on account erasure. Profile deletion retains its revision epoch. Portable account export and account deletion include these records. Interview logs contain operation/status/cost, not answers. There are no new dependencies or environment variables.
+
+**API:** authenticated `GET/PUT/DELETE /career-profile`; `POST/GET /ai/interviews`; `GET/DELETE /ai/interviews/{id}`; session `POST` actions `answers`, `next`, `confirm`, `extend`, `source`, `preview`, `document`. The [complete EN/PL tutorial](docs/INTERVIEWS.md#english) documents schemas, field limits, response examples, errors, transactions, retention, credits, tests and recovery. The [Swiss interaction contract](DESIGN.md#59-career-interview-contract) applies to all interview states.
+
+Implementation and tests (verified whole-module ranges; use the named symbols for navigation):
+
+| File | Current lines and symbols |
+| --- | --- |
+| `backend/app/models/models.py` | 1–583; CareerProfile, InterviewSession |
+| `backend/alembic/versions/20260910_0017_career_interviews.py` | 1–41; upgrade, downgrade |
+| `backend/app/schemas/interview_schema.py` | 1–104; CareerFact, InterviewCreate, SessionWrite, SourceRefresh, Discovery, Draft, Verification |
+| `backend/app/services/interview_service.py` | 1–351; put_profile, check_versions, source_facts, base_cv, assemble_draft, paid_model, next_question |
+| `backend/app/api/routes/interviews.py` | 1–361; create_interview, answer_interview, confirm_interview, refresh_interview_source, preview_interview, save_interview_document |
+| `frontend/src/components/ai/Interview/InterviewFlow.jsx` | 1–174; InterviewFlow |
+| `frontend/src/components/ai/Interview/FactEditor.jsx` | 1–25; FactEditor |
+| `frontend/src/components/ai/Interview/CvContent.jsx` | 1–21; CvContent |
+| `frontend/src/services/interviews.js` | 1–24; interviewRequest, reviewFacts |
+| `frontend/src/pages/Site/CareerProfilePage.jsx` | 1–67; CareerProfilePage |
+| `frontend/src/pages/Site/InterviewPage.jsx` | 1–10; InterviewPage |
+| `frontend/src/utils/interviewPresentation.js` | 1–12; factLabel, interviewFields |
+| `backend/tests/test_interviews.py` | 1–328; state, grounding, billing, source preservation and PDF regressions |
+| `backend/tests/test_alembic_interviews.py` | 1–26; additive migration regression |
+| `frontend/src/components/ai/Interview/Interview.runtime.test.jsx` | 1–94; save-before-next, recovery, focus and source changes |
+| `frontend/e2e/interviews.spec.js` | 1–127; create, resume, profile and assistant flows |
+
+Folder additions: `backend/app/schemas/interview_schema.py` defines API/provider contracts, `backend/app/services/interview_service.py` owns evidence and conversation rules, and `backend/app/api/routes/interviews.py` owns HTTP orchestration. `frontend/src/components/ai/Interview/` contains the shared flow, controlled fact editor, content review, token-based styles and runtime tests. `docs/INTERVIEWS.md` is the technical tutorial; `docs/licenses/resume-agent-skills-MIT.txt` retains Vignesh Pai's MIT attribution.
+
+Run the existing backend pytest environment plus `npm test`, `npm run test:runtime`, `npm run test:e2e -- e2e/interviews.spec.js --project=desktop-chromium`, `npm run lint` and `npm run build` from `frontend/`; exact backend commands and test boundaries are in the tutorial. Mocked AI tests do not establish live-provider quality. Deploy the migration/backend through the existing predeploy bootstrap before publishing the frontend, check `/ready`, then smoke-test with an authenticated account. This source change does not itself deploy production. Downgrading the migration deletes profile/session rows, while generated CVs survive.
+
 ### Published privacy policy and self-service privacy rights
 
 The flat public `/privacy` route publishes the controller identity, contact details, data inventory, purposes and legal bases, browser-only storage, AI/import rules, all provider categories found in the implementation (Render, AWS, Cloudflare, OpenAI, Google, Resend, Stripe, home.pl and a user-selected public job site), international-transfer safeguards, actual retention limitations, security controls, GDPR rights, and the 18+ audience rule. The policy does not claim an unverified Render/AWS region or an unverified DPA status. AI upload and prompt surfaces warn users not to submit special-category data. Anonymous guest analytics buffering has been retired and legacy buffered events are removed without deleting a guest CV draft.
@@ -401,7 +454,7 @@ Implementation:
 - `frontend/src/services/accountApi.js`, lines 1–35, functions `downloadAccountData` and `deleteAccount`.
 - `frontend/src/utils/authSession.js`, lines 144–166, function `clearLocalAccountData`.
 - `backend/app/api/routes/account.py`, lines 1–57, handlers `export_account_data` and `delete_account`.
-- `backend/app/services/account_data_service.py`, lines 48–203, function `build_account_export`, and lines 206–298, function `delete_account_data`.
+- `backend/app/services/account_data_service.py`, lines 1–309, function `build_account_export`, and lines 206–298, function `delete_account_data`.
 
 Tests: `backend/tests/test_account_privacy.py`, lines 105–203; `frontend/src/pages/Site/PrivacyPage.test.js`, lines 1–24; `frontend/src/utils/authSession.test.js`, lines 50–70; and `frontend/e2e/site-architecture.spec.js`, lines 76–99 (the account privacy-controls scenario).
 
@@ -1151,7 +1204,7 @@ Implementation/test references (current file ranges):
 - `frontend/src/services/signIn.js`, lines 1–25, `establishSession`, `signIn`.
 - `frontend/src/pages/Register/Register.jsx`, lines 1–373, `Register`.
 - `frontend/src/pages/Login/Login.jsx`, lines 1–226, `Login`.
-- `frontend/src/components/editor/NewCvSetupModal/NewCvSetupModal.jsx`, lines 1–412, `NewCvSetupModal`.
+- `frontend/src/components/editor/NewCvSetupModal/NewCvSetupModal.jsx`, lines 1–413, `NewCvSetupModal`.
 - `frontend/e2e/first-cv-download.spec.js`, lines 1–160, `first-PDF browser scenarios`.
 
 Validation commands from `frontend/`: `npm run test:runtime -- src/components/editor/NewCvSetupModal/NewCvSetupModal.runtime.test.jsx src/components/editor/SaveGateModal/SaveGateModal.runtime.test.jsx src/components/editor/ClaimGuestDocumentModal/ClaimGuestDocumentModal.runtime.test.jsx`; `npm run test:e2e -- e2e/first-cv-download.spec.js e2e/hero-templates.spec.js e2e/guest-entry.spec.js e2e/new-cv-setup.spec.js`; `npm run lint`; `npm run build`. Browser fixtures isolate API calls, exercise 390/834/1280/1920px and a 640px viewport equivalent to 200% zoom, preserve keyboard order, and assert one export with the latest name and no save. They do not validate live production PDF pixels.
@@ -1197,7 +1250,7 @@ Limits:
 
 New documents opened from the template gallery or generated from an imported CV start with an empty document title. The topbar displays the placeholder **Projekt bez tytułu** until the user enters a name. Editing CV content or switching templates does not automatically name the project; template changes preserve an explicitly entered title. Saved documents retain their existing names. The document title is separate from both the template name and the job-position field inside the CV.
 
-Title flow: `TemplatesModal.applyTemplate` (`frontend/src/components/modals/TemplatesModal/TemplatesModal.jsx`, lines 42–74) and `AiCvPanel.handleFill` (`frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`, lines 254–288) pass an empty title to the fresh-document snapshot. `loadTemplateWithFillFresh` (`frontend/src/pages/PdfCanvas.jsx`, lines 1–2609) and `handleLoadTemplateWithFill` (`frontend/src/hooks/useA4Elements.js`, lines 1–2851) accept an explicit document title without adding a template name or a CV suffix. The existing controlled topbar input owns manual renaming; [React input documentation](https://react.dev/reference/react-dom/components/input) explains the `value` / `onChange` contract and why a placeholder is separate from the stored value.
+Title flow: `TemplatesModal.applyTemplate` (`frontend/src/components/modals/TemplatesModal/TemplatesModal.jsx`, lines 42–74) and `AiCvPanel.handleFill` (`frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`, lines 1–631) pass an empty title to the fresh-document snapshot. `loadTemplateWithFillFresh` (`frontend/src/pages/PdfCanvas.jsx`, lines 1–2609) and `handleLoadTemplateWithFill` (`frontend/src/hooks/useA4Elements.js`, lines 1–2851) accept an explicit document title without adding a template name or a CV suffix. The existing controlled topbar input owns manual renaming; [React input documentation](https://react.dev/reference/react-dom/components/input) explains the `value` / `onChange` contract and why a placeholder is separate from the stored value.
 
 Regression tests: `frontend/src/components/modals/TemplatesModal/TemplatesModal.runtime.test.jsx`, lines 1–45, covers static and generated gallery templates; `frontend/e2e/document-title.spec.js`, lines 1–40, covers import, empty titles, keyboard renaming, and template switching at compact, tablet, laptop, and wide widths. No storage schema or API changes are required.
 
@@ -1853,7 +1906,7 @@ For a guest with an active document, **Wróć do obecnego CV**, close, and Escap
 
 Replacement copy follows actual persistence: guests have one localStorage slot (`cvstudio.guest.doc`), replaced only after successful creation and the existing draft flush; entry restoration runs once even when no draft existed initially, preventing a later template change from restoring stale content; it is not a document archive. Account users retain the last saved server version, not unsaved edits. An unsaved account document has no saved version to return to. The compact decision dialog suppresses the floating property inspector. The recovery action receives initial focus and the shared dialog restores the editor trigger on dismissal. Regression tests in `frontend/e2e/guest-draft-recovery.spec.js`, lines 1–79, cover all dismissal paths, landing recovery, new-template deep links, reload, failed creation, and successful replacement at 390/834/1280/1920px and 640×400. Run `npm run test:e2e -- e2e/guest-draft-recovery.spec.js e2e/new-cv-setup.spec.js --workers=1` from `frontend/`; the API is mocked, with no production writes.
 
-Implementation: `frontend/src/pages/PdfCanvas.jsx`, lines 1–2609, setup dismissal callback in `EditorController`; `frontend/src/components/editor/NewCvSetupModal/NewCvSetupModal.jsx`, lines 210–240, `submit`. Regression tests: `frontend/e2e/new-cv-setup.spec.js`, lines 1–205, cover all dismissal controls at 390/834/1280/1920px and 640×400 (200% zoom equivalent), Back navigation, direct entry, preserved drafts, and authenticated onboarding. The creation tests ensure successful submission remains in the editor; pending requests retain the focus loop, and failure/retry preserves choices. [React Router useNavigate](https://reactrouter.com/api/hooks/useNavigate) explains explicit destinations and replacement of browser history entries.
+Implementation: `frontend/src/pages/PdfCanvas.jsx`, lines 1–2609, setup dismissal callback in `EditorController`; `frontend/src/components/editor/NewCvSetupModal/NewCvSetupModal.jsx`, lines 1–413, `submit`. Regression tests: `frontend/e2e/new-cv-setup.spec.js`, lines 1–205, cover all dismissal controls at 390/834/1280/1920px and 640×400 (200% zoom equivalent), Back navigation, direct entry, preserved drafts, and authenticated onboarding. The creation tests ensure successful submission remains in the editor; pending requests retain the focus loop, and failure/retry preserves choices. [React Router useNavigate](https://reactrouter.com/api/hooks/useNavigate) explains explicit destinations and replacement of browser history entries.
 
 The former bio wizard has been replaced by fullscreen A4 configuration: one screen selects the template with optional structure settings, while actual CV content is entered directly in the editor. The landing page and editor Topbar expose **Stwórz CV za darmo / Nowe CV** (`start=new`), while **Importuj CV** remains the alternative start. A fresh editor no longer exposes a blank-canvas choice. Saved documents remain available as a secondary action.
 
@@ -1875,7 +1928,7 @@ Legacy browser/server bio drafts are read only for an explicit one-time **Przeni
 
 Implementation:
 
-- `frontend/src/components/editor/NewCvSetupModal/NewCvSetupModal.jsx`, lines 1–412, component `NewCvSetupModal` — single-screen creation with optional configuration, replacement confirmation for user-authored documents, direct demo replacement, Pro/photo states, drag and keyboard ordering, custom sections, focus and error retention
+- `frontend/src/components/editor/NewCvSetupModal/NewCvSetupModal.jsx`, lines 1–413, component `NewCvSetupModal` — single-screen creation with optional configuration, replacement confirmation for user-authored documents, direct demo replacement, Pro/photo states, drag and keyboard ordering, custom sections, focus and error retention
 - `frontend/src/utils/cvStarter.js`, lines 37–396, constants/functions `MARKER_VALUES`, `REPEATED_FIELD_DEFINITIONS`, `createDefaultStarterConfig`, `buildStarterDocument`, `prepareStarterProfileForTemplate`, and `finalizeStarterElements`
 - `frontend/src/utils/starterElementStructure.js`, lines 1–234, functions `reflowStarterContacts`, `applyStarterElementStructure`, and `prepareStarterElementsForRender`; `frontend/src/utils/contactBandOps.js`, lines 60–179, functions `channelLabels` and `applyChannelRelayout` — placeholder-aware editor and render-copy contact reflow
 - `frontend/src/pages/PdfCanvas.jsx`, lines 1–2609, `startFreshDocument`, `loadAiElementsFresh`, `handleCreateStarterCv`, and the demo-aware modal wiring
@@ -2027,7 +2080,7 @@ Implementation:
 - `backend/app/core/config.py`, lines 65–137, Cloudflare and `CV_EXTRACT_*` settings — server-only credentials, primary/fallback models, thinking opt-in, reasoning effort, and independent text/JSON/vision limits
 - `backend/app/api/routes/ai.py`, lines 144–206, function `extract_cv` — authentication, file validation, thread-pool provider call, atomic snapshot/quota finalization, and safe HTTP errors
 - `frontend/src/utils/cvImportRequest.js`, lines 1–28, constants `CV_IMPORT_REQUEST_OPTIONS` / `CV_IMPORT_TIMEOUT_MESSAGE` and function `cvImportStatusLabel` — four-minute no-retry policy and persisted status labels
-- `frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`, lines 142–196 and 315–347, component `AiCvPanel` — request timeout recovery, history refresh, safe reuse of completed snapshots, and the accessible history-list scroll region
+- `frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`, lines 1–631, component `AiCvPanel` — request timeout recovery, history refresh, safe reuse of completed snapshots, and the accessible history-list scroll region
 - `frontend/src/components/ai/AiCvPanel/AiCvPanel.module.css`, lines 27–77 and 256–262, selectors `stepPane`, `historyPane`, `historyList`, and `historyHeader` — bounded overflow, visible thin scrollbar, stable scrollbar gutter, keyboard focus ring, and fixed history controls
 - `backend/app/services/cv_data.py`, lines 811–902, functions `_split_language_rows` and `_normalize_languages`, plus `normalize_cv_data`, `skill_groups`, `is_distinct_skill_family_title`, `_expand_skill_category_lines`, `_absorb_skills_alias_sections`, and `extract_contact_fields_from_raw`
 - `backend/app/services/cv_templates/shared/text.py`, `_place_skills_section`
@@ -2128,7 +2181,7 @@ All assistant actions use **`gpt-5.6-terra`** by default with **`reasoning_effor
 
 Implementation:
 
-- `frontend/src/components/ai/AiAssistant/AiAssistant.jsx`, lines 80–153, `GOAL_ACTIONS`, `CONTENT_SUBACTIONS`, and `TRANSLATE_LANGUAGES` — the four-goal menu with translation in the former appearance slot
+- `frontend/src/components/ai/AiAssistant/AiAssistant.jsx`, lines 1–2203, `GOAL_ACTIONS`, `CONTENT_SUBACTIONS`, and `TRANSLATE_LANGUAGES` — the four-goal menu with translation in the former appearance slot
 - `frontend/src/components/ai/AiAssistant/AiAssistant.jsx`, `cvLanguage` (1013): `send`, `handleCvLanguageChange`, `TRANSLATE_LANGUAGES`.
 - `frontend/src/utils/atsScore.js` — weighted ATS overall (`overallPercentFromCategories`) and rubric overall for rating/position (`overallPercentFromRubric`)
 - `frontend/src/utils/aiCorrectionHighlights.js` — `collectPendingAiHighlights` for canvas marks
@@ -2136,7 +2189,7 @@ Implementation:
 - `frontend/src/components/ai/AiAssistant/AiAssistant.jsx`, `RatingBadge` / `RatingDashboard` — % scores, ATS verbal band + disclaimer, CTA wiring
 - `frontend/src/components/ai/AiAssistant/AiAssistant.jsx`, `CorrectionCard` — Przed/Po correction review without native text tooltips
 - `frontend/src/components/ai/AiAssistant/AiAssistant.jsx`, component `AiAssistant` (line 949) — goal panels, translation, review cards, and composer; canvas-request invalidation through `chatSessionRef`; history is reset only by a different `conversationKey`
-- `frontend/src/components/ai/AiAssistant/AiAssistant.jsx`, lines 1082–1152 (`CANVAS_CONTEXT_CLEARANCE_PX`: 43) + `frontend/src/App.css`, lines 120–195 — live assistant/canvas geometry, capped single-page transform, compact fallback, and reduced-motion behavior
+- `frontend/src/components/ai/AiAssistant/AiAssistant.jsx`, lines 1–2203 (`CANVAS_CONTEXT_CLEARANCE_PX`: 43) + `frontend/src/App.css`, lines 120–195 — live assistant/canvas geometry, capped single-page transform, compact fallback, and reduced-motion behavior
 - `frontend/src/components/ai/AiAssistant/AiAssistant.test.js`, lines 41–58 (pre-paint auto-scroll), 60–84 (panel clearance), 112–138 (translation replaces appearance), and 191–236 (job-evidence overlay)
 - `frontend/e2e/ai-assistant-scroll.spec.js`, lines 35–72, test `AI assistant uses the wider panel and shifts a single A4 only when space allows` — 600 px desktop width, compact sheet width, capped desktop shift, mobile no-shift, and return position; lines 75–115 cover a long answer plus follow-up; lines 117–166 cover first-open / long-result / reopen offer-form geometry. These tests run in desktop and compact Chromium projects.
 - `frontend/src/components/ai/AiAssistant/AiAssistant.module.css`, lines 42–62 (`.panel`), 246–258 (`.jobDescArea`), and 347–365 (`.messages`) — responsive 600 px panel, bounded offer form, stable chat viewport, goal grid, subpanels, language picker, rating dashboard, and ATS disclaimer
@@ -2204,12 +2257,12 @@ Implementation:
 
 - `backend/alembic/versions/20260829_0007_cloudflare_cv_import_quota.py`, lines 1–70, migration `20260829_0007` — adds nullable `plans.max_cv_imports_per_month` and zero-filled `usage_counters.cv_imports_count`; the downgrade removes only these two columns
 - `backend/alembic/versions/20260831_0008_free_plan_contract.py`, migration `20260831_0008` — applies the one-import/three-export/one-project/no-AI Free contract to an existing catalog row while preserving truthful legacy-file markers
-- `backend/app/models/models.py`, lines 183–239, classes `Plan`, `UserSubscription`, and `UsageCounter` — persisted limit, legacy flag, and monthly count
+- `backend/app/models/models.py`, lines 1–583, classes `Plan`, `UserSubscription`, and `UsageCounter` — persisted limit, legacy flag, and monthly count
 - `backend/app/services/entitlements.py`, lines 362–413 (`_usage_row`), 480–523 (`assert_can_create_project`), 589–603 (`assert_can_extract_cv`), 620–648 (`assert_template_allowed`), 651–721 (`record_export`), and 724–771 (`record_cv_import`) — race-safe Free limits, transactional import claims, and paid-template enforcement
 - `backend/app/api/routes/ai.py`, lines 144–206, function `extract_cv`, and `backend/app/crud/cv_import_snapshots.py`, lines 43–66, function `mark_snapshot_succeeded` — one successful-normalization transaction for the import claim and snapshot, with safe rollback/error mapping
-- `frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`, lines 72–85, 142–196, 315–347, and 387–400, component `AiCvPanel` — disables extraction at zero remaining, displays the remaining count, recovers long-running snapshots through history, and refreshes entitlements after success
+- `frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`, lines 1–631, 142–196, 315–347, and 387–400, component `AiCvPanel` — disables extraction at zero remaining, displays the remaining count, recovers long-running snapshots through history, and refreshes entitlements after success
 - `backend/app/crud/pdfs.py`, line 41, function `elements_from_rows` — reconstructs full `PdfElement` objects (including `runs`, connectors, `flowRole`, `borderRadius`, …) from stored rows, the inverse of this file's existing `extra_properties` packing in `create_new_pdf` / `update_pdf_elements`
-- `backend/app/main.py`, lines 215–233, `block_generated_pdf_static_access` — keeps template assets public but makes every retired generated-PDF URL return 404 before the SPA fallback
+- `backend/app/main.py`, lines 1–364, `block_generated_pdf_static_access` — keeps template assets public but makes every retired generated-PDF URL return 404 before the SPA fallback
 - `backend/app/services/document_service.py`, lines 269–274 (`render_document_bytes`), 431–527 (`create_pdf_document`), 528–649 (`update_pdf_document`), and 737–782 (`render_pdf_for_download`) — always renders clean, never returns the storage locator, and rebuilds legacy marked local/S3 bytes
 - `backend/app/api/routes/pdf.py`, lines 83–113 (`_public_pdf_metadata`), 115–215 (`create_user_pdf`, `render_user_pdf`), 293–346 (`update_user_pdf`, `save_pdf_elements`), and 347–403 (`download_pdf`) — redacts private storage, enforces template access, prepares bytes first, then atomically meters before responding
 - `frontend/src/hooks/usePdfExport.js`, lines 175–223, function `downloadPdf`, and `frontend/src/pages/PdfCanvas.jsx`, lines 1–2609, function `handleDownloadClick` — sends the saved `pdf_id` only to preserve an owned legacy template during render-on-demand
@@ -2447,7 +2500,7 @@ Every image reference is also authorized at render time, not only at upload time
 
 #### Atomic AI credit reservations
 
-Assistant requests require `Idempotency-Key`. Before external model I/O, the backend serializes the user's monthly counter, reconciles stale reservations, and atomically reserves the action's maximum credit cost. Distinct assistant requests may coexist when their combined settled and reserved credits fit the plan balance; this prevents a timed-out or disconnected request from producing a false `ai_operation_active` error for a new action. The existing unique `active_slot=1` is now used only by CV imports because their separate monthly allowance has no reserved-counter column. A pending import does not block an assistant request, and a pending assistant request does not block an import. On the first reservation after deployment, `_reconcile_pending_ai_reservations` clears legacy assistant-wide slots without discarding their pending cost claims. A completed assistant call settles the actual charge and stores a replay response; a confirmed pre-provider failure releases the reservation; an ambiguous provider/transport outcome remains pending for the 10-minute TTL and continues to hold its bounded credits. Same-key payload mismatch and in-progress duplicates return 409, while insufficient unreserved credit returns the plan-limit response. Middleware rejects transport bodies above 1 MiB before JSON parsing (including chunked whitespace abuse); schema validation additionally caps the normalized body at 500 elements, 20 history entries, a 4,000-character message, and a 20,000-character job description. Implementation: `backend/app/main.py`, lines 74–113; `backend/app/services/entitlements.py`, lines 942–1508, functions `_reconcile_pending_ai_reservations`, `reserve_ai_credits`, `reserve_cv_import`, `settle_ai_reservation`, and `release_ai_reservation`; `backend/app/api/routes/ai_assistant.py`, lines 51–55 and 153–379. Tests: `backend/tests/test_ai_credit_reservations.py`, `backend/tests/test_extract_cv_reservations.py`, and `backend/tests/test_ai_assistant_request_limits.py`.
+Assistant requests require `Idempotency-Key`. Before external model I/O, the backend serializes the user's monthly counter, reconciles stale reservations, and atomically reserves the action's maximum credit cost. Distinct assistant requests may coexist when their combined settled and reserved credits fit the plan balance; this prevents a timed-out or disconnected request from producing a false `ai_operation_active` error for a new action. The existing unique `active_slot=1` is now used only by CV imports because their separate monthly allowance has no reserved-counter column. A pending import does not block an assistant request, and a pending assistant request does not block an import. On the first reservation after deployment, `_reconcile_pending_ai_reservations` clears legacy assistant-wide slots without discarding their pending cost claims. A completed assistant call settles the actual charge and stores a replay response; a confirmed pre-provider failure releases the reservation; an ambiguous provider/transport outcome remains pending for the 10-minute TTL and continues to hold its bounded credits. Same-key payload mismatch and in-progress duplicates return 409, while insufficient unreserved credit returns the plan-limit response. Middleware rejects transport bodies above 1 MiB before JSON parsing (including chunked whitespace abuse); schema validation additionally caps the normalized body at 500 elements, 20 history entries, a 4,000-character message, and a 20,000-character job description. Implementation: `backend/app/main.py`, lines 1–364; `backend/app/services/entitlements.py`, lines 942–1508, functions `_reconcile_pending_ai_reservations`, `reserve_ai_credits`, `reserve_cv_import`, `settle_ai_reservation`, and `release_ai_reservation`; `backend/app/api/routes/ai_assistant.py`, lines 51–55 and 153–379. Tests: `backend/tests/test_ai_credit_reservations.py`, `backend/tests/test_extract_cv_reservations.py`, and `backend/tests/test_ai_assistant_request_limits.py`.
 
 #### Authentication hardening
 
@@ -2455,11 +2508,11 @@ New passwords (12–128 characters) are hashed with Argon2id (64 MiB memory, thr
 
 #### Editor lifecycle, recovery, and unsaved-work guard
 
-The editor owns a monotonic document epoch and local revision. Async loads capture that scope and may commit only while it remains current, preventing a late response from an old document from overwriting the newly opened one. Dirty state comes from a stable persisted snapshot that excludes transient selection/edit/resize flags. React Router blocking and `beforeunload` protect authenticated work; guest navigation first flushes the local draft. The accessible discard dialog restores focus and supports the least-destructive default. Route-level and canvas-level Error Boundaries reset on document session changes, expose a branded recovery action, and never render raw exception text or CV content. Implementation: `frontend/src/store/document-lifecycle-context.jsx`, lines 1–86; `frontend/src/utils/persistedDocumentSnapshot.js`, lines 9–68; `frontend/src/hooks/useDirtyGuard.js`, lines 7–110; `frontend/src/components/common/ErrorBoundary/ErrorBoundary.jsx`, lines 12–88; `frontend/src/App.jsx`, lines 49–88. Tests: `frontend/src/utils/documentLifecycleGuards.test.js`, `frontend/src/utils/persistedDocumentSnapshot.test.js`, runtime Error Boundary tests, and `frontend/e2e/editor-smoke.spec.js`.
+The editor owns a monotonic document epoch and local revision. Async loads capture that scope and may commit only while it remains current, preventing a late response from an old document from overwriting the newly opened one. Dirty state comes from a stable persisted snapshot that excludes transient selection/edit/resize flags. React Router blocking and `beforeunload` protect authenticated work; guest navigation first flushes the local draft. The accessible discard dialog restores focus and supports the least-destructive default. Route-level and canvas-level Error Boundaries reset on document session changes, expose a branded recovery action, and never render raw exception text or CV content. Implementation: `frontend/src/store/document-lifecycle-context.jsx`, lines 1–86; `frontend/src/utils/persistedDocumentSnapshot.js`, lines 9–68; `frontend/src/hooks/useDirtyGuard.js`, lines 7–110; `frontend/src/components/common/ErrorBoundary/ErrorBoundary.jsx`, lines 12–88; `frontend/src/App.jsx`, lines 1–103. Tests: `frontend/src/utils/documentLifecycleGuards.test.js`, `frontend/src/utils/persistedDocumentSnapshot.test.js`, runtime Error Boundary tests, and `frontend/e2e/editor-smoke.spec.js`.
 
 #### Readiness, catalog, and paginated import history
 
-`GET /health` is process liveness. `GET /ready` checks database connectivity, exact Alembic head parity, and the exact billing catalog without mutating data; a readiness gate temporarily rejects database-backed routes with a sanitized 503. Blueprint-managed Render deployments run `python -m app.services.deployment_bootstrap` as `preDeployCommand`, so migrations and seeds normally finish before traffic. A legacy service created directly in the Render dashboard does not automatically inherit commands later added to `render.yaml`; on Render only, the worker therefore performs an initial read-only probe and starts the same idempotent bootstrap in a background thread when readiness is stale. `/health` remains available during recovery, and database-backed routes open only after the follow-up probe succeeds. Implementation: `backend/app/services/readiness.py`, lines 38–151, classes `ReadinessProbe` and `ReadinessGate`; `backend/app/services/deployment_bootstrap.py`, lines 13–28, function `run_predeploy`; `backend/app/main.py`, lines 50–108, functions `_recover_render_database_bootstrap` and `lifespan`; `render.yaml`. Tests: `backend/tests/test_readiness.py`, lines 160–186.
+`GET /health` is process liveness. `GET /ready` checks database connectivity, exact Alembic head parity, and the exact billing catalog without mutating data; a readiness gate temporarily rejects database-backed routes with a sanitized 503. Blueprint-managed Render deployments run `python -m app.services.deployment_bootstrap` as `preDeployCommand`, so migrations and seeds normally finish before traffic. A legacy service created directly in the Render dashboard does not automatically inherit commands later added to `render.yaml`; on Render only, the worker therefore performs an initial read-only probe and starts the same idempotent bootstrap in a background thread when readiness is stale. `/health` remains available during recovery, and database-backed routes open only after the follow-up probe succeeds. Implementation: `backend/app/services/readiness.py`, lines 1–162, classes `ReadinessProbe` and `ReadinessGate`; `backend/app/services/deployment_bootstrap.py`, lines 13–28, function `run_predeploy`; `backend/app/main.py`, lines 1–364, functions `_recover_render_database_bootstrap` and `lifespan`; `render.yaml`. Tests: `backend/tests/test_readiness.py`, lines 160–186.
 
 `GET /templates/catalog` is public, cacheable for five minutes, and returns only allowlisted template metadata. Free template packs remain client material; Pro entries in the production registry contain metadata only and are materialized server-side after entitlement checks, so paid element graphs do not ship in the public browser bundle. Import history uses a stable `(created_at, id)` keyset cursor, owner scope, `limit + 1`, and one grouped document-count query. Each owner-scoped list row includes the original PDF filename as its human-readable identity while still excluding extracted CV content and linked-document titles; the frontend never exposes the database id as the row label, deduplicates appended pages, and exposes **Pokaż starsze importy** while `next_cursor` exists. Deleting stored import data requires an inline, filename-scoped confirmation in the existing dialog, with explicit cancel, destructive, busy, success, and failure states. Implementation: `backend/app/api/routes/templates.py`, lines 14–37; `backend/app/services/cv_templates/registry.py`, lines 19–119; function `_snapshot_list_payload` in `backend/app/api/routes/ai.py`; component `AiCvPanel` in `frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`. Tests: `backend/tests/test_template_catalog_api.py`, `backend/tests/test_import_pagination.py`, and `frontend/src/utils/aiCvPanelDeleteConfirmation.test.js`.
 
@@ -2468,6 +2521,8 @@ Import-history rows stack on compact screens, preserve filename truncation, and 
 ---
 
 ## API
+
+New authenticated profile/interview API: [contracts, examples, versions and errors](docs/INTERVIEWS.md#api-contracts).
 
 The scoped toolbar variant of `/ai/assistant`, including its minimal request and response contract, is documented under [Scoped AI in section and entry toolbars](#scoped-ai-in-section-and-entry-toolbars).
 
@@ -2702,7 +2757,7 @@ For local Cloudflare setup, copy `backend/.env.example` to `backend/.env`, paste
 
 - **Build fails with `VITE_API_URL is required for a production build`:** this is the intentional production configuration gate, not an npm vulnerability failure. A Blueprint-managed `cv-studio-web` automatically copies the `cv-studio-api` service's public `RENDER_EXTERNAL_URL`; synchronize the latest `render.yaml` and redeploy. If the static site was created manually—or its build command differs from the Blueprint—set `VITE_API_URL` on the **frontend static service** to the deployed backend's public HTTPS origin, with no path or trailing slash, then choose **Save, rebuild, and deploy**.
 - **API exits with `Production CORS_ORIGINS must use HTTPS`:** synchronize the latest Blueprint before redeploying. It copies the static frontend's public `RENDER_EXTERNAL_URL` into `CORS_ORIGINS` for both Python services and copies the API's generated URL into `BACKEND_URL`; this replaces stale manually entered HTTP values. For services not managed by the Blueprint, set `CORS_ORIGINS` to only the frontend's public HTTPS origin and `BACKEND_URL` to the API's public HTTPS origin.
-- **Login receives 503 after deploy:** `/health` proves only that the process is alive. Inspect `/ready` and Render logs. A Blueprint-managed service must run the configured pre-deploy command. A legacy dashboard-managed Render service automatically attempts the idempotent migration/seed bootstrap after worker start and logs either the recovery attempt or its failure; wait for `/ready` to return 200. If it remains 503, verify database reachability, Alembic head `20260909_0016`, the exact plan catalog, private-S3 configuration, and SQLite foreign-key integrity when applicable. Do not bypass a failed migration with `alembic stamp`.
+- **Login receives 503 after deploy:** `/health` proves only that the process is alive. Inspect `/ready` and Render logs. A Blueprint-managed service must run the configured pre-deploy command. A legacy dashboard-managed Render service automatically attempts the idempotent migration/seed bootstrap after worker start and logs either the recovery attempt or its failure; wait for `/ready` to return 200. If it remains 503, verify database reachability, Alembic head `20260910_0017`, the exact plan catalog, private-S3 configuration, and SQLite foreign-key integrity when applicable. Do not bypass a failed migration with `alembic stamp`.
 - **SQLite reports `No support for ALTER of constraints`:** this came from the former revision `0005`. The current migration uses batch mode and can resume after the table/column were already committed. Keep the database at its reported Alembic revision, create a backup, and rerun `python -m alembic upgrade head`; do not delete the partially created table and do not use `alembic stamp` to skip the relation.
 - **Asystent AI / Układ “trwa uruchamianie” or timeout:** AI calls wake the dyno, retry network blips (not client timeouts), and use longer waits (`layout` up to 240s for `gpt-5.6-terra`). A timeout message means the client aborted — retry once; if it persists, check Render logs for OpenAI errors.
 - **CV import says it is not configured (503):** verify `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN`, and `CV_EXTRACT_PROVIDER=cloudflare`, then restart the backend. Never paste the token into the browser console or frontend `.env`.
@@ -2718,7 +2773,7 @@ For local Cloudflare setup, copy `backend/.env.example` to `backend/.env`, paste
 ## Testing
 
 - **Framework:** pytest 9.1.1 is the full-suite runner under `backend/tests/`; it also collects the existing `unittest.TestCase` classes and their subtests.
-- **Backend coverage:** storage-key containment/dual-read/cleanup compensation, PDF/image IDOR and image-slot races, document compare-and-swap/idempotency/N-1 writes, PDF 4 MiB and nested-shape limits, AI reservation races/replay/request limits, Argon2/canonical identity/proxy-aware throttles/admin reset, email/Google/Stripe provider boundaries, signed and duplicate webhook fulfillment, readiness and migrations `0009`–`0016`, import keyset pagination, public catalog allowlisting, quota atomicity, schema/render/layout/Unicode contracts, and legacy compatibility.
+- **Backend coverage:** storage-key containment/dual-read/cleanup compensation, PDF/image IDOR and image-slot races, document compare-and-swap/idempotency/N-1 writes, PDF 4 MiB and nested-shape limits, AI reservation races/replay/request limits, Argon2/canonical identity/proxy-aware throttles/admin reset, email/Google/Stripe provider boundaries, signed and duplicate webhook fulfillment, readiness and migrations `0009`–`0017`, import keyset pagination, public catalog allowlisting, quota atomicity, schema/render/layout/Unicode contracts, and legacy compatibility.
 - **Run:** `cd backend && python -m pytest -q`.
 - **PostgreSQL contracts:** set `POSTGRES_TEST_DATABASE_URL` to an isolated test database and run `python -m pytest -q -rs tests/test_postgres_security_contracts.py`. CI supplies PostgreSQL 16 and proves fresh bootstrap, a real N-1 (`0010`) upgrade to head, and 20 concurrent AI reservations; without the variable these three tests skip explicitly.
 - **Frontend layers:** `npm test` recursively discovers pure `*.test.js` modules; `npm run test:runtime` runs jsdom React tests with Vitest; `npm run test:e2e` runs isolated Chromium smoke tests. Lifecycle scope, dirty snapshots, category deletion, revision/idempotency headers, accessible recovery, and raw-error redaction have dedicated regressions.
@@ -2743,7 +2798,7 @@ The backend `preDeployCommand` runs `python -m app.services.deployment_bootstrap
 
 Production startup fails when S3 or any AWS credential/region value is missing. Keep Bucket owner enforced Object Ownership and all four S3 Block Public Access settings enabled, and do not attach a public bucket policy. The application sends no ACL with `PutObject`; the stored HTTPS value is an internal locator, while PDF bytes are returned only through the authenticated, ownership-checked, metered API route. A public bucket policy would bypass those controls and is unsupported. Local filesystem storage is supported only for development and tests.
 
-Migrations: the pre-deploy bootstrap must reach head `20260909_0016`. Do not use `alembic stamp` to bypass a failed migration. Revision `0016` grandfathers existing users as verified and adds identity/payment constraints; Storage V2 dual-read and the `0015` database triggers preserve the N-1 rollback window.
+Migrations: the pre-deploy bootstrap must reach head `20260910_0017`. Do not use `alembic stamp` to bypass a failed migration. Revision `0016` grandfathers existing users as verified and adds identity/payment constraints; Storage V2 dual-read and the `0015` database triggers preserve the N-1 rollback window.
 
 CI/CD: `.github/workflows/ci.yml` is committed and gates backend, frontend, browser, dependency, secret, and bundle checks before deployment.
 
@@ -2942,7 +2997,7 @@ Implementacja (zweryfikowane zakresy całych plików; wymienione eksporty odpowi
 - `frontend/src/templates/index.js`, linie 1–199, `TEMPLATES` — krótkie opisy pickerów i treść stron szczegółów wszystkich dziesięciu szablonów.
 - `frontend/src/utils/planPresentation.js`, linie 1–70, `FREE_PLAN_HIGHLIGHTS, PRO_PLAN_HIGHLIGHTS, PLAN_PRESENTATION`.
 - `frontend/src/services/documents.js`, linie 1–45, `listOwnedDocuments, loadOwnedDocument`.
-- `frontend/src/utils/siteRoutes.js`, linie 1–77, `getDocumentPath, parseDocumentId, safeReturnTo, authLink, savePendingAuthIntent, getPendingAuthIntent, postAuthPath`.
+- `frontend/src/utils/siteRoutes.js`, linie 1–78, `getDocumentPath, parseDocumentId, safeReturnTo, authLink, savePendingAuthIntent, getPendingAuthIntent, postAuthPath`.
 
 Nowe katalogi: `pages/Site/` zawiera treść tras i stan biblioteki/konta; `components/common/SiteLayout/` odpowiada za wspólną nawigację, semantyczny układ strony i style oparte na tokenach. `services/documents.js` odpowiada za odczyt i odtwarzanie dokumentów, `services/accountApi.js` za żądania kontroli prywatności, a `utils/siteRoutes.js` za walidację adresów i kontynuację po uwierzytelnieniu. Stan edytora pozostaje w istniejących warstwach cyklu życia i kontekstów. Kontrole prywatności korzystają z istniejących tabel i kolejki cleanup storage, dlatego nie wymagają migracji bazy ani zmiennej środowiskowej; backend dodaje uwierzytelnione trasy `/account/export` i `/account`. Istniejące przekierowanie SPA do `/index.html` w `render.yaml` obsługuje odświeżenie nowych adresów.
 
@@ -3099,6 +3154,8 @@ pdf-generator/
 ├── BUGZ.MD
 ├── README.md
 ├── docs/
+│   ├── INTERVIEWS.md         # Pełna instrukcja EN/PL wywiadu, API, danych i wdrożenia
+│   ├── licenses/resume-agent-skills-MIT.txt # MIT: Vignesh Pai
 │   ├── LANDING_COPY.md        # Aktualna treść landing page i oznaczone alternatywy
 │   └── CV_STUDIO_PRODUCT_UX_ROADMAP.md # Odhaczana roadmapa produktu, UX i komercjalizacji
 ├── frontend/
@@ -3112,6 +3169,7 @@ pdf-generator/
 │   │   │   ├── canvas/CanvasPageStage/   # Płynny slide+fade przy zmianie strony A4 (widok jednej strony)
 │   │   │   ├── canvas/CanvasControls.module.css # Shared canvas toolbar surfaces and interaction states
 │   │   │   ├── canvas/CanvasHoverToolbar/ # Wspólny pasek w gutterze, tooltipy, cienie hover oraz akcje bezpośrednie/menu
+│   │   │   ├── ai/Interview/ # Wspólny wywiad, edycja faktów, podgląd i testy runtime
 │   │   │   ├── ai/ScopedAi/ # Historia żądań zakresowych, przegląd w asystencie i testy runtime
 │   │   │   ├── canvas/GridEntryActions/ # Kontrolki + / kosz dla każdej komórki powtarzalnej siatki
 │   │   │   ├── canvas/SkillsEntryActions/ # Wycentrowany + i formularz dla płaskich lub kategoryzowanych Umiejętności
@@ -3127,6 +3185,10 @@ pdf-generator/
 │   │   │   ├── editor/DemoBanner/        # baner widoczny, gdy na płótnie jest przykładowe CV gościa
 │   │   │   ├── editor/StartChooser/      # pusty stan zalogowanego: nowe A4 albo import
 │   │   ├── hooks/            # useA4Elements, useDocumentHistory, useElementSelectionDrag, …
+│   │   ├── pages/Site/CareerProfilePage.jsx # CareerProfilePage
+│   │   ├── pages/Site/InterviewPage.jsx # InterviewPage
+│   │   ├── services/interviews.js # interviewRequest / reviewFacts
+│   │   ├── utils/interviewPresentation.js # Etykiety pól dla użytkownika
 │   │   ├── pages/            # Hero, Login, Register, PdfCanvas, Site, weryfikacja Auth i powroty Billing
 │   │   ├── services/         # ApiClient, authApi, documents, fillTemplate, authenticatedImage
 │   │   ├── store/            # Skupione konteksty Canvas / UiSurfaces / Session / DocumentLifecycle
@@ -3161,12 +3223,15 @@ pdf-generator/
 │   └── pdf-element.schema.json  # Eksport kontraktu PdfElement + tymczasowy ResolvedTextLine
 └── backend/
     ├── app/
+    │   ├── api/routes/interviews.py # Uwierzytelnione operacje profilu i sesji
     │   ├── api/routes/
     │   ├── core/
     │   ├── crud/
     │   ├── models/
+    │   ├── schemas/interview_schema.py # Kontrakty publiczne i wyniki modelu
     │   ├── schemas/          # PdfElement + eksport JSON Schema
     │   ├── services/         # dokument/storage, e-mail, Google, Stripe, readiness, limity auth, AI, szablony
+    │   │   ├── interview_service.py # Dowody, wersje, rozmowa i rozliczenia
     │   │   ├── ai_service.py             # tekst-first/vision importu CV + wejście fill
     │   │   ├── scoped_ai.py # Ścisłe modele wejścia/wyjścia zakresowego GPT i kontrola danych
     │   │   ├── cv_source_layout.py       # kolumny, sekcje źródłowe i deterministyczne ugruntowanie
@@ -3177,7 +3242,7 @@ pdf-generator/
     │   ├── utils/
     │   ├── main.py
     │   └── dependencies.py
-    ├── alembic/              # Addytywne migracje do 0016, w tym tożsamości i idempotencja płatności
+    ├── alembic/              # Addytywne migracje do 0017, w tym tożsamości i idempotencja płatności
     ├── fonts/
     ├── template_assets/
     │   ├── iconic/cadenza-{porcelain,mist,sage,cobalt,burgundy,emerald}/ # Sześć rzeczywistych palet ikon kontaktowych
@@ -3196,6 +3261,8 @@ pdf-generator/
 
 ## Baza danych
 
+Profil i rozmowy dodaje migracja `20260910_0017` po `20260909_0016`. [Pełny schemat pól, ograniczenia, retencja i relacje](docs/INTERVIEWS.md#baza-danych) uzupełniają poniższy opis istniejących tabel.
+
 `DATABASE_URL` (`database.py`). Domyślnie SQLite. `postgres://` → `postgresql://`. Postgres: `pool_pre_ping`.
 
 W produkcji zmiany schematu wykonuje przed procesem webowym `python -m app.services.deployment_bootstrap`: `init_db()` tworzy brakujące tabele, uruchamia `alembic upgrade head` i seeduje dokładny katalog planów. Celowo nie uruchamia historycznego cleanupu — maintenance jest osobną, obserwowaną operacją. Lifespan ASGI sprawdza konfigurację, ale nie modyfikuje schematu. `/ready` jest pozytywne wyłącznie po udanym `SELECT 1`, zgodności headów Alembic bazy i kodu, dokładnym seedzie katalogu oraz braku resztkowych naruszeń kluczy obcych SQLite; trasy zależne od bazy zwracają bezpieczne 503, gdy readiness jest fałszywe. CLI: `cd backend && alembic upgrade head`.
@@ -3213,6 +3280,8 @@ Rewizja `20260824_0005` łączy `pdfs.source_import_id` z prywatną historią `c
 | `pdfs` | Dokumenty CV: znormalizowany `title`, unikalny per właściciel `title_key`, klucz/hash idempotencji create, optymistyczna `revision`, Storage V2 backend/key i dual-read legacy `file_path`, wymiary, `editor_mode`, aktywny `template_id`, niezmienny `origin_template_id`, rhythm/CV data i marker watermark legacy |
 | `storage_cleanup_jobs` | Trwałe, deduplikowane zadania usunięcia PDF/obrazu z licznikiem prób, terminem retry, typem zasobu, bezpiecznym błędem i końcowym stanem dead-letter |
 | `pdf_elements` | Elementy kanwy (+ `extra_properties`, m.in. `fixedToPage`, `repeatOnContinuation`, `locked`, `flowRole`, `flowGroup`, `preserveInitialLayout`, `appearanceSettings` Atrium/Sterling/Linden/Monument/Slate/Meridian/Cadenza/Vellum i odwracalne bazowe metryki tekstu, `runs` — nakładka dekoracji inline) |
+| `career_profiles` | Jeden profil właściciela: rewizja, potwierdzone fakty JSON i czas UTC |
+| `interview_sessions` | Prywatne sesje: tryb, migawki, pytania, odpowiedzi, propozycje, wynik i rewizja |
 | `bio_cv_drafts` | Starszy prywatny szkic JSON zachowany tylko do jawnego recovery A4 |
 | `plans` | Limity Darmowy/Pro, w tym nullable `max_cv_imports_per_month` (legacy `standard`/`premium` dezaktywowane) |
 | `user_subscriptions` | Aktualny plan i okres ważności oraz opcjonalne identyfikatory klienta/subskrypcji Stripe |
@@ -3240,6 +3309,45 @@ Modele: `backend/app/models/models.py`.
 
 ## Funkcje (mapa implementacji)
 
+### Profil zawodowy, wywiad i osobne CV pod ofertę
+
+**Zaimplementowane:** `/app/interview` tworzy CV przez krótki polski wywiad; `/app/career-profile` służy do zarządzania potwierdzonymi faktami i rozmowami. Asystent edytora osadza ten sam przepływ dla **Uzupełnij CV przez wywiad** i **Dopasuj do oferty → Dopasuj z wywiadem — nowe CV**. Import może otworzyć uzupełnianie po wypełnieniu CV. Ręczne tworzenie pozostaje dostępne.
+
+Zacznij od profilu konta, jednego wskazanego CV/importu albo nowych danych i historii kariery. Sprawdź fakty źródłowe, odpowiedz na najwyżej pięć pytań przy dopasowaniu lub osiem przy tworzeniu/uzupełnianiu (łącznie z doprecyzowaniami), następnie zatwierdź nowe informacje. Kolejna runda dodaje do pięciu pytań. Początkujący mogą wykorzystać edukację, projekty i wolontariat. Tekst, brak doświadczenia, brak pamięci i pominięcie mają różne znaczenia. Generowanie można wybrać od razu po zatwierdzeniu faktów.
+
+Treść powstaje w wybranym języku CV, z aktualnych potwierdzonych faktów i wskazanych źródeł. Oferta określa priorytety, nigdy nie dowodzi kompetencji. Osobna kontrola znaczenia uzupełnia walidację źródeł, liczb, ról i tożsamości; nadal potrzebny jest przegląd użytkownika. Sprawdź pełną treść, zmiany i liczbę stron, potem zapisz **nowy dokument** w szablonie źródłowym lub jawnie wybranym. Źródłowe CV pozostaje bez zmian. Obsługiwane odstępy są zachowane, ręczna geometria jest przeliczana, a treści nie obcina się automatycznie dla limitu stron.
+
+AI wymaga Pro i obecnych kredytów; podgląd obejmuje generowanie oraz płatne sprawdzenie. Edycja/usunięcie profilu, odczyt rozmów, zapis odpowiedzi i zatwierdzanie nie zużywają kredytów również po wygaśnięciu Pro. Optymistyczne rewizje profilu/sesji odrzucają stare zapisy. Klucze utworzenia, ID odpowiedzi, rezerwacje modelu i obecny proces tworzenia dokumentu zapobiegają duplikatom pracy/opłat/dokumentów przy ponawianiu. Usunięte fakty nie wracają samoczynnie ze starych migawek. Zmianę zapisanego źródła można wczytać w tej samej rozmowie, zachowując odpowiedzi i ponownie sprawdzając fakty; niewysłany tekst nie jest odzyskiwany po zamknięciu strony.
+
+Migracja addytywna `20260910_0017` tworzy `career_profiles` (jeden profil właściciela) oraz `interview_sessions` (wiele jego rozmów). Obie tabele przechowują wersjonowany JSON i czasy UTC; klucze właściciela mają kaskadę przy usunięciu konta. Usunięcie profilu zachowuje epokę rewizji. Eksport danych i usunięcie konta obejmują te rekordy. Logi wywiadu zawierają operację/status/koszt, bez odpowiedzi. Nie dodano zależności ani zmiennych środowiskowych.
+
+**API:** uwierzytelnione `GET/PUT/DELETE /career-profile`; `POST/GET /ai/interviews`; `GET/DELETE /ai/interviews/{id}`; operacje sesji `POST`: `answers`, `next`, `confirm`, `extend`, `source`, `preview`, `document`. [Pełna instrukcja EN/PL](docs/INTERVIEWS.md#polski) opisuje schematy, limity pól, przykłady odpowiedzi, błędy, transakcje, retencję, kredyty, testy i odzyskiwanie. [Kontrakt interakcji Swiss](DESIGN.md#59-career-interview-contract) obejmuje wszystkie stany wywiadu.
+
+Implementacja i testy (zweryfikowane zakresy całych modułów; symbole ułatwiają nawigację):
+
+| Plik | Aktualne linie i symbole |
+| --- | --- |
+| `backend/app/models/models.py` | 1–583; CareerProfile, InterviewSession |
+| `backend/alembic/versions/20260910_0017_career_interviews.py` | 1–41; upgrade, downgrade |
+| `backend/app/schemas/interview_schema.py` | 1–104; CareerFact, InterviewCreate, SessionWrite, SourceRefresh, Discovery, Draft, Verification |
+| `backend/app/services/interview_service.py` | 1–351; put_profile, check_versions, source_facts, base_cv, assemble_draft, paid_model, next_question |
+| `backend/app/api/routes/interviews.py` | 1–361; create_interview, answer_interview, confirm_interview, refresh_interview_source, preview_interview, save_interview_document |
+| `frontend/src/components/ai/Interview/InterviewFlow.jsx` | 1–174; InterviewFlow |
+| `frontend/src/components/ai/Interview/FactEditor.jsx` | 1–25; FactEditor |
+| `frontend/src/components/ai/Interview/CvContent.jsx` | 1–21; CvContent |
+| `frontend/src/services/interviews.js` | 1–24; interviewRequest, reviewFacts |
+| `frontend/src/pages/Site/CareerProfilePage.jsx` | 1–67; CareerProfilePage |
+| `frontend/src/pages/Site/InterviewPage.jsx` | 1–10; InterviewPage |
+| `frontend/src/utils/interviewPresentation.js` | 1–12; factLabel, interviewFields |
+| `backend/tests/test_interviews.py` | 1–328; testy zachowania wywiadu |
+| `backend/tests/test_alembic_interviews.py` | 1–26; testy zachowania wywiadu |
+| `frontend/src/components/ai/Interview/Interview.runtime.test.jsx` | 1–94; testy zachowania wywiadu |
+| `frontend/e2e/interviews.spec.js` | 1–127; testy zachowania wywiadu |
+
+Nowe pliki: `backend/app/schemas/interview_schema.py` definiuje kontrakty API/modelu, `backend/app/services/interview_service.py` zarządza dowodami i regułami rozmowy, a `backend/app/api/routes/interviews.py` koordynuje HTTP. `frontend/src/components/ai/Interview/` zawiera wspólny przepływ, kontrolowany edytor faktów, podgląd treści, style oparte na tokenach i testy runtime. `docs/INTERVIEWS.md` to instrukcja techniczna; `docs/licenses/resume-agent-skills-MIT.txt` zachowuje autorstwo Vignesha Paia i licencję MIT.
+
+Uruchom obecne środowisko pytest backendu oraz `npm test`, `npm run test:runtime`, `npm run test:e2e -- e2e/interviews.spec.js --project=desktop-chromium`, `npm run lint` i `npm run build` w `frontend/`; dokładne polecenia backendu i granice testów opisuje instrukcja. Testy zastępczego AI nie dowodzą jakości rzeczywistego modelu. Przed publikacją frontendu wdróż migrację/backend obecnym bootstrapem predeploy, sprawdź `/ready`, a następnie operacje zalogowanego konta. Sama zmiana źródeł nie wdraża produkcji. Downgrade migracji kasuje profil/rozmowy, pozostawiając wygenerowane CV.
+
 ### Opublikowana polityka i samoobsługowe prawa prywatności
 
 Płaska publiczna trasa `/privacy` publikuje tożsamość administratora, dane kontaktowe, inwentarz danych, cele i podstawy, pamięć przeglądarki, zasady AI/importu, wszystkie kategorie dostawców znalezione w implementacji (Render, AWS, Cloudflare, OpenAI, Google, Resend, Stripe, home.pl i wskazaną przez użytkownika publiczną stronę pracy), zabezpieczenia transferów międzynarodowych, rzeczywiste ograniczenia retencji, zabezpieczenia, prawa RODO i granicę wieku 18+. Polityka nie deklaruje niezweryfikowanego regionu Render/AWS ani niepotwierdzonego statusu DPA. Powierzchnie uploadu i poleceń AI ostrzegają przed danymi szczególnych kategorii. Anonimowy bufor analityczny gościa został wycofany, a starszy klucz jest usuwany bez kasowania szkicu CV.
@@ -3253,7 +3361,7 @@ Implementacja:
 - `frontend/src/services/accountApi.js`, linie 1–35, funkcje `downloadAccountData` i `deleteAccount`.
 - `frontend/src/utils/authSession.js`, linie 144–166, funkcja `clearLocalAccountData`.
 - `backend/app/api/routes/account.py`, linie 1–57, handlery `export_account_data` i `delete_account`.
-- `backend/app/services/account_data_service.py`, linie 48–203, funkcja `build_account_export`, oraz linie 206–298, funkcja `delete_account_data`.
+- `backend/app/services/account_data_service.py`, linie 1–309, funkcja `build_account_export`, oraz linie 206–298, funkcja `delete_account_data`.
 
 Testy: `backend/tests/test_account_privacy.py`, linie 105–203; `frontend/src/pages/Site/PrivacyPage.test.js`, linie 1–24; `frontend/src/utils/authSession.test.js`, linie 50–70; oraz `frontend/e2e/site-architecture.spec.js`, linie 76–99 (scenariusz kontroli prywatności konta).
 
@@ -3998,7 +4106,7 @@ Referencje implementacji/testów (aktualne zakresy plików):
 - `frontend/src/services/signIn.js`, linie 1–25, `establishSession`, `signIn`.
 - `frontend/src/pages/Register/Register.jsx`, linie 1–373, `Register`.
 - `frontend/src/pages/Login/Login.jsx`, linie 1–226, `Login`.
-- `frontend/src/components/editor/NewCvSetupModal/NewCvSetupModal.jsx`, linie 1–412, `NewCvSetupModal`.
+- `frontend/src/components/editor/NewCvSetupModal/NewCvSetupModal.jsx`, linie 1–413, `NewCvSetupModal`.
 - `frontend/e2e/first-cv-download.spec.js`, linie 1–160, `first-PDF browser scenarios`.
 
 Polecenia walidacji z `frontend/`: `npm run test:runtime -- src/components/editor/NewCvSetupModal/NewCvSetupModal.runtime.test.jsx src/components/editor/SaveGateModal/SaveGateModal.runtime.test.jsx src/components/editor/ClaimGuestDocumentModal/ClaimGuestDocumentModal.runtime.test.jsx`; `npm run test:e2e -- e2e/first-cv-download.spec.js e2e/hero-templates.spec.js e2e/guest-entry.spec.js e2e/new-cv-setup.spec.js`; `npm run lint`; `npm run build`. Atrapy API izolują wywołania; testy obejmują 390/834/1280/1920px oraz viewport 640px odpowiadający zoomowi 200%, kolejność klawiatury i jeden eksport z najnowszym imieniem bez zapisu. Nie weryfikują pikseli PDF z produkcji.
@@ -4044,7 +4152,7 @@ Ograniczenia:
 
 Nowe dokumenty otwarte z galerii szablonów lub wygenerowane z zaimportowanego CV zaczynają z pustym tytułem dokumentu. Górny pasek wyświetla podpowiedź **Projekt bez tytułu**, dopóki użytkownik nie wpisze nazwy. Edycja treści CV ani przełączanie szablonów nie nadają projektowi nazwy automatycznie; zmiana szablonu zachowuje tytuł wpisany przez użytkownika. Zapisane dokumenty zachowują dotychczasowe nazwy. Tytuł dokumentu jest niezależny od nazwy szablonu i pola stanowiska wewnątrz CV.
 
-Przepływ tytułu: `TemplatesModal.applyTemplate` (`frontend/src/components/modals/TemplatesModal/TemplatesModal.jsx`, linie 42–74) i `AiCvPanel.handleFill` (`frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`, linie 254–288) przekazują pusty tytuł do migawki nowego dokumentu. `loadTemplateWithFillFresh` (`frontend/src/pages/PdfCanvas.jsx`, linie 1–2609) i `handleLoadTemplateWithFill` (`frontend/src/hooks/useA4Elements.js`, linie 1–2851) przyjmują jawny tytuł dokumentu bez dopisywania nazwy szablonu ani przyrostka CV. Istniejące kontrolowane pole górnego paska obsługuje ręczną zmianę nazwy; [dokumentacja pola input w React](https://react.dev/reference/react-dom/components/input) wyjaśnia kontrakt `value` / `onChange` i rozdzielenie podpowiedzi od zapisanej wartości.
+Przepływ tytułu: `TemplatesModal.applyTemplate` (`frontend/src/components/modals/TemplatesModal/TemplatesModal.jsx`, linie 42–74) i `AiCvPanel.handleFill` (`frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`, linie 1–631) przekazują pusty tytuł do migawki nowego dokumentu. `loadTemplateWithFillFresh` (`frontend/src/pages/PdfCanvas.jsx`, linie 1–2609) i `handleLoadTemplateWithFill` (`frontend/src/hooks/useA4Elements.js`, linie 1–2851) przyjmują jawny tytuł dokumentu bez dopisywania nazwy szablonu ani przyrostka CV. Istniejące kontrolowane pole górnego paska obsługuje ręczną zmianę nazwy; [dokumentacja pola input w React](https://react.dev/reference/react-dom/components/input) wyjaśnia kontrakt `value` / `onChange` i rozdzielenie podpowiedzi od zapisanej wartości.
 
 Testy regresji: `frontend/src/components/modals/TemplatesModal/TemplatesModal.runtime.test.jsx`, linie 1–45, obejmuje statyczne i generowane szablony galerii; `frontend/e2e/document-title.spec.js`, linie 1–40, obejmuje import, puste tytuły, zmianę nazwy klawiaturą oraz przełączanie szablonów przy szerokościach telefonu, tabletu, laptopa i szerokiego ekranu. Zmiana nie wymaga modyfikacji schematu danych ani API.
 
@@ -4694,7 +4802,7 @@ Dla gościa z aktywnym dokumentem **Wróć do obecnego CV**, zamknięcie i Escap
 
 Treść potwierdzenia odpowiada sposobowi zapisu: gość ma jeden wpis localStorage (`cvstudio.guest.doc`), zastępowany dopiero po poprawnym utworzeniu i istniejącym zapisie szkicu; odtwarzanie przy wejściu działa tylko raz także przy początkowo pustej pamięci, co zapobiega przywróceniu starej treści po zmianie szablonu; to nie jest archiwum dokumentów. Użytkownik konta zachowuje ostatnią wersję zapisaną na serwerze, a nie niezapisane zmiany. Niezapisany dokument konta nie ma wersji, do której można wrócić. Kompaktowy dialog decyzji ukrywa pływający inspektor właściwości. Akcja powrotu otrzymuje fokus początkowy, a wspólny dialog po zamknięciu przywraca fokus przyciskowi edytora. Testy regresji w `frontend/e2e/guest-draft-recovery.spec.js`, linie 1–79, obejmują wszystkie sposoby zamknięcia, powrót z landingu, bezpośrednie linki nowego szablonu, odświeżenie, błąd tworzenia i poprawne zastąpienie przy 390/834/1280/1920px i 640×400. Uruchom `npm run test:e2e -- e2e/guest-draft-recovery.spec.js e2e/new-cv-setup.spec.js --workers=1` z `frontend/`; API jest mockowane, bez zapisów produkcyjnych.
 
-Implementacja: `frontend/src/pages/PdfCanvas.jsx`, linie 1–2609, callback zamknięcia konfiguracji w `EditorController`; `frontend/src/components/editor/NewCvSetupModal/NewCvSetupModal.jsx`, linie 210–240, `submit`. Testy regresji: `frontend/e2e/new-cv-setup.spec.js`, linie 1–205, obejmują wszystkie sposoby zamknięcia przy 390/834/1280/1920px oraz 640×400 (odpowiednik zoomu 200%), historię Wstecz, wejście bezpośrednie, zachowanie szkicu i onboarding konta. Testy tworzenia sprawdzają pozostanie w edytorze po poprawnym wysłaniu; oczekujące żądania zachowują pętlę fokusu, a błąd i ponowienie zachowują wybory. [React Router useNavigate](https://reactrouter.com/api/hooks/useNavigate) wyjaśnia jawne cele nawigacji i zastępowanie wpisów historii przeglądarki.
+Implementacja: `frontend/src/pages/PdfCanvas.jsx`, linie 1–2609, callback zamknięcia konfiguracji w `EditorController`; `frontend/src/components/editor/NewCvSetupModal/NewCvSetupModal.jsx`, linie 1–413, `submit`. Testy regresji: `frontend/e2e/new-cv-setup.spec.js`, linie 1–205, obejmują wszystkie sposoby zamknięcia przy 390/834/1280/1920px oraz 640×400 (odpowiednik zoomu 200%), historię Wstecz, wejście bezpośrednie, zachowanie szkicu i onboarding konta. Testy tworzenia sprawdzają pozostanie w edytorze po poprawnym wysłaniu; oczekujące żądania zachowują pętlę fokusu, a błąd i ponowienie zachowują wybory. [React Router useNavigate](https://reactrouter.com/api/hooks/useNavigate) wyjaśnia jawne cele nawigacji i zastępowanie wpisów historii przeglądarki.
 
 Dawny kreator bio został zastąpiony pełnoekranową konfiguracją A4: jeden ekran służy wyborowi szablonu z opcjonalnymi ustawieniami struktury, a treść CV wpisuje się bezpośrednio w edytorze. Landing i Topbar edytora udostępniają **Stwórz CV za darmo / Nowe CV** (`start=new`), a **Importuj CV** pozostaje alternatywnym początkiem. Świeży edytor nie oferuje już pustego płótna. Zapisane dokumenty pozostają akcją drugorzędną.
 
@@ -4716,7 +4824,7 @@ Starsze szkice bio w przeglądarce lub na serwerze są odczytywane wyłącznie p
 
 Implementacja:
 
-- `frontend/src/components/editor/NewCvSetupModal/NewCvSetupModal.jsx`, linie 1–412, komponent `NewCvSetupModal` — jednoekranowe tworzenie z opcjonalną konfiguracją, potwierdzenie zastąpienia dokumentów użytkownika, bezpośrednie zastąpienie demo, stany Pro/zdjęcia, kolejność drag i klawiaturowa, sekcje własne, fokus i zachowanie błędu
+- `frontend/src/components/editor/NewCvSetupModal/NewCvSetupModal.jsx`, linie 1–413, komponent `NewCvSetupModal` — jednoekranowe tworzenie z opcjonalną konfiguracją, potwierdzenie zastąpienia dokumentów użytkownika, bezpośrednie zastąpienie demo, stany Pro/zdjęcia, kolejność drag i klawiaturowa, sekcje własne, fokus i zachowanie błędu
 - `frontend/src/utils/cvStarter.js`, linie 37–396, stałe/funkcje `MARKER_VALUES`, `REPEATED_FIELD_DEFINITIONS`, `createDefaultStarterConfig`, `buildStarterDocument`, `prepareStarterProfileForTemplate` i `finalizeStarterElements`
 - `frontend/src/utils/starterElementStructure.js`, linie 1–234, funkcje `reflowStarterContacts`, `applyStarterElementStructure` i `prepareStarterElementsForRender`; `frontend/src/utils/contactBandOps.js`, linie 60–179, funkcje `channelLabels` i `applyChannelRelayout` — reflow kontaktów świadomy placeholderów w edytorze i kopii renderowanej
 - `frontend/src/pages/PdfCanvas.jsx`, linie 1–2609, `startFreshDocument`, `loadAiElementsFresh`, `handleCreateStarterCv` oraz podpięcie modalu świadome demo
@@ -4865,7 +4973,7 @@ Gdy CV źródłowe ma **osobne** nagłówki rodzin umiejętności (np. Umiejętn
 - `backend/app/core/config.py`, linie 65–137, ustawienia Cloudflare i `CV_EXTRACT_*` — sekrety serwerowe, modele główny/awaryjny, opt-in thinking, poziom reasoningu i niezależne limity tekst/JSON/vision
 - `backend/app/api/routes/ai.py`, linie 144–206, funkcja `extract_cv` — auth, walidacja pliku, wywołanie dostawcy w puli wątków, atomowe zakończenie snapshotu/licznika i bezpieczne statusy HTTP
 - `frontend/src/utils/cvImportRequest.js`, linie 1–28, stałe `CV_IMPORT_REQUEST_OPTIONS` / `CV_IMPORT_TIMEOUT_MESSAGE` i funkcja `cvImportStatusLabel` — czterominutowa polityka bez retry oraz etykiety statusów
-- `frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`, linie 142–196 i 315–347, komponent `AiCvPanel` — odzyskiwanie po timeout, odświeżanie historii, bezpieczne użycie gotowego snapshotu oraz dostępny region przewijania listy historii
+- `frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`, linie 1–631, komponent `AiCvPanel` — odzyskiwanie po timeout, odświeżanie historii, bezpieczne użycie gotowego snapshotu oraz dostępny region przewijania listy historii
 - `frontend/src/components/ai/AiCvPanel/AiCvPanel.module.css`, linie 27–77 i 256–262, selektory `stepPane`, `historyPane`, `historyList` i `historyHeader` — ograniczone przewijanie, widoczny cienki scrollbar, stabilny gutter, obrys fokusu klawiatury i nieruchome kontrolki historii
 - `backend/app/services/cv_data.py`, linie 811–902 — funkcje `_split_language_rows` i `_normalize_languages`; ponadto `normalize_cv_data`, `skill_groups`, `is_distinct_skill_family_title`, `_expand_skill_category_lines`, `_absorb_skills_alias_sections` i `extract_contact_fields_from_raw`
 - `backend/app/services/cv_templates/shared/text.py` — `_place_skills_section`
@@ -4888,7 +4996,7 @@ Implementacja:
 - `frontend/src/utils/templateLayouts.js` — kolejność rejestru, helpery `layouts`, `startIndexForSelectedTemplate`, `getTemplateAtsReadability`
 - `frontend/src/components/modals/TemplatesModal/TemplatesModal.jsx` — płaska siatka nazwa/opis z plakietkami ATS
 - `frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx` — osobne panele kroków (bez scrolla całego dialogu; krok 1 i lista historii mają własny ograniczony overflow), strzałki w stopce między etykietą kroku a Anuluj, karuzela kroku 2 + `handleFill`; `resetImportFlow` czyści sesję importu po wypełnieniu lub zamknięciu, więc Topbar **Importuj PDF** zawsze otwiera dropzone, a zmianę szablonu obsługuje wyłącznie **Zmień szablon**
-- `frontend/src/components/editor/NewCvSetupModal/NewCvSetupModal.jsx`, linie 1–412 — komponent `NewCvSetupModal`, w tym zwarta galeria wyboru szablonu w konfiguratorze A4
+- `frontend/src/components/editor/NewCvSetupModal/NewCvSetupModal.jsx`, linie 1–413 — komponent `NewCvSetupModal`, w tym zwarta galeria wyboru szablonu w konfiguratorze A4
 - `frontend/src/components/editor/Topbar/ChangeTemplateModal.jsx` — restyl przez `replaceActiveElements`
 - Pliki: `frontend/public/template-mockups/{id}.png`
 
@@ -4967,7 +5075,7 @@ Wszystkie akcje asystenta domyślnie używają **`gpt-5.6-terra`** z **`reasonin
 
 Implementacja:
 
-- `frontend/src/components/ai/AiAssistant/AiAssistant.jsx`, linie 80–153 — `GOAL_ACTIONS`, `CONTENT_SUBACTIONS` i `TRANSLATE_LANGUAGES`; cztery cele z tłumaczeniem w dawnej pozycji kontroli wyglądu
+- `frontend/src/components/ai/AiAssistant/AiAssistant.jsx`, linie 1–2203 — `GOAL_ACTIONS`, `CONTENT_SUBACTIONS` i `TRANSLATE_LANGUAGES`; cztery cele z tłumaczeniem w dawnej pozycji kontroli wyglądu
 - `frontend/src/components/ai/AiAssistant/AiAssistant.jsx`, `cvLanguage` (1013): `send`, `handleCvLanguageChange`, `TRANSLATE_LANGUAGES`.
 - `frontend/src/utils/atsScore.js` — ważony overall ATS (`overallPercentFromCategories`) oraz overall z rubryki dla rating/position (`overallPercentFromRubric`)
 - `frontend/src/utils/aiCorrectionHighlights.js` — `collectPendingAiHighlights` dla znaczników na płótnie
@@ -4975,7 +5083,7 @@ Implementacja:
 - `frontend/src/components/ai/AiAssistant/AiAssistant.jsx` — `RatingBadge` / `RatingDashboard` (%, pasmo ATS + disclaimer, CTA)
 - `frontend/src/components/ai/AiAssistant/AiAssistant.jsx` — `CorrectionCard` (Przed/Po bez natywnego tooltipa)
 - `frontend/src/components/ai/AiAssistant/AiAssistant.jsx` — komponent `AiAssistant` (linia 949): panele celów, tłumaczenie, karty przeglądu i composer; unieważnianie żądań canvasa przez `chatSessionRef`; historia resetuje się dopiero przy innym `conversationKey`
-- `frontend/src/components/ai/AiAssistant/AiAssistant.jsx`, linie 1082–1152 (`CANVAS_CONTEXT_CLEARANCE_PX`: 43) + `frontend/src/App.css`, linie 120–195 — żywa geometria asystenta/canvasa, limitowany transform jednej strony, fallback compact i reduced motion
+- `frontend/src/components/ai/AiAssistant/AiAssistant.jsx`, linie 1–2203 (`CANVAS_CONTEXT_CLEARANCE_PX`: 43) + `frontend/src/App.css`, linie 120–195 — żywa geometria asystenta/canvasa, limitowany transform jednej strony, fallback compact i reduced motion
 - `frontend/src/components/ai/AiAssistant/AiAssistant.test.js`, linie 41–58 (auto-scroll przed paintem), 60–84 (prześwit panelu), 112–138 (tłumaczenie zastępuje wygląd) i 191–236 (overlay dowodów oferty)
 - `frontend/e2e/ai-assistant-scroll.spec.js`, linie 35–72, test `AI assistant uses the wider panel and shifts a single A4 only when space allows` — szerokość desktopowa 600 px, szerokość arkusza compact, limitowane przesunięcie desktopowe, brak przesunięcia mobile i pozycja po powrocie; linie 75–115 obejmują długą odpowiedź z kolejnym pytaniem; linie 117–166 obejmują geometrię pierwszego otwarcia, długiego wyniku i ponownego otwarcia formularza oferty. Testy działają w projektach desktopowym i kompaktowym Chromium.
 - `frontend/src/components/ai/AiAssistant/AiAssistant.module.css`, linie 42–62 (`.panel`), 246–258 (`.jobDescArea`) i 347–365 (`.messages`) — responsywny panel 600 px, ograniczony formularz oferty, stabilny viewport czatu, siatka celów, subpanele, wybór języka, dashboard i disclaimer ATS
@@ -5041,12 +5149,12 @@ Implementacja:
 
 - `backend/alembic/versions/20260829_0007_cloudflare_cv_import_quota.py`, linie 1–70, migracja `20260829_0007` — dodaje nullable `plans.max_cv_imports_per_month` i wyzerowane `usage_counters.cv_imports_count`; downgrade usuwa tylko te kolumny
 - `backend/alembic/versions/20260831_0008_free_plan_contract.py`, migracja `20260831_0008` — stosuje kontrakt jednego importu, trzech eksportów, jednego projektu i braku AI do istniejącego rekordu katalogu, zachowując prawdziwe znaczniki starszych plików
-- `backend/app/models/models.py`, linie 183–239, klasy `Plan`, `UserSubscription`, `UsageCounter` — utrwalony limit, legacy flag i miesięczny licznik
+- `backend/app/models/models.py`, linie 1–583, klasy `Plan`, `UserSubscription`, `UsageCounter` — utrwalony limit, legacy flag i miesięczny licznik
 - `backend/app/services/entitlements.py`, linie 362–413 (`_usage_row`), 480–523 (`assert_can_create_project`), 589–603 (`assert_can_extract_cv`), 620–648 (`assert_template_allowed`), 651–721 (`record_export`) i 724–771 (`record_cv_import`) — odporne na wyścigi limity Free, transakcyjny claim importu i kontrola płatnych szablonów
 - `backend/app/api/routes/ai.py`, linie 144–206, funkcja `extract_cv`, oraz `backend/app/crud/cv_import_snapshots.py`, linie 43–66, funkcja `mark_snapshot_succeeded` — jedna transakcja sukcesu dla claimu importu i snapshotu, z bezpiecznym rollbackiem/mapowaniem błędów
-- `frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`, linie 72–85, 142–196, 315–347 i 387–400, komponent `AiCvPanel` — blokuje przy zerze, pokazuje pozostałą liczbę, odzyskuje długo działający snapshot przez historię i odświeża entitlements po sukcesie
+- `frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`, linie 1–631, 142–196, 315–347 i 387–400, komponent `AiCvPanel` — blokuje przy zerze, pokazuje pozostałą liczbę, odzyskuje długo działający snapshot przez historię i odświeża entitlements po sukcesie
 - `backend/app/crud/pdfs.py`, linia 41, funkcja `elements_from_rows` — rekonstruuje pełne obiekty `PdfElement` (w tym `runs`, konektory, `flowRole`, `borderRadius`, …) z zapisanych wierszy, odwrotność istniejącego pakowania `extra_properties` w `create_new_pdf` / `update_pdf_elements`
-- `backend/app/main.py`, linie 215–233, `block_generated_pdf_static_access` — pozostawia zasoby szablonów publiczne, ale każdy wycofany URL wygenerowanego PDF-a zatrzymuje 404 przed fallbackiem SPA
+- `backend/app/main.py`, linie 1–364, `block_generated_pdf_static_access` — pozostawia zasoby szablonów publiczne, ale każdy wycofany URL wygenerowanego PDF-a zatrzymuje 404 przed fallbackiem SPA
 - `backend/app/services/document_service.py`, linie 269–274 (`render_document_bytes`), 431–527 (`create_pdf_document`), 528–649 (`update_pdf_document`) i 737–782 (`render_pdf_for_download`) — zawsze renderuje czysto, nie zwraca lokatora storage i przebudowuje starsze oznaczone bajty lokalne/S3
 - `backend/app/api/routes/pdf.py`, linie 83–113 (`_public_pdf_metadata`), 115–215 (`create_user_pdf`, `render_user_pdf`), 293–346 (`update_user_pdf`, `save_pdf_elements`) i 347–403 (`download_pdf`) — redaguje prywatny storage, kontroluje szablon, przygotowuje bajty, a potem atomowo nalicza przed odpowiedzią
 - `frontend/src/hooks/usePdfExport.js`, linie 175–223, funkcja `downloadPdf`, oraz `frontend/src/pages/PdfCanvas.jsx`, linie 1–2609, funkcja `handleDownloadClick` — przekazuje `pdf_id` zapisanego dokumentu tylko dla zachowania własnego starszego szablonu przy render-on-demand
@@ -5283,7 +5391,7 @@ Każde odwołanie do obrazu jest autoryzowane również w czasie renderowania, n
 
 #### Atomowe rezerwacje kredytów AI
 
-Żądania asystenta wymagają `Idempotency-Key`. Przed zewnętrznym I/O modelu backend serializuje miesięczny licznik użytkownika, uzgadnia wygasłe rezerwacje i atomowo rezerwuje maksymalny koszt akcji. Różne żądania asystenta mogą działać równolegle, jeśli suma kredytów rozliczonych i zarezerwowanych mieści się w saldzie planu; dzięki temu timeout albo utrata połączenia nie powodują fałszywego `ai_operation_active` dla nowej akcji. Istniejący unikalny `active_slot=1` służy teraz wyłącznie importom CV, ponieważ ich osobny miesięczny limit nie ma kolumny zarezerwowanego licznika. Oczekujący import nie blokuje asystenta, a oczekujący asystent nie blokuje importu. Przy pierwszej rezerwacji po wdrożeniu `_reconcile_pending_ai_reservations` usuwa starsze globalne sloty asystenta bez porzucania ich oczekujących rozliczeń. Ukończone wywołanie asystenta rozlicza koszt rzeczywisty i zapisuje replay; potwierdzony błąd przed providerem zwalnia rezerwację; niejednoznaczny błąd providera/transportu pozostaje pending przez TTL 10 minut i nadal zajmuje ograniczoną liczbę kredytów. Mismatch payloadu i duplikat in-progress dla tego samego klucza zwracają 409, a brak niezarezerwowanych kredytów zwraca błąd limitu planu. Middleware odrzuca transport body powyżej 1 MiB przed parserem JSON (także chunked whitespace abuse); schema dodatkowo ogranicza znormalizowane ciało do 500 elementów, 20 wpisów historii, wiadomości 4 000 znaków i opisu stanowiska 20 000 znaków. Implementacja: `backend/app/main.py`, linie 74–113; `backend/app/services/entitlements.py`, linie 942–1508, funkcje `_reconcile_pending_ai_reservations`, `reserve_ai_credits`, `reserve_cv_import`, `settle_ai_reservation` i `release_ai_reservation`; `backend/app/api/routes/ai_assistant.py`, linie 51–55 i 153–379. Testy: `backend/tests/test_ai_credit_reservations.py`, `backend/tests/test_extract_cv_reservations.py` i `backend/tests/test_ai_assistant_request_limits.py`.
+Żądania asystenta wymagają `Idempotency-Key`. Przed zewnętrznym I/O modelu backend serializuje miesięczny licznik użytkownika, uzgadnia wygasłe rezerwacje i atomowo rezerwuje maksymalny koszt akcji. Różne żądania asystenta mogą działać równolegle, jeśli suma kredytów rozliczonych i zarezerwowanych mieści się w saldzie planu; dzięki temu timeout albo utrata połączenia nie powodują fałszywego `ai_operation_active` dla nowej akcji. Istniejący unikalny `active_slot=1` służy teraz wyłącznie importom CV, ponieważ ich osobny miesięczny limit nie ma kolumny zarezerwowanego licznika. Oczekujący import nie blokuje asystenta, a oczekujący asystent nie blokuje importu. Przy pierwszej rezerwacji po wdrożeniu `_reconcile_pending_ai_reservations` usuwa starsze globalne sloty asystenta bez porzucania ich oczekujących rozliczeń. Ukończone wywołanie asystenta rozlicza koszt rzeczywisty i zapisuje replay; potwierdzony błąd przed providerem zwalnia rezerwację; niejednoznaczny błąd providera/transportu pozostaje pending przez TTL 10 minut i nadal zajmuje ograniczoną liczbę kredytów. Mismatch payloadu i duplikat in-progress dla tego samego klucza zwracają 409, a brak niezarezerwowanych kredytów zwraca błąd limitu planu. Middleware odrzuca transport body powyżej 1 MiB przed parserem JSON (także chunked whitespace abuse); schema dodatkowo ogranicza znormalizowane ciało do 500 elementów, 20 wpisów historii, wiadomości 4 000 znaków i opisu stanowiska 20 000 znaków. Implementacja: `backend/app/main.py`, linie 1–364; `backend/app/services/entitlements.py`, linie 942–1508, funkcje `_reconcile_pending_ai_reservations`, `reserve_ai_credits`, `reserve_cv_import`, `settle_ai_reservation` i `release_ai_reservation`; `backend/app/api/routes/ai_assistant.py`, linie 51–55 i 153–379. Testy: `backend/tests/test_ai_credit_reservations.py`, `backend/tests/test_extract_cv_reservations.py` i `backend/tests/test_ai_assistant_request_limits.py`.
 
 #### Wzmocnienie uwierzytelniania
 
@@ -5291,11 +5399,11 @@ Nowe hasła (12–128 znaków) korzystają z Argon2id (64 MiB pamięci, trzy ite
 
 #### Lifecycle edytora, odzyskiwanie i ochrona niezapisanej pracy
 
-Edytor utrzymuje monotoniczną epokę dokumentu i lokalną rewizję. Operacje async przechwytują scope i mogą zatwierdzić wynik tylko, gdy nadal jest aktualny, więc spóźniona odpowiedź starego dokumentu nie nadpisze nowo otwartego. Dirty state powstaje ze stabilnego persisted snapshot, który pomija tymczasowe flagi selection/edit/resize. Blokada React Router i `beforeunload` chronią pracę zalogowaną; nawigacja gościa najpierw flushuje lokalny draft. Dostępny dialog odrzucenia przywraca fokus i domyślnie wybiera najmniej destrukcyjną akcję. Error Boundary trasy i canvasu resetują się po zmianie sesji dokumentu, pokazują markową akcję recovery i nigdy nie renderują surowego wyjątku ani treści CV. Implementacja: `frontend/src/store/document-lifecycle-context.jsx`, linie 1–86; `frontend/src/utils/persistedDocumentSnapshot.js`, linie 9–68; `frontend/src/hooks/useDirtyGuard.js`, linie 7–110; `frontend/src/components/common/ErrorBoundary/ErrorBoundary.jsx`, linie 12–88; `frontend/src/App.jsx`, linie 49–88. Testy: `frontend/src/utils/documentLifecycleGuards.test.js`, `frontend/src/utils/persistedDocumentSnapshot.test.js`, runtime testy Error Boundary i `frontend/e2e/editor-smoke.spec.js`.
+Edytor utrzymuje monotoniczną epokę dokumentu i lokalną rewizję. Operacje async przechwytują scope i mogą zatwierdzić wynik tylko, gdy nadal jest aktualny, więc spóźniona odpowiedź starego dokumentu nie nadpisze nowo otwartego. Dirty state powstaje ze stabilnego persisted snapshot, który pomija tymczasowe flagi selection/edit/resize. Blokada React Router i `beforeunload` chronią pracę zalogowaną; nawigacja gościa najpierw flushuje lokalny draft. Dostępny dialog odrzucenia przywraca fokus i domyślnie wybiera najmniej destrukcyjną akcję. Error Boundary trasy i canvasu resetują się po zmianie sesji dokumentu, pokazują markową akcję recovery i nigdy nie renderują surowego wyjątku ani treści CV. Implementacja: `frontend/src/store/document-lifecycle-context.jsx`, linie 1–86; `frontend/src/utils/persistedDocumentSnapshot.js`, linie 9–68; `frontend/src/hooks/useDirtyGuard.js`, linie 7–110; `frontend/src/components/common/ErrorBoundary/ErrorBoundary.jsx`, linie 12–88; `frontend/src/App.jsx`, linie 1–103. Testy: `frontend/src/utils/documentLifecycleGuards.test.js`, `frontend/src/utils/persistedDocumentSnapshot.test.js`, runtime testy Error Boundary i `frontend/e2e/editor-smoke.spec.js`.
 
 #### Readiness, katalog i stronicowana historia importów
 
-`GET /health` oznacza liveness procesu. `GET /ready` sprawdza połączenie z bazą, dokładną zgodność headów Alembic oraz katalog billing bez mutacji danych; readiness gate czasowo odrzuca trasy bazodanowe bezpiecznym 503. Wdrożenia Render zarządzane przez Blueprint uruchamiają `python -m app.services.deployment_bootstrap` jako `preDeployCommand`, więc migracje i seedy normalnie kończą się przed ruchem. Starsza usługa utworzona bezpośrednio w panelu Render nie dziedziczy automatycznie komend dodanych później do `render.yaml`; wyłącznie na Render worker wykonuje więc początkowy read-only probe i uruchamia ten sam idempotentny bootstrap w tle, gdy readiness jest nieaktualne. `/health` pozostaje dostępne podczas odzyskiwania, a trasy bazodanowe otwierają się dopiero po udanym ponownym probe. Implementacja: `backend/app/services/readiness.py`, linie 38–151, klasy `ReadinessProbe` i `ReadinessGate`; `backend/app/services/deployment_bootstrap.py`, linie 13–28, funkcja `run_predeploy`; `backend/app/main.py`, linie 50–108, funkcje `_recover_render_database_bootstrap` i `lifespan`; `render.yaml`. Testy: `backend/tests/test_readiness.py`, linie 160–186.
+`GET /health` oznacza liveness procesu. `GET /ready` sprawdza połączenie z bazą, dokładną zgodność headów Alembic oraz katalog billing bez mutacji danych; readiness gate czasowo odrzuca trasy bazodanowe bezpiecznym 503. Wdrożenia Render zarządzane przez Blueprint uruchamiają `python -m app.services.deployment_bootstrap` jako `preDeployCommand`, więc migracje i seedy normalnie kończą się przed ruchem. Starsza usługa utworzona bezpośrednio w panelu Render nie dziedziczy automatycznie komend dodanych później do `render.yaml`; wyłącznie na Render worker wykonuje więc początkowy read-only probe i uruchamia ten sam idempotentny bootstrap w tle, gdy readiness jest nieaktualne. `/health` pozostaje dostępne podczas odzyskiwania, a trasy bazodanowe otwierają się dopiero po udanym ponownym probe. Implementacja: `backend/app/services/readiness.py`, linie 1–162, klasy `ReadinessProbe` i `ReadinessGate`; `backend/app/services/deployment_bootstrap.py`, linie 13–28, funkcja `run_predeploy`; `backend/app/main.py`, linie 1–364, funkcje `_recover_render_database_bootstrap` i `lifespan`; `render.yaml`. Testy: `backend/tests/test_readiness.py`, linie 160–186.
 
 `GET /templates/catalog` jest publiczny, cache'owany przez pięć minut i zwraca wyłącznie allowlisted metadata. Pakiety Free pozostają po stronie klienta; wpisy Pro w rejestrze produkcyjnym zawierają tylko metadane i są materializowane na serwerze po sprawdzeniu entitlements, więc płatne grafy elementów nie trafiają do publicznego bundle przeglądarki. Historia importów używa stabilnego kursora keyset `(created_at, id)`, owner scope, `limit + 1` i jednego grupowanego zapytania o liczbę dokumentów. Każdy owner-scoped wiersz listy zawiera pierwotną nazwę PDF jako czytelną tożsamość, nadal bez treści wyodrębnionego CV i tytułów powiązanych dokumentów; frontend nigdy nie pokazuje identyfikatora bazy jako etykiety wiersza, deduplikuje dołączane strony i pokazuje **Pokaż starsze importy**, dopóki istnieje `next_cursor`. Usunięcie zapisanych danych importu wymaga potwierdzenia w tym samym dialogu, powiązanego z nazwą pliku, z jawnymi stanami anulowania, operacji destrukcyjnej, oczekiwania, sukcesu i błędu. Implementacja: `backend/app/api/routes/templates.py`, linie 14–37; `backend/app/services/cv_templates/registry.py`, linie 19–119; funkcja `_snapshot_list_payload` w `backend/app/api/routes/ai.py`; komponent `AiCvPanel` w `frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`. Testy: `backend/tests/test_template_catalog_api.py`, `backend/tests/test_import_pagination.py` i `frontend/src/utils/aiCvPanelDeleteConfirmation.test.js`.
 
@@ -5304,6 +5412,8 @@ Na małych ekranach wiersze historii importów układają się pionowo, zachowuj
 ---
 
 ## API
+
+Nowe uwierzytelnione API profilu i wywiadów: [kontrakty, przykłady, wersje i błędy](docs/INTERVIEWS.md#kontrakty-api).
 
 Wariant zakresowy `/ai/assistant`, w tym minimalne żądanie i kontrakt odpowiedzi, opisano w sekcji [Zakresowe AI w toolbarach sekcji i wpisów](#zakresowe-ai-w-toolbarach-sekcji-i-wpisów).
 
@@ -5506,7 +5616,7 @@ Lokalnie skopiuj `backend/.env.example` do `backend/.env`, wstaw Account ID i to
 
 - Build kończy się błędem `VITE_API_URL is required for a production build`: to zamierzona bramka konfiguracji produkcyjnej, a nie skutek ostrzeżeń npm o podatnościach. Dla `cv-studio-web` zarządzanego przez Blueprint najnowszy `render.yaml` automatycznie kopiuje publiczny `RENDER_EXTERNAL_URL` usługi `cv-studio-api`; zsynchronizuj Blueprint i ponów wdrożenie. Jeśli statyczny frontend utworzono ręcznie — albo jego build command różni się od Blueprintu — ustaw `VITE_API_URL` w Environment **statycznej usługi frontendowej** na publiczny origin HTTPS wdrożonego backendu, bez ścieżki i końcowego ukośnika, po czym wybierz **Save, rebuild, and deploy**.
 - API kończy pracę z błędem `Production CORS_ORIGINS must use HTTPS`: przed ponownym wdrożeniem zsynchronizuj najnowszy Blueprint. Kopiuje on publiczny `RENDER_EXTERNAL_URL` statycznego frontendu do `CORS_ORIGINS` obu usług Pythona oraz wygenerowany URL API do `BACKEND_URL`, zastępując przestarzałe ręcznie wpisane wartości HTTP. Dla usług niezarządzanych przez Blueprint ustaw `CORS_ORIGINS` wyłącznie na publiczny origin HTTPS frontendu, a `BACKEND_URL` na publiczny origin HTTPS API.
-- 503 po wdrożeniu: `/health` potwierdza tylko działanie procesu. Sprawdź `/ready` i logi Render. Usługa zarządzana przez Blueprint musi wykonać skonfigurowany pre-deploy. Starsza usługa zarządzana ręcznie w panelu Render automatycznie próbuje po starcie workera wykonać idempotentny bootstrap migracji i seedów oraz loguje próbę albo jej błąd; poczekaj, aż `/ready` zwróci 200. Jeśli nadal zwraca 503, sprawdź połączenie z bazą, head Alembic `20260909_0016`, dokładny katalog planów, konfigurację prywatnego S3 oraz — dla SQLite — integralność kluczy obcych. Nie omijaj nieudanej migracji przez `alembic stamp`.
+- 503 po wdrożeniu: `/health` potwierdza tylko działanie procesu. Sprawdź `/ready` i logi Render. Usługa zarządzana przez Blueprint musi wykonać skonfigurowany pre-deploy. Starsza usługa zarządzana ręcznie w panelu Render automatycznie próbuje po starcie workera wykonać idempotentny bootstrap migracji i seedów oraz loguje próbę albo jej błąd; poczekaj, aż `/ready` zwróci 200. Jeśli nadal zwraca 503, sprawdź połączenie z bazą, head Alembic `20260910_0017`, dokładny katalog planów, konfigurację prywatnego S3 oraz — dla SQLite — integralność kluczy obcych. Nie omijaj nieudanej migracji przez `alembic stamp`.
 - SQLite zgłasza `No support for ALTER of constraints`: błąd pochodził ze starszej wersji rewizji `0005`. Aktualna migracja używa batch mode i potrafi kontynuować, gdy tabela lub kolumna zostały już zatwierdzone. Pozostaw wersję Alembic bez zmian, zrób kopię bazy i ponów `python -m alembic upgrade head`; nie usuwaj częściowo utworzonej tabeli i nie omijaj relacji przez `alembic stamp`.
 - Asystent / Układ: `wakeBackend` + retry sieci (bez ponawiania AbortError); `layout` ma timeout do 240 s pod `gpt-5.6-terra`.
 - Import CV 503 „nie skonfigurowany”: sprawdź `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN`, `CV_EXTRACT_PROVIDER=cloudflare` i zrestartuj backend.
@@ -5547,7 +5657,7 @@ Backendowy `preDeployCommand` uruchamia `python -m app.services.deployment_boots
 
 Produkcja odmawia startu bez S3 albo któregokolwiek AWS credential/region. Zachowaj Object Ownership jako Bucket owner enforced, wszystkie cztery ustawienia Block Public Access i brak publicznej polityki bucketu. Aplikacja nie wysyła ACL przy `PutObject`; zapisany HTTPS locator jest wewnętrzny, a bajty PDF zwraca tylko uwierzytelniony endpoint z kontrolą właściciela i naliczeniem limitu. Publiczna polityka omijałaby te zabezpieczenia i nie jest wspierana. Filesystem lokalny jest obsługiwany wyłącznie w development i testach.
 
-Migracje: pre-deploy musi osiągnąć head `20260909_0016`. Nie używaj `alembic stamp`, aby ominąć błąd. Rewizja `0016` oznacza istniejące konta jako zweryfikowane i dodaje ograniczenia tożsamości/płatności; dual-read Storage V2 i triggery `0015` utrzymują okno rollbacku N-1.
+Migracje: pre-deploy musi osiągnąć head `20260910_0017`. Nie używaj `alembic stamp`, aby ominąć błąd. Rewizja `0016` oznacza istniejące konta jako zweryfikowane i dodaje ograniczenia tożsamości/płatności; dual-read Storage V2 i triggery `0015` utrzymują okno rollbacku N-1.
 
 CI/CD: `.github/workflows/ci.yml` jest częścią repozytorium i przed wdrożeniem bramkuje backend, frontend, przeglądarkę, zależności, sekrety i budżet bundle.
 

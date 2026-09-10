@@ -295,6 +295,7 @@ export default function NewCvSetupModal({
             <button type="button" aria-pressed={!customizationOpen} onClick={() => { setTemplatesOpen(true); setCustomizationOpen(false); setPreviewOpen(false); }}><FiLayout aria-hidden="true" />Szablony</button>
             <button type="button" aria-label="Dostosuj zawartość" aria-expanded={customizationOpen} aria-controls={`${customInputId}-customization`} onClick={() => { setCustomizationOpen((current) => !current); setPreviewOpen(false); }}><FiSliders aria-hidden="true" />Dostosuj zawartość</button>
           </div>
+          {!isGuest && <p><Link to="/app/interview">Wolisz pomoc w opisaniu doświadczenia? Utwórz CV z pomocą wywiadu →</Link></p>}
           <section className={classes.templates} aria-labelledby="new-cv-template-heading" hidden={customizationOpen}>
             <div className={`${classes.sectionHeading} ${classes.templateHeading}`}>
               <div><span className={classes.eyebrow}>Twój szablon</span><h3 tabIndex={-1} id="new-cv-template-heading" aria-label={`Wybrany szablon: ${selectedTemplate.name}`}>{selectedTemplate.name}</h3></div>

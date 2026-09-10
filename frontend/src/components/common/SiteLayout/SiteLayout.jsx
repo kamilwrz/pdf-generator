@@ -10,7 +10,7 @@ export function SiteHeader({ workspace = false }) {
   return <header className={classes.header}>
     <Link to="/" className={classes.brand} aria-label="CV Studio — strona główna"><img src="/cv-studio-logo.svg" alt="" /></Link>
     <nav aria-label="Główna nawigacja" className={classes.nav}>
-      {workspace ? <><NavLink to="/app/documents">Moje dokumenty</NavLink><NavLink to="/app/account">Konto i plan</NavLink></> : <><NavLink to="/templates">Szablony</NavLink><NavLink to="/pricing">Cennik</NavLink></>}
+      {workspace ? <><NavLink to="/app/documents">Moje dokumenty</NavLink><NavLink to="/app/career-profile">Profil zawodowy</NavLink><NavLink to="/app/account">Konto i plan</NavLink></> : <><NavLink to="/templates">Szablony</NavLink><NavLink to="/pricing">Cennik</NavLink></>}
       <NavLink to="/help">Pomoc</NavLink>
       {!workspace && <Link to={signedIn ? '/app/documents' : '/login'}>{signedIn ? 'Moje dokumenty' : 'Zaloguj się'}</Link>}
       <Link className={classes.primary} to={getEditorPath({ start: 'new' })}>Stwórz CV</Link>

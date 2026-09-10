@@ -53,7 +53,7 @@ const ChevronRight = () => (
 
 export default function AiCvPanel() {
     const { captureDocumentScope, isDocumentScopeCurrent } = useDocumentLifecycle();
-    const { isAiPanel, showAiPanel, showNewCvSetup } = useUiSurfaces();
+    const { isAiPanel, showAiPanel, showNewCvSetup, requestAssistantAction } = useUiSurfaces();
     const { loadAiElements, flowSpacing } = useCanvasContext();
     const { entitlements, refreshEntitlements } = useSession();
 
@@ -64,6 +64,7 @@ export default function AiCvPanel() {
     const [fileData, setFileData] = useState(null);
     const [cvData, setCvData] = useState(null);
     const [wizardStep, setWizardStep] = useState(1);
+    const [interviewAfterImport, setInterviewAfterImport] = useState(false);
     const [isExtracting, setIsExtracting] = useState(false);
     const [fillingId, setFillingId] = useState(null);
     const [error, setError] = useState(null);
@@ -111,11 +112,8 @@ export default function AiCvPanel() {
         showAiPanel();
     }, [resetImportFlow, showAiPanel]);
 
-    useEffect(() => {
-        if (!extracted && wizardStep !== 1) {
-            setWizardStep(1);
-        }
-    }, [extracted, wizardStep]);
+    // Every extraction/reset event updates data and step together; no render
+    // effect is needed to repair a transient mismatch after those events.
 
     const api = useMemo(
         () => new ApiClient({ "Authorization": `Bearer ${localStorage.getItem("token")}` }),
@@ -157,12 +155,13 @@ export default function AiCvPanel() {
     );
 
     useEffect(() => {
-        if (isAiPanel && showHistory) loadHistory();
+        if (!isAiPanel || !showHistory) return;
+        let active = true;
+        // Start after subscription setup so StrictMode cleanup can cancel its
+        // discarded pass without duplicating the history request.
+        Promise.resolve().then(() => { if (active) loadHistory(); });
+        return () => { active = false; };
     }, [isAiPanel, showHistory, loadHistory]);
-
-    useEffect(() => {
-        if (!showHistory) setConfirmDeleteImportId(null);
-    }, [showHistory]);
 
     const acceptFile = useCallback((f) => {
         if (!f) return;
@@ -279,12 +278,13 @@ export default function AiCvPanel() {
             if (!replaced) return;
             resetImportFlow();
             showAiPanel();
+            if (interviewAfterImport) requestAssistantAction?.('interview');
         } catch (err) {
             setError(planErrorMessage(err, "Nie udało się wygenerować szablonu."));
         } finally {
             setFillingId(null);
         }
-    }, [api, captureDocumentScope, cvData, entitlements, flowSpacing, importId, isDocumentScopeCurrent, loadAiElements, resetImportFlow, showAiPanel]);
+    }, [api, captureDocumentScope, cvData, entitlements, flowSpacing, importId, isDocumentScopeCurrent, loadAiElements, resetImportFlow, showAiPanel, interviewAfterImport, requestAssistantAction]);
 
     const selectHistoricalImport = useCallback(async (snapshot) => {
         if (snapshot.status !== "succeeded" || openingImportId != null) return;
@@ -306,6 +306,7 @@ export default function AiCvPanel() {
             setCvData(detail.cv_data);
             setImportId(snapshot.id);
             setShowHistory(false);
+            setConfirmDeleteImportId(null);
             setWizardStep(2);
         } catch (err) {
             setError(planErrorMessage(err, "Nie udało się pobrać danych importu."));
@@ -408,7 +409,7 @@ export default function AiCvPanel() {
                             <div className={classes.sectionLabel}>Historia importów</div>
                             <div className={classes.historyHeaderActions}>
                                 <button type="button" className={classes.guidedLink} onClick={loadHistory} disabled={isLoadingHistory}>Odśwież status</button>
-                                <button type="button" className={classes.guidedLink} onClick={() => setShowHistory(false)}>Nowy import</button>
+                                <button type="button" className={classes.guidedLink} onClick={() => { setShowHistory(false); setConfirmDeleteImportId(null); }}>Nowy import</button>
                             </div>
                         </div>
                         <div
@@ -619,6 +620,7 @@ export default function AiCvPanel() {
                             Możesz wypełnić wiele szablonów bez ponownego przesyłania pliku.
                             Każdy otworzy się na płótnie do natychmiastowej edycji.
                         </p>
+                        {entitlements?.ai_assistant && <label className={classes.hint}><input type="checkbox" checked={interviewAfterImport} onChange={(event) => setInterviewAfterImport(event.target.checked)} /> Uzupełnij CV przez wywiad po wyborze szablonu</label>}
                     </div>
                 )}
 

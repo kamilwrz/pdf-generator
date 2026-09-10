@@ -1,0 +1,328 @@
+"""Interview state, factual grounding, isolation and restart regression tests."""
+from copy import deepcopy
+from unittest.mock import patch
+
+import pytest
+from fastapi import HTTPException
+from fastapi.testclient import TestClient
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
+
+from app.main import app
+from app.dependencies import get_db
+from app.core.security import get_current_user
+from app.models.database import Base
+from app.models.models import User, InterviewSession, CareerProfile, Pdf
+from app.services import interview_service as service
+from app.services.cv_data import normalize_cv_data
+from app.services.entitlements import seed_plans, set_user_plan
+from app.services.account_data_service import build_account_export, delete_account_data
+
+
+@pytest.fixture
+def environment():
+    engine = create_engine('sqlite://', poolclass=StaticPool, connect_args={'check_same_thread': False})
+    Base.metadata.create_all(engine)
+    db = sessionmaker(bind=engine)()
+    user = User(username='interview-owner', email='owner@example.com', hashed_password='test', is_active=True)
+    other = User(username='another-owner', email='another@example.com', hashed_password='test', is_active=True)
+    db.add_all([user, other]); db.commit()
+    seed_plans(db)
+    set_user_plan(db, user.id, 'pro')
+    app.dependency_overrides[get_db] = lambda: db
+    app.dependency_overrides[get_current_user] = lambda: user
+    yield TestClient(app), db, user, other
+    app.dependency_overrides.clear()
+    db.close(); engine.dispose()
+
+
+def create(client, **kwargs):
+    response = client.post('/ai/interviews', headers={'Idempotency-Key': 'test-start'}, json={
+        'mode': 'create', 'cv_data': {'name': 'Anna Nowak', 'title': 'Developer'}, **kwargs,
+    })
+    assert response.status_code == 201, response.text
+    return response.json()
+
+
+def version(session, profile=0):
+    return {'revision': session['revision'], 'profile_revision': profile}
+
+
+def confirm(client, session, profile=0, facts=None):
+    result = client.post(f"/ai/interviews/{session['id']}/confirm", json={
+        **version(session, profile), 'facts': facts if facts is not None else session['proposed_facts'],
+    })
+    assert result.status_code == 200, result.text
+    return result.json()['session']
+
+
+def test_source_roundtrip_preserves_canonical_fields():
+    cv = normalize_cv_data({'name': 'Anna', 'skills': ['Python'], 'experience': [{'title': 'Dev', 'company': 'ABC', 'city': 'Warszawa', 'period': '2020–2024', 'bullets': ['Skróciłam raportowanie o 20%.']}], 'education': [{'school': 'UW', 'degree': 'Mgr', 'city': 'Warszawa', 'period': '2019', 'description': 'Informatyka'}]})
+    facts = service.source_facts(cv, 'document:1')
+    restored = normalize_cv_data(service.base_cv({'facts': facts}))
+    for key in ('name', 'skills', 'experience', 'education'):
+        assert restored[key] == cv[key]
+
+
+def test_profile_delete_epoch_prevents_resurrection(environment):
+    client, db, user, _ = environment
+    session = confirm(client, create(client))
+    deleted = client.delete('/career-profile?revision=1')
+    assert deleted.status_code == 200
+    assert deleted.json()['revision'] == 2
+    assert service.base_cv(service.profile_payload(db, user.id)) == {}
+    assert client.put('/career-profile', json={'revision': 1, 'facts': []}).status_code == 409
+    assert client.post(f"/ai/interviews/{session['id']}/preview", json={**version(session, 1), 'template_id': 'linden'}).status_code == 409
+
+
+def test_start_is_idempotent_and_does_not_mutate_profile(environment):
+    client, db, user, _ = environment
+    first = create(client)
+    assert create(client)['id'] == first['id']
+    assert db.query(InterviewSession).count() == 1
+    assert service.profile_payload(db, user.id)['facts'] == []
+    changed = client.post('/ai/interviews', headers={'Idempotency-Key': 'test-start'}, json={'mode': 'enrich'})
+    assert changed.status_code == 409
+
+
+def test_foreign_sessions_and_sources_are_hidden(environment):
+    client, db, user, other = environment
+    session = create(client)
+    app.dependency_overrides[get_current_user] = lambda: other
+    for method in ('get', 'delete'):
+        assert getattr(client, method)(f"/ai/interviews/{session['id']}").status_code == 404
+    assert client.get('/ai/interviews').json()['items'] == []
+    app.dependency_overrides[get_current_user] = lambda: user
+    assert client.post('/ai/interviews', headers={'Idempotency-Key': 'foreign-source'}, json={'mode': 'enrich', 'source_document_id': 987}).status_code == 404
+
+
+@pytest.mark.parametrize('status,pending', [('answered', True), ('no_experience', True), ('unknown', False), ('skipped', False)])
+def test_answer_statuses_and_retries(environment, status, pending):
+    client, db, user, _ = environment
+    session = confirm(client, create(client))
+    row = db.get(InterviewSession, session['id'])
+    state = deepcopy(row.state)
+    state.update(question={'id': 'q1', 'topic': 'reporting', 'text': 'Co usprawniłaś?', 'reason': 'Wpływ', 'context': 'Raportowanie'}, phase='question')
+    service.update_session(db, row, row.revision, state)
+    session = client.get(f"/ai/interviews/{row.id}").json()
+    body = {**version(session, 1), 'question_id': 'q1', 'answer': 'Skróciłam raportowanie o 20%.' if status == 'answered' else '', 'status': status}
+    response = client.post(f"/ai/interviews/{row.id}/answers", json=body)
+    assert response.status_code == 200, response.text
+    saved = response.json()
+    assert len(saved['answers']) == 1
+    assert bool(saved['proposed_facts']) == pending
+    assert client.post(f"/ai/interviews/{row.id}/answers", json=body).json()['revision'] == saved['revision']
+    assert len(service.profile_payload(db, user.id)['facts']) == 2
+
+
+def test_profile_conflicting_fields_require_resolution(environment):
+    client, _, _, _ = environment
+    session = create(client)
+    facts = session['proposed_facts'] + [{'id': 'conflicting-name', 'text': 'Inna Osoba', 'path': '/name'}]
+    response = client.post(f"/ai/interviews/{session['id']}/confirm", json={**version(session), 'facts': facts})
+    assert response.status_code == 422
+    assert client.get('/career-profile').json()['revision'] == 0
+
+
+@pytest.mark.parametrize('field', [
+    {'path': '/summary', 'value': 'Wynik 90%', 'evidence_refs': ['a']},
+    {'path': '/name', 'value': 'Jan', 'evidence_refs': ['a']},
+    {'path': '/experience/1/bullets/0', 'value': 'Wynik 20%', 'evidence_refs': ['a']},
+    {'path': '/summary', 'value': 'Wynik 20%', 'evidence_refs': ['missing']},
+])
+def test_rejects_fake_metrics_identity_and_cross_role_evidence(field):
+    profile = {'facts': [{'id': 'a', 'text': 'Wynik 20%', 'path': '/experience/0/bullets/0', 'kind': 'fact'}]}
+    with pytest.raises(HTTPException):
+        service.assemble_draft({'fields': [field]}, profile, 'pl')
+
+
+def test_question_budget_does_not_call_provider(environment):
+    client, db, user, _ = environment
+    session = confirm(client, create(client))
+    row = db.get(InterviewSession, session['id'])
+    state = deepcopy(row.state); state['question_limit'] = 0
+    service.update_session(db, row, row.revision, state)
+    session = client.get(f"/ai/interviews/{row.id}").json()
+    with patch.object(service, '_gpt') as provider:
+        result = client.post(f"/ai/interviews/{row.id}/next", json=version(session, 1))
+    assert result.status_code == 200, result.text
+    assert result.json()['phase'] == 'review'
+    provider.assert_not_called()
+
+
+def test_discovery_is_billed_once_and_replayed_after_session_write_loss(environment):
+    client, db, user, _ = environment
+    session = confirm(client, create(client))
+    output = {'questions': [{'topic': 'projects', 'text': 'Jaki projekt ukończyłaś?', 'reason': 'Pokażemy własny wkład.', 'context': 'Projekt'}], 'requirements': []}
+    with patch.object(service, '_gpt', return_value=(output, {'cost_pln_estimate': .01})) as provider:
+        first = client.post(f"/ai/interviews/{session['id']}/next", json=version(session, 1))
+        assert first.status_code == 200, first.text
+        replay = client.post(f"/ai/interviews/{session['id']}/next", json=version(first.json(), 1))
+        assert replay.status_code == 200
+        assert provider.call_count == 1
+
+
+def test_export_and_account_delete_include_new_data(environment):
+    client, db, user, _ = environment
+    confirm(client, create(client))
+    exported = build_account_export(db, user=user)
+    assert len(exported['career_profile']) == 1
+    assert len(exported['interviews']) == 1
+    delete_account_data(db, user_id=user.id)
+    assert db.query(CareerProfile).count() == 0
+    assert db.query(InterviewSession).count() == 0
+
+
+def test_free_can_edit_profile_but_cannot_start_interview(environment):
+    client, db, user, _ = environment
+    set_user_plan(db, user.id, 'free')
+    assert client.put('/career-profile', json={'revision': 0, 'facts': []}).status_code == 200
+    result = client.post('/ai/interviews', headers={'Idempotency-Key': 'free'}, json={'mode': 'create'})
+    assert result.status_code == 403, result.text
+
+
+def test_preview_creates_a_separate_document_and_pdf_excludes_interview(environment):
+    from app.api.routes import interviews
+    from app.schemas.pdf_schema import PDFCreateRequest
+    from app.utils.build_pdf import build_pdf_to_buffer
+    from app.utils.image_src_to_path import image_src_to_local_path
+    import pymupdf
+
+    client, db, user, _ = environment
+    source_data = {'name': 'Anna Nowak', 'title': 'Developer'}
+    source_document = Pdf(owner_id=user.id, title='Source CV', cv_data=source_data, template_id='linden', revision=1)
+    db.add(source_document); db.commit()
+    session = confirm(client, create(client, source_document_id=source_document.id, cv_data={}, candidate_notes='Tworzę raporty w Pythonie.'))
+    profile = service.profile_payload(db, user.id)
+    ref = next(f['id'] for f in profile['facts'] if f['text'] == 'Tworzę raporty w Pythonie.')
+    raw = {'fields': [{'path': '/summary', 'value': 'Tworzę raporty w Pythonie.', 'evidence_refs': [ref]}], 'remaining_gaps': []}
+    with patch.object(service, '_gpt', side_effect=[(raw, {'cost_pln_estimate': .01}), ({'unsupported_paths': [], 'reasons': []}, {'cost_pln_estimate': .01})]):
+        response = client.post(f"/ai/interviews/{session['id']}/preview", json={**version(session, 1), 'template_id': 'linden'})
+    assert response.status_code == 200, response.text
+    preview_session = response.json()
+    preview = preview_session['preview']
+    assert preview['cv_data']['summary'] == 'Tworzę raporty w Pythonie.'
+    data = PDFCreateRequest(root=preview['elements'], pages=preview['pages'], pdf_title='Test wywiadu')
+    pdf = build_pdf_to_buffer(data, data.root, image_src_to_local_path)
+    with pymupdf.open(stream=pdf, filetype='pdf') as document:
+        assert len(document) == preview['pages']
+        assert document[0].rect.width == 595
+        text = ''.join(page.get_text() for page in document)
+        assert 'anna nowak' in text.casefold()
+        assert 'evidence_refs' not in text and 'proposed_facts' not in text
+
+    def save(db, *, user, username, pdf_data, idempotency_key):
+        row = Pdf(owner_id=user.id, title=pdf_data.pdf_title, create_idempotency_key=idempotency_key, cv_data=pdf_data.cv_data)
+        db.add(row); db.commit()
+        return {'pdf_id': row.id}
+    with patch.object(interviews, 'create_pdf_document', side_effect=save) as saver:
+        first = client.post(f"/ai/interviews/{session['id']}/document", json=version(preview_session, 1))
+        second = client.post(f"/ai/interviews/{session['id']}/document", json=version(preview_session, 1))
+        assert first.status_code == second.status_code == 200, first.text
+        assert first.json() == second.json()
+        assert saver.call_count == 1
+    assert db.query(Pdf).count() == 2
+    db.refresh(source_document)
+    assert source_document.cv_data == source_data and source_document.revision == 1
+    assert service.profile_payload(db, user.id) == profile
+
+
+def test_semantic_rejection_is_reviewable_and_allows_new_generation(environment):
+    client, _, _, _ = environment
+    session = confirm(client, create(client))
+    fact = next(f for f in client.get('/career-profile').json()['facts'] if f['path'] == '/title')
+    draft = {'fields': [{'path': '/summary', 'value': 'Ekspert Kubernetes', 'evidence_refs': [fact['id']]}], 'remaining_gaps': []}
+    with patch.object(service, '_gpt', side_effect=[(draft, {'cost_pln_estimate': .01}), ({'unsupported_paths': ['/summary'], 'reasons': ['Nie potwierdzono Kubernetes.']}, {'cost_pln_estimate': .01})]):
+        response = client.post(f"/ai/interviews/{session['id']}/preview", json={**version(session, 1), 'template_id': 'linden'})
+    assert response.status_code == 200, response.text
+    assert response.json()['preview'] is None
+    assert response.json()['phase'] == 'review'
+    assert response.json()['revision'] > session['revision']
+
+
+def test_changed_source_and_template_are_checked_before_charging(environment):
+    client, db, user, _ = environment
+    source = Pdf(owner_id=user.id, title='Source', cv_data={'name': 'Anna Nowak'}, template_id='linden', revision=1)
+    db.add(source); db.commit()
+    session = confirm(client, create(client, mode='tailor', source_document_id=source.id, job_description='Developer'))
+    with patch.object(service, '_gpt') as provider:
+        assert client.post(f"/ai/interviews/{session['id']}/preview", json={**version(session, 1), 'template_id': 'sterling'}).status_code == 422
+        source.revision = 2; db.commit()
+        assert client.post(f"/ai/interviews/{session['id']}/next", json=version(session, 1)).status_code == 409
+        provider.assert_not_called()
+
+
+def test_unknown_template_requires_selection_and_conflicting_paths_are_rejected(environment):
+    client, _, _, _ = environment
+    session = create(client, template_id='retired-template')
+    assert session['template_id'] is None
+    facts = [{'id': 'a', 'text': 'Python', 'path': '/skills/0'}, {'id': 'b', 'text': 'Tools', 'path': '/skills/0/category'}]
+    assert client.put('/career-profile', json={'revision': 0, 'facts': facts}).status_code == 422
+
+
+def test_deterministic_rejection_can_be_regenerated(environment):
+    client, _, _, _ = environment
+    session = confirm(client, create(client))
+    ref = client.get('/career-profile').json()['facts'][0]['id']
+    raw = {'fields': [{'path': '/summary', 'value': 'Wzrost o 99%', 'evidence_refs': [ref]}], 'remaining_gaps': []}
+    with patch.object(service, '_gpt', side_effect=[(raw, {'cost_pln_estimate': .01}), ({'unsupported_paths': [], 'reasons': []}, {'cost_pln_estimate': .01})]):
+        response = client.post(f"/ai/interviews/{session['id']}/preview", json={**version(session, 1), 'template_id': 'linden'})
+    assert response.status_code == 200, response.text
+    assert response.json()['preview'] is None
+    assert response.json()['revision'] > session['revision']
+
+
+@pytest.mark.parametrize('language,label', [('en', 'LANGUAGES'), ('de', 'SPRACHEN'), ('uk', 'МОВИ')])
+def test_localized_headings_survive_template_normalization(language, label):
+    profile = {'facts': service.source_facts(normalize_cv_data({'name': 'Anna', 'languages': [{'name': 'English', 'level': 'B2'}]}), 'manual')}
+    data, _ = service.assemble_draft({'fields': []}, profile, language)
+    again = normalize_cv_data(data)
+    assert again['extra_sections'][0]['title'] == label
+
+
+def test_transport_limit_applies_before_profile_json_parsing(environment):
+    client, _, _, _ = environment
+    response = client.put('/career-profile', content=' ' * (1024 * 1024 + 1), headers={'Content-Type': 'application/json'})
+    assert response.status_code == 413
+
+
+def test_definitive_provider_failure_preserves_work_and_allows_retry(environment):
+    client, _, _, _ = environment
+    session = confirm(client, create(client))
+    with patch.object(service, '_gpt', side_effect=service.AIServiceError('Unavailable', reservation_outcome='release')):
+        result = client.post(f"/ai/interviews/{session['id']}/next", json=version(session, 1))
+    assert result.status_code == 500
+    saved = client.get(f"/ai/interviews/{session['id']}").json()
+    assert saved['revision'] > session['revision'] and saved['confirmed']
+    with patch.object(service, '_gpt', return_value=({'questions': [], 'requirements': []}, {'cost_pln_estimate': .01})) as provider:
+        replay = client.post(f"/ai/interviews/{session['id']}/next", json=version(session, 1))
+        assert replay.status_code == 409
+        retry = client.post(f"/ai/interviews/{session['id']}/next", json=version(saved, 1))
+        assert retry.status_code == 200, retry.text
+        assert provider.call_count == 1
+
+
+def test_source_refresh_preserves_answers_and_requires_review(environment):
+    client, db, user, _ = environment
+    source = Pdf(owner_id=user.id, title='Source', cv_data={'name': 'Anna Nowak', 'title': 'Developer'}, template_id='linden', revision=1)
+    db.add(source); db.commit()
+    session = confirm(client, create(client, source_document_id=source.id, cv_data={}))
+    row = db.get(InterviewSession, session['id'])
+    state = deepcopy(row.state)
+    state['answers'] = [{'question': {'id': 'q', 'topic': 'projects'}, 'answer': 'Projekt uczelniany', 'status': 'answered'}]
+    service.update_session(db, row, row.revision, state)
+    session = client.get(f"/ai/interviews/{session['id']}").json()
+    original_profile = service.profile_payload(db, user.id)
+    source.cv_data = {'name': 'Anna Nowak', 'title': 'Senior Developer'}
+    source.revision = 2; db.commit()
+    with patch.object(service, '_gpt') as provider:
+        result = client.post(f"/ai/interviews/{session['id']}/source", json=version(session, 1))
+        provider.assert_not_called()
+    assert result.status_code == 200, result.text
+    updated = result.json()
+    assert updated['answers'] == state['answers']
+    assert updated['source_revision'] == 2 and updated['source_cv_data']['title'] == 'Senior Developer'
+    assert updated['preview'] is None and not updated['confirmed']
+    assert any(f['text'] == 'Senior Developer' for f in updated['proposed_facts'])
+    assert service.profile_payload(db, user.id) == original_profile

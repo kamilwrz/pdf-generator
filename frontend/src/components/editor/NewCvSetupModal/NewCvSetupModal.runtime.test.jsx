@@ -1,8 +1,12 @@
 import { StrictMode } from "react";
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { cleanup, fireEvent, render as renderUi, screen, waitFor, within } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import NewCvSetupModal from "./NewCvSetupModal";
 import { createDefaultStarterConfig } from "../../../utils/cvStarter.js";
+
+// The shared setup now links to the interview route; test it in app routing context.
+const render = (ui, options) => renderUi(ui, { wrapper: MemoryRouter, ...options });
 
 const customize = () => fireEvent.click(screen.getByRole("button", { name: "Dostosuj zawartość" }));
 const sectionsView = () => fireEvent.click(screen.getByRole("button", { name: /^Sekcje CV/ }));

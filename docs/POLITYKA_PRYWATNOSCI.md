@@ -25,7 +25,7 @@ CV Studio przetwarza:
   uwierzytelniać i chronić konto; podstawą jest wykonanie umowy oraz uzasadniony
   interes w ochronie usługi (art. 6 ust. 1 lit. b i f RODO);
 - treść i układ CV, dane kontaktowe wpisane do CV, zdjęcia, projekty,
-  wygenerowane PDF-y, szkice profilu i historię importów — aby tworzyć,
+  wygenerowane PDF-y, szkice i profil zawodowy, wywiady i historię importów — aby tworzyć,
   zapisywać, edytować, importować i eksportować dokumenty; podstawą jest
   wykonanie umowy (art. 6 ust. 1 lit. b RODO);
 - polecenia, wybrany fragment lub pełną treść CV, odpowiedzi AI, treść ogłoszenia
@@ -191,3 +191,15 @@ operatora:
 6. przed aktywnym kierowaniem usługi poza Polskę udostępnić politykę i warunki
    w języku zrozumiałym dla odbiorców oraz sprawdzić wymagania lokalne;
 7. poddać tekst przeglądowi prawnemu przed szerokim udostępnieniem usługi.
+
+## Profil zawodowy i wywiady
+
+Wywiad zapisuje pytania, odpowiedzi, wybrane źródło CV, ofertę i podgląd wyniku
+na koncie. Dopiero zatwierdzone informacje trafiają do wspólnego profilu zawodowego.
+Pytania i generowanie przekazują potrzebne informacje OpenAI. Profil można poprawiać
+i usuwać również po wygaśnięciu Pro. Usunięcie wywiadu nie usuwa zatwierdzonych
+faktów z profilu ani utworzonych CV; usunięcie profilu nie usuwa wcześniejszych
+dokumentów i historii rozmów. Eksport oraz usunięcie konta obejmują profil i wywiady.
+Logi operacji wywiadu obejmują rodzaj zdarzenia i koszt, bez treści odpowiedzi.
+Profil i rozmowy pozostają do usunięcia przez użytkownika lub usunięcia konta;
+nie mają osobnego automatycznego terminu czyszczenia.

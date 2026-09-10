@@ -18,6 +18,8 @@ from app.crud.pdfs import enqueue_storage_cleanup
 from app.models.models import (
     AiCreditReservation,
     BioCvDraft,
+    CareerProfile,
+    InterviewSession,
     CvImportSnapshot,
     EmailVerificationToken,
     Image,
@@ -193,6 +195,14 @@ def build_account_export(db: Session, *, user: User) -> dict:
             )
             for payment in payments
         ],
+        "career_profile": [
+            _fields(row, ("revision", "facts", "updated_at"))
+            for row in db.query(CareerProfile).filter_by(owner_id=user_id).all()
+        ],
+        "interviews": [
+            _fields(row, ("id", "revision", "state", "created_at", "updated_at"))
+            for row in db.query(InterviewSession).filter_by(owner_id=user_id).all()
+        ],
         "not_included": [
             "password hashes, access tokens and email-verification token hashes",
             "Google provider subject identifier",
@@ -250,6 +260,8 @@ def delete_account_data(db: Session, *, user_id: int) -> None:
     # Import snapshots are referenced by Pdf.source_import_id, so they can be
     # removed only after all owned documents have been deleted.
     db.query(BioCvDraft).filter(BioCvDraft.owner_id == user.id).delete(synchronize_session=False)
+    db.query(InterviewSession).filter_by(owner_id=user.id).delete(synchronize_session=False)
+    db.query(CareerProfile).filter_by(owner_id=user.id).delete(synchronize_session=False)
     db.query(CvImportSnapshot).filter(CvImportSnapshot.owner_id == user.id).delete(
         synchronize_session=False
     )

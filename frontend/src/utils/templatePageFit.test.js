@@ -11,7 +11,7 @@ const FLOOR = { stack: 2, record: 2, section: 10, after_rule: 2 };
 const regular = [{ element_id: "regular", page: 2, top: 0, height: 10 }];
 const small = [{ element_id: "small", page: 2, top: 0, height: 10, compactType: true }];
 const templateRegistrySource = readFileSync(new URL("../templates/index.js", import.meta.url), "utf8");
-const publicTemplateIds = [...templateRegistrySource.matchAll(/\{ id: "([^"]+)"/g)]
+const publicTemplateIds = [...templateRegistrySource.matchAll(/\{\s*id: "([^"]+)"/g)]
   .map((match) => match[1]);
 
 function packAt({ regularThreshold, smallThreshold }) {

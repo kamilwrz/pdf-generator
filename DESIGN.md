@@ -357,6 +357,16 @@ The editor and other task-heavy screens may be denser, but must remain grid-base
 - “Skróć” preserves every distinct fact; “Popraw styl” preserves meaning; “Polepsz” strengthens only supported claims. Missing achievement evidence appears in a separate “Wzór do uzupełnienia” with questions and a copy action, never in the applicable text. Character-count changes are calculated locally and are not promises about PDF page count.
 - Stale source text or record context disables application and offers regeneration. Empty, unavailable, pending, failure/retry, rejected, and applied states must remain explicit. Applying all pending scoped corrections is one undoable editor transaction. The panel and all proposal metadata remain outside the document and PDF render tree.
 
+### 5.9 Career interview contract
+
+- Tailoring and enrichment use the existing assistant shell; standalone creation and the career profile use `SiteLayout`. Reuse the same `InterviewFlow` and fact editor, global color/spacing/type tokens, rectangular controls and visible focus rings. Manual CV creation remains a parallel entry.
+- Show one Polish question with its reason and an honest answered/maximum counter: five questions for tailoring, eight for creation/enrichment, including clarifications. An explicit additional round permits up to five more. Text, confirmed lack of experience, forgotten information and skip are separate actions.
+- Save each answer before another AI operation. Keep typed input on failure, expose a saved-state recovery action and provide a polite status region. Disable duplicate activation synchronously. Authentication/credit failures must retain the persisted session.
+- Review proposed facts before they enter the shared profile. Editable facts expose content, context, meaning and optional CV field; technical paths and IDs are never primary labels. Profile edits and deletion remain available without Pro. Destructive confirmation restores focus; deleting a fact focuses the remaining add control.
+- A preview displays complete CV content, cited before/after changes, remaining uncertainties and the generated page count. Saving creates a separate document; changed source/profile state blocks stale application. Refreshing the selected source retains saved answers, replaces source proposals and requires fact review; unsaved answer text blocks that action. An unknown template requires selection in the existing gallery. Preserve supported spacing, but regenerate geometry instead of copying manual element moves.
+- Pending, empty, loading, validation, conflict, credit failure, provider failure, rejected proposal, preview and saved states use the same semantic structure. Every field has a label, status/error content is announced, and focus moves to the current interview heading after a phase change. The assistant restores its entry control on return.
+- Controls wrap at compact widths and 200% zoom. Test 390, 834, 1280 and 1920px; avoid nested horizontal scrolling and respect reduced motion. Questions, source IDs, citations and review controls remain outside the PDF element graph.
+
 ## 6. Motion
 
 Motion explains causality and state; it is never ambient decoration.
