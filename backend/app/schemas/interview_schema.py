@@ -25,6 +25,8 @@ class ProfileWrite(Contract):
 
 class InterviewCreate(Contract):
     mode: Literal["create", "enrich", "tailor"]
+    # Account ownership does not establish that a CV describes the account holder.
+    include_profile: bool = False
     source_document_id: int | None = Field(default=None, ge=1)
     source_import_id: int | None = Field(default=None, ge=1)
     cv_data: dict = Field(default_factory=dict)
@@ -37,6 +39,7 @@ class InterviewCreate(Contract):
 
 
 class SessionWrite(Contract):
+    evidence_scope: Literal["profile", "session"] | None = None
     revision: int = Field(ge=1)
     profile_revision: int = Field(ge=0)
 

@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import InterviewFlow from './InterviewFlow';
 import FactEditor from './FactEditor';
+import { listOwnedDocuments } from '../../../services/documents';
 import { reviewFacts, interviewRequest } from '../../../services/interviews';
 
 vi.mock('../../../hooks/useEntitlements', () => ({ useEntitlements: () => ({ entitlements: { ai_assistant: true, plan_slug: 'pro', template_tier: 'all' }, refresh: vi.fn() }) }));
@@ -14,7 +15,7 @@ const fact = { id: 'name', text: 'Anna Nowak', kind: 'fact', context: '', path: 
 let session;
 afterEach(cleanup);
 beforeEach(() => {
-  session = { id: 'session', revision: 2, mode: 'create', phase: 'question', language: 'pl', template_id: 'linden', answers: [], question_limit: 8, requirements: [], proposed_facts: [], confirmed: true,
+  session = { evidence_scope: 'profile', id: 'session', revision: 2, mode: 'create', phase: 'question', language: 'pl', template_id: 'linden', answers: [], question_limit: 8, requirements: [], proposed_facts: [], confirmed: true,
     question: { id: 'q1', topic: 'project', text: 'Jaki projekt ukończyłaś?', reason: 'Pokażemy Twój wkład.', context: 'Projekt' } };
   interviewRequest.mockImplementation(async (path, method) => {
     if (path === '/career-profile') return { revision: 1, facts: [fact] };
@@ -150,3 +151,75 @@ it('offers clarification before exposing the filtered preview and supports expli
     expect(screen.queryByText(/Odpowiedzi: 8/)).not.toBeInTheDocument();
     expect(screen.getByText('Propozycja AI · wymaga Twojego potwierdzenia')).toBeVisible();
   });
+
+
+describe('candidate evidence separation', () => {
+  const owner = { revision: 7, facts: [{ ...fact, text: 'Kamil Owner' }] };
+  const candidate = { ...fact, id: 'candidate', text: 'Anna Candidate' };
+  beforeEach(() => {
+    listOwnedDocuments.mockResolvedValue([{ id: 30, title: 'CV30.pdf' }, { id: 31, title: 'CV31.pdf' }]);
+    session = { ...session, evidence_scope: 'session', evidence_profile: { revision: 0, facts: [] },
+      phase: 'intake', question: null, proposed_facts: [candidate] };
+    interviewRequest.mockClear();
+    interviewRequest.mockImplementation(async (path, method, body) => {
+      if (path === '/career-profile') return owner;
+      if (path === '/ai/imports') return { items: [] };
+      if (path.endsWith('/confirm')) {
+        session = { ...session, phase: 'ready', proposed_facts: [], evidence_profile: { revision: 1, facts: body.facts } };
+        return { session, profile: session.evidence_profile };
+      }
+      return session;
+    });
+  });
+  it('defaults selected documents to isolated data and confirms without the owner profile', async () => {
+    const user = userEvent.setup();
+    render(<MemoryRouter><InterviewFlow /></MemoryRouter>);
+    await user.selectOptions(await screen.findByLabelText('Źródło informacji'), 'document:30');
+    expect(screen.getByLabelText('To moje CV — dołącz mój profil zawodowy')).not.toBeChecked();
+    await user.click(screen.getByRole('button', { name: 'Rozpocznij wywiad' }));
+    await screen.findByRole('button', { name: 'Otwórz wpis: Anna Candidate' });
+    expect(screen.queryByText('Kamil Owner')).toBeNull();
+    expect(interviewRequest).toHaveBeenCalledWith('/ai/interviews', 'POST', expect.objectContaining({ source_document_id: 30, include_profile: false, cv_data: {} }), expect.any(String));
+    await user.click(screen.getByRole('button', { name: 'Zatwierdź informacje' }));
+    expect(interviewRequest).toHaveBeenCalledWith('/ai/interviews/session/confirm', 'POST', expect.objectContaining({ evidence_scope: 'session', profile_revision: 0, facts: [candidate] }));
+    await screen.findByText('Informacje zapisane tylko w tym wywiadzie. Profil konta pozostaje bez zmian.');
+  });
+  it('requires a fresh same-person opt-in when switching documents', async () => {
+    const user = userEvent.setup();
+    render(<MemoryRouter><InterviewFlow /></MemoryRouter>);
+    const select = await screen.findByLabelText('Źródło informacji');
+    await user.selectOptions(select, 'document:30');
+    await user.click(screen.getByLabelText('To moje CV — dołącz mój profil zawodowy'));
+    await user.selectOptions(select, 'document:31');
+    expect(screen.getByLabelText('To moje CV — dołącz mój profil zawodowy')).not.toBeChecked();
+    await user.click(screen.getByLabelText('To moje CV — dołącz mój profil zawodowy'));
+    await user.click(screen.getByRole('button', { name: 'Rozpocznij wywiad' }));
+    expect(interviewRequest).toHaveBeenCalledWith('/ai/interviews', 'POST', expect.objectContaining({ source_document_id: 31, include_profile: true }), expect.any(String));
+  });
+  it('starts an empty candidate without carrying the owner name', async () => {
+    const user = userEvent.setup();
+    render(<MemoryRouter><InterviewFlow /></MemoryRouter>);
+    await user.selectOptions(await screen.findByLabelText('Źródło informacji'), 'new');
+    expect(screen.getByLabelText('Imię i nazwisko')).toHaveValue('');
+    await user.type(screen.getByLabelText('Imię i nazwisko'), 'Anna Candidate');
+    await user.click(screen.getByRole('button', { name: 'Rozpocznij wywiad' }));
+    expect(interviewRequest).toHaveBeenCalledWith('/ai/interviews', 'POST', expect.objectContaining({ include_profile: false, cv_data: { name: 'Anna Candidate', title: '' } }), expect.any(String));
+  });
+  it('resumes isolated evidence without fetching the account profile', async () => {
+    session.evidence_profile = { revision: 3, facts: [candidate] };
+    render(<MemoryRouter><InterviewFlow sessionId="session" /></MemoryRouter>);
+    await screen.findByRole('button', { name: 'Otwórz wpis: Anna Candidate' });
+    expect(interviewRequest.mock.calls.some(([path]) => path === '/career-profile')).toBe(false);
+    expect(reviewFacts(owner, session)).toEqual([candidate]);
+  });
+  it('preserves legacy answers but hides confirmation and generation', async () => {
+    delete session.evidence_scope;
+    session.answers = [{ question: { text: 'Poprzednie pytanie' }, answer: 'Zapisana odpowiedź' }];
+    render(<MemoryRouter><InterviewFlow sessionId="session" /></MemoryRouter>);
+    await screen.findByRole('heading', { name: 'Wybierz źródło w nowym wywiadzie' });
+    expect(screen.getByRole('link', { name: 'Rozpocznij nowy wywiad' })).toHaveAttribute('href', '/app/interview');
+    expect(screen.queryByRole('button', { name: 'Zatwierdź informacje' })).toBeNull();
+    await userEvent.setup().click(screen.getByText('Zapisane odpowiedzi (1)'));
+    expect(screen.getByText('Zapisana odpowiedź')).toBeVisible();
+  });
+});

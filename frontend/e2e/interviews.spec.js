@@ -24,12 +24,13 @@ async function installInterviewApi(page, recovered = false) {
     let result;
     if (path.endsWith('/interviews') && method === 'GET') result = { items: session ? [{ ...session, updated_at: '2026-09-10T10:00:00' }] : [], next_offset: null };
     else if (path.endsWith('/interviews') && method === 'POST') {
-      session = { id: ID, revision: 1, mode: body.mode, source_document_id: body.source_document_id || null, phase: 'intake', language: 'pl', profile_revision: 0, template_id: body.template_id || null, question_limit: body.mode === 'tailor' ? 5 : 8, answers: [], question: null, requirements: [], proposed_facts: [nameFact], confirmed: false, preview: null, source_cv_data: { name: 'Anna Nowak' } };
+      session = { evidence_scope: body.include_profile ? 'profile' : 'session', evidence_profile: { revision: 0, facts: [] }, id: ID, revision: 1, mode: body.mode, source_document_id: body.source_document_id || null, phase: 'intake', language: 'pl', profile_revision: 0, template_id: body.template_id || null, question_limit: body.mode === 'tailor' ? 5 : 8, answers: [], question: null, requirements: [], proposed_facts: [nameFact], confirmed: false, preview: null, source_cv_data: { name: 'Anna Nowak' } };
       result = session;
     } else if (path.endsWith('/confirm')) {
-      profile = { revision: profile.revision + 1, facts: body.facts };
+      if (session.evidence_scope === 'profile') profile = { revision: profile.revision + 1, facts: body.facts };
+      else session.evidence_profile = { revision: session.evidence_profile.revision + 1, facts: body.facts };
       session = { ...session, revision: session.revision + 1, phase: 'ready', proposed_facts: [], confirmed: true };
-      result = { session, profile };
+      result = { session, profile: session.evidence_scope === 'profile' ? profile : session.evidence_profile };
     } else if (path.endsWith('/next')) {
       session = { ...session, revision: session.revision + 1, phase: 'question', question: { id: 'q1', topic: 'project', text: 'Jaki projekt ukończyłaś samodzielnie?', reason: 'Pokażemy Twój wkład w osiągnięcie.', context: 'Projekt' } };
       result = session;
@@ -47,7 +48,7 @@ async function installInterviewApi(page, recovered = false) {
       session = { ...session, revision: session.revision + 1, phase: 'intake', confirmed: false, preview: null, source_cv_data: body.cv_data || session.source_cv_data };
       result = session;
     } else if (path.endsWith('/preview')) {
-      session = { ...session, revision: session.revision + 1, phase: 'preview', template_id: body.template_id, preview: { pages: 1, profile_revision: profile.revision, cv_data: { name: 'Anna Nowak', summary: 'Tworzę raporty.', experience: [], education: [], skills: [] }, changes: [{ path: '/summary', value: 'Tworzę raporty.', evidence_refs: ['answer'] }], remaining_gaps: [], ...(recovered ? { recovered_previous_attempt: !clarified, review_notes: [{ path: '/experience/0/bullets/6', action: 'kept_original' }, { path: '/custom_sections/0/items/0/bullets/0', action: 'omitted_suggestion' }] } : {}) } };
+      session = { ...session, revision: session.revision + 1, phase: 'preview', template_id: body.template_id, preview: { pages: 1, profile_revision: session.evidence_scope === 'profile' ? profile.revision : session.evidence_profile.revision, cv_data: { name: 'Anna Nowak', summary: 'Tworzę raporty.', experience: [], education: [], skills: [] }, changes: [{ path: '/summary', value: 'Tworzę raporty.', evidence_refs: ['answer'] }], remaining_gaps: [], ...(recovered ? { recovered_previous_attempt: !clarified, review_notes: [{ path: '/experience/0/bullets/6', action: 'kept_original' }, { path: '/custom_sections/0/items/0/bullets/0', action: 'omitted_suggestion' }] } : {}) } };
       if (recovered && !clarified) session = { ...session, phase: 'clarification', pending_clarifications: [{ topic: 'clarify-project' }] };
       result = session;
     } else if (path.endsWith('/document')) result = { document_id: 41 };
@@ -93,7 +94,7 @@ for (const width of [390, 834, 1280, 1920]) {
     } else {
       await page.getByLabel('Twoja odpowiedź').fill('Python był używany w projekcie uczelnianym.');
       await page.getByRole('button', { name: 'Zapisz odpowiedź', exact: true }).click();
-      await expect(page.getByRole('heading', { name: 'Sprawdź informacje o sobie' })).toBeVisible();
+      await expect(page.getByRole('heading', { name: 'Sprawdź informacje do CV' })).toBeVisible();
       await page.getByRole('button', { name: 'Zatwierdź informacje', exact: true }).click();
       await page.getByRole('button', { name: '03 Przygotuj CV', exact: true }).click();
       await page.getByRole('button', { name: 'Przygotuj CV z potwierdzonych informacji' }).click();

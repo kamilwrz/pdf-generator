@@ -58,14 +58,14 @@ The interview is introduced as a way to turn real experience into CV content. Th
 
 Implementation (verified whole-module extents):
 
-- `frontend/src/pages/Site/PublicPages.jsx`, lines 1–107, `PricingPage, HelpPage`.
+- `frontend/src/pages/Site/PublicPages.jsx`, lines 1–108, `PricingPage, HelpPage`.
 - `frontend/src/utils/planPresentation.js`, lines 1–72, `PLAN_PRESENTATION, applyPlanPresentation`.
 - `frontend/src/pages/Site/DocumentsPage.jsx`, lines 1–93, `DocumentsPage`.
 - `frontend/src/pages/Site/AccountPage.jsx`, lines 1–83, `AccountPage`.
 - `frontend/src/pages/Hero/Hero.jsx`, lines 1–331, `Hero`.
 - `frontend/src/components/editor/StartChooser/StartChooser.jsx`, lines 1–252, `StartChooser`.
 - `frontend/src/pages/Site/InterviewPage.jsx`, lines 1–10, `InterviewPage`.
-- `frontend/src/components/ai/Interview/InterviewFlow.jsx`, lines 1–197, `InterviewFlow`.
+- `frontend/src/components/ai/Interview/InterviewFlow.jsx`, lines 1–219, `InterviewFlow`.
 - `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, lines 1–59, `SiteLayout`.
 - `frontend/src/components/common/SiteLayout/SiteLayout.module.css`, lines 1–199, `guideFaq`.
 - `frontend/e2e/interview-discovery.spec.js`, lines 1–100, `Playwright`.
@@ -78,7 +78,7 @@ The shared site layout uses the warm canvas token behind white content regions. 
 
 The library groups labelled search/sort controls and compact document rows inside one working region. Clearing a search with no results resets the query and restores input focus. Pricing uses the existing `PLAN_PRESENTATION` data in contrasting Free and Pro panels. Help keeps native, bookmarkable topic anchors; its sidebar stacks above the instructions below 768px. Account settings separate Google sign-in, data export, and permanent deletion. `UsageMetric` receives `label`, `used`, `limit`, and an optional icon. A known positive finite limit produces a labelled native meter; `null` means unlimited, zero means unavailable in the plan, and a missing limit remains unknown. For example, 230 of 200 credits displays 230 in text and caps the meter at 200. These presentation changes add no API, database, billing, environment, or PDF-generation changes.
 
-Implementation: `frontend/src/components/common/SiteLayout/SitePrimitives.jsx`, lines 1–26, exports `HeroNote`, `SiteMarker`, and `UsageMetric`; `frontend/src/pages/Site/PublicPages.jsx`, lines 1–107, `PricingPage` and `HelpPage`. Regression coverage: `SitePrimitives.runtime.test.jsx` in the same shared-component directory checks finite, exceeded, unlimited, zero, and missing allowances; `frontend/e2e/site-architecture.spec.js` checks search-reset focus, account meter semantics, and responsive navigation alongside download/deletion flows. Run `npm run test:runtime -- src/components/common/SiteLayout/SitePrimitives.runtime.test.jsx` and `npm run test:e2e -- e2e/site-architecture.spec.js` from `frontend/`. [MDN's native meter reference](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/meter) explains why bounded usage is a measurement, with a known minimum and maximum.
+Implementation: `frontend/src/components/common/SiteLayout/SitePrimitives.jsx`, lines 1–26, exports `HeroNote`, `SiteMarker`, and `UsageMetric`; `frontend/src/pages/Site/PublicPages.jsx`, lines 1–108, `PricingPage` and `HelpPage`. Regression coverage: `SitePrimitives.runtime.test.jsx` in the same shared-component directory checks finite, exceeded, unlimited, zero, and missing allowances; `frontend/e2e/site-architecture.spec.js` checks search-reset focus, account meter semantics, and responsive navigation alongside download/deletion flows. Run `npm run test:runtime -- src/components/common/SiteLayout/SitePrimitives.runtime.test.jsx` and `npm run test:e2e -- e2e/site-architecture.spec.js` from `frontend/`. [MDN's native meter reference](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/meter) explains why bounded usage is a measurement, with a known minimum and maximum.
 
 The public site has `/templates`, `/templates/:slug`, `/pricing`, `/help`, and `/privacy`, all linked by `SiteHeader` and `SiteFooter`. Its copy uses direct customer language: the landing explains the actual workflow, the catalog cards describe visible layout choices, and every template detail page explains how that specific structure organizes content before naming plan availability and the next action. The ten template summaries and their detail-page heading, explanation, and three structural highlights come from `TEMPLATES`; both pricing plans use `PLAN_PRESENTATION`. Appearance-picker taglines describe the actual background, accent colours, and contrast instead of assigning abstract personalities to palette variants. The pricing, help, footer, login, and registration copy follows the same factual tone. There is no separate content database or new dependency.
 
@@ -437,6 +437,14 @@ Models: `backend/app/models/models.py` (`User`, `Pdf`, `PdfElements`, …).
 
 ### Career profile, interview and a separate tailored CV
 
+**Candidate separation:** selecting a document/import (including the embedded assistant), or **Nowe CV — bez profilu konta**, defaults to that CV and its own interview facts. Account ownership never establishes candidate identity. **Mój profil zawodowy** explicitly uses the account profile; the unchecked **To moje CV — dołącz mój profil zawodowy** option allows joining it only when the user identifies the selected CV as theirs. Changing sources resets that opt-in and switches between separate in-memory note drafts. Isolated fact review, questions, verification, preview and document creation never load account facts. Confirmation changes only the selected store; changing the account profile cannot invalidate isolated work.
+
+`InterviewCreate.include_profile` defaults to `false`; `true` selects account-backed evidence for the session's lifetime. New session JSON contains immutable `evidence_scope` (`session` or `profile`) and `session_profile` (isolated `{revision,facts}`, initially `{revision:0,facts:[]}`, otherwise null). API responses expose isolated facts as `evidence_profile`. `SessionWrite` sends `evidence_scope` alongside `revision` and `profile_revision`; that latter revision refers to the selected evidence store. A missing/wrong scope or stale version returns 409 before confirmation or paid work. `interview_profile` resolves the store, `validate_facts` shares path/conflict checks, and the existing session compare-and-swap saves isolated evidence atomically. `source` rejects changing an existing nonempty candidate name or email; start a new interview for that change. Answer/document replay and credit reservations retain their existing identities.
+
+Legacy rows without scope return `requires_source_choice:true`. Their original answers and documents are preserved, but confirmation and generation are blocked; start a new conversation and select its source explicitly. Existing mixed account facts are not automatically cleaned or reassigned: review them manually in the career profile. Deleting an isolated session also deletes its facts; exported account data includes them in `interviews[].state`, and account erasure removes them. No new table, migration, dependency or environment variable is needed. Deploy the backend before the frontend and keep its scope guard during any frontend rollback; older clients must refresh before mutating sessions. Do not roll back to the old automatic merge implementation. [SQLAlchemy JSON documentation](https://docs.sqlalchemy.org/en/20/core/type_basics.html#sqlalchemy.types.JSON) explains why updates replace the JSON structure rather than relying on in-place nested mutation.
+
+Regression checks: `test_interviews.py` covers a different candidate through create/enrich/tailor, provider contexts, document save/replay, imports, ownership, explicit profile joining, stale scope/version, edits/deletions, account export and legacy blocking. `Interview.runtime.test.jsx` checks isolated rendering, resumption without profile reads, opt-in reset, empty identity and legacy recovery. `e2e/interview-sources.spec.js` checks document/import selection, keyboard opt-in, confirmation and resume at 390/834/1280/1920px with reduced motion and 200% text scaling. Run `python -m pytest tests/test_interviews.py tests/test_interview_recovery.py -q` in `backend/`; run `npm run test:runtime -- src/components/ai/Interview` and `npm run test:e2e -- e2e/interview-sources.spec.js e2e/interviews.spec.js e2e/interview-workspace.spec.js --project=desktop-chromium` in `frontend/`. These use synthetic candidate data and mocked AI, not production records.
+
 **Implemented:** `/app/interview` creates a CV through a short Polish interview; `/app/career-profile` manages confirmed facts and saved conversations. The editor assistant embeds the same flow for **Uzupełnij CV przez wywiad** and **Dopasuj do oferty → Dopasuj z wywiadem — nowe CV**. Import can open enrichment after filling a CV. Manual creation remains available.
 
 Start with the account profile, one selected CV/import, or new identity and career history. Review imported facts, answer up to five tailoring questions or eight creation/enrichment questions (including discovery follow-ups), then confirm new facts. Further rounds add up to five questions. Beginners can use education, projects and volunteering. Text, no experience, forgotten information and skip have different meanings. Generation may be requested immediately after fact confirmation.
@@ -477,19 +485,19 @@ Implementation and tests (verified whole-module ranges; use the named symbols fo
 | `backend/app/services/interview_recovery.py` | 1–107; previous_rejected_result, assemble_reviewed_draft |
 | `frontend/src/components/ai/Interview/InterviewReviewNotice.jsx` | 1–24; InterviewReviewNotice |
 | `backend/tests/test_interview_recovery.py` | 1–139; test_report_chronology_and_project_technology_rejections_keep_usable_cv |
-| `backend/app/schemas/interview_schema.py` | 1–115; CareerFact, InterviewCreate, SessionWrite, SourceRefresh, Discovery, Draft, Clarification, Verification |
-| `backend/app/services/interview_service.py` | 1–357; put_profile, check_versions, source_facts, base_cv, assemble_draft, paid_model, next_question |
-| `backend/app/api/routes/interviews.py` | 1–417; create_interview, answer_interview, confirm_interview, refresh_interview_source, preview_interview, clarify_interview, skip_clarifications, save_interview_document |
+| `backend/app/schemas/interview_schema.py` | 1–118; CareerFact, InterviewCreate, SessionWrite, SourceRefresh, Discovery, Draft, Clarification, Verification |
+| `backend/app/services/interview_service.py` | 1–382; put_profile, check_versions, source_facts, base_cv, assemble_draft, paid_model, next_question |
+| `backend/app/api/routes/interviews.py` | 1–432; create_interview, answer_interview, confirm_interview, refresh_interview_source, preview_interview, clarify_interview, skip_clarifications, save_interview_document |
 | `frontend/src/components/ai/Interview/InterviewLoading.jsx` | 1–45; InterviewLoading |
 | `frontend/src/components/ai/Interview/InterviewLoading.module.css` | 1–24; loading, manuscript, track |
 | `frontend/src/components/ai/Interview/InterviewLoading.runtime.test.jsx` | 1–26; long wait, operation boundaries |
 | `frontend/src/components/ai/Interview/InterviewPreview.jsx` | 1–37; InterviewPreview |
 | `frontend/src/components/ai/Interview/InterviewPreview.module.css` | 1–38; preview, reading, pagination |
-| `frontend/src/components/ai/Interview/Interview.module.css` | 1–64; stages, question, preparation, resultActions |
+| `frontend/src/components/ai/Interview/Interview.module.css` | 1–68; stages, question, preparation, resultActions |
 | `frontend/src/utils/interviewPreview.js` | 1–27; previewRecords, recordContent |
 | `frontend/src/utils/interviewPreview.test.js` | 1–24; grouping, evidence, removed fields |
 | `frontend/e2e/interview-workspace.spec.js` | 1–116; bounded preview, delayed operations, failure recovery |
-| `frontend/src/components/ai/Interview/InterviewFlow.jsx` | 1–197; InterviewFlow |
+| `frontend/src/components/ai/Interview/InterviewFlow.jsx` | 1–219; InterviewFlow |
 | `frontend/src/utils/careerProfileView.js` | 1–116; groupCareerFacts, careerFieldLabel, newCareerRecord, careerFieldOptions |
 | `frontend/src/utils/careerProfileView.test.js` | 1–39; grouping, identity, limits |
 | `frontend/src/components/ai/Interview/FactEditor.runtime.test.jsx` | 1–56; apply, cancel, undo, focus, search |
@@ -500,14 +508,15 @@ Implementation and tests (verified whole-module ranges; use the named symbols fo
 | `frontend/src/components/common/SiteLayout/SiteLayout.module.css` | 1–199; compactHero |
 | `frontend/src/components/ai/Interview/FactEditor.jsx` | 1–123; FactEditor |
 | `frontend/src/components/ai/Interview/CvContent.jsx` | 1–31; CvContent |
-| `frontend/src/services/interviews.js` | 1–24; interviewRequest, reviewFacts |
+| `frontend/src/services/interviews.js` | 1–30; interviewRequest, reviewFacts |
 | `frontend/src/pages/Site/CareerProfilePage.jsx` | 1–77; CareerProfilePage |
 | `frontend/src/pages/Site/InterviewPage.jsx` | 1–10; InterviewPage |
 | `frontend/src/utils/interviewPresentation.js` | 1–13; factLabel, interviewFields |
-| `backend/tests/test_interviews.py` | 1–477; state, grounding, billing, source preservation and PDF regressions |
+| `backend/tests/test_interviews.py` | 1–607; state, grounding, billing, source preservation and PDF regressions |
 | `backend/tests/test_alembic_interviews.py` | 1–26; additive migration regression |
-| `frontend/src/components/ai/Interview/Interview.runtime.test.jsx` | 1–152; save-before-next, recovery, focus and source changes |
-| `frontend/e2e/interviews.spec.js` | 1–171; create, resume, profile and assistant flows |
+| `frontend/src/components/ai/Interview/Interview.runtime.test.jsx` | 1–225; save-before-next, recovery, focus and source changes |
+| `frontend/e2e/interview-sources.spec.js` | 1–62; isolated source selection, confirmation, resumption |
+| `frontend/e2e/interviews.spec.js` | 1–172; create, resume, profile and assistant flows |
 
 Folder additions: `backend/app/schemas/interview_schema.py` defines API/provider contracts, `backend/app/services/interview_service.py` owns evidence and conversation rules, and `backend/app/api/routes/interviews.py` owns HTTP orchestration. `frontend/src/components/ai/Interview/` contains the shared flow, controlled fact editor, content review, token-based styles and runtime tests. `docs/INTERVIEWS.md` is the technical tutorial; `docs/licenses/resume-agent-skills-MIT.txt` retains Vignesh Pai's MIT attribution.
 
@@ -3047,14 +3056,14 @@ Wywiad jest przedstawiony jako sposób przełożenia rzeczywistych doświadczeń
 
 Implementacja (zweryfikowane zakresy całych modułów):
 
-- `frontend/src/pages/Site/PublicPages.jsx`, linie 1–107, `PricingPage, HelpPage`.
+- `frontend/src/pages/Site/PublicPages.jsx`, linie 1–108, `PricingPage, HelpPage`.
 - `frontend/src/utils/planPresentation.js`, linie 1–72, `PLAN_PRESENTATION, applyPlanPresentation`.
 - `frontend/src/pages/Site/DocumentsPage.jsx`, linie 1–93, `DocumentsPage`.
 - `frontend/src/pages/Site/AccountPage.jsx`, linie 1–83, `AccountPage`.
 - `frontend/src/pages/Hero/Hero.jsx`, linie 1–331, `Hero`.
 - `frontend/src/components/editor/StartChooser/StartChooser.jsx`, linie 1–252, `StartChooser`.
 - `frontend/src/pages/Site/InterviewPage.jsx`, linie 1–10, `InterviewPage`.
-- `frontend/src/components/ai/Interview/InterviewFlow.jsx`, linie 1–197, `InterviewFlow`.
+- `frontend/src/components/ai/Interview/InterviewFlow.jsx`, linie 1–219, `InterviewFlow`.
 - `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, linie 1–59, `SiteLayout`.
 - `frontend/src/components/common/SiteLayout/SiteLayout.module.css`, linie 1–199, `guideFaq`.
 - `frontend/e2e/interview-discovery.spec.js`, linie 1–100, `Playwright`.
@@ -3067,7 +3076,7 @@ Wspólny układ serwisu wykorzystuje ciepły token canvas za białymi obszarami 
 
 Biblioteka grupuje podpisane wyszukiwanie/sortowanie i zwarte wiersze dokumentów w jednym obszarze roboczym. Wyczyszczenie wyszukiwania bez wyników zeruje zapytanie i przywraca fokus pola. Cennik wykorzystuje istniejące dane `PLAN_PRESENTATION` w kontrastujących panelach Darmowy i Pro. Pomoc zachowuje natywne kotwice tematów, które można zapisać w zakładkach; poniżej 768px spis przechodzi nad instrukcje. Ustawienia konta rozdzielają logowanie Google, eksport danych i trwałe usuwanie. `UsageMetric` przyjmuje `label`, `used`, `limit` i opcjonalną ikonę. Znany dodatni skończony limit tworzy podpisany natywny wskaźnik meter; `null` oznacza brak ograniczeń, zero oznacza niedostępność w planie, a brak limitu pozostaje niewiadomą. Przykładowo 230 z 200 kredytów pokazuje tekstowo 230 i ogranicza wskaźnik do 200. Zmiany prezentacji nie dodają zmian API, bazy danych, rozliczeń, środowiska ani generowania PDF.
 
-Implementacja: `frontend/src/components/common/SiteLayout/SitePrimitives.jsx`, linie 1–26, eksporty `HeroNote`, `SiteMarker` i `UsageMetric`; `frontend/src/pages/Site/PublicPages.jsx`, linie 1–107, `PricingPage` i `HelpPage`. Regresje: `SitePrimitives.runtime.test.jsx` w tym samym katalogu komponentów wspólnych sprawdza limity skończone, przekroczone, nieograniczone, zerowe i brakujące; `frontend/e2e/site-architecture.spec.js` sprawdza fokus po wyczyszczeniu wyszukiwania, semantykę wskaźników konta i nawigację responsywną obok pobierania/usuwania. Uruchom `npm run test:runtime -- src/components/common/SiteLayout/SitePrimitives.runtime.test.jsx` oraz `npm run test:e2e -- e2e/site-architecture.spec.js` z `frontend/`. [Dokumentacja natywnego meter w MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/meter) wyjaśnia, dlaczego wykorzystanie limitu jest pomiarem ze znanym minimum i maksimum.
+Implementacja: `frontend/src/components/common/SiteLayout/SitePrimitives.jsx`, linie 1–26, eksporty `HeroNote`, `SiteMarker` i `UsageMetric`; `frontend/src/pages/Site/PublicPages.jsx`, linie 1–108, `PricingPage` i `HelpPage`. Regresje: `SitePrimitives.runtime.test.jsx` w tym samym katalogu komponentów wspólnych sprawdza limity skończone, przekroczone, nieograniczone, zerowe i brakujące; `frontend/e2e/site-architecture.spec.js` sprawdza fokus po wyczyszczeniu wyszukiwania, semantykę wskaźników konta i nawigację responsywną obok pobierania/usuwania. Uruchom `npm run test:runtime -- src/components/common/SiteLayout/SitePrimitives.runtime.test.jsx` oraz `npm run test:e2e -- e2e/site-architecture.spec.js` z `frontend/`. [Dokumentacja natywnego meter w MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/meter) wyjaśnia, dlaczego wykorzystanie limitu jest pomiarem ze znanym minimum i maksimum.
 
 Część publiczna ma `/templates`, `/templates/:slug`, `/pricing`, `/help` i `/privacy`, połączone przez `SiteHeader` i `SiteFooter`. Treść używa bezpośredniego języka użytkownika: landing wyjaśnia rzeczywisty przepływ pracy, karty katalogu opisują widoczne różnice układu, a każda strona szczegółów szablonu wyjaśnia sposób uporządkowania treści przed informacją o planie i kolejną akcją. Krótkie opisy dziesięciu szablonów oraz nagłówek, rozwinięcie i trzy cechy każdej strony szczegółów pochodzą z `TEMPLATES`; oba plany cenowe korzystają z `PLAN_PRESENTATION`. Etykiety wariantów wyglądu podają rzeczywiste tło, kolory akcentów i kontrast zamiast przypisywać paletom abstrakcyjne cechy charakteru. Cennik, pomoc, stopka, logowanie i rejestracja zachowują ten sam rzeczowy ton. Nie dodano bazy treści ani nowej zależności.
 
@@ -3420,6 +3429,14 @@ Modele: `backend/app/models/models.py`.
 
 ### Profil zawodowy, wywiad i osobne CV pod ofertę
 
+**Rozdzielenie osób:** wybór dokumentu/importu (także w asystencie edytora) lub **Nowe CV — bez profilu konta** domyślnie wykorzystuje to CV i fakty jego osobnego wywiadu. Własność konta nie określa tożsamości osoby w CV. **Mój profil zawodowy** jawnie korzysta z profilu konta; domyślnie niezaznaczone **To moje CV — dołącz mój profil zawodowy** pozwala dołączyć go, gdy użytkownik potwierdza, że dokument dotyczy jego samego. Zmiana źródła resetuje tę zgodę i przełącza osobne szkice notatek przechowywane w pamięci przeglądarki. Osobny przegląd faktów, pytania, weryfikacja, podgląd i zapis dokumentu nie wczytują faktów konta. Zatwierdzenie zmienia wyłącznie wybrane źródło; zmiana profilu konta nie unieważnia osobnej pracy.
+
+`InterviewCreate.include_profile` ma domyślną wartość `false`; `true` wybiera fakty profilu konta na czas całej sesji. JSON nowej sesji zawiera niezmienne `evidence_scope` (`session` albo `profile`) i `session_profile` (osobne `{revision,facts}`, początkowo `{revision:0,facts:[]}`, w drugim trybie null). Odpowiedzi API udostępniają osobne fakty jako `evidence_profile`. `SessionWrite` wysyła `evidence_scope` obok `revision` i `profile_revision`; ta ostatnia rewizja odnosi się do wybranego źródła faktów. Brak lub błędny zakres albo nieaktualna wersja zwraca 409 przed zatwierdzeniem i płatną pracą. `interview_profile` wybiera źródło, `validate_facts` współdzieli kontrolę ścieżek i konfliktów, a istniejący zapis sesji z kontrolą rewizji atomowo utrwala osobne fakty. `source` odrzuca zmianę istniejącego niepustego imienia i nazwiska lub e-maila osoby; taka zmiana wymaga nowego wywiadu. Ponowienia odpowiedzi/dokumentu i rezerwacje kredytów zachowują dotychczasowe identyfikatory.
+
+Starsze rekordy bez zakresu zwracają `requires_source_choice:true`. Oryginalne odpowiedzi i dokumenty pozostają zachowane, ale zatwierdzanie i generowanie są zablokowane; rozpocznij nową rozmowę i jawnie wybierz źródło. Wcześniej pomieszane fakty konta nie są automatycznie czyszczone ani przypisywane do osób: sprawdź je ręcznie w profilu zawodowym. Usunięcie osobnej sesji usuwa również jej fakty; eksport konta obejmuje je w `interviews[].state`, a usunięcie konta je kasuje. Nie potrzeba nowej tabeli, migracji, zależności ani zmiennej środowiskowej. Wdróż backend przed frontendem i zachowaj kontrolę zakresu podczas ewentualnego cofania frontendu; starszy klient musi odświeżyć aplikację przed zmianą sesji. Nie cofaj backendu do automatycznego łączenia danych. [Dokumentacja JSON SQLAlchemy](https://docs.sqlalchemy.org/en/20/core/type_basics.html#sqlalchemy.types.JSON) wyjaśnia zastępowanie struktury JSON zamiast polegania na zmianach zagnieżdżonych pól w miejscu.
+
+Regresje: `test_interviews.py` obejmuje inną osobę w create/enrich/tailor, konteksty providera, zapis/ponowienie dokumentu, importy, własność, jawne dołączenie profilu, błędny zakres/rewizję, edycję/usuwanie, eksport konta i blokadę starych sesji. `Interview.runtime.test.jsx` sprawdza osobny widok, wznowienie bez odczytu profilu, reset zgody, pustą tożsamość i odzyskiwanie starej rozmowy. `e2e/interview-sources.spec.js` sprawdza wybór dokumentu/importu, zgodę klawiaturą, zatwierdzenie i wznowienie przy 390/834/1280/1920px z reduced motion i tekstem powiększonym do 200%. Uruchom `python -m pytest tests/test_interviews.py tests/test_interview_recovery.py -q` w `backend/`; `npm run test:runtime -- src/components/ai/Interview` i `npm run test:e2e -- e2e/interview-sources.spec.js e2e/interviews.spec.js e2e/interview-workspace.spec.js --project=desktop-chromium` w `frontend/`. Testy używają syntetycznych danych i atrap AI, bez rekordów produkcyjnych.
+
 **Zaimplementowane:** `/app/interview` tworzy CV przez krótki polski wywiad; `/app/career-profile` służy do zarządzania potwierdzonymi faktami i rozmowami. Asystent edytora osadza ten sam przepływ dla **Uzupełnij CV przez wywiad** i **Dopasuj do oferty → Dopasuj z wywiadem — nowe CV**. Import może otworzyć uzupełnianie po wypełnieniu CV. Ręczne tworzenie pozostaje dostępne.
 
 Zacznij od profilu konta, jednego wskazanego CV/importu albo nowych danych i historii kariery. Sprawdź fakty źródłowe, odpowiedz na najwyżej pięć pytań przy dopasowaniu lub osiem przy tworzeniu/uzupełnianiu (łącznie z dopytaniem w rozmowie), następnie zatwierdź nowe informacje. Kolejna runda dodaje do pięciu pytań. Początkujący mogą wykorzystać edukację, projekty i wolontariat. Tekst, brak doświadczenia, brak pamięci i pominięcie mają różne znaczenia. Generowanie można wybrać od razu po zatwierdzeniu faktów.
@@ -3461,19 +3478,19 @@ Przy uwierzytelnionym odczycie właściciela `GET /ai/interviews/{id}` funkcja `
 | `backend/app/services/interview_recovery.py` | 1–107; previous_rejected_result, assemble_reviewed_draft |
 | `frontend/src/components/ai/Interview/InterviewReviewNotice.jsx` | 1–24; InterviewReviewNotice |
 | `backend/tests/test_interview_recovery.py` | 1–139; test_report_chronology_and_project_technology_rejections_keep_usable_cv |
-| `backend/app/schemas/interview_schema.py` | 1–115; CareerFact, InterviewCreate, SessionWrite, SourceRefresh, Discovery, Draft, Clarification, Verification |
-| `backend/app/services/interview_service.py` | 1–357; put_profile, check_versions, source_facts, base_cv, assemble_draft, paid_model, next_question |
-| `backend/app/api/routes/interviews.py` | 1–417; create_interview, answer_interview, confirm_interview, refresh_interview_source, preview_interview, clarify_interview, skip_clarifications, save_interview_document |
+| `backend/app/schemas/interview_schema.py` | 1–118; CareerFact, InterviewCreate, SessionWrite, SourceRefresh, Discovery, Draft, Clarification, Verification |
+| `backend/app/services/interview_service.py` | 1–382; put_profile, check_versions, source_facts, base_cv, assemble_draft, paid_model, next_question |
+| `backend/app/api/routes/interviews.py` | 1–432; create_interview, answer_interview, confirm_interview, refresh_interview_source, preview_interview, clarify_interview, skip_clarifications, save_interview_document |
 | `frontend/src/components/ai/Interview/InterviewLoading.jsx` | 1–45; InterviewLoading |
 | `frontend/src/components/ai/Interview/InterviewLoading.module.css` | 1–24; loading, manuscript, track |
 | `frontend/src/components/ai/Interview/InterviewLoading.runtime.test.jsx` | 1–26; long wait, operation boundaries |
 | `frontend/src/components/ai/Interview/InterviewPreview.jsx` | 1–37; InterviewPreview |
 | `frontend/src/components/ai/Interview/InterviewPreview.module.css` | 1–38; preview, reading, pagination |
-| `frontend/src/components/ai/Interview/Interview.module.css` | 1–64; stages, question, preparation, resultActions |
+| `frontend/src/components/ai/Interview/Interview.module.css` | 1–68; stages, question, preparation, resultActions |
 | `frontend/src/utils/interviewPreview.js` | 1–27; previewRecords, recordContent |
 | `frontend/src/utils/interviewPreview.test.js` | 1–24; grouping, evidence, removed fields |
 | `frontend/e2e/interview-workspace.spec.js` | 1–116; bounded preview, delayed operations, failure recovery |
-| `frontend/src/components/ai/Interview/InterviewFlow.jsx` | 1–197; InterviewFlow |
+| `frontend/src/components/ai/Interview/InterviewFlow.jsx` | 1–219; InterviewFlow |
 | `frontend/src/utils/careerProfileView.js` | 1–116; groupCareerFacts, careerFieldLabel, newCareerRecord, careerFieldOptions |
 | `frontend/src/utils/careerProfileView.test.js` | 1–39; grouping, identity, limits |
 | `frontend/src/components/ai/Interview/FactEditor.runtime.test.jsx` | 1–56; apply, cancel, undo, focus, search |
@@ -3484,14 +3501,15 @@ Przy uwierzytelnionym odczycie właściciela `GET /ai/interviews/{id}` funkcja `
 | `frontend/src/components/common/SiteLayout/SiteLayout.module.css` | 1–199; compactHero |
 | `frontend/src/components/ai/Interview/FactEditor.jsx` | 1–123; FactEditor |
 | `frontend/src/components/ai/Interview/CvContent.jsx` | 1–31; CvContent |
-| `frontend/src/services/interviews.js` | 1–24; interviewRequest, reviewFacts |
+| `frontend/src/services/interviews.js` | 1–30; interviewRequest, reviewFacts |
 | `frontend/src/pages/Site/CareerProfilePage.jsx` | 1–77; CareerProfilePage |
 | `frontend/src/pages/Site/InterviewPage.jsx` | 1–10; InterviewPage |
 | `frontend/src/utils/interviewPresentation.js` | 1–13; factLabel, interviewFields |
-| `backend/tests/test_interviews.py` | 1–477; testy zachowania wywiadu |
+| `backend/tests/test_interviews.py` | 1–607; testy zachowania wywiadu |
 | `backend/tests/test_alembic_interviews.py` | 1–26; testy zachowania wywiadu |
-| `frontend/src/components/ai/Interview/Interview.runtime.test.jsx` | 1–152; testy zachowania wywiadu |
-| `frontend/e2e/interviews.spec.js` | 1–171; testy zachowania wywiadu |
+| `frontend/src/components/ai/Interview/Interview.runtime.test.jsx` | 1–225; testy zachowania wywiadu |
+| `frontend/e2e/interview-sources.spec.js` | 1–62; wybór osobnego źródła, zatwierdzanie, wznowienie |
+| `frontend/e2e/interviews.spec.js` | 1–172; testy zachowania wywiadu |
 
 Nowe pliki: `backend/app/schemas/interview_schema.py` definiuje kontrakty API/modelu, `backend/app/services/interview_service.py` zarządza dowodami i regułami rozmowy, a `backend/app/api/routes/interviews.py` koordynuje HTTP. `frontend/src/components/ai/Interview/` zawiera wspólny przepływ, kontrolowany edytor faktów, podgląd treści, style oparte na tokenach i testy runtime. `docs/INTERVIEWS.md` to instrukcja techniczna; `docs/licenses/resume-agent-skills-MIT.txt` zachowuje autorstwo Vignesha Paia i licencję MIT.
 

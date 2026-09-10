@@ -93,7 +93,7 @@ def create_interview(request: InterviewCreate, http_request: Request,
         offer = resolve_job_offer(request.job_offer_url, request.job_description) if request.mode == "tailor" else {}
     except (CvDataValidationError, JobOfferError) as exc:
         service.fail(getattr(exc, "user_message", str(exc)), 422)
-    profile = service.profile_payload(db, user.id)
+    profile = service.profile_payload(db, user.id) if request.include_profile else {"revision": 0, "facts": []}
     # Imported/freeform CVs may carry obsolete template identifiers. They must
     # choose a current template instead of locking the UI to an unknown one.
     template = template if template in TEMPLATE_LAYOUTS else None
@@ -111,7 +111,9 @@ def create_interview(request: InterviewCreate, http_request: Request,
         candidates.append({"id": str(uuid4()), "text": request.candidate_notes.strip(), "context": "Dodatkowe fakty", "kind": "fact", "path": "", "source": source_name})
     row = InterviewSession(id=session_id, owner_id=user.id, revision=1, state={
         "mode": request.mode, "phase": "intake", "create_hash": service.digest(payload),
-        "source_document_id": request.source_document_id, "source_revision": source.revision if source else None,
+        "evidence_scope": "profile" if request.include_profile else "session",
+        "session_profile": None if request.include_profile else profile,
+        "source_document_id": request.source_document_id, "source_import_id": request.source_import_id, "source_revision": source.revision if source else None,
         "source_cv_data": normalized, "template_id": template, "spacing_px": spacing,
         "language": request.language, "offer": offer, "profile_revision": profile["revision"],
         "proposed_facts": candidates, "answers": [], "question": None,
@@ -234,14 +236,20 @@ def next_interview(session_id: str, request: SessionWrite, user=Depends(get_curr
 
 @router.post("/ai/interviews/{session_id}/confirm")
 def confirm_interview(session_id: str, request: ConfirmWrite, user=Depends(get_current_user), db=Depends(get_db)):
-    """Commit the reviewed profile and consume proposals in one transaction."""
+    """Confirm into the selected evidence store and consume proposals atomically."""
     row = service.owned_session(db, user.id, session_id)
-    # Facts can be rescued into the profile even when their source CV changed;
+    # Facts can be rescued into their selected store when their source CV changed;
     # subsequent generation still requires a fresh source snapshot.
     service.check_versions(db, row, request, source=False)
     facts = [fact.model_dump() for fact in request.facts]
-    profile = service.put_profile(db, user.id, request.profile_revision, facts, commit=False)
     state = deepcopy(row.state)
+    if state["evidence_scope"] == "profile":
+        profile = service.put_profile(db, user.id, request.profile_revision, facts, commit=False)
+    else:
+        # The session CAS below protects both facts and their revision. No account
+        # profile row is read or written for another candidate's interview.
+        profile = {"revision": request.profile_revision + 1, "facts": service.validate_facts(facts)}
+        state["session_profile"] = profile
     state.update(confirmed=True, profile_revision=profile["revision"], proposed_facts=[], preview=None)
     if state["phase"] == "intake":
         state["phase"] = "ready"
@@ -288,6 +296,13 @@ def refresh_interview_source(session_id: str, request: SourceRefresh, user=Depen
         normalized = normalize_cv_data(raw)
     except CvDataValidationError as exc:
         service.fail(str(exc), 422)
+    # A changed candidate must start a separate conversation; otherwise earlier
+    # answers and confirmations could contaminate the replacement CV.
+    for key in ("name", "email"):
+        previous = str(state["source_cv_data"].get(key) or "").strip().casefold()
+        current = str(normalized.get(key) or "").strip().casefold()
+        if previous and current and previous != current:
+            service.fail("Zmieniono dane osoby w źródłowym CV. Rozpocznij osobny wywiad dla tego dokumentu.")
     origin = f"document:{source_id}" if source_id else f"interview:{row.id}"
     pairs = {(fact["path"], fact["text"]) for fact in profile["facts"]}
     proposals = []

@@ -64,12 +64,8 @@ def profile_payload(db, owner_id):
     return {"revision": row.revision if row else 0, "facts": row.facts if row else [], "updated_at": row.updated_at.isoformat() if row else None}
 
 
-def put_profile(db, owner_id, revision, facts, *, commit=True):
-    """Replace confirmed facts with compare-and-swap, retaining deletion epochs.
-
-    A caller may compose this with session confirmation in one transaction.
-    Duplicate paths with conflicting values require explicit user resolution.
-    """
+def validate_facts(facts):
+    """Validate identical fact/path invariants for account and isolated evidence."""
     facts = [CareerFact.model_validate(f).model_dump() for f in facts]
     if len(facts) > 500 or len({f['id'] for f in facts}) != len(facts):
         fail("Profil zawiera zbyt wiele informacji lub powtórzone identyfikatory.", 422)
@@ -83,6 +79,30 @@ def put_profile(db, owner_id, revision, facts, *, commit=True):
             paths[fact["path"]] = fact["text"]
     if any(path.startswith(other + "/") for path in paths for other in paths if path != other):
         fail("To samo pole ma wartość tekstową i podpunkty. Usuń jedno z powiązań pola.", 422)
+    return facts
+
+
+def interview_profile(db, row):
+    """Resolve evidence from immutable scope, never infer identity from ownership.
+
+    Legacy conversations are readable but cannot generate or confirm: historical
+    answers may already contain facts about multiple candidates.
+    """
+    scope = row.state.get("evidence_scope")
+    if scope == "profile":
+        return profile_payload(db, row.owner_id)
+    if scope == "session":
+        return deepcopy(row.state["session_profile"])
+    fail("Ta starsza rozmowa nie ma rozdzielonych źródeł. Rozpocznij nowy wywiad z wybranym CV.")
+
+
+def put_profile(db, owner_id, revision, facts, *, commit=True):
+    """Replace confirmed facts with compare-and-swap, retaining deletion epochs.
+
+    A caller may compose this with session confirmation in one transaction.
+    Duplicate paths with conflicting values require explicit user resolution.
+    """
+    facts = validate_facts(facts)
     now = datetime.utcnow()
     if revision == 0:
         db.add(CareerProfile(owner_id=owner_id, revision=1, facts=facts, updated_at=now))
@@ -103,7 +123,10 @@ def put_profile(db, owner_id, revision, facts, *, commit=True):
 
 def session_payload(row):
     """Serialize user-visible state without storage locators or provider secrets."""
-    return {"id": row.id, "revision": row.revision, **row.state, "updated_at": row.updated_at.isoformat()}
+    return {"id": row.id, "revision": row.revision, **row.state,
+            "requires_source_choice": row.state.get("evidence_scope") not in {"profile", "session"},
+            "evidence_profile": deepcopy(row.state.get("session_profile")) if row.state.get("evidence_scope") == "session" else None,
+            "updated_at": row.updated_at.isoformat()}
 
 
 def owned_session(db, owner_id, session_id):
@@ -129,7 +152,9 @@ def update_session(db, row, revision, state, *, commit=True):
 
 def check_versions(db, row, request, *, source=True):
     """Never assemble a draft against stale career facts or a changed saved CV."""
-    profile = profile_payload(db, row.owner_id)
+    profile = interview_profile(db, row)
+    if request.evidence_scope != row.state["evidence_scope"]:
+        fail("Źródło danych nie zostało potwierdzone. Odśwież aplikację i wczytaj wywiad ponownie.")
     if row.revision != request.revision or profile["revision"] != request.profile_revision:
         fail("Dane zmieniły się. Wczytaj wywiad i profil ponownie.")
     document_id = row.state.get("source_document_id")

@@ -8,7 +8,7 @@ const PAGE_SIZE = 6;
 const FIELD_PAGE_SIZE = 8;
 
 /** Editing is local until Apply; callers disable persistence while an editor is open. */
-export default function FactEditor({ facts, onChange, disabled = false, onEditingChange }) {
+export default function FactEditor({ facts, onChange, disabled = false, onEditingChange, isolated = false }) {
   const id = useId();
   const groups = useMemo(() => groupCareerFacts(facts), [facts]);
   const [sectionId, setSectionId] = useState('');
@@ -73,18 +73,18 @@ export default function FactEditor({ facts, onChange, disabled = false, onEditin
 
   return <section className={classes.editor} aria-label="Informacje do wykorzystania">
     <div className={classes.toolbar}>
-      <div><span className={classes.eyebrow}>Twoja baza do CV</span><h2>Kariera uporządkowana</h2></div>
-      <label className={classes.search}>Szukaj w profilu<input type="search" value={query} disabled={busy} placeholder="Firma, projekt, umiejętność…" onChange={(e) => { setQuery(e.target.value); setSelectedId(null); setPage(0); }} /></label>
+      <div><span className={classes.eyebrow}>{isolated ? 'Tylko ten wywiad' : 'Twoja baza do CV'}</span><h2>{isolated ? 'Informacje do tego CV' : 'Kariera uporządkowana'}</h2></div>
+      <label className={classes.search}>{isolated ? 'Szukaj w informacjach do CV' : 'Szukaj w profilu'}<input type="search" value={query} disabled={busy} placeholder="Firma, projekt, umiejętność…" onChange={(e) => { setQuery(e.target.value); setSelectedId(null); setPage(0); }} /></label>
     </div>
-    <label className={classes.mobileNav}>Sekcja profilu<select value={section.id} disabled={busy} onChange={(e) => { setSectionId(e.target.value); setSelectedId(null); setQuery(''); setPage(0); }}>{careerSections.map((s) => <option key={s.id} value={s.id}>{s.label} ({groups.filter((g) => g.section === s.id).length})</option>)}</select></label>
+    <label className={classes.mobileNav}>{isolated ? 'Sekcja CV' : 'Sekcja profilu'}<select value={section.id} disabled={busy} onChange={(e) => { setSectionId(e.target.value); setSelectedId(null); setQuery(''); setPage(0); }}>{careerSections.map((s) => <option key={s.id} value={s.id}>{s.label} ({groups.filter((g) => g.section === s.id).length})</option>)}</select></label>
     <div className={classes.workspace}>
-      <nav className={classes.navigation} aria-label="Sekcje profilu">
+      <nav className={classes.navigation} aria-label={isolated ? "Sekcje CV" : "Sekcje profilu"}>
         {careerSections.map((item, index) => <button key={item.id} type="button" disabled={busy} aria-current={!query && section.id === item.id ? 'page' : undefined} onClick={() => { setSectionId(item.id); setSelectedId(null); setQuery(''); setPage(0); setMessage(''); }}><span className={classes.index}>{String(index + 1).padStart(2, '0')}</span><span>{item.label}</span><span className={classes.count}>{groups.filter((g) => g.section === item.id).length}</span></button>)}
         <p className={classes.navHint}>Wybierz sekcję, potem wpis.<br />Każda rola ma własne miejsce.</p>
       </nav>
       <div className={classes.content}>
         <header className={classes.sectionHeader}>
-          <div><span className={classes.eyebrow}>{selected ? 'Wybrany wpis' : query ? 'W całym profilu' : `${String(careerSections.indexOf(section) + 1).padStart(2, '0')} / Profil zawodowy`}</span><h3 ref={heading} tabIndex={-1}>{selected ? selected.title : query ? 'Wyniki wyszukiwania' : section.label}</h3><p>{selected ? selected.subtitle || `${selected.fields.length} informacji w jednym wpisie` : section.description}</p></div>
+          <div><span className={classes.eyebrow}>{selected ? 'Wybrany wpis' : query ? (isolated ? 'W informacjach do CV' : 'W całym profilu') : `${String(careerSections.indexOf(section) + 1).padStart(2, '0')} / ${isolated ? 'Informacje do CV' : 'Profil zawodowy'}`}</span><h3 ref={heading} tabIndex={-1}>{selected ? selected.title : query ? 'Wyniki wyszukiwania' : section.label}</h3><p>{selected ? selected.subtitle || `${selected.fields.length} informacji w jednym wpisie` : section.description}</p></div>
           {selected ? <button disabled={busy} type="button" onClick={() => { setSelectedId(null); requestAnimationFrame(() => heading.current?.focus()); }}>← Lista wpisów</button> : <button ref={addRef} type="button" disabled={busy || facts.length >= 500} onClick={addRecord}>+ Dodaj informację</button>}
         </header>
         <div className={classes.feedback} role="status">{message}{undo && <button disabled={busy || facts.length + undo.removed.length > 500} type="button" onClick={() => { const next = [...facts]; next.splice(Math.min(undo.index, next.length), 0, ...undo.removed.filter((f) => !next.some((n) => n.id === f.id))); onChange(next); setUndo(null); setMessage('Przywrócono informację.'); }}>Cofnij usunięcie</button>}</div>

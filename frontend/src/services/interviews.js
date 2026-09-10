@@ -12,9 +12,15 @@ export function interviewRequest(path, method = 'GET', data, key) {
     });
 }
 
-/** Merge only explicitly proposed facts; deleted profile data is never restored. */
+/** Resolve session evidence before rendering; legacy sessions fail closed. */
+export function interviewEvidence(profile, session) {
+  if (!session || session.evidence_scope === 'profile') return profile;
+  return session.evidence_profile || { revision: 0, facts: [] };
+}
+
+/** Merge proposals into the selected store; never mix candidates implicitly. */
 export function reviewFacts(profile, session) {
-  const facts = [...(profile?.facts || [])];
+  const facts = [...(interviewEvidence(profile, session)?.facts || [])];
   for (const proposed of session?.proposed_facts || []) {
     if (!facts.some((fact) => fact.id === proposed.id || (fact.text === proposed.text && fact.path === proposed.path))) {
       facts.push(proposed);

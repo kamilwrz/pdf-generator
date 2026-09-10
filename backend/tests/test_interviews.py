@@ -39,14 +39,14 @@ def environment():
 
 def create(client, **kwargs):
     response = client.post('/ai/interviews', headers={'Idempotency-Key': 'test-start'}, json={
-        'mode': 'create', 'cv_data': {'name': 'Anna Nowak', 'title': 'Developer'}, **kwargs,
+        'mode': 'create', 'include_profile': True, 'cv_data': {'name': 'Anna Nowak', 'title': 'Developer'}, **kwargs,
     })
     assert response.status_code == 201, response.text
     return response.json()
 
 
 def version(session, profile=0):
-    return {'revision': session['revision'], 'profile_revision': profile}
+    return {'revision': session['revision'], 'profile_revision': profile, 'evidence_scope': session.get('evidence_scope', 'profile')}
 
 
 def confirm(client, session, profile=0, facts=None):
@@ -475,3 +475,133 @@ def test_active_clarification_cannot_restart_paid_generation(environment):
         for action in ('next', 'preview'):
             body = {**version(session, 1), **({'template_id': 'linden'} if action == 'preview' else {})}
             assert client.post(f'/ai/interviews/{row.id}/{action}', json=body).status_code == 422
+
+
+@pytest.mark.parametrize('mode', ['create', 'enrich', 'tailor'])
+def test_selected_candidate_isolated_through_confirmation_ai_and_document(environment, mode):
+    """Owner facts must never reach another candidate's provider context or PDF."""
+    from app.api.routes import interviews
+    client, db, user, _ = environment
+    owner = service.put_profile(db, user.id, 0, service.source_facts({'name': 'Kamil Owner', 'skills': ['OwnerOnlySkill']}, 'manual'))
+    source = Pdf(owner_id=user.id, title='Other CV', cv_data={'name': 'Anna Candidate', 'title': 'Designer'}, template_id='linden', revision=1)
+    db.add(source); db.commit()
+    result = client.post('/ai/interviews', headers={'Idempotency-Key': 'isolated'}, json={
+        'mode': mode, 'source_document_id': source.id, 'job_description': 'Designer' if mode == 'tailor' else '',
+    })
+    assert result.status_code == 201, result.text
+    session = result.json()
+    assert session['evidence_scope'] == 'session' and session['evidence_profile'] == {'revision': 0, 'facts': []}
+    assert 'Kamil' not in str(session) and 'OwnerOnlySkill' not in str(session)
+    session = confirm(client, session)
+    assert service.profile_payload(db, user.id) == owner
+    # Updating an unrelated account profile cannot stale isolated evidence.
+    owner = service.put_profile(db, user.id, 1, owner['facts'])
+    with patch.object(service, '_gpt', return_value=({'questions': [], 'requirements': []}, {'cost_pln_estimate': .01})) as provider:
+        result = client.post(f"/ai/interviews/{session['id']}/next", json=version(session, 1))
+        assert result.status_code == 200, result.text
+        assert 'Kamil' not in provider.call_args.args[1] and 'OwnerOnlySkill' not in provider.call_args.args[1]
+    session = result.json()
+    with patch.object(service, '_gpt', side_effect=[({'fields': [], 'remaining_gaps': []}, {'cost_pln_estimate': .01}), ({'unsupported_paths': [], 'reasons': []}, {'cost_pln_estimate': .01})]) as provider:
+        result = client.post(f"/ai/interviews/{session['id']}/preview", json={**version(session, 1), 'template_id': 'linden'})
+        assert result.status_code == 200, result.text
+        assert all('OwnerOnlySkill' not in call.args[1] and 'Kamil' not in call.args[1] for call in provider.call_args_list)
+    session = result.json()
+    assert session['preview']['cv_data']['name'] == 'Anna Candidate'
+    def save(db, *, user, username, pdf_data, idempotency_key):
+        assert pdf_data.cv_data['name'] == 'Anna Candidate'
+        row = Pdf(owner_id=user.id, title=pdf_data.pdf_title, cv_data=pdf_data.cv_data, create_idempotency_key=idempotency_key)
+        db.add(row); db.commit()
+        return {'pdf_id': row.id}
+    with patch.object(interviews, 'create_pdf_document', side_effect=save) as saver:
+        first = client.post(f"/ai/interviews/{session['id']}/document", json=version(session, 1))
+        again = client.post(f"/ai/interviews/{session['id']}/document", json=version(session, 1))
+        assert first.status_code == 200 and first.json() == again.json()
+        assert saver.call_count == 1
+    assert service.profile_payload(db, user.id) == owner
+    db.refresh(source)
+    assert source.cv_data['name'] == 'Anna Candidate' and source.revision == 1
+
+
+def test_isolated_answers_edits_deletions_and_stale_scope(environment):
+    client, db, user, _ = environment
+    session = confirm(client, create(client, include_profile=False))
+    row = db.get(InterviewSession, session['id'])
+    service.update_session(db, row, row.revision, {**row.state, 'phase': 'question', 'question': {
+        'id': 'q', 'text': 'Jaki projekt?', 'context': 'Projekt', 'topic': 'project', 'reason': 'CV',
+    }})
+    session = client.get(f"/ai/interviews/{row.id}").json()
+    answer = {**version(session, 1), 'question_id': 'q', 'status': 'answered', 'answer': 'Candidate project'}
+    answered = client.post(f"/ai/interviews/{row.id}/answers", json=answer).json()
+    assert client.post(f"/ai/interviews/{row.id}/answers", json=answer).json()['revision'] == answered['revision']
+    facts = answered['evidence_profile']['facts'] + answered['proposed_facts']
+    session = confirm(client, answered, 1, facts)
+    assert any(f['text'] == 'Candidate project' for f in session['evidence_profile']['facts'])
+    kept = [f for f in session['evidence_profile']['facts'] if f['path'] == '/name']
+    saved = confirm(client, session, 2, kept)
+    assert saved['evidence_profile']['facts'] == kept
+    assert client.post(f"/ai/interviews/{row.id}/confirm", json={**version(session, 2), 'facts': facts}).status_code == 409
+    assert client.post(f"/ai/interviews/{row.id}/confirm", json={**version(saved, 3), 'evidence_scope': 'profile', 'facts': facts}).status_code == 409
+    old_client = version(saved, 3); old_client.pop('evidence_scope')
+    assert client.post(f"/ai/interviews/{row.id}/confirm", json={**old_client, 'facts': facts}).status_code == 409
+    assert service.base_cv(service.interview_profile(db, service.owned_session(db, user.id, row.id))) == {'name': 'Anna Nowak'}
+    assert service.profile_payload(db, user.id)['revision'] == 0
+    exported = build_account_export(db, user=user)
+    assert any(item['state'].get('session_profile', {}).get('facts') == kept for item in exported['interviews'])
+
+
+def test_legacy_conversation_preserved_but_cannot_mix_sources(environment):
+    client, db, user, _ = environment
+    session = confirm(client, create(client))
+    row = db.get(InterviewSession, session['id'])
+    state = deepcopy(row.state); state.pop('evidence_scope'); state.pop('session_profile')
+    service.update_session(db, row, row.revision, state)
+    resumed = client.get(f"/ai/interviews/{row.id}").json()
+    assert resumed['requires_source_choice'] is True
+    owner = service.profile_payload(db, user.id)
+    with patch.object(service, '_gpt') as provider:
+        for action, extra in [('next', {}), ('confirm', {'facts': []}), ('preview', {'template_id': 'linden'}), ('document', {})]:
+            assert client.post(f"/ai/interviews/{row.id}/{action}", json={**version(resumed, 1), **extra}).status_code == 409
+        provider.assert_not_called()
+    assert service.profile_payload(db, user.id) == owner
+    assert db.get(InterviewSession, row.id).state['answers'] == state['answers']
+
+
+def test_source_refresh_cannot_switch_candidate(environment):
+    client, _, _, _ = environment
+    session = confirm(client, create(client, include_profile=False))
+    response = client.post(f"/ai/interviews/{session['id']}/source", json={**version(session, 1), 'cv_data': {'name': 'Other Person'}})
+    assert response.status_code == 409
+    assert client.get(f"/ai/interviews/{session['id']}").json()['evidence_profile'] == session['evidence_profile']
+
+
+def test_import_defaults_to_isolation_and_enforces_owner(environment):
+    from app.crud.cv_import_snapshots import create_snapshot
+    client, db, user, other = environment
+    owner = service.put_profile(db, user.id, 0, service.source_facts({'name': 'Owner'}, 'manual'))
+    imported = create_snapshot(db, owner_id=user.id, filename='Candidate.pdf', size_bytes=123)
+    imported.status = 'succeeded'; imported.cv_data = {'name': 'Imported Candidate'}; db.commit()
+    body = {'mode': 'create', 'source_import_id': imported.id}
+    result = client.post('/ai/interviews', headers={'Idempotency-Key': 'import'}, json=body)
+    assert result.status_code == 201
+    session = confirm(client, result.json())
+    assert service.base_cv(session['evidence_profile']) == {'name': 'Imported Candidate'}
+    assert service.profile_payload(db, user.id) == owner
+    assert client.post('/ai/interviews', headers={'Idempotency-Key': 'import'}, json={**body, 'include_profile': True}).status_code == 409
+    app.dependency_overrides[get_current_user] = lambda: other
+    set_user_plan(db, other.id, 'pro')
+    assert client.post('/ai/interviews', headers={'Idempotency-Key': 'foreign-import'}, json=body).status_code == 404
+
+
+def test_profile_join_requires_opt_in_and_writes_account_profile(environment):
+    client, db, user, _ = environment
+    owner = service.put_profile(db, user.id, 0, service.source_facts({'name': 'Anna Nowak', 'skills': ['SQL']}, 'manual'))
+    result = client.post('/ai/interviews', headers={'Idempotency-Key': 'join'}, json={
+        'mode': 'create', 'include_profile': True, 'cv_data': {'name': 'Anna Nowak', 'title': 'Developer'},
+    })
+    assert result.status_code == 201
+    session = result.json()
+    assert session['evidence_scope'] == 'profile'
+    session = confirm(client, session, 1, owner['facts'] + session['proposed_facts'])
+    saved = service.profile_payload(db, user.id)
+    assert saved['revision'] == 2 and service.base_cv(saved)['title'] == 'Developer'
+    assert service.base_cv(saved)['skills'] == ['SQL']
