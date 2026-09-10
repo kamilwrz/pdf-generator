@@ -2,6 +2,16 @@
    DialogShell body remains the sole scroll fallback for zoom, short screens,
    and arbitrarily many custom sections; nothing enters the authored CV tree. */
 .workspace { max-width: 1440px; margin: 0 auto; padding: var(--space-6) var(--space-8); color: var(--chrome-ink); }
+.interviewEntry { display: flex; align-items: center; gap: var(--space-3); min-height: var(--control-height); padding: var(--space-2) var(--space-4); border: 1px solid var(--chrome-ink); border-radius: var(--radius-control); background: var(--chrome-ink); color: var(--color-paper); text-decoration: none; font: 400 .875rem/1.4 var(--font-body); transition: background-color var(--motion-fast) var(--motion-ease); }
+.interviewCopy { display: grid; gap: var(--space-1); }
+.interviewCopy strong { font-weight: 700; }
+.interviewCopy > span { font-size: .75rem; }
+.interviewIcon, .interviewArrow { flex-shrink: 0; width: var(--space-4); height: var(--space-4); }
+.interviewBadge { border: 1px solid currentColor; padding: var(--space-1) var(--space-2); font: 600 .75rem/1.25 var(--font-body); letter-spacing: .06em; }
+.interviewEntry:hover:not([aria-disabled='true']) { color: var(--color-paper); background: var(--color-accent); }
+.interviewEntry:active:not([aria-disabled='true']) { background: var(--chrome-ink); }
+.interviewEntry:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+.interviewEntry[aria-disabled='true'] { opacity: .55; cursor: not-allowed; }
 .layout { display: grid; grid-template-columns: minmax(0, 6fr) minmax(0, 6fr); gap: var(--space-16); align-items: start; }
 .content { min-width: 0; margin: 0; padding: 0; border: 0; }
 .templates, .optionSection { min-width: 0; }
@@ -110,6 +120,8 @@
   .previewHeading { margin-bottom: var(--space-4); }
 }
 @media (max-width: 640px) {
+  .interviewEntry { padding-inline: var(--space-2); }
+  .interviewIcon, .interviewArrow, .interviewBadge { display: none; }
   .workspace { padding: var(--space-4); }
   .layout { gap: var(--space-4); }
   .viewNavigation { gap: var(--space-1); margin-bottom: var(--space-4); }
@@ -136,4 +148,4 @@
   .customSection { margin-top: var(--space-2); gap: var(--space-1); }
   .workspace[data-settings='sections'] .sectionHeading { margin-bottom: var(--space-2); }
 }
-@media (prefers-reduced-motion: reduce) { .templateCard { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .templateCard, .interviewEntry { transition: none; } }

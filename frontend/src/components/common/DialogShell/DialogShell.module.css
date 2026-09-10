@@ -120,6 +120,15 @@
     color: var(--chrome-ink);
 }
 
+/* Optional task navigation occupies the centre between the title and close
+   control, without absolute positioning or changing ordinary modal headers. */
+.headerWithAction { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; }
+.headerWithAction > div:first-child { min-width: 0; }
+.headerAction { grid-column: 2; min-width: 0; }
+@media (max-width: 900px) {
+    .headerWithAction { grid-template-columns: minmax(0, 1fr) auto; }
+}
+
 .header p {
     margin: 3px 0 0;
     color: var(--chrome-muted);

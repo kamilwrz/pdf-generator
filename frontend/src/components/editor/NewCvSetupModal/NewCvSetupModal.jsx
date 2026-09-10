@@ -9,7 +9,7 @@
  * for saved and unsaved documents that belong to the user.
  */
 import { useEffect, useEffectEvent, useId, useMemo, useRef, useState } from "react";
-import { FiArrowDown, FiArrowUp, FiArrowRight, FiCheck, FiChevronDown, FiImage, FiLock, FiSliders, FiLayout } from "react-icons/fi";
+import { FiArrowDown, FiArrowUp, FiArrowRight, FiCheck, FiChevronDown, FiImage, FiLock, FiSliders, FiLayout, FiMessageSquare } from "react-icons/fi";
 import DialogShell from "../../common/DialogShell/DialogShell";
 import { TEMPLATES } from "../../../templates";
 import { isTemplateAllowed } from "../../../utils/entitlements";
@@ -98,6 +98,8 @@ export default function NewCvSetupModal({
   const previousTemplatesOpenRef = useRef(templatesOpen);
   const submittingRef = useRef(false);
   const autoStartedRef = useRef(false);
+  const canInterview = entitlements?.ai_assistant === true;
+  const accessResolved = typeof entitlements?.ai_assistant === "boolean";
 
   // Only an explicit gallery expansion moves focus. Changing the selection or
   // receiving account entitlements must not steal focus from the active control.
@@ -276,6 +278,18 @@ export default function NewCvSetupModal({
       variant={confirmReplacement ? "decision" : "fullscreen"}
       surface="paper"
       title={confirmReplacement ? "Utworzyć nowe CV?" : "Utwórz CV"}
+      headerAction={!isGuest && !confirmReplacement ? <Link
+        className={classes.interviewEntry}
+        to={canInterview ? "/app/interview" : "/app/account"}
+        aria-disabled={submitting || undefined}
+        tabIndex={submitting ? -1 : undefined}
+        onClick={(event) => { if (submittingRef.current) event.preventDefault(); }}
+      >
+        <FiMessageSquare className={classes.interviewIcon} aria-hidden="true" />
+        <span className={classes.interviewCopy}><strong>Wywiad AI</strong>{" "}<span>{canInterview ? "Rozpocznij rozmowę" : accessResolved ? "Tylko w Pro" : "Sprawdź dostęp Pro"}</span></span>
+        <span className={classes.interviewBadge} aria-hidden="true">PRO</span>
+        <FiArrowRight className={classes.interviewArrow} aria-hidden="true" />
+      </Link> : null}
       subtitle={confirmReplacement
         ? replacementDescription
         : "Wybierz szablon i uzupełnij swoje dane w edytorze."}
@@ -295,7 +309,6 @@ export default function NewCvSetupModal({
             <button type="button" aria-pressed={!customizationOpen} onClick={() => { setTemplatesOpen(true); setCustomizationOpen(false); setPreviewOpen(false); }}><FiLayout aria-hidden="true" />Szablony</button>
             <button type="button" aria-label="Dostosuj zawartość" aria-expanded={customizationOpen} aria-controls={`${customInputId}-customization`} onClick={() => { setCustomizationOpen((current) => !current); setPreviewOpen(false); }}><FiSliders aria-hidden="true" />Dostosuj zawartość</button>
           </div>
-          {!isGuest && <p><Link to="/app/interview">Wolisz pomoc w opisaniu doświadczenia? Utwórz CV z pomocą wywiadu →</Link></p>}
           <section className={classes.templates} aria-labelledby="new-cv-template-heading" hidden={customizationOpen}>
             <div className={`${classes.sectionHeading} ${classes.templateHeading}`}>
               <div><span className={classes.eyebrow}>Twój szablon</span><h3 tabIndex={-1} id="new-cv-template-heading" aria-label={`Wybrany szablon: ${selectedTemplate.name}`}>{selectedTemplate.name}</h3></div>

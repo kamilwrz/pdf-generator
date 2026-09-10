@@ -15,6 +15,9 @@ import { DialogSuspensionContext } from "./DialogSuspensionContext";
 // `surface="paper"` keeps large form surfaces and close controls white while
 // retaining the caller's accent tokens and the unchanged backdrop treatment.
 //
+// Optional `headerAction` places task navigation between title and close.
+// It remains inside the same focus trap; callers own its permission and busy states.
+//
 // Portals to `document.body` so stacking context / overflow on the editor
 // chrome cannot clip the dialog. Callers must keep a single standard dialog
 // open. The editor's recovery provider may temporarily suspend that dialog
@@ -27,6 +30,7 @@ export default function DialogShell({
     title,
     subtitle,
     eyebrow,
+    headerAction,
     footer,
     bodyClassName,
     variant = "modal",
@@ -87,8 +91,9 @@ export default function DialogShell({
             ).filter((element) => {
                 // Disabled fieldsets disable descendants without adding their
                 // own disabled attributes. CSS-hidden responsive disclosures
-                // must also stay outside the modal's keyboard loop.
-                if (element.matches(":disabled") || element.getAttribute("aria-hidden") === "true") return false;
+                // must also stay outside the modal's keyboard loop. Explicitly removed
+                // tab stops include busy navigation links that still have an href.
+                if (element.matches(":disabled") || element.getAttribute("tabindex") === "-1" || element.getAttribute("aria-hidden") === "true") return false;
                 return typeof element.checkVisibility !== "function" || element.checkVisibility({ visibilityProperty: true });
             });
 
@@ -157,12 +162,13 @@ export default function DialogShell({
                 tabIndex={-1}
                 onClick={(e) => e.stopPropagation()}
             >
-                <div className={classes.header}>
+                <div className={`${classes.header}${headerAction ? ` ${classes.headerWithAction}` : ""}`}>
                     <div>
                         {eyebrow && <span className={classes.eyebrow}>{eyebrow}</span>}
                         <h2 id={titleId}>{title}</h2>
                         {subtitle && <p id={subtitleId}>{subtitle}</p>}
                     </div>
+                    {headerAction && <div className={classes.headerAction}>{headerAction}</div>}
                     <CloseButton
                         ariaLabel={`Zamknij: ${title}`}
                         clickHandler={onClose}

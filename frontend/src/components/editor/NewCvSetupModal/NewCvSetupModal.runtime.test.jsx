@@ -219,3 +219,49 @@ it("never auto-starts over an existing document", () => {
   expect(onCreate).not.toHaveBeenCalled();
   cleanup();
 });
+
+// The shared header action stays separate from template configuration and
+// never grants access from a plan label without the server AI entitlement.
+describe('setup interview header action', () => {
+  afterEach(cleanup);
+  it.each([
+    [{ ai_assistant: true }, 'Wywiad AI Rozpocznij rozmowę', '/app/interview'],
+    [{ ai_assistant: false, plan_slug: 'free' }, 'Wywiad AI Tylko w Pro', '/app/account'],
+    [null, 'Wywiad AI Sprawdź dostęp Pro', '/app/account'],
+  ])('uses the confirmed permission for the header destination', (entitlements, name, destination) => {
+    const onCreate = vi.fn();
+    render(<NewCvSetupModal open onClose={vi.fn()} onCreate={onCreate} entitlements={entitlements} />);
+    const action = screen.getByRole('link', { name });
+    expect(action).toHaveAttribute('href', destination);
+    expect(action.parentElement.parentElement).toContainElement(screen.getByRole('heading', { name: 'Utwórz CV' }));
+    expect(action.parentElement.parentElement).toContainElement(screen.getByRole('button', { name: 'Zamknij: Utwórz CV' }));
+    expect(screen.queryByText(/Wolisz pomoc w opisaniu doświadczenia/)).toBeNull();
+    customize();
+    expect(action).toBeVisible();
+    expect(onCreate).not.toHaveBeenCalled();
+  });
+
+  it('keeps guest setup and replacement confirmation focused on their current task', () => {
+    const props = { open: true, onClose: vi.fn(), onCreate: vi.fn() };
+    const { rerender } = render(<NewCvSetupModal {...props} isGuest />);
+    expect(screen.queryByRole('link', { name: /Wywiad AI/ })).toBeNull();
+    rerender(<NewCvSetupModal key="replacement" {...props} hasActiveDocument entitlements={{ ai_assistant: true }} />);
+    expect(screen.queryByRole('link', { name: /Wywiad AI/ })).toBeNull();
+  });
+
+  it('disables interview navigation during creation and restores it after failure', async () => {
+    let fail;
+    const onCreate = vi.fn(() => new Promise((_, reject) => { fail = reject; }));
+    render(<NewCvSetupModal open onClose={vi.fn()} onCreate={onCreate} entitlements={{ ai_assistant: true }} />);
+    const action = screen.getByRole('link', { name: /Wywiad AI/ });
+    create();
+    expect(action).toHaveAttribute('aria-disabled', 'true');
+    expect(action).toHaveAttribute('tabindex', '-1');
+    const close = screen.getByRole('button', { name: 'Zamknij: Utwórz CV' });
+    close.focus();
+    fireEvent.keyDown(window, { key: 'Tab' });
+    expect(close).toHaveFocus();
+    fail(new Error('Spróbuj ponownie.'));
+    await waitFor(() => expect(action).not.toHaveAttribute('aria-disabled'));
+  });
+});
