@@ -119,7 +119,7 @@ export default function InterviewFlow({ sessionId, initialSource = null, current
   const hasPending = Boolean(session?.proposed_facts?.length);
   const reviewing = session?.phase === 'intake' || reviewOpen || (session?.phase === 'review' && session?.clarification_round && hasPending);
   return <section className={classes.flow} aria-label="Wywiad zawodowy" aria-busy={busy}>
-    <div className={classes.actions}><Link className={classes.link} to="/app/career-profile">Profil i zapisane wywiady</Link>{onClose && <button type="button" onClick={onClose}>Wróć do asystenta</button>}</div>
+    <div className={classes.actions}><Link className={classes.link} to="/app/career-profile">Profil i zapisane wywiady</Link><Link className={classes.link} to="/help#wywiad" target="_blank" rel="noopener noreferrer">Pomoc do wywiadu (nowa karta)</Link>{onClose && <button type="button" onClick={onClose}>Wróć do asystenta</button>}</div>
     <h2 ref={heading} tabIndex={-1}>{reviewing ? 'Sprawdź informacje o sobie' : session?.phase === 'clarification' ? 'Doprecyzujmy szczegóły' : session?.phase === 'preview' ? 'Twoja nowa wersja CV' : mode === 'tailor' || session?.mode === 'tailor' ? 'Wywiad pod ofertę' : 'Wywiad zawodowy'}</h2>
     {error && <div className={classes.error} role="alert"><p>{error}</p><button disabled={busy} type="button" onClick={() => run(load)}>Wczytaj zapisany stan</button></div>}
     <p role="status" aria-live="polite">{busy ? 'Zapisujemy dane lub przygotowujemy odpowiedź…' : notice}</p>

@@ -179,7 +179,7 @@ export default function StartChooser({
         </div>
 
         <div className={classes.secondaryActions}>
-          <Link className={classes.blankLink} to="/app/interview">Utwórz CV z pomocą wywiadu →</Link>
+          <div><Link className={classes.blankLink} to="/app/interview">Utwórz CV z pomocą wywiadu · Pro →</Link><p className={classes.documentsEmpty}>Odpowiedz na pytania o doświadczenie, zatwierdź informacje i przygotuj treść CV. Wywiad korzysta z kredytów AI. <Link className={classes.blankLink} to="/help#wywiad">Jak działa wywiad</Link></p></div>
           <button type="button" className={classes.blankLink} onClick={onDocuments}>Wszystkie dokumenty →</button>
           {documentsLoaded && latestDocument ? (
             <button type="button" className={classes.recentDocument} onClick={() => onContinue(latestDocument.id)}>

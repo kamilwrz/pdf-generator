@@ -117,6 +117,11 @@
 .guideStep ol { padding-left: var(--space-6); }
 .guideStep li { padding-left: var(--space-2); margin-bottom: var(--space-3); }
 .guideStep li::marker { color: var(--color-accent); font-weight: 700; }
+.guideFaq { margin-block: var(--space-6); border-top: 1px solid var(--color-border); }
+.guideFaq details { border-bottom: 1px solid var(--color-border); }
+.guideFaq summary { min-height: var(--control-height); padding-block: var(--space-3); font-weight: 600; cursor: pointer; }
+.guideFaq summary:hover { color: var(--color-accent); }
+.guideFaq details[open] { padding-bottom: var(--space-3); }
 .library, .accountPlan { background: var(--color-paper); border: 1px solid var(--color-border); padding: var(--space-6); }
 .sectionHeading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--space-4); }
 .sectionHeading h2 { font-size: 1.5rem; line-height: 1.25; margin: 0; }

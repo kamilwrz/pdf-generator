@@ -23,10 +23,12 @@ test("Free presentation exposes the complete usable plan contract", () => {
 
 test("Pro presentation sells scale and assistance instead of output quality", () => {
     assert.deepEqual(PRO_PLAN_HIGHLIGHTS, [
+        "Wywiad AI: opisz doświadczenie i przygotuj CV pod ofertę",
+        "Profil zawodowy z informacjami do kolejnych CV",
         "Wszystkie szablony i warianty wyglądu",
         "Nielimitowane projekty, importy i pobrania PDF",
         "AI do poprawek tekstu, analizy ATS i układu",
-        "200 kredytów AI",
+        "200 kredytów na wywiad i pozostałe funkcje AI",
     ]);
     assert.doesNotMatch(JSON.stringify(FALLBACK_PLAN_CATALOG), /watermark|znak wodny|oznaczeni/i);
 });

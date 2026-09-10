@@ -172,8 +172,8 @@ export default function Hero() {
                         <li>
                             <span className={classes.offerStepIndex} aria-hidden="true">03</span>
                             <div>
-                                <h3>Opisz doświadczenie konkretniej</h3>
-                                <p>AI w Pro pomoże skrócić opisy, poprawić język i dopasować CV do oferty pracy. Ty wybierasz, które zmiany zastosować.</p>
+                                <h3>Wywiad w Pro: wydobądź więcej ze swojego doświadczenia</h3>
+                                <p>Odpowiedz na pytania o swoją pracę, projekty i rezultaty. Wywiad AI pomoże uzupełnić CV lub przygotować nową wersję pod ofertę. Ty zatwierdzasz informacje. Rozmowa i generowanie korzystają z kredytów Pro.</p><CtaLink to="/help#wywiad" variant="link">Zobacz, jak działa wywiad</CtaLink><p>W edytorze AI pomoże też skrócić opis lub poprawić jego styl:</p>
                                 {/* Static sample explains the paid feature without running AI or promising a live result. */}
                                 <dl className={classes.copyExample} aria-label="Przykład poprawy stylu z AI w Pro">
                                     <div><dt>Przed</dt><dd>Byłem odpowiedzialny za przygotowywanie raportów sprzedażowych.</dd></div>

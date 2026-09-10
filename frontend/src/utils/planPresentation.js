@@ -16,10 +16,12 @@ export const FREE_PLAN_HIGHLIGHTS = Object.freeze([
 ]);
 
 export const PRO_PLAN_HIGHLIGHTS = Object.freeze([
+    "Wywiad AI: opisz doświadczenie i przygotuj CV pod ofertę",
+    "Profil zawodowy z informacjami do kolejnych CV",
     "Wszystkie szablony i warianty wyglądu",
     "Nielimitowane projekty, importy i pobrania PDF",
     "AI do poprawek tekstu, analizy ATS i układu",
-    "200 kredytów AI",
+    "200 kredytów na wywiad i pozostałe funkcje AI",
 ]);
 
 export const PLAN_PRESENTATION = Object.freeze({
@@ -38,7 +40,7 @@ export const PLAN_PRESENTATION = Object.freeze({
         name: "Pro",
         price_pln: 59,
         price_label: "59 zł / 30 dni",
-        blurb: "Więcej wersji CV, wszystkie szablony i pomoc AI.",
+        blurb: "Od rozmowy o doświadczeniu do CV pod ofertę.",
         highlights: PRO_PLAN_HIGHLIGHTS,
         period_note: "Jedna płatność · Bez automatycznego odnawiania",
         badge: "Dla wielu wersji CV i pracy z AI",

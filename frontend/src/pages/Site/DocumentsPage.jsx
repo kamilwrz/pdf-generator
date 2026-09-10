@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { FiPlus, FiUpload, FiFileText, FiFolder, FiArrowRight, FiDownload } from 'react-icons/fi';
+import { useEntitlements } from '../../hooks/useEntitlements';
 import { HeroNote, SiteMarker } from '../../components/common/SiteLayout/SitePrimitives';
 import SiteLayout from '../../components/common/SiteLayout/SiteLayout';
 import classes from '../../components/common/SiteLayout/SiteLayout.module.css';
@@ -18,6 +19,7 @@ function documentDate(document) {
 }
 
 export default function DocumentsPage() {
+  const { entitlements } = useEntitlements();
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -74,7 +76,7 @@ export default function DocumentsPage() {
 
   return <SiteLayout workspace title="Moje dokumenty" eyebrow="TWOJA PRZESTRZEŃ" intro="Wróć do zapisanego CV albo przygotuj nową wersję do kolejnej aplikacji."
     heroActions={<><Link className={classes.primary} to="/app/new"><FiPlus aria-hidden="true" />Utwórz nowe CV</Link><Link className={classes.secondary} to="/app/import"><FiUpload aria-hidden="true" />Importuj PDF</Link></>}
-    heroAside={<HeroNote icon={<FiFolder />} label="WSZYSTKO W JEDNYM MIEJSCU" title="Kolejna aplikacja? Masz punkt wyjścia."><p>Otwórz zapisany projekt, dopasuj treść do oferty i pobierz gotowe CV.</p><Link to="/help#powrot">Jak wrócić do pracy <FiArrowRight aria-hidden="true" /></Link></HeroNote>}>
+    heroAside={entitlements?.ai_assistant === true ? <HeroNote icon={<FiFileText />} label="WYWIAD · MASZ DOSTĘP W PRO" title="Nie wiesz, jak opisać swoje doświadczenie?"><p>Odpowiedz na pytania o działania i rezultaty. Zatwierdź informacje i przygotuj treść nowego CV. Wywiad korzysta z kredytów AI.</p><Link className={classes.secondary} to="/app/interview">Utwórz CV z pomocą wywiadu <FiArrowRight aria-hidden="true" /></Link><Link to="/help#dopasowanie">Chcę dopasować obecne CV do oferty</Link></HeroNote> : <HeroNote icon={<FiFolder />} label="WSZYSTKO W JEDNYM MIEJSCU" title="Kolejna aplikacja? Masz punkt wyjścia."><p>Otwórz zapisany projekt, dopasuj treść do oferty i pobierz gotowe CV.</p><Link to="/help#powrot">Jak wrócić do pracy <FiArrowRight aria-hidden="true" /></Link></HeroNote>}>
     <section className={classes.library} aria-labelledby="library-heading">
     <div className={classes.sectionHeading}><h2 id="library-heading" ref={listHeading} tabIndex={-1}>Zapisane CV</h2>{!loading && !error && <span className={classes.count}>Liczba projektów: {documents.length}</span>}</div>
     {notice && <p role="status" className={classes.notice}>{notice}</p>}

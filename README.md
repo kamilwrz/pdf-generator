@@ -44,13 +44,41 @@ Forcing registration before a visitor had seen the editor used to be the largest
 
 ## Main user flows
 
+### Discovering the Pro career interview
+
+The interview is introduced as a way to turn real experience into CV content. The minimum path is **library → interview → confirm facts → preview → save a new CV**. For an existing offer, the help guide directs the owner to **open a CV → assistant → Dopasuj do oferty → Dopasuj z wywiadem — nowe CV**. This keeps the selected source in the existing assistant instead of inventing a second tailoring route.
+
+- `/help#wywiad` explains creation/enrichment, the initial eight-question limit, voluntary extra rounds, beginner projects, answer meanings, clarification, credits and resuming saved answers. Native disclosures keep optional explanations collapsed.
+- `/help#dopasowanie` explains the initial five-question tailoring round, review and preservation of the source document. `/help#profil` explains field edits, explicit profile save and the separate effects of deleting profiles, interviews and documents.
+- `/pricing#wywiad` explains the benefit and shared credit pool. `PLAN_PRESENTATION` puts the interview first in Pro benefits, so public pricing, the landing, registration and the plan picker use the same wording. Backend prices and entitlements remain authoritative.
+- The library replaces its supporting hero note with a direct interview invitation only when the resolved server `ai_assistant` entitlement is exactly `true`. The account page uses the same condition for its Pro interview section. Loading, unavailable and Free access never claim active Pro access; the existing profile navigation remains available. No invitation invokes paid AI.
+- The landing feature list links to the help guide. The existing start chooser entry states Pro and credit requirements. Interview help opens in an explicitly labelled new tab so reading instructions does not navigate away from the current answer.
+
+`SiteLayout` scrolls to and focuses a matching fragment after a client-side route mounts; ordinary route changes retain heading focus. The new help topics preserve existing URLs and anchors. This change adds no endpoint, schema, migration, runtime dependency, price, credit allowance or PDF behavior. The interview still needs active Pro and available credits for AI operations; profile management remains free after Pro expires. Unsaved answer text is not promised to survive a browser restart.
+
+Implementation (verified whole-module extents):
+
+- `frontend/src/pages/Site/PublicPages.jsx`, lines 1–107, `PricingPage, HelpPage`.
+- `frontend/src/utils/planPresentation.js`, lines 1–72, `PLAN_PRESENTATION, applyPlanPresentation`.
+- `frontend/src/pages/Site/DocumentsPage.jsx`, lines 1–93, `DocumentsPage`.
+- `frontend/src/pages/Site/AccountPage.jsx`, lines 1–83, `AccountPage`.
+- `frontend/src/pages/Hero/Hero.jsx`, lines 1–331, `Hero`.
+- `frontend/src/components/editor/StartChooser/StartChooser.jsx`, lines 1–225, `StartChooser`.
+- `frontend/src/pages/Site/InterviewPage.jsx`, lines 1–10, `InterviewPage`.
+- `frontend/src/components/ai/Interview/InterviewFlow.jsx`, lines 1–182, `InterviewFlow`.
+- `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, lines 1–59, `SiteLayout`.
+- `frontend/src/components/common/SiteLayout/SiteLayout.module.css`, lines 1–199, `guideFaq`.
+- `frontend/e2e/interview-discovery.spec.js`, lines 1–100, `Playwright`.
+
+Tests: `frontend/e2e/interview-discovery.spec.js` covers pricing-to-help navigation and focus, keyboard disclosures, 390/834/1280/1920 px widths, 200% text zoom, Pro invitations, Free/unavailable access, landing and start-chooser links, registration and plan-picker copy without paid calls. `planPresentation.test.js` verifies canonical benefits and retained server pricing. Run `npm run test:e2e -- e2e/interview-discovery.spec.js e2e/site-architecture.spec.js --project=desktop-chromium`, `npm test`, `npm run test:runtime`, `npm run lint` and `npm run build` from `frontend/`. The new browser test lives in the existing `frontend/e2e/` directory; application folder and database structures are unchanged. Deploy through the existing frontend pipeline. Tests use mocked account data and do not verify production activation or live AI quality. [WAI page structure](https://www.w3.org/WAI/tutorials/page-structure/) explains semantic regions, headings and navigation used by the guide.
+
 ### Site navigation, document library, and private bookmarks
 
 The shared site layout uses the warm canvas token behind white content regions. `/app/documents`, `/pricing`, `/help`, and `/app/account` pair the page title with a contextual note through `SiteLayout`'s optional `heroAside` and `heroActions` slots. `SitePrimitives.jsx` contains `HeroNote` (supporting copy), `SiteMarker` (decorative Feather icons), and `UsageMetric` (server-owned usage presentation); `SiteLayout.module.css` owns their shared responsive styling. This folder remains responsible for site chrome only, outside the document/PDF render tree. The gallery, template details, and privacy policy inherit the same warm background.
 
 The library groups labelled search/sort controls and compact document rows inside one working region. Clearing a search with no results resets the query and restores input focus. Pricing uses the existing `PLAN_PRESENTATION` data in contrasting Free and Pro panels. Help keeps native, bookmarkable topic anchors; its sidebar stacks above the instructions below 768px. Account settings separate Google sign-in, data export, and permanent deletion. `UsageMetric` receives `label`, `used`, `limit`, and an optional icon. A known positive finite limit produces a labelled native meter; `null` means unlimited, zero means unavailable in the plan, and a missing limit remains unknown. For example, 230 of 200 credits displays 230 in text and caps the meter at 200. These presentation changes add no API, database, billing, environment, or PDF-generation changes.
 
-Implementation: `frontend/src/components/common/SiteLayout/SitePrimitives.jsx`, lines 1–26, exports `HeroNote`, `SiteMarker`, and `UsageMetric`; `frontend/src/pages/Site/PublicPages.jsx`, lines 48–74, `PricingPage` and `HelpPage`. Regression coverage: `SitePrimitives.runtime.test.jsx` in the same shared-component directory checks finite, exceeded, unlimited, zero, and missing allowances; `frontend/e2e/site-architecture.spec.js` checks search-reset focus, account meter semantics, and responsive navigation alongside download/deletion flows. Run `npm run test:runtime -- src/components/common/SiteLayout/SitePrimitives.runtime.test.jsx` and `npm run test:e2e -- e2e/site-architecture.spec.js` from `frontend/`. [MDN's native meter reference](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/meter) explains why bounded usage is a measurement, with a known minimum and maximum.
+Implementation: `frontend/src/components/common/SiteLayout/SitePrimitives.jsx`, lines 1–26, exports `HeroNote`, `SiteMarker`, and `UsageMetric`; `frontend/src/pages/Site/PublicPages.jsx`, lines 1–107, `PricingPage` and `HelpPage`. Regression coverage: `SitePrimitives.runtime.test.jsx` in the same shared-component directory checks finite, exceeded, unlimited, zero, and missing allowances; `frontend/e2e/site-architecture.spec.js` checks search-reset focus, account meter semantics, and responsive navigation alongside download/deletion flows. Run `npm run test:runtime -- src/components/common/SiteLayout/SitePrimitives.runtime.test.jsx` and `npm run test:e2e -- e2e/site-architecture.spec.js` from `frontend/`. [MDN's native meter reference](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/meter) explains why bounded usage is a measurement, with a known minimum and maximum.
 
 The public site has `/templates`, `/templates/:slug`, `/pricing`, `/help`, and `/privacy`, all linked by `SiteHeader` and `SiteFooter`. Its copy uses direct customer language: the landing explains the actual workflow, the catalog cards describe visible layout choices, and every template detail page explains how that specific structure organizes content before naming plan availability and the next action. The ten template summaries and their detail-page heading, explanation, and three structural highlights come from `TEMPLATES`; both pricing plans use `PLAN_PRESENTATION`. Appearance-picker taglines describe the actual background, accent colours, and contrast instead of assigning abstract personalities to palette variants. The pricing, help, footer, login, and registration copy follows the same factual tone. There is no separate content database or new dependency.
 
@@ -76,13 +104,13 @@ Known Pro template hints now preserve the chosen preview instead of falling back
 
 Implementation (verified file extents; the listed exports own the complete workflows):
 
-- `frontend/src/pages/Site/DocumentsPage.jsx`, lines 1–91, `DocumentsPage`.
+- `frontend/src/pages/Site/DocumentsPage.jsx`, lines 1–93, `DocumentsPage`.
 - `frontend/src/pages/Site/AccountPage.jsx`, component `AccountPage`.
 - `frontend/src/pages/Site/PublicPages.jsx`, exports `TemplatesPage, TemplatePage, PricingPage, HelpPage`.
 - `frontend/src/pages/Site/PrivacyPage.jsx`, component `PrivacyPage`.
-- `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, lines 1–53, `SiteLayout, SiteHeader, SiteFooter`.
+- `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, lines 1–59, `SiteLayout, SiteHeader, SiteFooter`.
 - `frontend/src/templates/index.js`, lines 1–199, `TEMPLATES` — picker summaries and detail-page copy for all ten templates.
-- `frontend/src/utils/planPresentation.js`, lines 1–70, `FREE_PLAN_HIGHLIGHTS, PRO_PLAN_HIGHLIGHTS, PLAN_PRESENTATION`.
+- `frontend/src/utils/planPresentation.js`, lines 1–72, `FREE_PLAN_HIGHLIGHTS, PRO_PLAN_HIGHLIGHTS, PLAN_PRESENTATION`.
 - `frontend/src/services/documents.js`, lines 1–45, `listOwnedDocuments, loadOwnedDocument`.
 - `frontend/src/utils/siteRoutes.js`, lines 1–78, `getDocumentPath, parseDocumentId, safeReturnTo, authLink, savePendingAuthIntent, getPendingAuthIntent, postAuthPath`.
 
@@ -447,8 +475,8 @@ Implementation and tests (verified whole-module ranges; use the named symbols fo
 | `frontend/src/components/ai/Interview/FactEditor.module.css` | 1–79; editor, workspace, mobileNav |
 | `frontend/src/pages/Site/CareerProfilePage.module.css` | 1–24; profile, views, saveBar |
 | `frontend/e2e/career-profile.spec.js` | 1–73; grouped profile, responsive editing and persistence |
-| `frontend/src/components/common/SiteLayout/SiteLayout.jsx` | 1–53; SiteLayout compact |
-| `frontend/src/components/common/SiteLayout/SiteLayout.module.css` | 1–194; compactHero |
+| `frontend/src/components/common/SiteLayout/SiteLayout.jsx` | 1–59; SiteLayout compact |
+| `frontend/src/components/common/SiteLayout/SiteLayout.module.css` | 1–199; compactHero |
 | `frontend/src/components/ai/Interview/FactEditor.jsx` | 1–123; FactEditor |
 | `frontend/src/components/ai/Interview/CvContent.jsx` | 1–21; CvContent |
 | `frontend/src/services/interviews.js` | 1–24; interviewRequest, reviewFacts |
@@ -473,7 +501,7 @@ Authenticated users can download an allowlisted JSON copy from **Konto i plan**.
 Implementation:
 
 - `frontend/src/pages/Site/PrivacyPage.jsx`, lines 1–58, component `PrivacyPage`.
-- `frontend/src/pages/Site/AccountPage.jsx`, lines 19–82, component `AccountPage`.
+- `frontend/src/pages/Site/AccountPage.jsx`, lines 1–83, component `AccountPage`.
 - `frontend/src/services/accountApi.js`, lines 1–35, functions `downloadAccountData` and `deleteAccount`.
 - `frontend/src/utils/authSession.js`, lines 144–166, function `clearLocalAccountData`.
 - `backend/app/api/routes/account.py`, lines 1–57, handlers `export_account_data` and `delete_account`.
@@ -1152,7 +1180,7 @@ Tests:
 
 Implementation (Topbar / landing entry points):
 
-- `frontend/src/pages/Hero/Hero.jsx`, lines 64–337, `buildStartUrl`, `CtaLink`, and `Hero` — directed starts, concise copy, AI example, pricing, four-question FAQ, final CTA, and footer.
+- `frontend/src/pages/Hero/Hero.jsx`, lines 1–331, `buildStartUrl`, `CtaLink`, and `Hero` — directed starts, concise copy, AI example, pricing, four-question FAQ, final CTA, and footer.
 - `frontend/src/pages/Hero/Hero.module.css`, lines 1–944 — Swiss tokens, responsive hero, `.copyExample`, `.finalCta`, focus-visible, and reduced motion.
 - `frontend/src/pages/Hero/Hero.test.js`, lines 1–48 — account and Pro boundaries, starts and CTA events, canonical plans, accessible gallery and FAQ.
 - `frontend/src/utils/authSession.js`, function `getEditorPath` — builds `/cvstudio/guest` or `/cvstudio/{username}` (plus optional `?start=` and the setup-only `template` hint)
@@ -2254,9 +2282,9 @@ Implementation:
 - `backend/app/services/entitlements.py`, lines 37–70 (`PLAN_SEEDS`), 422–477 (`get_entitlements`), 480–523 (`assert_can_create_project`), 589–603 (`assert_can_extract_cv`), 620–648 (`assert_template_allowed`), 651–721 (`record_export`), and 724–771 (`record_cv_import`); assistant credits remain in `charge_ai_credits`
 - `backend/alembic/versions/20260831_0008_free_plan_contract.py`, lines 1–97, migration `20260831_0008` — updates existing production Free rows without changing legacy file markers
 - `backend/app/api/routes/billing.py`, lines 47–104 (`get_plans`, `select_plan`) and 147–214 (`admin_set_user_plan`) — product plan selection plus the exact-account, secret-protected support path
-- `frontend/src/utils/planPresentation.js`, lines 9–70, `PLAN_PRESENTATION` and `applyPlanPresentation` — one canonical frontend contract used even while the catalog request is loading or unavailable
+- `frontend/src/utils/planPresentation.js`, lines 1–72, `PLAN_PRESENTATION` and `applyPlanPresentation` — one canonical frontend contract used even while the catalog request is loading or unavailable
 - `frontend/src/components/modals/PlanSelectModal/PlanSelectModal.jsx`, lines 20–172, component `PlanSelectModal` — accessible two-card picker with loading, fallback, current, pending, success, and error states
-- `frontend/src/pages/Hero/Hero.jsx`, lines 64–337, `buildStartUrl`, `CtaLink`, and `Hero` — directed starts, concise copy, AI example, pricing, four-question FAQ, final CTA, and footer.
+- `frontend/src/pages/Hero/Hero.jsx`, lines 1–331, `buildStartUrl`, `CtaLink`, and `Hero` — directed starts, concise copy, AI example, pricing, four-question FAQ, final CTA, and footer.
 - `frontend/src/templates/index.js`, lines 17–27, registry `TEMPLATES` — three shipped Free element packs and six metadata-only, server-materialized Pro entries
 - `frontend/src/hooks/useEntitlements.js`, lines 1–47, hook `useEntitlements`
 
@@ -2980,13 +3008,41 @@ Wymuszanie rejestracji przed zobaczeniem edytora było największą stratą lejk
 
 ## Główne przepływy użytkownika
 
+### Odkrywanie wywiadu zawodowego w Pro
+
+Wywiad jest przedstawiony jako sposób przełożenia rzeczywistych doświadczeń na treść CV. Najkrótsza ścieżka to **biblioteka → wywiad → zatwierdzenie faktów → podgląd → zapis nowego CV**. Przy konkretnej ofercie pomoc prowadzi właściciela przez **otwarcie CV → asystent → Dopasuj do oferty → Dopasuj z wywiadem — nowe CV**. Wybrane źródło pozostaje w istniejącym asystencie, bez tworzenia drugiej trasy dopasowania.
+
+- `/help#wywiad` opisuje tworzenie/uzupełnianie, początkowy limit ośmiu pytań, dobrowolne kolejne rundy, projekty początkujących, znaczenie odpowiedzi, doprecyzowanie, kredyty i powrót do zapisanych odpowiedzi. Natywne rozwijane sekcje ukrywają dodatkowe wyjaśnienia do momentu ich otwarcia.
+- `/help#dopasowanie` opisuje pierwszą rundę pięciu pytań pod ofertę, przegląd wyniku i zachowanie dokumentu źródłowego. `/help#profil` wyjaśnia edycję pól, jawny zapis profilu oraz odrębne skutki usuwania profilu, wywiadu i dokumentów.
+- `/pricing#wywiad` wyjaśnia korzyść i wspólną pulę kredytów. `PLAN_PRESENTATION` umieszcza wywiad na początku korzyści Pro, więc cennik publiczny, landing, rejestracja i wybór planu używają tych samych opisów. Źródłem prawdy dla cen i uprawnień pozostaje backend.
+- Biblioteka zastępuje pomocniczą notatkę nagłówka bezpośrednim zaproszeniem do wywiadu tylko wtedy, gdy pobrane z serwera uprawnienie `ai_assistant` ma dokładnie wartość `true`. Strona konta stosuje ten sam warunek do sekcji wywiadu Pro. Ładowanie, niedostępność i Free nie deklarują aktywnego dostępu Pro; istniejąca nawigacja profilu pozostaje dostępna. Zaproszenia nie uruchamiają płatnego AI.
+- Lista funkcji na stronie głównej prowadzi do instrukcji. Dotychczasowe wejście w ekranie startowym podaje wymóg Pro i kredytów. Pomoc w wywiadzie otwiera się w wyraźnie opisanej nowej karcie, aby czytanie instrukcji nie opuszczało bieżącej odpowiedzi.
+
+`SiteLayout` przewija do wskazanego fragmentu i ustawia na nim fokus po wyrenderowaniu trasy przeglądarkowej; zwykłe zmiany trasy zachowują fokus nagłówka. Nowe tematy pomocy zachowują dotychczasowe adresy i kotwice. Zmiana nie dodaje endpointu, schematu, migracji, zależności uruchomieniowej ani zmian cen, puli kredytów i PDF. Operacje AI wywiadu nadal wymagają aktywnego Pro i dostępnych kredytów; zarządzanie profilem pozostaje bezpłatne po wygaśnięciu Pro. Nie obiecujemy zachowania niewysłanego tekstu po restarcie przeglądarki.
+
+Implementacja (zweryfikowane zakresy całych modułów):
+
+- `frontend/src/pages/Site/PublicPages.jsx`, linie 1–107, `PricingPage, HelpPage`.
+- `frontend/src/utils/planPresentation.js`, linie 1–72, `PLAN_PRESENTATION, applyPlanPresentation`.
+- `frontend/src/pages/Site/DocumentsPage.jsx`, linie 1–93, `DocumentsPage`.
+- `frontend/src/pages/Site/AccountPage.jsx`, linie 1–83, `AccountPage`.
+- `frontend/src/pages/Hero/Hero.jsx`, linie 1–331, `Hero`.
+- `frontend/src/components/editor/StartChooser/StartChooser.jsx`, linie 1–225, `StartChooser`.
+- `frontend/src/pages/Site/InterviewPage.jsx`, linie 1–10, `InterviewPage`.
+- `frontend/src/components/ai/Interview/InterviewFlow.jsx`, linie 1–182, `InterviewFlow`.
+- `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, linie 1–59, `SiteLayout`.
+- `frontend/src/components/common/SiteLayout/SiteLayout.module.css`, linie 1–199, `guideFaq`.
+- `frontend/e2e/interview-discovery.spec.js`, linie 1–100, `Playwright`.
+
+Testy: `frontend/e2e/interview-discovery.spec.js` sprawdza przejście z cennika do pomocy i fokus, rozwijanie klawiaturą, szerokości 390/834/1280/1920 px, zoom tekstu 200%, zaproszenia Pro, Free/niedostępne uprawnienia, linki ze strony głównej i ekranu startowego oraz opisy rejestracji i wyboru planu bez płatnych wywołań. `planPresentation.test.js` weryfikuje kanoniczne korzyści i zachowanie cen serwera. Uruchom `npm run test:e2e -- e2e/interview-discovery.spec.js e2e/site-architecture.spec.js --project=desktop-chromium`, `npm test`, `npm run test:runtime`, `npm run lint` i `npm run build` z `frontend/`. Nowy test przeglądarkowy znajduje się w istniejącym `frontend/e2e/`; struktura aplikacji i bazy pozostaje bez zmian. Wdrażaj przez istniejący proces frontendu. Testy używają mocków konta i nie weryfikują aktywacji produkcyjnej ani jakości rzeczywistych odpowiedzi AI. [Struktura strony według WAI](https://www.w3.org/WAI/tutorials/page-structure/) wyjaśnia semantyczne regiony, nagłówki i nawigację użyte w instrukcji.
+
 ### Nawigacja serwisu, biblioteka dokumentów i prywatne adresy CV
 
 Wspólny układ serwisu wykorzystuje ciepły token canvas za białymi obszarami treści. `/app/documents`, `/pricing`, `/help` i `/app/account` łączą tytuł strony z kontekstową wskazówką przez opcjonalne pola `heroAside` i `heroActions` komponentu `SiteLayout`. `SitePrimitives.jsx` zawiera `HeroNote` (treść pomocnicza), `SiteMarker` (dekoracyjne ikony Feather) i `UsageMetric` (prezentacja wykorzystania z serwera); `SiteLayout.module.css` odpowiada za ich wspólne style responsywne. Ten katalog obsługuje wyłącznie interfejs serwisu poza drzewem renderowania dokumentu/PDF. Galeria, szczegóły szablonów i polityka prywatności dziedziczą to samo ciepłe tło.
 
 Biblioteka grupuje podpisane wyszukiwanie/sortowanie i zwarte wiersze dokumentów w jednym obszarze roboczym. Wyczyszczenie wyszukiwania bez wyników zeruje zapytanie i przywraca fokus pola. Cennik wykorzystuje istniejące dane `PLAN_PRESENTATION` w kontrastujących panelach Darmowy i Pro. Pomoc zachowuje natywne kotwice tematów, które można zapisać w zakładkach; poniżej 768px spis przechodzi nad instrukcje. Ustawienia konta rozdzielają logowanie Google, eksport danych i trwałe usuwanie. `UsageMetric` przyjmuje `label`, `used`, `limit` i opcjonalną ikonę. Znany dodatni skończony limit tworzy podpisany natywny wskaźnik meter; `null` oznacza brak ograniczeń, zero oznacza niedostępność w planie, a brak limitu pozostaje niewiadomą. Przykładowo 230 z 200 kredytów pokazuje tekstowo 230 i ogranicza wskaźnik do 200. Zmiany prezentacji nie dodają zmian API, bazy danych, rozliczeń, środowiska ani generowania PDF.
 
-Implementacja: `frontend/src/components/common/SiteLayout/SitePrimitives.jsx`, linie 1–26, eksporty `HeroNote`, `SiteMarker` i `UsageMetric`; `frontend/src/pages/Site/PublicPages.jsx`, linie 48–74, `PricingPage` i `HelpPage`. Regresje: `SitePrimitives.runtime.test.jsx` w tym samym katalogu komponentów wspólnych sprawdza limity skończone, przekroczone, nieograniczone, zerowe i brakujące; `frontend/e2e/site-architecture.spec.js` sprawdza fokus po wyczyszczeniu wyszukiwania, semantykę wskaźników konta i nawigację responsywną obok pobierania/usuwania. Uruchom `npm run test:runtime -- src/components/common/SiteLayout/SitePrimitives.runtime.test.jsx` oraz `npm run test:e2e -- e2e/site-architecture.spec.js` z `frontend/`. [Dokumentacja natywnego meter w MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/meter) wyjaśnia, dlaczego wykorzystanie limitu jest pomiarem ze znanym minimum i maksimum.
+Implementacja: `frontend/src/components/common/SiteLayout/SitePrimitives.jsx`, linie 1–26, eksporty `HeroNote`, `SiteMarker` i `UsageMetric`; `frontend/src/pages/Site/PublicPages.jsx`, linie 1–107, `PricingPage` i `HelpPage`. Regresje: `SitePrimitives.runtime.test.jsx` w tym samym katalogu komponentów wspólnych sprawdza limity skończone, przekroczone, nieograniczone, zerowe i brakujące; `frontend/e2e/site-architecture.spec.js` sprawdza fokus po wyczyszczeniu wyszukiwania, semantykę wskaźników konta i nawigację responsywną obok pobierania/usuwania. Uruchom `npm run test:runtime -- src/components/common/SiteLayout/SitePrimitives.runtime.test.jsx` oraz `npm run test:e2e -- e2e/site-architecture.spec.js` z `frontend/`. [Dokumentacja natywnego meter w MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/meter) wyjaśnia, dlaczego wykorzystanie limitu jest pomiarem ze znanym minimum i maksimum.
 
 Część publiczna ma `/templates`, `/templates/:slug`, `/pricing`, `/help` i `/privacy`, połączone przez `SiteHeader` i `SiteFooter`. Treść używa bezpośredniego języka użytkownika: landing wyjaśnia rzeczywisty przepływ pracy, karty katalogu opisują widoczne różnice układu, a każda strona szczegółów szablonu wyjaśnia sposób uporządkowania treści przed informacją o planie i kolejną akcją. Krótkie opisy dziesięciu szablonów oraz nagłówek, rozwinięcie i trzy cechy każdej strony szczegółów pochodzą z `TEMPLATES`; oba plany cenowe korzystają z `PLAN_PRESENTATION`. Etykiety wariantów wyglądu podają rzeczywiste tło, kolory akcentów i kontrast zamiast przypisywać paletom abstrakcyjne cechy charakteru. Cennik, pomoc, stopka, logowanie i rejestracja zachowują ten sam rzeczowy ton. Nie dodano bazy treści ani nowej zależności.
 
@@ -3012,13 +3068,13 @@ Rozpoznany parametr szablonu Pro zachowuje teraz wybrany podgląd zamiast wraca�
 
 Implementacja (zweryfikowane zakresy całych plików; wymienione eksporty odpowiadają za kompletne przepływy):
 
-- `frontend/src/pages/Site/DocumentsPage.jsx`, linie 1–91, `DocumentsPage`.
+- `frontend/src/pages/Site/DocumentsPage.jsx`, linie 1–93, `DocumentsPage`.
 - `frontend/src/pages/Site/AccountPage.jsx`, komponent `AccountPage`.
 - `frontend/src/pages/Site/PublicPages.jsx`, eksporty `TemplatesPage, TemplatePage, PricingPage, HelpPage`.
 - `frontend/src/pages/Site/PrivacyPage.jsx`, komponent `PrivacyPage`.
-- `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, linie 1–53, `SiteLayout, SiteHeader, SiteFooter`.
+- `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, linie 1–59, `SiteLayout, SiteHeader, SiteFooter`.
 - `frontend/src/templates/index.js`, linie 1–199, `TEMPLATES` — krótkie opisy pickerów i treść stron szczegółów wszystkich dziesięciu szablonów.
-- `frontend/src/utils/planPresentation.js`, linie 1–70, `FREE_PLAN_HIGHLIGHTS, PRO_PLAN_HIGHLIGHTS, PLAN_PRESENTATION`.
+- `frontend/src/utils/planPresentation.js`, linie 1–72, `FREE_PLAN_HIGHLIGHTS, PRO_PLAN_HIGHLIGHTS, PLAN_PRESENTATION`.
 - `frontend/src/services/documents.js`, linie 1–45, `listOwnedDocuments, loadOwnedDocument`.
 - `frontend/src/utils/siteRoutes.js`, linie 1–78, `getDocumentPath, parseDocumentId, safeReturnTo, authLink, savePendingAuthIntent, getPendingAuthIntent, postAuthPath`.
 
@@ -3378,8 +3434,8 @@ Niejasne propozycje AI prowadzą teraz do doprecyzowania przed końcowym podglą
 | `frontend/src/components/ai/Interview/FactEditor.module.css` | 1–79; editor, workspace, mobileNav |
 | `frontend/src/pages/Site/CareerProfilePage.module.css` | 1–24; profile, views, saveBar |
 | `frontend/e2e/career-profile.spec.js` | 1–73; grouped profile, responsive editing and persistence |
-| `frontend/src/components/common/SiteLayout/SiteLayout.jsx` | 1–53; SiteLayout compact |
-| `frontend/src/components/common/SiteLayout/SiteLayout.module.css` | 1–194; compactHero |
+| `frontend/src/components/common/SiteLayout/SiteLayout.jsx` | 1–59; SiteLayout compact |
+| `frontend/src/components/common/SiteLayout/SiteLayout.module.css` | 1–199; compactHero |
 | `frontend/src/components/ai/Interview/FactEditor.jsx` | 1–123; FactEditor |
 | `frontend/src/components/ai/Interview/CvContent.jsx` | 1–21; CvContent |
 | `frontend/src/services/interviews.js` | 1–24; interviewRequest, reviewFacts |
@@ -3404,7 +3460,7 @@ Zalogowany użytkownik może w sekcji **Konto i plan** pobrać allowlistowaną k
 Implementacja:
 
 - `frontend/src/pages/Site/PrivacyPage.jsx`, linie 1–58, komponent `PrivacyPage`.
-- `frontend/src/pages/Site/AccountPage.jsx`, linie 19–82, komponent `AccountPage`.
+- `frontend/src/pages/Site/AccountPage.jsx`, linie 1–83, komponent `AccountPage`.
 - `frontend/src/services/accountApi.js`, linie 1–35, funkcje `downloadAccountData` i `deleteAccount`.
 - `frontend/src/utils/authSession.js`, linie 144–166, funkcja `clearLocalAccountData`.
 - `backend/app/api/routes/account.py`, linie 1–57, handlery `export_account_data` i `delete_account`.
@@ -4078,7 +4134,7 @@ Testy:
 
 Implementacja:
 
-- `frontend/src/pages/Hero/Hero.jsx`, linie 64–337, `buildStartUrl`, `CtaLink` i `Hero` — skierowane starty, krótsza treść, przykład AI, cennik, cztery pytania FAQ, końcowe CTA i stopka.
+- `frontend/src/pages/Hero/Hero.jsx`, linie 1–331, `buildStartUrl`, `CtaLink` i `Hero` — skierowane starty, krótsza treść, przykład AI, cennik, cztery pytania FAQ, końcowe CTA i stopka.
 - `frontend/src/pages/Hero/Hero.module.css`, linie 1–944 — tokeny Swiss, responsywne hero, `.copyExample`, `.finalCta`, focus-visible i ograniczenie ruchu.
 - `frontend/src/pages/Hero/Hero.test.js`, linie 1–48 — granice konta i Pro, starty i zdarzenia CTA, kanoniczne plany, dostępna galeria i FAQ.
 - `frontend/src/utils/authSession.js`, funkcja `getEditorPath` — buduje `/cvstudio/guest` albo `/cvstudio/{username}` (plus opcjonalne `?start=` i parametr `template` tylko dla konfiguracji)
@@ -5170,9 +5226,9 @@ Support produkcyjny może przypisać `free` lub `pro` przez `POST /billing/admin
 - `backend/app/services/entitlements.py`, linie 37–70 (`PLAN_SEEDS`), 422–477 (`get_entitlements`), 480–523 (`assert_can_create_project`), 589–603 (`assert_can_extract_cv`), 620–648 (`assert_template_allowed`), 651–721 (`record_export`) i 724–771 (`record_cv_import`); kredyty asystenta pozostają w `charge_ai_credits`
 - `backend/alembic/versions/20260831_0008_free_plan_contract.py`, linie 1–97, migracja `20260831_0008` — aktualizuje istniejące produkcyjne rekordy Darmowego bez zmiany znaczników starszych plików
 - `backend/app/api/routes/billing.py`, linie 47–104 (`get_plans`, `select_plan`) i 147–214 (`admin_set_user_plan`) — wybór planu w produkcie oraz chroniona sekretem ścieżka supportu dla dokładnego konta
-- `frontend/src/utils/planPresentation.js`, linie 9–70, `PLAN_PRESENTATION` i `applyPlanPresentation` — jeden kanoniczny kontrakt frontendu używany także podczas ładowania lub awarii katalogu
+- `frontend/src/utils/planPresentation.js`, linie 1–72, `PLAN_PRESENTATION` i `applyPlanPresentation` — jeden kanoniczny kontrakt frontendu używany także podczas ładowania lub awarii katalogu
 - `frontend/src/components/modals/PlanSelectModal/PlanSelectModal.jsx`, linie 20–172, komponent `PlanSelectModal` — dostępny modal dwóch planów ze stanami ładowania, fallbacku, planu bieżącego, operacji, sukcesu i błędu
-- `frontend/src/pages/Hero/Hero.jsx`, linie 64–337, `buildStartUrl`, `CtaLink` i `Hero` — skierowane starty, krótsza treść, przykład AI, cennik, cztery pytania FAQ, końcowe CTA i stopka.
+- `frontend/src/pages/Hero/Hero.jsx`, linie 1–331, `buildStartUrl`, `CtaLink` i `Hero` — skierowane starty, krótsza treść, przykład AI, cennik, cztery pytania FAQ, końcowe CTA i stopka.
 - `frontend/src/templates/index.js`, linie 17–27, rejestr `TEMPLATES` — trzy wysyłane pakiety elementów Free i sześć metadata-only, server-materialized wpisów Pro
 - `frontend/src/hooks/useEntitlements.js`, linie 1–47, hook `useEntitlements`
 

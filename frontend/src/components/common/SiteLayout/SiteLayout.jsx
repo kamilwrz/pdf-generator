@@ -35,6 +35,12 @@ export default function SiteLayout({ title, eyebrow = 'CV STUDIO', intro, worksp
     if (!hash) {
       window.scrollTo({ top: 0, behavior: 'instant' });
       heading.current?.focus({ preventScroll: true });
+    } else {
+      // Client-side route links mount help content after navigation. Restore
+      // the native anchor destination once that content exists, including focus.
+      const target = document.getElementById(hash.slice(1));
+      target?.scrollIntoView({ behavior: 'instant', block: 'start' });
+      target?.focus({ preventScroll: true });
     }
   }, [pathname, hash, title]);
   return <div className={classes.site}>
