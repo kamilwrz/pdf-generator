@@ -1,0 +1,17 @@
+
+Running 10 tests using 1 worker
+
+(node:24040) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ok  1 [desktop-chromium] › e2e\site-architecture.spec.js:11:1 › login returns to the library, a document survives refresh and Back (15.4s)
+  ok  2 [desktop-chromium] › e2e\site-architecture.spec.js:31:1 › a private bookmark survives authentication and failed document reads can retry (5.2s)
+  ok  3 [desktop-chromium] › e2e\site-architecture.spec.js:47:1 › library handles search, download, delete cancellation and success (2.9s)
+  ok  4 [desktop-chromium] › e2e\site-architecture.spec.js:76:1 › account privacy controls export data and require exact confirmation before erasure (4.3s)
+  ok  5 [desktop-chromium] › e2e\site-architecture.spec.js:101:1 › template selection is retained and paid creation stays gated (10.6s)
+  ok  6 [desktop-chromium] › e2e\site-architecture.spec.js:116:3 › public and account routes remain usable at 390px (11.3s)
+  ok  7 [desktop-chromium] › e2e\site-architecture.spec.js:116:3 › public and account routes remain usable at 834px (7.7s)
+  ok  8 [desktop-chromium] › e2e\site-architecture.spec.js:116:3 › public and account routes remain usable at 1280px (13.2s)
+  ok  9 [desktop-chromium] › e2e\site-architecture.spec.js:116:3 › public and account routes remain usable at 1920px (9.2s)
+  ok 10 [desktop-chromium] › e2e\site-architecture.spec.js:116:3 › public and account routes remain usable at 640px (10.7s)
+
+  10 passed (1.7m)

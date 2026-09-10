@@ -31,8 +31,9 @@ describe('interview workflow', () => {
     render(<MemoryRouter><InterviewFlow sessionId="session" /></MemoryRouter>);
     await user.type(await screen.findByLabelText('Twoja odpowiedź'), 'Zbudowałam raportowanie.');
     await user.click(screen.getByRole('button', { name: 'Zapisz odpowiedź' }));
-    await screen.findByText('Odpowiedź zapisana.');
+    await screen.findByText('Odpowiedź zapisana w profilu zawodowym.');
     expect(interviewRequest).toHaveBeenCalledWith('/ai/interviews/session/answers', 'POST', expect.objectContaining({ status: 'answered', answer: 'Zbudowałam raportowanie.', question_id: 'q1' }));
+    expect(screen.queryByText(/do zapisania/)).not.toBeInTheDocument();
     expect(interviewRequest.mock.calls.some(([path]) => path.endsWith('/next'))).toBe(false);
     await user.click(screen.getByRole('button', { name: 'Następne pytanie' }));
     await waitFor(() => expect(interviewRequest.mock.calls.some(([path]) => path.endsWith('/next'))).toBe(true));
@@ -75,7 +76,7 @@ describe('interview workflow', () => {
     await user.type(await screen.findByLabelText('Twoja odpowiedź'), 'Mój projekt');
     expect(screen.getByRole('button', { name: 'Wczytaj aktualne CV do wywiadu' })).toBeDisabled();
     await user.click(screen.getByRole('button', { name: 'Zapisz odpowiedź' }));
-    await screen.findByText('Odpowiedź zapisana.');
+    await screen.findByText('Odpowiedź zapisana w profilu zawodowym.');
     await user.click(screen.getByRole('button', { name: 'Wczytaj aktualne CV do wywiadu' }));
     await waitFor(() => expect(refreshed).toHaveBeenCalledOnce());
     expect(interviewRequest).toHaveBeenCalledWith('/ai/interviews/session/source', 'POST', expect.objectContaining(currentSource));

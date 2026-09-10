@@ -1,0 +1,431 @@
+
+C:\Users\Kamil\learningCode\PROJECTS\PDF\pdf-generator\frontend\src\components\ai\AiCvPanel\AiCvPanel.jsx
+  116:13  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  114 |     useEffect(() => {
+  115 |         if (!extracted && wizardStep !== 1) {
+> 116 |             setWizardStep(1);
+      |             ^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  117 |         }
+  118 |     }, [extracted, wizardStep]);
+  119 |                                 react-hooks/set-state-in-effect
+  160:39  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  158 |
+  159 |     useEffect(() => {
+> 160 |         if (isAiPanel && showHistory) loadHistory();
+      |                                       ^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  161 |     }, [isAiPanel, showHistory, loadHistory]);
+  162 |
+  163 |     useEffect(() => {      react-hooks/set-state-in-effect
+  164:27  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  162 |
+  163 |     useEffect(() => {
+> 164 |         if (!showHistory) setConfirmDeleteImportId(null);
+      |                           ^^^^^^^^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  165 |     }, [showHistory]);
+  166 |
+  167 |     const acceptFile = useCallback((f) => {  react-hooks/set-state-in-effect
+
+C:\Users\Kamil\learningCode\PROJECTS\PDF\pdf-generator\frontend\src\components\ai\AiCvPanel\TemplateCarousel.jsx
+  66:9  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  64 |     // (e.g. after a successful restyle before the dialog closes).
+  65 |     useEffect(() => {
+> 66 |         setStartIndex(startIndexForSelectedTemplate(orderedTemplates, selectedId));
+     |         ^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  67 |     }, [orderedTemplates, selectedId]);
+  68 |
+  69 |     const total = orderedTemplates.length;  react-hooks/set-state-in-effect
+
+C:\Users\Kamil\learningCode\PROJECTS\PDF\pdf-generator\frontend\src\components\gallery\Dropzone\Dropzone.jsx
+   59:9  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  57 |     useEffect(() => {
+  58 |         if (libraryCountProp == null) return;
+> 59 |         setLibraryCount(libraryCountProp);
+     |         ^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  60 |         setLibraryLoaded(true);
+  61 |     }, [libraryCountProp]);
+  62 |                                                    react-hooks/set-state-in-effect
+  101:9  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+   99 |     useEffect(() => {
+  100 |         if (!isActive) return undefined;
+> 101 |         setStatus("idle");
+      |         ^^^^^^^^^ Avoid calling setState() directly within an effect
+  102 |         setStatusMessage("");
+  103 |         setFiles((prev) => {
+  104 |             prev.forEach((file) => URL.revokeObjectURL(file.preview));  react-hooks/set-state-in-effect
+
+C:\Users\Kamil\learningCode\PROJECTS\PDF\pdf-generator\frontend\src\components\modals\ModalPdfs\ModalPdfs.jsx
+  212:9  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  210 |         if (!localStorage.getItem("token")) return undefined;
+  211 |         let cancelled = false;
+> 212 |         setLoading(true);
+      |         ^^^^^^^^^^ Avoid calling setState() directly within an effect
+  213 |         api.httpRequest(ENDPOINTS.PDF.FETCH, "GET", null, "Nie udało się pobrać listy PDF!").
+  214 |             then((data) => {
+  215 |                 if (cancelled) return;  react-hooks/set-state-in-effect
+
+C:\Users\Kamil\learningCode\PROJECTS\PDF\pdf-generator\frontend\src\hooks\useA4Elements.js
+  399:9   error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  397 |       // selected page the single-page target before its 280% transform begins.
+  398 |       if (Number.isInteger(editingElementPage) && editingElementPage > 0) {
+> 399 |         setCurrentPage(editingElementPage);
+      |         ^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  400 |       }
+  401 |       editZoomSpreadTransitionRef.current = editingElementId;
+  402 |       setIsTwoPageView(false);  react-hooks/set-state-in-effect
+  467:5   error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  465 |     });
+  466 |     if (!needsScrub) return;
+> 467 |     setA4_Elements((prev) => prev.map((element) => {
+      |     ^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  468 |       if (
+  469 |         (element.category !== "text" && element.category !== "textarea")
+  470 |         || element.content == null                                                                                                  react-hooks/set-state-in-effect
+  502:5   error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  500 |     const changed = healed.some((element, index) => element !== A4_Elements[index]);
+  501 |     if (!changed) return;
+> 502 |     setA4_Elements(healed);
+      |     ^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  503 |   }, [A4_Elements]);
+  504 |   useEffect(() => { pageCountRef.current = pageCount; }, [pageCount]);
+  505 |   useEffect(() => {                                                        react-hooks/set-state-in-effect
+  504:21  error  Error: This value cannot be modified
+
+Modifying a value previously passed as an argument to a hook is not allowed. Consider moving the modification before calling the hook.
+
+  502 |     setA4_Elements(healed);
+  503 |   }, [A4_Elements]);
+> 504 |   useEffect(() => { pageCountRef.current = pageCount; }, [pageCount]);
+      |                     ^^^^^^^^^^^^ `pageCountRef` cannot be modified
+  505 |   useEffect(() => {
+  506 |     if (pageCount < 2) setIsTwoPageView(false);
+  507 |   }, [pageCount]);                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            react-hooks/immutability
+  506:24  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  504 |   useEffect(() => { pageCountRef.current = pageCount; }, [pageCount]);
+  505 |   useEffect(() => {
+> 506 |     if (pageCount < 2) setIsTwoPageView(false);
+      |                        ^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  507 |   }, [pageCount]);
+  508 |   useEffect(() => {
+  509 |     // Every element-producing path (textarea growth, section packing, AI                                  react-hooks/set-state-in-effect
+
+C:\Users\Kamil\learningCode\PROJECTS\PDF\pdf-generator\frontend\src\hooks\useDirtyGuard.js
+   9:3  error  Error: Cannot access refs during render
+
+React refs are values that are not needed for rendering. Refs should only be accessed outside of render, such as in event handlers or effects. Accessing a ref value (the `current` property) during render can cause your component not to update as expected (https://react.dev/reference/react/useRef).
+
+   7 | export function useDirtyGuard({ signature, isGuest, flushGuestDraft }) {
+   8 |   const signatureRef = useRef(signature);
+>  9 |   signatureRef.current = signature;
+     |   ^^^^^^^^^^^^^^^^^^^^ Cannot update ref during render
+  10 |   const [baselineSignature, setBaselineSignature] = useState(signature);
+  11 |   const dirty = signature !== baselineSignature;
+  12 |   const dirtyRef = useRef(dirty);  react-hooks/refs
+  13:3  error  Error: Cannot access refs during render
+
+React refs are values that are not needed for rendering. Refs should only be accessed outside of render, such as in event handlers or effects. Accessing a ref value (the `current` property) during render can cause your component not to update as expected (https://react.dev/reference/react/useRef).
+
+  11 |   const dirty = signature !== baselineSignature;
+  12 |   const dirtyRef = useRef(dirty);
+> 13 |   dirtyRef.current = dirty;
+     |   ^^^^^^^^^^^^^^^^ Cannot update ref during render
+  14 |   const guestRef = useRef(isGuest);
+  15 |   guestRef.current = isGuest;
+  16 |   const flushGuestDraftRef = useRef(flushGuestDraft);                                                                                  react-hooks/refs
+  15:3  error  Error: Cannot access refs during render
+
+React refs are values that are not needed for rendering. Refs should only be accessed outside of render, such as in event handlers or effects. Accessing a ref value (the `current` property) during render can cause your component not to update as expected (https://react.dev/reference/react/useRef).
+
+  13 |   dirtyRef.current = dirty;
+  14 |   const guestRef = useRef(isGuest);
+> 15 |   guestRef.current = isGuest;
+     |   ^^^^^^^^^^^^^^^^ Cannot update ref during render
+  16 |   const flushGuestDraftRef = useRef(flushGuestDraft);
+  17 |   flushGuestDraftRef.current = flushGuestDraft;
+  18 |   const allowNextNavigationRef = useRef(false);                                                                     react-hooks/refs
+  17:3  error  Error: Cannot access refs during render
+
+React refs are values that are not needed for rendering. Refs should only be accessed outside of render, such as in event handlers or effects. Accessing a ref value (the `current` property) during render can cause your component not to update as expected (https://react.dev/reference/react/useRef).
+
+  15 |   guestRef.current = isGuest;
+  16 |   const flushGuestDraftRef = useRef(flushGuestDraft);
+> 17 |   flushGuestDraftRef.current = flushGuestDraft;
+     |   ^^^^^^^^^^^^^^^^^^^^^^^^^^ Cannot update ref during render
+  18 |   const allowNextNavigationRef = useRef(false);
+  19 |   const pendingPromiseRef = useRef(null);
+  20 |   const pendingResolverRef = useRef(null);                                      react-hooks/refs
+
+C:\Users\Kamil\learningCode\PROJECTS\PDF\pdf-generator\frontend\src\hooks\useEntitlements.js
+  43:9  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  41 |
+  42 |     useEffect(() => {
+> 43 |         refresh();
+     |         ^^^^^^^ Avoid calling setState() directly within an effect
+  44 |     }, [refresh]);
+  45 |
+  46 |     return { entitlements, loading, error, refresh };  react-hooks/set-state-in-effect
+
+C:\Users\Kamil\learningCode\PROJECTS\PDF\pdf-generator\frontend\src\pages\PdfCanvas.jsx
+   263:40  error  Error: Cannot access refs during render
+
+React refs are values that are not needed for rendering. Refs should only be accessed outside of render, such as in event handlers or effects. Accessing a ref value (the `current` property) during render can cause your component not to update as expected (https://react.dev/reference/react/useRef).
+
+  261 |   // Replaces 5 independent booleans that previously had no exclusivity at
+  262 |   // all (e.g. Moje dokumenty + Szablony + Gallery could all be open together).
+> 263 |   const [dialog, setDialog] = useState(() => {
+      |                                        ^^^^^^^
+> 264 |     if (initialStartIntentRef.current === "import") return getAccessToken() ? "ai" : "importGate";
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 265 |     if (["new", "wizard"].includes(initialStartIntentRef.current)) return "newCv";
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 266 |     if (initialStartIntentRef.current === "templates") return "templates";
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 267 |     return null;
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 268 |   }); // 'docs' | 'templates' | 'ai' | 'importGate' | 'saveGate' | 'downloadGate' | 'newCv' | 'plan' | 'changeTemplate' | 'unlockFreeform' | null
+      | ^^^^ Passing a ref to a function may read its value during render
+  269 |   const [panel, setPanel] = useState(null);   // 'upload' | 'gallery' | 'sections' | null
+  270 |   const isModalPdfs = dialog === 'docs' && Boolean(localStorage.getItem("token"));
+  271 |   const isTemplates = dialog === 'templates';  react-hooks/refs
+   285:54  error  Error: Cannot access refs during render
+
+React refs are values that are not needed for rendering. Refs should only be accessed outside of render, such as in event handlers or effects. Accessing a ref value (the `current` property) during render can cause your component not to update as expected (https://react.dev/reference/react/useRef).
+
+  283 |   // Set only when a canvas was materialized from an owned import snapshot.
+  284 |   const [activeImportId, setActiveImportId] = useState(null);
+> 285 |   const [isDemoContent, setIsDemoContent] = useState(() => {
+      |                                                      ^^^^^^^
+> 286 |     if (startIntent === "demo") return true;
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 287 |     if (getAccessToken() || initialStartIntentRef.current) return false;
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 288 |     return Boolean(loadGuestDocument()?.isDemoContent);
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 289 |   });
+      | ^^^^ Passing a ref to a function may read its value during render
+  290 |   const isDemoContentRef = useRef(isDemoContent);
+  291 |   isDemoContentRef.current = isDemoContent;
+  292 |   // Keep the explicitly chosen freeform path hidden for this empty workspace                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           react-hooks/refs
+   291:3   error  Error: Cannot access refs during render
+
+React refs are values that are not needed for rendering. Refs should only be accessed outside of render, such as in event handlers or effects. Accessing a ref value (the `current` property) during render can cause your component not to update as expected (https://react.dev/reference/react/useRef).
+
+  289 |   });
+  290 |   const isDemoContentRef = useRef(isDemoContent);
+> 291 |   isDemoContentRef.current = isDemoContent;
+      |   ^^^^^^^^^^^^^^^^^^^^^^^^ Cannot update ref during render
+  292 |   // Keep the explicitly chosen freeform path hidden for this empty workspace.
+  293 |   const [startChooserDismissed, setStartChooserDismissed] = useState(false);
+  294 |   const isGallery = panel === 'gallery';                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    react-hooks/refs
+   601:3   error  Error: Cannot access refs during render
+
+React refs are values that are not needed for rendering. Refs should only be accessed outside of render, such as in event handlers or effects. Accessing a ref value (the `current` property) during render can cause your component not to update as expected (https://react.dev/reference/react/useRef).
+
+  599 |   );
+  600 |   const persistedSnapshotRef = useRef(persistedSnapshot);
+> 601 |   persistedSnapshotRef.current = persistedSnapshot;
+      |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Cannot update ref during render
+  602 |
+  603 |   const flushGuestDraft = useCallback(() => {
+  604 |     if (!isGuest || pdfId != null) return false;                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       react-hooks/refs
+   862:24  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  860 |   // call sites are fully migrated to the focused session context.
+  861 |   useEffect(() => {
+> 862 |     if (pdfId == null) setServerRevision(null);
+      |                        ^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  863 |   }, [pdfId]);
+  864 |
+  865 |   const clearSavedDeletedElements = useCallback((nextValue) => {                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       react-hooks/set-state-in-effect
+   894:3   error  Error: Cannot access refs during render
+
+React refs are values that are not needed for rendering. Refs should only be accessed outside of render, such as in event handlers or effects. Accessing a ref value (the `current` property) during render can cause your component not to update as expected (https://react.dev/reference/react/useRef).
+
+  892 |   // change does not re-run the effect for an already-handled response.
+  893 |   const pushToastRef = useRef(pushToast);
+> 894 |   pushToastRef.current = pushToast;
+      |   ^^^^^^^^^^^^^^^^^^^^ Cannot update ref during render
+  895 |   const refreshEntitlementsRef = useRef(refreshEntitlements);
+  896 |   refreshEntitlementsRef.current = refreshEntitlements;
+  897 |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     react-hooks/refs
+   896:3   error  Error: Cannot access refs during render
+
+React refs are values that are not needed for rendering. Refs should only be accessed outside of render, such as in event handlers or effects. Accessing a ref value (the `current` property) during render can cause your component not to update as expected (https://react.dev/reference/react/useRef).
+
+  894 |   pushToastRef.current = pushToast;
+  895 |   const refreshEntitlementsRef = useRef(refreshEntitlements);
+> 896 |   refreshEntitlementsRef.current = refreshEntitlements;
+      |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Cannot update ref during render
+  897 |
+  898 |   // Fires exactly when the create/update progress modal finishes. Save (create or
+  899 |   // update) is the only path through here now — Download renders on demand via                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          react-hooks/refs
+  1121:5   error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  1119 |     if (autoOpenedTemplates || dialog !== null) return;
+  1120 |     if (sessionStorage.getItem(TEMPLATES_MODAL_SEEN_KEY) === "1") return;
+> 1121 |     setAutoOpenedTemplates(true);
+       |     ^^^^^^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  1122 |     setDialog('templates');
+  1123 |     setPanel(null);
+  1124 |   }, [isGuest, documentId, pdfsLoaded, PDFs.length, A4_Elements.length, autoOpenedTemplates, dialog, setAutoOpenedTemplates, startIntent])                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      react-hooks/set-state-in-effect
+  1951:7   error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  1949 |       guestDocumentRestoredRef.current = true;
+  1950 |       clearGuestDocument();
+> 1951 |       commitDocumentSnapshot({
+       |       ^^^^^^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  1952 |         elements: materializeElementSpecs(lindenTemplate, nanoid),
+  1953 |         title: "DEMO_CV",
+  1954 |         templateId: "linden",                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              react-hooks/set-state-in-effect
+  2005:5   error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  2003 |     claimOfferedRef.current = true;
+  2004 |     pendingGuestDocRef.current = guestDoc;
+> 2005 |     setDialog('claimGuest');
+       |     ^^^^^^^^^ Avoid calling setState() directly within an effect
+  2006 |   }, [documentId]);
+  2007 |
+  2008 |   // Load the browser-buffered guest JSON onto the A4 canvas only                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                react-hooks/set-state-in-effect
+  2444:24  error  Error: Cannot access refs during render
+
+React refs are values that are not needed for rendering. Refs should only be accessed outside of render, such as in event handlers or effects. Accessing a ref value (the `current` property) during render can cause your component not to update as expected (https://react.dev/reference/react/useRef).
+
+  2442 |                 open={isClaimGuestModal}
+  2443 |                 download={downloadReturn}
+> 2444 |                 title={pendingGuestDocRef.current?.title || null}
+       |                        ^^^^^^^^^^^^^^^^^^^^^^^^^^ Cannot access ref value during render
+  2445 |                 onConfirm={handleClaimGuestDocumentConfirm}
+  2446 |                 onDecline={handleClaimGuestDocumentDecline}
+  2447 |                 onDismiss={() => setDialog(null)}                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          react-hooks/refs
+  2444:24  error  Error: Cannot access refs during render
+
+React refs are values that are not needed for rendering. Refs should only be accessed outside of render, such as in event handlers or effects. Accessing a ref value (the `current` property) during render can cause your component not to update as expected (https://react.dev/reference/react/useRef).
+
+  2442 |                 open={isClaimGuestModal}
+  2443 |                 download={downloadReturn}
+> 2444 |                 title={pendingGuestDocRef.current?.title || null}
+       |                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Cannot access ref value during render
+  2445 |                 onConfirm={handleClaimGuestDocumentConfirm}
+  2446 |                 onDecline={handleClaimGuestDocumentDecline}
+  2447 |                 onDismiss={() => setDialog(null)}                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   react-hooks/refs
+  2444:24  error  Error: Cannot access refs during render
+
+React refs are values that are not needed for rendering. Refs should only be accessed outside of render, such as in event handlers or effects. Accessing a ref value (the `current` property) during render can cause your component not to update as expected (https://react.dev/reference/react/useRef).
+
+  2442 |                 open={isClaimGuestModal}
+  2443 |                 download={downloadReturn}
+> 2444 |                 title={pendingGuestDocRef.current?.title || null}
+       |                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Cannot access ref value during render
+  2445 |                 onConfirm={handleClaimGuestDocumentConfirm}
+  2446 |                 onDecline={handleClaimGuestDocumentDecline}
+  2447 |                 onDismiss={() => setDialog(null)}                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           react-hooks/refs
+
+✖ 30 problems (30 errors, 0 warnings)
+

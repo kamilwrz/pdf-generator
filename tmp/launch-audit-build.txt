@@ -1,0 +1,47 @@
+vite v7.3.6 building client environment for production...
+transforming...
+✓ 1164 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                               0.63 kB │ gzip:   0.41 kB
+dist/.vite/manifest.json                      8.76 kB │ gzip:   1.29 kB
+dist/assets/PlanSelectModal-BJBed3fC.css      2.29 kB │ gzip:   0.84 kB
+dist/assets/DialogShell-q4safORW.css          4.93 kB │ gzip:   1.31 kB
+dist/assets/AuthLayout-DzUSvu1T.css           6.52 kB │ gzip:   1.66 kB
+dist/assets/AiCvPanel-B5SJ4IlI.css            8.26 kB │ gzip:   1.92 kB
+dist/assets/index-CKRN0cq0.css               14.31 kB │ gzip:   3.32 kB
+dist/assets/SiteLayout-CzVUKZvV.css          16.82 kB │ gzip:   3.35 kB
+dist/assets/Hero-CFODthMe.css                19.44 kB │ gzip:   4.43 kB
+dist/assets/AiAssistant-DW_BiWKI.css         30.55 kB │ gzip:   5.85 kB
+dist/assets/PdfCanvas-CXNbFsDb.css          158.83 kB │ gzip:  26.27 kB
+dist/assets/SitePrimitives-BBPsnhQY.js        1.18 kB │ gzip:   0.57 kB
+dist/assets/planPresentation-Co8DJxV5.js      1.21 kB │ gzip:   0.69 kB
+dist/assets/authApi-_4MbnLma.js               1.31 kB │ gzip:   0.69 kB
+dist/assets/AuthLayout.module-VG2gWYO-.js     1.35 kB │ gzip:   0.60 kB
+dist/assets/GoogleSignInButton-B5K8Iogk.js    1.48 kB │ gzip:   0.84 kB
+dist/assets/CheckoutResult-D3lVPB8v.js        1.78 kB │ gzip:   1.08 kB
+dist/assets/VerifyEmail-C-nep_uk.js           1.89 kB │ gzip:   0.98 kB
+dist/assets/DialogShell-DU02J6ln.js           4.22 kB │ gzip:   1.87 kB
+dist/assets/SiteLayout-CRw3Xk68.js            4.84 kB │ gzip:   2.06 kB
+dist/assets/PlanSelectModal-BWPJ7VH_.js       5.22 kB │ gzip:   2.47 kB
+dist/assets/Login-DJYSaYrY.js                 5.63 kB │ gzip:   2.33 kB
+dist/assets/DocumentsPage-kNAj_g4f.js         6.22 kB │ gzip:   2.54 kB
+dist/assets/api-DPF5WSHv.js                   6.26 kB │ gzip:   2.44 kB
+dist/assets/AccountPage-BcEb7GZG.js           7.09 kB │ gzip:   2.98 kB
+dist/assets/PublicPages-DNCrdesv.js           8.92 kB │ gzip:   3.30 kB
+dist/assets/Register-BoTrks3T.js              9.19 kB │ gzip:   3.50 kB
+dist/assets/index-BvOK75Ru.js                14.71 kB │ gzip:   2.69 kB
+dist/assets/PrivacyPage-Ck3kxxQp.js          15.30 kB │ gzip:   5.49 kB
+dist/assets/AiCvPanel-BKPlI4Z8.js            15.91 kB │ gzip:   5.83 kB
+dist/assets/download-CHa9iz15.js             33.80 kB │ gzip:  10.69 kB
+dist/assets/index-TtJCQ3wK.js                53.27 kB │ gzip:   8.48 kB
+dist/assets/AiAssistant-BDatmf85.js          57.74 kB │ gzip:  17.85 kB
+dist/assets/Hero-B107mlXc.js                138.22 kB │ gzip:  45.73 kB
+dist/assets/index-BCoeN9zj.js               298.71 kB │ gzip:  96.18 kB
+dist/assets/PdfCanvas-D6YxNA_-.js           862.74 kB │ gzip: 260.58 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 14.86s

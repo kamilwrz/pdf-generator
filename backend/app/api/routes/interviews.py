@@ -165,7 +165,13 @@ def delete_interview(session_id: str, user=Depends(get_current_user), db=Depends
 
 @router.post("/ai/interviews/{session_id}/answers")
 def answer_interview(session_id: str, request: AnswerWrite, user=Depends(get_current_user), db=Depends(get_db)):
-    """Save one answer before any further provider request; replay is harmless."""
+    """Persist one explicit answer and its evidence before further AI work.
+
+    User-authored text and an explicit lack-of-experience choice are already
+    confirmations, so they update the selected evidence store in the same
+    transaction as the answer history. Unknown and skipped answers remain
+    history only. Replaying the same answer is harmless.
+    """
     row = service.owned_session(db, user.id, session_id)
     for previous in row.state["answers"]:
         if previous["question"]["id"] == request.question_id:
@@ -180,9 +186,21 @@ def answer_interview(session_id: str, request: AnswerWrite, user=Depends(get_cur
     if request.status == "answered" and not request.answer.strip():
         service.fail("Wpisz odpowiedź lub wybierz pominięcie.", 422)
     state["answers"].append({"question": question, "answer": request.answer, "status": request.status})
-    proposals = answer_proposals(question, request.answer, request.status, profile, row.id)
-    replaced = {fact['id'] for fact in proposals}
-    state['proposed_facts'] = [fact for fact in state['proposed_facts'] if fact['id'] not in replaced] + proposals
+    answer_facts = answer_proposals(question, request.answer, request.status, profile, row.id)
+    if answer_facts:
+        replacements = {fact["id"]: fact for fact in answer_facts}
+        facts = [replacements.pop(fact["id"], fact) for fact in profile["facts"]]
+        facts.extend(replacements.values())
+        if state["evidence_scope"] == "profile":
+            profile = service.put_profile(db, user.id, request.profile_revision, facts, commit=False)
+        else:
+            # The session compare-and-swap below commits the isolated evidence
+            # and answer history together without touching the account profile.
+            profile = {"revision": request.profile_revision + 1, "facts": service.validate_facts(facts)}
+            state["session_profile"] = profile
+        state["profile_revision"] = profile["revision"]
+        saved_ids = {fact["id"] for fact in answer_facts}
+        state["proposed_facts"] = [fact for fact in state["proposed_facts"] if fact["id"] not in saved_ids]
     state["question"] = None
     if not question.get("clarification") or request.status in {"answered", "no_experience"}:
         state["preview"] = None

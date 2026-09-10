@@ -1,0 +1,12 @@
+
+Running 5 tests using 1 worker
+
+(node:5892) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ok 1 [desktop-chromium] › e2e\toolbar-appearance.spec.js:57:3 › canvas toolbar appearance and skill form at 390px (15.4s)
+  ok 2 [desktop-chromium] › e2e\toolbar-appearance.spec.js:57:3 › canvas toolbar appearance and skill form at 834px (13.4s)
+  ok 3 [desktop-chromium] › e2e\toolbar-appearance.spec.js:57:3 › canvas toolbar appearance and skill form at 1280px (12.7s)
+  ok 4 [desktop-chromium] › e2e\toolbar-appearance.spec.js:57:3 › canvas toolbar appearance and skill form at 1920px (14.5s)
+  ok 5 [desktop-chromium] › e2e\toolbar-appearance.spec.js:176:1 › toolbar geometry and menu text stay constant through animated canvas zoom (8.4s)
+
+  5 passed (1.1m)

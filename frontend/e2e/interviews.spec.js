@@ -42,7 +42,12 @@ async function installInterviewApi(page, recovered = false) {
       result = session;
     } else if (path.endsWith('/answers')) {
       if (session.question?.clarification) clarified = true;
-      session = { ...session, revision: session.revision + 1, phase: 'review', question: null, preview: null, answers: [...session.answers, { ...body }], proposed_facts: body.status === 'answered' ? [{ id: 'answer', text: body.answer, context: 'Projekt', kind: 'fact', path: '', source: 'interview' }] : [] };
+      const fact = body.status === 'answered' ? { id: 'answer', text: body.answer, context: 'Projekt', kind: 'fact', path: '', source: 'interview' }
+        : body.status === 'no_experience' ? { id: 'answer', text: 'Brak doświadczenia', context: 'Projekt', kind: 'gap', path: '', source: 'interview' } : null;
+      if (fact && session.evidence_scope === 'profile') profile = { revision: profile.revision + 1, facts: [...profile.facts.filter((item) => item.id !== fact.id), fact] };
+      if (fact && session.evidence_scope === 'session') session.evidence_profile = { revision: session.evidence_profile.revision + 1, facts: [...session.evidence_profile.facts.filter((item) => item.id !== fact.id), fact] };
+      const evidence = session.evidence_scope === 'profile' ? profile : session.evidence_profile;
+      session = { ...session, revision: session.revision + 1, profile_revision: evidence.revision, phase: 'ready', question: null, preview: null, answers: [...session.answers, { ...body }], proposed_facts: [] };
       result = session;
     } else if (path.endsWith('/source')) {
       session = { ...session, revision: session.revision + 1, phase: 'intake', confirmed: false, preview: null, source_cv_data: body.cv_data || session.source_cv_data };
@@ -70,6 +75,9 @@ for (const width of [390, 834, 1280, 1920]) {
     await page.getByRole('button', { name: 'Następne pytanie', exact: true }).click();
     await page.getByLabel('Twoja odpowiedź').fill('Tworzę raporty.');
     await page.getByRole('button', { name: 'Zapisz odpowiedź', exact: true }).click();
+    await expect(page.getByText('Odpowiedź zapisana w profilu zawodowym.', { exact: true })).toBeVisible();
+    await expect(page.getByText(/do zapisania/)).toHaveCount(0);
+    expect(api.calls.filter((call) => call.path.endsWith('/confirm'))).toHaveLength(1);
     await page.goto(`/app/interview/${ID}`);
     await page.getByRole('button', { name: /Sprawdź informacje/ }).click();
     await page.getByRole('button', { name: /Przejdź do (rozmowy|przygotowania CV)/ }).click();
@@ -107,6 +115,7 @@ for (const width of [390, 834, 1280, 1920]) {
       await page.getByRole('button', { name: '03 Przygotuj CV', exact: true }).click();
       await page.getByRole('button', { name: 'Przygotuj CV z potwierdzonych informacji' }).click();
     }
+    expect(api.calls.filter((call) => call.path.endsWith('/confirm'))).toHaveLength(1);
     await expect(page.getByRole('heading', { name: 'Twoja nowa wersja CV' })).toBeVisible();
     await page.getByRole('button', { name: 'Sprawdź uwagi do CV' }).click();
     await expect(page.getByRole('heading', { name: 'CV jest gotowe do sprawdzenia' })).toBeVisible();

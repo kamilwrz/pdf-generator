@@ -1,0 +1,1580 @@
+✔ top-level routes are lazy and share a branded error element (12.7807ms)
+✔ the A4 workspace uses a grey base with a translucent white overlay (3.7459ms)
+✔ the editor route replaces near-black chrome with the Swiss brown token (12.2951ms)
+✔ every modal uses the shared translucent white backdrop (6.5893ms)
+✔ AI correction handlers allow empty content only for shortening (39.6719ms)
+✔ assistant send blocks parallel requests before isLoading re-renders (10.8942ms)
+✔ assistant invalidates canvas work without clearing template conversation history (6.5111ms)
+✔ assistant auto-scroll commits the latest message before paint (12.5684ms)
+✔ assistant width and canvas offset preserve contextual toolbar clearance (57.1764ms)
+✔ assistant retries share one idempotency key per logical send (27.2331ms)
+✔ assistant messages retain the document revision that produced them (32.7218ms)
+✔ apply all preserves rejected job-tailoring profile changes (17.6851ms)
+✔ translation replaces the removed appearance goal in the quick actions (12.5405ms)
+✔ ATS dashboard uses readability copy, verbal band, and disclaimer (7.8985ms)
+✔ assistant threads a cv_language override into the request body (2.9514ms)
+✔ translation sends the canonical profile and receives the replacement profile (4.4419ms)
+✔ job tailoring sends URL, fallback, notes and the canonical profile (9.3319ms)
+✔ job requirement statuses preview referenced CV evidence without quoting it (20.1861ms)
+✔ assistant tracks the detected cv_language from responses (19.3484ms)
+✔ assistant exposes a CV language selector using the shared language list (9.6895ms)
+✔ every structurally compatible sidebar template exposes lane-transfer controls (34.1668ms)
+✔ selected and editing structural fields remain eligible hover targets (5.2385ms)
+✔ section and record toolbars align above their text anchors with a shared gap (3.7196ms)
+✔ repeatable grid cells mount their dedicated two-action control (4.6065ms)
+✔ main-column Skills groups mount their dedicated add form anchors (6.3987ms)
+✔ Skills category and body textareas receive dedicated editor chrome (7.7915ms)
+✔ chip Skills categories use the standard record toolbar (12.6795ms)
+✔ plain section content reveals the complete section depth without stealing nested controls (13.5248ms)
+✔ semantic contact and identity fields receive editor-only hover depth (14.1459ms)
+✔ AI is attached only to section and record toolbars, not inline add controls (23.0135ms)
+✔ structural toolbar escapes the scaled page and stacks above the inspector (4.957ms)
+✔ structural toolbar accepts an element anchor while preserving the page-edge fallback (1.4578ms)
+✔ an element-centred toolbar can render directly below its anchor (3.5523ms)
+✔ inline toolbar panels can stay inside the viewport and flip above their anchor (5.1774ms)
+✔ selected elements keep selection and receive a separate depth cue (4.4014ms)
+✔ section, entry, and element context use neutral shadow depth without tinted surfaces (5.4898ms)
+✔ selection and editing use screen-stable hairlines with active textarea depth (4.3882ms)
+✔ direct actions replace the labelled structural toolbar with accessible icon buttons (7.0356ms)
+✔ semantic highlight can remain visible without opening the action toolbar (3.3299ms)
+✔ grid entries expose only direct add and delete actions (2.6556ms)
+✔ grid entry actions use context mutations, deletion undo, and a keyboard entry path (0.4742ms)
+✔ grid entry detection excludes rectangle-backed skill chips (0.5579ms)
+✔ grid actions stay in the section gutter and protect the final entry (0.5092ms)
+✔ language actions are centred 18px below the hovered language and use compact inline sizing (0.8396ms)
+✔ grid entry hover never stacks toolbar frames over selection, editing, or focus (1.6676ms)
+✔ Skills add form is labelled, keyboard-operable, and portalled through the shared toolbar (2.0015ms)
+✔ Skills add form exposes recovery for blank and duplicate values (0.678ms)
+✔ Skills add form uses Swiss editor tokens and compact accessible sizing (0.5567ms)
+✔ Skills plus matches Languages and centres every layout on the content edge (0.4143ms)
+✔ keeps the compact structural toolbar screen-stable across canvas zoom (3.1263ms)
+✔ shares the language-sized compact inline toolbar with Skills (0.5126ms)
+✔ keeps the shared structural toolbar gap exact in screen space (0.374ms)
+✔ uses outside gutters in a two-page spread (0.2653ms)
+✔ preserves the lane gutter in single-page view (0.1541ms)
+✔ offers the six named CV section presets instead of generic layouts (3.9512ms)
+✔ renders structural miniatures from the starter placeholder contract (0.4894ms)
+✔ uses an accessible responsive radio-card grid (0.5958ms)
+✔ Editor renders selection formatting as its own panel, independent of the workspace inspector (23.5315ms)
+✔ Editor panel uses the editor-affordance layer above sticky chrome (5.6098ms)
+✔ Settings use shared canvas chrome, readable groups, and compact-sheet overflow (3.8314ms)
+✔ inline selection updates after pointer and keyboard range changes (3.7038ms)
+✔ Editor exposes plain-language labels, multi-select help, and stepper buttons (1.9194ms)
+✔ Editor offers an attention-highlighted mid-dot only for inline Skills editing (3.039ms)
+✔ bulk B/I/U toggles stay visible for a multi-selection even when an element never serialized `underline` (1.7375ms)
+✔ bulk textarea spacing controls stay visible and update the whole selection (6.2796ms)
+✔ modal is reached only after deterministic spacing and typography S fail (8.5862ms)
+✔ the fallback routes to AI shortening with Pro-gated copy (3.35ms)
+✔ copy leads with the honest titles and uses the target label helper (4.46ms)
+▶ NewCvSetupModal contract
+  ✔ uses one DialogShell with visible template, contact, section and custom controls (10.4121ms)
+  ✔ exposes Pro locks, photo compatibility feedback and a replacement confirmation (5.8119ms)
+  ✔ stacks on tablet/mobile and respects reduced motion (3.699ms)
+✔ NewCvSetupModal contract (28.2185ms)
+✔ customization panel exposes Appearance only for reviewed template contracts including Atrium (27.4805ms)
+✔ appearance presents template-specific palettes, reviewed previews, and text presets (6.4978ms)
+✔ Regent uses the shared three-column palette grid for two rows of editions (2.5146ms)
+✔ document card keeps tier-honest fit status and CTA (1.9503ms)
+✔ structure groups show counts, contextual add actions, and reorder controls (3.0668ms)
+✔ density and optimization remain distinct from fit-to-page (2.1844ms)
+✔ precise spacing uses accessible steppers and baseline reset (7.6131ms)
+✔ drawer is responsive and becomes a fixed overlay on small screens (3.8508ms)
+✔ sidebar rail label matches the new panel name (8.1037ms)
+✔ skills layout choices use a short fixed example instead of CV content (21.7586ms)
+✔ skills layout modal stays wide with three side-by-side primary choices (4.2328ms)
+✔ seven chip treatments update the preview before the Chips card applies them (6.4323ms)
+✔ the selected chip variant reaches the document conversion commit (7.5934ms)
+▶ ChangeTemplateModal spacing
+  ✔ regenerates with DEFAULT_FLOW_SPACING instead of the previous template knobs (1.6086ms)
+  ✔ resets document knobs after a successful template swap (0.386ms)
+  ✔ refills from live Languages, Skills and custom sections before replacement (0.624ms)
+✔ ChangeTemplateModal spacing (4.8848ms)
+▶ Topbar template switcher
+  ✔ opens the modal from the templates control and cycles with arrows (0.7913ms)
+  ✔ exposes its own semantic template navigation group (0.517ms)
+✔ Topbar template switcher (2.0608ms)
+▶ Topbar one-page fit action
+  ✔ shows the animated one-page action with the requested tooltip (0.4171ms)
+✔ Topbar one-page fit action (0.8073ms)
+✔ topbar labels ambiguous actions without changing their existing handlers (9.7ms)
+✔ topbar exposes stable semantic groups and a precise destructive label (5.0598ms)
+✔ responsive topbar keeps every command and collapses only visible labels (3.7332ms)
+✔ sidebar panels expose contextual labels and selected states (2.4336ms)
+✔ two-page view names the action that its current state will perform (1.963ms)
+▶ API configuration
+  ✔ uses the local proxy when development has no explicit URL (1.886ms)
+  ✔ requires an explicit HTTPS URL for production (1.371ms)
+  ✔ never accepts a caller-controlled absolute endpoint (0.5792ms)
+✔ API configuration (6.1051ms)
+✔ production build requires an explicit HTTPS API URL (2.7817ms)
+✔ development and serve commands retain their existing fallback (0.3586ms)
+✔ uses 140% for the standard view and 280% while editing text (20.6564ms)
+✔ moves a selected group into the adjacent page and keeps its shared clamp (3.1912ms)
+✔ updates internal connectors and removes connectors split by a page transfer (1.2698ms)
+✔ structural canvas triggers reveal from pointer and keyboard focus (5.3848ms)
+✔ structural triggers do not intercept click or double-click editing (0.6444ms)
+✔ structural hover listeners rebind when selection replaces a trigger node (0.7455ms)
+✔ create retries reuse a key only for the same session snapshot (7.9114ms)
+✔ server revisions are positive integers (1.4251ms)
+✔ document conflicts use Polish recovery copy and retain metadata (1.5905ms)
+✔ persistence requests carry idempotency and optimistic revision fields (21.6976ms)
+✔ PdfCanvas and saved-document hydration preserve the server revision contract (6.4288ms)
+✔ replaces an older toast from the same workflow (4.4765ms)
+✔ keeps unrelated notifications and applies the queue limit (0.5231ms)
+✔ derives a replacement category for every toast kind (0.5503ms)
+▶ landing product positioning
+  ✔ keeps one main heading and makes the account and paid AI boundaries explicit (2.7889ms)
+  ✔ preserves directed starts and attributes the final CTA to its supported event (0.7396ms)
+  ✔ uses canonical plan limits and distinguishes the static AI example (0.4614ms)
+  ✔ retains accessible gallery copies, native FAQ, anchors, and motion fallback (0.601ms)
+✔ landing product positioning (9.2471ms)
+✔ uses the page-fit engine instead of a single fixed compact pass (19.7292ms)
+✔ shrink searches baseline->floor; post-AI relax searches baseline->COMPACT (7.3208ms)
+✔ commits deterministic fits and opens AI fallback only after failure (3.2331ms)
+✔ commit is a single undoable entry (setFlowSpacing + reconciled setA4_Elements) (2.727ms)
+✔ detection now drives a badge flag, not an auto-opened modal (3.1301ms)
+✔ all layouts use the same realistic one-page reduction target (5.1961ms)
+✔ LongCvModal receives only the post-deterministic AI fallback props (6.5704ms)
+✔ one-page fitting probes and commits template typography S before AI (7.2649ms)
+✔ guest restore and claim run the hidden-photo persistence migration (4.1486ms)
+✔ canvas context exposes repeatable-grid entry mutations (2.4617ms)
+✔ canvas context exposes the mode-aware Skills entry mutation (12.4888ms)
+✔ ApiClient merges per-request headers over client defaults (82.5914ms)
+✔ ApiClient keeps the same per-request idempotency key across retries (11.7765ms)
+▶ fillTemplate
+  ✔ posts cv_data and template_id through the provided ApiClient (4.846ms)
+  ✔ includes spacing_px when spacing is provided (2.1477ms)
+  ✔ rejects missing cv data (1.2853ms)
+✔ fillTemplate (10.5663ms)
+✔ production editor code depends only on focused contexts (107.3974ms)
+✔ Atrium keeps every section heading glued to its body across pages and spacing changes (38.7509ms)
+✔ Atrium is a centered-axis editorial single column, not a generic icon-template recolor (22.5774ms)
+✔ Aurelia keeps a framed one-column editorial identity (3.8565ms)
+✔ Aurelia uses managed icons and exact record overlays (0.9854ms)
+✔ Cadenza preserves its editorial hierarchy and exact date rail (6.8154ms)
+✔ Cadenza Add section reproduces the filled title band and accent (70.8006ms)
+✔ Cadenza re-centres a legacy added heading after every input value (19.8739ms)
+✔ Cadenza insertion keeps every legacy language-grid cell with its section (17.1865ms)
+✔ Cadenza spacing remains idempotent and keeps every title band together (21.2791ms)
+✔ Cadenza repairs title accents left behind by an older spacing pass (14.0568ms)
+✔ Cadenza keeps compact bands after record and section reordering (30.862ms)
+✔ Aurelia keeps a safe divider below its reserved contact rows (2.9905ms)
+✔ Regent keeps a safe divider below its reserved contact rows (0.6426ms)
+✔ Meridian keeps a safe divider below its reserved contact rows (0.4773ms)
+✔ Cadenza keeps a safe divider below its reserved contact rows (0.4597ms)
+✔ Vellum keeps a safe divider below its reserved contact rows (0.4486ms)
+✔ the Free plan exposes exactly three complementary templates (3.8262ms)
+✔ every Free template exposes all six appearance palettes (0.5989ms)
+✔ Regent stays registered for previously saved documents (0.4842ms)
+✔ paid authored packs are not imported by the production registry (12.5677ms)
+✔ Linden starter exposes the complete editorial structure (4.0883ms)
+✔ Linden section reorder preserves the authored main-column start (12.3711ms)
+✔ Linden contact band reserves the rail and uses dedicated icons (0.5038ms)
+✔ Linden job-position toggle keeps the contact rail and body stationary (4.7612ms)
+✔ Linden job-position blur keeps the full-width identity band (0.8377ms)
+✔ Linden sidebar sections transfer through the shared structural editor (43.2526ms)
+▶ all template starters expose a reversible masthead title
+  ✔ covers the complete public template registry (3.5806ms)
+  ✔ monument restores every downstream coordinate through repeated title toggles (14.4062ms)
+  ✔ monument hides and restores its job-position field (3.4678ms)
+  ✔ slate restores every downstream coordinate through repeated title toggles (19.3901ms)
+  ✔ slate hides and restores its job-position field (3.2449ms)
+  ✔ atrium restores every downstream coordinate through repeated title toggles (6.1935ms)
+  ✔ atrium hides and restores its job-position field (5.4876ms)
+  ✔ sterling restores every downstream coordinate through repeated title toggles (8.325ms)
+  ✔ sterling hides and restores its job-position field (1.9452ms)
+  ✔ regent restores every downstream coordinate through repeated title toggles (5.4997ms)
+  ✔ regent hides and restores its job-position field (1.2436ms)
+  ✔ meridian restores every downstream coordinate through repeated title toggles (7.7598ms)
+  ✔ meridian hides and restores its job-position field (2.2304ms)
+  ✔ linden restores every downstream coordinate through repeated title toggles (6.0126ms)
+  ✔ linden hides and restores its job-position field (4.269ms)
+  ✔ cadenza restores every downstream coordinate through repeated title toggles (6.6185ms)
+  ✔ cadenza hides and restores its job-position field (9.8944ms)
+  ✔ vellum restores every downstream coordinate through repeated title toggles (8.5313ms)
+  ✔ vellum hides and restores its job-position field (2.5685ms)
+  ✔ aurelia restores every downstream coordinate through repeated title toggles (4.5442ms)
+  ✔ aurelia hides and restores its job-position field (1.6825ms)
+✔ all template starters expose a reversible masthead title (133.3621ms)
+✔ Meridian starter gives Education the Experience record structure (3.256ms)
+✔ Monument keeps its text hierarchy readable and monochrome (8.6929ms)
+✔ static CV templates use Polish section headings (64.054ms)
+✔ Regent preserves its monochrome editorial hierarchy (5.5896ms)
+✔ sidebar templates umieszczają Wykształcenie/Umiejętności/Języki w sidebarze (13.3286ms)
+✔ Slate uses a rectilinear blueprint sidebar and no circles or ellipses (4.0908ms)
+✔ Sterling keeps the Experience heading glued to its body, and packs the wide sidebar lane without folding columns (21.038ms)
+✔ Sterling is a wide-sidebar, letterhead-masthead layout with structured sidebar education (3.6221ms)
+✔ Vellum preserves its portrait-led hierarchy and exact date rail (13.6537ms)
+✔ Vellum keeps one continuous summary field through spacing, reorder, and live reflow (61.099ms)
+▶ a4ElementFactories
+  ✔ creates text on the requested page (2.0497ms)
+  ✔ keeps circle width and height equal (2.9378ms)
+  ✔ scales image height from natural aspect ratio (0.5381ms)
+  ✔ creates an editing textarea with measured height (1.1097ms)
+  ✔ creates outline rectangles with radius and fill flags (0.9228ms)
+  ✔ creates polygon presets with normalized vertices (0.7483ms)
+  ✔ creates cubic Bezier path ornaments (0.7012ms)
+✔ a4ElementFactories (12.3619ms)
+▶ Add section inherits exact template record structure
+  ✔ Cadenza reuses its cc-edu rows and right-hand metadata rail (45.5971ms)
+  ✔ Cadenza reuses its cc-exp rows and right-hand metadata rail (14.8272ms)
+  ✔ Meridian reuses its cc-edu rows and right-hand metadata rail (10.5799ms)
+  ✔ Meridian reuses its cc-exp rows and right-hand metadata rail (13.9243ms)
+  ✔ Aurelia reuses its cc-edu rows and right-hand metadata rail (30.3281ms)
+  ✔ Aurelia reuses its cc-exp rows and right-hand metadata rail (10.7659ms)
+  ✔ Vellum reuses its cc-edu rows and right-hand metadata rail (30.1954ms)
+  ✔ Vellum reuses its cc-exp rows and right-hand metadata rail (10.5808ms)
+  ✔ Meridian gives the first added Education section its native metadata rail (5.7599ms)
+  ✔ uses Meridian's authored fallback when the live CV has no record sections (3.7783ms)
+  ✔ keeps the generic builder result when the document has no matching record (1.8727ms)
+✔ Add section inherits exact template record structure (186.7386ms)
+✔ collects pending content and style corrections (19.8747ms)
+✔ includes layout, structure, deletion, and clone groups while pending or previewing (1.3516ms)
+✔ drops rejected groups and ignores user messages (0.5989ms)
+✔ deleting import data requires an inline, filename-scoped confirmation (36.1683ms)
+✔ import history identifies rows by the source filename, never a database id (20.432ms)
+✔ CV import keeps one idempotency key for the logical file attempt (28.3992ms)
+✔ import history preserves readable filenames and usable actions on compact screens (38.3021ms)
+✔ CV import history keeps its controls fixed and scrolls only the snapshot list (67.915ms)
+✔ CV upload step remains scrollable on short viewports (12.7851ms)
+✔ Atrium exposes the authored edition, white paper, dark mode, and three strong palettes (5.8435ms)
+✔ new Atrium editions keep all small text readable on their paper (6.3895ms)
+✔ a strong Atrium palette recolours every semantic while preserving geometry (17.596ms)
+✔ Atrium preserves manual colours and ignores unknown palette ids (1.4857ms)
+✔ palette switching never tints a user photo and restores a matching portrait glyph (2.2064ms)
+✔ Atrium typography scales by role and returning to M restores authored metrics (6.6813ms)
+✔ Atrium type presets rebuild contacts without moving its portrait or linear chrome (380.7321ms)
+✔ Atrium batches rendered heights before one document-wide structural pack (51.1101ms)
+✔ ATS overall is the weighted blend of categories, not a rounded 1–10 scale (3.6541ms)
+✔ ATS weights sum to 1.0 (0.5576ms)
+✔ missing categories renormalise instead of inventing 100% (0.6557ms)
+✔ design rubric overall follows category maxes, not rating × 10 (3.6176ms)
+✔ Aurelia exposes six semantic palettes and authored defaults (6.9983ms)
+✔ Aurelia keeps every text role readable on the fixed white paper (17.8984ms)
+✔ Aurelia palette recolors frame, rules, hidden title, and real icons (5.7393ms)
+✔ Aurelia typography presets return exactly to the authored M metrics (68.3845ms)
+✔ getAccessToken returns null for missing and placeholder values (6.8209ms)
+✔ clearAccessToken removes the JWT and cached username (0.5497ms)
+✔ getUsernameFromToken reads the JWT sub claim (4.1884ms)
+✔ getEditorPath uses guest or username workspace (1.1166ms)
+✔ getSessionUsername falls back to JWT sub for legacy sessions (1.0899ms)
+✔ isAuthFailure matches status and FastAPI default copy (0.7109ms)
+✔ getEditorPath preserves and encodes template hints only for setup (2.3304ms)
+✔ normalizeLanguageLevel maps CEFR codes and free-text notes (8.0984ms)
+✔ normalizeBioCvData keeps only CEFR language levels (7.4939ms)
+✔ builds a clean manual CV payload with structured entries (5.7097ms)
+✔ preserves an editor-authored custom grid through profile normalization (0.7218ms)
+✔ preserves category records through repeated guest/profile normalization (0.8626ms)
+✔ validates only completed repeater cards and email syntax (7.6867ms)
+✔ allows jumping to summary when required personal fields are filled (2.6459ms)
+✔ parses and deduplicates tag-list input (0.7444ms)
+✔ parseSkills keeps Category: lines intact and expands skill groups (18.3925ms)
+✔ preserves spaces while a controlled wizard field is being edited (7.1044ms)
+✔ keeps LinkedIn, GitHub, and website contact links in the wizard payload (1.0001ms)
+✔ browser text layout is a no-op when no DOM is available (2.4533ms)
+✔ an unavailable primary font fails closed to backend wrapping (2.986ms)
+✔ font readiness includes every bold and italic inline-run variant (3.6751ms)
+✔ supplementary-plane RTL scripts stay on the backend fallback (0.4376ms)
+✔ every PDF-rendering request resolves browser lines before serialization (30.5106ms)
+✔ bundle budgets include every transitive static import without pulling lazy routes (7.4623ms)
+✔ bundle entry discovery fails instead of silently undercounting a missing route (4.9569ms)
+✔ Cadenza exposes three light and three strong white-paper palettes (1.9085ms)
+✔ Cadenza text and adaptive section headings meet normal-text contrast (2.8505ms)
+✔ palette updates white paper, adaptive bands, job line, marks, language entries, and icons (4.9354ms)
+✔ palette replacement preserves an unrecognised manual colour (0.8572ms)
+✔ Cadenza typography is role-aware and returning to M restores authored metrics (3.3136ms)
+✔ Cadenza type presets rebuild contacts and keep exact date overlays anchored (99.4596ms)
+✔ Cadenza batches rendered textarea heights before one structural repack (43.6242ms)
+▶ assertCanvasElementRoot
+  ✔ accepts a valid element list (7.5457ms)
+  ✔ rejects unknown categories (0.9783ms)
+  ✔ rejects missing element_id (0.4919ms)
+✔ assertCanvasElementRoot (11.8239ms)
+✔ src\utils\canvasEnter.test.js (1481.3925ms)
+▶ canvasFontFamily
+  ✔ aliases Helvetica and Courier to Inter stacks like the PDF renderer (2.8944ms)
+  ✔ keeps registered faces that share files with the PDF (0.4671ms)
+  ✔ falls back to Inter for empty values (0.9207ms)
+✔ canvasFontFamily (7.4468ms)
+▶ section highlight limits across built-in templates
+  ✔ undefined isolates every main and sidebar section (56.0585ms)
+  ✔ undefined isolates every main and sidebar section (9.8058ms)
+  ✔ undefined isolates every main and sidebar section (11.629ms)
+  ✔ undefined isolates every main and sidebar section (3.0132ms)
+  ✔ undefined isolates every main and sidebar section (2.4949ms)
+  ✔ undefined isolates every main and sidebar section (4.3924ms)
+  ✔ undefined isolates every main and sidebar section (12.0339ms)
+  ✔ undefined isolates every main and sidebar section (10.967ms)
+  ✔ undefined isolates every main and sidebar section (8.2534ms)
+  ✔ undefined isolates every main and sidebar section (4.4726ms)
+✔ section highlight limits across built-in templates (127.9669ms)
+▶ canvas semantic highlight bounds
+  ✔ includes an optically shifted Nova section icon above the stored heading top (7.1224ms)
+  ✔ expands a stored section box to a live heading Range without shrinking it (13.9972ms)
+  ✔ keeps the stored highlight when no rendered heading is available (17.6825ms)
+  ✔ clips an oversized body box at the next semantic section boundary (1.6439ms)
+  ✔ ignores a stale mounted DOM position while React is committing a reorder (4.4577ms)
+  ✔ clips polluted members above and oversized content below a moved section (1.0224ms)
+  ✔ keeps trusted leading icon ink while rejecting an unrelated earlier member (2.7819ms)
+  ✔ reapplies both semantic limits after merging fresh line-height ink (1.2763ms)
+  ✔ rejects a live Range that is too far from the current model boundary (0.9925ms)
+  ✔ suppresses the outline when corrupt section limits cross (1.5815ms)
+✔ canvas semantic highlight bounds (76.1043ms)
+✔ keeps a transient toolbar available for one second after pointer leave (1.8457ms)
+✔ pointer or keyboard reveal stays transient (2.1658ms)
+✔ only an open menu pins the toolbar across pointer leave (0.856ms)
+✔ reset clears the complete menu interaction (0.6189ms)
+✔ an inline form can pin and unpin the toolbar without opening a menu (0.6246ms)
+▶ resolvePageWheelDelta
+  ✔ goes to the next page when scrolling down with no overflow (1.9686ms)
+  ✔ goes to the previous page when scrolling up with no overflow (0.7752ms)
+  ✔ does not leave page 1 upward or the last page downward (0.4511ms)
+  ✔ lets native scroll consume the wheel while not at the edge (0.4533ms)
+  ✔ changes page when scrolling past the bottom or top edge (0.459ms)
+  ✔ ignores ctrl/meta wheel and horizontal-dominant gestures (0.5139ms)
+✔ resolvePageWheelDelta (8.1588ms)
+▶ isAnchoredMainSectionTitle
+  ✔ treats Polish and English experience headings as anchored (2.2673ms)
+  ✔ does not anchor education or other leftovers (0.3476ms)
+✔ isAnchoredMainSectionTitle (5.076ms)
+▶ collapseSpilledMainIntoSidebar
+  ✔ is a no-op without a sidebar rail (1.3827ms)
+  ✔ moves spilled education onto the rail and drops the extra page (31.9019ms)
+  ✔ never moves experience onto the rail (3.7032ms)
+  ✔ keeps a leftover in main when moving it would not drop a page (5.4305ms)
+  ✔ moves the last two leftovers together when only both drop a page (4.8615ms)
+✔ collapseSpilledMainIntoSidebar (48.2604ms)
+▶ moveMainSectionsToSidebar
+  ✔ recomputes wrapped height at sidebar width instead of copying the main box (3.158ms)
+  ✔ keeps Languages and Skills as separate sidebar sections when both move together (9.8422ms)
+  ✔ keeps any batch of moved sections separate and in document order (3.4221ms)
+✔ moveMainSectionsToSidebar (17.5553ms)
+▶ Composite metadata
+  ✔ opts in only matching rows, excluding rails and incompatible bindings (5.9108ms)
+  ✔ keeps empty slots through profile synchronization and a reload (9.4894ms)
+  ✔ compacts only the PDF copy and rebases inline marks (19.5938ms)
+✔ Composite metadata (42.2327ms)
+▶ Education metadata
+  ✔ uses exactly two hints for generated and newly added combined rows (0.9175ms)
+  ✔ keeps a period-only value attached to the period after save/reload (2.1627ms)
+  ✔ synchronizes the same empty-city position for a user-added Education record (13.8071ms)
+  ✔ omits guidance and unused dots only in the rendered PDF copy (0.8802ms)
+✔ Education metadata (22.2265ms)
+✔ contactItemWidth = iconGap + measured text + itemPad (4.3678ms)
+✔ contactItemWidth falls back to charWidth when measure returns null (0.5594ms)
+✔ centered: a single line is centered on its visible width (0.824ms)
+✔ centered: wraps to a second line past maxWidth and bottomY advances one lineStep (0.4309ms)
+✔ wrapping: left-anchored, wraps at rightLimit (1.1475ms)
+✔ stacked: one channel per row, bottomY at the last row (2.0122ms)
+✔ chip: rect + icon + label geometry and clamped width (0.93ms)
+✔ chip: wraps to the next band when the row exceeds rightLimit (0.7036ms)
+✔ removing the middle item closes the gap (no empty slot) (0.6794ms)
+✔ activeChannels reads channels present, in descriptor order (8.1245ms)
+✔ removal drops both elements of the channel (3.346ms)
+✔ addition inserts an icon+label pair with the band theme icon (12.7664ms)
+✔ addition accepts a channel the CV never generated (github / website) (4.0615ms)
+✔ addition inserts a channel into its canonical slot, not at the end (0.827ms)
+✔ addition without authored text exposes channel-specific editor guidance (1.4795ms)
+✔ every addable contact channel has format-specific guidance (2.1365ms)
+✔ relayout re-spaces following chips after the edited label grows (1.1121ms)
+✔ starter relayout measures visible placeholders instead of empty content (0.7663ms)
+✔ empty added label reserves display-name width so the next chip does not overlap (1.1202ms)
+✔ addition creates an empty guided label without forcing edit mode (1.0714ms)
+✔ adding a wrapping contact keeps content below the reserved zone fixed (1.1099ms)
+✔ a growing contact label moves neither body content nor masthead chrome (0.5743ms)
+✔ removing a contact keeps the following section at its authored Y (0.3384ms)
+✔ chip relayout moves + resizes the rect with its icon/label (1.6684ms)
+✔ chip relayout leaves downstream flow put when the row count is unchanged (1.0635ms)
+✔ chip addition creates a rect + icon + label triple for the channel (1.3713ms)
+✔ wrapping contacts recover placeholder spacing after a populated field is cleared (5.9312ms)
+✔ centered contacts recover placeholder spacing after a populated field is cleared (1.7081ms)
+✔ groups chips by band (canonical order) and offers every unused channel (4.5415ms)
+✔ a band without an anchor descriptor is not managed (0.4635ms)
+✔ known channels map to Polish display names (1.5278ms)
+✔ channelName falls back to the raw key for unknown channels (0.3363ms)
+✔ categorizes contact URLs by domain (1.8456ms)
+✔ builds short display labels (0.7559ms)
+✔ lists only missing optional link kinds (3.3792ms)
+✔ failed CV imports explain a safe and actionable next step (2.2561ms)
+✔ CV extraction waits four minutes without automatic retries (8.3669ms)
+✔ CV import history distinguishes active, successful, and failed snapshots (0.7984ms)
+▶ CV starter adapter
+  ✔ does not flatten empty custom categories or recreate deleted records during refill (5.2488ms)
+  ✔ creates the agreed default setup with an empty persisted profile (1.2455ms)
+  ✔ uses a validator-safe e-mail sentinel and removes it from the canvas (1.8247ms)
+  ✔ removes markers and persists composite bindings (1.0116ms)
+  ✔ restores markers only for fields that remain empty (0.8243ms)
+  ✔ restores and rebinds blank fields in every repeated record (3.794ms)
+  ✔ builds the same semantic starter contract for all ten template ids (1.3153ms)
+  ✔ supports multiple custom sections without sharing bindings (1.6681ms)
+✔ CV starter adapter (20.1223ms)
+✔ returns templates in registry order (5.257ms)
+✔ adjacentAllowedTemplate wraps among plan-allowed templates only (0.7141ms)
+✔ adjacentAllowedTemplate returns null when the plan has fewer than two templates (0.6954ms)
+✔ demo mode exposes import conversion while layout stays in the sidebar (32.0897ms)
+✔ demo mode hides account and upload tools from the sidebar (5.1817ms)
+✔ demo mode keeps its product-focused banner copy (6.7684ms)
+✔ demo mode removes template switching from the topbar (2.2402ms)
+✖ empty-state chooser replaces editor chrome and Pro-only AI actions (21.3492ms)
+✔ PdfCanvas publishes demo state through the editor context (1072.771ms)
+✔ authenticated demo refresh does not offer the demo snapshot for claiming (5.8197ms)
+✔ new CV onboarding uses one setup dialog for guests and accounts (5.6811ms)
+✔ registration and login accept the new intent and retire conversion intents (3.9696ms)
+▶ demo new-CV flow integration
+  ✔ treats demo elements as product content instead of an active user document (18.6915ms)
+✔ demo new-CV flow integration (29.4819ms)
+✔ a real edit pushes a new step and advances the index (4.9057ms)
+✔ an unchanged non-quiet record is a no-op (no new step) (0.5039ms)
+✔ a real edit after an undo discards the redo tail (0.7559ms)
+✔ a quiet settle after an undo preserves the redo tail (1.0498ms)
+✔ a quiet settle at the tip refreshes in place without duplicating (0.7054ms)
+✔ a quiet record with no baseline seeds the stack (0.5754ms)
+✔ pushing past the limit drops the oldest entries (0.6707ms)
+▶ measureLastPageUtilization
+  ✔ reports a low ratio when the last page has little content (3.0025ms)
+  ✔ reports a high ratio when the last page is nearly full (0.6548ms)
+  ✔ ignores fixedToPage chrome that spans the whole page (0.5893ms)
+  ✔ only measures elements on the last page (0.8758ms)
+✔ measureLastPageUtilization (9.0353ms)
+▶ diagnoseDocumentLength
+  ✔ flags 3+ pages as too long and 2 pages as fine (1.0562ms)
+  ✔ chooses spacing mode when the last page is sparse (1.6438ms)
+  ✔ chooses content mode when the last page is full (3.9219ms)
+  ✔ targets one page fewer, never below one (0.7113ms)
+  ▶ isSidebarLayout
+    ✔ flags 2+ pages as too long, one page lower than single-column (1.1069ms)
+    ✔ a 2-page sidebar CV that would not yet flag single-column does flag here (0.6191ms)
+    ✔ keeps the earlier warning but reduces sidebar CVs by one page at a time (0.5358ms)
+    ✔ still derives mode from last-page utilization (unchanged heuristic) (0.7158ms)
+  ✔ isSidebarLayout (3.8061ms)
+✔ diagnoseDocumentLength (16.819ms)
+▶ getNextPageFitTarget
+  ✔ sets a realistic one-page reduction goal (0.6303ms)
+  ✔ normalizes invalid page counts without promising zero pages (0.4505ms)
+✔ getNextPageFitTarget (1.5723ms)
+▶ shouldResetLongCvOffer
+  ✔ does not reset on the first observation (no previous identity) (0.668ms)
+  ✔ does not reset when first autosave assigns a pdfId to the same draft (1.3689ms)
+  ✔ resets when the template changes (Zmień szablon keeps pdfId) (0.3705ms)
+  ✔ resets when a different saved document is loaded (0.4882ms)
+  ✔ resets when the canvas is cleared (pdfId → null) (0.3092ms)
+✔ shouldResetLongCvOffer (7.2173ms)
+✔ a scope captured in the first A session stays stale after A to B to A (4.0266ms)
+✔ same-session revision changes invalidate strict async scopes (0.5572ms)
+✔ document lifecycle context exposes the operation commit contract (26.212ms)
+✔ all asynchronous template fills reject stale document revisions (5.4464ms)
+✔ saved-document open checks scope before replacing the canvas (2.9721ms)
+✔ document management uses one dialog state and recovery suspends standard dialogs (16.432ms)
+✔ complete replacements share one atomic snapshot commit (26.7296ms)
+✔ controller/view and AI lazy boundaries are explicit (8.9451ms)
+✔ dirty guard saves before continuing and retains failures (8.8389ms)
+✔ editor title and token verification use the controlled and header-only contracts (2.8852ms)
+✔ central dirty guard covers router and browser exits (10.9771ms)
+✔ import history keeps extracted PII out of list rows and fetches detail on demand (10.8897ms)
+✔ complete snapshot normalization clears metadata that is not supplied (19.8443ms)
+✔ saved API metadata becomes one canonical editor snapshot (5.3036ms)
+✔ opening an older German Languages grid backfills its identity and removes only its generated level accent (8.0122ms)
+✔ opening a renamed semantic Languages grid still migrates its legacy level run (2.6699ms)
+✔ opening a custom JĘZYKI entries grid preserves its inline runs and semantic kind (1.8068ms)
+✔ restores edit zoom only from bare A4 paper clicks (2.725ms)
+✔ recognizes native scrollbar gutters even when Chromium reports the A4 page (1.332ms)
+✔ recognizes a replacement text edit before restoring the page spread (0.8377ms)
+✔ defers spread restoration for an edit that is waiting to start (0.6334ms)
+✔ coordinates scroll with scale so the edited field follows one smooth path (3.1168ms)
+✔ reduced motion reveals the edited field without scheduling animation (0.5514ms)
+✔ serializeEditable reads a data-* styled span into a run (7.22ms)
+✔ serializeEditable folds <br> and block boundaries to newlines (1.0712ms)
+✔ serializeEditable does not double lines when block wrappers coexist with newline text (0.7406ms)
+✔ serializeEditable preserves consecutive explicit empty paragraphs (0.9722ms)
+✔ serializeEditable drops control chars while keeping run offsets aligned (4.9209ms)
+✔ serializeEditable recognises pasted <strong>/<em> tags (1.2829ms)
+✔ runsToHtml emits the data-* attributes the serializer reads back (1.1981ms)
+✔ bullet edit HTML gives the Monument training copy a dedicated marker column (1.0047ms)
+✔ bullet edit HTML keeps plain rows full-width and slices inline runs per paragraph (1.0443ms)
+✔ an empty bullet-list edit session starts with an editor-only marker (9.8113ms)
+✔ bullet edit seeding preserves an intentional plain paragraph (0.7157ms)
+✔ Enter after a filled bullet creates a new editable bullet (2.3384ms)
+✔ Enter on an empty bullet exits the list into a persistent blank paragraph (0.8042ms)
+✔ Enter inside a styled bullet keeps the split suffix run aligned (2.3622ms)
+✔ Backspace removes one trailing plain paragraph from a bullet list (10.1573ms)
+✔ Backspace at the start of a bullet body converts it to a plain paragraph (0.6568ms)
+✔ Backspace inside bullet text stays native (0.4904ms)
+✔ selection restoration targets the empty paragraph after a newline (1.6397ms)
+✔ selection after a bullet marker targets the body column (0.9936ms)
+✔ Textarea wires bullet edit paragraphs to the same CSS grid as display mode (82.6177ms)
+▶ normalizeEditorMode
+  ✔ accepts template and defaults everything else to freeform (1.5841ms)
+✔ normalizeEditorMode (8.7079ms)
+▶ inferEditorMode
+  ✔ uses templateId when present (0.654ms)
+  ✔ infers template from flow metadata density (0.6773ms)
+  ✔ infers freeform for plain authored shapes (1.1619ms)
+✔ inferEditorMode (3.3234ms)
+▶ canFreePositionElement
+  ✔ blocks template flow content and allows freeform (7.8618ms)
+  ✔ blocks masthead decorations in template mode (0.717ms)
+  ✔ allows user gallery photos in template mode (0.5592ms)
+  ✔ blocks fitted profile-photo slots in template mode (0.563ms)
+  ✔ blocks untagged template icons and accent artwork in template mode (2.5056ms)
+  ✔ blocks untagged generator shapes in template mode (0.7021ms)
+  ✔ never allows locked or fixed chrome (0.561ms)
+✔ canFreePositionElement (14.7688ms)
+▶ inspector field gates
+  ✔ hides position controls for layout-owned template content (0.7416ms)
+  ✔ keeps lock toggle for freeform locked text so the user can unlock (0.4884ms)
+  ✔ disables clone/delete only in template mode (0.4486ms)
+  ✔ hides the layer (zIndex) field only in template mode (0.323ms)
+  ✔ disables drag-resize and size fields in template mode (0.4553ms)
+  ✔ hides auto-height and image proportional height fields in freeform (0.3115ms)
+✔ inspector field gates (3.6187ms)
+✔ element outline bounds use model geometry when no canvas node is mounted (4.5426ms)
+✔ element outline bounds preserve icon optical alignment and a visible minimum (0.7074ms)
+✔ populated text selection keeps two screen pixels around glyph bounds (1.211ms)
+✔ empty CSS guidance uses its live lifted box and rendered zoom instead of the saved baseline (1.5131ms)
+▶ isDecorativeChrome
+  ✔ treats fixedToPage as non-interactive chrome (1.6806ms)
+✔ isDecorativeChrome (9.5054ms)
+▶ canFreePositionElement re-export
+  ✔ blocks template content drag (0.6502ms)
+✔ canFreePositionElement re-export (1.0034ms)
+✔ the reported 280% experience title keeps its panel on the free right side (12.4432ms)
+✔ a full-width title uses a shorter panel above it instead of overlapping (0.4965ms)
+✔ the cog avoids existing record controls and retains its slot after hover ends (4.3137ms)
+✔ scrolling offscreen does not permanently displace the cog (1.2443ms)
+✔ all feasible placements remain outside the edited rectangle at every scroll position (1.9279ms)
+✔ settings sit eight screen pixels left of the selected glyphs (1.1403ms)
+✔ partially clipped selections keep a reachable trigger and panel (21.3424ms)
+✔ offscreen selections hide their cog (3.3754ms)
+✔ compact and low-height viewports never overflow (5.6422ms)
+✔ large zoom changes position, never control or preferred panel size (2.7329ms)
+▶ buildSpacingLadder
+  ✔ returns steps + 1 candidates with exact endpoints (3.3625ms)
+  ✔ is monotone non-increasing on every knob from loosest to tightest (0.7847ms)
+  ✔ collapses to a single candidate when endpoints are equal (0.5104ms)
+✔ buildSpacingLadder (7.3789ms)
+▶ classifyFitTier
+  ✔ classifies baseline / compact-or-looser as clean (1.0267ms)
+  ✔ classifies the hard floor as emergency (0.5316ms)
+  ✔ classifies a candidate within 1px of the floor as emergency (0.5489ms)
+  ✔ classifies between compact and floor as tight (0.4433ms)
+✔ classifyFitTier (5.2681ms)
+▶ findFitForTarget
+  ✔ recognizes a compact 3-to-2 reduction as a deterministic success (1.437ms)
+  ✔ returns the LOOSEST candidate that fits, never the tightest (0.7084ms)
+  ✔ classifies a floor-only fit as emergency (0.7203ms)
+  ✔ returns impossible when even the floor exceeds the target (0.5421ms)
+  ✔ relax direction: picks baseline when baseline already fits the achieved target (0.5251ms)
+✔ findFitForTarget (5.3963ms)
+▶ resolveFitAction
+  ✔ commits clean and tight fits (0.7114ms)
+  ✔ commits a floor-only deterministic fit before considering AI (0.6576ms)
+  ✔ routes impossible straight to the AI modal (0.7427ms)
+✔ resolveFitAction (2.6506ms)
+▶ formatFitTargetLabel
+  ✔ uses the Polish locative noun form (0.3586ms)
+✔ formatFitTargetLabel (0.6385ms)
+▶ parseFlatListItems
+  ✔ splits inline content on the mid-dot separator (3.5132ms)
+  ✔ tolerates whitespace drift around the mid-dot from manual edits (0.5633ms)
+  ✔ splits bullet content by line and strips the leading marker (0.7032ms)
+  ✔ returns an empty array for blank content (0.5827ms)
+  ✔ drops empty lines/items instead of keeping blanks (2.46ms)
+✔ parseFlatListItems (14.1311ms)
+▶ formatFlatListContent
+  ✔ joins items with the two-space mid-dot separator for inline style (0.679ms)
+  ✔ prefixes each item with a bullet marker for bullet style (0.5451ms)
+  ✔ strips a pre-existing leading marker so it is never doubled (0.8097ms)
+✔ formatFlatListContent (3.2086ms)
+▶ convertFlatListContent
+  ✔ round-trips items from inline to bullet and back without loss (3.9732ms)
+✔ convertFlatListContent (4.5092ms)
+▶ flatSectionLayoutStyle
+  ✔ reads the current style from an element's bulletList flag (0.8867ms)
+✔ flatSectionLayoutStyle (1.2951ms)
+▶ insertInlineSkillSeparator
+  ✔ adds the canonical mid-dot after the skill at the caret (1.5832ms)
+  ✔ replaces uneven caret whitespace and preserves formatting on both skills (1.4836ms)
+  ✔ does not create a leading or duplicate separator (0.451ms)
+✔ insertInlineSkillSeparator (4.1067ms)
+▶ computeFloatingPanelPosition
+  ✔ places the panel above the selection when there is room (2.6952ms)
+  ✔ flips below when space above is tighter than below (0.586ms)
+  ✔ clamps horizontally into the viewport (0.6462ms)
+  ✔ clamps vertically into the viewport (0.7917ms)
+✔ computeFloatingPanelPosition (8.9139ms)
+▶ unionRects
+  ✔ returns null for an empty list (0.6304ms)
+  ✔ unions multiple selection boxes (1.9206ms)
+✔ unionRects (2.9902ms)
+▶ normalizeFlowSpacing
+  ✔ fills missing keys from defaults (4.9593ms)
+  ✔ clamps out-of-range values (1.0601ms)
+  ✔ detects defaults (0.5056ms)
+  ✔ compares normalized knobs for Reset no-op (avoid force-pack on unchanged rhythm) (0.553ms)
+✔ normalizeFlowSpacing (10.7565ms)
+▶ densityPresetsFromBaseline
+  ✔ maps Standardowa to baseline and scales compact/spacious around it (1.2209ms)
+✔ densityPresetsFromBaseline (1.6595ms)
+▶ MIN_FLOW_SPACING hard floor
+  ✔ is the tightest legible rhythm the fit engine may reach (0.7803ms)
+  ✔ is tighter than the density minimum on record/section/after_rule (0.5121ms)
+  ✔ is below the compact preset on every knob (engine descends past compact) (0.4761ms)
+  ✔ scaleFlowSpacing cannot reach the floor (it clamps to DENSITY_SPACING_MIN) (2.3226ms)
+✔ MIN_FLOW_SPACING hard floor (7.2636ms)
+✔ landing labels, pricing, and FAQ keep the Free limits explicit (33.4831ms)
+✔ plan modal keeps loading, fallback, current, and pending states explicit (10.671ms)
+✔ registration, import, and account gates communicate the real Free limits (5.1629ms)
+✔ new CV setup uses Meridian while saved documents stay template-owned (4.4619ms)
+✔ render-on-demand proves legacy paid-template ownership with the saved PDF id (5.5352ms)
+▶ freeformShapes
+  ✔ returns triangle/diamond/hexagon presets (2.2655ms)
+  ✔ builds SVG polygon points from the element box (0.6631ms)
+  ✔ builds cubic SVG path strings for wave preset (1.192ms)
+  ✔ lists anchor and control handles for Bezier paths (1.5674ms)
+  ✔ moves a control handle in normalized box space (4.3079ms)
+✔ freeformShapes (13.3098ms)
+▶ listGridSectionEntryAnchors
+  ✔ discovers language and explicitly managed grids but ignores ordinary skill pills (15.3134ms)
+✔ listGridSectionEntryAnchors (18.158ms)
+▶ insertGridSectionEntry
+  ✔ keeps starter guidance as placeholder metadata in an added Języki section (11.8047ms)
+  ✔ inserts after the hovered cell, wraps at the fixed column count, and repacks later sections (5.9005ms)
+  ✔ keeps a renamed semantic Languages grid managed and defaults a one-cell narrow main grid to 3 columns (2.166ms)
+✔ insertGridSectionEntry (20.6525ms)
+▶ removeGridSectionEntry
+  ✔ removes exactly one cell and compacts later entries into the open slot (8.0776ms)
+  ✔ protects the final cell so the section keeps a per-cell add trigger (2.0965ms)
+  ✔ lets explicit entries semantics override a custom JĘZYKI title (2.5066ms)
+  ✔ restores downstream section geometry after a same-row language add and delete (41.6845ms)
+✔ removeGridSectionEntry (56.3742ms)
+✔ saveGuestDocument then loadGuestDocument round-trips the snapshot (3.1693ms)
+✔ loadGuestDocument returns null when nothing was saved (0.5127ms)
+✔ loadGuestDocument returns null for corrupted JSON instead of throwing (0.5573ms)
+✔ clearGuestDocument removes the stored snapshot (2.967ms)
+✔ hasGuestDocument is true only when there is at least one non-deleted element (1.4433ms)
+✔ queueGuestEvent appends to the buffer with a timestamp (1.8848ms)
+✔ queueGuestEvent accumulates multiple events in order (2.1302ms)
+✔ loadGuestEvents returns an empty array when nothing was queued (0.4258ms)
+✔ loadGuestEvents returns an empty array for corrupted JSON instead of throwing (0.6953ms)
+✔ clearGuestEvents empties the buffer (1.1822ms)
+✔ the buffer is capped so it cannot grow unbounded on an abandoned tab (7.3722ms)
+✔ saveGuestWizardDraft then loadGuestWizardDraft round-trips profile and step (6.2761ms)
+✔ loadGuestWizardDraft returns null when nothing was saved or JSON is corrupt (1.0153ms)
+✔ clearGuestWizardDraft removes the stored snapshot (1.3907ms)
+✔ hasGuestWizardDraft is true only when the draft has meaningful content (1.4084ms)
+✔ saveGuestWizardDraft refuses to overwrite a meaningful draft with an empty shell (2.9096ms)
+✔ clearGuestWizardDraft still allows a later empty save after intentional reset (0.6307ms)
+✔ guestWizardProfileHasContent detects entered fields (0.5639ms)
+✔ clampWizardStep keeps indices inside the current wizard range (0.4017ms)
+▶ isLanguagesSectionTitle
+  ✔ matches generated and legacy Polish, English, German, and Italian titles (2.0012ms)
+  ✔ uses explicit grid identity before the editable heading fallback (0.532ms)
+✔ isLanguagesSectionTitle (4.8692ms)
+▶ parseLanguageLine
+  ✔ splits hyphen and em-dash forms (2.516ms)
+✔ parseLanguageLine (2.9858ms)
+▶ buildLanguagesMainGrid
+  ✔ emits grid-member cells with one uniform text style (1.4639ms)
+  ✔ defaults to 3 columns for a narrow (sidebar-template) main column (0.858ms)
+✔ buildLanguagesMainGrid (2.8389ms)
+▶ collectLanguageEntries + restyleLanguagesMembersAsSidebar
+  ✔ collapses a main grid back to one hyphenated sidebar body (2.4625ms)
+✔ collectLanguageEntries + restyleLanguagesMembersAsSidebar (3.1247ms)
+▶ measurePageFill
+  ✔ ignores fixedToPage chrome (1.8856ms)
+  ✔ returns fills for every page (0.6646ms)
+✔ measurePageFill (5.1178ms)
+▶ formatPageCountLabel
+  ✔ uses Polish plural forms (0.4553ms)
+✔ formatPageCountLabel (0.8195ms)
+▶ density presets from baseline
+  ✔ builds compact below and spacious above the baseline (0.9756ms)
+  ✔ respects density minima when scaling down (1.6674ms)
+✔ density presets from baseline (3.6469ms)
+▶ scoreLayout
+  ✔ penalizes inventing an extra page (1.0992ms)
+  ✔ penalizes 95/30 imbalance more than 78/62 (0.6768ms)
+  ✔ prefers spacing closer to baseline when fills match (0.4941ms)
+✔ scoreLayout (3.1886ms)
+▶ proposeAutoFitSpacing
+  ✔ chooses a more spacious spacing for a very empty single page (1.8596ms)
+  ✔ leaves a well-filled single page alone (1.279ms)
+  ✔ does not grow from 1 page to 2 just to raise spacing (0.7982ms)
+  ✔ improves a 95/30 two-page imbalance when a balanced candidate exists (0.8165ms)
+  ✔ does not change an already balanced 90/85 layout (0.6678ms)
+  ✔ never selects a candidate that increases pageCount when a smaller count exists (5.4396ms)
+  ✔ exposes the scale-factor set used by auto-fit (1.3631ms)
+✔ proposeAutoFitSpacing (14.2663ms)
+✔ Linden preserves its authored sand band while new palettes use a darker band (4.2357ms)
+✔ all Linden text roles meet WCAG AA contrast on their assigned surfaces (1.331ms)
+✔ palette changes both lanes, the darker job band, descriptor, and real icon assets (5.3267ms)
+✔ Linden type presets grow by role and M restores authored metrics (8.0309ms)
+▶ Linden typography layout
+  ✔ packs both editorial lanes without collisions after growing and restoring type (92.9397ms)
+  ✔ batch-packs browser heights so a grown job cannot overlap the next section (5.1129ms)
+✔ Linden typography layout (104.144ms)
+✔ groups a managed identity block with name + title (2.5097ms)
+✔ reports titlePresent=false when the title is hidden (0.9712ms)
+✔ skips a block with no descriptor anchor (legacy) (0.772ms)
+✔ name case toggle flips the flag reversibly and touches nothing else (5.1595ms)
+✔ disabling uppercase repairs names imported as all-caps text (1.7334ms)
+✔ all-caps import repair handles Polish letters and compound names (3.3454ms)
+✔ disabling uppercase preserves intentional mixed-case spelling (0.5671ms)
+✔ title hide removes it, shifts below up by blockPt, updates band startY, keeps footer (5.825ms)
+✔ title show reconstructs the title from spec and reverses the shift (2.7602ms)
+✔ title restoration recovers contacts that compact above the title boundary (1.7504ms)
+✔ legacy hidden documents restore their entire coupled contact band (1.7043ms)
+✔ an empty starter title retains its guidance and CV data binding (4.4411ms)
+✔ title show creates an editable placeholder when the profile title was empty (1.4349ms)
+✔ an empty added title keeps the typed value through hide and show (3.8469ms)
+✔ title hide captures edited content and appearance for an exact re-show (1.8019ms)
+✔ title blur keeps Linden's fixed identity band at its authored width (1.6804ms)
+✔ content-sized title bars still follow edited title text (0.5747ms)
+✔ title reclaim override preserves an intentional buffer and remains reversible (1.3128ms)
+✔ title toggle reflows only the title's page, never continuation pages (3.1646ms)
+✔ centered title re-adds as a width-bounded, center-aligned textarea (8.2126ms)
+✔ legacy title spec recovers centering from the name element (1.8047ms)
+✔ Meridian exposes six distinct white-paper palettes (3.8824ms)
+✔ Meridian monochrome uses black, white, and neutral greys only (0.4972ms)
+✔ all Meridian text and accent inks meet WCAG AA against white paper (1.2718ms)
+✔ palette update preserves white paper and recolors text, decoration, hidden title, and icons (4.6304ms)
+✔ every visible authored Meridian colour belongs to the palette contract (0.8741ms)
+✔ text presets scale by role and M restores Meridian's authored metrics (3.396ms)
+▶ Meridian typography layout
+  ✔ packs the letterhead lane and keeps record overlays anchored after type changes (66.0047ms)
+  ✔ batch-packs browser heights so a grown record moves the next section (2.5557ms)
+✔ Meridian typography layout (71.3409ms)
+✔ Monument exposes six uniquely named editorial palettes (3.191ms)
+✔ palette update recolors every Monument semantic and swaps contact and portrait icons (3.3563ms)
+✔ every authored Monument decoration belongs to the palette contract (2.3481ms)
+✔ text presets scale from baseline and M restores Monument's authored metrics (2.2312ms)
+▶ Monument typography layout
+  ✔ packs the single editorial lane without collisions after growing and restoring type (55.9291ms)
+  ✔ batch-packs browser heights so a grown record moves the next numbered section (1.9532ms)
+✔ Monument typography layout (64.0425ms)
+✔ fast operations expose every progress stage for the longer reading time (2.3779ms)
+✔ slow operation boundaries are never overtaken by the presentation timer (0.3726ms)
+✔ shows the active page and its next neighbour in two-page view (4.421ms)
+✔ resolves a pointer to the matching visible page canvas (1.699ms)
+✔ identifies connectors made invalid by a cross-page transfer (1.2531ms)
+✔ hydration resets volatile editor state and applies legacy text defaults (2.6482ms)
+✔ saved custom grid keeps add/delete semantics and fixed geometry after reopening (23.4143ms)
+✔ saved Linden keeps Languages in the sidebar structure after reopening (12.1746ms)
+✔ saved hidden Linden restores sidebar sections added before reopening (17.5016ms)
+✔ saved hidden Slate hydrates every semantic field and restores exact geometry (15.81ms)
+✔ transient editor flags do not make a persisted snapshot dirty (2.8589ms)
+✔ signature is stable for object key order but preserves element order (0.8488ms)
+✔ content detection includes title and non-text canvas elements (5.5065ms)
+✔ Free presentation exposes the complete usable plan contract (3.5396ms)
+✔ Pro presentation sells scale and assistance instead of output quality (1.127ms)
+✔ canonical presentation replaces stale catalog copy but preserves live price (0.5794ms)
+✔ src\utils\polishUploadMessage.test.js (1010.3407ms)
+▶ findProfilePhotoSlot
+  ✔ finds the slate portrait glyph via photoSlot (2.7042ms)
+  ✔ finds the Monument portrait glyph (0.8886ms)
+  ✔ finds the Atrium portrait glyph (0.718ms)
+  ✔ finds the Vellum portrait glyph (0.6402ms)
+  ✔ still prefers a large near-top non-icon image (legacy) (0.7275ms)
+✔ findProfilePhotoSlot (8.7237ms)
+▶ applyProfilePhoto
+  ✔ fits a photo inside the slate frame under the outline (4.9201ms)
+  ✔ keeps Atrium's direct 60 × 80 pt photo geometry (1.6208ms)
+  ✔ replaces Monument's glyph and keeps its frame border above the photo (1.5114ms)
+  ✔ fills Vellum's circular portrait and clips the raster to the frame (2.5028ms)
+  ✔ replaces an already-applied profile photo in place (1.6605ms)
+  ✔ reports hasProfilePhotoSlot for tagged templates (0.624ms)
+  ✔ marks frames, glyphs, and applied profile photos as gallery click targets (3.5309ms)
+✔ applyProfilePhoto (17.945ms)
+▶ profile photo visibility
+  ✔ keeps a section transferred out of hidden Slate contacts intact across photo toggles (64.913ms)
+  ✔ hides Atrium without moving non-slot content and restores it (1.0687ms)
+  ✔ hides Vellum's circular photo cluster without moving the document flow (1.4843ms)
+  ✔ switches slate contacts to a sidebar stack and back to main (4.8867ms)
+  ✔ reflows Linden's existing contact rail when its rectangular photo is hidden (2.9037ms)
+  ✔ keeps Linden's latest visible-contact layout across a later hide/show cycle (3.3469ms)
+  ✔ does not move a main-column Languages heading with a stale sidebar marker when Linden's photo returns (2.2429ms)
+  ✔ restores slate's complete live sidebar after a section is added while the photo is hidden (2.7984ms)
+  ✔ restores linden's complete live sidebar after a section is added while the photo is hidden (1.6801ms)
+  ✔ hides legacy Slate photo chrome that predates ornament tags (1.7111ms)
+  ✔ hydrates a legacy photo-less Slate heading once without moving contacts (1.657ms)
+  ✔ brings every hidden-photo contact onto page one before measuring the sidebar gap (1.8343ms)
+  ✔ removes only the user raster and restores its saved placeholder (0.9781ms)
+  ✔ restores the Atrium glyph for photos saved before placeholder snapshots (0.6483ms)
+  ✔ retains the photo restore location in Monument without identity tags (1.1357ms)
+✔ profile photo visibility (97.6516ms)
+✔ exposes accessible hover actions for hide, restore, and raster removal (27.3039ms)
+✔ Regent exposes four classic and two creative premium editions (4.3055ms)
+✔ every Regent edition keeps text readable on its own paper (3.5639ms)
+✔ a creative Regent edition recolours every semantic without moving content (2.7057ms)
+✔ Regent preserves custom colours and ignores an unknown edition (0.9391ms)
+✔ Regent typography grows by role and M restores the authored metrics (4.0812ms)
+✔ Regent type presets rebuild contacts and persist the selected size (41.8696ms)
+✔ Regent batches browser heights before moving the following section (3.7625ms)
+▶ required CV name
+  ✔ rejects an untouched starter placeholder (2.0043ms)
+  ✔ accepts authored name content (0.3582ms)
+  ✔ keeps legacy freeform documents without a semantic name target saveable (0.3177ms)
+✔ required CV name (5.5632ms)
+✔ normalizeActiveCvData returns null for empty profiles (2.5981ms)
+✔ normalizeActiveCvData keeps a filled profile payload (0.6445ms)
+✔ resolveActiveCvData prefers guest document cvData over wizard draft (2.0581ms)
+✔ resolveActiveCvData falls back to wizard draft then bio API (2.3332ms)
+✔ normalizes unusual spaces without removing paragraph newlines (1.9097ms)
+✔ removes a leaked numeric database id before an API request (0.6971ms)
+✔ preserves semantic string ids used by template elements (2.6945ms)
+✔ entry sends only its description and protected record context (32.1824ms)
+✔ whole section preserves record boundaries across pages (2.8723ms)
+✔ unrelated text and geometry do not stale a review, but context changes do (4.4548ms)
+✔ flat and bullet Skills are individual stable fragments, including duplicates (16.8864ms)
+✔ Skills chips retain categories and exclude shape data (1.7983ms)
+✔ protected fields and empty scopes never become editable fragments (1.9917ms)
+✔ sidebar skills keep category labels read-only while exposing individual items (1.2852ms)
+✔ partial skill acceptance preserves the remaining fragment ids after offsets change (1.2271ms)
+✔ limits reject rather than truncate and provider ids cannot target a neighbor (1.8473ms)
+✔ formatting remaps only retained unique spans and full-field formatting (1.3647ms)
+▶ buildSectionElements
+  ✔ aa: heading (chrome) + rule (chrome) + one content textarea (8.6916ms)
+  ✔ places record body on bodyLeft when it differs from the heading column (Monument gutter) (2.5093ms)
+  ✔ places the rule at fontSize*1.35 below the heading, matching Builder.text()'s real cursor advance (0.8711ms)
+  ✔ places a sampled Monument accent rule at rule.relTop, not flush under the label (0.9556ms)
+  ✔ cc-edu: one record of four content blocks sharing a flowGroup (degree/school/meta/description) (0.9094ms)
+  ✔ cc-sub: one record of two content blocks sharing a flowGroup (category heading + body) (0.6918ms)
+  ✔ cc-exp: one record of three content blocks sharing a flowGroup (title/company·period/description) — no subtitle line (2.8027ms)
+  ✔ grid: creates one compact editable cell and records the wrapping contract (1.328ms)
+  ✔ round-trips (cc-edu): built section is detectable and its body is collected (4.1361ms)
+  ✔ round-trips (cc-exp): built section is detectable and its body is collected (1.264ms)
+  ✔ defaults the heading label when the name is blank (1.4021ms)
+  ✔ preserves a negative marker relTop instead of clamping to 0 (0.6812ms)
+  ✔ omits decorative shapes when the style has none (0.5998ms)
+  ✔ builds every sampled decorative shape, not just one (Monument-style badge square + frame) (0.8585ms)
+  ✔ stamps the computed section ordinal into the badge-number style, zero-padded to match the sampled digit count (0.8047ms)
+  ✔ does not zero-pad past the sampled digit count when the ordinal is already wider (0.6589ms)
+  ✔ omits the badge-number element when the style has none (3.4164ms)
+  ✔ round-trips: a built badge-number is not double-counted as its own section (1.5367ms)
+  ✔ aa round-trips: built section is detectable and its body is collected (1.3331ms)
+✔ buildSectionElements (45.37ms)
+▶ domain-specific section presets
+  ✔ exposes exactly the six section choices in product order (0.8047ms)
+  ✔ builds empty fields with the same visible guidance as the starter CV (1.8228ms)
+✔ domain-specific section presets (3.0849ms)
+▶ build -> append -> reorder (composed production pipeline)
+  ✔ chains deriveSectionStyle -> buildSectionElements -> appendSectionAtEnd -> reorderSection without scattering the new record (18.3502ms)
+  ✔ packs the new section's rule-to-body gap at the configured after_rule rhythm, matching existing sections (2.221ms)
+✔ build -> append -> reorder (composed production pipeline) (20.9505ms)
+▶ parseIconicSrc / buildIconicSrc
+  ✔ parses theme and name from an absolute iconic URL (4.5615ms)
+  ✔ builds a src that round-trips through parseIconicSrc (0.6271ms)
+✔ parseIconicSrc / buildIconicSrc (7.6685ms)
+▶ listSectionIconOptions
+  ✔ lists nova heading icons for the nova template (2.8838ms)
+  ✔ hides the gallery for an unmapped template unless a heading icon already exists (0.5919ms)
+  ✔ shows icons from an existing section-heading icon even for an unmapped template (3.3401ms)
+✔ listSectionIconOptions (7.6126ms)
+▶ suggestSectionIconName
+  ✔ maps Polish education titles to the education glyph (1.2585ms)
+✔ suggestSectionIconName (1.7886ms)
+▶ applySelectedSectionIcon
+  ✔ replaces the sampled iconic marker src and builds it into the section (4.5479ms)
+  ✔ injects an icon marker when the last section style lost its image (2.1193ms)
+✔ applySelectedSectionIcon (7.4054ms)
+▶ sectionSupportsRecordAdd
+  ✔ rejects aa (single textarea) sections (8.1948ms)
+  ✔ accepts cc-edu (multi-line record) sections (1.9432ms)
+  ✔ accepts cc-exp sections (0.9991ms)
+  ✔ exposes category actions for chip Skills without using the generic section append (3.68ms)
+  ✔ keeps chip category actions when the semantic Skills heading is renamed (1.066ms)
+✔ sectionSupportsRecordAdd (19.1136ms)
+▶ placeholderContentsForRecord / inferRecordLayout
+  ✔ clones an explicitly categorized Projects record without inventing metadata (6.4153ms)
+  ✔ maps 4-line records to generic detailed-entry placeholders (0.9514ms)
+  ✔ maps 3-line records with bullets to generic entry placeholders (2.5592ms)
+  ✔ maps 3-line records without bullets to detailed-entry placeholders (4.069ms)
+✔ placeholderContentsForRecord / inferRecordLayout (15.2392ms)
+▶ appendRecordToSection
+  ✔ appends a second education record with empty starter placeholders (17.3198ms)
+  ✔ preserves a right-column metadata rail and assigns field-specific placeholders (3.2204ms)
+  ✔ keeps an experience period on the title row without inventing a vertical period field (2.1704ms)
+  ✔ appends a skills subcategory as heading + body, not an education record (1.9915ms)
+  ✔ appends an experience record after an existing one in a packed document (5.7197ms)
+  ✔ returns null for aa sections (0.5503ms)
+✔ appendRecordToSection (31.7836ms)
+▶ buildRecordClone / pickRecordTemplateGroup
+  ✔ preserves bold title, muted meta colour, and bullet body from the template (0.9948ms)
+  ✔ prefers the longest bold-title template over a short hovered group (0.9776ms)
+  ✔ expands a 2-line education stack to four canonical fields (1.0968ms)
+✔ buildRecordClone / pickRecordTemplateGroup (3.718ms)
+▶ listUpperRecordMembers / insertRecordBlockAfterRecord
+  ✔ treats title+meta as upper and excludes the bullet description (2.9514ms)
+  ✔ includes description fields in Experience and Education hover triggers (1.3701ms)
+  ✔ inserts a full placeholder record under the hovered block (4.9224ms)
+  ✔ inserts between two experience records when the first record is the anchor (3.2776ms)
+  ✔ moves later sections down so an education insert cannot leak under Skills (5.0814ms)
+  ✔ keeps SPACE_RECORD between an inserted education block and the next title (2.2923ms)
+  ✔ rejects description lines, aa sections, and unknown ids (1.3773ms)
+✔ listUpperRecordMembers / insertRecordBlockAfterRecord (22.2297ms)
+▶ optional record descriptions
+  ✔ removes and restores one education description without changing its record (5.3052ms)
+  ✔ restores a missing description in a single Experience record (2.3031ms)
+  ✔ does not offer a duplicate description for Skills subcategories (0.8772ms)
+  ✔ accepts only the record upper band as an operation anchor (0.7664ms)
+  ✔ maps named Experience fields to the starter guidance contract (0.6789ms)
+✔ optional record descriptions (10.5166ms)
+▶ reorderRecordBlock
+  ✔ moves the second experience record above the first and re-packs (3.0845ms)
+  ✔ returns null at the ends of the section and for invalid direction (0.6792ms)
+  ✔ does not let a record-overlay date/location rail inflate positions when swapping records (2.064ms)
+✔ reorderRecordBlock (6.5666ms)
+▶ removeRecordBlock
+  ✔ deletes one experience record and re-packs the next record upward (1.9229ms)
+  ✔ returns null for bullet description and unknown ids (0.8973ms)
+✔ removeRecordBlock (3.2557ms)
+▶ sidebar lane records
+  ✔ lists record anchors for sidebar education and reorders within the rail (4.4056ms)
+✔ sidebar lane records (4.7225ms)
+▶ listDocumentSections
+  ✔ returns chrome headings in reading order (4.3262ms)
+  ✔ detects untagged Cinder-style labels above a rule (2.3254ms)
+  ✔ does not list digit-only chrome as a section even when isDecorativeChromeText was stripped (1.0022ms)
+  ✔ does not list a decorative numbered badge as its own section (Monument-style chrome) (0.5855ms)
+  ✔ starts a Monument section at the badge/frame band, not the title baseline (1.045ms)
+✔ listDocumentSections (12.5421ms)
+▶ sectionElementIds
+  ✔ rehomes a body trapped under a stacked continuation heading (10.9164ms)
+  ✔ does not absorb the next Monument badge/frame into the previous section (1.0489ms)
+  ✔ excludes the sidebar rail from a two-column template's main-section membership (2.4503ms)
+✔ sectionElementIds (15.1045ms)
+▶ reorderSection
+  ✔ swaps adjacent section clusters (3.2564ms)
+  ✔ swaps sidebar sections without moving the main column (2.7966ms)
+  ✔ moves rail body with kickers even when flowLane was stripped (saved docs) (2.1721ms)
+  ✔ moves sidebar skill chips that lack flowLane with their kicker (1.4354ms)
+  ✔ compacts multi-page section holes and repacks following sections (1.6178ms)
+✔ reorderSection (13.3508ms)
+▶ packDocumentSections
+  ✔ places sections in the given heading order from the flow start (1.8517ms)
+✔ packDocumentSections (2.217ms)
+▶ removeSection
+  ✔ deletes a middle section and re-packs the following section upward (1.5246ms)
+  ✔ returns null for an unknown heading (0.6402ms)
+  ✔ removes a sidebar section without touching the main column (1.1364ms)
+✔ removeSection (3.6546ms)
+▶ applyFlowSpacing
+  ✔ keeps Nova icon-row contacts aligned when rhythm changes (2.2843ms)
+  ✔ does not let a record-overlay date/location rail inflate a record's packed height (1.9338ms)
+  ✔ widens section gaps when section rhythm increases (1.5972ms)
+  ✔ keeps section heading, rule, and body together instead of parking the rule in the footer (1.5802ms)
+  ✔ keeps section chrome with the full first flowGroup record, not only the first line (1.3628ms)
+  ✔ does not split a later experience flowGroup across a page break while packing (1.1456ms)
+  ✔ heals a Monument accent rule that was built flush under the label (1.6646ms)
+  ✔ preserves Monument title-inside-frame offsets across every section after pack (5.2374ms)
+  ✔ heals a Monument ordinal that drifted below the title inside the badge (2.6216ms)
+  ✔ preserves Cinder chrome rhythm instead of stacking heading/mark/rule with SPACE_STACK (0.8946ms)
+  ✔ treats explicitly tagged decorative chrome as a rigid composition (0.8914ms)
+  ✔ does not treat masthead contact lines as section headings (0.6954ms)
+  ✔ preserves an iconic masthead's authored 36px clearance on pack (1.0942ms)
+  ✔ preserves Regent's tight iconic masthead→section gap instead of forcing 36px (3.6689ms)
+  ✔ keeps authored masthead clearance when packing after a corrupted heading gap (1.093ms)
+  ✔ heals chrome that was previously torn apart by SPACE_STACK packing (0.9946ms)
+  ✔ keeps a legacy untagged sidebar rail out of the main flow when repacking rhythm (2.0499ms)
+  ✔ retargets a tagged sidebar lane to the same rhythm without folding it into the main column (2.5007ms)
+  ✔ packSidebarLane is a no-op when the document has no sidebar-chrome kickers (0.4419ms)
+  ✔ closes the sidebar hole up to the main-column content top after a top rail section leaves (0.908ms)
+  ✔ does not let the promoted first sidebar section crowd a fixed-to-page photo well (Slate) (0.7685ms)
+  ✔ keeps the hidden-photo contact boundary after sidebar packing and reorder (Slate/Tessera) (2.5028ms)
+  ✔ ignores full-height fixedToPage background panels when there is no photo well (0.8458ms)
+  ✔ ignores a masthead photo slot in the main column, not just the sidebar's own rail photo (1.0019ms)
+  ✔ moves a sidebar kicker with its body instead of orphaning it in the page-1 footer (1.0849ms)
+✔ applyFlowSpacing (43.5719ms)
+▶ findProfilePhotoSlot
+  ✔ prefers large near-top non-icon images (2.387ms)
+✔ findProfilePhotoSlot (2.7033ms)
+▶ deriveSectionStyle
+  ✔ falls back to defaults when the document has no sections (2.1861ms)
+  ✔ samples the last section's heading, rule and body (1.159ms)
+  ✔ samples Experience description type, not the bold job-title line (0.9455ms)
+  ✔ does not inherit a languages-grid cell width as the column recordWidth (1.1698ms)
+  ✔ captures a decorative shape offset from the heading (0.9473ms)
+  ✔ does not adopt far-left sidebar chrome as the last section's shape (0.6736ms)
+  ✔ captures every decorative shape, not just one (circle + accent line) (1.0888ms)
+  ✔ captures a marker sampled at the rule's far end (Cinder-style, not left of the heading) (0.8023ms)
+  ✔ captures a large block shape as a decorative marker (Monument-style badge, not a rule) (1.1356ms)
+  ✔ captures the decorative badge-number's style, separate from markers (0.7807ms)
+  ✔ has no badgeNumber when the section's chrome has no decorative ordinal text (0.5933ms)
+✔ deriveSectionStyle (13.2505ms)
+▶ appendSectionAtEnd
+  ✔ appends the new section and retargets every section onto the document rhythm (1.6146ms)
+  ✔ places the new heading below the previous section's body (1.1451ms)
+  ✔ produces a section detectable by listDocumentSections (1.4717ms)
+  ✔ returns the original list unchanged when there is nothing to add (0.3256ms)
+  ✔ appends after the main column's own content, ignoring a deeper sidebar rail (2.4521ms)
+  ✔ appends a sidebar-chrome strip into the rail when lane is sidebar (4.3392ms)
+✔ appendSectionAtEnd (12.058ms)
+▶ listFlatSectionAnchors
+  ✔ includes a mid-dot Skills textarea (and Languages when still flat) (7.6276ms)
+  ✔ excludes chip-rendered Skills from flat anchors (26.9541ms)
+  ✔ excludes the Summary paragraph even though it is also one textarea (3.8308ms)
+  ✔ excludes record-style sections with multiple body blocks per entry (3.6746ms)
+  ✔ points each flat Skills anchor at the section's own body textarea (3.1021ms)
+✔ listFlatSectionAnchors (45.8942ms)
+▶ insertSectionAfter
+  ✔ places the new section between the anchor and the following section (3.9275ms)
+  ✔ falls back to append when the anchor heading is missing (3.1958ms)
+  ✔ inserts a sidebar strip after a rail kicker without moving the main column (2.8ms)
+  ✔ samples style from the anchor section when deriveSectionStyle is given its id (0.7994ms)
+✔ insertSectionAfter (11.2697ms)
+▶ applyFlowSpacing — skill chip grid (flowRole: grid-member)
+  ✔ keeps every chip row aligned and each label inside its own pill after a full repack (6.7784ms)
+  ✔ heals labels saved at the legacy CHIP_PAD_Y inset onto the pill midline (1.0106ms)
+  ✔ does not misclassify a narrow (<40px) chip as decorative chrome (4.3187ms)
+  ✔ keeps a chip grid intact across a section reorder even without flowGroup (1.9338ms)
+✔ applyFlowSpacing — skill chip grid (flowRole: grid-member) (14.7079ms)
+▶ healSimpleChromeRuleGaps
+  ✔ snaps an outlier section's heading->rule gap onto the majority (1.2174ms)
+  ✔ is a no-op when every section already agrees (0.7605ms)
+  ✔ heals an outlier rule gap in a richer cluster but leaves the decorative mark in place (0.9004ms)
+  ✔ applyFlowSpacing heals stale transferred-section gaps on every pack (9.5223ms)
+✔ healSimpleChromeRuleGaps (12.9851ms)
+✔ serializes saves so a newer draft is the final persisted write (3.1711ms)
+✔ continues with later saves after a failed request (1.2681ms)
+✔ document addresses reject malformed and unsafe database IDs (2.3562ms)
+✔ authentication never follows external, encoded, or unrecognized destinations (0.8007ms)
+✔ auth form changes retain selected templates and a valid destination (0.787ms)
+▶ listSkillsDisplayAnchors
+  ✔ detects the current mode of every main-column skills section (5.8168ms)
+  ✔ returns nothing for a document with no skills section (0.6481ms)
+  ✔ uses semantic section type after the visible Skills heading is renamed (23.8007ms)
+  ✔ recovers chips actions from the category layout after a renamed section changes template (3.598ms)
+✔ listSkillsDisplayAnchors (36.5801ms)
+▶ isInlineSkillsContentElement
+  ✔ recognises editable inline Skills bodies, including categorized groups (1.6438ms)
+  ✔ rejects the heading, unrelated textareas, and non-inline Skills modes (5.4645ms)
+✔ isInlineSkillsContentElement (13.3754ms)
+▶ changeSkillsDisplayMode
+  ✔ converts categorized skills to chips, preserving category labels and every item (5.9923ms)
+  ✔ round-trips categorized skills through every mode without losing items (21.9932ms)
+  ✔ converts flat (non-categorized) skills to chips with an empty category (2.2686ms)
+  ✔ preserves empty category placeholders through chip and inline conversions (3.5512ms)
+  ✔ preserves empty skill placeholders as editor-only chip pairs (2.5861ms)
+  ✔ sizes modal-created chips with the active browser font measurer (6.8019ms)
+  ✔ is a no-op when the section is already in the requested mode (0.4916ms)
+  ✔ returns null for a non-skills heading (0.3725ms)
+  ✔ matches another chip section already in the document instead of a generic default (5.0209ms)
+  ✔ preserves a decorative heading marker (icon) across every mode conversion (11.7884ms)
+  ✔ does not leak overflow chip rows into a following section when chips grow taller than the inline body (5.1736ms)
+  ✔ builds and detects all seven persisted chip variants (8.9639ms)
+  ✔ changes the chip treatment while remaining in chip mode (2.4569ms)
+  ✔ keeps chip rows aligned within one category (grid does not scatter) (1.697ms)
+✔ changeSkillsDisplayMode (81.1704ms)
+✔ AI text changes resize chip pairs without replacing ids or losing the next section (39.275ms)
+▶ listSkillsEntryAnchors
+  ✔ returns one anonymous group for category-free Skills (1.8047ms)
+  ✔ returns one stable anchor under each named category (1.487ms)
+  ✔ keeps category anchors after a semantic Skills heading is renamed (1.3663ms)
+✔ listSkillsEntryAnchors (5.6987ms)
+▶ insertSkillItem
+  ✔ appends the canonical mid-dot without losing existing ids or runs (4.8052ms)
+  ✔ adds a canonical bullet in a category-free section (8.6993ms)
+  ✔ rejects an empty value and a case-insensitive duplicate (0.7926ms)
+  ✔ adds a measured chip, preserves existing pairs, and wraps when required (5.4033ms)
+  ✔ inherits every persisted chip treatment when adding a new label (15.7428ms)
+  ✔ materializes an empty placeholder chip instead of appending beside it (4.7582ms)
+  ✔ adds a placeholder category in chip mode without rebuilding existing ids (4.5774ms)
+  ✔ reorders whole chip categories while preserving every shape and label id (4.5437ms)
+  ✔ removes a chip category as one shape/label transaction (2.4518ms)
+✔ insertSkillItem (53.4024ms)
+✔ centres inline and bullet plus controls on the textarea bottom edge (1.9263ms)
+✔ centres the chip plus on its content edge and keeps the 18px form gap (0.6018ms)
+▶ isSkillsSectionHeading
+  ✔ matches Polish and English skills titles (2.188ms)
+✔ isSkillsSectionHeading (5.0501ms)
+▶ parseSkillsSidebarContent
+  ✔ splits category lines from bullet items (2.6482ms)
+  ✔ accepts hyphen bullets from the rail (0.7467ms)
+  ✔ treats a flat mid-dot list as one untitled group (1.3995ms)
+✔ parseSkillsSidebarContent (5.521ms)
+▶ layoutSkillChips
+  ✔ uses the deterministic text estimate when no canvas measurer is available (1.2592ms)
+✔ layoutSkillChips (1.6179ms)
+▶ buildSkillsMainGroups + collapse
+  ✔ emits bold category + inline body with shared flowGroup (2.0613ms)
+  ✔ round-trips through sidebar content (1.1786ms)
+✔ buildSkillsMainGroups + collapse (3.9011ms)
+▶ restyleSkillsMembersAsMain / AsSidebar
+  ✔ expands rail skills into main subcategory records with Experience type (3.0281ms)
+  ✔ collapses main groups back to one sidebar textarea (11.2533ms)
+✔ restyleSkillsMembersAsMain / AsSidebar (15.1338ms)
+✔ Slate exposes six distinct palettes including a strict black-white-grey option (4.4556ms)
+✔ every Slate text role meets WCAG AA on paper and the sidebar rail (1.0732ms)
+✔ palette update recolors Slate chrome, swaps accent icons, and preserves white badge glyphs (2.9786ms)
+✔ every Slate palette styles the photo-less contact heading in either operation order (12.5054ms)
+✔ photo-less heading inherits S–XL size without remaining sidebar chrome (5.2608ms)
+✔ hidden Slate keeps palette, typography, and portrait fallback when the photo returns (4.6133ms)
+✔ every visible authored Slate decoration belongs to the palette contract (2.2307ms)
+✔ text presets grow narrow body copy most and M restores authored Slate metrics (1.9504ms)
+▶ Slate typography layout
+  ✔ packs main and sidebar lanes without collisions after growing and restoring type (55.1089ms)
+  ✔ batch-packs browser heights so a grown record moves the next section (2.1093ms)
+✔ Slate typography layout (59.9774ms)
+✔ reports gaps to the nearest overlapping neighbors for any element type (3.5562ms)
+✔ measures text gaps from glyph bounds, not authored line boxes (0.501ms)
+✔ still finds far neighbors when no distance threshold is applied (0.3082ms)
+✔ ignores page decorations and connectors (0.7165ms)
+✔ vertical guides ignore section marker shapes between text blocks (1.3238ms)
+✔ estimates width for text elements without stored dimensions (0.5851ms)
+✔ collects unique nearest-below gaps across all page elements (0.7709ms)
+✔ reports gaps to the nearest vertically-overlapping left/right neighbors (0.626ms)
+✔ shows page-edge margins only when closer than 100px (1.1462ms)
+✔ collects unique nearest-right gaps across all page elements (1.7676ms)
+✔ estimates compact label size from gap text (2.3669ms)
+✔ places above/below Y labels on opposite sides by default (1.1615ms)
+✔ flips an X label when it would cover another (0.8943ms)
+✔ nudges labels along the rail when both sides are blocked (2.7641ms)
+▶ shouldShowStartChooser
+  ✔ never shows account onboarding for a guest or unresolved identity (4.7293ms)
+  ✔ shows for a fresh, empty, unsaved document (post-login landing) (0.4864ms)
+  ✔ hides once the canvas has any elements (wizard/import filled it) (0.8717ms)
+  ✔ hides over the guest demo CV so the DemoBanner flow owns that state (1.5203ms)
+  ✔ hides while a document is loading or saving (7.3638ms)
+  ✔ hides for a saved document even when the user has emptied it mid-session (1.0421ms)
+  ✔ hides after the user chose to start from a blank page (0.5208ms)
+  ✔ treats a missing/undefined elements count as empty (0.602ms)
+✔ shouldShowStartChooser (22.4035ms)
+▶ starter render copy
+  ✔ reflows selected starter contacts in every built-in template (124.8781ms)
+  ✔ reflows marker-generated contacts to their editor placeholder widths (1.3597ms)
+  ✔ drops an empty contact channel without mutating the editor elements (3.5218ms)
+  ✔ keeps a completed starter field (0.6302ms)
+  ✔ removes an empty Skills placeholder chip pair from render copies (0.4835ms)
+  ✔ closes the horizontal gap after omitting an empty contact from render (0.9571ms)
+  ✔ keeps a real starter photo and its frame (0.6244ms)
+  ✔ drops the untouched starter photo cluster (0.4894ms)
+✔ starter render copy (135.9546ms)
+✔ Sterling exposes six uniquely named curated palettes (2.5266ms)
+✔ legacy Sterling and Linden sidebar hairlines normalize without touching other templates (2.2173ms)
+✔ persisted Botanical Linden restores only the short-lived identity-band regression (1.3936ms)
+✔ palette update recolors semantics, swaps icon assets, and preserves custom color (2.9399ms)
+✔ text presets scale from baseline and M restores the original metrics (2.14ms)
+▶ Sterling typography layout
+  ✔ packs all text lanes without collisions after growing and restoring type (47.1355ms)
+  ✔ packs from glyph-measured heights instead of a stale character-count estimate (11.1751ms)
+  ✔ batch-packs browser heights so a long final job cannot overlap Education (2.1873ms)
+✔ Sterling typography layout (63.4108ms)
+✔ syncLetterheadBandHeight regrows a Sterling-style letterhead band when its divider moves down (2.4017ms)
+✔ syncLetterheadBandHeight is a no-op when the band already matches its divider (0.4649ms)
+✔ reconcileDocumentPages keeps a Sterling letterhead band in sync after a masthead reflow (1.2926ms)
+✔ preview replaces the source and renders proposed movement without mutating canvas state (2.1898ms)
+✔ new continuation pages receive cloned fixed artwork and refreshed page numbers (1.6191ms)
+✔ zero-padded page numbers keep their width on continuation pages (0.6931ms)
+✔ continuation pages with only a page number still receive the missing rail (1.1986ms)
+✔ Sterling continuation clones keep a full-height vertical rail without the letterhead band (0.7853ms)
+✔ reconcileDocumentPages clones chrome onto overflow pages and collapses empty trailing pages (1.0501ms)
+✔ reconcileDocumentPages is a no-op for content when chrome is already in sync (2.7143ms)
+✔ does not clone a page-1 masthead / photo frame onto a page that already has its own chrome (0.532ms)
+✔ does not clone a legacy Vellum photo slot onto a blank overflow page (0.7128ms)
+▶ syncCvDataFromCanvas
+  ✔ writes the first starter value to an explicitly bound empty profile field (9.1487ms)
+  ✔ persists repaired casing from an all-caps imported masthead name (3.9225ms)
+  ✔ splits a composite starter row across its cv_data bindings (5.9133ms)
+  ✔ preserves a uniquely mapped manual text edit for later template fills (1.2304ms)
+  ✔ does not overwrite ambiguous duplicated profile text (1.6671ms)
+  ✔ maps an AI translation of a rendered bullet to its profile sentence (1.3268ms)
+  ✔ does not write a lane-transfer composite into a Skills category (1.2752ms)
+  ✔ persists an AI correction that intentionally clears a field (0.8295ms)
+  ✔ persists a masthead title typed into a newly added empty field (0.9472ms)
+  ✔ persists a populated masthead title added with a fresh element id (2.554ms)
+  ✔ does not persist a generator-truncated title during template replacement (1.0278ms)
+  ✔ keeps the semantic profile title when the canvas title is only hidden (0.6726ms)
+  ✔ does not rewrite another field that duplicates the previous title (0.9095ms)
+  ✔ removes a structurally deleted record from the next template fill (1.3675ms)
+  ✔ treats a repeated Skills category tombstone as an idempotent no-op (1.0094ms)
+  ✔ keeps a re-added Skills category stable while its old tombstone awaits save (11.7433ms)
+  ✔ keeps a restored Skills group stable while its semantic tombstone remains queued (1.5194ms)
+  ✔ protects a re-added custom section until that live section is deleted again (4.9964ms)
+  ✔ persists a user-added experience record for a later template fill (3.2618ms)
+  ✔ persists right-column education period and location as separate fields (2.4504ms)
+  ✔ updates an added record by semantic group without duplicating placeholder copy (1.8764ms)
+  ✔ keeps the canvas insertion order when a record is added between existing entries (3.1433ms)
+  ✔ persists a complete user-added section with its current title and body (4.0299ms)
+  ✔ preserves custom category fields through creation, refill, editing and record removal (5.2977ms)
+  ✔ keeps empty category records across refill, editing, clearing and deletion (3.3083ms)
+  ✔ persists a user-added grid as one semantic item per cell (1.1644ms)
+  ✔ keeps a restored custom grid compacted in cv_data after a template fill (1.9452ms)
+  ✔ does not let a restored custom JĘZYKI entries grid overwrite canonical languages (2.0225ms)
+  ✔ persists insertion and compaction in a generated Languages grid after its heading is renamed (3.2676ms)
+  ✔ snapshots exact Languages cell count and reading order for a template switch (3.5793ms)
+  ✔ does not duplicate profile records when a template replacement has fresh unmarked ids (4.4425ms)
+  ✔ deletes only the identified added record when placeholder text is duplicated (0.9128ms)
+✔ syncCvDataFromCanvas (104.9631ms)
+▶ generated Skills synchronization
+  ✔ keeps category-free skills as a flat string array (3.4608ms)
+  ✔ keeps categorized skills structured and preserves existing metadata (2.3766ms)
+  ✔ synchronizes generated Skills after its semantic heading is renamed (2.0998ms)
+  ✔ captures a just-added skill before immediate template replacement (0.7531ms)
+✔ generated Skills synchronization (9.4408ms)
+✔ reads and filters known layout tags (18.6688ms)
+✔ preserves registry order and filters by layout (1.3123ms)
+✔ carousel starts at the selected template (0.723ms)
+✔ maps layout tags to soft ATS readability labels (2.3239ms)
+▶ findFitAcrossTypography
+  ✔ covers every public template with an explicit S transaction (1.9451ms)
+  ✔ keeps the current typography when ordinary spacing fits cleanly (1.4781ms)
+  ✔ uses preset S before AI when current typography cannot reach one page (1.0055ms)
+  ✔ prefers S with readable spacing over an emergency floor-only fit (1.0697ms)
+  ✔ reports failure only after both typography candidates miss the target (0.671ms)
+✔ findFitAcrossTypography (9.1575ms)
+✔ seeds a remounted empty text node from stored content (2.93ms)
+✔ seeds decorated content as styled spans (2.8861ms)
+✔ restores an empty hint after deletion leaves browser markup (0.9879ms)
+✔ does not commit blur from a detached remounted node (0.9655ms)
+✔ does not commit blur while the spread remount is in progress (0.5438ms)
+✔ normalizeRuns clamps, drops empty, and merges adjacent equal spans (5.6409ms)
+✔ later runs overlay earlier ones on overlap (8.0697ms)
+✔ applyMark adds a mark and rangeHasMark reflects it (1.1496ms)
+✔ applyMark with a falsy value removes the mark, reverting to base (0.6335ms)
+✔ applyMark sets a color and can change it (0.9152ms)
+✔ rangeColor returns a shared hex or null for mixed / unmarked ranges (8.9751ms)
+✔ sliceRuns re-bases runs onto a substring window (2.5068ms)
+✔ styledSegments covers the whole string including plain gaps (1.4383ms)
+✔ styledSegments returns a single plain segment when there are no runs (0.9476ms)
+✔ hasRuns ignores empty and no-op arrays (0.8041ms)
+▶ textSpacingHold
+  ✔ exports a 1200ms delay (2.8142ms)
+  ✔ fires setSpacingHoldId after the delay (2.3905ms)
+  ✔ endTextSpacingHold clears timer and hold id for the same element (1.3078ms)
+  ✔ clearTextSpacingHoldTimer prevents a late fire (0.6821ms)
+✔ textSpacingHold (13.3313ms)
+✔ does not treat a stationary click as textarea dragging (2.2002ms)
+✔ starts textarea dragging only after meaningful pointer movement (1.6962ms)
+✔ an ordinary template-mode click enters inline editing (1.6922ms)
+✔ an ordinary freeform-mode click keeps resize selection (0.4346ms)
+✔ Ctrl/Cmd-click remains additive selection in every editor mode (0.441ms)
+✔ a completed drag or fixed-page chrome ignores the click (0.4593ms)
+✔ a click on an editing surface preserves native caret focus (2.1015ms)
+✔ measures intrinsic content height instead of preserving an oversized box (6.0129ms)
+✔ returns zero for an unavailable element (0.3767ms)
+✔ shrinks preserveInitialLayout boxes only when browser metrics are shorter (0.373ms)
+✔ removes trailing bare bullets while preserving authored blank paragraphs (0.9008ms)
+✔ preserves trailing and middle blank paragraphs in plain textareas (0.6413ms)
+✔ preserves blank paragraphs between a heading line and a bullet group (0.2884ms)
+✔ re-bases runs when trailing empties are removed (1.5695ms)
+✔ measureTextareaHeight counts authored plain trailing empty rows (0.6626ms)
+✔ measureTextareaHeight ignores trailing bullet placeholders (5.503ms)
+✔ glyph-width measurement catches word wraps hidden by the character-count fallback (2.0078ms)
+✔ glyph-width measurement reserves the rendered bullet marker column (0.7071ms)
+✔ preserves the established Iconic cap offset outside Harbor (8.0173ms)
+✔ reflows elements below the resized textarea in its horizontal lane (28.6814ms)
+✔ shrinking content preserves gaps while pulling only following lane elements upward (1.0738ms)
+✔ collapses an intentionally cleared AI textarea and reclaims its gap (0.8155ms)
+✔ shrinking page-one content reclaims the page-break hole for following blocks (2.2583ms)
+✔ pulls a keep-together experience record back when its body shrinks on page 2 (1.2089ms)
+✔ Harbor right-column rules do not block main-column record reclaim (2.0555ms)
+✔ does not reclaim a page-2 section when chrome plus grown body do not fit (1.7783ms)
+✔ locked section-chrome rules reflow with their heading across a reclaimed page break (9.3279ms)
+✔ cross-page pack does not use the tiny page-top inset for section chrome (8.654ms)
+✔ overflowed blocks land on continuation inset, not page top 0 (1.3229ms)
+✔ same-page reflow keeps nearby section decorations aligned with content (28.625ms)
+✔ keeps an Iconic section icon grouped with its heading during reflow (1.8693ms)
+✔ keeps a left-hanging section icon in the main text lane (2.0132ms)
+✔ keeps a Monument ordinal badge with its square when chrome jumps to page 2 (1.6058ms)
+✔ keeps a Monument ordinal aligned after a continuation-page clamp (0.9365ms)
+✔ sidebar reflow does not drag main-column section icons (0.7876ms)
+✔ main-column reflow keeps section icon with its heading (5.2704ms)
+✔ moves a reflowed element onto the next page when it no longer fits (0.7598ms)
+✔ moves a textarea itself to the next page before its new height overflows (3.0478ms)
+✔ reclaim packing keeps a flowGroup education record whole (3.7058ms)
+✔ section-chip chrome on the degree line does not split a flowGroup record (1.6051ms)
+✔ growing a record body moves title/meta siblings with the same flowGroup (4.7404ms)
+✔ freeform mode can disable reclaim packing (0.7142ms)
+✔ page-2 education survives sequential font-measurement grows (15.7463ms)
+✔ does not change ordinary manually sized textareas (0.4195ms)
+✔ keeps page decorations fixed while text content reflows (0.6357ms)
+✔ does not shift a position-locked element during textarea reflow (3.7349ms)
+✔ uses explicit flow roles instead of treating record text as section chrome (0.6315ms)
+✔ keeps section heading with following body across a page break (6.0038ms)
+✔ pulls preceding section chrome when the body textarea itself jumps page (1.0532ms)
+✔ pulls preceding sidebar-chrome when the rail body jumps page (0.7379ms)
+✔ preserves a small same-record gap even if a lane element's stored page went stale (2.5646ms)
+✔ keeps SPACE_RECORD between meta and the next record title (1.1205ms)
+✔ keeps section chrome top-to-top when an upstream textarea shrinks (0.9502ms)
+✔ does not stack a section heading under a grown textarea body (0.725ms)
+✔ does not collapse SPACE_RECORD between consecutive bold titles (0.7013ms)
+✔ moves a heading when the full following body cannot fit beneath it (2.4032ms)
+✔ un-crushes same-top skill category and chips after a page-break pack (1.2519ms)
+✔ cascading reflow across several autoHeight textareas keeps a skill-chip grid's rows aligned (2.4758ms)
+✔ a chip row that already jumped to page 2 stays aligned when an earlier textarea reflows next (crossedPage) (1.6974ms)
+✔ a wrapped chip grid's reserved height is its 2D extent, not the sum of every cell (1.6222ms)
+✔ remeasuring an Experience description keeps a category-led chip grid on page 1 (3.881ms)
+✔ a languages grid row measured cell-by-cell never splits across a page break (1.4991ms)
+✔ a languages grid row keeps the following section strip intact while cells settle (10.6016ms)
+✔ legacy grid rows with equal page-local tops remain separate across pages (0.9758ms)
+✔ an atomically moved legacy grid advances from its tallest final-row cell (1.6668ms)
+✔ preserves custom category fields through both lane transfers: Projekty (41.3933ms)
+✔ preserves custom category fields through both lane transfers: Umiejętności (13.2158ms)
+✔ preserves custom category fields through both lane transfers: Języki (7.3027ms)
+▶ resolveSectionLaneTransfer
+  ✔ offers main leftovers to the rail and rail kickers to main (0.7228ms)
+  ✔ never offers Experience to the rail (0.8945ms)
+  ✔ is a no-op for main headings when the document has no rail (0.5398ms)
+✔ resolveSectionLaneTransfer (3.1359ms)
+▶ transferSectionLane
+  ✔ moves education onto the rail as the last sidebar section (5.6816ms)
+  ✔ moves a sidebar section into main as the last main section (7.6703ms)
+  ✔ moves summary into main at full column width even when languages grid is last (2.8621ms)
+  ✔ pulls remaining sidebar sections up after Summary moves to main (2.8217ms)
+  ✔ expands sidebar skills with subcategories into main category + body records (16.6932ms)
+  ✔ expands sidebar languages into a uniformly styled main-column grid (6.57ms)
+  ✔ refuses to move Experience onto the rail (0.7332ms)
+  ✔ keeps one heading->rule gap for every main section after a sidebar->main transfer (12.8803ms)
+  ✔ keeps one heading->rule gap for every rail section after a main->sidebar transfer (2.1958ms)
+✔ transferSectionLane (60.0876ms)
+▶ moveSidebarSectionsToMain
+  ✔ recomputes wrapped height at main width instead of copying the rail box (2.6462ms)
+✔ moveSidebarSectionsToMain (3.0245ms)
+▶ section-rule gap stays consistent after transfer (Slate icon cluster)
+  ✔ keeps a section transferred to the sidebar at the same rule gap as its rail neighbours (7.3873ms)
+  ✔ keeps a section transferred to the main column at the same rule gap as its main neighbours (4.5023ms)
+✔ section-rule gap stays consistent after transfer (Slate icon cluster) (12.2879ms)
+▶ icon chrome rebuilt on transfer (Slate-style templates)
+  ✔ gives a sidebar section its own icon glyph after moving to main, not the sampled sibling's (5.0299ms)
+  ✔ gives a main section its own icon glyph after moving to sidebar, not the sampled sibling's (3.2373ms)
+  ✔ does not add icon markers for non-icon templates (Sterling-style fixture) (3.7156ms)
+  ✔ preserves an explicit alignWithText:false on the rebuilt icon so it is not optically shifted out of its box (10.0091ms)
+✔ icon chrome rebuilt on transfer (Slate-style templates) (23.0174ms)
+✔ Vellum defines exactly three light and three strong white-paper palettes (3.1166ms)
+✔ Vellum palettes keep ordinary text and field-bound copy above 4.5:1 (7.0717ms)
+✔ a strong Vellum palette updates semantic decoration, title, fields, and real icons (5.7429ms)
+✔ Vellum palette switching preserves unknown manual colours (0.9507ms)
+✔ Vellum typography restores exact authored metrics when returning to M (4.1388ms)
+✔ Vellum type presets rebuild contacts and preserve portrait, field, and date contracts (89.9333ms)
+✔ Vellum batches rendered textarea heights before one structural repack (18.3826ms)
+ℹ tests 1109
+ℹ suites 120
+ℹ pass 1108
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 29260.9759
+
+✖ failing tests:
+
+test at src\utils\demoModeChrome.test.js:50:1
+✖ empty-state chooser replaces editor chrome and Pro-only AI actions (21.3492ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /!showStartChooser \? <Editor \/>/. Input:
+  
+  "import Gallery from '../components/gallery/Gallery/Gallery';\r\n" +
+    "import Sidebar from '../components/editor/Sidebar/Sidebar';\r\n" +
+    "import Topbar from '../components/editor/Topbar/Topbar';\r\n" +
+    "import DemoBanner from '../components/editor/DemoBanner/DemoBanner';\r\n" +
+    "import StartChooser from '../components/editor/StartChooser/StartChooser';\r\n" +
+    "import NewCvSetupModal from '../components/editor/NewCvSetupModal/NewCvSetupModal';\r\n" +
+    'import A4 from "../components/canvas/A4/A4";\r\n' +
+    'import CanvasPageStage from "../components/canvas/CanvasPageStage/CanvasPageStage";\r\n' +
+    "import Editor from '../components/editor/Editor/Editor';\r\n" +
+    "import { CanvasContext } from '../store/canvas-context';\r\n" +
+    "import { UiSurfacesContext } from '../store/ui-surfaces-context';\r\n" +
+    "import { SessionContext } from '../store/session-context';\r\n" +
+    'import {\r\n' +
+    '  DocumentLifecycleContext,\r\n' +
+    '  useDocumentLifecycleController,\r\n' +
+    "} from '../store/document-lifecycle-context';\r\n" +
+    "import { lazy, Suspense, useState, useEffect, useLayoutEffect, useMemo, useCallback, useRef} from 'react';\r\n" +
+    'import { useA4Elements } from "../hooks/useA4Elements";\r\n' +
+    "import { usePdfExport } from '../hooks/usePdfExport';\r\n" +
+    'import CanvasElements from "../components/canvas/CanvasElements/CanvasElements";\r\n' +
+    'import SelectionOverlay from "../components/canvas/SelectionOverlay/SelectionOverlay";\r\n' +
+    'import AiCorrectionOverlay from "../components/canvas/AiCorrectionOverlay/AiCorrectionOverlay";\r\n' +
+    "import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';\r\n" +
+    "import { resolveStartTemplate, resolveFreeStartTemplate } from '../utils/cvTemplateSelection';\r\n" +
+    "import { getDocumentPath } from '../utils/siteRoutes';\r\n" +
+    "import { loadOwnedDocument } from '../services/documents';\r\n" +
+    "import SiteLayout from '../components/common/SiteLayout/SiteLayout';\r\n" +
+    "import siteClasses from '../components/common/SiteLayout/SiteLayout.module.css';\r\n" +
+    "import { Link } from 'react-router-dom';\r\n" +
+    'import {\r\n' +
+    '  clearAccessToken,\r\n' +
+    '  getAccessToken,\r\n' +
+    '  getEditorPath,\r\n' +
+    '  getSessionUsername,\r\n' +
+    '  GUEST_WORKSPACE,\r\n' +
+    "} from '../utils/authSession';\r\n" +
+    "import ModalPdfs from '../components/modals/ModalPdfs/ModalPdfs';\r\n" +
+    "import { ApiClient } from '../services/api';\r\n" +
+    "import { ENDPOINTS } from '../services/api';\r\n" +
+    "import SaveProgressModal from '../components/editor/SaveProgressModal/SaveProgressModal';\r\n" +
+    "import DownloadProgressModal from '../components/editor/DownloadProgressModal/DownloadProgressModal';\r\n" +
+    "import ToastStack from '../components/common/ToastStack/ToastStack';\r\n" +
+    "import { useToasts } from '../hooks/useToasts';\r\n" +
+    "import { useEntitlements } from '../hooks/useEntitlements';\r\n" +
+    "import Guides from '../components/canvas/Guides/Guides';\r\n" +
+    "import Connectors from '../components/canvas/Connectors/Connectors';\r\n" +
+    "import TemplatesModal from '../components/modals/TemplatesModal/TemplatesModal';\r\n" +
+    "import PlanSelectModal from '../components/modals/PlanSelectModal/PlanSelectModal';\r\n" +
+    "import ChangeTemplateModal from '../components/editor/Topbar/ChangeTemplateModal';\r\n" +
+    "import UnlockFreeformModal from '../components/editor/UnlockFreeformModal/UnlockFreeformModal';\r\n" +
+    "import SaveGateModal from '../components/editor/SaveGateModal/SaveGateModal';\r\n" +
+    "import ClaimGuestDocumentModal from '../components/editor/ClaimGuestDocumentModal/ClaimGuestDocumentModal';\r\n" +
+    "import SectionsPanel from '../components/editor/SectionsPanel/SectionsPanel';\r\n" +
+    "import AddSectionModal from '../components/editor/AddSectionModal/AddSectionModal';\r\n" +
+    "import FlatSectionLayoutModal from '../components/editor/FlatSectionLayoutModal/FlatSectionLayoutModal';\r\n" +
+    "import SkillsLayoutModal from '../components/editor/SkillsLayoutModal/SkillsLayoutModal';\r\n" +
+    "import LongCvModal from '../components/editor/LongCvModal/LongCvModal';\r\n" +
+    "import { logEvent } from '../services/eventLog';\r\n" +
+    "import { saveGuestDocument, loadGuestDocument, clearGuestDocument, hasGuestDocument } from '../utils/guestDocument';\r\n" +
+    "import { queueGuestEvent, loadGuestEvents, clearGuestEvents } from '../utils/guestEvents';\r\n" +
+    "import { resolveActiveCvData } from '../utils/resolveActiveCvData';\r\n" +
+    'import {\r\n' +
+    '  clearGuestWizardDraft,\r\n' +
+    '  guestWizardProfileHasContent,\r\n' +
+    '  loadGuestWizardDraft,\r\n' +
+    "} from '../utils/guestWizardDraft';\r\n" +
+    "import { syncCvDataFromCanvas } from '../utils/syncCvDataFromCanvas';\r\n" +
+    "import ScopedAiProvider from '../components/ai/ScopedAi/ScopedAiProvider';\r\n" +
+    "import { fillTemplate } from '../services/fillTemplate';\r\n" +
+    "import { shouldShowStartChooser } from '../utils/startChooser';\r\n" +
+    "import { previewStructureOperation, reconcileDocumentPages } from '../utils/structureOperation';\r\n" +
+    "import { visiblePageNumbers } from '../utils/pageSpread';\r\n" +
+    "import { isTemplateAllowed, planErrorMessage } from '../utils/entitlements';\r\n" +
+    "import { triggerBlobDownload } from '../utils/download';\r\n" +
+    "import { useCanvasPageWheel } from '../hooks/useCanvasPageWheel';\r\n" +
+    "import { useDirtyGuard } from '../hooks/useDirtyGuard';\r\n" +
+    'import {\r\n' +
+    '  createPersistedDocumentSnapshot,\r\n' +
+    '  hasPersistedDocumentContent,\r\n' +
+    '  persistedDocumentSignature,\r\n' +
+    "} from '../utils/persistedDocumentSnapshot';\r\n" +
+    "import UnsavedChangesDialog from '../components/common/UnsavedChangesDialog/UnsavedChangesDialog';\r\n" +
+    "import { ErrorBoundary } from '../components/common/ErrorBoundary/ErrorBoundary';\r\n" +
+    "import { DialogSuspensionContext } from '../components/common/DialogShell/DialogSuspensionContext';\r\n" +
+    'import {\r\n' +
+    '  EDITOR_MODE_FREEFORM,\r\n' +
+    '  EDITOR_MODE_TEMPLATE,\r\n' +
+    "} from '../utils/editorMode';\r\n" +
+    'import {\r\n' +
+    '  COMPACT_FLOW_SPACING,\r\n' +
+    '  DEFAULT_FLOW_SPACING,\r\n' +
+    '  MIN_FLOW_SPACING,\r\n' +
+    '  flowSpacingEquals,\r\n' +
+    '  normalizeFlowSpacing,\r\n' +
+    "} from '../utils/flowSpacing';\r\n" +
+    'import {\r\n' +
+    '  findFitForTarget,\r\n' +
+    '  resolveFitAction,\r\n' +
+    '  formatFitTargetLabel,\r\n' +
+    "} from '../utils/fitToPages';\r\n" +
+    "import { findTemplateFitForTarget } from '../utils/templatePageFit';\r\n" +
+    "import { createCanvasTextWidthMeasurer } from '../utils/textareaHeight';\r\n" +
+    "import { listSectionIconOptions } from '../utils/sectionIcons';\r\n" +
+    "import { convertFlatListContent } from '../utils/flatSectionLayout';\r\n" +
+    'import {\r\n' +
+    '  getNextPageFitTarget,\r\n' +
+    '  shouldResetLongCvOffer,\r\n' +
+    '  TOO_LONG_MIN_PAGES,\r\n' +
+    '  SIDEBAR_TOO_LONG_MIN_PAGES,\r\n' +
+    "} from '../utils/documentLength';\r\n" +
+    "import { lindenTemplate } from '../templates/linden';\r\n" +
+    "import { TEMPLATES } from '../templates';\r\n" +
+    "import { templateHasLayout } from '../utils/templateLayouts';\r\n" +
+    "import { normalizeSterlingFamilyPersistence } from '../utils/sterlingAppearance';\r\n" +
+    "import { normalizeProfilePhotoVisibilityPersistence } from '../utils/profilePhotoVisibility';\r\n" +
+    "import { buildStarterDocument } from '../utils/cvStarter';\r\n" +
+    "import { applyStarterElementStructure } from '../utils/starterElementStructure';\r\n" +
+    "import { findRequiredCvNameElement, hasRequiredCvName } from '../utils/requiredCvName';\r\n" +
+    "import { nanoid } from 'nanoid';\r\n" +
+    "import { materializeElementSpecs } from '../utils/materializeElementSpecs';\r\n" +
+    "import { markContentElementsEnter } from '../utils/canvasEnter';\r\n" +
+    "import { normalizeCommittedDocumentSnapshot } from '../utils/documentSnapshotCommit';\r\n" +
+    '/**\r\n' +
+    ' * Authenticated CV editor page: canvas, toolbars, dialogs, and autosave.\r\n' +
+    ' *\r\n' +
+    ' * Composes `useA4Elements` + `usePdfExport` into focused Canvas, UiSurfaces,\r\n' +
+    ' * and Session contexts. Consumers subscribe only to the domain they need,\r\n' +
+    ' * preventing unrelated surface or session updates from invalidating canvas UI.\r\n' +
+    ' * Dialog (`docs` / `templates` / AI / plan) and panel (`upload` / `gallery`)\r\n' +
+    ' * surfaces are mutually exclusive so only one overlay owns focus at a time.\r\n' +
+    ' */\r\n' +
+    '\r\n' +
+    '// Session-scoped flag so the template-first onboarding modal (see\r\n' +
+    '// markTemplatesModalSeen below) never re-triggers after being resolved once.\r\n' +
+    'const TEMPLATES_MODAL_SEEN_KEY = "cv-studio:templatesModalSeen";\r\n' +
+    "const LazyAiAssistant = lazy(() => import('../components/ai/AiAssistant/AiAssistant'));\r\n" +
+    "const LazyAiCvPanel = lazy(() => import('../components/ai/AiCvPanel/AiCvPanel'));\r\n" +
+    '\r\n' +
+    'function LazyAiFallback({ modal = false }) {\r\n' +
+    '  return (\r\n' +
+    '    <div\r\n' +
+    '      className={modal ? "editor-lazy-status editor-lazy-status--modal" : "editor-lazy-status"}\r\n' +
+    '      role="status"\r\n' +
+    '      aria-live="polite"\r\n' +
+    '    >\r\n' +
+    '      Ładowanie narzędzia AI…\r\n' +
+    '    </div>\r\n' +
+    '  );\r\n' +
+    '}\r\n' +
+    '\r\n' +
+    '/**\r\n' +
+    ' * Presentation/provider boundary for the editor.\r\n' +
+    ' *\r\n' +
+    ' * `EditorController` owns state, effects, persistence, and command callbacks.\r\n' +
+    ' * This component owns only the DOM shell, error reset boundary, and context\r\n' +
+    ' * topology. Keeping the boundary deliberately small avoids a risky mechanical\r\n' +
+    ' * rewrite of the mature canvas view while making controller/view ownership\r\n' +
+    ' * explicit and independently runtime-testable.\r\n' +
+    ' */\r\n' +
+    'export function EditorView({\r\n' +
+    '  className,\r\n' +
+    '  onMouseMove,\r\n' +
+    '  dialogsSuspended = false,\r\n' +
+    '  documentLifecycle,\r\n' +
+    '  documentSessionKey,\r\n' +
+    '  canvasValue,\r\n' +
+    '  uiValue,\r\n' +
+    '  sessionValue,\r\n' +
+    '  children,\r\n' +
+    '}) {\r\n' +
+    '  return (\r\n' +
+    '    <main className={className} onMouseMove={onMouseMove}>\r\n' +
+    '      <DialogSuspensionContext.Provider value={dialogsSuspended}>\r\n' +
+    '        <DocumentLifecycleContext.Provider value={documentLifecycle}>\r\n' +
+    '          <ErrorBoundary resetKey={documentSessionKey} compact>\r\n' +
+    '            <CanvasContext.Provider value={canvasValue}>\r\n' +
+    '              <UiSurfacesContext.Provider value={uiValue}>\r\n' +
+    '                <SessionContext.Provider value={sessionValue}>\r\n' +
+    '                  {children}\r\n' +
+    '                </SessionContext.Provider>\r\n' +
+    '              </UiSurfacesContext.Provider>\r\n' +
+    '            </CanvasContext.Provider>\r\n' +
+    '          </ErrorBoundary>\r\n' +
+    '        </DocumentLifecycleContext.Provider>\r\n' +
+    '      </DialogSuspensionContext.Provider>\r\n' +
+    '    </main>\r\n' +
+    '  );\r\n' +
+    '}\r\n' +
+    '\r\n' +
+    'export function EditorController() {\r\n' +
+    '\r\n' +
+    '  const navigate = useNavigate();\r\n' +
+    '  const lifecycleController = useDocumentLifecycleController();\r\n' +
+    '  const {\r\n' +
+    '    sessionKey: documentSessionKey,\r\n' +
+    '    observeDocumentSignature,\r\n' +
+    '    captureDocumentScope,\r\n' +
+    '    isDocumentScopeCurrent,\r\n' +
+    '    advanceDocumentSession,\r\n' +
+    '  } = lifecycleController;\r\n' +
+    '  const [isGuest, setIsGuest] = useState(() => !getAccessToken());\r\n' +
+    '  const { workspace, documentId } = useParams();\r\n' +
+    '  const [searchParams, setSearchParams] = useSearchParams();\r\n' +
+    '  const startIntent = searchParams.get("start");\r\n' +
+    '  const templateIntent = searchParams.'... 103217 more characters
+  
+      at TestContext.<anonymous> (file:///C:/Users/Kamil/learningCode/PROJECTS/PDF/pdf-generator/frontend/src/utils/demoModeChrome.test.js:71:10)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'import Gallery from \'../components/gallery/Gallery/Gallery\';\r\nimport Sidebar from \'../components/editor/Sidebar/Sidebar\';\r\nimport Topbar from \'../components/editor/Topbar/Topbar\';\r\nimport DemoBanner from \'../components/editor/DemoBanner/DemoBanner\';\r\nimport StartChooser from \'../components/editor/StartChooser/StartChooser\';\r\nimport NewCvSetupModal from \'../components/editor/NewCvSetupModal/NewCvSetupModal\';\r\nimport A4 from "../components/canvas/A4/A4";\r\nimport CanvasPageStage from "../components/canvas/CanvasPageStage/CanvasPageStage";\r\nimport Editor from \'../components/editor/Editor/Editor\';\r\nimport { CanvasContext } from \'../store/canvas-context\';\r\nimport { UiSurfacesContext } from \'../store/ui-surfaces-context\';\r\nimport { SessionContext } from \'../store/session-context\';\r\nimport {\r\n  DocumentLifecycleContext,\r\n  useDocumentLifecycleController,\r\n} from \'../store/document-lifecycle-context\';\r\nimport { lazy, Suspense, useState, useEffect, useLayoutEffect, useMemo, useCallback, useRef} from \'react\';\r\nimport { useA4Elements } from "../hooks/useA4Elements";\r\nimport { usePdfExport } from \'../hooks/usePdfExport\';\r\nimport CanvasElements from "../components/canvas/CanvasElements/CanvasElements";\r\nimport SelectionOverlay from "../components/canvas/SelectionOverlay/SelectionOverlay";\r\nimport AiCorrectionOverlay from "../components/canvas/AiCorrectionOverlay/AiCorrectionOverlay";\r\nimport { useLocation, useNavigate, useParams, useSearchParams } from \'react-router-dom\';\r\nimport { resolveStartTemplate, resolveFreeStartTemplate } from \'../utils/cvTemplateSelection\';\r\nimport { getDocumentPath } from \'../utils/siteRoutes\';\r\nimport { loadOwnedDocument } from \'../services/documents\';\r\nimport SiteLayout from \'../components/common/SiteLayout/SiteLayout\';\r\nimport siteClasses from \'../components/common/SiteLayout/SiteLayout.module.css\';\r\nimport { Link } from \'react-router-dom\';\r\nimport {\r\n  clearAccessToken,\r\n  getAccessToken,\r\n  getEditorPath,\r\n  getSessionUsername,\r\n  GUEST_WORKSPACE,\r\n} from \'../utils/authSession\';\r\nimport ModalPdfs from \'../components/modals/ModalPdfs/ModalPdfs\';\r\nimport { ApiClient } from \'../services/api\';\r\nimport { ENDPOINTS } from \'../services/api\';\r\nimport SaveProgressModal from \'../components/editor/SaveProgressModal/SaveProgressModal\';\r\nimport DownloadProgressModal from \'../components/editor/DownloadProgressModal/DownloadProgressModal\';\r\nimport ToastStack from \'../components/common/ToastStack/ToastStack\';\r\nimport { useToasts } from \'../hooks/useToasts\';\r\nimport { useEntitlements } from \'../hooks/useEntitlements\';\r\nimport Guides from \'../components/canvas/Guides/Guides\';\r\nimport Connectors from \'../components/canvas/Connectors/Connectors\';\r\nimport TemplatesModal from \'../components/modals/TemplatesModal/TemplatesModal\';\r\nimport PlanSelectModal from \'../components/modals/PlanSelectModal/PlanSelectModal\';\r\nimport ChangeTemplateModal from \'../components/editor/Topbar/ChangeTemplateModal\';\r\nimport UnlockFreeformModal from \'../components/editor/UnlockFreeformModal/UnlockFreeformModal\';\r\nimport SaveGateModal from \'../components/editor/SaveGateModal/SaveGateModal\';\r\nimport ClaimGuestDocumentModal from \'../components/editor/ClaimGuestDocumentModal/ClaimGuestDocumentModal\';\r\nimport SectionsPanel from \'../components/editor/SectionsPanel/SectionsPanel\';\r\nimport AddSectionModal from \'../components/editor/AddSectionModal/AddSectionModal\';\r\nimport FlatSectionLayoutModal from \'../components/editor/FlatSectionLayoutModal/FlatSectionLayoutModal\';\r\nimport SkillsLayoutModal from \'../components/editor/SkillsLayoutModal/SkillsLayoutModal\';\r\nimport LongCvModal from \'../components/editor/LongCvModal/LongCvModal\';\r\nimport { logEvent } from \'../services/eventLog\';\r\nimport { saveGuestDocument, loadGuestDocument, clearGuestDocument, hasGuestDocument } from \'../utils/guestDocument\';\r\nimport { queueGuestEvent, loadGuestEvents, clearGuestEvents } from \'../utils/guestEvents\';\r\nimport { resolveActiveCvData } from \'../utils/resolveActiveCvData\';\r\nimport {\r\n  clearGuestWizardDraft,\r\n  guestWizardProfileHasContent,\r\n  loadGuestWizardDraft,\r\n} from \'../utils/guestWizardDraft\';\r\nimport { syncCvDataFromCanvas } from \'../utils/syncCvDataFromCanvas\';\r\nimport ScopedAiProvider from \'../components/ai/ScopedAi/ScopedAiProvider\';\r\nimport { fillTemplate } from \'../services/fillTemplate\';\r\nimport { shouldShowStartChooser } from \'../utils/startChooser\';\r\nimport { previewStructureOperation, reconcileDocumentPages } from \'../utils/structureOperation\';\r\nimport { visiblePageNumbers } from \'../utils/pageSpread\';\r\nimport { isTemplateAllowed, planErrorMessage } from \'../utils/entitlements\';\r\nimport { triggerBlobDownload } from \'../utils/download\';\r\nimport { useCanvasPageWheel } from \'../hooks/useCanvasPageWheel\';\r\nimport { useDirtyGuard } from \'../hooks/useDirtyGuard\';\r\nimport {\r\n  createPersistedDocumentSnapshot,\r\n  hasPersistedDocumentContent,\r\n  persistedDocumentSignature,\r\n} from \'../utils/persistedDocumentSnapshot\';\r\nimport UnsavedChangesDialog from \'../components/common/UnsavedChangesDialog/UnsavedChangesDialog\';\r\nimport { ErrorBoundary } from \'../components/common/ErrorBoundary/ErrorBoundary\';\r\nimport { DialogSuspensionContext } from \'../components/common/DialogShell/DialogSuspensionContext\';\r\nimport {\r\n  EDITOR_MODE_FREEFORM,\r\n  EDITOR_MODE_TEMPLATE,\r\n} from \'../utils/editorMode\';\r\nimport {\r\n  COMPACT_FLOW_SPACING,\r\n  DEFAULT_FLOW_SPACING,\r\n  MIN_FLOW_SPACING,\r\n  flowSpacingEquals,\r\n  normalizeFlowSpacing,\r\n} from \'../utils/flowSpacing\';\r\nimport {\r\n  findFitForTarget,\r\n  resolveFitAction,\r\n  formatFitTargetLabel,\r\n} from \'../utils/fitToPages\';\r\nimport { findTemplateFitForTarget } from \'../utils/templatePageFit\';\r\nimport { createCanvasTextWidthMeasurer } from \'../utils/textareaHeight\';\r\nimport { listSectionIconOptions } from \'../utils/sectionIcons\';\r\nimport { convertFlatListContent } from \'../utils/flatSectionLayout\';\r\nimport {\r\n  getNextPageFitTarget,\r\n  shouldResetLongCvOffer,\r\n  TOO_LONG_MIN_PAGES,\r\n  SIDEBAR_TOO_LONG_MIN_PAGES,\r\n} from \'../utils/documentLength\';\r\nimport { lindenTemplate } from \'../templates/linden\';\r\nimport { TEMPLATES } from \'../templates\';\r\nimport { templateHasLayout } from \'../utils/templateLayouts\';\r\nimport { normalizeSterlingFamilyPersistence } from \'../utils/sterlingAppearance\';\r\nimport { normalizeProfilePhotoVisibilityPersistence } from \'../utils/profilePhotoVisibility\';\r\nimport { buildStarterDocument } from \'../utils/cvStarter\';\r\nimport { applyStarterElementStructure } from \'../utils/starterElementStructure\';\r\nimport { findRequiredCvNameElement, hasRequiredCvName } from \'../utils/requiredCvName\';\r\nimport { nanoid } from \'nanoid\';\r\nimport { materializeElementSpecs } from \'../utils/materializeElementSpecs\';\r\nimport { markContentElementsEnter } from \'../utils/canvasEnter\';\r\nimport { normalizeCommittedDocumentSnapshot } from \'../utils/documentSnapshotCommit\';\r\n/**\r\n * Authenticated CV editor page: canvas, toolbars, dialogs, and autosave.\r\n *\r\n * Composes `useA4Elements` + `usePdfExport` into focused Canvas, UiSurfaces,\r\n * and Session contexts. Consumers subscribe only to the domain they need,\r\n * preventing unrelated surface or session updates from invalidating canvas UI.\r\n * Dialog (`docs` / `templates` / AI / plan) and panel (`upload` / `gallery`)\r\n * surfaces are mutually exclusive so only one overlay owns focus at a time.\r\n */\r\n\r\n// Session-scoped flag so the template-first onboarding modal (see\r\n// markTemplatesModalSeen below) never re-triggers after being resolved once.\r\nconst TEMPLATES_MODAL_SEEN_KEY = "cv-studio:templatesModalSeen";\r\nconst LazyAiAssistant = lazy(() => import(\'../components/ai/AiAssistant/AiAssistant\'));\r\nconst LazyAiCvPanel = lazy(() => import(\'../components/ai/AiCvPanel/AiCvPanel\'));\r\n\r\nfunction LazyAiFallback({ modal = false }) {\r\n  return (\r\n    <div\r\n      className={modal ? "editor-lazy-status editor-lazy-status--modal" : "editor-lazy-status"}\r\n      role="status"\r\n      aria-live="polite"\r\n    >\r\n      Ładowanie narzędzia AI…\r\n    </div>\r\n  );\r\n}\r\n\r\n/**\r\n * Presentation/provider boundary for the editor.\r\n *\r\n * `EditorController` owns state, effects, persistence, and command callbacks.\r\n * This component owns only the DOM shell, error reset boundary, and context\r\n * topology. Keeping the boundary deliberately small avoids a risky mechanical\r\n * rewrite of the mature canvas view while making controller/view ownership\r\n * explicit and independently runtime-testable.\r\n */\r\nexport function EditorView({\r\n  className,\r\n  onMouseMove,\r\n  dialogsSuspended = false,\r\n  documentLifecycle,\r\n  documentSessionKey,\r\n  canvasValue,\r\n  uiValue,\r\n  sessionValue,\r\n  children,\r\n}) {\r\n  return (\r\n    <main className={className} onMouseMove={onMouseMove}>\r\n      <DialogSuspensionContext.Provider value={dialogsSuspended}>\r\n        <DocumentLifecycleContext.Provider value={documentLifecycle}>\r\n          <ErrorBoundary resetKey={documentSessionKey} compact>\r\n            <CanvasContext.Provider value={canvasValue}>\r\n              <UiSurfacesContext.Provider value={uiValue}>\r\n                <SessionContext.Provider value={sessionValue}>\r\n                  {children}\r\n                </SessionContext.Provider>\r\n              </UiSurfacesContext.Provider>\r\n            </CanvasContext.Provider>\r\n          </ErrorBoundary>\r\n        </DocumentLifecycleContext.Provider>\r\n      </DialogSuspensionContext.Provider>\r\n    </main>\r\n  );\r\n}\r\n\r\nexport function EditorController() {\r\n\r\n  const navigate = useNavigate();\r\n  const lifecycleController = useDocumentLifecycleController();\r\n  const {\r\n    sessionKey: documentSessionKey,\r\n    observeDocumentSignature,\r\n    captureDocumentScope,\r\n    isDocumentScopeCurrent,\r\n    advanceDocumentSession,\r\n  } = lifecycleController;\r\n  const [isGuest, setIsGuest] = useState(() => !getAccessToken());\r\n  const { workspace, documentId } = useParams();\r\n  const [searchParams, setSearchParams] = useSearchParams();\r\n  const startIntent = searchParams.get("start");\r\n  const templateIntent = searchParams.'... 103217 more characters,
+    expected: /!showStartChooser \? <Editor \/>/,
+    operator: 'match',
+    diff: 'simple'
+  }

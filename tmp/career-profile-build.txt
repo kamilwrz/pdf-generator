@@ -1,0 +1,52 @@
+vite v7.3.6 building client environment for production...
+transforming...
+✓ 1176 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                               0.63 kB │ gzip:   0.41 kB
+dist/.vite/manifest.json                     11.74 kB │ gzip:   1.63 kB
+dist/assets/CareerProfilePage-BJC16Dr3.css    1.85 kB │ gzip:   0.58 kB
+dist/assets/PlanSelectModal-BJBed3fC.css      2.29 kB │ gzip:   0.84 kB
+dist/assets/TemplateCarousel-Bs44pon8.css     4.43 kB │ gzip:   1.35 kB
+dist/assets/DialogShell-q4safORW.css          4.93 kB │ gzip:   1.31 kB
+dist/assets/AuthLayout-DzUSvu1T.css           6.52 kB │ gzip:   1.66 kB
+dist/assets/AiCvPanel-B5SJ4IlI.css            8.26 kB │ gzip:   1.92 kB
+dist/assets/Interview-CZjdvaWS.css           11.04 kB │ gzip:   2.38 kB
+dist/assets/index-CKRN0cq0.css               14.31 kB │ gzip:   3.32 kB
+dist/assets/SiteLayout-EPmFCnlX.css          17.82 kB │ gzip:   3.46 kB
+dist/assets/Hero-CFODthMe.css                19.44 kB │ gzip:   4.43 kB
+dist/assets/AiAssistant-DW_BiWKI.css         30.55 kB │ gzip:   5.85 kB
+dist/assets/PdfCanvas-D2LOhllE.css          154.40 kB │ gzip:  25.61 kB
+dist/assets/InterviewPage-BRL_utwu.js         0.65 kB │ gzip:   0.43 kB
+dist/assets/download-S9QoHucg.js              0.69 kB │ gzip:   0.50 kB
+dist/assets/useEntitlements-CvhUnoeN.js       0.87 kB │ gzip:   0.57 kB
+dist/assets/SitePrimitives-B_G9RY0a.js        1.18 kB │ gzip:   0.57 kB
+dist/assets/planPresentation-Co8DJxV5.js      1.21 kB │ gzip:   0.69 kB
+dist/assets/authApi-B7PFi5eb.js               1.31 kB │ gzip:   0.69 kB
+dist/assets/AuthLayout.module-VG2gWYO-.js     1.35 kB │ gzip:   0.60 kB
+dist/assets/GoogleSignInButton-C7nMDDtt.js    1.48 kB │ gzip:   0.84 kB
+dist/assets/CheckoutResult-kIT00JFk.js        1.78 kB │ gzip:   1.08 kB
+dist/assets/VerifyEmail-3WE3vm76.js           1.89 kB │ gzip:   0.98 kB
+dist/assets/DialogShell-1tdxMpzi.js           4.22 kB │ gzip:   1.88 kB
+dist/assets/PlanSelectModal-CGqkZo--.js       4.48 kB │ gzip:   2.20 kB
+dist/assets/SiteLayout-BdXsMT_a.js            4.99 kB │ gzip:   2.11 kB
+dist/assets/Login-DlAr54vV.js                 5.63 kB │ gzip:   2.32 kB
+dist/assets/DocumentsPage-C7YBEuks.js         6.25 kB │ gzip:   2.55 kB
+dist/assets/api-DPF5WSHv.js                   6.26 kB │ gzip:   2.44 kB
+dist/assets/CareerProfilePage-DvD9Gx0b.js     6.29 kB │ gzip:   2.60 kB
+dist/assets/AccountPage-io4zBCLF.js           7.14 kB │ gzip:   2.99 kB
+dist/assets/PublicPages-Docv7Iuc.js           8.92 kB │ gzip:   3.30 kB
+dist/assets/Register-9j7z_Cii.js              9.19 kB │ gzip:   3.50 kB
+dist/assets/index-BTnxlYOG.js                14.71 kB │ gzip:   2.69 kB
+dist/assets/InterviewFlow-BZFbGoFS.js        15.96 kB │ gzip:   5.62 kB
+dist/assets/PrivacyPage-CtFtRDVk.js          15.98 kB │ gzip:   5.72 kB
+dist/assets/AiCvPanel-BWXhe07Z.js            16.30 kB │ gzip:   6.00 kB
+dist/assets/Interview.module-CqrWrJGk.js     17.94 kB │ gzip:   6.69 kB
+dist/assets/documents-DRTArr6J.js            33.16 kB │ gzip:  10.39 kB
+dist/assets/index-TtJCQ3wK.js                53.27 kB │ gzip:   8.48 kB
+dist/assets/AiAssistant-BfvmUTuR.js          59.22 kB │ gzip:  18.37 kB
+dist/assets/TemplateCarousel-BiUFOEHo.js    127.90 kB │ gzip:  42.52 kB
+dist/assets/Hero-DemWWRIu.js                138.22 kB │ gzip:  45.73 kB
+dist/assets/index-VuCp-TUa.js               299.75 kB │ gzip:  96.48 kB
+dist/assets/PdfCanvas-DXDylWIg.js           735.30 kB │ gzip: 217.90 kB
+✓ built in 27.10s

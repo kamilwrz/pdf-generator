@@ -1,0 +1,103 @@
+{
+  "head": "3fc4772802325a3d954c2498d198b496f78263d8",
+  "files": [
+    {
+      "path": "DESIGN.md",
+      "snapshot": "C:\\Users\\Kamil\\learningCode\\PROJECTS\\PDF\\pdf-generator\\tmp\\onboarding-commit\\files\\DESIGN.md",
+      "sha": "e6c675889e71611d90c77642f5ef66df6d83e0ef"
+    },
+    {
+      "path": "docs/ONBOARDING.md",
+      "snapshot": "C:\\Users\\Kamil\\learningCode\\PROJECTS\\PDF\\pdf-generator\\tmp\\onboarding-commit\\files\\docs\\ONBOARDING.md",
+      "sha": "19d2cdab3e58cb6a39f9a87244f5634fe01df2d4"
+    },
+    {
+      "path": "frontend/e2e/first-cv-download.spec.js",
+      "snapshot": "C:\\Users\\Kamil\\learningCode\\PROJECTS\\PDF\\pdf-generator\\tmp\\onboarding-commit\\files\\frontend\\e2e\\first-cv-download.spec.js",
+      "sha": "e710477439087e9cd982fb24de607e645fab6644"
+    },
+    {
+      "path": "frontend/e2e/guest-entry.spec.js",
+      "snapshot": "C:\\Users\\Kamil\\learningCode\\PROJECTS\\PDF\\pdf-generator\\tmp\\onboarding-commit\\files\\frontend\\e2e\\guest-entry.spec.js",
+      "sha": "39c3f9d1981730d6f24e767295b7b5997350b32f"
+    },
+    {
+      "path": "frontend/e2e/hero-templates.spec.js",
+      "snapshot": "C:\\Users\\Kamil\\learningCode\\PROJECTS\\PDF\\pdf-generator\\tmp\\onboarding-commit\\files\\frontend\\e2e\\hero-templates.spec.js",
+      "sha": "57d5fa299b5ff64f73892a16d9b25a8a192b4604"
+    },
+    {
+      "path": "frontend/e2e/new-cv-setup.spec.js",
+      "snapshot": "C:\\Users\\Kamil\\learningCode\\PROJECTS\\PDF\\pdf-generator\\tmp\\onboarding-commit\\files\\frontend\\e2e\\new-cv-setup.spec.js",
+      "sha": "cfd46a73c80fbe8afe206336ae0811be26fee791"
+    },
+    {
+      "path": "frontend/e2e/support/mockApi.js",
+      "snapshot": "C:\\Users\\Kamil\\learningCode\\PROJECTS\\PDF\\pdf-generator\\tmp\\onboarding-commit\\files\\frontend\\e2e\\support\\mockApi.js",
+      "sha": "b2852cd7bdfd0548aaa194f64a5106c63c3e7555"
+    },
+    {
+      "path": "frontend/src/components/common/AuthLayout/AuthLayout.module.css",
+      "snapshot": "C:\\Users\\Kamil\\learningCode\\PROJECTS\\PDF\\pdf-generator\\tmp\\onboarding-commit\\files\\frontend\\src\\components\\common\\AuthLayout\\AuthLayout.module.css",
+      "sha": "b88859abd649bb2e908614be78f19af63fd2a948"
+    },
+    {
+      "path": "frontend/src/components/editor/ClaimGuestDocumentModal/ClaimGuestDocumentModal.jsx",
+      "snapshot": "C:\\Users\\Kamil\\learningCode\\PROJECTS\\PDF\\pdf-generator\\tmp\\onboarding-commit\\files\\frontend\\src\\components\\editor\\ClaimGuestDocumentModal\\ClaimGuestDocumentModal.jsx",
+      "sha": "cd451742cee8e6491439f0a60e4dd40e45390b0c"
+    },
+    {
+      "path": "frontend/src/components/editor/NewCvSetupModal/NewCvSetupModal.jsx",
+      "snapshot": "C:\\Users\\Kamil\\learningCode\\PROJECTS\\PDF\\pdf-generator\\tmp\\onboarding-commit\\files\\frontend\\src\\components\\editor\\NewCvSetupModal\\NewCvSetupModal.jsx",
+      "sha": "70d44aead81fc1860865231196bf5a2789fecffc"
+    },
+    {
+      "path": "frontend/src/components/editor/NewCvSetupModal/NewCvSetupModal.runtime.test.jsx",
+      "snapshot": "C:\\Users\\Kamil\\learningCode\\PROJECTS\\PDF\\pdf-generator\\tmp\\onboarding-commit\\files\\frontend\\src\\components\\editor\\NewCvSetupModal\\NewCvSetupModal.runtime.test.jsx",
+      "sha": "19ce95a8dc969d6ec6bc253d6c5726b271513698"
+    },
+    {
+      "path": "frontend/src/components/editor/SaveGateModal/SaveGateModal.jsx",
+      "snapshot": "C:\\Users\\Kamil\\learningCode\\PROJECTS\\PDF\\pdf-generator\\tmp\\onboarding-commit\\files\\frontend\\src\\components\\editor\\SaveGateModal\\SaveGateModal.jsx",
+      "sha": "1beb8d7de2f1809d0f49260c47524865e8817a63"
+    },
+    {
+      "path": "frontend/src/pages/Login/Login.jsx",
+      "snapshot": "C:\\Users\\Kamil\\learningCode\\PROJECTS\\PDF\\pdf-generator\\tmp\\onboarding-commit\\files\\frontend\\src\\pages\\Login\\Login.jsx",
+      "sha": "8dadf7f7a5fd25731d53c021d5a4e80babcd27c4"
+    },
+    {
+      "path": "frontend/src/pages/PdfCanvas.jsx",
+      "snapshot": "C:\\Users\\Kamil\\learningCode\\PROJECTS\\PDF\\pdf-generator\\tmp\\onboarding-commit\\files\\frontend\\src\\pages\\PdfCanvas.jsx",
+      "sha": "f73c878f45c14de4977a29ab37f1e2f85aa6712c"
+    },
+    {
+      "path": "frontend/src/pages/Register/Register.jsx",
+      "snapshot": "C:\\Users\\Kamil\\learningCode\\PROJECTS\\PDF\\pdf-generator\\tmp\\onboarding-commit\\files\\frontend\\src\\pages\\Register\\Register.jsx",
+      "sha": "109f65b565c3c7a40dab6cb03fd37b2040e3990e"
+    },
+    {
+      "path": "frontend/src/services/signIn.js",
+      "snapshot": "C:\\Users\\Kamil\\learningCode\\PROJECTS\\PDF\\pdf-generator\\tmp\\onboarding-commit\\files\\frontend\\src\\services\\signIn.js",
+      "sha": "574d6cd4443b86980218d0f120320921b30d1ff1"
+    },
+    {
+      "path": "frontend/src/utils/freePlanFrontend.test.js",
+      "snapshot": "C:\\Users\\Kamil\\learningCode\\PROJECTS\\PDF\\pdf-generator\\tmp\\onboarding-commit\\files\\frontend\\src\\utils\\freePlanFrontend.test.js",
+      "sha": "00ec0286c1c5749fb0fff3744e9fbe1105b52c2e"
+    },
+    {
+      "path": "README.md",
+      "snapshot": "C:\\Users\\Kamil\\learningCode\\PROJECTS\\PDF\\pdf-generator\\tmp\\onboarding-commit\\files\\README.md",
+      "sha": "ecefb6b83ee27ea93242997566c3b93c3f591ae0"
+    },
+    {
+      "path": "frontend/src/pages/Login/Login.module.css",
+      "delete": true
+    },
+    {
+      "path": "frontend/src/pages/Register/Register.module.css",
+      "delete": true
+    }
+  ]
+}

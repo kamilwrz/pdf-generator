@@ -1,0 +1,36 @@
+vite v7.3.6 building client environment for production...
+transforming...
+✓ 1156 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                             0.63 kB │ gzip:   0.41 kB
+dist/.vite/manifest.json                    6.83 kB │ gzip:   1.05 kB
+dist/assets/PlanSelectModal-BJBed3fC.css    2.29 kB │ gzip:   0.84 kB
+dist/assets/DialogShell-q4safORW.css        4.93 kB │ gzip:   1.31 kB
+dist/assets/signIn-BshyaetJ.css             5.48 kB │ gzip:   1.50 kB
+dist/assets/SiteLayout-DI3372fg.css         6.45 kB │ gzip:   1.70 kB
+dist/assets/AiCvPanel-B5SJ4IlI.css          8.26 kB │ gzip:   1.92 kB
+dist/assets/index-CKRN0cq0.css             14.31 kB │ gzip:   3.32 kB
+dist/assets/Hero-CFODthMe.css              19.44 kB │ gzip:   4.43 kB
+dist/assets/AiAssistant-BwZeGHPK.css       30.36 kB │ gzip:   5.81 kB
+dist/assets/PdfCanvas-CR4lTj3x.css        153.80 kB │ gzip:  25.55 kB
+dist/assets/guestEvents-BFWwPTOs.js         0.38 kB │ gzip:   0.25 kB
+dist/assets/planPresentation-CbpCwz4S.js    1.18 kB │ gzip:   0.68 kB
+dist/assets/signIn-DBmOjKS0.js              1.65 kB │ gzip:   0.88 kB
+dist/assets/AccountPage-K-FZFx39.js         2.52 kB │ gzip:   1.22 kB
+dist/assets/SiteLayout-Dn2zyNIp.js          3.17 kB │ gzip:   1.42 kB
+dist/assets/Login-DQ8JIxAa.js               4.59 kB │ gzip:   1.96 kB
+dist/assets/PlanSelectModal-B6gbbG8M.js     4.88 kB │ gzip:   2.28 kB
+dist/assets/DocumentsPage-CCm5Wslb.js       4.99 kB │ gzip:   2.14 kB
+dist/assets/api-Db-6fJZr.js                 6.00 kB │ gzip:   2.30 kB
+dist/assets/DialogShell-DGUNUuy6.js         6.62 kB │ gzip:   2.80 kB
+dist/assets/PublicPages-Osyk7VZz.js         8.03 kB │ gzip:   3.06 kB
+dist/assets/Register-BafJaBCQ.js            8.30 kB │ gzip:   3.25 kB
+dist/assets/AiCvPanel-AuVaNTAt.js          15.66 kB │ gzip:   5.72 kB
+dist/assets/download-BR7SQoKw.js           33.74 kB │ gzip:  10.75 kB
+dist/assets/index-BrFrHBtu.js              48.13 kB │ gzip:   6.58 kB
+dist/assets/AiAssistant-9jrTxjnx.js        54.59 kB │ gzip:  16.38 kB
+dist/assets/Hero-DnuW0jl8.js              138.15 kB │ gzip:  45.66 kB
+dist/assets/index-ktW_HTOS.js             297.17 kB │ gzip:  95.69 kB
+dist/assets/PdfCanvas-jYDxl-ds.js         862.88 kB │ gzip: 259.75 kB
+✓ built in 18.27s

@@ -129,11 +129,12 @@ def clarification_queue(row, raw, verification, notes, profile):
 
 
 def answer_proposals(question, answer, status, profile, session_id):
-    """Stage a full correction under existing IDs; never mutate confirmed data.
+    """Build answer facts that the route can persist under stable IDs.
 
-    The caller has checked evidence revisions. Missing targets are not revived.
-    Ambiguous/legacy questions keep an independent note instead of overwriting
-    an unrelated field. Unknown and skipped answers never create assertions.
+    The caller has checked evidence revisions and owns the transaction that
+    saves these facts with the answer history. Missing targets are not revived.
+    Ambiguous or legacy questions keep an independent note instead of
+    overwriting an unrelated field. Unknown and skipped answers create no fact.
     """
     if status not in {'answered', 'no_experience'}:
         return []
@@ -201,7 +202,7 @@ def start_clarifications(state):
 
 
 def finish_clarification_answer(state):
-    """Advance saved questions locally; answered facts still require confirmation."""
+    """Advance saved clarification questions after the answer transaction."""
     # The answer handler has already cleared the active question. Normalize the
     # remaining queue against that saved answer before promoting another item.
     state['phase'] = 'clarification'

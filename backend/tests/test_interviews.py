@@ -97,8 +97,8 @@ def test_foreign_sessions_and_sources_are_hidden(environment):
     assert client.post('/ai/interviews', headers={'Idempotency-Key': 'foreign-source'}, json={'mode': 'enrich', 'source_document_id': 987}).status_code == 404
 
 
-@pytest.mark.parametrize('status,pending', [('answered', True), ('no_experience', True), ('unknown', False), ('skipped', False)])
-def test_answer_statuses_and_retries(environment, status, pending):
+@pytest.mark.parametrize('status,saved_kind', [('answered', 'fact'), ('no_experience', 'gap'), ('unknown', None), ('skipped', None)])
+def test_user_answers_are_saved_as_evidence_without_second_confirmation(environment, status, saved_kind):
     client, db, user, _ = environment
     session = confirm(client, create(client))
     row = db.get(InterviewSession, session['id'])
@@ -111,9 +111,18 @@ def test_answer_statuses_and_retries(environment, status, pending):
     assert response.status_code == 200, response.text
     saved = response.json()
     assert len(saved['answers']) == 1
-    assert bool(saved['proposed_facts']) == pending
+    assert saved['proposed_facts'] == []
     assert client.post(f"/ai/interviews/{row.id}/answers", json=body).json()['revision'] == saved['revision']
-    assert len(service.profile_payload(db, user.id)['facts']) == 2
+    profile = service.profile_payload(db, user.id)
+    if saved_kind:
+        assert profile['revision'] == 2
+        assert profile['facts'][-1]['kind'] == saved_kind
+        assert profile['facts'][-1]['text'] == (body['answer'] if saved_kind == 'fact' else f"Brak doświadczenia: {state['question']['text']}")
+        assert saved['profile_revision'] == 2
+    else:
+        assert profile['revision'] == 1
+        assert len(profile['facts']) == 2
+        assert saved['profile_revision'] == 1
 
 
 def test_profile_conflicting_fields_require_resolution(environment):
@@ -364,7 +373,7 @@ def test_legacy_rejection_recovers_paid_output_only_for_unchanged_profile(enviro
 
 
 @pytest.mark.parametrize('status', ['answered', 'no_experience', 'unknown', 'skipped'])
-def test_clarification_precedes_preview_and_requires_confirmation(environment, status):
+def test_clarification_answer_persists_without_second_confirmation(environment, status):
     client, db, user, _ = environment
     session = confirm(client, create(client))
     ref = client.get('/career-profile').json()['facts'][0]['id']
@@ -384,23 +393,21 @@ def test_clarification_precedes_preview_and_requires_confirmation(environment, s
     assert saved.status_code == 200, saved.text
     saved = saved.json()
     assert len(saved['answers']) == 1
-    assert service.profile_payload(db, user.id)['revision'] == 1
+    profile = service.profile_payload(db, user.id)
     if status in {'answered', 'no_experience'}:
-        assert saved['phase'] == 'review' and saved['preview'] is None
-        assert saved['proposed_facts'][0]['kind'] == ('fact' if status == 'answered' else 'gap')
-        assert client.post(f"/ai/interviews/{session['id']}/preview", json={**version(saved, 1), 'template_id': 'linden'}).status_code == 422
+        answer_fact = profile['facts'][-1]
+        assert profile['revision'] == 2 and saved['profile_revision'] == 2
+        assert saved['phase'] == 'ready' and saved['preview'] is None and not saved['proposed_facts']
+        assert answer_fact['kind'] == ('fact' if status == 'answered' else 'gap')
+        corrected = {'fields': [{'path': '/summary', 'value': answer_fact['text'], 'evidence_refs': [answer_fact['id']]}] if status == 'answered' else [], 'remaining_gaps': []}
+        with patch.object(service, '_gpt', side_effect=[(corrected, {'cost_pln_estimate': .01}), ({'unsupported_paths': [], 'reasons': []}, {'cost_pln_estimate': .01})]):
+            final = client.post(f"/ai/interviews/{session['id']}/preview", json={**version(saved, 2), 'template_id': 'linden'})
+        assert final.status_code == 200, final.text
         if status == 'answered':
-            facts = client.get('/career-profile').json()['facts'] + saved['proposed_facts']
-            confirmed = confirm(client, saved, 1, facts)
-            answer_fact = saved['proposed_facts'][0]
-            corrected = {'fields': [{'path': '/summary', 'value': answer_fact['text'], 'evidence_refs': [answer_fact['id']]}], 'remaining_gaps': []}
-            with patch.object(service, '_gpt', side_effect=[(corrected, {'cost_pln_estimate': .01}), ({'unsupported_paths': [], 'reasons': []}, {'cost_pln_estimate': .01})]):
-                final = client.post(f"/ai/interviews/{session['id']}/preview", json={**version(confirmed, 2), 'template_id': 'linden'})
-            assert final.status_code == 200, final.text
             assert final.json()['phase'] == 'preview'
             assert final.json()['preview']['cv_data']['summary'] == answer_fact['text']
-
     else:
+        assert profile['revision'] == 1 and saved['profile_revision'] == 1
         assert saved['phase'] == 'preview' and not saved['proposed_facts']
 
 
@@ -533,13 +540,14 @@ def test_isolated_answers_edits_deletions_and_stale_scope(environment):
     answer = {**version(session, 1), 'question_id': 'q', 'status': 'answered', 'answer': 'Candidate project'}
     answered = client.post(f"/ai/interviews/{row.id}/answers", json=answer).json()
     assert client.post(f"/ai/interviews/{row.id}/answers", json=answer).json()['revision'] == answered['revision']
-    facts = answered['evidence_profile']['facts'] + answered['proposed_facts']
-    session = confirm(client, answered, 1, facts)
-    assert any(f['text'] == 'Candidate project' for f in session['evidence_profile']['facts'])
-    kept = [f for f in session['evidence_profile']['facts'] if f['path'] == '/name']
-    saved = confirm(client, session, 2, kept)
+    assert answered['proposed_facts'] == []
+    facts = answered['evidence_profile']['facts']
+    assert answered['evidence_profile']['revision'] == 2
+    assert any(f['text'] == 'Candidate project' for f in facts)
+    kept = [f for f in facts if f['path'] == '/name']
+    saved = confirm(client, answered, 2, kept)
     assert saved['evidence_profile']['facts'] == kept
-    assert client.post(f"/ai/interviews/{row.id}/confirm", json={**version(session, 2), 'facts': facts}).status_code == 409
+    assert client.post(f"/ai/interviews/{row.id}/confirm", json={**version(answered, 2), 'facts': facts}).status_code == 409
     assert client.post(f"/ai/interviews/{row.id}/confirm", json={**version(saved, 3), 'evidence_scope': 'profile', 'facts': facts}).status_code == 409
     old_client = version(saved, 3); old_client.pop('evidence_scope')
     assert client.post(f"/ai/interviews/{row.id}/confirm", json={**old_client, 'facts': facts}).status_code == 409
@@ -608,7 +616,7 @@ def test_profile_join_requires_opt_in_and_writes_account_profile(environment):
 
 
 @pytest.mark.parametrize('isolated', [False, True])
-def test_clarification_replaces_existing_fact_only_after_confirmation(environment, isolated):
+def test_typed_clarification_replaces_existing_fact_without_second_confirmation(environment, isolated):
     client, db, user, _ = environment
     session = confirm(client, create(client, include_profile=not isolated, cv_data={
         'name': 'Anna', 'experience': [{'title': 'Analyst', 'company': 'Example', 'bullets': ['Research SoF i SoW.']}],
@@ -628,11 +636,10 @@ def test_clarification_replaces_existing_fact_only_after_confirmation(environmen
         assert saved.status_code == 200, saved.text
         assert client.post(f"/ai/interviews/{session['id']}/answers", json=payload).json() == saved.json()
         provider.assert_not_called()
-    proposal = saved.json()['proposed_facts'][0]
-    assert proposal['id'] == original['id'] and proposal['path'] == original['path']
+    assert saved.json()['proposed_facts'] == []
     row = db.get(InterviewSession, session['id'], populate_existing=True)
-    assert service.interview_profile(db, row)['facts'] == profile['facts']
-    merged = [proposal if f['id'] == proposal['id'] else f for f in profile['facts']]
-    final = confirm(client, saved.json(), 1, merged)
-    row = db.get(InterviewSession, final['id'], populate_existing=True)
+    updated = service.interview_profile(db, row)
+    replacement = next(f for f in updated['facts'] if f['id'] == original['id'])
+    assert updated['revision'] == 2
+    assert replacement['path'] == original['path'] and replacement['text'] == payload['answer']
     assert service.base_cv(service.interview_profile(db, row))['experience'][0]['bullets'] == [payload['answer']]
