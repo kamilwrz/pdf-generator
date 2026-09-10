@@ -83,13 +83,13 @@ describe('interview workflow', () => {
     expect(reviewFacts({ facts: [] }, { source_cv_data: { name: 'Deleted' }, proposed_facts: [] })).toEqual([]);
   });
 
-  it('restores focus after removing a fact', () => {
+  it('restores focus after removing a fact', async () => {
     const change = vi.fn();
     render(<FactEditor facts={[fact]} onChange={change} />);
-    fireEvent.click(screen.getByText('Imię i nazwisko: Anna Nowak'));
-    fireEvent.click(screen.getByRole('button', { name: 'Usuń informację' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Otwórz wpis: Anna Nowak' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Usuń informację: Anna Nowak' }));
     expect(change).toHaveBeenCalledWith([]);
-    expect(screen.getByRole('button', { name: 'Dodaj informację' })).toHaveFocus();
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Anna Nowak' })).toHaveFocus());
   });
 });
 

@@ -16,6 +16,8 @@ This is the implementation tutorial for the shared interview introduced on 10 Se
 
 `/app/career-profile` lets the owner edit/clear facts, browse sessions, resume them or delete a session. Profile CRUD, answer persistence, confirmation and history access do not spend AI credits, including after Pro expires. Starting an interview and provider operations require the existing Pro entitlement. Clearing the profile leaves saved documents and interview histories intact; deleting a session leaves confirmed profile facts and generated documents intact.
 
+Profile and fact review use a grouped workspace. Select a section, search across the profile, open one record and edit one field. Apply commits the local field draft; Cancel/Escape discards it. Save/confirm remains explicit and versioned. Lists show six records and eight fields per page, preserving every underlying fact ID. Equivalent display entries do not merge database facts, and differing values remain reviewable. See the main README feature map for the full editing contract and module references.
+
 ### Architecture and responsibilities
 
 ```mermaid
@@ -124,7 +126,7 @@ The bootstrap runs configured migrations and existing seeds; use it against the 
 ```sh
 npm test
 npm run test:runtime
-npm run test:e2e -- e2e/interviews.spec.js --project=desktop-chromium
+npm run test:e2e -- e2e/career-profile.spec.js e2e/interviews.spec.js --project=desktop-chromium
 npm run lint
 npm run build
 ```
@@ -159,6 +161,8 @@ To instrukcja techniczna wspólnego wywiadu dodanego 10 września 2026 r. Ręczn
 7. **Zapisz jako nowe CV** tworzy zwykły dokument i otwiera `/app/documents/:id`. Źródło nie jest aktualizowane. Nazwa zawiera stanowisko oferty (lub nagłówek CV), firmę (lub `Profil`, gdy jej nie podano), datę UTC i numerowany sufiks przy istniejącej nazwie. Nadal obowiązuje istniejące rozliczanie pobierania/eksportu PDF.
 
 `/app/career-profile` pozwala edytować/czyścić profil, przeglądać i wznawiać sesje oraz usuwać rozmowy. Zarządzanie profilem, zapis odpowiedzi, zatwierdzanie i historia nie zużywają kredytów, również po wygaśnięciu Pro. Rozpoczęcie wywiadu i operacje modelu wymagają obecnego uprawnienia Pro. Wyczyszczenie profilu pozostawia dokumenty i historie rozmów; usunięcie sesji pozostawia potwierdzone fakty i wygenerowane dokumenty.
+
+Profil i przegląd faktów korzystają z grupowanego obszaru pracy. Wybierz sekcję, przeszukaj profil, otwórz wpis i edytuj jedno pole. Zastosowanie zatwierdza lokalny szkic pola; Anuluj/Escape go odrzuca. Zapis/zatwierdzenie pozostają jawne i wersjonowane. Listy pokazują sześć wpisów i osiem pól na stronę, zachowując każde ID faktu. Zgodne elementy widoku nie łączą faktów w bazie, a różne wartości pozostają dostępne do sprawdzenia. Pełny kontrakt edycji i odwołania do modułów znajdują się w mapie funkcji README.
 
 ### Architektura i odpowiedzialności
 
@@ -268,7 +272,7 @@ Bootstrap uruchamia skonfigurowane migracje i dotychczasowe seedy; wybierz wła�
 ```sh
 npm test
 npm run test:runtime
-npm run test:e2e -- e2e/interviews.spec.js --project=desktop-chromium
+npm run test:e2e -- e2e/career-profile.spec.js e2e/interviews.spec.js --project=desktop-chromium
 npm run lint
 npm run build
 ```

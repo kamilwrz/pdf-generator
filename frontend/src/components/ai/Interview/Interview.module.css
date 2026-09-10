@@ -33,3 +33,5 @@
 
 .reviewNotice { background: var(--color-surface); border-left: 2px solid var(--color-border); padding: var(--space-4); margin-block: var(--space-4); white-space: normal; }
 .reviewNotice summary { cursor: pointer; min-height: var(--control-height); font-weight: 600; }
+
+.interviewWorkspace { max-width: 1120px; margin-inline: auto; }

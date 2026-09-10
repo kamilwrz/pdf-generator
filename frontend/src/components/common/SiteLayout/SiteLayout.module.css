@@ -178,3 +178,17 @@
 }
 @media (max-width: 380px) { .metrics { grid-template-columns: minmax(0, 1fr); } }
 @media (prefers-reduced-motion: reduce) { .site *, .site *::before { scroll-behavior: auto; transition: none; animation: none; } }
+
+/* Task workspaces use a smaller shared introduction to prioritize working data. */
+.compactHero .introduction { margin-bottom: var(--space-6); }
+.compactHero.hero .introduction, .compactHero .heroAside { padding: var(--space-6); }
+.compactHero .introduction h1 { font-size: clamp(2rem, 3vw, 2.5rem); margin-block: var(--space-2) var(--space-4); }
+.compactHero .introduction > .eyebrow { margin-top: 0; }
+.compactHero .introduction .actions { margin-top: var(--space-4); }
+.compactHero .noteTitle { margin-top: var(--space-3); }
+@media (max-width: 767px) {
+  .compactHero.hero .introduction, .compactHero .heroAside { padding: var(--space-4); }
+  .compactHero .heroAside { gap: var(--space-2); }
+  .compactHero .heroAside p, .compactHero .noteTitle { margin: 0; }
+  .compactHero .heroAside .eyebrow { display: none; }
+}

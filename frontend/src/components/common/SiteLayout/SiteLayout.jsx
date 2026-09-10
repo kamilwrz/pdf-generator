@@ -27,7 +27,7 @@ export function SiteFooter() {
 }
 
 /** Route changes reset reading position and focus, while anchors keep native navigation. */
-export default function SiteLayout({ title, eyebrow = 'CV STUDIO', intro, workspace = false, breadcrumbs, heroAside, heroActions, children }) {
+export default function SiteLayout({ title, eyebrow = 'CV STUDIO', intro, workspace = false, breadcrumbs, heroAside, heroActions, compact = false, children }) {
   const heading = useRef(null);
   const { pathname, hash } = useLocation();
   useEffect(() => {
@@ -42,7 +42,7 @@ export default function SiteLayout({ title, eyebrow = 'CV STUDIO', intro, worksp
     <SiteHeader workspace={workspace} />
     <main id="site-content" tabIndex={-1} className={`${classes.main} ${workspace ? classes.workspace : ''}`}>
       {breadcrumbs && <nav className={classes.breadcrumbs} aria-label="Ścieżka strony">{breadcrumbs.map((item) => item.to ? <Link key={item.label} to={item.to}>{item.label}</Link> : <span key={item.label} aria-current="page">{item.label}</span>)}</nav>}
-      <div className={heroAside ? classes.hero : undefined}>
+      <div className={`${heroAside ? classes.hero : ''} ${compact ? classes.compactHero : ''}`}>
         <div className={classes.introduction}><p className={classes.eyebrow}>{eyebrow}</p><h1 ref={heading} tabIndex={-1}>{title}</h1>{intro && <p>{intro}</p>}{heroActions && <div className={classes.actions}>{heroActions}</div>}</div>
         {heroAside && <aside className={classes.heroAside}>{heroAside}</aside>}
       </div>

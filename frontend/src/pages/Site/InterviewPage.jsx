@@ -6,5 +6,5 @@ import classes from '../../components/ai/Interview/Interview.module.css';
 
 export default function InterviewPage() {
   const { sessionId } = useParams();
-  return <SiteLayout workspace title="CV z pomocą wywiadu" intro="Odkryj i opisz doświadczenia, które warto pokazać w CV."><div className={classes.workspace}><InterviewFlow key={sessionId || 'new'} sessionId={sessionId} /></div></SiteLayout>;
+  return <SiteLayout workspace compact title="CV z pomocą wywiadu" intro="Odkryj i opisz doświadczenia, które warto pokazać w CV."><div className={classes.interviewWorkspace}><InterviewFlow key={sessionId || 'new'} sessionId={sessionId} /></div></SiteLayout>;
 }

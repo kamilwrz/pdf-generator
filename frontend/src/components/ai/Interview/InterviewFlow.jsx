@@ -39,6 +39,7 @@ export default function InterviewFlow({ sessionId, initialSource = null, current
   const [notes, setNotes] = useState(initialSource?.candidate_notes || '');
   const [language, setLanguage] = useState(initialSource?.language || 'pl');
   const [template, setTemplate] = useState(initialSource?.template_id || '');
+  const [factEditing, setFactEditing] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
   const lock = useRef(false);
   const alive = useRef(true);
@@ -142,7 +143,7 @@ export default function InterviewFlow({ sessionId, initialSource = null, current
       <p className={classes.step}>Odpowiedzi: {session.answers.length} / {session.question_limit} · Język CV: {languageLabels[session.language]}</p>
       {session.generation_feedback?.length > 0 && !session.preview && <InterviewReviewNotice legacy />}
       {session.requirements.length > 0 && <details><summary>Wymagania oferty</summary><ul className={classes.requirements}>{session.requirements.map((req, index) => <li key={index}><strong>{statuses[req.status]}</strong> — {req.text}</li>)}</ul></details>}
-      {reviewing ? <><FactEditor facts={facts} onChange={setFacts} disabled={busy} /><div className={classes.actions}><button className={classes.primary} disabled={busy || facts.some((f) => !f.text.trim())} onClick={confirm}>Zatwierdź informacje</button>{session.phase !== 'intake' && <button disabled={busy} onClick={() => setReviewOpen(false)}>Wróć do rozmowy</button>}</div></> : <>
+      {reviewing ? <><FactEditor facts={facts} onChange={setFacts} disabled={busy} onEditingChange={setFactEditing} /><div className={classes.actions}><button className={classes.primary} disabled={busy || factEditing || facts.some((f) => !f.text.trim())} onClick={confirm}>Zatwierdź informacje</button>{session.phase !== 'intake' && <button disabled={busy || factEditing} onClick={() => setReviewOpen(false)}>Wróć do rozmowy</button>}</div></> : <>
         {session.phase === 'clarification' && <div className={classes.progress}>
           <p>Kilka szczegółów w propozycji AI wymaga potwierdzenia. Twoje informacje są zapisane. Doprecyzujmy je, zanim przygotujemy ostateczną wersję.</p>
           {!session.question && <><p>Krótka runda obejmie do {Math.min(5, session.pending_clarifications?.length || 0)} pytań. Jej uruchomienie i zapis odpowiedzi nie zużywają kredytów. Po zatwierdzeniu informacji ponowne generowanie CV korzysta z kredytów AI.</p><button className={classes.primary} disabled={busy || sourceChanged} onClick={() => run(() => operation('clarify'))}>Doprecyzuj — do 5 pytań</button></>}

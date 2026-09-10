@@ -113,12 +113,12 @@ for (const width of [390, 834, 1280, 1920]) {
 test('profile editing works with keyboard and reflows at 200 percent text zoom', async ({ page }) => {
   await installInterviewApi(page);
   await page.goto('/app/career-profile');
-  await page.getByRole('button', { name: 'Dodaj informację', exact: true }).click();
-  const summary = page.locator('summary').filter({ hasText: 'Uzupełnij' });
-  await summary.focus(); await page.keyboard.press('Enter');
+  await page.getByRole('button', { name: '+ Dodaj informację', exact: true }).click();
+  await expect(page.getByLabel('Treść', { exact: true })).toBeFocused();
   await page.getByLabel('Treść', { exact: true }).fill('Wdrożyłam raportowanie.');
+  await page.getByRole('button', { name: 'Zastosuj zmianę', exact: true }).click();
   await page.getByRole('button', { name: 'Zapisz profil', exact: true }).click();
-  await expect(page.getByRole('status')).toContainText('Profil zapisany.');
+  await expect(page.getByText('Profil zapisany.', { exact: true })).toBeVisible();
   await page.setViewportSize({ width: 640, height: 450 });
   await page.evaluate(() => { document.documentElement.style.fontSize = '200%'; });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);

@@ -1,0 +1,24 @@
+/* Account career data shares the grouped editor used inside interviews. */
+.profile.profile { padding: 0; border: 1px solid var(--color-border); }
+.views { display: flex; flex-wrap: wrap; gap: var(--space-6); padding-inline: var(--space-6); border-bottom: 1px solid var(--color-border); }
+.profile .views button { border: 0; border-bottom: 2px solid transparent; padding: var(--space-4) 0; background: transparent; color: var(--color-muted); }
+.profile .views button[aria-current] { border-bottom-color: var(--color-accent); color: var(--color-ink); }
+.views span { margin-left: var(--space-2); font: .75rem/1.25 var(--font-mono); }
+.profileMeta { color: var(--color-muted); font: .75rem/1.4 var(--font-mono); }
+.status:empty { display: none; }
+.profile .status:not(:empty) { margin: 0; padding: var(--space-4) var(--space-6); border-bottom: 1px solid var(--color-border); }
+.saveBar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--space-4); padding: var(--space-4) var(--space-6); background: var(--color-paper); border-top: 1px solid var(--color-border); }
+.saveBar p { margin: 0 !important; font-weight: 600; font-size: .875rem; }
+.saveBar p span { display: block; color: var(--color-muted); font-size: .75rem; font-weight: 400; margin-top: var(--space-1); }
+.saveBar > div { margin: 0; }
+.sessions, .loading { padding: var(--space-6); }
+.sessions ul > li { display: flex; align-items: center; flex-wrap: wrap; column-gap: var(--space-6); }
+.sessions ul > li > p { margin: 0; color: var(--color-muted); font-size: .875rem; }
+.sessions ul > li > div { margin-left: auto; }
+@media (max-width: 767px) {
+  .views { padding-inline: var(--space-4); gap: var(--space-4); }
+  .saveBar { position: static; padding: var(--space-4); }
+  .saveBar > div { width: 100%; }
+  .sessions { padding: var(--space-4); }
+  .sessions ul > li > div { margin-left: 0; }
+}
