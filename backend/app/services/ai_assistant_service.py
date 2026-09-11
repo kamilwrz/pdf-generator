@@ -17,6 +17,7 @@ import os
 import re
 from openai import APIConnectionError, APIError, APIStatusError, APITimeoutError, OpenAI
 from app.core.config import AI_PROVIDER_TIMEOUT_SECONDS, OPENAI_API_KEY
+from app.services.ai_credit_budget import apply_assistant_credit_budget
 from app.services.layout_analysis import (
     extract_bounds,
     resolve_clone_operation,
@@ -933,6 +934,7 @@ def _gpt(
         "reasoning_effort": reasoning_effort,
         "max_completion_tokens": max_completion_tokens,
     }
+    apply_assistant_credit_budget(create_kwargs)
     try:
         resp = _client.chat.completions.create(**create_kwargs)
     except APIError as exc:

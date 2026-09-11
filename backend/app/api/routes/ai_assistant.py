@@ -19,9 +19,9 @@ from app.core.security import resolve_user_from_payload, verify_token
 from app.dependencies import get_db
 from app.services.ai_assistant_service import (
     AIServiceError,
-    assistant_reservation_cost_pln,
     analyze_action,
 )
+from app.services.ai_credit_budget import assistant_credit_budget
 from app.services.ats_readability import AtsReadabilityError
 from app.services.scoped_ai import ScopedContent, review_scoped_content
 from app.services.document_service import validate_and_resolve_image_elements
@@ -29,7 +29,6 @@ from app.services.job_offer_service import JobOfferError, resolve_job_offer
 from app.services.entitlements import (
     assert_can_use_ai_action,
     assert_can_use_scoped_ai,
-    credits_for_cost,
     release_ai_reservation,
     reserve_ai_credits,
     settle_ai_reservation,
@@ -290,16 +289,16 @@ def ai_assistant(
     )
 
     request_hash = hashlib.sha256(canonical_body).hexdigest()
-    reserved_credits = credits_for_cost(
-        assistant_reservation_cost_pln(request.action, len(canonical_body)),
-    )
+    # Claim idempotency and the minimum billable credit before preparatory I/O.
+    # The provider boundary expands this hold from the actual prompt and caps
+    # output to the granted balance; the editor transport size is not a cost.
     claim = reserve_ai_credits(
         db,
         user_id=user.id,
         action=request.action,
         idempotency_key=key,
         request_hash=request_hash,
-        reserved_credits=reserved_credits,
+        reserved_credits=1,
     )
     if claim.replay_response is not None:
         return AssistantResponse(**claim.replay_response)
@@ -329,26 +328,27 @@ def ai_assistant(
         def resolve_ats_image(src: str) -> str:
             return resolved_images[str(src or "")]
 
-        result = review_scoped_content(request.action, request.scoped_content) if request.scoped_content is not None else analyze_action(
-            action=request.action,
-            elements=request.elements,
-            message=request.message,
-            job_description=(
-                resolved_job_offer["description"]
-                if resolved_job_offer
-                else request.job_description
-            ),
-            page_size=request.page_size,
-            history=request.history,
-            template_id=request.template_id,
-            target_language=target_language,
-            cv_language=cv_language,
-            cv_data=request.cv_data,
-            candidate_notes=request.candidate_notes,
-            job_offer=resolved_job_offer,
-            db=db,
-            image_resolver=resolve_ats_image if request.action == "ats_score" else None,
-        )
+        with assistant_credit_budget(db, user_id=user.id, reservation_id=claim.reservation_id):
+            result = review_scoped_content(request.action, request.scoped_content) if request.scoped_content is not None else analyze_action(
+                action=request.action,
+                elements=request.elements,
+                message=request.message,
+                job_description=(
+                    resolved_job_offer["description"]
+                    if resolved_job_offer
+                    else request.job_description
+                ),
+                page_size=request.page_size,
+                history=request.history,
+                template_id=request.template_id,
+                target_language=target_language,
+                cv_language=cv_language,
+                cv_data=request.cv_data,
+                candidate_notes=request.candidate_notes,
+                job_offer=resolved_job_offer,
+                db=db,
+                image_resolver=resolve_ats_image if request.action == "ats_score" else None,
+            )
     except JobOfferError as exc:
         release_ai_reservation(
             db,
@@ -360,8 +360,8 @@ def ai_assistant(
             detail={"code": exc.code, "message": exc.user_message},
         ) from exc
     except HTTPException:
-        # A post-reservation storage/materialization failure is confirmed local
-        # work. Release immediately and preserve its stable 4xx response.
+        # Storage/materialization errors and insufficient prompt budgets are
+        # confirmed local failures. Release and preserve the stable 4xx code.
         release_ai_reservation(
             db,
             user_id=user.id,

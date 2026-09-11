@@ -51,7 +51,7 @@ Recalculates positions when a textarea's authored height changes (the
 - [`skillsLayout.js`](../frontend/src/utils/skillsLayout.js) — parses/builds chip-grid (`flowRole: "grid-member"`), inline, and sidebar skill layouts.
 - [`skillsDisplayMode.js`](../frontend/src/utils/skillsDisplayMode.js) — orchestrates switching a skills section's display mode end-to-end.
 - [`languagesLayout.js`](../frontend/src/utils/languagesLayout.js) — languages proficiency chip-grid layout, analogous to `skillsLayout.js`.
-- [`SkillsLayoutModal.jsx`](../frontend/src/components/editor/SkillsLayoutModal/SkillsLayoutModal.jsx) — modal UI driving `skillsDisplayMode.js`.
+- [`SkillsLayoutPanel.jsx`](../frontend/src/components/editor/SkillsLayoutPanel/SkillsLayoutPanel.jsx) — non-modal appearance panel applying layouts from `skillsLayout.js`.
 
 ### Geometry / visual aids (read layout, don't mutate it)
 

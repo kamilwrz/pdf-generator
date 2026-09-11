@@ -6,6 +6,10 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 import tempfile
 import unittest
+from types import SimpleNamespace
+from unittest.mock import patch
+
+from fastapi.testclient import TestClient
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -21,6 +25,7 @@ from app.services.entitlements import (
     current_period_key,
     release_ai_reservation,
     reserve_ai_credits,
+    resize_ai_reservation,
     reserve_cv_import,
     seed_plans,
     set_user_plan,
@@ -61,6 +66,115 @@ class AiCreditReservationTests(unittest.TestCase):
             AI_PROVIDER_TIMEOUT_SECONDS,
             int(AI_RESERVATION_TTL.total_seconds()) - 60,
         )
+
+    def test_prompt_budget_expansions_share_the_atomic_remaining_balance(self):
+        with self.Session() as db:
+            db.query(UsageCounter).filter_by(user_id=self.user_id).one().ai_actions_count = 152
+            db.commit()
+            claims = [reserve_ai_credits(
+                db, user_id=self.user_id, action="shorten", idempotency_key=f"expand-{i}",
+                request_hash=f"{i:064x}", reserved_credits=1,
+            ) for i in range(10)]
+
+        def expand(claim):
+            with self.Session() as db:
+                try:
+                    return resize_ai_reservation(
+                        db, user_id=self.user_id, reservation_id=claim.reservation_id,
+                        preferred_credits=20, minimum_credits=2,
+                    )
+                except PlanLimitError:
+                    return 1
+
+        with ThreadPoolExecutor(max_workers=10) as executor:
+            granted = list(executor.map(expand, claims))
+        with self.Session() as db:
+            usage = db.query(UsageCounter).filter_by(user_id=self.user_id).one()
+            self.assertEqual(usage.ai_credits_reserved, sum(granted))
+            self.assertEqual(usage.ai_actions_count + usage.ai_credits_reserved, 200)
+
+    def test_assistant_48_credits_ignores_canvas_metadata_and_charges_two_once(self):
+        self._exercise_assistant_budget(remaining=48, padding=300_000)
+
+    def test_assistant_two_credits_reduces_provider_cap_and_charges_two_once(self):
+        self._exercise_assistant_budget(remaining=2, padding=0)
+
+    def test_unaffordable_actual_prompt_releases_admission_without_provider_call(self):
+        self._exercise_assistant_budget(remaining=2, padding=0, content="Doświadczenie. " * 4000, rejected=True)
+
+    def test_zero_balance_never_calls_provider(self):
+        self._exercise_assistant_budget(remaining=0, padding=0, rejected=True)
+
+    def _exercise_assistant_budget(self, *, remaining, padding, content="Tworzę aplikacje internetowe.", rejected=False):
+        """Exercise real route, prompt building, DB admission, settlement and replay."""
+        from app.api.routes import ai_assistant as route
+        from app.core.security import verify_token
+        from app.dependencies import get_db
+        from app.main import app
+        from app.services import ai_assistant_service as service
+        from app.testing_support import ensure_test_auth_env
+
+        ensure_test_auth_env()
+        with self.Session() as db:
+            db.query(UsageCounter).filter_by(user_id=self.user_id).one().ai_actions_count = 200 - remaining
+            db.commit()
+
+        def get_test_db():
+            with self.Session() as db:
+                yield db
+
+        response = SimpleNamespace(
+            choices=[SimpleNamespace(message=SimpleNamespace(content='{"message":"ok","corrections":[{"element_id":"summary","content":"Tworzę aplikacje."}]}'), finish_reason="stop")],
+            usage=SimpleNamespace(prompt_tokens=1000, completion_tokens=1000, total_tokens=2000),
+            service_tier="default",
+        )
+        payload = {"action": "shorten", "elements": [{
+            "element_id": "summary", "category": "textarea", "content": content,
+            "left": 40, "top": 100, "width": 400, "height": 60, "page": 1,
+            "editorMetadata": "x" * padding,
+        }]}
+        app.dependency_overrides[verify_token] = lambda: {"sub": "reservation-owner"}
+        app.dependency_overrides[get_db] = get_test_db
+        try:
+            with (
+                patch.object(route, "resolve_user_from_payload", side_effect=lambda db, _payload: db.get(User, self.user_id)),
+                patch.object(service, "_MODEL", "gpt-5.6-terra"),
+                patch.object(service._client.chat.completions, "create", return_value=response) as provider,
+            ):
+                client = TestClient(app)
+                first = client.post("/ai/assistant", json=payload, headers={"Idempotency-Key": "affordable-shortening"})
+                if rejected:
+                    self.assertEqual(first.status_code, 403, first.text)
+                    self.assertEqual(first.json()["detail"]["code"], "plan_limit_ai_credits")
+                    provider.assert_not_called()
+                    with self.Session() as db:
+                        usage = db.query(UsageCounter).filter_by(user_id=self.user_id).one()
+                        self.assertEqual(usage.ai_actions_count, 200 - remaining)
+                        self.assertEqual(usage.ai_credits_reserved, 0)
+                    return
+                self.assertEqual(first.status_code, 200, first.text)
+                replay = client.post("/ai/assistant", json=payload, headers={"Idempotency-Key": "affordable-shortening"})
+                # At zero balance, the existing entitlement gate blocks replay;
+                # the 48-credit regression also checks successful replay.
+                if remaining == 48:
+                    self.assertEqual(replay.json(), first.json())
+                provider.assert_called_once()
+                cap = provider.call_args.kwargs["max_completion_tokens"]
+                if remaining == 48:
+                    self.assertEqual(cap, 16_000)
+                else:
+                    self.assertGreaterEqual(cap, 1000)
+                    self.assertLess(cap, 16_000)
+                self.assertNotIn("editorMetadata", str(provider.call_args.kwargs["messages"]))
+                self.assertIn(content, str(provider.call_args.kwargs["messages"]))
+                self.assertEqual(first.json()["usage"]["credits_charged"], 2)
+                self.assertEqual(first.json()["corrections"][0]["content"], "Tworzę aplikacje.")
+            with self.Session() as db:
+                usage = db.query(UsageCounter).filter_by(user_id=self.user_id).one()
+                self.assertEqual(usage.ai_actions_count, 202 - remaining)
+                self.assertEqual(usage.ai_credits_reserved, 0)
+        finally:
+            app.dependency_overrides.clear()
 
     def test_settlement_replays_without_charging_or_running_twice(self):
         with self.Session() as db:

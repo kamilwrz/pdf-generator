@@ -1506,3 +1506,64 @@ def charge_ai_credits(db: Session, user_id: int, cost_pln: float) -> UsageCounte
     db.commit()
     db.refresh(row)
     return row
+
+
+def resize_ai_reservation(
+    db: Session, *, user_id: int, reservation_id: str,
+    preferred_credits: int, minimum_credits: int,
+) -> int:
+    """Replace an assistant admission hold with an affordable provider budget.
+
+    Returns the granted credits, capped by the preferred ceiling. The caller
+    must constrain provider output to this grant before I/O. The monthly usage
+    lock includes other pending requests, so simultaneous expansions cannot
+    overspend. Insufficient input/output headroom raises PlanLimitError without
+    changing the hold; the route releases it as a confirmed local failure.
+    """
+    if minimum_credits < 1 or preferred_credits < minimum_credits:
+        raise ValueError("Invalid assistant credit budget.")
+    reservation = db.query(AiCreditReservation).filter_by(
+        id=reservation_id, user_id=user_id,
+    ).one()
+    period_key = reservation.period_key
+    subscription = _expire_pro_if_needed(db, get_or_create_subscription(db, user_id))
+    limit = get_plan(db, subscription.plan_slug).max_ai_actions_per_month
+    dialect_name = _begin_ai_credit_transaction(db)
+    try:
+        # Match admission/reconciliation lock order: monthly counter first,
+        # reservation second. Refresh ORM identities after acquiring the locks.
+        usage = _locked_ai_usage_row(
+            db, user_id=user_id, period_key=period_key, dialect_name=dialect_name,
+        )
+        db.refresh(usage)
+        query = db.query(AiCreditReservation).filter_by(id=reservation_id, user_id=user_id)
+        if dialect_name == "postgresql":
+            query = query.with_for_update()
+        reservation = query.populate_existing().one()
+        if (
+            reservation.status != "pending"
+            or reservation.reserved_credits < 1
+            or (_as_utc(reservation.expires_at) or _utcnow()) <= _utcnow()
+        ):
+            raise AiReservationError(
+                409, "ai_request_finalized", "Rezerwacja tej operacji AI wygasła.",
+            )
+        other_reserved = int(usage.ai_credits_reserved or 0) - reservation.reserved_credits
+        available = preferred_credits if limit is None else (
+            limit - int(usage.ai_actions_count or 0) - other_reserved
+        )
+        granted = min(preferred_credits, available)
+        if granted < minimum_credits:
+            raise PlanLimitError(
+                "plan_limit_ai_credits",
+                "Brakuje kredytów na bezpieczne rozpoczęcie tej operacji AI.",
+                upgrade_required="pro",
+            )
+        reservation.reserved_credits = granted
+        usage.ai_credits_reserved = other_reserved + granted
+        db.add_all([usage, reservation])
+        db.commit()
+        return granted
+    except Exception:
+        db.rollback()
+        raise
