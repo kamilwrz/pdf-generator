@@ -22,7 +22,7 @@ for (const { templateId, width } of cases) {
     let nextId = 0;
     let elements = materializeElementSpecs(template.elements, () => `contacts-${++nextId}`)
       .filter((element) => !element.contactChannel || ["phone", "email", "location"].includes(element.contactChannel))
-      .map((element) => element.contactChannel && element.category === "text" ? {
+      .map((element) => element.contactChannel && ["text", "textarea"].includes(element.category) ? {
         ...element, content: "", placeholder: contactChannelPlaceholder(element.contactChannel),
         starterPlaceholder: true,
         cvDataBindings: [{ path: [element.contactChannel], placeholder: contactChannelPlaceholder(element.contactChannel) }],
@@ -30,7 +30,7 @@ for (const { templateId, width } of cases) {
     for (const anchor of elements.filter((element) => element.contactBand)) {
       elements = applyChannelRelayout(elements, anchor.contactBandId, null, () => `contacts-${++nextId}`).elements;
     }
-    const contacts = elements.filter((element) => element.contactChannel && element.category === "text");
+    const contacts = elements.filter((element) => element.contactChannel && ["text", "textarea"].includes(element.category));
     const api = await installMockApi(page, {
       savedDocument: { ...SAVED_DOCUMENT, template_id: templateId },
       savedElements: elements.map((element) => ({ ...element, extra_properties: { ...element } })),

@@ -713,7 +713,14 @@ function Textarea({
                     data-placeholder={editorPlaceholder || "Wpisz swój tekst…"}
                     data-editor-hover-outline={editorHoverOutline ? "true" : undefined}
                     data-skills-field={skillsField ? "true" : undefined}
+                    data-contact-channel={contactChannel || undefined}
                     onInput={(e) => {
+                        // Chromium leaves a solitary <br> after clearing a contact.
+                        // Remove that empty editing artifact so :empty restores the
+                        // hint; preserve authored blank paragraphs in body fields.
+                        if (contactChannel && !e.nativeEvent.isComposing && !e.currentTarget.textContent) {
+                            e.currentTarget.replaceChildren();
+                        }
                         if (metadataHints && e.nativeEvent.isComposing) {
                             // Reveal composition text immediately, but do not
                             // rebuild the IME's live DOM until composition ends.

@@ -1,3 +1,4 @@
+import { layoutEditorialMasthead } from "./editorialMastheadLayout.js";
 import { applyChannelRelayout } from "./contactBandOps.js";
 import { applyRegentTextSize } from "./regentAppearance.js";
 import { applyFlowSpacing } from "./sectionStructure.js";
@@ -14,7 +15,7 @@ export function applyRegentTextSizeLayout(
 ) {
   const resized = applyRegentTextSize(elements, textSizeId, { measureTextWidth });
   const contacts = applyChannelRelayout(
-    resized,
+    layoutEditorialMasthead(resized, "regent-contact", { measureTextWidth }),
     "regent-contact",
     null,
     createId,
@@ -49,6 +50,8 @@ export function applyRegentRenderedHeightsLayout(
     return { ...element, height: nextHeight };
   });
 
-  const packed = applyFlowSpacing(measured, spacing, pageHeight);
+  const masthead = layoutEditorialMasthead(measured, "regent-contact", { measuredHeights });
+  const contacts = applyChannelRelayout(masthead, "regent-contact", null, createId).elements;
+  const packed = applyFlowSpacing(contacts, spacing, pageHeight);
   return reconcileDocumentPages(packed, createId, { collapseEmpty: true }).elements;
 }

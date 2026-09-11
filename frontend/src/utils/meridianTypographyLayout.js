@@ -1,3 +1,4 @@
+import { layoutEditorialMasthead } from "./editorialMastheadLayout.js";
 import { applyChannelRelayout } from "./contactBandOps.js";
 import { applyFlowSpacing } from "./sectionStructure.js";
 import { applyMeridianTextSize } from "./meridianAppearance.js";
@@ -6,7 +7,7 @@ import { reconcileDocumentPages } from "./structureOperation.js";
 /**
  * Apply one Meridian type preset as a single letterhead-layout transaction.
  *
- * Text nodes are resized together, the centered contact band is rebuilt, the
+ * Text nodes are resized together, the wrapping contact list is rebuilt, the
  * single content lane and its right-hand record overlays are packed, and page
  * chrome is reconciled. This keeps date/location rails anchored to the exact
  * content lines they annotate while typography changes pagination.
@@ -27,7 +28,7 @@ export function applyMeridianTextSizeLayout(
 ) {
   const resized = applyMeridianTextSize(elements, textSizeId, { measureTextWidth });
   const contacts = applyChannelRelayout(
-    resized,
+    layoutEditorialMasthead(resized, "meridian-contact", { measureTextWidth }),
     "meridian-contact",
     null,
     createId,
@@ -77,6 +78,8 @@ export function applyMeridianRenderedHeightsLayout(
 
   // Repack even if a field-level effect already stored the same heights; it
   // may not have moved the next section or its exact-top record overlays.
-  const packed = applyFlowSpacing(measured, spacing, pageHeight);
+  const masthead = layoutEditorialMasthead(measured, "meridian-contact", { measuredHeights });
+  const contacts = applyChannelRelayout(masthead, "meridian-contact", null, createId).elements;
+  const packed = applyFlowSpacing(contacts, spacing, pageHeight);
   return reconcileDocumentPages(packed, createId, { collapseEmpty: true }).elements;
 }

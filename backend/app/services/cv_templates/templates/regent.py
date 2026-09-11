@@ -10,7 +10,6 @@ from __future__ import annotations
 
 from app.services.cv_generator_primitives import (
     Builder,
-    SPACE_AFTER_HEADER_RULE,
     get_spacing,
     _block,
     _line,
@@ -18,7 +17,7 @@ from app.services.cv_generator_primitives import (
 )
 from app.services.cv_templates.shared.contact import (
     _contact_channel_items,
-    _place_centered_icon_contacts,
+    _place_bounded_stack_icon_contacts,
     _reserved_contact_last_row_top,
     build_contact_band_anchor,
 )
@@ -56,11 +55,10 @@ def _gen_regent(cv: dict) -> list[dict]:
     }
     L, W = C["L"], C["W"]
     SANS, DISPLAY = C["sans"], C["display"]
-    center_x = L + W / 2
     labels = _labels(cv)
 
     header: list[dict] = []
-    cursor_y = 47.0
+    cursor_y = 24.0
     name = _compact_text(cv.get("name"), 40)
     title = _compact_text(cv.get("title"), 78)
     name_index: int | None = None
@@ -75,7 +73,7 @@ def _gen_regent(cv: dict) -> list[dict]:
                 zIndex=3, bold=True, align="left",
             )
         )
-        cursor_y += name_height + 9.0
+        cursor_y += name_height + 4.0
 
     title_top = cursor_y
     title_height = (
@@ -92,31 +90,36 @@ def _gen_regent(cv: dict) -> list[dict]:
         header.append(title_prototype)
         cursor_y += title_height
 
-    contact_elements, contact_bottom, contact_descriptor = _place_centered_icon_contacts(
+    contact_elements, contact_bottom, contact_descriptor = _place_bounded_stack_icon_contacts(
         theme=C["icon_theme"],
         items=_contact_channel_items(cv),
-        center_x=center_x,
-        start_y=cursor_y + 18.0,
+        start_x=L,
+        start_y=cursor_y + 8.0,
         max_width=W,
         text_fs=8.4,
-        icon_size=10.5,
+        line_height=11.0,
+        icon_size=11.0,
         text_color=C["muted"],
         font=SANS,
-        char_width=5.0,
-        icon_gap=11.0,
-        item_pad=16.0,
-        line_step=15.0,
+        icon_gap=14.0,
+        line_step=14.0,
         band_id="regent-contact",
     )
     header.extend(contact_elements)
-    # Reserve two centered contact rows independently of the channels present
-    # at generation time. A 24-point baseline gap leaves 13.5 points below
-    # Regent's icons, so a wrapped second row never touches the hairline.
+    # The shared multiline band owns icon centring and full contact values.
+    # Its divider and body floor grow together, so edits cannot cross the rule.
     contact_zone_bottom = _reserved_contact_last_row_top(
         contact_bottom, contact_descriptor, minimum_rows=2,
     )
     rule_y = contact_zone_bottom + 24.0
-    header.append(_line(L, rule_y, W, 0.8, C["rule"], zIndex=2, page=1))
+    contact_descriptor["identityLayout"] = {"nameTitleGap": 4.0, "titleContactGap": 8.0}
+    contact_descriptor["flow"] = {
+        "dividerId": "regent-masthead-divider", "dividerGap": 24.0,
+        "bodyGap": 14.0, "minimumRows": 2, "minimumBodyTop": 0.0,
+        "bodyTop": rule_y + 14.0, "spacing": get_spacing().as_spacing_px(),
+    }
+    header.append({**_line(L, rule_y, W, 0.8, C["rule"], zIndex=2, page=1),
+                   "id": "regent-masthead-divider"})
     header = [{**element, "flowRole": "masthead"} for element in header]
     header.append(build_contact_band_anchor(contact_descriptor))
 
@@ -131,19 +134,16 @@ def _gen_regent(cv: dict) -> list[dict]:
                 band_id="masthead-main",
                 name_default_uppercase=False,
                 title_default_uppercase=True,
-                band_top=title_top + title_height + 18.0,
-                # Preserve Regent's existing 18 pt gap in an initially empty
-                # masthead; `+` inserts only the missing title line.
-                title_reclaim_pt=title_height if not title else None,
+                band_top=title_top + title_height + 8.0,
+                # Keep the compact contact gap when hiding or restoring the title.
+                title_reclaim_pt=title_height,
                 contact_band_id="regent-contact",
             )
         )
 
     section_label_fs = 8.7
     section_chrome_h = section_label_fs + 6 + get_spacing().after_rule + 7
-    # Absorb the four-point divider adjustment inside the existing masthead
-    # whitespace and preserve the body's established starting coordinate.
-    b = Builder(rule_y + SPACE_AFTER_HEADER_RULE + 1.0 - 4.0)
+    b = Builder(contact_descriptor["flow"]["bodyTop"])
 
     def section(label: str) -> None:
         """Place a compact heading and hairline that travel as one chrome group."""

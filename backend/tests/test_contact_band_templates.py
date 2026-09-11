@@ -33,8 +33,8 @@ def _anchor(elements):
         ("aurelia", "centered"),
         ("atrium", "centered"),
         ("slate", "wrapping"),
-        ("regent", "centered"),
-        ("meridian", "centered"),
+        ("regent", "bounded-stack"),
+        ("meridian", "bounded-stack"),
         ("cadenza", "centered"),
         ("vellum", "bounded-stack"),
     ],
@@ -78,7 +78,7 @@ def _first_section_top(elements):
     )
 
 
-@pytest.mark.parametrize("template_id", ["aurelia", "regent", "meridian", "cadenza"])
+@pytest.mark.parametrize("template_id", ["aurelia", "cadenza"])
 def test_centered_masthead_reserves_two_contact_rows_without_moving_body(template_id):
     """A newly added second contact row must not collide with or move content."""
     sparse_cv = {
@@ -110,3 +110,38 @@ def test_centered_masthead_reserves_two_contact_rows_without_moving_body(templat
 
     assert _masthead_divider(sparse_elements)["top"] == _masthead_divider(wrapped_elements)["top"]
     assert _first_section_top(sparse_elements) == _first_section_top(wrapped_elements)
+
+
+@pytest.mark.parametrize("template_id", ["regent", "meridian"])
+@pytest.mark.parametrize("long_address", [False, True])
+def test_editorial_list_keeps_full_contacts_and_compact_identity(template_id, long_address):
+    """Generation shares the editor's geometric icons and growing body floor."""
+    cv = {**_CV, "github": "github.com/jan", "website": "example.com"}
+    if long_address:
+        cv["email"] = "long-address" * 35 + "@example.com"
+    elements = generate_resume(template_id, cv)
+    descriptor = _anchor(elements)["contactBand"]
+    name = next(element for element in elements if element.get("mastheadRole") == "name")
+    title = next(element for element in elements if element.get("mastheadRole") == "title")
+    assert name["top"] == 24
+    assert title["top"] == pytest.approx(name["top"] + name["height"] + 4)
+    assert descriptor["anchor"]["startY"] == pytest.approx(title["top"] + title["height"] + 8)
+    labels = [element for element in elements if element.get("contactChannel") and element["category"] == "textarea"]
+    assert [element["contactChannel"] for element in labels] == ["phone", "email", "linkedin", "github", "website", "location"]
+    for index, label in enumerate(labels):
+        icon = next(element for element in elements if element.get("contactChannel") == label["contactChannel"] and element["category"] == "image")
+        assert icon["width"] == icon["height"] == 11
+        assert icon["alignWithText"] is False
+        assert icon["top"] + 5.5 == pytest.approx(label["top"] + label["height"] / 2)
+        assert icon["left"] == 62
+        assert label["left"] == 76
+        assert label["width"] == 457
+        if index:
+            assert label["top"] >= labels[index - 1]["top"] + labels[index - 1]["height"] + 2
+    email = next(label for label in labels if label["contactChannel"] == "email")
+    assert email["content"] == cv["email"]
+    if long_address:
+        assert email["height"] > email["lineHeight"]
+    divider = _masthead_divider(elements)
+    assert divider["top"] >= max(label["top"] + label["height"] for label in labels) + 10
+    assert _first_section_top(elements) >= descriptor["flow"]["bodyTop"]

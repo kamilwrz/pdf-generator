@@ -53,7 +53,7 @@ from app.services.cv_generator_primitives import (
 )
 from app.services.cv_templates.shared.contact import (
     _contact_channel_items,
-    _place_centered_icon_contacts,
+    _place_bounded_stack_icon_contacts,
     _reserved_contact_last_row_top,
     build_contact_band_anchor,
 )
@@ -71,10 +71,8 @@ from app.services.cv_templates.shared.text import _bullets, _compact_text, _labe
 # template reads for section/record/stack gaps) so this template's header can
 # be visibly tighter than Regent's without changing any other template's
 # spacing.
-_NAME_TO_TITLE_GAP = 6.0
-_TITLE_TO_CONTACT_GAP = 14.0
-_CONTACT_TO_RULE_GAP = 24.0
-_MASTHEAD_TO_CONTENT_GAP = 14.0
+_NAME_TO_TITLE_GAP = 4.0
+_TITLE_TO_CONTACT_GAP = 8.0
 _SECTION_TICK_WIDTH = 18.0
 
 # Right-hand date/location rail: a fixed-width overlay column separated from
@@ -320,11 +318,10 @@ def _gen_meridian(cv: dict) -> list[dict]:
     }
     L, W = C["L"], C["W"]
     SANS, DISPLAY = C["sans"], C["display"]
-    center_x = L + W / 2
     labels = _labels(cv)
 
     header: list[dict] = []
-    cursor_y = 47.0
+    cursor_y = 24.0
     name = _compact_text(cv.get("name"), 40)
     title = _compact_text(cv.get("title"), 78)
     name_index: int | None = None
@@ -356,31 +353,36 @@ def _gen_meridian(cv: dict) -> list[dict]:
         header.append(title_prototype)
         cursor_y += title_height
 
-    contact_elements, contact_bottom, contact_descriptor = _place_centered_icon_contacts(
+    contact_elements, contact_bottom, contact_descriptor = _place_bounded_stack_icon_contacts(
         theme=C["icon_theme"],
         items=_contact_channel_items(cv),
-        center_x=center_x,
+        start_x=L,
         start_y=cursor_y + _TITLE_TO_CONTACT_GAP,
         max_width=W,
         text_fs=8.0,
-        icon_size=10.0,
+        line_height=11.0,
+        icon_size=11.0,
         text_color=C["muted"],
         font=SANS,
-        char_width=5.0,
-        icon_gap=11.0,
-        item_pad=16.0,
-        line_step=13.5,
+        icon_gap=14.0,
+        line_step=14.0,
         band_id="meridian-contact",
     )
     header.extend(contact_elements)
-    # Meridian keeps its compact editorial rhythm, but the divider is measured
-    # from a stable two-row contact zone. Ten-point icons retain 14 points of
-    # visible clearance while the first body section stays at its original Y.
+    # The shared multiline band owns icon centring and full contact values.
+    # Its divider and body floor grow together, so edits cannot cross the rule.
     contact_zone_bottom = _reserved_contact_last_row_top(
         contact_bottom, contact_descriptor, minimum_rows=2,
     )
-    rule_y = contact_zone_bottom + _CONTACT_TO_RULE_GAP
-    header.append(_line(L, rule_y, W, 0.8, C["rule"], zIndex=2, page=1))
+    rule_y = contact_zone_bottom + 24.0
+    contact_descriptor["identityLayout"] = {"nameTitleGap": 4.0, "titleContactGap": 8.0}
+    contact_descriptor["flow"] = {
+        "dividerId": "meridian-masthead-divider", "dividerGap": 24.0,
+        "bodyGap": 14.0, "minimumRows": 2, "minimumBodyTop": 0.0,
+        "bodyTop": rule_y + 14.0, "spacing": get_spacing().as_spacing_px(),
+    }
+    header.append({**_line(L, rule_y, W, 0.8, C["rule"], zIndex=2, page=1),
+                   "id": "meridian-masthead-divider"})
     header = [{**element, "flowRole": "masthead"} for element in header]
     header.append(build_contact_band_anchor(contact_descriptor))
 
@@ -398,14 +400,14 @@ def _gen_meridian(cv: dict) -> list[dict]:
                 band_top=title_top + title_height + _TITLE_TO_CONTACT_GAP,
                 # The no-title layout already owns the authored contact gap,
                 # so materialising the slot must add only its line height.
-                title_reclaim_pt=title_height if not title else None,
+                title_reclaim_pt=title_height,
                 contact_band_id="meridian-contact",
             )
         )
 
     section_label_fs = 8.2
     section_chrome_h = section_label_fs + 6 + get_spacing().after_rule + 7
-    b = Builder(rule_y + _MASTHEAD_TO_CONTENT_GAP)
+    b = Builder(contact_descriptor["flow"]["bodyTop"])
 
     def section(label: str) -> None:
         """Place a compact heading, hairline, and a short accent-blue tick."""
