@@ -165,3 +165,19 @@ test("opening the first Vellum list repairs icons before the clean snapshot with
     assert.deepEqual(old.filter((element) => element.photoSlot), reopened.filter((element) => element.photoSlot));
   }
 });
+
+
+test("opening a current-size Vellum list repairs mixed legacy alignment on added icons", () => {
+  const current = normalizeCommittedDocumentSnapshot({ elements: source(), pdfId: 1 }).elements;
+  const broken = current.map((element) => {
+    if (element.category !== "image" || !["linkedin", "github"].includes(element.contactChannel)) return element;
+    const label = labels(current).find((contact) => contact.contactChannel === element.contactChannel);
+    return { ...element, top: label.top, alignWithText: element.contactChannel === "linkedin" ? true : undefined };
+  });
+  const reopened = normalizeCommittedDocumentSnapshot({ elements: broken, pdfId: 1 }).elements;
+  assertContactGeometry(reopened);
+  for (const element of current.filter((item) => item.category !== "image" || !item.contactChannel)) {
+    assert.deepEqual(reopened.find((item) => item.element_id === element.element_id), element);
+  }
+  assert.deepEqual(normalizeCommittedDocumentSnapshot({ elements: reopened, pdfId: 1 }).elements, reopened);
+});

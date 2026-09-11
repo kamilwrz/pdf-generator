@@ -4,12 +4,13 @@ import { applyVellumTextSize } from "./vellumAppearance.js";
 import { reconcileDocumentPages } from "./structureOperation.js";
 
 /**
- * Repair the first bounded-list Vellum release before a document is opened.
+ * Repair legacy Vellum list icons before recording the clean document snapshot.
  *
- * Only its authored 8.6 pt icon / 10 pt gutter signature is upgraded. Centred
- * legacy mastheads and current/custom layouts are left intact. Reflow reserves
- * the larger gutter, keeps wrapped contacts clear, and updates body pagination
- * before the caller records the clean snapshot; it never writes to the API.
+ * The first 8.6 pt / 10 pt gutter release needs a complete band reflow. Lists
+ * already using the current size can still contain added icons with the old
+ * baseline flag; repair only those icons against their companion textarea.
+ * Current geometric icons, manual moves, and centred legacy mastheads remain
+ * untouched. This pure normalization never writes to the API.
  *
  * @param {object[]} elements - Hydrated document elements.
  * @param {() => string} createId - Identifier factory for continuation chrome.
@@ -18,8 +19,27 @@ import { reconcileDocumentPages } from "./structureOperation.js";
 export function normalizeVellumContactLayout(elements, createId) {
   const anchor = elements.find((element) => element.contactBand?.id === "vellum-contact");
   const band = anchor?.contactBand;
-  if (band?.mode !== "bounded-stack" || band.icon?.sizePt !== 8.6 || band.metrics?.iconGap !== 10) {
-    return elements;
+  if (band?.mode !== "bounded-stack") return elements;
+  if (band.icon?.sizePt !== 8.6 || band.metrics?.iconGap !== 10) {
+    const labels = new Map(elements.filter((element) => element.contactBandId === band.id
+      && element.contactChannel && element.category === "textarea")
+      .map((element) => [element.contactChannel, element]));
+    let changed = false;
+    const repaired = elements.map((element) => {
+      if (element.contactBandId !== band.id || element.category !== "image"
+        || element.alignWithText === false) return element;
+      const label = labels.get(element.contactChannel);
+      const size = Number(band.icon?.sizePt);
+      if (!label || Number(label.page || 1) !== Number(element.page || 1)
+        || !Number.isFinite(size) || size <= 0
+        || !Number.isFinite(Number(label.top)) || !Number.isFinite(Number(label.height))) return element;
+      // Never add the legacy optical offset a second time. The stored box
+      // centre becomes authoritative for canvas, selection and PDF rendering.
+      changed = true;
+      return { ...element, top: Number(label.top) + (Number(label.height) - size) / 2,
+        width: size, height: size, alignWithText: false };
+    });
+    return changed ? repaired : elements;
   }
   const upgraded = elements.map((element) => element === anchor ? {
     ...element,
