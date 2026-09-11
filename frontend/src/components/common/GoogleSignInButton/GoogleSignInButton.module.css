@@ -1,0 +1,12 @@
+.frame {
+  width: 100%;
+  min-width: 0;
+  height: max(var(--control-height), var(--google-button-height, var(--control-height)));
+  overflow: hidden;
+}
+
+.providerButton {
+  line-height: 0;
+  transform: scale(var(--google-button-scale, 1));
+  transform-origin: top left;
+}

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
+import { resolveGoogleButtonGeometry } from "../components/common/GoogleSignInButton/googleButtonGeometry.js";
 
 const root = new URL("../", import.meta.url);
 const source = (relativePath) => readFile(new URL(relativePath, root), "utf8");
@@ -18,6 +19,16 @@ test("password registration waits for email verification and Google uses the sha
   assert.match(verify, /getPendingAuthIntent/);
   assert.match(authApi, /ENDPOINTS\.AUTH\.GOOGLE/);
   assert.match(authApi, /establishSession\(data\)/);
+});
+
+test("Google sign-in scales proportionally to the authentication control width", () => {
+  const desktop = resolveGoogleButtonGeometry(480);
+  assert.deepEqual(desktop, { providerWidth: 400, scale: 1.2, renderedHeight: 48 });
+
+  const compact = resolveGoogleButtonGeometry(360);
+  assert.equal(compact.providerWidth, 327);
+  assert.equal(Math.round(compact.providerWidth * compact.scale), 360);
+  assert.ok(compact.renderedHeight >= 44);
 });
 
 test("Pro checkout supplies an idempotency key and never activates from the return page", async () => {
