@@ -131,6 +131,51 @@ class ExtractCvReservationTests(unittest.TestCase):
             usage = db.query(UsageCounter).filter_by(user_id=self.user_id).one()
         self.assertEqual(usage.cv_imports_count, 1)
 
+    def test_deleting_processing_import_discards_late_success_and_replay(self):
+        def provider(_data):
+            # The route retains its pre-provider ORM instance while deletion
+            # commits through another request/session, reproducing the race.
+            history = self.client.get("/ai/imports").json()["items"]
+            snapshot_id = history[0]["id"]
+            self.assertEqual(history[0]["status"], "processing")
+            self.assertEqual(self.client.delete(f"/ai/imports/{snapshot_id}").status_code, 200)
+            return {"name": "Discarded personal data"}, {"cost_pln_estimate": 0.01}
+
+        with patch("app.api.routes.ai.extract_cv_data", side_effect=provider) as mocked:
+            response = self._post("deleted-in-flight")
+            replay = self._post("deleted-in-flight")
+        self.assertEqual(response.status_code, 409, response.text)
+        self.assertEqual(response.json()["detail"]["code"], "import_deleted")
+        self.assertNotIn("Discarded personal data", response.text)
+        self.assertEqual(replay.status_code, 409)
+        self.assertEqual(mocked.call_count, 1)
+        self.assertEqual(self.client.get("/ai/imports").json()["items"], [])
+        with self.Session() as db:
+            snapshot = db.query(CvImportSnapshot).one()
+            self.assertEqual(snapshot.status, "deleted")
+            self.assertIsNone(snapshot.cv_data)
+            self.assertIsNotNone(snapshot.deleted_at)
+            self.assertEqual(db.query(UsageCounter).one().cv_imports_count, 1)
+            self.assertEqual(db.query(AiCreditReservation).one().status, "settled")
+
+    def test_deleting_processing_import_preserves_tombstone_after_late_failure(self):
+        def provider(_data):
+            snapshot_id = self.client.get("/ai/imports").json()["items"][0]["id"]
+            self.client.delete(f"/ai/imports/{snapshot_id}")
+            raise CvExtractionError(
+                "extract_provider_timeout", "Import nie odpowiedział na czas.",
+                status_code=503, reservation_outcome="uncertain",
+            )
+
+        with patch("app.api.routes.ai.extract_cv_data", side_effect=provider):
+            response = self._post("deleted-before-failure")
+        self.assertEqual(response.status_code, 503)
+        with self.Session() as db:
+            snapshot = db.query(CvImportSnapshot).one()
+            self.assertEqual(snapshot.status, "deleted")
+            self.assertIsNone(snapshot.cv_data)
+            self.assertIsNone(snapshot.error_code)
+
     def test_uncertain_provider_timeout_keeps_slot_until_lease_expiry(self):
         timeout = CvExtractionError(
             "extract_provider_timeout",

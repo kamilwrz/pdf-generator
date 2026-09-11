@@ -79,13 +79,20 @@ def mark_snapshot_succeeded(
 
     ``commit=False`` is reserved for the extraction route, which commits this
     state together with its conditional monthly quota claim. Other callers keep
-    the historical self-contained commit behaviour.
+    the historical self-contained commit behaviour. A conditional database write
+    makes deletion final even if this session loaded the row before deletion.
+    The returned row may therefore be a tombstone with no extraction data.
     """
-    snapshot.status = "succeeded"
-    snapshot.cv_data = cv_data
-    snapshot.error_code = None
-    snapshot.completed_at = datetime.now(timezone.utc)
-    db.add(snapshot)
+    db.query(CvImportSnapshot).filter(
+        CvImportSnapshot.id == snapshot.id,
+        CvImportSnapshot.deleted_at.is_(None),
+    ).update({
+        "status": "succeeded",
+        "cv_data": cv_data,
+        "error_code": None,
+        "completed_at": datetime.now(timezone.utc),
+    }, synchronize_session=False)
+    db.refresh(snapshot)
     if not commit:
         return snapshot
     db.commit()
@@ -94,10 +101,16 @@ def mark_snapshot_succeeded(
 
 
 def mark_snapshot_failed(db: Session, snapshot: CvImportSnapshot, error_code: str) -> CvImportSnapshot:
-    snapshot.status = "failed"
-    snapshot.cv_data = None
-    snapshot.error_code = error_code
-    snapshot.completed_at = datetime.now(timezone.utc)
+    """Persist a safe failure code without overwriting a concurrent deletion."""
+    db.query(CvImportSnapshot).filter(
+        CvImportSnapshot.id == snapshot.id,
+        CvImportSnapshot.deleted_at.is_(None),
+    ).update({
+        "status": "failed",
+        "cv_data": None,
+        "error_code": error_code,
+        "completed_at": datetime.now(timezone.utc),
+    }, synchronize_session=False)
     db.commit()
     db.refresh(snapshot)
     return snapshot
@@ -105,10 +118,18 @@ def mark_snapshot_failed(db: Session, snapshot: CvImportSnapshot, error_code: st
 
 def soft_delete_snapshot(db: Session, snapshot: CvImportSnapshot) -> None:
     """Erase personal extraction data while retaining a tombstone for linked CVs."""
-    snapshot.status = "deleted"
-    snapshot.cv_data = None
-    snapshot.deleted_at = datetime.now(timezone.utc)
+    # Explicitly clear data in SQL: the caller may have read a processing row
+    # before another session completed it, so ORM dirty-field tracking is unsafe.
+    db.query(CvImportSnapshot).filter(
+        CvImportSnapshot.id == snapshot.id,
+    ).update({
+        "status": "deleted",
+        "cv_data": None,
+        "error_code": None,
+        "deleted_at": datetime.now(timezone.utc),
+    }, synchronize_session=False)
     db.commit()
+    db.refresh(snapshot)
 
 
 def linked_pdfs(db: Session, *, snapshot_id: int, owner_id: int) -> list[Pdf]:

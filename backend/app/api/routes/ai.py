@@ -20,6 +20,7 @@ from typing import Any, Optional
 import fitz
 
 from fastapi import APIRouter, Depends, File, Header, HTTPException, Query, Request, UploadFile
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from app.core.config import CV_EXTRACT_MAX_PAGES
@@ -339,6 +340,14 @@ def extract_cv(
         )
         db.commit()
         db.refresh(snapshot)
+        # Deleting history does not cancel a provider call or refund its quota.
+        # Settle that call normally, but never return its discarded personal data
+        # or let the browser advance to template selection after deletion.
+        if snapshot.deleted_at is not None:
+            return JSONResponse(status_code=409, content={"detail": {
+                "code": "import_deleted",
+                "message": "Ten import został usunięty. Jego wynik nie jest dostępny.",
+            }})
         return {"import": _snapshot_payload(snapshot), "cv_data": cv_data, "usage": usage}
     except CvExtractionError as exc:
         db.rollback()
