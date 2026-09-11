@@ -4,7 +4,7 @@ import { vellumTemplate } from "../src/templates/vellum.js";
 import { applyVellumPalette, VELLUM_PALETTES } from "../src/utils/vellumAppearance.js";
 import { materializeElementSpecs } from "../src/utils/materializeElementSpecs.js";
 import { applyChannelRelayout } from "../src/utils/contactBandOps.js";
-import { contactChannelPlaceholder } from "../src/utils/contactChannelNames.js";
+import { CHANNEL_NAMES, contactChannelPlaceholder } from "../src/utils/contactChannelNames.js";
 import { installMockApi, login, SAVED_DOCUMENT } from "./support/mockApi.js";
 
 for (const [index, palette] of VELLUM_PALETTES.entries()) {
@@ -58,12 +58,33 @@ for (const [index, palette] of VELLUM_PALETTES.entries()) {
       }
     };
     const channels = [...initialChannels];
+    const reachDelete = async (channel) => {
+      const label = field(channel);
+      await label.evaluate((node) => node.scrollIntoView({ block: "center", inline: "center" }));
+      const bounds = await label.boundingBox();
+      // Approach horizontally through the same field, as a person would. A
+      // button below the row instead crosses and activates its neighbour.
+      await page.mouse.move(0, 0);
+      await page.mouse.move(bounds.x + bounds.width / 2 - 40, bounds.y + bounds.height / 2);
+      const remove = page.getByRole("button", {
+        name: `Usuń kontakt: ${CHANNEL_NAMES[channel]}`, exact: true,
+      });
+      await expect(remove).toBeVisible();
+      const target = await remove.boundingBox();
+      expect(target.x + target.width / 2).toBeCloseTo(bounds.x + bounds.width / 2, 0);
+      expect(target.y + target.height / 2).toBeCloseTo(bounds.y + bounds.height / 2, 0);
+      await page.mouse.move(target.x + target.width / 2, target.y + target.height / 2, { steps: 15 });
+      await expect.poll(() => remove.evaluate((node) => node.matches(":hover"))).toBe(true);
+      return remove;
+    };
     await assertCentred(channels);
+    for (const channel of channels) await reachDelete(channel);
     // Exercise the same path at the real 280% edit zoom shown in the report.
     await field("email").focus();
     await field("email").press("F2");
     await field("email").press("Escape");
     await assertCentred(channels);
+    for (const channel of channels) await reachDelete(channel);
     if (channels.includes("github")) {
       await field("github").hover();
       await page.getByRole("button", { name: "Usuń kontakt: GitHub", exact: true }).click();
@@ -79,13 +100,33 @@ for (const [index, palette] of VELLUM_PALETTES.entries()) {
       // Empty, entered and cleared values must retain the same icon contract.
       await field(channel).focus();
       await field(channel).press("F2");
-      await field(channel).fill("profile.example.com");
+      await field(channel).fill(channel === "website" ? "profile.example.com/".repeat(8) : "profile.example.com");
       await assertCentred(channels);
+      await reachDelete(channel);
       await field(channel).press("ControlOrMeta+a");
       await field(channel).press("Backspace");
       await field(channel).press("Escape");
       await assertCentred(channels);
     }
+    const deleteEmail = await reachDelete("email");
+    await page.screenshot({ path: testInfo.outputPath("centred-contact-delete.png") });
+    // Click at the reached position without locator auto-hover masking a
+    // changed deletion target. Only this channel and its icon may disappear.
+    const deleteBox = await deleteEmail.boundingBox();
+    await page.mouse.click(deleteBox.x + deleteBox.width / 2, deleteBox.y + deleteBox.height / 2);
+    await expect(field("email")).toHaveCount(0);
+    channels.splice(channels.indexOf("email"), 1);
+    await assertCentred(channels);
+    const deleteWebsite = await reachDelete("website");
+    await deleteWebsite.focus();
+    await page.mouse.move(0, 0);
+    // Wait beyond the 600ms pointer-leave timeout: keyboard focus owns the
+    // action until activation or blur, even after the pointer leaves A4.
+    await page.waitForTimeout(700);
+    await expect(deleteWebsite).toBeFocused();
+    await deleteWebsite.press("Enter");
+    await expect(field("website")).toHaveCount(0);
+    channels.splice(channels.indexOf("website"), 1);
     const saved = page.waitForRequest((request) => request.method() === "PUT"
       && new URL(request.url()).pathname === "/api/pdf/update_pdf");
     await page.getByRole("button", { name: "Zapisz dokument", exact: true }).click();

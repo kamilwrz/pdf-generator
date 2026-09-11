@@ -129,7 +129,8 @@ for (const width of [390, 834, 1280, 1920]) {
       visibleTextBox(page.locator("#contact-email")),
       deleteContact.locator("..").boundingBox(),
     ]);
-    expect(deleteSurfaceBox.y - contactBox.y - contactBox.height).toBeCloseTo(8, 0);
+    expect(deleteSurfaceBox.x + deleteSurfaceBox.width / 2).toBeCloseTo(contactBox.x + contactBox.width / 2, 0);
+    expect(deleteSurfaceBox.y + deleteSurfaceBox.height / 2).toBeCloseTo(contactBox.y + contactBox.height / 2, 0);
     await hoverVisibleText(page, page.locator("#contact-email"));
     await checkControl(page.getByRole("button", { name: "Dodaj kontakt", exact: true }), 24);
     await page.locator("#language-item").hover();

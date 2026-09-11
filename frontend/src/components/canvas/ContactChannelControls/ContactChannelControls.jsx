@@ -19,9 +19,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { FiPlus, FiTrash2 } from "react-icons/fi";
 import { useCanvasContext } from "../../../store/canvas-context";
 import { useHoverPlusExclusive } from "../../../hooks/useHoverPlusExclusive";
-import { recordPlusLayoutSize } from "../recordPlusSize";
+import { compactInlineToolbarLayoutSize } from "../recordPlusSize";
 import { CHANNEL_NAMES } from "../../../utils/contactChannelNames";
-import { getTextContentBounds } from "../../../utils/elementBounds";
+import { getElementOutlineBounds } from "../../../utils/elementBounds";
 import cluster from "../SectionRecordAdd/SectionRecordAdd.module.css";
 import classes from "./ContactChannelControls.module.css";
 
@@ -38,6 +38,7 @@ export default function ContactChannelControls({ bandId, chips, inactive }) {
   const [bandHover, setBandHover] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const hideTimerRef = useRef(null);
+  const deleteButtonRef = useRef(null);
   const exclusiveKey = `contact-band:${bandId}`;
   const { isExclusiveActive, claimExclusive, releaseExclusive } = useHoverPlusExclusive(
     exclusiveKey,
@@ -52,6 +53,9 @@ export default function ContactChannelControls({ bandId, chips, inactive }) {
   const scheduleHide = useCallback(() => {
     clearHide();
     hideTimerRef.current = window.setTimeout(() => {
+      // Leaving with the pointer must not unmount a keyboard-focused action.
+      // Its blur handler restarts the normal hide lifecycle afterwards.
+      if (document.activeElement === deleteButtonRef.current) return;
       setHoverChannel(null);
       setHoverBounds(null);
       setBandHover(false);
@@ -71,16 +75,17 @@ export default function ContactChannelControls({ bandId, chips, inactive }) {
       if (!node) continue;
       // Contacts share the single canvas-toolbar slot with structural actions.
       // Claiming it before painting the delete control prevents a nearby record
-      // toolbar from covering the requested below-contact placement.
+      // toolbar from covering the contact's own delete action.
       const onEnter = () => {
         clearHide();
         claimExclusive();
         setHoverBounds({
           channel: chip.channel,
-          ...getTextContentBounds({
+          // Match the field's hover outline: wrapped contacts use the complete
+          // textarea box, while single-line contacts use their visible glyphs.
+          ...getElementOutlineBounds({
             ...chip,
             element_id: chip.elementId,
-            category: "text",
           }),
         });
         setHoverChannel(chip.channel);
@@ -102,10 +107,7 @@ export default function ContactChannelControls({ bandId, chips, inactive }) {
 
   useEffect(() => () => clearHide(), [clearHide]);
 
-  const { buttonSize, iconSize, gap, offset } = recordPlusLayoutSize(
-    zoom,
-    chips[0]?.fontSize ?? 8,
-  );
+  const { buttonSize, iconSize, gap, borderWidth, offset } = compactInlineToolbarLayoutSize(zoom);
   const buttonStyle = { width: buttonSize, height: buttonSize };
   const iconStyle = { width: iconSize, height: iconSize };
   const hoveredChip = chips.find((chip) => chip.channel === hoverChannel) || null;
@@ -116,6 +118,19 @@ export default function ContactChannelControls({ bandId, chips, inactive }) {
   // right-most on its line). Its authored width can be zero or stale, so a
   // small fixed offset keeps the add action clear of the visible label.
   const lastChip = chips[chips.length - 1] || null;
+  const addPosition = lastChip ? { left: lastChip.left + 44, top: lastChip.top - 1 } : null;
+  if (addPosition && hoveredVisualBounds) {
+    // A short final contact can put the existing plus directly over the new
+    // centred trash. Move only a colliding plus beyond the complete surface;
+    // keeping the current channel while hovering controls makes this stable.
+    const surfaceSize = buttonSize + 2 * (gap + borderWidth);
+    const trashLeft = hoveredVisualBounds.left + (hoveredVisualBounds.width - surfaceSize) / 2;
+    const trashTop = hoveredVisualBounds.top + (hoveredVisualBounds.height - surfaceSize) / 2;
+    if (addPosition.left < trashLeft + surfaceSize && addPosition.left + surfaceSize > trashLeft
+      && addPosition.top < trashTop + surfaceSize && addPosition.top + surfaceSize > trashTop) {
+      addPosition.left = trashLeft + surfaceSize + offset;
+    }
+  }
 
   return (
     <>
@@ -124,15 +139,15 @@ export default function ContactChannelControls({ bandId, chips, inactive }) {
           className={cluster.anchor}
           data-editor-control="true"
           style={{
-            left: hoveredVisualBounds.left,
-            top: hoveredVisualBounds.top
-              + Math.max(hoveredVisualBounds.height, hoveredChip.fontSize)
-              + offset,
+            left: hoveredVisualBounds.left + hoveredVisualBounds.width / 2,
+            top: hoveredVisualBounds.top + hoveredVisualBounds.height / 2,
           }}
         >
           <div
             className={cluster.cluster}
-            style={{ gap }}
+            // Translate the whole surface, including its shared border and
+            // padding, so the button stays centred at every canvas zoom.
+            style={{ gap, transform: "translate(-50%, -50%)" }}
             onPointerEnter={() => {
               clearHide();
               claimExclusive();
@@ -141,11 +156,14 @@ export default function ContactChannelControls({ bandId, chips, inactive }) {
             onPointerLeave={scheduleHide}
           >
             <button
+              ref={deleteButtonRef}
               type="button"
               className={cluster.trash}
               style={buttonStyle}
               aria-label={`Usuń kontakt: ${CHANNEL_NAMES[hoveredChip.channel] || hoveredChip.channel}`}
               data-tooltip="Usuń kontakt"
+              onFocus={clearHide}
+              onBlur={scheduleHide}
               onPointerDown={(event) => event.stopPropagation()}
               onClick={(event) => {
                 event.stopPropagation();
@@ -166,7 +184,7 @@ export default function ContactChannelControls({ bandId, chips, inactive }) {
         <div
           className={cluster.anchor}
           data-editor-control="true"
-          style={{ left: lastChip.left + 44, top: lastChip.top - 1 }}
+          style={addPosition}
         >
           <div
             className={cluster.cluster}
