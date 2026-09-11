@@ -112,12 +112,12 @@ const VELLUM_ELEMENTS = [
     "category": "image",
     "src": "/template-assets/iconic/vellum-sage/phone.png",
     "left": 58.0,
-    "top": 102.0,
-    "width": 8.6,
-    "height": 8.6,
+    "top": 101.5,
+    "width": 11.0,
+    "height": 11.0,
     "zIndex": 3,
     "page": 1,
-    "alignWithText": true,
+    "alignWithText": false,
     "flowRole": "masthead",
     "contactChannel": "phone",
     "contactBandId": "vellum-contact"
@@ -125,9 +125,9 @@ const VELLUM_ELEMENTS = [
   {
     "category": "textarea",
     "content": "+48 512 340 780",
-    "left": 68.0,
+    "left": 72.0,
     "top": 102.0,
-    "width": 338.0,
+    "width": 334.0,
     "height": 10,
     "fontSize": 6.9,
     "lineHeight": 10.0,
@@ -151,12 +151,12 @@ const VELLUM_ELEMENTS = [
     "category": "image",
     "src": "/template-assets/iconic/vellum-sage/email.png",
     "left": 58.0,
-    "top": 114.5,
-    "width": 8.6,
-    "height": 8.6,
+    "top": 114.0,
+    "width": 11.0,
+    "height": 11.0,
     "zIndex": 3,
     "page": 1,
-    "alignWithText": true,
+    "alignWithText": false,
     "flowRole": "masthead",
     "contactChannel": "email",
     "contactBandId": "vellum-contact"
@@ -164,9 +164,9 @@ const VELLUM_ELEMENTS = [
   {
     "category": "textarea",
     "content": "julia.bernat@email.com",
-    "left": 68.0,
+    "left": 72.0,
     "top": 114.5,
-    "width": 338.0,
+    "width": 334.0,
     "height": 10,
     "fontSize": 6.9,
     "lineHeight": 10.0,
@@ -190,12 +190,12 @@ const VELLUM_ELEMENTS = [
     "category": "image",
     "src": "/template-assets/iconic/vellum-sage/linkedin.png",
     "left": 58.0,
-    "top": 127.0,
-    "width": 8.6,
-    "height": 8.6,
+    "top": 126.5,
+    "width": 11.0,
+    "height": 11.0,
     "zIndex": 3,
     "page": 1,
-    "alignWithText": true,
+    "alignWithText": false,
     "flowRole": "masthead",
     "contactChannel": "linkedin",
     "contactBandId": "vellum-contact"
@@ -203,9 +203,9 @@ const VELLUM_ELEMENTS = [
   {
     "category": "textarea",
     "content": "linkedin.com/in/jbernat",
-    "left": 68.0,
+    "left": 72.0,
     "top": 127.0,
-    "width": 338.0,
+    "width": 334.0,
     "height": 10,
     "fontSize": 6.9,
     "lineHeight": 10.0,
@@ -229,12 +229,12 @@ const VELLUM_ELEMENTS = [
     "category": "image",
     "src": "/template-assets/iconic/vellum-sage/github.png",
     "left": 58.0,
-    "top": 139.5,
-    "width": 8.6,
-    "height": 8.6,
+    "top": 139.0,
+    "width": 11.0,
+    "height": 11.0,
     "zIndex": 3,
     "page": 1,
-    "alignWithText": true,
+    "alignWithText": false,
     "flowRole": "masthead",
     "contactChannel": "github",
     "contactBandId": "vellum-contact"
@@ -242,9 +242,9 @@ const VELLUM_ELEMENTS = [
   {
     "category": "textarea",
     "content": "github.com/jbernat",
-    "left": 68.0,
+    "left": 72.0,
     "top": 139.5,
-    "width": 338.0,
+    "width": 334.0,
     "height": 10,
     "fontSize": 6.9,
     "lineHeight": 10.0,
@@ -268,12 +268,12 @@ const VELLUM_ELEMENTS = [
     "category": "image",
     "src": "/template-assets/iconic/vellum-sage/website.png",
     "left": 58.0,
-    "top": 152.0,
-    "width": 8.6,
-    "height": 8.6,
+    "top": 151.5,
+    "width": 11.0,
+    "height": 11.0,
     "zIndex": 3,
     "page": 1,
-    "alignWithText": true,
+    "alignWithText": false,
     "flowRole": "masthead",
     "contactChannel": "website",
     "contactBandId": "vellum-contact"
@@ -281,9 +281,9 @@ const VELLUM_ELEMENTS = [
   {
     "category": "textarea",
     "content": "juliabernat.pl",
-    "left": 68.0,
+    "left": 72.0,
     "top": 152.0,
-    "width": 338.0,
+    "width": 334.0,
     "height": 10,
     "fontSize": 6.9,
     "lineHeight": 10.0,
@@ -307,12 +307,12 @@ const VELLUM_ELEMENTS = [
     "category": "image",
     "src": "/template-assets/iconic/vellum-sage/location.png",
     "left": 58.0,
-    "top": 164.5,
-    "width": 8.6,
-    "height": 8.6,
+    "top": 164.0,
+    "width": 11.0,
+    "height": 11.0,
     "zIndex": 3,
     "page": 1,
-    "alignWithText": true,
+    "alignWithText": false,
     "flowRole": "masthead",
     "contactChannel": "location",
     "contactBandId": "vellum-contact"
@@ -320,9 +320,9 @@ const VELLUM_ELEMENTS = [
   {
     "category": "textarea",
     "content": "Warszawa",
-    "left": 68.0,
+    "left": 72.0,
     "top": 164.5,
-    "width": 338.0,
+    "width": 334.0,
     "height": 10,
     "fontSize": 6.9,
     "lineHeight": 10.0,
@@ -435,11 +435,11 @@ const VELLUM_ELEMENTS = [
         "lineHeightPt": 10.0
       },
       "icon": {
-        "sizePt": 8.6,
+        "sizePt": 11.0,
         "theme": "vellum-sage"
       },
       "metrics": {
-        "iconGap": 10.0,
+        "iconGap": 14.0,
         "itemPad": 0.0,
         "lineStep": 12.5,
         "charWidth": 3.5880000000000005
@@ -557,7 +557,7 @@ const VELLUM_ELEMENTS = [
     "id": "vellum-summary-background",
     "flowRole": "section-background",
     "appearanceColorRole": "field",
-    "flowGroup": "record-982ae43b7357"
+    "flowGroup": "record-33b2eab15f63"
   },
   {
     "category": "textarea",
@@ -580,7 +580,7 @@ const VELLUM_ELEMENTS = [
     "autoHeight": true,
     "preserveInitialLayout": true,
     "appearanceColorRole": "summaryText",
-    "flowGroup": "record-982ae43b7357",
+    "flowGroup": "record-33b2eab15f63",
     "flowRole": "content"
   },
   {
@@ -642,7 +642,7 @@ const VELLUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-90320703e5a5",
+    "flowGroup": "record-561532485a20",
     "flowRole": "content"
   },
   {
@@ -704,7 +704,7 @@ const VELLUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-4a3c06f2c320",
+    "flowGroup": "record-73bbc1f3c338",
     "flowRole": "content"
   },
   {
@@ -727,7 +727,7 @@ const VELLUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-4a3c06f2c320",
+    "flowGroup": "record-73bbc1f3c338",
     "flowRole": "content"
   },
   {
@@ -750,7 +750,7 @@ const VELLUM_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-4a3c06f2c320",
+    "flowGroup": "record-73bbc1f3c338",
     "flowRole": "content"
   },
   {
@@ -774,7 +774,7 @@ const VELLUM_ELEMENTS = [
     "autoHeight": false,
     "preserveInitialLayout": true,
     "flowRole": "record-overlay",
-    "flowGroup": "record-4a3c06f2c320"
+    "flowGroup": "record-73bbc1f3c338"
   },
   {
     "category": "textarea",
@@ -797,7 +797,7 @@ const VELLUM_ELEMENTS = [
     "autoHeight": false,
     "preserveInitialLayout": true,
     "flowRole": "record-overlay",
-    "flowGroup": "record-4a3c06f2c320"
+    "flowGroup": "record-73bbc1f3c338"
   },
   {
     "category": "textarea",
@@ -819,7 +819,7 @@ const VELLUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-41aa1dffe187",
+    "flowGroup": "record-632d31fd0d99",
     "flowRole": "content"
   },
   {
@@ -842,7 +842,7 @@ const VELLUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-41aa1dffe187",
+    "flowGroup": "record-632d31fd0d99",
     "flowRole": "content"
   },
   {
@@ -865,7 +865,7 @@ const VELLUM_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-41aa1dffe187",
+    "flowGroup": "record-632d31fd0d99",
     "flowRole": "content"
   },
   {
@@ -889,7 +889,7 @@ const VELLUM_ELEMENTS = [
     "autoHeight": false,
     "preserveInitialLayout": true,
     "flowRole": "record-overlay",
-    "flowGroup": "record-41aa1dffe187"
+    "flowGroup": "record-632d31fd0d99"
   },
   {
     "category": "textarea",
@@ -912,7 +912,7 @@ const VELLUM_ELEMENTS = [
     "autoHeight": false,
     "preserveInitialLayout": true,
     "flowRole": "record-overlay",
-    "flowGroup": "record-41aa1dffe187"
+    "flowGroup": "record-632d31fd0d99"
   },
   {
     "category": "textarea",
@@ -934,7 +934,7 @@ const VELLUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-a2958c3aab77",
+    "flowGroup": "record-ce0daf4cf035",
     "flowRole": "content"
   },
   {
@@ -957,7 +957,7 @@ const VELLUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-a2958c3aab77",
+    "flowGroup": "record-ce0daf4cf035",
     "flowRole": "content"
   },
   {
@@ -980,7 +980,7 @@ const VELLUM_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-a2958c3aab77",
+    "flowGroup": "record-ce0daf4cf035",
     "flowRole": "content"
   },
   {
@@ -1004,7 +1004,7 @@ const VELLUM_ELEMENTS = [
     "autoHeight": false,
     "preserveInitialLayout": true,
     "flowRole": "record-overlay",
-    "flowGroup": "record-a2958c3aab77"
+    "flowGroup": "record-ce0daf4cf035"
   },
   {
     "category": "textarea",
@@ -1027,7 +1027,7 @@ const VELLUM_ELEMENTS = [
     "autoHeight": false,
     "preserveInitialLayout": true,
     "flowRole": "record-overlay",
-    "flowGroup": "record-a2958c3aab77"
+    "flowGroup": "record-ce0daf4cf035"
   },
   {
     "category": "textarea",
@@ -1049,7 +1049,7 @@ const VELLUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-46ba2d99a548",
+    "flowGroup": "record-061480335be1",
     "flowRole": "content"
   },
   {
@@ -1072,7 +1072,7 @@ const VELLUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-46ba2d99a548",
+    "flowGroup": "record-061480335be1",
     "flowRole": "content"
   },
   {
@@ -1095,7 +1095,7 @@ const VELLUM_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-46ba2d99a548",
+    "flowGroup": "record-061480335be1",
     "flowRole": "content"
   },
   {
@@ -1119,7 +1119,7 @@ const VELLUM_ELEMENTS = [
     "autoHeight": false,
     "preserveInitialLayout": true,
     "flowRole": "record-overlay",
-    "flowGroup": "record-46ba2d99a548"
+    "flowGroup": "record-061480335be1"
   },
   {
     "category": "textarea",
@@ -1142,7 +1142,7 @@ const VELLUM_ELEMENTS = [
     "autoHeight": false,
     "preserveInitialLayout": true,
     "flowRole": "record-overlay",
-    "flowGroup": "record-46ba2d99a548"
+    "flowGroup": "record-061480335be1"
   },
   {
     "category": "text",
@@ -1203,7 +1203,7 @@ const VELLUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-8a87a7306bbd",
+    "flowGroup": "record-131aebef4c92",
     "flowRole": "content"
   },
   {
@@ -1226,7 +1226,7 @@ const VELLUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-8a87a7306bbd",
+    "flowGroup": "record-131aebef4c92",
     "flowRole": "content"
   },
   {
@@ -1250,7 +1250,7 @@ const VELLUM_ELEMENTS = [
     "autoHeight": false,
     "preserveInitialLayout": true,
     "flowRole": "record-overlay",
-    "flowGroup": "record-8a87a7306bbd"
+    "flowGroup": "record-131aebef4c92"
   },
   {
     "category": "textarea",
@@ -1272,7 +1272,7 @@ const VELLUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-78e0190d337d",
+    "flowGroup": "record-7a47375892c7",
     "flowRole": "content"
   },
   {
@@ -1295,7 +1295,7 @@ const VELLUM_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-78e0190d337d",
+    "flowGroup": "record-7a47375892c7",
     "flowRole": "content"
   },
   {
@@ -1319,7 +1319,7 @@ const VELLUM_ELEMENTS = [
     "autoHeight": false,
     "preserveInitialLayout": true,
     "flowRole": "record-overlay",
-    "flowGroup": "record-78e0190d337d"
+    "flowGroup": "record-7a47375892c7"
   },
   {
     "category": "text",
@@ -1391,7 +1391,7 @@ const VELLUM_ELEMENTS = [
     "preserveInitialLayout": true,
     "flowRole": "grid-member",
     "gridKind": "languages",
-    "flowGroup": "record-e2501dba2248",
+    "flowGroup": "record-fdde26aaa29d",
     "editorGridEntry": true,
     "gridColumns": 4,
     "gridGutter": 8.0,
@@ -1420,7 +1420,7 @@ const VELLUM_ELEMENTS = [
     "preserveInitialLayout": true,
     "flowRole": "grid-member",
     "gridKind": "languages",
-    "flowGroup": "record-e2501dba2248",
+    "flowGroup": "record-fdde26aaa29d",
     "editorGridEntry": true,
     "gridColumns": 4,
     "gridGutter": 8.0,
@@ -1449,7 +1449,7 @@ const VELLUM_ELEMENTS = [
     "preserveInitialLayout": true,
     "flowRole": "grid-member",
     "gridKind": "languages",
-    "flowGroup": "record-e2501dba2248",
+    "flowGroup": "record-fdde26aaa29d",
     "editorGridEntry": true,
     "gridColumns": 4,
     "gridGutter": 8.0,
@@ -1478,7 +1478,7 @@ const VELLUM_ELEMENTS = [
     "preserveInitialLayout": true,
     "flowRole": "grid-member",
     "gridKind": "languages",
-    "flowGroup": "record-e2501dba2248",
+    "flowGroup": "record-fdde26aaa29d",
     "editorGridEntry": true,
     "gridColumns": 4,
     "gridGutter": 8.0,

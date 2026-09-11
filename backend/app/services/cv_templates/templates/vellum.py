@@ -250,10 +250,10 @@ def _gen_vellum(cv: dict) -> list[dict]:
         max_width=header_width,
         text_fs=6.9,
         line_height=10.0,
-        icon_size=8.6,
+        icon_size=11.0,
         text_color=palette["muted"],
         font=sans,
-        icon_gap=10.0,
+        icon_gap=14.0,
         line_step=12.5,
         band_id="vellum-contact",
     )

@@ -135,7 +135,11 @@ function layoutBoundedStack(descriptor, items, measure) {
       { measureTextWidth: measureLabel },
     ) - 6;
     const placement = {
-      channel: item.channel, iconLeft, iconTop: cursor,
+      // Multiline fields have geometric bounds. Centre the entire icon on
+      // those bounds and opt out of the single-line optical baseline shift.
+      channel: item.channel, iconLeft,
+      iconTop: cursor + (labelHeight - descriptor.icon.sizePt) / 2,
+      iconSize: descriptor.icon.sizePt, alignWithText: false,
       labelLeft: iconLeft + iconGap, labelTop: cursor,
       labelWidth, labelHeight, lineHeight,
     };

@@ -35,3 +35,17 @@ def test_each_vellum_palette_has_correctly_colored_line_art() -> None:
             pixels = Image.open(icon_path).convert("RGBA").get_flattened_data()
             visible_colors = {pixel[:3] for pixel in pixels if pixel[3] > 0}
             assert expected_rgb in visible_colors
+
+
+def test_palette_contact_ink_is_centred_in_identical_transparent_canvases() -> None:
+    """Geometric box centring must also centre visible ink in every colourway."""
+    for icon_name in VELLUM_ICONS:
+        reference_alpha = None
+        for theme in PALETTE_ICON_COLORS:
+            alpha = Image.open(ASSET_ROOT / theme / f"{icon_name}.png").convert("RGBA").getchannel("A")
+            left, top, right, bottom = alpha.getbbox()
+            assert abs(top + bottom - alpha.height) <= 1
+            assert abs(left + right - alpha.width) <= 1
+            if reference_alpha is None:
+                reference_alpha = alpha.tobytes()
+            assert alpha.tobytes() == reference_alpha

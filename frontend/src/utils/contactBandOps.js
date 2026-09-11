@@ -89,7 +89,13 @@ function reposition(el, bandId, placementByChannel) {
     const placement = placementByChannel.get(el.contactChannel);
     if (!placement) return el;
     if (el.category === "image") {
-      return { ...el, left: placement.iconLeft, top: placement.iconTop };
+      return {
+        ...el, left: placement.iconLeft, top: placement.iconTop,
+        ...(placement.iconSize == null ? {} : {
+          width: placement.iconSize, height: placement.iconSize,
+          alignWithText: placement.alignWithText,
+        }),
+      };
     }
     if (el.category === "rectangle") {
       // Chip background pill: move AND resize to the recomputed width.
@@ -263,10 +269,10 @@ export function applyChannelAddition(elements, bandId, channel, label, measure, 
     src: deriveIconSrc(elements, bandId, descriptor, channel),
     left: placement.iconLeft, top: placement.iconTop,
     width: descriptor.icon.sizePt, height: descriptor.icon.sizePt,
-    // Match the backend `_icon`/`_icon_beside` output for every mode: the glyph
-    // is vertically centred against the label's CSS top (alignWithText), so a
-    // re-added icon lands exactly where the generator's icons do.
-    zIndex: 3, page, flowRole: "masthead", alignWithText: true,
+    // Multiline stacks carry a geometric centre; other bands retain the
+    // backend's optical baseline alignment when a channel is re-added.
+    zIndex: 3, page, flowRole: "masthead",
+    alignWithText: placement.alignWithText ?? true,
     contactChannel: channel, contactBandId: bandId,
   };
   const labelEl = {

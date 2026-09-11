@@ -190,10 +190,16 @@ def test_vellum_keeps_every_contact_in_one_bounded_list(long_contacts):
         "phone", "email", "linkedin", "github", "website", "location",
     ]
     for index, label in enumerate(labels):
-        assert label["left"] == 68.0
+        assert label["left"] == 72.0
         assert label["left"] + label["width"] == 406.0
         assert label["align"] == "left"
         assert label["autoHeight"] is False
+        icon = next(element for element in elements if element.get("contactChannel") == label["contactChannel"]
+                    and element["category"] == "image")
+        assert icon["width"] == icon["height"] == 11
+        assert icon["alignWithText"] is False
+        assert icon["left"] + icon["width"] + 3 == label["left"]
+        assert icon["top"] + icon["height"] / 2 == label["top"] + label["height"] / 2
         if index:
             previous = labels[index - 1]
             assert label["top"] >= previous["top"] + previous["height"] + 2.5

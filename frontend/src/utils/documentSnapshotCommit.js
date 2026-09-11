@@ -4,6 +4,8 @@ import { preserveSavedTextLayouts } from "./savedTextLayout.js";
 import { sanitizeElementsContent } from "./sanitizeTextContent.js";
 import { trimTrailingEmptyTextareaPayload } from "./textareaHeight.js";
 import { healDecorativeOrdinalBaselines, healSkillChipLabelBaselines } from "./sectionStructure.js";
+import { nanoid } from "nanoid";
+import { normalizeVellumContactLayout } from "./vellumTypographyLayout.js";
 
 /** Apply existing load repairs before both the live graph and clean baseline. */
 function normalizeLoadedElements(elements) {
@@ -12,7 +14,9 @@ function normalizeLoadedElements(elements) {
     const trimmed = trimTrailingEmptyTextareaPayload(element.content, element.runs, { bulletList: !!element.bulletList });
     return trimmed.content === element.content ? element : { ...element, ...trimmed };
   });
-  const repaired = healSkillChipLabelBaselines(healDecorativeOrdinalBaselines(cleaned));
+  const repaired = normalizeVellumContactLayout(
+    healSkillChipLabelBaselines(healDecorativeOrdinalBaselines(cleaned)), nanoid,
+  );
   return repaired.every((element, index) => element === elements[index]) ? elements : repaired;
 }
 

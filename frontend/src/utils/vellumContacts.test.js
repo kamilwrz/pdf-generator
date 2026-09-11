@@ -7,6 +7,9 @@ import { applyVellumTextSizeLayout } from "./vellumTypographyLayout.js";
 import { DEFAULT_FLOW_SPACING } from "./flowSpacing.js";
 import { applyFlowSpacing } from "./sectionStructure.js";
 import { applyTitleToggle } from "./mastheadIdentityOps.js";
+import { applyVellumPalette, VELLUM_PALETTES } from "./vellumAppearance.js";
+import { imageDisplayTop } from "./iconAlignment.js";
+import { normalizeCommittedDocumentSnapshot } from "./documentSnapshotCommit.js";
 import { hydratePersistedCanvasElement } from "./persistedCanvasElement.js";
 
 let serial = 0;
@@ -20,7 +23,7 @@ function assertContactGeometry(elements) {
   const contacts = labels(elements);
   assert.equal(listContactBands(elements)[0].chips.length, contacts.length);
   contacts.forEach((contact, index) => {
-    assert.equal(contact.left, 68);
+    assert.equal(contact.left, 72);
     assert.equal(contact.left + contact.width, 406);
     assert.equal(contact.autoHeight, false);
     assert.equal(contact.page, 1);
@@ -30,7 +33,11 @@ function assertContactGeometry(elements) {
     }
     const icon = elements.find((element) => element.category === "image" && element.contactChannel === contact.contactChannel);
     assert.equal(icon.left, 58);
-    assert.equal(icon.top, contact.top);
+    assert.equal(icon.width, 11);
+    assert.equal(icon.height, 11);
+    assert.equal(icon.alignWithText, false);
+    assert.ok(Math.abs(imageDisplayTop(icon) + icon.height / 2 - contact.top - contact.height / 2) < 0.001);
+    assert.equal(icon.left + icon.width + 3, contact.left);
   });
   const divider = elements.find((element) => element.id === "vellum-masthead-divider");
   const anchor = elements.find((element) => element.contactBand);
@@ -113,5 +120,48 @@ test("Vellum preserves custom rhythm and the growing-band contract through reloa
     elements = applyTitleToggle(elements, "masthead-main", createId).elements;
     elements = applyChannelRelayout(elements, "vellum-contact", measure, createId).elements;
     assertContactGeometry(elements);
+  }
+});
+
+
+test("every Vellum palette keeps wrapped icons centred through typography and channel restoration", () => {
+  for (const palette of VELLUM_PALETTES) {
+    let elements = applyVellumPalette(source(), palette.id);
+    elements = elements.map((element) => element.category === "textarea" && element.contactChannel === "email"
+      ? { ...element, content: `${"long-address".repeat(35)}@example.com` } : element);
+    for (const textSize of ["S", "L", "XL", "M"]) {
+      elements = applyVellumTextSizeLayout(elements, textSize, { spacing: DEFAULT_FLOW_SPACING, createId });
+      assertContactGeometry(elements);
+      assert.ok(labels(elements).find((element) => element.contactChannel === "email").height > 20);
+    }
+    for (const contact of labels(elements)) {
+      elements = applyChannelRemoval(elements, "vellum-contact", contact.contactChannel, measure, createId).elements;
+    }
+    for (const channel of ["phone", "email", "linkedin", "github", "website", "location"]) {
+      elements = applyChannelAddition(elements, "vellum-contact", channel, "", measure, createId).elements;
+    }
+    assertContactGeometry(elements);
+    assert.ok(elements.filter((element) => element.category === "image" && element.contactChannel)
+      .every((icon) => icon.src.includes(`/iconic/${palette.iconTheme}/`)));
+  }
+});
+
+test("opening the first Vellum list repairs icons before the clean snapshot without repeated layout drift", () => {
+  for (const palette of VELLUM_PALETTES) {
+    const old = applyVellumPalette(source(), palette.id).map((element) => {
+      if (element.contactBand) return { ...element, contactBand: {
+        ...element.contactBand, icon: { ...element.contactBand.icon, sizePt: 8.6 },
+        metrics: { ...element.contactBand.metrics, iconGap: 10 },
+      } };
+      if (element.contactChannel && element.category === "image") return {
+        ...element, width: 8.6, height: 8.6, alignWithText: true,
+      };
+      return element;
+    });
+    const reopened = normalizeCommittedDocumentSnapshot({ elements: old, pdfId: 1 }).elements;
+    assertContactGeometry(reopened);
+    const repeated = normalizeCommittedDocumentSnapshot({ elements: reopened, pdfId: 1 }).elements;
+    assert.deepEqual(repeated, reopened);
+    assert.deepEqual(old.filter((element) => element.photoSlot), reopened.filter((element) => element.photoSlot));
   }
 });

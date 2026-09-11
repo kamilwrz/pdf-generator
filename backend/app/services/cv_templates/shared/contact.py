@@ -291,6 +291,11 @@ def _place_bounded_stack_icon_contacts(
         x = start_x
         height = Builder.measure_block(value, label_width, text_fs, line_height, font, min_h=line_height)
         icon = _icon_beside(theme, key, x, cursor, text_fs, icon_size)
+        # Textareas own a real line box, unlike baseline-positioned text. Use
+        # its full height (including wrapping) and bypass the legacy optical
+        # baseline shift in both the canvas and PDF image renderers.
+        icon.update({"top": cursor + (height - icon_size) / 2,
+                     "alignWithText": False})
         label = _block(value, x + icon_gap, cursor, label_width, height,
                        text_fs, line_height, text_color, font, zIndex=3)
         # The band owns row heights, including live edits; generic textarea

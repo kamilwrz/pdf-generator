@@ -4,6 +4,38 @@ import { applyVellumTextSize } from "./vellumAppearance.js";
 import { reconcileDocumentPages } from "./structureOperation.js";
 
 /**
+ * Repair the first bounded-list Vellum release before a document is opened.
+ *
+ * Only its authored 8.6 pt icon / 10 pt gutter signature is upgraded. Centred
+ * legacy mastheads and current/custom layouts are left intact. Reflow reserves
+ * the larger gutter, keeps wrapped contacts clear, and updates body pagination
+ * before the caller records the clean snapshot; it never writes to the API.
+ *
+ * @param {object[]} elements - Hydrated document elements.
+ * @param {() => string} createId - Identifier factory for continuation chrome.
+ * @returns {object[]} Repaired elements, or the original array when current.
+ */
+export function normalizeVellumContactLayout(elements, createId) {
+  const anchor = elements.find((element) => element.contactBand?.id === "vellum-contact");
+  const band = anchor?.contactBand;
+  if (band?.mode !== "bounded-stack" || band.icon?.sizePt !== 8.6 || band.metrics?.iconGap !== 10) {
+    return elements;
+  }
+  const upgraded = elements.map((element) => element === anchor ? {
+    ...element,
+    contactBand: {
+      ...band,
+      icon: { ...band.icon, sizePt: 11 },
+      metrics: { ...band.metrics, iconGap: 14 },
+      ...(band.appearanceBaseMetrics ? {
+        appearanceBaseMetrics: { ...band.appearanceBaseMetrics, iconGap: 14 },
+      } : {}),
+    },
+  } : element);
+  return applyChannelRelayout(upgraded, band.id, null, createId).elements;
+}
+
+/**
  * Apply one Vellum type preset as a single document-layout transaction.
  *
  * The left-aligned contact list is rebuilt before the one-column editorial flow
