@@ -1,5 +1,20 @@
 import { inferEditorMode, normalizeEditorMode } from "./editorMode.js";
 import { removeLegacyLanguageLevelStyling } from "./languagesLayout.js";
+import { preserveSavedTextLayouts } from "./savedTextLayout.js";
+import { sanitizeElementsContent } from "./sanitizeTextContent.js";
+import { trimTrailingEmptyTextareaPayload } from "./textareaHeight.js";
+import { healDecorativeOrdinalBaselines, healSkillChipLabelBaselines } from "./sectionStructure.js";
+
+/** Apply existing load repairs before both the live graph and clean baseline. */
+function normalizeLoadedElements(elements) {
+  const cleaned = sanitizeElementsContent(elements).map((element) => {
+    if (element.category !== "textarea" || element.content == null) return element;
+    const trimmed = trimTrailingEmptyTextareaPayload(element.content, element.runs, { bulletList: !!element.bulletList });
+    return trimmed.content === element.content ? element : { ...element, ...trimmed };
+  });
+  const repaired = healSkillChipLabelBaselines(healDecorativeOrdinalBaselines(cleaned));
+  return repaired.every((element, index) => element === elements[index]) ? elements : repaired;
+}
 
 function positiveInteger(value) {
   const parsed = Number(value);
@@ -32,7 +47,7 @@ function positiveInteger(value) {
  */
 export function normalizeCommittedDocumentSnapshot(input = {}) {
   const elements = removeLegacyLanguageLevelStyling(
-    Array.isArray(input.elements) ? input.elements : [],
+    normalizeLoadedElements(Array.isArray(input.elements) ? input.elements : []),
   );
   const deletedElements = Array.isArray(input.deletedElements)
     ? input.deletedElements
@@ -54,7 +69,7 @@ export function normalizeCommittedDocumentSnapshot(input = {}) {
   const pdfId = input.pdfId ?? input.pdf_id ?? null;
 
   return {
-    elements,
+    elements: positiveInteger(pdfId) ? preserveSavedTextLayouts(elements) : elements,
     deletedElements,
     title: String(input.title ?? "").replace(/\.pdf$/i, ""),
     pageCount,

@@ -322,6 +322,8 @@ The editor and other task-heavy screens may be denser, but must remain grid-base
 - Saving and export workflows must expose `idle`, `working`, `success`, and `failure` states without layout shift.
 - Save and PDF download use the same three-stage progress grammar with operation-specific copy, destination, icon, and side effects. Save reports preparation, persistence, and revision confirmation; download reports page preparation, server rendering, and the browser handoff. After a successful operation, each truthful stage remains visible for at least 1.2 seconds. A presentation timer may advance only after the corresponding real boundary; it never delays network work or the browser download, announces a boundary early, or extends failures.
 
+- Unsaved-work confirmation protects a new account CV before its first server save and a saved CV only while its persisted snapshot differs from the confirmed version. Unchanged load, focus/blur, selection, zoom and page navigation must not manufacture edits. Preserve saved textarea geometry until text, typography or width changes; normalize legacy load repairs before establishing the comparison baseline. Copy distinguishes loss of the entire new CV from loss of changes to an existing version. Failed saves and edits arriving during a save remain protected. Use the shared dialog, safe initial focus, 44px actions and consistent visual/keyboard order, including compact and 200% zoom states. Guest draft persistence retains its separate policy.
+
 ### 5.7 Editor and PDF canvas
 
 - The document remains the dominant object; chrome must support it rather than compete with it.

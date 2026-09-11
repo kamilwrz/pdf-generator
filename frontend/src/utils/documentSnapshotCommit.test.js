@@ -186,3 +186,11 @@ test("opening a custom JĘZYKI entries grid preserves its inline runs and semant
   assert.equal(snapshot.elements[1].gridKind, "entries");
   assert.deepEqual(snapshot.elements[1].runs, [customRun]);
 });
+
+test("load-time bullet cleanup precedes the saved measurement baseline", () => {
+  const snapshot = normalizeCommittedDocumentSnapshot({
+    pdfId: 41,
+    elements: [{ element_id: "body", category: "textarea", content: "Item\n• ", bulletList: true, width: 200, height: 40 }],
+  });
+  assert.equal(snapshot.elements[0].content, "Item");
+});

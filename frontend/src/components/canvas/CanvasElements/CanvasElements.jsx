@@ -1,3 +1,5 @@
+import { hasUnchangedSavedTextLayout } from "../../../utils/savedTextLayout.js";
+
 /**
  * Renders the live canvas element list by category.
  * Passes `fixedToPage` so decorative chrome stays pointer-inert.
@@ -424,6 +426,7 @@ export default function CanvasElements({ elements, spreadSide = null }) {
             bulletList={element.bulletList}
             autoHeight={element.autoHeight}
             preserveInitialLayout={element.preserveInitialLayout}
+            preserveSavedLayout={hasUnchangedSavedTextLayout(element)}
             zIndex={element.zIndex}
             fixedToPage={element.fixedToPage}
             textTransform={element.textTransform}

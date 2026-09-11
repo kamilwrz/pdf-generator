@@ -15,6 +15,7 @@ export default function UnsavedChangesDialog({
   onDiscard,
   onSave,
   isSaving = false,
+  isNewDocument = false,
   error = "",
 }) {
   const handleClose = isSaving ? () => {} : onCancel;
@@ -24,8 +25,8 @@ export default function UnsavedChangesDialog({
       open={open}
       onClose={handleClose}
       width={460}
-      title="Niezapisane zmiany"
-      subtitle="Ta wersja dokumentu nie została jeszcze zapisana"
+      title={isNewDocument ? "Niezapisane CV" : "Niezapisane zmiany"}
+      subtitle={isNewDocument ? "To CV nie zostało jeszcze zapisane na koncie" : "Zmiany w tym CV nie zostały jeszcze zapisane"}
       role="alertdialog"
       layer="recovery"
       initialFocusSelector="[data-unsaved-cancel]"
@@ -46,7 +47,7 @@ export default function UnsavedChangesDialog({
             onClick={onDiscard}
             disabled={isSaving}
           >
-            Odrzuć zmiany
+            {isNewDocument ? "Odrzuć CV" : "Odrzuć zmiany"}
           </button>
           <button
             type="button"
@@ -62,8 +63,9 @@ export default function UnsavedChangesDialog({
       <div className={classes.body}>
         <span className={classes.marker} aria-hidden="true">!</span>
         <p>
-          Jeśli przejdziesz dalej, zmiany wprowadzone od ostatniego zapisu
-          zostaną utracone.
+          {isNewDocument
+            ? "Jeśli przejdziesz dalej, utracisz to CV. Zapisz je, aby wrócić do niego w Moich dokumentach."
+            : "Jeśli przejdziesz dalej, utracisz zmiany od ostatniego zapisu. Zapisana wersja CV pozostanie w Moich dokumentach."}
         </p>
         {error ? (
           <p className={classes.error} role="alert">

@@ -119,8 +119,9 @@ import { nanoid } from 'nanoid';
 import { materializeElementSpecs } from '../utils/materializeElementSpecs';
 import { markContentElementsEnter } from '../utils/canvasEnter';
 import { normalizeCommittedDocumentSnapshot } from '../utils/documentSnapshotCommit';
+import { preserveSavedTextLayouts } from '../utils/savedTextLayout';
 /**
- * Authenticated CV editor page: canvas, toolbars, dialogs, and autosave.
+ * CV editor page: canvas, toolbars, dialogs, explicit saves and guest drafts.
  *
  * Composes `useA4Elements` + `usePdfExport` into focused Canvas, UiSurfaces,
  * and Session contexts. Consumers subscribe only to the domain they need,
@@ -628,6 +629,7 @@ export function EditorController() {
     signature: documentSignature,
     isGuest,
     flushGuestDraft,
+    hasUnpersistedDocument: !isGuest && !isDemoContent && pdfId == null && hasPersistedDocumentContent(persistedSnapshot),
   });
   const confirmDiscardActiveEdits = dirtyGuard.confirmDiscard;
   const allowNextNavigation = dirtyGuard.allowNextNavigation;
@@ -938,6 +940,10 @@ export function EditorController() {
     // flight. For a still-current session, mark exactly the submitted snapshot
     // clean: edits made after clicking Save remain dirty.
     markDocumentClean(saveSignatureRef.current);
+    // Only the submitted fields gain a saved layout baseline. Later edits
+    // remain dirty and retain normal measurement until their own save.
+    const savedElements = JSON.parse(saveSignatureRef.current).elements;
+    setA4_Elements((current) => preserveSavedTextLayouts(current, savedElements));
     if (clearSubmittedDeletes) {
       const submittedIds = savedDeletedIdsRef.current;
       setA4_Elements_deleted((current) => current.filter((element) => {
@@ -962,6 +968,7 @@ export function EditorController() {
     isPdfLoading,
     markDocumentClean,
     responsePDF,
+    setA4_Elements,
     setA4_Elements_deleted,
     settleDialogSave,
   ]);
@@ -2400,6 +2407,7 @@ export function EditorController() {
                 onDiscard={dirtyGuard.confirmDialogDiscard}
                 onSave={handleSaveAndContinue}
                 isSaving={dirtyGuard.dialogSaving}
+                isNewDocument={pdfId == null}
                 error={dirtyGuard.dialogError}
               />
               <TemplatesModal />
@@ -2491,7 +2499,7 @@ export function EditorController() {
                 </Sidebar>
               ) : null}
               {/* Floating property inspector (portal); not docked to the tool rail. */}
-              {!showStartChooser && !isNewCvSetupModal ? <Editor /> : null}
+              {!showStartChooser && !isNewCvSetupModal && !dirtyGuard.dialogOpen ? <Editor /> : null}
               {!showStartChooser ? (
                 <div className="right-pane">
                   {isDemoContent ? (

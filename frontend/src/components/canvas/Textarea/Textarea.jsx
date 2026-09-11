@@ -185,6 +185,7 @@ function Textarea({
     bulletList,
     autoHeight,
     preserveInitialLayout,
+    preserveSavedLayout = false,
     zIndex,
     fixedToPage,
     textTransform,
@@ -285,7 +286,10 @@ function Textarea({
     // the bottom of a box makes SPACE_SECTION look uneven across templates.
     // User edits and later font/width changes use the full measure path.
     useLayoutEffect(() => {
-        if (!autoHeight) return undefined;
+        // A saved box already has authoritative geometry. Reinterpreting it
+        // on mount/font-ready/page return changes the document without an edit.
+        // Content, typography or width edits invalidate the saved input key.
+        if (!autoHeight || preserveSavedLayout) return undefined;
         if (isEditing) {
             // `commitEditable` owns measurement while editing. Keep a single
             // skip token for the matching display render after blur.
@@ -364,6 +368,7 @@ function Textarea({
         lineHeight,
         mastheadRole,
         preserveInitialLayout,
+        preserveSavedLayout,
         // Uppercasing glyphs are wider than mixed case at the same width, so a
         // masthead name-case toggle (`applyNameCaseToggle`) can change the
         // browser's wrap point without touching `content`/`width`/`fontSize`.
@@ -428,7 +433,7 @@ function Textarea({
         let cancelled = false;
         const measureSeededEditable = () => {
             const target = editingRef.current;
-            if (cancelled || !autoHeight || !target) return;
+            if (cancelled || !autoHeight || !target || preserveSavedLayout) return;
             const current = serializeEditable(target);
             const measuredHeight = measureEditableContentHeight(
                 target,
@@ -612,6 +617,11 @@ function Textarea({
                     { bulletList: !!bulletList },
                 )
                 : { content: serialized.content, runs: serialized.runs };
+
+            // Focus and blur alone are not edits. Keep the saved box and avoid
+            // adding empty run metadata when serialization returns the same text.
+            if (preserveSavedLayout && nextContent === content
+                && JSON.stringify(nextRuns || []) === JSON.stringify(runs || [])) return;
 
             // On blur, collapse trimmed bullet placeholders before exit so the
             // last paint matches stored height. Plain textarea blank rows never

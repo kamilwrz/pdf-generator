@@ -4,11 +4,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useBlocker } from "react-router-dom";
 
-export function useDirtyGuard({ signature, isGuest, flushGuestDraft }) {
+export function useDirtyGuard({ signature, isGuest, flushGuestDraft, hasUnpersistedDocument = false }) {
   const signatureRef = useRef(signature);
   signatureRef.current = signature;
   const [baselineSignature, setBaselineSignature] = useState(signature);
-  const dirty = signature !== baselineSignature;
+  // A restored/new account document still needs its first server save, even
+  // when its initial content equals the local comparison baseline.
+  const dirty = hasUnpersistedDocument || signature !== baselineSignature;
   const dirtyRef = useRef(dirty);
   dirtyRef.current = dirty;
   const guestRef = useRef(isGuest);
@@ -71,10 +73,14 @@ export function useDirtyGuard({ signature, isGuest, flushGuestDraft }) {
     saveInFlightRef.current = true;
     setDialogSaving(true);
     setDialogError("");
+    const submittedSignature = signatureRef.current;
     try {
       const saved = await saveCurrentDocument();
       if (saved !== true) {
         throw new Error("Nie udało się potwierdzić zapisu dokumentu.");
+      }
+      if (signatureRef.current !== submittedSignature && dirtyRef.current) {
+        throw new Error("Podczas zapisu pojawiły się nowe zmiany. Zapisz je przed kontynuowaniem.");
       }
       settleDialog(true);
       return true;

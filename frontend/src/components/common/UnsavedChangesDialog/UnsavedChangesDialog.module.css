@@ -1,42 +1,43 @@
 .body {
   display: grid;
-  grid-template-columns: 32px 1fr;
-  gap: 14px;
+  grid-template-columns: var(--space-8) minmax(0, 1fr);
+  gap: var(--space-4);
   align-items: start;
-  padding: 22px 28px 24px;
+  padding: var(--space-6);
 }
 
 .body p {
-  margin: 1px 0 0;
+  margin: 0;
   color: var(--chrome-muted);
-  font: 400 13px/1.55 var(--font-body);
+  font: 400 0.875rem/1.4 var(--font-body);
 }
 
 .marker {
   display: grid;
   place-items: center;
-  width: 30px;
-  height: 30px;
+  width: var(--space-8);
+  height: var(--space-8);
   border: 1px solid var(--chrome-border);
   border-radius: var(--radius-control);
   color: var(--chrome-accent);
-  font: 800 17px/1 var(--font-display);
+  font: 700 1rem/1 var(--font-display);
 }
 
 .actions {
   display: flex;
+  flex-wrap: wrap;
   justify-content: flex-end;
-  gap: 8px;
+  gap: var(--space-2);
   width: 100%;
 }
 
 .cancel,
 .discard,
 .save {
-  min-height: 36px;
+  min-height: var(--control-height);
   border-radius: var(--radius-control);
-  padding: 8px 14px;
-  font: 700 12px/1.2 var(--font-body);
+  padding: var(--space-2) var(--space-3);
+  font: 600 0.75rem/1.25 var(--font-body);
   cursor: pointer;
 }
 
@@ -49,7 +50,7 @@
 .discard {
   border: 1px solid var(--chrome-border);
   background: var(--chrome-surface);
-  color: var(--chrome-ink);
+  color: var(--color-danger);
 }
 
 .save {
@@ -76,7 +77,7 @@
 .cancel:focus-visible,
 .discard:focus-visible,
 .save:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--chrome-accent) 70%, transparent);
+  outline: 2px solid var(--color-focus);
   outline-offset: 2px;
 }
 
@@ -92,13 +93,22 @@
   color: var(--color-danger) !important;
 }
 
+.cancel:active,
+.discard:active {
+  background: var(--chrome-hover);
+}
+
+.save:active {
+  background: var(--chrome-ink);
+}
+
 @media (max-width: 520px) {
   .body {
-    padding: 20px 16px;
+    padding: var(--space-4);
   }
 
   .actions {
-    flex-direction: column-reverse;
+    flex-direction: column;
   }
 
   .cancel,
