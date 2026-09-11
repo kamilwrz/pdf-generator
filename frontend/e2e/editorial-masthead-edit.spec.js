@@ -6,12 +6,14 @@ import { materializeElementSpecs } from "../src/utils/materializeElementSpecs.js
 import { installMockApi, login, SAVED_DOCUMENT } from "./support/mockApi.js";
 
 for (const [id, template] of [["regent", regentTemplate], ["meridian", meridianTemplate]]) {
-  test(`${id}: editing a wrapped identity keeps the contact floor and body in sync`, async ({ page }, testInfo) => {
+ for (const empty of [false, true]) {
+  test(`${id} ${empty ? "empty starter" : "filled"}: editing a wrapped identity keeps the contact floor and body in sync`, async ({ page }, testInfo) => {
     test.setTimeout(60_000);
     await page.setViewportSize({ width: 1280, height: 1000 });
     await page.emulateMedia({ reducedMotion: "reduce" });
     let serial = 0;
-    const elements = materializeElementSpecs(template, () => `identity-${++serial}`);
+    const elements = materializeElementSpecs(template, () => `identity-${++serial}`).map((element) =>
+      empty && element.mastheadRole ? { ...element, content: "", placeholder: element.mastheadRole === "name" ? "Imię i nazwisko" : "Tytuł zawodowy", starterPlaceholder: true } : element);
     const api = await installMockApi(page, {
       savedDocument: { ...SAVED_DOCUMENT, template_id: id, cv_data: null },
       savedElements: elements.map((element) => ({ ...element, extra_properties: { ...element } })),
@@ -28,10 +30,28 @@ for (const [id, template] of [["regent", regentTemplate], ["meridian", meridianT
     const field = (element) => page.locator(`[id="${element.element_id}"]`);
     await expect(field(name)).toBeVisible();
     await page.evaluate(() => document.fonts.ready);
+    if (empty) {
+      const body = elements.filter((element) => ["content", "section-chrome"].includes(element.flowRole) && element.page === 1);
+      expect(body.length).toBeGreaterThan(0);
+      const geometry = () => Promise.all(body.map((element) => field(element).evaluate((node) => ({
+        top: node.style.top, left: node.style.left, height: node.style.height,
+      }))));
+      const before = await geometry();
+      // Reproduce the wizard's initial name focus followed by a title click.
+      await field(name).focus();
+      await field(name).press("F2");
+      await field(title).click();
+      await field(title).press("F2");
+      await field(title).press("Escape");
+      await expect.poll(geometry).toEqual(before);
+      await page.screenshot({ path: testInfo.outputPath("empty-title-entry.png") });
+      api.assertHermetic();
+      return;
+    }
     for (const element of [name, title]) {
       await field(element).focus();
       await field(element).press("F2");
-      await field(element).fill(`${element.content} ${element.content} ${element.content}`);
+      await field(element).fill(`${element.content || "Long professional identity"} `.repeat(3));
       await field(element).press("Escape");
       await expect.poll(async () => {
         const [nameBox, titleBox, phoneBox] = await Promise.all([field(name).boundingBox(), field(title).boundingBox(), field(phone).boundingBox()]);
@@ -62,4 +82,5 @@ for (const [id, template] of [["regent", regentTemplate], ["meridian", meridianT
     expect(payload.root.find((element) => element.element_id === name.element_id).top).toBe(24);
     api.assertHermetic();
   });
+}
 }

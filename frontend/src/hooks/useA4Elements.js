@@ -1875,6 +1875,16 @@ export function useA4Elements(titleRef) {
           );
           return resizeContentSizedTitleDecorations(newState, edited, measured);
         }
+        if (edited?.mastheadRole && newState.some((element) =>
+          element.mastheadIdentity?.contactBandId
+          && element.mastheadBandId === edited.mastheadBandId
+          && newState.some((anchor) => anchor.contactBand?.id === element.mastheadIdentity.contactBandId
+            && anchor.contactBand.identityLayout))) {
+          // Leaving an empty starter name still commits its empty text. It is
+          // not a zero-height body block: the masthead fit callback reserves
+          // its hint line and moves the contacts and body as one layout.
+          return newState;
+        }
         if (
           edited?.flowRole === "section-chrome"
           && (edited.category === "text" || edited.category === "textarea")
