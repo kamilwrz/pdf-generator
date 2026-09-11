@@ -1,7 +1,8 @@
 /**
- * Post-login empty-state onboarding surface.
+ * Authenticated creation hub and empty-state onboarding surface.
  *
- * Replaces the blank canvas with manual setup, PDF import and a Pro interview.
+ * Generic creation links and a fresh account both resolve here, replacing the
+ * blank canvas with manual setup, PDF import and a Pro interview.
  * Interview access comes from the parent's resolved server entitlement.
  * Saved documents and legacy draft
  * recovery remain deliberately quieter secondary actions.

@@ -26,6 +26,19 @@ test("top-level routes are lazy and share a branded error element", async () => 
   );
 });
 
+test("generic CV creation sends accounts to the chooser and guests to setup", async () => {
+  const source = await readFile(sourceUrl, "utf8");
+
+  assert.match(
+    source,
+    /function CreateCvRoute\(\)[\s\S]*?!getAccessToken\(\) \|\| template \? "new" : "choose";/,
+  );
+  assert.match(
+    source,
+    /path: "\/app\/new", element: <CreateCvRoute \/>/,
+  );
+});
+
 test("the A4 workspace uses a grey base with a translucent white overlay", async () => {
   const [appStyles, globalStyles] = await Promise.all([
     readFile(appStylesUrl, "utf8"),

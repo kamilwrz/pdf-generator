@@ -9,9 +9,11 @@
  *   - Import → register → extract data → pick template → editor (metered request)
  *
  * Only the "import" CTA still detours through registration/login, because it
- * calls the account-scoped `POST /ai/extract_cv` endpoint. Setup and demo go straight
- * to `/cvstudio/guest?start=...` (or `/cvstudio/{username}` when already
- * authenticated). Anonymous CTA activity is not buffered or sent as analytics.
+ * calls the account-scoped `POST /ai/extract_cv` endpoint. Template-specific
+ * setup and demo links go straight to the editor; generic creation links use
+ * `/app/new` so signed-in users can choose any creation method while guests
+ * retain direct A4 setup. Anonymous CTA activity is not buffered or sent as
+ * analytics.
  */
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
@@ -98,7 +100,7 @@ export default function Hero() {
     // Free includes one successful monthly import; Pro removes that quota and
     // adds scale, every template, and AI workflows without changing PDF quality.
     const importUrl = buildStartUrl("import", "free");
-    const newCvUrl = buildStartUrl("new", "free");
+    const newCvUrl = "/app/new";
     const selectedTemplateUrl = getEditorPath({ start: "new", template: selectedTemplateId });
     const demoUrl = getEditorPath({ start: "demo" });
     const canResumeGuestDraft = !getAccessToken() && hasGuestDocument() && !loadGuestDocument()?.isDemoContent;

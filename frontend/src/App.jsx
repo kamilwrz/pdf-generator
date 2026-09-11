@@ -48,6 +48,21 @@ function StartRoute({ start }) {
 }
 
 /**
+ * Resolves the generic creation entry according to the visitor's context.
+ *
+ * Guests keep the shortest path into the free A4 setup. Authenticated users
+ * enter the account creation hub, where manual setup, import and interview
+ * remain equally discoverable. Template-specific links bypass the chooser,
+ * including older `/app/new?template=...` addresses.
+ */
+function CreateCvRoute() {
+  const [params] = useSearchParams();
+  const template = params.get("template");
+  const start = !getAccessToken() || template ? "new" : "choose";
+  return <Navigate to={getEditorPath({ start, template })} replace />;
+}
+
+/**
  * Preserve setup intent and template selection in deprecated bookmarks.
  */
 function PdfCanvasLegacyRedirect() {
@@ -65,7 +80,7 @@ const router = createBrowserRouter([
   { path: "/app/career-profile", element: <RequireSession><CareerProfilePage /></RequireSession>, errorElement: <RouteErrorPage /> },
   { path: "/app/interview", element: <RequireSession><InterviewPage /></RequireSession>, errorElement: <RouteErrorPage /> },
   { path: "/app/interview/:sessionId", element: <RequireSession><InterviewPage /></RequireSession>, errorElement: <RouteErrorPage /> },
-  { path: "/app/new", element: <StartRoute start="new" />, errorElement: <RouteErrorPage /> },
+  { path: "/app/new", element: <CreateCvRoute />, errorElement: <RouteErrorPage /> },
   { path: "/app/import", element: <StartRoute start="import" />, errorElement: <RouteErrorPage /> },
   { path: "/templates", element: <TemplatesPage />, errorElement: <RouteErrorPage /> },
   { path: "/templates/:slug", element: <TemplatePage />, errorElement: <RouteErrorPage /> },

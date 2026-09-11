@@ -241,7 +241,9 @@ export function EditorController() {
   // becomes the initial dialog state, which avoids a visual flash of the
   // default template picker before the requested flow is visible.
   const initialStartIntentRef = useRef(
-    startIntent === "import"
+    startIntent === "choose"
+      ? (getAccessToken() ? "choose" : "new")
+      : startIntent === "import"
       || startIntent === "new"
       || startIntent === "wizard"
       || startIntent === "templates"
@@ -1114,7 +1116,10 @@ export function EditorController() {
     ) {
       return;
     }
-    if (initialStartIntentRef.current === "download") return;
+    // Generic authenticated creation must remain on the three-path chooser
+    // after the URL intent is consumed. Without this guard, an empty account
+    // could briefly replace it with the automatic template picker.
+    if (["choose", "download"].includes(initialStartIntentRef.current)) return;
     if (autoOpenedTemplates || dialog !== null) return;
     if (sessionStorage.getItem(TEMPLATES_MODAL_SEEN_KEY) === "1") return;
     setAutoOpenedTemplates(true);
@@ -2328,8 +2333,9 @@ export function EditorController() {
   ]);
 
   // Account onboarding replaces the complete editor shell a signed-in user
-  // lands on with the two guided paths (wizard / import). Gating lives in the
-  // pure `shouldShowStartChooser` helper so it can be unit-tested without a DOM.
+  // lands on with the three creation paths (manual setup / import / interview).
+  // Gating lives in the pure `shouldShowStartChooser` helper so it can be
+  // unit-tested without a DOM.
   const showStartChooser = !documentId && shouldShowStartChooser({
     isGuest,
     elementsCount: A4_Elements.length,

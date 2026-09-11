@@ -17,7 +17,8 @@ describe("landing product positioning", () => {
 
   it("preserves directed starts without buffering anonymous analytics", () => {
     assert.doesNotMatch(source, /queueGuestEvent|guestEvents/);
-    assert.match(source, /buildStartUrl\("new", "free"\)/);
+    assert.match(source, /const newCvUrl = "\/app\/new"/);
+    assert.match(source, /getEditorPath\(\{ start: "new", template: selectedTemplateId \}\)/);
     assert.match(source, /buildStartUrl\("import", "free"\)/);
     assert.match(source, /getEditorPath\(\{ start: "demo" \}\)/);
     assert.match(source, /if \(start === "import"\)/);

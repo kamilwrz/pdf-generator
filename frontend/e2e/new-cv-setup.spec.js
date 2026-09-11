@@ -150,6 +150,22 @@ test("authenticated setup cancellation retains account onboarding", async ({ pag
   api.assertHermetic();
 });
 
+test("authenticated generic create action opens the three-path chooser", async ({ page }) => {
+  const api = await installMockApi(page);
+  await login(page);
+  await page.goto("/");
+  await page.getByRole("navigation", { name: "Główna nawigacja" })
+    .getByRole("link", { name: "Stwórz CV", exact: true })
+    .click();
+
+  await expect(page).toHaveURL(/\/cvstudio\/Kamil$/);
+  await expect(page.getByRole("heading", { name: "Jak chcesz zacząć?" })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Utwórz nowe CV/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Zaimportuj istniejące CV/ })).toBeVisible();
+  await expect(page.getByRole("link", { name: /Wywiad/ })).toBeVisible();
+  api.assertHermetic();
+});
+
 test("pending creation traps focus and failed creation retains settings for retry", async ({ page }) => {
   const api = await installMockApi(page);
   let releaseFailure;

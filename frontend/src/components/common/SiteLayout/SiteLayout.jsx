@@ -1,7 +1,7 @@
 /** Shared navigation and reading layout for public pages and account workspaces. */
 import { useEffect, useRef } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
-import { getAccessToken, getEditorPath } from '../../../utils/authSession';
+import { getAccessToken } from '../../../utils/authSession';
 import classes from './SiteLayout.module.css';
 
 /** Public and workspace menus share order, active indicators, and the primary start action. */
@@ -13,7 +13,7 @@ export function SiteHeader({ workspace = false }) {
       {workspace ? <><NavLink to="/app/documents">Moje dokumenty</NavLink><NavLink to="/app/career-profile">Profil zawodowy</NavLink><NavLink to="/app/account">Konto i plan</NavLink></> : <><NavLink to="/templates">Szablony</NavLink><NavLink to="/pricing">Cennik</NavLink></>}
       <NavLink to="/help">Pomoc</NavLink>
       {!workspace && <Link to={signedIn ? '/app/documents' : '/login'}>{signedIn ? 'Moje dokumenty' : 'Zaloguj się'}</Link>}
-      <Link className={classes.primary} to={getEditorPath({ start: 'new' })}>Stwórz CV</Link>
+      <Link className={classes.primary} to="/app/new">Stwórz CV</Link>
     </nav>
   </header>;
 }

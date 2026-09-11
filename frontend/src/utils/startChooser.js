@@ -1,7 +1,8 @@
 /**
- * Visibility rule for the post-login empty-state onboarding surface
- * (`StartChooser`), which offers the two focused paths — the one-screen A4
- * setup and CV import — instead of dropping the user onto a blank canvas.
+ * Visibility rule for the authenticated creation and empty-state surface
+ * (`StartChooser`), which offers three focused paths — one-screen A4 setup,
+ * CV import and a Pro interview — instead of dropping the user onto a blank
+ * canvas.
  *
  * The rule is kept as a pure function (no React) so the exact gating can be
  * unit-tested without a DOM, matching this project's `node --test` convention
