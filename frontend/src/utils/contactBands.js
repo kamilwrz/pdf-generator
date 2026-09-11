@@ -27,7 +27,7 @@ export function listContactBands(elements) {
       band.descriptor = el.contactBand ?? null;
       continue;
     }
-    if (el.contactChannel && el.category === "text") {
+    if (el.contactChannel && ["text", "textarea"].includes(el.category)) {
       band.chips.push({
         channel: el.contactChannel,
         elementId: el.element_id,

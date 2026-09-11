@@ -1,6 +1,8 @@
 """Regression coverage for the portrait-led Vellum editorial template."""
 from __future__ import annotations
 
+import pytest
+
 from app.services.cv_templates.registry import TEMPLATE_LAYOUTS, generate_resume
 
 _SUMMARY = "Łączę analizę ryzyka z jasną komunikacją decyzji."
@@ -172,3 +174,41 @@ def test_vellum_continuation_pages_do_not_repeat_identity_or_contacts():
         and str(element.get("content", "")).isdigit()
     ]
     assert len(page_numbers) == max(pages)
+
+
+@pytest.mark.parametrize("long_contacts", [False, True])
+def test_vellum_keeps_every_contact_in_one_bounded_list(long_contacts):
+    """Full labels wrap without crossing the portrait or the next contact."""
+    email = "julia@example.com" if not long_contacts else "julia." + "longname" * 40 + "@example.com"
+    elements = generate_resume("vellum", _base_cv(
+        email=email, linkedin="linkedin.com/in/julia", github="github.com/julia",
+        website="julia.example.com", location="Warszawa, Polska",
+    ))
+    labels = [element for element in elements if element.get("contactChannel")
+              and element["category"] == "textarea"]
+    assert [element["contactChannel"] for element in labels] == [
+        "phone", "email", "linkedin", "github", "website", "location",
+    ]
+    for index, label in enumerate(labels):
+        assert label["left"] == 68.0
+        assert label["left"] + label["width"] == 406.0
+        assert label["align"] == "left"
+        assert label["autoHeight"] is False
+        if index:
+            previous = labels[index - 1]
+            assert label["top"] >= previous["top"] + previous["height"] + 2.5
+    assert labels[1]["content"] == email
+    assert (labels[1]["height"] > labels[1]["lineHeight"]) is long_contacts
+    divider = next(element for element in elements if element.get("id") == "vellum-masthead-divider")
+    assert divider["top"] >= labels[-1]["top"] + labels[-1]["height"] + 14
+    anchor = next(element for element in elements if element.get("contactBand"))
+    assert anchor["contactBand"]["flow"]["bodyTop"] >= divider["top"] + 12
+
+
+def test_vellum_empty_or_sparse_contacts_keep_body_below_the_portrait():
+    for contacts in ({}, {"location": "Kraków"}, {"github": "github.com/julia"}):
+        elements = generate_resume("vellum", _base_cv(email="", phone="", location="") | contacts)
+        anchor = next(element for element in elements if element.get("contactBand"))
+        assert anchor["contactBand"]["flow"]["bodyTop"] >= 152
+        summary = next(element for element in elements if element.get("content") == _SUMMARY)
+        assert summary["top"] >= 172

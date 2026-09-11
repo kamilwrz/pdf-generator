@@ -1,3 +1,5 @@
+import { measureTextareaHeight } from "./textareaHeight.js";
+
 /**
  * Pure contact-band layout engine.
  *
@@ -115,6 +117,35 @@ function layoutStacked(descriptor, items) {
   return { placements, bottomY };
 }
 
+// Native multiline labels keep full addresses inside the masthead text column.
+// Every channel, including location, follows the same row and alignment rules.
+function layoutBoundedStack(descriptor, items, measure) {
+  const { iconGap, lineStep } = descriptor.metrics;
+  const { startX, startY, maxWidth } = descriptor.anchor;
+  const lineHeight = descriptor.text.lineHeightPt;
+  const measureLabel = (text) => bindMeasure(descriptor, measure)(text)
+    ?? text.length * descriptor.metrics.charWidth;
+  let cursor = startY;
+  let bottomY = startY;
+  const placements = items.map((item) => {
+    const labelWidth = maxWidth - iconGap;
+    const iconLeft = startX;
+    const labelHeight = measureTextareaHeight(
+      item.label, labelWidth, descriptor.text.fontSizePt, lineHeight,
+      { measureTextWidth: measureLabel },
+    ) - 6;
+    const placement = {
+      channel: item.channel, iconLeft, iconTop: cursor,
+      labelLeft: iconLeft + iconGap, labelTop: cursor,
+      labelWidth, labelHeight, lineHeight,
+    };
+    bottomY = cursor + labelHeight - lineHeight;
+    cursor = bottomY + lineStep;
+    return placement;
+  });
+  return { placements, bottomY };
+}
+
 // Chip (pill) width. Uses the same char-count formula the backend draws
 // with (NOT a measured width), so the canvas pill matches the PDF exactly.
 function chipWidth(text, m) {
@@ -162,6 +193,7 @@ function layoutChip(descriptor, items) {
  *   `chip` mode.
  */
 export function layoutContactBand(descriptor, items, measure) {
+  if (descriptor.mode === "bounded-stack") return layoutBoundedStack(descriptor, items, measure);
   if (descriptor.mode === "wrapping") return layoutWrapping(descriptor, items, measure);
   if (descriptor.mode === "stacked") return layoutStacked(descriptor, items);
   if (descriptor.mode === "chip") return layoutChip(descriptor, items);

@@ -6,7 +6,7 @@ import { reconcileDocumentPages } from "./structureOperation.js";
 /**
  * Apply one Vellum type preset as a single document-layout transaction.
  *
- * The centered contact band is rebuilt before the one-column editorial flow
+ * The left-aligned contact list is rebuilt before the one-column editorial flow
  * is packed. The circular portrait remains fixed page chrome, the summary fill
  * follows its textarea through the shared section-background contract, and
  * right-hand date/location overlays keep their exact record anchors.

@@ -1853,12 +1853,12 @@ export function useA4Elements(titleRef) {
           return element;
         }
       });
-      // A live contact edit re-spaces members inside the reserved masthead zone.
-      // The zone boundary and all content below it stay fixed; position-only
-      // edits do not need band layout at all.
+      // Fixed bands re-space only their members. Vellum's multiline list also
+      // moves its divider and repacks sections when its measured height changes.
+      // Position-only edits do not need band layout.
       if ("content" in dataObject) {
         const edited = newState.find((el) => el.element_id === id);
-        if (edited?.contactBandId && edited?.contactChannel && edited.category === "text") {
+        if (edited?.contactBandId && edited?.contactChannel && ["text", "textarea"].includes(edited.category)) {
           const relaid = applyChannelRelayout(
             newState, edited.contactBandId, measureContactLabel, () => nanoid(),
           ).elements;
@@ -2697,8 +2697,16 @@ export function useA4Elements(titleRef) {
     setA4_Elements((prev) => applyNameCaseToggle(prev, bandId).elements);
   }, []);
   const toggleTitle = useCallback((bandId) => {
-    setA4_Elements((prev) => applyTitleToggle(prev, bandId, () => nanoid()).elements);
-  }, []);
+    setA4_Elements((prev) => {
+      const next = applyTitleToggle(prev, bandId, () => nanoid()).elements;
+      const growingBand = next.find((element) => element.contactBand?.flow);
+      // Reapply the portrait floor after hiding a title; its fixed photo must
+      // remain above the first section even with a sparse contact list.
+      return growingBand ? applyChannelRelayout(
+        next, growingBand.contactBandId, measureContactLabel, () => nanoid(),
+      ).elements : next;
+    });
+  }, [measureContactLabel]);
 
   /**
    * Hide/show the profile slot through one history-aware canvas mutation.

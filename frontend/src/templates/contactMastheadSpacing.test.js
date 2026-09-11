@@ -37,7 +37,10 @@ for (const [name, elements] of EDITORIAL_TEMPLATES) {
 
         const reservedSecondRowTop =
             descriptor.anchor.startY + descriptor.metrics.lineStep;
-        assert.equal(divider.top, reservedSecondRowTop + 24);
+        const lastContactRow = Math.max(reservedSecondRowTop, ...elements
+            .filter((element) => element.contactChannel && element.category === "textarea")
+            .map((element) => element.top + element.height - element.lineHeight));
+        assert.equal(divider.top, lastContactRow + 24);
 
         const icons = elements.filter(
             (element) =>

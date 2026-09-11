@@ -28,7 +28,7 @@ from app.services.cv_generator_primitives import (
 )
 from app.services.cv_templates.shared.contact import (
     _contact_channel_items,
-    _place_centered_icon_contacts,
+    _place_bounded_stack_icon_contacts,
     _reserved_contact_last_row_top,
     build_contact_band_anchor,
 )
@@ -205,7 +205,6 @@ def _gen_vellum(cv: dict) -> list[dict]:
     # establishes an independent circular axis on the right. Contact wrapping
     # is constrained to the text column, so long labels never cross the photo.
     header_width = 348.0
-    header_center_x = left + header_width / 2.0
     header: list[dict] = []
     cursor_y = 43.0
     name = _compact_text(cv.get("name"), 44)
@@ -243,19 +242,18 @@ def _gen_vellum(cv: dict) -> list[dict]:
         cursor_y += title_height
 
     contact_start_y = cursor_y + 11.0
-    contact_elements, contact_bottom, contact_descriptor = _place_centered_icon_contacts(
+    contact_elements, contact_bottom, contact_descriptor = _place_bounded_stack_icon_contacts(
         theme=palette["icon_theme"],
         items=_contact_channel_items(cv),
-        center_x=header_center_x,
+        start_x=left,
         start_y=contact_start_y,
         max_width=header_width,
         text_fs=6.9,
+        line_height=10.0,
         icon_size=8.6,
         text_color=palette["muted"],
         font=sans,
-        char_width=4.2,
         icon_gap=10.0,
-        item_pad=12.0,
         line_step=12.5,
         band_id="vellum-contact",
     )
@@ -264,8 +262,18 @@ def _gen_vellum(cv: dict) -> list[dict]:
         contact_bottom, contact_descriptor, minimum_rows=2,
     )
     divider_y = contact_zone_bottom + 24.0
+    # This opt-in band grows with complete contact values. Other templates keep
+    # their fixed zones; Vellum moves its divider and repacks body records only
+    # when the stack actually changes height.
+    contact_descriptor["flow"] = {
+        "dividerId": "vellum-masthead-divider", "dividerGap": 24.0,
+        "bodyGap": 12.0, "minimumRows": 2, "minimumBodyTop": 152.0,
+        "bodyTop": max(divider_y + 12.0, 152.0),
+        "spacing": get_spacing().as_spacing_px(),
+    }
     header.append(
-        _line(left, divider_y, header_width, 0.8, palette["rule"], zIndex=2, page=1)
+        {**_line(left, divider_y, header_width, 0.8, palette["rule"], zIndex=2, page=1),
+         "id": "vellum-masthead-divider"}
     )
 
     # The outer copper disc stays visible as a print-like halo after a user
@@ -300,6 +308,7 @@ def _gen_vellum(cv: dict) -> list[dict]:
     header.extend([photo_outer, photo_frame, photo_glyph])
 
     header = [{**element, "flowRole": "masthead"} for element in header]
+    body_start = contact_descriptor["flow"]["bodyTop"]
     header.append(build_contact_band_anchor(contact_descriptor))
 
     name_element = header[name_index] if name_index is not None else None
@@ -321,7 +330,7 @@ def _gen_vellum(cv: dict) -> list[dict]:
 
     section_label_fs = 7.4
     section_chrome_height = _SECTION_RULE_TOP + 1.2 + get_spacing().after_rule
-    builder = Builder(divider_y + 12.0)
+    builder = Builder(body_start)
 
     def section(label: str, *, filled: bool = False) -> None:
         """Place a tracked label with either a tinted band or split hairline."""

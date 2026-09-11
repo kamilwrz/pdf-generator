@@ -2,18 +2,20 @@
  * Contact-band add/remove transforms (pure).
  *
  * These transform the canvas element array when the user adds, removes, or
- * edits a contact channel. The contact band owns a fixed template zone:
+ * edits a contact channel. Most bands own a fixed template zone:
  *
  *   1. Recompute the band with the new channel set via `layoutContactBand`.
  *   2. Reposition the band's icon/label pairs to the new placements.
- *   3. Preserve the authored Y coordinates of every non-band element.
- *   4. Reconcile page chrome without moving the document body.
+ *   3. Preserve non-band geometry unless the descriptor opts into a growing
+ *      multiline stack; that stack moves its divider and repacks body records.
+ *   4. Reconcile continuation-page chrome.
  *
  * The band-anchor element (flowRole "masthead-anchor") carries the descriptor
  * and is never shifted or repositioned; it stays put.
  */
 import { layoutContactBand } from "./contactBandLayout.js";
 import { reconcileDocumentPages } from "./structureOperation.js";
+import { listDocumentSections, packDocumentSections } from "./sectionStructure.js";
 import {
   channelName,
   contactChannelPlaceholder,
@@ -60,7 +62,7 @@ export function activeChannels(elements, bandId) {
 function channelLabels(elements, bandId) {
   const labels = {};
   for (const el of elements) {
-    if (el.contactBandId === bandId && el.contactChannel && el.category === "text") {
+    if (el.contactBandId === bandId && el.contactChannel && ["text", "textarea"].includes(el.category)) {
       const content = String(el.content ?? "");
       labels[el.contactChannel] = content.trim() ? content : String(el.placeholder || "");
     }
@@ -100,7 +102,13 @@ function reposition(el, bandId, placementByChannel) {
       };
     }
     // text label
-    return { ...el, left: placement.labelLeft, top: placement.labelTop };
+    return {
+      ...el, left: placement.labelLeft, top: placement.labelTop,
+      ...(placement.labelWidth == null ? {} : {
+        width: placement.labelWidth, height: placement.labelHeight,
+        lineHeight: placement.lineHeight,
+      }),
+    };
   }
   // The contact zone is a fixed part of every template masthead. Only its own
   // members may move; section starts and decorative chrome below it keep their
@@ -148,33 +156,49 @@ function deriveChipStyle(elements, bandId, descriptor) {
 function relayoutAndReconcile(elements, bandId, descriptor, nextItems, measure, createId) {
   const newBand = layoutContactBand(descriptor, nextItems, measure);
   const placementByChannel = new Map(newBand.placements.map((p) => [p.channel, p]));
-  const next = elements.map((el) =>
+  let next = elements.map((el) =>
     reposition(el, bandId, placementByChannel),
   );
+  if (descriptor.flow) {
+    const { dividerId, dividerGap, bodyGap, minimumRows, minimumBodyTop } = descriptor.flow;
+    const reservedTop = descriptor.anchor.startY + (minimumRows - 1) * descriptor.metrics.lineStep;
+    const dividerTop = Math.max(reservedTop, newBand.bottomY) + dividerGap;
+    const flowStart = Math.max(minimumBodyTop, dividerTop + bodyGap);
+    const anchor = elements.find((el) => el.contactBand?.id === bandId);
+    next = next.map((el) => {
+      if (el.id === dividerId) return { ...el, top: dividerTop };
+      if (el === anchor) return {
+        ...el, contactBand: { ...descriptor, flow: { ...descriptor.flow, bodyTop: flowStart } },
+      };
+      return el;
+    });
+    // Only opt-in multiline bands can change the body origin. Pack complete
+    // sections from the new floor, preserving authored rhythm and record
+    // ownership across page breaks. Same-height keystrokes never touch body.
+    if (Math.abs(flowStart - Number(descriptor.flow.bodyTop)) > 0.01) {
+      const sections = listDocumentSections(elements);
+      next = packDocumentSections(next, sections.map((section) => section.headingId), 842, {
+        membershipReference: elements, spacing: descriptor.flow.spacing,
+      });
+    }
+  }
   const reconciled = reconcileDocumentPages(next, createId, { collapseEmpty: true });
   return { elements: reconciled.elements, pageCount: reconciled.pageCount };
 }
 
 /**
  * Re-lay a band from its current label contents (called live while a label is
- * edited). Only contact-band members move; the template's fixed content origin
- * below the reserved contact zone stays unchanged. Content, runs, and edit
+ * edited). Fixed bands move only their members; opt-in multiline stacks also
+ * repack body sections when their height changes. Content, runs, and edit
  * state are untouched so the caret in the edited node is undisturbed.
  */
 export function applyChannelRelayout(elements, bandId, measure, createId) {
   const descriptor = bandDescriptor(elements, bandId);
   if (!descriptor) return { elements };
   const channels = activeChannels(elements, bandId);
-  if (!channels.length) return { elements };
   const labels = channelLabels(elements, bandId);
   const items = itemsFor(channels, labels);
-  const newBand = layoutContactBand(descriptor, items, measure);
-  const placementByChannel = new Map(newBand.placements.map((p) => [p.channel, p]));
-  const next = elements.map((el) =>
-    reposition(el, bandId, placementByChannel),
-  );
-  const reconciled = reconcileDocumentPages(next, createId, { collapseEmpty: true });
-  return { elements: reconciled.elements, pageCount: reconciled.pageCount };
+  return relayoutAndReconcile(elements, bandId, descriptor, items, measure, createId);
 }
 
 /**
@@ -247,7 +271,7 @@ export function applyChannelAddition(elements, bandId, channel, label, measure, 
   };
   const labelEl = {
     element_id: createId("label"),
-    category: "text", content: seed,
+    category: descriptor.mode === "bounded-stack" ? "textarea" : "text", content: seed,
     left: placement.labelLeft, top: placement.labelTop,
     fontSize: descriptor.text.fontSizePt, fontFamily: descriptor.text.fontFamily,
     color: descriptor.text.colorHex,
@@ -256,6 +280,11 @@ export function applyChannelAddition(elements, bandId, channel, label, measure, 
     placeholder,
     starterPlaceholder: !seed.trim(),
     cvDataBindings: [{ path: [channel], placeholder }],
+    ...(descriptor.mode === "bounded-stack" ? {
+      width: placement.labelWidth, height: placement.labelHeight,
+      lineHeight: placement.lineHeight, autoHeight: false, align: "left",
+      appearanceTypographyRole: "contact",
+    } : {}),
   };
   // Chip channels are a triple: a background pill (rectangle) behind the
   // icon + label. Create it too so the new channel matches the drawn shape; the

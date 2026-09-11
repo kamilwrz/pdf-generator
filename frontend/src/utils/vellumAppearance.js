@@ -485,7 +485,15 @@ export function applyVellumTextSize(
           ...source.contactBand,
           appearanceBaseFontSize: baseContactSize,
           appearanceBaseMetrics: baseMetrics,
-          text: { ...source.contactBand.text, fontSizePt: nextContactSize },
+          text: {
+            ...source.contactBand.text, fontSizePt: nextContactSize,
+            ...(source.contactBand.text.lineHeightPt == null ? {} : {
+              lineHeightPt: restoreBaseline
+                ? (source.contactBand.appearanceBaseLineHeight ?? source.contactBand.text.lineHeightPt)
+                : round((source.contactBand.appearanceBaseLineHeight ?? source.contactBand.text.lineHeightPt) * scale.contact[1]),
+            }),
+          },
+          appearanceBaseLineHeight: source.contactBand.appearanceBaseLineHeight ?? source.contactBand.text.lineHeightPt,
           metrics: {
             ...source.contactBand.metrics,
             charWidth: restoreBaseline

@@ -431,6 +431,7 @@ export default function CanvasElements({ elements, spreadSide = null }) {
             fixedToPage={element.fixedToPage}
             textTransform={element.textTransform}
             mastheadRole={element.mastheadRole}
+            contactChannel={element.contactChannel}
             placeholder={element.placeholder}
             starterPlaceholder={element.starterPlaceholder}
             metadataHints={compositeMetadataHints(element)}

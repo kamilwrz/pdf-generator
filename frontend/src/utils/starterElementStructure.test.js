@@ -66,13 +66,13 @@ describe("starter render copy", () => {
         }))
         .filter((element) => !element.contactChannel || selected.has(element.contactChannel))
         .map((element) => (
-          element.contactChannel && element.category === "text"
+          element.contactChannel && ["text", "textarea"].includes(element.category)
             ? { ...element, content: fillProfile[element.contactChannel] }
             : element
         ));
       const result = applyStarterElementStructure(raw, cvData, templateId);
       const labels = result.filter((element) => (
-        element.contactChannel && element.category === "text"
+        element.contactChannel && ["text", "textarea"].includes(element.category)
       ));
       assert.deepEqual(
         labels.map((element) => element.contactChannel).sort(),

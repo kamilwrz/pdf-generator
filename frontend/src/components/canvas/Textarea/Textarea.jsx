@@ -190,6 +190,7 @@ function Textarea({
     fixedToPage,
     textTransform,
     mastheadRole,
+    contactChannel,
     placeholder,
     starterPlaceholder,
     metadataHints,
@@ -267,6 +268,10 @@ function Textarea({
         fontStyle: italic ? "italic" : "normal",
         textDecoration: underline ? "underline" : "none",
         textAlign: align || "left",
+        // Contact identifiers must use the same character-level fallback as
+        // the band measurer and PDF renderer. Browser hyphen/URL opportunities
+        // otherwise leave shorter rows and can add an unreserved final line.
+        ...(contactChannel ? { wordBreak: "break-all" } : {}),
         // Display-only casing (Phase 3 masthead identity). Atrium builds
         // the masthead name/title as a textarea block; CSS transforms the drawn
         // glyphs while the stored content stays original-case, so the name-case

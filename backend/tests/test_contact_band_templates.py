@@ -36,7 +36,7 @@ def _anchor(elements):
         ("regent", "centered"),
         ("meridian", "centered"),
         ("cadenza", "centered"),
-        ("vellum", "centered"),
+        ("vellum", "bounded-stack"),
     ],
 )
 def test_template_emits_contact_band(template_id, mode):
@@ -78,7 +78,7 @@ def _first_section_top(elements):
     )
 
 
-@pytest.mark.parametrize("template_id", ["aurelia", "regent", "meridian", "cadenza", "vellum"])
+@pytest.mark.parametrize("template_id", ["aurelia", "regent", "meridian", "cadenza"])
 def test_centered_masthead_reserves_two_contact_rows_without_moving_body(template_id):
     """A newly added second contact row must not collide with or move content."""
     sparse_cv = {

@@ -12,7 +12,7 @@ from reportlab.pdfbase.pdfmetrics import stringWidth
 
 from app.services.contact_links import contact_display_label, contact_social_items
 from app.services.cv_templates.shared.icons import _icon_beside
-from app.services.cv_generator_primitives import _text
+from app.services.cv_generator_primitives import Builder, _block, _text
 from app.services.pdf_generator import PDF_Generator
 
 
@@ -258,6 +258,50 @@ def _place_stacked_icon_contacts(
     )
     bottom_y = float(start_y) if placed == 0 else cy - line_step
     return elements, bottom_y, descriptor
+
+
+def _place_bounded_stack_icon_contacts(
+    *, theme: str, items: list[tuple[str, str]], start_x: float,
+    start_y: float, max_width: float, text_fs: float, line_height: float,
+    icon_size: float, text_color: str, font: str, band_id: str,
+    icon_gap: float = 10.0, line_step: float = 12.5,
+) -> tuple[list[dict], float, dict]:
+    """Place all contact channels in one left-aligned, width-bounded list.
+
+    Each label is a native multiline field, so full URLs wrap before reaching
+    the portrait. The returned last visual-row top includes wrapped lines;
+    callers must reserve that height before placing their divider/body. The
+    descriptor reproduces the same layout during channel and typography edits.
+    """
+    descriptor = _build_band_descriptor(
+        band_id=band_id, mode="bounded-stack",
+        anchor={"startX": start_x, "startY": start_y, "maxWidth": max_width},
+        items=items, text_fs=text_fs, text_color=text_color, font=font,
+        icon_size=icon_size, theme=theme, char_width=text_fs * 0.52,
+        icon_gap=icon_gap, item_pad=0.0, line_step=line_step,
+    )
+    descriptor["text"]["lineHeightPt"] = line_height
+    elements: list[dict] = []
+    cursor = start_y
+    bottom = start_y
+    for key, value in items:
+        if not value:
+            continue
+        label_width = max_width - icon_gap
+        x = start_x
+        height = Builder.measure_block(value, label_width, text_fs, line_height, font, min_h=line_height)
+        icon = _icon_beside(theme, key, x, cursor, text_fs, icon_size)
+        label = _block(value, x + icon_gap, cursor, label_width, height,
+                       text_fs, line_height, text_color, font, zIndex=3)
+        # The band owns row heights, including live edits; generic textarea
+        # reflow must not independently move the portrait or unrelated chrome.
+        label.update({"flowRole": "masthead", "autoHeight": False,
+                      "appearanceTypographyRole": "contact"})
+        _tag_contact_pair(icon, label, key, band_id)
+        elements.extend([icon, label])
+        bottom = cursor + height - line_height
+        cursor = bottom + line_step
+    return elements, bottom, descriptor
 
 
 def _place_chip_icon_contacts(

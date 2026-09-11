@@ -162,7 +162,12 @@ function shiftBelow(el, boundaryTop, delta, contactBandId, boundaryPage, restore
   if (el.flowRole === "masthead-anchor" && el.contactBand && el.contactBandId === contactBandId) {
     const anchor = { ...el.contactBand.anchor };
     if (typeof anchor.startY === "number") anchor.startY += delta;
-    return { ...el, contactBand: { ...el.contactBand, anchor } };
+    return { ...el, contactBand: {
+      ...el.contactBand, anchor,
+      ...(el.contactBand.flow ? {
+        flow: { ...el.contactBand.flow, bodyTop: el.contactBand.flow.bodyTop + delta },
+      } : {}),
+    } };
   }
   if (el.fixedToPage) return el;
   const page = Math.max(1, Math.trunc(Number(el.page) || 1));

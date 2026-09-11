@@ -1132,11 +1132,12 @@ function resolveFlowStart(elements, sections, pageHeight) {
   const explicitAnchor = list.find((element) => (
     element
     && element.flowRole === "masthead-anchor"
-    && Number.isFinite(Number(element.mainFlowStart))
+    && Number.isFinite(Number(element.mainFlowStart ?? element.contactBand?.flow?.bodyTop))
   ));
   if (explicitAnchor) {
     const anchorPage = Math.max(1, Math.trunc(Number(explicitAnchor.page) || 1));
-    return (anchorPage - 1) * pageHeight + Number(explicitAnchor.mainFlowStart);
+    return (anchorPage - 1) * pageHeight
+      + Number(explicitAnchor.mainFlowStart ?? explicitAnchor.contactBand?.flow?.bodyTop);
   }
   const headingStart = Math.min(...sections.map((section) => section.startAbs));
   const firstHeading = list.find((element) => element.element_id === sections[0]?.headingId);
@@ -2921,6 +2922,13 @@ export function applyFlowSpacing(elements, spacing, pageHeight = 842, options = 
   // packing so a spacing pass also fixes Monument badges saved with the
   // square+16 offset and Cardinal pills whose labels sat at CHIP_PAD_Y.
   let next = healDecorativeOrdinalBaselines(elements || [], pageHeight);
+  // Growing contact stacks persist the active rhythm inside their existing
+  // descriptor so later contact edits and render-only placeholder removal use
+  // the same section spacing, including after a save/reload round trip.
+  next = next.map((element) => element.contactBand?.flow ? {
+    ...element,
+    contactBand: { ...element.contactBand, flow: { ...element.contactBand.flow, spacing: rhythm } },
+  } : element);
   next = healSkillChipLabelBaselines(next);
   next = healSimpleChromeRuleGaps(next, pageHeight);
   // A caller mid masthead transition may pass the pre-toggle document as the
