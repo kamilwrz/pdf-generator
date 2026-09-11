@@ -13,10 +13,9 @@ import re
 from uuid import uuid4
 
 from fastapi import HTTPException
-from pydantic import ValidationError
 from sqlalchemy.exc import IntegrityError
 
-from app.models.models import CareerProfile, InterviewSession, Pdf
+from app.models.models import AiCreditReservation, CareerProfile, InterviewSession, Pdf
 from app.schemas.interview_schema import Discovery, CareerFact, provider_schema
 from app.services.ai_assistant_service import _gpt, AIServiceError, assistant_reservation_cost_pln
 from app.services.cv_data import normalize_cv_data
@@ -38,6 +37,7 @@ Nie wymyślaj faktów, liczb, technologii, stanowisk, certyfikatów ani rezultat
 Odróżnij brak informacji od potwierdzonego braku doświadczenia. Pominięcie i 'nie pamiętam'
 nie są dowodem braku. Zachowaj zastrzeżenia, osobisty wkład i kontekst roli/projektu.
 Nie utożsamiaj pracy zespołu z osobistym osiągnięciem. Nie sugeruj odpowiedzi jako faktów.
+Pola question to kontekst odpowiedzi, nie niezależny dowód sugestii zawartych w pytaniu.
 Dobieraj pytania do zawodu, seniority i celu: zadanie, decyzja, skala, rezultat, własny wkład.
 Początkujących pytaj o projekty, praktyki, edukację i wolontariat. Inżynieria: decyzje,
 niezawodność, wdrożenie; zarządzanie: ludzie i dostarczanie; produkt/design: problem,
@@ -349,20 +349,40 @@ def assemble_draft(raw, profile, language):
     return normalize_cv_data(result, require_name=True), changes
 
 
-def paid_model(db, user, row, request, operation, context, model):
+def paid_model(db, user, row, request, operation, context, model, *, action="improve", generation=False, validate_output=None):
     """Reserve, validate and settle one deterministic operation key.
 
     Provider output is cached before the session CAS. A crash between those
-    writes can replay the output without another provider call or charge.
+    writes can replay the output without another provider call or charge. A
+    generation attempt also reuses completed stages after a later stage failed.
+    Its input hash includes the schema/policy; verification is bound to the edited
+    draft. Failed/expired reservations get a new key only on an explicit retry
+    using the advanced session revision. Output validation precedes settlement.
     """
     assert_can_use_ai_action(db, user, "interview")
     body = json.dumps(context, ensure_ascii=False)
     if len(body.encode()) > 250_000:
         fail("Za dużo danych w wywiadzie. Skróć profil lub rozpocznij nową rozmowę.", 413)
+    request_hash = digest({"context": context, "action": action, "schema": provider_schema(model), "system": SYSTEM})
     key = f"interview:{row.id}:{request.revision}:{request.profile_revision}:{operation}"
+    if generation:
+        attempt = row.state["generation_attempt"]
+        prefix = f"interview:{row.id}:v{attempt['version']}:{attempt['id']}:{operation}:"
+        stage = db.query(AiCreditReservation).filter(
+            AiCreditReservation.user_id == user.id,
+            AiCreditReservation.idempotency_key.startswith(prefix),
+            AiCreditReservation.request_hash == request_hash,
+        )
+        cached = stage.filter(AiCreditReservation.status == "settled").first()
+        if cached and isinstance(cached.response_json, dict):
+            return {**cached.response_json, "_replayed": True}
+        # A possibly completed request remains pending until settlement/TTL.
+        # An unrelated session revision must not bypass that in-flight claim.
+        pending = stage.filter(AiCreditReservation.status == "pending").first()
+        key = pending.idempotency_key if pending else f"{prefix}{request.revision}"
     try:
         claim = reserve_ai_credits(db, user_id=user.id, action="interview", idempotency_key=key,
-                                  request_hash=digest(context), reserved_credits=credits_for_cost(assistant_reservation_cost_pln("improve", len(body.encode()))))
+                                  request_hash=request_hash, reserved_credits=credits_for_cost(assistant_reservation_cost_pln(action, len(body.encode()))))
     except AiReservationError as exc:
         if exc.detail.get("code") == "ai_request_finalized":
             # An expired/failed reservation cannot be reused. Advance only the
@@ -371,13 +391,16 @@ def paid_model(db, user, row, request, operation, context, model):
             fail("Poprzednia próba została zakończona. Wczytaj zapisany stan, aby rozpocząć nową próbę.")
         raise
     if claim.replay_response is not None:
-        return claim.replay_response
+        return {**claim.replay_response, "_replayed": True}
     try:
-        raw, usage = _gpt(SYSTEM, body, action="improve", response_schema=provider_schema(model))
+        raw, usage = _gpt(SYSTEM, body, action=action, response_schema=provider_schema(model))
         try:
             output = model.model_validate(raw).model_dump()
-        except ValidationError as exc:
-            raise AIServiceError("Invalid interview output", original=exc, reservation_outcome="settle_usage", usage=usage) from exc
+            if validate_output:
+                validate_output(output)
+        except (ValueError, TypeError, KeyError) as exc:
+            raise AIServiceError("Invalid interview output", original=exc, reservation_outcome="settle_usage", usage=usage,
+                                 user_message="Nie udało się bezpiecznie przygotować treści CV. Zapisane odpowiedzi pozostają bez zmian. Wczytaj zapisany stan i spróbuj ponownie.") from exc
     except AIServiceError as exc:
         logger.info("interview_failure operation=%s", operation)
         if exc.reservation_outcome == "settle_usage" and exc.usage:
@@ -396,9 +419,38 @@ def paid_model(db, user, row, request, operation, context, model):
                                 cost_pln=usage.get("cost_pln_estimate", 0), response_payload={"output": output, "usage": usage})
 
 
-def next_question(db, user, row, request):
-    """Ask one adaptive question after a durable answer, within the chosen cap."""
+def is_fresh_question(question, answers):
+    """Allow one focused follow-up to an answered original question, never a chain.
+
+    Follow-ups keep the parent's topic and consume the ordinary question budget.
+    Unknown/skipped/no-experience answers and verification clarifications cannot
+    be reopened through this mechanism. Exact wording repeats remain forbidden.
+    """
     from app.services.interview_clarification import question_key
+    if question_key(question["text"]) in {question_key(a["question"].get("text", "")) for a in answers}:
+        return False
+    topic = question["topic"].strip().casefold()
+    if not topic or not question["text"].strip():
+        return False
+    parent_id = question.get("follow_up_to")
+    if not parent_id:
+        return topic not in {a["question"]["topic"].strip().casefold() for a in answers}
+    parent = next((a for a in answers if a["question"]["id"] == parent_id), None)
+    return bool(
+        parent and parent["status"] == "answered" and parent["answer"].strip()
+        and not parent["question"].get("follow_up_to") and not parent["question"].get("clarification")
+        and topic == parent["question"]["topic"].strip().casefold()
+        and not any(a["question"].get("follow_up_to") == parent_id for a in answers)
+    )
+
+
+def next_question(db, user, row, request):
+    """Ask within a server-selected record and advance using persisted history.
+
+    Model topic names cannot reset per-entry progress. Invalid or repeated
+    output uses a scoped local fallback, never a paid retry or premature end.
+    """
+    from app.services.interview_discovery import update_discovery_budget, next_entry, scoped_question
     profile = check_versions(db, row, request)
     state = deepcopy(row.state)
     if not state.get("confirmed"):
@@ -408,11 +460,14 @@ def next_question(db, user, row, request):
     if state["phase"] == "clarification":
         fail("Rozpocznij lub pomiń zapisane doprecyzowania.", 422)
     state["preview"] = None
-    if len(state["answers"]) >= state["question_limit"]:
+    entries = update_discovery_budget(state, profile)
+    selected = next_entry(entries, state["answers"])
+    if len(state["answers"]) >= state["question_limit"] or selected is None:
         state["phase"] = "review"
     else:
         response = paid_model(db, user, row, request, "next", {
-            "task": "Zwróć jedno najważniejsze nowe pytanie i aktualne wymagania. Gdy brak sensownych pytań, questions=[]. Status matched/partial wymaga evidence_refs; gap wyłącznie z kind=gap. Nie powtarzaj tematów z answers.",
+            "task": "Zwróć jedno nowe pytanie WYŁĄCZNIE o question_scope i aktualne wymagania oferty. Ustaw entry_id dokładnie na question_scope.id. Nie wracaj do innych wpisów. Dwa główne pytania dotyczą własnego wkładu/działań oraz potwierdzonego efektu/przykładu; nie pytaj o już podany szczegół. Dla umiejętności pytaj o zastosowanie, dla języka o brakujący poziom. Oceń konkretność, nie gramatykę odpowiedzi. Wyłącznie gdy allow_follow_up=true i brakuje istotnego konkretu, możesz dopytać raz: follow_up_to wskazuje pierwotne pytanie tego wpisu ze status=answered, topic pozostaje identyczny. Nie dopytuj do dopytania ani clarification. Nowe pytanie ma follow_up_to=null. Nie sugeruj faktów. Gdy nie masz propozycji, questions=[]. Status matched/partial wymaga evidence_refs; gap wyłącznie z kind=gap.",
+            "question_scope": selected,
             "mode": state["mode"], "profile": profile["facts"], "answers": state["answers"], "offer": state["offer"],
         }, Discovery)
         raw = response["output"]
@@ -428,15 +483,9 @@ def next_question(db, user, row, request):
             requirements.append({**req, "status": status, "evidence_refs": refs})
         state["requirements"] = requirements
         questions = raw["questions"]
-        seen = {answer["question"]["topic"].casefold() for answer in state["answers"]}
-        # A model can repeat the same wording under a new topic identifier.
-        # Finish discovery instead of charging for automatic retry attempts.
-        seen_text = {question_key(answer["question"]["text"]) for answer in state["answers"]}
-        if questions and questions[0]["topic"].casefold() not in seen and question_key(questions[0]["text"]) not in seen_text:
-            state["question"] = {"id": str(uuid4()), **questions[0]}
-            state["phase"] = "question"
-        else:
-            state["phase"] = "review"
+        question = scoped_question(questions[0] if questions else None, selected, entries, state["answers"], is_fresh_question)
+        state["question"] = {"id": str(uuid4()), **question}
+        state["phase"] = "question"
         state["usage"] = response["usage"]
     check_versions(db, owned_session(db, user.id, row.id), request)
     update_session(db, row, request.revision, state)

@@ -72,10 +72,14 @@ class SourceRefresh(SessionWrite):
 
 
 class Question(Contract):
+    # The server selects a record scope; old saved questions may omit this ID.
+    entry_id: str | None = Field(default=None, min_length=1, max_length=200)
     topic: str = Field(max_length=150)
     text: str = Field(max_length=1000)
     reason: str = Field(max_length=1000)
     context: str = Field(max_length=500)
+    # Missing on historical questions; new provider responses explicitly use null.
+    follow_up_to: str | None = Field(default=None, min_length=1, max_length=100)
 
 
 class Requirement(Contract):
@@ -85,7 +89,7 @@ class Requirement(Contract):
 
 
 class Discovery(Contract):
-    """Only one next question is generated; an empty list ends discovery."""
+    """Propose one question for the server-selected record; empty uses a local fallback."""
     questions: list[Question] = Field(max_length=1)
     requirements: list[Requirement] = Field(max_length=20)
 
@@ -100,6 +104,17 @@ class Draft(Contract):
     """Each generated scalar cites evidence; the server owns document layout."""
     fields: list[DraftField] = Field(max_length=250)
     remaining_gaps: list[str] = Field(max_length=20)
+
+
+class EditorialPatch(Contract):
+    """One complete prose replacement; evidence and record identity are server-owned."""
+    path: str = Field(min_length=1, max_length=200)
+    value: str = Field(min_length=1, max_length=4000)
+
+
+class EditorialReview(Contract):
+    """Every editable field must be returned once, including unchanged prose."""
+    fields: list[EditorialPatch] = Field(max_length=250)
 
 
 class Clarification(Contract):
@@ -119,7 +134,16 @@ class Verification(Contract):
 def provider_schema(model):
     """Return an OpenAI strict JSON schema from a fully required output model."""
     schema = model.model_json_schema()
-    # Legacy cached verification may omit clarifications, but new strict
-    # provider responses must explicitly return every top-level property.
-    schema["required"] = list(schema["properties"])
+    # Historical JSON may omit additive fields. Strict provider schemas require
+    # them even inside $defs (nullable follow_up_to is not an optional key).
+    def require_properties(node):
+        if isinstance(node, dict):
+            if "properties" in node:
+                node["required"] = list(node["properties"])
+            for child in node.values():
+                require_properties(child)
+        elif isinstance(node, list):
+            for child in node:
+                require_properties(child)
+    require_properties(schema)
     return {"name": model.__name__.lower(), "strict": True, "schema": schema}

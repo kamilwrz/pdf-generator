@@ -9,6 +9,7 @@ it('keeps an indeterminate server operation truthful after a long wait', () => {
   const { rerender } = render(<InterviewLoading operation="preview" answers={8} facts={42} language="Polski" template="Linden" />);
   expect(screen.getByRole('heading', { name: 'Twoja historia nabiera kształtu' })).toHaveFocus();
   expect(screen.getByRole('progressbar')).not.toHaveAttribute('aria-valuenow');
+  expect(screen.getByText(/osobną redakcję języka i stylu/)).toHaveTextContent('niezależną weryfikację faktów');
   act(() => vi.advanceTimersByTime(45000));
   expect(screen.getByText(/Operacja nadal trwa/)).toBeVisible();
   expect(screen.getByRole('progressbar')).toHaveAttribute('aria-label', 'Przygotowanie i kontrola CV');

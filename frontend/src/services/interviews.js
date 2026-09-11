@@ -5,9 +5,14 @@ import { getAccessToken } from '../utils/authSession';
 /** Read the current token on every request so session renewal needs no remount. */
 export function interviewRequest(path, method = 'GET', data, key) {
   const api = new ApiClient({ Authorization: `Bearer ${getAccessToken()}` });
+  // A preview includes three sequential provider calls, each capped server-side
+  // at 540 seconds, plus layout/settlement headroom. Other operations retain the
+  // existing limit. Never automatically retry a possibly completed paid call.
+  const isGeneration = method === 'POST' && /^\/ai\/interviews\/[^/]+\/preview$/.test(path);
+  const timeoutMs = isGeneration ? 3 * 540_000 + 60_000 : 180_000;
   return api.httpRequest(path, method, data === undefined ? undefined : JSON.stringify(data),
     'Nie udało się zapisać wywiadu. Twoje odpowiedzi pozostają dostępne.', {
-      timeoutMs: 180_000, retries: 0, retryOnTimeout: false,
+      timeoutMs, retries: 0, retryOnTimeout: false,
       ...(key ? { headers: { 'Idempotency-Key': key } } : {}),
     });
 }

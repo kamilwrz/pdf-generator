@@ -41,12 +41,33 @@ async function workspaceApi(page, phase = 'preview') {
   });
   return {
     calls,
+    completeDiscovery() { session = { ...session, phase: 'review', question: null, discovery_complete: true, question_limit: 14 }; },
     hold(action) { let release; holds.set(action, new Promise((resolve) => { release = resolve; })); return () => { holds.delete(action); release(); }; },
     failAnswer() { failAnswer = true; },
   };
 }
 
 for (const width of [390, 834, 1280, 1920]) {
+  test(`completed discovery keeps preparation reachable at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    const api = await workspaceApi(page, 'review');
+    api.completeDiscovery();
+    await page.goto(`/app/interview/${ID}`);
+    if (width === 834) await page.addStyleTag({ content: 'html { font-size: 200%; }' });
+    await expect(page.getByText(/Omówiliśmy dostępne wpisy/)).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Następne pytanie', exact: true })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: /Pogłęb wywiad/ })).toHaveCount(0);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+    const prepare = page.getByRole('button', { name: 'Przejdź do przygotowania CV', exact: true });
+    await prepare.focus();
+    await page.screenshot({ path: `../tmp/interview-complete-${width}.png`, fullPage: true });
+    await page.keyboard.press('Enter');
+    await expect(page.getByRole('heading', { name: 'Przygotuj swoją wersję CV' })).toBeFocused();
+    await expect(page.getByRole('button', { name: 'Przygotuj CV z potwierdzonych informacji', exact: true })).toBeVisible();
+    expect(api.calls).toEqual([]);
+  });
+
   test(`bounded interview preview and generation loading at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     await page.emulateMedia({ reducedMotion: width === 834 ? 'reduce' : 'no-preference' });
@@ -78,11 +99,13 @@ for (const width of [390, 834, 1280, 1920]) {
     await page.getByRole('button', { name: 'Następne', exact: true }).click();
     await expect(preview).toContainText('Do doprecyzowania 6:');
     await page.getByRole('button', { name: '03 Przygotuj CV', exact: true }).click();
+    await expect(page.getByText(/Każdy z trzech etapów korzysta z kredytów AI/)).toBeVisible();
     const release = api.hold('preview');
     await page.getByRole('button', { name: 'Odśwież podgląd', exact: true }).click();
     const loading = page.getByRole('region', { name: 'Przetwarzanie wywiadu' });
     await expect(loading.getByRole('heading')).toHaveText('Twoja historia nabiera kształtu');
     await expect(loading.getByRole('heading')).toBeFocused();
+    await expect(loading).toContainText('osobną redakcję języka i stylu, niezależną weryfikację faktów');
     await expect(page.getByRole('progressbar')).not.toHaveAttribute('aria-valuenow');
     await expect(page.getByRole('navigation', { name: 'Etapy wywiadu' })).toBeHidden();
     if (width === 834) await page.addStyleTag({ content: 'html { font-size: 200% !important; }' });
@@ -103,6 +126,7 @@ test('question waiting, failed answer and draft recovery use distinct states', a
   await expect(page.getByRole('heading', { name: 'Szukamy właściwego pytania' })).toBeFocused();
   await page.screenshot({ path: '../tmp/interview-loading-question.png', fullPage: true });
   releaseQuestion();
+  await expect(page.getByLabel('Twoja odpowiedź')).toHaveAccessibleDescription(/Możesz odpowiadać własnymi słowami/);
   await page.getByLabel('Twoja odpowiedź').fill('Zautomatyzowałam raport tygodniowy.');
   api.failAnswer();
   const releaseAnswer = api.hold('answers');

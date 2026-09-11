@@ -18,6 +18,13 @@ from app.services import interview_service as service
 from app.services.cv_data import normalize_cv_data
 from app.services.entitlements import seed_plans, set_user_plan
 from app.services.account_data_service import build_account_export, delete_account_data
+from app.services.interview_editorial import PROSE_PATH
+
+
+def editorial(draft):
+    """Identity redaction for existing grounding tests; style changes have separate tests."""
+    return {'fields': [{key: field[key] for key in ('path', 'value')}
+                       for field in draft['fields'] if PROSE_PATH.fullmatch(field['path'])]}
 
 
 @pytest.fixture
@@ -230,12 +237,13 @@ def test_preview_creates_a_separate_document_and_pdf_excludes_interview(environm
     profile = service.profile_payload(db, user.id)
     ref = next(f['id'] for f in profile['facts'] if f['text'] == 'Tworzę raporty w Pythonie.')
     raw = {'fields': [{'path': '/summary', 'value': 'Tworzę raporty w Pythonie.', 'evidence_refs': [ref]}], 'remaining_gaps': []}
-    with patch.object(service, '_gpt', side_effect=[(raw, {'cost_pln_estimate': .01}), ({'unsupported_paths': [], 'reasons': []}, {'cost_pln_estimate': .01})]):
+    edited = {'fields': [{'path': '/summary', 'value': 'Przygotowuję raporty w Pythonie.'}]}
+    with patch.object(service, '_gpt', side_effect=[(raw, {'cost_pln_estimate': .01}), (edited, {'cost_pln_estimate': .01}), ({'unsupported_paths': [], 'reasons': []}, {'cost_pln_estimate': .01})]):
         response = client.post(f"/ai/interviews/{session['id']}/preview", json={**version(session, 1), 'template_id': 'linden'})
     assert response.status_code == 200, response.text
     preview_session = response.json()
     preview = preview_session['preview']
-    assert preview['cv_data']['summary'] == 'Tworzę raporty w Pythonie.'
+    assert preview['cv_data']['summary'] == 'Przygotowuję raporty w Pythonie.'
     data = PDFCreateRequest(root=preview['elements'], pages=preview['pages'], pdf_title='Test wywiadu')
     pdf = build_pdf_to_buffer(data, data.root, image_src_to_local_path)
     with pymupdf.open(stream=pdf, filetype='pdf') as document:
@@ -256,6 +264,7 @@ def test_preview_creates_a_separate_document_and_pdf_excludes_interview(environm
         assert first.json() == second.json()
         assert saver.call_count == 1
     assert db.query(Pdf).count() == 2
+    assert db.get(Pdf, first.json()['document_id']).cv_data == preview['cv_data']
     db.refresh(source_document)
     assert source_document.cv_data == source_data and source_document.revision == 1
     assert service.profile_payload(db, user.id) == profile
@@ -266,7 +275,7 @@ def test_semantic_rejection_is_reviewable_and_allows_new_generation(environment)
     session = confirm(client, create(client))
     fact = next(f for f in client.get('/career-profile').json()['facts'] if f['path'] == '/title')
     draft = {'fields': [{'path': '/summary', 'value': 'Ekspert Kubernetes', 'evidence_refs': [fact['id']]}], 'remaining_gaps': []}
-    with patch.object(service, '_gpt', side_effect=[(draft, {'cost_pln_estimate': .01}), ({'unsupported_paths': ['/summary'], 'reasons': ['Nie potwierdzono Kubernetes.']}, {'cost_pln_estimate': .01})]):
+    with patch.object(service, '_gpt', side_effect=[(draft, {'cost_pln_estimate': .01}), (editorial(draft), {'cost_pln_estimate': .01}), ({'unsupported_paths': ['/summary'], 'reasons': ['Nie potwierdzono Kubernetes.']}, {'cost_pln_estimate': .01})]):
         response = client.post(f"/ai/interviews/{session['id']}/preview", json={**version(session, 1), 'template_id': 'linden'})
     assert response.status_code == 200, response.text
     assert response.json()['preview']['review_notes'] == [{'path': '/summary', 'action': 'omitted_suggestion'}]
@@ -300,7 +309,7 @@ def test_deterministic_rejection_can_be_regenerated(environment):
     session = confirm(client, create(client))
     ref = client.get('/career-profile').json()['facts'][0]['id']
     raw = {'fields': [{'path': '/summary', 'value': 'Wzrost o 99%', 'evidence_refs': [ref]}], 'remaining_gaps': []}
-    with patch.object(service, '_gpt', side_effect=[(raw, {'cost_pln_estimate': .01}), ({'unsupported_paths': [], 'reasons': []}, {'cost_pln_estimate': .01})]):
+    with patch.object(service, '_gpt', side_effect=[(raw, {'cost_pln_estimate': .01}), (editorial(raw), {'cost_pln_estimate': .01}), ({'unsupported_paths': [], 'reasons': []}, {'cost_pln_estimate': .01})]):
         response = client.post(f"/ai/interviews/{session['id']}/preview", json={**version(session, 1), 'template_id': 'linden'})
     assert response.status_code == 200, response.text
     assert response.json()['preview']['review_notes'] == [{'path': '/summary', 'action': 'omitted_suggestion'}]
@@ -364,19 +373,21 @@ def test_source_refresh_preserves_answers_and_requires_review(environment):
 
 
 @pytest.mark.parametrize('changed_profile', [False, True])
-def test_legacy_rejection_recovers_paid_output_only_for_unchanged_profile(environment, changed_profile):
+def test_legacy_two_stage_cache_cannot_skip_editorial(environment, changed_profile):
     from app.models.models import AiCreditReservation
+    from app.schemas.interview_schema import GenerateWrite, Draft, Verification
     client, db, _, _ = environment
     session = confirm(client, create(client))
     ref = client.get('/career-profile').json()['facts'][0]['id']
     draft = {'fields': [{'path': '/summary', 'value': 'Wzrost o 99%', 'evidence_refs': [ref]}], 'remaining_gaps': []}
     verifier = {'unsupported_paths': ['/summary'], 'reasons': ['Technical evidence report']}
-    with patch.object(service, '_gpt', side_effect=[(draft, {'cost_pln_estimate': .01}), (verifier, {'cost_pln_estimate': .01})]):
-        result = client.post(f"/ai/interviews/{session['id']}/preview", json={**version(session, 1), 'template_id': 'linden'})
-    assert result.status_code == 200
-    # Emulate the old release's persisted state without altering its revision:
-    # both settled responses still belong to the preceding generation attempt.
     row = db.get(InterviewSession, session['id'])
+    request = GenerateWrite(**version(session, 1), template_id='linden')
+    # These paid legacy responses predate mandatory style review. Even an
+    # unchanged profile cannot use their verification as a v2 publication gate.
+    with patch.object(service, '_gpt', side_effect=[(draft, {'cost_pln_estimate': .01}), (verifier, {'cost_pln_estimate': .01})]):
+        service.paid_model(db, user=db.get(User, row.owner_id), row=row, request=request, operation='preview', context={}, model=Draft)
+        service.paid_model(db, user=db.get(User, row.owner_id), row=row, request=request, operation='verify', context={}, model=Verification)
     row.state = {**row.state, 'phase': 'review', 'preview': None, 'generation_feedback': verifier['reasons']}
     db.commit()
     saved = client.get(f"/ai/interviews/{session['id']}").json()
@@ -385,13 +396,13 @@ def test_legacy_rejection_recovers_paid_output_only_for_unchanged_profile(enviro
         profile = client.get('/career-profile').json()
         assert client.put('/career-profile', json={'revision': 1, 'facts': profile['facts']}).status_code == 200
         profile_revision = 2
-    with patch.object(service, '_gpt', side_effect=[(draft, {'cost_pln_estimate': .01}), (verifier, {'cost_pln_estimate': .01})]) as provider:
+    with patch.object(service, '_gpt', side_effect=[(draft, {'cost_pln_estimate': .01}), (editorial(draft), {'cost_pln_estimate': .01}), (verifier, {'cost_pln_estimate': .01})]) as provider:
         result = client.post(f"/ai/interviews/{session['id']}/preview", json={**version(saved, profile_revision), 'template_id': 'linden'})
     assert result.status_code == 200, result.text
     preview = result.json()['preview']
-    assert preview['recovered_previous_attempt'] is not changed_profile
-    assert provider.call_count == (2 if changed_profile else 0)
-    assert db.query(AiCreditReservation).count() == (4 if changed_profile else 2)
+    assert preview['recovered_previous_attempt'] is False
+    assert provider.call_count == 3
+    assert db.query(AiCreditReservation).count() == 5
     assert preview['changes'] == [] and preview['elements']
     assert result.json()['generation_feedback'] == []
 
@@ -403,7 +414,7 @@ def test_clarification_answer_persists_without_second_confirmation(environment, 
     ref = client.get('/career-profile').json()['facts'][0]['id']
     draft = {'fields': [{'path': '/summary', 'value': 'Python w projekcie portalu CV', 'evidence_refs': [ref]}], 'remaining_gaps': []}
     verification = {'unsupported_paths': ['/summary'], 'reasons': ['Internal diagnostic'], 'clarifications': [{'path': '/summary', 'question': 'W którym projekcie używałaś Pythona?'}]}
-    with patch.object(service, '_gpt', side_effect=[(draft, {'cost_pln_estimate': .01}), (verification, {'cost_pln_estimate': .01})]):
+    with patch.object(service, '_gpt', side_effect=[(draft, {'cost_pln_estimate': .01}), (editorial(draft), {'cost_pln_estimate': .01}), (verification, {'cost_pln_estimate': .01})]):
         session = client.post(f"/ai/interviews/{session['id']}/preview", json={**version(session, 1), 'template_id': 'linden'}).json()
     assert session['phase'] == 'clarification' and not session['question']
     assert client.post(f"/ai/interviews/{session['id']}/document", json=version(session, 1)).status_code == 409
@@ -424,7 +435,7 @@ def test_clarification_answer_persists_without_second_confirmation(environment, 
         assert saved['phase'] == 'ready' and saved['preview'] is None and not saved['proposed_facts']
         assert answer_fact['kind'] == ('fact' if status == 'answered' else 'gap')
         corrected = {'fields': [{'path': '/summary', 'value': answer_fact['text'], 'evidence_refs': [answer_fact['id']]}] if status == 'answered' else [], 'remaining_gaps': []}
-        with patch.object(service, '_gpt', side_effect=[(corrected, {'cost_pln_estimate': .01}), ({'unsupported_paths': [], 'reasons': []}, {'cost_pln_estimate': .01})]):
+        with patch.object(service, '_gpt', side_effect=[(corrected, {'cost_pln_estimate': .01}), (editorial(corrected), {'cost_pln_estimate': .01}), ({'unsupported_paths': [], 'reasons': []}, {'cost_pln_estimate': .01})]):
             final = client.post(f"/ai/interviews/{session['id']}/preview", json={**version(saved, 2), 'template_id': 'linden'})
         assert final.status_code == 200, final.text
         if status == 'answered':
@@ -475,7 +486,7 @@ def test_resume_repairs_legacy_loop_once_without_profile_changes_or_ai(environme
         assert client.post(f"/ai/interviews/{session['id']}/answers", json=payload).json() == saved
 
 
-def test_discovery_stops_repeated_wording_with_changed_topic_without_retry(environment):
+def test_discovery_replaces_repeated_wording_with_changed_topic_without_retry(environment):
     client, db, _, _ = environment
     session = confirm(client, create(client))
     row = db.get(InterviewSession, session['id'])
@@ -487,7 +498,9 @@ def test_discovery_stops_repeated_wording_with_changed_topic_without_retry(envir
     with patch.object(service, 'paid_model', return_value=output) as model:
         response = client.post(f'/ai/interviews/{row.id}/next', json=version(session, 1))
     assert response.status_code == 200
-    assert response.json()['phase'] == 'review' and response.json().get('question') is None
+    assert response.json()['phase'] == 'question'
+    assert response.json()['question']['text'] != output['output']['questions'][0]['text']
+    assert response.json()['question']['entry_id'] == 'general:experience'
     assert model.call_count == 1
 
 
@@ -532,7 +545,14 @@ def test_selected_candidate_isolated_through_confirmation_ai_and_document(enviro
         assert result.status_code == 200, result.text
         assert 'Kamil' not in provider.call_args.args[1] and 'OwnerOnlySkill' not in provider.call_args.args[1]
     session = result.json()
-    with patch.object(service, '_gpt', side_effect=[({'fields': [], 'remaining_gaps': []}, {'cost_pln_estimate': .01}), ({'unsupported_paths': [], 'reasons': []}, {'cost_pln_estimate': .01})]) as provider:
+    # An empty provider proposal now uses a scoped question. Explicit skipping
+    # keeps this isolation test's evidence unchanged before preview generation.
+    result = client.post(f"/ai/interviews/{session['id']}/answers", json={
+        **version(session, 1), 'question_id': session['question']['id'], 'status': 'skipped',
+    })
+    assert result.status_code == 200, result.text
+    session = result.json()
+    with patch.object(service, '_gpt', side_effect=[({'fields': [], 'remaining_gaps': []}, {'cost_pln_estimate': .01}), ({'fields': []}, {'cost_pln_estimate': .01}), ({'unsupported_paths': [], 'reasons': []}, {'cost_pln_estimate': .01})]) as provider:
         result = client.post(f"/ai/interviews/{session['id']}/preview", json={**version(session, 1), 'template_id': 'linden'})
         assert result.status_code == 200, result.text
         assert all('OwnerOnlySkill' not in call.args[1] and 'Kamil' not in call.args[1] for call in provider.call_args_list)
@@ -649,7 +669,7 @@ def test_typed_clarification_replaces_existing_fact_without_second_confirmation(
     original = next(f for f in profile['facts'] if f['path'] == '/experience/0/bullets/0')
     draft = {'fields': [{'path': original['path'], 'value': 'Codzienny research SoF i SoW.', 'evidence_refs': [original['id']]}], 'remaining_gaps': []}
     verification = {'unsupported_paths': [original['path']], 'reasons': [], 'clarifications': [{'path': original['path'], 'question': 'Jak często wykonywałaś research?'}]}
-    with patch.object(service, '_gpt', side_effect=[(draft, {'cost_pln_estimate': .01}), (verification, {'cost_pln_estimate': .01})]):
+    with patch.object(service, '_gpt', side_effect=[(draft, {'cost_pln_estimate': .01}), (editorial(draft), {'cost_pln_estimate': .01}), (verification, {'cost_pln_estimate': .01})]):
         result = client.post(f"/ai/interviews/{session['id']}/preview", json={**version(session, 1), 'template_id': 'linden'})
     assert result.status_code == 200, result.text
     asking = client.post(f"/ai/interviews/{session['id']}/clarify", json=version(result.json(), 1)).json()

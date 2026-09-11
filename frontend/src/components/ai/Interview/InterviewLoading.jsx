@@ -7,7 +7,7 @@ const operations = {
   next: ['Szukamy właściwego pytania', 'AI dobiera pytanie do Twoich doświadczeń, dotychczasowych odpowiedzi i celu CV.', 'Dobór pytania przez AI'],
   answers: ['Zachowujemy Twoją odpowiedź', 'Zapisujemy odpowiedź, zanim przejdziesz do kolejnego pytania.', 'Zapis odpowiedzi'],
   confirm: ['Zapisujemy potwierdzone informacje', 'Zapisujemy informacje w wybranym źródle tej rozmowy.', 'Zapis potwierdzonych informacji'],
-  preview: ['Twoja historia nabiera kształtu', 'Przygotowanie obejmuje napisanie treści, sprawdzenie jej oparcia w informacjach i ułożenie CV w szablonie.', 'Przygotowanie i kontrola CV'],
+  preview: ['Twoja historia nabiera kształtu', 'Przygotowanie obejmuje napisanie treści, osobną redakcję języka i stylu, niezależną weryfikację faktów oraz ułożenie CV w szablonie.', 'Przygotowanie i kontrola CV'],
   document: ['Zapisujemy nową wersję CV', 'Tworzymy osobny dokument. Po zapisie otworzymy go w edytorze.', 'Zapis dokumentu'],
   source: ['Aktualizujemy punkt wyjścia', 'Wczytujemy aktualne CV. Zapisane odpowiedzi pozostają w rozmowie.', 'Odświeżenie źródła'],
   clarify: ['Wracamy do szczegółów', 'Otwieramy zapisane pytanie o informację wymagającą doprecyzowania.', 'Odczyt pytania'],

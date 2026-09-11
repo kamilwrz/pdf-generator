@@ -1,41 +1,10 @@
-"""Recover usable interview previews without applying rejected model claims."""
+"""Assemble usable interview previews without applying rejected model claims."""
 from collections import Counter
 import re
 
 from fastapi import HTTPException
-from pydantic import ValidationError
-
-from app.models.models import AiCreditReservation
-from app.schemas.interview_schema import Draft, Verification
 from app.services import interview_service as service
 from app.services.cv_data import CvDataValidationError
-
-
-def previous_rejected_result(db, row, profile_revision):
-    """Reuse the immediately preceding paid attempt for an unchanged profile.
-
-    Older releases discarded the draft from session state but retained both
-    settled provider responses. Session/profile revisions and owner-scoped
-    keys bind this recovery to that exact attempt. An edited source/profile,
-    missing response or unrelated operation cannot reuse an old draft.
-    """
-    if row.state.get("phase") != "review" or not row.state.get("generation_feedback") or row.state.get("preview"):
-        return None
-    responses = []
-    for operation, schema in (("preview", Draft), ("verify", Verification)):
-        key = f"interview:{row.id}:{row.revision - 1}:{profile_revision}:{operation}"
-        reservation = db.query(AiCreditReservation).filter_by(
-            user_id=row.owner_id, idempotency_key=key, status="settled",
-        ).first()
-        payload = reservation.response_json if reservation else None
-        if not isinstance(payload, dict):
-            return None
-        try:
-            output = schema.model_validate(payload.get("output")).model_dump()
-        except ValidationError:
-            return None
-        responses.append({"output": output, "usage": payload.get("usage") or {}})
-    return tuple(responses)
 
 
 def _value_at(data, path):

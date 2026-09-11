@@ -30,7 +30,7 @@ W WYWIADZIE działają dwie niezależne osie.
 - `enrich` — uzupełnij informacje z istniejącego CV;
 - `tailor` — przygotuj nowe CV pod ofertę pracy.
 
-Tryb wpływa na kontekst pytań. `tailor` przekazuje modelowi także ofertę i zaczyna od krótszej, pięciopytaniowej rundy. `create` i `enrich` zaczynają od limitu ośmiu pytań.
+Tryb wpływa na kontekst pytań. `tailor` przekazuje modelowi także ofertę i ma początkową pojemność pięciu pytań, a `create` i `enrich` ośmiu. Po zatwierdzeniu informacji serwer zwiększa limit, jeśli liczba wpisów wymaga większej rozmowy, maksymalnie do 50 zapisanych odpowiedzi.
 
 ### 2. Zakres dowodów
 
@@ -56,7 +56,8 @@ flowchart TD
     G --> E
     E -->|Nie| I[Wybór szablonu]
     I --> J[Generowanie treści]
-    J --> K[Niezależna weryfikacja treści]
+    J --> RED[Profesjonalna redakcja stylu]
+    RED --> K[Niezależna weryfikacja treści]
     K --> L{Potrzebne doprecyzowanie?}
     L -->|Tak| M[Do 5 zapisanych pytań albo świadome pominięcie]
     M -->|Odpowiedź| J
@@ -108,7 +109,7 @@ Endpoint `/next` wykonuje jedną płatną operację AI i może zwrócić najwyż
 - powód zadania pytania;
 - kontekst.
 
-Model otrzymuje tryb rozmowy, aktualne potwierdzone fakty, poprzednie odpowiedzi oraz ofertę, jeżeli istnieje. Nie powinien powtarzać zakończonych tematów. Backend dodatkowo porównuje temat i znormalizowaną treść pytania; wykryta powtórka kończy rundę zamiast automatycznie płacić za kolejną próbę.
+Model otrzymuje tryb rozmowy, aktualne potwierdzone fakty, poprzednie odpowiedzi, ofertę, jeżeli istnieje, oraz `question_scope` z wpisem wybranym przez serwer. Pytanie musi wskazać ten sam `entry_id`. Backend liczy odpowiedzi na wpis niezależnie od nazw tematów, sprawdza powtórzenia i powiązanie dopytania. Pusta, powtórzona lub dotycząca niewłaściwego wpisu propozycja jest zastępowana neutralnym pytaniem lokalnym. Nie kończy całej rozmowy i nie powoduje płatnego ponowienia. Po wyczerpaniu wpisów lub limitu `/next` nie wywołuje modelu.
 
 Użytkownik ma cztery sposoby odpowiedzi:
 
@@ -130,10 +131,13 @@ Przed generowaniem muszą być spełnione wszystkie warunki:
 - wybrano dozwolony szablon;
 - użytkownik nadal ma dostęp do płatnej operacji AI.
 
-Generowanie składa się z dwóch osobno rozliczanych operacji:
+Generowanie składa się z trzech osobno rozliczanych operacji:
 
 1. **Draft** — model proponuje wartości pól CV. Każda wartość musi wskazać ID potwierdzonych faktów.
-2. **Verification** — drugi przebieg sprawdza, czy propozycje nie dodają niepotwierdzonych kompetencji, liczb, wyników, stanowisk, odpowiedzialności ani faktów z innej roli.
+2. **Redakcja** — osobny model poprawia język, styl i opis potwierdzonego wkładu. Oryginalne odpowiedzi pozostają niezmienione. Pełne poprawki `path/value` dotyczą wyłącznie opisów; tożsamość, metadane i odwołania do źródeł są zachowane.
+3. **Verification** — niezależny przebieg porównuje tekst po redakcji z pierwotnymi faktami, sprawdzając, czy nie dodano niepotwierdzonych kompetencji, liczb, wyników, stanowisk, odpowiedzialności ani faktów z innej roli. Kontrole nie zastępują końcowego przeglądu użytkownika.
+
+Można odpowiadać potocznie i z błędami. AI może raz dopytać o istotny brak konkretu, używając `follow_up_to` z ID wcześniejszego pytania. Dopytanie zachowuje temat i wlicza się do obecnego limitu; nie tworzy łańcucha i nie wraca do pominięcia, niepamiętania ani braku doświadczenia. Błąd redakcji zatrzymuje nowe generowanie z zachowaniem zapisanej pracy. Odczyt rozmowy i zapis odpowiedzi nie uruchamiają redakcji ani opłat.
 
 Backend wykonuje też kontrole deterministyczne. Między innymi:
 
@@ -157,7 +161,7 @@ Jeżeli weryfikacja zakwestionuje konkretną zmianę znaczenia, sesja przechodzi
 - wybrać **Nie pamiętam** albo **Pomiń**;
 - pominąć całą rundę i zobaczyć bezpieczną wersję opartą na potwierdzonych faktach.
 
-Wpisana korekta od razu zastępuje powiązany fakt albo tworzy nowy. Ekran oddziela pytanie **Czy proponowany opis jest w pełni zgodny z Twoim doświadczeniem?** od oznaczonej wątpliwości AI. **Tak — zatwierdź ten opis** zapisuje cały widoczny tekst AI, natomiast pole **Pełny poprawiony opis** przyjmuje kompletną wersję zastępującą, a nie krótką odpowiedź na samą wątpliwość. Samo rozpoczęcie doprecyzowań, zapis odpowiedzi i pominięcie nie używają AI ani kredytów. Ponowne wygenerowanie CV po odpowiedzi ponownie uruchamia płatne generowanie i weryfikację.
+Wpisana korekta od razu zastępuje powiązany fakt albo tworzy nowy. Ekran oddziela pytanie **Czy proponowany opis jest w pełni zgodny z Twoim doświadczeniem?** od oznaczonej wątpliwości AI. **Tak — zatwierdź ten opis** zapisuje cały widoczny tekst AI, natomiast pole **Pełny poprawiony opis** przyjmuje kompletną wersję zastępującą, a nie krótką odpowiedź na samą wątpliwość. Samo rozpoczęcie doprecyzowań, zapis odpowiedzi i pominięcie nie używają AI ani kredytów. Ponowne wygenerowanie CV po odpowiedzi ponownie uruchamia płatne generowanie, redakcję i weryfikację.
 
 Budżet doprecyzowań wynosi łącznie pięć pytań na sesję. Regeneracja go nie resetuje.
 
@@ -223,7 +227,7 @@ Ten wariant obsługuje nową, osobną historię oraz dokument osoby innej niż w
 
 ### Pytania i wynik
 
-Pierwsza runda ma limit ośmiu pytań. Po początkowym przeglądzie źródła można jednak od razu przejść do przygotowania CV; każda późniejsza odpowiedź jest już zapisana. Kolejne dobrowolne rundy zwiększają limit o maksymalnie pięć pytań, do twardego limitu 50 odpowiedzi w sesji.
+Początkowy limit ośmiu pytań rośnie, jeśli liczba wpisów wymaga większej rozmowy, maksymalnie do 50 zapisanych odpowiedzi w sesji. Serwer przechodzi kolejno przez strukturalne wpisy: dwa główne pytania i najwyżej jedno dopytanie do doświadczenia, edukacji lub projektu, jedno do umiejętności/grupy i brakującego poziomu języka. „Pomiń”, „Nie pamiętam” i brak doświadczenia zamykają wpis. Nie powstaje osobna kolejka dla odpowiedzi powielającej kontekst znanego wpisu. Po każdym zapisie można przygotować CV. Przedłużenie dodaje do pięciu miejsc tylko dla pozostałych wpisów, nigdy nie resetuje licznika wpisu. Po omówieniu kolejki interfejs prowadzi do przygotowania CV. Swobodna notatka z kilkoma rolami pozostaje jednym kontekstem; osobne pytania do każdej roli wymagają strukturalnych wpisów. Stare pytania bez jednoznacznego kontekstu nie zawsze dają się przypisać, ale nowe otrzymują `entry_id`.
 
 ---
 
@@ -344,7 +348,7 @@ Backend obniża błędne `matched`, `partial` albo `gap` do `unknown`, jeżeli m
 
 ### Pytania
 
-Pierwsza runda ma limit pięciu pytań. Model powinien wybierać niewiadome o największym znaczeniu dla oferty, ale nadal zadaje tylko jedno pytanie naraz.
+Początkowa pojemność rundy wynosi pięć pytań i rośnie do liczby potrzebnej dla potwierdzonych wpisów, w granicach 50 odpowiedzi na sesję. Serwer wybiera kolejne wpisy, a model dobiera w ich obrębie niewiadome istotne dla oferty. Nadal zadaje tylko jedno pytanie naraz, z limitem dwóch głównych pytań i jednego dopytania na wpis.
 
 Po rundzie użytkownik może:
 
@@ -384,7 +388,7 @@ Wynik jest zawsze nowym dokumentem. Źródłowe CV pozostaje bez zmian.
 
 - utworzenie nowej sesji jest dostępne tylko dla planu z włączoną funkcją WYWIADU;
 - pobranie następnego pytania uruchamia jedną płatną operację;
-- przygotowanie podglądu uruchamia płatny draft i płatną weryfikację;
+- przygotowanie podglądu uruchamia płatny draft, osobną redakcję stylu i niezależną weryfikację;
 - ponowne generowanie po zmianie faktów może ponownie zużyć kredyty.
 
 ### Nie zużywa kredytów AI
@@ -445,6 +449,8 @@ Nieaktualny zapis jest odrzucany zamiast nadpisywać dane z drugiej karty.
 - zmiana już zapisanej odpowiedzi odbywa się przez przegląd faktów, nie przez nadpisanie historii;
 - płatne operacje mają klucze związane z sesją i rewizjami;
 - ukończony wynik providera może zostać odtworzony po utracie odpowiedzi HTTP;
+- proces v2 zapisuje `generation_attempt` przed opłatą i ponawia tylko brakujące/nieudane etapy niezmienionej próby; ukończone etapy są używane ponownie;
+- zmiana źródeł lub danych generowania rozpoczyna nową próbę; stare dwustopniowe wyniki nie zastępują redakcji, a zapisane podglądy pozostają dostępne;
 - zapis dokumentu zwraca ten sam dokument po ponowieniu.
 
 ### Co może zostać utracone
@@ -510,7 +516,7 @@ Wszystkie ścieżki WYWIADU korzystają z tego samego zestawu endpointów:
 | `POST` | `/ai/interviews/{id}/answers` | Atomowy zapis odpowiedzi i potwierdzonego faktu |
 | `POST` | `/ai/interviews/{id}/extend` | Dobrowolne zwiększenie rundy o maksymalnie 5 pytań |
 | `POST` | `/ai/interviews/{id}/source` | Odświeżenie zmienionego CV |
-| `POST` | `/ai/interviews/{id}/preview` | Draft, weryfikacja i układ CV |
+| `POST` | `/ai/interviews/{id}/preview` | Draft, redakcja, weryfikacja i układ CV |
 | `POST` | `/ai/interviews/{id}/clarify` | Uruchomienie zapisanych doprecyzowań |
 | `POST` | `/ai/interviews/{id}/skip-clarifications` | Świadome pominięcie niejasności |
 | `POST` | `/ai/interviews/{id}/document` | Zapis wyniku jako nowego CV |
@@ -535,15 +541,17 @@ Pełne typy pól, ograniczenia długości i formaty odpowiedzi znajdują się w 
 ### Backend
 
 - `backend/app/api/routes/interviews.py`, linie 38–448 — wszystkie endpointy profilu i sesji.
-- `backend/app/schemas/interview_schema.py`, linie 1–119 — wejścia publiczne oraz ścisłe schematy wyników AI.
-- `backend/app/services/interview_service.py`, linie 1–382 — fakty, rewizje, pytania, walidacja dowodów, rezerwacje i rozliczenie AI.
+- `backend/app/schemas/interview_schema.py`, linie 1–149 — wejścia publiczne oraz ścisłe schematy wyników AI.
+- `backend/app/services/interview_service.py`, linie 1–492 — fakty, rewizje, pytania, walidacja dowodów, rezerwacje i rozliczenie AI.
 - `backend/app/services/interview_clarification.py`, linie 1–213 — kolejka doprecyzowań, limit, deduplikacja i tworzenie faktów z odpowiedzi.
-- `backend/app/services/interview_recovery.py`, linie 1–123 — bezpieczny fallback oraz odzyskiwanie opłaconych wyników.
+- `backend/app/services/interview_recovery.py`, linie 1–90 — bezpieczny fallback oraz odzyskiwanie opłaconych wyników.
 - `backend/app/models/models.py`, linie 336–359 — `CareerProfile` i `InterviewSession`.
 - `backend/alembic/versions/20260910_0017_career_interviews.py`, linie 1–42 — tabele i indeks właściciela.
 
 ### Testy opisujące kontrakt
 
+- `backend/app/services/interview_discovery.py` — kolejka wpisów, liczenie pytań z historii, limit i lokalne pytania zastępcze.
+- `backend/tests/test_interview_discovery.py` — zmiany nazw tematów, osobne projekty, doświadczenia, języki, limity, starsze sesje i brak płatnych pętli.
 - `backend/tests/test_interviews.py` — własność, tryby, statusy odpowiedzi, limity, koszty, weryfikacja, zapis dokumentu i zmiana źródła.
 - `backend/tests/test_interview_recovery.py` — odzyskiwanie oraz bezpieczne odrzucanie niepotwierdzonych zmian.
 - `backend/tests/test_alembic_interviews.py` — migracja i downgrade.

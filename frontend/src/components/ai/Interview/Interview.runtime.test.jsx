@@ -26,6 +26,38 @@ beforeEach(() => {
 });
 
 describe('interview workflow', () => {
+  it('finishes a covered queue without offering another question or reopening entries', async () => {
+    session = { ...session, question: null, phase: 'review', discovery_complete: true, question_limit: 14 };
+    const user = userEvent.setup();
+    render(<MemoryRouter><InterviewFlow sessionId="session" /></MemoryRouter>);
+    const prepare = await screen.findByRole('button', { name: 'Przejdź do przygotowania CV' });
+    expect(screen.getByText(/Omówiliśmy dostępne wpisy/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Następne pytanie' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Pogłęb wywiad/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Sprawdź informacje' })).toBeEnabled();
+    await user.click(prepare);
+    expect(screen.getByRole('button', { name: 'Przygotuj CV z potwierdzonych informacji' })).toBeEnabled();
+    expect(interviewRequest.mock.calls.some(([, method]) => method === 'POST')).toBe(false);
+  });
+
+  it('explains informal answers and bounded follow-ups without starting AI on read', async () => {
+    session.question.follow_up_to = 'earlier-question';
+    render(<MemoryRouter><InterviewFlow sessionId="session" /></MemoryRouter>);
+    const input = await screen.findByLabelText('Twoja odpowiedź');
+    expect(input).toHaveAccessibleDescription(/Możesz odpowiadać własnymi słowami/);
+    expect(screen.getByText(/Dopytanie do wcześniejszej odpowiedzi/)).toHaveTextContent('możesz je pominąć');
+    expect(interviewRequest.mock.calls.some(([, method]) => method === 'POST')).toBe(false);
+  });
+
+  it('discloses all paid preparation stages while preserving the original answers', async () => {
+    session = { ...session, question: null, phase: 'review' };
+    const user = userEvent.setup();
+    render(<MemoryRouter><InterviewFlow sessionId="session" /></MemoryRouter>);
+    await user.click(await screen.findByRole('button', { name: 'Przejdź do przygotowania CV' }));
+    expect(screen.getByText(/Każdy z trzech etapów korzysta z kredytów AI/)).toHaveTextContent('Oryginalne odpowiedzi pozostaną bez zmian');
+    expect(interviewRequest.mock.calls.some(([path]) => path.endsWith('/preview'))).toBe(false);
+  });
+
   it('saves an answer before requesting another question', async () => {
     const user = userEvent.setup();
     render(<MemoryRouter><InterviewFlow sessionId="session" /></MemoryRouter>);
