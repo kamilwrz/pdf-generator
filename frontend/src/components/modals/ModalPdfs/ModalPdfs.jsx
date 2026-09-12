@@ -127,6 +127,8 @@ export default function ModalPdfs() {
             const liveElements = normalizeProfilePhotoVisibilityPersistence(
                 persistenceNormalized,
                 templateId,
+                null,
+                (pdfCanvas?.cv_data ?? pdfCanvas?.cvData)?.language,
             );
             // One lifecycle-owned commit replaces every persisted field. The
             // stale-response check above is deliberately the final operation

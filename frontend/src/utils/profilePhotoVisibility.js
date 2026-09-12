@@ -204,7 +204,7 @@ function slateHeadingStyle(elements, anchor) {
  * keep the pure helper usable in tests; the editor supplies NanoID identifiers
  * for real history transactions.
  */
-function materializeSlateContactHeader(elements, anchor, createId) {
+function materializeSlateContactHeader(elements, anchor, createId, language) {
   const withoutStaleHeader = (elements || []).filter(
     (element) => !isSlateContactHeader(element),
   );
@@ -255,7 +255,7 @@ function materializeSlateContactHeader(elements, anchor, createId) {
       element_id: nextId("label"),
       id: "slate-contact-header-label",
       category: "text",
-      content: "DANE KONTAKTOWE",
+      content: /^(en|english)$/i.test(language || "") ? "CONTACT DETAILS" : "DANE KONTAKTOWE",
       left: layout.textLeft,
       top: layout.textTop,
       fontSize: style.fontSize,
@@ -352,22 +352,33 @@ export function isProfilePhotoHidden(elements) {
  * sidebar coordinates. A complete current heading is returned unchanged;
  * missing or partial legacy chrome is rebuilt from the document's live palette
  * and typography so save/reload never introduces a default-colour duplicate.
+ * English CVs also repair the historical locked Polish label in place.
  *
  * @param {object[]} elements - Hydrated canvas elements.
  * @param {string} templateId - Persisted template identifier.
  * @param {null|((part: string) => string)} [createId] - Optional identifier factory.
+ * @param {string} [language="Polish"] - CV language, independent of the interface.
  * @returns {object[]} The original array or a normalized Slate array.
  */
 export function normalizeProfilePhotoVisibilityPersistence(
   elements,
   templateId,
   createId = null,
+  language = "Polish",
 ) {
   const list = elements || [];
   if (String(templateId || "") !== "slate" || !isProfilePhotoHidden(list)) return list;
   const headerMembers = list.filter((element) => isSlateContactHeader(element));
-  if (headerMembers.length === 4) return list;
-  return materializeSlateContactHeader(list, contactAnchor(list), createId);
+  if (headerMembers.length === 4) {
+    // Repair only the locked, application-owned legacy label. User headings
+    // and every element identity/style/coordinate remain untouched.
+    const label = headerMembers.find((element) => element.category === "text");
+    if (/^(en|english)$/i.test(language) && label?.locked && label.content === "DANE KONTAKTOWE") {
+      return list.map((element) => element === label ? { ...element, content: "CONTACT DETAILS" } : element);
+    }
+    return list;
+  }
+  return materializeSlateContactHeader(list, contactAnchor(list), createId, language);
 }
 
 /**
@@ -468,9 +479,10 @@ export function alignSidebarAfterProfileContacts(elements, bandId, templateId) {
  * @param {string} templateId - Active template identifier.
  * @param {null|((part: string) => string)} [createId] - Optional identifier
  * factory for temporary Slate contact-header chrome.
+ * @param {string} [language="Polish"] - CV language used for generated contact chrome.
  * @returns {{elements: object[], contactBandId: string|null}}
  */
-export function hideProfilePhoto(elements, templateId, createId = null) {
+export function hideProfilePhoto(elements, templateId, createId = null, language = "Polish") {
   if (!supportsProfilePhotoVisibility(templateId) || isProfilePhotoHidden(elements)) {
     return { elements, contactBandId: null };
   }
@@ -521,7 +533,7 @@ export function hideProfilePhoto(elements, templateId, createId = null) {
     return element;
   });
   const next = id === "slate"
-    ? materializeSlateContactHeader(transitioned, contactAnchor(transitioned), createId)
+    ? materializeSlateContactHeader(transitioned, contactAnchor(transitioned), createId, language)
     : transitioned;
   return {
     elements: next,

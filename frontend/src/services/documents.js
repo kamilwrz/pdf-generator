@@ -41,6 +41,6 @@ export async function loadOwnedDocument(value, knownDocuments) {
   }
   const templateId = metadata.template_id ?? metadata.templateId;
   const hydrated = elements.map(hydratePersistedCanvasElement).filter((element) => element.category !== 'title');
-  const normalized = normalizeProfilePhotoVisibilityPersistence(normalizeSterlingFamilyPersistence(hydrated, templateId), templateId);
+  const normalized = normalizeProfilePhotoVisibilityPersistence(normalizeSterlingFamilyPersistence(hydrated, templateId), templateId, null, (metadata.cv_data ?? metadata.cvData)?.language);
   return { ...metadata, elements: normalized, deletedElements: [], title: metadata.title || '', currentPage: 1, pdfId: id, serverRevision: metadata.revision ?? null, isDemoContent: false };
 }

@@ -66,3 +66,22 @@ test('freeform seed text follows document language at insertion only', async () 
   await setUiLanguage('pl');
   assert.equal(english.content, 'Sample text…');
 });
+
+
+test('legacy Polish and English hints switch both ways without mutating document metadata', async () => {
+  const { editorHint } = await import('./editorHints.js');
+  const { contactChannelPlaceholder } = await import('../utils/contactChannelNames.js');
+  const snapshot = { content: 'City, country', placeholder: 'City, country' };
+  const before = JSON.stringify(snapshot);
+  for (const language of ['pl', 'en', 'pl']) {
+    await setUiLanguage(language);
+    const expected = language === 'en' ? 'City, country' : 'Miasto, kraj';
+    assert.equal(editorHint(snapshot.placeholder), expected);
+    assert.equal(editorHint('Miasto, kraj'), expected);
+    assert.equal(editorHint(contactChannelPlaceholder('location')), expected);
+    assert.equal(editorHint('University or school name'), language === 'en' ? 'University or school name' : 'Nazwa uczelni lub szkoły');
+    assert.equal(editorHint('My own advice'), 'My own advice');
+    assert.equal(contactChannelPlaceholder('location'), 'Miasto, kraj');
+    assert.equal(JSON.stringify(snapshot), before);
+  }
+});

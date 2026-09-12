@@ -208,3 +208,53 @@ test('English resumed interview preserves historical Polish questions and an uns
   expect(writes).toHaveLength(0);
   api.assertHermetic();
 });
+
+
+test('English Slate repairs legacy contact chrome and switches legacy hints without translating CV headings', async ({ page }) => {
+  const { SAVED_DOCUMENT } = await import('./support/mockApi.js');
+  const { slateTemplate } = await import('../src/templates/slate.js');
+  await page.addInitScript(() => {
+    localStorage.setItem('cvstudio.uiLanguage', 'en');
+    localStorage.setItem('token', 'local-playwright-token');
+    localStorage.setItem('username', 'Kamil');
+  });
+  const fixtures = slateTemplate.map((element, index) => ({
+    ...element, element_id: `slate-${index}`,
+    ...(element.photoSlot ? { photoSlotHidden: true } : {}),
+  }));
+  fixtures.push(
+    { element_id: 'legacy-contact', category: 'text', content: 'DANE KONTAKTOWE', left: 49, top: 63, fontSize: 7.6, fontFamily: 'Montserrat', bold: true, page: 1, locked: true, fixedToPage: true, flowRole: 'photo-contact-header' },
+    ...['badge', 'icon', 'rule'].map((part) => ({ element_id: `legacy-${part}`, category: 'line', left: 25, top: 60, width: 1, height: 1, page: 1, locked: true, fixedToPage: true, flowRole: 'photo-contact-header' })),
+    { element_id: 'legacy-location', category: 'text', content: '', placeholder: 'City, country', left: 250, top: 125, fontSize: 10, page: 1, starterPlaceholder: true },
+    { element_id: 'english-heading', category: 'text', content: 'EDUCATION', left: 250, top: 145, fontSize: 10, page: 1 },
+    { element_id: 'custom-heading', category: 'text', content: 'Moja własna sekcja', left: 250, top: 165, fontSize: 10, page: 1 },
+  );
+  const api = await installMockApi(page, {
+    savedDocument: { ...SAVED_DOCUMENT, template_id: 'slate', cv_data: { ...SAVED_DOCUMENT.cv_data, language: 'English' } },
+    savedElements: fixtures.map((element) => ({ ...element, extra_properties: { ...element } })),
+  });
+  // Serve the real Slate icons locally; the API fixture intentionally rejects
+  // any unregistered request rather than falling through to production.
+  await page.route(/\/template-assets\/iconic\/slate(?:-accent)?\/[a-z]+\.png$/, async (route) => {
+    const { fileURLToPath } = await import('node:url');
+    const relative = new URL(route.request().url()).pathname.split('/template-assets/')[1];
+    await route.fulfill({ path: fileURLToPath(new URL(`../../backend/template_assets/${relative}`, import.meta.url)), contentType: 'image/png' });
+  });
+  await page.goto('/app/documents/41');
+  await expect(page.locator('#legacy-contact')).toHaveText('CONTACT DETAILS', { timeout: 25_000 });
+  const writes = () => api.calls.filter((call) => ['POST', 'PUT', 'DELETE'].includes(call.method) && !call.path.includes('/events/'));
+  const count = writes().length;
+  const selector = page.getByRole('combobox', { name: /Application language|Język aplikacji/ });
+  for (const language of ['pl', 'en', 'pl']) {
+    await selector.focus();
+    await selector.selectOption(language);
+    await expect(page.locator('#legacy-location')).toHaveAttribute('data-placeholder', language === 'en' ? 'City, country' : 'Miasto, kraj');
+    await expect(page.locator('#legacy-location')).toHaveText('');
+    await expect(page.locator('#legacy-contact')).toHaveText('CONTACT DETAILS');
+    await expect(page.locator('#english-heading')).toHaveText('EDUCATION');
+    await expect(page.locator('#custom-heading')).toHaveText('Moja własna sekcja');
+    await expect(selector).toBeFocused();
+    expect(writes()).toHaveLength(count);
+  }
+  api.assertHermetic();
+});

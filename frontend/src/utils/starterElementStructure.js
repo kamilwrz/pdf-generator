@@ -142,6 +142,7 @@ export function applyStarterElementStructure(rawElements, cvData, templateId, pa
       elements,
       templateId,
       (part) => `starter-photo-${part}`,
+      cvData.language,
     ).elements;
   } else {
     elements = elements.map((element) => (

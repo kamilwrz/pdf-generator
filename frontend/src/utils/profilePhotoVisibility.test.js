@@ -606,3 +606,37 @@ it("exposes accessible hover actions for hide, restore, and raster removal", asy
   assert.match(source, /FiTrash2/);
   assert.doesNotMatch(source, /anchor\.name/);
 });
+
+
+describe("contact heading document language", () => {
+  it("passes the chosen CV language through empty starter creation", async () => {
+    const { applyStarterElementStructure } = await import('./starterElementStructure.js');
+    const { buildStarterDocument, createDefaultStarterConfig } = await import('./cvStarter.js');
+    for (const language of ['en', 'pl']) {
+      const { cvData } = buildStarterDocument({ ...createDefaultStarterConfig(language), templateId: 'slate' });
+      const elements = applyStarterElementStructure(withIds(slateTemplate), cvData, 'slate');
+      assert.equal(elements.find((item) => item.id === 'slate-contact-header-label').content,
+        language === 'en' ? 'CONTACT DETAILS' : 'DANE KONTAKTOWE');
+    }
+  });
+  it("uses English for Slate creation and repeated photo toggles without changing geometry", () => {
+    const source = withIds(slateTemplate);
+    const english = hideProfilePhoto(source, "slate", null, "English").elements;
+    const polish = hideProfilePhoto(source, "slate", null, "Polish").elements;
+    const label = (items) => items.find((item) => item.id === "slate-contact-header-label");
+    assert.equal(label(english).content, "CONTACT DETAILS");
+    assert.equal(label(polish).content, "DANE KONTAKTOWE");
+    assert.deepEqual(english.map((element) => ({ ...element, content: null })), polish.map((element) => ({ ...element, content: null })));
+    const shown = showProfilePhoto(english, "slate").elements;
+    assert.equal(label(hideProfilePhoto(shown, "slate", null, "en").elements).content, "CONTACT DETAILS");
+  });
+  it("repairs the locked legacy Polish label in English CVs idempotently", () => {
+    const legacy = hideProfilePhoto(withIds(slateTemplate), "slate").elements;
+    const repaired = normalizeProfilePhotoVisibilityPersistence(legacy, "slate", null, "English");
+    assert.equal(repaired.find((item) => item.id === "slate-contact-header-label").content, "CONTACT DETAILS");
+    assert.equal(normalizeProfilePhotoVisibilityPersistence(repaired, "slate", null, "English"), repaired);
+    assert.equal(normalizeProfilePhotoVisibilityPersistence(legacy, "slate"), legacy);
+    const custom = legacy.map((item) => item.id === "slate-contact-header-label" ? { ...item, content: "MY CONTACTS" } : item);
+    assert.equal(normalizeProfilePhotoVisibilityPersistence(custom, "slate", null, "English"), custom);
+  });
+});

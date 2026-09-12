@@ -2720,7 +2720,7 @@ export function useA4Elements(titleRef, documentLanguage = "Polish") {
     setA4_Elements((prev) => {
       const result = visible
         ? applyProfilePhotoShow(prev, activeTemplateIdRef.current)
-        : applyProfilePhotoHide(prev, activeTemplateIdRef.current, () => nanoid());
+        : applyProfilePhotoHide(prev, activeTemplateIdRef.current, () => nanoid(), documentLanguage);
       let next = result.elements;
       if (result.contactBandId) {
         next = applyChannelRelayout(
@@ -2735,7 +2735,7 @@ export function useA4Elements(titleRef, documentLanguage = "Polish") {
       }
       return reconcileDocumentPages(next, nanoid, { collapseEmpty: true }).elements;
     });
-  }, [measureContactLabel]);
+  }, [measureContactLabel, documentLanguage]);
 
   const hideProfilePhoto = useCallback(() => setProfilePhotoVisible(false), [setProfilePhotoVisible]);
   const showProfilePhoto = useCallback(() => setProfilePhotoVisible(true), [setProfilePhotoVisible]);

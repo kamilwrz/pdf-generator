@@ -28,7 +28,8 @@ export const CONTACT_CHANNEL_PLACEHOLDERS = Object.freeze({
   linkedin: "linkedin.com/in/profil",
   github: "github.com/profil",
   website: "twojastrona.pl",
-  get location() { return uiText("editor:contactChannelNames.cityCountry"); },
+  // Persist canonical hint metadata; the canvas translates it at render time.
+  location: "Miasto, kraj",
 });
 
 /**

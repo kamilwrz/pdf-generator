@@ -1993,6 +1993,8 @@ export function EditorController() {
     const restoredElements = normalizeProfilePhotoVisibilityPersistence(
       normalizeSterlingFamilyPersistence(guestDoc.elements, guestDoc.templateId),
       guestDoc.templateId,
+      null,
+      guestDoc.cvData?.language,
     );
     guestDocumentRestoredRef.current = true;
     commitDocumentSnapshot({
@@ -2055,6 +2057,8 @@ export function EditorController() {
     const restoredElements = normalizeProfilePhotoVisibilityPersistence(
       normalizeSterlingFamilyPersistence(guestDoc.elements, guestDoc.templateId),
       guestDoc.templateId,
+      null,
+      guestDoc.cvData?.language,
     );
     // Unsaved editor document: authenticated persistence waits for an explicit
     // save, but every in-memory field lands in the same replacement commit.
