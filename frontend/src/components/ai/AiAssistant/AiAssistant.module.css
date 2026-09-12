@@ -66,7 +66,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 10px 12px;
+    padding: var(--space-2) var(--space-3);
     border-bottom: 1px solid var(--chrome-border);
     flex-shrink: 0;
     background: var(--chrome-surface);
@@ -84,18 +84,18 @@
 }
 
 .headerTitle {
-    font: 700 13.5px var(--font-display);
+    font: 700 .875rem/1.4 var(--font-ui);
     color: var(--chrome-ink);
 }
 
 .headerSub {
-    font: 500 10px var(--font-body);
+    font: 400 .75rem/1.4 var(--font-ui);
     color: var(--chrome-muted);
 }
 
 .closeBtn {
-    width: 28px;
-    height: 28px;
+    min-width: var(--control-height);
+    height: var(--control-height);
     border-radius: var(--radius-control);
     border: 1px solid var(--chrome-border);
     background: var(--chrome-control);
@@ -134,7 +134,7 @@
 }
 
 .creditPillLabel {
-    font: 600 8.5px var(--font-body);
+    font: 600 .75rem/1.25 var(--font-ui);
     letter-spacing: 0.04em;
     text-transform: uppercase;
     color: var(--chrome-muted);
@@ -144,8 +144,8 @@
 .actions {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 6px;
-    padding: 8px 10px;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-3);
     border-bottom: 1px solid var(--chrome-border);
     flex-shrink: 0;
 }
@@ -154,8 +154,8 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 3px;
-    padding: 7px 3px;
+    gap: var(--space-1);
+    padding: var(--space-2) var(--space-1);
     border: 1px solid var(--chrome-border);
     border-radius: var(--radius-control);
     background: var(--chrome-control);
@@ -173,6 +173,8 @@
 }
 
 .actionBtn:disabled { opacity: .5; cursor: not-allowed; }
+.actionBtn:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+.actionBtn:active:not(:disabled) { background: var(--color-surface); color: var(--color-ink); }
 
 .actionBtnActive {
     border-color: var(--chrome-accent);
@@ -337,7 +339,7 @@
 }
 
 .msgAction {
-    font: 700 10px var(--font-body);
+    font: 600 .75rem/1.25 var(--font-ui);
     text-transform: uppercase;
     letter-spacing: .06em;
 }
@@ -1236,26 +1238,13 @@
 .typing {
     display: flex;
     align-items: center;
-    gap: 4px;
-    padding: 8px 10px;
+    gap: var(--space-1);
+    padding: var(--space-2) var(--space-3);
+    font: 400 .875rem/1.4 var(--font-ui);
     background: var(--chrome-control);
     border-radius: var(--radius-control);
     width: fit-content;
 }
-
-@keyframes typingBounce {
-    0%, 60%, 100% { transform: translateY(0); }
-    30%           { transform: translateY(-5px); }
-}
-.typingDot {
-    width: 5px;
-    height: 5px;
-    border-radius: 50%;
-    background: var(--chrome-accent);
-    animation: typingBounce 1.1s infinite;
-}
-.typingDot:nth-child(2) { animation-delay: .18s; }
-.typingDot:nth-child(3) { animation-delay: .36s; }
 
 /* Historical cards remain readable without exposing obsolete canvas actions. */
 .historyMessage { border: 0; padding: 0; margin: 0; min-width: 0; }

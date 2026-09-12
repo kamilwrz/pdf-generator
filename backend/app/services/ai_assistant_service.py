@@ -34,6 +34,7 @@ from app.services.openai_pricing import (
     usage_from_response,
 )
 from app.services.cv_data import normalize_cv_data
+from app.services.cv_audit import CV_AUDIT_POLICY, CV_AUDIT_RESPONSE_SCHEMA, build_cv_audit_result
 from app.services.cv_editorial_policy import IMPROVE_INSTRUCTION, STYLE_INSTRUCTION, STYLE_REVIEW_POLICY
 from app.services.job_matching_policy import JOB_MATCHING_RULES, JOB_ANALYSIS_TASK
 from app.services.job_tailoring import (
@@ -571,17 +572,10 @@ def _detect_language_mix(elements: list[dict]) -> dict | None:
     }
 
 
-def _language_mix_prompt_block(mix: dict | None, *, for_rating: bool = False) -> str:
+def _language_mix_prompt_block(mix: dict | None) -> str:
     """Format a hard fact block for GPT when bilingual chrome/prose is detected."""
     if not mix:
         return ""
-    rating_rules = ""
-    if for_rating:
-        rating_rules = (
-            "W kategorii Język przyznaj 0 pkt. "
-            "Pierwszy element `priorities` oraz pierwszy tip MUSZĄ dotyczyć ujednolicenia języka "
-            "(nagłówki i treść w jednym języku). "
-        )
     return (
         "\n════════════════════════════════════════\n"
         "FAKT Z WARSTWY DETERMINISTYCZNEJ (OBOWIĄZKOWY — nie ignoruj):\n"
@@ -589,7 +583,6 @@ def _language_mix_prompt_block(mix: dict | None, *, for_rating: bool = False) ->
         "Detektor wykluczył z tej oceny nazwy stanowisk i terminy branżowe. "
         "To jest krytyczny błąd profesjonalizmu. "
         "W `message` wymień spójność językową jako główny problem (przed literówkami i stylistyką). "
-        f"{rating_rules}"
         f"Proponowana naprawa: {mix['fix']}\n"
         "════════════════════════════════════════\n"
     )
@@ -607,55 +600,6 @@ def _feedback_mentions_language_mix(result: dict) -> bool:
             chunks.append(str(item))
     blob = " ".join(chunks)
     return bool(_LANGUAGE_MIX_FEEDBACK_RE.search(blob))
-
-
-def _ensure_language_mix_feedback(result: dict, mix: dict | None) -> dict:
-    """Guarantee bilingual CVs surface language consistency in the dashboard.
-
-    GPT sometimes scores Język low for typos alone and never names Polish
-    headers + English body. When the deterministic detector fires, force the
-    language category to 0 and prepend an explicit priority/tip/message lead.
-    """
-    if not mix or not isinstance(result, dict):
-        return result
-
-    categories = list(result.get("categories") or [])
-    updated_categories = []
-    language_touched = False
-    for cat in categories:
-        if not isinstance(cat, dict):
-            continue
-        next_cat = dict(cat)
-        if str(next_cat.get("id") or "").lower() == "language":
-            next_cat["score"] = 0.0
-            language_touched = True
-        updated_categories.append(next_cat)
-    if language_touched:
-        result["categories"] = updated_categories
-        total = sum(float(c.get("score") or 0) for c in updated_categories)
-        # Keep the coarse 1–10 field aligned with the rubric the UI percentages use.
-        result["rating"] = max(1, min(10, int(round(total))))
-
-    if _feedback_mentions_language_mix(result):
-        return result
-
-    priority = {
-        "title": mix["priority_title"],
-        "description": mix["priority_description"],
-    }
-    priorities = [priority, *(result.get("priorities") or [])]
-    result["priorities"] = priorities[:5]
-
-    tips = [mix["tip"], *(result.get("tips") or [])]
-    result["tips"] = tips[:8]
-
-    message = str(result.get("message") or "").strip()
-    lead = mix["message_sentence"]
-    if message:
-        result["message"] = f"{lead} {message}"
-    else:
-        result["message"] = lead
-    return result
 
 
 def _is_employment_period_line(content: str) -> bool:
@@ -1208,105 +1152,44 @@ def _safe_result(raw: dict, allowed_fields: set = _ALLOWED_FIELDS) -> dict:
 # ── action handlers ────────────────────────────────────────────────────────
 
 def _rate_cv(text: str, elements: list[dict]) -> dict:
-    """Overall CV quality rating (content-focused) with tips and optional patches."""
-    structured = _extract_structured(elements)
-    element_count = len(structured)
+    """Audit current canvas content and return evidence-backed diagnostic findings.
+
+    The strict provider schema is followed by source-quote validation and
+    server-derived counts. No patches or canonical-profile changes are exposed.
+    Invalid completed payloads preserve usage so credit settlement remains fair.
+    """
+    _ = text
+    structured = _extract_structured(sorted(elements, key=_reading_order_key))
     language_mix = _detect_language_mix(elements)
-    mix_block = _language_mix_prompt_block(language_mix, for_rating=True)
-
-    system = (
-        "Jesteś starszym rekruterem i coachem CV z ponad 15-letnim doświadczeniem w branży "
-        "technologicznej, finansowej i konsultingowej. Udzielasz rygorystycznych, szczerych i konkretnych opinii. "
-        "Spójność językowa pełnych zdań, nagłówków sekcji i etykiet meta jest ważnym sygnałem profesjonalizmu. "
-        "Angielskie nazwy stanowisk, technologie, nazwy produktów, certyfikatów i firm są poprawnymi nazwami "
-        "własnymi lub terminami branżowymi w polskim CV: nie są mieszanką języków i nie wolno za nie odejmować punktów. "
-        "Ich polski odpowiednik możesz zasugerować wyłącznie jako opcjonalne dopasowanie do oferty, bez wpływu na ocenę. "
-        "Rzeczywista mieszanka polskich i angielskich zdań jest poważniejsza niż pojedyncze literówki. "
-        "Nie wpisuj liczby oceny w `message` (ani jako X/10, ani jako procent) — interfejs pokazuje ją osobno. "
-        "Zwracaj WYŁĄCZNIE prawidłowy JSON. Wszystkie tekstowe wartości odpowiedzi zwracaj po polsku."
-    )
-    user = f"""Przeprowadź ustrukturyzowaną analizę poniższego CV według rubryki i oblicz dokładną ocenę.
-
-TEKST CV (połączone wszystkie elementy tekstowe):
-{text}
-
-LICZBA ELEMENTÓW: na kanwie znaleziono {element_count} elementów text/textarea.
-{mix_block}
-════════════════════════════════════════
-RUBRYKA OCENY — przeanalizuj wyraźnie każdy etap przed zapisaniem końcowego JSON.
-
-① KOMPLETNOŚĆ SEKCJI (0–2 pkt)
-   Określ, które z sekcji są obecne: dane kontaktowe, podsumowanie/cel,
-   doświadczenie zawodowe, wykształcenie, umiejętności/technologie.
-   Wynik = (liczba obecnych sekcji / 5) × 2. Zaokrąglij do 1 miejsca po przecinku.
-
-② JAKOŚĆ DOŚWIADCZENIA (0–3 pkt)
-   Dla każdego wpisu dotyczącego stanowiska/roli:
-   - Czy zaczyna się od mocnego czasownika działania? (Prowadziłem, Zbudowałem, Zaprojektowałem, Zwiększyłem…)
-   - Czy zawiera co najmniej jeden mierzalny rezultat (%, zł, liczba, zaoszczędzony czas)?
-   Przyznaj: 1 pkt, jeśli >60% punktów używa czasowników działania, 1 pkt, jeśli >40% zawiera metryki,
-   1 pkt, jeśli role pokazują rozwój lub związek z docelową branżą.
-
-③ JĘZYK I PROFESJONALIZM (0–2 pkt)
-   Najpierw sprawdź SPÓJNOŚĆ JĘZYKOWĄ zdań, nagłówków sekcji i etykiet meta:
-   - Czy nagłówki sekcji (np. PODSUMOWANIE ZAWODOWE / DOŚWIADCZENIE / WYKSZTAŁCENIE vs
-     Summary / Experience / Education) są w tym samym języku co treść pod nimi?
-   - Czy etykiety meta (np. „Obecnie” vs „CURRENTLY”) nie psują jednolitego języka?
-   - Mieszanka PL/EN (polskie nagłówki + angielskie zdania opisowe lub odwrotnie) = 0 pkt w tej kategorii
-     i MUSI być pierwszym priorytetem w `message` / `priorities` / `tips`, przed literówkami.
-   - NIE traktuj jako mieszanki języków angielskich nazw stanowisk (np. Web Developer, Data Analyst,
-     Senior Software Engineer), technologii, produktów, firm ani certyfikatów. Są normalne w polskim CV,
-     zwłaszcza przy pracy w międzynarodowej organizacji, i nie obniżają kategorii Język.
-   - Jeśli polski odpowiednik stanowiska mógłby lepiej pasować do konkretnej oferty, możesz dodać łagodną,
-     opcjonalną rekomendację, ale nigdy priorytet ani powód wyniku 0 pkt.
-   Dopiero potem sprawdź: stronę bierną, frazesy, ogólniki oraz błędy gramatyczne i ortograficzne.
-   2 pkt = spójne zdania/nagłówki i brak istotnych problemów.
-   1 pkt = spójne zdania/nagłówki, ale drobne problemy stylistyczne/ortograficzne.
-   0 pkt = rzeczywista niespójność języka zdań/nagłówków albo istotne błędy językowe;
-   same obcojęzyczne nazwy stanowisk i terminy branżowe nigdy nie uzasadniają 0 pkt.
-
-④ FORMAT I HIERARCHIA (0–2 pkt)
-   Na podstawie liczby elementów i różnorodności treści: czy istnieje wyraźna hierarchia wizualna
-   (imię > nagłówki > tekst główny)? Czy długość jest odpowiednia (1–2 strony)?
-   Przyznaj do 2 pkt.
-
-⑤ WYRÓŻNIENIE (0–1 pkt)
-   Czy CV zawiera coś zapadającego w pamięć — wyjątkowe osiągnięcie, rzadką umiejętność,
-   przykład przywództwa lub mierzalny wpływ wyróżniający kandydata?
-   1 pkt, jeśli tak; 0 pkt, jeśli treść jest ogólna.
-
-SUMA = ①+②+③+④+⑤, zaokrąglona do najbliższej liczby całkowitej, w zakresie 1–10.
-════════════════════════════════════════
-
-Zwróć JSON. Wyniki cząstkowe umieść TYLKO w `categories` (nie w tipach).
-Nie dodawaj wskazówki zaczynającej się od „Rozkład oceny”.
-W `message` NIE podawaj oceny liczbowej (zakazane: „8/10”, „80%”, „ocena 8”).
-Interfejs wyświetla ocenę osobno jako procent.
-{{
-  "message": "<3–4 zdania: wskaż 1–2 konkretne mocne strony oraz 1–2 konkretne słabe strony. Jeśli jest niespójność językowa nagłówków i zdań opisowych — nazwij ją jako główny problem. Nie uznawaj nazw stanowisk ani terminów branżowych za niespójność. Bądź bezpośredni. Odnoś się do konkretnych treści z CV. Bez liczby oceny.>",
-  "rating": <obliczona suma 1-10>,
-  "categories": [
-    {{"id": "completeness", "label": "Kompletność", "score": <0-2>, "max": 2}},
-    {{"id": "experience", "label": "Doświadczenie", "score": <0-3>, "max": 3}},
-    {{"id": "language", "label": "Język", "score": <0-2>, "max": 2}},
-    {{"id": "structure", "label": "Struktura", "score": <0-2>, "max": 2}},
-    {{"id": "standout", "label": "Wyróżnienie", "score": <0-1>, "max": 1}}
-  ],
-  "strengths": ["<mocna strona 1>", "<mocna strona 2>"],
-  "priorities": [
-    {{"title": "<krótki tytuł poprawki>", "description": "<1 zdanie z przykładem przed/po>"}}
-  ],
-  "tips": [
-    "<najważniejsza poprawka z przykładem przed/po>",
-    "<druga najważniejsza poprawka>",
-    "<brakująca sekcja lub element, jeśli występuje>",
-    "<możliwość kwantyfikacji: która rola/punkt wymaga metryki>"
-  ],
-  "corrections": [],
-  "web_sources": []
-}}"""
-    result = _gpt_result(system, user, action="rating")
-    return _ensure_language_mix_feedback(result, language_mix)
+    if language_mix:
+        headers, body_chunks = _split_headers_and_body(elements)
+        evidence = []
+        # Cite both sides of the detected mismatch. Using the same source
+        # partition as detection avoids treating international role names as
+        # proof of bilingual prose.
+        for candidates in (headers, body_chunks):
+            for item in structured:
+                content = str(item.get("content") or "")
+                flat = " ".join(content.replace("\\n", "\n").split())
+                if flat in candidates and item.get("element_id"):
+                    evidence.append({"element_id": str(item["element_id"]), "quote": content[:500]})
+                    break
+        language_mix = {**language_mix, "evidence": evidence}
+    user = json.dumps({
+        "UNTRUSTED_CURRENT_CV": structured,
+        "detected_language_consistency": language_mix,
+        "scope": "Current canvas text only; PDF extraction and job-offer fit are separate checks.",
+    }, ensure_ascii=False)
+    raw, usage = _gpt(CV_AUDIT_POLICY, user, action="rating", response_schema=CV_AUDIT_RESPONSE_SCHEMA)
+    try:
+        result = build_cv_audit_result(raw, elements=elements, language_mix=language_mix)
+    except (ValueError, TypeError, KeyError, AttributeError) as exc:
+        raise AIServiceError(
+            "OpenAI returned an invalid CV audit response", action="rating", original=exc,
+            reservation_outcome="settle_usage", usage=usage,
+        ) from exc
+    result["usage"] = usage
+    return result
 
 
 def _tailor_cv_to_position(

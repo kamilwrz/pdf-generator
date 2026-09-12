@@ -1,0 +1,82 @@
+.audit {
+  display: grid;
+  gap: var(--space-6);
+  min-width: 0;
+  color: var(--chrome-ink);
+  background: var(--color-paper);
+  font: 400 1rem/1.55 var(--font-ui);
+  overflow-wrap: anywhere;
+}
+
+.audit *, .audit *::before, .audit *::after { box-sizing: border-box; }
+.audit p, .audit h3, .audit h4, .audit h5, .audit ul, .audit ol, .audit dl, .audit dd, .audit blockquote { margin: 0; }
+.audit h3 { font: 700 1.125rem/1.25 var(--font-ui); }
+.audit h4, .audit h5 { font: 700 1rem/1.4 var(--font-ui); }
+.audit ul, .audit ol { padding-left: var(--space-6); }
+.audit li + li { margin-top: var(--space-2); }
+.audit :focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+.audit h3:focus, .audit h5:focus { outline: 2px solid var(--color-focus); outline-offset: var(--space-1); }
+.audit button {
+  min-height: var(--control-height);
+  max-width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: var(--color-paper);
+  color: var(--chrome-ink);
+  font: 600 1rem/1.4 var(--font-ui);
+  text-align: left;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+.audit button:hover:not(:disabled), .category summary:hover { background: var(--color-surface); }
+.audit button:active:not(:disabled), .category summary:active { background: var(--color-canvas); }
+.audit button:disabled { opacity: .55; cursor: not-allowed; }
+.header, .overview, .priorities, .supporting, .categoryBody, .action { display: grid; gap: var(--space-3); min-width: 0; }
+.eyebrow, .priorityLabel, .findingMeta, .categoryMeta { font: 600 .75rem/1.25 var(--font-ui); }
+.eyebrow { letter-spacing: .06em; text-transform: uppercase; }
+.note { color: var(--color-muted); }
+.overview { border-block: 1px solid var(--color-border); padding-block: var(--space-4); }
+.total { font-weight: 700; }
+.counts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-2) var(--space-4); }
+.counts > div { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-2); border-bottom: 1px solid var(--color-border-soft); padding-block: var(--space-2); }
+.counts dd, .compactCounts dd { font-weight: 700; font-variant-numeric: tabular-nums; }
+.compactCounts { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-4); font-size: .75rem; }
+.compactCounts > div { display: flex; gap: var(--space-1); }
+.priorities ol { display: grid; gap: var(--space-2); }
+.priorities li + li { margin-top: 0; }
+.priorities button { display: grid; gap: var(--space-1); width: 100%; }
+.priorityLabel { color: var(--color-muted); font-weight: 400; }
+.categories { min-width: 0; }
+.categories > h4 { margin-bottom: var(--space-3); }
+.category { border-top: 1px solid var(--color-border); }
+.category:last-child { border-bottom: 1px solid var(--color-border); }
+.category summary { min-height: var(--control-height); padding: var(--space-3) var(--space-2); cursor: pointer; }
+.categoryTitle { font-weight: 700; }
+.categoryMeta { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--space-1) var(--space-3); padding-top: var(--space-2); color: var(--color-muted); }
+.categoryMeta [data-status='clear'] { color: var(--color-success); }
+.categoryMeta [data-status='needs_attention'] { color: var(--color-warning); }
+.category[open] > summary { background: var(--color-surface); }
+.categoryBody { padding: var(--space-4) var(--space-2); }
+.findings { list-style: none; padding: 0 !important; display: grid; gap: var(--space-4); }
+.findings > li { display: grid; gap: var(--space-3); min-width: 0; }
+.findings > li + li { border-top: 1px solid var(--color-border); padding-top: var(--space-4); margin-top: 0; }
+.findingMeta { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-3); color: var(--color-muted); }
+.findingMeta [data-severity='high'] { color: var(--color-warning); }
+.fieldLabel { font-weight: 600; margin-bottom: var(--space-1) !important; }
+.evidence { display: grid; gap: var(--space-2); }
+.audit blockquote { padding: var(--space-2) var(--space-3); border-left: 2px solid var(--color-border); background: var(--color-canvas); white-space: pre-wrap; }
+.question { border-left: 2px solid var(--chrome-ink); padding-left: var(--space-3); }
+.action { justify-items: start; }
+.supporting { border-top: 1px solid var(--color-border); padding-top: var(--space-4); }
+.stale { display: grid; justify-items: start; gap: var(--space-3); padding: var(--space-3); border-left: 2px solid var(--color-warning); background: var(--color-warning-soft); }
+
+/* The assistant itself owns scrolling. Counts and actions can shrink inside
+   its compact drawer, including 200% zoom, without a nested horizontal region. */
+@media (max-width: 767px) {
+  .counts { grid-template-columns: minmax(0, 1fr); }
+  .action, .stale { justify-items: stretch; }
+}
+
+@media print { .audit { display: none; } }

@@ -404,111 +404,34 @@ class LanguageConsistencyTests(unittest.TestCase):
 
     def test_rate_cv_prompt_exempts_international_role_titles_from_language_score(self):
         elements = [
-            {
-                "element_id": "h1",
-                "category": "text",
-                "content": "DOŚWIADCZENIE ZAWODOWE",
-                "page": 1,
-                "top": 10,
-                "left": 0,
-            },
-            {
-                "element_id": "role",
-                "category": "text",
-                "content": "Web Developer",
-                "page": 1,
-                "top": 30,
-                "left": 0,
-            },
-            {
-                "element_id": "body",
-                "category": "textarea",
-                "content": (
-                    "Tworzyłem aplikacje internetowe oraz prowadziłem projekt dla "
-                    "międzynarodowego zespołu w firmie technologicznej."
-                ),
-                "page": 1,
-                "top": 50,
-                "left": 0,
-            },
+            {"element_id": "header", "category": "text", "content": "DOŚWIADCZENIE"},
+            {"element_id": "role", "category": "text", "content": "Web Developer"},
+            {"element_id": "body", "category": "textarea", "content": "Tworzyłem aplikacje internetowe oraz prowadziłem projekt dla zespołu."},
         ]
-        captured = {}
-
-        def fake_gpt_result(system, user, **kwargs):
-            captured["system"] = system
-            captured["user"] = user
-            return {
-                "message": "Angielska nazwa roli jest poprawnym terminem branżowym.",
-                "rating": 8,
-                "tips": [],
-                "categories": [
-                    {"id": "language", "label": "Język", "score": 2, "max": 2},
-                ],
-                "strengths": [],
-                "priorities": [],
-                "corrections": [],
-                "web_sources": [],
-            }
-
-        with patch.object(ai_assistant_service, "_gpt_result", side_effect=fake_gpt_result):
-            result = ai_assistant_service._rate_cv(
-                ai_assistant_service._extract_text(elements),
-                elements,
-            )
-
-        self.assertIn("nie wolno za nie odejmować punktów", captured["system"])
-        self.assertIn("Web Developer, Data Analyst", captured["user"])
-        self.assertNotIn("FAKT Z WARSTWY DETERMINISTYCZNEJ", captured["user"])
-        language = next(c for c in result["categories"] if c["id"] == "language")
-        self.assertEqual(language["score"], 2)
+        raw = {"summary": "Konkretne doświadczenie.", "categories": [{"id": "language", "status": "clear", "summary": "Spójny język.", "findings": []}], "strengths": []}
+        with patch.object(ai_assistant_service, "_gpt", return_value=(raw, {})) as provider:
+            result = ai_assistant_service._rate_cv("", elements)
+        self.assertIn("Web Developer", provider.call_args.args[0])
+        self.assertIn("not evidence of mixed language", provider.call_args.args[0])
+        language = next(c for c in result["audit"]["categories"] if c["id"] == "language")
+        self.assertEqual(language["status"], "clear")
+        self.assertEqual(language["issue_count"], 0)
 
     def test_rate_cv_injects_language_mix_priority_when_model_only_mentions_typos(self):
         elements = self._mixed_pl_headers_en_body()
-        captured = {}
-
-        def fake_gpt_result(system, user, **kwargs):
-            captured["system"] = system
-            captured["user"] = user
-            return {
-                "message": (
-                    "Największy problem to język i forma — w podsumowaniu oraz w sekcji "
-                    "edukacji jest sporo literówek i nienaturalnych sformułowań."
-                ),
-                "rating": 6,
-                "tips": ["Popraw literówki w podsumowaniu."],
-                "categories": [
-                    {"id": "completeness", "label": "Kompletność", "score": 2, "max": 2},
-                    {"id": "experience", "label": "Doświadczenie", "score": 1, "max": 3},
-                    {"id": "language", "label": "Język", "score": 0, "max": 2},
-                    {"id": "structure", "label": "Struktura", "score": 2, "max": 2},
-                    {"id": "standout", "label": "Wyróżnienie", "score": 1, "max": 1},
-                ],
-                "strengths": ["Techniczny profil bioinformatyczny"],
-                "priorities": [
-                    {
-                        "title": "Opisz efekty, nie zadania",
-                        "description": "Zamień ogólne punkty na rezultaty.",
-                    }
-                ],
-                "corrections": [],
-                "web_sources": [],
-            }
-
-        with patch.object(ai_assistant_service, "_gpt_result", side_effect=fake_gpt_result):
-            result = ai_assistant_service._rate_cv(
-                ai_assistant_service._extract_text(elements),
-                elements,
-            )
-
-        self.assertIn("SPÓJNOŚĆ JĘZYKOWĄ", captured["user"])
-        self.assertIn("FAKT Z WARSTWY DETERMINISTYCZNEJ", captured["user"])
-        self.assertIn("spójność językowa", captured["system"].lower())
-        self.assertIn("spójności językowej", result["message"])
-        self.assertEqual(result["priorities"][0]["title"], "Ujednolicić język CV")
-        self.assertIn("Przetłumacz CV", result["priorities"][0]["description"])
-        language = next(c for c in result["categories"] if c["id"] == "language")
-        self.assertEqual(language["score"], 0.0)
-        self.assertEqual(result["rating"], 6)
+        raw = {"summary": "Popraw literówki.", "categories": [{"id": "language", "status": "clear", "summary": "Sprawdź język.", "findings": []}], "strengths": []}
+        with patch.object(ai_assistant_service, "_gpt", return_value=(raw, {})) as provider:
+            result = ai_assistant_service._rate_cv("", elements)
+        self.assertIn("detected_language_consistency", provider.call_args.args[1])
+        language = next(c for c in result["audit"]["categories"] if c["id"] == "language")
+        self.assertEqual(language["status"], "needs_attention")
+        self.assertEqual(language["error_count"], 1)
+        issue = language["findings"][0]
+        self.assertEqual(issue["id"], "language-consistency")
+        self.assertEqual(issue["action"], "translate")
+        self.assertEqual(len(issue["evidence"]), 2)
+        self.assertIn("Przetłumacz CV", issue["recommendation"])
+        self.assertIsNone(result["rating"])
 
 
 class TranslateActionTests(unittest.TestCase):

@@ -17,6 +17,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SERVICE = ROOT / "backend" / "app" / "services" / "ai_assistant_service.py"
 MATCHING_POLICY = ROOT / "backend" / "app" / "services" / "job_matching_policy.py"
 EDITORIAL_POLICY = ROOT / "backend" / "app" / "services" / "cv_editorial_policy.py"
+AUDIT_POLICY = ROOT / "backend" / "app" / "services" / "cv_audit.py"
 SCOPED_SERVICE = ROOT / "backend" / "app" / "services" / "scoped_ai.py"
 INTERVIEW_EDITORIAL = ROOT / "backend" / "app" / "services" / "interview_editorial.py"
 OUT = ROOT / "docs" / "PROMPTS.md"
@@ -31,7 +32,7 @@ class ActionPrompt:
 
 
 ACTIONS = (
-    ActionPrompt("rating", "Sprawdź CV", "_rate_cv", "ocenia jakość i kompletność treści CV"),
+    ActionPrompt("rating", "Sprawdź CV", "_rate_cv", "przeprowadza audyt 12 kategorii treści z dowodami, licznikami i kolejnymi akcjami; ATS i oferta pozostają osobnymi badaniami"),
     ActionPrompt("position_rating", "Dopasuj do oferty", "_tailor_cv_to_position", "analizuje CV wobec oferty; dopasowaną treść przygotowuje wywiad"),
     ActionPrompt("grammar", "Sprawdź błędy", "_fix_grammar", "poprawia gramatykę, ortografię i interpunkcję"),
     ActionPrompt("language", "Popraw język", "_check_style", "ulepsza styl w języku bieżącego CV"),
@@ -113,6 +114,13 @@ def main() -> None:
         "i wspólnych zasad znajdują się poniżej.\n\n"
     )
 
+    parts.append(module_section(
+        AUDIT_POLICY, "Audyt CV: rubryka, dowody i liczniki",
+        "`CV_AUDIT_POLICY` i `CV_AUDIT_RESPONSE_SCHEMA` określają diagnozę bez zmian dokumentu. "
+        "`build_cv_audit_result` sprawdza cytaty względem płótna, usuwa duplikaty, oblicza liczniki "
+        "oraz zachowuje kategorie nieocenione. Zalecenia kierują do wyspecjalizowanych funkcji; "
+        "brakujące fakty wymagają pytań. Audyt nie zwraca procentowej oceny ani poprawek.",
+    ))
     parts.append(module_section(
         EDITORIAL_POLICY,
         "Wspólny standard jakości języka CV",

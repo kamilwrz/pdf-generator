@@ -1,4 +1,5 @@
 import JobMatchPanel from './JobMatchPanel';
+import CvAuditPanel from './CvAuditPanel';
 import { useMessageState } from '../../../i18n/messageState.js';
 import { t as uiText } from "../../../i18n/index.js";
 import { useTranslation } from 'react-i18next';
@@ -719,6 +720,9 @@ function ChatMessage({
     onOpenContentPanel,
     onRunAts,
     onOpenMatchJob,
+    onAuditAction,
+    onRerunAudit,
+    auditStale,
     onShowEvidence,
     onHideEvidence,
     ctaDisabled,
@@ -726,6 +730,7 @@ function ChatMessage({
 }) {
   useTranslation();
     const isUser = msg.role === "user";
+    const hasAudit = !isUser && msg.actionId === "rating" && msg.audit?.version === 1;
     const pendingCount = (msg.corrections || []).filter(
         c => (correctionStates[`${msg.id}_${c.element_id}`] || "pending") === "pending"
     ).length;
@@ -758,13 +763,18 @@ function ChatMessage({
                 )}
 
                 {/* Lead summary first, then structured score card — reads as prose → details. */}
-                {visibleText ? (
+                {visibleText && !hasAudit ? (
                     <p className={`${classes.msgText} ${!isUser ? classes.msgTextAssistant : ""}`}>
                         {visibleText}
                     </p>
                 ) : null}
 
-                {hasDashboard && (
+                {hasAudit && (
+                    <CvAuditPanel audit={msg.audit} auditId={msg.id} onAction={onAuditAction}
+                        onRerun={onRerunAudit} stale={auditStale} disabled={ctaDisabled} />
+                )}
+
+                {hasDashboard && !hasAudit && (
                     <RatingDashboard
                         msg={msg}
                         A4_Elements={A4_Elements}
@@ -778,7 +788,7 @@ function ChatMessage({
                 )}
 
                 {/* Tips under the dashboard; skip when priorities already cover the same ground. */}
-                {msg.tips?.length > 0 && !(hasDashboard && msg.priorities?.length > 0) && (
+                {!hasAudit && msg.tips?.length > 0 && !(hasDashboard && msg.priorities?.length > 0) && (
                     <div className={classes.tipsBlock}>
                         <span className={classes.tipsBlockLabel}>{uiText("ai:aiAssistant.tips")}</span>
                         <ul className={classes.tips}>
@@ -931,6 +941,7 @@ export default function AiAssistant() {
     const reduceMotion = useReducedMotion();
     const {
         sessionKey,
+        revision,
         captureDocumentScope,
         isDocumentScopeCurrent,
     } = useDocumentLifecycle();
@@ -976,6 +987,9 @@ export default function AiAssistant() {
     const [candidateNotes, setCandidateNotes] = useState("");
     const [interview, setInterview] = useState(null);
     const interviewTriggerRef = useRef(null);
+    // Subflows temporarily unmount the audit. Restore its exact recommendation
+    // control by ID when possible, falling back to the persistent quick action.
+    const auditReturnFocusRef = useRef(null);
     const tailorInterviewTriggerRef = useRef(null);
     const matchJobTriggerRef = useRef(null);
     const [jobUrlError, setJobUrlError] = useMessageState("");
@@ -990,6 +1004,7 @@ export default function AiAssistant() {
         if (scopedAi?.isOpen) setActivePanel(null);
     }, [scopedAi?.isOpen, scopedAi?.reviews.length]);
     const [isLoading, setIsLoading] = useState(false);
+    const [pendingAction, setPendingAction] = useState(null);
     const [correctionStates, setCorrectionStates] = useState({});
     const [layoutStates, setLayoutStates] = useState({});
     const [structureStates, setStructureStates] = useState({});
@@ -1021,6 +1036,7 @@ export default function AiAssistant() {
     const activeInterview = interview?.documentKey === sessionKey ? interview : null;
 
     const messagesRef = useRef(null);
+    const focusedAuditRef = useRef(null);
     const fabRef = useRef(null);
     // Synchronous in-flight guard: React state `isLoading` updates too late to
     // block a double-click on suggestion chips before the next render.
@@ -1083,6 +1099,15 @@ export default function AiAssistant() {
             0,
             messageList.scrollHeight - messageList.clientHeight,
         );
+        const latest = messages.at(-1);
+        if (!isLoading && latest?.audit?.version === 1 && focusedAuditRef.current !== latest.id) {
+            const heading = messageList.querySelector(`[data-message-id="${latest.id}"] [data-cv-audit-heading]`);
+            if (heading) {
+                focusedAuditRef.current = latest.id;
+                heading.focus({ preventScroll: true });
+                heading.scrollIntoView({ block: "start", behavior: "auto" });
+            }
+        }
     }, [isLoading, isOpen, messages, scopedAi?.reviews]);
 
     useLayoutEffect(() => {
@@ -1534,6 +1559,7 @@ export default function AiAssistant() {
         if (action !== "position_rating") setMessages(prev => [...prev, userMsg]);
         if (action === "position_rating") setAnalysisError("");
         setIsLoading(true);
+        setPendingAction(action);
 
         try {
             // Warm the Render dyno before the provider call.
@@ -1548,7 +1574,7 @@ export default function AiAssistant() {
             // detected/selected language. Empty lets the backend auto-detect.
             const cvLanguageOverride = options.cv_language || cvLanguage;
             const contentActions = ["grammar", "language", "improve", "shorten", "translate", "position_rating"];
-            const res = await operationApi.httpRequest(
+            const response = await operationApi.httpRequest(
                 ENDPOINTS.AI.ASSISTANT, "POST",
                 JSON.stringify({
                     action,
@@ -1578,6 +1604,14 @@ export default function AiAssistant() {
                     retryOnTimeout: false,
                 },
             );
+
+            // An audit is advisory at both API and presentation boundaries.
+            // Never turn unexpected or replayed legacy result fields into
+            // applicable document edits, even when no audit object is present.
+            const res = action === "rating" ? {
+                ...response, corrections: [], updated_cv_data: null,
+                layout_groups: [], structure_groups: [], deletion_groups: [], clone_groups: [],
+            } : response;
 
             if (
                 chatSessionRef.current !== sessionAtStart
@@ -1611,8 +1645,9 @@ export default function AiAssistant() {
                 createdAt: Date.now(),
                 text: res.message,
                 rating: res.rating ?? null,
+                audit: action === "rating" ? res.audit ?? null : null,
                 tips: res.tips ?? [],
-                corrections: action === "position_rating" ? [] : res.corrections ?? [],
+                corrections: ["rating", "position_rating"].includes(action) ? [] : res.corrections ?? [],
                 categories: res.categories ?? [],
                 strengths: res.strengths ?? [],
                 priorities: res.priorities ?? [],
@@ -1668,6 +1703,7 @@ export default function AiAssistant() {
             if (chatSessionRef.current === sessionAtStart) {
                 requestInFlightRef.current = false;
                 setIsLoading(false);
+                setPendingAction(null);
             }
         }
     }, [A4_Elements, activeCvData, candidateNotes, captureDocumentScope, cvLanguage, isDocumentScopeCurrent, isLoading, jobDesc, jobOfferUrl, pageSize, refreshEntitlements, jobSignature]);
@@ -1675,6 +1711,7 @@ export default function AiAssistant() {
     const handleGoalAction = useCallback((goalId) => {
         const goal = GOAL_ACTIONS.find((g) => g.id === goalId);
         if (!goal) return;
+        auditReturnFocusRef.current = null;
 
         if (goalId === "check_cv") {
             setActivePanel(null);
@@ -1699,6 +1736,7 @@ export default function AiAssistant() {
     }, [send]);
 
     const handleTranslateLanguage = useCallback((lang) => {
+        auditReturnFocusRef.current = null;
         setActivePanel(null);
         send("translate", uiText("ai:aiAssistant.translateCvInto", { value0: (lang.label) }), {
             displayText: uiText("ai:aiAssistant.translate", { value0: (lang.label) }),
@@ -1724,6 +1762,39 @@ export default function AiAssistant() {
     const runAtsScore = useCallback(() => {
         send("ats_score", uiText("ai:aiAssistant.checkAts"));
     }, [send]);
+
+    /** Route audit advice only to existing named tools; model text is never a prompt. */
+    const handleAuditAction = useCallback((message, action) => {
+        if (requestInFlightRef.current || isLoading || !isDocumentScopeCurrent({
+            epoch: Number(message.sourceSessionKey), revision: message.sourceRevision,
+        }, { requireSameRevision: true })) return;
+        auditReturnFocusRef.current = document.activeElement?.id || null;
+        if (action === "interview") { openInterview("enrich"); return; }
+        if (action === "match_job") { openMatchJobPanel(); return; }
+        if (action === "translate") {
+            setActivePanel("translate");
+            requestAnimationFrame(() => document.querySelector('#ai-assistant-panel [data-translate-action]')?.focus());
+            return;
+        }
+        if (["grammar", "language", "improve", "shorten", "ats_score"].includes(action)) {
+            auditReturnFocusRef.current = null;
+            setActivePanel(null);
+            send(action, ACTION_META[action].label);
+        }
+    }, [isDocumentScopeCurrent, isLoading, openInterview, openMatchJobPanel, send]);
+
+    const restoreAuditFocus = useCallback((fallbackRef) => {
+        requestAnimationFrame(() => {
+            const candidate = auditReturnFocusRef.current && document.getElementById(auditReturnFocusRef.current);
+            const target = candidate && !candidate.matches(':disabled') ? candidate : null;
+            // Returning remounts native disclosures in their initial closed
+            // state. Reveal the saved recommendation before restoring focus.
+            const category = target?.closest('details');
+            if (category) category.open = true;
+            (target || fallbackRef.current)?.focus();
+            auditReturnFocusRef.current = null;
+        });
+    }, []);
 
     // Bridge: another surface (e.g. the "CV too long" modal) can request an
     // assistant action by bumping `assistantAction.nonce`. Open the panel and
@@ -1866,7 +1937,8 @@ export default function AiAssistant() {
                                 const tailoring = activeInterview.mode === 'tailor';
                                 setInterview(null);
                                 if (tailoring) setActivePanel('match_job');
-                                requestAnimationFrame(() => (tailoring ? tailorInterviewTriggerRef : interviewTriggerRef).current?.focus());
+                                if (tailoring) requestAnimationFrame(() => tailorInterviewTriggerRef.current?.focus());
+                                else restoreAuditFocus(interviewTriggerRef);
                             }}
                         /></div> : activePanel === 'match_job' ? <JobMatchPanel
                             url={jobOfferUrl} description={jobDesc} notes={candidateNotes}
@@ -1880,11 +1952,14 @@ export default function AiAssistant() {
                                 setJobUrlError(invalid || '');
                                 if (!invalid) openInterview('tailor');
                             }}
-                            onBack={() => { setActivePanel(null); requestAnimationFrame(() => matchJobTriggerRef.current?.focus()); }}
+                            onBack={() => { setActivePanel(null); restoreAuditFocus(matchJobTriggerRef); }}
                         /> : <>
                         {/* goal-oriented quick actions */}
                         <div className={classes.actions}>
-                            <button ref={interviewTriggerRef} type="button" className={classes.actionBtn} disabled={isLoading} onClick={() => openInterview('enrich')}>
+                            <button ref={interviewTriggerRef} type="button" className={classes.actionBtn} disabled={isLoading} onClick={() => {
+                                auditReturnFocusRef.current = null;
+                                openInterview('enrich');
+                            }}>
                                 <FaComments className={classes.actionIcon} aria-hidden="true" />
                                 <span>{uiText("ai:aiAssistant.addToYourCvThroughAnInterview")}</span>
                             </button>
@@ -1965,6 +2040,7 @@ export default function AiAssistant() {
                                         {TRANSLATE_LANGUAGES.map((lang) => (
                                             <button
                                                 key={lang.code}
+                                                data-translate-action
                                                 type="button"
                                                 className={classes.langBtn}
                                                 disabled={isLoading}
@@ -1975,7 +2051,7 @@ export default function AiAssistant() {
                                             </button>
                                         ))}
                                     </div>
-                                    <button type="button" className={classes.jobDescCancel} onClick={() => setActivePanel(null)}>{uiText("ai:aiAssistant.cancel")}</button>
+                                    <button type="button" className={classes.jobDescCancel} onClick={() => { setActivePanel(null); restoreAuditFocus(interviewTriggerRef); }}>{uiText("ai:aiAssistant.cancel")}</button>
                                 </Motion.div>
                             )}
                         </AnimatePresence>
@@ -2004,8 +2080,8 @@ export default function AiAssistant() {
                                     <ScopedAiReview review={msg.scopedReview} />
                                 </Motion.div>
                             ) : (
-                                <fieldset key={msg.id} className={classes.historyMessage}
-                                    disabled={msg.sourceSessionKey !== sessionKey}>
+                                <fieldset key={msg.id} data-message-id={msg.id} className={classes.historyMessage}
+                                    disabled={msg.sourceSessionKey !== sessionKey && !(msg.actionId === "rating" && msg.audit?.version === 1)}>
                                 {msg.sourceSessionKey !== sessionKey && msg.role !== "user" && (
                                     <p className={classes.historyNotice}>{uiText("ai:aiAssistant.resultFromAPreviousTemplateReadOnly")}</p>
                                 )}
@@ -2038,6 +2114,9 @@ export default function AiAssistant() {
                                     onOpenContentPanel={openContentPanel}
                                     onRunAts={runAtsScore}
                                     onOpenMatchJob={openMatchJobPanel}
+                                    onAuditAction={(action) => handleAuditAction(msg, action)}
+                                    onRerunAudit={() => send("rating", ACTION_META.rating.label)}
+                                    auditStale={msg.sourceSessionKey !== sessionKey || msg.sourceRevision !== revision}
                                     onShowEvidence={msg.sourceSessionKey === sessionKey ? showJobEvidence : () => {}}
                                     onHideEvidence={hideJobEvidence}
                                     ctaDisabled={isLoading}
@@ -2047,10 +2126,7 @@ export default function AiAssistant() {
                             ))}
                             {isLoading && (
                                 <div className={classes.typing} role="status" aria-live="polite">
-                                    <span className={classes.srOnly}>{uiText("ai:aiAssistant.theAssistantIsAnalysingTheDocumentThis")}</span>
-                                    <div className={classes.typingDot} />
-                                    <div className={classes.typingDot} />
-                                    <div className={classes.typingDot} />
+                                    <span>{uiText(pendingAction === "rating" ? "ai:cvAudit.loading" : "ai:aiAssistant.theAssistantIsAnalysingTheDocumentThis")}</span>
                                 </div>
                             )}
                         </div>

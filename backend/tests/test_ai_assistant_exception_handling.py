@@ -88,6 +88,38 @@ class AiAssistantExceptionHandlingTests(unittest.TestCase):
             headers={"Idempotency-Key": "rating-test-key"},
         )
 
+    def test_cached_rating_is_read_only_and_keeps_the_audit_payload(self):
+        cached = {"message": "Audit", "audit": {"version": 1, "total_findings": 2},
+                  "corrections": [{"element_id": "body", "content": "changed"}],
+                  "updated_cv_data": {"summary": "changed"}, "layout_groups": [{}],
+                  "deletion_groups": [{}], "clone_groups": [{}], "structure_groups": [{}]}
+        self.reserve_mock.return_value = SimpleNamespace(reservation_id="r-1", replay_response=cached)
+        with patch.object(ai_assistant_route, "analyze_action") as provider:
+            response = self._post()
+        self.assertEqual(response.status_code, 200, response.text)
+        provider.assert_not_called()
+        body = response.json()
+        self.assertEqual(body["audit"], cached["audit"])
+        self.assertIsNone(body["updated_cv_data"])
+        for key in ("corrections", "layout_groups", "deletion_groups", "clone_groups", "structure_groups"):
+            self.assertEqual(body[key], [])
+
+    def test_fresh_rating_is_read_only_before_credit_receipt_is_saved(self):
+        response_payload = {"message": "Audit", "audit": {"version": 1, "total_findings": 1},
+                            "usage": {"cost_pln_estimate": 0.01},
+                            "corrections": [{"element_id": "body", "content": "changed"}],
+                            "updated_cv_data": {"summary": "changed"}, "deletion_groups": [{}]}
+        with patch.object(ai_assistant_route, "analyze_action", return_value=response_payload), patch.object(
+            ai_assistant_route, "settle_ai_reservation", side_effect=lambda *args, **kwargs: kwargs["response_payload"],
+        ) as settlement:
+            response = self._post()
+        self.assertEqual(response.status_code, 200, response.text)
+        receipt = settlement.call_args.kwargs["response_payload"]
+        self.assertEqual(receipt["corrections"], [])
+        self.assertEqual(receipt["deletion_groups"], [])
+        self.assertIsNone(receipt["updated_cv_data"])
+        self.assertEqual(response.json()["audit"], response_payload["audit"])
+
     def test_ai_service_error_reaches_app_handler_with_generic_message(self):
         def raise_ai_service_error(**kwargs):
             raise AIServiceError("OpenAI request failed: RateLimitError", action="rating")

@@ -24,6 +24,7 @@ from app.services.ai_assistant_service import (
     analyze_action,
 )
 from app.services.ai_credit_budget import assistant_credit_budget
+from app.services.cv_audit import audit_read_only_result
 from app.services.ats_readability import AtsReadabilityError
 from app.services.scoped_ai import ScopedContent, review_scoped_content
 from app.services.document_service import validate_and_resolve_image_elements
@@ -158,6 +159,9 @@ class AssistantResponse(BaseModel):
     categories: list[dict] = []
     strengths: list[str] = []
     priorities: list[dict] = []
+    # Rating now returns a detailed diagnostic audit with computed issue counts.
+    # Other actions and older cached receipts keep this additive field empty.
+    audit: dict | None = None
     job_offer: dict | None = None
     job_requirements: list[dict] = []
     analysis_key: str | None = None
@@ -307,6 +311,8 @@ def ai_assistant(
     )
     if claim.replay_response is not None:
         replay = dict(claim.replay_response)
+        if request.action == 'rating':
+            replay = audit_read_only_result(replay)
         if request.action == 'position_rating':
             replay.update(corrections=[], updated_cv_data=None)
         return AssistantResponse(**replay)
@@ -418,6 +424,8 @@ def ai_assistant(
             },
         )
 
+    if request.action == 'rating':
+        result = audit_read_only_result(result)
     if request.action == 'position_rating':
         result['analysis_key'] = key
         result['corrections'] = []
@@ -457,4 +465,6 @@ def ai_assistant(
                 "message": localised_message('the_ai_result_requires_billing_reconciliation_please_try'),
             },
         )
+    if request.action == 'rating':
+        settled = audit_read_only_result(settled)
     return AssistantResponse(**settled)
