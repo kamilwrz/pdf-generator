@@ -131,7 +131,7 @@ test("translation replaces the removed appearance goal in the quick actions", as
 
     const goals = source.match(/const GOAL_ACTIONS = \[([\s\S]*?)\];/)?.[1] || "";
     const goalIds = [...goals.matchAll(/id:\s*"([^"]+)"/g)].map((match) => match[1]);
-    assert.deepEqual(goalIds, ["check_cv", "improve_content", "match_job", "translate"]);
+    assert.deepEqual(goalIds, ["check_cv", "ats_score", "improve_content", "match_job", "translate"]);
 
     // Flat feature-centric tiles should no longer be the primary menu.
     assert.doesNotMatch(source, /label: "Oceń CV"/);

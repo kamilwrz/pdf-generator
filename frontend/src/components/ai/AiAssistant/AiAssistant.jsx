@@ -2,9 +2,9 @@ import { useMessageState } from '../../../i18n/messageState.js';
 import { t as uiText } from "../../../i18n/index.js";
 import { useTranslation } from 'react-i18next';
 /**
- * Floating AI assistant: quick actions + freeform chat against the canvas.
- * Sends element snapshots to POST /ai/assistant; chat may return previewable
- * position/structure/deletion/clone review cards before mutating canvas state.
+ * Floating AI assistant with predefined actions against the current canvas.
+ * Sends element snapshots to POST /ai/assistant and presents results or
+ * reviewable corrections before mutating canvas state.
  */
 import { useState, useRef, useEffect, useLayoutEffect, useCallback } from "react";
 import { AnimatePresence, motion as Motion, useReducedMotion } from "framer-motion";
@@ -12,7 +12,7 @@ import { nanoid } from "nanoid";
 import InterviewFlow from '../Interview/InterviewFlow';
 import { BsStars } from "react-icons/bs";
 import {
-    FaBriefcase, FaComments, FaFont, FaMagic, FaLanguage, FaSearch,
+    FaBriefcase, FaComments, FaFont, FaMagic, FaLanguage, FaSearch, FaClipboardCheck,
 } from "react-icons/fa";
 import { RiEditLine, RiScissorsLine } from "react-icons/ri";
 import { IoClose } from "react-icons/io5";
@@ -78,7 +78,7 @@ function withoutEmptyContentReplacement(fields, allowEmptyContent = false) {
 
 /**
  * Top-level goals. Submenus open for improve_content / translate / match_job;
- * check_cv starts its flow immediately.
+ * check_cv and ats_score start independently without a prerequisite review.
  */
 const GOAL_ACTIONS = [
     {
@@ -87,6 +87,13 @@ const GOAL_ACTIONS = [
         icon: FaSearch,
         color: CHROME_ACCENT,
         get description() { return uiText("ai:aiAssistant.overallCvReviewContentExperienceLanguageAnd"); },
+    },
+    {
+        id: "ats_score",
+        get label() { return uiText("ai:aiAssistant.assessAts"); },
+        icon: FaClipboardCheck,
+        color: CHROME_ACCENT,
+        get description() { return uiText("ai:aiAssistant.checkAtsReadability"); },
     },
     {
         id: "improve_content",
@@ -1670,6 +1677,7 @@ export default function AiAssistant() {
             return;
         }
 
+        setActivePanel(null);
         send(goalId, goal.label);
     }, [send]);
 
@@ -1860,6 +1868,7 @@ export default function AiAssistant() {
                             {GOAL_ACTIONS.map((action) => (
                                 <button
                                     key={action.id}
+                                    type="button"
                                     className={`${classes.actionBtn} ${action.panel && activePanel === action.panel
                                         ? classes.actionBtnActive
                                         : ""}`}
@@ -1869,7 +1878,7 @@ export default function AiAssistant() {
                                     title={action.description}
                                     aria-pressed={action.panel ? activePanel === action.panel : undefined}
                                 >
-                                    <action.icon className={classes.actionIcon} />
+                                    <action.icon className={classes.actionIcon} aria-hidden="true" />
                                     <span>{action.label}</span>
                                 </button>
                             ))}

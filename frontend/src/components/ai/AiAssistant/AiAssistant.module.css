@@ -150,10 +150,6 @@
     flex-shrink: 0;
 }
 
-.actions .actionBtn:last-child:nth-child(odd) {
-    grid-column: 1 / -1;
-}
-
 .actionBtn {
     display: flex;
     flex-direction: column;
@@ -164,7 +160,8 @@
     border-radius: var(--radius-control);
     background: var(--chrome-control);
     cursor: pointer;
-    font: 600 10px var(--font-body);
+    min-height: var(--control-height);
+    font: 600 12px var(--font-body);
     color: var(--chrome-muted);
     transition: border-color .15s, color .15s, background .15s, transform .1s;
 }
