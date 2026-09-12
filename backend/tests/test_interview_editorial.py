@@ -227,7 +227,9 @@ def test_follow_up_consumes_remaining_budget_and_skip_does_not_create_fact(envir
     row.state = state
     row.state = {**row.state, 'question_limit': 2}
     db.commit()
-    followup = {'topic': 'testy', 'text': 'Jakie zadanie wykonywałeś osobiście?', 'reason': 'Doprecyzujmy wkład.', 'context': 'Projekt', 'follow_up_to': 'q'}
+    # Ask about a concrete detail introduced by RAW. Repeating the already
+    # answered ownership question now correctly triggers the diversity fallback.
+    followup = {'topic': 'testy', 'text': 'Co obejmował raport przekazywany opiekunowi?', 'reason': 'Doprecyzujmy treść raportu.', 'context': 'Projekt', 'follow_up_to': 'q'}
     profile = service.profile_payload(db, user.id)
     with patch.object(service, '_gpt', return_value=({'questions': [followup], 'requirements': []}, USAGE)):
         result = client.post(f"/ai/interviews/{row.id}/next", json=version(session, 2))

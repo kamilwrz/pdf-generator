@@ -60,6 +60,18 @@ def test_missing_analysis_cannot_mark_discovery_complete():
     assert state['planned_question_count'] is None
 
 
+def test_partial_requirement_scope_keeps_only_referenced_confirmed_facts():
+    facts = service.source_facts({'experience': [{'title': 'Analityk', 'company': 'Acme',
+                                                'bullets': ['Porównuję raporty w SQL.']}]}, 'document:1')
+    relevant = next(fact for fact in facts if fact['text'] == 'Porównuję raporty w SQL.')
+    state = {'mode': 'tailor', 'job_analysis_ready': True, 'question_limit': 5, 'answers': [],
+             'requirements': requirement_topics([{'text': 'SQL reporting and data quality', 'status': 'partial',
+                                                   'evidence_refs': [relevant['id'], 'missing-reference']}])}
+    entries = update_discovery_budget(state, {'facts': facts})
+    assert entries[0]['facts'] == [relevant]
+    assert entries[0]['status'] == 'partial'
+
+
 def test_direct_interview_analyses_once_and_passes_cv_and_profile_to_questions(environment):
     client, _, _, _ = environment
     session = confirm(client, create(client, mode='tailor', job_description='SQL and Python'))
@@ -78,6 +90,9 @@ def test_direct_interview_analyses_once_and_passes_cv_and_profile_to_questions(e
         assert context['source_cv_data']['name'] == 'Anna Nowak'
         assert context['profile'] == facts
         assert context['question_scope']['kind'] == 'requirement'
+        assert provider.call_args_list[0].args[0] == service.SYSTEM
+        assert provider.call_args_list[1].args[0] == service.SYSTEM + service.QUESTION_POLICY
+        assert 'question_guidance' in context
     response = client.post(f"/ai/interviews/{session['id']}/answers", json={**version(session, 1),
         'question_id': session['question']['id'], 'answer': 'I wrote scripts at Acme.', 'status': 'answered'})
     assert response.status_code == 200, response.text

@@ -211,8 +211,13 @@ def update_discovery_budget(state, profile):
             state['discovery_exhausted'] = False
             state['planned_question_count'] = None
             return []
+        # Keep only evidence from the selected, confirmed store. Requirement
+        # text describes the job, while these facts anchor partial-match probes
+        # to the candidate without treating the offer itself as experience.
+        facts_by_id = {fact['id']: fact for fact in profile['facts']}
         entries = [{'id': item['id'], 'kind': 'requirement', 'label': item['text'],
-                    'facts': [], 'question_count': 2, 'status': item['status']}
+                    'facts': [facts_by_id[ref] for ref in item.get('evidence_refs', []) if ref in facts_by_id],
+                    'question_count': 2, 'status': item['status']}
                    for item in state.get('requirements', []) if item['status'] in {'partial', 'unknown', 'gap'}]
         # Two slots per requirement, never a third model follow-up. Answers remain
         # authoritative across retries, refresh and explicit extension requests.
@@ -251,9 +256,12 @@ def scoped_question(candidate, selected, entries, answers, is_fresh):
     """Accept a valid scoped proposal or use a neutral local question, without retry.
 
     The server owns the entry and displayed context. A wrong/absent scope,
-    repeated wording or illegal follow-up cannot terminate discovery or switch
-    to an exhausted project. Local fallbacks supply no suggested factual answer.
+    repeated wording/intent or illegal follow-up cannot terminate discovery or
+    switch to an exhausted project. Local fallbacks vary substantive angles
+    using the same history as provider guidance, without suggested factual answers.
     """
+    from app.services.interview_questions import fallback_question, is_distinct_question
+
     history = entry_answers(selected, entries, answers)
     if candidate:
         resolved = question_entry(candidate, entries, answers)
@@ -265,65 +273,6 @@ def scoped_question(candidate, selected, entries, answers, is_fresh):
         # legitimately have the same topic name, such as responsibilities.
         if resolved == selected["id"] and named_entry in {None, selected["id"]} and valid_follow_up and is_fresh(candidate, history):
             # Exact wording must also be fresh across the whole conversation.
-            if _key(candidate["text"]) not in {_key(a["question"].get("text", "")) for a in answers}:
-                return {**candidate, "entry_id": selected["id"], "context": selected["label"]}
-    kind, label = selected["kind"], selected["label"]
-    second = selected["ordinary_asked"] > 0
-    if kind == 'requirement':
-        text = (f"Jaki konkretny przykład i rezultat pokazuje Twoje doświadczenie w zakresie: {label}? Podaj też, gdzie miało to miejsce."
-                if second else f"Oferta wymaga: {label}. Jakie masz związane z tym doświadczenie i co robiłeś lub robiłaś samodzielnie?")
-        if ui_language.get() == 'en':
-            text = (f"What specific example and result demonstrate your experience with {label}? Include where this happened."
-                    if second else f"The job asks for {label}. What relevant experience do you have, and what did you do yourself?")
-        return {'entry_id': selected['id'], 'topic': f"{selected['id']}:{int(second) + 1}",
-                'text': text, 'context': label, 'follow_up_to': None,
-                'reason': 'We will use your answer to describe your experience for this job.' if ui_language.get() == 'en'
-                else 'Odpowiedź pomoże opisać Twoje doświadczenie pod kątem tej oferty.'}
-    if selected["id"].startswith("general:"):
-        text = {
-            "experience": "Jakie masz doświadczenie zawodowe, w tym praktyki lub wolontariat? Podaj role i miejsca pracy.",
-            "custom_sections": "Jakie projekty własne lub edukacyjne chcesz opisać w CV? Podaj ich nazwy i krótko cel.",
-            "skills": "Które umiejętności chcesz uwzględnić w CV i do czego ich używasz?",
-            "languages": "Jakie języki znasz i jak oceniasz swój poziom w każdym z nich?",
-        }[kind]
-    elif kind == "languages":
-        text = f"Jak oceniasz swój poziom języka: {label}? Możesz podać poziom A1–C2 lub opisać, w jakich sytuacjach się nim posługujesz."
-    elif kind == "skills":
-        text = f"W jakim zadaniu wykorzystujesz umiejętności z wpisu „{label}” i co potrafisz wykonać samodzielnie?"
-    elif second:
-        text = f"Jaki efekt swojej pracy lub nauki możesz potwierdzić we wpisie „{label}”? Jeśli nie masz mierzalnego wyniku, opisz konkretny przykład."
-    else:
-        text = f"Co konkretnie robiłeś lub robiłaś we wpisie „{label}” i za co odpowiadałeś lub odpowiadałaś osobiście?"
-    if ui_language.get() == "en":
-        if selected["id"].startswith("general:"):
-            text = {
-                "experience": "What work experience do you have, including placements or volunteering? List your roles and workplaces.",
-                "custom_sections": "Which personal or educational projects would you like to describe in your CV? Give their names and a brief purpose.",
-                "skills": "Which skills would you like to include in your CV, and what do you use them for?",
-                "languages": "Which languages do you speak, and how would you assess your level in each?",
-            }[kind]
-        elif kind == "languages":
-            text = f"How would you assess your level in {label}? You can give an A1–C2 level or describe the situations in which you use it."
-        elif kind == "skills":
-            text = f"In what task do you use the skills from ‘{label}’, and what can you do independently?"
-        elif second:
-            text = f"What result of your work or studies can you substantiate for ‘{label}’? If you do not have a measurable result, give a specific example."
-        else:
-            text = f"What exactly did you do in ‘{label}’, and what were you personally responsible for?"
-    # A legacy/model question may already use the fallback's exact wording.
-    # Select a bounded alternative without spending another model request.
-    seen = {_key(a["question"].get("text", "")) for a in answers}
-    if _key(text) in seen:
-        text = f"Co jeszcze warto dopisać do wpisu „{label}” w zakresie {'efektów' if second else 'Twoich zadań'}? Wystarczy jeden konkretny przykład."
-        if ui_language.get() == "en":
-            topic = "results" if second else "your tasks"
-            text = f"What else should we add to ‘{label}’ about {topic}? One specific example is enough."
-    if _key(text) in seen:
-        position = next(i for i, entry in enumerate(entries, 1) if entry['id'] == selected['id'])
-        text = f"Wpis {position}, „{label}”: jaki {'efekt' if second else 'zakres własnej pracy'} chcesz jeszcze opisać?"
-        if ui_language.get() == "en":
-            topic = "result" if second else "scope of your own work"
-            text = f"Entry {position}, ‘{label}’: what {topic} would you still like to describe?"
-    reason = "We will complete this entry, then move on to the next information." if ui_language.get() == "en" else "Uzupełnimy ten wpis, a następnie przejdziemy do kolejnych informacji."
-    return {"entry_id": selected["id"], "topic": f"entry:{selected['id']}:{'result' if second else 'contribution'}"[:150],
-            "text": text, "context": label, "reason": reason, "follow_up_to": None}
+            if is_distinct_question(candidate, selected, entries, answers):
+                return {**candidate, "entry_id": selected["id"], "context": selected["label"][:350]}
+    return fallback_question(selected, entries, answers)

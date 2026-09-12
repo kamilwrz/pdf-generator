@@ -84,6 +84,12 @@ class SourceRefresh(SessionWrite):
 class Question(Contract):
     # The server selects a record scope; old saved questions may omit this ID.
     entry_id: str | None = Field(default=None, min_length=1, max_length=200)
+    # This describes the question's intent, never evidence about the candidate.
+    # Null preserves historical sessions; new questions use a bounded vocabulary
+    # so renaming free-form topics cannot disguise an ordinary repeated angle.
+    angle: Literal["overview", "problem", "approach", "decision", "constraint", "quality",
+                   "collaboration", "learning", "outcome", "contribution", "application",
+                   "proficiency"] | None = None
     topic: str = Field(max_length=150)
     text: str = Field(max_length=1000)
     reason: str = Field(max_length=1000)

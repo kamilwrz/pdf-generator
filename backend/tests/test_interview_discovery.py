@@ -262,3 +262,81 @@ def test_previous_interview_notes_do_not_double_the_same_project_budget():
     assert len(entries) == 6
     assert next_entry(entries, [])['label'] == 'Atlas'
     assert 'answer-previous-session' in {f['id'] for f in entries[0]['facts']}
+
+
+@pytest.mark.parametrize('language', ['pl', 'en'])
+def test_question_angles_survive_resume_and_reject_renamed_repeats_without_paid_retry(environment, language):
+    client, _, _, _ = environment
+    session = confirm(client, create(client, mode='enrich', include_profile=False, cv_data=CV))
+    captured = []
+
+    def repeating_provider(system, body, **kwargs):
+        context = json.loads(body)
+        captured.append(context)
+        label = context['question_scope']['label']
+        question = (f'Jak sprawdzasz jakość pracy w projekcie {label}?' if len(captured) == 1
+                    else f'W jaki sposób weryfikujesz jakość pracy w projekcie {label}?')
+        if language == 'en':
+            question = (f'How do you check the quality of work in {label}?' if len(captured) == 1
+                        else f'How do you verify the quality of work in {label}?')
+        return {'questions': [{'entry_id': context['question_scope']['id'], 'angle': 'quality',
+                               'topic': f'renamed-{len(captured)}', 'text': question, 'context': label,
+                               'reason': 'Quality check', 'follow_up_to': None}], 'requirements': []}, {'cost_pln_estimate': .01}
+
+    headers = {'Accept-Language': language}
+    with patch.object(service, '_gpt', side_effect=repeating_provider) as provider:
+        result = client.post(f"/ai/interviews/{session['id']}/next", headers=headers,
+                             json=version(session, session['profile_revision']))
+        assert result.status_code == 200, result.text
+        session = result.json()
+        assert session['question']['angle'] == 'quality'
+        first = session['question']
+        answer = 'Porównuję raport ze źródłem; wynik już opisałam w CV. Nie mam dodatkowych liczb.'
+        result = client.post(f"/ai/interviews/{session['id']}/answers", headers=headers, json={
+            **version(session, session['profile_revision']), 'question_id': first['id'],
+            'answer': answer, 'status': 'answered',
+        })
+        assert result.status_code == 200, result.text
+        session = client.get(f"/ai/interviews/{session['id']}", headers=headers).json()
+        assert session['answers'][0]['question']['angle'] == 'quality'
+        result = client.post(f"/ai/interviews/{session['id']}/next", headers=headers,
+                             json=version(session, session['profile_revision']))
+        assert result.status_code == 200, result.text
+        session = result.json()
+        assert session['question']['angle'] != 'quality'
+        assert session['question']['entry_id'] == first['entry_id']
+        assert session['question']['follow_up_to'] is None
+        assert 'quality' in captured[1]['question_guidance']['covered_angles']
+        assert captured[1]['answers'][0]['answer'] == answer
+        assert provider.call_count == 2
+        # Loading an already displayed fallback must not bill another model call.
+        result = client.post(f"/ai/interviews/{session['id']}/next", headers=headers,
+                             json=version(session, session['profile_revision']))
+        assert result.status_code == 200 and result.json()['question'] == session['question']
+        assert provider.call_count == 2
+
+
+def test_angle_contract_is_bounded_and_compatible_with_saved_questions():
+    from pydantic import ValidationError
+    from app.schemas.interview_schema import Question
+
+    old = {'topic': 'legacy', 'text': 'Pytanie?', 'reason': '', 'context': ''}
+    assert Question.model_validate(old).angle is None
+    schema = provider_schema(Discovery)['schema']['$defs']['Question']
+    assert 'angle' in schema['required']
+    with pytest.raises(ValidationError):
+        Question.model_validate({**old, 'angle': 'arbitrary-new-topic'})
+
+
+def test_accepted_question_keeps_long_requirement_context_inside_question_contract():
+    from app.schemas.interview_schema import Question
+
+    entry = {'id': 'requirement:one', 'kind': 'requirement', 'label': 'a' * 1000,
+             'facts': [], 'question_count': 2}
+    candidate = {'entry_id': entry['id'], 'angle': 'application', 'topic': 'specific-example',
+                 'text': 'Czy masz przykład takiego zadania?', 'context': '', 'reason': '', 'follow_up_to': None}
+    selected = next_entry([entry], [])
+    accepted = scoped_question(candidate, selected, [entry], [], service.is_fresh_question)
+    assert accepted['text'] == candidate['text']
+    assert accepted['context'] == entry['label'][:350]
+    Question.model_validate(accepted)
