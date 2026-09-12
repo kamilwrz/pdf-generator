@@ -194,6 +194,10 @@ class PdfElement(BaseModel):
     # placeholder/home descriptors restore the exact template composition.
     photoSlotHidden: Optional[bool] = False
     photoPlaceholder: Optional[dict[str, Any]] = None
+    # Authored photo-free position for attached contact chrome (e.g. Linden's
+    # heading/rule). Null means no override; losing this value on save leaves
+    # the heading in its photo-visible position while contacts move upward.
+    profilePhotoHiddenTop: Optional[float] = None
     profilePhotoMainContactBand: Optional[dict[str, Any]] = None
     profilePhotoMainMastheadIdentity: Optional[dict[str, Any]] = None
     photoLayoutHome: Optional[dict[str, Any]] = None

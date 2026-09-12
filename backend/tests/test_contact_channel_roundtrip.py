@@ -3,7 +3,14 @@
 Verifies the `extra_properties` pack/unpack in `crud/pdfs.py` carries the new
 Phase-1 contact fields through the `PdfElements` row model without a migration.
 """
-from app.crud.pdfs import elements_from_rows
+import pytest
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session
+
+from app.crud.pdfs import create_new_pdf, elements_from_rows, update_pdf_elements
+from app.models.models import Base, PdfElements, User
+from app.schemas.pdf_schema import PDFCreateRequest, PdfElement
+from app.services.cv_generator import generate_resume
 
 
 class _Row:
@@ -74,6 +81,90 @@ def test_profile_photo_visibility_state_unpacks_from_extra_properties():
     assert element.profilePhotoMainContactBand == main_band
     assert element.profilePhotoMainMastheadIdentity == main_identity
     assert element.photoLayoutHome == {"top": 191}
+
+
+@pytest.mark.parametrize("write_path", ["create", "update-existing", "insert-on-update"])
+def test_linden_contact_chrome_hidden_positions_survive_persistence(write_path):
+    """All write paths preserve generated contact heading/rule photo offsets.
+
+    A validated full Linden graph crosses the real SQLite JSON column and is
+    reconstructed after expiration. The update cases independently cover both
+    existing rows and newly inserted elements, which use separate CRUD paths.
+    """
+    generated = generate_resume("linden", {
+        "name": "Anna Kowalska",
+        "title": "Compliance analyst",
+        "email": "anna@example.com",
+        "phone": "+48 123 456 789",
+        "skills": ["CDD/EDD oraz screening PEP, Sanctions i Adverse Media"],
+    })
+    # Canvas/API preparation supplies stable editor IDs after generation.
+    generated = [
+        {**element, "element_id": f"linden-{index}"}
+        for index, element in enumerate(generated)
+    ]
+    expected = {
+        element["element_id"]: element["profilePhotoHiddenTop"]
+        for element in generated if "profilePhotoHiddenTop" in element
+    }
+    assert sorted(expected.values()) == [38.0, 52.0]
+    payload = PDFCreateRequest.model_validate({
+        "pdf_title": "Linden photo roundtrip",
+        "editor_mode": "template",
+        "template_id": "linden",
+        "root": generated,
+    })
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    try:
+        with Session(engine) as database:
+            owner = User(username="photo-roundtrip", email="photo@example.com")
+            database.add(owner)
+            database.flush()
+            initial = []
+            if write_path == "create":
+                initial = payload.root
+            elif write_path == "update-existing":
+                initial = [
+                    element.model_copy(update={"profilePhotoHiddenTop": None})
+                    for element in payload.root
+                ]
+            pdf_id = create_new_pdf(
+                database, payload.pdf_title, owner.id, None, initial,
+                editor_mode="template", template_id="linden",
+            )
+            if write_path != "create":
+                existing = {
+                    row.element_id: row
+                    for row in database.query(PdfElements).filter_by(pdf_id=pdf_id).all()
+                }
+                update_pdf_elements(database, payload.root, existing, pdf_id)
+                database.commit()
+            database.expire_all()
+            rows = database.query(PdfElements).filter_by(pdf_id=pdf_id).all()
+            assert {
+                row.element_id: row.extra_properties.get("profilePhotoHiddenTop")
+                for row in rows if row.element_id in expected
+            } == expected
+            reloaded = {element.element_id: element for element in elements_from_rows(rows)}
+            for element in payload.root:
+                restored = reloaded[element.element_id]
+                assert restored.model_dump().get("profilePhotoHiddenTop") == expected.get(element.element_id)
+                assert restored.top == element.top
+                # Dimensions use a string column to also support CSS values.
+                assert str(restored.height) == str(element.height)
+    finally:
+        engine.dispose()
+
+
+@pytest.mark.parametrize("hidden_top", [None, 0.0, 38.0])
+def test_profile_photo_hidden_top_retains_optional_geometry(hidden_top):
+    """Missing positions stay null; zero is valid geometry rather than absence."""
+    element = PdfElement.model_validate({
+        "category": "text", "element_id": "contact-label",
+        "profilePhotoHiddenTop": hidden_top,
+    })
+    assert element.model_dump()["profilePhotoHiddenTop"] == hidden_top
 
 
 def test_sterling_appearance_state_unpacks_from_extra_properties():

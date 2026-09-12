@@ -262,6 +262,73 @@ describe("profile photo visibility", () => {
     );
   });
 
+  for (const hidden of [false, true]) {
+    for (const headerAtHiddenTop of [false, true]) {
+      it(`repairs legacy Linden contact chrome (hidden=${hidden}, headerAtHiddenTop=${headerAtHiddenTop}) without reflowing text`, () => {
+        const source = withIds(lindenTemplate);
+        const header = source.filter((element) => element.profilePhotoHiddenTop != null);
+        const hiddenResult = hideProfilePhoto(source, "linden");
+        const state = hidden ? alignSidebarAfterProfileContacts(applyChannelRelayout(
+          hiddenResult.elements, hiddenResult.contactBandId,
+          (text) => String(text).length * 5, () => "unused-id",
+        ).elements, hiddenResult.contactBandId, "linden") : source;
+        // Earlier saves dropped the destination for these two masthead
+        // elements. Either photo state can therefore contain either position.
+        const legacy = state.map((element) => {
+          const original = header.find((item) => item.element_id === element.element_id);
+          if (!original) return element;
+          const { profilePhotoHiddenTop: _hiddenTop, photoLayoutHome: _home, ...rest } = element;
+          return { ...rest, top: headerAtHiddenTop ? original.profilePhotoHiddenTop : original.top };
+        });
+        const repaired = normalizeProfilePhotoVisibilityPersistence(legacy, "linden");
+        header.forEach((original) => {
+          const element = repaired.find((item) => item.element_id === original.element_id);
+          assert.equal(element.profilePhotoHiddenTop, original.profilePhotoHiddenTop);
+          assert.equal(element.top, hidden ? original.profilePhotoHiddenTop : original.top);
+          if (hidden) assert.equal(element.photoLayoutHome.top, original.top);
+        });
+        legacy.forEach((element, index) => {
+          if (!header.some((item) => item.element_id === element.element_id)) {
+            assert.equal(repaired[index], element);
+          }
+        });
+        assert.equal(normalizeProfilePhotoVisibilityPersistence(repaired, "linden"), repaired);
+        if (hidden) {
+          const shown = showProfilePhoto(repaired, "linden").elements;
+          header.forEach((original) => assert.equal(
+            shown.find((item) => item.element_id === original.element_id).top, original.top,
+          ));
+        }
+      });
+    }
+  }
+
+  it("preserves explicit Linden photo destinations and unrelated or manually positioned masthead content", () => {
+    const source = withIds(lindenTemplate).map((element) => (
+      element.profilePhotoHiddenTop == null ? element : { ...element, profilePhotoHiddenTop: 0 }
+    ));
+    assert.equal(normalizeProfilePhotoVisibilityPersistence(source, "linden"), source);
+    const manual = source.map((element) => element.profilePhotoHiddenTop != null
+      ? { ...element, profilePhotoHiddenTop: null, top: 300 } : element);
+    assert.equal(normalizeProfilePhotoVisibilityPersistence(manual, "linden"), manual);
+    assert.equal(normalizeProfilePhotoVisibilityPersistence(manual, "slate"), manual);
+  });
+
+  it("treats nullable photo destinations as absent without collapsing other elements to page top", () => {
+    const source = withIds(lindenTemplate).map((element) => ({
+      ...element, profilePhotoHiddenTop: element.profilePhotoHiddenTop ?? null,
+    }));
+    const hidden = hideProfilePhoto(source, "linden").elements;
+    source.forEach((element, index) => {
+      if (element.profilePhotoHiddenTop == null) assert.equal(hidden[index].top, element.top);
+    });
+    const mainText = {
+      element_id: "manually-moved-main-text", category: "text", page: 1, left: 252,
+      top: 400, photoLayoutHome: { top: 100 }, profilePhotoHiddenTop: null,
+    };
+    assert.equal(showProfilePhoto([...hidden, mainText], "linden").elements.at(-1).top, 400);
+  });
+
   it("keeps Linden's latest visible-contact layout across a later hide/show cycle", () => {
     const source = withIds(lindenTemplate).filter((element) => (
       !["github", "website"].includes(element.contactChannel)

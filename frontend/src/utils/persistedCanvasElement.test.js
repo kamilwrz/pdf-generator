@@ -42,6 +42,7 @@ const EXTRA_KEYS = [
   "preserveInitialLayout", "alignWithText", "id", "photoSlot", "photoSlotHidden",
   "photoPlaceholder", "profilePhotoMainContactBand", "profilePhotoMainMastheadIdentity",
   "photoLayoutHome", "photoShape", "objectFit", "fixedToPage", "repeatOnContinuation",
+  "profilePhotoHiddenTop",
   "locked", "borderWidth", "borderRadius", "filled", "shape", "points", "pathKind",
   "curves", "source_id", "target_id", "arrow",
 ];
@@ -204,6 +205,43 @@ test("saved Linden keeps Languages in the sidebar structure after reopening", ()
   const languageHeading = reopened.find((element) => element.content === "JĘZYKI");
   assert.equal(languageHeading.flowLane, "sidebar");
   assert.equal(languageHeading.flowRole, "sidebar-chrome");
+});
+
+test("saved Linden moves its complete contact heading with the photo and restores it after another reload", () => {
+  const source = withIds(lindenTemplate);
+  const header = source.filter((element) => element.profilePhotoHiddenTop != null);
+  assert.equal(header.length, 2);
+  const reopened = source.map(persistedRow).map(hydratePersistedCanvasElement);
+  header.forEach((element) => assert.equal(
+    reopened.find((saved) => saved.element_id === element.element_id).profilePhotoHiddenTop,
+    element.profilePhotoHiddenTop,
+  ));
+
+  let current = reopened;
+  for (let cycle = 0; cycle < 3; cycle += 1) {
+    const hiddenResult = hideProfilePhoto(current, "linden");
+    const hidden = alignSidebarAfterProfileContacts(applyChannelRelayout(
+      hiddenResult.elements, hiddenResult.contactBandId,
+      (value) => String(value || "").length * 5, () => "unused-id",
+    ).elements, hiddenResult.contactBandId, "linden");
+    header.forEach((element) => assert.equal(
+      hidden.find((saved) => saved.element_id === element.element_id).top,
+      element.profilePhotoHiddenTop,
+    ));
+    // A second server read while hidden must retain both the destination and
+    // the visible-photo home; testing only section positions misses the label.
+    const savedHidden = hidden.map(persistedRow).map(hydratePersistedCanvasElement);
+    const shown = showProfilePhoto(savedHidden, "linden");
+    current = alignSidebarAfterProfileContacts(applyChannelRelayout(
+      shown.elements, shown.contactBandId,
+      (value) => String(value || "").length * 5, () => "unused-id",
+    ).elements, shown.contactBandId, "linden");
+    assert.deepEqual(
+      geometry(current, (element) => header.some((item) => item.element_id === element.element_id)),
+      geometry(header, () => true),
+    );
+    current = current.map(persistedRow).map(hydratePersistedCanvasElement);
+  }
 });
 
 test("saved hidden Linden restores sidebar sections added before reopening", () => {

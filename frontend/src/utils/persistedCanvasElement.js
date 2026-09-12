@@ -82,6 +82,9 @@ export function hydratePersistedCanvasElement(element = {}) {
     profilePhotoMainContactBand: extra.profilePhotoMainContactBand,
     profilePhotoMainMastheadIdentity: extra.profilePhotoMainMastheadIdentity,
     photoLayoutHome: extra.photoLayoutHome,
+    // Linden's contact heading and rule move with its contact stack. Keeping
+    // only the stack descriptor would leave the heading over sidebar content.
+    profilePhotoHiddenTop: extra.profilePhotoHiddenTop,
     photoShape: extra.photoShape,
     objectFit: extra.objectFit,
     fixedToPage,

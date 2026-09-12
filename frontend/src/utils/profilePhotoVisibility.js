@@ -61,6 +61,12 @@ function clone(value) {
   return value == null ? value : JSON.parse(JSON.stringify(value));
 }
 
+// Optional database metadata serializes as null. Absence must not become the
+// valid page coordinate zero when testing whether an element owns a photo move.
+function optionalCoordinate(value) {
+  return value == null ? Number.NaN : Number(value);
+}
+
 function isSlotMember(element, templateId) {
   if (element?.photoSlot) return true;
   if (!SIDEBAR_CONTACT_TEMPLATE_IDS.has(String(templateId || ""))) return false;
@@ -345,11 +351,72 @@ export function isProfilePhotoHidden(elements) {
 }
 
 /**
- * Upgrade a persisted Slate document that was already photo-less before the
- * contact heading contract existed.
+ * Recover the two Linden contact-heading destinations omitted by older saves.
  *
- * The migration is intentionally idempotent and does not alter contact or
- * sidebar coordinates. A complete current heading is returned unchanged;
+ * Only authored page-one masthead geometry at the contact rail's X coordinate
+ * qualifies. The heading and 56 pt rule sit 26/12 pt above the contact anchor
+ * in both photo states. Matching those positions avoids changing renamed
+ * headings, body typography, manual moves, or arbitrary freeform elements.
+ * Already persisted destinations are authoritative, including zero.
+ *
+ * Old documents can have a heading stranded in either photo state. Repair its
+ * position and visible home together before the caller establishes a clean
+ * snapshot; never remeasure or repack the surrounding document on load.
+ */
+function normalizeLindenContactHeadingPersistence(elements) {
+  const anchor = contactAnchor(elements);
+  if (anchor?.contactBandId !== "linden-contact") return elements;
+  const visibleBand = anchor.profilePhotoMainContactBand || anchor.contactBand;
+  const visibleStart = optionalCoordinate(visibleBand?.anchor?.startY);
+  const hiddenStart = optionalCoordinate(visibleBand?.photoHidden?.anchor?.startY);
+  const left = optionalCoordinate(visibleBand?.anchor?.startX);
+  if (![visibleStart, hiddenStart, left].every(Number.isFinite)) return elements;
+  const hidden = isProfilePhotoHidden(elements);
+  let changed = false;
+  const repaired = elements.map((element) => {
+    if (
+      Number.isFinite(optionalCoordinate(element.profilePhotoHiddenTop))
+      || element.flowRole !== "masthead"
+      || (Number(element.page) || 1) !== 1
+      || element.photoSlot
+      || element.contactChannel
+      || !Number.isFinite(optionalCoordinate(element.left))
+      || Math.abs(Number(element.left) - left) > 0.01
+    ) return element;
+    const offset = element.category === "text" ? 26
+      : element.category === "line" && Number(element.width) === 56 && Number(element.height) === 1
+        ? 12 : null;
+    if (offset == null) return element;
+    const visibleTop = visibleStart - offset;
+    const hiddenTop = hiddenStart - offset;
+    const top = optionalCoordinate(element.top);
+    if (!Number.isFinite(top) || (
+      Math.abs(top - visibleTop) > 0.01 && Math.abs(top - hiddenTop) > 0.01
+    )) return element;
+    changed = true;
+    return {
+      ...element,
+      profilePhotoHiddenTop: hiddenTop,
+      top: hidden ? hiddenTop : visibleTop,
+      ...(hidden ? {
+        photoLayoutHome: {
+          ...element.photoLayoutHome,
+          top: Number.isFinite(optionalCoordinate(element.photoLayoutHome?.top))
+            ? Number(element.photoLayoutHome.top) : visibleTop,
+        },
+      } : {}),
+    };
+  });
+  return changed ? repaired : elements;
+}
+
+/**
+ * Upgrade persisted photo-contact metadata before document state is committed.
+ * Linden recovers missing heading/rule destinations from its authored anchors.
+ * Slate rebuilds contact chrome in documents saved before that heading existed.
+ *
+ * The migration is intentionally idempotent and does not alter contact rows or
+ * sidebar sections. A complete current heading is returned unchanged;
  * missing or partial legacy chrome is rebuilt from the document's live palette
  * and typography so save/reload never introduces a default-colour duplicate.
  * English CVs also repair the historical locked Polish label in place.
@@ -358,7 +425,7 @@ export function isProfilePhotoHidden(elements) {
  * @param {string} templateId - Persisted template identifier.
  * @param {null|((part: string) => string)} [createId] - Optional identifier factory.
  * @param {string} [language="Polish"] - CV language, independent of the interface.
- * @returns {object[]} The original array or a normalized Slate array.
+ * @returns {object[]} The original array or normalized photo-contact metadata.
  */
 export function normalizeProfilePhotoVisibilityPersistence(
   elements,
@@ -367,6 +434,7 @@ export function normalizeProfilePhotoVisibilityPersistence(
   language = "Polish",
 ) {
   const list = elements || [];
+  if (String(templateId || "") === "linden") return normalizeLindenContactHeadingPersistence(list);
   if (String(templateId || "") !== "slate" || !isProfilePhotoHidden(list)) return list;
   const headerMembers = list.filter((element) => isSlateContactHeader(element));
   if (headerMembers.length === 4) {
@@ -492,7 +560,7 @@ export function hideProfilePhoto(elements, templateId, createId = null, language
   const transitioned = list.map((element) => {
     if (isSlotMember(element, id)) return { ...element, photoSlotHidden: true };
 
-    const hiddenTop = Number(element.profilePhotoHiddenTop);
+    const hiddenTop = optionalCoordinate(element.profilePhotoHiddenTop);
     if (Number.isFinite(hiddenTop)) {
       return {
         ...element,
@@ -571,8 +639,8 @@ export function showProfilePhoto(elements, templateId) {
         // Only explicit photo-dependent elements can restore an individual
         // position outside the current sidebar flow; ordinary main sections
         // keep the geometry produced by the section packer.
-        : Number.isFinite(Number(home.top))
-          && Number.isFinite(Number(updated.profilePhotoHiddenTop))
+        : Number.isFinite(optionalCoordinate(home.top))
+          && Number.isFinite(optionalCoordinate(updated.profilePhotoHiddenTop))
           ? { ...rest, top: Number(home.top) }
           : rest;
     } else if (Number.isFinite(sidebarShift) && isPageOneSidebarFlowElement(updated)) {

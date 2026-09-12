@@ -690,6 +690,18 @@
       "default": null,
       "title": "Photoplaceholder"
     },
+    "profilePhotoHiddenTop": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Profilephotohiddentop"
+    },
     "profilePhotoMainContactBand": {
       "anyOf": [
         {
