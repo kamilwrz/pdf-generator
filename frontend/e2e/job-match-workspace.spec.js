@@ -49,8 +49,7 @@ test('job workspace fills assistant, analyses without edits and preserves drafts
   await expect(workspace.getByText('Python', { exact: true })).toBeVisible();
   await page.getByLabel('Lub wklej treść oferty').fill('Inna oferta');
   await expect(workspace.getByRole('status')).toContainText('CV lub oferta się zmieniły');
-  await page.getByRole('combobox', { name: 'Język aplikacji' }).selectOption('en');
-  await expect(page.getByRole('button', { name: 'Analyse only' })).toBeVisible();
+  await expect(page.getByRole('combobox', { name: 'Język aplikacji' })).toHaveCount(0);
   await page.addStyleTag({ content: 'html { font-size: 200%; }' });
   expect(await page.locator('section[aria-labelledby="job-match-heading"]').evaluate((node) => node.scrollWidth <= node.clientWidth + 1)).toBe(true);
   api.assertHermetic();

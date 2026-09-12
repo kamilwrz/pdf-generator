@@ -3,7 +3,6 @@ import { useMessageState, messageRef } from '../../../i18n/messageState.js';
 import { editorHint } from '../../../i18n/editorHints.js';
 import { t as uiText } from "../../../i18n/index.js";
 import { useTranslation } from 'react-i18next';
-import LanguageSelect from '../../common/LanguageSelect/LanguageSelect';
 /**
  * Starts an editable CV from template defaults, with optional configuration.
  * Choices survive collapsed controls and failed creation. The shared shell owns
@@ -285,7 +284,7 @@ export default function NewCvSetupModal({
       variant={confirmReplacement ? "decision" : "fullscreen"}
       surface="paper"
       title={confirmReplacement ? uiText("editor:newCvSetupModal.createANewCv2") : uiText("ai:aiCvPanel.createCv")}
-      headerAction={<><LanguageSelect />{!isGuest && !confirmReplacement ? <Link
+      headerAction={!isGuest && !confirmReplacement ? <Link
         className={classes.interviewEntry}
         to={canInterview ? "/app/interview" : "/app/account"}
         aria-disabled={submitting || undefined}
@@ -296,7 +295,7 @@ export default function NewCvSetupModal({
         <span className={classes.interviewCopy}><strong>{uiText("editor:newCvSetupModal.aiInterview")}</strong>{" "}<span>{canInterview ? uiText("editor:newCvSetupModal.startInterview") : accessResolved ? uiText("editor:newCvSetupModal.proOnly") : uiText("editor:newCvSetupModal.checkProAccess")}</span></span>
         <span className={classes.interviewBadge} aria-hidden="true">PRO</span>
         <FiArrowRight className={classes.interviewArrow} aria-hidden="true" />
-      </Link> : null}</>}
+      </Link> : null}
       subtitle={confirmReplacement
         ? replacementDescription
         : uiText("editor:newCvSetupModal.chooseATemplateAndEnterYourDetails")}

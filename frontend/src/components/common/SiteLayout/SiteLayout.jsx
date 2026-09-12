@@ -8,7 +8,7 @@ import classes from './SiteLayout.module.css';
 import LanguageSelect from '../LanguageSelect/LanguageSelect';
 
 /** Public and workspace menus share order, active indicators, and the primary start action. */
-export function SiteHeader({ workspace = false }) {
+export function SiteHeader({ workspace = false, showLanguageSelect = false }) {
   useTranslation();
   const signedIn = Boolean(getAccessToken());
   return <header className={classes.header}>
@@ -18,7 +18,7 @@ export function SiteHeader({ workspace = false }) {
       <NavLink to="/help">{uiText("public:siteLayout.help")}</NavLink>
       {!workspace && <Link to={signedIn ? '/app/documents' : '/login'}>{signedIn ? uiText("public:siteLayout.myDocuments") : uiText("public:siteLayout.signIn")}</Link>}
       <Link className={classes.primary} to="/app/new">{uiText("public:siteLayout.createCv")}</Link>
-      <LanguageSelect />
+      {showLanguageSelect ? <LanguageSelect /> : null}
     </nav>
   </header>;
 }
@@ -40,8 +40,9 @@ export default function SiteLayout({ title, eyebrow = 'CV STUDIO', intro, worksp
   useEffect(() => {
     document.title = `${title} — CV Studio`;
   }, [title]);
-  // A translated heading must not be treated as route navigation: retain focus
-  // on the language selector and preserve the user's reading position.
+  // A translated heading must not be treated as route navigation. The locale
+  // selected on the landing page can update while this layout is mounted, so
+  // only real path or anchor changes reset reading position and focus.
   useEffect(() => {
     if (!hash) {
       window.scrollTo({ top: 0, behavior: 'instant' });

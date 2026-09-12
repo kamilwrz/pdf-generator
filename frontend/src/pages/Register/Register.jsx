@@ -2,7 +2,6 @@ import { usePageTitle } from '../../i18n/usePageTitle.js';
 import { useMessageState, messageRef, messageOf } from '../../i18n/messageState.js';
 import { t as uiText } from "../../i18n/index.js";
 import { useTranslation } from 'react-i18next';
-import LanguageSelect from '../../components/common/LanguageSelect/LanguageSelect';
 /**
  * Registration form. Every new account requests Free unless a supported plan
  * is explicitly present in the URL; the backend validates the final choice.
@@ -203,7 +202,6 @@ export default function Register() {
 
             <section className={classes.authColumn} aria-labelledby="register-title">
                 <div className={classes.loginCard}>
-                    <LanguageSelect />
                     <Link to="/" className={classes.logoBadge} aria-label={uiText("public:siteLayout.cvStudioHomepage")}>
                         <img src="/cv-studio-logo.svg" alt="" />
                     </Link>

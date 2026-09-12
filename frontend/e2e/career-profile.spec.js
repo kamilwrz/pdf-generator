@@ -102,9 +102,9 @@ for (const width of [390, 834, 1280, 1920]) {
 
 
 test('source selection and read-only controls work in English', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('cvstudio.uiLanguage', 'en'));
   const api = await installProfile(page);
   await page.goto('/app/career-profile');
-  await page.getByRole('combobox', { name: 'Język aplikacji' }).selectOption('en');
   const source = page.getByRole('combobox', { name: 'Profile data source', exact: true });
   await source.selectOption('document:31');
   await expect(page.getByText('Profile data updated.', { exact: true })).toBeVisible();

@@ -63,34 +63,36 @@ This README is the technical entry point for developers and the complete bilingu
 
 ## Polish and English interface
 
-The language selector uses **Polski / English**. Polish is the default; English uses British spelling and `en-GB` formatting. Both interfaces share routes, components, permissions, A4 geometry, prices and allowances. The browser stores `cvstudio.uiLanguage` independently of login. Invalid or unavailable storage falls back to Polish; an in-memory selection still works. No user-table field or database migration is added.
+The landing-page header is the only place that shows the **Polski / English** application-language selector. Polish is the default; English uses British spelling and `en-GB` formatting. The chosen interface language persists across public pages, authentication, account workspaces, the editor and fullscreen setup without repeating the control in those task-focused surfaces. Both interfaces share routes, components, permissions, A4 geometry, prices and allowances. The browser stores `cvstudio.uiLanguage` independently of login. Invalid or unavailable storage falls back to Polish; an in-memory selection still works. No user-table field or database migration is added.
 
 1. `initialLanguage` reads the browser preference before the first render. A supported `lang` parameter on `/verify-email` takes precedence so an emailed link can select its language in another browser.
-2. i18next and react-i18next own nine semantic namespaces. `generate-locale-bundles.mjs` derives public and workspace bundles from the complete PL/EN dictionaries. Route loaders await workspace copy before evaluating editor/account modules. A language switch waits for the necessary bundle, then updates labels and `html.lang` without navigating or remounting the editor.
+2. i18next and react-i18next own nine semantic namespaces. `generate-locale-bundles.mjs` derives public and workspace bundles from the complete PL/EN dictionaries. The landing selector waits for the necessary bundle, then updates labels and `html.lang` without navigation; route loaders retain that preference and await workspace copy before evaluating editor/account modules.
 3. Presentation registries use getters; transient messages use `messageRef` and resolve at render time. Authored CV text and historical AI results are never passed through this translation mechanism. Page-title effects are separate from route focus and scroll.
 4. New-CV setup captures the UI language as its initial document language. The document selector remains independent after that. `cv_data.language` controls generated headings; existing and custom headings retain their content. Canvas hint translation happens at the display boundary and does not modify the stored document. Sample text inserted in freeform mode follows the document language at insertion and remains unchanged afterwards.
 5. JSON and file requests send `Accept-Language: pl` or `en`, captured once for automatic retries. The backend isolates language with a context variable and returns `Content-Language`. Existing errors retain HTTP statuses/codes and readable details, with `message_key` and `params` for frontend rendering. Validation keeps field locations and types.
 6. AI explanations and new interview questions follow request language; CV corrections follow the document language. Verification emails and their link context, the Google button, and new Stripe Checkout sessions receive the selected locale. Saved answers and previous results stay in their original language.
 
 
-Slate’s generated contact heading follows the CV language when creating a document, hiding its photo and restoring a saved draft. Opening an English CV repairs the legacy locked Polish contact label without moving elements or renaming custom sections. Switching the interface preserves document headings and PDF content. Empty-field hints switch in both directions, including English placeholder metadata saved by older versions; hints never become authored text. Regression coverage: `profilePhotoVisibility.test.js`, `i18n.test.js` and the English Slate scenario in `e2e/localisation.spec.js`.
+Slate’s generated contact heading follows the CV language when creating a document, hiding its photo and restoring a saved draft. Opening an English CV repairs the legacy locked Polish contact label without moving elements or renaming custom sections. The interface preference selected on landing preserves document headings and PDF content. Empty-field hints follow that preference, including English placeholder metadata saved by older versions; hints never become authored text. Regression coverage: `profilePhotoVisibility.test.js`, `i18n.test.js` and the English Slate scenario in `e2e/localisation.spec.js`.
 
 **Contact hints in English.** Empty email fields display `name@example.com`, including drafts with the older `firstname.lastname@example.com` hint. The shorter example fits contact spacing measured from canonical Polish metadata, so changing the interface language cannot overlap the following website icon or change saved A4 coordinates. Authored email addresses retain their complete text. `markerBindings` also recognises the lowercase contact sentinels produced by URL display normalisation (for example `__cvstart_website__`); `finalizeStarterElements` removes them and restores empty-field bindings before starter layout and template replacement. Empty contacts and their icons remain excluded from the render-only PDF payload.
 
-Implementation: `frontend/src/i18n/editorHints.js`, lines 1–72, `editorHint` and its legacy aliases; `frontend/src/i18n/locales/en.json`, line 949, `editor:hints.emailExample` (regenerate the workspace bundle with `npm --prefix frontend run build`); `frontend/src/utils/cvStarter.js`, lines 343–418, `markerBindings` and `finalizeStarterElements`. Tests: `frontend/src/utils/cvStarter.test.js`, lines 59–73, normalised URL markers and authored-text preservation; `frontend/src/i18n/i18n.test.js`, lines 71–90, `legacy Polish and English hints switch both ways without mutating document metadata`; `frontend/e2e/contact-placeholder-spacing.spec.js`, lines 1–129, initial layout, PL/EN switching, keyboard edit/clear cycles, save/render isolation and Cadenza/Aurelia at 390, 834, 1280 and 1920 px. Run `npm --prefix frontend run test:e2e -- contact-placeholder-spacing.spec.js --project=desktop-chromium`. [W3C generated content](https://www.w3.org/TR/CSS2/generate.html) explains the CSS pseudo-content used for editor hints; these hints never enter authored text. This repair needs no database, API, dependency or environment changes.
+Implementation: `frontend/src/i18n/editorHints.js`, lines 1–72, `editorHint` and its legacy aliases; `frontend/src/i18n/locales/en.json`, line 949, `editor:hints.emailExample` (regenerate the workspace bundle with `npm --prefix frontend run build`); `frontend/src/utils/cvStarter.js`, lines 343–418, `markerBindings` and `finalizeStarterElements`. Tests: `frontend/src/utils/cvStarter.test.js`, lines 59–73, normalised URL markers and authored-text preservation; `frontend/src/i18n/i18n.test.js`, lines 71–90, `legacy Polish and English hints switch both ways without mutating document metadata`; `frontend/e2e/contact-placeholder-spacing.spec.js`, initial PL/EN layout, keyboard edit/clear cycles, save/render isolation and Cadenza/Aurelia at 390, 834, 1280 and 1920 px. Run `npm --prefix frontend run test:e2e -- contact-placeholder-spacing.spec.js --project=desktop-chromium`. [W3C generated content](https://www.w3.org/TR/CSS2/generate.html) explains the CSS pseudo-content used for editor hints; these hints never enter authored text. This repair needs no database, API, dependency or environment changes.
 
 Implementation references (verified against this revision):
 
 - `frontend/src/i18n/index.js`, lines 1–111, `initialLanguage, setUiLanguage, ensureWorkspaceMessages`.
 - `frontend/src/i18n/messageState.js`, lines 1–26, `messageRef, useMessageState, resolveMessage`.
 - `frontend/src/components/common/LanguageSelect/LanguageSelect.jsx`, lines 1–18, `LanguageSelect`.
+- `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, lines 10–22, `SiteHeader` and its opt-in `showLanguageSelect` placement.
+- `frontend/src/pages/Hero/Hero.jsx`, line 120, the sole `SiteHeader` call that enables the application-language selector.
 - `frontend/src/utils/cvStarter.js`, lines 1–423, `createDefaultStarterConfig, buildStarterDocument`.
 - `backend/app/core/localisation.py`, lines 1–81, `UiLanguageMiddleware, message, ui_language_policy`.
 - `scripts/generate_english_previews.py`, lines 1–60, `main`.
 - `frontend/scripts/check-locales.mjs`, lines 1–45, `validateCatalogues`.
 - `frontend/scripts/generate-locale-bundles.mjs`, lines 1–28, `public/workspace catalogue generation`.
 
-Run `npm run check:locales`, `npm test`, `npm run test:runtime`, `npm run test:e2e -- e2e/localisation.spec.js --project=desktop-chromium`, `npm run lint`, `npm run build` and `npm run check:bundle` from `frontend/`; run `python -m pytest -q` from `backend/`. The locale gate checks missing/empty keys, interpolation parameters and required plural forms. `i18n.test.js`, `NewCvSetupModal.runtime.test.jsx`, `localisation.spec.js` and `backend/tests/test_localisation.py` cover language persistence, independent CV selection, live switching and request isolation. Structural source tests use the explicit `@babel/parser` and `@babel/traverse` development dependencies to compile literal translation calls for their existing layout/handler assertions; runtime tests use the actual translation instance.
+Run `npm run check:locales`, `npm test`, `npm run test:runtime`, `npm run test:e2e -- e2e/localisation.spec.js --project=desktop-chromium`, `npm run lint`, `npm run build` and `npm run check:bundle` from `frontend/`; run `python -m pytest -q` from `backend/`. The locale gate checks missing/empty keys, interpolation parameters and required plural forms. `i18n.test.js`, `NewCvSetupModal.runtime.test.jsx`, `localisation.spec.js` and `backend/tests/test_localisation.py` cover landing-only selector placement, language persistence, independent CV selection and request isolation. Structural source tests use the explicit `@babel/parser` and `@babel/traverse` development dependencies to compile literal translation calls for their existing layout/handler assertions; runtime tests use the actual translation instance.
 
 Optional test configuration: `PLAYWRIGHT_PORT` is a local numeric HTTP port (default `4173`; for example `4183`) for an isolated browser-test server. It contains no credentials and is not production configuration. Generate English raster previews and Free starter packs with `python scripts/generate_english_previews.py` using the backend environment. Paid geometry stays server-side; English assets live in `frontend/public/template-mockups/en`, `frontend/public/hero-templates/en` and Free packs in `frontend/src/templates/en`.
 
@@ -152,11 +154,11 @@ Implementation (verified whole-module extents):
 - `frontend/src/utils/planPresentation.js`, lines 3–73, `PLAN_PRESENTATION, applyPlanPresentation`.
 - `frontend/src/pages/Site/DocumentsPage.jsx`, lines 1–116, `DocumentsPage`.
 - `frontend/src/pages/Site/AccountPage.jsx`, lines 4–87, `AccountPage`.
-- `frontend/src/pages/Hero/Hero.jsx`, lines 5–331, `Hero`.
-- `frontend/src/components/editor/StartChooser/StartChooser.jsx`, lines 4–249, `StartChooser`.
+- `frontend/src/pages/Hero/Hero.jsx`, lines 97–331, `Hero`.
+- `frontend/src/components/editor/StartChooser/StartChooser.jsx`, lines 103–247, `StartChooser`.
 - `frontend/src/pages/Site/InterviewPage.jsx`, lines 3–13, `InterviewPage`.
 - `frontend/src/components/ai/Interview/InterviewFlow.jsx`, lines 1–320, `InterviewFlow`.
-- `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, lines 3–70, `SiteLayout`.
+- `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, lines 36–71, `SiteLayout`.
 - `frontend/src/components/common/SiteLayout/SiteLayout.module.css`, lines 1–199, `guideFaq`.
 - `frontend/e2e/interview-discovery.spec.js`, lines 1–100, `Playwright`.
 
@@ -198,7 +200,7 @@ Implementation (verified file extents; the listed exports own the complete workf
 - `frontend/src/pages/Site/AccountPage.jsx`, component `AccountPage`.
 - `frontend/src/pages/Site/PublicPages.jsx`, exports `TemplatesPage, TemplatePage, PricingPage, HelpPage`.
 - `frontend/src/pages/Site/PrivacyPage.jsx`, component `PrivacyPage`.
-- `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, lines 3–70, `SiteLayout, SiteHeader, SiteFooter`.
+- `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, lines 10–71, `SiteLayout, SiteHeader, SiteFooter`.
 - `frontend/src/templates/index.js`, lines 3–201, `TEMPLATES` — picker summaries and detail-page copy for all ten templates.
 - `frontend/src/utils/planPresentation.js`, lines 3–73, `FREE_PLAN_HIGHLIGHTS, PRO_PLAN_HIGHLIGHTS, PLAN_PRESENTATION`.
 - `frontend/src/services/documents.js`, lines 2–46, `listOwnedDocuments, loadOwnedDocument`.
@@ -786,7 +788,7 @@ Implementation and tests (verified whole-module ranges; use the named symbols fo
 | `frontend/src/components/ai/Interview/FactEditor.module.css` | 1–88; editor, workspace, interviewAnswer, mobileNav |
 | `frontend/src/pages/Site/CareerProfilePage.module.css` | 1–36; profile, views, saveBar |
 | `frontend/e2e/career-profile.spec.js` | 1–174; grouped profile, responsive question-and-answer display, editing and persistence |
-| `frontend/src/components/common/SiteLayout/SiteLayout.jsx` | 1–59; SiteLayout compact |
+| `frontend/src/components/common/SiteLayout/SiteLayout.jsx` | 1–71; SiteLayout compact |
 | `frontend/src/components/common/SiteLayout/SiteLayout.module.css` | 1–199; compactHero |
 | `frontend/e2e/interview-note-boundary.spec.js` | 1–88; `source-only interview review, notes and persistence` |
 | `frontend/src/components/ai/Interview/FactEditor.jsx` | 1–135; FactEditor |
@@ -3441,20 +3443,20 @@ Ten README jest technicznym punktem wejścia oraz kompletnym, dwujęzycznym prze
 
 ## Interfejs polski i angielski
 
-Przełącznik języka udostępnia **Polski / English**. Domyślny jest polski; angielski używa pisowni brytyjskiej i formatowania `en-GB`. Obie wersje współdzielą adresy, komponenty, uprawnienia, geometrię A4, ceny i limity. Przeglądarka zapisuje `cvstudio.uiLanguage` niezależnie od logowania. Nieprawidłowa wartość lub niedostępny magazyn oznacza polski; wybór w pamięci nadal działa. Nie dodajemy pola użytkownika ani migracji bazy.
+Nagłówek landing page jest jedynym miejscem, które pokazuje przełącznik języka aplikacji **Polski / English**. Domyślny jest polski; angielski używa pisowni brytyjskiej i formatowania `en-GB`. Wybrany język interfejsu obowiązuje na stronach publicznych, w uwierzytelnianiu, przestrzeniach konta, edytorze i konfiguratorze pełnoekranowym bez powielania kontrolki na tych ekranach zadaniowych. Obie wersje współdzielą adresy, komponenty, uprawnienia, geometrię A4, ceny i limity. Przeglądarka zapisuje `cvstudio.uiLanguage` niezależnie od logowania. Nieprawidłowa wartość lub niedostępny magazyn oznacza polski; wybór w pamięci nadal działa. Nie dodajemy pola użytkownika ani migracji bazy.
 
 1. `initialLanguage` odczytuje preferencję przed pierwszym renderowaniem. Obsługiwany parametr `lang` na `/verify-email` ma pierwszeństwo, aby link z e-maila mógł wybrać język również w innej przeglądarce.
-2. i18next i react-i18next obsługują dziewięć przestrzeni kluczy semantycznych. `generate-locale-bundles.mjs` tworzy paczki publiczne i robocze z kompletnych słowników PL/EN. Ładowanie tras czeka na teksty przed wykonaniem modułów edytora i konta. Zmiana języka czeka na potrzebną paczkę, następnie aktualizuje etykiety i `html.lang` bez nawigacji i ponownego montowania edytora.
+2. i18next i react-i18next obsługują dziewięć przestrzeni kluczy semantycznych. `generate-locale-bundles.mjs` tworzy paczki publiczne i robocze z kompletnych słowników PL/EN. Przełącznik na landing page czeka na potrzebną paczkę, po czym aktualizuje etykiety i `html.lang` bez nawigacji; ładowanie kolejnych tras zachowuje preferencję i czeka na teksty przed wykonaniem modułów edytora i konta.
 3. Rejestry prezentacyjne korzystają z getterów; komunikaty przejściowe z `messageRef` i tłumaczenia podczas renderowania. Treść CV użytkownika i historyczne wyniki AI nie przechodzą przez ten mechanizm. Efekty tytułów stron są oddzielone od fokusu i przewijania przy nawigacji.
 4. Kreator nowego CV pobiera język UI jako początkowy język dokumentu. Od tej chwili selektor dokumentu działa niezależnie. `cv_data.language` określa generowane nagłówki; istniejące i własne nazwy zachowują treść. Podpowiedzi kanwy są tłumaczone wyłącznie przy wyświetlaniu, bez zmiany zapisanego dokumentu. Przykładowy tekst dodawany w trybie swobodnym używa języka dokumentu w chwili wstawienia i później pozostaje bez zmian.
 5. Żądania JSON i plików wysyłają `Accept-Language: pl` lub `en`, ustalone raz dla automatycznych ponowień. Backend izoluje język zmienną kontekstową i zwraca `Content-Language`. Błędy zachowują statusy/kody HTTP i czytelne szczegóły oraz otrzymują `message_key` i `params` do wyświetlenia na froncie. Walidacja zachowuje lokalizacje pól i typy błędów.
 6. Uzasadnienia AI i nowe pytania wywiadu używają języka żądania; poprawki CV używają języka dokumentu. Wybrany język otrzymują e-maile weryfikacyjne i kontekst ich linków, przycisk Google oraz nowe sesje Stripe Checkout. Zapisane odpowiedzi i wcześniejsze wyniki pozostają w oryginalnym języku.
 
-Generowany nagłówek kontaktów Slate korzysta z języka CV podczas tworzenia dokumentu, ukrywania zdjęcia i przywracania zapisanego szkicu. Otwarcie angielskiego CV naprawia starszy, zablokowany polski nagłówek kontaktów bez przesuwania elementów i zmieniania własnych nazw sekcji. Przełączenie interfejsu zachowuje nagłówki dokumentu i treść PDF. Podpowiedzi pustych pól zmieniają język w obie strony, również gdy starsza wersja zapisała angielskie metadane podpowiedzi; nie stają się treścią użytkownika. Testy regresji: `profilePhotoVisibility.test.js`, `i18n.test.js` i scenariusz angielskiego Slate w `e2e/localisation.spec.js`.
+Generowany nagłówek kontaktów Slate korzysta z języka CV podczas tworzenia dokumentu, ukrywania zdjęcia i przywracania zapisanego szkicu. Otwarcie angielskiego CV naprawia starszy, zablokowany polski nagłówek kontaktów bez przesuwania elementów i zmieniania własnych nazw sekcji. Preferencja interfejsu wybrana na landing page zachowuje nagłówki dokumentu i treść PDF. Podpowiedzi pustych pól podążają za tą preferencją, również gdy starsza wersja zapisała angielskie metadane podpowiedzi; nie stają się treścią użytkownika. Testy regresji: `profilePhotoVisibility.test.js`, `i18n.test.js` i scenariusz angielskiego Slate w `e2e/localisation.spec.js`.
 
 **Podpowiedzi kontaktów po angielsku.** Puste pola e-maila wyświetlają `name@example.com`, również w szkicach ze starszą podpowiedzią `firstname.lastname@example.com`. Krótszy przykład mieści się w odstępach kontaktów obliczonych z kanonicznych polskich metadanych, dzięki czemu zmiana języka interfejsu nie powoduje nakładania na kolejną ikonę strony WWW ani zmiany zapisanych współrzędnych A4. Wpisane adresy e-mail zachowują pełną treść. `markerBindings` rozpoznaje również znaczniki kontaktów zapisane małymi literami podczas normalizacji wyświetlanego URL (np. `__cvstart_website__`); `finalizeStarterElements` usuwa je i przywraca wiązania pustych pól przed układaniem startera oraz zmianą szablonu. Puste kontakty i ich ikony nadal są pomijane w danych przekazywanych wyłącznie do renderowania PDF.
 
-Implementacja: `frontend/src/i18n/editorHints.js`, linie 1–72, `editorHint` i aliasy starszych podpowiedzi; `frontend/src/i18n/locales/en.json`, linia 949, `editor:hints.emailExample` (paczkę roboczą odtworzysz przez `npm --prefix frontend run build`); `frontend/src/utils/cvStarter.js`, linie 343–418, `markerBindings` i `finalizeStarterElements`. Testy: `frontend/src/utils/cvStarter.test.js`, linie 59–73, znormalizowane znaczniki URL i zachowanie tekstu użytkownika; `frontend/src/i18n/i18n.test.js`, linie 71–90, `legacy Polish and English hints switch both ways without mutating document metadata`; `frontend/e2e/contact-placeholder-spacing.spec.js`, linie 1–129, układ początkowy, przełączanie PL/EN, edycja i czyszczenie klawiaturą, oddzielenie zapisu od renderowania oraz Cadenza/Aurelia przy 390, 834, 1280 i 1920 px. Uruchom `npm --prefix frontend run test:e2e -- contact-placeholder-spacing.spec.js --project=desktop-chromium`. [Treść generowana w CSS — W3C](https://www.w3.org/TR/CSS2/generate.html) wyjaśnia pseudotreść CSS stosowaną do podpowiedzi edytora; podpowiedzi nie trafiają do tekstu użytkownika. Poprawka nie wymaga zmian bazy, API, zależności ani środowiska.
+Implementacja: `frontend/src/i18n/editorHints.js`, linie 1–72, `editorHint` i aliasy starszych podpowiedzi; `frontend/src/i18n/locales/en.json`, linia 949, `editor:hints.emailExample` (paczkę roboczą odtworzysz przez `npm --prefix frontend run build`); `frontend/src/utils/cvStarter.js`, linie 343–418, `markerBindings` i `finalizeStarterElements`. Testy: `frontend/src/utils/cvStarter.test.js`, linie 59–73, znormalizowane znaczniki URL i zachowanie tekstu użytkownika; `frontend/src/i18n/i18n.test.js`, linie 71–90, `legacy Polish and English hints switch both ways without mutating document metadata`; `frontend/e2e/contact-placeholder-spacing.spec.js`, początkowy układ PL/EN, edycja i czyszczenie klawiaturą, oddzielenie zapisu od renderowania oraz Cadenza/Aurelia przy 390, 834, 1280 i 1920 px. Uruchom `npm --prefix frontend run test:e2e -- contact-placeholder-spacing.spec.js --project=desktop-chromium`. [Treść generowana w CSS — W3C](https://www.w3.org/TR/CSS2/generate.html) wyjaśnia pseudotreść CSS stosowaną do podpowiedzi edytora; podpowiedzi nie trafiają do tekstu użytkownika. Poprawka nie wymaga zmian bazy, API, zależności ani środowiska.
 
 
 Referencje implementacji (zweryfikowane dla tej rewizji):
@@ -3462,13 +3464,15 @@ Referencje implementacji (zweryfikowane dla tej rewizji):
 - `frontend/src/i18n/index.js`, linie 1–111, `initialLanguage, setUiLanguage, ensureWorkspaceMessages`.
 - `frontend/src/i18n/messageState.js`, linie 1–26, `messageRef, useMessageState, resolveMessage`.
 - `frontend/src/components/common/LanguageSelect/LanguageSelect.jsx`, linie 1–18, `LanguageSelect`.
+- `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, linie 10–22, `SiteHeader` i opcjonalne umiejscowienie przez `showLanguageSelect`.
+- `frontend/src/pages/Hero/Hero.jsx`, linia 120, jedyne wywołanie `SiteHeader`, które włącza selektor języka aplikacji.
 - `frontend/src/utils/cvStarter.js`, linie 1–423, `createDefaultStarterConfig, buildStarterDocument`.
 - `backend/app/core/localisation.py`, linie 1–81, `UiLanguageMiddleware, message, ui_language_policy`.
 - `scripts/generate_english_previews.py`, linie 1–60, `main`.
 - `frontend/scripts/check-locales.mjs`, linie 1–45, `validateCatalogues`.
 - `frontend/scripts/generate-locale-bundles.mjs`, linie 1–28, `public/workspace catalogue generation`.
 
-W `frontend/` uruchom `npm run check:locales`, `npm test`, `npm run test:runtime`, `npm run test:e2e -- e2e/localisation.spec.js --project=desktop-chromium`, `npm run lint`, `npm run build` i `npm run check:bundle`; w `backend/` uruchom `python -m pytest -q`. Kontrola słowników sprawdza brakujące/puste klucze, parametry interpolacji i wymagane formy liczebników. `i18n.test.js`, `NewCvSetupModal.runtime.test.jsx`, `localisation.spec.js` i `backend/tests/test_localisation.py` obejmują zapamiętywanie języka, niezależny wybór języka CV, przełączanie na żywo i izolację żądań. Testy strukturalne źródeł używają jawnych zależności deweloperskich `@babel/parser` i `@babel/traverse` do kompilowania dosłownych wywołań tłumaczeń na potrzeby dotychczasowych kontroli układu i handlerów; testy runtime używają rzeczywistej instancji tłumaczeń.
+W `frontend/` uruchom `npm run check:locales`, `npm test`, `npm run test:runtime`, `npm run test:e2e -- e2e/localisation.spec.js --project=desktop-chromium`, `npm run lint`, `npm run build` i `npm run check:bundle`; w `backend/` uruchom `python -m pytest -q`. Kontrola słowników sprawdza brakujące/puste klucze, parametry interpolacji i wymagane formy liczebników. `i18n.test.js`, `NewCvSetupModal.runtime.test.jsx`, `localisation.spec.js` i `backend/tests/test_localisation.py` obejmują umiejscowienie selektora wyłącznie na landing page, zapamiętywanie języka, niezależny wybór języka CV i izolację żądań. Testy strukturalne źródeł używają jawnych zależności deweloperskich `@babel/parser` i `@babel/traverse` do kompilowania dosłownych wywołań tłumaczeń na potrzeby dotychczasowych kontroli układu i handlerów; testy runtime używają rzeczywistej instancji tłumaczeń.
 
 Opcjonalna konfiguracja testów: `PLAYWRIGHT_PORT` to numeryczny lokalny port HTTP (domyślnie `4173`, przykładowo `4183`) dla osobnego serwera testów przeglądarkowych. Nie zawiera danych uwierzytelniających i nie służy do konfiguracji produkcji. Angielskie podglądy rastrowe i pakiety startowe Free generuje `python scripts/generate_english_previews.py` w środowisku backendu. Geometria płatnych szablonów pozostaje na serwerze; angielskie zasoby znajdują się w `frontend/public/template-mockups/en`, `frontend/public/hero-templates/en`, a pakiety Free w `frontend/src/templates/en`.
 
@@ -3530,11 +3534,11 @@ Implementacja (zweryfikowane zakresy całych modułów):
 - `frontend/src/utils/planPresentation.js`, linie 3–73, `PLAN_PRESENTATION, applyPlanPresentation`.
 - `frontend/src/pages/Site/DocumentsPage.jsx`, linie 1–116, `DocumentsPage`.
 - `frontend/src/pages/Site/AccountPage.jsx`, linie 4–87, `AccountPage`.
-- `frontend/src/pages/Hero/Hero.jsx`, linie 5–331, `Hero`.
-- `frontend/src/components/editor/StartChooser/StartChooser.jsx`, linie 4–249, `StartChooser`.
+- `frontend/src/pages/Hero/Hero.jsx`, linie 97–331, `Hero`.
+- `frontend/src/components/editor/StartChooser/StartChooser.jsx`, linie 103–247, `StartChooser`.
 - `frontend/src/pages/Site/InterviewPage.jsx`, linie 3–13, `InterviewPage`.
 - `frontend/src/components/ai/Interview/InterviewFlow.jsx`, linie 1–320, `InterviewFlow`.
-- `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, linie 3–70, `SiteLayout`.
+- `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, linie 36–71, `SiteLayout`.
 - `frontend/src/components/common/SiteLayout/SiteLayout.module.css`, linie 1–199, `guideFaq`.
 - `frontend/e2e/interview-discovery.spec.js`, linie 1–100, `Playwright`.
 
@@ -3576,7 +3580,7 @@ Implementacja (zweryfikowane zakresy całych plików; wymienione eksporty odpowi
 - `frontend/src/pages/Site/AccountPage.jsx`, komponent `AccountPage`.
 - `frontend/src/pages/Site/PublicPages.jsx`, eksporty `TemplatesPage, TemplatePage, PricingPage, HelpPage`.
 - `frontend/src/pages/Site/PrivacyPage.jsx`, komponent `PrivacyPage`.
-- `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, linie 3–70, `SiteLayout, SiteHeader, SiteFooter`.
+- `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, linie 10–71, `SiteLayout, SiteHeader, SiteFooter`.
 - `frontend/src/templates/index.js`, linie 3–201, `TEMPLATES` — krótkie opisy pickerów i treść stron szczegółów wszystkich dziesięciu szablonów.
 - `frontend/src/utils/planPresentation.js`, linie 3–73, `FREE_PLAN_HIGHLIGHTS, PRO_PLAN_HIGHLIGHTS, PLAN_PRESENTATION`.
 - `frontend/src/services/documents.js`, linie 2–46, `listOwnedDocuments, loadOwnedDocument`.
@@ -4158,7 +4162,7 @@ Przy uwierzytelnionym odczycie właściciela `GET /ai/interviews/{id}` funkcja `
 | `frontend/src/components/ai/Interview/FactEditor.module.css` | 1–88; editor, workspace, interviewAnswer, mobileNav |
 | `frontend/src/pages/Site/CareerProfilePage.module.css` | 1–36; profile, views, saveBar |
 | `frontend/e2e/career-profile.spec.js` | 1–174; grupowanie profilu, responsywne pytanie z odpowiedzią, edycja i zapis |
-| `frontend/src/components/common/SiteLayout/SiteLayout.jsx` | 1–59; SiteLayout compact |
+| `frontend/src/components/common/SiteLayout/SiteLayout.jsx` | 1–71; SiteLayout compact |
 | `frontend/src/components/common/SiteLayout/SiteLayout.module.css` | 1–199; compactHero |
 | `frontend/e2e/interview-note-boundary.spec.js` | 1–88; `przegląd źródła w wywiadzie, notatki i trwałość zapisu` |
 | `frontend/src/components/ai/Interview/FactEditor.jsx` | 1–135; FactEditor |

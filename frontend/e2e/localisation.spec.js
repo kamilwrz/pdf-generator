@@ -5,7 +5,7 @@ import { installMockApi } from './support/mockApi.js';
 test.setTimeout(60_000);
 
 for (const width of [390, 834, 1280, 1920]) {
-  test(`language switch preserves public navigation and setup at ${width}px`, async ({ page }) => {
+  test(`landing language choice persists without duplicate selectors at ${width}px`, async ({ page }) => {
     page.on("pageerror", (error) => console.error("Localisation browser error:", error.message));
     await page.setViewportSize({ width, height: 1000 });
     await page.emulateMedia({ reducedMotion: 'reduce' });
@@ -14,32 +14,29 @@ for (const width of [390, 834, 1280, 1920]) {
     const select = page.getByRole('combobox', { name: /Język aplikacji|Application language/ });
     await select.focus();
     await select.selectOption('en');
-  await expect(page.locator('html')).toHaveAttribute('lang', 'en', { timeout: 25_000 });
+    await expect(page.locator('html')).toHaveAttribute('lang', 'en', { timeout: 25_000 });
     await expect(page.locator('html')).toHaveAttribute('lang', 'en');
     await expect(select).toBeFocused();
     await expect(page.getByRole('navigation', { name: 'Main navigation' })).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
     await page.goto('/login');
-    await expect(page.getByRole('combobox', { name: 'Application language' })).toHaveValue('en');
+    await expect(page.getByRole('combobox', { name: 'Application language' })).toHaveCount(0);
+    await expect(page.locator('html')).toHaveAttribute('lang', 'en');
     await page.getByLabel('Username', { exact: true }).fill('Unsubmitted name');
-    await page.getByRole('combobox', { name: 'Application language' }).selectOption('pl');
-    await expect(page.getByLabel('Nazwa użytkownika', { exact: true })).toHaveValue('Unsubmitted name');
-    await page.getByRole('combobox', { name: 'Język aplikacji' }).selectOption('en');
+    await expect(page.getByLabel('Username', { exact: true })).toHaveValue('Unsubmitted name');
     await page.goto('/cvstudio/guest?start=new');
     const setup = page.getByRole('dialog', { name: /^(Create CV|Utwórz CV)$/ });
     await expect(setup).toBeVisible({ timeout: 25_000 });
     const language = setup.getByRole('combobox', { name: /^(CV language|Język CV)$/ });
     await expect(language).toHaveValue('en');
     await language.selectOption('pl');
-    const ui = setup.getByRole('combobox', { name: /Język aplikacji|Application language/ });
-    await ui.focus();
-    await ui.selectOption('pl');
     await expect(language).toHaveValue('pl');
-    await expect(ui).toBeFocused();
-    await ui.selectOption('en');
-    await expect(language).toHaveValue('pl');
+    await expect(setup.getByRole('combobox', { name: 'Application language' })).toHaveCount(0);
     expect(await setup.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
     await page.screenshot({ path: `test-results/localisation-${width}.png`, fullPage: true });
+    await setup.getByRole('button', { name: 'Start editing', exact: true }).click();
+    await expect(setup).toHaveCount(0);
+    await expect(page.getByRole('combobox', { name: 'Application language' })).toHaveCount(0);
     api.assertHermetic();
   });
 }
@@ -48,6 +45,7 @@ test('a saved English choice survives refresh and verification context selects E
   await installMockApi(page);
   await page.goto('/verify-email?lang=en');
   await expect(page.locator('html')).toHaveAttribute('lang', 'en');
+  await expect(page.getByRole('combobox', { name: 'Application language' })).toHaveCount(0);
   await page.goto('/');
   await page.reload();
   await expect(page.getByRole('combobox', { name: 'Application language' })).toHaveValue('en');
@@ -87,7 +85,7 @@ test('English guest CV survives registration, verification and one PDF download'
   api.assertHermetic();
 });
 
-test('English account preserves a Polish CV, selection and request count across UI switches', async ({ page }) => {
+test('English account preserves a Polish CV without exposing a workspace language selector', async ({ page }) => {
   const { SAVED_DOCUMENT, SAVED_ELEMENTS } = await import('./support/mockApi.js');
   await page.addInitScript(() => {
     localStorage.setItem('cvstudio.uiLanguage', 'en');
@@ -108,13 +106,8 @@ test('English account preserves a Polish CV, selection and request count across 
   await page.mouse.click(glyph.x, glyph.y);
   const writes = () => api.calls.filter((call) => ['POST', 'PUT', 'DELETE'].includes(call.method) && !call.path.includes('/events/'));
   const count = writes().length;
-  const selector = page.getByRole('combobox', { name: /Application language|Język aplikacji/ });
-  await selector.focus();
-  await selector.selectOption('pl');
   await expect(content).toHaveText(before);
-  await selector.selectOption('en');
-  await expect(content).toHaveText(before);
-  await expect(selector).toBeFocused();
+  await expect(page.getByRole('combobox', { name: 'Application language' })).toHaveCount(0);
   expect(writes()).toHaveLength(count);
   await page.getByRole('link', { name: 'My documents', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'My documents', exact: true })).toBeVisible();
@@ -138,7 +131,7 @@ test('English public pages fit at 200 percent text zoom and reduced motion', asy
   api.assertHermetic();
 });
 
-test('English AI controls correct Polish content once and preserve undo across a UI switch', async ({ page }) => {
+test('English AI controls correct Polish content once and preserve undo', async ({ page }) => {
   const { SAVED_DOCUMENT, SAVED_ELEMENTS } = await import('./support/mockApi.js');
   const before = 'Projektuję interfejsy w React dla 30 klientów.';
   const after = 'Tworzę interfejsy React dla 30 klientów.';
@@ -167,7 +160,6 @@ test('English AI controls correct Polish content once and preserve undo across a
   await panel.getByRole('button', { name: 'Apply all', exact: true }).click();
   await expect(page.locator('#summary-body')).toContainText(after);
   await panel.getByRole('button', { name: 'Close AI assistant', exact: true }).click();
-  await page.getByRole('combobox', { name: 'Application language' }).selectOption('pl');
   await page.keyboard.press('Control+z');
   await expect(page.locator('#summary-body')).toContainText(before);
   const calls = api.calls.filter((call) => call.path === '/ai/assistant');
@@ -196,21 +188,16 @@ test('English resumed interview preserves historical Polish questions and an uns
   await expect(page.getByText(question, { exact: true })).toBeVisible({ timeout: 25_000 });
   const answer = page.getByRole('textbox', { name: 'Your answer', exact: true });
   await answer.fill('Zbudowałam raport miesięczny.');
-  const select = page.getByRole('combobox', { name: /Application language|Język aplikacji/ });
-  await select.focus();
-  await select.selectOption('pl');
-  await expect(page.locator('html')).toHaveAttribute('lang', 'pl', { timeout: 25_000 });
-  await expect(page.getByRole('textbox', { name: 'Twoja odpowiedź', exact: true })).toHaveValue('Zbudowałam raport miesięczny.');
-  await select.selectOption('en');
   await expect(page.locator('html')).toHaveAttribute('lang', 'en', { timeout: 25_000 });
   await expect(answer).toHaveValue('Zbudowałam raport miesięczny.');
+  await expect(page.getByRole('combobox', { name: 'Application language' })).toHaveCount(0);
   await expect(page.getByText(question, { exact: true })).toBeVisible();
   expect(writes).toHaveLength(0);
   api.assertHermetic();
 });
 
 
-test('English Slate repairs legacy contact chrome and switches legacy hints without translating CV headings', async ({ page }) => {
+test('English Slate repairs legacy contact chrome without translating CV headings', async ({ page }) => {
   const { SAVED_DOCUMENT } = await import('./support/mockApi.js');
   const { slateTemplate } = await import('../src/templates/slate.js');
   await page.addInitScript(() => {
@@ -244,17 +231,12 @@ test('English Slate repairs legacy contact chrome and switches legacy hints with
   await expect(page.locator('#legacy-contact')).toHaveText('CONTACT DETAILS', { timeout: 25_000 });
   const writes = () => api.calls.filter((call) => ['POST', 'PUT', 'DELETE'].includes(call.method) && !call.path.includes('/events/'));
   const count = writes().length;
-  const selector = page.getByRole('combobox', { name: /Application language|Język aplikacji/ });
-  for (const language of ['pl', 'en', 'pl']) {
-    await selector.focus();
-    await selector.selectOption(language);
-    await expect(page.locator('#legacy-location')).toHaveAttribute('data-placeholder', language === 'en' ? 'City, country' : 'Miasto, kraj');
-    await expect(page.locator('#legacy-location')).toHaveText('');
-    await expect(page.locator('#legacy-contact')).toHaveText('CONTACT DETAILS');
-    await expect(page.locator('#english-heading')).toHaveText('EDUCATION');
-    await expect(page.locator('#custom-heading')).toHaveText('Moja własna sekcja');
-    await expect(selector).toBeFocused();
-    expect(writes()).toHaveLength(count);
-  }
+  await expect(page.locator('#legacy-location')).toHaveAttribute('data-placeholder', 'City, country');
+  await expect(page.locator('#legacy-location')).toHaveText('');
+  await expect(page.locator('#legacy-contact')).toHaveText('CONTACT DETAILS');
+  await expect(page.locator('#english-heading')).toHaveText('EDUCATION');
+  await expect(page.locator('#custom-heading')).toHaveText('Moja własna sekcja');
+  await expect(page.getByRole('combobox', { name: 'Application language' })).toHaveCount(0);
+  expect(writes()).toHaveLength(count);
   api.assertHermetic();
 });

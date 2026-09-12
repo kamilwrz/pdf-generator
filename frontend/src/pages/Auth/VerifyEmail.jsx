@@ -1,4 +1,3 @@
-import LanguageSelect from "../../components/common/LanguageSelect/LanguageSelect";
 import { usePageTitle } from '../../i18n/usePageTitle.js';
 import { useMessageState, messageRef, messageOf } from '../../i18n/messageState.js';
 import { t as uiText } from "../../i18n/index.js";
@@ -44,7 +43,6 @@ export default function VerifyEmail() {
     <main className={classes.container}>
       <section className={classes.authColumn} aria-labelledby="verify-title">
         <div className={classes.loginCard}>
-          <LanguageSelect />
           <Link to="/" className={classes.logoBadge} aria-label={uiText("public:siteLayout.cvStudioHomepage")}><img src="/cv-studio-logo.svg" alt="" /></Link>
           <p className={classes.cardEyebrow}>{uiText("auth:verifyEmail.emailVerification")}</p>
           <h1 id="verify-title" className={classes.mainHeading}>{state === "success" ? uiText("auth:verifyEmail.emailConfirmed") : state === "loading" ? uiText("auth:verifyEmail.checkingTheLink") : uiText("auth:verifyEmail.couldNotVerify")}</h1>

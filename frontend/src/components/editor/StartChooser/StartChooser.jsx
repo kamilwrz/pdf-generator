@@ -1,4 +1,3 @@
-import LanguageSelect from '../../common/LanguageSelect/LanguageSelect';
 import { t as uiText, getUiLocale } from "../../../i18n/index.js";
 import { useTranslation } from 'react-i18next';
 /**
@@ -145,7 +144,6 @@ export default function StartChooser({
       </a>
       <div className={classes.inner}>
         <header className={classes.head}>
-          <LanguageSelect />
           <h1
             ref={titleRef}
             id="start-chooser-title"

@@ -2,7 +2,6 @@ import { usePageTitle } from '../../i18n/usePageTitle.js';
 import { useMessageState, messageRef, messageOf } from '../../i18n/messageState.js';
 import { t as uiText } from "../../i18n/index.js";
 import { useTranslation } from 'react-i18next';
-import LanguageSelect from '../../components/common/LanguageSelect/LanguageSelect';
 /**
  * Login form. Does not gate on /health — cold starts use a long token timeout
  * plus retries; wakeBackend runs in the background to warm the dyno.
@@ -145,7 +144,6 @@ export default function Login() {
 
             <section className={classes.authColumn} aria-labelledby="login-title">
                 <div className={classes.loginCard}>
-                    <LanguageSelect />
                     <Link to="/" className={classes.logoBadge} aria-label={uiText("public:siteLayout.cvStudioHomepage")}>
                         <img src="/cv-studio-logo.svg" alt="" />
                     </Link>

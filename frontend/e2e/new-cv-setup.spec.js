@@ -47,7 +47,7 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 834, height: 950 }
     expect(box.height).toBeGreaterThanOrEqual(44);
     await create.focus();
     await page.keyboard.press("Tab");
-    await expect(setup.getByRole("combobox", { name: "Język aplikacji" })).toBeFocused();
+    await expect(setup.getByRole("button", { name: "Zamknij: Utwórz CV" })).toBeFocused();
     await create.click();
     await expect(setup).toHaveCount(0);
     await expect(page.locator('[contenteditable="true"][data-placeholder="Imię i nazwisko"]')).toBeFocused();
@@ -184,7 +184,7 @@ test("pending creation traps focus and failed creation retains settings for retr
   const close = setup.getByRole("button", { name: "Zamknij: Utwórz CV" });
   await close.focus();
   await page.keyboard.press("Tab");
-  await expect(setup.getByRole("combobox", { name: "Język aplikacji" })).toBeFocused();
+  await expect(close).toBeFocused();
   await page.keyboard.press("Shift+Tab");
   await expect(close).toBeFocused();
   await page.keyboard.press("Escape");

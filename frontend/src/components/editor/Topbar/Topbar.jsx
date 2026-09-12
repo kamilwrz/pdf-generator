@@ -18,7 +18,6 @@ import { useTranslation } from 'react-i18next';
  * pagination stay left; naming, saving, and downloading stay right.
  */
 import classes from "./Topbar.module.css";
-import LanguageSelect from '../../common/LanguageSelect/LanguageSelect';
 import { useEffect, useMemo, useRef } from "react";
 import { Link } from "react-router-dom";
 import { useCanvasContext } from "../../../store/canvas-context";
@@ -106,7 +105,6 @@ export default function Topbar({ titleRef, title, onTitleChange }) {
             data-anchor="editor-topbar">
             {/* Creation and page navigation remain outside the 100% A4 rail. */}
             <div className={`${classes.group} ${classes.documentGroup}`}>
-                <LanguageSelect />
                 {isDemoContent ? (
                     <div className={classes.demoIdentity} aria-label="CV Studio Demo">
                         <span>CV STUDIO</span>

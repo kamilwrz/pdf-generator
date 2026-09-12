@@ -8,6 +8,7 @@ for (const lang of ['pl', 'en']) {
     test(`interview edits only notes (${lang}, ${width}px)`, async ({ page }) => {
       const base = await installMockApi(page);
       await page.addInitScript(() => localStorage.setItem('token', 'local-playwright-token'));
+      await page.addInitScript((language) => localStorage.setItem('cvstudio.uiLanguage', language), lang);
       await page.setViewportSize({ width, height: 1000 });
       await page.emulateMedia({ reducedMotion: 'reduce' });
       const isolated = width === 834 || width === 1920;
@@ -42,7 +43,6 @@ for (const lang of ['pl', 'en']) {
         await route.fulfill({ json: payload() });
       });
       await page.goto('/app/interview/note-review');
-      await page.getByRole('combobox', { name: 'Język aplikacji' }).selectOption(lang);
       if (width === 834) await page.addStyleTag({ content: 'html { font-size: 200%; }' });
       const open = lang === 'pl' ? 'Otwórz wpis: ' : 'Open entry: ';
       await page.getByRole('button', { name: `${open}Senior Analyst` }).click();

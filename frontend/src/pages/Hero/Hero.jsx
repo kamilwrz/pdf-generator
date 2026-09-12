@@ -117,7 +117,7 @@ export default function Hero() {
 
     return (
         <main className={classes.page}>
-            <SiteHeader />
+            <SiteHeader showLanguageSelect />
 
             <section id="top" className={classes.hero}>
                 <div className={classes.heroCopy}>

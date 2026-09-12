@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { setUiLanguage } from '../../../i18n';
 import classes from './LanguageSelect.module.css';
 
-/** The same native selector remains keyboard-accessible on every entry route. */
+/** Landing-page control that persists the UI locale used by every route. */
 export default function LanguageSelect() {
   const id = useId();
   const { t, i18n } = useTranslation('common');

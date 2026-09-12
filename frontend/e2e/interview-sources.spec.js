@@ -66,6 +66,7 @@ for (const lang of ['pl', 'en']) {
     test(`bound career profile starts an interview (${lang}, ${width}px)`, async ({ page }) => {
       const base = await installMockApi(page);
       await page.addInitScript(() => localStorage.setItem('token', 'local-playwright-token'));
+      await page.addInitScript((language) => localStorage.setItem('cvstudio.uiLanguage', language), lang);
       await page.setViewportSize({ width, height: 1000 });
       await page.emulateMedia({ reducedMotion: 'reduce' });
       const kind = width === 834 || width === 1920 ? 'import' : 'document';
@@ -86,7 +87,6 @@ for (const lang of ['pl', 'en']) {
           source_cv_data: { name: 'Anna Profile' }, answers: [], proposed_facts: [], requirements: [], language: 'pl', confirmed: false } });
       });
       await page.goto('/app/interview');
-      await page.getByRole('combobox', { name: 'Język aplikacji' }).selectOption(lang);
       const select = page.getByRole('combobox', { name: lang === 'pl' ? 'Źródło informacji' : 'Information source', exact: true });
       await select.selectOption('profile');
       await expect(page.getByRole('checkbox')).toHaveCount(0);

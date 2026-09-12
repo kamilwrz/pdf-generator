@@ -21,10 +21,7 @@ test('library tabs expose imports, recover deletion focus and reflow', async ({ 
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await page.screenshot({ fullPage: true, path: testInfo.outputPath(`library-imports-${width}.png`) });
   }
-  await page.getByRole('combobox', { name: 'Język aplikacji' }).selectOption('en');
-  await expect(page.getByRole('tab', { name: 'Saved imports' })).toHaveAttribute('aria-selected', 'true');
-  await expect(page.getByRole('tabpanel', { name: 'Saved imports' }).getByRole('link', { name: 'Create CV' })).toBeVisible();
-  await page.getByRole('combobox', { name: 'Application language' }).selectOption('pl');
+  await expect(page.getByRole('combobox', { name: 'Język aplikacji' })).toHaveCount(0);
   await row.getByRole('button', { name: /Usuń/ }).click();
   const dialog = page.getByRole('alertdialog');
   await expect(dialog.getByRole('button', { name: 'Anuluj' })).toBeFocused();

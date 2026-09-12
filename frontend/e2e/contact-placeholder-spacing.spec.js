@@ -15,7 +15,7 @@ const cases = [
 
 for (const { templateId, width, language = "pl" } of cases) {
   test(`${templateId} ${language}: clearing contacts restores non-overlapping hints at ${width}px`, async ({ page }, testInfo) => {
-    // Allow two full edit/clear cycles per contact, language switches and a save.
+    // Allow two full edit/clear cycles per contact and a save.
     test.setTimeout(60_000);
     await page.setViewportSize({ width, height: 1000 });
     await page.emulateMedia({ reducedMotion: "reduce" });
@@ -72,19 +72,14 @@ for (const { templateId, width, language = "pl" } of cases) {
       }
     };
 
-    // Saved coordinates were computed from canonical Polish metadata. Switching
-    // UI copy must fit that existing layout before any edit triggers a reflow.
+    // Saved coordinates were computed from canonical metadata and must fit the
+    // selected landing-page locale before any edit triggers a reflow.
     await expectNoOverlap();
     const savedPositions = await positions();
-    const selector = page.getByRole("combobox", { name: /Application language|Język aplikacji/ });
-    for (const nextLanguage of ["pl", "en", language]) {
-      await selector.focus();
-      await selector.selectOption(nextLanguage);
-      await expect(page.locator("html")).toHaveAttribute("lang", nextLanguage);
-      await expect(selector).toBeFocused();
-      expect(await positions()).toEqual(savedPositions);
-      await expectNoOverlap();
-    }
+    await expect(page.locator("html")).toHaveAttribute("lang", language);
+    await expect(page.getByRole("combobox", { name: language === "en" ? "Application language" : "Język aplikacji" })).toHaveCount(0);
+    expect(await positions()).toEqual(savedPositions);
+    await expectNoOverlap();
 
     // Enter/leave an untouched field once to replace the initial deterministic
     // font estimate with the same browser metrics used by live editing.
