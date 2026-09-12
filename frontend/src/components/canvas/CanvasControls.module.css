@@ -8,13 +8,13 @@
     display: inline-flex;
     align-items: center;
     gap: var(--canvas-control-gap, 2.4px);
-    padding: var(--canvas-control-gap, 2.4px);
+    padding: 0;
     background: var(--color-paper);
     color: var(--color-editor-ink);
     border: 0;
-    /* Limit wrapped toolbars to one row's radius so outer actions stay clear
-       of the curve. The same local metrics inverse-scale inside A4. */
-    border-radius: var(--canvas-surface-radius, min(var(--radius-canvas-tool), calc(var(--canvas-control-size, 24px) / 2 + var(--canvas-control-gap, 2.4px) + var(--canvas-control-border, 1px))));
+    /* Zero surface padding matches the settings cog's full height. Half a
+       control row gives semicircular ends, even when the toolbar wraps. */
+    border-radius: var(--canvas-surface-radius, min(var(--radius-canvas-tool), calc(var(--canvas-control-size, 24px) / 2)));
     box-shadow: var(--canvas-shadow-editor-entry, var(--shadow-editor-entry));
     font-family: var(--font-ui);
     pointer-events: auto;

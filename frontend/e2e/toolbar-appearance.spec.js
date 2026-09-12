@@ -72,7 +72,7 @@ for (const kind of ["contacts", "skills", "languages", "settings"]) {
         for (let step = 0; step < Math.abs(target - current) / 10; step++) zoomButton.click();
         const result = [];
         const started = performance.now();
-        while (performance.now() - started < 400) {
+        while (performance.now() - started < 2000) {
           // Observe after all RAF callbacks commit, rather than sampling between
           // the browser's transform tick and the page's compensation callback.
           await new Promise((resolve) => requestAnimationFrame(() => setTimeout(resolve, 0)));
@@ -80,6 +80,8 @@ for (const kind of ["contacts", "skills", "languages", "settings"]) {
             size: button.getBoundingClientRect().height,
             icon: button.querySelector("svg").getBoundingClientRect().width,
           })));
+          // Edit zoom can run for 500ms; finish only after the live transition.
+          if (performance.now() - started >= 400 && canvas.getAnimations().length === 0) break;
         }
         return result;
       }, { target, selector });
@@ -146,6 +148,7 @@ for (const width of [390, 834, 1280, 1920]) {
           color: style.color, hover: style.backgroundColor,
           border: shell.borderWidth, surface: shell.backgroundColor,
           shellRadius: parseFloat(shell.borderRadius), shellHeight: parseFloat(shell.height),
+          surfaceHeight: el.parentElement.getBoundingClientRect().height,
         };
       });
       expect(appearance.size).toBeCloseTo(size, 0);
@@ -157,7 +160,9 @@ for (const width of [390, 834, 1280, 1920]) {
         surface: "rgb(255, 255, 255)", hover: "rgb(236, 232, 223)",
         color: danger ? "rgb(180, 35, 24)" : "rgb(103, 78, 62)",
       });
-      // Chromium rounds inverse-scaled hairline borders to device pixels.
+      // Compare the complete surface, not only its buttons: outer padding
+      // previously made structural toolbars taller than adjacent inline icons.
+      expect(appearance.surfaceHeight).toBeCloseTo(size, 1);
       expect(appearance.shellRadius).toBeCloseTo(appearance.shellHeight / 2, 0);
     };
 
@@ -265,10 +270,12 @@ test("toolbar geometry and menu text grow monotonically through animated canvas 
   const api = await installMockApi(page, { savedElements: [...SAVED_ELEMENTS, ...extraElements] });
   await login(page);
   await page.getByText("Kontynuuj ostatnie CV", { exact: true }).click();
-  await page.locator("#skills-heading").dispatchEvent("pointerenter");
+  await hoverVisibleText(page, page.locator("#skills-heading"));
   const toolbar = page.locator('[data-canvas-toolbar-key="heading:skills-heading"]');
   const more = toolbar.getByRole("button", { name: "Więcej działań" });
-  await more.click();
+  // Pin by keyboard before sampling; real pointer travel is covered separately.
+  await more.focus();
+  await more.press("Enter");
   await expect(toolbar.getByRole("menu")).toBeVisible();
   await expect(more).toHaveCSS("border-radius", "999px");
   await expect(more).toHaveCSS("background-color", "rgb(236, 232, 223)");
@@ -289,7 +296,7 @@ test("toolbar geometry and menu text grow monotonically through animated canvas 
       for (let step = 0; step < Math.abs(target - current) / 10; step += 1) button.click();
       const values = [];
       const started = performance.now();
-      while (performance.now() - started < 400) {
+      while (performance.now() - started < 2000) {
         await new Promise(requestAnimationFrame);
         const root = document.querySelector('[data-canvas-toolbar-key="heading:skills-heading"]');
         const control = root?.querySelector("button");
@@ -298,12 +305,15 @@ test("toolbar geometry and menu text grow monotonically through animated canvas 
         const menu = root.querySelector('[role="menuitem"]');
         values.push({
           height: control.getBoundingClientRect().height,
+          surfaceHeight: control.parentElement.getBoundingClientRect().height,
+          surfaceRadius: parseFloat(getComputedStyle(control.parentElement).borderRadius),
           width: control.getBoundingClientRect().width,
           icon: icon.getBoundingClientRect().width,
           font: getComputedStyle(control).fontSize,
           menuFont: getComputedStyle(menu).fontSize,
           menuWeight: getComputedStyle(menu).fontWeight,
         });
+        if (performance.now() - started >= 400 && canvas.getAnimations().length === 0) break;
       }
       return values;
     }, targetZoom);
@@ -312,6 +322,8 @@ test("toolbar geometry and menu text grow monotonically through animated canvas 
       const finalHeight = 36 * Math.max(1, (2 + targetZoom / 140) / 3);
       expect(sample.height).toBeGreaterThanOrEqual(Math.min(previousHeight, finalHeight) - 0.1);
       expect(sample.height).toBeLessThanOrEqual(Math.max(previousHeight, finalHeight) + 0.1);
+      expect(sample.surfaceHeight).toBeCloseTo(sample.height, 1);
+      expect(sample.surfaceRadius).toBeCloseTo(sample.height / 2, 1);
       expect(sample.width / sample.height).toBeCloseTo(76 / 36, 1);
       expect(sample.icon / sample.height).toBeCloseTo(16 / 36, 1);
       expect(parseFloat(sample.font)).toBeGreaterThanOrEqual(12);
@@ -394,6 +406,9 @@ for (const width of [390, 640]) {
     const more = toolbar.getByRole("button", { name: "Więcej działań" });
     await expect(more).toBeVisible();
     await expect.poll(async () => (await more.boundingBox()).height).toBeCloseTo(48, 1);
+    const surface = more.locator("..");
+    expect((await surface.boundingBox()).height).toBeCloseTo(48, 1);
+    await expect(surface).toHaveCSS("border-radius", "24px");
     for (const button of await toolbar.getByRole("button").all()) {
       const box = await button.boundingBox();
       expect(box.x).toBeGreaterThanOrEqual(8);
