@@ -24,6 +24,7 @@ from app.services.interview_clarification import (
 from app.services.interview_recovery import assemble_reviewed_draft
 from app.services.interview_job_analysis import load_owned_analysis, requirement_topics
 from app.services.interview_discovery import update_discovery_budget
+from app.services.job_matching_policy import TAILORED_DRAFT_POLICY, TAILORED_EDITORIAL_POLICY
 from app.services.interview_editorial import (
     EDITORIAL_TASK, PIPELINE_VERSION, PROSE_PATH, begin_generation,
     prepare_editorial_draft, apply_editorial_review,
@@ -192,7 +193,11 @@ def create_interview(request: InterviewCreate, http_request: Request,
         "proposed_facts": candidates, "answers": [], "question": None,
         "question_limit": 5 if request.mode == "tailor" else 8,
         "confirmed": False, "preview": None, "document_id": None,
-        "requirements": requirement_topics(analysis["requirements"]) if analysis else [],
+        "requirements": requirement_topics(
+            analysis["requirements"], evidence_catalog=analysis.get("evidence_catalog"),
+            candidate_notes=request.candidate_notes, priorities=analysis.get("priorities") or [],
+            evidence_gaps=analysis.get("evidence_gaps") or [],
+        ) if analysis else [],
         "job_analysis_ready": bool(analysis),
     }
     # The source-derived proposals are read-only in intake, so they already
@@ -489,7 +494,8 @@ def preview_interview(session_id: str, request: GenerateWrite, user=Depends(get_
     row, request = begin_generation(db, row, request, profile)
     state = deepcopy(row.state)
     response = service.paid_model(db, user, row, request, "preview", {
-        "task": "Przygotuj pełną treść CV jako fields: path/value/evidence_refs. Podstawą są wyłącznie potwierdzone profile facts; offer to kryteria doboru, nie dowody. Zachowaj wszystkie odrębne fakty bazowego CV, wzmacniaj podsumowanie i punkty. Możesz dodać potwierdzone projekty i umiejętności. Doprecyzowanie istniejącej czynności włącz do jej punktu, nie dopisuj drugiego punktu o tym samym zadaniu. Każdy odrębny fakt opisz raz w obrębie danej roli lub projektu. Nie mieszaj danych różnych ról i projektów. Ogólna znajomość technologii nie potwierdza jej użycia w konkretnym projekcie. Zachowaj dokładnie kolejność działań, kierunek przekazania raportów i granice odpowiedzialności ze źródła; nie dopisuj relacji przed/po ani odbiorców. Każda liczba musi pochodzić z przywołanych faktów. Zwróć pozostałe braki. Nie generuj geometrii. Dane kontaktowe pozostają dosłowne. Używaj języka language dla całej treści.",
+        "task": "Przygotuj pełną treść CV jako fields: path/value/evidence_refs. Podstawą są wyłącznie potwierdzone profile facts; offer to kryteria doboru, nie dowody. Zachowaj wszystkie odrębne fakty bazowego CV, wzmacniaj podsumowanie i punkty. Możesz dodać potwierdzone projekty i umiejętności. Doprecyzowanie istniejącej czynności włącz do jej punktu, nie dopisuj drugiego punktu o tym samym zadaniu. Każdy odrębny fakt opisz raz w obrębie danej roli lub projektu. Nie mieszaj danych różnych ról i projektów. Ogólna znajomość technologii nie potwierdza jej użycia w konkretnym projekcie. Zachowaj dokładnie kolejność działań, kierunek przekazania raportów i granice odpowiedzialności ze źródła; nie dopisuj relacji przed/po ani odbiorców. Każda liczba musi pochodzić z przywołanych faktów. Zwróć pozostałe braki. Nie generuj geometrii. Dane kontaktowe pozostają dosłowne. Używaj języka language dla całej treści."
+        + ("\n\n" + TAILORED_DRAFT_POLICY if state["mode"] == "tailor" else ""),
         "allowed_paths": service.PATH.pattern, "profile": profile["facts"], "base_cv": service.base_cv(profile),
         "offer": state["offer"], "language": service.LANGUAGES[state["language"]],
         **({"job_analysis": state.get("requirements", []), "interview_answers": state["answers"]}
@@ -498,7 +504,8 @@ def preview_interview(session_id: str, request: GenerateWrite, user=Depends(get_
     service.check_versions(db, service.owned_session(db, user.id, session_id), request)
     draft = prepare_editorial_draft(response["output"], profile)
     editorial = service.paid_model(db, user, row, request, "editorial", {
-        "task": EDITORIAL_TASK, "draft": draft["fields"], "profile": profile["facts"],
+        "task": EDITORIAL_TASK + ("\n\n" + TAILORED_EDITORIAL_POLICY if state["mode"] == "tailor" else ""),
+        "draft": draft["fields"], "profile": profile["facts"],
         "offer": state["offer"], "language": service.LANGUAGES[state["language"]],
         "editable_paths": [field["path"] for field in draft["fields"] if PROSE_PATH.fullmatch(field["path"])],
     }, EditorialReview, action="language", generation=True,

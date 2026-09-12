@@ -11,6 +11,7 @@ from app.models.models import AiCreditReservation, InterviewSession
 from app.schemas.interview_schema import Discovery, EditorialReview, provider_schema
 from app.services import interview_service as service
 from app.services.interview_editorial import apply_editorial_review, prepare_editorial_draft
+from app.services.job_matching_policy import TAILORED_DRAFT_POLICY, TAILORED_EDITORIAL_POLICY
 from test_interviews import environment, create, confirm, version, editorial
 
 USAGE = {'cost_pln_estimate': .01}
@@ -59,6 +60,14 @@ def test_pipeline_checks_edited_text_against_unchanged_raw_answers(environment, 
     calls = provider.call_args_list
     assert [c.kwargs['response_schema']['name'] for c in calls] == ['draft', 'editorialreview', 'verification']
     assert [c.kwargs['action'] for c in calls] == ['improve', 'language', 'improve']
+    draft_context, style_context = [json.loads(call.args[1]) for call in calls[:2]]
+    # Tailoring must reach both writing stages, while facts remain the only
+    # candidate evidence supplied to the final independent verification.
+    assert (TAILORED_DRAFT_POLICY in draft_context['task']) is (mode == 'tailor')
+    assert (TAILORED_EDITORIAL_POLICY in style_context['task']) is (mode == 'tailor')
+    if mode == 'tailor':
+        assert draft_context['job_analysis'] == session['requirements']
+        assert draft_context['interview_answers'] == session['answers']
     checked = json.loads(calls[-1].args[1])
     assert checked['draft'] == [{**draft['fields'][0], 'value': PROFESSIONAL}]
     assert next(f for f in checked['profile'] if f['id'] == 'answer-q')['text'] == RAW

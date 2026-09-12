@@ -99,14 +99,18 @@ class Question(Contract):
 
 
 class Requirement(Contract):
+    """Offer criteria; optional metadata also supports older saved model replies."""
     text: str = Field(max_length=1000)
     status: Literal["matched", "partial", "unknown", "gap"]
     evidence_refs: list[str] = Field(max_length=10)
+    kind: Literal["required", "preferred", "responsibility"] = "required"
+    weight: int = Field(default=3, ge=1, le=3)
+    missing_detail: str = Field(default="", max_length=2000)
 
 
 class JobAnalysis(Contract):
     """Initial offer requirements; their classifications never become career facts."""
-    requirements: list[Requirement] = Field(min_length=1, max_length=20)
+    requirements: list[Requirement] = Field(max_length=20)
 
 
 class Discovery(Contract):

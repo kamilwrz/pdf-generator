@@ -15,6 +15,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SERVICE = ROOT / "backend" / "app" / "services" / "ai_assistant_service.py"
+MATCHING_POLICY = ROOT / "backend" / "app" / "services" / "job_matching_policy.py"
 OUT = ROOT / "docs" / "PROMPTS.md"
 
 
@@ -28,7 +29,7 @@ class ActionPrompt:
 
 ACTIONS = (
     ActionPrompt("rating", "Sprawdź CV", "_rate_cv", "ocenia jakość i kompletność treści CV"),
-    ActionPrompt("position_rating", "Dopasuj do oferty", "_tailor_cv_to_position", "porównuje CV z ofertą i proponuje potwierdzone poprawki"),
+    ActionPrompt("position_rating", "Dopasuj do oferty", "_tailor_cv_to_position", "analizuje CV wobec oferty; dopasowaną treść przygotowuje wywiad"),
     ActionPrompt("grammar", "Sprawdź błędy", "_fix_grammar", "poprawia gramatykę, ortografię i interpunkcję"),
     ActionPrompt("language", "Popraw język", "_check_style", "ulepsza styl w języku bieżącego CV"),
     ActionPrompt("improve", "Wzmocnij treść", "_improve_content", "wzmacnia opisy bez wymyślania faktów"),
@@ -94,7 +95,18 @@ def main() -> None:
             ]
         )
 
-    parts.append("*Wygenerowano przez `scripts/generate_prompts_md.py`.*\n")
+    # Handler imports are not sufficient documentation: include the shared
+    # policy source so analysis and later CV-generation instructions stay visible.
+    policy = MATCHING_POLICY.read_text(encoding="utf-8").rstrip()
+    parts.extend([
+        "## Wspólna polityka dopasowania i redakcji CV\n\n",
+        f"Plik `backend/app/services/job_matching_policy.py`, linie 1–{len(policy.splitlines())}. ",
+        "Analiza asystenta i analiza w wywiadzie korzystają z tych samych reguł wymagań i dowodów. ",
+        "Wywiad w trybie `tailor` dodaje osobne instrukcje przygotowania oraz redakcji treści; ",
+        "niezależna weryfikacja nadal sprawdza wynik względem potwierdzonych faktów.\n\n",
+        "```python\n", policy, "\n```\n\n",
+        "*Wygenerowano przez `scripts/generate_prompts_md.py`.*\n",
+    ])
     OUT.write_text("".join(parts), encoding="utf-8")
     print(f"Wrote {OUT} ({OUT.stat().st_size} bytes)")
 

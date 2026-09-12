@@ -29,6 +29,7 @@ from app.services.scoped_ai import ScopedContent, review_scoped_content
 from app.services.document_service import validate_and_resolve_image_elements
 from app.services.interview_job_analysis import analysis_signature
 from app.services.job_offer_service import JobOfferError, resolve_job_offer
+from app.services.job_tailoring import build_evidence_catalog
 from app.services.entitlements import (
     assert_can_use_ai_action,
     assert_can_use_scoped_ai,
@@ -426,6 +427,9 @@ def ai_assistant(
         result['_interview_analysis'] = {
             'signature': analysis_signature(request.cv_data or {}, request.candidate_notes, request.job_offer_url, request.job_description),
             'requirements': result.get('job_requirements', []),
+            'evidence_catalog': build_evidence_catalog(request.elements, request.candidate_notes, cv_data=request.cv_data),
+            'priorities': result.get('priorities', []),
+            'evidence_gaps': result.get('evidence_gaps', []),
             'offer': resolved_job_offer,
         }
 

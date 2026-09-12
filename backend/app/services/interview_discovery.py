@@ -5,6 +5,7 @@ separate counter can drift on retries, and extending a session never resets an
 entry. This module only reads evidence/history and returns question metadata.
 """
 from app.core.localisation import ui_language
+from app.services.interview_job_analysis import requirement_facts
 
 import hashlib
 import re
@@ -214,9 +215,10 @@ def update_discovery_budget(state, profile):
         # Keep only evidence from the selected, confirmed store. Requirement
         # text describes the job, while these facts anchor partial-match probes
         # to the candidate without treating the offer itself as experience.
-        facts_by_id = {fact['id']: fact for fact in profile['facts']}
         entries = [{'id': item['id'], 'kind': 'requirement', 'label': item['text'],
-                    'facts': [facts_by_id[ref] for ref in item.get('evidence_refs', []) if ref in facts_by_id],
+                    'facts': requirement_facts(item, profile),
+                    'requirement_kind': item.get('kind', 'required'), 'weight': item.get('weight', 3),
+                    'missing_detail': item.get('missing_detail', ''),
                     'question_count': 2, 'status': item['status']}
                    for item in state.get('requirements', []) if item['status'] in {'partial', 'unknown', 'gap'}]
         # Two slots per requirement, never a third model follow-up. Answers remain

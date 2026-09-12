@@ -10,8 +10,8 @@ from __future__ import annotations
 
 from copy import deepcopy
 import json
+import math
 import re
-from typing import Any
 
 from app.services.cv_data import normalize_cv_data
 
@@ -162,13 +162,59 @@ def _source_text(profile: dict | None, elements: list[dict], candidate_notes: st
     )
 
 
-def build_evidence_catalog(elements: list[dict], candidate_notes: str = "") -> dict[str, str]:
+def _profile_evidence(profile: dict) -> dict[str, str]:
+    """Index authored profile leaves, excluding presentation and duplicate views.
+
+    Paths refer to the normalized profile supplied to the model. A section's
+    heading or skill category describes grouping, not a candidate capability;
+    only its item content may be cited. The derived ``extra_sections`` view is
+    excluded because its content already lives in the editable canonical fields.
+    """
+    catalog: dict[str, str] = {}
+
+    def collect(value: object, path: str) -> None:
+        if isinstance(value, str):
+            content = _compact(value)
+            if content:
+                catalog[f"cv:{path}"] = content
+        elif isinstance(value, list):
+            for index, item in enumerate(value):
+                collect(item, f"{path}/{index}")
+        elif isinstance(value, dict):
+            for key, item in value.items():
+                if key in {"category", "layout", "kind", "placement", "section_type", "bulletList"}:
+                    continue
+                # The custom-section title labels a collection. Nested record
+                # titles identify real projects, publications, or voluntary work.
+                if key == "title" and re.fullmatch(r"/custom_sections/\d+", path):
+                    continue
+                # Education's legacy detail is normally a generated display
+                # string. Retain it only when it is the sole legacy description.
+                if key == "detail" and any(value.get(field) for field in ("school", "city", "description", "bullets")):
+                    continue
+                collect(item, f"{path}/{key}")
+
+    for field in (
+        "title", "summary", "address", "website", "github", "linkedin",
+        "experience", "education", "skills", "languages", "custom_sections",
+    ):
+        collect(profile.get(field), f"/{field}")
+    return catalog
+
+
+def build_evidence_catalog(
+    elements: list[dict],
+    candidate_notes: str = "",
+    cv_data: dict | None = None,
+) -> dict[str, str]:
     """Map stable evidence identifiers to exact candidate-provided source text.
 
     Model-generated paraphrases are unsuitable as identifiers because a valid
     bilingual match rarely repeats the complete Polish CV sentence verbatim.
-    Canvas IDs and numbered note fragments let the model express semantic
-    relevance while the server still verifies that every cited source exists.
+    Canvas IDs, numbered note fragments, and ``cv:/path`` references to authored
+    normalized profile fields let the model express semantic relevance while the
+    server verifies that every cited source exists. Input data is not mutated;
+    invalid profiles raise the same validation errors as ``normalize_cv_data``.
     """
     catalog: dict[str, str] = {}
     for item in elements:
@@ -183,6 +229,8 @@ def build_evidence_catalog(elements: list[dict], candidate_notes: str = "") -> d
         content = _compact(fragment)
         if content:
             catalog[f"note:{index}"] = content
+    if isinstance(cv_data, dict):
+        catalog.update(_profile_evidence(normalize_cv_data(cv_data)))
     return catalog
 
 
@@ -242,18 +290,62 @@ def _is_grounded_rewrite(
     return bool(_valid_evidence_refs(refs, evidence_catalog))
 
 
-def _normalise_requirements(value: object, evidence_catalog: dict[str, str]) -> list[dict]:
+def _feedback_text(value: object) -> str:
+    return _compact(value) if isinstance(value, str) else ""
+
+
+def _comparison_key(value: str) -> str:
+    """Ignore surface formatting without conflating different technical terms.
+
+    Remove sentence-ending punctuation and spaces around commas/semicolons,
+    while preserving semantic punctuation in C++, C#, .NET, and AND/OR clauses.
+    This deliberately does not infer synonyms or equivalent requirements.
+    """
+    key = re.sub(r"\s*([,;:!?])\s*", r"\1", _compact(value).casefold())
+    return key.rstrip(".!?,;:").rstrip()
+
+
+def _normalise_requirements(
+    value: object, evidence_catalog: dict[str, str]
+) -> tuple[list[dict], dict[str, str]]:
+    """Return distinct criteria and a safe mapping of model IDs to canonical IDs.
+
+    The first occurrence owns the status and weight for an exactly repeated
+    criterion, so repetition cannot add scoring weight. An ID reused for
+    different texts is ambiguous: its feedback is discarded instead of being
+    attached to whichever criterion happens to be last in a dictionary.
+    """
     if not isinstance(value, list):
-        return []
-    requirements: list[dict] = []
-    seen: set[str] = set()
-    for index, item in enumerate(value[:15]):
+        return [], {}
+    unique_items: dict[str, dict] = {}
+    id_targets: dict[str, set[str]] = {}
+    for item in value:
         if not isinstance(item, dict):
             continue
-        text = _compact(item.get("text"))
-        if not text or text.casefold() in seen:
+        key = _comparison_key(_feedback_text(item.get("text")))
+        if not key:
             continue
-        seen.add(text.casefold())
+        unique_items.setdefault(key, item)
+        original_id = _feedback_text(item.get("id"))
+        if original_id:
+            id_targets.setdefault(original_id, set()).add(key)
+
+    requirements: list[dict] = []
+    canonical_ids: dict[str, str] = {}
+    reserved_ids = set(id_targets)
+    for index, (key, item) in enumerate(list(unique_items.items())[:15]):
+        text = _feedback_text(item.get("text"))
+        original_id = _feedback_text(item.get("id"))
+        if original_id and len(id_targets[original_id]) == 1:
+            canonical_id = original_id
+        else:
+            suffix = index + 1
+            canonical_id = f"req-{suffix}"
+            while canonical_id in reserved_ids:
+                suffix += 1
+                canonical_id = f"req-{suffix}"
+        reserved_ids.add(canonical_id)
+        canonical_ids[key] = canonical_id
         kind = str(item.get("kind") or "required")
         if kind not in {"required", "preferred", "responsibility"}:
             kind = "required"
@@ -263,7 +355,7 @@ def _normalise_requirements(value: object, evidence_catalog: dict[str, str]) -> 
         evidence_refs = _valid_evidence_refs(item.get("evidence_refs"), evidence_catalog)
         # Structured output constrains the label but cannot prove the claim.
         # Positive matches therefore count only when they reference a real CV
-        # element or candidate note. Semantic interpretation remains with the
+        # element, profile field, or candidate note. Interpretation remains with the
         # model, while source existence is deterministic and server-enforced.
         if status != "missing" and not evidence_refs:
             status = "missing"
@@ -272,10 +364,10 @@ def _normalise_requirements(value: object, evidence_catalog: dict[str, str]) -> 
         default_weight = {"required": 3, "preferred": 2, "responsibility": 1}[kind]
         try:
             weight = max(1, min(3, int(item.get("weight", default_weight))))
-        except (TypeError, ValueError):
+        except (TypeError, ValueError, OverflowError):
             weight = default_weight
         requirements.append({
-            "id": _compact(item.get("id")) or f"req-{index + 1}",
+            "id": canonical_id,
             "text": text,
             "kind": kind,
             "weight": weight,
@@ -283,7 +375,12 @@ def _normalise_requirements(value: object, evidence_catalog: dict[str, str]) -> 
             "evidence": _evidence_excerpt(evidence_refs, evidence_catalog),
             "evidence_refs": evidence_refs,
         })
-    return requirements
+    aliases = {
+        original_id: canonical_ids[next(iter(targets))]
+        for original_id, targets in id_targets.items()
+        if len(targets) == 1 and next(iter(targets)) in canonical_ids
+    }
+    return requirements, aliases
 
 
 def _requirement_score(requirements: list[dict]) -> float:
@@ -297,9 +394,75 @@ def _requirement_score(requirements: list[dict]) -> float:
 
 def _clamp_score(value: object, maximum: float) -> float:
     try:
-        return round(max(0.0, min(maximum, float(value))), 1)
-    except (TypeError, ValueError):
+        number = float(value)
+        return round(max(0.0, min(maximum, number)), 1) if math.isfinite(number) else 0.0
+    except (TypeError, ValueError, OverflowError):
         return 0.0
+
+
+def _normalise_feedback(
+    value: object,
+    requirements: list[dict],
+    aliases: dict[str, str],
+    *,
+    maximum: int,
+    seen_descriptions: set[str],
+) -> list[dict]:
+    """Keep actionable, unique feedback linked to a real unresolved criterion.
+
+    Heavier criteria are considered first. Description keys are shared between
+    priorities and evidence gaps, preventing the same recommendation from being
+    repeated across panels. Each panel may still explain a different aspect of
+    one criterion once, such as an editorial action and the evidence it needs.
+    """
+    if not isinstance(value, list):
+        return []
+    by_id = {item["id"]: item for item in requirements}
+    candidates = []
+    for item in value:
+        if not isinstance(item, dict):
+            continue
+        requirement_id = aliases.get(_feedback_text(item.get("requirement_id")))
+        requirement = by_id.get(requirement_id)
+        title = _feedback_text(item.get("title"))
+        description = _feedback_text(item.get("description"))
+        if (
+            requirement is not None
+            and requirement["match_status"] in {"partial", "missing"}
+            and _comparison_key(title)
+            and _comparison_key(description)
+        ):
+            candidates.append({"requirement_id": requirement_id, "title": title, "description": description})
+    candidates.sort(key=lambda item: -by_id[item["requirement_id"]]["weight"])
+
+    result: list[dict] = []
+    seen_requirements: set[str] = set()
+    for item in candidates:
+        key = _comparison_key(item["description"])
+        if item["requirement_id"] in seen_requirements or key in seen_descriptions:
+            continue
+        seen_requirements.add(item["requirement_id"])
+        seen_descriptions.add(key)
+        result.append(item)
+        if len(result) == maximum:
+            break
+    return result
+
+
+def _normalise_text_list(value: object, *, maximum: int, seen: set[str]) -> list[str]:
+    """Reject malformed collections and remove empty or repeated model prose."""
+    if not isinstance(value, list):
+        return []
+    result: list[str] = []
+    for item in value:
+        text = _feedback_text(item)
+        key = _comparison_key(text)
+        if key and key not in seen:
+            seen.add(key)
+            result.append(text)
+            if len(result) == maximum:
+                break
+    return result
 
 
 def _read_profile_path(profile: dict, path: str) -> str | None:
@@ -338,8 +501,8 @@ def build_job_tailoring_result(
     """Create a deterministic score and discard every ungrounded change."""
     profile = normalize_cv_data(cv_data) if isinstance(cv_data, dict) else None
     source = _source_text(profile, elements, candidate_notes)
-    evidence_catalog = build_evidence_catalog(elements, candidate_notes)
-    requirements = _normalise_requirements(raw.get("requirements"), evidence_catalog)
+    evidence_catalog = build_evidence_catalog(elements, candidate_notes, cv_data)
+    requirements, requirement_aliases = _normalise_requirements(raw.get("requirements"), evidence_catalog)
     element_content = {
         str(item.get("element_id")): str(item.get("content") or "")
         for item in elements
@@ -405,38 +568,15 @@ def build_job_tailoring_result(
     ]
     rating = max(1, min(10, round(sum(item["score"] for item in categories))))
 
-    evidence_gaps: list[dict] = []
-    requirement_statuses = {item["id"]: item["match_status"] for item in requirements}
-    priorities: list[dict] = []
-    raw_priorities = raw.get("priorities") if isinstance(raw.get("priorities"), list) else []
-    for item in raw_priorities[:5]:
-        if not isinstance(item, dict):
-            continue
-        requirement_id = _compact(item.get("requirement_id"))
-        title = _compact(item.get("title"))
-        # Tailoring priorities describe only real gaps. A matched requirement
-        # is already a strength; recommending that the user add or connect its
-        # synonyms creates the contradictory guidance reported in production.
-        if title and requirement_statuses.get(requirement_id) in {"partial", "missing"}:
-            priorities.append({
-                "requirement_id": requirement_id,
-                "title": title,
-                "description": _compact(item.get("description")),
-            })
-    raw_gaps = raw.get("evidence_gaps") if isinstance(raw.get("evidence_gaps"), list) else []
-    for item in raw_gaps[:10]:
-        if not isinstance(item, dict):
-            continue
-        title = _compact(item.get("title"))
-        requirement_id = _compact(item.get("requirement_id"))
-        # A model may produce a provisional gap and later cite valid evidence
-        # for the same requirement. Do not show those contradictory states.
-        if title and requirement_statuses.get(requirement_id) != "matched":
-            evidence_gaps.append({
-                "requirement_id": requirement_id,
-                "title": title,
-                "description": _compact(item.get("description")),
-            })
+    seen_descriptions: set[str] = set()
+    priorities = _normalise_feedback(
+        raw.get("priorities"), requirements, requirement_aliases,
+        maximum=5, seen_descriptions=seen_descriptions,
+    )
+    evidence_gaps = _normalise_feedback(
+        raw.get("evidence_gaps"), requirements, requirement_aliases,
+        maximum=10, seen_descriptions=seen_descriptions,
+    )
     if rejected:
         evidence_gaps.insert(0, {
             "requirement_id": "grounding",
@@ -447,10 +587,10 @@ def build_job_tailoring_result(
     return {
         "message": _compact(raw.get("message")),
         "rating": rating,
-        "tips": [_compact(item) for item in (raw.get("tips") or []) if _compact(item)][:8],
+        "tips": _normalise_text_list(raw.get("tips"), maximum=8, seen=seen_descriptions),
         "corrections": corrections,
         "categories": categories,
-        "strengths": [_compact(item) for item in (raw.get("strengths") or []) if _compact(item)][:5],
+        "strengths": _normalise_text_list(raw.get("strengths"), maximum=5, seen=set()),
         "priorities": priorities,
         "web_sources": [],
         "job_requirements": requirements,
