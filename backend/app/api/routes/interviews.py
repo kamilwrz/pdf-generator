@@ -318,11 +318,19 @@ def confirm_interview(session_id: str, request: ConfirmWrite, user=Depends(get_c
     row = service.owned_session(db, user.id, session_id)
     # Facts can be rescued into their selected store when their source CV changed;
     # subsequent generation still requires a fresh source snapshot.
-    service.check_versions(db, row, request, source=False)
+    current_profile = service.check_versions(db, row, request, source=False)
     facts = [fact.model_dump() for fact in request.facts]
     state = deepcopy(row.state)
     if state["evidence_scope"] == "profile":
-        profile = service.put_profile(db, user.id, request.profile_revision, facts, commit=False)
+        binding = {}
+        if current_profile.get('source_binding'):
+            # Explicitly confirming the selected CV into an already bound
+            # account profile must not restore its previous CV on the next read.
+            if state.get('source_document_id'):
+                binding['source_binding'] = {'kind': 'document', 'id': state['source_document_id']}
+            elif state.get('source_import_id'):
+                binding['source_binding'] = {'kind': 'import', 'id': state['source_import_id']}
+        profile = service.put_profile(db, user.id, request.profile_revision, facts, commit=False, **binding)
     else:
         # The session CAS below protects both facts and their revision. No account
         # profile row is read or written for another candidate's interview.

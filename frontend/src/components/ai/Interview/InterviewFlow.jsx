@@ -158,6 +158,9 @@ export default function InterviewFlow({ sessionId, initialSource = null, current
     ? Boolean(initialSource.cv_data?.name?.trim())
     : Boolean(source);
   const hasPending = Boolean(session?.proposed_facts?.length);
+  // Source refresh replaces the review draft. Keep applied notes until the
+  // existing stage-navigation save succeeds; an open field must also stay put.
+  const hasLocalFactChanges = JSON.stringify(facts) !== JSON.stringify(reviewFacts(profile, session));
   const needsFactSave = Boolean(session && (!session.confirmed || hasPending || JSON.stringify(facts) !== JSON.stringify(profile?.facts || [])));
   const reviewDestination = session?.question || !session?.answers.length ? 'conversation' : 'prepare';
   const reviewing = session?.phase === 'intake' || reviewOpen;
@@ -180,7 +183,13 @@ export default function InterviewFlow({ sessionId, initialSource = null, current
     {session && !legacy && <nav className={classes.stages} aria-label={uiText("interview:interviewFlow.interviewStages")}>{[['facts', uiText("interview:interviewFlow.yourInformation")], ['conversation', uiText('interview:interviewFlow.conversationStage')], ['prepare', uiText("interview:interviewFlow.prepareCv")], ['preview', uiText('interview:interviewFlow.resultStage')]].map(([key, label], index) => <button type="button" key={key} aria-current={activePanel === key ? 'step' : undefined} disabled={busy || factEditing || (Boolean(session.question) && key !== 'conversation') || (session.phase === 'clarification' && key !== 'conversation') || (key === 'preview' && (!session.preview || needsFactSave)) || (session.phase === 'completed' && key !== 'preview')} onClick={() => goTo(key)}><span>{String(index + 1).padStart(2, '0')}</span>{' '}{label}</button>)}</nav>}
     {!canAi && entitlements && <p>{uiText("interview:interviewFlow.aiInterviewsRequireProYouCanStill")} <Link to="/app/account">{uiText("interview:interviewFlow.accountAndPlan")}</Link></p>}
     {sourceChanged && <p className={classes.error}>{uiText("interview:interviewFlow.theCvInTheEditorHasChanged")}</p>}
-    {session && !legacy && (sourceChanged || session.source_document_id) && <button disabled={busy || session.phase === 'completed' || Boolean(answer.trim())} type="button" onClick={() => run(async () => { await operation('source', currentSource || {}); onSourceRefreshed?.(); setReviewOpen(true); })}>{uiText("interview:interviewFlow.loadCurrentCvIntoTheInterview")}</button>}
+    {session && !legacy && (sourceChanged || session.source_document_id) && <button disabled={busy || factEditing || hasLocalFactChanges || session.phase === 'completed' || Boolean(answer.trim())} type="button" onClick={() => run(async () => { await operation('source', currentSource || {}); onSourceRefreshed?.(); setReviewOpen(true); })}>{uiText("interview:interviewFlow.loadCurrentCvIntoTheInterview")}</button>}
+    {session && !legacy && reviewing && <div className={classes.actions}>
+      {onClose ? <button type="button" disabled={busy || factEditing || hasLocalFactChanges} onClick={onClose}>{uiText("interview:interviewFlow.returnToSourceEditor")}</button>
+        : session.source_document_id ? <Link className={classes.link} to={`/app/documents/${session.source_document_id}`} target="_blank" rel="noopener noreferrer">{uiText("interview:interviewFlow.editSourceInNewTab")}</Link>
+          : session.source_import_id ? <Link className={classes.link} to="/app/import" target="_blank" rel="noopener noreferrer">{uiText("interview:interviewFlow.openSourceImport")}</Link> : null}
+      {hasLocalFactChanges && <p className={classes.hint}>{uiText("interview:interviewFlow.saveNotesBeforeSourceRefresh")}</p>}
+    </div>}
     {!profile && !error && <p>{uiText("interview:interviewFlow.loadingCareerProfile")}</p>}
     {!session && profile && <fieldset disabled={busy}>
       {(sourceReady || documents.length > 0 || imports.length > 0) && <>

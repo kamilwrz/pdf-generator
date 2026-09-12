@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { groupCareerFacts, newCareerRecord, careerFieldOptions } from './careerProfileView.js';
+import { groupCareerFacts, isCareerNote } from './careerProfileView.js';
 
 const fact = (id, path, text, extra = {}) => ({ id, path, text, context: '', kind: 'fact', source: 'manual', ...extra });
 
@@ -28,20 +28,15 @@ test('keeps separate roles and explicit narrative context independent', () => {
   assert.deepEqual(groupCareerFacts(facts).map((g) => g.section), ['experience', 'experience', 'notes']);
 });
 
-test('new records do not reuse gaps or exceed backend path bounds', () => {
-  const facts = [fact('a', '/experience/2/title', 'Role')];
-  assert.equal(newCareerRecord(facts, 'experience')[0].path, '/experience/3/title');
-  assert.deepEqual(newCareerRecord([fact('a', '/experience/99/title', 'Last')], 'experience'), []);
-  const group = groupCareerFacts(facts)[0];
-  const paths = careerFieldOptions(group, facts).map((f) => f.path);
-  assert.ok(paths.includes('/experience/2/bullets/0'));
-  assert.ok(!paths.includes('/experience/2/title'));
-});
-
 test('uses an interview question as the note title without discarding its context', () => {
   const answer = fact('answer-q1', '', 'Zamknęłam sprawę po analizie.', { question: 'Jak podjęłaś decyzję o zamknięciu sprawy?', context: 'Analiza transakcji' });
   const group = groupCareerFacts([answer])[0];
   assert.equal(group.title, answer.question);
   assert.equal(group.subtitle, answer.context);
   assert.equal(group.fields[0].question, answer.question);
+});
+
+test('legacy intake notes stay editable but unknown imported fields remain source-owned', () => {
+  assert.equal(isCareerNote(fact('intake-note', '', 'User note', { source: 'document:30' })), true);
+  assert.equal(isCareerNote(fact('src-unknown', '', 'Imported value', { source: 'document:30' })), false);
 });

@@ -5,44 +5,38 @@ import userEvent from '@testing-library/user-event';
 import FactEditor from './FactEditor';
 
 afterEach(cleanup);
-const make = (id, path, text) => ({ id, path, text, kind: 'fact', context: '', source: 'manual' });
+const make = (id, path, text) => ({ id, path, text, kind: 'fact', context: '', source: path ? 'document:30' : 'manual' });
 const role = [make('t', '/experience/0/title', 'Analityczka'), make('c', '/experience/0/company', 'Firma Example'), make('b', '/experience/0/bullets/0', 'Analizuję raporty.')];
-function Harness({ initial = role, saved, sourceProfile = false }) {
+function Harness({ initial = role, saved, detachNotePaths = false }) {
   const [facts, setFacts] = useState(initial);
-  return <FactEditor sourceProfile={sourceProfile} facts={facts} onChange={(value) => { setFacts(value); saved?.(value); }} />;
+  return <FactEditor detachNotePaths={detachNotePaths} facts={facts} onChange={(value) => { setFacts(value); saved?.(value); }} />;
 }
 
-it('shows a role once and opens only the selected field editor', async () => {
+it('shows source fields without edit, delete, addition or classification controls by default', async () => {
   const user = userEvent.setup();
-  const saved = vi.fn();
-  render(<Harness saved={saved} />);
-  expect(screen.getAllByRole('button', { name: 'Otwórz wpis: Analityczka' })).toHaveLength(1);
-  expect(screen.queryByLabelText('Treść')).not.toBeInTheDocument();
+  render(<Harness />);
+  expect(screen.queryByRole('button', { name: '+ Dodaj informację' })).not.toBeInTheDocument();
   await user.click(screen.getByRole('button', { name: 'Otwórz wpis: Analityczka' }));
-  await user.click(screen.getByRole('button', { name: 'Edytuj: Firma — Firma Example' }));
-  expect(screen.getAllByLabelText('Treść')).toHaveLength(1);
-  await user.clear(screen.getByLabelText('Treść'));
-  await user.type(screen.getByLabelText('Treść'), 'Nowa firma');
-  expect(saved).not.toHaveBeenCalled();
-  await user.click(screen.getByRole('button', { name: 'Zastosuj zmianę' }));
-  expect(saved.mock.lastCall[0].find((f) => f.id === 'c').text).toBe('Nowa firma');
-  expect(saved.mock.lastCall[0].map((f) => f.id)).toEqual(['t', 'c', 'b']);
+  expect(screen.getAllByText('Firma Example')[0]).toBeVisible();
+  expect(screen.queryByRole('button', { name: /^Edytuj:/ })).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: /^Usuń informację:/ })).not.toBeInTheDocument();
+  expect(screen.queryByLabelText('Dodaj do tego wpisu')).not.toBeInTheDocument();
 });
 
-it('cancels a draft and restores focus, and undo restores the exact deleted IDs', async () => {
+it('cancels a note draft and undo restores all equivalent evidence IDs', async () => {
   const user = userEvent.setup();
   const saved = vi.fn();
-  render(<Harness saved={saved} />);
-  await user.click(screen.getByRole('button', { name: 'Otwórz wpis: Analityczka' }));
-  const trigger = screen.getByRole('button', { name: 'Edytuj: Firma — Firma Example' });
-  await user.click(trigger);
+  const notes = [make('n1', '', 'Notatka'), make('n2', '', 'Notatka')];
+  render(<Harness initial={notes} saved={saved} />);
+  await user.click(screen.getByRole('button', { name: /Otwórz wpis:/ }));
+  await user.click(screen.getByRole('button', { name: /^Edytuj:/ }));
   await user.type(screen.getByLabelText('Treść'), ' temporary');
-  await user.click(screen.getByRole('button', { name: 'Anuluj edycję' }));
+  await user.keyboard('{Escape}');
   expect(saved).not.toHaveBeenCalled();
-  await waitFor(() => expect(screen.getByRole('heading', { name: 'Analityczka' })).toHaveFocus());
-  await user.click(screen.getByRole('button', { name: 'Usuń informację: Firma Example' }));
+  await waitFor(() => expect(screen.getByRole('heading', { level: 3 })).toHaveFocus());
+  await user.click(screen.getByRole('button', { name: 'Usuń informację: Notatka' }));
   await user.click(screen.getByRole('button', { name: 'Cofnij usunięcie' }));
-  expect(saved.mock.lastCall[0]).toEqual(role);
+  expect(saved.mock.lastCall[0]).toEqual(notes);
 });
 
 it('bounds a large profile and searches hidden records without losing edits', async () => {
@@ -79,7 +73,7 @@ for (const kind of ['gap', 'framing']) {
   it(`keeps ${kind} semantics without an information-type selector`, async () => {
     const user = userEvent.setup();
     const saved = vi.fn();
-    render(<Harness sourceProfile initial={[{ ...make('note', '', 'Original note'), kind }]} saved={saved} />);
+    render(<Harness detachNotePaths initial={[{ ...make('note', '', 'Original note'), kind }]} saved={saved} />);
     await user.click(screen.getByRole('button', { name: /Otwórz wpis:/ }));
     await user.click(screen.getByRole('button', { name: /^Edytuj:/ }));
     expect(screen.queryByLabelText('Rodzaj informacji')).not.toBeInTheDocument();
@@ -93,7 +87,7 @@ for (const kind of ['gap', 'framing']) {
 
 it('exposes source fields only for reading and legacy manual fields as notes', async () => {
   const user = userEvent.setup();
-  render(<Harness sourceProfile initial={[...role.map((fact) => ({ ...fact, source: 'document:30' })), make('legacy', '/title', 'Manual title')]} />);
+  render(<Harness detachNotePaths initial={[...role.map((fact) => ({ ...fact, source: 'document:30' })), { ...make('legacy', '/title', 'Manual title'), source: 'manual' }]} />);
   await user.click(screen.getByRole('button', { name: 'Otwórz wpis: Analityczka' }));
   expect(screen.queryByRole('button', { name: /^Edytuj:/ })).not.toBeInTheDocument();
   expect(screen.queryByRole('button', { name: /^Usuń informację:/ })).not.toBeInTheDocument();
@@ -101,4 +95,22 @@ it('exposes source fields only for reading and legacy manual fields as notes', a
   await user.type(screen.getByLabelText('Szukaj w profilu'), 'Manual title');
   await user.click(screen.getByRole('button', { name: /Otwórz wpis:/ }));
   expect(screen.getByRole('button', { name: /^Edytuj:/ })).toBeInTheDocument();
+});
+
+it('retains an interview answer binding and meaning without exposing assignment controls', async () => {
+  const user = userEvent.setup();
+  const saved = vi.fn();
+  const answer = { ...make('answer-q1', '/experience/0/bullets/0', 'Oryginalna odpowiedź'), source: 'interview:session', question: 'Co zrobiłaś?', kind: 'framing' };
+  render(<Harness initial={[...role, answer]} saved={saved} />);
+  await user.click(screen.getByRole('button', { name: /Z wywiadu i notatki/ }));
+  await user.click(screen.getByRole('button', { name: /Otwórz wpis:/ }));
+  await user.click(screen.getByRole('button', { name: /^Edytuj:/ }));
+  await user.click(screen.getByText('Kontekst i sposób wykorzystania'));
+  expect(screen.queryByLabelText('Przeznaczenie')).not.toBeInTheDocument();
+  expect(screen.queryByLabelText('Rodzaj informacji')).not.toBeInTheDocument();
+  await user.clear(screen.getByLabelText('Twoja odpowiedź'));
+  await user.type(screen.getByLabelText('Twoja odpowiedź'), 'Poprawiona odpowiedź');
+  await user.click(screen.getByRole('button', { name: 'Zastosuj zmianę' }));
+  expect(saved.mock.lastCall[0].at(-1)).toEqual({ ...answer, text: 'Poprawiona odpowiedź' });
+  expect(saved.mock.lastCall[0].slice(0, 3)).toEqual(role);
 });

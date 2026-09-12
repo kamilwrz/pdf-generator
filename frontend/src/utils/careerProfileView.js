@@ -26,9 +26,9 @@ export function careerFieldLabel(path) {
   return names[path?.split('/').at(-1)] || 'Informacja';
 }
 
-/** Match the server's supplemental evidence rule; source snapshots are read-only. */
+/** Legacy unbound intake notes lack src- IDs; extracted source fields retain them. */
 export function isCareerNote(fact) {
-  return Boolean(fact.question || (fact.kind && fact.kind !== 'fact') || (fact.source || 'manual') === 'manual' ||
+  return Boolean((!fact.path && !fact.id.startsWith('src-')) || fact.question || (fact.kind && fact.kind !== 'fact') || (fact.source || 'manual') === 'manual' ||
     (!fact.id.startsWith('src-') && !/^(document|import):/.test(fact.source || '')));
 }
 
@@ -39,8 +39,8 @@ export function careerNoteSignature(facts) {
 
 function location(fact, sourceProfile) {
   const path = fact.path || '';
-  // Source-bound profile notes cannot attach themselves to a different CV's
-  // array positions. Interview review retains its ordinary path-based grouping.
+  // Notes and answers have their own section in both account and interview
+  // review. Their stored paths remain untouched for generation and clarification.
   if (sourceProfile && isCareerNote(fact)) return { section: 'notes', key: `notes:${fact.question || fact.context || ''}`, root: '' };
   if (interviewFields[path]) return { section: 'identity', key: path === '/summary' ? '/summary' : '/identity', root: '' };
   const match = path.match(/^\/(experience|education|languages|skills|custom_sections)\/(\d+)(.*)$/);
@@ -87,47 +87,4 @@ export function groupCareerFacts(facts, { sourceProfile = false } = {}) {
     group.conflicts = new Set(paths.filter((path, i) => paths.indexOf(path) !== i));
   }
   return [...groups.values()];
-}
-
-function nextIndex(facts, root) {
-  const indices = facts.map((f) => f.path?.startsWith(`${root}/`) ? Number(f.path.slice(root.length + 1).split('/')[0]) : -1).filter(Number.isInteger);
-  return Math.max(-1, ...indices) + 1;
-}
-
-/** Create an explicit user-requested record without changing any existing paths. */
-export function newCareerRecord(facts, section) {
-  const root = `/${section}/${nextIndex(facts, `/${section}`)}`;
-  const make = (path, text = '') => ({ id: crypto.randomUUID(), text, context: '', kind: 'fact', path, source: 'manual' });
-  if (Number(root.split('/').at(-1)) > 99) return [];
-  if (section === 'experience') return [make(`${root}/title`)];
-  if (section === 'education') return [make(`${root}/degree`)];
-  if (section === 'languages') return [make(`${root}/name`)];
-  if (section === 'skills') return [make(root)];
-  if (section === 'custom_sections') return [make(`${root}/title`, uiText("editor:careerProfileView.projects")), make(`${root}/kind`, 'projects'), make(`${root}/items/0/title`)];
-  const missing = Object.keys(interviewFields).find((path) => !facts.some((f) => f.path === path));
-  return [make(section === 'identity' && missing ? missing : '')];
-}
-
-/** Available insertions are constrained to the selected record's existing shape. */
-export function careerFieldOptions(group, facts) {
-  let options = [];
-  if (group.section === 'identity') options = Object.entries(interviewFields).map(([path, label]) => ({ path, label }));
-  if (group.section === 'experience') options = ['title', 'company', 'city', 'period'].map((key) => ({ path: `${group.root}/${key}`, label: names[key] }));
-  if (group.section === 'education') options = ['degree', 'school', 'city', 'period', 'description'].map((key) => ({ path: `${group.root}/${key}`, label: names[key] }));
-  if (group.section === 'languages') options = ['name', 'level'].map((key) => ({ path: `${group.root}/${key}`, label: names[key] }));
-  if (['experience', 'education'].includes(group.section)) options.push({ path: `${group.root}/bullets/${nextIndex(facts, `${group.root}/bullets`)}`, label: uiText("editor:careerProfileView.activityOrAchievement") });
-  if (group.section === 'skills') {
-    const root = group.key === '/skills-flat' ? '/skills' : `${group.root}/items`;
-    options.push({ path: `${root}/${nextIndex(facts, root)}`, label: uiText("ai:scopedAiReview.skill") });
-  }
-  if (group.section === 'custom_sections') {
-    const itemRoots = [...new Set(group.facts.map((f) => f.path.match(/^(\/custom_sections\/\d+\/items\/\d+)\//)?.[1]).filter(Boolean))];
-    for (const root of itemRoots) {
-      const title = facts.find((f) => f.path === `${root}/title`)?.text || 'Wpis';
-      for (const key of ['title', 'subtitle', 'date', 'description']) options.push({ path: `${root}/${key}`, label: `${title} — ${names[key]}` });
-      options.push({ path: `${root}/bullets/${nextIndex(facts, `${root}/bullets`)}`, label: `${title} — osiągnięcie` });
-    }
-  }
-  if (group.section === 'notes') options.push({ path: '', label: uiText("editor:careerProfileView.additionalInformation") });
-  return options.filter((o) => (!o.path || !facts.some((f) => f.path === o.path)) && !/\/\d{3,}(?:\/|$)/.test(o.path));
 }

@@ -203,7 +203,17 @@ def session_payload(row):
             {**fact, **({"question": questions[fact["id"]]} if not fact.get("question") and fact["id"] in questions else {})}
             for fact in evidence_profile.get("facts", [])
         ]
+    # Intake/source refresh reviews one complete authoritative snapshot. A
+    # changed or removed CV field cannot require manual conflict resolution in
+    # the notes-only UI. This metadata is read-only; confirmation still owns
+    # persistence and the profile/session revision checks.
+    review_source = None
+    if row.state.get('phase') == 'intake' and has_interview_source(row.state.get('source_cv_data')):
+        origin = (f"document:{row.state['source_document_id']}" if row.state.get('source_document_id') else
+                  f"import:{row.state['source_import_id']}" if row.state.get('source_import_id') else f"interview:{row.id}")
+        review_source = source_facts(row.state['source_cv_data'], origin)
     return {"id": row.id, "revision": row.revision, **row.state,
+            "review_source_facts": review_source,
             "requires_source_choice": row.state.get("evidence_scope") not in {"profile", "session"} or not has_interview_source(row.state.get("source_cv_data")),
             "evidence_profile": evidence_profile,
             "updated_at": row.updated_at.isoformat()}

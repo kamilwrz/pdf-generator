@@ -13,8 +13,13 @@ from app.services.interview_sources import has_interview_source
 
 
 def is_supplemental_fact(fact):
-    """Identify authored answers, notes and legacy explicit meaning overrides."""
-    return bool(fact.get('question') or fact.get('kind', 'fact') != 'fact' or
+    """Identify authored answers, notes and legacy explicit meaning overrides.
+
+    Legacy intake notes inherit document/import provenance but lack a src- ID
+    and field path. Unbound extracted fields still have src- IDs and remain
+    source-owned; provenance alone must not make a user note disappear.
+    """
+    return bool((not fact.get('path') and not fact['id'].startswith('src-')) or fact.get('question') or fact.get('kind', 'fact') != 'fact' or
                 fact.get('source', 'manual') == 'manual' or
                 (not fact['id'].startswith('src-') and
                  not fact.get('source', '').startswith(('document:', 'import:'))))

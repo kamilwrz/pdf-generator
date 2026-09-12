@@ -1,6 +1,8 @@
 # English
 
-Account profiles now select a persistent CV/import source with `PUT /career-profile/source`. Source fields are read-only; only notes and interview answers can be edited here. The shared form no longer asks for information type and preserves stored meanings. Migration `20260912_0018` adds nullable `source_binding`; profile reads synchronise a chosen source and increment revision only when evidence changes. Profile deletion clears the binding as well. See the complete [source-profile tutorial](../README.md#source-based-career-profile) for API, migration, preservation rules, tests and limitations.
+Account profiles now select a persistent CV/import source with `PUT /career-profile/source`. Source fields are read-only; only notes and interview answers can be edited in account management, standalone/resumed interviews and the embedded assistant. Neither information type nor CV field assignment is shown; existing interview-answer bindings remain internal. Source refresh waits until local note edits are saved. Stored meanings are preserved. Tests: `frontend/e2e/interview-note-boundary.spec.js`. Migration `20260912_0018` adds nullable `source_binding`; profile reads synchronise a chosen source and increment revision only when evidence changes. Profile deletion clears the binding as well. See the complete [source-profile tutorial](../README.md#source-based-career-profile) for API, migration, preservation rules, tests and limitations.
+
+During intake and source refresh, the session response includes `review_source_facts`, the complete current source snapshot. `reviewFacts` replaces old source records rather than merging conflicting old/new values, removes deleted fields and retains supplemental notes plus confirmed answer IDs/paths. Confirming a different selected CV/import into an already source-bound account profile updates its binding atomically, preventing the next read from restoring the previous CV. Isolated evidence remains separate. This additive response field needs no database migration; deploy the backend before the frontend.
 
 ## Career profile and interviews
 
@@ -68,7 +70,7 @@ flowchart LR
     Save --> PDF[Separate CV and PDF export]
 ```
 
-- `InterviewFlow` owns transient form input and calls `interviewRequest`; `FactEditor` edits a controlled fact list; `CvContent` renders semantic text instead of technical JSON. `CareerProfilePage` owns account profile management. The assistant embeds the same flow and detects changes to its captured live CV.
+- `InterviewFlow` owns transient form input and calls `interviewRequest`; `FactEditor` reads source fields and edits only notes/answers, preserving existing interview field bindings internally; `CvContent` renders semantic text instead of technical JSON. `CareerProfilePage` owns account profile management. The assistant embeds the same flow and detects changes to its captured live CV.
 - `interviews.py` checks authentication, ownership, request versions and entitlements, resolves the selected source, and coordinates atomic answer/evidence persistence, source/manual confirmation and document creation. `interview_schema.py` bounds public inputs and strict provider output with Pydantic. Unexpected properties are rejected.
 - `interview_service.py` owns stable evidence identifiers, profile/session compare-and-swap updates, bounded questions, paid provider calls and deterministic draft assembly. SQLAlchemy owns persistence; Alembic owns schema upgrades. FastAPI validates request bodies; React owns presentation. Existing ReportLab/template services own A4 layout and PDF bytes.
 - The provider generates scalar `path/value/evidence_refs` changes, never SQL, geometry or storage operations. Each field must cite current profile facts. Offer text is untrusted prioritization data and is explicitly excluded as evidence of candidate competence.
@@ -211,6 +213,10 @@ Deploy migration/backend first using the existing Render predeploy bootstrap. Wa
 
 # Polski
 
+Podczas wczytywania i odświeżania źródła odpowiedź sesji zawiera `review_source_facts`, czyli kompletną bieżącą migawkę źródła. `reviewFacts` zastępuje stare wpisy źródłowe zamiast łączyć sprzeczne stare/nowe wartości, usuwa nieobecne pola i zachowuje dodatkowe notatki oraz ID/ścieżki zatwierdzonych odpowiedzi. Zatwierdzenie innego wybranego CV/importu do profilu konta, który ma już źródło, aktualizuje jego powiązanie atomowo, aby kolejny odczyt nie przywrócił poprzedniego CV. Osobne dane rozmowy pozostają odseparowane. Dodatkowe pole odpowiedzi nie wymaga migracji bazy; wdróż backend przed frontendem.
+
+Granica edycji obowiązuje także w samodzielnych/wznawianych wywiadach i asystencie edytora: pola CV są tylko do odczytu, edytowane są tylko notatki i odpowiedzi. Nie ma wyboru rodzaju ani przypisania pola; zapisane powiązania odpowiedzi pozostają wewnętrzne. Odświeżenie źródła czeka na zapis lokalnych zmian notatek. Testy: `frontend/e2e/interview-note-boundary.spec.js`.
+
 Profil konta zapamiętuje wybór CV/importu przez `PUT /career-profile/source`. Pola źródłowe są tylko do odczytu; tutaj można edytować tylko notatki i odpowiedzi z wywiadu. Wspólny formularz nie pyta już o rodzaj informacji i zachowuje zapisane znaczenie. Migracja `20260912_0018` dodaje nullable `source_binding`; odczyt profilu synchronizuje wybrane źródło i zwiększa rewizję tylko przy zmianie informacji. Usunięcie profilu czyści też powiązanie. Pełny [poradnik profilu opartego na CV](../README.md#profil-zawodowy-oparty-na-źródle-cv) opisuje API, migrację, reguły zachowania danych, testy i ograniczenia.
 
 ### Zapis informacji przy przejściu dalej w wywiadzie
@@ -280,7 +286,7 @@ flowchart LR
     Save --> PDF[Osobne CV i eksport PDF]
 ```
 
-- `InterviewFlow` przechowuje bieżące pola formularza i wywołuje `interviewRequest`; `FactEditor` edytuje kontrolowaną listę faktów; `CvContent` pokazuje semantyczną treść zamiast technicznego JSON. `CareerProfilePage` obsługuje profil konta. Asystent osadza ten sam przepływ i wykrywa zmianę przechwyconego CV.
+- `InterviewFlow` przechowuje bieżące pola formularza i wywołuje `interviewRequest`; `FactEditor` pokazuje pola źródłowe do odczytu i edytuje tylko notatki/odpowiedzi, zachowując wewnętrzne powiązania pól wywiadu; `CvContent` pokazuje semantyczną treść zamiast technicznego JSON. `CareerProfilePage` obsługuje profil konta. Asystent osadza ten sam przepływ i wykrywa zmianę przechwyconego CV.
 - `interviews.py` sprawdza logowanie, właściciela, wersje i uprawnienia, pobiera wskazane źródło oraz koordynuje atomowy zapis odpowiedzi z faktem, zatwierdzanie źródła/ręcznych zmian i zapis dokumentu. `interview_schema.py` ogranicza wejścia i ścisłe wyniki modelu przez Pydantic. Nieznane właściwości są odrzucane.
 - `interview_service.py` odpowiada za stabilne identyfikatory dowodów, aktualizacje profilu/sesji z kontrolą wersji, limit pytań, płatne wywołania i deterministyczne składanie treści. SQLAlchemy zapisuje dane, Alembic aktualizuje schemat, FastAPI waliduje żądania, React zarządza prezentacją. Istniejące usługi ReportLab/szablonów tworzą układ A4 i PDF.
 - Model proponuje skalarne zmiany `path/value/evidence_refs`, nigdy SQL, geometrię ani operacje magazynu. Każde pole musi wskazywać aktualne fakty profilu. Oferta jest niezaufanym źródłem priorytetów i nie stanowi dowodu kompetencji.

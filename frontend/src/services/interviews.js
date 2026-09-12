@@ -2,6 +2,7 @@ import { t as uiText } from "../i18n/index.js";
 /** Owned career/interview requests. Retries retain server operation identity. */
 import { ApiClient } from './api';
 import { getAccessToken } from '../utils/authSession';
+import { isCareerNote } from '../utils/careerProfileView';
 
 /** Read the current token on every request so session renewal needs no remount. */
 export function interviewRequest(path, method = 'GET', data, key) {
@@ -35,6 +36,17 @@ export function reviewFacts(profile, session) {
     else if (!facts.some((fact) => fact.text === proposed.text && fact.path === proposed.path && fact.kind === proposed.kind && fact.context === proposed.context)) {
       facts.push(proposed);
     }
+  }
+  if (session?.phase === 'intake' && Array.isArray(session.review_source_facts)) {
+    // A refreshed snapshot replaces all source fields, including deleted rows.
+    // Keep authored notes and confirmed answer bindings; a clarification may
+    // deliberately replace a source ID/path and must retain that identity.
+    const notes = facts.filter(isCareerNote).map((fact) =>
+      !fact.question && fact.kind === 'fact' && (fact.source || 'manual') === 'manual'
+        ? { ...fact, path: '' } : fact);
+    const source = session.review_source_facts.filter((fact) => !notes.some((note) =>
+      note.id === fact.id || note.kind === 'fact' && note.path && note.path === fact.path));
+    return [...source, ...notes];
   }
   return facts;
 }

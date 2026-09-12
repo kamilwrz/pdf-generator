@@ -147,3 +147,45 @@ def test_oversized_source_remains_recoverable_and_keeps_notes(environment):
     assert unavailable['facts'][0]['text'] == 'Preserved note'
     assert choose(client, unavailable['revision'], doc.id).status_code == 422
     assert choose(client, unavailable['revision'], replacement.id).status_code == 200
+
+
+def test_source_switch_retains_legacy_intake_notes_but_replaces_imported_fields(environment):
+    client, db, user, _ = environment
+    doc = Pdf(owner_id=user.id, title='CV', cv_data={'name': 'Anna'})
+    db.add(doc); db.commit()
+    service.put_profile(db, user.id, 0, [
+        {'id': 'intake-note', 'text': 'Additional user text', 'path': '', 'source': 'document:42'},
+        {'id': 'src-unknown', 'text': 'An old imported field', 'path': '', 'source': 'document:42'},
+    ])
+    profile = choose(client, 1, doc.id).json()
+    assert {fact['text'] for fact in profile['facts']} == {'Anna', 'Additional user text'}
+    note = next(fact for fact in profile['facts'] if fact['id'] == 'intake-note')
+    assert note['source'] == 'document:42' and note['kind'] == 'fact'
+
+
+def test_interview_source_review_replaces_old_fields_and_updates_existing_binding(environment):
+    from test_interviews import create, version
+    client, db, user, _ = environment
+    first = Pdf(owner_id=user.id, title='Old CV', cv_data={'name': 'Anna', 'title': 'Analyst', 'skills': ['SQL']}, revision=1)
+    selected = Pdf(owner_id=user.id, title='Selected CV', cv_data={'name': 'Anna', 'title': 'Senior Analyst'}, revision=1)
+    db.add_all([first, selected]); db.commit()
+    profile = choose(client, 0, first.id).json()
+    session = create(client, source_document_id=selected.id, cv_data={})
+    snapshot = session['review_source_facts']
+    assert {fact['text'] for fact in snapshot} == {'Anna', 'Senior Analyst'}
+    assert client.get('/career-profile').json()['source_binding']['id'] == first.id
+    saved = client.post(f"/ai/interviews/{session['id']}/confirm", json={**version(session, profile['revision']), 'facts': snapshot})
+    assert saved.status_code == 200, saved.text
+    profile = client.get('/career-profile').json()
+    assert profile['source_binding']['id'] == selected.id
+    assert {fact['text'] for fact in profile['facts']} == {'Anna', 'Senior Analyst'}
+    # A source refresh returns a full replacement for a source-only review.
+    selected.cv_data = {'name': 'Anna', 'title': 'Lead Analyst'}; selected.revision = 2
+    db.commit()
+    profile = client.get('/career-profile').json()
+    session = saved.json()['session']
+    refreshed = client.post(f"/ai/interviews/{session['id']}/source", json=version(session, profile['revision']))
+    assert refreshed.status_code == 200, refreshed.text
+    updated = refreshed.json()
+    assert {fact['text'] for fact in updated['review_source_facts']} == {'Anna', 'Lead Analyst'}
+    assert client.post(f"/ai/interviews/{session['id']}/confirm", json={**version(updated, profile['revision']), 'facts': updated['review_source_facts']}).status_code == 200

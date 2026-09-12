@@ -9,7 +9,7 @@ import { reviewFacts, interviewRequest } from '../../../services/interviews';
 vi.mock('../../../hooks/useEntitlements', () => ({ useEntitlements: () => ({ entitlements: { ai_assistant: true, plan_slug: 'pro', template_tier: 'all' }, refresh: vi.fn() }) }));
 vi.mock('../../../services/interviews', async (original) => ({ ...await original(), interviewRequest: vi.fn() }));
 
-const fact = { id: 'name', text: 'Anna Nowak', kind: 'fact', context: '', path: '/name', source: 'manual' };
+const fact = { id: 'name', text: 'Anna Nowak', kind: 'fact', context: '', path: '/name', source: 'document:30' };
 let session;
 afterEach(cleanup);
 beforeEach(() => {
@@ -139,7 +139,7 @@ describe('interview workflow', () => {
 
   it('restores focus after removing a fact', async () => {
     const change = vi.fn();
-    render(<FactEditor facts={[fact]} onChange={change} />);
+    render(<FactEditor facts={[{ ...fact, source: 'manual', path: '', context: fact.text }]} onChange={change} />);
     fireEvent.click(screen.getByRole('button', { name: 'Otwórz wpis: Anna Nowak' }));
     fireEvent.click(screen.getByRole('button', { name: 'Usuń informację: Anna Nowak' }));
     expect(change).toHaveBeenCalledWith([]);
@@ -363,4 +363,62 @@ describe('save on interview navigation', () => {
     expect(screen.getByRole('button', { name: 'Otwórz wpis: Anna Nowak' })).toBeVisible();
     expect(screen.getByRole('button', { name: 'Przejdź do rozmowy' })).toBeEnabled();
   });
+});
+
+for (const scope of ['profile', 'session']) {
+  for (const embedded of [false, true]) {
+    it(`locks CV fields and preserves note drafts in ${scope} review (embedded: ${embedded})`, async () => {
+      const user = userEvent.setup();
+      const cvFacts = [fact, { ...fact, id: 'role', path: '/experience/0/title', text: 'Analityczka' }];
+      const note = { ...fact, id: 'intake-note', path: '', text: 'Moja notatka', context: 'Notatki' };
+      let profile = { revision: 4, facts: [...cvFacts, note] };
+      session = { ...session, evidence_scope: scope, phase: 'ready', question: null, source_document_id: 30,
+        evidence_profile: scope === 'session' ? profile : null };
+      interviewRequest.mockImplementation(async (path, method, body) => {
+        if (path === '/career-profile') return profile;
+        if (path.endsWith('/confirm')) {
+          profile = { revision: 5, facts: body.facts };
+          session = { ...session, revision: 3, evidence_profile: scope === 'session' ? profile : null };
+          return { session, profile };
+        }
+        return session;
+      });
+      render(<MemoryRouter><InterviewFlow sessionId="session" onClose={embedded ? vi.fn() : undefined} /></MemoryRouter>);
+      await user.click(await screen.findByRole('button', { name: '01 Twoje informacje' }));
+      expect(screen.queryByRole('button', { name: '+ Dodaj informację' })).not.toBeInTheDocument();
+      await user.click(screen.getByRole('button', { name: 'Otwórz wpis: Analityczka' }));
+      expect(screen.queryByRole('button', { name: /^Edytuj:/ })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /^Usuń informację:/ })).not.toBeInTheDocument();
+      if (embedded) expect(screen.getByRole('button', { name: 'Wróć do edytora CV' })).toBeEnabled();
+      else expect(screen.getByRole('link', { name: 'Edytuj źródłowe CV (nowa karta)' })).toHaveAttribute('href', '/app/documents/30');
+      await user.click(screen.getByRole('button', { name: /Z wywiadu i notatki/ }));
+      await user.click(screen.getByRole('button', { name: 'Otwórz wpis: Notatki' }));
+      await user.click(screen.getByRole('button', { name: /^Edytuj:/ }));
+      await user.click(screen.getByText('Kontekst i sposób wykorzystania'));
+      expect(screen.queryByLabelText('Przeznaczenie')).not.toBeInTheDocument();
+      expect(screen.queryByLabelText('Rodzaj informacji')).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Wczytaj aktualne CV do wywiadu' })).toBeDisabled();
+      await user.clear(screen.getByLabelText('Treść'));
+      await user.type(screen.getByLabelText('Treść'), 'Poprawiona notatka');
+      await user.click(screen.getByRole('button', { name: 'Zastosuj zmianę' }));
+      expect(screen.getByRole('button', { name: 'Wczytaj aktualne CV do wywiadu' })).toBeDisabled();
+      await user.click(screen.getByRole('button', { name: 'Przejdź do rozmowy' }));
+      await waitFor(() => expect(interviewRequest).toHaveBeenCalledWith('/ai/interviews/session/confirm', 'POST', expect.objectContaining({ facts: [...cvFacts, { ...note, text: 'Poprawiona notatka' }] })));
+      expect(screen.getByRole('button', { name: 'Wczytaj aktualne CV do wywiadu' })).toBeEnabled();
+      expect(interviewRequest.mock.calls.some(([path]) => path.endsWith('/next') || path.endsWith('/preview'))).toBe(false);
+    });
+  }
+}
+
+it('source refresh replaces changed and deleted CV fields while retaining answer identity', () => {
+  const source = [fact, { ...fact, id: 'src-title', path: '/title', text: 'Senior Analyst' }];
+  const answer = { ...fact, id: 'answer-q1', path: '/experience/0/bullets/0', question: 'What did you do?', source: 'interview:saved', text: 'A confirmed answer' };
+  const oldProfile = { facts: [fact, { ...source[1], text: 'Analyst' }, { ...fact, id: 'old-skill', path: '/skills/0', text: 'Obsolete skill' }, answer] };
+  const changed = { phase: 'intake', evidence_scope: 'profile', review_source_facts: source,
+    proposed_facts: [{ ...source[1], id: 'src-title-refresh-2' }] };
+  expect(reviewFacts(oldProfile, changed)).toEqual([...source, answer]);
+  expect(oldProfile.facts[1].text).toBe('Analyst');
+  // Confirmed correction replaces one source field without duplicating its ID.
+  const correction = { ...source[1], question: 'Is this correct?', source: 'interview:saved', text: 'Confirmed correction' };
+  expect(reviewFacts({ facts: [correction] }, { ...changed, proposed_facts: [] })).toEqual([fact, correction]);
 });
