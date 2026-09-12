@@ -9,6 +9,8 @@
  * (keep in sync with `cv_generator_primitives.py` / `flowSpacing.js`).
  */
 import { DEFAULT_FLOW_SPACING, normalizeFlowSpacing } from "./flowSpacing.js";
+import { applyChannelRelayout } from "./contactBandOps.js";
+import { layoutEditorialMasthead } from "./editorialMastheadLayout.js";
 
 const FLOWABLE_CATEGORIES = new Set(["text", "textarea", "line", "rectangle", "circle", "ellipse", "image"]);
 const NEARBY_DECORATION_CATEGORIES = new Set(["line", "rectangle", "circle", "ellipse"]);
@@ -764,6 +766,35 @@ export function reflowTextareaHeight(
   { pageTop = 0, bottomMargin = 0, allowReclaim = true, spacing } = {},
 ) {
   const target = elements.find((element) => element.element_id === elementId);
+  // Managed header fields cannot enter the body-record cascade. All callers
+  // (live input, empty-field commits, font settling and AI patches) use this
+  // boundary, so a second measurement cannot independently shift the body.
+  const identity = target?.mastheadRole && elements.find((element) =>
+    element.mastheadIdentity && element.mastheadBandId === target.mastheadBandId);
+  const bandId = target?.contactChannel ? target.contactBandId : identity?.mastheadIdentity.contactBandId;
+  const band = bandId && elements.find((element) => element.contactBand?.id === bandId)?.contactBand;
+  if (allowReclaim && band && (target.contactChannel || band.identityLayout)) {
+    let header = elements;
+    if (band.identityLayout && target.mastheadRole) {
+      const heights = new Map(elements.filter((element) => element.mastheadRole)
+        .map((element) => [element.element_id, element.height]));
+      // Empty starter guidance still occupies a line. Zero means cleared text,
+      // not permission to remove an identity field that remains visible.
+      heights.set(elementId, Math.max(number(target.lineHeight, number(target.fontSize, 1)), number(measuredHeight)));
+      header = layoutEditorialMasthead(elements, bandId, { measuredHeights: heights });
+    }
+    let serial = 0;
+    const occupied = new Set(elements.map((element) => element.element_id));
+    const createId = () => {
+      let id;
+      do { id = `header-reflow-${++serial}`; } while (occupied.has(id));
+      occupied.add(id);
+      return id;
+    };
+    const result = applyChannelRelayout(header, bandId, null, createId);
+    const changed = JSON.stringify(result.elements) !== JSON.stringify(elements);
+    return { ...result, elements: changed ? result.elements : elements, changed };
+  }
   const nextHeight = Math.max(0, Math.round(number(measuredHeight)));
   // An AI "Skróć CV" patch may intentionally clear a whole auto-height block.
   // Zero is therefore a valid measured height only for empty content; rejecting

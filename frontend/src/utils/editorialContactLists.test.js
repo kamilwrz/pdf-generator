@@ -1,3 +1,5 @@
+import { listDocumentSections } from "./sectionStructure.js";
+import { reflowTextareaHeight } from "./textareaReflow.js";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { regentTemplate } from "../templates/regent.js";
@@ -77,5 +79,26 @@ for (const [id, template, palettes, recolor, resize] of [
       const once = applyChannelRelayout(elements, `${id}-contact`, null, createId).elements;
       assert.deepEqual(applyChannelRelayout(once, `${id}-contact`, null, createId).elements, once);
     }
+  });
+}
+
+for (const [id, template] of [["regent", regentTemplate], ["meridian", meridianTemplate]]) {
+  test(`${id}: shared textarea reflow owns all header measurements and repairs saved overlaps`, () => {
+    let elements = template.map((element) => ({ ...element, element_id: createId() }));
+    for (const field of elements.filter((element) => element.mastheadRole || element.contactChannel && element.category === "textarea")) {
+      for (const content of ["", "Jan", "Jan Kowalski", "Long identity ".repeat(12), ""]) {
+        elements = elements.map((element) => element.element_id === field.element_id ? { ...element, content } : element);
+        for (const height of [0, 47, 88, 41]) {
+          elements = reflowTextareaHeight(elements, field.element_id, height, 842, { pageTop: 66, bottomMargin: 72 }).elements;
+          const floor = elements.find((element) => element.contactBand).contactBand.flow.bodyTop;
+          for (const section of listDocumentSections(elements)) assert.ok(section.startAbs >= floor - 0.01);
+        }
+      }
+    }
+    elements = elements.map((element) => element.flowRole === "section-chrome" ? { ...element, top: element.top - 90 } : element);
+    const name = elements.find((element) => element.mastheadRole === "name");
+    elements = reflowTextareaHeight(elements, name.element_id, name.height, 842).elements;
+    const floor = elements.find((element) => element.contactBand).contactBand.flow.bodyTop;
+    for (const section of listDocumentSections(elements)) assert.ok(section.startAbs >= floor - 0.01);
   });
 }

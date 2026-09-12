@@ -1,3 +1,4 @@
+import { applyStarterElementStructure } from "../src/utils/starterElementStructure.js";
 import { expect, test } from "@playwright/test";
 import { readFile } from "node:fs/promises";
 import { regentTemplate } from "../src/templates/regent.js";
@@ -12,8 +13,11 @@ for (const [id, template] of [["regent", regentTemplate], ["meridian", meridianT
     await page.setViewportSize({ width: 1280, height: 1000 });
     await page.emulateMedia({ reducedMotion: "reduce" });
     let serial = 0;
-    const elements = materializeElementSpecs(template, () => `identity-${++serial}`).map((element) =>
-      empty && element.mastheadRole ? { ...element, content: "", placeholder: element.mastheadRole === "name" ? "Imię i nazwisko" : "Tytuł zawodowy", starterPlaceholder: true } : element);
+    // Backend-generated wizard payload, not a demo with only its name cleared.
+    const starter = JSON.parse(await readFile(new URL("./fixtures/editorial-starters.json", import.meta.url), "utf8"));
+    const elements = empty
+      ? applyStarterElementStructure(materializeElementSpecs(starter.templates[id], () => `identity-${++serial}`), starter.cvData, id)
+      : materializeElementSpecs(template, () => `identity-${++serial}`);
     const api = await installMockApi(page, {
       savedDocument: { ...SAVED_DOCUMENT, template_id: id, cv_data: null },
       savedElements: elements.map((element) => ({ ...element, extra_properties: { ...element } })),
@@ -44,6 +48,24 @@ for (const [id, template] of [["regent", regentTemplate], ["meridian", meridianT
       await field(title).press("F2");
       await field(title).press("Escape");
       await expect.poll(geometry).toEqual(before);
+      const divider = elements.find((element) => element.id === `${id}-masthead-divider`);
+      const headings = elements.filter((element) => element.flowRole === "section-chrome" && element.category === "text");
+      const assertFloor = async () => {
+        const floor = await field(divider).evaluate((node) => Number.parseFloat(node.style.top) + 14);
+        for (const heading of headings) {
+          expect(await field(heading).evaluate((node) => Number.parseFloat(node.style.top))).toBeGreaterThanOrEqual(floor - 0.1);
+        }
+      };
+      for (const element of [name, title, phone]) {
+        await field(element).focus();
+        await field(element).press("F2");
+        for (const value of ["Jan", "Jan Kowalski", "Very long professional identity ".repeat(8), ""]) {
+          await field(element).fill(value);
+          await assertFloor();
+        }
+        await field(element).press("Escape");
+        await assertFloor();
+      }
       await page.screenshot({ path: testInfo.outputPath("empty-title-entry.png") });
       api.assertHermetic();
       return;
@@ -83,4 +105,38 @@ for (const [id, template] of [["regent", regentTemplate], ["meridian", meridianT
     api.assertHermetic();
   });
 }
+}
+
+for (const id of ["regent", "meridian"]) {
+  test(`${id}: freshly created wizard document keeps sections below contacts while typing`, async ({ page }) => {
+    test.setTimeout(90_000);
+    await page.setViewportSize({ width: 1280, height: 1000 });
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    const api = await installMockApi(page);
+    const starter = JSON.parse(await readFile(new URL("./fixtures/editorial-starters.json", import.meta.url), "utf8"));
+    await page.route("**/api/ai/fill_template", (route) => route.fulfill({ json: { elements: starter.templates[id] } }));
+    await page.route("**/template-assets/**", async (route) => {
+      const asset = new URL(route.request().url()).pathname.split("/template-assets/")[1];
+      await route.fulfill({ body: await readFile(new URL(`../../backend/template_assets/${asset}`, import.meta.url)), contentType: "image/png" });
+    });
+    await login(page);
+    await page.getByRole("button", { name: /Utwórz nowe CV/ }).click();
+    const setup = page.getByRole("dialog", { name: "Utwórz CV" });
+    if (id === "regent") await setup.getByRole("button", { name: "Więcej szablonów" }).click();
+    await setup.getByRole("radio", { name: new RegExp(id, "i") }).check();
+    await setup.getByRole("button", { name: "Rozpocznij edycję" }).click();
+    const name = page.locator('[data-page-canvas] [data-placeholder="Imię i nazwisko"]');
+    await expect(name).toBeVisible();
+    const summary = page.getByText("PODSUMOWANIE ZAWODOWE", { exact: true });
+    const location = page.locator('[data-page-canvas] img[src$="/location.png"]');
+    for (const value of ["J", "Jan Kowalski", "Very long professional name ".repeat(8), "", "Jan Kowalski"]) {
+      await name.fill(value);
+      await expect.poll(async () => {
+        const [heading, contact] = await Promise.all([summary.boundingBox(), location.boundingBox()]);
+        return heading.y - (contact.y + contact.height);
+      }).toBeGreaterThan(0);
+    }
+    await name.press("Escape");
+    api.assertHermetic();
+  });
 }

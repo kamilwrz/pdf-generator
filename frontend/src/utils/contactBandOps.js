@@ -181,8 +181,11 @@ function relayoutAndReconcile(elements, bandId, descriptor, nextItems, measure, 
     // Only opt-in multiline bands can change the body origin. Pack complete
     // sections from the new floor, preserving authored rhythm and record
     // ownership across page breaks. Same-height keystrokes never touch body.
-    if (Math.abs(flowStart - Number(descriptor.flow.bodyTop)) > 0.01) {
-      const sections = listDocumentSections(elements);
+    const sections = listDocumentSections(elements);
+    // Repair previously saved overlaps even when this measurement leaves the
+    // floor unchanged. The managed header remains authoritative for every pack.
+    if (Math.abs(flowStart - Number(descriptor.flow.bodyTop)) > 0.01
+      || sections.some((section) => section.startAbs < flowStart - 0.01)) {
       next = packDocumentSections(next, sections.map((section) => section.headingId), 842, {
         membershipReference: elements, spacing: descriptor.flow.spacing,
       });

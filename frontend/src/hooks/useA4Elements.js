@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { nanoid } from 'nanoid';
 import { createCanvasTextWidthMeasurer, measureTextareaHeight } from '../utils/textareaHeight';
 import { reflowTextareaHeight } from '../utils/textareaReflow';
-import { layoutEditorialMasthead } from '../utils/editorialMastheadLayout';
 import { reconcileDocumentPages } from '../utils/structureOperation';
 import { findPageCanvasAtPoint } from '../utils/pageSpread';
 import { moveElementsByDelta } from '../utils/pageDrag';
@@ -1875,16 +1874,6 @@ export function useA4Elements(titleRef) {
           );
           return resizeContentSizedTitleDecorations(newState, edited, measured);
         }
-        if (edited?.mastheadRole && newState.some((element) =>
-          element.mastheadIdentity?.contactBandId
-          && element.mastheadBandId === edited.mastheadBandId
-          && newState.some((anchor) => anchor.contactBand?.id === element.mastheadIdentity.contactBandId
-            && anchor.contactBand.identityLayout))) {
-          // Leaving an empty starter name still commits its empty text. It is
-          // not a zero-height body block: the masthead fit callback reserves
-          // its hint line and moves the contacts and body as one layout.
-          return newState;
-        }
         if (
           edited?.flowRole === "section-chrome"
           && (edited.category === "text" || edited.category === "textarea")
@@ -1974,23 +1963,6 @@ export function useA4Elements(titleRef) {
     if (isCanvasEnterReflowSuppressed()) return;
     if (quiet) markHistoryQuiet();
     setA4_Elements((prevState) => {
-      const edited = prevState.find((element) => element.element_id === elementId);
-      const identity = edited?.mastheadRole && prevState.find((element) =>
-        element.mastheadIdentity && element.mastheadBandId === edited.mastheadBandId);
-      const bandId = identity?.mastheadIdentity.contactBandId;
-      const band = bandId && prevState.find((element) => element.contactBand?.id === bandId)?.contactBand;
-      if (editorModeRef.current === EDITOR_MODE_TEMPLATE && band?.identityLayout) {
-        // Compact editorial identity fields share a managed contact floor.
-        // Generic lane shifting would move the labels but leave that floor
-        // stale, making the next added contact jump back over a wrapped name.
-        if (!Number.isFinite(measuredHeight) || measuredHeight <= 0
-          || Math.abs(Number(edited.height) - measuredHeight) < 0.5) return prevState;
-        const heights = new Map(prevState.filter((element) => element.mastheadRole)
-          .map((element) => [element.element_id, element.height]));
-        heights.set(elementId, measuredHeight);
-        const masthead = layoutEditorialMasthead(prevState, bandId, { measuredHeights: heights });
-        return applyChannelRelayout(masthead, bandId, measureContactLabel, () => nanoid()).elements;
-      }
       const result = reflowTextareaHeight(
         prevState,
         elementId,
