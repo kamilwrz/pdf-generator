@@ -1,5 +1,7 @@
 # English
 
+The shared template catalogue lists Monument, Slate, Aurelia, Sterling, Regent, Meridian, Linden, Cadenza, Vellum, and Atrium, in that order. Aurelia takes the former Atrium position; Atrium is last. New-CV setup still shows Free templates first.
+
 ## Job analysis and tailoring through an interview
 
 In the editor, open **Tailor to a job**. The task occupies the assistant body below its header, with 16px text and inputs, 44px actions and one vertical scroll area. Paste a public job link or the advert text; optional experience notes are in a disclosure. Back returns to assistant actions without losing the draft. The page supports Polish/British English, keyboard focus, compact layouts, 200% text enlargement and reduced motion. CV layout and exported PDF geometry are unchanged.
@@ -3297,6 +3299,8 @@ Notable product facts:
 ---
 
 # Polski
+
+Wspólny katalog szablonów ma kolejność: Monument, Slate, Aurelia, Sterling, Regent, Meridian, Linden, Cadenza, Vellum i Atrium. Aurelia zajmuje wcześniejsze miejsce Atrium, a Atrium jest ostatnie. Konfiguracja nowego CV nadal pokazuje najpierw szablony Free.
 
 ## Analiza oferty i dopasowanie przez wywiad
 
