@@ -12,6 +12,7 @@ import { useTranslation } from "react-i18next";
 import classes from "./Text.module.css";
 import { memo, useLayoutEffect, useRef } from "react";
 import { useCanvasContext } from "../../../store/canvas-context";
+import { useCanvasOutlineStyle } from "../../../store/canvas-outline-context";
 import {
     hasTextareaDragIntent,
     resolveTextClickIntent,
@@ -56,6 +57,11 @@ function Text({
     editorHoverOutline,
 }) {
     useTranslation();
+    // Mirror the baseline-based hover box when choosing contrast on narrow bands.
+    const outlineStyle = useCanvasOutlineStyle({
+        left, top: Number(top) - 0.67 * Number(fontSize),
+        width: Number(width) || Number(fontSize), height: 1.2 * Number(fontSize),
+    });
     const {
         moveElement,
         selectElement,
@@ -88,6 +94,7 @@ function Text({
         && frameWidth > 0
         && ["left", "center", "right"].includes(align);
     const style = {
+        ...outlineStyle,
         fontSize: `${fontSize}px`,
         color,
         // Resolve Helvetica/Courier → Inter so wrap matches the PDF alias.

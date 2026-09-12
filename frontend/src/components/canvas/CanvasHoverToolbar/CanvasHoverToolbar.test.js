@@ -55,16 +55,16 @@ test("inline toolbar panels can stay inside the viewport and flip above their an
   assert.match(source, /requestAnimationFrame\(updatePortalGeometry\)/);
 });
 
-test("selected elements keep selection and receive a separate depth cue", async () => {
+test("selected elements share the same unshifted pointer outline", async () => {
   const source = await readFile(new URL("./CanvasHoverToolbar.jsx", import.meta.url), "utf8");
   const css = await readFile(new URL("./CanvasHoverToolbar.module.css", import.meta.url), "utf8");
 
-  assert.match(source, /elementHighlightSelected/);
-  assert.match(css, /\.elementHighlightSelected::before\s*\{[^}]*box-shadow:[^;]*--shadow-editor-entry/s);
-  assert.match(css, /\.elementHighlightSelected\s*\{[^}]*transform:\s*translateY\(var\(--canvas-editor-lift, -1px\)\)/s);
+  assert.match(source, /elementHighlight \?/);
+  assert.doesNotMatch(source, /elementHighlightSelected/);
+  assert.doesNotMatch(css, /elementHighlightSelected|--canvas-editor-lift/);
 });
 
-test("section, entry, and element context use neutral shadow depth without tinted surfaces", async () => {
+test("section and entry context use spaced dotted lines around the solid element outline", async () => {
   const source = await readFile(new URL("./CanvasHoverToolbar.jsx", import.meta.url), "utf8");
   const css = await readFile(new URL("./CanvasHoverToolbar.module.css", import.meta.url), "utf8");
 
@@ -75,10 +75,10 @@ test("section, entry, and element context use neutral shadow depth without tinte
   assert.match(source, /data-canvas-highlight-level=\{highlightLevel\}/);
   assert.match(css, /\.highlight\s*\{[^}]*background:\s*transparent[^}]*border-style:\s*none/s);
   assert.match(css, /\.highlight::before,[\s\S]*\.elementHighlight::before\s*\{[^}]*--canvas-hover-padding[^}]*--canvas-hover-radius/s);
-  assert.match(css, /\.highlightSection::before\s*\{[^}]*--shadow-editor-section/s);
-  assert.match(css, /\.highlightEntry::before\s*\{[^}]*--shadow-editor-entry/s);
-  assert.match(css, /\.highlightSkills::before\s*\{[^}]*--shadow-editor-skills/s);
-  assert.match(css, /\.elementHighlight::before\s*\{[^}]*--shadow-editor-element/s);
+  assert.match(css, /\.highlightSection::before\s*\{[^}]*--canvas-hover-section-padding[^}]*border:\s*1px dotted[^;]*--canvas-outline-section/s);
+  assert.match(css, /\.highlightEntry::before\s*\{[^}]*--canvas-hover-entry-padding[^}]*border:\s*1px dotted[^;]*--canvas-outline-entry/s);
+  assert.match(css, /\.highlightSkills::before\s*\{[^}]*--canvas-hover-entry-padding[^}]*border:\s*1px dotted[^;]*--canvas-outline-entry/s);
+  assert.match(css, /\.elementHighlight::before\s*\{[^}]*border:\s*1px solid[^;]*--canvas-outline-element/s);
 });
 
 test("selection and editing use screen-stable hairlines with active textarea depth", async () => {
@@ -92,23 +92,18 @@ test("selection and editing use screen-stable hairlines with active textarea dep
     readFile(new URL("../Textarea/Textarea.module.css", import.meta.url), "utf8"),
   ]);
 
-  assert.match(tokens, /--shadow-editor-section:/);
   assert.match(tokens, /--shadow-editor-entry:/);
-  assert.match(tokens, /--shadow-editor-element:/);
-  assert.match(tokens, /--shadow-editor-skills:/);
+  assert.match(tokens, /--shadow-editor-active:/);
   assert.match(tokens, /--shadow-editor-skills-active:/);
-  assert.match(tokens, /--shadow-editor-section-color:\s*rgba\(22, 22, 22, \.18\)/);
   assert.match(tokens, /--shadow-editor-entry-color:\s*rgba\(22, 22, 22, \.17\)/);
-  assert.match(tokens, /--shadow-editor-element-color:\s*rgba\(22, 22, 22, \.22\)/);
   assert.match(pageSource, /const px = \(screenPixels\) => `\$\{screenPixels \/ safeZoom\}px`/);
-  assert.match(pageSource, /"--canvas-shadow-editor-section"/);
   assert.match(pageSource, /"--canvas-shadow-editor-entry"/);
-  assert.match(pageSource, /"--canvas-shadow-editor-element"/);
-  assert.match(pageSource, /"--canvas-shadow-editor-skills"/);
+  assert.match(pageSource, /"--canvas-shadow-editor-active"/);
   assert.match(pageSource, /"--canvas-shadow-editor-skills-active"/);
   assert.match(pageSource, /"--canvas-hover-padding":\s*px\(4\)/);
-  assert.match(pageSource, /"--canvas-hover-radius":\s*px\(2\)/);
-  assert.match(pageSource, /"--canvas-editor-lift"/);
+  assert.match(pageSource, /"--canvas-hover-entry-padding":\s*px\(8\)/);
+  assert.match(pageSource, /"--canvas-hover-section-padding":\s*px\(12\)/);
+  assert.match(pageSource, /"--canvas-hover-radius":\s*"2px"/);
   assert.match(pageSource, /"--canvas-editor-hairline":\s*px\(1\)/);
   assert.match(selectionSource, /!\(element\.isEditing && \["text", "textarea"\]\.includes\(element\.category\)\)/);
   assert.match(selectionCss, /\.frame\s*\{[^}]*border:[^;]*--canvas-editor-hairline[^;]*--color-focus[^}]*box-shadow:\s*none/s);

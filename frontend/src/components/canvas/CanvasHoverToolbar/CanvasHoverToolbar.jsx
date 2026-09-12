@@ -15,6 +15,7 @@ import { SCOPED_AI_ACTIONS } from "../../../utils/scopedAi";
 import classes from "./CanvasHoverToolbar.module.css";
 import { compactInlineToolbarScreenLayoutSize, structuralToolbarScreenLayoutSize } from "../recordPlusSize";
 import { readCanvasZoom } from "../../../utils/readCanvasZoom";
+import { useCanvasOutlineStyle } from "../../../store/canvas-outline-context";
 
 /**
  * @param {{
@@ -29,7 +30,6 @@ import { readCanvasZoom } from "../../../utils/readCanvasZoom";
  *   highlight?:{left:number,top:number,width:number,height:number}|null,
  *   highlightLevel?:"section"|"entry"|"element"|"skills",
  *   elementHighlight?:{left:number,top:number,width:number,height:number}|null,
- *   elementHighlightSelected?:boolean,
  *   layout:{buttonSize:number,iconSize:number,gap:number,labelWidth:number,fontSize:number,menuWidth:number,offset:number,borderWidth:number},
  *   addLabel?:string,
  *   addTooltip?:string,
@@ -62,7 +62,6 @@ export default function CanvasHoverToolbar({
   highlight = null,
   highlightLevel = "entry",
   elementHighlight = null,
-  elementHighlightSelected = false,
   layout,
   addLabel = "",
   addTooltip = "",
@@ -83,6 +82,8 @@ export default function CanvasHoverToolbar({
   aiTarget = null,
 }) {
   useTranslation();
+  const highlightStyle = useCanvasOutlineStyle(highlight);
+  const elementHighlightStyle = useCanvasOutlineStyle(elementHighlight);
   const originRef = useRef(null);
   const toolbarRef = useRef(null);
   const [portalGeometry, setPortalGeometry] = useState(null);
@@ -336,6 +337,7 @@ export default function CanvasHoverToolbar({
           className={`${classes.highlight} ${highlightLevelClass}`}
           data-canvas-highlight-level={highlightLevel}
           style={{
+            ...highlightStyle,
             left: highlight.left,
             top: highlight.top,
             width: highlight.width,
@@ -347,10 +349,10 @@ export default function CanvasHoverToolbar({
 
       {elementHighlight ? (
         <div
-          className={`${classes.elementHighlight}${elementHighlightSelected
-            ? ` ${classes.elementHighlightSelected}`
-            : ""}`}
+          className={classes.elementHighlight}
+          data-canvas-element-highlight="true"
           style={{
+            ...elementHighlightStyle,
             left: elementHighlight.left,
             top: elementHighlight.top,
             width: elementHighlight.width,

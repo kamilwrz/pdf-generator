@@ -142,13 +142,16 @@ for (const width of [390, 834, 1280, 1920]) {
         const shell = getComputedStyle(el.parentElement);
         return {
           size: el.getBoundingClientRect().height, width: el.getBoundingClientRect().width, radius: style.borderRadius,
+          labelled: Boolean(el.textContent.trim()),
           color: style.color, hover: style.backgroundColor,
           border: shell.borderWidth, surface: shell.backgroundColor,
           shellRadius: parseFloat(shell.borderRadius), shellHeight: parseFloat(shell.height),
         };
       });
       expect(appearance.size).toBeCloseTo(size, 0);
-      expect(appearance.width).toBeCloseTo(size, 0);
+      // Structural add actions include text; icon-only controls remain square.
+      if (appearance.labelled) expect(appearance.width).toBeGreaterThanOrEqual(size);
+      else expect(appearance.width).toBeCloseTo(size, 0);
       expect(appearance).toMatchObject({
         radius: "999px", border: "0px",
         surface: "rgb(255, 255, 255)", hover: "rgb(236, 232, 223)",
@@ -170,12 +173,12 @@ for (const width of [390, 834, 1280, 1920]) {
       const transform = new DOMMatrixReadOnly(getComputedStyle(pageCanvas).transform);
       return {
         screenPadding: Math.abs(parseFloat(plate.top)) * transform.a,
-        screenRadius: parseFloat(plate.borderTopLeftRadius) * transform.a,
+        screenRadius: parseFloat(plate.borderTopLeftRadius) * transform.a * new DOMMatrixReadOnly(plate.transform).a,
         background: plate.backgroundColor,
         pointerEvents: plate.pointerEvents,
       };
     });
-    expect(hoverAppearance.screenPadding).toBeCloseTo(4, 1);
+    expect(hoverAppearance.screenPadding).toBeCloseTo(12, 1);
     expect(hoverAppearance.screenRadius).toBeCloseTo(2, 1);
     expect(hoverAppearance.background).toBe("rgba(0, 0, 0, 0)");
     expect(hoverAppearance.pointerEvents).toBe("none");

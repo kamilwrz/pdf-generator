@@ -29,13 +29,11 @@ test("selected and editing structural fields remain eligible hover targets", asy
   assert.doesNotMatch(recordSource, /!triggerElements\.some\([^)]*isEditing/);
   assert.doesNotMatch(recordSource, /!hoveredElement\.isSelected/);
   assert.doesNotMatch(recordSource, /!hoveredElement\.isEditing/);
-  assert.match(recordSource, /elementHighlightSelected=\{Boolean\(hoveredElement\?\.isSelected\)\}/);
   assert.match(recordSource, /triggerRevision/);
 
   assert.doesNotMatch(sectionSource, /!heading\?\.isEditing/);
-  assert.doesNotMatch(sectionSource, /!hoveredHeading\.isSelected/);
-  assert.doesNotMatch(sectionSource, /!hoveredHeading\.isEditing/);
-  assert.match(sectionSource, /elementHighlightSelected=\{Boolean\(hoveredHeading\?\.isSelected\)\}/);
+  assert.doesNotMatch(sectionSource, /!hoveredField\.isSelected/);
+  assert.doesNotMatch(sectionSource, /!hoveredField\.isEditing/);
   assert.match(sectionSource, /triggerRevision/);
 });
 
@@ -118,7 +116,7 @@ test("chip Skills categories use the standard record toolbar", async () => {
   assert.match(recordSource, /menuItems=\{menuItems\}/);
 });
 
-test("plain section content reveals the complete section depth without stealing nested controls", async () => {
+test("plain section content reveals the complete section boundary without stealing nested controls", async () => {
   const source = await readFile(new URL("./CanvasElements.jsx", import.meta.url), "utf8");
   const sectionSource = await readFile(
     new URL("../SectionRecordAdd/SectionRecordAdd.jsx", import.meta.url),
@@ -134,7 +132,7 @@ test("plain section content reveals the complete section depth without stealing 
   assert.doesNotMatch(sectionSource, /node\.addEventListener\("focusin", showContext\)/);
 });
 
-test("semantic contact and identity fields receive editor-only hover depth", async () => {
+test("semantic contact and identity fields receive editor-only solid hover outlines", async () => {
   const [canvasSource, textSource, textCss, textareaSource, textareaCss] = await Promise.all([
     readFile(new URL("./CanvasElements.jsx", import.meta.url), "utf8"),
     readFile(new URL("../Text/Text.jsx", import.meta.url), "utf8"),
@@ -149,11 +147,11 @@ test("semantic contact and identity fields receive editor-only hover depth", asy
   assert.match(canvasSource, /element\.mastheadRole === "title"/);
   assert.match(textSource, /data-editor-hover-outline=/);
   assert.match(textareaSource, /data-editor-hover-outline=/);
-  assert.match(textCss, /\.editorHoverOutline[^}]*:hover::after[\s\S]*box-shadow:[^;]*--shadow-editor-element/);
+  assert.match(textCss, /\.editorHoverOutline:not\(\.editing\):hover::after\s*\{[^}]*border:\s*1px solid[^;]*--canvas-outline-element/s);
   assert.match(textCss, /\.editorHoverOutline::after\s*\{[^}]*--canvas-hover-padding[^}]*--canvas-hover-radius/s);
   assert.match(textCss, /pointer-events: none/);
   assert.match(textareaCss, /\.editorHoverOutline::after\s*\{[^}]*--canvas-hover-padding[^}]*--canvas-hover-radius[^}]*pointer-events:\s*none/s);
-  assert.match(textareaCss, /\.editorHoverOutline:not\(\.editing\):hover::after\s*\{[^}]*box-shadow:[^;]*--shadow-editor-element/s);
+  assert.match(textareaCss, /\.editorHoverOutline:not\(\.editing\):hover::after\s*\{[^}]*border:\s*1px solid[^;]*--canvas-outline-element/s);
   assert.match(textCss, /\.editorHoverOutline:not\(\.editing\):hover::after/);
   assert.match(textareaCss, /\.block\.editorHoverOutline\s*\{[^}]*overflow:\s*visible/s);
   assert.match(textCss, /\.textElement\[data-placeholder\]:empty\s*\{[^}]*min-height:\s*1\.2em[^}]*margin-top:\s*-\.67em[^}]*padding-top:\s*\.67em/s);

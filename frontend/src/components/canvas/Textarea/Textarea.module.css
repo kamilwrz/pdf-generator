@@ -30,17 +30,20 @@
     content: "";
     position: absolute;
     inset: calc(-1 * var(--canvas-hover-padding, 4px));
+    width: calc((100% + 2 * var(--canvas-hover-padding, 4px)) * var(--canvas-hover-scale, 1));
+    height: calc((100% + 2 * var(--canvas-hover-padding, 4px)) * var(--canvas-hover-scale, 1));
+    transform: scale(var(--canvas-hover-inverse-scale, 1));
+    transform-origin: top left;
     box-sizing: border-box;
     border: 0;
     border-radius: var(--canvas-hover-radius, 2px);
     background: transparent;
     box-shadow: none;
     pointer-events: none;
-    transition: box-shadow var(--motion-fast, 120ms) var(--motion-easing, ease-out);
 }
 
 .editorHoverOutline:not(.editing):hover::after {
-    box-shadow: var(--canvas-shadow-editor-element, var(--shadow-editor-element));
+    border: 1px solid var(--canvas-outline-element, var(--color-canvas-element-light));
 }
 
 /* Display and edit mode intentionally share one marker/body grid. ReportLab
@@ -196,9 +199,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .editorHoverOutline::after,
     .editing:focus [data-metadata-slot][data-empty="true"]::after {
-        transition: none;
         animation: none;
     }
 }

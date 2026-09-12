@@ -61,6 +61,6 @@ test("grid entry hover never stacks toolbar frames over selection, editing, or f
   assert.match(source, /&& hoveredTriggerId === elementId/);
   assert.doesNotMatch(source, /hoveredTriggerId === elementId \|\| pinned/);
   assert.match(source, /highlight=\{hoverHighlight\}/);
-  assert.doesNotMatch(source, /elementHighlight=/);
+  assert.match(source, /elementHighlight=\{hoverHighlight\}/);
   assert.doesNotMatch(source, /elementHighlightSelected=/);
 });

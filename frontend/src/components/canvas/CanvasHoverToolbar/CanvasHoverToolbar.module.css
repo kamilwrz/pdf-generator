@@ -14,6 +14,10 @@
     content: "";
     position: absolute;
     inset: calc(-1 * var(--canvas-hover-padding, 4px));
+    width: calc((100% + 2 * var(--canvas-hover-padding, 4px)) * var(--canvas-hover-scale, 1));
+    height: calc((100% + 2 * var(--canvas-hover-padding, 4px)) * var(--canvas-hover-scale, 1));
+    transform: scale(var(--canvas-hover-inverse-scale, 1));
+    transform-origin: top left;
     box-sizing: border-box;
     border: 0;
     border-radius: var(--canvas-hover-radius, 2px);
@@ -23,26 +27,35 @@
 }
 
 .highlightSection::before {
-    box-shadow: var(--canvas-shadow-editor-section, var(--shadow-editor-section));
+    inset: calc(-1 * var(--canvas-hover-section-padding, 12px));
+    width: calc((100% + 2 * var(--canvas-hover-section-padding, 12px)) * var(--canvas-hover-scale, 1));
+    height: calc((100% + 2 * var(--canvas-hover-section-padding, 12px)) * var(--canvas-hover-scale, 1));
+    border: 1px dotted var(--canvas-outline-section, var(--color-canvas-section-light));
 }
 
 .highlightEntry::before {
-    box-shadow: var(--canvas-shadow-editor-entry, var(--shadow-editor-entry));
+    inset: calc(-1 * var(--canvas-hover-entry-padding, 8px));
+    width: calc((100% + 2 * var(--canvas-hover-entry-padding, 8px)) * var(--canvas-hover-scale, 1));
+    height: calc((100% + 2 * var(--canvas-hover-entry-padding, 8px)) * var(--canvas-hover-scale, 1));
+    border: 1px dotted var(--canvas-outline-entry, var(--color-canvas-entry-light));
 }
 
 .highlightElement::before {
-    box-shadow: var(--canvas-shadow-editor-element, var(--shadow-editor-element));
+    border: 1px solid var(--canvas-outline-element, var(--color-canvas-element-light));
 }
 
 /* Wide Skills fields need an even boundary on every edge. This highlight is
    owned by the toolbar layer, so it remains present when the centred plus
    covers the pointer and the authored textarea loses CSS :hover. */
 .highlightSkills::before {
-    box-shadow: var(--canvas-shadow-editor-skills, var(--shadow-editor-skills));
+    inset: calc(-1 * var(--canvas-hover-entry-padding, 8px));
+    width: calc((100% + 2 * var(--canvas-hover-entry-padding, 8px)) * var(--canvas-hover-scale, 1));
+    height: calc((100% + 2 * var(--canvas-hover-entry-padding, 8px)) * var(--canvas-hover-scale, 1));
+    border: 1px dotted var(--canvas-outline-entry, var(--color-canvas-entry-light));
 }
 
-/* A semantic section/record shadow provides the outer context. This tighter,
-   pointer-inert lift identifies the exact authored element under the pointer
+/* A dotted section/record boundary provides the outer context. This tighter,
+   pointer-inert solid line identifies the exact authored element under the pointer
    without selecting it or changing the document model. */
 .elementHighlight {
     position: absolute;
@@ -56,18 +69,7 @@
 }
 
 .elementHighlight::before {
-    box-shadow: var(--canvas-shadow-editor-element, var(--shadow-editor-element));
-}
-
-/* A selected field already owns a structural hairline. Raise the transient
-   pointer-hover shadow by one pixel so both states remain legible without
-   introducing a second outline or a coloured surface. */
-.elementHighlightSelected::before {
-    box-shadow: var(--canvas-shadow-editor-entry, var(--shadow-editor-entry));
-}
-
-.elementHighlightSelected {
-    transform: translateY(var(--canvas-editor-lift, -1px));
+    border: 1px solid var(--canvas-outline-element, var(--color-canvas-element-light));
 }
 
 .origin {

@@ -27,7 +27,7 @@
    line-height for PDF parity, so a hover effect on the <p> itself would use a
    collapsed box. This pointer-inert pseudo-box follows the font size
    and authored width instead. The pseudo-box is shared with the edit-focus
-   hairline, but its shadow is enabled only by pointer hover. */
+   hairline, but its outer blue line is enabled only by pointer hover. */
 .editorHoverOutline::after,
 .editing::after {
     content: "";
@@ -37,15 +37,21 @@
     background: transparent;
     box-shadow: none;
     pointer-events: none;
-    transition: box-shadow var(--motion-fast, 120ms) var(--motion-easing, ease-out);
 }
 
 .editorHoverOutline::after {
     left: calc(-1 * var(--canvas-hover-padding, 4px));
     top: calc(-0.67em - var(--canvas-hover-padding, 4px));
-    width: calc(100% + var(--canvas-hover-padding, 4px) + var(--canvas-hover-padding, 4px));
-    height: calc(1.2em + var(--canvas-hover-padding, 4px) + var(--canvas-hover-padding, 4px));
+    width: calc((100% + 2 * var(--canvas-hover-padding, 4px)) * var(--canvas-hover-scale, 1));
+    height: calc((1.2em + 2 * var(--canvas-hover-padding, 4px)) * var(--canvas-hover-scale, 1));
     border-radius: var(--canvas-hover-radius, 2px);
+}
+
+/* Cancel page zoom only for hover, preventing browser rounding from thickening
+   its real 1px border without changing the separate edit outline. */
+.editorHoverOutline:not(.editing)::after {
+    transform: scale(var(--canvas-hover-inverse-scale, 1));
+    transform-origin: top left;
 }
 
 /* Populated text uses live glyph bounds, not the column-wide alignment frame.
@@ -60,19 +66,13 @@
 }
 
 .editorHoverOutline:not(.editing):hover::after {
-    box-shadow: var(--canvas-shadow-editor-element, var(--shadow-editor-element));
+    border: 1px solid var(--canvas-outline-element, var(--color-canvas-element-light));
 }
 
 .editing:focus::after {
     outline: var(--canvas-editor-hairline, 1px) solid var(--color-focus);
     outline-offset: var(--canvas-editor-hairline-offset, 1px);
     box-shadow: none;
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .editorHoverOutline::after {
-        transition: none;
-    }
 }
 
 .selectedElement {

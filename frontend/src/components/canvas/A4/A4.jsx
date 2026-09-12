@@ -4,17 +4,19 @@
  * `data-page-canvas` lets drag/hit-testing find the page under the pointer.
  */
 import classes from "./A4.module.css";
-import { forwardRef, useImperativeHandle, useLayoutEffect, useRef, useState } from "react";
+import { forwardRef, useContext, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { compactInlineToolbarLayoutSize } from "../recordPlusSize";
 import { A4ZoomContext } from "../../../store/a4-zoom-context";
 import { readCanvasZoom } from "../../../utils/readCanvasZoom";
+import { CanvasContext } from "../../../store/canvas-context";
+import { CanvasOutlineContext } from "../../../store/canvas-outline-context";
 
 /**
- * Keeps editor-only hover elevation and interaction hairlines constant in
+ * Keeps editor-only hover spacing and interaction hairlines constant in
  * screen space while the A4 page is transformed. The values reference global
- * colour tokens, so no document palette or persisted element style can leak
- * into selection or edit feedback.
+ * colour tokens. Template backgrounds choose only the contrast variant of
+ * hover blue; no outline is written into a persisted element style.
  *
  * @param {number} zoom - Visual scale applied to the A4 page.
  * @returns {Record<string, string>} CSS custom properties inherited by canvas chrome.
@@ -33,21 +35,22 @@ function editorDepthStyle(zoom) {
         "--canvas-control-font": `${controls.fontSize}px`,
         "--canvas-control-menu-width": `${controls.menuWidth}px`,
         "--canvas-control-border": `${controls.borderWidth}px`,
-        "--canvas-shadow-editor-section": `0 ${px(8)} ${px(20)} var(--shadow-editor-section-color)`,
         "--canvas-shadow-editor-entry": `0 ${px(5)} ${px(14)} var(--shadow-editor-entry-color)`,
-        "--canvas-shadow-editor-element": `0 ${px(2)} ${px(7)} var(--shadow-editor-element-color)`,
         "--canvas-shadow-editor-active": `0 ${px(4)} ${px(12)} var(--shadow-editor-active-color)`,
         // Skills fields are long, low rectangles. A centred spread remains
         // visible on every edge where the generic downward shadow can blend
         // into the white page, especially at 280% editor zoom.
-        "--canvas-shadow-editor-skills": `0 0 ${px(8)} ${px(1)} var(--shadow-editor-element-color)`,
         "--canvas-shadow-editor-skills-active": `0 0 ${px(10)} ${px(1)} var(--shadow-editor-active-color)`,
-        // Hover depth sits outside authored bounds. Keep its small breathing
-        // room and sole rounded-corner exception constant in screen pixels so
-        // neither canvas zoom nor PDF geometry can change the result.
+        // Nested dotted boundaries need more breathing room than the solid
+        // element outline. These offsets never enlarge document hit targets.
         "--canvas-hover-padding": px(4),
-        "--canvas-hover-radius": px(2),
-        "--canvas-editor-lift": `-${px(1)}`,
+        "--canvas-hover-entry-padding": px(8),
+        "--canvas-hover-section-padding": px(12),
+        // Chromium rounds subpixel borders before transforms. Enlarge only the
+        // hover pseudo-box, then cancel page zoom locally to keep a true 1px line.
+        "--canvas-hover-scale": String(safeZoom),
+        "--canvas-hover-inverse-scale": String(1 / safeZoom),
+        "--canvas-hover-radius": "2px",
         "--canvas-editor-hairline": px(1),
         "--canvas-editor-hairline-offset": px(1),
     };
@@ -58,6 +61,11 @@ export default forwardRef(function A4({
     width, height, zoom = 1, page, isSpread = false, children, onPointerDownCapture,
 }, ref) {
     const pageRef = useRef(null);
+    const canvas = useContext(CanvasContext);
+    const outlineContext = useMemo(() => ({
+        elements: (canvas?.A4_Elements || []).filter((element) => element.category === "rectangle" && element.filled),
+        page,
+    }), [canvas?.A4_Elements, page]);
     const [liveZoom, setLiveZoom] = useState(zoom);
     useImperativeHandle(ref, () => pageRef.current, []);
 
@@ -110,7 +118,9 @@ export default forwardRef(function A4({
                 }}
                 onPointerDownCapture={onPointerDownCapture}
             >
-                <A4ZoomContext.Provider value={liveZoom}>{children}</A4ZoomContext.Provider>
+                <A4ZoomContext.Provider value={liveZoom}>
+                    <CanvasOutlineContext.Provider value={outlineContext}>{children}</CanvasOutlineContext.Provider>
+                </A4ZoomContext.Provider>
             </div>
         </div>
     )

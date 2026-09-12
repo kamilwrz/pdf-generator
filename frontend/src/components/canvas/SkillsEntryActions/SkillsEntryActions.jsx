@@ -13,6 +13,7 @@ import { useCallback, useEffect, useId, useState } from "react";
 import { FiPlus, FiX } from "react-icons/fi";
 import { useCanvasDeletionUndo } from "../../../hooks/useCanvasDeletionUndo";
 import { measureSkillTargets } from "../../../utils/skillsItemTarget";
+import { getElementOutlineBounds } from "../../../utils/elementBounds";
 import { useCanvasContext } from "../../../store/canvas-context";
 import { useCanvasHoverToolbar } from "../../../hooks/useCanvasHoverToolbar";
 import { EDITOR_MODE_TEMPLATE } from "../../../utils/editorMode";
@@ -66,6 +67,7 @@ export default function SkillsEntryActions({
   }).join("|");
   const {
     visible,
+    hoveredTriggerId,
     toolbarPointerProps,
     show,
     pin,
@@ -77,6 +79,10 @@ export default function SkillsEntryActions({
     triggerIds,
     triggerRevision,
   });
+  // Keep the group boundary owned by this toolbar, with a tighter solid line
+  // on the exact textarea or chip field currently under the pointer.
+  const hoveredField = A4_Elements.find((element) => element.element_id === hoveredTriggerId);
+  const elementHighlight = hoveredField ? getElementOutlineBounds(hoveredField) : null;
   const [formOpen, setFormOpen] = useState(false);
   const [value, setValue] = useState("");
   const [error, setError] = useMessageState("");
@@ -330,6 +336,7 @@ export default function SkillsEntryActions({
         placement="below"
         highlight={highlight}
         highlightLevel="skills"
+        elementHighlight={elementHighlight}
         anchorX={toolbarAnchorX}
         top={toolbarTop}
         pageWidth={pageSize?.width ?? 595}

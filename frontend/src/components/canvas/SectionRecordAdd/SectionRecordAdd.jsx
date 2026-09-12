@@ -4,8 +4,9 @@ import { useTranslation } from 'react-i18next';
  * Contextual structural toolbar for a template-mode section heading.
  *
  * Heading hover or keyboard focus reveals a grouped toolbar above the text;
- * pointer hover also adds a tighter depth cue around the exact heading. Plain
- * body hover keeps the complete section lift visible without opening controls. Add/reorder remain
+ * pointer hover also adds a tighter solid outline around the exact heading.
+ * Plain body hover pairs its solid field outline with the complete dotted
+ * section boundary without opening controls. Add/reorder remain
  * direct alongside Skills style; transfer and destructive actions live in overflow,
  * keeping editor chrome out of the CV content and exported document.
  */
@@ -104,7 +105,7 @@ export default function SectionRecordAdd({
     : null;
   // A selected heading remains a structural action target while it is edited.
   // Focus keeps the toolbar keyboard-accessible, while pointer state alone
-  // controls the transient section and exact-heading depth shadows.
+  // controls the outer dotted section and inner solid heading outlines.
   const eligible = editorMode === EDITOR_MODE_TEMPLATE;
   const exclusiveKey = `heading:${headingId}`;
   const triggerRevision = [
@@ -131,7 +132,8 @@ export default function SectionRecordAdd({
     const element = A4_Elements.find((candidate) => candidate.element_id === elementId);
     return `${elementId}:${Boolean(element?.isSelected)}:${Boolean(element?.isEditing)}`;
   }).join("|");
-  const [contentHoverActive, setContentHoverActive] = useState(false);
+  const [hoveredContentId, setHoveredContentId] = useState(null);
+  const contentHoverActive = eligible && contentHoverIds.includes(hoveredContentId);
 
   useEffect(() => {
     if (!eligible || !contentHoverKey) return undefined;
@@ -140,11 +142,11 @@ export default function SectionRecordAdd({
       .filter(Boolean);
     if (nodes.length === 0) return undefined;
 
-    // This listener owns only the semantic section depth. More specific
-    // record/grid controls retain the exclusive toolbar slot and are excluded
-    // by CanvasElements before these ids arrive here.
-    const showContext = () => setContentHoverActive(true);
-    const hideContext = () => setContentHoverActive(false);
+    // Plain body fields share the section's dotted boundary while retaining
+    // their own tighter solid outline. Record/grid controls are excluded by
+    // CanvasElements and keep ownership of the exclusive toolbar slot.
+    const showContext = (event) => setHoveredContentId(event.currentTarget.id);
+    const hideContext = () => setHoveredContentId(null);
     nodes.forEach((node) => {
       node.addEventListener("pointerenter", showContext);
       node.addEventListener("pointerleave", hideContext);
@@ -180,7 +182,7 @@ export default function SectionRecordAdd({
     // The synchronous layout-state update is intentional: React performs the
     // follow-up render before paint, so users never see the model-only fallback
     // cut through line-height:1 glyph ink. Moving this to a passive effect would
-    // produce a one-frame shadow jump on every first hover.
+    // produce a one-frame outline jump on every first hover.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setRenderedHeadingMeasurement((current) => (
       current?.key === headingMeasurementKey
@@ -247,9 +249,13 @@ export default function SectionRecordAdd({
   const toolbarAnchorX = toolbarHeadingBounds.left;
   const toolbarTop = toolbarHeadingBounds.top;
   const sectionLabel = String(heading?.content || "").trim();
-  const hoveredHeading = hoveredTriggerId === headingId ? heading : null;
-  const elementHighlight = hoveredHeading
-    ? getElementOutlineBounds(hoveredHeading)
+  const hoveredField = hoveredTriggerId === headingId
+    ? heading
+    : contentHoverActive
+      ? A4_Elements.find((element) => element.element_id === hoveredContentId)
+      : null;
+  const elementHighlight = hoveredField
+    ? getElementOutlineBounds(hoveredField)
     : null;
   const skillsModeLabel = {
     inline: uiText("editor:sectionRecordAdd.inline"),
@@ -311,7 +317,6 @@ export default function SectionRecordAdd({
       highlight={resolvedHighlight}
       highlightLevel="section"
       elementHighlight={elementHighlight}
-      elementHighlightSelected={Boolean(hoveredHeading?.isSelected)}
       layout={structuralToolbarLayoutSize(1, STRUCTURAL_TOOLBAR_VERTICAL_GAP_SCREEN_PX)}
       addLabel="Sekcja"
       addTooltip={uiText("editor:sectionRecordAdd.addSectionBelow")}

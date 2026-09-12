@@ -11,6 +11,7 @@ import { useTranslation } from 'react-i18next';
 import classes from "./Textarea.module.css";
 import { memo, useLayoutEffect, useRef, useState } from "react";
 import { useCanvasContext } from "../../../store/canvas-context";
+import { useCanvasOutlineStyle } from "../../../store/canvas-outline-context";
 import Resize from "../../common/Resize/Resize";
 import {
     measureNaturalScrollHeight,
@@ -201,6 +202,7 @@ function Textarea({
     skillsField = false,
 }) {
   useTranslation();
+    const outlineStyle = useCanvasOutlineStyle({ left, top, width, height });
     const {
         moveElement,
         selectMoveElement,
@@ -253,6 +255,7 @@ function Textarea({
     // <textarea> and the display <div> so the browser wraps both the same way —
     // which is what the PDF renderer reproduces.
     const boxStyle = {
+        ...outlineStyle,
         position: "absolute",
         left,
         top,

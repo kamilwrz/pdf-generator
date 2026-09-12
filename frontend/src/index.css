@@ -21,6 +21,13 @@
     --color-border: #C9C5BC;
     --color-accent: #8A664F;
     --color-focus: #155EEF;
+    /* Distinct editor blues; light/dark suffixes describe the template surface. */
+    --color-canvas-element-light: #2563A6;
+    --color-canvas-entry-light: #467DB5;
+    --color-canvas-section-light: #5B81AD;
+    --color-canvas-element-dark: #8CC8FF;
+    --color-canvas-entry-dark: #A5C9F5;
+    --color-canvas-section-dark: #75B3EF;
     --color-success: #18794E;
     --color-warning: #9A6700;
     --color-danger: #B42318;
@@ -61,23 +68,15 @@
     --control-height-compact: 36px;
     --topbar-h: 48px;
 
-    /* Restrained elevation language. Editor context shadows are a deliberate
-       hierarchy: a section has the broadest lift, a record a medium lift, and
-       the exact authored element the tightest lift. Their raised neutral
-       contrast keeps nested boundaries legible without turning document
-       colours into application state. Every layer still uses one shadow. */
+    /* Elevation separates floating controls and active multiline edit bounds.
+       Pointer-hover context uses the blue outline tokens above. */
     --shadow-pop: 0 12px 32px rgba(22, 22, 22, .16);
     --shadow-card: none;
     --shadow-accent: none;
-    --shadow-editor-section-color: rgba(22, 22, 22, .18);
     --shadow-editor-entry-color: rgba(22, 22, 22, .17);
-    --shadow-editor-element-color: rgba(22, 22, 22, .22);
     --shadow-editor-active-color: rgba(21, 94, 239, .22);
-    --shadow-editor-section: 0 8px 20px var(--shadow-editor-section-color);
     --shadow-editor-entry: 0 5px 14px var(--shadow-editor-entry-color);
-    --shadow-editor-element: 0 2px 7px var(--shadow-editor-element-color);
     --shadow-editor-active: 0 4px 12px var(--shadow-editor-active-color);
-    --shadow-editor-skills: 0 0 8px 1px var(--shadow-editor-element-color);
     --shadow-editor-skills-active: 0 0 10px 1px var(--shadow-editor-active-color);
 
     /* Motion and stacking contracts. */

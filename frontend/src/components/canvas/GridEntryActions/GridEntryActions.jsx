@@ -164,11 +164,10 @@ export default function GridEntryActions({
     : ((Number(left) || 0) < (pageSize?.width ?? 595) / 2 ? "left" : "right");
   const side = resolveStructuralToolbarSide(preferredSide, spreadSide);
   const entryLabel = String(entry?.content || "").trim();
-  // A grid cell is both the structural target and the exact edited element, so
-  // the section/record pattern of painting two nested depth cues would draw
-  // the same boundary twice. SelectionOverlay and the editable textarea own
-  // selected/editing states; keyboard focus keeps the thin edit outline. Paint
-  // this one context shadow only while the pointer is over the entry.
+  // A grid cell is both the structural target and the exact edited element.
+  // The dotted entry line has a larger inset than the solid field line, so
+  // both remain distinct. SelectionOverlay and the editable textarea retain
+  // ownership of selected/editing states and keyboard focus.
   const hasPersistentStateFrame = Boolean(entry?.isSelected || entry?.isEditing);
   const hoverHighlight = !hasPersistentStateFrame
     && hoveredTriggerId === elementId
@@ -223,6 +222,7 @@ export default function GridEntryActions({
       pageWidth={pageSize?.width ?? 595}
       highlight={hoverHighlight}
       highlightLevel="entry"
+      elementHighlight={hoverHighlight}
       layout={isLanguageEntry
         ? { ...compactInlineToolbarScreenLayoutSize(), scaleWithCanvas: "compact" }
         : structuralToolbarLayoutSize()}

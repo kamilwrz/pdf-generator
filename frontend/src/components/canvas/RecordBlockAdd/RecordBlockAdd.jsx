@@ -4,8 +4,9 @@ import { useTranslation } from 'react-i18next';
  * Contextual structural toolbar for one template-mode record.
  *
  * Hovering any current-page record field reveals a grouped toolbar immediately
- * above its first text field, without a gap, plus a tighter depth cue around
- * the exact title, metadata, or description field. A single click edits text,
+ * above its first text field, without a gap. A dotted record boundary surrounds
+ * a tighter solid outline around the exact title, metadata, or description
+ * field. A single click edits text,
  * while description/record
  * removals remain recoverable through the global toast.
  */
@@ -213,7 +214,7 @@ export default function RecordBlockAdd({
       toolbarKey={exclusiveKey}
       visible={visible}
       // Keyboard focus keeps actions reachable, but only a pointer hover may
-      // cast the record/element depth shadows around authored content.
+      // reveal the outer dotted record and inner solid element outlines.
       highlightVisible={Boolean(hoveredTriggerId)}
       placement="above"
       anchorX={toolbarAnchorX}
@@ -221,8 +222,7 @@ export default function RecordBlockAdd({
       pageWidth={pageSize?.width ?? 595}
       highlight={skillsCategory && elementHighlight ? elementHighlight : resolvedHighlight}
       highlightLevel={skillsCategory ? "skills" : "entry"}
-      elementHighlight={skillsCategory ? null : elementHighlight}
-      elementHighlightSelected={Boolean(hoveredElement?.isSelected)}
+      elementHighlight={elementHighlight}
       layout={structuralToolbarLayoutSize(1, STRUCTURAL_TOOLBAR_VERTICAL_GAP_SCREEN_PX)}
       addLabel="Wpis"
       addTooltip={uiText("editor:recordBlockAdd.addEntryBelow")}
