@@ -53,8 +53,8 @@ from app.services.ats_readability import (
 from app.services.document_service import make_image_resolver
 from app.utils.image_src_to_path import image_src_to_local_path
 
-# Trial Luna across assistant and interview actions; the environment can override it.
-_MODEL = os.getenv("AI_ASSISTANT_MODEL", "gpt-5.6-luna")
+# Terra is the shared default for assistant and interview actions.
+_MODEL = os.getenv("AI_ASSISTANT_MODEL", "gpt-5.6-terra")
 _ASSISTANT_REASONING_EFFORT = (
     os.getenv("AI_ASSISTANT_REASONING_EFFORT", "high").strip().lower() or "high"
 )
@@ -78,7 +78,7 @@ def _max_completion_tokens_for_action(action: str) -> int:
 
 
 def _reasoning_effort_for_action(action: str) -> str:
-    """Pick a validated effort; all actions retain high during the Luna trial."""
+    """Pick a validated effort; Terra defaults to high for every action."""
     _ = action
     requested = _ASSISTANT_REASONING_EFFORT
     allowed = {"none", "minimal", "low", "medium", "high", "xhigh", "max"}

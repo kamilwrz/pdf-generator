@@ -403,12 +403,12 @@ class AiAssistantExceptionHandlingTests(unittest.TestCase):
         self.assertIn("Uprość polecenie", detail["message"])
         self.assertNotIn("finish_reason", detail["message"])
 
-    def test_assistant_defaults_to_luna_with_high_reasoning(self):
+    def test_assistant_defaults_to_terra_with_high_reasoning(self):
         # Interview analysis, questions, drafting and verification reuse improve;
-        # interview redaction reuses language, so both must share the trial default.
+        # interview redaction reuses language, so both must share the default.
         for action in sorted(ai_assistant_route.VALID_ACTIONS):
             with self.subTest(action=action):
-                self.assertEqual(ai_assistant_service._model_for_action(action), "gpt-5.6-luna")
+                self.assertEqual(ai_assistant_service._model_for_action(action), "gpt-5.6-terra")
                 self.assertEqual(ai_assistant_service._reasoning_effort_for_action(action), "high")
 
     def test_assistant_provider_retains_configured_model_and_reasoning(self):
@@ -419,14 +419,14 @@ class AiAssistantExceptionHandlingTests(unittest.TestCase):
         # These module settings are populated from the environment at startup.
         # Patching them avoids reloading the shared service during route tests.
         with (
-            patch.object(ai_assistant_service, "_MODEL", "gpt-5.6-terra"),
+            patch.object(ai_assistant_service, "_MODEL", "gpt-5.6-luna"),
             patch.object(ai_assistant_service, "_ASSISTANT_REASONING_EFFORT", "medium"),
             patch.object(ai_assistant_service._client.chat.completions, "create", return_value=response) as provider,
         ):
             for action in ("chat", "improve", "language"):
                 with self.subTest(action=action):
                     ai_assistant_service._gpt("system", "user", action=action)
-                    self.assertEqual(provider.call_args.kwargs["model"], "gpt-5.6-terra")
+                    self.assertEqual(provider.call_args.kwargs["model"], "gpt-5.6-luna")
                     self.assertEqual(provider.call_args.kwargs["reasoning_effort"], "medium")
 
 

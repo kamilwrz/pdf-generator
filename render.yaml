@@ -73,9 +73,9 @@ services:
         sync: false
       - key: API_GPT_KEY
         sync: false
-      # Keep the deployment aligned with the shared assistant/interview trial.
+      # Keep the deployment aligned with the shared assistant/interview default.
       - key: AI_ASSISTANT_MODEL
-        value: gpt-5.6-luna
+        value: gpt-5.6-terra
       - key: CLOUDFLARE_ACCOUNT_ID
         sync: false
       - key: CLOUDFLARE_API_TOKEN
