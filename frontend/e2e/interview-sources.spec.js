@@ -60,3 +60,49 @@ for (const width of [390, 834, 1280, 1920]) {
     base.assertHermetic();
   });
 }
+
+for (const lang of ['pl', 'en']) {
+  for (const width of [390, 834, 1280, 1920]) {
+    test(`bound career profile starts an interview (${lang}, ${width}px)`, async ({ page }) => {
+      const base = await installMockApi(page);
+      await page.addInitScript(() => localStorage.setItem('token', 'local-playwright-token'));
+      await page.setViewportSize({ width, height: 1000 });
+      await page.emulateMedia({ reducedMotion: 'reduce' });
+      const kind = width === 834 || width === 1920 ? 'import' : 'document';
+      const profile = { revision: 3, source_binding: { kind, id: 30 }, source_available: true,
+        facts: [{ id: 'src-name', text: 'Anna Profile', path: '/name', kind: 'fact', source: `${kind}:30` },
+          { id: 'note', text: 'Saved profile note', path: '', kind: 'fact', source: 'manual' }],
+        sources: { documents: [{ id: 31, title: 'Other CV' }], imports: [] } };
+      const calls = [];
+      await page.route('**/api/career-profile', (route) => route.fulfill({ json: profile }));
+      await page.route('**/api/ai/interviews**', (route) => {
+        if (route.request().method() === 'POST') {
+          const body = route.request().postDataJSON(); calls.push(body);
+          expect(body).toMatchObject({ use_profile_source: true, include_profile: true, cv_data: {} });
+          expect(body.source_document_id).toBeUndefined(); expect(body.source_import_id).toBeUndefined();
+        }
+        return route.fulfill({ json: { id: 'bound-profile', revision: 1, evidence_scope: 'profile', phase: 'intake',
+          source_document_id: kind === 'document' ? 30 : null, source_import_id: kind === 'import' ? 30 : null,
+          source_cv_data: { name: 'Anna Profile' }, answers: [], proposed_facts: [], requirements: [], language: 'pl', confirmed: false } });
+      });
+      await page.goto('/app/interview');
+      await page.getByRole('combobox', { name: 'Język aplikacji' }).selectOption(lang);
+      const select = page.getByRole('combobox', { name: lang === 'pl' ? 'Źródło informacji' : 'Information source', exact: true });
+      await select.selectOption('profile');
+      await expect(page.getByRole('checkbox')).toHaveCount(0);
+      await expect(select.locator('option:checked')).toHaveText(lang === 'pl' ? 'Profil zawodowy' : 'Career profile');
+      if (width === 834) await page.addStyleTag({ content: 'html { font-size: 200%; }' });
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+      const start = page.getByRole('button', { name: lang === 'pl' ? 'Rozpocznij wywiad' : 'Start interview', exact: true });
+      await start.focus();
+      await page.screenshot({ path: `../tmp/interview-profile-source-${lang}-${width}.png`, fullPage: true });
+      expect(calls).toEqual([]);
+      await page.keyboard.press('Enter');
+      await expect(page.getByRole('button', { name: /^(Otwórz wpis:|Open entry:) Anna Profile/ })).toBeVisible();
+      await page.getByRole('searchbox').fill('Saved profile note');
+      await expect(page.getByRole('button', { name: /^(Otwórz wpis:|Open entry:)/ })).toHaveCount(1);
+      expect(calls).toHaveLength(1);
+      base.assertHermetic();
+    });
+  }
+}

@@ -102,6 +102,9 @@ def create_interview(request: InterviewCreate, http_request: Request,
     """Snapshot only an explicitly selected source; defer AI to the next step."""
     assert_can_use_ai_action(db, user, "interview")
     payload = request.model_dump()
+    if not request.use_profile_source:
+        # Preserve hashes for retries created before this optional source existed.
+        payload.pop('use_profile_source')
     if len(json.dumps(payload).encode()) > 250_000:
         service.fail(localised_message('interview_the_input_is_too_large'), 413)
     session_id = str(uuid5(NAMESPACE_URL, f"interview:{user.id}:{idempotency_key}"))
@@ -110,6 +113,20 @@ def create_interview(request: InterviewCreate, http_request: Request,
         if existing.state["create_hash"] != service.digest(payload):
             service.fail(localised_message('interview_this_retry_key_belongs_to_different_data'))
         return service.session_payload(existing)
+    selected_profile = None
+    if request.use_profile_source:
+        if request.source_document_id or request.source_import_id or request.cv_data:
+            service.fail(localised_message('interview_choose_one_cv_source'), 422)
+        selected_profile = service.profile_payload(db, user.id)
+        binding = selected_profile.get('source_binding')
+        if not binding or not selected_profile.get('source_available'):
+            service.fail(localised_message('interview_source_required'), 422)
+        # Choosing the owner's profile explicitly includes its notes/answers.
+        # Existing document/import resolution below still enforces ownership.
+        request = request.model_copy(update={
+            'include_profile': True,
+            'source_document_id' if binding['kind'] == 'document' else 'source_import_id': binding['id'],
+        })
     if request.source_document_id and request.source_import_id:
         service.fail(localised_message('interview_choose_one_cv_source'), 422)
     source = None
@@ -134,7 +151,7 @@ def create_interview(request: InterviewCreate, http_request: Request,
         normalized = normalize_cv_data(cv_data)
     except CvDataValidationError as exc:
         service.fail(getattr(exc, "user_message", str(exc)), 422)
-    profile = service.profile_payload(db, user.id) if request.include_profile else {"revision": 0, "facts": []}
+    profile = selected_profile or (service.profile_payload(db, user.id) if request.include_profile else {"revision": 0, "facts": []})
     # The interview develops an existing CV/import. Notes supplement that source;
     # they cannot replace the structured identity required by preview generation.
     # Validate before saving a session or resolving an external job offer so an

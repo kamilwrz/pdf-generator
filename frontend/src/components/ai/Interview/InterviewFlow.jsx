@@ -133,6 +133,7 @@ export default function InterviewFlow({ sessionId, initialSource = null, current
       ...(!initialSource ? { cv_data: {}, candidate_notes: notes,
         ...(kind === 'document' ? { source_document_id: Number(id), cv_data: {} } : {}),
         ...(kind === 'import' ? { source_import_id: Number(id), cv_data: {} } : {}),
+        ...(kind === 'profile' ? { use_profile_source: true } : {}),
       } : { candidate_notes: notes }),
     };
     const result = await interviewRequest('/ai/interviews', 'POST', body, createKey.current);
@@ -152,11 +153,12 @@ export default function InterviewFlow({ sessionId, initialSource = null, current
 
   const legacy = Boolean(session && (session.requires_source_choice || !session.evidence_scope));
   const isolated = session ? session.evidence_scope === 'session' : !includeProfile;
+  const profileSourceReady = Boolean(profile?.source_binding && profile?.source_available);
   // Account facts only supplement an explicit CV/import. They never unlock an
   // empty editor snapshot; the same source predicate is enforced by the server.
   const sourceReady = initialSource
     ? Boolean(initialSource.cv_data?.name?.trim())
-    : Boolean(source);
+    : source === 'profile' ? profileSourceReady : Boolean(source);
   const hasPending = Boolean(session?.proposed_facts?.length);
   // Source refresh replaces the review draft. Keep applied notes until the
   // existing stage-navigation save succeeds; an open field must also stay put.
@@ -199,11 +201,11 @@ export default function InterviewFlow({ sessionId, initialSource = null, current
           const selected = e.target.value;
           sourceNotes.current[source] = notes;
           setNotes(sourceNotes.current[selected] || '');
-          setSource(selected); setIncludeProfile(false);
-        }} aria-describedby="interview-source-help"><option value="">{uiText("interview:interviewFlow.chooseExistingSource")}</option><optgroup label={uiText("interview:interviewFlow.myCv")}>{documents.map((doc) => <option key={doc.id} value={`document:${doc.id}`}>{doc.title}</option>)}</optgroup><optgroup label={uiText("interview:interviewFlow.imports")}>{imports.map((item) => <option key={item.id} value={`import:${item.id}`}>{item.filename || uiText('editor:topbar.importPdf')}</option>)}</optgroup></select></label>
+          setSource(selected); setIncludeProfile(selected === 'profile');
+        }} aria-describedby="interview-source-help"><option value="">{uiText("interview:interviewFlow.chooseExistingSource")}</option>{profileSourceReady && <option value="profile">{uiText("interview:interviewFlow.careerProfileSource")}</option>}<optgroup label={uiText("interview:interviewFlow.myCv")}>{documents.map((doc) => <option key={doc.id} value={`document:${doc.id}`}>{doc.title}</option>)}</optgroup><optgroup label={uiText("interview:interviewFlow.imports")}>{imports.map((item) => <option key={item.id} value={`import:${item.id}`}>{item.filename || uiText('editor:topbar.importPdf')}</option>)}</optgroup></select></label>
       </>}
       </>}
-      {sourceReady && <label className={classes.scopeChoice}><input type="checkbox" checked={includeProfile} onChange={(event) => setIncludeProfile(event.target.checked)} />{uiText("interview:interviewFlow.thisIsMyCvIncludeMyCareer")}</label>}
+      {sourceReady && source !== 'profile' && <label className={classes.scopeChoice}><input type="checkbox" checked={includeProfile} onChange={(event) => setIncludeProfile(event.target.checked)} />{uiText("interview:interviewFlow.thisIsMyCvIncludeMyCareer")}</label>}
       {!sourceReady && (initialSource || (!documents.length && !imports.length)) && <InterviewSourceRequired onReturn={onClose} />}
       {sourceReady && <>
       <p className={classes.hint}>{isolated ? uiText("interview:interviewFlow.onlyTheSelectedCvAndInformationFrom") : uiText("interview:interviewFlow.weWillUseYourAccountProfileInformation")}</p>

@@ -189,3 +189,55 @@ def test_interview_source_review_replaces_old_fields_and_updates_existing_bindin
     updated = refreshed.json()
     assert {fact['text'] for fact in updated['review_source_facts']} == {'Anna', 'Lead Analyst'}
     assert client.post(f"/ai/interviews/{session['id']}/confirm", json={**version(updated, profile['revision']), 'facts': updated['review_source_facts']}).status_code == 200
+
+
+def test_interview_can_start_from_bound_profile_and_replay_after_source_removal(environment):
+    from app.models.models import InterviewSession
+    client, db, user, _ = environment
+    first = Pdf(owner_id=user.id, title='First', cv_data={'name': 'Anna', 'title': 'Analyst'})
+    second = Pdf(owner_id=user.id, title='Second', cv_data={'name': 'Anna', 'title': 'Lead'})
+    db.add_all([first, second]); db.commit()
+    service.put_profile(db, user.id, 0, [{'id': 'note', 'text': 'Saved note', 'source': 'manual'}])
+    profile = choose(client, 1, first.id).json()
+    # The latest binding is resolved at Start, even if the selector was read earlier.
+    choose(client, profile['revision'], second.id)
+    body = {'mode': 'create', 'use_profile_source': True}
+    with patch.object(service, '_gpt') as provider:
+        response = client.post('/ai/interviews', headers={'Idempotency-Key': 'profile-source-start'}, json=body)
+        assert response.status_code == 201, response.text
+        session = response.json()
+        assert session['evidence_scope'] == 'profile'
+        assert session['source_document_id'] == second.id
+        assert session['source_cv_data']['title'] == 'Lead'
+        assert any(f['id'] == 'note' for f in client.get('/career-profile').json()['facts'])
+        db.delete(second); db.commit()
+        replay = client.post('/ai/interviews', headers={'Idempotency-Key': 'profile-source-start'}, json=body)
+        assert replay.status_code == 201 and replay.json()['id'] == session['id']
+        failed = client.post('/ai/interviews', headers={'Idempotency-Key': 'missing-source'}, json=body)
+        assert failed.status_code == 422
+        assert db.query(InterviewSession).count() == 1
+        provider.assert_not_called()
+
+
+def test_profile_source_requires_available_binding_and_rejects_overrides(environment):
+    client, db, user, other = environment
+    body = {'mode': 'create', 'use_profile_source': True}
+    def start(extra=None):
+        return client.post('/ai/interviews', headers={'Idempotency-Key': 'profile-validation'}, json={**body, **(extra or {})})
+    service.put_profile(db, user.id, 0, [{'id': 'name', 'path': '/name', 'text': 'Notes alone'}])
+    assert start().status_code == 422
+    foreign = Pdf(owner_id=other.id, title='Foreign', cv_data={'name': 'Other'})
+    db.add(foreign); db.commit()
+    service.put_profile(db, user.id, 1, [], source_binding={'kind': 'document', 'id': foreign.id})
+    assert start().status_code == 422
+    imported = create_snapshot(db, owner_id=user.id, filename='Profile.pdf', size_bytes=1)
+    imported.status = 'succeeded'; imported.cv_data = {'name': 'Anna', 'skills': ['Python']}; db.commit()
+    profile = client.get('/career-profile').json()
+    choose(client, profile['revision'], imported.id, 'import')
+    for override in [{'source_document_id': foreign.id}, {'source_import_id': imported.id}, {'cv_data': {'name': 'Override'}}]:
+        assert start(override).status_code == 422
+    result = start()
+    assert result.status_code == 201, result.text
+    assert result.json()['source_import_id'] == imported.id
+    assert result.json()['evidence_scope'] == 'profile'
+    assert result.json()['source_cv_data']['skills'] == ['Python']

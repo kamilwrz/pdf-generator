@@ -40,6 +40,8 @@ class InterviewCreate(Contract):
     mode: Literal["create", "enrich", "tailor"]
     # Account ownership does not establish that a CV describes the account holder.
     include_profile: bool = False
+    # Resolve the account's current binding on the server, never a stale client ID.
+    use_profile_source: bool = False
     source_document_id: int | None = Field(default=None, ge=1)
     source_import_id: int | None = Field(default=None, ge=1)
     cv_data: dict = Field(default_factory=dict)

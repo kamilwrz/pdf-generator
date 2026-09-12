@@ -102,7 +102,7 @@ Implementation (verified whole-module extents):
 - `frontend/src/pages/Hero/Hero.jsx`, lines 5–331, `Hero`.
 - `frontend/src/components/editor/StartChooser/StartChooser.jsx`, lines 4–249, `StartChooser`.
 - `frontend/src/pages/Site/InterviewPage.jsx`, lines 3–13, `InterviewPage`.
-- `frontend/src/components/ai/Interview/InterviewFlow.jsx`, lines 1–307, `InterviewFlow`.
+- `frontend/src/components/ai/Interview/InterviewFlow.jsx`, lines 1–309, `InterviewFlow`.
 - `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, lines 3–70, `SiteLayout`.
 - `frontend/src/components/common/SiteLayout/SiteLayout.module.css`, lines 1–199, `guideFaq`.
 - `frontend/e2e/interview-discovery.spec.js`, lines 1–100, `Playwright`.
@@ -485,6 +485,15 @@ Models: `backend/app/models/models.py` (`User`, `Pdf`, `PdfElements`, …).
 
 ### Source-based career profile
 
+#### Start an interview from the career profile
+
+In `/app/interview`, **Information source → Career profile** is available only when `GET /career-profile` reports a `source_binding` and `source_available: true`. It uses that linked CV/import plus saved profile notes and answers. No extra inclusion checkbox is shown for this choice. Choosing a document/import instead resets the checkbox to unchecked and restores isolated scope; local intake-note drafts remain separate per choice.
+
+`POST /ai/interviews` accepts optional `use_profile_source: boolean = false`. For example, send `{"mode":"create","use_profile_source":true,"language":"en"}` with the existing authenticated session and `Idempotency-Key` header. The server resolves the owner's current profile binding at Start, revalidates availability and ownership, selects the underlying document/import, and forces `include_profile: true`. The returned session uses `evidence_scope: "profile"`, the resolved source ID and a snapshot of its CV data. A missing, deleted, unsuccessful, foreign or otherwise unavailable binding returns the existing source-required 422; profile facts alone cannot bypass it. Combining this choice with a document ID, import ID or nonempty `cv_data` returns 422. An identical successful retry returns its original session even if the profile binding subsequently changes or disappears; default-false requests retain historical retry hashes. Reading/selecting/starting makes no AI call; existing Pro access checks remain. No migration, dependency or environment variable is added. Deploy backend support before the frontend.
+
+Tests: `backend/tests/test_career_profile_source.py` covers document/import bindings, changed bindings between display and Start, retained notes, ownership, missing sources, conflicting overrides and idempotent retries. `Interview.runtime.test.jsx` covers availability and scope reset. `frontend/e2e/interview-sources.spec.js` covers selection, keyboard start and saved notes in PL/EN at 390/834/1280/1920 px, reduced motion and 200% text zoom. Run `python -m pytest tests/test_career_profile_source.py tests/test_interviews.py tests/test_interview_sources.py -q` in `backend`; run `npm run test:runtime -- src/components/ai/Interview` and `npm run test:e2e -- e2e/interview-sources.spec.js --project=desktop-chromium` in `frontend`.
+
+
 1. Open `/app/career-profile` and choose a saved CV or a successful PDF import under **Profile data source**. The choice is saved immediately with `PUT /career-profile/source`. No AI is called and no credits are charged. The source must belong to the authenticated account and contain a nonblank candidate name.
 2. Details/summary, experience, education, skills, languages and custom sections come from that source and are read-only in the profile. Switching sources replaces this snapshot, including fields removed from the next CV. Use **Edit in the CV editor** to open the exact saved document. For an import, open the existing import history in the editor, prepare and save a CV, then select that saved document as the profile source; imports remain extraction snapshots rather than editable documents.
 3. **From interview and notes** retains local editing, Apply, Cancel/Escape, delete/undo and explicit **Save profile**. Older manually authored fields and explicit gap/framing overrides are preserved as notes. Their original IDs, prompts, context and meaning survive; their old field paths are cleared so switching CVs cannot attach an answer to an unrelated role at the same array index. Notes already applied locally but not saved survive source switching and retry. An open note form disables source changes. Save notes before following the editor link; reloading the browser can still discard unsaved input.
@@ -509,8 +518,8 @@ Implementation and tests (verified complete module extents):
 | File | Lines and symbols |
 | --- | --- |
 | `backend/app/services/career_profile_source.py` | 1–90; `is_supplemental_fact, supplemental_facts, resolve_source, synchronise_source` |
-| `backend/app/api/routes/interviews.py` | 1–538; `get_profile, write_profile, choose_profile_source, clear_profile` |
-| `backend/app/schemas/interview_schema.py` | 1–156; `ProfileWrite, ProfileSourceWrite` |
+| `backend/app/api/routes/interviews.py` | 1–555; `get_profile, write_profile, choose_profile_source, clear_profile` |
+| `backend/app/schemas/interview_schema.py` | 1–158; `ProfileWrite, ProfileSourceWrite` |
 | `backend/app/models/models.py` | 1–586; `CareerProfile.source_binding` |
 | `backend/app/services/interview_service.py` | 1–525; `profile_payload, put_profile` |
 | `backend/app/services/account_data_service.py` | 1–309; `build_account_export` |
@@ -522,7 +531,7 @@ Implementation and tests (verified complete module extents):
 | `frontend/src/utils/careerProfileView.js` | 1–90; `isCareerNote, careerNoteSignature, groupCareerFacts` |
 | `frontend/src/components/ai/Interview/FactEditor.runtime.test.jsx` | 1–116; `read-only fields and retained note meanings` |
 | `frontend/e2e/career-profile.spec.js` | 1–174; `source switching, saved notes, responsive keyboard flow` |
-| `backend/tests/test_career_profile_source.py` | 1–191; `source selection, synchronisation, notes, erasure, ownership` |
+| `backend/tests/test_career_profile_source.py` | 1–243; `source selection, synchronisation, notes, erasure, ownership` |
 
 The new service lives in the existing backend `services/` layer, the additive migration in `alembic/versions/`, and the regression file in `tests/`. Frontend code extends the existing profile route, grouping utility and shared fact editor; global Swiss tokens supply the layout. Tests cover source replacement/refresh, stale writes, ownership, import availability, source-field rejection, note meanings, clarification ID collisions, erasure without resurrection, keyboard focus, source selection, unsaved notes, search, PL/EN and 390/834/1280/1920 px layouts, 200% zoom and reduced motion. Run `python -m pytest tests/test_career_profile_source.py tests/test_interviews.py tests/test_interview_sources.py -q` in `backend/`; run `npm test`, `npm run test:runtime -- src/components/ai/Interview`, `npm run test:e2e -- e2e/career-profile.spec.js e2e/interview-prerequisites.spec.js --project=desktop-chromium`, `npm run lint`, and `npm run build` in `frontend/`. Browser tests use synthetic mocked data and do not validate production services. [React Effects](https://react.dev/reference/react/useEffect) explains cleanup for browser event subscriptions; [SQLAlchemy version counters](https://docs.sqlalchemy.org/en/20/orm/versioning.html) explains stale-write detection, while this application implements it explicitly with a revision-conditioned SQL update.
 
@@ -531,7 +540,7 @@ The new service lives in the existing backend `services/` layer, the additive mi
 
 ### CV/import prerequisite
 
-The career profile and interview enrich existing CV data. Open `/app/interview`, select a saved CV or successful import, then review its facts before asking questions. An open editor may supply its current structured `cv_data` without an extra save. Account-profile facts and `candidate_notes` only supplement that selected source; neither starts an interview alone. The removed blank-candidate and profile-only options are no longer supported.
+The career profile and interview enrich existing CV data. Open `/app/interview`, select a saved CV or successful import, then review its facts before asking questions. An open editor may supply its current structured `cv_data` without an extra save. Account-profile facts and `candidate_notes` only supplement that selected source; neither starts an interview alone. Blank-candidate and unbound-profile starts are not supported; a profile with an available binding resolves that linked source.
 
 `has_interview_source` requires a nonblank string `cv_data.name`, matching the identity needed by preview generation. An empty starter or layout metadata does not qualify. Employment history is not mandatory, so students can start with their name and add education/skills through enrichment. `available_interview_sources` filters owned saved documents and successful, nondeleted imports and returns only their IDs and labels; it includes older eligible imports without a separate pagination step. No documents are merged automatically.
 
@@ -551,7 +560,7 @@ Regression checks: `test_interviews.py` covers a different candidate through cre
 
 **Implemented:** `/app/interview` creates a CV through a short Polish interview; `/app/career-profile` manages confirmed facts and saved conversations. The editor assistant embeds the same flow for **Uzupełnij CV przez wywiad** and **Dopasuj do oferty → Dopasuj z wywiadem — nowe CV**. The first quick action uses the same conversation icon sizing and colour treatment as the other assistant goals, while its visible label remains the accessible control name. Import can open enrichment after filling a CV. Manual creation remains available.
 
-Start with the account profile, one selected CV/import, or new identity and career history. Review source facts, then discuss each experience, education or project entry in two main questions with at most one focused follow-up (three questions total per entry). Skills receive one application question per skill/group; a language is queried only when its level is missing. Skipping, not remembering or reporting no experience closes that entry. Submitted text and explicit lack of experience persist immediately; unknown/skip create no fact. You can prepare the CV after any saved answer.
+Start with a saved CV, a successful import, or a career profile with an available linked source. Review source facts, then discuss each experience, education or project entry in two main questions with at most one focused follow-up (three questions total per entry). Skills receive one application question per skill/group; a language is queried only when its level is missing. Skipping, not remembering or reporting no experience closes that entry. Submitted text and explicit lack of experience persist immediately; unknown/skip create no fact. You can prepare the CV after any saved answer.
 
 The server selects the next entry from confirmed evidence before calling AI. `discovery_entries` groups experience/education by record path and custom projects by `custom_sections/{section}/items/{item}`, so two projects in one section have separate budgets. `next_entry` derives progress from durable answers and `Question.entry_id`, independently of generated topic names; one follow-up consumes the third slot rather than opening another topic chain. Previous interview notes with uniquely matching context share the original record's scheduling scope without changing evidence. Skills, languages and finite questions about missing career sections complete the queue. `scoped_question` replaces empty, repetitive or incorrectly scoped model proposals with a neutral local question instead of retrying AI or ending all discovery. The initial model call remains billable; this fallback adds no request.
 
@@ -633,7 +642,7 @@ Implementation and tests (verified whole-module ranges; use the named symbols fo
 | `backend/app/services/interview_editorial.py` | 1–118; prepare_editorial_draft, apply_editorial_review, begin_generation |
 | `backend/app/services/cv_editorial_policy.py` | 1–11; STYLE_INSTRUCTION, FACT_PRESERVATION |
 | `backend/tests/test_interview_editorial.py` | 1–277; editorial boundaries, pipeline replay, source preservation, follow-up limits |
-| `backend/app/schemas/interview_schema.py` | 1–156; CareerFact, InterviewCreate, SessionWrite, SourceRefresh, Discovery, Draft, EditorialReview, Clarification, Verification |
+| `backend/app/schemas/interview_schema.py` | 1–158; CareerFact, InterviewCreate, SessionWrite, SourceRefresh, Discovery, Draft, EditorialReview, Clarification, Verification |
 | `backend/app/services/interview_discovery.py` | 1–228; discovery_entries, question_entry, next_entry, update_discovery_budget, scoped_question |
 | `backend/tests/test_interview_discovery.py` | 1–194; record coverage / pokrycie wpisów, retry, legacy, limits / limity |
 | `backend/app/services/interview_service.py` | 1–525; profile_payload, _facts_with_answer_questions, session_payload, put_profile, check_versions, source_facts, base_cv, assemble_draft, paid_model, next_question |
@@ -641,7 +650,7 @@ Implementation and tests (verified whole-module ranges; use the named symbols fo
 | `backend/tests/test_interview_credits.py` | 1–75; test_receipts_group_requests_without_exposing_provider_data, test_question_receipt_survives_resume_and_replay_without_new_charge |
 | `frontend/src/components/ai/Interview/InterviewCredits.jsx` | 1–65; InterviewCredits |
 | `frontend/src/components/ai/Interview/InterviewCredits.runtime.test.jsx` | 1–60; InterviewCredits |
-| `backend/app/api/routes/interviews.py` | 1–538; get_interview_credits (188–192), create_interview, answer_interview, confirm_interview, refresh_interview_source, preview_interview, clarify_interview, skip_clarifications, save_interview_document |
+| `backend/app/api/routes/interviews.py` | 1–555; get_interview_credits (234–238), create_interview, answer_interview, confirm_interview, refresh_interview_source, preview_interview, clarify_interview, skip_clarifications, save_interview_document |
 | `frontend/e2e/interview-prerequisites.spec.js` | 1–64; PL/EN source prerequisite browser tests |
 | `backend/tests/test_interview_sources.py` | 1–76; source eligibility regression tests |
 | `frontend/src/components/ai/Interview/InterviewSourceRequired.jsx` | 1–20; InterviewSourceRequired |
@@ -655,7 +664,7 @@ Implementation and tests (verified whole-module ranges; use the named symbols fo
 | `frontend/src/utils/interviewPreview.js` | 1–27; previewRecords, recordContent |
 | `frontend/src/utils/interviewPreview.test.js` | 1–24; grouping, evidence, removed fields |
 | `frontend/e2e/interview-workspace.spec.js` | 1–140; bounded preview, delayed operations, failure recovery |
-| `frontend/src/components/ai/Interview/InterviewFlow.jsx` | 1–307; InterviewFlow |
+| `frontend/src/components/ai/Interview/InterviewFlow.jsx` | 1–309; InterviewFlow |
 | `frontend/src/utils/careerProfileView.js` | 1–90; groupCareerFacts, careerFieldLabel, isCareerNote |
 | `frontend/src/utils/careerProfileView.test.js` | 1–42; grouping, identity, limits, interview-question titles |
 | `frontend/src/components/ai/Interview/FactEditor.runtime.test.jsx` | 1–116; apply, cancel, undo, focus, search, question-and-answer presentation |
@@ -674,8 +683,8 @@ Implementation and tests (verified whole-module ranges; use the named symbols fo
 | `frontend/src/utils/interviewPresentation.js` | 1–13; factLabel, interviewFields |
 | `backend/tests/test_interviews.py` | 1–691; state, answer prompt persistence, legacy restoration, grounding, billing, source preservation and PDF regressions |
 | `backend/tests/test_alembic_interviews.py` | 1–26; additive migration regression |
-| `frontend/src/components/ai/Interview/Interview.runtime.test.jsx` | 1–424; clarification decisions, direct answer-save feedback, save-before-next, recovery, focus and source changes |
-| `frontend/e2e/interview-sources.spec.js` | 1–62; isolated source selection, confirmation, resumption |
+| `frontend/src/components/ai/Interview/Interview.runtime.test.jsx` | 1–454; clarification decisions, direct answer-save feedback, save-before-next, recovery, focus and source changes |
+| `frontend/e2e/interview-sources.spec.js` | 1–108; isolated source selection, confirmation, resumption |
 | `frontend/e2e/interviews.spec.js` | 1–229; create, clarification decisions, immediate answer persistence, resume, profile and assistant flows |
 
 Folder additions: `backend/app/schemas/interview_schema.py` defines API/provider contracts, `backend/app/services/interview_service.py` owns evidence and conversation rules, and `backend/app/api/routes/interviews.py` owns HTTP orchestration. `frontend/src/components/ai/Interview/` contains the shared flow, controlled fact editor, content review, token-based styles and runtime tests. `docs/INTERVIEWS.md` is the complete EN/PL technical tutorial; `docs/WYWIAD_JAK_DZIALA.md` is the focused Polish guide to the CV prerequisites, enrichment and job-offer flows; `docs/licenses/resume-agent-skills-MIT.txt` retains Vignesh Pai's MIT attribution.
@@ -3307,7 +3316,7 @@ Implementacja (zweryfikowane zakresy całych modułów):
 - `frontend/src/pages/Hero/Hero.jsx`, linie 5–331, `Hero`.
 - `frontend/src/components/editor/StartChooser/StartChooser.jsx`, linie 4–249, `StartChooser`.
 - `frontend/src/pages/Site/InterviewPage.jsx`, linie 3–13, `InterviewPage`.
-- `frontend/src/components/ai/Interview/InterviewFlow.jsx`, linie 1–307, `InterviewFlow`.
+- `frontend/src/components/ai/Interview/InterviewFlow.jsx`, linie 1–309, `InterviewFlow`.
 - `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, linie 3–70, `SiteLayout`.
 - `frontend/src/components/common/SiteLayout/SiteLayout.module.css`, linie 1–199, `guideFaq`.
 - `frontend/e2e/interview-discovery.spec.js`, linie 1–100, `Playwright`.
@@ -3683,6 +3692,15 @@ Modele: `backend/app/models/models.py`.
 
 ### Profil zawodowy oparty na źródle CV
 
+#### Rozpoczęcie wywiadu z profilu zawodowego
+
+Na `/app/interview` opcja **Źródło informacji → Profil zawodowy** jest dostępna tylko wtedy, gdy `GET /career-profile` zwraca `source_binding` i `source_available: true`. Korzysta z podpiętego CV/importu oraz zapisanych notatek i odpowiedzi profilu. Ten wybór nie pokazuje dodatkowego checkboxa dołączenia profilu. Wybór dokumentu/importu zamiast profilu odznacza checkbox i przywraca osobny zakres rozmowy; lokalne szkice notatek początkowych pozostają osobne dla każdej opcji.
+
+`POST /ai/interviews` przyjmuje opcjonalne `use_profile_source: boolean = false`. Przykład: wyślij `{"mode":"create","use_profile_source":true,"language":"pl"}` z obecną uwierzytelnioną sesją i nagłówkiem `Idempotency-Key`. Serwer rozwiązuje bieżące powiązanie profilu właściciela przy rozpoczęciu wywiadu, ponownie sprawdza dostępność i własność, wybiera dokument/import i wymusza `include_profile: true`. Zwrócona sesja ma `evidence_scope: "profile"`, rozpoznany ID źródła i migawkę jego danych CV. Brakujące, usunięte, nieudane, cudze lub inaczej niedostępne źródło zwraca istniejący błąd 422 wymaganego źródła; same fakty profilu nie wystarczą. Połączenie tej opcji z ID dokumentu, ID importu lub niepustym `cv_data` zwraca 422. Identyczne ponowienie udanego żądania zwraca pierwotną sesję, nawet jeżeli powiązanie profilu potem zmieni się lub zniknie; żądania z domyślnym false zachowują historyczne skróty ponowień. Odczyt, wybór i rozpoczęcie nie wywołują AI; dotychczasowa kontrola dostępu Pro pozostaje. Nie dodano migracji, zależności ani zmiennej środowiskowej. Wdróż obsługę backendu przed frontendem.
+
+Testy: `backend/tests/test_career_profile_source.py` obejmuje powiązania dokumentu/importu, zmianę powiązania między wyświetleniem a startem, zachowanie notatek, własność, brak źródła, sprzeczne parametry i idempotentne ponowienia. `Interview.runtime.test.jsx` sprawdza dostępność i reset zakresu. `frontend/e2e/interview-sources.spec.js` sprawdza wybór, start klawiaturą i zapisane notatki w PL/EN przy 390/834/1280/1920 px, reduced motion i powiększenie tekstu do 200%. Uruchom `python -m pytest tests/test_career_profile_source.py tests/test_interviews.py tests/test_interview_sources.py -q` w `backend`; `npm run test:runtime -- src/components/ai/Interview` i `npm run test:e2e -- e2e/interview-sources.spec.js --project=desktop-chromium` w `frontend`.
+
+
 1. Otwórz `/app/career-profile` i wybierz zapisane CV albo udany import PDF w polu **Źródło danych profilu**. Wybór zapisuje się od razu przez `PUT /career-profile/source`, bez wywołania AI i opłaty w kredytach. Źródło musi należeć do zalogowanego konta i zawierać niepuste imię i nazwisko kandydata.
 2. Dane i podsumowanie, doświadczenie, edukacja, umiejętności, języki i sekcje dodatkowe pochodzą z tego źródła i są w profilu tylko do odczytu. Zmiana źródła zastępuje cały jego zestaw danych, również usuwając pola nieobecne w kolejnym CV. **Edytuj w edytorze CV** otwiera konkretny zapisany dokument. Dla importu przejdź do istniejącej historii importów w edytorze, przygotuj i zapisz CV, a następnie wybierz zapisany dokument jako źródło profilu; import pozostaje migawką ekstrakcji, a nie edytowalnym dokumentem.
 3. **Z wywiadu i notatki** zachowuje edycję lokalną, Zastosuj, Anuluj/Escape, usuwanie/cofnięcie i jawne **Zapisz profil**. Starsze pola wpisane ręcznie i jawne ustawienia gap/framing pozostają jako notatki. Zachowane są ich ID, pytania, kontekst i znaczenie; stare ścieżki pól są odłączane, aby zmiana CV nie przypisała odpowiedzi do innej roli pod tym samym indeksem tablicy. Zastosowane lokalnie, lecz niezapisane notatki przetrwają zmianę źródła i ponowienie odczytu. Otwarty formularz notatki blokuje zmianę źródła. Przed przejściem do edytora zapisz notatki; przeładowanie przeglądarki nadal może utracić niewysłany tekst.
@@ -3707,8 +3725,8 @@ Implementacja i testy (zweryfikowane pełne zakresy modułów):
 | Plik | Linie i symbole |
 | --- | --- |
 | `backend/app/services/career_profile_source.py` | 1–90; `is_supplemental_fact, supplemental_facts, resolve_source, synchronise_source` |
-| `backend/app/api/routes/interviews.py` | 1–538; `get_profile, write_profile, choose_profile_source, clear_profile` |
-| `backend/app/schemas/interview_schema.py` | 1–156; `ProfileWrite, ProfileSourceWrite` |
+| `backend/app/api/routes/interviews.py` | 1–555; `get_profile, write_profile, choose_profile_source, clear_profile` |
+| `backend/app/schemas/interview_schema.py` | 1–158; `ProfileWrite, ProfileSourceWrite` |
 | `backend/app/models/models.py` | 1–586; `CareerProfile.source_binding` |
 | `backend/app/services/interview_service.py` | 1–525; `profile_payload, put_profile` |
 | `backend/app/services/account_data_service.py` | 1–309; `build_account_export` |
@@ -3720,7 +3738,7 @@ Implementacja i testy (zweryfikowane pełne zakresy modułów):
 | `frontend/src/utils/careerProfileView.js` | 1–90; `isCareerNote, careerNoteSignature, groupCareerFacts` |
 | `frontend/src/components/ai/Interview/FactEditor.runtime.test.jsx` | 1–116; `read-only fields and retained note meanings` |
 | `frontend/e2e/career-profile.spec.js` | 1–174; `source switching, saved notes, responsive keyboard flow` |
-| `backend/tests/test_career_profile_source.py` | 1–191; `source selection, synchronisation, notes, erasure, ownership` |
+| `backend/tests/test_career_profile_source.py` | 1–243; `source selection, synchronisation, notes, erasure, ownership` |
 
 Nowa usługa znajduje się w istniejącym backendowym `services/`, migracja addytywna w `alembic/versions/`, a test regresji w `tests/`. Frontend rozszerza istniejącą stronę profilu, funkcje grupujące i wspólny edytor informacji; układ korzysta z globalnych tokenów Swiss. Testy obejmują zmianę/odświeżenie źródła, stare rewizje, własność, dostępność importu, blokadę edycji pól źródłowych, znaczenie notatek, kolizję ID doprecyzowania, usuwanie bez odtworzenia, fokus klawiatury, wybór źródła, niezapisane notatki, wyszukiwanie, PL/EN oraz szerokości 390/834/1280/1920 px, powiększenie 200% i ograniczenie ruchu. W `backend/` uruchom `python -m pytest tests/test_career_profile_source.py tests/test_interviews.py tests/test_interview_sources.py -q`; w `frontend/`: `npm test`, `npm run test:runtime -- src/components/ai/Interview`, `npm run test:e2e -- e2e/career-profile.spec.js e2e/interview-prerequisites.spec.js --project=desktop-chromium`, `npm run lint` i `npm run build`. Testy przeglądarkowe używają sztucznych danych i atrap API; nie weryfikują usług produkcyjnych. [React Effects](https://react.dev/reference/react/useEffect) opisuje sprzątanie subskrypcji zdarzeń przeglądarki; [liczniki wersji SQLAlchemy](https://docs.sqlalchemy.org/en/20/orm/versioning.html) wyjaśniają wykrywanie nieaktualnych zapisów, które aplikacja implementuje jawnym warunkiem rewizji w SQL UPDATE.
 
@@ -3729,7 +3747,7 @@ Nowa usługa znajduje się w istniejącym backendowym `services/`, migracja addy
 
 ### Wymagane CV lub import
 
-Profil zawodowy i wywiad uzupełniają istniejące dane CV. Otwórz `/app/interview`, wybierz zapisane CV albo udany import i sprawdź fakty przed pytaniami. Otwarty edytor może przekazać bieżące strukturalne `cv_data` bez dodatkowego zapisu. Fakty profilu konta i `candidate_notes` tylko uzupełniają wybrane źródło; nie pozwalają samodzielnie rozpocząć rozmowy. Usunięto opcje pustego kandydata i startu wyłącznie z profilu.
+Profil zawodowy i wywiad uzupełniają istniejące dane CV. Otwórz `/app/interview`, wybierz zapisane CV albo udany import i sprawdź fakty przed pytaniami. Otwarty edytor może przekazać bieżące strukturalne `cv_data` bez dodatkowego zapisu. Fakty profilu konta i `candidate_notes` tylko uzupełniają wybrane źródło; nie pozwalają samodzielnie rozpocząć rozmowy. Start bez danych kandydata lub z profilu bez dostępnego źródła jest niedostępny; profil z aktywnym powiązaniem korzysta z podpiętego CV/importu.
 
 `has_interview_source` wymaga niepustego tekstowego `cv_data.name`, czyli tożsamości potrzebnej przy generowaniu podglądu. Pusty szablon i metadane układu nie wystarczają. Historia zatrudnienia nie jest obowiązkowa, więc uczeń lub student może rozpocząć od imienia i nazwiska, a następnie uzupełnić edukację i umiejętności. `available_interview_sources` filtruje zapisane dokumenty właściciela i udane, nieusunięte importy, zwracając jedynie ID i etykiety. Uwzględnia także starsze właściwe importy bez osobnego doładowywania stron. Dokumenty nie są łączone automatycznie.
 
@@ -3749,7 +3767,7 @@ Regresje: `test_interviews.py` obejmuje inną osobę w create/enrich/tailor, kon
 
 **Zaimplementowane:** `/app/interview` tworzy CV przez krótki polski wywiad; `/app/career-profile` służy do zarządzania potwierdzonymi faktami i rozmowami. Asystent edytora osadza ten sam przepływ dla **Uzupełnij CV przez wywiad** i **Dopasuj do oferty → Dopasuj z wywiadem — nowe CV**. Pierwsza szybka akcja używa takiego samego rozmiaru i koloru ikony rozmowy jak pozostałe cele asystenta, a jej widoczna etykieta nadal jest dostępną nazwą kontrolki. Import może otworzyć uzupełnianie po wypełnieniu CV. Ręczne tworzenie pozostaje dostępne.
 
-Zacznij od profilu konta, jednego wskazanego CV/importu albo nowych danych i historii kariery. Sprawdź fakty źródłowe, a następnie omów każdy wpis doświadczenia, edukacji lub projektu w dwóch głównych pytaniach i najwyżej jednym krótkim dopytaniu (łącznie maksymalnie trzy pytania na wpis). Umiejętność/grupa otrzymuje jedno pytanie o zastosowanie; język jest omawiany tylko wtedy, gdy brakuje poziomu. Pominięcie, niepamiętanie lub brak doświadczenia zamyka dany wpis. Wysłany tekst i jawny brak doświadczenia zapisują się od razu; niepamiętanie/pominięcie nie tworzy faktu. Po każdej zapisanej odpowiedzi można przygotować CV.
+Zacznij od zapisanego CV, udanego importu albo profilu zawodowego z dostępnym podpiętym źródłem. Sprawdź fakty źródłowe, a następnie omów każdy wpis doświadczenia, edukacji lub projektu w dwóch głównych pytaniach i najwyżej jednym krótkim dopytaniu (łącznie maksymalnie trzy pytania na wpis). Umiejętność/grupa otrzymuje jedno pytanie o zastosowanie; język jest omawiany tylko wtedy, gdy brakuje poziomu. Pominięcie, niepamiętanie lub brak doświadczenia zamyka dany wpis. Wysłany tekst i jawny brak doświadczenia zapisują się od razu; niepamiętanie/pominięcie nie tworzy faktu. Po każdej zapisanej odpowiedzi można przygotować CV.
 
 Serwer wybiera kolejny wpis z potwierdzonych informacji przed wywołaniem AI. `discovery_entries` grupuje doświadczenie/edukację według ścieżki rekordu, a projekty według `custom_sections/{sekcja}/items/{wpis}`, dzięki czemu dwa projekty w jednej sekcji mają osobne limity. `next_entry` odtwarza postęp z zapisanych odpowiedzi i `Question.entry_id`, niezależnie od nazw tematów modelu; jedno dopytanie zużywa trzecie miejsce zamiast rozpoczynać łańcuch tematów. Odpowiedzi z wcześniejszych wywiadów z jednoznacznie pasującym kontekstem współdzielą zakres oryginalnego wpisu bez zmiany dowodów. Kolejkę uzupełniają umiejętności, języki i ograniczone pytania o brakujące sekcje kariery. `scoped_question` zastępuje pustą, powtarzającą się lub dotyczącą niewłaściwego wpisu propozycję neutralnym pytaniem lokalnym, zamiast ponawiać AI lub kończyć całą rozmowę. Pierwotne wywołanie modelu nadal jest płatne; ten fallback nie dodaje żądania.
 
@@ -3832,7 +3850,7 @@ Przy uwierzytelnionym odczycie właściciela `GET /ai/interviews/{id}` funkcja `
 | `backend/app/services/interview_editorial.py` | 1–118; prepare_editorial_draft, apply_editorial_review, begin_generation |
 | `backend/app/services/cv_editorial_policy.py` | 1–11; STYLE_INSTRUCTION, FACT_PRESERVATION |
 | `backend/tests/test_interview_editorial.py` | 1–277; editorial boundaries, pipeline replay, source preservation, follow-up limits |
-| `backend/app/schemas/interview_schema.py` | 1–156; CareerFact, InterviewCreate, SessionWrite, SourceRefresh, Discovery, Draft, EditorialReview, Clarification, Verification |
+| `backend/app/schemas/interview_schema.py` | 1–158; CareerFact, InterviewCreate, SessionWrite, SourceRefresh, Discovery, Draft, EditorialReview, Clarification, Verification |
 | `backend/app/services/interview_discovery.py` | 1–228; discovery_entries, question_entry, next_entry, update_discovery_budget, scoped_question |
 | `backend/tests/test_interview_discovery.py` | 1–194; record coverage / pokrycie wpisów, retry, legacy, limits / limity |
 | `backend/app/services/interview_service.py` | 1–525; profile_payload, _facts_with_answer_questions, session_payload, put_profile, check_versions, source_facts, base_cv, assemble_draft, paid_model, next_question |
@@ -3840,7 +3858,7 @@ Przy uwierzytelnionym odczycie właściciela `GET /ai/interviews/{id}` funkcja `
 | `backend/tests/test_interview_credits.py` | 1–75; test_receipts_group_requests_without_exposing_provider_data, test_question_receipt_survives_resume_and_replay_without_new_charge |
 | `frontend/src/components/ai/Interview/InterviewCredits.jsx` | 1–65; InterviewCredits |
 | `frontend/src/components/ai/Interview/InterviewCredits.runtime.test.jsx` | 1–60; InterviewCredits |
-| `backend/app/api/routes/interviews.py` | 1–538; get_interview_credits (188–192), create_interview, answer_interview, confirm_interview, refresh_interview_source, preview_interview, clarify_interview, skip_clarifications, save_interview_document |
+| `backend/app/api/routes/interviews.py` | 1–555; get_interview_credits (234–238), create_interview, answer_interview, confirm_interview, refresh_interview_source, preview_interview, clarify_interview, skip_clarifications, save_interview_document |
 | `frontend/e2e/interview-prerequisites.spec.js` | 1–64; PL/EN source prerequisite browser tests |
 | `backend/tests/test_interview_sources.py` | 1–76; source eligibility regression tests |
 | `frontend/src/components/ai/Interview/InterviewSourceRequired.jsx` | 1–20; InterviewSourceRequired |
@@ -3854,7 +3872,7 @@ Przy uwierzytelnionym odczycie właściciela `GET /ai/interviews/{id}` funkcja `
 | `frontend/src/utils/interviewPreview.js` | 1–27; previewRecords, recordContent |
 | `frontend/src/utils/interviewPreview.test.js` | 1–24; grouping, evidence, removed fields |
 | `frontend/e2e/interview-workspace.spec.js` | 1–140; bounded preview, delayed operations, failure recovery |
-| `frontend/src/components/ai/Interview/InterviewFlow.jsx` | 1–307; InterviewFlow |
+| `frontend/src/components/ai/Interview/InterviewFlow.jsx` | 1–309; InterviewFlow |
 | `frontend/src/utils/careerProfileView.js` | 1–90; groupCareerFacts, careerFieldLabel, isCareerNote |
 | `frontend/src/utils/careerProfileView.test.js` | 1–42; grupowanie, tożsamość, limity, tytuły z pytań wywiadu |
 | `frontend/src/components/ai/Interview/FactEditor.runtime.test.jsx` | 1–116; zastosowanie, anulowanie, cofanie, fokus, wyszukiwanie, prezentacja pytania z odpowiedzią |
@@ -3873,8 +3891,8 @@ Przy uwierzytelnionym odczycie właściciela `GET /ai/interviews/{id}` funkcja `
 | `frontend/src/utils/interviewPresentation.js` | 1–13; factLabel, interviewFields |
 | `backend/tests/test_interviews.py` | 1–691; zapis pytania z odpowiedzią, odtwarzanie starszych danych i regresje wywiadu |
 | `backend/tests/test_alembic_interviews.py` | 1–26; testy zachowania wywiadu |
-| `frontend/src/components/ai/Interview/Interview.runtime.test.jsx` | 1–424; decyzje doprecyzowania, komunikat zapisu i zachowanie wywiadu |
-| `frontend/e2e/interview-sources.spec.js` | 1–62; wybór osobnego źródła, zatwierdzanie, wznowienie |
+| `frontend/src/components/ai/Interview/Interview.runtime.test.jsx` | 1–454; decyzje doprecyzowania, komunikat zapisu i zachowanie wywiadu |
+| `frontend/e2e/interview-sources.spec.js` | 1–108; wybór osobnego źródła, zatwierdzanie, wznowienie |
 | `frontend/e2e/interviews.spec.js` | 1–229; decyzje doprecyzowania, zapis odpowiedzi i pełne przepływy wywiadu |
 
 Nowe pliki: `backend/app/schemas/interview_schema.py` definiuje kontrakty API/modelu, `backend/app/services/interview_service.py` zarządza dowodami i regułami rozmowy, a `backend/app/api/routes/interviews.py` koordynuje HTTP. `frontend/src/components/ai/Interview/` zawiera wspólny przepływ, kontrolowany edytor faktów, podgląd treści, style oparte na tokenach i testy runtime. `docs/INTERVIEWS.md` to pełna instrukcja techniczna EN/PL; `docs/WYWIAD_JAK_DZIALA.md` to polski przewodnik skupiony na wymaganiach CV, uzupełnianiu i dopasowaniu do oferty pracy; `docs/licenses/resume-agent-skills-MIT.txt` zachowuje autorstwo Vignesha Paia i licencję MIT.

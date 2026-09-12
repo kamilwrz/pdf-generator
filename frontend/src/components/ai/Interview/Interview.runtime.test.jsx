@@ -422,3 +422,33 @@ it('source refresh replaces changed and deleted CV fields while retaining answer
   const correction = { ...source[1], question: 'Is this correct?', source: 'interview:saved', text: 'Confirmed correction' };
   expect(reviewFacts({ facts: [correction] }, { ...changed, proposed_facts: [] })).toEqual([fact, correction]);
 });
+
+for (const kind of ['document', 'import']) {
+  it(`selects a bound ${kind} profile without another opt-in and resets scope on another source`, async () => {
+    const user = userEvent.setup();
+    const profile = { revision: 4, facts: [fact], source_binding: { kind, id: 30 }, source_available: true,
+      sources: { documents: [{ id: 31, title: 'Other CV' }], imports: [] } };
+    interviewRequest.mockImplementation(async (path) => path === '/career-profile' ? profile : session);
+    render(<MemoryRouter><InterviewFlow /></MemoryRouter>);
+    const select = await screen.findByLabelText('Źródło informacji');
+    await user.selectOptions(select, 'profile');
+    expect(screen.queryByLabelText('To moje CV — dołącz mój profil zawodowy')).not.toBeInTheDocument();
+    expect(interviewRequest.mock.calls.some(([, method]) => method === 'POST')).toBe(false);
+    await user.selectOptions(select, 'document:31');
+    expect(screen.getByLabelText('To moje CV — dołącz mój profil zawodowy')).not.toBeChecked();
+    await user.selectOptions(select, 'profile');
+    await user.click(screen.getByRole('button', { name: 'Rozpocznij wywiad' }));
+    expect(interviewRequest).toHaveBeenCalledWith('/ai/interviews', 'POST', expect.objectContaining({ use_profile_source: true, include_profile: true, cv_data: {} }), expect.any(String));
+    const body = interviewRequest.mock.calls.find(([path, method]) => path === '/ai/interviews' && method === 'POST')[2];
+    expect(body.source_document_id).toBeUndefined();
+    expect(body.source_import_id).toBeUndefined();
+  });
+}
+
+it.each([null, { kind: 'document', id: 30 }])('does not offer an unavailable or unbound career profile (%j)', async (binding) => {
+  interviewRequest.mockResolvedValue({ revision: 1, facts: [fact], source_binding: binding, source_available: false,
+    sources: { documents: [{ id: 31, title: 'Other CV' }], imports: [] } });
+  render(<MemoryRouter><InterviewFlow /></MemoryRouter>);
+  await screen.findByLabelText('Źródło informacji');
+  expect(screen.queryByRole('option', { name: 'Profil zawodowy', exact: true })).not.toBeInTheDocument();
+});
