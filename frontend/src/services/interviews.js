@@ -1,3 +1,4 @@
+import { t as uiText } from "../i18n/index.js";
 /** Owned career/interview requests. Retries retain server operation identity. */
 import { ApiClient } from './api';
 import { getAccessToken } from '../utils/authSession';
@@ -11,7 +12,7 @@ export function interviewRequest(path, method = 'GET', data, key) {
   const isGeneration = method === 'POST' && /^\/ai\/interviews\/[^/]+\/preview$/.test(path);
   const timeoutMs = isGeneration ? 3 * 540_000 + 60_000 : 180_000;
   return api.httpRequest(path, method, data === undefined ? undefined : JSON.stringify(data),
-    'Nie udało się zapisać wywiadu. Twoje odpowiedzi pozostają dostępne.', {
+    uiText("interview:interviews.couldNotSaveTheInterviewYourAnswers"), {
       timeoutMs, retries: 0, retryOnTimeout: false,
       ...(key ? { headers: { 'Idempotency-Key': key } } : {}),
     });

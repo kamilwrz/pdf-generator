@@ -1,3 +1,4 @@
+import { t as uiText } from "../i18n/index.js";
 /**
  * Premium colour and typography system for the Cadenza CV template.
  *
@@ -21,8 +22,8 @@ export const DEFAULT_CADENZA_TEXT_SIZE = "M";
 export const CADENZA_PALETTES = Object.freeze([
   {
     id: "porcelain",
-    name: "Porcelanowa Sepia",
-    tagline: "Jasne tło i ciepłe brązy",
+    get name() { return uiText("editor:cadenzaAppearance.porcelainSepia"); },
+    get tagline() { return uiText("editor:cadenzaAppearance.lightBackgroundAndWarmBrowns"); },
     tone: "light",
     iconTheme: "cadenza-porcelain",
     colors: {
@@ -33,8 +34,8 @@ export const CADENZA_PALETTES = Object.freeze([
   },
   {
     id: "mist",
-    name: "Mglisty Błękit",
-    tagline: "Jasne tło i chłodny błękit",
+    get name() { return uiText("editor:cadenzaAppearance.mistyBlue"); },
+    get tagline() { return uiText("editor:cadenzaAppearance.lightBackgroundAndCoolBlue"); },
     tone: "light",
     iconTheme: "cadenza-mist",
     colors: {
@@ -45,8 +46,8 @@ export const CADENZA_PALETTES = Object.freeze([
   },
   {
     id: "sage",
-    name: "Szałwiowa Perła",
-    tagline: "Jasne tło i zgaszona zieleń",
+    get name() { return uiText("editor:cadenzaAppearance.sagePearl"); },
+    get tagline() { return uiText("editor:atriumAppearance.lightBackgroundAndMutedGreen"); },
     tone: "light",
     iconTheme: "cadenza-sage",
     colors: {
@@ -57,8 +58,8 @@ export const CADENZA_PALETTES = Object.freeze([
   },
   {
     id: "cobalt",
-    name: "Kobaltowa Partytura",
-    tagline: "Ciemny kobalt i jasny tekst",
+    get name() { return uiText("editor:cadenzaAppearance.cobaltScore"); },
+    get tagline() { return uiText("editor:atriumAppearance.darkCobaltAndLightText"); },
     tone: "strong",
     iconTheme: "cadenza-cobalt",
     colors: {
@@ -69,8 +70,8 @@ export const CADENZA_PALETTES = Object.freeze([
   },
   {
     id: "burgundy",
-    name: "Burgundowy Akord",
-    tagline: "Ciemny burgund i jasny tekst",
+    get name() { return uiText("editor:cadenzaAppearance.burgundyChord"); },
+    get tagline() { return uiText("editor:atriumAppearance.darkBurgundyAndLightText"); },
     tone: "strong",
     iconTheme: "cadenza-burgundy",
     colors: {
@@ -81,8 +82,8 @@ export const CADENZA_PALETTES = Object.freeze([
   },
   {
     id: "emerald",
-    name: "Szmaragdowa Kadencja",
-    tagline: "Ciemna zieleń i złoty akcent",
+    get name() { return uiText("editor:cadenzaAppearance.emeraldCadenza"); },
+    get tagline() { return uiText("editor:cadenzaAppearance.darkGreenAndAGoldAccent"); },
     tone: "strong",
     iconTheme: "cadenza-emerald",
     colors: {
@@ -94,10 +95,10 @@ export const CADENZA_PALETTES = Object.freeze([
 ]);
 
 export const CADENZA_TEXT_SIZES = Object.freeze([
-  { id: "S", label: "S", description: "Kompaktowy" },
-  { id: "M", label: "M", description: "Oryginalny" },
-  { id: "L", label: "L", description: "Czytelny" },
-  { id: "XL", label: "XL", description: "Wyrazisty" },
+  { id: "S", label: "S", get description() { return uiText("editor:atriumAppearance.compact"); } },
+  { id: "M", label: "M", get description() { return uiText("editor:atriumAppearance.original"); } },
+  { id: "L", label: "L", get description() { return uiText("editor:atriumAppearance.readable"); } },
+  { id: "XL", label: "XL", get description() { return uiText("editor:atriumAppearance.bold"); } },
 ]);
 
 // Cadenza's Playfair identity already dominates the page. L and XL therefore

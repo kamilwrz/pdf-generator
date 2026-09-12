@@ -1,3 +1,7 @@
+import { useMessageState } from '../../../i18n/messageState.js';
+import { getUiLocale } from '../../../i18n/index.js';
+import { t as uiText } from "../../../i18n/index.js";
+import { useTranslation } from 'react-i18next';
 /**
  * “Moje dokumenty” dialog: list, open, download, delete saved PDFs.
  * Opening a doc hydrates canvas elements and restores fixedToPage/locked extras.
@@ -33,8 +37,10 @@ import { useDocumentLifecycle } from "../../../store/document-lifecycle-context"
 //DIALOG FOR SHOWING SAVED PDF'S
 
 export default function ModalPdfs() {
+  useTranslation();
+  const locale = getUiLocale();
 
-    const [error, setError] = useState(false);
+    const [error, setError] = useMessageState(false);
     const [isOpening, setIsOpening] = useState(false);
     const [loading, setLoading] = useState(false);
     const [downloadingId, setDownloadingId] = useState(null);
@@ -91,7 +97,7 @@ export default function ModalPdfs() {
                 ENDPOINTS.PDF.SHOW,
                 "POST",
                 JSON.stringify(id),
-                "Nie udało się wczytać wybranego PDF!",
+                uiText("documents:modalPdfs.couldNotLoadTheSelectedPdf"),
             );
             // Newer API responses carry the exact saved metadata alongside
             // elements, avoiding a stale list entry after another save. Keep
@@ -159,7 +165,7 @@ export default function ModalPdfs() {
                 ENDPOINTS.PDF.DELETE,
                 "DELETE",
                 JSON.stringify(id),
-                "Nie udało się usunąć PDF!",
+                uiText("documents:modalPdfs.couldNotDeleteThePdf"),
             );
             if (activePdfId === id && isDocumentScopeCurrent(deleteScope)) {
                 discardActiveDocument();
@@ -167,8 +173,8 @@ export default function ModalPdfs() {
             setPDFs((prevState) => prevState.filter((element) => element.id !== data.pdf_id));
             setResumeDeleteId(null);
             pushToast?.({
-                title: "Dokument usunięty",
-                msg: target ? `„${target.title.split(".")[0]}” został trwale usunięty.` : undefined,
+                title: uiText("documents:modalPdfs.documentDeleted"),
+                msg: target ? uiText("documents:modalPdfs.hasBeenPermanentlyDeleted", { value0: (target.title.split(".")[0]) }) : undefined,
                 variant: "success",
             });
         } catch (error) {
@@ -186,7 +192,7 @@ export default function ModalPdfs() {
             return undefined;
         }
         let cancelled = false;
-        api.httpRequest(ENDPOINTS.PDF.FETCH, "GET", null, "Nie udało się pobrać listy PDF!").
+        api.httpRequest(ENDPOINTS.PDF.FETCH, "GET", null, uiText("documents:modalPdfs.couldNotLoadThePdfList")).
             then((data) => {
                 if (cancelled) return;
                 setPDFs(data);
@@ -210,7 +216,7 @@ export default function ModalPdfs() {
         if (!localStorage.getItem("token")) return undefined;
         let cancelled = false;
         setLoading(true);
-        api.httpRequest(ENDPOINTS.PDF.FETCH, "GET", null, "Nie udało się pobrać listy PDF!").
+        api.httpRequest(ENDPOINTS.PDF.FETCH, "GET", null, uiText("documents:modalPdfs.couldNotLoadThePdfList")).
             then((data) => {
                 if (cancelled) return;
                 setPDFs(data);
@@ -243,8 +249,8 @@ export default function ModalPdfs() {
             refreshEntitlements?.();
         } catch (err) {
             pushToast?.({
-                title: err?.code?.startsWith?.("plan_") ? "Limit planu" : "Pobieranie nie powiodło się",
-                msg: err?.message || "Błąd pobierania",
+                title: err?.code?.startsWith?.("plan_") ? uiText("documents:modalPdfs.planAllowance") : uiText("documents:modalPdfs.downloadFailed"),
+                msg: err?.message || uiText("documents:modalPdfs.downloadError"),
                 variant: "error",
             });
         } finally {
@@ -255,12 +261,12 @@ export default function ModalPdfs() {
     const visiblePDFs = useMemo(() => {
         const q = query.trim().toLowerCase();
         let list = PDFs.filter((pdf) => pdf.title.toLowerCase().includes(q));
-        if (sort === "az") list = [...list].sort((a, b) => a.title.localeCompare(b.title, "pl"));
+        if (sort === "az") list = [...list].sort((a, b) => a.title.localeCompare(b.title, getUiLocale()));
         else list = [...list].sort((a, b) => sort === "new"
             ? new Date(b.created_at) - new Date(a.created_at)
             : new Date(a.created_at) - new Date(b.created_at));
         return list;
-    }, [PDFs, query, sort]);
+    }, [PDFs, query, sort, locale]);
 
     const confirmTarget = PDFs.find((pdf) => pdf.id === confirmDeleteId);
     const deleteConfirmationOpen = confirmDeleteId != null;
@@ -277,12 +283,12 @@ export default function ModalPdfs() {
                 : resumeDeleteId != null
                     ? `[data-pdf-delete-id="${resumeDeleteId}"]`
                     : undefined}
-            title={deleteConfirmationOpen ? "Usunąć dokument?" : "Moje dokumenty"}
+            title={deleteConfirmationOpen ? uiText("documents:modalPdfs.deleteDocument") : uiText("public:siteLayout.myDocuments")}
             subtitle={deleteConfirmationOpen
                 ? confirmTarget
-                    ? `„${confirmTarget.title.split(".")[0]}” zniknie z Twoich dokumentów wraz z zapisanym plikiem PDF. Tej operacji nie można cofnąć.`
-                    : "Tej operacji nie można cofnąć."
-                : "Otwieraj, pobieraj i usuwaj zapisane projekty."}
+                    ? uiText("documents:modalPdfs.andItsSavedPdfWillBeRemoved", { value0: (confirmTarget.title.split(".")[0]) })
+                    : uiText("documents:modalPdfs.thisCannotBeUndone")
+                : uiText("documents:modalPdfs.openDownloadAndDeleteSavedProjects")}
             footer={deleteConfirmationOpen ? (
                 <div className={classes.confirmActions}>
                     <button
@@ -290,19 +296,15 @@ export default function ModalPdfs() {
                         className={classes.confirmCancel}
                         data-dialog-initial-focus
                         onClick={() => setConfirmDeleteId(null)}
-                    >
-                        Anuluj
-                    </button>
-                    <button type="button" className={classes.confirmDelete} onClick={confirmDelete}>
-                        Usuń trwale
-                    </button>
+                    >{uiText("ai:aiAssistant.cancel")}</button>
+                    <button type="button" className={classes.confirmDelete} onClick={confirmDelete}>{uiText("ai:aiCvPanel.deletePermanently")}</button>
                 </div>
             ) : (
                 <>
                     <span className={classes.countLabel}>
-                        {query ? `${visiblePDFs.length} z ${PDFs.length} dokumentów` : `${PDFs.length} zapisanych dokumentów`}
+                        {query ? uiText("documents:modalPdfs.ofDocuments", { value0: (visiblePDFs.length), value1: (PDFs.length) }) : uiText("documents:modalPdfs.savedDocuments", { value0: (PDFs.length) })}
                     </span>
-                    <button type="button" className={classes.closeFooterBtn} onClick={closeDialog}>Zamknij</button>
+                    <button type="button" className={classes.closeFooterBtn} onClick={closeDialog}>{uiText("editor:sectionsPanel.close")}</button>
                 </>
             )}
         >
@@ -313,23 +315,23 @@ export default function ModalPdfs() {
                             <FiSearch />
                             <input
                                 type="text"
-                                placeholder="Szukaj wśród dokumentów"
-                                aria-label="Szukaj dokumentów"
+                                placeholder={uiText("documents:modalPdfs.searchYourDocuments")}
+                                aria-label={uiText("documents:modalPdfs.searchDocuments")}
                                 value={query}
                                 onChange={(e) => setQuery(e.target.value)}
                             />
                         </div>
-                        <select aria-label="Sortowanie" className={classes.sortSelect} value={sort} onChange={(e) => setSort(e.target.value)}>
-                            <option value="new">Najnowsze</option>
-                            <option value="old">Najstarsze</option>
-                            <option value="az">Nazwa A–Z</option>
+                        <select aria-label={uiText("documents:modalPdfs.sortOrder")} className={classes.sortSelect} value={sort} onChange={(e) => setSort(e.target.value)}>
+                            <option value="new">{uiText("documents:modalPdfs.newest")}</option>
+                            <option value="old">{uiText("documents:modalPdfs.oldest")}</option>
+                            <option value="az">{uiText("documents:modalPdfs.nameAZ")}</option>
                         </select>
                     </div>
 
                     <div className={classes.modalBody}>
                         {error && (
                             <div className={classes.errorSpan}>
-                                <Error title="Brak zapisanych PDF!" message={error?.message || error} />
+                                <Error title={uiText("documents:modalPdfs.noSavedPdfs")} message={error?.message || error} />
                             </div>
                         )}
 
@@ -367,13 +369,13 @@ export default function ModalPdfs() {
                                         {" "}
                                         <IoMdDownload />
                                     </button>
-                                    <button className={classes.showPdfBtn} onClick={() => showPDF(PDF.id)} disabled={isOpening} title="Otwórz na płótnie" aria-label="Otwórz na płótnie"><GrView /></button>
+                                    <button className={classes.showPdfBtn} onClick={() => showPDF(PDF.id)} disabled={isOpening} title={uiText("documents:modalPdfs.openOnCanvas")} aria-label={uiText("documents:modalPdfs.openOnCanvas")}><GrView /></button>
                                     <button
                                         className={classes.deletePdfBtn}
                                         data-pdf-delete-id={PDF.id}
                                         onClick={() => askDelete(PDF.id)}
-                                        title="Usuń dokument"
-                                        aria-label="Usuń dokument"
+                                        title={uiText("documents:modalPdfs.deleteDocument2")}
+                                        aria-label={uiText("documents:modalPdfs.deleteDocument2")}
                                     >
                                         <MdDelete />
                                     </button>
@@ -385,11 +387,11 @@ export default function ModalPdfs() {
                         {showEmpty && (
                             <div className={classes.emptyState}>
                                 <div className={classes.emptyIcon}><BsFileEarmarkPdf /></div>
-                                <div className={classes.emptyTitle}>{query ? "Brak wyników" : "Nie masz jeszcze dokumentów"}</div>
+                                <div className={classes.emptyTitle}>{query ? uiText("interview:factEditor.noResults") : uiText("documents:modalPdfs.youHaveNoDocumentsYet")}</div>
                                 <div className={classes.emptyHint}>
                                     {query
-                                        ? `Żaden dokument nie pasuje do frazy „${query}”. Spróbuj innej nazwy.`
-                                        : "Zapisz projekt przyciskiem „Utwórz PDF”, aby pojawił się na tej liście."}
+                                        ? uiText("documents:modalPdfs.noDocumentMatchesTryAnotherName", { value0: (query) })
+                                        : uiText("documents:modalPdfs.saveYourProjectUsingCreatePdfTo")}
                                 </div>
                             </div>
                         )}

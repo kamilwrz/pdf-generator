@@ -1,3 +1,5 @@
+import { t as uiText } from '../../../i18n/index.js';
+import { useTranslation } from 'react-i18next';
 import { useContext, useEffect, useId, useRef } from "react";
 import { createPortal } from "react-dom";
 import classes from "./DialogShell.module.css";
@@ -41,6 +43,7 @@ export default function DialogShell({
     layer = "standard",
     children,
 }) {
+    useTranslation();
     const standardDialogsSuspended = useContext(DialogSuspensionContext);
     const renderedOpen = open && (layer === "recovery" || !standardDialogsSuspended);
     const isFullscreen = variant === "fullscreen";
@@ -136,7 +139,10 @@ export default function DialogShell({
     // opener or briefly unlocking body scrolling during the transition.
     useEffect(() => {
         if (!renderedOpen) return undefined;
+        const focusAtScheduling = document.activeElement;
         const frame = window.requestAnimationFrame(() => {
+            // Do not steal focus if the user already chose a control before the frame.
+            if (document.activeElement !== focusAtScheduling && dialogRef.current?.contains(document.activeElement)) return;
             const selector = initialFocusSelector || "button:not([disabled]), input:not([disabled]), [href], [tabindex='0']";
             (dialogRef.current?.querySelector(selector) || dialogRef.current)?.focus({ preventScroll: true });
         });
@@ -170,7 +176,7 @@ export default function DialogShell({
                     </div>
                     {headerAction && <div className={classes.headerAction}>{headerAction}</div>}
                     <CloseButton
-                        ariaLabel={`Zamknij: ${title}`}
+                        ariaLabel={uiText("common:closeDialog", { title })}
                         clickHandler={onClose}
                         top={isDecision ? 24 : 18}
                         right={isDecision ? 32 : 28}

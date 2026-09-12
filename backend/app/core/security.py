@@ -1,6 +1,8 @@
 """Argon2id passwords, legacy bcrypt migration, and versioned JWT identity."""
 from __future__ import annotations
 
+from app.core.localisation import message as localised_message
+
 from datetime import datetime, timedelta, timezone
 import os
 import unicodedata
@@ -117,7 +119,7 @@ def _decode_token(token: str) -> dict:
 def _token_error() -> HTTPException:
     return HTTPException(
         status_code=401,
-        detail={"code": "invalid_token", "message": "Token jest nieprawidłowy lub wygasł."},
+        detail={"code": "invalid_token", "message": localised_message('the_token_is_invalid_or_has_expired')},
         headers={"WWW-Authenticate": "Bearer"},
     )
 

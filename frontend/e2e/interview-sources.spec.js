@@ -15,7 +15,7 @@ for (const width of [390, 834, 1280, 1920]) {
     const writes = [];
     await page.route('**/api/career-profile', async (route) => {
       expect(route.request().method()).toBe('GET'); profileReads++;
-      await route.fulfill({ json: owner });
+      await route.fulfill({ json: { ...owner, sources: { documents: [{ id: 30, title: 'CV30.pdf' }], imports: [{ id: 40, filename: 'Anna-import.pdf' }] } } });
     });
     await page.route('**/api/ai/imports*', (route) => route.fulfill({ json: { items: [{ id: 40, status: 'succeeded', source_filename: 'Anna-import.pdf' }] } }));
     await page.route('**/api/ai/interviews**', async (route) => {

@@ -1,3 +1,5 @@
+import { t as uiText } from "../../../i18n/index.js";
+import { useTranslation } from 'react-i18next';
 /**
  * Hover affordance on a flat-list section's content block (Skills, Languages,
  * flat custom sections): a single bare icon to the left of the block,
@@ -38,6 +40,7 @@ export default function FlatSectionLayoutToggle({
   height = 0,
   fontSize = 10,
 }) {
+  useTranslation();
   const { editorMode, openFlatSectionLayoutModal, zoom = 1 } = useCanvasContext();
 
   const [visible, setVisible] = useState(false);
@@ -149,8 +152,8 @@ export default function FlatSectionLayoutToggle({
             type="button"
             className={classes.plus}
             style={buttonStyle}
-            aria-label="Zmień układ listy"
-            title="Zmień układ listy"
+            aria-label={uiText("editor:flatSectionLayoutToggle.changeListLayout")}
+            title={uiText("editor:flatSectionLayoutToggle.changeListLayout")}
             onPointerEnter={() => {
               show();
             }}

@@ -1,3 +1,5 @@
+import { t as uiText } from "../../../i18n/index.js";
+import { useTranslation } from 'react-i18next';
 /**
  * In-app plan picker. Local development may activate plans through the
  * explicit bypass; production Pro selection redirects to hosted Checkout.
@@ -28,6 +30,7 @@ function hostedCheckoutUrl(value) {
 }
 
 export default function PlanSelectModal() {
+  useTranslation();
     const { isPlanModal, showPlanModal } = useUiSurfaces();
     const { entitlements, refreshEntitlements, pushToast } = useSession();
 
@@ -49,7 +52,7 @@ export default function PlanSelectModal() {
         queueMicrotask(() => {
             if (!cancelled) setCatalogState("loading");
         });
-        api.httpRequest(ENDPOINTS.BILLING.PLANS, "GET", null, "Nie udało się pobrać planów.")
+        api.httpRequest(ENDPOINTS.BILLING.PLANS, "GET", null, uiText("account:planSelectModal.couldNotLoadPlans"))
             .then((data) => {
                 if (cancelled) return;
                 if (Array.isArray(data.plans) && data.plans.length) {
@@ -80,7 +83,7 @@ export default function PlanSelectModal() {
                 ENDPOINTS.BILLING.SELECT_PLAN,
                 "POST",
                 JSON.stringify({ plan_slug: slug }),
-                "Nie udało się zmienić planu.",
+                uiText("account:planSelectModal.couldNotChangePlan"),
                 {
                     headers: {
                         "Idempotency-Key": globalThis.crypto?.randomUUID?.() || `checkout-${Date.now()}`,
@@ -90,7 +93,7 @@ export default function PlanSelectModal() {
             if (res.payment_required) {
                 const checkoutUrl = hostedCheckoutUrl(res.checkout_url);
                 if (!checkoutUrl) {
-                    throw new Error("Serwer nie zwrócił bezpiecznego adresu Stripe Checkout.");
+                    throw new Error(uiText("account:planSelectModal.theServerDidNotReturnAValid"));
                 }
                 window.location.assign(checkoutUrl);
                 return;
@@ -103,22 +106,22 @@ export default function PlanSelectModal() {
                 setCurrentSlug(slug);
             }
             pushToast?.({
-                title: "Plan zaktualizowany",
-                msg: `Aktywowano plan ${res.entitlements?.plan_name || slug}.`,
+                title: uiText("account:planSelectModal.planUpdated"),
+                msg: uiText("account:planSelectModal.planActivated", { value0: (res.entitlements?.plan_name || slug) }),
                 variant: "success",
             });
             showPlanModal?.();
         } catch (error) {
             if (error?.code === "payment_required") {
                 pushToast?.({
-                    title: "Wymagana płatność",
-                    msg: planErrorMessage(error, "Nie udało się rozpocząć bezpiecznej płatności."),
+                    title: uiText("account:planSelectModal.paymentRequired"),
+                    msg: planErrorMessage(error, uiText("account:planSelectModal.couldNotStartSecurePayment")),
                     variant: "error",
                 });
             } else {
                 pushToast?.({
-                    title: "Nie udało się zmienić planu",
-                    msg: planErrorMessage(error, error.message || "Spróbuj ponownie."),
+                    title: uiText("account:planSelectModal.couldNotChangePlan2"),
+                    msg: planErrorMessage(error, error.message || uiText("account:planSelectModal.pleaseTryAgain")),
                     variant: "error",
                 });
             }
@@ -132,21 +135,21 @@ export default function PlanSelectModal() {
             open={Boolean(isPlanModal)}
             onClose={() => showPlanModal?.()}
             width={960}
-            title="Twój plan"
-            subtitle="Darmowy wystarcza do jednego kompletnego CV. Pro daje więcej wersji, wszystkie szablony i narzędzia AI."
+            title={uiText("account:planSelectModal.yourPlan")}
+            subtitle={uiText("account:planSelectModal.freeIsEnoughForOneCompleteCv")}
         >
             <p className={classes.catalogStatus} role="status" aria-live="polite">
                 {catalogState === "loading"
-                    ? "Pobieramy aktualne dane planów…"
+                    ? uiText("account:planSelectModal.loadingCurrentPlanDetails")
                     : catalogState === "fallback"
-                        ? "Nie udało się odświeżyć cennika. Pokazujemy aktualne zasady zapisane w aplikacji."
+                        ? uiText("account:planSelectModal.couldNotRefreshPricingShowingCurrentTerms")
                         : "\u00A0"}
             </p>
             <div className={classes.grid}>
                 {plans.map((plan) => {
                     const active = plan.slug === currentSlug;
                     const busy = pendingSlug === plan.slug;
-                    const priceUnit = plan.slug === "pro" ? "zł / 30 dni" : "zł";
+                    const priceUnit = plan.slug === "pro" ? uiText("account:planSelectModal.plnDays") : uiText("account:planSelectModal.pln");
                     return (
                         <article
                             key={plan.slug}
@@ -155,7 +158,7 @@ export default function PlanSelectModal() {
                         >
                             <header className={classes.cardHead}>
                                 <h3 className={classes.planName}>{plan.name}</h3>
-                                {active ? <span className={classes.currentPill}>Aktualny</span> : null}
+                                {active ? <span className={classes.currentPill}>{uiText("account:planSelectModal.current")}</span> : null}
                                 {!active && plan.badge ? (
                                     <span className={classes.badgePill}>{plan.badge}</span>
                                 ) : null}
@@ -181,10 +184,10 @@ export default function PlanSelectModal() {
                                 aria-busy={busy}
                             >
                                 {busy
-                                    ? "Aktywuję…"
+                                    ? uiText("account:planSelectModal.activating")
                                     : (active
-                                        ? "Twój plan"
-                                        : (plan.cta || `Wybierz ${plan.name}`))}
+                                        ? uiText("account:planSelectModal.yourPlan")
+                                        : (plan.cta || uiText("account:planSelectModal.choose", { value0: (plan.name) })))}
                             </button>
                         </article>
                     );

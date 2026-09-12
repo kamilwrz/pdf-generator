@@ -1,5 +1,7 @@
 """Plan catalog, Stripe Checkout creation, and webhook fulfillment."""
 
+from app.core.localisation import message as localised_message
+
 import os
 import secrets
 import hashlib
@@ -54,7 +56,7 @@ async def get_plans(
     """Catalog for the in-app plan picker (Stripe price IDs included when set)."""
     user = resolve_user_from_payload(db, payload)
     if user is None:
-        raise HTTPException(status_code=401, detail="Nie znaleziono konta użytkownika.")
+        raise HTTPException(status_code=401, detail=localised_message('user_account_not_found'))
     return {
         "plans": list_selectable_plans(db),
         "current_plan_slug": get_entitlements(db, user)["plan_slug"],
@@ -72,17 +74,17 @@ async def select_plan(
     """Activate a development plan or create an idempotent Stripe Checkout Session."""
     user = resolve_user_from_payload(db, payload)
     if user is None:
-        raise HTTPException(status_code=401, detail="Nie znaleziono konta użytkownika.")
+        raise HTTPException(status_code=401, detail=localised_message('user_account_not_found'))
     plan_slug = normalize_plan_slug(request.plan_slug)
     if plan_slug not in SELECTABLE_PLANS:
-        raise HTTPException(status_code=400, detail="Nieznany plan.")
+        raise HTTPException(status_code=400, detail=localised_message('unknown_plan'))
     if plan_slug != "free" and not ALLOW_UNPAID_PLAN_SELECTION:
         if not STRIPE_SECRET_KEY or not STRIPE_PRICE_PRO:
             raise HTTPException(
                 status_code=402,
                 detail={
                     "code": "payment_required",
-                    "message": "Płatności są chwilowo niedostępne.",
+                    "message": localised_message('payments_are_temporarily_unavailable'),
                     "plan_slug": plan_slug,
                     "checkout_url": None,
                 },
@@ -90,7 +92,7 @@ async def select_plan(
         if not idempotency_key or not 8 <= len(idempotency_key) <= 255:
             raise HTTPException(
                 status_code=400,
-                detail={"code": "idempotency_required", "message": "Rozpocznij płatność ponownie."},
+                detail={"code": "idempotency_required", "message": localised_message('start_payment_again')},
             )
         checkout = create_checkout_session(
             user_id=user.id,
@@ -199,7 +201,7 @@ def admin_set_user_plan(
             status_code=403,
             detail={
                 "code": "admin_secret_invalid",
-                "message": "Brak uprawnień do tej operacji.",
+                "message": localised_message('you_do_not_have_permission_for_this_operation'),
             },
         )
 
@@ -212,7 +214,7 @@ def admin_set_user_plan(
         )
         raise HTTPException(
             status_code=400,
-            detail={"code": "unknown_plan", "message": "Nieznany plan."},
+            detail={"code": "unknown_plan", "message": localised_message('unknown_plan')},
         )
 
     user = db.query(User).filter(User.username == request.username).one_or_none()
@@ -223,7 +225,7 @@ def admin_set_user_plan(
         )
         raise HTTPException(
             status_code=404,
-            detail={"code": "user_not_found", "message": "Nie znaleziono użytkownika."},
+            detail={"code": "user_not_found", "message": localised_message('user_not_found')},
         )
 
     try:
@@ -266,7 +268,7 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
     try:
         event = construct_webhook_event(payload, signature)
     except Exception as exc:
-        raise HTTPException(status_code=400, detail="Invalid Stripe signature.") from exc
+        raise HTTPException(status_code=400, detail=localised_message('invalid_stripe_signature')) from exc
     event_type = _stripe_value(event, "type", "")
     event_id = str(_stripe_value(event, "id", ""))
     if event_type not in {"checkout.session.completed", "checkout.session.async_payment_succeeded"}:
@@ -283,7 +285,7 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
         # pending ledger row prevents an arbitrary dashboard-created Session
         # with forged metadata from granting access. Stripe retries non-2xx
         # events, which covers the short race before the row is committed.
-        raise HTTPException(status_code=409, detail="Unknown checkout session.")
+        raise HTTPException(status_code=409, detail=localised_message('unknown_checkout_session'))
     if payment.status == "succeeded":
         return {"status": "already_processed"}
     amount_total = _stripe_value(session, "amount_total")
@@ -295,7 +297,7 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
         # The Checkout Session is created from a server-owned Price, but the
         # ledger remains the final business contract. A misconfigured Price
         # must never grant Pro for a different amount or currency.
-        raise HTTPException(status_code=409, detail="Checkout amount does not match the pending payment.")
+        raise HTTPException(status_code=409, detail=localised_message('the_checkout_amount_does_not_match_the_pending'))
     try:
         activated = fulfill_pro_payment(
             db,
@@ -320,14 +322,14 @@ def checkout_session_status(
     """Return only the authenticated owner's local fulfillment status."""
     user = resolve_user_from_payload(db, payload)
     if user is None:
-        raise HTTPException(status_code=401, detail="Nie znaleziono konta użytkownika.")
+        raise HTTPException(status_code=401, detail=localised_message('user_account_not_found'))
     payment = db.query(Payment).filter_by(
         provider="stripe",
         provider_ref=session_id,
         user_id=user.id,
     ).one_or_none()
     if payment is None:
-        raise HTTPException(status_code=404, detail={"code": "checkout_not_found", "message": "Nie znaleziono płatności."})
+        raise HTTPException(status_code=404, detail={"code": "checkout_not_found", "message": localised_message('payment_not_found')})
     return {"status": payment.status, "plan_slug": payment.plan_slug}
 
 
@@ -350,7 +352,7 @@ def admin_reset_ai_credits(
             status_code=403,
             detail={
                 "code": "admin_secret_invalid",
-                "message": "Brak uprawnień do tej operacji.",
+                "message": localised_message('you_do_not_have_permission_for_this_operation'),
             },
         )
     target_ref = _admin_audit_target_ref(request.user_id)
@@ -364,7 +366,7 @@ def admin_reset_ai_credits(
         )
         raise HTTPException(
             status_code=404,
-            detail={"code": "user_not_found", "message": "Nie znaleziono użytkownika."},
+            detail={"code": "user_not_found", "message": localised_message('user_not_found')},
         )
     try:
         reset_ai_credits(db, user.id)

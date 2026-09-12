@@ -19,6 +19,7 @@ export default function SidebarControls({
     badge = false,
     active,
     to,
+    controlId,
 }) {
     const tooltipId = useId();
     const descriptiveLabel = documents != null && documents !== false
@@ -28,6 +29,7 @@ export default function SidebarControls({
     const Control = to ? Link : 'button';
     return (
         <Control
+            data-sidebar-control={controlId}
             type={to ? undefined : 'button'}
             to={to}
             className={`${classes.tile} ${active ? classes.tileActive : ""}`}

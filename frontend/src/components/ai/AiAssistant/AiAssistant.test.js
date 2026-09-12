@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { readPresentationSource as readFile } from "../../../../scripts/read-presentation-source.mjs";
 import test from "node:test";
 
 test("AI correction handlers allow empty content only for shortening", async () => {

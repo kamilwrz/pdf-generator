@@ -393,6 +393,8 @@ def test_legacy_two_stage_cache_cannot_skip_editorial(environment, changed_profi
     saved = client.get(f"/ai/interviews/{session['id']}").json()
     profile_revision = 1
     if changed_profile:
+        db.add(Pdf(owner_id=row.owner_id, title='Profile source', cv_data={'name': 'Anna Nowak'}))
+        db.commit()
         profile = client.get('/career-profile').json()
         assert client.put('/career-profile', json={'revision': 1, 'facts': profile['facts']}).status_code == 200
         profile_revision = 2

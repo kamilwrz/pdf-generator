@@ -1,26 +1,27 @@
+import { t as uiText } from "../i18n/index.js";
 /** Presentation-only grouping. Persistent fact IDs, paths and evidence stay intact. */
 import { interviewFields } from './interviewPresentation.js';
 
 export const careerSections = [
-  { id: 'identity', label: 'Dane i podsumowanie', short: 'Profil', description: 'Jak się przedstawiasz i jak można się z Tobą skontaktować.' },
-  { id: 'experience', label: 'Doświadczenie', short: 'Doświadczenie', description: 'Role, firmy i osiągnięcia — każdy etap kariery w jednym miejscu.' },
-  { id: 'education', label: 'Edukacja', short: 'Edukacja', description: 'Uczelnie, kierunki i najważniejsze etapy nauki.' },
-  { id: 'skills', label: 'Umiejętności', short: 'Umiejętności', description: 'Narzędzia i kompetencje, które możesz wykorzystać w CV.' },
-  { id: 'languages', label: 'Języki', short: 'Języki', description: 'Język i poziom znajomości tworzą jeden wpis.' },
-  { id: 'custom_sections', label: 'Projekty i inne', short: 'Projekty', description: 'Projekty, kursy, wolontariat i dodatkowe sekcje.' },
-  { id: 'notes', label: 'Z wywiadu i notatki', short: 'Notatki', description: 'Dodatkowe informacje, ograniczenia i sformułowania do wykorzystania.' },
+  { id: 'identity', get label() { return uiText("editor:careerProfileView.detailsAndSummary"); }, short: 'Profil', get description() { return uiText("editor:careerProfileView.howYouIntroduceYourselfAndHowTo"); } },
+  { id: 'experience', get label() { return uiText("interview:cvContent.experience"); }, get short() { return uiText("interview:cvContent.experience"); }, get description() { return uiText("editor:careerProfileView.rolesCompaniesAndAchievementsEachCareerStage"); } },
+  { id: 'education', get label() { return uiText("interview:cvContent.education"); }, get short() { return uiText("interview:cvContent.education"); }, get description() { return uiText("editor:careerProfileView.institutionsSubjectsAndKeyLearningStages"); } },
+  { id: 'skills', get label() { return uiText("interview:cvContent.skills"); }, get short() { return uiText("interview:cvContent.skills"); }, get description() { return uiText("editor:careerProfileView.toolsAndAbilitiesYouCanUseIn"); } },
+  { id: 'languages', get label() { return uiText("interview:cvContent.languages"); }, get short() { return uiText("interview:cvContent.languages"); }, get description() { return uiText("editor:careerProfileView.aLanguageAndItsProficiencyLevelForm"); } },
+  { id: 'custom_sections', get label() { return uiText("editor:careerProfileView.projectsAndOtherInformation"); }, get short() { return uiText("editor:careerProfileView.projects"); }, get description() { return uiText("editor:careerProfileView.projectsCoursesVolunteeringAndAdditionalSections"); } },
+  { id: 'notes', get label() { return uiText("editor:careerProfileView.fromInterviewAndNotes"); }, short: 'Notatki', get description() { return uiText("editor:careerProfileView.additionalInformationConstraintsAndWordingToUse"); } },
 ];
 
-const names = { title: 'Stanowisko / nazwa', company: 'Firma', city: 'Miejscowość', period: 'Okres', degree: 'Kierunek / stopień', school: 'Uczelnia', description: 'Opis', subtitle: 'Dodatkowy opis', date: 'Data', name: 'Język', level: 'Poziom', category: 'Kategoria', kind: 'Rodzaj sekcji', placement: 'Położenie sekcji' };
+const names = { get title() { return uiText("editor:careerProfileView.jobTitleName"); }, get company() { return uiText("editor:careerProfileView.company"); }, get city() { return uiText("editor:careerProfileView.location"); }, get period() { return uiText("editor:careerProfileView.period"); }, get degree() { return uiText("editor:careerProfileView.subjectDegree"); }, school: 'Uczelnia', get description() { return uiText("editor:careerProfileView.description"); }, get subtitle() { return uiText("editor:careerProfileView.additionalDescription"); }, date: 'Data', get name() { return uiText("editor:careerProfileView.language"); }, get level() { return uiText("editor:careerProfileView.level"); }, category: 'Kategoria', get kind() { return uiText("editor:careerProfileView.sectionType"); }, get placement() { return uiText("editor:careerProfileView.sectionPosition"); } };
 
 /** Label scalar fields according to their record instead of repeating a section name. */
 export function careerFieldLabel(path) {
   if (interviewFields[path]) return interviewFields[path];
-  if (/^\/experience\/\d+\/title$/.test(path)) return 'Stanowisko';
-  if (/^\/custom_sections\/\d+\/title$/.test(path)) return 'Nazwa sekcji';
-  if (/^\/custom_sections\/\d+\/items\/\d+\/title$/.test(path)) return 'Nazwa wpisu';
-  if (/\/bullets\/\d+$/.test(path)) return 'Działanie lub osiągnięcie';
-  if (/^\/skills\//.test(path) && !path.endsWith('/category')) return 'Umiejętność';
+  if (/^\/experience\/\d+\/title$/.test(path)) return uiText("editor:templatesModal.jobTitle");
+  if (/^\/custom_sections\/\d+\/title$/.test(path)) return uiText("editor:careerProfileView.sectionName");
+  if (/^\/custom_sections\/\d+\/items\/\d+\/title$/.test(path)) return uiText("editor:careerProfileView.entryName");
+  if (/\/bullets\/\d+$/.test(path)) return uiText("editor:careerProfileView.activityOrAchievement");
+  if (/^\/skills\//.test(path) && !path.endsWith('/category')) return uiText("ai:scopedAiReview.skill");
   if (/\/items\/\d+$/.test(path)) return 'Informacja';
   return names[path?.split('/').at(-1)] || 'Informacja';
 }
@@ -59,8 +60,8 @@ export function groupCareerFacts(facts) {
     group.fields = [...display.values()];
     const value = (suffix) => group.facts.find((f) => f.path === `${group.root}/${suffix}`)?.text;
     const section = careerSections.find((s) => s.id === group.section);
-    group.title = group.section === 'identity' ? (group.key === '/summary' ? 'Podsumowanie zawodowe' : group.facts.find((f) => f.path === '/name')?.text || 'Dane osobowe i kontakt')
-      : group.section === 'notes' ? group.facts.find((f) => f.question)?.question || group.facts[0].context || 'Dodatkowe informacje'
+    group.title = group.section === 'identity' ? (group.key === '/summary' ? uiText("editor:careerProfileView.professionalSummary") : group.facts.find((f) => f.path === '/name')?.text || uiText("editor:careerProfileView.personalAndContactDetails"))
+      : group.section === 'notes' ? group.facts.find((f) => f.question)?.question || group.facts[0].context || uiText("editor:careerProfileView.additionalInformation2")
         : value('title') || value('degree') || value('name') || value('category') || section.label;
     const projectNames = group.facts.filter((f) => /\/items\/\d+\/title$/.test(f.path));
     if (group.section === 'custom_sections' && projectNames.length === 1) group.title = projectNames[0].text;
@@ -88,7 +89,7 @@ export function newCareerRecord(facts, section) {
   if (section === 'education') return [make(`${root}/degree`)];
   if (section === 'languages') return [make(`${root}/name`)];
   if (section === 'skills') return [make(root)];
-  if (section === 'custom_sections') return [make(`${root}/title`, 'Projekty'), make(`${root}/kind`, 'projects'), make(`${root}/items/0/title`)];
+  if (section === 'custom_sections') return [make(`${root}/title`, uiText("editor:careerProfileView.projects")), make(`${root}/kind`, 'projects'), make(`${root}/items/0/title`)];
   const missing = Object.keys(interviewFields).find((path) => !facts.some((f) => f.path === path));
   return [make(section === 'identity' && missing ? missing : '')];
 }
@@ -100,10 +101,10 @@ export function careerFieldOptions(group, facts) {
   if (group.section === 'experience') options = ['title', 'company', 'city', 'period'].map((key) => ({ path: `${group.root}/${key}`, label: names[key] }));
   if (group.section === 'education') options = ['degree', 'school', 'city', 'period', 'description'].map((key) => ({ path: `${group.root}/${key}`, label: names[key] }));
   if (group.section === 'languages') options = ['name', 'level'].map((key) => ({ path: `${group.root}/${key}`, label: names[key] }));
-  if (['experience', 'education'].includes(group.section)) options.push({ path: `${group.root}/bullets/${nextIndex(facts, `${group.root}/bullets`)}`, label: 'Działanie lub osiągnięcie' });
+  if (['experience', 'education'].includes(group.section)) options.push({ path: `${group.root}/bullets/${nextIndex(facts, `${group.root}/bullets`)}`, label: uiText("editor:careerProfileView.activityOrAchievement") });
   if (group.section === 'skills') {
     const root = group.key === '/skills-flat' ? '/skills' : `${group.root}/items`;
-    options.push({ path: `${root}/${nextIndex(facts, root)}`, label: 'Umiejętność' });
+    options.push({ path: `${root}/${nextIndex(facts, root)}`, label: uiText("ai:scopedAiReview.skill") });
   }
   if (group.section === 'custom_sections') {
     const itemRoots = [...new Set(group.facts.map((f) => f.path.match(/^(\/custom_sections\/\d+\/items\/\d+)\//)?.[1]).filter(Boolean))];
@@ -113,6 +114,6 @@ export function careerFieldOptions(group, facts) {
       options.push({ path: `${root}/bullets/${nextIndex(facts, `${root}/bullets`)}`, label: `${title} — osiągnięcie` });
     }
   }
-  if (group.section === 'notes') options.push({ path: '', label: 'Dodatkowa informacja' });
+  if (group.section === 'notes') options.push({ path: '', label: uiText("editor:careerProfileView.additionalInformation") });
   return options.filter((o) => (!o.path || !facts.some((f) => f.path === o.path)) && !/\/\d{3,}(?:\/|$)/.test(o.path));
 }

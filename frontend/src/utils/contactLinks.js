@@ -1,3 +1,4 @@
+import { t as uiText } from "../i18n/index.js";
 /**
  * Contact / social link helpers for the bio wizard and canvas fill payloads.
  *
@@ -9,7 +10,7 @@ export const CONTACT_LINK_KINDS = Object.freeze(["linkedin", "github", "website"
 
 export const CONTACT_LINK_OPTIONS = Object.freeze([
     { kind: "github", label: "GitHub" },
-    { kind: "website", label: "Strona WWW" },
+    { kind: "website", get label() { return uiText("editor:contactChannelNames.website"); } },
 ]);
 
 const clean = (value) => String(value || "").trim().replace(/\s+/g, " ");

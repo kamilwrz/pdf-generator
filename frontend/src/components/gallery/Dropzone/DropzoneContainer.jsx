@@ -1,3 +1,5 @@
+import { t as uiText } from "../../../i18n/index.js";
+import { useTranslation } from 'react-i18next';
 /**
  * Dialog wrapper that mounts Dropzone when the profile-photo upload surface is open.
  */
@@ -9,6 +11,7 @@ import DialogShell from "../../common/DialogShell/DialogShell";
 import { MAX_PROFILE_PHOTOS } from "../../../constants/profilePhotos";
 
 export default function DropzoneContainer() {
+  useTranslation();
     const { isDropzone, showDropzone } = useUiSurfaces();
     const [libraryCount, setLibraryCount] = useState(0);
 
@@ -21,8 +24,8 @@ export default function DropzoneContainer() {
             open={isDropzone}
             onClose={showDropzone}
             width={720}
-            title="Prześlij zdjęcia profilowe"
-            subtitle={`Do użycia w CV · maks. ${MAX_PROFILE_PHOTOS} zdjęć · JPG, PNG, WEBP, GIF`}
+            title={uiText("editor:dropzoneContainer.uploadProfilePhotos")}
+            subtitle={uiText("editor:dropzoneContainer.forYourCvMaxPhotosJpgPng", { value0: (MAX_PROFILE_PHOTOS) })}
             footer={(
                 <>
                     <span className={classes.countLabel}>
@@ -31,10 +34,8 @@ export default function DropzoneContainer() {
                         z
                         {" "}
                         {MAX_PROFILE_PHOTOS}
-                        {" "}
-                        zdjęć w galerii
-                    </span>
-                    <button type="button" className={classes.closeFooterBtn} onClick={showDropzone}>Zamknij</button>
+                        {" "}{uiText("editor:dropzoneContainer.photosInTheGallery")}</span>
+                    <button type="button" className={classes.closeFooterBtn} onClick={showDropzone}>{uiText("editor:sectionsPanel.close")}</button>
                 </>
             )}
         >

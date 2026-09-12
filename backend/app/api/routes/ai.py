@@ -10,6 +10,8 @@ behind reverse proxies still load `/template-assets/...` from the same host
 the browser called.
 """
 
+from app.core.localisation import message as localised_message
+
 import base64
 from datetime import datetime
 import hashlib
@@ -139,7 +141,7 @@ def _decode_import_cursor(cursor: str | None) -> tuple[datetime | None, int | No
     except (KeyError, TypeError, ValueError, UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise HTTPException(
             status_code=400,
-            detail={"code": "invalid_cursor", "message": "Kursor historii importów jest nieprawidłowy."},
+            detail={"code": "invalid_cursor", "message": localised_message('the_import_history_cursor_is_invalid')},
         ) from exc
 
 
@@ -150,22 +152,22 @@ def _read_and_validate_pdf(file: UploadFile) -> bytes:
     # session inside FastAPI's worker-thread execution path.
     data = file.file.read(MAX_PDF_BYTES + 1)
     if len(data) > MAX_PDF_BYTES:
-        raise HTTPException(status_code=400, detail="Plik przekracza limit 10 MB.")
+        raise HTTPException(status_code=400, detail=localised_message('the_file_exceeds_the_mb_limit'))
     if not data.startswith(b"%PDF-"):
-        raise HTTPException(status_code=400, detail="Wybrany plik nie jest prawidłowym PDF.")
+        raise HTTPException(status_code=400, detail=localised_message('the_selected_file_is_not_a_valid_pdf'))
     try:
         document = fitz.open(stream=data, filetype="pdf")
         try:
             if document.needs_pass:
-                raise HTTPException(status_code=400, detail="Zaszyfrowane PDF-y nie są obsługiwane.")
+                raise HTTPException(status_code=400, detail=localised_message('encrypted_pdfs_are_not_supported'))
             if document.page_count < 1 or document.page_count > MAX_PDF_PAGES:
-                raise HTTPException(status_code=400, detail=f"PDF musi mieć od 1 do {MAX_PDF_PAGES} stron.")
+                raise HTTPException(status_code=400, detail=localised_message("pdf_page_limit", limit=MAX_PDF_PAGES))
         finally:
             document.close()
     except HTTPException:
         raise
     except Exception as exc:
-        raise HTTPException(status_code=400, detail="Nie można odczytać tego pliku PDF.") from exc
+        raise HTTPException(status_code=400, detail=localised_message('this_pdf_file_could_not_be_read')) from exc
     return data
 
 
@@ -173,7 +175,7 @@ def _current_user_id(db: Session, payload: dict) -> int:
     """Resolve JWT `sub` to a user id or raise 401."""
     user = resolve_user_from_payload(db, payload)
     if user is None:
-        raise HTTPException(status_code=401, detail="Nie znaleziono konta użytkownika.")
+        raise HTTPException(status_code=401, detail=localised_message('user_account_not_found'))
     return user.id
 
 
@@ -281,15 +283,15 @@ def extract_cv(
             status_code=400,
             detail={
                 "code": "idempotency_key_required",
-                "message": "Nagłówek Idempotency-Key jest wymagany.",
+                "message": localised_message('the_idempotency_key_header_is_required'),
             },
         )
     user = resolve_user_from_payload(db, payload)
     if user is None:
-        raise HTTPException(status_code=401, detail="Nie znaleziono konta użytkownika.")
+        raise HTTPException(status_code=401, detail=localised_message('user_account_not_found'))
     filename = (file.filename or "cv.pdf").strip()
     if not filename.lower().endswith(".pdf"):
-        raise HTTPException(status_code=400, detail="Akceptowane są wyłącznie pliki PDF.")
+        raise HTTPException(status_code=400, detail=localised_message('only_pdf_files_are_accepted'))
     data = _read_and_validate_pdf(file)
     request_hash = hashlib.sha256(
         filename.encode("utf-8", errors="replace") + b"\0" + data,
@@ -346,7 +348,7 @@ def extract_cv(
         if snapshot.deleted_at is not None:
             return JSONResponse(status_code=409, content={"detail": {
                 "code": "import_deleted",
-                "message": "Ten import został usunięty. Jego wynik nie jest dostępny.",
+                "message": localised_message('this_import_was_deleted_its_result_is_unavailable'),
             }})
         return {"import": _snapshot_payload(snapshot), "cv_data": cv_data, "usage": usage}
     except CvExtractionError as exc:
@@ -394,7 +396,7 @@ def extract_cv(
         )
         raise HTTPException(
             status_code=500,
-            detail="Nie udało się wyodrębnić danych z CV.",
+            detail=localised_message('could_not_extract_cv_data'),
         ) from exc
 
 
@@ -439,7 +441,7 @@ def get_import(snapshot_id: int, payload: dict = Depends(verify_token), db: Sess
     owner_id = _current_user_id(db, payload)
     snapshot = get_owned_snapshot(db, owner_id=owner_id, snapshot_id=snapshot_id)
     if snapshot is None:
-        raise HTTPException(status_code=404, detail="Nie znaleziono danych importu.")
+        raise HTTPException(status_code=404, detail=localised_message('import_data_not_found'))
     return _snapshot_payload(snapshot, linked_pdfs(db, snapshot_id=snapshot.id, owner_id=owner_id))
 
 
@@ -449,7 +451,7 @@ def delete_import(snapshot_id: int, payload: dict = Depends(verify_token), db: S
     owner_id = _current_user_id(db, payload)
     snapshot = get_owned_snapshot(db, owner_id=owner_id, snapshot_id=snapshot_id)
     if snapshot is None:
-        raise HTTPException(status_code=404, detail="Nie znaleziono danych importu.")
+        raise HTTPException(status_code=404, detail=localised_message('import_data_not_found'))
     soft_delete_snapshot(db, snapshot)
     return {"deleted": True}
 
@@ -516,7 +518,7 @@ def fill_template(
             status_code=400,
             detail={
                 "code": "unknown_template",
-                "message": "Wybrany szablon nie istnieje.",
+                "message": localised_message('the_selected_template_does_not_exist'),
             },
         )
 
@@ -532,7 +534,7 @@ def fill_template(
     else:
         user = resolve_user_from_payload(db, payload)
         if user is None:
-            raise HTTPException(status_code=401, detail="Nie znaleziono konta użytkownika.")
+            raise HTTPException(status_code=401, detail=localised_message('user_account_not_found'))
         assert_template_allowed(db, user, request.template_id)
     try:
         cv_data = normalize_cv_data(request.cv_data, require_name=True)
@@ -554,7 +556,7 @@ def fill_template(
             status_code=400,
             detail={
                 "code": "template_generation_rejected",
-                "message": "Nie można wygenerować szablonu z podanych danych.",
+                "message": localised_message('cannot_generate_a_template_from_the_supplied_data'),
             },
         ) from exc
     except Exception as exc:
@@ -567,6 +569,6 @@ def fill_template(
             status_code=500,
             detail={
                 "code": "template_generation_failed",
-                "message": "Nie udało się wygenerować szablonu.",
+                "message": localised_message('could_not_generate_the_template'),
             },
         ) from exc

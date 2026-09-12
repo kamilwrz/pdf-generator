@@ -1,3 +1,4 @@
+import { t as uiText } from "../i18n/index.js";
 /**
  * Premium appearance system for the Regent CV template.
  *
@@ -15,8 +16,8 @@ export const DEFAULT_REGENT_TEXT_SIZE = "M";
 export const REGENT_PALETTES = Object.freeze([
   {
     id: "monochrome",
-    name: "Monochromatyczny Regent",
-    tagline: "Białe tło, czerń i szarość",
+    get name() { return uiText("editor:regentAppearance.monochromeRegent"); },
+    get tagline() { return uiText("editor:regentAppearance.whiteBackgroundBlackAndGrey"); },
     group: "classic",
     iconTheme: "regent",
     colors: {
@@ -31,8 +32,8 @@ export const REGENT_PALETTES = Object.freeze([
   },
   {
     id: "ivory",
-    name: "Gabinet Ivory",
-    tagline: "Ciepłe tło i ciemny tekst",
+    get name() { return uiText("editor:regentAppearance.ivoryStudy"); },
+    get tagline() { return uiText("editor:regentAppearance.warmBackgroundAndDarkText"); },
     group: "classic",
     iconTheme: "regent-ivory",
     colors: {
@@ -47,8 +48,8 @@ export const REGENT_PALETTES = Object.freeze([
   },
   {
     id: "pearl",
-    name: "Perłowa Kancelaria",
-    tagline: "Jasne tło i chłodne szarości",
+    get name() { return uiText("editor:regentAppearance.pearlOffice"); },
+    get tagline() { return uiText("editor:aureliaAppearance.lightBackgroundAndCoolGreys"); },
     group: "classic",
     iconTheme: "regent-pearl",
     colors: {
@@ -63,8 +64,8 @@ export const REGENT_PALETTES = Object.freeze([
   },
   {
     id: "sage",
-    name: "Szałwiowe Archiwum",
-    tagline: "Jasne tło i szałwiowe akcenty",
+    get name() { return uiText("editor:regentAppearance.sageArchive"); },
+    get tagline() { return uiText("editor:regentAppearance.lightBackgroundAndSageAccents"); },
     group: "classic",
     iconTheme: "regent-sage",
     colors: {
@@ -79,8 +80,8 @@ export const REGENT_PALETTES = Object.freeze([
   },
   {
     id: "sapphire",
-    name: "Szafirowa Noc",
-    tagline: "Granatowe tło i złote akcenty",
+    get name() { return uiText("editor:regentAppearance.sapphireNight"); },
+    get tagline() { return uiText("editor:regentAppearance.navyBackgroundAndGoldAccents"); },
     group: "creative",
     iconTheme: "regent-sapphire",
     colors: {
@@ -95,8 +96,8 @@ export const REGENT_PALETTES = Object.freeze([
   },
   {
     id: "burgundy",
-    name: "Burgundowy Salon",
-    tagline: "Burgundowe tło i jasny tekst",
+    get name() { return uiText("editor:regentAppearance.burgundySalon"); },
+    get tagline() { return uiText("editor:regentAppearance.burgundyBackgroundAndLightText"); },
     group: "creative",
     iconTheme: "regent-burgundy",
     colors: {
@@ -112,10 +113,10 @@ export const REGENT_PALETTES = Object.freeze([
 ]);
 
 export const REGENT_TEXT_SIZES = Object.freeze([
-  { id: "S", label: "S", description: "Kompaktowy" },
-  { id: "M", label: "M", description: "Oryginalny" },
-  { id: "L", label: "L", description: "Czytelny" },
-  { id: "XL", label: "XL", description: "Wyrazisty" },
+  { id: "S", label: "S", get description() { return uiText("editor:atriumAppearance.compact"); } },
+  { id: "M", label: "M", get description() { return uiText("editor:atriumAppearance.original"); } },
+  { id: "L", label: "L", get description() { return uiText("editor:atriumAppearance.readable"); } },
+  { id: "XL", label: "XL", get description() { return uiText("editor:atriumAppearance.bold"); } },
 ]);
 
 // Display type scales conservatively so Regent's Cormorant masthead keeps its

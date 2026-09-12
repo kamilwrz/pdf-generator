@@ -1,3 +1,5 @@
+import { t as uiText } from "../../../i18n/index.js";
+import { useTranslation } from 'react-i18next';
 /**
  * Contextual structural toolbar for a template-mode section heading.
  *
@@ -83,6 +85,7 @@ export default function SectionRecordAdd({
   laneTransfer = null,
   skillsMode = null,
 }) {
+  useTranslation();
   const {
     A4_Elements,
     editorMode,
@@ -249,14 +252,14 @@ export default function SectionRecordAdd({
     ? getElementOutlineBounds(hoveredHeading)
     : null;
   const skillsModeLabel = {
-    inline: "w linii",
+    inline: uiText("editor:sectionRecordAdd.inline"),
     bullet: "lista",
     chips: "etykiety",
   }[skillsMode] || "";
 
   const additionalActions = skillsMode ? [{
     key: "skills-layout",
-    label: `Styl umiejętności: ${skillsModeLabel}`,
+    label: uiText("editor:sectionRecordAdd.skillsStyle", { value0: (skillsModeLabel) }),
     icon: <LuLayoutGrid aria-hidden="true" />,
     onSelect: () => {
       // The transient toolbar unmounts below. Give the dialog a persistent
@@ -271,8 +274,8 @@ export default function SectionRecordAdd({
     ...(laneTransfer ? [{
       key: "transfer",
       label: laneTransfer === "to-sidebar"
-        ? "Przenieś do sidebara"
-        : "Przenieś do kolumny głównej",
+        ? uiText("editor:sectionRecordAdd.moveToSidebar")
+        : uiText("editor:sectionRecordAdd.moveToMainColumn"),
       icon: <LuArrowLeftRight aria-hidden="true" />,
       onSelect: () => {
         transferSectionLane?.(headingId);
@@ -281,13 +284,13 @@ export default function SectionRecordAdd({
     }] : []),
     {
       key: "delete",
-      label: "Usuń sekcję",
+      label: uiText("editor:sectionRecordAdd.deleteSection"),
       icon: <FiTrash2 aria-hidden="true" />,
       danger: true,
       onSelect: () => {
         deleteWithUndo({
-          title: sectionLabel ? `Usunięto sekcję „${sectionLabel}”` : "Usunięto sekcję",
-          msg: "Możesz natychmiast przywrócić sekcję wraz z jej treścią.",
+          title: sectionLabel ? uiText("editor:sectionRecordAdd.deletedSection", { value0: (sectionLabel) }) : uiText("editor:sectionRecordAdd.sectionDeleted"),
+          msg: uiText("editor:sectionRecordAdd.youCanImmediatelyRestoreTheSectionAnd"),
           remove: () => removeSection?.(headingId),
         });
         hide();
@@ -311,7 +314,7 @@ export default function SectionRecordAdd({
       elementHighlightSelected={Boolean(hoveredHeading?.isSelected)}
       layout={structuralToolbarLayoutSize(1, STRUCTURAL_TOOLBAR_VERTICAL_GAP_SCREEN_PX)}
       addLabel="Sekcja"
-      addTooltip="Dodaj sekcję poniżej"
+      addTooltip={uiText("editor:sectionRecordAdd.addSectionBelow")}
       onAdd={() => {
         openAddSectionModal?.(headingId);
         hide();

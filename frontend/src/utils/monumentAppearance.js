@@ -1,3 +1,4 @@
+import { t as uiText } from "../i18n/index.js";
 /**
  * Curated colour and typography system for the Monument CV template.
  *
@@ -18,8 +19,8 @@ export const DEFAULT_MONUMENT_TEXT_SIZE = "M";
 export const MONUMENT_PALETTES = Object.freeze([
   {
     id: "inkstone",
-    name: "Kamień i Atrament",
-    tagline: "Jasne tło, czerń i szarość",
+    get name() { return uiText("editor:monumentAppearance.stoneAndInk"); },
+    get tagline() { return uiText("editor:monumentAppearance.lightBackgroundBlackAndGrey"); },
     iconTheme: "monument",
     colors: {
       paper: "#F7F7F7", badgeText: "#FFFFFF", ink: "#111111",
@@ -28,8 +29,8 @@ export const MONUMENT_PALETTES = Object.freeze([
   },
   {
     id: "blueprint",
-    name: "Błękit Architekta",
-    tagline: "Jasne tło i błękitne akcenty",
+    get name() { return uiText("editor:monumentAppearance.architectSBlue"); },
+    get tagline() { return uiText("editor:monumentAppearance.lightBackgroundAndBlueAccents"); },
     iconTheme: "monument-blueprint",
     colors: {
       paper: "#F6F8F8", badgeText: "#FCFEFE", ink: "#223338",
@@ -38,8 +39,8 @@ export const MONUMENT_PALETTES = Object.freeze([
   },
   {
     id: "olive",
-    name: "Oliwne Archiwum",
-    tagline: "Jasne tło i oliwkowe akcenty",
+    get name() { return uiText("editor:monumentAppearance.oliveArchive"); },
+    get tagline() { return uiText("editor:monumentAppearance.lightBackgroundAndOliveAccents"); },
     iconTheme: "monument-olive",
     colors: {
       paper: "#F8F8F3", badgeText: "#FEFEFA", ink: "#30372C",
@@ -48,8 +49,8 @@ export const MONUMENT_PALETTES = Object.freeze([
   },
   {
     id: "oxblood",
-    name: "Bordowy Manuskrypt",
-    tagline: "Jasne tło i bordowe akcenty",
+    get name() { return uiText("editor:monumentAppearance.burgundyManuscript"); },
+    get tagline() { return uiText("editor:monumentAppearance.lightBackgroundAndBurgundyAccents"); },
     iconTheme: "monument-oxblood",
     colors: {
       paper: "#FAF7F6", badgeText: "#FFFCFB", ink: "#4B3034",
@@ -58,8 +59,8 @@ export const MONUMENT_PALETTES = Object.freeze([
   },
   {
     id: "travertine",
-    name: "Ciepły Trawertyn",
-    tagline: "Ciepłe tło i brązowe akcenty",
+    get name() { return uiText("editor:monumentAppearance.warmTravertine"); },
+    get tagline() { return uiText("editor:monumentAppearance.warmBackgroundAndBrownAccents"); },
     iconTheme: "monument-travertine",
     colors: {
       paper: "#FAF8F3", badgeText: "#FFFDF8", ink: "#493A2F",
@@ -68,8 +69,8 @@ export const MONUMENT_PALETTES = Object.freeze([
   },
   {
     id: "midnight",
-    name: "Nocny Granit",
-    tagline: "Ciemne tło i jasny tekst",
+    get name() { return uiText("editor:monumentAppearance.nightGranite"); },
+    get tagline() { return uiText("editor:monumentAppearance.darkBackgroundAndLightText"); },
     iconTheme: "monument-midnight",
     colors: {
       paper: "#F6F8FA", badgeText: "#FCFDFE", ink: "#243141",
@@ -79,10 +80,10 @@ export const MONUMENT_PALETTES = Object.freeze([
 ]);
 
 export const MONUMENT_TEXT_SIZES = Object.freeze([
-  { id: "S", label: "S", description: "Kompaktowy" },
-  { id: "M", label: "M", description: "Oryginalny" },
-  { id: "L", label: "L", description: "Czytelny" },
-  { id: "XL", label: "XL", description: "Wyrazisty" },
+  { id: "S", label: "S", get description() { return uiText("editor:atriumAppearance.compact"); } },
+  { id: "M", label: "M", get description() { return uiText("editor:atriumAppearance.original"); } },
+  { id: "L", label: "L", get description() { return uiText("editor:atriumAppearance.readable"); } },
+  { id: "XL", label: "XL", get description() { return uiText("editor:atriumAppearance.bold"); } },
 ]);
 
 // Monument's 33 pt Cormorant name already dominates the page, so display type

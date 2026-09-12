@@ -1,3 +1,5 @@
+import { t as uiText } from "../../../i18n/index.js";
+import { useTranslation } from 'react-i18next';
 /**
  * Contextual structural toolbar for one template-mode record.
  *
@@ -59,6 +61,7 @@ export default function RecordBlockAdd({
   skillsCategory = false,
   descriptionAction = null,
 }) {
+  useTranslation();
   const {
     A4_Elements,
     pageSize,
@@ -164,7 +167,7 @@ export default function RecordBlockAdd({
   const menuItems = [
     ...(descriptionAction ? [{
       key: "description",
-      label: descriptionAction === "add" ? "Dodaj opis" : "Usuń opis",
+      label: descriptionAction === "add" ? uiText("editor:recordBlockAdd.addDescription") : uiText("editor:recordBlockAdd.deleteDescription"),
       icon: descriptionAction === "add"
         ? <FiFilePlus aria-hidden="true" />
         : <FiFileMinus aria-hidden="true" />,
@@ -175,9 +178,9 @@ export default function RecordBlockAdd({
         } else {
           deleteWithUndo({
             title: recordLabel
-              ? `Usunięto opis z wpisu „${recordLabel}”`
-              : "Usunięto opis wpisu",
-            msg: "Możesz natychmiast przywrócić opis wraz z jego treścią.",
+              ? uiText("editor:recordBlockAdd.deletedDescriptionFrom", { value0: (recordLabel) })
+              : uiText("editor:recordBlockAdd.entryDescriptionDeleted"),
+            msg: uiText("editor:recordBlockAdd.youCanImmediatelyRestoreTheDescriptionAnd"),
             remove: () => removeRecordDescription?.(elementId),
           });
         }
@@ -186,13 +189,13 @@ export default function RecordBlockAdd({
     }] : []),
     {
       key: "delete",
-      label: "Usuń wpis",
+      label: uiText("editor:gridEntryActions.deleteEntry"),
       icon: <FiTrash2 aria-hidden="true" />,
       danger: true,
       onSelect: () => {
         deleteWithUndo({
-          title: recordLabel ? `Usunięto wpis „${recordLabel}”` : "Usunięto wpis",
-          msg: "Możesz natychmiast przywrócić wpis wraz z jego treścią.",
+          title: recordLabel ? uiText("editor:gridEntryActions.deletedEntry", { value0: (recordLabel) }) : uiText("editor:gridEntryActions.entryDeleted"),
+          msg: uiText("editor:gridEntryActions.youCanImmediatelyRestoreTheEntryAnd"),
           remove: () => removeRecordBlock?.(elementId),
         });
         hide();
@@ -222,7 +225,7 @@ export default function RecordBlockAdd({
       elementHighlightSelected={Boolean(hoveredElement?.isSelected)}
       layout={structuralToolbarLayoutSize(1, STRUCTURAL_TOOLBAR_VERTICAL_GAP_SCREEN_PX)}
       addLabel="Wpis"
-      addTooltip="Dodaj wpis poniżej"
+      addTooltip={uiText("editor:recordBlockAdd.addEntryBelow")}
       onAdd={addRecord}
       canMoveUp={canMoveUp}
       canMoveDown={canMoveDown}

@@ -16,6 +16,8 @@ Deletion is ownership-checked (IDOR guard) and blocked while any PDF element
 still references the image, so exports cannot lose their bitmap mid-document.
 """
 
+from app.core.localisation import message as localised_message
+
 from fastapi import APIRouter, Depends, UploadFile, HTTPException, Body
 from fastapi.responses import FileResponse, Response
 from sqlalchemy import exists
@@ -66,8 +68,7 @@ def _image_in_use_response() -> dict[str, str]:
 
     return {
         "message": (
-            "Obraz jest używany w zapisanym dokumencie. Usuń go najpierw "
-            "z dokumentu, a następnie ponów próbę."
+            localised_message('this_image_is_used_in_a_saved_document')
         )
     }
 
@@ -98,7 +99,7 @@ def create_upload_image(
     """
     db_user = resolve_user_from_payload(db, payload)
     if db_user is None:
-        raise HTTPException(status_code=401, detail="Nie znaleziono konta użytkownika.")
+        raise HTTPException(status_code=401, detail=localised_message('user_account_not_found'))
     owner_id = int(db_user.id)
     # End the authentication lookup transaction before the atomic write. This
     # avoids SQLite read-to-write lock upgrades while retaining PostgreSQL's
@@ -112,10 +113,10 @@ def create_upload_image(
         max_mb = MAX_UPLOAD_BYTES // (1024 * 1024)
         raise HTTPException(
             status_code=413,
-            detail=f"Plik jest za duży. Maksymalny rozmiar to {max_mb} MB.",
+            detail=localised_message("image_size_limit", limit=max_mb),
         )
     if not data:
-        raise HTTPException(status_code=400, detail="Przesłany plik jest pusty.")
+        raise HTTPException(status_code=400, detail=localised_message('the_uploaded_file_is_empty'))
 
     # Trust the bytes, not the client: derive the real format (and therefore the
     # stored extension and MIME) from the file signature. This rejects HTML/SVG
@@ -125,7 +126,7 @@ def create_upload_image(
     if sniffed is None:
         raise HTTPException(
             status_code=415,
-            detail="Nieobsługiwany format pliku. Dozwolone są obrazy PNG, JPEG, WEBP lub GIF.",
+            detail=localised_message('unsupported_file_format_png_jpeg_webp_and_gif'),
         )
     mime_type, extension = sniffed
     # Reserve immediately before storage publication. The conditional UPDATE
@@ -140,8 +141,7 @@ def create_upload_image(
         raise HTTPException(
             status_code=403,
             detail=(
-                f"Osiągnięto limit {MAX_IMAGES_PER_USER} zdjęć profilowych. "
-                "Usuń jedno lub więcej zdjęć w galerii, aby dodać nowe."
+                localised_message("profile_photo_limit", limit=MAX_IMAGES_PER_USER)
             ),
         )
     backend = configured_backend(USE_S3)
@@ -176,7 +176,7 @@ def create_upload_image(
             "id": row.id,
             "filename": row.filename,
             "mime_type": row.mime_type,
-            "message": "Zdjęcie profilowe zostało pomyślnie przesłane.",
+            "message": localised_message('profile_photo_uploaded_successfully'),
         }
         db.commit()
     except Exception as storage_or_database_error:
@@ -213,7 +213,7 @@ def fetch_user_images(
     """List profile photos owned by the caller (empty list when none yet)."""
     db_user = resolve_user_from_payload(db, payload)
     if db_user is None:
-        raise HTTPException(status_code=401, detail="Nie znaleziono konta użytkownika.")
+        raise HTTPException(status_code=401, detail=localised_message('user_account_not_found'))
     return [
         {
             "id": image.id,
@@ -243,7 +243,7 @@ def get_image_content(
     if image is None:
         raise HTTPException(
             status_code=404,
-            detail={"code": "image_not_found", "message": "Nie znaleziono obrazu."},
+            detail={"code": "image_not_found", "message": localised_message('image_not_found')},
         )
 
     media_type = image.mime_type or "application/octet-stream"
@@ -258,9 +258,9 @@ def get_image_content(
             )
         path = local_path_for_target(target, root=IMAGES_UPLOAD_DIR)
     except Exception:
-        raise HTTPException(status_code=404, detail="Nie znaleziono pliku obrazu.")
+        raise HTTPException(status_code=404, detail=localised_message('image_file_not_found'))
     if not path.is_file():
-        raise HTTPException(status_code=404, detail="Nie znaleziono pliku obrazu.")
+        raise HTTPException(status_code=404, detail=localised_message('image_file_not_found'))
     return FileResponse(path, media_type=media_type)
 
 
@@ -294,7 +294,7 @@ def delete_user_image(
     if image is None:
         raise HTTPException(
             status_code=404,
-            detail={"code": "image_not_found", "message": "Nie znaleziono obrazu."},
+            detail={"code": "image_not_found", "message": localised_message('image_not_found')},
         )
     try:
         target = target_for_image(image, root=IMAGES_UPLOAD_DIR)
@@ -355,7 +355,7 @@ def delete_user_image(
             status_code=500,
             detail={
                 "code": "image_delete_failed",
-                "message": "Nie udało się bezpiecznie usunąć obrazu.",
+                "message": localised_message('the_image_could_not_be_safely_deleted'),
             },
         )
     try:

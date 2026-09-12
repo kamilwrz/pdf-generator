@@ -1,3 +1,4 @@
+import { setUiLanguage } from '../../../i18n/index.js';
 import { StrictMode } from "react";
 import { cleanup, fireEvent, render as renderUi, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
@@ -260,8 +261,36 @@ describe('setup interview header action', () => {
     const close = screen.getByRole('button', { name: 'Zamknij: Utwórz CV' });
     close.focus();
     fireEvent.keyDown(window, { key: 'Tab' });
-    expect(close).toHaveFocus();
+    expect(screen.getByRole('combobox', { name: 'Język aplikacji' })).toHaveFocus();
     fail(new Error('Spróbuj ponownie.'));
     await waitFor(() => expect(action).not.toHaveAttribute('aria-disabled'));
   });
+});
+
+
+it('switches UI language without resetting configuration, focus or a pending creation', async () => {
+  await setUiLanguage('pl');
+  let complete;
+  const onCreate = vi.fn(() => new Promise((resolve) => { complete = resolve; }));
+  const onClose = vi.fn();
+  render(<NewCvSetupModal open onClose={onClose} onCreate={onCreate} />);
+  const selector = screen.getByRole('combobox', { name: 'Język aplikacji' });
+  const documentLanguage = screen.getByRole('combobox', { name: 'Język CV' });
+  expect(documentLanguage).toHaveValue('pl');
+  selector.focus();
+  fireEvent.change(selector, { target: { value: 'en' } });
+  await waitFor(() => expect(screen.getByRole('combobox', { name: 'Application language' })).toHaveValue('en'));
+  expect(selector).toHaveFocus();
+  expect(documentLanguage).toHaveValue('pl');
+  fireEvent.click(screen.getByRole('button', { name: 'Start editing' }));
+  expect(onCreate).toHaveBeenCalledTimes(1);
+  const payload = JSON.stringify(onCreate.mock.calls[0][0]);
+  fireEvent.change(selector, { target: { value: 'pl' } });
+  await waitFor(() => expect(selector).toHaveValue('pl'));
+  expect(onCreate).toHaveBeenCalledTimes(1);
+  expect(JSON.stringify(onCreate.mock.calls[0][0])).toBe(payload);
+  complete(true);
+  await waitFor(() => expect(onClose).toHaveBeenCalledWith('created'));
+  cleanup();
+  await setUiLanguage('pl');
 });

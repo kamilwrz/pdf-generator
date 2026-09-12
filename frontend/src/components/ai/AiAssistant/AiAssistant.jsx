@@ -1,3 +1,6 @@
+import { useMessageState } from '../../../i18n/messageState.js';
+import { t as uiText } from "../../../i18n/index.js";
+import { useTranslation } from 'react-i18next';
 /**
  * Floating AI assistant: quick actions + freeform chat against the canvas.
  * Sends element snapshots to POST /ai/assistant; chat may return previewable
@@ -50,14 +53,14 @@ const CHROME_ACCENT = "var(--color-ink)";
 
 /** Labels for API actions shown on assistant message chips. */
 const ACTION_META = {
-    rating:          { label: "Sprawdź CV",           color: CHROME_ACCENT },
-    position_rating: { label: "Dopasuj do oferty",    color: CHROME_ACCENT },
-    grammar:         { label: "Sprawdź błędy",        color: CHROME_ACCENT },
-    language:        { label: "Popraw język",         color: CHROME_ACCENT },
-    improve:         { label: "Wzmocnij treść",       color: CHROME_ACCENT },
-    shorten:         { label: "Skróć CV",             color: CHROME_ACCENT },
-    ats_score:       { label: "Czytelność dla ATS",   color: CHROME_ACCENT },
-    translate:       { label: "Przetłumacz CV",       color: CHROME_ACCENT },
+    rating:          { get label() { return uiText("ai:aiAssistant.checkCv"); },           color: CHROME_ACCENT },
+    position_rating: { get label() { return uiText("ai:aiAssistant.tailorToAJob"); },    color: CHROME_ACCENT },
+    grammar:         { get label() { return uiText("ai:aiAssistant.checkErrors"); },        color: CHROME_ACCENT },
+    language:        { get label() { return uiText("ai:aiAssistant.improveLanguage"); },         color: CHROME_ACCENT },
+    improve:         { get label() { return uiText("ai:aiAssistant.strengthenContent"); },       color: CHROME_ACCENT },
+    shorten:         { get label() { return uiText("ai:aiAssistant.shortenCv"); },             color: CHROME_ACCENT },
+    ats_score:       { get label() { return uiText("ai:aiAssistant.atsReadability"); },   color: CHROME_ACCENT },
+    translate:       { get label() { return uiText("ai:aiAssistant.translateCv"); },       color: CHROME_ACCENT },
 };
 
 /**
@@ -80,33 +83,33 @@ function withoutEmptyContentReplacement(fields, allowEmptyContent = false) {
 const GOAL_ACTIONS = [
     {
         id: "check_cv",
-        label: "Sprawdź CV",
+        get label() { return uiText("ai:aiAssistant.checkCv"); },
         icon: FaSearch,
         color: CHROME_ACCENT,
-        description: "Ogólny audyt CV: treść, doświadczenie, język i struktura",
+        get description() { return uiText("ai:aiAssistant.overallCvReviewContentExperienceLanguageAnd"); },
     },
     {
         id: "improve_content",
-        label: "Popraw treść",
+        get label() { return uiText("ai:aiAssistant.improveContent"); },
         icon: FaMagic,
         color: CHROME_ACCENT,
-        description: "Wzmocnij opisy, popraw styl lub sprawdź błędy",
+        get description() { return uiText("ai:aiAssistant.strengthenDescriptionsImproveStyleOrCheckErrors"); },
         panel: "improve_content",
     },
     {
         id: "match_job",
-        label: "Dopasuj do oferty",
+        get label() { return uiText("ai:aiAssistant.tailorToAJob"); },
         icon: FaBriefcase,
         color: CHROME_ACCENT,
-        description: "Wklej link — oceń dopasowanie i przygotuj bezpieczne poprawki",
+        get description() { return uiText("ai:aiAssistant.pasteALinkToAssessYourMatch"); },
         panel: "match_job",
     },
     {
         id: "translate",
-        label: "Przetłumacz CV",
+        get label() { return uiText("ai:aiAssistant.translateCv"); },
         icon: FaLanguage,
         color: CHROME_ACCENT,
-        description: "Przetłumacz treść CV na wybrany język",
+        get description() { return uiText("ai:aiAssistant.translateYourCvIntoTheSelectedLanguage"); },
         panel: "translate",
     },
 ];
@@ -114,40 +117,40 @@ const GOAL_ACTIONS = [
 const CONTENT_SUBACTIONS = [
     {
         id: "improve",
-        label: "Wzmocnij treść",
-        description: "Mocniejsze opisy i bardziej konkretne osiągnięcia",
+        get label() { return uiText("ai:aiAssistant.strengthenContent"); },
+        get description() { return uiText("ai:aiAssistant.strongerDescriptionsAndMoreSpecificAchievements"); },
         icon: FaMagic,
     },
     {
         id: "language",
-        label: "Popraw język",
-        description: "Profesjonalniejszy styl, mniej ogólników i frazesów",
+        get label() { return uiText("ai:aiAssistant.improveLanguage"); },
+        get description() { return uiText("ai:aiAssistant.moreProfessionalWordingFewerGeneralisationsAndClich"); },
         icon: FaFont,
     },
     {
         id: "grammar",
-        label: "Sprawdź błędy",
-        description: "Ortografia, gramatyka i interpunkcja",
+        get label() { return uiText("ai:aiAssistant.checkErrors"); },
+        get description() { return uiText("ai:aiAssistant.spellingGrammarAndPunctuation"); },
         icon: RiEditLine,
     },
     {
         id: "shorten",
-        label: "Skróć CV",
-        description: "Skróć i połącz fragmenty, aby zmieścić na mniejszej liczbie stron",
+        get label() { return uiText("ai:aiAssistant.shortenCv"); },
+        get description() { return uiText("ai:aiAssistant.shortenAndCombinePassagesToFitFewer"); },
         icon: RiScissorsLine,
     },
 ];
 
 /** Codes match backend TRANSLATE_LANGUAGES (UA → uk). */
 const TRANSLATE_LANGUAGES = [
-    { code: "pl", label: "Polski" },
-    { code: "en", label: "Angielski" },
-    { code: "de", label: "Niemiecki" },
-    { code: "fr", label: "Francuski" },
-    { code: "es", label: "Hiszpański" },
-    { code: "uk", label: "Ukraiński" },
-    { code: "it", label: "Włoski" },
-    { code: "nl", label: "Niderlandzki" },
+    { code: "pl", get label() { return uiText("ai:aiAssistant.polish"); } },
+    { code: "en", get label() { return uiText("ai:aiAssistant.english"); } },
+    { code: "de", get label() { return uiText("ai:aiAssistant.german"); } },
+    { code: "fr", get label() { return uiText("ai:aiAssistant.french"); } },
+    { code: "es", get label() { return uiText("ai:aiAssistant.spanish"); } },
+    { code: "uk", get label() { return uiText("ai:aiAssistant.ukrainian"); } },
+    { code: "it", get label() { return uiText("ai:aiAssistant.italian"); } },
+    { code: "nl", get label() { return uiText("ai:aiAssistant.dutch"); } },
 ];
 
 /** Category ids that should offer a "Popraw treść" CTA when the score is weak. */
@@ -169,14 +172,15 @@ function categoryPercent(category) {
 const SEVERITY_LABELS = {
     critical: "krytyczny",
     high: "wysoki",
-    medium: "średni",
+    get medium() { return uiText("ai:aiAssistant.moderate"); },
     low: "niski",
-    review: "do sprawdzenia",
+    get review() { return uiText("ai:aiAssistant.toReview"); },
 };
 
 // ── sub-components ────────────────────────────────────────────────────────
 
 function RatingBadge({ value, percent: percentProp }) {
+  useTranslation();
     // Prefer an explicit percent (ATS weighted categories). Otherwise map the
     // legacy 1–10 rubric with `rating × 10` for non-ATS dashboards.
     const percent = typeof percentProp === "number" && !Number.isNaN(percentProp)
@@ -210,6 +214,7 @@ function RatingDashboard({
     onOpenMatchJob,
     ctaDisabled,
 }) {
+  useTranslation();
     const categories = Array.isArray(msg.categories) ? msg.categories : [];
     const strengths = Array.isArray(msg.strengths) ? msg.strengths : [];
     const priorities = Array.isArray(msg.priorities) ? msg.priorities : [];
@@ -255,7 +260,7 @@ function RatingDashboard({
                     <RatingBadge value={msg.rating} percent={percent} />
                     <div className={classes.ratingDashboardHeading}>
                         <span className={classes.ratingDashboardLabel}>
-                            {isAts ? "Czytelność dla ATS" : "Ocena ogólna"}
+                            {isAts ? uiText("ai:aiAssistant.atsReadability") : uiText("ai:aiAssistant.overallScore")}
                         </span>
                         {atsBand ? (
                             <span className={classes.ratingDashboardBand}>{atsBand}</span>
@@ -265,21 +270,18 @@ function RatingDashboard({
             )}
 
             {isAts && (
-                <p className={classes.atsDisclaimer}>
-                    Ocena sprawdza strukturę i czytelność dokumentu. Różne systemy ATS mogą
-                    interpretować CV inaczej.
-                </p>
+                <p className={classes.atsDisclaimer}>{uiText("ai:aiAssistant.thisAssessmentChecksTheDocumentSStructure")}</p>
             )}
 
             {actionId === "position_rating" && msg.jobOffer && (
                 <div className={classes.jobOfferSummary}>
-                    <span className={classes.dashboardBlockLabel}>Analizowana oferta</span>
-                    <strong>{msg.jobOffer.title || "Oferta z podanego źródła"}</strong>
+                    <span className={classes.dashboardBlockLabel}>{uiText("ai:aiAssistant.jobAdvertAnalysed")}</span>
+                    <strong>{msg.jobOffer.title || uiText("ai:aiAssistant.jobAdvertFromTheSuppliedSource")}</strong>
                     {(msg.jobOffer.company || msg.jobOffer.location) && (
                         <span>{[msg.jobOffer.company, msg.jobOffer.location].filter(Boolean).join(" · ")}</span>
                     )}
                     {msg.jobOffer.source && (
-                        <span>Źródło: {msg.jobOffer.source === "manual_fallback" ? "wklejony opis (fallback)" : msg.jobOffer.source}</span>
+                        <span>{uiText("ai:aiAssistant.source")} {msg.jobOffer.source === "manual_fallback" ? uiText("ai:aiAssistant.pastedDescriptionFallback") : msg.jobOffer.source}</span>
                     )}
                     {msg.jobOffer.fetch_warning && (
                         <span className={classes.jobOfferWarning}>{msg.jobOffer.fetch_warning}</span>
@@ -289,7 +291,7 @@ function RatingDashboard({
 
             {jobRequirements.length > 0 && (
                 <div className={classes.dashboardBlock}>
-                    <span className={classes.dashboardBlockLabel}>Wymagania oferty</span>
+                    <span className={classes.dashboardBlockLabel}>{uiText("ai:aiAssistant.jobRequirements")}</span>
                     <ul className={classes.requirementList}>
                         {jobRequirements.map((item, index) => {
                             const statusLabel = requirementStatusLabel(item.match_status);
@@ -305,7 +307,7 @@ function RatingDashboard({
                                         <button
                                             type="button"
                                             className={`${statusClassName} ${classes.requirementStatusInteractive}`}
-                                            aria-label={`${statusLabel}. Pokaż dowody w CV dla wymagania: ${item.text}`}
+                                            aria-label={uiText("ai:aiAssistant.showCvEvidenceForRequirement", { value0: (statusLabel), value1: (item.text) })}
                                             onPointerEnter={() => onShowEvidence?.(
                                                 "pointer",
                                                 previewKey,
@@ -340,7 +342,7 @@ function RatingDashboard({
 
             {evidenceGaps.length > 0 && (
                 <div className={classes.dashboardBlock}>
-                    <span className={classes.dashboardBlockLabel}>Luki w dowodach</span>
+                    <span className={classes.dashboardBlockLabel}>{uiText("ai:aiAssistant.evidenceGaps")}</span>
                     <ul className={classes.evidenceGapList}>
                         {evidenceGaps.map((item, index) => (
                             <li key={`${item.requirement_id || "gap"}-${index}`}>
@@ -354,9 +356,7 @@ function RatingDashboard({
                         className={classes.dashboardCta}
                         disabled={ctaDisabled}
                         onClick={() => onOpenMatchJob?.()}
-                    >
-                        Uzupełnij fakty i przeanalizuj ponownie
-                    </button>
+                    >{uiText("ai:aiAssistant.addFactsAndAnalyseAgain")}</button>
                 </div>
             )}
 
@@ -384,7 +384,7 @@ function RatingDashboard({
 
             {strengths.length > 0 && (
                 <div className={classes.dashboardBlock}>
-                    <span className={classes.dashboardBlockLabel}>Mocne strony</span>
+                    <span className={classes.dashboardBlockLabel}>{uiText("ai:aiAssistant.strengths")}</span>
                     <ul className={classes.strengthList}>
                         {strengths.map((item, i) => <li key={i}>{item}</li>)}
                     </ul>
@@ -393,7 +393,7 @@ function RatingDashboard({
 
             {priorities.length > 0 && (
                 <div className={classes.dashboardBlock}>
-                    <span className={classes.dashboardBlockLabel}>Najważniejsze do poprawy</span>
+                    <span className={classes.dashboardBlockLabel}>{uiText("ai:aiAssistant.priorityImprovements")}</span>
                     <ol className={classes.priorityList}>
                         {priorities.map((item, i) => (
                             <li key={i}>
@@ -416,7 +416,7 @@ function RatingDashboard({
                             disabled={ctaDisabled}
                             onClick={() => onRunAts?.()}
                         >
-                            {actionId === "position_rating" ? "Sprawdź czytelność ATS" : "Sprawdź ATS"}
+                            {actionId === "position_rating" ? uiText("ai:aiAssistant.checkAtsReadability") : uiText("ai:aiAssistant.checkAts")}
                         </button>
                     )}
                     {showContentCta && (
@@ -425,9 +425,7 @@ function RatingDashboard({
                             className={classes.dashboardCta}
                             disabled={ctaDisabled}
                             onClick={() => onOpenContentPanel?.()}
-                        >
-                            Popraw treść
-                        </button>
+                        >{uiText("ai:aiAssistant.improveContent")}</button>
                     )}
                     {showMatchCta && (
                         <button
@@ -435,9 +433,7 @@ function RatingDashboard({
                             className={classes.dashboardCta}
                             disabled={ctaDisabled}
                             onClick={() => onOpenMatchJob?.()}
-                        >
-                            Dopasuj do oferty
-                        </button>
+                        >{uiText("ai:aiAssistant.tailorToAJob")}</button>
                     )}
                 </div>
             )}
@@ -446,7 +442,7 @@ function RatingDashboard({
 }
 
 function correctionFieldLabel(field) {
-    if (field === "content") return "treść";
+    if (field === "content") return uiText("ai:aiAssistant.content");
     return field;
 }
 
@@ -459,6 +455,7 @@ function correctionFieldLabel(field) {
  * spawn a browser hover bubble over the strikethrough “Przed” line.
  */
 function CorrectionCard({ msgId, patch, correctionStates, onAccept, onReject, A4_Elements }) {
+  useTranslation();
     const cardRef = useRef(null);
     const [isExpanded, setIsExpanded] = useState(false);
     const { element_id, ...fields } = patch;
@@ -508,7 +505,7 @@ function CorrectionCard({ msgId, patch, correctionStates, onAccept, onReject, A4
                         <span className={classes.diffField}>{correctionFieldLabel(field)}</span>
                         <div className={classes.diffCompare}>
                             <div className={classes.diffBlock} data-side="old">
-                                <span className={classes.diffLabel}>Przed</span>
+                                <span className={classes.diffLabel}>{uiText("ai:aiAssistant.before")}</span>
                                 <span className={classes.diffOld}>{oldVal}</span>
                             </div>
                             <span className={classes.diffArrow} aria-hidden="true">→</span>
@@ -522,21 +519,20 @@ function CorrectionCard({ msgId, patch, correctionStates, onAccept, onReject, A4
             })}
             {state === "pending" && (
                 <div className={classes.corrActions}>
-                    <button className={classes.corrAccept} onClick={() => onAccept(msgId, patch)} title="Zastosuj">
-                        <MdCheckCircle /> Akceptuj
-                    </button>
-                    <button className={classes.corrReject} onClick={() => onReject(msgId, element_id)} title="Odrzuć">
-                        <MdCancel /> Odrzuć
-                    </button>
+                    <button className={classes.corrAccept} onClick={() => onAccept(msgId, patch)} title={uiText("ai:aiAssistant.apply")}>
+                        <MdCheckCircle /> {uiText("ai:aiAssistant.accept")}</button>
+                    <button className={classes.corrReject} onClick={() => onReject(msgId, element_id)} title={uiText("ai:aiAssistant.reject")}>
+                        <MdCancel /> {uiText("ai:aiAssistant.reject")}</button>
                 </div>
             )}
-            {state === "accepted" && <span className={classes.corrBadge} style={{ color: "var(--color-success)" }}>✓ Zastosowano</span>}
-            {state === "rejected" && <span className={classes.corrBadge} style={{ color: "var(--color-muted)" }}>✗ Pominięto</span>}
+            {state === "accepted" && <span className={classes.corrBadge} style={{ color: "var(--color-success)" }}>{uiText("ai:aiAssistant.applied")}</span>}
+            {state === "rejected" && <span className={classes.corrBadge} style={{ color: "var(--color-muted)" }}>{uiText("ai:aiAssistant.skipped")}</span>}
         </div>
     );
 }
 
 function LayoutGroupCard({ msgId, group, layoutStates, onPreview, onClearPreview, onAccept, onReject }) {
+  useTranslation();
     const key = `${msgId}_${group.id}`;
     const state = layoutStates[key] || "pending";
     const moves = group.patches?.length || 0;
@@ -547,41 +543,35 @@ function LayoutGroupCard({ msgId, group, layoutStates, onPreview, onClearPreview
                 <span className={`${classes.layoutSeverity} ${classes[`severity_${group.severity}`]}`}>
                     {SEVERITY_LABELS[group.severity] ?? group.severity ?? SEVERITY_LABELS.review}
                 </span>
-                <span className={classes.layoutMoves}>{moves} {moves === 1 ? "przesunięcie" : moves < 5 ? "przesunięcia" : "przesunięć"}</span>
+                <span className={classes.layoutMoves}>{moves} {moves === 1 ? uiText("ai:aiAssistant.move") : moves < 5 ? uiText("ai:aiAssistant.moves") : uiText("ai:aiAssistant.moves2")}</span>
             </div>
             <strong>{group.title}</strong>
             <p>{group.reason}</p>
             {state === "pending" && (
                 <div className={classes.layoutActions}>
-                    <button className={classes.layoutPreview} onClick={() => onPreview(msgId, group)}>
-                        Podgląd
-                    </button>
+                    <button className={classes.layoutPreview} onClick={() => onPreview(msgId, group)}>{uiText("ai:aiAssistant.preview")}</button>
                     <button className={classes.layoutAccept} onClick={() => onAccept(msgId, group)}>
-                        <MdCheckCircle /> Zastosuj
-                    </button>
+                        <MdCheckCircle /> {uiText("ai:aiAssistant.apply")}</button>
                     <button className={classes.layoutReject} onClick={() => onReject(msgId, group)}>
-                        <MdCancel /> Pomiń
-                    </button>
+                        <MdCancel /> {uiText("ai:aiAssistant.skip")}</button>
                 </div>
             )}
             {state === "preview" && (
                 <div className={classes.layoutActions}>
-                    <span className={classes.previewingLabel}>Podgląd aktywny na płótnie</span>
+                    <span className={classes.previewingLabel}>{uiText("ai:aiAssistant.previewActiveOnTheCanvas")}</span>
                     <button className={classes.layoutAccept} onClick={() => onAccept(msgId, group)}>
-                        <MdCheckCircle /> Zastosuj
-                    </button>
-                    <button className={classes.layoutPreview} onClick={() => onClearPreview(msgId, group.id)}>
-                        Zatrzymaj podgląd
-                    </button>
+                        <MdCheckCircle /> {uiText("ai:aiAssistant.apply")}</button>
+                    <button className={classes.layoutPreview} onClick={() => onClearPreview(msgId, group.id)}>{uiText("ai:aiAssistant.stopPreview")}</button>
                 </div>
             )}
-            {state === "accepted" && <span className={classes.corrBadge} style={{ color: "var(--color-success)" }}>✓ Zastosowano</span>}
-            {state === "rejected" && <span className={classes.corrBadge} style={{ color: "var(--color-muted)" }}>✗ Pominięto</span>}
+            {state === "accepted" && <span className={classes.corrBadge} style={{ color: "var(--color-success)" }}>{uiText("ai:aiAssistant.applied")}</span>}
+            {state === "rejected" && <span className={classes.corrBadge} style={{ color: "var(--color-muted)" }}>{uiText("ai:aiAssistant.skipped")}</span>}
         </div>
     );
 }
 
 function StructureGroupCard({ msgId, group, structureStates, onPreview, onClearPreview, onAccept, onReject }) {
+  useTranslation();
     const key = `${msgId}_${group.id}`;
     const state = structureStates[key] || "pending";
     const addedCount = group.add_elements?.length || 0;
@@ -590,42 +580,36 @@ function StructureGroupCard({ msgId, group, structureStates, onPreview, onClearP
     return (
         <div className={`${classes.structureCard} ${classes[`structure_${state}`]}`}>
             <div className={classes.structureCardHeader}>
-                <span>Przebudowa sekcji</span>
-                <span>{addedCount} nowych pól · {movedCount} przesunięć</span>
+                <span>{uiText("ai:aiAssistant.rebuildSections")}</span>
+                <span>{addedCount} {uiText("ai:aiAssistant.newFields")} {movedCount} {uiText("ai:aiAssistant.moves2")}</span>
             </div>
             <strong>{group.title}</strong>
             <p>{group.reason}</p>
             {state === "pending" && (
                 <div className={classes.layoutActions}>
-                    <button className={classes.layoutPreview} onClick={() => onPreview(msgId, group)}>
-                        Podgląd
-                    </button>
+                    <button className={classes.layoutPreview} onClick={() => onPreview(msgId, group)}>{uiText("ai:aiAssistant.preview")}</button>
                     <button className={classes.layoutAccept} onClick={() => onAccept(msgId, group)}>
-                        <MdCheckCircle /> Zastosuj
-                    </button>
+                        <MdCheckCircle /> {uiText("ai:aiAssistant.apply")}</button>
                     <button className={classes.layoutReject} onClick={() => onReject(msgId, group)}>
-                        <MdCancel /> Pomiń
-                    </button>
+                        <MdCancel /> {uiText("ai:aiAssistant.skip")}</button>
                 </div>
             )}
             {state === "preview" && (
                 <div className={classes.layoutActions}>
-                    <span className={classes.previewingLabel}>Podgląd aktywny na płótnie</span>
+                    <span className={classes.previewingLabel}>{uiText("ai:aiAssistant.previewActiveOnTheCanvas")}</span>
                     <button className={classes.layoutAccept} onClick={() => onAccept(msgId, group)}>
-                        <MdCheckCircle /> Zastosuj
-                    </button>
-                    <button className={classes.layoutPreview} onClick={() => onClearPreview(msgId, group.id)}>
-                        Zatrzymaj podgląd
-                    </button>
+                        <MdCheckCircle /> {uiText("ai:aiAssistant.apply")}</button>
+                    <button className={classes.layoutPreview} onClick={() => onClearPreview(msgId, group.id)}>{uiText("ai:aiAssistant.stopPreview")}</button>
                 </div>
             )}
-            {state === "accepted" && <span className={classes.corrBadge} style={{ color: "var(--color-success)" }}>✓ Zastosowano</span>}
-            {state === "rejected" && <span className={classes.corrBadge} style={{ color: "var(--color-muted)" }}>✗ Pominięto</span>}
+            {state === "accepted" && <span className={classes.corrBadge} style={{ color: "var(--color-success)" }}>{uiText("ai:aiAssistant.applied")}</span>}
+            {state === "rejected" && <span className={classes.corrBadge} style={{ color: "var(--color-muted)" }}>{uiText("ai:aiAssistant.skipped")}</span>}
         </div>
     );
 }
 
 function CloneGroupCard({ msgId, group, cloneStates, onPreview, onClearPreview, onAccept, onReject }) {
+  useTranslation();
     const key = `${msgId}_${group.id}`;
     const state = cloneStates[key] || "pending";
     const addedCount = group.add_elements?.length || 0;
@@ -633,42 +617,36 @@ function CloneGroupCard({ msgId, group, cloneStates, onPreview, onClearPreview, 
     return (
         <div className={`${classes.structureCard} ${classes[`structure_${state}`]}`}>
             <div className={classes.structureCardHeader}>
-                <span>Klonowanie</span>
+                <span>{uiText("ai:aiAssistant.duplicate")}</span>
                 <span>{addedCount} {addedCount === 1 ? "kopia" : "kopii"}</span>
             </div>
             <strong>{group.title}</strong>
             <p>{group.reason}</p>
             {state === "pending" && (
                 <div className={classes.layoutActions}>
-                    <button className={classes.layoutPreview} onClick={() => onPreview(msgId, group)}>
-                        Podgląd
-                    </button>
+                    <button className={classes.layoutPreview} onClick={() => onPreview(msgId, group)}>{uiText("ai:aiAssistant.preview")}</button>
                     <button className={classes.layoutAccept} onClick={() => onAccept(msgId, group)}>
-                        <MdCheckCircle /> Zastosuj
-                    </button>
+                        <MdCheckCircle /> {uiText("ai:aiAssistant.apply")}</button>
                     <button className={classes.layoutReject} onClick={() => onReject(msgId, group)}>
-                        <MdCancel /> Pomiń
-                    </button>
+                        <MdCancel /> {uiText("ai:aiAssistant.skip")}</button>
                 </div>
             )}
             {state === "preview" && (
                 <div className={classes.layoutActions}>
-                    <span className={classes.previewingLabel}>Podgląd aktywny na płótnie</span>
+                    <span className={classes.previewingLabel}>{uiText("ai:aiAssistant.previewActiveOnTheCanvas")}</span>
                     <button className={classes.layoutAccept} onClick={() => onAccept(msgId, group)}>
-                        <MdCheckCircle /> Zastosuj
-                    </button>
-                    <button className={classes.layoutPreview} onClick={() => onClearPreview(msgId, group.id)}>
-                        Zatrzymaj podgląd
-                    </button>
+                        <MdCheckCircle /> {uiText("ai:aiAssistant.apply")}</button>
+                    <button className={classes.layoutPreview} onClick={() => onClearPreview(msgId, group.id)}>{uiText("ai:aiAssistant.stopPreview")}</button>
                 </div>
             )}
-            {state === "accepted" && <span className={classes.corrBadge} style={{ color: "var(--color-success)" }}>✓ Zastosowano</span>}
-            {state === "rejected" && <span className={classes.corrBadge} style={{ color: "var(--color-muted)" }}>✗ Pominięto</span>}
+            {state === "accepted" && <span className={classes.corrBadge} style={{ color: "var(--color-success)" }}>{uiText("ai:aiAssistant.applied")}</span>}
+            {state === "rejected" && <span className={classes.corrBadge} style={{ color: "var(--color-muted)" }}>{uiText("ai:aiAssistant.skipped")}</span>}
         </div>
     );
 }
 
 function DeletionGroupCard({ msgId, group, deletionStates, onPreview, onClearPreview, onAccept, onReject }) {
+  useTranslation();
     const key = `${msgId}_${group.id}`;
     const state = deletionStates[key] || "pending";
     const count = group.remove_element_ids?.length || 0;
@@ -676,37 +654,30 @@ function DeletionGroupCard({ msgId, group, deletionStates, onPreview, onClearPre
     return (
         <div className={`${classes.deletionCard} ${classes[`deletion_${state}`]}`}>
             <div className={classes.structureCardHeader}>
-                <span>Usuwanie elementów</span>
-                <span>{count} {count === 1 ? "element" : "elementów"}</span>
+                <span>{uiText("ai:aiAssistant.deleteElements")}</span>
+                <span>{count} {count === 1 ? "element" : uiText("ai:aiAssistant.elements")}</span>
             </div>
             <strong>{group.title}</strong>
             <p>{group.reason}</p>
             {state === "pending" && (
                 <div className={classes.layoutActions}>
-                    <button className={classes.layoutPreview} onClick={() => onPreview(msgId, group)}>
-                        Podgląd
-                    </button>
+                    <button className={classes.layoutPreview} onClick={() => onPreview(msgId, group)}>{uiText("ai:aiAssistant.preview")}</button>
                     <button className={classes.deleteAccept} onClick={() => onAccept(msgId, group)}>
-                        <MdCheckCircle /> Usuń
-                    </button>
+                        <MdCheckCircle /> {uiText("ai:aiAssistant.delete")}</button>
                     <button className={classes.layoutReject} onClick={() => onReject(msgId, group)}>
-                        <MdCancel /> Pomiń
-                    </button>
+                        <MdCancel /> {uiText("ai:aiAssistant.skip")}</button>
                 </div>
             )}
             {state === "preview" && (
                 <div className={classes.layoutActions}>
-                    <span className={classes.previewingLabel}>Podgląd aktywny na płótnie</span>
+                    <span className={classes.previewingLabel}>{uiText("ai:aiAssistant.previewActiveOnTheCanvas")}</span>
                     <button className={classes.deleteAccept} onClick={() => onAccept(msgId, group)}>
-                        <MdCheckCircle /> Usuń
-                    </button>
-                    <button className={classes.layoutPreview} onClick={() => onClearPreview(msgId, group.id)}>
-                        Zatrzymaj podgląd
-                    </button>
+                        <MdCheckCircle /> {uiText("ai:aiAssistant.delete")}</button>
+                    <button className={classes.layoutPreview} onClick={() => onClearPreview(msgId, group.id)}>{uiText("ai:aiAssistant.stopPreview")}</button>
                 </div>
             )}
-            {state === "accepted" && <span className={classes.corrBadge} style={{ color: "var(--color-danger)" }}>✓ Usunięto</span>}
-            {state === "rejected" && <span className={classes.corrBadge} style={{ color: "var(--color-muted)" }}>✗ Pominięto</span>}
+            {state === "accepted" && <span className={classes.corrBadge} style={{ color: "var(--color-danger)" }}>{uiText("ai:aiAssistant.deleted")}</span>}
+            {state === "rejected" && <span className={classes.corrBadge} style={{ color: "var(--color-muted)" }}>{uiText("ai:aiAssistant.skipped")}</span>}
         </div>
     );
 }
@@ -745,6 +716,7 @@ function ChatMessage({
     ctaDisabled,
     A4_Elements,
 }) {
+  useTranslation();
     const isUser = msg.role === "user";
     const pendingCount = (msg.corrections || []).filter(
         c => (correctionStates[`${msg.id}_${c.element_id}`] || "pending") === "pending"
@@ -800,7 +772,7 @@ function ChatMessage({
                 {/* Tips under the dashboard; skip when priorities already cover the same ground. */}
                 {msg.tips?.length > 0 && !(hasDashboard && msg.priorities?.length > 0) && (
                     <div className={classes.tipsBlock}>
-                        <span className={classes.tipsBlockLabel}>Wskazówki</span>
+                        <span className={classes.tipsBlockLabel}>{uiText("ai:aiAssistant.tips")}</span>
                         <ul className={classes.tips}>
                             {msg.tips.map((tip, i) => <li key={i}>{tip}</li>)}
                         </ul>
@@ -813,8 +785,7 @@ function ChatMessage({
                         <div className={classes.corrHeader}>
                             <span>{msg.corrections.length} {msg.corrections.length === 1 ? "poprawka" : msg.corrections.length < 5 ? "poprawki" : "poprawek"}</span>
                             {pendingCount > 0 && (
-                                <button className={classes.applyAll} onClick={() => onApplyAll(msg.id, msg.corrections)}>
-                                    Zastosuj wszystkie ({pendingCount})
+                                <button className={classes.applyAll} onClick={() => onApplyAll(msg.id, msg.corrections)}>{uiText("ai:aiAssistant.applyAll")}{pendingCount})
                                 </button>
                             )}
                         </div>
@@ -836,7 +807,7 @@ function ChatMessage({
                 {msg.layout_groups?.length > 0 && (
                     <div className={classes.layoutGroups}>
                         <div className={classes.corrHeader}>
-                            <span>{msg.layout_groups.length} {msg.layout_groups.length === 1 ? "sugestia układu" : msg.layout_groups.length < 5 ? "sugestie układu" : "sugestii układu"}</span>
+                            <span>{msg.layout_groups.length} {msg.layout_groups.length === 1 ? uiText("ai:aiAssistant.layoutSuggestion") : msg.layout_groups.length < 5 ? uiText("ai:aiAssistant.layoutSuggestions") : uiText("ai:aiAssistant.layoutSuggestions2")}</span>
                         </div>
                         {msg.layout_groups.map(group => (
                             <LayoutGroupCard
@@ -856,7 +827,7 @@ function ChatMessage({
                 {msg.structure_groups?.length > 0 && (
                     <div className={classes.layoutGroups}>
                         <div className={classes.corrHeader}>
-                            <span>{msg.structure_groups.length} {msg.structure_groups.length === 1 ? "propozycja przebudowy" : "propozycje przebudowy"}</span>
+                            <span>{msg.structure_groups.length} {msg.structure_groups.length === 1 ? uiText("ai:aiAssistant.rebuildSuggestion") : uiText("ai:aiAssistant.rebuildSuggestions")}</span>
                         </div>
                         {msg.structure_groups.map(group => (
                             <StructureGroupCard
@@ -876,7 +847,7 @@ function ChatMessage({
                 {msg.clone_groups?.length > 0 && (
                     <div className={classes.layoutGroups}>
                         <div className={classes.corrHeader}>
-                            <span>{msg.clone_groups.length} {msg.clone_groups.length === 1 ? "propozycja klonowania" : "propozycje klonowania"}</span>
+                            <span>{msg.clone_groups.length} {msg.clone_groups.length === 1 ? uiText("ai:aiAssistant.cloningSuggestion") : uiText("ai:aiAssistant.cloningSuggestions")}</span>
                         </div>
                         {msg.clone_groups.map(group => (
                             <CloneGroupCard
@@ -896,7 +867,7 @@ function ChatMessage({
                 {msg.deletion_groups?.length > 0 && (
                     <div className={classes.layoutGroups}>
                         <div className={classes.corrHeader}>
-                            <span>{msg.deletion_groups.length} {msg.deletion_groups.length === 1 ? "propozycja usunięcia" : "propozycje usunięcia"}</span>
+                            <span>{msg.deletion_groups.length} {msg.deletion_groups.length === 1 ? uiText("ai:aiAssistant.deletionSuggestion") : uiText("ai:aiAssistant.deletionSuggestions")}</span>
                         </div>
                         {msg.deletion_groups.map(group => (
                             <DeletionGroupCard
@@ -932,7 +903,7 @@ function ChatMessage({
                 {/* web sources */}
                 {msg.web_sources?.length > 0 && (
                     <div className={classes.sources}>
-                        <span className={classes.sourcesLabel}>Źródła:</span>
+                        <span className={classes.sourcesLabel}>{uiText("ai:aiAssistant.sources")}</span>
                         {msg.web_sources.map((url, i) => (
                             <a key={i} href={url} target="_blank" rel="noopener noreferrer" className={classes.sourceLink}>
                                 {new URL(url).hostname}
@@ -948,6 +919,7 @@ function ChatMessage({
 // ── main component ────────────────────────────────────────────────────────
 
 export default function AiAssistant() {
+  useTranslation();
     const reduceMotion = useReducedMotion();
     const {
         sessionKey,
@@ -997,7 +969,7 @@ export default function AiAssistant() {
     const [interview, setInterview] = useState(null);
     const interviewTriggerRef = useRef(null);
     const tailorInterviewTriggerRef = useRef(null);
-    const [jobUrlError, setJobUrlError] = useState("");
+    const [jobUrlError, setJobUrlError] = useMessageState("");
     // Goal submenu: improve_content | translate | match_job | null
     const [activePanel, setActivePanel] = useState(null);
     useEffect(() => {
@@ -1582,7 +1554,7 @@ export default function AiAssistant() {
                         ? { cv_language: cvLanguageOverride }
                         : {}),
                 }),
-                "Asystent AI nie odpowiedział",
+                uiText("ai:aiAssistant.theAiAssistantDidNotRespond"),
                 {
                     timeoutMs,
                     // Retry cold-start / proxy blips only, not client AbortError timeouts.
@@ -1666,7 +1638,7 @@ export default function AiAssistant() {
                 id: nanoid(),
                 role: "assistant",
                 createdAt: Date.now(),
-                text: `Błąd: ${err.message}`,
+                text: uiText("ai:aiAssistant.error", { value0: (err.message) }),
                 tips: [],
                 corrections: [],
                 web_sources: [],
@@ -1709,8 +1681,8 @@ export default function AiAssistant() {
 
     const handleTranslateLanguage = useCallback((lang) => {
         setActivePanel(null);
-        send("translate", `Przetłumacz CV na: ${lang.label}`, {
-            displayText: `Przetłumacz → ${lang.label}`,
+        send("translate", uiText("ai:aiAssistant.translateCvInto", { value0: (lang.label) }), {
+            displayText: uiText("ai:aiAssistant.translate", { value0: (lang.label) }),
             target_language: lang.code,
         });
     }, [send]);
@@ -1731,7 +1703,7 @@ export default function AiAssistant() {
     }, []);
 
     const runAtsScore = useCallback(() => {
-        send("ats_score", "Sprawdź ATS");
+        send("ats_score", uiText("ai:aiAssistant.checkAts"));
     }, [send]);
 
     // Bridge: another surface (e.g. the "CV too long" modal) can request an
@@ -1761,8 +1733,8 @@ export default function AiAssistant() {
         }
         setJobUrlError("");
         setActivePanel(null);
-        send("position_rating", "Dopasuj moje CV do tej oferty", {
-            displayText: url ? "Dopasuj CV do oferty z linku" : "Dopasuj CV do wklejonej oferty",
+        send("position_rating", uiText("ai:aiAssistant.tailorMyCvToThisJob"), {
+            displayText: url ? uiText("ai:aiAssistant.tailorCvToTheLinkedJob") : uiText("ai:aiAssistant.tailorCvToThePastedJobDescription"),
         });
     }, [jobDesc, jobOfferUrl, send]);
 
@@ -1809,13 +1781,13 @@ export default function AiAssistant() {
                     if (isOpen) closeAssistant();
                     else setIsOpen(true);
                 }}
-                title="Asystent AI"
-                aria-label={isOpen ? "Zamknij asystenta AI" : "Otwórz asystenta AI"}
+                title={uiText("ai:aiAssistant.aiAssistant")}
+                aria-label={isOpen ? uiText("ai:aiAssistant.closeAiAssistant") : uiText("ai:aiAssistant.openAiAssistant")}
                 aria-expanded={isOpen}
                 aria-controls="ai-assistant-panel"
             >
                 <BsStars />
-                <span className={classes.fabLabel}>Asystent AI</span>
+                <span className={classes.fabLabel}>{uiText("ai:aiAssistant.aiAssistant")}</span>
             </button>
 
             {/* ── sliding panel ── */}
@@ -1830,32 +1802,30 @@ export default function AiAssistant() {
                         transition={reduceMotion
                             ? { duration: 0 }
                             : { duration: 0.2, ease: [0.2, 0, 0, 1] }}
-                        aria-label="Asystent AI"
+                        aria-label={uiText("ai:aiAssistant.aiAssistant")}
                     >
                         {/* header */}
                         <div className={classes.header}>
                             <div className={classes.headerLeft}>
                                 <BsStars className={classes.headerIcon} />
                                 <div>
-                                    <div className={classes.headerTitle}>Asystent AI</div>
-                                    <div className={classes.headerSub}>
-                                        Analizuj, poprawiaj i ulepszaj
-                                    </div>
+                                    <div className={classes.headerTitle}>{uiText("ai:aiAssistant.aiAssistant")}</div>
+                                    <div className={classes.headerSub}>{uiText("ai:aiAssistant.analyseCorrectAndImprove")}</div>
                                 </div>
                             </div>
                             <div className={classes.headerRight}>
                                 {entitlements?.limits?.monthly_ai_credits != null && (
                                     <div
                                         className={classes.creditPill}
-                                        title={`Wykorzystano ${entitlements.usage?.ai_credits_used ?? 0} z ${entitlements.limits.monthly_ai_credits} kredytów AI w tym miesiącu`}
+                                        title={uiText("ai:aiAssistant.ofAiCreditsUsedThisMonth", { value0: (entitlements.usage?.ai_credits_used ?? 0), value1: (entitlements.limits.monthly_ai_credits) })}
                                     >
                                         <span className={classes.creditPillValue}>
                                             {entitlements.remaining?.ai_credits ?? Math.max(0, entitlements.limits.monthly_ai_credits - (entitlements.usage?.ai_credits_used ?? 0))}
                                         </span>
-                                        <span className={classes.creditPillLabel}>kredytów AI</span>
+                                        <span className={classes.creditPillLabel}>{uiText("ai:aiAssistant.aiCredits")}</span>
                                     </div>
                                 )}
-                                <button type="button" className={classes.closeBtn} aria-label="Zamknij asystenta AI" onClick={() => {
+                                <button type="button" className={classes.closeBtn} aria-label={uiText("ai:aiAssistant.closeAiAssistant")} onClick={() => {
                                     setLayoutPreviewPatches([]);
                                     setStructurePreviewGroup(null);
                                     setDeletionPreviewIds([]);
@@ -1884,7 +1854,7 @@ export default function AiAssistant() {
                         <div className={classes.actions}>
                             <button ref={interviewTriggerRef} type="button" className={classes.actionBtn} disabled={isLoading} onClick={() => openInterview('enrich')}>
                                 <FaComments className={classes.actionIcon} aria-hidden="true" />
-                                <span>Uzupełnij CV przez wywiad</span>
+                                <span>{uiText("ai:aiAssistant.addToYourCvThroughAnInterview")}</span>
                             </button>
                             {GOAL_ACTIONS.map((action) => (
                                 <button
@@ -1914,12 +1884,10 @@ export default function AiAssistant() {
                                     exit={{ height: 0, opacity: 0 }}
                                     transition={{ duration: 0.2 }}
                                 >
-                                    <div className={classes.subPanelTitle}>Co chcesz poprawić?</div>
+                                    <div className={classes.subPanelTitle}>{uiText("ai:aiAssistant.whatWouldYouLikeToImprove")}</div>
                                     {/* CV language override for content corrections. Defaults to the detected
                                         language reported by the backend; users can correct a misdetection. */}
-                                    <label className={classes.cvLangLabel}>
-                                        Język CV
-                                        <select
+                                    <label className={classes.cvLangLabel}>{uiText("ai:aiAssistant.cvLanguage")}<select
                                             className={classes.cvLangSelect}
                                             value={cvLanguage}
                                             onChange={(e) => handleCvLanguageChange(e.target.value)}
@@ -1947,9 +1915,7 @@ export default function AiAssistant() {
                                             </button>
                                         ))}
                                     </div>
-                                    <button type="button" className={classes.jobDescCancel} onClick={() => setActivePanel(null)}>
-                                        Anuluj
-                                    </button>
+                                    <button type="button" className={classes.jobDescCancel} onClick={() => setActivePanel(null)}>{uiText("ai:aiAssistant.cancel")}</button>
                                 </Motion.div>
                             )}
                             {activePanel === "translate" && (
@@ -1960,7 +1926,7 @@ export default function AiAssistant() {
                                     exit={{ height: 0, opacity: 0 }}
                                     transition={{ duration: 0.2 }}
                                 >
-                                    <div className={classes.subPanelTitle}>Wybierz język docelowy</div>
+                                    <div className={classes.subPanelTitle}>{uiText("ai:aiAssistant.chooseTheTargetLanguage")}</div>
                                     <div className={classes.langGrid}>
                                         {TRANSLATE_LANGUAGES.map((lang) => (
                                             <button
@@ -1975,9 +1941,7 @@ export default function AiAssistant() {
                                             </button>
                                         ))}
                                     </div>
-                                    <button type="button" className={classes.jobDescCancel} onClick={() => setActivePanel(null)}>
-                                        Anuluj
-                                    </button>
+                                    <button type="button" className={classes.jobDescCancel} onClick={() => setActivePanel(null)}>{uiText("ai:aiAssistant.cancel")}</button>
                                 </Motion.div>
                             )}
                             {activePanel === "match_job" && (
@@ -1989,12 +1953,10 @@ export default function AiAssistant() {
                                     transition={{ duration: 0.2 }}
                                 >
                                     <div className={classes.jobPanelHeader}>
-                                        <strong>Dopasuj CV do konkretnej oferty</strong>
-                                        <span>Najpierw przeanalizujemy wymagania, potem pokażemy poprawki do akceptacji.</span>
+                                        <strong>{uiText("ai:aiAssistant.tailorYourCvToASpecificJob")}</strong>
+                                        <span>{uiText("ai:aiAssistant.weWillAnalyseTheRequirementsThenShow")}</span>
                                     </div>
-                                    <label className={classes.jobDescLabel} htmlFor="ai-job-offer-url">
-                                        Link do oferty
-                                    </label>
+                                    <label className={classes.jobDescLabel} htmlFor="ai-job-offer-url">{uiText("ai:aiAssistant.jobAdvertLink")}</label>
                                     <input
                                         id="ai-job-offer-url"
                                         className={classes.jobDescInput}
@@ -2009,54 +1971,46 @@ export default function AiAssistant() {
                                         aria-describedby="ai-job-offer-help ai-job-offer-error"
                                         aria-invalid={Boolean(jobUrlError)}
                                     />
-                                    <span id="ai-job-offer-help" className={classes.jobFieldHelp}>
-                                        Obsługiwane są publiczne strony HTTPS, w tym Greenhouse i Lever.
-                                    </span>
+                                    <span id="ai-job-offer-help" className={classes.jobFieldHelp}>{uiText("ai:aiAssistant.publicHttpsPagesAreSupportedIncludingGreenhouse")}</span>
                                     {jobUrlError && (
                                         <span id="ai-job-offer-error" className={classes.jobFieldError} role="alert">
                                             {jobUrlError}
                                         </span>
                                     )}
-                                    <label className={classes.jobDescLabel} htmlFor="ai-job-description">
-                                        Opis awaryjny <span>(opcjonalnie)</span>
+                                    <label className={classes.jobDescLabel} htmlFor="ai-job-description">{uiText("ai:aiAssistant.fallbackDescription")} <span>{uiText("ai:aiAssistant.optional")}</span>
                                     </label>
                                     <textarea
                                         id="ai-job-description"
                                         className={classes.jobDescInput}
                                         value={jobDesc}
                                         onChange={e => setJobDesc(e.target.value)}
-                                        placeholder="Wklej treść ogłoszenia, jeśli strona wymaga logowania lub blokuje pobieranie."
+                                        placeholder={uiText("ai:aiAssistant.pasteTheJobDescriptionIfThePage")}
                                         rows={4}
                                     />
-                                    <label className={classes.jobDescLabel} htmlFor="ai-candidate-notes">
-                                        Dodatkowe fakty o Tobie <span>(opcjonalnie)</span>
+                                    <label className={classes.jobDescLabel} htmlFor="ai-candidate-notes">{uiText("ai:aiAssistant.additionalFactsAboutYou")} <span>{uiText("ai:aiAssistant.optional")}</span>
                                     </label>
                                     <textarea
                                         id="ai-candidate-notes"
                                         className={classes.jobDescInput}
                                         value={candidateNotes}
                                         onChange={(event) => setCandidateNotes(event.target.value)}
-                                        placeholder="Np. wdrożyłem tę technologię komercyjnie, ale nie ma jej jeszcze w CV. Nie wpisuj danych, których nie możesz potwierdzić."
+                                        placeholder={uiText("ai:aiAssistant.forExampleIHaveUsedThisTechnology")}
                                         rows={3}
                                     />
-                                    <p className={classes.jobSafetyNote}>
-                                        CV Studio nie dopisze niepotwierdzonych liczb, umiejętności ani doświadczeń. Braki pokaże jako luki w dowodach.
-                                    </p>
+                                    <p className={classes.jobSafetyNote}>{uiText("ai:aiAssistant.cvStudioWillNotInventFiguresSkills")}</p>
                                     <div className={classes.jobDescRow}>
-                                        <button ref={tailorInterviewTriggerRef} type="button" className={classes.jobDescAnalyse} disabled={(!jobOfferUrl.trim() && !jobDesc.trim()) || isLoading} onClick={() => openInterview('tailor')}>Dopasuj z wywiadem — nowe CV</button>
+                                        <button ref={tailorInterviewTriggerRef} type="button" className={classes.jobDescAnalyse} disabled={(!jobOfferUrl.trim() && !jobDesc.trim()) || isLoading} onClick={() => openInterview('tailor')}>{uiText("ai:aiAssistant.tailorWithAnInterviewNewCv")}</button>
                                         <button
                                             type="button"
                                             className={classes.jobDescCancel}
                                             onClick={() => setActivePanel(null)}
-                                        >Anuluj</button>
+                                        >{uiText("ai:aiAssistant.cancel")}</button>
                                         <button
                                             type="button"
                                             className={classes.jobDescAnalyse}
                                             disabled={(!jobOfferUrl.trim() && !jobDesc.trim()) || isLoading}
                                             onClick={submitJobTailoring}
-                                        >
-                                            Analizuj i przygotuj poprawki
-                                        </button>
+                                        >{uiText("ai:aiAssistant.analyseAndPrepareCorrections")}</button>
                                     </div>
                                 </Motion.div>
                             )}
@@ -2067,13 +2021,13 @@ export default function AiAssistant() {
                             ref={messagesRef}
                             className={classes.messages}
                             role="log"
-                            aria-label="Rozmowa z asystentem AI"
+                            aria-label={uiText("ai:aiAssistant.aiAssistantConversation")}
                             aria-live="polite"
                         >
                             {messages.length === 0 && !scopedAi?.reviews.length && (
                                 <div className={classes.emptyState}>
                                     <BsStars className={classes.emptyIcon} />
-                                    <p>Wybierz działanie powyżej — sprawdź CV, popraw treść, dopasuj do oferty lub przetłumacz dokument.</p>
+                                    <p>{uiText("ai:aiAssistant.chooseAnActionAboveToCheckYour")}</p>
                                 </div>
                             )}
                             {[...messages, ...(scopedAi?.isAvailable ? scopedAi.reviews : []).map((review) => ({
@@ -2089,7 +2043,7 @@ export default function AiAssistant() {
                                 <fieldset key={msg.id} className={classes.historyMessage}
                                     disabled={msg.sourceSessionKey !== sessionKey}>
                                 {msg.sourceSessionKey !== sessionKey && msg.role !== "user" && (
-                                    <p className={classes.historyNotice}>Wynik z poprzedniego szablonu — tylko do odczytu.</p>
+                                    <p className={classes.historyNotice}>{uiText("ai:aiAssistant.resultFromAPreviousTemplateReadOnly")}</p>
                                 )}
                                 <ChatMessage
                                     msg={msg}
@@ -2129,7 +2083,7 @@ export default function AiAssistant() {
                             ))}
                             {isLoading && (
                                 <div className={classes.typing} role="status" aria-live="polite">
-                                    <span className={classes.srOnly}>Asystent analizuje dokument. To może potrwać chwilę.</span>
+                                    <span className={classes.srOnly}>{uiText("ai:aiAssistant.theAssistantIsAnalysingTheDocumentThis")}</span>
                                     <div className={classes.typingDot} />
                                     <div className={classes.typingDot} />
                                     <div className={classes.typingDot} />

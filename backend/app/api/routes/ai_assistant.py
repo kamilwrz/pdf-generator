@@ -7,6 +7,8 @@ the model's estimated PLN cost. Provider failures bubble as `AIServiceError`
 and are mapped to a stable Polish 500 by the app-level handler in `main.py`.
 """
 
+from app.core.localisation import message as localised_message
+
 import hashlib
 import json
 import logging
@@ -194,7 +196,7 @@ def ai_assistant(
     if request.action not in VALID_ACTIONS:
         raise HTTPException(
             status_code=400,
-            detail={"code": "invalid_ai_action", "message": "Wybrana akcja AI jest nieprawidłowa."},
+            detail={"code": "invalid_ai_action", "message": localised_message('the_selected_ai_action_is_invalid')},
         )
 
     if (
@@ -206,7 +208,7 @@ def ai_assistant(
             status_code=400,
             detail={
                 "code": "job_offer_required",
-                "message": "Wklej link do oferty lub jej opis.",
+                "message": localised_message('paste_a_job_advert_link_or_description'),
             },
         )
 
@@ -217,7 +219,7 @@ def ai_assistant(
                 status_code=400,
                 detail={
                     "code": "target_language_required",
-                    "message": "Język docelowy jest wymagany dla tłumaczenia.",
+                    "message": localised_message('a_target_language_is_required_for_translation'),
                 },
             )
         if target_language not in TRANSLATE_LANGUAGES:
@@ -225,7 +227,7 @@ def ai_assistant(
                 status_code=400,
                 detail={
                     "code": "unsupported_target_language",
-                    "message": "Nieobsługiwany język tłumaczenia.",
+                    "message": localised_message('unsupported_translation_language'),
                 },
             )
 
@@ -233,7 +235,7 @@ def ai_assistant(
     if cv_language and cv_language not in SUPPORTED_LANGUAGES:
         raise HTTPException(
             status_code=400,
-            detail={"code": "unsupported_cv_language", "message": "Nieobsługiwany język CV."},
+            detail={"code": "unsupported_cv_language", "message": localised_message('unsupported_cv_language')},
         )
 
     canonical_body = json.dumps(
@@ -249,7 +251,7 @@ def ai_assistant(
     ):
         raise HTTPException(
             status_code=413,
-            detail={"code": "ai_request_too_large", "message": "Żądanie AI przekracza limit 1 MiB."},
+            detail={"code": "ai_request_too_large", "message": localised_message('the_ai_request_exceeds_the_mib_limit')},
         )
     key = (idempotency_key or "").strip()
     if not key:
@@ -257,7 +259,7 @@ def ai_assistant(
             status_code=400,
             detail={
                 "code": "idempotency_key_required",
-                "message": "Nagłówek Idempotency-Key jest wymagany.",
+                "message": localised_message('the_idempotency_key_header_is_required'),
             },
         )
 
@@ -267,7 +269,7 @@ def ai_assistant(
             status_code=401,
             detail={
                 "code": "invalid_token",
-                "message": "Token jest nieprawidłowy lub wygasł.",
+                "message": localised_message('the_token_is_invalid_or_has_expired'),
             },
             headers={"WWW-Authenticate": "Bearer"},
         )
@@ -406,7 +408,7 @@ def ai_assistant(
             status_code=500,
             detail={
                 "code": "ai_internal_error",
-                "message": "Wystąpił nieoczekiwany błąd. Spróbuj ponownie.",
+                "message": localised_message('an_unexpected_error_occurred_please_try_again'),
             },
         )
 
@@ -431,7 +433,7 @@ def ai_assistant(
             status_code=500,
             detail={
                 "code": "ai_settlement_pending",
-                "message": "Wynik AI wymaga bezpiecznego rozliczenia. Spróbuj ponownie później.",
+                "message": localised_message('the_ai_result_requires_billing_reconciliation_please_try'),
             },
         )
     return AssistantResponse(**settled)

@@ -1,3 +1,4 @@
+import { t as uiText } from "../i18n/index.js";
 /**
  * Lightweight mirror of the backend PdfElement identity rules.
  *
@@ -27,7 +28,7 @@ const CATEGORY_SET = new Set(ELEMENT_CATEGORIES);
  */
 export function assertCanvasElementRoot(root) {
   if (!Array.isArray(root)) {
-    throw new Error("Lista elementów CV jest nieprawidłowa.");
+    throw new Error(uiText("editor:canvasElementSchema.theCvElementListIsInvalid"));
   }
   for (let i = 0; i < root.length; i += 1) {
     const element = root[i];
@@ -35,7 +36,7 @@ export function assertCanvasElementRoot(root) {
       throw new Error(`Element #${i + 1} ma nieprawidłowy kształt.`);
     }
     if (typeof element.element_id !== "string" || !element.element_id.trim()) {
-      throw new Error(`Element #${i + 1} nie ma identyfikatora.`);
+      throw new Error(uiText("editor:canvasElementSchema.elementHasNoIdentifier", { value0: (i + 1) }));
     }
     if (!CATEGORY_SET.has(element.category)) {
       throw new Error(

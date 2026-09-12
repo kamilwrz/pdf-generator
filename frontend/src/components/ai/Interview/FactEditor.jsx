@@ -1,3 +1,7 @@
+import { useMessageState, messageRef } from '../../../i18n/messageState.js';
+import { getUiLocale } from '../../../i18n/index.js';
+import { t as uiText } from "../../../i18n/index.js";
+import { useTranslation } from 'react-i18next';
 /** Grouped career workspace shared by profile management and interview review. */
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { careerSections, groupCareerFacts, newCareerRecord, careerFieldOptions } from '../../../utils/careerProfileView';
@@ -9,6 +13,7 @@ const FIELD_PAGE_SIZE = 8;
 
 /** Editing is local until Apply; callers disable persistence while an editor is open. */
 export default function FactEditor({ facts, onChange, disabled = false, onEditingChange, isolated = false }) {
+  useTranslation();
   const id = useId();
   const groups = useMemo(() => groupCareerFacts(facts), [facts]);
   const [sectionId, setSectionId] = useState('');
@@ -18,14 +23,14 @@ export default function FactEditor({ facts, onChange, disabled = false, onEditin
   const [fieldPage, setFieldPage] = useState(0);
   const [editing, setEditing] = useState(null);
   const [undo, setUndo] = useState(null);
-  const [message, setMessage] = useState('');
+  const [message, setMessage] = useMessageState('');
   const heading = useRef(null);
   const addRef = useRef(null);
   const editInput = useRef(null);
   const trigger = useRef(null);
   const section = careerSections.find((s) => s.id === sectionId) || careerSections.find((s) => s.id === (groups.some((g) => g.section === 'experience') ? 'experience' : groups[0]?.section)) || careerSections[0];
   const selected = groups.find((g) => g.facts.some((f) => f.id === selectedId));
-  const matching = groups.filter((g) => query.trim() ? g.facts.some((f) => `${f.question || ''} ${f.text} ${f.context}`.toLocaleLowerCase('pl').includes(query.trim().toLocaleLowerCase('pl'))) : g.section === section.id);
+  const matching = groups.filter((g) => query.trim() ? g.facts.some((f) => `${f.question || ''} ${f.text} ${f.context}`.toLocaleLowerCase(getUiLocale()).includes(query.trim().toLocaleLowerCase(getUiLocale()))) : g.section === section.id);
   const currentPage = Math.min(page, Math.max(0, Math.ceil(matching.length / PAGE_SIZE) - 1));
   const currentFieldPage = Math.min(fieldPage, Math.max(0, Math.ceil((selected?.fields.length || 0) / FIELD_PAGE_SIZE) - 1));
   const selectedHasInterviewAnswer = selected?.fields.some((field) => field.question);
@@ -59,61 +64,61 @@ export default function FactEditor({ facts, onChange, disabled = false, onEditin
     // collapsing their display must never delete or replace evidence identity.
     const next = facts.map((f) => ids.includes(f.id) ? { ...f, text: clean.text, context: clean.context, kind: clean.kind, path: clean.path } : f);
     if (!ids.length) next.push(...additions, clean);
-    onChange(next); setSelectedId(ids[0] || clean.id); setQuery(''); setMessage('Zmiana gotowa do zapisania.'); closeEditor();
+    onChange(next); setSelectedId(ids[0] || clean.id); setQuery(''); setMessage(messageRef("interview:factEditor.changeReadyToSave")); closeEditor();
   }
   function addRecord(event) {
     const additions = newCareerRecord(facts, section.id);
-    if (!additions.length || facts.length + additions.length > 500) { setMessage('Osiągnięto limit informacji w tej sekcji.'); return; }
+    if (!additions.length || facts.length + additions.length > 500) { setMessage(messageRef("interview:factEditor.thisSectionHasReachedItsInformationLimit")); return; }
     const draft = additions.find((f) => !f.text);
     openEditor(draft, event, additions.filter((f) => f.id !== draft.id));
   }
   function removeField(field) {
     setUndo({ removed: facts.filter((f) => field.ids.includes(f.id)), index: facts.findIndex((f) => field.ids.includes(f.id)) });
-    onChange(facts.filter((f) => !field.ids.includes(f.id))); setMessage('Informacja usunięta. Możesz cofnąć tę zmianę.');
+    onChange(facts.filter((f) => !field.ids.includes(f.id))); setMessage(messageRef("interview:factEditor.informationDeletedYouCanUndoThisChange"));
     requestAnimationFrame(() => heading.current?.focus());
   }
   const options = selected ? careerFieldOptions(selected, facts) : [];
 
-  return <section className={classes.editor} aria-label="Informacje do wykorzystania">
+  return <section className={classes.editor} aria-label={uiText("interview:factEditor.informationToUse")}>
     <div className={classes.toolbar}>
-      <div><span className={classes.eyebrow}>{isolated ? 'Tylko ten wywiad' : 'Twoja baza do CV'}</span><h2>{isolated ? 'Informacje do tego CV' : 'Kariera uporządkowana'}</h2></div>
-      <label className={classes.search}>{isolated ? 'Szukaj w informacjach do CV' : 'Szukaj w profilu'}<input type="search" value={query} disabled={busy} placeholder="Firma, projekt, umiejętność…" onChange={(e) => { setQuery(e.target.value); setSelectedId(null); setPage(0); }} /></label>
+      <div><span className={classes.eyebrow}>{isolated ? uiText("interview:factEditor.thisInterviewOnly") : uiText("interview:factEditor.yourCvInformation")}</span><h2>{isolated ? uiText("interview:factEditor.informationForThisCv") : uiText("interview:factEditor.yourCareerOrganised")}</h2></div>
+      <label className={classes.search}>{isolated ? uiText("interview:factEditor.searchCvInformation") : uiText("interview:factEditor.searchProfile")}<input type="search" value={query} disabled={busy} placeholder={uiText("interview:factEditor.companyProjectSkill")} onChange={(e) => { setQuery(e.target.value); setSelectedId(null); setPage(0); }} /></label>
     </div>
-    <label className={classes.mobileNav}>{isolated ? 'Sekcja CV' : 'Sekcja profilu'}<select value={section.id} disabled={busy} onChange={(e) => { setSectionId(e.target.value); setSelectedId(null); setQuery(''); setPage(0); }}>{careerSections.map((s) => <option key={s.id} value={s.id}>{s.label} ({groups.filter((g) => g.section === s.id).length})</option>)}</select></label>
+    <label className={classes.mobileNav}>{isolated ? uiText("interview:factEditor.cvSection") : uiText("interview:factEditor.profileSection")}<select value={section.id} disabled={busy} onChange={(e) => { setSectionId(e.target.value); setSelectedId(null); setQuery(''); setPage(0); }}>{careerSections.map((s) => <option key={s.id} value={s.id}>{s.label} ({groups.filter((g) => g.section === s.id).length})</option>)}</select></label>
     <div className={classes.workspace}>
-      <nav className={classes.navigation} aria-label={isolated ? "Sekcje CV" : "Sekcje profilu"}>
+      <nav className={classes.navigation} aria-label={isolated ? uiText("interview:factEditor.cvSections") : uiText("interview:factEditor.profileSections")}>
         {careerSections.map((item, index) => <button key={item.id} type="button" disabled={busy} aria-current={!query && section.id === item.id ? 'page' : undefined} onClick={() => { setSectionId(item.id); setSelectedId(null); setQuery(''); setPage(0); setMessage(''); }}><span className={classes.index}>{String(index + 1).padStart(2, '0')}</span><span>{item.label}</span><span className={classes.count}>{groups.filter((g) => g.section === item.id).length}</span></button>)}
-        <p className={classes.navHint}>Wybierz sekcję, potem wpis.<br />Każda rola ma własne miejsce.</p>
+        <p className={classes.navHint}>{uiText("interview:factEditor.chooseASectionThenAnEntry")}<br />{uiText("interview:factEditor.eachRoleHasItsOwnPlace")}</p>
       </nav>
       <div className={classes.content}>
         <header className={classes.sectionHeader}>
-          <div><span className={classes.eyebrow}>{selected ? 'Wybrany wpis' : query ? (isolated ? 'W informacjach do CV' : 'W całym profilu') : `${String(careerSections.indexOf(section) + 1).padStart(2, '0')} / ${isolated ? 'Informacje do CV' : 'Profil zawodowy'}`}</span><h3 ref={heading} tabIndex={-1}>{selected ? (selectedHasInterviewAnswer ? 'Odpowiedź z wywiadu' : selected.title) : query ? 'Wyniki wyszukiwania' : section.label}</h3><p>{selected ? (selectedHasInterviewAnswer ? 'Pytanie, odpowiedź i kontekst są pokazane razem.' : selected.subtitle || `${selected.fields.length} informacji w jednym wpisie`) : section.description}</p></div>
-          {selected ? <button disabled={busy} type="button" onClick={() => { setSelectedId(null); requestAnimationFrame(() => heading.current?.focus()); }}>← Lista wpisów</button> : <button ref={addRef} type="button" disabled={busy || facts.length >= 500} onClick={addRecord}>+ Dodaj informację</button>}
+          <div><span className={classes.eyebrow}>{selected ? uiText("interview:factEditor.selectedEntry") : query ? (isolated ? uiText("interview:factEditor.inCvInformation") : uiText("interview:factEditor.acrossYourProfile")) : `${String(careerSections.indexOf(section) + 1).padStart(2, '0')} / ${isolated ? 'Informacje do CV' : 'Profil zawodowy'}`}</span><h3 ref={heading} tabIndex={-1}>{selected ? (selectedHasInterviewAnswer ? uiText("interview:factEditor.interviewAnswer") : selected.title) : query ? uiText("interview:factEditor.searchResults") : section.label}</h3><p>{selected ? (selectedHasInterviewAnswer ? uiText("interview:factEditor.theQuestionAnswerAndContextAppearTogether") : selected.subtitle || uiText("interview:factEditor.factsInOneEntry", { value0: (selected.fields.length) })) : section.description}</p></div>
+          {selected ? <button disabled={busy} type="button" onClick={() => { setSelectedId(null); requestAnimationFrame(() => heading.current?.focus()); }}>{uiText("interview:factEditor.entryList")}</button> : <button ref={addRef} type="button" disabled={busy || facts.length >= 500} onClick={addRecord}>{uiText("interview:factEditor.addInformation")}</button>}
         </header>
-        <div className={classes.feedback} role="status">{message}{undo && <button disabled={busy || facts.length + undo.removed.length > 500} type="button" onClick={() => { const next = [...facts]; next.splice(Math.min(undo.index, next.length), 0, ...undo.removed.filter((f) => !next.some((n) => n.id === f.id))); onChange(next); setUndo(null); setMessage('Przywrócono informację.'); }}>Cofnij usunięcie</button>}</div>
+        <div className={classes.feedback} role="status">{message}{undo && <button disabled={busy || facts.length + undo.removed.length > 500} type="button" onClick={() => { const next = [...facts]; next.splice(Math.min(undo.index, next.length), 0, ...undo.removed.filter((f) => !next.some((n) => n.id === f.id))); onChange(next); setUndo(null); setMessage(messageRef("interview:factEditor.informationRestored")); }}>{uiText("interview:factEditor.undoDeletion")}</button>}</div>
         {editing ? <form className={classes.editForm} onKeyDown={(e) => { if (e.key === 'Escape' && !disabled) { e.preventDefault(); closeEditor(); } }} onSubmit={(e) => { e.preventDefault(); applyEdit(); }}>
-          <h4>{editing.ids.length ? 'Edytuj informację' : 'Nowa informacja'}</h4>
-          {editing.draft.question && <div className={classes.editQuestion}><span className={classes.eyebrow}>Pytanie z wywiadu</span><p>{editing.draft.question}</p></div>}
-          <label htmlFor={`${id}-text`}>{editing.draft.question ? 'Twoja odpowiedź' : 'Treść'}</label><textarea ref={editInput} id={`${id}-text`} maxLength={4000} rows={4} value={editing.draft.text} onChange={(e) => setEditing({ ...editing, draft: { ...editing.draft, text: e.target.value } })} required disabled={disabled} />
-          <details><summary>Kontekst i sposób wykorzystania</summary>
-            <label>Rola lub projekt<textarea maxLength={500} rows={2} value={editing.draft.context?.startsWith('/') ? '' : editing.draft.context || ''} onChange={(e) => setEditing({ ...editing, draft: { ...editing.draft, context: e.target.value } })} disabled={disabled} /></label>
-            <label>Rodzaj informacji<select value={editing.draft.kind} disabled={disabled} onChange={(e) => setEditing({ ...editing, draft: { ...editing.draft, kind: e.target.value } })}><option value="fact">Potwierdzony fakt</option><option value="gap">Nie mam tego doświadczenia</option><option value="framing">Sformułowanie do zachowania dosłownie</option></select></label>
-            {(!editing.draft.path || interviewFields[editing.draft.path]) && <label>Przeznaczenie<select value={editing.draft.path || ''} disabled={disabled} onChange={(e) => setEditing({ ...editing, draft: { ...editing.draft, path: e.target.value } })}><option value="">Informacja do rozwinięcia w CV</option>{Object.entries(interviewFields).map(([path, label]) => <option key={path} value={path}>{label}</option>)}</select></label>}
-            {editing.draft.path && !interviewFields[editing.draft.path] && <button type="button" disabled={disabled} onClick={() => setEditing({ ...editing, draft: { ...editing.draft, path: '' } })}>Zachowaj jako dodatkową informację</button>}
+          <h4>{editing.ids.length ? uiText("interview:factEditor.editInformation") : uiText("interview:factEditor.newInformation")}</h4>
+          {editing.draft.question && <div className={classes.editQuestion}><span className={classes.eyebrow}>{uiText("interview:factEditor.interviewQuestion")}</span><p>{editing.draft.question}</p></div>}
+          <label htmlFor={`${id}-text`}>{editing.draft.question ? uiText("interview:factEditor.yourAnswer") : uiText("interview:factEditor.content")}</label><textarea ref={editInput} id={`${id}-text`} maxLength={4000} rows={4} value={editing.draft.text} onChange={(e) => setEditing({ ...editing, draft: { ...editing.draft, text: e.target.value } })} required disabled={disabled} />
+          <details><summary>{uiText("interview:factEditor.contextAndUse")}</summary>
+            <label>{uiText("interview:factEditor.roleOrProject")}<textarea maxLength={500} rows={2} value={editing.draft.context?.startsWith('/') ? '' : editing.draft.context || ''} onChange={(e) => setEditing({ ...editing, draft: { ...editing.draft, context: e.target.value } })} disabled={disabled} /></label>
+            <label>{uiText("interview:factEditor.informationType")}<select value={editing.draft.kind} disabled={disabled} onChange={(e) => setEditing({ ...editing, draft: { ...editing.draft, kind: e.target.value } })}><option value="fact">{uiText("interview:factEditor.confirmedFact")}</option><option value="gap">{uiText("interview:factEditor.iDoNotHaveThisExperience")}</option><option value="framing">{uiText("interview:factEditor.wordingToPreserveExactly")}</option></select></label>
+            {(!editing.draft.path || interviewFields[editing.draft.path]) && <label>{uiText("interview:factEditor.purpose")}<select value={editing.draft.path || ''} disabled={disabled} onChange={(e) => setEditing({ ...editing, draft: { ...editing.draft, path: e.target.value } })}><option value="">{uiText("interview:factEditor.informationToDevelopInTheCv")}</option>{Object.entries(interviewFields).map(([path, label]) => <option key={path} value={path}>{label}</option>)}</select></label>}
+            {editing.draft.path && !interviewFields[editing.draft.path] && <button type="button" disabled={disabled} onClick={() => setEditing({ ...editing, draft: { ...editing.draft, path: '' } })}>{uiText("interview:factEditor.keepAsAdditionalInformation")}</button>}
           </details>
-          <div className={classes.formActions}><button className={classes.primary} disabled={disabled || !editing.draft.text.trim()} type="submit">Zastosuj zmianę</button><button disabled={disabled} type="button" onClick={closeEditor}>Anuluj edycję</button></div>
+          <div className={classes.formActions}><button className={classes.primary} disabled={disabled || !editing.draft.text.trim()} type="submit">{uiText("interview:factEditor.applyChange")}</button><button disabled={disabled} type="button" onClick={closeEditor}>{uiText("interview:factEditor.cancelEditing")}</button></div>
         </form> : selected ? <>
-          {selected.conflicts.size > 0 && <p className={classes.warning}>Ten wpis zawiera różne warianty tego samego pola. Sprawdź oznaczone informacje przed zapisem.</p>}
+          {selected.conflicts.size > 0 && <p className={classes.warning}>{uiText("interview:factEditor.thisEntryContainsDifferentVersionsOfThe")}</p>}
           <dl className={classes.fields}>{selected.fields.slice(currentFieldPage * FIELD_PAGE_SIZE, (currentFieldPage + 1) * FIELD_PAGE_SIZE).map((field) => <div key={field.id} className={`${classes.field} ${field.question ? classes.interviewAnswer : ''}`}>
-            <dt>{field.question ? <><span className={classes.eyebrow}>Pytanie z wywiadu</span><strong>{field.question}</strong></> : field.label}{field.kind !== 'fact' && <span className={classes.badge}>{field.kind === 'gap' ? 'Brak doświadczenia' : 'Zachowaj dosłownie'}</span>}{selected.conflicts.has(field.path) && <span className={classes.badge}>Sprawdź wariant</span>}</dt>
-            <dd>{field.question && <span className={classes.answerLabel}>Twoja odpowiedź</span>}<p>{field.text || 'Uzupełnij'}</p>{field.question && field.context && field.context !== field.question && <p className={classes.answerContext}><span>Kontekst</span>{field.context}</p>}{field.ids.length > 1 && <span className={classes.muted}>Zgodna informacja w {field.ids.length} źródłach</span>}</dd>
-            <div className={classes.fieldActions}><button type="button" disabled={disabled} aria-label={`Edytuj: ${field.label} — ${field.text.slice(0, 55)}`} onClick={(e) => openEditor(field, e)}>Edytuj</button><button type="button" className={classes.danger} disabled={disabled} aria-label={`Usuń informację: ${field.text.slice(0, 55)}`} onClick={() => removeField(field)}>Usuń</button></div>
+            <dt>{field.question ? <><span className={classes.eyebrow}>{uiText("interview:factEditor.interviewQuestion")}</span><strong>{field.question}</strong></> : field.label}{field.kind !== 'fact' && <span className={classes.badge}>{field.kind === 'gap' ? uiText("interview:factEditor.noExperience") : uiText("interview:factEditor.keepExactWording")}</span>}{selected.conflicts.has(field.path) && <span className={classes.badge}>{uiText("interview:factEditor.reviewVersion")}</span>}</dt>
+            <dd>{field.question && <span className={classes.answerLabel}>{uiText("interview:factEditor.yourAnswer")}</span>}<p>{field.text || uiText("interview:factEditor.complete")}</p>{field.question && field.context && field.context !== field.question && <p className={classes.answerContext}><span>{uiText("interview:factEditor.context")}</span>{field.context}</p>}{field.ids.length > 1 && <span className={classes.muted}>{uiText("interview:factEditor.matchingInformationIn")} {field.ids.length} {uiText("interview:factEditor.sources")}</span>}</dd>
+            <div className={classes.fieldActions}><button type="button" disabled={disabled} aria-label={uiText("interview:factEditor.edit2", { value0: (field.label), value1: (field.text.slice(0, 55)) })} onClick={(e) => openEditor(field, e)}>{uiText("interview:factEditor.edit")}</button><button type="button" className={classes.danger} disabled={disabled} aria-label={uiText("interview:factEditor.deleteInformation", { value0: (field.text.slice(0, 55)) })} onClick={() => removeField(field)}>{uiText("ai:aiAssistant.delete")}</button></div>
           </div>)}</dl>
           {selected.fields.length > FIELD_PAGE_SIZE && <Pagination current={currentFieldPage} total={Math.ceil(selected.fields.length / FIELD_PAGE_SIZE)} disabled={disabled} onChange={(n) => { setFieldPage(n); heading.current?.focus(); }} />}
-          {options.length > 0 && <label className={classes.addField}>Dodaj do tego wpisu<select value="" disabled={disabled || facts.length >= 500} onChange={(e) => { if (!e.target.value) return; const option = options[Number(e.target.value) - 1]; openEditor({ id: crypto.randomUUID(), text: '', context: selected.section === 'notes' ? selected.facts[0].context : '', kind: 'fact', path: option.path, source: 'manual' }, e); }}><option value="">Wybierz informację…</option>{options.map((option, i) => <option key={option.path || i} value={i + 1}>{option.label}</option>)}</select></label>}
+          {options.length > 0 && <label className={classes.addField}>{uiText("interview:factEditor.addToThisEntry")}<select value="" disabled={disabled || facts.length >= 500} onChange={(e) => { if (!e.target.value) return; const option = options[Number(e.target.value) - 1]; openEditor({ id: crypto.randomUUID(), text: '', context: selected.section === 'notes' ? selected.facts[0].context : '', kind: 'fact', path: option.path, source: 'manual' }, e); }}><option value="">{uiText("interview:factEditor.chooseInformation")}</option>{options.map((option, i) => <option key={option.path || i} value={i + 1}>{option.label}</option>)}</select></label>}
         </> : <>
-          {!matching.length && <div className={classes.empty}><span className={classes.eyebrow}>{query ? 'Brak wyników' : 'Miejsce na Twój kolejny krok'}</span><h4>{query ? 'Nie znaleziono takiego wpisu' : `Uzupełnij: ${section.short.toLowerCase()}`}</h4><p>{query ? 'Zmień wyszukiwaną frazę lub wróć do sekcji.' : 'Dodaj pierwszą informację. Możesz też zebrać doświadczenia podczas wywiadu.'}</p></div>}
-          <div className={classes.records}>{matching.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE).map((group, index) => <button className={classes.record} type="button" key={group.key} disabled={disabled} onClick={() => openGroup(group)} aria-label={`Otwórz wpis: ${group.title}`}><span className={classes.recordNumber}>{String(currentPage * PAGE_SIZE + index + 1).padStart(2, '0')}</span><span className={classes.recordBody}><strong>{group.title}</strong>{group.subtitle && <span>{group.subtitle}</span>}{group.preview && <span className={classes.excerpt}>{group.preview}</span>}<span className={classes.recordMeta}>{group.fields.length} informacji{group.conflicts.size > 0 ? ' · Sprawdź warianty' : ''}</span></span><span aria-hidden="true" className={classes.arrow}>↗</span></button>)}</div>
+          {!matching.length && <div className={classes.empty}><span className={classes.eyebrow}>{query ? uiText("interview:factEditor.noResults") : uiText("interview:factEditor.roomForYourNextStep")}</span><h4>{query ? uiText("interview:factEditor.entryNotFound") : uiText("interview:factEditor.complete2", { value0: (section.short.toLowerCase()) })}</h4><p>{query ? uiText("interview:factEditor.changeYourSearchOrReturnToA") : uiText("interview:factEditor.addYourFirstPieceOfInformationYou")}</p></div>}
+          <div className={classes.records}>{matching.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE).map((group, index) => <button className={classes.record} type="button" key={group.key} disabled={disabled} onClick={() => openGroup(group)} aria-label={uiText("interview:factEditor.openEntry", { value0: (group.title) })}><span className={classes.recordNumber}>{String(currentPage * PAGE_SIZE + index + 1).padStart(2, '0')}</span><span className={classes.recordBody}><strong>{group.title}</strong>{group.subtitle && <span>{group.subtitle}</span>}{group.preview && <span className={classes.excerpt}>{group.preview}</span>}<span className={classes.recordMeta}>{group.fields.length} {uiText("interview:factEditor.items")}{group.conflicts.size > 0 ? uiText("interview:factEditor.reviewVersions") : ''}</span></span><span aria-hidden="true" className={classes.arrow}>↗</span></button>)}</div>
           {matching.length > PAGE_SIZE && <Pagination current={currentPage} total={Math.ceil(matching.length / PAGE_SIZE)} disabled={disabled} onChange={(n) => { setPage(n); heading.current?.focus(); }} />}
         </>}
       </div>
@@ -123,5 +128,6 @@ export default function FactEditor({ facts, onChange, disabled = false, onEditin
 
 /** Native buttons retain normal tab order on paginated record and field lists. */
 function Pagination({ current, total, onChange, disabled }) {
-  return <nav className={classes.pagination} aria-label="Strony wpisów"><button type="button" disabled={disabled || current === 0} onClick={() => onChange(current - 1)}>← Poprzednie</button><span>{current + 1} / {total}</span><button type="button" disabled={disabled || current + 1 === total} onClick={() => onChange(current + 1)}>Następne →</button></nav>;
+  useTranslation();
+  return <nav className={classes.pagination} aria-label={uiText("interview:factEditor.entryPages")}><button type="button" disabled={disabled || current === 0} onClick={() => onChange(current - 1)}>{uiText("interview:factEditor.previous")}</button><span>{current + 1} / {total}</span><button type="button" disabled={disabled || current + 1 === total} onClick={() => onChange(current + 1)}>{uiText("interview:factEditor.next")}</button></nav>;
 }

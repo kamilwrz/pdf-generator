@@ -15,6 +15,8 @@ and underlines do not create false negatives.
 
 from __future__ import annotations
 
+from app.core.localisation import message as localised_message, ui_language
+
 import logging
 import re
 from types import SimpleNamespace
@@ -186,7 +188,7 @@ def build_ats_pdf_bytes(
     if not elements:
         raise AtsReadabilityError(
             "ATS PDF render requested with empty elements",
-            user_message="Brak elementów CV do sprawdzenia czytelności ATS.",
+            user_message=localised_message('no_cv_elements_available_to_check_ats_readability'),
         )
 
     page_w = float((page_size or {}).get("width") or (page_size or {}).get("page_width") or 595)
@@ -217,8 +219,7 @@ def build_ats_pdf_bytes(
         raise AtsReadabilityError(
             f"ATS PDF render failed: {type(exc).__name__}: {exc}",
             user_message=(
-                "Nie udało się wygenerować PDF do sprawdzenia czytelności ATS. "
-                "Spróbuj ponownie."
+                localised_message('could_not_generate_a_pdf_to_check_ats')
             ),
         ) from exc
 
@@ -228,7 +229,7 @@ def extract_pdf_text(pdf_bytes: bytes) -> str:
     if not pdf_bytes:
         raise AtsReadabilityError(
             "Empty PDF bytes for ATS extraction",
-            user_message="Nie udało się odczytać tekstu z wygenerowanego PDF.",
+            user_message=localised_message('could_not_read_text_from_the_generated_pdf'),
         )
     try:
         doc = fitz.open(stream=pdf_bytes, filetype="pdf")
@@ -243,7 +244,7 @@ def extract_pdf_text(pdf_bytes: bytes) -> str:
         logger.exception("ATS PDF text extraction failed")
         raise AtsReadabilityError(
             f"ATS PDF text extraction failed: {type(exc).__name__}: {exc}",
-            user_message="Nie udało się odczytać tekstu z wygenerowanego PDF.",
+            user_message=localised_message('could_not_read_text_from_the_generated_pdf'),
         ) from exc
 
 
@@ -351,7 +352,7 @@ def category_dict(cat_id: str, score: float, *, max_score: float = 100.0) -> dic
     clamped = max(0.0, min(float(score), max_score))
     return {
         "id": cat_id,
-        "label": CATEGORY_LABELS.get(cat_id, cat_id),
+        "label": ({"text_extract": "Text extraction", "headers": "Headings", "contact": "Contact details", "section_order": "Content order", "keywords": "Keywords", "length": "Length"} if ui_language.get() == "en" else CATEGORY_LABELS).get(cat_id, cat_id),
         "score": clamped,
         "max": max_score,
     }

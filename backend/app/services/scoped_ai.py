@@ -5,6 +5,8 @@ profile. All model output is checked before the shared route settles credits.
 """
 from __future__ import annotations
 
+from app.core.localisation import message as localised_message
+
 import json
 import re
 from typing import Literal
@@ -146,7 +148,7 @@ def review_scoped_content(action: str, scope: ScopedContent) -> dict:
 
     if not _model_for_action(action).startswith("gpt-"):
         raise AIServiceError("Scoped reviews require an OpenAI GPT model", action=action,
-                             user_message="Operacje zakresowe wymagają konfiguracji modelu GPT.")
+                             user_message=localised_message('scoped_operations_require_a_configured_gpt_model'))
 
     language = scope.language or _detect_cv_language([
         {"element_id": f.id, "category": "textarea", "content": f.content}
@@ -176,7 +178,7 @@ Uwzględniaj tylko rzeczywiście zmienione fragmenty. Puste tablice są poprawn�
     except (ValueError, TypeError, KeyError) as exc:
         raise AIServiceError(
             "Invalid scoped AI response", original=exc, action=action,
-            user_message="Propozycja nie przeszła kontroli zakresu lub zachowania danych. Tekst CV pozostał bez zmian.",
+            user_message=localised_message('the_suggestion_failed_scope_or_data_preservation_checks'),
             reservation_outcome="settle_usage", usage=usage,
         ) from exc
     return {**result, "usage": usage, "cv_language": language}

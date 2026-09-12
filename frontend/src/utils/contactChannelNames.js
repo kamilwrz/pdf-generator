@@ -1,3 +1,4 @@
+import { t as uiText } from "../i18n/index.js";
 /**
  * Human-readable Polish names for contact channels.
  *
@@ -6,12 +7,12 @@
  * wording never drifts between call sites.
  */
 export const CHANNEL_NAMES = {
-  phone: "Telefon",
+  get phone() { return uiText("editor:contactChannelNames.phone"); },
   email: "E-mail",
   linkedin: "LinkedIn",
   github: "GitHub",
-  website: "Strona WWW",
-  location: "Lokalizacja",
+  get website() { return uiText("editor:contactChannelNames.website"); },
+  get location() { return uiText("editor:contactChannelNames.location"); },
 };
 
 /**
@@ -27,7 +28,7 @@ export const CONTACT_CHANNEL_PLACEHOLDERS = Object.freeze({
   linkedin: "linkedin.com/in/profil",
   github: "github.com/profil",
   website: "twojastrona.pl",
-  location: "Miasto, kraj",
+  get location() { return uiText("editor:contactChannelNames.cityCountry"); },
 });
 
 /**

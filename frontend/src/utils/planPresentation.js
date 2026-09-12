@@ -1,50 +1,52 @@
+import { t as uiText } from "../i18n/index.js";
+import { localisedList } from "../i18n/index.js";
 /**
- * Canonical Polish plan copy shared by public pricing and the in-app picker.
+ * Canonical localised plan copy shared by public pricing and the in-app picker.
  *
  * Billing remains authoritative for prices and entitlements. This module owns
  * only presentation, so a temporarily stale plan-catalog response cannot bring
  * back obsolete limits or imply that Free exports have reduced output quality.
  */
 
-export const FREE_PLAN_HIGHLIGHTS = Object.freeze([
-    "1 zapisany projekt CV",
-    "1 udany import PDF miesięcznie",
-    "3 szablony, każdy w 6 wersjach wyglądu",
-    "Samodzielna zmiana czcionek, odstępów i sekcji",
-    "3 pobrania PDF miesięcznie, bez znaku wodnego",
-    "Edycja bez funkcji AI",
-]);
+export const FREE_PLAN_HIGHLIGHTS = Object.freeze(localisedList([
+    () => uiText("editor:planPresentation.savedProject"),
+    () => uiText("editor:planPresentation.successfulPdfImportPerMonth"),
+    () => uiText("editor:planPresentation.templatesEachWithAppearanceVariations"),
+    () => uiText("editor:planPresentation.manualChangesToFontsSpacingAndSections"),
+    () => uiText("editor:planPresentation.pdfDownloadsPerMonthWithoutAWatermark"),
+    () => uiText("editor:planPresentation.manualEditing"),
+]));
 
-export const PRO_PLAN_HIGHLIGHTS = Object.freeze([
-    "Wywiad AI do zebrania doświadczenia i przygotowania CV pod ofertę",
-    "Profil zawodowy do wykorzystania w kolejnych CV",
-    "Wszystkie szablony i warianty wyglądu",
-    "Nielimitowane projekty, importy i pobrania PDF",
-    "AI do poprawiania tekstu, analizy ATS i układu",
-    "200 kredytów na wywiad i pozostałe funkcje AI",
-]);
+export const PRO_PLAN_HIGHLIGHTS = Object.freeze(localisedList([
+    () => uiText("editor:planPresentation.aiInterviewsToCollectExperienceAndPrepare"),
+    () => uiText("editor:planPresentation.careerProfile"),
+    () => uiText("editor:planPresentation.allTemplatesAndAppearanceVariations"),
+    () => uiText("editor:planPresentation.unlimitedDocuments"),
+    () => uiText("editor:planPresentation.aiForTextEditingAtsAnalysisAnd"),
+    () => uiText("editor:planPresentation.creditsForInterviewsAndOtherAiFeatures"),
+]));
 
 export const PLAN_PRESENTATION = Object.freeze({
     free: Object.freeze({
         slug: "free",
-        name: "Darmowy",
+        get name() { return uiText("public:hero.free"); },
         price_pln: 0,
-        price_label: "0 zł",
-        blurb: "Jedno CV i wszystkie opcje samodzielnej edycji.",
+        get price_label() { return uiText("editor:planPresentation.pln"); },
+        get blurb() { return uiText("editor:planPresentation.oneCvAndAllManualEditingOptions"); },
         highlights: FREE_PLAN_HIGHLIGHTS,
-        period_note: "Nie potrzebujesz karty, plan nie ma limitu czasu.",
-        cta: "Stwórz CV za darmo",
+        get period_note() { return uiText("public:hero.noCardRequiredThePlanHasNo"); },
+        get cta() { return uiText("public:hero.createACvForFree"); },
     }),
     pro: Object.freeze({
         slug: "pro",
         name: "Pro",
         price_pln: 59,
-        price_label: "59 zł / 30 dni",
-        blurb: "Wywiad o Twoim doświadczeniu i osobne CV pod konkretne oferty.",
+        get price_label() { return uiText("editor:planPresentation.plnDays"); },
+        get blurb() { return uiText("editor:planPresentation.anInterviewAboutYourExperienceAndSeparate"); },
         highlights: PRO_PLAN_HIGHLIGHTS,
-        period_note: "Płatność jednorazowa, bez automatycznego odnowienia.",
-        badge: "Dla kilku wersji CV i pracy z AI",
-        cta: "Wybierz Pro",
+        get period_note() { return uiText("public:hero.oneOffPaymentNoAutomaticRenewal"); },
+        get badge() { return uiText("editor:planPresentation.forMultipleCvVersionsAndAiAssisted"); },
+        get cta() { return uiText("editor:planPresentation.choosePro"); },
     }),
 });
 
@@ -57,12 +59,11 @@ export const PLAN_PRESENTATION = Object.freeze({
 export function applyPlanPresentation(plan) {
     const presentation = PLAN_PRESENTATION[plan?.slug];
     if (!presentation) return plan;
-    return {
-        ...plan,
-        ...presentation,
-        price_pln: plan?.price_pln ?? presentation.price_pln,
-        price_label: plan?.price_label ?? presentation.price_label,
-    };
+    const merged = Object.defineProperties({ ...plan }, Object.getOwnPropertyDescriptors(presentation));
+    return Object.defineProperties({}, {
+        ...Object.getOwnPropertyDescriptors(merged),
+        price_pln: { enumerable: true, value: plan?.price_pln ?? presentation.price_pln },
+    });
 }
 
 /** Fallback catalog used while billing is loading or temporarily unavailable. */

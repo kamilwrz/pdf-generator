@@ -1,3 +1,6 @@
+import { templatePreviewPath } from '../../../i18n/templatePreviews.js';
+import { t as uiText } from "../../../i18n/index.js";
+import { useTranslation } from 'react-i18next';
 /**
  * Template picker. Free vs paid cards respect entitlements; picking logs a
  * product metric and can warn before replacing a non-empty canvas.
@@ -19,14 +22,16 @@ import { createEmptyBioCvData } from "../../../utils/bioCvData";
 // Real cropped screenshot of the template's own canvas data — see
 // frontend/public/template-mockups/. Card aspect ratio matches A4 portrait.
 function Preview({ id, name }) {
+  useTranslation();
     return (
         <div className={classes.paper}>
-            <img className={classes.previewImg} src={`/template-mockups/${id}.png`} alt={name} loading="lazy" />
+            <img className={classes.previewImg} src={templatePreviewPath(id)} alt={name} loading="lazy" />
         </div>
     );
 }
 
 export default function TemplatesModal() {
+  useTranslation();
     const { loadTemplate, A4_Elements, loadAiElements, activeCvData, flowSpacing } = useCanvasContext();
     const { entitlements, pushToast } = useSession();
     const {
@@ -54,8 +59,8 @@ export default function TemplatesModal() {
                 // semantic CV snapshot already attached to the document.
                 const profile = activeCvData || {
                     ...createEmptyBioCvData(),
-                    name: "Imię Nazwisko",
-                    title: "Stanowisko",
+                    name: uiText("editor:templatesModal.fullName"),
+                    title: uiText("editor:templatesModal.jobTitle"),
                 };
                 const response = await fillTemplate(profile, t.id, { spacing: flowSpacing });
                 const applied = await loadAiElements(
@@ -74,8 +79,8 @@ export default function TemplatesModal() {
             showTemplates();
         } catch (error) {
             pushToast?.({
-                title: "Nie udało się wczytać szablonu",
-                msg: error?.message || "Spróbuj ponownie za chwilę.",
+                title: uiText("editor:templatesModal.couldNotLoadTheTemplate"),
+                msg: error?.message || uiText("editor:templatesModal.pleaseTryAgainShortly"),
                 variant: "error",
             });
         } finally {
@@ -86,8 +91,8 @@ export default function TemplatesModal() {
     function handlePick(t) {
         if (!isTemplateAllowed(t, entitlements)) {
             pushToast?.({
-                title: "Szablon w planie Pro",
-                msg: "Ten szablon odblokujesz po ulepszeniu planu.",
+                title: uiText("editor:templatesModal.proTemplate"),
+                msg: uiText("editor:templatesModal.upgradeYourPlanToUnlockThisTemplate"),
                 variant: "error",
             });
             return;
@@ -121,13 +126,13 @@ export default function TemplatesModal() {
                 open={isTemplates && pendingTemplate == null}
                 onClose={handleClose}
                 width={1280}
-                title="Szablony"
-                subtitle="Wybierz układ — treść na płótnie zostanie zastąpiona."
+                title={uiText("public:siteLayout.templates")}
+                subtitle={uiText("editor:templatesModal.chooseALayoutTheContentOnThe")}
                 footer={(
                     <span className={classes.countLabel}>
                         {entitlements?.template_tier === "all"
-                            ? `${TEMPLATES.length} szablonów CV`
-                            : `${freeCount} z ${TEMPLATES.length} dostępnych na planie Free`}
+                            ? uiText("editor:templatesModal.cvTemplates", { value0: (TEMPLATES.length) })
+                            : uiText("editor:templatesModal.ofAvailableOnFree", { value0: (freeCount), value1: (TEMPLATES.length) })}
                     </span>
                 )}
             >
@@ -157,10 +162,10 @@ export default function TemplatesModal() {
                                         disabled={loadingTemplateId != null}
                                     >
                                         {locked
-                                            ? "Odblokuj w Pro"
+                                            ? uiText("editor:templatesModal.unlockWithPro")
                                             : loadingTemplateId === t.id
                                                 ? "Wczytywanie…"
-                                                : "Użyj szablonu"}
+                                                : uiText("editor:templatesModal.useTemplate")}
                                     </button>
                                 </div>
                             );
@@ -175,9 +180,9 @@ export default function TemplatesModal() {
                 width={420}
                 role="alertdialog"
                 initialFocusSelector="[data-dialog-initial-focus]"
-                title="Zastąpić płótno?"
+                title={uiText("editor:templatesModal.replaceTheCanvas")}
                 subtitle={pendingTemplate
-                    ? `Szablon „${pendingTemplate.name}” zastąpi bieżącą treść. Niezapisane elementy zostaną usunięte.`
+                    ? uiText("editor:templatesModal.theTemplateWillReplaceTheCurrentContent", { value0: (pendingTemplate.name) })
                     : ""}
                 footer={(
                     <div className={classes.confirmActions}>
@@ -186,16 +191,14 @@ export default function TemplatesModal() {
                                 className={classes.confirmCancel}
                                 data-dialog-initial-focus
                                 onClick={() => setPendingTemplate(null)}
-                            >
-                                Anuluj
-                            </button>
+                            >{uiText("ai:aiAssistant.cancel")}</button>
                             <button
                                 type="button"
                                 className={classes.confirmApply}
                                 onClick={() => applyTemplate(pendingTemplate)}
                                 disabled={loadingTemplateId != null}
                             >
-                                {loadingTemplateId ? "Wczytywanie…" : "Zastąp szablonem"}
+                                {loadingTemplateId ? "Wczytywanie…" : uiText("editor:templatesModal.replaceWithTemplate")}
                             </button>
                     </div>
                 )}

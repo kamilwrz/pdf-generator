@@ -1,5 +1,7 @@
 """Contained compatibility helpers for historic local PDF callers."""
 
+from app.core.localisation import message as localised_message
+
 from pathlib import Path
 
 from app.core.config import PDF_UPLOAD_DIR
@@ -19,7 +21,7 @@ def delete_pdf_file(file_path, *, root: Path = PDF_UPLOAD_DIR):
         candidate.relative_to(root_path)
         candidate.unlink(missing_ok=True)
     except (OSError, TypeError, ValueError):
-        return {"message": "Nie znaleziono bezpiecznego pliku PDF."}
+        return {"message": localised_message('no_safe_pdf_file_found')}
     return None
 
 

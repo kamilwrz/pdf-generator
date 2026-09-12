@@ -1,3 +1,4 @@
+import { t as uiText } from "../i18n/index.js";
 /** Helpers for plan entitlements returned by GET /auth/me/entitlements */
 
 export function isTemplateAllowed(template, entitlements) {
@@ -12,7 +13,7 @@ export function isTemplateAllowed(template, entitlements) {
     return entitlements.allowed_template_ids.includes(template.id);
 }
 
-export function planErrorMessage(error, fallback = "Limit planu został osiągnięty.") {
+export function planErrorMessage(error, fallback = uiText("editor:entitlements.yourPlanAllowanceHasBeenReached")) {
     if (!error) return fallback;
     if (error.planMessage) return error.planMessage;
     if (typeof error.message === "string" && error.message) return error.message;

@@ -1,3 +1,4 @@
+import { t as uiText } from "../i18n/index.js";
 /**
  * Creates recoverable canvas deletions for the section/record hover controls.
  *
@@ -40,7 +41,7 @@ export function useCanvasDeletionUndo() {
       variant: "success",
       replaceKey: "canvas-structural-delete",
       action: {
-        label: "Cofnij",
+        label: uiText("editor:topbar.undo"),
         kind: "button",
         onClick: () => {
           setA4_Elements?.(snapshot.elements);

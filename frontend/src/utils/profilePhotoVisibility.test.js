@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { readPresentationSource as readFile } from "../../scripts/read-presentation-source.mjs";
 import { describe, it } from "node:test";
 import { atriumTemplate } from "../templates/atrium.js";
 import { monumentTemplate } from "../templates/monument.js";

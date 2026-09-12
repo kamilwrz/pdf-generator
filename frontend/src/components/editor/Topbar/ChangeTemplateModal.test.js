@@ -2,7 +2,7 @@
  * Source-level guards for "Zmień szablon" spacing behaviour.
  */
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readPresentationSourceSync as readFileSync } from "../../../../scripts/read-presentation-source.mjs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, it } from "node:test";

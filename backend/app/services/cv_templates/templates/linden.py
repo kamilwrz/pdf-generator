@@ -324,7 +324,7 @@ def _gen_linden(cv: dict) -> list[dict]:
     masthead.append(build_contact_band_anchor(contact_descriptor))
 
     contact_label = _text(
-        "DANE KONTAKTOWE", 9.5, DISPLAY, FOREST_DEEP,
+        "CONTACT DETAILS" if str(cv.get("language", "Polish")).lower() in {"en", "english"} else "DANE KONTAKTOWE", 9.5, DISPLAY, FOREST_DEEP,
         SIDEBAR_LEFT, CONTACT_LABEL_TOP, zIndex=5, page=1,
     )
     contact_label.update({

@@ -1,3 +1,4 @@
+import { t as uiText } from '../i18n/index.js';
 /**
  * Structural section builder.
  *
@@ -99,39 +100,39 @@ export const SECTION_TYPES = Object.freeze({
 export const SECTION_PRESETS = Object.freeze([
   Object.freeze({
     type: SECTION_TYPES.SUMMARY,
-    title: "Podsumowanie",
+    get title() { return uiText("editor:sectionChoice.Summary"); },
     layout: SECTION_LAYOUTS.TEXTAREA,
-    description: "Krótki profil zawodowy w jednym, szerszym polu tekstowym.",
+    get description() { return uiText("editor:sectionChoice.Ashortprofessionalsummaryinonewidetextfield"); },
   }),
   Object.freeze({
     type: SECTION_TYPES.EXPERIENCE,
-    title: "Doświadczenie",
+    get title() { return uiText("editor:sectionChoice.Experience"); },
     layout: SECTION_LAYOUTS.RECORD_EXPERIENCE,
-    description: "Stanowisko, firma, miejsce, okres i opis osiągnięć.",
+    get description() { return uiText("editor:sectionChoice.Role,company,location,datesandachievements"); },
   }),
   Object.freeze({
     type: SECTION_TYPES.EDUCATION,
-    title: "Wykształcenie",
+    get title() { return uiText("editor:sectionChoice.Education"); },
     layout: SECTION_LAYOUTS.RECORD_EDUCATION,
-    description: "Kierunek, szkoła, miejsce, lata oraz najważniejsze informacje.",
+    get description() { return uiText("editor:sectionChoice.Subject,school,location,datesandkeydetails"); },
   }),
   Object.freeze({
     type: SECTION_TYPES.LANGUAGES,
-    title: "Języki",
+    get title() { return uiText("editor:sectionChoice.Languages"); },
     layout: SECTION_LAYOUTS.GRID,
-    description: "Krótkie wpisy język i poziom układane w równej siatce.",
+    get description() { return uiText("editor:sectionChoice.languagesDescription"); },
   }),
   Object.freeze({
     type: SECTION_TYPES.SKILLS,
-    title: "Umiejętności",
+    get title() { return uiText("editor:sectionChoice.Skills"); },
     layout: SECTION_LAYOUTS.TEXTAREA,
-    description: "Płaska lista kompetencji gotowa do szybkiego uzupełnienia.",
+    get description() { return uiText("editor:sectionChoice.skillsDescription"); },
   }),
   Object.freeze({
     type: SECTION_TYPES.SKILLS_CATEGORIES,
-    title: "Umiejętności (Kategorie)",
+    get title() { return uiText("editor:sectionChoice.Skillscategories"); },
     layout: SECTION_LAYOUTS.RECORD_SUBCATEGORY,
-    description: "Powtarzalne grupy z nazwą kategorii i listą kompetencji.",
+    get description() { return uiText("editor:sectionChoice.Repeatedgroupswithacategorynameandalistofskills"); },
   }),
 ]);
 

@@ -1,6 +1,8 @@
 """Atomic database-backed fixed-window throttles for auth endpoints."""
 from __future__ import annotations
 
+from app.core.localisation import message as localised_message
+
 from datetime import datetime, timedelta, timezone
 import hashlib
 import hmac
@@ -24,7 +26,7 @@ class AuthRateLimitExceeded(HTTPException):
             status_code=429,
             detail={
                 "code": "auth_rate_limited",
-                "message": "Zbyt wiele prób. Spróbuj ponownie później.",
+                "message": localised_message('too_many_attempts_please_try_again_later'),
             },
             headers={"Retry-After": str(max(1, retry_after))},
         )

@@ -1,3 +1,5 @@
+import { t as uiText } from "../../../i18n/index.js";
+import { useTranslation } from 'react-i18next';
 /**
  * Selection hairlines drawn above elements (tight glyph bounds for single-line text).
  * Keeps resize chrome off the element DOM so remounts do not break pointer capture.
@@ -8,6 +10,7 @@ import { getElementSelectionBounds } from "../../../utils/elementBounds";
 import classes from "./SelectionOverlay.module.css";
 
 export default function SelectionOverlay({ elements, page }) {
+  useTranslation();
     const { A4_Elements, currentPage, groupMoveDelta, zoom = 1 } = useCanvasContext();
     const canvasElements = elements ?? A4_Elements;
     const displayedPage = page ?? currentPage;
@@ -98,7 +101,7 @@ export default function SelectionOverlay({ elements, page }) {
                         data-selection-badge="true"
                     >
                         <span className={classes.badgeDot} />
-                        {`${displayed.length} zaznaczone`}
+                        {uiText("editor:selectionOverlay.selected", { value0: (displayed.length) })}
                     </div>
                 </>
             )}

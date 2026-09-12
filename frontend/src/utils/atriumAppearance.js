@@ -1,3 +1,4 @@
+import { t as uiText } from "../i18n/index.js";
 /**
  * Premium colour and typography system for the Atrium CV template.
  *
@@ -21,8 +22,8 @@ export const DEFAULT_ATRIUM_TEXT_SIZE = "M";
 export const ATRIUM_PALETTES = Object.freeze([
   {
     id: "sage",
-    name: "Szałwiowy Trawertyn",
-    tagline: "Jasne tło i zgaszona zieleń",
+    get name() { return uiText("editor:atriumAppearance.sageTravertine"); },
+    get tagline() { return uiText("editor:atriumAppearance.lightBackgroundAndMutedGreen"); },
     tone: "original",
     iconTheme: "atrium-sage",
     colors: {
@@ -33,8 +34,8 @@ export const ATRIUM_PALETTES = Object.freeze([
   },
   {
     id: "carrara",
-    name: "Białe Carrara",
-    tagline: "Białe tło i chłodne szarości",
+    get name() { return uiText("editor:atriumAppearance.whiteCarrara"); },
+    get tagline() { return uiText("editor:atriumAppearance.whiteBackgroundAndCoolGreys"); },
     tone: "light",
     iconTheme: "atrium-carrara",
     colors: {
@@ -45,8 +46,8 @@ export const ATRIUM_PALETTES = Object.freeze([
   },
   {
     id: "nocturne",
-    name: "Nocne Atrium",
-    tagline: "Ciemne tło i jasne akcenty",
+    get name() { return uiText("editor:atriumAppearance.nightAtrium"); },
+    get tagline() { return uiText("editor:atriumAppearance.darkBackgroundAndLightAccents"); },
     tone: "dark",
     iconTheme: "atrium-nocturne",
     colors: {
@@ -57,8 +58,8 @@ export const ATRIUM_PALETTES = Object.freeze([
   },
   {
     id: "cobalt",
-    name: "Kobaltowa Loggia",
-    tagline: "Ciemny kobalt i jasny tekst",
+    get name() { return uiText("editor:atriumAppearance.cobaltLoggia"); },
+    get tagline() { return uiText("editor:atriumAppearance.darkCobaltAndLightText"); },
     tone: "strong",
     iconTheme: "atrium-cobalt",
     colors: {
@@ -69,8 +70,8 @@ export const ATRIUM_PALETTES = Object.freeze([
   },
   {
     id: "burgundy",
-    name: "Bordowa Arkada",
-    tagline: "Ciemny burgund i jasny tekst",
+    get name() { return uiText("editor:atriumAppearance.burgundyArcade"); },
+    get tagline() { return uiText("editor:atriumAppearance.darkBurgundyAndLightText"); },
     tone: "strong",
     iconTheme: "atrium-burgundy",
     colors: {
@@ -81,8 +82,8 @@ export const ATRIUM_PALETTES = Object.freeze([
   },
   {
     id: "emerald",
-    name: "Szmaragdowy Dziedziniec",
-    tagline: "Ciemna zieleń i jasny tekst",
+    get name() { return uiText("editor:atriumAppearance.emeraldCourtyard"); },
+    get tagline() { return uiText("editor:atriumAppearance.darkGreenAndLightText"); },
     tone: "strong",
     iconTheme: "atrium-emerald",
     colors: {
@@ -94,10 +95,10 @@ export const ATRIUM_PALETTES = Object.freeze([
 ]);
 
 export const ATRIUM_TEXT_SIZES = Object.freeze([
-  { id: "S", label: "S", description: "Kompaktowy" },
-  { id: "M", label: "M", description: "Oryginalny" },
-  { id: "L", label: "L", description: "Czytelny" },
-  { id: "XL", label: "XL", description: "Wyrazisty" },
+  { id: "S", label: "S", get description() { return uiText("editor:atriumAppearance.compact"); } },
+  { id: "M", label: "M", get description() { return uiText("editor:atriumAppearance.original"); } },
+  { id: "L", label: "L", get description() { return uiText("editor:atriumAppearance.readable"); } },
+  { id: "XL", label: "XL", get description() { return uiText("editor:atriumAppearance.bold"); } },
 ]);
 
 // Display type changes more conservatively than long copy so Atrium retains

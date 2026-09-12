@@ -1,12 +1,17 @@
+import { t as uiText } from "../../../i18n/index.js";
+import { useTranslation } from 'react-i18next';
 /** Google-rendered button that keeps provider branding and accessibility intact. */
 import { useEffect, useId, useRef, useState } from "react";
 import classes from "./GoogleSignInButton.module.css";
 import { resolveGoogleButtonGeometry } from "./googleButtonGeometry";
+import { getUiLanguage } from '../../../i18n';
 
 const GOOGLE_CLIENT_ID = import.meta.env?.VITE_GOOGLE_CLIENT_ID?.trim() || "";
 const SCRIPT_ID = "google-identity-services";
 
 export default function GoogleSignInButton({ onCredential, disabled = false, label = "signin_with" }) {
+  useTranslation();
+  const language = getUiLanguage();
   const frameRef = useRef(null);
   const containerRef = useRef(null);
   const callbackRef = useRef(onCredential);
@@ -45,7 +50,7 @@ export default function GoogleSignInButton({ onCredential, disabled = false, lab
         text: label,
         shape: "rectangular",
         width: geometry.providerWidth,
-        locale: "pl",
+        locale: language,
       });
       setState("ready");
     };
@@ -88,14 +93,14 @@ export default function GoogleSignInButton({ onCredential, disabled = false, lab
       window.removeEventListener("resize", render);
       existing?.removeEventListener("load", start);
     };
-  }, [disabled, label]);
+  }, [disabled, label, language]);
 
   if (!GOOGLE_CLIENT_ID) return null;
   return (
     <div ref={frameRef} className={classes.frame} aria-describedby={statusId}>
       <div ref={containerRef} className={classes.providerButton} aria-hidden={disabled || undefined} />
       <p id={statusId} className="sr-only" role="status" aria-live="polite">
-        {state === "loading" ? "Ładowanie logowania Google." : state === "error" ? "Logowanie Google jest niedostępne." : ""}
+        {state === "loading" ? uiText("auth:googleSignInButton.loadingGoogleSignIn") : state === "error" ? uiText("auth:googleSignInButton.googleSignInIsUnavailable") : ""}
       </p>
     </div>
   );

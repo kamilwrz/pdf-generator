@@ -21,7 +21,7 @@ function collectTests(dir) {
     const full = join(dir, entry.name);
     if (entry.isDirectory()) {
       found.push(...collectTests(full));
-    } else if (entry.isFile() && entry.name.endsWith(".test.js")) {
+    } else if (entry.isFile() && entry.name.endsWith(".test.js") && !entry.name.endsWith(".runtime.test.js")) {
       found.push(full);
     }
   }

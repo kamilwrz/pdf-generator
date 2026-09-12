@@ -1,3 +1,5 @@
+import { t as uiText } from "../../../i18n/index.js";
+import { useTranslation } from 'react-i18next';
 /**
  * Hover affordance for the template profile-photo slot.
  *
@@ -16,6 +18,7 @@ import classes from "./ProfilePhotoControls.module.css";
 const HIDE_AFTER_LEAVE_MS = 600;
 
 export default function ProfilePhotoControls({ anchor }) {
+  useTranslation();
   const { hideProfilePhoto, showProfilePhoto, removeProfilePhoto, zoom = 1 } = useCanvasContext();
   const [hover, setHover] = useState(null);
   const hideTimerRef = useRef(null);
@@ -78,8 +81,8 @@ export default function ProfilePhotoControls({ anchor }) {
             type="button"
             className={classes.restore}
             style={buttonStyle}
-            aria-label="Pokaż slot zdjęcia profilowego"
-            data-tooltip="Pokaż zdjęcie profilowe"
+            aria-label={uiText("editor:profilePhotoControls.showProfilePhotoSlot")}
+            data-tooltip={uiText("editor:profilePhotoControls.showProfilePhoto")}
             onPointerDown={stop}
             onClick={(event) => { stop(event); showProfilePhoto(); setHover(null); }}
           >
@@ -105,8 +108,8 @@ export default function ProfilePhotoControls({ anchor }) {
             type="button"
             className={cluster.trash}
             style={buttonStyle}
-            aria-label="Usuń zdjęcie ze slotu"
-            data-tooltip="Usuń zdjęcie"
+            aria-label={uiText("editor:profilePhotoControls.removePhotoFromSlot")}
+            data-tooltip={uiText("editor:profilePhotoControls.removePhoto")}
             onPointerDown={stop}
             onClick={(event) => { stop(event); removeProfilePhoto(); setHover(null); }}
           >
@@ -117,8 +120,8 @@ export default function ProfilePhotoControls({ anchor }) {
           type="button"
           className={classes.hide}
           style={buttonStyle}
-          aria-label="Ukryj slot zdjęcia profilowego"
-          data-tooltip="Ukryj zdjęcie profilowe"
+          aria-label={uiText("editor:profilePhotoControls.hideProfilePhotoSlot")}
+          data-tooltip={uiText("editor:profilePhotoControls.hideProfilePhoto")}
           onPointerDown={stop}
           onClick={(event) => { stop(event); hideProfilePhoto(); setHover(null); }}
         >

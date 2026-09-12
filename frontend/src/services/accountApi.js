@@ -1,3 +1,4 @@
+import { t as uiText } from "../i18n/index.js";
 /** Authenticated adapters for self-service data access and account erasure. */
 import { ApiClient, ENDPOINTS } from './api.js';
 import { getAccessToken } from '../utils/authSession.js';
@@ -12,7 +13,7 @@ export async function downloadAccountData() {
     ENDPOINTS.ACCOUNT.EXPORT,
     'GET',
     null,
-    'Nie udało się przygotować eksportu danych.',
+    uiText("errors:accountApi.couldNotPrepareYourDataExport"),
   );
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
@@ -30,6 +31,6 @@ export function deleteAccount(confirmation) {
     ENDPOINTS.ACCOUNT.ROOT,
     'DELETE',
     JSON.stringify({ confirmation }),
-    'Nie udało się usunąć konta.',
+    uiText("errors:accountApi.couldNotDeleteYourAccount"),
   );
 }

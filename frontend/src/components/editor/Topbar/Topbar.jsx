@@ -1,3 +1,6 @@
+import { templatePreviewPath } from '../../../i18n/templatePreviews.js';
+import { t as uiText } from "../../../i18n/index.js";
+import { useTranslation } from 'react-i18next';
 /**
  * Editor chrome for both the full editor and the reduced product-demo mode.
  * Demo mode keeps history, zoom, pagination, and one account-gated CV import
@@ -15,6 +18,7 @@
  * pagination stay left; naming, saving, and downloading stay right.
  */
 import classes from "./Topbar.module.css";
+import LanguageSelect from '../../common/LanguageSelect/LanguageSelect';
 import { useEffect, useMemo, useRef } from "react";
 import { Link } from "react-router-dom";
 import { useCanvasContext } from "../../../store/canvas-context";
@@ -29,6 +33,7 @@ import { useApplyCvTemplate } from "../../../hooks/useApplyCvTemplate";
 import PageControls, { TwoPageViewToggle } from "../PageControls/PageControls";
 
 export default function Topbar({ titleRef, title, onTitleChange }) {
+  useTranslation();
     const topbarRef = useRef(null);
 
     useEffect(() => {
@@ -92,8 +97,8 @@ export default function Topbar({ titleRef, title, onTitleChange }) {
 
     const canRestyle = Boolean(activeCvData) && !fillingId && !isPdfLoading;
     const templatesHint = activeCvData
-        ? "Zmień szablon"
-        : "Najpierw utwórz nowe CV albo zaimportuj PDF";
+        ? uiText("editor:newCvSetupModal.changeTemplate")
+        : uiText("editor:topbar.createANewCvOrImportA");
 
     return (
         <header ref={topbarRef} className={classes.topbar}
@@ -101,32 +106,33 @@ export default function Topbar({ titleRef, title, onTitleChange }) {
             data-anchor="editor-topbar">
             {/* Creation and page navigation remain outside the 100% A4 rail. */}
             <div className={`${classes.group} ${classes.documentGroup}`}>
+                <LanguageSelect />
                 {isDemoContent ? (
                     <div className={classes.demoIdentity} aria-label="CV Studio Demo">
                         <span>CV STUDIO</span>
                         <strong>DEMO</strong>
                     </div>
                 ) : null}
-                {!isDemoContent && <div className={classes.workflowCluster} role="group" aria-label="Tworzenie CV">
+                {!isDemoContent && <div className={classes.workflowCluster} role="group" aria-label={uiText("editor:topbar.creatingCv")}>
                     <button
                         type="button"
                         className={`${classes.feature} ${classes.labeled}`}
                         onClick={showAiPanel}
-                        aria-label="Importuj PDF"
-                        title={isGuest ? "Importuj PDF — wymagane konto" : "Importuj PDF"}
+                        aria-label={uiText("editor:topbar.importPdf")}
+                        title={isGuest ? uiText("editor:topbar.importPdfAccountRequired") : uiText("editor:topbar.importPdf")}
                     >
                         <RiFileTextLine />
-                        <span className={`${classes.actionLabel} ${classes.toolLabel}`}>Importuj PDF</span>
+                        <span className={`${classes.actionLabel} ${classes.toolLabel}`}>{uiText("editor:topbar.importPdf")}</span>
                     </button>
                     <button
                         type="button"
                         className={`${classes.feature} ${classes.labeled}`}
                         onClick={showNewCvSetup}
-                        aria-label="Nowe CV"
-                        title="Utwórz nowe CV"
+                        aria-label={uiText("editor:topbar.newCv")}
+                        title={uiText("editor:newCvSetupModal.createANewCv")}
                     >
                         <FiPlus />
-                        <span className={`${classes.actionLabel} ${classes.toolLabel}`}>Nowe CV</span>
+                        <span className={`${classes.actionLabel} ${classes.toolLabel}`}>{uiText("editor:topbar.newCv")}</span>
                     </button>
                 </div>}
                 <span className={classes.divider} aria-hidden="true" />
@@ -136,8 +142,8 @@ export default function Topbar({ titleRef, title, onTitleChange }) {
                         type="button"
                         className={classes.fitOne}
                         onClick={onFitToOnePage}
-                        aria-label="Zmieść CV na 1 stronę"
-                        title="Zmieść CV na 1 stronę…"
+                        aria-label={uiText("editor:topbar.fitCvOnPage")}
+                        title={uiText("editor:topbar.fitCvOnPage2")}
                     >
                         <RiFileReduceLine aria-hidden="true" />
                         <span aria-hidden="true">1</span>
@@ -146,15 +152,15 @@ export default function Topbar({ titleRef, title, onTitleChange }) {
             </div>
 
             <div className={classes.canvasGroup} data-anchor="topbar-canvas-controls">
-                <div className={classes.cluster} role="group" aria-label="Historia zmian">
-                    <button type="button" className={classes.iconBtn} onClick={undo} disabled={!canUndo} aria-label="Cofnij" title="Cofnij (Ctrl+Z)">
+                <div className={classes.cluster} role="group" aria-label={uiText("editor:topbar.changeHistory")}>
+                    <button type="button" className={classes.iconBtn} onClick={undo} disabled={!canUndo} aria-label={uiText("editor:topbar.undo")} title={uiText("editor:topbar.undoCtrlZ")}>
                         <RiArrowGoBackLine />
                     </button>
-                    <button type="button" className={classes.iconBtn} onClick={redo} disabled={!canRedo} aria-label="Ponów" title="Ponów (Ctrl+Shift+Z)">
+                    <button type="button" className={classes.iconBtn} onClick={redo} disabled={!canRedo} aria-label={uiText("editor:topbar.redo")} title={uiText("editor:topbar.redoCtrlShiftZ")}>
                         <RiArrowGoForwardLine />
                     </button>
                 </div>
-                {!isDemoContent ? <div className={classes.templateCluster} role="group" aria-label="Szablon CV">
+                {!isDemoContent ? <div className={classes.templateCluster} role="group" aria-label={uiText("editor:newCvSetupModal.cvTemplate")}>
                     {/* Adjacent template previews appear on hover and keyboard focus;
                     native titles also name the action when a preview is unavailable. */}
                     <div className={classes.templateNavAnchor}>
@@ -163,14 +169,14 @@ export default function Topbar({ titleRef, title, onTitleChange }) {
                             className={classes.iconBtn}
                             onClick={() => prevTemplate && applyTemplate(prevTemplate)}
                             disabled={!canRestyle || !prevTemplate}
-                            aria-label={prevTemplate ? `Poprzedni szablon: ${prevTemplate.name}` : "Poprzedni szablon"}
+                            aria-label={prevTemplate ? `Poprzedni szablon: ${prevTemplate.name}` : uiText("editor:topbar.previousTemplate")}
                             title={prevTemplate ? `Poprzedni szablon: ${prevTemplate.name}` : templatesHint}
                         >
                             <RiArrowLeftSLine />
                         </button>
                         {prevTemplate && (
                             <div className={`${classes.templatePreview} ${classes.templatePreviewLeft}`} role="presentation">
-                                <img src={`/template-mockups/${prevTemplate.id}.png`} alt="" loading="lazy" />
+                                <img src={templatePreviewPath(prevTemplate.id)} alt="" loading="lazy" />
                                 <span className={classes.templatePreviewLabel}>{prevTemplate.name}</span>
                             </div>
                         )}
@@ -180,11 +186,11 @@ export default function Topbar({ titleRef, title, onTitleChange }) {
                         className={`${classes.feature} ${classes.labeled}`}
                         onClick={showChangeTemplateModal}
                         disabled={!activeCvData}
-                        aria-label="Zmień szablon"
+                        aria-label={uiText("editor:newCvSetupModal.changeTemplate")}
                         title={templatesHint}
                     >
                         <RiShuffleLine />
-                        <span className={`${classes.actionLabel} ${classes.toolLabel}`}>Zmień szablon</span>
+                        <span className={`${classes.actionLabel} ${classes.toolLabel}`}>{uiText("editor:newCvSetupModal.changeTemplate")}</span>
                     </button>
                     <div className={classes.templateNavAnchor}>
                         <button
@@ -192,21 +198,21 @@ export default function Topbar({ titleRef, title, onTitleChange }) {
                             className={classes.iconBtn}
                             onClick={() => nextTemplate && applyTemplate(nextTemplate)}
                             disabled={!canRestyle || !nextTemplate}
-                            aria-label={nextTemplate ? `Następny szablon: ${nextTemplate.name}` : "Następny szablon"}
-                            title={nextTemplate ? `Następny szablon: ${nextTemplate.name}` : templatesHint}
+                            aria-label={nextTemplate ? uiText("editor:topbar.nextTemplate", { value0: (nextTemplate.name) }) : uiText("editor:topbar.nextTemplate2")}
+                            title={nextTemplate ? uiText("editor:topbar.nextTemplate", { value0: (nextTemplate.name) }) : templatesHint}
                         >
                             <RiArrowRightSLine />
                         </button>
                         {nextTemplate && (
                             <div className={`${classes.templatePreview} ${classes.templatePreviewRight}`} role="presentation">
-                                <img src={`/template-mockups/${nextTemplate.id}.png`} alt="" loading="lazy" />
+                                <img src={templatePreviewPath(nextTemplate.id)} alt="" loading="lazy" />
                                 <span className={classes.templatePreviewLabel}>{nextTemplate.name}</span>
                             </div>
                         )}
                     </div>
                 </div> : <span aria-hidden="true" />}
 
-                <div className={classes.viewGroup} role="group" aria-label="Widok dokumentu">
+                <div className={classes.viewGroup} role="group" aria-label={uiText("editor:topbar.documentView")}>
                     {/* Stable view-controls anchor for editor chrome consumers. */}
                     <div className={classes.zoomCluster} data-anchor="topbar-zoom">
                         <button
@@ -214,8 +220,8 @@ export default function Topbar({ titleRef, title, onTitleChange }) {
                             className={classes.zoomBtn}
                             onClick={zoomOut}
                             disabled={isTwoPageView || zoom <= 0.25}
-                            aria-label="Pomniejsz"
-                            title="Pomniejsz"
+                            aria-label={uiText("editor:topbar.zoomOut")}
+                            title={uiText("editor:topbar.zoomOut")}
                         >
                             <FiZoomOut />
                         </button>
@@ -225,8 +231,8 @@ export default function Topbar({ titleRef, title, onTitleChange }) {
                             className={classes.zoomBtn}
                             onClick={zoomIn}
                             disabled={isTwoPageView || zoom >= 3}
-                            aria-label="Powiększ"
-                            title="Powiększ"
+                            aria-label={uiText("editor:topbar.zoomIn")}
+                            title={uiText("editor:topbar.zoomIn")}
                         >
                             <FiZoomIn />
                         </button>
@@ -243,19 +249,17 @@ export default function Topbar({ titleRef, title, onTitleChange }) {
                         <Link
                             className={classes.demoAction}
                             to="/register?start=import"
-                            aria-label="Wgraj własne CV po utworzeniu konta"
-                        >
-                            Wgraj CV
-                        </Link>
+                            aria-label={uiText("editor:topbar.uploadYourCvAfterCreatingAnAccount")}
+                        >{uiText("editor:startChooser.uploadCv")}</Link>
                     </>
                 ) : null}
-                {!isDemoContent && <div className={classes.outputActions} role="group" aria-label="Operacje dokumentu">
+                {!isDemoContent && <div className={classes.outputActions} role="group" aria-label={uiText("editor:topbar.documentActions")}>
                     <button
                         type="button"
                         className={classes.ghost}
                         onClick={clearA4}
-                        aria-label="Wyczyść zawartość CV"
-                        title="Wyczyść zawartość CV"
+                        aria-label={uiText("editor:topbar.clearCvContent")}
+                        title={uiText("editor:topbar.clearCvContent")}
                     >
                         <FiTrash2 />
                     </button>
@@ -267,14 +271,14 @@ export default function Topbar({ titleRef, title, onTitleChange }) {
                             ref={titleRef}
                             value={title}
                             onChange={(event) => onTitleChange(event.target.value)}
-                            placeholder="Projekt bez tytułu"
-                            aria-label="Nazwa bieżącego dokumentu"
+                            placeholder={uiText("editor:topbar.untitledDocument")}
+                            aria-label={uiText("editor:topbar.currentDocumentName")}
                         />
                         <button
                             type="button"
                             className={classes.rename}
-                            aria-label="Zmień nazwę dokumentu"
-                            title="Zmień nazwę dokumentu"
+                            aria-label={uiText("editor:topbar.renameDocument")}
+                            title={uiText("editor:topbar.renameDocument")}
                             onClick={() => titleRef?.current?.focus()}
                         >
                             <TiPen />
@@ -285,24 +289,24 @@ export default function Topbar({ titleRef, title, onTitleChange }) {
                         className={`${classes.primary} ${classes.labeled}`}
                         onClick={createPdf}
                         disabled={isPdfLoading}
-                        aria-label="Zapisz dokument"
-                        title="Zapisz dokument w Moich dokumentach"
+                        aria-label={uiText("editor:pdfOperationProgressModal.saveDocument")}
+                        title={uiText("editor:topbar.saveDocumentToMyDocuments")}
                         aria-busy={isPdfLoading}
                     >
                         <FiSave />
-                        <span className={`${classes.actionLabel} ${classes.outputLabel}`}>Zapisz</span>
+                        <span className={`${classes.actionLabel} ${classes.outputLabel}`}>{uiText("editor:topbar.save")}</span>
                     </button>
                     <button
                         type="button"
                         className={`${classes.secondary} ${classes.labeled}`}
                         onClick={downloadPdf}
                         disabled={isPdfLoading}
-                        aria-label="Pobierz PDF"
-                        title="Pobierz PDF"
+                        aria-label={uiText("editor:pdfOperationProgressModal.downloadPdf")}
+                        title={uiText("editor:pdfOperationProgressModal.downloadPdf")}
                         aria-busy={isPdfLoading}
                     >
                         <RiDownload2Line />
-                        <span className={`${classes.actionLabel} ${classes.outputLabel}`}>Pobierz PDF</span>
+                        <span className={`${classes.actionLabel} ${classes.outputLabel}`}>{uiText("editor:pdfOperationProgressModal.downloadPdf")}</span>
                     </button>
                 </div>}
             </div>

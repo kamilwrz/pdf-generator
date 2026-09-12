@@ -1,3 +1,5 @@
+import { t as uiText } from "../../../i18n/index.js";
+import { useTranslation } from 'react-i18next';
 /**
  * Page navigation and structural page actions in the Topbar's left group.
  * The separately exported spread toggle sits next to zoom on the fixed A4 rail.
@@ -20,6 +22,7 @@ const Chevron = ({ dir }) => (
 );
 
 export default function PageControls() {
+  useTranslation();
     const {
         currentPage, pageCount, addPage, removePage, goToPage, clonePage, movePage,
         editorMode,
@@ -27,14 +30,14 @@ export default function PageControls() {
     const isFreeform = editorMode === EDITOR_MODE_FREEFORM;
 
     return (
-        <div className={classes.bar} role="group" aria-label="Strony i paginacja">
+        <div className={classes.bar} role="group" aria-label={uiText("editor:pageControls.pagesAndPagination")}>
             <button
                 type="button"
                 className={classes.navBtn}
                 onClick={() => goToPage(currentPage - 1)}
                 disabled={currentPage <= 1}
-                aria-label="Poprzednia strona"
-                title="Poprzednia strona"
+                aria-label={uiText("editor:pageControls.previousPage")}
+                title={uiText("editor:pageControls.previousPage")}
             >
                 <Chevron dir="left" />
             </button>
@@ -48,8 +51,8 @@ export default function PageControls() {
                 className={classes.navBtn}
                 onClick={() => goToPage(currentPage + 1)}
                 disabled={currentPage >= 20}
-                aria-label={currentPage >= pageCount ? "Utwórz następną stronę" : "Następna strona"}
-                title={currentPage >= pageCount ? "Utwórz następną stronę" : "Następna strona"}
+                aria-label={currentPage >= pageCount ? uiText("editor:pageControls.createNextPage") : uiText("editor:pageControls.nextPage")}
+                title={currentPage >= pageCount ? uiText("editor:pageControls.createNextPage") : uiText("editor:pageControls.nextPage")}
             >
                 <Chevron dir="right" />
             </button>
@@ -64,8 +67,8 @@ export default function PageControls() {
                         className={`${classes.navBtn} ${classes.advanced}`}
                         onClick={() => movePage(-1)}
                         disabled={currentPage <= 1}
-                        aria-label="Przenieś stronę wcześniej"
-                        title="Przenieś stronę wcześniej"
+                        aria-label={uiText("editor:pageControls.movePageEarlier")}
+                        title={uiText("editor:pageControls.movePageEarlier")}
                     >
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="m14 18-6-6 6-6" /><path d="M5 6v12" /></svg>
                     </button>
@@ -74,8 +77,8 @@ export default function PageControls() {
                         className={`${classes.navBtn} ${classes.advanced}`}
                         onClick={() => movePage(1)}
                         disabled={currentPage >= pageCount}
-                        aria-label="Przenieś stronę później"
-                        title="Przenieś stronę później"
+                        aria-label={uiText("editor:pageControls.movePageLater")}
+                        title={uiText("editor:pageControls.movePageLater")}
                     >
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="m10 18 6-6-6-6" /><path d="M19 6v12" /></svg>
                     </button>
@@ -83,8 +86,8 @@ export default function PageControls() {
                         type="button"
                         className={`${classes.navBtn} ${classes.advanced}`}
                         onClick={clonePage}
-                        aria-label="Duplikuj bieżącą stronę"
-                        title="Duplikuj stronę (wstawiona po tej)"
+                        aria-label={uiText("editor:pageControls.duplicateCurrentPage")}
+                        title={uiText("editor:pageControls.duplicatePageInsertedAfterThisOne")}
                     >
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="12" height="12" rx="2" /><path d="M5 15V5a2 2 0 0 1 2-2h10" /></svg>
                     </button>
@@ -99,8 +102,8 @@ export default function PageControls() {
                         type="button"
                         className={classes.addBtn}
                         onClick={addPage}
-                        aria-label="Dodaj stronę"
-                        title="Dodaj stronę"
+                        aria-label={uiText("editor:pageControls.addPage")}
+                        title={uiText("editor:pageControls.addPage")}
                     >
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14" /></svg>
                     </button>
@@ -110,8 +113,8 @@ export default function PageControls() {
                         className={classes.removeBtn}
                         onClick={removePage}
                         disabled={pageCount <= 1}
-                        aria-label="Usuń bieżącą stronę"
-                        title="Usuń bieżącą stronę"
+                        aria-label={uiText("editor:pageControls.deleteCurrentPage")}
+                        title={uiText("editor:pageControls.deleteCurrentPage")}
                     >
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /><path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2" /></svg>
                     </button>
@@ -123,6 +126,7 @@ export default function PageControls() {
 
 /** Toggles the shared two-page view without moving the fixed topbar rail. */
 export function TwoPageViewToggle() {
+  useTranslation();
     const { isTwoPageView, toggleTwoPageView, pageCount } = useCanvasContext();
     return (
         <button
@@ -130,9 +134,9 @@ export function TwoPageViewToggle() {
             className={`${classes.navBtn} ${isTwoPageView ? classes.spreadActive : ""}`}
             onClick={toggleTwoPageView}
             disabled={pageCount < 2}
-            aria-label={isTwoPageView ? "Wyłącz widok dwóch stron" : "Włącz widok dwóch stron"}
+            aria-label={isTwoPageView ? uiText("editor:pageControls.turnOffTwoPageView") : uiText("editor:pageControls.turnOnTwoPageView")}
             aria-pressed={isTwoPageView}
-            title={isTwoPageView ? "Wyłącz widok dwóch stron" : "Włącz widok dwóch stron"}
+            title={isTwoPageView ? uiText("editor:pageControls.turnOffTwoPageView") : uiText("editor:pageControls.turnOnTwoPageView")}
         >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round">
                 <rect x="3" y="4" width="7" height="16" rx="1.2" />

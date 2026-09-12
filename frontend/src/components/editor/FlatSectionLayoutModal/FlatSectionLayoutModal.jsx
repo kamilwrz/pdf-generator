@@ -1,3 +1,5 @@
+import { t as uiText } from "../../../i18n/index.js";
+import { useTranslation } from 'react-i18next';
 /**
  * Modal for choosing a flat-list section's layout: an inline row with items
  * separated by a mid-dot, or a vertical bullet list. Each card previews the
@@ -17,13 +19,13 @@ import classes from "./FlatSectionLayoutModal.module.css";
 const STYLE_OPTIONS = [
   {
     value: FLAT_SECTION_LAYOUT_INLINE,
-    title: "W linii",
-    description: "Elementy oddzielone kropką w jednym wierszu.",
+    get title() { return uiText("editor:flatSectionLayoutModal.inline"); },
+    get description() { return uiText("editor:flatSectionLayoutModal.itemsSeparatedByDotsOnOneLine"); },
   },
   {
     value: FLAT_SECTION_LAYOUT_BULLET,
-    title: "Lista",
-    description: "Każdy element w osobnej linii, z punktorem.",
+    get title() { return uiText("editor:flatSectionLayoutModal.list"); },
+    get description() { return uiText("editor:flatSectionLayoutModal.eachItemOnASeparateLineWith"); },
   },
 ];
 
@@ -36,6 +38,7 @@ const STYLE_OPTIONS = [
  * }} props
  */
 export default function FlatSectionLayoutModal({ open, onCancel, element, onApply }) {
+  useTranslation();
   if (!open || !element) return null;
 
   const currentStyle = flatSectionLayoutStyle(element);
@@ -45,8 +48,8 @@ export default function FlatSectionLayoutModal({ open, onCancel, element, onAppl
       open={open}
       onClose={onCancel}
       width={620}
-      title="Układ listy"
-      subtitle="Wybierz, jak elementy tej sekcji mają się wyświetlać na CV."
+      title={uiText("editor:flatSectionLayoutModal.listLayout")}
+      subtitle={uiText("editor:flatSectionLayoutModal.chooseHowThisSectionSItemsAppear")}
     >
       <div className={classes.options}>
         {STYLE_OPTIONS.map((option) => {
@@ -61,7 +64,7 @@ export default function FlatSectionLayoutModal({ open, onCancel, element, onAppl
             >
               <span className={classes.cardHeader}>
                 <span className={classes.cardTitle}>{option.title}</span>
-                {active ? <span className={classes.cardBadge}>Obecny</span> : null}
+                {active ? <span className={classes.cardBadge}>{uiText("ai:templateCarousel.current")}</span> : null}
               </span>
               <span className={classes.cardDesc}>{option.description}</span>
               <span className={classes.cardPreview}>{preview.content}</span>

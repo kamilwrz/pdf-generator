@@ -1,3 +1,6 @@
+import { useMessageState, messageRef } from '../../../i18n/messageState.js';
+import { t as uiText } from "../../../i18n/index.js";
+import { useTranslation } from 'react-i18next';
 /**
  * Contextual add and individual-delete controls for one Skills category.
  *
@@ -43,6 +46,7 @@ export default function SkillsEntryActions({
   bottom,
   highlight = null,
 }) {
+  useTranslation();
   const {
     A4_Elements,
     addSkillItem,
@@ -73,7 +77,7 @@ export default function SkillsEntryActions({
   });
   const [formOpen, setFormOpen] = useState(false);
   const [value, setValue] = useState("");
-  const [error, setError] = useState("");
+  const [error, setError] = useMessageState("");
   const [announcement, setAnnouncement] = useState("");
   const [activeTarget, setActiveTarget] = useState(null);
   const activeIndex = activeTarget?.index;
@@ -97,7 +101,7 @@ export default function SkillsEntryActions({
     setError("");
     unpin();
     if (restoreFocus) focusToolbarButton();
-  }, [focusToolbarButton, unpin]);
+  }, [focusToolbarButton, unpin, setError]);
 
   const openForm = () => {
     setError("");
@@ -114,12 +118,12 @@ export default function SkillsEntryActions({
     const result = addSkillItem(headingId, groupId, value);
     if (!result?.ok) {
       setError(result?.error === "duplicate"
-        ? "Ta umiejętność już znajduje się w tej kategorii."
-        : "Wpisz nazwę umiejętności.");
+        ? messageRef("editor:skillsEntryActions.thisSkillIsAlreadyInThisCategory")
+        : messageRef("editor:skillsEntryActions.enterASkillName"));
       return;
     }
     const added = value.trim().replace(/\s+/g, " ");
-    setAnnouncement(`Dodano umiejętność: ${added}.`);
+    setAnnouncement(uiText("editor:skillsEntryActions.skillAdded", { value0: (added) }));
     closeForm();
   };
 
@@ -213,14 +217,14 @@ export default function SkillsEntryActions({
   });
   const toolbarAnchorX = Number(left) + Number(width) / 2;
   const addLabel = categoryLabel
-    ? `Dodaj umiejętność do kategorii ${categoryLabel}`
-    : "Dodaj umiejętność";
+    ? uiText("editor:skillsEntryActions.addASkillTo", { value0: (categoryLabel) })
+    : uiText("editor:skillsEntryActions.addSkill");
 
   const deleteActiveItem = () => {
     if (!activeItem || typeof removeSkillItem !== "function") return;
     deleteWithUndo({
-      title: `Usunięto umiejętność „${activeItem.label}”`,
-      msg: "Możesz przywrócić usuniętą umiejętność.",
+      title: uiText("editor:skillsEntryActions.deletedSkill", { value0: (activeItem.label) }),
+      msg: uiText("editor:skillsEntryActions.youCanRestoreTheDeletedSkill"),
       remove: () => {
         const focusId = removeSkillItem(headingId, groupId, activeIndex, activeItem.label);
         window.requestAnimationFrame(() => document.getElementById(focusId || headingId)
@@ -257,10 +261,10 @@ export default function SkillsEntryActions({
         const index = ((activeIndex ?? 0) + (event.key === "ArrowRight" ? 1 : -1)
           + itemTargets.length) % itemTargets.length;
         setActiveIndex(index);
-        setAnnouncement(`Umiejętność: ${itemTargets[index].label}`);
+        setAnnouncement(uiText("editor:skillsEntryActions.skill", { value0: (itemTargets[index].label) }));
       }
     },
-    "aria-description": "Strzałki w lewo i w prawo wybierają umiejętność do usunięcia.",
+    "aria-description": uiText("editor:skillsEntryActions.useTheLeftAndRightArrowsTo"),
   };
 
   const form = (
@@ -275,24 +279,24 @@ export default function SkillsEntryActions({
       noValidate
     >
       <div className={classes.header}>
-        <label className={classes.label} htmlFor={fieldId}>Dodaj umiejętność</label>
+        <label className={classes.label} htmlFor={fieldId}>{uiText("editor:skillsEntryActions.addSkill")}</label>
         <button
           className={classes.cancel}
           type="button"
-          aria-label="Anuluj dodawanie umiejętności"
+          aria-label={uiText("editor:skillsEntryActions.cancelAddingASkill")}
           onClick={() => closeForm()}
         >
           <FiX aria-hidden="true" />
         </button>
       </div>
-      {categoryLabel ? <p className={classes.context}>Kategoria: {categoryLabel}</p> : null}
+      {categoryLabel ? <p className={classes.context}>{uiText("editor:skillsEntryActions.category")} {categoryLabel}</p> : null}
       <div className={classes.row}>
         <input
           id={fieldId}
           className={classes.input}
           type="text"
           value={value}
-          placeholder="Np. analiza danych"
+          placeholder={uiText("editor:skillsEntryActions.eGDataAnalysis")}
           autoComplete="off"
           aria-invalid={Boolean(error)}
           aria-describedby={error ? errorId : undefined}
@@ -304,15 +308,15 @@ export default function SkillsEntryActions({
         <button
           className={classes.confirm}
           type="submit"
-          aria-label="Dodaj umiejętność"
+          aria-label={uiText("editor:skillsEntryActions.addSkill")}
           disabled={!value.trim()}
         >
           <FiPlus aria-hidden="true" />
-          <span>Dodaj</span>
+          <span>{uiText("editor:skillsEntryActions.add")}</span>
         </button>
       </div>
       {error ? <p id={errorId} className={classes.error} role="alert">{error}</p> : null}
-      <p className={classes.hint}><kbd>Enter</kbd> dodaj <span aria-hidden="true">·</span> <kbd>Esc</kbd> zamknij</p>
+      <p className={classes.hint}><kbd>Enter</kbd> {uiText("editor:skillsEntryActions.add2")} <span aria-hidden="true">·</span> <kbd>Esc</kbd> {uiText("editor:skillsEntryActions.close")}</p>
     </form>
   );
 

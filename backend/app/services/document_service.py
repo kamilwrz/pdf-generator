@@ -1,6 +1,8 @@
 """Secure PDF rendering and Storage V2 document lifecycle orchestration."""
 from __future__ import annotations
 
+from app.core.localisation import message as localised_message
+
 import datetime
 import re
 from pathlib import Path
@@ -64,7 +66,7 @@ def _image_not_found() -> HTTPException:
 
     return HTTPException(
         status_code=404,
-        detail={"code": "image_not_found", "message": "Nie znaleziono obrazu."},
+        detail={"code": "image_not_found", "message": localised_message('image_not_found')},
     )
 
 
@@ -75,7 +77,7 @@ def _invalid_image_source() -> HTTPException:
         status_code=422,
         detail={
             "code": "invalid_image_source",
-            "message": "Nieprawidłowe źródło obrazu.",
+            "message": localised_message('invalid_image_source'),
         },
     )
 
@@ -351,7 +353,7 @@ def _require_starter_name(elements: list) -> None:
             status_code=400,
             detail={
                 "code": "starter_name_required",
-                "message": "Uzupełnij imię i nazwisko przed zapisem lub eksportem CV.",
+                "message": localised_message('enter_your_full_name_before_saving_or_exporting'),
             },
         )
 
@@ -361,7 +363,7 @@ def render_document_bytes(db: Session, *, user, pdf_data) -> bytes:
     _require_starter_name(pdf_data.root)
     elements = getattr(pdf_data, "render_root", None) or pdf_data.root
     if not elements:
-        raise HTTPException(status_code=400, detail="Brakuje części danych.")
+        raise HTTPException(status_code=400, detail=localised_message('some_data_is_missing'))
     return _render_bytes(db, user=user, pdf_data=pdf_data, elements=elements)
 
 
@@ -430,7 +432,7 @@ def _idempotency_mismatch() -> HTTPException:
         status_code=409,
         detail={
             "code": "idempotency_payload_mismatch",
-            "message": "Ten Idempotency-Key został już użyty z innym żądaniem.",
+            "message": localised_message('this_idempotency_key_was_already_used_for_a'),
         },
     )
 
@@ -441,7 +443,7 @@ def _title_conflict() -> HTTPException:
         status_code=409,
         detail={
             "code": "title_conflict",
-            "message": "Dokument o tej nazwie już istnieje.",
+            "message": localised_message('a_document_with_this_name_already_exists'),
         },
     )
 
@@ -453,7 +455,7 @@ def _revision_conflict(db: Session, pdf_id: int, expected_revision: int) -> HTTP
         status_code=409,
         detail={
             "code": "document_conflict",
-            "message": "Dokument został zmieniony w innej sesji.",
+            "message": localised_message('the_document_was_changed_in_another_session'),
             "expected_revision": int(expected_revision),
             "current_revision": int(current_revision or 0),
         },
@@ -482,7 +484,7 @@ def resolve_create_replay(
             status_code=400,
             detail={
                 "code": "invalid_idempotency_key",
-                "message": "Nagłówek Idempotency-Key jest nieprawidłowy.",
+                "message": localised_message('the_idempotency_key_header_is_invalid'),
             },
         ) from exc
     request_hash = create_request_hash(pdf_data)
@@ -659,7 +661,7 @@ def create_pdf_document(
     elements = pdf_data.root
     title = pdf_data.pdf_title
     if not elements:
-        raise HTTPException(status_code=400, detail="Brakuje części danych.")
+        raise HTTPException(status_code=400, detail=localised_message('some_data_is_missing'))
     _require_starter_name(elements)
 
     replay = resolve_create_replay(
@@ -755,7 +757,7 @@ def update_pdf_document(db: Session, *, pdf_row, user, username: str, pdf_data) 
     """
     elements = pdf_data.root
     if not elements:
-        raise HTTPException(status_code=400, detail="Brakuje części danych.")
+        raise HTTPException(status_code=400, detail=localised_message('some_data_is_missing'))
     _require_starter_name(elements)
     pdf_id = int(pdf_row.id)
     owner_id = int(user.id)
@@ -1066,7 +1068,7 @@ def render_pdf_for_download(
                     status_code=404,
                     detail={
                         "code": "pdf_not_found",
-                        "message": "Nie znaleziono pliku PDF.",
+                        "message": localised_message('pdf_file_not_found'),
                     },
                 ) from exc
             continue

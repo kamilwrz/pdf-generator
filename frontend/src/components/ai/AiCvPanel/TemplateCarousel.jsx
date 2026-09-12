@@ -1,3 +1,6 @@
+import { templatePreviewPath } from '../../../i18n/templatePreviews.js';
+import { t as uiText } from "../../../i18n/index.js";
+import { useTranslation } from 'react-i18next';
 /**
  * Endless-loop template gallery for AiCvPanel step 2 / Bio / ChangeTemplate.
  *
@@ -48,6 +51,7 @@ export default function TemplateCarousel({
     visibleCount = DEFAULT_VISIBLE_COUNT,
     actionLabel = null,
 }) {
+  useTranslation();
     const reduceMotion = useReducedMotion();
     const windowCount = Math.max(1, Number(visibleCount) || DEFAULT_VISIBLE_COUNT);
     const orderedTemplates = useMemo(
@@ -92,15 +96,15 @@ export default function TemplateCarousel({
             <div className={classes.toolbar}>
                 <p className={classes.toolbarHint}>
                     {selectedTemplate
-                        ? `Aktualny szablon: ${selectedTemplate.name} — przeglądaj inne układy.`
-                        : "Każdy szablon ma własny styl — wybierz układ pasujący do dokumentu."}
+                        ? uiText("ai:templateCarousel.currentTemplateBrowseOtherLayouts", { value0: (selectedTemplate.name) })
+                        : uiText("ai:templateCarousel.eachTemplateHasItsOwnStyleChoose")}
                 </p>
                 {canLoop && (
                     <div className={classes.controls}>
-                        <button type="button" className={classes.navBtn} onClick={prev} aria-label="Poprzednie szablony">
+                        <button type="button" className={classes.navBtn} onClick={prev} aria-label={uiText("ai:templateCarousel.previousTemplates")}>
                             <ChevronLeft />
                         </button>
-                        <button type="button" className={classes.navBtn} onClick={next} aria-label="Następne szablony">
+                        <button type="button" className={classes.navBtn} onClick={next} aria-label={uiText("ai:templateCarousel.nextTemplates")}>
                             <ChevronRight />
                         </button>
                     </div>
@@ -114,7 +118,7 @@ export default function TemplateCarousel({
                         const selected = selectedId === t.id;
                         const ats = getTemplateAtsReadability(t);
                         const baseTitle = locked
-                            ? "Dostępne w planie Pro"
+                            ? uiText("ai:templateCarousel.availableWithPro")
                             : selected
                                 ? `Aktualny szablon: ${t.name}`
                                 : (t.description || t.name);
@@ -146,12 +150,12 @@ export default function TemplateCarousel({
                                 <span className={classes.imgWrap}>
                                     <img
                                         className={classes.img}
-                                        src={`/template-mockups/${t.id}.png`}
+                                        src={templatePreviewPath(t.id)}
                                         alt=""
                                         loading="lazy"
                                         draggable={false}
                                     />
-                                    {selected && <span className={classes.currentBadge}>Obecny</span>}
+                                    {selected && <span className={classes.currentBadge}>{uiText("ai:templateCarousel.current")}</span>}
                                     {locked && <span className={classes.lockBadge}>Pro</span>}
                                     {filling && (
                                         <span className={classes.fillingOverlay}>

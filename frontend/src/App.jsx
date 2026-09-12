@@ -1,3 +1,6 @@
+import { ensureWorkspaceMessages } from './i18n/index.js';
+import { t as uiText } from "./i18n/index.js";
+import { useTranslation } from 'react-i18next';
 /**
  * Public information routes, authenticated library/account, and A4 editor.
  * Saved CVs use /app/documents/:documentId. Legacy workspace and /pdfcanvas
@@ -11,30 +14,35 @@ import { getAccessToken, getEditorPath } from './utils/authSession';
 import { parseDocumentId } from './utils/siteRoutes';
 import { NotFoundPage, RouteErrorPage } from './components/common/ErrorBoundary/ErrorBoundary';
 
-const PdfCanvas = lazy(() => import('./pages/PdfCanvas'));
-const Login = lazy(() => import('./pages/Login/Login'));
-const Register = lazy(() => import('./pages/Register/Register'));
+// Load copy before evaluating modules with presentation registries.
+const workspacePage = (load) => lazy(async () => { await ensureWorkspaceMessages(); return load(); });
+
+const PdfCanvas = workspacePage(() => import('./pages/PdfCanvas'));
+const Login = workspacePage(() => import('./pages/Login/Login'));
+const Register = workspacePage(() => import('./pages/Register/Register'));
 const Hero = lazy(() => import('./pages/Hero/Hero'));
-const DocumentsPage = lazy(() => import('./pages/Site/DocumentsPage'));
-const AccountPage = lazy(() => import('./pages/Site/AccountPage'));
-const CareerProfilePage = lazy(() => import('./pages/Site/CareerProfilePage'));
-const InterviewPage = lazy(() => import('./pages/Site/InterviewPage'));
+const DocumentsPage = workspacePage(() => import('./pages/Site/DocumentsPage'));
+const AccountPage = workspacePage(() => import('./pages/Site/AccountPage'));
+const CareerProfilePage = workspacePage(() => import('./pages/Site/CareerProfilePage'));
+const InterviewPage = workspacePage(() => import('./pages/Site/InterviewPage'));
 const TemplatesPage = lazy(() => import('./pages/Site/PublicPages').then((module) => ({ default: module.TemplatesPage })));
 const TemplatePage = lazy(() => import('./pages/Site/PublicPages').then((module) => ({ default: module.TemplatePage })));
 const PricingPage = lazy(() => import('./pages/Site/PublicPages').then((module) => ({ default: module.PricingPage })));
 const HelpPage = lazy(() => import('./pages/Site/PublicPages').then((module) => ({ default: module.HelpPage })));
 const PrivacyPage = lazy(() => import('./pages/Site/PrivacyPage'));
-const VerifyEmail = lazy(() => import('./pages/Auth/VerifyEmail'));
-const CheckoutResult = lazy(() => import('./pages/Billing/CheckoutResult'));
+const VerifyEmail = workspacePage(() => import('./pages/Auth/VerifyEmail'));
+const CheckoutResult = workspacePage(() => import('./pages/Billing/CheckoutResult'));
 
 /** Client gate preserves the target; API ownership checks remain authoritative. */
 function RequireSession({ children }) {
+  useTranslation();
   const location = useLocation();
   return getAccessToken() ? children : <Navigate to={`/login?${new URLSearchParams({ returnTo: location.pathname })}`} replace />;
 }
 
 /** The same boundary retains the canvas when its first save assigns an address. */
 function EditorRoute() {
+  useTranslation();
   const { documentId } = useParams();
   if (documentId && parseDocumentId(documentId) === null) return <NotFoundPage />;
   if (documentId && !getAccessToken()) return <Navigate to={`/login?${new URLSearchParams({ returnTo: `/app/documents/${documentId}` })}`} replace />;
@@ -43,6 +51,7 @@ function EditorRoute() {
 
 /** Named entry points retain the existing guest draft and account-gate workflow. */
 function StartRoute({ start }) {
+  useTranslation();
   const [params] = useSearchParams();
   return <Navigate to={getEditorPath({ start, template: params.get('template') })} replace />;
 }
@@ -56,6 +65,7 @@ function StartRoute({ start }) {
  * including older `/app/new?template=...` addresses.
  */
 function CreateCvRoute() {
+  useTranslation();
   const [params] = useSearchParams();
   const template = params.get("template");
   const start = !getAccessToken() || template ? "new" : "choose";
@@ -66,6 +76,7 @@ function CreateCvRoute() {
  * Preserve setup intent and template selection in deprecated bookmarks.
  */
 function PdfCanvasLegacyRedirect() {
+  useTranslation();
   const [searchParams] = useSearchParams();
   const start = searchParams.get("start");
   return <Navigate to={getEditorPath({ start, template: searchParams.get("template") })} replace />;
@@ -98,16 +109,17 @@ const router = createBrowserRouter([
 ])
 
 function App() {
+  useTranslation();
   useEffect(() => {
     // Retire anonymous analytics created by older releases without touching the
     // guest CV or wizard draft the visitor still expects to resume.
-    localStorage.removeItem('cvstudio.guest.events');
+    try { localStorage.removeItem('cvstudio.guest.events'); } catch { /* Browser storage may be unavailable. */ }
   }, []);
   return (
     <Suspense fallback={(
       <main className="route-loading" role="status" aria-live="polite">
         <span aria-hidden="true" />
-        <strong>Ładowanie widoku</strong>
+        <strong>{uiText("editor:app.loadingView")}</strong>
       </main>
     )}>
       <RouterProvider router={router} />

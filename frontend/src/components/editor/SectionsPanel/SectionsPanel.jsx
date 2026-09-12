@@ -1,3 +1,6 @@
+import { getUiLocale } from '../../../i18n/index.js';
+import { t as uiText } from "../../../i18n/index.js";
+import { useTranslation } from 'react-i18next';
 /**
  * Template-mode customization panel ("Dostosuj CV"): document status, section
  * structure, density presets, precise spacing, and template-scoped appearance
@@ -145,16 +148,16 @@ import classes from "./SectionsPanel.module.css";
 
 /** User-facing spacing knobs — keys stay aligned with SPACE_* in the generator. */
 const SPACING_FIELDS = [
-  { key: "stack", label: "Wewnątrz wpisu" },
-  { key: "record", label: "Między wpisami" },
-  { key: "section", label: "Między sekcjami" },
-  { key: "after_rule", label: "Pod nagłówkiem" },
+  { key: "stack", get label() { return uiText("editor:sectionsPanel.withinEntries"); } },
+  { key: "record", get label() { return uiText("editor:sectionsPanel.betweenEntries"); } },
+  { key: "section", get label() { return uiText("editor:sectionsPanel.betweenSections"); } },
+  { key: "after_rule", get label() { return uiText("editor:sectionsPanel.belowHeadings"); } },
 ];
 
 const DENSITY_OPTIONS = [
-  { id: "compact", label: "Kompaktowa" },
-  { id: "standard", label: "Standardowa" },
-  { id: "spacious", label: "Przestronna" },
+  { id: "compact", get label() { return uiText("editor:sectionsPanel.compact"); } },
+  { id: "standard", get label() { return uiText("editor:sectionsPanel.standard"); } },
+  { id: "spacious", get label() { return uiText("editor:sectionsPanel.spacious"); } },
 ];
 
 /**
@@ -164,11 +167,11 @@ const DENSITY_OPTIONS = [
  */
 function displaySectionTitle(title) {
   const raw = String(title || "").trim();
-  if (!raw) return "Bez nazwy";
-  const lower = raw.toLocaleLowerCase("pl-PL");
+  if (!raw) return uiText("editor:sectionsPanel.untitled");
+  const lower = raw.toLocaleLowerCase(getUiLocale());
   // Title-case words so "DOŚWIADCZENIE ZAWODOWE" reads as a normal label.
   return lower.replace(/(^|[\s/·\-–—])(\p{L})/gu, (_, sep, ch) => (
-    sep + ch.toLocaleUpperCase("pl-PL")
+    sep + ch.toLocaleUpperCase(getUiLocale())
   ));
 }
 
@@ -182,17 +185,18 @@ function displaySectionTitle(title) {
  * @returns {string}
  */
 function fitHintText(tier, targetLabel, typographyPreset) {
-  if (tier === "impossible") return `aby zmieścić na ${targetLabel}, skróć treść`;
+  if (tier === "impossible") return uiText("editor:sectionsPanel.shortenTheContentToFitOn", { value0: (targetLabel) });
   if (typographyPreset === "S") {
-    return `można zmieścić na ${targetLabel}, zmniejszając odstępy i tekst do S`;
+    return uiText("editor:sectionsPanel.canFitOnByReducingSpacingAnd", { value0: (targetLabel) });
   }
   if (tier === "emergency") {
-    return `można zmieścić na ${targetLabel} po maksymalnym zmniejszeniu odstępów`;
+    return uiText("editor:sectionsPanel.canFitOnWithMinimumSpacing", { value0: (targetLabel) });
   }
-  return `można zmieścić na ${targetLabel}`;
+  return uiText("editor:sectionsPanel.canFitOn", { value0: (targetLabel) });
 }
 
 export default function SectionsPanel({ onClose }) {
+  useTranslation();
   const {
     A4_Elements,
     setA4_Elements,
@@ -274,7 +278,7 @@ export default function SectionsPanel({ onClose }) {
       applyPalette: applyRegentPalette,
       applyTextSizeLayout: applyRegentTextSizeLayout,
       applyRenderedHeightsLayout: applyRegentRenderedHeightsLayout,
-      paletteDescription: "Cztery klasyczne edycje korzystają z jasnych papierów. Dwie kreatywne łączą głęboki kolor tła, jasną typografię i szlachetny złoty akcent.",
+      paletteDescription: uiText("editor:sectionsPanel.fourClassicEditionsUseLightPaperTwo"),
     };
     if (isAtriumAppearance) return {
       templateName: "Atrium",
@@ -284,7 +288,7 @@ export default function SectionsPanel({ onClose }) {
       applyPalette: applyAtriumPalette,
       applyTextSizeLayout: applyAtriumTextSizeLayout,
       applyRenderedHeightsLayout: applyAtriumRenderedHeightsLayout,
-      paletteDescription: "Oryginał pozostaje bez zmian. Białe Carrara, dark mode i trzy mocne edycje zmieniają papier, stanowisko, nagłówki, intarsje, folio i prawdziwe ikony.",
+      paletteDescription: uiText("editor:sectionsPanel.theOriginalRemainsUnchangedWhiteCarraraDark"),
     };
     if (isLindenAppearance) return {
       templateName: "Linden",
@@ -294,7 +298,7 @@ export default function SectionsPanel({ onClose }) {
       applyPalette: applyLindenPalette,
       applyTextSizeLayout: applyLindenTextSizeLayout,
       applyRenderedHeightsLayout: applyLindenRenderedHeightsLayout,
-      paletteDescription: "Paleta zmienia obie kolumny, dekoracje i ikony; pasek stanowiska pozostaje jej najciemniejszym akcentem.",
+      paletteDescription: uiText("editor:sectionsPanel.thePaletteChangesBothColumnsDecorativeElements"),
     };
     if (isMonumentAppearance) return {
       templateName: "Monument",
@@ -322,7 +326,7 @@ export default function SectionsPanel({ onClose }) {
       applyPalette: applyMeridianPalette,
       applyTextSizeLayout: applyMeridianTextSizeLayout,
       applyRenderedHeightsLayout: applyMeridianRenderedHeightsLayout,
-      paletteDescription: "Białe tło pozostaje bez zmian; paleta zmienia tekst, dekoracje i dopasowany zestaw ikon.",
+      paletteDescription: uiText("editor:sectionsPanel.theWhiteBackgroundRemainsUnchangedThePalette"),
     };
     if (isCadenzaAppearance) return {
       templateName: "Cadenza",
@@ -332,7 +336,7 @@ export default function SectionsPanel({ onClose }) {
       applyPalette: applyCadenzaPalette,
       applyTextSizeLayout: applyCadenzaTextSizeLayout,
       applyRenderedHeightsLayout: applyCadenzaRenderedHeightsLayout,
-      paletteDescription: "Białe tło pozostaje stałe. Trzy lekkie i trzy mocne palety zmieniają pasy, kontrast nagłówków, stanowisko, znaczniki oraz ikony.",
+      paletteDescription: uiText("editor:sectionsPanel.theWhiteBackgroundStaysFixedThreeLight"),
     };
     if (isVellumAppearance) return {
       templateName: "Vellum",
@@ -342,7 +346,7 @@ export default function SectionsPanel({ onClose }) {
       applyPalette: applyVellumPalette,
       applyTextSizeLayout: applyVellumTextSizeLayout,
       applyRenderedHeightsLayout: applyVellumRenderedHeightsLayout,
-      paletteDescription: "Białe tło pozostaje stałe. Trzy lekkie i trzy mocne palety zmieniają pole résumé, jego kontrast, portret, stanowisko, reguły oraz prawdziwe ikony.",
+      paletteDescription: uiText("editor:sectionsPanel.theWhiteBackgroundStaysFixedThreeLight2"),
     };
     if (isAureliaAppearance) return {
       templateName: "Aurelia",
@@ -352,7 +356,7 @@ export default function SectionsPanel({ onClose }) {
       applyPalette: applyAureliaPalette,
       applyTextSizeLayout: applyAureliaTextSizeLayout,
       applyRenderedHeightsLayout: applyAureliaRenderedHeightsLayout,
-      paletteDescription: "Białe tło pozostaje stałe. Paleta zmienia ramę mastheadu, stanowisko, reguły sekcji, folio, tekst i dopasowany zestaw ikon.",
+      paletteDescription: uiText("editor:sectionsPanel.theWhiteBackgroundStaysFixedThePalette"),
     };
     return {
       templateName: "Sterling",
@@ -525,7 +529,7 @@ export default function SectionsPanel({ onClose }) {
       });
       if (collapsed === A4_Elements) {
         pushToast?.({
-          title: "Układ jest już dobrze dopasowany.",
+          title: uiText("editor:sectionsPanel.theLayoutAlreadyFitsWell"),
           variant: "success",
         });
         return;
@@ -537,42 +541,40 @@ export default function SectionsPanel({ onClose }) {
         return reconciled.elements;
       });
       pushToast?.({
-        title: "Układ został dopasowany.",
-        msg: "Sekcja z kolumny głównej zmieściła się w sidebarze i zdjęła stronę.",
+        title: uiText("editor:sectionsPanel.theLayoutHasBeenAdjusted"),
+        msg: uiText("editor:sectionsPanel.aMainColumnSectionFittedInThe"),
         variant: "success",
       });
       return;
     }
     applySpacing(proposal.spacing);
     pushToast?.({
-      title: "Układ został dopasowany.",
-      msg: "Lepiej wykorzystaliśmy przestrzeń na stronach.",
+      title: uiText("editor:sectionsPanel.theLayoutHasBeenAdjusted"),
+      msg: uiText("editor:sectionsPanel.pageSpaceIsNowUsedMoreEfficiently"),
       variant: "success",
     });
   }
 
   return (
-    <aside className={classes.panel} aria-label="Dostosuj CV">
+    <aside className={classes.panel} aria-label={uiText("editor:sectionsPanel.customiseCv")}>
       <div className={classes.header}>
         <div className={classes.headerText}>
-          <h2>Dostosuj CV</h2>
-          <p className={classes.lede}>Kontroluj strukturę i wygląd dokumentu.</p>
+          <h2>{uiText("editor:sectionsPanel.customiseCv")}</h2>
+          <p className={classes.lede}>{uiText("editor:sectionsPanel.controlTheDocumentSStructureAndAppearance")}</p>
         </div>
-        <button type="button" className={classes.close} onClick={onClose} aria-label="Zamknij">
+        <button type="button" className={classes.close} onClick={onClose} aria-label={uiText("editor:sectionsPanel.close")}>
           <FiX />
         </button>
       </div>
 
-      <div className={classes.tabs} role="tablist" aria-label="Obszar dostosowania CV">
+      <div className={classes.tabs} role="tablist" aria-label={uiText("editor:sectionsPanel.cvCustomisation")}>
         <button
           type="button"
           role="tab"
           aria-selected={renderedTab === "layout"}
           className={renderedTab === "layout" ? classes.tabActive : classes.tab}
           onClick={() => setActiveTab("layout")}
-        >
-          Układ
-        </button>
+        >{uiText("editor:sectionsPanel.layout")}</button>
         {appearanceEnabled ? (
           <button
             type="button"
@@ -580,9 +582,7 @@ export default function SectionsPanel({ onClose }) {
             aria-selected={renderedTab === "appearance"}
             className={renderedTab === "appearance" ? classes.tabActive : classes.tab}
             onClick={() => setActiveTab("appearance")}
-          >
-            Wygląd
-          </button>
+          >{uiText("editor:sectionsPanel.appearance")}</button>
         ) : null}
       </div>
 
@@ -591,9 +591,9 @@ export default function SectionsPanel({ onClose }) {
             <section className={classes.appearanceSection} aria-labelledby="appearance-palette-heading">
               <span className={classes.eyebrow}>{appearanceDefinition.templateName}</span>
               <div className={classes.appearanceHeading}>
-                <h3 id="appearance-palette-heading">Paleta kolorów</h3>
+                <h3 id="appearance-palette-heading">{uiText("editor:sectionsPanel.colourPalette")}</h3>
                 <p>{appearanceDefinition.paletteDescription
-                  ?? "Każdy wariant zmienia papier, tekst, dekoracje i dopasowany zestaw ikon."}</p>
+                  ?? uiText("editor:sectionsPanel.eachVariationChangesThePaperTextDecorations")}</p>
               </div>
               <div className={classes.paletteGrid} role="radiogroup" aria-labelledby="appearance-palette-heading">
                 {appearanceDefinition.palettes.map((palette) => {
@@ -758,10 +758,10 @@ export default function SectionsPanel({ onClose }) {
             </section>
 
             <section className={classes.appearanceSection} aria-labelledby="appearance-type-heading">
-              <span className={classes.eyebrow}>Typografia</span>
+              <span className={classes.eyebrow}>{uiText("editor:editor.typography")}</span>
               <div className={classes.appearanceHeading}>
-                <h3 id="appearance-type-heading">Rozmiar tekstu</h3>
-                <p>Dobierz czytelność do ilości treści. Układ i liczba stron przeliczą się automatycznie.</p>
+                <h3 id="appearance-type-heading">{uiText("editor:sectionsPanel.textSize")}</h3>
+                <p>{uiText("editor:sectionsPanel.balanceReadabilityWithContentLengthLayoutAnd")}</p>
               </div>
               <div className={classes.textSizeGroup} role="radiogroup" aria-labelledby="appearance-type-heading">
                 {appearanceDefinition.textSizes.map((size) => {
@@ -784,7 +784,7 @@ export default function SectionsPanel({ onClose }) {
               <p className={classes.typeNote}>
                 <strong>{appearanceDefinition.value.textSize}</strong>
                 {appearanceDefinition.value.textSize === "M"
-                  ? " — oryginalny rozmiar szablonu"
+                  ? uiText("editor:sectionsPanel.originalTemplateSize")
                   : ` — ${appearanceDefinition.textSizes.find((size) => size.id === appearanceDefinition.value.textSize)?.description}`}
                 <span> · {pageStatus}</span>
               </p>
@@ -793,7 +793,7 @@ export default function SectionsPanel({ onClose }) {
       ) : (
         <div className={classes.body} role="tabpanel">
           <section className={classes.section} aria-labelledby="document-status-heading">
-            <span className={classes.eyebrow} id="document-status-heading">Dokument</span>
+            <span className={classes.eyebrow} id="document-status-heading">{uiText("editor:sectionsPanel.document")}</span>
             <div className={classes.documentCard}>
               <strong className={classes.pageStatus} aria-live="polite">{pageStatus}</strong>
               {fitStatus?.reducible ? (
@@ -801,28 +801,27 @@ export default function SectionsPanel({ onClose }) {
                   fitStatus.tier,
                   fitStatus.targetLabel,
                   fitStatus.typographyPreset,
-                )} bez zmiany faktów.</p>
+                )} {uiText("editor:sectionsPanel.withoutChangingFacts")}</p>
               ) : (
-                <p><span aria-hidden="true">✓</span> Układ wygląda dobrze · standardowe odstępy.</p>
+                <p><span aria-hidden="true">✓</span> {uiText("editor:sectionsPanel.theLayoutLooksGoodStandardSpacing")}</p>
               )}
               {fitStatus?.reducible ? (
-                <button type="button" className={classes.fitCta} onClick={() => onFitToPages()}>
-                  Zmieść na {fitStatus.targetLabel}
+                <button type="button" className={classes.fitCta} onClick={() => onFitToPages()}>{uiText("editor:sectionsPanel.fitOn")} {fitStatus.targetLabel}
                 </button>
               ) : null}
             </div>
           </section>
 
           <section className={classes.section} aria-labelledby="structure-heading">
-            <span className={classes.eyebrow} id="structure-heading">Struktura</span>
+            <span className={classes.eyebrow} id="structure-heading">{uiText("editor:sectionsPanel.structure")}</span>
             {!hasAnySections ? (
-              <p className={classes.empty}>Brak sekcji. Dodaj pierwszą albo wczytaj szablon.</p>
+              <p className={classes.empty}>{uiText("editor:sectionsPanel.noSectionsAddYourFirstSectionOr")}</p>
             ) : null}
 
             {sections.length > 0 ? (
               <div className={classes.laneGroup}>
                 <div className={classes.laneHeader}>
-                  <h3>{sidebarSections.length > 0 ? "Kolumna główna" : "Jedna kolumna"}</h3>
+                  <h3>{sidebarSections.length > 0 ? uiText("editor:sectionsPanel.mainColumn") : uiText("editor:newCvSetupModal.oneColumn")}</h3>
                   <span>{sections.length} {sections.length === 1 ? "sekcja" : "sekcje"}</span>
                 </div>
                 <ul className={classes.list}>
@@ -834,20 +833,19 @@ export default function SectionsPanel({ onClose }) {
                         <span className={classes.title} title={section.title}>{label}</span>
                         <div className={classes.actions}>
                           {isSkillsSectionTitle(section.title) ? (
-                            <button type="button" onClick={() => openSkillsLayoutPanel?.(section.headingId)} aria-label={`Zmień styl umiejętności: ${label}`} title="Styl umiejętności">
+                            <button type="button" onClick={() => openSkillsLayoutPanel?.(section.headingId)} aria-label={uiText("editor:sectionsPanel.changeSkillsStyle", { value0: (label) })} title={uiText("editor:sectionsPanel.skillsStyle")}>
                               <LuLayoutGrid />
                             </button>
                           ) : null}
-                          <button type="button" disabled={index === 0} onClick={() => move(section.headingId, "up")} aria-label={`Przenieś ${label} wyżej`} title="Wyżej"><FiChevronUp /></button>
-                          <button type="button" disabled={index === sections.length - 1} onClick={() => move(section.headingId, "down")} aria-label={`Przenieś ${label} niżej`} title="Niżej"><FiChevronDown /></button>
+                          <button type="button" disabled={index === 0} onClick={() => move(section.headingId, "up")} aria-label={uiText("editor:newCvSetupModal.moveUp", { value0: (label) })} title={uiText("editor:sectionsPanel.up")}><FiChevronUp /></button>
+                          <button type="button" disabled={index === sections.length - 1} onClick={() => move(section.headingId, "down")} aria-label={uiText("editor:newCvSetupModal.moveDown", { value0: (label) })} title={uiText("editor:sectionsPanel.down")}><FiChevronDown /></button>
                         </div>
                       </li>
                     );
                   })}
                 </ul>
                 <button type="button" className={classes.addButton} onClick={() => openAddSectionModal?.()}>
-                  <FiPlus aria-hidden="true" /> Dodaj sekcję
-                </button>
+                  <FiPlus aria-hidden="true" /> {uiText("editor:addSectionModal.addSection")}</button>
               </div>
             ) : null}
 
@@ -865,29 +863,28 @@ export default function SectionsPanel({ onClose }) {
                         <LuGripVertical className={classes.grip} aria-hidden="true" />
                         <span className={classes.title} title={section.title}>{label}</span>
                         <div className={classes.actions}>
-                          <button type="button" disabled={index === 0} onClick={() => move(section.headingId, "up")} aria-label={`Przenieś ${label} wyżej w sidebarze`} title="Wyżej"><FiChevronUp /></button>
-                          <button type="button" disabled={index === sidebarSections.length - 1} onClick={() => move(section.headingId, "down")} aria-label={`Przenieś ${label} niżej w sidebarze`} title="Niżej"><FiChevronDown /></button>
+                          <button type="button" disabled={index === 0} onClick={() => move(section.headingId, "up")} aria-label={uiText("editor:sectionsPanel.moveUpInTheSidebar", { value0: (label) })} title={uiText("editor:sectionsPanel.up")}><FiChevronUp /></button>
+                          <button type="button" disabled={index === sidebarSections.length - 1} onClick={() => move(section.headingId, "down")} aria-label={uiText("editor:sectionsPanel.moveDownInTheSidebar", { value0: (label) })} title={uiText("editor:sectionsPanel.down")}><FiChevronDown /></button>
                         </div>
                       </li>
                     );
                   })}
                 </ul>
                 <button type="button" className={classes.addButton} onClick={() => openAddSectionModal?.({ lane: "sidebar" })}>
-                  <FiPlus aria-hidden="true" /> Dodaj sekcję
-                </button>
+                  <FiPlus aria-hidden="true" /> {uiText("editor:addSectionModal.addSection")}</button>
               </div>
             ) : null}
           </section>
 
           <section className={classes.section} aria-labelledby="spacing-heading">
-            <span className={classes.eyebrow} id="spacing-heading">Odstępy</span>
+            <span className={classes.eyebrow} id="spacing-heading">{uiText("editor:sectionsPanel.spacing")}</span>
             <div className={classes.densityHeader}>
-              <h3>Gęstość</h3>
-              <p className={classes.densityLede}>Dopasuj ilość wolnego miejsca bez zmiany treści CV.</p>
+              <h3>{uiText("editor:sectionsPanel.density")}</h3>
+              <p className={classes.densityLede}>{uiText("editor:sectionsPanel.adjustWhiteSpaceWithoutChangingYourCv")}</p>
             </div>
 
             <div className={classes.segmented} role="radiogroup" aria-labelledby={densityGroupId}>
-              <span id={densityGroupId} className={classes.srOnly}>Gęstość układu</span>
+              <span id={densityGroupId} className={classes.srOnly}>{uiText("editor:sectionsPanel.layoutDensity")}</span>
               {DENSITY_OPTIONS.map((option) => {
                 const pressed = activeDensity === option.id;
                 return (
@@ -897,16 +894,14 @@ export default function SectionsPanel({ onClose }) {
                 );
               })}
             </div>
-            <div className={classes.densityScale} aria-hidden="true"><span>Więcej treści</span><span>Więcej oddechu</span></div>
+            <div className={classes.densityScale} aria-hidden="true"><span>{uiText("editor:sectionsPanel.moreContent")}</span><span>{uiText("editor:sectionsPanel.moreSpace")}</span></div>
 
-            <button type="button" className={classes.autoFit} onClick={handleAutoFit} title="Dobierz odstępy i balans treści do obecnej liczby stron." aria-label="Zoptymalizuj układ dokumentu">
-              Zoptymalizuj układ
-            </button>
-            <p className={classes.autoFitHint}>Dobierz odstępy i balans treści do obecnej liczby stron.</p>
+            <button type="button" className={classes.autoFit} onClick={handleAutoFit} title={uiText("editor:sectionsPanel.adjustSpacingAndContentBalanceForThe")} aria-label={uiText("editor:sectionsPanel.optimiseDocumentLayout")}>{uiText("editor:sectionsPanel.optimiseLayout")}</button>
+            <p className={classes.autoFitHint}>{uiText("editor:sectionsPanel.adjustSpacingAndContentBalanceForThe")}</p>
 
             <div className={classes.advanced}>
               <button type="button" className={classes.advancedToggle} aria-expanded={advancedOpen} onClick={() => setAdvancedOpen((open) => !open)}>
-                <span>Precyzyjne odstępy</span>
+                <span>{uiText("editor:sectionsPanel.preciseSpacing")}</span>
                 <FiChevronDown className={advancedOpen ? classes.chevronOpen : classes.chevron} aria-hidden="true" />
               </button>
 
@@ -919,14 +914,12 @@ export default function SectionsPanel({ onClose }) {
                         <span className={classes.stepper}>
                           <button type="button" onClick={() => nudgeSpacing(field.key, -1)} aria-label={`Zmniejsz: ${field.label}`}><FiMinus /></button>
                           <output aria-label={`${field.label}: ${spacing[field.key]} pikseli`}>{spacing[field.key]}</output>
-                          <button type="button" onClick={() => nudgeSpacing(field.key, 1)} aria-label={`Zwiększ: ${field.label}`}><FiPlus /></button>
+                          <button type="button" onClick={() => nudgeSpacing(field.key, 1)} aria-label={uiText("editor:editor.increase", { value0: (field.label) })}><FiPlus /></button>
                         </span>
                       </div>
                     ))}
                   </div>
-                  <button type="button" className={classes.reset} onClick={handleResetSpacing} disabled={atBaseline} title="Przywróć odstępy z momentu otwarcia lub wypełnienia CV">
-                    Przywróć ustawienia szablonu
-                  </button>
+                  <button type="button" className={classes.reset} onClick={handleResetSpacing} disabled={atBaseline} title={uiText("editor:sectionsPanel.restoreSpacingFromWhenTheCvWas")}>{uiText("editor:sectionsPanel.restoreTemplateSettings")}</button>
                 </div>
               ) : null}
             </div>

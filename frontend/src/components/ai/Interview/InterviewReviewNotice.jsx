@@ -1,8 +1,11 @@
+import { t as uiText } from "../../../i18n/index.js";
+import { useTranslation } from 'react-i18next';
 import { factLabel } from '../../../utils/interviewPresentation';
 import classes from './Interview.module.css';
 
 /** Explain filtered suggestions without exposing provider diagnostics or claims. */
 export default function InterviewReviewNotice({ preview, legacy = false }) {
+  useTranslation();
   const notes = preview?.review_notes || [];
   // Summarize repeated scalar corrections by section and outcome, retaining the count.
   const grouped = new Map();
@@ -13,12 +16,12 @@ export default function InterviewReviewNotice({ preview, legacy = false }) {
     grouped.set(key, { label, action: note.action, count: (previous?.count || 0) + 1 });
   });
   if (!legacy && !notes.length && !preview?.recovered_previous_attempt) return null;
-  return <aside className={classes.reviewNotice} aria-label="Sprawdzenie propozycji AI">
-    {legacy ? <><h3>Twoje odpowiedzi są zapisane</h3><p>Poprzednia propozycja wymagała korekty. Przygotuj CV ponownie — wykorzystamy zapisany wynik, jeśli jest dostępny, i zaproponujemy pytania o niejasne szczegóły.</p></> : <>
-      <h3>CV jest gotowe do sprawdzenia</h3>
-      {notes.length > 0 && <><p>Nie wszystkie szczegóły zostały potwierdzone. W tych miejscach CV zachowuje wcześniejszą treść albo pomija niepotwierdzony dodatek. Twoje zapisane odpowiedzi pozostają dostępne.</p>
-        <details><summary>Co zachowaliśmy lub pominęliśmy ({notes.length})</summary><ul>{[...grouped].map(([key, note]) => <li key={key}><strong>{note.label}</strong> — {note.action === 'kept_original' ? 'zachowano potwierdzoną treść' : 'pominięto niepotwierdzony dodatek'}{note.count > 1 ? ` (${note.count})` : ''}</li>)}</ul></details></>}
-      {preview?.recovered_previous_attempt && <p>Ten podgląd wykorzystuje poprzedni wynik. Odzyskanie nie zużyło dodatkowych kredytów AI.</p>}
+  return <aside className={classes.reviewNotice} aria-label={uiText("interview:interviewReviewNotice.reviewAiSuggestion")}>
+    {legacy ? <><h3>{uiText("interview:interviewReviewNotice.yourAnswersAreSaved")}</h3><p>{uiText("interview:interviewReviewNotice.thePreviousSuggestionNeededCorrectingPrepareYour")}</p></> : <>
+      <h3>{uiText("interview:interviewReviewNotice.yourCvIsReadyToReview")}</h3>
+      {notes.length > 0 && <><p>{uiText("interview:interviewReviewNotice.someDetailsWereNotConfirmedInThose")}</p>
+        <details><summary>{uiText("interview:interviewReviewNotice.whatWeKeptOrOmitted")}{notes.length})</summary><ul>{[...grouped].map(([key, note]) => <li key={key}><strong>{note.label}</strong> — {note.action === 'kept_original' ? uiText("interview:interviewReviewNotice.confirmedContentRetained") : uiText("interview:interviewReviewNotice.unconfirmedAdditionOmitted")}{note.count > 1 ? ` (${note.count})` : ''}</li>)}</ul></details></>}
+      {preview?.recovered_previous_attempt && <p>{uiText("interview:interviewReviewNotice.thisPreviewReusesThePreviousResultRecovery")}</p>}
     </>}
   </aside>;
 }

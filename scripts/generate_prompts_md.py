@@ -62,6 +62,7 @@ def main() -> None:
         "Usunięte akcje `design_rating` oraz `layout` nie są częścią interfejsu ani API.\n\n",
         "Po zmianie promptów uruchom:\n\n",
         "```bash\npython scripts/generate_prompts_md.py\n```\n\n",
+        "Końcowa polityka `ui_language_policy()` w `app/core/localisation.py` jest dołączana w `_gpt`: pytania, rady i uzasadnienia używają języka UI; treść poprawek zachowuje język CV. Ta polityka ma pierwszeństwo przed historycznymi instrukcjami polskiego języka w poniższych promptach.\n\n",
         "## Mapa akcji\n\n",
         "| Akcja API | Cel UI | Handler | Odpowiedzialność |\n",
         "| --- | --- | --- | --- |\n",
@@ -78,7 +79,7 @@ def main() -> None:
     parts.append(
         "\n`grammar`, `language`, `improve` i `shorten` używają wykrytego lub jawnie "
         "wybranego `cv_language`. Akcja `translate` wymaga `target_language`; rady UI "
-        "pozostają po polsku, a proponowana treść jest zwracana w języku docelowym.\n\n"
+        "używają języka żądania (PL lub EN), a proponowana treść jest zwracana w języku docelowym.\n\n"
     )
 
     for item, start, end, block in blocks:

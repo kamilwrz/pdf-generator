@@ -1,3 +1,4 @@
+import { t as uiText } from "../i18n/index.js";
 /**
  * Resolve structured CV profile data for Topbar "Zmień szablon".
  *
@@ -55,7 +56,7 @@ export async function resolveActiveCvData(options = {}) {
             ENDPOINTS.AI.BIO_CV_DRAFT,
             "GET",
             null,
-            "Nie udało się pobrać szkicu.",
+            uiText("editor:resolveActiveCvData.couldNotLoadTheDraft"),
         );
         return normalizeActiveCvData(response?.cv_data);
     } catch {

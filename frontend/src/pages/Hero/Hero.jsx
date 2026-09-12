@@ -1,3 +1,7 @@
+import { usePageTitle } from '../../i18n/usePageTitle.js';
+import { templatePreviewPath } from '../../i18n/templatePreviews.js';
+import { t as uiText } from "../../i18n/index.js";
+import { useTranslation } from 'react-i18next';
 /**
  * Conversion-focused marketing landing page for CV Studio.
  *
@@ -32,7 +36,7 @@ import {
 const TEMPLATE_PREVIEWS = TEMPLATES.map((template) => ({
     id: template.id,
     name: template.name,
-    image: `/template-mockups/${template.id}.png`,
+    get image() { return templatePreviewPath(template.id); },
 }));
 
 // Dynamic template count keeps the full template gallery and its accessible
@@ -41,6 +45,7 @@ const TEMPLATE_COUNT = TEMPLATES.length;
 const FREE_TEMPLATES = TEMPLATES.filter((template) => template.tier === "free");
 
 function ArrowIcon() {
+  useTranslation();
     return (
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round" />
@@ -49,6 +54,7 @@ function ArrowIcon() {
 }
 
 function CheckIcon() {
+  useTranslation();
     return (
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <path d="m5 12 4.2 4.2L19.5 6" stroke="currentColor" strokeWidth="2.35" strokeLinecap="round" strokeLinejoin="round" />
@@ -73,6 +79,7 @@ function buildStartUrl(start, plan) {
  * Shared landing call-to-action with primary, secondary, and link variants.
  */
 function CtaLink({ to, variant = "primary", children }) {
+  useTranslation();
     const variantClass =
         variant === "secondary"
             ? classes.buttonSecondary
@@ -88,6 +95,8 @@ function CtaLink({ to, variant = "primary", children }) {
 }
 
 export default function Hero() {
+  usePageTitle("common:homeTitle");
+  useTranslation();
     const [selectedTemplateId, setSelectedTemplateId] = useState(
         FREE_TEMPLATES.find((template) => template.id === "linden")?.id || FREE_TEMPLATES[0]?.id || null,
     );
@@ -114,72 +123,68 @@ export default function Hero() {
                 <div className={classes.heroCopy}>
                     <p className={classes.kicker} data-section-index="01">CV Studio online</p>
                     <div className={classes.heroHeading}>
-                        <h1>Twoje CV.<br /><span>Gotowe do wysłania.</span></h1>
-                        <p className={classes.heroSubheading}>Wybierz szablon i wpisuj treść od razu na stronie A4. Kiedy skończysz, pobierzesz PDF bez znaku wodnego.</p>
+                        <h1>{uiText("public:hero.yourCv")}<br /><span>{uiText("public:hero.readyToSend")}</span></h1>
+                        <p className={classes.heroSubheading}>{uiText("public:hero.chooseATemplateAndEnterContentDirectly")}</p>
                     </div>
                     <div className={classes.heroActions}>
-                        <CtaLink to={selectedTemplateUrl} event="hero_new_cv">Stwórz CV z tym szablonem</CtaLink>
-                        {canResumeGuestDraft ? <Link to={getEditorPath()} className={classes.buttonSecondary}>Wróć do szkicu CV <ArrowIcon /></Link> : <CtaLink to={demoUrl} event="hero_demo" variant="secondary">
-                            Zobacz edytor
-                        </CtaLink>}
+                        <CtaLink to={selectedTemplateUrl} event="hero_new_cv">{uiText("public:hero.createACvWithThisTemplate")}</CtaLink>
+                        {canResumeGuestDraft ? <Link to={getEditorPath()} className={classes.buttonSecondary}>{uiText("public:hero.returnToCvDraft")} <ArrowIcon /></Link> : <CtaLink to={demoUrl} event="hero_demo" variant="secondary">{uiText("public:hero.exploreTheEditor")}</CtaLink>}
                     </div>
-                    <p className={classes.accountNote}>Możesz zacząć bez konta. Darmowa rejestracja jest potrzebna dopiero przy zapisie lub pobieraniu PDF.</p>
-                    <ul className={classes.heroTrust} aria-label="Korzyści na start">
-                        <li>Edytor za 0 zł</li>
-                        <li>PDF bez znaku wodnego</li>
-                        <li>{FREE_TEMPLATES.length} darmowe szablony</li>
+                    <p className={classes.accountNote}>{uiText("public:hero.startWithoutAnAccountFreeRegistrationIs")}</p>
+                    <ul className={classes.heroTrust} aria-label={uiText("public:hero.startWith")}>
+                        <li>{uiText("public:hero.freeEditor")}</li>
+                        <li>{uiText("public:hero.pdfWithoutAWatermark")}</li>
+                        <li>{FREE_TEMPLATES.length} {uiText("public:hero.freeTemplates")}</li>
                     </ul>
                 </div>
                 <HeroTemplateShowcase
                     templates={FREE_TEMPLATES}
                     selectedId={selectedTemplateId}
                     onSelect={setSelectedTemplateId}
-                    mobileAction={<CtaLink to={selectedTemplateUrl} event="hero_new_cv">Stwórz CV z wybranym szablonem</CtaLink>}
+                    mobileAction={<CtaLink to={selectedTemplateUrl} event="hero_new_cv">{uiText("public:hero.createACvWithTheSelectedTemplate")}</CtaLink>}
                 />
             </section>
 
             <section id="szablony" className={classes.templatesSection}>
                 <div className={classes.offerIntro}>
                     <div className={classes.offerStatement}>
-                        <p className={classes.kicker} data-section-index="02">Pracuj po swojemu</p>
+                        <p className={classes.kicker} data-section-index="02">{uiText("public:hero.workYourWay")}</p>
                         <h2>
-                            <span>Wpisz treść raz.</span>
-                            <span>Układ zmienisz później.</span>
+                            <span>{uiText("public:hero.enterYourContentOnce")}</span>
+                            <span>{uiText("public:hero.changeTheLayoutLater")}</span>
                         </h2>
-                        <p className={classes.offerLead}>
-                            Zmieniaj szablony i dopracowuj opisy do kolejnych ofert bez przepisywania całego CV.
-                        </p>
+                        <p className={classes.offerLead}>{uiText("public:hero.switchTemplatesAndRefineDescriptionsForDifferent")}</p>
                     </div>
                     {/*
                       The ruled feature list replaces generic cards without pretending
                       the product has one mandatory workflow. Its source order remains
                       the reading order on compact and zoomed layouts.
                     */}
-                    <ul className={classes.offerSteps} aria-label="Najważniejsze funkcje CV Studio">
+                    <ul className={classes.offerSteps} aria-label={uiText("public:hero.keyCvStudioFeatures")}>
                         <li>
                             <span className={classes.offerStepIndex} aria-hidden="true">01</span>
                             <div>
-                                <h3>Masz już CV? Zaimportuj PDF</h3>
-                                <p>CV Studio odczyta treść dokumentu i ułoży ją w wybranym szablonie. Darmowe konto obejmuje jeden udany import miesięcznie.</p>
-                                <CtaLink to={importUrl} event="hero_import" variant="link">Importuj CV z PDF</CtaLink>
+                                <h3>{uiText("public:hero.alreadyHaveACvImportYourPdf")}</h3>
+                                <p>{uiText("public:hero.cvStudioReadsYourDocumentAndLays")}</p>
+                                <CtaLink to={importUrl} event="hero_import" variant="link">{uiText("public:hero.importCvFromPdf")}</CtaLink>
                             </div>
                         </li>
                         <li>
                             <span className={classes.offerStepIndex} aria-hidden="true">02</span>
                             <div>
-                                <h3>Edytuj bezpośrednio na stronie A4</h3>
-                                <p>Kliknij dowolny opis i zacznij pisać. Zmiany czcionek, odstępów i kolejności sekcji od razu widać na dokumencie.</p>
+                                <h3>{uiText("public:hero.editDirectlyOnA")}</h3>
+                                <p>{uiText("public:hero.clickAnyDescriptionAndStartTypingFont")}</p>
                             </div>
                         </li>
                         <li>
                             <span className={classes.offerStepIndex} aria-hidden="true">03</span>
                             <div>
-                                <h3>Pro może dopytać o Twoje doświadczenie</h3>
-                                <p>Opowiedz o swojej pracy, projektach i wynikach. Wywiad AI pomoże uzupełnić CV albo przygotować wersję pod konkretną ofertę. Każdą informację sprawdzasz przed zapisem. Rozmowa i generowanie zużywają kredyty Pro.</p><CtaLink to="/help#wywiad" variant="link">Sprawdź, jak działa wywiad</CtaLink><p>AI w Pro może też skrócić opis lub poprawić jego styl:</p>
+                                <h3>{uiText("public:hero.proCanAskAboutYourExperience")}</h3>
+                                <p>{uiText("public:hero.describeYourWorkProjectsAndResultsAn")}</p><CtaLink to="/help#wywiad" variant="link">{uiText("public:hero.seeHowInterviewsWork")}</CtaLink><p>{uiText("public:hero.aiInProCanAlsoShortenDescriptions")}</p>
                                 {/* Static sample explains the paid feature without running AI or promising a live result. */}
-                                <dl className={classes.copyExample} aria-label="Przykład poprawy stylu z AI w Pro">
-                                    <div><dt>Przed</dt><dd>Byłem odpowiedzialny za przygotowywanie raportów sprzedażowych.</dd></div>
-                                    <div><dt>Po</dt><dd>Przygotowywałem raporty sprzedażowe.</dd></div>
+                                <dl className={classes.copyExample} aria-label={uiText("public:hero.exampleOfAiStyleEditingInPro")}>
+                                    <div><dt>{uiText("ai:aiAssistant.before")}</dt><dd>{uiText("public:hero.iWasResponsibleForPreparingSalesReports")}</dd></div>
+                                    <div><dt>Po</dt><dd>{uiText("public:hero.iPreparedSalesReports")}</dd></div>
                                 </dl>
                             </div>
                         </li>
@@ -187,7 +192,7 @@ export default function Hero() {
                 </div>
 
                 <div className={classes.templateGalleryHeader}>
-                    <p id="template-gallery-title" className={classes.templateGalleryLabel}>Wybierz wygląd swojego CV</p>
+                    <p id="template-gallery-title" className={classes.templateGalleryLabel}>{uiText("public:hero.chooseYourCvSAppearance")}</p>
                 </div>
                 {/*
                   Endless right→left marquee of every template mockup. The track
@@ -198,7 +203,7 @@ export default function Hero() {
                     className={classes.templateMarquee}
                     role="region"
                     aria-labelledby="template-gallery-title"
-                    aria-description={`Galeria ${TEMPLATE_COUNT} szablonów CV`}
+                    aria-description={uiText("public:hero.galleryOfCvTemplates", { value0: (TEMPLATE_COUNT) })}
                     style={{
                         // ~3.2s per card keeps the strip readable as the registry grows.
                         ["--marquee-duration"]: `${Math.max(36, TEMPLATE_COUNT * 3.2)}s`,
@@ -220,7 +225,7 @@ export default function Hero() {
                                     >
                                         <img
                                             src={template.image}
-                                            alt={copy === 0 ? `Szablon CV ${template.name}` : ""}
+                                            alt={copy === 0 ? uiText("public:hero.cvTemplate", { value0: (template.name) }) : ""}
                                             loading="lazy"
                                         />
                                         <span>
@@ -232,54 +237,48 @@ export default function Hero() {
                         ))}
                     </div>
                 </div>
-                <CtaLink to="/templates" event="templates_new_cv" variant="link">
-                    Wybierz szablon i stwórz CV
-                </CtaLink>
+                <CtaLink to="/templates" event="templates_new_cv" variant="link">{uiText("public:hero.chooseATemplateAndCreateACv")}</CtaLink>
             </section>
 
             <section id="privacy" className={classes.trustStrip}>
                 <div className={classes.trustHeading}>
-                    <p className={classes.kicker} data-section-index="03">Prywatność</p>
-                    <h2>Twoje CV nie jest publiczne.</h2>
+                    <p className={classes.kicker} data-section-index="03">{uiText("public:siteLayout.privacy")}</p>
+                    <h2>{uiText("public:hero.yourCvIsNotPublic")}</h2>
                 </div>
                 <ul className={classes.trustPoints}>
-                    <li><CheckIcon />Do zapisanych CV i zdjęć wrócisz po zalogowaniu na swoje konto.</li>
-                    <li><CheckIcon />Oryginalny PDF nie jest przechowywany w historii importu.</li>
+                    <li><CheckIcon />{uiText("public:hero.signInToReturnToYourSaved")}</li>
+                    <li><CheckIcon />{uiText("public:hero.theOriginalPdfIsNotStoredIn")}</li>
                 </ul>
             </section>
 
             <section id="cennik" className={classes.pricingSection}>
                 <div className={classes.pricingHeading}>
-                    <p className={classes.kicker} data-section-index="04">Cennik</p>
+                    <p className={classes.kicker} data-section-index="04">{uiText("public:siteLayout.pricing")}</p>
                     <h2>
-                        <span>Zacznij bez opłat.</span>
-                        <em>Po Pro sięgnij, gdy przyda Ci się AI.</em>
+                        <span>{uiText("public:hero.startForFree")}</span>
+                        <em>{uiText("public:hero.chooseProWhenAiWouldHelp")}</em>
                     </h2>
-                    <p>
-                        Każdy plan pozwala pobierać PDF bez znaku wodnego. Pro przydaje się, gdy tworzysz kilka wersji CV lub chcesz pracować z AI.
-                    </p>
+                    <p>{uiText("public:hero.everyPlanIncludesPdfDownloadsWithoutWatermarks")}</p>
                 </div>
                 <div className={classes.pricingGrid}>
                     <article className={classes.priceCard}>
-                        <p className={classes.planName}>Darmowy</p>
-                        <p className={classes.planPrice}>0 <small>zł</small></p>
-                        <p className={classes.planSummary}>Jedno zapisane CV, pełna samodzielna edycja i trzy pliki PDF miesięcznie.</p>
+                        <p className={classes.planName}>{uiText("public:hero.free")}</p>
+                        <p className={classes.planPrice}>0 <small>{uiText("account:planSelectModal.pln")}</small></p>
+                        <p className={classes.planSummary}>{uiText("public:hero.oneSavedCvFullManualEditingAnd")}</p>
                         <ul>
                             {FREE_PLAN_HIGHLIGHTS.map((feature) => (
                                 <li key={feature}><CheckIcon />{feature}</li>
                             ))}
                         </ul>
-                        <CtaLink to={newCvUrl} event="pricing_free" variant="secondary">
-                            Stwórz CV za darmo
-                        </CtaLink>
-                        <p className={classes.planFootnote}>Nie potrzebujesz karty, plan nie ma limitu czasu.</p>
+                        <CtaLink to={newCvUrl} event="pricing_free" variant="secondary">{uiText("public:hero.createACvForFree")}</CtaLink>
+                        <p className={classes.planFootnote}>{uiText("public:hero.noCardRequiredThePlanHasNo")}</p>
                     </article>
                     <article className={`${classes.priceCard} ${classes.priceFeatured}`}>
-                        <span className={classes.popularTag}>Z pomocą AI</span>
+                        <span className={classes.popularTag}>{uiText("public:hero.withAiAssistance")}</span>
                         <p className={classes.planName}>Pro</p>
-                        <p className={classes.planPrice}>59 <small>zł</small></p>
-                        <p className={classes.planSummary}>Pracuj nad tekstem z AI i zapisuj osobne wersje CV pod różne oferty.</p>
-                        <p className={classes.planPeriod}>30 dni pełnego dostępu</p>
+                        <p className={classes.planPrice}>59 <small>{uiText("account:planSelectModal.pln")}</small></p>
+                        <p className={classes.planSummary}>{uiText("public:hero.workOnYourWritingWithAiAnd")}</p>
+                        <p className={classes.planPeriod}>{uiText("public:hero.daysOfFullAccess")}</p>
                         <ul>
                             {PRO_PLAN_HIGHLIGHTS.map((feature) => (
                                 <li key={feature}><CheckIcon />{feature}</li>
@@ -288,43 +287,42 @@ export default function Hero() {
                         <Link
                             className={classes.buttonPrimary}
                             to={proRegisterUrl}
-                        >
-                            Wybierz Pro na 30 dni <ArrowIcon />
+                        >{uiText("public:hero.chooseProForDays")} <ArrowIcon />
                         </Link>
-                        <p className={classes.planFootnote}>Płatność jednorazowa, bez automatycznego odnowienia.</p>
+                        <p className={classes.planFootnote}>{uiText("public:hero.oneOffPaymentNoAutomaticRenewal")}</p>
                     </article>
                 </div>
             </section>
 
             <section className={classes.faqSection}>
                 <div>
-                    <p className={classes.kicker} data-section-index="05">Pytania przed startem</p>
-                    <h2>Co warto wiedzieć?</h2>
+                    <p className={classes.kicker} data-section-index="05">{uiText("public:hero.beforeYouStart")}</p>
+                    <h2>{uiText("public:hero.whatShouldYouKnow")}</h2>
                 </div>
                 <div className={classes.faqList}>
                     <details open>
-                        <summary>Czy pobiorę CV za darmo?</summary>
-                        <p>Tak. Darmowe konto obejmuje 3 pobrania PDF miesięcznie, bez znaku wodnego. Możesz korzystać z edytora i {FREE_TEMPLATES.length} darmowych szablonów. Pozostałe limity znajdziesz w <Link to="/pricing">cenniku</Link>; pomoc AI jest dostępna w Pro.</p>
+                        <summary>{uiText("public:hero.canIDownloadMyCvForFree")}</summary>
+                        <p>{uiText("public:hero.yesAFreeAccountIncludesPdfDownloads")} {FREE_TEMPLATES.length} {uiText("public:hero.freeTemplatesOtherAllowancesAreListedIn")} <Link to="/pricing">{uiText("public:hero.pricing")}</Link>{uiText("public:hero.aiAssistanceIsAvailableWithPro")}</p>
                     </details>
                     <details>
-                        <summary>Czy muszę założyć konto, żeby zacząć?</summary>
-                        <p>Nie. Wybierz szablon i zacznij edytować bez rejestracji. Darmowe konto założysz, gdy zechcesz zapisać CV, pobrać PDF lub zaimportować swój dokument.</p>
+                        <summary>{uiText("public:hero.doINeedAnAccountToStart")}</summary>
+                        <p>{uiText("public:hero.noChooseATemplateAndStartEditing")}</p>
                     </details>
                     <details>
-                        <summary>Co stanie się z moim CV po imporcie PDF?</summary>
-                        <p>Odczytamy treść i ułożymy ją w wybranym szablonie, aby można było ją edytować. Sprawdź odczytane dane. Import nie kopiuje wyglądu oryginału, wymaga konta i w planie Darmowym jest dostępny raz w miesiącu.</p>
+                        <summary>{uiText("public:hero.whatHappensToMyCvAfterImporting")}</summary>
+                        <p>{uiText("public:hero.weExtractTheContentAndLayIt")}</p>
                     </details>
                     <details>
-                        <summary>Czy Pro odnawia się automatycznie?</summary>
-                        <p>Nie. Płacisz jednorazowo 59 zł za 30 dni dostępu. Po tym czasie Pro wygasa, a kolejna opłata nie jest pobierana automatycznie.</p>
+                        <summary>{uiText("public:hero.doesProRenewAutomatically")}</summary>
+                        <p>{uiText("public:hero.noYouPayPlnOnceForDays")}</p>
                     </details>
                 </div>
             </section>
 
             <section className={classes.finalCta} aria-labelledby="final-cta-title">
-                <p className={classes.kicker} data-section-index="06">Zacznij od szablonu</p>
-                <h2 id="final-cta-title">Przygotuj CV do kolejnej aplikacji.</h2>
-                <CtaLink to={newCvUrl} event="final_wizard">Stwórz CV za darmo</CtaLink>
+                <p className={classes.kicker} data-section-index="06">{uiText("public:hero.startWithATemplate")}</p>
+                <h2 id="final-cta-title">{uiText("public:hero.prepareYourCvForYourNextApplication")}</h2>
+                <CtaLink to={newCvUrl} event="final_wizard">{uiText("public:hero.createACvForFree")}</CtaLink>
             </section>
 
             <SiteFooter />

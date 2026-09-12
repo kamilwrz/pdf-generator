@@ -1,3 +1,4 @@
+import { t as uiText } from "../i18n/index.js";
 /**
  * Layout density helpers for the Układ CV panel.
  *
@@ -89,13 +90,7 @@ export function measureDocumentPageFills(elements, pageCount) {
  */
 export function formatPageCountLabel(pageCount) {
   const pages = Math.max(1, Math.trunc(Number(pageCount) || 1));
-  if (pages === 1) return "1 strona";
-  const mod10 = pages % 10;
-  const mod100 = pages % 100;
-  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) {
-    return `${pages} strony`;
-  }
-  return `${pages} stron`;
+  return uiText("editor:pageCount.label", { count: pages });
 }
 
 /**

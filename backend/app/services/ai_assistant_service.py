@@ -12,6 +12,9 @@ Safety invariants:
   corrections or destructive AI operations.
 - Provider failures raise `AIServiceError` for the app-level handler.
 """
+
+from app.core.localisation import message as localised_message
+from app.core.localisation import ui_language_policy, ui_language
 import json
 import os
 import re
@@ -540,6 +543,17 @@ def _detect_language_mix(elements: list[dict]) -> dict | None:
             "(Przetłumacz CV → English) albo zamień nagłówki na polskie, "
             "żeby dokument był w jednym języku."
         )
+    if ui_language.get() == "en":
+        if headers_lang == "pl":
+            fact = f"Section headings are in Polish ({examples}), while the summary, experience or education is in English."
+            fix = "Match the headings to the English body (Summary / Experience / Education), or explicitly use Translate CV if you want a Polish document."
+        else:
+            fact = f"Section headings are in English ({examples}), while the body is in Polish."
+            fix = "Use one language throughout: change the headings to Polish or explicitly translate the content into English."
+        return {"headers_lang": headers_lang, "body_lang": body_lang, "fact": fact, "fix": fix,
+                "priority_title": "Use a consistent CV language", "priority_description": f"{fact} {fix}",
+                "message_sentence": f"The main presentation issue is inconsistent language: {fact}",
+                "tip": f"Language consistency: {fix}"}
     return {
         "headers_lang": headers_lang,
         "body_lang": body_lang,
@@ -923,7 +937,7 @@ def _gpt(
     create_kwargs: dict = {
         "model": model,
         "messages": [
-            {"role": "system", "content": system},
+            {"role": "system", "content": system + ui_language_policy()},
             {"role": "user", "content": user},
         ],
         "response_format": (
@@ -967,8 +981,7 @@ def _gpt(
                 f"max_completion_tokens={max_completion_tokens})",
                 action=action,
                 user_message=(
-                    "Model wyczerpał limit odpowiedzi. Spróbuj ponownie albo "
-                    "uprość polecenie."
+                    localised_message('the_model_reached_its_response_limit_try_again')
                 ),
                 reservation_outcome="settle_usage",
                 usage=usage,
@@ -1708,11 +1721,14 @@ def _content_language_directive(lang_code: str) -> str:
     """Build the prompt directive fixing the language of each response field.
 
     Correction `content` must be in the CV language; advice fields (`message`,
-    `tips`, `priorities`) stay Polish because the app serves the Polish market
-    and users read guidance in Polish. Unknown codes fall back to Polish.
+    `tips`, `priorities`) follow the request UI language. Unknown document codes
+    fall back to Polish without changing existing CV content.
     """
     code = (lang_code or "pl").strip().lower()
     lang_name = _TRANSLATE_LANGUAGE_NAMES.get(code, "polski")
+    if ui_language.get() == "en":
+        return (f"Write correction content in the CV language: {lang_name} (code: {code}). "
+                "Write message, tips and priorities in British English. Keep quoted evidence literal.")
     if code == "pl" or lang_name == "polski":
         return (
             "Wszystkie tekstowe wartości odpowiedzi, w tym content poprawek, "
@@ -1805,7 +1821,7 @@ def _translate_cv(
     lang_name = _TRANSLATE_LANGUAGE_NAMES.get(lang)
     if not lang_name:
         return {
-            "message": "Nieobsługiwany język tłumaczenia.",
+            "message": localised_message('unsupported_translation_language'),
             "rating": None,
             "tips": [],
             "corrections": [],
@@ -2253,8 +2269,7 @@ Zwróć JSON:
             result["structure_issues"] = [{
                 "severity": "warning",
                 "message": (
-                    "Nie można bezpiecznie przebudować tej sekcji — treść nie pokrywa się "
-                    "ze źródłem, koliduje z zablokowanym elementem albo nie mieści się na stronie."
+                    localised_message('this_section_cannot_be_rebuilt_safely_content_differs')
                 ),
             }]
         else:
@@ -2272,8 +2287,7 @@ Zwróć JSON:
             result["deletion_issues"] = [{
                 "severity": "warning",
                 "message": (
-                    "Nie można bezpiecznie przygotować usunięcia — wskazano nieznany, "
-                    "zablokowany lub chroniony element."
+                    localised_message('cannot_prepare_deletion_safely_an_unknown_locked_or')
                 ),
             }]
         else:
@@ -2291,8 +2305,7 @@ Zwróć JSON:
             result["clone_issues"] = [{
                 "severity": "warning",
                 "message": (
-                    "Nie można bezpiecznie sklonować wskazanych elementów — brak źródła, "
-                    "blokada, chronione tło albo pozycja wychodzi poza stronę."
+                    localised_message('cannot_duplicate_these_elements_safely_the_source_is')
                 ),
             }]
         else:

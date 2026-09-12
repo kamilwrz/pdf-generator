@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { readPresentationSource as readFile } from "../../scripts/read-presentation-source.mjs";
 import test from "node:test";
 
 const root = new URL("../", import.meta.url);
@@ -88,7 +88,7 @@ test("PdfCanvas publishes demo state through the editor context", async () => {
   assert.match(canvas, /loadGuestDocument\(\)\?\.isDemoContent/);
   assert.match(canvas, /guestDocumentRestoredRef/);
   assert.match(canvas, /import \{ lindenTemplate \} from '\.\.\/templates\/linden'/);
-  assert.match(canvas, /commitDocumentSnapshot\(\{[\s\S]*materializeElementSpecs\(lindenTemplate, nanoid\)[\s\S]*title: "DEMO_CV"[\s\S]*templateId: "linden"/);
+  assert.match(canvas, /commitDocumentSnapshot\(\{[\s\S]*materializeElementSpecs\(getUiLanguage\(\) === 'en'[\s\S]*englishLinden[\s\S]*lindenTemplate, nanoid\)[\s\S]*title: "DEMO_CV"[\s\S]*templateId: "linden"/);
   assert.match(canvas, /guestDoc\.templateId !== "linden"[\s\S]*clearGuestDocument\(\)[\s\S]*commitDocumentSnapshot\(\{[\s\S]*lindenTemplate/);
   assert.match(canvas, /handleDemoUseOwnData[\s\S]*setDialog\('newCv'\)/);
   assert.match(canvas, /handleCreateStarterCv/);

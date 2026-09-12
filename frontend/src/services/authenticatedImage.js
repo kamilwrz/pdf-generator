@@ -1,3 +1,4 @@
+import { t as uiText } from "../i18n/index.js";
 /**
  * Load a private library image as a blob URL (Authorization header required).
  *
@@ -5,6 +6,7 @@
  * user photos fetch `/images/{id}/content` and display an object URL instead.
  */
 import API_BASE_URL, { ENDPOINTS } from "./api";
+import { getUiLanguage } from '../i18n/index.js';
 
 /**
  * @param {string|number} imgId
@@ -14,14 +16,14 @@ import API_BASE_URL, { ENDPOINTS } from "./api";
 export async function fetchAuthenticatedImageObjectUrl(imgId, token) {
   const auth = token ?? localStorage.getItem("token");
   if (!auth) {
-    throw new Error("Brak sesji — zaloguj się ponownie.");
+    throw new Error(uiText("errors:authenticatedImage.noSessionPleaseSignInAgain"));
   }
   const path = ENDPOINTS.IMG.CONTENT(imgId);
   const response = await fetch(`${API_BASE_URL}${path}`, {
-    headers: { Authorization: `Bearer ${auth}` },
+    headers: { Authorization: `Bearer ${auth}`, 'Accept-Language': getUiLanguage() },
   });
   if (!response.ok) {
-    throw new Error("Nie udało się pobrać obrazu.");
+    throw new Error(uiText("errors:authenticatedImage.couldNotLoadTheImage"));
   }
   const blob = await response.blob();
   return URL.createObjectURL(blob);

@@ -1,3 +1,8 @@
+import { usePageTitle } from '../../i18n/usePageTitle.js';
+import { useMessageState, messageRef, messageOf } from '../../i18n/messageState.js';
+import { t as uiText } from "../../i18n/index.js";
+import { useTranslation } from 'react-i18next';
+import LanguageSelect from '../../components/common/LanguageSelect/LanguageSelect';
 /**
  * Registration form. Every new account requests Free unless a supported plan
  * is explicitly present in the URL; the backend validates the final choice.
@@ -38,6 +43,8 @@ function strength(password) {
 }
 
 export default function Register() {
+  usePageTitle("common:registerTitle");
+  useTranslation();
 
     const navigate = useNavigate();
 
@@ -59,9 +66,9 @@ export default function Register() {
     const [username, setUsername] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
-    const [error, setError] = useState("");
+    const [error, setError] = useMessageState("");
     const [isLoading, setIsLoading] = useState(false);
-    const [statusMessage, setStatusMessage] = useState("");
+    const [statusMessage, setStatusMessage] = useMessageState("");
     const [verificationPending, setVerificationPending] = useState(false);
     const [googleLoading, setGoogleLoading] = useState(false);
     const hintTimerRef = useRef(null);
@@ -109,11 +116,11 @@ export default function Register() {
         if (isLoading) return;
         setError("");
         setIsLoading(true);
-        setStatusMessage("Tworzymy konto…");
+        setStatusMessage(messageRef("auth:register.creatingYourAccount"));
 
         if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
         hintTimerRef.current = setTimeout(() => {
-            setStatusMessage("Uruchamiamy serwer. Pierwsza rejestracja po przerwie może potrwać do minuty.");
+            setStatusMessage(messageRef("auth:register.startingTheServerTheFirstRegistrationAfter"));
         }, 5000);
 
         // Persist the validated start intent before the network request so the
@@ -127,24 +134,24 @@ export default function Register() {
                 ENDPOINTS.AUTH.REGISTER,
                 "POST",
                 JSON.stringify({ username: username.trim(), email, password, plan: selectedPlanSlug }),
-                "Rejestracja nie powiodła się",
+                uiText("auth:register.registrationFailed"),
                 {
                     timeoutMs: 90_000,
                     retries: 4,
                     retryDelayMs: 3_000,
                     onRetry: (attempt) => {
-                        setStatusMessage(`Próbujemy ponownie (${attempt}/4). Serwer właśnie się uruchamia.`);
+                        setStatusMessage(messageRef("auth:login.tryingAgainTheServerIsStarting", { value0: (attempt) }));
                     },
                 },
             );
             if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
             setPassword("");
             setVerificationPending(true);
-            setStatusMessage(result.message || "Sprawdź skrzynkę i potwierdź adres e-mail.");
+            setStatusMessage(messageOf(result) || messageRef("auth:register.checkYourInboxAndVerifyYourEmail"));
             setIsLoading(false);
         } catch (err) {
             if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
-            setError(err.message || "Rejestracja nie powiodła się");
+            setError(messageOf(err) || messageRef("auth:register.registrationFailed"));
             setStatusMessage("");
             setIsLoading(false);
         }
@@ -159,7 +166,7 @@ export default function Register() {
             clearPendingAuthIntent();
             navigate(postAuthPath(searchParams), { replace: true });
         } catch (err) {
-            setError(err.message || "Logowanie Google nie powiodło się.");
+            setError(messageOf(err) || messageRef("auth:login.googleSignInFailed"));
             setGoogleLoading(false);
         }
     }
@@ -170,25 +177,25 @@ export default function Register() {
         setError("");
         try {
             const result = await resendVerification(email);
-            setStatusMessage(result.message);
+            setStatusMessage(messageOf(result));
         } catch (err) {
-            setError(err.message || "Nie udało się wysłać nowego linku.");
+            setError(messageOf(err) || messageRef("auth:login.couldNotSendANewLink"));
         } finally {
             setIsLoading(false);
         }
     }
 
     const startNotice = downloading
-        ? "Załóż konto i potwierdź e-mail. Po zalogowaniu wrócisz do szkicu i pobierzesz PDF."
+        ? uiText("auth:register.createAnAccountAndVerifyYourEmail")
         : startIntent === "import"
-        ? "Po rejestracji przejdziesz do importu PDF. Plan Darmowy obejmuje jeden udany import PDF w miesiącu."
+        ? uiText("auth:register.afterRegisteringContinueToPdfImportFree")
         : startIntent === "new"
-            ? "Po rejestracji wrócisz do konfiguracji nowego CV."
+            ? uiText("auth:register.afterRegisteringReturnToNewCvSetup")
             : startIntent === "templates"
-                ? "Po rejestracji przejdziesz do wyboru szablonu."
+                ? uiText("auth:register.afterRegisteringContinueToTemplateSelection")
             : selectedPlanSlug === "pro"
-                        ? "Załóż konto, a potem wybierz Pro. Otrzymasz wszystkie szablony, więcej projektów i narzędzia AI."
-                        : "Darmowe konto wystarczy, żeby zacząć od szablonu lub przenieść treść z obecnego CV.";
+                        ? uiText("auth:register.createAnAccountThenChooseProFor")
+                        : uiText("auth:register.aFreeAccountIsEnoughToStart");
 
     return (
         <div className={classes.container}>
@@ -196,30 +203,31 @@ export default function Register() {
 
             <section className={classes.authColumn} aria-labelledby="register-title">
                 <div className={classes.loginCard}>
-                    <Link to="/" className={classes.logoBadge} aria-label="CV Studio — strona główna">
+                    <LanguageSelect />
+                    <Link to="/" className={classes.logoBadge} aria-label={uiText("public:siteLayout.cvStudioHomepage")}>
                         <img src="/cv-studio-logo.svg" alt="" />
                     </Link>
-                    <p className={classes.cardEyebrow}>Załóż konto</p>
-                    <h1 id="register-title" className={classes.mainHeading}>{downloading ? "Utwórz darmowe konto" : "Utwórz konto"}</h1>
+                    <p className={classes.cardEyebrow}>{uiText("editor:gallery.createAccount")}</p>
+                    <h1 id="register-title" className={classes.mainHeading}>{downloading ? uiText("editor:saveGateModal.createAFreeAccount") : uiText("auth:login.createAccount")}</h1>
                     <p className={classes.subHeading}>
                         {selectedPlanSlug === "pro"
-                            ? "Pro kosztuje 59 zł za 30 dni. Płacisz raz przez Stripe, bez automatycznego odnowienia."
-                            : "Plan Darmowy obejmuje 1 CV, 3 szablony i 3 pliki PDF miesięcznie. Nie potrzebujesz karty."}
+                            ? uiText("auth:register.proCostsPlnForDaysPayOnce")
+                            : uiText("auth:register.freeIncludesCvTemplatesAndPdfDownloads")}
                     </p>
                     <p className={classes.intentNotice}>{startNotice}</p>
                     {verificationPending ? (
                         <div className={classes.verificationActions}>
                             <p className={classes.status} role="status" aria-live="polite">{statusMessage}</p>
                             {error ? <p className={classes.error} role="alert">{error}</p> : null}
-                            <button type="button" className={classes.authBtnSecondary} onClick={handleResend} disabled={isLoading}>{isLoading ? "Wysyłanie…" : "Wyślij link ponownie"}</button>
-                            <Link className={classes.authLinkButton} to={authLink('/login', searchParams)}>Przejdź do logowania</Link>
+                            <button type="button" className={classes.authBtnSecondary} onClick={handleResend} disabled={isLoading}>{isLoading ? uiText("auth:login.sending") : uiText("auth:login.resendLink")}</button>
+                            <Link className={classes.authLinkButton} to={authLink('/login', searchParams)}>{uiText("auth:verifyEmail.continueToSignIn")}</Link>
                         </div>
                     ) : <>
                     <div className={classes.googleSlot}><GoogleSignInButton onCredential={handleGoogleCredential} disabled={googleLoading || isLoading} label="signup_with" /></div>
-                    <div className={classes.authDivider}><span>lub użyj e-maila</span></div>
+                    <div className={classes.authDivider}><span>{uiText("auth:register.orUseEmail")}</span></div>
                     <form onSubmit={handleSubmit} className={classes.form} aria-describedby={error ? "register-error" : undefined}>
                         <div className={classes.control}>
-                            <label htmlFor="username">Nazwa użytkownika</label>
+                            <label htmlFor="username">{uiText("auth:login.username")}</label>
                             <div className={`${classes.field} ${error ? classes.fieldError : ""}`}>
                                 <UserIcon />
                                 <input
@@ -228,7 +236,7 @@ export default function Register() {
                                     name="username"
                                     value={username}
                                     onChange={(e) => setUsername(e.target.value)}
-                                    placeholder="Wpisz nazwę użytkownika"
+                                    placeholder={uiText("auth:login.enterYourUsername")}
                                     autoComplete="username"
                                     disabled={isLoading}
                                     required
@@ -236,7 +244,7 @@ export default function Register() {
                             </div>
                         </div>
                         <div className={classes.control}>
-                            <label htmlFor="email">E-mail</label>
+                            <label htmlFor="email">{uiText("auth:register.email")}</label>
                             <div className={`${classes.field} ${error ? classes.fieldError : ""}`}>
                                 <MailIcon />
                                 <input
@@ -245,7 +253,7 @@ export default function Register() {
                                     name="email"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
-                                    placeholder="Wpisz adres e-mail"
+                                    placeholder={uiText("auth:register.enterYourEmailAddress")}
                                     autoComplete="email"
                                     disabled={isLoading}
                                     required
@@ -253,7 +261,7 @@ export default function Register() {
                             </div>
                         </div>
                         <div className={classes.control}>
-                            <label htmlFor="password">Hasło</label>
+                            <label htmlFor="password">{uiText("auth:login.password")}</label>
                             <div className={`${classes.field} ${error ? classes.fieldError : ""}`}>
                                 <LockIcon />
                                 <input
@@ -262,7 +270,7 @@ export default function Register() {
                                     name="password"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
-                                    placeholder="Wpisz hasło"
+                                    placeholder={uiText("auth:login.enterYourPassword")}
                                     autoComplete="new-password"
                                     disabled={isLoading}
                                     required
@@ -293,12 +301,11 @@ export default function Register() {
                             className={classes.authBtn}
                             disabled={isLoading}
                         >
-                            {isLoading ? "Tworzymy konto…" : downloading ? "Utwórz konto i przejdź do PDF" : "Utwórz konto"}
+                            {isLoading ? uiText("auth:register.creatingYourAccount") : downloading ? uiText("auth:register.createAccountAndContinueToPdf") : uiText("auth:login.createAccount")}
                         </button>
                     </form>
                     </>}
-                    <p className={classes.linkWrapper}>
-                        Masz już konto? <Link to={authLink('/login', searchParams)}>Zaloguj się</Link>
+                    <p className={classes.linkWrapper}>{uiText("auth:register.alreadyHaveAnAccount")} <Link to={authLink('/login', searchParams)}>{uiText("public:siteLayout.signIn")}</Link>
                     </p>
                 </div>
             </section>
@@ -308,19 +315,19 @@ export default function Register() {
                     CV STUDIO
                 </Link>
                 {downloading ? <div className={classes.planComparison}>
-                    <p className={classes.storyEyebrow}>Twoje pierwsze CV</p>
-                    <h2>CV jest gotowe do pobrania.</h2>
-                    <p className={classes.planPeriod}>Darmowe konto, bez karty</p>
-                    <ol className={classes.planFeatures} aria-label="Droga do pobrania CV">
-                        <li><span aria-hidden="true">01</span><p>CV przygotowane w edytorze</p></li>
-                        <li aria-current="step"><span aria-hidden="true">02</span><p>Utwórz darmowe konto</p></li>
-                        <li><span aria-hidden="true">03</span><p>Potwierdź swój szkic i pobierz PDF</p></li>
+                    <p className={classes.storyEyebrow}>{uiText("auth:register.yourFirstCv")}</p>
+                    <h2>{uiText("auth:register.yourCvIsReadyToDownload")}</h2>
+                    <p className={classes.planPeriod}>{uiText("auth:register.freeAccountNoCardRequired")}</p>
+                    <ol className={classes.planFeatures} aria-label={uiText("auth:register.yourCvDownloadSteps")}>
+                        <li><span aria-hidden="true">01</span><p>{uiText("auth:register.cvPreparedInTheEditor")}</p></li>
+                        <li aria-current="step"><span aria-hidden="true">02</span><p>{uiText("editor:saveGateModal.createAFreeAccount")}</p></li>
+                        <li><span aria-hidden="true">03</span><p>{uiText("auth:register.confirmYourDraftAndDownloadThePdf")}</p></li>
                     </ol>
                 </div> : <div className={classes.planComparison}>
-                    <p className={classes.storyEyebrow}>Porównaj plany</p>
-                    <h2>Jak chcesz pracować nad CV?</h2>
+                    <p className={classes.storyEyebrow}>{uiText("auth:register.comparePlans")}</p>
+                    <h2>{uiText("auth:register.howWouldYouLikeToWorkOn")}</h2>
 
-                    <div className={classes.planTabs} role="tablist" aria-label="Wybierz plan konta">
+                    <div className={classes.planTabs} role="tablist" aria-label={uiText("auth:register.chooseAnAccountPlan")}>
                         {REGISTER_PLANS.map((plan) => {
                             const isSelected = selectedPlanSlug === plan.slug;
                             return (

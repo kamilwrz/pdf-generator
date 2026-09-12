@@ -1,3 +1,5 @@
+import { t as uiText } from "../../../i18n/index.js";
+import { useTranslation } from 'react-i18next';
 /**
  * Shared structural toolbar rendered outside authored layout around an A4 page.
  *
@@ -79,6 +81,7 @@ export default function CanvasHoverToolbar({
   toolbarPointerProps = {},
   aiTarget = null,
 }) {
+  useTranslation();
   const originRef = useRef(null);
   const toolbarRef = useRef(null);
   const [portalGeometry, setPortalGeometry] = useState(null);
@@ -280,7 +283,7 @@ export default function CanvasHoverToolbar({
   );
   const aiButton = aiTarget && scopedAi?.isAvailable ? (
     <button ref={aiTriggerRef} type="button" className={classes.control}
-      aria-label="AI dla wybranego zakresu" data-tooltip="AI dla wybranego zakresu"
+      data-scoped-ai-trigger="true" aria-label={uiText("editor:canvasHoverToolbar.aiForTheSelectedScope")} data-tooltip={uiText("editor:canvasHoverToolbar.aiForTheSelectedScope")}
       aria-expanded={menuOpen && menuKind === "ai"} aria-haspopup="menu"
       onPointerDown={(event) => event.stopPropagation()}
       onClick={(event) => runAction(event, () => {
@@ -295,7 +298,7 @@ export default function CanvasHoverToolbar({
     },
   })) : menuItems;
   const actionMenu = menuOpen && activeMenuItems.length > 0 && (menuKind !== "ai" || scopedAi?.isAvailable) ? (
-    <div ref={menuRef} className={classes.menu} role="menu" aria-label={menuKind === "ai" ? "Operacje AI" : "Więcej działań"}
+    <div ref={menuRef} className={classes.menu} role="menu" aria-label={menuKind === "ai" ? uiText("editor:canvasHoverToolbar.aiOperations") : uiText("editor:canvasHoverToolbar.moreActions")}
       onKeyDown={(event) => {
         if (event.key === "Escape") {
           event.preventDefault(); event.stopPropagation(); onCloseMenu?.(); activeTriggerRef.current?.focus();
@@ -395,8 +398,8 @@ export default function CanvasHoverToolbar({
                 <button
                   type="button"
                   className={classes.control}
-                  data-tooltip="Przenieś wyżej"
-                  aria-label="Przenieś wyżej"
+                  data-tooltip={uiText("editor:canvasHoverToolbar.moveUp")}
+                  aria-label={uiText("editor:canvasHoverToolbar.moveUp")}
                   disabled={!canMoveUp}
                   onPointerDown={(event) => event.stopPropagation()}
                   onClick={(event) => runAction(event, onMoveUp)}
@@ -406,8 +409,8 @@ export default function CanvasHoverToolbar({
                 <button
                   type="button"
                   className={classes.control}
-                  data-tooltip="Przenieś niżej"
-                  aria-label="Przenieś niżej"
+                  data-tooltip={uiText("editor:canvasHoverToolbar.moveDown")}
+                  aria-label={uiText("editor:canvasHoverToolbar.moveDown")}
                   disabled={!canMoveDown}
                   onPointerDown={(event) => event.stopPropagation()}
                   onClick={(event) => runAction(event, onMoveDown)}
@@ -421,8 +424,8 @@ export default function CanvasHoverToolbar({
                   ref={moreTriggerRef}
                   type="button"
                   className={classes.control}
-                  data-tooltip="Więcej działań"
-                  aria-label="Więcej działań"
+                  data-tooltip={uiText("editor:canvasHoverToolbar.moreActions")}
+                  aria-label={uiText("editor:canvasHoverToolbar.moreActions")}
                   aria-expanded={menuOpen && menuKind === "more"}
                   aria-haspopup="menu"
                   onPointerDown={(event) => event.stopPropagation()}

@@ -1058,7 +1058,7 @@ def _derive_manual_sections(extra_sections: Any) -> tuple[list[dict[str, str]], 
     return languages, custom_sections
 
 
-def _language_section_title(extra_sections: Any) -> str:
+def _language_section_title(extra_sections: Any, language: str = "Polish") -> str:
     """Return the persisted Languages heading, with a Polish legacy fallback.
 
     Languages have both an editable structured list and a derived
@@ -1076,7 +1076,7 @@ def _language_section_title(extra_sections: Any) -> str:
             title = _text(section.get("title"))
             if title:
                 return title.upper()
-    return "JĘZYKI"
+    return "LANGUAGES" if str(language).lower() in {"en", "english"} else "JĘZYKI"
 
 
 def _absorb_skills_alias_sections(
@@ -1086,6 +1086,7 @@ def _absorb_skills_alias_sections(
     *,
     labels_skills_explicit: bool,
     force_parent_skills_label: bool = False,
+    default_skills_label: str = DEFAULT_LABELS["skills"],
 ) -> tuple[list[Any], list[dict[str, Any]], dict[str, str]]:
     """
     Fold skills-like custom sections into the skills slot.
@@ -1167,7 +1168,7 @@ def _absorb_skills_alias_sections(
         # Legacy profiles can carry a child category (for example Soft Skills)
         # as the parent label. Keep translated parent labels such as SKILLS, but
         # restore the neutral fallback when parent and child would render twice.
-        next_labels["skills"] = DEFAULT_LABELS["skills"]
+        next_labels["skills"] = default_skills_label
     elif not use_parent_label and alias_title and (
         not labels_skills_explicit or is_generic_skills_label(next_labels.get("skills"))
     ):
@@ -1188,7 +1189,7 @@ def normalize_cv_data(value: Mapping[str, Any] | None, *, require_name: bool = F
 
     raw = deepcopy(dict(value))
     address = _text(raw.get("address") or raw.get("location"))
-    language_section_title = _language_section_title(raw.get("extra_sections"))
+    language_section_title = _language_section_title(raw.get("extra_sections"), raw.get("language", "Polish"))
     fallback_languages, fallback_sections = _derive_manual_sections(raw.get("extra_sections"))
     # Prefer the editable `languages` / `custom_sections` fields when present.
     # An explicit empty `custom_sections: []` means the user cleared structured
@@ -1223,9 +1224,12 @@ def normalize_cv_data(value: Mapping[str, Any] | None, *, require_name: bool = F
     labels_skills_explicit = bool(labels_skills_from_payload) and not is_generic_skills_label(
         labels_skills_from_payload
     )
+    # Missing headings follow the document's explicit language. UI locale never
+    # enters normalisation, including for documents saved before localisation.
+    default_labels = {"summary": "PROFESSIONAL SUMMARY", "experience": "WORK EXPERIENCE", "education": "EDUCATION", "skills": "SKILLS"} if _text(raw.get("language")).lower() in {"en", "english"} else DEFAULT_LABELS
     labels = {
         key: _text(raw_labels.get(key)) or default
-        for key, default in DEFAULT_LABELS.items()
+        for key, default in default_labels.items()
     }
 
     # Promote "Bezpieczeństwo: …" rows to named skill groups under the current
@@ -1241,6 +1245,7 @@ def normalize_cv_data(value: Mapping[str, Any] | None, *, require_name: bool = F
         labels,
         labels_skills_explicit=labels_skills_explicit,
         force_parent_skills_label=category_parent_label,
+        default_skills_label=default_labels["skills"],
     )
     skills = _normalize_skills(skills)
 

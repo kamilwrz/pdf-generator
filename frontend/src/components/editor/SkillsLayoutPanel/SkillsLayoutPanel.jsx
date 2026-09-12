@@ -1,3 +1,5 @@
+import { t as uiText } from "../../../i18n/index.js";
+import { useTranslation } from 'react-i18next';
 /**
  * Non-modal Skills appearance panel with nine directly applicable choices.
  *
@@ -33,49 +35,49 @@ const STYLE_OPTIONS = [
   {
     value: FLAT_SECTION_LAYOUT_INLINE,
     mode: FLAT_SECTION_LAYOUT_INLINE,
-    label: "W linii",
+    get label() { return uiText("editor:flatSectionLayoutModal.inline"); },
     preview: "inline",
   },
   {
     value: FLAT_SECTION_LAYOUT_BULLET,
     mode: FLAT_SECTION_LAYOUT_BULLET,
-    label: "Lista",
+    get label() { return uiText("editor:flatSectionLayoutModal.list"); },
     preview: "bullet",
   },
   {
     value: SKILL_CHIP_VARIANT_PILL_FILLED,
     mode: SKILLS_LAYOUT_CHIPS,
-    label: "Pigułka z wypełnieniem",
+    get label() { return uiText("editor:skillsLayoutPanel.filledPill"); },
   },
   {
     value: SKILL_CHIP_VARIANT_PILL_OUTLINE,
     mode: SKILLS_LAYOUT_CHIPS,
-    label: "Pigułka bez wypełnienia",
+    get label() { return uiText("editor:skillsLayoutPanel.outlinedPill"); },
   },
   {
     value: SKILL_CHIP_VARIANT_RECT_FILLED,
     mode: SKILLS_LAYOUT_CHIPS,
-    label: "Prostokąt z wypełnieniem",
+    get label() { return uiText("editor:skillsLayoutPanel.filledRectangle"); },
   },
   {
     value: SKILL_CHIP_VARIANT_RECT_OUTLINE,
     mode: SKILLS_LAYOUT_CHIPS,
-    label: "Prostokąt bez wypełnienia",
+    get label() { return uiText("editor:skillsLayoutPanel.outlinedRectangle"); },
   },
   {
     value: SKILL_CHIP_VARIANT_ROUNDED_OUTLINE,
     mode: SKILLS_LAYOUT_CHIPS,
-    label: "Zaokrąglony bez wypełnienia",
+    get label() { return uiText("editor:skillsLayoutPanel.roundedOutline"); },
   },
   {
     value: SKILL_CHIP_VARIANT_ROUNDED_FILLED,
     mode: SKILLS_LAYOUT_CHIPS,
-    label: "Zaokrąglony z wypełnieniem",
+    get label() { return uiText("editor:skillsLayoutPanel.roundedFill"); },
   },
   {
     value: SKILL_CHIP_VARIANT_UNDERLINE,
     mode: SKILLS_LAYOUT_CHIPS,
-    label: "Kreska na dole",
+    get label() { return uiText("editor:skillsLayoutPanel.underline"); },
   },
 ];
 
@@ -92,6 +94,7 @@ function chipClasses(variant) {
 
 /** Shows a stable sample so long CV content cannot resize the panel. */
 function StylePreview({ option }) {
+  useTranslation();
   if (option.preview === "inline") {
     return <span className={classes.inlinePreview}>{PREVIEW_SKILLS.join("  ·  ")}</span>;
   }
@@ -118,6 +121,7 @@ function StylePreview({ option }) {
 export default function SkillsLayoutPanel({
   open, onClose, elements, headingId, pageHeight = 842, onChange,
 }) {
+  useTranslation();
   const selectedInputRef = useRef(null);
   const memberIds = open && headingId
     ? sectionElementIds(elements || [], headingId, pageHeight)
@@ -160,11 +164,11 @@ export default function SkillsLayoutPanel({
         exit: { opacity: 0 },
         transition: { duration: 0.2, ease: [0.2, 0, 0, 1] },
       }}
-      title="Styl umiejętności"
-      subtitle="9 opcji · zmiana jest stosowana natychmiast"
+      title={uiText("editor:sectionsPanel.skillsStyle")}
+      subtitle={uiText("editor:skillsLayoutPanel.optionsChangesApplyImmediately")}
     >
       <fieldset className={classes.fieldset}>
-        <legend className={classes.legend}>Wybierz sposób prezentacji</legend>
+        <legend className={classes.legend}>{uiText("editor:skillsLayoutPanel.chooseADisplayStyle")}</legend>
         <div className={classes.options}>
           {STYLE_OPTIONS.map((option, index) => {
             const selected = currentValue === option.value;
@@ -196,8 +200,7 @@ export default function SkillsLayoutPanel({
           })}
         </div>
       </fieldset>
-      <p className={classes.note} role="status" aria-live="polite">
-        Aktywny styl: {STYLE_OPTIONS.find((option) => option.value === currentValue)?.label || "W linii"}.
+      <p className={classes.note} role="status" aria-live="polite">{uiText("editor:skillsLayoutPanel.activeStyle")} {STYLE_OPTIONS.find((option) => option.value === currentValue)?.label || uiText("editor:flatSectionLayoutModal.inline")}.
       </p>
     </PanelShell>
   );

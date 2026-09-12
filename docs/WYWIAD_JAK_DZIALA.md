@@ -6,7 +6,7 @@ WYWIAD zbiera potwierdzone informacje o doświadczeniu użytkownika, zadaje poje
 
 Funkcja działa w trzech głównych formach:
 
-1. **Brak CV (`create`)** — tworzenie CV od profilu zawodowego albo od pustej, osobnej historii.
+1. **Nowa wersja (`create`)** — rozwinięcie danych z zapisanego CV albo udanego importu.
 2. **Istniejące CV (`enrich`)** — uzupełnianie wybranego lub aktualnie otwartego CV.
 3. **CV + oferta pracy (`tailor`)** — dopasowanie potwierdzonych informacji do wymagań konkretnego ogłoszenia.
 
@@ -26,7 +26,7 @@ W WYWIADZIE działają dwie niezależne osie.
 
 ### 1. Tryb pracy
 
-- `create` — zbuduj nowe CV bez obowiązkowego dokumentu źródłowego;
+- `create` — zbuduj nową wersję na podstawie CV lub importu z danymi;
 - `enrich` — uzupełnij informacje z istniejącego CV;
 - `tailor` — przygotuj nowe CV pod ofertę pracy.
 
@@ -72,7 +72,7 @@ Frontend wysyła `POST /ai/interviews` z unikalnym nagłówkiem `Idempotency-Key
 
 1. sprawdza zalogowanego użytkownika i dostęp do WYWIADU;
 2. rozpoznaje wybrane źródło;
-3. normalizuje dane CV;
+3. normalizuje dane CV i odrzuca brak imienia i nazwiska przed utworzeniem sesji;
 4. dla `tailor` pobiera lub przyjmuje opis oferty;
 5. tworzy wersjonowaną sesję w fazie `intake`;
 6. zamienia tekst źródłowego CV na propozycje faktów;
@@ -184,50 +184,15 @@ Przycisk **Zapisz jako nowe CV**:
 
 ---
 
-## Forma 1: brak CV
+## Forma 1: nowa wersja z CV lub importu
 
-### Gdzie użytkownik zaczyna
+Otwórz `/app/interview`, wybierz zapisane CV albo udany import z danymi i sprawdź początkowe fakty. Profil konta możesz dołączyć tylko przez opcję **To moje CV — dołącz mój profil zawodowy**. Domyślnie rozmowa korzysta wyłącznie z wybranego CV i własnych odpowiedzi.
 
-Użytkownik otwiera `/app/interview`, na przykład z:
+Jeżeli nie masz źródła, najpierw zaimportuj PDF albo utwórz CV, uzupełnij je i zapisz. Wymagane jest niepuste imię i nazwisko w danych CV. Doświadczenie zawodowe nie jest wymagane. Pusty szablon, sam profil konta i dodatkowe notatki nie wystarczają do uruchomienia sesji. Edytor profilu zawodowego również wymaga zapisanego CV lub udanego importu; bez nich pokazuje te same dwie drogi dodania danych.
 
-- pustego edytora;
-- okna **Utwórz CV**;
-- biblioteki dokumentów;
-- strony konta;
-- strony profilu zawodowego.
+Serwer udostępnia sprawdzone źródła w `GET /career-profile` jako `sources.documents` i `sources.imports`. Lista pomija cudze dokumenty, puste CV oraz importy nieudane, trwające i usunięte. Tworzenie sesji, odświeżenie źródła i zapis zmian profilu sprawdzają ten warunek także po stronie API. Odczyt historii i usuwanie własnych danych pozostają dostępne. Starsze rozmowy bez CV źródłowego zachowują odpowiedzi, ale wymagają nowej sesji z właściwym źródłem.
 
-### Wariant A: „Mój profil zawodowy”
-
-To domyślny wybór na samodzielnej stronie WYWIADU.
-
-Przebieg:
-
-1. frontend pobiera `/career-profile`;
-2. imię i stanowisko są wstępnie wypełniane z potwierdzonych faktów profilu;
-3. użytkownik może dodać opis historii zawodowej, projektów i edukacji;
-4. sesja powstaje z `mode: "create"` i `include_profile: true`;
-5. zakres dowodów to `profile`;
-6. wysłane odpowiedzi aktualizują profil zawodowy bez dodatkowego potwierdzenia;
-7. nowe CV powstaje wyłącznie z aktualnych potwierdzonych faktów profilu.
-
-Ten wariant jest właściwy, gdy CV dotyczy właściciela konta i użytkownik chce budować wspólną bazę faktów dla przyszłych dokumentów.
-
-### Wariant B: „Nowe CV — bez profilu konta”
-
-Przebieg:
-
-1. użytkownik wpisuje imię i nazwisko, stanowisko docelowe oraz opis historii;
-2. sesja powstaje z `mode: "create"` i `include_profile: false`;
-3. zakres dowodów to `session`;
-4. wszystkie potwierdzenia pozostają w JSON-ie tej rozmowy;
-5. profil zawodowy właściciela konta nie jest odczytywany ani zmieniany podczas dalszej pracy;
-6. usunięcie rozmowy usuwa także jej izolowane fakty, ale nie usuwa już wygenerowanego CV.
-
-Ten wariant obsługuje nową, osobną historię oraz dokument osoby innej niż właściciel konta.
-
-### Pytania i wynik
-
-Początkowy limit ośmiu pytań rośnie, jeśli liczba wpisów wymaga większej rozmowy, maksymalnie do 50 zapisanych odpowiedzi w sesji. Serwer przechodzi kolejno przez strukturalne wpisy: dwa główne pytania i najwyżej jedno dopytanie do doświadczenia, edukacji lub projektu, jedno do umiejętności/grupy i brakującego poziomu języka. „Pomiń”, „Nie pamiętam” i brak doświadczenia zamykają wpis. Nie powstaje osobna kolejka dla odpowiedzi powielającej kontekst znanego wpisu. Po każdym zapisie można przygotować CV. Przedłużenie dodaje do pięciu miejsc tylko dla pozostałych wpisów, nigdy nie resetuje licznika wpisu. Po omówieniu kolejki interfejs prowadzi do przygotowania CV. Swobodna notatka z kilkoma rolami pozostaje jednym kontekstem; osobne pytania do każdej roli wymagają strukturalnych wpisów. Stare pytania bez jednoznacznego kontekstu nie zawsze dają się przypisać, ale nowe otrzymują `entry_id`.
+Po wybraniu źródła przebieg pytań i generowania jest wspólny dla pozostałych form. Sam wybór źródła nie uruchamia płatnego AI.
 
 ---
 
@@ -368,16 +333,16 @@ Wynik jest zawsze nowym dokumentem. Źródłowe CV pozostaje bez zmian.
 
 ## Różnice między trzema formami
 
-| Cecha | Brak CV | Istniejące CV | CV + oferta |
+| Cecha | Nowa wersja | Istniejące CV | CV + oferta |
 | --- | --- | --- | --- |
 | Tryb | `create` | `enrich` w asystencie; `create` przy wyborze dokumentu na stronie | `tailor` |
-| Materiał początkowy | Profil konta albo imię, stanowisko i opis historii | Aktualne CV, zapisany dokument lub udany import | Aktualne CV oraz URL/opis oferty |
-| Domyślny zakres faktów | Profil dla „Mój profil”; sesja dla „Nowe CV” | Sesja | Sesja |
+| Materiał początkowy | Zapisane CV lub udany import z imieniem i nazwiskiem | Aktualne CV, zapisany dokument lub udany import | Aktualne CV oraz URL/opis oferty |
+| Domyślny zakres faktów | Sesja; profil tylko po jawnym dołączeniu | Sesja | Sesja |
 | Początkowy limit pytań | 8 | 8 | 5 |
 | Wymagania oferty | Nie | Nie | Tak |
 | Znaczenie oferty | Brak | Brak | Priorytety, nigdy dowód kompetencji |
 | Szablon | Użytkownik wybiera | Rozpoznany szablon może być punktem wyjścia | Rozpoznany szablon źródła jest zachowany |
-| Źródło po zapisie | Nie dotyczy | Bez zmian | Bez zmian |
+| Źródło po zapisie | Bez zmian | Bez zmian | Bez zmian |
 | Wynik | Nowe CV | Nowe CV | Nowe CV |
 
 ---
@@ -394,7 +359,7 @@ Wynik jest zawsze nowym dokumentem. Źródłowe CV pozostaje bez zmian.
 ### Nie zużywa kredytów AI
 
 - odczyt profilu i zapisanych rozmów;
-- ręczna edycja profilu;
+- ręczna edycja profilu, jeżeli istnieje CV lub udany import z danymi;
 - przegląd oraz potwierdzenie faktów źródłowych;
 - atomowy zapis odpowiedzi i wynikającego z niej faktu;
 - rozpoczęcie zapisanej rundy doprecyzowań;
@@ -529,20 +494,20 @@ Pełne typy pól, ograniczenia długości i formaty odpowiedzi znajdują się w 
 
 ### Frontend
 
-- `frontend/src/components/ai/Interview/InterviewFlow.jsx`, linie 23–281, komponent `InterviewFlow` — wspólny kontroler wszystkich form, etapy, źródła, odpowiedzi, generowanie i zapis.
+- `frontend/src/components/ai/Interview/InterviewFlow.jsx`, linie 1–294, komponent `InterviewFlow` — wspólny kontroler wszystkich form, etapy, źródła, odpowiedzi, generowanie i zapis.
 - `frontend/src/components/ai/AiAssistant/AiAssistant.jsx`, linie 1022–1036 oraz 1906–1923 — uruchomienie `enrich` i osadzenie WYWIADU dla aktywnego CV.
 - `frontend/src/components/ai/AiAssistant/AiAssistant.jsx`, linie 2040–2094 — oferta, opis awaryjny i uruchomienie `tailor`.
 - `frontend/src/pages/Site/InterviewPage.jsx`, linie 1–10 — samodzielna trasa tworzenia i wznawiania.
-- `frontend/src/pages/Site/CareerProfilePage.jsx`, linie 1–75 — profil faktów, lista rozmów, wznowienie i usuwanie.
+- `frontend/src/pages/Site/CareerProfilePage.jsx`, linie 1–86 — profil faktów, lista rozmów, wznowienie i usuwanie.
 - `frontend/src/services/interviews.js`, linie 1–34 — uwierzytelnione żądania, wybór zakresu faktów i łączenie propozycji do przeglądu.
 - `frontend/src/components/ai/Interview/FactEditor.jsx` — grupowany przegląd i edycja faktów.
 - `frontend/src/components/ai/Interview/InterviewPreview.jsx` — przegląd treści, zmian i luk.
 
 ### Backend
 
-- `backend/app/api/routes/interviews.py`, linie 38–448 — wszystkie endpointy profilu i sesji.
+- `backend/app/api/routes/interviews.py`, linie 1–493 — wszystkie endpointy profilu i sesji.
 - `backend/app/schemas/interview_schema.py`, linie 1–149 — wejścia publiczne oraz ścisłe schematy wyników AI.
-- `backend/app/services/interview_service.py`, linie 1–492 — fakty, rewizje, pytania, walidacja dowodów, rezerwacje i rozliczenie AI.
+- `backend/app/services/interview_service.py`, linie 1–500 — fakty, rewizje, pytania, walidacja dowodów, rezerwacje i rozliczenie AI.
 - `backend/app/services/interview_clarification.py`, linie 1–213 — kolejka doprecyzowań, limit, deduplikacja i tworzenie faktów z odpowiedzi.
 - `backend/app/services/interview_recovery.py`, linie 1–90 — bezpieczny fallback oraz odzyskiwanie opłaconych wyników.
 - `backend/app/models/models.py`, linie 336–359 — `CareerProfile` i `InterviewSession`.
@@ -576,8 +541,7 @@ Pełne typy pól, ograniczenia długości i formaty odpowiedzi znajdują się w 
 
 ## Krótka odpowiedź: którą formę wybrać?
 
-- **Nie masz CV i budujesz własną historię** — wybierz `/app/interview` oraz **Mój profil zawodowy**.
-- **Nie masz CV, ale dane nie powinny trafić do profilu konta** — wybierz **Nowe CV — bez profilu konta**.
+- **Nie masz CV z danymi** — zaimportuj PDF albo utwórz, uzupełnij i zapisz CV, następnie wróć do wywiadu.
 - **Masz CV i chcesz wydobyć brakujące konkrety** — otwórz CV i wybierz **Uzupełnij CV przez wywiad**.
 - **Masz wcześniejszy import** — wybierz go na stronie WYWIADU albo zaznacz uruchomienie rozmowy po wypełnieniu szablonu.
 - **Aplikujesz na konkretną ofertę** — otwórz właściwe CV i wybierz **Dopasuj z wywiadem — nowe CV**.

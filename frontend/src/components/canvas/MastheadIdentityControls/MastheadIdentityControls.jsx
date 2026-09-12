@@ -1,3 +1,5 @@
+import { t as uiText } from "../../../i18n/index.js";
+import { useTranslation } from 'react-i18next';
 /**
  * Inline hover controls for the masthead identity block (Phase 3).
  *
@@ -19,6 +21,7 @@ import classes from "./MastheadIdentityControls.module.css";
 const HIDE_AFTER_LEAVE_MS = 600;
 
 export default function MastheadIdentityControls({ band }) {
+  useTranslation();
   const { toggleNameCase, toggleTitle, zoom = 1 } = useCanvasContext();
   const [hover, setHover] = useState(null); // "name" | "title" | null
   const hideTimerRef = useRef(null);
@@ -115,8 +118,8 @@ export default function MastheadIdentityControls({ band }) {
                onPointerEnter={() => { clearHide(); setHover("name"); }}
                onPointerLeave={scheduleHide} onFocus={clearHide} onBlur={scheduleHide}>
             <button type="button" className={classes.caseToggle} style={buttonStyle}
-                    aria-label={band.name.uppercase ? "Wyłącz wielkie litery" : "Włącz wielkie litery"}
-                    data-tooltip={band.name.uppercase ? "Zwykłe litery" : "WIELKIE LITERY"}
+                    aria-label={band.name.uppercase ? uiText("editor:mastheadIdentityControls.turnOffUppercase") : uiText("editor:mastheadIdentityControls.turnOnUppercase")}
+                    data-tooltip={band.name.uppercase ? uiText("editor:mastheadIdentityControls.normalCase") : uiText("editor:mastheadIdentityControls.uppercase")}
                     onPointerDown={stop}
                     onClick={(e) => { stop(e); toggleNameCase(band.bandId); }}>
               {band.name.uppercase ? "Aa" : "AA"}
@@ -134,7 +137,7 @@ export default function MastheadIdentityControls({ band }) {
                onPointerEnter={() => { clearHide(); setHover("title"); }}
                onPointerLeave={scheduleHide} onFocus={clearHide} onBlur={scheduleHide}>
             <button type="button" className={cluster.trash} style={buttonStyle}
-                    aria-label="Ukryj stanowisko" data-tooltip="Ukryj stanowisko"
+                    aria-label={uiText("editor:mastheadIdentityControls.hideJobTitle")} data-tooltip={uiText("editor:mastheadIdentityControls.hideJobTitle")}
                     onPointerDown={stop}
                     onClick={(e) => { stop(e); toggleTitle(band.bandId); setHover(null); }}>
               <FiEyeOff style={iconStyle} />
@@ -148,7 +151,7 @@ export default function MastheadIdentityControls({ band }) {
         <div className={cluster.anchor} data-editor-control="true" style={titleCenter}>
           <div className={cluster.cluster} style={{ gap, transform: "translate(-50%, -50%)" }}>
             <button type="button" className={cluster.plus} style={buttonStyle}
-                    aria-label="Dodaj stanowisko" data-tooltip="Dodaj stanowisko"
+                    aria-label={uiText("editor:mastheadIdentityControls.addJobTitle")} data-tooltip={uiText("editor:mastheadIdentityControls.addJobTitle")}
                     onPointerDown={stop}
                     onClick={(e) => { stop(e); toggleTitle(band.bandId); }}>
               <FiPlus style={iconStyle} />

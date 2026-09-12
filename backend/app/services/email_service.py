@@ -9,6 +9,7 @@ from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 from app.core.config import EMAIL_FROM, RESEND_API_KEY
+from app.core.localisation import ui_language
 
 
 logger = logging.getLogger(__name__)
@@ -52,16 +53,19 @@ def send_verification_email(to: str, verification_url: str, *, idempotency_key: 
         logger.warning("verification_email outcome=disabled")
         return False
     safe_url = html.escape(verification_url, quote=True)
+    english = ui_language.get() == "en"
+    subject = "Verify your CV Studio account" if english else "Potwierdź konto w CV Studio"
+    instruction = "Open the link below to verify your email address." if english else "Otwórz poniższy link, aby potwierdzić adres e-mail."
+    expiry = "The link expires after 24 hours." if english else "Link wygasa po 24 godzinach."
+    action = "Verify email address" if english else "Potwierdź adres e-mail"
     body = json.dumps({
         "from": EMAIL_FROM,
         "to": [to],
-        "subject": "Potwierdź konto w CV Studio",
-        "text": f"Potwierdź adres e-mail, otwierając ten link: {verification_url}\nLink wygasa po 24 godzinach.",
+        "subject": subject,
+        "text": f"{instruction}\n{verification_url}\n{expiry}",
         "html": (
-            "<h1>Potwierdź konto w CV Studio</h1>"
-            "<p>Otwórz poniższy link, aby potwierdzić adres e-mail.</p>"
-            f'<p><a href="{safe_url}">Potwierdź adres e-mail</a></p>'
-            "<p>Link wygasa po 24 godzinach.</p>"
+            f'<div lang="{ui_language.get()}"><h1>{subject}</h1><p>{instruction}</p>'
+            f'<p><a href="{safe_url}">{action}</a></p><p>{expiry}</p></div>'
         ),
     }).encode("utf-8")
     request = Request(

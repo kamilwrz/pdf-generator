@@ -1,3 +1,4 @@
+import { t as uiText } from "../i18n/index.js";
 /**
  * Shared POST /ai/fill_template client used by import, the A4 starter, and
  * change-template flows. Callers keep their own loading UI and apply path
@@ -21,10 +22,10 @@ import { flowSpacingToPayload } from "../utils/flowSpacing";
  */
 export async function fillTemplate(cvData, templateId, options = {}) {
   if (!cvData || typeof cvData !== "object") {
-    throw new Error("Brak danych CV do wypełnienia szablonu.");
+    throw new Error(uiText("errors:fillTemplate.noCvDataAvailableToFillThe"));
   }
   if (!templateId) {
-    throw new Error("Nie wybrano szablonu.");
+    throw new Error(uiText("errors:fillTemplate.noTemplateSelected"));
   }
   // Guests call the same endpoint without a Bearer header. Sending
   // `Authorization: Bearer null` looks like a malformed JWT and surfaces a
@@ -32,7 +33,7 @@ export async function fillTemplate(cvData, templateId, options = {}) {
   const token = getAccessToken();
   const api = options.api
     ?? new ApiClient(token ? { Authorization: `Bearer ${token}` } : {});
-  const errorMessage = options.errorMessage || "Generowanie szablonu nie powiodło się";
+  const errorMessage = options.errorMessage || uiText("ai:aiCvPanel.templateGenerationFailed");
   const body = { cv_data: cvData, template_id: templateId };
   if (options.spacing) {
     body.spacing_px = flowSpacingToPayload(options.spacing);

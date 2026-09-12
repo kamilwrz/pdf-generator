@@ -1,3 +1,5 @@
+import { useMessageState } from '../i18n/messageState.js';
+import { t as uiText } from "../i18n/index.js";
 /**
  * Load and refresh the signed-in user's plan entitlements.
  *
@@ -10,7 +12,7 @@ import { ApiClient, ENDPOINTS } from "../services/api";
 export function useEntitlements(enabled = true) {
     const [entitlements, setEntitlements] = useState(null);
     const [loading, setLoading] = useState(Boolean(enabled));
-    const [error, setError] = useState(null);
+    const [error, setError] = useMessageState(null);
 
     const refresh = useCallback(async () => {
         const token = localStorage.getItem("token");
@@ -27,7 +29,7 @@ export function useEntitlements(enabled = true) {
                 ENDPOINTS.AUTH.ENTITLEMENTS,
                 "GET",
                 null,
-                "Nie udało się pobrać planu.",
+                uiText("editor:useEntitlements.couldNotLoadThePlan"),
             );
             setEntitlements(data);
             return data;

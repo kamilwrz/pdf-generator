@@ -26,7 +26,7 @@ async function installProfile(page) {
   const original = structuredClone(profile.facts);
   await page.route('**/api/career-profile*', async (route) => {
     if (route.request().method() === 'PUT') profile = { ...route.request().postDataJSON(), revision: profile.revision + 1 };
-    await route.fulfill({ json: profile });
+    await route.fulfill({ json: { ...profile, sources: { documents: [{ id: 30, title: 'Anna CV' }], imports: [] } } });
   });
   await page.route('**/api/ai/interviews*', (route) => route.fulfill({ json: { items: [{ id: 'saved', mode: 'create', phase: 'clarification', updated_at: '2026-09-10T10:00:00' }], next_offset: null } }));
   return { base, original, current: () => profile };

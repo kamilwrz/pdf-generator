@@ -1,3 +1,5 @@
+import { t as uiText } from "../../../i18n/index.js";
+import { useTranslation } from 'react-i18next';
 import { Component } from "react";
 import { isRouteErrorResponse, Link, useRouteError } from "react-router-dom";
 import classes from "./ErrorBoundary.module.css";
@@ -37,8 +39,8 @@ export class ErrorBoundary extends Component {
     return (
       <FailurePanel
         compact={this.props.compact}
-        title={this.props.title || "Nie udało się wyświetlić edytora"}
-        description={this.props.description || "Twoje dane pozostały w tej karcie. Spróbuj ponownie wyrenderować widok."}
+        title={this.props.title}
+        description={this.props.description}
         onRetry={() => this.setState({ error: null })}
       />
     );
@@ -46,17 +48,18 @@ export class ErrorBoundary extends Component {
 }
 
 function FailurePanel({ compact = false, title, description, onRetry }) {
+  useTranslation();
   return (
     <main className={`${classes.page}${compact ? ` ${classes.compact}` : ""}`}>
       <section className={classes.panel} role="alert" aria-live="assertive">
-        <span className={classes.eyebrow}>CV STUDIO / BŁĄD</span>
-        <h1>{title}</h1>
-        <p>{description}</p>
+        <span className={classes.eyebrow}>{uiText("errors:errorBoundary.cvStudioError")}</span>
+        <h1>{title || uiText("errors:errorBoundary.couldNotDisplayTheEditor")}</h1>
+        <p>{description || uiText("errors:errorBoundary.yourDataRemainsInThisTabTry")}</p>
         <div className={classes.actions}>
           {onRetry ? (
-            <button type="button" onClick={onRetry}>Spróbuj ponownie</button>
+            <button type="button" onClick={onRetry}>{uiText("errors:errorBoundary.tryAgain")}</button>
           ) : null}
-          <Link to="/">Przejdź na stronę główną</Link>
+          <Link to="/">{uiText("errors:errorBoundary.goToHomepage")}</Link>
         </div>
       </section>
     </main>
@@ -65,24 +68,26 @@ function FailurePanel({ compact = false, title, description, onRetry }) {
 
 /** Branded fallback used by React Router for loader/render failures. */
 export function RouteErrorPage() {
+  useTranslation();
   const error = useRouteError();
   const notFound = isRouteErrorResponse(error) && error.status === 404;
   return (
     <FailurePanel
-      title={notFound ? "Nie znaleziono tej strony" : "Nie udało się otworzyć widoku"}
+      title={notFound ? uiText("errors:errorBoundary.pageNotFound") : uiText("errors:errorBoundary.couldNotOpenThisView")}
       description={notFound
-        ? "Sprawdź adres albo wróć do strony głównej."
-        : "Odśwież widok lub wróć do strony głównej. Twoje dane nie są wyświetlane w komunikacie błędu."}
+        ? uiText("errors:errorBoundary.checkTheAddressOrReturnToThe")
+        : uiText("errors:errorBoundary.refreshTheViewOrReturnToThe")}
       onRetry={() => window.location.reload()}
     />
   );
 }
 
 export function NotFoundPage() {
+  useTranslation();
   return (
     <FailurePanel
-      title="Nie znaleziono tej strony"
-      description="Sprawdź adres albo wróć do strony głównej."
+      title={uiText("errors:errorBoundary.pageNotFound")}
+      description={uiText("errors:errorBoundary.checkTheAddressOrReturnToThe")}
     />
   );
 }

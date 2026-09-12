@@ -27,6 +27,8 @@ export const CUSTOM_SECTION_PRESETS = [
     { kind: "other", title: "Inna sekcja" },
 ];
 
+const ENGLISH_LABELS = { summary: "PROFESSIONAL SUMMARY", experience: "WORK EXPERIENCE", education: "EDUCATION", skills: "SKILLS" };
+
 const DEFAULT_LABELS = {
     summary: "PODSUMOWANIE ZAWODOWE",
     experience: "DOŚWIADCZENIE ZAWODOWE",
@@ -297,7 +299,7 @@ export function normalizeBioCvData(value) {
                         : {}),
             })),
         language: clean(source.language) || "Polish",
-        labels: { ...DEFAULT_LABELS, ...(source.labels || {}) },
+        labels: { ...(/^(en|english)$/i.test(source.language || "") ? ENGLISH_LABELS : DEFAULT_LABELS), ...(source.labels || {}) },
     };
 }
 

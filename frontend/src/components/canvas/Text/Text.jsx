@@ -1,3 +1,5 @@
+import { editorHint } from "../../../i18n/editorHints.js";
+import { useTranslation } from "react-i18next";
 /**
  * Single-line text element: select, drag, contentEditable edit.
  * `fixedToPage` chrome (e.g. page numbers) is non-interactive.
@@ -53,6 +55,7 @@ function Text({
     mastheadRole,
     editorHoverOutline,
 }) {
+    useTranslation();
     const {
         moveElement,
         selectElement,
@@ -77,8 +80,8 @@ function Text({
     // it. The persisted semantic role is therefore the durable fallback that
     // keeps a newly added empty professional title visible and clickable after
     // save/reload, without putting placeholder copy into the exported PDF.
-    const editorPlaceholder = placeholder
-        || (mastheadRole === "title" ? MASTHEAD_TITLE_PLACEHOLDER : undefined);
+    const editorPlaceholder = editorHint(placeholder
+        || (mastheadRole === "title" ? MASTHEAD_TITLE_PLACEHOLDER : undefined));
 
     const frameWidth = Number(width);
     const hasAlignmentFrame = Number.isFinite(frameWidth)

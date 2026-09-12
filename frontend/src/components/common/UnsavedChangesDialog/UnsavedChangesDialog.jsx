@@ -1,3 +1,5 @@
+import { t as uiText } from "../../../i18n/index.js";
+import { useTranslation } from 'react-i18next';
 import DialogShell from "../DialogShell/DialogShell";
 import classes from "./UnsavedChangesDialog.module.css";
 
@@ -18,6 +20,7 @@ export default function UnsavedChangesDialog({
   isNewDocument = false,
   error = "",
 }) {
+  useTranslation();
   const handleClose = isSaving ? () => {} : onCancel;
 
   return (
@@ -25,8 +28,8 @@ export default function UnsavedChangesDialog({
       open={open}
       onClose={handleClose}
       width={460}
-      title={isNewDocument ? "Niezapisane CV" : "Niezapisane zmiany"}
-      subtitle={isNewDocument ? "To CV nie zostało jeszcze zapisane na koncie" : "Zmiany w tym CV nie zostały jeszcze zapisane"}
+      title={isNewDocument ? uiText("editor:unsavedChangesDialog.unsavedCv") : uiText("editor:unsavedChangesDialog.unsavedChanges")}
+      subtitle={isNewDocument ? uiText("editor:unsavedChangesDialog.thisCvHasNotBeenSavedTo") : uiText("editor:unsavedChangesDialog.changesToThisCvHaveNotBeen")}
       role="alertdialog"
       layer="recovery"
       initialFocusSelector="[data-unsaved-cancel]"
@@ -38,16 +41,14 @@ export default function UnsavedChangesDialog({
             data-unsaved-cancel=""
             onClick={onCancel}
             disabled={isSaving}
-          >
-            Wróć do edycji
-          </button>
+          >{uiText("editor:unsavedChangesDialog.returnToEditing")}</button>
           <button
             type="button"
             className={classes.discard}
             onClick={onDiscard}
             disabled={isSaving}
           >
-            {isNewDocument ? "Odrzuć CV" : "Odrzuć zmiany"}
+            {isNewDocument ? uiText("editor:unsavedChangesDialog.discardCv") : uiText("editor:unsavedChangesDialog.discardChanges")}
           </button>
           <button
             type="button"
@@ -55,7 +56,7 @@ export default function UnsavedChangesDialog({
             onClick={onSave}
             disabled={isSaving}
           >
-            {isSaving ? "Zapisywanie…" : "Zapisz i kontynuuj"}
+            {isSaving ? "Zapisywanie…" : uiText("editor:unsavedChangesDialog.saveAndContinue")}
           </button>
         </div>
       )}
@@ -64,8 +65,8 @@ export default function UnsavedChangesDialog({
         <span className={classes.marker} aria-hidden="true">!</span>
         <p>
           {isNewDocument
-            ? "Jeśli przejdziesz dalej, utracisz to CV. Zapisz je, aby wrócić do niego w Moich dokumentach."
-            : "Jeśli przejdziesz dalej, utracisz zmiany od ostatniego zapisu. Zapisana wersja CV pozostanie w Moich dokumentach."}
+            ? uiText("editor:unsavedChangesDialog.ifYouContinueYouWillLoseThis")
+            : uiText("editor:unsavedChangesDialog.ifYouContinueYouWillLoseChanges")}
         </p>
         {error ? (
           <p className={classes.error} role="alert">

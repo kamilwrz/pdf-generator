@@ -141,7 +141,7 @@ def answer_proposals(question, answer, status, profile, session_id):
     catalog = service.evidence(profile)
     ids = question.get('target_fact_ids', []) if question.get('clarification') else []
     if any(ref not in catalog for ref in ids):
-        service.fail('Informacja została usunięta. Wczytaj aktualny wywiad przed odpowiedzią.')
+        service.fail(localised_message('interview_this_information_has_been_deleted_reload_the_current'))
     text = answer.strip() if status == 'answered' else f"Brak doświadczenia: {question.get('suggested_text') or question['text']}"
     original = [catalog[ref] for ref in ids] or [{'id': f"answer-{question['id']}", 'path': ''}]
     return [{
@@ -197,7 +197,7 @@ def start_clarifications(state):
         return
     pending = state.get('pending_clarifications', [])[:_capacity(state)]
     if not pending:
-        service.fail('Nie ma kolejnych pytań. Możesz przejrzeć informacje i zapisać potwierdzoną treść.', 422)
+        service.fail(localised_message('interview_there_are_no_more_questions_you_can_review'), 422)
     state['question_limit'] = max(state['question_limit'], len(state['answers']) + len(pending))
     state.update(question=pending[0], pending_clarifications=pending[1:], phase='clarification', clarification_round=True)
 

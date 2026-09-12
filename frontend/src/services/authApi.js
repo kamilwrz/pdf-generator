@@ -1,3 +1,4 @@
+import { t as uiText } from "../i18n/index.js";
 /** Account-verification and federated-auth API adapters. */
 import { ApiClient, ENDPOINTS } from "./api";
 import { establishSession } from "./signIn";
@@ -7,7 +8,7 @@ export async function verifyEmail(token) {
     ENDPOINTS.AUTH.VERIFY_EMAIL,
     "POST",
     JSON.stringify({ token }),
-    "Nie udało się potwierdzić adresu e-mail.",
+    uiText("errors:authApi.couldNotVerifyYourEmailAddress"),
   );
 }
 
@@ -16,7 +17,7 @@ export async function resendVerification(email) {
     ENDPOINTS.AUTH.RESEND_VERIFICATION,
     "POST",
     JSON.stringify({ email }),
-    "Nie udało się wysłać nowego linku.",
+    uiText("auth:login.couldNotSendANewLink"),
   );
 }
 
@@ -25,7 +26,7 @@ export async function signInWithGoogle(credential) {
     ENDPOINTS.AUTH.GOOGLE,
     "POST",
     JSON.stringify({ credential }),
-    "Logowanie Google nie powiodło się.",
+    uiText("auth:login.googleSignInFailed"),
   );
   establishSession(data);
   return data;
@@ -37,6 +38,6 @@ export async function linkGoogle(credential) {
     ENDPOINTS.AUTH.GOOGLE_LINK,
     "POST",
     JSON.stringify({ credential }),
-    "Nie udało się połączyć konta Google.",
+    uiText("errors:authApi.couldNotConnectYourGoogleAccount"),
   );
 }

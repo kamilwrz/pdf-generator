@@ -1,3 +1,5 @@
+import { t as uiText } from "../../../i18n/index.js";
+import { useTranslation } from 'react-i18next';
 import { hasUnchangedSavedTextLayout } from "../../../utils/savedTextLayout.js";
 
 /**
@@ -179,6 +181,7 @@ function fillSectionAnchors(
 }
 
 export default function CanvasElements({ elements, spreadSide = null }) {
+  useTranslation();
   const { heldIds, fadingIds } = useCanvasEnterIds(elements);
   // `elements` is page-filtered by PdfCanvas. Reorder ↑/↓ must use the full
   // document so a heading/record on page 2 still sees neighbours on page 1.
@@ -306,8 +309,8 @@ export default function CanvasElements({ elements, spreadSide = null }) {
     if (localStorage.getItem(STRUCTURAL_TOOLBAR_HINT_KEY)) return;
     localStorage.setItem(STRUCTURAL_TOOLBAR_HINT_KEY, "1");
     pushToast?.({
-      title: "Edytuj bezpośrednio na CV",
-      msg: "Najedź na sekcję lub wpis, aby zobaczyć kontrolki. Kliknij tekst raz, aby go edytować.",
+      title: uiText("editor:canvasElements.editDirectlyOnYourCv"),
+      msg: uiText("editor:canvasElements.hoverOverASectionOrEntryTo"),
       variant: "success",
       replaceKey: "canvas-structural-toolbar-hint",
     });

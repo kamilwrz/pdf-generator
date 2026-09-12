@@ -4,22 +4,25 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
+    "dev": "node ./scripts/generate-locale-bundles.mjs && vite",
+    "build": "node ./scripts/check-locales.mjs && node ./scripts/generate-locale-bundles.mjs && vite build",
     "check:bundle": "node ./scripts/check-bundle-budget.mjs",
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "node ./scripts/run-tests.mjs",
     "test:runtime": "vitest run",
     "test:all": "npm run test && npm run test:runtime",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "check:locales": "node ./scripts/check-locales.mjs"
   },
   "dependencies": {
+    "i18next": "^26.4.2",
     "motion": "^12.34.3",
     "nanoid": "^5.1.16",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-dropzone": "^14.4.0",
+    "react-i18next": "^17.0.13",
     "react-icons": "^5.5.0",
     "react-router-dom": "^7.18.2",
     "react-spinners": "^0.17.0"
@@ -39,6 +42,8 @@
     "globals": "^16.5.0",
     "jsdom": "^30.0.1",
     "vite": "^7.2.4",
-    "vitest": "^4.1.11"
+    "vitest": "^4.1.11",
+    "@babel/parser": "^7.29.0",
+    "@babel/traverse": "^7.29.0"
   }
 }

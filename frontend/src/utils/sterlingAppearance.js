@@ -1,3 +1,4 @@
+import { t as uiText } from "../i18n/index.js";
 /**
  * Curated visual system for the Sterling CV template.
  *
@@ -15,8 +16,8 @@ export const DEFAULT_STERLING_TEXT_SIZE = "M";
 export const STERLING_PALETTES = Object.freeze([
   {
     id: "northstar",
-    name: "Błękit Północy",
-    tagline: "Jasne tło i chłodny błękit",
+    get name() { return uiText("editor:sterlingAppearance.northernBlue"); },
+    get tagline() { return uiText("editor:cadenzaAppearance.lightBackgroundAndCoolBlue"); },
     iconTheme: "sterling",
     colors: {
       paper: "#F7F8FA", ink: "#26313F", accent: "#4A6FA5",
@@ -25,8 +26,8 @@ export const STERLING_PALETTES = Object.freeze([
   },
   {
     id: "graphite",
-    name: "Grafitowe Atelier",
-    tagline: "Jasne tło i grafitowe akcenty",
+    get name() { return uiText("editor:sterlingAppearance.graphiteAtelier"); },
+    get tagline() { return uiText("editor:sterlingAppearance.lightBackgroundAndGraphiteAccents"); },
     iconTheme: "sterling-graphite",
     colors: {
       paper: "#F8F8F7", ink: "#232421", accent: "#5B625E",
@@ -35,8 +36,8 @@ export const STERLING_PALETTES = Object.freeze([
   },
   {
     id: "sage",
-    name: "Szałwiowa Rezerwa",
-    tagline: "Jasne tło i szałwiowe akcenty",
+    get name() { return uiText("editor:sterlingAppearance.sageReserve"); },
+    get tagline() { return uiText("editor:regentAppearance.lightBackgroundAndSageAccents"); },
     iconTheme: "sterling-sage",
     colors: {
       paper: "#F7F8F4", ink: "#25322D", accent: "#557565",
@@ -45,8 +46,8 @@ export const STERLING_PALETTES = Object.freeze([
   },
   {
     id: "burgundy",
-    name: "Burgundowy List",
-    tagline: "Jasne tło i burgundowe akcenty",
+    get name() { return uiText("editor:sterlingAppearance.burgundyLetter"); },
+    get tagline() { return uiText("editor:meridianAppearance.lightBackgroundAndBurgundyAccents"); },
     iconTheme: "sterling-burgundy",
     colors: {
       paper: "#FAF7F6", ink: "#35292B", accent: "#7A4650",
@@ -55,8 +56,8 @@ export const STERLING_PALETTES = Object.freeze([
   },
   {
     id: "amber",
-    name: "Bursztynowa Księga",
-    tagline: "Ciepłe tło i bursztynowe akcenty",
+    get name() { return uiText("editor:sterlingAppearance.amberLedger"); },
+    get tagline() { return uiText("editor:sterlingAppearance.warmBackgroundAndAmberAccents"); },
     iconTheme: "sterling-amber",
     colors: {
       paper: "#FAF8F3", ink: "#342E27", accent: "#8A603F",
@@ -65,8 +66,8 @@ export const STERLING_PALETTES = Object.freeze([
   },
   {
     id: "midnight",
-    name: "Nocny Fiord",
-    tagline: "Ciemny granat i jasny tekst",
+    get name() { return uiText("editor:sterlingAppearance.nightFjord"); },
+    get tagline() { return uiText("editor:sterlingAppearance.darkNavyAndLightText"); },
     iconTheme: "sterling-midnight",
     colors: {
       paper: "#F5F7F8", ink: "#182734", accent: "#315A70",
@@ -76,10 +77,10 @@ export const STERLING_PALETTES = Object.freeze([
 ]);
 
 export const STERLING_TEXT_SIZES = Object.freeze([
-  { id: "S", label: "S", description: "Kompaktowy" },
-  { id: "M", label: "M", description: "Oryginalny" },
-  { id: "L", label: "L", description: "Czytelny" },
-  { id: "XL", label: "XL", description: "Wyrazisty" },
+  { id: "S", label: "S", get description() { return uiText("editor:atriumAppearance.compact"); } },
+  { id: "M", label: "M", get description() { return uiText("editor:atriumAppearance.original"); } },
+  { id: "L", label: "L", get description() { return uiText("editor:atriumAppearance.readable"); } },
+  { id: "XL", label: "XL", get description() { return uiText("editor:atriumAppearance.bold"); } },
 ]);
 
 const TEXT_SCALE = {

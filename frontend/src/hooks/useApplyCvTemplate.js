@@ -1,3 +1,5 @@
+import { useMessageState, messageRef } from '../i18n/messageState.js';
+import { t as uiText } from "../i18n/index.js";
 /**
  * Apply a registry template onto the current CV without starting a new document.
  *
@@ -40,7 +42,7 @@ export function useApplyCvTemplate() {
   const { entitlements, pushToast } = useSession();
 
   const [fillingId, setFillingId] = useState(null);
-  const [error, setError] = useState(null);
+  const [error, setError] = useMessageState(null);
 
   const api = useMemo(() => {
     const token = getAccessToken();
@@ -50,7 +52,7 @@ export function useApplyCvTemplate() {
   const applyTemplate = useCallback(async (template) => {
     if (!activeCvData || !template) return false;
     if (!isTemplateAllowed(template, entitlements)) {
-      setError("Ten szablon jest dostępny w planie Pro.");
+      setError(messageRef("ai:aiCvPanel.thisTemplateIsAvailableWithPro"));
       return false;
     }
     // The canvas may be one React effect ahead of `activeCvData` immediately
@@ -77,11 +79,11 @@ export function useApplyCvTemplate() {
       // the previous template's custom rhythm knobs.
       const res = await fillTemplate(profileForFill, template.id, {
         api,
-        errorMessage: "Zmiana szablonu nie powiodła się",
+        errorMessage: uiText("editor:useApplyCvTemplate.templateChangeFailed"),
         spacing: DEFAULT_FLOW_SPACING,
       });
       if (!isDocumentScopeCurrent(requestScope, { requireSameRevision: true })) {
-        setError("Dokument zmienił się w trakcie generowania. Uruchom zmianę szablonu ponownie.");
+        setError(messageRef("editor:useApplyCvTemplate.theDocumentChangedDuringGenerationStartThe"));
         return false;
       }
       // No title argument: `replaceActiveElements` only overwrites the
@@ -100,7 +102,7 @@ export function useApplyCvTemplate() {
       // with the freshly generated layout (after pinFlowSpacingBaseline).
       adoptDocumentFlowSpacing?.(DEFAULT_FLOW_SPACING);
       pushToast?.({
-        title: "Szablon zmieniony",
+        title: uiText("editor:useApplyCvTemplate.templateChanged"),
         // Template browsing is one continuous workflow. Keep its latest
         // outcome visible instead of stacking stale template confirmations.
         replaceKey: "template-change",
@@ -109,7 +111,7 @@ export function useApplyCvTemplate() {
       });
       return true;
     } catch (err) {
-      setError(planErrorMessage(err, "Nie udało się zmienić szablonu."));
+      setError(planErrorMessage(err, messageRef("editor:useApplyCvTemplate.couldNotChangeTheTemplate")));
       return false;
     } finally {
       setFillingId(null);

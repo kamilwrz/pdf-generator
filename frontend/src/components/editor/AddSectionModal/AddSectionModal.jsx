@@ -1,8 +1,11 @@
+import { starterSectionLabel } from '../../../utils/cvStarter.js';
+import { t as uiText } from "../../../i18n/index.js";
+import { useTranslation } from 'react-i18next';
 /**
  * Domain-specific section picker for the template-mode editor.
  *
  * Each choice previews the information hierarchy that will be inserted on the
- * A4 canvas. The cards use the same Polish field guidance as “Utwórz nowe CV”;
+ * A4 canvas. The cards use the same field guidance as new-CV setup;
  * those strings become placeholder metadata rather than saved document text.
  * Icon-aware templates keep their heading-glyph gallery below the section grid.
  */
@@ -18,10 +21,12 @@ import { suggestSectionIconName } from "../../../utils/sectionIcons";
 import classes from "./AddSectionModal.module.css";
 
 function PreviewRule() {
+  useTranslation();
   return <span className={classes.previewRule} aria-hidden="true" />;
 }
 
 function PreviewLine({ children, strong = false, muted = false, align = "left" }) {
+  useTranslation();
   const className = [
     classes.previewLine,
     strong ? classes.previewLineStrong : "",
@@ -33,6 +38,7 @@ function PreviewLine({ children, strong = false, muted = false, align = "left" }
 
 /** Render a compact, non-interactive A4 section miniature for one preset. */
 function SectionStructurePreview({ preset }) {
+  useTranslation();
   const p = STARTER_FIELD_PLACEHOLDERS;
   let body = null;
 
@@ -93,7 +99,7 @@ function SectionStructurePreview({ preset }) {
   } else {
     body = (
       <div className={classes.categoryPreview}>
-        <PreviewLine strong>Kategoria umiejętności</PreviewLine>
+        <PreviewLine strong>{uiText("editor:addSectionModal.skillsCategory")}</PreviewLine>
         <div className={classes.skillsRow}>
           {[0, 1].map((index) => (
             <span className={classes.skillItem} key={index}>{p.skill}</span>
@@ -127,7 +133,9 @@ export default function AddSectionModal({
   onConfirm,
   iconOptions = [],
   insertAfterHeading = false,
+  documentLanguage = "Polish",
 }) {
+  useTranslation();
   const [sectionType, setSectionType] = useState(SECTION_TYPES.SUMMARY);
   const [iconName, setIconName] = useState(null);
   const [wasOpen, setWasOpen] = useState(open);
@@ -166,7 +174,7 @@ export default function AddSectionModal({
 
   function handleConfirm() {
     onConfirm({
-      name: selectedPreset.title,
+      name: starterSectionLabel(selectedPreset.type === "skills-categories" ? "skills" : selectedPreset.type, /^(en|english)$/i.test(documentLanguage) ? "en" : "pl"),
       layout: selectedPreset.layout,
       sectionType: selectedPreset.type,
       iconName: hasIcons ? (iconName || iconOptions[0]?.name || null) : null,
@@ -182,31 +190,26 @@ export default function AddSectionModal({
       open={open}
       onClose={onCancel}
       width={1060}
-      title="Dodaj sekcję"
+      title={uiText("editor:addSectionModal.addSection")}
       initialFocusSelector='input[name="section-type"]:checked'
-      restoreFocusSelector='button[aria-label="Dostosuj CV"]'
+      restoreFocusSelector='[data-sidebar-control="sections"]'
       subtitle={insertAfterHeading
-        ? "Wybierz strukturę. Sekcja pojawi się bezpośrednio pod wskazanym miejscem."
-        : "Wybierz strukturę. Sekcja pojawi się na końcu CV w stylu obecnego szablonu."}
+        ? uiText("editor:addSectionModal.chooseAStructureTheSectionWillAppear")
+        : uiText("editor:addSectionModal.chooseAStructureTheSectionWillAppear2")}
       bodyClassName={classes.body}
       footer={(
         <>
-          <span className={classes.footerHint}>
-            Wybrano: <strong>{selectedPreset.title}</strong>
+          <span className={classes.footerHint}>{uiText("editor:addSectionModal.selected")} <strong>{selectedPreset.title}</strong>
           </span>
           <div className={classes.actions}>
-            <button type="button" className={classes.ghost} onClick={onCancel}>
-              Anuluj
-            </button>
-            <button type="button" className={classes.primary} onClick={handleConfirm}>
-              Dodaj sekcję
-            </button>
+            <button type="button" className={classes.ghost} onClick={onCancel}>{uiText("ai:aiAssistant.cancel")}</button>
+            <button type="button" className={classes.primary} onClick={handleConfirm}>{uiText("editor:addSectionModal.addSection")}</button>
           </div>
         </>
       )}
     >
       <fieldset className={classes.fieldset}>
-        <legend className={classes.legend}>Rodzaj i struktura sekcji</legend>
+        <legend className={classes.legend}>{uiText("editor:addSectionModal.sectionTypeAndStructure")}</legend>
         <div className={classes.presetGrid}>
           {SECTION_PRESETS.map((preset) => {
             const active = sectionType === preset.type;
@@ -241,12 +244,12 @@ export default function AddSectionModal({
         <section className={classes.iconSection} aria-labelledby="section-icon-title">
           <div className={classes.iconHeadingRow}>
             <div>
-              <h3 id="section-icon-title" className={classes.iconTitle}>Ikona nagłówka</h3>
-              <p className={classes.iconHint}>Dopasuj znak używany obok tytułów w tym szablonie.</p>
+              <h3 id="section-icon-title" className={classes.iconTitle}>{uiText("editor:addSectionModal.headingIcon")}</h3>
+              <p className={classes.iconHint}>{uiText("editor:addSectionModal.chooseTheSymbolShownBesideHeadingsIn")}</p>
             </div>
-            <p className={classes.selectedIconLabel}>Wybrana: <strong>{selectedIconLabel}</strong></p>
+            <p className={classes.selectedIconLabel}>{uiText("editor:addSectionModal.selected2")} <strong>{selectedIconLabel}</strong></p>
           </div>
-          <div className={classes.iconGallery} role="listbox" aria-label="Ikony sekcji">
+          <div className={classes.iconGallery} role="listbox" aria-label={uiText("editor:addSectionModal.sectionIcons")}>
             {iconOptions.map((option) => {
               const selected = iconName === option.name;
               return (

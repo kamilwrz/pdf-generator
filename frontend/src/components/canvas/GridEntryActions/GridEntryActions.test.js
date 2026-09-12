@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { readPresentationSource as readFile } from "../../../../scripts/read-presentation-source.mjs";
 import test from "node:test";
 
 const source = await readFile(new URL("./GridEntryActions.jsx", import.meta.url), "utf8");

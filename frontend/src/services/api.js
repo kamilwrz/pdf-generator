@@ -1,3 +1,4 @@
+import { t as uiText } from "../i18n/index.js";
 /**
  * Backend HTTP client and route constants for CV Studio.
  *
@@ -8,6 +9,7 @@
  * 30–60s on cold start; short aborts previously made login look broken.
  */
 import { buildApiUrl, resolveApiBaseUrl } from "../config/appConfig.js";
+import { getUiLanguage } from '../i18n/index.js';
 
 // `import.meta.env` is injected by Vite but absent in source-driven Node tests.
 const API_BASE_URL = resolveApiBaseUrl(import.meta.env ?? {});
@@ -136,6 +138,8 @@ export class ApiClient {
      * `code`, and `upgradeRequired` on the thrown Error for UI upgrade prompts.
      */
     async httpRequest(endpoint, method, body, errorMessage, options = {}) {
+        // Freeze locale for this logical request, including transport retries.
+        options = { ...options, headers: { 'Accept-Language': getUiLanguage(), ...options.headers } };
         const retries = Math.max(0, options.retries ?? 0);
         const retryDelayMs = options.retryDelayMs ?? 2_500;
         let lastError = null;
@@ -161,18 +165,18 @@ export class ApiClient {
                     }
                     if (isTransientNetworkError(error) && !error.status) {
                         throw new Error(
-                            "Nie udało się połączyć z serwerem (trwa uruchamianie). Spróbuj ponownie za chwilę.",
+                            uiText("errors:api.couldNotConnectToTheServerWhile"),
                         );
                     }
                     throw error;
                 }
             }
         }
-        throw lastError || new Error(errorMessage || "Wystąpił błąd podczas komunikacji z serwerem.");
+        throw lastError || new Error(errorMessage || uiText("errors:api.anErrorOccurredWhileCommunicatingWithThe"));
     }
 
     async _httpRequestOnce(endpoint, method, body, errorMessage, options = {}) {
-        const fallbackMessage = errorMessage || "Wystąpił błąd podczas komunikacji z serwerem.";
+        const fallbackMessage = errorMessage || uiText("errors:api.anErrorOccurredWhileCommunicatingWithThe");
         const headers = { ...this.headers, ...(options.headers || {}) };
         if (body instanceof FormData) delete headers['Content-Type'];
 
@@ -202,7 +206,7 @@ export class ApiClient {
                 const detail = payload?.detail;
                 let message = typeof detail === "string"
                     ? detail
-                    : (detail?.message || fallbackMessage);
+                    : (detail?.message || payload?.message || fallbackMessage);
                 // FastAPI's OAuth2PasswordBearer default English detail should
                 // never reach the Polish guest/editor UI as-is.
                 if (
@@ -210,9 +214,20 @@ export class ApiClient {
                     && typeof message === "string"
                     && message.toLowerCase() === "not authenticated"
                 ) {
-                    message = "Token jest nieprawidłowy lub wygasł";
+                    message = uiText("errors:api.theTokenIsInvalidOrHasExpired");
                 }
                 const requestError = new Error(message);
+                const messageKey = payload?.message_key || detail?.message_key;
+                const messageParams = payload?.params || detail?.params || {};
+                if (messageKey) {
+                    requestError.messageKey = `errors:server.${messageKey}`;
+                    requestError.messageParams = messageParams;
+                    // Resolve again on access so a retained error follows the UI.
+                    Object.defineProperty(requestError, 'message', {
+                        configurable: true,
+                        get: () => uiText(requestError.messageKey, { ...messageParams, defaultValue: message }),
+                    });
+                }
                 requestError.status = response.status;
                 requestError.code = typeof detail === "object" && detail ? detail.code : undefined;
                 requestError.upgradeRequired = typeof detail === "object" && detail
@@ -230,7 +245,7 @@ export class ApiClient {
             if (error?.name === "AbortError") {
                 const seconds = Math.round(timeoutMs / 1000);
                 const abortError = new Error(
-                    `Przekroczono czas oczekiwania (${seconds} s). Serwer lub model AI nadal pracuje — spróbuj ponownie za chwilę.`,
+                    uiText("errors:api.requestTimedOutSTheServerOr", { value0: (seconds) }),
                 );
                 abortError.name = "AbortError";
                 throw abortError;
@@ -250,6 +265,7 @@ export class ApiClient {
      * same `status` / `code` / `upgradeRequired` fields as `httpRequest`.
      */
     async httpRequestBlob(endpoint, method, body, errorMessage, options = {}) {
+        options = { ...options, headers: { 'Accept-Language': getUiLanguage(), ...options.headers } };
         const retries = Math.max(0, options.retries ?? 0);
         const retryDelayMs = options.retryDelayMs ?? 2_500;
         let lastError = null;
@@ -272,19 +288,19 @@ export class ApiClient {
                     }
                     if (isTransientNetworkError(error) && !error.status) {
                         throw new Error(
-                            "Nie udało się połączyć z serwerem (trwa uruchamianie). Spróbuj ponownie za chwilę.",
+                            uiText("errors:api.couldNotConnectToTheServerWhile"),
                         );
                     }
                     throw error;
                 }
             }
         }
-        throw lastError || new Error(errorMessage || "Wystąpił błąd podczas komunikacji z serwerem.");
+        throw lastError || new Error(errorMessage || uiText("errors:api.anErrorOccurredWhileCommunicatingWithThe"));
     }
 
     async _httpRequestBlobOnce(endpoint, method, body, errorMessage, options = {}) {
-        const fallbackMessage = errorMessage || "Wystąpił błąd podczas komunikacji z serwerem.";
-        const headers = { ...this.headers, ...(options.headers || {}) };
+        const fallbackMessage = errorMessage || uiText("errors:api.anErrorOccurredWhileCommunicatingWithThe");
+        const headers = { 'Accept-Language': getUiLanguage(), ...this.headers, ...(options.headers || {}) };
         if (body instanceof FormData) delete headers["Content-Type"];
 
         const timeoutMs = options.timeoutMs ?? 90_000;
@@ -310,15 +326,26 @@ export class ApiClient {
                 const detail = payload?.detail;
                 let message = typeof detail === "string"
                     ? detail
-                    : (detail?.message || fallbackMessage);
+                    : (detail?.message || payload?.message || fallbackMessage);
                 if (
                     (response.status === 401 || response.status === 403)
                     && typeof message === "string"
                     && message.toLowerCase() === "not authenticated"
                 ) {
-                    message = "Token jest nieprawidłowy lub wygasł";
+                    message = uiText("errors:api.theTokenIsInvalidOrHasExpired");
                 }
                 const requestError = new Error(message);
+                const messageKey = payload?.message_key || detail?.message_key;
+                const messageParams = payload?.params || detail?.params || {};
+                if (messageKey) {
+                    requestError.messageKey = `errors:server.${messageKey}`;
+                    requestError.messageParams = messageParams;
+                    // Resolve again on access so a retained error follows the UI.
+                    Object.defineProperty(requestError, 'message', {
+                        configurable: true,
+                        get: () => uiText(requestError.messageKey, { ...messageParams, defaultValue: message }),
+                    });
+                }
                 requestError.status = response.status;
                 requestError.code = typeof detail === "object" && detail ? detail.code : undefined;
                 requestError.upgradeRequired = typeof detail === "object" && detail
@@ -340,7 +367,7 @@ export class ApiClient {
             if (error?.name === "AbortError") {
                 const seconds = Math.round(timeoutMs / 1000);
                 const abortError = new Error(
-                    `Przekroczono czas oczekiwania (${seconds} s). Serwer lub model AI nadal pracuje — spróbuj ponownie za chwilę.`,
+                    uiText("errors:api.requestTimedOutSTheServerOr", { value0: (seconds) }),
                 );
                 abortError.name = "AbortError";
                 throw abortError;

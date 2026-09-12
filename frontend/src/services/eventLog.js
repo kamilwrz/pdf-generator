@@ -1,3 +1,4 @@
+import { t as uiText } from "../i18n/index.js";
 import { ApiClient, ENDPOINTS } from "./api";
 
 // Fire-and-forget product-metrics logging. Never awaited by callers, never
@@ -9,6 +10,6 @@ export function logEvent(eventType, templateId) {
         ENDPOINTS.EVENTS.LOG,
         "POST",
         JSON.stringify({ event_type: eventType, template_id: templateId ?? null }),
-        "Nie udało się zapisać zdarzenia"
+        uiText("errors:eventLog.couldNotSaveTheEvent")
     ).catch(() => {});
 }

@@ -1,3 +1,4 @@
+import { getUiLocale, t as uiText } from '../i18n/index.js';
 /**
  * Section-heading icon catalog for icon-tagged CV templates.
  *
@@ -207,7 +208,7 @@ export function listSectionIconOptions({ templateId = null, elements = [] } = {}
   return ordered.map((name) => ({
     name,
     src: buildIconicSrc(theme, name),
-    label: ICON_LABELS_PL[name] || name,
+    get label() { return ICON_LABELS_PL[name] ? uiText(`editor:icons.${name}`) : name; },
   }));
 }
 
@@ -220,7 +221,7 @@ export function listSectionIconOptions({ templateId = null, elements = [] } = {}
  */
 export function suggestSectionIconName(sectionName, availableNames = []) {
   const available = new Set(availableNames);
-  const text = String(sectionName || "").toLocaleLowerCase("pl-PL");
+  const text = String(sectionName || "").toLocaleLowerCase(getUiLocale());
   const rules = [
     ["experience", /doświadcz|doswiadcz|praca|career|experience|employment/],
     ["education", /wykształc|wyksztalc|edukac|studia|education|school/],

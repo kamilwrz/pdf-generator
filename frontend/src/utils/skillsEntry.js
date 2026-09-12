@@ -1,3 +1,4 @@
+import { getUiLocale } from '../i18n/index.js';
 /**
  * Direct, mode-aware additions and deletions in main-column Skills groups.
  *
@@ -81,8 +82,8 @@ function normalizedSkill(value) {
 }
 
 function sameSkill(left, right) {
-  return normalizedSkill(left).toLocaleLowerCase("pl-PL")
-    === normalizedSkill(right).toLocaleLowerCase("pl-PL");
+  return normalizedSkill(left).toLocaleLowerCase(getUiLocale())
+    === normalizedSkill(right).toLocaleLowerCase(getUiLocale());
 }
 
 function groupIdFor(element) {

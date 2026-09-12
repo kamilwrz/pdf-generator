@@ -1,3 +1,6 @@
+import { useMessageState, messageRef } from '../../../i18n/messageState.js';
+import { t as uiText } from "../../../i18n/index.js";
+import { useTranslation } from 'react-i18next';
 /**
  * Profile-photo library panel.
  *
@@ -22,22 +25,24 @@ import { useUiSurfaces } from "../../../store/ui-surfaces-context";
 import PanelShell from "../../common/PanelShell/PanelShell";
 
 function EmptySlot({ index }) {
+  useTranslation();
     return (
         <div
             className={classes.emptySlot}
-            aria-label={`Wolne miejsce ${index} z ${MAX_PROFILE_PHOTOS}.`}
+            aria-label={uiText("editor:gallery.availableSlotOf", { value0: (index), value1: (MAX_PROFILE_PHOTOS) })}
         >
-            <span className={classes.emptyLabel}>Wolne</span>
+            <span className={classes.emptyLabel}>{uiText("editor:gallery.available")}</span>
         </div>
     );
 }
 
 export default function Gallery() {
+  useTranslation();
     const { isGallery, showGallery } = useUiSurfaces();
 
     const [images, setImages] = useState([]);
     const [previewUrls, setPreviewUrls] = useState({});
-    const [error, setError] = useState();
+    const [error, setError] = useMessageState();
     const [loaded, setLoaded] = useState(false);
 
     function handleImageUsedInPDF(message) {
@@ -84,7 +89,7 @@ export default function Gallery() {
             setImages([]);
             setPreviewUrls({});
             setLoaded(true);
-            setError({ message: "Załóż konto, aby zapisywać i przeglądać zdjęcia profilowe." });
+            setError({ message: messageRef("editor:gallery.createAnAccountToSaveAndView") });
             return undefined;
         }
 
@@ -92,7 +97,7 @@ export default function Gallery() {
         const objectUrls = [];
         setLoaded(false);
         const api = new ApiClient({ Authorization: `Bearer ${localStorage.getItem("token")}` });
-        api.httpRequest(ENDPOINTS.IMG.FETCH, "GET", null, "Pobieranie zdjęć profilowych nie powiodło się!")
+        api.httpRequest(ENDPOINTS.IMG.FETCH, "GET", null, uiText("editor:dropzone.couldNotLoadProfilePhotos"))
             .then(async (rows) => {
                 if (cancelled) return;
                 const list = Array.isArray(rows) ? rows : [];
@@ -131,7 +136,7 @@ export default function Gallery() {
     const filled = images.slice(0, MAX_PROFILE_PHOTOS);
     const emptyCount = Math.max(0, MAX_PROFILE_PHOTOS - filled.length);
     const overLimit = images.length > MAX_PROFILE_PHOTOS;
-    const isGuestError = error?.message?.includes("Załóż konto");
+    const isGuestError = error?.message?.includes(uiText("editor:gallery.createAccount"));
 
     const slots = [];
     filled.forEach((image) => {
@@ -165,8 +170,8 @@ export default function Gallery() {
                 exit: { opacity: 0, x: 28 },
                 transition: { duration: 0.2, ease: [0.2, 0, 0, 1] },
             }}
-            title="Zdjęcia profilowe"
-            subtitle="4 miejsca · kliknij zdjęcie, aby wstawić w slot CV"
+            title={uiText("editor:gallery.profilePhotos")}
+            subtitle={uiText("editor:gallery.spacesClickAPhotoToInsertIt")}
         >
             <div className={classes.layout}>
                 <div className={classes.slotsRegion}>
@@ -178,7 +183,7 @@ export default function Gallery() {
                             {" "}
                             {MAX_PROFILE_PHOTOS}
                         </span>
-                        <span className={classes.metaLabel}>miejsc</span>
+                        <span className={classes.metaLabel}>{uiText("editor:dropzone.spaces")}</span>
                     </div>
 
                     {error && isGuestError ? (
@@ -210,8 +215,8 @@ export default function Gallery() {
                 {loaded && (filled.length >= MAX_PROFILE_PHOTOS || overLimit) ? (
                     <p className={classes.limitNote}>
                         {overLimit
-                            ? `Masz ${images.length} zdjęć, a limit to ${MAX_PROFILE_PHOTOS}. Usuń nadmiar, aby znów móc przesyłać.`
-                            : `Limit ${MAX_PROFILE_PHOTOS} zdjęć jest pełny. Usuń zdjęcie, aby przesłać kolejne.`}
+                            ? uiText("editor:gallery.youHavePhotosTheLimitIsDelete", { value0: (images.length), value1: (MAX_PROFILE_PHOTOS) })
+                            : uiText("editor:gallery.thePhotoLimitIsFullDeleteA", { value0: (MAX_PROFILE_PHOTOS) })}
                     </p>
                 ) : null}
             </div>

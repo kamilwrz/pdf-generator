@@ -1,3 +1,4 @@
+import { t as uiText } from "../i18n/index.js";
 /**
  * Minimal semantic projection for toolbar AI. Offsets and canvas identities stay
  * local; only explicitly selected prose/skills and read-only record context are
@@ -9,9 +10,9 @@ import { collectSkillGroups } from "./skillsLayout.js";
 import { normalizeRuns } from "./textRuns.js";
 
 export const SCOPED_AI_ACTIONS = [
-  { id: "shorten", label: "Skróć" },
-  { id: "language", label: "Popraw styl" },
-  { id: "improve", label: "Polepsz" },
+  { id: "shorten", get label() { return uiText("editor:scopedAi.shorten"); } },
+  { id: "language", get label() { return uiText("editor:scopedAi.improveStyle"); } },
+  { id: "improve", get label() { return uiText("editor:scopedAi.strengthen"); } },
 ];
 export const SCOPED_AI_MAX_CHARS = 20_000;
 
@@ -32,7 +33,7 @@ export function buildScopedAiSnapshot(elements, target, pageHeight = 842) {
     : sections.find((item) => listSectionContentElements(elements, item.headingId, pageHeight)
       .some((member) => member.element_id === target.elementId));
   const heading = elements.find((element) => element.element_id === section?.headingId);
-  const empty = { target, title: "Wybrany zakres", payload: null, sources: [], signature: "", error: "Ten zakres nie zawiera treści do poprawienia." };
+  const empty = { target, title: uiText("editor:scopedAi.selectedScope"), payload: null, sources: [], signature: "", error: uiText("editor:scopedAi.thisScopeContainsNoContentToImprove") };
   if (!heading) return empty;
   const sectionType = heading.editorSectionType || heading.extra_properties?.editorSectionType
     || heading.starterSectionKey || textOf(heading);
@@ -120,7 +121,7 @@ export function buildScopedAiSnapshot(elements, target, pageHeight = 842) {
   return { target, title, payload, sources, signature: JSON.stringify({ payload, sources, headingId: heading.element_id }),
     error: !sources.length ? empty.error : charCount > SCOPED_AI_MAX_CHARS || sources.length > 500 || records.length > 200
       || payload.section_type.length > 120 || records.some((record) => record.context.length > 20)
-      ? "Zakres jest za duży. Wybierz pojedynczy wpis (limit 20 000 znaków)." : "" };
+      ? uiText("editor:scopedAi.theScopeIsTooLargeSelectA") : "" };
 }
 
 /** Build complete element patches locally; never trust provider-supplied offsets. */
@@ -130,11 +131,11 @@ export function scopedCorrectionsToPatches(elements, snapshot, corrections) {
   for (const correction of corrections) {
     const source = snapshot.sources.find((item) => item.id === correction.fragment_id);
     if (!source || ids.has(source.id) || correction.before !== source.content
-      || typeof correction.content !== "string" || !correction.content.trim()) throw new Error("Nieprawidłowa propozycja AI.");
+      || typeof correction.content !== "string" || !correction.content.trim()) throw new Error(uiText("editor:scopedAi.invalidAiSuggestion"));
     ids.add(source.id);
     const element = elements.find((item) => item.element_id === source.elementId);
     if (!element || isProtected(element) || textOf(element).slice(source.start, source.end) !== source.content) {
-      throw new Error("Treść zmieniła się od analizy. Wygeneruj propozycję ponownie.");
+      throw new Error(uiText("ai:scopedAiReview.theContentHasChangedSinceAnalysisGenerate"));
     }
     const list = changes.get(source.elementId) || [];
     list.push({ ...source, replacement: correction.content });
@@ -167,5 +168,5 @@ export function scopedLengthSummary(before, after) {
   const oldLength = [...before].length;
   const newLength = [...after].length;
   const percentage = oldLength ? Math.round((newLength - oldLength) / oldLength * 100) : 0;
-  return `${oldLength} → ${newLength} znaki · ${percentage > 0 ? "+" : ""}${percentage}%`;
+  return uiText("editor:scopedAi.characters", { value0: (oldLength), value1: (newLength), value2: (percentage > 0 ? "+" : ""), value3: (percentage) });
 }

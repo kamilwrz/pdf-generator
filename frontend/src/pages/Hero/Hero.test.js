@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readPresentationSourceSync as readFileSync } from "../../../scripts/read-presentation-source.mjs";
 
 const source = readFileSync(new URL("./Hero.jsx", import.meta.url), "utf8");
 const styles = readFileSync(new URL("./Hero.module.css", import.meta.url), "utf8");

@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, Header, Request, Query, HTTPException
 from sqlalchemy.exc import IntegrityError
 
 from app.core.security import get_current_user
+from app.core.localisation import message as localised_message
 from app.dependencies import get_db
 from app.crud.cv_import_snapshots import get_owned_snapshot
 from app.models.models import InterviewSession, Pdf
@@ -27,6 +28,7 @@ from app.services.interview_editorial import (
     prepare_editorial_draft, apply_editorial_review,
 )
 from app.services import interview_service as service
+from app.services.interview_sources import available_interview_sources, has_interview_source
 from app.services.cv_data import normalize_cv_data, CvDataValidationError
 from app.services.ai_service import generate_resume
 from app.services.cv_generator_primitives import use_spacing
@@ -43,13 +45,18 @@ logger = logging.getLogger(__name__)
 @router.get("/career-profile")
 def get_profile(user=Depends(get_current_user), db=Depends(get_db)):
     """Read confirmed facts without requiring a paid plan or spending credits."""
-    return service.profile_payload(db, user.id)
+    return {**service.profile_payload(db, user.id), "sources": available_interview_sources(db, user.id)}
 
 
 @router.put("/career-profile")
 def write_profile(request: ProfileWrite, user=Depends(get_current_user), db=Depends(get_db)):
     """Save an explicit owner edit with optimistic concurrency."""
-    return service.put_profile(db, user.id, request.revision, [f.model_dump() for f in request.facts])
+    # Clearing personal data remains available even when the last source was
+    # deleted. Adding/editing facts requires an existing CV or successful import.
+    sources = available_interview_sources(db, user.id)
+    if request.facts and not any(sources.values()):
+        service.fail(localised_message('interview_source_required'), 422)
+    return {**service.put_profile(db, user.id, request.revision, [f.model_dump() for f in request.facts]), "sources": sources}
 
 
 @router.delete("/career-profile")
@@ -66,15 +73,15 @@ def create_interview(request: InterviewCreate, http_request: Request,
     assert_can_use_ai_action(db, user, "interview")
     payload = request.model_dump()
     if len(json.dumps(payload).encode()) > 250_000:
-        service.fail("Dane wejściowe są zbyt duże.", 413)
+        service.fail(localised_message('interview_the_input_is_too_large'), 413)
     session_id = str(uuid5(NAMESPACE_URL, f"interview:{user.id}:{idempotency_key}"))
     existing = db.query(InterviewSession).filter_by(id=session_id, owner_id=user.id).first()
     if existing:
         if existing.state["create_hash"] != service.digest(payload):
-            service.fail("Klucz ponowienia dotyczy innych danych.")
+            service.fail(localised_message('interview_this_retry_key_belongs_to_different_data'))
         return service.session_payload(existing)
     if request.source_document_id and request.source_import_id:
-        service.fail("Wybierz jedno źródło CV.", 422)
+        service.fail(localised_message('interview_choose_one_cv_source'), 422)
     source = None
     cv_data = request.cv_data
     template = request.template_id
@@ -82,7 +89,7 @@ def create_interview(request: InterviewCreate, http_request: Request,
     if request.source_document_id:
         source = db.query(Pdf).filter_by(id=request.source_document_id, owner_id=user.id).first()
         if not source:
-            service.fail("Nie znaleziono CV.", 404)
+            service.fail(localised_message('interview_cv_not_found'), 404)
         # A live editor may supply a synchronized unsaved snapshot. This never
         # writes back to the source document. Its revision is still monitored.
         cv_data = cv_data or source.cv_data or {}
@@ -91,14 +98,23 @@ def create_interview(request: InterviewCreate, http_request: Request,
     elif request.source_import_id:
         imported = get_owned_snapshot(db, owner_id=user.id, snapshot_id=request.source_import_id)
         if not imported:
-            service.fail("Nie znaleziono importu.", 404)
-        cv_data = imported.cv_data or {}
+            service.fail(localised_message('interview_import_not_found'), 404)
+        cv_data = imported.cv_data if imported.status == "succeeded" else {}
     try:
         normalized = normalize_cv_data(cv_data)
-        offer = resolve_job_offer(request.job_offer_url, request.job_description) if request.mode == "tailor" else {}
-    except (CvDataValidationError, JobOfferError) as exc:
+    except CvDataValidationError as exc:
         service.fail(getattr(exc, "user_message", str(exc)), 422)
     profile = service.profile_payload(db, user.id) if request.include_profile else {"revision": 0, "facts": []}
+    # The interview develops an existing CV/import. Notes supplement that source;
+    # they cannot replace the structured identity required by preview generation.
+    # Validate before saving a session or resolving an external job offer so an
+    # empty start cannot strand the candidate after paid discovery questions.
+    if not has_interview_source(normalized):
+        service.fail(localised_message('interview_source_required'), 422)
+    try:
+        offer = resolve_job_offer(request.job_offer_url, request.job_description) if request.mode == "tailor" else {}
+    except JobOfferError as exc:
+        service.fail(getattr(exc, "user_message", str(exc)), 422)
     # Imported/freeform CVs may carry obsolete template identifiers. They must
     # choose a current template instead of locking the UI to an unknown one.
     template = template if template in TEMPLATE_LAYOUTS else None
@@ -132,7 +148,7 @@ def create_interview(request: InterviewCreate, http_request: Request,
         db.rollback()
         existing = service.owned_session(db, user.id, session_id)
         if existing.state["create_hash"] != service.digest(payload):
-            service.fail("Klucz ponowienia dotyczy innych danych.")
+            service.fail(localised_message('interview_this_retry_key_belongs_to_different_data'))
         return service.session_payload(existing)
     logger.info("interview_started mode=%s", request.mode)
     return service.session_payload(row)
@@ -181,15 +197,15 @@ def answer_interview(session_id: str, request: AnswerWrite, user=Depends(get_cur
     for previous in row.state["answers"]:
         if previous["question"]["id"] == request.question_id:
             if previous["answer"] != request.answer or previous["status"] != request.status:
-                service.fail("Ta odpowiedź została już zapisana. Popraw informację w podsumowaniu.")
+                service.fail(localised_message('interview_this_answer_has_already_been_saved_edit_the'))
             return service.session_payload(row)
     profile = service.check_versions(db, row, request, source=False)
     state = deepcopy(row.state)
     question = state.get("question")
     if not question or question["id"] != request.question_id:
-        service.fail("To pytanie nie jest już aktywne.")
+        service.fail(localised_message('interview_this_question_is_no_longer_active'))
     if request.status == "answered" and not request.answer.strip():
-        service.fail("Wpisz odpowiedź lub wybierz pominięcie.", 422)
+        service.fail(localised_message('interview_enter_an_answer_or_choose_to_skip'), 422)
     state["answers"].append({"question": question, "answer": request.answer, "status": request.status})
     answer_facts = answer_proposals(question, request.answer, request.status, profile, row.id)
     if answer_facts:
@@ -228,7 +244,7 @@ def clarify_interview(session_id: str, request: SessionWrite, user=Depends(get_c
     service.check_versions(db, row, request)
     state = deepcopy(row.state)
     if state["phase"] == "completed":
-        service.fail("To CV zostało już zapisane.", 422)
+        service.fail(localised_message('interview_this_cv_has_already_been_saved'), 422)
     start_clarifications(state)
     service.update_session(db, row, request.revision, state)
     return service.session_payload(service.owned_session(db, user.id, session_id))
@@ -241,7 +257,7 @@ def skip_clarifications(session_id: str, request: SessionWrite, user=Depends(get
     service.check_versions(db, row, request)
     state = deepcopy(row.state)
     if state["phase"] != "clarification":
-        service.fail("Doprecyzowanie nie jest aktywne.")
+        service.fail(localised_message('interview_this_clarification_is_not_active'))
     pending = state.get("pending_clarifications", [])
     if state.get("question"):
         pending = [state["question"], *pending]
@@ -291,9 +307,9 @@ def extend_interview(session_id: str, request: SessionWrite, user=Depends(get_cu
     state = deepcopy(row.state)
     update_discovery_budget(state, profile)
     if state["discovery_complete"]:
-        service.fail("Wpisy zostały omówione. Przejdź do przygotowania CV lub dodaj nowe informacje.", 422)
+        service.fail(localised_message('interview_all_entries_have_been_discussed_prepare_your_cv'), 422)
     if state["question_limit"] >= 50:
-        service.fail("Zakończ ten wywiad i rozpocznij nowy z aktualnym profilem.", 422)
+        service.fail(localised_message('interview_restart_with_current_profile'), 422)
     state.update(question_limit=min(50, len(state["answers"]) + 5), phase="ready", preview=None)
     service.update_session(db, row, request.revision, state)
     return service.session_payload(service.owned_session(db, user.id, session_id))
@@ -311,27 +327,29 @@ def refresh_interview_source(session_id: str, request: SourceRefresh, user=Depen
     profile = service.check_versions(db, row, request, source=False)
     state = deepcopy(row.state)
     if state["phase"] == "completed":
-        service.fail("To CV zostało już zapisane. Rozpocznij nowy wywiad.", 422)
+        service.fail(localised_message('interview_this_cv_has_already_been_saved_start_a'), 422)
     source_id = state.get("source_document_id")
     source = db.query(Pdf).filter_by(id=source_id, owner_id=user.id).first() if source_id else None
     if source_id and not source:
-        service.fail("Źródłowe CV zostało usunięte. Wybierz inne źródło w nowym wywiadzie.", 404)
+        service.fail(localised_message('interview_the_source_cv_has_been_deleted_choose_another'), 404)
     if request.cv_data is None and source is None:
-        service.fail("Brakuje aktualnego źródła CV.", 422)
+        service.fail(localised_message('interview_the_current_cv_source_is_missing'), 422)
     raw = request.cv_data if request.cv_data is not None else source.cv_data
     if len(json.dumps(raw).encode()) > 250_000:
-        service.fail("Dane źródłowe są zbyt duże.", 413)
+        service.fail(localised_message('interview_the_source_data_is_too_large'), 413)
     try:
         normalized = normalize_cv_data(raw)
     except CvDataValidationError as exc:
         service.fail(str(exc), 422)
+    if not has_interview_source(normalized):
+        service.fail(localised_message('interview_source_required'), 422)
     # A changed candidate must start a separate conversation; otherwise earlier
     # answers and confirmations could contaminate the replacement CV.
     for key in ("name", "email"):
         previous = str(state["source_cv_data"].get(key) or "").strip().casefold()
         current = str(normalized.get(key) or "").strip().casefold()
         if previous and current and previous != current:
-            service.fail("Zmieniono dane osoby w źródłowym CV. Rozpocznij osobny wywiad dla tego dokumentu.")
+            service.fail(localised_message('interview_the_person_s_details_in_the_source_cv'))
     origin = f"document:{source_id}" if source_id else f"interview:{row.id}"
     pairs = {(fact["path"], fact["text"]) for fact in profile["facts"]}
     proposals = []
@@ -358,13 +376,13 @@ def preview_interview(session_id: str, request: GenerateWrite, user=Depends(get_
     profile = service.check_versions(db, row, request)
     state = deepcopy(row.state)
     if not state["confirmed"] or state["proposed_facts"]:
-        service.fail("Zatwierdź lub usuń nowe informacje przed generowaniem.", 422)
+        service.fail(localised_message('interview_confirm_or_remove_new_information_before_generating'), 422)
     if state.get("question") or state["phase"] == "clarification":
-        service.fail("Odpowiedz na aktywne pytanie lub pomiń doprecyzowanie przed generowaniem.", 422)
+        service.fail(localised_message('interview_answer_the_active_question_or_skip_the_clarification'), 422)
     if request.template_id not in TEMPLATE_LAYOUTS:
-        service.fail("Wybierz dostępny szablon CV.", 422)
+        service.fail(localised_message('interview_choose_an_available_cv_template'), 422)
     if state["mode"] == "tailor" and state["template_id"] and request.template_id != state["template_id"]:
-        service.fail("Dopasowanie zachowuje szablon źródłowego CV.", 422)
+        service.fail(localised_message('interview_tailoring_preserves_the_source_cv_template'), 422)
     assert_template_allowed(db, user, request.template_id)
     try:
         normalize_cv_data(service.base_cv(profile), require_name=True)
@@ -449,7 +467,7 @@ def save_interview_document(session_id: str, request: SessionWrite, user=Depends
     state = deepcopy(row.state)
     preview = state.get("preview")
     if state["phase"] != "preview" or not preview or preview["profile_revision"] != profile["revision"]:
-        service.fail("Przygotuj aktualny podgląd przed zapisaniem CV.")
+        service.fail(localised_message('interview_prepare_an_up_to_date_preview_before_saving'))
     assert_template_allowed(db, user, state["template_id"])
     assert_can_create_project(db, user)
     if not state.get("document_title") or db.query(Pdf).filter_by(owner_id=user.id, title_key=canonical_title_key(state["document_title"])).first():

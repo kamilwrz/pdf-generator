@@ -1,8 +1,11 @@
+import { editorHint } from '../i18n/editorHints.js';
+import { t as uiText } from "../i18n/index.js";
+import { localisedList } from "../i18n/index.js";
 /** Shared inline metadata guidance for Experience and Education, excluding rails. */
 import { sliceRuns } from "./textRuns.js";
 
-export const EXPERIENCE_METADATA_HINTS = ["Nazwa firmy", "Miasto", "MM RRRR – obecnie"];
-export const EDUCATION_METADATA_HINTS = ["Miasto", "RRRR – RRRR"];
+export const EXPERIENCE_METADATA_HINTS = localisedList([() => uiText("editor:compositeMetadata.companyName"), () => uiText("editor:compositeMetadata.city"), "MM RRRR – obecnie"]);
+export const EDUCATION_METADATA_HINTS = localisedList([() => uiText("editor:compositeMetadata.city"), "RRRR – RRRR"]);
 export const METADATA_SEPARATOR = " · ";
 
 /** Return hints for known combined rows, never separate fields or other sections. */
@@ -17,13 +20,13 @@ export function compositeMetadataHints(element) {
     if (bindings.length === layout.fields.length && bindings.every((binding, index) => (
       binding.path?.[0] === layout.section && binding.path?.[2] === layout.fields[index]
       && binding.path?.[1] === bindings[0].path?.[1]
-    ))) return bindings.map((binding, index) => binding.placeholder || layout.hints[index]);
+    ))) return bindings.map((binding, index) => editorHint(binding.placeholder || layout.hints[index]));
   }
   // Newly added records carry section semantics instead of profile bindings.
   // Exact slot counts exclude organization-only and date/location rail rows.
   const layout = layouts.find((candidate) => candidate.section === element.editorSectionType);
   if (layout && String(element.placeholder || "").split(" · ").length === layout.fields.length) {
-    return element.placeholder.split(" · ");
+    return element.placeholder.split(" · ").map(editorHint);
   }
   return null;
 }

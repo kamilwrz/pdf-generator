@@ -4,6 +4,8 @@ The current evidence defines the queue; saved answers define its progress. No
 separate counter can drift on retries, and extending a session never resets an
 entry. This module only reads evidence/history and returns question metadata.
 """
+from app.core.localisation import ui_language
+
 import hashlib
 import re
 
@@ -42,6 +44,7 @@ def discovery_entries(profile, answers):
     Unstructured notes stay one scope per explicit context, never guessed roles.
     Answer-derived facts from this policy cannot create new scopes indefinitely.
     """
+    labels = {"experience": "Work experience", "education": "Education", "custom_sections": "Project or additional entry", "skills": "Skills", "languages": "Languages", "notes": "Additional information"} if ui_language.get() == "en" else LABELS
     answered_ids = {
         f"answer-{a['question']['id']}" for a in answers
         if a.get("question", {}).get("entry_id")
@@ -73,7 +76,7 @@ def discovery_entries(profile, answers):
                       for f in facts if f.get("path") == f"{group['id']}/{field}"]
         label = " · ".join(identities)
         if not label:
-            label = facts[0].get("context") or (facts[0]["text"] if len(facts[0]["text"]) <= 150 else LABELS[kind])
+            label = facts[0].get("context") or (facts[0]["text"] if len(facts[0]["text"]) <= 150 else labels[kind])
         entries.append({**group, "label": label[:350], "question_count": 1 if kind in {"skills", "languages"} else 2})
 
     # Account profiles can contain answers from earlier interviews next to the
@@ -95,7 +98,7 @@ def discovery_entries(profile, answers):
     present = {group["kind"] for group in groups.values()}
     for kind in ("experience", "custom_sections", "skills", "languages"):
         if kind not in present:
-            entries.append({"id": f"general:{kind}", "kind": kind, "label": LABELS[kind], "facts": [], "question_count": 1})
+            entries.append({"id": f"general:{kind}", "kind": kind, "label": labels[kind], "facts": [], "question_count": 1})
     return entries
 
 
@@ -216,13 +219,36 @@ def scoped_question(candidate, selected, entries, answers, is_fresh):
         text = f"Jaki efekt swojej pracy lub nauki możesz potwierdzić we wpisie „{label}”? Jeśli nie masz mierzalnego wyniku, opisz konkretny przykład."
     else:
         text = f"Co konkretnie robiłeś lub robiłaś we wpisie „{label}” i za co odpowiadałeś lub odpowiadałaś osobiście?"
+    if ui_language.get() == "en":
+        if selected["id"].startswith("general:"):
+            text = {
+                "experience": "What work experience do you have, including placements or volunteering? List your roles and workplaces.",
+                "custom_sections": "Which personal or educational projects would you like to describe in your CV? Give their names and a brief purpose.",
+                "skills": "Which skills would you like to include in your CV, and what do you use them for?",
+                "languages": "Which languages do you speak, and how would you assess your level in each?",
+            }[kind]
+        elif kind == "languages":
+            text = f"How would you assess your level in {label}? You can give an A1–C2 level or describe the situations in which you use it."
+        elif kind == "skills":
+            text = f"In what task do you use the skills from ‘{label}’, and what can you do independently?"
+        elif second:
+            text = f"What result of your work or studies can you substantiate for ‘{label}’? If you do not have a measurable result, give a specific example."
+        else:
+            text = f"What exactly did you do in ‘{label}’, and what were you personally responsible for?"
     # A legacy/model question may already use the fallback's exact wording.
     # Select a bounded alternative without spending another model request.
     seen = {_key(a["question"].get("text", "")) for a in answers}
     if _key(text) in seen:
         text = f"Co jeszcze warto dopisać do wpisu „{label}” w zakresie {'efektów' if second else 'Twoich zadań'}? Wystarczy jeden konkretny przykład."
+        if ui_language.get() == "en":
+            topic = "results" if second else "your tasks"
+            text = f"What else should we add to ‘{label}’ about {topic}? One specific example is enough."
     if _key(text) in seen:
         position = next(i for i, entry in enumerate(entries, 1) if entry['id'] == selected['id'])
         text = f"Wpis {position}, „{label}”: jaki {'efekt' if second else 'zakres własnej pracy'} chcesz jeszcze opisać?"
+        if ui_language.get() == "en":
+            topic = "result" if second else "scope of your own work"
+            text = f"Entry {position}, ‘{label}’: what {topic} would you still like to describe?"
+    reason = "We will complete this entry, then move on to the next information." if ui_language.get() == "en" else "Uzupełnimy ten wpis, a następnie przejdziemy do kolejnych informacji."
     return {"entry_id": selected["id"], "topic": f"entry:{selected['id']}:{'result' if second else 'contribution'}"[:150],
-            "text": text, "context": label, "reason": "Uzupełnimy ten wpis, a następnie przejdziemy do kolejnych informacji.", "follow_up_to": None}
+            "text": text, "context": label, "reason": reason, "follow_up_to": None}

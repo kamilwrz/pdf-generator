@@ -1,3 +1,4 @@
+import { getUiLocale } from '../i18n/index.js';
 /**
  * Keep the profile used for template regeneration aligned with direct canvas
  * text edits and structural additions. Canvas geometry remains the source of
@@ -569,8 +570,8 @@ function generatedSkillsEntries(elements, currentSkills = []) {
     .filter((item) => item && typeof item === "object" && !Array.isArray(item));
   return groups.map((group) => {
     const existing = currentGroups.find((candidate) => (
-      String(candidate?.category || candidate?.title || "").trim().toLocaleLowerCase("pl-PL")
-      === group.category.toLocaleLowerCase("pl-PL")
+      String(candidate?.category || candidate?.title || "").trim().toLocaleLowerCase(getUiLocale())
+      === group.category.toLocaleLowerCase(getUiLocale())
     ));
     return { ...(existing || {}), category: group.category, items: group.items };
   });

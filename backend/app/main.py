@@ -8,6 +8,8 @@ Responsibilities:
 - Translate AI assistant failures into a stable Polish 500 response for the UI.
 """
 
+from app.core.localisation import message as localised_message
+
 import asyncio
 import logging
 import os
@@ -19,6 +21,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.concurrency import run_in_threadpool
+from starlette.exceptions import HTTPException as StarletteHTTPException
+from fastapi.exception_handlers import http_exception_handler, request_validation_exception_handler
+from fastapi.exceptions import RequestValidationError
+from app.core.localisation import LocalisedMessage, UiLanguageMiddleware, resolve_language, ui_language
 
 from app.api.routes import account, auth, pdf, images, ai, events, billing, templates
 from app.api.routes import ai_assistant, interviews
@@ -129,7 +135,7 @@ def _ai_request_too_large_response() -> JSONResponse:
         content={
             "detail": {
                 "code": "ai_request_too_large",
-                "message": "Żądanie AI przekracza limit 1 MiB.",
+                "message": localised_message('the_ai_request_exceeds_the_mib_limit'),
             }
         },
     )
@@ -176,7 +182,7 @@ def _pdf_request_too_large_response() -> JSONResponse:
         content={
             "detail": {
                 "code": "pdf_request_too_large",
-                "message": "Żądanie PDF przekracza limit 4 MiB.",
+                "message": localised_message('the_pdf_request_exceeds_the_mib_limit'),
             }
         },
     )
@@ -238,7 +244,7 @@ async def reject_database_traffic_until_ready(request: Request, call_next):
                 content={
                     "detail": {
                         "code": "service_not_ready",
-                        "message": "Usługa chwilowo nie jest gotowa. Spróbuj ponownie.",
+                        "message": localised_message('the_service_is_temporarily_unavailable_please_try_again'),
                     }
                 },
             )
@@ -263,7 +269,7 @@ def ready():
             content={
                 "detail": {
                     "code": "service_not_ready",
-                    "message": "Usługa chwilowo nie jest gotowa. Spróbuj ponownie.",
+                    "message": localised_message('the_service_is_temporarily_unavailable_please_try_again'),
                 }
             },
         )
@@ -272,7 +278,7 @@ def ready():
 
 @app.exception_handler(AIServiceError)
 async def ai_service_error_handler(request: Request, exc: AIServiceError):
-    """Map OpenAI/provider failures to a safe Polish message.
+    """Map provider failures to safe request-local copy.
 
     Internal details stay in server logs. Prefer ``exc.user_message`` when the
     failure is actionable for the user (e.g. layout reasoning budget exhausted);
@@ -288,7 +294,7 @@ async def ai_service_error_handler(request: Request, exc: AIServiceError):
     detail = (
         exc.user_message
         if isinstance(getattr(exc, "user_message", None), str) and exc.user_message.strip()
-        else "Asystent AI jest chwilowo niedostępny, spróbuj ponownie."
+        else localised_message("ai_temporarily_unavailable")
     )
     return JSONResponse(
         status_code=500,
@@ -296,9 +302,62 @@ async def ai_service_error_handler(request: Request, exc: AIServiceError):
             "detail": {
                 "code": "ai_provider_unavailable",
                 "message": detail,
+                "message_key": getattr(detail, "message_key", None),
+                "params": getattr(detail, "params", {}),
             }
         },
     )
+
+@app.exception_handler(Exception)
+async def localised_unexpected_error(request: Request, exc: Exception):
+    """Return safe copy after middleware unwinds, without exposing internal data."""
+    language = resolve_language(request.headers.get("accept-language", ""))
+    token = ui_language.set(language)
+    try:
+        text = localised_message("unexpected_server_error")
+    finally:
+        ui_language.reset(token)
+    logger.error("Unhandled request failure: method=%s error_type=%s", request.method, type(exc).__name__)
+    return JSONResponse(
+        status_code=500,
+        headers={"Content-Language": language, "Vary": "Accept-Language"},
+        content={"detail": str(text), "message_key": text.message_key, "params": text.params},
+    )
+
+
+@app.exception_handler(RequestValidationError)
+async def localised_validation_error(request: Request, exc: RequestValidationError):
+    """Retain field locations/types and expose safe, localised validation copy."""
+    import json
+    response = await request_validation_exception_handler(request, exc)
+    payload = json.loads(response.body)
+    text = localised_message("invalid_request")
+    payload.update(message=str(text), message_key=text.message_key, params=text.params)
+    for error in payload.get("detail", []):
+        # Internal validator wording is not a translation identifier. The field
+        # path and type retain precise machine-readable validation information.
+        error["msg"] = str(text)
+    return JSONResponse(payload, status_code=422, headers={key: value for key, value in response.headers.items() if key.lower() != "content-length"})
+
+
+@app.exception_handler(StarletteHTTPException)
+async def localised_http_error(request: Request, exc: StarletteHTTPException):
+    """Preserve legacy detail/status while exposing machine-readable copy keys."""
+    import json
+    if exc.detail == "Not authenticated":
+        exc.detail = localised_message("the_token_is_invalid_or_has_expired")
+    response = await http_exception_handler(request, exc)
+    detail = exc.detail
+    text = detail.get("message") if isinstance(detail, dict) else detail
+    if isinstance(text, LocalisedMessage):
+        payload = json.loads(response.body)
+        if isinstance(payload.get("detail"), dict):
+            payload["detail"].update(message_key=text.message_key, params=text.params)
+        else:
+            payload.update(message_key=text.message_key, params=text.params)
+        return JSONResponse(payload, status_code=exc.status_code, headers=exc.headers)
+    return response
+
 
 # Ensure upload directories exist (e.g. on fresh deploy / Render ephemeral disk).
 IMAGES_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
@@ -333,7 +392,7 @@ async def block_generated_pdf_static_access(requested_path: str = ""):
     `/static/generated/...` URL. Stored PDF bytes are available exclusively via
     the authenticated, ownership-checked, export-metered download route.
     """
-    raise HTTPException(status_code=404, detail="Nie znaleziono")
+    raise HTTPException(status_code=404, detail=localised_message('not_found'))
 
 app.include_router(auth.router)
 app.include_router(pdf.router)
@@ -361,4 +420,8 @@ if DIST_DIR.exists():
         index_path = DIST_DIR / "index.html"
         if index_path.exists():
             return FileResponse(str(index_path))
-        raise HTTPException(status_code=404, detail="Nie znaleziono")
+        raise HTTPException(status_code=404, detail=localised_message('not_found'))
+
+
+# Registered last so locale also covers readiness and request-size responses.
+app.add_middleware(UiLanguageMiddleware)

@@ -1,3 +1,4 @@
+import { t as uiText } from "../i18n/index.js";
 /**
  * Internal layout tags used by generators and reflow — not product categories.
  *
@@ -59,8 +60,8 @@ export function getTemplateAtsReadability(templateOrLayouts) {
     return {
       id: "creative",
       label: "ATS: bardziej kreatywny",
-      shortLabel: "bardziej kreatywny",
-      hint: "Rekomendacja, nie gwarancja. Do portali rekrutacyjnych lepiej wybrać szablon o wyższej czytelności ATS.",
+      shortLabel: uiText("editor:templateLayouts.moreCreative"),
+      hint: uiText("editor:templateLayouts.aRecommendationNotAGuaranteeForRecruitment"),
     };
   }
   if (layouts.includes("sidebar") || layouts.includes("icons")) {
@@ -68,14 +69,14 @@ export function getTemplateAtsReadability(templateOrLayouts) {
       id: "safe",
       label: "ATS: bezpieczny",
       shortLabel: "bezpieczny",
-      hint: "Rekomendacja, nie gwarancja. Układ z ikonami lub sidebar zwykle pozostaje czytelny dla ATS, gdy treść jest zwykłym tekstem.",
+      hint: uiText("editor:templateLayouts.aRecommendationNotAGuaranteeIconOr"),
     };
   }
   return {
     id: "very_safe",
     label: "ATS: bardzo bezpieczny",
-    shortLabel: "bardzo bezpieczny",
-    hint: "Rekomendacja, nie gwarancja. Jednokolumnowy układ jest zwykle najbezpieczniejszy przy aplikacji przez portal ATS.",
+    shortLabel: uiText("editor:templateLayouts.verySafe"),
+    hint: uiText("editor:templateLayouts.aRecommendationNotAGuaranteeASingle"),
   };
 }
 

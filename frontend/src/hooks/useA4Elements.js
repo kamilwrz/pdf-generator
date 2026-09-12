@@ -143,11 +143,11 @@ function prefersReducedMotion() {
 }
 
 /**
- * Return whether a pointer event originated on an A4 page or one of its
- * rendered elements. Toolbar, sidebar, and browser-chrome clicks must not end
- * the focused text edit's temporary zoom level.
+ * Own canvas elements, editing interactions, geometry and undo history.
+ * Newly inserted sample text follows documentLanguage; changing that input
+ * never rewrites elements that already exist. titleRef coordinates naming.
  */
-export function useA4Elements(titleRef) {
+export function useA4Elements(titleRef, documentLanguage = "Polish") {
 
   const A4ref = useRef(null);
   // Scroll container for the page(s); the edit-zoom effect below scrolls this
@@ -810,10 +810,11 @@ export function useA4Elements(titleRef) {
     const text = createTextElement({
       elementId: nanoid(),
       page: currentPageRef.current,
+      language: documentLanguage,
     });
     markElementsEnter(text.element_id);
     setA4_Elements((prev) => [...prev, text]);
-  }, []);
+  }, [documentLanguage]);
 
   const handleAddLine = useCallback(() => {
     const line = createLineElement({

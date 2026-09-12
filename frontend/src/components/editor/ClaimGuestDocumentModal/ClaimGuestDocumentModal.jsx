@@ -1,3 +1,5 @@
+import { t as uiText } from "../../../i18n/index.js";
+import { useTranslation } from 'react-i18next';
 /**
  * Shown right after a guest logs in or registers when a buffered
  * `cvstudio.guest.doc` exists in this browser's localStorage.
@@ -20,9 +22,10 @@ import DialogShell from "../../common/DialogShell/DialogShell";
 import classes from "./ClaimGuestDocumentModal.module.css";
 
 export default function ClaimGuestDocumentModal({ open, title, onConfirm, onDecline, onDismiss, download = false }) {
+  useTranslation();
   const documentTitle = typeof title === "string" && title.trim()
     ? title.trim()
-    : "Szkic CV bez nazwy";
+    : uiText("editor:claimGuestDocumentModal.untitledCvDraft");
 
   return (
     <DialogShell
@@ -31,26 +34,22 @@ export default function ClaimGuestDocumentModal({ open, title, onConfirm, onDecl
       width={620}
       variant="decision"
       surface="paper"
-      eyebrow={download ? "Ostatni krok: pobranie PDF" : "Odzyskiwanie szkicu"}
-      title="Czy ten szkic należy do Ciebie?"
-      subtitle="Znaleźliśmy CV zapisane wcześniej w tej przeglądarce, przed zalogowaniem."
+      eyebrow={download ? uiText("editor:claimGuestDocumentModal.finalStepDownloadPdf") : uiText("editor:claimGuestDocumentModal.recoveringYourDraft")}
+      title={uiText("editor:claimGuestDocumentModal.doesThisDraftBelongToYou")}
+      subtitle={uiText("editor:claimGuestDocumentModal.weFoundACvSavedInThis")}
       initialFocusSelector="[data-primary-action]"
       footer={(
         <div className={classes.actions}>
-          <button type="button" className={classes.dismiss} onClick={onDismiss}>
-            Pomiń na razie
-          </button>
+          <button type="button" className={classes.dismiss} onClick={onDismiss}>{uiText("editor:claimGuestDocumentModal.decideLater")}</button>
           <div className={classes.decisionActions}>
-            <button type="button" className={classes.decline} onClick={onDecline}>
-              Usuń ten szkic
-            </button>
+            <button type="button" className={classes.decline} onClick={onDecline}>{uiText("editor:claimGuestDocumentModal.deleteThisDraft")}</button>
             <button
               type="button"
               className={classes.primary}
               data-primary-action=""
               onClick={onConfirm}
             >
-              {download ? "To moje CV — pobierz PDF" : "Wczytaj mój szkic"}
+              {download ? uiText("editor:claimGuestDocumentModal.thisIsMyCvDownloadPdf") : uiText("editor:claimGuestDocumentModal.loadMyDraft")}
             </button>
           </div>
         </div>
@@ -60,26 +59,23 @@ export default function ClaimGuestDocumentModal({ open, title, onConfirm, onDecl
         <div className={classes.documentSummary}>
           <span className={classes.documentMark} aria-hidden="true">CV</span>
           <div>
-            <p className={classes.documentLabel}>Znaleziony dokument</p>
+            <p className={classes.documentLabel}>{uiText("editor:claimGuestDocumentModal.documentFound")}</p>
             <p className={classes.documentTitle}>{documentTitle}</p>
           </div>
         </div>
 
-        <dl className={classes.consequences} aria-label="Skutki wyboru">
+        <dl className={classes.consequences} aria-label={uiText("editor:claimGuestDocumentModal.whatYourChoiceMeans")}>
           <div className={classes.consequence}>
-            <dt><span aria-hidden="true">01</span> Po wczytaniu</dt>
-            <dd>{download ? "Wczytamy Twoje CV i przygotujemy PDF do pobrania. Pobranie wykorzystuje limit Twojego planu; nie zapisuje projektu na koncie." : "Szkic otworzy się w edytorze. Na koncie zapiszesz go dopiero po kliknięciu „Zapisz”."}</dd>
+            <dt><span aria-hidden="true">01</span> {uiText("editor:claimGuestDocumentModal.afterLoading")}</dt>
+            <dd>{download ? uiText("editor:claimGuestDocumentModal.weWillLoadYourCvAndPrepare") : uiText("editor:claimGuestDocumentModal.theDraftWillOpenInTheEditor")}</dd>
           </div>
           <div className={`${classes.consequence} ${classes.destructiveConsequence}`}>
-            <dt><span aria-hidden="true">02</span> Po usunięciu</dt>
-            <dd>Lokalna kopia zniknie z tej przeglądarki i nie będzie można jej odzyskać.</dd>
+            <dt><span aria-hidden="true">02</span> {uiText("editor:claimGuestDocumentModal.afterDeletion")}</dt>
+            <dd>{uiText("editor:claimGuestDocumentModal.theLocalCopyWillBeRemovedFrom")}</dd>
           </div>
         </dl>
 
-        <p className={classes.reassurance}>
-          Jeśli nie rozpoznajesz dokumentu, może pochodzić od innej osoby korzystającej z tego urządzenia.
-          Zamknięcie okna zachowa szkic na później.
-        </p>
+        <p className={classes.reassurance}>{uiText("editor:claimGuestDocumentModal.ifYouDoNotRecogniseThisDocument")}</p>
       </div>
     </DialogShell>
   );

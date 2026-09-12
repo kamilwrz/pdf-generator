@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readPresentationSourceSync as readFileSync } from "../../../scripts/read-presentation-source.mjs";
 
 const policy = readFileSync(new URL('./PrivacyPage.jsx', import.meta.url), 'utf8');
 const account = readFileSync(new URL('./AccountPage.jsx', import.meta.url), 'utf8');

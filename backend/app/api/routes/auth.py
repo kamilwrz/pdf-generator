@@ -7,6 +7,9 @@ issues the JWT only after the relevant identity has been verified.
 hide or gate paid features without a separate billing round-trip.
 """
 
+from app.core.localisation import message as localised_message
+from app.core.localisation import ui_language
+
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -72,7 +75,7 @@ def _token_response(user: User) -> dict:
 
 
 def _verification_url(token: str) -> str:
-    return f"{FRONTEND_URL}/verify-email?token={quote(token, safe='')}"
+    return f"{FRONTEND_URL}/verify-email?token={quote(token, safe='')}&lang={ui_language.get()}"
 
 
 def _verification_idempotency_key(user_id: int, token: str) -> str:
@@ -105,12 +108,12 @@ def register_user(
     if db_user:
         raise HTTPException(
             status_code=409,
-            detail={"code": "username_taken", "message": "Nazwa użytkownika jest już zajęta."},
+            detail={"code": "username_taken", "message": localised_message('this_username_is_already_taken')},
         )
     if get_user_by_email(db, email=user.email):
         raise HTTPException(
             status_code=409,
-            detail={"code": "email_taken", "message": "Adres e-mail jest już zajęty."},
+            detail={"code": "email_taken", "message": localised_message('this_email_address_is_already_in_use')},
         )
     try:
         create_user(db=db, user=user, email_verified=False)
@@ -120,7 +123,7 @@ def register_user(
         # Keep the response non-enumerating when the pre-check lost a race.
         raise HTTPException(
             status_code=409,
-            detail={"code": "identity_taken", "message": "Nie można utworzyć tego konta."},
+            detail={"code": "identity_taken", "message": localised_message('this_account_could_not_be_created')},
         ) from exc
     created = get_user_by_username(db, username=user.username)
     raw_token = issue_email_verification_token(db, created.id)
@@ -147,9 +150,9 @@ def verify_email(request: VerifyEmailRequest, db: Session = Depends(get_db)):
     if user is None:
         raise HTTPException(
             status_code=400,
-            detail={"code": "verification_invalid", "message": "Link jest nieprawidłowy lub wygasł."},
+            detail={"code": "verification_invalid", "message": localised_message('the_link_is_invalid_or_has_expired')},
         )
-    return {"status": "verified", "message": "Adres e-mail został potwierdzony."}
+    return {"status": "verified", "message": localised_message('your_email_address_has_been_verified')}
 
 
 @router.post("/resend-verification", status_code=202)
@@ -177,7 +180,7 @@ def resend_verification(
             _verification_url(raw_token),
             idempotency_key=_verification_idempotency_key(user.id, raw_token),
         )
-    return {"status": "accepted", "message": "Jeśli konto wymaga potwierdzenia, wysłaliśmy nowy link."}
+    return {"status": "accepted", "message": localised_message('if_the_account_needs_verification_we_have_sent')}
 
 
 @router.post("/token")
@@ -245,7 +248,7 @@ def login_for_acess_token(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail={
                 "code": "invalid_credentials",
-                "message": "Nieprawidłowa nazwa użytkownika lub hasło.",
+                "message": localised_message('incorrect_username_or_password'),
             },
             headers={"WWW-Authenticate": "Bearer"},
         )
@@ -256,7 +259,7 @@ def login_for_acess_token(
             status_code=403,
             detail={
                 "code": "email_unverified",
-                "message": "Potwierdź adres e-mail przed logowaniem.",
+                "message": localised_message('verify_your_email_address_before_signing_in'),
                 # Credentials were valid, so returning the account address here
                 # does not create a username-enumeration oracle.
                 "email": user.email,
@@ -294,21 +297,21 @@ def google_login(
     try:
         claims = verify_google_credential(body.credential)
     except RuntimeError as exc:
-        raise HTTPException(status_code=503, detail={"code": "google_unavailable", "message": "Logowanie Google jest niedostępne."}) from exc
+        raise HTTPException(status_code=503, detail={"code": "google_unavailable", "message": localised_message('google_sign_in_is_unavailable')}) from exc
     except Exception as exc:
-        raise HTTPException(status_code=401, detail={"code": "google_invalid", "message": "Nie udało się potwierdzić konta Google."}) from exc
+        raise HTTPException(status_code=401, detail={"code": "google_invalid", "message": localised_message('could_not_verify_the_google_account')}) from exc
 
     subject = str(claims.get("sub") or "").strip()
     email = str(claims.get("email") or "").strip()
     if not subject or not email or claims.get("email_verified") is not True:
-        raise HTTPException(status_code=401, detail={"code": "google_invalid", "message": "Konto Google nie ma potwierdzonego adresu e-mail."})
+        raise HTTPException(status_code=401, detail={"code": "google_invalid", "message": localised_message('the_google_account_has_no_verified_email_address')})
     user = get_user_by_google_sub(db, subject)
     if user is None:
         same_email = get_user_by_email(db, email)
         if same_email is not None:
             raise HTTPException(
                 status_code=409,
-                detail={"code": "google_link_required", "message": "Zaloguj się hasłem i połącz Google na stronie konta."},
+                detail={"code": "google_link_required", "message": localised_message('sign_in_with_your_password_and_connect_google')},
             )
         try:
             user = create_google_user(
@@ -319,9 +322,9 @@ def google_login(
             )
         except IntegrityError as exc:
             db.rollback()
-            raise HTTPException(status_code=409, detail={"code": "identity_taken", "message": "Nie można utworzyć tego konta."}) from exc
+            raise HTTPException(status_code=409, detail={"code": "identity_taken", "message": localised_message('this_account_could_not_be_created')}) from exc
     if not user.is_active:
-        raise HTTPException(status_code=401, detail={"code": "invalid_token", "message": "Konto jest nieaktywne."})
+        raise HTTPException(status_code=401, detail={"code": "invalid_token", "message": localised_message('the_account_is_inactive')})
     return _token_response(user)
 
 
@@ -335,9 +338,9 @@ def link_google_account(
     try:
         claims = verify_google_credential(body.credential)
     except RuntimeError as exc:
-        raise HTTPException(status_code=503, detail={"code": "google_unavailable", "message": "Logowanie Google jest niedostępne."}) from exc
+        raise HTTPException(status_code=503, detail={"code": "google_unavailable", "message": localised_message('google_sign_in_is_unavailable')}) from exc
     except Exception as exc:
-        raise HTTPException(status_code=401, detail={"code": "google_invalid", "message": "Nie udało się potwierdzić konta Google."}) from exc
+        raise HTTPException(status_code=401, detail={"code": "google_invalid", "message": localised_message('could_not_verify_the_google_account')}) from exc
     subject = str(claims.get("sub") or "").strip()
     email = str(claims.get("email") or "").strip()
     if (
@@ -346,10 +349,10 @@ def link_google_account(
         or claims.get("email_verified") is not True
         or canonical_identity(email) != current_user.email_canonical
     ):
-        raise HTTPException(status_code=409, detail={"code": "google_email_mismatch", "message": "Adres konta Google nie pasuje do tego konta."})
+        raise HTTPException(status_code=409, detail={"code": "google_email_mismatch", "message": localised_message('the_google_email_address_does_not_match_this')})
     owner = get_user_by_google_sub(db, subject)
     if owner is not None and owner.id != current_user.id:
-        raise HTTPException(status_code=409, detail={"code": "google_already_linked", "message": "To konto Google jest już połączone."})
+        raise HTTPException(status_code=409, detail={"code": "google_already_linked", "message": localised_message('this_google_account_is_already_connected')})
     current_user.google_sub = subject
     current_user.email_verified_at = current_user.email_verified_at or datetime.now(timezone.utc)
     try:
@@ -357,14 +360,14 @@ def link_google_account(
         db.commit()
     except IntegrityError as exc:
         db.rollback()
-        raise HTTPException(status_code=409, detail={"code": "google_already_linked", "message": "To konto Google jest już połączone."}) from exc
+        raise HTTPException(status_code=409, detail={"code": "google_already_linked", "message": localised_message('this_google_account_is_already_connected')}) from exc
     return {"status": "linked"}
 
 
 @router.get("/verify-token")
 def verify_user_token(_user: User = Depends(get_current_user)):
     """Validate the Bearer JWT and require its account to remain active."""
-    return {"message": "Token jest prawidłowy."}
+    return {"message": localised_message('the_token_is_valid')}
 
 
 @router.get("/me/entitlements")

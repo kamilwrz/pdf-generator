@@ -1,3 +1,4 @@
+import { t as uiText } from "../i18n/index.js";
 /**
  * ATS overall scoring helpers shared by the AI assistant dashboard.
  *
@@ -80,8 +81,8 @@ export function overallPercentFromRubric(categories) {
  */
 export function atsReadabilityBand(percent) {
   if (typeof percent !== "number" || Number.isNaN(percent)) return null;
-  if (percent >= 90) return "Bardzo dobra";
+  if (percent >= 90) return uiText("editor:atsScore.veryGood");
   if (percent >= 75) return "Dobra";
-  if (percent >= 50) return "Średnia";
-  return "Słaba";
+  if (percent >= 50) return uiText("editor:atsScore.moderate");
+  return uiText("editor:atsScore.low");
 }

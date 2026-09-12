@@ -17,7 +17,7 @@ const operationProgressStylesUrl = new URL(
 test("top-level routes are lazy and share a branded error element", async () => {
   const source = await readFile(sourceUrl, "utf8");
 
-  assert.match(source, /const PdfCanvas = lazy\(\(\) => import\('\.\/pages\/PdfCanvas'\)\)/);
+  assert.match(source, /const PdfCanvas = workspacePage\(\(\) => import\('\.\/pages\/PdfCanvas'\)\)/);
   assert.match(source, /const Hero = lazy\(\(\) => import\('\.\/pages\/Hero\/Hero'\)\)/);
   assert.match(source, /<Suspense fallback=/);
   assert.ok(

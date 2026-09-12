@@ -1,3 +1,5 @@
+import { useMessageState, messageRef } from '../i18n/messageState.js';
+import { t as uiText } from "../i18n/index.js";
 /**
  * One unsaved-change guard for route exits and in-editor document replacement.
  */
@@ -23,7 +25,7 @@ export function useDirtyGuard({ signature, isGuest, flushGuestDraft, hasUnpersis
   const saveInFlightRef = useRef(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogSaving, setDialogSaving] = useState(false);
-  const [dialogError, setDialogError] = useState("");
+  const [dialogError, setDialogError] = useMessageState("");
 
   const markClean = useCallback((nextSignature = signatureRef.current) => {
     setBaselineSignature(nextSignature);
@@ -77,16 +79,16 @@ export function useDirtyGuard({ signature, isGuest, flushGuestDraft, hasUnpersis
     try {
       const saved = await saveCurrentDocument();
       if (saved !== true) {
-        throw new Error("Nie udało się potwierdzić zapisu dokumentu.");
+        throw new Error(uiText("editor:useDirtyGuard.couldNotConfirmTheDocumentWasSaved"));
       }
       if (signatureRef.current !== submittedSignature && dirtyRef.current) {
-        throw new Error("Podczas zapisu pojawiły się nowe zmiany. Zapisz je przed kontynuowaniem.");
+        throw new Error(uiText("editor:useDirtyGuard.newChangesArrivedWhileSavingSaveThem"));
       }
       settleDialog(true);
       return true;
     } catch (error) {
       setDialogError(
-        error?.message || "Nie udało się zapisać dokumentu. Spróbuj ponownie.",
+        error?.message || messageRef("editor:useDirtyGuard.couldNotSaveTheDocumentPleaseTry"),
       );
       return false;
     } finally {

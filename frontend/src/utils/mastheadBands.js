@@ -1,3 +1,4 @@
+import { t as uiText } from "../i18n/index.js";
 /**
  * Group tagged masthead identity elements into blocks for the hover UI.
  *
@@ -8,7 +9,7 @@
 
 // Editor-only hint for a recoverable, currently empty professional title.
 // CSS renders this value without writing it into canvas content or PDF text.
-export const MASTHEAD_TITLE_PLACEHOLDER = "Wpisz stanowisko…";
+export const MASTHEAD_TITLE_PLACEHOLDER = uiText("editor:mastheadBands.enterAJobTitle");
 
 /**
  * @param {object[]} elements - Canvas elements (typically page-filtered).

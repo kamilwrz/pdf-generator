@@ -1,3 +1,4 @@
+import { t as uiText } from "../i18n/index.js";
 /**
  * Progressive page-fit engine (pure — no React state).
  *
@@ -166,5 +167,5 @@ export function resolveFitAction(result) {
  */
 export function formatFitTargetLabel(targetPages) {
   const n = Math.max(1, Math.trunc(Number(targetPages) || 1));
-  return n === 1 ? "1 stronie" : `${n} stronach`;
+  return n === 1 ? uiText("editor:fitToPages.page") : uiText("editor:fitToPages.pages", { value0: (n) });
 }

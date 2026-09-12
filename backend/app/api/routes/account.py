@@ -1,5 +1,7 @@
 """Authenticated self-service data access and account erasure routes."""
 
+from app.core.localisation import message as localised_message
+
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -44,7 +46,7 @@ def delete_account(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail={
                 "code": "confirmation_mismatch",
-                "message": "Wpisz dokładną nazwę użytkownika, aby usunąć konto.",
+                "message": localised_message('enter_the_exact_username_to_delete_the_account'),
             },
         )
     try:
@@ -52,6 +54,6 @@ def delete_account(
     except LookupError as exc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Konto nie istnieje.",
+            detail=localised_message('the_account_does_not_exist'),
         ) from exc
     return {"deleted": True}

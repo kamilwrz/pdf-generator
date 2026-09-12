@@ -1,3 +1,5 @@
+import { t as uiText } from "../../../i18n/index.js";
+import { useTranslation } from 'react-i18next';
 /**
  * Left tool rail: mode-aware tools, docs/gallery/upload, and logout.
  * Product-demo mode deliberately exposes only the template layout control;
@@ -23,6 +25,7 @@ import { EDITOR_MODE_TEMPLATE } from "../../../utils/editorMode";
 
 
 export default function Sidebar({ children }) {
+  useTranslation();
 
     const {
         addText,
@@ -58,7 +61,7 @@ export default function Sidebar({ children }) {
     // Demo content is intentionally locked to the template tool rail even if a
     // transient editor-mode update occurs while the starter is being replaced.
     const isTemplate = editorMode === EDITOR_MODE_TEMPLATE || isDemoContent;
-    const photoLabel = isTemplate ? "Zdjęcie profilowe" : "Zdjęcia";
+    const photoLabel = isTemplate ? uiText("editor:sidebar.profilePhoto") : uiText("editor:sidebar.photos");
 
     function showModalWithPDFs() {
         setIsModalPdfs(bool => !bool);
@@ -70,8 +73,8 @@ export default function Sidebar({ children }) {
             <Link
                 to="/"
                 className={classes.logoMark}
-                aria-label="CV Studio — strona główna"
-                title="Strona główna"
+                aria-label={uiText("public:siteLayout.cvStudioHomepage")}
+                title={uiText("editor:sidebar.homepage")}
             >
                 <img src="/cv-studio-mark.svg" alt="" />
             </Link>
@@ -83,7 +86,7 @@ export default function Sidebar({ children }) {
                     <SidebarControls
                         icon={<LuImagePlus />}
                         labelText={photoLabel}
-                        tooltipText={isTemplate ? "Dodaj lub zmień zdjęcie profilowe" : "Dodaj zdjęcie"}
+                        tooltipText={isTemplate ? uiText("editor:sidebar.addOrChangeProfilePhoto") : uiText("editor:sidebar.addPhoto")}
                         sidebarEvent={showGallery}
                         active={isGallery}
                     />
@@ -92,16 +95,17 @@ export default function Sidebar({ children }) {
                     <>
                         <SidebarControls
                             icon={<LuListTree />}
-                            labelText="Dostosuj CV"
+                            labelText={uiText("editor:sectionsPanel.customiseCv")}
                             sidebarEvent={showSections}
+                            controlId="sections"
                             badge={fitTooLong}
                             active={isSectionsPanel}
                         />
                         {!isDemoContent ? (
                             <SidebarControls
                                 icon={<LuLockOpen />}
-                                labelText="Edytuj jako kopię"
-                                tooltipText="Utwórz kopię do swobodnej edycji"
+                                labelText={uiText("editor:sidebar.editAsACopy")}
+                                tooltipText={uiText("editor:sidebar.createAFreeformEditingCopy")}
                                 sidebarEvent={showUnlockFreeform}
                                 active={isUnlockFreeformModal}
                             />
@@ -109,44 +113,44 @@ export default function Sidebar({ children }) {
                     </>
                 ) : (
                     <>
-                        <SidebarControls icon={<CiText />} labelText="Dodaj tekst" sidebarEvent={addText} />
-                        <SidebarControls icon={<BsTextParagraph />} labelText="Dodaj pole tekstowe" sidebarEvent={addTextarea} />
-                        <SidebarControls icon={<TfiLayoutLineSolid />} labelText="Dodaj linię" sidebarEvent={addLine} />
-                        <SidebarControls icon={<BiRectangle />} labelText="Dodaj prostokąt" sidebarEvent={addRectangle} />
-                        <SidebarControls icon={<BiCircle />} labelText="Dodaj koło" sidebarEvent={addCircle} />
+                        <SidebarControls icon={<CiText />} labelText={uiText("editor:sidebar.addText")} sidebarEvent={addText} />
+                        <SidebarControls icon={<BsTextParagraph />} labelText={uiText("editor:sidebar.addTextField")} sidebarEvent={addTextarea} />
+                        <SidebarControls icon={<TfiLayoutLineSolid />} labelText={uiText("editor:sidebar.addLine")} sidebarEvent={addLine} />
+                        <SidebarControls icon={<BiRectangle />} labelText={uiText("editor:sidebar.addRectangle")} sidebarEvent={addRectangle} />
+                        <SidebarControls icon={<BiCircle />} labelText={uiText("editor:sidebar.addCircle")} sidebarEvent={addCircle} />
                         <SidebarControls
                             icon={<svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="12" rx="9" ry="5.5" fill="none" stroke="currentColor" strokeWidth="1.7" /></svg>}
-                            labelText="Dodaj elipsę"
+                            labelText={uiText("editor:sidebar.addEllipse")}
                             sidebarEvent={addEllipse}
                         />
                         <SidebarControls
                             icon={<svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><polygon points="12,3 21,20 3,20" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" /></svg>}
-                            labelText="Dodaj trójkąt"
+                            labelText={uiText("editor:sidebar.addTriangle")}
                             sidebarEvent={() => addPolygon("triangle")}
                         />
                         <SidebarControls
                             icon={<svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><polygon points="12,2 22,12 12,22 2,12" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" /></svg>}
-                            labelText="Dodaj romb"
+                            labelText={uiText("editor:sidebar.addDiamond")}
                             sidebarEvent={() => addPolygon("diamond")}
                         />
                         <SidebarControls
                             icon={<svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><polygon points="7,3 17,3 22,12 17,21 7,21 2,12" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" /></svg>}
-                            labelText="Dodaj sześciokąt"
+                            labelText={uiText("editor:sidebar.addHexagon")}
                             sidebarEvent={() => addPolygon("hexagon")}
                         />
                         <SidebarControls
                             icon={<svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 14 C6 4, 10 20, 14 14 S22 4, 22 10" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" /></svg>}
-                            labelText="Dodaj falę (Bézier)"
+                            labelText={uiText("editor:sidebar.addWaveBZier")}
                             sidebarEvent={() => addPath("wave")}
                         />
                         <SidebarControls
                             icon={<svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 18 C8 4, 16 4, 22 18" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" /></svg>}
-                            labelText="Dodaj łuk (Bézier)"
+                            labelText={uiText("editor:sidebar.addArcBZier")}
                             sidebarEvent={() => addPath("arc")}
                         />
                         <SidebarControls
                             icon={<svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 16 C6 4, 10 20, 14 10 S20 6, 22 12" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" /></svg>}
-                            labelText="Dodaj ozdobnik (Bézier)"
+                            labelText={uiText("editor:sidebar.addDecorationBZier")}
                             sidebarEvent={() => addPath("flourish")}
                         />
                     </>
@@ -157,12 +161,12 @@ export default function Sidebar({ children }) {
         <div className={classes.toolsContainer} data-anchor="sidebar-documents-divider">
             <div className={classes.toolsList}>
                 {!isDemoContent ? (
-                    <SidebarControls icon={<LuFolderOpen />} labelText="Moje dokumenty" to="/app/documents" />
+                    <SidebarControls icon={<LuFolderOpen />} labelText={uiText("public:siteLayout.myDocuments")} to="/app/documents" />
                 ) : null}
                 {!isDemoContent && !isGuest ? (
                     <SidebarControls
                         icon={<LuFileSearch />}
-                        labelText="Szybko otwórz dokument"
+                        labelText={uiText("editor:sidebar.quickOpenDocument")}
                         sidebarEvent={showModalWithPDFs}
                         documents={PDFs.length}
                         active={isModalPdfs}
@@ -172,7 +176,7 @@ export default function Sidebar({ children }) {
         </div>
 
         <footer className={classes.sidebarFooter}>
-            {!isGuest && !isDemoContent && <SidebarControls icon={<LuListTree />} labelText="Konto i plan" to="/app/account" />}
+            {!isGuest && !isDemoContent && <SidebarControls icon={<LuListTree />} labelText={uiText("interview:interviewFlow.accountAndPlan")} to="/app/account" />}
             {!isDemoContent && entitlements?.plan_name ? (
                 <div className={classes.planBadgeWrap}>
                 <button
@@ -180,7 +184,7 @@ export default function Sidebar({ children }) {
                     className={classes.planBadge}
                     onClick={() => showPlanModal?.()}
                     title={[
-                        "Zmień plan",
+                        uiText("editor:sidebar.changePlan"),
                         entitlements.plan_name,
                         entitlements.remaining?.exports != null
                             ? `Pobrania PDF: ${entitlements.usage?.exports_count ?? 0}/${entitlements.limits?.max_exports_per_month ?? "∞"}`
@@ -192,7 +196,7 @@ export default function Sidebar({ children }) {
                             ? `Importy CV: ${entitlements.usage?.cv_imports_count ?? 0}/${entitlements.limits?.max_cv_imports_per_month ?? "∞"}`
                             : null,
                         entitlements.limits?.monthly_ai_credits > 0
-                            ? `Kredyty AI: ${entitlements.usage?.ai_credits_used ?? 0}/${entitlements.limits.monthly_ai_credits}`
+                            ? uiText("editor:sidebar.aiCredits", { value0: (entitlements.usage?.ai_credits_used ?? 0), value1: (entitlements.limits.monthly_ai_credits) })
                             : null,
                     ].filter(Boolean).join(" · ")}
                 >
@@ -203,7 +207,7 @@ export default function Sidebar({ children }) {
             {!isDemoContent && entitlements?.limits?.monthly_ai_credits ? (
                 <div
                     className={classes.creditsBadge}
-                    title={`Kredyty AI: wykorzystano ${entitlements.usage?.ai_credits_used ?? 0} z ${entitlements.limits.monthly_ai_credits}`}
+                    title={uiText("editor:sidebar.aiCreditsOfUsed", { value0: (entitlements.usage?.ai_credits_used ?? 0), value1: (entitlements.limits.monthly_ai_credits) })}
                 >
                     <span className={classes.creditsBadgeValue}>
                         {entitlements.remaining?.ai_credits ?? Math.max(0, entitlements.limits.monthly_ai_credits - (entitlements.usage?.ai_credits_used ?? 0))}
@@ -212,7 +216,7 @@ export default function Sidebar({ children }) {
                 </div>
             ) : null}
             {isGuest || isDemoContent ? null : (
-                <button className={classes.logout} onClick={logout} aria-label="Wyloguj się" title="Wyloguj się">
+                <button className={classes.logout} onClick={logout} aria-label={uiText("editor:sidebar.signOut")} title={uiText("editor:sidebar.signOut")}>
                     <AiOutlineLogout />
                 </button>
             )}

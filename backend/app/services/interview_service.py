@@ -4,6 +4,10 @@ Adapted from Vignesh Pai's Resume Agent Skills (MIT; docs/licenses).
 The database owns state and identity. The provider proposes content, never
 database operations or layout. Every mutation uses an optimistic revision.
 """
+
+from app.core.localisation import message as localised_message
+from app.core.localisation import ui_language_policy
+from app.services.interview_sources import has_interview_source
 from copy import deepcopy
 from datetime import datetime
 import hashlib
@@ -110,17 +114,17 @@ def validate_facts(facts):
     """Validate identical fact/path invariants for account and isolated evidence."""
     facts = [CareerFact.model_validate(f).model_dump() for f in facts]
     if len(facts) > 500 or len({f['id'] for f in facts}) != len(facts):
-        fail("Profil zawiera zbyt wiele informacji lub powtórzone identyfikatory.", 422)
+        fail(localised_message('the_profile_contains_too_much_information_or_duplicate'), 422)
     paths = {}
     for fact in facts:
         if fact["path"] and not PATH.fullmatch(fact["path"]):
-            fail("Nieobsługiwane pole profilu. Usuń powiązanie pola i zachowaj informację jako notatkę.", 422)
+            fail(localised_message('unsupported_profile_field_remove_the_field_binding_and'), 422)
         if fact["kind"] == "fact" and fact["path"]:
             if fact["path"] in paths and paths[fact["path"]] != fact["text"]:
-                fail("Sprzeczne wartości tego samego pola. Popraw lub usuń jedną informację przed zatwierdzeniem.", 422)
+                fail(localised_message('conflicting_values_for_the_same_field_edit_or'), 422)
             paths[fact["path"]] = fact["text"]
     if any(path.startswith(other + "/") for path in paths for other in paths if path != other):
-        fail("To samo pole ma wartość tekstową i podpunkty. Usuń jedno z powiązań pola.", 422)
+        fail(localised_message('the_same_field_has_both_text_and_bullet'), 422)
     return facts
 
 
@@ -135,7 +139,7 @@ def interview_profile(db, row):
         return profile_payload(db, row.owner_id)
     if scope == "session":
         return deepcopy(row.state["session_profile"])
-    fail("Ta starsza rozmowa nie ma rozdzielonych źródeł. Rozpocznij nowy wywiad z wybranym CV.")
+    fail(localised_message('this_older_interview_does_not_have_separate_sources'))
 
 
 def put_profile(db, owner_id, revision, facts, *, commit=True):
@@ -152,12 +156,12 @@ def put_profile(db, owner_id, revision, facts, *, commit=True):
             db.flush()
         except IntegrityError:
             db.rollback()
-            fail("Profil zmienił się w innym oknie. Odśwież dane.")
+            fail(localised_message('the_profile_changed_in_another_window_refresh_the'))
     elif db.query(CareerProfile).filter_by(owner_id=owner_id, revision=revision).update(
         {"facts": facts, "revision": revision + 1, "updated_at": now}, synchronize_session=False,
     ) != 1:
         db.rollback()
-        fail("Profil zmienił się w innym oknie. Odśwież dane.")
+        fail(localised_message('the_profile_changed_in_another_window_refresh_the'))
     if commit:
         db.commit()
     return {"revision": revision + 1, "facts": facts, "updated_at": now.isoformat()}
@@ -185,7 +189,7 @@ def session_payload(row):
             for fact in evidence_profile.get("facts", [])
         ]
     return {"id": row.id, "revision": row.revision, **row.state,
-            "requires_source_choice": row.state.get("evidence_scope") not in {"profile", "session"},
+            "requires_source_choice": row.state.get("evidence_scope") not in {"profile", "session"} or not has_interview_source(row.state.get("source_cv_data")),
             "evidence_profile": evidence_profile,
             "updated_at": row.updated_at.isoformat()}
 
@@ -194,7 +198,7 @@ def owned_session(db, owner_id, session_id):
     """Foreign and absent sessions share the same non-enumerating response."""
     row = db.query(InterviewSession).filter_by(id=session_id, owner_id=owner_id).populate_existing().first()
     if not row:
-        fail("Nie znaleziono wywiadu.", 404)
+        fail(localised_message('interview_not_found'), 404)
     return row
 
 
@@ -205,7 +209,7 @@ def update_session(db, row, revision, state, *, commit=True):
     )
     if changed != 1:
         db.rollback()
-        fail("Wywiad zmienił się w innym oknie. Wczytaj aktualny stan.")
+        fail(localised_message('the_interview_changed_in_another_window_load_its'))
     if commit:
         db.commit()
     return state
@@ -214,15 +218,19 @@ def update_session(db, row, revision, state, *, commit=True):
 def check_versions(db, row, request, *, source=True):
     """Never assemble a draft against stale career facts or a changed saved CV."""
     profile = interview_profile(db, row)
+    # Historical profile-only interviews remain readable, but cannot resume paid
+    # work or fact editing without starting a new session from an explicit CV.
+    if not has_interview_source(row.state.get("source_cv_data")):
+        fail(localised_message('interview_source_required'), 422)
     if request.evidence_scope != row.state["evidence_scope"]:
-        fail("Źródło danych nie zostało potwierdzone. Odśwież aplikację i wczytaj wywiad ponownie.")
+        fail(localised_message('the_data_source_is_not_confirmed_refresh_the'))
     if row.revision != request.revision or profile["revision"] != request.profile_revision:
-        fail("Dane zmieniły się. Wczytaj wywiad i profil ponownie.")
+        fail(localised_message('the_data_changed_reload_the_interview_and_profile'))
     document_id = row.state.get("source_document_id")
     if source and document_id:
         doc = db.query(Pdf).filter_by(id=document_id, owner_id=row.owner_id).first()
         if not doc or doc.revision != row.state.get("source_revision"):
-            fail("Źródłowe CV zmieniło się. Wczytaj aktualne CV do wywiadu i odśwież podgląd.")
+            fail(localised_message('the_source_cv_changed_load_the_current_cv'))
     return profile
 
 
@@ -263,7 +271,7 @@ def evidence(profile):
 def set_path(data, path, value):
     """Write an allowlisted bounded scalar path without evaluating client code."""
     if not PATH.fullmatch(path):
-        fail("Model wskazał nieobsługiwane pole CV.", 422)
+        fail(localised_message('the_model_selected_an_unsupported_cv_field'), 422)
     parts = path.strip("/").split("/")
     cursor = data
     for index, part in enumerate(parts):
@@ -307,16 +315,16 @@ def assemble_draft(raw, profile, language):
     for field in raw["fields"]:
         path, value, refs = field["path"], field["value"], field["evidence_refs"]
         if path in seen_paths or not value.strip():
-            fail("Propozycja powtarza pole lub usuwa jego treść.", 422)
+            fail(localised_message('the_suggestion_duplicates_a_field_or_removes_its'), 422)
         seen_paths.add(path)
         if not PATH.fullmatch(path) or any(ref not in catalog or catalog[ref]["kind"] == "gap" for ref in refs):
-            fail("Propozycja zawiera niepotwierdzone informacje. Wygeneruj ją ponownie.", 422)
+            fail(localised_message('the_suggestion_contains_unconfirmed_information_generate_it_again'), 422)
         cited = [catalog[ref] for ref in refs]
         source = " ".join(f["text"] for f in cited)
         if not numbers(value).issubset(numbers(source)) or re.search(r"\[.*?(?:X|%|liczb).*?\]|\b(?:TBD|TODO)\b", value):
-            fail("Propozycja zawiera liczbę lub placeholder bez potwierdzenia.", 422)
+            fail(localised_message('the_suggestion_contains_an_unconfirmed_number_or_placeholder'), 422)
         if path.strip("/") in IDENTITY and not any(f["path"] == path and f["text"] == value for f in cited):
-            fail("Dane kontaktowe i tożsamość muszą pozostać zgodne z profilem.", 422)
+            fail(localised_message('contact_and_identity_details_must_remain_consistent_with'), 422)
         record = re.match(r"^/(experience|education)/\d+/", path)
         if record:
             # A metric from another role is not evidence for this role. Unbound
@@ -324,9 +332,9 @@ def assemble_draft(raw, profile, language):
             for fact in cited:
                 other = re.match(r"^/(experience|education)/\d+/", fact["path"])
                 if other and other.group() != record.group():
-                    fail("Propozycja przypisuje informację do innej roli. Sprawdź kontekst.", 422)
+                    fail(localised_message('the_suggestion_assigns_information_to_a_different_role'), 422)
         if any(f["kind"] == "framing" and f["text"] not in value for f in cited):
-            fail("Propozycja zmienia zatwierdzone sformułowanie.", 422)
+            fail(localised_message('the_suggestion_changes_approved_wording'), 422)
         set_path(result, path, value)
         changes.append(field)
     result["language"] = LANGUAGES[language]
@@ -362,8 +370,8 @@ def paid_model(db, user, row, request, operation, context, model, *, action="imp
     assert_can_use_ai_action(db, user, "interview")
     body = json.dumps(context, ensure_ascii=False)
     if len(body.encode()) > 250_000:
-        fail("Za dużo danych w wywiadzie. Skróć profil lub rozpocznij nową rozmowę.", 413)
-    request_hash = digest({"context": context, "action": action, "schema": provider_schema(model), "system": SYSTEM})
+        fail(localised_message('too_much_interview_data_shorten_your_profile_or'), 413)
+    request_hash = digest({"context": context, "action": action, "schema": provider_schema(model), "system": SYSTEM + ui_language_policy()})
     key = f"interview:{row.id}:{request.revision}:{request.profile_revision}:{operation}"
     if generation:
         attempt = row.state["generation_attempt"]
@@ -388,7 +396,7 @@ def paid_model(db, user, row, request, operation, context, model, *, action="imp
             # An expired/failed reservation cannot be reused. Advance only the
             # unchanged session; an explicit next attempt gets a new identity.
             update_session(db, row, request.revision, deepcopy(row.state))
-            fail("Poprzednia próba została zakończona. Wczytaj zapisany stan, aby rozpocząć nową próbę.")
+            fail(localised_message('the_previous_attempt_has_finished_load_the_saved'))
         raise
     if claim.replay_response is not None:
         return {**claim.replay_response, "_replayed": True}
@@ -400,7 +408,7 @@ def paid_model(db, user, row, request, operation, context, model, *, action="imp
                 validate_output(output)
         except (ValueError, TypeError, KeyError) as exc:
             raise AIServiceError("Invalid interview output", original=exc, reservation_outcome="settle_usage", usage=usage,
-                                 user_message="Nie udało się bezpiecznie przygotować treści CV. Zapisane odpowiedzi pozostają bez zmian. Wczytaj zapisany stan i spróbuj ponownie.") from exc
+                                 user_message=localised_message('could_not_safely_prepare_cv_content_your_saved')) from exc
     except AIServiceError as exc:
         logger.info("interview_failure operation=%s", operation)
         if exc.reservation_outcome == "settle_usage" and exc.usage:
@@ -454,11 +462,11 @@ def next_question(db, user, row, request):
     profile = check_versions(db, row, request)
     state = deepcopy(row.state)
     if not state.get("confirmed"):
-        fail("Najpierw zatwierdź informacje początkowe.", 422)
+        fail(localised_message('confirm_the_starting_information_first'), 422)
     if state.get("question"):
         return session_payload(row)
     if state["phase"] == "clarification":
-        fail("Rozpocznij lub pomiń zapisane doprecyzowania.", 422)
+        fail(localised_message('start_or_skip_the_saved_clarifications'), 422)
     state["preview"] = None
     entries = update_discovery_budget(state, profile)
     selected = next_entry(entries, state["answers"])

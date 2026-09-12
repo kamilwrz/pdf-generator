@@ -1,9 +1,12 @@
+import { t as uiText } from "../../../i18n/index.js";
+import { useTranslation } from 'react-i18next';
 import { IoMdClose } from "react-icons/io";
 import classes from "./CloseButton.module.css";
 
 // `radius` remains available for compact embedded surfaces such as toasts. All
 // variants share the same visible focus treatment and accessible default name.
-export default function CloseButton({left, right, top, width, height, radius, clickHandler, ariaLabel = "Zamknij"}) {
+export default function CloseButton({left, right, top, width, height, radius, clickHandler, ariaLabel = uiText("editor:sectionsPanel.close")}) {
+  useTranslation();
     return (
         <button
             type="button"

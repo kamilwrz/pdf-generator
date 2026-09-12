@@ -7,7 +7,7 @@ const MAX_TOASTS = 3;
 /** Returns the stable category used to replace repeated notifications. */
 export function toastReplaceKey(toast) {
     return toast.replaceKey
-        || `toast:${toast.variant || "success"}:${toast.title || toast.msg || "notification"}`;
+        || `toast:${toast.variant || "success"}:${toast.title?.key || toast.title || toast.msg?.key || toast.msg || "notification"}`;
 }
 
 /**

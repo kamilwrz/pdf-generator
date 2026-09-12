@@ -1,3 +1,6 @@
+import { messageRef, messageOf } from "../../../i18n/messageState.js";
+import { t as uiText } from "../../../i18n/index.js";
+import { useTranslation } from 'react-i18next';
 import { useCallback, useEffect, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { nanoid } from "nanoid";
@@ -14,6 +17,7 @@ import { buildScopedAiSnapshot, scopedCorrectionsToPatches } from "../../../util
  * In-flight results are ignored after a document epoch change or unmount.
  */
 export default function ScopedAiProvider({ enabled = true, children }) {
+  useTranslation();
   const canvas = useCanvasContext();
   const { entitlements, refreshEntitlements } = useSession();
   // Fail closed until the server resolves an active Pro/Premium subscription.
@@ -49,7 +53,7 @@ export default function ScopedAiProvider({ enabled = true, children }) {
         // The toolbar is hidden during review. Focusing its authored anchor
         // mounts it again, after which the recreated AI trigger can take focus.
         requestAnimationFrame(() => document.querySelector(
-          `[data-canvas-toolbar-key="${CSS.escape(target?.toolbarKey || "")}"] button[aria-label="AI dla wybranego zakresu"]`,
+          `[data-canvas-toolbar-key="${CSS.escape(target?.toolbarKey || "")}"] button[data-scoped-ai-trigger]`,
         )?.focus({ preventScroll: true }));
       }
     });
@@ -63,13 +67,13 @@ export default function ScopedAiProvider({ enabled = true, children }) {
       const api = new ApiClient({ Authorization: `Bearer ${localStorage.getItem("token")}` });
       const response = await api.httpRequest(ENDPOINTS.AI.ASSISTANT, "POST",
         JSON.stringify({ action: operation.action, scoped_content: operation.snapshot.payload }),
-        "Nie udało się przygotować propozycji AI.", {
+        uiText("ai:scopedAiProvider.couldNotPrepareAnAiSuggestion"), {
           headers: { "Idempotency-Key": operation.key }, timeoutMs: 180_000,
           retries: 1, retryDelayMs: 2500, retryOnTimeout: false,
         });
       if (!mounted.current) return;
       if (!isDocumentScopeCurrent(operation.documentScope)) {
-        setReview({ ...operation, status: "unavailable", error: "Szablon zmienił się podczas analizy. Wybierz zakres w aktualnym CV." });
+        setReview({ ...operation, status: "unavailable", error: messageRef("ai:scopedAiProvider.theTemplateChangedDuringAnalysisSelectA") });
         return;
       }
       const corrections = response.scoped_corrections || [];
@@ -79,7 +83,7 @@ export default function ScopedAiProvider({ enabled = true, children }) {
       setReview({ ...operation, status: "ready", response, corrections, accepted: [], rejected: [] });
     } catch (error) {
       if (mounted.current) {
-        setReview({ ...operation, status: "error", error: error.message, errorCode: error.code });
+        setReview({ ...operation, status: "error", error: messageOf(error), errorCode: error.code });
       }
     } finally {
       flight.current = false;

@@ -1,5 +1,7 @@
+import { t as uiText } from "../../../i18n/index.js";
+import { useTranslation } from 'react-i18next';
 /**
- * "Zmień szablon" dialog — restyles the CV currently on the canvas.
+ * Change-template dialog — restyles the CV currently on the canvas.
  *
  * Reuses the exact cv_data captured by import or the A4 starter on the last
  * successful fill (`CanvasContext.activeCvData`) and the same TemplateCarousel
@@ -19,6 +21,7 @@ import { selectCvTemplates } from "../../../utils/cvTemplateSelection";
 import { useApplyCvTemplate } from "../../../hooks/useApplyCvTemplate";
 
 export default function ChangeTemplateModal() {
+  useTranslation();
     const { isChangeTemplateModal, showChangeTemplateModal } = useUiSurfaces();
     const { activeCvData, activeTemplateId } = useCanvasContext();
     const { entitlements } = useSession();
@@ -40,27 +43,26 @@ export default function ChangeTemplateModal() {
             open={Boolean(isChangeTemplateModal)}
             onClose={showChangeTemplateModal}
             width={1400}
-            title="Zmień szablon"
-            subtitle="Dane Twojego CV zostają takie same — zmienia się tylko wygląd."
+            title={uiText("editor:newCvSetupModal.changeTemplate")}
+            subtitle={uiText("editor:changeTemplateModal.yourCvDataStaysTheSameOnly")}
         >
             <div className={classes.wrap}>
                 {activeCvData ? (
                     <>
                         <div className={classes.identity}>
-                            <div className={classes.identityName}>{activeCvData.name || "Twoje CV"}</div>
+                            <div className={classes.identityName}>{activeCvData.name || uiText("editor:changeTemplateModal.yourCv")}</div>
                             {activeCvData.title && <div className={classes.identityMeta}>{activeCvData.title}</div>}
                             {activeTemplate && (
-                                <div className={classes.identityTemplate}>
-                                    Aktualny szablon: <strong>{activeTemplate.name}</strong>
+                                <div className={classes.identityTemplate}>{uiText("editor:changeTemplateModal.currentTemplate")} <strong>{activeTemplate.name}</strong>
                                     {activeTemplate.description ? ` · ${activeTemplate.description}` : ""}
                                 </div>
                             )}
                             <div className={classes.identityStats}>
                                 <span>{activeCvData.experience?.length ?? 0} {activeCvData.experience?.length === 1 ? "stanowisko" : "stanowisk"}</span>
                                 <span>·</span>
-                                <span>{activeCvData.education?.length ?? 0} {activeCvData.education?.length === 1 ? "wpis edukacyjny" : "wpisów edukacyjnych"}</span>
+                                <span>{activeCvData.education?.length ?? 0} {activeCvData.education?.length === 1 ? uiText("ai:aiCvPanel.educationEntry") : uiText("ai:aiCvPanel.educationEntries")}</span>
                                 <span>·</span>
-                                <span>{activeCvData.skills?.length ?? 0} {activeCvData.skills?.length === 1 ? "umiejętność" : "umiejętności"}</span>
+                                <span>{activeCvData.skills?.length ?? 0} {activeCvData.skills?.length === 1 ? uiText("ai:aiCvPanel.skill") : uiText("ai:aiCvPanel.skills")}</span>
                             </div>
                         </div>
                         {cvTemplates.length > 0 ? (
@@ -74,15 +76,12 @@ export default function ChangeTemplateModal() {
                                 />
                             </div>
                         ) : (
-                            <p className={classes.hint}>Nie ma jeszcze dostępnych szablonów CV.</p>
+                            <p className={classes.hint}>{uiText("ai:aiCvPanel.noCvTemplatesAreAvailableYet")}</p>
                         )}
                         {error && <div className={classes.error}>{error}</div>}
                     </>
                 ) : (
-                    <p className={classes.hint}>
-                        Ten dokument nie ma jeszcze danych do ponownego wypełnienia. Użyj „Wypełnij z PDF” lub
-                        kreatora krok po kroku, aby móc później zmieniać szablon jednym kliknięciem.
-                    </p>
+                    <p className={classes.hint}>{uiText("editor:changeTemplateModal.thisDocumentHasNoDataForRefilling")}</p>
                 )}
             </div>
         </DialogShell>

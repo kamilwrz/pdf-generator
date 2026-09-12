@@ -16,6 +16,8 @@ button, which is independent of "Zapisz" (Save): an unsaved document can still
 be exported. Like `/download_pdf`, it is export-metered.
 """
 
+from app.core.localisation import message as localised_message
+
 import logging
 import unicodedata
 from urllib.parse import quote
@@ -148,14 +150,14 @@ def create_user_pdf(
     """
     db_user = resolve_user_from_payload(db, payload)
     if db_user is None:
-        raise HTTPException(status_code=401, detail="Nie znaleziono konta użytkownika.")
+        raise HTTPException(status_code=401, detail=localised_message('user_account_not_found'))
     username = db_user.username
     if idempotency_key is None:
         raise HTTPException(
             status_code=400,
             detail={
                 "code": "invalid_idempotency_key",
-                "message": "Nagłówek Idempotency-Key jest wymagany.",
+                "message": localised_message('the_idempotency_key_header_is_required'),
             },
         )
     replay = resolve_create_replay(
@@ -169,7 +171,7 @@ def create_user_pdf(
     if pdf_data.source_import_id is not None and get_owned_snapshot(
         db, owner_id=db_user.id, snapshot_id=pdf_data.source_import_id,
     ) is None:
-        raise HTTPException(status_code=404, detail="Nie znaleziono danych importu.")
+        raise HTTPException(status_code=404, detail=localised_message('import_data_not_found'))
     # New documents never inherit the downgrade exception. A client-supplied
     # pdf_id is irrelevant here; Free can create only one of its three starter
     # templates (or a genuinely freeform document with no template id).
@@ -208,7 +210,7 @@ def render_user_pdf(
     """
     db_user = resolve_user_from_payload(db, payload)
     if db_user is None:
-        raise HTTPException(status_code=401, detail="Nie znaleziono konta użytkownika.")
+        raise HTTPException(status_code=401, detail=localised_message('user_account_not_found'))
     if pdf_data.editor_mode == "template" and pdf_data.template_id:
         legacy_pdf = None
         if pdf_data.pdf_id is not None:
@@ -253,7 +255,7 @@ def fetch_user_pdfs(
     """List documents owned by the caller (My Docs). Empty libraries return 404."""
     db_user = resolve_user_from_payload(db, payload)
     if db_user is None:
-        raise HTTPException(status_code=401, detail="Nie znaleziono konta użytkownika.")
+        raise HTTPException(status_code=401, detail=localised_message('user_account_not_found'))
     username = db_user.username
 
     pdfs = request_pdfs_by_id(db, db_user.id)
@@ -261,7 +263,7 @@ def fetch_user_pdfs(
     if not pdfs:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Utwórz plik PDF, aby był dostępny do podglądu i edycji.",
+            detail=localised_message('create_a_pdf_to_preview_and_edit_it'),
         )
     return [_public_pdf_metadata(pdf_row) for pdf_row in pdfs]
 
@@ -275,9 +277,9 @@ def _require_owned_pdf(db: Session, payload: dict, pdf_id):
     db_user = resolve_user_from_payload(db, payload)
     pdf_row = request_pdf_by_id(db, pdf_id)
     if pdf_row is None:
-        raise HTTPException(status_code=404, detail="Nie znaleziono pliku PDF.")
+        raise HTTPException(status_code=404, detail=localised_message('pdf_file_not_found'))
     if db_user is None or pdf_row.owner_id != db_user.id:
-        raise HTTPException(status_code=403, detail="Ten dokument nie należy do Ciebie.")
+        raise HTTPException(status_code=403, detail=localised_message('this_document_does_not_belong_to_you'))
     return pdf_row
 
 
@@ -298,7 +300,7 @@ def show_user_pdf(
     if not pdf_to_show:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Nie znaleziono pliku PDF.",
+            detail=localised_message('pdf_file_not_found'),
         )
     return {"document": _public_pdf_metadata(pdf_row), "elements": pdf_to_show}
 
@@ -314,7 +316,7 @@ def delete_user_pdf(
 
     db_user = resolve_user_from_payload(db, payload)
     if db_user is None:
-        raise HTTPException(status_code=401, detail="Nie znaleziono konta użytkownika.")
+        raise HTTPException(status_code=401, detail=localised_message('user_account_not_found'))
     username = db_user.username
     deleted_title = pdf_to_delete.title
     deleted_id = pdf_to_delete.id
@@ -335,7 +337,7 @@ def update_user_pdf(
     """
     db_user = resolve_user_from_payload(db, payload)
     if db_user is None:
-        raise HTTPException(status_code=401, detail="Nie znaleziono konta użytkownika.")
+        raise HTTPException(status_code=401, detail=localised_message('user_account_not_found'))
     username = db_user.username
     pdf_row = _require_owned_pdf(db, payload, pdf_data.pdf_id)
     if pdf_data.editor_mode == "template" and pdf_data.template_id:
@@ -362,7 +364,7 @@ def save_pdf_elements(
     pdf_row = _require_owned_pdf(db, payload, pdf_data.pdf_id)
     db_user = resolve_user_from_payload(db, payload)
     if db_user is None:
-        raise HTTPException(status_code=401, detail="Nie znaleziono konta użytkownika.")
+        raise HTTPException(status_code=401, detail=localised_message('user_account_not_found'))
     if pdf_data.editor_mode == "template" and pdf_data.template_id:
         assert_template_allowed(
             db, db_user, pdf_data.template_id, existing_pdf=pdf_row,
@@ -397,7 +399,7 @@ def download_pdf(
     pdf_row = _require_owned_pdf(db, payload, id)
     db_user = resolve_user_from_payload(db, payload)
     if db_user is None:
-        raise HTTPException(status_code=401, detail="Nie znaleziono konta użytkownika.")
+        raise HTTPException(status_code=401, detail=localised_message('user_account_not_found'))
     username = db_user.username
     assert_can_export(db, db_user)
     claim = record_export(db, db_user.id)
@@ -424,7 +426,7 @@ def download_pdf(
             status_code=404,
             detail={
                 "code": "pdf_storage_not_found",
-                "message": "Nie znaleziono pliku PDF w magazynie.",
+                "message": localised_message('pdf_file_not_found_in_storage'),
             },
         ) from exc
     except Exception:

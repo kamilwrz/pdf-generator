@@ -1,3 +1,4 @@
+import { t as uiText } from "../i18n/index.js";
 /**
  * Curated colour and typography system for the Meridian CV template.
  *
@@ -19,8 +20,8 @@ export const DEFAULT_MERIDIAN_TEXT_SIZE = "M";
 export const MERIDIAN_PALETTES = Object.freeze([
   {
     id: "navy",
-    name: "Granatowy Horyzont",
-    tagline: "Granat, błękit i jasne tło",
+    get name() { return uiText("editor:meridianAppearance.navyHorizon"); },
+    get tagline() { return uiText("editor:meridianAppearance.navyBlueAndALightBackground"); },
     iconTheme: "meridian",
     colors: {
       paper: "#FFFFFF", ink: "#1B2A41", body: "#33475A",
@@ -29,8 +30,8 @@ export const MERIDIAN_PALETTES = Object.freeze([
   },
   {
     id: "monochrome",
-    name: "Czysty Monochrom",
-    tagline: "Czerń, biel i szarość",
+    get name() { return uiText("editor:meridianAppearance.pureMonochrome"); },
+    get tagline() { return uiText("editor:meridianAppearance.blackWhiteAndGrey"); },
     iconTheme: "meridian-monochrome",
     colors: {
       paper: "#FFFFFF", ink: "#171717", body: "#3E3E3E",
@@ -39,8 +40,8 @@ export const MERIDIAN_PALETTES = Object.freeze([
   },
   {
     id: "burgundy",
-    name: "Burgundowy Rejestr",
-    tagline: "Jasne tło i burgundowe akcenty",
+    get name() { return uiText("editor:meridianAppearance.burgundyRegister"); },
+    get tagline() { return uiText("editor:meridianAppearance.lightBackgroundAndBurgundyAccents"); },
     iconTheme: "meridian-burgundy",
     colors: {
       paper: "#FFFFFF", ink: "#3D2028", body: "#593A43",
@@ -49,8 +50,8 @@ export const MERIDIAN_PALETTES = Object.freeze([
   },
   {
     id: "forest",
-    name: "Zielony Gabinet",
-    tagline: "Jasne tło i ciemna zieleń",
+    get name() { return uiText("editor:meridianAppearance.greenStudy"); },
+    get tagline() { return uiText("editor:meridianAppearance.lightBackgroundAndDarkGreen"); },
     iconTheme: "meridian-forest",
     colors: {
       paper: "#FFFFFF", ink: "#1F342B", body: "#385147",
@@ -59,8 +60,8 @@ export const MERIDIAN_PALETTES = Object.freeze([
   },
   {
     id: "copper",
-    name: "Miedziany Raport",
-    tagline: "Jasne tło i miedziane akcenty",
+    get name() { return uiText("editor:meridianAppearance.copperReport"); },
+    get tagline() { return uiText("editor:meridianAppearance.lightBackgroundAndCopperAccents"); },
     iconTheme: "meridian-copper",
     colors: {
       paper: "#FFFFFF", ink: "#3A281F", body: "#58443A",
@@ -69,8 +70,8 @@ export const MERIDIAN_PALETTES = Object.freeze([
   },
   {
     id: "teal",
-    name: "Turkusowy Brief",
-    tagline: "Jasne tło i turkusowe akcenty",
+    get name() { return uiText("editor:meridianAppearance.turquoiseBrief"); },
+    get tagline() { return uiText("editor:meridianAppearance.lightBackgroundAndTurquoiseAccents"); },
     iconTheme: "meridian-teal",
     colors: {
       paper: "#FFFFFF", ink: "#17343A", body: "#36545A",
@@ -80,10 +81,10 @@ export const MERIDIAN_PALETTES = Object.freeze([
 ]);
 
 export const MERIDIAN_TEXT_SIZES = Object.freeze([
-  { id: "S", label: "S", description: "Kompaktowy" },
-  { id: "M", label: "M", description: "Oryginalny" },
-  { id: "L", label: "L", description: "Czytelny" },
-  { id: "XL", label: "XL", description: "Wyrazisty" },
+  { id: "S", label: "S", get description() { return uiText("editor:atriumAppearance.compact"); } },
+  { id: "M", label: "M", get description() { return uiText("editor:atriumAppearance.original"); } },
+  { id: "L", label: "L", get description() { return uiText("editor:atriumAppearance.readable"); } },
+  { id: "XL", label: "XL", get description() { return uiText("editor:atriumAppearance.bold"); } },
 ]);
 
 // The 34 pt Cormorant name already dominates Meridian's letterhead. Compact

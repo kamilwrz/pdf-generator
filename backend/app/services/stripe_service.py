@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from app.core.config import STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET
+from app.core.localisation import ui_language
 
 
 def _stripe():
@@ -18,6 +19,7 @@ def create_checkout_session(*, user_id: int, email: str, price_id: str, success_
     stripe = _stripe()
     return stripe.checkout.Session.create(
         mode="payment",
+        locale=ui_language.get(),
         line_items=[{"price": price_id, "quantity": 1}],
         client_reference_id=str(user_id),
         customer_email=email,

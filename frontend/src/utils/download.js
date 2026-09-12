@@ -1,3 +1,4 @@
+import { t as uiText } from "../i18n/index.js";
 /**
  * Browser file-download helpers for PDF export.
  *
@@ -37,7 +38,7 @@ export function triggerBlobDownload(href, filename) {
  */
 export async function fetchOwnedPdfDownload(pdfId, options = {}) {
   if (pdfId == null) {
-    throw new Error("Brak identyfikatora dokumentu do pobrania.");
+    throw new Error(uiText("editor:download.noDocumentIdentifierToDownload"));
   }
   const api = new ApiClient({ Authorization: `Bearer ${localStorage.getItem("token")}` });
   // Retries cover Render free-tier blips; the export counter only increments
@@ -46,7 +47,7 @@ export async function fetchOwnedPdfDownload(pdfId, options = {}) {
     ENDPOINTS.PDF.DOWNLOAD,
     "POST",
     JSON.stringify(pdfId),
-    "Błąd pobierania",
+    uiText("documents:modalPdfs.downloadError"),
     { retries: options.retries ?? 2, timeoutMs: options.timeoutMs ?? 120_000 },
   );
   const urlBlob = URL.createObjectURL(blob);

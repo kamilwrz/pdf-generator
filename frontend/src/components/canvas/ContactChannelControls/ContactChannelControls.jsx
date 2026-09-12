@@ -1,3 +1,5 @@
+import { t as uiText } from "../../../i18n/index.js";
+import { useTranslation } from 'react-i18next';
 /**
  * Inline hover controls for one contact band (Phase 1 contact channel manager).
  *
@@ -28,6 +30,7 @@ import classes from "./ContactChannelControls.module.css";
 const HIDE_AFTER_LEAVE_MS = 600;
 
 export default function ContactChannelControls({ bandId, chips, inactive }) {
+  useTranslation();
   const { removeContactChannel, addContactChannel, zoom = 1 } = useCanvasContext();
   const [hoverChannel, setHoverChannel] = useState(null);
   const [hoverBounds, setHoverBounds] = useState(null);
@@ -160,8 +163,8 @@ export default function ContactChannelControls({ bandId, chips, inactive }) {
               type="button"
               className={cluster.trash}
               style={buttonStyle}
-              aria-label={`Usuń kontakt: ${CHANNEL_NAMES[hoveredChip.channel] || hoveredChip.channel}`}
-              data-tooltip="Usuń kontakt"
+              aria-label={uiText("editor:contactChannelControls.deleteContact", { value0: (CHANNEL_NAMES[hoveredChip.channel] || hoveredChip.channel) })}
+              data-tooltip={uiText("editor:contactChannelControls.deleteContact2")}
               onFocus={clearHide}
               onBlur={scheduleHide}
               onPointerDown={(event) => event.stopPropagation()}
@@ -196,8 +199,8 @@ export default function ContactChannelControls({ bandId, chips, inactive }) {
               type="button"
               className={cluster.plus}
               style={buttonStyle}
-              aria-label="Dodaj kontakt"
-              data-tooltip={menuOpen ? undefined : "Dodaj kontakt"}
+              aria-label={uiText("editor:contactChannelControls.addContact")}
+              data-tooltip={menuOpen ? undefined : uiText("editor:contactChannelControls.addContact")}
               onPointerDown={(event) => event.stopPropagation()}
               onClick={(event) => {
                 event.stopPropagation();

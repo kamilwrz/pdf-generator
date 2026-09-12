@@ -1,3 +1,4 @@
+import { t as uiText } from "../i18n/index.js";
 /** Owned-document reads shared by the library, deep links, and quick-open dialog. */
 import { ApiClient, ENDPOINTS } from './api.js';
 import { getAccessToken } from '../utils/authSession.js';
@@ -13,8 +14,8 @@ function ownedApi() {
 /** List only documents returned by the authenticated backend; 404 means an empty legacy list. */
 export async function listOwnedDocuments() {
   try {
-    const data = await ownedApi().httpRequest(ENDPOINTS.PDF.FETCH, 'GET', null, 'Nie udało się pobrać dokumentów.');
-    if (!Array.isArray(data)) throw new Error('Nieprawidłowa odpowiedź listy dokumentów.');
+    const data = await ownedApi().httpRequest(ENDPOINTS.PDF.FETCH, 'GET', null, uiText("errors:documents.couldNotLoadDocuments"));
+    if (!Array.isArray(data)) throw new Error(uiText("errors:documents.invalidDocumentListResponse"));
     return data;
   } catch (error) {
     if (error.status === 404) return [];
@@ -29,14 +30,14 @@ export async function listOwnedDocuments() {
  */
 export async function loadOwnedDocument(value, knownDocuments) {
   const id = parseDocumentId(value);
-  if (id === null) throw new Error('Nieprawidłowy adres dokumentu.');
-  const data = await ownedApi().httpRequest(ENDPOINTS.PDF.SHOW, 'POST', JSON.stringify(id), 'Nie udało się otworzyć dokumentu.');
+  if (id === null) throw new Error(uiText("errors:documents.invalidDocumentAddress"));
+  const data = await ownedApi().httpRequest(ENDPOINTS.PDF.SHOW, 'POST', JSON.stringify(id), uiText("errors:documents.couldNotOpenTheDocument"));
   const metadata = Array.isArray(data)
     ? (knownDocuments || await listOwnedDocuments()).find((item) => Number(item.id) === id)
     : data?.document;
   const elements = Array.isArray(data) ? data : data?.elements;
   if (!metadata || Number(metadata.id) !== id || !Array.isArray(elements)) {
-    throw new Error('Nie udało się odczytać kompletnego dokumentu.');
+    throw new Error(uiText("errors:documents.couldNotReadTheCompleteDocument"));
   }
   const templateId = metadata.template_id ?? metadata.templateId;
   const hydrated = elements.map(hydratePersistedCanvasElement).filter((element) => element.category !== 'title');

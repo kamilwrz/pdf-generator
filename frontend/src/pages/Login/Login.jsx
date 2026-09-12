@@ -1,3 +1,8 @@
+import { usePageTitle } from '../../i18n/usePageTitle.js';
+import { useMessageState, messageRef, messageOf } from '../../i18n/messageState.js';
+import { t as uiText } from "../../i18n/index.js";
+import { useTranslation } from 'react-i18next';
+import LanguageSelect from '../../components/common/LanguageSelect/LanguageSelect';
 /**
  * Login form. Does not gate on /health — cold starts use a long token timeout
  * plus retries; wakeBackend runs in the background to warm the dyno.
@@ -24,6 +29,8 @@ const LockIcon = () => (
 
 
 export default function Login() {
+  usePageTitle("common:loginTitle");
+  useTranslation();
 
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
@@ -34,9 +41,9 @@ export default function Login() {
 
     const [password, setPassword] = useState("");
     const [username, setUsername] = useState("");
-    const [error, setError] = useState("");
+    const [error, setError] = useMessageState("");
     const [isLoading, setIsLoading] = useState(false);
-    const [statusMessage, setStatusMessage] = useState("");
+    const [statusMessage, setStatusMessage] = useMessageState("");
     const [unverifiedEmail, setUnverifiedEmail] = useState("");
     const [googleLoading, setGoogleLoading] = useState(false);
     const hintTimerRef = useRef(null);
@@ -55,11 +62,11 @@ export default function Login() {
 
         setError("");
         setIsLoading(true);
-        setStatusMessage("Logowanie…");
+        setStatusMessage(messageRef("auth:login.signingIn"));
 
         if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
         hintTimerRef.current = setTimeout(() => {
-            setStatusMessage("Uruchamiamy serwer. Pierwsze logowanie po przerwie może potrwać do minuty.");
+            setStatusMessage(messageRef("auth:login.startingTheServerTheFirstSignIn"));
         }, 5000);
 
         // Another wake in parallel with the login attempt itself.
@@ -67,14 +74,14 @@ export default function Login() {
 
         try {
             await signIn(username, password, {
-                onRetry: (attempt) => setStatusMessage(`Próbujemy ponownie (${attempt}/4). Serwer właśnie się uruchamia.`),
+                onRetry: (attempt) => setStatusMessage(messageRef("auth:login.tryingAgainTheServerIsStarting", { value0: (attempt) })),
             });
             if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
             clearPendingAuthIntent();
             navigate(postAuthPath(searchParams), { replace: true });
         } catch (err) {
             if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
-            setError(err.message || "Logowanie nie powiodło się");
+            setError(messageOf(err) || messageRef("auth:login.signInFailed"));
             if (err.code === "email_unverified") setUnverifiedEmail(err.detail?.email || "");
             setStatusMessage("");
             setIsLoading(false);
@@ -90,7 +97,7 @@ export default function Login() {
             clearPendingAuthIntent();
             navigate(postAuthPath(searchParams), { replace: true });
         } catch (err) {
-            setError(err.message || "Logowanie Google nie powiodło się.");
+            setError(messageOf(err) || messageRef("auth:login.googleSignInFailed"));
             setGoogleLoading(false);
         }
     }
@@ -98,17 +105,17 @@ export default function Login() {
     async function handleResend() {
         if (isLoading) return;
         if (!unverifiedEmail) {
-            setError("Aby ponowić wysyłkę, wpisz adres e-mail użyty przy rejestracji.");
+            setError(messageRef("auth:login.toResendTheLinkEnterTheEmail"));
             return;
         }
         setIsLoading(true);
         setError("");
-        setStatusMessage("Wysyłanie nowego linku…");
+        setStatusMessage(messageRef("auth:login.sendingANewLink"));
         try {
             const result = await resendVerification(unverifiedEmail);
-            setStatusMessage(result.message);
+            setStatusMessage(messageOf(result));
         } catch (err) {
-            setError(err.message || "Nie udało się wysłać nowego linku.");
+            setError(messageOf(err) || messageRef("auth:login.couldNotSendANewLink"));
         } finally {
             setIsLoading(false);
         }
@@ -123,14 +130,14 @@ export default function Login() {
     }
 
     const selectedStartLabel = startIntent === "download"
-        ? "Po zalogowaniu potwierdzisz, że szkic jest Twój, i pobierzesz PDF."
+        ? uiText("auth:login.afterSigningInConfirmTheDraftIs")
         : startIntent === "import"
-        ? "Po zalogowaniu przejdziesz do importu CV."
+        ? uiText("auth:login.afterSigningInContinueToCvImport")
         : startIntent === "new"
-            ? "Po zalogowaniu przejdziesz do konfiguracji nowego CV."
+            ? uiText("auth:login.afterSigningInContinueToNewCv")
             : startIntent === "templates"
-                ? "Po zalogowaniu przejdziesz do wyboru szablonu."
-                : "Otwórz zapisane CV i wróć do edycji.";
+                ? uiText("auth:login.afterSigningInContinueToTemplateSelection")
+                : uiText("auth:login.openASavedCvAndReturnTo");
 
     return (
         <div className={classes.container}>
@@ -138,19 +145,20 @@ export default function Login() {
 
             <section className={classes.authColumn} aria-labelledby="login-title">
                 <div className={classes.loginCard}>
-                    <Link to="/" className={classes.logoBadge} aria-label="CV Studio — strona główna">
+                    <LanguageSelect />
+                    <Link to="/" className={classes.logoBadge} aria-label={uiText("public:siteLayout.cvStudioHomepage")}>
                         <img src="/cv-studio-logo.svg" alt="" />
                     </Link>
-                    <p className={classes.cardEyebrow}>Twoje konto</p>
-                    <h1 id="login-title" className={classes.mainHeading}>Zaloguj się do CV Studio</h1>
-                    <p className={classes.subHeading}>{startIntent === "download" ? selectedStartLabel : "Otwórz zapisane dokumenty i kontynuuj pracę."}</p>
-                    {searchParams.get("verified") === "1" && <p className={classes.status} role="status">Adres e-mail został potwierdzony. Możesz się zalogować.</p>}
-                    {searchParams.get("registered") === "1" && <p className={classes.status} role="status">Konto jest gotowe. Zaloguj się, aby kontynuować.</p>}
+                    <p className={classes.cardEyebrow}>{uiText("auth:login.yourAccount")}</p>
+                    <h1 id="login-title" className={classes.mainHeading}>{uiText("auth:login.signInToCvStudio")}</h1>
+                    <p className={classes.subHeading}>{startIntent === "download" ? selectedStartLabel : uiText("auth:login.openYourSavedDocumentsAndContinueWorking")}</p>
+                    {searchParams.get("verified") === "1" && <p className={classes.status} role="status">{uiText("auth:login.yourEmailAddressHasBeenVerifiedYou")}</p>}
+                    {searchParams.get("registered") === "1" && <p className={classes.status} role="status">{uiText("auth:login.yourAccountIsReadySignInTo")}</p>}
                     <div className={classes.googleSlot}><GoogleSignInButton onCredential={handleGoogleCredential} disabled={googleLoading || isLoading} /></div>
-                    <div className={classes.authDivider}><span>lub użyj hasła</span></div>
+                    <div className={classes.authDivider}><span>{uiText("auth:login.orUseAPassword")}</span></div>
                     <form onSubmit={handleSubmit} className={classes.form} aria-describedby={error ? "login-error" : undefined}>
                         <div className={classes.control}>
-                            <label htmlFor="username">Nazwa użytkownika</label>
+                            <label htmlFor="username">{uiText("auth:login.username")}</label>
                             <div className={`${classes.field} ${error ? classes.fieldError : ""}`}>
                                 <UserIcon />
                                 <input
@@ -159,14 +167,14 @@ export default function Login() {
                                     name="username"
                                     value={username}
                                     onChange={handleChangeUsername}
-                                    placeholder="Wpisz nazwę użytkownika"
+                                    placeholder={uiText("auth:login.enterYourUsername")}
                                     autoComplete="username"
                                     disabled={isLoading}
                                 />
                             </div>
                         </div>
                         <div className={classes.control}>
-                            <label htmlFor="password">Hasło</label>
+                            <label htmlFor="password">{uiText("auth:login.password")}</label>
                             <div className={`${classes.field} ${error ? classes.fieldError : ""}`}>
                                 <LockIcon />
                                 <input
@@ -175,7 +183,7 @@ export default function Login() {
                                     name="password"
                                     value={password}
                                     onChange={handleChangePassword}
-                                    placeholder="Wpisz hasło"
+                                    placeholder={uiText("auth:login.enterYourPassword")}
                                     autoComplete="current-password"
                                     disabled={isLoading}
                                 />
@@ -186,7 +194,7 @@ export default function Login() {
                                 {error}
                             </p>
                         )}
-                        {error && unverifiedEmail ? <button type="button" className={classes.authBtnSecondary} onClick={handleResend} disabled={isLoading}>{isLoading ? "Wysyłanie…" : "Wyślij link ponownie"}</button> : null}
+                        {error && unverifiedEmail ? <button type="button" className={classes.authBtnSecondary} onClick={handleResend} disabled={isLoading}>{isLoading ? uiText("auth:login.sending") : uiText("auth:login.resendLink")}</button> : null}
                         {statusMessage && !error && (
                             <p className={classes.status} role="status" aria-live="polite">
                                 {statusMessage}
@@ -197,11 +205,10 @@ export default function Login() {
                             className={classes.authBtn}
                             disabled={isLoading}
                         >
-                            {isLoading ? "Logowanie…" : "Zaloguj się"}
+                            {isLoading ? uiText("auth:login.signingIn") : uiText("public:siteLayout.signIn")}
                         </button>
                     </form>
-                    <p className={classes.linkWrapper}>
-                        Nie masz konta? <Link to={authLink('/register', searchParams)}>Utwórz konto</Link>
+                    <p className={classes.linkWrapper}>{uiText("auth:login.noAccountYet")} <Link to={authLink('/register', searchParams)}>{uiText("auth:login.createAccount")}</Link>
                     </p>
                 </div>
             </section>
@@ -211,14 +218,14 @@ export default function Login() {
                     CV STUDIO
                 </Link>
                 <div className={classes.storyCopy}>
-                    <p className={classes.storyEyebrow}>Po zalogowaniu</p>
-                    <h2>Wróć do zapisanych CV.</h2>
-                    <p>Otwórz dokument, nanieś poprawki i pobierz PDF, kiedy skończysz.</p>
+                    <p className={classes.storyEyebrow}>{uiText("auth:login.afterSigningIn")}</p>
+                    <h2>{uiText("auth:login.returnToYourSavedCvs")}</h2>
+                    <p>{uiText("auth:login.openADocumentMakeYourChangesAnd")}</p>
                 </div>
                 <div className={classes.storyPath}>
-                    <span>Kontynuacja pracy</span>
+                    <span>{uiText("auth:login.continueYourWork")}</span>
                     <b>{selectedStartLabel}</b>
-                    <div><i /> Dokument → poprawki → PDF</div>
+                    <div><i /> {uiText("auth:login.documentChangesPdf")}</div>
                 </div>
             </aside>
         </div>

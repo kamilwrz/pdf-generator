@@ -7,6 +7,8 @@ overlaps or break a template's decorative elements.
 """
 from __future__ import annotations
 
+from app.core.localisation import message as localised_message
+
 import math
 import re
 from collections import defaultdict
@@ -300,7 +302,7 @@ def _bounds_groups(
         if max_left < 0 or max_top < 0:
             issues.append({
                 "severity": "warning",
-                "message": "Element jest większy niż strona i wymaga ręcznej zmiany rozmiaru.",
+                "message": localised_message('the_element_is_larger_than_the_page_and'),
             })
             continue
 
@@ -312,7 +314,7 @@ def _bounds_groups(
         if distance > MAX_SAFE_BOUNDS_MOVE:
             issues.append({
                 "severity": "warning",
-                "message": "Element jest daleko poza stroną i wymaga ręcznego umieszczenia.",
+                "message": localised_message('the_element_is_far_outside_the_page_and'),
             })
             continue
 
@@ -679,8 +681,7 @@ def _stack_resolve_overlap_groups(
         issues.append({
             "severity": "warning",
             "message": (
-                "Część kolizji treści została rozłożona, ale pozostały nakładania z elementami "
-                "zablokowanymi lub przypiętymi do strony — wymaga ręcznej korekty."
+                localised_message('some_content_overlaps_were_resolved_but_overlaps_with')
             ),
         })
 
@@ -830,7 +831,7 @@ def _decoration_collision_groups(
     if suggestion is None:
         return [], set(), [{
             "severity": "warning",
-            "message": "Wykryto linię przecinającą treść, ale automatyczna korekta nie przeszła walidacji.",
+            "message": localised_message('a_line_crosses_content_but_the_automatic_correction'),
         }]
     return [suggestion], {patch["element_id"] for patch in patches}, []
 
@@ -1765,7 +1766,7 @@ def _resolve_block_operation(
             "layout_groups": [],
             "layout_issues": [{
                 "severity": "low",
-                "message": "Wskazane bloki już spełniają żądaną pozycję — nie ma czego zmieniać.",
+                "message": localised_message('the_selected_blocks_already_have_the_requested_position'),
             }],
         }
     if group is None:
@@ -2527,7 +2528,7 @@ def resolve_directed_operation(
                 "layout_groups": [],
                 "layout_issues": [{
                     "severity": "low",
-                    "message": "Wskazane elementy są już na stronie docelowej i mają żądane wyrównanie.",
+                    "message": localised_message('the_selected_elements_are_already_on_the_target'),
                 }],
             }
         if group is None:
@@ -2583,7 +2584,7 @@ def resolve_directed_operation(
             "layout_groups": [],
             "layout_issues": [{
                 "severity": "low",
-                "message": "Wskazane elementy już spełniają żądaną pozycję — nie ma czego zmieniać.",
+                "message": localised_message('the_selected_elements_already_have_the_requested_position'),
             }],
         }
     if group is None:

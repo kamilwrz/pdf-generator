@@ -1,3 +1,4 @@
+import { t as uiText } from "../i18n/index.js";
 /**
  * Request and recovery rules for the long-running CV extraction workflow.
  *
@@ -15,18 +16,18 @@ export const CV_IMPORT_REQUEST_OPTIONS = Object.freeze({
 });
 
 export const CV_IMPORT_TIMEOUT_MESSAGE =
-    "Import trwa dłużej niż 4 minuty i może nadal kończyć się na serwerze. Nie uruchamiaj go ponownie — odśwież status w historii importów.";
+    uiText("editor:cvImportRequest.importHasTakenMoreThanMinutesAnd");
 
 /**
- * Translate the persisted backend state into a concise Polish UI label.
+ * Translate the persisted backend state into a concise request-language UI label.
  *
  * @param {string} status - Snapshot status returned by `/ai/imports`.
  * @returns {string} User-facing status label.
  */
 export function cvImportStatusLabel(status) {
-    if (status === "succeeded") return "Dane gotowe";
-    if (status === "processing") return "Przetwarzanie…";
-    return "Import nieudany";
+    if (status === "succeeded") return uiText("editor:cvImportRequest.dataReady");
+    if (status === "processing") return uiText("editor:cvImportRequest.processing");
+    return uiText("editor:cvImportRequest.importFailed");
 }
 
 /**
@@ -41,7 +42,7 @@ export function cvImportStatusLabel(status) {
  */
 export function cvImportRecoveryMessage(errorCode) {
     if (errorCode === "extract_provider_daily_limit" || errorCode === "plan_limit_cv_imports") {
-        return "Limit importów został wykorzystany. Spróbuj ponownie po odnowieniu limitu.";
+        return uiText("editor:cvImportRequest.yourImportAllowanceIsUsedUpTry");
     }
 
     if (
@@ -49,7 +50,7 @@ export function cvImportRecoveryMessage(errorCode) {
         || errorCode === "cv_page_render_failed"
         || errorCode === "extract_provider_invalid_response"
     ) {
-        return "Nie udało się odczytać tego PDF. Spróbuj ponownie z wyraźniejszym plikiem.";
+        return uiText("editor:cvImportRequest.couldNotReadThisPdfTryAgain");
     }
 
     if (
@@ -59,8 +60,8 @@ export function cvImportRecoveryMessage(errorCode) {
         || errorCode === "extract_provider_unavailable"
         || errorCode === "extract_provider_empty_response"
     ) {
-        return "Usługa była chwilowo niedostępna. Rozpocznij nowy import i spróbuj ponownie.";
+        return uiText("editor:cvImportRequest.theServiceWasTemporarilyUnavailableStartA");
     }
 
-    return "Ten import nie zakończył się powodzeniem. Rozpocznij nowy import, aby spróbować ponownie.";
+    return uiText("editor:cvImportRequest.thisImportDidNotSucceedStartA");
 }

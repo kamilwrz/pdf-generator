@@ -1,3 +1,6 @@
+import { heroPreviewPath } from '../../i18n/templatePreviews.js';
+import { t as uiText } from "../../i18n/index.js";
+import { useTranslation } from 'react-i18next';
 import { useId, useRef, useState } from "react";
 import { motion as Motion, useReducedMotion } from "motion/react";
 import classes from "./HeroTemplateShowcase.module.css";
@@ -8,6 +11,7 @@ import classes from "./HeroTemplateShowcase.module.css";
  * and swipe detection. Native radios provide the persistent keyboard path.
  */
 export default function HeroTemplateShowcase({ templates, selectedId, onSelect, mobileAction }) {
+  useTranslation();
   const groupId = useId();
   const reducedMotion = useReducedMotion();
   const pointerStart = useRef(null);
@@ -30,12 +34,12 @@ export default function HeroTemplateShowcase({ templates, selectedId, onSelect, 
     onSelect(templates[next].id);
   }
 
-  if (!selected) return <p>Nie udało się wczytać podglądów. Możesz mimo to zacząć tworzyć CV.</p>;
+  if (!selected) return <p>{uiText("public:heroTemplateShowcase.couldNotLoadPreviewsYouCanStill")}</p>;
 
   return (
     <div className={classes.showcase}>
       <div className={classes.heading}>
-        <span>Wybierz darmowy szablon CV</span>
+        <span>{uiText("public:heroTemplateShowcase.chooseAFreeCvTemplate")}</span>
         <span className={classes.counter}>{String(selectedIndex + 1).padStart(2, "0")} / {String(templates.length).padStart(2, "0")}</span>
       </div>
       <div
@@ -60,7 +64,7 @@ export default function HeroTemplateShowcase({ templates, selectedId, onSelect, 
               key={template.id}
               type="button"
               tabIndex={-1}
-              aria-label={`Pokaż szablon ${template.name}`}
+              aria-label={uiText("public:heroTemplateShowcase.showTemplate", { value0: (template.name) })}
               aria-pressed={active}
               className={classes.card}
               data-active={active}
@@ -72,11 +76,11 @@ export default function HeroTemplateShowcase({ templates, selectedId, onSelect, 
             >
               <span className={classes.imageFallback} aria-hidden="true">
                 <strong>{template.name}</strong>
-                <span>{imageState === "error" ? "Nie udało się wczytać podglądu. Szablon nadal możesz wybrać." : "Wczytujemy podgląd…"}</span>
+                <span>{imageState === "error" ? uiText("public:heroTemplateShowcase.couldNotLoadThePreviewYouCan") : uiText("public:heroTemplateShowcase.loadingPreview")}</span>
               </span>
               {imageState !== "error" && <img
-                src={`/hero-templates/${template.id}-595.webp`}
-                srcSet={`/hero-templates/${template.id}-360.webp 360w, /hero-templates/${template.id}-595.webp 595w`}
+                src={heroPreviewPath(template.id, 595)}
+                srcSet={`${heroPreviewPath(template.id, 360)} 360w, ${heroPreviewPath(template.id, 595)} 595w`}
                 sizes="(max-width: 767px) 60vw, (max-width: 1440px) 27vw, 360px"
                 alt=""
                 width="595"
@@ -94,7 +98,7 @@ export default function HeroTemplateShowcase({ templates, selectedId, onSelect, 
         })}
       </div>
       <fieldset className={classes.choices}>
-        <legend>Wybierz darmowy szablon</legend>
+        <legend>{uiText("public:heroTemplateShowcase.chooseAFreeTemplate")}</legend>
         {templates.map((template, index) => (
           <label key={template.id} className={classes.choice}>
             <input type="radio" name={groupId} value={template.id} checked={selected.id === template.id} onChange={() => onSelect(template.id)} />
@@ -103,9 +107,9 @@ export default function HeroTemplateShowcase({ templates, selectedId, onSelect, 
         ))}
       </fieldset>
       <p className={classes.caption} role="status" aria-live="polite">
-        <strong>{selected.name}</strong><span>Darmowy szablon · {selected.layouts.includes("sidebar") ? "Dwie kolumny" : "Jedna kolumna"}</span>
+        <strong>{selected.name}</strong><span>{uiText("public:heroTemplateShowcase.freeTemplate")} {selected.layouts.includes("sidebar") ? uiText("editor:newCvSetupModal.twoColumns") : uiText("editor:newCvSetupModal.oneColumn")}</span>
       </p>
-      {imageStates[selected.id] === "error" && <p className={classes.error} role="status">Nie udało się wczytać podglądu. Wybierz szablon po nazwie i przejdź do edytora.</p>}
+      {imageStates[selected.id] === "error" && <p className={classes.error} role="status">{uiText("public:heroTemplateShowcase.couldNotLoadThePreviewChooseA")}</p>}
       {/* Compact layouts repeat the primary action after selection so users
           need not scroll back past the previews to continue. */}
       <div className={classes.mobileAction}>{mobileAction}</div>

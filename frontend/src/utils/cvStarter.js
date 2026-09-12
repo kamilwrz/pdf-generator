@@ -5,6 +5,20 @@
  */
 
 import { CONTACT_CHANNEL_PLACEHOLDERS } from "./contactChannelNames.js";
+import { getUiLanguage } from '../i18n/index.js';
+
+const ENGLISH_SECTIONS = Object.freeze({
+  summary: 'Summary', experience: 'Experience', education: 'Education',
+  skills: 'Skills', languages: 'Languages', projects: 'Projects',
+  certifications: 'Certifications', courses: 'Courses', volunteering: 'Volunteering',
+  publications: 'Publications', interests: 'Interests',
+});
+
+/** Built-in document headings follow CV language, never a later UI switch. */
+export function starterSectionLabel(key, language) {
+  return language === 'en' ? (ENGLISH_SECTIONS[key] || key)
+    : (STARTER_SECTIONS.find((section) => section.key === key)?.label || key);
+}
 
 export const STARTER_TEMPLATE_ID = "meridian";
 
@@ -111,15 +125,16 @@ function selectedKeys(items) {
 }
 
 /** Build the setup state used by the modal and its reset action. */
-export function createDefaultStarterConfig() {
+export function createDefaultStarterConfig(language = getUiLanguage()) {
   return {
+    language: language === 'en' ? 'en' : 'pl',
     templateId: STARTER_TEMPLATE_ID,
     includeTitle: true,
     includePhoto: false,
     contacts: STARTER_CONTACTS.map((item) => ({ key: item.key, selected: item.defaultSelected })),
     sections: STARTER_SECTIONS.map((item) => ({
       key: item.key,
-      label: item.label,
+      label: starterSectionLabel(item.key, language),
       selected: item.defaultSelected,
       custom: false,
     })),
@@ -185,8 +200,11 @@ export function buildStarterDocument(config) {
       }),
       ...customSections.map((item) => ({ title: item.label, items: [""], kind: "other", placement: "after_skills" })),
     ],
-    language: "Polish",
-    labels: {
+    language: config?.language === 'en' ? 'English' : 'Polish',
+    labels: config?.language === 'en' ? {
+      summary: 'PROFESSIONAL SUMMARY', experience: 'WORK EXPERIENCE',
+      education: 'EDUCATION', skills: 'SKILLS',
+    } : {
       summary: "PODSUMOWANIE ZAWODOWE",
       experience: "DOŚWIADCZENIE ZAWODOWE",
       education: "WYKSZTAŁCENIE",

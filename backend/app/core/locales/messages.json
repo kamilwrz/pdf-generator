@@ -1,0 +1,578 @@
+{
+  "not_found": {
+    "pl": "Nie znaleziono",
+    "en": "Not found"
+  },
+  "the_ai_request_exceeds_the_mib_limit": {
+    "pl": "Żądanie AI przekracza limit 1 MiB.",
+    "en": "The AI request exceeds the 1 MiB limit."
+  },
+  "the_pdf_request_exceeds_the_mib_limit": {
+    "pl": "Żądanie PDF przekracza limit 4 MiB.",
+    "en": "The PDF request exceeds the 4 MiB limit."
+  },
+  "the_service_is_temporarily_unavailable_please_try_again": {
+    "pl": "Usługa chwilowo nie jest gotowa. Spróbuj ponownie.",
+    "en": "The service is temporarily unavailable. Please try again."
+  },
+  "the_account_does_not_exist": {
+    "pl": "Konto nie istnieje.",
+    "en": "The account does not exist."
+  },
+  "enter_the_exact_username_to_delete_the_account": {
+    "pl": "Wpisz dokładną nazwę użytkownika, aby usunąć konto.",
+    "en": "Enter the exact username to delete the account."
+  },
+  "the_file_exceeds_the_mb_limit": {
+    "pl": "Plik przekracza limit 10 MB.",
+    "en": "The file exceeds the 10 MB limit."
+  },
+  "the_selected_file_is_not_a_valid_pdf": {
+    "pl": "Wybrany plik nie jest prawidłowym PDF.",
+    "en": "The selected file is not a valid PDF."
+  },
+  "user_account_not_found": {
+    "pl": "Nie znaleziono konta użytkownika.",
+    "en": "User account not found."
+  },
+  "only_pdf_files_are_accepted": {
+    "pl": "Akceptowane są wyłącznie pliki PDF.",
+    "en": "Only PDF files are accepted."
+  },
+  "import_data_not_found": {
+    "pl": "Nie znaleziono danych importu.",
+    "en": "Import data not found."
+  },
+  "this_pdf_file_could_not_be_read": {
+    "pl": "Nie można odczytać tego pliku PDF.",
+    "en": "This PDF file could not be read."
+  },
+  "could_not_extract_cv_data": {
+    "pl": "Nie udało się wyodrębnić danych z CV.",
+    "en": "Could not extract CV data."
+  },
+  "encrypted_pdfs_are_not_supported": {
+    "pl": "Zaszyfrowane PDF-y nie są obsługiwane.",
+    "en": "Encrypted PDFs are not supported."
+  },
+  "the_idempotency_key_header_is_required": {
+    "pl": "Nagłówek Idempotency-Key jest wymagany.",
+    "en": "The Idempotency-Key header is required."
+  },
+  "the_selected_template_does_not_exist": {
+    "pl": "Wybrany szablon nie istnieje.",
+    "en": "The selected template does not exist."
+  },
+  "the_import_history_cursor_is_invalid": {
+    "pl": "Kursor historii importów jest nieprawidłowy.",
+    "en": "The import history cursor is invalid."
+  },
+  "cannot_generate_a_template_from_the_supplied_data": {
+    "pl": "Nie można wygenerować szablonu z podanych danych.",
+    "en": "Cannot generate a template from the supplied data."
+  },
+  "could_not_generate_the_template": {
+    "pl": "Nie udało się wygenerować szablonu.",
+    "en": "Could not generate the template."
+  },
+  "this_import_was_deleted_its_result_is_unavailable": {
+    "pl": "Ten import został usunięty. Jego wynik nie jest dostępny.",
+    "en": "This import was deleted. Its result is unavailable."
+  },
+  "the_selected_ai_action_is_invalid": {
+    "pl": "Wybrana akcja AI jest nieprawidłowa.",
+    "en": "The selected AI action is invalid."
+  },
+  "paste_a_job_advert_link_or_description": {
+    "pl": "Wklej link do oferty lub jej opis.",
+    "en": "Paste a job advert link or description."
+  },
+  "unsupported_cv_language": {
+    "pl": "Nieobsługiwany język CV.",
+    "en": "Unsupported CV language."
+  },
+  "the_token_is_invalid_or_has_expired": {
+    "pl": "Token jest nieprawidłowy lub wygasł.",
+    "en": "The token is invalid or has expired."
+  },
+  "a_target_language_is_required_for_translation": {
+    "pl": "Język docelowy jest wymagany dla tłumaczenia.",
+    "en": "A target language is required for translation."
+  },
+  "unsupported_translation_language": {
+    "pl": "Nieobsługiwany język tłumaczenia.",
+    "en": "Unsupported translation language."
+  },
+  "an_unexpected_error_occurred_please_try_again": {
+    "pl": "Wystąpił nieoczekiwany błąd. Spróbuj ponownie.",
+    "en": "An unexpected error occurred. Please try again."
+  },
+  "the_ai_result_requires_billing_reconciliation_please_try": {
+    "pl": "Wynik AI wymaga bezpiecznego rozliczenia. Spróbuj ponownie później.",
+    "en": "The AI result requires billing reconciliation. Please try again later."
+  },
+  "your_email_address_has_been_verified": {
+    "pl": "Adres e-mail został potwierdzony.",
+    "en": "Your email address has been verified."
+  },
+  "if_the_account_needs_verification_we_have_sent": {
+    "pl": "Jeśli konto wymaga potwierdzenia, wysłaliśmy nowy link.",
+    "en": "If the account needs verification, we have sent a new link."
+  },
+  "the_token_is_valid": {
+    "pl": "Token jest prawidłowy.",
+    "en": "The token is valid."
+  },
+  "this_username_is_already_taken": {
+    "pl": "Nazwa użytkownika jest już zajęta.",
+    "en": "This username is already taken."
+  },
+  "this_email_address_is_already_in_use": {
+    "pl": "Adres e-mail jest już zajęty.",
+    "en": "This email address is already in use."
+  },
+  "the_link_is_invalid_or_has_expired": {
+    "pl": "Link jest nieprawidłowy lub wygasł.",
+    "en": "The link is invalid or has expired."
+  },
+  "incorrect_username_or_password": {
+    "pl": "Nieprawidłowa nazwa użytkownika lub hasło.",
+    "en": "Incorrect username or password."
+  },
+  "verify_your_email_address_before_signing_in": {
+    "pl": "Potwierdź adres e-mail przed logowaniem.",
+    "en": "Verify your email address before signing in."
+  },
+  "the_google_account_has_no_verified_email_address": {
+    "pl": "Konto Google nie ma potwierdzonego adresu e-mail.",
+    "en": "The Google account has no verified email address."
+  },
+  "the_account_is_inactive": {
+    "pl": "Konto jest nieaktywne.",
+    "en": "The account is inactive."
+  },
+  "the_google_email_address_does_not_match_this": {
+    "pl": "Adres konta Google nie pasuje do tego konta.",
+    "en": "The Google email address does not match this account."
+  },
+  "this_google_account_is_already_connected": {
+    "pl": "To konto Google jest już połączone.",
+    "en": "This Google account is already connected."
+  },
+  "this_account_could_not_be_created": {
+    "pl": "Nie można utworzyć tego konta.",
+    "en": "This account could not be created."
+  },
+  "google_sign_in_is_unavailable": {
+    "pl": "Logowanie Google jest niedostępne.",
+    "en": "Google sign-in is unavailable."
+  },
+  "could_not_verify_the_google_account": {
+    "pl": "Nie udało się potwierdzić konta Google.",
+    "en": "Could not verify the Google account."
+  },
+  "sign_in_with_your_password_and_connect_google": {
+    "pl": "Zaloguj się hasłem i połącz Google na stronie konta.",
+    "en": "Sign in with your password and connect Google on the account page."
+  },
+  "unknown_plan": {
+    "pl": "Nieznany plan.",
+    "en": "Unknown plan."
+  },
+  "unknown_checkout_session": {
+    "pl": "Unknown checkout session.",
+    "en": "Unknown checkout session."
+  },
+  "the_checkout_amount_does_not_match_the_pending": {
+    "pl": "Checkout amount does not match the pending payment.",
+    "en": "The checkout amount does not match the pending payment."
+  },
+  "invalid_stripe_signature": {
+    "pl": "Invalid Stripe signature.",
+    "en": "Invalid Stripe signature."
+  },
+  "you_do_not_have_permission_for_this_operation": {
+    "pl": "Brak uprawnień do tej operacji.",
+    "en": "You do not have permission for this operation."
+  },
+  "user_not_found": {
+    "pl": "Nie znaleziono użytkownika.",
+    "en": "User not found."
+  },
+  "payment_not_found": {
+    "pl": "Nie znaleziono płatności.",
+    "en": "Payment not found."
+  },
+  "payments_are_temporarily_unavailable": {
+    "pl": "Płatności są chwilowo niedostępne.",
+    "en": "Payments are temporarily unavailable."
+  },
+  "start_payment_again": {
+    "pl": "Rozpocznij płatność ponownie.",
+    "en": "Start payment again."
+  },
+  "this_image_is_used_in_a_saved_document": {
+    "pl": "Obraz jest używany w zapisanym dokumencie. Usuń go najpierw z dokumentu, a następnie ponów próbę.",
+    "en": "This image is used in a saved document. Remove it from that document first, then try again."
+  },
+  "the_uploaded_file_is_empty": {
+    "pl": "Przesłany plik jest pusty.",
+    "en": "The uploaded file is empty."
+  },
+  "unsupported_file_format_png_jpeg_webp_and_gif": {
+    "pl": "Nieobsługiwany format pliku. Dozwolone są obrazy PNG, JPEG, WEBP lub GIF.",
+    "en": "Unsupported file format. PNG, JPEG, WEBP and GIF images are allowed."
+  },
+  "profile_photo_uploaded_successfully": {
+    "pl": "Zdjęcie profilowe zostało pomyślnie przesłane.",
+    "en": "Profile photo uploaded successfully."
+  },
+  "image_file_not_found": {
+    "pl": "Nie znaleziono pliku obrazu.",
+    "en": "Image file not found."
+  },
+  "image_not_found": {
+    "pl": "Nie znaleziono obrazu.",
+    "en": "Image not found."
+  },
+  "the_image_could_not_be_safely_deleted": {
+    "pl": "Nie udało się bezpiecznie usunąć obrazu.",
+    "en": "The image could not be safely deleted."
+  },
+  "create_a_pdf_to_preview_and_edit_it": {
+    "pl": "Utwórz plik PDF, aby był dostępny do podglądu i edycji.",
+    "en": "Create a PDF to preview and edit it."
+  },
+  "pdf_file_not_found": {
+    "pl": "Nie znaleziono pliku PDF.",
+    "en": "PDF file not found."
+  },
+  "this_document_does_not_belong_to_you": {
+    "pl": "Ten dokument nie należy do Ciebie.",
+    "en": "This document does not belong to you."
+  },
+  "pdf_file_not_found_in_storage": {
+    "pl": "Nie znaleziono pliku PDF w magazynie.",
+    "en": "PDF file not found in storage."
+  },
+  "the_model_reached_its_response_limit_try_again": {
+    "pl": "Model wyczerpał limit odpowiedzi. Spróbuj ponownie albo uprość polecenie.",
+    "en": "The model reached its response limit. Try again or simplify your request."
+  },
+  "this_section_cannot_be_rebuilt_safely_content_differs": {
+    "pl": "Nie można bezpiecznie przebudować tej sekcji — treść nie pokrywa się ze źródłem, koliduje z zablokowanym elementem albo nie mieści się na stronie.",
+    "en": "This section cannot be rebuilt safely: content differs from the source, overlaps a locked element or does not fit on the page."
+  },
+  "cannot_prepare_deletion_safely_an_unknown_locked_or": {
+    "pl": "Nie można bezpiecznie przygotować usunięcia — wskazano nieznany, zablokowany lub chroniony element.",
+    "en": "Cannot prepare deletion safely: an unknown, locked or protected element was selected."
+  },
+  "cannot_duplicate_these_elements_safely_the_source_is": {
+    "pl": "Nie można bezpiecznie sklonować wskazanych elementów — brak źródła, blokada, chronione tło albo pozycja wychodzi poza stronę.",
+    "en": "Cannot duplicate these elements safely: the source is missing, locked or protected, or the position is outside the page."
+  },
+  "no_cv_elements_available_to_check_ats_readability": {
+    "pl": "Brak elementów CV do sprawdzenia czytelności ATS.",
+    "en": "No CV elements available to check ATS readability."
+  },
+  "could_not_read_text_from_the_generated_pdf": {
+    "pl": "Nie udało się odczytać tekstu z wygenerowanego PDF.",
+    "en": "Could not read text from the generated PDF."
+  },
+  "could_not_generate_a_pdf_to_check_ats": {
+    "pl": "Nie udało się wygenerować PDF do sprawdzenia czytelności ATS. Spróbuj ponownie.",
+    "en": "Could not generate a PDF to check ATS readability. Please try again."
+  },
+  "too_many_attempts_please_try_again_later": {
+    "pl": "Zbyt wiele prób. Spróbuj ponownie później.",
+    "en": "Too many attempts. Please try again later."
+  },
+  "some_data_is_missing": {
+    "pl": "Brakuje części danych.",
+    "en": "Some data is missing."
+  },
+  "invalid_image_source": {
+    "pl": "Nieprawidłowe źródło obrazu.",
+    "en": "Invalid image source."
+  },
+  "this_idempotency_key_was_already_used_for_a": {
+    "pl": "Ten Idempotency-Key został już użyty z innym żądaniem.",
+    "en": "This Idempotency-Key was already used for a different request."
+  },
+  "a_document_with_this_name_already_exists": {
+    "pl": "Dokument o tej nazwie już istnieje.",
+    "en": "A document with this name already exists."
+  },
+  "the_document_was_changed_in_another_session": {
+    "pl": "Dokument został zmieniony w innej sesji.",
+    "en": "The document was changed in another session."
+  },
+  "enter_your_full_name_before_saving_or_exporting": {
+    "pl": "Uzupełnij imię i nazwisko przed zapisem lub eksportem CV.",
+    "en": "Enter your full name before saving or exporting the CV."
+  },
+  "the_idempotency_key_header_is_invalid": {
+    "pl": "Nagłówek Idempotency-Key jest nieprawidłowy.",
+    "en": "The Idempotency-Key header is invalid."
+  },
+  "this_older_interview_does_not_have_separate_sources": {
+    "pl": "Ta starsza rozmowa nie ma rozdzielonych źródeł. Rozpocznij nowy wywiad z wybranym CV.",
+    "en": "This older interview does not have separate sources. Start a new interview with the selected CV."
+  },
+  "the_profile_contains_too_much_information_or_duplicate": {
+    "pl": "Profil zawiera zbyt wiele informacji lub powtórzone identyfikatory.",
+    "en": "The profile contains too much information or duplicate identifiers."
+  },
+  "the_same_field_has_both_text_and_bullet": {
+    "pl": "To samo pole ma wartość tekstową i podpunkty. Usuń jedno z powiązań pola.",
+    "en": "The same field has both text and bullet values. Remove one field binding."
+  },
+  "interview_not_found": {
+    "pl": "Nie znaleziono wywiadu.",
+    "en": "Interview not found."
+  },
+  "the_interview_changed_in_another_window_load_its": {
+    "pl": "Wywiad zmienił się w innym oknie. Wczytaj aktualny stan.",
+    "en": "The interview changed in another window. Load its current state."
+  },
+  "the_data_source_is_not_confirmed_refresh_the": {
+    "pl": "Źródło danych nie zostało potwierdzone. Odśwież aplikację i wczytaj wywiad ponownie.",
+    "en": "The data source is not confirmed. Refresh the application and reload the interview."
+  },
+  "the_data_changed_reload_the_interview_and_profile": {
+    "pl": "Dane zmieniły się. Wczytaj wywiad i profil ponownie.",
+    "en": "The data changed. Reload the interview and profile."
+  },
+  "the_model_selected_an_unsupported_cv_field": {
+    "pl": "Model wskazał nieobsługiwane pole CV.",
+    "en": "The model selected an unsupported CV field."
+  },
+  "too_much_interview_data_shorten_your_profile_or": {
+    "pl": "Za dużo danych w wywiadzie. Skróć profil lub rozpocznij nową rozmowę.",
+    "en": "Too much interview data. Shorten your profile or start a new interview."
+  },
+  "confirm_the_starting_information_first": {
+    "pl": "Najpierw zatwierdź informacje początkowe.",
+    "en": "Confirm the starting information first."
+  },
+  "start_or_skip_the_saved_clarifications": {
+    "pl": "Rozpocznij lub pomiń zapisane doprecyzowania.",
+    "en": "Start or skip the saved clarifications."
+  },
+  "unsupported_profile_field_remove_the_field_binding_and": {
+    "pl": "Nieobsługiwane pole profilu. Usuń powiązanie pola i zachowaj informację jako notatkę.",
+    "en": "Unsupported profile field. Remove the field binding and keep the information as a note."
+  },
+  "the_profile_changed_in_another_window_refresh_the": {
+    "pl": "Profil zmienił się w innym oknie. Odśwież dane.",
+    "en": "The profile changed in another window. Refresh the data."
+  },
+  "the_source_cv_changed_load_the_current_cv": {
+    "pl": "Źródłowe CV zmieniło się. Wczytaj aktualne CV do wywiadu i odśwież podgląd.",
+    "en": "The source CV changed. Load the current CV into the interview and refresh the preview."
+  },
+  "the_suggestion_duplicates_a_field_or_removes_its": {
+    "pl": "Propozycja powtarza pole lub usuwa jego treść.",
+    "en": "The suggestion duplicates a field or removes its content."
+  },
+  "the_suggestion_contains_unconfirmed_information_generate_it_again": {
+    "pl": "Propozycja zawiera niepotwierdzone informacje. Wygeneruj ją ponownie.",
+    "en": "The suggestion contains unconfirmed information. Generate it again."
+  },
+  "the_suggestion_contains_an_unconfirmed_number_or_placeholder": {
+    "pl": "Propozycja zawiera liczbę lub placeholder bez potwierdzenia.",
+    "en": "The suggestion contains an unconfirmed number or placeholder."
+  },
+  "contact_and_identity_details_must_remain_consistent_with": {
+    "pl": "Dane kontaktowe i tożsamość muszą pozostać zgodne z profilem.",
+    "en": "Contact and identity details must remain consistent with the profile."
+  },
+  "the_suggestion_changes_approved_wording": {
+    "pl": "Propozycja zmienia zatwierdzone sformułowanie.",
+    "en": "The suggestion changes approved wording."
+  },
+  "conflicting_values_for_the_same_field_edit_or": {
+    "pl": "Sprzeczne wartości tego samego pola. Popraw lub usuń jedną informację przed zatwierdzeniem.",
+    "en": "Conflicting values for the same field. Edit or remove one item before confirming."
+  },
+  "the_previous_attempt_has_finished_load_the_saved": {
+    "pl": "Poprzednia próba została zakończona. Wczytaj zapisany stan, aby rozpocząć nową próbę.",
+    "en": "The previous attempt has finished. Load the saved state to start a new attempt."
+  },
+  "could_not_safely_prepare_cv_content_your_saved": {
+    "pl": "Nie udało się bezpiecznie przygotować treści CV. Zapisane odpowiedzi pozostają bez zmian. Wczytaj zapisany stan i spróbuj ponownie.",
+    "en": "Could not safely prepare CV content. Your saved answers remain unchanged. Load the saved state and try again."
+  },
+  "the_suggestion_assigns_information_to_a_different_role": {
+    "pl": "Propozycja przypisuje informację do innej roli. Sprawdź kontekst.",
+    "en": "The suggestion assigns information to a different role. Check its context."
+  },
+  "some_content_overlaps_were_resolved_but_overlaps_with": {
+    "pl": "Część kolizji treści została rozłożona, ale pozostały nakładania z elementami zablokowanymi lub przypiętymi do strony — wymaga ręcznej korekty.",
+    "en": "Some content overlaps were resolved, but overlaps with locked or page-pinned elements remain and need manual adjustment."
+  },
+  "the_element_is_larger_than_the_page_and": {
+    "pl": "Element jest większy niż strona i wymaga ręcznej zmiany rozmiaru.",
+    "en": "The element is larger than the page and needs manual resizing."
+  },
+  "the_element_is_far_outside_the_page_and": {
+    "pl": "Element jest daleko poza stroną i wymaga ręcznego umieszczenia.",
+    "en": "The element is far outside the page and needs manual positioning."
+  },
+  "a_line_crosses_content_but_the_automatic_correction": {
+    "pl": "Wykryto linię przecinającą treść, ale automatyczna korekta nie przeszła walidacji.",
+    "en": "A line crosses content, but the automatic correction failed validation."
+  },
+  "the_selected_blocks_already_have_the_requested_position": {
+    "pl": "Wskazane bloki już spełniają żądaną pozycję — nie ma czego zmieniać.",
+    "en": "The selected blocks already have the requested position. No change is needed."
+  },
+  "the_selected_elements_already_have_the_requested_position": {
+    "pl": "Wskazane elementy już spełniają żądaną pozycję — nie ma czego zmieniać.",
+    "en": "The selected elements already have the requested position. No change is needed."
+  },
+  "the_selected_elements_are_already_on_the_target": {
+    "pl": "Wskazane elementy są już na stronie docelowej i mają żądane wyrównanie.",
+    "en": "The selected elements are already on the target page with the requested alignment."
+  },
+  "scoped_operations_require_a_configured_gpt_model": {
+    "pl": "Operacje zakresowe wymagają konfiguracji modelu GPT.",
+    "en": "Scoped operations require a configured GPT model."
+  },
+  "the_suggestion_failed_scope_or_data_preservation_checks": {
+    "pl": "Propozycja nie przeszła kontroli zakresu lub zachowania danych. Tekst CV pozostał bez zmian.",
+    "en": "The suggestion failed scope or data-preservation checks. Your CV text remains unchanged."
+  },
+  "no_safe_pdf_file_found": {
+    "pl": "Nie znaleziono bezpiecznego pliku PDF.",
+    "en": "No safe PDF file found."
+  },
+  "ai_temporarily_unavailable": {
+    "pl": "Asystent AI jest chwilowo niedostępny, spróbuj ponownie.",
+    "en": "The AI assistant is temporarily unavailable. Please try again."
+  },
+  "invalid_request": {
+    "pl": "Sprawdź poprawność wprowadzonych danych.",
+    "en": "Check the values you entered."
+  },
+  "unexpected_error": {
+    "pl": "Nie udało się wykonać operacji. Spróbuj ponownie.",
+    "en": "Could not complete the operation. Please try again."
+  },
+  "interview_the_input_is_too_large": {
+    "pl": "Dane wejściowe są zbyt duże.",
+    "en": "The input is too large."
+  },
+  "interview_choose_one_cv_source": {
+    "pl": "Wybierz jedno źródło CV.",
+    "en": "Choose one CV source."
+  },
+  "interview_this_question_is_no_longer_active": {
+    "pl": "To pytanie nie jest już aktywne.",
+    "en": "This question is no longer active."
+  },
+  "interview_enter_an_answer_or_choose_to_skip": {
+    "pl": "Wpisz odpowiedź lub wybierz pominięcie.",
+    "en": "Enter an answer or choose to skip."
+  },
+  "interview_this_cv_has_already_been_saved": {
+    "pl": "To CV zostało już zapisane.",
+    "en": "This CV has already been saved."
+  },
+  "interview_this_clarification_is_not_active": {
+    "pl": "Doprecyzowanie nie jest aktywne.",
+    "en": "This clarification is not active."
+  },
+  "interview_all_entries_have_been_discussed_prepare_your_cv": {
+    "pl": "Wpisy zostały omówione. Przejdź do przygotowania CV lub dodaj nowe informacje.",
+    "en": "All entries have been discussed. Prepare your CV or add new information."
+  },
+  "interview_restart_with_current_profile": {
+    "pl": "Zakończ ten wywiad i rozpocznij nowy z aktualnym profilem.",
+    "en": "Finish this interview and start a new one with your current profile."
+  },
+  "interview_this_cv_has_already_been_saved_start_a": {
+    "pl": "To CV zostało już zapisane. Rozpocznij nowy wywiad.",
+    "en": "This CV has already been saved. Start a new interview."
+  },
+  "interview_the_source_cv_has_been_deleted_choose_another": {
+    "pl": "Źródłowe CV zostało usunięte. Wybierz inne źródło w nowym wywiadzie.",
+    "en": "The source CV has been deleted. Choose another source in a new interview."
+  },
+  "interview_the_current_cv_source_is_missing": {
+    "pl": "Brakuje aktualnego źródła CV.",
+    "en": "The current CV source is missing."
+  },
+  "interview_the_source_data_is_too_large": {
+    "pl": "Dane źródłowe są zbyt duże.",
+    "en": "The source data is too large."
+  },
+  "interview_confirm_or_remove_new_information_before_generating": {
+    "pl": "Zatwierdź lub usuń nowe informacje przed generowaniem.",
+    "en": "Confirm or remove new information before generating."
+  },
+  "interview_answer_the_active_question_or_skip_the_clarification": {
+    "pl": "Odpowiedz na aktywne pytanie lub pomiń doprecyzowanie przed generowaniem.",
+    "en": "Answer the active question or skip the clarification before generating."
+  },
+  "interview_choose_an_available_cv_template": {
+    "pl": "Wybierz dostępny szablon CV.",
+    "en": "Choose an available CV template."
+  },
+  "interview_tailoring_preserves_the_source_cv_template": {
+    "pl": "Dopasowanie zachowuje szablon źródłowego CV.",
+    "en": "Tailoring preserves the source CV template."
+  },
+  "interview_prepare_an_up_to_date_preview_before_saving": {
+    "pl": "Przygotuj aktualny podgląd przed zapisaniem CV.",
+    "en": "Prepare an up-to-date preview before saving your CV."
+  },
+  "interview_this_retry_key_belongs_to_different_data": {
+    "pl": "Klucz ponowienia dotyczy innych danych.",
+    "en": "This retry key belongs to different data."
+  },
+  "interview_cv_not_found": {
+    "pl": "Nie znaleziono CV.",
+    "en": "CV not found."
+  },
+  "interview_the_person_s_details_in_the_source_cv": {
+    "pl": "Zmieniono dane osoby w źródłowym CV. Rozpocznij osobny wywiad dla tego dokumentu.",
+    "en": "The person’s details in the source CV have changed. Start a separate interview for this document."
+  },
+  "interview_import_not_found": {
+    "pl": "Nie znaleziono importu.",
+    "en": "Import not found."
+  },
+  "interview_this_answer_has_already_been_saved_edit_the": {
+    "pl": "Ta odpowiedź została już zapisana. Popraw informację w podsumowaniu.",
+    "en": "This answer has already been saved. Edit the information in the summary."
+  },
+  "interview_this_information_has_been_deleted_reload_the_current": {
+    "pl": "Informacja została usunięta. Wczytaj aktualny wywiad przed odpowiedzią.",
+    "en": "This information has been deleted. Reload the current interview before answering."
+  },
+  "interview_there_are_no_more_questions_you_can_review": {
+    "pl": "Nie ma kolejnych pytań. Możesz przejrzeć informacje i zapisać potwierdzoną treść.",
+    "en": "There are no more questions. You can review the information and save confirmed content."
+  },
+  "pdf_page_limit": {
+    "pl": "PDF musi mieć od 1 do {limit} stron.",
+    "en": "The PDF must contain between 1 and {limit} pages."
+  },
+  "image_size_limit": {
+    "pl": "Plik jest za duży. Maksymalny rozmiar to {limit} MB.",
+    "en": "The file is too large. The maximum size is {limit} MB."
+  },
+  "profile_photo_limit": {
+    "pl": "Osiągnięto limit {limit} zdjęć profilowych. Usuń jedno lub więcej zdjęć w galerii, aby dodać nowe.",
+    "en": "You have reached the limit of {limit} profile photos. Delete one or more photos from the gallery to add another."
+  },
+  "unexpected_server_error": {
+    "pl": "Wystąpił nieoczekiwany błąd. Spróbuj ponownie.",
+    "en": "An unexpected error occurred. Please try again."
+  },
+  "interview_source_required": {
+    "pl": "Wywiad i edycja profilu wymagają CV lub udanego importu z danymi, w tym imieniem i nazwiskiem. Najpierw uzupełnij i zapisz CV albo zaimportuj PDF. Sam profil konta i dodatkowe notatki nie wystarczą.",
+    "en": "Interviews and profile editing require a CV or successful import containing candidate details, including a full name. First complete and save a CV or import a PDF. An account profile and additional notes alone are not enough."
+  }
+}

@@ -1,3 +1,4 @@
+import { t as uiText } from "../i18n/index.js";
 /**
  * Semantic Appearance contract for the framed Aurelia template.
  *
@@ -14,8 +15,8 @@ export const DEFAULT_AURELIA_TEXT_SIZE = "M";
 export const AURELIA_PALETTES = Object.freeze([
   {
     id: "gilded",
-    name: "Złocona Oliwka",
-    tagline: "Jasne tło i oliwkowo-złote akcenty",
+    get name() { return uiText("editor:aureliaAppearance.gildedOlive"); },
+    get tagline() { return uiText("editor:aureliaAppearance.lightBackgroundAndOliveGoldAccents"); },
     tone: "light",
     iconTheme: "aurelia-gilded",
     colors: {
@@ -25,8 +26,8 @@ export const AURELIA_PALETTES = Object.freeze([
   },
   {
     id: "pewter",
-    name: "Chłodny Pewter",
-    tagline: "Jasne tło i chłodne szarości",
+    get name() { return uiText("editor:aureliaAppearance.coolPewter"); },
+    get tagline() { return uiText("editor:aureliaAppearance.lightBackgroundAndCoolGreys"); },
     tone: "light",
     iconTheme: "aurelia-pewter",
     colors: {
@@ -36,8 +37,8 @@ export const AURELIA_PALETTES = Object.freeze([
   },
   {
     id: "sage",
-    name: "Szałwiowy Gabinet",
-    tagline: "Jasne tło i delikatna zieleń",
+    get name() { return uiText("editor:aureliaAppearance.sageStudy"); },
+    get tagline() { return uiText("editor:aureliaAppearance.lightBackgroundAndSoftGreen"); },
     tone: "light",
     iconTheme: "aurelia-sage",
     colors: {
@@ -47,8 +48,8 @@ export const AURELIA_PALETTES = Object.freeze([
   },
   {
     id: "cobalt",
-    name: "Kobaltowy Kontur",
-    tagline: "Jasne tło i wyraźny kobalt",
+    get name() { return uiText("editor:aureliaAppearance.cobaltOutline"); },
+    get tagline() { return uiText("editor:aureliaAppearance.lightBackgroundAndClearCobalt"); },
     tone: "strong",
     iconTheme: "aurelia-cobalt",
     colors: {
@@ -58,8 +59,8 @@ export const AURELIA_PALETTES = Object.freeze([
   },
   {
     id: "burgundy",
-    name: "Burgundowa Rama",
-    tagline: "Jasne tło i burgundowa rama",
+    get name() { return uiText("editor:aureliaAppearance.burgundyFrame"); },
+    get tagline() { return uiText("editor:aureliaAppearance.lightBackgroundAndBurgundyFrame"); },
     tone: "strong",
     iconTheme: "aurelia-burgundy",
     colors: {
@@ -69,8 +70,8 @@ export const AURELIA_PALETTES = Object.freeze([
   },
   {
     id: "noir",
-    name: "Noir i Złoto",
-    tagline: "Ciemne tło i złote akcenty",
+    get name() { return uiText("editor:aureliaAppearance.noirAndGold"); },
+    get tagline() { return uiText("editor:aureliaAppearance.darkBackgroundAndGoldAccents"); },
     tone: "strong",
     iconTheme: "aurelia-noir",
     colors: {
@@ -81,10 +82,10 @@ export const AURELIA_PALETTES = Object.freeze([
 ]);
 
 export const AURELIA_TEXT_SIZES = Object.freeze([
-  { id: "S", label: "S", description: "Kompaktowy" },
-  { id: "M", label: "M", description: "Oryginalny" },
-  { id: "L", label: "L", description: "Czytelny" },
-  { id: "XL", label: "XL", description: "Wyrazisty" },
+  { id: "S", label: "S", get description() { return uiText("editor:atriumAppearance.compact"); } },
+  { id: "M", label: "M", get description() { return uiText("editor:atriumAppearance.original"); } },
+  { id: "L", label: "L", get description() { return uiText("editor:atriumAppearance.readable"); } },
+  { id: "XL", label: "XL", get description() { return uiText("editor:atriumAppearance.bold"); } },
 ]);
 
 const TEXT_SCALE = {

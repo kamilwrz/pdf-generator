@@ -1,3 +1,5 @@
+import { t as uiText } from "../../../i18n/index.js";
+import { useTranslation } from 'react-i18next';
 /**
  * Account gate for guest save, download, and CV-import intents.
  *
@@ -13,40 +15,41 @@ import classes from "./SaveGateModal.module.css";
 const CONTENT_BY_PURPOSE = {
   import: {
     eyebrow: "Import CV",
-    title: "Kontynuuj import na swoim koncie",
-    subtitle: "Po zalogowaniu lub rejestracji od razu wrócisz do importu i wybierzesz plik PDF.",
-    lead: "Na tym etapie nie wybieramy pliku i nie zmieniamy obecnego dokumentu.",
+    get title() { return uiText("editor:saveGateModal.continueImportOnYourAccount"); },
+    get subtitle() { return uiText("editor:saveGateModal.afterSigningInOrRegisteringYouWill"); },
+    get lead() { return uiText("editor:saveGateModal.atThisStageWeDoNotSelect"); },
     facts: [
-      { value: "1 import", label: "pliku PDF miesięcznie" },
-      { value: "Bez zmian", label: "w obecnym szkicu" },
+      { value: "1 import", get label() { return uiText("editor:saveGateModal.pdfFilePerMonth"); } },
+      { get value() { return uiText("editor:saveGateModal.noChanges"); }, get label() { return uiText("editor:saveGateModal.inTheCurrentDraft"); } },
     ],
-    reassurance: "Zachowamy zamiar importu, więc po autoryzacji nie trzeba zaczynać od początku.",
+    get reassurance() { return uiText("editor:saveGateModal.yourImportIntentIsRetainedSoYou"); },
   },
   download: {
-    eyebrow: "Pobieranie PDF",
-    title: "Pobierz CV jako plik PDF",
-    subtitle: "Po zalogowaniu lub rejestracji możesz wygenerować PDF z bieżącego szkicu i pobrać go na to urządzenie.",
-    lead: "Pobranie nie zapisuje CV w „Moich dokumentach” ani nie zmienia szkicu w edytorze.",
+    get eyebrow() { return uiText("editor:saveGateModal.downloadingPdf"); },
+    get title() { return uiText("editor:saveGateModal.downloadYourCvAsAPdf"); },
+    get subtitle() { return uiText("editor:saveGateModal.afterSigningInOrRegisteringYouCan"); },
+    get lead() { return uiText("editor:saveGateModal.downloadingDoesNotSaveYourCvIn"); },
     facts: [
-      { value: "3 pliki PDF", label: "do pobrania miesięcznie" },
-      { value: "Bez znaku wodnego", label: "w każdym pobranym pliku" },
+      { get value() { return uiText("editor:saveGateModal.pdfFiles"); }, get label() { return uiText("editor:saveGateModal.downloadsPerMonth"); } },
+      { get value() { return uiText("editor:saveGateModal.noWatermark"); }, get label() { return uiText("editor:saveGateModal.inEveryDownloadedFile"); } },
     ],
-    reassurance: "Po zalogowaniu potwierdzisz, że to Twoje CV, i od razu pobierzesz PDF.",
+    get reassurance() { return uiText("editor:saveGateModal.afterSigningInConfirmThatThisCv"); },
   },
   save: {
-    eyebrow: "Zapis CV",
-    title: "Zapisz szkic na swoim koncie",
-    subtitle: "Bieżąca praca pozostanie dostępna, gdy przejdziesz do logowania lub rejestracji.",
-    lead: "Darmowe konto pozwala zachować postęp i pobierać gotowe dokumenty bez znaku wodnego.",
+    get eyebrow() { return uiText("editor:pdfOperationProgressModal.saveCv"); },
+    get title() { return uiText("editor:saveGateModal.saveTheDraftToYourAccount"); },
+    get subtitle() { return uiText("editor:saveGateModal.yourCurrentWorkRemainsAvailableWhenYou"); },
+    get lead() { return uiText("editor:saveGateModal.aFreeAccountLetsYouSaveProgress"); },
     facts: [
-      { value: "1 CV", label: "zapisane na koncie" },
-      { value: "3 pliki PDF", label: "do pobrania miesięcznie" },
+      { value: "1 CV", get label() { return uiText("editor:saveGateModal.savedToYourAccount"); } },
+      { get value() { return uiText("editor:saveGateModal.pdfFiles"); }, get label() { return uiText("editor:saveGateModal.downloadsPerMonth"); } },
     ],
-    reassurance: "Szkic jest również zapisany lokalnie w tej przeglądarce.",
+    get reassurance() { return uiText("editor:saveGateModal.theDraftIsAlsoSavedLocallyIn"); },
   },
 };
 
 export default function SaveGateModal({ open, onCancel, purpose = "save" }) {
+  useTranslation();
   const navigate = useNavigate();
   const authQuery = ["import", "download"].includes(purpose) ? `?start=${purpose}` : "";
   const content = CONTENT_BY_PURPOSE[purpose] ?? CONTENT_BY_PURPOSE.save;
@@ -64,32 +67,26 @@ export default function SaveGateModal({ open, onCancel, purpose = "save" }) {
       initialFocusSelector="[data-primary-action]"
       footer={(
         <div className={classes.actions}>
-          <button type="button" className={classes.cancel} onClick={onCancel}>
-            Wróć do edytora
-          </button>
+          <button type="button" className={classes.cancel} onClick={onCancel}>{uiText("editor:saveGateModal.returnToEditor")}</button>
           <div className={classes.accountActions}>
             <button
               type="button"
               className={classes.secondary}
               onClick={() => navigate(`/login${authQuery}`)}
-            >
-              Zaloguj się
-            </button>
+            >{uiText("public:siteLayout.signIn")}</button>
             <button
               type="button"
               className={classes.primary}
               data-primary-action=""
               onClick={() => navigate(`/register${authQuery}`)}
-            >
-              Utwórz darmowe konto
-            </button>
+            >{uiText("editor:saveGateModal.createAFreeAccount")}</button>
           </div>
         </div>
       )}
     >
       <div className={classes.content}>
         <p className={classes.lead}>{content.lead}</p>
-        <dl className={classes.facts} aria-label="Zakres darmowego konta">
+        <dl className={classes.facts} aria-label={uiText("editor:saveGateModal.freeAccountIncludes")}>
           {content.facts.map((fact, index) => (
             <div className={classes.fact} key={fact.value}>
               <dt>

@@ -1,3 +1,4 @@
+import { t as uiText } from "../i18n/index.js";
 import { useState, useCallback, useRef } from 'react';
 import { ApiClient, ENDPOINTS, wakeBackend } from "../services/api";
 import { sanitizeElementsContent } from "../utils/sanitizeTextContent";
@@ -141,7 +142,7 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
         ENDPOINTS.PDF.CREATE,
         "POST",
         body,
-        "Nie udało się utworzyć PDF!",
+        uiText("editor:usePdfExport.couldNotCreateThePdf"),
         {
           retries: 2,
           timeoutMs: 120_000,
@@ -252,7 +253,7 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
         ENDPOINTS.PDF.UPDATE,
         "PUT",
         body,
-        "Nie udało się zaktualizować PDF!",
+        uiText("editor:usePdfExport.couldNotUpdateThePdf"),
         { retries: 2, timeoutMs: 120_000 },
         ));
       })
@@ -339,7 +340,7 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
         ENDPOINTS.PDF.RENDER,
         "POST",
         body,
-        "Nie udało się pobrać PDF!",
+        uiText("editor:usePdfExport.couldNotDownloadThePdf"),
         { retries: 2, timeoutMs: 120_000 },
       ));
       const urlBlob = URL.createObjectURL(blob);
@@ -410,7 +411,7 @@ export function usePdfExport(handlePdfId, handleShowModal, titleRef, A4_Elements
         cv_data,
         expected_revision,
       }),
-      "Autozapis nie powiódł się.");
+      uiText("editor:usePdfExport.autosaveFailed"));
       const revision = requirePdfRevision(data.revision);
       handlePdfId(data.pdf_id ?? PDF_ID, { revision });
       return data;

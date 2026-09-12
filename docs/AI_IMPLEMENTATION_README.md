@@ -414,7 +414,7 @@ Both route modules use synchronous `def` handlers. FastAPI runs them in its work
 
 ### Global error boundary
 
-The application-level [`AIServiceError` handler](../backend/app/main.py#L268), lines 268–288, logs operational context server-side and returns stable Polish copy without leaking raw provider errors. Both AI routers are registered in [`main.py`](../backend/app/main.py#L336), lines 336–337.
+The application-level [`AIServiceError` handler](../backend/app/main.py#L268), lines 268–288, logs operational context server-side and returns stable request-local Polish or English copy without leaking raw provider errors. Both AI routers are registered in [`main.py`](../backend/app/main.py#L336), lines 336–337.
 
 ## Frontend implementation
 
@@ -1065,3 +1065,10 @@ docs/
 - [`cv-template-generation.md`](cv-template-generation.md) — focused explanation of AI extraction versus deterministic Python template generation.
 - [`FEATURES.md`](FEATURES.md) — product-facing feature description.
 - [`DESIGN.md`](../DESIGN.md) — mandatory application-wide UI and interaction system.
+
+
+## Interface language and document language
+
+`Accept-Language` selects request-local Polish (default) or British English through `UiLanguageMiddleware`. `_gpt` appends `ui_language_policy()` after action-specific instructions. This final policy makes questions, explanations, reasons, tips and assessment labels follow UI language while corrections and generated CV content follow the requested document language. Schema keys, enums, evidence and before-values remain literal. Interview discovery has deterministic English fallback questions and preserves saved history. Changing UI language alone does not invoke an AI operation, repeat a request or charge credits. Browser retries retain the language captured by the API client when the operation started. The existing supported CV language set and credit controls are unchanged.
+
+See the bilingual language section in [README](../README.md) and the [acceptance matrix](localisation-matrix.md). Localisation tests use mocked providers; they do not establish live provider output quality in every supported CV language.

@@ -1,3 +1,5 @@
+import { resolveMessage } from '../../../i18n/messageState.js';
+import { useTranslation } from 'react-i18next';
 /**
  * Stacked toast renderer for useToasts() notifications.
  */
@@ -30,11 +32,13 @@ const VARIANTS = {
  * alert semantics for assistive technologies.
  */
 export default function ToastStack({ toasts, onDismiss }) {
+    useTranslation();
     if (toasts.length === 0) return null;
 
     return (
         <div className={classes.stack} aria-live="polite" aria-atomic="true">
-            {toasts.map((t) => {
+            {toasts.map((toast) => {
+                const t = resolveMessage(toast);
                 const variant = VARIANTS[t.variant] || VARIANTS.success;
                 return (
                     <div

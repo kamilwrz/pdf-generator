@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { readPresentationSource as readFile } from "../../scripts/read-presentation-source.mjs";
 
 import {
   bulletRunsToEditableHtml,

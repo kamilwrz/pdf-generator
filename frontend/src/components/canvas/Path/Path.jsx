@@ -1,3 +1,5 @@
+import { t as uiText } from "../../../i18n/index.js";
+import { useTranslation } from 'react-i18next';
 /**
  * Open cubic-Bezier path ornament for freeform mode.
  *
@@ -30,6 +32,7 @@ function Path({
   zIndex,
   fixedToPage,
 }) {
+  useTranslation();
   const {
     moveElement,
     selectElement,
@@ -171,7 +174,7 @@ function Path({
           data-path-handle="true"
           className={`${classes.handle} ${handle.kind === "control" ? classes.control : classes.anchor}`}
           style={{ left: handle.left, top: handle.top, zIndex: (zIndex || 2) + 5 }}
-          aria-label={handle.kind === "control" ? "Punkt kontrolny krzywej" : "Punkt ścieżki"}
+          aria-label={handle.kind === "control" ? uiText("editor:path.curveControlPoint") : uiText("editor:path.pathPoint")}
           onPointerDown={(event) => startHandleDrag(event, handle)}
           onPointerMove={moveHandleDrag}
           onPointerUp={endHandleDrag}

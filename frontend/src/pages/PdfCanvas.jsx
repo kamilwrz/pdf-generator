@@ -1,3 +1,10 @@
+import { usePageTitle } from "../i18n/usePageTitle.js";
+import { messageRef } from '../i18n/messageState.js';
+import englishLinden from '../templates/en/linden.json';
+import API_BASE_URL from '../services/api';
+import { getUiLanguage } from '../i18n/index.js';
+import { t as uiText } from "../i18n/index.js";
+import { useTranslation } from 'react-i18next';
 import Gallery from '../components/gallery/Gallery/Gallery';
 import Sidebar from '../components/editor/Sidebar/Sidebar';
 import Topbar from '../components/editor/Topbar/Topbar';
@@ -137,14 +144,13 @@ const LazyAiAssistant = lazy(() => import('../components/ai/AiAssistant/AiAssist
 const LazyAiCvPanel = lazy(() => import('../components/ai/AiCvPanel/AiCvPanel'));
 
 function LazyAiFallback({ modal = false }) {
+  useTranslation();
   return (
     <div
       className={modal ? "editor-lazy-status editor-lazy-status--modal" : "editor-lazy-status"}
       role="status"
       aria-live="polite"
-    >
-      Ładowanie narzędzia AI…
-    </div>
+    >{uiText("editor:pdfCanvas.loadingAiTool")}</div>
   );
 }
 
@@ -168,6 +174,7 @@ export function EditorView({
   sessionValue,
   children,
 }) {
+  useTranslation();
   return (
     <main className={className} onMouseMove={onMouseMove}>
       <DialogSuspensionContext.Provider value={dialogsSuspended}>
@@ -188,6 +195,8 @@ export function EditorView({
 }
 
 export function EditorController() {
+  usePageTitle("common:editorTitle");
+  useTranslation();
 
   const navigate = useNavigate();
   const lifecycleController = useDocumentLifecycleController();
@@ -446,7 +455,7 @@ export function EditorController() {
       ENDPOINTS.AI.BIO_CV_DRAFT,
       "GET",
       null,
-      "Nie udało się sprawdzić starego szkicu.",
+      uiText("editor:pdfCanvas.couldNotCheckTheOlderDraft"),
     ).then((response) => {
       if (cancelled || !guestWizardProfileHasContent(response?.cv_data)) return;
       setLegacyDraft({
@@ -565,7 +574,7 @@ export function EditorController() {
     canUndo,
     canRedo,
     resetHistory
-  } = useA4Elements(titleRef)
+  } = useA4Elements(titleRef, activeCvData?.language || getUiLanguage())
 
   const persistedSnapshot = useMemo(() => createPersistedDocumentSnapshot({
     title: documentTitle,
@@ -834,7 +843,7 @@ export function EditorController() {
     dialogSaveCompletionRef.current = null;
     if (!completion) return;
     if (saved) completion.resolve(true);
-    else completion.reject(error || new Error("Nie udało się zapisać dokumentu."));
+    else completion.reject(error || new Error(uiText("editor:pdfCanvas.couldNotSaveTheDocument")));
   }, []);
   const handlePdfId = useCallback((nextPdfId, options = {}) => {
     const { force = false } = options;
@@ -914,7 +923,7 @@ export function EditorController() {
     deleteClearRequestedRef.current = false;
     if (!isDocumentScopeCurrent(saveScopeRef.current)) {
       settleDialogSave(false, new Error(
-        "Dokument zmienił się podczas zapisu. Sprawdź bieżącą wersję i spróbuj ponownie.",
+        uiText("editor:pdfCanvas.theDocumentChangedWhileSavingCheckThe"),
       ));
       return undefined;
     }
@@ -923,8 +932,8 @@ export function EditorController() {
       const localizedMessage = planErrorMessage(responsePDF, responsePDF.message);
       pushToastRef.current({
         title: responsePDF?.code === "document_conflict"
-          ? "Konflikt zapisu"
-          : (responsePDF?.code?.startsWith?.("plan_") ? "Limit planu" : "Coś poszło nie tak"),
+          ? messageRef("editor:pdfCanvas.saveConflict")
+          : (responsePDF?.code?.startsWith?.("plan_") ? messageRef("documents:modalPdfs.planAllowance") : messageRef("editor:pdfCanvas.somethingWentWrong")),
         msg: localizedMessage,
         variant: "error",
       });
@@ -932,7 +941,7 @@ export function EditorController() {
       return undefined;
     }
     if (!responsePDF?.success) {
-      settleDialogSave(false, new Error("Serwer nie potwierdził zapisu dokumentu."));
+      settleDialogSave(false, new Error(uiText("editor:pdfCanvas.theServerDidNotConfirmTheDocument")));
       return undefined;
     }
 
@@ -953,8 +962,8 @@ export function EditorController() {
     }
     const fileLabel = documentTitle ? `${documentTitle}.pdf` : "CV";
     pushToastRef.current({
-      title: "Zapisano w Moich dokumentach",
-      msg: `CV zostało zapisane pomyślnie${documentTitle ? `: ${fileLabel}` : "."}`,
+      title: messageRef("editor:pdfCanvas.savedToMyDocuments"),
+      msg: messageRef("editor:pdfCanvas.cvSavedSuccessfully", { value0: (documentTitle ? `: ${fileLabel}` : ".") }),
       variant: "success",
     });
     // A create consumes a project entitlement; refresh so plan counters stay
@@ -1003,7 +1012,7 @@ export function EditorController() {
     if (!token) return;
 
     const api = new ApiClient({ Authorization: `Bearer ${token}` });
-    api.httpRequest(ENDPOINTS.AUTH.TOKEN, "GET", null, "Weryfikacja tokenu nie powiodła się!").
+    api.httpRequest(ENDPOINTS.AUTH.TOKEN, "GET", null, uiText("editor:pdfCanvas.tokenVerificationFailed")).
       catch(async (error) => {
         console.log(error);
         if (error.status === 401 || error.status === 403) {
@@ -1162,7 +1171,10 @@ export function EditorController() {
     if (initialStartIntentRef.current !== "demo" || demoStartAppliedRef.current) return;
     demoStartAppliedRef.current = true;
     commitDocumentSnapshot({
-      elements: materializeElementSpecs(lindenTemplate, nanoid),
+      elements: materializeElementSpecs(getUiLanguage() === 'en'
+        ? englishLinden.map((element) => element.category === 'image' && element.src?.startsWith('/template-assets')
+          ? { ...element, src: `${API_BASE_URL}${element.src}` } : element)
+        : lindenTemplate, nanoid),
       title: "DEMO_CV",
       templateId: "linden",
       editorMode: EDITOR_MODE_TEMPLATE,
@@ -1246,9 +1258,9 @@ export function EditorController() {
     );
     if (!silent) {
       pushToast({
-        title: 'Układ dopasowany.',
+        title: messageRef("editor:pdfCanvas.layoutAdjusted"),
         msg: fit.typographyPreset === 'S'
-          ? 'Zmniejszyliśmy odstępy i ustawiliśmy rozmiar tekstu S — bez użycia AI.'
+          ? messageRef("editor:pdfCanvas.spacingReducedAndTextSizeSetTo")
           : undefined,
         variant: 'success',
       });
@@ -1401,8 +1413,8 @@ export function EditorController() {
     // visible; the panel owns the actual fit affordance.
     longCvOfferedForRef.current = identity;
     pushToast({
-      title: 'Twoje CV jest dość długie',
-      msg: `Zajmuje ${pageCount} stron — w panelu „Dostosuj CV” zobaczysz, jak zmieścić je na mniej.`,
+      title: messageRef("editor:pdfCanvas.yourCvIsQuiteLong"),
+      msg: messageRef("editor:pdfCanvas.itTakesPagesOpenCustomiseCvTo", { value0: (pageCount) }),
       variant: 'info',
     });
   }, [
@@ -1434,8 +1446,8 @@ export function EditorController() {
         commitFit(relaxed, { silent: true });
       }
       pushToast({
-        title: 'Gotowe',
-        msg: `CV skrócone z ${baseline} do ${pageCount} stron.`,
+        title: messageRef("editor:pdfOperationProgressModal.done"),
+        msg: messageRef("editor:pdfCanvas.cvShortenedFromToPages", { value0: (baseline), value1: (pageCount) }),
         variant: 'success',
       });
       shortenBaselinePagesRef.current = null;
@@ -1470,8 +1482,8 @@ export function EditorController() {
     if (hasRequiredCvName(A4_Elements)) return true;
     const nameElement = findRequiredCvNameElement(A4_Elements);
     pushToast({
-      title: "Uzupełnij imię i nazwisko",
-      msg: "To jedyne pole wymagane przed zapisem lub eksportem CV.",
+      title: messageRef("editor:pdfCanvas.enterYourFullName"),
+      msg: messageRef("editor:pdfCanvas.thisIsTheOnlyRequiredFieldBefore"),
       variant: "error",
     });
     if (nameElement?.element_id) {
@@ -1528,13 +1540,13 @@ export function EditorController() {
    */
   const saveCurrentDocumentAndWait = useCallback(() => {
     if (!requireNameBeforeOutput()) {
-      return Promise.reject(new Error("Uzupełnij imię i nazwisko."));
+      return Promise.reject(new Error(uiText("editor:pdfCanvas.enterYourFullName2")));
     }
     if (!localStorage.getItem("token")) {
-      return Promise.reject(new Error("Zaloguj się, aby zapisać dokument."));
+      return Promise.reject(new Error(uiText("editor:pdfCanvas.signInToSaveTheDocument")));
     }
     if (isPdfLoading || saveRequestPendingRef.current || dialogSaveCompletionRef.current) {
-      return Promise.reject(new Error("Zapis dokumentu już trwa. Poczekaj na jego zakończenie."));
+      return Promise.reject(new Error(uiText("editor:pdfCanvas.theDocumentIsAlreadyBeingSavedWait")));
     }
 
     return new Promise((resolve, reject) => {
@@ -1584,19 +1596,19 @@ export function EditorController() {
         throw error;
       }
       pushToast({
-        title: "CV gotowe do pobrania",
-        msg: `Pobrano plik ${title}.`,
+        title: messageRef("editor:pdfCanvas.cvReadyToDownload"),
+        msg: messageRef("editor:pdfCanvas.downloaded", { value0: (title) }),
         variant: "success",
-        action: { label: "Pobierz PDF", href: blob, download: title },
+        action: { label: messageRef("editor:pdfOperationProgressModal.downloadPdf"), href: blob, download: title },
       });
       // A download consumes an export entitlement; refresh so the plan counter
       // reflects it without waiting for the next natural fetch.
       refreshEntitlements?.();
     } catch (error) {
-      console.error("Nie udało się pobrać PDF.", error);
+      console.error(uiText("editor:pdfCanvas.couldNotDownloadThePdf"), error);
       pushToast({
-        title: error?.code?.startsWith?.("plan_") ? "Limit planu" : "Pobieranie nie powiodło się",
-        msg: planErrorMessage(error, "Nie udało się przygotować pobierania PDF."),
+        title: error?.code?.startsWith?.("plan_") ? messageRef("documents:modalPdfs.planAllowance") : messageRef("documents:modalPdfs.downloadFailed"),
+        msg: planErrorMessage(error, messageRef("editor:pdfCanvas.couldNotPrepareThePdfDownload")),
         variant: "error",
       });
     }
@@ -1808,17 +1820,17 @@ export function EditorController() {
 
   const handleCreateStarterCv = useCallback(async (config, options = {}) => {
     const template = TEMPLATES.find((candidate) => candidate.id === config.templateId);
-    if (!template) throw new Error("Nie znaleziono wybranego szablonu.");
+    if (!template) throw new Error(uiText("editor:pdfCanvas.selectedTemplateNotFound"));
     const { cvData, fillProfile } = buildStarterDocument(config);
     const requestScope = captureDocumentScope();
     const response = await fillTemplate(fillProfile, template.id, {
-      errorMessage: "Nie udało się utworzyć nowego CV.",
+      errorMessage: uiText("editor:pdfCanvas.couldNotCreateANewCv"),
       spacing: DEFAULT_FLOW_SPACING,
     });
     if (!isDocumentScopeCurrent(requestScope, { requireSameRevision: true })) {
-      throw new Error("Dokument zmienił się podczas tworzenia. Otwórz konfigurator ponownie.");
+      throw new Error(uiText("editor:pdfCanvas.theDocumentChangedDuringCreationOpenSetup"));
     }
-    const created = await loadAiElementsFresh(response.elements, "Moje CV", template.id, {
+    const created = await loadAiElementsFresh(response.elements, uiText("interview:interviewFlow.myCv"), template.id, {
       cvData,
       flowSpacing: DEFAULT_FLOW_SPACING,
       selectName: true,
@@ -1839,10 +1851,10 @@ export function EditorController() {
       : TEMPLATES.find((candidate) => candidate.id === "meridian");
     try {
       const response = await fillTemplate(legacyDraft.profile, template.id, {
-        errorMessage: "Nie udało się przenieść starego szkicu na A4.",
+        errorMessage: uiText("editor:pdfCanvas.couldNotMoveTheOlderDraftTo"),
         spacing: DEFAULT_FLOW_SPACING,
       });
-      const created = await loadAiElementsFresh(response.elements, "Moje CV", template.id, {
+      const created = await loadAiElementsFresh(response.elements, uiText("interview:interviewFlow.myCv"), template.id, {
         cvData: legacyDraft.profile,
         flowSpacing: DEFAULT_FLOW_SPACING,
       });
@@ -1854,20 +1866,20 @@ export function EditorController() {
           ENDPOINTS.AI.BIO_CV_DRAFT,
           "DELETE",
           null,
-          "CV utworzono, ale nie udało się usunąć starego szkicu.",
+          uiText("editor:pdfCanvas.theCvWasCreatedButTheOlder"),
         );
       }
       setLegacyDraft(null);
       setStartChooserDismissed(true);
       pushToast?.({
-        title: "Szkic przeniesiony",
-        msg: "Dane ze starego kreatora są teraz edytowalne bezpośrednio na A4.",
+        title: uiText("editor:pdfCanvas.draftTransferred"),
+        msg: uiText("editor:pdfCanvas.yourOlderWizardDataCanNowBe"),
         variant: "success",
       });
     } catch (error) {
       pushToast?.({
-        title: "Nie udało się przenieść szkicu",
-        msg: planErrorMessage(error, "Spróbuj ponownie — stary szkic nie został usunięty."),
+        title: uiText("editor:pdfCanvas.couldNotMoveTheDraft"),
+        msg: planErrorMessage(error, uiText("editor:pdfCanvas.tryAgainTheOlderDraftHasNot")),
         variant: "error",
       });
     }
@@ -1878,7 +1890,7 @@ export function EditorController() {
   // in-memory content is carried into the copy — so no discard guard is needed.
   const confirmUnlockFreeform = useCallback(() => {
     const baseTitle = (documentTitle || "Projekt").trim() || "Projekt";
-    const copyTitle = `${baseTitle} (swobodny)`;
+    const copyTitle = uiText("editor:pdfCanvas.freeform", { value0: (baseTitle) });
     const cloned = A4_Elements.map((element) => ({
       ...element,
       element_id: nanoid(),
@@ -1903,8 +1915,8 @@ export function EditorController() {
     });
     setDialog(null);
     pushToast?.({
-      title: "Projekt własny",
-      msg: "Utworzono kopię ze swobodną edycją.",
+      title: uiText("editor:pdfCanvas.freeformProject"),
+      msg: uiText("editor:pdfCanvas.aFreeformEditingCopyWasCreated"),
       variant: "success",
     });
   }, [
@@ -1960,7 +1972,10 @@ export function EditorController() {
       guestDocumentRestoredRef.current = true;
       clearGuestDocument();
       commitDocumentSnapshot({
-        elements: materializeElementSpecs(lindenTemplate, nanoid),
+        elements: materializeElementSpecs(getUiLanguage() === 'en'
+        ? englishLinden.map((element) => element.category === 'image' && element.src?.startsWith('/template-assets')
+          ? { ...element, src: `${API_BASE_URL}${element.src}` } : element)
+        : lindenTemplate, nanoid),
         title: "DEMO_CV",
         templateId: "linden",
         editorMode: EDITOR_MODE_TEMPLATE,
@@ -2077,8 +2092,8 @@ export function EditorController() {
 
     if (initialStartIntentRef.current === "download") return;
     pushToast({
-      title: "Szkic wczytany",
-      msg: "Dokument jest na płótnie. Zapisz go, gdy będziesz gotowy.",
+      title: messageRef("editor:pdfCanvas.draftLoaded"),
+      msg: messageRef("editor:pdfCanvas.theDocumentIsOnTheCanvasSave"),
       variant: "success",
     });
   }, [
@@ -2364,7 +2379,7 @@ export function EditorController() {
     loadOwnedDocument(documentId).then((snapshot) => {
       if (!active) return;
       if (!isDocumentScopeCurrent(scope, { requireSameRevision: true })) {
-        setDocumentRouteState({ id: documentId, loading: false, error: new Error('Dokument zmienił się podczas wczytywania. Spróbuj ponownie.') });
+        setDocumentRouteState({ id: documentId, loading: false, error: new Error(uiText("editor:pdfCanvas.theDocumentChangedWhileLoadingTryAgain")) });
         return;
       }
       commitDocumentSnapshot(snapshot, { markClean: true });
@@ -2380,11 +2395,11 @@ export function EditorController() {
   // library remains reachable on missing/forbidden documents and failed reads.
   if (documentId && Number(documentId) !== pdfId) {
     const failure = documentRouteState.id === documentId ? documentRouteState.error : null;
-    return <SiteLayout workspace title={failure ? 'Nie udało się otworzyć CV' : 'Otwieranie CV'}>
-      {failure ? <div role="alert" className={siteClasses.error}><p>{failure.status === 404 || failure.status === 403 ? 'Dokument nie istnieje lub nie masz do niego dostępu.' : failure.message}</p>
-        {failure.status === 401 ? <Link to={`/login?${new URLSearchParams({ returnTo: getDocumentPath(documentId) })}`}>Zaloguj się ponownie</Link> : <button className={siteClasses.secondary} onClick={() => setDocumentRouteRetry((value) => value + 1)}>Spróbuj ponownie</button>}
-      </div> : <div role="status"><p>Wczytywanie treści i układu dokumentu…</p><div className={siteClasses.skeleton} aria-hidden="true" /></div>}
-      <Link to="/app/documents">Wróć do dokumentów</Link>
+    return <SiteLayout workspace title={failure ? uiText("editor:pdfCanvas.couldNotOpenCv") : uiText("editor:pdfCanvas.openingCv")}>
+      {failure ? <div role="alert" className={siteClasses.error}><p>{failure.status === 404 || failure.status === 403 ? uiText("editor:pdfCanvas.theDocumentDoesNotExistOrYou") : failure.message}</p>
+        {failure.status === 401 ? <Link to={`/login?${new URLSearchParams({ returnTo: getDocumentPath(documentId) })}`}>{uiText("editor:pdfCanvas.signInAgain")}</Link> : <button className={siteClasses.secondary} onClick={() => setDocumentRouteRetry((value) => value + 1)}>{uiText("errors:errorBoundary.tryAgain")}</button>}
+      </div> : <div role="status"><p>{uiText("editor:pdfCanvas.loadingDocumentContentAndLayout")}</p><div className={siteClasses.skeleton} aria-hidden="true" /></div>}
+      <Link to="/app/documents">{uiText("editor:pdfCanvas.backToDocuments")}</Link>
     </SiteLayout>;
   }
 
@@ -2461,6 +2476,7 @@ export function EditorController() {
                 onDismiss={() => setDialog(null)}
               />
               <AddSectionModal
+                documentLanguage={activeCvData?.language || "Polish"}
                 open={addSectionModal.open}
                 onCancel={closeAddSectionModal}
                 onConfirm={handleConfirmAddSection}

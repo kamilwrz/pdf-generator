@@ -9,13 +9,14 @@ import { measureTextareaHeight } from "./textareaHeight";
 import { pathCurvesForKind, polygonPointsForShape } from "./freeformShapes.js";
 
 /**
- * @param {{ elementId: string, page?: number }} opts
+ * @param {{ elementId: string, page?: number, language?: string }} opts
  * @returns {object}
  */
-export function createTextElement({ elementId, page = 1 }) {
+export function createTextElement({ elementId, page = 1, language = "Polish" }) {
   return {
     element_id: elementId,
-    content: "Przykładowy tekst…",
+    // This is newly authored seed content: later UI switches must not translate it.
+    content: /^(en|english)$/i.test(language) ? "Sample text…" : "Przykładowy tekst…",
     fontSize: 14,
     fontFamily: "Inter",
     color: "#000000",

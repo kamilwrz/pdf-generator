@@ -8,25 +8,27 @@ Po zmianie promptów uruchom:
 python scripts/generate_prompts_md.py
 ```
 
+Końcowa polityka `ui_language_policy()` w `app/core/localisation.py` jest dołączana w `_gpt`: pytania, rady i uzasadnienia używają języka UI; treść poprawek zachowuje język CV. Ta polityka ma pierwszeństwo przed historycznymi instrukcjami polskiego języka w poniższych promptach.
+
 ## Mapa akcji
 
 | Akcja API | Cel UI | Handler | Odpowiedzialność |
 | --- | --- | --- | --- |
-| `rating` | Sprawdź CV | `_rate_cv` (linie 1188–1289) | ocenia jakość i kompletność treści CV |
-| `position_rating` | Dopasuj do oferty | `_tailor_cv_to_position` (linie 1290–1404) | porównuje CV z ofertą i proponuje potwierdzone poprawki |
-| `grammar` | Sprawdź błędy | `_fix_grammar` (linie 1405–1457) | poprawia gramatykę, ortografię i interpunkcję |
-| `language` | Popraw język | `_check_style` (linie 1458–1538) | ulepsza styl w języku bieżącego CV |
-| `improve` | Wzmocnij treść | `_improve_content` (linie 1539–1606) | wzmacnia opisy bez wymyślania faktów |
-| `shorten` | Skróć CV | `_shorten_content` (linie 1607–1695) | kondensuje treść bez zmiany znaczenia |
-| `ats_score` | Sprawdź ATS | `_ats_score` (linie 1893–1997) | łączy deterministyczny odczyt PDF z oceną struktury |
-| `translate` | Przetłumacz CV | `_translate_cv` (linie 1792–1892) | tłumaczy pełną treść i profil na wybrany język |
-| `chat` | Czat | `_chat` (linie 2016–2307) | odpowiada na pytania o CV i przygotowuje bezpieczne operacje do akceptacji |
+| `rating` | Sprawdź CV | `_rate_cv` (linie 1203–1304) | ocenia jakość i kompletność treści CV |
+| `position_rating` | Dopasuj do oferty | `_tailor_cv_to_position` (linie 1305–1419) | porównuje CV z ofertą i proponuje potwierdzone poprawki |
+| `grammar` | Sprawdź błędy | `_fix_grammar` (linie 1420–1472) | poprawia gramatykę, ortografię i interpunkcję |
+| `language` | Popraw język | `_check_style` (linie 1473–1553) | ulepsza styl w języku bieżącego CV |
+| `improve` | Wzmocnij treść | `_improve_content` (linie 1554–1621) | wzmacnia opisy bez wymyślania faktów |
+| `shorten` | Skróć CV | `_shorten_content` (linie 1622–1710) | kondensuje treść bez zmiany znaczenia |
+| `ats_score` | Sprawdź ATS | `_ats_score` (linie 1911–2015) | łączy deterministyczny odczyt PDF z oceną struktury |
+| `translate` | Przetłumacz CV | `_translate_cv` (linie 1810–1910) | tłumaczy pełną treść i profil na wybrany język |
+| `chat` | Czat | `_chat` (linie 2034–2322) | odpowiada na pytania o CV i przygotowuje bezpieczne operacje do akceptacji |
 
-`grammar`, `language`, `improve` i `shorten` używają wykrytego lub jawnie wybranego `cv_language`. Akcja `translate` wymaga `target_language`; rady UI pozostają po polsku, a proponowana treść jest zwracana w języku docelowym.
+`grammar`, `language`, `improve` i `shorten` używają wykrytego lub jawnie wybranego `cv_language`. Akcja `translate` wymaga `target_language`; rady UI używają języka żądania (PL lub EN), a proponowana treść jest zwracana w języku docelowym.
 
 ## `rating` — Sprawdź CV
 
-Handler `_rate_cv` w `backend/app/services/ai_assistant_service.py`, linie 1188–1289. Funkcja ocenia jakość i kompletność treści CV.
+Handler `_rate_cv` w `backend/app/services/ai_assistant_service.py`, linie 1203–1304. Funkcja ocenia jakość i kompletność treści CV.
 
 ```python
 def _rate_cv(text: str, elements: list[dict]) -> dict:
@@ -133,7 +135,7 @@ Interfejs wyświetla ocenę osobno jako procent.
 
 ## `position_rating` — Dopasuj do oferty
 
-Handler `_tailor_cv_to_position` w `backend/app/services/ai_assistant_service.py`, linie 1290–1404. Funkcja porównuje CV z ofertą i proponuje potwierdzone poprawki.
+Handler `_tailor_cv_to_position` w `backend/app/services/ai_assistant_service.py`, linie 1305–1419. Funkcja porównuje CV z ofertą i proponuje potwierdzone poprawki.
 
 ```python
 def _tailor_cv_to_position(
@@ -253,7 +255,7 @@ ZASADY ANALIZY:
 
 ## `grammar` — Sprawdź błędy
 
-Handler `_fix_grammar` w `backend/app/services/ai_assistant_service.py`, linie 1405–1457. Funkcja poprawia gramatykę, ortografię i interpunkcję.
+Handler `_fix_grammar` w `backend/app/services/ai_assistant_service.py`, linie 1420–1472. Funkcja poprawia gramatykę, ortografię i interpunkcję.
 
 ```python
 def _fix_grammar(elements: list[dict], language_code: str = "pl") -> dict:
@@ -311,7 +313,7 @@ CZAS GRAMATYCZNY STANOWISK (OBOWIĄZKOWE — naruszenie = błąd):
 
 ## `language` — Popraw język
 
-Handler `_check_style` w `backend/app/services/ai_assistant_service.py`, linie 1458–1538. Funkcja ulepsza styl w języku bieżącego CV.
+Handler `_check_style` w `backend/app/services/ai_assistant_service.py`, linie 1473–1553. Funkcja ulepsza styl w języku bieżącego CV.
 
 ```python
 def _check_style(text: str, elements: list[dict], language_code: str = "pl") -> dict:
@@ -397,7 +399,7 @@ Zwróć JSON:
 
 ## `improve` — Wzmocnij treść
 
-Handler `_improve_content` w `backend/app/services/ai_assistant_service.py`, linie 1539–1606. Funkcja wzmacnia opisy bez wymyślania faktów.
+Handler `_improve_content` w `backend/app/services/ai_assistant_service.py`, linie 1554–1621. Funkcja wzmacnia opisy bez wymyślania faktów.
 
 ```python
 def _improve_content(elements: list[dict], language_code: str = "pl") -> dict:
@@ -470,7 +472,7 @@ Zwróć JSON:
 
 ## `shorten` — Skróć CV
 
-Handler `_shorten_content` w `backend/app/services/ai_assistant_service.py`, linie 1607–1695. Funkcja kondensuje treść bez zmiany znaczenia.
+Handler `_shorten_content` w `backend/app/services/ai_assistant_service.py`, linie 1622–1710. Funkcja kondensuje treść bez zmiany znaczenia.
 
 ```python
 def _shorten_content(elements: list[dict], language_code: str = "pl") -> dict:
@@ -564,7 +566,7 @@ VERB TENSE FOR ROLES (MANDATORY — a violation is an error):
 
 ## `ats_score` — Sprawdź ATS
 
-Handler `_ats_score` w `backend/app/services/ai_assistant_service.py`, linie 1893–1997. Funkcja łączy deterministyczny odczyt PDF z oceną struktury.
+Handler `_ats_score` w `backend/app/services/ai_assistant_service.py`, linie 1911–2015. Funkcja łączy deterministyczny odczyt PDF z oceną struktury.
 
 ```python
 def _ats_score(
@@ -674,7 +676,7 @@ _MAX_HISTORY_CHARS = 1500
 
 ## `translate` — Przetłumacz CV
 
-Handler `_translate_cv` w `backend/app/services/ai_assistant_service.py`, linie 1792–1892. Funkcja tłumaczy pełną treść i profil na wybrany język.
+Handler `_translate_cv` w `backend/app/services/ai_assistant_service.py`, linie 1810–1910. Funkcja tłumaczy pełną treść i profil na wybrany język.
 
 ```python
 def _translate_cv(
@@ -691,7 +693,7 @@ def _translate_cv(
     lang_name = _TRANSLATE_LANGUAGE_NAMES.get(lang)
     if not lang_name:
         return {
-            "message": "Nieobsługiwany język tłumaczenia.",
+            "message": localised_message('unsupported_translation_language'),
             "rating": None,
             "tips": [],
             "corrections": [],
@@ -780,7 +782,7 @@ Zwróć JSON:
 
 ## `chat` — Czat
 
-Handler `_chat` w `backend/app/services/ai_assistant_service.py`, linie 2016–2307. Funkcja odpowiada na pytania o CV i przygotowuje bezpieczne operacje do akceptacji.
+Handler `_chat` w `backend/app/services/ai_assistant_service.py`, linie 2034–2322. Funkcja odpowiada na pytania o CV i przygotowuje bezpieczne operacje do akceptacji.
 
 ```python
 def _chat(
@@ -1021,8 +1023,7 @@ Zwróć JSON:
             result["structure_issues"] = [{
                 "severity": "warning",
                 "message": (
-                    "Nie można bezpiecznie przebudować tej sekcji — treść nie pokrywa się "
-                    "ze źródłem, koliduje z zablokowanym elementem albo nie mieści się na stronie."
+                    localised_message('this_section_cannot_be_rebuilt_safely_content_differs')
                 ),
             }]
         else:
@@ -1040,8 +1041,7 @@ Zwróć JSON:
             result["deletion_issues"] = [{
                 "severity": "warning",
                 "message": (
-                    "Nie można bezpiecznie przygotować usunięcia — wskazano nieznany, "
-                    "zablokowany lub chroniony element."
+                    localised_message('cannot_prepare_deletion_safely_an_unknown_locked_or')
                 ),
             }]
         else:
@@ -1059,8 +1059,7 @@ Zwróć JSON:
             result["clone_issues"] = [{
                 "severity": "warning",
                 "message": (
-                    "Nie można bezpiecznie sklonować wskazanych elementów — brak źródła, "
-                    "blokada, chronione tło albo pozycja wychodzi poza stronę."
+                    localised_message('cannot_duplicate_these_elements_safely_the_source_is')
                 ),
             }]
         else:

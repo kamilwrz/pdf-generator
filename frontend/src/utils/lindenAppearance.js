@@ -1,3 +1,4 @@
+import { t as uiText } from "../i18n/index.js";
 /**
  * Curated colour and typography system for the Linden CV template.
  *
@@ -15,8 +16,8 @@ export const DEFAULT_LINDEN_TEXT_SIZE = "M";
 export const LINDEN_PALETTES = Object.freeze([
   {
     id: "gallery",
-    name: "Galeria i Turkus",
-    tagline: "Białe tło, grafit i turkus",
+    get name() { return uiText("editor:lindenAppearance.galleryAndTurquoise"); },
+    get tagline() { return uiText("editor:lindenAppearance.whiteBackgroundGraphiteAndTurquoise"); },
     iconTheme: "linden-gallery",
     colors: {
       paper: "#FFFFFF", sidebar: "#FFFFFF", ink: "#242628", sidebarInk: "#303336",
@@ -27,8 +28,8 @@ export const LINDEN_PALETTES = Object.freeze([
   },
   {
     id: "carmine",
-    name: "Karminowy Gabinet",
-    tagline: "Jasne tło i karminowe akcenty",
+    get name() { return uiText("editor:lindenAppearance.carmineStudy"); },
+    get tagline() { return uiText("editor:lindenAppearance.lightBackgroundAndCarmineAccents"); },
     iconTheme: "linden-carmine",
     colors: {
       paper: "#FFFCFA", sidebar: "#F3E3E2", ink: "#2C2425", sidebarInk: "#39292B",
@@ -39,8 +40,8 @@ export const LINDEN_PALETTES = Object.freeze([
   },
   {
     id: "botanical",
-    name: "Botaniczny Papier",
-    tagline: "Ciepłe tło i zgaszona zieleń",
+    get name() { return uiText("editor:lindenAppearance.botanicalPaper"); },
+    get tagline() { return uiText("editor:lindenAppearance.warmBackgroundAndMutedGreen"); },
     iconTheme: "linden",
     colors: {
       paper: "#FBFAF6", sidebar: "#F2EFE6", ink: "#252823", sidebarInk: "#252823",
@@ -51,8 +52,8 @@ export const LINDEN_PALETTES = Object.freeze([
   },
   {
     id: "midnight",
-    name: "Nocny Atrament",
-    tagline: "Granatowe tło i ciepłe akcenty",
+    get name() { return uiText("editor:lindenAppearance.nightInk"); },
+    get tagline() { return uiText("editor:lindenAppearance.navyBackgroundAndWarmAccents"); },
     iconTheme: "linden-midnight",
     colors: {
       paper: "#F8FAF9", sidebar: "#18323B", ink: "#202D31", sidebarInk: "#F4F0E8",
@@ -63,8 +64,8 @@ export const LINDEN_PALETTES = Object.freeze([
   },
   {
     id: "cobalt",
-    name: "Kobaltowa Porcelana",
-    tagline: "Jasne tło, kobalt i koral",
+    get name() { return uiText("editor:lindenAppearance.cobaltPorcelain"); },
+    get tagline() { return uiText("editor:lindenAppearance.lightBackgroundCobaltAndCoral"); },
     iconTheme: "linden-cobalt",
     colors: {
       paper: "#FFFEFB", sidebar: "#E7EEF6", ink: "#232A32", sidebarInk: "#263746",
@@ -75,8 +76,8 @@ export const LINDEN_PALETTES = Object.freeze([
   },
   {
     id: "plum",
-    name: "Śliwkowy Wieczór",
-    tagline: "Ciemna śliwka i jasny tekst",
+    get name() { return uiText("editor:lindenAppearance.plumEvening"); },
+    get tagline() { return uiText("editor:lindenAppearance.darkPlumAndLightText"); },
     iconTheme: "linden-plum",
     colors: {
       paper: "#FBF7F8", sidebar: "#382D3C", ink: "#2C252C", sidebarInk: "#FBF2F5",
@@ -88,10 +89,10 @@ export const LINDEN_PALETTES = Object.freeze([
 ]);
 
 export const LINDEN_TEXT_SIZES = Object.freeze([
-  { id: "S", label: "S", description: "Kompaktowy" },
-  { id: "M", label: "M", description: "Oryginalny" },
-  { id: "L", label: "L", description: "Czytelny" },
-  { id: "XL", label: "XL", description: "Wyrazisty" },
+  { id: "S", label: "S", get description() { return uiText("editor:atriumAppearance.compact"); } },
+  { id: "M", label: "M", get description() { return uiText("editor:atriumAppearance.original"); } },
+  { id: "L", label: "L", get description() { return uiText("editor:atriumAppearance.readable"); } },
+  { id: "XL", label: "XL", get description() { return uiText("editor:atriumAppearance.bold"); } },
 ]);
 
 const TEXT_SCALE = {

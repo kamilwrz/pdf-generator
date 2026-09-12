@@ -1,3 +1,6 @@
+import { useMessageState, messageRef } from '../../../i18n/messageState.js';
+import { t as uiText } from "../../../i18n/index.js";
+import { useTranslation } from 'react-i18next';
 /**
  * Profile-photo upload dropzone.
  *
@@ -22,9 +25,7 @@ import {
 import { MAX_PROFILE_PHOTOS } from "../../../constants/profilePhotos";
 
 const PROGRESS_MAX = 100;
-const LIMIT_FULL_MESSAGE =
-    `Osiągnięto limit ${MAX_PROFILE_PHOTOS} zdjęć profilowych. `
-    + "Usuń jedno lub więcej zdjęć w galerii, aby dodać kolejne.";
+const limitFullMessage = () => messageRef('editor:dropzone.photoLimit', { count: MAX_PROFILE_PHOTOS });
 
 /**
  * @param {{
@@ -42,6 +43,7 @@ export default function Dropzone({
     onUploaded,
     onLibraryChange,
 }) {
+  useTranslation();
     const { valueImageUpload, setValueImageUpload, isDropzone } = useUiSurfaces();
     const isEmbedded = variant === "embedded";
     const isActive = active ?? isDropzone;
@@ -49,8 +51,8 @@ export default function Dropzone({
     const [files, setFiles] = useState([]);
     const [libraryCount, setLibraryCount] = useState(libraryCountProp ?? 0);
     const [libraryLoaded, setLibraryLoaded] = useState(libraryCountProp != null);
-    const [status, setStatus] = useState("idle"); // idle | uploading | success | error
-    const [statusMessage, setStatusMessage] = useState("");
+    const [status, setStatus] = useMessageState("idle"); // idle | uploading | success | error
+    const [statusMessage, setStatusMessage] = useMessageState("");
     const uploadTokenRef = useRef(0);
 
     // Parent-owned count (gallery) wins when provided.
@@ -86,7 +88,7 @@ export default function Dropzone({
                 ENDPOINTS.IMG.FETCH,
                 "GET",
                 null,
-                "Pobieranie zdjęć profilowych nie powiodło się!",
+                uiText("editor:dropzone.couldNotLoadProfilePhotos"),
             );
             setLibraryCount(Array.isArray(rows) ? rows.length : 0);
         } catch {
@@ -117,13 +119,13 @@ export default function Dropzone({
 
         if (!localStorage.getItem("token")) {
             setStatus("error");
-            setStatusMessage("Załóż konto, aby przesyłać zdjęcia profilowe do galerii.");
+            setStatusMessage(messageRef("editor:dropzone.createAnAccountToUploadProfilePhotos"));
             return;
         }
 
         if (remainingSlots <= 0) {
             setStatus("error");
-            setStatusMessage(LIMIT_FULL_MESSAGE);
+            setStatusMessage(limitFullMessage());
             return;
         }
 
@@ -142,7 +144,7 @@ export default function Dropzone({
         setStatus("uploading");
         setStatusMessage(
             truncated
-                ? `Wybrano więcej plików niż wolnych miejsc — przesyłanie ${batch.length} ${batch.length === 1 ? "zdjęcia" : "zdjęć"}…`
+                ? messageRef("editor:dropzone.moreFilesSelectedThanAvailableSpacesUploading", { value0: (batch.length), value1: (batch.length === 1 ? messageRef("editor:dropzone.photos") : messageRef("editor:dropzone.photos2")) })
                 : polishUploadingMessage(batch.length),
         );
         setValueImageUpload(0);
@@ -167,7 +169,7 @@ export default function Dropzone({
                         ENDPOINTS.IMG.UPLOAD,
                         "POST",
                         formData,
-                        "Przesyłanie zdjęcia profilowego nie powiodło się!",
+                        uiText("editor:dropzone.profilePhotoUploadFailed"),
                     );
                     succeeded += 1;
                     if (libraryCountProp == null) {
@@ -212,7 +214,7 @@ export default function Dropzone({
         onDropRejected: () => {
             if (atLimit) {
                 setStatus("error");
-                setStatusMessage(LIMIT_FULL_MESSAGE);
+                setStatusMessage(limitFullMessage());
             }
         },
     });
@@ -223,24 +225,23 @@ export default function Dropzone({
 
     const showProgress = status === "uploading" || status === "success" || status === "error";
 
-    let title = isEmbedded ? "Upuść zdjęcie tutaj" : "Upuść zdjęcia profilowe tutaj";
-    let hint = <>lub <span>przeglądaj pliki</span></>;
+    let title = isEmbedded ? uiText("editor:dropzone.dropAPhotoHere") : uiText("editor:dropzone.dropProfilePhotosHere");
+    let hint = <>{uiText("editor:dropzone.or")} <span>{uiText("editor:dropzone.browseFiles")}</span></>;
     if (!libraryLoaded) {
-        title = "Sprawdzanie limitu…";
-        hint = `Maksymalnie ${MAX_PROFILE_PHOTOS} zdjęć`;
+        title = uiText("editor:dropzone.checkingAllowance");
+        hint = uiText("editor:dropzone.upToPhotos", { value0: (MAX_PROFILE_PHOTOS) });
     } else if (atLimit) {
-        title = "Limit jest pełny";
-        hint = LIMIT_FULL_MESSAGE;
+        title = uiText("editor:dropzone.allowanceFull");
+        hint = uiText("editor:dropzone.photoLimit", { count: MAX_PROFILE_PHOTOS });
     } else if (status === "uploading") {
-        title = "Przesyłanie…";
+        title = uiText("editor:dropzone.uploading");
         hint = statusMessage;
     } else if (isDragActive) {
-        title = "Upuść, aby przesłać";
-        hint = `Pozostało ${remainingSlots} z ${MAX_PROFILE_PHOTOS}`;
+        title = uiText("editor:dropzone.dropToUpload");
+        hint = uiText("editor:dropzone.ofRemaining", { value0: (remainingSlots), value1: (MAX_PROFILE_PHOTOS) });
     } else if (isEmbedded) {
         hint = (
-            <>
-                lub <span>przeglądaj</span>
+            <>{uiText("editor:dropzone.or")} <span>{uiText("editor:dropzone.browse")}</span>
                 {" · "}
                 {remainingSlots}
                 /
@@ -249,33 +250,23 @@ export default function Dropzone({
         );
     } else {
         hint = (
-            <>
-                lub <span>przeglądaj pliki</span>
-                {" · "}
-                pozostało
-                {" "}
+            <>{uiText("editor:dropzone.or")} <span>{uiText("editor:dropzone.browseFiles")}</span>
+                {" · "}{uiText("editor:dropzone.remaining")}{" "}
                 {remainingSlots}
                 {" "}
                 z
                 {" "}
                 {MAX_PROFILE_PHOTOS}
-                {" "}
-                miejsc
-            </>
+                {" "}{uiText("editor:dropzone.spaces")}</>
         );
     }
 
     return (
         <section className={`${classes.dropzoneContainer}${isEmbedded ? ` ${classes.embedded}` : ""}`}>
             {!isEmbedded ? (
-                <p className={classes.intro}>
-                    Prześlij zdjęcia profilowe, które chcesz używać w CV.
-                    Biblioteka mieści maksymalnie
-                    {" "}
+                <p className={classes.intro}>{uiText("editor:dropzone.uploadProfilePhotosToUseInYour")}{" "}
                     {MAX_PROFILE_PHOTOS}
-                    {" "}
-                    zdjęcia.
-                </p>
+                    {" "}{uiText("editor:dropzone.photos3")}</p>
             ) : null}
 
             <div
@@ -294,7 +285,7 @@ export default function Dropzone({
 
             {atLimit && !isEmbedded ? (
                 <p className={classes.limitBanner} role="status">
-                    {LIMIT_FULL_MESSAGE}
+                    {uiText("editor:dropzone.photoLimit", { count: MAX_PROFILE_PHOTOS })}
                 </p>
             ) : null}
 
@@ -302,10 +293,10 @@ export default function Dropzone({
                 <>
                     <div className={classes.divider}>
                         <span className={classes.dividerLine} />
-                        <span className={classes.dividerLabel}>Podgląd przed zapisem w galerii</span>
+                        <span className={classes.dividerLabel}>{uiText("editor:dropzone.previewBeforeSavingToTheGallery")}</span>
                         <span className={classes.dividerLine} />
                     </div>
-                    <aside className={classes.thumbsWrap} aria-label="Podgląd przesyłanych zdjęć profilowych">
+                    <aside className={classes.thumbsWrap} aria-label={uiText("editor:dropzone.previewProfilePhotoUploads")}>
                         {files.map((file) => (
                             <div className={classes.thumb} key={`${file.name}-${file.size}-${file.lastModified}`}>
                                 <img

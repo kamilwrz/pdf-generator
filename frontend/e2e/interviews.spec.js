@@ -14,7 +14,7 @@ async function installInterviewApi(page, recovered = false) {
   await page.route('**/api/career-profile*', async (route) => {
     if (route.request().method() === 'PUT') profile = { ...route.request().postDataJSON(), revision: profile.revision + 1 };
     if (route.request().method() === 'DELETE') profile = { revision: profile.revision + 1, facts: [] };
-    await route.fulfill({ json: profile });
+    await route.fulfill({ json: { ...profile, sources: { documents: [{ id: 30, title: 'Anna CV' }], imports: [] } } });
   });
   await page.route('**/api/ai/interviews**', async (route) => {
     const path = new URL(route.request().url()).pathname;
@@ -69,7 +69,8 @@ for (const width of [390, 834, 1280, 1920]) {
     await page.emulateMedia({ reducedMotion: 'reduce' });
     const api = await installInterviewApi(page, true);
     await page.goto('/app/interview');
-    await page.getByLabel('Imię i nazwisko', { exact: true }).fill('Anna Nowak');
+    await page.getByLabel('Źródło informacji').selectOption('document:30');
+    await page.getByLabel('To moje CV — dołącz mój profil zawodowy').check();
     await page.getByRole('button', { name: 'Rozpocznij wywiad', exact: true }).click();
     await page.getByRole('button', { name: /Przejdź do (rozmowy|przygotowania CV)/ }).click();
     await page.getByRole('button', { name: 'Następne pytanie', exact: true }).click();

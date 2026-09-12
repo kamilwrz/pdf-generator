@@ -1,3 +1,5 @@
+import { t as uiText } from "../../../i18n/index.js";
+import { useTranslation } from 'react-i18next';
 import { useEffect, useRef } from "react";
 import { FiCheck, FiDownload, FiSave } from "react-icons/fi";
 import { createPortal } from "react-dom";
@@ -6,34 +8,34 @@ import classes from "./PdfOperationProgressModal.module.css";
 const OPERATION_CONFIG = Object.freeze({
     save: {
         Icon: FiSave,
-        eyebrow: "Zapis CV",
-        destination: "Moje dokumenty",
-        heading: "Zapisujemy Twoje CV",
-        description: "Zachowujemy projekt do dalszej edycji. Plik PDF nie zostanie teraz pobrany.",
-        progressLabel: "Postęp zapisu CV",
-        fallbackControlLabel: "Zapisz dokument",
-        footer: "Po zapisie pozostaniesz w edytorze",
-        livePrefix: "Zapisywanie CV",
+        get eyebrow() { return uiText("editor:pdfOperationProgressModal.saveCv"); },
+        get destination() { return uiText("public:siteLayout.myDocuments"); },
+        get heading() { return uiText("editor:pdfOperationProgressModal.savingYourCv"); },
+        get description() { return uiText("editor:pdfOperationProgressModal.savingYourProjectForFurtherEditingNo"); },
+        get progressLabel() { return uiText("editor:pdfOperationProgressModal.cvSaveProgress"); },
+        get fallbackControlLabel() { return uiText("editor:pdfOperationProgressModal.saveDocument"); },
+        get footer() { return uiText("editor:pdfOperationProgressModal.youWillStayInTheEditorAfter"); },
+        get livePrefix() { return uiText("editor:pdfOperationProgressModal.savingCv"); },
         phases: [
-            { id: "prepare", title: "Przygotowanie CV", description: "Sprawdzamy strony, treść i układ dokumentu." },
-            { id: "persist", title: "Zapis w Moich dokumentach", description: "Przesyłamy treść, styl i ustawienia edytora." },
-            { id: "confirm", title: "Potwierdzenie wersji", description: "Upewniamy się, że kolejne zmiany trafią do tego samego CV." },
+            { id: "prepare", get title() { return uiText("editor:pdfOperationProgressModal.preparingCv"); }, get description() { return uiText("editor:pdfOperationProgressModal.checkingTheDocumentSPagesContentAnd"); } },
+            { id: "persist", get title() { return uiText("editor:pdfOperationProgressModal.savingToMyDocuments"); }, get description() { return uiText("editor:pdfOperationProgressModal.sendingContentStylingAndEditorSettings"); } },
+            { id: "confirm", get title() { return uiText("editor:pdfOperationProgressModal.confirmingVersion"); }, get description() { return uiText("editor:pdfOperationProgressModal.makingSureSubsequentChangesGoToThe"); } },
         ],
     },
     download: {
         Icon: FiDownload,
-        eyebrow: "Pobieranie CV",
-        destination: "Ten komputer",
-        heading: "Przygotowujemy plik PDF",
-        description: "Tworzymy aktualną wersję CV. Projekt w edytorze i Moich dokumentach pozostanie bez zmian.",
-        progressLabel: "Postęp pobierania CV",
-        fallbackControlLabel: "Pobierz PDF",
-        footer: "Pobieranie rozpocznie się automatycznie",
-        livePrefix: "Pobieranie CV",
+        get eyebrow() { return uiText("editor:pdfOperationProgressModal.downloadingCv"); },
+        get destination() { return uiText("editor:pdfOperationProgressModal.thisComputer"); },
+        get heading() { return uiText("editor:pdfOperationProgressModal.preparingYourPdf"); },
+        get description() { return uiText("editor:pdfOperationProgressModal.creatingTheCurrentCvVersionTheProject"); },
+        get progressLabel() { return uiText("editor:pdfOperationProgressModal.cvDownloadProgress"); },
+        get fallbackControlLabel() { return uiText("editor:pdfOperationProgressModal.downloadPdf"); },
+        get footer() { return uiText("editor:pdfOperationProgressModal.yourDownloadWillStartAutomatically"); },
+        get livePrefix() { return uiText("editor:pdfOperationProgressModal.downloadingCv"); },
         phases: [
-            { id: "prepare", title: "Przygotowanie stron", description: "Sprawdzamy treść, układ i podział na strony." },
-            { id: "render", title: "Generowanie pliku PDF", description: "Renderujemy aktualną wersję CV w formacie PDF." },
-            { id: "download", title: "Rozpoczęcie pobierania", description: "Przekazujemy gotowy plik do Twojej przeglądarki." },
+            { id: "prepare", get title() { return uiText("editor:pdfOperationProgressModal.preparingPages"); }, get description() { return uiText("editor:pdfOperationProgressModal.checkingContentLayoutAndPageBreaks"); } },
+            { id: "render", get title() { return uiText("editor:pdfOperationProgressModal.generatingPdf"); }, get description() { return uiText("editor:pdfOperationProgressModal.renderingTheCurrentCvAsAPdf"); } },
+            { id: "download", get title() { return uiText("editor:pdfOperationProgressModal.startingDownload"); }, get description() { return uiText("editor:pdfOperationProgressModal.sendingTheFinishedFileToYourBrowser"); } },
         ],
     },
 });
@@ -50,6 +52,7 @@ const OPERATION_CONFIG = Object.freeze({
  * @returns {React.ReactPortal|null} A portalled, editor-only operation status modal.
  */
 export default function PdfOperationProgressModal({ open = true, operation = "save", phase, title = "" }) {
+  useTranslation();
     const modalRef = useRef(null);
     const previousFocusRef = useRef(null);
     const config = OPERATION_CONFIG[operation] ?? OPERATION_CONFIG.save;
@@ -57,7 +60,7 @@ export default function PdfOperationProgressModal({ open = true, operation = "sa
     const activePhase = config.phases[activeIndex];
     const progress = ((activeIndex + 1) / config.phases.length) * 100;
     const trimmedTitle = typeof title === "string" ? title.trim() : "";
-    const fileLabel = `${trimmedTitle || "Twoje CV"}.pdf`;
+    const fileLabel = `${trimmedTitle || uiText("editor:changeTemplateModal.yourCv")}.pdf`;
     const Icon = config.Icon;
     const titleId = `${operation}-progress-title`;
     const descriptionId = `${operation}-progress-description`;
@@ -135,7 +138,7 @@ export default function PdfOperationProgressModal({ open = true, operation = "sa
                         {config.phases.map((item, index) => {
                             const isComplete = index < activeIndex;
                             const isActive = index === activeIndex;
-                            const statusLabel = isComplete ? "Gotowe" : (isActive ? "W toku" : "Oczekuje");
+                            const statusLabel = isComplete ? uiText("editor:pdfOperationProgressModal.done") : (isActive ? uiText("editor:pdfOperationProgressModal.inProgress") : "Oczekuje");
                             return (
                                 <li
                                     key={item.id}

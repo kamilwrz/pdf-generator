@@ -1,3 +1,7 @@
+import { useMessageState, messageRef } from '../../../i18n/messageState.js';
+import { getUiLocale } from '../../../i18n/index.js';
+import { t as uiText } from "../../../i18n/index.js";
+import { useTranslation } from 'react-i18next';
 /**
  * “Import CV PDF → pick template” dialog.
  * Extract is entitlement-gated; fill uses deterministic backend layout.
@@ -21,7 +25,6 @@ import { TEMPLATES } from "../../../templates";
 import { selectCvTemplates } from "../../../utils/cvTemplateSelection";
 import {
     CV_IMPORT_REQUEST_OPTIONS,
-    CV_IMPORT_TIMEOUT_MESSAGE,
     cvImportRecoveryMessage,
     cvImportStatusLabel,
 } from "../../../utils/cvImportRequest";
@@ -52,6 +55,7 @@ const ChevronRight = () => (
 );
 
 export default function AiCvPanel() {
+  useTranslation();
     const { captureDocumentScope, isDocumentScopeCurrent } = useDocumentLifecycle();
     const { isAiPanel, showAiPanel, showNewCvSetup, requestAssistantAction } = useUiSurfaces();
     const { loadAiElements, flowSpacing } = useCanvasContext();
@@ -71,7 +75,7 @@ export default function AiCvPanel() {
     const [interviewAfterImport, setInterviewAfterImport] = useState(false);
     const [isExtracting, setIsExtracting] = useState(false);
     const [fillingId, setFillingId] = useState(null);
-    const [error, setError] = useState(null);
+    const [error, setError] = useMessageState(null);
     const [importId, setImportId] = useState(null);
     const [imports, setImports] = useState([]);
     const [importsNextCursor, setImportsNextCursor] = useState(null);
@@ -80,7 +84,7 @@ export default function AiCvPanel() {
     const [confirmDeleteImportId, setConfirmDeleteImportId] = useState(null);
     const [deletingImportId, setDeletingImportId] = useState(null);
     const [showHistory, setShowHistory] = useState(false);
-    const [historyNotice, setHistoryNotice] = useState("");
+    const [historyNotice, setHistoryNotice] = useMessageState("");
 
     useEffect(() => {
         // Inline confirmation replaces its trigger; restore the newly mounted
@@ -143,7 +147,7 @@ export default function AiCvPanel() {
             const endpoint = cursor
                 ? `${ENDPOINTS.AI.IMPORTS}?cursor=${encodeURIComponent(cursor)}`
                 : ENDPOINTS.AI.IMPORTS;
-            const response = await api.httpRequest(endpoint, "GET", undefined, "Nie udało się pobrać historii importów");
+            const response = await api.httpRequest(endpoint, "GET", undefined, uiText("ai:aiCvPanel.couldNotLoadImportHistory"));
             const pageItems = response.items || response.imports || [];
             setImports((current) => {
                 if (!append) return pageItems;
@@ -152,7 +156,7 @@ export default function AiCvPanel() {
             });
             setImportsNextCursor(response.next_cursor || null);
         } catch (err) {
-            setError(planErrorMessage(err, "Nie udało się pobrać historii importów."));
+            setError(planErrorMessage(err, messageRef("ai:aiCvPanel.couldNotLoadImportHistory2")));
         } finally {
             historyLoadingRef.current = false;
             setIsLoadingHistory(false);
@@ -181,7 +185,7 @@ export default function AiCvPanel() {
     const acceptFile = useCallback((f) => {
         if (!f) return;
         if (f.type !== "application/pdf" && !f.name?.toLowerCase().endsWith(".pdf")) {
-            setError("Wybierz plik PDF.");
+            setError(messageRef("ai:aiCvPanel.chooseAPdfFile"));
             return;
         }
         setFileName(f.name);
@@ -201,8 +205,8 @@ export default function AiCvPanel() {
         if (!canExtract) {
             setError(
                 isFreePlan && importLimitReached
-                    ? "Plan Darmowy obejmuje 1 udany import CV miesięcznie. Limit został wykorzystany — w Pro możesz importować bez limitu."
-                    : "Import CV z PDF jest dostępny w planie Pro.",
+                    ? messageRef("ai:aiCvPanel.theFreePlanIncludesSuccessfulCvImport")
+                    : messageRef("ai:aiCvPanel.pdfCvImportIsAvailableWithPro"),
             );
             return;
         }
@@ -219,7 +223,7 @@ export default function AiCvPanel() {
                 ENDPOINTS.AI.EXTRACT_CV,
                 "POST",
                 form,
-                "Ekstrakcja CV nie powiodła się",
+                uiText("ai:aiCvPanel.cvExtractionFailed"),
                 {
                     ...CV_IMPORT_REQUEST_OPTIONS,
                     headers: { "Idempotency-Key": idempotencyKey },
@@ -250,7 +254,7 @@ export default function AiCvPanel() {
                 // running at Cloudflare. Open history so the user can recover
                 // that snapshot instead of starting a billable duplicate.
                 setShowHistory(true);
-                setError(CV_IMPORT_TIMEOUT_MESSAGE);
+                setError(messageRef("editor:cvImportRequest.importHasTakenMoreThanMinutesAnd"));
             } else {
                 // A confirmed provider/application failure is a new logical
                 // attempt. Pending/active conflicts keep the current key so a
@@ -258,7 +262,7 @@ export default function AiCvPanel() {
                 if (!["ai_request_in_progress", "ai_operation_active"].includes(err?.code)) {
                     importIdempotencyKeyRef.current = null;
                 }
-                setError(planErrorMessage(err, "Nie udało się wyodrębnić danych z CV."));
+                setError(planErrorMessage(err, messageRef("ai:aiCvPanel.couldNotExtractDataFromTheCv")));
             }
         } finally {
             setIsExtracting(false);
@@ -268,7 +272,7 @@ export default function AiCvPanel() {
     const handleFill = useCallback(async (template) => {
         if (!cvData) return;
         if (!isTemplateAllowed(template, entitlements)) {
-            setError("Ten szablon jest dostępny w planie Pro.");
+            setError(messageRef("ai:aiCvPanel.thisTemplateIsAvailableWithPro"));
             return;
         }
         setFillingId(template.id);
@@ -277,11 +281,11 @@ export default function AiCvPanel() {
         try {
             const res = await fillTemplate(cvData, template.id, {
                 api,
-                errorMessage: "Generowanie szablonu nie powiodło się",
+                errorMessage: uiText("ai:aiCvPanel.templateGenerationFailed"),
                 spacing: flowSpacing,
             });
             if (!isDocumentScopeCurrent(requestScope, { requireSameRevision: true })) {
-                setError("Dokument zmienił się w trakcie generowania. Wybierz szablon ponownie.");
+                setError(messageRef("ai:aiCvPanel.theDocumentChangedDuringGenerationSelectThe"));
                 return;
             }
             const replaced = await loadAiElements(
@@ -295,7 +299,7 @@ export default function AiCvPanel() {
             showAiPanel();
             if (interviewAfterImport) requestAssistantAction?.('interview');
         } catch (err) {
-            setError(planErrorMessage(err, "Nie udało się wygenerować szablonu."));
+            setError(planErrorMessage(err, messageRef("ai:aiCvPanel.couldNotGenerateTheTemplate")));
         } finally {
             setFillingId(null);
         }
@@ -313,10 +317,10 @@ export default function AiCvPanel() {
                 ENDPOINTS.AI.IMPORT(snapshot.id),
                 "GET",
                 undefined,
-                "Nie udało się pobrać danych importu",
+                uiText("ai:aiCvPanel.couldNotLoadImportData"),
             );
             if (detail.status !== "succeeded" || !detail.cv_data) {
-                throw new Error("Ten import nie zawiera jeszcze gotowych danych CV.");
+                throw new Error(uiText("ai:aiCvPanel.thisImportDoesNotContainReadyCv"));
             }
             setCvData(detail.cv_data);
             setImportId(snapshot.id);
@@ -324,7 +328,7 @@ export default function AiCvPanel() {
             setConfirmDeleteImportId(null);
             setWizardStep(2);
         } catch (err) {
-            setError(planErrorMessage(err, "Nie udało się pobrać danych importu."));
+            setError(planErrorMessage(err, messageRef("ai:aiCvPanel.couldNotLoadImportData2")));
         } finally {
             setOpeningImportId(null);
         }
@@ -335,12 +339,12 @@ export default function AiCvPanel() {
         setDeletingImportId(snapshotId);
         setError(null);
         try {
-            await api.httpRequest(ENDPOINTS.AI.IMPORT(snapshotId), "DELETE", undefined, "Nie udało się usunąć importu");
+            await api.httpRequest(ENDPOINTS.AI.IMPORT(snapshotId), "DELETE", undefined, uiText("ai:aiCvPanel.couldNotDeleteTheImport"));
             setImports((current) => current.filter((item) => item.id !== snapshotId));
-            setHistoryNotice("Import został usunięty z historii.");
+            setHistoryNotice(messageRef("ai:aiCvPanel.theImportWasRemovedFromYourHistory"));
             setConfirmDeleteImportId(null);
         } catch (err) {
-            setError(planErrorMessage(err, "Nie udało się usunąć danych importu."));
+            setError(planErrorMessage(err, messageRef("ai:aiCvPanel.couldNotDeleteImportData")));
         } finally {
             setDeletingImportId(null);
         }
@@ -363,22 +367,21 @@ export default function AiCvPanel() {
             onClose={handleClose}
             width={onStep2 ? 1400 : 960}
             bodyClassName={classes.dialogBody}
-            title="Importuj CV"
-            subtitle={showHistory ? "Wybierz wcześniej odczytane dane albo usuń je ze swojej historii." : "Prześlij PDF — odczytamy dane i wypełnimy nimi wybrany szablon."}
+            title={uiText("ai:aiCvPanel.importCv")}
+            subtitle={showHistory ? uiText("ai:aiCvPanel.choosePreviouslyExtractedDataOrRemoveIt") : uiText("ai:aiCvPanel.uploadAPdfWeWillExtractIts")}
             footer={(
                 <div className={classes.footerBar}>
-                    <span className={classes.stepLabel}>
-                        Krok {onStep2 ? "2" : "1"}
+                    <span className={classes.stepLabel}>{uiText("ai:aiCvPanel.step")} {onStep2 ? "2" : "1"}
                         {" "}
                         z 2
                     </span>
-                    <div className={classes.stepNav} role="group" aria-label="Nawigacja kroków">
+                    <div className={classes.stepNav} role="group" aria-label={uiText("ai:aiCvPanel.stepNavigation")}>
                         <button
                             type="button"
                             className={classes.stepNavBtn}
                             onClick={goPrevStep}
                             disabled={!onStep2}
-                            aria-label="Poprzedni krok"
+                            aria-label={uiText("ai:aiCvPanel.previousStep")}
                         >
                             <ChevronLeft />
                         </button>
@@ -387,14 +390,14 @@ export default function AiCvPanel() {
                             className={classes.stepNavBtn}
                             onClick={goNextStep}
                             disabled={!extracted || onStep2}
-                            aria-label="Następny krok"
-                            title={!extracted ? "Najpierw wyodrębnij dane z CV" : undefined}
+                            aria-label={uiText("ai:aiCvPanel.nextStep")}
+                            title={!extracted ? uiText("ai:aiCvPanel.extractCvDataFirst") : undefined}
                         >
                             <ChevronRight />
                         </button>
                     </div>
                     <div className={classes.footerActions}>
-                        <button type="button" className={classes.cancelBtn} onClick={showAiPanel}>Anuluj</button>
+                        <button type="button" className={classes.cancelBtn} onClick={showAiPanel}>{uiText("ai:aiAssistant.cancel")}</button>
                         {!onStep2 && !showHistory && (
                             <button
                                 type="button"
@@ -402,15 +405,15 @@ export default function AiCvPanel() {
                                 onClick={handleExtract}
                                 disabled={!fileName || isExtracting || !canExtract}
                                 title={importLimitReached
-                                    ? "Plan Darmowy: wykorzystano 1 import CV w tym miesiącu"
+                                    ? uiText("ai:aiCvPanel.freePlanCvImportUsedThisMonth")
                                     : !canExtract
-                                        ? "Import CV jest dostępny w planie Pro"
+                                        ? uiText("ai:aiCvPanel.cvImportIsAvailableWithPro")
                                         : undefined}
                             >
                                 {isExtracting ? (
-                                    <><span className={classes.spinner} />Wyodrębnianie CV…</>
+                                    <><span className={classes.spinner} />{uiText("ai:aiCvPanel.extractingCv")}</>
                                 ) : (
-                                    <><SparkIcon />{canExtract ? "Wyodrębnij dane CV" : "Limit importów wykorzystany"}</>
+                                    <><SparkIcon />{canExtract ? uiText("ai:aiCvPanel.extractCvData") : uiText("ai:aiCvPanel.importAllowanceUsed")}</>
                                 )}
                             </button>
                         )}
@@ -422,17 +425,17 @@ export default function AiCvPanel() {
                 {!onStep2 && showHistory ? (
                     <div className={`${classes.stepPane} ${classes.historyPane}`}>
                         <div className={classes.historyHeader}>
-                            <div className={classes.sectionLabel}>Historia importów</div>
+                            <div className={classes.sectionLabel}>{uiText("ai:aiCvPanel.importHistory")}</div>
                             <div className={classes.historyHeaderActions}>
-                                <button type="button" className={classes.guidedLink} onClick={loadHistory} disabled={isLoadingHistory}>Odśwież status</button>
-                                <button type="button" className={classes.guidedLink} onClick={() => { setShowHistory(false); setConfirmDeleteImportId(null); }}>Nowy import</button>
+                                <button type="button" className={classes.guidedLink} onClick={loadHistory} disabled={isLoadingHistory}>{uiText("ai:aiCvPanel.refreshStatus")}</button>
+                                <button type="button" className={classes.guidedLink} onClick={() => { setShowHistory(false); setConfirmDeleteImportId(null); }}>{uiText("ai:aiCvPanel.newImport")}</button>
                             </div>
                         </div>
                         <div
                             className={classes.historyList}
                             ref={historyListRef}
                             role="region"
-                            aria-label="Lista importów CV"
+                            aria-label={uiText("ai:aiCvPanel.cvImports")}
                             tabIndex={0}
                         >
                             {imports.length ? (
@@ -443,10 +446,10 @@ export default function AiCvPanel() {
                                         <strong title={snapshot.filename || undefined}>
                                             {snapshot.filename || "Import CV"}
                                         </strong>
-                                        <span>{snapshot.created_at ? new Date(snapshot.created_at).toLocaleString("pl-PL") : ""} · {cvImportStatusLabel(snapshot.status)}</span>
+                                        <span>{snapshot.created_at ? new Date(snapshot.created_at).toLocaleString(getUiLocale()) : ""} · {cvImportStatusLabel(snapshot.status)}</span>
                                         <small>
-                                            {snapshot.size_bytes != null ? `${Math.ceil(snapshot.size_bytes / 1024)} KB` : "Rozmiar nieznany"}
-                                            {` · ${snapshot.document_count || 0} utworzonych CV`}
+                                            {snapshot.size_bytes != null ? `${Math.ceil(snapshot.size_bytes / 1024)} KB` : uiText("ai:aiCvPanel.unknownSize")}
+                                            {uiText("ai:aiCvPanel.cvsCreated", { value0: (snapshot.document_count || 0) })}
                                         </small>
                                         {snapshot.status === "failed" && (
                                             <small className={classes.failureHint}>
@@ -454,9 +457,7 @@ export default function AiCvPanel() {
                                             </small>
                                         )}
                                         {confirmDeleteImportId === snapshot.id && (
-                                            <small>
-                                                Dane importu zostaną trwale usunięte. Utworzone CV pozostaną.
-                                                {snapshot.status === "processing" && " Usunięcie nie zatrzymuje rozpoczętego odczytu ani nie odnawia limitu. Jego wynik zostanie odrzucony."}
+                                            <small>{uiText("ai:aiCvPanel.importDataWillBePermanentlyDeletedCreated")}{snapshot.status === "processing" && uiText("ai:aiCvPanel.deletionDoesNotStopExtractionAlreadyIn")}
                                             </small>
                                         )}
                                     </div>
@@ -465,7 +466,7 @@ export default function AiCvPanel() {
                                             <div
                                                 className={classes.deleteConfirmation}
                                                 role="group"
-                                                aria-label={`Potwierdź usunięcie danych z pliku ${snapshot.filename || "CV"}`}
+                                                aria-label={uiText("ai:aiCvPanel.confirmDeletionOfDataFrom", { value0: (snapshot.filename || "CV") })}
                                             >
                                                 <button
                                                     type="button"
@@ -473,9 +474,7 @@ export default function AiCvPanel() {
                                                     ref={cancelDeleteRef}
                                                     onClick={() => setConfirmDeleteImportId(null)}
                                                     disabled={deletingImportId != null}
-                                                >
-                                                    Anuluj
-                                                </button>
+                                                >{uiText("ai:aiAssistant.cancel")}</button>
                                                 <button
                                                     type="button"
                                                     className={classes.confirmDeleteImport}
@@ -483,7 +482,7 @@ export default function AiCvPanel() {
                                                     disabled={deletingImportId != null}
                                                     aria-busy={deletingImportId === snapshot.id}
                                                 >
-                                                    {deletingImportId === snapshot.id ? "Usuwanie…" : "Usuń trwale"}
+                                                    {deletingImportId === snapshot.id ? "Usuwanie…" : uiText("ai:aiCvPanel.deletePermanently")}
                                                 </button>
                                             </div>
                                         ) : snapshot.status === "succeeded" && (
@@ -494,7 +493,7 @@ export default function AiCvPanel() {
                                                 disabled={openingImportId != null}
                                                 aria-busy={openingImportId === snapshot.id}
                                             >
-                                                {openingImportId === snapshot.id ? "Pobieranie…" : "Utwórz CV"}
+                                                {openingImportId === snapshot.id ? "Pobieranie…" : uiText("ai:aiCvPanel.createCv")}
                                             </button>
                                         )}
                                         {confirmDeleteImportId !== snapshot.id && (
@@ -511,9 +510,7 @@ export default function AiCvPanel() {
                                                     setHistoryNotice("");
                                                     setError(null);
                                                 }}
-                                            >
-                                                Usuń dane
-                                            </button>
+                                            >{uiText("ai:aiCvPanel.deleteData")}</button>
                                         )}
                                     </div>
                                         </article>
@@ -525,18 +522,18 @@ export default function AiCvPanel() {
                                             onClick={loadMoreHistory}
                                             disabled={isLoadingHistory}
                                         >
-                                            {isLoadingHistory ? "Pobieranie…" : "Pokaż starsze importy"}
+                                            {isLoadingHistory ? "Pobieranie…" : uiText("ai:aiCvPanel.showOlderImports")}
                                         </button>
                                     )}
                                 </>
-                            ) : <p className={classes.hint}>{isLoadingHistory ? "Pobieranie historii…" : "Nie masz jeszcze zapisanych importów."}</p>}
+                            ) : <p className={classes.hint}>{isLoadingHistory ? uiText("ai:aiCvPanel.loadingHistory") : uiText("ai:aiCvPanel.youHaveNoSavedImportsYet")}</p>}
                         </div>
                     </div>
                 ) : !onStep2 ? (
                     <div className={classes.stepPane}>
-                        <div className={classes.sectionLabel}>Krok 1 · Prześlij swoje CV</div>
-                        <button type="button" className={classes.guidedLink} onClick={() => setShowHistory(true)}>Zobacz historię importów</button>
-                        <p className={classes.hint}><strong>Nie przesyłaj danych wrażliwych.</strong> Import korzysta z usług AI. Usuń z PDF informacje o zdrowiu, pochodzeniu, poglądach, religii, seksualności oraz dane biometryczne lub genetyczne.</p>
+                        <div className={classes.sectionLabel}>{uiText("ai:aiCvPanel.stepUploadYourCv")}</div>
+                        <button type="button" className={classes.guidedLink} onClick={() => setShowHistory(true)}>{uiText("ai:aiCvPanel.viewImportHistory")}</button>
+                        <p className={classes.hint}><strong>{uiText("ai:aiCvPanel.doNotUploadSensitivePersonalData")}</strong> {uiText("ai:aiCvPanel.importUsesAiServicesRemoveInformationAbout")}</p>
                         <input
                             ref={fileRef}
                             type="file"
@@ -553,18 +550,18 @@ export default function AiCvPanel() {
                                 event.preventDefault();
                                 acceptFile(event.dataTransfer.files?.[0]);
                             }}
-                            aria-label={fileName ? `Wybrano ${fileName}. Wybierz inny plik PDF` : "Wybierz plik PDF do importu"}
+                            aria-label={fileName ? uiText("ai:aiCvPanel.selectedChooseAnotherPdfFile", { value0: (fileName) }) : uiText("ai:aiCvPanel.chooseAPdfFileToImport")}
                         >
                             {fileName ? (
                                 <>
                                     <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
                                     <span className={classes.dropFileName}>{fileName}</span>
-                                    <span className={classes.dropChange}>Zmień</span>
+                                    <span className={classes.dropChange}>{uiText("ai:aiCvPanel.change")}</span>
                                 </>
                             ) : (
                                 <>
                                     <UploadIcon />
-                                    <span className={classes.dropText}>Upuść PDF tutaj lub kliknij, aby wybrać plik</span>
+                                    <span className={classes.dropText}>{uiText("ai:aiCvPanel.dropAPdfHereOrClickTo")}</span>
                                 </>
                             )}
                         </button>
@@ -575,53 +572,43 @@ export default function AiCvPanel() {
                                 <div className={classes.previewStats}>
                                     <span>{cvData.experience?.length ?? 0} {cvData.experience?.length === 1 ? "stanowisko" : "stanowisk"}</span>
                                     <span>·</span>
-                                    <span>{cvData.education?.length ?? 0} {cvData.education?.length === 1 ? "wpis edukacyjny" : "wpisów edukacyjnych"}</span>
+                                    <span>{cvData.education?.length ?? 0} {cvData.education?.length === 1 ? uiText("ai:aiCvPanel.educationEntry") : uiText("ai:aiCvPanel.educationEntries")}</span>
                                     <span>·</span>
-                                    <span>{cvData.skills?.length ?? 0} {cvData.skills?.length === 1 ? "umiejętność" : "umiejętności"}</span>
+                                    <span>{cvData.skills?.length ?? 0} {cvData.skills?.length === 1 ? uiText("ai:aiCvPanel.skill") : uiText("ai:aiCvPanel.skills")}</span>
                                 </div>
                                 <button
                                     type="button"
                                     className={classes.reExtract}
                                     onClick={() => { setCvData(null); setWizardStep(1); }}
-                                >
-                                    Wyodrębnij ponownie
-                                </button>
+                                >{uiText("ai:aiCvPanel.extractAgain")}</button>
                             </div>
                         )}
-                        <button type="button" className={classes.guidedLink} onClick={showNewCvSetup}>
-                            Nie masz gotowego PDF? Utwórz nowe CV na A4
-                        </button>
+                        <button type="button" className={classes.guidedLink} onClick={showNewCvSetup}>{uiText("ai:aiCvPanel.noPdfYetCreateANewA")}</button>
                         {importLimitReached && (
-                            <p className={classes.hint}>
-                                Plan Darmowy obejmuje 1 udany import CV miesięcznie. Limit został wykorzystany,
-                                ale nowe CV nadal utworzysz bez importu.
-                            </p>
+                            <p className={classes.hint}>{uiText("ai:aiCvPanel.theFreePlanIncludesSuccessfulCvImport2")}</p>
                         )}
                         {canExtract && isFreePlan && remainingImports != null && (
-                            <p className={classes.hint}>
-                                Plan Darmowy — dostępne importy CV w tym miesiącu: {remainingImports}.
+                            <p className={classes.hint}>{uiText("ai:aiCvPanel.freePlanCvImportsAvailableThisMonth")} {remainingImports}.
                             </p>
                         )}
                         {extracted && (
-                            <p className={classes.hint}>
-                                Dane są gotowe — strzałka w prawo w stopce przenosi do wyboru szablonu.
-                            </p>
+                            <p className={classes.hint}>{uiText("ai:aiCvPanel.yourDataIsReadyTheRightArrow")}</p>
                         )}
                     </div>
                 ) : (
                     <div className={classes.step2Pane}>
                         <div className={classes.step2Header}>
                             <div>
-                                <div className={classes.sectionLabel}>Krok 2 · Wybierz szablon do wypełnienia</div>
+                                <div className={classes.sectionLabel}>{uiText("ai:aiCvPanel.stepChooseATemplateToFill")}</div>
                                 <div className={classes.summaryLine}>
                                     <strong>{cvData.name}</strong>
                                     <span>
                                         {cvData.experience?.length ?? 0}
-                                        {" stanowisk · "}
+                                        {uiText("ai:aiCvPanel.roles")}
                                         {cvData.education?.length ?? 0}
-                                        {" edukacja · "}
+                                        {uiText("ai:aiCvPanel.education")}
                                         {cvData.skills?.length ?? 0}
-                                        {" umiejętności"}
+                                        {uiText("ai:aiCvPanel.skills")}
                                     </span>
                                 </div>
                             </div>
@@ -629,9 +616,7 @@ export default function AiCvPanel() {
                                 type="button"
                                 className={classes.reExtract}
                                 onClick={() => { setCvData(null); setWizardStep(1); }}
-                            >
-                                Wyodrębnij ponownie
-                            </button>
+                            >{uiText("ai:aiCvPanel.extractAgain")}</button>
                         </div>
                         {cvTemplates.length > 0 ? (
                             <div className={classes.carouselFill}>
@@ -644,13 +629,10 @@ export default function AiCvPanel() {
                                 />
                             </div>
                         ) : (
-                            <p className={classes.hint}>Nie ma jeszcze dostępnych szablonów CV.</p>
+                            <p className={classes.hint}>{uiText("ai:aiCvPanel.noCvTemplatesAreAvailableYet")}</p>
                         )}
-                        <p className={classes.hint}>
-                            Możesz wypełnić wiele szablonów bez ponownego przesyłania pliku.
-                            Każdy otworzy się na płótnie do natychmiastowej edycji.
-                        </p>
-                        {entitlements?.ai_assistant && <label className={classes.hint}><input type="checkbox" checked={interviewAfterImport} onChange={(event) => setInterviewAfterImport(event.target.checked)} /> Uzupełnij CV przez wywiad po wyborze szablonu</label>}
+                        <p className={classes.hint}>{uiText("ai:aiCvPanel.youCanFillSeveralTemplatesWithoutUploading")}</p>
+                        {entitlements?.ai_assistant && <label className={classes.hint}><input type="checkbox" checked={interviewAfterImport} onChange={(event) => setInterviewAfterImport(event.target.checked)} /> {uiText("ai:aiCvPanel.addToYourCvThroughAnInterview")}</label>}
                     </div>
                 )}
 

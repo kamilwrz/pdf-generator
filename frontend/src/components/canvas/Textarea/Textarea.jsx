@@ -1,3 +1,6 @@
+import { editorHint } from '../../../i18n/editorHints.js';
+import { t as uiText } from "../../../i18n/index.js";
+import { useTranslation } from 'react-i18next';
 /**
  * Multi-line textarea block with optional auto-height and bullet layout.
  * Edit mode uses a contentEditable surface; display mode mirrors PDF wrap
@@ -197,6 +200,7 @@ function Textarea({
     editorHoverOutline,
     skillsField = false,
 }) {
+  useTranslation();
     const {
         moveElement,
         selectMoveElement,
@@ -227,8 +231,8 @@ function Textarea({
     // Placeholder metadata is not required for persistence: mastheadRole is a
     // durable semantic marker, so saved/reloaded empty job titles keep the same
     // editor hint while the PDF renderer continues to receive empty content.
-    const editorPlaceholder = placeholder
-        || (mastheadRole === "title" ? MASTHEAD_TITLE_PLACEHOLDER : undefined);
+    const editorPlaceholder = editorHint(placeholder
+        || (mastheadRole === "title" ? MASTHEAD_TITLE_PLACEHOLDER : undefined));
     const initialLayoutPreservedRef = useRef(false);
     // The editable surface commits an authoritative measured height on every
     // input and again on blur. Do not let the display node immediately perform
@@ -707,10 +711,10 @@ function Textarea({
                     spellCheck={false}
                     role="textbox"
                     aria-label={metadataHints
-                        ? (metadataHints.length === 2 ? "Wykształcenie: miasto i okres" : "Doświadczenie: firma, lokalizacja i okres")
-                        : (editorPlaceholder || "Treść")}
+                        ? (metadataHints.length === 2 ? uiText("editor:textarea.educationCityAndPeriod") : uiText("editor:textarea.experienceCompanyLocationAndPeriod"))
+                        : (editorPlaceholder || uiText("interview:factEditor.content"))}
                     aria-multiline="true"
-                    data-placeholder={editorPlaceholder || "Wpisz swój tekst…"}
+                    data-placeholder={editorPlaceholder || uiText("editor:textarea.enterYourText")}
                     data-editor-hover-outline={editorHoverOutline ? "true" : undefined}
                     data-skills-field={skillsField ? "true" : undefined}
                     data-contact-channel={contactChannel || undefined}
@@ -860,8 +864,8 @@ function Textarea({
             // the serialized document or exported PDF.
             data-editor-hover-outline={editorHoverOutline ? "true" : undefined}
             data-empty-hint={editorMode === EDITOR_MODE_TEMPLATE
-                ? "Kliknij, aby edytować"
-                : "Kliknij dwukrotnie, aby edytować"}
+                ? uiText("editor:textarea.clickToEdit")
+                : uiText("editor:textarea.doubleClickToEdit")}
             tabIndex={0}
             className={`${classes.block} ${editorHoverOutline ? classes.editorHoverOutline : ""} ${skillsField ? classes.skillsField : ""} ${isSelected ? classes.selected : ""}`}
             data-skills-field={skillsField ? "true" : undefined}

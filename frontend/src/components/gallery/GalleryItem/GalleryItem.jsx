@@ -1,3 +1,5 @@
+import { t as uiText } from "../../../i18n/index.js";
+import { useTranslation } from 'react-i18next';
 /**
  * One gallery thumbnail: insert onto canvas or delete (when not in use).
  *
@@ -16,6 +18,7 @@ import { EDITOR_MODE_TEMPLATE } from "../../../utils/editorMode";
 import { applyProfilePhoto, findProfilePhotoSlot } from "../../../utils/profilePhoto";
 
 export default function GalleryItem({ url, img_id, imageUsed, onApplied }) {
+  useTranslation();
     const imageRef = useRef(null);
     const {
         addImage,
@@ -27,7 +30,7 @@ export default function GalleryItem({ url, img_id, imageUsed, onApplied }) {
     function handleDeleteImage(event) {
         event.stopPropagation();
         const api = new ApiClient({ Authorization: `Bearer ${localStorage.getItem("token")}` });
-        api.httpRequest(ENDPOINTS.IMG.DELETE, "DELETE", JSON.stringify(img_id), "Nie udało się usunąć obrazu")
+        api.httpRequest(ENDPOINTS.IMG.DELETE, "DELETE", JSON.stringify(img_id), uiText("editor:galleryItem.couldNotDeleteTheImage"))
             .then((data) => { imageUsed(data); })
             .catch((error) => console.log(error));
     }
@@ -63,7 +66,7 @@ export default function GalleryItem({ url, img_id, imageUsed, onApplied }) {
                     type="button"
                     className={classes.insertButton}
                     onClick={handleInsert}
-                    aria-label="Dodaj zdjęcie profilowe do CV"
+                    aria-label={uiText("editor:galleryItem.addProfilePhotoToCv")}
                 >
                     <img
                         ref={imageRef}
@@ -74,11 +77,9 @@ export default function GalleryItem({ url, img_id, imageUsed, onApplied }) {
                     />
                 </button>
             ) : (
-                <button type="button" className={classes.insertButton} onClick={() => addImage({ img_id })}>
-                    Dodaj
-                </button>
+                <button type="button" className={classes.insertButton} onClick={() => addImage({ img_id })}>{uiText("editor:skillsEntryActions.add")}</button>
             )}
-            <button type="button" className={classes.deleteButton} onClick={handleDeleteImage} aria-label="Usuń zdjęcie profilowe">
+            <button type="button" className={classes.deleteButton} onClick={handleDeleteImage} aria-label={uiText("editor:galleryItem.deleteProfilePhoto")}>
                 <AiFillDelete />
             </button>
         </div>

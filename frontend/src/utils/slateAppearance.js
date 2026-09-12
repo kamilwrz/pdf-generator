@@ -1,3 +1,4 @@
+import { t as uiText } from "../i18n/index.js";
 /**
  * Curated colour and typography system for the Slate CV template.
  *
@@ -20,8 +21,8 @@ export const DEFAULT_SLATE_TEXT_SIZE = "M";
 export const SLATE_PALETTES = Object.freeze([
   {
     id: "steelgrid",
-    name: "Stalowa Siatka",
-    tagline: "Stalowy błękit i jasne tło",
+    get name() { return uiText("editor:slateAppearance.steelGrid"); },
+    get tagline() { return uiText("editor:slateAppearance.steelBlueAndALightBackground"); },
     accentIconTheme: "slate-accent",
     colors: {
       paper: "#FFFFFF", sidebar: "#F1F4F8", ink: "#1C2530",
@@ -31,8 +32,8 @@ export const SLATE_PALETTES = Object.freeze([
   },
   {
     id: "monochrome",
-    name: "Czysty Monochrom",
-    tagline: "Czerń, biel i szarość",
+    get name() { return uiText("editor:meridianAppearance.pureMonochrome"); },
+    get tagline() { return uiText("editor:meridianAppearance.blackWhiteAndGrey"); },
     accentIconTheme: "slate-monochrome-accent",
     colors: {
       paper: "#FFFFFF", sidebar: "#F0F0F0", ink: "#151515",
@@ -42,8 +43,8 @@ export const SLATE_PALETTES = Object.freeze([
   },
   {
     id: "copper",
-    name: "Miedziany Warsztat",
-    tagline: "Jasne tło i miedziane akcenty",
+    get name() { return uiText("editor:slateAppearance.copperWorkshop"); },
+    get tagline() { return uiText("editor:meridianAppearance.lightBackgroundAndCopperAccents"); },
     accentIconTheme: "slate-copper-accent",
     colors: {
       paper: "#FFFDF9", sidebar: "#F6EDE3", ink: "#33251D",
@@ -53,8 +54,8 @@ export const SLATE_PALETTES = Object.freeze([
   },
   {
     id: "forest",
-    name: "Leśny Raster",
-    tagline: "Jasne tło i leśna zieleń",
+    get name() { return uiText("editor:slateAppearance.forestRaster"); },
+    get tagline() { return uiText("editor:slateAppearance.lightBackgroundAndForestGreen"); },
     accentIconTheme: "slate-forest-accent",
     colors: {
       paper: "#FBFDFB", sidebar: "#EAF2ED", ink: "#1D3028",
@@ -64,8 +65,8 @@ export const SLATE_PALETTES = Object.freeze([
   },
   {
     id: "plum",
-    name: "Śliwkowy Moduł",
-    tagline: "Jasne tło i śliwkowe akcenty",
+    get name() { return uiText("editor:slateAppearance.plumModule"); },
+    get tagline() { return uiText("editor:slateAppearance.lightBackgroundAndPlumAccents"); },
     accentIconTheme: "slate-plum-accent",
     colors: {
       paper: "#FEFBFD", sidebar: "#F3EAF1", ink: "#352530",
@@ -75,8 +76,8 @@ export const SLATE_PALETTES = Object.freeze([
   },
   {
     id: "teal",
-    name: "Morska Matryca",
-    tagline: "Jasne tło i morski turkus",
+    get name() { return uiText("editor:slateAppearance.marineMatrix"); },
+    get tagline() { return uiText("editor:slateAppearance.lightBackgroundAndSeaTurquoise"); },
     accentIconTheme: "slate-teal-accent",
     colors: {
       paper: "#F9FDFD", sidebar: "#E5F2F1", ink: "#173134",
@@ -87,10 +88,10 @@ export const SLATE_PALETTES = Object.freeze([
 ]);
 
 export const SLATE_TEXT_SIZES = Object.freeze([
-  { id: "S", label: "S", description: "Kompaktowy" },
-  { id: "M", label: "M", description: "Oryginalny" },
-  { id: "L", label: "L", description: "Czytelny" },
-  { id: "XL", label: "XL", description: "Wyrazisty" },
+  { id: "S", label: "S", get description() { return uiText("editor:atriumAppearance.compact"); } },
+  { id: "M", label: "M", get description() { return uiText("editor:atriumAppearance.original"); } },
+  { id: "L", label: "L", get description() { return uiText("editor:atriumAppearance.readable"); } },
+  { id: "XL", label: "XL", get description() { return uiText("editor:atriumAppearance.bold"); } },
 ]);
 
 // Slate's tracked 24 pt name already anchors the main column, so it grows more

@@ -1,3 +1,4 @@
+import { t as uiText } from "../i18n/index.js";
 /**
  * Premium colour and typography system for the Vellum CV template.
  *
@@ -20,8 +21,8 @@ export const DEFAULT_VELLUM_TEXT_SIZE = "M";
 export const VELLUM_PALETTES = Object.freeze([
   {
     id: "sage",
-    name: "Szałwiowy Welin",
-    tagline: "Jasne tło i szałwiowe akcenty",
+    get name() { return uiText("editor:vellumAppearance.sageVellum"); },
+    get tagline() { return uiText("editor:regentAppearance.lightBackgroundAndSageAccents"); },
     tone: "light",
     iconTheme: "vellum-sage",
     colors: {
@@ -33,8 +34,8 @@ export const VELLUM_PALETTES = Object.freeze([
   },
   {
     id: "mist",
-    name: "Błękitna Kalka",
-    tagline: "Jasne tło i chłodny błękit",
+    get name() { return uiText("editor:vellumAppearance.blueTracingPaper"); },
+    get tagline() { return uiText("editor:cadenzaAppearance.lightBackgroundAndCoolBlue"); },
     tone: "light",
     iconTheme: "vellum-mist",
     colors: {
@@ -46,8 +47,8 @@ export const VELLUM_PALETTES = Object.freeze([
   },
   {
     id: "rose",
-    name: "Różany Welin",
-    tagline: "Jasne tło i pudrowy róż",
+    get name() { return uiText("editor:vellumAppearance.roseVellum"); },
+    get tagline() { return uiText("editor:vellumAppearance.lightBackgroundAndPowderPink"); },
     tone: "light",
     iconTheme: "vellum-rose",
     colors: {
@@ -59,8 +60,8 @@ export const VELLUM_PALETTES = Object.freeze([
   },
   {
     id: "ink",
-    name: "Atramentowy Welin",
-    tagline: "Ciemny granat i jasny tekst",
+    get name() { return uiText("editor:vellumAppearance.inkVellum"); },
+    get tagline() { return uiText("editor:sterlingAppearance.darkNavyAndLightText"); },
     tone: "strong",
     iconTheme: "vellum-ink",
     colors: {
@@ -72,8 +73,8 @@ export const VELLUM_PALETTES = Object.freeze([
   },
   {
     id: "burgundy",
-    name: "Bordowa Pieczęć",
-    tagline: "Ciemny burgund i jasny tekst",
+    get name() { return uiText("editor:vellumAppearance.burgundySeal"); },
+    get tagline() { return uiText("editor:atriumAppearance.darkBurgundyAndLightText"); },
     tone: "strong",
     iconTheme: "vellum-burgundy",
     colors: {
@@ -85,8 +86,8 @@ export const VELLUM_PALETTES = Object.freeze([
   },
   {
     id: "emerald",
-    name: "Szmaragdowy Foliał",
-    tagline: "Ciemna zieleń i jasny tekst",
+    get name() { return uiText("editor:vellumAppearance.emeraldFolio"); },
+    get tagline() { return uiText("editor:atriumAppearance.darkGreenAndLightText"); },
     tone: "strong",
     iconTheme: "vellum-emerald",
     colors: {
@@ -99,10 +100,10 @@ export const VELLUM_PALETTES = Object.freeze([
 ]);
 
 export const VELLUM_TEXT_SIZES = Object.freeze([
-  { id: "S", label: "S", description: "Kompaktowy" },
-  { id: "M", label: "M", description: "Oryginalny" },
-  { id: "L", label: "L", description: "Czytelny" },
-  { id: "XL", label: "XL", description: "Wyrazisty" },
+  { id: "S", label: "S", get description() { return uiText("editor:atriumAppearance.compact"); } },
+  { id: "M", label: "M", get description() { return uiText("editor:atriumAppearance.original"); } },
+  { id: "L", label: "L", get description() { return uiText("editor:atriumAppearance.readable"); } },
+  { id: "XL", label: "XL", get description() { return uiText("editor:atriumAppearance.bold"); } },
 ]);
 
 // The portrait and 28.5 pt name already establish Vellum's hierarchy. Larger

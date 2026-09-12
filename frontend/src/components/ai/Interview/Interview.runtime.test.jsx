@@ -4,11 +4,9 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import InterviewFlow from './InterviewFlow';
 import FactEditor from './FactEditor';
-import { listOwnedDocuments } from '../../../services/documents';
 import { reviewFacts, interviewRequest } from '../../../services/interviews';
 
 vi.mock('../../../hooks/useEntitlements', () => ({ useEntitlements: () => ({ entitlements: { ai_assistant: true, plan_slug: 'pro', template_tier: 'all' }, refresh: vi.fn() }) }));
-vi.mock('../../../services/documents', () => ({ listOwnedDocuments: vi.fn(async () => []) }));
 vi.mock('../../../services/interviews', async (original) => ({ ...await original(), interviewRequest: vi.fn() }));
 
 const fact = { id: 'name', text: 'Anna Nowak', kind: 'fact', context: '', path: '/name', source: 'manual' };
@@ -26,6 +24,27 @@ beforeEach(() => {
 });
 
 describe('interview workflow', () => {
+  it('keeps an empty editor blocked even when the owner has a profile', async () => {
+    const onClose = vi.fn();
+    render(<MemoryRouter><InterviewFlow initialSource={{ cv_data: { name: ' ' } }} onClose={onClose} /></MemoryRouter>);
+    await screen.findByRole('heading', { name: 'Najpierw dodaj CV z danymi' });
+    expect(screen.queryByRole('button', { name: 'Rozpocznij wywiad' })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('To moje CV — dołącz mój profil zawodowy')).not.toBeInTheDocument();
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Wróć do CV i uzupełnij dane' }));
+    expect(onClose).toHaveBeenCalledOnce();
+    expect(interviewRequest.mock.calls.some(([, method]) => method === 'POST')).toBe(false);
+  });
+
+  it('retries failed source reads without showing a false empty state', async () => {
+    interviewRequest.mockRejectedValueOnce(new Error('Nie udało się wczytać źródeł.'));
+    render(<MemoryRouter><InterviewFlow /></MemoryRouter>);
+    await screen.findByRole('alert');
+    expect(screen.queryByRole('heading', { name: 'Najpierw dodaj CV z danymi' })).not.toBeInTheDocument();
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Wczytaj zapisany stan' }));
+    await screen.findByRole('heading', { name: 'Najpierw dodaj CV z danymi' });
+    expect(interviewRequest.mock.calls.some(([, method]) => method === 'POST')).toBe(false);
+  });
+
   it('finishes a covered queue without offering another question or reopening entries', async () => {
     session = { ...session, question: null, phase: 'review', discovery_complete: true, question_limit: 14 };
     const user = userEvent.setup();
@@ -190,10 +209,9 @@ it('offers clarification before exposing the filtered preview and supports expli
 
 
 describe('candidate evidence separation', () => {
-  const owner = { revision: 7, facts: [{ ...fact, text: 'Kamil Owner' }] };
+  const owner = { revision: 7, facts: [{ ...fact, text: 'Kamil Owner' }], sources: { documents: [{ id: 30, title: 'CV30.pdf' }, { id: 31, title: 'CV31.pdf' }], imports: [] } };
   const candidate = { ...fact, id: 'candidate', text: 'Anna Candidate' };
   beforeEach(() => {
-    listOwnedDocuments.mockResolvedValue([{ id: 30, title: 'CV30.pdf' }, { id: 31, title: 'CV31.pdf' }]);
     session = { ...session, evidence_scope: 'session', evidence_profile: { revision: 0, facts: [] },
       phase: 'intake', question: null, proposed_facts: [candidate] };
     interviewRequest.mockClear();
@@ -232,14 +250,13 @@ describe('candidate evidence separation', () => {
     await user.click(screen.getByRole('button', { name: 'Rozpocznij wywiad' }));
     expect(interviewRequest).toHaveBeenCalledWith('/ai/interviews', 'POST', expect.objectContaining({ source_document_id: 31, include_profile: true }), expect.any(String));
   });
-  it('starts an empty candidate without carrying the owner name', async () => {
-    const user = userEvent.setup();
+  it('requires a CV selection even when the account profile contains a name', async () => {
     render(<MemoryRouter><InterviewFlow /></MemoryRouter>);
-    await user.selectOptions(await screen.findByLabelText('Źródło informacji'), 'new');
-    expect(screen.getByLabelText('Imię i nazwisko')).toHaveValue('');
-    await user.type(screen.getByLabelText('Imię i nazwisko'), 'Anna Candidate');
-    await user.click(screen.getByRole('button', { name: 'Rozpocznij wywiad' }));
-    expect(interviewRequest).toHaveBeenCalledWith('/ai/interviews', 'POST', expect.objectContaining({ include_profile: false, cv_data: { name: 'Anna Candidate', title: '' } }), expect.any(String));
+    await screen.findByLabelText('Źródło informacji');
+    expect(screen.queryByRole('option', { name: 'Mój profil zawodowy' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: /Nowe CV/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Rozpocznij wywiad' })).not.toBeInTheDocument();
+    expect(interviewRequest.mock.calls.some(([, method]) => method === 'POST')).toBe(false);
   });
   it('resumes isolated evidence without fetching the account profile', async () => {
     session.evidence_profile = { revision: 3, facts: [candidate] };

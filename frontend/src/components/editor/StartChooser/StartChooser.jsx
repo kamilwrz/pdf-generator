@@ -1,3 +1,6 @@
+import LanguageSelect from '../../common/LanguageSelect/LanguageSelect';
+import { t as uiText, getUiLocale } from "../../../i18n/index.js";
+import { useTranslation } from 'react-i18next';
 /**
  * Authenticated creation hub and empty-state onboarding surface.
  *
@@ -27,6 +30,7 @@ import classes from "./StartChooser.module.css";
  * `aria-hidden` because the card's heading already names the action.
  */
 function NewCvIcon() {
+  useTranslation();
   return (
     <svg
       className={classes.icon}
@@ -46,6 +50,7 @@ function NewCvIcon() {
 
 /** Upload glyph for the import path (Lucide "upload" shape). */
 function ImportIcon() {
+  useTranslation();
   return (
     <svg
       className={classes.icon}
@@ -66,6 +71,7 @@ function ImportIcon() {
 
 /** Folder glyph for opening the authenticated user's saved projects. */
 function DocumentsIcon() {
+  useTranslation();
   return (
     <svg
       className={classes.icon}
@@ -108,14 +114,15 @@ export default function StartChooser({
   onRecoverLegacyDraft,
   onLogout,
 }) {
+  useTranslation();
   const titleRef = useRef(null);
   const canInterview = entitlements?.ai_assistant === true;
   const accessResolved = typeof entitlements?.ai_assistant === "boolean";
-  const interviewAction = canInterview ? "Rozpocznij wywiad" : accessResolved ? "Poznaj Pro" : "Sprawdź dostęp";
+  const interviewAction = canInterview ? uiText("interview:interviewFlow.startInterview") : accessResolved ? uiText("editor:startChooser.explorePro") : uiText("editor:startChooser.checkAccess");
   const latestDocument = [...documents]
     .sort((left, right) => new Date(right.updated_at || right.created_at || 0) - new Date(left.updated_at || left.created_at || 0))[0];
   const latestDocumentDate = (latestDocument?.updated_at || latestDocument?.created_at)
-    ? new Intl.DateTimeFormat("pl-PL", {
+    ? new Intl.DateTimeFormat(getUiLocale(), {
       day: "numeric",
       month: "short",
       year: "numeric",
@@ -132,23 +139,20 @@ export default function StartChooser({
 
   return (
     <section className={classes.overlay} aria-labelledby="start-chooser-title">
-      <a href="/" className={classes.brand} aria-label="CV Studio — strona główna">
+      <a href="/" className={classes.brand} aria-label={uiText("public:siteLayout.cvStudioHomepage")}>
         <img src="/cv-studio-mark.svg" alt="" />
         <span>CV STUDIO</span>
       </a>
       <div className={classes.inner}>
         <header className={classes.head}>
+          <LanguageSelect />
           <h1
             ref={titleRef}
             id="start-chooser-title"
             className={classes.title}
             tabIndex={-1}
-          >
-            Jak chcesz zacząć?
-          </h1>
-          <p className={classes.subtitle}>
-            Stwórz CV samodzielnie, zaimportuj dokument lub zacznij od rozmowy.
-          </p>
+          >{uiText("editor:startChooser.howWouldYouLikeToStart")}</h1>
+          <p className={classes.subtitle}>{uiText("editor:startChooser.createACvYourselfImportADocument")}</p>
         </header>
 
         <div className={classes.cards}>
@@ -161,12 +165,9 @@ export default function StartChooser({
             <span className={classes.iconWrap} aria-hidden="true">
               <NewCvIcon />
             </span>
-            <span className={classes.cardTitle}>Utwórz nowe CV</span>
-            <span className={classes.cardText}>
-              Wybierz szablon, kontakty i sekcje. Otrzymasz gotową strukturę
-              z podpowiedziami do uzupełnienia bezpośrednio na A4.
-            </span>
-            <span className={classes.cta}>Zacznij</span>
+            <span className={classes.cardTitle}>{uiText("editor:newCvSetupModal.createANewCv")}</span>
+            <span className={classes.cardText}>{uiText("editor:startChooser.chooseATemplateContactFieldsAndSections")}</span>
+            <span className={classes.cta}>{uiText("editor:startChooser.start")}</span>
           </button>
 
           <button
@@ -177,12 +178,9 @@ export default function StartChooser({
             <span className={classes.iconWrap} aria-hidden="true">
               <ImportIcon />
             </span>
-            <span className={classes.cardTitle}>Zaimportuj istniejące CV</span>
-            <span className={classes.cardText}>
-              Wgraj CV w formacie PDF — przepiszemy dane do wybranego szablonu,
-              gotowego do edycji.
-            </span>
-            <span className={classes.ctaGhost}>Wgraj CV</span>
+            <span className={classes.cardTitle}>{uiText("editor:startChooser.importAnExistingCv")}</span>
+            <span className={classes.cardText}>{uiText("editor:startChooser.uploadAPdfCvWeWillTransfer")}</span>
+            <span className={classes.ctaGhost}>{uiText("editor:startChooser.uploadCv")}</span>
           </button>
 
           <Link
@@ -193,48 +191,46 @@ export default function StartChooser({
           >
             <span className={classes.cardTop}>
               <span className={classes.iconWrap} aria-hidden="true"><FiMessageSquare className={classes.icon} /></span>
-              <span className={classes.proLabel}>{canInterview ? "W Twoim Pro" : "Dostępny w Pro"}</span>
+              <span className={classes.proLabel}>{canInterview ? uiText("editor:startChooser.includedInYourPro") : uiText("editor:startChooser.availableWithPro")}</span>
             </span>
-            <span id="start-interview-title" className={classes.cardTitle}>Wywiad</span>
-            <span id="start-interview-description" className={classes.cardText}>
-              Opowiedz o swoim doświadczeniu. AI dopyta o szczegóły i przygotuje treść CV z informacji, które zatwierdzisz.
-            </span>
+            <span id="start-interview-title" className={classes.cardTitle}>{uiText("editor:startChooser.interview")}</span>
+            <span id="start-interview-description" className={classes.cardText}>{uiText("editor:startChooser.describeYourExperienceAiWillAskFor")}</span>
             <span id="start-interview-access" className={classes.accessNote}>
-              {canInterview ? "Korzysta z Twoich kredytów AI." : accessResolved ? "W pakiecie Free wywiad jest dostępny po przejściu na Pro." : "Dostęp do wywiadu sprawdzisz na swoim koncie."}
+              {canInterview ? uiText("editor:startChooser.usesYourAiCredits") : accessResolved ? uiText("editor:startChooser.onFreeUpgradeToProToAccess") : uiText("editor:startChooser.checkInterviewAccessOnYourAccountPage")}
             </span>
             <span id="start-interview-action" className={classes.ctaInterview}>{interviewAction}<span aria-hidden="true">→</span></span>
           </Link>
         </div>
 
         <div className={classes.secondaryActions}>
-          <Link className={classes.blankLink} to="/help#wywiad">Jak działa wywiad</Link>
-          <button type="button" className={classes.blankLink} onClick={onDocuments}>Wszystkie dokumenty →</button>
+          <Link className={classes.blankLink} to="/help#wywiad">{uiText("editor:startChooser.howInterviewsWork")}</Link>
+          <button type="button" className={classes.blankLink} onClick={onDocuments}>{uiText("editor:startChooser.allDocuments")}</button>
           {documentsLoaded && latestDocument ? (
             <button type="button" className={classes.recentDocument} onClick={() => onContinue(latestDocument.id)}>
               <span className={classes.secondaryIcon} aria-hidden="true">
                 <DocumentsIcon />
               </span>
               <span className={classes.secondaryCopy}>
-                <span className={classes.secondaryLabel}>Kontynuuj ostatnie CV</span>
+                <span className={classes.secondaryLabel}>{uiText("editor:startChooser.continueLatestCv")}</span>
                 <span className={classes.secondaryMeta}>
-                  {latestDocument.title || "Bez nazwy"}{latestDocumentDate ? ` · ${latestDocumentDate}` : ""}
+                  {latestDocument.title || uiText("editor:sectionsPanel.untitled")}{latestDocumentDate ? ` · ${latestDocumentDate}` : ""}
                 </span>
               </span>
               <span className={classes.secondaryArrow} aria-hidden="true">→</span>
             </button>
           ) : (
             <p className={classes.documentsEmpty}>
-              <span className={classes.secondaryLabel}>Moje dokumenty</span>
+              <span className={classes.secondaryLabel}>{uiText("public:siteLayout.myDocuments")}</span>
               <span>
-                {documentsLoaded ? "Nie masz jeszcze zapisanych CV." : "Sprawdzamy zapisane CV…"}
+                {documentsLoaded ? uiText("editor:startChooser.youHaveNoSavedCvsYet") : uiText("editor:startChooser.checkingSavedCv")}
               </span>
             </p>
           )}
           {legacyDraftAvailable ? (
             <button type="button" className={classes.blankLink} onClick={onRecoverLegacyDraft}>
               {legacyDraftNeedsOwnershipConfirmation
-                ? "To mój szkic — przenieś na A4 →"
-                : "Przenieś stary szkic kreatora na A4 →"}
+                ? uiText("editor:startChooser.thisIsMyDraftMoveToA")
+                : uiText("editor:startChooser.moveAnOlderWizardDraftToA")}
             </button>
           ) : null}
         </div>
@@ -243,8 +239,8 @@ export default function StartChooser({
         type="button"
         className={classes.logout}
         onClick={onLogout}
-        aria-label="Wyloguj się"
-        title="Wyloguj się"
+        aria-label={uiText("editor:sidebar.signOut")}
+        title={uiText("editor:sidebar.signOut")}
       >
         <AiOutlineLogout aria-hidden="true" />
       </button>

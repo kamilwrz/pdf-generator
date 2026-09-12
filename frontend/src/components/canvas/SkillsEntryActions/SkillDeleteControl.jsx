@@ -1,3 +1,5 @@
+import { t as uiText } from "../../../i18n/index.js";
+import { useTranslation } from 'react-i18next';
 import { useLayoutEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { FiTrash2 } from "react-icons/fi";
@@ -16,6 +18,7 @@ export default function SkillDeleteControl({
   visible, itemTargets, activeIndex, fragmentIndex, toolbarKey, pointerProps,
   disabled, onDelete,
 }) {
+  useTranslation();
   const scopedAi = useScopedAi();
   const shown = visible && !scopedAi?.isOpen;
   const [position, setPosition] = useState(null);
@@ -40,10 +43,10 @@ export default function SkillDeleteControl({
   return createPortal(
     <div className={classes.deleteAnchor} style={position}
       data-editor-control="true" data-canvas-toolbar-key={toolbarKey}
-      data-skill-delete="true" role="toolbar" aria-label={`Usuń umiejętność: ${label}`}
+      data-skill-delete="true" role="toolbar" aria-label={uiText("editor:skillDeleteControl.deleteSkill", { value0: (label) })}
       {...pointerProps}>
       <button type="button" className={classes.deleteButton}
-        aria-label={`Usuń umiejętność: ${label}`} data-tooltip="Usuń umiejętność"
+        aria-label={uiText("editor:skillDeleteControl.deleteSkill", { value0: (label) })} data-tooltip={uiText("editor:skillDeleteControl.deleteSkill2")}
         data-tooltip-align={position.left < 160 ? "start" : "end"}
         disabled={disabled}
         onPointerDown={(event) => {

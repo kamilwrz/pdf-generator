@@ -571,9 +571,11 @@ def _extra_section_kind(section: dict) -> str:
 
 
 def _labels(cv: dict) -> dict:
-    """Return section headings in the CV's language (GPT-supplied), with Polish fallbacks."""
+    """Keep authored headings; missing headings follow document language, not UI."""
     raw = cv.get("labels") or {}
-    return {k: (raw.get(k) or v).upper() for k, v in _LABEL_DEFAULTS.items()}
+    defaults = {"summary": "PROFESSIONAL SUMMARY", "experience": "WORK EXPERIENCE",
+                "education": "EDUCATION", "skills": "SKILLS"} if str(cv.get("language", "")).lower() in {"en", "english"} else _LABEL_DEFAULTS
+    return {k: (raw.get(k) or v).upper() for k, v in defaults.items()}
 
 
 def _contact_line_core(cv: dict) -> str:

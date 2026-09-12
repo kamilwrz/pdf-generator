@@ -1,3 +1,5 @@
+import { t as uiText } from "../../../i18n/index.js";
+import { useTranslation } from 'react-i18next';
 /**
  * Direct structural actions for one editable cell in a repeatable grid section.
  *
@@ -50,6 +52,7 @@ export default function GridEntryActions({
   sectionType = null,
   canDelete = true,
 }) {
+  useTranslation();
   const {
     A4_Elements,
     pageSize,
@@ -171,7 +174,7 @@ export default function GridEntryActions({
   const directActions = [
     {
       key: "add",
-      label: "Dodaj wpis",
+      label: uiText("editor:gridEntryActions.addEntry"),
       icon: <FiPlus aria-hidden="true" />,
       disabled: typeof addGridSectionEntry !== "function",
       onSelect: () => {
@@ -181,14 +184,14 @@ export default function GridEntryActions({
     },
     {
       key: "delete",
-      label: "Usuń wpis",
+      label: uiText("editor:gridEntryActions.deleteEntry"),
       icon: <FiTrash2 aria-hidden="true" />,
       danger: true,
       disabled: !canDelete || typeof removeGridSectionEntry !== "function",
       onSelect: () => {
         deleteWithUndo({
-          title: entryLabel ? `Usunięto wpis „${entryLabel}”` : "Usunięto wpis",
-          msg: "Możesz natychmiast przywrócić wpis wraz z jego treścią.",
+          title: entryLabel ? uiText("editor:gridEntryActions.deletedEntry", { value0: (entryLabel) }) : uiText("editor:gridEntryActions.entryDeleted"),
+          msg: uiText("editor:gridEntryActions.youCanImmediatelyRestoreTheEntryAnd"),
           remove: () => removeGridSectionEntry?.(elementId),
         });
         hide();

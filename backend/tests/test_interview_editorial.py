@@ -122,7 +122,7 @@ def test_failure_replays_only_completed_stages_and_does_not_charge_reads(environ
 
 @pytest.mark.parametrize('changed_profile', [False, True])
 def test_assembly_recovery_requires_complete_current_pipeline(environment, changed_profile):
-    client, db, _, _ = environment
+    client, db, user, _ = environment
     session = setup_answer(client, db)
     outputs = [(draft_for_answer(), USAGE), (editorial(draft_for_answer()), USAGE), (VERIFIED, USAGE)]
     with patch.object(service, '_gpt', side_effect=outputs), patch.object(interviews, 'generate_resume', side_effect=HTTPException(422, {'message': 'Sprawdź szablon.'})):
@@ -131,7 +131,9 @@ def test_assembly_recovery_requires_complete_current_pipeline(environment, chang
     resumed = result.json()
     if changed_profile:
         profile = client.get('/career-profile').json()
-        assert client.put('/career-profile', json={'revision': 2, 'facts': profile['facts']}).status_code == 200
+        # This test changes confirmed evidence directly; profile UI eligibility
+        # is covered independently by test_interview_sources.
+        service.put_profile(db, user.id, 2, profile['facts'])
     with patch.object(service, '_gpt', side_effect=outputs) as provider:
         result = generate(client, resumed, 3 if changed_profile else 2)
     assert result.status_code == 200, result.text
