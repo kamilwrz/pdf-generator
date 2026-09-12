@@ -1,9 +1,9 @@
 import { expect, test } from "@playwright/test";
 import { installMockApi, login, SAVED_ELEMENTS } from "./support/mockApi.js";
 
-for (const style of ["W linii", "Lista", "Pigułka z wypełnieniem", "Pigułka bez wypełnienia",
-  "Prostokąt z wypełnieniem", "Prostokąt bez wypełnienia", "Zaokrąglony bez wypełnienia",
-  "Zaokrąglony z wypełnieniem", "Kreska na dole"]) {
+for (const style of ["W linii", "Lista", "Owalne z tłem", "Owalne z obrysem",
+  "Prostokątne z tłem", "Prostokątne z obrysem", "Zaokrąglone z obrysem",
+  "Zaokrąglone z tłem", "Podkreślone"]) {
   test(`deletes one skill and restores it with undo: ${style}`, async ({ page, isMobile }) => {
     const api = await installMockApi(page);
     await login(page);
@@ -22,7 +22,7 @@ for (const style of ["W linii", "Lista", "Pigułka z wypełnieniem", "Pigułka b
       await page.mouse.move(headingPoint.x, headingPoint.y);
       await page.getByRole("button", { name: /^Styl umiejętności:/ }).click();
       const panel = page.getByRole("region", { name: "Styl umiejętności" });
-      await panel.getByText(style, { exact: true }).click();
+      await panel.getByRole("radio", { name: style, exact: true }).check();
       await page.keyboard.press("Escape");
     }
     // Find a real glyph range so pointer targeting also exercises split styled

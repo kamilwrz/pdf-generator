@@ -2630,7 +2630,7 @@ export function EditorController() {
               {!showStartChooser ? <Gallery /> : null}
               {!showStartChooser && entitlements?.ai_assistant ? (
                 <Suspense fallback={<LazyAiFallback />}>
-                  <LazyAiAssistant />
+                  <LazyAiAssistant hideLauncher={isSkillsLayoutPanel} />
                 </Suspense>
               ) : null}
               <ToastStack toasts={toasts} onDismiss={dismissToast} />

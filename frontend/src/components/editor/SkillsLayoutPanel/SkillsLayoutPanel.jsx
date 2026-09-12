@@ -9,6 +9,7 @@ import { useTranslation } from 'react-i18next';
  * visible on the canvas rather than a separate preview draft.
  */
 import { useEffect, useRef } from "react";
+import { FiCheck } from "react-icons/fi";
 import PanelShell from "../../common/PanelShell/PanelShell";
 import {
   FLAT_SECTION_LAYOUT_BULLET,
@@ -29,55 +30,73 @@ import {
 import { sectionElementIds } from "../../../utils/sectionStructure";
 import classes from "./SkillsLayoutPanel.module.css";
 
-const PREVIEW_SKILLS = ["React", "TypeScript", "Node.js"];
+const PREVIEW_SKILLS = ["Excel", "SQL"];
 
 const STYLE_OPTIONS = [
   {
     value: FLAT_SECTION_LAYOUT_INLINE,
     mode: FLAT_SECTION_LAYOUT_INLINE,
     get label() { return uiText("editor:flatSectionLayoutModal.inline"); },
+    get title() { return uiText("editor:flatSectionLayoutModal.inline"); },
+    get description() { return uiText("editor:skillsLayoutPanel.inlineDescription"); },
     preview: "inline",
   },
   {
     value: FLAT_SECTION_LAYOUT_BULLET,
     mode: FLAT_SECTION_LAYOUT_BULLET,
     get label() { return uiText("editor:flatSectionLayoutModal.list"); },
+    get title() { return uiText("editor:flatSectionLayoutModal.list"); },
+    get description() { return uiText("editor:skillsLayoutPanel.listDescription"); },
     preview: "bullet",
   },
   {
     value: SKILL_CHIP_VARIANT_PILL_FILLED,
     mode: SKILLS_LAYOUT_CHIPS,
     get label() { return uiText("editor:skillsLayoutPanel.filledPill"); },
+    get title() { return uiText("editor:skillsLayoutPanel.oval"); },
+    get description() { return uiText("editor:skillsLayoutPanel.withFill"); },
   },
   {
     value: SKILL_CHIP_VARIANT_PILL_OUTLINE,
     mode: SKILLS_LAYOUT_CHIPS,
     get label() { return uiText("editor:skillsLayoutPanel.outlinedPill"); },
+    get title() { return uiText("editor:skillsLayoutPanel.oval"); },
+    get description() { return uiText("editor:skillsLayoutPanel.withOutline"); },
   },
   {
     value: SKILL_CHIP_VARIANT_RECT_FILLED,
     mode: SKILLS_LAYOUT_CHIPS,
     get label() { return uiText("editor:skillsLayoutPanel.filledRectangle"); },
+    get title() { return uiText("editor:skillsLayoutPanel.rectangular"); },
+    get description() { return uiText("editor:skillsLayoutPanel.withFill"); },
   },
   {
     value: SKILL_CHIP_VARIANT_RECT_OUTLINE,
     mode: SKILLS_LAYOUT_CHIPS,
     get label() { return uiText("editor:skillsLayoutPanel.outlinedRectangle"); },
+    get title() { return uiText("editor:skillsLayoutPanel.rectangular"); },
+    get description() { return uiText("editor:skillsLayoutPanel.withOutline"); },
   },
   {
     value: SKILL_CHIP_VARIANT_ROUNDED_OUTLINE,
     mode: SKILLS_LAYOUT_CHIPS,
     get label() { return uiText("editor:skillsLayoutPanel.roundedOutline"); },
+    get title() { return uiText("editor:skillsLayoutPanel.rounded"); },
+    get description() { return uiText("editor:skillsLayoutPanel.withOutline"); },
   },
   {
     value: SKILL_CHIP_VARIANT_ROUNDED_FILLED,
     mode: SKILLS_LAYOUT_CHIPS,
     get label() { return uiText("editor:skillsLayoutPanel.roundedFill"); },
+    get title() { return uiText("editor:skillsLayoutPanel.rounded"); },
+    get description() { return uiText("editor:skillsLayoutPanel.withFill"); },
   },
   {
     value: SKILL_CHIP_VARIANT_UNDERLINE,
     mode: SKILLS_LAYOUT_CHIPS,
     get label() { return uiText("editor:skillsLayoutPanel.underline"); },
+    get title() { return uiText("editor:skillsLayoutPanel.underline"); },
+    get description() { return uiText("editor:skillsLayoutPanel.underlineDescription"); },
   },
 ];
 
@@ -94,9 +113,8 @@ function chipClasses(variant) {
 
 /** Shows a stable sample so long CV content cannot resize the panel. */
 function StylePreview({ option }) {
-  useTranslation();
   if (option.preview === "inline") {
-    return <span className={classes.inlinePreview}>{PREVIEW_SKILLS.join("  ·  ")}</span>;
+    return <span className={classes.inlinePreview}>{PREVIEW_SKILLS.join(" · ")}</span>;
   }
   if (option.preview === "bullet") {
     return (
@@ -105,7 +123,7 @@ function StylePreview({ option }) {
       </span>
     );
   }
-  return <span className={chipClasses(option.value)}>React</span>;
+  return <span className={chipClasses(option.value)}>Excel</span>;
 }
 
 /**
@@ -140,6 +158,9 @@ export default function SkillsLayoutPanel({
     // its current choice. Escape/Close restores the stable section heading.
     const frame = window.requestAnimationFrame(() => {
       selectedInputRef.current?.focus({ preventScroll: true });
+      // Reopening a lower-row style must reveal it in the scrollable body,
+      // including compact/zoomed viewports with a persistent panel header.
+      selectedInputRef.current?.scrollIntoView({ block: "nearest" });
     });
     return () => window.cancelAnimationFrame(frame);
   }, [headingId, open]);
@@ -157,6 +178,7 @@ export default function SkillsLayoutPanel({
     <PanelShell
       open={open}
       onClose={handleClose}
+      appearance="comfortable"
       className={classes.panel}
       motionProps={{
         initial: { opacity: 0 },
@@ -166,11 +188,17 @@ export default function SkillsLayoutPanel({
       }}
       title={uiText("editor:sectionsPanel.skillsStyle")}
       subtitle={uiText("editor:skillsLayoutPanel.optionsChangesApplyImmediately")}
+      footer={(
+        <p className={classes.note} role="status" aria-live="polite" aria-atomic="true">
+          <FiCheck aria-hidden="true" />
+          <span>{uiText("editor:skillsLayoutPanel.activeStyle")} <strong>{STYLE_OPTIONS.find((option) => option.value === currentValue)?.label}</strong></span>
+        </p>
+      )}
     >
       <fieldset className={classes.fieldset}>
         <legend className={classes.legend}>{uiText("editor:skillsLayoutPanel.chooseADisplayStyle")}</legend>
         <div className={classes.options}>
-          {STYLE_OPTIONS.map((option, index) => {
+          {STYLE_OPTIONS.map((option) => {
             const selected = currentValue === option.value;
             return (
               <label className={classes.option} key={option.value}>
@@ -188,11 +216,11 @@ export default function SkillsLayoutPanel({
                   )}
                 />
                 <span className={classes.optionSurface}>
-                  <span className={classes.optionIndex}>{String(index + 1).padStart(2, "0")}</span>
-                  <span className={classes.preview}><StylePreview option={option} /></span>
+                  <span className={classes.selectionIndicator} aria-hidden="true">{selected && <FiCheck />}</span>
+                  <span className={classes.preview} aria-hidden="true"><StylePreview option={option} /></span>
                   <span className={classes.optionFooter}>
-                    <span className={classes.optionLabel}>{option.label}</span>
-                    <span className={classes.state}>{selected ? "Aktywny" : "Wybierz"}</span>
+                    <span className={classes.optionLabel}>{option.title}</span>
+                    <span className={classes.optionDescription}>{option.description}</span>
                   </span>
                 </span>
               </label>
@@ -200,8 +228,6 @@ export default function SkillsLayoutPanel({
           })}
         </div>
       </fieldset>
-      <p className={classes.note} role="status" aria-live="polite">{uiText("editor:skillsLayoutPanel.activeStyle")} {STYLE_OPTIONS.find((option) => option.value === currentValue)?.label || uiText("editor:flatSectionLayoutModal.inline")}.
-      </p>
     </PanelShell>
   );
 }

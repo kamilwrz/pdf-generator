@@ -71,7 +71,7 @@ test("empty-state chooser replaces editor chrome and Pro-only AI actions", async
   assert.match(canvas, /!showStartChooser && !isNewCvSetupModal && !dirtyGuard\.dialogOpen \? <Editor \/>/);
   assert.match(canvas, /!showStartChooser \? \(\s*<div className="right-pane">/);
   assert.match(canvas, /!showStartChooser \? <Gallery \/>/);
-  assert.match(canvas, /!showStartChooser && entitlements\?\.ai_assistant \? \([\s\S]*<Suspense[\s\S]*<LazyAiAssistant \/>/);
+  assert.match(canvas, /!showStartChooser && entitlements\?\.ai_assistant \? \([\s\S]*<Suspense[\s\S]*<LazyAiAssistant hideLauncher=\{isSkillsLayoutPanel\} \/>/);
   assert.match(
     canvas,
     /onDocuments=\{\(\) => \{\s*navigate\('\/app\/documents'\)/,

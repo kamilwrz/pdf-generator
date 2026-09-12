@@ -14,9 +14,9 @@ test("skills panel exposes exactly nine native radio choices with stable example
   assert.equal((optionBlock.match(/\n {2}\{/g) || []).length, 9);
   assert.match(source, /type="radio"/);
   assert.match(source, /checked=\{selected\}/);
-  assert.match(source, /PREVIEW_SKILLS\.join\(" {2}· {2}"\)/);
+  assert.match(source, /PREVIEW_SKILLS\.join\(" · "\)/);
   assert.match(source, /• \{skill\}/);
-  assert.match(source, />React<\/span>/);
+  assert.match(source, />Excel<\/span>/);
 });
 
 test("every selection is committed immediately without closing the panel", async () => {
@@ -48,7 +48,7 @@ test("skills cards use white paper with brown editor typography and decoration",
   assert.match(styles, /\.optionSurface\s*\{[\s\S]*?background:\s*var\(--color-paper\)/);
   assert.match(styles, /\.optionSurface\s*\{[\s\S]*?color:\s*var\(--chrome-ink\)/);
   assert.match(styles, /\.optionLabel\s*\{[\s\S]*?color:\s*var\(--chrome-ink\)/);
-  assert.match(styles, /\.state\s*\{[\s\S]*?color:\s*var\(--chrome-ink\)/);
+  assert.match(styles, /\.selectionIndicator\s*\{/);
   assert.doesNotMatch(styles, /\.optionSurface\s*\{[\s\S]*?background:\s*var\(--chrome-control\)/);
 });
 

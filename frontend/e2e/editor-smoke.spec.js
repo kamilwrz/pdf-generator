@@ -308,8 +308,8 @@ test.describe("CV Studio editor smoke", () => {
     await expect(skillsHeading).toBeFocused();
     await skillsStyle.focus();
     await page.keyboard.press("Space");
-    await stylePanel.getByText("Pigułka z wypełnieniem", { exact: true }).click();
-    await expect(stylePanel.getByRole("radio", { name: /Pigułka z wypełnieniem/ })).toBeChecked();
+    await stylePanel.getByRole("radio", { name: "Owalne z tłem", exact: true }).check();
+    await expect(stylePanel.getByRole("radio", { name: "Owalne z tłem", exact: true })).toBeChecked();
     await expect(stylePanel).toBeVisible();
     await page.keyboard.press("Escape");
 

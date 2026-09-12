@@ -2,15 +2,19 @@ import { useEffect, useId } from "react";
 import { motion as Motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import classes from "./PanelShell.module.css";
 import CloseButton from "../CloseButton/CloseButton";
+import { useTranslation } from "react-i18next";
 
-// Shared docked-panel shell for Upload/Gallery. Standardizes the header
-// (title+subtitle+close) and Escape-to-close; outer position/size/slide
-// direction stay with the caller (via `className` + `motionProps`) since
-// Upload docks as a card near the sidebar while Gallery is a full-height
-// right-edge drawer — genuinely different shapes, not worth forcing into
-// one geometry.
-export default function PanelShell({ open, onClose, className, style, motionProps, title, subtitle, footer, children }) {
+/**
+ * Shared non-modal panel header, scroll body, footer and Escape handling.
+ * Callers own positioning and focus restoration. The comfortable appearance
+ * reserves a full-size close target and readable explanatory copy for pickers;
+ * existing dense tools retain their compact header.
+ */
+export default function PanelShell({ open, onClose, className, style, motionProps, title, subtitle, footer, children, appearance = "compact" }) {
+    const { t } = useTranslation();
     const titleId = useId();
+    const subtitleId = useId();
+    const comfortable = appearance === "comfortable";
     const reduceMotion = useReducedMotion();
     const resolvedMotionProps = reduceMotion
         ? { ...motionProps, initial: false, transition: { duration: 0 } }
@@ -28,13 +32,13 @@ export default function PanelShell({ open, onClose, className, style, motionProp
     return (
         <AnimatePresence>
             {open && (
-                <Motion.section className={className} style={style} aria-labelledby={titleId} {...resolvedMotionProps}>
-                    <div className={classes.header}>
+                <Motion.section className={className} style={style} aria-labelledby={titleId} aria-describedby={subtitle ? subtitleId : undefined} {...resolvedMotionProps}>
+                    <div className={`${classes.header} ${comfortable ? classes.comfortable : ""}`}>
                         <div>
                             <h2 id={titleId}>{title}</h2>
-                            {subtitle && <p>{subtitle}</p>}
+                            {subtitle && <p id={subtitleId}>{subtitle}</p>}
                         </div>
-                        <CloseButton ariaLabel={`Zamknij: ${title}`} clickHandler={onClose} top={12} right={16} />
+                        <CloseButton ariaLabel={`${t("editor:sectionsPanel.close")}: ${title}`} clickHandler={onClose} top={comfortable ? 16 : 12} right={16} width={comfortable ? 44 : undefined} height={comfortable ? 44 : undefined} />
                     </div>
                     <div className={classes.body}>
                         {children}

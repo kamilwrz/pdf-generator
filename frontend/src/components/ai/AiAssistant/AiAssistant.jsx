@@ -936,7 +936,7 @@ function ChatMessage({
 
 // ── main component ────────────────────────────────────────────────────────
 
-export default function AiAssistant() {
+export default function AiAssistant({ hideLauncher = false }) {
   useTranslation();
     const reduceMotion = useReducedMotion();
     const {
@@ -1861,8 +1861,8 @@ export default function AiAssistant() {
 
     return (
         <>
-            {/* ── floating action button ── */}
-            <button
+            {/* Keep the mounted assistant history while a picker covers its launcher; an open assistant retains its close action. */}
+            {(!hideLauncher || isOpen) && <button
                 ref={fabRef}
                 type="button"
                 className={`${classes.fab} ${isLoading ? classes.fabLoading : ""}`}
@@ -1877,7 +1877,7 @@ export default function AiAssistant() {
             >
                 <BsStars />
                 <span className={classes.fabLabel}>{uiText("ai:aiAssistant.aiAssistant")}</span>
-            </button>
+            </button>}
 
             {/* ── sliding panel ── */}
             <AnimatePresence>
