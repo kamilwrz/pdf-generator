@@ -19,13 +19,16 @@ const overlaps = (a, b, gap = 0) => a.left < b.left + b.width + gap
  * When the selection fills the viewport, a bounded sheet requests view-only
  * reveal instead. All inputs/outputs are screen pixels, never PDF coordinates.
  */
-export function elementToolbarPosition(anchor, viewport, { obstacles = [], triggerOffsetY = 0 } = {}) {
+export function elementToolbarPosition(anchor, viewport, {
+  obstacles = [], triggerOffsetY = 0, triggerSize = ELEMENT_SETTINGS_SIZE,
+} = {}) {
   const gap = 8;
   const left = viewport.left + gap;
   const top = viewport.top + gap;
   const right = viewport.right - gap;
   const bottom = viewport.bottom - gap;
-  const size = ELEMENT_SETTINGS_SIZE;
+  // Collision regions must include the cog's current animated screen size.
+  const size = Number.isFinite(triggerSize) && triggerSize > 0 ? triggerSize : ELEMENT_SETTINGS_SIZE;
   const width = Math.max(0, Math.min(ELEMENT_TOOLBAR_WIDTH, right - left));
   const maxHeight = Math.max(0, Math.min(ELEMENT_TOOLBAR_MAX_HEIGHT, bottom - top));
   const anchorRight = anchor.left + anchor.width;

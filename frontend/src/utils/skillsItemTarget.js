@@ -76,7 +76,7 @@ export function mergeSkillRects(rects) {
 
 /**
  * Overlay the compact trash on the right end of the entered line fragment.
- * Keep its screen size stable across zoom and hide fully offscreen targets.
+ * Use the live control size for viewport clamping and hide offscreen targets.
  * The fragment index is fixed while hovering a skill, preventing the button
  * from following the pointer as it moves toward the action.
  */

@@ -12,10 +12,10 @@
 
 .eyeBadge {
   position: absolute;
-  right: -2px;
-  bottom: -2px;
-  width: 8px;
-  height: 8px;
-  padding: 1px;
+  right: calc(var(--canvas-control-icon) / -6);
+  bottom: calc(var(--canvas-control-icon) / -6);
+  width: calc(var(--canvas-control-icon) * 2 / 3);
+  height: calc(var(--canvas-control-icon) * 2 / 3);
+  padding: var(--canvas-control-border);
   background: var(--color-paper);
 }

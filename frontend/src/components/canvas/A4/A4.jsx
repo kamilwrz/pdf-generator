@@ -4,8 +4,11 @@
  * `data-page-canvas` lets drag/hit-testing find the page under the pointer.
  */
 import classes from "./A4.module.css";
-import { forwardRef } from "react";
+import { forwardRef, useImperativeHandle, useLayoutEffect, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import { compactInlineToolbarLayoutSize } from "../recordPlusSize";
+import { A4ZoomContext } from "../../../store/a4-zoom-context";
+import { readCanvasZoom } from "../../../utils/readCanvasZoom";
 
 /**
  * Keeps editor-only hover elevation and interaction hairlines constant in
@@ -54,6 +57,36 @@ function editorDepthStyle(zoom) {
 export default forwardRef(function A4({
     width, height, zoom = 1, page, isSpread = false, children, onPointerDownCapture,
 }, ref) {
+    const pageRef = useRef(null);
+    const [liveZoom, setLiveZoom] = useState(zoom);
+    useImperativeHandle(ref, () => pageRef.current, []);
+
+    // Inverse control dimensions must follow the painted transform, not its
+    // destination. Sampling only until the transition settles also handles
+    // interrupted zoom and reduced motion without an idle animation loop.
+    useLayoutEffect(() => {
+        let frame;
+        let cancelled = false;
+        const measure = (animationFrame = false) => {
+            if (cancelled) return;
+            const next = readCanvasZoom(pageRef.current, zoom);
+            // React may defer RAF state updates past the browser's paint.
+            // Commit this page-local compensation in the same animation frame
+            // as the CSS transform; the initial layout effect already blocks paint.
+            if (animationFrame) flushSync(() => setLiveZoom(next));
+            else setLiveZoom(next);
+            if (!cancelled && Math.abs(next - zoom) > 0.0001) {
+                frame = requestAnimationFrame(() => measure(true));
+            }
+        };
+        measure();
+        return () => {
+            // A synchronous commit can interrupt this effect before its RAF
+            // callback returns; do not let that callback restart a stale loop.
+            cancelled = true;
+            cancelAnimationFrame(frame);
+        };
+    }, [zoom]);
 
     // The wrapper reserves the SCALED layout box (CSS transforms don't affect
     // layout size), so .canvas-area's overflow:auto scrolls correctly. #A4
@@ -65,7 +98,7 @@ export default forwardRef(function A4({
             style={{ width: `calc(${width} * ${zoom})`, height: `calc(${height} * ${zoom})` }}
         >
             <div
-                ref={ref}
+                ref={pageRef}
                 data-page-canvas={page}
                 className={`${classes.A4} page-canvas`}
                 style={{
@@ -73,11 +106,11 @@ export default forwardRef(function A4({
                     height,
                     transform: `scale(${zoom})`,
                     transformOrigin: "top left",
-                    ...editorDepthStyle(zoom),
+                    ...editorDepthStyle(liveZoom),
                 }}
                 onPointerDownCapture={onPointerDownCapture}
             >
-                {children}
+                <A4ZoomContext.Provider value={liveZoom}>{children}</A4ZoomContext.Provider>
             </div>
         </div>
     )

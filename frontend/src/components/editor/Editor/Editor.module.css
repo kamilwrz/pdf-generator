@@ -23,8 +23,6 @@
 .editorOpen:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
 
 .inspectorToggle {
-    --canvas-control-size: 36px;
-    --canvas-control-icon: 16px;
     --canvas-control-gap: 8px;
     --canvas-control-font: 12px;
     --canvas-control-menu-width: 192px;

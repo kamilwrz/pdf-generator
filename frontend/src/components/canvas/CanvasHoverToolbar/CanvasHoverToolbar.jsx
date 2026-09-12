@@ -13,7 +13,8 @@ import { FiChevronDown, FiChevronUp, FiMoreHorizontal, FiPlus, FiCpu } from "rea
 import { useScopedAi } from "../../../store/scoped-ai-context";
 import { SCOPED_AI_ACTIONS } from "../../../utils/scopedAi";
 import classes from "./CanvasHoverToolbar.module.css";
-import { structuralToolbarScreenLayoutSize } from "../recordPlusSize";
+import { compactInlineToolbarScreenLayoutSize, structuralToolbarScreenLayoutSize } from "../recordPlusSize";
+import { readCanvasZoom } from "../../../utils/readCanvasZoom";
 
 /**
  * @param {{
@@ -134,8 +135,7 @@ export default function CanvasHoverToolbar({
       const originRect = origin.getBoundingClientRect();
       // Read the page's own animated transform, excluding fit-to-viewport or
       // assistant transforms on its ancestors. Portals have no A4 transform.
-      const transform = new DOMMatrixReadOnly(getComputedStyle(page).transform);
-      const zoom = Math.hypot(transform.a, transform.b);
+      const zoom = readCanvasZoom(page);
       const toolbarRect = toolbarRef.current?.getBoundingClientRect?.();
       const toolbarWidth = toolbarRect?.width || 0;
       const toolbarHeight = toolbarRect?.height || 0;
@@ -242,9 +242,11 @@ export default function CanvasHoverToolbar({
   const originStyle = { left: resolvedAnchorX, top };
   // Structural actions grow from the live transform in screen coordinates.
   // Inline actions and forms retain their independent fixed-screen contract.
-  const screenLayout = layout.scaleWithCanvas
-    ? structuralToolbarScreenLayoutSize(portalGeometry?.zoom, layout.offset)
-    : layout;
+  const screenLayout = layout.scaleWithCanvas === "compact"
+    ? compactInlineToolbarScreenLayoutSize(portalGeometry?.zoom)
+    : layout.scaleWithCanvas
+      ? structuralToolbarScreenLayoutSize(portalGeometry?.zoom, layout.offset)
+      : layout;
   const screenValue = (value) => `${value}px`;
   const portalStyle = portalGeometry ? {
     left: portalGeometry.left,

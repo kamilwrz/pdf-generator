@@ -66,10 +66,10 @@ for (const width of [390, 834, 1280, 1920]) {
     const geometry = () => field.boundingBox();
     const before = await geometry();
     const cogBox = await cog.boundingBox();
-    expect(cogBox.width).toBe(36);
-    expect(cogBox.height).toBe(36);
+    expect(cogBox.width).toBe(48);
+    expect(cogBox.height).toBe(48);
     // At a clipped left edge, the cog is pinned inside the visible canvas.
-    if (before.x > 108) expect(cogBox.x + 36).toBeCloseTo(before.x - 8, 0);
+    if (before.x > 120) expect(cogBox.x + cogBox.width).toBeCloseTo(before.x - 8, 0);
     await cog.click();
     const panel = page.getByRole("dialog", { name: "Ustawienia · Pole tekstowe" });
     await expect(panel).toBeVisible();

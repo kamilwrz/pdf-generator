@@ -30,6 +30,76 @@ async function visibleTextBox(locator) {
   });
 }
 
+// Sample the actual controls through zoom transitions, including reversals.
+// Page-local buttons and body portals must both grow without a transient dip.
+for (const kind of ["contacts", "skills", "languages", "settings"]) {
+  test(`${kind} controls follow toolbar growth during animated zoom`, async ({ page }, testInfo) => {
+    await page.setViewportSize({ width: 1280, height: 1000 });
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+    const api = await installMockApi(page, { savedElements: [...SAVED_ELEMENTS, ...extraElements] });
+    await login(page);
+    await page.getByText("Kontynuuj ostatnie CV", { exact: true }).click();
+    let selector;
+    if (kind === "contacts") {
+      await hoverVisibleText(page, page.locator("#contact-email"));
+      selector = '[aria-label="Dodaj kontakt"], [aria-label^="Usuń kontakt:"]';
+    } else if (kind === "skills") {
+      await page.locator("#skills-tools-body").focus();
+      await page.locator("#skills-tools-body").press("Shift+F10");
+      selector = '[data-canvas-toolbar-key="skills-entry:skills-heading:skills-tools"] button';
+    } else if (kind === "languages") {
+      await page.locator("#language-item").focus();
+      await page.locator("#language-item").press("Shift+F10");
+      selector = '[data-canvas-toolbar-key="grid-entry:language-item"] button';
+    } else {
+      await page.locator("#skills-tools-title").click();
+      selector = '[data-editor-control="element-settings"] > button';
+    }
+    await expect(page.locator(selector).first()).toBeVisible();
+    await page.mouse.move(1, 1);
+    const baseline = kind === "settings" ? 36 : 24;
+    const expected = (zoom) => baseline * (kind === "settings"
+      ? (2 + zoom / 140) / 3 : Math.max(1, (2 + zoom / 140) / 3));
+    let previous = kind === "settings" ? 280 : 140;
+    await expect.poll(async () => (await page.locator(selector).first().boundingBox()).height)
+      .toBeCloseTo(expected(previous), 0);
+
+    for (const target of kind === "settings" ? [140, 280, 160] : [280, 140, 200]) {
+      const samples = await page.evaluate(async ({ target, selector }) => {
+        const canvas = document.querySelector("[data-page-canvas]");
+        const current = Math.round(Number(canvas.style.transform.match(/scale\(([^)]+)\)/)[1]) * 100);
+        const zoomButton = document.querySelector(`[aria-label="${target > current ? "Powiększ" : "Pomniejsz"}"]`);
+        for (let step = 0; step < Math.abs(target - current) / 10; step++) zoomButton.click();
+        const result = [];
+        const started = performance.now();
+        while (performance.now() - started < 400) {
+          // Observe after all RAF callbacks commit, rather than sampling between
+          // the browser's transform tick and the page's compensation callback.
+          await new Promise((resolve) => requestAnimationFrame(() => setTimeout(resolve, 0)));
+          result.push([...document.querySelectorAll(selector)].map((button) => ({
+            size: button.getBoundingClientRect().height,
+            icon: button.querySelector("svg").getBoundingClientRect().width,
+          })));
+        }
+        return result;
+      }, { target, selector });
+      expect(samples.length).toBeGreaterThan(2);
+      for (const frame of samples) {
+        expect(frame.length).toBe(kind === "settings" ? 1 : 2);
+        for (const control of frame) {
+          expect(control.size).toBeGreaterThanOrEqual(Math.min(expected(previous), expected(target)) - 0.4);
+          expect(control.size).toBeLessThanOrEqual(Math.max(expected(previous), expected(target)) + 0.4);
+          expect(control.icon / control.size).toBeCloseTo(kind === "settings" ? 16 / 36 : 0.5, 1);
+        }
+      }
+      for (const control of samples.at(-1)) expect(control.size).toBeCloseTo(expected(target), 1);
+      if (target === 280) await page.screenshot({ path: testInfo.outputPath(`${kind}-280.png`) });
+      previous = target;
+    }
+    api.assertHermetic();
+  });
+}
+
 async function hoverVisibleText(page, locator) {
   await locator.evaluate((node) => node.scrollIntoView({ block: "center", inline: "nearest" }));
   const box = await visibleTextBox(locator);

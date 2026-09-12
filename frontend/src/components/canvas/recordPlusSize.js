@@ -4,8 +4,8 @@
  *
  * The page uses `transform: scale(zoom)`, so a layout pixel appears as
  * `layout * zoom` screen pixels. We target a compact on-screen size and divide
- * by zoom so inline controls retain one screen size. Structural body portals
- * use structuralToolbarScreenLayoutSize with the live page zoom instead.
+ * by the live zoom to avoid applying the page scale twice. All controls grow
+ * at the same gentle rate; body portals use the screen-space helpers directly.
  *
  * The controls use a shared white toolbar surface so they remain usable
  * without competing with the CV content.
@@ -20,7 +20,6 @@ export const STRUCTURAL_TOOLBAR_VERTICAL_GAP_SCREEN_PX = 0;
  * @returns {{ buttonSize: number, iconSize: number, gap: number, offset: number }}
  */
 export function recordPlusLayoutSize(zoom = 1, fontSize = 10) {
-  // No zoom-dependent floor: it made inline icons grow at high canvas zoom.
   const { buttonSize, iconSize, gap, offset } = compactInlineToolbarLayoutSize(zoom);
   void fontSize;
   return { buttonSize, iconSize, gap, offset };
@@ -29,8 +28,8 @@ export function recordPlusLayoutSize(zoom = 1, fontSize = 10) {
 /**
  * Page-local dimensions for the grouped section/record toolbar.
  *
- * Unlike small single-purpose canvas icons, structural actions need enough
- * room for reliable pointer targeting and a short text label. Every value is
+ * Structural actions reserve more room than compact icons for reliable
+ * pointer targeting and a short text label. Every value is
  * divided by the A4 zoom because the parent page transform scales it back to
  * the intended on-screen dimensions. The marker tells the body portal to
  * resolve fresh screen metrics while the page animates, without scaling twice.
@@ -64,8 +63,7 @@ export function structuralToolbarLayoutSize(zoom = 1, offsetScreenPx = 10) {
  * @returns {object} Screen-space button, icon, label, menu and surface metrics.
  */
 export function structuralToolbarScreenLayoutSize(zoom, offsetScreenPx = 10) {
-  const safeZoom = Number.isFinite(Number(zoom)) && Number(zoom) > 0.05 ? Number(zoom) : 1;
-  const scale = (2 + safeZoom / 1.4) / 3;
+  const scale = canvasControlScale(zoom);
   return {
     buttonSize: 36 * scale,
     iconSize: 16 * scale,
@@ -82,9 +80,9 @@ export function structuralToolbarScreenLayoutSize(zoom, offsetScreenPx = 10) {
 /**
  * Return the compact geometry used by inline add controls.
  *
- * Inline controls keep their independent 24px target and 12px icon. They do
- * not inherit structural toolbar growth or change the size of open forms.
- * This narrow canvas exception keeps advice and document text unobstructed.
+ * Divide the growing screen metrics by the current animated page scale.
+ * Callers inside A4 must use its live zoom context, not the target zoom;
+ * otherwise the inverse scale takes effect before the page finishes growing.
  *
  * @param {number} [zoom=1]
  * @returns {{buttonSize:number,iconSize:number,gap:number,labelWidth:number,fontSize:number,menuWidth:number,offset:number,borderWidth:number}}
@@ -93,15 +91,35 @@ export function compactInlineToolbarLayoutSize(zoom = 1) {
   const safeZoom = Number.isFinite(Number(zoom)) && Number(zoom) > 0.05
     ? Number(zoom)
     : 1;
+  return Object.fromEntries(Object.entries(compactInlineToolbarScreenLayoutSize(safeZoom))
+    .map(([key, value]) => [key, value / safeZoom]));
+}
+
+/** Shared growth relative to 140% zoom; invalid input falls back to 100%. */
+export function canvasControlScale(zoom = 1) {
+  const safeZoom = Number.isFinite(Number(zoom)) && Number(zoom) > 0.05 ? Number(zoom) : 1;
+  return (2 + safeZoom / 1.4) / 3;
+}
+
+/**
+ * Compact action dimensions in screen pixels: 24px at 140%, 32px at 280%.
+ * Icons and padding grow at the structural toolbar's rate. Text stays legible;
+ * borders and anchor gaps remain fixed. Open forms own their separate sizing.
+ * @param {number} [zoom=1] Live A4 transform scale.
+ * @returns {object} Screen-space metrics, without changing document geometry.
+ */
+export function compactInlineToolbarScreenLayoutSize(zoom = 1) {
+  // Zooming out must not reduce compact controls below their 24px hit target.
+  const scale = Math.max(1, canvasControlScale(zoom));
   return {
-    buttonSize: 24 / safeZoom,
-    iconSize: 12 / safeZoom,
-    gap: 2.4 / safeZoom,
-    labelWidth: 60.8 / safeZoom,
-    fontSize: 12 / safeZoom,
-    menuWidth: 140.8 / safeZoom,
-    offset: 8 / safeZoom,
-    borderWidth: 1 / safeZoom,
+    buttonSize: 24 * scale,
+    iconSize: 12 * scale,
+    gap: 2.4 * scale,
+    labelWidth: 60.8 * scale,
+    fontSize: Math.max(12, 12 * scale),
+    menuWidth: 140.8 * scale,
+    offset: 8,
+    borderWidth: 1,
   };
 }
 

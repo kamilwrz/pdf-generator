@@ -12,11 +12,13 @@ import { useTranslation } from 'react-i18next';
 import { useEffect } from "react";
 import { FiPlus, FiTrash2 } from "react-icons/fi";
 import { useCanvasContext } from "../../../store/canvas-context";
+import { useA4Zoom } from "../../../store/a4-zoom-context";
 import { EDITOR_MODE_TEMPLATE } from "../../../utils/editorMode";
 import { useCanvasDeletionUndo } from "../../../hooks/useCanvasDeletionUndo";
 import { useCanvasHoverToolbar } from "../../../hooks/useCanvasHoverToolbar";
 import {
   compactInlineToolbarLayoutSize,
+  compactInlineToolbarScreenLayoutSize,
   resolveStructuralToolbarSide,
   structuralToolbarLayoutSize,
 } from "../recordPlusSize";
@@ -59,8 +61,9 @@ export default function GridEntryActions({
     editorMode,
     addGridSectionEntry,
     removeGridSectionEntry,
-    zoom = 1,
+    zoom: targetZoom = 1,
   } = useCanvasContext();
+  const zoom = useA4Zoom(targetZoom);
   const deleteWithUndo = useCanvasDeletionUndo();
   const entry = A4_Elements.find((element) => element.element_id === elementId);
   // Textarea grid members are repeatable short entries (Languages and custom
@@ -220,7 +223,9 @@ export default function GridEntryActions({
       pageWidth={pageSize?.width ?? 595}
       highlight={hoverHighlight}
       highlightLevel="entry"
-      layout={isLanguageEntry ? compactInlineToolbarLayoutSize() : structuralToolbarLayoutSize()}
+      layout={isLanguageEntry
+        ? { ...compactInlineToolbarScreenLayoutSize(), scaleWithCanvas: "compact" }
+        : structuralToolbarLayoutSize()}
       directActions={directActions}
       toolbarPointerProps={directToolbarPointerProps}
     />

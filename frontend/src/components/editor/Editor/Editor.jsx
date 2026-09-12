@@ -2,7 +2,7 @@ import { t as uiText } from "../../../i18n/index.js";
 import { useTranslation } from 'react-i18next';
 /**
  * Element-properties panel (CV STUDIO chrome). Text vs TextArea keep different
- * field sets. A screen-stable settings cog appears to the left of the selection.
+ * field sets. A zoom-aware settings cog appears to the left of the selection.
  * The user explicitly opens a contextual form; compact screens use a bounded
  * bottom sheet. Changing selection resets the form closed. All chrome is
  * portalled outside the document and never changes PDF geometry.
@@ -61,6 +61,8 @@ import {
 import { CANVAS_FONT_STACKS } from "../../../utils/canvasFont";
 import { pathCurvesForKind } from "../../../utils/freeformShapes";
 import { elementToolbarPosition } from "../../../utils/elementToolbarPosition";
+import { readCanvasZoom } from "../../../utils/readCanvasZoom";
+import { structuralToolbarScreenLayoutSize } from "../../canvas/recordPlusSize";
 import { insertInlineSkillSeparator } from "../../../utils/flatSectionLayout";
 import { isInlineSkillsContentElement } from "../../../utils/skillsDisplayMode";
 import {
@@ -221,7 +223,10 @@ function InspectorDisclosure({ visible, selectionKey, panelPosition, panelTitle,
       onPointerDown={(event) => event.stopPropagation()}
       onMouseDown={(event) => event.stopPropagation()}>
       <button ref={toggleRef} type="button" className={`${canvasControls.surface} ${canvasControls.button} ${classes.inspectorToggle}`}
-        style={{ ...panelPosition.trigger, visibility: panelPosition.visible || isOpen ? "visible" : "hidden" }}
+        style={{ ...panelPosition.trigger,
+          "--canvas-control-size": `${panelPosition.controls.buttonSize}px`,
+          "--canvas-control-icon": `${panelPosition.controls.iconSize}px`,
+          visibility: panelPosition.visible || isOpen ? "visible" : "hidden" }}
         data-editor-inspector-state={isOpen ? undefined : "closed"}
         aria-expanded={isOpen} aria-controls={isOpen ? contentId : undefined} aria-haspopup="dialog"
         aria-label={uiText(isOpen ? "editor:inspector.collapse" : "editor:inspector.open", { subject: panelSubject })}
@@ -630,12 +635,14 @@ export default function Editor() {
           const obstacles = [...document.querySelectorAll('[data-editor-control="true"] button')]
             .filter((button) => button.getClientRects().length > 0)
             .map((button) => button.getBoundingClientRect());
-          const next = elementToolbarPosition(anchor, {
+          const selectedNode = selectionKey.split("|").map((id) => document.getElementById(id)).find(Boolean);
+          const controls = structuralToolbarScreenLayoutSize(readCanvasZoom(selectedNode));
+          const next = { ...elementToolbarPosition(anchor, {
             left: Math.max(0, rect.left, sidebar?.right || 0),
             top: Math.max(0, rect.top, topbar?.bottom || 0),
             right: Math.min(window.innerWidth, rect.left + canvas.clientWidth),
             bottom: Math.min(window.innerHeight, rect.top + canvas.clientHeight),
-          }, { obstacles, triggerOffsetY });
+          }, { obstacles, triggerOffsetY, triggerSize: controls.buttonSize }), controls };
           triggerOffsetY = next.triggerOffsetY;
           setPanelPosition((previous) => JSON.stringify(previous) === JSON.stringify(next) ? previous : next);
         }

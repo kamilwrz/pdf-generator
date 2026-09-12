@@ -16,11 +16,11 @@ async function expectCanvasTooltip(control, keyboard = false) {
     const canvas = node.closest("[data-page-canvas]");
     const scale = canvas ? canvas.getBoundingClientRect().width / canvas.offsetWidth : 1;
     return { background: style.backgroundColor, color: style.color,
-      fontSize: Number.parseFloat(style.fontSize) * scale, content: style.content };
+      fontSize: Number.parseFloat(style.fontSize) * scale, scale, content: style.content };
   });
   expect(tooltip.background).toBe("rgb(103, 78, 62)");
   expect(tooltip.color).toBe("rgb(255, 255, 255)");
-  expect(tooltip.fontSize).toBeCloseTo(12, 1);
+  expect(tooltip.fontSize).toBeCloseTo(12 * Math.max(1, (2 + tooltip.scale / 1.4) / 3), 1);
   expect(tooltip.content).toBe(JSON.stringify(await control.getAttribute("data-tooltip")));
 }
 
@@ -160,7 +160,7 @@ for (const width of [390, 834, 1366, 1920]) {
         return { horizontal: name.left - control.right, vertical: name.top - control.bottom };
       }, name.element_id);
       expect(Math.max(separation.horizontal, separation.vertical)).toBeCloseTo(8, 0);
-      expect(plus.height).toBeCloseTo(24, 0);
+      expect(plus.height).toBeCloseTo(24 * Math.max(1, (2 + zoom / 140) / 3), 0);
       await toggle.focus();
       await toggle.press("Enter");
       await expect(field).toHaveCSS("text-transform", "none");

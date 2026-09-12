@@ -19,6 +19,7 @@ import { useCanvasContext } from "../../../store/canvas-context";
 import { EDITOR_MODE_TEMPLATE } from "../../../utils/editorMode";
 import { useHoverPlusExclusive } from "../../../hooks/useHoverPlusExclusive";
 import { recordPlusLayoutSize } from "../recordPlusSize";
+import { useA4Zoom } from "../../../store/a4-zoom-context";
 import classes from "../SectionRecordAdd/SectionRecordAdd.module.css";
 
 /** Hide delay after the pointer leaves the content block or the button. */
@@ -41,7 +42,8 @@ export default function FlatSectionLayoutToggle({
   fontSize = 10,
 }) {
   useTranslation();
-  const { editorMode, openFlatSectionLayoutModal, zoom = 1 } = useCanvasContext();
+  const { editorMode, openFlatSectionLayoutModal, zoom: targetZoom = 1 } = useCanvasContext();
+  const zoom = useA4Zoom(targetZoom);
 
   const [visible, setVisible] = useState(false);
   const hideTimerRef = useRef(null);

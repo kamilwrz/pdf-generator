@@ -124,11 +124,7 @@
 .deleteAnchor {
     position: fixed;
     z-index: var(--z-editor-context);
-    --canvas-control-size: 24px;
-    --canvas-control-icon: 12px;
-    --canvas-control-gap: 2.4px;
     --canvas-control-border: 1px;
-    --canvas-control-font: 12px;
     --canvas-control-menu-width: 240px;
 }
 

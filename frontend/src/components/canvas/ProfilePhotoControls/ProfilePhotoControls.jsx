@@ -12,6 +12,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { FiEye, FiEyeOff, FiImage, FiTrash2 } from "react-icons/fi";
 import { useCanvasContext } from "../../../store/canvas-context";
 import { compactInlineToolbarLayoutSize } from "../recordPlusSize";
+import { useA4Zoom } from "../../../store/a4-zoom-context";
 import cluster from "../SectionRecordAdd/SectionRecordAdd.module.css";
 import classes from "./ProfilePhotoControls.module.css";
 
@@ -19,7 +20,8 @@ const HIDE_AFTER_LEAVE_MS = 600;
 
 export default function ProfilePhotoControls({ anchor }) {
   useTranslation();
-  const { hideProfilePhoto, showProfilePhoto, removeProfilePhoto, zoom = 1 } = useCanvasContext();
+  const { hideProfilePhoto, showProfilePhoto, removeProfilePhoto, zoom: targetZoom = 1 } = useCanvasContext();
+  const zoom = useA4Zoom(targetZoom);
   const [hover, setHover] = useState(null);
   const hideTimerRef = useRef(null);
   const clearHide = useCallback(() => {

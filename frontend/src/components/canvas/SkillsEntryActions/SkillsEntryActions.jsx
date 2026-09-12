@@ -17,7 +17,8 @@ import { useCanvasContext } from "../../../store/canvas-context";
 import { useCanvasHoverToolbar } from "../../../hooks/useCanvasHoverToolbar";
 import { EDITOR_MODE_TEMPLATE } from "../../../utils/editorMode";
 import { resolveSkillsEntryToolbarTop } from "../../../utils/skillsEntryToolbarGeometry";
-import { compactInlineToolbarLayoutSize } from "../recordPlusSize";
+import { compactInlineToolbarLayoutSize, compactInlineToolbarScreenLayoutSize } from "../recordPlusSize";
+import { useA4Zoom } from "../../../store/a4-zoom-context";
 import CanvasHoverToolbar from "../CanvasHoverToolbar/CanvasHoverToolbar";
 import SkillDeleteControl from "./SkillDeleteControl";
 import classes from "./SkillsEntryActions.module.css";
@@ -53,8 +54,9 @@ export default function SkillsEntryActions({
     removeSkillItem,
     editorMode,
     pageSize,
-    zoom = 1,
+    zoom: targetZoom = 1,
   } = useCanvasContext();
+  const zoom = useA4Zoom(targetZoom);
   const eligible = editorMode === EDITOR_MODE_TEMPLATE
     && typeof addSkillItem === "function";
   const exclusiveKey = `skills-entry:${headingId}:${groupId}`;
@@ -331,7 +333,7 @@ export default function SkillsEntryActions({
         anchorX={toolbarAnchorX}
         top={toolbarTop}
         pageWidth={pageSize?.width ?? 595}
-        layout={compactInlineToolbarLayoutSize()}
+        layout={{ ...compactInlineToolbarScreenLayoutSize(1.4), scaleWithCanvas: formOpen ? false : "compact" }}
         directActions={formOpen ? [] : directActions}
         panelContent={formOpen ? form : null}
         collisionAware

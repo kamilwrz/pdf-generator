@@ -5,6 +5,8 @@ import { createPortal } from "react-dom";
 import { FiTrash2 } from "react-icons/fi";
 import { useScopedAi } from "../../../store/scoped-ai-context";
 import { measureSkillTargets, skillDeletePosition } from "../../../utils/skillsItemTarget";
+import { readCanvasZoom } from "../../../utils/readCanvasZoom";
+import { compactInlineToolbarScreenLayoutSize } from "../recordPlusSize";
 import classes from "./SkillsEntryActions.module.css";
 
 /**
@@ -27,10 +29,18 @@ export default function SkillDeleteControl({
     let frame;
     const measure = () => {
       const target = measureSkillTargets(itemTargets)[activeIndex];
-      const next = skillDeletePosition(target?.rects || [], fragmentIndex, {
+      const zoom = readCanvasZoom(document.getElementById(itemTargets[activeIndex]?.elementId));
+      const layout = compactInlineToolbarScreenLayoutSize(zoom);
+      const coordinates = skillDeletePosition(target?.rects || [], fragmentIndex, {
         width: window.innerWidth, height: window.innerHeight,
-      });
-      setPosition((previous) => previous?.left === next?.left && previous?.top === next?.top
+      }, layout.buttonSize);
+      const next = coordinates && { ...coordinates,
+        "--canvas-control-size": `${layout.buttonSize}px`,
+        "--canvas-control-icon": `${layout.iconSize}px`,
+        "--canvas-control-gap": `${layout.gap}px`,
+        "--canvas-control-font": `${layout.fontSize}px`,
+      };
+      setPosition((previous) => JSON.stringify(previous) === JSON.stringify(next)
         ? previous : next);
       frame = window.requestAnimationFrame(measure);
     };

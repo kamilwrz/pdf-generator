@@ -16,14 +16,15 @@ test("styled spans form one target per visual line, with no hit area between wra
   assert.equal(position.top + 12, 77);
 });
 
-test("trash overlays the active fragment at fixed size across zoom and scrolling", () => {
+test("trash overlays the active fragment using its live size through zoom and scrolling", () => {
   for (const zoom of [0.7, 1.4, 2.8]) {
+    const size = zoom === 2.8 ? 32 : 24;
     const bounds = rect(100 * zoom, 80 * zoom, 180 * zoom, 14 * zoom);
-    const position = skillDeletePosition([bounds], 0, { width: 1920, height: 1200 });
-    assert.equal(position.left + 24, bounds.right);
-    assert.equal(position.top + 12, (bounds.top + bounds.bottom) / 2);
+    const position = skillDeletePosition([bounds], 0, { width: 1920, height: 1200 }, size);
+    assert.equal(position.left + size, bounds.right);
+    assert.equal(position.top + size / 2, (bounds.top + bounds.bottom) / 2);
     const scrolled = skillDeletePosition([{ ...bounds, top: bounds.top - 20, bottom: bounds.bottom - 20 }], 0,
-      { width: 1920, height: 1200 });
+      { width: 1920, height: 1200 }, size);
     assert.equal(scrolled.top, position.top - 20);
   }
 });

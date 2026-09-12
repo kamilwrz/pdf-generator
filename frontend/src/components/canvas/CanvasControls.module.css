@@ -78,7 +78,8 @@
     color: var(--color-paper);
     font: 600 var(--canvas-control-font)/1.2 var(--font-body, sans-serif);
     letter-spacing: .01em;
-    white-space: nowrap;
+    white-space: normal;
+    overflow-wrap: anywhere;
     opacity: 0;
     visibility: hidden;
     pointer-events: none;

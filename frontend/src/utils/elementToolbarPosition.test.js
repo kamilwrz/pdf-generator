@@ -83,10 +83,26 @@ test("compact and low-height viewports never overflow", () => {
     }
   }
 });
-test("large zoom changes position, never control or preferred panel size", () => {
+test("large zoom preserves preferred panel size", () => {
   for (const zoom of [0.5, 1, 1.4, 2.8, 4]) {
     const result = elementToolbarPosition({ left: 200 * zoom, top: 150 * zoom, width: 80 * zoom, height: 20 * zoom }, viewport);
     assert.equal(result.panel.width, 344);
     assert.equal(result.panel.maxHeight, 480);
+  }
+});
+
+test("enlarged cogs use their actual size for clearance and viewport clamping", () => {
+  const anchor = { left: 331, top: 580, width: 924, height: 44 };
+  const obstacle = { left: 270, top: 560, width: 45, height: 40 };
+  for (const triggerSize of [36, 48, 56]) {
+    const result = elementToolbarPosition(anchor, viewport, { triggerSize, obstacles: [obstacle] });
+    const trigger = { ...result.trigger, width: triggerSize, height: triggerSize };
+    assert.equal(trigger.left + triggerSize, anchor.left - 8);
+    assert.equal(intersects(trigger, obstacle), false);
+    assert.equal(intersects(trigger, anchor), false);
+    assert.equal(intersects({ ...result.panel, height: result.panel.maxHeight }, trigger), false);
+    const clipped = elementToolbarPosition({ ...anchor, left: -100, top: 850 }, viewport, { triggerSize });
+    assert.ok(clipped.trigger.left >= viewport.left + 8);
+    assert.ok(clipped.trigger.top + triggerSize <= viewport.bottom - 8);
   }
 });

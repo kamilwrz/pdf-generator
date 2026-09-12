@@ -22,6 +22,7 @@ import { FiPlus, FiTrash2 } from "react-icons/fi";
 import { useCanvasContext } from "../../../store/canvas-context";
 import { useHoverPlusExclusive } from "../../../hooks/useHoverPlusExclusive";
 import { compactInlineToolbarLayoutSize } from "../recordPlusSize";
+import { useA4Zoom } from "../../../store/a4-zoom-context";
 import { CHANNEL_NAMES } from "../../../utils/contactChannelNames";
 import { getElementOutlineBounds } from "../../../utils/elementBounds";
 import cluster from "../SectionRecordAdd/SectionRecordAdd.module.css";
@@ -31,7 +32,8 @@ const HIDE_AFTER_LEAVE_MS = 600;
 
 export default function ContactChannelControls({ bandId, chips, inactive }) {
   useTranslation();
-  const { removeContactChannel, addContactChannel, zoom = 1 } = useCanvasContext();
+  const { removeContactChannel, addContactChannel, zoom: targetZoom = 1 } = useCanvasContext();
+  const zoom = useA4Zoom(targetZoom);
   const [hoverChannel, setHoverChannel] = useState(null);
   const [hoverBounds, setHoverBounds] = useState(null);
   // Whether the pointer is anywhere in the band (any chip, or the +/menu

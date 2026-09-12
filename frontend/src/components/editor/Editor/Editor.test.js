@@ -52,7 +52,7 @@ test("Settings use shared canvas chrome, readable groups, and compact-sheet over
   assert.match(source, /aria-haspopup="dialog"/);
   assert.match(source, /role="dialog" aria-modal="false"/);
   assert.match(source, /focusOnOpenRef/);
-  assert.match(css, /--canvas-control-size: 36px/);
+  assert.match(source, /triggerSize: controls.buttonSize/);
   assert.match(css, /overscroll-behavior: contain/);
   assert.match(css, /max-height: min\(420px, 46dvh\)/);
   assert.match(css, /@media print/);
