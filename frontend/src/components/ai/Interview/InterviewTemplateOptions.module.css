@@ -1,0 +1,5 @@
+.choice { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 16rem); gap: var(--space-6); align-items: start; margin-block: var(--space-4); }
+.sample { margin: 0; min-width: 0; }
+.sample img { display: block; width: 100%; aspect-ratio: 595 / 842; object-fit: contain; background: var(--color-paper); border: 1px solid var(--color-border); }
+.sample figcaption { margin-top: var(--space-2); font-size: .875rem; color: var(--color-muted); }
+@container interview (max-width: 720px) { .choice { grid-template-columns: minmax(0, 1fr); } .sample { max-width: 16rem; } }

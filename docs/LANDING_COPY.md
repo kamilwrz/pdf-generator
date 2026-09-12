@@ -1,3 +1,6 @@
+> Historical copy draft. Current shipped PL/EN copy is maintained in frontend/src/i18n/locales/pl.json and en.json; see the README section Studio, Interview and one-page guidance.
+> Historyczny szkic treści. Aktualna treść PL/EN znajduje się w frontend/src/i18n/locales/pl.json i en.json; zobacz sekcję README o Studio, Wywiadzie i dopasowaniu do strony.
+
 # Teksty publicznych stron CV Studio
 
 Stan: wdrożone w kodzie landingu, stron szablonów, cennika, pomocy, logowania, rejestracji, potwierdzenia e-maila i wyniku płatności. Metadane na końcu pozostają propozycją i nie są aktywną treścią aplikacji.

@@ -223,9 +223,9 @@
   font-family: var(--font-body);
   font-weight: 600;
   font-size: 0.9rem;
-  color: var(--on-accent);
-  background: var(--chrome-accent);
-  border: 1px solid var(--chrome-accent);
+  color: var(--color-paper);
+  background: var(--chrome-ink);
+  border: 1px solid var(--chrome-ink);
 }
 
 /* Secondary CTA: outline/ghost variant. */
@@ -332,6 +332,9 @@
 }
 
 .blankLink {
+  min-height: var(--control-height);
+  display: inline-flex;
+  align-items: center;
   align-self: flex-start;
   border: 0;
   background: transparent;

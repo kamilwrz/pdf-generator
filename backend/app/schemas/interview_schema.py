@@ -95,6 +95,13 @@ class FitVerification(Contract):
     reasons: list[str] = Field(max_length=250)
 
 
+class PreviewTemplateWrite(SessionWrite):
+    """Select one measured alternate template without accepting new CV prose."""
+    template_id: str = Field(min_length=1, max_length=100)
+    elements: list[dict] = Field(min_length=1, max_length=1000)
+    spacing_px: dict | None = None
+
+
 class PreviewReviewWrite(SessionWrite):
     """Reject a generated field (null) or explicitly confirm its full replacement."""
     path: str = Field(min_length=1, max_length=200)

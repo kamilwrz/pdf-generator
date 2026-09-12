@@ -11,7 +11,7 @@ describe("landing product positioning", () => {
     assert.equal((source.match(/<h1>/g) || []).length, 1);
     assert.match(hero, /Darmowa rejestracja jest potrzebna dopiero przy zapisie lub pobieraniu PDF/);
     assert.match(hero, /FREE_TEMPLATES.length/);
-    assert.match(source, /AI w Pro/);
+    assert.match(source, /Wywiad · Pro/);
     assert.doesNotMatch(hero, /100% ZA DARMO|zwiększy Twoje szanse|systemy ATS/);
   });
 
@@ -28,7 +28,8 @@ describe("landing product positioning", () => {
   it("uses canonical plan limits and distinguishes the static AI example", () => {
     assert.match(source, /FREE_PLAN_HIGHLIGHTS\.map/);
     assert.match(source, /PRO_PLAN_HIGHLIGHTS\.map/);
-    assert.match(source, /aria-label="Przykład poprawy stylu z AI w Pro"/);
+    assert.match(source, /Przykład rozmowy i jej efektu/);
+    assert.match(source, /bez dopisywania osiągnięć/);
     assert.match(source, /Import nie kopiuje wyglądu oryginału/);
     assert.doesNotMatch(source, /href="#"/);
   });
@@ -37,8 +38,8 @@ describe("landing product positioning", () => {
     assert.match(source, /aria-hidden=\{copy === 1 \? true : undefined\}/);
     assert.match(source, /tabIndex=\{copy === 1 \? -1 : undefined\}/);
     assert.match(source, /\{TEMPLATE_COUNT\}/);
-    assert.equal((source.match(/<details(?: open)?>/g) || []).length, 4);
-    for (const anchor of ["szablony", "privacy", "cennik", "final-cta-title"]) {
+    assert.equal((source.match(/<details(?: open)?>/g) || []).length, 5);
+    for (const anchor of ["wywiad", "szablony", "privacy", "cennik", "final-cta-title"]) {
       assert.ok(source.includes('id="' + anchor + '"'));
     }
     assert.match(styles, /prefers-reduced-motion: reduce/);

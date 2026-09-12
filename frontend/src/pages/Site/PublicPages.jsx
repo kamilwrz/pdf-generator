@@ -72,7 +72,7 @@ export function HelpPage() {
   return <SiteLayout title={uiText("public:publicPages.helpCreatingYourCv")} eyebrow="INSTRUKCJE" intro={uiText("public:publicPages.chooseATopicToGoStraightTo")}
     heroAside={<HeroNote icon={<FiFileText />} label={uiText("public:publicPages.yourFirstCvInStudio")} title={uiText("public:publicPages.startWithATemplate")}><p>{uiText("public:publicPages.enterContentDirectlyOnAAndChange")}</p><Link className={classes.secondary} to="/templates">{uiText("public:publicPages.viewTemplates")}<FiArrowRight aria-hidden="true" /></Link></HeroNote>}>
     <div className={classes.guideLayout}>
-    <nav className={classes.guideNav} aria-label={uiText("public:publicPages.helpTopics")}><p className={classes.eyebrow}>{uiText("public:publicPages.onThisPage")}</p>{[['tworzenie', uiText("editor:topbar.creatingCv")], ['wywiad', uiText("public:publicPages.aiInterviewPro")], ['dopasowanie', uiText("public:publicPages.jobSpecificCvPro")], ['profil', uiText("account:accountPage.profileAndSavedInterviews")], ['import', 'Import PDF'], ['pobieranie', uiText("public:publicPages.savingAndDownloading")], ['powrot', uiText("public:publicPages.returnToADocument")]].map(([id, label], index) => <a key={id} href={`#${id}`}><span aria-hidden="true">0{index + 1}</span>{label}<FiArrowRight aria-hidden="true" /></a>)}</nav>
+    <nav className={classes.guideNav} aria-label={uiText("public:publicPages.helpTopics")}><p className={classes.eyebrow}>{uiText("public:publicPages.onThisPage")}</p>{[['tworzenie', uiText("editor:topbar.creatingCv")], ['wywiad', uiText("public:publicPages.aiInterviewPro")], ['jedna-strona', uiText("public:publicPages.fitHeading")], ['dopasowanie', uiText("public:publicPages.jobSpecificCvPro")], ['profil', uiText("account:accountPage.profileAndSavedInterviews")], ['import', 'Import PDF'], ['pobieranie', uiText("public:publicPages.savingAndDownloading")], ['powrot', uiText("public:publicPages.returnToADocument")]].map(([id, label], index) => <a key={id} href={`#${id}`}><span aria-hidden="true">0{index + 1}</span>{label}<FiArrowRight aria-hidden="true" /></a>)}</nav>
     <div className={classes.guideContent}>
     <section id="tworzenie" tabIndex={-1} className={classes.guideStep}><div className={classes.stepHeading}><SiteMarker><FiFileText /></SiteMarker><span className={classes.eyebrow}>{uiText("public:publicPages.topic")}</span></div><h2>{uiText("editor:newCvSetupModal.createANewCv")}</h2><ol><li>{uiText("public:publicPages.chooseATemplateThatSuitsTheAmount")}</li><li>{uiText("public:publicPages.enterYourDetailsDirectlyOnAThe")}</li><li>{uiText("public:publicPages.reviewTheDocumentFromTopToBottom")}</li></ol><Link className={classes.secondary} to="/templates">{uiText("interview:interviewFlow.chooseATemplate")}<FiArrowRight aria-hidden="true" /></Link></section>
     <section id="wywiad" tabIndex={-1} className={classes.guideStep}>
@@ -93,6 +93,13 @@ export function HelpPage() {
         <details><summary>{uiText("public:publicPages.canIPauseAnInterviewAndReturn")}</summary><p>{uiText("public:publicPages.yesSavedAnswersRemainOnYourAccount")}</p></details>
       </div>
       <Link className={classes.secondary} to="/app/interview">{uiText("public:publicPages.goToInterviewPro")} <FiArrowRight aria-hidden="true" /></Link>
+    </section>
+    <section id="jedna-strona" tabIndex={-1} className={classes.guideStep}>
+      <h2>{uiText("public:publicPages.fitHeading")}</h2>
+      <p>{uiText("public:publicPages.fitIntro")}</p>
+      <p>{uiText("public:publicPages.fitTemplates")}</p>
+      <p>{uiText("public:hero.fitAnswer")}</p>
+      <Link className={classes.secondary} to="/app/interview">{uiText("public:hero.openInterview")} <FiArrowRight aria-hidden="true" /></Link>
     </section>
     <section id="dopasowanie" tabIndex={-1} className={classes.guideStep}>
       <div className={classes.stepHeading}><SiteMarker><FiFileText /></SiteMarker><span className={classes.eyebrow}>{uiText("public:publicPages.topicPro2")}</span></div>

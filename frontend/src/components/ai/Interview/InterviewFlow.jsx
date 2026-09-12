@@ -21,6 +21,7 @@ import InterviewPreview from './InterviewPreview';
 import TemplateCarousel from '../AiCvPanel/TemplateCarousel';
 import InterviewReviewNotice from './InterviewReviewNotice';
 import InterviewSourceRequired from './InterviewSourceRequired';
+import InterviewTemplateOptions from './InterviewTemplateOptions';
 import classes from './Interview.module.css';
 
 const languageLabels = { get pl() { return uiText("ai:aiAssistant.polish"); }, get en() { return uiText("ai:aiAssistant.english"); }, get de() { return uiText("ai:aiAssistant.german"); }, get fr() { return uiText("ai:aiAssistant.french"); }, get es() { return uiText("ai:aiAssistant.spanish"); }, get uk() { return uiText("ai:aiAssistant.ukrainian"); }, get it() { return uiText("ai:aiAssistant.italian"); }, get nl() { return uiText("ai:aiAssistant.dutch"); } };
@@ -49,6 +50,7 @@ export default function InterviewFlow({ sessionId, initialSource = null, current
   const [template, setTemplate] = useState(initialSource?.template_id || '');
   const [factEditing, setFactEditing] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
+  const [autoTemplateRevision, setAutoTemplateRevision] = useState(null);
   const lock = useRef(false);
   const alive = useRef(true);
   const createKey = useRef(crypto.randomUUID());
@@ -122,6 +124,10 @@ export default function InterviewFlow({ sessionId, initialSource = null, current
     const next = result.session || result;
     const currentProfile = result.profile || (next.evidence_scope !== 'profile' ? interviewEvidence(null, next) : await interviewRequest('/career-profile'));
     if (alive.current) adopt(result.session || result, currentProfile);
+    if (alive.current && ['preview', 'preview-review'].includes(action) && next.preview?.pages > 1 && next.preview?.fit?.status !== 'pending') {
+      setAutoTemplateRevision(next.revision);
+    }
+    if (alive.current && action === 'preview-template') setNotice(messageRef('interview:templates.applied'));
   }
 
   // Navigation is the save boundary: one explicit next action persists changed
@@ -186,7 +192,7 @@ export default function InterviewFlow({ sessionId, initialSource = null, current
   const fitPending = session?.preview?.fit?.status === 'pending';
   const activePanel = reviewing ? 'facts' : session?.phase === 'clarification' ? 'conversation' : fitPending && panel === 'preview' ? 'prepare' : panel;
   const waiting = busy || initialLoading;
-  const inlineWaiting = busy && !initialLoading && ['answers', 'next', 'confirm', 'sync', 'preview-review'].includes(pendingOperation);
+  const inlineWaiting = busy && !initialLoading && ['answers', 'next', 'confirm', 'sync', 'preview-review', 'preview-template'].includes(pendingOperation);
   // Clarifications have their own bounded queue; discovery answers must not
   // make the first clarification appear as question nine of a new interview.
   const clarified = session?.answers.filter((item) => item.question?.clarification).length || 0;
@@ -331,6 +337,13 @@ export default function InterviewFlow({ sessionId, initialSource = null, current
             <p role="status">{uiText(session.preview.fit.status === 'restored' ? 'interview:fit.restored' : session.preview.pages < session.preview.fit.original_pages ? 'interview:fit.reduced' : 'interview:fit.balanced', { count: session.preview.pages })}</p>
             {session.preview.fit.can_restore && session.phase !== 'completed' && <button type="button" disabled={busy || factEditing || sourceChanged} onClick={() => run(() => operation('preview-fit', { action: 'restore' }))}>{uiText('interview:fit.restore')}</button>}
           </div>}
+          {session.preview.pages > 1 && session.phase === 'preview' && <InterviewTemplateOptions
+            key={`${session.id}-${session.revision}`} session={session} entitlements={entitlements}
+            disabled={busy || factEditing || sourceChanged || hasPending || session.preview.profile_revision !== profile.revision}
+            autoCheck={autoTemplateRevision === session.revision} onAutoStart={() => setAutoTemplateRevision(null)}
+            onSelect={candidate => run(() => operation('preview-template', {
+              template_id: candidate.template_id, elements: candidate.elements, spacing_px: candidate.spacing_px,
+            }), 'preview-template')} />}
           <InterviewPreview key={`${session.id}-${session.revision}`} preview={session.preview} source={session.source_cv_data} facts={profile.facts}
             disabled={busy || sourceChanged} onEditingChange={setFactEditing}
             onReview={session.phase === 'completed' ? undefined : (path, value) => run(async () => {

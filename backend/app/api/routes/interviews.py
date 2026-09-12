@@ -14,7 +14,7 @@ from app.dependencies import get_db
 from app.crud.cv_import_snapshots import get_owned_snapshot
 from app.models.models import InterviewSession, Pdf
 from app.schemas.interview_schema import (
-    ProfileWrite, ProfileSourceWrite, InterviewCreate, SessionWrite, AnswerWrite, ConfirmWrite, GenerateWrite, PreviewReviewWrite, PreviewFitWrite, SourceRefresh, Draft, Verification, EditorialReview,
+    ProfileWrite, ProfileSourceWrite, InterviewCreate, SessionWrite, AnswerWrite, ConfirmWrite, GenerateWrite, PreviewReviewWrite, PreviewFitWrite, PreviewTemplateWrite, SourceRefresh, Draft, Verification, EditorialReview,
 )
 from app.schemas.pdf_schema import PDFCreateRequest
 from app.services.interview_clarification import (
@@ -33,6 +33,7 @@ from app.services.interview_editorial import (
 from app.services import interview_service as service
 from app.services.interview_credits import interview_credit_usage
 from app.services.interview_fit import initialise_fit, fit_preview
+from app.services.interview_templates import preview_templates, select_preview_template
 from app.services.interview_sources import available_interview_sources, has_interview_source
 from app.services.career_profile_source import synchronise_source, supplemental_facts, is_supplemental_fact
 from app.services.cv_data import normalize_cv_data, CvDataValidationError
@@ -585,6 +586,18 @@ def review_interview_preview(session_id: str, request: PreviewReviewWrite, user=
 def fit_interview_preview(session_id: str, request: PreviewFitWrite, user=Depends(get_current_user), db=Depends(get_db)):
     """Finish browser page fitting, run one bounded shortening, or undo the fit."""
     return fit_preview(db, user, service.owned_session(db, user.id, session_id), request)
+
+
+@router.post("/ai/interviews/{session_id}/preview-templates")
+def list_interview_preview_templates(session_id: str, request: SessionWrite, user=Depends(get_current_user), db=Depends(get_db)):
+    """Render allowed alternate layouts for free browser measurement."""
+    return preview_templates(db, user, service.owned_session(db, user.id, session_id), request)
+
+
+@router.post("/ai/interviews/{session_id}/preview-template")
+def select_interview_preview_template(session_id: str, request: PreviewTemplateWrite, user=Depends(get_current_user), db=Depends(get_db)):
+    """Save an explicitly chosen one-page alternate with unchanged verified text."""
+    return select_preview_template(db, user, service.owned_session(db, user.id, session_id), request)
 
 
 @router.post("/ai/interviews/{session_id}/document")

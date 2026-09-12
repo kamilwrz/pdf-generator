@@ -25,6 +25,19 @@ Compatibility is deliberately limited to recognizable metadata loss; it does not
 
 ## Automatic CV fitting after the interview
 
+If the verified result still uses multiple pages, the result now automatically compares other entitled templates using exactly the same content, each template's S typography and compact spacing. An existing reopened preview has a **Check other templates** action. Only a measured, complete one-page candidate is offered. Flow textarea heights use `Math.ceil(measured line count × lineHeight)`, matching the canvas's zero-padding text boxes; the heuristic's extra 6px is not added to measured fields. A regression with 33 one-line records verifies that accumulated padding cannot incorrectly manufacture a second page. The labelled template selector shows a sample design, reports partial failures honestly and applies a layout only through **Use this template — 1 page**. Scanning, retrying and changing the template use no AI credits; the current CV stays available during comparison. Restore includes the previous template identity as well as its content and geometry.
+
+The [complete alternate-template tutorial](docs/INTERVIEW_TEMPLATES.md#english) documents both authenticated endpoints (`POST /ai/interviews/{id}/preview-templates` and `POST /ai/interviews/{id}/preview-template`), versioned request/response examples, ownership/entitlement checks, photo and content preservation, errors, cancellation, storage and deployment. This extends the existing session JSON without a migration, dependency or environment variable. Template enumeration is stateless; explicit selection uses the existing atomic session revision check. The browser keeps failed or stale measurements out of the choice list.
+
+Verified implementation and regression references:
+
+- `backend/app/services/interview_templates.py`, lines 1–168, `preview_templates` and `select_preview_template`; `backend/app/schemas/interview_schema.py`, lines 98–102, `PreviewTemplateWrite`; `backend/app/api/routes/interviews.py`, lines 591–600, the two authenticated route handlers.
+- `frontend/src/utils/interviewTemplateFit.js`, lines 1–212, `measureInterviewTemplateCandidate` and `measureInterviewTemplateCandidates`; `frontend/src/utils/templatePageFit.js`, lines 1–207, shared S typography registration and `applyTemplateSmallTypography`. The scan yields to the browser between candidates so progress and cancellation remain responsive with cached fonts.
+- `frontend/src/components/ai/Interview/InterviewTemplateOptions.jsx`, lines 1–130, optional comparison, progress, cancellation, accessible selector and explicit choice; `InterviewTemplateOptions.module.css` supplies the token-based responsive sample layout.
+- `backend/tests/test_interview_templates.py`, lines 1–175; `frontend/src/utils/interviewTemplateFit.test.js`, lines 1–208 (33-field height regression: lines 34–54; cached-font cancellation: lines 179–190); `frontend/src/components/ai/Interview/InterviewTemplateOptions.runtime.test.jsx`, lines 1–78; `frontend/e2e/interview-templates.spec.js`, lines 1–109. The generated synthetic fixture is `frontend/e2e/fixtures/interview-templates.json`; browser selection covers Linden, Cadenza, Sterling and Meridian in both PL and EN.
+
+Run the existing test/runtime/lint/build commands and `npm run test:e2e -- e2e/interview-templates.spec.js --project=desktop-chromium` from `frontend`; backend commands are in the tutorial. Coverage includes PL/EN at 390/834/1280/1920px, keyboard selection, 200% text zoom, reduced motion, failed selection retry and restore. [CSS Font Loading API](https://developer.mozilla.org/en-US/docs/Web/API/CSS_Font_Loading_API) explains actual-font measurement; [React effect cleanup](https://react.dev/reference/react/useEffect) explains ignoring late comparison results. Unsupported or unmeasurable layouts are excluded, so the feature makes no guarantee that every CV can fit one page.
+
 New multi-page results are fitted before the user sees them. The browser measures actual font wrapping, tries existing spacing and the template's S preset, and targets one fewer page at a time. Automatic spacing stops at the compact preset. If a page can plausibly be recovered, the server permits 1/2/3 shortening attempts for estimated editable-prose reductions up to 10%/25%/30%. Each attempt preserves the original verified descriptions and receives a separate factual check. Larger reductions, less than 3% measured progress, rejected facts, exhausted credits or the 600-second scheduling budget end further shortening. An already running provider pair retains its normal timeout.
 
 The final content, elements, page count and spacing are stored together. A free restore action returns to the verified result before fitting. Interrupted fitting exposes explicit resume/restore actions and blocks document creation until resolved. Reads, navigation and answer saves never invoke paid fitting; manual preview corrections trigger only free layout work. Additional shortening and verification charges appear separately in the existing receipt. No database migration, dependency or environment variable was added; baseline/best variants and progress live in the owned interview session JSON and follow its retention/deletion rules.
@@ -35,9 +48,9 @@ Implementation and regression coverage:
 
 | File | Verified lines and responsibility |
 | --- | --- |
-| `backend/app/services/interview_fit.py` | 1–233; `initialise_fit`, `fit_preview`: baseline, limits, evidence checks and final publication |
+| `backend/app/services/interview_fit.py` | 1–237; `initialise_fit`, `fit_preview`: baseline, limits, evidence checks and final publication |
 | `backend/app/schemas/interview_schema.py` | 77–95; `PreviewFitWrite`, `FitVerification`: layout request and independent factual review |
-| `backend/app/api/routes/interviews.py` | 585–587; `fit_interview_preview`: authenticated `POST /ai/interviews/{session_id}/preview-fit` |
+| `backend/app/api/routes/interviews.py` | 585–588; `fit_interview_preview`: authenticated `POST /ai/interviews/{session_id}/preview-fit` |
 | `frontend/src/utils/interviewFit.js` | 1–165; `prepareInterviewFit`, `completeInterviewFit`, `balanceInterviewPages`: measured typography/spacing and ordered record pagination |
 | `backend/tests/test_interview_fit.py` | 1–220; synthetic tests for ownership, stale writes, loss of facts, limits, restore and billing recovery |
 | `frontend/src/utils/interviewFit.test.js` | 1–53; measurement and orchestration contracts |
@@ -99,7 +112,7 @@ Implementation and regression references:
 - `backend/app/services/job_matching_policy.py`, lines 9–189, `JOB_MATCHING_RULES`, `JOB_ANALYSIS_TASK`, `INTERVIEW_JOB_ANALYSIS_TASK`, `TAILORED_DRAFT_POLICY`, `TAILORED_EDITORIAL_POLICY` — shared instructions and separate operation contracts.
 - `backend/app/services/ai_assistant_service.py`, lines 1195–1274, `_tailor_cv_to_position`; `backend/app/services/job_tailoring.py`, lines 205–234, `build_evidence_catalog`, and lines 494–599, `build_job_tailoring_result` — source preparation, model request, deterministic output validation and analysis-only response.
 - `backend/app/api/routes/ai_assistant.py`, lines 1–470, `ai_assistant`; `backend/app/services/interview_job_analysis.py`, lines 1–154, `analysis_signature`, `load_owned_analysis`, `requirement_topics`, `requirement_facts` — private receipt and source handoff.
-- `backend/app/schemas/interview_schema.py`, lines 128–140, `Requirement`, `JobAnalysis`; `backend/app/services/interview_service.py`, lines 572–651, `next_question`; `backend/app/services/interview_discovery.py`, lines 210–279, `update_discovery_budget`; `backend/app/api/routes/interviews.py`, lines 486–574, `preview_interview` — direct analysis, ranked question context and tailored generation.
+- `backend/app/schemas/interview_schema.py`, lines 135–147, `Requirement`, `JobAnalysis`; `backend/app/services/interview_service.py`, lines 572–651, `next_question`; `backend/app/services/interview_discovery.py`, lines 210–279, `update_discovery_budget`; `backend/app/api/routes/interviews.py`, lines 486–575, `preview_interview` — direct analysis, ranked question context and tailored generation.
 - `backend/tests/test_job_tailoring.py`, lines 1–572; `backend/tests/test_interview_job_analysis.py`, lines 1–351 — canonical-only evidence, fake source markers, metadata exclusions, duplicate IDs/criteria, feedback filtering, finite scoring, empty analyses, source-bound handoff, ownership, replay and missing-detail question context.
 - `backend/tests/test_interview_editorial.py`, lines 1–325 — tailored drafting/editing instructions apply only in `tailor` mode, alongside existing source-preservation, verification and generation-replay checks.
 - `frontend/src/components/ai/AiAssistant/JobMatchPanel.jsx`, lines 1–57, `JobMatchPanel`; `frontend/src/components/ai/AiAssistant/JobMatchPanel.module.css`, lines 1–36, `.workspace`; `frontend/e2e/job-match-workspace.spec.js`, lines 1–121, `Playwright` — existing analysis workspace and browser regression coverage.
@@ -149,7 +162,7 @@ Implementation references (verified against this revision):
 - `frontend/src/i18n/index.js`, lines 1–111, `initialLanguage, setUiLanguage, ensureWorkspaceMessages`.
 - `frontend/src/i18n/messageState.js`, lines 1–26, `messageRef, useMessageState, resolveMessage`.
 - `frontend/src/components/common/LanguageSelect/LanguageSelect.jsx`, lines 1–18, `LanguageSelect`.
-- `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, lines 10–22, `SiteHeader` and its opt-in `showLanguageSelect` placement.
+- `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, lines 1–71, `SiteHeader` and its opt-in `showLanguageSelect` placement.
 - `frontend/src/pages/Hero/Hero.jsx`, line 120, the sole `SiteHeader` call that enables the application-language selector.
 - `frontend/src/utils/cvStarter.js`, lines 1–423, `createDefaultStarterConfig, buildStarterDocument`.
 - `backend/app/core/localisation.py`, lines 1–81, `UiLanguageMiddleware, message, ui_language_policy`.
@@ -201,11 +214,29 @@ Forcing registration before a visitor had seen the editor used to be the largest
 
 ## Main user flows
 
+### Studio, Interview and one-page guidance
+
+1. On the homepage, choose a Free template for manual editing, or follow the Interview link to its worked example. The public header and footer link to `/help#wywiad`; the example links to `/app/interview`. Guests sign in before entering the account workspace.
+2. Import an existing PDF or select a saved CV with candidate details. Onboarding keeps manual setup, import and the entitlement-aware Interview in that order. Short descriptions explain each result; Pro and unknown-access states retain their existing checks. Secondary help/library controls have 44px minimum targets.
+3. Use the Interview to supply concrete activities, tools and results. Review the generated text and save a separate CV. The example on the homepage is illustrative, not a testimonial or live AI response.
+4. Read `/help#jedna-strona` for layout fitting, fact-checked shortening and measured alternative templates. A one-page result is conditional on the content and layout. Template comparison and selection use no AI credits; text generation, editing, shortening and verification are paid AI operations. A longer CV can be retained.
+
+Both complete dictionaries in `frontend/src/i18n/locales/pl.json` and `en.json` own the copy; the existing generator produces shell/workspace bundles. No API, database, dependency, document geometry or export code changes are required by this presentation update. All new elements remain outside the PDF tree. The existing frontend deployment pipeline applies.
+
+Implementation (whole-module ranges, including `Hero`, `PricingPage`, `HelpPage`, `SiteHeader`, `SiteFooter` and `InterviewPage`):
+
+- `frontend/src/pages/Hero/Hero.jsx`, lines 1–352.
+- `frontend/src/pages/Site/PublicPages.jsx`, lines 1–123.
+- `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, lines 1–71.
+- `frontend/src/pages/Site/InterviewPage.jsx`, lines 1–13.
+
+Tests: `frontend/e2e/interview-positioning.spec.js` adds the bilingual discovery journey under the existing `frontend/e2e/` directory. Run `npm run test:e2e -- e2e/interview-positioning.spec.js --project=desktop-chromium --workers=1` from `frontend/`. It checks 390/834/1280/1920px layouts, 200% text zoom at 834px, reduced motion, keyboard anchor focus, guest login return and absence of paid AI calls. `Hero.test.js` checks presentation contracts; `StartChooser.runtime.test.jsx` checks Pro/Free/unresolved/revoked access. These mocked tests do not assess live AI quality or production PDF rendering. [WAI page structure](https://www.w3.org/WAI/tutorials/page-structure/) explains the semantic regions, headings and navigation used here.
+
 ### Discovering the Pro career interview
 
 The interview is introduced as a way to turn real experience into CV content. The minimum path is **library → interview → review source facts → answer questions → preview → save a new CV**. Submitted answers are stored as confirmed evidence without a second approval screen. For an existing offer, the help guide directs the owner to **open a CV → assistant → Dopasuj do oferty → Dopasuj z wywiadem**. This keeps the selected source in the existing assistant instead of inventing a second tailoring route.
 
-- `/help#wywiad` explains creation/enrichment, the initial eight-question limit, voluntary extra rounds, beginner projects, answer meanings, clarification, credits and resuming saved answers. Native disclosures keep optional explanations collapsed.
+- `/help#wywiad` explains choosing a source, answering in plain language, reviewing the result, beginner projects, answer meanings, credits and resuming saved answers. Native disclosures keep optional explanations collapsed.
 - `/help#dopasowanie` explains two questions per unresolved job requirement, review and preservation of the source document. `/help#profil` explains source selection, note edits, explicit profile save and the separate effects of deleting profiles, interviews and documents.
 - `/pricing#wywiad` explains the benefit and shared credit pool. `PLAN_PRESENTATION` puts the interview first in Pro benefits, so public pricing, the landing, registration and the plan picker use the same wording. Backend prices and entitlements remain authoritative.
 - The library replaces its supporting hero note with a direct interview invitation only when the resolved server `ai_assistant` entitlement is exactly `true`. The account page uses the same condition for its Pro interview section. Loading, unavailable and Free access never claim active Pro access; the existing profile navigation remains available. No invitation invokes paid AI.
@@ -215,15 +246,15 @@ The interview is introduced as a way to turn real experience into CV content. Th
 
 Implementation (verified whole-module extents):
 
-- `frontend/src/pages/Site/PublicPages.jsx`, lines 4–116, `PricingPage, HelpPage`.
+- `frontend/src/pages/Site/PublicPages.jsx`, lines 1–123, `PricingPage, HelpPage`.
 - `frontend/src/utils/planPresentation.js`, lines 3–73, `PLAN_PRESENTATION, applyPlanPresentation`.
 - `frontend/src/pages/Site/DocumentsPage.jsx`, lines 1–116, `DocumentsPage`.
 - `frontend/src/pages/Site/AccountPage.jsx`, lines 4–87, `AccountPage`.
-- `frontend/src/pages/Hero/Hero.jsx`, lines 97–331, `Hero`.
+- `frontend/src/pages/Hero/Hero.jsx`, lines 1–352, `Hero`.
 - `frontend/src/components/editor/StartChooser/StartChooser.jsx`, lines 103–247, `StartChooser`.
-- `frontend/src/pages/Site/InterviewPage.jsx`, lines 3–13, `InterviewPage`.
-- `frontend/src/components/ai/Interview/InterviewFlow.jsx`, lines 1–350, `InterviewFlow`.
-- `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, lines 36–71, `SiteLayout`.
+- `frontend/src/pages/Site/InterviewPage.jsx`, lines 1–13, `InterviewPage`.
+- `frontend/src/components/ai/Interview/InterviewFlow.jsx`, lines 1–363, `InterviewFlow`.
+- `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, lines 1–71, `SiteLayout`.
 - `frontend/src/components/common/SiteLayout/SiteLayout.module.css`, lines 1–199, `guideFaq`.
 - `frontend/e2e/interview-discovery.spec.js`, lines 1–100, `Playwright`.
 
@@ -235,7 +266,7 @@ The shared site layout uses the warm canvas token behind white content regions. 
 
 The library groups labelled search/sort controls and compact document rows inside one working region. Clearing a search with no results resets the query and restores input focus. Pricing uses the existing `PLAN_PRESENTATION` data in contrasting Free and Pro panels. Help keeps native, bookmarkable topic anchors; its sidebar stacks above the instructions below 768px. Account settings separate Google sign-in, data export, and permanent deletion. `UsageMetric` receives `label`, `used`, `limit`, and an optional icon. A known positive finite limit produces a labelled native meter; `null` means unlimited, zero means unavailable in the plan, and a missing limit remains unknown. For example, 230 of 200 credits displays 230 in text and caps the meter at 200. These presentation changes add no API, database, billing, environment, or PDF-generation changes.
 
-Implementation: `frontend/src/components/common/SiteLayout/SitePrimitives.jsx`, lines 3–31, exports `HeroNote`, `SiteMarker`, and `UsageMetric`; `frontend/src/pages/Site/PublicPages.jsx`, lines 4–116, `PricingPage` and `HelpPage`. Regression coverage: `SitePrimitives.runtime.test.jsx` in the same shared-component directory checks finite, exceeded, unlimited, zero, and missing allowances; `frontend/e2e/site-architecture.spec.js` checks search-reset focus, account meter semantics, and responsive navigation alongside download/deletion flows. Run `npm run test:runtime -- src/components/common/SiteLayout/SitePrimitives.runtime.test.jsx` and `npm run test:e2e -- e2e/site-architecture.spec.js` from `frontend/`. [MDN's native meter reference](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/meter) explains why bounded usage is a measurement, with a known minimum and maximum.
+Implementation: `frontend/src/components/common/SiteLayout/SitePrimitives.jsx`, lines 3–31, exports `HeroNote`, `SiteMarker`, and `UsageMetric`; `frontend/src/pages/Site/PublicPages.jsx`, lines 1–123, `PricingPage` and `HelpPage`. Regression coverage: `SitePrimitives.runtime.test.jsx` in the same shared-component directory checks finite, exceeded, unlimited, zero, and missing allowances; `frontend/e2e/site-architecture.spec.js` checks search-reset focus, account meter semantics, and responsive navigation alongside download/deletion flows. Run `npm run test:runtime -- src/components/common/SiteLayout/SitePrimitives.runtime.test.jsx` and `npm run test:e2e -- e2e/site-architecture.spec.js` from `frontend/`. [MDN's native meter reference](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/meter) explains why bounded usage is a measurement, with a known minimum and maximum.
 
 The public site has `/templates`, `/templates/:slug`, `/pricing`, `/help`, and `/privacy`, all linked by `SiteHeader` and `SiteFooter`. Its copy uses direct customer language: the landing explains the actual workflow, the catalog cards describe visible layout choices, and every template detail page explains how that specific structure organizes content before naming plan availability and the next action. The ten template summaries and their detail-page heading, explanation, and three structural highlights come from `TEMPLATES`; both pricing plans use `PLAN_PRESENTATION`. Appearance-picker taglines describe the actual background, accent colours, and contrast instead of assigning abstract personalities to palette variants. The pricing, help, footer, login, and registration copy follows the same factual tone. There is no separate content database or new dependency.
 
@@ -265,7 +296,7 @@ Implementation (verified file extents; the listed exports own the complete workf
 - `frontend/src/pages/Site/AccountPage.jsx`, component `AccountPage`.
 - `frontend/src/pages/Site/PublicPages.jsx`, exports `TemplatesPage, TemplatePage, PricingPage, HelpPage`.
 - `frontend/src/pages/Site/PrivacyPage.jsx`, component `PrivacyPage`.
-- `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, lines 10–71, `SiteLayout, SiteHeader, SiteFooter`.
+- `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, lines 1–71, `SiteLayout, SiteHeader, SiteFooter`.
 - `frontend/src/templates/index.js`, lines 3–201, `TEMPLATES` — picker summaries and detail-page copy for all ten templates.
 - `frontend/src/utils/planPresentation.js`, lines 3–73, `FREE_PLAN_HIGHLIGHTS, PRO_PLAN_HIGHLIGHTS, PLAN_PRESENTATION`.
 - `frontend/src/services/documents.js`, lines 2–46, `listOwnedDocuments, loadOwnedDocument`.
@@ -427,6 +458,7 @@ pdf-generator/
 ├── BUGZ.MD                   # Known issues tracker
 ├── README.md                 # This file
 ├── docs/                     # Product + design + deep-dive docs
+│   ├── INTERVIEW_TEMPLATES.md # EN/PL: measured alternate templates and selection API
 │   ├── INTERVIEW_FIT.md     # Complete EN/PL automatic fitting and API tutorial
 │   ├── INTERVIEWS.md         # Complete EN/PL interview, API, data and deployment tutorial
 │   ├── WYWIAD_JAK_DZIALA.md  # Polish user/technical guide to create, enrich, and tailor interview flows
@@ -477,6 +509,7 @@ pdf-generator/
 │   │   └── utils/            # geometry/reflow/sections, browser text-export layout, template appearance, guest helpers
 │   │       ├── planPresentation.js # Canonical Free/Pro UI copy merged with billing-owned prices
 │   │       ├── scopedAi(.test).js # Minimal scoped payload, local patch mapping and freshness
+│   │       ├── interviewTemplateFit(.test).js # Actual-font S/compact alternate measurements
 │   │       ├── templatePageFit(.test).js # Current typography → S page-fit orchestration before AI
 │   │       ├── atriumAppearance(.test).js # Original, white, dark, and three strong semantic palettes with real icons
 │   │       ├── atriumTypographyLayout(.test).js # Atrium contact/single-lane repack for S–XL and browser heights
@@ -528,6 +561,7 @@ pdf-generator/
     │   │   ├── interview_job_analysis.py # Owned receipt reuse and requirement-to-source handoff
     │   │   ├── interview_clarification.py # Targeted questions before final preview
     │   │   ├── interview_recovery.py # Filter rejected claims and assemble verified changes
+    │   │   ├── interview_templates.py # Free template comparison and explicit selection
     │   │   ├── interview_fit.py       # Bounded fitting, source protection and final layout commit
     │   │   ├── interview_editorial.py # Prose redaction and versioned generation attempts
     │   │   ├── cv_editorial_policy.py # Shared editorial rubric, examples and factual-preservation rules
@@ -649,8 +683,8 @@ Implementation and tests (verified complete module extents):
 | File | Lines and symbols |
 | --- | --- |
 | `backend/app/services/career_profile_source.py` | 1–90; `is_supplemental_fact, supplemental_facts, resolve_source, synchronise_source` |
-| `backend/app/api/routes/interviews.py` | 1–629; `get_profile, write_profile, choose_profile_source, clear_profile` |
-| `backend/app/schemas/interview_schema.py` | 1–219; `ProfileWrite, ProfileSourceWrite` |
+| `backend/app/api/routes/interviews.py` | 1–642; `get_profile, write_profile, choose_profile_source, clear_profile` |
+| `backend/app/schemas/interview_schema.py` | 1–226; `ProfileWrite, ProfileSourceWrite` |
 | `backend/app/models/models.py` | 1–586; `CareerProfile.source_binding` |
 | `backend/app/services/interview_service.py` | 1–651; `profile_payload, put_profile` |
 | `backend/app/services/account_data_service.py` | 1–309; `build_account_export` |
@@ -837,7 +871,7 @@ Implementation and tests (verified whole-module ranges; use the named symbols fo
 | `backend/app/services/interview_editorial.py` | 1–120; prepare_editorial_draft, apply_editorial_review, begin_generation |
 | `backend/app/services/cv_editorial_policy.py` | 1–78; STYLE_INSTRUCTION, STYLE_EXAMPLES, FACT_PRESERVATION, STYLE_REVIEW_POLICY, IMPROVE_INSTRUCTION |
 | `backend/tests/test_interview_editorial.py` | 1–325; editorial boundaries, pipeline replay, source preservation, follow-up limits |
-| `backend/app/schemas/interview_schema.py` | 1–219; CareerFact, InterviewCreate, SessionWrite, SourceRefresh, Question, Discovery, Draft, EditorialReview, Clarification, Verification |
+| `backend/app/schemas/interview_schema.py` | 1–226; CareerFact, InterviewCreate, SessionWrite, SourceRefresh, Question, Discovery, Draft, EditorialReview, Clarification, Verification |
 | `backend/app/services/interview_discovery.py` | 1–310; discovery_entries, question_entry, next_entry, _planned_question_count, update_discovery_budget, scoped_question |
 | `backend/app/services/interview_questions.py` | 1–329; ANGLES, question_guidance, is_distinct_question, fallback_question |
 | `backend/tests/test_interview_questions.py` | 1–318; test_local_conversation_varies_lenses_across_records_and_is_stable_after_resume, test_legacy_paraphrases_cannot_reopen_same_record_by_renaming_topic, test_focused_follow_up_can_revisit_lens_using_a_concrete_answer_detail |
@@ -847,12 +881,12 @@ Implementation and tests (verified whole-module ranges; use the named symbols fo
 | `backend/tests/test_interview_credits.py` | 1–77; test_receipts_group_requests_without_exposing_provider_data, test_question_receipt_survives_resume_and_replay_without_new_charge |
 | `frontend/src/components/ai/Interview/InterviewCredits.jsx` | 1–65; InterviewCredits |
 | `frontend/src/components/ai/Interview/InterviewCredits.runtime.test.jsx` | 1–60; InterviewCredits |
-| `backend/app/api/routes/interviews.py` | 1–629; get_interview_credits (258–261), create_interview, answer_interview, confirm_interview, refresh_interview_source, preview_interview, clarify_interview, skip_clarifications, save_interview_document |
+| `backend/app/api/routes/interviews.py` | 1–642; get_interview_credits (258–261), create_interview, answer_interview, confirm_interview, refresh_interview_source, preview_interview, clarify_interview, skip_clarifications, save_interview_document |
 | `frontend/e2e/interview-prerequisites.spec.js` | 1–64; PL/EN source prerequisite browser tests |
 | `backend/tests/test_interview_sources.py` | 1–76; source eligibility regression tests |
 | `frontend/src/components/ai/Interview/InterviewSourceRequired.jsx` | 1–20; InterviewSourceRequired |
 | `backend/app/services/interview_sources.py` | 1–30; has_interview_source, available_interview_sources |
-| `frontend/src/components/ai/Interview/InterviewLoading.jsx` | 1–44; InterviewLoading |
+| `frontend/src/components/ai/Interview/InterviewLoading.jsx` | 1–45; InterviewLoading |
 | `frontend/src/components/ai/Interview/InterviewLoading.module.css` | 1–24; loading, manuscript, track |
 | `frontend/src/components/ai/Interview/InterviewLoading.runtime.test.jsx` | 1–27; long wait, operation boundaries |
 | `frontend/src/components/ai/Interview/InterviewPreview.jsx` | 1–61; InterviewPreview |
@@ -861,7 +895,7 @@ Implementation and tests (verified whole-module ranges; use the named symbols fo
 | `frontend/src/utils/interviewPreview.js` | 1–27; previewRecords, recordContent |
 | `frontend/src/utils/interviewPreview.test.js` | 1–24; grouping, evidence, removed fields |
 | `frontend/e2e/interview-workspace.spec.js` | 1–140; bounded preview, delayed operations, failure recovery |
-| `frontend/src/components/ai/Interview/InterviewFlow.jsx` | 1–330; InterviewFlow |
+| `frontend/src/components/ai/Interview/InterviewFlow.jsx` | 1–363; InterviewFlow |
 | `frontend/src/utils/careerProfileView.js` | 1–90; groupCareerFacts, careerFieldLabel, isCareerNote |
 | `frontend/src/utils/careerProfileView.test.js` | 1–42; grouping, identity, limits, interview-question titles |
 | `frontend/src/components/ai/Interview/FactEditor.runtime.test.jsx` | 1–116; apply, cancel, undo, focus, search, question-and-answer presentation |
@@ -1545,13 +1579,13 @@ Known limitations:
 The public copy explains the result in plain Polish: choose a template, edit directly on the A4 page, and download a watermark-free PDF. Sentences use a natural rhythm and avoid staged contrasts, clipped slogans, inflated claims, and design-industry shorthand. Every `/templates/:slug` route describes the template's real information hierarchy, three visible structural advantages, plan availability, and a template-named CTA. Import copy names the one-successful-import monthly Free allowance; the FAQ explicitly names three monthly Free downloads, account requirements, data verification after extraction, and one-time Pro access. Pricing, help, privacy, login, registration, e-mail verification, and billing-return states use the same direct tone while preserving limits, recovery paths, and account boundaries. No recruitment outcome, unsupported ATS guarantee, or customer evidence is claimed. The full Polish public-site copy and rationale live in [`docs/LANDING_COPY.md`](docs/LANDING_COPY.md); proposed metadata there is not applied to the shared application title.
 
 
-The landing opens with **“Twoje CV. Gotowe do wysłania.”** (“Your CV. Ready to send.”) and a two-sentence introduction. Sections 01–06 follow this order: hero → three benefits and template gallery → privacy → pricing → four-question FAQ → final CTA → footer. Copy describes import, direct editing, and optional Pro AI without promising recruitment outcomes.
+The landing opens with **“Lepsza treść. Lepsze CV.”** (English: “Stronger content. A better CV.”). Sections 01–07 follow this order: hero → Interview example and outcome → Studio tools and template gallery → privacy → pricing → five-question FAQ → final CTA → footer. Studio explains design and layout; the Interview explains factual content development.
 
 The primary **“Stwórz CV z tym szablonem”** opens A4 setup with the selected Free template; **“Zobacz edytor”** opens the existing demo. **“Importuj CV z PDF”** starts import from the capabilities section. The account note explains that starting needs no account, while saving and downloading require free registration. The hero benefit rail states that three templates are free; the capabilities and pricing sections label AI as Pro. Shared `FREE_PLAN_HIGHLIGHTS` and `PRO_PLAN_HIGHLIGHTS` preserve pricing limits, credits, and the 30-day Pro offer without automatic renewal.
 
 The hero uses a split editorial layout with three perspective CV previews and shared Swiss tokens. Short supporting copy uses ink on the light background. The heading and action labels wrap within the existing responsive typography at compact and zoomed widths. Labels have at least 12 px type, navigation/demo links have 44 px targets, and links and FAQ summaries have an explicit focus-visible ring.
 
-**“Wpisz treść raz. Układ zmienisz później.”** introduces the capabilities without a clipped slogan pair. A static, labelled before/after example illustrates clearer writing with Pro AI; it sends no request and consumes no credits. The registry-driven gallery retains real template mockups. The same plain-language summaries appear in public cards and application pickers, while longer `details` copy is reserved for the named public route. Hover/focus pauses the marquee; reduced motion displays a static grid. The separate Free hero showcase changes preview selection only; it does not reformat existing user content.
+The Studio section explains PDF import, direct editing and fitting to one page. A separate Interview section uses a labelled source → question → answer → result example. Every detail in the result comes from the illustrative answer. It sends no request and consumes no credits. The registry-driven gallery retains real template samples, keyboard links and a static reduced-motion grid.
 
 Implementation and copy regressions: `frontend/src/templates/index.js` (`TEMPLATES`); `frontend/src/pages/Site/PublicPages.jsx` (`TemplatesPage`, `TemplatePage`, `PricingPage`, `HelpPage`); `frontend/src/pages/Site/PrivacyPage.jsx` (`PrivacyPage`); `frontend/src/pages/Hero/Hero.jsx` (`Hero`); `frontend/src/utils/planPresentation.js`; the ten `frontend/src/utils/*Appearance.js` palette registries (`*_PALETTES`); `frontend/src/components/common/SiteLayout/SiteLayout.jsx` (`SiteFooter`); `frontend/src/pages/Login/Login.jsx` (`Login`); and `frontend/src/pages/Register/Register.jsx` (`Register`). `frontend/src/templates/index.test.js` rejects missing template detail copy and the removed jargon; `frontend/src/utils/appearanceCopy.test.js` applies the same rule to all 60 palette taglines. `frontend/e2e/site-architecture.spec.js` verifies named template CTAs, Pro gating, keyboard focus, privacy controls, and no horizontal overflow at 390, 640, 834, 1280, and 1920 CSS pixels.
 
@@ -1584,7 +1618,7 @@ Implementation:
 - `frontend/src/components/editor/StartChooser/StartChooser.jsx`, component `StartChooser` — three primary cards (`onNew`, `onImport`, entitlement-aware interview link) plus secondary saved-document and legacy-recovery actions
 - `frontend/src/components/editor/StartChooser/StartChooser.module.css`, lines 8–454 — Swiss/grid styling with an application-shell overlay, visible CV Studio brand, rectilinear axis rules, three columns on wide screens, two columns with a full-width third choice on tablets, and one column on compact screens, secondary action row, safe scroll alignment, mobile collapse, and responsive logout control
 - `frontend/src/App.jsx`, lines 53–73, functions `StartRoute` and `CreateCvRoute` — resolves generic `/app/new` to `start=choose` for an account and `start=new` for a guest or an explicit template; `/app/import` remains directed
-- `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, lines 11–24, `SiteHeader`; `frontend/src/pages/Hero/Hero.jsx`, lines 97–114, `Hero`; and `frontend/src/pages/Site/PublicPages.jsx`, lines 54–65, `PricingPage` — generic creation CTAs use `/app/new`, while template CTAs retain direct setup
+- `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, lines 1–71, `SiteHeader`; `frontend/src/pages/Hero/Hero.jsx`, lines 1–352, `Hero`; and `frontend/src/pages/Site/PublicPages.jsx`, lines 1–123, `PricingPage` — generic creation CTAs use `/app/new`, while template CTAs retain direct setup
 - `frontend/src/utils/startChooser.js`, lines 30–46, function `shouldShowStartChooser` — pure visibility gate for an empty unsaved workspace (not demo/loading/conversion/dismissed)
 - `frontend/src/pages/PdfCanvas.jsx`, lines 253–265 and 1110–1135, component `EditorController` — consumes the `choose` intent, keeps the chooser ahead of automatic template selection, and wires new/import/documents/recovery actions while omitting editor chrome
 - `frontend/src/components/editor/NewCvSetupModal/NewCvSetupModal.jsx` and `frontend/src/pages/PdfCanvas.jsx` — a new A4 setup is generated directly; legacy browser drafts require the explicit recovery action
@@ -1598,7 +1632,7 @@ Tests:
 
 Implementation (Topbar / landing entry points):
 
-- `frontend/src/pages/Hero/Hero.jsx`, lines 5–331, `buildStartUrl`, `CtaLink`, and `Hero` — directed starts, concise copy, AI example, pricing, four-question FAQ, final CTA, and footer.
+- `frontend/src/pages/Hero/Hero.jsx`, lines 1–352, `buildStartUrl`, `CtaLink`, and `Hero` — directed starts, concise copy, AI example, pricing, four-question FAQ, final CTA, and footer.
 - `frontend/src/pages/Hero/Hero.module.css`, lines 1–944 — Swiss tokens, responsive hero, `.copyExample`, `.finalCta`, focus-visible, and reduced motion.
 - `frontend/src/pages/Hero/Hero.test.js`, lines 1–47 — account and Pro boundaries, starts and CTA events, canonical plans, accessible gallery and FAQ.
 - `frontend/src/utils/authSession.js`, function `getEditorPath` — builds `/cvstudio/guest` or `/cvstudio/{username}` (plus optional `?start=` and the setup-only `template` hint)
@@ -2775,7 +2809,7 @@ Implementation:
 - `backend/app/api/routes/billing.py`, lines 49–106 (`get_plans`, `select_plan`) and 147–214 (`admin_set_user_plan`) — product plan selection plus the exact-account, secret-protected support path
 - `frontend/src/utils/planPresentation.js`, lines 3–73, `PLAN_PRESENTATION` and `applyPlanPresentation` — one canonical frontend contract used even while the catalog request is loading or unavailable
 - `frontend/src/components/modals/PlanSelectModal/PlanSelectModal.jsx`, lines 22–175, component `PlanSelectModal` — accessible two-card picker with loading, fallback, current, pending, success, and error states
-- `frontend/src/pages/Hero/Hero.jsx`, lines 5–331, `buildStartUrl`, `CtaLink`, and `Hero` — directed starts, concise copy, AI example, pricing, four-question FAQ, final CTA, and footer.
+- `frontend/src/pages/Hero/Hero.jsx`, lines 1–352, `buildStartUrl`, `CtaLink`, and `Hero` — directed starts, concise copy, AI example, pricing, four-question FAQ, final CTA, and footer.
 - `frontend/src/templates/index.js`, lines 19–33, registry `TEMPLATES` — three shipped Free element packs and six metadata-only, server-materialized Pro entries
 - `frontend/src/hooks/useEntitlements.js`, lines 3–49, hook `useEntitlements`
 
@@ -3502,6 +3536,19 @@ Zgodność celowo obejmuje rozpoznawalną utratę metadanych; nie odgaduje pierw
 
 ## Automatyczne dopasowanie CV po wywiadzie
 
+Jeżeli zweryfikowany wynik nadal zajmuje kilka stron, widok wyniku automatycznie porównuje inne szablony dostępne w planie z dokładnie tą samą treścią, typografią S każdego szablonu i małymi odstępami. Ponownie otwarty podgląd ma przycisk **Sprawdź inne szablony**. Proponowany jest wyłącznie zmierzony, kompletny wariant jednej strony. Wysokości pól tekstowych w przepływie wynikają z `Math.ceil(zmierzona liczba linii × lineHeight)`, zgodnie z polami tekstu bez wewnętrznego paddingu na kanwie; do zmierzonych pól nie dodaje się heurystycznego zapasu 6px. Regresja z 33 jednoliniowymi rekordami sprawdza, że suma takiego zapasu nie tworzy błędnie drugiej strony. Podpisana lista szablonów pokazuje przykładowy wygląd, jawnie podaje częściowe błędy i stosuje układ dopiero przez **Użyj tego szablonu — 1 strona**. Sprawdzanie, ponawianie i zmiana szablonu nie zużywają kredytów AI; obecne CV jest dostępne podczas porównania. Przywracanie obejmuje poprzednią tożsamość szablonu wraz z treścią i geometrią.
+
+Pełna [instrukcja alternatywnych szablonów](docs/INTERVIEW_TEMPLATES.md#polski) dokumentuje oba uwierzytelnione endpointy (`POST /ai/interviews/{id}/preview-templates` i `POST /ai/interviews/{id}/preview-template`), wersjonowane przykłady żądań/odpowiedzi, kontrolę własności/uprawnień, zachowanie zdjęć i treści, błędy, przerwanie, zapis i wdrożenie. Funkcja rozszerza istniejący JSON sesji bez migracji, zależności ani zmiennej środowiskowej. Porównanie nie przechowuje stanu; jawny wybór korzysta z obecnej atomowej kontroli rewizji sesji. Przeglądarka wyklucza z listy wyboru nieudane lub nieaktualne pomiary.
+
+Zweryfikowane odwołania do implementacji i regresji:
+
+- `backend/app/services/interview_templates.py`, linie 1–168, `preview_templates` i `select_preview_template`; `backend/app/schemas/interview_schema.py`, linie 98–102, `PreviewTemplateWrite`; `backend/app/api/routes/interviews.py`, linie 591–600, dwa uwierzytelnione handlery tras.
+- `frontend/src/utils/interviewTemplateFit.js`, linie 1–212, `measureInterviewTemplateCandidate` i `measureInterviewTemplateCandidates`; `frontend/src/utils/templatePageFit.js`, linie 1–207, wspólna rejestracja typografii S i `applyTemplateSmallTypography`. Porównanie oddaje przeglądarce sterowanie między wariantami, aby postęp i przerwanie pozostawały responsywne również przy czcionkach w pamięci podręcznej.
+- `frontend/src/components/ai/Interview/InterviewTemplateOptions.jsx`, linie 1–130, opcjonalne porównanie, postęp, przerwanie, dostępna lista i jawny wybór; `InterviewTemplateOptions.module.css` zapewnia responsywny układ próbki oparty na tokenach.
+- `backend/tests/test_interview_templates.py`, linie 1–175; `frontend/src/utils/interviewTemplateFit.test.js`, linie 1–208 (regresja wysokości 33 pól: linie 34–54; przerwanie przy czcionkach z pamięci podręcznej: linie 179–190); `frontend/src/components/ai/Interview/InterviewTemplateOptions.runtime.test.jsx`, linie 1–78; `frontend/e2e/interview-templates.spec.js`, linie 1–109. Wygenerowane syntetyczne dane testowe to `frontend/e2e/fixtures/interview-templates.json`; wybór w przeglądarce obejmuje Linden, Cadenzę, Sterling i Meridian w wersjach PL i EN.
+
+W `frontend` uruchom obecne polecenia testów/runtime/lint/build i `npm run test:e2e -- e2e/interview-templates.spec.js --project=desktop-chromium`; polecenia backendu są w instrukcji. Pokrycie obejmuje PL/EN przy 390/834/1280/1920px, wybór klawiaturą, powiększenie tekstu 200%, ograniczenie animacji, ponowienie nieudanego wyboru i przywracanie. [CSS Font Loading API](https://developer.mozilla.org/en-US/docs/Web/API/CSS_Font_Loading_API) wyjaśnia pomiar rzeczywistych czcionek, a [czyszczenie efektów React](https://react.dev/reference/react/useEffect) odrzucanie spóźnionych wyników porównania. Układy nieobsługiwane lub niemożliwe do zmierzenia są wykluczane, więc funkcja nie gwarantuje zmieszczenia każdego CV na jednej stronie.
+
 Nowe wielostronicowe wyniki są dopasowywane przed pokazaniem użytkownikowi. Przeglądarka mierzy rzeczywiste zawijanie czcionek, próbuje istniejących odstępów i wariantu S szablonu oraz zmniejsza cel o jedną stronę naraz. Automatyczne odstępy kończą się na wariancie kompaktowym. Jeżeli odzyskanie strony jest realne, serwer dopuszcza 1/2/3 próby skrócenia dla szacowanej redukcji edytowalnych opisów do 10%/25%/30%. Każda próba zachowuje pierwotne zweryfikowane opisy i przechodzi osobną kontrolę faktów. Większa redukcja, postęp pomiaru poniżej 3%, odrzucone fakty, brak kredytów albo 600-sekundowy budżet rozpoczynania prób kończą dalsze skracanie. Działająca para wywołań dostawcy zachowuje swój normalny limit czasu.
 
 Końcowa treść, elementy, liczba stron i odstępy są zapisywane razem. Bezpłatne przywracanie wraca do zweryfikowanego wyniku sprzed dopasowania. Przerwany proces udostępnia jawne wznowienie/przywrócenie i blokuje utworzenie dokumentu do rozstrzygnięcia. Odczyty, nawigacja i zapis odpowiedzi nigdy nie uruchamiają płatnego dopasowania; ręczne poprawki podglądu wywołują wyłącznie bezpłatną zmianę układu. Dodatkowe opłaty za skracanie i weryfikację są pokazane osobno w obecnym zestawieniu. Nie dodano migracji bazy, zależności ani zmiennych środowiskowych; wariant bazowy/najlepszy i postęp są w JSON własnej sesji wywiadu i podlegają jej zasadom retencji/usuwania.
@@ -3512,9 +3559,9 @@ Implementacja i pokrycie regresji:
 
 | Plik | Zweryfikowane linie i odpowiedzialność |
 | --- | --- |
-| `backend/app/services/interview_fit.py` | 1–233; `initialise_fit`, `fit_preview`: baza, limity, kontrola źródeł i publikacja wyniku |
+| `backend/app/services/interview_fit.py` | 1–237; `initialise_fit`, `fit_preview`: baza, limity, kontrola źródeł i publikacja wyniku |
 | `backend/app/schemas/interview_schema.py` | 77–95; `PreviewFitWrite`, `FitVerification`: żądanie układu i niezależna kontrola faktów |
-| `backend/app/api/routes/interviews.py` | 585–587; `fit_interview_preview`: uwierzytelniony `POST /ai/interviews/{session_id}/preview-fit` |
+| `backend/app/api/routes/interviews.py` | 585–588; `fit_interview_preview`: uwierzytelniony `POST /ai/interviews/{session_id}/preview-fit` |
 | `frontend/src/utils/interviewFit.js` | 1–165; `prepareInterviewFit`, `completeInterviewFit`, `balanceInterviewPages`: mierzone odstępy/typografia i podział uporządkowanych rekordów |
 | `backend/tests/test_interview_fit.py` | 1–220; syntetyczne testy własności, nieaktualnych zapisów, utraty faktów, limitów, przywracania i rozliczeń ponowień |
 | `frontend/src/utils/interviewFit.test.js` | 1–53; kontrakty pomiaru i koordynacji |
@@ -3576,7 +3623,7 @@ Odwołania do implementacji i regresji:
 - `backend/app/services/job_matching_policy.py`, linie 9–189, `JOB_MATCHING_RULES`, `JOB_ANALYSIS_TASK`, `INTERVIEW_JOB_ANALYSIS_TASK`, `TAILORED_DRAFT_POLICY`, `TAILORED_EDITORIAL_POLICY` — wspólne instrukcje i osobne kontrakty operacji.
 - `backend/app/services/ai_assistant_service.py`, linie 1195–1274, `_tailor_cv_to_position`; `backend/app/services/job_tailoring.py`, linie 205–234, `build_evidence_catalog`, oraz linie 494–599, `build_job_tailoring_result` — przygotowanie źródeł, żądanie modelu, deterministyczna walidacja wyniku i odpowiedź zawierająca wyłącznie analizę.
 - `backend/app/api/routes/ai_assistant.py`, linie 1–470, `ai_assistant`; `backend/app/services/interview_job_analysis.py`, linie 1–154, `analysis_signature`, `load_owned_analysis`, `requirement_topics`, `requirement_facts` — prywatne rozliczenie i przekazanie źródeł.
-- `backend/app/schemas/interview_schema.py`, linie 128–140, `Requirement`, `JobAnalysis`; `backend/app/services/interview_service.py`, linie 572–651, `next_question`; `backend/app/services/interview_discovery.py`, linie 210–279, `update_discovery_budget`; `backend/app/api/routes/interviews.py`, linie 486–574, `preview_interview` — bezpośrednia analiza, uporządkowany kontekst pytań i generowanie dopasowanej treści.
+- `backend/app/schemas/interview_schema.py`, linie 135–147, `Requirement`, `JobAnalysis`; `backend/app/services/interview_service.py`, linie 572–651, `next_question`; `backend/app/services/interview_discovery.py`, linie 210–279, `update_discovery_budget`; `backend/app/api/routes/interviews.py`, linie 486–575, `preview_interview` — bezpośrednia analiza, uporządkowany kontekst pytań i generowanie dopasowanej treści.
 - `backend/tests/test_job_tailoring.py`, linie 1–572; `backend/tests/test_interview_job_analysis.py`, linie 1–351 — dowody wyłącznie kanoniczne, fałszywe znaczniki źródeł, wykluczenie metadanych, powtórzone ID/kryteria, filtrowanie komentarzy, skończona punktacja, puste analizy, przekazanie powiązane ze źródłem, własność, odtwarzanie i brakujący szczegół w kontekście pytania.
 - `backend/tests/test_interview_editorial.py`, linie 1–325 — instrukcje dopasowania przy tworzeniu/redakcji treści działają tylko w trybie `tailor`, obok dotychczasowych kontroli zachowania źródeł, weryfikacji i odtwarzania generacji.
 - `frontend/src/components/ai/AiAssistant/JobMatchPanel.jsx`, linie 1–57, `JobMatchPanel`; `frontend/src/components/ai/AiAssistant/JobMatchPanel.module.css`, linie 1–36, `.workspace`; `frontend/e2e/job-match-workspace.spec.js`, linie 1–121, `Playwright` — istniejący widok analizy i regresje przeglądarki.
@@ -3626,7 +3673,7 @@ Referencje implementacji (zweryfikowane dla tej rewizji):
 - `frontend/src/i18n/index.js`, linie 1–111, `initialLanguage, setUiLanguage, ensureWorkspaceMessages`.
 - `frontend/src/i18n/messageState.js`, linie 1–26, `messageRef, useMessageState, resolveMessage`.
 - `frontend/src/components/common/LanguageSelect/LanguageSelect.jsx`, linie 1–18, `LanguageSelect`.
-- `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, linie 10–22, `SiteHeader` i opcjonalne umiejscowienie przez `showLanguageSelect`.
+- `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, linie 1–71, `SiteHeader` i opcjonalne umiejscowienie przez `showLanguageSelect`.
 - `frontend/src/pages/Hero/Hero.jsx`, linia 120, jedyne wywołanie `SiteHeader`, które włącza selektor języka aplikacji.
 - `frontend/src/utils/cvStarter.js`, linie 1–423, `createDefaultStarterConfig, buildStarterDocument`.
 - `backend/app/core/localisation.py`, linie 1–81, `UiLanguageMiddleware, message, ui_language_policy`.
@@ -3678,11 +3725,29 @@ Wymuszanie rejestracji przed zobaczeniem edytora było największą stratą lejk
 
 ## Główne przepływy użytkownika
 
+### Studio, Wywiad i instrukcja dopasowania do jednej strony
+
+1. Na stronie głównej wybierz darmowy szablon do samodzielnej edycji lub przejdź linkiem Wywiadu do przykładowej rozmowy. Nagłówek i stopka prowadzą do `/help#wywiad`, a przykład do `/app/interview`. Gość loguje się przed wejściem do przestrzeni konta.
+2. Zaimportuj istniejący PDF lub wybierz zapisane CV z danymi kandydata. Onboarding zachowuje kolejność: konfiguracja ręczna, import i Wywiad zależny od uprawnień. Krótkie opisy pokazują efekt każdej ścieżki; Pro i nieustalony dostęp zachowują dotychczasowe kontrole. Pomocnicze linki pomocy/biblioteki mają minimum 44px pola interakcji.
+3. W Wywiadzie podaj konkretne działania, narzędzia i wyniki. Sprawdź przygotowany tekst i zapisz osobne CV. Przykład na stronie głównej jest ilustracyjny; nie jest opinią klienta ani odpowiedzią AI na żywo.
+4. W `/help#jedna-strona` przeczytaj o dopasowaniu układu, skracaniu z kontrolą faktów i zmierzonych alternatywnych szablonach. Jedna strona zależy od treści i układu. Porównanie i wybór szablonu nie zużywają kredytów AI; generowanie tekstu, redakcja, skracanie i weryfikacja są płatnymi operacjami AI. Można zachować dłuższe CV.
+
+Pełne słowniki `frontend/src/i18n/locales/pl.json` i `en.json` są źródłem treści; istniejący generator tworzy paczki shell/workspace. Ta zmiana prezentacji nie wymaga zmian API, bazy, zależności, geometrii dokumentu ani kodu eksportu. Nowe elementy pozostają poza drzewem PDF. Obowiązuje istniejący proces wdrażania frontendu.
+
+Implementacja (zakresy całych modułów obejmujące `Hero`, `PricingPage`, `HelpPage`, `SiteHeader`, `SiteFooter` i `InterviewPage`):
+
+- `frontend/src/pages/Hero/Hero.jsx`, linie 1–352.
+- `frontend/src/pages/Site/PublicPages.jsx`, linie 1–123.
+- `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, linie 1–71.
+- `frontend/src/pages/Site/InterviewPage.jsx`, linie 1–13.
+
+Testy: `frontend/e2e/interview-positioning.spec.js` dodaje dwujęzyczną ścieżkę odkrywania w istniejącym katalogu `frontend/e2e/`. Uruchom `npm run test:e2e -- e2e/interview-positioning.spec.js --project=desktop-chromium --workers=1` z `frontend/`. Test sprawdza szerokości 390/834/1280/1920px, tekst powiększony do 200% przy 834px, ograniczony ruch, fokus kotwic z klawiatury, powrót po logowaniu gościa i brak płatnych wywołań AI. `Hero.test.js` kontroluje prezentację; `StartChooser.runtime.test.jsx` sprawdza dostęp Pro/Free/nieustalony/cofnięty. Testy z mockami nie oceniają jakości rzeczywistego AI ani produkcyjnego renderowania PDF. [Struktura strony według WAI](https://www.w3.org/WAI/tutorials/page-structure/) wyjaśnia użyte regiony semantyczne, nagłówki i nawigację.
+
 ### Odkrywanie wywiadu zawodowego w Pro
 
-Wywiad jest przedstawiony jako sposób przełożenia rzeczywistych doświadczeń na treść CV. Najkrótsza ścieżka to **biblioteka → wywiad → zatwierdzenie faktów → podgląd → zapis nowego CV**. Przy konkretnej ofercie pomoc prowadzi właściciela przez **otwarcie CV → asystent → Dopasuj do oferty → Dopasuj z wywiadem**. Wybrane źródło pozostaje w istniejącym asystencie, bez tworzenia drugiej trasy dopasowania.
+Wywiad jest przedstawiony jako sposób przełożenia rzeczywistych doświadczeń na treść CV. Najkrótsza ścieżka to **biblioteka → wywiad → przegląd źródła → odpowiedzi → podgląd → zapis nowego CV**. Wysłana odpowiedź jest zapisywana bez ponownego zatwierdzania. Przy konkretnej ofercie pomoc prowadzi właściciela przez **otwarcie CV → asystent → Dopasuj do oferty → Dopasuj z wywiadem**. Wybrane źródło pozostaje w istniejącym asystencie, bez tworzenia drugiej trasy dopasowania.
 
-- `/help#wywiad` opisuje tworzenie/uzupełnianie, początkowy limit ośmiu pytań, dobrowolne kolejne rundy, projekty początkujących, znaczenie odpowiedzi, doprecyzowanie, kredyty i powrót do zapisanych odpowiedzi. Natywne rozwijane sekcje ukrywają dodatkowe wyjaśnienia do momentu ich otwarcia.
+- `/help#wywiad` opisuje wybór źródła, odpowiadanie własnymi słowami, przegląd wyniku, projekty początkujących, znaczenie odpowiedzi, kredyty i powrót do zapisanych odpowiedzi. Natywne rozwijane sekcje ukrywają dodatkowe wyjaśnienia do momentu ich otwarcia.
 - `/help#dopasowanie` opisuje dwa pytania na nieuzupełnione wymaganie oferty, przegląd wyniku i zachowanie dokumentu źródłowego. `/help#profil` wyjaśnia wybór źródła, edycję notatek, jawny zapis profilu oraz odrębne skutki usuwania profilu, wywiadu i dokumentów.
 - `/pricing#wywiad` wyjaśnia korzyść i wspólną pulę kredytów. `PLAN_PRESENTATION` umieszcza wywiad na początku korzyści Pro, więc cennik publiczny, landing, rejestracja i wybór planu używają tych samych opisów. Źródłem prawdy dla cen i uprawnień pozostaje backend.
 - Biblioteka zastępuje pomocniczą notatkę nagłówka bezpośrednim zaproszeniem do wywiadu tylko wtedy, gdy pobrane z serwera uprawnienie `ai_assistant` ma dokładnie wartość `true`. Strona konta stosuje ten sam warunek do sekcji wywiadu Pro. Ładowanie, niedostępność i Free nie deklarują aktywnego dostępu Pro; istniejąca nawigacja profilu pozostaje dostępna. Zaproszenia nie uruchamiają płatnego AI.
@@ -3692,15 +3757,15 @@ Wywiad jest przedstawiony jako sposób przełożenia rzeczywistych doświadczeń
 
 Implementacja (zweryfikowane zakresy całych modułów):
 
-- `frontend/src/pages/Site/PublicPages.jsx`, linie 4–116, `PricingPage, HelpPage`.
+- `frontend/src/pages/Site/PublicPages.jsx`, linie 1–123, `PricingPage, HelpPage`.
 - `frontend/src/utils/planPresentation.js`, linie 3–73, `PLAN_PRESENTATION, applyPlanPresentation`.
 - `frontend/src/pages/Site/DocumentsPage.jsx`, linie 1–116, `DocumentsPage`.
 - `frontend/src/pages/Site/AccountPage.jsx`, linie 4–87, `AccountPage`.
-- `frontend/src/pages/Hero/Hero.jsx`, linie 97–331, `Hero`.
+- `frontend/src/pages/Hero/Hero.jsx`, linie 1–352, `Hero`.
 - `frontend/src/components/editor/StartChooser/StartChooser.jsx`, linie 103–247, `StartChooser`.
-- `frontend/src/pages/Site/InterviewPage.jsx`, linie 3–13, `InterviewPage`.
-- `frontend/src/components/ai/Interview/InterviewFlow.jsx`, linie 1–350, `InterviewFlow`.
-- `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, linie 36–71, `SiteLayout`.
+- `frontend/src/pages/Site/InterviewPage.jsx`, linie 1–13, `InterviewPage`.
+- `frontend/src/components/ai/Interview/InterviewFlow.jsx`, linie 1–363, `InterviewFlow`.
+- `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, linie 1–71, `SiteLayout`.
 - `frontend/src/components/common/SiteLayout/SiteLayout.module.css`, linie 1–199, `guideFaq`.
 - `frontend/e2e/interview-discovery.spec.js`, linie 1–100, `Playwright`.
 
@@ -3712,7 +3777,7 @@ Wspólny układ serwisu wykorzystuje ciepły token canvas za białymi obszarami 
 
 Biblioteka grupuje podpisane wyszukiwanie/sortowanie i zwarte wiersze dokumentów w jednym obszarze roboczym. Wyczyszczenie wyszukiwania bez wyników zeruje zapytanie i przywraca fokus pola. Cennik wykorzystuje istniejące dane `PLAN_PRESENTATION` w kontrastujących panelach Darmowy i Pro. Pomoc zachowuje natywne kotwice tematów, które można zapisać w zakładkach; poniżej 768px spis przechodzi nad instrukcje. Ustawienia konta rozdzielają logowanie Google, eksport danych i trwałe usuwanie. `UsageMetric` przyjmuje `label`, `used`, `limit` i opcjonalną ikonę. Znany dodatni skończony limit tworzy podpisany natywny wskaźnik meter; `null` oznacza brak ograniczeń, zero oznacza niedostępność w planie, a brak limitu pozostaje niewiadomą. Przykładowo 230 z 200 kredytów pokazuje tekstowo 230 i ogranicza wskaźnik do 200. Zmiany prezentacji nie dodają zmian API, bazy danych, rozliczeń, środowiska ani generowania PDF.
 
-Implementacja: `frontend/src/components/common/SiteLayout/SitePrimitives.jsx`, linie 3–31, eksporty `HeroNote`, `SiteMarker` i `UsageMetric`; `frontend/src/pages/Site/PublicPages.jsx`, linie 4–116, `PricingPage` i `HelpPage`. Regresje: `SitePrimitives.runtime.test.jsx` w tym samym katalogu komponentów wspólnych sprawdza limity skończone, przekroczone, nieograniczone, zerowe i brakujące; `frontend/e2e/site-architecture.spec.js` sprawdza fokus po wyczyszczeniu wyszukiwania, semantykę wskaźników konta i nawigację responsywną obok pobierania/usuwania. Uruchom `npm run test:runtime -- src/components/common/SiteLayout/SitePrimitives.runtime.test.jsx` oraz `npm run test:e2e -- e2e/site-architecture.spec.js` z `frontend/`. [Dokumentacja natywnego meter w MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/meter) wyjaśnia, dlaczego wykorzystanie limitu jest pomiarem ze znanym minimum i maksimum.
+Implementacja: `frontend/src/components/common/SiteLayout/SitePrimitives.jsx`, linie 3–31, eksporty `HeroNote`, `SiteMarker` i `UsageMetric`; `frontend/src/pages/Site/PublicPages.jsx`, linie 1–123, `PricingPage` i `HelpPage`. Regresje: `SitePrimitives.runtime.test.jsx` w tym samym katalogu komponentów wspólnych sprawdza limity skończone, przekroczone, nieograniczone, zerowe i brakujące; `frontend/e2e/site-architecture.spec.js` sprawdza fokus po wyczyszczeniu wyszukiwania, semantykę wskaźników konta i nawigację responsywną obok pobierania/usuwania. Uruchom `npm run test:runtime -- src/components/common/SiteLayout/SitePrimitives.runtime.test.jsx` oraz `npm run test:e2e -- e2e/site-architecture.spec.js` z `frontend/`. [Dokumentacja natywnego meter w MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/meter) wyjaśnia, dlaczego wykorzystanie limitu jest pomiarem ze znanym minimum i maksimum.
 
 Część publiczna ma `/templates`, `/templates/:slug`, `/pricing`, `/help` i `/privacy`, połączone przez `SiteHeader` i `SiteFooter`. Treść używa bezpośredniego języka użytkownika: landing wyjaśnia rzeczywisty przepływ pracy, karty katalogu opisują widoczne różnice układu, a każda strona szczegółów szablonu wyjaśnia sposób uporządkowania treści przed informacją o planie i kolejną akcją. Krótkie opisy dziesięciu szablonów oraz nagłówek, rozwinięcie i trzy cechy każdej strony szczegółów pochodzą z `TEMPLATES`; oba plany cenowe korzystają z `PLAN_PRESENTATION`. Etykiety wariantów wyglądu podają rzeczywiste tło, kolory akcentów i kontrast zamiast przypisywać paletom abstrakcyjne cechy charakteru. Cennik, pomoc, stopka, logowanie i rejestracja zachowują ten sam rzeczowy ton. Nie dodano bazy treści ani nowej zależności.
 
@@ -3742,7 +3807,7 @@ Implementacja (zweryfikowane zakresy całych plików; wymienione eksporty odpowi
 - `frontend/src/pages/Site/AccountPage.jsx`, komponent `AccountPage`.
 - `frontend/src/pages/Site/PublicPages.jsx`, eksporty `TemplatesPage, TemplatePage, PricingPage, HelpPage`.
 - `frontend/src/pages/Site/PrivacyPage.jsx`, komponent `PrivacyPage`.
-- `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, linie 10–71, `SiteLayout, SiteHeader, SiteFooter`.
+- `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, linie 1–71, `SiteLayout, SiteHeader, SiteFooter`.
 - `frontend/src/templates/index.js`, linie 3–201, `TEMPLATES` — krótkie opisy pickerów i treść stron szczegółów wszystkich dziesięciu szablonów.
 - `frontend/src/utils/planPresentation.js`, linie 3–73, `FREE_PLAN_HIGHLIGHTS, PRO_PLAN_HIGHLIGHTS, PLAN_PRESENTATION`.
 - `frontend/src/services/documents.js`, linie 2–46, `listOwnedDocuments, loadOwnedDocument`.
@@ -3903,6 +3968,7 @@ pdf-generator/
 ├── BUGZ.MD
 ├── README.md
 ├── docs/
+│   ├── INTERVIEW_TEMPLATES.md # EN/PL: measured alternate templates and selection API
 │   ├── INTERVIEW_FIT.md     # Complete EN/PL automatic fitting and API tutorial
 │   ├── INTERVIEWS.md         # Pełna instrukcja EN/PL wywiadu, API, danych i wdrożenia
 │   ├── WYWIAD_JAK_DZIALA.md  # Przewodnik po wymaganiach źródła CV, uzupełnianiu i dopasowaniu
@@ -3952,6 +4018,7 @@ pdf-generator/
 │   │   └── utils/            # geometria/reflow/sekcje, przeglądarkowy layout eksportu tekstu, wygląd szablonów, helpery gościa
 │   │       ├── planPresentation.js # Kanoniczne copy Free/Pro łączone z cenami z billing API
 │   │       ├── scopedAi(.test).js # Minimalny zakres, lokalne mapowanie poprawek i kontrola aktualności
+│   │       ├── interviewTemplateFit(.test).js # Actual-font S/compact alternate measurements
 │   │       ├── templatePageFit(.test).js # Orkiestracja bieżąca typografia → S przed AI
 │   │       ├── atriumAppearance(.test).js # Oryginał, biel, dark mode i trzy mocne palety semantyczne z prawdziwymi ikonami
 │   │       ├── atriumTypographyLayout(.test).js # Pack kontaktów i pojedynczego toru Atrium dla S–XL oraz wysokości przeglądarki
@@ -4000,6 +4067,7 @@ pdf-generator/
     │   │   ├── interview_job_analysis.py # Ponowne użycie analizy właściciela i powiązanie wymagań ze źródłami
     │   │   ├── interview_clarification.py # Konkretne pytania przed końcowym podglądem
     │   │   ├── interview_recovery.py # Filtrowanie odrzuconych twierdzeń i składanie sprawdzonych zmian
+    │   │   ├── interview_templates.py # Free template comparison and explicit selection
     │   │   ├── interview_fit.py       # Bounded fitting, source protection and final layout commit
     │   │   ├── interview_editorial.py # Redakcja opisów i wersjonowane próby generowania
     │   │   ├── cv_editorial_policy.py # Wspólna rubryka redakcji, przykłady i reguły zachowania faktów
@@ -4119,8 +4187,8 @@ Implementacja i testy (zweryfikowane pełne zakresy modułów):
 | Plik | Linie i symbole |
 | --- | --- |
 | `backend/app/services/career_profile_source.py` | 1–90; `is_supplemental_fact, supplemental_facts, resolve_source, synchronise_source` |
-| `backend/app/api/routes/interviews.py` | 1–629; `get_profile, write_profile, choose_profile_source, clear_profile` |
-| `backend/app/schemas/interview_schema.py` | 1–219; `ProfileWrite, ProfileSourceWrite` |
+| `backend/app/api/routes/interviews.py` | 1–642; `get_profile, write_profile, choose_profile_source, clear_profile` |
+| `backend/app/schemas/interview_schema.py` | 1–226; `ProfileWrite, ProfileSourceWrite` |
 | `backend/app/models/models.py` | 1–586; `CareerProfile.source_binding` |
 | `backend/app/services/interview_service.py` | 1–651; `profile_payload, put_profile` |
 | `backend/app/services/account_data_service.py` | 1–309; `build_account_export` |
@@ -4308,7 +4376,7 @@ Przy uwierzytelnionym odczycie właściciela `GET /ai/interviews/{id}` funkcja `
 | `backend/app/services/interview_editorial.py` | 1–120; prepare_editorial_draft, apply_editorial_review, begin_generation |
 | `backend/app/services/cv_editorial_policy.py` | 1–78; STYLE_INSTRUCTION, STYLE_EXAMPLES, FACT_PRESERVATION, STYLE_REVIEW_POLICY, IMPROVE_INSTRUCTION |
 | `backend/tests/test_interview_editorial.py` | 1–325; editorial boundaries, pipeline replay, source preservation, follow-up limits |
-| `backend/app/schemas/interview_schema.py` | 1–219; CareerFact, InterviewCreate, SessionWrite, SourceRefresh, Question, Discovery, Draft, EditorialReview, Clarification, Verification |
+| `backend/app/schemas/interview_schema.py` | 1–226; CareerFact, InterviewCreate, SessionWrite, SourceRefresh, Question, Discovery, Draft, EditorialReview, Clarification, Verification |
 | `backend/app/services/interview_discovery.py` | 1–310; discovery_entries, question_entry, next_entry, _planned_question_count, update_discovery_budget, scoped_question |
 | `backend/app/services/interview_questions.py` | 1–329; ANGLES, question_guidance, is_distinct_question, fallback_question |
 | `backend/tests/test_interview_questions.py` | 1–318; test_local_conversation_varies_lenses_across_records_and_is_stable_after_resume, test_legacy_paraphrases_cannot_reopen_same_record_by_renaming_topic, test_focused_follow_up_can_revisit_lens_using_a_concrete_answer_detail |
@@ -4318,12 +4386,12 @@ Przy uwierzytelnionym odczycie właściciela `GET /ai/interviews/{id}` funkcja `
 | `backend/tests/test_interview_credits.py` | 1–77; test_receipts_group_requests_without_exposing_provider_data, test_question_receipt_survives_resume_and_replay_without_new_charge |
 | `frontend/src/components/ai/Interview/InterviewCredits.jsx` | 1–65; InterviewCredits |
 | `frontend/src/components/ai/Interview/InterviewCredits.runtime.test.jsx` | 1–60; InterviewCredits |
-| `backend/app/api/routes/interviews.py` | 1–629; get_interview_credits (258–261), create_interview, answer_interview, confirm_interview, refresh_interview_source, preview_interview, clarify_interview, skip_clarifications, save_interview_document |
+| `backend/app/api/routes/interviews.py` | 1–642; get_interview_credits (258–261), create_interview, answer_interview, confirm_interview, refresh_interview_source, preview_interview, clarify_interview, skip_clarifications, save_interview_document |
 | `frontend/e2e/interview-prerequisites.spec.js` | 1–64; PL/EN source prerequisite browser tests |
 | `backend/tests/test_interview_sources.py` | 1–76; source eligibility regression tests |
 | `frontend/src/components/ai/Interview/InterviewSourceRequired.jsx` | 1–20; InterviewSourceRequired |
 | `backend/app/services/interview_sources.py` | 1–30; has_interview_source, available_interview_sources |
-| `frontend/src/components/ai/Interview/InterviewLoading.jsx` | 1–44; InterviewLoading |
+| `frontend/src/components/ai/Interview/InterviewLoading.jsx` | 1–45; InterviewLoading |
 | `frontend/src/components/ai/Interview/InterviewLoading.module.css` | 1–24; loading, manuscript, track |
 | `frontend/src/components/ai/Interview/InterviewLoading.runtime.test.jsx` | 1–27; long wait, operation boundaries |
 | `frontend/src/components/ai/Interview/InterviewPreview.jsx` | 1–61; InterviewPreview |
@@ -4332,7 +4400,7 @@ Przy uwierzytelnionym odczycie właściciela `GET /ai/interviews/{id}` funkcja `
 | `frontend/src/utils/interviewPreview.js` | 1–27; previewRecords, recordContent |
 | `frontend/src/utils/interviewPreview.test.js` | 1–24; grouping, evidence, removed fields |
 | `frontend/e2e/interview-workspace.spec.js` | 1–140; bounded preview, delayed operations, failure recovery |
-| `frontend/src/components/ai/Interview/InterviewFlow.jsx` | 1–330; InterviewFlow |
+| `frontend/src/components/ai/Interview/InterviewFlow.jsx` | 1–363; InterviewFlow |
 | `frontend/src/utils/careerProfileView.js` | 1–90; groupCareerFacts, careerFieldLabel, isCareerNote |
 | `frontend/src/utils/careerProfileView.test.js` | 1–42; grupowanie, tożsamość, limity, tytuły z pytań wywiadu |
 | `frontend/src/components/ai/Interview/FactEditor.runtime.test.jsx` | 1–116; zastosowanie, anulowanie, cofanie, fokus, wyszukiwanie, prezentacja pytania z odpowiedzią |
@@ -5011,13 +5079,13 @@ Znane ograniczenia:
 Treść publiczna opisuje prostym polskim cały rezultat: wybór szablonu, edycję bezpośrednio na stronie A4 i pobranie PDF bez znaku wodnego. Zdania mają naturalny rytm i unikają sztucznych kontrastów, urywanych haseł, przesadzonych obietnic oraz branżowego żargonu projektowego. Każda trasa `/templates/:slug` opisuje rzeczywistą hierarchię informacji danego szablonu, trzy widoczne zalety konstrukcji, dostępność w planie oraz CTA z nazwą szablonu. Opis importu podaje limit jednego udanego importu miesięcznie w planie Darmowym; FAQ wprost podaje trzy darmowe pobrania miesięcznie, wymagania konta, konieczność sprawdzenia danych po odczycie i jednorazowy dostęp Pro. Cennik, pomoc, prywatność, logowanie, rejestracja, potwierdzenie e-maila i wynik płatności zachowują ten sam bezpośredni ton bez zmiany limitów, ścieżek odzyskiwania i granic konta. Nie dodano obietnic wyniku rekrutacji, niepopartej gwarancji ATS ani dowodów od klientów. Pełna polska treść stron publicznych i uzasadnienie znajdują się w [`docs/LANDING_COPY.md`](docs/LANDING_COPY.md); proponowane tam metadane nie zmieniają wspólnego tytułu aplikacji.
 
 
-Landing otwiera **„Twoje CV. Gotowe do wysłania.”** oraz dwuzdaniowe wprowadzenie. Sekcje 01–06 mają kolejność: hero → trzy korzyści i galeria szablonów → prywatność → cennik → FAQ z czterema pytaniami → końcowe CTA → stopka. Treść opisuje import, edycję bezpośrednią i opcjonalne AI w Pro, bez obietnic wyników rekrutacji.
+Landing otwiera **„Lepsza treść. Lepsze CV.”** (wersja angielska: „Stronger content. A better CV.”). Sekcje 01–07 mają kolejność: hero → przykład i efekt Wywiadu → narzędzia Studio i galeria szablonów → prywatność → cennik → FAQ z pięcioma pytaniami → końcowe CTA → stopka. Studio opisuje wygląd i układ, a Wywiad rozwijanie treści na podstawie faktów.
 
 Główne **„Stwórz CV z tym szablonem”** otwiera konfigurację A4 z wybranym szablonem Free, a **„Zobacz edytor”** otwiera istniejące demo. **„Importuj CV z PDF”** rozpoczyna import z sekcji możliwości. Informacja o koncie wyjaśnia, że rozpoczęcie nie wymaga konta, natomiast zapis i pobranie wymagają darmowej rejestracji. Pasek korzyści hero informuje o trzech darmowych szablonach; sekcje możliwości i cennika oznaczają AI jako funkcję Pro. Wspólne `FREE_PLAN_HIGHLIGHTS` i `PRO_PLAN_HIGHLIGHTS` zachowują limity cennika, kredyty i 30-dniową ofertę Pro bez automatycznego odnowienia.
 
 Hero ma dzielony układ redakcyjny z trzema podglądami CV w perspektywie i wspólnymi tokenami Swiss. Krótki opis ma kolor tuszu na jasnym tle. Nagłówek i etykiety akcji zawijają się w ramach istniejącej responsywnej typografii na małych ekranach i przy powiększeniu. Etykiety mają co najmniej 12 px, linki nawigacji/demo pola interakcji 44 px, a linki i nagłówki pytań jawną obwódkę focus-visible.
 
-**„Wpisz treść raz. Układ zmienisz później.”** wprowadza możliwości bez pary urywanych haseł. Statyczny, podpisany przykład przed/po pokazuje poprawę stylu z AI w Pro; nie wysyła żądania ani nie zużywa kredytów. Galeria z rejestru zachowuje rzeczywiste mockupy szablonów. Te same krótkie, naturalne opisy pojawiają się na publicznych kartach i w pickerach aplikacji, a dłuższe pole `details` jest używane wyłącznie na nazwanej trasie publicznej. Hover/focus pauzuje marquee; ograniczenie ruchu pokazuje statyczną siatkę. Osobna prezentacja Free w hero zmienia wyłącznie wybór podglądu; nie przekształca istniejącej treści użytkownika.
+Sekcja Studio opisuje import PDF, edycję bezpośrednią i dopasowanie do jednej strony. Osobna sekcja Wywiadu pokazuje podpisany przykład: źródło → pytanie → odpowiedź → wynik. Każdy szczegół wyniku pochodzi z przykładowej odpowiedzi. Sekcja nie wysyła żądań i nie zużywa kredytów. Galeria z rejestru zachowuje rzeczywiste przykłady szablonów, linki dostępne klawiaturą i statyczną siatkę przy ograniczeniu ruchu.
 
 Implementacja i regresje treści: `frontend/src/templates/index.js` (`TEMPLATES`); `frontend/src/pages/Site/PublicPages.jsx` (`TemplatesPage`, `TemplatePage`, `PricingPage`, `HelpPage`); `frontend/src/pages/Site/PrivacyPage.jsx` (`PrivacyPage`); `frontend/src/pages/Hero/Hero.jsx` (`Hero`); `frontend/src/utils/planPresentation.js`; dziesięć rejestrów palet `frontend/src/utils/*Appearance.js` (`*_PALETTES`); `frontend/src/components/common/SiteLayout/SiteLayout.jsx` (`SiteFooter`); `frontend/src/pages/Login/Login.jsx` (`Login`); oraz `frontend/src/pages/Register/Register.jsx` (`Register`). `frontend/src/templates/index.test.js` odrzuca brak treści szczegółów szablonu i usunięty żargon; `frontend/src/utils/appearanceCopy.test.js` stosuje tę samą zasadę do wszystkich 60 opisów palet. `frontend/e2e/site-architecture.spec.js` sprawdza nazwane CTA szablonów, blokadę Pro, fokus klawiatury, kontrole prywatności i brak poziomego overflow przy szerokościach 390, 640, 834, 1280 i 1920 pikseli CSS.
 
@@ -5050,7 +5118,7 @@ Implementacja:
 - `frontend/src/components/editor/StartChooser/StartChooser.jsx`, komponent `StartChooser` — trzy główne karty (`onNew`, `onImport`, link wywiadu zależny od uprawnień) oraz drugorzędne akcje dokumentów i recovery legacy
 - `frontend/src/components/editor/StartChooser/StartChooser.module.css`, linie 8–454 — styl Swiss/grid z overlayem całej powłoki aplikacji, znakiem CV Studio, prostokreślnymi osiami, trzema kolumnami na szerokim ekranie, dwiema z trzecią kartą na całą szerokość na tablecie i jedną na małym ekranie, wierszem akcji drugorzędnych, bezpiecznym wyrównaniem przewijania, układem mobilnym i responsywną kontrolką wylogowania
 - `frontend/src/App.jsx`, linie 53–73, funkcje `StartRoute` i `CreateCvRoute` — rozstrzyga ogólne `/app/new` jako `start=choose` dla konta i `start=new` dla gościa lub jawnego szablonu; `/app/import` pozostaje skierowany
-- `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, linie 11–24, `SiteHeader`; `frontend/src/pages/Hero/Hero.jsx`, linie 97–114, `Hero`; oraz `frontend/src/pages/Site/PublicPages.jsx`, linie 54–65, `PricingPage` — ogólne CTA tworzenia używają `/app/new`, a CTA szablonów zachowują bezpośrednią konfigurację
+- `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, linie 1–71, `SiteHeader`; `frontend/src/pages/Hero/Hero.jsx`, linie 1–352, `Hero`; oraz `frontend/src/pages/Site/PublicPages.jsx`, linie 1–123, `PricingPage` — ogólne CTA tworzenia używają `/app/new`, a CTA szablonów zachowują bezpośrednią konfigurację
 - `frontend/src/utils/startChooser.js`, linie 30–46, funkcja `shouldShowStartChooser` — czysta bramka widoczności pustego niezapisanego workspace (nie demo/ładowanie/konwersja/odrzucony)
 - `frontend/src/pages/PdfCanvas.jsx`, linie 253–265 i 1110–1135, komponent `EditorController` — zużywa intencję `choose`, utrzymuje chooser przed automatycznym wyborem szablonu i podpina nowe/import/dokumenty/recovery bez montowania chrome edytora
 - `frontend/src/components/editor/NewCvSetupModal/NewCvSetupModal.jsx` i `frontend/src/pages/PdfCanvas.jsx` — nowe A4 jest generowane bezpośrednio; starszy szkic przeglądarki wymaga jawnej akcji recovery
@@ -5064,7 +5132,7 @@ Testy:
 
 Implementacja:
 
-- `frontend/src/pages/Hero/Hero.jsx`, linie 5–331, `buildStartUrl`, `CtaLink` i `Hero` — skierowane starty, krótsza treść, przykład AI, cennik, cztery pytania FAQ, końcowe CTA i stopka.
+- `frontend/src/pages/Hero/Hero.jsx`, linie 1–352, `buildStartUrl`, `CtaLink` i `Hero` — skierowane starty, krótsza treść, przykład AI, cennik, cztery pytania FAQ, końcowe CTA i stopka.
 - `frontend/src/pages/Hero/Hero.module.css`, linie 1–944 — tokeny Swiss, responsywne hero, `.copyExample`, `.finalCta`, focus-visible i ograniczenie ruchu.
 - `frontend/src/pages/Hero/Hero.test.js`, linie 1–47 — granice konta i Pro, starty i zdarzenia CTA, kanoniczne plany, dostępna galeria i FAQ.
 - `frontend/src/utils/authSession.js`, funkcja `getEditorPath` — buduje `/cvstudio/guest` albo `/cvstudio/{username}` (plus opcjonalne `?start=` i parametr `template` tylko dla konfiguracji)
@@ -6231,7 +6299,7 @@ Support produkcyjny może przypisać `free` lub `pro` przez `POST /billing/admin
 - `backend/app/api/routes/billing.py`, linie 49–106 (`get_plans`, `select_plan`) i 147–214 (`admin_set_user_plan`) — wybór planu w produkcie oraz chroniona sekretem ścieżka supportu dla dokładnego konta
 - `frontend/src/utils/planPresentation.js`, linie 3–73, `PLAN_PRESENTATION` i `applyPlanPresentation` — jeden kanoniczny kontrakt frontendu używany także podczas ładowania lub awarii katalogu
 - `frontend/src/components/modals/PlanSelectModal/PlanSelectModal.jsx`, linie 22–175, komponent `PlanSelectModal` — dostępny modal dwóch planów ze stanami ładowania, fallbacku, planu bieżącego, operacji, sukcesu i błędu
-- `frontend/src/pages/Hero/Hero.jsx`, linie 5–331, `buildStartUrl`, `CtaLink` i `Hero` — skierowane starty, krótsza treść, przykład AI, cennik, cztery pytania FAQ, końcowe CTA i stopka.
+- `frontend/src/pages/Hero/Hero.jsx`, linie 1–352, `buildStartUrl`, `CtaLink` i `Hero` — skierowane starty, krótsza treść, przykład AI, cennik, cztery pytania FAQ, końcowe CTA i stopka.
 - `frontend/src/templates/index.js`, linie 19–33, rejestr `TEMPLATES` — trzy wysyłane pakiety elementów Free i sześć metadata-only, server-materialized wpisów Pro
 - `frontend/src/hooks/useEntitlements.js`, linie 3–49, hook `useEntitlements`
 

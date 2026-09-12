@@ -14,7 +14,7 @@ export function SiteHeader({ workspace = false, showLanguageSelect = false }) {
   return <header className={classes.header}>
     <Link to="/" className={classes.brand} aria-label={uiText("public:siteLayout.cvStudioHomepage")}><img src="/cv-studio-logo.svg" alt="" /></Link>
     <nav aria-label={uiText("public:siteLayout.mainNavigation")} className={classes.nav}>
-      {workspace ? <><NavLink to="/app/documents">{uiText("public:siteLayout.myDocuments")}</NavLink><NavLink to="/app/career-profile">{uiText("public:siteLayout.careerProfile")}</NavLink><NavLink to="/app/account">{uiText("interview:interviewFlow.accountAndPlan")}</NavLink></> : <><NavLink to="/templates">{uiText("public:siteLayout.templates")}</NavLink><NavLink to="/pricing">{uiText("public:siteLayout.pricing")}</NavLink></>}
+      {workspace ? <><NavLink to="/app/documents">{uiText("public:siteLayout.myDocuments")}</NavLink><NavLink to="/app/career-profile">{uiText("public:siteLayout.careerProfile")}</NavLink><NavLink to="/app/account">{uiText("interview:interviewFlow.accountAndPlan")}</NavLink></> : <><Link to="/help#wywiad">{uiText("public:siteLayout.interview")}</Link><NavLink to="/templates">{uiText("public:siteLayout.templates")}</NavLink><NavLink to="/pricing">{uiText("public:siteLayout.pricing")}</NavLink></>}
       <NavLink to="/help">{uiText("public:siteLayout.help")}</NavLink>
       {!workspace && <Link to={signedIn ? '/app/documents' : '/login'}>{signedIn ? uiText("public:siteLayout.myDocuments") : uiText("public:siteLayout.signIn")}</Link>}
       <Link className={classes.primary} to="/app/new">{uiText("public:siteLayout.createCv")}</Link>
@@ -28,7 +28,7 @@ export function SiteFooter() {
   useTranslation();
   return <footer className={classes.footer}>
     <p>CV Studio <span>{uiText("public:siteLayout.chooseATemplateEnterYourContentAnd")}</span></p>
-    <nav aria-label={uiText("public:siteLayout.footer")}><Link to="/templates">{uiText("public:siteLayout.templates")}</Link><Link to="/pricing">{uiText("public:siteLayout.pricing")}</Link><Link to="/help">{uiText("public:siteLayout.help")}</Link><Link to="/privacy">{uiText("public:siteLayout.privacy")}</Link></nav>
+    <nav aria-label={uiText("public:siteLayout.footer")}><Link to="/help#wywiad">{uiText("public:siteLayout.interview")}</Link><Link to="/templates">{uiText("public:siteLayout.templates")}</Link><Link to="/pricing">{uiText("public:siteLayout.pricing")}</Link><Link to="/help">{uiText("public:siteLayout.help")}</Link><Link to="/privacy">{uiText("public:siteLayout.privacy")}</Link></nav>
   </footer>;
 }
 

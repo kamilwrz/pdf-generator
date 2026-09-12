@@ -37,7 +37,8 @@ def initialise_fit(state, *, allow_shorten=True, profile=None):
     if preview['pages'] <= 1:
         state.pop('generation_attempt', None)
         return
-    state['fit_original'] = {'preview': deepcopy(preview), 'spacing_px': deepcopy(state['spacing_px'])}
+    state['fit_original'] = {'preview': deepcopy(preview), 'spacing_px': deepcopy(state['spacing_px']),
+                             'template_id': state.get('template_id')}
     locked = {f['id'] for f in (profile or {}).get('facts', []) if f['kind'] == 'framing'}
     preview['fit'] = {'status': 'pending', 'attempts': 0, 'allow_shorten': allow_shorten,
                       'started_at': datetime.now(timezone.utc).isoformat(),
@@ -84,7 +85,9 @@ def _layout(preview, request):
                     raise ValueError('Layout changed verified content or structure')
             if before.get('fontSize') and float(el.get('fontSize') or 0) < float(before['fontSize']) * .85:
                 raise ValueError('Typography below the supported compact range')
-        if el.get('deleted'):
+        # The photo visibility flag is honoured by the PDF renderer for every
+        # category, so it cannot become a client-side shortcut for hiding prose.
+        if el.get('deleted') or el.get('photoSlotHidden') and not (before or {}).get('photoSlotHidden'):
             raise ValueError('Layout hid content')
         for key in ('top', 'left', 'fontSize', 'lineHeight', 'width', 'height'):
             value = el.get(key)
@@ -136,6 +139,7 @@ def fit_preview(db, user, row, request):
         original = state.pop('fit_original')
         state['preview'] = original['preview']
         state['spacing_px'] = original['spacing_px']
+        state['template_id'] = original.get('template_id') or state['template_id']
         state['preview']['fit'] = {**fit, 'status': 'restored', 'can_restore': False}
         state.pop('generation_attempt', None)
         state.pop('fit_best', None)

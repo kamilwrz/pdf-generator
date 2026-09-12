@@ -63,6 +63,23 @@ function createProbeIdFactory(elements) {
 }
 
 /**
+ * Apply the registered S transaction independently of the spacing-first search.
+ * Alternative-template comparisons explicitly promise S with compact spacing,
+ * so they must apply S even when the initial M geometry already fits.
+ *
+ * @param {object} args - The template, elements and typography layout options.
+ * @returns {object[]|null} New geometry, or null for an unsupported template.
+ */
+export function applyTemplateSmallTypography({
+  elements, templateId, spacing, pageHeight = 842, createId, measureTextWidth = null,
+}) {
+  const applySmallTypography = smallTypographyLayouts.get(templateId);
+  return applySmallTypography ? applySmallTypography(elements, SMALL_TEXT_SIZE_ID, {
+    spacing, pageHeight, createId: createId ?? createProbeIdFactory(elements), measureTextWidth,
+  }) : null;
+}
+
+/**
  * Compare the current typography with an already prepared `S` candidate.
  *
  * A clean/tight spacing-only result wins immediately. An emergency result is
@@ -174,15 +191,9 @@ export function findTemplateFitForTarget({
     };
   }
 
-  const applySmallTypography = smallTypographyLayouts.get(templateId);
-  const smallElements = applySmallTypography
-    ? applySmallTypography(elements, SMALL_TEXT_SIZE_ID, {
-      spacing: loosest,
-      pageHeight,
-      createId: createId ?? createProbeIdFactory(elements),
-      measureTextWidth,
-    })
-    : null;
+  const smallElements = applyTemplateSmallTypography({
+    elements, templateId, spacing: loosest, pageHeight, createId, measureTextWidth,
+  });
 
   return findFitAcrossTypography({
     elements,

@@ -144,17 +144,23 @@
 
 /* A static, labelled example explains the paid feature without a request,
    loading state, credit charge, or fabricated live AI interaction. */
-.copyExample {
-    margin: var(--space-4) 0 0;
-    padding-left: var(--space-4);
-    border-left: 1px solid var(--color-border);
-    font-size: 0.875rem;
-    line-height: 1.55;
-}
-
-.copyExample > div + div { margin-top: var(--space-3); }
-.copyExample dt { color: var(--muted); font-size: 0.75rem; }
-.copyExample dd { margin: 0; color: var(--ink); }
+.interviewJump { display: inline-flex; align-items: center; gap: var(--space-2); min-height: var(--control-height); margin-top: var(--space-3); color: var(--ink); font-size: .875rem; text-underline-offset: var(--space-1); }
+.interviewJump:hover, .interviewJump:active { color: var(--color-accent); }
+.interviewSection { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); gap: var(--space-16); padding: var(--space-16) var(--space-12); max-width: 1440px; margin-inline: auto; background: var(--color-canvas); scroll-margin-top: var(--space-16); }
+.interviewSection h2 { margin: 0; font: 700 clamp(2rem, 4vw, 3.5rem)/1.1 var(--font-ui); letter-spacing: -.035em; text-wrap: balance; }
+.interviewLead { margin: var(--space-6) 0; max-width: 48ch; font-size: 1rem; line-height: 1.55; }
+.interviewSection .textCta { min-height: var(--control-height); margin-top: var(--space-3); }
+.interviewExample { margin: 0; min-width: 0; padding: var(--space-8); background: var(--color-paper); border: 1px solid var(--color-border); }
+.interviewExample figcaption { font-size: .75rem; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+.interviewExample dl { margin: var(--space-6) 0 0; }
+.interviewExample dl > div { padding-block: var(--space-4); border-top: 1px solid var(--color-border); }
+.interviewExample dt { font-size: .75rem; font-weight: 600; color: var(--color-muted); margin-bottom: var(--space-2); }
+.interviewExample dd { margin: 0; font-size: 1rem; line-height: 1.55; }
+.interviewExample .exampleResult { margin-inline: calc(-1 * var(--space-4)); padding-inline: var(--space-4); background: var(--color-ink); color: var(--color-paper); }
+.exampleResult dt { color: inherit; }
+.interviewExample > p { margin: var(--space-4) 0 0; color: var(--color-muted); font-size: .875rem; line-height: 1.55; }
+@media (max-width: 1024px) { .interviewSection { gap: var(--space-8); padding: var(--space-12) var(--space-6); } }
+@media (max-width: 767px) { .interviewSection { grid-template-columns: minmax(0, 1fr); padding: var(--space-8) var(--space-4); } .interviewExample { padding: var(--space-6); } }
 
 .finalCta {
     padding: var(--space-16) clamp(24px, 7vw, 112px);
