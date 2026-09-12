@@ -20,12 +20,12 @@ test("structural targets, text and icons grow with zoom without double scaling",
       assert.ok(Math.abs(local[key] * zoom - value) < 0.00001, key);
     }
     assert.ok(screen.fontSize >= 12);
-    assert.ok(screen.buttonSize >= 24);
+    assert.ok(screen.buttonSize >= 36);
     assert.equal(screen.offset, 0);
-    assert.equal(screen.borderWidth, 1);
+    assert.equal(screen.borderWidth, 0);
     if (previous) {
       for (const key of ["buttonSize", "iconSize", "labelWidth", "menuWidth"]) {
-        assert.ok(screen[key] > previous[key], key);
+        assert.ok(screen[key] >= previous[key], key);
       }
     }
     previous = screen;
@@ -43,46 +43,46 @@ test("invalid structural zoom and offsets fall back to usable geometry", () => {
 
 test("shares the language-sized compact inline toolbar with Skills", () => {
   assert.deepEqual(compactInlineToolbarLayoutSize(1), {
-    buttonSize: 24,
-    iconSize: 12,
-    gap: 2.4,
+    buttonSize: 36,
+    iconSize: 16,
+    gap: 0,
     labelWidth: 60.8,
     fontSize: 12,
     menuWidth: 140.8,
     offset: 8,
-    borderWidth: 1,
+    borderWidth: 0,
   });
   assert.deepEqual(recordPlusLayoutSize(1), {
-    buttonSize: 24,
-    iconSize: 12,
-    gap: 2.4,
+    buttonSize: 36,
+    iconSize: 16,
+    gap: 0,
     offset: 8,
   });
   assert.deepEqual(recordPlusLayoutSize(2.8), {
-    buttonSize: 32 / 2.8,
-    iconSize: 16 / 2.8,
-    gap: (2.4 * (4 / 3)) / 2.8,
+    buttonSize: 48 / 2.8,
+    iconSize: (16 * 4 / 3) / 2.8,
+    gap: 0,
     offset: 8 / 2.8,
   });
 });
 
-test("compact controls share toolbar growth and never fall below 24px", () => {
+test("compact controls share toolbar growth and never fall below 36px", () => {
   for (const zoom of [0.5, 1, 1.4, 2, 2.8, 3]) {
     const local = compactInlineToolbarLayoutSize(zoom);
     const screen = compactInlineToolbarScreenLayoutSize(zoom);
     for (const [key, value] of Object.entries(screen)) {
       assert.ok(Math.abs(local[key] * zoom - value) < 0.00001, key);
     }
-    assert.ok(screen.buttonSize >= 24);
+    assert.ok(screen.buttonSize >= 36);
     assert.ok(screen.fontSize >= 12);
-    assert.equal(screen.borderWidth, 1);
+    assert.equal(screen.borderWidth, 0);
     assert.equal(screen.offset, 8);
     if (zoom >= 1.4) {
-      assert.ok(Math.abs(screen.buttonSize / 24 - structuralToolbarScreenLayoutSize(zoom).buttonSize / 36) < 0.00001);
+      assert.ok(Math.abs(screen.buttonSize / 36 - structuralToolbarScreenLayoutSize(zoom).buttonSize / 36) < 0.00001);
     }
   }
-  assert.equal(compactInlineToolbarScreenLayoutSize(1.4).buttonSize, 24);
-  assert.equal(compactInlineToolbarScreenLayoutSize(2.8).buttonSize, 32);
+  assert.equal(compactInlineToolbarScreenLayoutSize(1.4).buttonSize, 36);
+  assert.equal(compactInlineToolbarScreenLayoutSize(2.8).buttonSize, 48);
   for (const zoom of [undefined, NaN, Infinity, 0, -1]) {
     assert.deepEqual(compactInlineToolbarScreenLayoutSize(zoom), compactInlineToolbarScreenLayoutSize(1));
   }

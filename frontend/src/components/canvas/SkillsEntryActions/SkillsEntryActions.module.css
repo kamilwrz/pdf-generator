@@ -131,7 +131,7 @@
 .deleteButton {
     composes: button danger from "../CanvasControls.module.css";
     background: var(--color-paper);
-    border: var(--canvas-control-border) solid var(--color-border);
+    border: 0;
     box-shadow: var(--shadow-editor-entry);
 }
 

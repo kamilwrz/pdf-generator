@@ -160,7 +160,7 @@ for (const width of [390, 834, 1366, 1920]) {
         return { horizontal: name.left - control.right, vertical: name.top - control.bottom };
       }, name.element_id);
       expect(Math.max(separation.horizontal, separation.vertical)).toBeCloseTo(8, 0);
-      expect(plus.height).toBeCloseTo(24 * Math.max(1, (2 + zoom / 140) / 3), 0);
+      expect(plus.height).toBeCloseTo(36 * Math.max(1, (2 + zoom / 140) / 3), 0);
       await toggle.focus();
       await toggle.press("Enter");
       await expect(field).toHaveCSS("text-transform", "none");

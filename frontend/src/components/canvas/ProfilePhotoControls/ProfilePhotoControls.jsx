@@ -75,7 +75,7 @@ export default function ProfilePhotoControls({ anchor }) {
         data-editor-control="true"
         style={{
           left: anchor.box.left + anchor.box.width / 2,
-          top: Math.max(surfaceSize + offset, anchor.box.top - offset),
+          top: Math.max(surfaceSize, anchor.box.top - offset),
         }}
       >
         <div className={cluster.cluster} style={{ gap, transform: "translate(-50%, -100%)" }}>

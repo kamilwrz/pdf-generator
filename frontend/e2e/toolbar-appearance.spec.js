@@ -57,7 +57,7 @@ for (const kind of ["contacts", "skills", "languages", "settings"]) {
     }
     await expect(page.locator(selector).first()).toBeVisible();
     await page.mouse.move(1, 1);
-    const baseline = kind === "settings" ? 36 : 24;
+    const baseline = 36;
     const expected = (zoom) => baseline * (kind === "settings"
       ? (2 + zoom / 140) / 3 : Math.max(1, (2 + zoom / 140) / 3));
     let previous = kind === "settings" ? 280 : 140;
@@ -89,7 +89,7 @@ for (const kind of ["contacts", "skills", "languages", "settings"]) {
         for (const control of frame) {
           expect(control.size).toBeGreaterThanOrEqual(Math.min(expected(previous), expected(target)) - 0.4);
           expect(control.size).toBeLessThanOrEqual(Math.max(expected(previous), expected(target)) + 0.4);
-          expect(control.icon / control.size).toBeCloseTo(kind === "settings" ? 16 / 36 : 0.5, 1);
+          expect(control.icon / control.size).toBeCloseTo(16 / 36, 1);
         }
       }
       for (const control of samples.at(-1)) expect(control.size).toBeCloseTo(expected(target), 1);
@@ -141,15 +141,16 @@ for (const width of [390, 834, 1280, 1920]) {
         const style = getComputedStyle(el);
         const shell = getComputedStyle(el.parentElement);
         return {
-          size: el.getBoundingClientRect().height, radius: style.borderRadius,
+          size: el.getBoundingClientRect().height, width: el.getBoundingClientRect().width, radius: style.borderRadius,
           color: style.color, hover: style.backgroundColor,
-          border: shell.borderColor, surface: shell.backgroundColor,
+          border: shell.borderWidth, surface: shell.backgroundColor,
           shellRadius: parseFloat(shell.borderRadius), shellHeight: parseFloat(shell.height),
         };
       });
       expect(appearance.size).toBeCloseTo(size, 0);
+      expect(appearance.width).toBeCloseTo(size, 0);
       expect(appearance).toMatchObject({
-        radius: "999px", border: "rgb(201, 197, 188)",
+        radius: "999px", border: "0px",
         surface: "rgb(255, 255, 255)", hover: "rgb(236, 232, 223)",
         color: danger ? "rgb(180, 35, 24)" : "rgb(103, 78, 62)",
       });
@@ -199,7 +200,7 @@ for (const width of [390, 834, 1280, 1920]) {
     await reachToolbarFromText(page, "skills-heading", "heading:skills-heading");
     await hoverVisibleText(page, page.locator("#contact-email"));
     const deleteContact = page.getByRole("button", { name: /Usuń kontakt:/ });
-    await checkControl(deleteContact, 24, true);
+    await checkControl(deleteContact, 36, true);
     const [contactBox, deleteSurfaceBox] = await Promise.all([
       visibleTextBox(page.locator("#contact-email")),
       deleteContact.locator("..").boundingBox(),
@@ -207,9 +208,9 @@ for (const width of [390, 834, 1280, 1920]) {
     expect(deleteSurfaceBox.x + deleteSurfaceBox.width / 2).toBeCloseTo(contactBox.x + contactBox.width / 2, 0);
     expect(deleteSurfaceBox.y + deleteSurfaceBox.height / 2).toBeCloseTo(contactBox.y + contactBox.height / 2, 0);
     await hoverVisibleText(page, page.locator("#contact-email"));
-    await checkControl(page.getByRole("button", { name: "Dodaj kontakt", exact: true }), 24);
+    await checkControl(page.getByRole("button", { name: "Dodaj kontakt", exact: true }), 36);
     await page.locator("#language-item").hover();
-    await checkControl(page.locator('[data-canvas-toolbar-key="grid-entry:language-item"] button').first(), 24);
+    await checkControl(page.locator('[data-canvas-toolbar-key="grid-entry:language-item"] button').first(), 36);
     await expect(page.locator('[data-canvas-toolbar-key="grid-entry:language-item"] button')).toHaveCount(2);
 
     const body = page.locator("#skills-tools-body");
@@ -221,7 +222,7 @@ for (const width of [390, 834, 1280, 1920]) {
     const add = toolbar.getByRole("button", { name: /Dodaj umiejętność do kategorii/ });
     await expect(add).toBeFocused();
     await expect(toolbar.getByRole("button")).toHaveCount(1);
-    await checkControl(add, 24);
+    await checkControl(add, 36);
     await add.press("Enter");
     const input = toolbar.getByRole("textbox", { name: "Dodaj umiejętność" });
     await expect(input).toBeFocused();
@@ -305,7 +306,7 @@ test("toolbar geometry and menu text grow monotonically through animated canvas 
     }, targetZoom);
     expect(samples.length).toBeGreaterThan(2);
     for (const sample of samples) {
-      const finalHeight = 36 * (2 + targetZoom / 140) / 3;
+      const finalHeight = 36 * Math.max(1, (2 + targetZoom / 140) / 3);
       expect(sample.height).toBeGreaterThanOrEqual(Math.min(previousHeight, finalHeight) - 0.1);
       expect(sample.height).toBeLessThanOrEqual(Math.max(previousHeight, finalHeight) + 0.1);
       expect(sample.width / sample.height).toBeCloseTo(76 / 36, 1);
@@ -315,7 +316,7 @@ test("toolbar geometry and menu text grow monotonically through animated canvas 
       expect(sample.menuWeight).toBe("400");
       previousHeight = sample.height;
     }
-    expect(samples.at(-1).height).toBeCloseTo(36 * (2 + targetZoom / 140) / 3, 1);
+    expect(samples.at(-1).height).toBeCloseTo(36 * Math.max(1, (2 + targetZoom / 140) / 3), 1);
     if ([140, 280].includes(targetZoom)) {
       await page.screenshot({ path: testInfo.outputPath(`toolbar-${targetZoom}.png`) });
     }

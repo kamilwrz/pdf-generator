@@ -30,7 +30,7 @@
     z-index: var(--z-editor-affordance);
     padding: 0;
     background: var(--color-paper);
-    border: 1px solid var(--color-border);
+    border: 0;
 }
 
 .inspectorToggle[data-tooltip]::after {

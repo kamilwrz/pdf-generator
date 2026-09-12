@@ -11,7 +11,7 @@
     padding: var(--canvas-control-gap, 2.4px);
     background: var(--color-paper);
     color: var(--color-editor-ink);
-    border: var(--canvas-control-border, 1px) solid var(--color-border);
+    border: 0;
     /* Limit wrapped toolbars to one row's radius so outer actions stay clear
        of the curve. The same local metrics inverse-scale inside A4. */
     border-radius: var(--canvas-surface-radius, min(var(--radius-canvas-tool), calc(var(--canvas-control-size, 24px) / 2 + var(--canvas-control-gap, 2.4px) + var(--canvas-control-border, 1px))));
@@ -53,8 +53,8 @@
 }
 
 .button:focus-visible {
-    outline: calc(2 * var(--canvas-control-border, 1px)) solid var(--color-focus);
-    outline-offset: var(--canvas-control-border, 1px);
+    outline: calc(2 * var(--canvas-editor-hairline, 1px)) solid var(--color-focus);
+    outline-offset: var(--canvas-editor-hairline, 1px);
 }
 
 .button:disabled {
@@ -68,12 +68,12 @@
     content: attr(data-tooltip);
     position: absolute;
     left: 50%;
-    top: calc(100% + var(--canvas-control-gap));
+    top: calc(100% + max(var(--canvas-control-gap), var(--canvas-control-font) / 4));
     z-index: 4;
     transform: translate(-50%, calc(-2 * var(--canvas-control-border, 1px)));
     width: max-content;
     max-width: calc(var(--canvas-control-menu-width) * 1.15);
-    padding: calc(var(--canvas-control-gap) * .85) var(--canvas-control-gap);
+    padding: calc(var(--canvas-control-font) / 5) calc(var(--canvas-control-font) / 4);
     background: var(--color-editor-ink);
     color: var(--color-paper);
     font: 600 var(--canvas-control-font)/1.2 var(--font-body, sans-serif);
