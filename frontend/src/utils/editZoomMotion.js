@@ -1,4 +1,7 @@
-export const EDIT_ZOOM_MOTION_MS = 200;
+// Keep this value in sync with `--motion-edit-zoom`. The dedicated 500 ms
+// timeline is exactly 2.5 times the standard 200 ms motion and drives the
+// view-only scroll tracking that accompanies the CSS canvas transition.
+export const EDIT_ZOOM_MOTION_MS = 500;
 
 const INLINE_VISIBILITY_PADDING_PX = 16;
 

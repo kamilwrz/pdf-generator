@@ -84,6 +84,7 @@
     --motion-fast: 120ms;
     --motion-standard: 200ms;
     --motion-slow: 320ms;
+    --motion-edit-zoom: 500ms;
     --motion-ease: cubic-bezier(.2, 0, 0, 1);
     --z-sticky: 100;
     --z-popover: 200;

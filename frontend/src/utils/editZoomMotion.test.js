@@ -1,6 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import {
+  EDIT_ZOOM_MOTION_MS,
   coordinateEditZoomMotion,
   revealEditedElementImmediately,
 } from "./editZoomMotion.js";
@@ -29,7 +31,6 @@ test("coordinates scroll with scale so the edited field follows one smooth path"
     container,
     element,
     zoomRatio: 1.25,
-    duration: 200,
     requestFrame: (callback) => {
       frames.push(callback);
       return frames.length;
@@ -43,13 +44,13 @@ test("coordinates scroll with scale so the edited field follows one smooth path"
     + (element.getBoundingClientRect().height / 2);
   assert.equal(firstFrameCenter, 620, "the first frame counteracts scale movement without a jump");
 
-  frames.shift()(100);
+  frames.shift()(250);
   const middleFrameCenter = element.getBoundingClientRect().top
     + (element.getBoundingClientRect().height / 2);
   assert.ok(middleFrameCenter < firstFrameCenter);
   assert.ok(middleFrameCenter > 200);
 
-  frames.shift()(200);
+  frames.shift()(500);
   const finalRect = element.getBoundingClientRect();
   assert.equal(finalRect.top + (finalRect.height / 2), 200);
   assert.equal(
@@ -58,6 +59,21 @@ test("coordinates scroll with scale so the edited field follows one smooth path"
     "a visible field keeps its original inline position while scale is counter-scrolled",
   );
   cancel();
+});
+
+test("edit zoom uses the exact 2.5x duration in JavaScript and CSS", async () => {
+  const [tokens, canvasStyles] = await Promise.all([
+    readFile(new URL("../index.css", import.meta.url), "utf8"),
+    readFile(new URL("../components/canvas/A4/A4.module.css", import.meta.url), "utf8"),
+  ]);
+
+  assert.equal(EDIT_ZOOM_MOTION_MS, 500);
+  assert.match(tokens, /--motion-edit-zoom:\s*500ms;/);
+  assert.match(
+    canvasStyles,
+    /transition:\s*width var\(--motion-edit-zoom\)[\s\S]*height var\(--motion-edit-zoom\)/,
+  );
+  assert.match(canvasStyles, /transition:\s*transform var\(--motion-edit-zoom\)/);
 });
 
 test("reduced motion reveals the edited field without scheduling animation", () => {

@@ -77,6 +77,7 @@ motion:
   fast: "120ms"
   standard: "200ms"
   slow: "320ms"
+  editZoom: "500ms"
   easing: "cubic-bezier(0.2, 0, 0, 1)"
 elevation:
   popover: "0 12px 32px rgba(22, 22, 22, 0.16)"
@@ -336,7 +337,7 @@ The editor and other task-heavy screens may be denser, but must remain grid-base
 - Populated single-line text uses its visible glyph bounds for selection and edit-focus outlines, including when an authored full-column frame centres or right-aligns it. Both states keep the same two-screen-pixel breathing room so moving focus to a canvas control cannot shift the boundary onto the glyphs. Keep outline padding screen-stable during zoom; empty starter fields use their live, lifted CSS guidance box with the same padding, not the saved PDF baseline. Measure selection after DOM updates so closing settings or deleting text cannot leave a stale frame. These measurements must never change the alignment frame, caret, saved geometry or PDF output.
 - Pointer-hover section, entry, and element context is shown with the shared neutral editor elevation hierarchy, without colored overlay surfaces or decorative borders. Selection and inline-edit focus use the screen-stable hairline borders defined above; selected and focused inline textareas additionally retain the `editorActive` shadow to expose their full editable bounds. All of this chrome must stay outside layout, persistence, and PDF output.
 - Canvas zoom, page boundaries, page numbers, and active selection must be readable at every supported scale.
-- The standard single-page canvas view starts at 140%. Entering inline text edit changes it to 280% with one coordinated motion: the edited field moves into the viewport while the A4 scale changes, never as a completed zoom followed by a second delayed scroll. The field follows one continuous path towards the vertical centre, retains nearest-edge horizontal visibility, and stays view-only so saved geometry and PDF output are unchanged. Use the shared standard motion token; reduced motion applies the final zoom and reveal without animation.
+- The standard single-page canvas view starts at 140%. Entering inline text edit changes it to 280% with one coordinated 500 ms motion, exactly 2.5 times the standard 200 ms duration: the edited field moves into the viewport while the A4 scale changes, never as a completed zoom followed by a second delayed scroll. Returning from temporary edit zoom uses the same duration and easing. The field follows one continuous path towards the vertical centre, retains nearest-edge horizontal visibility, and stays view-only so saved geometry and PDF output are unchanged. Use the dedicated shared `editZoom` motion token; reduced motion applies the final zoom and reveal without animation.
 - Temporary inline edit zoom ends only after a direct click on an unoccupied part of the A4 paper. Scrolling, canvas gutters and scrollbars, application chrome, the AI assistant, contextual controls, and clicks on authored document elements may move focus or finish text input, but they must preserve the focused zoom until that explicit paper-background click.
 - The topbar uses the unscaled single-page width as a fixed reference: undo/redo start above its left edge, template navigation stays centered, and zoom with the two-page toggle sits above its right side. Canvas zoom, horizontal scrolling, and spread mode must not move these controls. Creation and page navigation stay on the left; the right-hand sequence is clear, document name, save, and download. Compact layouts may wrap in keyboard order while retaining reachable controls.
 - Hover-only tools must also be reachable by keyboard or through a persistent control path.
@@ -422,6 +423,7 @@ Motion explains causality and state; it is never ambient decoration.
 
 - Hover and press feedback: 120–200ms.
 - Panels, dialogs, and route transitions: 200–320ms.
+- Inline edit zoom in and out: 500ms, using the dedicated `editZoom` token.
 - Animate only `transform` and `opacity` where practical.
 - Avoid parallax, looping decoration, bouncy spring motion, and long staggered entrances in working UI.
 - Respect `prefers-reduced-motion: reduce` by removing non-essential movement and making state changes immediate or nearly immediate.

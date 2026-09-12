@@ -8,8 +8,8 @@
        left edge of editable fields outside a compact canvas viewport. */
     flex-shrink: 0;
     margin: 0 auto;
-    transition: width var(--motion-standard) var(--motion-ease),
-        height var(--motion-standard) var(--motion-ease);
+    transition: width var(--motion-edit-zoom) var(--motion-ease),
+        height var(--motion-edit-zoom) var(--motion-ease);
 }
 
 .spreadPage {
@@ -26,7 +26,7 @@
     border: 0;
     border-radius: var(--radius-panel);
     box-shadow: var(--shadow-pop);
-    transition: transform var(--motion-standard) var(--motion-ease);
+    transition: transform var(--motion-edit-zoom) var(--motion-ease);
 }
 
 @media (prefers-reduced-motion: reduce) {
