@@ -27,7 +27,7 @@ for (const width of [390, 834, 1280, 1920]) {
         expect(body.cv_data).toEqual({});
         session = { id: 'separate', revision: 1, evidence_scope: 'session', evidence_profile: { revision: 0, facts: [] },
           mode: 'create', phase: 'intake', answers: [], requirements: [], proposed_facts: [candidate],
-          language: 'pl', template_id: 'linden', question: null, question_limit: 8, preview: null };
+          language: 'pl', template_id: 'linden', question: null, question_limit: 8, planned_question_count: 8, preview: null };
       } else {
         expect(path).toMatch(/\/confirm$/);
         expect(body.facts).toEqual([candidate]); expect(body.evidence_scope).toBe('session');

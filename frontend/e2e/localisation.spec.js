@@ -185,7 +185,7 @@ test('English resumed interview preserves historical Polish questions and an uns
   });
   const api = await installMockApi(page);
   const question = 'Jaki projekt ukończyłaś samodzielnie?';
-  const session = { id, revision: 1, evidence_scope: 'session', evidence_profile: { revision: 0, facts: [] }, mode: 'create', phase: 'question', language: 'pl', profile_revision: 0, template_id: 'linden', question_limit: 8, answers: [], question: { id: 'q1', topic: 'project', text: question, reason: 'Pokażemy Twój wkład.', context: 'Projekt' }, requirements: [], proposed_facts: [], confirmed: true, preview: null, source_cv_data: { name: 'Anna Nowak' } };
+  const session = { id, revision: 1, evidence_scope: 'session', evidence_profile: { revision: 0, facts: [] }, mode: 'create', phase: 'question', language: 'pl', profile_revision: 0, template_id: 'linden', question_limit: 8, planned_question_count: 8, answers: [], question: { id: 'q1', topic: 'project', text: question, reason: 'Pokażemy Twój wkład.', context: 'Projekt' }, requirements: [], proposed_facts: [], confirmed: true, preview: null, source_cv_data: { name: 'Anna Nowak' } };
   const writes = [];
   await page.route('**/api/career-profile*', (route) => route.fulfill({ json: { revision: 0, facts: [], sources: { documents: [], imports: [] } } }));
   await page.route('**/api/ai/interviews**', (route) => {

@@ -26,7 +26,7 @@ for (const lang of ['pl', 'en']) {
       let session = { id: 'note-review', revision: 1, evidence_scope: isolated ? 'session' : 'profile', phase: 'intake',
         source_document_id: imported ? null : 30, source_import_id: imported ? 40 : null,
         source_cv_data: { name: 'Anna Nowak' }, review_source_facts: cvFacts, language: 'pl', mode: 'create', template_id: 'linden',
-        proposed_facts: [], answers: [], requirements: [], question: null, question_limit: 8, confirmed: false };
+        proposed_facts: [], answers: [], requirements: [], question: null, question_limit: 8, planned_question_count: 8, confirmed: false };
       const calls = [];
       const payload = () => ({ ...session, evidence_profile: isolated ? profile : null });
       await page.route('**/api/career-profile', (route) => route.fulfill({ json: profile }));

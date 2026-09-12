@@ -212,7 +212,15 @@ def session_payload(row):
         origin = (f"document:{row.state['source_document_id']}" if row.state.get('source_document_id') else
                   f"import:{row.state['source_import_id']}" if row.state.get('source_import_id') else f"interview:{row.id}")
         review_source = source_facts(row.state['source_cv_data'], origin)
+    planned_questions = row.state.get("planned_question_count")
+    if "planned_question_count" not in row.state:
+        # Sessions saved before CV-based planning was introduced retain their
+        # latest bounded budget. Fresh tailoring remains unknown because its
+        # requirement analysis has not yet established a content-based plan.
+        planned_questions = (None if row.state.get("mode") == "tailor" and not row.state.get("job_analysis_ready")
+                             else row.state.get("question_limit"))
     return {"id": row.id, "revision": row.revision, **row.state,
+            "planned_question_count": planned_questions,
             "review_source_facts": review_source,
             "requires_source_choice": row.state.get("evidence_scope") not in {"profile", "session"} or not has_interview_source(row.state.get("source_cv_data")),
             "evidence_profile": evidence_profile,

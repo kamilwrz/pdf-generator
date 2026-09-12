@@ -21,7 +21,7 @@ async function workspaceApi(page, phase = 'preview') {
   visit(cv);
   const profile = { revision: 2, facts: [{ id: 'fact', path: '', text: 'Przygotowywałam raporty i sprawdzałam jakość danych.', kind: 'fact', source: 'interview' }] };
   const preview = { pages: 3, profile_revision: 2, cv_data: cv, changes, remaining_gaps: Array.from({ length: 12 }, (_, i) => `Do doprecyzowania ${i + 1}: zakres odpowiedzialności za raportowanie.`) };
-  let session = { evidence_scope: 'profile', id: ID, revision: 2, phase, mode: 'create', language: 'pl', profile_revision: 2, template_id: 'linden', source_cv_data: { name: 'Anna Nowak' }, answers: [], question_limit: 8, requirements: [], proposed_facts: [], confirmed: true, question: null, preview: phase === 'preview' ? preview : null };
+  let session = { evidence_scope: 'profile', id: ID, revision: 2, phase, mode: 'create', language: 'pl', profile_revision: 2, template_id: 'linden', source_cv_data: { name: 'Anna Nowak' }, answers: [], question_limit: 8, planned_question_count: 8, requirements: [], proposed_facts: [], confirmed: true, question: null, preview: phase === 'preview' ? preview : null };
   const holds = new Map();
   const calls = [];
   let failAnswer = false;
@@ -41,7 +41,7 @@ async function workspaceApi(page, phase = 'preview') {
   });
   return {
     calls,
-    completeDiscovery() { session = { ...session, phase: 'review', question: null, discovery_complete: true, question_limit: 14 }; },
+    completeDiscovery() { session = { ...session, phase: 'review', question: null, discovery_complete: true, question_limit: 14, planned_question_count: 14 }; },
     hold(action) { let release; holds.set(action, new Promise((resolve) => { release = resolve; })); return () => { holds.delete(action); release(); }; },
     failAnswer() { failAnswer = true; },
   };

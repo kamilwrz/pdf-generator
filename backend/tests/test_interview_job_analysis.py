@@ -38,6 +38,7 @@ def test_two_questions_per_unresolved_requirement_without_third_followup():
     assert counts == {'Reporting': 2, 'Python': 2}
     assert state['discovery_complete'] is True
     assert state['question_limit'] == 4
+    assert state['planned_question_count'] == 4
     assert update_discovery_budget(state, {'facts': []}) == entries
 
 
@@ -56,6 +57,7 @@ def test_missing_analysis_cannot_mark_discovery_complete():
     state = {'mode': 'tailor', 'job_analysis_ready': False, 'question_limit': 5, 'answers': []}
     assert update_discovery_budget(state, {'facts': []}) == []
     assert state['discovery_complete'] is False
+    assert state['planned_question_count'] is None
 
 
 def test_direct_interview_analyses_once_and_passes_cv_and_profile_to_questions(environment):
@@ -71,6 +73,7 @@ def test_direct_interview_analyses_once_and_passes_cv_and_profile_to_questions(e
         session = response.json()
         assert len(session['requirements']) == 2
         assert session['question_limit'] == 4
+        assert session['planned_question_count'] == 4
         context = json.loads(provider.call_args_list[1].args[1])
         assert context['source_cv_data']['name'] == 'Anna Nowak'
         assert context['profile'] == facts
@@ -143,3 +146,4 @@ def test_assistant_receipt_handoff_and_legacy_replay_never_expose_edits(environm
         assert refreshed.status_code == 200, refreshed.text
         assert refreshed.json()['job_analysis_ready'] is False
         assert refreshed.json()['requirements'] == []
+        assert refreshed.json()['planned_question_count'] is None

@@ -45,9 +45,14 @@ def discovery_entries(profile, answers):
     Answer-derived facts from this policy cannot create new scopes indefinitely.
     """
     labels = {"experience": "Work experience", "education": "Education", "custom_sections": "Project or additional entry", "skills": "Skills", "languages": "Languages", "notes": "Additional information"} if ui_language.get() == "en" else LABELS
+    # Facts created from current scoped discovery or verification answers
+    # already belong to that answer's progress. Excluding their IDs prevents
+    # either round from creating a fresh unstructured scope for itself. Legacy
+    # unscoped answers remain available for conservative context association.
     answered_ids = {
-        f"answer-{a['question']['id']}" for a in answers
-        if a.get("question", {}).get("entry_id")
+        f"answer-{answer['question']['id']}" for answer in answers
+        if answer.get("question", {}).get("id")
+        and (answer["question"].get("entry_id") or answer["question"].get("clarification"))
     }
     groups = {}
     for fact in profile["facts"]:
@@ -143,6 +148,13 @@ def entry_answers(entry, entries, answers):
             and question_entry(a["question"], entries, answers) == entry["id"]]
 
 
+def _entry_capacity(entry):
+    """Return the maximum discovery questions allowed for one queue entry."""
+    if entry["kind"] == "requirement":
+        return 2
+    return 3 if entry["question_count"] == 2 else 1
+
+
 def next_entry(entries, answers):
     """Choose the first unfinished entry; all answer statuses consume capacity.
 
@@ -153,12 +165,35 @@ def next_entry(entries, answers):
     for entry in entries:
         history = entry_answers(entry, entries, answers)
         ordinary = sum(not a["question"].get("follow_up_to") for a in history)
-        maximum = 2 if entry["kind"] == "requirement" else 3 if entry["question_count"] == 2 else 1
+        maximum = _entry_capacity(entry)
         if any(a["status"] != "answered" for a in history) or len(history) >= maximum or ordinary >= entry["question_count"]:
             continue
         return {**entry, "asked": len(history), "ordinary_asked": ordinary,
                 "allow_follow_up": bool(history) and maximum == 3 and len(history) == 1}
     return None
+
+
+def _planned_question_count(entries, answers):
+    """Calculate the live maximum plan from CV scopes and persisted answers.
+
+    Optional focused follow-ups are included until the ordinary second question
+    closes their record. A skip, unknown answer or confirmed lack of experience
+    closes its scope and reduces the remaining plan. Verification clarifications
+    are excluded because they have a separate user-visible counter and budget.
+    """
+    discovery_answers = [answer for answer in answers if not answer["question"].get("clarification")]
+    remaining = 0
+    for entry in entries:
+        history = entry_answers(entry, entries, discovery_answers)
+        if next_entry([entry], history):
+            remaining += _entry_capacity(entry) - len(history)
+    clarification_count = len(answers) - len(discovery_answers)
+    # Discovery and verification share the persisted 50-answer ceiling even
+    # though their UI counters are separate. Reserve already consumed
+    # clarification slots so the ordinary plan never promises an unreachable
+    # final question.
+    discovery_ceiling = max(0, MAX_ANSWERS - clarification_count)
+    return min(discovery_ceiling, len(discovery_answers) + remaining)
 
 
 def update_discovery_budget(state, profile):
@@ -173,6 +208,8 @@ def update_discovery_budget(state, profile):
     if state.get('mode') == 'tailor':
         if not state.get('job_analysis_ready'):
             state['discovery_complete'] = False
+            state['discovery_exhausted'] = False
+            state['planned_question_count'] = None
             return []
         entries = [{'id': item['id'], 'kind': 'requirement', 'label': item['text'],
                     'facts': [], 'question_count': 2, 'status': item['status']}
@@ -182,7 +219,10 @@ def update_discovery_budget(state, profile):
         remaining = sum(max(0, 2 - len(entry_answers(entry, entries, state['answers'])))
                         for entry in entries if next_entry([entry], entry_answers(entry, entries, state['answers'])))
         state['question_limit'] = min(MAX_ANSWERS, len(state['answers']) + remaining)
-        state['discovery_complete'] = next_entry(entries, state['answers']) is None
+        selected = next_entry(entries, state['answers'])
+        state['discovery_exhausted'] = len(state['answers']) >= MAX_ANSWERS and selected is not None
+        state['discovery_complete'] = selected is None or state['discovery_exhausted']
+        state['planned_question_count'] = _planned_question_count(entries, state['answers'])
         return entries
     entries = discovery_entries(profile, state["answers"])
     ids = sorted(entry["id"] for entry in entries)
@@ -193,7 +233,17 @@ def update_discovery_budget(state, profile):
                 remaining += (3 if entry["question_count"] == 2 else 1) - len(entry_answers(entry, entries, state["answers"]))
         state["question_limit"] = min(MAX_ANSWERS, max(state["question_limit"], len(state["answers"]) + remaining))
         state["discovery_entry_ids"] = ids
-    state["discovery_complete"] = next_entry(entries, state["answers"]) is None
+    selected = next_entry(entries, state["answers"])
+    state["discovery_exhausted"] = len(state["answers"]) >= MAX_ANSWERS and selected is not None
+    state["discovery_complete"] = selected is None or state["discovery_exhausted"]
+    state["planned_question_count"] = _planned_question_count(entries, state["answers"])
+    clarification_count = sum(bool(answer["question"].get("clarification")) for answer in state["answers"])
+    if clarification_count:
+        # The stored budget covers both rounds. Reserve clarification answers
+        # in addition to the ordinary plan so they cannot silently displace a
+        # reachable discovery question below the shared ceiling.
+        required_limit = clarification_count + state["planned_question_count"]
+        state["question_limit"] = min(MAX_ANSWERS, max(state["question_limit"], required_limit))
     return entries
 
 

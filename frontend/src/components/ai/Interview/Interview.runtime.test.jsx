@@ -13,7 +13,7 @@ const fact = { id: 'name', text: 'Anna Nowak', kind: 'fact', context: '', path: 
 let session;
 afterEach(cleanup);
 beforeEach(() => {
-  session = { evidence_scope: 'profile', id: 'session', revision: 2, mode: 'create', phase: 'question', language: 'pl', template_id: 'linden', answers: [], question_limit: 8, requirements: [], proposed_facts: [], confirmed: true,
+  session = { evidence_scope: 'profile', id: 'session', revision: 2, mode: 'create', phase: 'question', language: 'pl', template_id: 'linden', answers: [], question_limit: 8, planned_question_count: 8, requirements: [], proposed_facts: [], confirmed: true,
     question: { id: 'q1', topic: 'project', text: 'Jaki projekt ukończyłaś?', reason: 'Pokażemy Twój wkład.', context: 'Projekt' } };
   interviewRequest.mockImplementation(async (path, method) => {
     if (path === '/career-profile') return { revision: 1, facts: [fact] };
@@ -59,6 +59,13 @@ describe('interview workflow', () => {
     expect(interviewRequest.mock.calls.some(([, method]) => method === 'POST')).toBe(false);
   });
 
+  it('explains when the shared answer ceiling closes an unfinished queue', async () => {
+    session = { ...session, question: null, phase: 'review', discovery_complete: true, discovery_exhausted: true, planned_question_count: 49, question_limit: 50 };
+    render(<MemoryRouter><InterviewFlow sessionId="session" /></MemoryRouter>);
+    expect(await screen.findByText(/Osiągnięto limit 50 zapisanych odpowiedzi/)).toBeVisible();
+    expect(screen.queryByRole('button', { name: 'Następne pytanie' })).not.toBeInTheDocument();
+  });
+
   it('explains informal answers and bounded follow-ups without starting AI on read', async () => {
     session.question.follow_up_to = 'earlier-question';
     render(<MemoryRouter><InterviewFlow sessionId="session" /></MemoryRouter>);
@@ -66,6 +73,32 @@ describe('interview workflow', () => {
     expect(input).toHaveAccessibleDescription(/Możesz odpowiadać własnymi słowami/);
     expect(screen.getByText(/Dopytanie do wcześniejszej odpowiedzi/)).toHaveTextContent('możesz je pominąć');
     expect(interviewRequest.mock.calls.some(([, method]) => method === 'POST')).toBe(false);
+  });
+
+  it('shows the global CV-based plan and excludes clarifications from discovery progress', async () => {
+    session = {
+      ...session,
+      mode: 'enrich',
+      planned_question_count: 14,
+      answers: [
+        { question: { clarification: false } },
+        { question: { clarification: true } },
+      ],
+    };
+    render(<MemoryRouter><InterviewFlow sessionId="session" /></MemoryRouter>);
+    expect(await screen.findByText(/Pytanie 2 z maksymalnie 14 · Zapisane odpowiedzi: 1/)).toBeVisible();
+  });
+
+  it('explains when a tailoring plan is waiting for job-requirement analysis', async () => {
+    session = {
+      ...session,
+      mode: 'tailor',
+      phase: 'ready',
+      question: null,
+      planned_question_count: null,
+    };
+    render(<MemoryRouter><InterviewFlow sessionId="session" /></MemoryRouter>);
+    expect(await screen.findByText(/Plan pytań ustalimy po analizie wymagań oferty · Zapisane odpowiedzi: 0/)).toBeVisible();
   });
 
   it('discloses all paid preparation stages while preserving the original answers', async () => {

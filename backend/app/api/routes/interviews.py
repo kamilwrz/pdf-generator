@@ -182,7 +182,7 @@ def create_interview(request: InterviewCreate, http_request: Request,
             fact["id"] += f"-proposal-{session_id[:8]}"
     if request.candidate_notes.strip():
         candidates.append({"id": str(uuid4()), "text": request.candidate_notes.strip(), "context": "Dodatkowe fakty", "kind": "fact", "path": "", "source": source_name})
-    row = InterviewSession(id=session_id, owner_id=user.id, revision=1, state={
+    state = {
         "mode": request.mode, "phase": "intake", "create_hash": service.digest(payload),
         "evidence_scope": "profile" if request.include_profile else "session",
         "session_profile": None if request.include_profile else profile,
@@ -194,7 +194,13 @@ def create_interview(request: InterviewCreate, http_request: Request,
         "confirmed": False, "preview": None, "document_id": None,
         "requirements": requirement_topics(analysis["requirements"]) if analysis else [],
         "job_analysis_ready": bool(analysis),
-    })
+    }
+    # The source-derived proposals are read-only in intake, so they already
+    # define the same discovery scopes that confirmation will persist. Planning
+    # here exposes an honest CV-based maximum before any paid AI request. A
+    # fresh tailoring session remains unknown until its offer analysis exists.
+    update_discovery_budget(state, {"facts": [*profile["facts"], *candidates]})
+    row = InterviewSession(id=session_id, owner_id=user.id, revision=1, state=state)
     db.add(row)
     try:
         db.commit()
@@ -221,8 +227,12 @@ def get_interview(session_id: str, user=Depends(get_current_user), db=Depends(ge
     row = service.owned_session(db, user.id, session_id)
     state = deepcopy(row.state)
     repair_clarification_state(state)
-    # Upgrade only the owner's affected legacy queue, once. Concurrent answers
-    # win through the existing revision guard; no profile or answer is rewritten.
+    if "planned_question_count" not in state and state.get("evidence_scope") in {"profile", "session"}:
+        profile = service.interview_profile(db, row)
+        update_discovery_budget(state, {"facts": [*profile["facts"], *state.get("proposed_facts", [])]})
+    # Upgrade only the owner's affected legacy queue or missing plan, once.
+    # Concurrent answers win through the existing revision guard; no profile,
+    # answer or credit record is rewritten.
     if state != row.state:
         service.update_session(db, row, row.revision, state)
         row = service.owned_session(db, user.id, session_id)
@@ -289,10 +299,12 @@ def answer_interview(session_id: str, request: AnswerWrite, user=Depends(get_cur
     state["phase"] = "review" if len(state["answers"]) >= state["question_limit"] else "ready"
     if question.get("clarification"):
         finish_clarification_answer(state)
-    else:
-        update_discovery_budget(state, profile)
-        if state["discovery_complete"]:
-            state["phase"] = "review"
+    # Both rounds share the hard persisted-answer ceiling. Recompute after a
+    # clarification as well so its saved slot is removed from the ordinary
+    # question plan while the two user-facing counters remain separate.
+    update_discovery_budget(state, profile)
+    if not question.get("clarification") and state["discovery_complete"]:
+        state["phase"] = "review"
     service.update_session(db, row, request.revision, state)
     logger.info("interview_answer status=%s", request.status)
     return service.session_payload(service.owned_session(db, user.id, session_id))
@@ -315,7 +327,7 @@ def clarify_interview(session_id: str, request: SessionWrite, user=Depends(get_c
 def skip_clarifications(session_id: str, request: SessionWrite, user=Depends(get_current_user), db=Depends(get_db)):
     """Explicitly defer uncertain details; never treat skipping as lack of experience."""
     row = service.owned_session(db, user.id, session_id)
-    service.check_versions(db, row, request)
+    profile = service.check_versions(db, row, request)
     state = deepcopy(row.state)
     if state["phase"] != "clarification":
         service.fail(localised_message('interview_this_clarification_is_not_active'))
@@ -326,6 +338,9 @@ def skip_clarifications(session_id: str, request: SessionWrite, user=Depends(get
     state["dismissed_clarifications"] = list(dict.fromkeys([*state.get("dismissed_clarifications", []), *(q["topic"] for q in pending)]))
     dismiss_clarifications(state, pending)
     state.update(question=None, pending_clarifications=[], phase="review" if state["proposed_facts"] else "preview" if state.get("preview") else "ready")
+    # Skipping an active clarification persists one answer and therefore
+    # consumes one slot from the shared 50-answer ceiling.
+    update_discovery_budget(state, profile)
     service.update_session(db, row, request.revision, state)
     return service.session_payload(service.owned_session(db, user.id, session_id))
 
@@ -422,10 +437,12 @@ def refresh_interview_source(session_id: str, request: SourceRefresh, user=Depen
     origin = f"document:{source_id}" if source_id else f"interview:{row.id}"
     pairs = {(fact["path"], fact["text"]) for fact in profile["facts"]}
     proposals = []
-    for fact in service.source_facts(normalized, origin):
+    refreshed_source_facts = service.source_facts(normalized, origin)
+    for fact in refreshed_source_facts:
         if (fact["path"], fact["text"]) not in pairs:
-            fact["id"] += f"-refresh-{request.revision}"
-            proposals.append(fact)
+            proposal = deepcopy(fact)
+            proposal["id"] += f"-refresh-{request.revision}"
+            proposals.append(proposal)
     # Replace superseded source proposals, preserving answers and manual notes.
     retained = [fact for fact in state["proposed_facts"] if not fact["id"].startswith("src-")]
     template = request.template_id if request.cv_data is not None else source.template_id or source.origin_template_id
@@ -435,7 +452,15 @@ def refresh_interview_source(session_id: str, request: SourceRefresh, user=Depen
                  proposed_facts=retained + proposals, confirmed=False, phase="intake", question=None,
                  preview=None, generation_feedback=[], document_title=None, pending_clarifications=[], clarification_round=False)
     if state["mode"] == "tailor":
-        state.update(job_analysis_ready=False, requirements=[], discovery_complete=False)
+        # Requirements and their question plan belong to the exact CV snapshot.
+        # A refreshed source needs a new analysis before either can be shown.
+        state.update(job_analysis_ready=False, requirements=[], discovery_complete=False, planned_question_count=None)
+    else:
+        # Plan against the same source snapshot the intake screen displays.
+        # Source-owned facts from the previous CV are replaced, while confirmed
+        # notes/answers and unconfirmed supplemental proposals remain eligible.
+        planning_facts = [*refreshed_source_facts, *supplemental_facts(profile["facts"]), *retained]
+        update_discovery_budget(state, {"facts": planning_facts})
     service.update_session(db, row, request.revision, state)
     return service.session_payload(service.owned_session(db, user.id, session_id))
 

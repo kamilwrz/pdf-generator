@@ -56,6 +56,23 @@ def version(session, profile=0):
     return {'revision': session['revision'], 'profile_revision': profile, 'evidence_scope': session.get('evidence_scope', 'profile')}
 
 
+def test_legacy_session_rebuilds_its_plan_without_clarification_capacity(environment):
+    client, db, _, _ = environment
+    session = create(client, mode='enrich', include_profile=False)
+    row = db.get(InterviewSession, session['id'])
+    row.state = {key: value for key, value in row.state.items() if key != 'planned_question_count'}
+    row.state['question_limit'] = 11
+    row.state['answers'] = [{
+        'question': {'id': 'legacy-clarification', 'clarification': True, 'text': 'Czy opis jest poprawny?'},
+        'answer': '', 'status': 'skipped',
+    }]
+    db.commit()
+
+    response = client.get(f"/ai/interviews/{session['id']}")
+    assert response.status_code == 200
+    assert response.json()['planned_question_count'] == 4
+
+
 def confirm(client, session, profile=0, facts=None):
     result = client.post(f"/ai/interviews/{session['id']}/confirm", json={
         **version(session, profile), 'facts': facts if facts is not None else session['proposed_facts'],
@@ -425,11 +442,15 @@ def test_clarification_answer_persists_without_second_confirmation(environment, 
         assert result.status_code == 200, result.text
         asking = result.json()
         assert asking['question']['text'] == 'W którym projekcie używałaś Pythona?'
+        row = db.get(InterviewSession, session['id'])
+        row.state = {**row.state, 'question_limit': 50, 'planned_question_count': 50}
+        db.commit()
         saved = client.post(f"/ai/interviews/{session['id']}/answers", json={**version(asking, 1), 'question_id': asking['question']['id'], 'status': status, 'answer': 'Python był używany w projekcie uczelnianym.' if status == 'answered' else ''})
         provider.assert_not_called()
     assert saved.status_code == 200, saved.text
     saved = saved.json()
     assert len(saved['answers']) == 1
+    assert saved['planned_question_count'] == 4
     profile = service.profile_payload(db, user.id)
     if status in {'answered', 'no_experience'}:
         answer_fact = profile['facts'][-1]
@@ -460,6 +481,23 @@ def test_explicit_skip_shows_verified_preview_without_claiming_lack_of_experienc
     assert result.json()['phase'] == 'preview' and not result.json()['proposed_facts']
     assert result.json()['dismissed_clarifications'] == [topic]
     assert result.json()['answers'] == []
+
+
+def test_skipping_an_active_clarification_recalculates_the_ordinary_plan(environment):
+    client, db, _, _ = environment
+    session = confirm(client, create(client))
+    row = db.get(InterviewSession, session['id'])
+    question = {'id': 'active-clarification', 'topic': 'clarify:active', 'text': 'Czy opis jest poprawny?',
+                'context': 'Podsumowanie', 'suggested_text': 'Potwierdzony opis.', 'clarification': True}
+    row.state = {**row.state, 'phase': 'clarification', 'question': question, 'pending_clarifications': [],
+                 'question_limit': 50, 'planned_question_count': 50}
+    db.commit()
+
+    result = client.post(f"/ai/interviews/{session['id']}/skip-clarifications", json=version(session, 1))
+    assert result.status_code == 200, result.text
+    payload = result.json()
+    assert payload['answers'][-1]['question']['clarification'] is True
+    assert payload['planned_question_count'] == 4
 
 
 def test_resume_repairs_legacy_loop_once_without_profile_changes_or_ai(environment):
@@ -608,9 +646,11 @@ def test_legacy_conversation_preserved_but_cannot_mix_sources(environment):
     client, db, user, _ = environment
     session = confirm(client, create(client))
     row = db.get(InterviewSession, session['id'])
-    state = deepcopy(row.state); state.pop('evidence_scope'); state.pop('session_profile')
+    state = deepcopy(row.state); state.pop('evidence_scope'); state.pop('session_profile'); state.pop('planned_question_count')
     service.update_session(db, row, row.revision, state)
-    resumed = client.get(f"/ai/interviews/{row.id}").json()
+    response = client.get(f"/ai/interviews/{row.id}")
+    assert response.status_code == 200
+    resumed = response.json()
     assert resumed['requires_source_choice'] is True
     owner = service.profile_payload(db, user.id)
     with patch.object(service, '_gpt') as provider:

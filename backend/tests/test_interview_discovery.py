@@ -138,6 +138,71 @@ def test_budget_covers_records_without_resetting_on_resume_or_answer_facts():
     assert state['question_limit'] == 50
 
 
+def test_planned_count_includes_optional_followups_and_shrinks_when_an_entry_closes():
+    state = {'mode': 'enrich', 'answers': [], 'question_limit': 8}
+    entries = update_discovery_budget(state, profile())
+    assert state['planned_question_count'] == 14
+
+    state['answers'] = [saved(entries[0], 0)]
+    update_discovery_budget(state, profile())
+    assert state['planned_question_count'] == 14
+
+    state['answers'] = [saved(entries[0], 0, status='skipped')]
+    update_discovery_budget(state, profile())
+    assert state['planned_question_count'] == 12
+
+
+def test_planned_count_reserves_the_shared_answer_ceiling_for_clarifications():
+    cv = {'name': 'Anna Nowak', 'experience': [{'title': f'Role {index}'} for index in range(17)]}
+    facts = {'facts': service.source_facts(cv, 'document:1')}
+    clarification = {'question': {'id': 'clarification', 'clarification': True}, 'answer': '', 'status': 'skipped'}
+    state = {'mode': 'enrich', 'answers': [clarification], 'question_limit': 50}
+    update_discovery_budget(state, facts)
+    assert state['planned_question_count'] == 49
+
+    entries = discovery_entries(facts, [])
+    state['answers'] = [saved(entries[0], index) for index in range(49)] + [clarification]
+    update_discovery_budget(state, facts)
+    assert state['discovery_complete'] is True
+    assert state['discovery_exhausted'] is True
+
+
+def test_clarification_capacity_does_not_replace_an_ordinary_question_slot():
+    state = {'mode': 'enrich', 'answers': [], 'question_limit': 8}
+    update_discovery_budget(state, profile())
+    assert state['planned_question_count'] == 14
+    assert state['question_limit'] == 14
+
+    state['answers'].append({
+        'question': {'id': 'clarification', 'clarification': True},
+        'answer': '', 'status': 'skipped',
+    })
+    update_discovery_budget(state, profile())
+    assert state['planned_question_count'] == 14
+    assert state['question_limit'] == 15
+
+
+def test_created_enrichment_session_exposes_the_cv_based_plan_before_paid_calls(environment):
+    client, _, _, _ = environment
+    session = create(client, mode='enrich', include_profile=False, cv_data=CV)
+    assert session['planned_question_count'] == 15
+    assert session['question_limit'] == 15
+    assert session['discovery_complete'] is False
+
+
+def test_source_refresh_replans_enrichment_from_the_new_cv_snapshot(environment):
+    client, _, _, _ = environment
+    session = confirm(client, create(client, mode='enrich', include_profile=False, cv_data=CV))
+    assert session['planned_question_count'] == 15
+
+    response = client.post(f"/ai/interviews/{session['id']}/source", json={
+        **version(session, session['profile_revision']),
+        'cv_data': {'name': 'Anna Nowak'},
+    })
+    assert response.status_code == 200, response.text
+    assert response.json()['planned_question_count'] == 4
+
+
 @pytest.mark.parametrize('mode', ['create', 'enrich', 'tailor'])
 def test_complete_flow_covers_all_entries_replays_answers_and_finishes_without_paid_loop(environment, mode):
     client, db, _, _ = environment

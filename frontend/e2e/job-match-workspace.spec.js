@@ -65,7 +65,7 @@ test('analysis key enters interview with optional profile; no second analysis re
     created = route.request().postDataJSON();
     await route.fulfill({ json: { id: 'tailor-one', mode: 'tailor', phase: 'intake', revision: 1,
       evidence_scope: 'session', evidence_profile: { revision: 0, facts: [] }, proposed_facts: [],
-      answers: [], requirements: [], question: null, question_limit: 4, source_cv_data: created.cv_data,
+      answers: [], requirements: [], question: null, question_limit: 4, planned_question_count: 4, source_cv_data: created.cv_data,
       language: 'pl', template_id: 'linden', job_analysis_ready: true } });
   });
   await open(page);
@@ -76,6 +76,7 @@ test('analysis key enters interview with optional profile; no second analysis re
   await expect(page.getByText('Wykorzystamy Twoją analizę oferty.', { exact: false })).toBeVisible();
   await expect(page.getByLabel('To moje CV — dołącz mój profil zawodowy')).not.toBeChecked();
   await page.getByRole('button', { name: 'Rozpocznij wywiad', exact: true }).click();
+  await expect(page.getByText(/Plan: do 4 pytań · Zapisane odpowiedzi: 0/)).toBeVisible();
   await expect.poll(() => created?.analysis_key).toBe('owned-analysis');
   expect(created.include_profile).toBe(false);
   expect(created.cv_data.name).toBe('Kamil Smoke');

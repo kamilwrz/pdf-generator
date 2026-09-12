@@ -27,7 +27,7 @@ async function installInterviewApi(page, recovered = false) {
     if (path.endsWith('/credits')) result = { credits_charged: creditRequests.reduce((sum, item) => sum + item.credits_charged, 0), requests: creditRequests };
     else if (path.endsWith('/interviews') && method === 'GET') result = { items: session ? [{ ...session, updated_at: '2026-09-10T10:00:00' }] : [], next_offset: null };
     else if (path.endsWith('/interviews') && method === 'POST') {
-      session = { evidence_scope: body.include_profile ? 'profile' : 'session', evidence_profile: { revision: 0, facts: [] }, id: ID, revision: 1, mode: body.mode, source_document_id: body.source_document_id || null, phase: 'intake', language: 'pl', profile_revision: 0, template_id: body.template_id || null, question_limit: body.mode === 'tailor' ? 5 : 8, answers: [], question: null, requirements: [], proposed_facts: [nameFact], confirmed: false, preview: null, source_cv_data: { name: 'Anna Nowak' } };
+      session = { evidence_scope: body.include_profile ? 'profile' : 'session', evidence_profile: { revision: 0, facts: [] }, id: ID, revision: 1, mode: body.mode, source_document_id: body.source_document_id || null, phase: 'intake', language: 'pl', profile_revision: 0, template_id: body.template_id || null, question_limit: body.mode === 'tailor' ? 5 : 8, planned_question_count: body.mode === 'tailor' ? null : 8, answers: [], question: null, requirements: [], proposed_facts: [nameFact], confirmed: false, preview: null, source_cv_data: { name: 'Anna Nowak' } };
       result = session;
     } else if (path.endsWith('/confirm')) {
       if (session.evidence_scope === 'profile') profile = { revision: profile.revision + 1, facts: body.facts };
@@ -102,6 +102,7 @@ for (const width of [390, 834, 1280, 1920]) {
     await page.getByRole('button', { name: 'Rozpocznij wywiad', exact: true }).click();
     await page.getByRole('button', { name: /Przejdź do (rozmowy|przygotowania CV)/ }).click();
     await page.getByRole('button', { name: 'Następne pytanie', exact: true }).click();
+    await expect(page.getByText(/Pytanie 1 z maksymalnie 8 · Zapisane odpowiedzi: 0/)).toBeVisible();
     const credits = page.getByRole('region', { name: 'Kredyty wywiadu' });
     await expect(credits).toContainText('Ostatnie zapytanie AI — Pytanie wywiadu: 7 kredytów');
     await credits.getByText('Historia zapytań AI (1)').focus();

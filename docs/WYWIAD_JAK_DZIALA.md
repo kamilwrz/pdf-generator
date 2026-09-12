@@ -30,7 +30,7 @@ W WYWIADZIE działają dwie niezależne osie.
 - `enrich` — uzupełnij informacje z istniejącego CV;
 - `tailor` — przygotuj nowe CV pod ofertę pracy.
 
-Tryb wpływa na kontekst pytań. `tailor` opiera rozmowę na analizie oferty: dwa pytania na częściowe lub brakujące wymaganie, bez trzeciego dopytania. Gotowa, aktualna analiza może być użyta bez ponownej opłaty za analizę. `create` i `enrich` zaczynają od pojemności ośmiu pytań. Po zatwierdzeniu informacji serwer zwiększa limit, jeśli liczba wpisów wymaga większej rozmowy, maksymalnie do 50 zapisanych odpowiedzi.
+Tryb wpływa na kontekst pytań. `tailor` opiera rozmowę na analizie oferty: dwa pytania na częściowe lub brakujące wymaganie, bez trzeciego dopytania. Gotowa, aktualna analiza może być użyta bez ponownej opłaty za analizę. `create` i `enrich` mają minimalną pojemność ośmiu pytań, ale jeszcze przed płatnym zapytaniem serwer wylicza z treści CV maksymalny plan potrzebny do pokrycia wpisów, nie więcej niż 50 zapisanych odpowiedzi. `planned_question_count` przechowuje ten bieżący plan. Interfejs pokazuje **Pytanie X z maksymalnie N** i liczbę zapisanych odpowiedzi; opcjonalne dopytania są wliczone, a pominięcie, niepamiętanie lub brak doświadczenia może zmniejszyć pozostały plan.
 
 ### 2. Zakres dowodów
 
@@ -109,7 +109,7 @@ Endpoint `/next` wykonuje jedną płatną operację AI i może zwrócić najwyż
 - powód zadania pytania;
 - kontekst.
 
-Model otrzymuje tryb rozmowy, aktualne potwierdzone fakty, poprzednie odpowiedzi, ofertę, jeżeli istnieje, oraz `question_scope` z wpisem wybranym przez serwer. Pytanie musi wskazać ten sam `entry_id`. Backend liczy odpowiedzi na wpis niezależnie od nazw tematów, sprawdza powtórzenia i powiązanie dopytania. Pusta, powtórzona lub dotycząca niewłaściwego wpisu propozycja jest zastępowana neutralnym pytaniem lokalnym. Nie kończy całej rozmowy i nie powoduje płatnego ponowienia. Po wyczerpaniu wpisów lub limitu `/next` nie wywołuje modelu.
+Model otrzymuje tryb rozmowy, aktualne potwierdzone fakty, poprzednie odpowiedzi, ofertę, jeżeli istnieje, oraz `question_scope` z wpisem wybranym przez serwer. Pytanie musi wskazać ten sam `entry_id`. Backend liczy odpowiedzi na wpis niezależnie od nazw tematów, sprawdza powtórzenia i powiązanie dopytania. Pusta, powtórzona lub dotycząca niewłaściwego wpisu propozycja jest zastępowana neutralnym pytaniem lokalnym. Nie kończy całej rozmowy i nie powoduje płatnego ponowienia. Po wyczerpaniu wpisów lub limitu `/next` nie wywołuje modelu. Zwykły postęp nie obejmuje pytań weryfikacyjnych, ponieważ mają własny licznik i osobny budżet.
 
 Użytkownik ma cztery sposoby odpowiedzi:
 
@@ -313,7 +313,7 @@ Backend obniża błędne `matched`, `partial` albo `gap` do `unknown`, jeżeli m
 
 ### Pytania
 
-Początkowa pojemność rundy wynosi pięć pytań i rośnie do liczby potrzebnej dla potwierdzonych wpisów, w granicach 50 odpowiedzi na sesję. Serwer wybiera kolejne wpisy, a model dobiera w ich obrębie niewiadome istotne dla oferty. Nadal zadaje tylko jedno pytanie naraz, z limitem dwóch głównych pytań i jednego dopytania na wpis.
+Po analizie oferta tworzy plan dwóch pytań na każde częściowe, nieznane lub brakujące wymaganie, w granicach 50 odpowiedzi na sesję. Wymagania dopasowane są pomijane, a trzecie dopytanie nie jest dozwolone. Przed świeżą analizą `planned_question_count` ma wartość null i interfejs wyjaśnia, że plan zostanie ustalony po analizie wymagań; ponownie użyta aktualna analiza pozwala pokazać liczbę od razu. Serwer nadal zadaje tylko jedno pytanie naraz.
 
 Po rundzie użytkownik może:
 
@@ -338,7 +338,7 @@ Wynik jest zawsze nowym dokumentem. Źródłowe CV pozostaje bez zmian.
 | Tryb | `create` | `enrich` w asystencie; `create` przy wyborze dokumentu na stronie | `tailor` |
 | Materiał początkowy | Zapisane CV lub udany import z imieniem i nazwiskiem | Aktualne CV, zapisany dokument lub udany import | Aktualne CV oraz URL/opis oferty |
 | Domyślny zakres faktów | Sesja; profil tylko po jawnym dołączeniu | Sesja | Sesja |
-| Początkowy limit pytań | 8 | 8 | 5 |
+| Widoczny plan pytań | Z wpisów CV; może być mniejszy niż wewnętrzna pojemność 8 | Z wpisów CV; może być mniejszy niż wewnętrzna pojemność 8 | Po analizie: 2 na nierozwiązane wymaganie |
 | Wymagania oferty | Nie | Nie | Tak |
 | Znaczenie oferty | Brak | Brak | Priorytety, nigdy dowód kompetencji |
 | Szablon | Użytkownik wybiera | Rozpoznany szablon może być punktem wyjścia | Rozpoznany szablon źródła jest zachowany |
@@ -386,6 +386,8 @@ Sesja przechowuje między innymi:
 - ID i rewizję źródła;
 - ofertę;
 - język, szablon i odstępy;
+- maksymalny plan pytań `planned_question_count` lub null przed analizą wymagań;
+- `discovery_exhausted`, gdy wspólny limit 50 odpowiedzi zamyka nieukończoną kolejkę;
 - pytania i odpowiedzi;
 - propozycje faktów;
 - status wymagań;
@@ -494,7 +496,7 @@ Pełne typy pól, ograniczenia długości i formaty odpowiedzi znajdują się w 
 
 ### Frontend
 
-- `frontend/src/components/ai/Interview/InterviewFlow.jsx`, linie 1–294, komponent `InterviewFlow` — wspólny kontroler wszystkich form, etapy, źródła, odpowiedzi, generowanie i zapis.
+- `frontend/src/components/ai/Interview/InterviewFlow.jsx`, linie 1–320, komponent `InterviewFlow` — wspólny kontroler wszystkich form, etapy, plan pytań, źródła, odpowiedzi, generowanie i zapis.
 - `frontend/src/components/ai/AiAssistant/AiAssistant.jsx`, linie 1022–1036 oraz 1906–1923 — uruchomienie `enrich` i osadzenie WYWIADU dla aktywnego CV.
 - `frontend/src/components/ai/AiAssistant/AiAssistant.jsx`, linie 2040–2094 — oferta, opis awaryjny i uruchomienie `tailor`.
 - `frontend/src/pages/Site/InterviewPage.jsx`, linie 1–10 — samodzielna trasa tworzenia i wznawiania.
@@ -505,9 +507,9 @@ Pełne typy pól, ograniczenia długości i formaty odpowiedzi znajdują się w 
 
 ### Backend
 
-- `backend/app/api/routes/interviews.py`, linie 1–493 — wszystkie endpointy profilu i sesji.
-- `backend/app/schemas/interview_schema.py`, linie 1–149 — wejścia publiczne oraz ścisłe schematy wyników AI.
-- `backend/app/services/interview_service.py`, linie 1–500 — fakty, rewizje, pytania, walidacja dowodów, rezerwacje i rozliczenie AI.
+- `backend/app/api/routes/interviews.py`, linie 1–592 — wszystkie endpointy profilu i sesji, w tym początkowe planowanie, przeliczanie źródła i unieważnianie planu dopasowania.
+- `backend/app/schemas/interview_schema.py`, linie 1–165 — wejścia publiczne oraz ścisłe schematy wyników AI.
+- `backend/app/services/interview_service.py`, linie 1–555 — fakty, rewizje, serializacja planu starszych sesji, pytania, walidacja dowodów, rezerwacje i rozliczenie AI.
 - `backend/app/services/interview_clarification.py`, linie 1–213 — kolejka doprecyzowań, limit, deduplikacja i tworzenie faktów z odpowiedzi.
 - `backend/app/services/interview_recovery.py`, linie 1–90 — bezpieczny fallback oraz odzyskiwanie opłaconych wyników.
 - `backend/app/models/models.py`, linie 336–359 — `CareerProfile` i `InterviewSession`.
@@ -515,13 +517,13 @@ Pełne typy pól, ograniczenia długości i formaty odpowiedzi znajdują się w 
 
 ### Testy opisujące kontrakt
 
-- `backend/app/services/interview_discovery.py` — kolejka wpisów, liczenie pytań z historii, limit i lokalne pytania zastępcze.
-- `backend/tests/test_interview_discovery.py` — zmiany nazw tematów, osobne projekty, doświadczenia, języki, limity, starsze sesje i brak płatnych pętli.
-- `backend/tests/test_interviews.py` — własność, tryby, statusy odpowiedzi, limity, koszty, weryfikacja, zapis dokumentu i zmiana źródła.
+- `backend/app/services/interview_discovery.py`, linie 1–330 — kolejka wpisów, maksymalny plan, wspólny limit odpowiedzi, liczenie pytań z historii i lokalne pytania zastępcze.
+- `backend/tests/test_interview_discovery.py`, linie 1–265 — zmiany nazw tematów, osobne projekty, doświadczenia, języki, plan z CV/odświeżenia, limity, starsze sesje i brak płatnych pętli.
+- `backend/tests/test_interviews.py`, linie 1–733 — własność, tryby, statusy odpowiedzi, fallback planu, doprecyzowania, limity, koszty, weryfikacja, zapis dokumentu i zmiana źródła.
 - `backend/tests/test_interview_recovery.py` — odzyskiwanie oraz bezpieczne odrzucanie niepotwierdzonych zmian.
 - `backend/tests/test_alembic_interviews.py` — migracja i downgrade.
-- `frontend/src/components/ai/Interview/Interview.runtime.test.jsx` — zachowanie kontrolera, izolacja kandydatów i błędy.
-- `frontend/e2e/interviews.spec.js` — pełna rozmowa, doprecyzowanie, wynik i dopasowanie do oferty.
+- `frontend/src/components/ai/Interview/Interview.runtime.test.jsx`, linie 1–488 — plan pytań, wyczerpanie wspólnego limitu, zachowanie kontrolera, izolacja kandydatów i błędy.
+- `frontend/e2e/interviews.spec.js`, linie 1–214 — pełna rozmowa, widoczny plan, doprecyzowanie, wynik i dopasowanie do oferty.
 - `frontend/e2e/interview-sources.spec.js` — oddzielenie profilu konta od wybranego CV i importu.
 - `frontend/e2e/interview-workspace.spec.js` — duże wyniki, paginacja, fokus i stany oczekiwania.
 
