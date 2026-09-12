@@ -15,6 +15,7 @@ import { TEMPLATES } from '../../../templates';
 import { isTemplateAllowed } from '../../../utils/entitlements';
 import FactEditor from './FactEditor';
 import InterviewLoading from './InterviewLoading';
+import InterviewCredits from './InterviewCredits';
 import InterviewPreview from './InterviewPreview';
 import TemplateCarousel from '../AiCvPanel/TemplateCarousel';
 import InterviewReviewNotice from './InterviewReviewNotice';
@@ -24,10 +25,10 @@ import classes from './Interview.module.css';
 const languageLabels = { get pl() { return uiText("ai:aiAssistant.polish"); }, get en() { return uiText("ai:aiAssistant.english"); }, get de() { return uiText("ai:aiAssistant.german"); }, get fr() { return uiText("ai:aiAssistant.french"); }, get es() { return uiText("ai:aiAssistant.spanish"); }, get uk() { return uiText("ai:aiAssistant.ukrainian"); }, get it() { return uiText("ai:aiAssistant.italian"); }, get nl() { return uiText("ai:aiAssistant.dutch"); } };
 const statuses = { get matched() { return uiText("interview:interviewFlow.confirmed"); }, get partial() { return uiText("interview:interviewFlow.toClarify"); }, get unknown() { return uiText("interview:interviewFlow.noInformation"); }, get gap() { return uiText("interview:interviewFlow.confirmedLackOfExperience"); } };
 
-export default function InterviewFlow({ sessionId, initialSource = null, currentSource = null, mode = 'create', onClose, sourceChanged = false, onSourceRefreshed }) {
+export default function InterviewFlow({ sessionId, initialSource = null, currentSource = null, mode = 'create', onClose, sourceChanged = false, onSourceRefreshed, onCreditsChanged }) {
   useTranslation();
   const navigate = useNavigate();
-  const { entitlements, refresh } = useEntitlements();
+  const { entitlements, refresh, loading: balanceLoading, error: balanceError } = useEntitlements();
   const [session, setSession] = useState(null);
   const [profile, setProfile] = useState(null);
   const [facts, setFacts] = useState([]);
@@ -92,7 +93,9 @@ export default function InterviewFlow({ sessionId, initialSource = null, current
     lock.current = true; setBusy(true); setPendingOperation(operationName); setError(''); setNotice('');
     try { await work(); }
     catch (err) { if (alive.current) setError(messageOf(err)); }
-    finally { lock.current = false; if (alive.current) { setBusy(false); refresh(); } }
+    // The embedded assistant owns another balance view; refresh both after
+    // success or failure because an incomplete preview may still incur usage.
+    finally { lock.current = false; if (alive.current) { setBusy(false); refresh(); onCreditsChanged?.(); } }
   }
 
   function versions() { return { revision: session.revision, profile_revision: profile.revision, evidence_scope: session.evidence_scope }; }
@@ -171,6 +174,7 @@ export default function InterviewFlow({ sessionId, initialSource = null, current
     <h2 ref={heading} tabIndex={-1} className={classes.taskTitle}>{activePanel === 'prepare' ? uiText("interview:interviewFlow.prepareYourVersionOfTheCv") : reviewing ? uiText("interview:interviewFlow.reviewYourCvInformation") : session?.phase === 'clarification' ? uiText("interview:interviewFlow.letSClarifyTheDetails") : session?.phase === 'preview' ? uiText("interview:interviewFlow.yourNewCvVersion") : mode === 'tailor' || session?.mode === 'tailor' ? uiText("interview:interviewFlow.jobSpecificInterview") : uiText("interview:interviewFlow.careerInterview")}</h2>
     {error && <div className={classes.error} role="alert"><p>{error}</p><button disabled={busy} type="button" onClick={() => run(load)}>{uiText("interview:interviewFlow.loadSavedState")}</button></div>}
     <p role="status" aria-live="polite">{!waiting ? notice : ''}</p>
+    {session && <InterviewCredits sessionId={session.id} revision={session.revision} busy={waiting} entitlements={entitlements} balanceLoading={balanceLoading} balanceError={balanceError} onRefreshBalance={() => { refresh(); onCreditsChanged?.(); }} />}
     {waiting && <InterviewLoading operation={initialLoading ? 'load' : pendingOperation} facts={session || !isolated ? profile?.facts.length : undefined} answers={session?.answers.length} language={languageLabels[session?.language || language]} template={TEMPLATES.find((item) => item.id === template)?.name} />}
     <div hidden={waiting} aria-busy={waiting}>
     {session && !legacy && <nav className={classes.stages} aria-label={uiText("interview:interviewFlow.interviewStages")}>{[['facts', uiText("interview:interviewFlow.yourInformation")], ['conversation', uiText('interview:interviewFlow.conversationStage')], ['prepare', uiText("interview:interviewFlow.prepareCv")], ['preview', uiText('interview:interviewFlow.resultStage')]].map(([key, label], index) => <button type="button" key={key} aria-current={activePanel === key ? 'step' : undefined} disabled={busy || factEditing || (Boolean(session.question) && key !== 'conversation') || (session.phase === 'clarification' && key !== 'conversation') || (key === 'preview' && (!session.preview || needsFactSave)) || (session.phase === 'completed' && key !== 'preview')} onClick={() => goTo(key)}><span>{String(index + 1).padStart(2, '0')}</span>{' '}{label}</button>)}</nav>}

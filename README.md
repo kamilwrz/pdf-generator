@@ -102,7 +102,7 @@ Implementation (verified whole-module extents):
 - `frontend/src/pages/Hero/Hero.jsx`, lines 5–331, `Hero`.
 - `frontend/src/components/editor/StartChooser/StartChooser.jsx`, lines 4–249, `StartChooser`.
 - `frontend/src/pages/Site/InterviewPage.jsx`, lines 3–13, `InterviewPage`.
-- `frontend/src/components/ai/Interview/InterviewFlow.jsx`, lines 1–294, `InterviewFlow`.
+- `frontend/src/components/ai/Interview/InterviewFlow.jsx`, lines 1–298, `InterviewFlow`.
 - `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, lines 3–70, `SiteLayout`.
 - `frontend/src/components/common/SiteLayout/SiteLayout.module.css`, lines 1–199, `guideFaq`.
 - `frontend/e2e/interview-discovery.spec.js`, lines 1–100, `Playwright`.
@@ -519,11 +519,19 @@ AI operations require Pro and existing credits; preview performs drafting, separ
 
 The additive migration `20260910_0017` creates `career_profiles` (one owner profile) and `interview_sessions` (many owned sessions). Both contain versioned JSON and UTC timestamps; owner foreign keys cascade on account erasure. Profile deletion retains its revision epoch. Portable account export and account deletion include these records. Interview logs contain operation/status/cost, not answers. There are no new dependencies or environment variables.
 
-**API:** authenticated `GET/PUT/DELETE /career-profile`; `POST/GET /ai/interviews`; `GET/DELETE /ai/interviews/{id}`; session `POST` actions `answers`, `next`, `confirm`, `extend`, `source`, `preview`, `clarify`, `skip-clarifications`, `document`. The [complete EN/PL tutorial](docs/INTERVIEWS.md#english) documents schemas, field limits, response examples, errors, transactions, retention, credits, tests and recovery. The [Swiss interaction contract](DESIGN.md#59-career-interview-contract) applies to all interview states.
+**API:** authenticated `GET/PUT/DELETE /career-profile`; `POST/GET /ai/interviews`; `GET/DELETE /ai/interviews/{id}`; `GET /ai/interviews/{id}/credits`; session `POST` actions `answers`, `next`, `confirm`, `extend`, `source`, `preview`, `clarify`, `skip-clarifications`, `document`. The [complete EN/PL tutorial](docs/INTERVIEWS.md#english) documents schemas, field limits, response examples, errors, transactions, retention, credits, tests and recovery. The [Swiss interaction contract](DESIGN.md#59-career-interview-contract) applies to all interview states.
 
 
 Clarification corrections retain the cited fact IDs (`target_fact_ids`) when the source is an unambiguous existing field or one unbound answer. `answer_proposals` builds the replacement and `/answers` writes it atomically with answer history to the selected evidence store. Typed corrections therefore need no second `/confirm`; the optional fact view supports later edits. Unknown/skip never overwrite a fact. The screen asks the stable decision question **Czy proponowany opis jest w pełni zgodny z Twoim doświadczeniem?** and places the provider question under **Co wymaga sprawdzenia**. **Tak — zatwierdź ten opis** confirms the complete visible AI-authored proposal. **Pełny poprawiony opis** must contain the complete replacement, not only an answer to the provider question; entering a correction disables proposal confirmation. The secondary group explains the different effects of confirmed lack of experience, inability to remember and ending clarification. Rewording cannot reopen an already resolved target in the same session. Ambiguous and older questions without a reliable target remain independent notes; previously saved duplicates are not silently deleted. Generation instructions consolidate related details into one task. `Verification.duplicate_paths` separates redundant additions from unsupported claims; only added bullet points can be omitted on that basis, while existing authored fields and separate roles survive. Exact duplicate additions within one bullet list are also filtered locally; semantic duplication still depends on AI review. No schema migration or additional automatic AI call is required. Deploy the frontend change, then refresh active clients. Tests cover both clarification choices, immediate replacement/replay in both evidence scopes, non-answers, repeated targets, duplicate additions and explicit approval of AI text. [Pydantic field defaults](https://docs.pydantic.dev/latest/concepts/fields/) explain why older cached verification results can omit `duplicate_paths` while new provider schemas require it.
 
+
+### Credits for each interview request
+
+The interview shared by the AI assistant and the career-profile entry shows the last AI request's actual charge, total credits charged during this interview and the available account balance. Expand **AI request history** to inspect each request and its drafting, language editing and verification stages. Saving answers, facts and clarifications costs zero credits. Costs are known after settlement; pending work and unavailable balances have explicit text. Failed receipt reads retain the last known amounts with a notice and a read-only retry. The assistant header also refreshes its balance after interview operations.
+
+`GET /ai/interviews/{id}/credits` resolves the authenticated owner and reads the existing `ai_credit_reservations` ledger through `interview_credit_usage`. It groups stages by the request revision that incurred the charge, excludes reserved credits and does not count recovered stages again. Metered failures remain included. Reading receipts is free and works after Pro expires; it never returns provider payloads or changes billing. The total covers the interview's retained history, whereas account availability concerns the current allowance. `InterviewCredits` refreshes after successful and failed work, discards stale reads from another session, and renders PL/EN plural forms in a polite status region. [The full API and recovery tutorial](docs/INTERVIEWS.md#per-request-credit-receipts) includes a response example and limitations.
+
+The new service belongs to `backend/app/services/`, its regression tests to `backend/tests/`, and the reusable component and runtime tests to `frontend/src/components/ai/Interview/`. Existing database tables, configuration, dependencies, CV templates and PDF geometry are unchanged. Deploy the backend before the frontend; rolling back the UI only removes receipts. Run `python -m pytest tests/test_interview_credits.py tests/test_interviews.py tests/test_interview_editorial.py tests/test_interview_recovery.py -q` in `backend/`; run `npm run test:runtime -- src/components/ai/Interview src/services/interviews.runtime.test.js` and `npm run test:e2e -- e2e/interviews.spec.js --project=desktop-chromium` in `frontend/`. Tests cover real ledger reads with mocked AI, request grouping, owner isolation, replay, failure recovery, balances, PL/EN, keyboard history, reduced motion, four widths and 200% text scaling. [WAI status messages](https://www.w3.org/WAI/WCAG21/Techniques/aria/ARIA22) explains announcements without moving focus; [SQLAlchemy string operators](https://docs.sqlalchemy.org/en/20/orm/internals.html#sqlalchemy.orm.PropComparator.startswith) documents the escaped prefix filter used to select this interview's ledger rows.
 
 ### Automatic professional editing of interview CVs
 
@@ -581,7 +589,11 @@ Implementation and tests (verified whole-module ranges; use the named symbols fo
 | `backend/app/services/interview_discovery.py` | 1–228; discovery_entries, question_entry, next_entry, update_discovery_budget, scoped_question |
 | `backend/tests/test_interview_discovery.py` | 1–194; record coverage / pokrycie wpisów, retry, legacy, limits / limity |
 | `backend/app/services/interview_service.py` | 1–500; profile_payload, _facts_with_answer_questions, session_payload, put_profile, check_versions, source_facts, base_cv, assemble_draft, paid_model, next_question |
-| `backend/app/api/routes/interviews.py` | 1–493; create_interview, answer_interview, confirm_interview, refresh_interview_source, preview_interview, clarify_interview, skip_clarifications, save_interview_document |
+| `backend/app/services/interview_credits.py` | 1–51; interview_credit_usage |
+| `backend/tests/test_interview_credits.py` | 1–75; test_receipts_group_requests_without_exposing_provider_data, test_question_receipt_survives_resume_and_replay_without_new_charge |
+| `frontend/src/components/ai/Interview/InterviewCredits.jsx` | 1–65; InterviewCredits |
+| `frontend/src/components/ai/Interview/InterviewCredits.runtime.test.jsx` | 1–60; InterviewCredits |
+| `backend/app/api/routes/interviews.py` | 1–501; get_interview_credits (188–192), create_interview, answer_interview, confirm_interview, refresh_interview_source, preview_interview, clarify_interview, skip_clarifications, save_interview_document |
 | `frontend/e2e/interview-prerequisites.spec.js` | 1–64; PL/EN source prerequisite browser tests |
 | `backend/tests/test_interview_sources.py` | 1–76; source eligibility regression tests |
 | `frontend/src/components/ai/Interview/InterviewSourceRequired.jsx` | 1–20; InterviewSourceRequired |
@@ -591,11 +603,11 @@ Implementation and tests (verified whole-module ranges; use the named symbols fo
 | `frontend/src/components/ai/Interview/InterviewLoading.runtime.test.jsx` | 1–27; long wait, operation boundaries |
 | `frontend/src/components/ai/Interview/InterviewPreview.jsx` | 1–37; InterviewPreview |
 | `frontend/src/components/ai/Interview/InterviewPreview.module.css` | 1–38; preview, reading, pagination |
-| `frontend/src/components/ai/Interview/Interview.module.css` | 1–68; stages, question, preparation, resultActions |
+| `frontend/src/components/ai/Interview/Interview.module.css` | 1–96; stages, question, preparation, resultActions |
 | `frontend/src/utils/interviewPreview.js` | 1–27; previewRecords, recordContent |
 | `frontend/src/utils/interviewPreview.test.js` | 1–24; grouping, evidence, removed fields |
 | `frontend/e2e/interview-workspace.spec.js` | 1–140; bounded preview, delayed operations, failure recovery |
-| `frontend/src/components/ai/Interview/InterviewFlow.jsx` | 1–294; InterviewFlow |
+| `frontend/src/components/ai/Interview/InterviewFlow.jsx` | 1–298; InterviewFlow |
 | `frontend/src/utils/careerProfileView.js` | 1–118; groupCareerFacts, careerFieldLabel, newCareerRecord, careerFieldOptions |
 | `frontend/src/utils/careerProfileView.test.js` | 1–47; grouping, identity, limits, interview-question titles |
 | `frontend/src/components/ai/Interview/FactEditor.runtime.test.jsx` | 1–76; apply, cancel, undo, focus, search, question-and-answer presentation |
@@ -615,7 +627,7 @@ Implementation and tests (verified whole-module ranges; use the named symbols fo
 | `backend/tests/test_alembic_interviews.py` | 1–26; additive migration regression |
 | `frontend/src/components/ai/Interview/Interview.runtime.test.jsx` | 1–366; clarification decisions, direct answer-save feedback, save-before-next, recovery, focus and source changes |
 | `frontend/e2e/interview-sources.spec.js` | 1–62; isolated source selection, confirmation, resumption |
-| `frontend/e2e/interviews.spec.js` | 1–188; create, clarification decisions, immediate answer persistence, resume, profile and assistant flows |
+| `frontend/e2e/interviews.spec.js` | 1–229; create, clarification decisions, immediate answer persistence, resume, profile and assistant flows |
 
 Folder additions: `backend/app/schemas/interview_schema.py` defines API/provider contracts, `backend/app/services/interview_service.py` owns evidence and conversation rules, and `backend/app/api/routes/interviews.py` owns HTTP orchestration. `frontend/src/components/ai/Interview/` contains the shared flow, controlled fact editor, content review, token-based styles and runtime tests. `docs/INTERVIEWS.md` is the complete EN/PL technical tutorial; `docs/WYWIAD_JAK_DZIALA.md` is the focused Polish guide to the CV prerequisites, enrichment and job-offer flows; `docs/licenses/resume-agent-skills-MIT.txt` retains Vignesh Pai's MIT attribution.
 
@@ -1238,7 +1250,7 @@ Implementation:
 - `frontend/src/components/editor/SectionsPanel/SectionsPanel.jsx` and `frontend/src/components/editor/Sidebar/Sidebar.jsx` — fit hint/CTA and the non-blocking attention badge
 - `frontend/src/pages/PdfCanvas.jsx` — fit commit, panel-gated probe, gentle detection toast, post-AI relaxation, modal routing, and the `assistantAction` bridge
 - `frontend/src/hooks/useA4Elements.js`, `handleCollapseSpilledMainIntoSidebar` (lines 1809–1818) — after accepted AI content patches
-- `frontend/src/components/ai/AiAssistant/AiAssistant.jsx` — `assistantAction` observer effect + „Skróć CV" subaction; `acceptCorrection` / `applyAll` (lines 1249–1334) call the canvas collapse after content patches
+- `frontend/src/components/ai/AiAssistant/AiAssistant.jsx` — `assistantAction` observer effect + „Skróć CV" subaction; `acceptCorrection` / `applyAll` (lines 1221–1313) call the canvas collapse after content patches
 - `frontend/src/store/session-context.jsx`, hook `useSession` — publishes session-scoped assistant actions
 - Backend `shorten` action: `_shorten_content` (`ai_assistant_service.py`), `VALID_ACTIONS` (`ai_assistant.py`)
 
@@ -2384,7 +2396,7 @@ All assistant actions use **`gpt-5.6-terra`** by default with **`reasoning_effor
 
 Implementation:
 
-- `frontend/src/components/ai/AiAssistant/AiAssistant.jsx`, lines 4–2100, `GOAL_ACTIONS`, `CONTENT_SUBACTIONS`, and `TRANSLATE_LANGUAGES` — the action-only assistant, four-goal menu, empty custom-message/history payloads, and first-action focus; lines 1883–1888 render the labelled interview entry with the shared `FaComments` icon treatment
+- `frontend/src/components/ai/AiAssistant/AiAssistant.jsx`, lines 4–2101, `GOAL_ACTIONS`, `CONTENT_SUBACTIONS`, and `TRANSLATE_LANGUAGES` — the action-only assistant, four-goal menu, empty custom-message/history payloads, and first-action focus; lines 1856–1859 render the labelled interview entry with the shared `FaComments` icon treatment
 - `frontend/src/components/ai/AiAssistant/AiAssistant.jsx`, `cvLanguage` (1013): `send`, `handleCvLanguageChange`, `TRANSLATE_LANGUAGES`.
 - `frontend/src/utils/atsScore.js` — weighted ATS overall (`overallPercentFromCategories`) and rubric overall for rating/position (`overallPercentFromRubric`)
 - `frontend/src/utils/aiCorrectionHighlights.js` — `collectPendingAiHighlights` for canvas marks
@@ -2392,7 +2404,7 @@ Implementation:
 - `frontend/src/components/ai/AiAssistant/AiAssistant.jsx`, `RatingBadge` / `RatingDashboard` — % scores, ATS verbal band + disclaimer, CTA wiring
 - `frontend/src/components/ai/AiAssistant/AiAssistant.jsx`, `CorrectionCard` — Przed/Po correction review without native text tooltips
 - `frontend/src/components/ai/AiAssistant/AiAssistant.jsx`, component `AiAssistant` — quick-action panels, translation, review cards, first-action focus, and action-only request payloads; canvas-request invalidation through `chatSessionRef`; history is reset only by a different `conversationKey`
-- `frontend/src/components/ai/AiAssistant/AiAssistant.jsx`, lines 4–2100 (`CANVAS_CONTEXT_CLEARANCE_PX`: 44) + `frontend/src/App.css`, lines 120–195 — live assistant/canvas geometry, capped single-page transform, compact fallback, and reduced-motion behavior
+- `frontend/src/components/ai/AiAssistant/AiAssistant.jsx`, lines 4–2101 (`CANVAS_CONTEXT_CLEARANCE_PX`: 232) + `frontend/src/App.css`, lines 120–195 — live assistant/canvas geometry, capped single-page transform, compact fallback, and reduced-motion behavior
 - `frontend/src/components/ai/AiAssistant/AiAssistant.test.js`, lines 42–59 (pre-paint auto-scroll), 61–85 (panel clearance), 113–139 (translation replaces appearance), 141–149 (interview icon), 151–163 (quick-actions-only contract), and 216–260 (job-evidence overlay)
 - `frontend/e2e/ai-assistant-scroll.spec.js`, lines 35–74, test `AI assistant uses the wider panel and shifts a single A4 only when space allows` — 600 px desktop width, compact sheet width, capped desktop shift, mobile no-shift, and return position; lines 77–149 cover edit-zoom focus/scroll preservation, lines 151–195 cover first-action focus, consecutive quick actions without a composer, and empty custom-message/history payloads; lines 197–245 cover offer-form geometry. These tests run in desktop and compact Chromium projects.
 - `frontend/src/components/ai/AiAssistant/AiAssistant.module.css`, lines 42–62 (`.panel`), 246–258 (`.jobDescArea`), and 347–365 (`.messages`) — responsive 600 px panel, bounded offer form, stable chat viewport, goal grid, subpanels, language picker, rating dashboard, and ATS disclaimer
@@ -3240,7 +3252,7 @@ Implementacja (zweryfikowane zakresy całych modułów):
 - `frontend/src/pages/Hero/Hero.jsx`, linie 5–331, `Hero`.
 - `frontend/src/components/editor/StartChooser/StartChooser.jsx`, linie 4–249, `StartChooser`.
 - `frontend/src/pages/Site/InterviewPage.jsx`, linie 3–13, `InterviewPage`.
-- `frontend/src/components/ai/Interview/InterviewFlow.jsx`, linie 1–294, `InterviewFlow`.
+- `frontend/src/components/ai/Interview/InterviewFlow.jsx`, linie 1–298, `InterviewFlow`.
 - `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, linie 3–70, `SiteLayout`.
 - `frontend/src/components/common/SiteLayout/SiteLayout.module.css`, linie 1–199, `guideFaq`.
 - `frontend/e2e/interview-discovery.spec.js`, linie 1–100, `Playwright`.
@@ -3651,7 +3663,7 @@ AI wymaga Pro i obecnych kredytów; podgląd obejmuje płatne przygotowanie tre�
 
 Migracja addytywna `20260910_0017` tworzy `career_profiles` (jeden profil właściciela) oraz `interview_sessions` (wiele jego rozmów). Obie tabele przechowują wersjonowany JSON i czasy UTC; klucze właściciela mają kaskadę przy usunięciu konta. Usunięcie profilu zachowuje epokę rewizji. Eksport danych i usunięcie konta obejmują te rekordy. Logi wywiadu zawierają operację/status/koszt, bez odpowiedzi. Nie dodano zależności ani zmiennych środowiskowych.
 
-**API:** uwierzytelnione `GET/PUT/DELETE /career-profile`; `POST/GET /ai/interviews`; `GET/DELETE /ai/interviews/{id}`; operacje sesji `POST`: `answers`, `next`, `confirm`, `extend`, `source`, `preview`, `clarify`, `skip-clarifications`, `document`. [Pełna instrukcja EN/PL](docs/INTERVIEWS.md#polski) opisuje schematy, limity pól, przykłady odpowiedzi, błędy, transakcje, retencję, kredyty, testy i odzyskiwanie. [Kontrakt interakcji Swiss](DESIGN.md#59-career-interview-contract) obejmuje wszystkie stany wywiadu.
+**API:** uwierzytelnione `GET/PUT/DELETE /career-profile`; `POST/GET /ai/interviews`; `GET/DELETE /ai/interviews/{id}`; `GET /ai/interviews/{id}/credits`; operacje sesji `POST`: `answers`, `next`, `confirm`, `extend`, `source`, `preview`, `clarify`, `skip-clarifications`, `document`. [Pełna instrukcja EN/PL](docs/INTERVIEWS.md#polski) opisuje schematy, limity pól, przykłady odpowiedzi, błędy, transakcje, retencję, kredyty, testy i odzyskiwanie. [Kontrakt interakcji Swiss](DESIGN.md#59-career-interview-contract) obejmuje wszystkie stany wywiadu.
 
 Widok kariery przedstawia pełne wpisy zamiast osobnego akordeonu dla każdego pola. `groupCareerFacts` grupuje role, edukację, języki, umiejętności i sekcje dodatkowe według zapisanych ścieżek; notatki opisowe pozostają oddzielne i są grupowane wyłącznie według jawnego kontekstu. Firma, miasto, okres i osiągnięcia tworzą więc jedną rolę. Zgodne wiersze są wyświetlane wspólnie z zachowaniem wszystkich ID faktów; różne wartości pozostają widoczne jako warianty do sprawdzenia. Rekordy w bazie nie są automatycznie łączone ani usuwane.
 
@@ -3672,6 +3684,14 @@ Implementacja i testy (zweryfikowane zakresy całych modułów; symbole ułatwia
 
 Korekty doprecyzowań zachowują identyfikatory przywołanych faktów (`target_fact_ids`), gdy źródłem jest jednoznaczne istniejące pole lub jedna odpowiedź bez pola. `answer_proposals` buduje zastąpienie, a `/answers` zapisuje je atomowo z historią odpowiedzi do wybranego zbioru informacji. Wpisana korekta nie wymaga więc drugiego `/confirm`; opcjonalny widok faktów pozwala ją później poprawić. „Nie pamiętam” i pominięcie nie nadpisują faktu. Ekran zadaje stałe pytanie decyzyjne **Czy proponowany opis jest w pełni zgodny z Twoim doświadczeniem?**, a pytanie providera umieszcza pod etykietą **Co wymaga sprawdzenia**. **Tak — zatwierdź ten opis** potwierdza całą widoczną propozycję AI. Pole **Pełny poprawiony opis** musi zawierać kompletną treść zastępującą, a nie tylko odpowiedź na pytanie providera; rozpoczęcie korekty wyłącza zatwierdzenie propozycji. Druga grupa wyjaśnia różne skutki potwierdzonego braku doświadczenia, niepamiętania i zakończenia doprecyzowania. Zmiana brzmienia pytania nie otwiera ponownie rozstrzygniętego wpisu w tej samej sesji. Niejednoznaczne i starsze pytania bez wiarygodnego powiązania pozostają osobnymi notatkami; wcześniej zapisane duplikaty nie są automatycznie usuwane. Instrukcje generowania łączą związane szczegóły w jedną czynność. `Verification.duplicate_paths` oddziela zbędne dodatki od niepotwierdzonych twierdzeń; na tej podstawie można pominąć tylko dodawane podpunkty, zachowując istniejące pola użytkownika i osobne role. Identyczne dodatki w jednej liście punktów są też filtrowane lokalnie; wykrywanie powtórzeń znaczeniowych nadal zależy od oceny AI. Zmiana nie wymaga migracji ani dodatkowego automatycznego wywołania AI. Wdróż zmianę frontendu, następnie odśwież aktywnych klientów. Testy obejmują obie decyzje doprecyzowania, natychmiastowe zastępowanie/ponowienie w obu zakresach danych, brak odpowiedzi, ponowne pytania o wpis, powtórzone dodatki i jawne potwierdzenie treści AI. [Wartości domyślne pól Pydantic](https://docs.pydantic.dev/latest/concepts/fields/) wyjaśniają, dlaczego starsze zapisane wyniki weryfikacji mogą pomijać `duplicate_paths`, choć nowy schemat providera go wymaga.
 
+
+### Kredyty za każde zapytanie wywiadu
+
+Wspólny wywiad asystenta AI i wejścia z profilu zawodowego pokazuje rzeczywisty koszt ostatniego zapytania AI, sumę kredytów zużytych w tym wywiadzie i dostępne saldo konta. Rozwiń **Historię zapytań AI**, aby zobaczyć poszczególne żądania oraz etapy generowania treści, redakcji języka i weryfikacji. Zapis odpowiedzi, informacji i doprecyzowań kosztuje zero kredytów. Koszt jest znany po rozliczeniu; oczekiwanie i niedostępne saldo mają jawne opisy. Błąd odczytu zachowuje ostatnie kwoty z komunikatem i bezpłatną akcją ponownego odczytu. Saldo w nagłówku asystenta również odświeża się po operacjach wywiadu.
+
+`GET /ai/interviews/{id}/credits` sprawdza uwierzytelnionego właściciela i odczytuje istniejące rozliczenia `ai_credit_reservations` przez `interview_credit_usage`. Grupuje etapy według rewizji żądania, które poniosło koszt, pomija kredyty tylko zarezerwowane i nie nalicza ponownie odzyskanych etapów. Uwzględnia błędy z rozliczonym zużyciem. Odczyt jest bezpłatny także po wygaśnięciu Pro; nie zwraca odpowiedzi providera ani nie zmienia naliczania opłat. Suma obejmuje zachowaną historię wywiadu, a dostępne saldo dotyczy bieżącego limitu konta. `InterviewCredits` odświeża się po sukcesie i błędzie, odrzuca spóźnione odczyty innej sesji oraz prezentuje polskie i angielskie formy liczby mnogiej w uprzejmie ogłaszanym statusie. [Pełny opis API i odzyskiwania](docs/INTERVIEWS.md#koszt-poszczególnych-zapytań) zawiera przykład odpowiedzi i ograniczenia.
+
+Nowy serwis należy do `backend/app/services/`, jego testy regresji do `backend/tests/`, a wspólny komponent i testy runtime do `frontend/src/components/ai/Interview/`. Tabele bazy, konfiguracja, zależności, szablony CV i geometria PDF pozostają bez zmian. Wdróż backend przed frontendem; cofnięcie UI usuwa jedynie widok kosztów. Uruchom `python -m pytest tests/test_interview_credits.py tests/test_interviews.py tests/test_interview_editorial.py tests/test_interview_recovery.py -q` w `backend/`; w `frontend/` uruchom `npm run test:runtime -- src/components/ai/Interview src/services/interviews.runtime.test.js` oraz `npm run test:e2e -- e2e/interviews.spec.js --project=desktop-chromium`. Testy obejmują rzeczywiste odczyty rozliczeń z atrapą AI, grupowanie żądań, izolację właścicieli, ponowienia, odzyskiwanie po błędzie, salda, PL/EN, obsługę historii klawiaturą, reduced motion, cztery szerokości i tekst powiększony do 200%. [Statusy WAI](https://www.w3.org/WAI/WCAG21/Techniques/aria/ARIA22) wyjaśniają ogłaszanie zmian bez przenoszenia fokusu; [operatory tekstowe SQLAlchemy](https://docs.sqlalchemy.org/en/20/orm/internals.html#sqlalchemy.orm.PropComparator.startswith) opisują filtr z escapowaniem prefiksu używany do wyboru rozliczeń tego wywiadu.
 
 ### Automatyczna profesjonalna redakcja CV z wywiadu
 
@@ -3714,7 +3734,11 @@ Przy uwierzytelnionym odczycie właściciela `GET /ai/interviews/{id}` funkcja `
 | `backend/app/services/interview_discovery.py` | 1–228; discovery_entries, question_entry, next_entry, update_discovery_budget, scoped_question |
 | `backend/tests/test_interview_discovery.py` | 1–194; record coverage / pokrycie wpisów, retry, legacy, limits / limity |
 | `backend/app/services/interview_service.py` | 1–500; profile_payload, _facts_with_answer_questions, session_payload, put_profile, check_versions, source_facts, base_cv, assemble_draft, paid_model, next_question |
-| `backend/app/api/routes/interviews.py` | 1–493; create_interview, answer_interview, confirm_interview, refresh_interview_source, preview_interview, clarify_interview, skip_clarifications, save_interview_document |
+| `backend/app/services/interview_credits.py` | 1–51; interview_credit_usage |
+| `backend/tests/test_interview_credits.py` | 1–75; test_receipts_group_requests_without_exposing_provider_data, test_question_receipt_survives_resume_and_replay_without_new_charge |
+| `frontend/src/components/ai/Interview/InterviewCredits.jsx` | 1–65; InterviewCredits |
+| `frontend/src/components/ai/Interview/InterviewCredits.runtime.test.jsx` | 1–60; InterviewCredits |
+| `backend/app/api/routes/interviews.py` | 1–501; get_interview_credits (188–192), create_interview, answer_interview, confirm_interview, refresh_interview_source, preview_interview, clarify_interview, skip_clarifications, save_interview_document |
 | `frontend/e2e/interview-prerequisites.spec.js` | 1–64; PL/EN source prerequisite browser tests |
 | `backend/tests/test_interview_sources.py` | 1–76; source eligibility regression tests |
 | `frontend/src/components/ai/Interview/InterviewSourceRequired.jsx` | 1–20; InterviewSourceRequired |
@@ -3724,11 +3748,11 @@ Przy uwierzytelnionym odczycie właściciela `GET /ai/interviews/{id}` funkcja `
 | `frontend/src/components/ai/Interview/InterviewLoading.runtime.test.jsx` | 1–27; long wait, operation boundaries |
 | `frontend/src/components/ai/Interview/InterviewPreview.jsx` | 1–37; InterviewPreview |
 | `frontend/src/components/ai/Interview/InterviewPreview.module.css` | 1–38; preview, reading, pagination |
-| `frontend/src/components/ai/Interview/Interview.module.css` | 1–68; stages, question, preparation, resultActions |
+| `frontend/src/components/ai/Interview/Interview.module.css` | 1–96; stages, question, preparation, resultActions |
 | `frontend/src/utils/interviewPreview.js` | 1–27; previewRecords, recordContent |
 | `frontend/src/utils/interviewPreview.test.js` | 1–24; grouping, evidence, removed fields |
 | `frontend/e2e/interview-workspace.spec.js` | 1–140; bounded preview, delayed operations, failure recovery |
-| `frontend/src/components/ai/Interview/InterviewFlow.jsx` | 1–294; InterviewFlow |
+| `frontend/src/components/ai/Interview/InterviewFlow.jsx` | 1–298; InterviewFlow |
 | `frontend/src/utils/careerProfileView.js` | 1–118; groupCareerFacts, careerFieldLabel, newCareerRecord, careerFieldOptions |
 | `frontend/src/utils/careerProfileView.test.js` | 1–47; grupowanie, tożsamość, limity, tytuły z pytań wywiadu |
 | `frontend/src/components/ai/Interview/FactEditor.runtime.test.jsx` | 1–76; zastosowanie, anulowanie, cofanie, fokus, wyszukiwanie, prezentacja pytania z odpowiedzią |
@@ -3748,7 +3772,7 @@ Przy uwierzytelnionym odczycie właściciela `GET /ai/interviews/{id}` funkcja `
 | `backend/tests/test_alembic_interviews.py` | 1–26; testy zachowania wywiadu |
 | `frontend/src/components/ai/Interview/Interview.runtime.test.jsx` | 1–366; decyzje doprecyzowania, komunikat zapisu i zachowanie wywiadu |
 | `frontend/e2e/interview-sources.spec.js` | 1–62; wybór osobnego źródła, zatwierdzanie, wznowienie |
-| `frontend/e2e/interviews.spec.js` | 1–188; decyzje doprecyzowania, zapis odpowiedzi i pełne przepływy wywiadu |
+| `frontend/e2e/interviews.spec.js` | 1–229; decyzje doprecyzowania, zapis odpowiedzi i pełne przepływy wywiadu |
 
 Nowe pliki: `backend/app/schemas/interview_schema.py` definiuje kontrakty API/modelu, `backend/app/services/interview_service.py` zarządza dowodami i regułami rozmowy, a `backend/app/api/routes/interviews.py` koordynuje HTTP. `frontend/src/components/ai/Interview/` zawiera wspólny przepływ, kontrolowany edytor faktów, podgląd treści, style oparte na tokenach i testy runtime. `docs/INTERVIEWS.md` to pełna instrukcja techniczna EN/PL; `docs/WYWIAD_JAK_DZIALA.md` to polski przewodnik skupiony na wymaganiach CV, uzupełnianiu i dopasowaniu do oferty pracy; `docs/licenses/resume-agent-skills-MIT.txt` zachowuje autorstwo Vignesha Paia i licencję MIT.
 
@@ -4367,7 +4391,7 @@ Implementacja:
 - `frontend/src/pages/PdfCanvas.jsx` — commit dopasowania, sprawdzenie przy otwartym panelu, delikatny toast wykrywania, rozluźnienie po AI, routing modala i mostek `assistantAction`
 - `frontend/src/hooks/useA4Elements.js`, `handleCollapseSpilledMainIntoSidebar` (linie 1809–1818) — po zaakceptowanych poprawkach treści AI
 - `frontend/src/store/session-context.jsx`, hook `useSession` — publikuje sesyjne akcje asystenta
-- `frontend/src/components/ai/AiAssistant/AiAssistant.jsx` — efekt obserwatora `assistantAction` + subakcja „Skróć CV"; `acceptCorrection` / `applyAll` (linie 1249–1334) wołają zrzut do sidebara po poprawkach treści
+- `frontend/src/components/ai/AiAssistant/AiAssistant.jsx` — efekt obserwatora `assistantAction` + subakcja „Skróć CV"; `acceptCorrection` / `applyAll` (linie 1221–1313) wołają zrzut do sidebara po poprawkach treści
 - Backendowa akcja `shorten`: `_shorten_content` (`ai_assistant_service.py`), `VALID_ACTIONS` (`ai_assistant.py`)
 
 Testy:
@@ -5504,7 +5528,7 @@ Wszystkie akcje asystenta domyślnie używają **`gpt-5.6-terra`** z **`reasonin
 
 Implementacja:
 
-- `frontend/src/components/ai/AiAssistant/AiAssistant.jsx`, linie 4–2100 — `GOAL_ACTIONS`, `CONTENT_SUBACTIONS` i `TRANSLATE_LANGUAGES`; asystent wyłącznie akcyjny, cztery cele, pusty własny `message`/`history` i fokus pierwszej akcji, a linie 1883–1888 renderują podpisane wejście do wywiadu ze wspólnym stylem ikony `FaComments`
+- `frontend/src/components/ai/AiAssistant/AiAssistant.jsx`, linie 4–2101 — `GOAL_ACTIONS`, `CONTENT_SUBACTIONS` i `TRANSLATE_LANGUAGES`; asystent wyłącznie akcyjny, cztery cele, pusty własny `message`/`history` i fokus pierwszej akcji, a linie 1856–1859 renderują podpisane wejście do wywiadu ze wspólnym stylem ikony `FaComments`
 - `frontend/src/components/ai/AiAssistant/AiAssistant.jsx`, `cvLanguage` (1013): `send`, `handleCvLanguageChange`, `TRANSLATE_LANGUAGES`.
 - `frontend/src/utils/atsScore.js` — ważony overall ATS (`overallPercentFromCategories`) oraz overall z rubryki dla rating/position (`overallPercentFromRubric`)
 - `frontend/src/utils/aiCorrectionHighlights.js` — `collectPendingAiHighlights` dla znaczników na płótnie
@@ -5512,7 +5536,7 @@ Implementacja:
 - `frontend/src/components/ai/AiAssistant/AiAssistant.jsx` — `RatingBadge` / `RatingDashboard` (%, pasmo ATS + disclaimer, CTA)
 - `frontend/src/components/ai/AiAssistant/AiAssistant.jsx` — `CorrectionCard` (Przed/Po bez natywnego tooltipa)
 - `frontend/src/components/ai/AiAssistant/AiAssistant.jsx` — komponent `AiAssistant`: panele szybkich akcji, tłumaczenie, karty przeglądu, fokus pierwszej akcji i payloady bez własnego promptu; unieważnianie żądań canvasa przez `chatSessionRef`; historia resetuje się dopiero przy innym `conversationKey`
-- `frontend/src/components/ai/AiAssistant/AiAssistant.jsx`, linie 4–2100 (`CANVAS_CONTEXT_CLEARANCE_PX`: 44) + `frontend/src/App.css`, linie 120–195 — żywa geometria asystenta/canvasa, limitowany transform jednej strony, fallback compact i reduced motion
+- `frontend/src/components/ai/AiAssistant/AiAssistant.jsx`, linie 4–2101 (`CANVAS_CONTEXT_CLEARANCE_PX`: 232) + `frontend/src/App.css`, linie 120–195 — żywa geometria asystenta/canvasa, limitowany transform jednej strony, fallback compact i reduced motion
 - `frontend/src/components/ai/AiAssistant/AiAssistant.test.js`, linie 42–59 (auto-scroll przed paintem), 61–85 (prześwit panelu), 113–139 (tłumaczenie zastępuje wygląd), 141–149 (ikona wywiadu), 151–163 (kontrakt wyłącznie szybkich akcji) i 216–260 (overlay dowodów oferty)
 - `frontend/e2e/ai-assistant-scroll.spec.js`, linie 35–74, test `AI assistant uses the wider panel and shifts a single A4 only when space allows` — szerokość desktopowa 600 px, szerokość arkusza compact, limitowane przesunięcie desktopowe, brak przesunięcia mobile i pozycja po powrocie; linie 77–149 obejmują zachowanie edit-zoomu po fokusie i scrollu, linie 151–195 fokus pierwszej akcji, kolejne szybkie akcje bez composera oraz puste payloady własnej wiadomości/historii, a linie 197–245 geometrię formularza oferty. Testy działają w projektach desktopowym i kompaktowym Chromium.
 - `frontend/src/components/ai/AiAssistant/AiAssistant.module.css`, linie 42–62 (`.panel`), 246–258 (`.jobDescArea`) i 347–365 (`.messages`) — responsywny panel 600 px, ograniczony formularz oferty, stabilny viewport czatu, siatka celów, subpanele, wybór języka, dashboard i disclaimer ATS

@@ -83,3 +83,14 @@
 /* Keep the explicit same-person opt-in compact, labelled and keyboard reachable. */
 .scopeChoice { display: flex !important; align-items: center; gap: var(--space-3); min-height: var(--control-height); }
 .scopeChoice input { width: var(--space-4); height: var(--space-4); min-height: 0; padding: 0; flex-shrink: 0; }
+
+/* Receipts use the same compact structure in the assistant and account routes. */
+.credits { border-block: 1px solid var(--color-border); padding-block: var(--space-3); margin-bottom: var(--space-4); font-size: .875rem; }
+.creditSummary { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-6); }
+.creditSummary p, .credits > .hint { margin-bottom: var(--space-2); }
+.creditLatest { flex-basis: 100%; }
+.creditHistory summary { cursor: pointer; min-height: var(--control-height); display: list-item; align-content: center; font-weight: 600; }
+.creditHistory > ol { max-height: 24rem; overflow-y: auto; padding: var(--space-2) var(--space-2) var(--space-2) var(--space-6); margin: 0; }
+.creditHistory > ol > li { padding-block: var(--space-3); border-top: 1px solid var(--color-border); }
+.creditHistory time { color: var(--color-muted); }
+.creditHistory ul { padding-left: var(--space-4); }

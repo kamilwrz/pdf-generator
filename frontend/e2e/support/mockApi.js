@@ -182,7 +182,7 @@ export const SAVED_ELEMENTS = Object.freeze([
   },
 ]);
 
-const PRO_ENTITLEMENTS = Object.freeze({
+export const PRO_ENTITLEMENTS = Object.freeze({
   plan_slug: "pro",
   plan_name: "Pro",
   template_tier: "all",

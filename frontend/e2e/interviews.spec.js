@@ -1,15 +1,17 @@
 import { test, expect } from '@playwright/test';
-import { installMockApi } from './support/mockApi.js';
+import { installMockApi, PRO_ENTITLEMENTS } from './support/mockApi.js';
 
 const ID = 'f1fc439c-84f1-45ad-b23c-a3e384a81d3a';
 const nameFact = { id: 'name', text: 'Anna Nowak', path: '/name', kind: 'fact', source: 'manual', context: '' };
 
 async function installInterviewApi(page, recovered = false) {
-  const base = await installMockApi(page);
+  const entitlements = structuredClone(PRO_ENTITLEMENTS);
+  const base = await installMockApi(page, { entitlements });
   await page.addInitScript(() => { localStorage.setItem('token', 'local-playwright-token'); localStorage.setItem('username', 'Kamil'); });
   let profile = { revision: 0, facts: [] };
   let session = null;
   let clarified = false;
+  const creditRequests = [];
   const calls = [];
   await page.route('**/api/career-profile*', async (route) => {
     if (route.request().method() === 'PUT') profile = { ...route.request().postDataJSON(), revision: profile.revision + 1 };
@@ -22,7 +24,8 @@ async function installInterviewApi(page, recovered = false) {
     const body = method === 'POST' ? route.request().postDataJSON() : null;
     calls.push({ path, method, body });
     let result;
-    if (path.endsWith('/interviews') && method === 'GET') result = { items: session ? [{ ...session, updated_at: '2026-09-10T10:00:00' }] : [], next_offset: null };
+    if (path.endsWith('/credits')) result = { credits_charged: creditRequests.reduce((sum, item) => sum + item.credits_charged, 0), requests: creditRequests };
+    else if (path.endsWith('/interviews') && method === 'GET') result = { items: session ? [{ ...session, updated_at: '2026-09-10T10:00:00' }] : [], next_offset: null };
     else if (path.endsWith('/interviews') && method === 'POST') {
       session = { evidence_scope: body.include_profile ? 'profile' : 'session', evidence_profile: { revision: 0, facts: [] }, id: ID, revision: 1, mode: body.mode, source_document_id: body.source_document_id || null, phase: 'intake', language: 'pl', profile_revision: 0, template_id: body.template_id || null, question_limit: body.mode === 'tailor' ? 5 : 8, answers: [], question: null, requirements: [], proposed_facts: [nameFact], confirmed: false, preview: null, source_cv_data: { name: 'Anna Nowak' } };
       result = session;
@@ -32,6 +35,7 @@ async function installInterviewApi(page, recovered = false) {
       session = { ...session, revision: session.revision + 1, phase: 'ready', proposed_facts: [], confirmed: true };
       result = { session, profile: session.evidence_scope === 'profile' ? profile : session.evidence_profile };
     } else if (path.endsWith('/next')) {
+      creditRequests.unshift({ id: `question-${session.revision}`, operation: 'next', created_at: '2026-09-12T10:00:00Z', credits_charged: 7, pending: false, stages: [{ operation: 'next', credits_charged: 7, status: 'settled' }] });
       session = { ...session, revision: session.revision + 1, phase: 'question', question: { id: 'q1', topic: 'project', text: 'Jaki projekt ukończyłaś samodzielnie?', reason: 'Pokażemy Twój wkład w osiągnięcie.', context: 'Projekt' } };
       result = session;
     } else if (path.endsWith('/clarify')) {
@@ -53,17 +57,41 @@ async function installInterviewApi(page, recovered = false) {
       session = { ...session, revision: session.revision + 1, phase: 'intake', confirmed: false, preview: null, source_cv_data: body.cv_data || session.source_cv_data };
       result = session;
     } else if (path.endsWith('/preview')) {
+      creditRequests.unshift({ id: `preview-${session.revision}`, operation: 'preview', created_at: '2026-09-12T10:01:00Z', credits_charged: 18, pending: false, stages: ['preview', 'editorial', 'verify'].map((operation) => ({ operation, credits_charged: 6, status: 'settled' })) });
       session = { ...session, revision: session.revision + 1, phase: 'preview', template_id: body.template_id, preview: { pages: 1, profile_revision: session.evidence_scope === 'profile' ? profile.revision : session.evidence_profile.revision, cv_data: { name: 'Anna Nowak', summary: 'Tworzę raporty.', experience: [], education: [], skills: [] }, changes: [{ path: '/summary', value: 'Tworzę raporty.', evidence_refs: ['answer'] }], remaining_gaps: [], ...(recovered ? { recovered_previous_attempt: !clarified, review_notes: [{ path: '/experience/0/bullets/6', action: 'kept_original' }, { path: '/custom_sections/0/items/0/bullets/0', action: 'omitted_suggestion' }] } : {}) } };
       if (recovered && !clarified) session = { ...session, phase: 'clarification', pending_clarifications: [{ topic: 'clarify-project' }] };
       result = session;
     } else if (path.endsWith('/document')) result = { document_id: 41 };
     else result = session;
+    const charged = creditRequests.reduce((sum, item) => sum + item.credits_charged, 0);
+    entitlements.remaining.ai_credits = 200 - charged;
+    entitlements.usage.ai_credits_used = charged;
     await route.fulfill({ json: result });
   });
   return { calls, base };
 }
 
 for (const width of [390, 834, 1280, 1920]) {
+  test(`English interview credit history reflows at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await installInterviewApi(page);
+    await page.addInitScript(() => localStorage.setItem('cvstudio.uiLanguage', 'en'));
+    await page.goto('/app/interview');
+    await page.getByRole('combobox', { name: 'Information source', exact: true }).selectOption('document:30');
+    await page.getByRole('button', { name: 'Start interview', exact: true }).click();
+    await page.getByRole('button', { name: 'Continue to interview', exact: true }).click();
+    await page.getByRole('button', { name: 'Next question', exact: true }).click();
+    const credits = page.getByRole('region', { name: 'Interview credits' });
+    await expect(credits).toContainText('Last AI request — Interview question: 7 credits');
+    await credits.getByText('AI request history (1)').focus();
+    await page.keyboard.press('Enter');
+    await expect(credits.getByText('Interview question: 7 credits', { exact: true })).toBeVisible();
+    if (width === 834) await page.addStyleTag({ content: 'html { font-size: 200% !important; }' });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+    await page.screenshot({ path: `../tmp/interview-credits-en-${width}.png`, fullPage: true });
+  });
+
   test(`interview creates, resumes and reviews CV at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     await page.emulateMedia({ reducedMotion: 'reduce' });
@@ -74,12 +102,19 @@ for (const width of [390, 834, 1280, 1920]) {
     await page.getByRole('button', { name: 'Rozpocznij wywiad', exact: true }).click();
     await page.getByRole('button', { name: /Przejdź do (rozmowy|przygotowania CV)/ }).click();
     await page.getByRole('button', { name: 'Następne pytanie', exact: true }).click();
+    const credits = page.getByRole('region', { name: 'Kredyty wywiadu' });
+    await expect(credits).toContainText('Ostatnie zapytanie AI — Pytanie wywiadu: 7 kredytów');
+    await credits.getByText('Historia zapytań AI (1)').focus();
+    await page.keyboard.press('Enter');
+    await expect(credits.getByText('Pytanie wywiadu: 7 kredytów', { exact: true })).toBeVisible();
+    await page.keyboard.press('Enter');
     await page.getByLabel('Twoja odpowiedź').fill('Tworzę raporty.');
     await page.getByRole('button', { name: 'Zapisz odpowiedź', exact: true }).click();
     await expect(page.getByText('Odpowiedź zapisana w profilu zawodowym.', { exact: true })).toBeVisible();
     await expect(page.getByText(/do zapisania/)).toHaveCount(0);
     expect(api.calls.filter((call) => call.path.endsWith('/confirm'))).toHaveLength(1);
     await page.goto(`/app/interview/${ID}`);
+    await expect(page.getByRole('region', { name: 'Kredyty wywiadu' })).toContainText('Zużycie w tym wywiadzie: 7 kredytów');
     await page.getByRole('button', { name: /Sprawdź informacje/ }).click();
     await page.getByRole('button', { name: /Przejdź do (rozmowy|przygotowania CV)/ }).click();
     await page.getByRole('button', { name: '03 Przygotuj CV', exact: true }).click();
@@ -154,7 +189,7 @@ test('profile editing works with keyboard and reflows at 200 percent text zoom',
   await expect(page.getByRole('button', { name: 'Wyczyść profil', exact: true })).toBeFocused();
 });
 
-for (const width of [390, 1280]) {
+for (const width of [390, 834, 1280, 1920]) {
   test(`tailoring starts inside the assistant and preserves the source at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     await page.emulateMedia({ reducedMotion: 'reduce' });
@@ -176,6 +211,11 @@ for (const width of [390, 1280]) {
     await flow.getByRole('button', { name: '03 Przygotuj CV', exact: true }).click();
     await flow.getByRole('button', { name: 'Przygotuj CV z potwierdzonych informacji' }).click();
     await expect(flow.getByRole('heading', { name: 'Twoja nowa wersja CV' })).toBeVisible();
+    await expect(flow.getByRole('region', { name: 'Kredyty wywiadu' })).toContainText('Ostatnie zapytanie AI — Przygotowanie CV: 18 kredytów');
+    await expect(flow.getByRole('region', { name: 'Kredyty wywiadu' })).toContainText('Pozostało na koncie: 182 kredyty');
+    await expect(page.getByTitle('Wykorzystano 18 z 200 kredytów AI w tym miesiącu')).toContainText('182');
+    await flow.getByText('Historia zapytań AI (1)').click();
+    await expect(flow.getByText('Redakcja języka i stylu: 6 kredytów')).toBeVisible();
     await page.screenshot({ path: `../tmp/interview-assistant-${width}.png`, fullPage: true });
     expect(await flow.evaluate((element) => element.scrollWidth <= element.clientWidth + 1)).toBe(true);
     const start = api.calls.find((call) => call.path.endsWith('/interviews') && call.method === 'POST');

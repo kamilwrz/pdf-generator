@@ -1840,6 +1840,7 @@ export default function AiAssistant() {
                             key={`${activeInterview.documentKey}-${activeInterview.mode}`}
                             mode={activeInterview.mode}
                             initialSource={activeInterview.source}
+                            onCreditsChanged={refreshEntitlements}
                             currentSource={{ cv_data: activeCvData || {}, template_id: activeTemplateId || null, spacing_px: flowSpacing }}
                             sourceChanged={activeInterview.signature !== JSON.stringify(activeCvData)}
                             onSourceRefreshed={() => setInterview((current) => current ? { ...current, signature: JSON.stringify(activeCvData) } : current)}

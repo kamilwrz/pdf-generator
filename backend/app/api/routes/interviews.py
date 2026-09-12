@@ -28,6 +28,7 @@ from app.services.interview_editorial import (
     prepare_editorial_draft, apply_editorial_review,
 )
 from app.services import interview_service as service
+from app.services.interview_credits import interview_credit_usage
 from app.services.interview_sources import available_interview_sources, has_interview_source
 from app.services.cv_data import normalize_cv_data, CvDataValidationError
 from app.services.ai_service import generate_resume
@@ -182,6 +183,13 @@ def delete_interview(session_id: str, user=Depends(get_current_user), db=Depends
     db.delete(row)
     db.commit()
     return {"deleted": True}
+
+
+@router.get("/ai/interviews/{session_id}/credits")
+def get_interview_credits(session_id: str, user=Depends(get_current_user), db=Depends(get_db)):
+    """Read actual charges, including after failure or Pro expiry; never call AI."""
+    row = service.owned_session(db, user.id, session_id)
+    return interview_credit_usage(db, row)
 
 
 @router.post("/ai/interviews/{session_id}/answers")

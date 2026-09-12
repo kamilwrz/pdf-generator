@@ -107,6 +107,7 @@ All routes require the existing bearer session; owner identity comes from authen
 | POST `/ai/interviews` | `InterviewCreate`; required `Idempotency-Key` (1–128 chars) | 201 session; `create_interview` |
 | GET `/ai/interviews` | Optional `offset` ≥ 0 | `{items,next_offset}`, up to 50 summaries; `list_interviews` |
 | GET `/ai/interviews/{id}` | Session ID | Full session; `get_interview` |
+| GET `/ai/interviews/{id}/credits` | Owned session ID; no body or revision | 200 `{credits_charged,requests}`; `get_interview_credits`; free after Pro expiry |
 | DELETE `/ai/interviews/{id}` | Session ID | `{deleted:true}`; `delete_interview` |
 | POST `/{id}/answers` under `/ai/interviews` | SessionWrite + `question_id`, `answer`, `status` | Updated session; text/gap evidence and answer history commit atomically; `answer_interview` |
 | POST `/{id}/next` | SessionWrite | Question/requirements or review phase; `next_interview` |
@@ -140,6 +141,22 @@ Before the final preview, unresolved proposals enter `phase: "clarification"`. T
 Clarification loop protection: only a changed scalar explicitly rejected by verification and citing current profile facts can become a question. Technical errors, unknown paths, dependent record rejections and unchanged fields use the confirmed fallback without asking the user to diagnose them. The disputed proposal is always visible and labelled as unconfirmed, beside its section/role label. Clarifications have a separate position/total counter and a cumulative budget of five answered or explicitly deferred questions per session; regeneration cannot reset it. Normalized claim and question fingerprints suppress repeats across field reordering, case and punctuation changes. This is deterministic duplicate detection, not semantic equivalence detection; reworded claims may remain distinct, but the budget still bounds them. Discovery also stops repeated wording under a new topic without an automatic paid retry.
 
 On owner-authorized `GET /ai/interviews/{id}`, `repair_clarification_state` repairs an active legacy queue, preserves retained question IDs and every saved answer, and persists only changed state using revision compare-and-swap. Repeated reads are stable; a concurrent edit can return 409 and requires reloading. An exhausted queue returns to fact review or the existing confirmed preview. Repair does not touch the career profile, documents or credits. Session JSON adds optional question `record_label` and `dismissed_clarification_keys`; no database migration or new dependency is required. `preview` and `next` reject attempts to restart paid work while clarification is pending. Tests reproduce eight duplicate legacy prompts, owner isolation, free repair, answer replay, budget exhaustion and changed-topic repetition.
+
+### Per-request credit receipts
+
+After an interview operation, `InterviewCredits` reads `GET /ai/interviews/{id}/credits`. The existing bearer token is required; the path parameter must identify an owned session. No body, query parameters or idempotency key is needed. `get_interview_credits` in `backend/app/api/routes/interviews.py` calls `owned_session` before `interview_credit_usage` in `backend/app/services/interview_credits.py`. Missing authentication uses the existing authentication error; absent and foreign sessions both return 404. This read needs no Pro entitlement, creates no AI request and changes no data.
+
+Example request: `GET /ai/interviews/<owned-session-id>/credits` with `Authorization: Bearer <session-token>`. Example 200 response:
+
+```json
+{"credits_charged":18,"requests":[{"id":"example-reservation-id","operation":"preview","created_at":"2026-09-12T10:00:00Z","credits_charged":18,"pending":false,"stages":[{"operation":"preview","credits_charged":8,"status":"settled"},{"operation":"editorial","credits_charged":6,"status":"settled"},{"operation":"verify","credits_charged":4,"status":"settled"}]}]}
+```
+
+Credit amounts are nonnegative integers from `AiCreditReservation.charged_credits`, not token-cost estimates or reserved ceilings. `requests` is newest first. Request operations are `next`, `preview` or the future-compatible `other`; stage operations additionally distinguish `editorial` and `verify`. Stage statuses retain `pending`, `settled`, `failed`, `released` or `expired`. A pending request shows both its already charged subtotal and an explicit pending label. Timestamps are UTC ISO 8601; the interface formats them locally. A new interview returns zero total and an empty array only after a successful read.
+
+The service selects only receipt metadata and scopes rows by owner, action and an escaped session prefix. Both historical keys and versioned generation-attempt keys identify the revision that actually incurred each charge. Reusing a completed stage creates no new ledger row; a partly resumed preview lists only its newly charged stages under the new request. Metered failed stages remain charged, while released claims add zero. Reserved credits are excluded from the total. The response never includes prompts, provider responses, request hashes or idempotency keys. Receipts use the existing ledger's retention; deleting an interview makes this endpoint unavailable without rewriting billing history.
+
+The shared component refreshes after success and failure, keeps the last known totals with an explicit stale-data notice if reading fails, and offers a read-only retry. It never retries paid work automatically. Long-running/pending settlement can be refreshed explicitly; no live polling or fixed pre-request price is promised. Account balance uses existing entitlements, including the assistant header refresh. A missing or failed balance read is not displayed as zero. Free answer/fact/clarification saves are explained separately. Requests and totals stay outside CV/PDF data. See the README feature section for implementation references and the backend, runtime and browser test commands.
 
 ### Credits and recovery
 
@@ -300,6 +317,7 @@ Wszystkie trasy wymagają obecnej sesji bearer; właściciel pochodzi z uwierzyt
 | POST `/ai/interviews` | `InterviewCreate`; wymagany `Idempotency-Key` (1–128 znaków) | 201, sesja; `create_interview` |
 | GET `/ai/interviews` | Opcjonalny `offset` ≥ 0 | `{items,next_offset}`, do 50 podsumowań; `list_interviews` |
 | GET `/ai/interviews/{id}` | ID sesji | Pełna sesja; `get_interview` |
+| GET `/ai/interviews/{id}/credits` | ID własnej sesji; brak body i rewizji | 200 `{credits_charged,requests}`; `get_interview_credits`; bezpłatne po wygaśnięciu Pro |
 | DELETE `/ai/interviews/{id}` | ID sesji | `{deleted:true}`; `delete_interview` |
 | POST `/{id}/answers` pod `/ai/interviews` | SessionWrite + `question_id`, `answer`, `status` | Aktualna sesja; tekst/luka i historia odpowiedzi zapisują się atomowo; `answer_interview` |
 | POST `/{id}/next` | SessionWrite | Pytanie/wymagania lub podsumowanie; `next_interview` |
@@ -333,6 +351,22 @@ Przed końcowym podglądem nierozstrzygnięte propozycje przechodzą do `phase: 
 Ochrona przed pętlą doprecyzowań: pytaniem może zostać tylko zmienione pole tekstowe jawnie zakwestionowane przez weryfikację i odwołujące się do aktualnych faktów profilu. Błędy techniczne, nieznane ścieżki, zależne odrzucenia wpisu oraz niezmienione pola korzystają z potwierdzonej wersji bez proszenia użytkownika o ich diagnozę. Sporna propozycja jest zawsze widoczna, oznaczona jako niepotwierdzona i opisana nazwą sekcji/roli. Doprecyzowania mają osobny licznik pozycji/liczby pytań i łączny budżet pięciu pytań z odpowiedzią lub jawnym pominięciem w sesji; regeneracja go nie resetuje. Znormalizowane odciski treści i pytania blokują powtórki po zmianie kolejności pól, wielkości liter i interpunkcji. To deterministyczne wykrywanie duplikatów, nie równoważności znaczeniowej; przeformułowane twierdzenia mogą pozostać odrębne, ale nadal ogranicza je budżet. Zwykły wywiad również zatrzymuje powtórzone pytanie z nowym identyfikatorem tematu, bez automatycznej płatnej próby.
 
 Przy uwierzytelnionym odczycie właściciela `GET /ai/interviews/{id}` funkcja `repair_clarification_state` porządkuje aktywną starszą kolejkę, zachowuje ID pozostawionych pytań i wszystkie zapisane odpowiedzi, a zmieniony stan utrwala z kontrolą rewizji. Kolejne odczyty są stabilne; równoległa edycja może zwrócić 409 i wymaga ponownego wczytania. Wyczerpana kolejka przechodzi do przeglądu faktów albo istniejącego potwierdzonego podglądu. Naprawa nie zmienia profilu zawodowego, dokumentów ani kredytów. JSON sesji dodaje opcjonalne `record_label` pytania i `dismissed_clarification_keys`; nie wymaga migracji bazy ani nowej zależności. `preview` i `next` odrzucają próby ponownego uruchomienia płatnej pracy podczas oczekiwania na doprecyzowanie. Testy odtwarzają osiem jednakowych starszych pytań, izolację właścicieli, bezpłatną naprawę, ponowienie odpowiedzi, wyczerpanie limitu i powtórzenie z nowym tematem.
+
+### Koszt poszczególnych zapytań
+
+Po operacji wywiadu `InterviewCredits` odczytuje `GET /ai/interviews/{id}/credits`. Wymagany jest obecny token bearer; parametr ścieżki musi wskazywać własną sesję. Nie podaje się body, parametrów query ani klucza idempotencji. `get_interview_credits` w `backend/app/api/routes/interviews.py` wywołuje `owned_session` przed `interview_credit_usage` z `backend/app/services/interview_credits.py`. Brak uwierzytelnienia korzysta z obecnego błędu logowania; sesja nieistniejąca i cudza zwracają 404. Odczyt nie wymaga Pro, nie uruchamia AI i nie zmienia danych.
+
+Przykład żądania: `GET /ai/interviews/<owned-session-id>/credits` z `Authorization: Bearer <session-token>`. Przykład odpowiedzi 200:
+
+```json
+{"credits_charged":18,"requests":[{"id":"example-reservation-id","operation":"preview","created_at":"2026-09-12T10:00:00Z","credits_charged":18,"pending":false,"stages":[{"operation":"preview","credits_charged":8,"status":"settled"},{"operation":"editorial","credits_charged":6,"status":"settled"},{"operation":"verify","credits_charged":4,"status":"settled"}]}]}
+```
+
+Kwoty są nieujemnymi liczbami całkowitymi z `AiCreditReservation.charged_credits`, nie szacunkiem kosztu tokenów ani pułapem rezerwacji. `requests` zaczyna się od najnowszego żądania. Operacje żądań to `next`, `preview` i przyszłościowe `other`; etapy rozróżniają dodatkowo `editorial` i `verify`. Statusy etapów to `pending`, `settled`, `failed`, `released` lub `expired`. Oczekujące żądanie pokazuje dotychczas naliczoną sumę i jawny opis trwającego rozliczenia. Czas ma format ISO 8601 UTC, prezentowany lokalnie w interfejsie. Nowy wywiad zwraca sumę zero i pustą tablicę dopiero po udanym odczycie.
+
+Serwis pobiera wyłącznie metadane rozliczeń i filtruje rekordy według właściciela, akcji oraz prefiksu sesji z escapowaniem. Zarówno starsze klucze, jak i wersjonowane klucze próby generowania identyfikują rewizję, która faktycznie poniosła koszt. Ponowne użycie ukończonego etapu nie tworzy rekordu rozliczenia; częściowo wznowiony podgląd pokazuje pod nowym żądaniem tylko nowe płatne etapy. Błędy z rozliczonym zużyciem nadal mają koszt, a zwolnione rezerwacje dodają zero. Kredyty tylko zarezerwowane są pomijane w sumie. Wynik nie zawiera promptów, odpowiedzi providera, hashy żądań ani kluczy idempotencji. Obowiązuje retencja istniejących rozliczeń; usunięcie wywiadu blokuje endpoint bez przepisywania historii opłat.
+
+Wspólny komponent odświeża koszty po sukcesie i błędzie, zachowuje ostatnie sumy z jawnym komunikatem o nieaktualnych danych, gdy odczyt zawiedzie, i udostępnia ponowny bezpłatny odczyt. Nie ponawia automatycznie płatnej pracy. Długie/oczekujące rozliczenie można jawnie odświeżyć; nie ma cyklicznego odpytywania ani obietnicy stałej ceny przed żądaniem. Saldo korzysta z obecnych uprawnień konta, z odświeżaniem nagłówka asystenta. Brak salda lub błąd jego odczytu nie jest zerem. Bezpłatne zapisy odpowiedzi, faktów i doprecyzowań mają osobne wyjaśnienie. Żądania i sumy nie trafiają do danych CV/PDF. Sekcja funkcji w README zawiera odnośniki implementacji oraz komendy testów backendu, runtime i przeglądarki.
 
 ### Kredyty i odzyskiwanie
 
