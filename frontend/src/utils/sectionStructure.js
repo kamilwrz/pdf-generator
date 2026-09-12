@@ -470,9 +470,11 @@ export function isSectionHeading(element, elements = [], pageHeight = 842) {
  * @param {object[]} elements
  * @param {object} heading
  * @param {number} pageHeight
+ * @param {Map<object, object>} confirmedChromeOwners
+ * @param {Set<object>} headingSet
  * @returns {number}
  */
-function resolveSectionChromeBandStart(elements, heading, pageHeight) {
+function resolveSectionChromeBandStart(elements, heading, pageHeight, confirmedChromeOwners, headingSet) {
   const headingAbs = absoluteTop(heading, pageHeight);
   let bandStart = headingAbs;
 
@@ -484,7 +486,14 @@ function resolveSectionChromeBandStart(elements, heading, pageHeight) {
   if (filledBand) {
     bandStart = Math.min(bandStart, absoluteTop(filledBand, pageHeight));
     for (const element of elements || []) {
-      if (isMatchingSectionBandAccent(element, filledBand, pageHeight)) {
+      // The recovery window can span the complete preceding short section.
+      // Its correctly aligned accent is already owned, not a displaced marker
+      // of this band. Reclaiming it gives both sections the same start and
+      // detaches the earlier heading on the very first density change.
+      if (
+        isMatchingSectionBandAccent(element, filledBand, pageHeight)
+        && !isConfirmedForeignSectionBandChrome(element, heading, confirmedChromeOwners)
+      ) {
         bandStart = Math.min(bandStart, absoluteTop(element, pageHeight));
       }
     }
@@ -493,6 +502,11 @@ function resolveSectionChromeBandStart(elements, heading, pageHeight) {
   for (const element of elements || []) {
     if (!element || element.fixedToPage) continue;
     if (element.element_id === heading.element_id) continue;
+    // A preceding title is not decoration for this heading. In a saved
+    // overlap it could otherwise pull both section starts onto one Y value,
+    // excluding the earlier title from every strip and making deletion fail.
+    if (headingSet.has(element)) continue;
+    if (isConfirmedForeignSectionBandChrome(element, heading, confirmedChromeOwners)) continue;
     if (!isLeadingSectionMark(element)) continue;
     const abs = absoluteTop(element, pageHeight);
     // Same window as the leading-mark pull in `sectionElementIds`.
@@ -514,25 +528,38 @@ function resolveSectionChromeBandStart(elements, heading, pageHeight) {
 }
 
 /**
+ * Resolve headings and confirmed chrome ownership once for one geometry pass.
+ * Section membership inspects every element for every heading; repeating the
+ * full ownership search inside that sweep would make larger CV edits stall.
+ * Keep the index local because callers may edit the same array between passes.
+ */
+function documentSectionContext(elements, pageHeight) {
+  const list = elements || [];
+  const headings = list
+    .filter((element) => isSectionHeading(element, list, pageHeight))
+    .sort((left, right) => absoluteTop(left, pageHeight) - absoluteTop(right, pageHeight));
+  const headingSet = new Set(headings);
+  const confirmedChromeOwners = confirmedSectionBandOwners(list, headings, pageHeight);
+
+  const sections = headings.map((heading, index) => ({
+    id: heading.element_id,
+    title: String(heading.content || "").trim(),
+    headingId: heading.element_id,
+    // Band start (not heading baseline) so pre-heading chrome belongs here.
+    startAbs: resolveSectionChromeBandStart(list, heading, pageHeight, confirmedChromeOwners, headingSet),
+    index,
+  }));
+  return { sections, headingSet, confirmedChromeOwners };
+}
+
+/**
  * List document sections in reading order.
  * @param {object[]} elements
  * @param {number} [pageHeight=842]
  * @returns {{ id: string, title: string, headingId: string, startAbs: number, index: number }[]}
  */
 export function listDocumentSections(elements, pageHeight = 842) {
-  const list = elements || [];
-  const headings = list
-    .filter((element) => isSectionHeading(element, list, pageHeight))
-    .sort((left, right) => absoluteTop(left, pageHeight) - absoluteTop(right, pageHeight));
-
-  return headings.map((heading, index) => ({
-    id: heading.element_id,
-    title: String(heading.content || "").trim(),
-    headingId: heading.element_id,
-    // Band start (not heading baseline) so pre-heading chrome belongs here.
-    startAbs: resolveSectionChromeBandStart(list, heading, pageHeight),
-    index,
-  }));
+  return documentSectionContext(elements, pageHeight).sections;
 }
 
 /**
@@ -687,6 +714,51 @@ function isMatchingSectionBandAccent(accent, band, pageHeight) {
   if (Math.abs(elementHeight(accent) - elementHeight(band)) > 2) return false;
   return Math.abs(absoluteTop(accent, pageHeight) - absoluteTop(band, pageHeight))
     <= SECTION_BAND_ACCENT_RECOVERY_WINDOW;
+}
+
+/**
+ * Index filled bands and exact edge accents with one unambiguous heading.
+ * Both the generic 24 px leading-mark window and the 48 px displaced-accent
+ * recovery window must respect these owners. Ambiguous overlaps and displaced
+ * accents remain unindexed so the existing recovery rules still apply.
+ *
+ * @param {object[]} elements - The unchanged geometry for this pass.
+ * @param {object[]} headings - Already classified section headings.
+ * @param {number} pageHeight
+ * @returns {Map<object, object>} Chrome element to its confirmed heading.
+ */
+function confirmedSectionBandOwners(elements, headings, pageHeight) {
+  const ownersByChrome = new Map();
+  const bands = elements.filter(isFilledSectionBand);
+  for (const band of bands) {
+    const bandTop = absoluteTop(band, pageHeight);
+    const bandLeft = Number(band.left) || 0;
+    const bandRight = bandLeft + Number(band.width);
+    const owners = headings.filter((candidate) => (
+      absoluteTop(candidate, pageHeight) >= bandTop
+      && absoluteTop(candidate, pageHeight) <= bandTop + elementHeight(band)
+      && Number(candidate.left) >= bandLeft - 1
+      && Number(candidate.left) < bandRight
+    ));
+    if (owners.length === 1) ownersByChrome.set(band, owners[0]);
+  }
+  for (const element of elements) {
+    if (element?.category !== "line" || element.flowRole !== "section-chrome") continue;
+    if (Number(element.width) > SECTION_BAND_ACCENT_MAX_WIDTH) continue;
+    const matches = bands.filter((candidate) => (
+      isMatchingSectionBandAccent(element, candidate, pageHeight)
+      && Math.abs(absoluteTop(element, pageHeight) - absoluteTop(candidate, pageHeight)) <= 1
+    ));
+    if (matches.length === 1 && ownersByChrome.has(matches[0])) {
+      ownersByChrome.set(element, ownersByChrome.get(matches[0]));
+    }
+  }
+  return ownersByChrome;
+}
+
+function isConfirmedForeignSectionBandChrome(element, heading, ownersByChrome) {
+  const owner = ownersByChrome.get(element);
+  return Boolean(owner) && owner.element_id !== heading?.element_id;
 }
 
 /**
@@ -944,7 +1016,7 @@ function healSplitFlowGroupMemberships(
  */
 export function sectionElementIds(elements, headingId, pageHeight = 842) {
   const list = elements || [];
-  const sections = listDocumentSections(list, pageHeight);
+  const { sections, headingSet, confirmedChromeOwners } = documentSectionContext(list, pageHeight);
   const index = sections.findIndex((section) => section.headingId === headingId);
   if (index < 0) return new Set();
 
@@ -963,6 +1035,10 @@ export function sectionElementIds(elements, headingId, pageHeight = 842) {
     const heading = list.find((element) => element.element_id === section.headingId);
     const isSameColumn = sameMainLaneAsSectionHeading(list, heading, pageHeight);
     const ids = membersByHeading.get(section.headingId);
+    // Persisted headings may coincide or have reversed chrome boundaries.
+    // Identity remains authoritative even when their geometric interval is
+    // empty: the selected title must still pack and delete with its section.
+    ids.add(section.headingId);
 
     for (const element of list) {
       if (element.fixedToPage) continue;
@@ -980,11 +1056,12 @@ export function sectionElementIds(elements, headingId, pageHeight = 842) {
       // already excluded above, so bypassing the column heuristic here cannot
       // fold the sidebar rail into the main document flow.
       if (!isSameColumn(element) && element.flowRole !== "section-chrome") continue;
+      if (isConfirmedForeignSectionBandChrome(element, heading, confirmedChromeOwners)) continue;
       // Another section's title must never join this strip — that is what made
       // Contact chips from a later band attach to an earlier heading and explode
       // chrome relTop across a whole page.
       if (
-        isSectionHeading(element, list, pageHeight)
+        headingSet.has(element)
         && element.element_id !== section.headingId
       ) {
         continue;
@@ -1385,12 +1462,18 @@ export function listSidebarSections(elements, pageHeight = 842) {
   const headings = list
     .filter((element) => isSidebarSectionHeading(element))
     .sort((left, right) => absoluteTop(left, pageHeight) - absoluteTop(right, pageHeight));
+  if (headings.length === 0) return [];
+  // Sidebar boundaries must also reject confirmed main-column chrome without
+  // recomputing its owners for each kicker in the rail.
+  const mainHeadings = list.filter((element) => isSectionHeading(element, list, pageHeight));
+  const headingSet = new Set(mainHeadings);
+  const confirmedChromeOwners = confirmedSectionBandOwners(list, mainHeadings, pageHeight);
 
   return headings.map((heading, index) => ({
     id: heading.element_id,
     title: String(heading.content || "").trim(),
     headingId: heading.element_id,
-    startAbs: resolveSectionChromeBandStart(list, heading, pageHeight),
+    startAbs: resolveSectionChromeBandStart(list, heading, pageHeight, confirmedChromeOwners, headingSet),
     index,
   }));
 }
@@ -1499,9 +1582,7 @@ export function packSidebarLane(
   // the gap while keeping authored section gaps.
   const railAnchor = sections[0];
   const firstHeading = list.find((element) => element.element_id === railAnchor.headingId);
-  const authoredRailTop = firstHeading
-    ? resolveSectionChromeBandStart(list, firstHeading, pageHeight)
-    : railAnchor.startAbs;
+  const authoredRailTop = railAnchor.startAbs;
   const mainSections = listDocumentSections(list, pageHeight);
   let cursorAbs = authoredRailTop;
   if (mainSections.length > 0) {

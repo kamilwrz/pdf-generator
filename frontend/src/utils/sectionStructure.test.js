@@ -22,6 +22,7 @@ import {
 import { regentTemplate } from "../templates/regent.js";
 import { cadenzaTemplate } from "../templates/cadenza.js";
 import { changeSkillsDisplayMode } from "./skillsDisplayMode.js";
+import { COMPACT_FLOW_SPACING, DEFAULT_FLOW_SPACING } from "./flowSpacing.js";
 
 /**
  * Two-column sidebar fixture modeled on Tessera/Slate's real geometry
@@ -250,6 +251,89 @@ describe("listDocumentSections", () => {
 });
 
 describe("sectionElementIds", () => {
+  it("does not recover the preceding Skills accent into a healthy Languages band within 48 px", () => {
+    // These offsets reproduce saved document 257 before its first density
+    // change: both filled bands are healthy, but their 40.86 px separation is
+    // smaller than the recovery window for a displaced accent.
+    const elements = [
+      { element_id: "skills-band", category: "line", flowRole: "section-chrome", left: 58, top: 695.52, width: 479, height: 18, page: 1 },
+      { element_id: "skills-accent", category: "line", flowRole: "section-chrome", left: 58, top: 695.52, width: 3, height: 18, page: 1 },
+      { element_id: "skills-head", category: "text", flowRole: "section-chrome", content: "UMIEJĘTNOŚCI", left: 58, top: 700.62, width: 479, fontSize: 7.4, page: 1 },
+      { element_id: "skills-body", category: "textarea", flowRole: "content", content: "Office · Excel", left: 58, top: 715.52, width: 479, height: 10.86, page: 1 },
+      { element_id: "languages-band", category: "line", flowRole: "section-chrome", left: 58, top: 736.38, width: 479, height: 18, page: 1 },
+      { element_id: "languages-accent", category: "line", flowRole: "section-chrome", left: 58, top: 736.38, width: 3, height: 18, page: 1 },
+      { element_id: "languages-head", category: "text", flowRole: "section-chrome", content: "JĘZYKI", left: 58, top: 741.48, width: 479, fontSize: 7.4, page: 1 },
+      { element_id: "languages-body", category: "textarea", flowRole: "grid-member", content: "English", left: 58, top: 756.38, width: 100, height: 10.86, page: 1 },
+    ];
+    assert.deepEqual(listDocumentSections(elements).map((section) => section.startAbs), [695.52, 736.38]);
+    const skillsIds = new Set(["skills-band", "skills-accent", "skills-head", "skills-body"]);
+    const languagesIds = new Set(["languages-band", "languages-accent", "languages-head", "languages-body"]);
+    assert.deepEqual(sectionElementIds(elements, "skills-head"), skillsIds);
+    assert.deepEqual(sectionElementIds(elements, "languages-head"), languagesIds);
+    let packed = elements;
+    for (const spacing of [
+      COMPACT_FLOW_SPACING,
+      DEFAULT_FLOW_SPACING,
+      COMPACT_FLOW_SPACING,
+    ]) {
+      packed = applyFlowSpacing(packed, spacing);
+      for (const prefix of ["skills", "languages"]) {
+        const band = packed.find((element) => element.element_id === `${prefix}-band`);
+        const accent = packed.find((element) => element.element_id === `${prefix}-accent`);
+        const heading = packed.find((element) => element.element_id === `${prefix}-head`);
+        assert.equal(accent.page, band.page);
+        assert.equal(accent.top, band.top);
+        assert.equal(heading.page, band.page);
+        assert.ok(Math.abs(heading.top - band.top - 5.1) < 0.01);
+      }
+      assert.deepEqual(sectionElementIds(packed, "skills-head"), skillsIds);
+      assert.deepEqual(sectionElementIds(packed, "languages-head"), languagesIds);
+    }
+    const removed = removeSection(elements, "skills-head");
+    assert.deepEqual(removed.removedIds, skillsIds);
+    assert.deepEqual(new Set(removed.elements.map((element) => element.element_id)), languagesIds);
+  });
+
+  it("keeps a nearby filled band's heading and accent out of the following section boundary", () => {
+    // Saved geometry can already contain a detached heading after a failed
+    // reflow. A following title within 24 px must not claim the earlier title
+    // or its confirmed accent as its own leading chrome.
+    const elements = [
+      { element_id: "skills-head", category: "text", flowRole: "section-chrome", content: "OBSŁUGA KOMPUTERA", left: 58, top: 165, width: 479, fontSize: 7.4, page: 1 },
+      { element_id: "skills-band", category: "line", flowRole: "section-chrome", left: 58, top: 160, width: 479, height: 18, page: 1 },
+      { element_id: "skills-accent", category: "line", flowRole: "section-chrome", left: 58, top: 160, width: 3, height: 18, page: 1 },
+      { element_id: "education-head", category: "text", flowRole: "section-chrome", content: "EDUKACJA", left: 58, top: 180, width: 479, fontSize: 7.4, page: 1 },
+      { element_id: "education-body", category: "textarea", flowRole: "content", content: "School", left: 58, top: 208, width: 479, height: 15, page: 1 },
+    ];
+    assert.deepEqual(listDocumentSections(elements).map((section) => section.startAbs), [160, 180]);
+    assert.deepEqual(sectionElementIds(elements, "skills-head"), new Set(["skills-head", "skills-band", "skills-accent"]));
+    assert.deepEqual(sectionElementIds(elements, "education-head"), new Set(["education-head", "education-body"]));
+
+    const packed = applyFlowSpacing(elements);
+    const packedHeading = packed.find((element) => element.element_id === "skills-head");
+    const packedBand = packed.find((element) => element.element_id === "skills-band");
+    assert.ok(Math.abs(packedHeading.top - packedBand.top - 5) < 0.01);
+    const removed = removeSection(elements, "skills-head");
+    assert.ok(removed, "a visible section must remain deletable after headings approach each other");
+    assert.deepEqual(removed.removedIds, new Set(["skills-head", "skills-band", "skills-accent"]));
+    assert.deepEqual(removed.elements.map((element) => element.element_id), ["education-head", "education-body"]);
+  });
+
+  it("always owns its own heading when saved section boundaries coincide", () => {
+    const elements = [
+      { element_id: "first", category: "text", flowRole: "section-chrome", content: "SKILLS", left: 58, top: 180, fontSize: 7.4, page: 1 },
+      { element_id: "second", category: "text", flowRole: "section-chrome", content: "EDUCATION", left: 58, top: 180, fontSize: 7.4, page: 1 },
+      { element_id: "body", category: "textarea", flowRole: "content", content: "School", left: 58, top: 208, width: 479, height: 15, page: 1 },
+    ];
+    assert.deepEqual(sectionElementIds(elements, "first"), new Set(["first"]));
+    assert.deepEqual(sectionElementIds(elements, "second"), new Set(["second", "body"]));
+    const removed = removeSection(elements, "first");
+    assert.ok(removed);
+    assert.deepEqual(removed.removedIds, new Set(["first"]));
+    assert.ok(removed.elements.some((element) => element.element_id === "second"));
+    assert.ok(removed.elements.some((element) => element.element_id === "body"));
+  });
+
   it("rehomes a body trapped under a stacked continuation heading", () => {
     // Continuation-page corruption: Obsługa chrome, then Języki chrome, then
     // Obsługa body. Y-interval membership used to give both bodies to Języki
