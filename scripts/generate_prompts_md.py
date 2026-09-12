@@ -1,4 +1,4 @@
-"""Generate ``docs/PROMPTS.md`` from current assistant handler functions.
+"""Generate ``docs/PROMPTS.md`` from current CV editorial policies and handlers.
 
 The generator resolves function boundaries and line numbers at runtime so
 removing or moving an action cannot leave the prompt reference silently stale.
@@ -8,7 +8,7 @@ Usage from the repository root:
 """
 from __future__ import annotations
 
-import re
+import ast
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -16,6 +16,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 SERVICE = ROOT / "backend" / "app" / "services" / "ai_assistant_service.py"
 MATCHING_POLICY = ROOT / "backend" / "app" / "services" / "job_matching_policy.py"
+EDITORIAL_POLICY = ROOT / "backend" / "app" / "services" / "cv_editorial_policy.py"
+SCOPED_SERVICE = ROOT / "backend" / "app" / "services" / "scoped_ai.py"
+INTERVIEW_EDITORIAL = ROOT / "backend" / "app" / "services" / "interview_editorial.py"
 OUT = ROOT / "docs" / "PROMPTS.md"
 
 
@@ -42,19 +45,41 @@ ACTIONS = (
 
 def function_block(source: str, function_name: str) -> tuple[int, int, str]:
     """Return one top-level Python function with verified current line numbers."""
-    pattern = re.compile(rf"^def {re.escape(function_name)}\(", re.MULTILINE)
-    match = pattern.search(source)
-    if match is None:
-        raise RuntimeError(f"Missing function: {function_name}")
-    next_function = re.search(r"^def [A-Za-z_]\w*\(", source[match.end():], re.MULTILINE)
-    end_offset = match.end() + next_function.start() if next_function else len(source)
-    start_line = source.count("\n", 0, match.start()) + 1
-    end_line = source.count("\n", 0, end_offset)
-    return start_line, end_line, source[match.start():end_offset].rstrip()
+    # Python syntax boundaries exclude constants and comments belonging to the
+    # next handler, even with multiline signatures or decorators.
+    for node in ast.parse(source).body:
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name == function_name:
+            start_line = min([node.lineno, *(item.lineno for item in node.decorator_list)])
+            end_line = node.end_lineno
+            if end_line is None:
+                raise RuntimeError(f"Missing function end: {function_name}")
+            block = "\n".join(source.splitlines()[start_line - 1:end_line])
+            return start_line, end_line, block
+    raise RuntimeError(f"Missing function: {function_name}")
+
+
+def module_section(path: Path, title: str, description: str) -> str:
+    """Render a complete policy module with its verified repository-relative path."""
+    source = path.read_text(encoding="utf-8").rstrip()
+    return (
+        f"## {title}\n\n"
+        f"Plik `{path.relative_to(ROOT).as_posix()}`, linie 1–{len(source.splitlines())}. "
+        f"{description}\n\n```python\n{source}\n```\n\n"
+    )
+
+
+def handler_section(path: Path, name: str, title: str, description: str) -> str:
+    """Render a scope-specific handler without importing application dependencies."""
+    start, end, block = function_block(path.read_text(encoding="utf-8"), name)
+    return (
+        f"## {title}\n\n"
+        f"Handler `{name}` w `{path.relative_to(ROOT).as_posix()}`, linie {start}–{end}. "
+        f"{description}\n\n```python\n{block}\n```\n\n"
+    )
 
 
 def main() -> None:
-    """Write the current action inventory and live handler prompt sources."""
+    """Write action adapters and shared policies using only the standard library."""
     source = SERVICE.read_text(encoding="utf-8")
     parts = [
         "# PROMPTS.md — prompty AI w CV Studio\n\n",
@@ -81,7 +106,23 @@ def main() -> None:
         "\n`grammar`, `language`, `improve` i `shorten` używają wykrytego lub jawnie "
         "wybranego `cv_language`. Akcja `translate` wymaga `target_language`; rady UI "
         "używają języka żądania (PL lub EN), a proponowana treść jest zwracana w języku docelowym.\n\n"
+        "Powyższa mapa wskazuje klasyczne handlery płótna. Dla dokumentu z `cv_data` "
+        "akcje treści korzystają z `_rewrite_profile_content`; obecność `scoped_content` "
+        "kieruje obsługiwane akcje do `review_scoped_content`. Wywiad dodaje etap "
+        "`EDITORIAL_TASK` przed niezależną weryfikacją. Pełne źródła tych adapterów "
+        "i wspólnych zasad znajdują się poniżej.\n\n"
     )
+
+    parts.append(module_section(
+        EDITORIAL_POLICY,
+        "Wspólny standard jakości języka CV",
+        "`STYLE_REVIEW_POLICY` łączy `STYLE_INSTRUCTION`, `STYLE_EXAMPLES` i `FACT_PRESERVATION`. "
+        "Cały asystent, zaznaczone fragmenty oraz redakcja po wywiadzie stosują ten sam standard. "
+        "`IMPROVE_INSTRUCTION` dodatkowo podkreśla potwierdzony wkład. Skracanie zachowuje własny "
+        "zakres redukcji; globalne skracanie pomija przykłady, aby ograniczyć koszt wejścia. "
+        "Gramatyka i tłumaczenie pozostają osobnymi, węższymi zadaniami. "
+        "Wspólna polityka nie poszerza dozwolonych pól ani nie zmienia formatów odpowiedzi.",
+    ))
 
     for item, start, end, block in blocks:
         parts.extend(
@@ -95,18 +136,35 @@ def main() -> None:
             ]
         )
 
-    # Handler imports are not sufficient documentation: include the shared
-    # policy source so analysis and later CV-generation instructions stay visible.
-    policy = MATCHING_POLICY.read_text(encoding="utf-8").rstrip()
-    parts.extend([
-        "## Wspólna polityka dopasowania i redakcji CV\n\n",
-        f"Plik `backend/app/services/job_matching_policy.py`, linie 1–{len(policy.splitlines())}. ",
-        "Analiza asystenta i analiza w wywiadzie korzystają z tych samych reguł wymagań i dowodów. ",
-        "Wywiad w trybie `tailor` dodaje osobne instrukcje przygotowania oraz redakcji treści; ",
-        "niezależna weryfikacja nadal sprawdza wynik względem potwierdzonych faktów.\n\n",
-        "```python\n", policy, "\n```\n\n",
-        "*Wygenerowano przez `scripts/generate_prompts_md.py`.*\n",
-    ])
+    parts.append(handler_section(
+        SERVICE, "_rewrite_profile_content", "Redakcja kanonicznego profilu CV",
+        "Przy istniejącym `cv_data` zwraca kompletny `updated_cv_data` i poprawki płótna "
+        "do akceptacji. Wspólny standard jest dołączany zależnie od wybranej akcji; "
+        "jej reguły nadal określają język, zakres i dozwolone zmiany struktury.",
+    ))
+    parts.append(handler_section(
+        SCOPED_SERVICE, "review_scoped_content", "Redakcja wybranego zakresu",
+        "Wysyła wyłącznie wybrane fragmenty oraz kontekst tylko do odczytu. "
+        "Walidacja zachowuje identyfikatory, liczby, rozpoznane narzędzia i pojedyncze umiejętności. "
+        "`improve` może osobno zwrócić `achievement_templates` z pytaniami; "
+        "niepotwierdzone uzupełnienia nie trafiają do gotowych poprawek.",
+    ))
+    parts.append(module_section(
+        INTERVIEW_EDITORIAL, "Redakcja i wersjonowanie generowania po wywiadzie",
+        "`EDITORIAL_TASK` stosuje wspólny standard wyłącznie do edytowalnej prozy. "
+        "Zwraca pełne `path/value`, zachowuje dowody i zaakceptowane `framing`; "
+        "po walidacji następuje niezależna weryfikacja faktów. Wersja procesu unieważnia "
+        "ponowne użycie etapów starszej polityki, bez blokowania odczytu zapisanych podglądów.",
+    ))
+    # Include imported policies as well as handlers so readers can inspect the
+    # actual shared instructions instead of seeing only interpolation names.
+    parts.append(module_section(
+        MATCHING_POLICY, "Wspólna polityka dopasowania i redakcji CV",
+        "Analiza asystenta i analiza w wywiadzie korzystają z tych samych reguł wymagań i dowodów. "
+        "Wywiad w trybie `tailor` dodaje osobne instrukcje przygotowania oraz redakcji treści; "
+        "niezależna weryfikacja nadal sprawdza wynik względem potwierdzonych faktów.",
+    ))
+    parts.append("*Wygenerowano przez `scripts/generate_prompts_md.py`.*\n")
     OUT.write_text("".join(parts), encoding="utf-8")
     print(f"Wrote {OUT} ({OUT.stat().st_size} bytes)")
 

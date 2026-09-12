@@ -9,10 +9,12 @@ from uuid import uuid4
 
 from app.schemas.interview_schema import Draft
 from app.services import interview_service as service
-from app.services.cv_editorial_policy import FACT_PRESERVATION, STYLE_INSTRUCTION
-from app.services.scoped_ai import protected_tokens
+from app.services.cv_editorial_policy import STYLE_REVIEW_POLICY
+from app.services.scoped_ai import preserves_protected_tokens
 
-PIPELINE_VERSION = 2
+# A new generation must not replay stages prepared under the older policy.
+# Saved previews remain readable; only a fresh/retried generation uses version 3.
+PIPELINE_VERSION = 3
 # Only prose leaves can be rewritten. Identity, role titles, employers, dates,
 # skill names/levels and section placement stay read-only, including in custom CVs.
 PROSE_PATH = re.compile(
@@ -21,8 +23,7 @@ PROSE_PATH = re.compile(
     r"custom_sections/[0-9]{1,2}/items/[0-9]{1,2}"
     r"(?:/(?:description|bullets/[0-9]{1,2}))?)$"
 )
-EDITORIAL_TASK = f"""{STYLE_INSTRUCTION}
-{FACT_PRESERVATION}
+EDITORIAL_TASK = f"""{STYLE_REVIEW_POLICY}
 Oceń merytoryczną przydatność opisów: wyraź jasno potwierdzone działanie, osobisty
 wkład, kontekst i rezultat, ale nie dopisuj brakujących elementów. Użytkownik może
 pisać potocznie, skrótowo lub z błędami; nie oceniaj jego kompetencji po języku.
@@ -70,7 +71,7 @@ def apply_editorial_review(draft, review):
         raise ValueError("Missing, duplicate or unexpected editorial path")
     for path, value in patches.items():
         before = editable[path]["value"]
-        if not value.strip() or not _preserves_tokens(before, value):
+        if not value.strip() or not preserves_protected_tokens(before, value):
             raise ValueError("Empty prose or changed protected tokens")
         if re.findall(r"\[[^\]]+\]", before) != re.findall(r"\[[^\]]+\]", value):
             raise ValueError("Changed editorial placeholders")
@@ -79,19 +80,6 @@ def apply_editorial_review(draft, review):
         if field["path"] in patches:
             field["value"] = patches[field["path"]]
     return result
-
-
-def _preserves_tokens(before, after):
-    # Recognize protected names from either version, then compare normalized
-    # occurrences. This allows "sql" -> "SQL" and "power bi" -> "Power BI"
-    # without allowing the editor to introduce or delete those tools/metrics.
-    for token in protected_tokens(before) | protected_tokens(after):
-        # Optional whitespace permits multi-word tools; word boundaries prevent
-        # "4" from being preserved merely because another value contains 2024.
-        pattern = r"(?<!\w)" + r"\s*".join(re.escape(char) for char in token) + r"(?!\w)"
-        if bool(re.search(pattern, before, re.I)) != bool(re.search(pattern, after, re.I)):
-            return False
-    return True
 
 
 def begin_generation(db, row, request, profile):

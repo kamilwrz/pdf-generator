@@ -222,7 +222,9 @@ class EmploymentTenseAnnotationTests(unittest.TestCase):
         self.assertIn("employment_tense", captured["user"])
         self.assertIn('"employment_tense": "past"', captured["user"])
         self.assertIn("NIGDY nie zamieniaj czasu przeszłego", captured["user"])
-        self.assertIn("Obecnie", captured["system"])
+        # The shared system rubric and action-specific tense block together
+        # carry the rule; moving it between message roles must not break it.
+        self.assertIn("Obecnie", captured["system"] + captured["user"])
 
 
 class LanguageConsistencyTests(unittest.TestCase):
@@ -560,7 +562,7 @@ class TranslateActionTests(unittest.TestCase):
             # The prompt must lead with shortening intent, not strengthening,
             # and forbid inventing new facts.
             self.assertIn("skrócić", user)
-            self.assertIn("NIE wymyślasz", system)
+            self.assertRegex(system.lower(), r"nie wymyśl(?:aj|asz)")
             self.assertIn("NIE WYMYŚLAJ", user)
             return {
                 "message": "Skrócono podsumowanie z 5 do 3 wierszy.",

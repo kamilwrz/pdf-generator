@@ -10,6 +10,8 @@ from app.api.routes import interviews
 from app.models.models import AiCreditReservation, InterviewSession
 from app.schemas.interview_schema import Discovery, EditorialReview, provider_schema
 from app.services import interview_service as service
+from app.services import interview_editorial as editorial_service
+from app.services.cv_editorial_policy import STYLE_REVIEW_POLICY
 from app.services.interview_editorial import apply_editorial_review, prepare_editorial_draft
 from app.services.job_matching_policy import TAILORED_DRAFT_POLICY, TAILORED_EDITORIAL_POLICY
 from test_interviews import environment, create, confirm, version, editorial
@@ -61,6 +63,8 @@ def test_pipeline_checks_edited_text_against_unchanged_raw_answers(environment, 
     assert [c.kwargs['response_schema']['name'] for c in calls] == ['draft', 'editorialreview', 'verification']
     assert [c.kwargs['action'] for c in calls] == ['improve', 'language', 'improve']
     draft_context, style_context = [json.loads(call.args[1]) for call in calls[:2]]
+    assert style_context['task'].count(STYLE_REVIEW_POLICY) == 1
+    assert style_context['editable_paths'] == ['/summary']
     # Tailoring must reach both writing stages, while facts remain the only
     # candidate evidence supplied to the final independent verification.
     assert (TAILORED_DRAFT_POLICY in draft_context['task']) is (mode == 'tailor')
@@ -76,7 +80,7 @@ def test_pipeline_checks_edited_text_against_unchanged_raw_answers(environment, 
     assert saved['preview']['cv_data']['summary'] == PROFESSIONAL
     assert any(PROFESSIONAL in str(element) for element in saved['preview']['elements'])
     assert saved['preview']['changes'][0]['evidence_refs'] == ['answer-q']
-    assert saved['preview']['pipeline_version'] == 2
+    assert saved['preview']['pipeline_version'] == 3
     assert saved['usage']['cost_pln_estimate'] == pytest.approx(.03)
     assert saved['answers'] == session['answers']
     assert 'generation_attempt' not in saved
@@ -148,6 +152,32 @@ def test_assembly_recovery_requires_complete_current_pipeline(environment, chang
     assert result.status_code == 200, result.text
     assert provider.call_count == (3 if changed_profile else 0)
     assert result.json()['preview']['recovered_previous_attempt'] is not changed_profile
+
+
+def test_upgraded_policy_does_not_replay_completed_older_generation_stages(environment):
+    """A version-2 cache cannot bypass version-3 editorial review on retry."""
+    client, db, user, _ = environment
+    session = setup_answer(client, db)
+    outputs = [(draft_for_answer(), USAGE), (editorial(draft_for_answer()), USAGE), (VERIFIED, USAGE)]
+    # Keep every paid stage cached by failing only deterministic assembly. This
+    # recreates an old attempt identity without depending on obsolete prompts.
+    with patch.object(editorial_service, 'PIPELINE_VERSION', 2), \
+         patch.object(service, '_gpt', side_effect=outputs), \
+         patch.object(interviews, 'generate_resume', side_effect=HTTPException(422, {'message': 'Sprawdź szablon.'})):
+        legacy = generate(client, session)
+    assert legacy.status_code == 200 and legacy.json()['phase'] == 'review'
+    row = db.get(InterviewSession, session['id'], populate_existing=True)
+    assert row.state['generation_attempt']['version'] == 2
+    before = deepcopy(service.interview_profile(db, row))
+    with patch.object(service, '_gpt', side_effect=outputs) as provider:
+        upgraded = generate(client, legacy.json())
+    assert upgraded.status_code == 200, upgraded.text
+    assert provider.call_count == 3
+    assert upgraded.json()['preview']['pipeline_version'] == 3
+    assert upgraded.json()['preview']['recovered_previous_attempt'] is False
+    assert upgraded.json()['answers'] == session['answers']
+    assert service.interview_profile(db, db.get(InterviewSession, session['id'], populate_existing=True)) == before
+    assert db.query(AiCreditReservation).filter_by(user_id=user.id, status='settled').count() == 6
 
 
 def test_source_edit_during_editorial_cannot_publish_stale_output(environment):
@@ -267,10 +297,17 @@ def test_editorial_can_normalize_tool_casing_without_inventing_tools():
     assert apply_editorial_review(draft, review)['fields'][0]['value'] == review['fields'][0]['value']
 
 
-def test_metric_cannot_disappear_into_an_unrelated_year():
-    draft = {'fields': [{'path': '/summary', 'value': 'Testowałem 4 scenariusze w 2024.', 'evidence_refs': ['a']}], 'remaining_gaps': []}
+@pytest.mark.parametrize('before,after', [
+    ('Testowałem 4 scenariusze w 2024.', 'Testowałem scenariusze w 2024.'),
+    ('Angielski C1', 'Angielski C2'),
+    ('Testowałem wersję v2.', 'Testowałem wersję v3.'),
+])
+def test_editorial_preserves_metrics_levels_and_version_numbers(before, after):
+    # Digits embedded in levels or versions are facts even without a word
+    # boundary before them; a different year cannot replace a missing metric.
+    draft = {'fields': [{'path': '/summary', 'value': before, 'evidence_refs': ['a']}], 'remaining_gaps': []}
     with pytest.raises(ValueError):
-        apply_editorial_review(draft, {'fields': [{'path': '/summary', 'value': 'Testowałem scenariusze w 2024.'}]})
+        apply_editorial_review(draft, {'fields': [{'path': '/summary', 'value': after}]})
 
 
 def test_pending_unknown_outcome_cannot_be_bypassed_by_session_revision(environment):
