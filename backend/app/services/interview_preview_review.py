@@ -68,5 +68,9 @@ def review_preview(db, user, row, request):
                         "pages": max((int(e.get("page", 1)) for e in elements), default=1),
                         "profile_revision": profile["revision"], "recovered_previous_attempt": False}
     state["document_title"] = None
+    # User corrections invalidate the old restore point. Refit their geometry
+    # for free, without silently rewriting an explicitly approved replacement.
+    from app.services.interview_fit import initialise_fit
+    initialise_fit(state, allow_shorten=False, profile=checked)
     service.update_session(db, row, request.revision, state)
     return service.session_payload(service.owned_session(db, user.id, row.id))

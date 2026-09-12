@@ -1521,7 +1521,19 @@
     "interviewFlow.fullName": "Full name",
     "interviewFlow.targetRole": "Target role",
     "factEditor.sourceReadOnly": "Details from the selected source. Make changes in the CV editor.",
-    "factEditor.sourceEmpty": "This section has no details from the selected source. Add them in the CV editor or choose another source."
+    "factEditor.sourceEmpty": "This section has no details from the selected source. Add them in the CV editor or choose another source.",
+    "fit.preparation": "After verification, we will adjust spacing and use size S if needed. When fewer pages are realistic, we will make up to 3 shortening attempts, each with a separate factual check. Shortening and verification use additional AI credits; layout changes are free.",
+    "fit.pending": "Layout fitting is unfinished. Resume it or restore the verified version from before fitting.",
+    "fit.resume": "Resume CV fitting",
+    "fit.restore": "Restore version before fitting",
+    "fit.restored": "Restored the version before fitting.",
+    "fit.reduced_one": "Fitted your CV onto {{count}} page.",
+    "fit.reduced_other": "Fitted your CV onto {{count}} pages.",
+    "fit.balanced_one": "Kept {{count}} page and selected its layout.",
+    "fit.balanced_other": "Kept {{count}} pages and selected their layout.",
+    "credits.operation.shorten": "Content shortening",
+    "credits.operation.fit_verify": "Shortening verification",
+    "fit.layoutError": "The layout could not be fitted safely. Resume preparation or restore the version before fitting."
   },
   "errors": {
     "accountApi.couldNotPrepareYourDataExport": "Could not prepare your data export.",

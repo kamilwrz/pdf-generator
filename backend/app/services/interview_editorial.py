@@ -14,7 +14,7 @@ from app.services.scoped_ai import preserves_protected_tokens
 
 # A new generation must not replay stages prepared under the older policy.
 # Saved previews remain readable; new attempts use the concise unit policy.
-PIPELINE_VERSION = 4
+PIPELINE_VERSION = 5
 # Only prose leaves can be rewritten. Identity, role titles, employers, dates,
 # skill names/levels and section placement stay read-only, including in custom CVs.
 PROSE_PATH = re.compile(

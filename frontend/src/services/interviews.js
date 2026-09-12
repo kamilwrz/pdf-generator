@@ -7,11 +7,12 @@ import { isCareerNote } from '../utils/careerProfileView';
 /** Read the current token on every request so session renewal needs no remount. */
 export function interviewRequest(path, method = 'GET', data, key) {
   const api = new ApiClient({ Authorization: `Bearer ${getAccessToken()}` });
-  // A preview includes three sequential provider calls, each capped server-side
-  // at 540 seconds, plus layout/settlement headroom. Other operations retain the
-  // existing limit. Never automatically retry a possibly completed paid call.
+  // Initial generation includes three provider calls; a shortening pair has
+  // two. Each is capped server-side at 540 seconds, with settlement headroom.
+  // Free fit writes keep the ordinary limit. Paid calls are never auto-retried.
   const isGeneration = method === 'POST' && /^\/ai\/interviews\/[^/]+\/preview$/.test(path);
-  const timeoutMs = isGeneration ? 3 * 540_000 + 60_000 : 180_000;
+  const isFit = method === 'POST' && /\/preview-fit$/.test(path) && data?.action === 'shorten';
+  const timeoutMs = isGeneration ? 3 * 540_000 + 60_000 : isFit ? 2 * 540_000 + 60_000 : 180_000;
   return api.httpRequest(path, method, data === undefined ? undefined : JSON.stringify(data),
     uiText("interview:interviews.couldNotSaveTheInterviewYourAnswers"), {
       timeoutMs, retries: 0, retryOnTimeout: false,

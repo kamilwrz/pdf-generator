@@ -74,6 +74,27 @@ class GenerateWrite(SessionWrite):
     template_id: str = Field(min_length=1, max_length=100)
 
 
+class PreviewFitWrite(SessionWrite):
+    """Browser layout proposal for an owned, version-bound interview preview.
+
+    Geometry is checked against the stored content before it is committed.
+    Reduction is a browser measurement hint, never permission to exceed the
+    server's iteration or factual-preservation limits.
+    """
+    action: Literal["shorten", "finish", "restore"]
+    elements: list[dict] = Field(default_factory=list, max_length=1000)
+    spacing_px: dict | None = None
+    required_reduction: float = Field(default=0, ge=0, le=1, allow_inf_nan=False)
+    editable_height: float = Field(default=0, ge=0, le=20000, allow_inf_nan=False)
+    target_pages: int = Field(default=1, ge=1, le=20)
+
+
+class FitVerification(Contract):
+    """Independent comparison with the original verified prose and raw evidence."""
+    rejected_paths: list[str] = Field(max_length=250)
+    reasons: list[str] = Field(max_length=250)
+
+
 class PreviewReviewWrite(SessionWrite):
     """Reject a generated field (null) or explicitly confirm its full replacement."""
     path: str = Field(min_length=1, max_length=200)

@@ -62,7 +62,7 @@ export default function InterviewFlow({ sessionId, initialSource = null, current
     sessionRef.current = next;
     setSession(next); setProfile(currentProfile); setFacts(reviewFacts(currentProfile, next));
     setTemplate(next?.template_id || '');
-    setPanel(next?.phase === 'preview' || next?.phase === 'completed' ? 'preview' : 'conversation');
+    setPanel(next?.preview?.fit?.status === 'pending' ? 'prepare' : next?.phase === 'preview' || next?.phase === 'completed' ? 'preview' : 'conversation');
   }, []);
 
   const load = useCallback(async () => {
@@ -84,7 +84,7 @@ export default function InterviewFlow({ sessionId, initialSource = null, current
     alive.current = true;
     load().catch((err) => { if (alive.current) setError(messageOf(err)); }).finally(() => { if (alive.current) setInitialLoading(false); });
     return () => { alive.current = false; };
-  }, [sessionId, initialSource, load]);
+  }, [sessionId, initialSource, load, setError]);
 
   // Return focus to the active task after a request; hidden forms keep their drafts.
   useEffect(() => { if (!busy && !initialLoading) heading.current?.focus(); }, [session?.phase, session?.question?.id, reviewOpen, panel, busy, initialLoading]);
@@ -103,7 +103,19 @@ export default function InterviewFlow({ sessionId, initialSource = null, current
 
   async function operation(action, extra = {}) {
     setPendingOperation(action);
-    const result = await interviewRequest(`/ai/interviews/${session.id}/${action}`, 'POST', { ...versions(), ...extra });
+    let result = await interviewRequest(`/ai/interviews/${session.id}/${action}`, 'POST', { ...versions(), ...extra });
+    if (['preview', 'preview-review'].includes(action) && result.phase === 'preview' && result.preview?.fit?.status === 'pending' && alive.current) {
+      const { completeInterviewFit } = await import('../../../utils/interviewFit.js');
+      setPendingOperation('preview');
+      try {
+        result = await completeInterviewFit(result, interviewRequest, () => alive.current && sessionRef.current?.id === session.id);
+      } catch (err) {
+        // Reload only saved state after a partial fit. Recovery remains an
+        // explicit action; a GET must never start another paid shortening.
+        await load();
+        throw err;
+      }
+    }
     if (!alive.current) return;
     if (result.document_id && action === 'document') { navigate(`/app/documents/${result.document_id}`); return; }
     if (!result.profile) setPendingOperation('sync');
@@ -171,7 +183,8 @@ export default function InterviewFlow({ sessionId, initialSource = null, current
   const needsFactSave = Boolean(session && (!session.confirmed || hasPending || JSON.stringify(facts) !== JSON.stringify(profile?.facts || [])));
   const reviewDestination = session?.question || !session?.answers.length ? 'conversation' : 'prepare';
   const reviewing = session?.phase === 'intake' || reviewOpen;
-  const activePanel = reviewing ? 'facts' : session?.phase === 'clarification' ? 'conversation' : panel;
+  const fitPending = session?.preview?.fit?.status === 'pending';
+  const activePanel = reviewing ? 'facts' : session?.phase === 'clarification' ? 'conversation' : fitPending && panel === 'preview' ? 'prepare' : panel;
   const waiting = busy || initialLoading;
   const inlineWaiting = busy && !initialLoading && ['answers', 'next', 'confirm', 'sync', 'preview-review'].includes(pendingOperation);
   // Clarifications have their own bounded queue; discovery answers must not
@@ -197,7 +210,7 @@ export default function InterviewFlow({ sessionId, initialSource = null, current
     {waiting && <InterviewLoading compact={inlineWaiting} operation={initialLoading ? 'load' : pendingOperation} facts={session || !isolated ? profile?.facts.length : undefined} answers={session?.answers.length} language={languageLabels[session?.language || language]} template={TEMPLATES.find((item) => item.id === template)?.name} />}
     <div hidden={waiting && !inlineWaiting} aria-busy={waiting}>
     {session && !legacy && <InterviewStages active={activePanel} onSelect={goTo}
-      disabled={key => busy || factEditing || (Boolean(session.question) && key !== 'conversation') || (session.phase === 'clarification' && key !== 'conversation') || (key === 'preview' && (!session.preview || needsFactSave)) || (session.phase === 'completed' && key !== 'preview')} />}
+      disabled={key => busy || factEditing || (Boolean(session.question) && key !== 'conversation') || (session.phase === 'clarification' && key !== 'conversation') || (key === 'preview' && (!session.preview || needsFactSave || fitPending)) || (session.phase === 'completed' && key !== 'preview')} />}
     {!canAi && entitlements && <p>{uiText("interview:interviewFlow.aiInterviewsRequireProYouCanStill")} <Link to="/app/account">{uiText("interview:interviewFlow.accountAndPlan")}</Link></p>}
     {sourceChanged && <p className={classes.error}>{uiText("interview:interviewFlow.theCvInTheEditorHasChanged")}</p>}
     {session && !legacy && (sourceChanged || session.source_document_id) && <button disabled={busy || factEditing || hasLocalFactChanges || session.phase === 'completed' || Boolean(answer.trim())} type="button" onClick={() => run(async () => { await operation('source', currentSource || {}); onSourceRefreshed?.(); setReviewOpen(true); })}>{uiText("interview:interviewFlow.loadCurrentCvIntoTheInterview")}</button>}
@@ -304,13 +317,20 @@ export default function InterviewFlow({ sessionId, initialSource = null, current
         {activePanel === 'prepare' && session.phase !== 'completed' && session.phase !== 'clarification' && <fieldset disabled={busy} className={classes.preparation}>
           <legend>{uiText("interview:interviewFlow.prepareCv")}</legend>
           <p className={classes.hint}>{uiText("interview:interviewFlow.aiWillDraftTheContentEditIts")}</p>
+          <p className={classes.hint}>{uiText('interview:fit.preparation')}</p>
+          {fitPending && <p role="status">{uiText('interview:fit.pending')}</p>}
           {hasPending && <p>{uiText("interview:interviewFlow.confirmOrRemoveNewInformationBeforeGenerating")}</p>}
           <label>{uiText("interview:interviewFlow.newCvTemplate")}<select value={template} onChange={(e) => setTemplate(e.target.value)} disabled={session.mode === 'tailor' && Boolean(session.template_id)}><option value="">{uiText("interview:interviewFlow.chooseATemplate")}</option>{TEMPLATES.filter((t) => isTemplateAllowed(t, entitlements)).map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}</select></label>
           {(session.mode !== 'tailor' || !session.template_id) && <details><summary>{uiText("interview:interviewFlow.browseTemplates")}</summary><TemplateCarousel templates={TEMPLATES} entitlements={entitlements} selectedId={template} visibleCount={1} fillingId={busy ? template : null} onSelect={(selected) => setTemplate(selected.id)} actionLabel={uiText("interview:interviewFlow.chooseATemplate")} /></details>}
           <p className={classes.hint}>{uiText("interview:interviewFlow.contentWillBeLaidOutAgainIn")}</p>
-          <button className={classes.primary} disabled={!canAi || !template || hasPending || sourceChanged} onClick={() => run(() => operation('preview', { template_id: template }))}>{session.preview ? uiText("interview:interviewFlow.refreshPreview") : uiText("interview:interviewFlow.prepareCvFromConfirmedInformation")}</button>
+          <button className={classes.primary} disabled={!canAi || !template || hasPending || sourceChanged} onClick={() => run(() => operation('preview', { template_id: template }))}>{fitPending ? uiText('interview:fit.resume') : session.preview ? uiText("interview:interviewFlow.refreshPreview") : uiText("interview:interviewFlow.prepareCvFromConfirmedInformation")}</button>
+          {fitPending && <button type="button" disabled={busy || sourceChanged} onClick={() => run(() => operation('preview-fit', { action: 'restore' }))}>{uiText('interview:fit.restore')}</button>}
         </fieldset>}
         {activePanel === 'preview' && session.preview && session.phase !== 'clarification' && <>
+          {session.preview.fit && <div className={classes.hint}>
+            <p role="status">{uiText(session.preview.fit.status === 'restored' ? 'interview:fit.restored' : session.preview.pages < session.preview.fit.original_pages ? 'interview:fit.reduced' : 'interview:fit.balanced', { count: session.preview.pages })}</p>
+            {session.preview.fit.can_restore && session.phase !== 'completed' && <button type="button" disabled={busy || factEditing || sourceChanged} onClick={() => run(() => operation('preview-fit', { action: 'restore' }))}>{uiText('interview:fit.restore')}</button>}
+          </div>}
           <InterviewPreview key={`${session.id}-${session.revision}`} preview={session.preview} source={session.source_cv_data} facts={profile.facts}
             disabled={busy || sourceChanged} onEditingChange={setFactEditing}
             onReview={session.phase === 'completed' ? undefined : (path, value) => run(async () => {

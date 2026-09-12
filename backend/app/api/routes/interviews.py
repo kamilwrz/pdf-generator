@@ -14,7 +14,7 @@ from app.dependencies import get_db
 from app.crud.cv_import_snapshots import get_owned_snapshot
 from app.models.models import InterviewSession, Pdf
 from app.schemas.interview_schema import (
-    ProfileWrite, ProfileSourceWrite, InterviewCreate, SessionWrite, AnswerWrite, ConfirmWrite, GenerateWrite, PreviewReviewWrite, SourceRefresh, Draft, Verification, EditorialReview,
+    ProfileWrite, ProfileSourceWrite, InterviewCreate, SessionWrite, AnswerWrite, ConfirmWrite, GenerateWrite, PreviewReviewWrite, PreviewFitWrite, SourceRefresh, Draft, Verification, EditorialReview,
 )
 from app.schemas.pdf_schema import PDFCreateRequest
 from app.services.interview_clarification import (
@@ -32,6 +32,7 @@ from app.services.interview_editorial import (
 )
 from app.services import interview_service as service
 from app.services.interview_credits import interview_credit_usage
+from app.services.interview_fit import initialise_fit, fit_preview
 from app.services.interview_sources import available_interview_sources, has_interview_source
 from app.services.career_profile_source import synchronise_source, supplemental_facts, is_supplemental_fact
 from app.services.cv_data import normalize_cv_data, CvDataValidationError
@@ -496,6 +497,10 @@ def preview_interview(session_id: str, request: GenerateWrite, user=Depends(get_
     if state["mode"] == "tailor" and state["template_id"] and request.template_id != state["template_id"]:
         service.fail(localised_message('interview_tailoring_preserves_the_source_cv_template'), 422)
     assert_template_allowed(db, user, request.template_id)
+    # An interrupted browser fit resumes the same verified preview and paid
+    # attempt. A different template deliberately starts a fresh generation.
+    if (state.get('preview') or {}).get('fit', {}).get('status') == 'pending' and state['template_id'] == request.template_id:
+        return service.session_payload(row)
     try:
         normalize_cv_data(service.base_cv(profile), require_name=True)
     except CvDataValidationError as exc:
@@ -559,7 +564,7 @@ def preview_interview(session_id: str, request: GenerateWrite, user=Depends(get_
         "elements": elements, "pages": pages, "profile_revision": profile["revision"],
         "review_notes": review_notes, "recovered_previous_attempt": bool(recovered), "pipeline_version": PIPELINE_VERSION,
     })
-    state.pop("generation_attempt", None)
+    initialise_fit(state, profile=profile)
     state["generation_feedback"] = []
     pending = clarification_queue(row, edited_draft, verification["output"], review_notes, profile)
     state["pending_clarifications"] = pending
@@ -574,6 +579,12 @@ def review_interview_preview(session_id: str, request: PreviewReviewWrite, user=
     """Persist a human preview decision and render it locally without AI credits."""
     from app.services.interview_preview_review import review_preview
     return review_preview(db, user, service.owned_session(db, user.id, session_id), request)
+
+
+@router.post("/ai/interviews/{session_id}/preview-fit")
+def fit_interview_preview(session_id: str, request: PreviewFitWrite, user=Depends(get_current_user), db=Depends(get_db)):
+    """Finish browser page fitting, run one bounded shortening, or undo the fit."""
+    return fit_preview(db, user, service.owned_session(db, user.id, session_id), request)
 
 
 @router.post("/ai/interviews/{session_id}/document")
@@ -591,7 +602,7 @@ def save_interview_document(session_id: str, request: SessionWrite, user=Depends
     profile = service.check_versions(db, row, request)
     state = deepcopy(row.state)
     preview = state.get("preview")
-    if state["phase"] != "preview" or not preview or preview["profile_revision"] != profile["revision"]:
+    if state["phase"] != "preview" or not preview or preview["profile_revision"] != profile["revision"] or preview.get('fit', {}).get('status') == 'pending':
         service.fail(localised_message('interview_prepare_an_up_to_date_preview_before_saving'))
     assert_template_allowed(db, user, state["template_id"])
     assert_can_create_project(db, user)

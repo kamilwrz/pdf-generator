@@ -6,6 +6,13 @@ vi.mock('./api', () => ({ ApiClient: class { httpRequest = httpRequest; } }));
 vi.mock('../utils/authSession', () => ({ getAccessToken: () => 'synthetic-test-token' }));
 beforeEach(() => httpRequest.mockClear());
 
+it('allows the shortening and verification pair without automatic retries', () => {
+  interviewRequest('/ai/interviews/session/preview-fit', 'POST', { revision: 4, action: 'shorten' });
+  expect(httpRequest.mock.calls[0][4]).toMatchObject({ timeoutMs: 1_140_000, retries: 0, retryOnTimeout: false });
+  interviewRequest('/ai/interviews/session/preview-fit', 'POST', { revision: 5, action: 'finish' });
+  expect(httpRequest.mock.calls[1][4].timeoutMs).toBe(180_000);
+});
+
 it.each([
   ['/ai/interviews/session/preview', 'POST', 1_680_000],
   ['/ai/interviews/session/answers', 'POST', 180_000],

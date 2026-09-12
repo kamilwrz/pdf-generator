@@ -33,7 +33,8 @@ def interview_credit_usage(db, row):
             revision, stage = parts[0], parts[2]
         else:
             revision, stage = reservation.id, "other"
-        operation = "next" if stage in {"next", "analysis"} else "preview" if stage in {"preview", "editorial", "verify"} else "other"
+        fit_stage = 'shorten' if stage.startswith('fit-shorten-') else 'fit_verify' if stage.startswith('fit-verify-') else None
+        operation = "next" if stage in {"next", "analysis"} else "preview" if stage in {"preview", "editorial", "verify"} or fit_stage else "other"
         key = (operation, revision)
         item = requests.setdefault(key, {
             "id": reservation.id, "operation": operation,
@@ -44,7 +45,7 @@ def interview_credit_usage(db, row):
         item["credits_charged"] += charged
         item["pending"] = item["pending"] or reservation.status == "pending"
         item["stages"].append({
-            "operation": stage if stage in {"next", "analysis", "preview", "editorial", "verify"} else "other",
+            "operation": fit_stage or (stage if stage in {"next", "analysis", "preview", "editorial", "verify"} else "other"),
             "credits_charged": charged, "status": reservation.status,
         })
     items = list(reversed(requests.values()))
