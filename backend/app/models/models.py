@@ -344,6 +344,9 @@ class CareerProfile(Base):
     owner_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
     revision = Column(Integer, nullable=False, default=1)
     facts = Column(JSON, nullable=False, default=list)
+    # An explicit account-profile choice, never inferred from document ownership.
+    # JSON stores only kind/id; source content remains in its existing table.
+    source_binding = Column(JSON, nullable=True)
     updated_at = Column(DateTime, nullable=False, default=datetime.utcnow)
 
 

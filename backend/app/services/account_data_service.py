@@ -196,7 +196,7 @@ def build_account_export(db: Session, *, user: User) -> dict:
             for payment in payments
         ],
         "career_profile": [
-            _fields(row, ("revision", "facts", "updated_at"))
+            _fields(row, ("revision", "facts", "source_binding", "updated_at"))
             for row in db.query(CareerProfile).filter_by(owner_id=user_id).all()
         ],
         "interviews": [

@@ -371,7 +371,7 @@
     "publicPages.chooseACvToTailor": "Choose a CV to tailor",
     "publicPages.topic2": "TOPIC 04",
     "publicPages.yourCareerProfileAndSavedInterviews": "Your career profile and saved interviews",
-    "publicPages.yourProfileIsASharedCollectionOf": "Your profile is a shared collection of confirmed information for future CVs. Choose a section and entry, edit the field, select ‘Apply change’, then ‘Save profile’. Changes do not automatically rewrite previously saved documents.",
+    "publicPages.yourProfileIsASharedCollectionOf": "Choose a saved CV or import in your profile. Details update from that source; edit them in the CV editor. Here you can edit only interview information and notes: choose an entry, apply your change and save the profile. Changing the source keeps your notes. Clearing the profile also removes its source link.",
     "publicPages.viewingEditingAndDeletingYourProfileRemain": "Viewing, editing and deleting your profile remain available without credits, including after Pro expires. ‘Saved interviews’ lists conversations you can resume. Deleting an interview also deletes its isolated information. Account profile facts and completed CVs remain; clearing the profile does not delete interview history or documents.",
     "publicPages.openCareerProfile": "Open career profile",
     "publicPages.topic3": "TOPIC 05",

@@ -68,11 +68,19 @@ def profile_payload(db, owner_id):
     New answer facts persist their prompt directly. Older facts are enriched
     from their owned interview in one bounded query so the profile can still
     present an understandable question-and-answer pair without rewriting data
-    during a read. The next explicit profile save persists the restored prompt.
+    during a legacy read. An explicitly bound profile also synchronises its CV
+    snapshot; a changed snapshot advances the revision and invalidates previews.
     """
     row = db.get(CareerProfile, owner_id, populate_existing=True)
     facts = _facts_with_answer_questions(db, owner_id, row.facts if row else [])
-    return {"revision": row.revision if row else 0, "facts": facts, "updated_at": row.updated_at.isoformat() if row else None}
+    profile = {"revision": row.revision if row else 0, "facts": facts, "updated_at": row.updated_at.isoformat() if row else None,
+               "source_binding": row.source_binding if row else None}
+    if profile['source_binding']:
+        # Only an explicit source selection enables synchronisation. Legacy and
+        # isolated interview evidence retains its existing review semantics.
+        from app.services.career_profile_source import synchronise_source
+        return synchronise_source(db, owner_id, profile, profile['source_binding'])
+    return profile
 
 
 def _facts_with_answer_questions(db, owner_id, facts):
@@ -142,7 +150,10 @@ def interview_profile(db, row):
     fail(localised_message('this_older_interview_does_not_have_separate_sources'))
 
 
-def put_profile(db, owner_id, revision, facts, *, commit=True):
+_KEEP_SOURCE = object()
+
+
+def put_profile(db, owner_id, revision, facts, *, commit=True, source_binding=_KEEP_SOURCE):
     """Replace confirmed facts with compare-and-swap, retaining deletion epochs.
 
     A caller may compose this with session confirmation in one transaction.
@@ -150,21 +161,25 @@ def put_profile(db, owner_id, revision, facts, *, commit=True):
     """
     facts = validate_facts(facts)
     now = datetime.utcnow()
+    values = {"facts": facts, "revision": revision + 1, "updated_at": now}
+    if source_binding is not _KEEP_SOURCE:
+        values['source_binding'] = source_binding
     if revision == 0:
-        db.add(CareerProfile(owner_id=owner_id, revision=1, facts=facts, updated_at=now))
+        db.add(CareerProfile(owner_id=owner_id, **values))
         try:
             db.flush()
         except IntegrityError:
             db.rollback()
             fail(localised_message('the_profile_changed_in_another_window_refresh_the'))
     elif db.query(CareerProfile).filter_by(owner_id=owner_id, revision=revision).update(
-        {"facts": facts, "revision": revision + 1, "updated_at": now}, synchronize_session=False,
+        values, synchronize_session=False,
     ) != 1:
         db.rollback()
         fail(localised_message('the_profile_changed_in_another_window_refresh_the'))
     if commit:
         db.commit()
-    return {"revision": revision + 1, "facts": facts, "updated_at": now.isoformat()}
+    return {"revision": revision + 1, "facts": facts, "updated_at": now.isoformat(),
+            "source_binding": db.get(CareerProfile, owner_id, populate_existing=True).source_binding}
 
 
 def session_payload(row):

@@ -26,8 +26,22 @@ export function careerFieldLabel(path) {
   return names[path?.split('/').at(-1)] || 'Informacja';
 }
 
-function location(fact) {
+/** Match the server's supplemental evidence rule; source snapshots are read-only. */
+export function isCareerNote(fact) {
+  return Boolean(fact.question || (fact.kind && fact.kind !== 'fact') || (fact.source || 'manual') === 'manual' ||
+    (!fact.id.startsWith('src-') && !/^(document|import):/.test(fact.source || '')));
+}
+
+/** Compare note content without optional defaults, field bindings or array order. */
+export function careerNoteSignature(facts) {
+  return JSON.stringify(facts.filter(isCareerNote).map((fact) => [fact.id, fact.text, fact.context || '', fact.question || '', fact.kind || 'fact', fact.source || 'manual']).sort((a, b) => a[0].localeCompare(b[0])));
+}
+
+function location(fact, sourceProfile) {
   const path = fact.path || '';
+  // Source-bound profile notes cannot attach themselves to a different CV's
+  // array positions. Interview review retains its ordinary path-based grouping.
+  if (sourceProfile && isCareerNote(fact)) return { section: 'notes', key: `notes:${fact.question || fact.context || ''}`, root: '' };
   if (interviewFields[path]) return { section: 'identity', key: path === '/summary' ? '/summary' : '/identity', root: '' };
   const match = path.match(/^\/(experience|education|languages|skills|custom_sections)\/(\d+)(.*)$/);
   if (match) {
@@ -41,10 +55,10 @@ function location(fact) {
 }
 
 /** Group source scalars by record; coalesce only equivalent display rows, never data. */
-export function groupCareerFacts(facts) {
+export function groupCareerFacts(facts, { sourceProfile = false } = {}) {
   const groups = new Map();
   for (const fact of facts) {
-    const loc = location(fact);
+    const loc = location(fact, sourceProfile);
     if (!groups.has(loc.key)) groups.set(loc.key, { ...loc, facts: [], fields: [] });
     groups.get(loc.key).facts.push(fact);
   }

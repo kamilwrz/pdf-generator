@@ -29,6 +29,13 @@ class ProfileWrite(Contract):
     facts: list[CareerFact] = Field(max_length=500)
 
 
+class ProfileSourceWrite(Contract):
+    """Select one owned source without submitting or editing its career content."""
+    revision: int = Field(ge=0)
+    kind: Literal["document", "import"]
+    id: int = Field(ge=1)
+
+
 class InterviewCreate(Contract):
     mode: Literal["create", "enrich", "tailor"]
     # Account ownership does not establish that a CV describes the account holder.

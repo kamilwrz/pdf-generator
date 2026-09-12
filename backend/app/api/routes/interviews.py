@@ -14,7 +14,7 @@ from app.dependencies import get_db
 from app.crud.cv_import_snapshots import get_owned_snapshot
 from app.models.models import InterviewSession, Pdf
 from app.schemas.interview_schema import (
-    ProfileWrite, InterviewCreate, SessionWrite, AnswerWrite, ConfirmWrite, GenerateWrite, SourceRefresh, Draft, Verification, EditorialReview,
+    ProfileWrite, ProfileSourceWrite, InterviewCreate, SessionWrite, AnswerWrite, ConfirmWrite, GenerateWrite, SourceRefresh, Draft, Verification, EditorialReview,
 )
 from app.schemas.pdf_schema import PDFCreateRequest
 from app.services.interview_clarification import (
@@ -30,6 +30,7 @@ from app.services.interview_editorial import (
 from app.services import interview_service as service
 from app.services.interview_credits import interview_credit_usage
 from app.services.interview_sources import available_interview_sources, has_interview_source
+from app.services.career_profile_source import synchronise_source, supplemental_facts, is_supplemental_fact
 from app.services.cv_data import normalize_cv_data, CvDataValidationError
 from app.services.ai_service import generate_resume
 from app.services.cv_generator_primitives import use_spacing
@@ -57,13 +58,41 @@ def write_profile(request: ProfileWrite, user=Depends(get_current_user), db=Depe
     sources = available_interview_sources(db, user.id)
     if request.facts and not any(sources.values()):
         service.fail(localised_message('interview_source_required'), 422)
-    return {**service.put_profile(db, user.id, request.revision, [f.model_dump() for f in request.facts]), "sources": sources}
+    current = service.profile_payload(db, user.id)
+    facts = [f.model_dump() for f in request.facts]
+    if current.get('source_binding'):
+        # The API enforces the same boundary as the profile UI: all CV fields
+        # come from the owned source. Notes cannot impersonate source facts.
+        current_source = [f for f in current['facts'] if not is_supplemental_fact(f)]
+        submitted_source = [f for f in facts if not is_supplemental_fact(f)]
+        if submitted_source != current_source:
+            service.fail(localised_message('the_source_cv_changed_load_the_current_cv'))
+        existing = {f['id']: f for f in current['facts']}
+        # Preserve stored meanings without asking users to classify information.
+        notes = supplemental_facts(facts)
+        for fact in notes:
+            old = existing.get(fact['id'])
+            fact.update({key: old.get(key, '') for key in ('kind', 'source', 'question')} if old else
+                        {'kind': 'fact', 'source': 'manual', 'question': ''})
+        facts = current_source + notes
+    result = service.put_profile(db, user.id, request.revision, facts)
+    return {**result, "sources": sources, "source_available": current.get('source_available', False)}
+
+
+@router.put("/career-profile/source")
+def choose_profile_source(request: ProfileSourceWrite, user=Depends(get_current_user), db=Depends(get_db)):
+    """Persist an explicit source choice for Free/Pro accounts without calling AI."""
+    current = service.profile_payload(db, user.id)
+    if current['revision'] != request.revision:
+        service.fail(localised_message('the_profile_changed_in_another_window_refresh_the'))
+    result = synchronise_source(db, user.id, current, {'kind': request.kind, 'id': request.id}, required=True)
+    return {**result, 'sources': available_interview_sources(db, user.id)}
 
 
 @router.delete("/career-profile")
 def clear_profile(revision: int = Query(ge=0), user=Depends(get_current_user), db=Depends(get_db)):
     """Clear current evidence while retaining the epoch that invalidates previews."""
-    return service.put_profile(db, user.id, revision, [])
+    return service.put_profile(db, user.id, revision, [], source_binding=None)
 
 
 @router.post("/ai/interviews", status_code=201)

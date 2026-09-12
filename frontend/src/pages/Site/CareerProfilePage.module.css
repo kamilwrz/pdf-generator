@@ -22,3 +22,15 @@
   .sessions { padding: var(--space-4); }
   .sessions ul > li > div { margin-left: 0; }
 }
+
+/* Source selection belongs to account chrome, outside authored CV/PDF layout. */
+.source { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: var(--space-3) var(--space-6); padding: var(--space-6); border-bottom: 1px solid var(--color-border); }
+.profile .source > label { display: grid; gap: var(--space-2); min-width: 0; margin: 0; font-size: .875rem; font-weight: 600; }
+.source select { min-width: 0; width: 100%; }
+.profile .source > p { grid-column: 1 / -1; max-width: 72ch; margin: 0; font-size: .875rem; }
+.profile .source > div { grid-column: 2; grid-row: 1; margin: 0; }
+.source a[aria-disabled="true"] { opacity: .55; cursor: not-allowed; }
+@media (max-width: 767px) {
+  .source { grid-template-columns: minmax(0, 1fr); padding: var(--space-4); }
+  .profile .source > div { grid-column: 1; grid-row: auto; }
+}
