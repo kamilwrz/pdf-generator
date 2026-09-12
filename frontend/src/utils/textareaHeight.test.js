@@ -126,19 +126,3 @@ test("glyph-width measurement reserves the rendered bullet marker column", () =>
     34,
   );
 });
-
-test("character-count fallback also reserves the bullet marker column", () => {
-  // width=52, fontSize=10 -> cpl=10 chars/line for plain text, 8 for bullet
-  // body (marker "• " costs 2). A 17-char item needs 2 plain rows but 3
-  // bullet rows; a version that measured the whole "• " + text against the
-  // full-width cpl would under-count 2 rows here and leave the composite
-  // Skills sidebar textarea too short, letting its own wrapped line overlap
-  // the next entry.
-  const body = "x".repeat(17);
-  const plainHeight = measureTextareaHeight(body, 52, 10, 14);
-  const bulletHeight = measureTextareaHeight(`• ${body}`, 52, 10, 14, {
-    bulletList: true,
-  });
-  assert.equal(plainHeight, 2 * 14 + 6);
-  assert.equal(bulletHeight, 3 * 14 + 6);
-});

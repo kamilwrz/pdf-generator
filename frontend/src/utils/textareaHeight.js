@@ -186,20 +186,9 @@ export function measureTextareaHeight(
       );
     }
   } else {
-    const charWidth = fontSize * 0.52;
-    const cpl = Math.max(10, Math.floor(width / charWidth));
-    // Bullet lines share the CSS grid's marker column with their body text
-    // (see `.bulletLine` in Textarea.module.css), so the wrappable width is
-    // narrower than the full record width by the marker's rendered size.
-    // Without this reduction the fallback estimate under-counts wrapped rows
-    // for a long bulleted skill entry, leaving its `autoHeight` box too short
-    // and letting its own second line overlap the next element.
-    const bulletCpl = Math.max(1, cpl - "• ".length);
+    const cpl = Math.max(10, Math.floor(width / (fontSize * 0.52)));
     for (const seg of text.split("\n")) {
-      const bulletMatch = bulletList ? seg.match(/^\s*•[ \t]*/) : null;
-      const visible = bulletMatch ? seg.slice(bulletMatch[0].length) : seg;
-      const effectiveCpl = bulletMatch ? bulletCpl : cpl;
-      renderedLines += visible.trim() ? Math.max(1, Math.ceil(visible.length / effectiveCpl)) : 1;
+      renderedLines += seg.trim() ? Math.max(1, Math.ceil(seg.length / cpl)) : 1;
     }
   }
   // An empty field still needs one line box so the caret / placeholder fits.
