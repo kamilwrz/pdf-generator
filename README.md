@@ -1,5 +1,19 @@
 # English
 
+## Saved CVs and saved imports
+
+At `/app/documents`, choose **Saved CVs** to search, sort, open, download or delete account documents, or **Saved imports** to see PDF filenames, dates, processing status, file size and the number of created CVs. Arrow keys, Home and End select tabs; Tab enters the selected panel. Both views reuse the shared SiteLayout tokens and compact responsive rows.
+
+1. Open Saved imports. `SavedImports` requests owned metadata from `GET /ai/imports`; **Show older imports** follows `next_cursor` without duplicating rows, and **Refresh status** reloads the first page. Loading, empty lists and retryable errors remain explicit.
+2. For a successful import, choose **Create CV**. The link uses the existing private editor route with `start=import&savedImport=<id>`. `AiCvPanel` validates the positive ID, fetches `GET /ai/imports/{id}`, then opens the existing template selection with that import's `cv_data`. It does not upload or extract the PDF again. The existing fill workflow retains template permissions and records `sourceImportId`; list metadata never contains the full extracted profile.
+3. Choose **Delete** for any status and confirm the named file in the shared dialog. `DELETE /ai/imports/{id}` removes its stored import data; existing CV documents remain. Deleting a processing history item does not cancel an extraction already running. Failed deletion retains the confirmation for retry. Cancel/Escape restores the trigger; successful deletion focuses the list heading.
+
+No database, API contract, dependency or PDF renderer changes are introduced. The new module belongs beside `DocumentsPage` in `frontend/src/pages/Site/`; existing upload history remains available in the editor.
+
+Implementation: `frontend/src/pages/Site/DocumentsPage.jsx`, lines 1–116, `DocumentsPage`; `frontend/src/pages/Site/SavedImports.jsx`, lines 1–93, `SavedImports`; `frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`, lines 1–678, `AiCvPanel`. Tests: `frontend/e2e/documents-library.spec.js`, lines 1–71; run `cd frontend` then `npm run test:e2e -- documents-library.spec.js import-history.spec.js --workers=1`. Coverage includes tab keyboard navigation, import reuse, deletion focus, read retry, empty state and 390/834/1280/1920px layouts plus 640px reflow and reduced motion.
+
+Reference: [W3C tabs pattern](https://www.w3.org/WAI/ARIA/apg/patterns/tabs/) explains tab selection, panel relationships and keyboard navigation.
+
 # CV Studio
 
 CV Studio is an A4 CV editor with Polish and English interfaces: a WYSIWYG canvas, ten individual templates, PDF import via AI, a single-screen new-CV setup with optional customization, a floating AI assistant, and ReportLab PDF export that matches the canvas 1:1 (coordinates in points, top-left origin on the frontend, flipped for ReportLab).
@@ -97,7 +111,7 @@ Implementation (verified whole-module extents):
 
 - `frontend/src/pages/Site/PublicPages.jsx`, lines 4–116, `PricingPage, HelpPage`.
 - `frontend/src/utils/planPresentation.js`, lines 3–73, `PLAN_PRESENTATION, applyPlanPresentation`.
-- `frontend/src/pages/Site/DocumentsPage.jsx`, lines 5–99, `DocumentsPage`.
+- `frontend/src/pages/Site/DocumentsPage.jsx`, lines 1–116, `DocumentsPage`.
 - `frontend/src/pages/Site/AccountPage.jsx`, lines 4–87, `AccountPage`.
 - `frontend/src/pages/Hero/Hero.jsx`, lines 5–331, `Hero`.
 - `frontend/src/components/editor/StartChooser/StartChooser.jsx`, lines 4–249, `StartChooser`.
@@ -141,7 +155,7 @@ Known Pro template hints now preserve the chosen preview instead of falling back
 
 Implementation (verified file extents; the listed exports own the complete workflows):
 
-- `frontend/src/pages/Site/DocumentsPage.jsx`, lines 5–99, `DocumentsPage`.
+- `frontend/src/pages/Site/DocumentsPage.jsx`, lines 1–116, `DocumentsPage`.
 - `frontend/src/pages/Site/AccountPage.jsx`, component `AccountPage`.
 - `frontend/src/pages/Site/PublicPages.jsx`, exports `TemplatesPage, TemplatePage, PricingPage, HelpPage`.
 - `frontend/src/pages/Site/PrivacyPage.jsx`, component `PrivacyPage`.
@@ -1509,7 +1523,7 @@ Limits:
 
 New documents opened from the template gallery or generated from an imported CV start with an empty document title. The topbar displays the placeholder **Projekt bez tytułu** until the user enters a name. Editing CV content or switching templates does not automatically name the project; template changes preserve an explicitly entered title. Saved documents retain their existing names. The document title is separate from both the template name and the job-position field inside the CV.
 
-Title flow: `TemplatesModal.applyTemplate` (`frontend/src/components/modals/TemplatesModal/TemplatesModal.jsx`, lines 47–79) and `AiCvPanel.handleFill` (`frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`, lines 57–644) pass an empty title to the fresh-document snapshot. `loadTemplateWithFillFresh` (`frontend/src/pages/PdfCanvas.jsx`, lines 8–2642) and `handleLoadTemplateWithFill` (`frontend/src/hooks/useA4Elements.js`, lines 1–2860) accept an explicit document title without adding a template name or a CV suffix. The existing controlled topbar input owns manual renaming; [React input documentation](https://react.dev/reference/react-dom/components/input) explains the `value` / `onChange` contract and why a placeholder is separate from the stored value.
+Title flow: `TemplatesModal.applyTemplate` (`frontend/src/components/modals/TemplatesModal/TemplatesModal.jsx`, lines 47–79) and `AiCvPanel.handleFill` (`frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`, lines 1–678) pass an empty title to the fresh-document snapshot. `loadTemplateWithFillFresh` (`frontend/src/pages/PdfCanvas.jsx`, lines 8–2642) and `handleLoadTemplateWithFill` (`frontend/src/hooks/useA4Elements.js`, lines 1–2860) accept an explicit document title without adding a template name or a CV suffix. The existing controlled topbar input owns manual renaming; [React input documentation](https://react.dev/reference/react-dom/components/input) explains the `value` / `onChange` contract and why a placeholder is separate from the stored value.
 
 Regression tests: `frontend/src/components/modals/TemplatesModal/TemplatesModal.runtime.test.jsx`, lines 1–45, covers static and generated gallery templates; `frontend/e2e/document-title.spec.js`, lines 1–40, covers import, empty titles, keyboard renaming, and template switching at compact, tablet, laptop, and wide widths. No storage schema or API changes are required.
 
@@ -2357,7 +2371,7 @@ Implementation:
 - `backend/app/core/config.py`, lines 65–137, Cloudflare and `CV_EXTRACT_*` settings — server-only credentials, primary/fallback models, thinking opt-in, reasoning effort, and independent text/JSON/vision limits
 - `backend/app/api/routes/ai.py`, lines 267–400, function `extract_cv` — authentication, file validation, thread-pool provider call, atomic snapshot/quota finalization, and safe HTTP errors
 - `frontend/src/utils/cvImportRequest.js`, lines 2–30, constants `CV_IMPORT_REQUEST_OPTIONS` / `CV_IMPORT_TIMEOUT_MESSAGE` and function `cvImportStatusLabel` — four-minute no-retry policy and persisted status labels
-- `frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`, lines 57–644, component `AiCvPanel` — request timeout recovery, history refresh, safe reuse of completed snapshots, and the accessible history-list scroll region
+- `frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`, lines 1–678, component `AiCvPanel` — request timeout recovery, history refresh, safe reuse of completed snapshots, and the accessible history-list scroll region
 - `frontend/src/components/ai/AiCvPanel/AiCvPanel.module.css`, lines 27–77 and 256–262, selectors `stepPane`, `historyPane`, `historyList`, and `historyHeader` — bounded overflow, visible thin scrollbar, stable scrollbar gutter, keyboard focus ring, and fixed history controls
 - `backend/app/services/cv_data.py`, lines 811–902, functions `_split_language_rows` and `_normalize_languages`, plus `normalize_cv_data`, `skill_groups`, `is_distinct_skill_family_title`, `_expand_skill_category_lines`, `_absorb_skills_alias_sections`, and `extract_contact_fields_from_raw`
 - `backend/app/services/cv_templates/shared/text.py`, `_place_skills_section`
@@ -2539,7 +2553,7 @@ Implementation:
 - `backend/app/models/models.py`, lines 1–586, classes `Plan`, `UserSubscription`, and `UsageCounter` — persisted limit, legacy flag, and monthly count
 - `backend/app/services/entitlements.py`, lines 362–413 (`_usage_row`), 480–523 (`assert_can_create_project`), 589–603 (`assert_can_extract_cv`), 620–648 (`assert_template_allowed`), 651–721 (`record_export`), and 724–771 (`record_cv_import`) — race-safe Free limits, transactional import claims, and paid-template enforcement
 - `backend/app/api/routes/ai.py`, lines 267–400, function `extract_cv`, and `backend/app/crud/cv_import_snapshots.py`, lines 71–100, function `mark_snapshot_succeeded` — one successful-normalization transaction for the import claim and snapshot, with safe rollback/error mapping
-- `frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`, lines 57–644, component `AiCvPanel` — disables extraction at zero remaining, displays the remaining count, recovers long-running snapshots through history, and refreshes entitlements after success
+- `frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`, lines 1–678, component `AiCvPanel` — disables extraction at zero remaining, displays the remaining count, recovers long-running snapshots through history, and refreshes entitlements after success
 - `backend/app/crud/pdfs.py`, line 41, function `elements_from_rows` — reconstructs full `PdfElement` objects (including `runs`, connectors, `flowRole`, `borderRadius`, …) from stored rows, the inverse of this file's existing `extra_properties` packing in `create_new_pdf` / `update_pdf_elements`
 - `backend/app/main.py`, lines 1–427, `block_generated_pdf_static_access` — keeps template assets public but makes every retired generated-PDF URL return 404 before the SPA fallback
 - `backend/app/services/document_service.py`, lines 271–276 (`render_document_bytes`), 431–527 (`create_pdf_document`), 528–649 (`update_pdf_document`), and 737–782 (`render_pdf_for_download`) — always renders clean, never returns the storage locator, and rebuilds legacy marked local/S3 bytes
@@ -2816,7 +2830,7 @@ Import-history rows stack on compact screens, preserve filename truncation, and 
 
 Deletion uses the existing owner-scoped `DELETE /ai/imports/{snapshot_id}` endpoint (200 `{ "deleted": true }`; 404 for missing, deleted or another owner's record). It atomically clears `cv_data` and keeps a tombstone. Late success/failure writes include `deleted_at IS NULL`, so another worker cannot restore the discarded data. A successfully completed extraction whose import was deleted settles its existing quota/reservation, then returns 409 with `detail.code = "import_deleted"` and no CV data; replay also remains unavailable. Deletion does not cancel an external provider call, release an active reservation early or renew the allowance. No migration, new configuration, dependency or PDF-layout change is needed. Deploy the backend protection before exposing processing-row deletion in the frontend; old stuck rows can then be deleted without a database repair.
 
-Implementation: `backend/app/crud/cv_import_snapshots.py`, lines 71–132, `mark_snapshot_succeeded`, `mark_snapshot_failed`, `soft_delete_snapshot`; `backend/app/api/routes/ai.py`, lines 267–400, `extract_cv`; `frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`, lines 57–644, `AiCvPanel`. Regressions: `backend/tests/test_import_history.py`, lines 50–78; `backend/tests/test_extract_cv_reservations.py`, lines 134–177; `frontend/e2e/import-history.spec.js`, the processing-import keyboard/reflow test. Run `python -m pytest tests/test_import_history.py tests/test_import_pagination.py tests/test_extract_cv_reservations.py tests/test_extract_cv_rejection.py -q` from `backend/` and `npm run test:e2e -- e2e/import-history.spec.js` from `frontend/`. Browser tests use synthetic API data; they do not remove production records. [SQLAlchemy conditional updates](https://docs.sqlalchemy.org/en/20/orm/queryguide/dml.html#orm-update-and-delete-with-custom-where-criteria) explains database predicates and session synchronization used to avoid stale ORM writes.
+Implementation: `backend/app/crud/cv_import_snapshots.py`, lines 71–132, `mark_snapshot_succeeded`, `mark_snapshot_failed`, `soft_delete_snapshot`; `backend/app/api/routes/ai.py`, lines 267–400, `extract_cv`; `frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`, lines 1–678, `AiCvPanel`. Regressions: `backend/tests/test_import_history.py`, lines 50–78; `backend/tests/test_extract_cv_reservations.py`, lines 134–177; `frontend/e2e/import-history.spec.js`, the processing-import keyboard/reflow test. Run `python -m pytest tests/test_import_history.py tests/test_import_pagination.py tests/test_extract_cv_reservations.py tests/test_extract_cv_rejection.py -q` from `backend/` and `npm run test:e2e -- e2e/import-history.spec.js` from `frontend/`. Browser tests use synthetic API data; they do not remove production records. [SQLAlchemy conditional updates](https://docs.sqlalchemy.org/en/20/orm/queryguide/dml.html#orm-update-and-delete-with-custom-where-criteria) explains database predicates and session synchronization used to avoid stale ORM writes.
 
 
 ---
@@ -3214,6 +3228,20 @@ Notable product facts:
 
 # Polski
 
+## Zapisane CV i zapisane importy
+
+Na `/app/documents` wybierz **Zapisane CV**, aby wyszukiwać, sortować, otwierać, pobierać lub usuwać dokumenty konta, albo **Zapisane importy**, aby zobaczyć nazwy plików PDF, daty, status przetwarzania, rozmiar i liczbę utworzonych CV. Strzałki, Home i End wybierają zakładkę; Tab przechodzi do wybranego panelu. Oba widoki korzystają ze wspólnych tokenów SiteLayout i zwartych, responsywnych wierszy.
+
+1. Otwórz Zapisane importy. `SavedImports` pobiera metadane właściciela przez `GET /ai/imports`; **Pokaż starsze importy** korzysta z `next_cursor` bez powielania wierszy, a **Odśwież status** ponownie pobiera pierwszą stronę. Ładowanie, pusta lista i błędy z możliwością ponowienia są jawne.
+2. Przy udanym imporcie wybierz **Utwórz CV**. Link używa istniejącej prywatnej trasy edytora z `start=import&savedImport=<id>`. `AiCvPanel` sprawdza dodatni identyfikator, pobiera `GET /ai/imports/{id}`, a następnie otwiera istniejący wybór szablonu z `cv_data` tego importu. Nie wysyła ani nie odczytuje ponownie PDF. Dotychczasowe wypełnianie zachowuje uprawnienia szablonów i zapisuje `sourceImportId`; metadane listy nie zawierają pełnego wyodrębnionego profilu.
+3. Wybierz **Usuń** przy dowolnym statusie i potwierdź nazwany plik we wspólnym dialogu. `DELETE /ai/imports/{id}` usuwa zapisane dane importu; istniejące dokumenty CV pozostają. Usunięcie wpisu w trakcie przetwarzania nie anuluje już uruchomionego odczytu. Błąd usuwania zachowuje potwierdzenie do ponowienia. Anuluj/Escape przywraca fokus na przycisk; udane usunięcie przenosi go na nagłówek listy.
+
+Zmiana nie wprowadza zmian bazy, kontraktu API, zależności ani renderera PDF. Nowy moduł znajduje się obok `DocumentsPage` w `frontend/src/pages/Site/`; dotychczasowa historia przesyłania pozostaje dostępna w edytorze.
+
+Implementacja: `frontend/src/pages/Site/DocumentsPage.jsx`, linie 1–116, `DocumentsPage`; `frontend/src/pages/Site/SavedImports.jsx`, linie 1–93, `SavedImports`; `frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`, linie 1–678, `AiCvPanel`. Testy: `frontend/e2e/documents-library.spec.js`, linie 1–71; uruchom `cd frontend`, następnie `npm run test:e2e -- documents-library.spec.js import-history.spec.js --workers=1`. Zakres obejmuje klawiaturę zakładek, ponowne użycie importu, fokus po usuwaniu, ponowienie odczytu, pusty stan oraz układy 390/834/1280/1920 px, reflow 640 px i ograniczony ruch.
+
+Źródło: [wzorzec zakładek W3C](https://www.w3.org/WAI/ARIA/apg/patterns/tabs/) wyjaśnia wybór zakładek, powiązania paneli i obsługę klawiatury.
+
 # CV Studio
 
 CV Studio to edytor CV na A4 z interfejsem polskim i angielskim: płótno WYSIWYG, dziesięć indywidualnych szablonów, import PDF przez AI, jednoekranowy konfigurator nowego CV z opcjonalnymi ustawieniami, pływający asystent AI oraz eksport PDF w ReportLab zgodny z kanwą 1:1 (współrzędne w punktach, początek układu lewy-górny na froncie, odwrócenie Y w ReportLab).
@@ -3311,7 +3339,7 @@ Implementacja (zweryfikowane zakresy całych modułów):
 
 - `frontend/src/pages/Site/PublicPages.jsx`, linie 4–116, `PricingPage, HelpPage`.
 - `frontend/src/utils/planPresentation.js`, linie 3–73, `PLAN_PRESENTATION, applyPlanPresentation`.
-- `frontend/src/pages/Site/DocumentsPage.jsx`, linie 5–99, `DocumentsPage`.
+- `frontend/src/pages/Site/DocumentsPage.jsx`, linie 1–116, `DocumentsPage`.
 - `frontend/src/pages/Site/AccountPage.jsx`, linie 4–87, `AccountPage`.
 - `frontend/src/pages/Hero/Hero.jsx`, linie 5–331, `Hero`.
 - `frontend/src/components/editor/StartChooser/StartChooser.jsx`, linie 4–249, `StartChooser`.
@@ -3355,7 +3383,7 @@ Rozpoznany parametr szablonu Pro zachowuje teraz wybrany podgląd zamiast wraca�
 
 Implementacja (zweryfikowane zakresy całych plików; wymienione eksporty odpowiadają za kompletne przepływy):
 
-- `frontend/src/pages/Site/DocumentsPage.jsx`, linie 5–99, `DocumentsPage`.
+- `frontend/src/pages/Site/DocumentsPage.jsx`, linie 1–116, `DocumentsPage`.
 - `frontend/src/pages/Site/AccountPage.jsx`, komponent `AccountPage`.
 - `frontend/src/pages/Site/PublicPages.jsx`, eksporty `TemplatesPage, TemplatePage, PricingPage, HelpPage`.
 - `frontend/src/pages/Site/PrivacyPage.jsx`, komponent `PrivacyPage`.
@@ -4712,7 +4740,7 @@ Ograniczenia:
 
 Nowe dokumenty otwarte z galerii szablonów lub wygenerowane z zaimportowanego CV zaczynają z pustym tytułem dokumentu. Górny pasek wyświetla podpowiedź **Projekt bez tytułu**, dopóki użytkownik nie wpisze nazwy. Edycja treści CV ani przełączanie szablonów nie nadają projektowi nazwy automatycznie; zmiana szablonu zachowuje tytuł wpisany przez użytkownika. Zapisane dokumenty zachowują dotychczasowe nazwy. Tytuł dokumentu jest niezależny od nazwy szablonu i pola stanowiska wewnątrz CV.
 
-Przepływ tytułu: `TemplatesModal.applyTemplate` (`frontend/src/components/modals/TemplatesModal/TemplatesModal.jsx`, linie 47–79) i `AiCvPanel.handleFill` (`frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`, linie 57–644) przekazują pusty tytuł do migawki nowego dokumentu. `loadTemplateWithFillFresh` (`frontend/src/pages/PdfCanvas.jsx`, linie 8–2642) i `handleLoadTemplateWithFill` (`frontend/src/hooks/useA4Elements.js`, linie 1–2860) przyjmują jawny tytuł dokumentu bez dopisywania nazwy szablonu ani przyrostka CV. Istniejące kontrolowane pole górnego paska obsługuje ręczną zmianę nazwy; [dokumentacja pola input w React](https://react.dev/reference/react-dom/components/input) wyjaśnia kontrakt `value` / `onChange` i rozdzielenie podpowiedzi od zapisanej wartości.
+Przepływ tytułu: `TemplatesModal.applyTemplate` (`frontend/src/components/modals/TemplatesModal/TemplatesModal.jsx`, linie 47–79) i `AiCvPanel.handleFill` (`frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`, linie 1–678) przekazują pusty tytuł do migawki nowego dokumentu. `loadTemplateWithFillFresh` (`frontend/src/pages/PdfCanvas.jsx`, linie 8–2642) i `handleLoadTemplateWithFill` (`frontend/src/hooks/useA4Elements.js`, linie 1–2860) przyjmują jawny tytuł dokumentu bez dopisywania nazwy szablonu ani przyrostka CV. Istniejące kontrolowane pole górnego paska obsługuje ręczną zmianę nazwy; [dokumentacja pola input w React](https://react.dev/reference/react-dom/components/input) wyjaśnia kontrakt `value` / `onChange` i rozdzielenie podpowiedzi od zapisanej wartości.
 
 Testy regresji: `frontend/src/components/modals/TemplatesModal/TemplatesModal.runtime.test.jsx`, linie 1–45, obejmuje statyczne i generowane szablony galerii; `frontend/e2e/document-title.spec.js`, linie 1–40, obejmuje import, puste tytuły, zmianę nazwy klawiaturą oraz przełączanie szablonów przy szerokościach telefonu, tabletu, laptopa i szerokiego ekranu. Zmiana nie wymaga modyfikacji schematu danych ani API.
 
@@ -5551,7 +5579,7 @@ Gdy CV źródłowe ma **osobne** nagłówki rodzin umiejętności (np. Umiejętn
 - `backend/app/core/config.py`, linie 65–137, ustawienia Cloudflare i `CV_EXTRACT_*` — sekrety serwerowe, modele główny/awaryjny, opt-in thinking, poziom reasoningu i niezależne limity tekst/JSON/vision
 - `backend/app/api/routes/ai.py`, linie 267–400, funkcja `extract_cv` — auth, walidacja pliku, wywołanie dostawcy w puli wątków, atomowe zakończenie snapshotu/licznika i bezpieczne statusy HTTP
 - `frontend/src/utils/cvImportRequest.js`, linie 2–30, stałe `CV_IMPORT_REQUEST_OPTIONS` / `CV_IMPORT_TIMEOUT_MESSAGE` i funkcja `cvImportStatusLabel` — czterominutowa polityka bez retry oraz etykiety statusów
-- `frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`, linie 57–644, komponent `AiCvPanel` — odzyskiwanie po timeout, odświeżanie historii, bezpieczne użycie gotowego snapshotu oraz dostępny region przewijania listy historii
+- `frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`, linie 1–678, komponent `AiCvPanel` — odzyskiwanie po timeout, odświeżanie historii, bezpieczne użycie gotowego snapshotu oraz dostępny region przewijania listy historii
 - `frontend/src/components/ai/AiCvPanel/AiCvPanel.module.css`, linie 27–77 i 256–262, selektory `stepPane`, `historyPane`, `historyList` i `historyHeader` — ograniczone przewijanie, widoczny cienki scrollbar, stabilny gutter, obrys fokusu klawiatury i nieruchome kontrolki historii
 - `backend/app/services/cv_data.py`, linie 811–902 — funkcje `_split_language_rows` i `_normalize_languages`; ponadto `normalize_cv_data`, `skill_groups`, `is_distinct_skill_family_title`, `_expand_skill_category_lines`, `_absorb_skills_alias_sections` i `extract_contact_fields_from_raw`
 - `backend/app/services/cv_templates/shared/text.py` — `_place_skills_section`
@@ -5732,7 +5760,7 @@ Implementacja:
 - `backend/app/models/models.py`, linie 1–586, klasy `Plan`, `UserSubscription`, `UsageCounter` — utrwalony limit, legacy flag i miesięczny licznik
 - `backend/app/services/entitlements.py`, linie 362–413 (`_usage_row`), 480–523 (`assert_can_create_project`), 589–603 (`assert_can_extract_cv`), 620–648 (`assert_template_allowed`), 651–721 (`record_export`) i 724–771 (`record_cv_import`) — odporne na wyścigi limity Free, transakcyjny claim importu i kontrola płatnych szablonów
 - `backend/app/api/routes/ai.py`, linie 267–400, funkcja `extract_cv`, oraz `backend/app/crud/cv_import_snapshots.py`, linie 71–100, funkcja `mark_snapshot_succeeded` — jedna transakcja sukcesu dla claimu importu i snapshotu, z bezpiecznym rollbackiem/mapowaniem błędów
-- `frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`, linie 57–644, komponent `AiCvPanel` — blokuje przy zerze, pokazuje pozostałą liczbę, odzyskuje długo działający snapshot przez historię i odświeża entitlements po sukcesie
+- `frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`, linie 1–678, komponent `AiCvPanel` — blokuje przy zerze, pokazuje pozostałą liczbę, odzyskuje długo działający snapshot przez historię i odświeża entitlements po sukcesie
 - `backend/app/crud/pdfs.py`, linia 41, funkcja `elements_from_rows` — rekonstruuje pełne obiekty `PdfElement` (w tym `runs`, konektory, `flowRole`, `borderRadius`, …) z zapisanych wierszy, odwrotność istniejącego pakowania `extra_properties` w `create_new_pdf` / `update_pdf_elements`
 - `backend/app/main.py`, linie 1–427, `block_generated_pdf_static_access` — pozostawia zasoby szablonów publiczne, ale każdy wycofany URL wygenerowanego PDF-a zatrzymuje 404 przed fallbackiem SPA
 - `backend/app/services/document_service.py`, linie 271–276 (`render_document_bytes`), 431–527 (`create_pdf_document`), 528–649 (`update_pdf_document`) i 737–782 (`render_pdf_for_download`) — zawsze renderuje czysto, nie zwraca lokatora storage i przebudowuje starsze oznaczone bajty lokalne/S3
@@ -6008,7 +6036,7 @@ Na małych ekranach wiersze historii importów układają się pionowo, zachowuj
 
 Usuwanie korzysta z istniejącego endpointu właściciela `DELETE /ai/imports/{snapshot_id}` (200 `{ "deleted": true }`; 404 dla wpisu brakującego, usuniętego albo należącego do innej osoby). Atomowo czyści `cv_data` i zachowuje znacznik usunięcia. Spóźnione zapisy sukcesu/błędu zawierają warunek `deleted_at IS NULL`, dlatego inny proces nie przywróci odrzuconych danych. Udana ekstrakcja, której wpis usunięto, rozlicza dotychczasowy limit/rezerwację, po czym zwraca 409 z `detail.code = "import_deleted"`, bez danych CV; odtworzenie odpowiedzi również pozostaje niedostępne. Usunięcie nie anuluje wywołania dostawcy, nie zwalnia wcześniej aktywnej rezerwacji i nie odnawia limitu. Nie wymaga migracji, nowej konfiguracji, zależności ani zmiany układu PDF. Wdróż zabezpieczenie backendu przed udostępnieniem usuwania przetwarzanych wpisów we frontendzie; stare zawieszone wpisy będzie można usunąć bez naprawy bazy.
 
-Implementacja: `backend/app/crud/cv_import_snapshots.py`, linie 71–132, `mark_snapshot_succeeded`, `mark_snapshot_failed`, `soft_delete_snapshot`; `backend/app/api/routes/ai.py`, linie 267–400, `extract_cv`; `frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`, linie 57–644, `AiCvPanel`. Regresje: `backend/tests/test_import_history.py`, linie 50–78; `backend/tests/test_extract_cv_reservations.py`, linie 134–177; `frontend/e2e/import-history.spec.js`, test klawiatury i responsywności przetwarzanego importu. Uruchom `python -m pytest tests/test_import_history.py tests/test_import_pagination.py tests/test_extract_cv_reservations.py tests/test_extract_cv_rejection.py -q` z `backend/` oraz `npm run test:e2e -- e2e/import-history.spec.js` z `frontend/`. Testy przeglądarki używają syntetycznych danych API i nie usuwają wpisów produkcyjnych. [Warunkowe aktualizacje SQLAlchemy](https://docs.sqlalchemy.org/en/20/orm/queryguide/dml.html#orm-update-and-delete-with-custom-where-criteria) wyjaśniają warunki zapisu w bazie i synchronizację sesji zapobiegającą zapisowi nieaktualnego obiektu ORM.
+Implementacja: `backend/app/crud/cv_import_snapshots.py`, linie 71–132, `mark_snapshot_succeeded`, `mark_snapshot_failed`, `soft_delete_snapshot`; `backend/app/api/routes/ai.py`, linie 267–400, `extract_cv`; `frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`, linie 1–678, `AiCvPanel`. Regresje: `backend/tests/test_import_history.py`, linie 50–78; `backend/tests/test_extract_cv_reservations.py`, linie 134–177; `frontend/e2e/import-history.spec.js`, test klawiatury i responsywności przetwarzanego importu. Uruchom `python -m pytest tests/test_import_history.py tests/test_import_pagination.py tests/test_extract_cv_reservations.py tests/test_extract_cv_rejection.py -q` z `backend/` oraz `npm run test:e2e -- e2e/import-history.spec.js` z `frontend/`. Testy przeglądarki używają syntetycznych danych API i nie usuwają wpisów produkcyjnych. [Warunkowe aktualizacje SQLAlchemy](https://docs.sqlalchemy.org/en/20/orm/queryguide/dml.html#orm-update-and-delete-with-custom-where-criteria) wyjaśniają warunki zapisu w bazie i synchronizację sesji zapobiegającą zapisowi nieaktualnego obiektu ORM.
 
 
 ---

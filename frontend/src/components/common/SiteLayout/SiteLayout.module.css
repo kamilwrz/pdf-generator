@@ -197,3 +197,10 @@
   .compactHero .heroAside p, .compactHero .noteTitle { margin: 0; }
   .compactHero .heroAside .eyebrow { display: none; }
 }
+
+/* Shared workspace tabs retain a full target and a non-colour selected indicator. */
+.tabs { display: flex; border-bottom: 1px solid var(--color-border); margin-bottom: var(--space-6); }
+.tab { flex: 1; min-width: 0; min-height: var(--control-height); padding: var(--space-3) var(--space-4); border: 0; border-bottom: 2px solid transparent; background: var(--color-paper); color: var(--color-muted); font: 600 1rem/1.4 var(--font-ui); cursor: pointer; }
+.tab:hover, .tab:active { background: var(--color-surface); color: var(--color-ink); }
+.tab[aria-selected='true'] { border-bottom-color: var(--color-ink); color: var(--color-ink); }
+.tab:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }

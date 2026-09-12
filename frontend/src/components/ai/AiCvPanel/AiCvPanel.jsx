@@ -14,6 +14,8 @@ import { useTranslation } from 'react-i18next';
  * scrolls, so every saved import remains reachable in a short viewport.
  */
 import { useRef, useState, useCallback, useMemo, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
+import { parseDocumentId } from "../../../utils/siteRoutes";
 import { nanoid } from "nanoid";
 import classes from "./AiCvPanel.module.css";
 import { useCanvasContext } from "../../../store/canvas-context";
@@ -56,6 +58,16 @@ const ChevronRight = () => (
 
 export default function AiCvPanel() {
   useTranslation();
+    const [searchParams, setSearchParams] = useSearchParams();
+    const [requestedImport, setRequestedImport] = useState(() => parseDocumentId(searchParams.get('savedImport')));
+    useEffect(() => {
+        // Wait for the editor to consume its start intent before replacing the
+        // query, so the two navigations cannot race. The selected ID is already local.
+        if (searchParams.has('start') || !searchParams.has('savedImport')) return;
+        const next = new URLSearchParams(searchParams);
+        next.delete('savedImport');
+        setSearchParams(next, { replace: true });
+    }, [searchParams, setSearchParams]);
     const { captureDocumentScope, isDocumentScopeCurrent } = useDocumentLifecycle();
     const { isAiPanel, showAiPanel, showNewCvSetup, requestAssistantAction } = useUiSurfaces();
     const { loadAiElements, flowSpacing } = useCanvasContext();
@@ -117,6 +129,8 @@ export default function AiCvPanel() {
     // dropzone. Template changes are handled exclusively by the editor's
     // separate "Szablony" control.
     const resetImportFlow = useCallback(() => {
+        setRequestedImport(null);
+        setOpeningImportId(null);
         setFileName(null);
         setFileData(null);
         setCvData(null);
@@ -334,6 +348,26 @@ export default function AiCvPanel() {
         }
     }, [api, openingImportId]);
 
+    useEffect(() => {
+        if (!isAiPanel || requestedImport === null) return;
+        let active = true;
+        // Read the owned detail only for an explicit library action. Cancellation
+        // prevents a late response from replacing another wizard session.
+        setOpeningImportId(requestedImport);
+        api.httpRequest(ENDPOINTS.AI.IMPORT(requestedImport), "GET", undefined, uiText("ai:aiCvPanel.couldNotLoadImportData"))
+            .then((detail) => {
+                if (!active) return;
+                if (detail.status !== 'succeeded' || !detail.cv_data) throw new Error(uiText("ai:aiCvPanel.thisImportDoesNotContainReadyCv"));
+                setCvData(detail.cv_data);
+                setImportId(requestedImport);
+                setShowHistory(false);
+                setWizardStep(2);
+            })
+            .catch((failure) => { if (active) setError(planErrorMessage(failure, messageRef("ai:aiCvPanel.couldNotLoadImportData2"))); })
+            .finally(() => { if (active) { setOpeningImportId(null); setRequestedImport(null); } });
+        return () => { active = false; };
+    }, [api, isAiPanel, requestedImport, setError]);
+
     const deleteHistoricalImport = useCallback(async (snapshotId) => {
         if (deletingImportId != null) return;
         setDeletingImportId(snapshotId);
@@ -397,13 +431,13 @@ export default function AiCvPanel() {
                         </button>
                     </div>
                     <div className={classes.footerActions}>
-                        <button type="button" className={classes.cancelBtn} onClick={showAiPanel}>{uiText("ai:aiAssistant.cancel")}</button>
+                        <button type="button" className={classes.cancelBtn} onClick={handleClose}>{uiText("ai:aiAssistant.cancel")}</button>
                         {!onStep2 && !showHistory && (
                             <button
                                 type="button"
                                 className={classes.extractBtn}
                                 onClick={handleExtract}
-                                disabled={!fileName || isExtracting || !canExtract}
+                                disabled={requestedImport !== null || !fileName || isExtracting || !canExtract}
                                 title={importLimitReached
                                     ? uiText("ai:aiCvPanel.freePlanCvImportUsedThisMonth")
                                     : !canExtract
@@ -422,7 +456,7 @@ export default function AiCvPanel() {
             )}
         >
             <div className={`${classes.wrap} ${onStep2 ? classes.wrapStep2 : ""}`}>
-                {!onStep2 && showHistory ? (
+                {requestedImport !== null ? <p role="status">{uiText("ai:aiCvPanel.loadingHistory")}</p> : !onStep2 && showHistory ? (
                     <div className={`${classes.stepPane} ${classes.historyPane}`}>
                         <div className={classes.historyHeader}>
                             <div className={classes.sectionLabel}>{uiText("ai:aiCvPanel.importHistory")}</div>
