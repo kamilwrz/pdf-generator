@@ -846,7 +846,7 @@
     "hints.content": "Content…",
     "hints.text": "Text…",
     "hints.languageLevel": "Language — level",
-    "hints.emailExample": "firstname.lastname@example.com",
+    "hints.emailExample": "name@example.com",
     "icons.summary": "Summary",
     "icons.experience": "Experience",
     "icons.education": "Education",

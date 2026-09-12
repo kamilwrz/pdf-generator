@@ -22,12 +22,16 @@ The language selector uses **Polski / English**. Polish is the default; English 
 
 Slate’s generated contact heading follows the CV language when creating a document, hiding its photo and restoring a saved draft. Opening an English CV repairs the legacy locked Polish contact label without moving elements or renaming custom sections. Switching the interface preserves document headings and PDF content. Empty-field hints switch in both directions, including English placeholder metadata saved by older versions; hints never become authored text. Regression coverage: `profilePhotoVisibility.test.js`, `i18n.test.js` and the English Slate scenario in `e2e/localisation.spec.js`.
 
+**Contact hints in English.** Empty email fields display `name@example.com`, including drafts with the older `firstname.lastname@example.com` hint. The shorter example fits contact spacing measured from canonical Polish metadata, so changing the interface language cannot overlap the following website icon or change saved A4 coordinates. Authored email addresses retain their complete text. `markerBindings` also recognises the lowercase contact sentinels produced by URL display normalisation (for example `__cvstart_website__`); `finalizeStarterElements` removes them and restores empty-field bindings before starter layout and template replacement. Empty contacts and their icons remain excluded from the render-only PDF payload.
+
+Implementation: `frontend/src/i18n/editorHints.js`, lines 1–72, `editorHint` and its legacy aliases; `frontend/src/i18n/locales/en.json`, line 949, `editor:hints.emailExample` (regenerate the workspace bundle with `npm --prefix frontend run build`); `frontend/src/utils/cvStarter.js`, lines 343–418, `markerBindings` and `finalizeStarterElements`. Tests: `frontend/src/utils/cvStarter.test.js`, lines 59–73, normalised URL markers and authored-text preservation; `frontend/src/i18n/i18n.test.js`, lines 71–90, `legacy Polish and English hints switch both ways without mutating document metadata`; `frontend/e2e/contact-placeholder-spacing.spec.js`, lines 1–129, initial layout, PL/EN switching, keyboard edit/clear cycles, save/render isolation and Cadenza/Aurelia at 390, 834, 1280 and 1920 px. Run `npm --prefix frontend run test:e2e -- contact-placeholder-spacing.spec.js --project=desktop-chromium`. [W3C generated content](https://www.w3.org/TR/CSS2/generate.html) explains the CSS pseudo-content used for editor hints; these hints never enter authored text. This repair needs no database, API, dependency or environment changes.
+
 Implementation references (verified against this revision):
 
 - `frontend/src/i18n/index.js`, lines 1–111, `initialLanguage, setUiLanguage, ensureWorkspaceMessages`.
 - `frontend/src/i18n/messageState.js`, lines 1–26, `messageRef, useMessageState, resolveMessage`.
 - `frontend/src/components/common/LanguageSelect/LanguageSelect.jsx`, lines 1–18, `LanguageSelect`.
-- `frontend/src/utils/cvStarter.js`, lines 1–419, `createDefaultStarterConfig, buildStarterDocument`.
+- `frontend/src/utils/cvStarter.js`, lines 1–423, `createDefaultStarterConfig, buildStarterDocument`.
 - `backend/app/core/localisation.py`, lines 1–81, `UiLanguageMiddleware, message, ui_language_policy`.
 - `scripts/generate_english_previews.py`, lines 1–60, `main`.
 - `frontend/scripts/check-locales.mjs`, lines 1–45, `validateCatalogues`.
@@ -2128,7 +2132,7 @@ Legacy browser/server bio drafts are read only for an explicit one-time **Przeni
 Implementation:
 
 - `frontend/src/components/editor/NewCvSetupModal/NewCvSetupModal.jsx`, lines 7–445, component `NewCvSetupModal` — single-screen creation with optional configuration, replacement confirmation for user-authored documents, direct demo replacement, Pro/photo states, drag and keyboard ordering, custom sections, focus and error retention
-- `frontend/src/utils/cvStarter.js`, lines 51–414, constants/functions `MARKER_VALUES`, `REPEATED_FIELD_DEFINITIONS`, `createDefaultStarterConfig`, `buildStarterDocument`, `prepareStarterProfileForTemplate`, and `finalizeStarterElements`
+- `frontend/src/utils/cvStarter.js`, lines 51–418, constants/functions `MARKER_VALUES`, `REPEATED_FIELD_DEFINITIONS`, `createDefaultStarterConfig`, `buildStarterDocument`, `prepareStarterProfileForTemplate`, and `finalizeStarterElements`
 - `frontend/src/utils/starterElementStructure.js`, lines 1–235, functions `reflowStarterContacts`, `applyStarterElementStructure`, and `prepareStarterElementsForRender`; `frontend/src/utils/contactBandOps.js`, lines 1–322, functions `channelLabels` and `applyChannelRelayout` — placeholder-aware editor and render-copy contact reflow
 - `frontend/src/pages/PdfCanvas.jsx`, lines 8–2642, `startFreshDocument`, `loadAiElementsFresh`, `handleCreateStarterCv`, and the demo-aware modal wiring
 - `frontend/src/utils/syncCvDataFromCanvas.js`, lines 2–1097, `syncStarterBindings` and `syncCvDataFromCanvas`
@@ -2141,7 +2145,7 @@ Tests:
 - `frontend/src/components/editor/NewCvSetupModal/NewCvSetupModal.test.js` and `NewCvSetupModal.runtime.test.jsx` — structural contract, step persistence, custom-name validation, photo compatibility, pending/failure recovery, and original-opener focus after replacement confirmation
 - `frontend/e2e/new-cv-setup.spec.js` — browser coverage at 390, 834, 1280, and 1920px plus a 640×400 CSS viewport for the 200% zoom layout; template keyboard navigation, preserved choices, focus trap, single scrolling region, reachable actions, and successful A4 creation. Run `npm run test:e2e -- e2e/new-cv-setup.spec.js --project=desktop-chromium`. Existing guest, Topbar, and editor smoke tests also use the direct creation action.
 - `frontend/src/utils/demoNewCvFlow.test.js` — locks the demo-aware integration between `PdfCanvas` and the setup modal
-- `frontend/src/utils/cvStarter.test.js`, lines 10–180, suite `CV starter adapter`, including `restores and rebinds blank fields in every repeated record`
+- `frontend/src/utils/cvStarter.test.js`, lines 10–196, suite `CV starter adapter`, including `restores and rebinds blank fields in every repeated record`
 - `frontend/src/utils/starterElementStructure.test.js`
 - `frontend/src/utils/requiredCvName.test.js`
 - `frontend/src/utils/syncCvDataFromCanvas.test.js`
@@ -2324,8 +2328,8 @@ Implementation:
 - `frontend/src/store/canvas-context.jsx` and `store/ui-surfaces-context.jsx` — active CV data/replacement actions and change-template modal state
 - `frontend/src/pages/PdfCanvas.jsx` — owns `activeCvData`, synchronizes unambiguous canvas text edits, persists the snapshot on Save, and owns the `'changeTemplate'` dialog slot; `startFreshDocument`/`discardActiveDocument` clear it; exposes `replaceActiveElements: handleLoadAiElements` (raw, no `pdfId` reset)
 - `frontend/src/hooks/useApplyCvTemplate.js`, lines 29–120, function `useApplyCvTemplate` — shared `/ai/fill_template` + `replaceActiveElements` path for the modal and the arrows; lines 48–59 snapshot the live Languages grid, and lines 63–86 use the same profile for generation and document replacement
-- `frontend/src/utils/cvStarter.js`, lines 275–414, functions `prepareStarterProfileForTemplate` and `finalizeStarterElements` — index-aware temporary markers preserve blank repeated fields and rebuild exact `cvDataBindings` without storing marker text
-- `frontend/src/utils/cvStarter.test.js`, lines 67–153, test `restores and rebinds blank fields in every repeated record` — regression for two partially completed Experience and Education records, composite metadata, an empty bullet, Skills, Languages, and a custom-section item
+- `frontend/src/utils/cvStarter.js`, lines 275–418, functions `prepareStarterProfileForTemplate` and `finalizeStarterElements` — index-aware temporary markers preserve blank repeated fields and rebuild exact `cvDataBindings` without storing marker text
+- `frontend/src/utils/cvStarter.test.js`, lines 83–169, test `restores and rebinds blank fields in every repeated record` — regression for two partially completed Experience and Education records, composite metadata, an empty bullet, Skills, Languages, and a custom-section item
 - `frontend/src/utils/cvTemplateSelection.js`, lines 38–48, function `adjacentAllowedTemplate`
 - `frontend/src/components/editor/Topbar/ChangeTemplateModal.jsx`, `.module.css` — identity summary + `TemplateCarousel` with `selectedId={activeTemplateId}`
 - `frontend/src/utils/templateLayouts.js`, `startIndexForSelectedTemplate` — carousel window aligned to the active template
@@ -3155,13 +3159,17 @@ Przełącznik języka udostępnia **Polski / English**. Domyślny jest polski; a
 
 Generowany nagłówek kontaktów Slate korzysta z języka CV podczas tworzenia dokumentu, ukrywania zdjęcia i przywracania zapisanego szkicu. Otwarcie angielskiego CV naprawia starszy, zablokowany polski nagłówek kontaktów bez przesuwania elementów i zmieniania własnych nazw sekcji. Przełączenie interfejsu zachowuje nagłówki dokumentu i treść PDF. Podpowiedzi pustych pól zmieniają język w obie strony, również gdy starsza wersja zapisała angielskie metadane podpowiedzi; nie stają się treścią użytkownika. Testy regresji: `profilePhotoVisibility.test.js`, `i18n.test.js` i scenariusz angielskiego Slate w `e2e/localisation.spec.js`.
 
+**Podpowiedzi kontaktów po angielsku.** Puste pola e-maila wyświetlają `name@example.com`, również w szkicach ze starszą podpowiedzią `firstname.lastname@example.com`. Krótszy przykład mieści się w odstępach kontaktów obliczonych z kanonicznych polskich metadanych, dzięki czemu zmiana języka interfejsu nie powoduje nakładania na kolejną ikonę strony WWW ani zmiany zapisanych współrzędnych A4. Wpisane adresy e-mail zachowują pełną treść. `markerBindings` rozpoznaje również znaczniki kontaktów zapisane małymi literami podczas normalizacji wyświetlanego URL (np. `__cvstart_website__`); `finalizeStarterElements` usuwa je i przywraca wiązania pustych pól przed układaniem startera oraz zmianą szablonu. Puste kontakty i ich ikony nadal są pomijane w danych przekazywanych wyłącznie do renderowania PDF.
+
+Implementacja: `frontend/src/i18n/editorHints.js`, linie 1–72, `editorHint` i aliasy starszych podpowiedzi; `frontend/src/i18n/locales/en.json`, linia 949, `editor:hints.emailExample` (paczkę roboczą odtworzysz przez `npm --prefix frontend run build`); `frontend/src/utils/cvStarter.js`, linie 343–418, `markerBindings` i `finalizeStarterElements`. Testy: `frontend/src/utils/cvStarter.test.js`, linie 59–73, znormalizowane znaczniki URL i zachowanie tekstu użytkownika; `frontend/src/i18n/i18n.test.js`, linie 71–90, `legacy Polish and English hints switch both ways without mutating document metadata`; `frontend/e2e/contact-placeholder-spacing.spec.js`, linie 1–129, układ początkowy, przełączanie PL/EN, edycja i czyszczenie klawiaturą, oddzielenie zapisu od renderowania oraz Cadenza/Aurelia przy 390, 834, 1280 i 1920 px. Uruchom `npm --prefix frontend run test:e2e -- contact-placeholder-spacing.spec.js --project=desktop-chromium`. [Treść generowana w CSS — W3C](https://www.w3.org/TR/CSS2/generate.html) wyjaśnia pseudotreść CSS stosowaną do podpowiedzi edytora; podpowiedzi nie trafiają do tekstu użytkownika. Poprawka nie wymaga zmian bazy, API, zależności ani środowiska.
+
 
 Referencje implementacji (zweryfikowane dla tej rewizji):
 
 - `frontend/src/i18n/index.js`, linie 1–111, `initialLanguage, setUiLanguage, ensureWorkspaceMessages`.
 - `frontend/src/i18n/messageState.js`, linie 1–26, `messageRef, useMessageState, resolveMessage`.
 - `frontend/src/components/common/LanguageSelect/LanguageSelect.jsx`, linie 1–18, `LanguageSelect`.
-- `frontend/src/utils/cvStarter.js`, linie 1–419, `createDefaultStarterConfig, buildStarterDocument`.
+- `frontend/src/utils/cvStarter.js`, linie 1–423, `createDefaultStarterConfig, buildStarterDocument`.
 - `backend/app/core/localisation.py`, linie 1–81, `UiLanguageMiddleware, message, ui_language_policy`.
 - `scripts/generate_english_previews.py`, linie 1–60, `main`.
 - `frontend/scripts/check-locales.mjs`, linie 1–45, `validateCatalogues`.
@@ -5246,7 +5254,7 @@ Starsze szkice bio w przeglądarce lub na serwerze są odczytywane wyłącznie p
 Implementacja:
 
 - `frontend/src/components/editor/NewCvSetupModal/NewCvSetupModal.jsx`, linie 7–445, komponent `NewCvSetupModal` — jednoekranowe tworzenie z opcjonalną konfiguracją, potwierdzenie zastąpienia dokumentów użytkownika, bezpośrednie zastąpienie demo, stany Pro/zdjęcia, kolejność drag i klawiaturowa, sekcje własne, fokus i zachowanie błędu
-- `frontend/src/utils/cvStarter.js`, linie 51–414, stałe/funkcje `MARKER_VALUES`, `REPEATED_FIELD_DEFINITIONS`, `createDefaultStarterConfig`, `buildStarterDocument`, `prepareStarterProfileForTemplate` i `finalizeStarterElements`
+- `frontend/src/utils/cvStarter.js`, linie 51–418, stałe/funkcje `MARKER_VALUES`, `REPEATED_FIELD_DEFINITIONS`, `createDefaultStarterConfig`, `buildStarterDocument`, `prepareStarterProfileForTemplate` i `finalizeStarterElements`
 - `frontend/src/utils/starterElementStructure.js`, linie 1–235, funkcje `reflowStarterContacts`, `applyStarterElementStructure` i `prepareStarterElementsForRender`; `frontend/src/utils/contactBandOps.js`, linie 1–322, funkcje `channelLabels` i `applyChannelRelayout` — reflow kontaktów świadomy placeholderów w edytorze i kopii renderowanej
 - `frontend/src/pages/PdfCanvas.jsx`, linie 8–2642, `startFreshDocument`, `loadAiElementsFresh`, `handleCreateStarterCv` oraz podpięcie modalu świadome demo
 - `frontend/src/utils/syncCvDataFromCanvas.js`, linie 2–1097, `syncStarterBindings` i `syncCvDataFromCanvas`
@@ -5259,7 +5267,7 @@ Testy:
 - `frontend/src/components/editor/NewCvSetupModal/NewCvSetupModal.test.js` i `NewCvSetupModal.runtime.test.jsx` — kontrakt strukturalny, zachowanie wyborów w rozwijanych ustawieniach, walidacja nazwy własnej, zgodność zdjęcia, odzyskanie po błędzie/oczekiwaniu i fokus na pierwotnym przycisku po potwierdzeniu zastąpienia
 - `frontend/e2e/new-cv-setup.spec.js` — testy przeglądarkowe przy 390, 834, 1280 i 1920px oraz viewport CSS 640×400 dla układu przy zoomie 200%; wybór szablonu klawiaturą, zachowanie ustawień, pułapka fokusu, jeden obszar przewijania, dostępność akcji i poprawne utworzenie A4. Uruchom `npm run test:e2e -- e2e/new-cv-setup.spec.js --project=desktop-chromium`. Istniejące testy gościa, Topbara i smoke edytora również używają bezpośredniej akcji tworzenia.
 - `frontend/src/utils/demoNewCvFlow.test.js` — utrwala integrację `PdfCanvas` z konfiguratorem świadomą trybu demo
-- `frontend/src/utils/cvStarter.test.js`, linie 10–180, suite `CV starter adapter`, w tym `restores and rebinds blank fields in every repeated record`
+- `frontend/src/utils/cvStarter.test.js`, linie 10–196, suite `CV starter adapter`, w tym `restores and rebinds blank fields in every repeated record`
 - `frontend/src/utils/starterElementStructure.test.js`
 - `frontend/src/utils/requiredCvName.test.js`
 - `frontend/src/utils/syncCvDataFromCanvas.test.js`
@@ -5440,8 +5448,8 @@ Implementacja:
 - `frontend/src/store/canvas-context.jsx` i `store/ui-surfaces-context.jsx` — dane aktywnego CV/akcje podmiany oraz stan modalu zmiany szablonu
 - `frontend/src/pages/PdfCanvas.jsx` — trzyma `activeCvData`, synchronizuje jednoznaczne zmiany tekstu płótna, utrwala snapshot przy Zapisz i obsługuje slot dialogu `'changeTemplate'`; `startFreshDocument`/`discardActiveDocument` je czyszczą; wystawia `replaceActiveElements: handleLoadAiElements` (surowe, bez resetu `pdfId`)
 - `frontend/src/hooks/useApplyCvTemplate.js`, linie 29–120, funkcja `useApplyCvTemplate` — wspólna ścieżka `/ai/fill_template` + `replaceActiveElements` dla modala i strzałek; linie 48–59 snapshotują żywą siatkę Języków, a linie 63–86 używają tego samego profilu do generowania i podmiany dokumentu
-- `frontend/src/utils/cvStarter.js`, linie 275–414, funkcje `prepareStarterProfileForTemplate` i `finalizeStarterElements` — indeksowane znaczniki tymczasowe zachowują puste pola powtarzalne i odbudowują dokładne `cvDataBindings` bez zapisywania tekstu znaczników
-- `frontend/src/utils/cvStarter.test.js`, linie 67–153, test `restores and rebinds blank fields in every repeated record` — regresja dwóch częściowo uzupełnionych wpisów Doświadczenia i Wykształcenia, połączonych metadanych, pustego punktu, Umiejętności, Języków i pozycji sekcji własnej
+- `frontend/src/utils/cvStarter.js`, linie 275–418, funkcje `prepareStarterProfileForTemplate` i `finalizeStarterElements` — indeksowane znaczniki tymczasowe zachowują puste pola powtarzalne i odbudowują dokładne `cvDataBindings` bez zapisywania tekstu znaczników
+- `frontend/src/utils/cvStarter.test.js`, linie 83–169, test `restores and rebinds blank fields in every repeated record` — regresja dwóch częściowo uzupełnionych wpisów Doświadczenia i Wykształcenia, połączonych metadanych, pustego punktu, Umiejętności, Języków i pozycji sekcji własnej
 - `frontend/src/utils/cvTemplateSelection.js`, linie 38–48, funkcja `adjacentAllowedTemplate`
 - `frontend/src/components/editor/Topbar/ChangeTemplateModal.jsx`, `.module.css` — podsumowanie tożsamości + `TemplateCarousel` z `selectedId={activeTemplateId}`
 - `frontend/src/utils/templateLayouts.js`, `startIndexForSelectedTemplate` — okno karuzeli wyrównane do aktywnego szablonu

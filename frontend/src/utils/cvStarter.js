@@ -343,9 +343,13 @@ export function prepareStarterProfileForTemplate(cvData) {
 function markerBindings(content) {
   const bindings = [];
   for (const [id, definition] of Object.entries(FIELD_DEFINITIONS)) {
-    const token = marker(id);
-    const position = content.indexOf(token);
-    if (position >= 0) bindings.push({ ...definition, marker: token, position });
+    // URL display formatting lowercases bare hosts, including contact sentinels.
+    // Match both exact generated forms without lowercasing authored text; retain
+    // the matched spelling so finalisation removes it and restores its binding.
+    for (const token of new Set([marker(id), marker(id).toLowerCase()])) {
+      const position = content.indexOf(token);
+      if (position >= 0) bindings.push({ ...definition, marker: token, position });
+    }
   }
   const customPattern = new RegExp(`__${MARKER_PREFIX}_CUSTOM_(\\d+)__`, "g");
   for (const match of content.matchAll(customPattern)) {

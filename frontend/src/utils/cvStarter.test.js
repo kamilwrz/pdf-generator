@@ -56,6 +56,22 @@ describe("CV starter adapter", () => {
     assert.match(elements[0].placeholder, /Nazwa firmy/);
   });
 
+  it("removes URL-normalised contact markers without changing authored text", () => {
+    const config = createDefaultStarterConfig("en");
+    config.contacts.forEach((contact) => { contact.selected = true; });
+    const { fillProfile } = buildStarterDocument(config);
+    for (const channel of ["website", "linkedin", "github"]) {
+      const content = fillProfile[channel].toLowerCase();
+      const [element] = finalizeStarterElements([{ category: "text", content }]);
+      assert.equal(element.content, "");
+      assert.equal(element.starterPlaceholder, true);
+      assert.deepEqual(element.cvDataBindings[0].path, [channel]);
+      assert.deepEqual(finalizeStarterElements([element]), [element]);
+    }
+    const authored = { category: "text", content: "https://example.com/MyPortfolio" };
+    assert.deepEqual(finalizeStarterElements([authored]), [authored]);
+  });
+
   it("restores markers only for fields that remain empty", () => {
     const { cvData } = buildStarterDocument(createDefaultStarterConfig());
     cvData.name = "Ada Lovelace";

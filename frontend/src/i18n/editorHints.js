@@ -12,6 +12,9 @@ const keys = {
   "Text…": "editor:hints.text",
   "Language — level": "editor:hints.languageLevel",
   "firstname.lastname@example.com": "editor:hints.emailExample",
+  // Compact guidance fits existing contact bands measured from Polish metadata.
+  // Keep the older alias above so saved drafts receive the same display repair.
+  "name@example.com": "editor:hints.emailExample",
   "City, country": "editor:hints.cityCountry",
   "Enter a job title…": "editor:hints.enterJobTitle",
   "Full name": "editor:hints.fullName",

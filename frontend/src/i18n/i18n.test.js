@@ -79,6 +79,9 @@ test('legacy Polish and English hints switch both ways without mutating document
     assert.equal(editorHint(snapshot.placeholder), expected);
     assert.equal(editorHint('Miasto, kraj'), expected);
     assert.equal(editorHint(contactChannelPlaceholder('location')), expected);
+    for (const emailHint of ['imie.nazwisko@email.com', 'firstname.lastname@example.com', 'name@example.com']) {
+      assert.equal(editorHint(emailHint), language === 'en' ? 'name@example.com' : 'imie.nazwisko@email.com');
+    }
     assert.equal(editorHint('University or school name'), language === 'en' ? 'University or school name' : 'Nazwa uczelni lub szkoły');
     assert.equal(editorHint('My own advice'), 'My own advice');
     assert.equal(contactChannelPlaceholder('location'), 'Miasto, kraj');
