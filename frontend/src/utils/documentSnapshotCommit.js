@@ -3,7 +3,7 @@ import { removeLegacyLanguageLevelStyling } from "./languagesLayout.js";
 import { preserveSavedTextLayouts } from "./savedTextLayout.js";
 import { sanitizeElementsContent } from "./sanitizeTextContent.js";
 import { trimTrailingEmptyTextareaPayload } from "./textareaHeight.js";
-import { healDecorativeOrdinalBaselines, healSkillChipLabelBaselines } from "./sectionStructure.js";
+import { healDecorativeOrdinalBaselines, healSkillChipLabelBaselines, normalizeFilledBandSectionMetadata } from "./sectionStructure.js";
 import { nanoid } from "nanoid";
 import { normalizeVellumContactLayout } from "./vellumTypographyLayout.js";
 
@@ -15,7 +15,7 @@ function normalizeLoadedElements(elements) {
     return trimmed.content === element.content ? element : { ...element, ...trimmed };
   });
   const repaired = normalizeVellumContactLayout(
-    healSkillChipLabelBaselines(healDecorativeOrdinalBaselines(cleaned)), nanoid,
+    healSkillChipLabelBaselines(healDecorativeOrdinalBaselines(normalizeFilledBandSectionMetadata(cleaned))), nanoid,
   );
   return repaired.every((element, index) => element === elements[index]) ? elements : repaired;
 }

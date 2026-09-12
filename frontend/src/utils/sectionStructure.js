@@ -595,6 +595,58 @@ const SECTION_BAND_ACCENT_MAX_WIDTH = 12;
 const SECTION_BAND_ACCENT_RECOVERY_WINDOW = 48;
 
 /**
+ * Restore missing flow ownership on legacy filled heading bands.
+ *
+ * A saved decorative line can lack `flowRole` even though its text heading
+ * retains `section-chrome`. Y-based membership then puts the background,
+ * which starts above the text baseline, into the previous section. A density
+ * change stacks it as body content and separates the title from its band.
+ * Recover only the unambiguous band + same-top edge accent + tagged heading
+ * signature. Explicit roles, standalone backgrounds and ambiguous overlaps
+ * are preserved. No coordinates, text, colours or dimensions are changed.
+ *
+ * @param {object[]} elements - Hydrated or in-memory document elements.
+ * @param {number} [pageHeight=842] - Physical page height in document units.
+ * @returns {object[]} Original array when no metadata repair is needed.
+ */
+export function normalizeFilledBandSectionMetadata(elements, pageHeight = 842) {
+  const list = elements || [];
+  const headings = list.filter((element) => !element.fixedToPage
+    && element.flowRole === "section-chrome"
+    && ["text", "textarea"].includes(element.category)
+    && !isDecorativeOrdinalChrome(element));
+  const candidates = list.filter((element) => !element.fixedToPage
+    && !isSidebarLaneElement(element)
+    && element.category === "line"
+    && (element.flowRole == null || element.flowRole === "section-chrome")
+    && Number(element.height) >= FILLED_SECTION_BAND_MIN_HEIGHT
+    && Number(element.height) <= 40);
+  const fixes = new Set();
+  for (const band of candidates.filter((element) => Number(element.width) >= 120)) {
+    const top = absoluteTop(band, pageHeight);
+    const left = Number(band.left);
+    const right = left + Number(band.width);
+    const owners = headings.filter((heading) => {
+      const headingTop = absoluteTop(heading, pageHeight);
+      return headingTop >= top && headingTop <= top + Number(band.height)
+        && Number(heading.left) >= left - 1 && Number(heading.left) < right;
+    });
+    if (owners.length !== 1) continue;
+    const accents = candidates.filter((element) => element !== band
+      && Number(element.width) > 0 && Number(element.width) <= SECTION_BAND_ACCENT_MAX_WIDTH
+      && Math.abs(Number(element.left) - left) <= 1
+      && Math.abs(Number(element.height) - Number(band.height)) <= 1
+      && Math.abs(absoluteTop(element, pageHeight) - top) <= 1);
+    if (accents.length !== 1) continue;
+    for (const element of [band, accents[0]]) {
+      if (element.flowRole == null) fixes.add(element);
+    }
+  }
+  return fixes.size === 0 ? elements : list.map((element) => fixes.has(element)
+    ? { ...element, flowRole: "section-chrome" } : element);
+}
+
+/**
  * Whether an explicitly owned chrome line is a filled section-title band,
  * rather than the thin underline used by many other templates.
  *
@@ -2921,7 +2973,8 @@ export function applyFlowSpacing(elements, spacing, pageHeight = 842, options = 
   // Repair ordinal/title baseline drift and legacy chip-label insets before
   // packing so a spacing pass also fixes Monument badges saved with the
   // square+16 offset and Cardinal pills whose labels sat at CHIP_PAD_Y.
-  let next = healDecorativeOrdinalBaselines(elements || [], pageHeight);
+  let next = normalizeFilledBandSectionMetadata(elements || [], pageHeight);
+  next = healDecorativeOrdinalBaselines(next, pageHeight);
   // Growing contact stacks persist the active rhythm inside their existing
   // descriptor so later contact edits and render-only placeholder removal use
   // the same section spacing, including after a save/reload round trip.

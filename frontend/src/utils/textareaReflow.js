@@ -1043,6 +1043,19 @@ export function reflowTextareaHeight(
     ...placeCluster.map((mate) => absoluteTop(mate, safePageHeight) + elementHeight(mate)),
   );
 
+  // A narrow title leaves room for the date rail, but later grids can span
+  // the full section. Once any downstream cell belongs to this flow lane,
+  // include its complete semantic group. Testing every cell's X overlap
+  // independently strands the rightmost language/skill on its previous page;
+  // subsequent spacing passes then mistake that split row for a tall record.
+  const downstreamGridGroups = new Set(elements.filter((element) => (
+    isGridMember(element)
+    && !element.fixedToPage
+    && !isPositionLockedForReflow(element)
+    && absoluteTop(element, safePageHeight) >= oldClusterBottom - 0.01
+    && belongsToFlowLane(flowLaneTarget, element)
+  )).map(flowGroupOf).filter(Boolean));
+
   const lane = elements
     .filter((element) => (
       FLOWABLE_CATEGORIES.has(element.category)
@@ -1053,7 +1066,8 @@ export function reflowTextareaHeight(
         placed.has(element.element_id)
         || (
           absoluteTop(element, safePageHeight) >= oldClusterBottom - 0.01
-          && belongsToFlowLane(flowLaneTarget, element)
+          && (belongsToFlowLane(flowLaneTarget, element)
+            || (isGridMember(element) && downstreamGridGroups.has(flowGroupOf(element))))
         )
       )
     ))
