@@ -146,6 +146,8 @@ def test_complete_flow_covers_all_entries_replays_answers_and_finishes_without_p
     seen = []
 
     def repetitive_model(system, body, **kwargs):
+        if 'question_scope' not in json.loads(body):
+            return {'requirements': [{'text': 'Python automation', 'status': 'unknown', 'evidence_refs': []}]}, {'cost_pln_estimate': .01}
         scope = json.loads(body)['question_scope']
         seen.append(scope['id'])
         # A pathological model keeps trying the first project under new topics.
@@ -172,10 +174,13 @@ def test_complete_flow_covers_all_entries_replays_answers_and_finishes_without_p
         assert session['phase'] == 'review' and session['question'] is None and session['discovery_complete']
         # Canonical normalization flattens this skills input into Python/SQL.
         expected = discovery_entries({'facts': service.source_facts(normalize_cv_data(CV), 'test')}, [])
-        assert provider.call_count == 11
-        assert Counter(seen) == {entry['id']: entry['question_count'] for entry in expected}
+        assert provider.call_count == (3 if mode == 'tailor' else 11)
+        if mode == 'tailor':
+            assert len(seen) == 2 and len(set(seen)) == 1 and seen[0].startswith('requirement:')
+        else:
+            assert Counter(seen) == {entry['id']: entry['question_count'] for entry in expected}
         assert client.post(f"/ai/interviews/{session['id']}/extend", json=version(session, session['profile_revision'])).status_code == 422
-    assert len(db.get(InterviewSession, session['id']).state['answers']) == 11
+    assert len(db.get(InterviewSession, session['id']).state['answers']) == (2 if mode == 'tailor' else 11)
 
 
 def test_provider_requires_entry_identity_but_historical_json_remains_readable():

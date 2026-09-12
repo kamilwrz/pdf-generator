@@ -22,6 +22,7 @@ from app.services.interview_clarification import (
     repair_clarification_state, dismiss_clarifications, answer_proposals,
 )
 from app.services.interview_recovery import assemble_reviewed_draft
+from app.services.interview_job_analysis import load_owned_analysis, requirement_topics
 from app.services.interview_discovery import update_discovery_budget
 from app.services.interview_editorial import (
     EDITORIAL_TASK, PIPELINE_VERSION, PROSE_PATH, begin_generation,
@@ -102,6 +103,8 @@ def create_interview(request: InterviewCreate, http_request: Request,
     """Snapshot only an explicitly selected source; defer AI to the next step."""
     assert_can_use_ai_action(db, user, "interview")
     payload = request.model_dump()
+    if request.analysis_key is None:
+        payload.pop("analysis_key")
     if not request.use_profile_source:
         # Preserve hashes for retries created before this optional source existed.
         payload.pop('use_profile_source')
@@ -158,8 +161,10 @@ def create_interview(request: InterviewCreate, http_request: Request,
     # empty start cannot strand the candidate after paid discovery questions.
     if not has_interview_source(normalized):
         service.fail(localised_message('interview_source_required'), 422)
+    analysis = load_owned_analysis(db, user.id, request.analysis_key, normalized, request.candidate_notes,
+                                   request.job_offer_url, request.job_description) if request.mode == 'tailor' and request.analysis_key else None
     try:
-        offer = resolve_job_offer(request.job_offer_url, request.job_description) if request.mode == "tailor" else {}
+        offer = analysis['offer'] if analysis else resolve_job_offer(request.job_offer_url, request.job_description) if request.mode == "tailor" else {}
     except JobOfferError as exc:
         service.fail(getattr(exc, "user_message", str(exc)), 422)
     # Imported/freeform CVs may carry obsolete template identifiers. They must
@@ -186,7 +191,9 @@ def create_interview(request: InterviewCreate, http_request: Request,
         "language": request.language, "offer": offer, "profile_revision": profile["revision"],
         "proposed_facts": candidates, "answers": [], "question": None,
         "question_limit": 5 if request.mode == "tailor" else 8,
-        "confirmed": False, "preview": None, "document_id": None, "requirements": [],
+        "confirmed": False, "preview": None, "document_id": None,
+        "requirements": requirement_topics(analysis["requirements"]) if analysis else [],
+        "job_analysis_ready": bool(analysis),
     })
     db.add(row)
     try:
@@ -427,6 +434,8 @@ def refresh_interview_source(session_id: str, request: SourceRefresh, user=Depen
                  spacing_px=request.spacing_px if request.cv_data is not None else source.spacing_px,
                  proposed_facts=retained + proposals, confirmed=False, phase="intake", question=None,
                  preview=None, generation_feedback=[], document_title=None, pending_clarifications=[], clarification_round=False)
+    if state["mode"] == "tailor":
+        state.update(job_analysis_ready=False, requirements=[], discovery_complete=False)
     service.update_session(db, row, request.revision, state)
     return service.session_payload(service.owned_session(db, user.id, session_id))
 
@@ -458,6 +467,8 @@ def preview_interview(session_id: str, request: GenerateWrite, user=Depends(get_
         "task": "Przygotuj pełną treść CV jako fields: path/value/evidence_refs. Podstawą są wyłącznie potwierdzone profile facts; offer to kryteria doboru, nie dowody. Zachowaj wszystkie odrębne fakty bazowego CV, wzmacniaj podsumowanie i punkty. Możesz dodać potwierdzone projekty i umiejętności. Doprecyzowanie istniejącej czynności włącz do jej punktu, nie dopisuj drugiego punktu o tym samym zadaniu. Każdy odrębny fakt opisz raz w obrębie danej roli lub projektu. Nie mieszaj danych różnych ról i projektów. Ogólna znajomość technologii nie potwierdza jej użycia w konkretnym projekcie. Zachowaj dokładnie kolejność działań, kierunek przekazania raportów i granice odpowiedzialności ze źródła; nie dopisuj relacji przed/po ani odbiorców. Każda liczba musi pochodzić z przywołanych faktów. Zwróć pozostałe braki. Nie generuj geometrii. Dane kontaktowe pozostają dosłowne. Używaj języka language dla całej treści.",
         "allowed_paths": service.PATH.pattern, "profile": profile["facts"], "base_cv": service.base_cv(profile),
         "offer": state["offer"], "language": service.LANGUAGES[state["language"]],
+        **({"job_analysis": state.get("requirements", []), "interview_answers": state["answers"]}
+           if state["mode"] == "tailor" else {}),
     }, Draft, generation=True, validate_output=lambda raw: prepare_editorial_draft(raw, profile))
     service.check_versions(db, service.owned_session(db, user.id, session_id), request)
     draft = prepare_editorial_draft(response["output"], profile)

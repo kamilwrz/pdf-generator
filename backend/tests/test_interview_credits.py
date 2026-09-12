@@ -27,6 +27,7 @@ def test_receipts_group_requests_without_exposing_provider_data(environment):
         ))
         db.commit()
 
+    add('2:1:analysis', 2)
     add('2:1:next', 7)
     add('v2:attempt:preview:3', 11)
     add('v2:attempt:editorial:3', 3, 'failed')
@@ -41,8 +42,9 @@ def test_receipts_group_requests_without_exposing_provider_data(environment):
         result = client.get(url)
         assert result.status_code == 200
         payload = result.json()
-        assert payload['credits_charged'] == 25
-        assert [item['credits_charged'] for item in payload['requests']] == [0, 4, 14, 7]
+        assert payload['credits_charged'] == 27
+        assert [item['credits_charged'] for item in payload['requests']] == [0, 4, 14, 9]
+        assert [stage['operation'] for stage in payload['requests'][3]['stages']] == ['analysis', 'next']
         assert payload['requests'][1]['pending'] is True
         assert [stage['operation'] for stage in payload['requests'][2]['stages']] == ['preview', 'editorial']
         assert payload['requests'][2]['stages'][1]['status'] == 'failed'

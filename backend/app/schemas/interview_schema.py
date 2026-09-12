@@ -49,6 +49,7 @@ class InterviewCreate(Contract):
     spacing_px: dict | None = None
     job_offer_url: str = Field(default="", max_length=2048)
     job_description: str = Field(default="", max_length=20000)
+    analysis_key: str | None = Field(default=None, min_length=1, max_length=128)
     candidate_notes: str = Field(default="", max_length=5000)
     language: Literal["pl", "en", "de", "fr", "es", "uk", "it", "nl"] = "pl"
 
@@ -95,6 +96,11 @@ class Requirement(Contract):
     text: str = Field(max_length=1000)
     status: Literal["matched", "partial", "unknown", "gap"]
     evidence_refs: list[str] = Field(max_length=10)
+
+
+class JobAnalysis(Contract):
+    """Initial offer requirements; their classifications never become career facts."""
+    requirements: list[Requirement] = Field(min_length=1, max_length=20)
 
 
 class Discovery(Contract):

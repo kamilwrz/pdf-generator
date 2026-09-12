@@ -126,6 +126,15 @@ JOB_TAILORING_RESPONSE_SCHEMA = {
     },
 }
 
+# The analysis action never returns applicable edits; document creation belongs
+# to the interview's verified preview workflow.
+JOB_ANALYSIS_RESPONSE_SCHEMA = deepcopy(JOB_TAILORING_RESPONSE_SCHEMA)
+JOB_ANALYSIS_RESPONSE_SCHEMA['name'] = 'job_analysis_result'
+for _field in ('corrections', 'profile_updates'):
+    JOB_ANALYSIS_RESPONSE_SCHEMA['schema']['required'].remove(_field)
+    del JOB_ANALYSIS_RESPONSE_SCHEMA['schema']['properties'][_field]
+
+
 _PLACEHOLDER_RE = re.compile(
     r"(?:\[[^\]]*(?:x|liczb|procent|metryk)[^\]]*\]|<[^>]+>|\bTBD\b|\bTODO\b)",
     re.IGNORECASE,

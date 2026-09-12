@@ -240,79 +240,6 @@
 .deleteAccept:hover { background: var(--color-danger); }
 
 /* ── Job Description ─────────────────────────────────────────────── */
-.jobDescArea {
-    overflow-y: auto;
-    max-height: min(560px, 68vh);
-    max-height: min(560px, 68dvh);
-    min-height: 0;
-    padding: 12px;
-    border-bottom: 1px solid var(--chrome-border);
-    background: var(--chrome-control);
-    flex: 0 1 auto;
-    overscroll-behavior: contain;
-    scrollbar-gutter: stable;
-}
-
-.jobPanelHeader {
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-    margin-bottom: 12px;
-}
-
-.jobPanelHeader strong { font: 700 13px var(--font-body); color: var(--chrome-ink); }
-.jobPanelHeader span { font: 500 11px/1.45 var(--font-body); color: var(--chrome-muted); }
-
-.jobDescLabel {
-    display: block;
-    font: 700 9px var(--font-body);
-    color: var(--chrome-muted);
-    text-transform: uppercase;
-    letter-spacing: .06em;
-    margin: 10px 0 5px;
-}
-
-.jobDescLabel:first-of-type { margin-top: 0; }
-.jobDescLabel span { text-transform: none; letter-spacing: 0; font-weight: 500; }
-
-.jobDescInput {
-    width: 100%;
-    padding: 7px 9px;
-    border: 1px solid var(--chrome-border);
-    border-radius: var(--radius-control);
-    background: var(--chrome-surface);
-    font: 500 11px var(--font-body);
-    color: var(--chrome-ink);
-    resize: none;
-    outline: none;
-    transition: border-color .15s;
-}
-.jobDescInput:focus-visible { border-color: var(--color-focus); box-shadow: 0 0 0 2px var(--color-focus-soft); }
-
-.jobFieldHelp,
-.jobFieldError {
-    display: block;
-    margin-top: 4px;
-    font: 500 10.5px/1.4 var(--font-body);
-}
-.jobFieldHelp { color: var(--chrome-muted); }
-.jobFieldError { color: var(--color-danger); }
-
-.jobSafetyNote {
-    margin: 10px 0 0;
-    padding: 8px 9px;
-    border-left: 3px solid var(--chrome-ink);
-    background: var(--chrome-surface);
-    color: var(--chrome-muted);
-    font: 500 10.5px/1.45 var(--font-body);
-}
-
-.jobDescRow {
-    display: flex;
-    justify-content: flex-end;
-    gap: 5px;
-    margin-top: 5px;
-}
 
 .jobDescCancel {
     padding: 5px 9px;
@@ -324,21 +251,8 @@
     cursor: pointer;
 }
 
-.jobDescAnalyse {
-    padding: 5px 10px;
-    border: none;
-    border-radius: var(--radius-control);
-    background: var(--chrome-ink);
-    font: 700 10.5px var(--font-body);
-    color: var(--color-paper);
-    cursor: pointer;
-    box-shadow: none;
-    transition: background-color .15s;
-}
-.jobDescAnalyse:hover:not(:disabled) { background: var(--chrome-accent); }
-.jobDescAnalyse:disabled { opacity: .6; cursor: not-allowed; }
-.jobDescCancel:focus-visible,
-.jobDescAnalyse:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+.jobDescCancel:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+
 
 /* ── Chat Messages ───────────────────────────────────────────────── */
 .messages {
@@ -1346,3 +1260,7 @@
 /* Historical cards remain readable without exposing obsolete canvas actions. */
 .historyMessage { border: 0; padding: 0; margin: 0; min-width: 0; }
 .historyNotice { color: var(--color-muted); font: 400 .75rem/1.4 var(--font-ui); }
+
+/* Embedded interviews use the complete task body below the assistant header. */
+.interviewBody { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; }
+.interviewBody > * { flex: 1; width: 100%; box-sizing: border-box; }

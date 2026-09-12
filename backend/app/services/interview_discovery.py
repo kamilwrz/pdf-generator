@@ -147,13 +147,13 @@ def next_entry(entries, answers):
     """Choose the first unfinished entry; all answer statuses consume capacity.
 
     Skipping, not remembering and no experience close this entry immediately.
-    Two ordinary questions finish a record. One focused follow-up may consume
-    its third slot, but model topic renaming cannot reopen the record.
+    Two ordinary questions finish a record or job requirement. Only CV records
+    allow a third focused follow-up; topic renaming cannot reopen either kind.
     """
     for entry in entries:
         history = entry_answers(entry, entries, answers)
         ordinary = sum(not a["question"].get("follow_up_to") for a in history)
-        maximum = 3 if entry["question_count"] == 2 else 1
+        maximum = 2 if entry["kind"] == "requirement" else 3 if entry["question_count"] == 2 else 1
         if any(a["status"] != "answered" for a in history) or len(history) >= maximum or ordinary >= entry["question_count"]:
             continue
         return {**entry, "asked": len(history), "ordinary_asked": ordinary,
@@ -164,11 +164,26 @@ def next_entry(entries, answers):
 def update_discovery_budget(state, profile):
     """Size initial/resumed rounds for record coverage without resetting history.
 
-    The JSON marker makes this additive upgrade idempotent. New confirmed
+    Tailoring uses two slots per unresolved requirement after analysis. Other
+    modes use a JSON marker to make record coverage idempotent. New confirmed
     records can increase capacity; normal answer saves cannot. The shared
     session ceiling remains 50 and an explicitly exhausted zero budget stays
     exhausted. No schema migration or provider call is needed.
     """
+    if state.get('mode') == 'tailor':
+        if not state.get('job_analysis_ready'):
+            state['discovery_complete'] = False
+            return []
+        entries = [{'id': item['id'], 'kind': 'requirement', 'label': item['text'],
+                    'facts': [], 'question_count': 2, 'status': item['status']}
+                   for item in state.get('requirements', []) if item['status'] in {'partial', 'unknown', 'gap'}]
+        # Two slots per requirement, never a third model follow-up. Answers remain
+        # authoritative across retries, refresh and explicit extension requests.
+        remaining = sum(max(0, 2 - len(entry_answers(entry, entries, state['answers'])))
+                        for entry in entries if next_entry([entry], entry_answers(entry, entries, state['answers'])))
+        state['question_limit'] = min(MAX_ANSWERS, len(state['answers']) + remaining)
+        state['discovery_complete'] = next_entry(entries, state['answers']) is None
+        return entries
     entries = discovery_entries(profile, state["answers"])
     ids = sorted(entry["id"] for entry in entries)
     if state.get("discovery_entry_ids") != ids and state["question_limit"] > 0:
@@ -204,6 +219,16 @@ def scoped_question(candidate, selected, entries, answers, is_fresh):
                 return {**candidate, "entry_id": selected["id"], "context": selected["label"]}
     kind, label = selected["kind"], selected["label"]
     second = selected["ordinary_asked"] > 0
+    if kind == 'requirement':
+        text = (f"Jaki konkretny przykład i rezultat pokazuje Twoje doświadczenie w zakresie: {label}? Podaj też, gdzie miało to miejsce."
+                if second else f"Oferta wymaga: {label}. Jakie masz związane z tym doświadczenie i co robiłeś lub robiłaś samodzielnie?")
+        if ui_language.get() == 'en':
+            text = (f"What specific example and result demonstrate your experience with {label}? Include where this happened."
+                    if second else f"The job asks for {label}. What relevant experience do you have, and what did you do yourself?")
+        return {'entry_id': selected['id'], 'topic': f"{selected['id']}:{int(second) + 1}",
+                'text': text, 'context': label, 'follow_up_to': None,
+                'reason': 'We will use your answer to describe your experience for this job.' if ui_language.get() == 'en'
+                else 'Odpowiedź pomoże opisać Twoje doświadczenie pod kątem tej oferty.'}
     if selected["id"].startswith("general:"):
         text = {
             "experience": "Jakie masz doświadczenie zawodowe, w tym praktyki lub wolontariat? Podaj role i miejsca pracy.",

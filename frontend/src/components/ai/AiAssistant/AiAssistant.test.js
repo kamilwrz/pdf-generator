@@ -54,7 +54,6 @@ test("assistant auto-scroll commits the latest message before paint", async () =
     assert.doesNotMatch(source, /messageList\.scrollTo\(/);
 
     assert.match(styles, /\.panel\s*\{[\s\S]*?overflow:\s*hidden;[\s\S]*?overflow:\s*clip;[\s\S]*?\}/);
-    assert.match(styles, /\.jobDescArea\s*\{[\s\S]*?min-height:\s*0;[\s\S]*?flex:\s*0 1 auto;[\s\S]*?\}/);
     assert.match(styles, /\.messages\s*\{[\s\S]*?flex:\s*1 1 0%;[\s\S]*?min-height:\s*0;[\s\S]*?overflow-y:\s*auto;[\s\S]*?overflow-anchor:\s*none;[\s\S]*?scroll-behavior:\s*auto;[\s\S]*?\}/);
 });
 

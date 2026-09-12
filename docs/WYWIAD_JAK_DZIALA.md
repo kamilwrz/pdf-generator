@@ -30,7 +30,7 @@ W WYWIADZIE działają dwie niezależne osie.
 - `enrich` — uzupełnij informacje z istniejącego CV;
 - `tailor` — przygotuj nowe CV pod ofertę pracy.
 
-Tryb wpływa na kontekst pytań. `tailor` przekazuje modelowi także ofertę i ma początkową pojemność pięciu pytań, a `create` i `enrich` ośmiu. Po zatwierdzeniu informacji serwer zwiększa limit, jeśli liczba wpisów wymaga większej rozmowy, maksymalnie do 50 zapisanych odpowiedzi.
+Tryb wpływa na kontekst pytań. `tailor` opiera rozmowę na analizie oferty: dwa pytania na częściowe lub brakujące wymaganie, bez trzeciego dopytania. Gotowa, aktualna analiza może być użyta bez ponownej opłaty za analizę. `create` i `enrich` zaczynają od pojemności ośmiu pytań. Po zatwierdzeniu informacji serwer zwiększa limit, jeśli liczba wpisów wymaga większej rozmowy, maksymalnie do 50 zapisanych odpowiedzi.
 
 ### 2. Zakres dowodów
 
@@ -268,7 +268,7 @@ Użytkownik otwiera istniejące CV i wybiera:
 Asystent AI
 → Dopasuj do oferty
 → podaj publiczny adres HTTPS lub wklej opis awaryjny
-→ Dopasuj z wywiadem — nowe CV
+→ Dopasuj z wywiadem
 ```
 
 Przycisk jest aktywny dopiero wtedy, gdy podano URL albo opis oferty.
@@ -544,6 +544,6 @@ Pełne typy pól, ograniczenia długości i formaty odpowiedzi znajdują się w 
 - **Nie masz CV z danymi** — zaimportuj PDF albo utwórz, uzupełnij i zapisz CV, następnie wróć do wywiadu.
 - **Masz CV i chcesz wydobyć brakujące konkrety** — otwórz CV i wybierz **Uzupełnij CV przez wywiad**.
 - **Masz wcześniejszy import** — wybierz go na stronie WYWIADU albo zaznacz uruchomienie rozmowy po wypełnieniu szablonu.
-- **Aplikujesz na konkretną ofertę** — otwórz właściwe CV i wybierz **Dopasuj z wywiadem — nowe CV**.
+- **Aplikujesz na konkretną ofertę** — otwórz właściwe CV i wybierz **Dopasuj z wywiadem**.
 
 W każdym wariancie wynik jest osobnym dokumentem. Fakty ze źródła są przeglądane przed użyciem, a własna wysłana odpowiedź jest potwierdzona już przez sam zapis.

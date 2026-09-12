@@ -136,6 +136,7 @@ export default function InterviewFlow({ sessionId, initialSource = null, current
         ...(kind === 'profile' ? { use_profile_source: true } : {}),
       } : { candidate_notes: notes }),
     };
+    if (body.analysis_key && notes.trim() !== (initialSource?.candidate_notes || '').trim()) delete body.analysis_key;
     const result = await interviewRequest('/ai/interviews', 'POST', body, createKey.current);
     if (alive.current) { adopt(result, result.evidence_scope === 'profile' ? await interviewRequest('/career-profile') : interviewEvidence(null, result)); setReviewOpen(true); }
   }, 'start');
@@ -196,6 +197,7 @@ export default function InterviewFlow({ sessionId, initialSource = null, current
     {!session && profile && <fieldset disabled={busy}>
       {(sourceReady || documents.length > 0 || imports.length > 0) && <>
       <legend>{mode === 'tailor' ? uiText("interview:interviewFlow.addExperienceRelevantToThisJob") : uiText("interview:interviewFlow.whereShallWeStart")}</legend>
+      {mode === 'tailor' && <p>{uiText(initialSource?.analysis_key && notes.trim() === (initialSource.candidate_notes || '').trim() ? 'ai:jobMatch.reused' : 'ai:jobMatch.fresh')}</p>}
       <p id="interview-source-help">{uiText("interview:interviewFlow.chooseWhetherToUseYourProfileOr")}</p>
       {!initialSource && <><label>{uiText("interview:interviewFlow.informationSource")}<select value={source} onChange={(e) => {
           const selected = e.target.value;
@@ -274,7 +276,7 @@ export default function InterviewFlow({ sessionId, initialSource = null, current
             </div>
           </div>
         </div>}
-        {session.question && !clarificationQuestion && <div className={classes.question}><h3>{session.question.text}</h3><p className={classes.hint}>{session.question.reason}</p>
+        {session.question && !clarificationQuestion && <div className={classes.question}>{session.mode === 'tailor' && session.question.entry_id?.startsWith('requirement:') && <p className={classes.hint}>{uiText('ai:jobMatch.questionProgress', { number: 1 + session.answers.filter((item) => item.question.entry_id === session.question.entry_id).length })}</p>}<h3>{session.question.text}</h3><p className={classes.hint}>{session.question.reason}</p>
           <p className={classes.hint} id={`answer-help-${session.question.id}`}>{uiText("interview:interviewFlow.answerInYourOwnWordsWhenPreparing")}</p>
           {session.question.follow_up_to && <p className={classes.hint}>{uiText("interview:interviewFlow.aFollowUpToAnEarlierAnswer")}</p>}
           <label>{uiText("interview:factEditor.yourAnswer")}<textarea rows={5} maxLength={4000} value={answer} onChange={(event) => setAnswer(event.target.value)} disabled={busy} aria-describedby={`answer-help-${session.question.id}`} /></label><div className={classes.actions}><button className={classes.primary} disabled={busy || !answer.trim()} onClick={() => saveAnswer('answered')}>{uiText("interview:interviewFlow.saveAnswer")}</button><button disabled={busy} onClick={() => saveAnswer('no_experience')}>{uiText("interview:interviewFlow.iDoNotHaveThatExperience")}</button><button disabled={busy} onClick={() => saveAnswer('unknown')}>{uiText("interview:interviewFlow.iCannotRemember")}</button><button disabled={busy} onClick={() => saveAnswer('skipped')}>{uiText("ai:aiAssistant.skip")}</button></div></div>}

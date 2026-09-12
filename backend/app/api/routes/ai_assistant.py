@@ -27,6 +27,7 @@ from app.services.ai_credit_budget import assistant_credit_budget
 from app.services.ats_readability import AtsReadabilityError
 from app.services.scoped_ai import ScopedContent, review_scoped_content
 from app.services.document_service import validate_and_resolve_image_elements
+from app.services.interview_job_analysis import analysis_signature
 from app.services.job_offer_service import JobOfferError, resolve_job_offer
 from app.services.entitlements import (
     assert_can_use_ai_action,
@@ -158,6 +159,7 @@ class AssistantResponse(BaseModel):
     priorities: list[dict] = []
     job_offer: dict | None = None
     job_requirements: list[dict] = []
+    analysis_key: str | None = None
     evidence_gaps: list[dict] = []
     layout_groups: list[dict] = []
     layout_issues: list[dict] = []
@@ -303,7 +305,10 @@ def ai_assistant(
         reserved_credits=1,
     )
     if claim.replay_response is not None:
-        return AssistantResponse(**claim.replay_response)
+        replay = dict(claim.replay_response)
+        if request.action == 'position_rating':
+            replay.update(corrections=[], updated_cv_data=None)
+        return AssistantResponse(**replay)
 
     log_metric_event("ai_assistant_call", db, payload, action=request.action)
 
@@ -411,6 +416,18 @@ def ai_assistant(
                 "message": localised_message('an_unexpected_error_occurred_please_try_again'),
             },
         )
+
+    if request.action == 'position_rating':
+        result['analysis_key'] = key
+        result['corrections'] = []
+        result['updated_cv_data'] = None
+        # Private metadata is cached in the existing receipt, excluded by the
+        # public response model. An interview can reuse only an owned match.
+        result['_interview_analysis'] = {
+            'signature': analysis_signature(request.cv_data or {}, request.candidate_notes, request.job_offer_url, request.job_description),
+            'requirements': result.get('job_requirements', []),
+            'offer': resolved_job_offer,
+        }
 
     try:
         settled = settle_ai_reservation(

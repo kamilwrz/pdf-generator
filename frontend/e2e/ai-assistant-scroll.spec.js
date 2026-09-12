@@ -220,7 +220,7 @@ test("job-offer form restores its height after a long tailoring result", async (
 
   const jobOfferUrl = page.getByLabel("Link do oferty", { exact: true });
   const jobForm = jobOfferUrl.locator("..");
-  const analyseButton = page.getByRole("button", { name: "Analizuj i przygotuj poprawki" });
+  const analyseButton = page.getByRole("button", { name: "Tylko analiza" });
   await jobOfferUrl.fill("https://example.com/oferty/analityk-kyc");
   const firstOpenHeight = await stableElementHeight(jobForm);
 
@@ -228,6 +228,7 @@ test("job-offer form restores its height after a long tailoring result", async (
   await analyseButton.click();
   await expect(page.getByText("Wymaganie oferty 18", { exact: true })).toHaveCount(1);
 
+  await page.getByRole("button", { name: "Wróć do działań asystenta" }).click();
   await matchJobButton.click();
   await expect(jobOfferUrl).toHaveValue("https://example.com/oferty/analityk-kyc");
   const secondOpenHeight = await stableElementHeight(jobForm);

@@ -542,7 +542,8 @@ def test_selected_candidate_isolated_through_confirmation_ai_and_document(enviro
     assert service.profile_payload(db, user.id) == owner
     # Updating an unrelated account profile cannot stale isolated evidence.
     owner = service.put_profile(db, user.id, 1, owner['facts'])
-    with patch.object(service, '_gpt', return_value=({'questions': [], 'requirements': []}, {'cost_pln_estimate': .01})) as provider:
+    responses = ([({'requirements': [{'text': 'Design portfolios', 'status': 'unknown', 'evidence_refs': []}]}, {'cost_pln_estimate': .01})] if mode == 'tailor' else []) + [({'questions': [], 'requirements': []}, {'cost_pln_estimate': .01})]
+    with patch.object(service, '_gpt', side_effect=responses) as provider:
         result = client.post(f"/ai/interviews/{session['id']}/next", json=version(session, 1))
         assert result.status_code == 200, result.text
         assert 'Kamil' not in provider.call_args.args[1] and 'OwnerOnlySkill' not in provider.call_args.args[1]

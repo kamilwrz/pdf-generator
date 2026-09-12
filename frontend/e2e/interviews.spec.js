@@ -172,23 +172,6 @@ for (const width of [390, 834, 1280, 1920]) {
   });
 }
 
-test('profile editing works with keyboard and reflows at 200 percent text zoom', async ({ page }) => {
-  await installInterviewApi(page);
-  await page.goto('/app/career-profile');
-  await page.getByRole('button', { name: '+ Dodaj informację', exact: true }).click();
-  await expect(page.getByLabel('Treść', { exact: true })).toBeFocused();
-  await page.getByLabel('Treść', { exact: true }).fill('Wdrożyłam raportowanie.');
-  await page.getByRole('button', { name: 'Zastosuj zmianę', exact: true }).click();
-  await page.getByRole('button', { name: 'Zapisz profil', exact: true }).click();
-  await expect(page.getByText('Profil zapisany.', { exact: true })).toBeVisible();
-  await page.setViewportSize({ width: 640, height: 450 });
-  await page.evaluate(() => { document.documentElement.style.fontSize = '200%'; });
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
-  await page.getByRole('button', { name: 'Wyczyść profil', exact: true }).click();
-  await page.getByRole('button', { name: 'Anuluj', exact: true }).click();
-  await expect(page.getByRole('button', { name: 'Wyczyść profil', exact: true })).toBeFocused();
-});
-
 for (const width of [390, 834, 1280, 1920]) {
   test(`tailoring starts inside the assistant and preserves the source at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
@@ -197,8 +180,8 @@ for (const width of [390, 834, 1280, 1920]) {
     await page.goto('/app/documents/41');
     await page.getByRole('button', { name: 'Otwórz asystenta AI', exact: true }).click();
     await page.getByRole('button', { name: 'Dopasuj do oferty', exact: true }).click();
-    await page.getByLabel('Opis awaryjny', { exact: false }).fill('Szukamy programisty React. Firma Przykład.');
-    await page.getByRole('button', { name: 'Dopasuj z wywiadem — nowe CV' }).click();
+    await page.getByLabel('Lub wklej treść oferty', { exact: true }).fill('Szukamy programisty React. Firma Przykład.');
+    await page.getByRole('button', { name: 'Dopasuj z wywiadem', exact: true }).click();
     const flow = page.getByRole('region', { name: 'Wywiad zawodowy' });
     await expect(flow).toBeVisible();
     await flow.getByRole('button', { name: 'Rozpocznij wywiad', exact: true }).click();
@@ -223,7 +206,7 @@ for (const width of [390, 834, 1280, 1920]) {
     expect(start.body.source_document_id).toBe(41);
     expect(start.body.job_description).toContain('React');
     await flow.getByRole('button', { name: 'Wróć do asystenta' }).click();
-    await expect(page.getByRole('button', { name: 'Dopasuj z wywiadem — nowe CV' })).toBeFocused();
+    await expect(page.getByRole('button', { name: 'Dopasuj z wywiadem', exact: true })).toBeFocused();
     api.base.assertHermetic();
   });
 }

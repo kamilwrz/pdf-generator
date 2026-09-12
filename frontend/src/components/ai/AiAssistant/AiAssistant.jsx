@@ -1,3 +1,4 @@
+import JobMatchPanel from './JobMatchPanel';
 import { useMessageState } from '../../../i18n/messageState.js';
 import { t as uiText } from "../../../i18n/index.js";
 import { useTranslation } from 'react-i18next';
@@ -976,9 +977,15 @@ export default function AiAssistant() {
     const [interview, setInterview] = useState(null);
     const interviewTriggerRef = useRef(null);
     const tailorInterviewTriggerRef = useRef(null);
+    const matchJobTriggerRef = useRef(null);
     const [jobUrlError, setJobUrlError] = useMessageState("");
     // Goal submenu: improve_content | translate | match_job | null
     const [activePanel, setActivePanel] = useState(null);
+    const [jobAnalysis, setJobAnalysis] = useState(null);
+    const [analysisError, setAnalysisError] = useState('');
+    const jobSignature = JSON.stringify([sessionKey, activeCvData, jobOfferUrl.trim(), jobDesc.trim(), candidateNotes.trim()]);
+    const currentJobAnalysis = jobAnalysis?.sourceSessionKey === sessionKey ? jobAnalysis : null;
+    const reusableAnalysis = currentJobAnalysis?.signature === jobSignature ? currentJobAnalysis : null;
     useEffect(() => {
         if (scopedAi?.isOpen) setActivePanel(null);
     }, [scopedAi?.isOpen, scopedAi?.reviews.length]);
@@ -1005,12 +1012,12 @@ export default function AiAssistant() {
             spacing_px: flowSpacing,
             language: cvLanguage || 'pl',
             candidate_notes: candidateNotes,
-            ...(mode === 'tailor' ? { job_offer_url: jobOfferUrl, job_description: jobDesc } : {}),
+            ...(mode === 'tailor' ? { job_offer_url: jobOfferUrl, job_description: jobDesc, ...(reusableAnalysis?.analysisKey ? { analysis_key: reusableAnalysis.analysisKey } : {}) } : {}),
         };
         setInterview({ source, mode, documentKey: sessionKey, signature: JSON.stringify(activeCvData) });
         setIsOpen(true);
         setActivePanel(null);
-    }, [activeCvData, activePdfId, activeTemplateId, flowSpacing, cvLanguage, candidateNotes, jobOfferUrl, jobDesc, sessionKey]);
+    }, [activeCvData, activePdfId, activeTemplateId, flowSpacing, cvLanguage, candidateNotes, jobOfferUrl, jobDesc, sessionKey, reusableAnalysis]);
     const activeInterview = interview?.documentKey === sessionKey ? interview : null;
 
     const messagesRef = useRef(null);
@@ -1524,7 +1531,8 @@ export default function AiAssistant() {
             sourceSessionKey: String(documentScope.epoch),
             ...(options.displayText ? { displayText: options.displayText } : {}),
         };
-        setMessages(prev => [...prev, userMsg]);
+        if (action !== "position_rating") setMessages(prev => [...prev, userMsg]);
+        if (action === "position_rating") setAnalysisError("");
         setIsLoading(true);
 
         try {
@@ -1604,7 +1612,7 @@ export default function AiAssistant() {
                 text: res.message,
                 rating: res.rating ?? null,
                 tips: res.tips ?? [],
-                corrections: res.corrections ?? [],
+                corrections: action === "position_rating" ? [] : res.corrections ?? [],
                 categories: res.categories ?? [],
                 strengths: res.strengths ?? [],
                 priorities: res.priorities ?? [],
@@ -1628,7 +1636,9 @@ export default function AiAssistant() {
                 sourceRevision: documentScope.revision,
                 sourceSessionKey: String(documentScope.epoch),
             };
-            setMessages(prev => [...prev, assistantMsg]);
+            if (action === 'position_rating') {
+                setJobAnalysis({ ...assistantMsg, analysisKey: res.analysis_key, signature: jobSignature });
+            } else setMessages(prev => [...prev, assistantMsg]);
             // Refresh balance outside the main try so a entitlements blip cannot
             // append a fake "assistant unavailable" error under a good answer.
             try {
@@ -1641,7 +1651,8 @@ export default function AiAssistant() {
                 chatSessionRef.current !== sessionAtStart
                 || !isDocumentScopeCurrent(documentScope, { requireSameRevision: true })
             ) return;
-            setMessages(prev => [...prev, {
+            if (action === "position_rating") setAnalysisError(err.message);
+            else setMessages(prev => [...prev, {
                 id: nanoid(),
                 role: "assistant",
                 createdAt: Date.now(),
@@ -1659,7 +1670,7 @@ export default function AiAssistant() {
                 setIsLoading(false);
             }
         }
-    }, [A4_Elements, activeCvData, candidateNotes, captureDocumentScope, cvLanguage, isDocumentScopeCurrent, isLoading, jobDesc, jobOfferUrl, pageSize, refreshEntitlements]);
+    }, [A4_Elements, activeCvData, candidateNotes, captureDocumentScope, cvLanguage, isDocumentScopeCurrent, isLoading, jobDesc, jobOfferUrl, pageSize, refreshEntitlements, jobSignature]);
 
     const handleGoalAction = useCallback((goalId) => {
         const goal = GOAL_ACTIONS.find((g) => g.id === goalId);
@@ -1740,11 +1751,10 @@ export default function AiAssistant() {
             return;
         }
         setJobUrlError("");
-        setActivePanel(null);
         send("position_rating", uiText("ai:aiAssistant.tailorMyCvToThisJob"), {
             displayText: url ? uiText("ai:aiAssistant.tailorCvToTheLinkedJob") : uiText("ai:aiAssistant.tailorCvToThePastedJobDescription"),
         });
-    }, [jobDesc, jobOfferUrl, send]);
+    }, [jobDesc, jobOfferUrl, send, setJobUrlError]);
 
     useEffect(() => {
         if (!isOpen) return undefined;
@@ -1844,7 +1854,7 @@ export default function AiAssistant() {
                             </div>
                         </div>
 
-                        {activeInterview ? <div className={classes.messages}><InterviewFlow
+                        {activeInterview ? <div className={classes.interviewBody}><InterviewFlow
                             key={`${activeInterview.documentKey}-${activeInterview.mode}`}
                             mode={activeInterview.mode}
                             initialSource={activeInterview.source}
@@ -1858,7 +1868,20 @@ export default function AiAssistant() {
                                 if (tailoring) setActivePanel('match_job');
                                 requestAnimationFrame(() => (tailoring ? tailorInterviewTriggerRef : interviewTriggerRef).current?.focus());
                             }}
-                        /></div> : <>
+                        /></div> : activePanel === 'match_job' ? <JobMatchPanel
+                            url={jobOfferUrl} description={jobDesc} notes={candidateNotes}
+                            onUrl={(value) => { setJobOfferUrl(value); setJobUrlError(''); setAnalysisError(''); }}
+                            onDescription={(value) => { setJobDesc(value); setJobUrlError(''); setAnalysisError(''); }} onNotes={setCandidateNotes}
+                            busy={isLoading} error={jobUrlError || analysisError} fieldError={jobUrlError}
+                            analysis={currentJobAnalysis} stale={Boolean(currentJobAnalysis && !reusableAnalysis)}
+                            onAnalyse={submitJobTailoring} interviewRef={tailorInterviewTriggerRef}
+                            onInterview={() => {
+                                const invalid = validateJobOfferInput(jobOfferUrl.trim(), jobDesc.trim());
+                                setJobUrlError(invalid || '');
+                                if (!invalid) openInterview('tailor');
+                            }}
+                            onBack={() => { setActivePanel(null); requestAnimationFrame(() => matchJobTriggerRef.current?.focus()); }}
+                        /> : <>
                         {/* goal-oriented quick actions */}
                         <div className={classes.actions}>
                             <button ref={interviewTriggerRef} type="button" className={classes.actionBtn} disabled={isLoading} onClick={() => openInterview('enrich')}>
@@ -1868,6 +1891,7 @@ export default function AiAssistant() {
                             {GOAL_ACTIONS.map((action) => (
                                 <button
                                     key={action.id}
+                                    ref={action.panel === "match_job" ? matchJobTriggerRef : undefined}
                                     type="button"
                                     className={`${classes.actionBtn} ${action.panel && activePanel === action.panel
                                         ? classes.actionBtnActive
@@ -1952,76 +1976,6 @@ export default function AiAssistant() {
                                         ))}
                                     </div>
                                     <button type="button" className={classes.jobDescCancel} onClick={() => setActivePanel(null)}>{uiText("ai:aiAssistant.cancel")}</button>
-                                </Motion.div>
-                            )}
-                            {activePanel === "match_job" && (
-                                <Motion.div
-                                    className={classes.jobDescArea}
-                                    initial={{ height: 0, opacity: 0 }}
-                                    animate={{ height: "auto", opacity: 1 }}
-                                    exit={{ height: 0, opacity: 0 }}
-                                    transition={{ duration: 0.2 }}
-                                >
-                                    <div className={classes.jobPanelHeader}>
-                                        <strong>{uiText("ai:aiAssistant.tailorYourCvToASpecificJob")}</strong>
-                                        <span>{uiText("ai:aiAssistant.weWillAnalyseTheRequirementsThenShow")}</span>
-                                    </div>
-                                    <label className={classes.jobDescLabel} htmlFor="ai-job-offer-url">{uiText("ai:aiAssistant.jobAdvertLink")}</label>
-                                    <input
-                                        id="ai-job-offer-url"
-                                        className={classes.jobDescInput}
-                                        type="url"
-                                        inputMode="url"
-                                        value={jobOfferUrl}
-                                        onChange={(event) => {
-                                            setJobOfferUrl(event.target.value);
-                                            setJobUrlError("");
-                                        }}
-                                        placeholder="https://firma.pl/oferty/stanowisko"
-                                        aria-describedby="ai-job-offer-help ai-job-offer-error"
-                                        aria-invalid={Boolean(jobUrlError)}
-                                    />
-                                    <span id="ai-job-offer-help" className={classes.jobFieldHelp}>{uiText("ai:aiAssistant.publicHttpsPagesAreSupportedIncludingGreenhouse")}</span>
-                                    {jobUrlError && (
-                                        <span id="ai-job-offer-error" className={classes.jobFieldError} role="alert">
-                                            {jobUrlError}
-                                        </span>
-                                    )}
-                                    <label className={classes.jobDescLabel} htmlFor="ai-job-description">{uiText("ai:aiAssistant.fallbackDescription")} <span>{uiText("ai:aiAssistant.optional")}</span>
-                                    </label>
-                                    <textarea
-                                        id="ai-job-description"
-                                        className={classes.jobDescInput}
-                                        value={jobDesc}
-                                        onChange={e => setJobDesc(e.target.value)}
-                                        placeholder={uiText("ai:aiAssistant.pasteTheJobDescriptionIfThePage")}
-                                        rows={4}
-                                    />
-                                    <label className={classes.jobDescLabel} htmlFor="ai-candidate-notes">{uiText("ai:aiAssistant.additionalFactsAboutYou")} <span>{uiText("ai:aiAssistant.optional")}</span>
-                                    </label>
-                                    <textarea
-                                        id="ai-candidate-notes"
-                                        className={classes.jobDescInput}
-                                        value={candidateNotes}
-                                        onChange={(event) => setCandidateNotes(event.target.value)}
-                                        placeholder={uiText("ai:aiAssistant.forExampleIHaveUsedThisTechnology")}
-                                        rows={3}
-                                    />
-                                    <p className={classes.jobSafetyNote}>{uiText("ai:aiAssistant.cvStudioWillNotInventFiguresSkills")}</p>
-                                    <div className={classes.jobDescRow}>
-                                        <button ref={tailorInterviewTriggerRef} type="button" className={classes.jobDescAnalyse} disabled={(!jobOfferUrl.trim() && !jobDesc.trim()) || isLoading} onClick={() => openInterview('tailor')}>{uiText("ai:aiAssistant.tailorWithAnInterviewNewCv")}</button>
-                                        <button
-                                            type="button"
-                                            className={classes.jobDescCancel}
-                                            onClick={() => setActivePanel(null)}
-                                        >{uiText("ai:aiAssistant.cancel")}</button>
-                                        <button
-                                            type="button"
-                                            className={classes.jobDescAnalyse}
-                                            disabled={(!jobOfferUrl.trim() && !jobDesc.trim()) || isLoading}
-                                            onClick={submitJobTailoring}
-                                        >{uiText("ai:aiAssistant.analyseAndPrepareCorrections")}</button>
-                                    </div>
                                 </Motion.div>
                             )}
                         </AnimatePresence>
