@@ -3,6 +3,7 @@
    surface, 1px hairline grey stroke, subtle sharp shadow, 0px radius. */
 .menu {
     composes: surface from "../CanvasControls.module.css";
+    --canvas-surface-radius: var(--radius-panel);
     position: absolute;
     top: calc(100% + 4px);
     left: 0;
@@ -16,6 +17,7 @@
 
 .menuItem {
     composes: button from "../CanvasControls.module.css";
+    border-radius: var(--radius-panel);
     height: auto;
     display: block;
     width: 100%;

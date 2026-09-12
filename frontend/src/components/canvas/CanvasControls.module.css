@@ -12,7 +12,9 @@
     background: var(--color-paper);
     color: var(--color-editor-ink);
     border: var(--canvas-control-border, 1px) solid var(--color-border);
-    border-radius: var(--radius-panel);
+    /* Limit wrapped toolbars to one row's radius so outer actions stay clear
+       of the curve. The same local metrics inverse-scale inside A4. */
+    border-radius: var(--canvas-surface-radius, min(var(--radius-canvas-tool), calc(var(--canvas-control-size, 24px) / 2 + var(--canvas-control-gap, 2.4px) + var(--canvas-control-border, 1px))));
     box-shadow: var(--canvas-shadow-editor-entry, var(--shadow-editor-entry));
     font-family: var(--font-ui);
     pointer-events: auto;
@@ -29,7 +31,7 @@
     flex: 0 0 auto;
     padding: 0;
     border: 0;
-    border-radius: var(--radius-panel);
+    border-radius: var(--radius-canvas-tool);
     background: transparent;
     color: var(--color-editor-ink);
     font-family: var(--font-ui);

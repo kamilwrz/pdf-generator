@@ -74,15 +74,17 @@ for (const width of [390, 834, 1280, 1920]) {
           size: el.getBoundingClientRect().height, radius: style.borderRadius,
           color: style.color, hover: style.backgroundColor,
           border: shell.borderColor, surface: shell.backgroundColor,
-          shellRadius: shell.borderRadius,
+          shellRadius: parseFloat(shell.borderRadius), shellHeight: parseFloat(shell.height),
         };
       });
       expect(appearance.size).toBeCloseTo(size, 0);
       expect(appearance).toMatchObject({
-        radius: "0px", shellRadius: "0px", border: "rgb(201, 197, 188)",
+        radius: "999px", border: "rgb(201, 197, 188)",
         surface: "rgb(255, 255, 255)", hover: "rgb(236, 232, 223)",
         color: danger ? "rgb(180, 35, 24)" : "rgb(103, 78, 62)",
       });
+      // Chromium rounds inverse-scaled hairline borders to device pixels.
+      expect(appearance.shellRadius).toBeCloseTo(appearance.shellHeight / 2, 0);
     };
 
     // Authored single-line text has a zero-height baseline box for PDF parity.
@@ -112,6 +114,9 @@ for (const width of [390, 834, 1280, 1920]) {
     await checkControl(skillsStyle, 36);
     await expect(skillsStyle).toHaveText("");
     await expect(skillsStyle).toHaveAttribute("data-tooltip", "Styl umiejętności: w linii");
+    const disabledMove = sectionToolbar.locator("button:disabled").first();
+    await expect(disabledMove).toBeDisabled();
+    await expect(disabledMove).toHaveCSS("border-radius", "999px");
     await page.screenshot({ path: testInfo.outputPath("skills-style-toolbar.png") });
     await expectToolbarAboveText(sectionToolbar, page.locator("#skills-heading"));
     await expect(sectionToolbar.getByRole("button", { name: "AI dla wybranego zakresu" })).toBeVisible();
@@ -140,7 +145,9 @@ for (const width of [390, 834, 1280, 1920]) {
     const body = page.locator("#skills-tools-body");
     await body.focus();
     await body.press("Shift+F10");
-    const toolbar = page.locator('[data-canvas-toolbar-key="skills-entry:skills-heading:skills-tools"]');
+    // The skill trash has its own portal with the same lifecycle key. Scope
+    // the add form to its portal instead of counting both action surfaces.
+    const toolbar = page.locator('[data-canvas-toolbar-key="skills-entry:skills-heading:skills-tools"]:not([data-skill-delete])');
     const add = toolbar.getByRole("button", { name: /Dodaj umiejętność do kategorii/ });
     await expect(add).toBeFocused();
     await expect(toolbar.getByRole("button")).toHaveCount(1);
@@ -151,6 +158,9 @@ for (const width of [390, 834, 1280, 1920]) {
     const submit = toolbar.getByRole("button", { name: "Dodaj umiejętność", exact: true });
     await expect(submit).toBeDisabled();
     const form = toolbar.locator("form");
+    await expect(form.locator("..")).toHaveCSS("border-radius", "0px");
+    await expect(input).toHaveCSS("border-radius", "2px");
+    await expect(submit).toHaveCSS("border-radius", "2px");
     await expect.poll(async () => {
       const box = await form.boundingBox();
       return box.x >= 0 && box.x + box.width <= width && box.y >= 0 && box.y + box.height <= 1000;
@@ -186,6 +196,9 @@ test("toolbar geometry and menu text grow monotonically through animated canvas 
   const more = toolbar.getByRole("button", { name: "Więcej działań" });
   await more.click();
   await expect(toolbar.getByRole("menu")).toBeVisible();
+  await expect(more).toHaveCSS("border-radius", "999px");
+  await expect(more).toHaveCSS("background-color", "rgb(236, 232, 223)");
+  await expect(toolbar.getByRole("menu")).toHaveCSS("border-radius", "0px");
   // The synthetic zoom buttons below do not move a real pointer. Park the
   // pointer over application chrome so an animated page cannot slide another
   // authored hover target underneath it and legitimately claim the toolbar.
@@ -243,6 +256,7 @@ test("toolbar geometry and menu text grow monotonically through animated canvas 
     await expect(more).toBeFocused();
     await trigger.press("Enter");
     const items = toolbar.getByRole("menuitem");
+    await expect(items.first()).toHaveCSS("border-radius", "0px");
     await expect(items.first()).toBeFocused();
     await items.first().press("End");
     await expect(items.last()).toBeFocused();
@@ -318,6 +332,9 @@ for (const width of [390, 640]) {
     await expect(toolbar.getByRole("menuitem").first()).toBeFocused();
     await toolbar.getByRole("menuitem").first().press("Escape");
     await expect(more).toBeFocused();
+    await expect(more).toHaveCSS("border-radius", "999px");
+    await expect(more).toHaveCSS("outline-style", "solid");
+    await expect(more).toHaveCSS("outline-color", "rgb(21, 94, 239)");
     await page.screenshot({ path: testInfo.outputPath("record-280.png") });
     api.assertHermetic();
   });

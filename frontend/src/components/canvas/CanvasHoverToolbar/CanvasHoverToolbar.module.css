@@ -120,6 +120,8 @@
 }
 
 .panelToolbar {
+    /* Forms keep the standard panel geometry when replacing the action row. */
+    --canvas-surface-radius: var(--radius-panel);
     display: block;
     padding: 0;
 }
@@ -163,6 +165,7 @@
 
 .menu {
     composes: surface from "../CanvasControls.module.css";
+    --canvas-surface-radius: var(--radius-panel);
     position: absolute;
     right: 0;
     top: calc(100% + var(--canvas-control-gap));

@@ -9,7 +9,17 @@ for (const style of ["W linii", "Lista", "Pigułka z wypełnieniem", "Pigułka b
     await login(page);
     await page.getByText("Kontynuuj ostatnie CV", { exact: true }).click();
     if (style !== "W linii") {
-      await page.locator("#skills-heading").dispatchEvent("pointerenter");
+      // Enter the rendered glyphs with the real pointer. A synthetic enter
+      // during document hydration can be cleared before the toolbar opens.
+      const heading = page.locator("#skills-heading");
+      await heading.scrollIntoViewIfNeeded();
+      const headingPoint = await heading.evaluate((node) => {
+        const range = document.createRange();
+        range.selectNodeContents(node);
+        const rect = range.getBoundingClientRect();
+        return { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 };
+      });
+      await page.mouse.move(headingPoint.x, headingPoint.y);
       await page.getByRole("button", { name: /^Styl umiejętności:/ }).click();
       const panel = page.getByRole("region", { name: "Styl umiejętności" });
       await panel.getByText(style, { exact: true }).click();

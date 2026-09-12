@@ -55,6 +55,8 @@
     --radius-panel: 0;
     --radius-control: 2px;
     --radius-pill: 999px;
+    /* Rounded A4 action chrome is the scoped exception in DESIGN.md. */
+    --radius-canvas-tool: var(--radius-pill);
     --control-height: 44px;
     --control-height-compact: 36px;
     --topbar-h: 48px;

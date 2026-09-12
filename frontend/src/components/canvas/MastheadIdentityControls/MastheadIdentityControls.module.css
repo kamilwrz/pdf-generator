@@ -1,6 +1,6 @@
-/* Case toggle chip. Reuses the shared surface-chip look (white, 1px hairline,
-   sharp 0px corners per DESIGN.md); the label is a compact monospace pair so
-   "Aa"/"AA" read as a case switch rather than text. */
+/* The case toggle shares the rounded A4 action chrome from DESIGN.md.
+   A compact monospace pair makes "Aa"/"AA" read as a case switch
+   rather than authored document text. */
 .caseToggle {
     composes: button from "../CanvasControls.module.css";
     font-family: var(--font-mono);
