@@ -106,8 +106,9 @@ Każdy przykład wymaga podanego kontekstu. Nie kopiuj jego branży, nazw ani za
 # The provider receives this contract alongside history-derived angle guidance.
 # Keeping it shared avoids reintroducing a fixed contribution/result script in
 # one interview mode while the system prompt asks for an adaptive conversation.
-DISCOVERY_TASK = """Zwróć jedno nowe pytanie WYŁĄCZNIE o question_scope.
-Ustaw entry_id dokładnie na question_scope.id; nie wracaj do innych wpisów.
+DISCOVERY_TASK = """Zwróć jedno nowe pytanie o question_scope; jeśli zadanie zawiera
+question_candidates, wybierz pierwszy zakres pozostały po completed_scopes.
+Ustaw entry_id na id wybranego dozwolonego zakresu; bez question_candidates użyj question_scope.id.
 Wykorzystaj question_guidance: covered_angles to cele wcześniejszych PYTAŃ, nie dowód
 odpowiedzi ani kompletności faktów; preferred_angles to wskazówki do wyboru, nie nakaz.
 Sprawdź question_scope.facts, profil i treść odpowiedzi, także z wcześniejszych wpisów,
@@ -434,6 +435,13 @@ def assemble_draft(raw, profile, language):
         if path.strip("/") in IDENTITY and not any(f["path"] == path and f["text"] == value for f in cited):
             fail(localised_message('contact_and_identity_details_must_remain_consistent_with'), 422)
         record = re.match(r"^/(experience|education)/\d+/", path)
+        if re.search(r"/(?:period|date)$", path) and not any(
+            re.sub(r"\s+", " ", value).strip() in re.sub(r"\s+", " ", fact["text"]).strip()
+            for fact in cited
+        ):
+            # Dates must be stated together in one cited fact. Finding the same
+            # individual numbers in unrelated tasks is not proof of attendance.
+            fail(localised_message('the_suggestion_contains_unconfirmed_information_generate_it_again'), 422)
         if record:
             # A metric from another role is not evidence for this role. Unbound
             # interview answers have explicit user-reviewed context in the UI.
@@ -569,6 +577,7 @@ def next_question(db, user, row, request):
     """
     from app.services.interview_discovery import update_discovery_budget, next_entry, scoped_question
     from app.services.interview_questions import question_guidance
+    from app.services.interview_quality import QUALITY_TASK, apply_discovery_review
     profile = check_versions(db, row, request)
     state = deepcopy(row.state)
     if not state.get("confirmed"):
@@ -601,15 +610,22 @@ def next_question(db, user, row, request):
         state["phase"] = "review"
     else:
         response = paid_model(db, user, row, request, "next", {
-            "task": DISCOVERY_TASK,
+            "task": DISCOVERY_TASK + (QUALITY_TASK if state["mode"] != "tailor" else ""),
             **({"question_policy": 'Masz najwyżej dwa główne pytania na to wymaganie. Wybierz różne brakujące szczegóły istotne dla tej oferty, bez ustalonej kolejności doświadczenie/wkład/wynik. Dla partial doprecyzuj niepotwierdzoną część zamiast ponownie pytać o cały wymóg. Nie zakładaj, że kandydat spełnia wymaganie; oferta nie jest dowodem. Przy gap uszanuj potwierdzony brak: możesz zapytać o pokrewną praktykę lub naukę, ale nie wracaj do zaprzeczonego doświadczenia i nie przedstawiaj pokrewnej umiejętności jako spełnienia wymogu. follow_up_to zawsze null. requirements zwróć puste; analiza jest już zapisana.',
             "analysis": state.get('requirements', []),
             "source_cv_data": state['source_cv_data']} if state["mode"] == "tailor" else {}),
             "question_scope": selected,
+            **({"question_candidates": [candidate for entry in entries
+                                        if (candidate := next_entry([entry], state["answers"]))][:50]}
+               if state["mode"] != "tailor" else {}),
             "question_guidance": question_guidance(selected, entries, state["answers"]),
             "mode": state["mode"], "profile": profile["facts"], "answers": state["answers"], "offer": state["offer"],
         }, Discovery)
         raw = response["output"]
+        if state["mode"] != "tailor":
+            apply_discovery_review(state, profile, entries, raw)
+            entries = update_discovery_budget(state, profile)
+            selected = next_entry(entries, state["answers"])
         catalog = evidence(profile)
         requirements = []
         for req in raw["requirements"]:
@@ -623,9 +639,12 @@ def next_question(db, user, row, request):
         if state["mode"] != "tailor":
             state["requirements"] = requirements
         questions = raw["questions"]
-        question = scoped_question(questions[0] if questions else None, selected, entries, state["answers"], is_fresh_question)
-        state["question"] = {"id": str(uuid4()), **question}
-        state["phase"] = "question"
+        if selected is None:
+            state.update(question=None, phase="review")
+        else:
+            question = scoped_question(questions[0] if questions else None, selected, entries, state["answers"], is_fresh_question)
+            state["question"] = {"id": str(uuid4()), **question}
+            state["phase"] = "question"
         state["usage"] = response["usage"]
     check_versions(db, owned_session(db, user.id, row.id), request)
     update_session(db, row, request.revision, state)

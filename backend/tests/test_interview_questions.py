@@ -85,19 +85,21 @@ def test_entire_mocked_provider_fallback_interview_keeps_diverse_saved_questions
             response = client.post(f"/ai/interviews/{session['id']}/next", json=version(session, session["profile_revision"]))
             assert response.status_code == 200, response.text
             session = response.json()
-            if session["discovery_complete"]:
+            if session["discovery_complete"] or session.get("discovery_round_complete"):
                 break
             proposed = session["question"]
-            assert proposed["entry_id"] == seen[-1]
+            assert proposed["entry_id"] in {f"/experience/{i}" for i in range(4)}
             response = client.post(f"/ai/interviews/{session['id']}/answers", json={
                 **version(session, session["profile_revision"]), "question_id": proposed["id"],
                 "answer": "Confirmed information." if language == "en" else "Potwierdzona informacja.", "status": "answered",
             })
             assert response.status_code == 200, response.text
             session = client.get(f"/ai/interviews/{session['id']}").json()
-        assert session["phase"] == "review" and session["discovery_complete"]
+        assert session["phase"] == "review" and session["discovery_round_complete"]
+        assert not session["discovery_complete"]
         questions = [item["question"] for item in session["answers"]]
-        assert provider.call_count == len(questions) == 11
+        assert len(questions) == 8
+        assert provider.call_count == 9
         assert len({item["angle"] for item in questions}) >= 6
         assert all(count <= 2 for count in Counter(item["entry_id"] for item in questions).values())
 

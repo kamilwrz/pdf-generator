@@ -24,6 +24,37 @@ beforeEach(() => {
 });
 
 describe('interview workflow', () => {
+  it('finishes a bounded round without claiming every record was discussed', async () => {
+    session = { ...session, question: null, phase: 'review', discovery_round_complete: true, discovery_complete: false };
+    render(<MemoryRouter><InterviewFlow sessionId="session" /></MemoryRouter>);
+    await screen.findByRole('button', { name: 'Przejdź do przygotowania CV' });
+    expect(screen.queryByRole('button', { name: 'Następne pytanie', exact: true })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Pogłęb wywiad/ })).toBeEnabled();
+  });
+
+  it('blocks final save during a preview draft and retains it after failed persistence', async () => {
+    session = { ...session, question: null, phase: 'preview', profile_revision: 1,
+      preview: { pages: 1, profile_revision: 1, cv_data: { name: 'Anna Nowak', summary: 'Testowanie formularzy.' },
+        changes: [{ path: '/summary', value: 'Testowanie formularzy.', evidence_refs: ['name'] }], remaining_gaps: [] } };
+    interviewRequest.mockImplementation(async (path) => {
+      if (path === '/career-profile') return { revision: 1, facts: [fact] };
+      if (path.endsWith('/preview-review')) throw new Error('Nie udało się zapisać.');
+      return session;
+    });
+    const user = userEvent.setup();
+    render(<MemoryRouter><InterviewFlow sessionId="session" /></MemoryRouter>);
+    await user.click(await screen.findByRole('button', { name: /^Zmiany/ }));
+    await user.click(screen.getByRole('button', { name: 'Popraw tę propozycję' }));
+    expect(screen.getByRole('button', { name: 'Zapisz jako nowe CV' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Zmień szablon lub odśwież' })).toBeDisabled();
+    const input = screen.getByLabelText('Pełny poprawiony opis');
+    await user.clear(input); await user.type(input, 'Wspieranie zespołu w testowaniu.');
+    await user.click(screen.getByRole('button', { name: 'Zatwierdź poprawiony tekst' }));
+    await screen.findByText('Nie udało się zapisać.');
+    expect(input).toHaveValue('Wspieranie zespołu w testowaniu.');
+    expect(screen.getByRole('button', { name: 'Zapisz jako nowe CV' })).toBeDisabled();
+    expect(interviewRequest.mock.calls.filter(([path, method]) => path.endsWith('/preview-review') && method === 'POST')).toHaveLength(1);
+  });
   it('keeps an empty editor blocked even when the owner has a profile', async () => {
     const onClose = vi.fn();
     render(<MemoryRouter><InterviewFlow initialSource={{ cv_data: { name: ' ' } }} onClose={onClose} /></MemoryRouter>);

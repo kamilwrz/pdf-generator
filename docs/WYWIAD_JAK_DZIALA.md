@@ -30,7 +30,7 @@ W WYWIADZIE działają dwie niezależne osie.
 - `enrich` — uzupełnij informacje z istniejącego CV;
 - `tailor` — przygotuj nowe CV pod ofertę pracy.
 
-Tryb wpływa na kontekst pytań. `tailor` opiera rozmowę na analizie oferty: dwa pytania na częściowe lub brakujące wymaganie, bez trzeciego dopytania. Gotowa, aktualna analiza może być użyta bez ponownej opłaty za analizę. `create` i `enrich` mają minimalną pojemność ośmiu pytań, ale jeszcze przed płatnym zapytaniem serwer wylicza z treści CV maksymalny plan potrzebny do pokrycia wpisów, nie więcej niż 50 zapisanych odpowiedzi. `planned_question_count` przechowuje ten bieżący plan. Interfejs pokazuje **Pytanie X z maksymalnie N** i liczbę zapisanych odpowiedzi; opcjonalne dopytania są wliczone, a pominięcie, niepamiętanie lub brak doświadczenia może zmniejszyć pozostały plan.
+Tryb wpływa na kontekst pytań. `tailor` zachowuje dwa pytania na nierozstrzygnięte wymaganie oferty. `create` i `enrich` mają pierwszą rundę ośmiu pytań głównych i dziesięciu łącznie z dopytaniami. Doświadczenie poprzedza edukację; odpowiedź jest oceniana przy pobieraniu kolejnego pytania. Jawne przedłużenie dodaje do pięciu miejsc, z zachowaniem wspólnego maksimum 50 odpowiedzi. Widoczny `planned_question_count` pokazuje osiągalny plan. [Pełna instrukcja jakości i bezpłatnego przeglądu propozycji](INTERVIEW_QUALITY.md#polski) opisuje implementację, API, testy i ograniczenia.
 
 ### 2. Zakres dowodów
 
@@ -109,7 +109,7 @@ Endpoint `/next` wykonuje jedną płatną operację AI i może zwrócić najwyż
 - powód zadania pytania;
 - kontekst.
 
-Model otrzymuje tryb rozmowy, aktualne potwierdzone fakty, poprzednie odpowiedzi, ofertę, jeżeli istnieje, oraz `question_scope` z wpisem wybranym przez serwer. Pytanie musi wskazać ten sam `entry_id`. Backend liczy odpowiedzi na wpis niezależnie od nazw tematów, sprawdza powtórzenia i powiązanie dopytania. Pusta, powtórzona lub dotycząca niewłaściwego wpisu propozycja jest zastępowana neutralnym pytaniem lokalnym. Nie kończy całej rozmowy i nie powoduje płatnego ponowienia. Po wyczerpaniu wpisów lub limitu `/next` nie wywołuje modelu. Zwykły postęp nie obejmuje pytań weryfikacyjnych, ponieważ mają własny licznik i osobny budżet.
+Model otrzymuje tryb rozmowy, aktualne potwierdzone fakty, poprzednie odpowiedzi, ofertę, jeżeli istnieje, oraz `question_scope` z wpisem wybranym przez serwer. Po sprawdzeniu `answer_assessment` i `completed_scopes` pytanie wskazuje pierwszy nadal dostępny `entry_id` z kolejki `question_candidates`. Ocena nie zmienia faktów. Backend liczy odpowiedzi na wpis niezależnie od nazw tematów, sprawdza powtórzenia i powiązanie dopytania. Pusta, powtórzona lub dotycząca niewłaściwego wpisu propozycja jest zastępowana neutralnym pytaniem lokalnym. Nie kończy całej rozmowy i nie powoduje płatnego ponowienia. Po wyczerpaniu wpisów lub limitu `/next` nie wywołuje modelu. Zwykły postęp nie obejmuje pytań weryfikacyjnych, ponieważ mają własny licznik i osobny budżet.
 
 Użytkownik ma cztery sposoby odpowiedzi:
 

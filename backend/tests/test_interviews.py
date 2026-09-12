@@ -70,7 +70,7 @@ def test_legacy_session_rebuilds_its_plan_without_clarification_capacity(environ
 
     response = client.get(f"/ai/interviews/{session['id']}")
     assert response.status_code == 200
-    assert response.json()['planned_question_count'] == 4
+    assert response.json()['planned_question_count'] == 8
 
 
 def confirm(client, session, profile=0, facts=None):
@@ -450,7 +450,7 @@ def test_clarification_answer_persists_without_second_confirmation(environment, 
     assert saved.status_code == 200, saved.text
     saved = saved.json()
     assert len(saved['answers']) == 1
-    assert saved['planned_question_count'] == 4
+    assert saved['planned_question_count'] == 8
     profile = service.profile_payload(db, user.id)
     if status in {'answered', 'no_experience'}:
         answer_fact = profile['facts'][-1]
@@ -497,7 +497,7 @@ def test_skipping_an_active_clarification_recalculates_the_ordinary_plan(environ
     assert result.status_code == 200, result.text
     payload = result.json()
     assert payload['answers'][-1]['question']['clarification'] is True
-    assert payload['planned_question_count'] == 4
+    assert payload['planned_question_count'] == 8
 
 
 def test_resume_repairs_legacy_loop_once_without_profile_changes_or_ai(environment):

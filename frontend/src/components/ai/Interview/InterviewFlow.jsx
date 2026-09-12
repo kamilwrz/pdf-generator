@@ -145,6 +145,9 @@ export default function InterviewFlow({ sessionId, initialSource = null, current
   const saveAnswer = (status, text = answer) => run(async () => {
     await operation('answers', { question_id: session.question.id, answer: text, status });
     if (alive.current) {
+      // The server recognises standalone typed unknown answers without turning
+      // them into facts. Keep the receipt consistent with the persisted meaning.
+      status = sessionRef.current?.answers.at(-1)?.answer_meaning || status;
       const destination = session.evidence_scope === 'session' ? uiText("interview:interviewFlow.inThisInterview") : uiText("interview:interviewFlow.inYourCareerProfile");
       const message = status === 'answered' ? uiText("interview:interviewFlow.answerSaved", { value0: (destination) })
         : status === 'no_experience' ? uiText("interview:interviewFlow.lackOfExperienceSaved", { value0: (destination) })
@@ -170,7 +173,7 @@ export default function InterviewFlow({ sessionId, initialSource = null, current
   const reviewing = session?.phase === 'intake' || reviewOpen;
   const activePanel = reviewing ? 'facts' : session?.phase === 'clarification' ? 'conversation' : panel;
   const waiting = busy || initialLoading;
-  const inlineWaiting = busy && !initialLoading && ['answers', 'next', 'confirm', 'sync'].includes(pendingOperation);
+  const inlineWaiting = busy && !initialLoading && ['answers', 'next', 'confirm', 'sync', 'preview-review'].includes(pendingOperation);
   // Clarifications have their own bounded queue; discovery answers must not
   // make the first clarification appear as question nine of a new interview.
   const clarified = session?.answers.filter((item) => item.question?.clarification).length || 0;
@@ -292,7 +295,7 @@ export default function InterviewFlow({ sessionId, initialSource = null, current
           {session.question.follow_up_to && <p className={classes.hint}>{uiText("interview:interviewFlow.aFollowUpToAnEarlierAnswer")}</p>}
           <label>{uiText("interview:factEditor.yourAnswer")}<textarea rows={5} maxLength={4000} value={answer} onChange={(event) => setAnswer(event.target.value)} disabled={busy} aria-describedby={`answer-help-${session.question.id}`} /></label><div className={classes.actions}><button className={classes.primary} disabled={busy || !answer.trim()} onClick={() => saveAnswer('answered')}>{uiText("interview:interviewFlow.saveAnswer")}</button></div><details><summary>{uiText('ai:task.otherAnswers')}</summary><div className={classes.actions}><button disabled={busy} onClick={() => saveAnswer('no_experience')}>{uiText("interview:interviewFlow.iDoNotHaveThatExperience")}</button><button disabled={busy} onClick={() => saveAnswer('unknown')}>{uiText("interview:interviewFlow.iCannotRemember")}</button><button disabled={busy} onClick={() => saveAnswer('skipped')}>{uiText("ai:aiAssistant.skip")}</button></div></details></div>}
         {session.phase !== 'completed' && <div className={classes.actions}>
-          {!session.question && !session.discovery_complete && session.phase !== 'clarification' && session.answers.length < session.question_limit && <button disabled={busy || !canAi || sourceChanged} onClick={() => run(() => operation('next'))}>{uiText("interview:interviewFlow.nextQuestion")}</button>}
+          {!session.question && !session.discovery_complete && !session.discovery_round_complete && session.phase !== 'clarification' && session.answers.length < session.question_limit && <button disabled={busy || !canAi || sourceChanged} onClick={() => run(() => operation('next'))}>{uiText("interview:interviewFlow.nextQuestion")}</button>}
           <button disabled={busy} onClick={() => setReviewOpen(true)}>{uiText("interview:interviewFlow.reviewInformation")}{hasPending ? uiText("interview:interviewFlow.toSave", { value0: (session.proposed_facts.length) }) : ''}</button>
           {!session.discovery_complete && session.question_limit < 50 && (session.phase === 'review' || session.phase === 'preview') && <button disabled={busy || !canAi || sourceChanged} onClick={() => run(() => operation('extend'))}>{uiText("interview:interviewFlow.exploreFurtherUpToQuestions")}</button>}
         </div>}
@@ -308,10 +311,15 @@ export default function InterviewFlow({ sessionId, initialSource = null, current
           <button className={classes.primary} disabled={!canAi || !template || hasPending || sourceChanged} onClick={() => run(() => operation('preview', { template_id: template }))}>{session.preview ? uiText("interview:interviewFlow.refreshPreview") : uiText("interview:interviewFlow.prepareCvFromConfirmedInformation")}</button>
         </fieldset>}
         {activePanel === 'preview' && session.preview && session.phase !== 'clarification' && <>
-          <InterviewPreview key={`${session.id}-${session.revision}`} preview={session.preview} source={session.source_cv_data} facts={profile.facts} />
+          <InterviewPreview key={`${session.id}-${session.revision}`} preview={session.preview} source={session.source_cv_data} facts={profile.facts}
+            disabled={busy || sourceChanged} onEditingChange={setFactEditing}
+            onReview={session.phase === 'completed' ? undefined : (path, value) => run(async () => {
+              await operation('preview-review', { path, value });
+              if (alive.current) { setPanel('preview'); setNotice(messageRef('interview:interviewPreview.reviewSaved')); heading.current?.focus(); }
+            }, 'preview-review')} />
           <div className={classes.resultActions}><p>{uiText("interview:interviewFlow.saveASeparateDocumentTheSourceCv")}</p><div className={classes.actions}>
-            <button className={classes.primary} disabled={busy || hasPending || sourceChanged || session.preview.profile_revision !== profile.revision || session.phase === 'completed'} onClick={() => run(() => operation('document'))}>{uiText("interview:interviewFlow.saveAsANewCv")}</button>
-            {session.phase !== 'completed' && <button type="button" disabled={busy} onClick={() => setPanel('prepare')}>{uiText("interview:interviewFlow.changeTemplateOrRefresh")}</button>}
+            <button className={classes.primary} disabled={busy || factEditing || hasPending || sourceChanged || session.preview.profile_revision !== profile.revision || session.phase === 'completed'} onClick={() => run(() => operation('document'))}>{uiText("interview:interviewFlow.saveAsANewCv")}</button>
+            {session.phase !== 'completed' && <button type="button" disabled={busy || factEditing} onClick={() => goTo('prepare')}>{uiText("interview:interviewFlow.changeTemplateOrRefresh")}</button>}
           </div></div>
         </>}
         {session.document_id && <Link className={classes.link} to={`/app/documents/${session.document_id}`}>{uiText("interview:interviewFlow.openSavedCv")}</Link>}

@@ -151,6 +151,8 @@ def entry_answers(entry, entries, answers):
 
 def _entry_capacity(entry):
     """Return the maximum discovery questions allowed for one queue entry."""
+    if entry.get("adaptive"):
+        return entry["question_count"] + 1
     if entry["kind"] == "requirement":
         return 2
     return 3 if entry["question_count"] == 2 else 1
@@ -167,6 +169,14 @@ def next_entry(entries, answers):
         history = entry_answers(entry, entries, answers)
         ordinary = sum(not a["question"].get("follow_up_to") for a in history)
         maximum = _entry_capacity(entry)
+        if entry.get("adaptive"):
+            can_main = entry["main_available"] and ordinary < entry["question_count"]
+            can_probe = entry["probe_available"]
+            if entry["closed"] or len(history) >= maximum or not (can_main or can_probe):
+                continue
+            return {**entry, "asked": len(history), "ordinary_asked": ordinary,
+                    "allow_follow_up": can_probe, "follow_up_required": can_probe and
+                    (entry["follow_up_required"] or not can_main)}
         if any(a["status"] != "answered" for a in history) or len(history) >= maximum or ordinary >= entry["question_count"]:
             continue
         return {**entry, "asked": len(history), "ordinary_asked": ordinary,
@@ -198,13 +208,13 @@ def _planned_question_count(entries, answers):
 
 
 def update_discovery_budget(state, profile):
-    """Size initial/resumed rounds for record coverage without resetting history.
+    """Recompute an honest bounded plan without resetting saved progress.
 
-    Tailoring uses two slots per unresolved requirement after analysis. Other
-    modes use a JSON marker to make record coverage idempotent. New confirmed
-    records can increase capacity; normal answer saves cannot. The shared
-    session ceiling remains 50 and an explicitly exhausted zero budget stays
-    exhausted. No schema migration or provider call is needed.
+    Tailoring retains two slots per unresolved requirement. Creation/enrichment
+    uses eight main slots and ten total discovery answers until explicit extension.
+    Source refresh can change scopes but cannot silently extend the round.
+    Verification consumes only the shared 50-answer ceiling, not main slots.
+    The function mutates session planning metadata without a provider call.
     """
     if state.get('mode') == 'tailor':
         if not state.get('job_analysis_ready'):
@@ -231,26 +241,41 @@ def update_discovery_budget(state, profile):
         state['discovery_complete'] = selected is None or state['discovery_exhausted']
         state['planned_question_count'] = _planned_question_count(entries, state['answers'])
         return entries
+    from app.services.interview_quality import adaptive_entries, discovery_history
     entries = discovery_entries(profile, state["answers"])
-    ids = sorted(entry["id"] for entry in entries)
-    if state.get("discovery_entry_ids") != ids and state["question_limit"] > 0:
-        remaining = 0
-        for entry in entries:
-            if next_entry([entry], entry_answers(entry, entries, state["answers"])):
-                remaining += (3 if entry["question_count"] == 2 else 1) - len(entry_answers(entry, entries, state["answers"]))
-        state["question_limit"] = min(MAX_ANSWERS, max(state["question_limit"], len(state["answers"]) + remaining))
-        state["discovery_entry_ids"] = ids
+    # Education has one targeted slot; two generic study questions previously
+    # repeated the same analysis/communication claims at the expense of jobs.
+    entries = [{**entry, "question_count": 1 if entry["kind"] == "education" else entry["question_count"]} for entry in entries]
+    entries = adaptive_entries(state, profile, entries)
     selected = next_entry(entries, state["answers"])
-    state["discovery_exhausted"] = len(state["answers"]) >= MAX_ANSWERS and selected is not None
-    state["discovery_complete"] = selected is None or state["discovery_exhausted"]
-    state["planned_question_count"] = _planned_question_count(entries, state["answers"])
-    clarification_count = sum(bool(answer["question"].get("clarification")) for answer in state["answers"])
-    if clarification_count:
-        # The stored budget covers both rounds. Reserve clarification answers
-        # in addition to the ordinary plan so they cannot silently displace a
-        # reachable discovery question below the shared ceiling.
-        required_limit = clarification_count + state["planned_question_count"]
-        state["question_limit"] = min(MAX_ANSWERS, max(state["question_limit"], required_limit))
+    remaining_records = any(not entry["closed"] and
+                            sum(not a["question"].get("follow_up_to") for a in entry_answers(entry, entries, state["answers"])) < entry["question_count"]
+                            for entry in entries)
+    state["discovery_exhausted"] = len(state["answers"]) >= MAX_ANSWERS and (selected is not None or remaining_records)
+    state["discovery_complete"] = (selected is None and not remaining_records) or state["discovery_exhausted"]
+    history = discovery_history(state)
+    clarification_count = len(state["answers"]) - len(history)
+    remaining_main = max(0, state["discovery_main_limit"] - sum(not a["question"].get("follow_up_to") for a in history))
+    main_slots, probe_slots = 0, 0
+    for entry in entries:
+        local = entry_answers(entry, entries, state["answers"])
+        if entry["closed"]:
+            continue
+        ordinary = sum(not a["question"].get("follow_up_to") for a in local)
+        main_slots += max(0, entry["question_count"] - ordinary)
+        # An unasked scope can receive a probe after its first answer. Once all
+        # main slots are spent, only existing eligible parents can use a probe.
+        if entry["probe_available"] or (remaining_main and ordinary < entry["question_count"]
+                                         and not any(a["question"].get("follow_up_to") for a in local)):
+            probe_slots += 1
+    potential = len(history) + min(remaining_main, main_slots) + probe_slots
+    state["planned_question_count"] = min(MAX_ANSWERS - clarification_count, state["discovery_limit"], potential)
+    # Never erase an explicit exhausted budget or re-expand it after refresh.
+    if state["question_limit"] != 0:
+        state["question_limit"] = min(MAX_ANSWERS, clarification_count + state["discovery_limit"])
+    else:
+        state["planned_question_count"] = len(history)
+    state["discovery_round_complete"] = selected is None or len(state["answers"]) >= state["question_limit"]
     return entries
 
 
@@ -263,18 +288,23 @@ def scoped_question(candidate, selected, entries, answers, is_fresh):
     using the same history as provider guidance, without suggested factual answers.
     """
     from app.services.interview_questions import fallback_question, is_distinct_question
+    from app.services.interview_quality import follow_up_question
 
     history = entry_answers(selected, entries, answers)
     if candidate:
         resolved = question_entry(candidate, entries, answers)
         follows = candidate.get("follow_up_to")
         parent_here = any(a["question"].get("id") == follows for a in history)
-        valid_follow_up = not follows or (selected["allow_follow_up"] and parent_here)
+        valid_follow_up = (not follows or (selected["allow_follow_up"] and parent_here)) and (
+            not selected.get("follow_up_required") or follows == selected["last_answer"]["question"]["id"])
         named_entry = question_entry({**candidate, "entry_id": None, "follow_up_to": None}, entries)
         # Topic freshness is local to the record; two different employers may
         # legitimately have the same topic name, such as responsibilities.
         if resolved == selected["id"] and named_entry in {None, selected["id"]} and valid_follow_up and is_fresh(candidate, history):
             # Exact wording must also be fresh across the whole conversation.
             if is_distinct_question(candidate, selected, entries, answers):
-                return {**candidate, "entry_id": selected["id"], "context": selected["label"][:350]}
+                return {**candidate, "entry_id": selected["id"], "context": selected["label"][:350],
+                        "reason": candidate.get("reason", "").strip() or fallback_question(selected, entries, answers)["reason"]}
+    if selected.get("follow_up_required"):
+        return follow_up_question(selected)
     return fallback_question(selected, entries, answers)

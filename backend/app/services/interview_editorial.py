@@ -13,8 +13,8 @@ from app.services.cv_editorial_policy import STYLE_REVIEW_POLICY
 from app.services.scoped_ai import preserves_protected_tokens
 
 # A new generation must not replay stages prepared under the older policy.
-# Saved previews remain readable; only a fresh/retried generation uses version 3.
-PIPELINE_VERSION = 3
+# Saved previews remain readable; new attempts use the concise unit policy.
+PIPELINE_VERSION = 4
 # Only prose leaves can be rewritten. Identity, role titles, employers, dates,
 # skill names/levels and section placement stay read-only, including in custom CVs.
 PROSE_PATH = re.compile(
@@ -24,6 +24,11 @@ PROSE_PATH = re.compile(
     r"(?:/(?:description|bullets/[0-9]{1,2}))?)$"
 )
 EDITORIAL_TASK = f"""{STYLE_REVIEW_POLICY}
+Redaguj selektywnie: jeden punkt to jedna czytelna jednostka informacji, zwykle
+jedno krótkie zdanie. Usuń wypełniacze, nie przepisuj całych odpowiedzi. Podsumowanie
+ma wybierać najważniejsze obszary doświadczenia zamiast streszczać wszystkie role.
+Utrzymaj jedną formę gramatyczną opisów; dla polskiego CV z formami rzeczownikowymi
+zachowaj ten styl, zamiast mieszać 'koordynacja', 'koordynowała' i 'robiłam'.
 Oceń merytoryczną przydatność opisów: wyraź jasno potwierdzone działanie, osobisty
 wkład, kontekst i rezultat, ale nie dopisuj brakujących elementów. Użytkownik może
 pisać potocznie, skrótowo lub z błędami; nie oceniaj jego kompetencji po języku.
@@ -46,6 +51,15 @@ def prepare_editorial_draft(raw, profile):
     before the style provider starts; the caller retains the saved evidence.
     """
     draft = deepcopy(raw)
+    # A flat skill is already an explicit list item. The legacy CV normalizer
+    # interprets "Tool: prose, clause" as a category and splits its commas.
+    # Use a display dash for generated flat units so tool names and dependent
+    # clauses survive every subsequent normalization, template fill and export.
+    # User-approved literal framing is not eligible for this punctuation repair.
+    framings = {f["id"] for f in profile["facts"] if f["kind"] == "framing"}
+    for field in draft["fields"]:
+        if re.fullmatch(r"/skills/[0-9]{1,2}", field["path"]) and not framings.intersection(field["evidence_refs"]):
+            field["value"] = re.sub(r"^([^:]{2,48}):\s+", r"\1 — ", field["value"], count=1)
     paths = [field["path"] for field in draft["fields"]]
     if len(paths) != len(set(paths)):
         raise ValueError("Duplicate draft paths")

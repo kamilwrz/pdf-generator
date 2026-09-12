@@ -270,7 +270,8 @@ def is_distinct_question(candidate, selected, entries, answers):
     questions = [item["question"] for item in history]
     angles = set(_question_angles(candidate))
     related = [question for question in questions if angles & set(_question_angles(question))]
-    if related and (not candidate.get("follow_up_to") or not _focused_follow_up(candidate, related, selected, history, entries)):
+    if related and (not candidate.get("follow_up_to") or
+                    (not selected.get("follow_up_required") and not _focused_follow_up(candidate, related, selected, history, entries))):
         return False
     text = _template(candidate["text"], entries)
     recent = [item["question"] for item in all_answers[-RECENT_WINDOW:]]

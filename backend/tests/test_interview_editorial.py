@@ -80,7 +80,7 @@ def test_pipeline_checks_edited_text_against_unchanged_raw_answers(environment, 
     assert saved['preview']['cv_data']['summary'] == PROFESSIONAL
     assert any(PROFESSIONAL in str(element) for element in saved['preview']['elements'])
     assert saved['preview']['changes'][0]['evidence_refs'] == ['answer-q']
-    assert saved['preview']['pipeline_version'] == 3
+    assert saved['preview']['pipeline_version'] == 4
     assert saved['usage']['cost_pln_estimate'] == pytest.approx(.03)
     assert saved['answers'] == session['answers']
     assert 'generation_attempt' not in saved
@@ -173,7 +173,7 @@ def test_upgraded_policy_does_not_replay_completed_older_generation_stages(envir
         upgraded = generate(client, legacy.json())
     assert upgraded.status_code == 200, upgraded.text
     assert provider.call_count == 3
-    assert upgraded.json()['preview']['pipeline_version'] == 3
+    assert upgraded.json()['preview']['pipeline_version'] == 4
     assert upgraded.json()['preview']['recovered_previous_attempt'] is False
     assert upgraded.json()['answers'] == session['answers']
     assert service.interview_profile(db, db.get(InterviewSession, session['id'], populate_existing=True)) == before
@@ -264,7 +264,7 @@ def test_follow_up_consumes_remaining_budget_and_skip_does_not_create_fact(envir
     state = deepcopy(row.state)
     update_discovery_budget(state, service.profile_payload(db, user.id))
     row.state = state
-    row.state = {**row.state, 'question_limit': 2}
+    row.state = {**row.state, 'question_limit': 2, 'discovery_limit': 2}
     db.commit()
     # Ask about a concrete detail introduced by RAW. Repeating the already
     # answered ownership question now correctly triggers the diversity fallback.

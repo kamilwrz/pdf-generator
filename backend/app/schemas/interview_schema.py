@@ -74,6 +74,12 @@ class GenerateWrite(SessionWrite):
     template_id: str = Field(min_length=1, max_length=100)
 
 
+class PreviewReviewWrite(SessionWrite):
+    """Reject a generated field (null) or explicitly confirm its full replacement."""
+    path: str = Field(min_length=1, max_length=200)
+    value: str | None = Field(default=None, min_length=1, max_length=4000)
+
+
 class SourceRefresh(SessionWrite):
     """Optional live editor snapshot; absent data reloads the owned saved CV."""
     cv_data: dict | None = None
@@ -113,10 +119,28 @@ class JobAnalysis(Contract):
     requirements: list[Requirement] = Field(max_length=20)
 
 
+class AnswerAssessment(Contract):
+    """Scheduling judgement about saved text; never a new career assertion."""
+    question_id: str = Field(min_length=1, max_length=100)
+    status: Literal["concrete", "partial", "off_topic", "contradictory", "unknown"]
+    missing_detail: str = Field(default="", max_length=1000)
+
+
+class ScopeReview(Contract):
+    """Explain why confirmed evidence already describes a record sufficiently."""
+    entry_id: str = Field(min_length=1, max_length=200)
+    evidence_refs: list[str] = Field(min_length=1, max_length=20)
+    reason: str = Field(min_length=1, max_length=1000)
+
+
 class Discovery(Contract):
     """Propose one question for the server-selected record; empty uses a local fallback."""
     questions: list[Question] = Field(max_length=1)
     requirements: list[Requirement] = Field(max_length=20)
+    # Defaults allow replay of historical provider responses. New strict output
+    # includes both keys; the server validates references before using either.
+    answer_assessment: AnswerAssessment | None = None
+    completed_scopes: list[ScopeReview] = Field(default_factory=list, max_length=50)
 
 
 class DraftField(Contract):

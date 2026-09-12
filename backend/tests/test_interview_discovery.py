@@ -120,36 +120,36 @@ def test_empty_and_repeated_proposals_do_not_end_other_entries():
         assert result['text'] != history[0]['question']['text']
 
 
-def test_budget_covers_records_without_resetting_on_resume_or_answer_facts():
+def test_budget_stays_bounded_on_resume_answer_facts_and_source_growth():
     facts = profile()
     state = {'answers': [], 'question_limit': 5}
     entries = update_discovery_budget(state, facts)
-    assert state['question_limit'] == 14
+    assert state['question_limit'] == 10
     original = deepcopy(state)
     update_discovery_budget(state, facts)
     assert state == original
     state['answers'] = [saved(entries[0], 0)]
     facts['facts'].append({'id': 'answer-q0', 'text': 'Nowa odpowiedź', 'context': 'Atlas', 'path': '', 'kind': 'fact'})
     update_discovery_budget(state, facts)
-    assert state['discovery_entry_ids'] == original['discovery_entry_ids']
-    assert state['question_limit'] == 14
+    assert state['discovery_limit'] == original['discovery_limit']
+    assert state['question_limit'] == 10
     many = {'facts': service.source_facts({'experience': [{'title': f'Role {i}'} for i in range(30)]}, 'document:2')}
     update_discovery_budget(state, many)
-    assert state['question_limit'] == 50
+    assert state['question_limit'] == 10
 
 
 def test_planned_count_includes_optional_followups_and_shrinks_when_an_entry_closes():
     state = {'mode': 'enrich', 'answers': [], 'question_limit': 8}
     entries = update_discovery_budget(state, profile())
-    assert state['planned_question_count'] == 14
+    assert state['planned_question_count'] == 10
 
     state['answers'] = [saved(entries[0], 0)]
     update_discovery_budget(state, profile())
-    assert state['planned_question_count'] == 14
+    assert state['planned_question_count'] == 10
 
     state['answers'] = [saved(entries[0], 0, status='skipped')]
     update_discovery_budget(state, profile())
-    assert state['planned_question_count'] == 12
+    assert state['planned_question_count'] == 10
 
 
 def test_planned_count_reserves_the_shared_answer_ceiling_for_clarifications():
@@ -158,7 +158,7 @@ def test_planned_count_reserves_the_shared_answer_ceiling_for_clarifications():
     clarification = {'question': {'id': 'clarification', 'clarification': True}, 'answer': '', 'status': 'skipped'}
     state = {'mode': 'enrich', 'answers': [clarification], 'question_limit': 50}
     update_discovery_budget(state, facts)
-    assert state['planned_question_count'] == 49
+    assert state['planned_question_count'] == 10
 
     entries = discovery_entries(facts, [])
     state['answers'] = [saved(entries[0], index) for index in range(49)] + [clarification]
@@ -170,37 +170,37 @@ def test_planned_count_reserves_the_shared_answer_ceiling_for_clarifications():
 def test_clarification_capacity_does_not_replace_an_ordinary_question_slot():
     state = {'mode': 'enrich', 'answers': [], 'question_limit': 8}
     update_discovery_budget(state, profile())
-    assert state['planned_question_count'] == 14
-    assert state['question_limit'] == 14
+    assert state['planned_question_count'] == 10
+    assert state['question_limit'] == 10
 
     state['answers'].append({
         'question': {'id': 'clarification', 'clarification': True},
         'answer': '', 'status': 'skipped',
     })
     update_discovery_budget(state, profile())
-    assert state['planned_question_count'] == 14
-    assert state['question_limit'] == 15
+    assert state['planned_question_count'] == 10
+    assert state['question_limit'] == 11
 
 
 def test_created_enrichment_session_exposes_the_cv_based_plan_before_paid_calls(environment):
     client, _, _, _ = environment
     session = create(client, mode='enrich', include_profile=False, cv_data=CV)
-    assert session['planned_question_count'] == 15
-    assert session['question_limit'] == 15
+    assert session['planned_question_count'] == 10
+    assert session['question_limit'] == 10
     assert session['discovery_complete'] is False
 
 
 def test_source_refresh_replans_enrichment_from_the_new_cv_snapshot(environment):
     client, _, _, _ = environment
     session = confirm(client, create(client, mode='enrich', include_profile=False, cv_data=CV))
-    assert session['planned_question_count'] == 15
+    assert session['planned_question_count'] == 10
 
     response = client.post(f"/ai/interviews/{session['id']}/source", json={
         **version(session, session['profile_revision']),
         'cv_data': {'name': 'Anna Nowak'},
     })
     assert response.status_code == 200, response.text
-    assert response.json()['planned_question_count'] == 4
+    assert response.json()['planned_question_count'] == 8
 
 
 @pytest.mark.parametrize('mode', ['create', 'enrich', 'tailor'])
@@ -214,7 +214,7 @@ def test_complete_flow_covers_all_entries_replays_answers_and_finishes_without_p
         if 'question_scope' not in json.loads(body):
             return {'requirements': [{'text': 'Python automation', 'status': 'unknown', 'evidence_refs': []}]}, {'cost_pln_estimate': .01}
         scope = json.loads(body)['question_scope']
-        seen.append(scope['id'])
+        # Provider scope may advance after assessing the last answer.
         # A pathological model keeps trying the first project under new topics.
         return {'questions': [{'entry_id': '/custom_sections/0/items/0', 'topic': f'new-topic-{len(seen)}',
                                'text': f'Atlas: kolejny szczegół {len(seen)}?', 'context': 'Atlas',
@@ -227,8 +227,13 @@ def test_complete_flow_covers_all_entries_replays_answers_and_finishes_without_p
             session = result.json()
             if session['discovery_complete']:
                 break
+            if session.get('discovery_round_complete'):
+                extended = client.post(f"/ai/interviews/{session['id']}/extend", json=version(session, session['profile_revision']))
+                assert extended.status_code == 200, extended.text
+                session = extended.json()
+                continue
             question = session['question']
-            assert question['entry_id'] == seen[-1]
+            seen.append(question['entry_id'])
             body = {**version(session, session['profile_revision']), 'question_id': question['id'],
                     'answer': 'Samodzielnie sprawdzałam formularz.', 'status': 'answered'}
             result = client.post(f"/ai/interviews/{session['id']}/answers", json=body)
@@ -239,7 +244,7 @@ def test_complete_flow_covers_all_entries_replays_answers_and_finishes_without_p
         assert session['phase'] == 'review' and session['question'] is None and session['discovery_complete']
         # Canonical normalization flattens this skills input into Python/SQL.
         expected = discovery_entries({'facts': service.source_facts(normalize_cv_data(CV), 'test')}, [])
-        assert provider.call_count == (3 if mode == 'tailor' else 11)
+        assert provider.call_count == (3 if mode == 'tailor' else 13)
         if mode == 'tailor':
             assert len(seen) == 2 and len(set(seen)) == 1 and seen[0].startswith('requirement:')
         else:

@@ -14,7 +14,7 @@ from app.dependencies import get_db
 from app.crud.cv_import_snapshots import get_owned_snapshot
 from app.models.models import InterviewSession, Pdf
 from app.schemas.interview_schema import (
-    ProfileWrite, ProfileSourceWrite, InterviewCreate, SessionWrite, AnswerWrite, ConfirmWrite, GenerateWrite, SourceRefresh, Draft, Verification, EditorialReview,
+    ProfileWrite, ProfileSourceWrite, InterviewCreate, SessionWrite, AnswerWrite, ConfirmWrite, GenerateWrite, PreviewReviewWrite, SourceRefresh, Draft, Verification, EditorialReview,
 )
 from app.schemas.pdf_schema import PDFCreateRequest
 from app.services.interview_clarification import (
@@ -24,6 +24,7 @@ from app.services.interview_clarification import (
 from app.services.interview_recovery import assemble_reviewed_draft
 from app.services.interview_job_analysis import load_owned_analysis, requirement_topics
 from app.services.interview_discovery import update_discovery_budget
+from app.services.interview_quality import literal_answer_status, discovery_history
 from app.services.job_matching_policy import TAILORED_DRAFT_POLICY, TAILORED_EDITORIAL_POLICY
 from app.services.interview_editorial import (
     EDITORIAL_TASK, PIPELINE_VERSION, PROSE_PATH, begin_generation,
@@ -282,8 +283,10 @@ def answer_interview(session_id: str, request: AnswerWrite, user=Depends(get_cur
         service.fail(localised_message('interview_this_question_is_no_longer_active'))
     if request.status == "answered" and not request.answer.strip():
         service.fail(localised_message('interview_enter_an_answer_or_choose_to_skip'), 422)
-    state["answers"].append({"question": question, "answer": request.answer, "status": request.status})
-    answer_facts = answer_proposals(question, request.answer, request.status, profile, row.id)
+    meaning = literal_answer_status(request.answer, request.status)
+    state["answers"].append({"question": question, "answer": request.answer, "status": request.status,
+                             "answer_meaning": meaning})
+    answer_facts = answer_proposals(question, request.answer, meaning, profile, row.id)
     if answer_facts:
         replacements = {fact["id"]: fact for fact in answer_facts}
         facts = [replacements.pop(fact["id"], fact) for fact in profile["facts"]]
@@ -299,7 +302,7 @@ def answer_interview(session_id: str, request: AnswerWrite, user=Depends(get_cur
         saved_ids = {fact["id"] for fact in answer_facts}
         state["proposed_facts"] = [fact for fact in state["proposed_facts"] if fact["id"] not in saved_ids]
     state["question"] = None
-    if not question.get("clarification") or request.status in {"answered", "no_experience"}:
+    if not question.get("clarification") or meaning in {"answered", "no_experience"}:
         state["preview"] = None
     state["phase"] = "review" if len(state["answers"]) >= state["question_limit"] else "ready"
     if question.get("clarification"):
@@ -308,7 +311,7 @@ def answer_interview(session_id: str, request: AnswerWrite, user=Depends(get_cur
     # clarification as well so its saved slot is removed from the ordinary
     # question plan while the two user-facing counters remain separate.
     update_discovery_budget(state, profile)
-    if not question.get("clarification") and state["discovery_complete"]:
+    if not question.get("clarification") and (state["discovery_complete"] or state.get("discovery_round_complete")):
         state["phase"] = "review"
     service.update_session(db, row, request.revision, state)
     logger.info("interview_answer status=%s", request.status)
@@ -394,12 +397,20 @@ def extend_interview(session_id: str, request: SessionWrite, user=Depends(get_cu
     row = service.owned_session(db, user.id, session_id)
     profile = service.check_versions(db, row, request)
     state = deepcopy(row.state)
+    if state.get("question") or state["phase"] in {"clarification", "completed"}:
+        service.fail(localised_message('interview_answer_the_active_question_or_skip_the_clarification'), 422)
     update_discovery_budget(state, profile)
     if state["discovery_complete"]:
         service.fail(localised_message('interview_all_entries_have_been_discussed_prepare_your_cv'), 422)
     if state["question_limit"] >= 50:
         service.fail(localised_message('interview_restart_with_current_profile'), 422)
-    state.update(question_limit=min(50, len(state["answers"]) + 5), phase="ready", preview=None)
+    if state["mode"] != "tailor":
+        history = discovery_history(state)
+        # Extension is cumulative and cannot shorten an unspent current round.
+        state["discovery_limit"] = min(50, max(state["discovery_limit"], len(history)) + 5)
+        state["discovery_main_limit"] = min(50, state["discovery_main_limit"] + 5)
+    state.update(question_limit=min(50, max(state["question_limit"], len(state["answers"])) + 5), phase="ready", preview=None)
+    update_discovery_budget(state, profile)
     service.update_session(db, row, request.revision, state)
     return service.session_payload(service.owned_session(db, user.id, session_id))
 
@@ -495,6 +506,7 @@ def preview_interview(session_id: str, request: GenerateWrite, user=Depends(get_
     state = deepcopy(row.state)
     response = service.paid_model(db, user, row, request, "preview", {
         "task": "Przygotuj pełną treść CV jako fields: path/value/evidence_refs. Podstawą są wyłącznie potwierdzone profile facts; offer to kryteria doboru, nie dowody. Zachowaj wszystkie odrębne fakty bazowego CV, wzmacniaj podsumowanie i punkty. Możesz dodać potwierdzone projekty i umiejętności. Doprecyzowanie istniejącej czynności włącz do jej punktu, nie dopisuj drugiego punktu o tym samym zadaniu. Każdy odrębny fakt opisz raz w obrębie danej roli lub projektu. Nie mieszaj danych różnych ról i projektów. Ogólna znajomość technologii nie potwierdza jej użycia w konkretnym projekcie. Zachowaj dokładnie kolejność działań, kierunek przekazania raportów i granice odpowiedzialności ze źródła; nie dopisuj relacji przed/po ani odbiorców. Każda liczba musi pochodzić z przywołanych faktów. Zwróć pozostałe braki. Nie generuj geometrii. Dane kontaktowe pozostają dosłowne. Używaj języka language dla całej treści."
+        + "\nSelekcja: zachowaj odrębne pierwotne fakty, lecz z odpowiedzi wybierz tylko przydatne nowe szczegóły. Nie kopiuj pełnych odpowiedzi ani ogólnych deklaracji ze studiów do kolejnych sekcji. Podsumowanie: 1–2 zwięzłe zdania o głównym profilu. Punkt: jedna czytelna czynność z potwierdzonym kontekstem. Umiejętność: samodzielna jednostka, np. nazwa narzędzia i jego zastosowanie; nigdy fragment zdania zależny od poprzedniego elementu. Nazwę narzędzia i opis w płaskim wpisie rozdziel myślnikiem, nie dwukropkiem. Liczba punktów nie jest miarą poprawy. Nie potwierdzaj ani nie obniżaj deklarowanej biegłości na podstawie samego opisu podstawowych funkcji. Wszystkie daty, państwa, instytucje i statusy zawodowe muszą być jawnie obecne w cytowanych źródłach. Zachowaj granice odpowiedzialności i negacje."
         + ("\n\n" + TAILORED_DRAFT_POLICY if state["mode"] == "tailor" else ""),
         "allowed_paths": service.PATH.pattern, "profile": profile["facts"], "base_cv": service.base_cv(profile),
         "offer": state["offer"], "language": service.LANGUAGES[state["language"]],
@@ -514,6 +526,7 @@ def preview_interview(session_id: str, request: GenerateWrite, user=Depends(get_
     service.check_versions(db, service.owned_session(db, user.id, session_id), request)
     verification = service.paid_model(db, user, row, request, "verify", {
         "task": "Sprawdź niezależnie każdą propozycję wyłącznie względem przywołanych evidence_refs i ograniczeń kind=gap/framing. Wskaż unsupported_paths, jeśli dopisano niepotwierdzoną technologię, wynik, certyfikat, skalę, stanowisko lub własność pracy zespołu; jeśli przeniesiono fakt do innej roli; jeśli usunięto zastrzeżenie lub odrębny fakt bazowego pola. Synonimy, parafrazy i wierne tłumaczenie są dozwolone. Nie wymagaj potwierdzania częstotliwości ani tego, czy zadanie było jednorazowe, jeśli opis nie deklaruje częstotliwości. Kontekst roli zapisany przy przywołanym fakcie jest potwierdzonym źródłem; nie pytaj ponownie o tę rolę. Dopytuj tylko o konkretną zmianę znaczenia lub sprzeczność. Powtórzenie tej samej czynności w tej samej roli oznacz w duplicate_paths (późniejszy zbędny punkt), nie w unsupported_paths i nie zadawaj o nie pytania. Oferta nie jest dowodem. Dla każdej niejasności zwróć też clarifications: path/question. Pytanie po polsku ma neutralnie rozstrzygnąć konkretny brak lub sprzeczność, bez sugerowania kompetencji ani prezentowania hipotezy jako faktu. Np. pytaj, w którym projekcie użyto technologii lub jaka była kolejność przekazywania raportów. Nie pytaj ponownie o potwierdzony brak doświadczenia. Zwróć puste listy tylko gdy wszystkie twierdzenia są uzasadnione.",
+        "additional_checks": "Dla każdej daty, państwa, instytucji, kwalifikacji i statusu zawodowego wskaż jawne potwierdzenie w evidence_refs. Samo prawdopodobieństwo ani wiedza o typowej karierze nie wystarcza. Negacja ogranicza twierdzenie: 'zbierałam uwagi, nie przygotowywałam stanowiska' nie pozwala na 'opracowywanie stanowisk'. Każdy element umiejętności musi być samodzielnie zrozumiały. Zgłoś niepotwierdzoną zmianę poziomu kompetencji. Pełne odpowiedzi pozostają źródłem; CV nie musi zawierać ich wszystkich wyjaśnień, ale nie może zgubić odrębnego pierwotnego faktu ani istotnego zastrzeżenia.",
         "profile": profile["facts"], "base_cv": service.base_cv(profile), "draft": edited_draft["fields"],
     }, Verification, generation=True)
     recovered = all(result.get("_replayed") for result in (response, editorial, verification))
@@ -554,6 +567,13 @@ def preview_interview(session_id: str, request: GenerateWrite, user=Depends(get_
         state["phase"] = "clarification"
     service.update_session(db, row, request.revision, state)
     return service.session_payload(service.owned_session(db, user.id, session_id))
+
+
+@router.post("/ai/interviews/{session_id}/preview-review")
+def review_interview_preview(session_id: str, request: PreviewReviewWrite, user=Depends(get_current_user), db=Depends(get_db)):
+    """Persist a human preview decision and render it locally without AI credits."""
+    from app.services.interview_preview_review import review_preview
+    return review_preview(db, user, service.owned_session(db, user.id, session_id), request)
 
 
 @router.post("/ai/interviews/{session_id}/document")
