@@ -34,7 +34,7 @@
 
 /* The interview exposes one working stage; profile management keeps its own layout. */
 .interview { container: interview / inline-size; border: 1px solid var(--color-border); padding: var(--space-6); }
-.utility { display: flex; flex-wrap: wrap; gap: var(--space-3); padding-bottom: var(--space-4); border-bottom: 1px solid var(--color-border); margin-bottom: var(--space-6); }
+.utility { display: flex; flex-wrap: wrap; gap: var(--space-3); padding-bottom: var(--space-4); border-bottom: 1px solid var(--color-border); margin-bottom: var(--space-4); }
 .utility .link { border: 0; padding-inline: 0; font-weight: 400; text-decoration: underline; text-underline-offset: var(--space-1); }
 .utility [aria-disabled='true'] { opacity: .55; cursor: wait; }
 .interview .taskTitle { font-size: clamp(1.5rem, 3vw, 2rem); line-height: 1.1; letter-spacing: -.02em; margin-bottom: var(--space-4); }
@@ -94,3 +94,9 @@
 .creditHistory > ol > li { padding-block: var(--space-3); border-top: 1px solid var(--color-border); }
 .creditHistory time { color: var(--color-muted); }
 .creditHistory ul { padding-left: var(--space-4); }
+
+.flow .compactStages { display: none; margin-top: var(--space-2); }
+.flow summary { min-height: var(--control-height); align-content: center; cursor: pointer; }
+.interview .question, .interview .preparation { padding: var(--space-4) 0; border-inline: 0; background: var(--color-paper); }
+.flow button, .flow a { font-size: 1rem; }
+@container interview (max-width: 720px) { .stages { display: none; } .flow .compactStages { display: grid; } }

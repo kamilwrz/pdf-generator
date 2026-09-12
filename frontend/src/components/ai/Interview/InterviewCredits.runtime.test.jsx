@@ -15,10 +15,10 @@ it('shows actual costs, free saves and native history in both languages', async 
   render(<InterviewCredits {...props} />);
   await screen.findByText('Ostatnie zapytanie AI — Pytanie wywiadu: 7 kredytów');
   expect(screen.getByText(/Pozostało na koncie:/).parentElement).toHaveTextContent('93 kredyty');
-  expect(screen.getByText(/Zapis odpowiedzi, informacji i doprecyzowań: 0/)).toBeVisible();
   // Native summary keyboard activation is covered in Chromium; jsdom only
   // implements its click default action.
   await userEvent.setup().click(screen.getByText('Historia zapytań AI (1)'));
+  expect(screen.getByText(/Zapis odpowiedzi, informacji i doprecyzowań: 0/)).toBeVisible();
   expect(screen.getByText('Pytanie wywiadu: 7 kredytów')).toBeVisible();
   await setUiLanguage('en');
   await screen.findByText('Last AI request — Interview question: 7 credits');

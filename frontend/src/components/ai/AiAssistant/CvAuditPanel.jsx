@@ -60,6 +60,7 @@ export default function CvAuditPanel({ audit, auditId, onAction, disabled = fals
   useTranslation();
   const instanceId = useId();
   const stableAuditId = auditId || instanceId;
+  const fullReport = useRef(null);
   const categoryRefs = useRef(new Map());
   const findingRefs = useRef(new Map());
   const categories = audit?.categories || [];
@@ -73,6 +74,7 @@ export default function CvAuditPanel({ audit, auditId, onAction, disabled = fals
   function revealFinding(finding) {
     // Native disclosure state stays local, so a language switch or a new busy
     // state does not collapse the user's reading position. No AI request runs.
+    if (fullReport.current) fullReport.current.open = true;
     const category = categoryRefs.current.get(finding.categoryId);
     if (!category) return;
     category.open = true;
@@ -83,10 +85,8 @@ export default function CvAuditPanel({ audit, auditId, onAction, disabled = fals
 
   return <section className={classes.audit} aria-labelledby={`${instanceId}-heading`} data-cv-audit>
     <header className={classes.header}>
-      <p className={classes.eyebrow}>{t('ai:cvAudit.eyebrow')}</p>
       <h3 id={`${instanceId}-heading`} data-cv-audit-heading tabIndex={-1}>{t('ai:cvAudit.title')}</h3>
       {audit?.summary && <p>{audit.summary}</p>}
-      <p className={classes.note}>{t('ai:cvAudit.scope')}</p>
     </header>
 
     {stale && <div className={classes.stale}>
@@ -97,14 +97,12 @@ export default function CvAuditPanel({ audit, auditId, onAction, disabled = fals
     <section className={classes.overview} aria-label={t('ai:cvAudit.overview')}>
       <p className={classes.total}>{t('ai:cvAudit.total', { count: findings.length })}</p>
       <p className={classes.note}>{t('ai:cvAudit.coverage', { assessed, total: categories.length })}</p>
-      <FindingCounts findings={findings} />
-      <p className={classes.note}>{t('ai:cvAudit.countHint')}</p>
+
       {findings.length === 0 && <p>{t('ai:cvAudit.empty')}</p>}
     </section>
 
     {priorities.length > 0 && <nav className={classes.priorities} aria-label={t('ai:cvAudit.priorities')}>
       <h4>{t('ai:cvAudit.priorities')}</h4>
-      <p className={classes.note}>{t('ai:cvAudit.priorityHint')}</p>
       <ol>{priorities.map((finding) => <li key={`${finding.categoryId}:${finding.id}`}>
         <button type="button" onClick={() => revealFinding(finding)}>
           <span className={classes.priorityLabel}>{t(`ai:cvAudit.severity.${finding.severity}`)} · {finding.categoryLabel}</span>
@@ -113,6 +111,9 @@ export default function CvAuditPanel({ audit, auditId, onAction, disabled = fals
       </li>)}</ol>
     </nav>}
 
+    <details ref={fullReport} className={classes.fullReport}>
+      <summary>{t('ai:task.fullReport', { number: findings.length })}</summary>
+      <FindingCounts findings={findings} />
     <section className={classes.categories} aria-label={t('ai:cvAudit.categories')}>
       <h4>{t('ai:cvAudit.categories')}</h4>
       {categories.map((category) => {
@@ -174,6 +175,8 @@ export default function CvAuditPanel({ audit, auditId, onAction, disabled = fals
       <p>{t('ai:cvAudit.limitHint')}</p>
       {audit?.limitations?.length > 0 && <ul>{audit.limitations.map((limitation, index) => <li key={index}>{limitation}</li>)}</ul>}
     </section>
+    <p className={classes.note}>{t('ai:cvAudit.scope')}</p>
+    </details>
     <p className={classes.note}>{t('ai:cvAudit.credits')}</p>
   </section>;
 }

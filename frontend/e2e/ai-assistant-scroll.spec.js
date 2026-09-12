@@ -160,32 +160,23 @@ test("AI assistant keeps consecutive quick-action results visible without a free
   await page.getByText("Kontynuuj ostatnie CV", { exact: true }).click();
   await page.getByRole("button", { name: "Otwórz asystenta AI" }).click();
 
-  await expect(page.getByRole("button", { name: "Uzupełnij CV przez wywiad" })).toBeFocused();
+  await expect(page.getByRole("button", { name: "Wywiad", exact: true })).toBeFocused();
   const checkCv = page.getByRole("button", { name: "Sprawdź CV", exact: true });
   await expect(page.getByRole("textbox", { name: "Wiadomość do asystenta AI" })).toHaveCount(0);
   await expect(page.getByText("Nie wpisuj danych o zdrowiu ani innych danych wrażliwych.")).toHaveCount(0);
   await checkCv.click();
   await expect(page.getByText("Punkt 24: szczegółowa rekomendacja do dokumentu.")).toBeVisible();
 
+  await page.getByRole("button", { name: "← Narzędzia" }).click();
   await checkCv.click();
   await expect(page.getByText("Druga odpowiedź pozostaje widoczna.")).toBeVisible();
-  await expect(checkCv).toBeEnabled();
-
-  const conversation = page.getByRole("log", { name: "Rozmowa z asystentem AI" });
-  const scrollState = await conversation.evaluate((element) => ({
-    clientHeight: element.clientHeight,
-    scrollHeight: element.scrollHeight,
-    scrollTop: element.scrollTop,
-    lastMessageBottom: element.lastElementChild?.getBoundingClientRect().bottom ?? 0,
-    viewportBottom: element.getBoundingClientRect().bottom,
-  }));
-
-  expect(scrollState.scrollHeight).toBeGreaterThan(scrollState.clientHeight);
-  expect(Math.abs(
-    scrollState.scrollTop - (scrollState.scrollHeight - scrollState.clientHeight),
-  )).toBeLessThanOrEqual(1);
-  expect(scrollState.lastMessageBottom).toBeLessThanOrEqual(scrollState.viewportBottom + 1);
-  await expect(conversation).toContainText("Sprawdź CV");
+  await expect(checkCv).toHaveCount(0);
+  await expect(page.getByRole('region', { name: 'Wynik', exact: true })).not.toContainText('Punkt 24:');
+  await page.getByRole('button', { name: '← Narzędzia' }).click();
+  await page.getByRole('button', { name: 'Historia wyników', exact: true }).click();
+  const history = page.getByRole('region', { name: 'Historia wyników', exact: true });
+  await expect(history).toContainText('Punkt 24:');
+  await expect(history).toContainText('Druga odpowiedź pozostaje widoczna.');
   const assistantPayloads = api.calls
     .filter((call) => call.path === "/ai/assistant")
     .map((call) => JSON.parse(call.body));

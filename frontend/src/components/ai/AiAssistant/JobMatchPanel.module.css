@@ -26,3 +26,11 @@
 .note { color: var(--color-muted); font-size: .875rem; }
 .error { border-left: 2px solid var(--color-danger); padding: var(--space-4); color: var(--color-danger); }
 @media (max-width: 767px) { .workspace { padding: var(--space-4); } .footer button { flex: 1 1 100%; } }
+
+.form [hidden] { display: none; }
+.form > div:not([hidden]) { display: grid; gap: var(--space-2); }
+.form .sourceChoice { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.sourceChoice label { display: flex; gap: var(--space-2); align-items: center; min-height: var(--control-height); padding: var(--space-2) var(--space-4); border: 1px solid var(--color-border); cursor: pointer; }
+.sourceChoice label:has(:checked) { background: var(--color-surface); border-color: var(--chrome-ink); }
+.sourceChoice input { width: var(--space-4); min-height: 0; margin: 0; }
+.form legend { font-weight: 600; margin-bottom: var(--space-3); }

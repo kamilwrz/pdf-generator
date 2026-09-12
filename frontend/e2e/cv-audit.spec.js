@@ -77,7 +77,7 @@ function auditResponse() {
 async function openAssistant(page, language = 'pl') {
   if (language === 'en') await page.addInitScript(() => localStorage.setItem('cvstudio.uiLanguage', 'en'));
   await login(page);
-  await page.getByText('Kontynuuj ostatnie CV', { exact: true }).click();
+  await page.getByText(language === 'en' ? 'Continue latest CV' : 'Kontynuuj ostatnie CV', { exact: true }).click();
   await page.getByRole('button', { name: language === 'en' ? 'Open AI assistant' : 'Otwórz asystenta AI' }).click();
   return page.getByRole('button', { name: language === 'en' ? 'Check CV' : 'Sprawdź CV', exact: true });
 }
@@ -112,6 +112,8 @@ async function expectAuditReflow(panel, page) {
 }
 
 async function expandCategory(panel, id) {
+  const all = panel.locator('details').first();
+  if (await all.getAttribute('open') === null) await all.locator(':scope > summary').click();
   const category = panel.locator(`details[data-audit-category="${id}"]`);
   const summary = category.locator('summary');
   if (await category.getAttribute('open') === null) {
@@ -234,6 +236,7 @@ test('an audit from the previous template keeps its reading shortcuts and rerun 
   await expect(page.locator('#saved-name')).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Poprzedni szablon: Sterling' })).toBeVisible();
   await page.getByRole('button', { name: 'Otwórz asystenta AI' }).click();
+  await page.getByRole('button', { name: 'Historia wyników', exact: true }).click();
   await expect(panel.getByRole('status')).toContainText('CV zmieniło się od tego audytu.');
   const priority = panel.getByRole('navigation').getByRole('button', { name: /Brakuje konkretnego rezultatu/ });
   await expect(priority).toBeEnabled();
@@ -314,11 +317,12 @@ test('audit loading blocks duplicates, preserves the CV on error and recovers to
   const check = await openAssistant(page);
   await check.click();
   await expect.poll(() => requests).toBe(1);
-  await expect(check).toBeDisabled();
-  await expect(page.getByRole('button', { name: 'Uzupełnij CV przez wywiad', exact: true })).toBeDisabled();
+  await expect(check).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Wywiad', exact: true })).toHaveCount(0);
   await expect(page.locator('#saved-name')).toHaveText('Kamil Smoke');
   finishFailure();
   await expect(page.getByText(/Audyt chwilowo niedostępny\. Spróbuj ponownie\./)).toBeVisible();
+  await page.getByRole('button', { name: '← Narzędzia' }).click();
   await expect(check).toBeEnabled();
   await expect(page.getByRole('region', { name: 'Audyt CV', exact: true })).toHaveCount(0);
   await check.click();

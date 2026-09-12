@@ -1,4 +1,5 @@
 import JobMatchPanel from './JobMatchPanel';
+import { isAssistantReviewCurrent } from '../../../utils/assistantReview';
 import CvAuditPanel from './CvAuditPanel';
 import { useMessageState } from '../../../i18n/messageState.js';
 import { t as uiText } from "../../../i18n/index.js";
@@ -12,13 +13,11 @@ import { useState, useRef, useEffect, useLayoutEffect, useCallback } from "react
 import { AnimatePresence, motion as Motion, useReducedMotion } from "framer-motion";
 import { nanoid } from "nanoid";
 import InterviewFlow from '../Interview/InterviewFlow';
-import { BsStars } from "react-icons/bs";
-import {
-    FaBriefcase, FaComments, FaFont, FaMagic, FaLanguage, FaSearch, FaClipboardCheck,
-} from "react-icons/fa";
-import { RiEditLine, RiScissorsLine } from "react-icons/ri";
-import { IoClose } from "react-icons/io5";
-import { MdCheckCircle, MdCancel } from "react-icons/md";
+import { RiSparklingLine as BsStars, RiBriefcaseLine as FaBriefcase, RiChat3Line as FaComments,
+    RiFontSize as FaFont, RiMagicLine as FaMagic, RiTranslate2 as FaLanguage,
+    RiSearchLine as FaSearch, RiFileList3Line as FaClipboardCheck, RiEditLine, RiScissorsLine,
+    RiCloseLine as IoClose, RiCheckboxCircleLine as MdCheckCircle, RiCloseCircleLine as MdCancel } from 'react-icons/ri';
+import AiChangeReview from '../shared/AiChangeReview';
 import classes from "./AiAssistant.module.css";
 import { useCanvasContext } from "../../../store/canvas-context";
 import { useSession } from "../../../store/session-context";
@@ -455,89 +454,18 @@ function correctionFieldLabel(field) {
     return field;
 }
 
-/**
- * Review card for grammar/style/improve patches.
- * Collapsed by default; pointer or keyboard focus expands the full Przed/Po
- * comparison in the assistant log's scroll context, so persistent panel chrome
- * cannot cover it.
- * Native `title` tooltips are intentionally omitted — long CV text must not
- * spawn a browser hover bubble over the strikethrough “Przed” line.
- */
-function CorrectionCard({ msgId, patch, correctionStates, onAccept, onReject, A4_Elements }) {
-  useTranslation();
-    const cardRef = useRef(null);
-    const [isExpanded, setIsExpanded] = useState(false);
+/** Adapt canvas patches to the shared review; mutation and undo stay in the parent. */
+function CorrectionCard({ msgId, patch, correctionStates, onAccept, onReject, A4_Elements, index }) {
+    useTranslation();
     const { element_id, ...fields } = patch;
     const el = A4_Elements.find(e => e.element_id === element_id);
-    const state = correctionStates[`${msgId}_${element_id}`] || "pending";
-
-    const expandForPointer = () => {
-        setIsExpanded(true);
-
-        // Keep the expanded card inside the chat's scroll area rather than
-        // moving it into a detached overlay. Waiting for the next frame lets
-        // the browser calculate the full Przed/Po height before scrolling.
-        requestAnimationFrame(() => {
-            const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-            cardRef.current?.scrollIntoView({
-                block: "nearest",
-                inline: "nearest",
-                behavior: reduceMotion ? "auto" : "smooth",
-            });
-        });
-    };
-
-    const collapseAfterPointerLeaves = () => {
-        setIsExpanded(false);
-    };
-
-    const collapseAfterFocusLeaves = (event) => {
-        if (!event.currentTarget.contains(event.relatedTarget)) {
-            setIsExpanded(false);
-        }
-    };
-
-    return (
-        <div
-            ref={cardRef}
-            className={`${classes.corrCard} ${classes[`corr_${state}`]} ${isExpanded ? classes.corrCardExpanded : ""}`}
-            onPointerEnter={expandForPointer}
-            onPointerLeave={collapseAfterPointerLeaves}
-            onFocus={() => setIsExpanded(true)}
-            onBlur={collapseAfterFocusLeaves}
-        >
-            {Object.entries(fields).map(([field, newVal]) => {
-                const oldVal = String(el?.[field] ?? "–");
-                const nextVal = String(newVal ?? "–");
-                return (
-                    <div key={field} className={classes.diffRow}>
-                        <span className={classes.diffField}>{correctionFieldLabel(field)}</span>
-                        <div className={classes.diffCompare}>
-                            <div className={classes.diffBlock} data-side="old">
-                                <span className={classes.diffLabel}>{uiText("ai:aiAssistant.before")}</span>
-                                <span className={classes.diffOld}>{oldVal}</span>
-                            </div>
-                            <span className={classes.diffArrow} aria-hidden="true">→</span>
-                            <div className={classes.diffBlock} data-side="new">
-                                <span className={classes.diffLabel}>Po</span>
-                                <span className={classes.diffNew}>{nextVal}</span>
-                            </div>
-                        </div>
-                    </div>
-                );
-            })}
-            {state === "pending" && (
-                <div className={classes.corrActions}>
-                    <button className={classes.corrAccept} onClick={() => onAccept(msgId, patch)} title={uiText("ai:aiAssistant.apply")}>
-                        <MdCheckCircle /> {uiText("ai:aiAssistant.accept")}</button>
-                    <button className={classes.corrReject} onClick={() => onReject(msgId, element_id)} title={uiText("ai:aiAssistant.reject")}>
-                        <MdCancel /> {uiText("ai:aiAssistant.reject")}</button>
-                </div>
-            )}
-            {state === "accepted" && <span className={classes.corrBadge} style={{ color: "var(--color-success)" }}>{uiText("ai:aiAssistant.applied")}</span>}
-            {state === "rejected" && <span className={classes.corrBadge} style={{ color: "var(--color-muted)" }}>{uiText("ai:aiAssistant.skipped")}</span>}
-        </div>
-    );
+    const state = correctionStates[`${msgId}_${element_id}`] || 'pending';
+    return <AiChangeReview title={uiText('ai:task.change', { number: index + 1 })}
+        open={index === 0} state={state}
+        changes={Object.entries(fields).map(([field, value]) => ({
+            label: correctionFieldLabel(field), before: String(el?.[field] ?? '–'), after: String(value ?? '–'),
+        }))}
+        onAccept={() => onAccept(msgId, patch)} onReject={() => onReject(msgId, element_id)} />;
 }
 
 function LayoutGroupCard({ msgId, group, layoutStates, onPreview, onClearPreview, onAccept, onReject }) {
@@ -763,7 +691,9 @@ function ChatMessage({
                 )}
 
                 {/* Lead summary first, then structured score card — reads as prose → details. */}
-                {visibleText && !hasAudit ? (
+                {visibleText && !hasAudit && msg.corrections?.length > 0 ? <details>
+                    <summary>{uiText('ai:task.summary')}</summary><p className={classes.msgText}>{visibleText}</p>
+                </details> : visibleText && !hasAudit ? (
                     <p className={`${classes.msgText} ${!isUser ? classes.msgTextAssistant : ""}`}>
                         {visibleText}
                     </p>
@@ -801,21 +731,22 @@ function ChatMessage({
                 {msg.corrections?.length > 0 && (
                     <div className={classes.corrections}>
                         <div className={classes.corrHeader}>
-                            <span>{msg.corrections.length} {msg.corrections.length === 1 ? "poprawka" : msg.corrections.length < 5 ? "poprawki" : "poprawek"}</span>
+                            <span>{uiText("ai:task.changeCount", { number: msg.corrections.length })}</span>
                             {pendingCount > 0 && (
                                 <button className={classes.applyAll} onClick={() => onApplyAll(msg.id, msg.corrections)}>{uiText("ai:aiAssistant.applyAll")}{pendingCount})
                                 </button>
                             )}
                         </div>
-                        {msg.corrections.map(patch => (
+                        {msg.corrections.map((patch, index) => (
                             <CorrectionCard
                                 key={patch.element_id}
+                                index={index}
                                 msgId={msg.id}
                                 patch={patch}
                                 correctionStates={correctionStates}
                                 onAccept={onAccept}
                                 onReject={onReject}
-                                A4_Elements={A4_Elements}
+                                A4_Elements={msg.sourceElements || A4_Elements}
                             />
                         ))}
                     </div>
@@ -982,8 +913,12 @@ export default function AiAssistant({ hideLauncher = false }) {
         closeScopedAi?.();
     }, [closeScopedAi]);
     const [messages, setMessages] = useState([]);
-    const [jobDesc, setJobDesc] = useState("");
-    const [jobOfferUrl, setJobOfferUrl] = useState("");
+    const [jobDescDraft, setJobDesc] = useState("");
+    const [jobOfferUrlDraft, setJobOfferUrl] = useState("");
+    // Preserve both drafts but bind signatures and requests only to the selected source.
+    const [jobInputMode, setJobInputMode] = useState('link');
+    const jobOfferUrl = jobInputMode === 'link' ? jobOfferUrlDraft : '';
+    const jobDesc = jobInputMode === 'text' ? jobDescDraft : '';
     const [candidateNotes, setCandidateNotes] = useState("");
     const [interview, setInterview] = useState(null);
     const interviewTriggerRef = useRef(null);
@@ -995,13 +930,18 @@ export default function AiAssistant({ hideLauncher = false }) {
     const [jobUrlError, setJobUrlError] = useMessageState("");
     // Goal submenu: improve_content | translate | match_job | null
     const [activePanel, setActivePanel] = useState(null);
+    const lastToolRef = useRef('check_cv');
+    const taskHeadingRef = useRef(null);
+    useEffect(() => {
+        if (activePanel && !['match_job'].includes(activePanel)) taskHeadingRef.current?.focus();
+    }, [activePanel]);
     const [jobAnalysis, setJobAnalysis] = useState(null);
     const [analysisError, setAnalysisError] = useState('');
     const jobSignature = JSON.stringify([sessionKey, activeCvData, jobOfferUrl.trim(), jobDesc.trim(), candidateNotes.trim()]);
     const currentJobAnalysis = jobAnalysis?.sourceSessionKey === sessionKey ? jobAnalysis : null;
     const reusableAnalysis = currentJobAnalysis?.signature === jobSignature ? currentJobAnalysis : null;
     useEffect(() => {
-        if (scopedAi?.isOpen) setActivePanel(null);
+        if (scopedAi?.isOpen) setActivePanel('result');
     }, [scopedAi?.isOpen, scopedAi?.reviews.length]);
     const [isLoading, setIsLoading] = useState(false);
     const [pendingAction, setPendingAction] = useState(null);
@@ -1087,18 +1027,11 @@ export default function AiAssistant({ hideLauncher = false }) {
 
     useLayoutEffect(() => {
         const messageList = messagesRef.current;
-        if (!isOpen || !messageList) return;
+        if (!isOpen || !messageList || !['result', 'history'].includes(activePanel)) return;
 
-        // React can append a user bubble, mount the typing indicator, append
-        // the reply, and remove the indicator in quick succession. A smooth
-        // scroll scheduled for the next frame can then target geometry that no
-        // longer exists and leave the conversation painted above a blank area.
-        // Commit the bounded list's final position before paint instead. This
-        // never scrolls the fixed panel, page, header, or quick actions.
-        messageList.scrollTop = Math.max(
-            0,
-            messageList.scrollHeight - messageList.clientHeight,
-        );
+        // A new task/result starts at its heading, not at the bottom of a chat.
+        // This scroll is confined to application chrome and never moves A4.
+        messageList.closest('[class*=taskBody]')?.scrollTo?.({ top: 0, behavior: 'instant' });
         const latest = messages.at(-1);
         if (!isLoading && latest?.audit?.version === 1 && focusedAuditRef.current !== latest.id) {
             const heading = messageList.querySelector(`[data-message-id="${latest.id}"] [data-cv-audit-heading]`);
@@ -1108,7 +1041,7 @@ export default function AiAssistant({ hideLauncher = false }) {
                 heading.scrollIntoView({ block: "start", behavior: "auto" });
             }
         }
-    }, [isLoading, isOpen, messages, scopedAi?.reviews]);
+    }, [isLoading, isOpen, messages, scopedAi?.reviews, activePanel]);
 
     useLayoutEffect(() => {
         const editorShell = document.querySelector(".main-container");
@@ -1254,8 +1187,9 @@ export default function AiAssistant({ hideLauncher = false }) {
 
     const isCurrentMessage = useCallback((msgId) => {
         const message = messages.find((item) => item.id === msgId);
-        return message?.sourceSessionKey === String(captureDocumentScope().epoch);
-    }, [messages, captureDocumentScope]);
+        return message?.sourceSessionKey === String(captureDocumentScope().epoch)
+            && (!message.corrections?.length || isAssistantReviewCurrent(message, A4_Elements, correctionStates));
+    }, [messages, captureDocumentScope, A4_Elements, correctionStates]);
 
     const acceptCorrection = useCallback((msgId, patch) => {
         if (!isCurrentMessage(msgId)) return;
@@ -1556,7 +1490,10 @@ export default function AiAssistant({ hideLauncher = false }) {
             sourceSessionKey: String(documentScope.epoch),
             ...(options.displayText ? { displayText: options.displayText } : {}),
         };
-        if (action !== "position_rating") setMessages(prev => [...prev, userMsg]);
+        if (action !== "position_rating") {
+            setActivePanel('result');
+            setMessages(prev => [...prev, userMsg]);
+        }
         if (action === "position_rating") setAnalysisError("");
         setIsLoading(true);
         setPendingAction(action);
@@ -1668,6 +1605,9 @@ export default function AiAssistant({ hideLauncher = false }) {
                 actionLabel: actionMeta?.label,
                 actionColor: actionMeta?.color,
                 updatedCvData: res.updated_cv_data ?? null,
+                sourceElements: A4_Elements.map(element => ({ ...element })),
+                sourceText: A4_Elements.filter(element => 'content' in element)
+                    .map(({ element_id, content }) => ({ element_id, content })),
                 sourceRevision: documentScope.revision,
                 sourceSessionKey: String(documentScope.epoch),
             };
@@ -1709,6 +1649,7 @@ export default function AiAssistant({ hideLauncher = false }) {
     }, [A4_Elements, activeCvData, candidateNotes, captureDocumentScope, cvLanguage, isDocumentScopeCurrent, isLoading, jobDesc, jobOfferUrl, pageSize, refreshEntitlements, jobSignature]);
 
     const handleGoalAction = useCallback((goalId) => {
+        lastToolRef.current = goalId;
         const goal = GOAL_ACTIONS.find((g) => g.id === goalId);
         if (!goal) return;
         auditReturnFocusRef.current = null;
@@ -1784,13 +1725,14 @@ export default function AiAssistant({ hideLauncher = false }) {
     }, [isDocumentScopeCurrent, isLoading, openInterview, openMatchJobPanel, send]);
 
     const restoreAuditFocus = useCallback((fallbackRef) => {
+        if (auditReturnFocusRef.current) setActivePanel('result');
         requestAnimationFrame(() => {
             const candidate = auditReturnFocusRef.current && document.getElementById(auditReturnFocusRef.current);
             const target = candidate && !candidate.matches(':disabled') ? candidate : null;
             // Returning remounts native disclosures in their initial closed
             // state. Reveal the saved recommendation before restoring focus.
-            const category = target?.closest('details');
-            if (category) category.open = true;
+            let category = target?.closest('details');
+            while (category) { category.open = true; category = category.parentElement?.closest('details'); }
             (target || fallbackRef.current)?.focus();
             auditReturnFocusRef.current = null;
         });
@@ -1899,7 +1841,7 @@ export default function AiAssistant({ hideLauncher = false }) {
                                 <BsStars className={classes.headerIcon} />
                                 <div>
                                     <div className={classes.headerTitle}>{uiText("ai:aiAssistant.aiAssistant")}</div>
-                                    <div className={classes.headerSub}>{uiText("ai:aiAssistant.analyseCorrectAndImprove")}</div>
+
                                 </div>
                             </div>
                             <div className={classes.headerRight}>
@@ -1941,7 +1883,8 @@ export default function AiAssistant({ hideLauncher = false }) {
                                 else restoreAuditFocus(interviewTriggerRef);
                             }}
                         /></div> : activePanel === 'match_job' ? <JobMatchPanel
-                            url={jobOfferUrl} description={jobDesc} notes={candidateNotes}
+                            url={jobOfferUrlDraft} description={jobDescDraft} notes={candidateNotes}
+                            inputMode={jobInputMode} onInputMode={setJobInputMode}
                             onUrl={(value) => { setJobOfferUrl(value); setJobUrlError(''); setAnalysisError(''); }}
                             onDescription={(value) => { setJobDesc(value); setJobUrlError(''); setAnalysisError(''); }} onNotes={setCandidateNotes}
                             busy={isLoading} error={jobUrlError || analysisError} fieldError={jobUrlError}
@@ -1954,34 +1897,36 @@ export default function AiAssistant({ hideLauncher = false }) {
                             }}
                             onBack={() => { setActivePanel(null); restoreAuditFocus(matchJobTriggerRef); }}
                         /> : <>
-                        {/* goal-oriented quick actions */}
-                        <div className={classes.actions}>
-                            <button ref={interviewTriggerRef} type="button" className={classes.actionBtn} disabled={isLoading} onClick={() => {
-                                auditReturnFocusRef.current = null;
-                                openInterview('enrich');
-                            }}>
-                                <FaComments className={classes.actionIcon} aria-hidden="true" />
-                                <span>{uiText("ai:aiAssistant.addToYourCvThroughAnInterview")}</span>
-                            </button>
-                            {GOAL_ACTIONS.map((action) => (
-                                <button
-                                    key={action.id}
-                                    ref={action.panel === "match_job" ? matchJobTriggerRef : undefined}
-                                    type="button"
-                                    className={`${classes.actionBtn} ${action.panel && activePanel === action.panel
-                                        ? classes.actionBtnActive
-                                        : ""}`}
-                                    style={{ "--action-color": action.color }}
-                                    onClick={() => handleGoalAction(action.id)}
-                                    disabled={isLoading}
-                                    title={action.description}
-                                    aria-pressed={action.panel ? activePanel === action.panel : undefined}
-                                >
-                                    <action.icon className={classes.actionIcon} aria-hidden="true" />
-                                    <span>{action.label}</span>
+                        <div className={classes.taskBody}>
+                        {activePanel && <nav className={classes.taskNav} aria-label={uiText('ai:task.navigation')}>
+                            <button type="button" onClick={() => { setActivePanel(null); requestAnimationFrame(() => document.querySelector(`[data-ai-goal="${lastToolRef.current}"]`)?.focus()); }}>{uiText('ai:task.tools')}</button>
+                            <h2 ref={taskHeadingRef} tabIndex={-1}>{uiText(activePanel === 'history' ? 'ai:task.history' : activePanel === 'result' ? 'ai:task.result' : activePanel === 'translate' ? 'ai:aiAssistant.translateCv' : 'ai:aiAssistant.improveContent')}</h2>
+                        </nav>}
+                        {!activePanel && <section className={classes.home} aria-label={uiText('ai:task.start')}>
+                            <h2>{uiText('ai:task.start')}</h2>
+                            {(messages.some(message => message.role !== 'user') || scopedAi?.reviews.length > 0 || isLoading) &&
+                                <button type="button" className={classes.resume} onClick={() => setActivePanel('result')}>{uiText('ai:task.resume')}</button>}
+                            <div className={classes.actions}>
+                                {['check_cv', 'improve_content', 'match_job'].map(id => {
+                                    const action = GOAL_ACTIONS.find(item => item.id === id);
+                                    return <button key={id} ref={id === 'match_job' ? matchJobTriggerRef : undefined}
+                                        type="button" className={classes.actionBtn} data-ai-goal={id} data-primary={id === 'check_cv'}
+                                        onClick={() => handleGoalAction(id)} disabled={isLoading}>
+                                        <action.icon aria-hidden="true" /><span>{action.label}</span><span aria-hidden="true">→</span>
+                                    </button>;
+                                })}
+                            </div>
+                            <div className={classes.shortcuts}>
+                                <button ref={interviewTriggerRef} type="button" disabled={isLoading} onClick={() => { auditReturnFocusRef.current = null; openInterview('enrich'); }}>
+                                    <FaComments aria-hidden="true" />{uiText('ai:task.interview')}
                                 </button>
-                            ))}
-                        </div>
+                                {['translate', 'ats_score'].map(id => {
+                                    const action = GOAL_ACTIONS.find(item => item.id === id);
+                                    return <button key={id} data-ai-goal={id} type="button" disabled={isLoading} onClick={() => handleGoalAction(id)}><action.icon aria-hidden="true" />{action.label}</button>;
+                                })}
+                            </div>
+                            <button className={classes.historyLink} type="button" onClick={() => setActivePanel('history')}>{uiText('ai:task.history')}</button>
+                        </section>}
 
                         {/* goal subpanels */}
                         <AnimatePresence>
@@ -2019,7 +1964,7 @@ export default function AiAssistant({ hideLauncher = false }) {
                                                 <sub.icon className={classes.subPanelIcon} />
                                                 <span>
                                                     <strong>{sub.label}</strong>
-                                                    <em>{sub.description}</em>
+
                                                 </span>
                                             </button>
                                         ))}
@@ -2060,19 +2005,16 @@ export default function AiAssistant({ hideLauncher = false }) {
                         <div
                             ref={messagesRef}
                             className={classes.messages}
-                            role="log"
-                            aria-label={uiText("ai:aiAssistant.aiAssistantConversation")}
+                            hidden={!['result', 'history'].includes(activePanel)}
+                            role="region"
+                            aria-label={uiText(activePanel === "history" ? "ai:task.history" : "ai:task.result")}
                             aria-live="polite"
                         >
-                            {messages.length === 0 && !scopedAi?.reviews.length && (
-                                <div className={classes.emptyState}>
-                                    <BsStars className={classes.emptyIcon} />
-                                    <p>{uiText("ai:aiAssistant.chooseAnActionAboveToCheckYour")}</p>
-                                </div>
-                            )}
+                            {messages.length === 0 && !scopedAi?.reviews.length && <p>{uiText('ai:task.emptyHistory')}</p>}
                             {[...messages, ...(scopedAi?.isAvailable ? scopedAi.reviews : []).map((review) => ({
                                 id: review.key, createdAt: review.createdAt, scopedReview: review,
-                            }))].sort((a, b) => a.createdAt - b.createdAt).map(msg => msg.scopedReview ? (
+                            }))].filter(message => message.role !== 'user').sort((a, b) => a.createdAt - b.createdAt)
+                                .filter((message, index, all) => activePanel === 'history' || (!isLoading && index === all.length - 1)).map(msg => msg.scopedReview ? (
                                 <Motion.div key={msg.id}
                                     initial={reduceMotion ? false : { x: 24, opacity: 0 }}
                                     animate={{ x: 0, opacity: 1 }}
@@ -2081,7 +2023,8 @@ export default function AiAssistant({ hideLauncher = false }) {
                                 </Motion.div>
                             ) : (
                                 <fieldset key={msg.id} data-message-id={msg.id} className={classes.historyMessage}
-                                    disabled={msg.sourceSessionKey !== sessionKey && !(msg.actionId === "rating" && msg.audit?.version === 1)}>
+                                    disabled={(msg.sourceSessionKey !== sessionKey && !(msg.actionId === "rating" && msg.audit?.version === 1)) || (msg.corrections?.length > 0 && !isCurrentMessage(msg.id))}>
+                                {msg.corrections?.length > 0 && !isCurrentMessage(msg.id) && <p role="status" className={classes.historyNotice}>{uiText('ai:scopedAiReview.theAnalysedContentOrItsContextHas')}</p>}
                                 {msg.sourceSessionKey !== sessionKey && msg.role !== "user" && (
                                     <p className={classes.historyNotice}>{uiText("ai:aiAssistant.resultFromAPreviousTemplateReadOnly")}</p>
                                 )}
@@ -2131,6 +2074,7 @@ export default function AiAssistant({ hideLauncher = false }) {
                             )}
                         </div>
 
+                        </div>
                         </>}
                     </Motion.aside>
                 )}

@@ -20,30 +20,24 @@ const operations = {
 };
 
 /** An indeterminate, operation-specific wait surface. Time never advances server stages. */
-export default function InterviewLoading({ operation = 'load', facts, answers, language, template }) {
+export default function InterviewLoading({ operation = 'load', compact = false, facts, answers, language, template }) {
   useTranslation();
   const [seconds, setSeconds] = useState(0);
   const heading = useRef(null);
   useEffect(() => {
-    heading.current?.focus();
+    if (!compact) heading.current?.focus();
     const started = Date.now();
     const timer = setInterval(() => setSeconds(Math.floor((Date.now() - started) / 1000)), 1000);
     return () => clearInterval(timer);
-  }, []);
+  }, [operation, compact]);
   const [title, description, current] = operations[operation] || operations.load;
-  return <section className={classes.loading} aria-label={uiText("interview:interviewLoading.processingInterview")}>
-    <div className={classes.manuscript} aria-hidden="true">
-      <span className={classes.documentLabel}>CV / STUDIO</span>
-      <div className={classes.paper}><i /><i /><i /><span /><i /><i /><i /><span /><i /><i /></div>
-      <span className={classes.documentLabel}>{uiText("interview:interviewLoading.informationContent")}</span>
-    </div>
+  return <section className={`${classes.loading} ${compact ? classes.compact : ""}`} aria-label={uiText("interview:interviewLoading.processingInterview")}>
     <div className={classes.body}>
-      <p className={classes.eyebrow}>{uiText("interview:interviewLoading.interviewInProgress")}</p>
-      <div role="status" aria-live="polite" aria-atomic="true"><h3 ref={heading} tabIndex={-1}>{title}</h3><p>{description}</p></div>
+      <div role="status" aria-live="polite" aria-atomic="true"><h3 ref={heading} tabIndex={-1}>{title}</h3>{!compact && <p>{description}</p>}</div>
       <div className={classes.track} role="progressbar" aria-label={current}><span /></div>
-      <div className={classes.current}><strong>{current}</strong><span aria-hidden="true">{Math.floor(seconds / 60)}:{String(seconds % 60).padStart(2, '0')}</span></div>
-      <dl className={classes.context}>{answers != null && <div><dt>{uiText("interview:interviewLoading.savedAnswers")}</dt><dd>{answers}</dd></div>}{facts != null && <div><dt>{uiText("interview:interviewLoading.confirmedInformation")}</dt><dd>{facts}</dd></div>}{language && <div><dt>{uiText("ai:aiAssistant.cvLanguage")}</dt><dd>{language}</dd></div>}{template && <div><dt>{uiText("interview:interviewLoading.template")}</dt><dd>{template}</dd></div>}</dl>
-      <p className={classes.note}>{seconds >= 30 ? uiText("interview:interviewLoading.theOperationIsStillRunningTimingDepends") : uiText("interview:interviewLoading.theResultWillAppearWhenTheOperation")}</p>
+      <div className={classes.current}><span aria-hidden="true">{Math.floor(seconds / 60)}:{String(seconds % 60).padStart(2, '0')}</span></div>
+      {!compact && <details><summary>{uiText("ai:task.description")}</summary><dl className={classes.context}>{answers != null && <div><dt>{uiText("interview:interviewLoading.savedAnswers")}</dt><dd>{answers}</dd></div>}{facts != null && <div><dt>{uiText("interview:interviewLoading.confirmedInformation")}</dt><dd>{facts}</dd></div>}{language && <div><dt>{uiText("ai:aiAssistant.cvLanguage")}</dt><dd>{language}</dd></div>}{template && <div><dt>{uiText("interview:interviewLoading.template")}</dt><dd>{template}</dd></div>}</dl></details>}
+      {seconds >= 30 && <p role="status" className={classes.note}>{uiText("interview:interviewLoading.theOperationIsStillRunningTimingDepends")}</p>}
     </div>
   </section>;
 }

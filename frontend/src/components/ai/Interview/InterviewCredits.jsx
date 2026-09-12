@@ -10,7 +10,7 @@ import classes from './Interview.module.css';
  * stages before a later stage fails. Never infer charges from the account balance
  * or retained session.usage, which can describe another request or a replay.
  */
-export default function InterviewCredits({ sessionId, revision, busy, entitlements, balanceLoading, balanceError, onRefreshBalance }) {
+export default function InterviewCredits({ sessionId, revision, busy, entitlements, balanceLoading, balanceError, onRefreshBalance, showBalance = true }) {
   const { t } = useTranslation();
   const [snapshot, setSnapshot] = useState(null);
   const [settledRead, setSettledRead] = useState(null);
@@ -45,21 +45,21 @@ export default function InterviewCredits({ sessionId, revision, busy, entitlemen
   return <section className={classes.credits} aria-label={t('interview:credits.title')}>
     <div className={classes.creditSummary} role="status" aria-live="polite" aria-atomic="true">
       <p><strong>{t('interview:credits.total')}</strong> {data ? credits(data.credits_charged) : '—'}</p>
-      <p><strong>{t('interview:credits.remaining')}</strong> {knownBalance ? credits(remaining) : t('interview:credits.unavailable')}</p>
+      {showBalance && <p><strong>{t('interview:credits.remaining')}</strong> {knownBalance ? credits(remaining) : t('interview:credits.unavailable')}</p>}
       <p className={classes.creditLatest}>{busy ? t('interview:credits.working') : loading ? t('interview:credits.loading') : failed ? t('interview:credits.error') : latest
         ? t('interview:credits.latest', { operation: operation(latest.operation), cost: status(latest) }) : t('interview:credits.empty')}</p>
     </div>
-    <p className={classes.hint}>{t('interview:credits.free')}</p>
     {failed && <button type="button" disabled={busy || loading} onClick={retryRead}>{t('interview:credits.retry')}</button>}
-    {data?.requests.length > 0 && <details className={classes.creditHistory}>
-      <summary>{t('interview:credits.history', { count: data.requests.length })}</summary>
-      <ol>{data.requests.map((item) => <li key={item.id}>
+    <details className={classes.creditHistory}>
+      <summary>{t('interview:credits.history', { count: data?.requests.length || 0 })}</summary>
+      <p className={classes.hint}>{t('interview:credits.free')}</p>
+      <ol>{(data?.requests || []).map((item) => <li key={item.id}>
         <div className={classes.creditSummary}><strong>{operation(item.operation)}</strong><span>{status(item)}</span></div>
         <time dateTime={item.created_at}>{new Intl.DateTimeFormat(getUiLocale(), { dateStyle: 'short', timeStyle: 'short' }).format(new Date(item.created_at))}</time>
         <ul>{item.stages.map((stage, index) => <li key={index}>{operation(stage.operation === 'preview' ? 'draft' : stage.operation)}: {stage.status === 'pending' ? t('interview:credits.pending') : credits(stage.credits_charged)}{stage.status === 'failed' ? ` · ${t('interview:credits.failedStage')}` : ''}</li>)}</ul>
       </li>)}</ol>
       <p className={classes.hint}>{t('interview:credits.recovery')}</p>
-      {!failed && data.requests.some((item) => item.pending) && <button type="button" disabled={busy || loading} onClick={retryRead}>{t('interview:credits.retry')}</button>}
-    </details>}
+      {!failed && data?.requests.some((item) => item.pending) && <button type="button" disabled={busy || loading} onClick={retryRead}>{t('interview:credits.retry')}</button>}
+    </details>
   </section>;
 }

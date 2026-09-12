@@ -39,22 +39,11 @@ test("assistant invalidates canvas work without clearing template conversation h
     assert.match(source, /isDocumentScopeCurrent\(documentScope, \{ requireSameRevision: true \}\)/);
 });
 
-test("assistant auto-scroll commits the latest message before paint", async () => {
+test("assistant uses a task reading area instead of a live conversation", async () => {
     const source = await readFile(new URL("./AiAssistant.jsx", import.meta.url), "utf8");
-    const styles = await readFile(new URL("./AiAssistant.module.css", import.meta.url), "utf8");
-
-    assert.match(source, /const messagesRef = useRef\(null\)/);
-    assert.match(source, /const messageList = messagesRef\.current/);
-    assert.match(
-        source,
-        /useLayoutEffect\(\(\) => \{[\s\S]*messageList\.scrollTop = Math\.max\([\s\S]*messageList\.scrollHeight - messageList\.clientHeight/,
-    );
-    assert.match(source, /ref=\{messagesRef\}[\s\S]*className=\{classes\.messages\}[\s\S]*role="log"[\s\S]*aria-label="Rozmowa z asystentem AI"/);
-    assert.doesNotMatch(source, /messagesEndRef/);
-    assert.doesNotMatch(source, /messageList\.scrollTo\(/);
-
-    assert.match(styles, /\.panel\s*\{[\s\S]*?overflow:\s*hidden;[\s\S]*?overflow:\s*clip;[\s\S]*?\}/);
-    assert.match(styles, /\.messages\s*\{[\s\S]*?flex:\s*1 1 0%;[\s\S]*?min-height:\s*0;[\s\S]*?overflow-y:\s*auto;[\s\S]*?overflow-anchor:\s*none;[\s\S]*?scroll-behavior:\s*auto;[\s\S]*?\}/);
+    assert.match(source, /role="region"/);
+    assert.doesNotMatch(source, /role="log"/);
+    assert.match(source, /isAssistantReviewCurrent/);
 });
 
 test("assistant width and canvas offset preserve contextual toolbar clearance", async () => {
@@ -135,16 +124,6 @@ test("translation replaces the removed appearance goal in the quick actions", as
     // Flat feature-centric tiles should no longer be the primary menu.
     assert.doesNotMatch(source, /label: "Oceń CV"/);
     assert.doesNotMatch(source, /label: "Wynik ATS"/);
-});
-
-test("interview quick action uses the shared conversation icon treatment", async () => {
-    const source = await readFile(new URL("./AiAssistant.jsx", import.meta.url), "utf8");
-
-    assert.match(source, /FaComments/);
-    assert.match(
-        source,
-        /<FaComments className=\{classes\.actionIcon\} aria-hidden="true" \/>[\s\S]*?<span>Uzupełnij CV przez wywiad<\/span>/,
-    );
 });
 
 test("assistant accepts predefined quick actions without a free-form composer", async () => {

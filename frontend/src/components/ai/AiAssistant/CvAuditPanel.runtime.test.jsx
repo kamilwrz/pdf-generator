@@ -54,12 +54,13 @@ it('presents distinct counts and unassessed categories without claiming a CV qua
   const panel = screen.getByRole('region', { name: 'Audyt CV' });
   const overview = within(panel).getByRole('region', { name: 'Podsumowanie audytu' });
   expect(within(overview).getByText('2 wskazówki do Twojego CV')).toBeVisible();
-  expect(within(overview).getByText('Błędy').nextSibling).toHaveTextContent('1');
-  expect(within(overview).getByText('Brakujące informacje').nextSibling).toHaveTextContent('1');
-  expect(within(overview).getByText('Do ulepszenia').nextSibling).toHaveTextContent('0');
-  expect(within(overview).getByText('Do potwierdzenia').nextSibling).toHaveTextContent('0');
+  expect(within(container.querySelector('dl')).getByText('Błędy').nextSibling).toHaveTextContent('1');
+  expect(within(container.querySelector('dl')).getByText('Brakujące informacje').nextSibling).toHaveTextContent('1');
+  expect(within(container.querySelector('dl')).getByText('Do ulepszenia').nextSibling).toHaveTextContent('0');
+  expect(within(container.querySelector('dl')).getByText('Do potwierdzenia').nextSibling).toHaveTextContent('0');
   expect(screen.queryByRole('meter')).not.toBeInTheDocument();
   expect(screen.queryByText(/100%|100 wskazówek/)).not.toBeInTheDocument();
+  await user.click(screen.getByText('Wszystkie wyniki (2)'));
   expect(within(panel).getByText(/Audyt nie zmienia CV/)).toBeVisible();
 
   const contact = container.querySelector('[data-audit-category="contact"]');
@@ -109,6 +110,7 @@ it.each([
   const source = audit({ categories: [category('grammar', [finding({ action })])] });
   const { container, rerender } = render(<CvAuditPanel audit={source} onAction={onAction} />);
   await user.click(container.querySelector('summary'));
+  await user.click(container.querySelector('[data-audit-category] summary'));
   const button = screen.getByRole('button', { name: label });
   const stableId = button.id;
   expect(stableId).toMatch(/^cv-audit-action-/);
@@ -127,6 +129,7 @@ it('keeps stale findings readable while disabling tools and offering an explicit
   const { container, rerender } = render(<CvAuditPanel audit={audit()} stale onAction={onAction} onRerun={onRerun} />);
   expect(screen.getByRole('status')).toHaveTextContent('CV zmieniło się od tego audytu.');
   const details = container.querySelector('[data-audit-category="grammar"]');
+  await user.click(container.querySelector('summary'));
   await user.click(details.querySelector('summary'));
   expect(within(details).getByText('Przygotowywać raporty co tydzień.')).toBeVisible();
   const tool = within(details).getByRole('button', { name: 'Popraw gramatykę' });
@@ -171,6 +174,7 @@ it('gives every specialised action an English label and the same explicit routin
   const source = audit({ categories: [category('grammar', actions.map(([action]) => finding({ id: action, action })))] });
   const { container } = render(<CvAuditPanel audit={source} onAction={onAction} />);
   await user.click(container.querySelector('summary'));
+  await user.click(container.querySelector('[data-audit-category] summary'));
   expect(onAction).not.toHaveBeenCalled();
   for (const [action, label] of actions) {
     await user.click(screen.getByRole('button', { name: label }));
@@ -200,6 +204,7 @@ it('keeps raw evidence identifiers and provider-supplied navigation out of the u
     finding({ action: 'https://provider.example/untrusted', title: '<img src=x onerror=alert(1)>' }),
   ])] })} onAction={onAction} />);
   await user.click(container.querySelector('summary'));
+  await user.click(container.querySelector('[data-audit-category] summary'));
   expect(screen.getByRole('heading', { name: '<img src=x onerror=alert(1)>' })).toBeVisible();
   expect(container.querySelector('img')).toBeNull();
   expect(screen.queryByText('private-canvas-id')).not.toBeInTheDocument();
@@ -217,5 +222,6 @@ it('explains a zero-finding result without treating unassessed areas as successf
   expect(screen.getByText(/No findings in the assessed categories/)).toBeVisible();
   expect(screen.getByText(/Categories assessed: 1 of 2/)).toBeVisible();
   expect(screen.queryByRole('navigation', { name: 'Where to start' })).not.toBeInTheDocument();
+  await userEvent.click(screen.getByText('All findings (0)'));
   expect(within(container.querySelector('[data-audit-category="ats"]')).getByText('Not assessed')).toBeVisible();
 });

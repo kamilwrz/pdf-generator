@@ -454,11 +454,11 @@ export async function installMockApi(
 
 export async function login(page) {
   await page.goto("/login");
-  await page.getByLabel("Nazwa użytkownika").fill("Kamil");
-  await page.getByLabel("Hasło").fill("local-test-password");
-  await page.getByRole("button", { name: "Zaloguj się" }).click();
+  await page.getByLabel(/^(Nazwa użytkownika|Username)$/).fill("Kamil");
+  await page.getByLabel(/^(Hasło|Password)$/).fill("local-test-password");
+  await page.getByRole("button", { name: /^(Zaloguj się|Sign in)$/ }).click();
   await expect(page).toHaveURL(/\/app\/documents$/);
   // Existing editor scenarios explicitly exercise the retained workspace entry.
   await page.goto("/cvstudio/Kamil");
-  await expect(page.getByRole("heading", { name: "Jak chcesz zacząć?" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /^(Jak chcesz zacząć\?|How would you like to start\?)$/ })).toBeVisible({ timeout: 20000 });
 }

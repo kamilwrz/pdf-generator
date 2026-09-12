@@ -98,7 +98,9 @@ for (const width of [390, 834, 1280, 1920]) {
     await expect(preview.locator('li')).toHaveCount(5);
     await page.getByRole('button', { name: 'Następne', exact: true }).click();
     await expect(preview).toContainText('Do doprecyzowania 6:');
-    await page.getByRole('button', { name: '03 Przygotuj CV', exact: true }).click();
+    const stageButton = page.getByRole('button', { name: '03 Przygotuj CV', exact: true });
+    if (await stageButton.isVisible()) await stageButton.click();
+    else await page.getByRole('combobox', { name: 'Etapy', exact: true }).selectOption('prepare');
     await expect(page.getByText(/Każdy z trzech etapów korzysta z kredytów AI/)).toBeVisible();
     const release = api.hold('preview');
     await page.getByRole('button', { name: 'Odśwież podgląd', exact: true }).click();
@@ -123,7 +125,7 @@ test('question waiting, failed answer and draft recovery use distinct states', a
   await page.goto(`/app/interview/${ID}`);
   const releaseQuestion = api.hold('next');
   await page.getByRole('button', { name: 'Następne pytanie', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Szukamy właściwego pytania' })).toBeFocused();
+  await expect(page.getByRole('heading', { name: 'Szukamy właściwego pytania' })).toBeVisible();
   await page.screenshot({ path: '../tmp/interview-loading-question.png', fullPage: true });
   releaseQuestion();
   await expect(page.getByLabel('Twoja odpowiedź')).toHaveAccessibleDescription(/Możesz odpowiadać własnymi słowami/);

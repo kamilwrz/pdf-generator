@@ -25,6 +25,7 @@ test('job workspace fills assistant, analyses without edits and preserves drafts
   await expect(workspace.getByRole('heading', { name: 'Dopasuj do oferty', exact: true })).toBeFocused();
   await expect(assistant.getByRole('button', { name: 'Sprawdź CV', exact: true })).toHaveCount(0);
   await workspace.screenshot({ path: testInfo.outputPath('job-workspace-initial.png') });
+  await page.getByRole('radio', { name: 'Wklej treść', exact: true }).check();
   await page.getByLabel('Lub wklej treść oferty').fill('SQL, raportowanie oraz Python.');
   await page.getByRole('button', { name: 'Tylko analiza' }).click();
   await expect(workspace.getByRole('heading', { name: 'Jak Twoje CV pasuje do oferty', exact: true })).toBeFocused();
@@ -47,6 +48,7 @@ test('job workspace fills assistant, analyses without edits and preserves drafts
   await assistant.getByRole('button', { name: 'Dopasuj do oferty', exact: true }).click();
   await expect(page.getByLabel('Lub wklej treść oferty')).toHaveValue('SQL, raportowanie oraz Python.');
   await expect(workspace.getByText('Python', { exact: true })).toBeVisible();
+  await page.getByRole('radio', { name: 'Wklej treść', exact: true }).check();
   await page.getByLabel('Lub wklej treść oferty').fill('Inna oferta');
   await expect(workspace.getByRole('status')).toContainText('CV lub oferta się zmieniły');
   await expect(page.getByRole('combobox', { name: 'Język aplikacji' })).toHaveCount(0);
@@ -68,6 +70,7 @@ test('analysis key enters interview with optional profile; no second analysis re
       language: 'pl', template_id: 'linden', job_analysis_ready: true } });
   });
   await open(page);
+  await page.getByRole('radio', { name: 'Wklej treść', exact: true }).check();
   await page.getByLabel('Lub wklej treść oferty').fill('SQL oraz Python');
   await page.getByRole('button', { name: 'Tylko analiza' }).click();
   await expect(page.getByText('Python', { exact: true })).toBeVisible();
@@ -103,6 +106,7 @@ test('job analysis validates the link, disables duplicate requests and recovers 
   await expect(workspace.getByRole('alert')).toBeVisible();
   expect(requests).toBe(0);
   await url.fill('');
+  await page.getByRole('radio', { name: 'Wklej treść', exact: true }).check();
   await page.getByLabel('Lub wklej treść oferty').fill('SQL and Python');
   await page.getByRole('button', { name: 'Tylko analiza' }).click();
   await expect.poll(() => requests).toBe(1);
