@@ -516,3 +516,110 @@ it.each([null, { kind: 'document', id: 30 }])('does not offer an unavailable or 
   await screen.findByLabelText('Źródło informacji');
   expect(screen.queryByRole('option', { name: 'Profil zawodowy', exact: true })).not.toBeInTheDocument();
 });
+
+describe('assisted answer provenance', () => {
+  const suggestion = { id: 'checked-help', question_id: 'q1', mode: 'draft',
+    draft: 'Sprawdzałam dokumentację projektu.', options: [] };
+  beforeEach(() => {
+    session = { ...session, profile_revision: 1, answer_help: suggestion,
+      question: { ...session.question, answer_help_available: true } };
+  });
+
+  it('retains explicit confirmation through manual edits and a failed answer save', async () => {
+    const originalRequest = interviewRequest.getMockImplementation();
+    let fail = true;
+    interviewRequest.mockImplementation(async (...args) => {
+      if (args[0].endsWith('/answers') && fail) { fail = false; throw new Error('Zapis chwilowo niedostępny'); }
+      return originalRequest(...args);
+    });
+    render(<MemoryRouter><InterviewFlow sessionId="session" /></MemoryRouter>);
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('button', { name: 'Użyj propozycji' }));
+    const answer = screen.getByLabelText('Twoja odpowiedź');
+    await user.type(answer, ' Uzgadniałam też poprawki.');
+    const edited = `${suggestion.draft} Uzgadniałam też poprawki.`;
+    await user.click(screen.getByRole('button', { name: 'Potwierdzam i zapisuję odpowiedź' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Zapis chwilowo niedostępny');
+    expect(answer).toHaveValue(edited);
+    await user.click(screen.getByRole('button', { name: 'Potwierdzam i zapisuję odpowiedź' }));
+    await waitFor(() => expect(interviewRequest.mock.calls.filter(([path]) => path.endsWith('/answers'))).toHaveLength(2));
+    for (const [, , body] of interviewRequest.mock.calls.filter(([path]) => path.endsWith('/answers'))) {
+      expect(body).toMatchObject({ question_id: 'q1', answer: edited,
+        suggestion_id: suggestion.id, confirm_suggestion: true, status: 'answered' });
+    }
+    expect(interviewRequest.mock.calls.some(([path]) => path.endsWith('/answer-help'))).toBe(false);
+  });
+
+  it('returns to ordinary answer saving only after assisted text is explicitly cleared', async () => {
+    render(<MemoryRouter><InterviewFlow sessionId="session" /></MemoryRouter>);
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('button', { name: 'Użyj propozycji' }));
+    const answer = screen.getByLabelText('Twoja odpowiedź');
+    await user.clear(answer);
+    await user.type(answer, 'Moja własna odpowiedź.');
+    expect(screen.queryByRole('button', { name: 'Potwierdzam i zapisuję odpowiedź' })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Zapisz odpowiedź' }));
+    await waitFor(() => expect(interviewRequest).toHaveBeenCalledWith('/ai/interviews/session/answers', 'POST',
+      expect.objectContaining({ answer: 'Moja własna odpowiedź.', status: 'answered' })));
+    const body = interviewRequest.mock.calls.find(([path]) => path.endsWith('/answers'))[2];
+    expect(body).not.toHaveProperty('suggestion_id');
+    expect(body).not.toHaveProperty('confirm_suggestion');
+  });
+
+  it('prevents fact edits from invalidating an applied suggestion before its answer is confirmed', async () => {
+    render(<MemoryRouter><InterviewFlow sessionId="session" /></MemoryRouter>);
+    const user = userEvent.setup();
+    const use = await screen.findByRole('button', { name: 'Użyj propozycji' });
+    const review = screen.getByRole('button', { name: 'Sprawdź informacje' });
+    expect(review).toBeEnabled();
+    await user.click(use);
+    expect(review).toBeDisabled();
+    await user.clear(screen.getByLabelText('Twoja odpowiedź'));
+    expect(review).toBeEnabled();
+    expect(interviewRequest.mock.calls.some(([path, method]) => method === 'POST'
+      && (path.endsWith('/confirm') || path.endsWith('/answers')))).toBe(false);
+  });
+
+  it('recovers matching committed help after a transport failure without another paid request or error', async () => {
+    session = { ...session, answer_help: null };
+    const originalRequest = interviewRequest.getMockImplementation();
+    interviewRequest.mockImplementation(async (...args) => {
+      if (args[0].endsWith('/answer-help')) {
+        // The server finishes, but its response is lost before the browser can
+        // adopt the new revision. Only the following GET reveals saved help.
+        session = { ...session, revision: 3, answer_help: { ...suggestion, based_on_draft: args[2].draft } };
+        throw new Error('Odpowiedź serwera nie dotarła');
+      }
+      return originalRequest(...args);
+    });
+    render(<MemoryRouter><InterviewFlow sessionId="session" /></MemoryRouter>);
+    const user = userEvent.setup();
+    const answer = await screen.findByLabelText('Twoja odpowiedź');
+    await user.type(answer, 'Mój własny początek.');
+    await user.click(screen.getByRole('button', { name: 'Zaproponuj odpowiedź' }));
+    const use = await screen.findByRole('button', { name: 'Użyj propozycji' });
+    await waitFor(() => expect(use).toBeEnabled());
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(answer).toHaveValue('Mój własny początek.');
+    expect(screen.getByRole('heading', { name: 'Propozycja odpowiedzi' })).toHaveFocus();
+    expect(interviewRequest.mock.calls.filter(([path]) => path.endsWith('/answer-help'))).toHaveLength(1);
+    expect(interviewRequest.mock.calls.filter(([path, method]) => path === '/ai/interviews/session' && method !== 'POST')).toHaveLength(2);
+    expect(interviewRequest.mock.calls.some(([path]) => path.endsWith('/answers'))).toBe(false);
+  });
+
+  it.each([
+    ['unknown', 'Nie pamiętam'], ['skipped', 'Pomiń'], ['no_experience', 'Nie mam takiego doświadczenia'],
+  ])('an explicit %s answer drops unsaved assisted prose without confirming it', async (status, label) => {
+    render(<MemoryRouter><InterviewFlow sessionId="session" /></MemoryRouter>);
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('button', { name: 'Użyj propozycji' }));
+    expect(screen.getByLabelText('Twoja odpowiedź')).toHaveValue(suggestion.draft);
+    await user.click(screen.getByText('Inne odpowiedzi'));
+    await user.click(screen.getByRole('button', { name: label, exact: true }));
+    await waitFor(() => expect(interviewRequest).toHaveBeenCalledWith('/ai/interviews/session/answers', 'POST',
+      expect.objectContaining({ question_id: 'q1', answer: '', status })));
+    const body = interviewRequest.mock.calls.find(([path]) => path.endsWith('/answers'))[2];
+    expect(body).not.toHaveProperty('suggestion_id');
+    expect(body).not.toHaveProperty('confirm_suggestion');
+  });
+});

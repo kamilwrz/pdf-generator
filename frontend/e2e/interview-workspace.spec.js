@@ -28,9 +28,20 @@ async function workspaceApi(page, phase = 'preview') {
   await page.route('**/api/career-profile*', (route) => route.fulfill({ json: profile }));
   await page.route('**/api/ai/interviews**', async (route) => {
     const action = new URL(route.request().url()).pathname.split('/').at(-1);
+    // These read-only responses keep this layout test on the normal receipt
+    // and template-check surfaces instead of accidental schema-error banners.
+    if (action === 'credits') {
+      await route.fulfill({ json: { credits_charged: 0, requests: [] } });
+      return;
+    }
     if (route.request().method() === 'POST') {
       calls.push(action);
       if (holds.has(action)) await holds.get(action);
+      if (action === 'preview-templates') {
+        await route.fulfill({ json: { revision: session.revision, profile_revision: session.profile_revision,
+          evidence_scope: session.evidence_scope, target_pages: 1, candidates: [] } });
+        return;
+      }
       if (action === 'answers' && failAnswer) { await route.fulfill({ status: 503, json: { detail: 'Nie udało się zapisać odpowiedzi. Spróbuj ponownie.' } }); return; }
       if (action === 'next') session = { ...session, phase: 'question', question: { id: 'q1', text: 'Jak usprawniłaś raportowanie?', reason: 'Pokażemy Twój wkład w proces.' } };
       if (action === 'answers') session = { ...session, phase: 'review', question: null, answers: [route.request().postDataJSON()] };
@@ -72,6 +83,10 @@ for (const width of [390, 834, 1280, 1920]) {
     await page.setViewportSize({ width, height: 900 });
     await page.emulateMedia({ reducedMotion: width === 834 ? 'reduce' : 'no-preference' });
     const api = await workspaceApi(page);
+    const duplicateKeyErrors = [];
+    page.on('console', message => {
+      if (message.type() === 'error' && message.text().includes('children with the same key')) duplicateKeyErrors.push(message.text());
+    });
     await page.goto(`/app/interview/${ID}`);
     const preview = page.getByRole('region', { name: 'Przegląd nowego CV' });
     await expect(preview).toBeVisible();
@@ -81,8 +96,27 @@ for (const width of [390, 834, 1280, 1920]) {
     await expect(preview).not.toContainText('Osiągnięcie 1.12');
     await expect(preview).toContainText('Osiągnięcie 1.6');
     await expect(preview).not.toContainText('Osiągnięcie 2.1');
-    // This bound includes the shared mobile navigation and footer, not just the record.
-    expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBeLessThan(width < 500 ? 2400 : 1800);
+    // Template choices and text review are distinct sibling components. A
+    // shared React key previously duplicated the choices after a re-render.
+    const templateOptions = page.getByRole('region', { name: 'Jedna strona w innym szablonie', exact: true });
+    await expect(templateOptions).toHaveCount(1);
+    expect(duplicateKeyErrors).toEqual([]);
+    // Template comparison adds a bounded task above the original text review.
+    // Measure its complete block separately so the original navigation, record,
+    // and footer budget still catches expanded or duplicated preview content.
+    const layout = await templateOptions.evaluate((element) => {
+      const style = getComputedStyle(element);
+      return {
+        comparisonHeight: element.getBoundingClientRect().height
+          + Number.parseFloat(style.marginTop) + Number.parseFloat(style.marginBottom),
+        pageHeight: document.documentElement.scrollHeight,
+      };
+    });
+    expect(layout.comparisonHeight).toBeLessThan(width < 500 ? 400 : 260);
+    // The current public introduction and footer wrap at 390px. Keep a bounded
+    // 2500px mobile page alongside the stricter six-item reading assertions;
+    // the desktop budget and the separate comparison-panel cap stay fixed.
+    expect(layout.pageHeight - layout.comparisonHeight).toBeLessThan(width < 500 ? 2500 : 1800);
     await page.screenshot({ path: `../tmp/interview-workspace-${width}.png`, fullPage: true });
     await page.getByRole('button', { name: 'Dalsze punkty', exact: true }).click();
     await expect(preview).toContainText('Osiągnięcie 1.12');
@@ -116,6 +150,8 @@ for (const width of [390, 834, 1280, 1920]) {
     await page.screenshot({ path: `../tmp/interview-loading-${width}.png`, fullPage: true });
     release();
     await expect(page.getByRole('heading', { name: 'Twoja nowa wersja CV' })).toBeFocused();
+    await expect(templateOptions).toHaveCount(1);
+    expect(duplicateKeyErrors).toEqual([]);
     expect(api.calls.filter((action) => action === 'preview')).toHaveLength(1);
   });
 }

@@ -295,7 +295,13 @@ def session_payload(row):
         # requirement analysis has not yet established a content-based plan.
         planned_questions = (None if row.state.get("mode") == "tailor" and not row.state.get("job_analysis_ready")
                              else row.state.get("question_limit"))
-    return {"id": row.id, "revision": row.revision, **row.state,
+    from app.services.interview_answer_help import answer_help_available, public_answer_help
+    question = deepcopy(row.state.get("question"))
+    if question:
+        question["answer_help_available"] = answer_help_available(row.state)
+    public_state = {key: value for key, value in row.state.items() if key != 'answer_help_attempt'}
+    return {"id": row.id, "revision": row.revision, **public_state,
+            "question": question, "answer_help": public_answer_help(row.state),
             "planned_question_count": planned_questions,
             "review_source_facts": review_source,
             "requires_source_choice": row.state.get("evidence_scope") not in {"profile", "session"} or not has_interview_source(row.state.get("source_cv_data")),
@@ -473,12 +479,14 @@ def assemble_draft(raw, profile, language):
     return normalize_cv_data(result, require_name=True), changes
 
 
-def paid_model(db, user, row, request, operation, context, model, *, action="improve", generation=False, validate_output=None):
+def paid_model(db, user, row, request, operation, context, model, *, action="improve", generation=False, validate_output=None, attempt=None):
     """Reserve, validate and settle one deterministic operation key.
 
     Provider output is cached before the session CAS. A crash between those
     writes can replay the output without another provider call or charge. A
-    generation attempt also reuses completed stages after a later stage failed.
+    generation or explicitly supplied attempt also reuses completed stages after
+    a later stage failed. Answer assistance supplies its own attempt so it never
+    replaces the independently resumable CV-generation state.
     Its input hash includes the schema/policy; verification is bound to the edited
     draft. Failed/expired reservations get a new key only on an explicit retry
     using the advanced session revision. Output validation precedes settlement.
@@ -490,8 +498,8 @@ def paid_model(db, user, row, request, operation, context, model, *, action="imp
     system = SYSTEM + (QUESTION_POLICY if operation == "next" else "")
     request_hash = digest({"context": context, "action": action, "schema": provider_schema(model), "system": system + ui_language_policy()})
     key = f"interview:{row.id}:{request.revision}:{request.profile_revision}:{operation}"
-    if generation:
-        attempt = row.state["generation_attempt"]
+    if generation or attempt is not None:
+        attempt = attempt if attempt is not None else row.state["generation_attempt"]
         prefix = f"interview:{row.id}:v{attempt['version']}:{attempt['id']}:{operation}:"
         stage = db.query(AiCreditReservation).filter(
             AiCreditReservation.user_id == user.id,

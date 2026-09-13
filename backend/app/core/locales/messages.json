@@ -1,4 +1,24 @@
 {
+  "interview_answer_help_unavailable": {
+    "pl": "Przy tym pytaniu potrzebna jest Twoja własna informacja. Wpisz odpowiedź, wybierz Nie pamiętam albo Pomiń.",
+    "en": "This question needs information only you can provide. Write your answer, choose I cannot remember or Skip."
+  },
+  "interview_answer_help_confirm": {
+    "pl": "Sprawdź aktualną propozycję i potwierdź, że zapisywana odpowiedź jest zgodna z Twoim doświadczeniem.",
+    "en": "Review the current suggestion and confirm that the answer you are saving matches your experience."
+  },
+  "interview_answer_help_draft": {
+    "pl": "Sprawdź i popraw szkic. Zapisz go tylko wtedy, gdy cała odpowiedź jest zgodna z Twoim doświadczeniem.",
+    "en": "Review and edit the draft. Save it only when the whole answer matches your experience."
+  },
+  "interview_answer_help_options": {
+    "pl": "To możliwe zadania, a nie potwierdzone informacje o Tobie. Wybierz tylko te, które rzeczywiście wykonywano w Twoim zakresie pracy, i doprecyzuj własny udział.",
+    "en": "These are possible activities, not confirmed information about you. Select only those that were part of your work and clarify your own contribution."
+  },
+  "interview_answer_help_guidance": {
+    "pl": "Nie ma wystarczającej podstawy do propozycji. Opisz jedno zadanie lub sytuację, którą pamiętasz. Możesz też wybrać Nie pamiętam albo Pomiń.",
+    "en": "There is not enough information for a suggestion. Describe one task or situation you remember. You can also choose I cannot remember or Skip."
+  },
   "not_found": {
     "pl": "Nie znaleziono",
     "en": "Not found"

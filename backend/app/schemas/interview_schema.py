@@ -64,6 +64,34 @@ class AnswerWrite(SessionWrite):
     question_id: str = Field(max_length=100)
     answer: str = Field(default="", max_length=4000)
     status: Literal["answered", "no_experience", "unknown", "skipped"]
+    suggestion_id: str | None = Field(default=None, min_length=1, max_length=100)
+    confirm_suggestion: bool = False
+
+
+class AnswerHelpWrite(SessionWrite):
+    """Request a suggestion for the active question without submitting an answer."""
+    question_id: str = Field(min_length=1, max_length=100)
+    draft: str = Field(default="", max_length=4000)
+
+
+class AnswerHelpOption(Contract):
+    """A hypothetical activity to review, never an asserted career fact."""
+    id: str = Field(min_length=1, max_length=40, pattern=r"^[a-zA-Z0-9_-]+$")
+    text: str = Field(min_length=1, max_length=600)
+
+
+class AnswerHelpProposal(Contract):
+    """Bounded answer assistance, independently checked before presentation."""
+    mode: Literal["draft", "options", "guidance"]
+    draft: str = Field(max_length=4000)
+    options: list[AnswerHelpOption] = Field(max_length=5)
+    evidence_refs: list[str] = Field(max_length=60)
+
+
+class AnswerHelpVerification(Contract):
+    """Reject unsupported prose or unsafe options without inventing replacements."""
+    draft_supported: bool
+    rejected_option_ids: list[str] = Field(max_length=5)
 
 
 class ConfirmWrite(SessionWrite):

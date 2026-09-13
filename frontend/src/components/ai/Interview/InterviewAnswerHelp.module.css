@@ -1,0 +1,45 @@
+.panel {
+  min-width: 0;
+  margin-block: var(--space-4);
+  padding-block: var(--space-4);
+  border-block: 1px solid var(--color-border);
+  overflow-wrap: anywhere;
+}
+
+.panel h4 {
+  margin: 0 0 var(--space-2);
+  font: 700 1rem/1.4 var(--font-ui);
+}
+
+.panel > button + p { margin-top: var(--space-2); }
+.panel > :last-child > :last-child { margin-bottom: 0; }
+
+.panel .option {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  min-height: var(--control-height);
+  padding-block: var(--space-3);
+  margin: 0;
+  border-bottom: 1px solid var(--color-border);
+  cursor: pointer;
+}
+
+.panel .option input {
+  flex: 0 0 var(--space-4);
+  width: var(--space-4);
+  height: var(--space-4);
+  min-height: 0;
+  margin: var(--space-1) 0 0;
+  padding: 0;
+  accent-color: var(--interview-ink);
+}
+
+.panel .option span { min-width: 0; }
+.panel fieldset:disabled .option { cursor: not-allowed; }
+.guidance { max-width: 72ch; white-space: pre-wrap; }
+.guidance .label { font-weight: 600; }
+
+@container interview (max-width: 480px) {
+  .panel > button { width: 100%; }
+}

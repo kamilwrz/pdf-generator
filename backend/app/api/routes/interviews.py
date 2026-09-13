@@ -14,7 +14,7 @@ from app.dependencies import get_db
 from app.crud.cv_import_snapshots import get_owned_snapshot
 from app.models.models import InterviewSession, Pdf
 from app.schemas.interview_schema import (
-    ProfileWrite, ProfileSourceWrite, InterviewCreate, SessionWrite, AnswerWrite, ConfirmWrite, GenerateWrite, PreviewReviewWrite, PreviewFitWrite, PreviewTemplateWrite, SourceRefresh, Draft, Verification, EditorialReview,
+    ProfileWrite, ProfileSourceWrite, InterviewCreate, SessionWrite, AnswerWrite, AnswerHelpWrite, ConfirmWrite, GenerateWrite, PreviewReviewWrite, PreviewFitWrite, PreviewTemplateWrite, SourceRefresh, Draft, Verification, EditorialReview,
 )
 from app.schemas.pdf_schema import PDFCreateRequest
 from app.services.interview_clarification import (
@@ -34,6 +34,7 @@ from app.services import interview_service as service
 from app.services.interview_credits import interview_credit_usage
 from app.services.interview_fit import initialise_fit, fit_preview
 from app.services.interview_templates import preview_templates, select_preview_template
+from app.services.interview_answer_help import generate_answer_help, confirmed_answer_assistance
 from app.services.interview_sources import available_interview_sources, has_interview_source
 from app.services.career_profile_source import synchronise_source, supplemental_facts, is_supplemental_fact
 from app.services.cv_data import normalize_cv_data, CvDataValidationError
@@ -263,6 +264,12 @@ def get_interview_credits(session_id: str, user=Depends(get_current_user), db=De
     return interview_credit_usage(db, row)
 
 
+@router.post("/ai/interviews/{session_id}/answer-help")
+def help_interview_answer(session_id: str, request: AnswerHelpWrite, user=Depends(get_current_user), db=Depends(get_db)):
+    """Prepare checked, unconfirmed help for one owned active narrative question."""
+    return generate_answer_help(db, user, service.owned_session(db, user.id, session_id), request)
+
+
 @router.post("/ai/interviews/{session_id}/answers")
 def answer_interview(session_id: str, request: AnswerWrite, user=Depends(get_current_user), db=Depends(get_db)):
     """Persist one explicit answer and its evidence before further AI work.
@@ -277,6 +284,10 @@ def answer_interview(session_id: str, request: AnswerWrite, user=Depends(get_cur
         if previous["question"]["id"] == request.question_id:
             if previous["answer"] != request.answer or previous["status"] != request.status:
                 service.fail(localised_message('interview_this_answer_has_already_been_saved_edit_the'))
+            if (request.suggestion_id or request.confirm_suggestion) and (
+                    not request.confirm_suggestion or not request.suggestion_id
+                    or previous.get('ai_assistance', {}).get('suggestion_id') != request.suggestion_id):
+                service.fail(localised_message('interview_answer_help_confirm'), 422)
             return service.session_payload(row)
     profile = service.check_versions(db, row, request, source=False)
     state = deepcopy(row.state)
@@ -285,9 +296,10 @@ def answer_interview(session_id: str, request: AnswerWrite, user=Depends(get_cur
         service.fail(localised_message('interview_this_question_is_no_longer_active'))
     if request.status == "answered" and not request.answer.strip():
         service.fail(localised_message('interview_enter_an_answer_or_choose_to_skip'), 422)
+    assistance = confirmed_answer_assistance(db, row, request, profile)
     meaning = literal_answer_status(request.answer, request.status)
     state["answers"].append({"question": question, "answer": request.answer, "status": request.status,
-                             "answer_meaning": meaning})
+                             "answer_meaning": meaning, **({'ai_assistance': assistance} if assistance else {})})
     answer_facts = answer_proposals(question, request.answer, meaning, profile, row.id)
     if answer_facts:
         replacements = {fact["id"]: fact for fact in answer_facts}
@@ -304,6 +316,8 @@ def answer_interview(session_id: str, request: AnswerWrite, user=Depends(get_cur
         saved_ids = {fact["id"] for fact in answer_facts}
         state["proposed_facts"] = [fact for fact in state["proposed_facts"] if fact["id"] not in saved_ids]
     state["question"] = None
+    state.pop('answer_help', None)
+    state.pop('answer_help_attempt', None)
     if not question.get("clarification") or meaning in {"answered", "no_experience"}:
         state["preview"] = None
     state["phase"] = "review" if len(state["answers"]) >= state["question_limit"] else "ready"

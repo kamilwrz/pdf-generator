@@ -22,6 +22,7 @@ import TemplateCarousel from '../AiCvPanel/TemplateCarousel';
 import InterviewReviewNotice from './InterviewReviewNotice';
 import InterviewSourceRequired from './InterviewSourceRequired';
 import InterviewTemplateOptions from './InterviewTemplateOptions';
+import InterviewAnswerHelp from './InterviewAnswerHelp';
 import classes from './Interview.module.css';
 
 const languageLabels = { get pl() { return uiText("ai:aiAssistant.polish"); }, get en() { return uiText("ai:aiAssistant.english"); }, get de() { return uiText("ai:aiAssistant.german"); }, get fr() { return uiText("ai:aiAssistant.french"); }, get es() { return uiText("ai:aiAssistant.spanish"); }, get uk() { return uiText("ai:aiAssistant.ukrainian"); }, get it() { return uiText("ai:aiAssistant.italian"); }, get nl() { return uiText("ai:aiAssistant.dutch"); } };
@@ -35,6 +36,7 @@ export default function InterviewFlow({ sessionId, initialSource = null, current
   const [profile, setProfile] = useState(null);
   const [facts, setFacts] = useState([]);
   const [answer, setAnswer] = useState('');
+  const [assistedAnswer, setAssistedAnswer] = useState(null);
   const [busy, setBusy] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
   const [pendingOperation, setPendingOperation] = useState('load');
@@ -57,10 +59,18 @@ export default function InterviewFlow({ sessionId, initialSource = null, current
   const sourceNotes = useRef({});
   const heading = useRef(null);
   const sessionRef = useRef(null);
+  const requestEpoch = useRef(0);
+  const answerField = useRef(null);
+  const focusContext = useRef('');
   const canAi = entitlements?.ai_assistant === true;
 
   const adopt = useCallback((next, currentProfile) => {
     currentProfile = interviewEvidence(currentProfile, next);
+    // A generated draft belongs to exactly one question. Resuming a different
+    // question must not carry its text or confirmation marker into that answer.
+    if (sessionRef.current?.id !== next?.id || sessionRef.current?.question?.id !== next?.question?.id) {
+      setAnswer(''); setAssistedAnswer(null);
+    }
     sessionRef.current = next;
     setSession(next); setProfile(currentProfile); setFacts(reviewFacts(currentProfile, next));
     setTemplate(next?.template_id || '');
@@ -85,11 +95,18 @@ export default function InterviewFlow({ sessionId, initialSource = null, current
   useEffect(() => {
     alive.current = true;
     load().catch((err) => { if (alive.current) setError(messageOf(err)); }).finally(() => { if (alive.current) setInitialLoading(false); });
-    return () => { alive.current = false; };
+    return () => { alive.current = false; requestEpoch.current += 1; };
   }, [sessionId, initialSource, load, setError]);
 
   // Return focus to the active task after a request; hidden forms keep their drafts.
-  useEffect(() => { if (!busy && !initialLoading) heading.current?.focus(); }, [session?.phase, session?.question?.id, reviewOpen, panel, busy, initialLoading]);
+  useEffect(() => {
+    const context = JSON.stringify([session?.phase, session?.question?.id, reviewOpen, panel]);
+    const changedTask = focusContext.current !== context;
+    focusContext.current = context;
+    // Answer assistance owns result/error focus inside the still-visible form.
+    // Other operations and actual stage changes retain the task-heading rule.
+    if (!busy && !initialLoading && (pendingOperation !== 'answer-help' || changedTask)) heading.current?.focus();
+  }, [session?.phase, session?.question?.id, reviewOpen, panel, busy, initialLoading, pendingOperation]);
 
   async function run(work, operationName = 'load') {
     if (lock.current) return;
@@ -102,6 +119,65 @@ export default function InterviewFlow({ sessionId, initialSource = null, current
   }
 
   function versions() { return { revision: session.revision, profile_revision: profile.revision, evidence_scope: session.evidence_scope }; }
+
+  /**
+   * Request a reviewable suggestion without saving an answer. Errors propagate
+   * to the inline panel; a read-only recovery refreshes revisions and receipts
+   * after partially completed paid stages without starting another AI request.
+   */
+  async function generateAnswerHelp(draft) {
+    if (lock.current) throw new Error(uiText('interview:answerHelp.error'));
+    const id = session.id;
+    const questionId = session.question.id;
+    const epoch = requestEpoch.current;
+    const current = () => alive.current && requestEpoch.current === epoch
+      && sessionRef.current?.id === id && sessionRef.current?.question?.id === questionId;
+    lock.current = true; setBusy(true); setPendingOperation('answer-help'); setError(''); setNotice('');
+    try {
+      const next = await interviewRequest(`/ai/interviews/${id}/answer-help`, 'POST', {
+        ...versions(), question_id: questionId, draft,
+      });
+      if (!current()) return null;
+      adopt(next, profile);
+      return next;
+    } catch (err) {
+      if (current()) {
+        try {
+          const next = await interviewRequest(`/ai/interviews/${id}`);
+          if (current()) {
+            const evidence = next.evidence_scope !== 'profile' ? interviewEvidence(null, next) : await interviewRequest('/career-profile');
+            if (current()) {
+              adopt(next, evidence);
+              // A transport failure can arrive after the server committed the
+              // checked result. Recover that exact draft as success, for free.
+              if (next.question?.id === questionId && next.answer_help?.question_id === questionId
+                && next.answer_help.based_on_draft === draft) return next;
+            }
+          }
+        } catch { /* Retain the draft and original failure when recovery is unavailable. */ }
+      }
+      throw err;
+    } finally {
+      lock.current = false;
+      if (alive.current && requestEpoch.current === epoch) { setBusy(false); refresh(); onCreditsChanged?.(); }
+    }
+  }
+
+  /** Append only explicitly chosen text; insertion is not the persistence boundary. */
+  function useAnswerHelp(text, suggestionId) {
+    if (busy || !text?.trim() || session.answer_help?.id !== suggestionId) return false;
+    const next = [answer.trimEnd(), text.trim()].filter(Boolean).join('\n');
+    if (next.length > 4000) return false;
+    setAnswer(next);
+    setAssistedAnswer({ questionId: session.question.id, suggestionId });
+    requestAnimationFrame(() => answerField.current?.focus());
+    return true;
+  }
+
+  function changeAnswer(value) {
+    setAnswer(value);
+    if (!value.trim()) setAssistedAnswer(null);
+  }
 
   async function operation(action, extra = {}) {
     setPendingOperation(action);
@@ -161,7 +237,10 @@ export default function InterviewFlow({ sessionId, initialSource = null, current
   }, 'start');
 
   const saveAnswer = (status, text = answer) => run(async () => {
-    await operation('answers', { question_id: session.question.id, answer: text, status });
+    const assisted = status === 'answered' && assistedAnswer?.questionId === session.question.id;
+    await operation('answers', { question_id: session.question.id, answer: text, status,
+      ...(assisted ? { suggestion_id: assistedAnswer.suggestionId, confirm_suggestion: true } : {}),
+    });
     if (alive.current) {
       // The server recognises standalone typed unknown answers without turning
       // them into facts. Keep the receipt consistent with the persisted meaning.
@@ -170,7 +249,7 @@ export default function InterviewFlow({ sessionId, initialSource = null, current
       const message = status === 'answered' ? uiText("interview:interviewFlow.answerSaved", { value0: (destination) })
         : status === 'no_experience' ? uiText("interview:interviewFlow.lackOfExperienceSaved", { value0: (destination) })
           : status === 'unknown' ? uiText("interview:interviewFlow.savedICannotRemember") : uiText("interview:interviewFlow.questionSkipped");
-      setAnswer(''); setNotice(message);
+      setAnswer(''); setAssistedAnswer(null); setNotice(message);
     }
   });
 
@@ -192,7 +271,7 @@ export default function InterviewFlow({ sessionId, initialSource = null, current
   const fitPending = session?.preview?.fit?.status === 'pending';
   const activePanel = reviewing ? 'facts' : session?.phase === 'clarification' ? 'conversation' : fitPending && panel === 'preview' ? 'prepare' : panel;
   const waiting = busy || initialLoading;
-  const inlineWaiting = busy && !initialLoading && ['answers', 'next', 'confirm', 'sync', 'preview-review', 'preview-template'].includes(pendingOperation);
+  const inlineWaiting = busy && !initialLoading && ['answers', 'next', 'confirm', 'sync', 'preview-review', 'preview-template', 'answer-help'].includes(pendingOperation);
   // Clarifications have their own bounded queue; discovery answers must not
   // make the first clarification appear as question nine of a new interview.
   const clarified = session?.answers.filter((item) => item.question?.clarification).length || 0;
@@ -312,10 +391,21 @@ export default function InterviewFlow({ sessionId, initialSource = null, current
         {session.question && !clarificationQuestion && <div className={classes.question}>{session.mode === 'tailor' && session.question.entry_id?.startsWith('requirement:') && <p className={classes.hint}>{uiText('ai:jobMatch.questionProgress', { number: 1 + session.answers.filter((item) => item.question.entry_id === session.question.entry_id).length })}</p>}<h3>{session.question.text}</h3><p className={classes.hint}>{session.question.reason}</p>
           <details><summary>{uiText("ai:task.answerHelp")}</summary><p className={classes.hint} id={`answer-help-${session.question.id}`}>{uiText("interview:interviewFlow.answerInYourOwnWordsWhenPreparing")}</p></details>
           {session.question.follow_up_to && <p className={classes.hint}>{uiText("interview:interviewFlow.aFollowUpToAnEarlierAnswer")}</p>}
-          <label>{uiText("interview:factEditor.yourAnswer")}<textarea rows={5} maxLength={4000} value={answer} onChange={(event) => setAnswer(event.target.value)} disabled={busy} aria-describedby={`answer-help-${session.question.id}`} /></label><div className={classes.actions}><button className={classes.primary} disabled={busy || !answer.trim()} onClick={() => saveAnswer('answered')}>{uiText("interview:interviewFlow.saveAnswer")}</button></div><details><summary>{uiText('ai:task.otherAnswers')}</summary><div className={classes.actions}><button disabled={busy} onClick={() => saveAnswer('no_experience')}>{uiText("interview:interviewFlow.iDoNotHaveThatExperience")}</button><button disabled={busy} onClick={() => saveAnswer('unknown')}>{uiText("interview:interviewFlow.iCannotRemember")}</button><button disabled={busy} onClick={() => saveAnswer('skipped')}>{uiText("ai:aiAssistant.skip")}</button></div></details></div>}
+          <label>{uiText("interview:factEditor.yourAnswer")}<textarea ref={answerField} rows={5} maxLength={4000} value={answer} onChange={(event) => changeAnswer(event.target.value)} disabled={busy} aria-describedby={`answer-help-${session.question.id}${assistedAnswer?.questionId === session.question.id ? ` answer-confirm-${session.question.id}` : ''}`} /></label>
+          <InterviewAnswerHelp key={`${session.id}-${session.question.id}`} session={session} answer={answer}
+            disabled={busy || factEditing || sourceChanged || hasLocalFactChanges} canAi={canAi}
+            usedSuggestionId={assistedAnswer?.questionId === session.question.id ? assistedAnswer.suggestionId : null}
+            onGenerate={generateAnswerHelp} onUse={useAnswerHelp} />
+          {assistedAnswer?.questionId === session.question.id && <p className={classes.hint} id={`answer-confirm-${session.question.id}`}>{uiText('interview:answerHelp.confirmHint')}</p>}
+          <div className={classes.actions}><button className={classes.primary} disabled={busy || !answer.trim()} onClick={() => saveAnswer('answered')}>{uiText(assistedAnswer?.questionId === session.question.id ? 'interview:answerHelp.confirmSave' : 'interview:interviewFlow.saveAnswer')}</button></div>
+          <details><summary>{uiText('ai:task.otherAnswers')}</summary><div className={classes.actions}>
+            <button disabled={busy} onClick={() => saveAnswer('no_experience', '')}>{uiText("interview:interviewFlow.iDoNotHaveThatExperience")}</button>
+            <button disabled={busy} onClick={() => saveAnswer('unknown', '')}>{uiText("interview:interviewFlow.iCannotRemember")}</button>
+            <button disabled={busy} onClick={() => saveAnswer('skipped', '')}>{uiText("ai:aiAssistant.skip")}</button>
+          </div></details></div>}
         {session.phase !== 'completed' && <div className={classes.actions}>
           {!session.question && !session.discovery_complete && !session.discovery_round_complete && session.phase !== 'clarification' && session.answers.length < session.question_limit && <button disabled={busy || !canAi || sourceChanged} onClick={() => run(() => operation('next'))}>{uiText("interview:interviewFlow.nextQuestion")}</button>}
-          <button disabled={busy} onClick={() => setReviewOpen(true)}>{uiText("interview:interviewFlow.reviewInformation")}{hasPending ? uiText("interview:interviewFlow.toSave", { value0: (session.proposed_facts.length) }) : ''}</button>
+          <button disabled={busy || Boolean(assistedAnswer && assistedAnswer.questionId === session.question?.id)} onClick={() => setReviewOpen(true)}>{uiText("interview:interviewFlow.reviewInformation")}{hasPending ? uiText("interview:interviewFlow.toSave", { value0: (session.proposed_facts.length) }) : ''}</button>
           {!session.discovery_complete && session.question_limit < 50 && (session.phase === 'review' || session.phase === 'preview') && <button disabled={busy || !canAi || sourceChanged} onClick={() => run(() => operation('extend'))}>{uiText("interview:interviewFlow.exploreFurtherUpToQuestions")}</button>}
         </div>}
         {!session.question && session.phase !== 'clarification' && session.phase !== 'completed' && <div className={classes.nextStep}><div><h3>{uiText("interview:interviewFlow.readyToPrepareYourCv")}</h3><p>{hasPending ? uiText("interview:interviewFlow.continuingWillSaveNewOrChangedInformation") : session.discovery_complete ? uiText(session.discovery_exhausted ? "interview:interviewFlow.answerLimitReached" : "interview:interviewFlow.weHaveCoveredTheAvailableEntriesYou") : uiText("interview:interviewFlow.youCanContinueOrAnswerMoreQuestions")}</p></div><button className={classes.primary} type="button" onClick={() => goTo('prepare')}>{uiText("interview:interviewFlow.continueToCvPreparation")}</button></div>}
@@ -338,13 +428,13 @@ export default function InterviewFlow({ sessionId, initialSource = null, current
             {session.preview.fit.can_restore && session.phase !== 'completed' && <button type="button" disabled={busy || factEditing || sourceChanged} onClick={() => run(() => operation('preview-fit', { action: 'restore' }))}>{uiText('interview:fit.restore')}</button>}
           </div>}
           {session.preview.pages > 1 && session.phase === 'preview' && <InterviewTemplateOptions
-            key={`${session.id}-${session.revision}`} session={session} entitlements={entitlements}
+            key={`templates-${session.id}-${session.revision}`} session={session} entitlements={entitlements}
             disabled={busy || factEditing || sourceChanged || hasPending || session.preview.profile_revision !== profile.revision}
             autoCheck={autoTemplateRevision === session.revision} onAutoStart={() => setAutoTemplateRevision(null)}
             onSelect={candidate => run(() => operation('preview-template', {
               template_id: candidate.template_id, elements: candidate.elements, spacing_px: candidate.spacing_px,
             }), 'preview-template')} />}
-          <InterviewPreview key={`${session.id}-${session.revision}`} preview={session.preview} source={session.source_cv_data} facts={profile.facts}
+          <InterviewPreview key={`preview-${session.id}-${session.revision}`} preview={session.preview} source={session.source_cv_data} facts={profile.facts}
             disabled={busy || sourceChanged} onEditingChange={setFactEditing}
             onReview={session.phase === 'completed' ? undefined : (path, value) => run(async () => {
               await operation('preview-review', { path, value });

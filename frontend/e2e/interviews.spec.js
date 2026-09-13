@@ -4,6 +4,13 @@ import { installMockApi, PRO_ENTITLEMENTS } from './support/mockApi.js';
 const ID = 'f1fc439c-84f1-45ad-b23c-a3e384a81d3a';
 const nameFact = { id: 'name', text: 'Anna Nowak', path: '/name', kind: 'fact', source: 'manual', context: '' };
 
+/** Both responsive stage controls express the same allowed transition. */
+async function openPreparation(page) {
+  const button = page.getByRole('button', { name: '03 Przygotuj CV', exact: true });
+  if (await button.isVisible()) await button.click();
+  else await page.getByRole('combobox', { name: 'Etapy', exact: true }).selectOption('prepare');
+}
+
 async function installInterviewApi(page, recovered = false) {
   const entitlements = structuredClone(PRO_ENTITLEMENTS);
   const base = await installMockApi(page, { entitlements });
@@ -118,7 +125,7 @@ for (const width of [390, 834, 1280, 1920]) {
     await expect(page.getByRole('region', { name: 'Kredyty wywiadu' })).toContainText('Zużycie w tym wywiadzie: 7 kredytów');
     await page.getByRole('button', { name: /Sprawdź informacje/ }).click();
     await page.getByRole('button', { name: /Przejdź do (rozmowy|przygotowania CV)/ }).click();
-    await page.getByRole('button', { name: '03 Przygotuj CV', exact: true }).click();
+    await openPreparation(page);
     await page.getByLabel('Szablon nowego CV').selectOption('linden');
     await page.getByRole('button', { name: 'Przygotuj CV z potwierdzonych informacji' }).click();
     await expect(page.getByRole('heading', { name: 'Doprecyzujmy szczegóły' })).toBeVisible();
@@ -148,7 +155,7 @@ for (const width of [390, 834, 1280, 1920]) {
       }
       await expect(page.getByRole('button', { name: 'Przejdź do przygotowania CV', exact: true })).toBeVisible();
       await page.getByRole('button', { name: /Przejdź do (rozmowy|przygotowania CV)/ }).click();
-      await page.getByRole('button', { name: '03 Przygotuj CV', exact: true }).click();
+      await openPreparation(page);
       await page.getByRole('button', { name: 'Przygotuj CV z potwierdzonych informacji' }).click();
     }
     expect(api.calls.filter((call) => call.path.endsWith('/confirm'))).toHaveLength(1);
@@ -181,22 +188,25 @@ for (const width of [390, 834, 1280, 1920]) {
     await page.goto('/app/documents/41');
     await page.getByRole('button', { name: 'Otwórz asystenta AI', exact: true }).click();
     await page.getByRole('button', { name: 'Dopasuj do oferty', exact: true }).click();
+    await page.getByRole('radio', { name: 'Wklej treść', exact: true }).check();
     await page.getByLabel('Lub wklej treść oferty', { exact: true }).fill('Szukamy programisty React. Firma Przykład.');
     await page.getByRole('button', { name: 'Dopasuj z wywiadem', exact: true }).click();
     const flow = page.getByRole('region', { name: 'Wywiad zawodowy' });
     await expect(flow).toBeVisible();
     await flow.getByRole('button', { name: 'Rozpocznij wywiad', exact: true }).click();
     await flow.getByRole('button', { name: /Przejdź do (rozmowy|przygotowania CV)/ }).click();
-    await flow.getByRole('button', { name: '03 Przygotuj CV', exact: true }).click();
+    await openPreparation(flow);
     await expect(flow.getByLabel('Szablon nowego CV')).toHaveValue('sterling');
     await expect(flow.getByLabel('Szablon nowego CV')).toBeDisabled();
     await flow.getByRole('button', { name: 'Wczytaj aktualne CV do wywiadu' }).click();
     await flow.getByRole('button', { name: /Przejdź do (rozmowy|przygotowania CV)/ }).click();
-    await flow.getByRole('button', { name: '03 Przygotuj CV', exact: true }).click();
+    await openPreparation(flow);
     await flow.getByRole('button', { name: 'Przygotuj CV z potwierdzonych informacji' }).click();
     await expect(flow.getByRole('heading', { name: 'Twoja nowa wersja CV' })).toBeVisible();
     await expect(flow.getByRole('region', { name: 'Kredyty wywiadu' })).toContainText('Ostatnie zapytanie AI — Przygotowanie CV: 18 kredytów');
-    await expect(flow.getByRole('region', { name: 'Kredyty wywiadu' })).toContainText('Pozostało na koncie: 182 kredyty');
+    // The embedded host owns the account balance; the interview receipt only
+    // repeats its own settled cost, avoiding two competing balance readouts.
+    await expect(flow.getByRole('region', { name: 'Kredyty wywiadu' })).not.toContainText('Pozostało na koncie:');
     await expect(page.getByTitle('Wykorzystano 18 z 200 kredytów AI w tym miesiącu')).toContainText('182');
     await flow.getByText('Historia zapytań AI (1)').click();
     await expect(flow.getByText('Redakcja języka i stylu: 6 kredytów')).toBeVisible();
