@@ -1,7 +1,7 @@
 import { t as uiText } from "../../../i18n/index.js";
 import { useTranslation } from 'react-i18next';
 /**
- * Page navigation and structural page actions in the Topbar's left group.
+ * Page navigation and structural page actions in the Topbar's view group.
  * The separately exported spread toggle sits next to zoom on the fixed A4 rail.
  * Both components read the same page state from the canvas context.
  *

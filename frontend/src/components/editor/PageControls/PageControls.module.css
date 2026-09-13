@@ -1,5 +1,5 @@
-/* Page navigation sits with creation actions; the spread toggle reuses the
-   same control contract beside zoom in the unscaled A4 rail. */
+/* Pagination, zoom and spread share the Topbar view group and the same
+   compact control contract, independent of authored document geometry. */
 .bar {
     display: inline-flex;
     align-items: center;

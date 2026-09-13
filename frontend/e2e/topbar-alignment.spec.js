@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { installMockApi, login, SAVED_DOCUMENT } from "./support/mockApi.js";
 
-for (const width of [390, 834, 960, 1280, 1366, 1920]) {
+for (const width of [390, 834, 960, 1280, 1366, 1600, 1760, 1920]) {
   test(`template navigation stays centered and reachable at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 950 });
     await page.emulateMedia({ reducedMotion: "reduce" });
@@ -49,10 +49,11 @@ for (const width of [390, 834, 960, 1280, 1366, 1920]) {
     expect(Math.abs(geometry.center - geometry.canvasCenter)).toBeLessThanOrEqual(1);
     if (geometry.pageFits) {
       expect(Math.abs(geometry.center - geometry.pageCenter)).toBeLessThanOrEqual(1);
-      expect(Math.abs(geometry.historyLeft - geometry.pageLeft)).toBeLessThanOrEqual(1);
-      expect(geometry.viewLeft).toBeGreaterThanOrEqual(geometry.pageLeft);
-      expect(geometry.viewRight).toBeLessThanOrEqual(geometry.pageRight + 1);
+
     }
+    const viewGroup = page.getByRole("group", { name: "Widok dokumentu", exact: true });
+    await expect(viewGroup.getByRole("button", { name: "Poprzednia strona", exact: true })).toBeVisible();
+    await expect(viewGroup.getByRole("button", { name: "Powiększ", exact: true })).toBeVisible();
     const fixedControls = page.locator('[data-anchor="topbar-canvas-controls"]');
     const positions = () => fixedControls.evaluate((rail) => [...rail.children].map((child) => {
       const { x, y, width, height } = child.getBoundingClientRect();

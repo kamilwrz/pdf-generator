@@ -12,10 +12,10 @@ import { useTranslation } from 'react-i18next';
  * renders the current canvas on demand without saving. Both are
  * entitlement-gated upstream.
  *
- * The middle rail uses the unscaled page width: history starts at the 100%
- * page's left edge, templates stay centered, and zoom/spread sit over its right
- * side. Canvas zoom and two-page mode never move these controls. Creation and
- * pagination stay left; naming, saving, and downloading stay right.
+ * History follows creation in the left group. The middle rail reserves equal
+ * space around centered templates; pagination, zoom and spread sit on its right.
+ * Its width never follows live canvas zoom. Creation stays at the far left;
+ * naming, saving, and downloading stay at the far right.
  */
 import classes from "./Topbar.module.css";
 import { useEffect, useMemo, useRef } from "react";
@@ -103,7 +103,7 @@ export default function Topbar({ titleRef, title, onTitleChange }) {
         <header ref={topbarRef} className={classes.topbar}
             style={{ "--topbar-page-width": `${pageSize.width}px` }}
             data-anchor="editor-topbar">
-            {/* Creation and page navigation remain outside the 100% A4 rail. */}
+            {/* Creation stays separate from editing history and document-view controls. */}
             <div className={`${classes.group} ${classes.documentGroup}`}>
                 {isDemoContent ? (
                     <div className={classes.demoIdentity} aria-label="CV Studio Demo">
@@ -134,7 +134,14 @@ export default function Topbar({ titleRef, title, onTitleChange }) {
                     </button>
                 </div>}
                 <span className={classes.divider} aria-hidden="true" />
-                <PageControls />
+                <div className={classes.cluster} role="group" aria-label={uiText("editor:topbar.changeHistory")}>
+                    <button type="button" className={classes.iconBtn} onClick={undo} disabled={!canUndo} aria-label={uiText("editor:topbar.undo")} title={uiText("editor:topbar.undoCtrlZ")}>
+                        <RiArrowGoBackLine />
+                    </button>
+                    <button type="button" className={classes.iconBtn} onClick={redo} disabled={!canRedo} aria-label={uiText("editor:topbar.redo")} title={uiText("editor:topbar.redoCtrlShiftZ")}>
+                        <RiArrowGoForwardLine />
+                    </button>
+                </div>
                 {onePageFit ? (
                     <button
                         type="button"
@@ -150,14 +157,7 @@ export default function Topbar({ titleRef, title, onTitleChange }) {
             </div>
 
             <div className={classes.canvasGroup} data-anchor="topbar-canvas-controls">
-                <div className={classes.cluster} role="group" aria-label={uiText("editor:topbar.changeHistory")}>
-                    <button type="button" className={classes.iconBtn} onClick={undo} disabled={!canUndo} aria-label={uiText("editor:topbar.undo")} title={uiText("editor:topbar.undoCtrlZ")}>
-                        <RiArrowGoBackLine />
-                    </button>
-                    <button type="button" className={classes.iconBtn} onClick={redo} disabled={!canRedo} aria-label={uiText("editor:topbar.redo")} title={uiText("editor:topbar.redoCtrlShiftZ")}>
-                        <RiArrowGoForwardLine />
-                    </button>
-                </div>
+                <span className={classes.railSpacer} aria-hidden="true" />
                 {!isDemoContent ? <div className={classes.templateCluster} role="group" aria-label={uiText("editor:newCvSetupModal.cvTemplate")}>
                     {/* Adjacent template previews appear on hover and keyboard focus;
                     native titles also name the action when a preview is unavailable. */}
@@ -211,31 +211,35 @@ export default function Topbar({ titleRef, title, onTitleChange }) {
                 </div> : <span aria-hidden="true" />}
 
                 <div className={classes.viewGroup} role="group" aria-label={uiText("editor:topbar.documentView")}>
-                    {/* Stable view-controls anchor for editor chrome consumers. */}
-                    <div className={classes.zoomCluster} data-anchor="topbar-zoom">
-                        <button
-                            type="button"
-                            className={classes.zoomBtn}
-                            onClick={zoomOut}
-                            disabled={isTwoPageView || zoom <= 0.25}
-                            aria-label={uiText("editor:topbar.zoomOut")}
-                            title={uiText("editor:topbar.zoomOut")}
-                        >
-                            <FiZoomOut />
-                        </button>
-                        <span className={classes.zoomValue}>{isTwoPageView ? "100%" : `${Math.round(zoom * 100)}%`}</span>
-                        <button
-                            type="button"
-                            className={classes.zoomBtn}
-                            onClick={zoomIn}
-                            disabled={isTwoPageView || zoom >= 3}
-                            aria-label={uiText("editor:topbar.zoomIn")}
-                            title={uiText("editor:topbar.zoomIn")}
-                        >
-                            <FiZoomIn />
-                        </button>
+                    <PageControls />
+                    <span className={classes.divider} aria-hidden="true" />
+                    <div className={classes.cluster}>
+                        {/* Stable view-controls anchor for editor chrome consumers. */}
+                        <div className={classes.zoomCluster} data-anchor="topbar-zoom">
+                            <button
+                                type="button"
+                                className={classes.zoomBtn}
+                                onClick={zoomOut}
+                                disabled={isTwoPageView || zoom <= 0.25}
+                                aria-label={uiText("editor:topbar.zoomOut")}
+                                title={uiText("editor:topbar.zoomOut")}
+                            >
+                                <FiZoomOut />
+                            </button>
+                            <span className={classes.zoomValue}>{isTwoPageView ? "100%" : `${Math.round(zoom * 100)}%`}</span>
+                            <button
+                                type="button"
+                                className={classes.zoomBtn}
+                                onClick={zoomIn}
+                                disabled={isTwoPageView || zoom >= 3}
+                                aria-label={uiText("editor:topbar.zoomIn")}
+                                title={uiText("editor:topbar.zoomIn")}
+                            >
+                                <FiZoomIn />
+                            </button>
+                        </div>
+                        <TwoPageViewToggle />
                     </div>
-                    <TwoPageViewToggle />
                 </div>
             </div>
 
