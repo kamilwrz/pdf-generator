@@ -73,11 +73,12 @@ def prepare_editorial_draft(raw, profile):
 
 
 def apply_editorial_review(draft, review):
-    """Validate complete path/value patches and merge without changing citations.
+    """Merge usable prose patches without changing citations or source answers.
 
     Lexical guards catch changed metrics/tools, not all changes of meaning. Independent
-    verification against raw evidence remains mandatory after this check. ValueError
-    rejects the entire edit; no fragment can be applied before the check completes.
+    verification against raw evidence remains mandatory, including for retained draft
+    text. Ambiguous path sets raise ValueError before any patch is applied. A rejected
+    wording change keeps that field's draft value instead of aborting the whole CV.
     """
     editable = {f["path"]: f for f in draft["fields"] if PROSE_PATH.fullmatch(f["path"])}
     patches = {f["path"]: f["value"] for f in review["fields"]}
@@ -85,10 +86,13 @@ def apply_editorial_review(draft, review):
         raise ValueError("Missing, duplicate or unexpected editorial path")
     for path, value in patches.items():
         before = editable[path]["value"]
-        if not value.strip() or not preserves_protected_tokens(before, value):
-            raise ValueError("Empty prose or changed protected tokens")
-        if re.findall(r"\[[^\]]+\]", before) != re.findall(r"\[[^\]]+\]", value):
-            raise ValueError("Changed editorial placeholders")
+        if (not value.strip() or not preserves_protected_tokens(before, value)
+                or re.findall(r"\[[^\]]+\]", before) != re.findall(r"\[[^\]]+\]", value)):
+            # A style suggestion is optional; its rejection must not strand a
+            # paid draft. Restore only this field, keeping usable sibling edits.
+            # This is still generated text, never trusted source evidence: the
+            # next stage verifies the exact merged result before publication.
+            patches[path] = before
     result = deepcopy(draft)
     for field in result["fields"]:
         if field["path"] in patches:

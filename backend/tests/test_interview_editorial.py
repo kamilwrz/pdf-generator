@@ -92,10 +92,7 @@ def test_pipeline_checks_edited_text_against_unchanged_raw_answers(environment, 
     [],
     [{'path': '/name', 'value': 'Inna osoba'}],
     [{'path': '/summary', 'value': PROFESSIONAL}] * 2,
-    [{'path': '/summary', 'value': 'Wspierałem zespół w testowaniu 40 scenariuszy.'}],
-    [{'path': '/summary', 'value': 'Wspierałem zespół w testowaniu 4 scenariuszy w Kubernetes.'}],
-    [{'path': '/summary', 'value': 'Wspierałem zespół w testowaniu 4 scenariuszy [wynik].'}],
-    [{'path': '/summary', 'value': ' '}],
+    [{'path': '/summary', 'value': ''}],
 ])
 def test_invalid_editorial_response_is_atomic_and_retryable(environment, fields):
     client, db, _, _ = environment
@@ -306,8 +303,7 @@ def test_editorial_preserves_metrics_levels_and_version_numbers(before, after):
     # Digits embedded in levels or versions are facts even without a word
     # boundary before them; a different year cannot replace a missing metric.
     draft = {'fields': [{'path': '/summary', 'value': before, 'evidence_refs': ['a']}], 'remaining_gaps': []}
-    with pytest.raises(ValueError):
-        apply_editorial_review(draft, {'fields': [{'path': '/summary', 'value': after}]})
+    assert apply_editorial_review(draft, {'fields': [{'path': '/summary', 'value': after}]}) == draft
 
 
 def test_pending_unknown_outcome_cannot_be_bypassed_by_session_revision(environment):
@@ -323,3 +319,83 @@ def test_pending_unknown_outcome_cannot_be_bypassed_by_session_revision(environm
         provider.assert_not_called()
     assert retry.status_code == 409
     assert db.query(AiCreditReservation).filter_by(status='pending').count() == 1
+
+
+@pytest.mark.parametrize('mode', ['create', 'enrich', 'tailor'])
+@pytest.mark.parametrize('replacement', [
+    'Wspierałem zespół w testowaniu 40 scenariuszy.',
+    'Wspierałem zespół w testowaniu 4 scenariuszy w Kubernetes.',
+    'Wspierałem zespół w testowaniu 4 scenariuszy [wynik].',
+    ' ',
+])
+def test_rejected_style_patch_keeps_draft_and_finishes_verification(environment, mode, replacement):
+    """One unusable wording change must not discard the paid draft or raw answers."""
+    client, db, user, _ = environment
+    session = setup_answer(client, db, mode=mode, job_description='Tester' if mode == 'tailor' else '')
+    draft = draft_for_answer()
+    review = {'fields': [{'path': '/summary', 'value': replacement}]}
+    with patch.object(service, '_gpt', side_effect=[(draft, USAGE), (review, USAGE), (VERIFIED, USAGE)]) as provider:
+        result = generate(client, session)
+    assert result.status_code == 200, result.text
+    checked = json.loads(provider.call_args_list[-1].args[1])
+    assert checked['draft'] == draft['fields']
+    saved = result.json()
+    assert saved['phase'] == 'preview'
+    assert saved['preview']['cv_data']['summary'] == RAW
+    assert saved['answers'] == session['answers']
+    assert db.query(AiCreditReservation).filter_by(user_id=user.id, status='settled').count() == 3
+
+
+def test_editorial_fallback_preserves_valid_siblings_citations_and_inputs():
+    draft = {'fields': [
+        {'path': '/name', 'value': 'Anna Nowak', 'evidence_refs': ['name']},
+        {'path': '/summary', 'value': 'Testowałam 4 scenariusze.', 'evidence_refs': ['a']},
+        {'path': '/experience/0/bullets/0', 'value': 'robiłam raporty', 'evidence_refs': ['b']},
+    ], 'remaining_gaps': ['Rezultat']}
+    review = {'fields': [
+        {'path': '/experience/0/bullets/0', 'value': 'Przygotowywałam raporty.'},
+        {'path': '/summary', 'value': 'Testowałam 40 scenariuszy.'},
+    ]}
+    before_draft, before_review = deepcopy(draft), deepcopy(review)
+    result = apply_editorial_review(draft, review)
+    assert result['fields'][:2] == draft['fields'][:2]
+    assert result['fields'][2] == {**draft['fields'][2], 'value': 'Przygotowywałam raporty.'}
+    assert result['remaining_gaps'] == draft['remaining_gaps']
+    assert (draft, review) == (before_draft, before_review)
+
+
+def test_retained_draft_is_not_trusted_when_verifier_rejects_it(environment):
+    client, db, _, _ = environment
+    session = setup_answer(client, db)
+    draft = draft_for_answer()
+    draft['fields'][0]['value'] = 'Samodzielnie testowałem 4 scenariusze.'
+    style = {'fields': [{'path': '/summary', 'value': 'Samodzielnie testowałem 40 scenariuszy.'}]}
+    rejected = {'unsupported_paths': ['/summary'], 'reasons': ['Niepotwierdzona samodzielność.']}
+    with patch.object(service, '_gpt', side_effect=[(draft, USAGE), (style, USAGE), (rejected, USAGE)]) as provider:
+        result = generate(client, session)
+    assert result.status_code == 200, result.text
+    assert json.loads(provider.call_args_list[-1].args[1])['draft'] == draft['fields']
+    assert result.json()['phase'] == 'clarification'
+    assert not result.json()['preview']['changes']
+    assert 'Samodzielnie' not in str(result.json()['preview']['cv_data'])
+
+
+def test_editorial_fallback_is_replayed_after_verification_failure(environment):
+    client, db, user, _ = environment
+    session = setup_answer(client, db)
+    style = {'fields': [{'path': '/summary', 'value': 'Testowałem 40 scenariuszy.'}]}
+    with patch.object(service, '_gpt', side_effect=[
+        (draft_for_answer(), USAGE), (style, USAGE),
+        service.AIServiceError('Unavailable', reservation_outcome='release'),
+    ]):
+        assert generate(client, session).status_code == 500
+    resumed = client.get(f"/ai/interviews/{session['id']}").json()
+    with patch.object(service, '_gpt', return_value=(VERIFIED, USAGE)) as provider:
+        result = generate(client, resumed)
+    assert result.status_code == 200, result.text
+    assert provider.call_count == 1
+    assert provider.call_args.kwargs['response_schema']['name'] == 'verification'
+    assert json.loads(provider.call_args.args[1])['draft'] == draft_for_answer()['fields']
+    assert result.json()['preview']['cv_data']['summary'] == RAW
+    assert result.json()['answers'] == session['answers']
+    assert db.query(AiCreditReservation).filter_by(user_id=user.id, status='settled').count() == 3
